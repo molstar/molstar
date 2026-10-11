@@ -22,6 +22,7 @@ export const classes = {
   'mapped': 'msp-params-params-form-mapped',
   'nested': 'msp-params-params-form-nested',
   'number': 'msp-params-params-form-number',
+  'range': 'msp-params-params-form-range',
   'row': 'msp-params-params-form-row',
   'select': 'msp-params-params-form-select',
   'slider': 'msp-params-params-form-slider',
@@ -87,10 +88,64 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   grid-template-columns: minmax(0, 1fr) 52px;
   width: 100%;
   display: grid;
+}
 
-  & input[type="range"] {
-    width: 100%;
-    accent-color: var(--msp-color-accent);
+.msp-params-params-form-range {
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  background: none;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+
+  &::-webkit-slider-runnable-track {
+    background: linear-gradient(to right,
+      var(--msp-color-text-muted) var(--msp-progress, 0%),
+      var(--msp-color-border-strong) var(--msp-progress, 0%));
+    border-radius: 1px;
+    height: 2px;
+  }
+
+  &::-webkit-slider-thumb {
+    background: var(--msp-color-text);
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    transition: transform var(--msp-motion-fast) var(--msp-ease);
+    border-radius: 50%;
+    margin-top: -4px;
+  }
+
+  &:hover::-webkit-slider-thumb, &:active::-webkit-slider-thumb {
+    transform: scale(1.25);
+  }
+
+  &::-moz-range-track {
+    background: var(--msp-color-border-strong);
+    border-radius: 1px;
+    height: 2px;
+  }
+
+  &::-moz-range-progress {
+    background: var(--msp-color-text-muted);
+    border-radius: 1px;
+    height: 2px;
+  }
+
+  &::-moz-range-thumb {
+    background: var(--msp-color-text);
+    border: 0;
+    border-radius: 50%;
+    width: 10px;
+    height: 10px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--msp-radius-sm);
   }
 }
 

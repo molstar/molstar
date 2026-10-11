@@ -6,13 +6,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { MaybeReactive } from '../../dom/scope.js';
+import { distinctUntilChanged, map, type Observable } from 'rxjs';
+import { Show } from '../../dom/control-flow.js';
+import { bind, type MaybeReactive, onCleanup, toStream } from '../../dom/scope.js';
+import { type ObservableState, observableState } from '../../reactive/observable-state.js';
 import { Icon } from '../icon/icon.js';
 import { classes } from './_generated/select.module.css.js';
 
+export type SelectOption = readonly [value: string, label: string];
+
 export interface SelectProps {
-  /** The options as [value, label]. */
-  options: readonly (readonly [value: string, label: string])[];
+  options: readonly SelectOption[];
   value?: MaybeReactive<string>;
   onChange?(value: string): void;
   size?: 'sm' | 'md';
@@ -22,24 +26,139 @@ export interface SelectProps {
 }
 
 /**
- * A dropdown that looks the same on every platform: the native `<select>` (its keyboard handling, accessibility and
- * option list) with the platform's own look removed, drawn with the theme's control color, radius, and a chevron.
+ * A choice that expands inline (Mol*'s action menu): the button shows the current option; opened, the options list
+ * right under it, the current one marked. Looks and works the same on every platform; arrows move, Enter picks, Esc
+ * closes. Forms put the list under the whole row (`SelectButton` + `OptionList`).
  */
 export function Select(props: SelectProps) {
+  const open = observableState(false);
+  const value = toValue(props.value);
   return (
-    <span class={`${classes.select} ${props.class ?? ''}`} data-size={props.size ?? 'md'}>
-      <select
-        class={classes.native}
-        value={props.value}
+    <span class={`${classes.select} ${props.class ?? ''}`}>
+      <SelectButton
+        label={value.pipe(map((v) => props.options.find((o) => o[0] === v)?.[1] ?? ''))}
+        open={open}
+        size={props.size}
         title={props.title}
         aria-label={props['aria-label']}
-        onChange={(e) => props.onChange?.((e.currentTarget as HTMLSelectElement).value)}
-      >
-        {props.options.map(([value, label]) => (
-          <option value={value}>{label}</option>
-        ))}
-      </select>
-      <Icon name="chevron-down" size={14} class={classes.chevron} />
+      />
+      <Show when={open}>
+        {() => (
+          <OptionList
+            options={props.options}
+            value={value}
+            onPick={(v) => {
+              open.set(false);
+              props.onChange?.(v);
+            }}
+            onClose={() => open.set(false)}
+          />
+        )}
+      </Show>
     </span>
   );
+}
+
+/** The closed choice: the current option's label and a chevron; toggles `open`. */
+export function SelectButton(props: {
+  label: Observable<string>;
+  open: ObservableState<boolean>;
+  size?: 'sm' | 'md';
+  title?: string;
+  'aria-label'?: string;
+}) {
+  return (
+    <button
+      type="button"
+      class={classes.button}
+      data-size={props.size ?? 'md'}
+      aria-haspopup="listbox"
+      aria-expanded={props.open}
+      aria-label={props['aria-label']}
+      title={props.title}
+      onClick={() => props.open.set(!props.open.value)}
+    >
+      <span class={classes.label}>{props.label}</span>
+      <Icon name="chevron-down" size={14} class={classes.chevron} />
+    </button>
+  );
+}
+
+/**
+ * The options, inline: the current one marked; focused on open (the current option), arrows move, Enter or a click
+ * picks, Esc closes, and so does a click elsewhere.
+ */
+export function OptionList(props: {
+  options: readonly SelectOption[];
+  value: Observable<string | undefined>;
+  onPick(value: string): void;
+  onClose(): void;
+}) {
+  const buttons: HTMLButtonElement[] = [];
+  const focus = (i: number) => buttons[Math.max(0, Math.min(buttons.length - 1, i))]?.focus();
+  const list = (
+    <div
+      class={classes.list}
+      role="listbox"
+      onKeyDown={(e) => {
+        const i = buttons.indexOf(document.activeElement as HTMLButtonElement);
+        if (e.key === 'ArrowDown') focus(i + 1);
+        else if (e.key === 'ArrowUp') focus(i - 1);
+        else if (e.key === 'Home') focus(0);
+        else if (e.key === 'End') focus(buttons.length - 1);
+        else if (e.key === 'Escape') props.onClose();
+        else return;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
+      {props.options.map(([value, label]) => {
+        const button = (
+          <button
+            type="button"
+            role="option"
+            class={classes.option}
+            aria-selected={props.value.pipe(
+              map((v) => v === value),
+              distinctUntilChanged(),
+            )}
+            onClick={() => props.onPick(value)}
+          >
+            <span>{label}</span>
+            <Icon name="check" size={14} class={classes.check} />
+          </button>
+        ) as HTMLButtonElement;
+        buttons.push(button);
+        return button;
+      })}
+    </div>
+  ) as HTMLElement;
+  // Focus the current option once placed; close on a press outside the list and its button.
+  let current: string | undefined;
+  bind(props.value, (v) => {
+    current = v;
+  });
+  queueMicrotask(() =>
+    focus(
+      Math.max(
+        0,
+        props.options.findIndex((o) => o[0] === current),
+      ),
+    ),
+  );
+  const onDown = (e: PointerEvent) => {
+    const target = e.target as Element;
+    if (list.contains(target) || target.closest?.('[aria-haspopup="listbox"][aria-expanded="true"]')) return;
+    props.onClose();
+  };
+  document.addEventListener('pointerdown', onDown, true);
+  onCleanup(() => document.removeEventListener('pointerdown', onDown, true));
+  return list;
+}
+
+function toValue(value: MaybeReactive<string> | undefined): Observable<string | undefined> {
+  const stream = toStream(value as MaybeReactive<string | undefined>);
+  if (stream) return stream as Observable<string | undefined>;
+  const state = observableState<string | undefined>(value as string | undefined);
+  return state.asReadonly;
 }

@@ -173,6 +173,8 @@
 /* The options button sits at the end of the header row. */
 .optionsButton {
   margin-left: auto;
+  /* Level with the header's ✕ (8px from the panel's edge: the 4px inset and 4px more). */
+  margin-right: var(--msp-space-1);
 }
 
 .options {

@@ -48,7 +48,8 @@
 }
 
 .body {
-  padding: 0 var(--msp-space-3) var(--msp-space-3);
+  /* A little room under the header before the first control. */
+  padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
 }
 
 .list[data-flat] {

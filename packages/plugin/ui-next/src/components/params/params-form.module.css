@@ -61,10 +61,69 @@
   align-items: center;
   gap: var(--msp-space-2);
   width: 100%;
+}
 
-  & input[type="range"] {
-    width: 100%;
-    accent-color: var(--msp-color-accent);
+/* A quiet slider, like the trajectory scrubber: a thin track, its filled part in muted text, a small knob in the text
+   color (no accent: a slider is not the action). */
+.range {
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 2px;
+    border-radius: 1px;
+    background: linear-gradient(
+      to right,
+      var(--msp-color-text-muted) var(--msp-progress, 0%),
+      var(--msp-color-border-strong) var(--msp-progress, 0%)
+    );
+  }
+
+  &::-webkit-slider-thumb {
+    width: 10px;
+    height: 10px;
+    margin-top: -4px;
+    border-radius: 50%;
+    background: var(--msp-color-text);
+    appearance: none;
+    -webkit-appearance: none;
+    transition: transform var(--msp-motion-fast) var(--msp-ease);
+  }
+
+  &:hover::-webkit-slider-thumb,
+  &:active::-webkit-slider-thumb {
+    transform: scale(1.25);
+  }
+
+  &::-moz-range-track {
+    height: 2px;
+    border-radius: 1px;
+    background: var(--msp-color-border-strong);
+  }
+
+  &::-moz-range-progress {
+    height: 2px;
+    border-radius: 1px;
+    background: var(--msp-color-text-muted);
+  }
+
+  &::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--msp-color-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--msp-radius-sm);
   }
 }
 

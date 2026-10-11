@@ -13,7 +13,7 @@ import { Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { ParamsFormModel } from '../../forms/params-form.js';
 import { observableState } from '../../reactive/observable-state.js';
-import { Select } from '../select/select.js';
+import { OptionList, SelectButton } from '../select/select.js';
 import { ColorPicker, colorToHex } from '../color/color-picker.js';
 import { Icon } from '../icon/icon.js';
 import { classes } from './_generated/params-form.module.css.js';
@@ -66,6 +66,13 @@ function ParamRow(props: { name: string; param: PD.Any; binding: FieldBinding; v
       </div>
     );
   }
+  if (param.type === 'select') {
+    return (
+      <div hidden={hidden}>
+        <SelectRow label={label} description={param.description} options={param.options} binding={binding} />
+      </div>
+    );
+  }
   if (param.type === 'color') {
     return (
       <div hidden={hidden}>
@@ -108,8 +115,6 @@ function control(param: PD.Any, binding: FieldBinding): Child {
       return <Toggle binding={binding} />;
     case 'number':
       return <NumberControl param={param} binding={binding} />;
-    case 'select':
-      return <SelectControl options={param.options} binding={binding} />;
     case 'text':
       return (
         <input
@@ -159,11 +164,18 @@ function NumberControl(props: { param: PD.Numeric; binding: FieldBinding }) {
   return (
     <div class={classes.slider}>
       <input
+        class={classes.range}
         type="range"
         min={String(param.min)}
         max={String(param.max)}
         step={String(param.step ?? (param.max - param.min) / 100)}
         value={binding.value.pipe(map(String))}
+        style={{
+          // The filled part of the track, for the quiet styling (no native accent fill).
+          '--msp-progress': binding.value.pipe(
+            map((v: number) => `${(100 * (v - param.min!)) / (param.max! - param.min! || 1)}%`),
+          ),
+        }}
         onInput={(e) => binding.set(Number(e.currentTarget.value))}
       />
       <input
@@ -184,17 +196,47 @@ function format(v: number, step?: number) {
   return v.toFixed(digits);
 }
 
-function SelectControl(props: { options: readonly PD.SelectOption<any>[]; binding: FieldBinding }) {
+/**
+ * A choice as a row: the label and the current option; opened, the options expand inline under the whole row (Mol*'s
+ * action menu). Values may be any type: the list works with indices.
+ */
+function SelectRow(props: {
+  label: string;
+  description?: string;
+  options: readonly PD.SelectOption<any>[];
+  binding: FieldBinding;
+}) {
   const { options, binding } = props;
-  // Values may be any type: the select works with indices.
+  const open = observableState(false);
+  const index = binding.value.pipe(map((v) => String(options.findIndex((o) => o[0] === v))));
+  const indexed = options.map(([, label], i) => [String(i), label] as const);
   return (
-    <Select
-      class={classes.select}
-      size="sm"
-      options={options.map(([, label], i) => [String(i), label] as const)}
-      value={binding.value.pipe(map((v) => String(options.findIndex((o) => o[0] === v))))}
-      onChange={(i) => binding.set(options[Number(i)][0])}
-    />
+    <>
+      <div class={classes.row} title={props.description}>
+        <span class={classes.label}>{props.label}</span>
+        <div class={classes.control}>
+          <SelectButton
+            size="sm"
+            open={open}
+            aria-label={props.label}
+            label={index.pipe(map((i) => indexed[Number(i)]?.[1] ?? ''))}
+          />
+        </div>
+      </div>
+      <Show when={open}>
+        {() => (
+          <OptionList
+            options={indexed}
+            value={index}
+            onPick={(i) => {
+              open.set(false);
+              binding.set(options[Number(i)][0]);
+            }}
+            onClose={() => open.set(false)}
+          />
+        )}
+      </Show>
+    </>
   );
 }
 
@@ -226,12 +268,7 @@ function MappedControl(props: { label: string; param: PD.Mapped<any>; binding: F
   };
   return (
     <div class={classes.mapped}>
-      <div class={classes.row}>
-        <span class={classes.label}>{props.label}</span>
-        <div class={classes.control}>
-          <SelectControl options={param.select.options} binding={nameBinding} />
-        </div>
-      </div>
+      <SelectRow label={props.label} options={param.select.options} binding={nameBinding} />
       <Show when={name}>
         {(n) => {
           const inner = param.map(n);

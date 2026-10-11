@@ -39,22 +39,31 @@ describe('StructureTab', () => {
   it('picks a node into the inspector, and form edits change the tree', () => {
     const { container, row } = mount();
     row('Cartoon').click();
-    const type = container.querySelector('select') as HTMLSelectElement;
-    expect(type.options[type.selectedIndex].text).toBe('Cartoon');
-    type.value = String([...type.options].findIndex((o) => o.text === 'Spacefill'));
-    type.dispatchEvent(new Event('change'));
+    // A choice expands inline: open it, pick an option.
+    const choose = (label: string, option: string) => {
+      const button = container.querySelector(
+        `button[aria-haspopup=listbox][aria-label="${label}"]`,
+      ) as HTMLButtonElement;
+      button.click();
+      const pick = [...container.querySelectorAll('[role=listbox] [role=option]')].find(
+        (o) => o.textContent === option,
+      ) as HTMLButtonElement;
+      pick.click();
+    };
+    const type = container.querySelector('button[aria-haspopup=listbox][aria-label=Type]') as HTMLButtonElement;
+    expect(type.textContent).toBe('Cartoon');
+    choose('Type', 'Spacefill');
     expect(row('Spacefill')).toBeDefined();
+    expect(container.querySelector('[role=listbox]')).toBeNull();
     // The mapped color param: switching to Uniform shows its own params (a color).
-    const color = container.querySelectorAll('select')[1] as HTMLSelectElement;
-    color.value = String([...color.options].findIndex((o) => o.text === 'Uniform'));
-    color.dispatchEvent(new Event('change'));
+    choose('Color', 'Uniform');
     // A color row: the swatch button opens the palette under it.
     const swatch = [...container.querySelectorAll('[aria-label=Inspector] button[aria-expanded]')].find((b) =>
       b.textContent?.startsWith('#'),
     ) as HTMLButtonElement;
     expect(swatch.textContent).toBe('#2e86c1');
     swatch.click();
-    expect(container.querySelectorAll('[role=option]').length).toBeGreaterThan(8);
+    expect(container.querySelectorAll('[role=listbox][aria-label=Palette] [role=option]').length).toBeGreaterThan(8);
   });
 
   it('toggles visibility inline without picking', () => {

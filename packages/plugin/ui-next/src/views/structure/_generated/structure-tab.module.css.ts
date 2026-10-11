@@ -192,6 +192,7 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 
 .msp-structure-structure-tab-optionsButton {
   margin-left: auto;
+  margin-right: var(--msp-space-1);
 }
 
 .msp-structure-structure-tab-options {

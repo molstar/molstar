@@ -62,7 +62,7 @@ defineStyles('views/shell/section-list.module.css', `@layer msp.components {
 }
 
 .msp-shell-section-list-body {
-  padding: 0 var(--msp-space-3) var(--msp-space-3);
+  padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
 }
 
 .msp-shell-section-list-list[data-flat] {

@@ -5,36 +5,32 @@
  */
 
 .select {
-  position: relative;
-  display: inline-flex;
+  display: grid;
+  gap: var(--msp-space-1);
+  min-width: 0;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  width: 100%;
   min-width: 0;
   height: var(--msp-control-height);
+  padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+  transition: background-color var(--msp-motion-fast) var(--msp-ease);
 
   &[data-size="sm"] {
     height: 24px;
   }
-}
 
-/* The platform's look removed: same box, font and arrow on every OS. */
-.native {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  margin: 0;
-  padding: 0 calc(var(--msp-space-3) + 18px) 0 var(--msp-space-3);
-  border: 0;
-  border-radius: var(--msp-radius-md);
-  appearance: none;
-  -webkit-appearance: none;
-  background: var(--msp-color-control);
-  color: var(--msp-color-text);
-  font: inherit;
-  font-size: var(--msp-font-size-sm);
-  text-overflow: ellipsis;
-  cursor: pointer;
-  transition: background-color var(--msp-motion-fast) var(--msp-ease);
-
-  &:hover {
+  &:hover,
+  &[aria-expanded="true"] {
     background: var(--msp-color-hover);
   }
 
@@ -42,19 +38,76 @@
     outline: 2px solid var(--msp-color-focus-ring);
     outline-offset: 1px;
   }
+}
 
-  /* The open list stays the platform's; give it the theme's colors where the platform allows. */
-  & option {
-    background: var(--msp-color-panel);
-    color: var(--msp-color-text);
-  }
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chevron {
-  position: absolute;
-  top: 50%;
-  right: var(--msp-space-3);
+  flex: none;
   color: var(--msp-color-text-muted);
-  transform: translateY(-50%);
-  pointer-events: none;
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(180deg);
+  }
+}
+
+/* The options, inline under what opened them (Mol*'s action menu): an accent bar on the left says where they belong,
+   the current one checked. */
+.list {
+  display: grid;
+  max-height: 240px;
+  padding: var(--msp-space-1);
+  overflow: auto;
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  box-shadow: inset 2px 0 0 var(--msp-color-accent);
+  animation: list-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+@keyframes list-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msp-space-2);
+  min-height: 26px;
+  padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+    outline: none;
+  }
+
+  &[aria-selected="true"] {
+    color: var(--msp-color-accent);
+    font-weight: 600;
+  }
+}
+
+.check {
+  flex: none;
+  visibility: hidden;
+
+  [aria-selected="true"] > & {
+    visibility: visible;
+  }
 }
