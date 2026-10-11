@@ -79,20 +79,25 @@ export function ActionBlock(props: { action: HomeAction; open: boolean }) {
         {() => (
           <div class={classes.actionBody}>
             {action.form ? <ParamsForm form={action.form} /> : null}
+            {/* Mol*'s footer, flat: set defaults on the left, the action across the rest, its label at the right. */}
             <div class={classes.actionFooter}>
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={busy}
-                icon={
-                  <Show when={busy} fallback={() => <Icon name={action.icon} />}>
-                    {() => <Icon name="loader-circle" class={classes.spin} />}
-                  </Show>
-                }
-                onClick={() => action.apply()}
-              >
-                {action.applyLabel ?? 'Apply'}
-              </Button>
+              {action.form ? (
+                <button
+                  type="button"
+                  class={classes.actionReset}
+                  data-tip="Set defaults"
+                  aria-label="Set defaults"
+                  onClick={() => action.form?.reset()}
+                >
+                  <Icon name="rotate-ccw" size={14} />
+                </button>
+              ) : null}
+              <button type="button" class={classes.actionApply} disabled={busy} onClick={() => action.apply()}>
+                <Show when={busy} fallback={() => <Icon name={action.icon} size={15} />}>
+                  {() => <Icon name="loader-circle" size={15} class={classes.spin} />}
+                </Show>
+                <span>{action.applyLabel ?? 'Apply'}</span>
+              </button>
             </div>
           </div>
         )}

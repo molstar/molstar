@@ -10,10 +10,12 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'action': 'msp-home-home-tab-action',
+  'actionApply': 'msp-home-home-tab-actionApply',
   'actionBody': 'msp-home-home-tab-actionBody',
   'actionDescription': 'msp-home-home-tab-actionDescription',
   'actionFooter': 'msp-home-home-tab-actionFooter',
   'actionHeader': 'msp-home-home-tab-actionHeader',
+  'actionReset': 'msp-home-home-tab-actionReset',
   'actionTitle': 'msp-home-home-tab-actionTitle',
   'caption': 'msp-home-home-tab-caption',
   'captionRow': 'msp-home-home-tab-captionRow',
@@ -53,6 +55,7 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 
 .msp-home-home-tab-action {
   border-radius: var(--msp-radius-md);
+  overflow: hidden;
 
   &[data-open] {
     background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
@@ -103,13 +106,51 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 
 .msp-home-home-tab-actionBody {
   gap: var(--msp-space-2);
-  padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-3);
+  padding: var(--msp-space-1) var(--msp-space-3) 0;
   display: grid;
 }
 
 .msp-home-home-tab-actionFooter {
-  justify-content: flex-end;
+  height: 30px;
+  margin: var(--msp-space-1) calc(-1 * var(--msp-space-3)) 0;
+  border-top: 1px solid var(--msp-glass-edge);
   display: flex;
+}
+
+.msp-home-home-tab-actionReset {
+  border-right: 1px solid var(--msp-glass-edge);
+  width: 32px;
+  color: var(--msp-color-text-muted);
+  flex: none;
+  place-items: center;
+  display: grid;
+
+  &:hover, &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+    outline: none;
+  }
+}
+
+.msp-home-home-tab-actionApply {
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: 0 var(--msp-space-4);
+  color: var(--msp-color-accent-strong);
+  flex: 1;
+  font-weight: 600;
+  display: flex;
+
+  &:hover, &:focus-visible {
+    background: color-mix(in oklab, var(--msp-color-accent), transparent 90%);
+    outline: none;
+  }
+
+  &:disabled {
+    color: var(--msp-color-text-subtle);
+    background: none;
+  }
 }
 
 .msp-home-home-tab-recent {

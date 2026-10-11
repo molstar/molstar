@@ -27,6 +27,7 @@
 
 /* An action: a row that folds open to its form; open, a quiet surface holds it together. */
 .action {
+  overflow: hidden;
   border-radius: var(--msp-radius-md);
 
   &[data-open] {
@@ -79,12 +80,53 @@
 .actionBody {
   display: grid;
   gap: var(--msp-space-2);
-  padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-3);
+  padding: var(--msp-space-1) var(--msp-space-3) 0;
 }
 
+/* The block's last row, edge to edge under a hairline: set defaults, then the action across the rest (Mol*'s footer). */
 .actionFooter {
   display: flex;
+  height: 30px;
+  margin: var(--msp-space-1) calc(-1 * var(--msp-space-3)) 0;
+  border-top: 1px solid var(--msp-glass-edge);
+}
+
+.actionReset {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  border-right: 1px solid var(--msp-glass-edge);
+  color: var(--msp-color-text-muted);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+    outline: none;
+  }
+}
+
+.actionApply {
+  flex: 1;
+  display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--msp-space-2);
+  padding: 0 var(--msp-space-4);
+  color: var(--msp-color-accent-strong);
+  font-weight: 600;
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in oklab, var(--msp-color-accent), transparent 90%);
+    outline: none;
+  }
+
+  &:disabled {
+    color: var(--msp-color-text-subtle);
+    background: none;
+  }
 }
 
 .recent {
