@@ -4,15 +4,51 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+.setup,
+.intro,
+.own,
+.keyForm {
+  display: grid;
+  gap: var(--msp-space-2);
+}
+
 .setup {
   font-size: var(--msp-font-size-sm);
 }
 
-.needed,
-.configured,
-.own {
-  display: grid;
-  gap: var(--msp-space-2);
+.intro {
+  gap: var(--msp-space-1);
+}
+
+/* How long a key is kept: three words, the chosen one on the control surface. */
+.scopes {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  padding-left: var(--msp-space-3);
+}
+
+.scopesLabel {
+  margin-right: var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.scope {
+  height: 22px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[aria-checked="true"] {
+    background: var(--msp-color-control);
+    color: var(--msp-color-text);
+  }
 }
 
 .lead {
@@ -91,6 +127,14 @@
   display: grid;
   gap: var(--msp-space-1);
   padding: 2px 0;
+
+  /* A key being entered: on a quiet surface under its provider. */
+  & > .keyForm {
+    margin-bottom: var(--msp-space-1);
+    padding: var(--msp-space-2);
+    border-radius: var(--msp-radius-md);
+    background: var(--msp-color-well);
+  }
 }
 
 .providerHead {

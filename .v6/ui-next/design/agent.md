@@ -99,12 +99,16 @@ the state tree's undo does not cover (camera, selection, focus).
 - **History** (the Log tab grows into it): every command, newest first; the person's one per row, an agent's grouped
   under its request with its answer, its commands folded under a one-line summary, and the checkpoint before it with
   _Undo turn_; Messages (the old log) one switch away.
-- **The Assistant tab**, at the rail's foot by Settings (as Stories untold sets up any-model-adapters): with no key,
-  what the assistant is and a key to add (Anthropic, Gemini, OpenAI); then the model it uses (only providers with a
-  key), each provider's key (kept here, from the server, none; add, remove), and one's own OpenAI-compatible endpoint
-  (name, URL, chat completions or Responses, key, model; OpenRouter, Ollama, vLLM, LiteLLM; the server must allow CORS).
-  Keys stay in this browser, encrypted at rest, and go only to their provider; with a server-side agent they come from
-  its environment instead.
+- **The Assistant tab**, at the rail's foot by Settings (as Stories untold sets up any-model-adapters): one list of
+  providers (Anthropic, Gemini, OpenAI, and one's own), each with its key (as many as one likes): its state (none, until
+  reload, for this session, kept in this browser, from the server), Add key / Change / Remove; entering a key also
+  chooses how long it is kept (_Until reload_: memory only; _This session_; _This browser_). With no key yet, a word on
+  what the assistant is comes first and the first provider's key is open. Then the model in use (only providers with a
+  key), and one's own OpenAI-compatible endpoint (name, URL, chat completions or Responses, model, an optional key;
+  OpenRouter, Ollama, vLLM, LiteLLM; the server must allow CORS). Keys go only to their provider; kept ones are stored
+  scrambled (encrypted with a key this browser keeps, as Stories does), so the storage read as it is gives no working
+  key, which the tab says, along with what it does not guard against (code running in the page). With a server-side
+  agent, keys come from its environment instead.
 - While an agent runs, the person's own commands still run (they are attributed to the person); undoing a turn also
   discards what the person did after it, and says so.
 

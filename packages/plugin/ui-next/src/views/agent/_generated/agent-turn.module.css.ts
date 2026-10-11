@@ -38,6 +38,7 @@ export const classes = {
   'summary': 'msp-agent-agent-turn-summary',
   'text': 'msp-agent-agent-turn-text',
   'undo': 'msp-agent-agent-turn-undo',
+  'undone': 'msp-agent-agent-turn-undone',
 } as const;
 
 defineStyles('views/agent/agent-turn.module.css', `@layer msp.components {
@@ -299,9 +300,22 @@ defineStyles('views/agent/agent-turn.module.css', `@layer msp.components {
 
 .msp-agent-agent-turn-summary {
   min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
   flex: 1;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
+}
+
+.msp-agent-agent-turn-undone {
+  padding: 0 var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  flex: none;
 }
 
 .msp-agent-agent-turn-undo {

@@ -11,6 +11,7 @@ import type {
   AISettingsModel,
   AISetup,
   CommandRun,
+  KeyScope,
   HistoryItem,
   RunSource,
   RunStatus,
@@ -132,17 +133,18 @@ export class MockAISettings implements AISettingsModel {
     configured?: boolean,
   ) {
     if (configured) {
-      this.#patch('anthropic', { key: 'browser' });
+      this.#patch('anthropic', { key: { from: 'here', scope: 'browser' } });
       this.#setup.set({ provider: 'anthropic', model: 'claude-sonnet-5-5' });
     }
   }
 
-  setKey(provider: string, key: string) {
+  setKey(provider: string, key: string, scope: KeyScope) {
     if (!key.trim()) return;
-    this.#patch(provider, { key: 'browser' });
+    this.#patch(provider, { key: { from: 'here', scope } });
     const p = this.#providers.value.find((x) => x.id === provider)!;
     if (!this.#setup.value) this.#setup.set({ provider, model: p.models[0] });
-    this.post(`Key saved for ${p.label}, kept only in this browser`, 'success');
+    const kept = { reload: 'until the page reloads', session: 'for this session', browser: 'in this browser' }[scope];
+    this.post(`Key saved for ${p.label}, kept ${kept}`, 'success');
   }
 
   removeKey(provider: string) {
@@ -157,7 +159,14 @@ export class MockAISettings implements AISettingsModel {
     this.#setup.set(setup);
   }
 
-  addProvider(own: { label: string; baseURL: string; api: 'chat' | 'responses'; key: string; model: string }) {
+  addProvider(own: {
+    label: string;
+    baseURL: string;
+    api: 'chat' | 'responses';
+    key: string;
+    scope: KeyScope;
+    model: string;
+  }) {
     const id = `custom:${own.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
     this.#providers.set([
       ...this.#providers.value,
@@ -166,7 +175,7 @@ export class MockAISettings implements AISettingsModel {
         label: own.label,
         family: 'openai',
         baseURL: own.baseURL,
-        key: own.key ? 'browser' : undefined,
+        key: own.key ? { from: 'here', scope: own.scope } : undefined,
         models: [own.model],
       },
     ]);

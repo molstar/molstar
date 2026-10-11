@@ -66,8 +66,15 @@ export interface AgentTurn {
 export type HistoryItem = { kind: 'run'; run: CommandRun } | { kind: 'turn'; turn: AgentTurn };
 
 /**
+ * How long a key is kept here: until the page reloads (memory only), for this session (the tab), or in this browser
+ * (until removed). Kept ones are stored scrambled (encrypted with a key this browser keeps), so the storage read as it
+ * is gives no working key; that does not guard against code running in the page.
+ */
+export type KeyScope = 'reload' | 'session' | 'browser';
+
+/**
  * A model provider (any-model-adapters: Anthropic, Google, OpenAI, or an OpenAI-compatible endpoint of one's own, e.g.
- * OpenRouter, Ollama, vLLM). Keys stay in this browser (encrypted at rest) and go only to that provider.
+ * OpenRouter, Ollama, vLLM). Keys go only to their provider.
  */
 export interface AIProvider {
   id: string;
@@ -76,8 +83,8 @@ export interface AIProvider {
   family: 'anthropic' | 'google' | 'openai';
   /** One's own: an OpenAI-compatible endpoint (https, or http on localhost). */
   baseURL?: string;
-  /** Where the key comes from: this browser, or the server's environment (none: no key yet). */
-  key?: 'browser' | 'server';
+  /** Its key: entered here (kept for a scope), or from the server's environment; none yet when absent. */
+  key?: { from: 'here'; scope: KeyScope } | { from: 'server' };
   /** Models offered for it (the default first). */
   models: readonly string[];
 }
@@ -93,11 +100,18 @@ export interface AISettingsModel {
   providers: ReadonlyState<readonly AIProvider[]>;
   /** The choice; undefined while no provider has a key. */
   setup: ReadonlyState<AISetup | undefined>;
-  setKey(provider: string, key: string): void;
+  setKey(provider: string, key: string, scope: KeyScope): void;
   removeKey(provider: string): void;
   choose(setup: AISetup): void;
   /** One's own OpenAI-compatible endpoint (name, URL, which API, key). */
-  addProvider(own: { label: string; baseURL: string; api: 'chat' | 'responses'; key: string; model: string }): void;
+  addProvider(own: {
+    label: string;
+    baseURL: string;
+    api: 'chat' | 'responses';
+    key: string;
+    scope: KeyScope;
+    model: string;
+  }): void;
 }
 
 /**

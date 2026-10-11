@@ -11,15 +11,15 @@ import { defineStyles } from '../../../styles/registry.js';
 export const classes = {
   'action': 'msp-agent-ai-setup-action',
   'caption': 'msp-agent-ai-setup-caption',
-  'configured': 'msp-agent-ai-setup-configured',
   'copy': 'msp-agent-ai-setup-copy',
   'fold': 'msp-agent-ai-setup-fold',
   'grow': 'msp-agent-ai-setup-grow',
+  'intro': 'msp-agent-ai-setup-intro',
+  'keyForm': 'msp-agent-ai-setup-keyForm',
   'keyRow': 'msp-agent-ai-setup-keyRow',
   'label': 'msp-agent-ai-setup-label',
   'lead': 'msp-agent-ai-setup-lead',
   'link': 'msp-agent-ai-setup-link',
-  'needed': 'msp-agent-ai-setup-needed',
   'note': 'msp-agent-ai-setup-note',
   'own': 'msp-agent-ai-setup-own',
   'ownFoot': 'msp-agent-ai-setup-ownFoot',
@@ -29,17 +29,54 @@ export const classes = {
   'providerState': 'msp-agent-ai-setup-providerState',
   'providers': 'msp-agent-ai-setup-providers',
   'row': 'msp-agent-ai-setup-row',
+  'scope': 'msp-agent-ai-setup-scope',
+  'scopes': 'msp-agent-ai-setup-scopes',
+  'scopesLabel': 'msp-agent-ai-setup-scopesLabel',
   'setup': 'msp-agent-ai-setup-setup',
 } as const;
 
 defineStyles('views/agent/ai-setup.module.css', `@layer msp.components {
+.msp-agent-ai-setup-setup, .msp-agent-ai-setup-intro, .msp-agent-ai-setup-own, .msp-agent-ai-setup-keyForm {
+  gap: var(--msp-space-2);
+  display: grid;
+}
+
 .msp-agent-ai-setup-setup {
   font-size: var(--msp-font-size-sm);
 }
 
-.msp-agent-ai-setup-needed, .msp-agent-ai-setup-configured, .msp-agent-ai-setup-own {
-  gap: var(--msp-space-2);
-  display: grid;
+.msp-agent-ai-setup-intro {
+  gap: var(--msp-space-1);
+}
+
+.msp-agent-ai-setup-scopes {
+  align-items: center;
+  gap: var(--msp-space-1);
+  padding-left: var(--msp-space-3);
+  display: flex;
+}
+
+.msp-agent-ai-setup-scopesLabel {
+  margin-right: var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.msp-agent-ai-setup-scope {
+  height: 22px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[aria-checked="true"] {
+    background: var(--msp-color-control);
+    color: var(--msp-color-text);
+  }
 }
 
 .msp-agent-ai-setup-lead {
@@ -115,6 +152,13 @@ defineStyles('views/agent/ai-setup.module.css', `@layer msp.components {
   gap: var(--msp-space-1);
   padding: 2px 0;
   display: grid;
+
+  & > .msp-agent-ai-setup-keyForm {
+    margin-bottom: var(--msp-space-1);
+    padding: var(--msp-space-2);
+    border-radius: var(--msp-radius-md);
+    background: var(--msp-color-well);
+  }
 }
 
 .msp-agent-ai-setup-providerHead {

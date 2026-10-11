@@ -202,7 +202,7 @@ export function AgentTurnCard(props: { agent: AgentModel }) {
                     when={turn.pipe(map((t) => t.checkpoint && !t.undone))}
                     fallback={() => (
                       <Show when={turn.pipe(map((t) => !!t.undone))}>
-                        {() => <span class={classes.summary}>Undone</span>}
+                        {() => <span class={classes.undone}>Undone</span>}
                       </Show>
                     )}
                   >
