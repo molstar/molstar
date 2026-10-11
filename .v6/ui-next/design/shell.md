@@ -54,7 +54,9 @@ it is where contributions (built-in and extension UI) are placed.
   only the rail stays. Resizable; `setFloating(dock, false)` docks it beside the canvas instead; compact mode makes it a
   bottom sheet. The panel runs the full height; everything else on the right of the canvas (the sequence card's end, the
   canvas stack, the selection chips) follows its edge (`--msp-canvas-right-inset`). One 8px gap separates all floating
-  things, 12px the canvas edge.
+  things, 12px the canvas edge. Panels and overlay cards share one header (title, ✕ on the right). Escape closes the
+  innermost open thing, one per press: an open list, then an overlay card, then the panel (never while typing in a
+  field).
 - **Optional docks.** `left`, `top`, `bottom` take tabs moved there by the user or placed by the app spec (mesoscale
   explorer puts its entity tree on the left). The sequence is the only default occupant of `top`. Side docks run the
   full height; top and bottom docks span the canvas width only. A top or bottom dock with one tab has no tab strip: its
