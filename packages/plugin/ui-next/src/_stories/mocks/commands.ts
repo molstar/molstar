@@ -153,15 +153,19 @@ const modeLabel = (mode: string) =>
  * The stories' commands: what the plugin's would be (camera, view, panels, export, data, presets, selection,
  * focus), running against the mock shell. Each reports what it would do; panels and cards open for real.
  */
-export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
+export function mockCommands(
+  shell: ShellModel,
+  /** How many structures are loaded (superposing needs two). */
+  structureCount: () => number = () => 1,
+): CommandManager<Ctx> {
   const manager = new CommandManager<Ctx>({ context: observableState<Ctx>({}).asReadonly, formats });
   const open = (overlay: string, focus?: string) => () => {
     shell.openOverlay(overlay, undefined, focus);
     return done(`Opened ${overlay}`);
   };
-  const show = (tab: string) => () => {
-    shell.show(tab);
-    return done(`Showing ${tab}`);
+  const show = (tab: string, section?: string) => () => {
+    shell.show(tab, section);
+    return done(`Showing ${section ?? tab}`);
   };
   const commands: CommandDefinition<Ctx>[] = [
     {
@@ -421,6 +425,22 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
       category: 'Selection',
       icon: 'x',
       run: () => done('Selection cleared'),
+    },
+    // Done with the selection: open the Selection tab at their section (only it open).
+    {
+      id: 'measure.open',
+      title: 'Measure…',
+      category: 'Measure',
+      icon: 'ruler',
+      run: show('selection', 'measure'),
+    },
+    {
+      id: 'superpose.open',
+      title: 'Superpose…',
+      category: 'Structure',
+      icon: 'superpose',
+      when: () => (structureCount() > 1 ? true : 'Load two or more structures'),
+      run: show('selection', 'superpose'),
     },
     {
       id: 'measure.distance',

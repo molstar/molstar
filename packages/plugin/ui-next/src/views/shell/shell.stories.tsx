@@ -371,7 +371,7 @@ function mockShell(options: {
   const stateTree = mockStateTree((text) => status.post(text));
   const settings = mockSettings();
   const snapshotStepper = mockSnapshots((t) => status.post(t));
-  const commands = mockCommands(shell);
+  const commands = mockCommands(shell, () => scene.roots.value.filter((n) => n.kind === 'structure').length);
 
   shell.registerTabs([
     {

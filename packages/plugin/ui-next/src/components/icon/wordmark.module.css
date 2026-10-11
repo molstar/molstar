@@ -4,11 +4,61 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/* As tall as a panel title's capitals, a little over; the stroke a hairline heavier than the text's. */
+/* At its drawn size (55 × 20, on the pixel grid): scaled, its lines would blur unevenly. */
 .wordmark {
+  position: relative;
   display: block;
-  height: 18px;
-  width: auto;
-  stroke-width: 1.5px;
-  overflow: visible;
+  flex: none;
+  width: 55px;
+  height: 20px;
+
+  & svg {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+    stroke-width: 1.5px;
+  }
+}
+
+/* The outline itself, in the text color. */
+.outline {
+  color: inherit;
+}
+
+/* The flash: the outline in the logo's colors, seen through a band that sweeps left to right, once when it appears
+   and again on hover (a different animation name restarts it). */
+.flash {
+  mask-image: linear-gradient(100deg, transparent 0 38%, #000 47% 53%, transparent 62% 100%);
+  mask-size: 300% 100%;
+  mask-repeat: no-repeat;
+  mask-position: 100% 0;
+  animation: flash-in 1.4s ease-in-out 0.3s both;
+
+  .wordmark:hover & {
+    animation: flash-hover 1.1s ease-in-out both;
+  }
+}
+
+@keyframes flash-in {
+  from {
+    mask-position: 100% 0;
+  }
+  to {
+    mask-position: 0 0;
+  }
+}
+
+@keyframes flash-hover {
+  from {
+    mask-position: 100% 0;
+  }
+  to {
+    mask-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash {
+    animation: none;
+  }
 }
