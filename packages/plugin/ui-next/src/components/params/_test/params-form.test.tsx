@@ -78,10 +78,11 @@ describe('ParamsForm', () => {
     const container = document.createElement('div');
     document.body.append(container);
     render(() => <ParamsForm form={form} filter={filter.asReadonly} />, container);
+    // The visible rows' labels (a group's header is not a row).
     const shown = () =>
-      [...container.querySelectorAll('[title]')]
+      [...container.querySelectorAll('[data-tip-overflow]')]
         .filter((el) => !el.closest('[hidden]'))
-        .map((el) => el.getAttribute('title'));
+        .map((el) => el.textContent);
 
     filter.set('zoom');
     await flush();
