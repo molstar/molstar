@@ -61,7 +61,7 @@ export function StructureTab(props: StructureTabProps) {
         <Button
           size="sm"
           variant="ghost"
-          icon={<Icon name="sparkles" />}
+          icon={<Icon name="shapes" />}
           pressed={open.asReadonly.pipe(map((o) => o === 'preset'))}
           onClick={() =>
             props.openCommands

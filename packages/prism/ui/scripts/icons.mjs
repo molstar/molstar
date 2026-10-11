@@ -95,6 +95,7 @@ const ICONS = [
   'ban',
   'hourglass',
   'sparkles',
+  'shapes',
   'sliders-horizontal',
   'panel-right',
   'panel-left',
