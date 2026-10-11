@@ -1,0 +1,342 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import type { Observable } from 'rxjs';
+import type { Child, Component } from './jsx-types.js';
+import { bind, requireScope, runInScope, Scope, toStream } from './scope.js';
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/** SVG tags that are not also HTML tags; these are created in the SVG namespace. */
+const SvgTags = new Set([
+  'svg',
+  'animate',
+  'animateMotion',
+  'animateTransform',
+  'circle',
+  'clipPath',
+  'defs',
+  'desc',
+  'ellipse',
+  'feBlend',
+  'feColorMatrix',
+  'feComponentTransfer',
+  'feComposite',
+  'feConvolveMatrix',
+  'feDiffuseLighting',
+  'feDisplacementMap',
+  'feDistantLight',
+  'feDropShadow',
+  'feFlood',
+  'feFuncA',
+  'feFuncB',
+  'feFuncG',
+  'feFuncR',
+  'feGaussianBlur',
+  'feImage',
+  'feMerge',
+  'feMergeNode',
+  'feMorphology',
+  'feOffset',
+  'fePointLight',
+  'feSpecularLighting',
+  'feSpotLight',
+  'feTile',
+  'feTurbulence',
+  'filter',
+  'foreignObject',
+  'g',
+  'image',
+  'line',
+  'linearGradient',
+  'marker',
+  'mask',
+  'metadata',
+  'mpath',
+  'path',
+  'pattern',
+  'polygon',
+  'polyline',
+  'radialGradient',
+  'rect',
+  'set',
+  'stop',
+  'switch',
+  'symbol',
+  'text',
+  'textPath',
+  'tspan',
+  'use',
+  'view',
+]); // prettier-ignore
+
+/** Properties that are read-only (or misbehave) on elements: always set as attributes. */
+const AttributeOnly = new Set(['list', 'form', 'download', 'role', 'width', 'height']);
+
+/**
+ * Marks a component result that is data for its parent component rather than DOM (a `Match` for its `Switch`): `jsx`
+ * passes it through as it is.
+ */
+export const Passthrough = Symbol('Passthrough');
+
+/** Creates an element (or calls a component) with its props; children and bindings go to the current scope. */
+export function createElement(type: string | Component<any>, props: Record<string, any> | null): Node {
+  if (typeof type === 'function') {
+    const result = type(props ?? {});
+    if (result && typeof result === 'object' && Passthrough in result) return result as unknown as Node;
+    return toNode(result);
+  }
+  const isSvg = SvgTags.has(type);
+  const el = isSvg ? document.createElementNS(SVG_NS, type) : document.createElement(type);
+  if (props) {
+    applyProps(el, props, isSvg, type.includes('-'));
+    if (props.children !== undefined) insert(el, props.children, null);
+    if (typeof props.ref === 'function') props.ref(el);
+  }
+  return el;
+}
+
+/** Renders children into a fragment. */
+export function Fragment(props: { children?: Child }): Node {
+  const fragment = document.createDocumentFragment();
+  insert(fragment, props.children, null);
+  return fragment;
+}
+
+/** The child as one node: itself if it is one, otherwise a fragment holding it. */
+export function toNode(child: Child): Node {
+  if (child instanceof Node) return child;
+  const fragment = document.createDocumentFragment();
+  insert(fragment, child, null);
+  return fragment;
+}
+
+/** Inserts a child before `before` (or at the end). Streams become regions that follow them. */
+export function insert(parent: Node, child: Child, before: Node | null): void {
+  if (child === null || child === undefined || typeof child === 'boolean') return;
+  if (child instanceof Node) {
+    parent.insertBefore(child, before);
+  } else if (Array.isArray(child)) {
+    for (const c of child) insert(parent, c, before);
+  } else if (typeof child === 'function') {
+    insert(parent, (child as () => Child)(), before);
+  } else if (typeof child === 'object') {
+    const stream = toStream(child as Observable<Child>);
+    if (stream) insertRegion(parent, stream, before);
+    else console.warn('Cannot render', child);
+  } else {
+    parent.insertBefore(document.createTextNode(String(child)), before);
+  }
+}
+
+function isText(value: unknown): value is string | number | bigint | boolean | null | undefined {
+  const t = typeof value;
+  return value === null || t === 'undefined' || t === 'string' || t === 'number' || t === 'bigint' || t === 'boolean';
+}
+
+/**
+ * A range between two comment anchors whose content follows a stream. Text values update one text node in place;
+ * anything else replaces the range's content, rendered in a fresh child scope (the previous one is disposed).
+ */
+export function insertRegion(parent: Node, source: Observable<Child>, before: Node | null): void {
+  const owner = requireScope('A reactive child');
+  const start = document.createComment('');
+  const end = document.createComment('');
+  parent.insertBefore(start, before);
+  parent.insertBefore(end, before);
+  let scope: Scope | undefined;
+  let text: Text | undefined;
+  bind(source, (value) => {
+    if (isText(value)) {
+      const data = value === null || value === undefined || typeof value === 'boolean' ? '' : String(value);
+      if (text) {
+        if (text.data !== data) text.data = data;
+        return;
+      }
+      clear();
+      text = document.createTextNode(data);
+      end.parentNode!.insertBefore(text, end);
+      return;
+    }
+    clear();
+    const next = owner.child();
+    scope = next;
+    const fragment = document.createDocumentFragment();
+    runInScope(next, () => insert(fragment, value, null));
+    end.parentNode!.insertBefore(fragment, end);
+  });
+  owner.onCleanup(() => {
+    scope = undefined;
+    text = undefined;
+  });
+
+  function clear() {
+    scope?.dispose();
+    scope = undefined;
+    text = undefined;
+    removeBetween(start, end);
+  }
+}
+
+/** Removes the nodes strictly between two siblings. */
+export function removeBetween(start: Node, end: Node): void {
+  const parent = start.parentNode;
+  if (!parent) return;
+  let node = start.nextSibling;
+  while (node && node !== end) {
+    const next = node.nextSibling;
+    parent.removeChild(node);
+    node = next;
+  }
+}
+
+// --- Props ---------------------------------------------------------------------------------------
+
+function applyProps(el: Element, props: Record<string, any>, isSvg: boolean, isCustom: boolean) {
+  let classes: ClassBinding | undefined;
+  for (const key of Object.keys(props)) {
+    const value = props[key];
+    if (key === 'children' || key === 'ref' || value === undefined) continue;
+    if (key.startsWith('on:')) {
+      el.addEventListener(key.slice(3), value);
+    } else if (key.length > 2 && key.startsWith('on') && key.charCodeAt(2) < 91 && typeof value === 'function') {
+      el.addEventListener(key.slice(2).toLowerCase(), value);
+    } else if (key === 'class' || key === 'className') {
+      classes ??= new ClassBinding(el);
+      bind(value, (v: string | undefined) => classes!.setBase(v));
+    } else if (key === 'classList') {
+      classes ??= new ClassBinding(el);
+      for (const name of Object.keys(value)) {
+        bind(value[name], (on: boolean | undefined) => classes!.setFlag(name, !!on));
+      }
+    } else if (key === 'style') {
+      applyStyle(el as HTMLElement, value);
+    } else if (key.startsWith('attr:')) {
+      const name = key.slice(5);
+      bind(value, (v) => setAttribute(el, name, v));
+    } else if (key.startsWith('prop:')) {
+      const name = key.slice(5);
+      bind(value, (v) => {
+        (el as any)[name] = v;
+      });
+    } else if (isSvg || key.includes('-')) {
+      bind(value, (v) => setAttribute(el, key, v));
+    } else if (isCustom) {
+      // Custom elements take models, lists and callbacks as properties.
+      bind(value, (v) => {
+        (el as any)[key] = v;
+      });
+    } else if (key in el && !AttributeOnly.has(key)) {
+      bind(value, (v) => {
+        (el as any)[key] = v === null || v === undefined ? '' : v;
+        if (v === null || v === undefined || v === false) el.removeAttribute(key);
+      });
+    } else {
+      bind(value, (v) => setAttribute(el, key, v));
+    }
+  }
+}
+
+function setAttribute(el: Element, name: string, value: unknown) {
+  if (value === null || value === undefined || value === false) el.removeAttribute(name);
+  else el.setAttribute(name, value === true ? '' : String(value));
+}
+
+/** `class` and `classList` together: the class attribute is the base classes plus the flags that are on. */
+class ClassBinding {
+  #base = '';
+  readonly #flags = new Map<string, boolean>();
+  constructor(readonly el: Element) {}
+
+  setBase(value: string | undefined) {
+    this.#base = value ?? '';
+    this.#sync();
+  }
+
+  setFlag(name: string, on: boolean) {
+    this.#flags.set(name, on);
+    this.#sync();
+  }
+
+  #sync() {
+    let value = this.#base;
+    for (const [name, on] of this.#flags) if (on) value = value ? `${value} ${name}` : name;
+    if (value) this.el.setAttribute('class', value);
+    else this.el.removeAttribute('class');
+  }
+}
+
+function applyStyle(el: HTMLElement | SVGElement, value: unknown) {
+  if (typeof value === 'string' || toStream(value as string)) {
+    bind(value as string | Observable<string | undefined>, (v) => {
+      if (v) el.setAttribute('style', v);
+      else el.removeAttribute('style');
+    });
+    return;
+  }
+  const styles = value as Record<string, unknown>;
+  for (const name of Object.keys(styles)) {
+    // Custom properties and kebab-case names go through setProperty; camelCase through the style object.
+    const property = name.startsWith('--') || name.includes('-') ? name : toKebab(name);
+    const px = !property.startsWith('--') && !Unitless.has(property);
+    bind(styles[name], (v) => {
+      if (v === null || v === undefined || v === '') el.style.removeProperty(property);
+      else el.style.setProperty(property, typeof v === 'number' && px && v !== 0 ? `${v}px` : String(v));
+    });
+  }
+}
+
+/** Properties whose numbers have no unit; other numbers are pixels. */
+const Unitless = new Set([
+  'opacity',
+  'z-index',
+  'flex',
+  'flex-grow',
+  'flex-shrink',
+  'order',
+  'line-height',
+  'font-weight',
+  'zoom',
+  'aspect-ratio',
+  'scale',
+  'fill-opacity',
+  'stroke-opacity',
+  'stroke-width',
+  'grid-row',
+  'grid-column',
+  'tab-size',
+  'orphans',
+  'widows',
+  'columns',
+  'column-count',
+]); // prettier-ignore
+
+function toKebab(name: string) {
+  return name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+}
+
+// --- Roots ---------------------------------------------------------------------------------------
+
+/**
+ * Renders into a container, after what is already there, in a new root scope. Returns a function that disposes the
+ * scope and removes what was rendered.
+ */
+export function render(fn: () => Child, container: Node): () => void {
+  const scope = new Scope();
+  const start = document.createComment('');
+  const end = document.createComment('');
+  const fragment = document.createDocumentFragment();
+  fragment.append(start);
+  runInScope(scope, () => insert(fragment, fn(), null));
+  fragment.append(end);
+  container.appendChild(fragment);
+  return () => {
+    scope.dispose();
+    removeBetween(start, end);
+    start.remove();
+    end.remove();
+  };
+}
