@@ -83,10 +83,11 @@ the state tree's undo does not cover (camera, selection, focus).
 
 ## 5. In the UI
 
-- **The command menu asks.** Typed words get an _Ask the assistant_ row (last among the matches, first when nothing
-  matches). The assistant (any-ui's `assist`: a one-off agent) proposes a command with its values, and the menu opens
-  the ordinary inline sentence, filled in; nothing runs until Enter. It can also answer in a line, or hand the request
-  to the agent when it takes several steps. Without a model, the row reads _Set up the assistant to ask_ and opens the
+- **The command menu asks.** Under the list, always there, an _Ask the assistant_ bar in the accent's soft wash: it
+  shows what is typed and takes it with ⌘↵ (Ctrl+↵), or with ↵ when no command matches (it is then the default, and the
+  list says so). The assistant (any-ui's `assist`: a one-off agent) proposes a command with its values, and the menu
+  opens the ordinary inline sentence, filled in; nothing runs until Enter. It can also answer in a line, or hand the
+  request to the agent when it takes several steps. Without a model, the bar reads _Set up the assistant_ and opens the
   Assistant tab.
 - **An agent turn** (the harness's progress) shows as a card at the bottom left of the canvas, above the status line:
   the request and its state (Thinking…, Working…, Waiting for you, Done, Stopped, Failed), the model's words as they

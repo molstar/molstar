@@ -8,7 +8,7 @@
 
 import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
 import type { CommandInvocation, InvocationState } from '../../commands/invocation.js';
-import { formatChord } from '../../commands/keys.js';
+import { formatChord, isMac } from '../../commands/keys.js';
 import type { CommandManager, CommandMatch } from '../../commands/manager.js';
 import { fuzzyScore, matchPositions } from '../../commands/match.js';
 import type { CommandGroup } from '../../commands/types.js';
@@ -209,19 +209,21 @@ function ListMode(props: CommandMenuProps) {
       for (const gr of groups) add({ kind: 'group', group: gr, index: 0 });
       for (const m of q.matches)
         if (m.command !== q.direct?.command && within(m)) add({ kind: 'match', match: m, index: 0 });
-      // The assistant takes the words: last, or first when nothing matched.
-      if (props.assistant && g === undefined) {
-        const ask = { kind: 'item' as const, item: askItem(props, manager, t), index: 0 };
-        if (out.length) {
-          add({ kind: 'caption', label: 'Assistant' });
-          add(ask);
-        } else add(ask);
-      }
       return out;
     }),
   );
   let current: Row[] = [];
   const picks = () => current.filter((r): r is Pickable => r.kind !== 'caption');
+  // The assistant takes the typed words (⌘↵ anywhere; ↵ when no command matches).
+  const ask = () => {
+    if (!props.assistant || !text.value.trim() || prefixOf(text.value)) return;
+    const keep = askItem(props, manager, text.value).run();
+    if (!keep && !manager.active.value) props.onClose();
+  };
+  const unmatched = combineLatest([text.asReadonly, rows]).pipe(
+    map(([t, r]) => !!t.trim() && !prefixOf(t) && !r.some((x) => x.kind !== 'caption')),
+    distinctUntilChanged(),
+  );
   rows.subscribe((r) => {
     current = r;
     if (highlight.value >= picks().length) highlight.set(0);
@@ -288,7 +290,9 @@ function ListMode(props: CommandMenuProps) {
         } else if (e.key === 'Enter') {
           e.preventDefault();
           const row = picks()[highlight.value];
-          if (row) pick(row);
+          if (e.metaKey || e.ctrlKey) ask();
+          else if (row) pick(row);
+          else ask();
         } else if (e.key === 'ArrowRight' && empty) {
           const row = picks()[highlight.value];
           if (row?.kind === 'group') {
@@ -329,7 +333,14 @@ function ListMode(props: CommandMenuProps) {
         role="listbox"
         aria-label="Commands"
       >
-        <For each={rows} fallback={() => <p class={classes.empty}>Nothing matches.</p>}>
+        <For
+          each={rows}
+          fallback={() => (
+            <p class={classes.empty}>
+              {props.assistant ? 'No command matches: ask the assistant.' : 'Nothing matches.'}
+            </p>
+          )}
+        >
           {(row) => {
             if (row.kind === 'caption') return <div class={classes.caption}>{row.label}</div>;
             const i = row.index;
@@ -361,16 +372,51 @@ function ListMode(props: CommandMenuProps) {
           }}
         </For>
       </ScrollArea>
+      {props.assistant ? (
+        <AskBar
+          ready={props.assistant.ready()}
+          text={text.asReadonly.pipe(map((t) => (prefixOf(t) ? '' : t.trim())))}
+          unmatched={unmatched}
+          onAsk={() => (text.value.trim() ? ask() : input.focus())}
+        />
+      ) : null}
       <Footer
         hints={[
           ['↑↓', 'move'],
           ['↵', 'run'],
+          ...(props.assistant ? [[isMac() ? '⌘↵' : 'Ctrl+↵', 'ask'] as const] : []),
           ['→', 'open group'],
           ['?', 'help'],
           ['esc', 'close'],
         ]}
       />
     </>
+  );
+}
+
+/**
+ * The assistant, always at hand under the list (design/agent.md §5): it takes what is typed (⌘↵, or ↵ when no command
+ * matches, which it then shows as the default); without a model it opens the setup.
+ */
+function AskBar(props: { ready: boolean; text: Observable<string>; unmatched: Observable<boolean>; onAsk(): void }) {
+  return (
+    <button
+      type="button"
+      class={classes.ask}
+      data-default={props.unmatched.pipe(map((u) => (u ? '' : undefined)))}
+      onClick={() => props.onAsk()}
+    >
+      <Icon name="sparkles" size={15} class={classes.askIcon} />
+      <span class={classes.askLabel}>{props.ready ? 'Ask the assistant' : 'Set up the assistant'}</span>
+      <span class={classes.askText}>
+        {props.text.pipe(
+          map((t) =>
+            t ? `“${t}”` : props.ready ? 'describe what you want, in your words' : 'add a model key to ask in words',
+          ),
+        )}
+      </span>
+      <kbd class={classes.askKeys}>{props.unmatched.pipe(map((u) => (u ? '↵' : isMac() ? '⌘↵' : 'Ctrl+↵')))}</kbd>
+    </button>
   );
 }
 

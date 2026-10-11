@@ -333,3 +333,59 @@
 .rowChevron {
   color: var(--msp-color-text-subtle);
 }
+
+/* The assistant under the list: always there, in the accent's soft wash; the default (↵) when no command matches. */
+.ask {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: 40px;
+  margin: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 90%);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover,
+  &[data-default] {
+    background: color-mix(in oklab, var(--msp-color-accent), transparent 80%);
+  }
+
+  &[data-default] {
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-accent), transparent 60%);
+  }
+}
+
+.askIcon {
+  flex: none;
+  color: var(--msp-color-accent);
+}
+
+.askLabel {
+  flex: none;
+  color: var(--msp-color-accent-strong);
+  font-weight: 600;
+}
+
+.askText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  color: var(--msp-color-text-muted);
+  white-space: nowrap;
+}
+
+.askKeys {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+  font-family: inherit;
+  font-size: var(--msp-font-size-xs);
+}
