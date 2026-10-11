@@ -22,6 +22,7 @@ export const classes = {
   'inspectorHeader': 'msp-structure-structure-tab-inspectorHeader',
   'inspectorKind': 'msp-structure-structure-tab-inspectorKind',
   'inspectorTitle': 'msp-structure-structure-tab-inspectorTitle',
+  'nothing': 'msp-structure-structure-tab-nothing',
   'options': 'msp-structure-structure-tab-options',
   'optionsButton': 'msp-structure-structure-tab-optionsButton',
   'preset': 'msp-structure-structure-tab-preset',
@@ -128,6 +129,13 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   text-transform: capitalize;
+}
+
+.msp-structure-structure-tab-nothing {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  margin: 0;
+  line-height: 1.45;
 }
 
 .msp-structure-structure-tab-inspectorActions {

@@ -107,6 +107,14 @@
   text-transform: capitalize;
 }
 
+/* An item with nothing to set: a quiet line instead of an empty space. */
+.nothing {
+  margin: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.45;
+}
+
 /* Things to do from here: plain rows, like a menu's. */
 .inspectorActions {
   display: grid;

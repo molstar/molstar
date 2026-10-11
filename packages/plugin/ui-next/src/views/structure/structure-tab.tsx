@@ -160,8 +160,26 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
       ) : null}
       {form ? <ParamsForm form={form} /> : null}
       <SectionList shell={props.shell} slot={slot} subject={node} flat />
+      {/* Nothing to show (no settings, facts, actions or contributed sections): say so, not an empty space. */}
+      {!form && !props.inspection.facts?.length && !props.inspection.actions?.length ? (
+        <Show when={sectionsFor(props.shell, slot, node).pipe(map((has) => !has))}>
+          {() => (
+            <p class={classes.nothing}>
+              Nothing to set here.
+              {(node.menu?.length ?? 0) > 0 || node.removable !== false
+                ? ' Its ⋯ menu has what you can do with it.'
+                : ''}
+            </p>
+          )}
+        </Show>
+      ) : null}
     </div>
   );
+}
+
+/** Whether any contributed section shows for a node (`inspector:<kind>` sections with their `when`). */
+function sectionsFor(shell: ShellModel, slot: string, subject: unknown) {
+  return shell.sections(slot).pipe(map((all) => all.some((s) => !s.when || s.when({ shell, subject }))));
 }
 
 /** One click restyles everything: a representation preset, or a visual style. */
