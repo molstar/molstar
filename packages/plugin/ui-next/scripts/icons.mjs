@@ -112,6 +112,7 @@ const ICONS = [
   'command',
   'text-cursor-input',
   'list',
+  'scroll-text',
   'check',
   'hexagon',
 ];

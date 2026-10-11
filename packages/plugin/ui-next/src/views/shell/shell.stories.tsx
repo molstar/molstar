@@ -352,7 +352,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     {
       id: 'log',
       title: 'Log',
-      icon: 'list',
+      icon: 'scroll-text',
       order: 2.5,
       render: domView(() => <LogView status={status} />),
     },
