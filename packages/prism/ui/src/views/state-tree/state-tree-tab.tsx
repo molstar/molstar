@@ -41,7 +41,7 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
   );
   return (
     <div class={tab.tab}>
-      <ScrollArea class={tab.tree}>
+      <ScrollArea edge class={tab.tree}>
         <div class={`${tree.tree} ${classes.tree}`} role="tree" aria-label="State tree">
           <For
             each={model.roots}
@@ -52,7 +52,7 @@ export function StateTreeTab(props: { model: StateTreeModel }) {
           </For>
         </div>
       </ScrollArea>
-      <ScrollArea class={tab.inspector} contentClass={tab.inspectorContent} role="region" aria-label="Cell">
+      <ScrollArea edge class={tab.inspector} contentClass={tab.inspectorContent} role="region" aria-label="Cell">
         <Show
           when={shown}
           fallback={() => <p class={tab.inspectorEmpty}>Select a cell to update it or apply an action to it.</p>}
@@ -96,6 +96,7 @@ function Cell(props: {
   return (
     <div role="treeitem" aria-expanded={expanded} aria-selected={selected}>
       <div
+        data-tip-row=""
         class={tree.row}
         classList={{ [tree.hidden]: hidden, [tree.picked]: selected }}
         style={{ '--msp-tree-depth': depth }}
@@ -114,10 +115,10 @@ function Cell(props: {
           <Icon name="chevron-right" size={14} />
         </button>
         {depth === 0 ? <Icon name={node.icon} size={15} class={tree.kind} /> : null}
-        <span class={tree.label} data-tip-overflow="">
+        <span class={tree.label} data-tip-part="">
           {node.label}
         </span>
-        <span class={tree.description} data-tip-overflow="">
+        <span class={tree.description} data-tip-part="">
           {node.status === 'error' ? <span class={classes.error}>{node.error ?? 'Error'}</span> : node.description}
         </span>
         <span class={tree.actions}>

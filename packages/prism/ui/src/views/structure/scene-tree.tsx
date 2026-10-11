@@ -46,6 +46,7 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
   return (
     <div role="treeitem" aria-expanded={open} aria-selected={picked}>
       <div
+        data-tip-row=""
         class={classes.row}
         classList={{ [classes.hidden]: node.isHidden, [classes.picked]: picked }}
         style={{ '--msp-tree-depth': depth }}
@@ -68,10 +69,10 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
         {/* Only top-level rows carry an icon (a structure, a volume, the measurements): below, the indent shows where a
             row belongs and its label and description say what it is. */}
         {depth === 0 ? <Icon name={node.icon} size={15} class={classes.kind} /> : null}
-        <span class={classes.label} data-tip-overflow="">
+        <span class={classes.label} data-tip-part="">
           {node.label}
         </span>
-        <span class={classes.description} data-tip-overflow="">
+        <span class={classes.description} data-tip-part="">
           {node.description}
         </span>
         <span class={classes.actions}>

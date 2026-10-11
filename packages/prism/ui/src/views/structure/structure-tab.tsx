@@ -121,7 +121,7 @@ export function StructureTab(props: StructureTabProps) {
           ) : null
         }
       </Show>
-      <ScrollArea class={classes.tree}>
+      <ScrollArea edge class={classes.tree}>
         <SceneTree scene={scene} />
       </ScrollArea>
       <ScrollArea

@@ -28,6 +28,26 @@
   }
 }
 
+/* Beside a tree row (Claude Code's sidebar does the same): a card at the row's text size, the whole text, wrapping when
+   long; the panel's colors and the glass edge, so it reads as more of the row, not as a hint. */
+.tooltip[data-kind="row"] {
+  max-width: 320px;
+  padding: 6px 10px;
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-raised);
+  color: var(--msp-color-text);
+  box-shadow:
+    0 0 0 1px var(--msp-glass-edge),
+    var(--msp-shadow-float);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.muted {
+  color: var(--msp-color-text-muted);
+}
+
 @keyframes tooltip-in {
   from {
     opacity: 0;

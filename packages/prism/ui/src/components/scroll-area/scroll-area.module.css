@@ -16,6 +16,12 @@
   overflow: hidden;
 }
 
+/* At the panel's edge (`edge`): the area takes its parent's side padding, the content gives it back, so the bar sits
+   in the gutter by the panel's edge and rows keep their inset. */
+.root[data-edge] {
+  margin-inline-end: calc(-1 * var(--msp-scroll-edge, var(--msp-space-2)));
+}
+
 /* Scrolls natively (wheel, touch, keys), its own scrollbar hidden; its edges fade where there is more to scroll. */
 .viewport {
   flex: 1 1 auto;
@@ -59,6 +65,10 @@
 .content {
   min-width: 0;
 
+  .root[data-edge] > .viewport > & {
+    padding-inline-end: var(--msp-scroll-edge, var(--msp-space-2));
+  }
+
   .root[data-axis="x"] > .viewport > &,
   .root[data-axis="both"] > .viewport > & {
     width: max-content;
@@ -98,6 +108,12 @@
   .root[data-scrolling] > &,
   &[data-dragging] {
     opacity: 1;
+  }
+
+  /* At the panel's edge: the thumb in the gutter the area took (its last 4px), not over the content. */
+  .root[data-edge] > &[data-orientation="vertical"] {
+    right: 0;
+    width: 8px;
   }
 
   .root:not([data-overflow-y]) > &[data-orientation="vertical"],

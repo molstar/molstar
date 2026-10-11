@@ -28,6 +28,10 @@ defineStyles('components/scroll-area/scroll-area.module.css', `@layer msp.compon
   overflow: hidden;
 }
 
+.msp-scroll-area-root[data-edge] {
+  margin-inline-end: calc(-1 * var(--msp-scroll-edge, var(--msp-space-2)));
+}
+
 .msp-scroll-area-viewport {
   overscroll-behavior: contain;
   scrollbar-width: none;
@@ -65,6 +69,10 @@ defineStyles('components/scroll-area/scroll-area.module.css', `@layer msp.compon
 .msp-scroll-area-content {
   min-width: 0;
 
+  .msp-scroll-area-root[data-edge] > .msp-scroll-area-viewport > & {
+    padding-inline-end: var(--msp-scroll-edge, var(--msp-space-2));
+  }
+
   .msp-scroll-area-root[data-axis="x"] > .msp-scroll-area-viewport > &, .msp-scroll-area-root[data-axis="both"] > .msp-scroll-area-viewport > & {
     width: max-content;
     min-width: 100%;
@@ -99,6 +107,11 @@ defineStyles('components/scroll-area/scroll-area.module.css', `@layer msp.compon
 
   .msp-scroll-area-root:hover > &, .msp-scroll-area-root[data-scrolling] > &, &[data-dragging] {
     opacity: 1;
+  }
+
+  .msp-scroll-area-root[data-edge] > &[data-orientation="vertical"] {
+    width: 8px;
+    right: 0;
   }
 
   .msp-scroll-area-root:not([data-overflow-y]) > &[data-orientation="vertical"], .msp-scroll-area-root:not([data-overflow-x]) > &[data-orientation="horizontal"] {

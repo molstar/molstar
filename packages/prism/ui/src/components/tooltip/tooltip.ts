@@ -16,6 +16,9 @@ const ShowDelayMs = 350;
  * (`left` for the rail and the canvas stack, `top` for the bottom of the canvas, `bottom` by default), on hover or keyboard focus. One element is reused,
  * positioned in the viewport; buttons keep their `aria-label` for assistive technology (no native `title` as well).
  * `data-tip-overflow` (no text) shows the element's own text, only while it is cut off (a long label, faded at its end).
+ * `data-tip-row` (a tree row) shows its parts' text (`data-tip-part`: the label, then the description, muted) while
+ * one is cut off, from a pointer over a part: a card beside the row, outside the panel, at the row's text size (on its
+ * left, or its right where there is no room).
  * Returns the uninstall function.
  */
 export function installTooltips(root: HTMLElement): () => void {
@@ -29,15 +32,22 @@ export function installTooltips(root: HTMLElement): () => void {
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const place = (el: HTMLElement) => {
-    tip.textContent = el.dataset.tip ?? el.textContent ?? '';
+    const row = el.dataset.tipRow !== undefined;
+    if (row) fillRow(tip, el);
+    else tip.textContent = el.dataset.tip ?? el.textContent ?? '';
+    tip.dataset.kind = row ? 'row' : '';
     tip.hidden = false;
-    const side = el.dataset.tipSide ?? 'bottom';
+    const side = row ? 'beside' : (el.dataset.tipSide ?? 'bottom');
     const r = el.getBoundingClientRect();
     const t = tip.getBoundingClientRect();
     const gap = 8;
     let x: number;
     let y: number;
-    if (side === 'left') {
+    if (side === 'beside') {
+      x = r.left - gap - t.width;
+      if (x < 4) x = r.right + gap;
+      y = r.top + (r.height - t.height) / 2;
+    } else if (side === 'left') {
       x = r.left - gap - t.width;
       y = r.top + (r.height - t.height) / 2;
     } else if (side === 'top') {
@@ -64,7 +74,7 @@ export function installTooltips(root: HTMLElement): () => void {
     if (timer !== undefined) clearTimeout(timer);
     // Its own text, only when cut off (by more than rounding: scrollWidth rounds a fractional width up, clientWidth
     // down, so text that fits can read 1 px over).
-    if (el.dataset.tip === undefined && el.scrollWidth - el.clientWidth <= 1) {
+    if (el.dataset.tip === undefined && !cutOff(el)) {
       target = undefined;
       tip.hidden = true;
       return;
@@ -74,8 +84,13 @@ export function installTooltips(root: HTMLElement): () => void {
     else timer = setTimeout(() => target === el && place(el), ShowDelayMs);
   };
 
-  const tipOf = (e: Event) =>
-    (e.target as Element | null)?.closest?.<HTMLElement>('[data-tip], [data-tip-overflow]') ?? undefined;
+  const tipOf = (e: Event) => {
+    const at = e.target as Element | null;
+    const el = at?.closest?.<HTMLElement>('[data-tip], [data-tip-overflow], [data-tip-row]') ?? undefined;
+    // A row answers only over its text (not its chevron or its buttons).
+    if (el?.dataset.tipRow !== undefined && !at?.closest('[data-tip-part]')) return undefined;
+    return el;
+  };
 
   const onOver = (e: PointerEvent) => {
     const el = tipOf(e);
@@ -109,4 +124,30 @@ export function installTooltips(root: HTMLElement): () => void {
     window.removeEventListener('keydown', hide);
     window.removeEventListener('scroll', hide, true);
   };
+}
+
+/** Cut off by more than rounding (scrollWidth rounds a fractional width up, clientWidth down: text that fits can read
+ * 1 px over); a row, when one of its parts is. */
+function cutOff(el: HTMLElement): boolean {
+  if (el.dataset.tipRow === undefined) return el.scrollWidth - el.clientWidth > 1;
+  for (const part of el.querySelectorAll<HTMLElement>('[data-tip-part]')) {
+    if (part.scrollWidth - part.clientWidth > 1) return true;
+  }
+  return false;
+}
+
+/** A row's tip: its parts' text, the first as it is, the rest muted. */
+function fillRow(tip: HTMLElement, row: HTMLElement) {
+  tip.textContent = '';
+  let first = true;
+  for (const part of row.querySelectorAll<HTMLElement>('[data-tip-part]')) {
+    const text = part.textContent?.trim();
+    if (!text) continue;
+    const span = document.createElement('span');
+    span.textContent = text;
+    if (!first) span.className = classes.muted;
+    if (!first) tip.append(' ');
+    tip.append(span);
+    first = false;
+  }
 }

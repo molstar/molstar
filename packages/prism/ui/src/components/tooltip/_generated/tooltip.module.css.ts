@@ -11,6 +11,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'muted': 'msp-tooltip-muted',
   'tooltip': 'msp-tooltip-tooltip',
   'tooltip-in': 'msp-tooltip-tooltip-in',
 } as const;
@@ -35,6 +36,23 @@ defineStyles('components/tooltip/tooltip.module.css', `@layer msp.components {
   &[hidden] {
     display: none;
   }
+}
+
+.msp-tooltip-tooltip[data-kind="row"] {
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-raised);
+  max-width: 320px;
+  color: var(--msp-color-text);
+  box-shadow: 0 0 0 1px var(--msp-glass-edge),
+    var(--msp-shadow-float);
+  font-size: var(--msp-font-size-sm);
+  white-space: normal;
+  padding: 6px 10px;
+  line-height: 1.4;
+}
+
+.msp-tooltip-muted {
+  color: var(--msp-color-text-muted);
 }
 
 @keyframes msp-tooltip-tooltip-in {

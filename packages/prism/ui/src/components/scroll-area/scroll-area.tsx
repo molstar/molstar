@@ -30,6 +30,11 @@ export type ScrollAreaProps = Omit<ElementProps<HTMLDivElement>, 'class'> & {
   axis?: 'y' | 'x' | 'both';
   /** The scrolling element (to read or set its scroll position). */
   viewportRef?: (viewport: HTMLDivElement) => void;
+  /**
+   * Reaches into its parent's side padding (`--msp-scroll-edge`, default 4px, a panel's inset), so its scrollbar sits
+   * at the panel's edge while the content keeps its inset: for lists that fill a panel (trees, inspectors).
+   */
+  edge?: boolean;
 };
 
 /**
@@ -38,7 +43,7 @@ export type ScrollAreaProps = Omit<ElementProps<HTMLDivElement>, 'class'> & {
  * of the UI that scrolls uses it.
  */
 export function ScrollArea(props: ScrollAreaProps) {
-  const { class: rootClass, contentClass, axis = 'y', viewportRef, children, ...contentProps } = props;
+  const { class: rootClass, contentClass, axis = 'y', viewportRef, edge, children, ...contentProps } = props;
   let root!: HTMLDivElement;
   let viewport!: HTMLDivElement;
   let content!: HTMLDivElement;
@@ -142,7 +147,7 @@ export function ScrollArea(props: ScrollAreaProps) {
   };
 
   root = (
-    <div class={`${classes.root} ${rootClass ?? ''}`} data-axis={axis}>
+    <div class={`${classes.root} ${rootClass ?? ''}`} data-axis={axis} data-edge={edge ? '' : undefined}>
       <div
         class={classes.viewport}
         ref={(el) => {

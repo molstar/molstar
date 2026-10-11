@@ -16,6 +16,7 @@ import { Select } from '../components/select/select.js';
 import { Show } from '../dom/control-flow.js';
 import { observableState } from '../reactive/observable-state.js';
 import { story } from '../testing/story-root.js';
+import { type IconDraft, PrismIconDraft, PrismWordmarkDraft, type WordmarkDraft } from './logo-drafts.js';
 
 const meta: Meta = { title: 'Overview/Foundations' };
 export default meta;
@@ -307,4 +308,70 @@ export const Motion: StoryObj = {
         </div>
       );
     }),
+};
+
+const WordmarkDrafts: [WordmarkDraft, string][] = [
+  ['delta', 'The delta alone'],
+  ['beam', 'A beam from the star, split into rays'],
+  ['spectrum', "The rays in the logo's colors"],
+  ['refracted', 'And the beam bending inside'],
+  ['play', 'Turned to point away from the star: a prism and a play button'],
+  ['play-spectrum', "Pointing away, the logo's colors fanning from its tip"],
+  ['play-nested', 'A tetrahedron from above: the band, and two thinner triangles inside'],
+  ['play-levels', 'A tetrahedron from above: evenly spaced, thinning to the centre'],
+  ['play-tetra', 'And its three edges up to the apex'],
+  ['play-core', 'Thickest at the centre, thinning out'],
+];
+const IconDrafts: [IconDraft, string][] = [
+  ['delta', 'Delta'],
+  ['rays', 'Delta, rays out'],
+  ['spectrum', "Rays out, in the logo's colors"],
+  ['beam', 'A beam through it, split in two'],
+  ['play', 'Pointing away (play)'],
+  ['play-spectrum', "Pointing away, the logo's colors from its tip"],
+];
+
+function LogoPanel(props: { theme: 'light' | 'dark' }) {
+  return (
+    <div
+      data-msp-theme={props.theme}
+      style="display: grid; gap: 20px; padding: 20px; border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); color: var(--msp-color-text);"
+    >
+      {WordmarkDrafts.map(([variant, label]) => (
+        <div style="display: grid; gap: 8px">
+          <span style={note}>{label}</span>
+          <div style="display: flex; gap: 24px; align-items: end; flex-wrap: wrap">
+            <PrismWordmarkDraft variant={variant} />
+            <PrismWordmarkDraft variant={variant} scale={2} />
+            <PrismWordmarkDraft variant={variant} scale={3} />
+          </div>
+        </div>
+      ))}
+      <div style="display: grid; gap: 12px">
+        <span style={note}>Home icon (16, 20, 24, 48 px)</span>
+        {IconDrafts.map(([variant, label]) => (
+          <div style="display: flex; gap: 16px; align-items: center">
+            {[16, 20, 24, 48].map((size) => (
+              <PrismIconDraft variant={variant} size={size} />
+            ))}
+            <span style={note}>{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Drafts for the Prism logo: the Mol* wordmark with a delta after it; a beam from the star's arm into it, split into
+ * the logo's colors on the way out (a prism); the Home icon as the delta. Light and dark.
+ */
+export const Logo: StoryObj = {
+  render: () =>
+    story(() => (
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; padding: 16px">
+        <LogoPanel theme="light" />
+        <LogoPanel theme="dark" />
+      </div>
+    )),
 };
