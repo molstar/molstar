@@ -98,9 +98,14 @@ commands from registries, contextual commands, formats, keybinding service, comm
 
 ## Phase 6: shell and integration
 
-`ShellModel`, contributions, `PluginUISpec` (ui-next), `createPluginUI`, `<msp-plugin>`, persistence, Layout bridge,
-viewer `?ui=next`. Default contributions reach functional parity with [analysis/current-ui.md](analysis/current-ui.md)
-§5.
+`ShellModel`, contributions, `PluginUISpec` (ui-next), `createPluginUI`, `<msp-plugin>`, persistence, Layout bridge.
+Default contributions reach functional parity with [analysis/current-ui.md](analysis/current-ui.md) §5.
+
+**`apps/viewer-next`: a temporary copy of the viewer on the new UI**, so it can be built, deployed and shown to people
+(and used day to day) before anything moves over. Same extensions, presets and URL options as `apps/viewer`, the plugin
+created with ui-next's `createPluginUI`; built and served next to the viewer (its own entry in the app build). The
+classic viewer stays untouched until viewer-next reaches parity; then the viewer switches over and viewer-next goes
+away. Started as soon as the shell and the first tabs run on a real plugin, so feedback comes early.
 
 ## Phase 7: extension ports
 
