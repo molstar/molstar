@@ -355,8 +355,8 @@
       "private": false
     },
     {
-      "name": "@molstar/plugin-ui-next",
-      "path": "packages/plugin/ui-next",
+      "name": "@molstar/plugin-prism-ui",
+      "path": "packages/plugin/prism-ui",
       "kind": "library",
       "private": true
     },

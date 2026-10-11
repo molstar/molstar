@@ -1,0 +1,294 @@
+/** @jsxImportSource @molstar/plugin-prism-ui/dom */
+
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
+import { Icon, type IconName } from '../../components/icon/icon.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
+import { For, Show } from '../../dom/control-flow.js';
+import { onCleanup } from '../../dom/scope.js';
+import type { AgentModel, AgentTurn, CommandRun, RunStatus, TurnStatus } from '../../model/agent.js';
+import { StatusPill } from '../shell/canvas-chrome.js';
+import { classes } from './_generated/agent-turn.module.css.js';
+
+const StatusIcons: Record<RunStatus, IconName> = {
+  running: 'loader-circle',
+  waiting: 'hourglass',
+  done: 'check',
+  failed: 'x',
+  stopped: 'ban',
+  denied: 'ban',
+};
+
+const TurnLabels: Record<TurnStatus, string> = {
+  thinking: 'Thinking…',
+  working: 'Working…',
+  waiting: 'Waiting for you',
+  done: 'Done',
+  stopped: 'Stopped',
+  failed: 'Failed',
+};
+
+export function formatDuration(ms: number | undefined) {
+  if (ms === undefined) return '';
+  return ms < 1000 ? `${Math.max(0.1, ms / 1000).toFixed(1)} s` : `${(ms / 1000).toFixed(1)} s`;
+}
+
+const tokens = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`);
+
+/** What a finished turn did, in one line: the commands it ran, how long, the tokens. */
+export function turnSummary(t: AgentTurn) {
+  const changes = t.runs.filter((r) => !r.read);
+  const failed = t.runs.filter((r) => r.status === 'failed').length;
+  const parts = [`${changes.length} command${changes.length === 1 ? '' : 's'}`];
+  if (failed) parts.push(`${failed} failed`);
+  if (t.durationMs !== undefined) parts.push(formatDuration(t.durationMs));
+  if (t.usage) parts.push(`${tokens(t.usage.input)} in · ${tokens(t.usage.output)} out`);
+  return parts.join(' · ');
+}
+
+export function isRunning(t: AgentTurn) {
+  return t.status === 'thinking' || t.status === 'working' || t.status === 'waiting';
+}
+
+/**
+ * One command run, following its record by id: its state (a spinner while running, waiting for approval, done,
+ * failed, stopped), what it does in words, its outcome or error under it, and its progress while it reports one.
+ * A read is quieter.
+ */
+export function RunRow(props: { run: Observable<CommandRun> }) {
+  const run = props.run;
+  const field = <K extends keyof CommandRun>(k: K) =>
+    run.pipe(
+      map((r) => r[k]),
+      distinctUntilChanged(),
+    );
+  const status = field('status');
+  return (
+    <div class={classes.run} data-status={status} data-read={field('read').pipe(map((r) => (r ? '' : undefined)))}>
+      <Show when={status}>{(s) => <Icon name={StatusIcons[s]} size={14} class={classes.mark} />}</Show>
+      <span class={classes.runTitle} data-tip-overflow="">
+        {field('title')}
+      </span>
+      <span class={classes.runTime}>{field('durationMs').pipe(map(formatDuration))}</span>
+      <Show when={field('detail')}>{(d) => <span class={classes.runDetail}>{d}</span>}</Show>
+      <Show when={field('progress').pipe(map((p) => p !== undefined))}>
+        {() => (
+          <span class={classes.bar}>
+            <span
+              class={classes.barFill}
+              style={{ width: field('progress').pipe(map((p) => `${Math.round((p ?? 0) * 100)}%`)) }}
+            />
+          </span>
+        )}
+      </Show>
+    </div>
+  );
+}
+
+/** A turn's runs, each row following its record. */
+export function RunList(props: { turn: Observable<AgentTurn>; class?: string }) {
+  const runs = props.turn.pipe(map((t) => t.runs));
+  // By id: a run's record is replaced on every change, and a row made anew would restart its spinner.
+  const ids = runs.pipe(
+    map((rs) => rs.map((r) => r.id)),
+    distinctUntilChanged((a, b) => a.length === b.length && a.every((x, i) => x === b[i])),
+  );
+  return (
+    <div class={props.class}>
+      <For each={ids}>
+        {(id) => (
+          <RunRow
+            run={runs.pipe(
+              map((rs) => rs.find((x) => x.id === id)),
+              filter((x): x is CommandRun => !!x),
+              distinctUntilChanged(),
+            )}
+          />
+        )}
+      </For>
+    </div>
+  );
+}
+
+/** Undo turn: back to the checkpoint before it (held only until the next action). */
+export function UndoTurn(props: { agent: AgentModel; id: string }) {
+  return (
+    <button
+      type="button"
+      class={classes.undo}
+      data-tip="Back to how it was before this request"
+      onClick={() => props.agent.undo(props.id)}
+    >
+      <Icon name="undo-2" size={14} />
+      Undo turn
+    </button>
+  );
+}
+
+/**
+ * The agent at work, over the canvas at the bottom left (design/agent.md §5): the request, the model's words as they
+ * stream, each command as it runs, Allow / Deny when one waits for the person, Stop; at the end, what it did in one
+ * line and Undo turn (back to the checkpoint before it).
+ */
+export function AgentTurnCard(props: { agent: AgentModel }) {
+  const { agent } = props;
+  // Esc closes the card (to its pill): before the panels take it, but not from a field, a list, a menu or a dialog.
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || agent.view.value !== 'card' || !agent.turn.value) return;
+    const target = e.target as HTMLElement | null;
+    if (
+      target?.isContentEditable ||
+      target?.closest?.('input, textarea, select, [role=listbox], [role=menu], [role=dialog], [popover]')
+    )
+      return;
+    e.preventDefault();
+    e.stopPropagation();
+    agent.dismiss();
+  };
+  document.addEventListener('keydown', onKey, true);
+  onCleanup(() => document.removeEventListener('keydown', onKey, true));
+  const which = (view: 'card' | 'line') =>
+    combineLatest([agent.turn, agent.view]).pipe(
+      map(([t, v]) => (v === view ? t?.id : undefined)),
+      distinctUntilChanged(),
+    );
+  return (
+    <>
+      <Show when={which('line')}>{() => <TurnLine agent={agent} />}</Show>
+      <Show when={which('card')}>{(id) => <Card agent={agent} id={id} />}</Show>
+    </>
+  );
+}
+
+/**
+ * A closed card: a line of the status column, like a task's: the request and its state (the spark pulsing while it
+ * runs); a click opens the card again, ✕ takes the line away (the turn stays in History).
+ */
+function TurnLine(props: { agent: AgentModel }) {
+  const turn = props.agent.turn.pipe(filter((t): t is AgentTurn => !!t));
+  const status = turn.pipe(
+    map((t) => t.status),
+    distinctUntilChanged(),
+  );
+  return (
+    <span class={classes.line} data-status={status}>
+      <StatusPill
+        icon={<Icon name="sparkles" size={14} class={classes.spark} />}
+        text={turn.pipe(map((t) => t.prompt))}
+        after={<span class={classes.state}>{status.pipe(map((s) => TurnLabels[s]))}</span>}
+        label="Show the assistant’s turn"
+        onClick={() => props.agent.reopen()}
+        dismissLabel="Hide"
+        onDismiss={() => props.agent.hide()}
+      />
+    </span>
+  );
+}
+
+/** The open card of a turn. */
+function Card(props: { agent: AgentModel; id: string }) {
+  const { agent, id } = props;
+  return (
+    <Show when={id}>
+      {() => {
+        const turn = agent.turn.pipe(
+          filter((t): t is AgentTurn => t?.id === id),
+          distinctUntilChanged(),
+        );
+        const status = turn.pipe(
+          map((t) => t.status),
+          distinctUntilChanged(),
+        );
+        const running = turn.pipe(map(isRunning), distinctUntilChanged());
+        const waiting = turn.pipe(
+          map((t) => t.runs.find((r) => r.status === 'waiting')),
+          distinctUntilChanged(),
+        );
+        return (
+          <section class={classes.card} data-status={status} aria-label="Assistant" aria-live="polite">
+            <header class={classes.header}>
+              <Icon name="sparkles" size={14} class={classes.spark} />
+              <span class={classes.prompt} data-tip-overflow="">
+                {turn.pipe(map((t) => t.prompt))}
+              </span>
+              <span class={classes.state}>{status.pipe(map((s) => TurnLabels[s]))}</span>
+              <Show when={running}>
+                {() => (
+                  <button type="button" class={classes.stop} onClick={() => agent.stop()}>
+                    <Icon name="square" size={10} />
+                    Stop
+                  </button>
+                )}
+              </Show>
+              {/* Closes to the pill (Esc too); a running turn goes on. */}
+              <button
+                type="button"
+                class={classes.icon}
+                aria-label="Close"
+                data-tip="Close (Esc)"
+                onClick={() => agent.dismiss()}
+              >
+                <Icon name="x" size={14} />
+              </button>
+            </header>
+            <ScrollArea class={classes.body} contentClass={classes.bodyContent}>
+              <Show when={turn.pipe(map((t) => t.text))}>
+                {(text) => (
+                  <p class={classes.text} data-streaming={running.pipe(map((r) => (r ? '' : undefined)))}>
+                    {text}
+                  </p>
+                )}
+              </Show>
+              <Show when={turn.pipe(map((t) => t.retries ?? 0))}>
+                {(n) => (
+                  <p class={classes.note}>
+                    Retried the model {n === 1 ? 'once' : `${n} times`} (the provider was busy)
+                  </p>
+                )}
+              </Show>
+              <RunList turn={turn} class={classes.runs} />
+            </ScrollArea>
+            {/* A run waiting for the person: what it does, why it asks, and the answer. */}
+            <Show when={waiting}>
+              {(run) => (
+                <div class={classes.approval} role="group" aria-label="Approval">
+                  <span class={classes.approvalText}>
+                    Allow “{run.title}”? <span class={classes.approvalWhy}>{run.detail}</span>
+                  </span>
+                  <button type="button" class={classes.deny} onClick={() => agent.approve(run.id, false)}>
+                    Deny
+                  </button>
+                  <button type="button" class={classes.allow} onClick={() => agent.approve(run.id, true)}>
+                    Allow
+                  </button>
+                </div>
+              )}
+            </Show>
+            <Show when={running.pipe(map((r) => !r))}>
+              {() => (
+                <footer class={classes.footer}>
+                  <span class={classes.summary}>{turn.pipe(map(turnSummary))}</span>
+                  <Show
+                    when={turn.pipe(map((t) => t.checkpoint && !t.undone))}
+                    fallback={() => (
+                      <Show when={turn.pipe(map((t) => !!t.undone))}>
+                        {() => <span class={classes.undone}>Undone</span>}
+                      </Show>
+                    )}
+                  >
+                    {() => <UndoTurn agent={agent} id={id} />}
+                  </Show>
+                </footer>
+              )}
+            </Show>
+          </section>
+        );
+      }}
+    </Show>
+  );
+}

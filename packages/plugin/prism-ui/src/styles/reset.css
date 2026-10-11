@@ -1,0 +1,187 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/*
+ * A reset scoped to prism-ui roots (top-level `msp-*` elements carry `.msp-root`), so host pages are untouched and host
+ * styles leaking in are neutralised. Low specificity (`:where`) and the lowest layer: components override it freely.
+ */
+/*
+ * Cut-off text fades out at its end (no ellipsis). Only when it is cut off: a scroll-driven animation on the element's
+ * own inline scroll timeline sets the fade's width, and that timeline is active only when there is overflow to scroll.
+ * An element opts in with `overflow: hidden`, `white-space: nowrap` and the three lines below (where scroll timelines
+ * are unsupported the text is simply clipped):
+ *   mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+ *   animation-name: msp-fade-overflow;
+ *   animation-fill-mode: both;
+ *   animation-timeline: scroll(self inline);
+ * (longhands: the `animation` shorthand cannot carry a timeline, and the build would merge them into it)
+ */
+@property --msp-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes msp-fade-overflow {
+  from,
+  to {
+    --msp-fade: 20px;
+  }
+}
+
+/*
+ * A scrolling area's edges fade where there is more to scroll that way (none at the top until it is scrolled, none at the
+ * bottom once at the end): two scroll-driven animations on the area's own block timeline, over its first and last
+ * 24px of scrolling, set the fades' heights; an area that does not scroll has an inactive timeline and no fades. An area
+ * opts in with these lines (not on one with its own background, which would fade too):
+ *   mask-image: linear-gradient(to bottom, transparent, #000 var(--msp-fade-top), #000 calc(100% - var(--msp-fade-bottom)), transparent);
+ *   animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
+ *   animation-fill-mode: both;
+ *   animation-timing-function: linear;
+ *   animation-timeline: scroll(self block);
+ *   animation-range: 0 24px, calc(100% - 24px) 100%;
+ */
+@property --msp-fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --msp-fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes msp-fade-scroll-top {
+  from {
+    --msp-fade-top: 0px;
+  }
+  to {
+    --msp-fade-top: 16px;
+  }
+}
+
+@keyframes msp-fade-scroll-bottom {
+  from {
+    --msp-fade-bottom: 16px;
+  }
+  to {
+    --msp-fade-bottom: 0px;
+  }
+}
+
+/* Content that opens (Show's `reveal`): in with a short fade and a slide from just above; closing is immediate. */
+@keyframes msp-reveal {
+  /* Grows from nothing to its height (interpolate-size), so what is below glides down instead of jumping; clipped
+     only while it grows. Without interpolate-size, it fades. */
+  from {
+    /* The whole box from nothing: its padding and margins too, or they appear at once and the growth starts with a
+       jump. */
+    height: 0;
+    padding-block: 0;
+    margin-block: 0;
+    opacity: 0;
+    overflow: clip;
+  }
+  to {
+    overflow: clip;
+  }
+}
+
+@keyframes msp-reveal-side {
+  from {
+    opacity: 0;
+    translate: 12px 0;
+  }
+}
+
+@layer msp.reset {
+  :where(.msp-root) {
+    /* Heights animate to and from auto (a reveal grows to its height). */
+    interpolate-size: allow-keywords;
+    font-family: var(--msp-font-sans);
+    font-size: var(--msp-font-size-md);
+    line-height: var(--msp-line-height);
+    color: var(--msp-color-text);
+    -webkit-font-smoothing: antialiased;
+    text-size-adjust: none;
+    /* An app, not a page: the arrow over labels and headings; the text cursor only where text is typed. */
+    cursor: default;
+  }
+
+  :where(.msp-root) :where(input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, [contenteditable]) {
+    cursor: text;
+  }
+
+  :where(.msp-root),
+  :where(.msp-root) *,
+  :where(.msp-root) *::before,
+  :where(.msp-root) *::after {
+    box-sizing: border-box;
+  }
+
+  :where(.msp-root) :where(h1, h2, h3, h4, h5, h6, p, ul, ol, dl, dd, figure, blockquote, pre) {
+    margin: 0;
+  }
+
+  :where(.msp-root) :where(ul, ol) {
+    padding: 0;
+    list-style: none;
+  }
+
+  :where(.msp-root) :where(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+  }
+
+  :where(.msp-root) :where(button) {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+
+  :where(.msp-root) :where(button:disabled) {
+    cursor: default;
+  }
+
+  :where(.msp-root) :where(svg) {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  :where(.msp-root) :where(:focus-visible) {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 1px;
+  }
+
+  :where(.msp-root) :where([data-reveal]) {
+    animation: msp-reveal var(--msp-motion-base) var(--msp-ease-reveal);
+  }
+
+  :where(.msp-root) :where([data-reveal="side"]) {
+    animation-name: msp-reveal-side;
+  }
+
+  :where(.msp-root) :where([hidden]) {
+    display: none !important;
+  }
+
+  /* Reduced motion: animations and transitions finish at once (content never waits on them). */
+  @media (prefers-reduced-motion: reduce) {
+    :where(.msp-root),
+    :where(.msp-root) *,
+    :where(.msp-root) *::before,
+    :where(.msp-root) *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

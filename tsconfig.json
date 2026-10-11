@@ -179,7 +179,7 @@
       "path": "./packages/plugin/ui"
     },
     {
-      "path": "./packages/plugin/ui-next"
+      "path": "./packages/plugin/prism-ui"
     },
     {
       "path": "./packages/plugin/headless"
