@@ -100,6 +100,10 @@ open a panel or section; the mocks call the shell from `run`), color as an inlin
 `components/color`), and "open as form" with the generated form in a dialog for params that are not flat (today they run
 at their defaults).
 
+Agents ([design/agent.md](design/agent.md)): the PD → JSON Schema generator, the state and focus accounts, the UI client
+API over the command registry, checkpoints per turn, the any-harness wiring and the MCP server. Then, as a separate
+slice after the UI is done, Stories untold's MolQL selection skills.
+
 ## Phase 6: shell and integration
 
 `ShellModel`, contributions, `PluginUISpec` (ui-next), `createPluginUI`, `<msp-plugin>`, persistence, Layout bridge.
