@@ -219,7 +219,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
       id: 'canvas.settings',
       title: 'Canvas settings…',
       category: 'View',
-      icon: 'aperture',
+      icon: 'monitor-cog',
       run: open('canvas-settings'),
     },
     {
