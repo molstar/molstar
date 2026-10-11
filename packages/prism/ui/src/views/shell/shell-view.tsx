@@ -148,7 +148,9 @@ export function ShellView(props: ShellViewProps) {
           '--msp-canvas-pinned': pinnedWidth.pipe(map((px) => `${px}px`)),
         }}
       >
-        <div class={classes.canvas}>{props.canvas}</div>
+        <div class={classes.canvas} data-msp-canvas="">
+          {props.canvas}
+        </div>
         {/* Chrome that is part of the view: themed by the canvas background, tinted from its color. */}
         <div
           class={`${classes.layer} ${classes.canvasLayer}`}

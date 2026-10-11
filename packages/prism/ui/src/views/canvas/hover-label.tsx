@@ -19,7 +19,9 @@ const Offset = 14;
 /**
  * The hover label next to the cursor. Its content comes from the model; its position follows the pointer over the
  * canvas directly (one transform write per frame, no state or allocation per move), flipped near the edges and hidden
- * while a button is held (rotating, dragging) or the pointer is outside.
+ * while a button is held (rotating, dragging) or the pointer is outside. `area` is the canvas itself (ShellView marks
+ * it `data-msp-canvas`), not what floats over it: over the panel or the chrome there is no label, though the hovered
+ * tree row highlights its part on the canvas.
  */
 export function HoverLabel(props: { model: HoverLabelModel; area: () => HTMLElement | null }) {
   const label = (
@@ -46,10 +48,14 @@ export function HoverLabel(props: { model: HoverLabelModel; area: () => HTMLElem
     if (!visible) return;
     const area = label.offsetParent as HTMLElement | null;
     if (!area) return;
+    // The pointer in the layer the label is placed in (the canvas may sit elsewhere in it).
+    const rect = area.getBoundingClientRect();
+    const px = x - rect.left;
+    const py = y - rect.top;
     const w = label.offsetWidth;
     const h = label.offsetHeight;
-    const left = x + Offset + w > area.clientWidth ? x - Offset - w : x + Offset;
-    const top = y + Offset + h > area.clientHeight ? y - Offset - h : y + Offset;
+    const left = px + Offset + w > area.clientWidth ? px - Offset - w : px + Offset;
+    const top = py + Offset + h > area.clientHeight ? py - Offset - h : py + Offset;
     label.style.transform = `translate(${Math.max(0, left)}px, ${Math.max(0, top)}px)`;
   };
   const schedule = () => {
@@ -66,9 +72,8 @@ export function HoverLabel(props: { model: HoverLabelModel; area: () => HTMLElem
     const area = props.area();
     if (!area) return;
     const onMove = (e: PointerEvent) => {
-      const rect = area.getBoundingClientRect();
-      x = e.clientX - rect.left;
-      y = e.clientY - rect.top;
+      x = e.clientX;
+      y = e.clientY;
       inside = true;
       dragging = e.buttons !== 0;
       schedule();

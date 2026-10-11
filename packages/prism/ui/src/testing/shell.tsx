@@ -783,7 +783,7 @@ export function ShellStory(props: {
       overlays={
         props.loaded ? (
           <>
-            <HoverLabel model={hover} area={() => document.querySelector('main')} />
+            <HoverLabel model={hover} area={() => document.querySelector<HTMLElement>('[data-msp-canvas]')} />
           </>
         ) : null
       }
