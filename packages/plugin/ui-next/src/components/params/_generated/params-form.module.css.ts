@@ -195,10 +195,10 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 
 .msp-params-params-form-color {
   align-items: center;
-  gap: var(--msp-space-2);
+  gap: var(--msp-space-3);
   width: 100%;
   height: 24px;
-  padding: 0 var(--msp-space-2);
+  padding: 0 var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
   display: flex;
@@ -210,15 +210,16 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 
 .msp-params-params-form-swatch {
   border-radius: var(--msp-radius-sm);
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+  flex: none;
 }
 
 .msp-params-params-form-hex {
-  color: var(--msp-color-text-muted);
-  font-family: var(--msp-font-mono);
-  font-size: var(--msp-font-size-xs);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .msp-params-params-form-unsupported {

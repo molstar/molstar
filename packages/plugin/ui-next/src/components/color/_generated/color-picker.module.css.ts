@@ -20,15 +20,17 @@ export const classes = {
 defineStyles('components/color/color-picker.module.css', `@layer msp.components {
 .msp-color-color-picker-picker {
   gap: var(--msp-space-3);
-  padding: var(--msp-space-3);
+  padding: var(--msp-space-3) var(--msp-space-3) var(--msp-space-3) var(--msp-space-4);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  box-shadow: inset 2px 0 0 var(--msp-color-accent);
   display: grid;
 }
 
 .msp-color-color-picker-palette {
-  gap: var(--msp-space-1);
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--msp-space-2);
+  grid-template-columns: repeat(8, minmax(0, 22px));
+  justify-content: start;
   display: grid;
 }
 
@@ -44,8 +46,8 @@ defineStyles('components/color/color-picker.module.css', `@layer msp.components 
   }
 
   &[aria-selected="true"] {
-    box-shadow: 0 0 0 2px var(--msp-color-bg),
-      0 0 0 4px var(--msp-color-accent);
+    box-shadow: 0 0 0 1.5px var(--msp-color-bg),
+      0 0 0 3px var(--msp-color-text-muted);
   }
 
   &:focus-visible {
@@ -62,8 +64,8 @@ defineStyles('components/color/color-picker.module.css', `@layer msp.components 
 
 .msp-color-color-picker-preview {
   border-radius: var(--msp-radius-sm);
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
   flex: none;
 }
@@ -71,12 +73,12 @@ defineStyles('components/color/color-picker.module.css', `@layer msp.components 
 .msp-color-color-picker-hex {
   min-width: 0;
   height: 24px;
-  padding: 0 var(--msp-space-2);
+  padding: 0 var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
   color: var(--msp-color-text);
-  font-family: var(--msp-font-mono);
-  font-size: var(--msp-font-size-xs);
+  font-size: var(--msp-font-size-sm);
+  font-variant-numeric: tabular-nums;
   border: 0;
   flex: 1;
 
