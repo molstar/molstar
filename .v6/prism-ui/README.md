@@ -36,10 +36,11 @@ Next: the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin ye
   is a package an app includes (`@molstar/prism-agent`); the UI knows it only through ports and never depends on it.
   Mocked: the Ask bar, the turn card, History, the Assistant tab; not yet the client API or the harness.
   ([design/agent.md](design/agent.md))
-- **Two contexts**: `PrismContext` (`@molstar/prism`) embeds `{ plugin: PluginContext }` and is the hub of the app's
-  state with no UI (sources, view models, the command registry, history), so it runs headless; `PrismUIContext` extends
-  it with the shell (Prism's own layout), keybindings, contributions and theme. Not built yet: the mocks run on the
-  `shell/` models alone. ([design/shell.md](design/shell.md) §6)
+- **Two contexts and modules**: `PrismContext` (`@molstar/prism`) embeds `{ plugin: PluginContext }` and holds what
+  every mode shares with no UI (the command registry, status, history, settings), so it runs headless; a mode, an
+  extension and the agent attach their models as modules; `PrismUIContext` extends it with the shell (Prism's own
+  layout), keybindings, contributions and theme. Not built yet: the mocks run on the `shell/` models alone.
+  ([design/contexts.md](design/contexts.md))
 - **Shell** (`ctx.shell`, `ShellModel`), Prism's own layout (core `PluginLayout` is not used), canvas first: a right
   panel floating over the canvas (pinnable beside it) with a rail at the right edge: Home (the Mol\* mark), the tabs
   (Structure, Selection, Snapshots, State tree, extension tabs), the scene's and the app's overlay cards (Animation,
@@ -62,23 +63,24 @@ Next: the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin ye
 
 ## Documents
 
-| Document                                                           | Content                                                                 |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| [analysis/current-ui.md](analysis/current-ui.md)                   | Functional inventory of the current UI and its extension points         |
-| [analysis/plugin-state.md](analysis/plugin-state.md)               | Observable plugin state, gaps, command/input surface                    |
-| [analysis/stories-untold.md](analysis/stories-untold.md)           | How stories-untold uses any-ui; take/adapt/leave                        |
-| [analysis/extensions.md](analysis/extensions.md)                   | Extension and app UI inventory with prism-ui port forms                 |
-| [analysis/harness-and-seqstar.md](analysis/harness-and-seqstar.md) | The agent harness and the sequence viewer: what Prism must host         |
-| [review.md](review.md)                                             | The spec review (2026-10-11): findings and open questions               |
-| [design/architecture.md](design/architecture.md)                   | Rewrite decision, package layout, dependency rules, any-ui import       |
-| [design/view-models.md](design/view-models.md)                     | Sources, view models, optimistic edits, actions                         |
-| [design/rendering.md](design/rendering.md)                         | JSX runtime, custom elements, React/Preact                              |
-| [design/commands.md](design/commands.md)                           | Command definitions, registry, command menu, keybindings                |
-| [design/agent.md](design/agent.md)                                 | Agents: commands as tools, state and focus, checkpoints, the client API |
-| [design/shell.md](design/shell.md)                                 | Shell, default views, contributions, UI spec, embeddables               |
-| [design/modes.md](design/modes.md)                                 | Modes: Mol\* and stories, the frame, opt-in story mode                  |
-| [design/styling.md](design/styling.md)                             | CSS Modules, tokens, themes, build                                      |
-| [plan.md](plan.md)                                                 | Phases and acceptance                                                   |
+| Document                                                           | Content                                                                  |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| [analysis/current-ui.md](analysis/current-ui.md)                   | Functional inventory of the current UI and its extension points          |
+| [analysis/plugin-state.md](analysis/plugin-state.md)               | Observable plugin state, gaps, command/input surface                     |
+| [analysis/stories-untold.md](analysis/stories-untold.md)           | How stories-untold uses any-ui; take/adapt/leave                         |
+| [analysis/extensions.md](analysis/extensions.md)                   | Extension and app UI inventory with prism-ui port forms                  |
+| [analysis/harness-and-seqstar.md](analysis/harness-and-seqstar.md) | The agent harness and the sequence viewer: what Prism must host          |
+| [review.md](review.md)                                             | The spec review (2026-10-11): findings and open questions                |
+| [design/architecture.md](design/architecture.md)                   | Rewrite decision, package layout, dependency rules, any-ui import        |
+| [design/view-models.md](design/view-models.md)                     | Sources, view models, optimistic edits, actions                          |
+| [design/rendering.md](design/rendering.md)                         | JSX runtime, custom elements, React/Preact                               |
+| [design/commands.md](design/commands.md)                           | Command definitions, registry, command menu, keybindings                 |
+| [design/agent.md](design/agent.md)                                 | Agents: commands as tools, state and focus, checkpoints, the client API  |
+| [design/contexts.md](design/contexts.md)                           | The skeleton: contexts, modules, modes, contributions, commands, history |
+| [design/shell.md](design/shell.md)                                 | Shell, default views, contributions, UI spec, embeddables                |
+| [design/modes.md](design/modes.md)                                 | Modes: Mol\* and stories, the frame, opt-in story mode                   |
+| [design/styling.md](design/styling.md)                             | CSS Modules, tokens, themes, build                                       |
+| [plan.md](plan.md)                                                 | Phases and acceptance                                                    |
 
 ## Decisions
 
@@ -97,10 +99,10 @@ Next: the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin ye
 5. **Packages**: `packages/prism/*` (`@molstar/prism`, `@molstar/prism-ui`, `@molstar/prism-agent`,
    `@molstar/prism-stories`, `@molstar/prism-viewer`, more as they come: a headless engine, the new sequence viewer),
    private until stable. `apps/prism` is a new app, not a viewer copy.
-6. **Modes**: the app is composed of modes, each its own opt-in package: the viewer (Mol\*'s own UI,
-   `@molstar/prism-viewer`) and story mode (stories on schemas and MolViewSpec: serializable and reproducible, Stories
-   Untold's UX), swapped on a frame that stays; story mode is opt-in like the agent
-   ([design/modes.md](design/modes.md)).
+6. **Modes**: each its own opt-in package, the viewer (Mol\*'s own UI, `@molstar/prism-viewer`) and the story mode
+   (stories on schemas, MolViewSpec and SeqViewSpec: serializable and reproducible, Stories Untold's UX). **One mode per
+   app**, chosen before the app exists (the splash); switching starts a new app; builds per mode
+   ([design/modes.md](design/modes.md), [design/contexts.md](design/contexts.md) §1).
 7. **The sequence viewer**: a new one is being developed separately; the build uses a placeholder in its place (the
    mocks' sequence strip is a layout reference only).
 8. **The plugin is the engine, behind `PrismContext`**: Prism keeps `PluginContext` for the state tree, rendering,
@@ -108,6 +110,11 @@ Next: the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin ye
    actions import it, and Prism never uses its UI-era surface (layout, the `PluginCommands` bus for UI, toasts, the
    UI-only maps, `customParamEditors`). A mode could later run on another engine without a UI change
    ([design/shell.md](design/shell.md) §6).
+
+9. **Embedding**: `<prism-viewer mode="…">` is the app's element, with a shadow root (host CSS stops at it); everything
+   inside is light DOM ([design/contexts.md](design/contexts.md) §1).
+10. **Async and optimism**: a model's work returns its result, its state follows the sources (one source of truth); a
+    change is projected at once only when its future state is known ([design/contexts.md](design/contexts.md) §8).
 
 Settled by the mocks:
 

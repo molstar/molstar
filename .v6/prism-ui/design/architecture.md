@@ -27,14 +27,14 @@ Lucide (extracted by `scripts/icons.mjs`) plus a few molecular glyphs drawn in t
 Prism is a family of packages under `packages/prism/`, layered as stories-untold is (an application layer without UI,
 the screens on it, a headless engine beside them; [../analysis/stories-untold.md](../analysis/stories-untold.md)):
 
-| Path                     | Package                                       | Holds                                                                                                                                                                                                    | State                                                      |
-| ------------------------ | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `packages/prism/core`    | `@molstar/prism`                              | `PrismContext` (`{ plugin: PluginContext }` and the app's state: sources, view models, the command registry, history and undo); `reactive/`, `forms/`, `commands/`, the `model/` contracts               | Planned (Phase 4): carved out of prism-ui with the context |
-| `packages/prism/ui`      | `@molstar/prism-ui`                           | the common base every mode builds on: the DOM runtime, components, the shell frame and its views, the command menu, Settings, `PrismUIContext`, the React/Preact adapter, `testing/` (the mock frame)    | Built (mocks)                                              |
-| `packages/prism/viewer`  | `@molstar/prism-viewer`                       | the viewer mode (Mol\*'s own UI): Home, the Structure tab, the state tree, snapshots, export, the sequence strip, the canvas's mode switch and selection bar, their `model/` contracts and mocks; opt-in | Built (mocks)                                              |
-| `packages/prism/stories` | `@molstar/prism-stories`                      | story mode: the story model, the Story tab, its mocks; opt-in ([modes.md](modes.md))                                                                                                                     | Built (sketch)                                             |
-| `packages/prism/agent`   | `@molstar/prism-agent`                        | the assistant: its model contracts, the turn card, History, the Assistant tab, its mocks; opt-in (§6)                                                                                                    | Built (mocks)                                              |
-| later                    | `@molstar/prism-headless`, `@molstar/prism-…` | the headless engine (Node: tests, CLI, evals, the agent's tools without a page; on `@molstar/prism` as `@molstar/plugin-headless` is on the plugin), the new sequence viewer, the narrative features     | Planned                                                    |
+| Path                     | Package                                       | Holds                                                                                                                                                                                                                                          | State                                                      |
+| ------------------------ | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `packages/prism/core`    | `@molstar/prism`                              | `PrismContext` (what every mode shares: the plugin behind sources and actions, the command registry, status, history and runs, settings, the module registry; [contexts.md](contexts.md)); `reactive/`, `forms/`, `commands/`, a core icon key | Planned (Phase 4): carved out of prism-ui with the context |
+| `packages/prism/ui`      | `@molstar/prism-ui`                           | the common base every mode builds on: the DOM runtime, components, the shell frame and its views, the command menu, Settings, `PrismUIContext`, the React/Preact adapter, `testing/` (the mock frame)                                          | Built (mocks)                                              |
+| `packages/prism/viewer`  | `@molstar/prism-viewer`                       | the viewer mode (Mol\*'s own UI): Home, the Structure tab, the state tree, snapshots, export, the sequence strip, the canvas's mode switch and selection bar, their `model/` contracts and mocks; opt-in                                       | Built (mocks)                                              |
+| `packages/prism/stories` | `@molstar/prism-stories`                      | story mode: the story model, the Story tab, its mocks; opt-in ([modes.md](modes.md))                                                                                                                                                           | Built (sketch)                                             |
+| `packages/prism/agent`   | `@molstar/prism-agent`                        | the assistant: its model contracts, the turn card, History, the Assistant tab, its mocks; opt-in (§6)                                                                                                                                          | Built (mocks)                                              |
+| later                    | `@molstar/prism-headless`, `@molstar/prism-…` | the headless engine (Node: tests, CLI, evals, the agent's tools without a page; on `@molstar/prism` as `@molstar/plugin-headless` is on the plugin), the new sequence viewer, the narrative features                                           | Planned                                                    |
 
 `apps/prism` is the app built on them (§5), composed of the modes it includes: the viewer, story mode, or both
 ([modes.md](modes.md)). The viewer keeps its files' paths (`views/structure/…`, `model/scene`), so the designs' paths
@@ -99,7 +99,7 @@ packages/prism/agent/
 Planned, not built (Phases 4–6 in [../plan.md](../plan.md)): `@molstar/prism` with `PrismContext`, `model/sources/`
 (plugin → `ReadonlyState` adapters) and `model/actions/` (operations shared by view models and commands), view-model
 implementations over a real plugin, the built-in, generated and contextual commands; in prism-ui the keybinding service,
-the built-in custom elements (`<msp-plugin>`, embeddable views), `context.ts` (`PrismUIContext`), `spec.ts`
+the built-in custom elements (`<prism-viewer>`, embeddable views), `context.ts` (`PrismUIContext`), `spec.ts`
 (`PrismUISpec`), `default-spec.ts` (`DefaultUIContributions`, `DefaultPrismUISpec`) and `createPrismUI`.
 
 Each `.css` file compiles into a committed module next to it (`x.css` → `_generated/x.css.ts`) that exports the class
@@ -110,7 +110,8 @@ components it imports ([styling.md](styling.md)). `_generated/` folders are excl
 ## 3. Dependency rules
 
 As the code holds them now (rxjs is allowed everywhere, and so is `import type` of `IconName` from `components/icon`:
-icon names are data in models, commands and tabs):
+icon names are data in models, commands and tabs). With the core carve-out (Phase 4) that type would make core import
+prism-ui, so core gets its own icon key (a string-literal type) that prism-ui maps to glyphs (review M4):
 
 | Folder                       | May import                                                                                         |
 | ---------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -138,14 +139,16 @@ Nothing in prism-ui imports `@molstar/plugin-ui`, and nothing outside `react/` i
 imports now makes that a file move. `@molstar/prism-agent` imports prism-ui (its entry, and `.ts` modules by path);
 prism-ui never depends on it or names it.
 
-**The plugin stays behind one layer** ([shell.md](shell.md) §6): only `@molstar/prism`'s `model/sources/` and
-`model/actions/` import `@molstar/plugin` (and `@molstar/model`/`@molstar/graphics` for the plugin's data); nothing in
-prism-ui, the modes or the agent does. Views and view models reach the plugin through sources, commands through actions.
+**The plugin stays behind one layer** ([contexts.md](contexts.md) §7), by folder role in any Prism package: only
+`sources/` and `actions/` folders import `@molstar/plugin` (and `@molstar/model`/`@molstar/graphics` for the plugin's
+data), in core, in a mode, or in an extension's prism entry. Views and view models reach the plugin through sources,
+commands through actions.
 
 Enforcement: between packages, the workspace check (`scripts/workspace/check.mjs`: declared dependencies, no
 cross-package relative imports, no cycles) and `src/_test/opt-in-boundary.test.ts` (prism-ui's manifest and files never
-name the agent or a mode). Planned with `@molstar/prism` (Phase 4): the same kind of test for the plugin, failing any
-import of `@molstar/plugin` outside sources and actions. Inside prism-ui the folder rules hold by review.
+name the agent or a mode). Planned with `@molstar/prism` (Phase 4): one reusable plugin-boundary check run on every
+package with Prism modules, failing an import of `@molstar/plugin` outside `sources/` and `actions/`. Inside prism-ui
+the folder rules hold by review.
 
 ## 4. Bringing in any-ui
 
@@ -184,11 +187,13 @@ Adaptations made while copying or soon after:
 
 - prism-ui and `@molstar/plugin-ui` can run in the same repo and the same page (different class names, no shared
   globals). They do not share a `PluginContext` at the same time.
-- **`PrismContext` and `PrismUIContext`** ([shell.md](shell.md) §6; not built yet). `PrismContext` embeds the plugin
-  (`{ plugin: PluginContext }`; it does not extend it) and is the hub of the app's state, with no UI, so it runs
-  headless; `PrismUIContext` extends it with the UI. Neither is `@molstar/plugin-ui`'s `PluginUIContext`, so code that
-  uses both has no clash. The UI-only maps on core `PluginContext` (`customStructureControls`, …) are not read by Prism;
-  contributions replace them. Removing them from core waits for the classic UI's retirement (recorded in
+- **`PrismContext` and `PrismUIContext`** ([contexts.md](contexts.md); not built yet). `PrismContext` embeds the plugin
+  (`{ plugin: PluginContext }`; it does not extend it) and holds what every mode shares, with no UI, so it runs
+  headless; a mode's, an extension's and the agent's models are modules; `PrismUIContext` extends it with the UI. An app
+  runs one mode, chosen before it exists; `<prism-viewer>` is its element, with a shadow root. Neither is
+  `@molstar/plugin-ui`'s `PluginUIContext`, so code that uses both has no clash. The UI-only maps on core
+  `PluginContext` (`customStructureControls`, …) are not read by Prism; contributions replace them. Removing them from
+  core waits for the classic UI's retirement (recorded in
   [../../plans/breaking-v6-changes.md](../../plans/breaking-v6-changes.md)).
 - **Commands.** `PluginCommands` stay in the plugin core, the classic UI's bus. Prism's command registry is part of
   `PrismContext`, so commands run headless and are what the agent calls.

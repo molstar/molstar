@@ -6,15 +6,19 @@ nested UI: what used to be a card with a form becomes a command with arguments.
 
 ## 1. Relationship to `PluginCommands`
 
-`PluginCommands` stay as they are: an internal, typed message bus with UUID ids that behaviors subscribe to. prism-ui
-commands are a separate, user-facing layer: string ids, titles, categories, arguments, enablement, keybindings. A UI
-command's `run` may dispatch a `PluginCommand`, call an action function ([view-models.md](view-models.md) §6), or both.
+`PluginCommands` stay as they are: an internal, typed message bus with UUID ids that behaviors subscribe to, and the
+classic UI's. Prism's commands are a separate, user-facing layer: string ids, titles, categories, arguments, enablement,
+keybindings. A command's `run` calls actions ([view-models.md](view-models.md) §6), never a `PluginCommand` (the plugin
+boundary, [contexts.md](contexts.md) §7).
 
 The command core (`commands/`: `CommandManager<Ctx>`, `CommandInvocation<Ctx>`, the types, tail reading, matching, key
-chords) is framework-free and generic over its context: it depends on PD, rxjs, the package's reactive state,
-`forms/flat-fields` and the `IconName` type, not on the plugin or the DOM, so it can later move into `@molstar/plugin`
-for headless use (scripting, automation, agents) without changes. That move is a separate decision. The command menu
-(`views/command-menu`) is the only view over it so far.
+chords) is framework-free and generic over its context; it moves to `@molstar/prism` with `PrismContext`, which owns the
+one registry (contexts.md §4), so commands run headless (tests, the agent's tools, MCP). Its icons become a core icon
+key that prism-ui maps to glyphs (review M4). The command menu (`views/command-menu`) is the only view over it so far.
+
+The skeleton's command contract is in [contexts.md](contexts.md) §4–5: the composed command context, `execute` as the
+one run path, results with their effect, the metadata that makes a command a tool, origins and history. This document
+covers definitions, the menu, keybindings and the built-in map.
 
 ## 2. Definition
 
@@ -124,31 +128,35 @@ N more options at their defaults" and runs with them), and `opens`: the mock's c
 (`shell.show(tab, section)`, `shell.openOverlay(overlay, …, section)`) and report "Showing …" or "Opened …".
 
 `CommandContext` (planned; the mocks run with an empty context, and `when` reads closures such as the structure count)
-is a `ReadonlyState` derived from view models:
+is a `ReadonlyState` composed of a frame base and slices that contributions add (contexts.md §4):
 
 ```ts
 interface CommandContext {
-  prism: PrismContext;                     // the app's state (plugin, models, commands); UI commands get PrismUIContext
-  structures: readonly StructureNode[];    // hierarchy selection
-  sceneTarget?: SceneNode;                 // node the user acted on (context menu, inspector)
-  currentCell?: CellNode;
+  busy: boolean;
+  mode: string;
+  activeView?: string;                     // shell focus, for scoped keybindings (UI only)
+  slice<S>(key: CommandContextKey<S>): S | undefined;
+}
+
+// The viewer's slice (in @molstar/prism-viewer): what its commands' `when` and `params` read.
+interface SceneCommandContext {
+  structures: readonly SceneNode[];        // the structures in the hierarchy selection
+  target?: SceneNode;                      // the node acted on (context menu, inspector)
   selection: { elementCount: number; structureCount: number };
-  focus?: FocusEntry;
+  focus?: { label: string };
   selectionMode: boolean;
-  isBusy: boolean;
-  activeView?: string;                     // shell focus, for scoped keybindings
 }
 ```
 
 ## 3. Where commands come from
 
-| Source                    | Examples                                                                                                                                                                                                                              | Lifetime                         |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| Built-in                  | Load file/URL/PDB/AlphaFold, undo, reset camera, screenshot, toggle selection mode, clear selection, add measurement, superpose, quick styles, snapshot add/next/previous/play, toggle view, change theme                             | Registered by `PluginUIContext`  |
-| Contributed               | Extension contributions (geo-export, model-export, mp4 dialog, zenodo, assembly symmetry, …)                                                                                                                                          | While the contribution is active |
-| Generated from registries | "Apply preset: …" (hierarchy and representation presets), "Color by: …" (themes), "Select: …" (queries), "Add representation: …", state actions ("Download structure", "Load G3D", "Download tunnels"), animations, background styles | Recomputed on `registry.version` |
-| Contextual                | `actions.fromCell(currentCell)` as "Apply to <cell>: …"; node actions in scene/tree context menus                                                                                                                                     | While the cell/node is current   |
-| View-scoped               | Tree navigation, command menu navigation, dialog confirm                                                                                                                                                                              | While the view is mounted        |
+| Source                    | Examples                                                                                                                                                                                                                              | Lifetime                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Built-in                  | Load file/URL/PDB/AlphaFold, undo, reset camera, screenshot, toggle selection mode, clear selection, add measurement, superpose, quick styles, snapshot add/next/previous/play, toggle view, change theme                             | Registered by `PrismContext` (the frame's and the mode's contributions) |
+| Contributed               | Extension contributions (geo-export, model-export, mp4 dialog, zenodo, assembly symmetry, …)                                                                                                                                          | While the contribution is active                                        |
+| Generated from registries | "Apply preset: …" (hierarchy and representation presets), "Color by: …" (themes), "Select: …" (queries), "Add representation: …", state actions ("Download structure", "Load G3D", "Download tunnels"), animations, background styles | Recomputed on `registry.version`                                        |
+| Contextual                | `actions.fromCell(currentCell)` as "Apply to <cell>: …"; node actions in scene/tree context menus                                                                                                                                     | While the cell/node is current                                          |
+| View-scoped               | Tree navigation, command menu navigation, dialog confirm                                                                                                                                                                              | While the view is mounted                                               |
 
 Generated commands are the largest win: today these choices are buried in nested menus inside cards. The command menu
 lists them flat, fuzzy-searchable, with `when` explaining why one is unavailable ("Select a structure first").
@@ -167,7 +175,8 @@ changes).
 
 - `register(defs)` returns an unregister function; contributions and views register by mount scope. Unregistering
   cancels a run of theirs and closes their open form, and an outcome that settles after that reports to no one. A
-  command registered again under the same id replaces the earlier one.
+  duplicate id throws unless the newcomer declares `replaces` (a shadow stack: unregistering restores the previous one;
+  contexts.md §6). Today the mock replaces silently.
 - `registerGroups(groups)` likewise; `groups`, `groupPath(id)`, `children(id)` (a group's subgroups by `order` and its
   commands) and `inGroup(command, id)` serve browsing.
 - `query(text)` gives `recent` (on an empty text), `matches`, and `direct`: the text starts with a command's alias and
@@ -183,8 +192,8 @@ changes).
   has no caller to tell).
 - Recents are remembered on `done` and saved through the injected store (localStorage in apps, none in embeds); the
   mocks keep them in memory.
-- Not yet: `execute(id, values)`, a programmatic run without UI (scripts, tests, buttons with fixed arguments);
-  contextual commands ranked first.
+- Not yet: `execute(id, args, { source, signal })` as the one run path (contexts.md §4: writes queued, reads alongside,
+  arguments validated, a `RunHandle`; today one run at a time); contextual commands ranked first.
 
 `CommandInvocation` (`commands/invocation.ts`) is one open command: its state is `editing`, `resolving` (the assistant
 is reading words), `running`, `cancelling`, `done` or `closed`; a failed run goes back to `editing` with the error, and

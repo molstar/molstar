@@ -157,24 +157,12 @@ rebuilds, selection changes) is combined and debounced by a frame (§2, conventi
 **Not yet.** In the mocks each view takes its models as props (`StructureTab` takes `scene`, `presets`, `quickStyles`,
 `options`; `ShellView` takes `status`), and stories build them with the mock factories.
 
-The root is `PrismContext` itself ([shell.md](shell.md) §6): it holds the infrastructure (`plugin`, `commands`,
-`sources`) and the area view models built on it, each constructed with what it needs and nothing more; `PrismUIContext`
-adds the UI (`shell`, `keybindings`, `contributions`, `theme`). A sketch, in the names of the interfaces of §4.2:
-
-```ts
-class PrismContext {
-  readonly plugin: PluginContext;
-  readonly sources: PluginSources;
-  readonly scene: SceneModel;            // structures, volumes, measurements, extension rows as one tree
-  readonly selection: SelectionModel;
-  readonly status: StatusModel;          // messages, tasks, chips; fed from the tasks, log and toasts sources
-  readonly history: HistoryModel;
-  readonly hoverLabel: HoverLabelModel;
-  readonly canvasTheme: Observable<CanvasTheme>;
-  // created lazily by the views that need them:
-  stateTree(): StateTreeModel; snapshots(): SnapshotsModel; measurements(): MeasurementsModel; ...
-}
-```
+The root is not one object: `PrismContext` holds what every mode shares (the frame-wide sources, the command registry,
+status, history, settings), and each mode, extension and the agent attaches its models as **modules** (typed keys,
+created at `init()`, disposed at `dispose()`; [contexts.md](contexts.md) §2–3). The viewer's area models (`scene`,
+`selection`, measurements, superposition, snapshots, the state tree, …) are the viewer mode's modules, in
+`@molstar/prism-viewer`; the story mode's document and player are its own. A view gets the model it renders, never the
+context.
 
 ### 4.2 Catalogue
 
@@ -230,29 +218,31 @@ The contribution API for such rows is not in `model/` yet.
 Planned with `PrismContext`; the mocks live as long as their story, and cache what a view asks for again (an inspection
 per node, a form per snapshot).
 
-- The area models (`scene`, `selection`, …) are created and mounted by `PrismContext.init()` and retired by its
-  `dispose()`.
+- A mode's modules (the area models) live as long as the app: one mode per app, so created at `PrismContext.init()` and
+  disposed at `dispose()` (contexts.md §3).
 - View-only models (`stateTree()`, `snapshots()`, an inspector form) are created when their view becomes visible and
   unmounted when it closes. Expensive projections therefore cost nothing while hidden.
 - Node models in keyed lists are owned by their list and retired when their key disappears.
 
-## 5. Optimistic edits
+## 5. Async work and optimistic edits
 
-**Not yet.** The mocks apply every change at once (an inspector edit updates the row's label and description in the same
-call), so nothing waits; the transaction primitives are in `reactive/transaction`, unused by the models so far.
+**Results and state are two channels** (contexts.md §8). A model method that does work returns `Promise<ActionResult>`
+(never rejects; also posted to status): the outcome for whoever asked. The state changes only through the reactive
+state, fed by the sources from the plugin's events, never from a promise's result, so there is one source of truth
+whoever made the change (the person, the agent, another view). Long operations also show `busy` states.
 
-The state tree updates asynchronously (`updateTree` is a Task; reprs recompute). The transaction primitives fit two
-cases where the UI should not wait:
+**Optimistic when the future is known**: a change is projected at once when its target state is fully determined by the
+request and the source will later report exactly that state. **Not yet**: the mocks apply every change at once; the
+transaction primitives are in `reactive/transaction`, unused by the models so far.
 
-1. **Flags** (visibility, collapse): the toggle contributes
-   `{ apply: n => ({ ...n, isHidden: !h }), isAbsorbed: n => n.isHidden === !h }` to the node's projection; the source's
-   next value absorbs it. A failed update rejects it and the node falls back.
-2. **Parameter edits** (isovalue slider, opacity, color): `ParamsFormModel` contributes the new values; the contribution
-   is absorbed when the cell's `transform.version` changes and its params equal the submitted ones, and rejected when
-   the update task fails or is aborted (with a notification). Rapid edits stack and only the last one matters, because
-   each contribution is a full desired state.
-
-Everything else (adding components, loading, superposition) is not optimistic: it shows task progress instead.
+- **Parameter edits** (isovalue slider, opacity, color) are the case: `ParamsFormModel` contributes the new values; the
+  contribution is absorbed when the cell's `transform.version` changes and its params equal the submitted ones, and
+  rejected when the update task fails or is aborted (with a notification). Rapid edits stack and only the last one
+  matters, because each contribution is a full desired state.
+- **Flags** (visibility, collapse) are not projected: `updateCellState` is synchronous, so the source reports them at
+  once.
+- Everything whose result cannot be predicted (adding components, loading, superposition) is not optimistic: it shows
+  task progress instead.
 
 **Writing transform params.** Forms over a cell's transform (the inspector, the state tree's updates) emit the complete
 new params, each value of its PD type (Vec3 and Mat4 as arrays of their size, colors as numbers, assets kept as `Asset`

@@ -80,9 +80,10 @@ interface MolstarUIClient {
 type CommandSource = { kind: 'person' } | { kind: 'assistant' } | { kind: 'agent'; name: string } | { kind: 'script'; name?: string };
 ```
 
-`CommandSource` is `RunSource` in the agent's `model`. The checkpoint is a Mol\* state snapshot (data, camera,
-selection, components), so restoring is exact even for changes the state tree's undo does not cover (camera, selection,
-focus).
+`CommandSource` becomes core's `RunSource` (contexts.md §5: person, agent, mcp, behavior, link; `via: 'assistant'` for a
+run the person confirms). The checkpoint is the mode's (`Checkpointer`, contexts.md §5): in the viewer a Mol\* state
+snapshot (data, camera, selection, components), so restoring is exact even for changes the state tree's undo does not
+cover; in the story mode the document's inverse operations.
 
 The views bind to `AgentModel` (`@molstar/prism-agent`, `model`), which the client will back: `turn` (the latest
 `AgentTurn`: its prompt, status, streamed `text`, `runs`, `checkpoint` held or not, `undone`, `retries`, `usage`),

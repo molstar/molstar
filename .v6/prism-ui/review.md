@@ -1,5 +1,14 @@
 # Prism spec review (2026-10-11)
 
+> **Resolution (2026-10-11).** The skeleton findings (B1, M1–M5, M16–M23) and the answers to the open questions are
+> folded into [design/contexts.md](design/contexts.md), with the other designs aligned. The lead changed two answers:
+> **modes** (Q1, Q2, M19): one mode per app, chosen before the app exists, switching starts a new app, so mode switching
+> over a shared plugin no longer arises; **scope** (Q6): the agent harness and the sequence viewer are brought in
+> against the skeleton before the rest is frozen ([analysis/harness-and-seqstar.md](analysis/harness-and-seqstar.md)).
+> Q4 and Q5 are answered more generally (results and state are two channels; optimism when the future state is known).
+> Q9 is mocked (Help as a tab). The runtime bugs M13 and M14 are fixed with tests. Still open, to be frozen after the
+> integration step: M6–M12, M22–M29 details and the minors.
+
 ## Verdict
 
 The contracts are not ready to freeze. One blocker remains, and a few majors sit underneath it:

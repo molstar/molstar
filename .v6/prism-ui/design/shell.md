@@ -512,7 +512,7 @@ interface UIContribution {
   settings?: readonly SettingsGroupContribution[]; // groups or params added to the Settings tab
   structureRows?: readonly StructureRowContribution[]; // rows under applicable structures (volume streaming, symmetry)
   formats?: readonly [name: string, ArgumentFormat][];
-  models?(ctx: PrismContext): ContributionModels;  // view models it owns, created on activation
+  modules?: readonly PrismModule<any>[];           // its models (contexts.md §3), retired with it
 }
 
 interface TabContribution {                       // ShellTab, plus `when`
@@ -559,103 +559,62 @@ not exist yet (sections and toolbar items have theirs: `when`, `visible`).
 
 ## 6. The contexts and the UI spec
 
-Two contexts, layered as stories-untold's application layer and screens are
-([../analysis/stories-untold.md](../analysis/stories-untold.md)):
-
-```ts
-class PrismContext {                                // @molstar/prism: no DOM, runs in Node
-  readonly spec: PrismSpec;
-  readonly plugin: PluginContext;                    // embedded, not extended
-  readonly commands: CommandRegistry<PrismContext>;  // user-facing commands; PluginCommands stay the plugin's bus
-  readonly sources: PluginSources;                   // plugin → ReadonlyState adapters, created after plugin.init()
-  readonly status: StatusModel;                      // messages and tasks
-  readonly history: HistoryModel;                    // the person's runs; with the agent, turns and their undo
-  readonly scene: SceneModel;                        // the app's view models (view-models.md §4)
-  readonly selection: SelectionModel;
-  readonly snapshots: SnapshotsModel;                // … measurements, superposition, playback, settings, …
-  // with the modules that bring them: the narrative's document and session, the agent's session
-}
-
-class PrismUIContext extends PrismContext {         // @molstar/prism-ui
-  readonly spec: PrismUISpec;
-  readonly shell: ShellModel;                        // Prism's layout; core PluginLayout is not used
-  readonly keybindings: KeybindingService;
-  readonly contributions: ContributionRegistry;      // active UIContributions; replace customStructureControls,
-                                                     // customImportControls, genericRepresentationControls,
-                                                     // customParamEditors for Prism
-  readonly theme: ThemeModel;
-  readonly fullscreen: FullscreenModel;
-}
-```
-
-`PrismContext` is the hub of the app's state: what the app knows and can do, with no UI. Headless code (tests, the Node
-engine, the agent's tools) takes a `PrismContext`; views take a `PrismUIContext`, which is one. Two rules keep the hub
-from becoming one object everything depends on:
-
-- **Each subsystem is its own model** with explicit dependencies: the context constructs it and passes what it needs
-  (the plugin's sources, `status`, another model), never itself. A model is tested by constructing it over fakes.
-- **Views and commands get the model they work with**, not the context: `StructureTab` takes `scene`, the History tab
-  takes `history`. Only composition code (the default contributions, `createPrismUI`) reads the context.
+The contexts (`PrismContext`, `PrismUIContext`), modules, the mode, contributions, the command registry, history and the
+app's lifecycle are specified in [contexts.md](contexts.md). In short: `PrismContext` holds what every mode shares (the
+plugin behind sources and actions, the command registry, status, history, settings, the module registry);
+`PrismUIContext` adds the shell, keybindings, contributions, theme and fullscreen; an app runs one mode, chosen before
+it exists; a mode, an extension or the agent attaches its models as modules.
 
 **The plugin is the engine, behind the context.** Prism keeps `PluginContext` for what it does well: the state tree and
 transforms (sessions, snapshots, undo, the reproducibility story mode relies on), the canvas and its renderer, picking,
 highlight and selection over loci, the camera, formats, presets, custom properties, the MVS runtime, the extensions. It
 does not carry the plugin's UI-era surface:
 
-- **One layer touches the plugin.** Only Prism's sources and actions (`@molstar/prism`'s `model/sources/` and
-  `model/actions/`) import `@molstar/plugin` (and the managers behind it); view models, views, commands and modes see
-  sources and models, never the plugin (`plugin` on `PrismContext` is for that layer and composition code). A test
-  checks it (architecture.md §3).
+- **One layer touches the plugin**: `sources/` and `actions/` folders, in any Prism package (core, a mode, an
+  extension's prism entry); views, view models and commands see sources, actions and models only (contexts.md §7).
 - **A slim plugin.** Prism's spec composes the plugin from v6's empty registries with only the behaviors and entries
   Prism uses.
-- **Not used, ever:** `PluginLayout` and `behaviors.layout.leftPanelTabName` (the shell is Prism's layout), the
-  `PluginCommands` bus for UI work (Prism's command registry), toasts (the status column), the UI-only maps
-  (`customStructureControls`, `customImportControls`, `genericRepresentationControls`; contributions replace them),
-  `customParamEditors` (`paramEditors` contributions), and behaviors that exist only to drive the classic UI. Each is a
-  candidate for removal when the classic UI retires
-  ([../../plans/breaking-v6-changes.md](../../plans/breaking-v6-changes.md)).
+- **Not used:** `PluginLayout` and `behaviors.layout.leftPanelTabName` (the shell is Prism's layout; Prism never sets
+  `plugin.layout`, and an action calls `plugin.handleResize()` when the canvas inset changes), the `PluginCommands` bus
+  for UI work (Prism's command registry), toasts (the status column), the UI-only maps (`customStructureControls`,
+  `customImportControls`, `genericRepresentationControls`; contributions replace them), `customParamEditors`
+  (`paramEditors` contributions), and behaviors that exist only to drive the classic UI. Each is a candidate for removal
+  when the classic UI retires ([../../plans/breaking-v6-changes.md](../../plans/breaking-v6-changes.md)).
 - **The engine is swappable.** As the UI sees sources only, a mode can run on another engine later (story mode could
   render MVS documents through a leaner path) without a UI change.
 
-Lifetimes: `init()` initialises the plugin, creates the sources and the models and (in the UI context) activates the
-spec's contributions; `dispose()` deactivates them, retires the models and disposes the plugin. Models are
-`ReactiveModel`s mounted by the context.
+**State (mocks):** not built: the contexts, the specs, `DefaultUIContributions()` and `createPrismUI`. The mock app
+(`PrismAppStory`, `ShellStory` with one mode) creates the models and passes them to `ShellView`; `ShellOptions.buttons`
+is the spec's `layout.buttons`, and a host leaves out `ShellView`'s `onDropFiles` for `components.disableDragOverlay`.
+`StatusModel` lives in prism-ui's `shell/` for now and moves to `@molstar/prism` with the context.
 
-**State (mocks):** not built: the contexts, the specs, `DefaultUIContributions()` and `createPrismUI`. The stories
-create the models and pass them to `ShellView`; `ShellOptions.buttons` is the spec's `layout.buttons`, and a host leaves
-out `ShellView`'s `onDropFiles` for `components.disableDragOverlay`. `StatusModel` lives in prism-ui's `shell/` for now
-and moves to `@molstar/prism` with the context.
-
-The spec below is a starting point; it is expected to change as the views are built.
+The UI spec (the spec's `ui`, besides the plugin's spec, the frame's and the mode's contributions; contexts.md §4):
 
 ```ts
-interface PrismSpec {
-  plugin: PluginSpec;                               // the plugin's own spec, as v6 composes it
-}
-
 interface PrismUISpec extends PrismSpec {
   ui?: {
-    contributions?: readonly UIContribution[];     // explicit, ordered; DefaultUIContributions() for the full UI
-    layout?: Partial<ShellLayout> & {
-      tabs?: Record<string, { dock?: DockId; hidden?: boolean }>;
-      buttons?: Record<string, boolean>;            // toolbar buttons by id: { xr: false, animation: false }
+    contributions?: readonly UIContribution[];     // the frame's, explicit and ordered; DefaultUIContributions()
+    layout?: ShellOptions & {                       // the shell's own options (docks, mode, buttons)
+      tabs?: Record<string, { dock?: DockId; order?: number; hidden?: boolean }>;
     };
-    theme?: 'light' | 'dark' | 'blue' | 'auto' | ThemeTokens; // UITheme; the rail's switch changes it
+    theme?: UITheme;                                // 'light' | 'dark' | 'blue' | 'auto'; the rail's theme button changes it
     commands?: { hide?: readonly string[] };        // command or group ids, globs allowed ('superpose.*')
     keybindings?: readonly { command: string; key: KeyChord | null }[];
-    canvas?: { toolbar?: readonly string[] };       // command ids, order
-    persistLayout?: false | { key: string };
   };
 }
 ```
 
+- Persistence of the layout, the mode and the theme is the spec's `persist: { store: PrismStore; key }` (contexts.md
+  §8). The shell keeps where a tab was placed when it is unregistered, resolves a stale active tab to the first
+  registered one, offers `layoutChanges` (debounced), `restore(layout)`, `reset()` and `hideTab`, and clamps sizes per
+  axis.
 - `DefaultUIContributions()` in `@molstar/prism-ui/default-spec` lists the built-in contributions; apps spread it and
   add extension contributions, mirroring `DefaultRegistry` and the v6 composition rule.
-- Entry point: `createPrismUI({ target, spec })` builds a `PrismUIContext`, initialises it, and mounts `<msp-plugin>`;
-  no React render function is needed. `prism-ui/react` offers `<PrismUI>` for React hosts. Headless:
-  `createPrism({ spec })` builds a `PrismContext` alone.
+- Entry point: `createPrismUI({ target, spec, mode? })` returns `{ ctx, dispose }` (contexts.md §1); `<prism-viewer>`
+  wraps it with a shadow root. `prism-ui/react` offers `<PrismUI>` for React hosts. Headless:
+  `createPrism({ spec, mode })`.
 - Today's spec fields map as follows: `components.controls.*: 'none'` → hide the tab or dock in `layout`;
-  `components.viewport.view` → canvas items and overlays; `components.structureTools` → contributions;
+  `components.viewport.view` → canvas parts and overlays; `components.structureTools` → contributions;
   `remoteState: 'none'` → omit the remote-states contribution (Home's list, the rail's button, the card);
   `customParamEditors` → `paramEditors`; `selectionTools.hide` → omit or reorder selection-bar items;
   `PluginConfig.Viewport.*` → toolbar commands' `when` (kept, so the viewer options keep working).
@@ -664,14 +623,14 @@ interface PrismUISpec extends PrismSpec {
 
 Top-level custom elements over the same models, for hosts that do not want the shell:
 
-| Element                  | Content                                      | Used by                               |
-| ------------------------ | -------------------------------------------- | ------------------------------------- |
-| `<msp-plugin>`           | Full shell                                   | Viewer, apps                          |
-| `<msp-viewport>`         | Canvas + overlays + toolbar (+ command menu) | mvs-stories, docking viewer, examples |
-| `<msp-sequence>`         | Sequence view                                | Hosts with their own layout           |
-| `<msp-params-form>`      | PD form bound to a `ParamsFormModel`         | alpha-orbitals example, host settings |
-| `<msp-snapshot-stepper>` | Snapshot i/N, previous/next, description     | mvs-stories                           |
-| `<msp-pae-plot>`         | PAE plot (model-archive contribution)        | alphafolddb-pae example               |
+| Element                  | Content                                                                    | Used by                               |
+| ------------------------ | -------------------------------------------------------------------------- | ------------------------------------- |
+| `<prism-viewer>`         | The whole app (its mode, or the splash), in a shadow root (contexts.md §1) | `apps/prism`, hosts embedding Prism   |
+| `<msp-viewport>`         | Canvas + overlays + toolbar (+ command menu)                               | mvs-stories, docking viewer, examples |
+| `<msp-sequence>`         | Sequence view                                                              | Hosts with their own layout           |
+| `<msp-params-form>`      | PD form bound to a `ParamsFormModel`                                       | alpha-orbitals example, host settings |
+| `<msp-snapshot-stepper>` | Snapshot i/N, previous/next, description                                   | mvs-stories                           |
+| `<msp-pae-plot>`         | PAE plot (model-archive contribution)                                      | alphafolddb-pae example               |
 
 Each takes a `ui` or `model` property; several elements on a page can share one `PrismUIContext`. Not yet: the elements
 themselves; the base class exists (`MspElement`, `defineElements` in `dom/element`), and the stories mount `ShellView`
