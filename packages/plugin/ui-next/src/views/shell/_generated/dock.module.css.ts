@@ -202,7 +202,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   top: var(--msp-space-4);
   bottom: var(--msp-space-4);
   align-items: flex-start;
-  gap: var(--msp-space-2);
+  gap: var(--msp-space-3);
   pointer-events: none;
   display: flex;
   position: absolute;
@@ -214,6 +214,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   & .msp-shell-dock-content {
     border-radius: var(--msp-radius-lg);
     background: var(--msp-glass-panel-bg);
+    box-shadow: var(--msp-glass-shadow);
     -webkit-backdrop-filter: var(--msp-glass-filter);
     align-self: stretch;
     overflow: hidden;
@@ -222,6 +223,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   & .msp-shell-dock-strip {
     border-radius: var(--msp-radius-lg);
     background: var(--msp-glass-bg);
+    box-shadow: var(--msp-glass-shadow);
     -webkit-backdrop-filter: var(--msp-glass-filter);
   }
 
@@ -261,10 +263,11 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   }
 
   & .msp-shell-dock-collapsedBar {
+    border-radius: var(--msp-radius-lg);
     background: var(--msp-glass-bg);
     height: 28px;
+    box-shadow: var(--msp-glass-shadow);
     -webkit-backdrop-filter: var(--msp-glass-filter);
-    border-radius: 14px;
     flex: none;
     align-self: flex-start;
   }

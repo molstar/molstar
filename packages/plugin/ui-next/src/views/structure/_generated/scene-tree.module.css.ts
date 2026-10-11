@@ -38,8 +38,8 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
 .msp-structure-scene-tree-row {
   align-items: center;
   gap: var(--msp-space-2);
-  height: 30px;
-  padding: 0 var(--msp-space-2) 0 calc(var(--msp-space-2) + var(--msp-tree-depth, 0) * 16px);
+  height: 26px;
+  padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * 14px);
   border-radius: var(--msp-radius-md);
   cursor: default;
   user-select: none;
@@ -110,8 +110,8 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
 
 .msp-structure-scene-tree-action {
   border-radius: var(--msp-radius-sm);
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   color: var(--msp-color-text-muted);
   opacity: 0;
   place-items: center;

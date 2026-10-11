@@ -4,22 +4,35 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/* Top right of the canvas, below what floats at the top, beside the rail or the open panel. */
-.switch {
+/* Top right of the canvas, below what floats at the top, beside the rail or the open panel. Right-aligned column: the
+   switch stays put, the picking level appears under it. */
+.anchor {
   position: absolute;
   top: var(--msp-canvas-top-inset, var(--msp-space-4));
   right: var(--msp-canvas-right-inset, var(--msp-space-4));
   display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 34px;
-  padding: 3px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--msp-space-3);
+  transition: right var(--msp-motion-base) var(--msp-ease);
+}
+
+.switch,
+.levelButton,
+.levels {
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);
-  transition: right var(--msp-motion-base) var(--msp-ease);
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  padding: 3px;
 }
 
 .segment {
@@ -51,33 +64,98 @@
   color: var(--msp-color-accent);
 }
 
-.granularity {
-  height: 100%;
-  padding: 0 var(--msp-space-2);
-  border: 0;
-  border-radius: var(--msp-radius-md);
-  background: transparent;
-  color: var(--msp-color-text);
-  font-size: var(--msp-font-size-sm);
-  animation: granularity-in var(--msp-motion-base) var(--msp-ease);
+.level {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  animation: level-in var(--msp-motion-base) var(--msp-ease);
+}
 
-  &:hover {
-    background: var(--msp-color-hover);
+@keyframes level-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
   }
 }
 
-@keyframes granularity-in {
-  from {
-    opacity: 0;
-    transform: translateX(-4px);
+.levelButton {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 30px;
+  padding: 0 var(--msp-space-3);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-glass-panel-bg);
+  }
+}
+
+.levelCaption {
+  color: var(--msp-color-text-subtle);
+}
+
+.chevron {
+  color: var(--msp-color-text-subtle);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(180deg);
+  }
+}
+
+/* The levels: a short list under the button, icon and label per row; the chosen one in the accent. */
+.levels {
+  position: absolute;
+  top: calc(100% + var(--msp-space-2));
+  right: 0;
+  z-index: var(--msp-z-overlay);
+  display: grid;
+  min-width: 168px;
+  padding: var(--msp-space-2);
+  background: var(--msp-glass-panel-bg);
+  animation: level-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+.group {
+  padding: var(--msp-space-3) var(--msp-space-3) var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.levelRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 28px;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[aria-checked="true"] {
+    color: var(--msp-color-accent);
+    font-weight: 600;
   }
 }
 
 /* A narrow shell: icons only (the titles explain), beside the toolbar column; the panel is a bottom sheet. */
-:where([data-mode="compact"]) .switch {
+:where([data-mode="compact"]) .anchor {
   right: var(--msp-canvas-rail-inset, var(--msp-space-4));
 }
 
-:where([data-mode="compact"]) .label {
+:where([data-mode="compact"]) .label,
+:where([data-mode="compact"]) .levelCaption {
   display: none;
 }

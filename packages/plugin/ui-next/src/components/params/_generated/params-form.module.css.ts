@@ -40,7 +40,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   grid-template-columns: var(--msp-label-width) minmax(0, 1fr);
   align-items: center;
   gap: var(--msp-space-3);
-  min-height: 30px;
+  min-height: 24px;
   display: grid;
 
   &[hidden] {
@@ -64,9 +64,9 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 
 .msp-params-params-form-input, .msp-params-params-form-select, .msp-params-params-form-number {
   width: 100%;
-  height: 26px;
+  height: 24px;
   padding: 0 var(--msp-space-3);
-  border-radius: var(--msp-radius-sm);
+  border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
@@ -131,9 +131,9 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 .msp-params-params-form-color {
   align-items: center;
   gap: var(--msp-space-2);
-  height: 26px;
+  height: 24px;
   padding: 0 var(--msp-space-2);
-  border-radius: var(--msp-radius-sm);
+  border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
   cursor: pointer;
   display: flex;

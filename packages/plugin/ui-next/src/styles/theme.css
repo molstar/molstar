@@ -82,13 +82,15 @@
     --msp-color-focus-ring: var(--msp-color-accent);
     --msp-color-scrim: rgb(0 0 0 / 0.35);
 
-    /* Glass: everything floating over the canvas (toolbar, cards, pills, labels). Flat: translucency and blur define
-       it; no borders, no drop shadows. */
+    /* Glass: everything floating over the canvas (toolbar, cards, pills, labels). Flat: translucency, blur, and a
+       hairline edge (drawn as a spread shadow, so it takes no layout) that keeps a card apart from a canvas of the same
+       tint; no drop shadows. */
     --msp-glass-bg: color-mix(in oklab, var(--msp-color-panel), transparent 30%);
     /* Larger surfaces over the canvas (a floating panel): more opaque, for reading. */
     --msp-glass-panel-bg: color-mix(in oklab, var(--msp-color-panel), transparent 12%);
     --msp-glass-filter: blur(20px) saturate(1.4);
-    --msp-glass-shadow: none;
+    --msp-glass-edge: color-mix(in oklab, var(--msp-color-text), transparent 88%);
+    --msp-glass-shadow: 0 0 0 1px var(--msp-glass-edge);
 
     /* Accents for extension and node-kind brands (the classic card accents). */
     --msp-accent-cyan: #7f8c8d;
@@ -118,6 +120,8 @@
     --msp-space-4: 12px;
     --msp-space-5: 16px;
     --msp-space-6: 24px;
+    /* Radii: lg for every surface floating over the canvas (cards, pills, the rail), md for controls and rows inside
+       a surface, sm only for small inline marks (code, chips in text). */
     --msp-radius-sm: 3px;
     --msp-radius-md: 6px;
     --msp-radius-lg: 10px;

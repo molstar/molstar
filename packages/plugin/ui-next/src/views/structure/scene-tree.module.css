@@ -18,8 +18,8 @@
   display: flex;
   align-items: center;
   gap: var(--msp-space-2);
-  height: 30px;
-  padding: 0 var(--msp-space-2) 0 calc(var(--msp-space-2) + var(--msp-tree-depth, 0) * 16px);
+  height: 26px;
+  padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * 14px);
   border-radius: var(--msp-radius-md);
   cursor: default;
   user-select: none;
@@ -90,8 +90,8 @@
 .action {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-muted);
   opacity: 0;

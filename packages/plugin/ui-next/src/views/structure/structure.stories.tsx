@@ -7,7 +7,8 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { mockSceneWithPicked } from '../../_stories/mocks/scene.js';
+import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
+import { type MockScenePreset, mockSceneWithPicked } from '../../_stories/mocks/scene.js';
 import { story } from '../../_stories/story-root.js';
 import { ShellModel } from '../../shell/shell.js';
 import { StructureTab } from './structure-tab.js';
@@ -17,32 +18,36 @@ export default meta;
 
 const frame = 'width: 360px; height: 100vh; overflow: auto; background: var(--msp-color-panel); margin-left: auto;';
 
-/** A representation picked: the inspector shows its parameters (essentials, then Advanced). */
-export const Representation: StoryObj = {
-  render: () =>
-    story(() => (
-      <div style={frame}>
-        <StructureTab shell={new ShellModel()} scene={mockSceneWithPicked('polymer-cartoon')} />
-      </div>
-    )),
-};
+function Tab(props: { pick: string; preset?: MockScenePreset; stream?: boolean }) {
+  const shell = new ShellModel();
+  const scene = mockSceneWithPicked(props.pick, { preset: props.preset });
+  registerMockInspectorSections(shell, scene);
+  const picked = scene.picked.value;
+  if (props.stream && picked) scene.streaming(picked).set('enabled', true);
+  return (
+    <div style={frame}>
+      <StructureTab shell={shell} scene={scene} />
+    </div>
+  );
+}
 
-/** The structure picked. */
-export const Structure: StoryObj = {
-  render: () =>
-    story(() => (
-      <div style={frame}>
-        <StructureTab shell={new ShellModel()} scene={mockSceneWithPicked('1tqn')} />
-      </div>
-    )),
-};
+/** A representation picked: the inspector shows its parameters (essentials, then Advanced). */
+export const Representation: StoryObj = { render: () => story(() => <Tab pick="polymer-cartoon" />) };
+
+/** The structure picked: facts, its parameters, then extension sections (density streaming; no symmetry for C1). */
+export const Structure: StoryObj = { render: () => story(() => <Tab pick="1tqn" />) };
+
+/** Density streaming enabled from the structure's section: the channels appear under the structure. */
+export const StreamingDensity: StoryObj = { render: () => story(() => <Tab pick="1tqn" stream />) };
+
+/** Several structures, collapsed but the first. */
+export const ManyStructures: StoryObj = { render: () => story(() => <Tab pick="none" preset="many" />) };
+
+/** An EMDB map next to its fitted model; the map picked: its facts and the isosurface below it. */
+export const EmdbMap: StoryObj = { render: () => story(() => <Tab pick="emd-2984-iso" preset="em" />) };
+
+/** The fitted model of a symmetric assembly: assembly symmetry shows. */
+export const EmdbModel: StoryObj = { render: () => story(() => <Tab pick="5a1a" preset="em" />) };
 
 /** Nothing picked: the tree only. */
-export const TreeOnly: StoryObj = {
-  render: () =>
-    story(() => (
-      <div style={frame}>
-        <StructureTab shell={new ShellModel()} scene={mockSceneWithPicked('none')} />
-      </div>
-    )),
-};
+export const TreeOnly: StoryObj = { render: () => story(() => <Tab pick="none" />) };

@@ -50,3 +50,26 @@
 .body {
   padding: 0 var(--msp-space-3) var(--msp-space-3);
 }
+
+.list[data-flat] {
+  padding: 0;
+
+  & .section {
+    background: none;
+  }
+
+  & .header {
+    height: 26px;
+    padding: 0;
+    font-size: var(--msp-font-size-sm);
+
+    &:hover {
+      background: none;
+      color: var(--msp-color-accent);
+    }
+  }
+
+  & .body {
+    padding: 0 0 var(--msp-space-2);
+  }
+}

@@ -185,8 +185,8 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-chip {
   height: 30px;
   padding: 0 var(--msp-space-4);
+  border-radius: var(--msp-radius-lg);
   font-size: var(--msp-font-size-md);
-  border-radius: 15px;
 }
 
 .msp-shell-canvas-status {
@@ -213,13 +213,13 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   max-width: 100%;
   height: 26px;
   padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-lg);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   white-space: nowrap;
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
-  border-radius: 13px;
   display: inline-flex;
 }
 

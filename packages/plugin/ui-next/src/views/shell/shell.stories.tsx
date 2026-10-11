@@ -6,15 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { map } from 'rxjs';
 import { story } from '../../_stories/story-root.js';
 import { formatChord } from '../../commands/keys.js';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
-import { ParamsForm } from '../../components/params/params-form.js';
-import { ParamsFormModel } from '../../forms/params-form.js';
 import { For } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
@@ -25,14 +22,15 @@ import type { HoverLabelModel, SnapshotStepperModel, TrajectoryControlsModel } f
 import { ShellModel } from '../../shell/shell.js';
 import { StatusModel } from '../../shell/status.js';
 import { HoverLabel } from '../canvas/hover-label.js';
-import { type CanvasMode, ModeSwitch } from '../canvas/mode-switch.js';
+import { type CanvasMode, type Granularity, ModeSwitch } from '../canvas/mode-switch.js';
 import { SnapshotPanel, Timeline } from '../canvas/playback.js';
 import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
 import { SectionList } from './section-list.js';
 import { ShellView } from './shell-view.js';
 import { StructureTab } from '../structure/structure-tab.js';
-import { mockScene } from '../../_stories/mocks/scene.js';
+import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
+import { type MockScenePreset, mockScene } from '../../_stories/mocks/scene.js';
 
 const meta: Meta = { title: 'Shell/Shell', parameters: { layout: 'fullscreen' } };
 export default meta;
@@ -280,25 +278,22 @@ function mockExport(shell: ShellModel, status: StatusModel) {
   ]);
 }
 
-const AssemblySymmetryParams = {
-  symmetry: PD.Select('global-c2', [
-    ['global-c2', 'Global · C2 · homo 2-mer'],
-    ['local-c3', 'Local · C3 · chains B–D'],
-  ]),
-  axes: PD.Boolean(true, { label: 'Show axes' }),
-  color: PD.Boolean(false, { label: 'Color by symmetry' }),
-};
-
-const Granularities = [
-  ['residue', 'Residue'],
-  ['chain', 'Chain'],
-  ['element', 'Atom'],
-  ['entity', 'Entity'],
-  ['structure', 'Structure'],
-] as const;
+// Mol*'s granularities (interactivity), labelled and drawn as picking levels.
+const Granularities: readonly Granularity[] = [
+  { value: 'element', label: 'Atom', icon: 'pick-atom' },
+  { value: 'residue', label: 'Residue', icon: 'pick-residue' },
+  { value: 'chain', label: 'Chain', icon: 'pick-chain' },
+  { value: 'entity', label: 'Entity', icon: 'pick-entity' },
+  { value: 'model', label: 'Model', icon: 'pick-model' },
+  { value: 'operator', label: 'Operator', icon: 'copy' },
+  { value: 'structure', label: 'Structure', icon: 'atom' },
+  { value: 'elementInstances', label: 'Atom', icon: 'pick-atom', group: 'All instances' },
+  { value: 'residueInstances', label: 'Residue', icon: 'pick-residue', group: 'All instances' },
+  { value: 'chainInstances', label: 'Chain', icon: 'pick-chain', group: 'All instances' },
+];
 
 /** A mock of everything around the canvas, with the shell's real model. */
-function mockShell(options: { loaded: boolean }) {
+function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
   const shell = new ShellModel();
   const status = new StatusModel();
   const canvasMode = observableState<CanvasMode>('interact');
@@ -307,19 +302,9 @@ function mockShell(options: { loaded: boolean }) {
   const snapshots = observableState<readonly string[]>(['Overview', 'Active site']);
   const hoverLines = observableState<readonly string[]>([]);
   // The scene; hovering a node highlights it (the hover label stands in for the 3D highlight here).
-  const scene = mockScene({ onHighlight: (label) => hoverLines.set(label ? [label] : []) });
-  // An extension's inspector section for structures (assembly symmetry), contributed to the node kind's slot.
-  shell.registerSections([
-    {
-      id: 'assembly-symmetry',
-      slot: 'inspector:structure',
-      title: 'Assembly symmetry',
-      icon: 'orbit',
-      // The RCSB extension's section: annotated symmetry (from RCSB PDB), nothing to compute: which one, its axes,
-      // coloring by it. In the plugin it only appears when the assembly has symmetry.
-      render: domView(() => <ParamsForm form={new ParamsFormModel(AssemblySymmetryParams)} />),
-    },
-  ]);
+  const scene = mockScene({ preset: options.preset, onHighlight: (label) => hoverLines.set(label ? [label] : []) });
+  // Extensions' inspector sections (volume streaming, assembly symmetry), contributed to the node kind's slot.
+  registerMockInspectorSections(shell, scene);
   const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
 
   shell.registerTabs([
@@ -537,7 +522,7 @@ function mockShell(options: { loaded: boolean }) {
   };
 }
 
-function ShellStory(props: { loaded: boolean; background?: string; openExportAt?: string }) {
+function ShellStory(props: { loaded: boolean; preset?: MockScenePreset; background?: string; openExportAt?: string }) {
   const { shell, status, hover, hoverLines, modeSwitch, snapshots, trajectory } = mockShell(props);
   shell.mount();
   status.mount();
@@ -586,6 +571,16 @@ export const Empty: StoryObj = {
 /** A structure loaded: the Structure tab, a status message, a running task and the selection chip. */
 export const Loaded: StoryObj = {
   render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} />}</div>),
+};
+
+/** Several structures: four CYP3A4 structures superposed on 1TQN, collapsed but the first. */
+export const ManyStructures: StoryObj = {
+  render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} preset="many" />}</div>),
+};
+
+/** An EMDB entry: the map is a top-level volume next to the fitted model (EMD-2984 and 5A1A). */
+export const EmdbMap: StoryObj = {
+  render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} preset="em" />}</div>),
 };
 
 /**

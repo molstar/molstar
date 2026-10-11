@@ -53,12 +53,22 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
   return (
     <section class={classes.inspector} aria-label="Inspector">
       <header class={classes.inspectorHeader}>
-        <Icon name={node.icon} size={16} />
+        <Icon name={node.icon} size={15} />
         <span class={classes.inspectorTitle}>{node.label}</span>
         <span class={classes.inspectorKind}>{node.kind.replace('-', ' ')}</span>
       </header>
+      {props.inspection.facts?.length ? (
+        <dl class={classes.facts}>
+          {props.inspection.facts.map(([label, value]) => (
+            <div class={classes.fact}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
       {form ? <ParamsForm form={form} /> : null}
-      <SectionList shell={props.shell} slot={slot} />
+      <SectionList shell={props.shell} slot={slot} subject={node} flat />
     </section>
   );
 }

@@ -25,7 +25,7 @@ defineStyles('components/button/button.module.css', `@layer msp.components {
   gap: var(--msp-space-2);
   height: var(--msp-control-height);
   padding: 0 var(--msp-space-4);
-  border-radius: var(--msp-radius-sm);
+  border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-md);

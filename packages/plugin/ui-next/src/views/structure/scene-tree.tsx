@@ -61,7 +61,7 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
         >
           <Icon name="chevron-right" size={14} />
         </button>
-        <Icon name={node.icon} size={16} class={classes.kind} />
+        <Icon name={node.icon} size={15} class={classes.kind} />
         <span class={classes.label}>{node.label}</span>
         <span class={classes.description}>{node.description}</span>
         <span class={classes.actions}>
@@ -75,8 +75,8 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
               node.toggleVisibility();
             }}
           >
-            <Show when={node.isHidden} fallback={() => <Icon name="eye" size={15} />}>
-              {() => <Icon name="eye-off" size={15} />}
+            <Show when={node.isHidden} fallback={() => <Icon name="eye" size={14} />}>
+              {() => <Icon name="eye-off" size={14} />}
             </Show>
           </button>
           <button
@@ -88,7 +88,7 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
               node.remove();
             }}
           >
-            <Icon name="trash-2" size={15} />
+            <Icon name="trash-2" size={14} />
           </button>
         </span>
       </div>

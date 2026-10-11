@@ -37,4 +37,17 @@ export const MolecularIcons = {
   /** A wireframe cube around a density contour. */
   volume:
     '<path d="M12 2.5l8.5 4.75v9.5L12 21.5l-8.5-4.75v-9.5z"/><path d="M8.5 12.5c0-2.5 2-4 3.5-4s3.5 1.5 3.5 4-1.5 3-3.5 3-3.5-.5-3.5-3z"/>',
+  // Picking levels (granularity), after stories-untold's pick-level glyphs: one mark per level, simple at 15 px.
+  /** One atom. */
+  'pick-atom': '<circle cx="12" cy="12" r="4"/>',
+  /** A residue: one ring. */
+  'pick-residue': '<path d="M12 4.5l6.5 3.75v7.5L12 19.5l-6.5-3.75v-7.5z"/>',
+  /** A chain: beads on a string. */
+  'pick-chain':
+    '<circle cx="5" cy="15" r="2.5"/><circle cx="12" cy="9" r="2.5"/><circle cx="19" cy="15" r="2.5"/><path d="m7 13.3 3-2.6M14 10.7l3 2.6"/>',
+  /** An entity: the same chain, many copies. */
+  'pick-entity':
+    '<circle cx="6" cy="8" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="6" cy="16" r="2"/><circle cx="12" cy="16" r="2"/><circle cx="18" cy="16" r="2"/>',
+  /** A whole model: a filled-looking outline. */
+  'pick-model': '<rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="12" cy="12" r="3"/>',
 } as const;

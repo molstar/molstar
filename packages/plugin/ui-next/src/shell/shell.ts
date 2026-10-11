@@ -22,6 +22,8 @@ export interface ShellViewContext {
   dock?: DockId;
   /** The section to bring into view (overlays opened at a section). */
   focus?: string;
+  /** What a section is about (the inspected scene node for `inspector:<kind>` sections). */
+  subject?: unknown;
 }
 
 /** A panel tab, contributed by the default UI or an extension. */
@@ -86,6 +88,8 @@ export interface ShellSection {
   /** Words it is also found by (the palette, the section filter). */
   keywords?: readonly string[];
   order?: number;
+  /** Shown only when this holds (assembly symmetry only for a symmetric assembly). */
+  when?(ctx: ShellViewContext): boolean;
   render: ViewRenderer<ShellViewContext>;
 }
 

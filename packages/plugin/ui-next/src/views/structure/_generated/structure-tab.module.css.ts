@@ -10,6 +10,8 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'actions': 'msp-structure-structure-tab-actions',
+  'fact': 'msp-structure-structure-tab-fact',
+  'facts': 'msp-structure-structure-tab-facts',
   'inspector': 'msp-structure-structure-tab-inspector',
   'inspectorHeader': 'msp-structure-structure-tab-inspectorHeader',
   'inspectorKind': 'msp-structure-structure-tab-inspectorKind',
@@ -19,8 +21,9 @@ export const classes = {
 
 defineStyles('views/structure/structure-tab.module.css', `@layer msp.components {
 .msp-structure-structure-tab-tab {
-  gap: var(--msp-space-3);
-  padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-4);
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-4);
+  font-size: var(--msp-font-size-sm);
   display: grid;
 }
 
@@ -31,7 +34,7 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 
 .msp-structure-structure-tab-inspector {
   gap: var(--msp-space-2);
-  padding: var(--msp-space-3);
+  padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
   display: grid;
@@ -40,7 +43,7 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 .msp-structure-structure-tab-inspectorHeader {
   align-items: center;
   gap: var(--msp-space-2);
-  padding-bottom: var(--msp-space-1);
+  min-height: 26px;
   display: flex;
 }
 
@@ -57,6 +60,28 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   text-transform: capitalize;
+}
+
+.msp-structure-structure-tab-facts {
+  gap: var(--msp-space-1) var(--msp-space-4);
+  font-size: var(--msp-font-size-xs);
+  flex-wrap: wrap;
+  margin: 0;
+  display: flex;
+}
+
+.msp-structure-structure-tab-fact {
+  gap: var(--msp-space-2);
+  display: flex;
+
+  & dt {
+    color: var(--msp-color-text-subtle);
+  }
+
+  & dd {
+    font-variant-numeric: tabular-nums;
+    margin: 0;
+  }
 }
 }
 `);

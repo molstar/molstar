@@ -41,7 +41,7 @@ defineStyles('views/sequence/sequence-strip.module.css', `@layer msp.components 
   gap: var(--msp-space-2);
   height: 22px;
   padding: 0 var(--msp-space-2);
-  border-radius: var(--msp-radius-sm);
+  border-radius: var(--msp-radius-md);
   font-size: var(--msp-font-size-sm);
   font-weight: 600;
   display: inline-flex;

@@ -6,8 +6,9 @@
 
 .tab {
   display: grid;
-  gap: var(--msp-space-3);
-  padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-4);
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-4);
+  font-size: var(--msp-font-size-sm);
 }
 
 .actions {
@@ -18,7 +19,7 @@
 .inspector {
   display: grid;
   gap: var(--msp-space-2);
-  padding: var(--msp-space-3);
+  padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
 }
@@ -27,7 +28,7 @@
   display: flex;
   align-items: center;
   gap: var(--msp-space-2);
-  padding-bottom: var(--msp-space-1);
+  min-height: 26px;
 }
 
 .inspectorTitle {
@@ -43,4 +44,27 @@
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   text-transform: capitalize;
+}
+
+/* Facts flow as short label–value pairs, wrapping: a structure's size, a map's grid and σ, at a glance. */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-1) var(--msp-space-4);
+  margin: 0;
+  font-size: var(--msp-font-size-xs);
+}
+
+.fact {
+  display: flex;
+  gap: var(--msp-space-2);
+
+  & dt {
+    color: var(--msp-color-text-subtle);
+  }
+
+  & dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
 }

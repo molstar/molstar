@@ -169,7 +169,7 @@
 .chip {
   height: 30px;
   padding: 0 var(--msp-space-4);
-  border-radius: 15px;
+  border-radius: var(--msp-radius-lg);
   font-size: var(--msp-font-size-md);
 }
 
@@ -198,7 +198,7 @@
   max-width: 100%;
   height: 26px;
   padding: 0 var(--msp-space-3);
-  border-radius: 13px;
+  border-radius: var(--msp-radius-lg);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   white-space: nowrap;

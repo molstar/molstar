@@ -48,6 +48,8 @@ export interface SceneInspection {
   form: ParamsFormModel<any> | undefined;
   /** Section slot for contributed sections (`inspector:structure`, `inspector:component`, …). */
   slot: string;
+  /** Read-only facts shown compactly above the form (atoms, chains; a map's grid, voxel size, σ). */
+  facts?: readonly (readonly [label: string, value: string])[];
 }
 
 export interface SceneModel {

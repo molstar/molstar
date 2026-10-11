@@ -64,5 +64,28 @@ defineStyles('views/shell/section-list.module.css', `@layer msp.components {
 .msp-shell-section-list-body {
   padding: 0 var(--msp-space-3) var(--msp-space-3);
 }
+
+.msp-shell-section-list-list[data-flat] {
+  padding: 0;
+
+  & .msp-shell-section-list-section {
+    background: none;
+  }
+
+  & .msp-shell-section-list-header {
+    height: 26px;
+    font-size: var(--msp-font-size-sm);
+    padding: 0;
+
+    &:hover {
+      color: var(--msp-color-accent);
+      background: none;
+    }
+  }
+
+  & .msp-shell-section-list-body {
+    padding: 0 0 var(--msp-space-2);
+  }
+}
 }
 `);
