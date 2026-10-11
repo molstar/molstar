@@ -19,11 +19,11 @@ import { CanvasStack, CanvasToolbar, ContextChips, OverlayHost, StatusLine } fro
 import { DockView, FloatingDock } from './dock-view.js';
 
 /**
- * The rail's width, and the one margin of the canvas frame (px): every floating thing keeps 12px from the canvas
- * edges, the docked rail, the open panel, and the sequence card.
+ * The rail's width, and the one margin of the canvas frame (px, `--msp-canvas-edge`): every floating thing keeps it
+ * from the canvas edges, the docked rail, the open panel, and the sequence card.
  */
 const RailWidth = 44;
-const Edge = 12;
+const Edge = 8;
 
 export interface ShellViewProps {
   shell: ShellModel;
@@ -77,8 +77,8 @@ export function ShellView(props: ShellViewProps) {
   );
   // What floats on the right takes this much of the canvas: the bottom bar keeps clear of it.
   const rightInset = combineLatest([right.state, right.active, floating]).pipe(
-    // The docked rail is the canvas's right edge, and the open panel is too: what sits beside either keeps the edges'
-    // 12px.
+    // The docked rail is the canvas's right edge, and the open panel is too: what sits beside either keeps the frame
+    // margin.
     map(([s, active, f]) => RailWidth + Edge + (f && active ? s.size + Edge : 0)),
     distinctUntilChanged(),
     map((px) => `${px}px`),
@@ -96,6 +96,7 @@ export function ShellView(props: ShellViewProps) {
       <main
         class={classes.viewport}
         style={{
+          '--msp-canvas-edge': `${Edge}px`,
           '--msp-canvas-right-inset': rightInset,
           '--msp-canvas-top-inset': topInset,
           // Clear of the rail only (what sits beside it whatever the panel does: the compact stack).

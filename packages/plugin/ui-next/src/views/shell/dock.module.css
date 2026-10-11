@@ -181,8 +181,8 @@
    beside it, both flat glass; the card is more opaque so trees and forms stay readable over the molecule. */
 .floating {
   position: absolute;
-  top: var(--msp-space-4);
-  bottom: var(--msp-space-4);
+  top: var(--msp-canvas-edge, 8px);
+  bottom: var(--msp-canvas-edge, 8px);
   display: flex;
   align-items: flex-start;
   /* The one gap between floating things (Gap in shell-view.tsx). */
@@ -222,13 +222,13 @@
 }
 
 .floatingRight {
-  /* The rail is docked to the right edge: a full-height column, no margin; the panel floats beside it, 12px from it
-     as from the canvas's other edges (the rail is the edge now). */
+  /* The rail is docked to the right edge: a full-height column, no margin; the panel floats beside it, the frame margin
+     from it as from the canvas's other edges (the rail is the edge now). */
   top: 0;
   right: 0;
   bottom: 0;
   flex-direction: row-reverse;
-  gap: var(--msp-space-4);
+  gap: var(--msp-canvas-edge, 8px);
 
   & .rail {
     border-radius: 0;
@@ -237,7 +237,7 @@
   }
 
   & .content {
-    margin: var(--msp-space-4) 0;
+    margin: var(--msp-canvas-edge, 8px) 0;
   }
 
   /* An overlay card open in the panel's place: the panel steps aside (no doubled glass or edges underneath). */
@@ -247,14 +247,14 @@
 }
 
 .floatingLeft {
-  left: var(--msp-space-4);
+  left: var(--msp-canvas-edge, 8px);
   flex-direction: row;
 }
 
 .floatingTop,
 .floatingBottom {
-  left: var(--msp-space-4);
-  right: var(--msp-canvas-right-inset, var(--msp-space-4));
+  left: var(--msp-canvas-edge, 8px);
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, 8px));
   flex-direction: column;
   align-items: stretch;
 

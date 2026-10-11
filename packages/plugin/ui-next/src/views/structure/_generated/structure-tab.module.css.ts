@@ -54,17 +54,17 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 }
 
 .msp-structure-structure-tab-inspector {
-  border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
-  flex: none;
   height: clamp(180px, 42%, 420px);
+  margin: 0 calc(-1 * var(--msp-space-2));
+  border-top: 1px solid var(--msp-glass-edge);
+  flex: none;
   overflow: auto;
 }
 
 .msp-structure-structure-tab-inspection {
   align-content: start;
   gap: var(--msp-space-2);
-  padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
+  padding: var(--msp-space-3) var(--msp-space-4) var(--msp-space-3);
   display: grid;
 }
 

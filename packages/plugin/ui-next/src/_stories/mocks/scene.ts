@@ -229,6 +229,13 @@ class MockNode implements SceneNode {
     setTimeout(() => this.add(...loader()), 250);
   }
 
+  /** Puts children first (a structure's contents, above its components). */
+  addFirst(...children: MockNode[]): this {
+    for (const c of children) c.parent = this;
+    this.#children.set([...children, ...this.#children.value]);
+    return this;
+  }
+
   add(...children: MockNode[]): this {
     for (const c of children) c.parent = this;
     this.#children.set([...this.#children.value, ...children]);
@@ -419,12 +426,14 @@ export function mockScene(
   };
   const contents = (sid: string, entities: readonly EntitySpec[]) => {
     const chains = new Set(entities.flatMap((e) => e.chains.map((c) => c.id))).size;
+    const count = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
+    // What the structure is made of (entities, then chains): first under the structure, named for what it shows.
     const n = node(
       `${sid}-contents`,
       'contents',
       'list-tree',
-      'Contents',
-      `${entities.length} entities · ${chains} chains`,
+      'Structure',
+      `${count(entities.length, 'entity', 'entities')} · ${count(chains, 'chain', 'chains')}`,
       false,
     );
     n.loader = () =>
@@ -555,7 +564,7 @@ export function mockScene(
     forms.set('1tqn-cell', new ParamsFormModel(UnitCellParams));
     facts.set('1tqn-cell', [['Space group', 'I 2 2 2']]);
     s.add(cell);
-    s.add(
+    s.addFirst(
       contents('1tqn', [
         { id: '1', label: 'Cytochrome P450 3A4', type: 'polymer', chains: [{ id: 'A', description: '470 residues' }] },
         {
@@ -600,7 +609,6 @@ export function mockScene(
           ['Residues', '4,084'],
         ],
       },
-      component('5a1a-polymer', 'Polymer', 'Chains A–D', repr('5a1a-polymer-cartoon', 'cartoon', 'chain-id')),
       contents('5a1a', [
         {
           id: '1',
@@ -609,6 +617,7 @@ export function mockScene(
           chains: ['A', 'B', 'C', 'D'].map((id) => ({ id, description: '1,021 residues' })),
         },
       ]),
+      component('5a1a-polymer', 'Polymer', 'Chains A–D', repr('5a1a-polymer-cartoon', 'cartoon', 'chain-id')),
     );
     roots.set([model, map]);
   }

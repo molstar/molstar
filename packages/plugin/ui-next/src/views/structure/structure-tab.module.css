@@ -29,19 +29,21 @@
 }
 
 .inspector {
-  /* Always there, at a fixed height: picking a node fills it rather than moving the tree. */
+  /* Always there, at a fixed height: picking a node fills it rather than moving the tree. No box of its own (its edge
+     would stick out of the title's column): a hairline sets it apart from the tree. */
   flex: none;
   height: clamp(180px, 42%, 420px);
+  margin: 0 calc(-1 * var(--msp-space-2));
   overflow: auto;
-  border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  border-top: 1px solid var(--msp-glass-edge);
 }
 
 .inspection {
   display: grid;
   align-content: start;
   gap: var(--msp-space-2);
-  padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
+  /* 12px at the sides: the title's column (the tab's 4px inset is undone above, the hairline runs edge to edge). */
+  padding: var(--msp-space-3) var(--msp-space-4) var(--msp-space-3);
 }
 
 .inspectorEmpty {

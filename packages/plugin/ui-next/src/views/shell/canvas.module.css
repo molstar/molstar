@@ -66,9 +66,9 @@
   /* Every overlay card takes the right panel's place, full height, whether the panel is open or not: one target for
      everything that opens on the right (export, save state, canvas settings). */
   position: absolute;
-  top: var(--msp-space-4);
+  top: var(--msp-canvas-edge, 8px);
   right: var(--msp-canvas-panel-right, 64px);
-  bottom: var(--msp-space-4);
+  bottom: var(--msp-canvas-edge, 8px);
   z-index: var(--msp-z-overlay);
   display: flex;
   flex-direction: column;
@@ -121,12 +121,12 @@
   --msp-stack-row: 34px;
 
   position: absolute;
-  top: var(--msp-canvas-top-inset, var(--msp-space-4));
-  right: var(--msp-canvas-right-inset, var(--msp-space-4));
+  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge, 8px));
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, 8px));
 }
 
 :where([data-mode="compact"]) .stack {
-  right: var(--msp-canvas-rail-inset, var(--msp-space-4));
+  right: var(--msp-canvas-rail-inset, var(--msp-canvas-edge, 8px));
 }
 
 .stack .frame {
@@ -236,8 +236,8 @@
 /* The toolbar's own corner when no floating dock carries it in its rail. */
 .toolbarSlot {
   position: absolute;
-  top: var(--msp-space-4);
-  right: var(--msp-space-4);
+  top: var(--msp-canvas-edge, 8px);
+  right: var(--msp-canvas-edge, 8px);
 }
 
 /* The bottom of the canvas: status on the left, the timeline centred; stacked when the bar is narrow. The bar is a
@@ -245,8 +245,8 @@
 /* Top left of the canvas, below what floats at the top: playback (the trajectory, then the snapshots), one column. */
 .lead {
   position: absolute;
-  top: var(--msp-canvas-top-inset, var(--msp-space-4));
-  left: var(--msp-space-4);
+  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge, 8px));
+  left: var(--msp-canvas-edge, 8px);
   display: grid;
   gap: var(--msp-space-3);
   width: min(320px, calc(100% - 96px));
@@ -261,9 +261,9 @@
    follows what floats on the right (the open panel runs the full height), so the chips move with the panel. */
 .bottom {
   position: absolute;
-  left: var(--msp-space-4);
-  right: var(--msp-canvas-right-inset, var(--msp-space-4));
-  bottom: var(--msp-space-4);
+  left: var(--msp-canvas-edge, 8px);
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, 8px));
+  bottom: var(--msp-canvas-edge, 8px);
   container: bottom-bar / inline-size;
   pointer-events: none;
 }

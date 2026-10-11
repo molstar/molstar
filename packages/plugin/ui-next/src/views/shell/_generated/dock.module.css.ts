@@ -200,8 +200,8 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-floating {
-  top: var(--msp-space-4);
-  bottom: var(--msp-space-4);
+  top: var(--msp-canvas-edge, 8px);
+  bottom: var(--msp-canvas-edge, 8px);
   align-items: flex-start;
   gap: var(--msp-space-3);
   pointer-events: none;
@@ -239,7 +239,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-floatingRight {
-  gap: var(--msp-space-4);
+  gap: var(--msp-canvas-edge, 8px);
   flex-direction: row-reverse;
   top: 0;
   bottom: 0;
@@ -252,7 +252,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   }
 
   & .msp-shell-dock-content {
-    margin: var(--msp-space-4) 0;
+    margin: var(--msp-canvas-edge, 8px) 0;
   }
 
   [data-overlay="open"] > & .msp-shell-dock-content {
@@ -261,13 +261,13 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-floatingLeft {
-  left: var(--msp-space-4);
+  left: var(--msp-canvas-edge, 8px);
   flex-direction: row;
 }
 
 .msp-shell-dock-floatingTop, .msp-shell-dock-floatingBottom {
-  left: var(--msp-space-4);
-  right: var(--msp-canvas-right-inset, var(--msp-space-4));
+  left: var(--msp-canvas-edge, 8px);
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, 8px));
   flex-direction: column;
   align-items: stretch;
 

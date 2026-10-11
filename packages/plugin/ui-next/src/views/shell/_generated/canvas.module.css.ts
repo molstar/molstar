@@ -90,9 +90,9 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-card {
-  top: var(--msp-space-4);
+  top: var(--msp-canvas-edge, 8px);
   right: var(--msp-canvas-panel-right, 64px);
-  bottom: var(--msp-space-4);
+  bottom: var(--msp-canvas-edge, 8px);
   z-index: var(--msp-z-overlay);
   width: min(var(--msp-right-panel-width, 340px), calc(100% - 96px));
   border-radius: var(--msp-radius-lg);
@@ -137,13 +137,13 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-stack {
   --msp-stack-row: 34px;
-  top: var(--msp-canvas-top-inset, var(--msp-space-4));
-  right: var(--msp-canvas-right-inset, var(--msp-space-4));
+  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge, 8px));
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, 8px));
   position: absolute;
 }
 
 :where([data-mode="compact"]) .msp-shell-canvas-stack {
-  right: var(--msp-canvas-rail-inset, var(--msp-space-4));
+  right: var(--msp-canvas-rail-inset, var(--msp-canvas-edge, 8px));
 }
 
 .msp-shell-canvas-stack .msp-shell-canvas-frame {
@@ -245,14 +245,14 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-toolbarSlot {
-  top: var(--msp-space-4);
-  right: var(--msp-space-4);
+  top: var(--msp-canvas-edge, 8px);
+  right: var(--msp-canvas-edge, 8px);
   position: absolute;
 }
 
 .msp-shell-canvas-lead {
-  top: var(--msp-canvas-top-inset, var(--msp-space-4));
-  left: var(--msp-space-4);
+  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge, 8px));
+  left: var(--msp-canvas-edge, 8px);
   gap: var(--msp-space-3);
   width: min(320px, 100% - 96px);
   display: grid;
@@ -264,9 +264,9 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-bottom {
-  left: var(--msp-space-4);
-  right: var(--msp-canvas-right-inset, var(--msp-space-4));
-  bottom: var(--msp-space-4);
+  left: var(--msp-canvas-edge, 8px);
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, 8px));
+  bottom: var(--msp-canvas-edge, 8px);
   pointer-events: none;
   position: absolute;
   container: bottom-bar / inline-size;

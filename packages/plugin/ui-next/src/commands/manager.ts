@@ -15,6 +15,7 @@ import type {
   CommandAssistant,
   CommandDefinition,
   CommandFormats,
+  CommandGroup,
   CommandOutcome,
   CommandPreset,
   CommandResult,
@@ -94,6 +95,7 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 export class CommandManager<Ctx> {
   readonly #options: CommandManagerOptions<Ctx>;
   readonly #commands = observableState<readonly CommandDefinition<Ctx>[]>([]);
+  readonly #groups = observableState<readonly CommandGroup[]>([]);
   /** Each command's registration (a token per `register` call). */
   readonly #owners = new Map<CommandDefinition<Ctx>, object>();
   readonly #active = observableState<CommandInvocation<Ctx> | undefined>(undefined);
@@ -160,6 +162,48 @@ export class CommandManager<Ctx> {
       for (const d of defs) if (this.#owners.get(d) === owner) this.#owners.delete(d);
       this.#commands.set(this.#commands.asReadonly.value.filter((c) => !defs.includes(c)));
     };
+  }
+
+  /** The command tree's groups, for browsing. */
+  get groups(): ReadonlyState<readonly CommandGroup[]> {
+    return this.#groups.asReadonly;
+  }
+
+  /** Adds groups to the command tree (a contribution's, while active); the returned function takes them away. */
+  registerGroups(groups: readonly CommandGroup[]): () => void {
+    const ids = new Set(groups.map((g) => g.id));
+    this.#groups.set([...this.#groups.asReadonly.value.filter((g) => !ids.has(g.id)), ...groups]);
+    return () => this.#groups.set(this.#groups.asReadonly.value.filter((g) => !groups.includes(g)));
+  }
+
+  /** A group's path from the top level to it (itself last); empty for none or an unknown id. */
+  groupPath(id: string | undefined): CommandGroup[] {
+    const all = this.#groups.asReadonly.value;
+    const path: CommandGroup[] = [];
+    let g = id === undefined ? undefined : all.find((x) => x.id === id);
+    while (g && !path.includes(g)) {
+      path.unshift(g);
+      g = g.parent === undefined ? undefined : all.find((x) => x.id === g!.parent);
+    }
+    return path;
+  }
+
+  /** What a group holds (or the top level, for none): its subgroups and its commands, in order. */
+  children(id: string | undefined): { groups: CommandGroup[]; commands: CommandMatch<Ctx>[] } {
+    const known = new Set(this.#groups.asReadonly.value.map((g) => g.id));
+    const byOrder = (a: CommandGroup, b: CommandGroup) => (a.order ?? 0) - (b.order ?? 0);
+    const groups = this.#groups.asReadonly.value
+      .filter((g) => (g.parent && known.has(g.parent) ? g.parent : undefined) === id)
+      .sort(byOrder);
+    const commands = this.#commands.asReadonly.value
+      .filter((c) => (c.group && known.has(c.group) ? c.group : undefined) === id)
+      .map((c) => this.#match(c));
+    return { groups, commands };
+  }
+
+  /** Is the command inside the group (at any depth)? */
+  inGroup(command: CommandDefinition<Ctx>, id: string): boolean {
+    return this.groupPath(command.group).some((g) => g.id === id);
   }
 
   get(id: string): CommandDefinition<Ctx> | undefined {

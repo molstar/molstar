@@ -59,6 +59,11 @@ export interface CommandDefinition<Ctx> {
   category: string;
   /** Shown before the title in the command menu and on buttons that run it. */
   icon?: IconName;
+  /**
+   * The group it sits in, by id (`select.expression`), for browsing: the command menu opens groups like folders and
+   * shows a command's path in search results. Top level without one; search finds it either way.
+   */
+  group?: string;
   /** Words that start this command when typed with arguments ("show as" in "show as sticks"); the longest that fits wins. */
   alias?: string | readonly string[];
   /** Shown in the menu, e.g. ['⌥', 'T']. */
@@ -90,6 +95,17 @@ export interface CommandDefinition<Ctx> {
   run(args: CommandArgs, ctx: Ctx, signal: AbortSignal): CommandResult | Promise<CommandResult>;
   /** An assistant may fill this command in from words; the instruction says what the values mean. */
   assist?: { instruction: string; answers?: boolean };
+}
+
+/** A node of the command tree for browsing (Select › Expression); groups nest by `parent`. */
+export interface CommandGroup {
+  id: string;
+  title: string;
+  icon?: IconName;
+  /** The group it sits in; top level without one. */
+  parent?: string;
+  /** Position among its siblings (lower first; registration order otherwise). */
+  order?: number;
 }
 
 /** A ready start of a command: "Load structure… from AlphaFold DB". */
