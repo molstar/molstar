@@ -334,11 +334,16 @@ defineStyles('views/state/snapshots-panel.module.css', `@layer msp.components {
   }
 
   &[data-danger] {
+    color: var(--msp-color-danger);
+  }
+
+  &[data-danger]:not(:first-child) {
     margin-top: var(--msp-space-1);
     border-radius: 0 0 var(--msp-radius-sm) var(--msp-radius-sm);
     box-shadow: 0 -1px 0 var(--msp-glass-edge);
-    color: var(--msp-color-danger);
+  }
 
+  &[data-danger] {
     &:hover, &:focus-visible {
       background: color-mix(in oklab, var(--msp-color-danger), transparent 88%);
       color: var(--msp-color-danger);

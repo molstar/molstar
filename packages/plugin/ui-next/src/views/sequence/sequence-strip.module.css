@@ -23,15 +23,56 @@
   display: inline-flex;
   align-items: center;
   gap: var(--msp-space-2);
+  min-width: 0;
   height: 22px;
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
-  font-weight: 600;
+  font-weight: 500;
 
-  &:hover {
+  &:hover,
+  &[aria-expanded="true"] {
     background: var(--msp-color-hover);
+    color: var(--msp-color-text);
   }
+
+  &[data-strong] {
+    color: var(--msp-color-text);
+    font-weight: 600;
+  }
+}
+
+/* A choice: its button, and the options under it, over the strip. */
+.choice {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.value {
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+}
+
+.popover {
+  position: fixed;
+  z-index: var(--msp-z-overlay);
+  min-width: 180px;
+  max-width: 320px;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-panel);
+  box-shadow:
+    var(--msp-glass-shadow),
+    0 6px 16px rgb(0 0 0 / 0.12);
 }
 
 .info {

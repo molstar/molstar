@@ -9,15 +9,19 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'chevron': 'msp-sequence-sequence-strip-chevron',
+  'choice': 'msp-sequence-sequence-strip-choice',
   'gap': 'msp-sequence-sequence-strip-gap',
   'header': 'msp-sequence-sequence-strip-header',
   'info': 'msp-sequence-sequence-strip-info',
+  'popover': 'msp-sequence-sequence-strip-popover',
   'residue': 'msp-sequence-sequence-strip-residue',
   'residues': 'msp-sequence-sequence-strip-residues',
   'selected': 'msp-sequence-sequence-strip-selected',
   'selector': 'msp-sequence-sequence-strip-selector',
   'spacer': 'msp-sequence-sequence-strip-spacer',
   'strip': 'msp-sequence-sequence-strip-strip',
+  'value': 'msp-sequence-sequence-strip-value',
 } as const;
 
 defineStyles('views/sequence/sequence-strip.module.css', `@layer msp.components {
@@ -39,16 +43,54 @@ defineStyles('views/sequence/sequence-strip.module.css', `@layer msp.components 
 .msp-sequence-sequence-strip-selector {
   align-items: center;
   gap: var(--msp-space-2);
+  min-width: 0;
   height: 22px;
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
-  font-weight: 600;
+  font-weight: 500;
   display: inline-flex;
 
-  &:hover {
+  &:hover, &[aria-expanded="true"] {
     background: var(--msp-color-hover);
+    color: var(--msp-color-text);
   }
+
+  &[data-strong] {
+    color: var(--msp-color-text);
+    font-weight: 600;
+  }
+}
+
+.msp-sequence-sequence-strip-choice {
+  min-width: 0;
+  display: inline-flex;
+  position: relative;
+}
+
+.msp-sequence-sequence-strip-value {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+}
+
+.msp-sequence-sequence-strip-chevron {
+  color: var(--msp-color-text-subtle);
+  flex: none;
+}
+
+.msp-sequence-sequence-strip-popover {
+  z-index: var(--msp-z-overlay);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-panel);
+  min-width: 180px;
+  max-width: 320px;
+  box-shadow: var(--msp-glass-shadow),
+    0 6px 16px #0000001f;
+  position: fixed;
 }
 
 .msp-sequence-sequence-strip-info {

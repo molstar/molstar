@@ -33,7 +33,7 @@ import {
 import { SnapshotCard, TrajectoryBar } from '../canvas/playback.js';
 import { SelectionBar } from '../canvas/selection-bar.js';
 import { CommandMenu } from '../command-menu/command-menu.js';
-import { SequenceStrip } from '../sequence/sequence-strip.js';
+import { type SequenceSelector, SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
 import { LogView } from './log-view.js';
 import { HomeTab } from '../home/home-tab.js';
@@ -276,6 +276,60 @@ const Granularities: readonly Granularity[] = [
   { value: 'chainInstances', label: 'Chain', icon: 'pick-chain', group: 'All instances' },
 ];
 
+/** The sequence view's choices for 1TQN (Mol*'s sequence controls): structure, mode, then entity and chain. */
+function sequenceSelectors(post: (text: string) => void): SequenceSelector[] {
+  const selector = (
+    id: string,
+    title: string,
+    initial: string,
+    options: [string, string][],
+    extra: Partial<SequenceSelector> = {},
+  ): SequenceSelector => {
+    const value = observableState(initial);
+    return {
+      id,
+      title,
+      options,
+      value: value.asReadonly,
+      set: (v) => {
+        value.set(v);
+        post(`Sequence: ${title.toLowerCase()} ${options.find((o) => o[0] === v)?.[1] ?? v}`);
+      },
+      ...extra,
+    };
+  };
+  const mode = selector('mode', 'Mode', 'single', [
+    ['single', 'Chain'],
+    ['polymers', 'Polymers'],
+    ['all', 'Everything'],
+  ]);
+  const single = mode.value.pipe(map((m) => m === 'single'));
+  return [
+    selector('structure', 'Structure', '1tqn', [['1tqn', '1TQN | Crystal structure of human microsomal P450 3A4']], {
+      display: () => '1TQN',
+      strong: true,
+    }),
+    mode,
+    selector(
+      'entity',
+      'Entity',
+      '1',
+      [
+        ['1', '1: Cytochrome P450 3A4'],
+        ['2', '2: Protoporphyrin IX containing Fe'],
+        ['3', '3: Sulfate ion'],
+        ['4', '4: Water'],
+      ],
+      {
+        display: (v) =>
+          ['Cytochrome P450 3A4', 'Protoporphyrin IX containing Fe', 'Sulfate ion', 'Water'][Number(v) - 1],
+        visible: single,
+      },
+    ),
+    selector('chain', 'Chain', 'A', [['A', 'A']], { display: (v) => `Chain ${v}`, visible: single }),
+  ];
+}
+
 /** A mock of everything around the canvas, with the shell's real model. */
 function mockShell(options: {
   loaded: boolean;
@@ -387,6 +441,7 @@ function mockShell(options: {
         render: domView(({ ctx }) => (
           <SequenceStrip
             chain={{ structure: '1TQN', name: 'Chain A', info: 'Cytochrome P450 3A4', sequence: Sequence, start: 1 }}
+            selectors={sequenceSelectors((t) => status.post(t))}
             onCollapse={() => ctx.shell.toggle(ctx.dock ?? 'top')}
             onHover={(n) =>
               hoverLines.set(n === undefined ? [] : [`${ThreeLetter[Sequence[n - 1]] ?? '?'} ${n}`, 'Chain A · 1TQN'])
