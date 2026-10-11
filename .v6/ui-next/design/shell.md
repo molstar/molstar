@@ -76,12 +76,14 @@ it is where contributions (built-in and extension UI) are placed.
   work in hand), the timeline (trajectory model index, animations; like a media player) on the right. The bar is its own
   size container: when what floats on the right narrows it, the chips take a row of their own above, and on a very
   narrow canvas everything stacks.
-- **Glass and canvas theme.** Everything over the canvas uses flat glass (translucent fill, blur, hairline edge, no
+- **Glass and canvas theme.** Everything over the canvas uses flat glass (translucent fill, blur, no borders, no
   shadows) and takes its theme from the canvas background automatically, not from the UI theme, so it stays visible (as
   stories-untold's stage ink does). `model/canvas-theme.ts` computes it from the Canvas3D props by relative luminance
   (threshold 0.179, where light and dark text have equal contrast): the background color, a gradient's colors averaged
   over it by opacity; images and skyboxes count as the background color for now; a transparent canvas uses the host's
-  fallback. The viewport model follows `events.canvas3d.settingsUpdated` and feeds `canvasTheme`.
+  fallback. The viewport model follows `events.canvas3d.settingsUpdated` and feeds `canvasTheme`. The glass is tinted
+  from the canvas color too (`canvasColor` sets `--msp-color-bg` on the canvas layer, and every derived shade follows):
+  cards read as frosted canvas, a shade off the background, rather than slabs of the UI's own (warm) panel color.
 - **Hover label** next to the cursor (§4.4).
 - **Status line** (bottom of the canvas): the latest log message (fades after a few seconds; errors stay until
   dismissed), running tasks with progress and abort, and chips for the selection and focus (click to focus, ✕ to clear).

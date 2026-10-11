@@ -571,6 +571,7 @@ function ShellStory(props: { loaded: boolean; background?: string; openExportAt?
         ) : null
       }
       timeline={props.loaded ? <Timeline model={trajectory} /> : null}
+      canvasColor={props.background ?? '#ffffff'}
       canvasTheme={themeForColor(parseColor(props.background ?? '#ffffff') ?? 0xffffff)}
       onOpenLog={() => shell.openOverlay('log')}
     />

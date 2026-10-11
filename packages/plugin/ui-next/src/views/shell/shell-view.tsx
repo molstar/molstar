@@ -39,6 +39,11 @@ export interface ShellViewProps {
    * of the UI theme: dark glass over a white canvas would be muddy.
    */
   canvasTheme?: MaybeReactive<'light' | 'dark'>;
+  /**
+   * The canvas background (a CSS color). The chrome over the canvas is tinted from it instead of the UI's own
+   * background, so cards read as frosted canvas rather than slabs of panel color.
+   */
+  canvasColor?: MaybeReactive<string>;
   onOpenLog?: () => void;
 }
 
@@ -85,6 +90,8 @@ export function ShellView(props: ShellViewProps) {
           data-msp-theme={props.canvasTheme ?? 'light'}
           data-right-panel={rightPanelOpen}
           style={{
+            // Every derived shade (glass, controls, hover, muted text) follows from the base color.
+            '--msp-color-bg': props.canvasColor,
             '--msp-canvas-right-inset': rightInset,
             '--msp-canvas-top-inset': topInset,
             // The bottom bar runs under open side panels (they end above it): it only keeps clear of the rail.
