@@ -28,6 +28,7 @@ export const classes = {
 
 defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 .msp-canvas-playback-card {
+  font-size: var(--msp-font-size-sm);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);

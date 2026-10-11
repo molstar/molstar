@@ -5,6 +5,8 @@
  */
 
 .card {
+  /* The panels' text size (the canvas chrome is not the place for larger text). */
+  font-size: var(--msp-font-size-sm);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
