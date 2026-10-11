@@ -222,8 +222,21 @@
 }
 
 .floatingRight {
-  right: var(--msp-space-4);
+  /* The rail is docked to the right edge: a full-height column, no margin; the panel floats beside it. */
+  top: 0;
+  right: 0;
+  bottom: 0;
   flex-direction: row-reverse;
+
+  & .rail {
+    border-radius: 0;
+    background: var(--msp-glass-panel-bg);
+    box-shadow: -1px 0 0 var(--msp-glass-edge);
+  }
+
+  & .content {
+    margin: var(--msp-space-4) 0;
+  }
 
   /* An overlay card open in the panel's place: the panel steps aside (no doubled glass or edges underneath). */
   [data-overlay="open"] > & .content {
@@ -280,8 +293,18 @@
   align-self: stretch;
 }
 
-/* The bottom of the rail (the palette, the main way in): pushed down, a shade apart from the rest of the rail. */
+/* The bottom of the rail: pushed down, its divider above it; the tabs placed there (Settings), then the palette (the
+   main way in), a shade apart. */
 .railFoot {
+  display: flex;
+  flex-direction: column;
   margin-top: auto;
-  background: color-mix(in oklab, var(--msp-color-control), transparent 30%);
+
+  & > :last-child {
+    background: color-mix(in oklab, var(--msp-color-control), transparent 30%);
+  }
+
+  & > * + * {
+    border-top: 1px solid var(--msp-glass-edge);
+  }
 }

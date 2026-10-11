@@ -38,6 +38,7 @@ import { LogView } from './log-view.js';
 import { SectionList } from './section-list.js';
 import { ShellView } from './shell-view.js';
 import { StructureTab } from '../structure/structure-tab.js';
+import { registerMockCanvasSettings } from '../../_stories/mocks/canvas-settings.js';
 import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
 import { type MockScenePreset, mockScene } from '../../_stories/mocks/scene.js';
 
@@ -323,8 +324,9 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     {
       id: 'home',
       title: 'Home',
-      icon: 'house',
+      icon: 'molstar',
       order: 0,
+      place: 'head',
       render: domView(() => (
         <div style={pad}>
           <b style="font-size: var(--msp-font-size-lg)">Open a structure</b>
@@ -382,6 +384,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
       title: 'Settings',
       icon: 'settings',
       order: 3,
+      place: 'foot',
       render: domView(() => (
         <Placeholder title="Settings">Searchable, grouped by intent: appearance, camera, interaction, …</Placeholder>
       )),
@@ -467,9 +470,32 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
       id: 'reset',
       place: 'canvas',
       group: 'canvas',
-      icon: 'rotate-ccw',
+      icon: 'focus',
       title: 'Reset camera',
       run: () => status.post('Camera reset'),
+      menu: [
+        {
+          id: 'reset-zoom',
+          label: 'Reset zoom',
+          icon: 'zoom-out',
+          hint: 'Fit everything, keep the orientation',
+          run: () => status.post('Zoom reset'),
+        },
+        {
+          id: 'orient-axes',
+          label: 'Orient axes',
+          icon: 'axis-3d',
+          hint: 'Principal axes along the screen',
+          run: () => status.post('Oriented along the principal axes'),
+        },
+        {
+          id: 'reset-axes',
+          label: 'Reset axes',
+          icon: 'rotate-ccw',
+          hint: 'Back to the default orientation',
+          run: () => status.post('Axes reset'),
+        },
+      ],
     },
     { id: 'save', group: 'export', icon: 'save', title: 'Save state (snapshots)', overlay: 'save-state' },
     { id: 'export', group: 'export', icon: 'download', title: 'Export…', overlay: 'export' },
@@ -498,6 +524,14 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
       title: 'Expand',
       run: () => status.post('Expanded'),
     },
+    {
+      id: 'canvas-settings',
+      place: 'canvas',
+      group: 'canvas',
+      icon: 'sliders-horizontal',
+      title: 'Canvas settings',
+      overlay: 'canvas-settings',
+    },
     // Panels over the canvas: shown and hidden from the stack (hidden, they take no room at all).
     {
       id: 'sequence',
@@ -512,6 +546,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
 
   // One Export button; built-in and extension exports are sections of its panel.
   mockExport(shell, status);
+  registerMockCanvasSettings(shell);
 
   if (options.loaded) {
     status.post('Loaded 1TQN (3,624 atoms) in 0.4 s', 'success');

@@ -69,6 +69,10 @@ export function FloatingDock(props: {
 }) {
   const { shell, dock } = props;
   const size = { '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) };
+  // Tabs at the head of the rail (Home), in the strip, and at its foot (Settings, by the palette).
+  const head = dock.tabs.pipe(map((tabs) => tabs.filter((t) => t.place === 'head')));
+  const strip = dock.tabs.pipe(map((tabs) => tabs.filter((t) => !t.place || t.place === 'strip')));
+  const foot = dock.tabs.pipe(map((tabs) => tabs.filter((t) => t.place === 'foot')));
   if (dock.id === 'top' || dock.id === 'bottom') {
     // A top or bottom card spans the canvas between the edges and what floats on the sides. Collapsed, it is gone: a
     // canvas toolbar button (Sequence) brings it back.
@@ -88,15 +92,31 @@ export function FloatingDock(props: {
     >
       <div class={`${classes.rail} ${canvasClasses.frame}`}>
         {props.railLead}
-        <Show when={dock.tabs.pipe(map((tabs) => tabs.length > 0))}>
+        <Show when={head.pipe(map((tabs) => tabs.length > 0))}>
+          {() => (
+            <nav class={classes.strip} role="tablist" aria-orientation="vertical" aria-label="Home">
+              <For each={head}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
+            </nav>
+          )}
+        </Show>
+        <Show when={strip.pipe(map((tabs) => tabs.length > 0))}>
           {() => (
             <nav class={classes.strip} role="tablist" aria-orientation="vertical" aria-label="Panels">
-              <For each={dock.tabs}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
+              <For each={strip}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
             </nav>
           )}
         </Show>
         {props.railItems}
-        {props.railFoot ? <div class={classes.railFoot}>{props.railFoot}</div> : null}
+        <div class={classes.railFoot}>
+          <Show when={foot.pipe(map((tabs) => tabs.length > 0))}>
+            {() => (
+              <nav class={classes.strip} role="tablist" aria-orientation="vertical" aria-label="More panels">
+                <For each={foot}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
+              </nav>
+            )}
+          </Show>
+          {props.railFoot}
+        </div>
       </div>
       <Show when={dock.active}>{(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}</Show>
     </div>
@@ -122,8 +142,10 @@ function CollapsedBar(props: { shell: ShellModel; dock: DockModel }) {
 
 function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab }) {
   const { shell, dock, tab } = props;
-  const selected = dock.state.pipe(
-    map((s) => !s.collapsed && s.active === tab.id),
+  // An overlay card in the right panel's place replaces it: no tab there shows selected, and a click brings the tab back.
+  const covered = dock.id === 'right' ? shell.overlay.pipe(map((o) => !!o)) : of(false);
+  const selected = combineLatest([dock.state, covered]).pipe(
+    map(([s, c]) => !c && !s.collapsed && s.active === tab.id),
     distinctUntilChanged(),
   );
   return (
@@ -134,7 +156,12 @@ function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab })
       title={tab.title}
       aria-label={tab.title}
       aria-selected={selected}
-      onClick={() => shell.select(tab.id)}
+      onClick={() => {
+        if (dock.id === 'right' && shell.overlay.value) {
+          shell.closeOverlay();
+          shell.show(tab.id);
+        } else shell.select(tab.id);
+      }}
     >
       <Icon name={tab.icon} size={20} />
     </button>

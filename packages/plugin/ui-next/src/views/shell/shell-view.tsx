@@ -72,7 +72,7 @@ export function ShellView(props: ShellViewProps) {
   );
   // What floats on the right takes this much of the canvas: the bottom bar keeps clear of it.
   const rightInset = combineLatest([right.state, right.active, floating]).pipe(
-    map(([s, active, f]) => Edge + RailWidth + Gap + (f && active ? s.size + Gap : 0)),
+    map(([s, active, f]) => RailWidth + Gap + (f && active ? s.size + Gap : 0)),
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
@@ -99,10 +99,10 @@ export function ShellView(props: ShellViewProps) {
             '--msp-canvas-right-inset': rightInset,
             '--msp-canvas-top-inset': topInset,
             // Clear of the rail only (what sits beside it whatever the panel does: the compact stack).
-            '--msp-canvas-rail-inset': `${Edge + RailWidth + Gap}px`,
+            '--msp-canvas-rail-inset': `${RailWidth + Gap}px`,
             '--msp-right-panel-width': rightPanelWidth,
             // Where cards beside the rail end (the floating panel's right edge).
-            '--msp-canvas-panel-right': `${Edge + RailWidth + Gap}px`,
+            '--msp-canvas-panel-right': `${RailWidth + Gap}px`,
           }}
         >
           <Show when={floatingTop}>{() => <FloatingDock shell={shell} dock={top} />}</Show>

@@ -35,6 +35,11 @@ export interface ShellTab {
   /** Where it goes by default ('right'). */
   dock?: DockId;
   order?: number;
+  /**
+   * Where its button sits on a floating dock's rail: its head (Home, as the Mol* mark, a section of its own), the tab
+   * strip (default), or its foot by the palette (Settings).
+   */
+  place?: 'head' | 'strip' | 'foot';
   render: ViewRenderer<ShellViewContext>;
 }
 
@@ -116,6 +121,21 @@ export interface CanvasToolbarItem {
   /** Opens (or closes) this overlay, anchored to the button. */
   overlay?: string;
   run?(anchor: Element): void;
+  /**
+   * Variants of the button's action, shown beside it on hover or focus (the camera: reset zoom, orient axes, reset
+   * axes); a click on the button still runs its own action. Canvas stack items only.
+   */
+  menu?: readonly CanvasMenuItem[];
+}
+
+/** One entry of a toolbar button's menu. */
+export interface CanvasMenuItem {
+  id: string;
+  label: string;
+  icon?: IconName;
+  /** A short explanation, shown under the label. */
+  hint?: string;
+  run(): void;
 }
 
 /** The open overlay, the element it is anchored to (for placement), and the section to bring into view. */

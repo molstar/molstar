@@ -14,6 +14,7 @@ import { onCleanup } from '../../dom/scope.js';
 import type { CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
 import type { MessageKind, StatusModel, StatusTask } from '../../shell/status.js';
 import type { Child } from '../../dom/jsx-types.js';
+import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/canvas.module.css.js';
 import { ViewHost } from './view-host.js';
 
@@ -40,7 +41,12 @@ function sectionsOf(items: readonly CanvasToolbarItem[]): ToolSection[] {
  * picks what to show: the rail's items (`all`), split around its tab strip (`lead`: the palette above it, `rest`
  * below), or the canvas stack's items (`canvas`).
  */
-export function CanvasToolbar(props: { shell: ShellModel; part?: 'all' | 'lead' | 'rest' | 'canvas' }) {
+export function CanvasToolbar(props: {
+  shell: ShellModel;
+  part?: 'all' | 'lead' | 'rest' | 'canvas';
+  /** Where buttons with a menu open it (the canvas stack); without it, menus are not shown. */
+  menus?: ToolMenus;
+}) {
   const { shell } = props;
   const part = props.part ?? 'all';
   const canvas = part === 'canvas';
@@ -63,7 +69,7 @@ export function CanvasToolbar(props: { shell: ShellModel; part?: 'all' | 'lead' 
             aria-label={section.group ?? 'commands'}
           >
             {section.items.map((item) => (
-              <ToolButton shell={shell} item={item} />
+              <ToolButton shell={shell} item={item} menus={props.menus} />
             ))}
           </div>
         )}
@@ -72,8 +78,9 @@ export function CanvasToolbar(props: { shell: ShellModel; part?: 'all' | 'lead' 
   );
 }
 
-function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem }) {
-  const { shell, item } = props;
+function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?: ToolMenus }) {
+  const { shell, item, menus } = props;
+  const withMenu = menus && item.menu?.length ? menus : undefined;
   const overlayOpen = item.overlay ? shell.overlay.pipe(map((o) => o?.overlay.id === item.overlay)) : of(false);
   const pressed = combineLatest([overlayOpen, item.pressed ?? of(false)]).pipe(
     map(([a, b]) => a || b),
@@ -86,12 +93,19 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem }) {
       title={item.title}
       aria-label={item.title}
       aria-pressed={pressed}
+      aria-haspopup={withMenu ? 'menu' : undefined}
       onClick={(e) => {
+        withMenu?.hide();
         if (item.overlay) shell.toggleOverlay(item.overlay, e.currentTarget);
         else item.run?.(e.currentTarget);
       }}
+      onPointerEnter={withMenu ? (e) => withMenu.show(item, e.currentTarget) : undefined}
+      onPointerLeave={withMenu ? () => withMenu.hideSoon() : undefined}
+      onFocus={withMenu ? (e) => withMenu.show(item, e.currentTarget) : undefined}
+      onBlur={withMenu ? () => withMenu.hideSoon() : undefined}
     >
       <Icon name={item.icon} size={20} />
+      {withMenu ? <span class={classes.menuMark} aria-hidden="true" /> : null}
     </button>
   );
 }
@@ -102,14 +116,102 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem }) {
  * XR, expand, sequence); `aside` is what opens beside it (the picking level).
  */
 export function CanvasStack(props: { shell: ShellModel; lead?: Child; aside?: Child }) {
-  return (
+  const menus = new ToolMenus();
+  const stack = (
     <div class={classes.stack}>
       <div class={classes.frame}>
         {props.lead}
-        <CanvasToolbar shell={props.shell} part="canvas" />
+        <CanvasToolbar shell={props.shell} part="canvas" menus={menus} />
       </div>
       {props.aside}
+      <ToolMenu menus={menus} />
     </div>
+  ) as HTMLElement;
+  menus.stack = stack;
+  onCleanup(() => menus.dispose());
+  return stack;
+}
+
+/**
+ * The open tool menu of the canvas stack: which button, at what height. Opens on hover or focus, closes a moment after
+ * the pointer leaves both the button and the menu (so it can travel between them), on a choice, or on Escape.
+ */
+export class ToolMenus {
+  readonly open = observableState<{ item: CanvasToolbarItem; top: number } | undefined>(undefined);
+  stack: HTMLElement | undefined;
+  #timer: ReturnType<typeof setTimeout> | undefined;
+
+  show(item: CanvasToolbarItem, button: Element) {
+    this.keep();
+    const top = this.stack ? button.getBoundingClientRect().top - this.stack.getBoundingClientRect().top : 0;
+    const current = this.open.value;
+    if (current?.item !== item || current.top !== top) this.open.set({ item, top });
+  }
+
+  keep() {
+    if (this.#timer !== undefined) clearTimeout(this.#timer);
+    this.#timer = undefined;
+  }
+
+  hideSoon() {
+    this.keep();
+    this.#timer = setTimeout(() => this.hide(), 160);
+  }
+
+  hide() {
+    this.keep();
+    if (this.open.value) this.open.set(undefined);
+  }
+
+  dispose() {
+    this.keep();
+  }
+}
+
+function ToolMenu(props: { menus: ToolMenus }) {
+  const { menus } = props;
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !menus.open.value) return;
+    menus.hide();
+    e.preventDefault();
+  };
+  document.addEventListener('keydown', onKey);
+  onCleanup(() => document.removeEventListener('keydown', onKey));
+  return (
+    <Show when={menus.open}>
+      {(open) => (
+        <div
+          class={classes.toolMenu}
+          style={{ top: `${open.top}px` }}
+          role="menu"
+          aria-label={open.item.title}
+          onPointerEnter={() => menus.keep()}
+          onPointerLeave={() => menus.hideSoon()}
+          onFocusIn={() => menus.keep()}
+          onFocusOut={() => menus.hideSoon()}
+        >
+          <div class={classes.toolMenuCard}>
+            {open.item.menu!.map((m) => (
+              <button
+                type="button"
+                role="menuitem"
+                class={classes.toolMenuRow}
+                onClick={() => {
+                  menus.hide();
+                  m.run();
+                }}
+              >
+                {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
+                <span class={classes.toolMenuLabel}>
+                  {m.label}
+                  {m.hint ? <span class={classes.toolMenuHint}>{m.hint}</span> : null}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </Show>
   );
 }
 

@@ -20,6 +20,7 @@ export const classes = {
   'context': 'msp-shell-canvas-context',
   'frame': 'msp-shell-canvas-frame',
   'lead': 'msp-shell-canvas-lead',
+  'menuMark': 'msp-shell-canvas-menuMark',
   'message': 'msp-shell-canvas-message',
   'pill': 'msp-shell-canvas-pill',
   'pill-in': 'msp-shell-canvas-pill-in',
@@ -31,6 +32,12 @@ export const classes = {
   'status': 'msp-shell-canvas-status',
   'text': 'msp-shell-canvas-text',
   'tool': 'msp-shell-canvas-tool',
+  'tool-menu-in': 'msp-shell-canvas-tool-menu-in',
+  'toolMenu': 'msp-shell-canvas-toolMenu',
+  'toolMenuCard': 'msp-shell-canvas-toolMenuCard',
+  'toolMenuHint': 'msp-shell-canvas-toolMenuHint',
+  'toolMenuLabel': 'msp-shell-canvas-toolMenuLabel',
+  'toolMenuRow': 'msp-shell-canvas-toolMenuRow',
   'toolbar': 'msp-shell-canvas-toolbar',
   'toolbarSlot': 'msp-shell-canvas-toolbarSlot',
 } as const;
@@ -101,6 +108,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
     width: var(--msp-right-panel-width);
     background: var(--msp-color-panel);
     max-height: none;
+    animation: none;
     top: var(--msp-space-4) !important;
   }
 }
@@ -139,6 +147,72 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 :where([data-mode="compact"]) .msp-shell-canvas-stack {
   right: var(--msp-canvas-rail-inset, var(--msp-space-4));
+}
+
+.msp-shell-canvas-tool {
+  position: relative;
+}
+
+.msp-shell-canvas-menuMark {
+  opacity: .45;
+  border-top: 4px solid #0000;
+  border-right: 4px solid;
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+}
+
+.msp-shell-canvas-toolMenu {
+  z-index: var(--msp-z-overlay);
+  padding-right: var(--msp-space-3);
+  animation: msp-shell-canvas-tool-menu-in var(--msp-motion-fast) var(--msp-ease);
+  position: absolute;
+  right: 100%;
+}
+
+@keyframes msp-shell-canvas-tool-menu-in {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
+}
+
+.msp-shell-canvas-toolMenuCard {
+  min-width: 200px;
+  padding: var(--msp-space-2);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-panel-bg);
+  box-shadow: var(--msp-glass-shadow);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+  display: grid;
+}
+
+.msp-shell-canvas-toolMenuRow {
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-height: 32px;
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+  grid-template-columns: 16px 1fr;
+  display: grid;
+
+  &:hover, &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.msp-shell-canvas-toolMenuLabel {
+  color: var(--msp-color-text);
+  display: grid;
+}
+
+.msp-shell-canvas-toolMenuHint {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
 }
 
 .msp-shell-canvas-toolbarSlot {

@@ -62,20 +62,24 @@ it is where contributions (built-in and extension UI) are placed.
   full height; top and bottom docks span the canvas width only. A top or bottom dock with one tab has no tab strip: its
   content carries its own header (the sequence: structure and chain selectors, collapse), and collapsed it is a slim bar
   that expands on click.
-- **Rail sections.** The rail is one full-height glass frame (buttons edge to edge, a hairline between sections, no
-  captions), top to bottom: the tab strip, then app actions (`export`: save state, Export), and at its foot, a shade
-  apart, the command palette (the main way in). The canvas stack is the same kind of frame. Toolbar items name their
-  section by id (`group`, `order` within it). Extensions do **not** add rail buttons for their features (the rail would
-  grow with every extension): they contribute **sections** to a panel's slot instead, e.g. MP4, geometry and model
-  export as sections of the Export panel (`export` slot), next to the built-in Image and Session & state sections.
-  Everything is also a command, and a command can open a panel at a section
-  (`openOverlay('export', anchor, 'animation')`), so the palette finds "mp4" and lands on it.
+- **Rail sections.** The rail is docked to the right edge: a full-height column, no margin (the panel floats beside it),
+  buttons edge to edge, a hairline between sections, no captions. Top to bottom: Home as the Mol* mark (a section of its
+  own), the tab strip, app actions (`export`: save state, Export), and at its foot Settings and, a shade apart, the
+  command palette (the main way in). Tabs choose their place (`place: 'head' | 'strip' | 'foot'`). The canvas stack is
+  the same kind of frame, floating. Toolbar items name their section by id (`group`, `order` within it). Extensions do
+  **not** add rail buttons for their features (the rail would grow with every extension): they contribute **sections**
+  to a panel's slot instead, e.g. MP4, geometry and model export as sections of the Export panel (`export` slot), next
+  to the built-in Image and Session & state sections. Everything is also a command, and a command can open a panel at a
+  section (`openOverlay('export', anchor, 'animation')`), so the palette finds "mp4" and lands on it.
 - **Canvas stack.** What acts on the view sits on the canvas itself, at its top right (below the sequence card, beside
   the rail or the open panel), as a vertical stack of glass blocks: the mode (Interact, Select; §4.6), then the toolbar
   items placed on the canvas (`place: 'canvas'`): `canvas` (reset camera, illumination, XR, expand) and `view` (show or
   hide the sequence). Each button runs its command or opens an overlay anchored to it, gated by the command's `when` and
   `PluginConfig.Viewport.*`. Panels over the canvas are shown and hidden from here: a hidden sequence card takes no room
-  at all (no collapsed pill), and what was below it moves up.
+  at all (no collapsed pill), and what was below it moves up. A button can carry a small menu of variants that opens
+  beside it on hover or focus (a corner mark says so); a click still runs its own action. The camera button (a focus
+  glyph) offers Reset zoom, Orient axes and Reset axes. Canvas settings (sliders) opens a card with sections, like
+  Export: Background, Lighting & effects, Camera, Clipping & fog; extensions add sections to its slot.
 - **Playback** (top left of the canvas, §4.3): one column, the timeline (when there is a trajectory) above the snapshot
   panel. Nothing sits under it, so a description that grows or collapses moves nothing else.
 - **Bottom of the canvas**: messages and tasks on the left; the current selection and focus as chips on the right (the

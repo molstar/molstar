@@ -77,6 +77,7 @@ const ICONS = [
   'box',
   'crosshair',
   'focus',
+  'axis-3d',
   'ruler',
   'sun',
   'moon',

@@ -78,8 +78,10 @@
   -webkit-backdrop-filter: var(--msp-glass-filter);
   top: var(--msp-space-4);
 
-  /* Over an open floating panel: in the panel's place, opaque (no glass on glass). */
+  /* Over an open floating panel: in the panel's place, opaque (no glass on glass), swapped in without a transition (it
+     replaces the panel's content; nothing new arrives). */
   [data-right-panel="open"] > & {
+    animation: none;
     top: var(--msp-space-4) !important;
     bottom: var(--msp-space-4);
     width: var(--msp-right-panel-width);
@@ -125,6 +127,77 @@
 
 :where([data-mode="compact"]) .stack {
   right: var(--msp-canvas-rail-inset, var(--msp-space-4));
+}
+
+/* A button with a menu: a small corner mark says there is more on hover. */
+.tool {
+  position: relative;
+}
+
+.menuMark {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  border-right: 4px solid currentColor;
+  border-top: 4px solid transparent;
+  opacity: 0.45;
+}
+
+/* A tool menu: left of the stack at its button's height; the right padding bridges the gap so the pointer can travel
+   from the button to it. */
+.toolMenu {
+  position: absolute;
+  right: 100%;
+  z-index: var(--msp-z-overlay);
+  padding-right: var(--msp-space-3);
+  animation: tool-menu-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+@keyframes tool-menu-in {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
+}
+
+.toolMenuCard {
+  display: grid;
+  min-width: 200px;
+  padding: var(--msp-space-2);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-panel-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+}
+
+.toolMenuRow {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-height: 32px;
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.toolMenuLabel {
+  display: grid;
+  color: var(--msp-color-text);
+}
+
+.toolMenuHint {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
 }
 
 /* The toolbar's own corner when no floating dock carries it in its rail. */

@@ -37,6 +37,9 @@ export const MolecularIcons = {
   /** A wireframe cube around a density contour. */
   volume:
     '<path d="M12 2.5l8.5 4.75v9.5L12 21.5l-8.5-4.75v-9.5z"/><path d="M8.5 12.5c0-2.5 2-4 3.5-4s3.5 1.5 3.5 4-1.5 3-3.5 3-3.5-.5-3.5-3z"/>',
+  /** The Mol* mark: the outline of an eight-armed star (four bars through the centre), sharp corners as in the logo. */
+  molstar:
+    '<path stroke-linejoin="miter" d="M9.7 1.4h4.6v5.05l3.57-3.57 3.25 3.25-3.57 3.57h5.05v4.6h-5.05l3.57 3.57-3.25 3.25-3.57-3.57v5.05H9.7v-5.05l-3.57 3.57-3.25-3.25 3.57-3.57H1.4V9.7h5.05L2.88 6.13l3.25-3.25 3.57 3.57z"/>',
   // Picking levels (granularity), after stories-untold's pick-level glyphs: one mark per level, simple at 15 px.
   /** One atom. */
   'pick-atom': '<circle cx="12" cy="12" r="4"/>',

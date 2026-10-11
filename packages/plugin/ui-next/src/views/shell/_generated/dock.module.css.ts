@@ -239,8 +239,20 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-floatingRight {
-  right: var(--msp-space-4);
   flex-direction: row-reverse;
+  top: 0;
+  bottom: 0;
+  right: 0;
+
+  & .msp-shell-dock-rail {
+    background: var(--msp-glass-panel-bg);
+    box-shadow: -1px 0 0 var(--msp-glass-edge);
+    border-radius: 0;
+  }
+
+  & .msp-shell-dock-content {
+    margin: var(--msp-space-4) 0;
+  }
 
   [data-overlay="open"] > & .msp-shell-dock-content {
     visibility: hidden;
@@ -294,8 +306,17 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-railFoot {
-  background: color-mix(in oklab, var(--msp-color-control), transparent 30%);
+  flex-direction: column;
   margin-top: auto;
+  display: flex;
+
+  & > :last-child {
+    background: color-mix(in oklab, var(--msp-color-control), transparent 30%);
+  }
+
+  & > * + * {
+    border-top: 1px solid var(--msp-glass-edge);
+  }
 }
 }
 `);
