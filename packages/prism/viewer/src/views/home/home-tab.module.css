@@ -219,8 +219,9 @@
 /* The current session: what is loaded, and Clear (asking once, in place). */
 .session {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--msp-space-2);
+  gap: var(--msp-space-1) var(--msp-space-2);
   min-height: var(--msp-control-height);
   padding-left: var(--msp-inset);
 }
@@ -236,14 +237,17 @@
   animation-timeline: scroll(self inline);
 }
 
+/* Asking: on its own line under the summary, at the right (beside it, it would not fit a panel). */
 .confirm {
   display: flex;
+  flex: 1 0 100%;
+  justify-content: flex-end;
   align-items: center;
   gap: var(--msp-space-1);
 }
 
 .confirmText {
-  margin-right: var(--msp-space-2);
+  flex: 1;
+  min-width: 0;
   color: var(--msp-color-text-muted);
-  white-space: nowrap;
 }

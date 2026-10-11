@@ -243,9 +243,10 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
 
 .msp-viewer-home-tab-session {
   align-items: center;
-  gap: var(--msp-space-2);
+  gap: var(--msp-space-1) var(--msp-space-2);
   min-height: var(--msp-control-height);
   padding-left: var(--msp-inset);
+  flex-wrap: wrap;
   display: flex;
 }
 
@@ -261,15 +262,17 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
 }
 
 .msp-viewer-home-tab-confirm {
+  justify-content: flex-end;
   align-items: center;
   gap: var(--msp-space-1);
+  flex: 1 0 100%;
   display: flex;
 }
 
 .msp-viewer-home-tab-confirmText {
-  margin-right: var(--msp-space-2);
+  min-width: 0;
   color: var(--msp-color-text-muted);
-  white-space: nowrap;
+  flex: 1;
 }
 }
 `);
