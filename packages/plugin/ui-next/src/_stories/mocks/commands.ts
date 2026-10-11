@@ -6,6 +6,7 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { CommandManager } from '../../commands/manager.js';
+import type { IconName } from '../../components/icon/icon.js';
 import { rankBy } from '../../commands/match.js';
 import type { CommandDefinition, CommandFormats, CommandResult } from '../../commands/types.js';
 import { observableState } from '../../reactive/observable-state.js';
@@ -311,29 +312,6 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
       run: (a) => done(`Downloading ${a.id} from ${a.source}`),
     },
     {
-      id: 'structure.preset',
-      title: 'Apply preset…',
-      category: 'Structure',
-      icon: 'sparkles',
-      alias: 'preset',
-      params: () => ({
-        preset: PD.Select(
-          'default',
-          [
-            ['default', 'Default'],
-            ['cartoon', 'Cartoon'],
-            ['spacefill', 'Spacefill'],
-            ['surface', 'Surface'],
-            ['illustrative', 'Illustrative'],
-          ],
-          { label: 'preset' },
-        ),
-      }),
-      action: 'Apply',
-      run: (a) => done(`Preset: ${a.preset}`),
-      defaults: () => ({ preset: 'default' }),
-    },
-    {
       id: 'selection.color',
       group: 'selection',
       title: 'Color selection…',
@@ -453,6 +431,45 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
       run: () => done(''),
     },
   ];
+  // Representation presets and quick styles: one command each, in their groups (the Structure tab's Preset and Styles
+  // buttons open these groups in the command menu); a search anywhere finds them too.
+  const preset = (id: string, title: string, category: string): CommandDefinition<Ctx> => ({
+    id: `preset.${id}`,
+    title,
+    category,
+    group: 'preset',
+    icon: 'sparkles',
+    run: () => done(`Preset: ${title}`),
+  });
+  commands.push(
+    preset('empty', 'Empty', 'Presets'),
+    preset('auto', 'Automatic', 'Presets'),
+    preset('atomic-detail', 'Atomic detail', 'Basic'),
+    preset('polymer-cartoon', 'Polymer cartoon', 'Basic'),
+    preset('polymer-and-ligand', 'Polymer & ligand', 'Basic'),
+    preset('protein-and-nucleic', 'Protein & nucleic', 'Basic'),
+    preset('coarse-surface', 'Coarse surface', 'Basic'),
+    preset('illustrative', 'Illustrative', 'Miscellaneous'),
+    preset('molecular-surface', 'Molecular surface', 'Miscellaneous'),
+    preset('auto-detail', 'Automatic detail', 'Miscellaneous'),
+  );
+  const style = (id: string, title: string, category: string, icon: IconName): CommandDefinition<Ctx> => ({
+    id: `styles.${id}`,
+    title,
+    category,
+    group: 'styles',
+    icon,
+    run: () => done(`${category}: ${title}`),
+  });
+  commands.push(
+    style('repr-default', 'Default representation', 'Representation', 'layers'),
+    style('cartoon', 'Cartoon', 'Representation', 'cartoon'),
+    style('spacefill', 'Spacefill', 'Representation', 'spacefill'),
+    style('surface', 'Surface', 'Representation', 'surface'),
+    style('style-default', 'Default style', 'Style', 'paintbrush'),
+    style('illustrative', 'Illustrative style', 'Style', 'paintbrush'),
+  );
+
   // Categories in the order people reach for them (the command menu lists them so); the sort keeps each one's own order.
   const order = [
     'Data',
@@ -471,6 +488,8 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
   manager.register(commands);
   // The command tree for browsing (search finds everything either way).
   manager.registerGroups([
+    { id: 'preset', title: 'Preset', icon: 'sparkles', order: -2 },
+    { id: 'styles', title: 'Styles', icon: 'paintbrush', order: -1 },
     { id: 'select', title: 'Select', icon: 'mouse-pointer-click', order: 0 },
     { id: 'select.query', title: 'By query', icon: 'list-tree', parent: 'select', order: 0 },
     { id: 'select.expression', title: 'Expression', icon: 'text-cursor-input', parent: 'select', order: 1 },

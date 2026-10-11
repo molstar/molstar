@@ -30,6 +30,11 @@ export interface StructureTabProps {
   /** Quick styles: the Styles button opens them under the header. */
   quickStyles?: QuickStylesModel;
   /**
+   * Opens the command menu inside a group: given, Preset and Styles open theirs there (teaching the command menu as they
+   * go) instead of their inline lists.
+   */
+  openCommands?: (group: 'preset' | 'styles') => void;
+  /**
    * The component options (Mol*'s component manager options: hydrogens, quality, lighting, material, clipping,
    * interactions, interior, animation), applied to every component; the sliders button opens them.
    */
@@ -55,7 +60,13 @@ export function StructureTab(props: StructureTabProps) {
           variant="ghost"
           icon={<Icon name="sparkles" />}
           pressed={open.asReadonly.pipe(map((o) => o === 'preset'))}
-          onClick={() => (props.presets ? toggle('preset') : props.onAction?.('preset'))}
+          onClick={() =>
+            props.openCommands
+              ? props.openCommands('preset')
+              : props.presets
+                ? toggle('preset')
+                : props.onAction?.('preset')
+          }
         >
           Preset
         </Button>
@@ -64,7 +75,13 @@ export function StructureTab(props: StructureTabProps) {
           variant="ghost"
           icon={<Icon name="paintbrush" />}
           pressed={open.asReadonly.pipe(map((o) => o === 'styles'))}
-          onClick={() => (props.quickStyles ? toggle('styles') : props.onAction?.('styles'))}
+          onClick={() =>
+            props.openCommands
+              ? props.openCommands('styles')
+              : props.quickStyles
+                ? toggle('styles')
+                : props.onAction?.('styles')
+          }
         >
           Styles
         </Button>

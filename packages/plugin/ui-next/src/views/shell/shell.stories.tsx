@@ -263,6 +263,8 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
   const status = new StatusModel();
   const canvasMode = observableState<CanvasMode>('interact');
   const commandMenuOpen = observableState(false);
+  // The group the command menu opens in (Preset, Styles); none for ⌘K.
+  const commandMenuGroup = observableState<string | undefined>(undefined);
   const granularity = observableState('residue');
   const illumination = observableState(false);
   const snapshots = observableState<readonly string[]>(['Overview', 'Active site']);
@@ -301,6 +303,10 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
           presets={mockPresets((t) => status.post(t))}
           options={mockComponentOptions()}
           quickStyles={mockQuickStyles((t) => status.post(t))}
+          openCommands={(group) => {
+            commandMenuGroup.set(group);
+            commandMenuOpen.set(true);
+          }}
           onAction={(a) =>
             status.post(
               `${a === 'preset' ? 'Apply preset' : a === 'styles' ? 'Styles' : 'Add component'}… opens in the command menu`,
@@ -538,6 +544,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     pickLevel,
     selection,
     commandMenuOpen,
+    commandMenuGroup,
     commands,
     prefixes: mockPrefixes({ manager: commands, shell, scene, snapshots: snapshotStepper }),
     snapshots: snapshotStepper,
@@ -564,6 +571,7 @@ function ShellStory(props: {
     pickLevel,
     selection,
     commandMenuOpen,
+    commandMenuGroup,
     commands,
     prefixes,
     snapshots,
@@ -629,7 +637,17 @@ function ShellStory(props: {
       context={props.loaded ? () => <SelectionBar selection={selection} /> : undefined}
       commandMenu={
         <Show when={commandMenuOpen}>
-          {() => <CommandMenu manager={commands} prefixes={prefixes} onClose={() => commandMenuOpen.set(false)} />}
+          {() => (
+            <CommandMenu
+              manager={commands}
+              prefixes={prefixes}
+              group={commandMenuGroup.value}
+              onClose={() => {
+                commandMenuOpen.set(false);
+                commandMenuGroup.set(undefined);
+              }}
+            />
+          )}
         </Show>
       }
       canvasLead={props.loaded ? modeSwitch : null}

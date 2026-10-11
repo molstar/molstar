@@ -28,6 +28,8 @@ export interface CommandMenuProps {
   initial?: string;
   /** Prefixes that turn the menu into another list (`@` scene, `#` snapshots, `:` select); `?` help is built in. */
   prefixes?: readonly CommandMenuPrefix[];
+  /** Opens inside this group (the Structure tab's Preset and Styles buttons open theirs). */
+  group?: string;
 }
 
 /** One thing a prefix offers (a scene node for `@`, a snapshot for `#`, …). */
@@ -89,7 +91,7 @@ export function CommandMenu(props: CommandMenuProps) {
 function ListMode(props: CommandMenuProps) {
   const { manager } = props;
   const text = observableState(props.initial ?? '');
-  const group = observableState<string | undefined>(undefined);
+  const group = observableState<string | undefined>(props.group);
   const highlight = observableState(0);
   const message = observableState<string | undefined>(undefined);
   const prefixes = [...(props.prefixes ?? []), helpPrefix(props, (t) => setText(t))];
@@ -122,7 +124,16 @@ function ListMode(props: CommandMenuProps) {
         }
         for (const gr of groups) add({ kind: 'group', group: gr, index: 0 });
         if (g !== undefined) {
-          for (const m of commands) add({ kind: 'match', match: m, index: 0 });
+          // Inside a group: its commands under their categories' captions when there is more than one.
+          const categories = new Set(commands.map((m) => m.command.category));
+          let last: string | undefined;
+          for (const m of commands) {
+            if (categories.size > 1 && m.command.category !== last) {
+              last = m.command.category;
+              add({ kind: 'caption', label: last });
+            }
+            add({ kind: 'match', match: m, index: 0 });
+          }
           return out;
         }
         const recent = new Set(manager.query('').recent.map((m) => m.command));
@@ -279,7 +290,8 @@ function ListMode(props: CommandMenuProps) {
             return (
               <CommandRow
                 row={row}
-                path={manager.groupPath(row.match.command.group).map((g) => g.title)}
+                path={relativePath(manager, row.match.command.group, group.value)}
+                inGroup={group.value !== undefined}
                 query={text.asReadonly}
                 selected={selected}
                 onPick={() => pick(row)}
@@ -300,6 +312,13 @@ function ListMode(props: CommandMenuProps) {
       />
     </>
   );
+}
+
+/** A command's group path below the group being browsed (all of it at the top level). */
+function relativePath(manager: CommandManager<any>, of: string | undefined, browsing: string | undefined): string[] {
+  const path = manager.groupPath(of);
+  const at = browsing === undefined ? -1 : path.findIndex((g) => g.id === browsing);
+  return path.slice(at + 1).map((g) => g.title);
 }
 
 /** `?`: the prefixes (picking one types it), then every command with a shortcut. */
@@ -385,8 +404,10 @@ function ItemRow(props: { item: CommandMenuItem; selected: Observable<boolean>; 
 
 function CommandRow(props: {
   row: Extract<Row, { kind: 'match' }>;
-  /** Its group path ("Select › Expression"), shown instead of the category when it has one. */
+  /** Its group path below the group being browsed ("Expression"), shown instead of the category when it has one. */
   path: readonly string[];
+  /** Browsing a group: its captions say the categories, so a row without a deeper path shows nothing more. */
+  inGroup?: boolean;
   query: import('rxjs').Observable<string>;
   selected: import('rxjs').Observable<boolean>;
   onPick(): void;
@@ -409,7 +430,9 @@ function CommandRow(props: {
         {props.query.pipe(map((q) => highlight(title, tail ? '' : q)))}
         {tail ? <span class={classes.tail}>{tail}</span> : null}
       </span>
-      <span class={classes.rowMeta}>{match.blocked ?? (props.path.length ? props.path.join(' › ') : c.category)}</span>
+      <span class={classes.rowMeta}>
+        {match.blocked ?? (props.path.length ? props.path.join(' › ') : props.inGroup ? '' : c.category)}
+      </span>
       {c.shortcut ? <kbd class={classes.keys}>{formatChord(c.shortcut)}</kbd> : null}
     </div>
   ) as HTMLElement;
