@@ -747,6 +747,7 @@ function ShellStory(props: {
       canvasLead={props.loaded ? modeSwitch : null}
       canvasAside={props.loaded ? pickLevel : null}
       onOpenLog={() => shell.show('log')}
+      empty={of(!props.loaded)}
       onDropFiles={(files) => home.openFiles(files)}
       dropFormats={home.formats}
     />

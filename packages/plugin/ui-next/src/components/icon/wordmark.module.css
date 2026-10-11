@@ -9,14 +9,15 @@
   position: relative;
   display: block;
   flex: none;
-  width: 57px;
-  height: 22px;
+  width: calc(57px * var(--msp-wordmark-scale, 1));
+  height: calc(22px * var(--msp-wordmark-scale, 1));
 
   & svg {
     position: absolute;
     inset: 0;
     overflow: visible;
-    stroke-width: 1.5px;
+    /* In drawing units: 1.5 at its size; larger, relatively thinner (0.75 at 4×: a 3 px line). */
+    stroke-width: calc(1.5 / sqrt(var(--msp-wordmark-scale, 1)));
   }
 }
 

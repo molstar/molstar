@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { type MaybeReactive, onCleanup } from '../../dom/scope.js';
@@ -25,6 +25,7 @@ import {
   StatusLine,
 } from './canvas-chrome.js';
 import { DockView, FloatingDock } from './dock-view.js';
+import { EmptyCanvas } from './empty-canvas.js';
 import { FileDropOverlay } from './file-drop.js';
 
 /**
@@ -65,6 +66,8 @@ export interface ShellViewProps {
   /** Beside the canvas stack, outside its frame: what opens from it (the picking level, next to Select). */
   canvasAside?: Child;
   onOpenLog?: () => void;
+  /** Nothing loaded: a while after, the Mol* wordmark shows in the middle of the canvas. */
+  empty?: Observable<boolean>;
   /**
    * Files dropped anywhere on the plugin (to the plugin's drag-and-drop manager). Given, dragging files in shows a drop
    * overlay over everything; the host leaves it out when the spec turns the overlay off.
@@ -152,6 +155,7 @@ export function ShellView(props: ShellViewProps) {
           }}
         >
           <Show when={floatingTop}>{() => <FloatingDock shell={shell} dock={top} />}</Show>
+          {props.empty ? <EmptyCanvas empty={props.empty} /> : null}
           <div class={canvasClasses.lead}>{props.playback}</div>
           {props.overlays}
           <Show when={compact.pipe(map((c) => !c))}>

@@ -18,14 +18,14 @@ export const classes = {
 
 defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
 .msp-icon-wordmark-wordmark {
+  width: calc(57px * var(--msp-wordmark-scale, 1));
+  height: calc(22px * var(--msp-wordmark-scale, 1));
   flex: none;
-  width: 57px;
-  height: 22px;
   display: block;
   position: relative;
 
   & svg {
-    stroke-width: 1.5px;
+    stroke-width: calc(1.5 / sqrt(var(--msp-wordmark-scale, 1)));
     position: absolute;
     inset: 0;
     overflow: visible;
