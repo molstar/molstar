@@ -13,7 +13,7 @@ import { onCleanup } from '../dom/scope.js';
 import { observableState } from '../reactive/observable-state.js';
 import { story } from './story-root.js';
 
-const meta: Meta = { title: 'ui-next/Runtime' };
+const meta: Meta = { title: 'Internals/Runtime' };
 export default meta;
 
 const box = 'font: 14px system-ui, sans-serif; padding: 16px; display: grid; gap: 12px; max-width: 420px;';

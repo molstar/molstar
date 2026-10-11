@@ -9,30 +9,30 @@
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { story } from './story-root.js';
 
-const meta: Meta = { title: 'ui-next/Foundations' };
+const meta: Meta = { title: 'Overview/Foundations' };
 export default meta;
 
-const Colors = [
-  'bg',
-  'panel',
-  'raised',
-  'control',
-  'hover',
-  'pressed',
-  'border',
-  'border-strong',
-  'text',
-  'text-muted',
-  'text-subtle',
-  'accent',
-  'accent-strong',
-  'accent-muted',
-  'danger',
-  'success',
-  'warning',
-  'info',
+/** The tokens by role (`styles/theme.css`): every shade derives from a theme's base color and text color. */
+const Groups: [title: string, note: string, tokens: string[]][] = [
+  [
+    'Surfaces',
+    'From the base to the strongest: a panel, a control, hover, pressed; a well is a block inside a panel (an open action, a section), a step the other way.',
+    ['bg', 'panel', 'raised', 'control', 'hover', 'pressed', 'well'],
+  ],
+  ['Text', 'Body, labels and secondary text, hints and placeholders.', ['text', 'text-muted', 'text-subtle']],
+  [
+    'States',
+    'The accent only for actions and the picked item; the rest for messages.',
+    ['accent', 'accent-strong', 'danger', 'success', 'warning', 'info', 'focus-ring'],
+  ],
+  [
+    'Brand',
+    "The logo's colors (the wordmark's flash): lighter on dark themes.",
+    ['brand-1', 'brand-2', 'brand-3', 'brand-4'],
+  ],
 ];
 
+const Glass = ['--msp-glass-bg', '--msp-glass-panel-bg'];
 const Accents = ['cyan', 'red', 'gray', 'green', 'purple', 'blue', 'orange'];
 
 function Swatch(props: { token: string }) {
@@ -40,10 +40,10 @@ function Swatch(props: { token: string }) {
     <div style="display: grid; gap: 4px; font-size: var(--msp-font-size-xs)">
       <div
         style={{
-          height: '40px',
+          height: '36px',
           borderRadius: 'var(--msp-radius-md)',
           background: `var(${props.token})`,
-          border: '1px solid var(--msp-color-border)',
+          boxShadow: 'inset 0 0 0 1px var(--msp-glass-edge)',
         }}
       />
       <code style="color: var(--msp-color-text-muted)">{props.token}</code>
@@ -51,21 +51,36 @@ function Swatch(props: { token: string }) {
   );
 }
 
-const grid = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;';
-const section = 'display: grid; gap: 12px; padding: 16px;';
+const grid = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px;';
+const section = 'display: grid; gap: 12px; padding: 16px; max-width: 960px;';
+const heading = 'margin: 8px 0 0; font-size: var(--msp-font-size-md);';
+const note = 'margin: 0; color: var(--msp-color-text-muted); font-size: var(--msp-font-size-sm);';
 
-/** Color tokens of the current theme (switch themes in the toolbar). */
+/** The color tokens of the current theme, by role (switch themes in the toolbar). */
 export const ColorTokens: StoryObj = {
   render: () =>
     story(() => (
       <div style={section}>
-        <h2 style="font-size: var(--msp-font-size-lg)">Colors</h2>
+        {Groups.map(([title, text, tokens]) => (
+          <>
+            <h2 style={heading}>{title}</h2>
+            <p style={note}>{text}</p>
+            <div style={grid}>
+              {tokens.map((t) => (
+                <Swatch token={`--msp-color-${t}`} />
+              ))}
+            </div>
+          </>
+        ))}
+        <h2 style={heading}>Glass</h2>
+        <p style={note}>Over the canvas: translucent, blurred; the panel's is more opaque, for reading.</p>
         <div style={grid}>
-          {Colors.map((c) => (
-            <Swatch token={`--msp-color-${c}`} />
+          {Glass.map((t) => (
+            <Swatch token={t} />
           ))}
         </div>
-        <h2 style="font-size: var(--msp-font-size-lg)">Accents</h2>
+        <h2 style={heading}>Node kinds</h2>
+        <p style={note}>For extensions' and node kinds' brands (the classic card accents).</p>
         <div style={grid}>
           {Accents.map((c) => (
             <Swatch token={`--msp-accent-${c}`} />
@@ -75,7 +90,37 @@ export const ColorTokens: StoryObj = {
     )),
 };
 
-/** The same subtree in every theme: a `data-msp-theme` attribute recomputes all derived tokens below it. */
+/**
+ * How the surfaces layer: a panel on the base, a well inside it (an open action), its fields at the control tone,
+ * hover and pressed above; text in its three tones; the accent only on the action.
+ */
+export const Surfaces: StoryObj = {
+  render: () =>
+    story(() => (
+      <div style="padding: 16px; display: grid; gap: 8px; max-width: 360px; font-size: var(--msp-font-size-sm)">
+        <div style="padding: 12px; border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); display: grid; gap: 8px">
+          <b>Panel</b>
+          <span style="color: var(--msp-color-text-muted)">A label, muted · a hint, subtle</span>
+          <div style="padding: 8px; border-radius: var(--msp-radius-md); background: var(--msp-color-well); display: grid; gap: 4px">
+            <b>Well (an open action)</b>
+            <div style="height: 24px; border-radius: var(--msp-radius-md); background: var(--msp-color-control); padding: 0 8px; display: flex; align-items: center">
+              Control
+            </div>
+            <div style="height: 24px; border-radius: var(--msp-radius-md); background: var(--msp-color-hover); padding: 0 8px; display: flex; align-items: center">
+              Hover
+            </div>
+            <div style="height: 24px; border-radius: var(--msp-radius-md); background: var(--msp-color-pressed); padding: 0 8px; display: flex; align-items: center">
+              Pressed
+            </div>
+            <span style="justify-self: end; color: var(--msp-color-accent); font-weight: 600">Download</span>
+          </div>
+          <span style="color: var(--msp-color-text-subtle)">Subtle: placeholders, counts, dates</span>
+        </div>
+      </div>
+    )),
+};
+
+/** The same panel in every theme: `data-msp-theme` on any element recomputes every derived token below it. */
 export const Themes: StoryObj = {
   render: () =>
     story(() => (
@@ -83,15 +128,20 @@ export const Themes: StoryObj = {
         {['light', 'dark', 'blue'].map((theme) => (
           <div
             data-msp-theme={theme}
-            style="background: var(--msp-color-bg); color: var(--msp-color-text); padding: 16px; display: grid; gap: 8px"
+            style="background: var(--msp-color-bg); color: var(--msp-color-text); padding: 16px; display: grid; gap: 8px; font-size: var(--msp-font-size-sm)"
           >
-            <b>{theme}</b>
-            <div style="background: var(--msp-color-panel); padding: 8px; border-radius: var(--msp-radius-md)">
-              Panel <span style="color: var(--msp-color-text-muted)">muted</span>{' '}
-              <span style="color: var(--msp-color-accent)">accent</span>
-            </div>
-            <div style="border: 1px solid var(--msp-color-border); padding: 8px; border-radius: var(--msp-radius-md)">
-              Bordered
+            <b style="text-transform: capitalize">{theme}</b>
+            <div style="background: var(--msp-color-panel); padding: 8px; border-radius: var(--msp-radius-md); display: grid; gap: 6px">
+              <span>
+                Panel <span style="color: var(--msp-color-text-muted)">muted</span>{' '}
+                <span style="color: var(--msp-color-text-subtle)">subtle</span>
+              </span>
+              <div style="background: var(--msp-color-well); padding: 6px 8px; border-radius: var(--msp-radius-md); display: flex; justify-content: space-between">
+                <span style="background: var(--msp-color-control); padding: 0 8px; border-radius: var(--msp-radius-md)">
+                  Field
+                </span>
+                <span style="color: var(--msp-color-accent); font-weight: 600">Apply</span>
+              </div>
             </div>
           </div>
         ))}
@@ -99,7 +149,7 @@ export const Themes: StoryObj = {
     )),
 };
 
-/** Type scale and spacing. */
+/** Type scale (12 px in panels; 14 px for what is typed and for panel titles) and the spacing steps. */
 export const TypeAndSpace: StoryObj = {
   render: () =>
     story(() => (
@@ -117,7 +167,7 @@ export const TypeAndSpace: StoryObj = {
                 style={{
                   width: `var(--msp-space-${n})`,
                   height: `var(--msp-space-${n})`,
-                  background: 'var(--msp-color-accent)',
+                  background: 'var(--msp-color-text-muted)',
                 }}
               />
               {n}

@@ -9,6 +9,21 @@ import type { Preview } from '@storybook/web-components-vite';
 const preview: Preview = {
   parameters: {
     layout: 'fullscreen',
+    options: {
+      // Overview first, then the app from the whole to its parts, the runtime last.
+      storySort: {
+        order: [
+          'Overview',
+          ['Introduction', 'Foundations'],
+          'Shell',
+          'Views',
+          ['Home tab', 'Structure tab'],
+          'Canvas',
+          'Components',
+          'Internals',
+        ],
+      },
+    },
   },
   initialGlobals: {
     theme: 'light',
