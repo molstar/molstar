@@ -25,6 +25,34 @@ import '@molstar/query-language/transpilers/pymol';
 describe('MVS MolQL selectors', () => {
   const molql = MS.struct.generator.atomGroups({});
 
+  it('ignores nested extra fields during both name validation and executable compilation', () => {
+    // The first extra passes language validation but fails executable compilation; the second has an unknown name.
+    const extras = [MS.core.ctrl.fn([1]), { head: { name: 'custom.future-query' } }];
+    for (const expression of extras) {
+      const builder = createMVSBuilder();
+      const structure = builder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure();
+      const selector = { label_asym_id: 'A', extension_data: { molql: expression } };
+      structure.component({ selector });
+      structure.component({ selector: [selector] });
+      structure.primitives().label({
+        position: { expressions: [selector], extension_data: { molql: expression } } as any,
+        text: 'label',
+      });
+      expect(molQLValidationIssues(builder.getState().root)).toBeUndefined();
+    }
+  });
+
+  it('still compiles actual selectors and primitive positions', () => {
+    const builder = createMVSBuilder();
+    const structure = builder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure();
+    const unsupported = MS.core.ctrl.fn([1]);
+    structure.component({ selector: { molql: unsupported } });
+    structure.primitives().label({ position: { molql: unsupported, structure_ref: 's' }, text: 'label' });
+    const issues = molQLValidationIssues(builder.getState().root)?.join('\n');
+    expect(issues).toContain('.params.selector.molql: Invalid MolQL expression');
+    expect(issues).toContain('.params.position.molql: Invalid MolQL expression');
+  });
+
   it('validates the standalone MolQL wrapper structure', () => {
     const malformed = { head: { name: 'not-implemented' } };
     expect(MolQLExpressionT.decode({ molql })._tag).toEqual('Right');

@@ -586,7 +586,9 @@ compile executable queries or evaluate constants. Existing supported syntax and 
 preserved; this does not promise full parity with the original PyMOL, VMD, or Jmol engines.
 
 MolScript input must contain exactly one expression. Callable and argument names are also checked against the alias and
-macro tables before expansion, so unused macro arguments cannot hide invalid syntax or misspelled names.
+macro tables before expansion, so unused macro arguments cannot hide invalid syntax or misspelled names. The MolScript
+parser rejects repeated argument keys, including collisions between positional values and numeric named arguments,
+before any values can be overwritten.
 
 The text-only `Script` API lives at `@molstar/query-language/script`. Its `toExpression` dispatch preserves explicit
 registration: import `@molstar/query-language/transpilers/<lang>` or `transpilers/all` to enable non-MolScript languages
@@ -614,11 +616,12 @@ runtime's global table.
 
 Fixed MVS schema codecs enforce expression syntax and the existing application-root rule. `MVSData.validationIssues` and
 `isValid` additionally validate names throughout scene and animation trees, multiple snapshots, and primitive positions
-with `structure_ref`. Only parameters declared by the node schema are inspected; extra parameters remain ignored unless
-`noExtra` is enabled. Supply custom definitions through `options.getMolQLSymbol`. The default CLI knows only the
-standard vocabulary and reports custom callable names as unknown. CLI failures include the file and expression path,
-return a nonzero status, and do not prevent later files from being checked. MVS runtime validation uses registered
-runtime symbol definitions, then retains executable compilation as the execution-support check.
+with `structure_ref`. MolQL traversal follows declared field types, so ignored nested fields in legacy selectors and
+primitive positions are not interpreted as queries. Extra node parameters remain ignored unless `noExtra` is enabled.
+Supply custom definitions through `options.getMolQLSymbol`. The default CLI knows only the standard vocabulary and
+reports custom callable names as unknown. CLI failures include the file and expression path, return a nonzero status,
+and do not prevent later files from being checked. MVS runtime validation uses registered runtime symbol definitions,
+then retains executable compilation as the execution-support check.
 
 #### MVS authoring API and checks
 

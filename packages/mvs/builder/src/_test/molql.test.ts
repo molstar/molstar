@@ -81,6 +81,22 @@ describe('Standalone MVS MolQL authoring and validation', () => {
     expect(MVSData.validationIssues(data)?.join('\n')).toContain('.position.molql.head.name');
   });
 
+  it.each([false, true])('ignores nested extra selector and primitive fields with noExtra=%s', (noExtra) => {
+    const extra = { molql: { head: { name: 'custom.future-query' } } };
+    const builder = MVSData.createBuilder();
+    const structure = builder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure();
+    const selector = { label_asym_id: 'A', extension_data: extra };
+    structure.component({ selector });
+    structure.component({ selector: [selector] });
+    structure.primitives().label({
+      position: { expressions: [selector], structure_ref: 's', extension_data: extra } as any,
+      text: 'label',
+    });
+    const data = MVSData.stateToStates(builder.getState());
+    expect(MVSData.validationIssues(data, { noExtra })).toBeUndefined();
+    expect(MVSData.isValid(data, { noExtra })).toBe(true);
+  });
+
   it('checks expression wrappers nested in animation parameters', () => {
     const tree = { kind: 'animation', params: { end: [{ molql: { head: { name: 'unknown' } } }] } };
     expect(molQLValidationIssues(tree, {}, 'animation')?.join('\n')).toContain(

@@ -58,6 +58,10 @@ assert.throws(
   () => compileScript('mol-script', '(sel.atom.all) (not-a-function)'),
   /Expected exactly one MolScript expression/,
 );
+assert.throws(
+  () => compileScript('mol-script', '(sel.atom.atom-groups :atom-test (not-a-function) :atom-test true)'),
+  /Duplicate argument 'atom-test'/,
+);
 const cli = fileURLToPath(new URL('../bin/mvs-validate.mjs', import.meta.resolve('@molstar/mvs-builder')));
 const valid = spawnSync(process.execPath, [cli, ...files], { encoding: 'utf8' });
 assert.equal(valid.status, 0, valid.stderr);
@@ -72,6 +76,16 @@ assert.equal(allowedExtra.status, 0, allowedExtra.stderr);
 const rejectedExtra = spawnSync(process.execPath, [cli, '--no-extra', 'extra.mvsj'], { encoding: 'utf8' });
 assert.equal(rejectedExtra.status, 1, rejectedExtra.stderr);
 assert.match(rejectedExtra.stderr, /Unknown parameter/);
+const nestedBuilder = MVSData.createBuilder();
+const nestedStructure = nestedBuilder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure();
+const nestedSelector = { label_asym_id: 'A', extension_data: extra.root.params.extension_data };
+nestedStructure.component({ selector: nestedSelector });
+nestedStructure.component({ selector: [nestedSelector] });
+nestedStructure.primitives().label({ position: { expressions: [nestedSelector] }, text: 'label' });
+assert(MVSData.isValid(nestedBuilder.getState(), { noExtra: true }));
+writeFileSync('nested-extra.mvsj', MVSData.toMVSJ(nestedBuilder.getState()));
+const nestedExtra = spawnSync(process.execPath, [cli, '--no-extra', 'nested-extra.mvsj'], { encoding: 'utf8' });
+assert.equal(nestedExtra.status, 0, nestedExtra.stderr);
 const invalid = [
   [
     'unknown.mvsj',

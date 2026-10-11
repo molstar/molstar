@@ -52,6 +52,21 @@ describe('Text-to-MolQL compilation without runtime registration', () => {
     );
   });
 
+  it.each([
+    '(sel.atom.atom-groups :atom-test (not-a-function) :atom-test true)',
+    '(sel.atom.res :0 (not-a-function) :0 true)',
+    '(sel.atom.res (not-a-function) :0 true)',
+    '(sel.atom.res :0 (not-a-function) true)',
+    '(sel.atom.res :0 true :0 true)',
+    '(sel.atom.atom-groups :atom-test (= 1 1) :chain-test (sel.atom.res :0 false :0 true))',
+  ])('rejects duplicate named and positional arguments before losing their values: %s', (source) => {
+    expect(() => compileScript('mol-script', source)).toThrow(/Duplicate argument/);
+  });
+
+  it('allows distinct named and positional arguments', () => {
+    expect(compileScript('mol-script', '(= true :1 false)')).toEqual(compileScript('mol-script', '(= true false)'));
+  });
+
   for (const [language, examples] of [
     ['pymol', pymol],
     ['vmd', vmd],

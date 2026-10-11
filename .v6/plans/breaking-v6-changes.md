@@ -619,6 +619,9 @@ The duplicated `@molstar/mvs-builder/expression` module is removed. Import the c
 `MolScriptBuilder` and `compileScript(language, source)` for MolScript, PyMOL, VMD, and Jmol. This facade requires no
 registration imports and does not modify the plugin's language registry.
 
+The MolScript parser now rejects repeated argument keys instead of keeping the last value. This includes collisions
+between positional arguments and numeric named arguments such as `:0`.
+
 `MVSData.validationIssues` and `isValid`, and the `mvs-validate` CLI, now reject malformed expressions, unknown callable
 symbols, and undeclared argument names. The schema codecs remain vocabulary-independent. Standalone callers validating
 custom symbols must provide `getMolQLSymbol(name)`, including fallback to the standard `SymbolMap` where needed. Runtime
