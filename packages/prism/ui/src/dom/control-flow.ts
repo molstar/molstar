@@ -252,10 +252,11 @@ export function For<T>(props: {
     runInScope(scope, () => insert(content, props.children(item, index?.asReadonly as ReadonlyState<number>), null));
     let first: Node;
     let last: Node;
-    if (content.childNodes.length === 1) {
+    if (content.childNodes.length === 1 && content.firstChild!.nodeType === Node.ELEMENT_NODE) {
       first = last = content.firstChild!;
     } else {
-      // Several (or no) nodes: anchors keep the entry's place and extent.
+      // Several (or no) nodes, or one that is not an element (a region's placeholder Text, which the region replaces
+      // when its content arrives): anchors keep the entry's place and extent.
       first = document.createComment('');
       last = document.createComment('');
       content.insertBefore(first, content.firstChild);

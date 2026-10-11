@@ -279,20 +279,24 @@ function dispatchToTarget(e: Event) {
 function dispatchDelegated(e: Event) {
   if (!e.bubbles) return;
   const root = e.currentTarget as Node;
+  // The path as it was when the event was dispatched: a handler that removes its own subtree (closing the Show it sits
+  // in), or a detached inner root, does not cut the walk short, and the walk crosses shadow roots.
+  const path = e.composedPath();
+  const stop = path.indexOf(root);
+  if (stop < 0) return;
   const from = (e as any)[Walked] as Node | undefined;
-  let node: Node | null = from ? from.parentNode : (e.target as Node);
+  // An inner root handled the path up to itself: continue above it.
+  const at = from ? path.indexOf(from) : -1;
   let overridden = false;
   try {
-    while (node) {
+    for (let i = from ? (at < 0 ? stop + 1 : at + 1) : 0; i <= stop; i++) {
+      const node = path[i] as Node;
       const handler = (node as any)[Handlers]?.[e.type];
-      if (handler) {
-        Object.defineProperty(e, 'currentTarget', { configurable: true, value: node });
-        overridden = true;
-        handler.call(node, e);
-        if (e.cancelBubble) break;
-      }
-      if (node === root) break;
-      node = node.parentNode;
+      if (!handler) continue;
+      Object.defineProperty(e, 'currentTarget', { configurable: true, value: node });
+      overridden = true;
+      handler.call(node, e);
+      if (e.cancelBubble) break;
     }
   } finally {
     (e as any)[Walked] = root;

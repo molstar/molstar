@@ -12,6 +12,7 @@
 import { map, Subject } from 'rxjs';
 import { observableState } from '../../reactive/observable-state.js';
 import type { Child } from '../jsx-types.js';
+import { Show } from '../control-flow.js';
 import { render } from '../render.js';
 import { createRoot, getScope, onCleanup } from '../scope.js';
 
@@ -234,6 +235,57 @@ describe('delegated events', () => {
     expect(seen).toEqual(['loose']);
     button.remove();
     outer.remove();
+  });
+
+  it('keeps walking the path as dispatched when a handler removes its own subtree or an inner root goes', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const open = observableState(true);
+    const seen: string[] = [];
+    render(
+      () => (
+        <div class="outer" onClick={() => seen.push('outer')}>
+          <Show when={open}>
+            {() => (
+              <button
+                type="button"
+                class="closer"
+                onClick={() => {
+                  seen.push('closer');
+                  // Closing the Show removes this button (and its parent chain) mid-dispatch.
+                  open.set(false);
+                }}
+              />
+            )}
+          </Show>
+        </div>
+      ),
+      container,
+    );
+    (container.querySelector('.closer') as HTMLElement).click();
+    expect(seen).toEqual(['closer', 'outer']);
+
+    // An inner root removed by its own handler: the outer root still continues above it.
+    seen.length = 0;
+    const host = container.querySelector('.outer') as HTMLElement;
+    const inner = document.createElement('section');
+    host.append(inner);
+    render(
+      () => (
+        <button
+          type="button"
+          class="leaver"
+          onClick={() => {
+            seen.push('leaver');
+            inner.remove();
+          }}
+        />
+      ),
+      inner,
+    );
+    (inner.querySelector('.leaver') as HTMLElement).click();
+    expect(seen).toEqual(['leaver', 'outer']);
+    container.remove();
   });
 
   it('give an event that does not bubble to its target only', () => {

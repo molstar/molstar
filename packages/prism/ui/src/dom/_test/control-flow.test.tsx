@@ -139,6 +139,29 @@ describe('For', () => {
   });
 });
 
+describe('For, rows that are regions', () => {
+  it('moves and removes a row whose only node is a region (a Show starting empty)', () => {
+    const shown = observableState(false);
+    const items = observableState<readonly number[]>([1, 2, 3]);
+    const { container, html } = mount(() => (
+      <div>
+        <For each={items}>{(n) => <Show when={shown}>{() => <b>{n}</b>}</Show>}</For>
+      </div>
+    ));
+    expect(html()).toBe('<div></div>');
+    // The region replaces its placeholder with content: the row must follow its real nodes.
+    shown.set(true);
+    expect(html()).toBe('<div><b>1</b><b>2</b><b>3</b></div>');
+    items.set([3, 1, 2]);
+    expect(html()).toBe('<div><b>3</b><b>1</b><b>2</b></div>');
+    items.set([3, 2]);
+    expect(html()).toBe('<div><b>3</b><b>2</b></div>');
+    items.set([]);
+    expect(html()).toBe('<div></div>');
+    expect(container.querySelectorAll('b').length).toBe(0);
+  });
+});
+
 describe('For, reordering', () => {
   it('ends in the list order after shuffles, inserts and removals, keeping the nodes of entries that stay', () => {
     // A fixed pseudo-random sequence.
