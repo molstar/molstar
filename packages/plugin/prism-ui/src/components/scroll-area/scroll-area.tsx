@@ -3,6 +3,8 @@
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
  * @author David Sehnal <david.sehnal@gmail.com>
  *
  * Adapted from Base UI's ScrollArea (https://github.com/mui/base-ui, MIT License, Copyright (c) 2019 Material-UI SAS):
