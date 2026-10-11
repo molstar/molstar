@@ -317,5 +317,5 @@ export class MultiSampleHelper {
     return this.sampleIndex < 0;
   }
 
-  constructor(private multiSamplePass: MultiSamplePass) { }
+  constructor(private multiSamplePass: MultiSamplePass) {}
 }

@@ -45,7 +45,7 @@ function createVisualsMap<P extends StructureParams>() {
   );
 }
 
-export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
+export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> {}
 
 export function UnitsRepresentation<P extends StructureParams>(
   label: string,

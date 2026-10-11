@@ -13,11 +13,7 @@ import { Mat4, Vec3, Vec4, Vec2 } from '@molstar/core/math/linear-algebra';
 import { type GraphicsRenderable, type Frame, createFrame } from './renderable.js';
 import { Color } from '@molstar/core/util/color';
 import { ValueCell, deepEqual } from '@molstar/core/util';
-import {
-  GlobalUniformSchema,
-  type GlobalUniformValues,
-  MaxLightCount,
-} from './renderable/schema.js';
+import { GlobalUniformSchema, type GlobalUniformValues, MaxLightCount } from './renderable/schema.js';
 import type { GraphicsRenderVariant } from './render-item.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { degToRad } from '@molstar/core/math/misc';
@@ -497,7 +493,12 @@ namespace Renderer {
       r.render(variant, globals);
     };
 
-    const renderObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant, flag: Flag, passState: RenderState) => {
+    const renderObject = (
+      r: GraphicsRenderable,
+      variant: GraphicsRenderVariant,
+      flag: Flag,
+      passState: RenderState,
+    ) => {
       if (isVisible(r, variant)) drawObject(r, variant, flag, passState);
     };
 
@@ -1010,7 +1011,6 @@ namespace Renderer {
       depthTexture: Texture,
       dpoitTextures: { depth: Texture; frontColor: Texture; backColor: Texture },
     ) => {
-
       arrayMapUpsert(sharedTexturesList, 'tDpoitDepth', dpoitTextures.depth);
       arrayMapUpsert(sharedTexturesList, 'tDpoitFrontColor', dpoitTextures.frontColor);
       arrayMapUpsert(sharedTexturesList, 'tDpoitBackColor', dpoitTextures.backColor);

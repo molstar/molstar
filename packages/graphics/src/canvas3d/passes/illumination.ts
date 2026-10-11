@@ -575,10 +575,10 @@ export class IlluminationPass {
       props.multiSample.mode === 'on'
         ? props.illumination.denoiseThreshold[0]
         : lerp(
-          props.illumination.denoiseThreshold[1],
-          props.illumination.denoiseThreshold[0],
-          clamp(this.iteration / (this.getMaxIterations(props.illumination) / 2), 0, 1),
-        );
+            props.illumination.denoiseThreshold[1],
+            props.illumination.denoiseThreshold[0],
+            clamp(this.iteration / (this.getMaxIterations(props.illumination) / 2), 0, 1),
+          );
     ValueCell.updateIfChanged(this.composeRenderable.values.uDenoiseThreshold, denoiseThreshold);
     if (needsUpdateCompose) this.composeRenderable.update();
     this.graphics.setRenderState(compositeBackground ? RenderState.Premultiplied : RenderState.Default);

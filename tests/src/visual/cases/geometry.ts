@@ -81,7 +81,8 @@ export const GeometryCases: VisualTestCase[] = [
   },
   {
     id: 'geometry/spheres/lod-levels',
-    description: 'Per-level `uLod` is set via multi-draw data; everything is in the far level: every 8th sphere at 2x size.',
+    description:
+      'Per-level `uLod` is set via multi-draw data; everything is in the far level: every 8th sphere at 2x size.',
     requires: Impostor,
     view: ObliqueView,
     scene: async () => [
@@ -175,7 +176,8 @@ export const GeometryCases: VisualTestCase[] = [
   },
   {
     id: 'geometry/mesh/grid3d-compute',
-    description: 'Volume computed with `createGrid3dComputeRenderable` (loop bound uniform, define on WebGL1), CPU isosurface.',
+    description:
+      'Volume computed with `createGrid3dComputeRenderable` (loop bound uniform, define on WebGL1), CPU isosurface.',
     view: ObliqueView,
     scene: async ({ webgl }) => [
       await volumeRepr(webgl, IsosurfaceRepresentationProvider, await gpuBlobVolume(webgl, 32, false), {

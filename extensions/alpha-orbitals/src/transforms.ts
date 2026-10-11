@@ -31,7 +31,7 @@ export class BasisAndOrbitals extends PluginStateObject.Create<{
   basis: Basis;
   order: SphericalBasisOrder;
   orbitals: AlphaOrbital[];
-}>({ name: 'Basis', typeClass: 'Object' }) { }
+}>({ name: 'Basis', typeClass: 'Object' }) {}
 
 export const StaticBasisAndOrbitals = PluginStateTransform.BuiltIn({
   name: 'static-basis-and-orbitals',

@@ -7,7 +7,14 @@
 import { WebGPUUnsupportedError } from '@molstar/graphics/gl/webgpu/errors';
 import { type BackendInstance, type BackendProfile } from './backend.js';
 import { type CapabilityKey, type CapabilityReport, getMissingCapabilities } from './capabilities.js';
-import { type CompareMetrics, DefaultTolerance, type Tolerance, compareImages, isUniform, isWithinTolerance } from './compare.js';
+import {
+  type CompareMetrics,
+  DefaultTolerance,
+  type Tolerance,
+  compareImages,
+  isUniform,
+  isWithinTolerance,
+} from './compare.js';
 import { renderTest, type RenderOutput } from './harness.js';
 import { loadPng } from './image-io.js';
 import { findKnownDifference, type KnownDifference } from './known-differences.js';
@@ -96,7 +103,7 @@ export class VisualTestRunner {
       this.summary.reports.target = this.target?.report;
       this.summary.reports.reference = this.reference?.report;
     }
-    return { target: this.target, reference: this.reference, dispose: () => { } };
+    return { target: this.target, reference: this.reference, dispose: () => {} };
   }
 
   private async checkSnapshot(test: VisualTestCase, reference: RenderOutput | undefined): Promise<SnapshotResult> {

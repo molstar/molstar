@@ -99,13 +99,18 @@ export class DpoitPass {
   }
 
   bind() {
-
     // initialize
     this.passCount = 0;
 
-    this.graphics.beginRenderPass(this.depthFramebuffers[0], { label: 'dpoit clear', clear: { color: [this.DEPTH_CLEAR_VALUE, this.DEPTH_CLEAR_VALUE, 0, 0] } });
+    this.graphics.beginRenderPass(this.depthFramebuffers[0], {
+      label: 'dpoit clear',
+      clear: { color: [this.DEPTH_CLEAR_VALUE, this.DEPTH_CLEAR_VALUE, 0, 0] },
+    });
 
-    this.graphics.beginRenderPass(this.depthFramebuffers[1], { label: 'dpoit clear', clear: { color: [-this.MIN_DEPTH, this.MAX_DEPTH, 0, 0] } });
+    this.graphics.beginRenderPass(this.depthFramebuffers[1], {
+      label: 'dpoit clear',
+      clear: { color: [-this.MIN_DEPTH, this.MAX_DEPTH, 0, 0] },
+    });
 
     this.graphics.beginRenderPass(this.colorFramebuffers[0], { label: 'dpoit clear', clear: { color: [0, 0, 0, 0] } });
 
@@ -121,15 +126,20 @@ export class DpoitPass {
   }
 
   bindDualDepthPeeling() {
-
     this.readId = this.passCount % 2;
     this.writeId = 1 - this.readId; // ping-pong: 0 or 1
 
     this.passCount += 1; // increment for next pass
 
-    this.graphics.beginRenderPass(this.depthFramebuffers[this.writeId], { label: 'dpoit clear', clear: { color: [this.DEPTH_CLEAR_VALUE, this.DEPTH_CLEAR_VALUE, 0, 0] } });
+    this.graphics.beginRenderPass(this.depthFramebuffers[this.writeId], {
+      label: 'dpoit clear',
+      clear: { color: [this.DEPTH_CLEAR_VALUE, this.DEPTH_CLEAR_VALUE, 0, 0] },
+    });
 
-    this.graphics.beginRenderPass(this.colorFramebuffers[this.writeId], { label: 'dpoit clear', clear: { color: [0, 0, 0, 0] } });
+    this.graphics.beginRenderPass(this.colorFramebuffers[this.writeId], {
+      label: 'dpoit clear',
+      clear: { color: [0, 0, 0, 0] },
+    });
 
     this.graphics.beginRenderPass(this.depthFramebuffers[this.writeId], { label: 'dpoit transparent' });
 
@@ -245,23 +255,23 @@ export class DpoitPass {
 
       this.colorFrontTextures = halfFloatRenderTarget
         ? [
-          resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
-          resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
-        ]
+            resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
+            resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
+          ]
         : [
-          resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-          resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-        ];
+            resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+            resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+          ];
 
       this.colorBackTextures = halfFloatRenderTarget
         ? [
-          resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
-          resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
-        ]
+            resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
+            resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
+          ]
         : [
-          resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-          resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-        ];
+            resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+            resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+          ];
     } else {
       // webgl1 requires consistent bit plane counts
 

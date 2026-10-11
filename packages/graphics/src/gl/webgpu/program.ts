@@ -120,7 +120,11 @@ export function getVertexBufferSlots(
   return {
     slots: [
       ...separate.map((a) => ({ key: a.name, names: [a.name], itemSizes: [a.itemSize] })),
-      { key: merged.map((a) => a.name).join('+'), names: merged.map((a) => a.name), itemSizes: merged.map((a) => a.itemSize) },
+      {
+        key: merged.map((a) => a.name).join('+'),
+        names: merged.map((a) => a.name),
+        itemSizes: merged.map((a) => a.itemSize),
+      },
     ],
     layouts: [...separate.map(getVertexBufferLayout), { arrayStride: offset, stepMode: 'vertex', attributes: attrs }],
   };

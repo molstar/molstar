@@ -118,9 +118,9 @@ export function createNullFramebuffer(): Framebuffer {
   return {
     id: getNextFramebufferId(),
 
-    bind: () => { },
-    setDrawBuffers: () => { },
-    reset: () => { },
-    destroy: () => { },
+    bind: () => {},
+    setDrawBuffers: () => {},
+    reset: () => {},
+    destroy: () => {},
   };
 }

@@ -30,7 +30,13 @@ function createFakeDevice(timestamps: Map<number, bigint>, features = ['timestam
     resolveQuerySet: (_set: unknown, first: number, count: number) => {
       for (let i = first; i < first + count; ++i) resolved.push(i);
     },
-    copyBufferToBuffer: (_src: unknown, _srcOffset: number, dst: { data: ArrayBuffer }, _dstOffset: number, size: number) => {
+    copyBufferToBuffer: (
+      _src: unknown,
+      _srcOffset: number,
+      dst: { data: ArrayBuffer },
+      _dstOffset: number,
+      size: number,
+    ) => {
       const view = new BigUint64Array(dst.data, 0, size / 8);
       for (let i = 0; i < view.length; ++i) view[i] = timestamps.get(i) ?? 0n;
     },
@@ -88,7 +94,12 @@ describe('webgpu timer source', () => {
   });
 
   it('reports invalid timestamps', async () => {
-    const { device, encoder } = createFakeDevice(new Map([[0, 100n], [1, 90n]]));
+    const { device, encoder } = createFakeDevice(
+      new Map([
+        [0, 100n],
+        [1, 90n],
+      ]),
+    );
     const source = createWebGPUTimerSource(device)!;
     const a = source.begin();
     source.getTimestampWrites();

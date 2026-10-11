@@ -208,13 +208,13 @@ function getShaderPrecisionFormat(
   const glShader = shader === 'vertex' ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER;
   const glPrecisionType =
     gl[
-    `${precision.toUpperCase()}_${type.toUpperCase()}` as
-    | 'LOW_FLOAT'
-    | 'MEDIUM_FLOAT'
-    | 'HIGH_FLOAT'
-    | 'LOW_INT'
-    | 'MEDIUM_INT'
-    | 'HIGH_INT'
+      `${precision.toUpperCase()}_${type.toUpperCase()}` as
+        | 'LOW_FLOAT'
+        | 'MEDIUM_FLOAT'
+        | 'HIGH_FLOAT'
+        | 'LOW_INT'
+        | 'MEDIUM_INT'
+        | 'HIGH_INT'
     ];
   return gl.getShaderPrecisionFormat(glShader, glPrecisionType);
 }
@@ -491,9 +491,9 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         bind: () => {
           bindDrawingBuffer(gl, xr.layer);
         },
-        setSize: () => { },
-        reset: () => { },
-        destroy: () => { },
+        setSize: () => {},
+        reset: () => {},
+        destroy: () => {},
       };
     },
     bindDrawingBuffer: () => bindDrawingBuffer(gl, xr.layer),

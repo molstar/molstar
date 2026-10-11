@@ -246,7 +246,7 @@ export function SegmentMeshVisual(materialId: number): VolumeVisual<SegmentMeshP
         currentVolume: Volume,
         newProps: PD.Values<SegmentMeshParams>,
         currentProps: PD.Values<SegmentMeshParams>,
-      ) => { },
+      ) => {},
       geometryUtils: Mesh.Utils,
       mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, graphics?: GraphicsContext) => {
         return useGpu(volumeKey.volume, props, graphics);
@@ -386,7 +386,7 @@ export function SegmentTextureMeshVisual(materialId: number): VolumeVisual<Segme
         currentVolume: Volume,
         newProps: PD.Values<SegmentMeshParams>,
         currentProps: PD.Values<SegmentMeshParams>,
-      ) => { },
+      ) => {},
       geometryUtils: TextureMesh.Utils,
       mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, graphics?: GraphicsContext) => {
         return !useGpu(volumeKey.volume, props, graphics);

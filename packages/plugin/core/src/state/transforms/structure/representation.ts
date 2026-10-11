@@ -48,21 +48,21 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
       return {
         type: registry.default
           ? PD.Mapped<any>(registry.default.name, registry.types, (name) =>
-            PD.Group<any>(registry.get(name).getParams(themeCtx, Structure.Empty)),
-          )
+              PD.Group<any>(registry.get(name).getParams(themeCtx, Structure.Empty)),
+            )
           : emptyMappedParams(),
         colorTheme: hasColor
           ? PD.Mapped<any>(
-            type.defaultColorTheme.name,
-            themeCtx.colorThemeRegistry.types,
-            (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ structure: Structure.Empty })),
-            colorThemeInfo,
-          )
+              type.defaultColorTheme.name,
+              themeCtx.colorThemeRegistry.types,
+              (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({ structure: Structure.Empty })),
+              colorThemeInfo,
+            )
           : emptyMappedParams(),
         sizeTheme: hasSize
           ? PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.types, (name) =>
-            PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ structure: Structure.Empty })),
-          )
+              PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({ structure: Structure.Empty })),
+            )
           : emptyMappedParams(),
       };
     }
@@ -80,21 +80,21 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     return {
       type: registry.default
         ? PD.Mapped<any>(registry.default.name, registry.getApplicableTypes(a.data), (name) =>
-          PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
-        )
+            PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
+          )
         : emptyMappedParams(),
       colorTheme: hasColor
         ? PD.Mapped<any>(
-          type.defaultColorTheme.name,
-          themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
-          (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx)),
-          colorThemeInfo,
-        )
+            type.defaultColorTheme.name,
+            themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
+            (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx)),
+            colorThemeInfo,
+          )
         : emptyMappedParams(),
       sizeTheme: hasSize
         ? PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.getApplicableTypes(dataCtx), (name) =>
-          PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx)),
-        )
+            PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx)),
+          )
         : emptyMappedParams(),
     };
   },

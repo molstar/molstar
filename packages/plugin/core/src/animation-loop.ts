@@ -87,5 +87,5 @@ export class PluginAnimationLoop {
     }
   }
 
-  constructor(private plugin: PluginContext) { }
+  constructor(private plugin: PluginContext) {}
 }

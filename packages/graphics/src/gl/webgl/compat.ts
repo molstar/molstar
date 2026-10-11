@@ -89,7 +89,7 @@ export function getStandardDerivatives(gl: GLRenderingContext): COMPAT_standard_
 /**
  * See https://registry.khronos.org/webgl/extensions/OES_element_index_uint/
  */
-export interface COMPAT_element_index_uint { }
+export interface COMPAT_element_index_uint {}
 
 export function getElementIndexUint(gl: GLRenderingContext): COMPAT_element_index_uint | null {
   return isWebGL2(gl) ? {} : gl.getExtension('OES_element_index_uint');
@@ -131,7 +131,7 @@ export function getVertexArrayObject(gl: GLRenderingContext): COMPAT_vertex_arra
 /**
  * See https://registry.khronos.org/webgl/extensions/OES_texture_float/
  */
-export interface COMPAT_texture_float { }
+export interface COMPAT_texture_float {}
 
 export function getTextureFloat(gl: GLRenderingContext): COMPAT_texture_float | null {
   return isWebGL2(gl) ? {} : gl.getExtension('OES_texture_float');
@@ -140,7 +140,7 @@ export function getTextureFloat(gl: GLRenderingContext): COMPAT_texture_float | 
 /**
  * See https://registry.khronos.org/webgl/extensions/OES_texture_float_linear/
  */
-export interface COMPAT_texture_float_linear { }
+export interface COMPAT_texture_float_linear {}
 
 export function getTextureFloatLinear(gl: GLRenderingContext): COMPAT_texture_float_linear | null {
   return gl.getExtension('OES_texture_float_linear');
@@ -166,7 +166,7 @@ export function getTextureHalfFloat(gl: GLRenderingContext): COMPAT_texture_half
 /**
  * See https://registry.khronos.org/webgl/extensions/OES_texture_half_float_linear/
  */
-export interface COMPAT_texture_half_float_linear { }
+export interface COMPAT_texture_half_float_linear {}
 
 export function getTextureHalfFloatLinear(gl: GLRenderingContext): COMPAT_texture_half_float_linear | null {
   return gl.getExtension('OES_texture_half_float_linear');
@@ -193,7 +193,7 @@ export function getBlendMinMax(gl: GLRenderingContext): COMPAT_blend_minmax | nu
 /**
  * See https://registry.khronos.org/webgl/extensions/EXT_frag_depth/
  */
-export interface COMPAT_frag_depth { }
+export interface COMPAT_frag_depth {}
 
 export function getFragDepth(gl: GLRenderingContext): COMPAT_frag_depth | null {
   return isWebGL2(gl) ? {} : gl.getExtension('EXT_frag_depth');
@@ -389,7 +389,7 @@ export function getDrawBuffersIndexed(gl: GLRenderingContext): COMPAT_draw_buffe
 /**
  * See https://registry.khronos.org/webgl/extensions/EXT_shader_texture_lod/
  */
-export interface COMPAT_shader_texture_lod { }
+export interface COMPAT_shader_texture_lod {}
 
 export function getShaderTextureLod(gl: GLRenderingContext): COMPAT_shader_texture_lod | null {
   return isWebGL2(gl) ? {} : gl.getExtension('EXT_shader_texture_lod');
@@ -714,7 +714,7 @@ export function getParallelShaderCompile(gl: GLRenderingContext): COMPAT_paralle
 /**
  * See https://registry.khronos.org/webgl/extensions/OES_fbo_render_mipmap/
  */
-export interface COMPAT_fboRenderMipmap { }
+export interface COMPAT_fboRenderMipmap {}
 
 export function getFboRenderMipmap(gl: GLRenderingContext): COMPAT_fboRenderMipmap | null {
   return isWebGL2(gl) ? {} : gl.getExtension('OES_fbo_render_mipmap');
@@ -789,7 +789,7 @@ export function getClipCullDistance(gl: GLRenderingContext): COMPAT_clip_cull_di
 /**
  * See https://registry.khronos.org/webgl/extensions/EXT_conservative_depth/
  */
-export interface COMPAT_conservative_depth { }
+export interface COMPAT_conservative_depth {}
 
 export function getConservativeDepth(gl: GLRenderingContext): COMPAT_conservative_depth | null {
   if (isWebGL2(gl)) {
@@ -864,7 +864,7 @@ export function getClipControl(gl: GLRenderingContext): COMPAT_clip_control | nu
 /**
  * See https://registry.khronos.org/webgl/extensions/EXT_render_snorm/
  */
-export interface COMPAT_render_snorm { }
+export interface COMPAT_render_snorm {}
 
 export function getRenderSnorm(gl: GLRenderingContext): COMPAT_render_snorm | null {
   if (isWebGL2(gl)) {
@@ -879,7 +879,7 @@ export function getRenderSnorm(gl: GLRenderingContext): COMPAT_render_snorm | nu
 /**
  * See https://registry.khronos.org/webgl/extensions/WEBGL_render_shared_exponent/
  */
-export interface COMPAT_render_shared_exponent { }
+export interface COMPAT_render_shared_exponent {}
 
 export function getRenderSharedExponent(gl: GLRenderingContext): COMPAT_render_shared_exponent | null {
   if (isWebGL2(gl)) {

@@ -379,20 +379,20 @@ export function createTargetGeometry(
     case 'structure':
       return (props as StructureTargetProps).type === 'blob-surface'
         ? createBlobSurfaceTargetGeometry(
-          ctx,
-          target.structure,
-          theme,
-          props as BlobSurfaceTargetProps,
-          existing?.kind === 'mesh' ? (existing as Mesh) : undefined,
-        )
+            ctx,
+            target.structure,
+            theme,
+            props as BlobSurfaceTargetProps,
+            existing?.kind === 'mesh' ? (existing as Mesh) : undefined,
+          )
         : createStructureTargetGeometry(
-          ctx,
-          target.structure,
-          theme,
-          props as StructureTargetProps,
-          graphics,
-          spheresOrMesh,
-        );
+            ctx,
+            target.structure,
+            theme,
+            props as StructureTargetProps,
+            graphics,
+            spheresOrMesh,
+          );
     case 'shape':
       return createShapeTargetGeometry(target.shape, existing);
     case 'volume':
@@ -411,10 +411,10 @@ export function targetGeometryPropsChanged(
       return (newProps as StructureTargetProps).type === 'blob-surface'
         ? blobSurfaceTargetGeometryPropsChanged(oldProps as BlobSurfaceTargetProps, newProps as BlobSurfaceTargetProps)
         : structureTargetGeometryPropsChanged(
-          oldProps as StructureTargetProps,
-          newProps as StructureTargetProps,
-          graphics,
-        );
+            oldProps as StructureTargetProps,
+            newProps as StructureTargetProps,
+            graphics,
+          );
     case 'shape':
       return false;
     case 'volume':
@@ -542,13 +542,13 @@ export function createTargetVisual(_targetId: number, materialId: number, graphi
     const transform =
       instanceCount > 0
         ? createTargetParticleTransform(
-          particles,
-          particleIndices,
-          geom.boundingSphere,
-          props.cellSize,
-          props.batchSize,
-          scaleByRadius,
-        )
+            particles,
+            particleIndices,
+            geom.boundingSphere,
+            props.cellSize,
+            props.batchSize,
+            scaleByRadius,
+          )
         : createIdentityTransform();
     locationIt = createLocIt(particles, particleIndices);
     const values = createValues(geom, transform, locationIt, theme, props as any);

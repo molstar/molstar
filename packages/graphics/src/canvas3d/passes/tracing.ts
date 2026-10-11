@@ -175,7 +175,10 @@ export class TracingPass {
     //
 
     if (props.thicknessMode === 'auto') {
-      this.graphics.beginRenderPass(this.thicknessTarget, { label: 'thickness', clear: { color: [0, 0, 0, 0], depth: 0 } });
+      this.graphics.beginRenderPass(this.thicknessTarget, {
+        label: 'thickness',
+        clear: { color: [0, 0, 0, 0], depth: 0 },
+      });
       renderer.renderDepthOpaqueBack(scene.primitives, camera);
     }
     if (isTimingMode) this.graphics.timer.groupEnd('TracePass.renderInput');

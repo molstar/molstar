@@ -6,13 +6,7 @@
  */
 
 import type { ValueCell } from '@molstar/core/util';
-import type {
-  AttributeItemSize,
-  ElementsKind,
-  AttributeValues,
-  AttributeKind,
-  DataTypeArrayType,
-} from '../buffer.js';
+import type { AttributeItemSize, ElementsKind, AttributeValues, AttributeKind, DataTypeArrayType } from '../buffer.js';
 import type { UniformKind, UniformValues, UniformKindValue } from '../uniform.js';
 import type { DefineKind, DefineValues } from '../shader-code.js';
 import type { Mat4 } from '@molstar/core/math/linear-algebra';
@@ -299,12 +293,12 @@ export function ValueSpec<K extends ValueKind>(kind: K): ValueSpec<K> {
 
 export type RenderableSchema = {
   readonly [k: string]:
-  | AttributeSpec<AttributeKind>
-  | UniformSpec<UniformKind>
-  | TextureSpec<TextureKind>
-  | ValueSpec<ValueKind>
-  | DefineSpec<DefineKind>
-  | ElementsSpec<ElementsKind>;
+    | AttributeSpec<AttributeKind>
+    | UniformSpec<UniformKind>
+    | TextureSpec<TextureKind>
+    | ValueSpec<ValueKind>
+    | DefineSpec<DefineKind>
+    | ElementsSpec<ElementsKind>;
 };
 export type RenderableValues = { readonly [k: string]: ValueCell<any> };
 

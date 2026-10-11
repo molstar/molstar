@@ -41,7 +41,12 @@ import {
 import { ValueCell } from '@molstar/core/util';
 import { createPendingWork } from '../pending-work.js';
 import { type VertexArray, createVertexArray } from './vertex-array.js';
-import { createUniformArena, createUniformBuffer, createUniformRingBuffer, type UniformArena } from './uniform-buffer.js';
+import {
+  createUniformArena,
+  createUniformBuffer,
+  createUniformRingBuffer,
+  type UniformArena,
+} from './uniform-buffer.js';
 import type { UniformBuffer } from '../uniform.js';
 import type { UniformBlockLayout } from '../uniform-layout.js';
 import type { AttributeLayout } from '../attribute-layout.js';
@@ -152,11 +157,7 @@ export function createResources(
         }
       });
       // generated declarations (incl. attribute locations) depend on the schema
-      const declarations = getShaderDeclarations(
-        props.schema,
-        isWebGL2(gl),
-        getDefineValuesLookup(props.defineValues),
-      );
+      const declarations = getShaderDeclarations(props.schema, isWebGL2(gl), getDefineValuesLookup(props.defineValues));
       array.push(hashString(declarations.vert), hashString(declarations.frag));
       return hashFnv32a(array).toString();
     },

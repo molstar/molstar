@@ -30,7 +30,7 @@ export class ShaderManager {
   constructor(
     private readonly graphics: GraphicsContext,
     private readonly scene: Scene,
-  ) { }
+  ) {}
 
   updateRequired(p: ShaderManagerProps) {
     this.required.length = 0;

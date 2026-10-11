@@ -24,7 +24,7 @@ import { Task } from '@molstar/core/task';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { ParticleVisual, ParticleParams } from './visual.js';
 
-export interface ParticleRepresentation<P extends PD.Params = PD.Params> extends Representation<ParticleList, P> { }
+export interface ParticleRepresentation<P extends PD.Params = PD.Params> extends Representation<ParticleList, P> {}
 
 export type ParticleRepresentationProvider<P extends PD.Params, Id extends string = string> = RepresentationProvider<
   ParticleList,

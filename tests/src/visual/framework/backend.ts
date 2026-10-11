@@ -10,12 +10,7 @@ import { AssetManager } from '@molstar/core/util/assets';
 import { isWebGPUContext } from '@molstar/graphics/gl/webgpu/context';
 import { createWebGPUBackend } from '@molstar/graphics/gl/webgpu/backend';
 import { WebGL2Backend, WebGLBackend } from '@molstar/graphics/gl/webgl/backend';
-import {
-  type Capabilities,
-  type CapabilityReport,
-  getCapabilities,
-  getWebGLCapabilityReport,
-} from './capabilities.js';
+import { type Capabilities, type CapabilityReport, getCapabilities, getWebGLCapabilityReport } from './capabilities.js';
 
 /** Unported features throw, so that their cases are skipped instead of rendering without them */
 const StrictWebGPUBackend = createWebGPUBackend({ strict: true });

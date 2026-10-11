@@ -98,7 +98,7 @@ export function PolymerBackboneSphereImpostorVisual(materialId: number): UnitsVi
         state: VisualUpdateState,
         newProps: PD.Values<PolymerBackboneSphereParams>,
         currentProps: PD.Values<PolymerBackboneSphereParams>,
-      ) => { },
+      ) => {},
       mustRecreate: (
         structureGroup: StructureGroup,
         props: PD.Values<PolymerBackboneSphereParams>,

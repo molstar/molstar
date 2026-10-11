@@ -311,7 +311,9 @@ export class DrawPass {
 
     // render transparent volumes
     if (scene.volumes.renderables.length > 0) {
-      this.graphics.beginRenderPass(isPostprocessingEnabled ? this.postprocessing.target : this.colorTarget, { label: 'volume' });
+      this.graphics.beginRenderPass(isPostprocessingEnabled ? this.postprocessing.target : this.colorTarget, {
+        label: 'volume',
+      });
       renderer.renderVolume(scene.volumes, camera, this.depthTextureOpaque);
     }
   }

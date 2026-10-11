@@ -2,99 +2,260 @@
 
 ## Status
 
-- Direction decided (see Decisions); steps 1-6 done, step 7 in progress (spheres, points, the copy quad and SSAO done: `ssao`, `ssao_blur` and the occlusion and transparency-blend parts of `postprocessing`, 31 `webgpu` cases pass, half-resolution SSAO within a documented tolerance; the second WebGPU milestone of [backend-split.md](backend-split.md) is reached, the `webgpu` visual profile renders through `Canvas3D`), step 8 not started. Skipped `webgpu` cases by missing program (before SSAO): ssao 5, postprocessing 2, outlines 2, dof 2, background 2, mesh clipping 4, wboit/dpoit (12 by capability), trace, text, lines, cylinders, smaa, shadows, fxaa, cas, bloom, compose, marking variant, cube textures; 11 cases build GPU data with the WebGL context. Gates the first WebGPU milestone of [backend-split.md](backend-split.md) (`webgpu` visual test profile rendering `geometry/mesh/primitives`).
-- Rules: [minimum-capabilities.md](minimum-capabilities.md) (WebGPU core, default limits, WebGL1/2 stay supported); backend-specific code only in `webgl/` and `webgpu/`.
-- WebGL peculiarities are worked around in WebGL, not in WebGPU: [neutral-conventions.md](neutral-conventions.md) (`rgb` and `alpha` formats, vertex id define, depth placeholder, clears, rect origin, depth range).
+- Direction decided (see Decisions); steps 1-6 done, step 7 in progress (spheres, points, the copy quad and SSAO done:
+  `ssao`, `ssao_blur` and the occlusion and transparency-blend parts of `postprocessing`, 31 `webgpu` cases pass,
+  half-resolution SSAO within a documented tolerance; the second WebGPU milestone of
+  [backend-split.md](backend-split.md) is reached, the `webgpu` visual profile renders through `Canvas3D`), step 8 not
+  started. Skipped `webgpu` cases by missing program (before SSAO): ssao 5, postprocessing 2, outlines 2, dof 2,
+  background 2, mesh clipping 4, wboit/dpoit (12 by capability), trace, text, lines, cylinders, smaa, shadows, fxaa,
+  cas, bloom, compose, marking variant, cube textures; 11 cases build GPU data with the WebGL context. Gates the first
+  WebGPU milestone of [backend-split.md](backend-split.md) (`webgpu` visual test profile rendering
+  `geometry/mesh/primitives`).
+- Rules: [minimum-capabilities.md](minimum-capabilities.md) (WebGPU core, default limits, WebGL1/2 stay supported);
+  backend-specific code only in `webgl/` and `webgpu/`.
+- WebGL peculiarities are worked around in WebGL, not in WebGPU: [neutral-conventions.md](neutral-conventions.md) (`rgb`
+  and `alpha` formats, vertex id define, depth placeholder, clears, rect origin, depth range).
 
 ## Question
 
-How do the GLSL shaders get a WGSL counterpart, and how do defines, includes, unrolled loops and program variants carry over? Options were hand-port, transpile, generate.
+How do the GLSL shaders get a WGSL counterpart, and how do defines, includes, unrolled loops and program variants carry
+over? Options were hand-port, transpile, generate.
 
 ## Current state
 
-- Corpus: 92 shader source modules under `gl/shader` (34 chunks), about 7.6k lines of GLSL written for GLSL ES 1.00 and 3.00 (`#if __VERSION__` in 19 places, compatibility `#define`s in `shader-code.ts`: `texture2D`, `gl_FragColor`, `gl_FragData`, ...).
-- Assembly (`shader-code.ts`): all chunks are imported into one `ShaderChunks` record and `#include` is resolved against it at `ShaderCode` creation; per program: define header (`getDefinesCode`, strings as `#define dX_value`, booleans, numbers), `#pragma unroll_loop_start/end` expansion, light and clip object counts replaced textually, GLSL version prefixes and extension directives (`getGlsl100*Prefix`, `getGlsl300*Prefix`); the driver's preprocessor evaluates `#if`/`#ifdef`/`#elif` (338 `#if`, 130 `#ifdef`, 117 `#elif`, about 300 `defined(...)`), 8 function-like macros (`groupIndex`, `groupInstanceIndex`, `saturate`, `isNaN`, ...).
-- Variants: about 30 defines per graphics shader, many with several string options; programs are compiled at runtime per used define set (program cache, parallel compile in `shader-manager`). Precompiling all variants at build time is not possible.
-- Already from the schema (neutral or with WGSL generators): uniform declarations and std140 block layouts (`uniform-layout.ts`, equal to the WGSL uniform address space layout; `webgpu/uniform-declarations.ts` generates WGSL blocks), texture/sampler declarations ([texture-bindings.md](texture-bindings.md), WGSL in T4), attribute declarations and locations ([attribute-bindings.md](attribute-bindings.md), WebGPU in step 6), binding layout per tier (`getBindingLayout`). Shaders contain no hand-written declarations ([compute-shader-declarations.md](compute-shader-declarations.md)).
-- Inventory: `_test/graphics-shaders.ts` and `_test/compute-shaders.ts` list every shader/schema pair with define variants (`getComputeDefineVariants`), already used by the identifier, declaration and minimum-limits tests.
+- Corpus: 92 shader source modules under `gl/shader` (34 chunks), about 7.6k lines of GLSL written for GLSL ES 1.00 and
+  3.00 (`#if __VERSION__` in 19 places, compatibility `#define`s in `shader-code.ts`: `texture2D`, `gl_FragColor`,
+  `gl_FragData`, ...).
+- Assembly (`shader-code.ts`): all chunks are imported into one `ShaderChunks` record and `#include` is resolved against
+  it at `ShaderCode` creation; per program: define header (`getDefinesCode`, strings as `#define dX_value`, booleans,
+  numbers), `#pragma unroll_loop_start/end` expansion, light and clip object counts replaced textually, GLSL version
+  prefixes and extension directives (`getGlsl100*Prefix`, `getGlsl300*Prefix`); the driver's preprocessor evaluates
+  `#if`/`#ifdef`/`#elif` (338 `#if`, 130 `#ifdef`, 117 `#elif`, about 300 `defined(...)`), 8 function-like macros
+  (`groupIndex`, `groupInstanceIndex`, `saturate`, `isNaN`, ...).
+- Variants: about 30 defines per graphics shader, many with several string options; programs are compiled at runtime per
+  used define set (program cache, parallel compile in `shader-manager`). Precompiling all variants at build time is not
+  possible.
+- Already from the schema (neutral or with WGSL generators): uniform declarations and std140 block layouts
+  (`uniform-layout.ts`, equal to the WGSL uniform address space layout; `webgpu/uniform-declarations.ts` generates WGSL
+  blocks), texture/sampler declarations ([texture-bindings.md](texture-bindings.md), WGSL in T4), attribute declarations
+  and locations ([attribute-bindings.md](attribute-bindings.md), WebGPU in step 6), binding layout per tier
+  (`getBindingLayout`). Shaders contain no hand-written declarations
+  ([compute-shader-declarations.md](compute-shader-declarations.md)).
+- Inventory: `_test/graphics-shaders.ts` and `_test/compute-shaders.ts` list every shader/schema pair with define
+  variants (`getComputeDefineVariants`), already used by the identifier, declaration and minimum-limits tests.
 
 ## Decisions
 
-1. **Hand-written WGSL (option A) is the long-term direction.** WebGPU/WGSL evolve independently of WebGL/GLSL: the WGSL sources are not required to mirror the GLSL ones (structure, chunks, algorithms), only to render equivalently where both backends support a feature. The shared contract is the renderable schema (values, defines, uniforms, textures) and the visual tests; WGSL may ignore defines that only matter for WebGL (packing fallbacks, extension switches) and use WebGPU-only paths (storage buffers, vertex pulling, compute).
-2. **Chunks composed in TS, shared TS preprocessor**, as long as they don't constrain decision 1: the monolithic `ShaderChunks` record and textual `#include` go away; a shader is composed in TS from the chunk modules it imports (per language; template literals or functions returning source), which also gives bundlers the import graph. Conditionals inside the sources are handled by a TS preprocessor used for WGSL and also by WebGL in place of the driver preprocessor (scope: decision 7).
-3. **Depth range and projection are WebGPU-specific**: WebGPU uses a `[0, 1]` projection (built by the WebGPU backend from the camera parameters), WGSL code that linearizes or reconstructs depth uses `[0, 1]` formulas; WebGL keeps `[-1, 1]`. `frag_coord` origin top-left is handled in WGSL too.
-4. **Points become quads on WebGL too**: one code path, no `gl_PointSize` limits (no expected performance difference); done on WebGL first, then ported. Vertex pulling like sphere impostors, which already work on `webgl1-minimal`: 6 vertices per point (two triangles, no index buffer), the corner from `vertexId % 6`, the point from `vertexId / 6`, position and group read from a float data texture (`tPositionGroup`, `readFromTexture`); the vertex id is the emulated `aVertex` serial attribute on WebGL1, `gl_VertexID` on WebGL2 and `vertex_index` with storage buffers on WebGPU. The requirements are already minimum-spec (float textures and 8 vertex texture units are required on WebGL1). Instances (transforms) stay instanced attributes, which is why per-point data can't be instanced too.
-5. **WGSL `override` constants for numeric defines where there is no downside**: numbers that don't change declarations (loop bounds over arrays sized by their max `length`, sample counts, thresholds) become `override`s, so one shader module serves several pipelines; defines that select code paths, bindings or array sizes stay preprocessor defines.
-6. **Render pipelines first, compute planned**: fragment-shader compute (histogram pyramid, marching cubes, gaussian density, grid3d, color smoothing) is ported as render pipelines for parity; real compute shaders are planned separately (section Compute).
-7. **Conditionals: hybrid of TS composition and a strict subset preprocessor** (option c below): TS composition decides structure (which chunks, entry points, outputs, possibly typed define objects for WGSL chunks), the subset preprocessor handles fine-grained switches inside chunks. GLSL only changes in how chunks are composed (no `#include`), its `#if`s stay; WGSL may use `#if` or TS conditionals per chunk and can drift towards TS conditionals without forcing GLSL to. The 8 function-like macros stay in GLSL; new WGSL code prefers functions.
-   - Subset (what the corpus uses, 322 `#if`/`#elif`): `defined(X)` with `!`, `&&`, `||` and parentheses (about 280), `X == N`/`X != N` between a number define and an integer literal (about 35, e.g. `dLightCount != 0`), `__VERSION__ == N` (about 25, WebGL only); `#ifdef` (130), `#ifndef` (3), `#else`, `#endif`; object- and function-like `#define` (no `#`/`##`), `#undef` (1); the unroll pragma. The generated array declarations add `#if dX > 0` ([compute-shader-declarations.md](compute-shader-declarations.md) step 8), so the integer comparisons `<`, `>`, `<=`, `>=` are supported too. No arithmetic and no macros in expressions: names in expressions must be defines with integer values.
-   - Strict: anything else throws (unknown directive, unsupported operator, undefined name in an expression, unbalanced conditionals).
-   - Options considered: a. subset preprocessor only (same evaluator, structure still textual in WGSL); b. conditionals only in TS (typed define objects, no preprocessor, but rewriting about 600 GLSL conditional blocks and dense interleaved shader code).
+1. **Hand-written WGSL (option A) is the long-term direction.** WebGPU/WGSL evolve independently of WebGL/GLSL: the WGSL
+   sources are not required to mirror the GLSL ones (structure, chunks, algorithms), only to render equivalently where
+   both backends support a feature. The shared contract is the renderable schema (values, defines, uniforms, textures)
+   and the visual tests; WGSL may ignore defines that only matter for WebGL (packing fallbacks, extension switches) and
+   use WebGPU-only paths (storage buffers, vertex pulling, compute).
+2. **Chunks composed in TS, shared TS preprocessor**, as long as they don't constrain decision 1: the monolithic
+   `ShaderChunks` record and textual `#include` go away; a shader is composed in TS from the chunk modules it imports
+   (per language; template literals or functions returning source), which also gives bundlers the import graph.
+   Conditionals inside the sources are handled by a TS preprocessor used for WGSL and also by WebGL in place of the
+   driver preprocessor (scope: decision 7).
+3. **Depth range and projection are WebGPU-specific**: WebGPU uses a `[0, 1]` projection (built by the WebGPU backend
+   from the camera parameters), WGSL code that linearizes or reconstructs depth uses `[0, 1]` formulas; WebGL keeps
+   `[-1, 1]`. `frag_coord` origin top-left is handled in WGSL too.
+4. **Points become quads on WebGL too**: one code path, no `gl_PointSize` limits (no expected performance difference);
+   done on WebGL first, then ported. Vertex pulling like sphere impostors, which already work on `webgl1-minimal`: 6
+   vertices per point (two triangles, no index buffer), the corner from `vertexId % 6`, the point from `vertexId / 6`,
+   position and group read from a float data texture (`tPositionGroup`, `readFromTexture`); the vertex id is the
+   emulated `aVertex` serial attribute on WebGL1, `gl_VertexID` on WebGL2 and `vertex_index` with storage buffers on
+   WebGPU. The requirements are already minimum-spec (float textures and 8 vertex texture units are required on WebGL1).
+   Instances (transforms) stay instanced attributes, which is why per-point data can't be instanced too.
+5. **WGSL `override` constants for numeric defines where there is no downside**: numbers that don't change declarations
+   (loop bounds over arrays sized by their max `length`, sample counts, thresholds) become `override`s, so one shader
+   module serves several pipelines; defines that select code paths, bindings or array sizes stay preprocessor defines.
+6. **Render pipelines first, compute planned**: fragment-shader compute (histogram pyramid, marching cubes, gaussian
+   density, grid3d, color smoothing) is ported as render pipelines for parity; real compute shaders are planned
+   separately (section Compute).
+7. **Conditionals: hybrid of TS composition and a strict subset preprocessor** (option c below): TS composition decides
+   structure (which chunks, entry points, outputs, possibly typed define objects for WGSL chunks), the subset
+   preprocessor handles fine-grained switches inside chunks. GLSL only changes in how chunks are composed (no
+   `#include`), its `#if`s stay; WGSL may use `#if` or TS conditionals per chunk and can drift towards TS conditionals
+   without forcing GLSL to. The 8 function-like macros stay in GLSL; new WGSL code prefers functions.
+   - Subset (what the corpus uses, 322 `#if`/`#elif`): `defined(X)` with `!`, `&&`, `||` and parentheses (about 280),
+     `X == N`/`X != N` between a number define and an integer literal (about 35, e.g. `dLightCount != 0`),
+     `__VERSION__ == N` (about 25, WebGL only); `#ifdef` (130), `#ifndef` (3), `#else`, `#endif`; object- and
+     function-like `#define` (no `#`/`##`), `#undef` (1); the unroll pragma. The generated array declarations add
+     `#if dX > 0` ([compute-shader-declarations.md](compute-shader-declarations.md) step 8), so the integer comparisons
+     `<`, `>`, `<=`, `>=` are supported too. No arithmetic and no macros in expressions: names in expressions must be
+     defines with integer values.
+   - Strict: anything else throws (unknown directive, unsupported operator, undefined name in an expression, unbalanced
+     conditionals).
+   - Options considered: a. subset preprocessor only (same evaluator, structure still textual in WGSL); b. conditionals
+     only in TS (typed define objects, no preprocessor, but rewriting about 600 GLSL conditional blocks and dense
+     interleaved shader code).
 
 ## Options considered
 
-- **A. Hand-written WGSL, shared TS preprocessor** (chosen): idiomatic WGSL using WebGPU paths, no runtime dependency, full control over uniformity and types, errors point at our sources; cost: two sources, kept functionally equivalent by the visual tests rather than structurally.
-- **B. Runtime transpilation** (GLSL → SPIR-V → WGSL, glslang + tint/naga as wasm): rejected; several MB of wasm and per-variant compile latency, needs GLSL 450 with explicit bindings, can't express WebGPU-specific paths, generated code hard to debug. Engines that started this way (Babylon.js, PlayCanvas; to verify) later added hand-written WGSL.
-- **C. Own GLSL → WGSL translator in TS**: rejected as direction (a compiler front end to maintain: implicit conversions, swizzle assignment, `out` parameters, overloads; ties WGSL to GLSL, against decision 1). Could still help a one-off initial port of mechanical chunks.
+- **A. Hand-written WGSL, shared TS preprocessor** (chosen): idiomatic WGSL using WebGPU paths, no runtime dependency,
+  full control over uniformity and types, errors point at our sources; cost: two sources, kept functionally equivalent
+  by the visual tests rather than structurally.
+- **B. Runtime transpilation** (GLSL → SPIR-V → WGSL, glslang + tint/naga as wasm): rejected; several MB of wasm and
+  per-variant compile latency, needs GLSL 450 with explicit bindings, can't express WebGPU-specific paths, generated
+  code hard to debug. Engines that started this way (Babylon.js, PlayCanvas; to verify) later added hand-written WGSL.
+- **C. Own GLSL → WGSL translator in TS**: rejected as direction (a compiler front end to maintain: implicit
+  conversions, swizzle assignment, `out` parameters, overloads; ties WGSL to GLSL, against decision 1). Could still help
+  a one-off initial port of mechanical chunks.
 - **D. Shader DSL generating both**: rejected; full rewrite, no incremental path.
 
 ## GLSL features that need a WebGPU answer
 
-| Feature | Use | WebGPU |
-| --- | --- | --- |
-| `gl_PointSize`, `gl_PointCoord` | points | quads with vertex pulling on both backends (decision 4) |
-| `texture2D` under non-uniform control flow (173 calls, many after `discard` or in data-dependent branches) | data textures, colors | `textureSample` needs uniform control flow (implicit derivatives); `textureLoad`/`textureSampleLevel` for data textures (nearest, no mipmaps), storage buffers for data arrays ([storage-buffers.md](storage-buffers.md)), `diagnostic(off, derivative_uniformity)` only as last resort |
-| `gl_FragCoord` (64 uses) | screen-space lookups | `@builtin(position)`, origin top-left (decision 3) |
-| NDC depth `[-1, 1]` | projection, depth linearization (SSAO, outlines, fog, picking depth) | `[0, 1]` projection and formulas (decision 3) |
-| `gl_FragDepth` (impostors) | spheres, cylinders, text, mesh caps | `@builtin(frag_depth)` |
-| `gl_FragData[i]` | MRT (pick, OIT, tracing, compute) | fragment output struct with `@location(i)` |
-| `flat` varyings (12) | groups | `@interpolate(flat)` (first vertex; WebGL already prefers the first vertex convention) |
-| `gl_DrawID` (multi draw) | merged renderables | no multi draw in core: base instance / per draw uniform |
-| `gl_VertexID`, `gl_FrontFacing`, `dFdx`/`dFdy` | | `vertex_index`, `front_facing`, `dpdx`/`dpdy` (uniformity) |
-| Packed depth/float in RGBA8 (`float_to_rgba`, `packDepthToRGBA`) | no float targets, no depth textures | not needed on WebGPU core (float and depth textures are core) |
-| number defines (`dLightCount`, `dClipObjectCount`, samples) | loop bounds, array lengths | `override` where they don't size arrays (decision 5) |
+| Feature                                                                                                    | Use                                                                  | WebGPU                                                                                                                                                                                                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gl_PointSize`, `gl_PointCoord`                                                                            | points                                                               | quads with vertex pulling on both backends (decision 4)                                                                                                                                                                                                                                 |
+| `texture2D` under non-uniform control flow (173 calls, many after `discard` or in data-dependent branches) | data textures, colors                                                | `textureSample` needs uniform control flow (implicit derivatives); `textureLoad`/`textureSampleLevel` for data textures (nearest, no mipmaps), storage buffers for data arrays ([storage-buffers.md](storage-buffers.md)), `diagnostic(off, derivative_uniformity)` only as last resort |
+| `gl_FragCoord` (64 uses)                                                                                   | screen-space lookups                                                 | `@builtin(position)`, origin top-left (decision 3)                                                                                                                                                                                                                                      |
+| NDC depth `[-1, 1]`                                                                                        | projection, depth linearization (SSAO, outlines, fog, picking depth) | `[0, 1]` projection and formulas (decision 3)                                                                                                                                                                                                                                           |
+| `gl_FragDepth` (impostors)                                                                                 | spheres, cylinders, text, mesh caps                                  | `@builtin(frag_depth)`                                                                                                                                                                                                                                                                  |
+| `gl_FragData[i]`                                                                                           | MRT (pick, OIT, tracing, compute)                                    | fragment output struct with `@location(i)`                                                                                                                                                                                                                                              |
+| `flat` varyings (12)                                                                                       | groups                                                               | `@interpolate(flat)` (first vertex; WebGL already prefers the first vertex convention)                                                                                                                                                                                                  |
+| `gl_DrawID` (multi draw)                                                                                   | merged renderables                                                   | no multi draw in core: base instance / per draw uniform                                                                                                                                                                                                                                 |
+| `gl_VertexID`, `gl_FrontFacing`, `dFdx`/`dFdy`                                                             |                                                                      | `vertex_index`, `front_facing`, `dpdx`/`dpdy` (uniformity)                                                                                                                                                                                                                              |
+| Packed depth/float in RGBA8 (`float_to_rgba`, `packDepthToRGBA`)                                           | no float targets, no depth textures                                  | not needed on WebGPU core (float and depth textures are core)                                                                                                                                                                                                                           |
+| number defines (`dLightCount`, `dClipObjectCount`, samples)                                                | loop bounds, array lengths                                           | `override` where they don't size arrays (decision 5)                                                                                                                                                                                                                                    |
 
 ## Steps
 
-1. **Chunks composed in TS** (GLSL, WebGL; done): shader sources import the chunk modules they use and compose them in TS (template literals or functions returning source, chunks may compose chunks), `#include` and `ShaderChunks` removed. Visual tests byte-identical.
-   - Done: the 33 shader modules that used `#include` (213 includes) import their chunks and interpolate them (`${common}`); no chunk includes another chunk. `ShaderChunks` and the chunk imports are gone from `shader-code.ts`; `ShaderCode` only strips comments and blank lines (`normalizeSource`) and throws on a remaining `#include`. The assembled vertex and fragment sources of all 44 inventory shader pairs and grid3d equal the previous ones up to whitespace (compared with a temporary dump test); visual tests in debug mode on all profiles byte-identical.
-2. **Shared preprocessor** (`gl/shader-preprocessor.ts`, neutral; done): the strict subset of decision 7. Unit tests over every inventory variant.
-   - Done: `preprocessShader(source, defines, { expandMacros })` resolves conditionals; by default it keeps the active `#define`/`#undef` lines for the GLSL compiler, with `expandMacros` it expands object- and function-like macros (arguments expanded first, no recursion) and drops them (for WGSL). Throws `ShaderPreprocessorError` with the line number on anything outside the subset; skipped branches are not evaluated (undefined names there are fine). `unrollLoops` moved from `shader-code.ts` (used there unchanged); the count replacement (`replaceCounts`) stays in `shader-code.ts`, it reads the define values and is WebGL glue until step 3.
-   - Tests (`_test/shader-preprocessor.test.ts`): subset, strictness and expansion unit tests; every graphics shader (all define variants for `colorBlended` and `pick`, the base variant for the other render variants) and every compute shader (all variants), with the generated declarations, on WebGL2 and WebGL1 prefix defines: the active lines equal those of the lenient test helper `preprocessGlsl` (no variant hits the strict errors), expanded output has no directives and no number define names left.
-   - Not yet used at runtime: WebGL switches in step 3, which can also replace the test helper `preprocessGlsl` in the limit tests.
-3. **WebGL uses the preprocessor** (done): conditionals resolved in TS, the GLSL prefix keeps only version, extension and compatibility lines; one canonical source per variant (program cache key). Visual tests byte-identical on all profiles.
-   - Done: `addShaderDefines` resolves the conditionals of the sources and the generated declarations with `preprocessShader`; the define map is parsed from the `#define` lines of the prefix and header it prepends, plus `__VERSION__` (`100`/`300`), so the TS preprocessor sees exactly the defines the GLSL compiler sees. The driver now only sees active code and the active `#define`s (needed for number defines and macros used in code).
-   - Kept as they were: prefix and header (flag defines like `enabledFragDepth` stay, harmless and still read by the debug define lookup), the program cache (keyed as before; a key from the resolved source is possible later). Count replacement stays a textual step before preprocessing.
-   - Tests: the limit tests (`minimum-limits.test.ts`) use the production preprocessor through `preprocessProgram` (count replacement like `addShaderDefines`); the lenient `preprocessGlsl` remains as the reference of the preprocessor tests. The strict preprocessor found two incomplete test inputs (no `__VERSION__`, no count defines), fixed.
+1. **Chunks composed in TS** (GLSL, WebGL; done): shader sources import the chunk modules they use and compose them in
+   TS (template literals or functions returning source, chunks may compose chunks), `#include` and `ShaderChunks`
+   removed. Visual tests byte-identical.
+   - Done: the 33 shader modules that used `#include` (213 includes) import their chunks and interpolate them
+     (`${common}`); no chunk includes another chunk. `ShaderChunks` and the chunk imports are gone from
+     `shader-code.ts`; `ShaderCode` only strips comments and blank lines (`normalizeSource`) and throws on a remaining
+     `#include`. The assembled vertex and fragment sources of all 44 inventory shader pairs and grid3d equal the
+     previous ones up to whitespace (compared with a temporary dump test); visual tests in debug mode on all profiles
+     byte-identical.
+2. **Shared preprocessor** (`gl/shader-preprocessor.ts`, neutral; done): the strict subset of decision 7. Unit tests
+   over every inventory variant.
+   - Done: `preprocessShader(source, defines, { expandMacros })` resolves conditionals; by default it keeps the active
+     `#define`/`#undef` lines for the GLSL compiler, with `expandMacros` it expands object- and function-like macros
+     (arguments expanded first, no recursion) and drops them (for WGSL). Throws `ShaderPreprocessorError` with the line
+     number on anything outside the subset; skipped branches are not evaluated (undefined names there are fine).
+     `unrollLoops` moved from `shader-code.ts` (used there unchanged); the count replacement (`replaceCounts`) stays in
+     `shader-code.ts`, it reads the define values and is WebGL glue until step 3.
+   - Tests (`_test/shader-preprocessor.test.ts`): subset, strictness and expansion unit tests; every graphics shader
+     (all define variants for `colorBlended` and `pick`, the base variant for the other render variants) and every
+     compute shader (all variants), with the generated declarations, on WebGL2 and WebGL1 prefix defines: the active
+     lines equal those of the lenient test helper `preprocessGlsl` (no variant hits the strict errors), expanded output
+     has no directives and no number define names left.
+   - Not yet used at runtime: WebGL switches in step 3, which can also replace the test helper `preprocessGlsl` in the
+     limit tests.
+3. **WebGL uses the preprocessor** (done): conditionals resolved in TS, the GLSL prefix keeps only version, extension
+   and compatibility lines; one canonical source per variant (program cache key). Visual tests byte-identical on all
+   profiles.
+   - Done: `addShaderDefines` resolves the conditionals of the sources and the generated declarations with
+     `preprocessShader`; the define map is parsed from the `#define` lines of the prefix and header it prepends, plus
+     `__VERSION__` (`100`/`300`), so the TS preprocessor sees exactly the defines the GLSL compiler sees. The driver now
+     only sees active code and the active `#define`s (needed for number defines and macros used in code).
+   - Kept as they were: prefix and header (flag defines like `enabledFragDepth` stay, harmless and still read by the
+     debug define lookup), the program cache (keyed as before; a key from the resolved source is possible later). Count
+     replacement stays a textual step before preprocessing.
+   - Tests: the limit tests (`minimum-limits.test.ts`) use the production preprocessor through `preprocessProgram`
+     (count replacement like `addShaderDefines`); the lenient `preprocessGlsl` remains as the reference of the
+     preprocessor tests. The strict preprocessor found two incomplete test inputs (no `__VERSION__`, no count defines),
+     fixed.
    - Visual tests in debug mode on all profiles byte-identical (apart from the known one-pixel run-to-run differences).
-4. **Points as quads** (WebGL; done): points renderable, geometry and shaders with vertex pulling like spheres (decision 4), no `gl_PointSize`/`gl_PointCoord`; visual tests (points cases, also `webgl1-minimal`) within tolerance, differences documented.
-   - Done: `Points.shaderData` (`tPositionGroup` float texture with center and group per point, `uTexDim`, updated on create/update/transform); the points values carry `tPositionGroup`, `uTexDim`, `centerBuffer`, `groupBuffer` instead of the `aPosition`/`aGroup` attributes; draw mode `triangles` with `drawCount = pointCount * 6`, `uVertexCount` stays the point count (vertex and vertex-instance color/size data per point). The vertex shader derives the corner from `VertexID % 6` and the point from `VertexID / 6`, offsets the projected center by half the point size in pixels (`pointSize / uViewport.zw * w`, same size and attenuation formula as before, at least 1 pixel, no `gl_PointSize` limit any more) and passes `vPointCoord` for the circle and fuzzy styles.
-   - Vertex id emulation (`aVertex`, WebGL1 and without `noNonInstancedActiveAttribs`): sized by `max(uVertexCount, drawCount)` for renderables without elements. Merged points: `tPositionGroup` merged like spheres, draw ranges from the new `drawBases` (accumulated `drawCount`) instead of the vertex bases.
+4. **Points as quads** (WebGL; done): points renderable, geometry and shaders with vertex pulling like spheres (decision
+   4), no `gl_PointSize`/`gl_PointCoord`; visual tests (points cases, also `webgl1-minimal`) within tolerance,
+   differences documented.
+   - Done: `Points.shaderData` (`tPositionGroup` float texture with center and group per point, `uTexDim`, updated on
+     create/update/transform); the points values carry `tPositionGroup`, `uTexDim`, `centerBuffer`, `groupBuffer`
+     instead of the `aPosition`/`aGroup` attributes; draw mode `triangles` with `drawCount = pointCount * 6`,
+     `uVertexCount` stays the point count (vertex and vertex-instance color/size data per point). The vertex shader
+     derives the corner from `VertexID % 6` and the point from `VertexID / 6`, offsets the projected center by half the
+     point size in pixels (`pointSize / uViewport.zw * w`, same size and attenuation formula as before, at least 1
+     pixel, no `gl_PointSize` limit any more) and passes `vPointCoord` for the circle and fuzzy styles.
+   - Vertex id emulation (`aVertex`, WebGL1 and without `noNonInstancedActiveAttribs`): sized by
+     `max(uVertexCount, drawCount)` for renderables without elements. Merged points: `tPositionGroup` merged like
+     spheres, draw ranges from the new `drawBases` (accumulated `drawCount`) instead of the vertex bases.
    - Geo-export reads `centerBuffer`/`groupBuffer` with the point count.
-   - Validation: the points visual cases (square, circle, new fuzzy and attenuation) render byte-identical to `gl_PointSize` points on webgl2, webgl1, webgl2-minimum and webgl1-minimal (compared against renders of the previous code), so no differences to document; the full visual suite unchanged in debug mode; unit tests for merged points (draw and vertex bases, merged position texels) and the renderer resource counts (two attributes less, one texture more per points render item).
-5. **WGSL conventions** (doc next to the generators; done, `gl/webgpu/wgsl-conventions.md`): entry points, inter-stage struct (counts against `maxInterStageShaderVariables`), output struct for MRT, `[0, 1]` depth and top-left `frag_coord`, data texture reads (`textureLoad`), alpha textures read `.r` ([texture-bindings.md](texture-bindings.md) decision 8), `override` naming. Loops over light and clip-object arrays are plain loops bounded by `override` constants (e.g. `for (var i = 0; i < oLightCount; i++)`, `UNROLLED_LOOP_INDEX` becomes `i`), without the unroll pragma: WGSL allows dynamic bounds and dynamic indexing of uniform arrays, and the compiler can unroll constant bounds; `unrollLoops` stays GLSL-only (a WGSL loop header would not match and the pragma would throw).
-   - Done: sources and composition (one module per program with `vertexMain`/`fragmentMain`, chunks composed in TS), preprocessing with macro expansion, `override` constants named with an `o` prefix instead of `d` (`dLightCount` → `oLightCount`, so the preprocessor macro of the same define can't rewrite the declaration; the backend sets only the overrides a module declares), bind groups 0-2 for the global/material/object tiers (block at binding 0, textures from `getBindingLayout`, then samplers and storage buffers) and group 3 for per-draw values (`Draw` with a dynamic offset, replaces the `draw` scope classic uniforms), vertex input and inter-stage structs, fragment output struct, `[0, 1]` depth and top-left `position`, texture reads, loops and uniformity.
-6. **Mesh prototype** (done): `mesh.wgsl` with its chunks for `geometry/mesh/primitives` (color variant), WGSL declarations from the schema, WebGPU projection, pipeline from the program variant and `RenderState`; `webgpu` visual test profile.
-   - Backend in `gl/webgpu/`: `createWebGPUContext` (a `GraphicsContext`; offscreen `rgba8unorm` drawing buffer with `depth24plus-stencil8`, `readDrawingBuffer`, `present`), render item, global bindings, program (preprocessed WGSL + generated declarations, explicit bind group layouts with only the referenced textures and samplers, vertex buffer layouts, override constants), pipeline cache per program keyed by render state identity, pass target formats and draw mode, textures (`image-*`/`volume-*` kinds, `alpha` as `r8unorm`, `rgb` expanded to `rgba`), `WebGPUUnsupportedError` for everything else.
-   - Uniform blocks (global, material, object, draw) are snapshots in a per-submission ring buffer bound with dynamic offsets: writes land before the commands of a submission run, so values changed between passes (e.g. `uRenderMask`) need their own snapshot.
-   - `[0, 1]` depth: the global bindings map `uProjection`, `uModelViewProjection` and their inverses through a depth range matrix; fragment depth values equal the WebGL window depth, so `depthToViewZ` is unchanged. Viewport and scissor rectangles are flipped to the top-left origin; `dpdy` has the opposite sign of `dFdy` (flat shading normal).
-   - Clears are load operations: `beginRenderPass` opens the pass lazily, a clear before the first draw becomes the load op, a later full-target clear starts a new pass, partial clears are unsupported.
-   - Visual tests: the `webgpu` profile renders `Scene` + `Renderer` into the drawing buffer like the draw pass without postprocessing; cases needing passes, other programs or the WebGL context are skipped with the reason. 14 cases pass against `webgl2` with 0 differing pixels (mesh primitives, flat shaded, instanced, blended backfaces, cameras, lights, exposure, cel/xray/unlit shading); `webgl2` stays byte-identical.
-   - Follow-ups: program (shader module) cache per context instead of per render item; material bind group shared per `materialId`; multi-draw data (culling, LOD levels) is ignored, all instances are drawn; ~~render targets~~ done (the render target body is neutral, `createRenderTargetFromResources`, WebGL keeps its WebGL1 `r` fallback; WebGPU renderbuffers as attachment-only textures with depth format fallbacks, a draw target, `copyFromFramebuffer` as a texture copy with flipped rects, `readTexture`; the `webgpu` visual profile renders into a render target like `ImagePass`); ~~`tDepth` placeholder~~ resolved in [neutral-conventions.md](neutral-conventions.md) step 4 (`tDepth` scene depth only, packed depth with alpha in `tDepthAlpha`); async pipeline creation (`createRenderPipelineAsync`) behind `GraphicsProgram.isReady`.
-7. **Coverage by test case**: impostors (spheres, cylinders: `frag_depth`), points (quads), lines/text/image, direct volume, passes (postprocessing, antialiasing, OIT, marking), then fragment-shader compute as render pipelines. Unported programs make a case `unsupported` on the `webgpu` profile.
-   - Done: shader modules cached per context (`createWebGPUProgramCache`, by program name, defines and schema shape) instead of per render item; WGSL chunks shared by mesh, spheres and points (`vertex_output_wgsl` with the common varyings at locations 0-8 and program varyings from 9, quad setup, color/marker/transparency varyings, size, LOD fade, material, transparency checks, interior, lighting, markers and fog); `spheres.wgsl` (projected bounding quads, asymmetric projections, `frag_depth`, approximate mode, near-plane caps of `dSolidInterior`, alpha thickness) and `points.wgsl` (square, circle, fuzzy, size attenuation); multi-draw data (culling and level-of-detail ranges with per-level `uLod`) as draws with `firstInstance` and a `Draw` snapshot per level. 26 cases pass against `webgl2`: spheres within 1 pixel, square points within 16 edge pixels (quad edges on pixel centers round differently in ANGLE and Dawn).
-8. **Reversed-Z on WebGPU** (later, not part of the first milestone): `[1, 0]` depth with `greater` compare and a reversed projection for better depth precision; affects depth clears, the depth compare of the WebGPU render states, depth linearization in WGSL and depth readback (picking).
+   - Validation: the points visual cases (square, circle, new fuzzy and attenuation) render byte-identical to
+     `gl_PointSize` points on webgl2, webgl1, webgl2-minimum and webgl1-minimal (compared against renders of the
+     previous code), so no differences to document; the full visual suite unchanged in debug mode; unit tests for merged
+     points (draw and vertex bases, merged position texels) and the renderer resource counts (two attributes less, one
+     texture more per points render item).
+5. **WGSL conventions** (doc next to the generators; done, `gl/webgpu/wgsl-conventions.md`): entry points, inter-stage
+   struct (counts against `maxInterStageShaderVariables`), output struct for MRT, `[0, 1]` depth and top-left
+   `frag_coord`, data texture reads (`textureLoad`), alpha textures read `.r`
+   ([texture-bindings.md](texture-bindings.md) decision 8), `override` naming. Loops over light and clip-object arrays
+   are plain loops bounded by `override` constants (e.g. `for (var i = 0; i < oLightCount; i++)`, `UNROLLED_LOOP_INDEX`
+   becomes `i`), without the unroll pragma: WGSL allows dynamic bounds and dynamic indexing of uniform arrays, and the
+   compiler can unroll constant bounds; `unrollLoops` stays GLSL-only (a WGSL loop header would not match and the pragma
+   would throw).
+   - Done: sources and composition (one module per program with `vertexMain`/`fragmentMain`, chunks composed in TS),
+     preprocessing with macro expansion, `override` constants named with an `o` prefix instead of `d` (`dLightCount` →
+     `oLightCount`, so the preprocessor macro of the same define can't rewrite the declaration; the backend sets only
+     the overrides a module declares), bind groups 0-2 for the global/material/object tiers (block at binding 0,
+     textures from `getBindingLayout`, then samplers and storage buffers) and group 3 for per-draw values (`Draw` with a
+     dynamic offset, replaces the `draw` scope classic uniforms), vertex input and inter-stage structs, fragment output
+     struct, `[0, 1]` depth and top-left `position`, texture reads, loops and uniformity.
+6. **Mesh prototype** (done): `mesh.wgsl` with its chunks for `geometry/mesh/primitives` (color variant), WGSL
+   declarations from the schema, WebGPU projection, pipeline from the program variant and `RenderState`; `webgpu` visual
+   test profile.
+   - Backend in `gl/webgpu/`: `createWebGPUContext` (a `GraphicsContext`; offscreen `rgba8unorm` drawing buffer with
+     `depth24plus-stencil8`, `readDrawingBuffer`, `present`), render item, global bindings, program (preprocessed WGSL +
+     generated declarations, explicit bind group layouts with only the referenced textures and samplers, vertex buffer
+     layouts, override constants), pipeline cache per program keyed by render state identity, pass target formats and
+     draw mode, textures (`image-*`/`volume-*` kinds, `alpha` as `r8unorm`, `rgb` expanded to `rgba`),
+     `WebGPUUnsupportedError` for everything else.
+   - Uniform blocks (global, material, object, draw) are snapshots in a per-submission ring buffer bound with dynamic
+     offsets: writes land before the commands of a submission run, so values changed between passes (e.g. `uRenderMask`)
+     need their own snapshot.
+   - `[0, 1]` depth: the global bindings map `uProjection`, `uModelViewProjection` and their inverses through a depth
+     range matrix; fragment depth values equal the WebGL window depth, so `depthToViewZ` is unchanged. Viewport and
+     scissor rectangles are flipped to the top-left origin; `dpdy` has the opposite sign of `dFdy` (flat shading
+     normal).
+   - Clears are load operations: `beginRenderPass` opens the pass lazily, a clear before the first draw becomes the load
+     op, a later full-target clear starts a new pass, partial clears are unsupported.
+   - Visual tests: the `webgpu` profile renders `Scene` + `Renderer` into the drawing buffer like the draw pass without
+     postprocessing; cases needing passes, other programs or the WebGL context are skipped with the reason. 14 cases
+     pass against `webgl2` with 0 differing pixels (mesh primitives, flat shaded, instanced, blended backfaces, cameras,
+     lights, exposure, cel/xray/unlit shading); `webgl2` stays byte-identical.
+   - Follow-ups: program (shader module) cache per context instead of per render item; material bind group shared per
+     `materialId`; multi-draw data (culling, LOD levels) is ignored, all instances are drawn; ~~render targets~~ done
+     (the render target body is neutral, `createRenderTargetFromResources`, WebGL keeps its WebGL1 `r` fallback; WebGPU
+     renderbuffers as attachment-only textures with depth format fallbacks, a draw target, `copyFromFramebuffer` as a
+     texture copy with flipped rects, `readTexture`; the `webgpu` visual profile renders into a render target like
+     `ImagePass`); ~~`tDepth` placeholder~~ resolved in [neutral-conventions.md](neutral-conventions.md) step 4
+     (`tDepth` scene depth only, packed depth with alpha in `tDepthAlpha`); async pipeline creation
+     (`createRenderPipelineAsync`) behind `GraphicsProgram.isReady`.
+7. **Coverage by test case**: impostors (spheres, cylinders: `frag_depth`), points (quads), lines/text/image, direct
+   volume, passes (postprocessing, antialiasing, OIT, marking), then fragment-shader compute as render pipelines.
+   Unported programs make a case `unsupported` on the `webgpu` profile.
+   - Done: shader modules cached per context (`createWebGPUProgramCache`, by program name, defines and schema shape)
+     instead of per render item; WGSL chunks shared by mesh, spheres and points (`vertex_output_wgsl` with the common
+     varyings at locations 0-8 and program varyings from 9, quad setup, color/marker/transparency varyings, size, LOD
+     fade, material, transparency checks, interior, lighting, markers and fog); `spheres.wgsl` (projected bounding
+     quads, asymmetric projections, `frag_depth`, approximate mode, near-plane caps of `dSolidInterior`, alpha
+     thickness) and `points.wgsl` (square, circle, fuzzy, size attenuation); multi-draw data (culling and
+     level-of-detail ranges with per-level `uLod`) as draws with `firstInstance` and a `Draw` snapshot per level. 26
+     cases pass against `webgl2`: spheres within 1 pixel, square points within 16 edge pixels (quad edges on pixel
+     centers round differently in ANGLE and Dawn).
+8. **Reversed-Z on WebGPU** (later, not part of the first milestone): `[1, 0]` depth with `greater` compare and a
+   reversed projection for better depth precision; affects depth clears, the depth compare of the WebGPU render states,
+   depth linearization in WGSL and depth readback (picking).
 
 ## Compute (planned, after the render pipeline ports)
 
-- Candidates: histogram pyramid and marching cubes (GPU isosurface), gaussian density, grid3d, color smoothing, hi-z. For each: compute-shader design (workgroups, storage buffers instead of textures where the consumer allows it), readback with the async API of backend-split step 5, and how the WebGL fragment-shader version stays as the fallback.
-- Links: [core-gpu-compute.md](core-gpu-compute.md) (kernel spec, body language per backend), [storage-buffers.md](storage-buffers.md).
+- Candidates: histogram pyramid and marching cubes (GPU isosurface), gaussian density, grid3d, color smoothing, hi-z.
+  For each: compute-shader design (workgroups, storage buffers instead of textures where the consumer allows it),
+  readback with the async API of backend-split step 5, and how the WebGL fragment-shader version stays as the fallback.
+- Links: [core-gpu-compute.md](core-gpu-compute.md) (kernel spec, body language per backend),
+  [storage-buffers.md](storage-buffers.md).
 - To be written as its own plan once the render pipeline ports exist.
 
 ## Validation
 
-- Unit tests: preprocessor over all inventory variants (GLSL and, later, WGSL); WGSL declaration generators; a porting status list (inventory entry → ported to WGSL or not) instead of a structural parity check (decision 1).
-- Browser: compile every WGSL inventory variant with `createShaderModule` + `getCompilationInfo` (test page in the visual test harness, automatable with Playwright); visual tests `webgpu` vs `webgl2` with tolerances where depth/precision differences require them.
+- Unit tests: preprocessor over all inventory variants (GLSL and, later, WGSL); WGSL declaration generators; a porting
+  status list (inventory entry → ported to WGSL or not) instead of a structural parity check (decision 1).
+- Browser: compile every WGSL inventory variant with `createShaderModule` + `getCompilationInfo` (test page in the
+  visual test harness, automatable with Playwright); visual tests `webgpu` vs `webgl2` with tolerances where
+  depth/precision differences require them.
 
 ## Open questions
 

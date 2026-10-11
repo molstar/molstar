@@ -116,7 +116,7 @@ export class RepresentationRegistry<D, S extends Representation.State> {
     return getTypes(this._list);
   }
 
-  constructor() { }
+  constructor() {}
 
   /** Returns the message `add(provider)` would throw, or `undefined` when it would succeed. Changes nothing. */
   findConflict(provider: RepresentationProvider<D, any, any>): string | undefined {
@@ -320,13 +320,13 @@ namespace Representation {
       state: createState(),
       theme: Theme.createEmpty(),
       createOrUpdate: () => Task.constant('', undefined),
-      setState: () => { },
-      setTheme: () => { },
+      setState: () => {},
+      setTheme: () => {},
       getLoci: () => EmptyLoci,
       getAllLoci: () => [],
-      eachLocation: () => { },
+      eachLocation: () => {},
       mark: () => false,
-      destroy: () => { },
+      destroy: () => {},
     };
   }
 
@@ -590,8 +590,8 @@ namespace Representation {
 
         Representation.updateState(currentState, state);
       },
-      setTheme: () => { },
-      destroy() { },
+      setTheme: () => {},
+      destroy() {},
     };
   }
 }

@@ -80,30 +80,30 @@ export namespace DirectVolume {
   ): DirectVolume {
     return directVolume
       ? update(
-        bbox,
-        gridDimension,
-        transform,
-        unitToCartn,
-        cellDim,
-        texture,
-        stats,
-        packedGroup,
-        axisOrder,
-        dataType,
-        directVolume,
-      )
+          bbox,
+          gridDimension,
+          transform,
+          unitToCartn,
+          cellDim,
+          texture,
+          stats,
+          packedGroup,
+          axisOrder,
+          dataType,
+          directVolume,
+        )
       : fromData(
-        bbox,
-        gridDimension,
-        transform,
-        unitToCartn,
-        cellDim,
-        texture,
-        stats,
-        packedGroup,
-        axisOrder,
-        dataType,
-      );
+          bbox,
+          gridDimension,
+          transform,
+          unitToCartn,
+          cellDim,
+          texture,
+          stats,
+          packedGroup,
+          axisOrder,
+          dataType,
+        );
   }
 
   function hashCode(directVolume: DirectVolume) {

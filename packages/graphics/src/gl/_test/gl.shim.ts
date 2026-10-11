@@ -350,14 +350,14 @@ export function createGl(
     getContextAttributes: function () {
       return contextAttributes;
     },
-    getFramebufferAttachmentParameter: function () { },
+    getFramebufferAttachmentParameter: function () {},
     getProgramInfoLog: function () {
       return '';
     },
     getShaderInfoLog: function () {
       return '';
     },
-    getRenderbufferParameter: function () { },
+    getRenderbufferParameter: function () {},
     getShaderPrecisionFormat: function (shadertype: number, precisiontype: number) {
       return {
         precision: 0,
@@ -368,13 +368,13 @@ export function createGl(
     getShaderSource: function (shader: WebGLShader | null) {
       return '';
     },
-    getTexParameter: function () { },
-    getUniform: function () { },
-    getVertexAttrib: function () { },
+    getTexParameter: function () {},
+    getUniform: function () {},
+    getVertexAttrib: function () {},
     getVertexAttribOffset: function (index: number, pname: number) {
       return 0;
     },
-    hint: function (target: number, mode: number) { },
+    hint: function (target: number, mode: number) {},
     isBuffer: function (buffer: WebGLBuffer | null) {
       return true;
     },
@@ -422,11 +422,11 @@ export function createGl(
         case 'OES_vertex_array_object':
           return {
             VERTEX_ARRAY_BINDING_OES: 0,
-            bindVertexArrayOES: function (arrayObject: WebGLVertexArrayObjectOES) { },
+            bindVertexArrayOES: function (arrayObject: WebGLVertexArrayObjectOES) {},
             createVertexArrayOES: function (): WebGLVertexArrayObjectOES {
               return {};
             },
-            deleteVertexArrayOES: function (arrayObject: WebGLVertexArrayObjectOES) { },
+            deleteVertexArrayOES: function (arrayObject: WebGLVertexArrayObjectOES) {},
             isVertexArrayOES: function (value: any) {
               return true;
             },
@@ -452,8 +452,8 @@ export function createGl(
           return null;
         case 'WEBGL_lose_context':
           return {
-            loseContext: function () { },
-            restoreContext: function () { },
+            loseContext: function () {},
+            restoreContext: function () {},
           } as unknown as WEBGL_lose_context;
         case 'WEBGL_depth_texture':
           return {
@@ -484,15 +484,15 @@ export function createGl(
           return {} as unknown as OES_element_index_uint;
         case 'ANGLE_instanced_arrays':
           return {
-            drawArraysInstancedANGLE: function (mode: number, first: number, count: number, primcount: number) { },
+            drawArraysInstancedANGLE: function (mode: number, first: number, count: number, primcount: number) {},
             drawElementsInstancedANGLE: function (
               mode: number,
               count: number,
               type: number,
               offset: number,
               primcount: number,
-            ) { },
-            vertexAttribDivisorANGLE: function (index: number, divisor: number) { },
+            ) {},
+            vertexAttribDivisorANGLE: function (index: number, divisor: number) {},
             VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE: 0,
           } as unknown as ANGLE_instanced_arrays;
       }
@@ -505,9 +505,9 @@ export function createGl(
       };
       return id;
     },
-    deleteBuffer: function () { },
-    bindBuffer: function () { },
-    bufferData: function () { },
+    deleteBuffer: function () {},
+    bindBuffer: function () {},
+    bufferData: function () {},
     getParameter: function (pname: number) {
       switch (pname) {
         case c.MAX_TEXTURE_MAX_ANISOTROPY_EXT:
@@ -687,8 +687,8 @@ export function createGl(
           throw new Error(`getShaderParameter ${pname}`);
       }
     },
-    shaderSource: function () { },
-    compileShader: function () { },
+    shaderSource: function () {},
+    compileShader: function () {},
     createProgram: function () {
       const id = getNextId();
       items[id] = {
@@ -700,8 +700,8 @@ export function createGl(
     attachShader: function (program: WebGLProgram, shader: WebGLShader) {
       items[program as number].shaders.push(shader as number);
     },
-    bindAttribLocation: function () { },
-    linkProgram: function () { },
+    bindAttribLocation: function () {},
+    linkProgram: function () {},
     getProgramParameter: function (program: number, pname: number) {
       switch (pname) {
         case gl.LINK_STATUS:
@@ -722,8 +722,8 @@ export function createGl(
           throw new Error(`getProgramParameter ${pname}`);
       }
     },
-    deleteShader: function () { },
-    deleteProgram: function () { },
+    deleteShader: function () {},
+    deleteProgram: function () {},
     viewport: function (x: number, y: number, width: number, height: number) {
       viewport.x = x;
       viewport.y = y;
@@ -736,13 +736,13 @@ export function createGl(
       colorClearValue.b = blue;
       colorClearValue.a = alpha;
     },
-    clearDepth: function () { },
-    depthFunc: function () { },
-    enable: function () { },
-    disable: function () { },
-    frontFace: function () { },
-    cullFace: function () { },
-    activeTexture: function () { },
+    clearDepth: function () {},
+    depthFunc: function () {},
+    enable: function () {},
+    disable: function () {},
+    frontFace: function () {},
+    cullFace: function () {},
+    activeTexture: function () {},
     createTexture: function () {
       const id = getNextId();
       items[id] = {
@@ -750,17 +750,17 @@ export function createGl(
       };
       return id;
     },
-    deleteTexture: function () { },
+    deleteTexture: function () {},
     bindTexture: function (target: number, texture: WebGLTexture | null) {
       boundTextures[target as number] = texture;
     },
-    texParameterf: function () { },
-    texParameteri: function () { },
-    pixelStorei: function () { },
-    texImage2D: function () { },
-    texSubImage2D: function () { },
-    compressedTexImage2D: function () { },
-    useProgram: function () { },
+    texParameterf: function () {},
+    texParameteri: function () {},
+    pixelStorei: function () {},
+    texImage2D: function () {},
+    texSubImage2D: function () {},
+    compressedTexImage2D: function () {},
+    useProgram: function () {},
     getUniformLocation: function () {
       return 0;
     },
@@ -778,41 +778,41 @@ export function createGl(
         name: `__activeAttrib${index}`,
       };
     },
-    clear: function () { },
-    uniform1f: function () { },
-    uniform1fv: function () { },
-    uniform1i: function () { },
-    uniform1iv: function () { },
-    uniform2f: function () { },
-    uniform2fv: function () { },
-    uniform2i: function () { },
-    uniform2iv: function () { },
-    uniform3f: function () { },
-    uniform3fv: function () { },
-    uniform3i: function () { },
-    uniform3iv: function () { },
-    uniform4f: function () { },
-    uniform4fv: function () { },
-    uniform4i: function () { },
-    uniform4iv: function () { },
-    uniformMatrix2fv: function () { },
-    uniformMatrix3fv: function () { },
-    uniformMatrix4fv: function () { },
+    clear: function () {},
+    uniform1f: function () {},
+    uniform1fv: function () {},
+    uniform1i: function () {},
+    uniform1iv: function () {},
+    uniform2f: function () {},
+    uniform2fv: function () {},
+    uniform2i: function () {},
+    uniform2iv: function () {},
+    uniform3f: function () {},
+    uniform3fv: function () {},
+    uniform3i: function () {},
+    uniform3iv: function () {},
+    uniform4f: function () {},
+    uniform4fv: function () {},
+    uniform4i: function () {},
+    uniform4iv: function () {},
+    uniformMatrix2fv: function () {},
+    uniformMatrix3fv: function () {},
+    uniformMatrix4fv: function () {},
     getAttribLocation: function () {
       return 1;
     },
-    vertexAttribPointer: function () { },
-    enableVertexAttribArray: function () { },
-    disableVertexAttribArray: function () { },
-    drawElements: function () { },
-    drawArrays: function () { },
-    depthMask: function () { },
+    vertexAttribPointer: function () {},
+    enableVertexAttribArray: function () {},
+    disableVertexAttribArray: function () {},
+    drawElements: function () {},
+    drawArrays: function () {},
+    depthMask: function () {},
     depthRange: function (zNear: number, zFar: number) {
       depthRange.zNear = zNear;
       depthRange.zFar = zFar;
     },
-    bufferSubData: function () { },
-    blendFunc: function () { },
+    bufferSubData: function () {},
+    blendFunc: function () {},
     createFramebuffer: function () {
       const id = getNextId();
       items[id] = {
@@ -821,12 +821,12 @@ export function createGl(
       };
       return id;
     },
-    bindFramebuffer: function () { },
-    framebufferTexture2D: function () { },
+    bindFramebuffer: function () {},
+    framebufferTexture2D: function () {},
     checkFramebufferStatus: function () {
       return gl.FRAMEBUFFER_COMPLETE;
     },
-    deleteFramebuffer: function () { },
+    deleteFramebuffer: function () {},
     createRenderbuffer: function () {
       const id = getNextId();
       items[id] = {
@@ -835,53 +835,53 @@ export function createGl(
       };
       return id;
     },
-    bindRenderbuffer: function () { },
-    deleteRenderbuffer: function () { },
-    renderbufferStorage: function () { },
-    framebufferRenderbuffer: function () { },
-    scissor: function () { },
-    colorMask: function () { },
-    lineWidth: function () { },
-    vertexAttrib1f: function () { },
-    vertexAttrib1fv: function () { },
-    vertexAttrib2f: function () { },
-    vertexAttrib2fv: function () { },
-    vertexAttrib3f: function () { },
-    vertexAttrib3fv: function () { },
-    vertexAttrib4f: function () { },
-    vertexAttrib4fv: function () { },
-    validateProgram: function () { },
-    generateMipmap: function () { },
+    bindRenderbuffer: function () {},
+    deleteRenderbuffer: function () {},
+    renderbufferStorage: function () {},
+    framebufferRenderbuffer: function () {},
+    scissor: function () {},
+    colorMask: function () {},
+    lineWidth: function () {},
+    vertexAttrib1f: function () {},
+    vertexAttrib1fv: function () {},
+    vertexAttrib2f: function () {},
+    vertexAttrib2fv: function () {},
+    vertexAttrib3f: function () {},
+    vertexAttrib3fv: function () {},
+    vertexAttrib4f: function () {},
+    vertexAttrib4fv: function () {},
+    validateProgram: function () {},
+    generateMipmap: function () {},
     isContextLost: function () {
       return false;
     },
     drawingBufferWidth: width,
     drawingBufferHeight: height,
     drawingBufferColorSpace: 'srgb',
-    blendColor: function () { },
-    blendEquation: function () { },
-    blendEquationSeparate: function () { },
-    blendFuncSeparate: function () { },
-    clearStencil: function () { },
-    compressedTexSubImage2D: function () { },
-    copyTexImage2D: function () { },
-    copyTexSubImage2D: function () { },
-    detachShader: function () { },
-    finish: function () { },
-    flush: function () { },
+    blendColor: function () {},
+    blendEquation: function () {},
+    blendEquationSeparate: function () {},
+    blendFuncSeparate: function () {},
+    clearStencil: function () {},
+    compressedTexSubImage2D: function () {},
+    copyTexImage2D: function () {},
+    copyTexSubImage2D: function () {},
+    detachShader: function () {},
+    finish: function () {},
+    flush: function () {},
     getError: function () {
       return 0;
     },
-    polygonOffset: function () { },
-    readPixels: function () { },
-    sampleCoverage: function () { },
-    stencilFunc: function () { },
-    stencilFuncSeparate: function () { },
-    stencilMask: function () { },
-    stencilMaskSeparate: function () { },
-    stencilOp: function () { },
-    stencilOpSeparate: function () { },
+    polygonOffset: function () {},
+    readPixels: function () {},
+    sampleCoverage: function () {},
+    stencilFunc: function () {},
+    stencilFuncSeparate: function () {},
+    stencilMask: function () {},
+    stencilMaskSeparate: function () {},
+    stencilOp: function () {},
+    stencilOpSeparate: function () {},
     unpackColorSpace: 'srgb',
-    makeXRCompatible: async function () { },
+    makeXRCompatible: async function () {},
   };
 }

@@ -99,7 +99,8 @@ export function createWebGPUTimerSource(device: GPUDevice): WebGPUTimerSource | 
       const size = count * 8;
       encoder.resolveQuerySet(querySet, 0, count, resolveBuffer, 0);
       const readback =
-        readbacks.pop() ?? device.createBuffer({ size: QueryCount * 8, usage: BufferUsage.MAP_READ | BufferUsage.COPY_DST });
+        readbacks.pop() ??
+        device.createBuffer({ size: QueryCount * 8, usage: BufferUsage.MAP_READ | BufferUsage.COPY_DST });
       encoder.copyBufferToBuffer(resolveBuffer, 0, readback, 0, size);
 
       const done = (times: BigUint64Array | undefined) => {

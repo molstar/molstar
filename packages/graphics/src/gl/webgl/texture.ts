@@ -685,9 +685,9 @@ export function createCubeTexture(
       return getByteCount('rgba', 'ubyte', size, size, 0) * 6 * (mipmaps ? 2 : 1);
     },
 
-    define: () => { },
-    load: () => { },
-    mipmap: () => { },
+    define: () => {},
+    load: () => {},
+    mipmap: () => {},
     bind: (id: TextureId) => {
       gl.activeTexture(gl.TEXTURE0 + id);
       gl.bindTexture(target, texture);
@@ -696,8 +696,8 @@ export function createCubeTexture(
       gl.activeTexture(gl.TEXTURE0 + id);
       gl.bindTexture(target, null);
     },
-    attachFramebuffer: () => { },
-    detachFramebuffer: () => { },
+    attachFramebuffer: () => {},
+    detachFramebuffer: () => {},
     copyFromFramebuffer: () => {
       throw new Error('copy not supported for cube textures');
     },

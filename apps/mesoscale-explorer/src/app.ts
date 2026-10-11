@@ -135,7 +135,7 @@ const DefaultMesoscaleExplorerOptions = {
 type MesoscaleExplorerOptions = typeof DefaultMesoscaleExplorerOptions;
 
 export class MesoscaleExplorer {
-  constructor(public plugin: PluginUIContext) { }
+  constructor(public plugin: PluginUIContext) {}
 
   async loadExample(id: string) {
     const entries = (this.plugin.customState as MesoscaleExplorerState).examples || [];

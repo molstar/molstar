@@ -172,9 +172,14 @@ export class ViewportScreenshotHelper extends PluginComponent {
       occlusion:
         aoProps.name === 'on'
           ? {
-            name: 'on',
-            params: { ...aoProps.params, samples: 128, resolutionScale: c.graphics.pixelRatio, transparentThreshold: 1 },
-          }
+              name: 'on',
+              params: {
+                ...aoProps.params,
+                samples: 128,
+                resolutionScale: c.graphics.pixelRatio,
+                transparentThreshold: 1,
+              },
+            }
           : aoProps,
     } as PostprocessingProps;
   }

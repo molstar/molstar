@@ -25,7 +25,7 @@ import { type RuntimeContext, Task } from '@molstar/core/task';
 import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { VolumeVisual } from './visual.js';
 
-export interface VolumeRepresentation<P extends VolumeParams> extends Representation<Volume, P> { }
+export interface VolumeRepresentation<P extends VolumeParams> extends Representation<Volume, P> {}
 
 export type VolumeRepresentationProvider<P extends VolumeParams, Id extends string = string> = RepresentationProvider<
   Volume,

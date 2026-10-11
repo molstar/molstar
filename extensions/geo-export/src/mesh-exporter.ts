@@ -56,16 +56,16 @@ type MeshMode = 'points' | 'lines' | 'triangles';
 
 export interface AddMeshInput {
   mesh:
-  | {
-    vertices: Float32Array;
-    normals: Float32Array | undefined;
-    indices: Uint32Array | undefined;
-    groups: Float32Array | Uint8Array;
-    vertexCount: number;
-    drawCount: number;
-    vertexMapping?: number[];
-  }
-  | undefined;
+    | {
+        vertices: Float32Array;
+        normals: Float32Array | undefined;
+        indices: Uint32Array | undefined;
+        groups: Float32Array | Uint8Array;
+        vertexCount: number;
+        drawCount: number;
+        vertexMapping?: number[];
+      }
+    | undefined;
   meshes: Mesh[] | undefined;
   values: BaseValues & {
     readonly uDoubleSided?: ValueCell<boolean>;
@@ -233,7 +233,10 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     const aTransform = values.aTransform.ref.value;
     const instanceCount = values.uInstanceCount.ref.value;
 
-    const transparencyGrid = readSingleChannelTexture(getReadbackContext(graphics), values.tTransparencyGrid.ref.value).array;
+    const transparencyGrid = readSingleChannelTexture(
+      getReadbackContext(graphics),
+      values.tTransparencyGrid.ref.value,
+    ).array;
     const interpolated = getTrilinearlyInterpolated({
       vertexCount,
       instanceCount,

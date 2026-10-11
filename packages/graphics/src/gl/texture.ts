@@ -150,9 +150,9 @@ export function createNullTexture(): Texture {
     getDepth: () => 0,
     getByteCount: () => 0,
 
-    define: () => { },
-    load: () => { },
-    mipmap: () => { },
+    define: () => {},
+    load: () => {},
+    mipmap: () => {},
     attachFramebuffer: () => {
       throw new Error('cannot attach null-texture to a framebuffer');
     },
@@ -163,8 +163,8 @@ export function createNullTexture(): Texture {
       throw new Error('cannot copy to null-texture');
     },
 
-    reset: () => { },
-    destroy: () => { },
+    reset: () => {},
+    destroy: () => {},
   };
   NullTextures.add(texture);
   return texture;

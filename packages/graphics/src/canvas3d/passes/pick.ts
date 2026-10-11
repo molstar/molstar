@@ -449,7 +449,11 @@ class AsyncPickBuffers implements PickBuffers {
   ) {}
 }
 
-export function createPickBuffers(graphics: GraphicsContext, pickPass: PickPass, maxAsyncReadLag?: number): PickBuffers {
+export function createPickBuffers(
+  graphics: GraphicsContext,
+  pickPass: PickPass,
+  maxAsyncReadLag?: number,
+): PickBuffers {
   return isWebGLContext(graphics)
     ? new WebGLPickBuffers(graphics, pickPass, maxAsyncReadLag)
     : new AsyncPickBuffers(graphics, pickPass);

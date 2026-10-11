@@ -103,8 +103,8 @@ storage buffers follow the textures of their group; they are not part of that la
   unfilterable float and depth formats (e.g. a depth texture bound where WebGL samples `.r`); textures sampled with a
   filtering sampler (`textureSample*`) are `float`.
 - Filtering is a property of the bound texture, as on WebGL: the render item defines `dLinear_<texture>` for bound
-  textures that are linear and of a filterable format (part of the program key), and `texture_read_wgsl(name)`
-  generates `read_<name>(uv)`, a filtered read with it and the nearest texel (`textureLoad`) without.
+  textures that are linear and of a filterable format (part of the program key), and `texture_read_wgsl(name)` generates
+  `read_<name>(uv)`, a filtered read with it and the nearest texel (`textureLoad`) without.
 - Quad (compute) programs that port GLSL window-space math keep it: `glCoords` gives the GL fragment uv (bottom-up),
   `read_<name>` takes such a uv and flips it to the texture rows, offsets and bounds stay in GL space; their own GL
   projection uniforms keep the `[-1, 1]` formulas (only the global block holds `[0, 1]` matrices).

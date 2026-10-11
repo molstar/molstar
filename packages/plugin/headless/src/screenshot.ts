@@ -157,7 +157,12 @@ export class HeadlessScreenshotHelper {
       // also keeps `gpu` alive with the context, collecting it while its device is in use crashes Dawn's Node.js bindings
       requestDevice: () => requestWebGPUDevice('default', gpu),
     });
-    return new HeadlessScreenshotHelper(externalModules, canvasSize, createHeadlessCanvas3D(graphics, options), options);
+    return new HeadlessScreenshotHelper(
+      externalModules,
+      canvasSize,
+      createHeadlessCanvas3D(graphics, options),
+      options,
+    );
   }
 
   private async getImageData(runtime: RuntimeContext, width: number, height: number): Promise<RawImageData> {

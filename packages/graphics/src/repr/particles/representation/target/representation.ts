@@ -39,7 +39,7 @@ export { ParticleTargetRepresentationParams };
 export type { ParticleTargetRepresentationProps };
 
 export interface ParticleTargetRepresentation
-  extends Representation<ParticleList, ParticleTargetRepresentationParams> { }
+  extends Representation<ParticleList, ParticleTargetRepresentationParams> {}
 
 export type ParticleTargetRepresentationProvider<Id extends string = string> = RepresentationProvider<
   ParticleList,

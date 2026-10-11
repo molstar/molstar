@@ -156,9 +156,12 @@ function checkVariant(shaderCode: ShaderCode, schema: RenderableSchema, values: 
   const defines = getProgramDefines(shaderCode, values, getComputePrefixDefines(shaderCode, isWebGL2));
   defines.set('__VERSION__', isWebGL2 ? '300' : '100');
   const declarations = getShaderDeclarations(schema, isWebGL2, getDefineLookup(defines.keys()));
-  const sources = [declarations.vert, getGlslProgram(shaderCode.name).vert, declarations.frag, getGlslProgram(shaderCode.name).frag].map((s) =>
-    unrollLoops(replaceCounts(s, values)),
-  );
+  const sources = [
+    declarations.vert,
+    getGlslProgram(shaderCode.name).vert,
+    declarations.frag,
+    getGlslProgram(shaderCode.name).frag,
+  ].map((s) => unrollLoops(replaceCounts(s, values)));
   for (const source of sources) {
     const kept = preprocessShader(source, defines);
     expect(withoutDefines(kept)).toBe(withoutDefines(preprocessGlsl(source, defines)));

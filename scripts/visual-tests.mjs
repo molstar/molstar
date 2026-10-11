@@ -38,7 +38,10 @@ const AllProfiles = [...WebGLProfiles, 'webgpu'];
 
 /** Profiles that uncommitted changes can affect */
 function getChangedProfiles() {
-  const git = (a) => spawnSync('git', a, { cwd: root, encoding: 'utf8' }).stdout.split('\n').filter((l) => l);
+  const git = (a) =>
+    spawnSync('git', a, { cwd: root, encoding: 'utf8' })
+      .stdout.split('\n')
+      .filter((l) => l);
   const files = [...git(['diff', '--name-only', 'HEAD']), ...git(['ls-files', '--others', '--exclude-standard'])];
   const sources = files.filter((f) => /\.(ts|tsx|mjs|js)$/.test(f) && !f.startsWith('.v6/'));
   if (sources.length === 0) return [];
@@ -49,7 +52,9 @@ function getChangedProfiles() {
   return AllProfiles;
 }
 
-const profiles = args.includes('--changed') ? getChangedProfiles() : value('--profiles', AllProfiles.join(',')).split(',');
+const profiles = args.includes('--changed')
+  ? getChangedProfiles()
+  : value('--profiles', AllProfiles.join(',')).split(',');
 const filter = value('--filter');
 const tags = value('--tags');
 const shards = Number(value('--shards', '8'));
@@ -123,7 +128,8 @@ async function runShard(browser, origin, profile, shard) {
         fs.mkdirSync(dir, { recursive: true });
         for (const kind of ['target', 'reference', 'diff']) {
           const url = await image(kind);
-          if (url) fs.writeFileSync(path.join(dir, `${fileName(r.id)}.${kind}.png`), Buffer.from(url.split(',')[1], 'base64'));
+          if (url)
+            fs.writeFileSync(path.join(dir, `${fileName(r.id)}.${kind}.png`), Buffer.from(url.split(',')[1], 'base64'));
         }
       }
     }
@@ -154,7 +160,10 @@ async function main() {
   }
   if (!args.includes('--no-build')) {
     console.log('building the visual tests ...');
-    const r = spawnSync(process.execPath, ['scripts/esbuild/visual-tests.mjs', '--no-watch'], { cwd: root, stdio: 'inherit' });
+    const r = spawnSync(process.execPath, ['scripts/esbuild/visual-tests.mjs', '--no-watch'], {
+      cwd: root,
+      stdio: 'inherit',
+    });
     if (r.status !== 0) process.exit(r.status ?? 1);
   }
 
@@ -194,7 +203,11 @@ async function main() {
     const changed = rows.filter((r) => r.compare === 'changed');
     const added = rows.filter((r) => r.compare === 'new');
     failed ||= bad.length > 0 || changed.length > 0;
-    console.log(`${profile}: ${Object.entries(counts).map(([k, n]) => `${n} ${k}`).join(', ')}`);
+    console.log(
+      `${profile}: ${Object.entries(counts)
+        .map(([k, n]) => `${n} ${k}`)
+        .join(', ')}`,
+    );
     for (const r of bad) {
       const m = r.metrics ? ` (${r.metrics.diffPixels} px differ)` : '';
       console.log(`  ${r.status} ${r.id}${m}${r.errors?.length ? `: ${r.errors.join(' | ').slice(0, 300)}` : ''}`);
@@ -203,10 +216,14 @@ async function main() {
       console.log(`  changed vs ${compareDir}: ${changed.length ? changed.map((r) => r.id).join(', ') : 'none'}`);
       if (added.length) console.log(`  new (not in ${compareDir}): ${added.map((r) => r.id).join(', ')}`);
     }
-    const consoleErrors = [...new Set(parts.flatMap((p) => p.consoleErrors))].filter((e) => !/Failed to load resource/.test(e));
+    const consoleErrors = [...new Set(parts.flatMap((p) => p.consoleErrors))].filter(
+      (e) => !/Failed to load resource/.test(e),
+    );
     for (const e of consoleErrors.slice(0, 10)) console.log(`  console: ${e.slice(0, 300)}`);
   }
-  console.log(`${jobs.length} pages (${profiles.length} profiles x ${shards} shards) in ${((Date.now() - start) / 1000).toFixed(0)} s`);
+  console.log(
+    `${jobs.length} pages (${profiles.length} profiles x ${shards} shards) in ${((Date.now() - start) / 1000).toFixed(0)} s`,
+  );
   process.exit(failed ? 1 : 0);
 }
 

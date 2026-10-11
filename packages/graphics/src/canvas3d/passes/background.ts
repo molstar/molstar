@@ -130,20 +130,20 @@ export class BackgroundPass {
 
   private skybox:
     | {
-      texture: Texture;
-      props: SkyboxProps;
-      assets: Asset[];
-      loaded: boolean;
-    }
+        texture: Texture;
+        props: SkyboxProps;
+        assets: Asset[];
+        loaded: boolean;
+      }
     | undefined;
 
   private image:
     | {
-      texture: Texture;
-      props: ImageProps;
-      asset: Asset;
-      loaded: boolean;
-    }
+        texture: Texture;
+        props: ImageProps;
+        asset: Asset;
+        loaded: boolean;
+      }
     | undefined;
 
   private readonly camera = new Camera();

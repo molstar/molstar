@@ -115,8 +115,8 @@ export const TunnelShapeParams = {
 export class TunnelStateObject extends PluginStateObject.Create<{ tunnel: Tunnel }>({
   name: 'Tunnel Entry',
   typeClass: 'Data',
-}) { }
+}) {}
 export class TunnelsStateObject extends PluginStateObject.Create<{ tunnels: Tunnel[] }>({
   name: 'Tunnels',
   typeClass: 'Data',
-}) { }
+}) {}

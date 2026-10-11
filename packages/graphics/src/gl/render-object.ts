@@ -54,22 +54,22 @@ export type RenderObjectType =
 export type RenderObjectValues<T extends RenderObjectType> = T extends 'mesh'
   ? MeshValues
   : T extends 'points'
-  ? PointsValues
-  : T extends 'spheres'
-  ? SpheresValues
-  : T extends 'cylinders'
-  ? CylindersValues
-  : T extends 'text'
-  ? TextValues
-  : T extends 'lines'
-  ? LinesValues
-  : T extends 'direct-volume'
-  ? DirectVolumeValues
-  : T extends 'image'
-  ? ImageValues
-  : T extends 'texture-mesh'
-  ? TextureMeshValues
-  : never;
+    ? PointsValues
+    : T extends 'spheres'
+      ? SpheresValues
+      : T extends 'cylinders'
+        ? CylindersValues
+        : T extends 'text'
+          ? TextValues
+          : T extends 'lines'
+            ? LinesValues
+            : T extends 'direct-volume'
+              ? DirectVolumeValues
+              : T extends 'image'
+                ? ImageValues
+                : T extends 'texture-mesh'
+                  ? TextureMeshValues
+                  : never;
 
 //
 

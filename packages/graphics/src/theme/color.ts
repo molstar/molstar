@@ -66,10 +66,10 @@ type ColorThemeDirect<P extends PD.Params> = {
 type ColorTheme<P extends PD.Params, G extends ColorType = ColorTypeLocation> = G extends ColorTypeLocation
   ? ColorThemeLocation<P>
   : G extends ColorTypeGrid
-  ? ColorThemeGrid<P>
-  : G extends ColorTypeDirect
-  ? ColorThemeDirect<P>
-  : never;
+    ? ColorThemeGrid<P>
+    : G extends ColorTypeDirect
+      ? ColorThemeDirect<P>
+      : never;
 
 namespace ColorTheme {
   export const Category = ColorThemeCategory;
@@ -158,7 +158,7 @@ namespace ColorTheme {
   }
 
   export interface Provider<P extends PD.Params = any, Id extends string = string, G extends ColorType = ColorType>
-    extends ThemeProvider<ColorTheme<P, G>, P, Id, G> { }
+    extends ThemeProvider<ColorTheme<P, G>, P, Id, G> {}
   export const EmptyProvider: Provider<{}> = {
     name: '',
     label: '',

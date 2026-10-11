@@ -46,7 +46,7 @@ export const ParticleParams = {
 export type ParticleParams = typeof ParticleParams;
 
 export type ParticleKey = { particles: ParticleList };
-export interface ParticleVisual<P extends ParticleParams> extends Visual<ParticleKey, P> { }
+export interface ParticleVisual<P extends ParticleParams> extends Visual<ParticleKey, P> {}
 
 export function createParticleTransform(
   particles: ParticleList,

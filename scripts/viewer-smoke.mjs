@@ -108,7 +108,9 @@ async function check(browser, origin, backend) {
   const canvas = await page.waitForSelector('canvas', { timeout: 60000 });
 
   // the backend the Viewer ended up with (`webgpu` falls back to WebGL where unavailable)
-  const actual = await page.evaluate(() => (document.querySelector('canvas')?.getContext('webgpu') ? 'webgpu' : 'webgl'));
+  const actual = await page.evaluate(() =>
+    document.querySelector('canvas')?.getContext('webgpu') ? 'webgpu' : 'webgl',
+  );
   if (actual !== backend) {
     await page.close();
     if (backend === 'webgpu' && !requireWebGPU) return { backend, skipped: 'WebGPU not available' };

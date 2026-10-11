@@ -60,7 +60,9 @@ export function checkCylinderImpostorSupport(graphics?: GraphicsContext) {
     }
   } else if (!graphics.capabilities.fragDepth) {
     if (isDebugMode && !CylinderImpostorWarningShown) {
-      console.warn('Missing "fragDepth" capability required for "cylinder impostors". Falling back to "cylinder mesh".');
+      console.warn(
+        'Missing "fragDepth" capability required for "cylinder impostors". Falling back to "cylinder mesh".',
+      );
       CylinderImpostorWarningShown = true;
     }
   } else {

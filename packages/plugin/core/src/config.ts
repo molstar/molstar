@@ -48,7 +48,10 @@ export const PluginConfig = {
      * Graphics backends tried in order, e.g. `[WebGPUBackend, WebGL2Backend, WebGLBackend]`; WebGL by default
      * (WebGL1 only with `PreferWebGl1`)
      */
-    GraphicsBackends: item<readonly GraphicsBackendDescriptor[] | undefined>('plugin-config.graphics-backends', undefined),
+    GraphicsBackends: item<readonly GraphicsBackendDescriptor[] | undefined>(
+      'plugin-config.graphics-backends',
+      undefined,
+    ),
     // as of Oct 1 2021, WebGL 2 doesn't work on iOS 15.
     // TODO: check back in a few weeks to see if it was fixed
     PreferWebGl1: item('plugin-config.prefer-webgl1', PluginFeatureDetection.preferWebGl1),

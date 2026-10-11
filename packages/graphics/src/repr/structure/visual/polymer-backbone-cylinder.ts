@@ -126,7 +126,7 @@ export function PolymerBackboneCylinderImpostorVisual(materialId: number): Units
         state: VisualUpdateState,
         newProps: PD.Values<PolymerBackboneCylinderParams>,
         currentProps: PD.Values<PolymerBackboneCylinderParams>,
-      ) => { },
+      ) => {},
       mustRecreate: (
         structureGroup: StructureGroup,
         props: PD.Values<PolymerBackboneCylinderParams>,

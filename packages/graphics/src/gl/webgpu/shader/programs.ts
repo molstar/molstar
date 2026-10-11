@@ -52,7 +52,11 @@ const PortedVariants = ['colorBlended', 'colorWboit', 'colorDpoit', 'pick', 'dep
 const InstanceTypes = new Set(['uniform', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance']);
 
 /** Features the ported color variants share and don't implement yet */
-function getUnsupported(geometryTypes: string | string[], defines: DefineValues, options: { solidInterior?: boolean } = {}) {
+function getUnsupported(
+  geometryTypes: string | string[],
+  defines: DefineValues,
+  options: { solidInterior?: boolean } = {},
+) {
   const variant = value(defines, 'dRenderVariant');
   if (!PortedVariants.includes(variant as string)) {
     return `render variant '${variant}'`;
