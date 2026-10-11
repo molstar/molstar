@@ -30,16 +30,23 @@ Done:
 
 ## 2. Next
 
-1. **Prism hosts it** (the integration step of [../prism-ui/plan.md](../prism-ui/plan.md)): commands as tools, `execute`
-   as the handler, the drive, origins, one undo step per turn through the mode's checkpointer ([harness.md](harness.md)
-   §18).
-2. **The tool layer and the session** (in progress): `@molstar/ai-tools` and `@molstar/ai-session`, ported from Stories'
-   agent with its story cut out ([tools-and-session.md](tools-and-session.md)); then `@molstar/ai-trace`, `ai-fibers`,
-   `ai-toolscript` ([analysis/viewer-mode.md](analysis/viewer-mode.md) §7).
-3. **An MCP server** over the same tools, for headless and outside agents.
-4. **Evals** (later): `@molstar/ai-evals`, the common part of Stories' evals (`evals/`, `apps/eval`: scenarios run
-   against real models, metering, baselines, the trace of each run), with each mode's scenarios in its `agent` folder.
-5. **Jest to ESM** for the whole repository, then `jest:ai` folds into `jest`.
-6. **The suite waits on conditions.** Some cases wait a fixed number of event-loop rounds for work that includes
-   WebCrypto hashing; on fake IndexedDB under load that loses the race now and then (it did under Vitest too), so that
-   file retries its cases. Waiting on what each case needs (as S3 now waits for its tool to start) removes the retries.
+In this order (reordered 2026-10-12; [analysis/viewer-mode.md](analysis/viewer-mode.md) §7):
+
+1. **The tool layer and the session**: `@molstar/ai-tools` (done) and `@molstar/ai-session`, ported from Stories' agent
+   with its story cut out ([tools-and-session.md](tools-and-session.md)).
+2. **`@molstar/ai-trace` and the Inspector** (Trace, Tools, Limits), on mock data until a session feeds them.
+3. **`@molstar/ai-fibers`**: the kernel, the host, the backends in `ai-components`, the conformance.
+4. **PD → field shape** (and so JSON Schema), for commands as tools.
+5. **Pause**: one plan with the Prism UI's, and the sequence viewer. Then Prism hosts it (the integration step of
+   [../prism-ui/plan.md](../prism-ui/plan.md): commands as tools, `execute` as the handler, the drive, origins, one undo
+   step per turn through the mode's checkpointer, [harness.md](harness.md) §18), the skills, `ai-toolscript` and
+   `mvs-code`, the MCP server over the same tools.
+
+Later:
+
+- **Evals**: `@molstar/ai-evals`, the common part of Stories' evals (`evals/`, `apps/eval`: scenarios run against real
+  models, metering, baselines, the trace of each run), with each mode's scenarios in its `agent` folder.
+- **Jest to ESM** for the whole repository, then `jest:ai` folds into `jest`.
+- **The suite waits on conditions.** Some cases wait a fixed number of event-loop rounds for work that includes
+  WebCrypto hashing; on fake IndexedDB under load that loses the race now and then (it did under Vitest too), so that
+  file retries its cases. Waiting on what each case needs (as S3 now waits for its tool to start) removes the retries.

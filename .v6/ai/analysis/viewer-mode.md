@@ -185,14 +185,19 @@ Port plan:
 
 ## 7. Order
 
-1. `@molstar/ai-tools` and `@molstar/ai-session`, ported with their tests, the seams cut and the fixes above.
-2. Prism: command metadata and the PD → JSON Schema converter, the selection param and resolver, the core commands of
-   §2, the state and focus accounts, the checkpointer, `AgentModel` over `AgentSession`: a working assistant in the
-   viewer mode.
-3. The selections skill and the viewer's system prompt.
-4. `@molstar/ai-trace` and the Inspector (Trace first, then Tools, then Limits).
-5. `@molstar/ai-fibers` and History over it.
-6. Compaction (needed once turns get long), then the other skills.
+Reordered 2026-10-12: the generic packages and the self-contained ports first; the rest waits for a plan reconciled with
+the Prism UI's and for the sequence viewer.
+
+1. `@molstar/ai-tools` (done) and `@molstar/ai-session`, ported with their tests, the seams cut and the fixes above.
+2. `@molstar/ai-trace` and the Inspector (Trace first, then Tools, then Limits), the views on mock trace data until a
+   session feeds them.
+3. `@molstar/ai-fibers`: the kernel, the host, the backends in `ai-components`, the conformance.
+4. The PD → field shape converter (and so JSON Schema), for commands as tools.
+5. **Pause**: reconcile this plan with the Prism UI's ([../../prism-ui/plan.md](../../prism-ui/plan.md)) and bring in
+   the sequence viewer. Then, in an order decided there: Prism's side (command metadata, the selection param and
+   resolver, the core commands of §2, the state and focus accounts, the checkpointer, `AgentModel` over `AgentSession`:
+   a working assistant in the viewer mode), the selections skill and the viewer's system prompt, History over fibers,
+   compaction in use, the other skills, `ai-toolscript` and `mvs-code`, the MCP server, evals.
 
 ## 8. Decided (2026-10-11)
 
