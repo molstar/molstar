@@ -470,10 +470,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-compactStatus {
-  gap: var(--msp-space-2);
-  padding: var(--msp-space-2);
   background: var(--msp-color-panel);
-  border-top: 1px solid var(--msp-glass-edge);
   grid-area: status;
   display: grid;
 
@@ -483,8 +480,28 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
   & .msp-shell-canvas-status, & .msp-shell-canvas-context {
     grid-area: auto;
-    justify-content: flex-start;
+    justify-content: stretch;
     justify-self: stretch;
+    gap: 0;
+    display: grid;
+  }
+
+  & .msp-shell-canvas-progress {
+    flex: 1;
+  }
+
+  & .msp-shell-canvas-status:empty, & .msp-shell-canvas-context:empty {
+    display: none;
+  }
+
+  & .msp-shell-canvas-pill {
+    width: 100%;
+    max-width: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    border-top: 1px solid var(--msp-glass-edge);
+    background: none;
+    border-radius: 0;
   }
 }
 

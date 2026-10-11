@@ -180,7 +180,7 @@ export function ShellView(props: ShellViewProps) {
       {/* Compact: progress and the selection docked under the canvas, not over it. */}
       <Show when={compact}>
         {() => (
-          <div class={canvasClasses.compactStatus}>
+          <div class={canvasClasses.compactStatus} data-docked="">
             <StatusLine status={status} onOpenLog={props.onOpenLog} />
             <ContextChips status={status} lead={props.context?.()} />
           </div>

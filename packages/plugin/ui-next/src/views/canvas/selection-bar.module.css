@@ -56,3 +56,19 @@
     color: var(--msp-color-text);
   }
 }
+
+/* Docked (compact): a plain full-width row like the status rows around it. */
+:where([data-docked]) .bar {
+  width: 100%;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-top: 1px solid var(--msp-glass-edge);
+  animation: none;
+}
+
+:where([data-docked]) .summary {
+  flex: 1;
+}

@@ -463,14 +463,12 @@
   animation: tool-menu-in var(--msp-motion-fast) var(--msp-ease);
 }
 
-/* Compact: progress and the selection docked between the canvas and the sheet (progress first, selection below). */
+/* Compact: progress and the selection docked between the canvas and the sheet (progress first, selection below),
+   as plain full-width rows: no glass, no rounding, a hairline between them. */
 .compactStatus {
   grid-area: status;
   display: grid;
-  gap: var(--msp-space-2);
-  padding: var(--msp-space-2);
   background: var(--msp-color-panel);
-  border-top: 1px solid var(--msp-glass-edge);
 
   &:empty {
     display: none;
@@ -479,8 +477,31 @@
   & .status,
   & .context {
     grid-area: auto;
+    display: grid;
     justify-self: stretch;
-    justify-content: flex-start;
+    justify-content: stretch;
+    gap: 0;
+  }
+
+  /* A task's bar takes the row, its ✕ at the end. */
+  & .progress {
+    flex: 1;
+  }
+
+  & .status:empty,
+  & .context:empty {
+    display: none;
+  }
+
+  & .pill {
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-top: 1px solid var(--msp-glass-edge);
   }
 }
 
