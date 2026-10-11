@@ -1,0 +1,293 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Flat glass over the canvas, like the other cards. */
+.card {
+  display: flex;
+  flex-direction: column;
+  width: min(380px, calc(100cqw - 2 * var(--msp-space-4)));
+  max-height: min(420px, 60cqh);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: 34px;
+  padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
+}
+
+.spark {
+  flex: none;
+  color: var(--msp-color-accent);
+
+  .card:is([data-status="thinking"], [data-status="working"]) & {
+    animation: spark-pulse 1.4s var(--msp-ease) infinite;
+  }
+}
+
+@keyframes spark-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.prompt {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.state {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+
+  .card[data-status="waiting"] & {
+    color: var(--msp-color-accent);
+  }
+
+  .card[data-status="failed"] & {
+    color: var(--msp-color-danger);
+  }
+}
+
+.icon,
+.stop {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--msp-space-1);
+  height: 24px;
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.icon {
+  width: 24px;
+}
+
+.stop {
+  padding: 0 var(--msp-space-2);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-xs);
+}
+
+.body {
+  flex: 0 1 auto;
+}
+
+.bodyContent {
+  display: grid;
+  gap: var(--msp-space-2);
+  padding: 0 var(--msp-space-3) var(--msp-space-2);
+}
+
+.text {
+  margin: 0;
+  line-height: 1.45;
+
+  /* Still coming: quieter until the turn ends. */
+  &[data-streaming] {
+    color: var(--msp-color-text-muted);
+  }
+}
+
+.note {
+  margin: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.runs {
+  display: grid;
+}
+
+/* A run: its mark, what it does, how long it took; its outcome under it, a thin progress line while it reports one. */
+.run {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--msp-space-2);
+  min-height: 24px;
+  padding: 2px 0;
+
+  &[data-read] {
+    color: var(--msp-color-text-muted);
+  }
+}
+
+.mark {
+  color: var(--msp-color-text-subtle);
+
+  .run[data-status="running"] & {
+    color: var(--msp-color-text);
+    animation: spin 0.9s linear infinite;
+  }
+
+  .run[data-status="waiting"] & {
+    color: var(--msp-color-accent);
+  }
+
+  .run[data-status="failed"] & {
+    color: var(--msp-color-danger);
+  }
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.runTitle {
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+
+  .run[data-status="stopped"] &,
+  .run[data-status="denied"] & {
+    color: var(--msp-color-text-subtle);
+    text-decoration: line-through;
+  }
+}
+
+.runTime {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.runDetail {
+  grid-column: 2 / -1;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+
+  .run[data-status="failed"] & {
+    color: var(--msp-color-danger);
+  }
+}
+
+.bar {
+  grid-column: 2 / -1;
+  height: 2px;
+  margin-top: 2px;
+  overflow: hidden;
+  border-radius: 1px;
+  background: var(--msp-color-control);
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  background: var(--msp-color-text-muted);
+  transition: width var(--msp-motion-fast) var(--msp-ease);
+}
+
+/* A run waiting for the person: the question and the answers, set apart by the accent's soft wash. */
+.approval {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  margin: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: var(--msp-space-2) var(--msp-space-2) var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 88%);
+}
+
+.approvalText {
+  flex: 1;
+  min-width: 0;
+}
+
+.approvalWhy {
+  display: block;
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+}
+
+.deny,
+.allow {
+  flex: none;
+  height: 24px;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.deny {
+  color: var(--msp-color-text-muted);
+}
+
+.allow {
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 80%);
+  color: var(--msp-color-accent-strong);
+  font-weight: 600;
+
+  &:hover {
+    background: color-mix(in oklab, var(--msp-color-accent), transparent 70%);
+  }
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: 32px;
+  padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
+  box-shadow: inset 0 1px 0 var(--msp-glass-edge);
+}
+
+.summary {
+  flex: 1;
+  min-width: 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.undo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 24px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-accent-strong);
+  font-weight: 600;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}

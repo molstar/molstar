@@ -88,6 +88,8 @@ const ICONS = [
   'sun',
   'moon',
   'sun-moon',
+  'ban',
+  'hourglass',
   'sparkles',
   'sliders-horizontal',
   'panel-right',

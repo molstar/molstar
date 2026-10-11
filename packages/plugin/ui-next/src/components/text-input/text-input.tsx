@@ -14,7 +14,9 @@ export interface TextInputProps {
   onInput?(value: string): void;
   /** Enter pressed. */
   onSubmit?(value: string): void;
-  placeholder?: string;
+  placeholder?: MaybeReactive<string>;
+  /** A secret (an API key): its characters hidden. */
+  type?: 'text' | 'password';
   /** A search or filter field: Escape empties it (then, empty, lets Escape through to close what it is in). */
   search?: boolean;
   size?: 'sm' | 'md';
@@ -26,7 +28,7 @@ export interface TextInputProps {
 export function TextInput(props: TextInputProps) {
   return (
     <input
-      type="text"
+      type={props.type ?? 'text'}
       class={`${classes.input} ${props.class ?? ''}`}
       data-size={props.size ?? 'md'}
       value={props.value}

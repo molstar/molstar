@@ -479,7 +479,7 @@ export function mockCommands(
     title,
     category,
     group: 'preset',
-    icon: 'sparkles',
+    icon: 'layers',
     run: () => done(`Preset: ${title}`),
   });
   commands.push(
@@ -529,7 +529,7 @@ export function mockCommands(
   manager.register(commands);
   // The command tree for browsing (search finds everything either way).
   manager.registerGroups([
-    { id: 'preset', title: 'Preset', icon: 'sparkles', order: -2 },
+    { id: 'preset', title: 'Preset', icon: 'layers', order: -2 },
     { id: 'styles', title: 'Styles', icon: 'paintbrush', order: -1 },
     { id: 'select', title: 'Select', icon: 'mouse-pointer-click', order: 0 },
     { id: 'select.query', title: 'By query', icon: 'list-tree', parent: 'select', order: 0 },

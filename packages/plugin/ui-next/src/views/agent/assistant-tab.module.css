@@ -1,0 +1,27 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.tab {
+  flex: 1 1 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.content {
+  display: grid;
+  align-content: start;
+  gap: var(--msp-space-4);
+  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  font-size: var(--msp-font-size-sm);
+}
+
+.hint {
+  margin: 0;
+  padding: 0 var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.45;
+}

@@ -9,6 +9,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'agent': 'msp-shell-canvas-agent',
   'bottom': 'msp-shell-canvas-bottom',
   'bottomGrid': 'msp-shell-canvas-bottomGrid',
   'busy': 'msp-shell-canvas-busy',
@@ -332,6 +333,18 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   pointer-events: none;
   position: absolute;
   container: bottom-bar / inline-size;
+}
+
+.msp-shell-canvas-agent {
+  margin-bottom: var(--msp-space-2);
+
+  &:empty {
+    display: none;
+  }
+
+  & > * {
+    pointer-events: auto;
+  }
 }
 
 .msp-shell-canvas-bottomGrid {

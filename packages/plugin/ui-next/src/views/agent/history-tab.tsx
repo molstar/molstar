@@ -1,0 +1,147 @@
+/** @jsxImportSource @molstar/plugin-ui-next/dom */
+
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { combineLatest, distinctUntilChanged, filter, map, type Observable } from 'rxjs';
+import { Icon } from '../../components/icon/icon.js';
+import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
+import { For, Show } from '../../dom/control-flow.js';
+import type { AgentModel, AgentTurn, HistoryItem } from '../../model/agent.js';
+import { observableState } from '../../reactive/observable-state.js';
+import type { StatusModel } from '../../shell/status.js';
+import { LogView } from '../shell/log-view.js';
+import { isRunning, RunList, RunRow, turnSummary } from './agent-turn.js';
+import { classes } from './_generated/history-tab.module.css.js';
+
+const keyOf = (h: HistoryItem) => (h.kind === 'run' ? h.run.id : h.turn.id);
+
+function ago(time: Date) {
+  const s = Math.max(0, (Date.now() - time.getTime()) / 1000);
+  if (s < 45) return 'just now';
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  return time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+/**
+ * The History tab (the Log grown up, design/agent.md §5): every command, newest first, the person's one by one and an
+ * agent's grouped under its request, with the checkpoint before it (Undo turn); the status messages under Messages.
+ */
+export function HistoryTab(props: { agent: AgentModel; status: StatusModel }) {
+  const { agent } = props;
+  const view = observableState<'commands' | 'messages'>('commands');
+  const newestFirst = agent.history.pipe(map((h) => h.slice().reverse()));
+  return (
+    <div class={classes.tab}>
+      <div class={classes.switch} role="tablist" aria-label="History">
+        {(['commands', 'messages'] as const).map((v) => (
+          <button
+            type="button"
+            role="tab"
+            class={classes.switchButton}
+            aria-selected={view.asReadonly.pipe(map((x) => x === v))}
+            onClick={() => view.set(v)}
+          >
+            {v === 'commands' ? 'Commands' : 'Messages'}
+          </button>
+        ))}
+      </div>
+      <Show
+        when={view.asReadonly.pipe(map((v) => v === 'commands'))}
+        fallback={() => <LogView status={props.status} />}
+      >
+        {() => (
+          <ScrollArea class={classes.list} contentClass={classes.listContent} role="log" aria-label="Commands">
+            <For
+              each={newestFirst}
+              key={keyOf}
+              fallback={() => (
+                <p class={classes.empty}>Nothing run yet. Commands and the assistant’s work show here.</p>
+              )}
+            >
+              {(item) =>
+                item.kind === 'run' ? (
+                  <div class={classes.item}>
+                    <RunRow run={agent.history.pipe(map(() => item.run))} />
+                    <span class={classes.when}>{ago(item.run.time)}</span>
+                  </div>
+                ) : (
+                  <TurnItem
+                    agent={agent}
+                    turn={agent.history.pipe(
+                      map((h) => h.find((x) => x.kind === 'turn' && x.turn.id === item.turn.id)),
+                      filter((x): x is { kind: 'turn'; turn: AgentTurn } => !!x && x.kind === 'turn'),
+                      map((x) => x.turn),
+                      distinctUntilChanged(),
+                    )}
+                    id={item.turn.id}
+                    time={item.turn.time}
+                  />
+                )
+              }
+            </For>
+          </ScrollArea>
+        )}
+      </Show>
+    </div>
+  );
+}
+
+/** An agent's turn: who and what was asked, its answer, its commands (folded once done), and its checkpoint. */
+function TurnItem(props: { agent: AgentModel; turn: Observable<AgentTurn>; id: string; time: Date }) {
+  const { agent, turn, id } = props;
+  const open = observableState(false);
+  const running = turn.pipe(map(isRunning), distinctUntilChanged());
+  const undone = turn.pipe(
+    map((t) => !!t.undone),
+    distinctUntilChanged(),
+  );
+  return (
+    <section
+      class={classes.turn}
+      data-undone={undone.pipe(map((u) => (u ? '' : undefined)))}
+      aria-label="Assistant turn"
+    >
+      <div class={classes.turnHead}>
+        <Icon name="sparkles" size={14} class={classes.spark} />
+        <span class={classes.who}>
+          {turn.pipe(map((t) => (t.source.kind === 'agent' ? t.source.name : 'Assistant')))}
+        </span>
+        <span class={classes.when}>{ago(props.time)}</span>
+      </div>
+      <p class={classes.prompt}>“{turn.pipe(map((t) => t.prompt))}”</p>
+      <Show when={turn.pipe(map((t) => (isRunning(t) ? '' : t.text)))}>
+        {(text) => <p class={classes.answer}>{text}</p>}
+      </Show>
+      <button type="button" class={classes.fold} aria-expanded={open.asReadonly} onClick={() => open.set(!open.value)}>
+        <span>{turn.pipe(map(turnSummary))}</span>
+        <Icon name="chevron-down" size={14} class={classes.chevron} />
+      </button>
+      {/* Its commands: shown while it runs, folded once it is done. */}
+      <Show when={combineLatest([open.asReadonly, running]).pipe(map(([o, r]) => o || r))}>
+        {() => <RunList turn={turn} class={classes.runs} />}
+      </Show>
+      {/* The checkpoint taken before its first change: Undo turn goes back to it. */}
+      <Show when={turn.pipe(map((t) => t.checkpoint && !isRunning(t)))}>
+        {() => (
+          <div class={classes.checkpoint}>
+            <Icon name="undo-2" size={12} class={classes.checkpointMark} />
+            <span class={classes.checkpointText}>
+              {undone.pipe(map((u) => (u ? 'Undone: back to the checkpoint before it' : 'Checkpoint before it')))}
+            </span>
+            <Show when={undone.pipe(map((u) => !u))}>
+              {() => (
+                <button type="button" class={classes.undo} onClick={() => agent.undo(id)}>
+                  Undo turn
+                </button>
+              )}
+            </Show>
+          </div>
+        )}
+      </Show>
+    </section>
+  );
+}

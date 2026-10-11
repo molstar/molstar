@@ -324,6 +324,19 @@
   pointer-events: none;
 }
 
+/* The assistant's turn card, above the status line. */
+.agent {
+  margin-bottom: var(--msp-space-2);
+
+  &:empty {
+    display: none;
+  }
+
+  & > * {
+    pointer-events: auto;
+  }
+}
+
 .bottomGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

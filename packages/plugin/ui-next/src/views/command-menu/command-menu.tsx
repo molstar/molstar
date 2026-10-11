@@ -31,6 +31,51 @@ export interface CommandMenuProps {
   prefixes?: readonly CommandMenuPrefix[];
   /** Opens inside this group (the Structure tab's Preset and Styles buttons open theirs). */
   group?: string;
+  /** The assistant (when the spec turns AI on): typed words get an Ask row (design/agent.md §5). */
+  assistant?: CommandMenuAssistant;
+}
+
+/**
+ * What the command menu asks of the assistant: words read into one command (any-ui's `assist`: it proposes, nothing
+ * runs until Enter), or the request handed to the agent; without a model, the setup.
+ */
+export interface CommandMenuAssistant {
+  ready(): boolean;
+  /** A command these words fit, with them read as its arguments (the filled sentence opens), if one does. */
+  propose(text: string): { command: string; tail?: string } | undefined;
+  /** Hands the request to the agent: a turn of its own. */
+  ask(text: string): void;
+  /** Opens the model setup. */
+  setup(): void;
+}
+
+/** The Ask row: the assistant proposes a command (its sentence opens, filled) or takes the request as a turn. */
+function askItem(props: CommandMenuProps, manager: CommandManager<any>, text: string): CommandMenuItem {
+  const assistant = props.assistant!;
+  const words = text.trim();
+  if (!assistant.ready())
+    return {
+      id: 'assistant-setup',
+      label: 'Set up the assistant to ask',
+      detail: `“${words}”`,
+      icon: 'sparkles',
+      run: () => assistant.setup(),
+    };
+  return {
+    id: 'assistant-ask',
+    label: 'Ask the assistant',
+    detail: `“${words}”`,
+    icon: 'sparkles',
+    run: () => {
+      const proposal = assistant.propose(words);
+      if (proposal) {
+        const r = manager.open(proposal.command, proposal.tail);
+        // Proposed: the sentence opens filled in, and nothing runs until Enter.
+        return r.kind === 'form';
+      }
+      assistant.ask(words);
+    },
+  };
 }
 
 /** One thing a prefix offers (a scene node for `@`, a snapshot for `#`, …). */
@@ -164,6 +209,14 @@ function ListMode(props: CommandMenuProps) {
       for (const gr of groups) add({ kind: 'group', group: gr, index: 0 });
       for (const m of q.matches)
         if (m.command !== q.direct?.command && within(m)) add({ kind: 'match', match: m, index: 0 });
+      // The assistant takes the words: last, or first when nothing matched.
+      if (props.assistant && g === undefined) {
+        const ask = { kind: 'item' as const, item: askItem(props, manager, t), index: 0 };
+        if (out.length) {
+          add({ kind: 'caption', label: 'Assistant' });
+          add(ask);
+        } else add(ask);
+      }
       return out;
     }),
   );

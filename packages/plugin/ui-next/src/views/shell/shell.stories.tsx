@@ -38,6 +38,10 @@ import { CommandMenu } from '../command-menu/command-menu.js';
 import { type SequenceSelector, SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
 import { LogView } from './log-view.js';
+import { MockAgentModel, mockAssistant } from '../../_stories/mocks/agent.js';
+import { AgentTurnCard } from '../agent/agent-turn.js';
+import { AssistantTab } from '../agent/assistant-tab.js';
+import { HistoryTab } from '../agent/history-tab.js';
 import { MolstarWordmark } from '../../components/icon/wordmark.js';
 import { HomeTab } from '../home/home-tab.js';
 import { ImageExport } from '../export/image-export.js';
@@ -340,9 +344,18 @@ function mockShell(options: {
   preset?: MockScenePreset;
   pinned?: boolean;
   remoteStates?: boolean | number;
+  ai?: { configured?: boolean };
 }) {
   const shell = new ShellModel({ docks: { right: { pinned: !!options.pinned } } });
   const status = new StatusModel();
+  // The agent module, only when the app includes it (design/agent.md §6): the Assistant tab, History, the Ask row, the
+  // turn card. A mock agent with scripted turns stands in for any-harness.
+  const agent = options.ai
+    ? new MockAgentModel((text, kind) => status.post(text, kind), {
+        configured: options.ai.configured,
+        history: options.loaded,
+      })
+    : undefined;
   const canvasMode = observableState<CanvasMode>('interact');
   const commandMenuOpen = observableState(false);
   // The group the command menu opens in (Preset, Styles); none for ⌘K.
@@ -432,14 +445,27 @@ function mockShell(options: {
       render: domView(() => <StateTreeTab model={stateTree} />),
     },
     {
+      // With the agent module: History (the commands, the assistant's turns, and the messages under Messages).
       id: 'log',
-      title: 'Log',
+      title: agent ? 'History' : 'Log',
       icon: 'scroll-text',
       order: 2.5,
       // Not a working panel: with Settings at the rail's foot.
       place: 'foot',
-      render: domView(() => <LogView status={status} />),
+      render: domView(() => (agent ? <HistoryTab agent={agent} status={status} /> : <LogView status={status} />)),
     },
+    ...(agent
+      ? [
+          {
+            id: 'assistant',
+            title: 'Assistant',
+            icon: 'sparkles' as const,
+            order: 2.7,
+            place: 'foot' as const,
+            render: domView(() => <AssistantTab agent={agent} />),
+          },
+        ]
+      : []),
     {
       id: 'settings',
       title: 'Settings',
@@ -567,7 +593,7 @@ function mockShell(options: {
       place: 'canvas',
       group: 'canvas',
       visible: hasData,
-      icon: 'sparkles',
+      icon: 'lightbulb',
       title: 'Illumination & XR',
       pressed: illumination.asReadonly,
       menu: [
@@ -683,6 +709,7 @@ function mockShell(options: {
     snapshots: snapshotStepper,
     trajectory: mockTrajectory(),
     home,
+    agent,
   };
 }
 
@@ -699,6 +726,8 @@ function ShellStory(props: {
   commandMenu?: boolean;
   /** What the loaded data has to play: a session's snapshots, a trajectory's models (plain 1TQN has neither). */
   playback?: { snapshots?: boolean; trajectory?: boolean };
+  /** The app includes the agent module (set up with a model, or not yet). */
+  ai?: { configured?: boolean };
 }) {
   const {
     shell,
@@ -715,10 +744,13 @@ function ShellStory(props: {
     snapshots,
     trajectory,
     home,
+    agent,
   } = mockShell(props);
   // What commands did goes to the status line; ⌘K / ⇧⌘P open the command menu; commands' own shortcuts run them.
   const outcomes = commands.outcomes.subscribe((o) => {
     if (o.kind === 'done' && o.result.message) status.post(o.result.message);
+    // The person's commands go to History, one row each.
+    if (o.kind === 'done') agent?.record(o.result.message ?? o.command.title, o.command.id);
     else if (o.kind === 'failed' || o.kind === 'blocked') status.post(o.message, 'warning');
   });
   const onKey = (e: KeyboardEvent) => {
@@ -781,6 +813,7 @@ function ShellStory(props: {
               manager={commands}
               prefixes={prefixes}
               group={commandMenuGroup.value}
+              assistant={agent ? mockAssistant(agent, () => shell.show('assistant')) : undefined}
               onClose={() => {
                 commandMenuOpen.set(false);
                 commandMenuGroup.set(undefined);
@@ -789,6 +822,7 @@ function ShellStory(props: {
           )}
         </Show>
       }
+      agent={agent ? <AgentTurnCard agent={agent} /> : undefined}
       canvasLead={props.loaded ? modeSwitch : null}
       canvasAside={props.loaded ? pickLevel : null}
       onOpenLog={() => shell.show('log')}
@@ -925,4 +959,19 @@ export const ExpandByContext: StoryObj = {
         </div>
       );
     }),
+};
+
+/**
+ * The agent module included and set up (a mock agent stands in for any-harness): ask from the command menu (⌘K, type
+ * a request, Ask the assistant; “color it red” opens the filled sentence, “show the active site”, “load 1w0e and
+ * superpose it”, “try something broken” run turns), watch the turn card, Allow or Deny a download, Stop, Undo turn;
+ * History at the rail's foot; the Assistant tab with the model and keys.
+ */
+export const Assistant: StoryObj = {
+  render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} ai={{ configured: true }} />}</div>),
+};
+
+/** The agent module included but no model yet: the Assistant tab asks for a key; the Ask row opens it. */
+export const AssistantSetup: StoryObj = {
+  render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} ai={{}} />}</div>),
 };
