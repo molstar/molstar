@@ -273,6 +273,18 @@ function control(param: PD.Any, binding: FieldBinding): Child {
     case 'number':
       return <NumberControl param={param} binding={binding} />;
     case 'text':
+      // Several lines (a description, a script): a field that grows by hand, Enter makes a new line.
+      if (param.multiline) {
+        return (
+          <textarea
+            class={classes.textarea}
+            rows={3}
+            value={binding.value}
+            placeholder={param.placeholder}
+            onChange={(e) => binding.set(e.currentTarget.value)}
+          />
+        );
+      }
       return (
         <input
           class={classes.input}

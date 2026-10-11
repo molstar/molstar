@@ -35,6 +35,7 @@ export const classes = {
   'subSettings': 'msp-params-params-form-subSettings',
   'swatch': 'msp-params-params-form-swatch',
   'switch': 'msp-params-params-form-switch',
+  'textarea': 'msp-params-params-form-textarea',
   'unsupported': 'msp-params-params-form-unsupported',
 } as const;
 
@@ -70,7 +71,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   display: flex;
 }
 
-.msp-params-params-form-input, .msp-params-params-form-number {
+.msp-params-params-form-input, .msp-params-params-form-number, .msp-params-params-form-textarea {
   width: 100%;
   height: 24px;
   padding: 0 var(--msp-space-3);
@@ -82,6 +83,32 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 
   &:hover {
     background: var(--msp-color-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+  }
+
+  &::placeholder {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+.msp-params-params-form-textarea {
+  height: auto;
+  min-height: 56px;
+  padding: var(--msp-space-2) var(--msp-space-3);
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.45;
+}
+
+.msp-params-params-form-row:has(.msp-params-params-form-textarea) {
+  align-items: start;
+
+  & .msp-params-params-form-label {
+    padding-top: var(--msp-space-2);
   }
 }
 
@@ -238,8 +265,16 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   display: grid;
 }
 
-.msp-params-params-form-nested {
+.msp-params-params-form-nested .msp-params-params-form-label {
   padding-left: var(--msp-space-3);
+}
+
+.msp-params-params-form-nested .msp-params-params-form-nested .msp-params-params-form-label {
+  padding-left: calc(2 * var(--msp-space-3));
+}
+
+.msp-params-params-form-nested .msp-params-params-form-nested .msp-params-params-form-nested .msp-params-params-form-label {
+  padding-left: calc(3 * var(--msp-space-3));
 }
 
 .msp-params-params-form-collapsible {
