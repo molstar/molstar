@@ -385,6 +385,20 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   &[data-default] {
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-accent), transparent 60%);
   }
+
+  &[data-setup] {
+    min-height: 32px;
+    color: var(--msp-color-text-muted);
+    background: none;
+
+    &:hover {
+      background: var(--msp-color-hover);
+    }
+
+    & .msp-command-menu-askIcon {
+      color: var(--msp-color-text-subtle);
+    }
+  }
 }
 
 .msp-command-menu-askIcon {

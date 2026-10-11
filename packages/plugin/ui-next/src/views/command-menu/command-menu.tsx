@@ -235,7 +235,13 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
   const picks = () => current.filter((r): r is Pickable => r.kind !== 'caption');
   // The assistant takes the typed words (⌘↵ anywhere; ↵ when no command matches).
   const ask = () => {
-    if (!props.assistant || !text.value.trim() || prefixOf(text.value)) return;
+    if (!props.assistant) return;
+    if (!props.assistant.ready()) {
+      props.assistant.setup();
+      props.onClose();
+      return;
+    }
+    if (!text.value.trim() || prefixOf(text.value)) return;
     const keep = askItem(props, manager, text.value, props.onPropose).run();
     if (!keep && !manager.active.value) props.onClose();
   };
@@ -396,14 +402,21 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
           ready={props.assistant.ready()}
           text={text.asReadonly.pipe(map((t) => (prefixOf(t) ? '' : t.trim())))}
           unmatched={unmatched}
-          onAsk={() => (text.value.trim() ? ask() : input.focus())}
+          onAsk={() => {
+            // Not set up: the setup, whatever is typed. Set up: the words, or the input to type them in.
+            if (!props.assistant?.ready()) {
+              props.assistant?.setup();
+              props.onClose();
+            } else if (text.value.trim()) ask();
+            else input.focus();
+          }}
         />
       ) : null}
       <Footer
         hints={[
           ['↑↓', 'move'],
           ['↵', 'run'],
-          ...(props.assistant ? [[isMac() ? '⌘↵' : 'Ctrl+↵', 'ask'] as const] : []),
+          ...(props.assistant?.ready() ? [[isMac() ? '⌘↵' : 'Ctrl+↵', 'ask'] as const] : []),
           ['→', 'open group'],
           ['?', 'help'],
           ['esc', 'close'],
@@ -418,6 +431,14 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
  * matches, which it then shows as the default); without a model it opens the setup.
  */
 function AskBar(props: { ready: boolean; text: Observable<string>; unmatched: Observable<boolean>; onAsk(): void }) {
+  if (!props.ready)
+    return (
+      // Not set up: a quiet way to the setup, not an offer that competes with the commands.
+      <button type="button" class={classes.ask} data-setup="" onClick={() => props.onAsk()}>
+        <Icon name="sparkles" size={15} class={classes.askIcon} />
+        <span class={classes.askText}>Set up an AI assistant</span>
+      </button>
+    );
   return (
     <button
       type="button"
@@ -426,13 +447,9 @@ function AskBar(props: { ready: boolean; text: Observable<string>; unmatched: Ob
       onClick={() => props.onAsk()}
     >
       <Icon name="sparkles" size={15} class={classes.askIcon} />
-      <span class={classes.askLabel}>{props.ready ? 'Ask the assistant' : 'Set up the assistant'}</span>
+      <span class={classes.askLabel}>Ask the assistant</span>
       <span class={classes.askText}>
-        {props.text.pipe(
-          map((t) =>
-            t ? `“${t}”` : props.ready ? 'describe what you want, in your words' : 'add a model key to ask in words',
-          ),
-        )}
+        {props.text.pipe(map((t) => (t ? `“${t}”` : 'describe what you want, in your words')))}
       </span>
       <kbd class={classes.askKeys}>{props.unmatched.pipe(map((u) => (u ? '↵' : isMac() ? '⌘↵' : 'Ctrl+↵')))}</kbd>
     </button>

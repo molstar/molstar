@@ -357,6 +357,21 @@
   &[data-default] {
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-accent), transparent 60%);
   }
+
+  /* Not set up: quiet, a way to the setup. */
+  &[data-setup] {
+    min-height: 32px;
+    background: none;
+    color: var(--msp-color-text-muted);
+
+    &:hover {
+      background: var(--msp-color-hover);
+    }
+
+    & .askIcon {
+      color: var(--msp-color-text-subtle);
+    }
+  }
 }
 
 .askIcon {
