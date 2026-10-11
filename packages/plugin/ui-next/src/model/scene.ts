@@ -50,6 +50,8 @@ export interface SceneNode {
   highlight(on: boolean): void;
   focus(): void;
   remove(): void;
+  /** Can it be removed (a structure's contents, entities and chains, cannot)? True when absent. */
+  removable?: boolean;
   /**
    * The row's menu (the "…"): actions on this node, as Mol*'s component menu has them: add representation, set
    * coloring, modify by selection (include, subtract, intersect), select this, edit label. Entries with `items` open
@@ -62,6 +64,8 @@ export interface SceneMenuItem {
   id: string;
   label: string;
   icon?: IconName;
+  /** Destructive (Remove): set apart at the end, in the danger color. */
+  danger?: boolean;
   run?(): void;
   items?: readonly SceneMenuItem[];
 }

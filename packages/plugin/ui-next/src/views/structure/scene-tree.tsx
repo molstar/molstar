@@ -81,7 +81,7 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
               {() => <Icon name="eye-off" size={14} />}
             </Show>
           </button>
-          {node.menu?.length ? (
+          {menuOf(node).length ? (
             <button
               type="button"
               class={classes.action}
@@ -96,24 +96,11 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
               <Icon name="ellipsis" size={14} />
             </button>
           ) : null}
-          <button
-            type="button"
-            class={classes.action}
-            title="Remove"
-            onClick={(e) => {
-              e.stopPropagation();
-              node.remove();
-            }}
-          >
-            <Icon name="trash-2" size={14} />
-          </button>
         </span>
       </div>
-      {node.menu?.length ? (
-        <Show when={menuOpen}>
-          {() => <RowMenu items={node.menu!} depth={depth} onDone={() => menuOpen.set(false)} />}
-        </Show>
-      ) : null}
+      <Show when={menuOpen}>
+        {() => <RowMenu items={menuOf(node)} depth={depth} onDone={() => menuOpen.set(false)} />}
+      </Show>
       <Show when={open}>
         {() => {
           // Children computed on first look (lazy nodes); until they arrive, a quiet loading row.
@@ -137,6 +124,13 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
       </Show>
     </div>
   );
+}
+
+/** A row's menu: its own entries, then Remove (set apart, in the danger color) when it can be removed. */
+function menuOf(node: SceneNode): SceneMenuItem[] {
+  const own = node.menu ?? [];
+  if (node.removable === false) return [...own];
+  return [...own, { id: 'remove', label: 'Remove', icon: 'trash-2', danger: true, run: () => node.remove() }];
 }
 
 /**
@@ -172,6 +166,7 @@ function MenuItem(props: { item: SceneMenuItem; onDone(): void }) {
       type="button"
       role="menuitem"
       class={classes.menuItem}
+      data-danger={item.danger ? '' : undefined}
       onClick={() => {
         item.run?.();
         props.onDone();

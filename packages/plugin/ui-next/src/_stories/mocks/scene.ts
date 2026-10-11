@@ -184,6 +184,7 @@ class MockNode implements SceneNode {
   readonly #children = observableState<readonly SceneNode[]>([]);
   parent: MockNode | undefined;
   menu?: readonly SceneMenuItem[];
+  removable?: boolean;
 
   constructor(
     readonly id: string,
@@ -436,6 +437,7 @@ export function mockScene(
       `${count(entities.length, 'entity', 'entities')} · ${count(chains, 'chain', 'chains')}`,
       false,
     );
+    n.removable = false;
     n.loader = () =>
       entities.map((e) => {
         const en = node(
@@ -447,6 +449,7 @@ export function mockScene(
           false,
         );
         en.menu = contentsMenu(e.label);
+        en.removable = false;
         facts.set(en.id, [
           ['Type', e.type],
           ['Chains', e.chains.map((c) => c.id).join(', ')],
@@ -462,6 +465,7 @@ export function mockScene(
               false,
             );
             cn.menu = contentsMenu(`chain ${c.id}`);
+            cn.removable = false;
             facts.set(cn.id, [
               ['Chain', c.id],
               ['Entity', e.label],

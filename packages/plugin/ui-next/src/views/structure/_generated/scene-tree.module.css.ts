@@ -193,5 +193,17 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
   font-size: var(--msp-font-size-xs);
   line-height: 26px;
 }
+
+.msp-structure-scene-tree-menuItem[data-danger] {
+  margin-top: var(--msp-space-1);
+  color: var(--msp-color-danger);
+  box-shadow: 0 -1px 0 var(--msp-glass-edge);
+  border-radius: 0 0 var(--msp-radius-sm) var(--msp-radius-sm);
+
+  &:hover, &:focus-visible {
+    background: color-mix(in oklab, var(--msp-color-danger), transparent 88%);
+    color: var(--msp-color-danger);
+  }
+}
 }
 `);
