@@ -185,6 +185,8 @@ export function ShellView(props: ShellViewProps) {
           data-overlay={shell.overlay.pipe(map((o) => (o ? 'open' : undefined)))}
         >
           <OverlayHost shell={shell} />
+          {/* Over the canvas, beside the rail and the open panel (they stay, and the page makes room for them). */}
+          <PageHost shell={shell} />
           <Show
             when={floating}
             fallback={() => (
@@ -230,7 +232,6 @@ export function ShellView(props: ShellViewProps) {
       <DockView shell={shell} dock={shell.dock('bottom')} />
       {props.commandMenu}
       <BusyOverlay status={status} />
-      <PageHost shell={shell} />
     </div>
   ) as HTMLElement;
   if (props.onDropFiles) {

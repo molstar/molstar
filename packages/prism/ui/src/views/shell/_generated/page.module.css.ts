@@ -21,7 +21,10 @@ export const classes = {
 
 defineStyles('views/shell/page.module.css', `@layer msp.components {
 .msp-shell-page-page {
-  inset: var(--msp-canvas-edge);
+  top: var(--msp-canvas-edge);
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
+  bottom: var(--msp-canvas-edge);
+  left: var(--msp-canvas-edge);
   z-index: var(--msp-z-dialog);
   border-radius: var(--msp-radius-lg);
   --msp-color-bg: var(--msp-color-panel);
@@ -66,6 +69,10 @@ defineStyles('views/shell/page.module.css', `@layer msp.components {
   flex: 1 1 0;
   min-height: 0;
   display: flex;
+}
+
+:where([data-mode="compact"]) .msp-shell-page-page {
+  right: var(--msp-canvas-edge);
 }
 
 @keyframes msp-shell-page-page-in {

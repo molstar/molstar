@@ -56,9 +56,9 @@ defineStyles('assistant/views/assistant-tab.module.css', `@layer msp.components 
 }
 
 .msp-assistant-assistant-tab-link {
-  align-items: baseline;
+  align-items: center;
   gap: var(--msp-space-3);
-  min-height: 24px;
+  min-height: 28px;
   padding: var(--msp-space-1) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   text-align: left;
@@ -66,6 +66,11 @@ defineStyles('assistant/views/assistant-tab.module.css', `@layer msp.components 
 
   &:hover {
     background: var(--msp-color-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
   }
 }
 

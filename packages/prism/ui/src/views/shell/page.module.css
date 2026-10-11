@@ -6,12 +6,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/* A page over the whole app (ShellPage): a card like the others, only full size, the app around it at the edge. Opaque,
+/* A page over the canvas (ShellPage): a card like the others, only full size, beside the rail and the open panel. Opaque,
    not glass: dense content would read over the canvas and the panels behind it. What is drawn in the background color
    inside it (sticky headers, hatches) takes the card's surface. */
 .page {
   position: absolute;
-  inset: var(--msp-canvas-edge);
+  top: var(--msp-canvas-edge);
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
+  bottom: var(--msp-canvas-edge);
+  left: var(--msp-canvas-edge);
   z-index: var(--msp-z-dialog);
   display: flex;
   flex-direction: column;
@@ -56,6 +59,11 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* Compact: the panel docks under the canvas, nothing on its right. */
+:where([data-mode="compact"]) .page {
+  right: var(--msp-canvas-edge);
 }
 
 @keyframes page-in {
