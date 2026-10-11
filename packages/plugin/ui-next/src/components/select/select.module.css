@@ -34,9 +34,10 @@
     background: var(--msp-color-hover);
   }
 
+  /* Inside the field: a field at a scrolling panel's edge would have a ring outside it cut off. */
   &:focus-visible {
     outline: 2px solid var(--msp-color-focus-ring);
-    outline-offset: 1px;
+    outline-offset: -2px;
   }
 }
 

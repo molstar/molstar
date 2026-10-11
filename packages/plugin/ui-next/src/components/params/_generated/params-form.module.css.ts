@@ -325,7 +325,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 
   &:focus-visible {
     outline: 2px solid var(--msp-color-focus-ring);
-    outline-offset: 1px;
+    outline-offset: -2px;
     border-radius: var(--msp-radius-md);
   }
 }
