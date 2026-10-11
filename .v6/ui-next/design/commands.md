@@ -24,7 +24,7 @@ interface UICommand<P extends PD.Params = {}> {
   title: string;                      // 'Add component…'
   category: string;                   // 'Structure', 'Selection', 'View', 'Export', …
   icon?: IconName;
-  alias?: string | readonly string[]; // words that start the command with arguments: 'color by'
+  alias?: string | readonly string[]; // other names it is found by, and words that start it with arguments: 'color by'
   shortcut?: KeyChord | KeyChord[];   // { key, mod?, alt?, shift? }; display derived per platform
   when?(ctx: CommandContext): true | string;     // reason string = listed, greyed, explained
   params?(ctx: CommandContext, values: Partial<PD.Values<P>>): P;  // arguments; recomputed when `reshapes` change
@@ -144,6 +144,9 @@ sink; its value store is a `ParamsFormModel` instead of a declarative binding co
 - Prefixes: none = commands; `@` = go to a scene node (structure, component, volume; focuses and selects it); `#` =
   snapshots; `:` = select residues by expression (`:A 10-20`, `:HEM`); `?` = help on prefixes and keybindings.
 - Rows: title with matched letters, category, keybinding, disabled reason. Recents first on empty input.
+- Every command has the **other names people would type** as aliases, searched like its title (a little lower):
+  Superpose: align, superimpose, RMSD, TM-align; Export image: screenshot, PNG; Clear selection: deselect; Download
+  structure: fetch, load. A command that takes arguments also starts with them ("fetch 1tqn").
 - Typing an alias followed by text opens that command with the text read into its arguments ("color by chain-id", "show
   as cartoon").
 - Flat arguments render inline as a sentence; Tab moves between fields, Enter runs, Esc closes. "Open as form" moves the

@@ -143,4 +143,13 @@ describe('CommandMenu', () => {
     expect(q.rows().join('|')).toContain('@  Go to');
     expect(q.rows().join('|')).toContain('Toggle illumination');
   });
+
+  it('finds commands by their aliases (align → Superpose, screenshot → Export image)', () => {
+    const shell = new ShellModel();
+    const manager = mockCommands(shell, () => 2);
+    const first = (text: string) => manager.query(text).matches[0]?.command.id;
+    expect(first('align')).toBe('superpose.open');
+    expect(first('screenshot')).toBe('export.image');
+    expect(first('deselect')).toBe('selection.clear');
+  });
 });

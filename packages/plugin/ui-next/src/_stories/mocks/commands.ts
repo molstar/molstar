@@ -172,6 +172,7 @@ export function mockCommands(
       id: 'camera.reset',
       group: 'camera',
       title: 'Reset camera',
+      alias: ['reset view', 'center', 'home view'],
       category: 'View',
       icon: 'focus',
       run: () => done('Camera reset'),
@@ -180,6 +181,7 @@ export function mockCommands(
       id: 'camera.reset-zoom',
       group: 'camera',
       title: 'Reset zoom',
+      alias: ['zoom to fit', 'fit'],
       category: 'View',
       icon: 'zoom-out',
       run: () => done('Zoom reset'),
@@ -188,6 +190,7 @@ export function mockCommands(
       id: 'camera.orient-axes',
       group: 'camera',
       title: 'Orient axes',
+      alias: ['orient', 'align axes', 'principal axes'],
       category: 'View',
       icon: 'axis-3d',
       run: () => done('Axes oriented'),
@@ -196,6 +199,7 @@ export function mockCommands(
     {
       id: 'view.illumination',
       title: 'Toggle illumination',
+      alias: ['ray tracing', 'path tracing', 'global illumination', 'lighting'],
       category: 'View',
       icon: 'lightbulb',
       shortcut: { key: 'i', alt: true },
@@ -204,6 +208,7 @@ export function mockCommands(
     {
       id: 'view.xr',
       title: 'Enter XR',
+      alias: ['vr', 'ar', 'webxr', 'headset'],
       category: 'View',
       icon: 'glasses',
       when: () => 'XR is not available in this browser',
@@ -212,6 +217,7 @@ export function mockCommands(
     {
       id: 'view.sequence',
       title: 'Show or hide sequence',
+      alias: ['sequence', 'sequence viewer'],
       category: 'View',
       icon: 'sequence',
       run: () => (shell.toggle('top'), done('Sequence toggled')),
@@ -223,6 +229,7 @@ export function mockCommands(
     {
       id: 'canvas.settings',
       title: 'Canvas settings…',
+      alias: ['viewport settings', 'rendering', 'quality'],
       category: 'View',
       icon: 'monitor-cog',
       run: open('canvas-settings'),
@@ -230,6 +237,7 @@ export function mockCommands(
     {
       id: 'canvas.background',
       title: 'Canvas background…',
+      alias: ['background', 'bg color'],
       category: 'View',
       icon: 'palette',
       run: open('canvas-settings', 'background'),
@@ -238,6 +246,7 @@ export function mockCommands(
     {
       id: 'animation.wiggle',
       title: 'Wiggle by dynamics',
+      alias: ['wiggle', 'b-factor', 'dynamics'],
       category: 'Animation',
       icon: 'orbit',
       run: () => done('Wiggle: dynamics'),
@@ -246,6 +255,7 @@ export function mockCommands(
       id: 'export.image',
       group: 'export',
       title: 'Export image…',
+      alias: ['screenshot', 'save image', 'png', 'picture'],
       category: 'Export',
       icon: 'image',
       run: open('export', 'image'),
@@ -254,6 +264,7 @@ export function mockCommands(
       id: 'export.animation',
       group: 'export',
       title: 'Export animation…',
+      alias: ['video', 'movie', 'mp4', 'record'],
       category: 'Export',
       icon: 'film',
       run: open('export', 'animation'),
@@ -262,6 +273,7 @@ export function mockCommands(
       id: 'export.geometry',
       group: 'export',
       title: 'Export geometry…',
+      alias: ['glb', 'stl', 'obj', 'usdz', '3d print', 'mesh'],
       category: 'Export',
       icon: 'box',
       run: open('export', 'geometry'),
@@ -269,6 +281,7 @@ export function mockCommands(
     {
       id: 'snapshots.show',
       title: 'Snapshots',
+      alias: ['states', 'scenes', 'save state', 'bookmarks'],
       category: 'Snapshots',
       icon: 'images',
       shortcut: { key: 's', mod: true },
@@ -277,6 +290,7 @@ export function mockCommands(
     {
       id: 'snapshot.next',
       title: 'Next snapshot',
+      alias: ['next scene', 'forward'],
       category: 'Snapshots',
       icon: 'chevron-right',
       run: () => done('Next snapshot'),
@@ -284,6 +298,7 @@ export function mockCommands(
     {
       id: 'snapshot.previous',
       title: 'Previous snapshot',
+      alias: ['previous scene', 'prev', 'back'],
       category: 'Snapshots',
       icon: 'chevron-left',
       run: () => done('Previous snapshot'),
@@ -293,7 +308,7 @@ export function mockCommands(
       title: 'Download structure…',
       category: 'Data',
       icon: 'download',
-      alias: 'download',
+      alias: ['download', 'fetch', 'load', 'open pdb'],
       params: () => ({
         id: PD.Text('', { label: 'ID' }),
         source: PD.Select(
@@ -398,6 +413,7 @@ export function mockCommands(
       id: 'select.ligands',
       group: 'select.query',
       title: 'Select ligands',
+      alias: ['ligands', 'het', 'hetero'],
       category: 'Select',
       icon: 'mouse-pointer-click',
       run: () => done('Selected 3 ligands'),
@@ -406,6 +422,7 @@ export function mockCommands(
       id: 'select.helices',
       group: 'select.query',
       title: 'Select helices',
+      alias: ['helix', 'alpha helices'],
       category: 'Select',
       icon: 'mouse-pointer-click',
       run: () => done('Selected 412 residues'),
@@ -414,6 +431,7 @@ export function mockCommands(
       id: 'select.water',
       group: 'select.query',
       title: 'Select water',
+      alias: ['waters', 'solvent', 'hoh'],
       category: 'Select',
       icon: 'mouse-pointer-click',
       run: () => done('Selected 186 waters'),
@@ -422,6 +440,7 @@ export function mockCommands(
       id: 'selection.clear',
       group: 'selection',
       title: 'Clear selection',
+      alias: ['deselect', 'select none', 'unselect'],
       category: 'Selection',
       icon: 'x',
       run: () => done('Selection cleared'),
@@ -430,6 +449,7 @@ export function mockCommands(
     {
       id: 'measure.open',
       title: 'Measure…',
+      alias: ['measure', 'distance', 'angle', 'dihedral', 'ruler'],
       category: 'Measure',
       icon: 'ruler',
       run: show('selection', 'measure'),
@@ -437,6 +457,7 @@ export function mockCommands(
     {
       id: 'superpose.open',
       title: 'Superpose…',
+      alias: ['align', 'superimpose', 'rmsd', 'tm-align', 'fit structures'],
       category: 'Structure',
       icon: 'superpose',
       when: () => (structureCount() > 1 ? true : 'Load two or more structures'),
