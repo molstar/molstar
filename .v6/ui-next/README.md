@@ -20,9 +20,9 @@ it reaches parity. Status: **analysis / proposal**.
   at island granularity; a framework-neutral view contract so contributions can use React or Preact; `ui-next/react`
   hooks work with both. Gated by a spike against Preact. ([design/rendering.md](design/rendering.md))
 - **Commands everywhere**: built-in, contributed, generated from registries (presets, themes, queries, state actions),
-  and contextual (applicable actions for the current cell); command menu with prefixes and inline arguments; an optional
-  custom `ui` per command for flows a form cannot express; scoped keybindings; menus and buttons reference commands.
-  ([design/commands.md](design/commands.md))
+  and contextual (applicable actions for the current cell); command menu with prefixes and inline arguments; four ways a
+  command runs (right away, an inline sentence, a generated form in a dialog, or custom UI that is the panel or section
+  it opens); scoped keybindings; menus and buttons reference commands. ([design/commands.md](design/commands.md))
 - **New `PluginUIContext`** (ui-next's own, extending `PluginContext`) carries the UI fields: `shell`, `commands`,
   `keybindings`, `contributions`, `sources`, `model`. ([design/shell.md](design/shell.md) §6)
 - **Shell** (`ctx.shell`) replaces `PluginContext.layout`, canvas first: a tabbed right panel (Home when empty,

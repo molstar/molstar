@@ -34,8 +34,8 @@ interface UICommand<P extends PD.Params = {}> {
   presets?(ctx: CommandContext): readonly CommandPreset<P>[];     // search-only entry points
   preview?(values: PD.Values<P>, ctx: CommandContext): Preview | undefined;
   check?(values: PD.Values<P>, ctx: CommandContext): string | undefined;
-  run(values: PD.Values<P>, ctx: CommandContext, signal: AbortSignal): CommandResult | Promise<CommandResult>;
-  ui?: CommandUI<P>;                  // optional custom UI instead of the generated form
+  run?(values: PD.Values<P>, ctx: CommandContext, signal: AbortSignal): CommandResult | Promise<CommandResult>;
+  opens?: CommandTarget;              // custom UI: the panel or section the command opens (§2.1); no `run` then
   group?: string;                     // parent group id ('select.query.structure-property'); top level if absent
   order?: number;                     // position within its group
 }
@@ -54,16 +54,10 @@ interface CommandGroup {
   children?(ctx: CommandContext): readonly (UICommand | CommandGroup)[];
 }
 
-interface CommandUI<P extends PD.Params> {
-  placement?: 'inline' | 'dialog';    // under the command menu input (default) or in a dialog
-  render: ViewRenderer<CommandUIContext<P>>;   // dom, React, Preact, or an element (rendering.md §6)
-}
-
-interface CommandUIContext<P extends PD.Params> {
-  invocation: CommandInvocation<P>;   // values, status, errors; set(), confirm(), cancel(), close()
-  form: ParamsFormModel<P>;           // the generated form's model, to reuse fields inside a custom layout
-  ctx: ReadonlyState<CommandContext>;
-}
+/** Where a command with custom UI takes the user: a tab or an overlay panel, optionally at one of its sections. */
+type CommandTarget =
+  | { tab: string; section?: string }        // { tab: 'selection', section: 'measure' }
+  | { overlay: string; section?: string };   // { overlay: 'export', section: 'animation' }
 ```
 
 - **Arguments are PD params** (for now; the argument schema can be revisited once the command menu is built). The same
@@ -75,11 +69,11 @@ interface CommandUIContext<P extends PD.Params> {
   `structure` (pick from the scene), `component`, `cell`, `selection` (residue list or MolScript, compiled with the
   existing `compileIdListSelection`/script support), `color` (names, hex, palette), `query` (registered selection
   queries), `snapshot`, `file`, `url`, `pdb-id`.
-- **Custom UI** (`ui`) replaces the generated form for commands whose arguments are not a plain form: a multi-step flow
-  (record ID → file list in Zenodo import; render → save in MP4 export), a picker with previews, a drawing tool. The
-  custom UI drives the same invocation (setting values, confirming, showing progress and errors), so the command still
-  has one id, appears in the command menu, takes keybindings, and reports outcomes like any other. Without `ui`, the
-  form is generated from `params`.
+- **Custom UI is a panel or a section, not something inside the command menu** (§2.1). A command whose arguments are not
+  a form (`opens`) takes the user to the panel or section that already holds that UI, focused on it (the other sections
+  closed), so the command still has one id, appears in the command menu, takes keybindings and can sit in a menu; the
+  panel's own actions report outcomes like any command. The command menu itself only ever shows an inline sentence or
+  the generated form in a dialog.
 - **Results** (`message`, `detail`, `undoable`) become notifications; `undoable` offers Undo through
   `state.data.undo()`.
 - **Groups** nest commands where there are too many to list flat (selection queries, presets, themes). Nesting is for
@@ -89,6 +83,21 @@ interface CommandUIContext<P extends PD.Params> {
   (`command-menu.open-group` with the group id), which is how toolbar buttons and the selection bar reuse the command
   menu scoped to a subtree. `shared` arguments are set once for the whole group (§10's selection mode) and passed to
   whichever child runs.
+
+### 2.1 How a command runs
+
+Every command runs one of four ways, decided by what it needs from the user:
+
+| How it runs                    | When                                                                                                    | Commands                                                                                                                                                                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Right away**                 | Nothing to ask (no `params`)                                                                            | camera reset / orient, toggles (sequence, illumination, expand), panels, presets, quick styles, next / previous snapshot, the fixed selection queries (ligands, water, helices…), clear selection, wiggle, undo                                                                    |
+| **Inline sentence**            | A few flat arguments: text, select, number, boolean, color, and formatted text                          | download structure / volume, color selection, transparency, focus on, select residues or by an expression, set isovalue, model index, rename, add representation, color by, copy / download screenshot                                                                             |
+| **Generated form in a dialog** | Rich arguments that are still a plain form (group, mapped, object list…): "open as form", or by default | component options, measurement options, add component, a hierarchy preset with its params, extension actions (Load G3D, tunnels, assembly symmetry, volume streaming)                                                                                                              |
+| **Custom UI** (`opens`)        | Several steps, picking in the 3D view, or a preview                                                     | open files (a list, a format per file, as the original), Zenodo import (record, then a file list), image export (preview, size), animation / MP4 export (render, then save, with progress), measure (picking atoms), superpose (structures and chains), PAE plot, keybindings help |
+
+The custom UIs are the panels and sections that hold them: `Measure…` opens the selection tab at its `measure` section,
+`Superpose…` at `superpose`, `Export animation…` the export overlay at `animation`, `Open files…` the home tab's open
+section. A command that needs the user to act in the 3D view (pick atoms) is always custom UI, never a form.
 
 `CommandContext` is a `ReadonlyState` derived from view models:
 
@@ -150,8 +159,8 @@ sink; its value store is a `ParamsFormModel` instead of a declarative binding co
 - Typing an alias followed by text opens that command with the text read into its arguments ("color by chain-id", "show
   as cartoon").
 - Flat arguments render inline as a sentence; Tab moves between fields, Enter runs, Esc closes. "Open as form" moves the
-  invocation into a dialog for complex params. A command with `ui` shows its custom UI in the same place (inline or
-  dialog, per `placement`).
+  invocation into a dialog for complex params (and a command whose params are not flat opens there directly). A command
+  with `opens` closes the command menu and shows its panel or section (§2.1).
 - ARIA combobox: the input keeps focus, rows are `role="option"`.
 
 **State (mocks, `views/command menu/command menu.tsx`):** the list (recent first on an empty input, matched letters
@@ -159,8 +168,11 @@ marked, category, keys, a blocked command greyed with its reason, a preset as it
 ("color red", "download 7bv2"), the inline sentence (before-words, value tokens, the active one typed into the input,
 completions from the field's options or format, the run button with Enter), Tab between fields, Backspace back, Esc to
 the list and then out, a finished run closing the command menu with its message in the status line, ⌘K and ⇧⌘P, and
-commands' own shortcuts. Not yet: groups and the breadcrumb, the `@ # : ?` prefixes, "open as form" for params that are
-not flat, custom command UI, previews while browsing.
+commands' own shortcuts. Since then: groups and the breadcrumb, the `@ # :` prefixes, and commands opening their panel
+or section (Measure…, Superpose…, Export…). Not yet: the `?` prefix, "open as form" and the dialog for params that are
+not flat (they run at their defaults: "+ N more options at their defaults"), `opens` as a declared field (the mock's
+commands call the shell in `run`), color as an inline argument (the mock uses a text field with the `color` format),
+previews while browsing.
 
 ## 6. Keybindings
 
@@ -218,12 +230,12 @@ discoverable in the command menu and avoids duplicate logic.
 Extensions extend the command layer in four ways, all through their `UIContribution` ([shell.md](shell.md) §5) or the
 plugin registry, never by patching built-in definitions:
 
-| Mechanism                | What an extension adds                                                                                                         | Example                                                                                                                         |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `commands`               | New commands, with `group` placing them anywhere in the tree, including built-in groups                                        | `geo-export.export` under `export`; `assembly-symmetry.enable` under `structure`                                                |
-| `commandGroups`          | New groups, top level or nested under built-in ones                                                                            | `volseg` group with its segment commands; `select.validation` under `select.query`                                              |
-| Registry entries         | Nothing UI-specific: registered selection queries, presets, themes, state actions, and animations appear as generated commands | rcsb's `hasClash` query under Select › By query › its category; dnatco presets under Apply preset; `DownloadTunnels` under Data |
-| `formats`, `menus`, `ui` | Argument types, context-menu and toolbar entries that reference commands, custom invocation UI                                 | A `segment` format with completions; a toolbar button for the PAE plot; the MP4 export flow                                     |
+| Mechanism                    | What an extension adds                                                                                                         | Example                                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `commands`                   | New commands, with `group` placing them anywhere in the tree, including built-in groups                                        | `geo-export.export` under `export`; `assembly-symmetry.enable` under `structure`                                                |
+| `commandGroups`              | New groups, top level or nested under built-in ones                                                                            | `volseg` group with its segment commands; `select.validation` under `select.query`                                              |
+| Registry entries             | Nothing UI-specific: registered selection queries, presets, themes, state actions, and animations appear as generated commands | rcsb's `hasClash` query under Select › By query › its category; dnatco presets under Apply preset; `DownloadTunnels` under Data |
+| `formats`, `menus`, sections | Argument types, context-menu and toolbar entries that reference commands, and the sections custom UI lives in (§2.1)           | A `segment` format with completions; a toolbar button for the PAE plot; the MP4 export flow as an export section and `opens`    |
 
 - **Registration follows activation.** A contribution's commands and groups are registered when it is activated and
   unregistered when it is deactivated (a run of theirs is cancelled, their open form closed), the same rule as views.
