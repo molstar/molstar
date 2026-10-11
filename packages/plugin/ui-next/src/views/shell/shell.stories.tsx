@@ -479,7 +479,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     {
       id: 'canvas-settings',
       group: 'scene',
-      icon: 'sliders-horizontal',
+      icon: 'aperture',
       title: 'Canvas settings',
       overlay: 'canvas-settings',
     },

@@ -100,6 +100,7 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       aria-label={item.title}
       aria-pressed={pressed}
       aria-haspopup={withMenu ? 'menu' : undefined}
+      data-overlay-trigger={item.overlay ? '' : undefined}
       onClick={(e) => {
         // A button that only holds a menu opens it; otherwise the click runs the button's own action.
         if (withMenu && !item.overlay && !item.run) return withMenu.show(item, e.currentTarget);
@@ -254,8 +255,12 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
     e.preventDefault();
   };
   const onPointer = (e: PointerEvent) => {
-    const target = e.target as Node;
-    if (!card.contains(target) && !open.anchor?.contains(target)) shell.closeOverlay();
+    const target = e.target as Element;
+    if (card.contains(target) || open.anchor?.contains(target)) return;
+    // Buttons that open another card, and panel tabs, swap the card on their click: closing it here first would show
+    // the panel underneath for a frame (a blink), and a tab click would then collapse the panel.
+    if (target.closest?.('[data-overlay-trigger], [role=tab]')) return;
+    shell.closeOverlay();
   };
   doc.addEventListener('keydown', onKey);
   doc.addEventListener('pointerdown', onPointer, true);
