@@ -48,17 +48,19 @@ not built.
 selector). Script is the operation alone; medians of 5 after a warm-up, slicing off; Chrome, outside Storybook's root.
 Total adds layout and two frames (~33 ms of it).
 
-| Operation                  | Script, first | Script, now | Total, now |
-| -------------------------- | ------------- | ----------- | ---------- |
-| create 1,000 rows          | 9.9 ms        | 8.1 ms      | 50 ms      |
-| replace all 1,000 rows     | 14.8 ms       | 9.9–11 ms   | 50 ms      |
-| update every 10th row      | 0.3 ms        | 0.2 ms      | 33 ms      |
-| select a row               | 0.4 ms        | 0 ms        | 33 ms      |
-| swap rows 2 and 999        | 4.8 ms        | 0.7 ms      | 33 ms      |
-| remove a row               | 0.8 ms        | 0.3 ms      | 33 ms      |
-| create 10,000 rows         | 116 ms        | 75 ms       | 400 ms     |
-| append 1,000 rows (to 10k) | 13 ms         | 10 ms       | 104 ms     |
-| clear 10,000 rows          | 47.7 ms       | 33 ms       | 49 ms      |
+| Operation                        | Script, first | Script, now | Total, now |
+| -------------------------------- | ------------- | ----------- | ---------- |
+| create 1,000 rows                | 9.9 ms        | 6.3 ms      | 50 ms      |
+| replace all 1,000 rows           | 14.8 ms       | 9.9 ms      | 50 ms      |
+| update every 10th row            | 0.3 ms        | 0.3 ms      | 33 ms      |
+| select a row                     | 0.4 ms        | 0 ms        | 33 ms      |
+| swap rows 2 and 999              | 4.8 ms        | 0.6 ms      | 33 ms      |
+| remove a row                     | 0.8 ms        | 0.4 ms      | 33 ms      |
+| create 10,000 rows               | 116 ms        | 75–82 ms    | 430 ms     |
+| append 1,000 rows (to 10k)       | 13 ms         | 9.8 ms      | 100 ms     |
+| clear 10,000 rows                | 47.7 ms       | 30 ms       | 36 ms      |
+| relabel 1,000 rows 10× (a burst) | 12.9 ms       | —           | 34 ms      |
+| the same burst in `batch`        | —             | 2.4 ms      | 33 ms      |
 
 What changed, by what it bought:
 
@@ -70,6 +72,13 @@ What changed, by what it bought:
   text alone is `textContent`: create 10,000 −19%.
 - **Reactive children start as one Text node** (anchors only when nodes arrive).
 - **`keyedSelector`** (`reactive/keyed-selector.ts`): the selected row of thousands notifies two rows, not all.
+- **Delegated events** (`dom/render.ts`): one listener per type per render root instead of one per handler; each handler
+  sees its own element as `currentTarget`, `stopPropagation` ends the walk, nested roots never run a handler twice, an
+  event made not to bubble reaches only its target; focus, enter/leave, touch and wheel stay native. Clear 10,000 −30%
+  (elements without listeners go faster), no listener per row.
+- **`batch(fn)`** (`reactive/observable-state.ts`): states set inside emit once, with their final value, when the
+  outermost batch ends (synchronous; reads inside see the new values). A burst of ten relabels per row: 12.9 → 2.4 ms. A
+  microtask that defers DOM writes was not taken: code reads the DOM right after a change (focus, measuring, tests).
 - **`For` places with the fewest moves**: entries whose old places form the longest increasing run stay; a swap is two
   moves, not a cascade (swap −85%); covered by a 200-round shuffle/insert/remove test.
 
@@ -78,6 +87,7 @@ template could clone rows instead, a build step the runtime does not have).
 
 ## Next
 
-Event delegation (one listener per event type instead of two per row) once handlers no longer rely on `currentTarget`;
-microtask batching of several updates in one task into one write; the bench as a regression guard (run it before
-changing `dom/` or `reactive/`).
+The bench as a regression guard: run it before changing `dom/` or `reactive/` (Internals › Performance › Runtime; a
+visible page for totals, a hidden one gives script times only, about twice as slow). What is left is element creation
+itself (~50 ms for 10,000 rows without bindings); a compiled template that clones rows would be the next step, a build
+step the runtime does not have.

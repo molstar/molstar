@@ -11,7 +11,7 @@ import { map, type Observable } from 'rxjs';
 import { For, timeSlicing } from '../dom/control-flow.js';
 import { render } from '../dom/render.js';
 import { keyedSelector } from '../reactive/keyed-selector.js';
-import { type ObservableState, observableState } from '../reactive/observable-state.js';
+import { batch, type ObservableState, observableState } from '../reactive/observable-state.js';
 import { story } from './story-root.js';
 
 const meta: Meta = { title: 'Internals/Performance' };
@@ -187,7 +187,22 @@ const Ops: Op[] = [
     run: (b) => b.rows.set([...b.rows.value, ...buildRows(1000)]),
   },
   { name: 'clear 10,000 rows', setup: (b) => b.rows.set(buildRows(10000)), run: (b) => b.rows.set([]) },
+  // A burst: one change made of many steps (a model relabelling as it goes), without and with `batch`.
+  {
+    name: 'relabel all 1,000 rows 10 times',
+    setup: (b) => b.rows.set(buildRows(1000)),
+    run: (b) => relabelTenTimes(b.rows.value),
+  },
+  {
+    name: 'relabel all 1,000 rows 10 times, batched',
+    setup: (b) => b.rows.set(buildRows(1000)),
+    run: (b) => batch(() => relabelTenTimes(b.rows.value)),
+  },
 ];
+
+function relabelTenTimes(rows: readonly RowData[]) {
+  for (let k = 0; k < 10; k++) for (const r of rows) r.label.set(`${r.id} step ${k}`);
+}
 
 interface Result {
   op: string;

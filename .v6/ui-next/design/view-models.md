@@ -141,6 +141,11 @@ against 20 relabels in one frame with records per node). Long lists and trees ar
 the same `StructureSource` instance for the same ref; its fields update only when `transform.version`, `cell.state`, or
 `cell.status` change.
 
+**One change, one emission.** Code that sets several states (or one several times) for one change wraps it in `batch`
+(`reactive/observable-state`): each state emits once, with its final value, when the batch ends, so views render the
+change once ([../spike.md](../spike.md): a burst of ten relabels per row, 12.9 → 2.4 ms). Lists pick the current item
+with `keyedSelector`, so a selection change notifies the two rows it concerns, not every row.
+
 **Batching.** Sources update after a state transaction ends (`changed` with `inTransaction: false`) and after animation
 stops, as the managers already do, so views do not render intermediate trees. What still arrives in bursts (state-tree
 rebuilds, selection changes) is combined and debounced by a frame (§2, conventions).
