@@ -8,7 +8,13 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
-import { type MockScenePreset, mockComponentOptions, mockPresets, mockQuickStyles, mockSceneWithPicked } from '../../_stories/mocks/scene.js';
+import {
+  type MockScenePreset,
+  mockComponentOptions,
+  mockPresets,
+  mockQuickStyles,
+  mockSceneWithPicked,
+} from '../../_stories/mocks/scene.js';
 import { story } from '../../_stories/story-root.js';
 import { ShellModel } from '../../shell/shell.js';
 import { StructureTab } from './structure-tab.js';
@@ -26,7 +32,13 @@ function Tab(props: { pick: string; preset?: MockScenePreset; stream?: boolean }
   if (props.stream && picked) scene.streaming(picked).set('enabled', true);
   return (
     <div style={frame}>
-      <StructureTab shell={shell} scene={scene} presets={mockPresets()} quickStyles={mockQuickStyles()} options={mockComponentOptions()} />
+      <StructureTab
+        shell={shell}
+        scene={scene}
+        presets={mockPresets()}
+        quickStyles={mockQuickStyles()}
+        options={mockComponentOptions()}
+      />
     </div>
   );
 }

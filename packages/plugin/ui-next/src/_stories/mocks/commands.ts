@@ -14,7 +14,6 @@ import type { SceneModel, SceneNode } from '../../model/scene.js';
 import type { ShellModel } from '../../shell/shell.js';
 import type { CommandMenuPrefix } from '../../views/command-menu/command-menu.js';
 
-// biome-ignore lint/complexity/noBannedTypes: the stories' commands see nothing of the plugin
 type Ctx = {};
 
 const Colors = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'violet', 'magenta', 'white', 'grey', 'black'];
