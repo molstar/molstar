@@ -139,9 +139,11 @@ namespace Language {
         }
         if (i >= _i) throw new Error(`There must be a value foolowed a named arg ':${name}'.`);
         if (nodes[i].kind === 'comment') throw new Error('Invalid expression');
+        if (Object.hasOwn(args, name)) throw new Error(`Duplicate argument '${name}'.`);
         args[name] = visitExpr(nodes[i] as ASTNode.ExpressionWithoutComment);
         if (isNaN(+name)) allNumeric = false;
       } else {
+        if (Object.hasOwn(args, pos)) throw new Error(`Duplicate argument '${pos}'.`);
         args[pos++] = visitExpr(n);
       }
     }

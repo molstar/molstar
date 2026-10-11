@@ -2,54 +2,47 @@ import { Expression } from '@molstar/query-language/language/expression';
 import { compile } from '@molstar/model/script/runtime/query/base';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/base';
 import { SymbolMap } from '@molstar/query-language/language/symbol-table';
-import { molQLValidationIssues as syntaxValidationIssues } from '@molstar/mvs-builder/molql-validation';
+import {
+  molQLValidationIssues as syntaxValidationIssues,
+  visitMolQLExpressions,
+} from '@molstar/mvs-builder/molql-validation';
+import { MVSTreeSchema } from '@molstar/mvs-builder/tree/mvs/mvs-tree';
+import { MVSAnimationSchema } from '@molstar/mvs-builder/tree/animation/animation-tree';
 import type { Tree } from '@molstar/mvs-builder/tree/generic/tree-schema';
 import type { PluginContext } from '@molstar/plugin/context';
 
 /** Preserve runtime MolScript compiler validation after the builder becomes standalone. */
 export function molQLValidationIssues(tree: Tree): string[] | undefined {
+  const schema = tree.kind === 'animation' ? MVSAnimationSchema : MVSTreeSchema;
   const syntaxIssues = syntaxValidationIssues(tree, {
+    schema,
     getSymbol: (name) => DefaultQueryRuntimeTable.getRuntime(name)?.symbol ?? SymbolMap[name],
   });
   if (syntaxIssues) return syntaxIssues.map((issue) => `Invalid MolQL expression: ${issue}`);
   const issues: string[] = [];
   const validationCache = new WeakMap<object, true | string>();
-  const visitParams = (value: unknown, path: string) => {
-    if (Array.isArray(value)) {
-      value.forEach((item, i) => visitParams(item, `${path}[${i}]`));
-    } else if (value && typeof value === 'object') {
-      const object = value as Record<string, unknown>;
-      const keys = Object.keys(object);
-      if (
-        Object.prototype.hasOwnProperty.call(object, 'molql') &&
-        keys.every((key) => key === 'molql' || key === 'structure_ref')
-      ) {
-        const expression = object.molql;
-        if (!Expression.is(expression) || !Expression.isApply(expression)) {
-          issues.push(`${path}.molql: MolQL expression must be a MolScript application`);
-        } else {
-          const cacheKey = expression !== null && typeof expression === 'object' ? expression : undefined;
-          let result = cacheKey ? validationCache.get(cacheKey) : undefined;
-          if (result === undefined) {
-            try {
-              compile(expression);
-              result = true;
-            } catch (e) {
-              result = `Invalid MolQL expression: ${e instanceof Error ? e.message : String(e)}`;
-            }
-            if (cacheKey) validationCache.set(cacheKey, result);
+  visitMolQLExpressions(
+    tree,
+    (expression, path) => {
+      if (!Expression.is(expression) || !Expression.isApply(expression)) {
+        issues.push(`${path}: MolQL expression must be a MolScript application`);
+      } else {
+        const cacheKey = expression !== null && typeof expression === 'object' ? expression : undefined;
+        let result = cacheKey ? validationCache.get(cacheKey) : undefined;
+        if (result === undefined) {
+          try {
+            compile(expression);
+            result = true;
+          } catch (e) {
+            result = `Invalid MolQL expression: ${e instanceof Error ? e.message : String(e)}`;
           }
-          if (result !== true) issues.push(`${path}.molql: ${result}`);
+          if (cacheKey) validationCache.set(cacheKey, result);
         }
+        if (result !== true) issues.push(`${path}: ${result}`);
       }
-      for (const key of Object.keys(object)) visitParams(object[key], `${path}.${key}`);
-    }
-  };
-  const visitNode = (node: Tree, path: string) => {
-    visitParams(node.params, `${path}.params`);
-    node.children?.forEach((child, i) => visitNode(child, `${path}.children[${i}]`));
-  };
-  visitNode(tree, 'tree');
+    },
+    { schema },
+  );
   return issues.length ? issues : undefined;
 }
 
