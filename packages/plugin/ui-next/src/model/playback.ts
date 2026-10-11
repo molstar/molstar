@@ -15,8 +15,6 @@ export interface SnapshotStepperModel {
   /** Markdown, with the snapshot links (`#key`) and markdown extensions of the plugin. */
   description: ReadonlyState<string | undefined>;
   isPlaying: ReadonlyState<boolean>;
-  /** Progress of an animated transition, 0..1, while one runs. */
-  transition: ReadonlyState<number | undefined>;
   previous(): void;
   next(): void;
   togglePlay(): void;

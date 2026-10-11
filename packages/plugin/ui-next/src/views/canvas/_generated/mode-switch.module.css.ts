@@ -38,7 +38,7 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
 
 .msp-canvas-mode-switch-segment {
   width: 100%;
-  height: 40px;
+  height: var(--msp-stack-row, 40px);
   color: var(--msp-color-text-muted);
   transition: background-color var(--msp-motion-fast) var(--msp-ease),
     color var(--msp-motion-fast) var(--msp-ease);
@@ -62,6 +62,7 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
 }
 
 .msp-canvas-mode-switch-level {
+  top: var(--msp-stack-row, 40px);
   padding-right: var(--msp-space-3);
   opacity: 0;
   visibility: hidden;
@@ -72,7 +73,6 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
   align-items: flex-end;
   display: flex;
   position: absolute;
-  top: 40px;
   right: 100%;
   transform: translateX(4px);
 }
@@ -99,14 +99,14 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
 .msp-canvas-mode-switch-badge {
   opacity: .8;
   position: absolute;
-  bottom: 6px;
-  right: 6px;
+  bottom: 4px;
+  right: 4px;
 }
 
 .msp-canvas-mode-switch-levelButton {
   align-items: center;
   gap: var(--msp-space-2);
-  height: 40px;
+  height: var(--msp-stack-row, 40px);
   padding: 0 var(--msp-space-3);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);

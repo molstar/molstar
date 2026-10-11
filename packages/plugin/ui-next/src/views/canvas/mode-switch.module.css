@@ -24,7 +24,7 @@
   display: grid;
   place-items: center;
   width: 100%;
-  height: 40px;
+  height: var(--msp-stack-row, 40px);
   color: var(--msp-color-text-muted);
   transition:
     background-color var(--msp-motion-fast) var(--msp-ease),
@@ -48,10 +48,10 @@
 }
 
 .level {
-  /* Left of the stack, level with Select (its second row: 40px rows). Its right padding bridges the gap to the stack,
-     so the pointer can travel from Select to it without leaving either. */
+  /* Left of the stack, level with Select (its second row). Its right padding bridges the gap to the stack, so the
+     pointer can travel from Select to it without leaving either. */
   position: absolute;
-  top: 40px;
+  top: var(--msp-stack-row, 40px);
   right: 100%;
   display: flex;
   flex-direction: column;
@@ -93,8 +93,8 @@
 
 .badge {
   position: absolute;
-  right: 6px;
-  bottom: 6px;
+  right: 4px;
+  bottom: 4px;
   opacity: 0.8;
 }
 
@@ -102,7 +102,7 @@
   display: flex;
   align-items: center;
   gap: var(--msp-space-2);
-  height: 40px;
+  height: var(--msp-stack-row, 40px);
   padding: 0 var(--msp-space-3);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);

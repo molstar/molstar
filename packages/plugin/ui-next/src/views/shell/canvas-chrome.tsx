@@ -90,7 +90,8 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
     <button
       type="button"
       class={classes.tool}
-      title={item.title}
+      data-tip={item.title}
+      data-tip-side="left"
       aria-label={item.title}
       aria-pressed={pressed}
       aria-haspopup={withMenu ? 'menu' : undefined}

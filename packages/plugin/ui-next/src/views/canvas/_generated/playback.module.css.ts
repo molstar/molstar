@@ -14,7 +14,6 @@ export const classes = {
   'cluster': 'msp-canvas-playback-cluster',
   'counter': 'msp-canvas-playback-counter',
   'description': 'msp-canvas-playback-description',
-  'progress': 'msp-canvas-playback-progress',
   'scrubber': 'msp-canvas-playback-scrubber',
   'timeline': 'msp-canvas-playback-timeline',
   'title': 'msp-canvas-playback-title',
@@ -39,6 +38,23 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
   height: 34px;
   padding: 0 var(--msp-space-2);
   display: flex;
+
+  & button {
+    color: var(--msp-color-text-muted);
+
+    &:hover:not(:disabled) {
+      color: var(--msp-color-text);
+    }
+
+    &[aria-pressed="true"] {
+      color: var(--msp-color-accent);
+    }
+  }
+
+  & svg {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .msp-canvas-playback-counter {
@@ -57,14 +73,6 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
   flex: 1;
   font-weight: 600;
   overflow: hidden;
-}
-
-.msp-canvas-playback-progress {
-  height: 2px;
-  margin: 0 var(--msp-space-3);
-  background: var(--msp-color-accent);
-  transform-origin: 0;
-  transition: transform var(--msp-motion-fast) linear;
 }
 
 .msp-canvas-playback-description {

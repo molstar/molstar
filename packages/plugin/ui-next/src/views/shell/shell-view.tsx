@@ -14,6 +14,7 @@ import type { ShellModel } from '../../shell/shell.js';
 import type { StatusModel } from '../../shell/status.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/shell.module.css.js';
+import { installTooltips } from '../../components/tooltip/tooltip.js';
 import { CanvasStack, CanvasToolbar, ContextChips, OverlayHost, StatusLine } from './canvas-chrome.js';
 import { DockView, FloatingDock } from './dock-view.js';
 
@@ -153,6 +154,8 @@ export function ShellView(props: ShellViewProps) {
   };
   window.addEventListener('keydown', onKeyDown);
   onCleanup(() => window.removeEventListener('keydown', onKeyDown));
+  // Tooltips for the icon buttons of the rail and the canvas stack.
+  onCleanup(installTooltips(root));
   // The shell decides compact or desktop by its own width, not the window's.
   const observer = new ResizeObserver((entries) => shell.setWidth(entries[0].contentRect.width));
   observer.observe(root);

@@ -46,6 +46,8 @@ const ICONS = [
   'chevron-down',
   'chevron-left',
   'chevron-up',
+  'chevrons-left',
+  'chevrons-right',
   'x',
   'plus',
   'minus',

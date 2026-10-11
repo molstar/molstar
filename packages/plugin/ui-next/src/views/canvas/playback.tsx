@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
+import { combineLatest, map } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { Markdown } from '../../components/markdown/markdown.js';
@@ -66,19 +66,6 @@ function SnapshotStepper(props: { model: SnapshotStepperModel }) {
               onClick={() => model.togglePlay()}
             />
           </div>
-          <Show
-            when={model.transition.pipe(
-              map((t) => t !== undefined),
-              distinctUntilChanged(),
-            )}
-          >
-            {() => (
-              <div
-                class={classes.progress}
-                style={{ transform: model.transition.pipe(map((t) => `scaleX(${t ?? 0})`)) }}
-              />
-            )}
-          </Show>
           <Show when={model.description}>
             {(source) => (
               <div class={classes.description}>
@@ -110,14 +97,14 @@ export function Timeline(props: { model: TrajectoryControlsModel }) {
           <Button
             variant="ghost"
             size="sm"
-            icon={<Icon name="skip-back" />}
+            icon={<Icon name="chevrons-left" />}
             title="First model"
             onClick={() => model.first()}
           />
           <Button
             variant="ghost"
             size="sm"
-            icon={<Icon name="step-back" />}
+            icon={<Icon name="chevron-left" />}
             title="Previous model"
             onClick={() => model.previous()}
           />
@@ -133,14 +120,14 @@ export function Timeline(props: { model: TrajectoryControlsModel }) {
           <Button
             variant="ghost"
             size="sm"
-            icon={<Icon name="step-forward" />}
+            icon={<Icon name="chevron-right" />}
             title="Next model"
             onClick={() => model.next()}
           />
           <Button
             variant="ghost"
             size="sm"
-            icon={<Icon name="skip-forward" />}
+            icon={<Icon name="chevrons-right" />}
             title="Last model"
             onClick={() => model.last()}
           />

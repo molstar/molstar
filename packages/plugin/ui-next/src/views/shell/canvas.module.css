@@ -113,8 +113,11 @@
 }
 
 /* The canvas stack: top right of the canvas, under what floats at the top, beside the rail or the open panel. A frame,
-   and beside it what opens from it (the picking level), outside the frame's clipping. */
+   and beside it what opens from it (the picking level), outside the frame's clipping. Denser than the rail: it sits on
+   the canvas. */
 .stack {
+  --msp-stack-row: 34px;
+
   position: absolute;
   top: var(--msp-canvas-top-inset, var(--msp-space-4));
   right: var(--msp-canvas-right-inset, var(--msp-space-4));
@@ -122,6 +125,19 @@
 
 :where([data-mode="compact"]) .stack {
   right: var(--msp-canvas-rail-inset, var(--msp-space-4));
+}
+
+.stack .frame {
+  width: 36px;
+}
+
+.stack .tool {
+  height: var(--msp-stack-row);
+}
+
+.stack :is(.tool, button) > svg:first-child {
+  width: 18px;
+  height: 18px;
 }
 
 /* A button with a menu: a small corner mark says there is more on hover. */

@@ -23,6 +23,24 @@
   gap: var(--msp-space-1);
   height: 34px;
   padding: 0 var(--msp-space-2);
+
+  /* Quiet like the rest of the canvas chrome: muted until hovered, the same size as the stack's icons. */
+  & button {
+    color: var(--msp-color-text-muted);
+
+    &:hover:not(:disabled) {
+      color: var(--msp-color-text);
+    }
+
+    &[aria-pressed="true"] {
+      color: var(--msp-color-accent);
+    }
+  }
+
+  & svg {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .counter {
@@ -41,14 +59,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 600;
-}
-
-.progress {
-  height: 2px;
-  margin: 0 var(--msp-space-3);
-  background: var(--msp-color-accent);
-  transform-origin: left;
-  transition: transform var(--msp-motion-fast) linear;
 }
 
 .description {

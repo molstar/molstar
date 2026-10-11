@@ -134,6 +134,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-stack {
+  --msp-stack-row: 34px;
   top: var(--msp-canvas-top-inset, var(--msp-space-4));
   right: var(--msp-canvas-right-inset, var(--msp-space-4));
   position: absolute;
@@ -141,6 +142,19 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 :where([data-mode="compact"]) .msp-shell-canvas-stack {
   right: var(--msp-canvas-rail-inset, var(--msp-space-4));
+}
+
+.msp-shell-canvas-stack .msp-shell-canvas-frame {
+  width: 36px;
+}
+
+.msp-shell-canvas-stack .msp-shell-canvas-tool {
+  height: var(--msp-stack-row);
+}
+
+.msp-shell-canvas-stack :is(.msp-shell-canvas-tool, button) > svg:first-child {
+  width: 18px;
+  height: 18px;
 }
 
 .msp-shell-canvas-tool {

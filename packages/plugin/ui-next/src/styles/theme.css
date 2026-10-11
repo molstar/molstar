@@ -87,7 +87,7 @@
        tint; no drop shadows. */
     --msp-glass-bg: color-mix(in oklab, var(--msp-color-panel), transparent 30%);
     /* Larger surfaces over the canvas (a floating panel): more opaque, for reading. */
-    --msp-glass-panel-bg: color-mix(in oklab, var(--msp-color-panel), transparent 12%);
+    --msp-glass-panel-bg: color-mix(in oklab, var(--msp-color-panel), transparent 5%);
     --msp-glass-filter: blur(20px) saturate(1.4);
     --msp-glass-edge: color-mix(in oklab, var(--msp-color-text), transparent 88%);
     --msp-glass-shadow: 0 0 0 1px var(--msp-glass-edge);

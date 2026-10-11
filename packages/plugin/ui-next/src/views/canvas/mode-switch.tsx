@@ -56,7 +56,8 @@ export function ModeSwitch(props: ModeSwitchProps) {
         type="button"
         class={classes.segment}
         aria-pressed={selecting.pipe(map((s) => !s))}
-        title="Interact: drag to rotate, click to focus"
+        data-tip="Interact: drag to rotate, click to focus"
+        data-tip-side="left"
         aria-label="Interact"
         onClick={() => props.setMode('interact')}
       >
@@ -66,7 +67,8 @@ export function ModeSwitch(props: ModeSwitchProps) {
         type="button"
         class={`${classes.segment} ${classes.select}`}
         aria-pressed={selecting}
-        title="Select: click to select, Shift+click to extend; drag still rotates"
+        data-tip="Select: click to select, Shift+click to extend"
+        data-tip-side="left"
         aria-label="Select"
         onClick={() => props.setMode('select')}
       >

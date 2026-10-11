@@ -35,9 +35,11 @@ import { SnapshotPanel, Timeline } from '../canvas/playback.js';
 import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
 import { LogView } from './log-view.js';
+import { HomeTab } from '../home/home-tab.js';
 import { SectionList } from './section-list.js';
 import { ShellView } from './shell-view.js';
 import { StructureTab } from '../structure/structure-tab.js';
+import { mockHome } from '../../_stories/mocks/home.js';
 import { registerMockCanvasSettings } from '../../_stories/mocks/canvas-settings.js';
 import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
 import { type MockScenePreset, mockScene } from '../../_stories/mocks/scene.js';
@@ -97,7 +99,6 @@ function mockSnapshots(status: StatusModel): SnapshotStepperModel {
   ];
   const index = observableState(0);
   const isPlaying = observableState(false);
-  const transition = observableState<number | undefined>(undefined);
   const title = observableState<string | undefined>(entries[0].title);
   const description = observableState<string | undefined>(entries[0].description);
   let timer: ReturnType<typeof setInterval> | undefined;
@@ -106,12 +107,6 @@ function mockSnapshots(status: StatusModel): SnapshotStepperModel {
     index.set(n);
     title.set(entries[n].title);
     description.set(entries[n].description);
-    let t = 0;
-    const step = setInterval(() => {
-      t += 0.1;
-      transition.set(t >= 1 ? undefined : t);
-      if (t >= 1) clearInterval(step);
-    }, 30);
   };
   return {
     count: observableState(entries.length).asReadonly,
@@ -119,7 +114,6 @@ function mockSnapshots(status: StatusModel): SnapshotStepperModel {
     title: title.asReadonly,
     description: description.asReadonly,
     isPlaying: isPlaying.asReadonly,
-    transition: transition.asReadonly,
     previous: () => go(index.value - 1),
     next: () => go(index.value + 1),
     togglePlay: () => {
@@ -319,6 +313,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
   // Extensions' inspector sections (volume streaming, assembly symmetry), contributed to the node kind's slot.
   registerMockInspectorSections(shell, scene);
   const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
+  const home = mockHome((text, kind) => status.post(text, kind));
 
   shell.registerTabs([
     {
@@ -327,26 +322,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
       icon: 'molstar',
       order: 0,
       place: 'head',
-      render: domView(() => (
-        <div style={pad}>
-          <b style="font-size: var(--msp-font-size-lg)">Open a structure</b>
-          <div style="display: grid; gap: 8px">
-            <Button icon={<Icon name="folder-open" />}>Open files…</Button>
-            <Button icon={<Icon name="download" />}>Download by ID (PDB, AlphaFold DB, …)</Button>
-          </div>
-          <b>Examples</b>
-          <div style="display: grid; gap: 4px">
-            {['1TQN · Cytochrome P450 3A4', '7BV2 · SARS-CoV-2 RdRp', 'AF-Q8W3K0 · AlphaFold model'].map((e) => (
-              <Button variant="ghost" onClick={() => status.post(`Loading ${e}…`)}>
-                {e}
-              </Button>
-            ))}
-          </div>
-          <p style={muted}>
-            Press <kbd>{formatChord({ key: 'k', mod: true })}</kbd> for every command.
-          </p>
-        </div>
-      )),
+      render: domView(() => <HomeTab home={home} onOpenPalette={() => status.post('The palette comes next.')} />),
     },
     {
       id: 'structure',

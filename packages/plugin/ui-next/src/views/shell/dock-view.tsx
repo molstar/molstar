@@ -153,7 +153,8 @@ function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab })
       type="button"
       role="tab"
       class={classes.tab}
-      title={tab.title}
+      data-tip={tab.title}
+      data-tip-side="left"
       aria-label={tab.title}
       aria-selected={selected}
       onClick={() => {

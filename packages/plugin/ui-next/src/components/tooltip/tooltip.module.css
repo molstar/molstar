@@ -1,0 +1,33 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Ink on paper, quick: the inverse of the panel colors, small and opaque so it reads over anything. */
+.tooltip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--msp-z-tooltip);
+  max-width: 240px;
+  padding: 5px 9px;
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-text);
+  color: var(--msp-color-bg);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: tooltip-in var(--msp-motion-fast) var(--msp-ease);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+  }
+}
