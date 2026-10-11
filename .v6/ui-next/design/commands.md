@@ -1,8 +1,8 @@
-# Commands, palette, and keybindings
+# Commands, command menu, and keybindings
 
-A VS Code–style command layer: every user-facing operation is a named, searchable, context-aware command; the palette,
-keybindings, menus, toolbar buttons, and scripts all go through it. This is what lets the new UI surface far less nested
-UI: what used to be a card with a form becomes a command with arguments.
+A VS Code–style command layer: every user-facing operation is a named, searchable, context-aware command; the command
+menu, keybindings, menus, toolbar buttons, and scripts all go through it. This is what lets the new UI surface far less
+nested UI: what used to be a card with a form becomes a command with arguments.
 
 ## 1. Relationship to `PluginCommands`
 
@@ -40,7 +40,7 @@ interface UICommand<P extends PD.Params = {}> {
   order?: number;                     // position within its group
 }
 
-/** A node in the command tree: a submenu in the palette, a menu, or a toolbar dropdown. */
+/** A node in the command tree: a submenu in the command menu, a menu, or a toolbar dropdown. */
 interface CommandGroup {
   id: string;                         // 'select', 'select.query', 'select.expression'
   title: string;                      // 'Select', 'By query', 'Expression'
@@ -55,7 +55,7 @@ interface CommandGroup {
 }
 
 interface CommandUI<P extends PD.Params> {
-  placement?: 'inline' | 'dialog';    // under the palette input (default) or in a dialog
+  placement?: 'inline' | 'dialog';    // under the command menu input (default) or in a dialog
   render: ViewRenderer<CommandUIContext<P>>;   // dom, React, Preact, or an element (rendering.md §6)
 }
 
@@ -66,10 +66,11 @@ interface CommandUIContext<P extends PD.Params> {
 }
 ```
 
-- **Arguments are PD params** (for now; the argument schema can be revisited once the palette is built). The same schema
-  renders as an inline sentence in the palette when it is flat (select, number, text, boolean, color, and formatted text
-  fields) and as a full form in a dialog when it is not (group, mapped, object-list…). Existing transformer and action
-  params, extension params (`Mp4AnimationParams`, `GeometryParams`, …) become command arguments without rewriting.
+- **Arguments are PD params** (for now; the argument schema can be revisited once the command menu is built). The same
+  schema renders as an inline sentence in the command menu when it is flat (select, number, text, boolean, color, and
+  formatted text fields) and as a full form in a dialog when it is not (group, mapped, object-list…). Existing
+  transformer and action params, extension params (`Mp4AnimationParams`, `GeometryParams`, …) become command arguments
+  without rewriting.
 - **Formats** are named argument types with `check(text) → value | message` and `complete(text) → options`. Built-in:
   `structure` (pick from the scene), `component`, `cell`, `selection` (residue list or MolScript, compiled with the
   existing `compileIdListSelection`/script support), `color` (names, hex, palette), `query` (registered selection
@@ -77,17 +78,17 @@ interface CommandUIContext<P extends PD.Params> {
 - **Custom UI** (`ui`) replaces the generated form for commands whose arguments are not a plain form: a multi-step flow
   (record ID → file list in Zenodo import; render → save in MP4 export), a picker with previews, a drawing tool. The
   custom UI drives the same invocation (setting values, confirming, showing progress and errors), so the command still
-  has one id, appears in the palette, takes keybindings, and reports outcomes like any other. Without `ui`, the form is
-  generated from `params`.
+  has one id, appears in the command menu, takes keybindings, and reports outcomes like any other. Without `ui`, the
+  form is generated from `params`.
 - **Results** (`message`, `detail`, `undoable`) become notifications; `undoable` offers Undo through
   `state.data.undo()`.
 - **Groups** nest commands where there are too many to list flat (selection queries, presets, themes). Nesting is for
   browsing only: a search from the top level still matches every command at any depth and shows its path ("Select ›
-  Structure property › Helix"), so nothing is harder to find. In the palette, Enter or → opens a group, Backspace on an
-  empty input or ← goes back, and the input shows the path as a breadcrumb. A group can be opened directly
-  (`palette.open-group` with the group id), which is how toolbar buttons and the selection bar reuse the palette scoped
-  to a subtree. `shared` arguments are set once for the whole group (§10's selection mode) and passed to whichever child
-  runs.
+  Structure property › Helix"), so nothing is harder to find. In the command menu, Enter or → opens a group, Backspace
+  on an empty input or ← goes back, and the input shows the path as a breadcrumb. A group can be opened directly
+  (`command-menu.open-group` with the group id), which is how toolbar buttons and the selection bar reuse the command
+  menu scoped to a subtree. `shared` arguments are set once for the whole group (§10's selection mode) and passed to
+  whichever child runs.
 
 `CommandContext` is a `ReadonlyState` derived from view models:
 
@@ -113,10 +114,10 @@ interface CommandContext {
 | Contributed               | Extension contributions (geo-export, model-export, mp4 dialog, zenodo, assembly symmetry, …)                                                                                                                                          | While the contribution is active |
 | Generated from registries | "Apply preset: …" (hierarchy and representation presets), "Color by: …" (themes), "Select: …" (queries), "Add representation: …", state actions ("Download structure", "Load G3D", "Download tunnels"), animations, background styles | Recomputed on `registry.version` |
 | Contextual                | `actions.fromCell(currentCell)` as "Apply to <cell>: …"; node actions in scene/tree context menus                                                                                                                                     | While the cell/node is current   |
-| View-scoped               | Tree navigation, palette navigation, dialog confirm                                                                                                                                                                                   | While the view is mounted        |
+| View-scoped               | Tree navigation, command menu navigation, dialog confirm                                                                                                                                                                              | While the view is mounted        |
 
-Generated commands are the largest win: today these choices are buried in nested menus inside cards. The palette lists
-them flat, fuzzy-searchable, with `when` explaining why one is unavailable ("Select a structure first").
+Generated commands are the largest win: today these choices are buried in nested menus inside cards. The command menu
+lists them flat, fuzzy-searchable, with `when` explaining why one is unavailable ("Select a structure first").
 
 ## 4. Registry
 
@@ -135,7 +136,7 @@ them flat, fuzzy-searchable, with `when` explaining why one is unavailable ("Sel
 `CommandInvocation` keeps its state machine (`editing → running → done | failed | cancelled`), tail reading, and preview
 sink; its value store is a `ParamsFormModel` instead of a declarative binding context.
 
-## 5. Palette
+## 5. Command menu
 
 - Opens with ⌘K / Ctrl+K and ⇧⌘P / Ctrl+Shift+P (both; the first is common on the web, the second familiar from VS
   Code), and from a toolbar button for touch.
@@ -150,21 +151,21 @@ sink; its value store is a `ParamsFormModel` instead of a declarative binding co
   dialog, per `placement`).
 - ARIA combobox: the input keeps focus, rows are `role="option"`.
 
-**State (mocks, `views/palette/palette.tsx`):** the list (recent first on an empty input, matched letters marked,
-category, keys, a blocked command greyed with its reason, a preset as its own row), aliases with arguments ("color red",
-"download 7bv2"), the inline sentence (before-words, value tokens, the active one typed into the input, completions from
-the field's options or format, the run button with Enter), Tab between fields, Backspace back, Esc to the list and then
-out, a finished run closing the palette with its message in the status line, ⌘K and ⇧⌘P, and commands' own shortcuts.
-Not yet: groups and the breadcrumb, the `@ # : ?` prefixes, "open as form" for params that are not flat, custom command
-UI, previews while browsing.
+**State (mocks, `views/command menu/command menu.tsx`):** the list (recent first on an empty input, matched letters
+marked, category, keys, a blocked command greyed with its reason, a preset as its own row), aliases with arguments
+("color red", "download 7bv2"), the inline sentence (before-words, value tokens, the active one typed into the input,
+completions from the field's options or format, the run button with Enter), Tab between fields, Backspace back, Esc to
+the list and then out, a finished run closing the command menu with its message in the status line, ⌘K and ⇧⌘P, and
+commands' own shortcuts. Not yet: groups and the breadcrumb, the `@ # : ?` prefixes, "open as form" for params that are
+not flat, custom command UI, previews while browsing.
 
 ## 6. Keybindings
 
 A `KeybindingService` on the plugin root element:
 
 - **Scopes**: `global` (anywhere in the plugin), `viewport` (canvas focused or hovered), `view:<id>` (a focused view),
-  `palette`, `dialog`. The most specific scope wins; text-entry targets only receive ⌘/Ctrl chords (any-ui's rules for
-  IME, repeat, and `e.code` fallback are kept).
+  `command menu`, `dialog`. The most specific scope wins; text-entry targets only receive ⌘/Ctrl chords (any-ui's rules
+  for IME, repeat, and `e.code` fallback are kept).
 - **Coexistence with canvas bindings.** Trackball keys (W/A/S/D/R/F/Q/E…) and behavior bindings (`I`, `O`, `T`, `G`,
   Ctrl+arrows) keep working through `InputObserver`. The service reads those bindings and reports conflicts in the Help
   view instead of overriding them. Later, behavior key bindings can be re-expressed as commands with `viewport` scope.
@@ -177,8 +178,8 @@ A `KeybindingService` on the plugin root element:
 ## 7. Menus and buttons are commands
 
 A command can also just open UI: a panel, a tab, or a panel at a section (`Export animation (MP4)…` opens the Export
-panel at its `animation` section). Features that live in a panel are thus still found by the palette, and extensions add
-sections and commands rather than buttons.
+panel at its `animation` section). Features that live in a panel are thus still found by the command menu, and
+extensions add sections and commands rather than buttons.
 
 Context menus (scene node, state-tree cell, viewport right-click), toolbar buttons, and view headers reference command
 ids, optionally with fixed arguments:
@@ -188,7 +189,7 @@ ids, optionally with fixed arguments:
 ```
 
 A button is enabled per the command's `when`, and its tooltip shows the title and keybinding. This keeps every action
-discoverable in the palette and avoids duplicate logic.
+discoverable in the command menu and avoids duplicate logic.
 
 ## 8. Built-in command map (first pass)
 
@@ -207,7 +208,7 @@ discoverable in the palette and avoids duplicate logic.
 | Snapshots / animation / trajectory | `snapshot.add`, `.next`, `.previous`, `.play`, `.save` (molj/molx), `.open`, `animation.play`/`.stop`, `trajectory.next`/`.previous`/`.first`                                                                                                      |
 | State tree                         | `state.undo`, `state.remove`, `state.toggle-visibility`, `state.set-current`, contextual actions                                                                                                                                                   |
 | Focus                              | `focus.target` (ligands etc. as completions), `focus.clear`, `focus.recenter`                                                                                                                                                                      |
-| Shell                              | `view.show:<view-id>`, `view.theme`, `palette.open`, `help.keybindings`                                                                                                                                                                            |
+| Shell                              | `view.show:<view-id>`, `view.theme`, `command-menu.open`, `help.keybindings`                                                                                                                                                                       |
 
 ## 9. Extensibility
 
@@ -236,7 +237,7 @@ plugin registry, never by patching built-in definitions:
 Today's selection toolbar (selection mode only) has four mode buttons (union, subtract, intersect, set) that each open
 the same nested query menu, a residue-list helper, a Theme panel whose form mixes target, action, and representation,
 plus create/remove component, undo, help, and close. It is already command-like but each piece is its own UI. In ui-next
-it becomes two command groups, used from the palette, from context menus, and from a slim selection bar.
+it becomes two command groups, used from the command menu, from context menus, and from a slim selection bar.
 
 ### 10.1 `select`: changing what is selected
 
@@ -272,7 +273,7 @@ Select ›                                  shared: mode = add | remove | inters
   row only, cancelled when the highlight moves.
 - **Granularity** is not part of `select`; it is a picking setting (`selection.granularity`, below) shown in the
   selection bar.
-- The `:` palette prefix is a shortcut into Select › Residues or Expression: `:A 10-20` reads as a residue list,
+- The `:` command menu prefix is a shortcut into Select › Residues or Expression: `:A 10-20` reads as a residue list,
   `:pymol resn HEM` as a PyMOL expression.
 
 ### 10.2 `selection`: acting on the current selection
@@ -296,8 +297,8 @@ Selection ›
 ```
 
 - Today's Theme panel (`selection` + `action` mapped select + `representations`) splits into one command per action.
-  Each has a small flat form that fits inline in the palette, and the search finds "transparency" directly instead of
-  through an Action dropdown.
+  Each has a small flat form that fits inline in the command menu, and the search finds "transparency" directly instead
+  of through an Action dropdown.
 - **Color** is a `color` argument format whose completions are swatches (recent colors first, then the palette shown
   today) and which accepts names and hex. Lighten/darken and RGB editing live in the color field's popover. When the
   field is active, moving through swatches previews the color on the selection.
@@ -311,10 +312,10 @@ canvas mode switch, [shell.md](shell.md) §4.6):
 
 ```
 [ + − ∩ = ]  [ Select…  type a query, residues, or :expression        ]  [ 🖌 ] [ ⧉ ] [ ↶ ]
- mode         the `select` group as an inline palette                      color  comp.  undo
+ mode         the `select` group as an inline command menu                      color  comp.  undo
 ```
 
-- The input is the palette scoped to the `select` group, anchored to the bar: typing filters, Enter selects, the
+- The input is the command menu scoped to the `select` group, anchored to the bar: typing filters, Enter selects, the
   breadcrumb shows nesting. The mode control is the group's shared argument.
 - The buttons open `selection.color`, `selection.create-component`, and run undo; each shows its keybinding in the
   tooltip.

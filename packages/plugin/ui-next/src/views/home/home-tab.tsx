@@ -18,13 +18,13 @@ import { classes } from './_generated/home-tab.module.css.js';
 
 export interface HomeTabProps {
   home: HomeModel;
-  /** Opens the command palette (the hint at the bottom). */
-  onOpenPalette?: () => void;
+  /** Opens the command menu (the hint at the bottom). */
+  onOpenCommandMenu?: () => void;
 }
 
 /**
  * The Home tab: open files (a drop area), the state actions applicable to the root as forms (download structure,
- * download density, load trajectory, …; the first one open), recently opened entries, and a pointer to the palette.
+ * download density, load trajectory, …; the first one open), recently opened entries, and a pointer to the command menu.
  */
 export function HomeTab(props: HomeTabProps) {
   const { home } = props;
@@ -52,7 +52,7 @@ export function HomeTab(props: HomeTabProps) {
           </section>
         )}
       </Show>
-      <button type="button" class={classes.hint} onClick={() => props.onOpenPalette?.()}>
+      <button type="button" class={classes.hint} onClick={() => props.onOpenCommandMenu?.()}>
         <kbd>{formatChord({ key: 'k', mod: true })}</kbd>
         <span>Search every command</span>
       </button>

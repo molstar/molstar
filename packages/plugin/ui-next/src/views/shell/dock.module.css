@@ -293,7 +293,7 @@
   align-self: stretch;
 }
 
-/* The bottom of the rail: pushed down, its divider above it; the tabs placed there (Settings), then the palette (the
+/* The bottom of the rail: pushed down, its divider above it; the tabs placed there (Settings), then the command menu (the
    main way in), a shade apart. */
 .railFoot {
   display: flex;

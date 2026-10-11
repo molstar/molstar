@@ -33,7 +33,7 @@ import {
 } from '../canvas/mode-switch.js';
 import { SnapshotCard, TrajectoryBar } from '../canvas/playback.js';
 import { SelectionBar } from '../canvas/selection-bar.js';
-import { CommandPalette } from '../palette/palette.js';
+import { CommandMenu } from '../command-menu/command-menu.js';
 import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
 import { LogView } from './log-view.js';
@@ -242,7 +242,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
   const shell = new ShellModel();
   const status = new StatusModel();
   const canvasMode = observableState<CanvasMode>('interact');
-  const paletteOpen = observableState(false);
+  const commandMenuOpen = observableState(false);
   const granularity = observableState('residue');
   const illumination = observableState(false);
   const snapshots = observableState<readonly string[]>(['Overview', 'Active site']);
@@ -265,7 +265,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
       icon: 'molstar',
       order: 0,
       place: 'head',
-      render: domView(() => <HomeTab home={home} onOpenPalette={() => status.post('The palette comes next.')} />),
+      render: domView(() => <HomeTab home={home} onOpenCommandMenu={() => commandMenuOpen.set(true)} />),
     },
     {
       id: 'structure',
@@ -279,7 +279,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
           quickStyles={mockQuickStyles((t) => status.post(t))}
           onAction={(a) =>
             status.post(
-              `${a === 'preset' ? 'Apply preset' : a === 'color' ? 'Color by' : 'Add component'}… opens in the palette`,
+              `${a === 'preset' ? 'Apply preset' : a === 'color' ? 'Color by' : 'Add component'}… opens in the command menu`,
             )
           }
         />
@@ -383,8 +383,9 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     {
       id: 'palette',
       icon: 'command',
-      title: `Commands (${formatChord({ key: 'k', mod: true })})`,
-      run: () => paletteOpen.set(true),
+      title: `Command menu (${formatChord({ key: 'k', mod: true })})`,
+      caption: formatChord({ key: 'k', mod: true }),
+      run: () => commandMenuOpen.set(true),
     },
     {
       id: 'reset',
@@ -511,7 +512,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     modeSwitch,
     pickLevel,
     selection,
-    paletteOpen,
+    commandMenuOpen,
     commands: mockCommands(shell),
     snapshots: mockSnapshots((t) => status.post(t)),
     trajectory: mockTrajectory(),
@@ -523,8 +524,8 @@ function ShellStory(props: {
   preset?: MockScenePreset;
   background?: string;
   openExportAt?: string;
-  /** Opens with the command palette open. */
-  palette?: boolean;
+  /** Opens with the command menu open. */
+  commandMenu?: boolean;
   /** What the loaded data has to play: a session's snapshots, a trajectory's models (plain 1TQN has neither). */
   playback?: { snapshots?: boolean; trajectory?: boolean };
 }) {
@@ -536,12 +537,12 @@ function ShellStory(props: {
     modeSwitch,
     pickLevel,
     selection,
-    paletteOpen,
+    commandMenuOpen,
     commands,
     snapshots,
     trajectory,
   } = mockShell(props);
-  // What commands did goes to the status line; ⌘K / ⇧⌘P open the palette; commands' own shortcuts run them.
+  // What commands did goes to the status line; ⌘K / ⇧⌘P open the command menu; commands' own shortcuts run them.
   const outcomes = commands.outcomes.subscribe((o) => {
     if (o.kind === 'done' && o.result.message) status.post(o.result.message);
     else if (o.kind === 'failed' || o.kind === 'blocked') status.post(o.message, 'warning');
@@ -550,8 +551,8 @@ function ShellStory(props: {
     const mod = isMac() ? e.metaKey : e.ctrlKey;
     if (mod && (e.key.toLowerCase() === 'k' || (e.shiftKey && e.key.toLowerCase() === 'p'))) {
       e.preventDefault();
-      paletteOpen.set(true);
-    } else if (!paletteOpen.value && commands.handleKey(e, isMac())) e.preventDefault();
+      commandMenuOpen.set(true);
+    } else if (!commandMenuOpen.value && commands.handleKey(e, isMac())) e.preventDefault();
   };
   window.addEventListener('keydown', onKey);
   onCleanup(() => {
@@ -561,7 +562,7 @@ function ShellStory(props: {
   shell.mount();
   status.mount();
   if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
-  if (props.palette) paletteOpen.set(true);
+  if (props.commandMenu) commandMenuOpen.set(true);
   onCleanup(() => {
     shell.unmount();
     status.unmount();
@@ -599,9 +600,9 @@ function ShellStory(props: {
       canvasColor={props.background ?? '#ffffff'}
       canvasTheme={themeForColor(parseColor(props.background ?? '#ffffff') ?? 0xffffff)}
       context={props.loaded ? <SelectionBar selection={selection} /> : null}
-      palette={
-        <Show when={paletteOpen}>
-          {() => <CommandPalette manager={commands} onClose={() => paletteOpen.set(false)} />}
+      commandMenu={
+        <Show when={commandMenuOpen}>
+          {() => <CommandMenu manager={commands} onClose={() => commandMenuOpen.set(false)} />}
         </Show>
       }
       canvasLead={props.loaded ? modeSwitch : null}
@@ -611,9 +612,9 @@ function ShellStory(props: {
   );
 }
 
-/** The command palette open (⌘K / Ctrl+K anywhere, or the rail's ⌘): everything by name. */
-export const Palette: StoryObj = {
-  render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} palette={true} />}</div>),
+/** The command menu open (⌘K / Ctrl+K anywhere, or the rail's ⌘): everything by name. */
+export const CommandMenuOpen: StoryObj = {
+  render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} commandMenu={true} />}</div>),
 };
 
 /** Nothing loaded: Home is the open tab. */
@@ -660,7 +661,7 @@ export const CanvasBackground: StoryObj<{ background: string }> = {
     story(() => <div style="height: 100vh">{<ShellStory loaded={true} background={args.background} />}</div>),
 };
 
-/** A command opened the Export panel at a section ("Export animation (MP4)…" in the palette). */
+/** A command opened the Export panel at a section ("Export animation (MP4)…" in the command menu). */
 export const ExportAtSection: StoryObj = {
   render: () =>
     story(() => (

@@ -1,6 +1,6 @@
 # Shell, layout, and the UI spec
 
-The shell is the frame around the viewport: the tab panel, optional docks, canvas overlays, the palette, and
+The shell is the frame around the viewport: the tab panel, optional docks, canvas overlays, the command menu, and
 notifications. It replaces `PluginContext.layout` (`PluginLayout`) and the fixed five-region `Layout` for ui-next, and
 it is where contributions (built-in and extension UI) are placed.
 
@@ -41,7 +41,7 @@ it is where contributions (built-in and extension UI) are placed.
 │  │ bottom dock (optional, canvas width)                  │                   │  │
 └──┴──────────────────────────────────────────────────────┴───────────────────┴──┘
   canvas stack: mode (interact, select), canvas (camera ▸, illumination & XR ▸, expand), view (sequence)
-  also: palette (modal), overlays and dialogs (in the panel's place when it is open), drag-and-drop target
+  also: command menu (modal), overlays and dialogs (in the panel's place when it is open), drag-and-drop target
 ```
 
 - **Floating docks.** The top dock (sequence) floats too: a glass card along the top of the canvas, between the left
@@ -65,7 +65,7 @@ it is where contributions (built-in and extension UI) are placed.
 - **Rail sections.** The rail is docked to the right edge: a full-height column, no margin (the panel floats beside it),
   buttons edge to edge, a hairline between sections, no captions. Top to bottom: Home as the Mol* mark (a section of its
   own), the tab strip, the scene (`scene`: Animation, Canvas settings), app actions (`export`: save state, Export), and
-  at its foot Settings and, a shade apart, the command palette (the main way in). Every overlay card (Animation, Canvas
+  at its foot Settings and, a shade apart, the command menu (the main way in). Every overlay card (Animation, Canvas
   settings, Save state, Export) takes the panel's place, full height. Which buttons show is the app's choice
   (`ui.layout.buttons` in the spec, `ShellModel.setButtons` at runtime). Tabs choose their place
   (`place: 'head' | 'strip' | 'foot'`). The canvas stack is the same kind of frame, floating. Toolbar items name their
@@ -73,7 +73,7 @@ it is where contributions (built-in and extension UI) are placed.
   grow with every extension): they contribute **sections** to a panel's slot instead, e.g. MP4, geometry and model
   export as sections of the Export panel (`export` slot), next to the built-in Image and Session & state sections.
   Everything is also a command, and a command can open a panel at a section
-  (`openOverlay('export', anchor, 'animation')`), so the palette finds "mp4" and lands on it.
+  (`openOverlay('export', anchor, 'animation')`), so the command menu finds "mp4" and lands on it.
 - **Canvas stack.** What acts on the view sits on the canvas itself, at its top right (below the sequence card, beside
   the rail or the open panel), as a vertical stack of glass blocks: the mode (Interact, Select; §4.6), then the toolbar
   items placed on the canvas (`place: 'canvas'`): `canvas` (reset camera, illumination & XR, expand) and `view` (show or
@@ -140,7 +140,7 @@ class ShellModel extends ReactiveModel {
   with the sequence (collapsed until a structure loads); left and bottom docks empty.
 - **Modes** replace `controlsDisplay`. `desktop`: docks beside the viewport. `compact` (narrow or portrait, chosen by
   `auto` from the shell's own size via `ResizeObserver`, not window media queries): the right panel becomes a bottom
-  sheet, overlays become sheets, the toolbar moves to the bottom edge. `embedded`: canvas, toolbar, palette,
+  sheet, overlays become sheets, the toolbar moves to the bottom edge. `embedded`: canvas, toolbar, command menu,
   notifications only.
 - **Persistence.** The layout is serialised to an injected store keyed by app id (localStorage in the viewer). It is not
   part of plugin state snapshots.
@@ -156,14 +156,14 @@ class ShellModel extends ReactiveModel {
 
 ### 4.1 Tabs (right panel)
 
-| Tab                  | Content                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Replaces                                                                  |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| **Home**             | Open files (a drop area: pick or drop, any format the plugin reads), the state actions applicable to the root as forms (`model/home.ts`, from `plugin.state.data.actions` for the root: Download Structure with its sources, Download Density, Load Trajectory, Open Session, and whatever extensions register; the first open), recently opened entries, and the palette hint. Shown by default while nothing is loaded. The Mol* mark at the head of the rail. | Home tab, custom import controls                                          |
-| **Structure** (main) | Top: the scene tree (structures → components → representations; volumes; particles; measurements; generic entries), inline visibility, context menus. Header actions: apply preset, color by, add component (commands). Bottom: the inspector for the picked node (its parameters as a `ParamsFormModel`) followed by contributed sections for that node kind: assembly symmetry, volume streaming, kinemage groups on a structure; volume options on a volume.  | Source, Components, Volume, Particles, Measurements list, extension cards |
-| **State tree**       | The full state tree with the current node's editors and applicable actions.                                                                                                                                                                                                                                                                                                                                                                                      | Data tab                                                                  |
-| **Log**              | Every message the status line showed, newest first, with kind and time; the status line opens it.                                                                                                                                                                                                                                                                                                                                                                | Bottom log region, log overlay                                            |
-| **Settings**         | §4.5.                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Settings tab, viewport settings panel                                     |
-| Extension tabs       | Segmentation (volseg), PAE plot (model-archive; also movable to the bottom dock), app-specific tabs.                                                                                                                                                                                                                                                                                                                                                             | Large extension cards                                                     |
+| Tab                  | Content                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Replaces                                                                  |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Home**             | Open files (a drop area: pick or drop, any format the plugin reads), the state actions applicable to the root as forms (`model/home.ts`, from `plugin.state.data.actions` for the root: Download Structure with its sources, Download Density, Load Trajectory, Open Session, and whatever extensions register; the first open), recently opened entries, and the command menu hint. Shown by default while nothing is loaded. The Mol* mark at the head of the rail. | Home tab, custom import controls                                          |
+| **Structure** (main) | Top: the scene tree (structures → components → representations; volumes; particles; measurements; generic entries), inline visibility, context menus. Header actions: apply preset, color by, add component (commands). Bottom: the inspector for the picked node (its parameters as a `ParamsFormModel`) followed by contributed sections for that node kind: assembly symmetry, volume streaming, kinemage groups on a structure; volume options on a volume.       | Source, Components, Volume, Particles, Measurements list, extension cards |
+| **State tree**       | The full state tree with the current node's editors and applicable actions.                                                                                                                                                                                                                                                                                                                                                                                           | Data tab                                                                  |
+| **Log**              | Every message the status line showed, newest first, with kind and time; the status line opens it.                                                                                                                                                                                                                                                                                                                                                                     | Bottom log region, log overlay                                            |
+| **Settings**         | §4.5.                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Settings tab, viewport settings panel                                     |
+| Extension tabs       | Segmentation (volseg), PAE plot (model-archive; also movable to the bottom dock), app-specific tabs.                                                                                                                                                                                                                                                                                                                                                                  | Large extension cards                                                     |
 
 Quick styles, superposition, procedural animation, component options, measurement creation, and screenshot options move
 to commands (with forms or custom UI where the arguments are rich).
@@ -184,12 +184,12 @@ structure inspector section (the volume streaming extension) whose channels appe
 
 ### 4.2 Overlays
 
-| Overlay        | Opened from                  | Content                                                                                                                                                                                                                                                                                      | Replaces                    |
-| -------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| **Save state** | Toolbar 💾, `state.save`     | Name (auto-filled), three actions: **Snapshot**, **Download session** (`.molx`), **Download state** (`.molj`); the snapshot list below (apply, rename, reorder, delete, edit description). "More" reveals save options, key, markdown description, and remote sharing (upload, server list). | Plugin State tab            |
-| **Screenshot** | Toolbar 📷                   | Preview with crop, size/format options, copy, download.                                                                                                                                                                                                                                      | Screenshot panel            |
-| **Help**       | `help.*`, `?` palette prefix | Keybindings (generated), palette prefixes, mouse controls, selection help.                                                                                                                                                                                                                   | Help tab, viewport help     |
-| **Animation**  | Playback cluster             | Choose an animation, its parameters, play/stop.                                                                                                                                                                                                                                              | Animation viewport controls |
+| Overlay        | Opened from                       | Content                                                                                                                                                                                                                                                                                      | Replaces                    |
+| -------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| **Save state** | Toolbar 💾, `state.save`          | Name (auto-filled), three actions: **Snapshot**, **Download session** (`.molx`), **Download state** (`.molj`); the snapshot list below (apply, rename, reorder, delete, edit description). "More" reveals save options, key, markdown description, and remote sharing (upload, server list). | Plugin State tab            |
+| **Screenshot** | Toolbar 📷                        | Preview with crop, size/format options, copy, download.                                                                                                                                                                                                                                      | Screenshot panel            |
+| **Help**       | `help.*`, `?` command menu prefix | Keybindings (generated), command menu prefixes, mouse controls, selection help.                                                                                                                                                                                                              | Help tab, viewport help     |
+| **Animation**  | Playback cluster                  | Choose an animation, its parameters, play/stop.                                                                                                                                                                                                                                              | Animation viewport controls |
 
 Dialogs (modal) are kept for flows that must not be lost by a stray click: command forms opened "as form", MP4 export,
 Zenodo import.
@@ -252,15 +252,16 @@ While anything is selected, the selection bar sits at the bottom right of the ca
 is selected ("12 residues"), then what to do with it as icon buttons, Mol*'s selection toolbar actions: Color and
 Transparency, material, … (both open the Selection card in the panel's place: color, reset color, transparency,
 emissive, material, reset material, clipping, wiggle, applied to all or some representations), Create component, Focus,
-and Clear. They are commands of the `selection` group, so the palette offers the same ones. Selection operations (add,
-subtract, intersect, set) and queries come from the palette's `select` group ([commands.md](commands.md) §10).
+and Clear. They are commands of the `selection` group, so the command menu offers the same ones. Selection operations
+(add, subtract, intersect, set) and queries come from the command menu's `select` group ([commands.md](commands.md)
+§10).
 
 ### 4.7 Icons
 
 Keep the vendored Material icons as the fallback set and move actions to one consistent modern line set (Lucide,
 ISC-licensed; only the SVG path data that is used is copied into `components/icon/`, no runtime dependency), plus custom
 glyphs for molecular concepts (cartoon, surface, ball-and-stick, ligand, volume, trajectory) that no generic set covers.
-Every icon is chosen once per command, so buttons, menus, and palette rows agree.
+Every icon is chosen once per command, so buttons, menus, and command menu rows agree.
 
 Implementation: `scripts/icons.mjs` extracts the inner markup of the used icons from `lucide-static` 1.48.0 (a
 devDependency; `pnpm icons`, `icons:check` in CI) into the generated `components/icon/_generated/lucide.ts`; the custom
@@ -378,13 +379,13 @@ interface PluginUISpec extends PluginSpec {
 
 Top-level custom elements over the same models, for hosts that do not want the shell:
 
-| Element                  | Content                                  | Used by                               |
-| ------------------------ | ---------------------------------------- | ------------------------------------- |
-| `<msp-plugin>`           | Full shell                               | Viewer, apps                          |
-| `<msp-viewport>`         | Canvas + overlays + toolbar (+ palette)  | mvs-stories, docking viewer, examples |
-| `<msp-sequence>`         | Sequence view                            | Hosts with their own layout           |
-| `<msp-params-form>`      | PD form bound to a `ParamsFormModel`     | alpha-orbitals example, host settings |
-| `<msp-snapshot-stepper>` | Snapshot i/N, previous/next, description | mvs-stories                           |
-| `<msp-pae-plot>`         | PAE plot (model-archive contribution)    | alphafolddb-pae example               |
+| Element                  | Content                                      | Used by                               |
+| ------------------------ | -------------------------------------------- | ------------------------------------- |
+| `<msp-plugin>`           | Full shell                                   | Viewer, apps                          |
+| `<msp-viewport>`         | Canvas + overlays + toolbar (+ command menu) | mvs-stories, docking viewer, examples |
+| `<msp-sequence>`         | Sequence view                                | Hosts with their own layout           |
+| `<msp-params-form>`      | PD form bound to a `ParamsFormModel`         | alpha-orbitals example, host settings |
+| `<msp-snapshot-stepper>` | Snapshot i/N, previous/next, description     | mvs-stories                           |
+| `<msp-pae-plot>`         | PAE plot (model-archive contribution)        | alphafolddb-pae example               |
 
 Each takes a `ui` or `model` property; several elements on a page can share one `PluginUIModel`.

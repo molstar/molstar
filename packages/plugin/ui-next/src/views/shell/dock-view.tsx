@@ -56,7 +56,7 @@ export function DockView(props: { shell: ShellModel; dock: DockModel }) {
 
 /**
  * A dock floating over the canvas (the right dock by default): a full-height rail at the edge with the tab strip, the
- * rail's toolbar sections below it, and its foot (the palette) at the bottom; the active tab's content as a glass card
+ * rail's toolbar sections below it, and its foot (the command menu) at the bottom; the active tab's content as a glass card
  * beside it. Collapsed, only the rail stays.
  */
 export function FloatingDock(props: {
@@ -64,12 +64,12 @@ export function FloatingDock(props: {
   dock: DockModel;
   railLead?: Child;
   railItems?: Child;
-  /** At the bottom of the rail (the palette). */
+  /** At the bottom of the rail (the command menu). */
   railFoot?: Child;
 }) {
   const { shell, dock } = props;
   const size = { '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) };
-  // Tabs at the head of the rail (Home), in the strip, and at its foot (Settings, by the palette).
+  // Tabs at the head of the rail (Home), in the strip, and at its foot (Settings, by the command menu).
   const head = dock.tabs.pipe(map((tabs) => tabs.filter((t) => t.place === 'head')));
   const strip = dock.tabs.pipe(map((tabs) => tabs.filter((t) => !t.place || t.place === 'strip')));
   const foot = dock.tabs.pipe(map((tabs) => tabs.filter((t) => t.place === 'foot')));

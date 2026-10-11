@@ -78,7 +78,7 @@ export interface SceneModel {
 
 /**
  * Quick styles (Mol*'s Quick Styles panel): one click restyles everything, by representation preset or by visual
- * style. Commands underneath (`structure.preset`, `canvas.style`), so the palette offers them too.
+ * style. Commands underneath (`structure.preset`, `canvas.style`), so the command menu offers them too.
  */
 export interface QuickStylesModel {
   representations: readonly { id: string; label: string }[];

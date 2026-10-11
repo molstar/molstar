@@ -44,8 +44,8 @@ export interface ShellViewProps {
    * background, so cards read as frosted canvas rather than slabs of panel color.
    */
   canvasColor?: MaybeReactive<string>;
-  /** The command palette while it is open: over the whole shell. */
-  palette?: Child;
+  /** The command menu while it is open: over the whole shell. */
+  commandMenu?: Child;
   /** The top of the canvas stack, above the canvas toolbar items: the interact / select mode buttons. */
   canvasLead?: Child;
   /** Beside the canvas stack, outside its frame: what opens from it (the picking level, next to Select). */
@@ -150,7 +150,7 @@ export function ShellView(props: ShellViewProps) {
       </main>
       <Show when={floating.pipe(map((f) => !f))}>{() => <DockView shell={shell} dock={right} />}</Show>
       <DockView shell={shell} dock={shell.dock('bottom')} />
-      {props.palette}
+      {props.commandMenu}
     </div>
   ) as HTMLElement;
   // Escape closes the open right panel, after anything nearer has had it: handlers on the document (an overlay card, an

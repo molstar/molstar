@@ -17,7 +17,7 @@ export interface SelectionAction {
 
 /**
  * The current selection, for the selection bar (implemented over the structure selection manager): what is
- * selected, and what can be done with it. The actions are commands of the `selection` group, so the palette offers
+ * selected, and what can be done with it. The actions are commands of the `selection` group, so the command menu offers
  * the same ones.
  */
 export interface SelectionModel {

@@ -18,7 +18,7 @@ import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/canvas.module.css.js';
 import { ViewHost } from './view-host.js';
 
-/** A section of the toolbar: its id (none for the leading items: the palette) and its buttons. */
+/** A section of the toolbar: its id (none for the leading items: the command menu) and its buttons. */
 interface ToolSection {
   group: string | undefined;
   items: readonly CanvasToolbarItem[];
@@ -32,13 +32,13 @@ function sectionsOf(items: readonly CanvasToolbarItem[]): ToolSection[] {
     if (section) (section.items as CanvasToolbarItem[]).push(item);
     else sections.push({ group, items: [item] });
   }
-  // Items without a section (the palette) lead.
+  // Items without a section (the command menu) lead.
   return sections.sort((a, b) => (a.group === undefined ? -1 : b.group === undefined ? 1 : 0));
 }
 
 /**
  * The toolbar: its buttons in sections, each a glass block of its own, the gaps between them the grouping. `part`
- * picks what to show: the rail's items (`all`), split around its tab strip (`lead`: the palette above it, `rest`
+ * picks what to show: the rail's items (`all`), split around its tab strip (`lead`: the command menu above it, `rest`
  * below), or the canvas stack's items (`canvas`).
  */
 export function CanvasToolbar(props: {
@@ -95,6 +95,7 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
     <button
       type="button"
       class={classes.tool}
+      data-captioned={item.caption ? '' : undefined}
       data-tip={withMenu ? undefined : item.title}
       data-tip-side="left"
       aria-label={item.title}
@@ -113,7 +114,8 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       onFocus={withMenu ? (e) => withMenu.show(item, e.currentTarget) : undefined}
       onBlur={withMenu ? () => withMenu.hideSoon() : undefined}
     >
-      <Icon name={item.icon} size={20} />
+      <Icon name={item.icon} size={item.caption ? 16 : 20} />
+      {item.caption ? <span class={classes.caption}>{item.caption}</span> : null}
       {withMenu ? <span class={classes.menuMark} aria-hidden="true" /> : null}
     </button>
   );

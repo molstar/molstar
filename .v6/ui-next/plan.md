@@ -31,16 +31,16 @@ Acceptance: unit tests for runtime and primitives; a Storybook "Foundations" pag
 
 ## Phase 2: renderer spike (decision gate)
 
-Build the PD form, the state tree (5,000 cells, update bursts), and the palette in the `dom` runtime and in Preact, in
-Storybook ([design/rendering.md](design/rendering.md) §3). Record LOC, update cost, and friction in
+Build the PD form, the state tree (5,000 cells, update bursts), and the command menu in the `dom` runtime and in Preact,
+in Storybook ([design/rendering.md](design/rendering.md) §3). Record LOC, update cost, and friction in
 `.v6/ui-next/spike.md`. Decide; if Preact wins, `dom/` shrinks to the element base and the view contract stays.
 
 ## Phase 3: mocked UI in Storybook
 
 Dumb components (`components/`) and views over **fake sources**: the shell with docks and activity bars, scene tree,
-inspector, palette (with inline arguments), dialogs, notifications, status bar, viewport overlays with a placeholder
-canvas, compact mode. Interaction tests with `play`. This is where the layout and command UX are iterated on before any
-wiring.
+inspector, command menu (with inline arguments), dialogs, notifications, status bar, viewport overlays with a
+placeholder canvas, compact mode. Interaction tests with `play`. This is where the layout and command UX are iterated on
+before any wiring.
 
 Story levels:
 
@@ -66,7 +66,7 @@ Notifications/Log → StateTree → Help. Actions extracted from the old UI wher
 ## Phase 5: commands
 
 Registry wiring, `CommandContext`, built-in commands (map in [design/commands.md](design/commands.md) §8), generated
-commands from registries, contextual commands, formats, keybinding service, palette. Command tests run headless.
+commands from registries, contextual commands, formats, keybinding service, command menu. Command tests run headless.
 
 ## Phase 6: shell and integration
 
@@ -90,6 +90,6 @@ modularity test), examples as API checks (`react`, `alpha-orbitals`, `ligand-edi
 
 - API ledger and migration-map entries for new public APIs and for deprecations (core `layout`, `leftPanelTabName`, UI
   maps on `PluginContext`).
-- Accessibility pass per view (keyboard-only use of every view; palette as combobox).
+- Accessibility pass per view (keyboard-only use of every view; command menu as combobox).
 - Performance budget: scene tree with 1,000 components and state tree with 5,000 cells update in under one frame for a
   single-node change.

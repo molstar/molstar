@@ -419,7 +419,7 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
       run: () => done(''),
     },
   ];
-  // Categories in the order people reach for them (the palette lists them so); the sort keeps each one's own order.
+  // Categories in the order people reach for them (the command menu lists them so); the sort keeps each one's own order.
   const order = [
     'Data',
     'Structure',

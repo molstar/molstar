@@ -10,7 +10,7 @@
 import { mockCommands } from '../../../_stories/mocks/commands.js';
 import { render } from '../../../dom/render.js';
 import { ShellModel } from '../../../shell/shell.js';
-import { CommandPalette } from '../palette.js';
+import { CommandMenu } from '../command-menu.js';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
@@ -24,7 +24,7 @@ function mount() {
   });
   const container = document.createElement('div');
   document.body.append(container);
-  render(() => <CommandPalette manager={manager} onClose={closed} />, container);
+  render(() => <CommandMenu manager={manager} onClose={closed} />, container);
   const input = () => container.querySelector('input') as HTMLInputElement;
   const type = (text: string) => {
     input().value = text;
@@ -39,7 +39,7 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
-describe('CommandPalette', () => {
+describe('CommandMenu', () => {
   it('lists commands, searches, and runs one without arguments', async () => {
     const p = mount();
     expect(p.rows().length).toBeGreaterThan(10);

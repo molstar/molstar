@@ -115,8 +115,8 @@ Essentials vs advanced (`isEssential`), `category` groups, `hideIf(values)`. Per
 The UI mixes `PluginCommands.*` (State, Interactivity, Layout, Toast, Camera, Canvas3D) with many direct manager calls
 (`structure.selection.fromSelectionQuery`, `component.*`, `hierarchy.*`, `measurement.*`, `viewportScreenshot.*`) and
 direct property/behavior writes (`plugin.selectionMode = …`, `leftPanelTabName.next(…)`, `snapshot.togglePlay()`). There
-is no central, enumerable action registry, which is the main obstacle to a palette. The per-panel read/invoke map is in
-[plugin-state.md](plugin-state.md).
+is no central, enumerable action registry, which is the main obstacle to a command menu. The per-panel read/invoke map
+is in [plugin-state.md](plugin-state.md).
 
 ## 8. Styling
 

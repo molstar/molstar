@@ -16,7 +16,7 @@ export default meta;
 
 const frame = 'width: 360px; height: 100vh; overflow: auto; background: var(--msp-color-panel); margin-left: auto;';
 
-/** The root's actions as forms (the first open), recent entries, open files, and the palette hint. */
+/** The root's actions as forms (the first open), recent entries, open files, and the command menu hint. */
 export const Default: StoryObj = {
   render: () =>
     story(() => (

@@ -61,7 +61,7 @@ extensions, custom properties) and `config` have **no change notification**; `qu
   serially. `Interactivity.Structure.Highlight/Select` have no subscribers (dead).
 - Operations the UI performs **without** a command: undo, selection modify/clear, focus set/clear, animation play/stop,
   snapshot next/previous, selection-mode toggle, left-panel tab, screenshot, component add/update, every
-  hierarchy/component/measurement/volume manager method. A palette needs its own registry over these operations.
+  hierarchy/component/measurement/volume manager method. A command menu needs its own registry over these operations.
 - Bindings (`K/util/binding.ts`) live as hidden `bindings` params on behaviors (hover/click select, focus, camera keys
   `I`/`O`/`T`/`G`/Shift+Space, snapshot Ctrl+arrows) and in Canvas3D trackball attribs (W/A/S/D/R/F/Q/E, drag/scroll).
   `InputObserver` forwards keys only while the pointer is over the canvas and the target is the body or canvas. There is

@@ -37,7 +37,7 @@ export interface ShellTab {
   order?: number;
   /**
    * Where its button sits on a floating dock's rail: its head (Home, as the Mol* mark, a section of its own), the tab
-   * strip (default), or its foot by the palette (Settings).
+   * strip (default), or its foot by the command menu (Settings).
    */
   place?: 'head' | 'strip' | 'foot';
   render: ViewRenderer<ShellViewContext>;
@@ -96,7 +96,7 @@ export interface ShellSection {
   slot: string;
   title: string;
   icon?: IconName;
-  /** Words it is also found by (the palette, the section filter). */
+  /** Words it is also found by (the command menu, the section filter). */
   keywords?: readonly string[];
   order?: number;
   /** Shown only when this holds (assembly symmetry only for a symmetric assembly). */
@@ -111,16 +111,18 @@ export interface CanvasToolbarItem {
   title: string;
   /**
    * The rail section it belongs to: a built-in one (`canvas`, `export`) or a new one; items without one come first (the
-   * palette). Extensions add their buttons to a section this way (MP4 export, geometry export → `export`). Sections
+   * command menu). Extensions add their buttons to a section this way (MP4 export, geometry export → `export`). Sections
    * appear in the order of their first item; `order` places items within a section.
    */
   group?: string;
   order?: number;
   /**
-   * Where it shows: the rail (default: panels, the palette, app actions like save and export) or the canvas stack at
+   * Where it shows: the rail (default: panels, the command menu, app actions like save and export) or the canvas stack at
    * the top right of the canvas (what acts on the view: camera, lighting, XR, expand), under the mode buttons.
    */
   place?: 'rail' | 'canvas';
+  /** A small caption under the icon: the command menu's shortcut, so people learn how to bring it up. */
+  caption?: string;
   /** Shown only while this holds (the Sequence button while the sequence card is hidden). */
   visible?: Observable<boolean>;
   /** Shown pressed (a toggle, or the open overlay's button). */

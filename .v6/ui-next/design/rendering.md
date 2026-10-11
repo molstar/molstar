@@ -39,9 +39,9 @@ mount function (§6), so a contribution can render with React, Preact, Lit, or n
 
 Gate: before committing, a Storybook spike builds three representative pieces in both A and B (Preact): the PD form
 (group, mapped, conditioned, color list), the state tree with 5,000 cells and a burst of updates, and the command
-palette with keyboard navigation. Compare LOC, update cost (DOM mutations and time per burst), and authoring friction.
-If A is not clearly simpler, fall back to B with the same element and contribution contracts; the model layer is
-unaffected either way.
+command menu with keyboard navigation. Compare LOC, update cost (DOM mutations and time per burst), and authoring
+friction. If A is not clearly simpler, fall back to B with the same element and contribution contracts; the model layer
+is unaffected either way.
 
 ## 4. The `ui-next/dom` runtime
 
@@ -114,8 +114,8 @@ can call `onCleanup(fn)` and `useScope()` for imperative work (a canvas observer
 ## 5. Custom elements
 
 Custom elements are used at **island** granularity: things a host could embed or a dock could move (shell, dock region,
-view host, viewport, toolbar, palette, PD form, state tree, sequence, PAE plot, snapshot stepper). Inside an island,
-plain function components do the work; elements are not the re-render boundary (bindings are).
+view host, viewport, toolbar, command menu, PD form, state tree, sequence, PAE plot, snapshot stepper). Inside an
+island, plain function components do the work; elements are not the re-render boundary (bindings are).
 
 ```ts
 export class MspStateTree extends MspElement<StateTreeVM> {
@@ -175,6 +175,6 @@ Hosting ui-next elements inside React: React 19 sets properties on custom elemen
 ## 8. Accessibility and primitives
 
 Build on platform primitives instead of a component kit: `popover` attribute and `<dialog>` for menus and dialogs,
-`inert` for covered content, `:focus-visible`, roving tabindex for trees and toolbars, combobox ARIA for the palette
-(input keeps focus; rows are `role="option"`, as in stories-untold). A small set of behaviour helpers (focus trap,
+`inert` for covered content, `:focus-visible`, roving tabindex for trees and toolbars, combobox ARIA for the command
+menu (input keeps focus; rows are `role="option"`, as in stories-untold). A small set of behaviour helpers (focus trap,
 roving focus, typeahead, positioning via CSS anchor positioning with a JS fallback) lives in `ui-next/dom/behaviors`.

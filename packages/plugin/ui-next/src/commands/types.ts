@@ -57,7 +57,7 @@ export interface CommandDefinition<Ctx> {
   id: string;
   title: string;
   category: string;
-  /** Shown before the title in the palette and on buttons that run it. */
+  /** Shown before the title in the command menu and on buttons that run it. */
   icon?: IconName;
   /** Words that start this command when typed with arguments ("show as" in "show as sticks"); the longest that fits wins. */
   alias?: string | readonly string[];

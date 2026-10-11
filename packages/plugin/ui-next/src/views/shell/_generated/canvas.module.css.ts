@@ -11,6 +11,7 @@ import { defineStyles } from '../../../styles/registry.js';
 export const classes = {
   'bottom': 'msp-shell-canvas-bottom',
   'bottomGrid': 'msp-shell-canvas-bottomGrid',
+  'caption': 'msp-shell-canvas-caption',
   'card': 'msp-shell-canvas-card',
   'card-in': 'msp-shell-canvas-card-in',
   'cardBody': 'msp-shell-canvas-cardBody',
@@ -156,6 +157,21 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-stack :is(.msp-shell-canvas-tool, button) > svg:first-child {
   width: 18px;
   height: 18px;
+}
+
+.msp-shell-canvas-tool[data-captioned] {
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  height: 46px;
+  display: flex;
+}
+
+.msp-shell-canvas-caption {
+  color: var(--msp-color-text-subtle);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  line-height: 1;
 }
 
 .msp-shell-canvas-tool {

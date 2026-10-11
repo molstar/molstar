@@ -141,6 +141,22 @@
   height: 18px;
 }
 
+/* A tool with a caption (the command menu's ⌘K): the icon, the shortcut under it. */
+.tool[data-captioned] {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  height: 46px;
+}
+
+.caption {
+  color: var(--msp-color-text-subtle);
+  font-size: 10px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
 /* A button with a menu: a small corner mark says there is more on hover. */
 .tool {
   position: relative;

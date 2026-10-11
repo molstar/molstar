@@ -69,9 +69,9 @@ authoritative snapshot. Operations are idempotent by desired state, so they re-a
 - Forms are built as `any-ui-declarative` definitions (zod-validated JSON) and read back as a flat field list. The
   authors' own audit: the declarative stack (~3,400 LOC incl. generated schema and the zod pin) is used only "as a value
   store and a one-action runner"; it is kept for agent-authored UI. A flat field schema was considered (~240 LOC).
-- Palette: `CommandPromptModel` (menu derived from query + context + registrations; categories in fixed order, recents
-  first, disabled reasons, fallback row) + dumb `CommandMenu` (combobox ARIA; input keeps focus) + memoized views. The
-  palette is a "command mode" inside the chat prompt, not a modal.
+- Command menu: `CommandPromptModel` (menu derived from query + context + registrations; categories in fixed order,
+  recents first, disabled reasons, fallback row) + dumb `CommandMenu` (combobox ARIA; input keeps focus) + memoized
+  views. The command menu is a "command mode" inside the chat prompt, not a modal.
 - Commands call the same action functions as the agent's tools, so UI and agent agree.
 
 ## 5. Views
@@ -116,7 +116,7 @@ and the canvas replaced by a slot. `play` functions test interactions (including
 | `declarative/` + `any-ui-declarative`                  | Leave (zod/yaml dependency, agent-authored UI is not a goal). Revisit if agent-authored forms become one. |
 | `assist` (LLM fill)                                    | Keep the port in the type, no implementation.                                                             |
 | Mol* facade ideas (cached streams, queue, declarative) | Adapt into view models over managers.                                                                     |
-| Layout, routing, prompt-dock UX                        | Leave; Mol* needs a dockable shell and a modal palette.                                                   |
+| Layout, routing, prompt-dock UX                        | Leave; Mol* needs a dockable shell and a modal command menu.                                              |
 | CSS Modules + prefixed tokens + `data-theme`           | Take with `--msp-*`.                                                                                      |
 | Storybook "real model, fake data" approach             | Take; mock at the view-model source boundary.                                                             |
 | Vendoring process (`CHANGES.md`, in-code markers)      | Leave: the copied code is new Mol* code; stories-untold is an inspiration, not an upstream.               |

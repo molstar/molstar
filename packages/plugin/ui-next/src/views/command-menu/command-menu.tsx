@@ -17,11 +17,11 @@ import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
 import type { FormFieldView } from '../../forms/flat-fields.js';
 import { observableState } from '../../reactive/observable-state.js';
-import { classes } from './_generated/palette.module.css.js';
+import { classes } from './_generated/command-menu.module.css.js';
 
-export interface CommandPaletteProps {
+export interface CommandMenuProps {
   manager: CommandManager<any>;
-  /** Closes the palette (Esc on an empty list, a click outside, a command that ran). */
+  /** Closes the command menu (Esc on an empty list, a click outside, a command that ran). */
   onClose(): void;
   /** Text to start with ("select " from a selection button). */
   initial?: string;
@@ -33,14 +33,14 @@ type Row =
   | { kind: 'match'; match: CommandMatch<any>; tail?: string /** Its place among the pickable rows. */; index: number };
 
 /**
- * The command palette: everything the plugin can do, by name. A list while searching (recent commands first on an
+ * The command menu: everything the plugin can do, by name. A list while searching (recent commands first on an
  * empty input; matched letters marked; category, keys, and why a command cannot run now); a command with arguments
  * reads as a sentence under the input, its active field typed into the same input, completions below. Enter runs,
- * Tab moves between fields, Backspace on an empty field goes back, Esc steps out (form, then palette).
+ * Tab moves between fields, Backspace on an empty field goes back, Esc steps out (form, then the menu).
  */
-export function CommandPalette(props: CommandPaletteProps) {
+export function CommandMenu(props: CommandMenuProps) {
   const { manager } = props;
-  // A command that ran (or failed past its form) closes the palette; its outcome goes to the status line.
+  // A command that ran (or failed past its form) closes the command menu; its outcome goes to the status line.
   const sub = manager.outcomes.subscribe((o) => {
     if (o.kind === 'done') props.onClose();
   });
@@ -55,7 +55,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         if (e.target === e.currentTarget) props.onClose();
       }}
     >
-      <div class={classes.palette} role="dialog" aria-label="Commands">
+      <div class={classes.menu} role="dialog" aria-label="Commands">
         <Show when={manager.active} fallback={() => <ListMode {...props} />}>
           {(invocation) => <FormMode manager={manager} invocation={invocation} onClose={props.onClose} />}
         </Show>
@@ -64,7 +64,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   );
 }
 
-function ListMode(props: CommandPaletteProps) {
+function ListMode(props: CommandMenuProps) {
   const { manager } = props;
   const text = observableState(props.initial ?? '');
   const highlight = observableState(0);
@@ -118,7 +118,7 @@ function ListMode(props: CommandPaletteProps) {
       type="text"
       role="combobox"
       aria-expanded="true"
-      aria-controls="msp-palette-list"
+      aria-controls="msp-command-menu-list"
       aria-label="Command"
       placeholder="Search commands"
       spellcheck={false}
@@ -154,7 +154,7 @@ function ListMode(props: CommandPaletteProps) {
         {input}
       </div>
       <Show when={message}>{(m) => <p class={classes.message}>{m}</p>}</Show>
-      <div class={classes.list} id="msp-palette-list" role="listbox" aria-label="Commands">
+      <div class={classes.list} id="msp-command-menu-list" role="listbox" aria-label="Commands">
         <For each={rows} fallback={() => <p class={classes.empty}>No commands match.</p>}>
           {(row) => {
             if (row.kind === 'caption') return <div class={classes.caption}>{row.label}</div>;
@@ -255,7 +255,7 @@ function FormMode(props: { manager: CommandManager<any>; invocation: CommandInvo
       type="text"
       role="combobox"
       aria-expanded="true"
-      aria-controls="msp-palette-completions"
+      aria-controls="msp-command-menu-completions"
       aria-label={field.pipe(map((f) => f?.label ?? command.title))}
       placeholder={field.pipe(map((f) => (f ? f.label : 'Enter to run')))}
       spellcheck={false}
@@ -319,7 +319,7 @@ function FormMode(props: { manager: CommandManager<any>; invocation: CommandInvo
           </p>
         )}
       </Show>
-      <div class={classes.list} id="msp-palette-completions" role="listbox" aria-label="Options">
+      <div class={classes.list} id="msp-command-menu-completions" role="listbox" aria-label="Options">
         <For each={state.pipe(map((s) => s.completions))}>
           {(c, i) => (
             <div
