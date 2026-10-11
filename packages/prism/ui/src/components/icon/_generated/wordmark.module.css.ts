@@ -11,6 +11,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'core': 'msp-icon-wordmark-core',
   'flash': 'msp-icon-wordmark-flash',
   'flash-hover': 'msp-icon-wordmark-flash-hover',
   'flash-often': 'msp-icon-wordmark-flash-often',
@@ -23,7 +24,7 @@ export const classes = {
 
 defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
 .msp-icon-wordmark-wordmark {
-  width: calc(57px * var(--msp-wordmark-scale, 1));
+  width: calc(72px * var(--msp-wordmark-scale, 1));
   height: calc(22px * var(--msp-wordmark-scale, 1));
   flex: none;
   display: block;
@@ -35,6 +36,10 @@ defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
     inset: 0;
     overflow: visible;
   }
+}
+
+.msp-icon-wordmark-core {
+  stroke-width: calc(2.4 / sqrt(var(--msp-wordmark-scale, 1)));
 }
 
 .msp-icon-wordmark-outline {

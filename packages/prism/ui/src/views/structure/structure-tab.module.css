@@ -74,11 +74,14 @@
 /* At least the inspector's height: the hint (stretched) centers in it. */
 .inspectorContent {
   display: grid;
+  /* One column, never wider than the panel (an auto column grows to a long title's width). */
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100%;
 }
 
 .inspection {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--msp-space-2);
   /* 12px at the sides: the title's column (the tab's 4px inset is undone above, the hairline runs edge to edge). */

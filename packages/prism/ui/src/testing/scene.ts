@@ -442,7 +442,6 @@ export function mockScene(
       ],
     },
     { id: 'select', label: 'Select this', icon: 'mouse-pointer-2', run: act(`Selected ${label}`) },
-    { id: 'label', label: 'Edit label', icon: 'pencil', run: act(`Editing the label of ${label}`) },
   ];
 
   // A structure's contents: entities, then their chains, built when first expanded (mesoscale structures have
@@ -678,10 +677,7 @@ export function mockScene(
     // The unit cell: part of the structure's record, hidden until asked for.
     const cell = node('1tqn-cell', 'unit-cell', 'box', 'Unit cell', 'I 2 2 2', false);
     cell.toggleVisibility();
-    cell.menu = [
-      { id: 'select', label: 'Select this', icon: 'mouse-pointer-2', run: act('Selected the unit cell') },
-      { id: 'label', label: 'Edit label', icon: 'pencil', run: act('Editing the label of Unit cell') },
-    ];
+    cell.menu = [{ id: 'select', label: 'Select this', icon: 'mouse-pointer-2', run: act('Selected the unit cell') }];
     forms.set('1tqn-cell', new ParamsFormModel(UnitCellParams));
     facts.set('1tqn-cell', [['Space group', 'I 2 2 2']]);
     s.add(cell);

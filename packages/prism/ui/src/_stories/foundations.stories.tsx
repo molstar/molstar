@@ -12,11 +12,11 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { map } from 'rxjs';
 import { Button } from '../components/button/button.js';
 import { Icon } from '../components/icon/icon.js';
+import { MolstarWordmark } from '../components/icon/wordmark.js';
 import { Select } from '../components/select/select.js';
 import { Show } from '../dom/control-flow.js';
 import { observableState } from '../reactive/observable-state.js';
 import { story } from '../testing/story-root.js';
-import { type IconDraft, PrismIconDraft, PrismWordmarkDraft, type WordmarkDraft } from './logo-drafts.js';
 
 const meta: Meta = { title: 'Overview/Foundations' };
 export default meta;
@@ -310,62 +310,35 @@ export const Motion: StoryObj = {
     }),
 };
 
-const WordmarkDrafts: [WordmarkDraft, string][] = [
-  ['delta', 'The delta alone'],
-  ['beam', 'A beam from the star, split into rays'],
-  ['spectrum', "The rays in the logo's colors"],
-  ['refracted', 'And the beam bending inside'],
-  ['play', 'Turned to point away from the star: a prism and a play button'],
-  ['play-spectrum', "Pointing away, the logo's colors fanning from its tip"],
-  ['play-nested', 'A tetrahedron from above: the band, and two thinner triangles inside'],
-  ['play-levels', 'A tetrahedron from above: evenly spaced, thinning to the centre'],
-  ['play-tetra', 'And its three edges up to the apex'],
-  ['play-core', 'Thickest at the centre, thinning out'],
-  ['play-star', "As tall as the star, the outline at the logo's line, thicker inward"],
-];
-const IconDrafts: [IconDraft, string][] = [
-  ['delta', 'Delta'],
-  ['rays', 'Delta, rays out'],
-  ['spectrum', "Rays out, in the logo's colors"],
-  ['beam', 'A beam through it, split in two'],
-  ['play', 'Pointing away (play)'],
-  ['play-spectrum', "Pointing away, the logo's colors from its tip"],
-];
-
 function LogoPanel(props: { theme: 'light' | 'dark' }) {
   return (
     <div
       data-msp-theme={props.theme}
       style="display: grid; gap: 20px; padding: 20px; border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); color: var(--msp-color-text);"
     >
-      {WordmarkDrafts.map(([variant, label]) => (
-        <div style="display: grid; gap: 8px">
-          <span style={note}>{label}</span>
-          <div style="display: flex; gap: 24px; align-items: end; flex-wrap: wrap">
-            <PrismWordmarkDraft variant={variant} />
-            <PrismWordmarkDraft variant={variant} scale={2} />
-            <PrismWordmarkDraft variant={variant} scale={3} />
-          </div>
+      <div style="display: grid; gap: 8px">
+        <span style={note}>The wordmark (Home's heading; the empty canvas at 3×): hover it for the logo's colors</span>
+        <div style="display: flex; gap: 24px; align-items: end; flex-wrap: wrap">
+          <MolstarWordmark />
+          <MolstarWordmark scale={2} />
+          <MolstarWordmark scale={3} live />
         </div>
-      ))}
-      <div style="display: grid; gap: 12px">
-        <span style={note}>Home icon (16, 20, 24, 48 px)</span>
-        {IconDrafts.map(([variant, label]) => (
-          <div style="display: flex; gap: 16px; align-items: center">
-            {[16, 20, 24, 48].map((size) => (
-              <PrismIconDraft variant={variant} size={size} />
-            ))}
-            <span style={note}>{label}</span>
-          </div>
-        ))}
+      </div>
+      <div style="display: grid; gap: 8px">
+        <span style={note}>The Home icon (16, 20, 24, 48 px)</span>
+        <div style="display: flex; gap: 16px; align-items: center">
+          {[16, 20, 24, 48].map((size) => (
+            <Icon name="prism" size={size} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 /**
- * Drafts for the Prism logo: the Mol* wordmark with a delta after it; a beam from the star's arm into it, split into
- * the logo's colors on the way out (a prism); the Home icon as the delta. Light and dark.
+ * The logo: the Mol* wordmark with Prism's mark after it, a triangle as tall as the asterisk pointing away from it (a
+ * prism, a play button) with a thicker core inside (a tetrahedron from above); Home's icon is the mark as a delta.
  */
 export const Logo: StoryObj = {
   render: () =>

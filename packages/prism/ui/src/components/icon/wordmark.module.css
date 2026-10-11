@@ -6,12 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/* At its drawn size (55 × 20 and a 1 px margin, on the pixel grid): scaled, its lines would blur unevenly. */
+/* At its drawn size (70 × 20 and a 1 px margin, on the pixel grid): scaled, its lines would blur unevenly. */
 .wordmark {
   position: relative;
   display: block;
   flex: none;
-  width: calc(57px * var(--msp-wordmark-scale, 1));
+  width: calc(72px * var(--msp-wordmark-scale, 1));
   height: calc(22px * var(--msp-wordmark-scale, 1));
 
   & svg {
@@ -21,6 +21,11 @@
     /* In drawing units: 1.5 at its size; larger, relatively thinner (0.87 at 3×: a 2.6 px line). */
     stroke-width: calc(1.5 / sqrt(var(--msp-wordmark-scale, 1)));
   }
+}
+
+/* Prism's core: the inner triangle in a thicker line (1.6 times the outline's). */
+.core {
+  stroke-width: calc(2.4 / sqrt(var(--msp-wordmark-scale, 1)));
 }
 
 /* The outline itself, in the text color. */

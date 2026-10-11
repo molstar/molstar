@@ -14,10 +14,20 @@ import { classes } from './_generated/wordmark.module.css.js';
 // line, which a heading clips): every straight edge sits mid-pixel, so the line is the same on all of them, every stroke
 // of a letter is 3 px across (the M's diagonals too, measured square to them: their edges 6.18 apart vertically). The M
 // symmetric, its diagonals parallel; the o a rounded rectangle; the l running into an asterisk whose arms are exactly 45° (built as the Mol* mark is, molecular.ts).
+// Then Prism's mark: a triangle as tall as the asterisk, pointing away from it (a prism, and a play button: stories,
+// animation), its left face on the pixel grid; inside it a smaller one in a thicker line, a core (a tetrahedron seen
+// from above).
 const M =
   'M0.5 1.5 3.5 1.5 8.5 10.5 13.5 1.5 16.5 1.5 16.5 19.5 13.5 19.5 13.5 7.68 8.5 16.68 3.5 7.68 3.5 19.5 0.5 19.5Z';
 const LStar =
   'M46.5 3.5 49.5 3.5 49.5 6.38 51.54 4.34 53.66 6.46 51.62 8.5 54.5 8.5 54.5 11.5 51.62 11.5 53.66 13.54 51.54 15.66 49.5 13.62 49.5 16.5 46.5 16.5 46.5 13.62 44.46 15.66 42.34 13.54 44.38 11.5 36.5 11.5 36.5 19.5 33.5 19.5 33.5 0.5 36.5 0.5 36.5 8.5 44.38 8.5 42.34 6.46 44.46 4.34 46.5 6.38Z';
+
+// The triangle: 3.5 to 16.5 like the asterisk, equilateral (its depth 13·√3/2); the core inset 2.5 square to each side.
+const Prism = 'M57.5 3.5 68.76 10 57.5 16.5Z';
+const PrismCore = 'M60 7.83 63.76 10 60 12.17Z';
+
+/** Drawn width with its margin (the viewBox runs from -1). */
+const Width = 72;
 
 let gradients = 0;
 
@@ -29,12 +39,14 @@ function Shapes() {
       <rect x="19.5" y="6.5" width="11" height="13" rx="5" />
       <rect x="22.5" y="9.5" width="5" height="7" rx="2.5" />
       <path d={LStar} />
+      <path d={Prism} />
+      <path d={PrismCore} class={classes.core} />
     </>
   );
 }
 
 /**
- * The Mol* wordmark, outlined in the text color: Home's heading. A flash of the logo's colors runs along the outline
+ * The Mol* wordmark with Prism's mark after it, outlined in the text color: Home's heading and the empty canvas. A flash of the logo's colors runs along the outline
  * now and then (often on the empty canvas) and on hover (a copy stroked with the logo's gradient, shown through a
  * moving band: CSS only).
  */
@@ -55,8 +67,8 @@ export function MolstarWordmark(props: {
   const svg = (extra: { class: string; stroke: string; hidden?: boolean }) => (
     <svg
       class={extra.class}
-      viewBox="-1 -1 57 22"
-      width={57 * scale}
+      viewBox={`-1 -1 ${Width} 22`}
+      width={Width * scale}
       height={22 * scale}
       fill="none"
       stroke={extra.stroke}
@@ -66,7 +78,7 @@ export function MolstarWordmark(props: {
       {extra.hidden ? (
         <defs>
           {/* The logo's colors, left to right. */}
-          <linearGradient id={id} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="55" y2="0">
+          <linearGradient id={id} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={String(Width - 2)} y2="0">
             {/* The theme's brand colors (theme.css): lighter on dark backgrounds, from the nearest theme. */}
             <stop offset="0" style={{ 'stop-color': 'var(--msp-color-brand-1)' }} />
             <stop offset="0.35" style={{ 'stop-color': 'var(--msp-color-brand-2)' }} />
@@ -86,7 +98,7 @@ export function MolstarWordmark(props: {
       data-flash={props.flash ?? 'rare'}
       data-live={props.live ? '' : undefined}
       role="img"
-      aria-label="Mol*"
+      aria-label="Mol* Prism"
     >
       {svg({ class: classes.outline, stroke: 'currentColor' })}
       {svg({ class: classes.flash, stroke: `url(#${id})`, hidden: true })}
@@ -121,8 +133,8 @@ function live(id: string, scale: number) {
   const svg = (
     <svg
       class={classes.live}
-      viewBox="-1 -1 57 22"
-      width={57 * scale}
+      viewBox={`-1 -1 ${Width} 22`}
+      width={Width * scale}
       height={22 * scale}
       fill="none"
       stroke={`url(#${id}-live)`}

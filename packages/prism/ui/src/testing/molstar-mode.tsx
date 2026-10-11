@@ -370,7 +370,7 @@ export function mockMolstarMode(
           title: 'Home',
           // The Mol* wordmark over Home (the rail's tooltip stays "Home").
           heading: () => <MolstarWordmark live />,
-          icon: 'molstar',
+          icon: 'prism',
           order: 0,
           place: 'head',
           render: domView(() => <HomeTab home={home} onOpenCommandMenu={() => openCommandMenu()} />),

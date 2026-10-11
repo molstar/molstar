@@ -97,6 +97,7 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
 }
 
 .msp-structure-structure-tab-inspectorContent {
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100%;
   display: grid;
 }
@@ -105,6 +106,7 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   align-content: start;
   gap: var(--msp-space-2);
   padding: var(--msp-space-3) var(--msp-space-4) var(--msp-space-3);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
