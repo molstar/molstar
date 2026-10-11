@@ -20,7 +20,7 @@ import { domView } from '../dom/view.js';
 import { parseColor, themeForColor } from '../model/canvas-theme.js';
 import { observableState } from '../reactive/observable-state.js';
 import { FullscreenModel } from '../shell/fullscreen.js';
-import { ShellModel, type ShellTab } from '../shell/shell.js';
+import { ShellModel, type ShellPage, type ShellTab } from '../shell/shell.js';
 import { StatusModel } from '../shell/status.js';
 import { ThemeModel, type UITheme, UIThemes } from '../shell/theme.js';
 import { CommandMenu, type CommandMenuAssistant, type CommandMenuPrefix } from '../views/command-menu/command-menu.js';
@@ -96,6 +96,10 @@ export interface MockMode {
  */
 export interface MockShellAddOnParts {
   tabs?: readonly ShellTab[];
+  /** Pages over the app (the Inspector). */
+  pages?: readonly ShellPage[];
+  /** Its commands, beside the mode's. */
+  commands?: readonly CommandDefinition<any>[];
   assistant?: CommandMenuAssistant;
   agent?: Child;
   commandDone?(message: string, commandId: string): void;
@@ -138,6 +142,9 @@ export interface ShellStoryProps {
   commandMenu?: boolean;
   /** What an add-on brings (the agent module's mock: `@molstar/prism-assistant/testing`). */
   addOn?: MockShellAddOn;
+  /** Opens a page over the app (an add-on's: the Inspector), at `openPageAt` if given. */
+  openPage?: string;
+  openPageAt?: string;
 }
 
 /** The app's side of switching (`PrismAppStory`): its modes, and starting a new app. */
@@ -312,6 +319,8 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
         ]
       : [];
   if (switching.length) parts.commands.register(switching);
+  if (addOn?.pages?.length) shell.registerPages(addOn.pages);
+  if (addOn?.commands?.length) parts.commands.register(addOn.commands);
   // What commands did goes to the status line (and, with the agent, to History).
   const outcomes = parts.commands.outcomes.subscribe((o) => {
     if (o.kind === 'done' && o.result.message) status.post(o.result.message);
@@ -334,6 +343,7 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
   if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
   if (props.openCard) shell.openOverlay(props.openCard);
   if (props.openTab) shell.show(props.openTab);
+  if (props.openPage) shell.openPage(props.openPage, props.openPageAt);
   if (props.commandMenu) commandMenuOpen.set(true);
   onCleanup(() => {
     window.removeEventListener('keydown', onKey);

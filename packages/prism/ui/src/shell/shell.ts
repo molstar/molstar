@@ -58,6 +58,19 @@ export interface ShellOverlay {
   render: ViewRenderer<ShellViewContext>;
 }
 
+/**
+ * A page over the whole app, for what needs the room a panel or a card does not have (the agent's Inspector): opened by
+ * a command or a link, closed with Esc or its ✕, the app unchanged underneath.
+ */
+export interface ShellPage {
+  id: string;
+  title: string;
+  icon?: IconName;
+  /** What goes in the header after the title (the page's own tabs); its content takes the rest. */
+  header?: ViewRenderer<ShellViewContext>;
+  render: ViewRenderer<ShellViewContext>;
+}
+
 export type DockState = {
   /** Tab ids in this dock, in order. */
   tabs: readonly string[];
@@ -167,6 +180,12 @@ export interface CanvasMenuItem {
   run(): void;
 }
 
+/** The open page and what to show in it (`focus`: a tab of the page, an item). */
+export interface OpenPage {
+  page: ShellPage;
+  focus?: string;
+}
+
 /** The open overlay, the element it is anchored to (for placement), and the section to bring into view. */
 export interface OpenOverlay {
   overlay: ShellOverlay;
@@ -220,6 +239,8 @@ export class DockModel {
 export class ShellModel extends ReactiveModel {
   readonly #registered = new Map<string, ShellTab>();
   readonly #overlays = new Map<string, ShellOverlay>();
+  readonly #pages = new Map<string, ShellPage>();
+  readonly #page = observableState<OpenPage | undefined>(undefined);
   readonly #docks: Record<DockId, DockModel>;
   readonly #mode = observableState<ShellLayout['mode']>('auto');
   readonly #width = observableState(0);
@@ -286,6 +307,11 @@ export class ShellModel extends ReactiveModel {
 
   get overlay(): ReadonlyState<OpenOverlay | undefined> {
     return this.#overlay.asReadonly;
+  }
+
+  /** The page open over the app, if any. */
+  get page(): ReadonlyState<OpenPage | undefined> {
+    return this.#page.asReadonly;
   }
 
   /** The canvas toolbar's buttons, in order. */
@@ -379,6 +405,29 @@ export class ShellModel extends ReactiveModel {
         if (this.#overlay.value?.overlay === o) this.closeOverlay();
       }
     };
+  }
+
+  registerPages(pages: readonly ShellPage[]): () => void {
+    for (const p of pages) this.#pages.set(p.id, p);
+    return () => {
+      for (const p of pages) {
+        if (this.#pages.get(p.id) !== p) continue;
+        this.#pages.delete(p.id);
+        if (this.#page.value?.page === p) this.closePage();
+      }
+    };
+  }
+
+  /** Opens a page over the app (an open card closes); `focus` says what to show in it. */
+  openPage(id: string, focus?: string): void {
+    const page = this.#pages.get(id);
+    if (!page) return;
+    this.closeOverlay();
+    this.#page.set({ page, ...(focus ? { focus } : {}) });
+  }
+
+  closePage(): void {
+    this.#page.set(undefined);
   }
 
   /** Shows a tab: activates it and expands its dock; with `section`, at that section (the Selection tab at Measure). */

@@ -29,6 +29,7 @@ import {
 import { DockView, FloatingDock } from './dock-view.js';
 import { EmptyCanvas } from './empty-canvas.js';
 import { FileDropOverlay } from './file-drop.js';
+import { PageHost } from './page-host.js';
 
 /**
  * The rail's width, and the one margin of the canvas frame (px, `--msp-canvas-edge`): every floating thing keeps it
@@ -229,6 +230,7 @@ export function ShellView(props: ShellViewProps) {
       <DockView shell={shell} dock={shell.dock('bottom')} />
       {props.commandMenu}
       <BusyOverlay status={status} />
+      <PageHost shell={shell} />
     </div>
   ) as HTMLElement;
   if (props.onDropFiles) {
@@ -239,7 +241,8 @@ export function ShellView(props: ShellViewProps) {
   // Escape closes the open right panel, after anything nearer has had it: handlers on the document (an overlay card, an
   // open list) run first and mark it handled. Not while typing in a field, where Escape belongs to the field.
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || e.defaultPrevented || shell.overlay.value || isEditable(e.target)) return;
+    if (e.key !== 'Escape' || e.defaultPrevented || shell.overlay.value || shell.page.value || isEditable(e.target))
+      return;
     // A pinned panel is part of the workspace, not something passing over the canvas: Escape leaves it.
     if (right.state.value.pinned) return;
     if (!right.state.value.collapsed && right.active.value !== undefined) {

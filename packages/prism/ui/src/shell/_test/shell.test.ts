@@ -7,7 +7,7 @@
  */
 
 import type { ViewRenderer } from '../../dom/view.js';
-import { ShellModel, type ShellTab, type ShellViewContext } from '../shell.js';
+import { ShellModel, type ShellPage, type ShellTab, type ShellViewContext } from '../shell.js';
 
 const view: ViewRenderer<ShellViewContext> = { mount: () => () => {} };
 const tab = (id: string, extra: Partial<ShellTab> = {}): ShellTab => ({
@@ -117,5 +117,32 @@ describe('ShellModel', () => {
     expect(shell.toolbar.value.map((i) => i.id)).toEqual(['reset']);
     shell.setButtons({ xr: true, reset: false });
     expect(shell.toolbar.value.map((i) => i.id)).toEqual(['xr']);
+  });
+});
+
+describe('pages', () => {
+  const page = (id: string): ShellPage => ({ id, title: id, render: view });
+
+  it('opens a registered page at a focus, closes an open card, and closes', () => {
+    const shell = new ShellModel();
+    shell.registerOverlays([{ id: 'export', title: 'Export', render: view }]);
+    shell.registerPages([page('inspector')]);
+    shell.openOverlay('export');
+    shell.openPage('inspector', 'tools');
+    expect(shell.page.value?.page.id).toBe('inspector');
+    expect(shell.page.value?.focus).toBe('tools');
+    expect(shell.overlay.value).toBeUndefined();
+    shell.closePage();
+    expect(shell.page.value).toBeUndefined();
+  });
+
+  it('ignores an unknown page, and closes a page when it is unregistered', () => {
+    const shell = new ShellModel();
+    shell.openPage('nothing');
+    expect(shell.page.value).toBeUndefined();
+    const dispose = shell.registerPages([page('inspector')]);
+    shell.openPage('inspector');
+    dispose();
+    expect(shell.page.value).toBeUndefined();
   });
 });
