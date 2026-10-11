@@ -23,6 +23,9 @@ it reaches parity. Status: **analysis / proposal**.
   and contextual (applicable actions for the current cell); command menu with prefixes and inline arguments; four ways a
   command runs (right away, an inline sentence, a generated form in a dialog, or custom UI that is the panel or section
   it opens); scoped keybindings; menus and buttons reference commands. ([design/commands.md](design/commands.md))
+- **Agents through the commands**: commands are the tools an agent (in-app or over MCP via any-harness) calls; each
+  prompt carries a state account and the person's focus; agent turns are attributed, checkpointed, and undo in one step;
+  the command menu can ask the assistant. ([design/agent.md](design/agent.md))
 - **New `PluginUIContext`** (ui-next's own, extending `PluginContext`) carries the UI fields: `shell`, `commands`,
   `keybindings`, `contributions`, `sources`, `model`. ([design/shell.md](design/shell.md) §6)
 - **Shell** (`ctx.shell`) replaces `PluginContext.layout`, canvas first: a tabbed right panel (Home when empty,
@@ -40,19 +43,20 @@ it reaches parity. Status: **analysis / proposal**.
 
 ## Documents
 
-| Document                                                 | Content                                                           |
-| -------------------------------------------------------- | ----------------------------------------------------------------- |
-| [analysis/current-ui.md](analysis/current-ui.md)         | Functional inventory of the current UI and its extension points   |
-| [analysis/plugin-state.md](analysis/plugin-state.md)     | Observable plugin state, gaps, command/input surface              |
-| [analysis/stories-untold.md](analysis/stories-untold.md) | How stories-untold uses any-ui; take/adapt/leave                  |
-| [analysis/extensions.md](analysis/extensions.md)         | Extension and app UI inventory with ui-next port forms            |
-| [design/architecture.md](design/architecture.md)         | Rewrite decision, package layout, dependency rules, any-ui import |
-| [design/view-models.md](design/view-models.md)           | Sources, view models, optimistic edits, actions                   |
-| [design/rendering.md](design/rendering.md)               | JSX runtime, custom elements, React/Preact                        |
-| [design/commands.md](design/commands.md)                 | Command definitions, registry, command menu, keybindings          |
-| [design/shell.md](design/shell.md)                       | Shell, default views, contributions, UI spec, embeddables         |
-| [design/styling.md](design/styling.md)                   | CSS Modules, tokens, themes, build                                |
-| [plan.md](plan.md)                                       | Phases and acceptance                                             |
+| Document                                                 | Content                                                                 |
+| -------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [analysis/current-ui.md](analysis/current-ui.md)         | Functional inventory of the current UI and its extension points         |
+| [analysis/plugin-state.md](analysis/plugin-state.md)     | Observable plugin state, gaps, command/input surface                    |
+| [analysis/stories-untold.md](analysis/stories-untold.md) | How stories-untold uses any-ui; take/adapt/leave                        |
+| [analysis/extensions.md](analysis/extensions.md)         | Extension and app UI inventory with ui-next port forms                  |
+| [design/architecture.md](design/architecture.md)         | Rewrite decision, package layout, dependency rules, any-ui import       |
+| [design/view-models.md](design/view-models.md)           | Sources, view models, optimistic edits, actions                         |
+| [design/rendering.md](design/rendering.md)               | JSX runtime, custom elements, React/Preact                              |
+| [design/commands.md](design/commands.md)                 | Command definitions, registry, command menu, keybindings                |
+| [design/agent.md](design/agent.md)                       | Agents: commands as tools, state and focus, checkpoints, the client API |
+| [design/shell.md](design/shell.md)                       | Shell, default views, contributions, UI spec, embeddables               |
+| [design/styling.md](design/styling.md)                   | CSS Modules, tokens, themes, build                                      |
+| [plan.md](plan.md)                                       | Phases and acceptance                                                   |
 
 ## Open questions
 
