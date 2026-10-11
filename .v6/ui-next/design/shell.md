@@ -217,8 +217,9 @@ key, markdown description, how long it shows and the camera transition. Replaces
 The state tree for advanced use, in the Structure tab's shape and look: cells as rows (the transform's object, its
 description, an error in the danger color; show/hide where there is a visual), each with a ⋯ menu inline: **Update
 {transform}…**, the actions applicable to the cell (Mol*'s Apply Action), and Remove. A click selects a cell; the fixed
-inspector below shows its update form and its actions as Home-style action blocks; a ⋯ entry selects the cell and opens
-its block.
+inspector below shows its updates (its own transform's, then those of the decorators folded into it: A → A transforms
+such as custom structure properties, which Mol* shows as part of the cell) and its actions as Home-style action blocks;
+a ⋯ entry selects the cell and opens its block.
 
 ### 4.2 Overlays
 

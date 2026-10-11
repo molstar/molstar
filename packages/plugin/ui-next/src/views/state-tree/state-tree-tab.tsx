@@ -17,9 +17,10 @@ import { classes as tab } from '../structure/_generated/structure-tab.module.css
 import { classes } from './_generated/state-tree-tab.module.css.js';
 
 /**
- * The state tree, in the Structure tab's shape: the cells as rows (expand, show or hide, and a ⋯ with Update, the
- * applicable actions and Remove), and under them at a fixed height the selected cell: its transform's params to update
- * and its actions, each a form that folds open (Home's action blocks). The ⋯'s entries select the cell and open theirs.
+ * The state tree, in the Structure tab's shape: the cells as rows (expand, show or hide, and a ⋯ with the updates, the
+ * applicable actions and Remove), and under them at a fixed height the selected cell: its updates (its own transform's,
+ * then the decorators folded into it) and its actions, each a form that folds open (Home's action blocks). The ⋯'s
+ * entries select the cell and open theirs.
  */
 export function StateTreeTab(props: { model: StateTreeModel }) {
   const { model } = props;
@@ -174,7 +175,7 @@ function Cell(props: {
   );
 }
 
-/** Update, the applicable actions, then Remove (set apart, in the danger color): Mol*'s cell menu, inline. */
+/** The updates, the applicable actions, then Remove (set apart, in the danger color): Mol*'s cell menu, inline. */
 function CellMenu(props: {
   model: StateTreeModel;
   node: StateTreeNode;
@@ -191,7 +192,7 @@ function CellMenu(props: {
   );
   return (
     <div class={tree.menu} role="menu" style={{ '--msp-tree-depth': props.depth }}>
-      {inspection?.update ? item('update', `${inspection.update.title}…`, 'sliders-horizontal') : null}
+      {inspection?.updates.map((u) => item(u.id, `${u.title}…`, 'sliders-horizontal'))}
       {inspection?.actions.map((a) => item(a.id, `${a.title}…`, a.icon))}
       <button type="button" role="menuitem" class={tree.menuItem} data-danger="" onClick={props.onRemove}>
         <Icon name="trash-2" size={14} />
@@ -203,7 +204,7 @@ function CellMenu(props: {
 
 /** The selected cell: what it is, its update form, its actions. */
 function Inspection(props: { inspection: StateTreeInspection; focus: string }) {
-  const { node, update, actions } = props.inspection;
+  const { node, updates, actions } = props.inspection;
   return (
     <div class={tab.inspection}>
       <header class={tab.inspectorHeader}>
@@ -212,7 +213,9 @@ function Inspection(props: { inspection: StateTreeInspection; focus: string }) {
         <span class={classes.transform}>{node.transform}</span>
       </header>
       <div class={classes.blocks}>
-        {update ? <ActionBlock action={update} open={props.focus === 'update'} /> : null}
+        {updates.map((u, i) => (
+          <ActionBlock action={u} open={props.focus === u.id || (i === 0 && props.focus === 'update')} />
+        ))}
         {actions.length ? <p class={classes.caption}>Actions</p> : null}
         {actions.map((a) => (
           <ActionBlock action={a} open={props.focus === a.id} />

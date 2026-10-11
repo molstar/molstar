@@ -41,6 +41,7 @@ const Tree: Spec[] = [
                 description: '3,999 atoms',
                 icon: 'box',
                 transform: 'Model from Trajectory',
+                decorators: ['Custom Model Properties'],
                 children: [
                   {
                     ref: 'structure',
@@ -48,6 +49,7 @@ const Tree: Spec[] = [
                     description: '3,999 elements',
                     icon: 'atom',
                     transform: 'Structure from Model',
+                    decorators: ['Custom Structure Properties'],
                     visible: true,
                     children: [
                       {
@@ -182,6 +184,20 @@ const UpdateParams: Record<string, () => PD.Params> = {
   }),
 };
 
+// Decorators' params (A → A transforms folded into their parent cell).
+const DecoratorParams: Record<string, () => PD.Params> = {
+  'Custom Model Properties': () => ({
+    autoAttach: PD.Boolean(true, { label: 'Auto attach' }),
+    validation: PD.Boolean(false, { label: 'wwPDB validation' }),
+    sifts: PD.Boolean(true, { label: 'SIFTS mapping' }),
+  }),
+  'Custom Structure Properties': () => ({
+    accessibleSurfaceArea: PD.Boolean(false, { label: 'Accessible surface area' }),
+    interactions: PD.Boolean(false, { label: 'Interactions' }),
+    secondaryStructure: PD.Boolean(true, { label: 'Secondary structure' }),
+  }),
+};
+
 // Actions applicable by transform (Mol*'s "Apply Action").
 const Actions: Record<string, (post: (t: string) => void) => HomeAction[]> = {
   'Structure from Model': (post) => [
@@ -191,14 +207,6 @@ const Actions: Record<string, (post: (t: string) => void) => HomeAction[]> = {
       'layers',
       { label: PD.Text('Component'), selection: PD.Text('ligand') },
       'Add',
-      post,
-    ),
-    action(
-      'custom-props',
-      'Custom Properties',
-      'list-tree',
-      { accessibleSurfaceArea: PD.Boolean(false), validation: PD.Boolean(false) },
-      'Apply',
       post,
     ),
     action(
@@ -235,6 +243,17 @@ const Actions: Record<string, (post: (t: string) => void) => HomeAction[]> = {
     action('load-coords', 'Load Coordinates', 'trajectory', { url: PD.Text('', { label: 'URL' }) }, 'Load', post),
   ],
 };
+
+function update(id: string, transform: string, params: PD.Params, what: string, post: (t: string) => void): HomeAction {
+  return {
+    id,
+    title: `Update ${transform}`,
+    icon: 'sliders-horizontal',
+    form: new ParamsFormModel(params),
+    applyLabel: 'Update',
+    apply: () => post(`Updated ${what}`),
+  };
+}
 
 function action(
   id: string,
@@ -282,16 +301,13 @@ export function mockStateTree(post: (text: string) => void): StateTreeModel {
         const params = UpdateParams[node.transform]?.();
         inspection = {
           node,
-          update: params
-            ? {
-                id: 'update',
-                title: `Update ${node.transform}`,
-                icon: 'sliders-horizontal',
-                form: new ParamsFormModel(params),
-                applyLabel: 'Update',
-                apply: () => post(`Updated ${node.label}`),
-              }
-            : undefined,
+          updates: [
+            ...(params ? [update('update', node.transform, params, node.label, post)] : []),
+            ...(node.decorators ?? []).flatMap((d) => {
+              const p = DecoratorParams[d]?.();
+              return p ? [update(`update:${d}`, d, p, `${node.label} · ${d}`, post)] : [];
+            }),
+          ],
           actions: Actions[node.transform]?.(post) ?? [],
         };
         cache.set(ref, inspection);

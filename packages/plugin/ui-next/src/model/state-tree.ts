@@ -17,6 +17,8 @@ export interface StateTreeNode {
   icon: IconName;
   /** The transformer's display name ("Download", "Parse CIF", "Structure from Model"). */
   transform: string;
+  /** Decorators folded into the cell (A → A transforms: "Custom Structure Properties"), by display name. */
+  decorators?: readonly string[];
   children?: readonly StateTreeNode[];
   /** Undefined when the object has no visual. */
   visible?: boolean;
@@ -25,12 +27,13 @@ export interface StateTreeNode {
 }
 
 /**
- * The selected cell: its transform's params to update (Mol*'s "Update …"), and the state actions applicable to it
- * (Mol*'s "Apply Action"), each a form with an apply button, like Home's.
+ * The selected cell: its updates (Mol*'s "Update …": the cell's own transform first, then the decorators folded into it,
+ * the A → A transforms like custom structure properties that Mol* shows as part of the cell, not as cells of their
+ * own), and the state actions applicable to it (Mol*'s "Apply Action"), each a form with an apply button, like Home's.
  */
 export interface StateTreeInspection {
   node: StateTreeNode;
-  update?: HomeAction;
+  updates: readonly HomeAction[];
   actions: readonly HomeAction[];
 }
 
