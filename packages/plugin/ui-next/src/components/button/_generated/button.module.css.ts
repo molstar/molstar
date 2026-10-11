@@ -17,6 +17,7 @@ export const classes = {
   'iconOnly': 'msp-button-iconOnly',
   'primary': 'msp-button-primary',
   'small': 'msp-button-small',
+  'tiny': 'msp-button-tiny',
 } as const;
 
 defineStyles('components/button/button.module.css', `@layer msp.components {
@@ -86,12 +87,28 @@ defineStyles('components/button/button.module.css', `@layer msp.components {
   font-size: var(--msp-font-size-sm);
 }
 
+.msp-button-tiny {
+  gap: var(--msp-space-1);
+  height: 20px;
+  padding: 0 var(--msp-space-2);
+  font-size: var(--msp-font-size-xs);
+
+  & .msp-button-icon {
+    width: 14px;
+    height: 14px;
+  }
+}
+
 .msp-button-iconOnly {
   width: var(--msp-control-height);
   padding: 0;
 
   &.msp-button-small {
     width: 24px;
+  }
+
+  &.msp-button-tiny {
+    width: 20px;
   }
 }
 

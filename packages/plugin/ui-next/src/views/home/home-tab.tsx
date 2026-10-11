@@ -109,7 +109,7 @@ function RemoteStates(props: { model: RemoteStatesModel }) {
       <div class={classes.captionRow}>
         <h3 class={classes.caption}>Remote states</h3>
         <Button
-          size="sm"
+          size="xs"
           variant="ghost"
           icon={
             <Show when={model.loading} fallback={() => <Icon name="rotate-ccw" />}>

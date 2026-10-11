@@ -12,7 +12,8 @@ import { classes } from './_generated/button.module.css.js';
 
 export interface ButtonProps {
   variant?: 'default' | 'primary' | 'ghost' | 'danger';
-  size?: 'md' | 'sm';
+  /** `xs`: a 20px button with a 14px icon, for captions and other small text (a list's refresh). */
+  size?: 'md' | 'sm' | 'xs';
   /** An icon before the label; without a label the button is square and needs a `title`. */
   icon?: Child;
   children?: Child;
@@ -33,7 +34,7 @@ export function Button(props: ButtonProps) {
   const className = [
     classes.button,
     variant !== 'default' ? classes[variant] : '',
-    props.size === 'sm' ? classes.small : '',
+    props.size === 'sm' ? classes.small : props.size === 'xs' ? classes.tiny : '',
     iconOnly ? classes.iconOnly : '',
     props.block ? classes.block : '',
     props.class ?? '',

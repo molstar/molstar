@@ -76,12 +76,28 @@
   font-size: var(--msp-font-size-sm);
 }
 
+.tiny {
+  gap: var(--msp-space-1);
+  height: 20px;
+  padding: 0 var(--msp-space-2);
+  font-size: var(--msp-font-size-xs);
+
+  & .icon {
+    width: 14px;
+    height: 14px;
+  }
+}
+
 .iconOnly {
   width: var(--msp-control-height);
   padding: 0;
 
   &.small {
     width: 24px;
+  }
+
+  &.tiny {
+    width: 20px;
   }
 }
 

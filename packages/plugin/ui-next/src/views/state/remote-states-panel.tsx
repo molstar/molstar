@@ -49,7 +49,7 @@ export function RemoteStatesPanel(props: { model: RemoteStatesModel }) {
         <div class={classes.captionRow}>
           <p class={classes.caption}>On the server</p>
           <Button
-            size="sm"
+            size="xs"
             variant="ghost"
             title="Refresh"
             icon={
