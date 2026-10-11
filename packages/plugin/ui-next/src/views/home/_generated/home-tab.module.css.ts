@@ -118,15 +118,19 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 
 .msp-home-home-tab-actionReset {
   width: 32px;
-  color: var(--msp-color-text-muted);
+  color: var(--msp-color-text-subtle);
   flex: none;
   place-items: center;
   display: grid;
 
-  &:hover, &:focus-visible {
-    background: var(--msp-color-hover);
+  &:hover {
     color: var(--msp-color-text);
-    outline: none;
+  }
+
+  &:focus-visible {
+    color: var(--msp-color-text);
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
   }
 }
 
@@ -135,19 +139,24 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
   align-items: center;
   gap: var(--msp-space-2);
   padding: 0 var(--msp-space-4);
-  color: var(--msp-color-accent-strong);
+  color: var(--msp-color-accent);
+  transition: color var(--msp-motion-fast) var(--msp-ease);
   flex: 1;
   font-weight: 600;
   display: flex;
 
-  &:hover, &:focus-visible {
-    background: color-mix(in oklab, var(--msp-color-accent), transparent 90%);
-    outline: none;
+  &:hover {
+    color: var(--msp-color-accent-strong);
+  }
+
+  &:focus-visible {
+    color: var(--msp-color-accent-strong);
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
   }
 
   &:disabled {
     color: var(--msp-color-text-subtle);
-    background: none;
   }
 }
 

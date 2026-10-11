@@ -83,8 +83,8 @@
   padding: var(--msp-space-1) var(--msp-space-3) 0;
 }
 
-/* The block's last row, edge to edge: set defaults, then the action across the rest (Mol*'s footer); no lines, the
-   hover shows each part. */
+/* The block's last row, edge to edge: set defaults, then the action across the rest (Mol*'s footer); no lines or
+   fills, hovering darkens the text. */
 .actionFooter {
   display: flex;
   height: 30px;
@@ -96,13 +96,16 @@
   display: grid;
   place-items: center;
   width: 32px;
-  color: var(--msp-color-text-muted);
+  color: var(--msp-color-text-subtle);
 
-  &:hover,
-  &:focus-visible {
-    background: var(--msp-color-hover);
+  &:hover {
     color: var(--msp-color-text);
-    outline: none;
+  }
+
+  &:focus-visible {
+    color: var(--msp-color-text);
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
   }
 }
 
@@ -113,18 +116,22 @@
   justify-content: flex-end;
   gap: var(--msp-space-2);
   padding: 0 var(--msp-space-4);
-  color: var(--msp-color-accent-strong);
+  color: var(--msp-color-accent);
   font-weight: 600;
+  transition: color var(--msp-motion-fast) var(--msp-ease);
 
-  &:hover,
+  &:hover {
+    color: var(--msp-color-accent-strong);
+  }
+
   &:focus-visible {
-    background: color-mix(in oklab, var(--msp-color-accent), transparent 90%);
-    outline: none;
+    color: var(--msp-color-accent-strong);
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
   }
 
   &:disabled {
     color: var(--msp-color-text-subtle);
-    background: none;
   }
 }
 
