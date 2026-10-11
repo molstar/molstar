@@ -70,7 +70,7 @@ function askItem(
     };
   return {
     id: 'assistant-ask',
-    label: 'Ask the assistant',
+    label: 'Ask AI assistant',
     detail: `“${words}”`,
     icon: 'sparkles',
     run: () => {
@@ -364,7 +364,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
           each={rows}
           fallback={() => (
             <p class={classes.empty}>
-              {props.assistant ? 'No command matches: ask the assistant.' : 'Nothing matches.'}
+              {props.assistant ? 'No command matches: ask AI assistant.' : 'Nothing matches.'}
             </p>
           )}
         >
@@ -449,7 +449,7 @@ function AskBar(props: { ready: boolean; text: Observable<string>; unmatched: Ob
       onClick={() => props.onAsk()}
     >
       <Icon name="sparkles" size={15} class={classes.askIcon} />
-      <span class={classes.askLabel}>Ask the assistant</span>
+      <span class={classes.askLabel}>Ask AI assistant</span>
       <span class={classes.askText}>
         {props.text.pipe(map((t) => (t ? `“${t}”` : 'describe what you want, in your words')))}
       </span>

@@ -56,7 +56,7 @@ export function TraceView(props: { model: InspectorModel }) {
       when={has}
       fallback={() => (
         <p class={layout.empty}>
-          The agent has not run yet. Ask it something (⌘K, then Ask the assistant): each turn shows here, step by step.
+          The agent has not run yet. Ask it something (⌘K, then Ask AI assistant): each turn shows here, step by step.
         </p>
       )}
     >

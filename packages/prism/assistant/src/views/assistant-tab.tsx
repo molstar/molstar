@@ -48,7 +48,7 @@ export function AssistantTab(props: { agent: AgentModel; inspect?: AssistantInsp
         </section>
       ) : null}
       <p class={classes.hint}>
-        Ask from the command menu (⌘K): type what you want, then <strong>Ask the assistant</strong>. Its work shows over
+        Ask from the command menu (⌘K): type what you want, then <strong>Ask AI assistant</strong>. Its work shows over
         the canvas and in History, and undoes in one step.
       </p>
     </ScrollArea>

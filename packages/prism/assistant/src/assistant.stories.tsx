@@ -19,7 +19,7 @@ export default meta;
 
 /**
  * The agent module included and set up (a mock agent stands in for any-harness): ask from the command menu (⌘K, type
- * a request, Ask the assistant; “color it red” opens the filled sentence, “show the active site”, “load 1w0e and
+ * a request, Ask AI assistant; “color it red” opens the filled sentence, “show the active site”, “load 1w0e and
  * superpose it”, “try something broken” run turns), watch the turn card, Allow or Deny a download, Stop, Undo turn;
  * History at the rail's foot; the Assistant tab with the model and keys.
  */

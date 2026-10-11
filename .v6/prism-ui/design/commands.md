@@ -256,8 +256,8 @@ shows what Enter would run; it stays while the run runs and clears when it is do
 - **The assistant** (`assistant?: CommandMenuAssistant`, only when the app includes the agent module;
   [agent.md](agent.md) §5). The port: `ready()`, `propose(text)` giving `{ command, tail? }` when the words fit one
   command, `ask(text)` handing them to the agent as a turn of its own, and `setup()`. Under the list, always there, an
-  _Ask the assistant_ bar shows what is typed and takes it with ⌘↵ (Ctrl+↵), or with ↵ when no command matches (it is
-  then the default, and the empty list says "No command matches: ask the assistant."). A proposed command opens as its
+  _Ask AI assistant_ bar shows what is typed and takes it with ⌘↵ (Ctrl+↵), or with ↵ when no command matches (it is
+  then the default, and the empty list says "No command matches: ask AI assistant."). A proposed command opens as its
   ordinary sentence, filled in from the tail, under a line saying so ("Proposed by the assistant from “…”: check it,
   then Enter to run"); nothing runs until Enter. Words that fit no one command go to `ask`. Without a model the bar is
   quiet, reads _Set up an AI assistant_, and `setup()` (the Assistant tab) closes the menu.

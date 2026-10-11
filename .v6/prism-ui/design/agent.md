@@ -104,10 +104,10 @@ or `working`, and adds `denied`.
 ## 5. In the UI
 
 - **The command menu asks** (`views/command-menu`, the `assistant` port, `CommandMenuAssistant`: `ready`, `propose`,
-  `ask`, `setup`). Under the list, always there, an _Ask the assistant_ bar in the accent's soft wash: it shows what is
+  `ask`, `setup`). Under the list, always there, an _Ask AI assistant_ bar in the accent's soft wash: it shows what is
   typed (with nothing typed, _describe what you want, in your words_, and a click focuses the input) and takes it with
   ⌘↵ (Ctrl+↵; the footer lists it), or with ↵ when no command matches (the bar is then the default, outlined, and the
-  empty list reads _No command matches: ask the assistant._). Words after a prefix (`@`, `#`, `:`, `?`) are not asked.
+  empty list reads _No command matches: ask AI assistant._). Words after a prefix (`@`, `#`, `:`, `?`) are not asked.
   The assistant (any-ui's `assist`: a one-off agent) proposes one command when the words fit it, read into its values:
   the menu opens the ordinary inline sentence filled in, over it _Proposed by the assistant from “…”: check it, then
   Enter to run_; nothing runs until Enter. Words that do not fit one command go to the agent as a turn (in the mock,

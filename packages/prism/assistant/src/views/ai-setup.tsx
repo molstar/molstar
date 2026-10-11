@@ -52,7 +52,7 @@ export function AISetup(props: { settings: AISettingsModel }) {
       <Show when={anyKey.pipe(map((k) => !k))}>
         {() => (
           <div class={classes.intro}>
-            <p class={classes.lead}>Add a model key to ask the assistant</p>
+            <p class={classes.lead}>Add a model key to ask AI assistant</p>
             <p class={classes.copy}>
               It runs here with your own key for Claude, Gemini, GPT, or a server of your own; add as many as you like
               and pick the model. Everything else works without it.
