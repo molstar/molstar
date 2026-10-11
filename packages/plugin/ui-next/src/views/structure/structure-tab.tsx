@@ -6,12 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { map } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Choices } from '../../components/choices/choices.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm } from '../../components/params/params-form.js';
 import { Show } from '../../dom/control-flow.js';
-import type { QuickStylesModel, SceneInspection, SceneModel } from '../../model/scene.js';
+import type { PresetsModel, QuickStylesModel, SceneInspection, SceneModel } from '../../model/scene.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ShellModel } from '../../shell/shell.js';
 import { SectionList } from '../shell/section-list.js';
@@ -21,9 +22,11 @@ import { SceneTree } from './scene-tree.js';
 export interface StructureTabProps {
   shell: ShellModel;
   scene: SceneModel;
-  /** The header's actions (presets, coloring, adding components): commands, shown as buttons. */
-  onAction?: (action: 'preset' | 'color' | 'add') => void;
-  /** Quick styles: the Preset button opens them under the header. */
+  /** The header's actions without a model here (presets, styles, adding components): commands. */
+  onAction?: (action: 'preset' | 'styles' | 'add') => void;
+  /** The representation presets: the Preset button opens them under the header. */
+  presets?: PresetsModel;
+  /** Quick styles: the Styles button opens them under the header. */
   quickStyles?: QuickStylesModel;
 }
 
@@ -35,7 +38,9 @@ export interface StructureTabProps {
  */
 export function StructureTab(props: StructureTabProps) {
   const { shell, scene } = props;
-  const stylesOpen = observableState(false);
+  // One inline block at a time under the header: the preset menu or the quick styles.
+  const open = observableState<'preset' | 'styles' | undefined>(undefined);
+  const toggle = (block: 'preset' | 'styles') => open.set(open.value === block ? undefined : block);
   return (
     <div class={classes.tab}>
       <div class={classes.actions}>
@@ -43,19 +48,33 @@ export function StructureTab(props: StructureTabProps) {
           size="sm"
           variant="ghost"
           icon={<Icon name="sparkles" />}
-          pressed={stylesOpen}
-          onClick={() => (props.quickStyles ? stylesOpen.set(!stylesOpen.value) : props.onAction?.('preset'))}
+          pressed={open.asReadonly.pipe(map((o) => o === 'preset'))}
+          onClick={() => (props.presets ? toggle('preset') : props.onAction?.('preset'))}
         >
           Preset
         </Button>
-        <Button size="sm" variant="ghost" icon={<Icon name="palette" />} onClick={() => props.onAction?.('color')}>
-          Color
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={<Icon name="paintbrush" />}
+          pressed={open.asReadonly.pipe(map((o) => o === 'styles'))}
+          onClick={() => (props.quickStyles ? toggle('styles') : props.onAction?.('styles'))}
+        >
+          Styles
         </Button>
         <Button size="sm" variant="ghost" icon={<Icon name="plus" />} onClick={() => props.onAction?.('add')}>
           Component
         </Button>
       </div>
-      {props.quickStyles ? <Show when={stylesOpen}>{() => <QuickStyles model={props.quickStyles!} />}</Show> : null}
+      <Show when={open}>
+        {(block) =>
+          block === 'preset' && props.presets ? (
+            <PresetMenu model={props.presets} onApplied={() => open.set(undefined)} />
+          ) : block === 'styles' && props.quickStyles ? (
+            <QuickStyles model={props.quickStyles} />
+          ) : null
+        }
+      </Show>
       <div class={classes.tree}>
         <SceneTree scene={scene} />
       </div>
@@ -103,6 +122,54 @@ function QuickStyles(props: { model: QuickStylesModel }) {
     <section class={classes.quickStyles} aria-label="Quick styles">
       <Choices label="Representation" choices={model.representations} onPick={(id) => model.applyRepresentation(id)} />
       <Choices label="Style" choices={model.styles} onPick={(id) => model.applyStyle(id)} />
+    </section>
+  );
+}
+
+/**
+ * The preset menu: every representation preset, grouped as the registry groups them, the one in effect marked; a click
+ * applies it. The presets' options (their params) fold out below, applied with the next preset.
+ */
+function PresetMenu(props: { model: PresetsModel; onApplied(): void }) {
+  const { model } = props;
+  const optionsOpen = observableState(false);
+  return (
+    <section class={classes.presets} aria-label="Presets">
+      {model.groups.map((group) => (
+        <div class={classes.presetGroup} role="group" aria-label={group.label ?? 'Presets'}>
+          {group.label ? <span class={classes.presetCaption}>{group.label}</span> : null}
+          {group.presets.map((p) => (
+            <button
+              type="button"
+              class={classes.preset}
+              aria-pressed={model.current.pipe(map((c) => c === p.id))}
+              title={p.description}
+              onClick={() => {
+                model.apply(p.id);
+                props.onApplied();
+              }}
+            >
+              <span>{p.label}</span>
+              <Icon name="check" size={14} class={classes.presetCheck} />
+            </button>
+          ))}
+        </div>
+      ))}
+      {model.options ? (
+        <div class={classes.presetOptions}>
+          <button
+            type="button"
+            class={classes.presetOptionsToggle}
+            aria-expanded={optionsOpen}
+            onClick={() => optionsOpen.set(!optionsOpen.value)}
+          >
+            <Icon name="sliders-horizontal" size={14} />
+            Options
+            <Icon name="chevron-down" size={13} class={classes.chevron} />
+          </button>
+          <Show when={optionsOpen}>{() => <ParamsForm form={model.options!} />}</Show>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -48,7 +48,7 @@ import { mockSelection } from '../../_stories/mocks/selection.js';
 import { mockCommands } from '../../_stories/mocks/commands.js';
 import { registerMockCanvasSettings } from '../../_stories/mocks/canvas-settings.js';
 import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
-import { type MockScenePreset, mockQuickStyles, mockScene } from '../../_stories/mocks/scene.js';
+import { type MockScenePreset, mockPresets, mockQuickStyles, mockScene } from '../../_stories/mocks/scene.js';
 
 const meta: Meta = { title: 'Shell/Shell', parameters: { layout: 'fullscreen' } };
 export default meta;
@@ -276,10 +276,11 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
         <StructureTab
           shell={ctx.shell}
           scene={scene}
+          presets={mockPresets((t) => status.post(t))}
           quickStyles={mockQuickStyles((t) => status.post(t))}
           onAction={(a) =>
             status.post(
-              `${a === 'preset' ? 'Apply preset' : a === 'color' ? 'Color by' : 'Add component'}… opens in the command menu`,
+              `${a === 'preset' ? 'Apply preset' : a === 'styles' ? 'Styles' : 'Add component'}… opens in the command menu`,
             )
           }
         />

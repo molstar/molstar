@@ -8,6 +8,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { IconName } from '../../components/icon/icon.js';
 import { ParamsFormModel } from '../../forms/params-form.js';
 import type {
+  PresetsModel,
   QuickStylesModel,
   SceneInspection,
   SceneMenuItem,
@@ -215,6 +216,19 @@ class MockNode implements SceneNode {
     return this.#children.asReadonly;
   }
 
+  /** Builds the children on first expand (a structure's contents); undefined once loaded. */
+  loader?: () => MockNode[];
+  get lazy() {
+    return !!this.loader;
+  }
+  load() {
+    const loader = this.loader;
+    if (!loader) return;
+    this.loader = undefined;
+    // As the plugin would compute entities and chains: a moment later, not on the way in.
+    setTimeout(() => this.add(...loader()), 250);
+  }
+
   add(...children: MockNode[]): this {
     for (const c of children) c.parent = this;
     this.#children.set([...this.#children.value, ...children]);
@@ -384,6 +398,73 @@ export function mockScene(
     { id: 'label', label: 'Edit label', icon: 'pencil', run: act(`Editing the label of ${label}`) },
   ];
 
+  // A structure's contents: entities, then their chains, built when first expanded (mesoscale structures have
+  // thousands of chains); each row can be selected, focused, colored, or made a component.
+  const contentsMenu = (label: string): SceneMenuItem[] => [
+    { id: 'select', label: 'Select', icon: 'mouse-pointer-2', run: act(`Selected ${label}`) },
+    { id: 'focus', label: 'Focus', icon: 'focus', run: act(`Focused on ${label}`) },
+    { id: 'color', label: 'Color…', icon: 'palette', run: act(`Coloring ${label}…`) },
+    { id: 'component', label: 'Create component', icon: 'layers', run: act(`Component from ${label}`) },
+  ];
+  interface EntitySpec {
+    id: string;
+    label: string;
+    type: 'polymer' | 'non-polymer' | 'water';
+    chains: readonly { id: string; description: string }[];
+  }
+  const EntityIcons: Record<EntitySpec['type'], IconName> = {
+    polymer: 'pick-chain',
+    'non-polymer': 'ligand',
+    water: 'pick-atom',
+  };
+  const contents = (sid: string, entities: readonly EntitySpec[]) => {
+    const chains = new Set(entities.flatMap((e) => e.chains.map((c) => c.id))).size;
+    const n = node(
+      `${sid}-contents`,
+      'contents',
+      'list-tree',
+      'Contents',
+      `${entities.length} entities · ${chains} chains`,
+      false,
+    );
+    n.loader = () =>
+      entities.map((e) => {
+        const en = node(
+          `${sid}-entity-${e.id}`,
+          'entity',
+          EntityIcons[e.type],
+          e.label,
+          `Entity ${e.id} · ${e.chains.length} chain${e.chains.length > 1 ? 's' : ''}`,
+          false,
+        );
+        en.menu = contentsMenu(e.label);
+        facts.set(en.id, [
+          ['Type', e.type],
+          ['Chains', e.chains.map((c) => c.id).join(', ')],
+        ]);
+        en.loader = () =>
+          e.chains.map((c) => {
+            const cn = node(
+              `${sid}-chain-${e.id}-${c.id}`,
+              'chain',
+              'pick-chain',
+              `Chain ${c.id}`,
+              c.description,
+              false,
+            );
+            cn.menu = contentsMenu(`chain ${c.id}`);
+            facts.set(cn.id, [
+              ['Chain', c.id],
+              ['Entity', e.label],
+              ['Contains', c.description],
+            ]);
+            return cn;
+          });
+        return en;
+      });
+    return n;
+  };
+
   const component = (id: string, label: string, description: string, ...reprs: MockNode[]) => {
     const n = node(id, 'component', 'layers', label, description).add(...reprs);
     n.menu = componentMenu(label);
@@ -474,6 +555,19 @@ export function mockScene(
     forms.set('1tqn-cell', new ParamsFormModel(UnitCellParams));
     facts.set('1tqn-cell', [['Space group', 'I 2 2 2']]);
     s.add(cell);
+    s.add(
+      contents('1tqn', [
+        { id: '1', label: 'Cytochrome P450 3A4', type: 'polymer', chains: [{ id: 'A', description: '470 residues' }] },
+        {
+          id: '2',
+          label: 'Protoporphyrin IX containing Fe',
+          type: 'non-polymer',
+          chains: [{ id: 'A', description: 'HEM 508' }],
+        },
+        { id: '3', label: 'Sulfate ion', type: 'non-polymer', chains: [{ id: 'A', description: 'SO4 ×2' }] },
+        { id: '4', label: 'Water', type: 'water', chains: [{ id: 'A', description: '186 molecules' }] },
+      ]),
+    );
     roots.set([s, measurements()]);
   } else if (preset === 'many') {
     // Four CYP3A4 structures superposed on the first: collapsed but the first, so the list stays short.
@@ -507,6 +601,14 @@ export function mockScene(
         ],
       },
       component('5a1a-polymer', 'Polymer', 'Chains A–D', repr('5a1a-polymer-cartoon', 'cartoon', 'chain-id')),
+      contents('5a1a', [
+        {
+          id: '1',
+          label: 'Beta-galactosidase',
+          type: 'polymer',
+          chains: ['A', 'B', 'C', 'D'].map((id) => ({ id, description: '1,021 residues' })),
+        },
+      ]),
     );
     roots.set([model, map]);
   }
@@ -593,5 +695,67 @@ export function mockQuickStyles(post: (text: string) => void = () => {}): QuickS
     ],
     applyRepresentation: (id) => post(`Representation preset: ${id}`),
     applyStyle: (id) => post(`Style: ${id}`),
+  };
+}
+
+/** Mol*'s representation presets, grouped as its registry groups them, with their common options. */
+export function mockPresets(post: (text: string) => void = () => {}): PresetsModel {
+  const current = observableState<string | undefined>('auto');
+  return {
+    groups: [
+      {
+        presets: [
+          { id: 'empty', label: 'Empty', description: 'No representations' },
+          { id: 'auto', label: 'Automatic', description: 'Picks a preset by the size of the structure' },
+        ],
+      },
+      {
+        label: 'Basic',
+        presets: [
+          { id: 'atomic-detail', label: 'Atomic detail', description: 'Ball & stick for everything' },
+          { id: 'polymer-cartoon', label: 'Polymer cartoon' },
+          { id: 'polymer-and-ligand', label: 'Polymer & ligand' },
+          { id: 'protein-and-nucleic', label: 'Protein & nucleic' },
+          { id: 'coarse-surface', label: 'Coarse surface' },
+        ],
+      },
+      {
+        label: 'Miscellaneous',
+        presets: [
+          { id: 'illustrative', label: 'Illustrative' },
+          { id: 'molecular-surface', label: 'Molecular surface' },
+          { id: 'auto-detail', label: 'Automatic detail' },
+        ],
+      },
+    ],
+    current: current.asReadonly,
+    options: new ParamsFormModel({
+      quality: PD.Select(
+        'auto',
+        [
+          ['auto', 'Auto'],
+          ['medium', 'Medium'],
+          ['high', 'High'],
+          ['highest', 'Highest'],
+        ],
+        PD.Essential,
+      ),
+      ignoreHydrogens: PD.Boolean(false, { label: 'Ignore hydrogens', isEssential: true }),
+      ignoreLight: PD.Boolean(false, { label: 'Ignore light', isEssential: true }),
+      theme: PD.Select(
+        'default',
+        [
+          ['default', 'Default'],
+          ['chain-id', 'Chain ID'],
+          ['element-symbol', 'Element'],
+          ['secondary-structure', 'Secondary structure'],
+        ],
+        { label: 'Color theme', isEssential: true },
+      ),
+    }),
+    apply: (id) => {
+      current.set(id);
+      post(`Preset: ${id}`);
+    },
   };
 }

@@ -19,6 +19,7 @@ export const classes = {
   'kind': 'msp-structure-scene-tree-kind',
   'label': 'msp-structure-scene-tree-label',
   'leaf': 'msp-structure-scene-tree-leaf',
+  'loading': 'msp-structure-scene-tree-loading',
   'menu': 'msp-structure-scene-tree-menu',
   'menuItem': 'msp-structure-scene-tree-menuItem',
   'picked': 'msp-structure-scene-tree-picked',
@@ -183,6 +184,14 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
 
 .msp-structure-scene-tree-subMenu {
   display: grid;
+}
+
+.msp-structure-scene-tree-loading {
+  height: 26px;
+  padding-left: calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * 14px + 40px);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 26px;
 }
 }
 `);

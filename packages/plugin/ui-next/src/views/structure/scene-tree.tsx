@@ -32,7 +32,7 @@ export function SceneTree(props: { scene: SceneModel }) {
 function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) {
   const { scene, node, depth } = props;
   const hasChildren = node.children.pipe(
-    map((c) => c.length > 0),
+    map((c) => c.length > 0 || !!node.lazy),
     distinctUntilChanged(),
   );
   const open = combineLatest([node.isExpanded, hasChildren]).pipe(map(([e, h]) => e && h));
@@ -115,13 +115,25 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
         </Show>
       ) : null}
       <Show when={open}>
-        {() => (
-          <div role="group">
-            <For each={node.children} key={(n) => n.id}>
-              {(child) => <TreeNode scene={scene} node={child} depth={depth + 1} />}
-            </For>
-          </div>
-        )}
+        {() => {
+          // Children computed on first look (lazy nodes); until they arrive, a quiet loading row.
+          node.load?.();
+          return (
+            <div role="group">
+              <For
+                each={node.children}
+                key={(n) => n.id}
+                fallback={() => (
+                  <div class={classes.loading} style={{ '--msp-tree-depth': depth + 1 }}>
+                    Loading…
+                  </div>
+                )}
+              >
+                {(child) => <TreeNode scene={scene} node={child} depth={depth + 1} />}
+              </For>
+            </div>
+          );
+        }}
       </Show>
     </div>
   );

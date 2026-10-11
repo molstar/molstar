@@ -163,3 +163,11 @@
 .subMenu {
   display: grid;
 }
+
+.loading {
+  height: 26px;
+  padding-left: calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * 14px + 40px);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 26px;
+}

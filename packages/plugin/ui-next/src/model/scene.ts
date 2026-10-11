@@ -15,6 +15,9 @@ export type SceneNodeKind =
   | 'volume'
   | 'volume-representation'
   | 'unit-cell'
+  | 'contents'
+  | 'entity'
+  | 'chain'
   | 'measurements'
   | 'measurement';
 
@@ -34,6 +37,13 @@ export interface SceneNode {
   isHidden: ReadonlyState<boolean>;
   isExpanded: ReadonlyState<boolean>;
   children: ReadonlyState<readonly SceneNode[]>;
+  /**
+   * Its children are computed when first expanded (a structure's contents: entities, then chains), so a mesoscale
+   * structure with thousands of chains costs nothing until someone looks. Expandable before it has any.
+   */
+  lazy?: boolean;
+  /** Computes the children (once; `children` updates when they arrive). */
+  load?(): void;
   toggleVisibility(): void;
   toggleExpanded(): void;
   /** Highlights it in 3D while hovered. */
@@ -74,6 +84,25 @@ export interface SceneModel {
   picked: ReadonlyState<SceneNode | undefined>;
   pick(node: SceneNode | undefined): void;
   inspect(node: SceneNode): SceneInspection;
+}
+
+/** A representation preset (Mol*'s structure representation preset registry): its name, group, description. */
+export interface StructurePreset {
+  id: string;
+  label: string;
+  description?: string;
+}
+
+/**
+ * The representation presets for the Preset menu, grouped as the registry groups them (ungrouped first: Empty,
+ * Automatic; then Basic, Miscellaneous, and what extensions register), the one in effect, and the presets' common
+ * options as a form (their PD params).
+ */
+export interface PresetsModel {
+  groups: readonly { label?: string; presets: readonly StructurePreset[] }[];
+  current: ReadonlyState<string | undefined>;
+  options?: ParamsFormModel<any>;
+  apply(id: string): void;
 }
 
 /**

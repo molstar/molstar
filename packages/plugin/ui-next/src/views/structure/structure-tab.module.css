@@ -106,3 +106,84 @@
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
 }
+
+/* The preset menu: groups of presets, the one in effect checked; options fold out below. */
+.presets {
+  flex: none;
+  display: grid;
+  gap: var(--msp-space-2);
+  max-height: 50%;
+  padding: var(--msp-space-2);
+  overflow: auto;
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+}
+
+.presetGroup {
+  display: grid;
+}
+
+.presetCaption {
+  padding: var(--msp-space-1) var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.preset {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text);
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &[aria-pressed="true"] {
+    color: var(--msp-color-accent);
+    font-weight: 600;
+  }
+}
+
+.presetCheck {
+  visibility: hidden;
+
+  [aria-pressed="true"] > & {
+    visibility: visible;
+  }
+}
+
+.presetOptions {
+  display: grid;
+  gap: var(--msp-space-1);
+  padding-top: var(--msp-space-1);
+  border-top: 1px solid var(--msp-glass-edge);
+}
+
+.presetOptionsToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 28px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.chevron {
+  margin-left: auto;
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="false"] > & {
+    transform: rotate(-90deg);
+  }
+}
