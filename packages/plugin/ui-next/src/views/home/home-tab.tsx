@@ -135,7 +135,9 @@ function RemoteStates(props: { model: RemoteStatesModel }) {
         >
           {(state) => (
             <button type="button" class={classes.state} onClick={() => model.open(state.id)}>
-              <span class={classes.stateLabel}>{state.label}</span>
+              <span class={classes.stateLabel} data-tip-overflow="">
+                {state.label}
+              </span>
               <span class={classes.stateDate}>{state.date}</span>
             </button>
           )}

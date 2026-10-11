@@ -106,36 +106,36 @@
 }
 
 .state {
+  /* A list, not actions: the name in regular weight on one line (fading when long), the date at the right, quiet. */
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--msp-space-3);
-  height: 30px;
+  height: 26px;
   padding: 0 var(--msp-space-3);
   border-radius: var(--msp-radius-md);
-  color: var(--msp-color-text-muted);
+  color: var(--msp-color-text);
   text-align: left;
 
   &:hover {
     background: var(--msp-color-hover);
-    color: var(--msp-color-text);
   }
 }
 
 .stateLabel {
-  color: var(--msp-color-text);
-  font-weight: 500;
-}
-
-.stateDate {
   overflow: hidden;
-  color: var(--msp-color-text-subtle);
-  font-size: var(--msp-font-size-xs);
   /* Cut off: it fades out (reset.css, msp-fade-overflow). */
   mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   animation-name: msp-fade-overflow;
   animation-fill-mode: both;
   animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.stateDate {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 

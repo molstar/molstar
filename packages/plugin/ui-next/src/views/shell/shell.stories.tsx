@@ -389,7 +389,7 @@ function mockShell(options: {
       id: 'structure',
       compactBar: true,
       title: 'Structure',
-      icon: 'layers',
+      icon: 'structure',
       order: 1,
       render: domView(({ ctx }) => (
         <StructureTab

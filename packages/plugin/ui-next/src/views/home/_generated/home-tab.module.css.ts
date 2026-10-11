@@ -132,34 +132,33 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 .msp-home-home-tab-state {
   align-items: center;
   gap: var(--msp-space-3);
-  height: 30px;
+  height: 26px;
   padding: 0 var(--msp-space-3);
   border-radius: var(--msp-radius-md);
-  color: var(--msp-color-text-muted);
+  color: var(--msp-color-text);
   text-align: left;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   display: grid;
 
   &:hover {
     background: var(--msp-color-hover);
-    color: var(--msp-color-text);
   }
 }
 
 .msp-home-home-tab-stateLabel {
-  color: var(--msp-color-text);
-  font-weight: 500;
-}
-
-.msp-home-home-tab-stateDate {
-  color: var(--msp-color-text-subtle);
-  font-size: var(--msp-font-size-xs);
   mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   animation-name: msp-fade-overflow;
   animation-fill-mode: both;
   animation-timeline: scroll(self inline);
   overflow: hidden;
+}
+
+.msp-home-home-tab-stateDate {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .msp-home-home-tab-hint {

@@ -23,6 +23,8 @@ export const MolecularIcons = {
   /** A row of residue blocks with a position ruler above. */
   sequence:
     '<rect x="2" y="9" width="5" height="8" rx="1"/><rect x="9.5" y="9" width="5" height="8" rx="1"/><rect x="17" y="9" width="5" height="8" rx="1"/><path d="M4.5 4v2M12 4v2M19.5 4v2"/>',
+  /** An assembly: three subunits, overlapping (the Structure tab). */
+  structure: '<circle cx="12" cy="8" r="5"/><circle cx="7.5" cy="15.5" r="5"/><circle cx="16.5" cy="15.5" r="5"/>',
   /** Overlapping, filled-looking spheres. */
   spacefill: '<circle cx="9" cy="10" r="6"/><circle cx="16" cy="15" r="5"/>',
   /** A blob outline with a fold. */

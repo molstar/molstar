@@ -222,7 +222,7 @@ export function mockCommands(
       icon: 'sequence',
       run: () => (shell.toggle('top'), done('Sequence toggled')),
     },
-    { id: 'panel.structure', title: 'Show Structure', category: 'Panels', icon: 'layers', run: show('structure') },
+    { id: 'panel.structure', title: 'Show Structure', category: 'Panels', icon: 'structure', run: show('structure') },
     { id: 'panel.home', title: 'Show Home', category: 'Panels', icon: 'molstar', run: show('home') },
     { id: 'panel.log', title: 'Show Log', category: 'Panels', icon: 'scroll-text', run: show('log') },
     { id: 'panel.settings', title: 'Open settings', category: 'Panels', icon: 'settings', run: show('settings') },
