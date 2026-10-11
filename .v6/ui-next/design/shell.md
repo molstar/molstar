@@ -97,7 +97,10 @@ it is where contributions (built-in and extension UI) are placed.
   over it by opacity; images and skyboxes count as the background color for now; a transparent canvas uses the host's
   fallback. The viewport model follows `events.canvas3d.settingsUpdated` and feeds `canvasTheme`. The glass is tinted
   from the canvas color too (`canvasColor` sets `--msp-color-bg` on the canvas layer, and every derived shade follows):
-  cards read as frosted canvas, a shade off the background, rather than slabs of the UI's own (warm) panel color.
+  cards read as frosted canvas, a shade off the background, rather than slabs of the UI's own (warm) panel color. Two
+  layers sit over the canvas: the view's chrome (sequence card, playback, canvas stack, status, chips, hover label)
+  follows the canvas; the application's chrome (the rail, the panel, the cards) follows the UI theme, so switching the
+  theme changes it.
 - **Hover label** next to the cursor (§4.4).
 - **Status line** (bottom of the canvas): the latest log message (fades after a few seconds; errors stay until
   dismissed), running tasks with progress and abort, and chips for the selection and focus (click to focus, ✕ to clear).

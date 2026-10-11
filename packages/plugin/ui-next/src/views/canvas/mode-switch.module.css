@@ -131,7 +131,8 @@
 .levels {
   position: absolute;
   top: calc(100% + var(--msp-space-2));
-  right: 0;
+  /* Flush with the button, not with the hover bridge to its right. */
+  right: var(--msp-space-3);
   z-index: var(--msp-z-overlay);
   display: grid;
   min-width: 168px;

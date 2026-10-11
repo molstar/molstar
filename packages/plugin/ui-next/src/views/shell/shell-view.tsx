@@ -85,23 +85,26 @@ export function ShellView(props: ShellViewProps) {
     <div class={classes.shell} data-mode={shell.mode}>
       <Show when={floatingTop.pipe(map((f) => !f))}>{() => <DockView shell={shell} dock={top} />}</Show>
       <DockView shell={shell} dock={shell.dock('left')} />
-      <main class={classes.viewport}>
+      <main
+        class={classes.viewport}
+        style={{
+          '--msp-canvas-right-inset': rightInset,
+          '--msp-canvas-top-inset': topInset,
+          // Clear of the rail only (what sits beside it whatever the panel does: the compact stack).
+          '--msp-canvas-rail-inset': `${RailWidth + Gap}px`,
+          '--msp-right-panel-width': rightPanelWidth,
+          // Where cards beside the rail end (the floating panel's right edge).
+          '--msp-canvas-panel-right': `${RailWidth + Gap}px`,
+        }}
+      >
         <div class={classes.canvas}>{props.canvas}</div>
+        {/* Chrome that is part of the view: themed by the canvas background, tinted from its color. */}
         <div
           class={classes.layer}
           data-msp-theme={props.canvasTheme ?? 'light'}
-          data-right-panel={rightPanelOpen}
-          data-overlay={shell.overlay.pipe(map((o) => (o ? 'open' : undefined)))}
           style={{
             // Every derived shade (glass, controls, hover, muted text) follows from the base color.
             '--msp-color-bg': props.canvasColor,
-            '--msp-canvas-right-inset': rightInset,
-            '--msp-canvas-top-inset': topInset,
-            // Clear of the rail only (what sits beside it whatever the panel does: the compact stack).
-            '--msp-canvas-rail-inset': `${RailWidth + Gap}px`,
-            '--msp-right-panel-width': rightPanelWidth,
-            // Where cards beside the rail end (the floating panel's right edge).
-            '--msp-canvas-panel-right': `${RailWidth + Gap}px`,
           }}
         >
           <Show when={floatingTop}>{() => <FloatingDock shell={shell} dock={top} />}</Show>
@@ -114,6 +117,13 @@ export function ShellView(props: ShellViewProps) {
             </div>
           </div>
           <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} />
+        </div>
+        {/* The application's own chrome over the canvas (the rail, the panel, the cards): the UI theme. */}
+        <div
+          class={classes.layer}
+          data-right-panel={rightPanelOpen}
+          data-overlay={shell.overlay.pipe(map((o) => (o ? 'open' : undefined)))}
+        >
           <OverlayHost shell={shell} />
           <Show
             when={floating}

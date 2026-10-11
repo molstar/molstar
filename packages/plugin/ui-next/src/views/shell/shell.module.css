@@ -47,12 +47,13 @@
   inset: 0;
 }
 
-/* Items floating over the canvas share this layer; they never block the canvas outside their own boxes. */
+/* Items floating over the canvas: two layers, the view's chrome (canvas-themed) and the application's (UI-themed).
+   Neither blocks the canvas outside its own boxes. */
 .layer {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  /* Its own theme (from the canvas background) sets the text color too. */
+  /* Its theme sets the text color too. */
   color: var(--msp-color-text);
 
   & > * {

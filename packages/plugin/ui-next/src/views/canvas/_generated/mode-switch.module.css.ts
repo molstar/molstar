@@ -133,6 +133,7 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
 
 .msp-canvas-mode-switch-levels {
   top: calc(100% + var(--msp-space-2));
+  right: var(--msp-space-3);
   z-index: var(--msp-z-overlay);
   min-width: 168px;
   padding: var(--msp-space-2);
@@ -140,7 +141,6 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
   animation: msp-canvas-mode-switch-level-in var(--msp-motion-fast) var(--msp-ease);
   display: grid;
   position: absolute;
-  right: 0;
 }
 
 .msp-canvas-mode-switch-group {
