@@ -78,6 +78,226 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/ai/agent/src/**", "!packages/ai/agent/src/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "molstar",
+                      "molstar/**",
+                      "@molstar/*",
+                      "@molstar/*/**",
+                      "!@molstar/ai-*",
+                      "!@molstar/ai-*/**"
+                    ],
+                    "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI packages use HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "@molstar/ai-harness",
+                      "@molstar/ai-harness/**",
+                      "@molstar/ai-harness-components",
+                      "@molstar/ai-harness-components/**",
+                      "@molstar/ai-model-adapters",
+                      "@molstar/ai-model-adapters/**",
+                      "@molstar/ai-conformance",
+                      "@molstar/ai-conformance/**"
+                    ],
+                    "message": "The agent package imports nothing from the workspace."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: it runs in browsers and Node (runtimes are harness-components)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/harness/src/**", "!packages/ai/harness/src/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "molstar",
+                      "molstar/**",
+                      "@molstar/*",
+                      "@molstar/*/**",
+                      "!@molstar/ai-*",
+                      "!@molstar/ai-*/**"
+                    ],
+                    "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI packages use HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "@molstar/ai-harness-components",
+                      "@molstar/ai-harness-components/**",
+                      "@molstar/ai-model-adapters",
+                      "@molstar/ai-model-adapters/**",
+                      "@molstar/ai-conformance",
+                      "@molstar/ai-conformance/**"
+                    ],
+                    "message": "The harness depends only on the agent package."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: it runs in browsers and Node (runtimes are harness-components)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/harness-components/src/**", "!packages/ai/harness-components/src/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "molstar",
+                      "molstar/**",
+                      "@molstar/*",
+                      "@molstar/*/**",
+                      "!@molstar/ai-*",
+                      "!@molstar/ai-*/**"
+                    ],
+                    "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI packages use HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "@molstar/ai-model-adapters",
+                      "@molstar/ai-model-adapters/**",
+                      "@molstar/ai-conformance",
+                      "@molstar/ai-conformance/**"
+                    ],
+                    "message": "Components implement the harness's contracts only."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/model-adapters/src/**", "!packages/ai/model-adapters/src/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "molstar",
+                      "molstar/**",
+                      "@molstar/*",
+                      "@molstar/*/**",
+                      "!@molstar/ai-*",
+                      "!@molstar/ai-*/**"
+                    ],
+                    "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI packages use HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "@molstar/ai-harness",
+                      "@molstar/ai-harness/**",
+                      "@molstar/ai-harness-components",
+                      "@molstar/ai-harness-components/**",
+                      "@molstar/ai-conformance",
+                      "@molstar/ai-conformance/**"
+                    ],
+                    "message": "Adapters implement the agent package's port only."
+                  },
+                  {
+                    "group": ["node:*"],
+                    "message": "No platform API here: it runs in browsers and Node (runtimes are harness-components)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ai/conformance/src/**", "!packages/ai/conformance/src/**/_test/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "molstar",
+                      "molstar/**",
+                      "@molstar/*",
+                      "@molstar/*/**",
+                      "!@molstar/ai-*",
+                      "!@molstar/ai-*/**"
+                    ],
+                    "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
+                  },
+                  {
+                    "group": ["rxjs", "rxjs/**"],
+                    "message": "The AI packages use HarnessObservable, not rxjs."
+                  },
+                  {
+                    "group": [
+                      "@molstar/ai-harness-components",
+                      "@molstar/ai-harness-components/**",
+                      "@molstar/ai-model-adapters",
+                      "@molstar/ai-model-adapters/**"
+                    ],
+                    "message": "The suite tests through the contracts; backends bring their own fixtures."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "javascript": {

@@ -179,6 +179,21 @@
       "path": "./packages/plugin/ui"
     },
     {
+      "path": "./packages/ai/agent"
+    },
+    {
+      "path": "./packages/ai/harness"
+    },
+    {
+      "path": "./packages/ai/conformance"
+    },
+    {
+      "path": "./packages/ai/harness-components"
+    },
+    {
+      "path": "./packages/ai/model-adapters"
+    },
+    {
       "path": "./packages/prism/ui"
     },
     {

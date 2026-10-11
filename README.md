@@ -59,7 +59,7 @@ This project builds on experience from previous solutions:
 
 ## Building & Running
 
-Use Node 22+ and the pnpm version specified in `package.json`.
+Use Node 22.13+ and the pnpm version specified in `package.json`.
 
 ```sh
 pnpm install

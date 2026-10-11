@@ -6,7 +6,7 @@
   "description": "Mol* Prism: story mode (stories built on schemas and MolViewSpec: serializable, reproducible); opt-in",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {

@@ -5,7 +5,7 @@
   "description": "MolQL expression builders, query-language parsers, transpilers, and validation",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {

@@ -64,6 +64,10 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
       `version.json`.
 - [x] Compare clean and incremental builds after tooling changes and rerun the install, lint, test, build, workspace,
       version, tarball, and local smoke checks.
+- [ ] Move Jest to ESM (native ESM test modules, `extensionsToTreatAsEsm`, no CommonJS transform of `.ts`). Until then
+      the AI packages' tests run apart (`pnpm jest:ai`, `packages/ai/jest.config.cjs`), because that config transforms
+      the ESM-only AI SDK (`ai`, `@ai-sdk/*`) to CommonJS; once Jest runs ESM, fold them back into `pnpm jest` and
+      delete that config ([AI plan](../ai/plan.md)).
 
 Tooling verification (2026-10-05): native TypeScript 7.0.2 forced compilation of all 67 projects took 7.28 s, compared
 with 22.01 s for TypeScript 6.0.3 using the same `skipLibCheck: true` settings. Incremental compiler runs took 0.45 s

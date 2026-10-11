@@ -6,7 +6,7 @@
   "description": "Mol* Prism: the viewer mode (Mol*'s own UI: the scene and state trees, structure tools, snapshots, export); opt-in",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {

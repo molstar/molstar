@@ -2,6 +2,7 @@ packages:
   - 'packages/*'
   - 'packages/plugin/*'
   - 'packages/prism/*'
+  - 'packages/ai/*'
   - 'packages/mvs/*'
   - 'extensions/*'
   - 'apps/*'
@@ -83,6 +84,20 @@ catalog:
   'lucide-static': '1.48.0'
   # Preact (prism-ui's React/Preact adapter tests and stories only); MIT licensed.
   'preact': '10.29.8'
+  # The AI packages (@molstar/ai-*). The AI SDK and its providers (Apache-2.0) move fast, so only their major is pinned.
+  'ai': '^7.0.124'
+  '@ai-sdk/anthropic': '^4.0.70'
+  '@ai-sdk/google': '^4.0.87'
+  '@ai-sdk/openai': '^4.0.83'
+  '@ai-sdk/openai-compatible': '^3.0.62'
+  # The AI SDK's peer (its schemas); MIT licensed.
+  'zod': '^4.6.5'
+  # Property tests (the harness and its conformance suite); MIT licensed.
+  'fast-check': '4.10.2'
+  # IndexedDB in Node (the harness's IndexedDB storage tests only); Apache-2.0 licensed.
+  'fake-indexeddb': '6.2.5'
+  # The harness conformance suite imports the test API (it is a test library).
+  '@jest/globals': '30.5.2'
 
 overrides:
   '@istanbuljs/load-nyc-config>js-yaml': '^4.3.2'
