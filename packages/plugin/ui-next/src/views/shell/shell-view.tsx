@@ -22,6 +22,8 @@ const RailWidth = 44;
 const Gap = 8;
 const Edge = 12;
 const CollapsedHeight = 28;
+/** The bottom bar's height (one row: the timeline's); floating side panels end above it. */
+const BottomBarHeight = 34;
 
 export interface ShellViewProps {
   shell: ShellModel;
@@ -75,7 +77,13 @@ export function ShellView(props: ShellViewProps) {
         <div
           class={classes.layer}
           data-msp-theme={props.canvasTheme ?? 'light'}
-          style={{ '--msp-canvas-right-inset': rightInset, '--msp-canvas-top-inset': topInset }}
+          style={{
+            '--msp-canvas-right-inset': rightInset,
+            '--msp-canvas-top-inset': topInset,
+            // The bottom bar runs under open side panels (they end above it): it only keeps clear of the rail.
+            '--msp-canvas-rail-inset': `${RailWidth + 2 * Edge}px`,
+            '--msp-canvas-bottom-inset': `${Edge + BottomBarHeight + Gap}px`,
+          }}
         >
           <Show when={floatingTop}>{() => <FloatingDock shell={shell} dock={top} />}</Show>
           {props.overlays}

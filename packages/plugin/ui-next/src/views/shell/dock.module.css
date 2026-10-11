@@ -222,6 +222,12 @@
   flex-direction: row;
 }
 
+/* Side panel cards end above the bottom bar, which keeps the full width. */
+.floatingRight .content,
+.floatingLeft .content {
+  margin-bottom: calc(var(--msp-canvas-bottom-inset, var(--msp-space-4)) - var(--msp-space-4));
+}
+
 .floatingTop,
 .floatingBottom {
   left: var(--msp-space-4);

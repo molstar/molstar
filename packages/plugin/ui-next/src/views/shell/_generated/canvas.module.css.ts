@@ -121,7 +121,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-bottom {
   left: var(--msp-space-4);
-  right: var(--msp-canvas-right-inset, var(--msp-space-4));
+  right: var(--msp-canvas-rail-inset, var(--msp-space-4));
   bottom: var(--msp-space-4);
   pointer-events: none;
   position: absolute;

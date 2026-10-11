@@ -240,6 +240,10 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   flex-direction: row;
 }
 
+.msp-shell-dock-floatingRight .msp-shell-dock-content, .msp-shell-dock-floatingLeft .msp-shell-dock-content {
+  margin-bottom: calc(var(--msp-canvas-bottom-inset, var(--msp-space-4)) - var(--msp-space-4));
+}
+
 .msp-shell-dock-floatingTop, .msp-shell-dock-floatingBottom {
   left: var(--msp-space-4);
   right: var(--msp-canvas-right-inset, var(--msp-space-4));

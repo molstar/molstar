@@ -51,7 +51,10 @@ it is where contributions (built-in and extension UI) are placed.
   canvas gets the full width, the active tab's content is a glass card (more opaque than the small controls, for
   reading), and a rail at the right edge carries the tab strip and the canvas toolbar as two glass groups. Collapsed,
   only the rail stays. Resizable; `setFloating(dock, false)` docks it beside the canvas instead; compact mode makes it a
-  bottom sheet. The bottom bar and overlays keep clear of whatever is open on the right (`--msp-canvas-right-inset`).
+  bottom sheet. The panel card ends above the bottom bar, so the bar keeps the full canvas width up to the rail
+  (`--msp-canvas-rail-inset`, `--msp-canvas-bottom-inset`); the sequence card stops at the open panel
+  (`--msp-canvas-right-inset`). If the bar still gets crowded, next steps are a compact timeline pill that expands on
+  hover and messages/tasks condensing to icons.
 - **Optional docks.** `left`, `top`, `bottom` take tabs moved there by the user or placed by the app spec (mesoscale
   explorer puts its entity tree on the left). The sequence is the only default occupant of `top`. Side docks run the
   full height; top and bottom docks span the canvas width only. A top or bottom dock with one tab has no tab strip: its

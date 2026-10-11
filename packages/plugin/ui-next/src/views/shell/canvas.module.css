@@ -100,8 +100,8 @@
 .bottom {
   position: absolute;
   left: var(--msp-space-4);
-  /* Clear of whatever floats on the right (the rail, an open panel). */
-  right: var(--msp-canvas-right-inset, var(--msp-space-4));
+  /* Full width up to the rail: open side panels end above the bar instead of narrowing it. */
+  right: var(--msp-canvas-rail-inset, var(--msp-space-4));
   bottom: var(--msp-space-4);
   container: bottom-bar / inline-size;
   pointer-events: none;
