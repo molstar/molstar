@@ -45,7 +45,17 @@ renders the same scenes anywhere.
 plays them; it is a `SnapshotStepperModel`, so the canvas's playback card shows it). In `PrismContext`
 ([shell.md](shell.md) §6) the story document and its session are models of the stories module.
 
-## 4. State (mocks)
+## 4. Choosing a mode
+
+- **The first open** asks which mode to start in: a card over the empty canvas (`ModeChooser`, `welcome`), each mode
+  with its icon and a line on what it is for; the panel stays closed until one is chosen. The real app remembers the
+  choice and asks only once.
+- **Afterwards** the rail's switch changes modes, and so does Home while nothing is loaded (`ModeChooser`, `rows`): an
+  empty session is where a different start makes sense.
+- **Clear** (Home's Current session, and the "Clear session" command) empties the session: Home asks once in place, then
+  everything loaded goes (the plugin's `clear`; saved snapshots and files stay), and Home offers the modes again.
+
+## 5. State (mocks)
 
 - The mock shell is the frame (`ui/src/testing/shell.tsx`, `ShellStory` with the `modes` the story composes);
   `mockViewerMode` (`viewer/src/testing/viewer-mode.tsx`) is Mol\*'s own UI as a mode, and `ViewerShellStory` the frame

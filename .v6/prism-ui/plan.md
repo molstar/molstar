@@ -123,6 +123,9 @@ Carry into the proper implementation (from the mock review):
 area models, the command registry, history) is built there, headless ([design/shell.md](design/shell.md) §6). A
 `createPrism({ spec })` test runs a real plugin in Node with no DOM.
 
+**`@molstar/prism-headless`** on it, as `@molstar/plugin-headless` is on the plugin: the engine without a page (tests,
+CLI, evals, the agent's tools in Node).
+
 **Core follow-ups, compatible ones** ([analysis/plugin-state.md](analysis/plugin-state.md) §5): a registry-changed
 event, what changed in `cell.stateUpdated`, settings events from `layout.setProps` and `canvas3d.setProps`, running
 tasks as a behavior, string ids next to `PluginCommands`. Each is additive; the classic UI keeps working unchanged.

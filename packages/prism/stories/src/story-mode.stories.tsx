@@ -39,3 +39,16 @@ export const StartInViewer: StoryObj = {
       </div>
     )),
 };
+
+/**
+ * The first open: the app asks which mode to start in, over the empty canvas. Choosing one starts it; afterwards the
+ * rail's switch changes modes, and Home offers the choice again while nothing is loaded (Clear empties the session).
+ */
+export const FirstOpen: StoryObj = {
+  render: () =>
+    story(() => (
+      <div style="height: 100vh">
+        <ShellStory loaded={false} chooseMode={true} modes={[mockViewerMode(), mockStoryMode()]} />
+      </div>
+    )),
+};

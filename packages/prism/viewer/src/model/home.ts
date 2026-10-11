@@ -65,4 +65,16 @@ export interface HomeModel {
   openFiles(files: readonly File[]): void;
   /** Sessions on a state server; absent unless the spec turns remote states on. */
   remoteStates?: RemoteStatesModel;
+  /** What is loaded now, and clearing it. */
+  session?: SessionModel;
+}
+
+/** The session as Home shows it: what is loaded (a line), and clearing it (the plugin's clear, after a confirmation). */
+export interface SessionModel {
+  /** Nothing loaded. */
+  isEmpty: ReadonlyState<boolean>;
+  /** What is loaded, in a line ("1TQN · 3,624 atoms"). */
+  summary: ReadonlyState<string>;
+  /** Removes everything: data, representations, snapshots' current state (not saved snapshots or files). */
+  clear(): void;
 }

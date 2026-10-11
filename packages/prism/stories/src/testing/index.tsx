@@ -107,6 +107,7 @@ export function mockStoryMode(): MockMode {
     id: 'story',
     title: 'Story mode',
     icon: 'play',
+    description: 'Build a story scene by scene, and play it',
     activate: ({ shell, status, background }) => {
       const post = (text: string) => status.post(text);
       const story = mockStory(post);

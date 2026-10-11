@@ -8,16 +8,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map } from 'rxjs';
+import { map, type Observable } from 'rxjs';
 import { formatChord } from '@molstar/prism-ui/commands/keys';
-import { ActionFooter } from '@molstar/prism-ui';
+import { ActionFooter, type ModeChoice, ModeChooser } from '@molstar/prism-ui';
 import { Button } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ParamsForm } from '@molstar/prism-ui';
 import { ScrollArea } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import type { HomeAction, HomeModel, RemoteStatesModel } from '../../model/home.js';
+import type { HomeAction, HomeModel, RemoteStatesModel, SessionModel } from '../../model/home.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { classes } from './_generated/home-tab.module.css.js';
 
@@ -25,6 +25,8 @@ export interface HomeTabProps {
   home: HomeModel;
   /** Opens the command menu (the hint at the bottom). */
   onOpenCommandMenu?: () => void;
+  /** The app's modes, when it has more than one: offered while nothing is loaded (design/modes.md). */
+  modes?: { list: readonly ModeChoice[]; active: Observable<string>; choose(id: string): void };
 }
 
 /**
@@ -38,6 +40,22 @@ export function HomeTab(props: HomeTabProps) {
     <div class={classes.home}>
       {/* What scrolls; the hint below stays in view. */}
       <ScrollArea class={classes.content} contentClass={classes.contentInner}>
+        {home.session ? <Session session={home.session} /> : null}
+        {props.modes && props.modes.list.length > 1 ? (
+          <Show when={home.session?.isEmpty ?? true}>
+            {() => (
+              <section class={classes.group} aria-label="Mode">
+                <h3 class={classes.caption}>Mode</h3>
+                <ModeChooser
+                  variant="rows"
+                  modes={props.modes!.list}
+                  active={props.modes!.active}
+                  onChoose={(id) => props.modes!.choose(id)}
+                />
+              </section>
+            )}
+          </Show>
+        ) : null}
         <section class={classes.group} aria-label="Actions">
           <For each={home.actions} key={(a) => a.id}>
             {(action, index) => <ActionBlock action={action} open={index.value === 0} />}
@@ -79,6 +97,58 @@ export function ActionBlock(props: { action: HomeAction; open: boolean }) {
         )}
       </Show>
     </div>
+  );
+}
+
+/**
+ * What is loaded, while something is: a line saying what, and Clear, which asks once (it removes everything loaded;
+ * saved snapshots and files stay).
+ */
+function Session(props: { session: SessionModel }) {
+  const { session } = props;
+  const confirming = observableState(false);
+  return (
+    <Show when={session.isEmpty.pipe(map((e) => !e))}>
+      {() => (
+        <section class={classes.group} aria-label="Current session">
+          <div class={classes.captionRow}>
+            <h3 class={classes.caption}>Current session</h3>
+          </div>
+          <div class={classes.session}>
+            <span class={classes.sessionSummary} data-tip-overflow="">
+              {session.summary}
+            </span>
+            <Show
+              when={confirming}
+              fallback={() => (
+                <Button size="sm" variant="ghost" icon={<Icon name="trash-2" />} onClick={() => confirming.set(true)}>
+                  Clear
+                </Button>
+              )}
+            >
+              {() => (
+                <span class={classes.confirm} role="group" aria-label="Clear everything loaded?">
+                  <span class={classes.confirmText}>Clear everything?</span>
+                  <Button size="sm" variant="ghost" onClick={() => confirming.set(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => {
+                      confirming.set(false);
+                      session.clear();
+                    }}
+                  >
+                    Clear
+                  </Button>
+                </span>
+              )}
+            </Show>
+          </div>
+        </section>
+      )}
+    </Show>
   );
 }
 

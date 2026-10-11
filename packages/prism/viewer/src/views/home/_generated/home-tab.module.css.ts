@@ -20,6 +20,8 @@ export const classes = {
   'captionActions': 'msp-viewer-home-tab-captionActions',
   'captionRow': 'msp-viewer-home-tab-captionRow',
   'chevron': 'msp-viewer-home-tab-chevron',
+  'confirm': 'msp-viewer-home-tab-confirm',
+  'confirmText': 'msp-viewer-home-tab-confirmText',
   'content': 'msp-viewer-home-tab-content',
   'contentInner': 'msp-viewer-home-tab-contentInner',
   'group': 'msp-viewer-home-tab-group',
@@ -27,6 +29,8 @@ export const classes = {
   'home': 'msp-viewer-home-tab-home',
   'none': 'msp-viewer-home-tab-none',
   'server': 'msp-viewer-home-tab-server',
+  'session': 'msp-viewer-home-tab-session',
+  'sessionSummary': 'msp-viewer-home-tab-sessionSummary',
   'spin': 'msp-viewer-home-tab-spin',
   'state': 'msp-viewer-home-tab-state',
   'stateDate': 'msp-viewer-home-tab-stateDate',
@@ -235,6 +239,37 @@ defineStyles('viewer/views/home/home-tab.module.css', `@layer msp.components {
   font-size: var(--msp-font-size-xs);
   grid-template-columns: auto minmax(0, 1fr);
   display: grid;
+}
+
+.msp-viewer-home-tab-session {
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: var(--msp-control-height);
+  padding-left: var(--msp-inset);
+  display: flex;
+}
+
+.msp-viewer-home-tab-sessionSummary {
+  white-space: nowrap;
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  flex: 1;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
+}
+
+.msp-viewer-home-tab-confirm {
+  align-items: center;
+  gap: var(--msp-space-1);
+  display: flex;
+}
+
+.msp-viewer-home-tab-confirmText {
+  margin-right: var(--msp-space-2);
+  color: var(--msp-color-text-muted);
+  white-space: nowrap;
 }
 }
 `);

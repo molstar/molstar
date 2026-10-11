@@ -25,6 +25,7 @@ import { StatusModel } from '../shell/status.js';
 import { ThemeModel, type UITheme, UIThemes } from '../shell/theme.js';
 import { CommandMenu, type CommandMenuAssistant, type CommandMenuPrefix } from '../views/command-menu/command-menu.js';
 import { CanvasPlaceholder } from '../views/shell/canvas-placeholder.js';
+import { type ModeChoice, ModeChooser } from '../views/shell/mode-chooser.js';
 import { CommandManager as Commands } from '../commands/manager.js';
 import { SettingsTab } from '../views/settings/settings-tab.js';
 import { LogView } from '../views/shell/log-view.js';
@@ -46,6 +47,10 @@ export interface MockFrameContext {
   /** The canvas background (a CSS color). */
   background?: string;
   openCommandMenu(group?: string): void;
+  /** The app's modes (to offer the choice, as Home does while nothing is loaded), the active one, and switching. */
+  modes: readonly ModeChoice[];
+  activeMode: Observable<string>;
+  switchMode(id: string): void;
 }
 
 /**
@@ -75,6 +80,8 @@ export interface MockMode {
   id: string;
   title: string;
   icon: IconName;
+  /** What it is for, in a line (the mode chooser). */
+  description?: string;
   activate(ctx: MockFrameContext): MockModeParts;
 }
 
@@ -146,6 +153,8 @@ export interface ShellStoryProps {
   pinned?: boolean;
   /** Opens with the command menu open. */
   commandMenu?: boolean;
+  /** The first open: the app asks which mode to start in (a card over the canvas) before any is used. */
+  chooseMode?: boolean;
   /** What an add-on brings (the agent module's mock: `@molstar/prism-agent/testing`). */
   addOn?: MockShellAddOn;
 }
@@ -160,6 +169,8 @@ export function ShellStory(props: ShellStoryProps & { modes: readonly MockMode[]
   const shell = new ShellModel({ docks: { right: { pinned: !!props.pinned } } });
   const status = new StatusModel();
   const commandMenuOpen = observableState(false);
+  // The first open asks for a mode (with more than one).
+  const choosing = observableState(!!props.chooseMode && props.modes.length > 1);
   // The group the command menu opens in (Preset, Styles); none for ⌘K.
   const commandMenuGroup = observableState<string | undefined>(undefined);
   const openCommandMenu = (group?: string) => {
@@ -203,7 +214,11 @@ export function ShellStory(props: ShellStoryProps & { modes: readonly MockMode[]
 
   const active = observableState<MockMode>(modes[0]);
   const parts = observableState<MockModeParts | undefined>(undefined);
-  const hasData = of(props.loaded);
+  // The canvas tools act on what is shown: the active mode says whether anything is.
+  const hasData = parts.asReadonly.pipe(
+    switchMap((p) => p?.empty ?? of(!props.loaded)),
+    map((empty) => !empty),
+  );
   shell.registerToolbar([
     // With more than one mode, the rail switches to the next (its face is where it goes).
     ...(modes.length > 1
@@ -291,6 +306,12 @@ export function ShellStory(props: ShellStoryProps & { modes: readonly MockMode[]
       loaded: props.loaded,
       background: props.background,
       openCommandMenu,
+      modes,
+      activeMode: active.asReadonly.pipe(map((m) => m.id)),
+      switchMode: (id) => {
+        const next = modes.find((m) => m.id === id);
+        if (next && next !== active.value) queueMicrotask(() => switchTo(next));
+      },
     });
     // Switching modes is a command in each of them.
     const switching: CommandDefinition<any>[] = modes
@@ -320,7 +341,8 @@ export function ShellStory(props: ShellStoryProps & { modes: readonly MockMode[]
     };
     active.set(mode);
     parts.set(p);
-    if (p.start) shell.show(p.start);
+    // While the app asks for a mode (the first open), nothing opens beside the question.
+    if (p.start && !choosing.value) shell.show(p.start);
   };
 
   // ⌘K / ⇧⌘P open the command menu; the active mode's commands' own shortcuts run them.
@@ -333,6 +355,8 @@ export function ShellStory(props: ShellStoryProps & { modes: readonly MockMode[]
   };
   window.addEventListener('keydown', onKey);
   switchTo(modes[0]);
+  // Asking for a mode: the panel stays closed until one is chosen (its first tab would be active).
+  if (choosing.value && !shell.dock('right').state.value.collapsed) shell.toggle('right');
   shell.mount();
   status.mount();
   if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
@@ -354,7 +378,25 @@ export function ShellStory(props: ShellStoryProps & { modes: readonly MockMode[]
       shell={shell}
       status={status}
       canvas={part((p) => p.canvas?.() ?? null)}
-      overlays={part((p) => p.overlays?.() ?? null)}
+      overlays={
+        <>
+          {part((p) => p.overlays?.() ?? null)}
+          <Show when={choosing}>
+            {() => (
+              <ModeChooser
+                variant="welcome"
+                modes={modes}
+                onChoose={(id) => {
+                  choosing.set(false);
+                  const next = modes.find((m) => m.id === id);
+                  if (next && next !== active.value) switchTo(next);
+                  else if (parts.value?.start) shell.show(parts.value.start);
+                }}
+              />
+            )}
+          </Show>
+        </>
+      }
       playback={part((p) => p.playback?.() ?? null)}
       canvasColor={background}
       canvasTheme={themeForColor(parseColor(background) ?? 0xffffff)}

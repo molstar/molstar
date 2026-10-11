@@ -57,5 +57,6 @@ export {
 export { StatusLine, StatusPill } from './views/shell/canvas-chrome.js';
 export { CanvasPlaceholder } from './views/shell/canvas-placeholder.js';
 export { LogView } from './views/shell/log-view.js';
+export { type ModeChoice, ModeChooser } from './views/shell/mode-chooser.js';
 export { SectionList } from './views/shell/section-list.js';
 export { ShellView, type ShellViewProps } from './views/shell/shell-view.js';

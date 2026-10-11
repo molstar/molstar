@@ -294,6 +294,8 @@ export interface MockScene extends SceneModel {
   measurementStyle(node: SceneNode): ParamsFormModel<any> | undefined;
   /** Adds a measurement row under Measurements (what the measurement manager would create). */
   addMeasurement(label: string, description: string, icon: IconName): void;
+  /** Removes everything (the plugin's clear). */
+  clear(): void;
 }
 
 /** What an extension's structure row can put under itself once on: volume channels, a shape (symmetry axes). */
@@ -782,6 +784,12 @@ export function mockScene(
       if (!owner.isExpanded.value) owner.toggleExpanded();
     },
     streaming: (n) => rowForms.get(`${n.id}-volume-streaming`) as ParamsFormModel<any>,
+    clear: () => {
+      picked.set(undefined);
+      roots.set([]);
+      measurementsNode = undefined;
+      measurementList.set([]);
+    },
   };
 }
 

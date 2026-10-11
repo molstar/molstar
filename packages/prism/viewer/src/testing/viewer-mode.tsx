@@ -9,7 +9,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { combineLatest, map, of } from 'rxjs';
+import { combineLatest, map } from 'rxjs';
 import { ActionFooter } from '@molstar/prism-ui';
 import { MolstarWordmark } from '@molstar/prism-ui';
 import { ParamsForm } from '@molstar/prism-ui';
@@ -31,6 +31,8 @@ import { SnapshotCard, TrajectoryBar } from '@molstar/prism-ui';
 import { SelectionBar } from '../views/canvas/selection-bar.js';
 import { ImageExport } from '../views/export/image-export.js';
 import { HomeTab } from '../views/home/home-tab.js';
+import type { HomeModel, SessionModel } from '../model/home.js';
+import { Show } from '@molstar/prism-ui/dom/control-flow';
 import { type SequenceSelector, SequenceStrip } from '../views/sequence/sequence-strip.js';
 import { CanvasPlaceholder } from '@molstar/prism-ui';
 import { SectionList } from '@molstar/prism-ui';
@@ -333,11 +335,15 @@ export function mockViewerMode(
     id: 'viewer',
     title: 'Viewer mode',
     icon: 'molstar',
-    activate: ({ shell, status, loaded, background, openCommandMenu }) => {
+    description: 'Load structures and data, explore and analyze them',
+    activate: ({ shell, status, loaded, background, openCommandMenu, modes, activeMode, switchMode }) => {
       const canvasMode = observableState<CanvasMode>('interact');
       const granularity = observableState('residue');
       const illumination = observableState(false);
       const hoverLines = observableState<readonly string[]>([]);
+      // Nothing loaded (at the start, or after Clear): the canvas, its tools and the sequence follow.
+      const empty = observableState(!loaded);
+      const hasData = empty.asReadonly.pipe(map((e) => !e));
       // The scene; hovering a node highlights it (the hover label stands in for the 3D highlight here).
       const scene = mockScene({
         preset: options.preset,
@@ -356,12 +362,50 @@ export function mockViewerMode(
         mockMeasurements(scene, (t) => status.post(t)),
       );
       const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
-      const home = mockHome((text, kind) => status.post(text, kind), { remoteStates: options.remoteStates });
+      let dropSequence: (() => void) | undefined;
+      // The session as Home shows it: what is loaded, and Clear (the plugin's clear).
+      const session: SessionModel = {
+        isEmpty: empty.asReadonly,
+        summary: observableState(
+          options.preset === 'many'
+            ? '4 structures · CYP3A4, superposed on 1TQN'
+            : options.preset === 'em'
+              ? 'EMD-2984 and 5A1A'
+              : '1TQN · Assembly 1 · 3,624 atoms',
+        ).asReadonly,
+        clear: () => {
+          scene.clear();
+          dropSequence?.();
+          dropSequence = undefined;
+          status.setTasks([]);
+          empty.set(true);
+          status.post('Cleared: nothing loaded');
+        },
+      };
+      const home: HomeModel = {
+        ...mockHome((text, kind) => status.post(text, kind), { remoteStates: options.remoteStates }),
+        session,
+      };
       const snapshotsModel = mockSnapshotsModel((text, kind) => status.post(text, kind));
       const stateTree = mockStateTree((text) => status.post(text));
       const snapshotStepper = mockSnapshots((t) => status.post(t));
       const trajectory = mockTrajectory();
       const commands = mockCommands(shell, () => scene.roots.value.filter((n) => n.kind === 'structure').length);
+      // Clearing is a command too (the command menu's "Clear session"): the sentence and Enter are the confirmation.
+      commands.register([
+        {
+          id: 'session.clear',
+          title: 'Clear session',
+          alias: ['clear', 'reset', 'remove everything', 'new session'],
+          category: 'Data',
+          icon: 'trash-2',
+          when: () => (empty.value ? 'Nothing is loaded' : true),
+          run: () => {
+            session.clear();
+            return { message: '' };
+          },
+        },
+      ]);
 
       shell.registerTabs([
         {
@@ -373,7 +417,13 @@ export function mockViewerMode(
           icon: 'prism',
           order: 0,
           place: 'head',
-          render: domView(() => <HomeTab home={home} onOpenCommandMenu={() => openCommandMenu()} />),
+          render: domView(() => (
+            <HomeTab
+              home={home}
+              onOpenCommandMenu={() => openCommandMenu()}
+              modes={{ list: modes, active: activeMode, choose: switchMode }}
+            />
+          )),
         },
         {
           id: 'structure',
@@ -412,7 +462,7 @@ export function mockViewerMode(
           render: domView(() => <StateTreeTab model={stateTree} />),
         },
       ]);
-      if (loaded) {
+      const sequenceTab = () =>
         shell.registerTabs([
           {
             id: 'sequence',
@@ -440,7 +490,7 @@ export function mockViewerMode(
             )),
           },
         ]);
-      }
+      if (loaded) dropSequence = sequenceTab();
 
       if (home.remoteStates) {
         const remote = home.remoteStates;
@@ -454,7 +504,6 @@ export function mockViewerMode(
       }
 
       // The canvas stack's camera and rendering tools act on what is shown: nothing loaded, nothing to show them for.
-      const hasData = of(loaded);
       shell.registerToolbar([
         {
           id: 'reset',
@@ -586,31 +635,40 @@ export function mockViewerMode(
         commands,
         prefixes: mockPrefixes({ manager: commands, shell, scene, snapshots: snapshotStepper }),
         canvas: () => (
-          <CanvasPlaceholder
-            empty={!loaded}
-            background={background}
-            onHover={(i) =>
-              hoverLines.set(
-                i === undefined ? [] : [`${ThreeLetter[Sequence[i * 4]] ?? 'GLY'} ${i * 4 + 1}`, 'Chain A · 1TQN'],
-              )
-            }
-          />
+          <Show when={hasData} fallback={() => <CanvasPlaceholder empty={true} background={background} />}>
+            {() => (
+              <CanvasPlaceholder
+                empty={false}
+                background={background}
+                onHover={(i) =>
+                  hoverLines.set(
+                    i === undefined ? [] : [`${ThreeLetter[Sequence[i * 4]] ?? 'GLY'} ${i * 4 + 1}`, 'Chain A · 1TQN'],
+                  )
+                }
+              />
+            )}
+          </Show>
         ),
-        overlays: () =>
-          loaded ? (
-            <HoverLabel model={hover} area={() => document.querySelector<HTMLElement>('[data-msp-canvas]')} />
-          ) : null,
+        overlays: () => (
+          <Show when={hasData}>
+            {() => <HoverLabel model={hover} area={() => document.querySelector<HTMLElement>('[data-msp-canvas]')} />}
+          </Show>
+        ),
         playback: () =>
-          loaded && (playback?.snapshots || playback?.trajectory) ? (
-            <>
-              {playback.snapshots ? <SnapshotCard model={snapshotStepper} /> : null}
-              {playback.trajectory ? <TrajectoryBar model={trajectory} /> : null}
-            </>
+          playback?.snapshots || playback?.trajectory ? (
+            <Show when={hasData}>
+              {() => (
+                <>
+                  {playback.snapshots ? <SnapshotCard model={snapshotStepper} /> : null}
+                  {playback.trajectory ? <TrajectoryBar model={trajectory} /> : null}
+                </>
+              )}
+            </Show>
           ) : null,
-        context: loaded ? () => <SelectionBar selection={selection} /> : undefined,
-        canvasLead: () => (loaded ? <ModeSwitch {...modeProps} /> : null),
-        canvasAside: () => (loaded ? <PickLevel {...modeProps} /> : null),
-        empty: of(!loaded),
+        context: () => <Show when={hasData}>{() => <SelectionBar selection={selection} />}</Show>,
+        canvasLead: () => <Show when={hasData}>{() => <ModeSwitch {...modeProps} />}</Show>,
+        canvasAside: () => <Show when={hasData}>{() => <PickLevel {...modeProps} />}</Show>,
+        empty: empty.asReadonly,
         onDropFiles: (files) => home.openFiles(files),
         dropFormats: home.formats,
       };

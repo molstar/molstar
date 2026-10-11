@@ -215,3 +215,35 @@
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
 }
+
+/* The current session: what is loaded, and Clear (asking once, in place). */
+.session {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: var(--msp-control-height);
+  padding-left: var(--msp-inset);
+}
+
+.sessionSummary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+}
+
+.confirmText {
+  margin-right: var(--msp-space-2);
+  color: var(--msp-color-text-muted);
+  white-space: nowrap;
+}
