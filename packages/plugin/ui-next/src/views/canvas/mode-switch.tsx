@@ -67,7 +67,7 @@ export function ModeSwitch(props: ModeSwitchProps) {
         type="button"
         class={`${classes.segment} ${classes.select}`}
         aria-pressed={selecting}
-        data-tip="Select: click to select, Shift+click to extend"
+        data-tip={current ? undefined : 'Select: click to select, Shift+click to extend'}
         data-tip-side="left"
         aria-label="Select"
         onClick={() => props.setMode('select')}

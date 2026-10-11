@@ -84,6 +84,7 @@ export function CanvasToolbar(props: {
 
 function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?: ToolMenus }) {
   const { shell, item, menus } = props;
+  // A button with a menu shows the menu on hover instead of a tooltip (both would open in the same spot).
   const withMenu = menus && item.menu?.length ? menus : undefined;
   const overlayOpen = item.overlay ? shell.overlay.pipe(map((o) => o?.overlay.id === item.overlay)) : of(false);
   const pressed = combineLatest([overlayOpen, item.pressed ?? of(false)]).pipe(
@@ -94,7 +95,7 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
     <button
       type="button"
       class={classes.tool}
-      data-tip={item.title}
+      data-tip={withMenu ? undefined : item.title}
       data-tip-side="left"
       aria-label={item.title}
       aria-pressed={pressed}
