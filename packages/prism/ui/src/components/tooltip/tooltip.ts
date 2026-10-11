@@ -17,8 +17,8 @@ const ShowDelayMs = 350;
  * positioned in the viewport; buttons keep their `aria-label` for assistive technology (no native `title` as well).
  * `data-tip-overflow` (no text) shows the element's own text, only while it is cut off (a long label, faded at its end).
  * `data-tip-row` (a tree row) shows its parts' text (`data-tip-part`: the label, then the description, muted) while
- * one is cut off, from a pointer over a part: a card beside the row, outside the panel, at the row's text size (on its
- * left, or its right where there is no room).
+ * one is cut off, from a pointer over a part: a card beside the row, outside its panel (`role="tabpanel"`, or
+ * `data-tip-edge`) and clear of its edge, at the row's text size (on its left, or its right where there is no room).
  * Returns the uninstall function.
  */
 export function installTooltips(root: HTMLElement): () => void {
@@ -44,8 +44,11 @@ export function installTooltips(root: HTMLElement): () => void {
     let x: number;
     let y: number;
     if (side === 'beside') {
-      x = r.left - gap - t.width;
-      if (x < 4) x = r.right + gap;
+      // Outside the panel the row is in (its tab panel), clear of its edge; on its left, or its right without room.
+      const edge = el.closest('[data-tip-edge], [role="tabpanel"]')?.getBoundingClientRect() ?? r;
+      const clear = 12;
+      x = edge.left - clear - t.width;
+      if (x < 4) x = edge.right + clear;
       y = r.top + (r.height - t.height) / 2;
     } else if (side === 'left') {
       x = r.left - gap - t.width;
