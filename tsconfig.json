@@ -200,6 +200,12 @@
       "path": "./packages/ai/session"
     },
     {
+      "path": "./packages/ai/trace"
+    },
+    {
+      "path": "./packages/ai/fibers"
+    },
+    {
       "path": "./packages/prism/ui"
     },
     {

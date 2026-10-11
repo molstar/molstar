@@ -19,6 +19,11 @@
       "types": "./lib/testing/index.d.ts",
       "import": "./lib/testing/index.js"
     },
+    "./fibers": {
+      "molstar-src": "./src/fibers/index.ts",
+      "types": "./lib/fibers/index.d.ts",
+      "import": "./lib/fibers/index.js"
+    },
     "./*": {
       "molstar-src": "./src/*.ts",
       "types": "./lib/*.d.ts",
@@ -41,7 +46,8 @@
     "@molstar/ai-harness": "workspace:*",
     "@jest/globals": "catalog:",
     "fast-check": "catalog:",
-    "tslib": "catalog:"
+    "tslib": "catalog:",
+    "@molstar/ai-fibers": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

@@ -12,6 +12,7 @@ export {
   type RecordKind,
   type WriteSet,
 } from './harness/storage/durable.js';
+export { createIndexedDbRows } from './fibers/indexeddb.js';
 export { createIndexedDbBackend, createIndexedDbStorage } from './harness/storage/indexeddb.js';
 export { createMemoryStorage } from './harness/storage/memory.js';
 export { createInProcessSupervisor, type InProcessSupervisorOptions } from './harness/supervisor/in-process.js';

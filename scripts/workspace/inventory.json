@@ -397,6 +397,18 @@
       "private": true
     },
     {
+      "name": "@molstar/ai-trace",
+      "path": "packages/ai/trace",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/ai-fibers",
+      "path": "packages/ai/fibers",
+      "kind": "library",
+      "private": true
+    },
+    {
       "name": "@molstar/prism-ui",
       "path": "packages/prism/ui",
       "kind": "library",

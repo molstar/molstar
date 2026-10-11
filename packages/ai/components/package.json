@@ -34,7 +34,8 @@
   "dependencies": {
     "@molstar/ai-agent": "workspace:*",
     "@molstar/ai-harness": "workspace:*",
-    "tslib": "catalog:"
+    "tslib": "catalog:",
+    "@molstar/ai-fibers": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

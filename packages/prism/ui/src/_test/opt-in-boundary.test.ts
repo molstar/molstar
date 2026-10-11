@@ -26,6 +26,8 @@ const OptIn = [
   '@molstar/ai-conformance',
   '@molstar/ai-tools',
   '@molstar/ai-session',
+  '@molstar/ai-trace',
+  '@molstar/ai-fibers',
 ];
 
 function* sources(dir: string): Generator<string> {
