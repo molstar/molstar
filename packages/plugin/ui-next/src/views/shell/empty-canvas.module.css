@@ -8,8 +8,6 @@
 .empty {
   position: absolute;
   inset: 0 var(--msp-canvas-right-inset, 0) 0 0;
-  display: grid;
-  place-items: center;
   pointer-events: none;
   animation: fade-in 900ms var(--msp-ease) both;
 
@@ -19,8 +17,12 @@
   }
 }
 
-/* Quiet on the canvas: the canvas's own subtle text color. */
+/* Quiet on the canvas: the canvas's own subtle text color. Centred to whole pixels (171 × 66 at 3×: plain centring
+   would put it on a half pixel and blur its lines). */
 .mark {
+  position: absolute;
+  left: round(down, calc(50% - 85.5px), 1px);
+  top: round(down, calc(50% - 33px), 1px);
   color: var(--msp-color-text-subtle);
 }
 

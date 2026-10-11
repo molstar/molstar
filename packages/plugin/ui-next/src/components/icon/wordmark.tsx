@@ -38,7 +38,7 @@ function Shapes() {
  */
 export function MolstarWordmark(props: {
   class?: string;
-  /** A whole multiple of its drawn size (the empty canvas shows it at 4): lines stay on the pixel grid. */
+  /** A whole multiple of its drawn size (the empty canvas shows it at 3): lines stay on the pixel grid. */
   scale?: number;
   /** Its colors: a flash now and then (a heading), often, or wiped in once and kept (the empty canvas). */
   flash?: 'rare' | 'often' | 'reveal';

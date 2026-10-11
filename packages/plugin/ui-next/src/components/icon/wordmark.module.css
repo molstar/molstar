@@ -16,7 +16,7 @@
     position: absolute;
     inset: 0;
     overflow: visible;
-    /* In drawing units: 1.5 at its size; larger, relatively thinner (0.75 at 4×: a 3 px line). */
+    /* In drawing units: 1.5 at its size; larger, relatively thinner (0.87 at 3×: a 2.6 px line). */
     stroke-width: calc(1.5 / sqrt(var(--msp-wordmark-scale, 1)));
   }
 }

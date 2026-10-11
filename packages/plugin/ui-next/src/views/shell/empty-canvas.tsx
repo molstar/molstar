@@ -53,7 +53,7 @@ export function EmptyCanvas(props: { empty: Observable<boolean> }) {
     <Show when={phase.pipe(map((p) => p !== 'gone'))}>
       {() => (
         <div class={classes.empty} data-phase={phase}>
-          <MolstarWordmark scale={4} flash="reveal" class={classes.mark} />
+          <MolstarWordmark scale={3} flash="reveal" class={classes.mark} />
         </div>
       )}
     </Show>

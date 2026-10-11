@@ -20,8 +20,6 @@ defineStyles('views/shell/empty-canvas.module.css', `@layer msp.components {
   inset: 0 var(--msp-canvas-right-inset, 0) 0 0;
   pointer-events: none;
   animation: msp-shell-empty-canvas-fade-in .9s var(--msp-ease) both;
-  place-items: center;
-  display: grid;
   position: absolute;
 
   &[data-phase="out"] {
@@ -31,6 +29,9 @@ defineStyles('views/shell/empty-canvas.module.css', `@layer msp.components {
 
 .msp-shell-empty-canvas-mark {
   color: var(--msp-color-text-subtle);
+  position: absolute;
+  top: round(down, 50% - 33px, 1px);
+  left: round(down, 50% - 85.5px, 1px);
 }
 
 @keyframes msp-shell-empty-canvas-fade-in {
