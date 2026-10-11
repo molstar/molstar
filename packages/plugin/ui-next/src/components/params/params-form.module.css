@@ -141,8 +141,14 @@
   background: var(--msp-color-pressed);
   transition: background-color var(--msp-motion-fast) var(--msp-ease);
 
+  /* On is a neutral mid-grey, like a slider's filled part: settings are not the action, so no accent. */
   &[aria-checked="true"] {
-    background: var(--msp-color-accent);
+    background: var(--msp-color-text-muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 2px;
   }
 }
 
@@ -153,7 +159,8 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--msp-color-bg);
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.12);
   transition: transform var(--msp-motion-fast) var(--msp-ease);
 
   [aria-checked="true"] > & {

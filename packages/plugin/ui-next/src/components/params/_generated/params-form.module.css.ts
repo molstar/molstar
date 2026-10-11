@@ -166,19 +166,25 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   position: relative;
 
   &[aria-checked="true"] {
-    background: var(--msp-color-accent);
+    background: var(--msp-color-text-muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 2px;
   }
 }
 
 .msp-params-params-form-knob {
+  background: var(--msp-color-bg);
   width: 14px;
   height: 14px;
   transition: transform var(--msp-motion-fast) var(--msp-ease);
-  background: #fff;
   border-radius: 50%;
   position: absolute;
   top: 2px;
   left: 2px;
+  box-shadow: 0 1px 1px #0000001f;
 
   [aria-checked="true"] > & {
     transform: translateX(14px);
