@@ -65,7 +65,7 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
           size="sm"
           variant="ghost"
           class={classes.optionsButton}
-          icon={<Icon name="sliders-horizontal" />}
+          icon={<Icon name="settings" />}
           title="Save options"
           pressed={open.asReadonly.pipe(map((o) => o === 'options'))}
           onClick={() => toggle('options')}

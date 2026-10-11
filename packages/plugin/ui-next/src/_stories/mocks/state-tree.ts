@@ -248,7 +248,7 @@ function update(id: string, transform: string, params: PD.Params, what: string, 
   return {
     id,
     title: `Update ${transform}`,
-    icon: 'sliders-horizontal',
+    icon: 'pencil',
     form: new ParamsFormModel(params),
     applyLabel: 'Update',
     apply: () => post(`Updated ${what}`),

@@ -93,7 +93,7 @@ export function StructureTab(props: StructureTabProps) {
             size="sm"
             variant="ghost"
             class={classes.optionsButton}
-            icon={<Icon name="sliders-horizontal" />}
+            icon={<Icon name="settings" />}
             title="Component options"
             pressed={open.asReadonly.pipe(map((o) => o === 'options'))}
             onClick={() => toggle('options')}

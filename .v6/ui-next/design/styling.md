@@ -67,7 +67,8 @@ can use another theme.
   They are not repeated next to words: no icons on child tree rows (indentation and the description say what a row is),
   menu items, section and group headers, footer actions (a spinner only while running), or labelled header buttons
   (their icons only in the narrow layout, where the words go). Set defaults (`list-restart`) and refresh (`refresh-cw`)
-  never share an icon.
+  never share an icon. Sliders (`sliders-horizontal`) mean a row's own params unfolding under it (an on/off setting's, a
+  list item's, a measurement's style) and nothing else; a panel's options are a gear (`settings`).
 - **Accent for actions and the picked item only.** Inline blocks (option lists, the color picker, an on/off setting's
   settings, a measurement's style) are set apart by their surface and a hairline edge (`--msp-glass-edge`), not an
   accent bar.

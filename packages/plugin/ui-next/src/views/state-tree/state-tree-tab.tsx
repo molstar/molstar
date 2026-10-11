@@ -192,7 +192,7 @@ function CellMenu(props: {
   );
   return (
     <div class={tree.menu} role="menu" style={{ '--msp-tree-depth': props.depth }}>
-      {inspection?.updates.map((u) => item(u.id, `${u.title}…`, 'sliders-horizontal'))}
+      {inspection?.updates.map((u) => item(u.id, `${u.title}…`, 'pencil'))}
       {inspection?.actions.map((a) => item(a.id, `${a.title}…`, a.icon))}
       <button type="button" role="menuitem" class={tree.menuItem} data-danger="" onClick={props.onRemove}>
         <span />
