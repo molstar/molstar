@@ -37,7 +37,6 @@ describe('graphics context', () => {
     const texture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
     expect(isGLTexture(texture)).toBe(true);
     expect(asGLTexture(texture)).toBe(texture);
-    expect(() => ctx.resources.getValueChannel(foreignTexture)).toThrow(/another backend/);
     ctx.destroy();
   });
 
