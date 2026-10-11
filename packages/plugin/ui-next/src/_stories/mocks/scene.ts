@@ -317,6 +317,8 @@ export function mockScene(
     onAction?: (text: string) => void;
     /** Extensions' structure rows (volume streaming, assembly symmetry by default). */
     rows?: readonly MockRowSpec[];
+    /** Adding a measurement: the Selection tab's Measure section. */
+    onMeasure?: () => void;
   } = {},
 ): MockScene {
   const highlight = (node: MockNode, on: boolean) => options.onHighlight?.(on ? node.label.value : undefined);
@@ -572,11 +574,31 @@ export function mockScene(
   };
 
   let measurementsNode: MockNode | undefined;
+  const measurementsDescription = (n: MockNode) => {
+    const count = n.children.value.length;
+    n.setDescription(count ? `${count} measurement${count === 1 ? '' : 's'}` : 'None yet');
+  };
   const measurements = () => {
-    measurementsNode = node('measurements', 'measurements', 'ruler', 'Measurements', '1 distance').add(
+    const n = node('measurements', 'measurements', 'ruler', 'Measurements', '1 distance').add(
       node('d1', 'measurement', 'measure-distance', 'CYS 442 SG – HEM FE', '2.31 Å', false),
     );
-    return measurementsNode;
+    // The group stays; its menu adds (in the Selection tab) or removes all the measurements, not the group.
+    n.removable = false;
+    n.menu = [
+      { id: 'add', label: 'Add measurement…', icon: 'plus', run: () => options.onMeasure?.() },
+      {
+        id: 'remove-all',
+        label: 'Remove all',
+        icon: 'trash-2',
+        danger: true,
+        run: () => {
+          for (const c of n.children.value) n.drop(c);
+          measurementsDescription(n);
+        },
+      },
+    ];
+    measurementsNode = n;
+    return n;
   };
   let measurementCount = 1;
 
@@ -705,7 +727,17 @@ export function mockScene(
     inspect: (n) => {
       let inspection = inspections.get(n);
       if (!inspection) {
-        inspection = { node: n, form: forms.get(n.id), slot: `inspector:${n.kind}`, facts: facts.get(n.id) };
+        inspection = {
+          node: n,
+          form: forms.get(n.id),
+          slot: `inspector:${n.kind}`,
+          facts: facts.get(n.id),
+          // Measurements are added from the selection: a way there.
+          actions:
+            n.kind === 'measurements'
+              ? [{ id: 'measure', label: 'Measure the selection…', icon: 'ruler', run: () => options.onMeasure?.() }]
+              : undefined,
+        };
         inspections.set(n, inspection);
       }
       return inspection;
@@ -723,7 +755,7 @@ export function mockScene(
       }
       measurementCount++;
       owner.add(node(`m${measurementCount}-${Date.now()}`, 'measurement', icon, label, description, false));
-      owner.setDescription(`${owner.children.value.length} measurement${owner.children.value.length === 1 ? '' : 's'}`);
+      measurementsDescription(owner);
       if (!owner.isExpanded.value) owner.toggleExpanded();
     },
     streaming: (n) => rowForms.get(`${n.id}-volume-streaming`) as ParamsFormModel<any>,

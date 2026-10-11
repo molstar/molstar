@@ -135,7 +135,10 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
       <header class={classes.inspectorHeader}>
         <Icon name={node.icon} size={15} />
         <span class={classes.inspectorTitle}>{node.label}</span>
-        <span class={classes.inspectorKind}>{node.kind.replace('-', ' ')}</span>
+        {/* The kind, unless the label already says it (Measurements). */}
+        <Show when={node.label.pipe(map((l) => l.toLowerCase() !== node.kind.replace('-', ' ')))}>
+          {() => <span class={classes.inspectorKind}>{node.kind.replace('-', ' ')}</span>}
+        </Show>
       </header>
       {props.inspection.facts?.length ? (
         <dl class={classes.facts}>
@@ -146,6 +149,16 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
             </div>
           ))}
         </dl>
+      ) : null}
+      {props.inspection.actions?.length ? (
+        <div class={classes.inspectorActions}>
+          {props.inspection.actions.map((a) => (
+            <button type="button" class={classes.inspectorAction} onClick={() => a.run?.()}>
+              {a.icon ? <Icon name={a.icon} size={15} /> : null}
+              <span>{a.label}</span>
+            </button>
+          ))}
+        </div>
       ) : null}
       {form ? <ParamsForm form={form} /> : null}
       <SectionList shell={props.shell} slot={slot} subject={node} flat />

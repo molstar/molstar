@@ -351,8 +351,9 @@ function mockShell(options: {
     preset: options.preset,
     onHighlight: (label) => hoverLines.set(label ? [label] : []),
     onAction: (text) => status.post(text),
+    onMeasure: () => shell.show('selection', 'measure'),
   });
-  // Adding measurements: the Measurements row's inspector.
+  // Adding measurements: the Selection tab's Measure section.
   registerMockMeasurements(
     shell,
     mockMeasurements(scene, (t) => status.post(t)),

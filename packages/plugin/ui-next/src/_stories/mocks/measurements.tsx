@@ -7,7 +7,6 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { Icon } from '../../components/icon/icon.js';
 import { domView } from '../../dom/view.js';
 import { ParamsFormModel } from '../../forms/params-form.js';
 import type { MeasurementKind, MeasurementPoint, MeasurementsModel } from '../../model/measurements.js';
@@ -87,8 +86,8 @@ export function mockMeasurements(scene: MockScene, post: (text: string) => void)
 }
 
 /**
- * Measuring is something done with the selection: a Measure section of the Selection tab (the selection bar's Measure
- * opens it). The Measurements row only lists them; its inspector points there.
+ * Measuring is something done with the selection: a Measure section of the Selection tab (the selection bar's Measure,
+ * the Measurements row's menu and inspector open it). The Measurements row only lists them.
  */
 export function registerMockMeasurements(shell: ShellModel, model: MeasurementsModel) {
   shell.registerSections([
@@ -100,23 +99,6 @@ export function registerMockMeasurements(shell: ShellModel, model: MeasurementsM
       keywords: ['distance', 'angle', 'dihedral', 'label', 'orientation', 'plane'],
       order: 2,
       render: domView(() => <MeasurementsAdd model={model} />),
-    },
-    {
-      id: 'measurements-hint',
-      slot: 'inspector:measurements',
-      title: 'Add',
-      icon: 'plus',
-      order: 0,
-      render: domView(({ ctx }) => (
-        <button
-          type="button"
-          style="display: flex; align-items: center; gap: 8px; height: 28px; color: var(--msp-color-text-muted); font-size: var(--msp-font-size-sm); text-align: left"
-          onClick={() => ctx.shell.show('selection', 'measure')}
-        >
-          <Icon name="ruler" size={15} />
-          <span>Measure the selection…</span>
-        </button>
-      )),
     },
   ]);
 }

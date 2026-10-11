@@ -98,6 +98,28 @@
   text-transform: capitalize;
 }
 
+/* Things to do from here: plain rows, like a menu's. */
+.inspectorActions {
+  display: grid;
+  margin: 0 calc(-1 * var(--msp-space-2));
+}
+
+.inspectorAction {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 28px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
 /* Facts flow as short label–value pairs, wrapping: a structure's size, a map's grid and σ, at a glance. */
 .facts {
   display: flex;

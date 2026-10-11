@@ -16,6 +16,8 @@ export const classes = {
   'facts': 'msp-structure-structure-tab-facts',
   'inspection': 'msp-structure-structure-tab-inspection',
   'inspector': 'msp-structure-structure-tab-inspector',
+  'inspectorAction': 'msp-structure-structure-tab-inspectorAction',
+  'inspectorActions': 'msp-structure-structure-tab-inspectorActions',
   'inspectorEmpty': 'msp-structure-structure-tab-inspectorEmpty',
   'inspectorHeader': 'msp-structure-structure-tab-inspectorHeader',
   'inspectorKind': 'msp-structure-structure-tab-inspectorKind',
@@ -118,6 +120,27 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   text-transform: capitalize;
+}
+
+.msp-structure-structure-tab-inspectorActions {
+  margin: 0 calc(-1 * var(--msp-space-2));
+  display: grid;
+}
+
+.msp-structure-structure-tab-inspectorAction {
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 28px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  text-align: left;
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
 }
 
 .msp-structure-structure-tab-facts {

@@ -81,6 +81,8 @@ export interface SceneInspection {
   slot: string;
   /** Read-only facts shown compactly above the form (atoms, chains; a map's grid, voxel size, σ). */
   facts?: readonly (readonly [label: string, value: string])[];
+  /** Things to do from here, as plain buttons under the facts (Measurements: measure the selection, in its tab). */
+  actions?: readonly SceneMenuItem[];
 }
 
 export interface SceneModel {
