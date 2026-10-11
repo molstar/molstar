@@ -82,4 +82,15 @@ describe('ShellModel', () => {
     expect(shell.layout.docks.right.size).toBe(180);
     expect(shell.layout.mode).toBe('auto');
   });
+
+  it('shows toolbar buttons as the spec says, and changes them at runtime', () => {
+    const shell = new ShellModel({ buttons: { xr: false } });
+    shell.registerToolbar([
+      { id: 'reset', icon: 'focus', title: 'Reset camera' },
+      { id: 'xr', icon: 'glasses', title: 'Enter XR' },
+    ]);
+    expect(shell.toolbar.value.map((i) => i.id)).toEqual(['reset']);
+    shell.setButtons({ xr: true, reset: false });
+    expect(shell.toolbar.value.map((i) => i.id)).toEqual(['xr']);
+  });
 });

@@ -90,7 +90,9 @@ export function Timeline(props: { model: TrajectoryControlsModel }) {
     <Show when={visible}>
       {() => (
         <section class={`${classes.card} ${classes.bar} ${classes.timeline}`} aria-label="Trajectory">
-          <Icon name="trajectory" size={16} />
+          <span class={classes.lead}>
+            <Icon name="trajectory" size={16} />
+          </span>
           <span class={classes.counter}>
             {combineLatest([model.index, model.count]).pipe(map(([i, c]) => `${i + 1} / ${c}`))}
           </span>

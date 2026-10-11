@@ -43,6 +43,16 @@
   }
 }
 
+/* A leading glyph in a button-sized slot, so it lines up with the buttons of the cards around it. */
+.lead {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--msp-color-text-muted);
+}
+
 .counter {
   min-width: 44px;
   font-size: var(--msp-font-size-sm);

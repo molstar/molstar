@@ -75,6 +75,11 @@ export interface ShellOptions {
   docks?: Partial<Record<DockId, Partial<DockState>>>;
   /** Below this width (px) an `auto` shell is compact. */
   compactWidth?: number;
+  /**
+   * Which toolbar buttons show, by item id; ids not listed show. From the UI spec (`layout.buttons`), so an app turns
+   * off what it does not want (`{ xr: false, animation: false }`) without unregistering anything.
+   */
+  buttons?: Readonly<Record<string, boolean>>;
 }
 
 const DefaultSizes: Record<DockId, number> = { left: 300, right: 340, top: 88, bottom: 220 };
@@ -123,7 +128,8 @@ export interface CanvasToolbarItem {
   run?(anchor: Element): void;
   /**
    * Variants of the button's action, shown beside it on hover or focus (the camera: reset zoom, orient axes, reset
-   * axes); a click on the button still runs its own action. Canvas stack items only.
+   * axes); a click on the button still runs its own action, or, without one, opens the menu (illumination and XR under
+   * one button). Canvas stack items only.
    */
   menu?: readonly CanvasMenuItem[];
 }
@@ -135,6 +141,8 @@ export interface CanvasMenuItem {
   icon?: IconName;
   /** A short explanation, shown under the label. */
   hint?: string;
+  /** A toggle's state: shown with a check mark. */
+  pressed?: Observable<boolean>;
   run(): void;
 }
 
@@ -196,7 +204,10 @@ export class ShellModel extends ReactiveModel {
   readonly #width = observableState(0);
   readonly #effectiveMode = observableState<ShellMode>('desktop');
   readonly #overlay = observableState<OpenOverlay | undefined>(undefined);
+  /** Every registered item, and the shown ones (`buttons` applied). */
+  readonly #toolbarAll = observableState<readonly CanvasToolbarItem[]>([]);
   readonly #toolbar = observableState<readonly CanvasToolbarItem[]>([]);
+  #buttons: Readonly<Record<string, boolean>>;
   readonly #sections = observableState<readonly ShellSection[]>([]);
   readonly #slots = new Map<string, ReadonlyState<readonly ShellSection[]>>();
   readonly #compactWidth: number;
@@ -204,6 +215,7 @@ export class ShellModel extends ReactiveModel {
   constructor(options: ShellOptions = {}) {
     super();
     this.#compactWidth = options.compactWidth ?? 720;
+    this.#buttons = options.buttons ?? {};
     this.#docks = {} as Record<DockId, DockModel>;
     for (const id of DockIds) {
       this.#docks[id] = new DockModel(id, {
@@ -259,8 +271,22 @@ export class ShellModel extends ReactiveModel {
 
   registerToolbar(items: readonly CanvasToolbarItem[]): () => void {
     const sorted = (list: readonly CanvasToolbarItem[]) => [...list].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    this.#toolbar.set(sorted([...this.#toolbar.value, ...items]));
-    return () => this.#toolbar.set(this.#toolbar.value.filter((i) => !items.includes(i)));
+    this.#toolbarAll.set(sorted([...this.#toolbarAll.value, ...items]));
+    this.#updateToolbar();
+    return () => {
+      this.#toolbarAll.set(this.#toolbarAll.value.filter((i) => !items.includes(i)));
+      this.#updateToolbar();
+    };
+  }
+
+  /** Shows or hides toolbar buttons by id (the UI spec's `layout.buttons`, or a settings toggle). */
+  setButtons(buttons: Readonly<Record<string, boolean>>): void {
+    this.#buttons = { ...this.#buttons, ...buttons };
+    this.#updateToolbar();
+  }
+
+  #updateToolbar() {
+    this.#toolbar.set(this.#toolbarAll.value.filter((i) => this.#buttons[i.id] !== false));
   }
 
   /** The layout as it can be persisted. */

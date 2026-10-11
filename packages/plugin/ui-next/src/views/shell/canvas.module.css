@@ -184,7 +184,7 @@
 
 .toolMenuRow {
   display: grid;
-  grid-template-columns: 16px 1fr;
+  grid-template-columns: 16px 1fr auto;
   align-items: center;
   gap: var(--msp-space-3);
   min-height: 32px;
@@ -204,6 +204,10 @@
 .toolMenuLabel {
   display: grid;
   color: var(--msp-color-text);
+}
+
+.toolMenuCheck {
+  color: var(--msp-color-accent);
 }
 
 .toolMenuHint {

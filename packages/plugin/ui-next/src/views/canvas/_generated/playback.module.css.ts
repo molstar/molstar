@@ -14,6 +14,7 @@ export const classes = {
   'cluster': 'msp-canvas-playback-cluster',
   'counter': 'msp-canvas-playback-counter',
   'description': 'msp-canvas-playback-description',
+  'lead': 'msp-canvas-playback-lead',
   'scrubber': 'msp-canvas-playback-scrubber',
   'timeline': 'msp-canvas-playback-timeline',
   'title': 'msp-canvas-playback-title',
@@ -55,6 +56,15 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
     width: 16px;
     height: 16px;
   }
+}
+
+.msp-canvas-playback-lead {
+  width: 24px;
+  height: 24px;
+  color: var(--msp-color-text-muted);
+  flex: none;
+  place-items: center;
+  display: grid;
 }
 
 .msp-canvas-playback-counter {

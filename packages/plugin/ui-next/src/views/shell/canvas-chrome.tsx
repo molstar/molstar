@@ -96,6 +96,8 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       aria-pressed={pressed}
       aria-haspopup={withMenu ? 'menu' : undefined}
       onClick={(e) => {
+        // A button that only holds a menu opens it; otherwise the click runs the button's own action.
+        if (withMenu && !item.overlay && !item.run) return withMenu.show(item, e.currentTarget);
         withMenu?.hide();
         if (item.overlay) shell.toggleOverlay(item.overlay, e.currentTarget);
         else item.run?.(e.currentTarget);
@@ -195,7 +197,8 @@ function ToolMenu(props: { menus: ToolMenus }) {
             {open.item.menu!.map((m) => (
               <button
                 type="button"
-                role="menuitem"
+                role={m.pressed ? 'menuitemcheckbox' : 'menuitem'}
+                aria-checked={m.pressed}
                 class={classes.toolMenuRow}
                 onClick={() => {
                   menus.hide();
@@ -207,6 +210,9 @@ function ToolMenu(props: { menus: ToolMenus }) {
                   {m.label}
                   {m.hint ? <span class={classes.toolMenuHint}>{m.hint}</span> : null}
                 </span>
+                {m.pressed ? (
+                  <Show when={m.pressed}>{() => <Icon name="check" size={14} class={classes.toolMenuCheck} />}</Show>
+                ) : null}
               </button>
             ))}
           </div>

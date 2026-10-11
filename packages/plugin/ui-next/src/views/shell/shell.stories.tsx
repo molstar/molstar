@@ -40,6 +40,7 @@ import { SectionList } from './section-list.js';
 import { ShellView } from './shell-view.js';
 import { StructureTab } from '../structure/structure-tab.js';
 import { mockHome } from '../../_stories/mocks/home.js';
+import { registerMockAnimation } from '../../_stories/mocks/animation.js';
 import { registerMockCanvasSettings } from '../../_stories/mocks/canvas-settings.js';
 import { registerMockInspectorSections } from '../../_stories/mocks/inspector-sections.js';
 import { type MockScenePreset, mockScene } from '../../_stories/mocks/scene.js';
@@ -473,24 +474,42 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
         },
       ],
     },
+    // The scene as a whole: how it plays, how the canvas renders it.
+    { id: 'animation', group: 'scene', icon: 'clapperboard', title: 'Animation', overlay: 'animation' },
+    {
+      id: 'canvas-settings',
+      group: 'scene',
+      icon: 'sliders-horizontal',
+      title: 'Canvas settings',
+      overlay: 'canvas-settings',
+    },
     { id: 'save', group: 'export', icon: 'save', title: 'Save state (snapshots)', overlay: 'save-state' },
     { id: 'export', group: 'export', icon: 'download', title: 'Export…', overlay: 'export' },
+    // Rendering modes under one button: a click opens the menu (no action of its own); shown pressed while one is on.
     {
-      id: 'illumination',
+      id: 'rendering',
       place: 'canvas',
       group: 'canvas',
-      icon: 'lightbulb',
-      title: 'Illumination',
+      icon: 'sparkles',
+      title: 'Illumination & XR',
       pressed: illumination.asReadonly,
-      run: () => illumination.set(!illumination.value),
-    },
-    {
-      id: 'xr',
-      place: 'canvas',
-      group: 'canvas',
-      icon: 'glasses',
-      title: 'Enter XR',
-      run: () => status.post('XR is not available in this browser.', 'warning'),
+      menu: [
+        {
+          id: 'illumination',
+          label: 'Illumination',
+          icon: 'lightbulb',
+          hint: 'Path-traced global illumination',
+          pressed: illumination.asReadonly,
+          run: () => illumination.set(!illumination.value),
+        },
+        {
+          id: 'xr',
+          label: 'Enter XR',
+          icon: 'glasses',
+          hint: 'View on a headset',
+          run: () => status.post('XR is not available in this browser.', 'warning'),
+        },
+      ],
     },
     {
       id: 'expand',
@@ -499,14 +518,6 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
       icon: 'maximize',
       title: 'Expand',
       run: () => status.post('Expanded'),
-    },
-    {
-      id: 'canvas-settings',
-      place: 'canvas',
-      group: 'canvas',
-      icon: 'sliders-horizontal',
-      title: 'Canvas settings',
-      overlay: 'canvas-settings',
     },
     // Panels over the canvas: shown and hidden from the stack (hidden, they take no room at all).
     {
@@ -523,6 +534,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
   // One Export button; built-in and extension exports are sections of its panel.
   mockExport(shell, status);
   registerMockCanvasSettings(shell);
+  registerMockAnimation(shell, (text) => status.post(text));
 
   if (options.loaded) {
     status.post('Loaded 1TQN (3,624 atoms) in 0.4 s', 'success');

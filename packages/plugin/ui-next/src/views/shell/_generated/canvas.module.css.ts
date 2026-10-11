@@ -35,6 +35,7 @@ export const classes = {
   'tool-menu-in': 'msp-shell-canvas-tool-menu-in',
   'toolMenu': 'msp-shell-canvas-toolMenu',
   'toolMenuCard': 'msp-shell-canvas-toolMenuCard',
+  'toolMenuCheck': 'msp-shell-canvas-toolMenuCheck',
   'toolMenuHint': 'msp-shell-canvas-toolMenuHint',
   'toolMenuLabel': 'msp-shell-canvas-toolMenuLabel',
   'toolMenuRow': 'msp-shell-canvas-toolMenuRow',
@@ -204,7 +205,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
   text-align: left;
-  grid-template-columns: 16px 1fr;
+  grid-template-columns: 16px 1fr auto;
   display: grid;
 
   &:hover, &:focus-visible {
@@ -216,6 +217,10 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-toolMenuLabel {
   color: var(--msp-color-text);
   display: grid;
+}
+
+.msp-shell-canvas-toolMenuCheck {
+  color: var(--msp-color-accent);
 }
 
 .msp-shell-canvas-toolMenuHint {
