@@ -389,3 +389,16 @@
   font-family: inherit;
   font-size: var(--msp-font-size-xs);
 }
+
+/* Over a sentence the assistant proposed: where it came from, in the assistant's tint. */
+.proposed {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  margin: var(--msp-space-2) var(--msp-space-2) 0;
+  padding: var(--msp-space-1) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 90%);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+}

@@ -50,7 +50,12 @@ export interface CommandMenuAssistant {
 }
 
 /** The Ask row: the assistant proposes a command (its sentence opens, filled) or takes the request as a turn. */
-function askItem(props: CommandMenuProps, manager: CommandManager<any>, text: string): CommandMenuItem {
+function askItem(
+  props: CommandMenuProps,
+  manager: CommandManager<any>,
+  text: string,
+  onPropose: (words: string) => void,
+): CommandMenuItem {
   const assistant = props.assistant!;
   const words = text.trim();
   if (!assistant.ready())
@@ -69,6 +74,7 @@ function askItem(props: CommandMenuProps, manager: CommandManager<any>, text: st
     run: () => {
       const proposal = assistant.propose(words);
       if (proposal) {
+        onPropose(words);
         const r = manager.open(proposal.command, proposal.tail);
         // Proposed: the sentence opens filled in, and nothing runs until Enter.
         return r.kind === 'form';
@@ -110,6 +116,12 @@ type Pickable = Exclude<Row, { kind: 'caption' }>;
 
 export function CommandMenu(props: CommandMenuProps) {
   const { manager } = props;
+  // The words a sentence was proposed from by the assistant (shown over it), until it closes.
+  const proposed = observableState<string | undefined>(undefined);
+  const activeSub = manager.active.subscribe((a) => {
+    if (!a) proposed.set(undefined);
+  });
+  onCleanup(() => activeSub.unsubscribe());
   // A command that ran (or failed past its form) closes the command menu; its outcome goes to the status line.
   const sub = manager.outcomes.subscribe((o) => {
     if (o.kind === 'done') props.onClose();
@@ -126,15 +138,22 @@ export function CommandMenu(props: CommandMenuProps) {
       }}
     >
       <div class={classes.menu} role="dialog" aria-label="Commands">
-        <Show when={manager.active} fallback={() => <ListMode {...props} />}>
-          {(invocation) => <FormMode manager={manager} invocation={invocation} onClose={props.onClose} />}
+        <Show when={manager.active} fallback={() => <ListMode {...props} onPropose={(t) => proposed.set(t)} />}>
+          {(invocation) => (
+            <FormMode
+              manager={manager}
+              invocation={invocation}
+              proposed={proposed.asReadonly}
+              onClose={props.onClose}
+            />
+          )}
         </Show>
       </div>
     </div>
   );
 }
 
-function ListMode(props: CommandMenuProps) {
+function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) {
   const { manager } = props;
   const text = observableState(props.initial ?? '');
   const group = observableState<string | undefined>(props.group);
@@ -217,7 +236,7 @@ function ListMode(props: CommandMenuProps) {
   // The assistant takes the typed words (⌘↵ anywhere; ↵ when no command matches).
   const ask = () => {
     if (!props.assistant || !text.value.trim() || prefixOf(text.value)) return;
-    const keep = askItem(props, manager, text.value).run();
+    const keep = askItem(props, manager, text.value, props.onPropose).run();
     if (!keep && !manager.active.value) props.onClose();
   };
   const unmatched = combineLatest([text.asReadonly, rows]).pipe(
@@ -573,7 +592,13 @@ function highlight(text: string, query: string): Child {
 }
 
 /** A command with arguments: its sentence, the active field typed into the input, completions under it. */
-function FormMode(props: { manager: CommandManager<any>; invocation: CommandInvocation<any>; onClose(): void }) {
+function FormMode(props: {
+  manager: CommandManager<any>;
+  invocation: CommandInvocation<any>;
+  /** Proposed by the assistant from these words. */
+  proposed?: Observable<string | undefined>;
+  onClose(): void;
+}) {
   const { manager, invocation } = props;
   const state = invocation.state;
   const command = invocation.command;
@@ -617,6 +642,14 @@ function FormMode(props: { manager: CommandManager<any>; invocation: CommandInvo
   queueMicrotask(() => input.focus());
   return (
     <>
+      <Show when={props.proposed}>
+        {(words) => (
+          <p class={classes.proposed}>
+            <Icon name="sparkles" size={13} class={classes.askIcon} />
+            Proposed by the assistant from “{words}”: check it, then Enter to run
+          </p>
+        )}
+      </Show>
       <div class={classes.head}>
         <span class={classes.command}>
           {command.icon ? <Icon name={command.icon} size={15} /> : null}

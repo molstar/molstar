@@ -70,6 +70,23 @@ function scriptFor(prompt: string): Script {
       answer: 'Loaded 1W0E and superposed it on 1TQN by chain A (RMSD 0.38 Å over 412 Cα atoms).',
     };
   }
+  const color = /\b(red|blue|green|yellow|orange|purple|white|black|gr[ae]y)\b/.exec(p)?.[1];
+  if (/\b(colou?r|paint)\b/.test(p) && color) {
+    return {
+      thinking: `Coloring every representation of every structure ${color}, uniformly.`,
+      steps: [
+        { command: 'scene.get', title: 'Read the scene', ms: 300, read: true, detail: '1TQN: 4 representations' },
+        {
+          command: 'structure.set-color',
+          title: `Color all representations ${color} (uniform)`,
+          ms: 1200,
+          progress: true,
+          detail: '4 representations in 1TQN',
+        },
+      ],
+      answer: `Colored all 4 representations of 1TQN ${color}. Undo turn brings the colors back.`,
+    };
+  }
   if (/fail|broken|error/.test(p)) {
     return {
       thinking: 'Trying to color by the custom property.',
@@ -474,7 +491,8 @@ export function mockAssistant(agent: MockAgentModel, openSetup: () => void): Com
     propose(text) {
       const t = text.toLowerCase();
       const color = colors.exec(t);
-      if (/\b(colou?r|paint|make)\b/.test(t) && color && !/\band\b/.test(t))
+      // The selection, in a color: one command. Everything, all, or more than one thing: a turn for the agent.
+      if (/\b(colou?r|paint|make)\b/.test(t) && color && !/\b(and|everything|all|each|every)\b/.test(t))
         return { command: 'selection.color', tail: color[1] };
       const id = /\b(?:fetch|download|load|open)\s+(?:pdb\s+)?([0-9][a-z0-9]{3})\b/.exec(t);
       if (id && !/\b(and|superpose|align)\b/.test(t)) return { command: 'data.download-structure', tail: id[1] };

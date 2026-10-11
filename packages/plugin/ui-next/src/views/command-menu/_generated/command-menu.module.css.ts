@@ -33,6 +33,7 @@ export const classes = {
   'menu-in': 'msp-command-menu-menu-in',
   'message': 'msp-command-menu-message',
   'more': 'msp-command-menu-more',
+  'proposed': 'msp-command-menu-proposed',
   'row': 'msp-command-menu-row',
   'rowChevron': 'msp-command-menu-rowChevron',
   'rowIcon': 'msp-command-menu-rowIcon',
@@ -414,6 +415,18 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   font-family: inherit;
   font-size: var(--msp-font-size-xs);
   flex: none;
+}
+
+.msp-command-menu-proposed {
+  align-items: center;
+  gap: var(--msp-space-2);
+  margin: var(--msp-space-2) var(--msp-space-2) 0;
+  padding: var(--msp-space-1) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 90%);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+  display: flex;
 }
 }
 `);
