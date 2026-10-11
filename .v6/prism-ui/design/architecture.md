@@ -49,8 +49,8 @@ conventions as the rest of v6: ESM, `molstar-src` source condition, `tsc -b` lib
 - **Dependencies.** `@molstar/core`, `rxjs`, `tslib`; `react >= 18` is an optional peer used only by `react/`. The
   `tsconfig.json` references core only: the mocks need nothing from `@molstar/plugin`, `model` or `graphics` yet, and
   the references grow when sources are wired to a plugin. Storybook, Vite, lit, lightningcss and lucide-static are
-  devDependencies pinned in the workspace catalog as prism-ui only; React and React DOM are devDependencies too (the
-  `react/` tests), from the shared catalog.
+  devDependencies pinned in the workspace catalog as prism-ui only; React, React DOM and Preact are devDependencies too
+  (the `react/` tests and stories).
 
 ```
 packages/prism/ui/

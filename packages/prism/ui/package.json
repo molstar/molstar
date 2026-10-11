@@ -68,6 +68,7 @@
     "storybook": "catalog:",
     "vite": "catalog:",
     "lightningcss": "catalog:",
-    "lucide-static": "catalog:"
+    "lucide-static": "catalog:",
+    "preact": "catalog:"
   }
 }

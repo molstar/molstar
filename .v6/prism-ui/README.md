@@ -21,8 +21,9 @@ Next: the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin ye
   in-memory data (`testing/*`); sources come with the build. ([design/view-models.md](design/view-models.md))
 - **Rendering**: a small fine-grained JSX runtime (`dom/`; no VDOM, states bind straight to DOM) with light-DOM custom
   elements at island granularity; a framework-neutral view contract so contributions can use React or Preact;
-  `prism-ui/react` hooks are built for both (`useSyncExternalStore`). Every mock is built on the runtime, and the check
-  at scale kept it ([spike.md](spike.md)). ([design/rendering.md](design/rendering.md))
+  `prism-ui/react` hooks serve both (`useSyncExternalStore`), tested on React 18 and on Preact (`preact/compat`), and
+  shown together in Storybook. Every mock is built on the runtime, and the check at scale kept it
+  ([spike.md](spike.md)). ([design/rendering.md](design/rendering.md))
 - **Commands everywhere**: built-in, contributed, generated from registries (presets, themes, queries, state actions),
   and contextual (applicable actions for the current cell); a command menu with groups, aliases, prefixes and inline
   arguments; four ways a command runs (right away, an inline sentence, a generated form in a dialog, or custom UI: the

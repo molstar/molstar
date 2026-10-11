@@ -81,6 +81,8 @@ catalog:
   'lightningcss': '1.33.0'
   # Icon extraction source (prism-ui only); ISC licensed.
   'lucide-static': '1.48.0'
+  # Preact (prism-ui's React/Preact adapter tests and stories only); MIT licensed.
+  'preact': '10.29.8'
 
 overrides:
   '@istanbuljs/load-nyc-config>js-yaml': '^4.3.2'

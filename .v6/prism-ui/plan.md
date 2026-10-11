@@ -24,7 +24,8 @@ mocks run on (phase 6).
     dark, blue, auto) sets `data-msp-theme` on the document root.
   - `storybook` / `build-storybook` scripts; not part of CI builds. Also `styles` / `styles:check` / `styles:watch` (CSS
     modules) and `icons` / `icons:check` (the icon set).
-- Not done: React stories for `prism-ui/react` (a second config or composition); the adapter is covered by jest tests.
+- React and Preact: Internals › React and Preact (tabs written in each, prism-ui inside a React app) and jest tests on
+  both; Preact is a devDependency like React.
 
 ## Phase 1: primitives
 

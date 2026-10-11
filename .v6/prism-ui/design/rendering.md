@@ -275,8 +275,18 @@ app aliases `react` to `preact/compat` as usual. A source's identity is its life
 sources are memoized. Peer dependency on `react >= 18` is optional; nothing else in prism-ui imports React. The `react/`
 modules are plain `.ts` using `createElement`; React test files name `@jsxImportSource react` (§4.1).
 
-Not yet: `useViewModel()` and its context (a React view gets its `ctx` as a prop, §6). Preact is not tested; the tests
-run React with `react-dom`.
+Both are tested, and shown together in Storybook (Internals › React and Preact):
+
+- Jest: `react/_test/` runs the adapter on React 18 (`react-dom`), and `react/_test/preact.test.tsx` runs the same
+  adapter on Preact with `react` aliased to `preact/compat`, as a Preact app's bundler does (the test sets the `require`
+  export condition: under jsdom Jest would pick Preact's ES module build).
+- Storybook: React and Preact tabs in the mock shell, both mounted with `reactView` and reading and writing one prism-ui
+  state with `useObservable`; and prism-ui hosted in a React app with `MspElementHost`. One page runs both frameworks:
+  the Storybook config rewrites `react` to `preact/compat` only in `src/react/_stories/preact/` and in a copy
+  (`?preact`) of the adapter modules it imports.
+
+Preact (10.29) is a devDependency of prism-ui, like React. Not yet: `usePrism()` and its context (a React view gets its
+`ctx` as a prop, §6).
 
 The React adapter replaces today's `useBehavior` for new code; the existing `@molstar/plugin-ui` keeps its own.
 
