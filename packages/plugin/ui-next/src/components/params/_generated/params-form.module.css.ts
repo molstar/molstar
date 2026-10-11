@@ -9,6 +9,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'channels': 'msp-params-params-form-channels',
   'chevron': 'msp-params-params-form-chevron',
   'collapsible': 'msp-params-params-form-collapsible',
   'collapsibleHeader': 'msp-params-params-form-collapsibleHeader',
@@ -21,7 +22,6 @@ export const classes = {
   'fileNames': 'msp-params-params-form-fileNames',
   'filePick': 'msp-params-params-form-filePick',
   'form': 'msp-params-params-form-form',
-  'hex': 'msp-params-params-form-hex',
   'input': 'msp-params-params-form-input',
   'item': 'msp-params-params-form-item',
   'itemAdd': 'msp-params-params-form-itemAdd',
@@ -241,6 +241,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   align-items: center;
   gap: var(--msp-space-3);
   width: 100%;
+  min-width: 0;
   height: 24px;
   padding: 0 var(--msp-space-3);
   border-radius: var(--msp-radius-md);
@@ -260,10 +261,14 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   flex: none;
 }
 
-.msp-params-params-form-hex {
+.msp-params-params-form-channels {
+  min-width: 0;
   color: var(--msp-color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--msp-font-size-sm);
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
 }
 
 .msp-params-params-form-unsupported {

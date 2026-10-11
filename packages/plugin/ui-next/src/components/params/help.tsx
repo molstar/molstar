@@ -61,12 +61,23 @@ export function withHelp(label: string, help: Observable<ParamHelp | undefined> 
       block: null as Child,
     };
   const open = observableState(false);
+  const has = help.pipe(map((h) => !!h));
   const head = (
     <>
-      <span class={classes.text} data-tip-overflow="">
+      {/* With help, the text is underlined (dotted) and opens it too, as the ? does. */}
+      <span
+        class={classes.text}
+        data-tip-overflow=""
+        data-help={has.pipe(map((h) => (h ? '' : undefined)))}
+        onClick={(e) => {
+          if (!e.currentTarget.hasAttribute('data-help')) return;
+          e.stopPropagation();
+          open.set(!open.value);
+        }}
+      >
         {label}
       </span>
-      <Show when={help.pipe(map((h) => !!h))}>
+      <Show when={has}>
         {() => (
           <button
             type="button"

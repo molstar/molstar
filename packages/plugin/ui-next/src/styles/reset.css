@@ -16,6 +16,12 @@
     color: var(--msp-color-text);
     -webkit-font-smoothing: antialiased;
     text-size-adjust: none;
+    /* An app, not a page: the arrow over labels and headings; the text cursor only where text is typed. */
+    cursor: default;
+  }
+
+  :where(.msp-root) :where(input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, [contenteditable]) {
+    cursor: text;
   }
 
   :where(.msp-root),

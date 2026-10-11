@@ -16,6 +16,11 @@ defineStyles('styles/reset.css', `@layer msp.reset {
     color: var(--msp-color-text);
     -webkit-font-smoothing: antialiased;
     text-size-adjust: none;
+    cursor: default;
+  }
+
+  :where(.msp-root) :where(input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, [contenteditable]) {
+    cursor: text;
   }
 
   :where(.msp-root), :where(.msp-root) *, :where(.msp-root) :before, :where(.msp-root) :after {

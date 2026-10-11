@@ -58,12 +58,12 @@ describe('StructureTab', () => {
     // The mapped color param: switching to Uniform shows its own params (a color).
     choose('Color', 'Uniform');
     // A color row: the swatch button opens the palette under it.
-    const swatch = [...container.querySelectorAll('[aria-label=Inspector] button[aria-expanded]')].find((b) =>
-      b.textContent?.startsWith('#'),
+    const swatch = [...container.querySelectorAll('[aria-label=Inspector] button[aria-expanded]')].find(
+      (b) => b.textContent?.trim() === '46, 134, 193',
     ) as HTMLButtonElement;
-    expect(swatch.textContent).toBe('#2e86c1');
+    expect(swatch.textContent?.trim()).toBe('46, 134, 193');
     swatch.click();
-    expect(container.querySelectorAll('[role=listbox][aria-label=Palette] [role=option]').length).toBeGreaterThan(8);
+    expect(container.querySelectorAll('[role=listbox][aria-label=Palette] [role=option]').length).toBe(8);
   });
 
   it('toggles visibility inline without picking', () => {

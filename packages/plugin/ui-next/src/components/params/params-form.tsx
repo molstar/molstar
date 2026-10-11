@@ -15,7 +15,7 @@ import type { Child } from '../../dom/jsx-types.js';
 import { ParamsFormModel } from '../../forms/params-form.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { OptionList, SelectButton } from '../select/select.js';
-import { ColorPicker, colorToHex } from '../color/color-picker.js';
+import { ColorPicker, colorToHex, colorToRgb } from '../color/color-picker.js';
 import { Icon } from '../icon/icon.js';
 import { classes } from './_generated/params-form.module.css.js';
 import {
@@ -200,11 +200,12 @@ function ParamRow(props: {
   );
 }
 
-/** A color: the swatch and hex as a button; the picker opens under the row, full width. */
+/** A color: the swatch and its channels (decimal) as a button; the picker opens under the row, full width. */
 function ColorRow(props: { label: string; head?: Child; description?: string; binding: FieldBinding }) {
   const { binding } = props;
   const open = observableState(false);
   const hex = binding.value.pipe(map((v: number) => colorToHex(v)));
+  const channels = binding.value.pipe(map((v: number) => colorToRgb(v)));
   return (
     <>
       <div class={classes.row}>
@@ -212,7 +213,9 @@ function ColorRow(props: { label: string; head?: Child; description?: string; bi
         <div class={classes.control}>
           <button type="button" class={classes.color} aria-expanded={open} onClick={() => open.set(!open.value)}>
             <span class={classes.swatch} style={{ background: hex }} />
-            <span class={classes.hex}>{hex}</span>
+            <span class={classes.channels} data-tip-overflow="">
+              {channels}
+            </span>
           </button>
         </div>
       </div>

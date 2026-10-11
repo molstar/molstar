@@ -141,6 +141,7 @@ function SnapshotList(props: { model: SnapshotStepperModel; onClose(): void }) {
       <Show when={model.count.pipe(map((c) => c > 12))}>
         {() => (
           <TextInput
+            search
             size="sm"
             aria-label="Filter snapshots"
             placeholder="Filter"

@@ -10,16 +10,20 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'custom': 'msp-color-color-picker-custom',
-  'hex': 'msp-color-color-picker-hex',
+  'field': 'msp-color-color-picker-field',
+  'greys': 'msp-color-color-picker-greys',
+  'marker': 'msp-color-color-picker-marker',
   'palette': 'msp-color-color-picker-palette',
   'picker': 'msp-color-color-picker-picker',
   'preview': 'msp-color-color-picker-preview',
   'swatch': 'msp-color-color-picker-swatch',
+  'text': 'msp-color-color-picker-text',
 } as const;
 
 defineStyles('components/color/color-picker.module.css', `@layer msp.components {
 .msp-color-color-picker-picker {
   gap: var(--msp-space-3);
+  margin-block: var(--msp-space-1) var(--msp-space-2);
   padding: var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
@@ -27,17 +31,44 @@ defineStyles('components/color/color-picker.module.css', `@layer msp.components 
   display: grid;
 }
 
+.msp-color-color-picker-field, .msp-color-color-picker-greys {
+  border-radius: var(--msp-radius-sm);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+  cursor: crosshair;
+  touch-action: none;
+  position: relative;
+}
+
+.msp-color-color-picker-field {
+  background: linear-gradient(#ffffffe6, #fff0 50%, #0000 50%, #000000e6), linear-gradient(to right, red, #ff0, #0f0, #0ff, #00f, #f0f, red);
+  height: 96px;
+}
+
+.msp-color-color-picker-greys {
+  background: linear-gradient(to right, #000, #fff);
+  height: 12px;
+}
+
+.msp-color-color-picker-marker {
+  pointer-events: none;
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  position: absolute;
+  translate: -50% -50%;
+  box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.5px #00000080;
+}
+
 .msp-color-color-picker-palette {
   gap: var(--msp-space-2);
-  grid-template-columns: repeat(8, minmax(0, 22px));
-  justify-content: start;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   display: grid;
 }
 
 .msp-color-color-picker-swatch {
-  aspect-ratio: 1;
   border-radius: var(--msp-radius-sm);
-  min-height: 0;
+  min-width: 0;
+  height: 16px;
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
   transition: transform var(--msp-motion-fast) var(--msp-ease);
 
@@ -70,7 +101,7 @@ defineStyles('components/color/color-picker.module.css', `@layer msp.components 
   flex: none;
 }
 
-.msp-color-color-picker-hex {
+.msp-color-color-picker-text {
   min-width: 0;
   height: 24px;
   padding: 0 var(--msp-space-3);

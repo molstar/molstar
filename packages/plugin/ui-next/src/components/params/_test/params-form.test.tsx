@@ -99,4 +99,32 @@ describe('ParamsForm', () => {
     expect(paramsMatch(params, 'zoom')).toBe(true);
     expect(paramsMatch(params, 'nothing')).toBe(false);
   });
+
+  it('marks a label with help (dotted underline); its text and the ? after it open the help; a long label keeps its ?', async () => {
+    const form = new ParamsFormModel({
+      backgroundOcclusionRadiusScale: PD.Numeric(
+        0.5,
+        { min: 0, max: 2 },
+        { description: 'How far occlusion samples.' },
+      ),
+      plain: PD.Boolean(true),
+    });
+    const container = mount(form);
+    await flush();
+    const [helped, plain] = [...container.querySelectorAll<HTMLElement>('[data-tip-overflow]')];
+    expect(helped.hasAttribute('data-help')).toBe(true);
+    expect(plain.hasAttribute('data-help')).toBe(false);
+    // The ? is the text's sibling, outside the part that is cut off.
+    const toggle = helped.nextElementSibling as HTMLButtonElement;
+    expect(toggle.getAttribute('aria-label')).toBe('About Background Occlusion Radius Scale');
+    const help = () => container.textContent?.includes('How far occlusion samples.');
+    expect(help()).toBe(false);
+    helped.click();
+    await flush();
+    expect(help()).toBe(true);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    toggle.click();
+    await flush();
+    expect(help()).toBe(false);
+  });
 });

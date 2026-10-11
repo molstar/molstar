@@ -28,6 +28,13 @@ defineStyles('components/params/help.module.css', `@layer msp.components {
   white-space: nowrap;
   min-width: 0;
   overflow: hidden;
+
+  &[data-help] {
+    text-decoration: underline dotted color-mix(in oklab, currentColor, transparent 45%);
+    text-underline-offset: 3px;
+    cursor: help;
+    text-decoration-thickness: 1px;
+  }
 }
 
 .msp-params-help-toggle {

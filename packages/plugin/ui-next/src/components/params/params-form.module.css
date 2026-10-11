@@ -215,7 +215,8 @@
   gap: var(--msp-space-3);
   width: 100%;
   height: 24px;
-  /* The swatch where a dropdown's text starts, the code after it like a dropdown's label. */
+  min-width: 0;
+  /* The swatch where a dropdown's text starts, the channels after it like a dropdown's label. */
   padding: 0 var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
@@ -234,8 +235,12 @@
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
 }
 
-.hex {
+.channels {
+  min-width: 0;
+  overflow: hidden;
   color: var(--msp-color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--msp-font-size-sm);
   font-variant-numeric: tabular-nums;
 }

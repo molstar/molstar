@@ -33,6 +33,7 @@ export function SettingsTab(props: { model: SettingsModel }) {
       <div class={classes.search}>
         <Icon name="search" size={14} class={classes.searchIcon} />
         <TextInput
+          search
           size="sm"
           class={classes.searchInput}
           aria-label="Search settings"
