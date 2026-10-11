@@ -6,6 +6,7 @@
 
 import type { Observable } from 'rxjs';
 import type { IconName } from '../components/icon/icon.js';
+import type { Child } from '../dom/jsx-types.js';
 import type { ViewRenderer } from '../dom/view.js';
 import { type ObservableRecordState, type ObservableState, observableState } from '../reactive/observable-state.js';
 import { ReactiveModel } from '../reactive/reactive-model.js';
@@ -32,8 +33,8 @@ export interface ShellTab {
   id: string;
   /** Its name: the rail's tooltip, and the panel's header unless `heading` says otherwise. */
   title: string;
-  /** The panel's header when it differs from the title (Home's is "Mol*"). */
-  heading?: string;
+  /** The panel's header when it differs from the title: text, or a view (Home's is the Mol* wordmark). */
+  heading?: string | (() => Child);
   icon: IconName;
   /** Where it goes by default ('right'). */
   dock?: DockId;

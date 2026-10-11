@@ -36,6 +36,7 @@ import { CommandMenu } from '../command-menu/command-menu.js';
 import { type SequenceSelector, SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
 import { LogView } from './log-view.js';
+import { MolstarWordmark } from '../../components/icon/wordmark.js';
 import { HomeTab } from '../home/home-tab.js';
 import { ImageExport } from '../export/image-export.js';
 import { RemoteStatesPanel } from '../state/remote-states-panel.js';
@@ -377,8 +378,8 @@ function mockShell(options: {
       id: 'home',
       compactBar: true,
       title: 'Home',
-      // The plugin's name over Home (the rail's tooltip stays "Home").
-      heading: 'Mol*',
+      // The Mol* wordmark over Home (the rail's tooltip stays "Home").
+      heading: () => <MolstarWordmark />,
       icon: 'molstar',
       order: 0,
       place: 'head',
