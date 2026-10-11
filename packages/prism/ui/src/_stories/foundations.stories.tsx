@@ -321,6 +321,7 @@ const WordmarkDrafts: [WordmarkDraft, string][] = [
   ['play-levels', 'A tetrahedron from above: evenly spaced, thinning to the centre'],
   ['play-tetra', 'And its three edges up to the apex'],
   ['play-core', 'Thickest at the centre, thinning out'],
+  ['play-star', "As tall as the star, the outline at the logo's line, thicker inward"],
 ];
 const IconDrafts: [IconDraft, string][] = [
   ['delta', 'Delta'],

@@ -52,7 +52,8 @@ export type WordmarkDraft =
   | 'play-nested'
   | 'play-levels'
   | 'play-tetra'
-  | 'play-core';
+  | 'play-core'
+  | 'play-star';
 
 /**
  * The triangle turned to point away from the star, the same height: a prism, and a play button (animations, stories).
@@ -79,6 +80,7 @@ function play(x0: number) {
 export function PrismWordmarkDraft(props: { variant: WordmarkDraft; scale?: number }) {
   const scale = props.scale ?? 1;
   const x0 = 57.5;
+  if (props.variant === 'play-star') return starTetraWordmark(scale);
   if (props.variant === 'play' || props.variant === 'play-spectrum') return playWordmark(props.variant, scale, x0);
   if (
     props.variant === 'play-nested' ||
@@ -201,6 +203,52 @@ function tetraWordmark(variant: 'play-nested' | 'play-levels' | 'play-tetra' | '
           style={{ 'stroke-width': String(base * 0.4) }}
         />
       ) : null}
+    </svg>
+  );
+}
+
+/**
+ * The tetrahedron as tall as the star (3.5 to 16.5, centred on it) and just after it: the outline at the letters' line,
+ * the triangle inside it thicker, nearly solid: a core.
+ */
+function starTetraWordmark(scale: number) {
+  const line = 1.5 / Math.sqrt(scale);
+  const top = 3.5;
+  const base = 16.5;
+  const mid = (top + base) / 2;
+  const w = ((base - top) * Math.sqrt(3)) / 2;
+  const x0 = 57.5;
+  const f = (n: number) => n.toFixed(2);
+  const inset = (d: number) => {
+    const left = x0 + d;
+    const apex = x0 + w - 2 * d;
+    const half = (apex - left) / Math.sqrt(3);
+    return `M${f(left)} ${f(mid - half)} ${f(apex)} ${mid} ${f(left)} ${f(mid + half)}Z`;
+  };
+  // [inset, line width as a multiple of the letters' line]
+  // At this height (inradius 3.75) only two fit with room between them: thicker lines need wider gaps.
+  const levels: [number, number][] = [
+    [0, 1],
+    [2.5, 1.6],
+  ];
+  const width = x0 + w + 1;
+  return (
+    <svg
+      viewBox={`-1 -1 ${width + 1} 22`}
+      width={(width + 1) * scale}
+      height={22 * scale}
+      fill="none"
+      stroke="currentColor"
+      stroke-linejoin="miter"
+      style={{ 'stroke-width': String(line), overflow: 'visible' }}
+    >
+      <path d={M} />
+      <rect x="19.5" y="6.5" width="11" height="13" rx="5" />
+      <rect x="22.5" y="9.5" width="5" height="7" rx="2.5" />
+      <path d={LStar} />
+      {levels.map(([d, k]) => (
+        <path d={inset(d)} style={{ 'stroke-width': String(line * k) }} />
+      ))}
     </svg>
   );
 }
