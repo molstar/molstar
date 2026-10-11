@@ -6,6 +6,7 @@
 
 .add {
   display: grid;
+  font-size: var(--msp-font-size-sm);
   gap: var(--msp-space-2);
 }
 
@@ -177,7 +178,7 @@
 .kindTitle {
   flex: none;
   color: var(--msp-color-text);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .kindHint {

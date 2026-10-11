@@ -6,6 +6,7 @@
 
 .superpose {
   display: grid;
+  font-size: var(--msp-font-size-sm);
   gap: var(--msp-space-2);
 }
 

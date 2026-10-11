@@ -6,6 +6,8 @@
 
 .list {
   display: grid;
+  /* Headers and content at the panels' text size, like Home's actions and the Settings groups. */
+  font-size: var(--msp-font-size-sm);
   gap: var(--msp-space-1);
   padding: 0 var(--msp-space-2) var(--msp-space-2);
 }

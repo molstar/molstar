@@ -20,6 +20,7 @@ export const classes = {
 
 defineStyles('views/structure/superpose.module.css', `@layer msp.components {
 .msp-structure-superpose-superpose {
+  font-size: var(--msp-font-size-sm);
   gap: var(--msp-space-2);
   display: grid;
 }

@@ -38,6 +38,7 @@ export const classes = {
 
 defineStyles('views/structure/measurements-add.module.css', `@layer msp.components {
 .msp-structure-measurements-add-add {
+  font-size: var(--msp-font-size-sm);
   gap: var(--msp-space-2);
   display: grid;
 }
@@ -201,7 +202,7 @@ defineStyles('views/structure/measurements-add.module.css', `@layer msp.componen
 .msp-structure-measurements-add-kindTitle {
   color: var(--msp-color-text);
   flex: none;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .msp-structure-measurements-add-kindHint {
