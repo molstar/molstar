@@ -119,3 +119,22 @@
     visibility: visible;
   }
 }
+
+/* Floating options (Select's `over`): a popover in the top layer, placed by the script; its list opaque, above. */
+.floating {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: none;
+  color: inherit;
+
+  & > .list {
+    background: var(--msp-color-raised);
+    box-shadow:
+      inset 0 0 0 1px var(--msp-glass-edge),
+      var(--msp-shadow-overlay);
+  }
+}

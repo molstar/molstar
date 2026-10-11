@@ -12,6 +12,7 @@ export const classes = {
   'button': 'msp-select-button',
   'check': 'msp-select-check',
   'chevron': 'msp-select-chevron',
+  'floating': 'msp-select-floating',
   'label': 'msp-select-label',
   'list': 'msp-select-list',
   'list-in': 'msp-select-list-in',
@@ -127,6 +128,23 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
 
   [aria-selected="true"] > & {
     visibility: visible;
+  }
+}
+
+.msp-select-floating {
+  color: inherit;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  position: fixed;
+  inset: auto;
+  overflow: visible;
+
+  & > .msp-select-list {
+    background: var(--msp-color-raised);
+    box-shadow: inset 0 0 0 1px var(--msp-glass-edge),
+      var(--msp-shadow-overlay);
   }
 }
 }

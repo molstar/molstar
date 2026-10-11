@@ -8,6 +8,7 @@
 
 import { distinctUntilChanged, map, type Observable } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
+import type { Child } from '../../dom/jsx-types.js';
 import { bind, type MaybeReactive, onCleanup, toStream } from '../../dom/scope.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
 import { Icon } from '../icon/icon.js';
@@ -24,6 +25,11 @@ export interface SelectProps {
   class?: string;
   title?: string;
   'aria-label'?: string;
+  /**
+   * The options float over what is below instead of pushing it down (a short settings row, where moving the layout
+   * would be jarring); in forms they open inline, under the row, as Mol*'s do.
+   */
+  over?: boolean;
 }
 
 /**
@@ -34,8 +40,14 @@ export interface SelectProps {
 export function Select(props: SelectProps) {
   const open = observableState(false);
   const value = toValue(props.value);
+  let anchor!: HTMLElement;
   return (
-    <span class={`${classes.select} ${props.class ?? ''}`}>
+    <span
+      class={`${classes.select} ${props.class ?? ''}`}
+      ref={(el) => {
+        anchor = el;
+      }}
+    >
       <SelectButton
         label={value.pipe(map((v) => props.options.find((o) => o[0] === v)?.[1] ?? ''))}
         open={open}
@@ -44,17 +56,20 @@ export function Select(props: SelectProps) {
         aria-label={props['aria-label']}
       />
       <Show when={open}>
-        {() => (
-          <OptionList
-            options={props.options}
-            value={value}
-            onPick={(v) => {
-              open.set(false);
-              props.onChange?.(v);
-            }}
-            onClose={() => open.set(false)}
-          />
-        )}
+        {() => {
+          const list = (
+            <OptionList
+              options={props.options}
+              value={value}
+              onPick={(v) => {
+                open.set(false);
+                props.onChange?.(v);
+              }}
+              onClose={() => open.set(false)}
+            />
+          );
+          return props.over ? <Floating anchor={anchor}>{list}</Floating> : list;
+        }}
       </Show>
     </span>
   );
@@ -163,4 +178,41 @@ function toValue(value: MaybeReactive<string> | undefined): Observable<string | 
   if (stream) return stream as Observable<string | undefined>;
   const state = observableState<string | undefined>(value as string | undefined);
   return state.asReadonly;
+}
+
+/**
+ * What floats over the layout, under its anchor and as wide (above it when there is no room below): in the top layer
+ * (a manual popover), so no panel's clipping or fade cuts it; it follows the anchor as things scroll or resize.
+ */
+function Floating(props: { anchor: HTMLElement; children: Child }) {
+  const el = (
+    <div class={classes.floating} attr:popover="manual">
+      {props.children}
+    </div>
+  ) as HTMLElement;
+  const place = () => {
+    const r = props.anchor.getBoundingClientRect();
+    const h = el.offsetHeight;
+    const below = window.innerHeight - r.bottom;
+    const top = below >= h + 8 || below >= r.top ? r.bottom + 2 : r.top - h - 2;
+    el.style.left = `${r.left}px`;
+    el.style.top = `${Math.max(4, top)}px`;
+    el.style.width = `${r.width}px`;
+  };
+  queueMicrotask(() => {
+    if (!el.isConnected) return;
+    el.showPopover?.();
+    place();
+    // The list focused its current option while still hidden (that does nothing): now that it shows, again.
+    (
+      el.querySelector<HTMLElement>('[aria-selected="true"]') ?? el.querySelector<HTMLElement>('[role=option]')
+    )?.focus();
+  });
+  window.addEventListener('scroll', place, true);
+  window.addEventListener('resize', place);
+  onCleanup(() => {
+    window.removeEventListener('scroll', place, true);
+    window.removeEventListener('resize', place);
+  });
+  return el;
 }

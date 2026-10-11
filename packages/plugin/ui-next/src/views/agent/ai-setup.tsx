@@ -68,6 +68,7 @@ export function AISetup(props: { settings: AISettingsModel }) {
             <Show when={options}>
               {(opts) => (
                 <Select
+                  over
                   size="sm"
                   class={classes.grow}
                   aria-label="Model"
@@ -236,6 +237,7 @@ function OwnEndpoint(props: { settings: AISettingsModel; onDone(): void }) {
       <div class={classes.row}>
         <span class={classes.label}>API</span>
         <Select
+          over
           size="sm"
           class={classes.grow}
           aria-label="API"

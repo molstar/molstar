@@ -96,3 +96,33 @@ export const LongList: StoryObj = {
       );
     }),
 };
+
+/**
+ * Floating (`over`): the options open over what is below instead of pushing it down, for a short settings row; flips
+ * above when there is no room below.
+ */
+export const Over: StoryObj = {
+  render: () =>
+    story(() => {
+      const value = observableState('chain-id');
+      const row =
+        'display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: var(--msp-space-3);';
+      return (
+        <div style={panel}>
+          <div style={row}>
+            <span style={readout}>Color</span>
+            <Select
+              over
+              size="sm"
+              aria-label="Color theme"
+              options={colorThemes}
+              value={value.asReadonly}
+              onChange={(v) => value.set(v)}
+            />
+          </div>
+          <p style={`${readout} margin: 0`}>This line stays where it is while the options are open.</p>
+          <span style={readout}>value: {value.asReadonly}</span>
+        </div>
+      );
+    }),
+};
