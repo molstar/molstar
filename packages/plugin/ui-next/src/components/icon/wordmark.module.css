@@ -92,15 +92,9 @@
 }
 
 /* Live (the empty canvas): it takes the pointer (the canvas around it does not); a vertical strip at the cursor, the
-   colors running across it; in on enter, back out on leave. */
+   colors running across it (only the color changes, the line stays); in on enter, back out on leave. */
 .wordmark[data-live] {
   pointer-events: auto;
-}
-
-.wordmark svg.live {
-  /* A heavier line with a faint glow: the part under the cursor lights up. */
-  stroke-width: calc(2.4 / sqrt(var(--msp-wordmark-scale, 1)));
-  filter: drop-shadow(0 0 3px color-mix(in oklab, var(--msp-color-brand-2), transparent 40%));
 }
 
 .live {

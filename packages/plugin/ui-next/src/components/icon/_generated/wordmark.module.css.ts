@@ -104,11 +104,6 @@ defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
   pointer-events: auto;
 }
 
-.msp-icon-wordmark-wordmark svg.msp-icon-wordmark-live {
-  stroke-width: calc(2.4 / sqrt(var(--msp-wordmark-scale, 1)));
-  filter: drop-shadow(0 0 3px color-mix(in oklab, var(--msp-color-brand-2), transparent 40%));
-}
-
 .msp-icon-wordmark-live {
   opacity: 0;
   mask-image: linear-gradient(90deg,
