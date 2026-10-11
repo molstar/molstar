@@ -43,7 +43,8 @@
 .detail {
   min-height: 0;
   height: 100%;
-  background: var(--msp-color-panel);
+  /* The page is the panel color too: a rule keeps the list and the detail apart. */
+  border-left: 1px solid var(--msp-color-border);
 }
 
 .detailContent {
@@ -319,6 +320,11 @@
   .split {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) minmax(0, 46%);
+  }
+
+  .detail {
+    border-left: none;
+    border-top: 1px solid var(--msp-color-border);
   }
 
   .row {

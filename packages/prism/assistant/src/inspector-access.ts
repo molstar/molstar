@@ -18,7 +18,7 @@ export const InspectorPageId = 'inspector';
 export type InspectorFocus = 'trace' | 'tools' | 'limits';
 
 /**
- * The commands that open the Inspector at a view (Agent trace on ⌥T, Agent tools, Agent limits), for an app's command
+ * The commands that open the Inspector at a view (Assistant trace on ⌥T, Assistant tools, Assistant limits), for an app's command
  * registry; `open` opens the page (`shell.openPage(InspectorPageId, focus)`).
  */
 export function inspectorCommands(open: (focus: InspectorFocus) => void): CommandDefinition<any>[] {
@@ -39,11 +39,13 @@ export function inspectorCommands(open: (focus: InspectorFocus) => void): Comman
     },
   });
   return [
-    command('trace', 'Agent trace', ['trace', 'inspector', 'agent', 'steps', 'what the agent did'], {
+    command('trace', 'Assistant trace', ['trace', 'inspector', 'agent', 'steps', 'what the agent did'], {
       icon: 'list-tree',
       shortcut: { key: 't', alt: true },
     }),
-    command('tools', 'Agent tools', ['tools', 'skills', 'inspector'], { icon: 'wrench' }),
-    command('limits', 'Agent limits', ['limits', 'budget', 'context window', 'thinking'], { icon: 'gauge' }),
+    command('tools', 'Assistant tools', ['tools', 'skills', 'inspector', 'agent'], { icon: 'wrench' }),
+    command('limits', 'Assistant limits', ['limits', 'budget', 'context window', 'thinking', 'agent'], {
+      icon: 'gauge',
+    }),
   ];
 }

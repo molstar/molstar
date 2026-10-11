@@ -242,8 +242,7 @@ export function ShellView(props: ShellViewProps) {
   // Escape closes the open right panel, after anything nearer has had it: handlers on the document (an overlay card, an
   // open list) run first and mark it handled. Not while typing in a field, where Escape belongs to the field.
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || e.defaultPrevented || shell.overlay.value || shell.page.value || isEditable(e.target))
-      return;
+    if (e.key !== 'Escape' || e.defaultPrevented || shell.overlay.value || isEditable(e.target)) return;
     // A pinned panel is part of the workspace, not something passing over the canvas: Escape leaves it.
     if (right.state.value.pinned) return;
     if (!right.state.value.collapsed && right.active.value !== undefined) {

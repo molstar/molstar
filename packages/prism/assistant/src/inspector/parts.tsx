@@ -169,7 +169,7 @@ export function listKeys(root: () => Element | undefined, move: (delta: number) 
     )
       return;
     // Only from within the page this list is in (or with nothing focused).
-    const page = el.closest('[role=dialog]') ?? el;
+    const page = el.closest('[data-msp-page]') ?? el;
     if (target && target !== document.body && !page.contains(target)) return;
     e.preventDefault();
     move(delta);

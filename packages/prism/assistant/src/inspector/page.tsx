@@ -9,7 +9,7 @@
  */
 
 import type { TraceData } from '@molstar/ai-trace';
-import { domView, type ShellPage, Show } from '@molstar/prism-ui';
+import { domView, onCleanup, type ShellPage, Show } from '@molstar/prism-ui';
 import { distinctUntilChanged, map } from 'rxjs';
 import { InspectorPageId } from '../inspector-access.js';
 import { classes as layout } from './_generated/inspector.module.css.js';
@@ -27,11 +27,16 @@ import { TraceView } from './trace.js';
 export function inspectorPage(model: InspectorModel): ShellPage {
   return {
     id: InspectorPageId,
-    title: 'Agent',
+    title: 'Inspect assistant',
     icon: 'sparkles',
     header: domView(() => <InspectorHeader model={model} />),
     render: domView(({ ctx }) => {
       if (ctx.focus) model.focus(ctx.focus);
+      // Opened again at another focus while open (the Assistant tab's rows, a command): it stays, and moves there.
+      const opened = ctx.shell.page.subscribe((open) => {
+        if (open?.page.id === InspectorPageId && open.focus) model.focus(open.focus);
+      });
+      onCleanup(() => opened.unsubscribe());
       return <InspectorBody model={model} />;
     }),
   };

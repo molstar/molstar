@@ -77,7 +77,7 @@ defineStyles('assistant/inspector/inspector.module.css', `@layer msp.components 
 }
 
 .msp-assistant-inspector-detail {
-  background: var(--msp-color-panel);
+  border-left: 1px solid var(--msp-color-border);
   height: 100%;
   min-height: 0;
 }
@@ -343,6 +343,11 @@ defineStyles('assistant/inspector/inspector.module.css', `@layer msp.components 
   .msp-assistant-inspector-split {
     grid-template-rows: minmax(0, 1fr) minmax(0, 46%);
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .msp-assistant-inspector-detail {
+    border-left: none;
+    border-top: 1px solid var(--msp-color-border);
   }
 
   .msp-assistant-inspector-row {

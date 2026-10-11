@@ -57,7 +57,7 @@ function Inspector(props: { focus: string; running?: boolean }) {
 }
 
 /**
- * The agent trace (⌥T, Agent trace in the command menu): the overview strip (a column per turn; model calls above,
+ * The agent trace (⌥T, Assistant trace in the command menu): the overview strip (a column per turn; model calls above,
  * tool calls below; the retry hatched, the failed call in the danger color), the rows (j/k or the arrows move), and the
  * selected row in detail. Turn 2 has a rate-limited retry, a skill loading (a new prefix), a failed tool call the model
  * fixes, and a tool that runs a helper model (indented under it).
@@ -82,7 +82,7 @@ export const TraceWhatItSaw: StoryObj = {
 };
 
 /**
- * The agent's tools (Agent tools): the core, each skill (loaded or not; one unavailable here, and why), the tools
+ * The agent's tools (Assistant tools): the core, each skill (loaded or not; one unavailable here, and why), the tools
  * loaded by name; reads, asks and disabled as quiet words; a group's guidance as the model reads it.
  */
 export const Tools: StoryObj = { render: () => Inspector({ focus: 'tools' }) };
@@ -91,7 +91,7 @@ export const Tools: StoryObj = { render: () => Inspector({ focus: 'tools' }) };
 export const ToolsAtTool: StoryObj = { render: () => Inspector({ focus: 'tool:bounds.get' }) };
 
 /**
- * What bounds the agent (Agent limits): the turn budget per kind with what the latest turn used, the model's context
+ * What bounds the agent (Assistant limits): the turn budget per kind with what the latest turn used, the model's context
  * window, compaction trigger and thinking level, and credits as information. Type a value and Enter (Esc puts it
  * back); Reset goes back to the default.
  */

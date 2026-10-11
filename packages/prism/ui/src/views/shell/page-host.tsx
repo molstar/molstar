@@ -8,23 +8,30 @@
 
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
+import { distinctUntilChanged, map } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
 import { onCleanup } from '../../dom/scope.js';
-import type { OpenPage, ShellModel } from '../../shell/shell.js';
+import type { ShellModel, ShellPage } from '../../shell/shell.js';
 import { classes } from './_generated/page.module.css.js';
 import { ViewHost } from './view-host.js';
 
 /** The page open over the app (ShellPage), if any. */
 export function PageHost(props: { shell: ShellModel }) {
   const { shell } = props;
-  return <Show when={shell.page}>{(open) => <Page shell={shell} open={open} />}</Show>;
+  // Built again only for another page: opened again at another focus, the page stays and follows `shell.page` itself.
+  const page = shell.page.pipe(
+    map((open) => open?.page),
+    distinctUntilChanged(),
+  );
+  return <Show when={page}>{(p) => <Page shell={shell} page={p} />}</Show>;
 }
 
-function Page(props: { shell: ShellModel; open: OpenPage }) {
-  const { shell, open } = props;
+function Page(props: { shell: ShellModel; page: ShellPage }) {
+  const { shell } = props;
+  const open = { page: props.page, focus: shell.page.value?.focus };
   const ctx = { shell, ...(open.focus ? { focus: open.focus } : {}) };
   const page = (
-    <section class={classes.page} role="dialog" aria-modal="true" aria-label={open.page.title} tabIndex={-1}>
+    <section class={classes.page} role="region" aria-label={open.page.title} tabIndex={-1} data-msp-page="">
       <header class={classes.header}>
         <span class={classes.title}>
           {open.page.icon ? <Icon name={open.page.icon} /> : null}
@@ -46,10 +53,13 @@ function Page(props: { shell: ShellModel; open: OpenPage }) {
       </div>
     </section>
   ) as HTMLElement;
-  // Esc closes it, after anything nearer has had it (an open list, a field's own Escape).
+  // Esc closes it when it has the focus (or nothing has), after anything nearer has had it (an open list, a field's
+  // own Escape). With the focus in the panel beside it, Esc is the panel's.
   const before = document.activeElement as HTMLElement | null;
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== 'Escape' || e.defaultPrevented) return;
+    const active = document.activeElement;
+    if (active && active !== document.body && !page.contains(active)) return;
     shell.closePage();
     e.preventDefault();
   };

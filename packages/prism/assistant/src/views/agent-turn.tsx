@@ -141,7 +141,9 @@ export function AgentTurnCard(props: { agent: AgentModel; onTrace?: (turnId: str
     const target = e.target as HTMLElement | null;
     if (
       target?.isContentEditable ||
-      target?.closest?.('input, textarea, select, [role=listbox], [role=menu], [role=dialog], [popover]')
+      target?.closest?.(
+        'input, textarea, select, [role=listbox], [role=menu], [role=dialog], [data-msp-page], [popover]',
+      )
     )
       return;
     e.preventDefault();

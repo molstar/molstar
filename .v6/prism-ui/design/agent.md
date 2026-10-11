@@ -159,9 +159,9 @@ or `working`, and adds `denied`.
   - _Limits_: the turn budget per kind (used against the value, up to its ceiling; editable, with the default and
     Reset), the model's context window, compaction trigger and thinking, credits as information (never a limit).
 
-  The header has the tabs, working or idle, and the budget kind nearest its ceiling. Ways in: the commands _Agent trace_
-  (⌥T), _Agent tools_, _Agent limits_; the Assistant tab's _Inspect_ block (Trace, Tools, Limits with their counts); the
-  turn card's _Trace_ link (at that turn).
+  The header has the tabs, working or idle, and the budget kind nearest its ceiling. Ways in: the commands _Assistant
+  trace_ (⌥T), _Assistant tools_, _Assistant limits_; the Assistant tab's _Inspect_ block (Trace, Tools, Limits with
+  their counts); the turn card's _Trace_ link (at that turn).
 
 - While an agent runs, the person's own commands still run (they are attributed to the person); a command of theirs
   after the turn releases its checkpoint, and History says so.

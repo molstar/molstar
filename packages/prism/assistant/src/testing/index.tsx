@@ -26,7 +26,7 @@ export { mockInspector, mockLimits, mockTrace, MockTools } from './mock-inspecto
  * the Assistant tab at the rail's foot, the command menu's Ask row, the turn card in the canvas's agent slot, and the
  * person's commands recorded in History. A mock agent with scripted turns stands in for any-harness. The Inspector
  * (`@molstar/prism-assistant/inspector`) is a page over the app, on a fixed mock session (its last turn `running`, or
- * none before the agent is set up), opened by its commands (Agent trace on ⌥T, Agent tools, Agent limits), the
+ * none before the agent is set up), opened by its commands (Assistant trace on ⌥T, Assistant tools, Assistant limits), the
  * Assistant tab's Inspect block and the turn card's Trace.
  */
 export function mockAgentAddOn(options: { configured?: boolean; running?: boolean } = {}): MockShellAddOn {
