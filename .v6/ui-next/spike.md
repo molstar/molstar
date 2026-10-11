@@ -41,8 +41,43 @@ Keep the `dom` runtime (option A). None of the costs above are the renderer's to
 slicing, records, and virtualization at this size), and the mocks proved its authoring. The Preact side of the gate was
 not built.
 
+## Renderer bench
+
+`_stories/runtime-bench.stories.tsx` (Internals › Performance › Runtime): the js-framework-benchmark operations on the
+`dom` runtime, rows written as the app writes them (a record per row, keyed `For`, the selected row by a keyed
+selector). Script is the operation alone; medians of 5 after a warm-up, slicing off; Chrome, outside Storybook's root.
+Total adds layout and two frames (~33 ms of it).
+
+| Operation                  | Script, first | Script, now | Total, now |
+| -------------------------- | ------------- | ----------- | ---------- |
+| create 1,000 rows          | 9.9 ms        | 8.1 ms      | 50 ms      |
+| replace all 1,000 rows     | 14.8 ms       | 9.9–11 ms   | 50 ms      |
+| update every 10th row      | 0.3 ms        | 0.2 ms      | 33 ms      |
+| select a row               | 0.4 ms        | 0 ms        | 33 ms      |
+| swap rows 2 and 999        | 4.8 ms        | 0.7 ms      | 33 ms      |
+| remove a row               | 0.8 ms        | 0.3 ms      | 33 ms      |
+| create 10,000 rows         | 116 ms        | 75 ms       | 400 ms     |
+| append 1,000 rows (to 10k) | 13 ms         | 10 ms       | 104 ms     |
+| clear 10,000 rows          | 47.7 ms       | 33 ms       | 49 ms      |
+
+What changed, by what it bought:
+
+- **Scopes allocate on first use** (children set, cleanup list), a disposing parent is not edited by its children, and
+  bindings keep their subscription instead of a closure (`Scope.own`): clear −29%, create −20%.
+- **`For` makes an index state only when `children` takes it**; an emptied list goes in one range (measured 2.5× faster
+  than emptying the parent with `textContent`, which was tried and reverted).
+- **Static props skip bindings** (a plain value is written once; a plain `class` is the attribute), `for…in` over props,
+  text alone is `textContent`: create 10,000 −19%.
+- **Reactive children start as one Text node** (anchors only when nodes arrive).
+- **`keyedSelector`** (`reactive/keyed-selector.ts`): the selected row of thousands notifies two rows, not all.
+- **`For` places with the fewest moves**: entries whose old places form the longest increasing run stay; a swap is two
+  moves, not a cascade (swap −85%); covered by a 200-round shuffle/insert/remove test.
+
+The floor: the same rows with no bindings create 10,000 in ~50 ms; what is left is element creation itself (a compiled
+template could clone rows instead, a build step the runtime does not have).
+
 ## Next
 
-A renderer bench (the js-framework-benchmark operations: create 1,000 / 10,000 rows, replace, update every 10th, select,
-swap, remove, append, clear) measuring script time apart from layout and paint, medians of several runs, to make the
-runtime itself as cheap as it can be and keep it there (a regression guard).
+Event delegation (one listener per event type instead of two per row) once handlers no longer rely on `currentTarget`;
+microtask batching of several updates in one task into one write; the bench as a regression guard (run it before
+changing `dom/` or `reactive/`).

@@ -137,6 +137,53 @@ describe('For', () => {
   });
 });
 
+describe('For, reordering', () => {
+  it('ends in the list order after shuffles, inserts and removals, keeping the nodes of entries that stay', () => {
+    // A fixed pseudo-random sequence.
+    let seed = 7;
+    const rand = (n: number) => {
+      seed = (seed * 16807) % 2147483647;
+      return seed % n;
+    };
+    const items = observableState<number[]>(Array.from({ length: 40 }, (_, i) => i));
+    const { container, dispose } = mount(() => (
+      <ul>
+        <For each={items}>{(i) => <li>{i}</li>}</For>
+      </ul>
+    ));
+    let next = 40;
+    for (let round = 0; round < 200; round++) {
+      const before = new Map([...container.querySelectorAll('li')].map((li) => [Number(li.textContent), li]));
+      const list = items.value.slice();
+      const op = rand(4);
+      if (op === 0) {
+        // Swap two.
+        const a = rand(list.length);
+        const b = rand(list.length);
+        [list[a], list[b]] = [list[b], list[a]];
+      } else if (op === 1) {
+        // Shuffle.
+        for (let i = list.length - 1; i > 0; i--) {
+          const j = rand(i + 1);
+          [list[i], list[j]] = [list[j], list[i]];
+        }
+      } else if (op === 2) {
+        list.splice(rand(list.length + 1), 0, next++, next++);
+      } else if (list.length > 2) {
+        list.splice(rand(list.length), 2);
+      }
+      items.set(list);
+      const after = [...container.querySelectorAll('li')];
+      expect(after.map((li) => Number(li.textContent))).toEqual(list);
+      for (const li of after) {
+        const kept = before.get(Number(li.textContent));
+        if (kept) expect(li).toBe(kept);
+      }
+    }
+    dispose();
+  });
+});
+
 describe('For, a long list', () => {
   it('renders over several slices once the slice is spent, in order, and follows the latest list', async () => {
     // jsdom renders nothing, so slicing is off there unless asked for.

@@ -95,7 +95,10 @@ export function createElement(type: string | Component<any>, props: Record<strin
     // A select's value only sticks once its options exist: apply it after the children.
     const deferred = type === 'select' && 'value' in props;
     applyProps(el, props, isSvg, type.includes('-'), deferred);
-    if (props.children !== undefined) insert(el, props.children, null);
+    const children = props.children;
+    // Text alone: the element's text, without a node of our own to insert.
+    if (typeof children === 'string' || typeof children === 'number') el.textContent = String(children);
+    else if (children !== undefined) insert(el, children, null);
     if (deferred) applyProps(el, { value: props.value }, isSvg, false);
     if (typeof props.ref === 'function') props.ref(el);
   }
@@ -146,12 +149,13 @@ function isText(value: unknown): value is string | number | bigint | boolean | n
  */
 export function insertRegion(parent: Node, source: Observable<Child>, before: Node | null): void {
   const owner = requireScope('A reactive child');
-  const start = document.createComment('');
-  const end = document.createComment('');
-  parent.insertBefore(start, before);
-  parent.insertBefore(end, before);
+  // Text first (the common case: a label, a count): one Text node is its own place. Anchors come only when the value
+  // is nodes, around wherever the text was.
+  let text: Text | undefined = document.createTextNode('');
+  parent.insertBefore(text, before);
+  let start: Comment | undefined;
+  let end: Comment | undefined;
   let scope: Scope | undefined;
-  let text: Text | undefined;
   bind(source, (value) => {
     if (isText(value)) {
       const data = value === null || value === undefined || typeof value === 'boolean' ? '' : String(value);
@@ -159,28 +163,34 @@ export function insertRegion(parent: Node, source: Observable<Child>, before: No
         if (text.data !== data) text.data = data;
         return;
       }
-      clear();
+      clearNodes();
       text = document.createTextNode(data);
-      end.parentNode!.insertBefore(text, end);
+      end!.parentNode!.insertBefore(text, end!);
       return;
     }
-    clear();
+    if (!start) {
+      start = document.createComment('');
+      end = document.createComment('');
+      const at = text!;
+      at.parentNode!.insertBefore(start, at);
+      at.parentNode!.insertBefore(end, at.nextSibling);
+    }
+    if (text) {
+      text.remove();
+      text = undefined;
+    }
+    clearNodes();
     const next = owner.child();
     scope = next;
     const fragment = document.createDocumentFragment();
     runInScope(next, () => insert(fragment, value, null));
-    end.parentNode!.insertBefore(fragment, end);
-  });
-  owner.onCleanup(() => {
-    scope = undefined;
-    text = undefined;
+    end!.parentNode!.insertBefore(fragment, end!);
   });
 
-  function clear() {
+  function clearNodes() {
     scope?.dispose();
     scope = undefined;
-    text = undefined;
-    removeBetween(start, end);
+    if (start && end) removeBetween(start, end);
   }
 }
 
@@ -198,11 +208,19 @@ export function removeBetween(start: Node, end: Node): void {
 
 // --- Props ---------------------------------------------------------------------------------------
 
+/** A value that is never a stream: written once, no binding (the common case, and the cheap one). */
+const isStatic = (value: unknown) => value === null || (typeof value !== 'object' && typeof value !== 'function');
+
 function applyProps(el: Element, props: Record<string, any>, isSvg: boolean, isCustom: boolean, skipValue = false) {
   let classes: ClassBinding | undefined;
-  for (const key of Object.keys(props)) {
+  for (const key in props) {
     const value = props[key];
     if (key === 'children' || key === 'ref' || value === undefined || (skipValue && key === 'value')) continue;
+    // A plain class with no flags: the attribute, without a binding.
+    if (key === 'class' && typeof value === 'string' && props.classList === undefined) {
+      if (value) el.setAttribute('class', value);
+      continue;
+    }
     if (key.startsWith('on:')) {
       el.addEventListener(key.slice(3), value);
     } else if (key.length > 2 && key.startsWith('on') && key.charCodeAt(2) < 91 && typeof value === 'function') {
@@ -226,17 +244,25 @@ function applyProps(el: Element, props: Record<string, any>, isSvg: boolean, isC
         (el as any)[name] = v;
       });
     } else if (isSvg || key.includes('-')) {
-      bind(value, (v) => setAttribute(el, key, v));
+      if (isStatic(value)) setAttribute(el, key, value);
+      else bind(value, (v) => setAttribute(el, key, v));
     } else if (isCustom) {
       // Custom elements take models, lists and callbacks as properties.
       bind(value, (v) => {
         (el as any)[key] = v;
       });
     } else if (key in el && !AttributeOnly.has(key)) {
+      if (isStatic(value)) {
+        (el as any)[key] = value === null ? '' : value;
+        if (value === null || value === false) el.removeAttribute(key);
+        continue;
+      }
       bind(value, (v) => {
         (el as any)[key] = v === null || v === undefined ? '' : v;
         if (v === null || v === undefined || v === false) el.removeAttribute(key);
       });
+    } else if (isStatic(value)) {
+      setAttribute(el, key, value);
     } else {
       bind(value, (v) => setAttribute(el, key, v));
     }

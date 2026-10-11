@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { isObservable, type Observable } from 'rxjs';
+import { isObservable, type Observable, type Unsubscribable } from 'rxjs';
 import type { ObservableState } from '../reactive/observable-state.js';
 
 /**
@@ -14,9 +14,12 @@ import type { ObservableState } from '../reactive/observable-state.js';
  */
 export class Scope {
   readonly #parent: Scope | undefined;
-  readonly #children = new Set<Scope>();
-  #cleanups: (() => void)[] = [];
+  // Allocated on first use: most scopes (a list's rows) own a few subscriptions and no children.
+  #children: Set<Scope> | undefined;
+  #cleanups: ((() => void) | Unsubscribable)[] | undefined;
   #disposed = false;
+  /** Set while disposing: children then skip leaving the parent's set (it is being cleared anyway). */
+  #disposing = false;
 
   constructor(parent?: Scope) {
     this.#parent = parent;
@@ -30,7 +33,7 @@ export class Scope {
   child(): Scope {
     const scope = new Scope(this);
     if (this.#disposed) scope.dispose();
-    else this.#children.add(scope);
+    else (this.#children ??= new Set()).add(scope);
     return scope;
   }
 
@@ -40,18 +43,40 @@ export class Scope {
       runCleanup(fn);
       return;
     }
-    this.#cleanups.push(fn);
+    (this.#cleanups ??= []).push(fn);
+  }
+
+  /** Unsubscribes `subscription` when the scope is disposed (no closure per binding). */
+  own(subscription: Unsubscribable): void {
+    if (this.#disposed) {
+      subscription.unsubscribe();
+      return;
+    }
+    (this.#cleanups ??= []).push(subscription);
   }
 
   dispose(): void {
     if (this.#disposed) return;
     this.#disposed = true;
-    for (const child of [...this.#children].reverse()) child.dispose();
-    this.#children.clear();
+    this.#disposing = true;
+    const children = this.#children;
+    if (children) {
+      // Newest first; a Set iterates in insertion order, so walk a copy backwards.
+      const list = [...children];
+      for (let i = list.length - 1; i >= 0; i--) list[i].dispose();
+      this.#children = undefined;
+    }
     const cleanups = this.#cleanups;
-    this.#cleanups = [];
-    for (let i = cleanups.length - 1; i >= 0; i--) runCleanup(cleanups[i]);
-    if (this.#parent) this.#parent.#children.delete(this);
+    this.#cleanups = undefined;
+    if (cleanups) {
+      for (let i = cleanups.length - 1; i >= 0; i--) {
+        const c = cleanups[i];
+        if (typeof c === 'function') runCleanup(c);
+        else c.unsubscribe();
+      }
+    }
+    const parent = this.#parent;
+    if (parent && !parent.#disposing) parent.#children?.delete(this);
   }
 }
 
@@ -126,6 +151,5 @@ export function bind<T>(source: MaybeReactive<T>, fn: (value: T) => void): void 
     return;
   }
   const scope = requireScope();
-  const subscription = stream.subscribe(fn);
-  scope.onCleanup(() => subscription.unsubscribe());
+  scope.own(stream.subscribe(fn));
 }
