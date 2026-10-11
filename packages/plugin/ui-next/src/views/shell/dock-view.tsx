@@ -207,7 +207,7 @@ function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab;
     <section class={classes.content} role="tabpanel" aria-label={tab.title}>
       <Splitter shell={shell} dock={dock} />
       <header class={classes.header}>
-        <span class={classes.title}>{tab.title}</span>
+        <span class={classes.title}>{tab.heading ?? tab.title}</span>
         {props.pinnable ? <PinButton shell={shell} dock={dock.id} /> : null}
         <Button
           variant="ghost"

@@ -14,19 +14,9 @@
   font-size: var(--msp-font-size-sm);
 }
 
-/* Upload: a quiet surface holding the name and the action at its bottom right (as Home's actions). */
+/* Upload: Home's action block (the well, the form, set defaults and Upload across the footer). */
 .upload {
   flex: none;
-  display: grid;
-  gap: var(--msp-space-2);
-  padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
-  border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
-}
-
-.footer {
-  display: flex;
-  justify-content: flex-end;
 }
 
 .caption {

@@ -74,31 +74,3 @@
     font-weight: 600;
   }
 }
-
-/* The size on the left, the actions at the bottom right (as Home's actions). */
-.footer {
-  display: flex;
-  align-items: center;
-  gap: var(--msp-space-2);
-}
-
-.size {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--msp-color-text-subtle);
-  font-size: var(--msp-font-size-xs);
-  font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.spin {
-  animation: spin 900ms linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}

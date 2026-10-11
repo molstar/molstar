@@ -6,21 +6,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map, of } from 'rxjs';
-import { Button } from '../../components/button/button.js';
+import { map } from 'rxjs';
+import { ActionFooter } from '../../components/action-footer/action-footer.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm } from '../../components/params/params-form.js';
-import { Show } from '../../dom/control-flow.js';
 import type { ImageExportModel } from '../../model/image-export.js';
 import { classes } from './_generated/image-export.module.css.js';
 
 /**
  * Image export: the preview at the output's shape with the crop on it (auto-crop toggled in its corner), the screenshot
- * settings as a form, and the size with Copy and Download at the bottom right.
+ * settings as a form, and the footer: set defaults, the size, Copy and Download.
  */
 export function ImageExport(props: { model: ImageExportModel }) {
   const { model } = props;
-  const busy = model.busy ?? of(false);
   const pct = (v: number) => `${(v * 100).toFixed(2)}%`;
   return (
     <div class={classes.export}>
@@ -55,25 +53,15 @@ export function ImageExport(props: { model: ImageExportModel }) {
         </div>
       </div>
       <ParamsForm form={model.form} />
-      <div class={classes.footer}>
-        <span class={classes.size}>{model.size}</span>
-        <Button size="sm" variant="ghost" icon={<Icon name="copy" />} disabled={busy} onClick={() => model.copy()}>
-          Copy
-        </Button>
-        <Button
-          size="sm"
-          variant="primary"
-          disabled={busy}
-          icon={
-            <Show when={busy} fallback={() => <Icon name="download" />}>
-              {() => <Icon name="loader-circle" class={classes.spin} />}
-            </Show>
-          }
-          onClick={() => model.download()}
-        >
-          Download
-        </Button>
-      </div>
+      <ActionFooter
+        icon="download"
+        label="Download"
+        info={model.size}
+        busy={model.busy}
+        secondary={{ icon: 'copy', label: 'Copy', onClick: () => model.copy() }}
+        onReset={() => model.form.reset()}
+        onApply={() => model.download()}
+      />
     </div>
   );
 }

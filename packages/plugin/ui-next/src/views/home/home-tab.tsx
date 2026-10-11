@@ -6,8 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map, of } from 'rxjs';
+import { map } from 'rxjs';
 import { formatChord } from '../../commands/keys.js';
+import { ActionFooter } from '../../components/action-footer/action-footer.js';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm } from '../../components/params/params-form.js';
@@ -53,7 +54,6 @@ export function HomeTab(props: HomeTabProps) {
 export function ActionBlock(props: { action: HomeAction; open: boolean }) {
   const { action } = props;
   const open = observableState(props.open);
-  const busy = action.busy ?? of(false);
   return (
     <div class={classes.action} data-open={open.asReadonly.pipe(map((o) => (o ? '' : undefined)))}>
       <button type="button" class={classes.actionHeader} aria-expanded={open} onClick={() => open.set(!open.value)}>
@@ -66,26 +66,13 @@ export function ActionBlock(props: { action: HomeAction; open: boolean }) {
         {() => (
           <div class={classes.actionBody}>
             {action.form ? <ParamsForm form={action.form} /> : null}
-            {/* Mol*'s footer, flat: set defaults on the left, the action across the rest, its label at the right. */}
-            <div class={classes.actionFooter}>
-              {action.form ? (
-                <button
-                  type="button"
-                  class={classes.actionReset}
-                  data-tip="Set defaults"
-                  aria-label="Set defaults"
-                  onClick={() => action.form?.reset()}
-                >
-                  <Icon name="rotate-ccw" size={14} />
-                </button>
-              ) : null}
-              <button type="button" class={classes.actionApply} disabled={busy} onClick={() => action.apply()}>
-                <Show when={busy} fallback={() => <Icon name={action.icon} size={15} />}>
-                  {() => <Icon name="loader-circle" size={15} class={classes.spin} />}
-                </Show>
-                <span>{action.applyLabel ?? 'Apply'}</span>
-              </button>
-            </div>
+            <ActionFooter
+              icon={action.icon}
+              label={action.applyLabel ?? 'Apply'}
+              busy={action.busy}
+              onApply={() => action.apply()}
+              onReset={action.form ? () => action.form?.reset() : undefined}
+            />
           </div>
         )}
       </Show>
@@ -93,26 +80,54 @@ export function ActionBlock(props: { action: HomeAction; open: boolean }) {
   );
 }
 
-/** Sessions on a state server: the list (newest first), the server, refresh. */
+/** Sessions on a state server: the list (newest first), refresh, and the server behind a settings button. */
 function RemoteStates(props: { model: RemoteStatesModel }) {
   const { model } = props;
+  const settings = observableState(false);
   return (
     <section class={classes.group} aria-label="Remote states">
       <div class={classes.captionRow}>
         <h3 class={classes.caption}>Remote states</h3>
-        <Button
-          size="xs"
-          variant="ghost"
-          icon={
-            <Show when={model.loading} fallback={() => <Icon name="rotate-ccw" />}>
-              {() => <Icon name="loader-circle" class={classes.spin} />}
-            </Show>
-          }
-          title="Refresh"
-          onClick={() => model.refresh()}
-        />
+        <span class={classes.captionActions}>
+          <Button
+            size="xs"
+            variant="ghost"
+            icon={<Icon name="settings" />}
+            title="Server"
+            pressed={settings.asReadonly}
+            onClick={() => settings.set(!settings.value)}
+          />
+          <Button
+            size="xs"
+            variant="ghost"
+            icon={
+              <Show when={model.loading} fallback={() => <Icon name="rotate-ccw" />}>
+                {() => <Icon name="loader-circle" class={classes.spin} />}
+              </Show>
+            }
+            title="Refresh"
+            onClick={() => model.refresh()}
+          />
+        </span>
       </div>
-      {/* A long list scrolls on its own, the server field stays under it. */}
+      {/* The server is a setting: behind the button, in a well under the caption (always shown in the Remote states card). */}
+      <Show when={settings}>
+        {() => (
+          <label class={classes.server}>
+            <span>Server</span>
+            <TextInput
+              size="sm"
+              aria-label="State server URL"
+              value={model.serverUrl}
+              onSubmit={(v) => {
+                model.setServerUrl(v);
+                settings.set(false);
+              }}
+            />
+          </label>
+        )}
+      </Show>
+      {/* A long list scrolls on its own. */}
       <div class={classes.states}>
         <For
           each={model.states}
@@ -128,15 +143,6 @@ function RemoteStates(props: { model: RemoteStatesModel }) {
           )}
         </For>
       </div>
-      <label class={classes.server}>
-        <span>Server</span>
-        <TextInput
-          size="sm"
-          aria-label="State server URL"
-          value={model.serverUrl}
-          onSubmit={(v) => model.setServerUrl(v)}
-        />
-      </label>
     </section>
   );
 }

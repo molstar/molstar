@@ -10,14 +10,12 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'action': 'msp-home-home-tab-action',
-  'actionApply': 'msp-home-home-tab-actionApply',
   'actionBody': 'msp-home-home-tab-actionBody',
   'actionDescription': 'msp-home-home-tab-actionDescription',
-  'actionFooter': 'msp-home-home-tab-actionFooter',
   'actionHeader': 'msp-home-home-tab-actionHeader',
-  'actionReset': 'msp-home-home-tab-actionReset',
   'actionTitle': 'msp-home-home-tab-actionTitle',
   'caption': 'msp-home-home-tab-caption',
+  'captionActions': 'msp-home-home-tab-captionActions',
   'captionRow': 'msp-home-home-tab-captionRow',
   'chevron': 'msp-home-home-tab-chevron',
   'content': 'msp-home-home-tab-content',
@@ -124,58 +122,8 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 
 .msp-home-home-tab-actionBody {
   gap: var(--msp-space-2);
-  padding: var(--msp-space-1) var(--msp-space-3) 0;
+  padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-3);
   display: grid;
-}
-
-.msp-home-home-tab-actionFooter {
-  height: 30px;
-  margin: var(--msp-space-1) calc(-1 * var(--msp-space-3)) 0;
-  display: flex;
-}
-
-.msp-home-home-tab-actionReset {
-  width: 32px;
-  color: var(--msp-color-text-subtle);
-  flex: none;
-  place-items: center;
-  display: grid;
-
-  &:hover {
-    color: var(--msp-color-text);
-  }
-
-  &:focus-visible {
-    color: var(--msp-color-text);
-    outline: 2px solid var(--msp-color-focus-ring);
-    outline-offset: -2px;
-  }
-}
-
-.msp-home-home-tab-actionApply {
-  justify-content: flex-end;
-  align-items: center;
-  gap: var(--msp-space-2);
-  padding: 0 var(--msp-space-4);
-  color: var(--msp-color-accent);
-  transition: color var(--msp-motion-fast) var(--msp-ease);
-  flex: 1;
-  font-weight: 600;
-  display: flex;
-
-  &:hover {
-    color: var(--msp-color-accent-strong);
-  }
-
-  &:focus-visible {
-    color: var(--msp-color-accent-strong);
-    outline: 2px solid var(--msp-color-focus-ring);
-    outline-offset: -2px;
-  }
-
-  &:disabled {
-    color: var(--msp-color-text-subtle);
-  }
 }
 
 .msp-home-home-tab-state {
@@ -257,10 +205,17 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
   margin: 0;
 }
 
+.msp-home-home-tab-captionActions {
+  gap: 2px;
+  display: flex;
+}
+
 .msp-home-home-tab-server {
   align-items: center;
   gap: var(--msp-space-3);
-  padding: var(--msp-space-1) var(--msp-space-2);
+  padding: var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   grid-template-columns: auto minmax(0, 1fr);

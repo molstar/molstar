@@ -28,7 +28,7 @@ defineStyles('views/shell/section-list.module.css', `@layer msp.components {
   border-radius: var(--msp-radius-md);
 
   &:has([aria-expanded="true"]) {
-    background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+    background: var(--msp-color-well);
   }
 }
 

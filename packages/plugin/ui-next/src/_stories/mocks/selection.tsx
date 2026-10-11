@@ -7,8 +7,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { Button } from '../../components/button/button.js';
-import { Icon } from '../../components/icon/icon.js';
+import { ActionFooter } from '../../components/action-footer/action-footer.js';
 import { ParamsForm } from '../../components/params/params-form.js';
 import { domView } from '../../dom/view.js';
 import { ParamsFormModel } from '../../forms/params-form.js';
@@ -110,19 +109,15 @@ export function mockSelection(shell: ShellModel, post: (text: string) => void): 
       render: domView(() => (
         <div style="display: grid; gap: 8px">
           <ParamsForm form={form} />
-          <div style="display: flex; justify-content: flex-end">
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<Icon name="paintbrush" />}
-              onClick={() => {
-                const v = form.values.value as any;
-                post(`Applied ${v.action.name} to ${summary.value} (${v.representation})`);
-              }}
-            >
-              Apply
-            </Button>
-          </div>
+          <ActionFooter
+            icon="paintbrush"
+            label="Apply"
+            onReset={() => form.reset()}
+            onApply={() => {
+              const v = form.values.value as any;
+              post(`Applied ${v.action.name} to ${summary.value} (${v.representation})`);
+            }}
+          />
         </div>
       )),
     },
@@ -135,16 +130,12 @@ export function mockSelection(shell: ShellModel, post: (text: string) => void): 
       render: domView(() => (
         <div style="display: grid; gap: 8px">
           <ParamsForm form={component} />
-          <div style="display: flex; justify-content: flex-end">
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<Icon name="plus" />}
-              onClick={() => post(`Component "${(component.values.value as any).label}" from ${summary.value}`)}
-            >
-              Create
-            </Button>
-          </div>
+          <ActionFooter
+            icon="plus"
+            label="Create"
+            onReset={() => component.reset()}
+            onApply={() => post(`Component "${(component.values.value as any).label}" from ${summary.value}`)}
+          />
         </div>
       )),
     },

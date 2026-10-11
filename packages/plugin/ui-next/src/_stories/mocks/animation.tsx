@@ -8,9 +8,7 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { map } from 'rxjs';
-import { Button } from '../../components/button/button.js';
-import { Icon } from '../../components/icon/icon.js';
-import { Choices } from '../../components/choices/choices.js';
+import { ActionFooter } from '../../components/action-footer/action-footer.js';
 import { ParamsForm } from '../../components/params/params-form.js';
 import { Show } from '../../dom/control-flow.js';
 import { domView } from '../../dom/view.js';
@@ -76,6 +74,12 @@ export function registerMockAnimation(shell: ShellModel, post: (text: string) =>
     },
   ]);
   const wiggle = observableState<string | undefined>(undefined);
+  const wiggleForm = new ParamsFormModel({
+    by: PD.Select('dynamics', [
+      ['dynamics', 'Dynamics (B-factor)'],
+      ['uncertainty', 'Model uncertainty'],
+    ]),
+  });
   shell.registerSections([
     {
       id: 'play',
@@ -86,23 +90,33 @@ export function registerMockAnimation(shell: ShellModel, post: (text: string) =>
       render: domView(() => (
         <div style="display: grid; gap: 8px">
           <ParamsForm form={form} />
-          <div style="display: flex; justify-content: flex-end">
-            <Button
-              variant="primary"
-              size="sm"
-              icon={
-                <Show when={playing} fallback={() => <Icon name="play" />}>
-                  {() => <Icon name="square" />}
-                </Show>
-              }
-              onClick={() => {
-                playing.set(!playing.value);
-                post(playing.value ? `Playing: ${label()}` : 'Animation stopped');
-              }}
-            >
-              {playing.asReadonly.pipe(map((p) => (p ? 'Stop' : 'Play')))}
-            </Button>
-          </div>
+          {/* Play, or Stop while playing: the footer's action follows. */}
+          <Show
+            when={playing}
+            fallback={() => (
+              <ActionFooter
+                icon="play"
+                label="Play"
+                onReset={() => form.reset()}
+                onApply={() => {
+                  playing.set(true);
+                  post(`Playing: ${label()}`);
+                }}
+              />
+            )}
+          >
+            {() => (
+              <ActionFooter
+                icon="square"
+                label="Stop"
+                onReset={() => form.reset()}
+                onApply={() => {
+                  playing.set(false);
+                  post('Animation stopped');
+                }}
+              />
+            )}
+          </Show>
         </div>
       )),
     },
@@ -115,19 +129,27 @@ export function registerMockAnimation(shell: ShellModel, post: (text: string) =>
       order: 1,
       // Mol*'s wiggle: motion from B-factors (dynamics) or from model uncertainty; Clear removes it.
       render: domView(() => (
-        <Choices
-          label="Apply wiggle"
-          active={wiggle.asReadonly}
-          choices={[
-            { id: 'dynamics', label: 'Dynamics', title: 'Wiggle by B-factor' },
-            { id: 'uncertainty', label: 'Uncertainty', title: 'Wiggle by model uncertainty' },
-            { id: 'clear', label: 'Clear' },
-          ]}
-          onPick={(id) => {
-            wiggle.set(id === 'clear' ? undefined : id);
-            post(id === 'clear' ? 'Wiggle cleared' : `Wiggle: ${id}`);
-          }}
-        />
+        <div style="display: grid; gap: 8px">
+          <ParamsForm form={wiggleForm} />
+          <ActionFooter
+            icon="orbit"
+            label="Apply"
+            info={wiggle.asReadonly.pipe(map((w) => (w ? `Wiggling by ${w}` : '')))}
+            secondary={{
+              icon: 'x',
+              label: 'Clear',
+              onClick: () => {
+                wiggle.set(undefined);
+                post('Wiggle cleared');
+              },
+            }}
+            onApply={() => {
+              const by = (wiggleForm.values.value as any).by as string;
+              wiggle.set(by);
+              post(`Wiggle: ${by}`);
+            }}
+          />
+        </div>
       )),
     },
   ]);

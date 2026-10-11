@@ -97,59 +97,7 @@
 .actionBody {
   display: grid;
   gap: var(--msp-space-2);
-  padding: var(--msp-space-1) var(--msp-space-3) 0;
-}
-
-/* The block's last row, edge to edge: set defaults, then the action across the rest (Mol*'s footer); no lines or
-   fills, hovering darkens the text. */
-.actionFooter {
-  display: flex;
-  height: 30px;
-  margin: var(--msp-space-1) calc(-1 * var(--msp-space-3)) 0;
-}
-
-.actionReset {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  color: var(--msp-color-text-subtle);
-
-  &:hover {
-    color: var(--msp-color-text);
-  }
-
-  &:focus-visible {
-    color: var(--msp-color-text);
-    outline: 2px solid var(--msp-color-focus-ring);
-    outline-offset: -2px;
-  }
-}
-
-.actionApply {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--msp-space-2);
-  padding: 0 var(--msp-space-4);
-  color: var(--msp-color-accent);
-  font-weight: 600;
-  transition: color var(--msp-motion-fast) var(--msp-ease);
-
-  &:hover {
-    color: var(--msp-color-accent-strong);
-  }
-
-  &:focus-visible {
-    color: var(--msp-color-accent-strong);
-    outline: 2px solid var(--msp-color-focus-ring);
-    outline-offset: -2px;
-  }
-
-  &:disabled {
-    color: var(--msp-color-text-subtle);
-  }
+  padding: var(--msp-space-1) var(--msp-space-3) var(--msp-space-3);
 }
 
 .state {
@@ -233,12 +181,19 @@
 }
 
 /* The state server: a quiet field under the list; Enter applies it. */
+.captionActions {
+  display: flex;
+  gap: 2px;
+}
+
 .server {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: var(--msp-space-3);
-  padding: var(--msp-space-1) var(--msp-space-2);
+  padding: var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
 }

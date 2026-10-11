@@ -66,6 +66,9 @@
 /* A quiet slider, like the trajectory scrubber: a thin track, its filled part in muted text, a small knob in the text
    color (no accent: a slider is not the action). */
 .range {
+  /* As light as the other controls: the filled part a soft muted tone, the rest the switch's off color. */
+  --msp-range-fill: color-mix(in oklab, var(--msp-color-text-muted), transparent 45%);
+
   /* Starts where a dropdown's or a text field's text does (their 8px inset), so the column reads as one. */
   width: calc(100% - var(--msp-space-3));
   height: 16px;
@@ -80,8 +83,8 @@
     border-radius: 1.5px;
     background: linear-gradient(
       to right,
-      var(--msp-color-text-muted) var(--msp-progress, 0%),
-      var(--msp-color-border-strong) var(--msp-progress, 0%)
+      var(--msp-range-fill) var(--msp-progress, 0%),
+      var(--msp-color-pressed) var(--msp-progress, 0%)
     );
   }
 
@@ -90,7 +93,7 @@
     height: 10px;
     margin-top: -3.5px;
     border-radius: 50%;
-    background: var(--msp-color-text);
+    background: var(--msp-color-text-muted);
     appearance: none;
     -webkit-appearance: none;
     transition: transform var(--msp-motion-fast) var(--msp-ease);
@@ -104,13 +107,13 @@
   &::-moz-range-track {
     height: 3px;
     border-radius: 1.5px;
-    background: var(--msp-color-border-strong);
+    background: var(--msp-color-pressed);
   }
 
   &::-moz-range-progress {
     height: 3px;
     border-radius: 1.5px;
-    background: var(--msp-color-text-muted);
+    background: var(--msp-range-fill);
   }
 
   &::-moz-range-thumb {
@@ -118,7 +121,7 @@
     height: 10px;
     border: 0;
     border-radius: 50%;
-    background: var(--msp-color-text);
+    background: var(--msp-color-text-muted);
   }
 
   &:focus-visible {

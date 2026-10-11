@@ -10,9 +10,10 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { combineLatest, map, of } from 'rxjs';
 import { story } from '../../_stories/story-root.js';
 import { formatChord, isMac } from '../../commands/keys.js';
-import { Button } from '../../components/button/button.js';
-import { Icon } from '../../components/icon/icon.js';
-import { Select } from '../../components/select/select.js';
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { ActionFooter } from '../../components/action-footer/action-footer.js';
+import { ParamsForm } from '../../components/params/params-form.js';
+import { ParamsFormModel } from '../../forms/params-form.js';
 import { Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
@@ -109,7 +110,41 @@ const ThreeLetter: Record<string, string> = {
 function mockExport(shell: ShellModel, status: StatusModel) {
   const imageExport = mockImageExport((t, k) => status.post(t, k));
   const rendering = observableState<number | undefined>(undefined);
-  const row = 'display: flex; gap: 8px; flex-wrap: wrap';
+  // Each section: choose in a form, then one action in the footer (Mol*'s action footer).
+  const form = 'display: grid; gap: 8px';
+  const sessionForm = new ParamsFormModel({
+    kind: PD.Select('session', [
+      ['session', 'Session (.molx) · with data'],
+      ['state', 'State (.molj) · description only'],
+    ]),
+  });
+  const mp4Form = new ParamsFormModel({
+    animation: PD.Select('spin', [
+      ['spin', 'Camera spin'],
+      ['rock', 'Camera rock'],
+      ['snapshots', 'State snapshots'],
+    ]),
+    resolution: PD.Select('full-hd', [
+      ['hd', 'HD (1280 × 720)'],
+      ['full-hd', 'Full HD (1920 × 1080)'],
+      ['ultra-hd', 'Ultra HD (3840 × 2160)'],
+    ]),
+    transparent: PD.Boolean(false),
+  });
+  const geometryForm = new ParamsFormModel({
+    format: PD.Select('glb', [
+      ['glb', 'GLB (glTF binary)'],
+      ['stl', 'STL'],
+      ['obj', 'OBJ'],
+      ['usdz', 'USDZ (AR)'],
+    ]),
+  });
+  const modelsForm = new ParamsFormModel({
+    format: PD.Select('cif', [
+      ['cif', 'mmCIF'],
+      ['bcif', 'BinaryCIF'],
+    ]),
+  });
   shell.registerOverlays([
     {
       id: 'export',
@@ -133,9 +168,18 @@ function mockExport(shell: ShellModel, status: StatusModel) {
       icon: 'save',
       order: 1,
       render: domView(() => (
-        <div style={row}>
-          <Button icon={<Icon name="download" />}>Session (.molx)</Button>
-          <Button icon={<Icon name="download" />}>State (.molj)</Button>
+        <div style={form}>
+          <ParamsForm form={sessionForm} />
+          <ActionFooter
+            icon="download"
+            label="Download"
+            onApply={() =>
+              status.post(
+                (sessionForm.values.value as any).kind === 'session' ? 'Saved state.molx' : 'Saved state.molj',
+                'success',
+              )
+            }
+          />
         </div>
       )),
     },
@@ -148,20 +192,16 @@ function mockExport(shell: ShellModel, status: StatusModel) {
       keywords: ['mp4', 'video', 'movie'],
       order: 10,
       render: domView(() => (
-        <div style={pad}>
-          <Select
-            aria-label="Animation"
-            options={[
-              ['spin', 'Spin'],
-              ['rock', 'Rock'],
-              ['snapshots', 'Snapshots'],
-            ]}
-          />
-          <Button
-            variant="primary"
-            icon={<Icon name="film" />}
-            disabled={rendering.asReadonly.pipe(map((r) => r !== undefined))}
-            onClick={() => {
+        <div style={form}>
+          <ParamsForm form={mp4Form} />
+          <ActionFooter
+            icon="film"
+            label={rendering.asReadonly.pipe(
+              map((r) => (r === undefined ? 'Render MP4' : `Rendering ${Math.round(r * 100)}%`)),
+            )}
+            busy={rendering.asReadonly.pipe(map((r) => r !== undefined))}
+            onReset={() => mp4Form.reset()}
+            onApply={() => {
               // Rendering holds the plugin: an overlay task, with Cancel.
               let p = 0;
               rendering.set(0);
@@ -187,11 +227,7 @@ function mockExport(shell: ShellModel, status: StatusModel) {
                 if (p >= 1) done('Rendered animation.mp4 (6 s)');
               }, 120);
             }}
-          >
-            {rendering.asReadonly.pipe(
-              map((r) => (r === undefined ? 'Render MP4' : `Rendering ${Math.round(r * 100)}%`)),
-            )}
-          </Button>
+          />
         </div>
       )),
     },
@@ -204,15 +240,13 @@ function mockExport(shell: ShellModel, status: StatusModel) {
       keywords: ['glb', 'stl', 'obj', 'usdz', 'mesh', '3d print', 'ar'],
       order: 11,
       render: domView(() => (
-        <div style={row}>
-          {['GLB', 'STL', 'OBJ', 'USDZ'].map((f) => (
-            <Button
-              icon={<Icon name="download" />}
-              onClick={() => status.post(`Exported scene.${f.toLowerCase()}`, 'success')}
-            >
-              {f}
-            </Button>
-          ))}
+        <div style={form}>
+          <ParamsForm form={geometryForm} />
+          <ActionFooter
+            icon="download"
+            label="Download"
+            onApply={() => status.post(`Exported scene.${(geometryForm.values.value as any).format}`, 'success')}
+          />
         </div>
       )),
     },
@@ -225,9 +259,13 @@ function mockExport(shell: ShellModel, status: StatusModel) {
       keywords: ['mmcif', 'bcif', 'cif', 'coordinates'],
       order: 12,
       render: domView(() => (
-        <div style={row}>
-          <Button icon={<Icon name="download" />}>mmCIF</Button>
-          <Button icon={<Icon name="download" />}>BinaryCIF</Button>
+        <div style={form}>
+          <ParamsForm form={modelsForm} />
+          <ActionFooter
+            icon="download"
+            label="Download"
+            onApply={() => status.post(`Saved 1tqn.${(modelsForm.values.value as any).format}`, 'success')}
+          />
         </div>
       )),
     },
@@ -284,6 +322,8 @@ function mockShell(options: {
       id: 'home',
       compactBar: true,
       title: 'Home',
+      // The plugin's name over Home (the rail's tooltip stays "Home").
+      heading: 'Mol*',
       icon: 'molstar',
       order: 0,
       place: 'head',

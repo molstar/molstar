@@ -12,10 +12,7 @@ export const classes = {
   'autoCrop': 'msp-export-image-export-autoCrop',
   'crop': 'msp-export-image-export-crop',
   'export': 'msp-export-image-export-export',
-  'footer': 'msp-export-image-export-footer',
   'preview': 'msp-export-image-export-preview',
-  'size': 'msp-export-image-export-size',
-  'spin': 'msp-export-image-export-spin',
   'stage': 'msp-export-image-export-stage',
 } as const;
 
@@ -83,33 +80,6 @@ defineStyles('views/export/image-export.module.css', `@layer msp.components {
   &[aria-pressed="true"] {
     color: var(--msp-color-text);
     font-weight: 600;
-  }
-}
-
-.msp-export-image-export-footer {
-  align-items: center;
-  gap: var(--msp-space-2);
-  display: flex;
-}
-
-.msp-export-image-export-size {
-  min-width: 0;
-  color: var(--msp-color-text-subtle);
-  font-size: var(--msp-font-size-xs);
-  font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  overflow: hidden;
-}
-
-.msp-export-image-export-spin {
-  animation: .9s linear infinite msp-export-image-export-spin;
-}
-
-@keyframes msp-export-image-export-spin {
-  to {
-    transform: rotate(360deg);
   }
 }
 }

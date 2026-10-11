@@ -14,7 +14,6 @@ export const classes = {
   'captionRow': 'msp-state-remote-states-panel-captionRow',
   'date': 'msp-state-remote-states-panel-date',
   'empty': 'msp-state-remote-states-panel-empty',
-  'footer': 'msp-state-remote-states-panel-footer',
   'item': 'msp-state-remote-states-panel-item',
   'list': 'msp-state-remote-states-panel-list',
   'menu': 'msp-state-remote-states-panel-menu',
@@ -40,17 +39,7 @@ defineStyles('views/state/remote-states-panel.module.css', `@layer msp.component
 }
 
 .msp-state-remote-states-panel-upload {
-  gap: var(--msp-space-2);
-  padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
-  border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
   flex: none;
-  display: grid;
-}
-
-.msp-state-remote-states-panel-footer {
-  justify-content: flex-end;
-  display: flex;
 }
 
 .msp-state-remote-states-panel-caption {

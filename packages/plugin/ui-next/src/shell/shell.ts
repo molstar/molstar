@@ -30,7 +30,10 @@ export interface ShellViewContext {
 /** A panel tab, contributed by the default UI or an extension. */
 export interface ShellTab {
   id: string;
+  /** Its name: the rail's tooltip, and the panel's header unless `heading` says otherwise. */
   title: string;
+  /** The panel's header when it differs from the title (Home's is "Mol*"). */
+  heading?: string;
   icon: IconName;
   /** Where it goes by default ('right'). */
   dock?: DockId;

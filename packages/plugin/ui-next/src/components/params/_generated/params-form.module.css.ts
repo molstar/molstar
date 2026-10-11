@@ -98,6 +98,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-range {
+  --msp-range-fill: color-mix(in oklab, var(--msp-color-text-muted), transparent 45%);
   width: calc(100% - var(--msp-space-3));
   height: 16px;
   margin: 0 0 0 var(--msp-space-3);
@@ -108,14 +109,14 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 
   &::-webkit-slider-runnable-track {
     background: linear-gradient(to right,
-      var(--msp-color-text-muted) var(--msp-progress, 0%),
-      var(--msp-color-border-strong) var(--msp-progress, 0%));
+      var(--msp-range-fill) var(--msp-progress, 0%),
+      var(--msp-color-pressed) var(--msp-progress, 0%));
     border-radius: 1.5px;
     height: 3px;
   }
 
   &::-webkit-slider-thumb {
-    background: var(--msp-color-text);
+    background: var(--msp-color-text-muted);
     -webkit-appearance: none;
     appearance: none;
     width: 10px;
@@ -130,19 +131,19 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   }
 
   &::-moz-range-track {
-    background: var(--msp-color-border-strong);
+    background: var(--msp-color-pressed);
     border-radius: 1.5px;
     height: 3px;
   }
 
   &::-moz-range-progress {
-    background: var(--msp-color-text-muted);
+    background: var(--msp-range-fill);
     border-radius: 1.5px;
     height: 3px;
   }
 
   &::-moz-range-thumb {
-    background: var(--msp-color-text);
+    background: var(--msp-color-text-muted);
     border: 0;
     border-radius: 50%;
     width: 10px;

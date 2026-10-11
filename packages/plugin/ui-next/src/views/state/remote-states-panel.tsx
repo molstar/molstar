@@ -6,12 +6,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { TextInput } from '../../components/text-input/text-input.js';
 import { For, Show } from '../../dom/control-flow.js';
-import type { RemoteState, RemoteStatesModel } from '../../model/home.js';
+import { ParamsFormModel } from '../../forms/params-form.js';
+import type { HomeAction, RemoteState, RemoteStatesModel } from '../../model/home.js';
 import { observableState } from '../../reactive/observable-state.js';
+import { ActionBlock } from '../home/home-tab.js';
 import { classes } from './_generated/remote-states-panel.module.css.js';
 
 /**
@@ -20,29 +23,26 @@ import { classes } from './_generated/remote-states-panel.module.css.js';
  */
 export function RemoteStatesPanel(props: { model: RemoteStatesModel }) {
   const { model } = props;
-  const name = observableState('');
-  const upload = () => {
-    model.upload?.(name.value.trim() || 'Untitled');
-    name.set('');
-  };
+  // Uploading is an action like Home's: a name, set defaults, and Upload across the footer.
+  const form = new ParamsFormModel({ name: PD.Text('', { label: 'Name', placeholder: 'Untitled' }) });
+  const upload: HomeAction | undefined = model.upload
+    ? {
+        id: 'upload',
+        title: 'Upload the current state',
+        icon: 'cloud-upload',
+        form,
+        applyLabel: 'Upload',
+        apply: () => {
+          model.upload?.(form.values.value.name.trim() || 'Untitled');
+          form.reset();
+        },
+      }
+    : undefined;
   return (
     <div class={classes.panel}>
-      {model.upload ? (
+      {upload ? (
         <section class={classes.upload} aria-label="Upload">
-          <p class={classes.caption}>Upload the current state</p>
-          <TextInput
-            size="sm"
-            aria-label="Name"
-            placeholder="Name"
-            value={name.asReadonly}
-            onInput={(v) => name.set(v)}
-            onSubmit={upload}
-          />
-          <div class={classes.footer}>
-            <Button size="sm" variant="primary" icon={<Icon name="cloud-upload" />} onClick={upload}>
-              Upload
-            </Button>
-          </div>
+          <ActionBlock action={upload} open />
         </section>
       ) : null}
       <section class={classes.states} aria-label="On the server">

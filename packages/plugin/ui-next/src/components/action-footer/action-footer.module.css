@@ -1,0 +1,119 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Edge to edge in a block padded 8px at the sides and bottom. */
+.footer {
+  display: flex;
+  height: 30px;
+  margin: var(--msp-space-1) calc(-1 * var(--msp-space-3)) calc(-1 * var(--msp-space-3));
+}
+
+.reset {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  color: var(--msp-color-text-subtle);
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+
+  &:focus-visible {
+    color: var(--msp-color-text);
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+  }
+}
+
+.apply {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--msp-space-2);
+  padding: 0 var(--msp-space-4);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-sm);
+  font-weight: 600;
+  transition: color var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    color: var(--msp-color-accent-strong);
+  }
+
+  &:focus-visible {
+    color: var(--msp-color-accent-strong);
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+/* With an info line or a lesser action, those take the room; the action keeps to its label. */
+.info {
+  flex: 1;
+  min-width: 0;
+  align-self: center;
+  overflow: hidden;
+  padding-left: var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reset + .info {
+  padding-left: 0;
+}
+
+.secondary {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: 0 var(--msp-space-2) 0 var(--msp-space-4);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+
+  &:focus-visible {
+    color: var(--msp-color-text);
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+/* Without an info line the lesser action starts the right-hand group. */
+.footer:not(:has(.info)) .secondary {
+  margin-left: auto;
+}
+
+.info ~ .apply,
+.secondary ~ .apply {
+  flex: none;
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
