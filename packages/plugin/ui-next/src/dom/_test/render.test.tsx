@@ -179,3 +179,76 @@ describe('bindings', () => {
     });
   });
 });
+
+describe('delegated events', () => {
+  it('give each handler its own element as currentTarget, and stop at stopPropagation', () => {
+    const container = document.createElement('div');
+    const seen: string[] = [];
+    render(
+      () => (
+        <div class="outer" onClick={(e) => seen.push(`outer:${(e.currentTarget as Element).className}`)}>
+          <div class="middle" onClick={(e) => seen.push(`middle:${(e.currentTarget as Element).className}`)}>
+            <button
+              type="button"
+              class="inner"
+              onClick={(e) => seen.push(`inner:${(e.currentTarget as Element).className}`)}
+            />
+            <button
+              type="button"
+              class="stopper"
+              onClick={(e) => {
+                seen.push('stopper');
+                e.stopPropagation();
+              }}
+            />
+          </div>
+        </div>
+      ),
+      container,
+    );
+    (container.querySelector('.inner') as HTMLElement).click();
+    expect(seen).toEqual(['inner:inner', 'middle:middle', 'outer:outer']);
+    seen.length = 0;
+    (container.querySelector('.stopper') as HTMLElement).click();
+    expect(seen).toEqual(['stopper']);
+  });
+
+  it('runs each handler once across nested roots, and reaches what is rendered outside a root', () => {
+    const outer = document.createElement('div');
+    document.body.append(outer);
+    const seen: string[] = [];
+    render(() => <section onClick={() => seen.push('outer')} />, outer);
+    const inner = outer.querySelector('section') as HTMLElement;
+    render(() => <button type="button" onClick={() => seen.push('inner')} />, inner);
+    (inner.querySelector('button') as HTMLElement).click();
+    expect(seen).toEqual(['inner', 'outer']);
+    // Made in a root, then moved under the body: the document carries on.
+    seen.length = 0;
+    const loose = document.createElement('div');
+    render(() => <button type="button" class="loose" onClick={() => seen.push('loose')} />, loose);
+    const button = loose.querySelector('.loose') as HTMLElement;
+    document.body.append(button);
+    button.click();
+    expect(seen).toEqual(['loose']);
+    button.remove();
+    outer.remove();
+  });
+
+  it('give an event that does not bubble to its target only', () => {
+    const container = document.createElement('div');
+    const seen: string[] = [];
+    render(
+      () => (
+        <div onInput={() => seen.push('parent')}>
+          <input onInput={() => seen.push('input')} />
+        </div>
+      ),
+      container,
+    );
+    container.querySelector('input')!.dispatchEvent(new Event('input'));
+    expect(seen).toEqual(['input']);
+    seen.length = 0;
+    container.querySelector('input')!.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(seen).toEqual(['input', 'parent']);
+  });
+});

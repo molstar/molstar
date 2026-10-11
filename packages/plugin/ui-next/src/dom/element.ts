@@ -8,7 +8,7 @@ import { ReactiveModel } from '../reactive/reactive-model.js';
 import '../styles/base.js';
 import { adoptStyles } from '../styles/registry.js';
 import type { Child, CommonProps } from './jsx-types.js';
-import { insert } from './render.js';
+import { delegateEvents, insert } from './render.js';
 import { runInScope, Scope } from './scope.js';
 
 /** `HTMLElement` where it exists, so modules defining elements can be imported outside a browser (Node, workers). */
@@ -93,6 +93,7 @@ export abstract class MspElement<M = unknown> extends ElementBase {
       model.mount();
       scope.onCleanup(() => model.unmount());
     }
+    delegateEvents(this);
     const content = document.createDocumentFragment();
     runInScope(scope, () => insert(content, this.render(model), null));
     this.replaceChildren(content);

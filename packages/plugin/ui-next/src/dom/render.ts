@@ -208,6 +208,106 @@ export function removeBetween(start: Node, end: Node): void {
 
 // --- Props ---------------------------------------------------------------------------------------
 
+// --- Events --------------------------------------------------------------------------------------
+
+/**
+ * Bubbling events are delegated: an element keeps its handler (`onClick`), and each render root (a `render` container,
+ * an `MspElement`) listens once per type and walks from the target up to itself, calling the handlers it finds with
+ * `currentTarget` as their own element; `stopPropagation` ends the walk as it ends propagation. A nested root goes
+ * first and the next one (an outer root, then the document, for anything rendered outside a root) continues above it,
+ * so nothing runs twice. Events that do not bubble (focus, blur, enter, leave) and those scrolling waits on (touch,
+ * wheel: they must stay passive) stay native, and so does anything given as `on:type`. Measured: one listener per root
+ * instead of one per handler (Internals › Performance › Runtime).
+ */
+const DelegatedEvents = new Set([
+  'click',
+  'dblclick',
+  'contextmenu',
+  'input',
+  'change',
+  'beforeinput',
+  'keydown',
+  'keyup',
+  'pointerdown',
+  'pointerup',
+  'pointermove',
+  'pointerover',
+  'pointerout',
+  'pointercancel',
+  'mousedown',
+  'mouseup',
+  'mousemove',
+  'mouseover',
+  'mouseout',
+  'focusin',
+  'focusout',
+]);
+
+const Handlers = Symbol('handlers');
+const Walked = Symbol('walked');
+const delegating = new WeakSet<Node>();
+const eventTypes = new Map<string, string>();
+
+/** Makes `root` handle the delegated events of what is rendered under it. */
+export function delegateEvents(root: Node): void {
+  if (delegating.has(root)) return;
+  delegating.add(root);
+  for (const type of DelegatedEvents) {
+    root.addEventListener(type, dispatchDelegated);
+    // An event made not to bubble (`new Event('input')` dispatched by code) never reaches the root's bubbling
+    // listener: caught on its way down, it goes to the target's own handler only, as a native listener would.
+    root.addEventListener(type, dispatchToTarget, true);
+  }
+}
+
+function dispatchToTarget(e: Event) {
+  if (e.bubbles || (e as any)[Walked]) return;
+  (e as any)[Walked] = e.currentTarget;
+  const target = e.target as Node;
+  const handler = (target as any)[Handlers]?.[e.type];
+  if (!handler) return;
+  Object.defineProperty(e, 'currentTarget', { configurable: true, value: target });
+  try {
+    handler.call(target, e);
+  } finally {
+    delete (e as any).currentTarget;
+  }
+}
+
+function dispatchDelegated(e: Event) {
+  if (!e.bubbles) return;
+  const root = e.currentTarget as Node;
+  const from = (e as any)[Walked] as Node | undefined;
+  let node: Node | null = from ? from.parentNode : (e.target as Node);
+  let overridden = false;
+  try {
+    while (node) {
+      const handler = (node as any)[Handlers]?.[e.type];
+      if (handler) {
+        Object.defineProperty(e, 'currentTarget', { configurable: true, value: node });
+        overridden = true;
+        handler.call(node, e);
+        if (e.cancelBubble) break;
+      }
+      if (node === root) break;
+      node = node.parentNode;
+    }
+  } finally {
+    (e as any)[Walked] = root;
+    if (overridden) delete (e as any).currentTarget;
+  }
+}
+
+function setHandler(el: Element, type: string, handler: (e: Event) => void) {
+  if (!DelegatedEvents.has(type)) {
+    el.addEventListener(type, handler);
+    return;
+  }
+  ((el as any)[Handlers] ??= {})[type] = handler;
+  // Anything rendered outside a root is still covered (the document continues where the roots stopped).
+  if (typeof document !== 'undefined') delegateEvents(document);
+}
+
 /** A value that is never a stream: written once, no binding (the common case, and the cheap one). */
 const isStatic = (value: unknown) => value === null || (typeof value !== 'object' && typeof value !== 'function');
 
@@ -224,7 +324,9 @@ function applyProps(el: Element, props: Record<string, any>, isSvg: boolean, isC
     if (key.startsWith('on:')) {
       el.addEventListener(key.slice(3), value);
     } else if (key.length > 2 && key.startsWith('on') && key.charCodeAt(2) < 91 && typeof value === 'function') {
-      el.addEventListener(key.slice(2).toLowerCase(), value);
+      let type = eventTypes.get(key);
+      if (type === undefined) eventTypes.set(key, (type = key.slice(2).toLowerCase()));
+      setHandler(el, type, value);
     } else if (key === 'class' || key === 'className') {
       classes ??= new ClassBinding(el);
       bind(value, (v: string | undefined) => classes!.setBase(v));
@@ -356,6 +458,7 @@ function toKebab(name: string) {
  * scope and removes what was rendered.
  */
 export function render(fn: () => Child, container: Node): () => void {
+  delegateEvents(container);
   const scope = new Scope();
   const start = document.createComment('');
   const end = document.createComment('');

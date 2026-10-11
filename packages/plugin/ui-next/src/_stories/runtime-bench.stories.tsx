@@ -124,7 +124,11 @@ function mountBench(host: HTMLElement): Bench {
   return { rows, selected, table: box, dispose };
 }
 
-const frame = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+// Two frames when the page shows; a hidden page gets none (script is still measured, total is then not meaningful).
+const frame = () =>
+  document.hidden
+    ? Promise.resolve()
+    : new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 const median = (xs: number[]) => {
   const s = xs.slice().sort((a, b) => a - b);
   return s[Math.floor(s.length / 2)];
