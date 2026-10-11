@@ -23,6 +23,42 @@
   border-right: 1px solid var(--msp-color-border);
 }
 
+/* Top and bottom docks: content beside a slim tab strip, no header (the tab strip collapses them). */
+.top,
+.bottom {
+  flex-direction: row-reverse;
+
+  & .content {
+    flex: 1;
+    width: auto;
+    height: var(--msp-dock-size);
+  }
+
+  & .header,
+  & .splitter {
+    display: none;
+  }
+
+  & .strip {
+    border-right: 1px solid var(--msp-color-border);
+  }
+
+  & .tab {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.top {
+  grid-area: top;
+  border-bottom: 1px solid var(--msp-color-border);
+}
+
+.bottom {
+  grid-area: bottom;
+  border-top: 1px solid var(--msp-color-border);
+}
+
 .content {
   position: relative;
   display: flex;

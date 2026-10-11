@@ -62,5 +62,13 @@ defineStyles('styles/reset.css', `@layer msp.reset {
   :where(.msp-root) :where([hidden]) {
     display: none !important;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    :where(.msp-root), :where(.msp-root) *, :where(.msp-root) :before, :where(.msp-root) :after {
+      transition-duration: .01ms !important;
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
 }
 `);

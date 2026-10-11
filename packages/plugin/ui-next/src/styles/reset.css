@@ -65,4 +65,16 @@
   :where(.msp-root) :where([hidden]) {
     display: none !important;
   }
+
+  /* Reduced motion: animations and transitions finish at once (content never waits on them). */
+  @media (prefers-reduced-motion: reduce) {
+    :where(.msp-root),
+    :where(.msp-root) *,
+    :where(.msp-root) *::before,
+    :where(.msp-root) *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }

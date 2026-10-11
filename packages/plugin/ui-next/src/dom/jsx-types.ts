@@ -45,12 +45,16 @@ interface EventNames {
   onPointerUp: 'pointerup';
   onPointerMove: 'pointermove';
   onPointerEnter: 'pointerenter';
+  onPointerOver: 'pointerover';
+  onPointerOut: 'pointerout';
   onPointerLeave: 'pointerleave';
   onPointerCancel: 'pointercancel';
   onMouseDown: 'mousedown';
   onMouseUp: 'mouseup';
   onMouseMove: 'mousemove';
   onMouseEnter: 'mouseenter';
+  onMouseOver: 'mouseover';
+  onMouseOut: 'mouseout';
   onMouseLeave: 'mouseleave';
   onWheel: 'wheel';
   onScroll: 'scroll';

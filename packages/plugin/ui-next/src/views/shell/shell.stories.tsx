@@ -16,8 +16,12 @@ import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
 import { domView } from '../../dom/view.js';
 import { observableState } from '../../reactive/observable-state.js';
+import type { HoverLabelModel, SnapshotStepperModel, TrajectoryControlsModel } from '../../model/playback.js';
 import { ShellModel } from '../../shell/shell.js';
 import { StatusModel } from '../../shell/status.js';
+import { HoverLabel } from '../canvas/hover-label.js';
+import { Playback } from '../canvas/playback.js';
+import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
 import { ShellView } from './shell-view.js';
 
@@ -36,12 +40,115 @@ function Placeholder(props: { title: string; children?: Child }) {
   );
 }
 
+const Sequence =
+  'MALYGTHSHGLFKKLGIPGPTPLPFLGNILSYHKGFCMFDMECHKKYGKVWGFYDGQQPVLAITDPDMIKTVLVKECYSVFTNRRPFGPVGFMKSAISIAEDEEWKRLRSLLSPTFTSGKLKEMVPIIAQYGDVLVRNLRREAETGKPVTLKDVFGAYSMDVITSTSFGVNIDSLNNPQDPFVENTKKLLRFDFLDPFFLSITVFPFLIPILEVLNICVFPREVTNFLRKSVKRMKESRLEDTQKHRVDFLQLMIDSQNSKETESHKALSDLELVAQSIIFIFAGYETTSSVLSFIMYELATHPDVQQKLQEEIDAVLPNKAPPTYDTVLQMEYLDMVVNETLRLFPIAMRLERVCKKDVEINGMFIPKGVVVMIPSYALHRDPKYWTEPEKFLPERFSKKNKDNIDPYIYTPFGSGPRNCIGMRFALMNMKLALIRVLQNFSFKPCKETQIPLKLSLGGLLQPEKPVVLKVESRDGTVSGA';
+const ThreeLetter: Record<string, string> = {
+  A: 'ALA',
+  R: 'ARG',
+  N: 'ASN',
+  D: 'ASP',
+  C: 'CYS',
+  Q: 'GLN',
+  E: 'GLU',
+  G: 'GLY',
+  H: 'HIS',
+  I: 'ILE',
+  L: 'LEU',
+  K: 'LYS',
+  M: 'MET',
+  F: 'PHE',
+  P: 'PRO',
+  S: 'SER',
+  T: 'THR',
+  W: 'TRP',
+  Y: 'TYR',
+  V: 'VAL',
+}; // prettier-ignore
+
+function mockSnapshots(status: StatusModel): SnapshotStepperModel {
+  const entries = [
+    {
+      title: 'Overview',
+      description: 'Cytochrome **P450 3A4** with its heme cofactor.\n\nSee the [active site](#active-site).',
+    },
+    {
+      title: 'Active site',
+      description:
+        '### Active site\n- Heme iron coordinated by `Cys442`\n- Substrate channel above the heme\n\nBack to the [overview](#overview).',
+    },
+    { title: 'Surface', description: undefined },
+  ];
+  const index = observableState(0);
+  const isPlaying = observableState(false);
+  const transition = observableState<number | undefined>(undefined);
+  const title = observableState<string | undefined>(entries[0].title);
+  const description = observableState<string | undefined>(entries[0].description);
+  let timer: ReturnType<typeof setInterval> | undefined;
+  const go = (i: number) => {
+    const n = (i + entries.length) % entries.length;
+    index.set(n);
+    title.set(entries[n].title);
+    description.set(entries[n].description);
+    let t = 0;
+    const step = setInterval(() => {
+      t += 0.1;
+      transition.set(t >= 1 ? undefined : t);
+      if (t >= 1) clearInterval(step);
+    }, 30);
+  };
+  return {
+    count: observableState(entries.length).asReadonly,
+    index: index.asReadonly,
+    title: title.asReadonly,
+    description: description.asReadonly,
+    isPlaying: isPlaying.asReadonly,
+    transition: transition.asReadonly,
+    previous: () => go(index.value - 1),
+    next: () => go(index.value + 1),
+    togglePlay: () => {
+      isPlaying.set(!isPlaying.value);
+      clearInterval(timer);
+      if (isPlaying.value) timer = setInterval(() => go(index.value + 1), 2500);
+    },
+    openLink: (href) => {
+      const i = entries.findIndex((e) => `#${e.title.toLowerCase().replace(/ /g, '-')}` === href);
+      if (i >= 0) go(i);
+      else status.post(`Link: ${href}`);
+    },
+  };
+}
+
+function mockTrajectory(): TrajectoryControlsModel {
+  const count = 20;
+  const index = observableState(0);
+  const isPlaying = observableState(false);
+  let timer: ReturnType<typeof setInterval> | undefined;
+  const seek = (i: number) => index.set(Math.max(0, Math.min(count - 1, i)));
+  return {
+    count: observableState(count).asReadonly,
+    index: index.asReadonly,
+    isPlaying: isPlaying.asReadonly,
+    first: () => seek(0),
+    previous: () => seek(index.value - 1),
+    next: () => seek(index.value + 1),
+    last: () => seek(count - 1),
+    seek,
+    togglePlay: () => {
+      isPlaying.set(!isPlaying.value);
+      clearInterval(timer);
+      if (isPlaying.value) timer = setInterval(() => index.set((index.value + 1) % count), 150);
+    },
+  };
+}
+
 /** A mock of everything around the canvas, with the shell's real model. */
 function mockShell(options: { loaded: boolean }) {
   const shell = new ShellModel();
   const status = new StatusModel();
   const selectionMode = observableState(false);
   const snapshots = observableState<readonly string[]>(['Overview', 'Active site']);
+  const hoverLines = observableState<readonly string[]>([]);
+  const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
 
   shell.registerTabs([
     {
@@ -98,7 +205,26 @@ function mockShell(options: { loaded: boolean }) {
       )),
     },
   ]);
-  if (options.loaded) shell.show('structure');
+  if (options.loaded) {
+    shell.registerTabs([
+      {
+        id: 'sequence',
+        title: 'Sequence',
+        icon: 'sequence',
+        dock: 'top',
+        render: domView(() => (
+          <SequenceStrip
+            chain={{ name: 'Chain A', info: '1TQN · P450 3A4', sequence: Sequence, start: 1 }}
+            onHover={(n) =>
+              hoverLines.set(n === undefined ? [] : [`${ThreeLetter[Sequence[n - 1]] ?? '?'} ${n}`, 'Chain A · 1TQN'])
+            }
+            onToggle={(n, on) => status.post(`${on ? 'Selected' : 'Deselected'} residue ${n}`)}
+          />
+        )),
+      },
+    ]);
+    shell.show('structure');
+  }
 
   shell.registerOverlays([
     {
@@ -195,11 +321,11 @@ function mockShell(options: { loaded: boolean }) {
     status.setTasks([{ id: 'surface', label: 'Computing surface', progress: 0.4, abort: () => status.setTasks([]) }]);
   }
 
-  return { shell, status };
+  return { shell, status, hover, hoverLines, snapshots: mockSnapshots(status), trajectory: mockTrajectory() };
 }
 
 function ShellStory(props: { loaded: boolean }) {
-  const { shell, status } = mockShell(props);
+  const { shell, status, hover, hoverLines, snapshots, trajectory } = mockShell(props);
   shell.mount();
   status.mount();
   onCleanup(() => {
@@ -210,7 +336,24 @@ function ShellStory(props: { loaded: boolean }) {
     <ShellView
       shell={shell}
       status={status}
-      canvas={<CanvasPlaceholder empty={!props.loaded} />}
+      canvas={
+        <CanvasPlaceholder
+          empty={!props.loaded}
+          onHover={(i) =>
+            hoverLines.set(
+              i === undefined ? [] : [`${ThreeLetter[Sequence[i * 4]] ?? 'GLY'} ${i * 4 + 1}`, 'Chain A · 1TQN'],
+            )
+          }
+        />
+      }
+      overlays={
+        props.loaded ? (
+          <>
+            <Playback snapshots={snapshots} trajectory={trajectory} />
+            <HoverLabel model={hover} area={() => document.querySelector('main')} />
+          </>
+        ) : null
+      }
       onOpenLog={() => shell.openOverlay('log')}
     />
   );

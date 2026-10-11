@@ -1,0 +1,34 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: var(--msp-z-tooltip);
+  display: grid;
+  gap: 1px;
+  max-width: 280px;
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-panel), transparent 8%);
+  box-shadow: var(--msp-shadow-float);
+  font-size: var(--msp-font-size-sm);
+  pointer-events: none;
+  will-change: transform;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.primary {
+  font-weight: 600;
+}
+
+.secondary {
+  color: var(--msp-color-text-muted);
+}

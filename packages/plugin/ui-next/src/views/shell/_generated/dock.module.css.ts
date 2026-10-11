@@ -10,6 +10,7 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'body': 'msp-shell-dock-body',
+  'bottom': 'msp-shell-dock-bottom',
   'compact': 'msp-shell-dock-compact',
   'content': 'msp-shell-dock-content',
   'dock': 'msp-shell-dock-dock',
@@ -20,6 +21,7 @@ export const classes = {
   'strip': 'msp-shell-dock-strip',
   'tab': 'msp-shell-dock-tab',
   'title': 'msp-shell-dock-title',
+  'top': 'msp-shell-dock-top',
 } as const;
 
 defineStyles('views/shell/dock.module.css', `@layer msp.components {
@@ -40,6 +42,39 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   border-right: 1px solid var(--msp-color-border);
   flex-direction: row-reverse;
   grid-area: left;
+}
+
+.msp-shell-dock-top, .msp-shell-dock-bottom {
+  flex-direction: row-reverse;
+
+  & .msp-shell-dock-content {
+    width: auto;
+    height: var(--msp-dock-size);
+    flex: 1;
+  }
+
+  & .msp-shell-dock-header, & .msp-shell-dock-splitter {
+    display: none;
+  }
+
+  & .msp-shell-dock-strip {
+    border-right: 1px solid var(--msp-color-border);
+  }
+
+  & .msp-shell-dock-tab {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.msp-shell-dock-top {
+  border-bottom: 1px solid var(--msp-color-border);
+  grid-area: top;
+}
+
+.msp-shell-dock-bottom {
+  border-top: 1px solid var(--msp-color-border);
+  grid-area: bottom;
 }
 
 .msp-shell-dock-content {

@@ -23,7 +23,7 @@ export function DockView(props: { shell: ShellModel; dock: DockModel }) {
     <Show when={hasTabs}>
       {() => (
         <div
-          class={`${classes.dock} ${dock.id === 'left' ? classes.left : classes.right}`}
+          class={`${classes.dock} ${classes[dock.id]}`}
           classList={{ [classes.compact]: compact }}
           style={{ '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) }}
         >
