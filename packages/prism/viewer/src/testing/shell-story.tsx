@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type MockMode, ShellStory, type ShellStoryProps } from '@molstar/prism-ui/testing/index';
+import { ShellStory, type ShellStoryProps } from '@molstar/prism-ui/testing/index';
 import type { MockScenePreset } from './scene.js';
 import { mockViewerMode } from './viewer-mode.js';
 
@@ -21,7 +21,7 @@ export interface ViewerMockOptions {
   playback?: { snapshots?: boolean; trajectory?: boolean };
 }
 
-/** The mock frame with the viewer mode (and, given, other modes after it): the app as Mol*'s viewer. */
-export function ViewerShellStory(props: ShellStoryProps & ViewerMockOptions & { more?: readonly MockMode[] }) {
-  return <ShellStory {...props} modes={[mockViewerMode(props), ...(props.more ?? [])]} />;
+/** The mock frame running the viewer mode: the app as Mol*'s viewer. */
+export function ViewerShellStory(props: ShellStoryProps & ViewerMockOptions) {
+  return <ShellStory {...props} mode={mockViewerMode(props)} />;
 }

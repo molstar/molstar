@@ -9,7 +9,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { combineLatest, map } from 'rxjs';
+import { combineLatest, map, of } from 'rxjs';
 import { ActionFooter } from '@molstar/prism-ui';
 import { MolstarWordmark } from '@molstar/prism-ui';
 import { ParamsForm } from '@molstar/prism-ui';
@@ -336,7 +336,7 @@ export function mockViewerMode(
     title: 'Viewer mode',
     icon: 'molstar',
     description: 'Load structures and data, explore and analyze them',
-    activate: ({ shell, status, loaded, background, openCommandMenu, modes, activeMode, switchMode }) => {
+    activate: ({ shell, status, loaded, background, openCommandMenu, modes, mode, switchMode }) => {
       const canvasMode = observableState<CanvasMode>('interact');
       const granularity = observableState('residue');
       const illumination = observableState(false);
@@ -421,7 +421,7 @@ export function mockViewerMode(
             <HomeTab
               home={home}
               onOpenCommandMenu={() => openCommandMenu()}
-              modes={{ list: modes, active: activeMode, choose: switchMode }}
+              modes={{ list: modes, active: of(mode), choose: (id) => id !== mode && switchMode(id) }}
             />
           )),
         },

@@ -11,6 +11,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'cancel': 'msp-shell-mode-chooser-cancel',
   'card': 'msp-shell-mode-chooser-card',
   'description': 'msp-shell-mode-chooser-description',
   'heading': 'msp-shell-mode-chooser-heading',
@@ -19,19 +20,49 @@ export const classes = {
   'option': 'msp-shell-mode-chooser-option',
   'options': 'msp-shell-mode-chooser-options',
   'rows': 'msp-shell-mode-chooser-rows',
+  'splash': 'msp-shell-mode-chooser-splash',
   'title': 'msp-shell-mode-chooser-title',
   'welcome': 'msp-shell-mode-chooser-welcome',
 } as const;
 
 defineStyles('views/shell/mode-chooser.module.css', `@layer msp.components {
+.msp-shell-mode-chooser-splash {
+  place-content: center;
+  justify-items: center;
+  gap: var(--msp-space-6);
+  height: 100%;
+  padding: var(--msp-space-5);
+  background: var(--msp-color-bg);
+  color: var(--msp-color-text);
+  display: grid;
+
+  & .msp-shell-mode-chooser-card {
+    background: var(--msp-color-panel);
+    backdrop-filter: none;
+  }
+}
+
 .msp-shell-mode-chooser-welcome {
   z-index: var(--msp-z-overlay);
   padding: var(--msp-space-5);
+  background: var(--msp-color-scrim);
   pointer-events: auto;
   place-items: center;
   display: grid;
   position: absolute;
   inset: 0;
+}
+
+.msp-shell-mode-chooser-cancel {
+  height: var(--msp-control-height);
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text);
+  justify-self: end;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
 }
 
 .msp-shell-mode-chooser-card {

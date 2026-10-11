@@ -35,7 +35,7 @@ export const ReactAndPreactTabs: StoryObj = {
         <div style="height: 100vh">
           <ShellStory
             loaded={true}
-            modes={[mockBlankMode()]}
+            mode={mockBlankMode()}
             addOn={({ status, shell }) => {
               const post = (text: string) => status.post(text);
               queueMicrotask(() => shell.show('react'));
@@ -74,9 +74,7 @@ export const InAReactApp: StoryObj = {
       const count = observableState(0);
       const host = document.createElement('div');
       const root = createRoot(host);
-      root.render(
-        createElement(ReactApp, { count, shell: () => <ShellStory loaded={true} modes={[mockBlankMode()]} /> }),
-      );
+      root.render(createElement(ReactApp, { count, shell: () => <ShellStory loaded={true} mode={mockBlankMode()} /> }));
       onCleanup(() => root.unmount());
       return host;
     }),

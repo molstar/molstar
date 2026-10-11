@@ -6,7 +6,24 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/* The first open: a card in the middle of the canvas, over the empty canvas's wordmark. */
+/* Before any app exists: the page, the wordmark, the choice. */
+.splash {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--msp-space-6);
+  height: 100%;
+  padding: var(--msp-space-5);
+  background: var(--msp-color-bg);
+  color: var(--msp-color-text);
+
+  & .card {
+    background: var(--msp-color-panel);
+    backdrop-filter: none;
+  }
+}
+
+/* Switching: the card over the running app, which is dimmed behind it. */
 .welcome {
   position: absolute;
   inset: 0;
@@ -14,7 +31,20 @@
   display: grid;
   place-items: center;
   padding: var(--msp-space-5);
+  background: var(--msp-color-scrim);
   pointer-events: auto;
+}
+
+.cancel {
+  justify-self: end;
+  height: var(--msp-control-height);
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
 }
 
 .card {

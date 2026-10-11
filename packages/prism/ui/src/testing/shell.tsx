@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map, type Observable, of, switchMap } from 'rxjs';
+import { map, type Observable, of } from 'rxjs';
 import { formatChord, isMac } from '../commands/keys.js';
 import type { CommandManager } from '../commands/manager.js';
 import type { CommandDefinition } from '../commands/types.js';
@@ -32,14 +32,12 @@ import { LogView } from '../views/shell/log-view.js';
 import { ShellView } from '../views/shell/shell-view.js';
 import { mockSettings } from './settings.js';
 
-// The mock shell, in two layers: the frame (the shell and its view, the status column, the theme, fullscreen, the
-// command menu, Log and Settings, and the add-ons such as the agent) and a mode, what the app is for at the moment:
-// Mol*'s own UI (@molstar/prism-viewer) or a story mode (@molstar/prism-stories); an app is composed of the modes it
-// includes. A mode brings its tabs, overlays, sections,
-// toolbar items, commands and canvas parts; the frame swaps it at runtime, undoing all it registered
-// (design/modes.md).
+// The mock app, in two layers: the frame (the shell and its view, the status column, the theme, fullscreen, the
+// command menu, Log and Settings, and the add-ons such as the agent) and the one mode the app runs: the viewer
+// (@molstar/prism-viewer) or the story mode (@molstar/prism-stories). A mode is chosen before the app exists (the
+// splash, `PrismAppStory`); switching later starts a new app in the other mode (design/modes.md).
 
-/** What the frame gives a mode while it is active. Its `shell` records what the mode registers, to undo it. */
+/** What the frame gives its mode. */
 export interface MockFrameContext {
   shell: ShellModel;
   status: StatusModel;
@@ -47,10 +45,14 @@ export interface MockFrameContext {
   /** The canvas background (a CSS color). */
   background?: string;
   openCommandMenu(group?: string): void;
-  /** The app's modes (to offer the choice, as Home does while nothing is loaded), the active one, and switching. */
+  /** The app's modes (to offer the choice, as Home does while nothing is loaded) and the one running. */
   modes: readonly ModeChoice[];
-  activeMode: Observable<string>;
-  switchMode(id: string): void;
+  mode: string;
+  /**
+   * Starts a new app: in that mode at once (nothing loaded, nothing lost: Home's choice), or, without one, after asking
+   * (the splash over the app, saying what goes).
+   */
+  switchMode(id?: string): void;
 }
 
 /**
@@ -72,7 +74,7 @@ export interface MockModeParts {
   dropFormats?: readonly string[];
   /** The tab shown when the mode starts. */
   start?: string;
-  /** Called when the mode leaves (its registrations are undone by the frame). */
+  /** Called when the app goes. */
   dispose?(): void;
 }
 
@@ -104,32 +106,6 @@ function withAddOnTabs(tabs: ShellTab[], extra: readonly ShellTab[] | undefined)
   return [...tabs.filter((t) => !replaced.has(t.id)), ...extra];
 }
 
-/** The shell as a mode sees it: every `register…` call is recorded, so leaving the mode undoes them all. */
-function recordingShell(shell: ShellModel): { shell: ShellModel; undo(): void } {
-  const undos: (() => void)[] = [];
-  const proxy = new Proxy(shell, {
-    get(target, key) {
-      const value = Reflect.get(target, key, target);
-      if (typeof value !== 'function') return value;
-      if (typeof key === 'string' && key.startsWith('register')) {
-        return (...args: unknown[]) => {
-          const undo = value.apply(target, args) as () => void;
-          undos.push(undo);
-          return undo;
-        };
-      }
-      return value.bind(target);
-    },
-  });
-  return {
-    shell: proxy,
-    undo: () => {
-      for (let i = undos.length - 1; i >= 0; i--) undos[i]();
-      undos.length = 0;
-    },
-  };
-}
-
 /** The frame alone, with an empty canvas: for stories about the frame or what is added to it. */
 export function mockBlankMode(): MockMode {
   return {
@@ -153,24 +129,25 @@ export interface ShellStoryProps {
   pinned?: boolean;
   /** Opens with the command menu open. */
   commandMenu?: boolean;
-  /** The first open: the app asks which mode to start in (a card over the canvas) before any is used. */
-  chooseMode?: boolean;
   /** What an add-on brings (the agent module's mock: `@molstar/prism-agent/testing`). */
   addOn?: MockShellAddOn;
 }
 
+/** The app's side of switching (`PrismAppStory`): its modes, and starting a new app. */
+export interface MockApp {
+  modes: readonly ModeChoice[];
+  switchMode(id?: string): void;
+}
+
 /**
- * The mock frame with the modes the app is composed of, the first active; with more, the rail and the command menu
- * switch between them. Mol*'s own UI is `mockViewerMode` (@molstar/prism-viewer), story mode `mockStoryMode`
- * (@molstar/prism-stories).
+ * The mock frame running one mode: Mol*'s own UI is `mockViewerMode` (@molstar/prism-viewer), the story mode
+ * `mockStoryMode` (@molstar/prism-stories). Inside `PrismAppStory`, it can start a new app in another mode.
  */
-export function ShellStory(props: ShellStoryProps & { modes: readonly MockMode[] }) {
-  const modes = props.modes;
+export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: MockApp }) {
+  const { mode, app } = props;
   const shell = new ShellModel({ docks: { right: { pinned: !!props.pinned } } });
   const status = new StatusModel();
   const commandMenuOpen = observableState(false);
-  // The first open asks for a mode (with more than one).
-  const choosing = observableState(!!props.chooseMode && props.modes.length > 1);
   // The group the command menu opens in (Preset, Styles); none for ⌘K.
   const commandMenuGroup = observableState<string | undefined>(undefined);
   const openCommandMenu = (group?: string) => {
@@ -212,31 +189,20 @@ export function ShellStory(props: ShellStoryProps & { modes: readonly MockMode[]
     ),
   );
 
-  const active = observableState<MockMode>(modes[0]);
-  const parts = observableState<MockModeParts | undefined>(undefined);
-  // The canvas tools act on what is shown: the active mode says whether anything is.
-  const hasData = parts.asReadonly.pipe(
-    switchMap((p) => p?.empty ?? of(!props.loaded)),
-    map((empty) => !empty),
-  );
+  const parts = mode.activate({
+    shell,
+    status,
+    loaded: props.loaded,
+    background: props.background,
+    openCommandMenu,
+    modes: app?.modes ?? [mode],
+    mode: mode.id,
+    switchMode: (id) => app?.switchMode(id),
+  });
+  // The canvas tools act on what is shown: the mode says whether anything is.
+  const empty = parts.empty ?? of(!props.loaded);
+  const hasData = empty.pipe(map((e) => !e));
   shell.registerToolbar([
-    // With more than one mode, the rail switches to the next (its face is where it goes).
-    ...(modes.length > 1
-      ? [
-          {
-            id: 'mode',
-            icon: modes[1].icon,
-            title: `Switch to ${modes[1].title}`,
-            face: active.asReadonly.pipe(
-              map((m) => {
-                const next = nextMode(m);
-                return { icon: next.icon, title: `Switch to ${next.title}` };
-              }),
-            ),
-            run: () => switchTo(nextMode(active.value)),
-          },
-        ]
-      : []),
     // The UI theme, by Settings at the rail's foot: a click goes to the next one; the icon is the current one.
     {
       id: 'theme',
@@ -293,120 +259,70 @@ export function ShellStory(props: ShellStoryProps & { modes: readonly MockMode[]
         },
   ]);
 
-  const nextMode = (m: MockMode) => modes[(modes.indexOf(m) + 1) % modes.length];
-  // The active mode: activated with a recording shell; leaving it undoes its registrations and command wiring.
-  let leave: (() => void) | undefined;
-  const switchTo = (mode: MockMode) => {
-    leave?.();
-    commandMenuOpen.set(false);
-    const recording = recordingShell(shell);
-    const p = mode.activate({
-      shell: recording.shell,
-      status,
-      loaded: props.loaded,
-      background: props.background,
-      openCommandMenu,
-      modes,
-      activeMode: active.asReadonly.pipe(map((m) => m.id)),
-      switchMode: (id) => {
-        const next = modes.find((m) => m.id === id);
-        if (next && next !== active.value) queueMicrotask(() => switchTo(next));
-      },
-    });
-    // Switching modes is a command in each of them.
-    const switching: CommandDefinition<any>[] = modes
-      .filter((m) => m !== mode)
-      .map((m) => ({
-        id: `mode.${m.id}`,
-        title: `Switch to ${m.title}`,
-        category: 'View',
-        icon: m.icon,
-        run: () => {
-          queueMicrotask(() => switchTo(m));
-          return { message: '' };
-        },
-      }));
-    const unregister = switching.length ? p.commands.register(switching) : undefined;
-    // What commands did goes to the status line (and, with the agent, to History).
-    const outcomes = p.commands.outcomes.subscribe((o) => {
-      if (o.kind === 'done' && o.result.message) status.post(o.result.message);
-      if (o.kind === 'done') addOn?.commandDone?.(o.result.message ?? o.command.title, o.command.id);
-      else if (o.kind === 'failed' || o.kind === 'blocked') status.post(o.message, 'warning');
-    });
-    leave = () => {
-      outcomes.unsubscribe();
-      unregister?.();
-      recording.undo();
-      p.dispose?.();
-    };
-    active.set(mode);
-    parts.set(p);
-    // While the app asks for a mode (the first open), nothing opens beside the question.
-    if (p.start && !choosing.value) shell.show(p.start);
-  };
+  // Switching modes, with more than one: a command that asks (the splash over the app, saying what goes).
+  const switching: CommandDefinition<any>[] =
+    app && app.modes.length > 1
+      ? [
+          {
+            id: 'app.switch-mode',
+            title: 'Switch mode…',
+            alias: ['mode', 'viewer', 'story', 'start over'],
+            category: 'View',
+            icon: 'prism',
+            run: () => {
+              app.switchMode();
+              return { message: '' };
+            },
+          },
+        ]
+      : [];
+  if (switching.length) parts.commands.register(switching);
+  // What commands did goes to the status line (and, with the agent, to History).
+  const outcomes = parts.commands.outcomes.subscribe((o) => {
+    if (o.kind === 'done' && o.result.message) status.post(o.result.message);
+    if (o.kind === 'done') addOn?.commandDone?.(o.result.message ?? o.command.title, o.command.id);
+    else if (o.kind === 'failed' || o.kind === 'blocked') status.post(o.message, 'warning');
+  });
 
-  // ⌘K / ⇧⌘P open the command menu; the active mode's commands' own shortcuts run them.
+  // ⌘K / ⇧⌘P open the command menu; the mode's commands' own shortcuts run them.
   const onKey = (e: KeyboardEvent) => {
     const mod = isMac() ? e.metaKey : e.ctrlKey;
     if (mod && (e.key.toLowerCase() === 'k' || (e.shiftKey && e.key.toLowerCase() === 'p'))) {
       e.preventDefault();
       openCommandMenu();
-    } else if (!commandMenuOpen.value && parts.value?.commands.handleKey(e, isMac())) e.preventDefault();
+    } else if (!commandMenuOpen.value && parts.commands.handleKey(e, isMac())) e.preventDefault();
   };
   window.addEventListener('keydown', onKey);
-  switchTo(modes[0]);
-  // Asking for a mode: the panel stays closed until one is chosen (its first tab would be active).
-  if (choosing.value && !shell.dock('right').state.value.collapsed) shell.toggle('right');
+  if (parts.start) shell.show(parts.start);
   shell.mount();
   status.mount();
   if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
   if (props.commandMenu) commandMenuOpen.set(true);
   onCleanup(() => {
     window.removeEventListener('keydown', onKey);
-    leave?.();
+    outcomes.unsubscribe();
+    parts.dispose?.();
     shell.unmount();
     status.unmount();
   });
 
-  // A canvas part of the active mode, swapped with it.
-  const part = (pick: (p: MockModeParts) => Child) => (
-    <Dynamic component={parts.asReadonly.pipe(map((p) => (p ? () => pick(p) : undefined)))} />
-  );
   const background = props.background ?? '#ffffff';
   return (
     <ShellView
       shell={shell}
       status={status}
-      canvas={part((p) => p.canvas?.() ?? null)}
-      overlays={
-        <>
-          {part((p) => p.overlays?.() ?? null)}
-          <Show when={choosing}>
-            {() => (
-              <ModeChooser
-                variant="welcome"
-                modes={modes}
-                onChoose={(id) => {
-                  choosing.set(false);
-                  const next = modes.find((m) => m.id === id);
-                  if (next && next !== active.value) switchTo(next);
-                  else if (parts.value?.start) shell.show(parts.value.start);
-                }}
-              />
-            )}
-          </Show>
-        </>
-      }
-      playback={part((p) => p.playback?.() ?? null)}
+      canvas={parts.canvas?.() ?? null}
+      overlays={parts.overlays?.() ?? null}
+      playback={parts.playback?.() ?? null}
       canvasColor={background}
       canvasTheme={themeForColor(parseColor(background) ?? 0xffffff)}
-      context={() => part((p) => p.context?.() ?? null)}
+      context={parts.context}
       commandMenu={
         <Show when={commandMenuOpen}>
           {() => (
             <CommandMenu
-              manager={parts.value!.commands}
-              prefixes={parts.value!.prefixes}
+              manager={parts.commands}
+              prefixes={parts.prefixes}
               group={commandMenuGroup.value}
               assistant={addOn?.assistant}
               onClose={() => {
@@ -418,12 +334,68 @@ export function ShellStory(props: ShellStoryProps & { modes: readonly MockMode[]
         </Show>
       }
       agent={addOn?.agent}
-      canvasLead={part((p) => p.canvasLead?.() ?? null)}
-      canvasAside={part((p) => p.canvasAside?.() ?? null)}
+      canvasLead={parts.canvasLead?.() ?? null}
+      canvasAside={parts.canvasAside?.() ?? null}
       onOpenLog={() => shell.show('log')}
-      empty={parts.asReadonly.pipe(switchMap((p) => p?.empty ?? of(!props.loaded)))}
-      onDropFiles={(files) => parts.value?.onDropFiles?.(files)}
-      dropFormats={parts.value?.dropFormats}
+      empty={empty}
+      onDropFiles={parts.onDropFiles}
+      dropFormats={parts.dropFormats}
     />
+  );
+}
+
+/**
+ * The app as it starts (design/modes.md): the splash asks which mode before any app exists; choosing one creates the
+ * app in it. Switching later shows the splash over the app, saying what goes (what is loaded; stories are kept in the
+ * browser); choosing creates a new app, Cancel goes back. With `start`, the app starts in that mode (no splash).
+ */
+export function PrismAppStory(props: ShellStoryProps & { modes: readonly MockMode[]; start?: string }) {
+  const find = (id: string | undefined) => props.modes.find((m) => m.id === id);
+  // Each start counted: the app is created again even in the same mode (states skip equal records).
+  let starts = 0;
+  const start = (mode: MockMode) => ({ mode, n: ++starts });
+  const running = observableState<{ mode: MockMode; n: number } | undefined>(
+    find(props.start) ? start(find(props.start)!) : undefined,
+  );
+  const asking = observableState(false);
+  const app: MockApp = {
+    modes: props.modes,
+    switchMode: (id) => {
+      const next = find(id);
+      if (next) queueMicrotask(() => running.set(start(next)));
+      else asking.set(true);
+    },
+  };
+  const choose = (id: string) => {
+    asking.set(false);
+    const next = find(id);
+    if (next && next.id !== running.value?.mode.id) queueMicrotask(() => running.set(start(next)));
+  };
+  return (
+    <div style="position: relative; height: 100%">
+      <Dynamic
+        component={running.asReadonly.pipe(
+          map((r) =>
+            r
+              ? () => <ShellStory {...props} mode={r.mode} app={app} />
+              : () => (
+                  <ModeChooser variant="splash" modes={props.modes} onChoose={(id) => running.set(start(find(id)!))} />
+                ),
+          ),
+        )}
+      />
+      <Show when={asking}>
+        {() => (
+          <ModeChooser
+            variant="welcome"
+            modes={props.modes}
+            active={running.asReadonly.pipe(map((r) => r?.mode.id ?? ''))}
+            notice="Switching starts a new session: what is loaded now goes. Stories are kept in this browser."
+            onChoose={choose}
+            onCancel={() => asking.set(false)}
+          />
+        )}
+      </Show>
+    </div>
   );
 }
