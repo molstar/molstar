@@ -57,6 +57,13 @@ export function mockMeasurements(scene: MockScene, post: (text: string) => void)
       [list[i], list[j]] = [list[j], list[i]];
       points.set(list);
     },
+    movePointTo: (id, index) => {
+      const point = points.value.find((p) => p.id === id);
+      if (!point) return;
+      const list = points.value.filter((p) => p.id !== id);
+      list.splice(Math.max(0, Math.min(list.length, index)), 0, point);
+      points.set(list);
+    },
     removePoint: (id) => points.set(points.value.filter((p) => p.id !== id)),
     focusPoint: (id) => post(`Focused on ${points.value.find((p) => p.id === id)?.label}`),
     kinds: Kinds,

@@ -31,6 +31,8 @@ export interface MeasurementsModel {
   /** Newest first. */
   points: ReadonlyState<readonly MeasurementPoint[]>;
   movePoint(id: string, by: -1 | 1): void;
+  /** Moves it to a position (dragged by its handle). */
+  movePointTo(id: string, index: number): void;
   removePoint(id: string): void;
   focusPoint(id: string): void;
   highlightPoint?(id: string | undefined): void;

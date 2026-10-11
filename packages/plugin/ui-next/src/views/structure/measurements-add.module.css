@@ -50,6 +50,55 @@
   }
 }
 
+/* The number and the drag handle share a slot: the handle on hover. */
+.slot {
+  flex: none;
+  display: grid;
+  place-items: center start;
+  min-width: 1.5ch;
+
+  & > * {
+    grid-area: 1 / 1;
+  }
+}
+
+.grip {
+  display: grid;
+  place-items: center;
+  height: 22px;
+  color: var(--msp-color-text-subtle);
+  cursor: grab;
+  touch-action: none;
+  opacity: 0;
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+
+  .point:hover &,
+  [data-dragging] & {
+    opacity: 1;
+  }
+}
+
+.point:hover .index,
+.point[data-dragging] .index {
+  visibility: hidden;
+}
+
+/* While dragging: the point being moved fades, a line shows where it lands. */
+.point[data-dragging] {
+  opacity: 0.5;
+}
+
+.point[data-drop="before"] {
+  box-shadow: 0 -2px 0 var(--msp-color-text-muted);
+}
+
+.point[data-drop="after"] {
+  box-shadow: 0 2px 0 var(--msp-color-text-muted);
+}
+
 .index {
   flex: none;
   min-width: 1.5ch;

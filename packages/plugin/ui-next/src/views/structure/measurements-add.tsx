@@ -9,6 +9,7 @@
 import { distinctUntilChanged, map } from 'rxjs';
 import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm } from '../../components/params/params-form.js';
+import { dragToReorder } from '../../components/reorder/drag-to-reorder.js';
 import { For, Show } from '../../dom/control-flow.js';
 import type { MeasurementKind, MeasurementPoint, MeasurementsModel } from '../../model/measurements.js';
 import { observableState } from '../../reactive/observable-state.js';
@@ -31,10 +32,11 @@ export function MeasurementsAdd(props: { model: MeasurementsModel }) {
     distinctUntilChanged(),
   );
   const options = observableState(false);
+  let list: HTMLElement | undefined;
   return (
     <div class={classes.add}>
       <p class={classes.caption}>Points · the latest selections</p>
-      <div class={classes.points}>
+      <div class={classes.points} ref={(el: HTMLElement) => (list = el)}>
         <For
           each={used}
           key={(p) => p.id}
@@ -44,7 +46,14 @@ export function MeasurementsAdd(props: { model: MeasurementsModel }) {
             </p>
           )}
         >
-          {(point, index) => <PointRow model={model} point={point} index={index} />}
+          {(point, index) => (
+            <PointRow
+              model={model}
+              point={point}
+              index={index}
+              onGrab={(e) => dragToReorder(e, list, point.id, (i) => model.movePointTo(point.id, i))}
+            />
+          )}
         </For>
         <Show when={older.pipe(map((n) => n > 0))}>
           {() => <p class={classes.more}>{older.pipe(map((n) => `+${n} older, not used`))}</p>}
@@ -70,15 +79,27 @@ export function MeasurementsAdd(props: { model: MeasurementsModel }) {
   );
 }
 
-function PointRow(props: { model: MeasurementsModel; point: MeasurementPoint; index: ReadonlyState<number> }) {
+function PointRow(props: {
+  model: MeasurementsModel;
+  point: MeasurementPoint;
+  index: ReadonlyState<number>;
+  onGrab: (e: PointerEvent) => void;
+}) {
   const { model, point } = props;
   return (
     <div
       class={classes.point}
+      data-id={point.id}
       onPointerEnter={() => model.highlightPoint?.(point.id)}
       onPointerLeave={() => model.highlightPoint?.(undefined)}
     >
-      <span class={classes.index}>{props.index.pipe(map((i) => `${i + 1}`))}</span>
+      {/* The position; on hover, the handle that drags the point (the arrows stay for the keyboard). */}
+      <span class={classes.slot}>
+        <span class={classes.index}>{props.index.pipe(map((i) => `${i + 1}`))}</span>
+        <span class={classes.grip} aria-hidden="true" data-tip="Drag to reorder" onPointerDown={props.onGrab}>
+          <Icon name="grip-vertical" size={13} />
+        </span>
+      </span>
       <button type="button" class={classes.pointLabel} title="Focus" onClick={() => model.focusPoint(point.id)}>
         {point.label}
       </button>

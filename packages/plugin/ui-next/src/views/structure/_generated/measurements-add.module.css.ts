@@ -13,6 +13,7 @@ export const classes = {
   'add': 'msp-structure-measurements-add-add',
   'caption': 'msp-structure-measurements-add-caption',
   'chevron': 'msp-structure-measurements-add-chevron',
+  'grip': 'msp-structure-measurements-add-grip',
   'hint': 'msp-structure-measurements-add-hint',
   'index': 'msp-structure-measurements-add-index',
   'kind': 'msp-structure-measurements-add-kind',
@@ -25,6 +26,7 @@ export const classes = {
   'pointActions': 'msp-structure-measurements-add-pointActions',
   'pointLabel': 'msp-structure-measurements-add-pointLabel',
   'points': 'msp-structure-measurements-add-points',
+  'slot': 'msp-structure-measurements-add-slot',
 } as const;
 
 defineStyles('views/structure/measurements-add.module.css', `@layer msp.components {
@@ -70,6 +72,51 @@ defineStyles('views/structure/measurements-add.module.css', `@layer msp.componen
   &:hover {
     background: var(--msp-color-hover);
   }
+}
+
+.msp-structure-measurements-add-slot {
+  flex: none;
+  place-items: center start;
+  min-width: 1.5ch;
+  display: grid;
+
+  & > * {
+    grid-area: 1 / 1;
+  }
+}
+
+.msp-structure-measurements-add-grip {
+  height: 22px;
+  color: var(--msp-color-text-subtle);
+  cursor: grab;
+  touch-action: none;
+  opacity: 0;
+  place-items: center;
+  display: grid;
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+
+  .msp-structure-measurements-add-point:hover &, [data-dragging] & {
+    opacity: 1;
+  }
+}
+
+.msp-structure-measurements-add-point:hover .msp-structure-measurements-add-index, .msp-structure-measurements-add-point[data-dragging] .msp-structure-measurements-add-index {
+  visibility: hidden;
+}
+
+.msp-structure-measurements-add-point[data-dragging] {
+  opacity: .5;
+}
+
+.msp-structure-measurements-add-point[data-drop="before"] {
+  box-shadow: 0 -2px 0 var(--msp-color-text-muted);
+}
+
+.msp-structure-measurements-add-point[data-drop="after"] {
+  box-shadow: 0 2px 0 var(--msp-color-text-muted);
 }
 
 .msp-structure-measurements-add-index {
