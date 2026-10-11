@@ -122,7 +122,6 @@
   position: absolute;
   top: var(--msp-canvas-top-inset, var(--msp-space-4));
   right: var(--msp-canvas-right-inset, var(--msp-space-4));
-  transition: right var(--msp-motion-base) var(--msp-ease);
 }
 
 :where([data-mode="compact"]) .stack {
@@ -233,7 +232,6 @@
   bottom: var(--msp-space-4);
   container: bottom-bar / inline-size;
   pointer-events: none;
-  transition: right var(--msp-motion-base) var(--msp-ease);
 }
 
 .bottomGrid {

@@ -141,7 +141,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-stack {
   top: var(--msp-canvas-top-inset, var(--msp-space-4));
   right: var(--msp-canvas-right-inset, var(--msp-space-4));
-  transition: right var(--msp-motion-base) var(--msp-ease);
   position: absolute;
 }
 
@@ -239,7 +238,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   right: var(--msp-canvas-right-inset, var(--msp-space-4));
   bottom: var(--msp-space-4);
   pointer-events: none;
-  transition: right var(--msp-motion-base) var(--msp-ease);
   position: absolute;
   container: bottom-bar / inline-size;
 }
