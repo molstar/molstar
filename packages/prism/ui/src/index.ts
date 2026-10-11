@@ -56,6 +56,7 @@ export {
 } from './views/command-menu/command-menu.js';
 export { StatusLine, StatusPill } from './views/shell/canvas-chrome.js';
 export { CanvasPlaceholder } from './views/shell/canvas-placeholder.js';
+export { HelpPanel, type InputBinding, type InputBindingGroup } from './views/shell/help-panel.js';
 export { LogView } from './views/shell/log-view.js';
 export { type ModeChoice, ModeChooser } from './views/shell/mode-chooser.js';
 export { SectionList } from './views/shell/section-list.js';

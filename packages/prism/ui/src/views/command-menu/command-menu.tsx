@@ -494,7 +494,21 @@ function helpPrefix(props: CommandMenuProps, type: (text: string) => void): Comm
             props.manager.open(c.id);
           },
         }));
-      return [...prefixes, ...shortcuts].filter((i) => !q || i.label.toLowerCase().includes(q));
+      // The Help card first, when the app has one: the canvas's bindings and every key, in one place.
+      const card: CommandMenuItem[] = props.manager.get('help.show')
+        ? [
+            {
+              id: 'help:card',
+              label: 'Keyboard and mouse',
+              detail: 'The Help card',
+              icon: 'circle-help',
+              run: () => {
+                props.manager.open('help.show');
+              },
+            },
+          ]
+        : [];
+      return [...card, ...prefixes, ...shortcuts].filter((i) => !q || i.label.toLowerCase().includes(q));
     },
   };
 }

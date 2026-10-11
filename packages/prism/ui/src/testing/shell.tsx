@@ -28,6 +28,7 @@ import { CanvasPlaceholder } from '../views/shell/canvas-placeholder.js';
 import { type ModeChoice, ModeChooser } from '../views/shell/mode-chooser.js';
 import { CommandManager as Commands } from '../commands/manager.js';
 import { SettingsTab } from '../views/settings/settings-tab.js';
+import { HelpPanel, type InputBindingGroup } from '../views/shell/help-panel.js';
 import { LogView } from '../views/shell/log-view.js';
 import { ShellView } from '../views/shell/shell-view.js';
 import { mockSettings } from './settings.js';
@@ -72,6 +73,8 @@ export interface MockModeParts {
   empty?: Observable<boolean>;
   onDropFiles?: (files: readonly File[]) => void;
   dropFormats?: readonly string[];
+  /** How to work its canvas (the Help card's mouse and touch section). */
+  bindings?: readonly InputBindingGroup[];
   /** The tab shown when the mode starts. */
   start?: string;
   /** Called when the app goes. */
@@ -125,6 +128,8 @@ export interface ShellStoryProps {
   background?: string;
   /** Opens the Export card at a section (a mode registers the card). */
   openExportAt?: string;
+  /** Opens a card (Help, Animation, …). */
+  openCard?: string;
   /** The right panel pinned beside the canvas. */
   pinned?: boolean;
   /** Opens with the command menu open. */
@@ -259,6 +264,31 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
         },
   ]);
 
+  // Help: how to work the canvas (the mode's bindings) and the keys (the command registry as it is); a card, a button
+  // at the rail's foot, a command on ?, and the command menu's ?.
+  shell.registerOverlays([
+    {
+      id: 'help',
+      title: 'Help',
+      render: domView(() => <HelpPanel commands={parts.commands} bindings={parts.bindings ?? []} />),
+    },
+  ]);
+  shell.registerToolbar([{ id: 'help', icon: 'circle-help', title: 'Help', overlay: 'help' }]);
+  parts.commands.register([
+    {
+      id: 'help.show',
+      title: 'Keyboard and mouse',
+      alias: ['help', 'shortcuts', 'keys', 'bindings', 'controls'],
+      category: 'Help',
+      icon: 'circle-help',
+      shortcut: { key: '?' },
+      run: () => {
+        shell.openOverlay('help');
+        return { message: '' };
+      },
+    },
+  ]);
+
   // Switching modes, with more than one: a command that asks (the splash over the app, saying what goes).
   const switching: CommandDefinition<any>[] =
     app && app.modes.length > 1
@@ -297,6 +327,7 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
   shell.mount();
   status.mount();
   if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
+  if (props.openCard) shell.openOverlay(props.openCard);
   if (props.commandMenu) commandMenuOpen.set(true);
   onCleanup(() => {
     window.removeEventListener('keydown', onKey);

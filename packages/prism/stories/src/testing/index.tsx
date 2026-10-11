@@ -187,6 +187,22 @@ export function mockStoryMode(): MockMode {
         commands,
         canvas: () => <CanvasPlaceholder empty={false} background={background} />,
         playback: () => <SnapshotCard model={story.player} />,
+        bindings: [
+          {
+            title: 'Camera',
+            bindings: [
+              { action: 'Rotate', input: ['Drag'], or: ['One-finger drag'] },
+              { action: 'Zoom', input: ['Scroll'], or: ['Pinch'] },
+            ],
+          },
+          {
+            title: 'Playing',
+            bindings: [
+              { action: 'Next scene', input: ['⌥', '→'] },
+              { action: 'Previous scene', input: ['⌥', '←'] },
+            ],
+          },
+        ],
         empty: of(false),
       };
     },
