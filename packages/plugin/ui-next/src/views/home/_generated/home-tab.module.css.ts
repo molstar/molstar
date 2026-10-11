@@ -105,9 +105,12 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
   min-width: 0;
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 
@@ -151,8 +154,11 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 .msp-home-home-tab-stateDate {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 

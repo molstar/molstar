@@ -311,7 +311,7 @@ export const Search = render(
   { filter: true },
 );
 
-/** Long labels at a narrow width: labels give way (ellipsis, full on hover), controls keep their column. */
+/** Long labels at a narrow width: labels give way (fading out, full on hover), controls keep their column. */
 export const LongLabels = render(
   {
     checkeredTransparentBackground: PD.Boolean(true),

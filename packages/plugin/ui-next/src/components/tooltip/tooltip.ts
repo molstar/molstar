@@ -13,7 +13,7 @@ const ShowDelayMs = 350;
  * Tooltips for icon buttons: any element in `root` with `data-tip` (the text) gets one, placed by `data-tip-side`
  * (`left` for the rail and the canvas stack, `top` for the bottom of the canvas, `bottom` by default), on hover or keyboard focus. One element is reused,
  * positioned in the viewport; buttons keep their `aria-label` for assistive technology (no native `title` as well).
- * `data-tip-overflow` (no text) shows the element's own text, only while it is cut off (a long label with an ellipsis).
+ * `data-tip-overflow` (no text) shows the element's own text, only while it is cut off (a long label, faded at its end).
  * Returns the uninstall function.
  */
 export function installTooltips(root: HTMLElement): () => void {

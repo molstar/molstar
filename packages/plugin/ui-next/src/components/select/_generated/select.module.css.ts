@@ -56,10 +56,13 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
 }
 
 .msp-select-label {
-  text-overflow: ellipsis;
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
-  min-width: 0;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 

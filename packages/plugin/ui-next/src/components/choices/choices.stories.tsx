@@ -8,7 +8,9 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { story } from '../../_stories/story-root.js';
+import { onCleanup } from '../../dom/scope.js';
 import { observableState } from '../../reactive/observable-state.js';
+import { installTooltips } from '../tooltip/tooltip.js';
 import { Choices } from './choices.js';
 
 const meta: Meta = { title: 'Components/Choices' };
@@ -18,7 +20,7 @@ const panel =
   'display: grid; gap: var(--msp-space-3); width: 300px; padding: var(--msp-space-4); background: var(--msp-color-panel); color: var(--msp-color-text); font-size: var(--msp-font-size-sm);';
 const readout = 'color: var(--msp-color-text-muted);';
 
-/** Quick styles with their icons: picking one marks it as the one in effect. */
+/** Quick styles (as the Structure tab has them): picking one marks it as the one in effect. */
 export const QuickStyles: StoryObj = {
   render: () =>
     story(() => {
@@ -28,10 +30,10 @@ export const QuickStyles: StoryObj = {
           <Choices
             label="Quick styles"
             choices={[
-              { id: 'default', label: 'Default', icon: 'molstar' },
-              { id: 'cartoon', label: 'Cartoon', icon: 'cartoon' },
-              { id: 'spacefill', label: 'Spacefill', icon: 'spacefill' },
-              { id: 'surface', label: 'Surface', icon: 'surface' },
+              { id: 'default', label: 'Default' },
+              { id: 'cartoon', label: 'Cartoon' },
+              { id: 'spacefill', label: 'Spacefill' },
+              { id: 'surface', label: 'Surface' },
             ]}
             active={active.asReadonly}
             onPick={(id) => active.set(id)}
@@ -61,4 +63,23 @@ export const Plain: StoryObj = {
         </div>
       );
     }),
+};
+
+/** Narrow: the choices wrap into rows of equal widths; a label that still does not fit gives way (full on hover). */
+export const Narrow: StoryObj = {
+  render: () =>
+    story(() => (
+      <div ref={(el: HTMLElement) => onCleanup(installTooltips(el))} style={`${panel} width: 180px;`}>
+        <Choices
+          label="Representation"
+          choices={[
+            { id: 'default', label: 'Default' },
+            { id: 'cartoon', label: 'Cartoon' },
+            { id: 'spacefill', label: 'Spacefill' },
+            { id: 'surface', label: 'Molecular surface' },
+          ]}
+          onPick={() => {}}
+        />
+      </div>
+    )),
 };

@@ -79,10 +79,13 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 .msp-canvas-playback-title {
   min-width: 0;
   padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
   font-weight: 600;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 
@@ -149,9 +152,12 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 }
 
 .msp-canvas-playback-trajectoryLabel {
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   font-weight: 600;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 

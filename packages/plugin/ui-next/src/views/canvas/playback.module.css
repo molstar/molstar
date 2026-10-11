@@ -61,7 +61,11 @@
   min-width: 0;
   padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
   overflow: hidden;
-  text-overflow: ellipsis;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   font-weight: 600;
 }
@@ -135,7 +139,11 @@
 .trajectoryLabel {
   overflow: hidden;
   font-weight: 600;
-  text-overflow: ellipsis;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 

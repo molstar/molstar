@@ -8,7 +8,19 @@
 
 import { defineStyles } from '../registry.js';
 
-defineStyles('styles/reset.css', `@layer msp.reset {
+defineStyles('styles/reset.css', `@property --msp-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@keyframes msp-fade-overflow {
+  from, to {
+    --msp-fade: 20px;
+  }
+}
+
+@layer msp.reset {
   :where(.msp-root) {
     font-family: var(--msp-font-sans);
     font-size: var(--msp-font-size-md);

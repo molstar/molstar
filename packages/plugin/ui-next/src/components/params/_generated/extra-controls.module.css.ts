@@ -63,10 +63,13 @@ defineStyles('components/params/extra-controls.module.css', `@layer msp.componen
 .msp-params-extra-controls-fieldContent {
   align-items: center;
   gap: var(--msp-space-2);
-  text-overflow: ellipsis;
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
-  min-width: 0;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   display: flex;
   overflow: hidden;
 }
@@ -242,10 +245,13 @@ defineStyles('components/params/extra-controls.module.css', `@layer msp.componen
 }
 
 .msp-params-extra-controls-stripName {
-  text-overflow: ellipsis;
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
-  min-width: 0;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 
@@ -317,9 +323,12 @@ defineStyles('components/params/extra-controls.module.css', `@layer msp.componen
 .msp-params-extra-controls-graphHint {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   margin: 0;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 }

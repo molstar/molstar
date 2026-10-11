@@ -77,6 +77,9 @@ export function compile(file) {
     minify: false,
   });
   let css = result.code.toString().trim();
+  // Names that already carry the `msp-` prefix are global (shared keyframes in styles/, `msp-fade-overflow`): a module
+  // refers to them as they are; its own names never start with it.
+  if (isModule) css = css.replaceAll(`msp-${modulePrefix(file)}-msp-`, 'msp-');
   if (isModule) css = `@layer msp.components {\n${css}\n}`;
   const out = outputOf(file);
   let importPath = path.relative(path.dirname(out), registry).split(path.sep).join('/');
@@ -85,6 +88,7 @@ export function compile(file) {
   lines.push(`import { defineStyles } from '${importPath}';`, '');
   if (isModule) {
     const classes = Object.entries(result.exports ?? {})
+      .filter(([local]) => !local.startsWith('msp-'))
       .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
       .map(([local, e]) => `  '${local}': '${e.name}',`);
     lines.push('export const classes = {', ...classes, '} as const;', '');

@@ -138,10 +138,13 @@ defineStyles('views/structure/measurements-add.module.css', `@layer msp.componen
   min-width: 0;
   color: var(--msp-color-text);
   text-align: left;
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
   font-weight: 500;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 
@@ -210,9 +213,12 @@ defineStyles('views/structure/measurements-add.module.css', `@layer msp.componen
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   text-align: right;
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 

@@ -97,12 +97,15 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
 }
 
 .msp-structure-scene-tree-label {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 0 auto;
   min-width: 3ch;
   max-width: 60%;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  white-space: nowrap;
+  flex: 0 auto;
   font-weight: 500;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 
@@ -110,9 +113,12 @@ defineStyles('views/structure/scene-tree.module.css', `@layer msp.components {
   min-width: 0;
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 

@@ -8,6 +8,30 @@
  * A reset scoped to ui-next roots (top-level `msp-*` elements carry `.msp-root`), so host pages are untouched and host
  * styles leaking in are neutralised. Low specificity (`:where`) and the lowest layer: components override it freely.
  */
+/*
+ * Cut-off text fades out at its end (no ellipsis). Only when it is cut off: a scroll-driven animation on the element's
+ * own inline scroll timeline sets the fade's width, and that timeline is active only when there is overflow to scroll.
+ * An element opts in with `overflow: hidden`, `white-space: nowrap` and the three lines below (where scroll timelines
+ * are unsupported the text is simply clipped):
+ *   mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+ *   animation-name: msp-fade-overflow;
+ *   animation-fill-mode: both;
+ *   animation-timeline: scroll(self inline);
+ * (longhands: the `animation` shorthand cannot carry a timeline, and the build would merge them into it)
+ */
+@property --msp-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes msp-fade-overflow {
+  from,
+  to {
+    --msp-fade: 20px;
+  }
+}
+
 @layer msp.reset {
   :where(.msp-root) {
     font-family: var(--msp-font-sans);

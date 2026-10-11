@@ -116,10 +116,13 @@ defineStyles('views/state/remote-states-panel.module.css', `@layer msp.component
 .msp-state-remote-states-panel-name {
   min-width: 3ch;
   color: var(--msp-color-text);
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 0 auto;
   font-weight: 500;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 
@@ -127,9 +130,12 @@ defineStyles('views/state/remote-states-panel.module.css', `@layer msp.component
   min-width: 0;
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 

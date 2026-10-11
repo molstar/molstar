@@ -70,10 +70,13 @@ defineStyles('views/sequence/sequence-strip.module.css', `@layer msp.components 
 }
 
 .msp-sequence-sequence-strip-value {
-  text-overflow: ellipsis;
-  white-space: nowrap;
   min-width: 0;
   max-width: 220px;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  white-space: nowrap;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 

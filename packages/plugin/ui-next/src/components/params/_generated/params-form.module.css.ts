@@ -70,7 +70,6 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   min-width: 0;
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
-  text-overflow: ellipsis;
   white-space: nowrap;
   display: flex;
   overflow: hidden;
@@ -264,10 +263,13 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 .msp-params-params-form-channels {
   min-width: 0;
   color: var(--msp-color-text);
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   font-size: var(--msp-font-size-sm);
   font-variant-numeric: tabular-nums;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 
@@ -389,9 +391,12 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 .msp-params-params-form-fileNames {
   min-width: 0;
   color: var(--msp-color-text);
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 
   &[data-empty] {
@@ -464,9 +469,12 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   min-width: 0;
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 

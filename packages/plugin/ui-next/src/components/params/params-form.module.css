@@ -21,7 +21,7 @@
   }
 }
 
-/* A row's label: its text (giving way first, with an ellipsis) and, when the param has help, a ? after it. */
+/* A row's label: its text (giving way first, fading out at its end) and, when the param has help, a ? after it. */
 .label {
   display: flex;
   align-items: center;
@@ -30,7 +30,6 @@
   overflow: hidden;
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -239,7 +238,11 @@
   min-width: 0;
   overflow: hidden;
   color: var(--msp-color-text);
-  text-overflow: ellipsis;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
   font-size: var(--msp-font-size-sm);
   font-variant-numeric: tabular-nums;
@@ -382,7 +385,11 @@
   min-width: 0;
   overflow: hidden;
   color: var(--msp-color-text);
-  text-overflow: ellipsis;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 
   &[data-empty] {
@@ -462,7 +469,11 @@
   overflow: hidden;
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
-  text-overflow: ellipsis;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 

@@ -54,13 +54,13 @@ export const Overflow: StoryObj = {
       <div style={panel} ref={tips}>
         <span
           data-tip-overflow
-          style="display: block; width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"
+          style="display: block; width: 120px; overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent)"
         >
           A long label that does not fit
         </span>
         <span
           data-tip-overflow
-          style="display: block; width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"
+          style="display: block; width: 120px; overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent)"
         >
           Fits
         </span>

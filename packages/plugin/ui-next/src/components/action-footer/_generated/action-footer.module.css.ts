@@ -80,10 +80,13 @@ defineStyles('components/action-footer/action-footer.module.css', `@layer msp.co
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;
   align-self: center;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 

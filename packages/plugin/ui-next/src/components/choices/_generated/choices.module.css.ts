@@ -13,11 +13,14 @@ export const classes = {
   'group': 'msp-choices-group',
   'label': 'msp-choices-label',
   'row': 'msp-choices-row',
+  'text': 'msp-choices-text',
 } as const;
 
 defineStyles('components/choices/choices.module.css', `@layer msp.components {
 .msp-choices-group {
   gap: var(--msp-space-1);
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   display: grid;
 }
 
@@ -28,8 +31,7 @@ defineStyles('components/choices/choices.module.css', `@layer msp.components {
 }
 
 .msp-choices-row {
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
+  grid-template-columns: repeat(auto-fit, minmax(min(64px, 100%), 1fr));
   gap: 2px;
   display: grid;
 }
@@ -45,11 +47,9 @@ defineStyles('components/choices/choices.module.css', `@layer msp.components {
   background: var(--msp-color-control);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
-  text-overflow: ellipsis;
   white-space: nowrap;
   transition: background-color var(--msp-motion-fast) var(--msp-ease);
   display: flex;
-  overflow: hidden;
 
   &:hover {
     background: var(--msp-color-hover);
@@ -59,6 +59,19 @@ defineStyles('components/choices/choices.module.css', `@layer msp.components {
     background: color-mix(in oklab, var(--msp-color-accent), transparent 82%);
     color: var(--msp-color-accent);
   }
+
+  & > svg {
+    flex: none;
+  }
+}
+
+.msp-choices-text {
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
 }
 }
 `);

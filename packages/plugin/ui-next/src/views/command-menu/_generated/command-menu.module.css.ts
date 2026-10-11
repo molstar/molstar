@@ -194,8 +194,11 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 }
 
 .msp-command-menu-rowTitle {
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 
   & mark {
@@ -213,8 +216,11 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 .msp-command-menu-rowMeta {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 

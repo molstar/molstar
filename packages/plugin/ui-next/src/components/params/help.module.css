@@ -8,7 +8,11 @@
 .text {
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 
   /* There is help: a dotted underline says so (and the text opens it). */
@@ -98,7 +102,11 @@
   min-width: 0;
   overflow: hidden;
   color: var(--msp-color-text);
-  text-overflow: ellipsis;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   white-space: nowrap;
 }
 

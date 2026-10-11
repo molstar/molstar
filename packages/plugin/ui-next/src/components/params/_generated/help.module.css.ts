@@ -24,9 +24,12 @@ export const classes = {
 
 defineStyles('components/params/help.module.css', `@layer msp.components {
 .msp-params-help-text {
-  text-overflow: ellipsis;
-  white-space: nowrap;
   min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  white-space: nowrap;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 
   &[data-help] {
@@ -108,8 +111,11 @@ defineStyles('components/params/help.module.css', `@layer msp.components {
 .msp-params-help-name {
   min-width: 0;
   color: var(--msp-color-text);
-  text-overflow: ellipsis;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
   overflow: hidden;
 }
 

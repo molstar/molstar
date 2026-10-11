@@ -40,7 +40,9 @@ export function Choices(props: {
             onClick={() => props.onPick(c.id)}
           >
             {c.icon ? <Icon name={c.icon} size={15} /> : null}
-            {c.label}
+            <span class={classes.text} data-tip-overflow="">
+              {c.label}
+            </span>
           </button>
         ))}
       </div>
