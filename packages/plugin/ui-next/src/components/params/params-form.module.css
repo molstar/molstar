@@ -424,6 +424,7 @@
 }
 
 .itemRow {
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -473,6 +474,7 @@
 .itemAdd {
   display: flex;
   align-items: center;
+  gap: var(--msp-space-2);
   height: 26px;
   margin: 0 calc(-1 * var(--msp-space-1));
   padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-space-3));

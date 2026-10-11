@@ -722,6 +722,7 @@ function ObjectListRow(props: { head: Child; label: string; param: PD.ObjectList
           aria-label={`Add to ${props.label}`}
           onClick={() => binding.set([...(binding.get() ?? []), param.ctor()])}
         >
+          <Icon name="plus" size={13} />
           Add
         </button>
       </div>
@@ -739,7 +740,8 @@ function ObjectListItem(props: {
   const open = observableState(false);
   return (
     <div class={classes.item} data-open={open.asReadonly.pipe(map((o) => (o ? '' : undefined)))}>
-      <div class={classes.itemRow}>
+      {/* A click anywhere on the row opens or closes the item's params (the sliders say so; remove does not). */}
+      <div class={classes.itemRow} onClick={() => open.set(!open.value)}>
         <span class={classes.itemLabel}>
           {binding.value.pipe(map((v: unknown[]) => (v?.[index] !== undefined ? param.getLabel(v[index]) : '')))}
         </span>
@@ -749,7 +751,10 @@ function ObjectListItem(props: {
           title="Edit"
           aria-label="Edit"
           aria-expanded={open}
-          onClick={() => open.set(!open.value)}
+          onClick={(e) => {
+            e.stopPropagation();
+            open.set(!open.value);
+          }}
         >
           <Icon name="sliders-horizontal" size={14} />
         </button>
@@ -758,7 +763,10 @@ function ObjectListItem(props: {
           class={classes.settings}
           title="Remove"
           aria-label="Remove"
-          onClick={() => binding.set((binding.get() ?? []).filter((_: unknown, j: number) => j !== index))}
+          onClick={(e) => {
+            e.stopPropagation();
+            binding.set((binding.get() ?? []).filter((_: unknown, j: number) => j !== index));
+          }}
         >
           <Icon name="x" size={13} />
         </button>

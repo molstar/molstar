@@ -431,6 +431,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-itemRow {
+  cursor: pointer;
   height: 26px;
   margin: 0 calc(-1 * var(--msp-space-1));
   padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-space-3));
@@ -473,6 +474,8 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-itemAdd {
+  align-items: center;
+  gap: var(--msp-space-2);
   height: 26px;
   margin: 0 calc(-1 * var(--msp-space-1));
   padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-space-3));
@@ -480,7 +483,6 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
   text-align: left;
-  align-items: center;
   display: flex;
 
   &:hover {
