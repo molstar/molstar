@@ -75,8 +75,8 @@
   cursor: pointer;
 
   &::-webkit-slider-runnable-track {
-    height: 2px;
-    border-radius: 1px;
+    height: 4px;
+    border-radius: 2px;
     background: linear-gradient(
       to right,
       var(--msp-color-text-muted) var(--msp-progress, 0%),
@@ -85,8 +85,8 @@
   }
 
   &::-webkit-slider-thumb {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     margin-top: -4px;
     border-radius: 50%;
     background: var(--msp-color-text);
@@ -101,20 +101,20 @@
   }
 
   &::-moz-range-track {
-    height: 2px;
-    border-radius: 1px;
+    height: 4px;
+    border-radius: 2px;
     background: var(--msp-color-border-strong);
   }
 
   &::-moz-range-progress {
-    height: 2px;
-    border-radius: 1px;
+    height: 4px;
+    border-radius: 2px;
     background: var(--msp-color-text-muted);
   }
 
   &::-moz-range-thumb {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border: 0;
     border-radius: 50%;
     background: var(--msp-color-text);
@@ -230,4 +230,30 @@
   [aria-expanded="true"] > & {
     transform: rotate(90deg);
   }
+}
+
+/* An on/off setting's own settings: a small sliders button after the switch; expanded, indented under the row with an
+   accent bar like an open choice. */
+.settings {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.subSettings {
+  margin: 2px 0 var(--msp-space-1);
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-1) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  box-shadow: inset 2px 0 0 var(--msp-color-accent);
 }

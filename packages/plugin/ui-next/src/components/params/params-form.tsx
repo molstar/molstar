@@ -8,7 +8,7 @@
 
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { camelCaseToWords } from '@molstar/core/util/string';
-import { distinctUntilChanged, map, type Observable } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { ParamsFormModel } from '../../forms/params-form.js';
@@ -62,7 +62,11 @@ function ParamRow(props: { name: string; param: PD.Any; binding: FieldBinding; v
   if (param.type === 'mapped') {
     return (
       <div hidden={hidden}>
-        <MappedControl label={label} param={param} binding={binding} />
+        {isOnOff(param) ? (
+          <OnOffControl label={label} description={param.description} param={param} binding={binding} />
+        ) : (
+          <MappedControl label={label} param={param} binding={binding} />
+        )}
       </div>
     );
   }
@@ -248,6 +252,79 @@ function GroupControl(props: { label: string; param: PD.Group<any>; binding: Fie
     <Collapsible title={props.label} open={!!param.isExpanded}>
       {() => <Fields params={param.params} binding={binding} />}
     </Collapsible>
+  );
+}
+
+/** Mol*'s on/off pattern (occlusion, shadows, outline): a mapped param whose choices are exactly 'on' and 'off'. */
+function isOnOff(param: PD.Mapped<any>): boolean {
+  const names = param.select.options.map((o) => o[0]).sort();
+  return names.length === 2 && names[0] === 'off' && names[1] === 'on';
+}
+
+/**
+ * An on/off mapped param: a switch, and while on, its own settings behind a sliders button, expanding inline under the
+ * row (occlusion's samples, radius, bias, blur…).
+ */
+function OnOffControl(props: { label: string; description?: string; param: PD.Mapped<any>; binding: FieldBinding }) {
+  const { param, binding } = props;
+  const on = binding.value.pipe(
+    map((v) => v?.name === 'on'),
+    distinctUntilChanged(),
+  );
+  const open = observableState(false);
+  const set = (name: 'on' | 'off') => binding.set({ name, params: defaults(param.map(name)) });
+  const toggle: FieldBinding = {
+    value: on,
+    get: () => binding.get()?.name === 'on',
+    set: (v) => {
+      set(v ? 'on' : 'off');
+      if (!v) open.set(false);
+    },
+  };
+  const inner = param.map('on');
+  const hasSettings = inner.type === 'group' && Object.keys(inner.params).length > 0;
+  const paramsBinding: FieldBinding = {
+    value: binding.value.pipe(
+      map((v) => v?.params),
+      distinctUntilChanged(),
+    ),
+    get: () => binding.get()?.params,
+    set: (p) => binding.set({ name: 'on', params: p }),
+  };
+  return (
+    <>
+      <div class={classes.row} title={props.description}>
+        <span class={classes.label}>{props.label}</span>
+        <div class={classes.control}>
+          <Toggle binding={toggle} />
+          {hasSettings ? (
+            <Show when={on}>
+              {() => (
+                <button
+                  type="button"
+                  class={classes.settings}
+                  title={`${props.label} settings`}
+                  aria-label={`${props.label} settings`}
+                  aria-expanded={open}
+                  onClick={() => open.set(!open.value)}
+                >
+                  <Icon name="sliders-horizontal" size={14} />
+                </button>
+              )}
+            </Show>
+          ) : null}
+        </div>
+      </div>
+      {hasSettings ? (
+        <Show when={combineLatest([on, open.asReadonly]).pipe(map(([a, b]) => a && b))}>
+          {() => (
+            <div class={classes.subSettings}>
+              <Fields params={(inner as PD.Group<any>).params} binding={paramsBinding} />
+            </div>
+          )}
+        </Show>
+      ) : null}
+    </>
   );
 }
 

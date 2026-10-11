@@ -32,9 +32,47 @@ const Lighting = {
     ],
     PD.Essential,
   ),
-  occlusion: PD.Boolean(true, { label: 'Ambient occlusion', isEssential: true }),
-  shadow: PD.Boolean(false, { label: 'Shadows', isEssential: true }),
-  outline: PD.Boolean(false, { label: 'Outline', isEssential: true }),
+  // Mol*'s postprocessing pattern: on (with its settings) or off.
+  occlusion: PD.MappedStatic(
+    'on',
+    {
+      on: PD.Group({
+        samples: PD.Numeric(32, { min: 1, max: 256, step: 1 }),
+        multiScale: PD.Boolean(false, { label: 'Multi scale' }),
+        radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }),
+        bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
+        blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }, { label: 'Blur kernel size' }),
+        blurDepthBias: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }, { label: 'Blur depth bias' }),
+      }),
+      off: PD.EmptyGroup(),
+    },
+    { label: 'Ambient occlusion', isEssential: true },
+  ),
+  shadow: PD.MappedStatic(
+    'off',
+    {
+      on: PD.Group({
+        steps: PD.Numeric(1, { min: 1, max: 64, step: 1 }),
+        maxDistance: PD.Numeric(3, { min: 0, max: 256, step: 1 }, { label: 'Max distance' }),
+        tolerance: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
+      }),
+      off: PD.EmptyGroup(),
+    },
+    { label: 'Shadows', isEssential: true },
+  ),
+  outline: PD.MappedStatic(
+    'off',
+    {
+      on: PD.Group({
+        scale: PD.Numeric(1, { min: 1, max: 5, step: 1 }),
+        threshold: PD.Numeric(0.33, { min: 0.01, max: 1, step: 0.01 }),
+        color: PD.Color(0x000000 as any),
+        includeTransparent: PD.Boolean(true, { label: 'Include transparent' }),
+      }),
+      off: PD.EmptyGroup(),
+    },
+    { label: 'Outline', isEssential: true },
+  ),
   exposure: PD.Numeric(1, { min: 0, max: 3, step: 0.01 }),
 };
 
