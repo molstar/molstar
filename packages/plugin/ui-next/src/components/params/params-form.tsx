@@ -234,7 +234,6 @@ function FileControl(props: { param: PD.FileParam | PD.FileListParam; binding: F
           take([...(e.dataTransfer?.files ?? [])]);
         }}
       >
-        <Icon name="folder-open" size={14} />
         <span class={classes.fileNames} data-empty={names.pipe(map((n) => (n.length ? undefined : '')))}>
           {names.pipe(
             map((n) =>

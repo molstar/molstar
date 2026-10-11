@@ -58,10 +58,18 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   display: flex;
 }
 
+.msp-structure-structure-tab-actions > button:has(.msp-structure-structure-tab-actionLabel) > :first-child:not(.msp-structure-structure-tab-actionLabel) {
+  display: none;
+}
+
 @container (width < 296px) {
   .msp-structure-structure-tab-actions > button:has(.msp-structure-structure-tab-actionLabel) {
     width: 24px;
     padding: 0;
+  }
+
+  .msp-structure-structure-tab-actions > button:has(.msp-structure-structure-tab-actionLabel) > :first-child:not(.msp-structure-structure-tab-actionLabel) {
+    display: inline-flex;
   }
 
   .msp-structure-structure-tab-actionLabel {

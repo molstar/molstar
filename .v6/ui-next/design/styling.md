@@ -61,6 +61,17 @@ can use another theme.
   `-raised`, `-control`) and spacing, not lines; everything over the canvas is flat glass (`--msp-glass-*`: translucency
   and blur only).
 
+- **Icons where they say something text does not.** Icons are the label of icon-only controls (the rail, the canvas
+  stack, row buttons: eye, ⋯, settings, drag handle, remove), show state (visibility, a check, progress, a message's
+  kind), anchor top-level objects in a tree (a structure, a volume, the measurements), and help scan the command menu.
+  They are not repeated next to words: no icons on child tree rows (indentation and the description say what a row is),
+  menu items, section and group headers, footer actions (a spinner only while running), or labelled header buttons
+  (their icons only in the narrow layout, where the words go). Set defaults (`list-restart`) and refresh (`refresh-cw`)
+  never share an icon.
+- **Accent for actions and the picked item only.** Inline blocks (option lists, the color picker, an on/off setting's
+  settings, a measurement's style) are set apart by their surface and a hairline edge (`--msp-glass-edge`), not an
+  accent bar.
+
 - Components use tokens, not literal colours or sizes.
 - No inline styles except values computed at runtime (positions, sizes from the shell).
 - Class composition through a small `cx()` helper; state classes bound to `ReadonlyState`s via `classList`.

@@ -278,4 +278,5 @@
   padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-1) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-well);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
 }

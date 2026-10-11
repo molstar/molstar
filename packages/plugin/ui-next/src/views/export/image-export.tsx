@@ -8,7 +8,6 @@
 
 import { map } from 'rxjs';
 import { ActionFooter } from '../../components/action-footer/action-footer.js';
-import { Icon } from '../../components/icon/icon.js';
 import { ParamsForm } from '../../components/params/params-form.js';
 import type { ImageExportModel } from '../../model/image-export.js';
 import { classes } from './_generated/image-export.module.css.js';
@@ -47,7 +46,6 @@ export function ImageExport(props: { model: ImageExportModel }) {
             title="Crop to the visible content"
             onClick={() => model.autoCrop.set(!model.autoCrop.value)}
           >
-            <Icon name="crop" size={13} />
             <span>Auto-crop</span>
           </button>
         </div>

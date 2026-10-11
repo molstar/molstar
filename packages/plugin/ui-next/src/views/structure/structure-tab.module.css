@@ -31,10 +31,19 @@
 }
 
 /* A narrow panel keeps the header's buttons as icons: the labels go (still read out), nothing falls off the edge. */
+/* The header's buttons are words (no icons) while they fit, their icons alone when narrow. */
+.actions > button:has(.actionLabel) > :first-child:not(.actionLabel) {
+  display: none;
+}
+
 @container (width < 296px) {
   .actions > button:has(.actionLabel) {
     width: 24px;
     padding: 0;
+  }
+
+  .actions > button:has(.actionLabel) > :first-child:not(.actionLabel) {
+    display: inline-flex;
   }
 
   .actionLabel {

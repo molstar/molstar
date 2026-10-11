@@ -23,6 +23,7 @@ defineStyles('components/color/color-picker.module.css', `@layer msp.components 
   padding: var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
   display: grid;
 }
 

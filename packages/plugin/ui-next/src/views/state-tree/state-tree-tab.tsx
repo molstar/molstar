@@ -110,7 +110,7 @@ function Cell(props: {
         >
           <Icon name="chevron-right" size={14} />
         </button>
-        <Icon name={node.icon} size={15} class={tree.kind} />
+        {depth === 0 ? <Icon name={node.icon} size={15} class={tree.kind} /> : null}
         <span class={tree.label}>{node.label}</span>
         <span class={tree.description}>
           {node.status === 'error' ? <span class={classes.error}>{node.error ?? 'Error'}</span> : node.description}
@@ -186,7 +186,7 @@ function CellMenu(props: {
   const inspection = props.model.inspect(props.node.ref);
   const item = (id: string, label: string, icon: IconName) => (
     <button type="button" role="menuitem" class={tree.menuItem} onClick={() => props.onPick(id)}>
-      <Icon name={icon} size={14} />
+      <span />
       <span>{label}</span>
     </button>
   );
@@ -195,7 +195,7 @@ function CellMenu(props: {
       {inspection?.updates.map((u) => item(u.id, `${u.title}…`, 'sliders-horizontal'))}
       {inspection?.actions.map((a) => item(a.id, `${a.title}…`, a.icon))}
       <button type="button" role="menuitem" class={tree.menuItem} data-danger="" onClick={props.onRemove}>
-        <Icon name="trash-2" size={14} />
+        <span />
         <span>Remove</span>
       </button>
     </div>
@@ -208,7 +208,6 @@ function Inspection(props: { inspection: StateTreeInspection; focus: string }) {
   return (
     <div class={tab.inspection}>
       <header class={tab.inspectorHeader}>
-        <Icon name={node.icon} size={15} />
         <span class={tab.inspectorTitle}>{node.label}</span>
         <span class={classes.transform}>{node.transform}</span>
       </header>

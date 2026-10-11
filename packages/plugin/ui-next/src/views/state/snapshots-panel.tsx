@@ -144,7 +144,6 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
 function SaveChoice(props: { icon: 'download'; title: string; hint: string; onClick: () => void }) {
   return (
     <button type="button" class={classes.choice} onClick={props.onClick}>
-      <Icon name={props.icon} size={15} />
       <span class={classes.choiceTitle}>{props.title}</span>
       <span class={classes.choiceHint}>{props.hint}</span>
     </button>
@@ -260,7 +259,6 @@ function MenuItem(props: {
       data-danger={props.danger ? '' : undefined}
       onClick={props.run}
     >
-      <Icon name={props.icon} size={14} />
       <span>{props.label}</span>
     </button>
   );
@@ -273,7 +271,6 @@ function SnapshotEditor(props: { model: SnapshotsModel; entry: SnapshotEntry }) 
   return (
     <div class={classes.inspection}>
       <header class={classes.inspectorHeader}>
-        <Icon name="images" size={15} />
         <span class={classes.inspectorTitle}>{entry.name}</span>
         <span class={classes.inspectorKind}>{entry.timestamp ?? 'snapshot'}</span>
       </header>

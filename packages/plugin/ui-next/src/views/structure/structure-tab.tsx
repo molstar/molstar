@@ -133,7 +133,6 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
   return (
     <div class={classes.inspection}>
       <header class={classes.inspectorHeader}>
-        <Icon name={node.icon} size={15} />
         <span class={classes.inspectorTitle}>{node.label}</span>
         {/* The kind, unless the label already says it (Measurements). */}
         <Show when={node.label.pipe(map((l) => l.toLowerCase() !== node.kind.replace('-', ' ')))}>
@@ -154,7 +153,6 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
         <div class={classes.inspectorActions}>
           {props.inspection.actions.map((a) => (
             <button type="button" class={classes.inspectorAction} onClick={() => a.run?.()}>
-              {a.icon ? <Icon name={a.icon} size={15} /> : null}
               <span>{a.label}</span>
             </button>
           ))}

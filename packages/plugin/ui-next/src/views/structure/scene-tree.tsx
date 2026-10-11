@@ -63,7 +63,9 @@ function TreeNode(props: { scene: SceneModel; node: SceneNode; depth: number }) 
         >
           <Icon name="chevron-right" size={14} />
         </button>
-        <Icon name={node.icon} size={15} class={classes.kind} />
+        {/* Only top-level rows carry an icon (a structure, a volume, the measurements): below, the indent shows where a
+            row belongs and its label and description say what it is. */}
+        {depth === 0 ? <Icon name={node.icon} size={15} class={classes.kind} /> : null}
         <span class={classes.label}>{node.label}</span>
         <span class={classes.description}>{node.description}</span>
         <span class={classes.actions}>
@@ -175,7 +177,8 @@ function MenuItem(props: { item: SceneMenuItem; onDone(): void }) {
         props.onDone();
       }}
     >
-      {item.icon ? <Icon name={item.icon} size={14} /> : <span />}
+      {/* The column a submenu's chevron takes; items carry no icons. */}
+      <span />
       <span>{item.label}</span>
     </button>
   );

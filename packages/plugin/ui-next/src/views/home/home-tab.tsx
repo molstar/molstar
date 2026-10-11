@@ -57,7 +57,6 @@ export function ActionBlock(props: { action: HomeAction; open: boolean }) {
   return (
     <div class={classes.action} data-open={open.asReadonly.pipe(map((o) => (o ? '' : undefined)))}>
       <button type="button" class={classes.actionHeader} aria-expanded={open} onClick={() => open.set(!open.value)}>
-        <Icon name={action.icon} size={16} />
         <span class={classes.actionTitle}>{action.title}</span>
         <span class={classes.actionDescription}>{action.description}</span>
         <Icon name="chevron-down" size={14} class={classes.chevron} />
@@ -101,7 +100,7 @@ function RemoteStates(props: { model: RemoteStatesModel }) {
             size="xs"
             variant="ghost"
             icon={
-              <Show when={model.loading} fallback={() => <Icon name="rotate-ccw" />}>
+              <Show when={model.loading} fallback={() => <Icon name="refresh-cw" />}>
                 {() => <Icon name="loader-circle" class={classes.spin} />}
               </Show>
             }
@@ -136,7 +135,6 @@ function RemoteStates(props: { model: RemoteStatesModel }) {
         >
           {(state) => (
             <button type="button" class={classes.state} onClick={() => model.open(state.id)}>
-              <Icon name="cloud" size={16} />
               <span class={classes.stateLabel}>{state.label}</span>
               <span class={classes.stateDate}>{state.date}</span>
             </button>

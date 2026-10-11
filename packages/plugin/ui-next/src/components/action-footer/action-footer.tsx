@@ -48,20 +48,19 @@ export function ActionFooter(props: ActionFooterProps) {
           aria-label="Set defaults"
           onClick={() => props.onReset?.()}
         >
-          <Icon name="rotate-ccw" size={14} />
+          {/* Not the refresh arrow: back to the defaults (a list, reset). */}
+          <Icon name="list-restart" size={15} />
         </button>
       ) : null}
       {props.info !== undefined ? <span class={classes.info}>{props.info}</span> : null}
       {props.secondary ? (
         <button type="button" class={classes.secondary} disabled={busy} onClick={() => props.secondary?.onClick()}>
-          <Icon name={props.secondary.icon} size={15} />
           <span>{props.secondary.label}</span>
         </button>
       ) : null}
       <button type="button" class={classes.apply} disabled={disabled} onClick={() => props.onApply()}>
-        <Show when={busy} fallback={() => <Icon name={props.icon} size={15} />}>
-          {() => <Icon name="loader-circle" size={15} class={classes.spin} />}
-        </Show>
+        {/* No icon: the label says it; a spinner only while it runs. */}
+        <Show when={busy}>{() => <Icon name="loader-circle" size={15} class={classes.spin} />}</Show>
         <span>{props.label}</span>
       </button>
     </div>

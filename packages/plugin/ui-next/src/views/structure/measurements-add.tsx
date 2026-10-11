@@ -165,7 +165,6 @@ function KindRow(props: { model: MeasurementsModel; kind: MeasurementKind }) {
         );
   return (
     <button type="button" class={classes.kind} disabled={ready.pipe(map((r) => !r))} onClick={() => model.add(kind.id)}>
-      <Icon name={kind.icon} size={15} />
       <span class={classes.kindTitle}>{kind.title}</span>
       <span class={classes.kindHint}>{hint}</span>
     </button>
@@ -180,7 +179,6 @@ function AddedRow(props: { model: MeasurementsModel; node: SceneNode }) {
   return (
     <div class={classes.addedItem}>
       <div class={classes.addedRow} data-hidden={node.isHidden.pipe(map((h) => (h ? '' : undefined)))}>
-        <Icon name={node.icon} size={15} class={classes.addedIcon} />
         <span class={classes.pointLabel}>{node.label}</span>
         <span class={classes.addedValue}>{node.description}</span>
         <span class={classes.pointActions}>

@@ -134,6 +134,8 @@ const ICONS = [
   'wrench',
   'tag',
   'move-3d',
+  'refresh-cw',
+  'list-restart',
 ];
 
 const require = createRequire(import.meta.url);

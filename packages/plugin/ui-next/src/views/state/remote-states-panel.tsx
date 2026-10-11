@@ -53,7 +53,7 @@ export function RemoteStatesPanel(props: { model: RemoteStatesModel }) {
             variant="ghost"
             title="Refresh"
             icon={
-              <Show when={model.loading} fallback={() => <Icon name="rotate-ccw" />}>
+              <Show when={model.loading} fallback={() => <Icon name="refresh-cw" />}>
                 {() => <Icon name="loader-circle" class={classes.spin} />}
               </Show>
             }
@@ -87,7 +87,6 @@ function StateRow(props: { model: RemoteStatesModel; state: RemoteState }) {
     <div class={classes.item}>
       <div class={classes.row}>
         <button type="button" class={classes.open} onClick={() => model.open(state.id)}>
-          <Icon name="cloud" size={15} />
           <span class={classes.name}>{state.label}</span>
           <span class={classes.date}>{state.date}</span>
         </button>
@@ -116,7 +115,6 @@ function StateRow(props: { model: RemoteStatesModel; state: RemoteState }) {
                   model.download?.(state.id);
                 }}
               >
-                <Icon name="download" size={14} />
                 <span>Download</span>
               </button>
             ) : null}
@@ -131,7 +129,6 @@ function StateRow(props: { model: RemoteStatesModel; state: RemoteState }) {
                   model.remove?.(state.id);
                 }}
               >
-                <Icon name="trash-2" size={14} />
                 <span>Remove</span>
               </button>
             ) : null}

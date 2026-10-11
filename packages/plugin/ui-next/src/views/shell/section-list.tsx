@@ -54,7 +54,6 @@ function SectionBlock(props: { ctx: ShellViewContext; section: ShellSection; ope
   const block = (
     <section class={classes.section} data-section={section.id}>
       <button type="button" class={classes.header} aria-expanded={open} onClick={() => open.set(!open.value)}>
-        {section.icon ? <Icon name={section.icon} size={16} /> : null}
         <span class={classes.title}>{section.title}</span>
         <Icon name="chevron-down" size={14} class={classes.chevron} />
       </button>

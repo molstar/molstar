@@ -71,7 +71,6 @@ function Group(props: { group: SettingsGroup; query: ReadonlyState<string>; open
     <section class={classes.group} hidden={hidden} aria-label={group.title}>
       <div class={classes.header}>
         <button type="button" class={classes.toggle} aria-expanded={open} onClick={() => own.set(!own.value)}>
-          <Icon name={group.icon} size={16} />
           <span class={classes.title}>{group.title}</span>
           <Icon name="chevron-down" size={14} class={classes.chevron} />
         </button>

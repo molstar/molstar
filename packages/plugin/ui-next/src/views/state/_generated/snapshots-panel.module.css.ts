@@ -64,10 +64,18 @@ defineStyles('views/state/snapshots-panel.module.css', `@layer msp.components {
   display: flex;
 }
 
+.msp-state-snapshots-panel-actions > button:has(.msp-state-snapshots-panel-actionLabel) > :first-child:not(.msp-state-snapshots-panel-actionLabel) {
+  display: none;
+}
+
 @container (width < 280px) {
   .msp-state-snapshots-panel-actions > button:has(.msp-state-snapshots-panel-actionLabel) {
     width: 24px;
     padding: 0;
+  }
+
+  .msp-state-snapshots-panel-actions > button:has(.msp-state-snapshots-panel-actionLabel) > :first-child:not(.msp-state-snapshots-panel-actionLabel) {
+    display: inline-flex;
   }
 
   .msp-state-snapshots-panel-actionLabel {
