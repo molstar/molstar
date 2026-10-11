@@ -29,7 +29,8 @@
     "@molstar/model": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/plugin": "workspace:*",
-    "@molstar/graphics": "workspace:*"
+    "@molstar/graphics": "workspace:*",
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

@@ -34,11 +34,11 @@
     "@types/node": "catalog:",
     "tslib": "catalog:",
     "@types/argparse": "catalog:",
+    "@molstar/plugin-headless": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/graphics": "workspace:*",
-    "@molstar/geo-export-extension": "workspace:*",
-    "@molstar/plugin-headless": "workspace:*"
+    "@molstar/geo-export-extension": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

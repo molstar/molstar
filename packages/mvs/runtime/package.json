@@ -34,13 +34,14 @@
   "dependencies": {
     "io-ts": "catalog:",
     "tslib": "catalog:",
+    "fp-ts": "catalog:",
     "@molstar/model": "workspace:*",
     "@molstar/plugin": "workspace:*",
-    "@molstar/graphics": "workspace:*",
     "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
     "@molstar/mvs-builder": "workspace:*",
     "@molstar/io": "workspace:*",
-    "fp-ts": "catalog:"
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

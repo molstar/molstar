@@ -43,7 +43,8 @@
     "@molstar/model": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/graphics": "workspace:*",
-    "@molstar/plugin-ui": "workspace:*"
+    "@molstar/plugin-ui": "workspace:*",
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

@@ -7,7 +7,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import '@molstar/model/script/transpilers/all';
+import '@molstar/query-language/transpilers/all';
 import type { MVSLoadOptions } from '@molstar/mvs/load';
 import {
   applyStructureInteractivity,

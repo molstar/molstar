@@ -23,7 +23,7 @@ the [API change ledger](breaking-v6-changes.md).
 - `plugin.register(entry)` registers an entry at run time and returns an undo; registries count registrations by
   provider and reject a different provider under a registered name
 - Presets resolve by id or an optional `alias`; the built-in short names (`'default'`, `'auto'`, ...) are aliases
-- Script languages other than MolScript are enabled by importing `@molstar/model/script/transpilers/<lang>` (or `all`)
+- Script languages other than MolScript are enabled by importing `@molstar/query-language/transpilers/<lang>` (or `all`)
 - Snapshot loading checks all transformer ids before changing state; unregistered representation and theme names fall
   back to the registry default with a warning
 - `@molstar/plugin-ui/default-ui` has the registry-free UI defaults that `DefaultPluginUISpec()` is composed from
@@ -33,3 +33,15 @@ the [API change ledger](breaking-v6-changes.md).
 - mesoscale-explorer no longer bundles the full built-in registry (4.88 MB to 4.21 MB)
 - New `examples/slim-plugin` (SDF and ball-and-stick only)
 - Example data files move from `examples/` to `data/examples/`
+
+## Standalone MolQL and MVS authoring
+
+- [Breaking] Language builders, symbol tables, text parsers, and transpilers move to `@molstar/query-language`;
+  executable query compilation and molecular `Script` operations stay in model
+- `@molstar/mvs-builder/molql` exposes `MolScriptBuilder` and `compileScript` for MolScript, PyMOL, VMD, and Jmol,
+  without loading the molecular query runtime or requiring plugin language registration
+- MVS standalone validation and `mvs-validate` reject malformed MolQL, unknown callable names, and invalid argument
+  names using symbol-definition tables; custom vocabularies use an explicit lookup
+- `mvs-validate` reports file/expression paths and continues checking later inputs after malformed JSON or file errors
+- [Breaking] Remove the duplicate `@molstar/mvs-builder/expression` module; use
+  `@molstar/query-language/language/expression`

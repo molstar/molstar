@@ -39,7 +39,8 @@
     "io-ts": "catalog:",
     "tslib": "catalog:",
     "@types/argparse": "catalog:",
-    "fp-ts": "catalog:"
+    "fp-ts": "catalog:",
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

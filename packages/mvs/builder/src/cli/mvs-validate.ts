@@ -6,7 +6,7 @@
  *
  * Command-line application for validating MolViewSpec files
  * Build: npm run build
- * Run:   node lib/commonjs/cli/mvs/mvs-validate data/examples/mvs/1cbs.mvsj
+ * Run:   mvs-validate data/examples/mvs/1cbs.mvsj
  */
 
 import { ArgumentParser } from 'argparse';
@@ -36,15 +36,20 @@ function parseArguments(): Args {
 function main(args: Args): number {
   let nFailed = 0;
   for (const input of args.input) {
-    const data = fs.readFileSync(input, { encoding: 'utf8' });
-    const mvsData = MVSData.fromMVSJ(data);
-    const issues = MVSData.validationIssues(mvsData, { noExtra: args.no_extra });
+    let issues: string[] | undefined;
+    try {
+      const data = fs.readFileSync(input, { encoding: 'utf8' });
+      const mvsData = MVSData.fromMVSJ(data);
+      issues = MVSData.validationIssues(mvsData, { noExtra: args.no_extra });
+    } catch (error) {
+      issues = [error instanceof Error ? error.message : String(error)];
+    }
     const status = issues ? 'FAILED' : 'OK';
     console.log(`${status.padEnd(6)} ${input}`);
     if (issues) {
       nFailed++;
       for (const issue of issues) {
-        console.error(issue);
+        console.error(`${input}: ${issue}`);
       }
     }
   }

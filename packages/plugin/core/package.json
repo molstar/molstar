@@ -19,14 +19,14 @@
       "import": "./lib/context.js"
     },
     "./_test/*": null,
+    "./behavior/dynamic/selection/_test/*": null,
     "./behavior/dynamic/volume-streaming/_test/*": null,
     "./registry/_test/*": null,
-    "./behavior/dynamic/selection/_test/*": null,
+    "./state/_test/*": null,
     "./state/actions/_test/*": null,
     "./state/builder/structure/_test/*": null,
-    "./state/helpers/_test/*": null,
     "./state/formats/_test/*": null,
-    "./state/_test/*": null,
+    "./state/helpers/_test/*": null,
     "./state/manager/_test/*": null,
     "./state/queries/structure/_test/*": null,
     "./state/transforms/_test/*": null
@@ -49,6 +49,7 @@
     "@molstar/core": "workspace:*",
     "@molstar/graphics": "workspace:*",
     "@molstar/model": "workspace:*",
+    "@molstar/query-language": "workspace:*",
     "@molstar/io": "workspace:*"
   },
   "devDependencies": {

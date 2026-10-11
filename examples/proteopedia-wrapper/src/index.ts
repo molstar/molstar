@@ -31,7 +31,7 @@ import {
 } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginState } from '@molstar/plugin/state';
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { StateBuilder, StateObject, StateSelection } from '@molstar/core/state';
 import { Asset } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color';

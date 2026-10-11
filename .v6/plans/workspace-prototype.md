@@ -22,8 +22,9 @@ Produce a working pnpm workspace with physically separated packages, explicit de
 exports, source-based app builds, and a local CDN distribution package. Preserve current default plugin behavior,
 rendering, transformer identifiers, and snapshot data.
 
-The prototype establishes repository and package layout. It does not redesign the application UI or implement the full
-v6 plugin-composition proposal.
+The prototype established repository and package layout. It did not redesign the application UI or implement the full v6
+plugin-composition proposal. Composition was implemented separately after the prototype; see the
+[composition plan](plugin-composition.md) for its completion and acceptance evidence.
 
 In scope:
 
@@ -39,15 +40,14 @@ In scope:
 - Direct ESM consumption without consumer compilation/bundling, including a browser-ready module distribution and root
   `smoke/` fixtures.
 
-Deferred:
+Outside the structural prototype's original scope:
 
-- Rendering-backend extraction, GL resource/pass/readback redesign, WebGPU, and Blender integration. See
-  [webgpu.md](../designs/webgpu.md).
+- Rendering-backend extraction and GL resource/pass/readback redesign: Alex's separate workstream. Full WebGPU and
+  Blender integration are deferred beyond v6. See [webgpu.md](../designs/webgpu.md).
 - Plugin registry entries, empty registries, explicit base specs, registry-aware presets, slim-plugin bundle guarantees,
-  and comprehensive transformer/catalog splitting.
-- Comprehensive convenience-barrel removal and `StateTransforms` facade removal. Remove or split existing modules when
-  needed for package boundaries; track the remaining work. Do not introduce new convenience barrels or compatibility
-  shims.
+  and comprehensive transformer/catalog splitting: subsequently implemented in the composition workstream.
+- Comprehensive convenience-barrel removal: remaining work is in the checklist. The `StateTransforms` facade was removed
+  in plugin composition. Do not introduce new convenience barrels or compatibility shims.
 - A broad test-runner migration and the full maintainer skills/documentation rewrite. Adapt existing checks where
   necessary for ESM.
 - JSR publication, migration CLI implementation, downstream migration validation, automated publishing, and
@@ -409,14 +409,14 @@ remaining host-dependent checks are recorded below.
   elements, and successful assets without runtime errors.
 - No public publishing, deployment, or release branch changes were performed.
 
-The full architecture's final 5.x release, `v5` maintenance branch, default-branch rename, registry-name checks, and
-publishing gates still apply before v6 lands or ships as a release. They are not actions performed by this prototype
-plan. Treat default-branch integration and public publishing as separate release work.
+The original rollout gate is recorded in the architecture. Since this prototype, workspace/composition changes have
+landed on `master`, 5.13.0 and 5.13.1 have been recorded in the release history, and `v5` exists for continuing fixes.
+The default-branch rename, registry-name checks, publishing gates, and stable-release coordination remain separate
+release work. They were not actions performed by this prototype plan.
 
-The `distributions/molstar/` location supersedes the top-level `molstar/` location, and
-`packages/plugin/{core,ui,headless}/` supersedes the three sibling plugin directories in the design documents for this
-plan. When implementing, update related design references and build examples to the chosen locations. Use the actual
-filenames in `.v6/designs/` when updating links; several existing links still use `v6-*` names.
+The implemented locations are `distributions/molstar/` and `packages/plugin/{core,ui,headless}/`, as shown in the
+architecture. Keep future design references and build examples consistent with those locations and use the actual
+filenames in `.v6/designs/` when updating links.
 
 ## 9. Implementation orchestration
 

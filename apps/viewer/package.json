@@ -34,6 +34,7 @@
   },
   "dependencies": {
     "tslib": "catalog:",
+    "@molstar/query-language": "workspace:*",
     "@molstar/mvs": "workspace:*",
     "@molstar/plugin-extension": "workspace:*",
     "@molstar/model": "workspace:*",

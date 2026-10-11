@@ -23,9 +23,7 @@
     "./model/structure/structure/element/_test/*": null,
     "./model/structure/structure/util/_test/*": null,
     "./script/_test/*": null,
-    "./script/language/_test/*": null,
-    "./script/runtime/query/_test/*": null,
-    "./script/transpilers/_test/*": null
+    "./script/runtime/query/_test/*": null
   },
   "files": [
     "lib",
@@ -41,7 +39,8 @@
     "immutable": "catalog:",
     "tslib": "catalog:",
     "@molstar/core": "workspace:*",
-    "@molstar/io": "workspace:*"
+    "@molstar/io": "workspace:*",
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

@@ -4,10 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { transpileMolScript } from './script/mol-script/symbols.js';
-import { parseMolScript } from './language/parser.js';
-import { getRegisteredLanguages, parse } from './transpile.js';
-import type { Expression } from './language/expression.js';
+import { Script as ScriptLanguage } from '@molstar/query-language/script';
+import type { Expression } from '@molstar/query-language/language/expression';
 import {
   type StructureElement,
   QueryContext,
@@ -17,7 +15,7 @@ import {
   type QueryContextOptions,
 } from '@molstar/model/model/structure';
 import { compile } from './runtime/query/compiler.js';
-import { MolScriptBuilder } from './language/builder.js';
+import { MolScriptBuilder } from '@molstar/query-language/language/builder';
 import type { Script } from '@molstar/core/util/script';
 
 export { ScriptImpl as Script };
@@ -47,16 +45,11 @@ namespace ScriptImpl {
 
   /** `mol-script` plus the languages enabled by importing a `transpilers/<lang>` module */
   export function getAvailableLanguages(): Language[] {
-    return ['mol-script', ...getRegisteredLanguages()];
+    return ScriptLanguage.getAvailableLanguages();
   }
 
   export function toExpression(script: Script): Expression {
-    if (script.language === 'mol-script') {
-      const parsed = parseMolScript(script.expression);
-      if (parsed.length === 0) throw new Error('No query');
-      return transpileMolScript(parsed[0]);
-    }
-    return parse(script.language, script.expression);
+    return ScriptLanguage.toExpression(script);
   }
 
   export function toQuery(script: Script): QueryFn<StructureSelection> {

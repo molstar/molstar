@@ -15,6 +15,9 @@
       "path": "../../packages/plugin/core"
     },
     {
+      "path": "../../packages/graphics"
+    },
+    {
       "path": "../../packages/plugin/ui"
     },
     {
@@ -25,9 +28,6 @@
     },
     {
       "path": "../../extensions/backgrounds"
-    },
-    {
-      "path": "../../packages/graphics"
     },
     {
       "path": "../../packages/io"

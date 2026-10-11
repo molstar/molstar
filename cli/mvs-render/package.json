@@ -34,10 +34,10 @@
     "@types/pngjs": "catalog:",
     "@molstar/mvs-builder": "workspace:*",
     "@molstar/core": "workspace:*",
+    "@molstar/plugin-headless": "workspace:*",
     "@molstar/graphics": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/mp4-export-extension": "workspace:*",
-    "@molstar/plugin-headless": "workspace:*",
     "@molstar/mvs": "workspace:*"
   },
   "devDependencies": {

@@ -9,11 +9,11 @@
 import { UniqueArray } from '@molstar/core/data/generic';
 import { OrderedSet, SortedArray, Interval } from '@molstar/core/data/int';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { Structure } from '../structure.js';
 import { Unit } from '../unit.js';
 import { sortArray, hashFnv32a, hash2 } from '@molstar/core/data/util';
-import type { Expression } from '@molstar/model/script/language/expression';
+import type { Expression } from '@molstar/query-language/language/expression';
 import type { ElementIndex, Model } from '../../model.js';
 import type { UnitIndex } from './element.js';
 import { Location } from './location.js';

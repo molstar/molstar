@@ -1,10 +1,17 @@
-import { Expression } from '@molstar/model/script/language/expression';
+import { Expression } from '@molstar/query-language/language/expression';
 import { compile } from '@molstar/model/script/runtime/query/base';
+import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/base';
+import { SymbolMap } from '@molstar/query-language/language/symbol-table';
+import { molQLValidationIssues as syntaxValidationIssues } from '@molstar/mvs-builder/molql-validation';
 import type { Tree } from '@molstar/mvs-builder/tree/generic/tree-schema';
 import type { PluginContext } from '@molstar/plugin/context';
 
 /** Preserve runtime MolScript compiler validation after the builder becomes standalone. */
 export function molQLValidationIssues(tree: Tree): string[] | undefined {
+  const syntaxIssues = syntaxValidationIssues(tree, {
+    getSymbol: (name) => DefaultQueryRuntimeTable.getRuntime(name)?.symbol ?? SymbolMap[name],
+  });
+  if (syntaxIssues) return syntaxIssues.map((issue) => `Invalid MolQL expression: ${issue}`);
   const issues: string[] = [];
   const validationCache = new WeakMap<object, true | string>();
   const visitParams = (value: unknown, path: string) => {

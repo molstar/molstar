@@ -216,6 +216,9 @@
     },
     {
       "path": "./extensions/volseg-api"
+    },
+    {
+      "path": "./packages/query-language"
     }
   ]
 }

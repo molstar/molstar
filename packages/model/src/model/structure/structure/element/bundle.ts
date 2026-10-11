@@ -12,8 +12,8 @@ import { hashFnv32a, hash2 } from '@molstar/core/data/util';
 import { SortedRanges } from '@molstar/core/data/int/sorted-ranges';
 import type { UnitIndex } from './element.js';
 import { Loci } from './loci.js';
-import type { Expression } from '@molstar/model/script/language/expression';
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
+import type { Expression } from '@molstar/query-language/language/expression';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { type QueryContext, type QueryFn, StructureSelection } from '../../query.js';
 import { Schema } from './schema.js';
 
