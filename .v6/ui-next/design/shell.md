@@ -62,9 +62,12 @@ it is where contributions (built-in and extension UI) are placed.
   that expands on click.
 - **Rail sections.** The rail is grouped into glass blocks separated by gaps (no captions), top to bottom: the command
   palette (the main way in), the tab strip, then the toolbar's sections (`canvas`: reset camera, selection mode,
-  illumination, XR, expand; `export`: screenshot, save state). Toolbar items name their section by id (`group`, with
-  `order` within it); extensions add buttons to a built-in section or start their own, e.g. MP4 export and geometry
-  export as buttons in `export` that open their overlay cards. Apps get them by listing the extension's UI contribution.
+  illumination, XR, expand; `export`: save state, Export). Toolbar items name their section by id (`group`, `order`
+  within it). Extensions do **not** add rail buttons for their features (the rail would grow with every extension): they
+  contribute **sections** to a panel's slot instead, e.g. MP4, geometry and model export as sections of the Export panel
+  (`export` slot), next to the built-in Image and Session & state sections. Everything is also a command, and a command
+  can open a panel at a section (`openOverlay('export', anchor, 'animation')`), so the palette finds "mp4" and lands on
+  it.
 - **Canvas toolbar.** A vertical strip of command buttons (palette, reset camera, screenshot, save state, selection
   mode, illumination, XR, expand/fullscreen, plus contributed items), each gated by its command's `when` and
   `PluginConfig.Viewport.*`. A button either runs its command or opens an overlay anchored to it.
@@ -84,8 +87,9 @@ it is where contributions (built-in and extension UI) are placed.
 - **Status line** (bottom of the canvas): the latest log message (fades after a few seconds; errors stay until
   dismissed), running tasks with progress and abort, and chips for the selection and focus (click to focus, ✕ to clear).
   Clicking the message opens the log overlay.
-- **Overlays.** Cards over the canvas, anchored to the button that opened them, one at a time, closed with Esc or a
-  click outside. Unlike dialogs they do not block the canvas.
+- **Overlays.** Cards over the canvas, one at a time, closed with Esc or a click outside; unlike dialogs they do not
+  block the canvas. With the floating panel collapsed, a card sits beside the rail, level with the button that opened
+  it; with the panel open, the card takes the panel's place (same size, opaque: no glass on glass) until it closes.
 
 ## 3. Shell model
 

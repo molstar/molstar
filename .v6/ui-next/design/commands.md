@@ -168,6 +168,10 @@ A `KeybindingService` on the plugin root element:
 
 ## 7. Menus and buttons are commands
 
+A command can also just open UI: a panel, a tab, or a panel at a section (`Export animation (MP4)…` opens the Export
+panel at its `animation` section). Features that live in a panel are thus still found by the palette, and extensions add
+sections and commands rather than buttons.
+
 Context menus (scene node, state-tree cell, viewport right-click), toolbar buttons, and view headers reference command
 ids, optionally with fixed arguments:
 

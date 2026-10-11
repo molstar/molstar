@@ -25,6 +25,7 @@ import { HoverLabel } from '../canvas/hover-label.js';
 import { SnapshotPanel, Timeline } from '../canvas/playback.js';
 import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
+import { SectionList } from './section-list.js';
 import { ShellView } from './shell-view.js';
 
 const meta: Meta = { title: 'Shell/Shell', parameters: { layout: 'fullscreen' } };
@@ -144,25 +145,72 @@ function mockTrajectory(): TrajectoryControlsModel {
 }
 
 /**
- * What two extensions contribute (mocked): a button in the rail's `export` section and an overlay each. In ui-next an
- * extension ships this as part of its UI contribution; an app that lists the contribution gets the buttons.
+ * The Export panel: one rail button, its sections contributed to the `export` slot. Built-in sections (image, session)
+ * and extension sections (animation, geometry, models) look alike; each is also a command that opens the panel at it.
  */
-function mockExportExtensions(shell: ShellModel, status: StatusModel) {
+function mockExport(shell: ShellModel, status: StatusModel) {
   const rendering = observableState<number | undefined>(undefined);
+  const row = 'display: flex; gap: 8px; flex-wrap: wrap';
   shell.registerOverlays([
     {
-      id: 'mp4-export',
-      title: 'Export animation',
+      id: 'export',
+      title: 'Export',
+      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="export" focus={ctx.focus} />),
+    },
+  ]);
+  shell.registerSections([
+    {
+      id: 'image',
+      slot: 'export',
+      title: 'Image',
+      icon: 'camera',
+      order: 0,
       render: domView(() => (
         <div style={pad}>
-          <label style="display: grid; gap: 4px">
-            <span style={muted}>Animation</span>
-            <select style="height: 28px">
-              <option>Spin</option>
-              <option>Rock</option>
-              <option>Snapshots</option>
-            </select>
-          </label>
+          <div style="height: 120px; border-radius: var(--msp-radius-md); background: var(--msp-color-control)" />
+          <div style={row}>
+            <Button icon={<Icon name="copy" />} onClick={() => status.post('Copied image', 'success')}>
+              Copy
+            </Button>
+            <Button
+              variant="primary"
+              icon={<Icon name="download" />}
+              onClick={() => status.post('Saved image.png', 'success')}
+            >
+              Download PNG
+            </Button>
+          </div>
+        </div>
+      )),
+    },
+    {
+      id: 'session',
+      slot: 'export',
+      title: 'Session & state',
+      icon: 'save',
+      order: 1,
+      render: domView(() => (
+        <div style={row}>
+          <Button icon={<Icon name="download" />}>Session (.molx)</Button>
+          <Button icon={<Icon name="download" />}>State (.molj)</Button>
+        </div>
+      )),
+    },
+    // Contributed by the mp4-export extension.
+    {
+      id: 'animation',
+      slot: 'export',
+      title: 'Animation (MP4)',
+      icon: 'film',
+      keywords: ['mp4', 'video', 'movie'],
+      order: 10,
+      render: domView(() => (
+        <div style={pad}>
+          <select style="height: 28px">
+            <option>Spin</option>
+            <option>Rock</option>
+            <option>Snapshots</option>
+          </select>
           <Button
             variant="primary"
             icon={<Icon name="film" />}
@@ -187,36 +235,42 @@ function mockExportExtensions(shell: ShellModel, status: StatusModel) {
         </div>
       )),
     },
+    // Contributed by the geo-export extension.
     {
-      id: 'geo-export',
-      title: 'Export geometry',
+      id: 'geometry',
+      slot: 'export',
+      title: 'Geometry',
+      icon: 'box',
+      keywords: ['glb', 'stl', 'obj', 'usdz', 'mesh', '3d print', 'ar'],
+      order: 11,
       render: domView(() => (
-        <div style={pad}>
-          <span style={muted}>Download the visible geometry as</span>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap">
-            {['GLB', 'STL', 'OBJ', 'USDZ'].map((f) => (
-              <Button
-                icon={<Icon name="download" />}
-                onClick={() => status.post(`Exported scene.${f.toLowerCase()}`, 'success')}
-              >
-                {f}
-              </Button>
-            ))}
-          </div>
+        <div style={row}>
+          {['GLB', 'STL', 'OBJ', 'USDZ'].map((f) => (
+            <Button
+              icon={<Icon name="download" />}
+              onClick={() => status.post(`Exported scene.${f.toLowerCase()}`, 'success')}
+            >
+              {f}
+            </Button>
+          ))}
         </div>
       )),
     },
-  ]);
-  shell.registerToolbar([
+    // Contributed by the model-export extension.
     {
-      id: 'mp4-export',
-      group: 'export',
-      order: 10,
-      icon: 'film',
-      title: 'Export animation (MP4)',
-      overlay: 'mp4-export',
+      id: 'models',
+      slot: 'export',
+      title: 'Models',
+      icon: 'file',
+      keywords: ['mmcif', 'bcif', 'cif', 'coordinates'],
+      order: 12,
+      render: domView(() => (
+        <div style={row}>
+          <Button icon={<Icon name="download" />}>mmCIF</Button>
+          <Button icon={<Icon name="download" />}>BinaryCIF</Button>
+        </div>
+      )),
     },
-    { id: 'geo-export', group: 'export', order: 11, icon: 'box', title: 'Export geometry', overlay: 'geo-export' },
   ]);
 }
 
@@ -357,11 +411,6 @@ function mockShell(options: { loaded: boolean }) {
       }),
     },
     {
-      id: 'screenshot',
-      title: 'Screenshot',
-      render: domView(() => <Placeholder title="Preview">Crop, size, copy and download.</Placeholder>),
-    },
-    {
       id: 'log',
       title: 'Log',
       render: domView(() => (
@@ -387,8 +436,8 @@ function mockShell(options: { loaded: boolean }) {
       run: () => status.post('The palette comes next.'),
     },
     { id: 'reset', group: 'canvas', icon: 'rotate-ccw', title: 'Reset camera', run: () => status.post('Camera reset') },
-    { id: 'screenshot', group: 'export', icon: 'camera', title: 'Screenshot', overlay: 'screenshot' },
-    { id: 'save', group: 'export', icon: 'save', title: 'Save state', overlay: 'save-state' },
+    { id: 'save', group: 'export', icon: 'save', title: 'Save state (snapshots)', overlay: 'save-state' },
+    { id: 'export', group: 'export', icon: 'download', title: 'Export…', overlay: 'export' },
     {
       id: 'select',
       group: 'canvas',
@@ -415,8 +464,8 @@ function mockShell(options: { loaded: boolean }) {
     { id: 'expand', group: 'canvas', icon: 'maximize', title: 'Expand', run: () => status.post('Expanded') },
   ]);
 
-  // Extensions add their own buttons to the rail's sections.
-  mockExportExtensions(shell, status);
+  // One Export button; built-in and extension exports are sections of its panel.
+  mockExport(shell, status);
 
   if (options.loaded) {
     status.post('Loaded 1TQN (3,624 atoms) in 0.4 s', 'success');
@@ -429,10 +478,11 @@ function mockShell(options: { loaded: boolean }) {
   return { shell, status, hover, hoverLines, snapshots: mockSnapshots(status), trajectory: mockTrajectory() };
 }
 
-function ShellStory(props: { loaded: boolean; background?: string }) {
+function ShellStory(props: { loaded: boolean; background?: string; openExportAt?: string }) {
   const { shell, status, hover, hoverLines, snapshots, trajectory } = mockShell(props);
   shell.mount();
   status.mount();
+  if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
   onCleanup(() => {
     shell.unmount();
     status.unmount();
@@ -486,6 +536,16 @@ export const CanvasBackground: StoryObj<{ background: string }> = {
   argTypes: { background: { control: 'color' } },
   render: (args) =>
     story(() => <div style="height: 100vh">{<ShellStory loaded={true} background={args.background} />}</div>),
+};
+
+/** A command opened the Export panel at a section ("Export animation (MP4)…" in the palette). */
+export const ExportAtSection: StoryObj = {
+  render: () =>
+    story(() => (
+      <div style="height: 100vh">
+        <ShellStory loaded={true} openExportAt="animation" />
+      </div>
+    )),
 };
 
 /** A narrow host: the panel becomes a bottom sheet with its tabs along the bottom. */

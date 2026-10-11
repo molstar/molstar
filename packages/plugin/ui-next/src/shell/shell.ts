@@ -20,6 +20,8 @@ export interface ShellViewContext {
   shell: ShellModel;
   /** The dock a tab is shown in (tabs only). */
   dock?: DockId;
+  /** The section to bring into view (overlays opened at a section). */
+  focus?: string;
 }
 
 /** A panel tab, contributed by the default UI or an extension. */
@@ -70,6 +72,23 @@ export interface ShellOptions {
 const DefaultSizes: Record<DockId, number> = { left: 300, right: 340, top: 88, bottom: 220 };
 const MinSize = 180;
 
+/**
+ * A section contributed to a slot of a panel or overlay: the Export panel's `export` slot (image, session, animation,
+ * geometry, models), an inspector's node-kind slot. Extensions add sections instead of buttons, so the chrome does not
+ * grow with every extension; commands open the panel at a section.
+ */
+export interface ShellSection {
+  id: string;
+  /** The slot it goes to (`export`). */
+  slot: string;
+  title: string;
+  icon?: IconName;
+  /** Words it is also found by (the palette, the section filter). */
+  keywords?: readonly string[];
+  order?: number;
+  render: ViewRenderer<ShellViewContext>;
+}
+
 /** A button on the canvas toolbar. */
 export interface CanvasToolbarItem {
   id: string;
@@ -89,10 +108,11 @@ export interface CanvasToolbarItem {
   run?(anchor: Element): void;
 }
 
-/** The open overlay and the element it is anchored to (for placement). */
+/** The open overlay, the element it is anchored to (for placement), and the section to bring into view. */
 export interface OpenOverlay {
   overlay: ShellOverlay;
   anchor?: Element;
+  focus?: string;
 }
 
 /** One dock's state and its resolved tabs. */
@@ -147,6 +167,8 @@ export class ShellModel extends ReactiveModel {
   readonly #effectiveMode = observableState<ShellMode>('desktop');
   readonly #overlay = observableState<OpenOverlay | undefined>(undefined);
   readonly #toolbar = observableState<readonly CanvasToolbarItem[]>([]);
+  readonly #sections = observableState<readonly ShellSection[]>([]);
+  readonly #slots = new Map<string, ReadonlyState<readonly ShellSection[]>>();
   readonly #compactWidth: number;
 
   constructor(options: ShellOptions = {}) {
@@ -183,6 +205,26 @@ export class ShellModel extends ReactiveModel {
   /** The canvas toolbar's buttons, in order. */
   get toolbar(): ReadonlyState<readonly CanvasToolbarItem[]> {
     return this.#toolbar.asReadonly;
+  }
+
+  /** The sections in a slot, in order. */
+  sections(slot: string): ReadonlyState<readonly ShellSection[]> {
+    let state = this.#slots.get(slot);
+    if (!state) {
+      const own = observableState<readonly ShellSection[]>([]);
+      const update = (all: readonly ShellSection[]) =>
+        own.set(all.filter((s) => s.slot === slot).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+      update(this.#sections.value);
+      this.subscribePermanently(this.#sections.asReadonly, update);
+      state = own.asReadonly;
+      this.#slots.set(slot, state);
+    }
+    return state;
+  }
+
+  registerSections(sections: readonly ShellSection[]): () => void {
+    this.#sections.set([...this.#sections.value, ...sections]);
+    return () => this.#sections.set(this.#sections.value.filter((s) => !sections.includes(s)));
   }
 
   registerToolbar(items: readonly CanvasToolbarItem[]): () => void {
@@ -285,9 +327,10 @@ export class ShellModel extends ReactiveModel {
     this.#resolveMode();
   }
 
-  openOverlay(id: string, anchor?: Element): void {
+  /** Opens an overlay; `focus` names a section to bring into view (a command opening the Export panel at MP4). */
+  openOverlay(id: string, anchor?: Element, focus?: string): void {
     const overlay = this.#overlays.get(id);
-    if (overlay) this.#overlay.set({ overlay, ...(anchor ? { anchor } : {}) });
+    if (overlay) this.#overlay.set({ overlay, ...(anchor ? { anchor } : {}), ...(focus ? { focus } : {}) });
   }
 
   /** Opens the overlay, or closes it when it is the open one. */

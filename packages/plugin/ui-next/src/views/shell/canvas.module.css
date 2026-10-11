@@ -55,7 +55,7 @@
 
 .card {
   position: absolute;
-  right: calc(var(--msp-space-4) + 34px + 2 * var(--msp-space-2) + var(--msp-space-3));
+  right: var(--msp-canvas-panel-right, 64px);
   z-index: var(--msp-z-overlay);
   display: flex;
   flex-direction: column;
@@ -68,6 +68,16 @@
   box-shadow: var(--msp-glass-shadow);
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);
+  top: var(--msp-space-4);
+
+  /* Over an open floating panel: in the panel's place, opaque (no glass on glass). */
+  [data-right-panel="open"] > & {
+    top: var(--msp-space-4) !important;
+    bottom: var(--msp-canvas-bottom-inset, var(--msp-space-4));
+    width: var(--msp-right-panel-width);
+    max-height: none;
+    background: var(--msp-color-panel);
+  }
 }
 
 @keyframes card-in {

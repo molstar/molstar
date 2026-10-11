@@ -106,18 +106,18 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
         <Button variant="ghost" size="sm" icon={<Icon name="x" />} title="Close" onClick={() => shell.closeOverlay()} />
       </header>
       <div class={classes.cardBody}>
-        <ViewHost renderer={open.overlay.render} ctx={{ shell }} />
+        <ViewHost renderer={open.overlay.render} ctx={{ shell, ...(open.focus ? { focus: open.focus } : {}) }} />
       </div>
     </section>
   ) as HTMLElement;
   // Level with its button once placed (the card is positioned within the canvas layer).
   queueMicrotask(() => {
-    const layer = card.offsetParent;
-    if (!open.anchor || !layer) return;
+    const layer = card.offsetParent as HTMLElement | null;
+    // Over an open panel the card takes the panel's place (CSS); otherwise it is level with its button.
+    if (!open.anchor || !layer || layer.dataset.rightPanel === 'open') return;
     const top = open.anchor.getBoundingClientRect().top - layer.getBoundingClientRect().top - 4;
     card.style.top = `${Math.max(8, Math.min(top, layer.clientHeight - card.offsetHeight - 8))}px`;
   });
-  card.style.top = '12px';
   // Esc, or a pointer down outside the card and its button, closes it.
   const doc = document;
   const onKey = (e: KeyboardEvent) => {

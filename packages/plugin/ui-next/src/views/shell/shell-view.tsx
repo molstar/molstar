@@ -68,6 +68,12 @@ export function ShellView(props: ShellViewProps) {
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
+  // An open floating right panel: overlays then open in its place instead of stacking glass on glass.
+  const rightPanelOpen = combineLatest([right.active, floating]).pipe(
+    map(([active, f]) => (f && active ? 'open' : undefined)),
+    distinctUntilChanged(),
+  );
+  const rightPanelWidth = right.state.pipe(map((s) => `${s.size}px`));
   const root = (
     <div class={classes.shell} data-mode={shell.mode}>
       <Show when={floatingTop.pipe(map((f) => !f))}>{() => <DockView shell={shell} dock={top} />}</Show>
@@ -77,12 +83,16 @@ export function ShellView(props: ShellViewProps) {
         <div
           class={classes.layer}
           data-msp-theme={props.canvasTheme ?? 'light'}
+          data-right-panel={rightPanelOpen}
           style={{
             '--msp-canvas-right-inset': rightInset,
             '--msp-canvas-top-inset': topInset,
             // The bottom bar runs under open side panels (they end above it): it only keeps clear of the rail.
             '--msp-canvas-rail-inset': `${RailWidth + 2 * Edge}px`,
             '--msp-canvas-bottom-inset': `${Edge + BottomBarHeight + Gap}px`,
+            '--msp-right-panel-width': rightPanelWidth,
+            // Where cards beside the rail end (the floating panel's right edge).
+            '--msp-canvas-panel-right': `${Edge + RailWidth + Gap}px`,
           }}
         >
           <Show when={floatingTop}>{() => <FloatingDock shell={shell} dock={top} />}</Show>
