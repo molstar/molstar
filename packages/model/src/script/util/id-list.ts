@@ -6,8 +6,8 @@
  */
 
 import type { StructureQuery } from '@molstar/model/model/structure/query';
-import type { Expression } from '../language/expression.js';
-import { MolScriptBuilder as MS } from '../language/builder.js';
+import type { Expression } from '@molstar/query-language/language/expression';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { compile } from '../runtime/query/base.js';
 import { UniqueArray } from '@molstar/core/data/generic';
 

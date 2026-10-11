@@ -38,6 +38,7 @@ choices and is not a runtime resolver.
 | -------------------------- | -------------------------- | ---------------------------------------------------------- |
 | `packages/core`            | `@molstar/core`            | Utility, data, math, tasks, state                          |
 | `packages/io`              | `@molstar/io`              | Parsers and low-level writers                              |
+| `packages/query-language`  | `@molstar/query-language`  | MolQL builder, text translators, standalone validation     |
 | `packages/model`           | `@molstar/model`           | Models, format adapters, properties, queries               |
 | `packages/graphics`        | `@molstar/graphics`        | Existing GL, geometries, themes, representations, Canvas3D |
 | `packages/plugin/core`     | `@molstar/plugin`          | Plugin context, behavior, state, default catalogs          |
@@ -94,6 +95,34 @@ resolver. Pass `--base-url /your/esm/path/` (or an absolute HTTP URL) to `script
 values for a different deployment. Embed the generated map before any module scripts. Classic assets remain under
 `molstar/build/viewer` and `molstar/build/mvs-stories`. Consumers need no build step; Mol* maintainers build the
 published artifacts once.
+
+## Standalone MolQL authoring and validation
+
+```ts
+import { MVSData } from '@molstar/mvs-builder';
+import { MolScriptBuilder as B, compileScript } from '@molstar/mvs-builder/molql';
+
+const builder = MVSData.createBuilder();
+const structure = builder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure();
+structure.component({ selector: { molql: compileScript('pymol', 'chain A') } }).representation({ type: 'cartoon' });
+structure.component({ selector: { molql: B.struct.generator.all() } }).representation({ type: 'ball_and_stick' });
+const issues = MVSData.validationIssues(builder.getState());
+```
+
+`compileScript` accepts `'mol-script'`, `'pymol'`, `'vmd'`, and `'jmol'`, returning a serializable expression after
+syntax/callable-name/argument-name validation. All languages work immediately through this authoring entry point. The
+builder's ordinary schema/serialization imports do not load text parsers or the molecular query runtime.
+
+For direct imports use `@molstar/query-language/language/builder`, `language/validation`, and `compile`. Individual
+`transpilers/<lang>/parser` modules provide translation without importing the other languages. Plugin language
+registration remains explicit through `@molstar/query-language/transpilers/<lang>` or `transpilers/all`.
+
+`MVSData.validationIssues(data, { getMolQLSymbol })` accepts a lookup of custom `MSymbol` definitions. The lookup
+replaces the default vocabulary; return `SymbolMap[name]` from `@molstar/query-language/language/symbol-table` for
+standard names. `expressionValidationIssues(expression, { getSymbol })` exposes the same pass directly. Validation does
+not check missing required arguments, argument types, selection-result types, or molecular execution support.
+`mvs-validate` uses the standard vocabulary and exits with status 1 if any file fails. Molecular compilation stays in
+model.
 
 ## Versions and checks
 

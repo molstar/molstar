@@ -22,6 +22,9 @@
     },
     {
       "path": "../../packages/plugin/ui"
+    },
+    {
+      "path": "../../packages/query-language"
     }
   ]
 }

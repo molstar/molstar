@@ -397,5 +397,8 @@
   },
   "src/mol-theme/size.ts": {
     "SizeTheme.BuiltIn": "packages/graphics/src/theme/size/catalog.ts"
+  },
+  "src/mol-script/script.ts": {
+    "Script": "packages/model/src/script/script.ts"
   }
 }

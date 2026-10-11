@@ -17,7 +17,7 @@ import { DensityFitColorThemeProvider } from './color/density-fit.js';
 import { cantorPairing } from '@molstar/core/data/util';
 import { DefaultQueryRuntimeTable } from '@molstar/model/script/runtime/query/compiler';
 import { StructureSelectionQuery, StructureSelectionCategory } from '@molstar/plugin/state/queries/structure/query';
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { Task } from '@molstar/core/task';
 import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
 import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';

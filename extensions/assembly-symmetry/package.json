@@ -40,6 +40,7 @@
     "@molstar/plugin": "workspace:*",
     "@molstar/graphics": "workspace:*",
     "@molstar/model": "workspace:*",
+    "@molstar/query-language": "workspace:*",
     "@molstar/plugin-ui": "workspace:*"
   },
   "devDependencies": {

@@ -32,7 +32,7 @@ import { Task } from '@molstar/core/task';
 import { StructureElement } from '@molstar/model/model/structure';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
 import { SpacegroupCell } from '@molstar/core/math/geometry';
-import type { Expression } from '@molstar/model/script/language/expression';
+import type { Expression } from '@molstar/query-language/language/expression';
 import { TrajectoryHierarchyBuilder } from './structure/hierarchy.js';
 import { unregisteredFormatMessage } from '../formats/registry.js';
 

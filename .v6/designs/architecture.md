@@ -3,6 +3,12 @@
 Proposal against the `molstar@5.11.0` tree. The APIs and paths below describe the target, not features available in 5.x.
 See the [short summary](summary.md) for the main decisions.
 
+Current status (2026-10-10): the workspace/ESM split, TypeScript 7/Biome tooling, formatting, and plugin composition are
+implemented. The [checklist](../plans/checklist.md) tracks remaining work. Alex owns rendering-backend implementation;
+full WebGPU/Blender integration and fast-type migration remain deferred beyond v6. MolQL builder exposure, standalone
+syntax/field-name validation, and translation of MolScript, PyMOL, VMD, and Jmol expressions are
+[implemented](#72-molql-builder-and-validation-design).
+
 ## 1. Scope
 
 Mol* 6.0 moves to a pnpm workspace of ESM packages grouped by layer. Parsers, representations, and themes become
@@ -42,25 +48,25 @@ Out of scope:
 
 ## 2. Starting point
 
-Today one package owns library code, apps, servers, and their npm dependencies. Consumers use deep imports such as
-`molstar/lib/mol-plugin-ui`; the package has no `exports` map.
+At the 5.11.0 proposal baseline, one package owned library code, apps, servers, and their npm dependencies. Consumers
+used deep imports such as `molstar/lib/mol-plugin-ui`; the package had no `exports` map.
 
-| Output          | Current build                                                                      |
+| Output          | Baseline build                                                                     |
 | --------------- | ---------------------------------------------------------------------------------- |
 | `lib/`          | `tsc`, then `tsc-alias` to complete relative JS paths; includes declarations       |
 | `lib/commonjs/` | Separate `tsc` CommonJS emit; used by CLI bins and servers                         |
 | `build/<app>/`  | esbuild from `src/`, with SCSS, copied assets, version injection, watch, and serve |
 
-Tests use Jest and `esbuild-jest-transform`, with colocated `_spec/*.spec.ts` files. Asset copying and version patching
-run from root scripts.
+Tests used Jest and `esbuild-jest-transform`, with colocated `_spec/*.spec.ts` files. Asset copying and version patching
+ran from root scripts.
 
-`PluginSpec` already selects actions, behaviors, animations, and additional `customFormats`. Registry constructors still
-preload all built-in formats, representations, and themes. Large transform modules and default-spec imports connect even
-a small plugin to the full catalog.
+`PluginSpec` already selected actions, behaviors, animations, and additional `customFormats`. Registry constructors
+preloaded all built-in formats, representations, and themes. Large transform modules and default-spec imports connected
+even a small plugin to the full catalog.
 
-The existing source graph is **not a layer DAG**. Besides plugin/state initialization cycles, lower folders contain
-runtime dependencies on higher layers. Resolving those dependencies is part of the architecture work, not a consequence
-of moving files.
+The baseline source graph was **not a layer DAG**. Besides plugin/state initialization cycles, lower folders contained
+runtime dependencies on higher layers. The workspace refactor resolved those package edges explicitly, rather than
+relying on moving files to remove them.
 
 ## 3. Packages and dependency boundaries
 
@@ -72,7 +78,8 @@ Keep recognizable subpaths, removing the `mol-` prefix. The table is the target 
 | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `@molstar/core`             | `util/`, `task/`, `data/`, `math/`, `state/`; no molecular or rendering dependencies                         |
 | `@molstar/io`               | Readers and writers; depends on core                                                                         |
-| `@molstar/model`            | Structures, volumes, particles, domain formats, properties, and script/query code                            |
+| `@molstar/query-language`   | MolQL expressions, builders, symbol tables, validation, and MolScript/PyMOL/VMD/Jmol text translation        |
+| `@molstar/model`            | Structures, volumes, particles, domain formats, properties, and executable molecular queries                 |
 | `@molstar/graphics`         | `gl/`, `geo/`, `theme/`, `repr/`, `canvas3d/`, plus rendering code relocated from model/math                 |
 | `@molstar/plugin`           | Plugin and plugin-state together: runtime, spec helpers, and explicit default-spec/catalog entry points      |
 | `@molstar/plugin-ui`        | React UI, UI-spec types, and an explicit default UI-spec entry point                                         |
@@ -89,6 +96,7 @@ The library dependency direction is:
 
 ```text
 plugin → graphics → model → io → core
+                       └→ query-language → core
 ```
 
 An arrow means “depends on.” Packages may also depend directly on any lower layer they import. UI, headless support,
@@ -96,13 +104,16 @@ extensions, apps, CLIs, and servers sit above the layers they use. `DefaultPlugi
 `DefaultPluginSpec` in plugin; plugin never depends on UI or headless support. Default compositions live behind explicit
 subpath entry points in those packages, keeping React out of the non-UI default.
 
-`mvs-builder` has no `@molstar/*` dependency. `mvs` depends on the builder and the runtime layers it imports. Servers
-that only need IO and model should not acquire plugin or graphics through those packages.
+`mvs-builder` depends on the standalone `@molstar/query-language` language package, which depends only on core. Its
+validation and authoring entry points do not load the molecular query runtime, plugin, or rendering code. `mvs` depends
+on the builder and the runtime layers it imports. Servers that only need IO and model should not acquire plugin or
+graphics through those packages.
 
 ### 3.2 Required relocations before packaging
 
-Audit the graph by proposed package ownership before assigning project references. These are known runtime edges that
-cannot be removed with `import type`:
+The workspace refactor resolved the following baseline runtime edges, which could not be removed with `import type`.
+Keep auditing source and declaration dependencies when changing package ownership; record replacement paths in the
+migration map.
 
 | Current source                                                       | Conflicting edge                   | Required work                                                                                                          |
 | -------------------------------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -158,8 +169,8 @@ work without loading video support.
 
 ### 4.1 Layout
 
-The packaging-first [prototype plan](../plans/workspace-prototype.md) implements this layout while deferring plugin
-composition and rendering-backend changes.
+The packaging-first [prototype plan](../plans/workspace-prototype.md) implemented this layout. Plugin composition was
+implemented in a subsequent workstream; rendering-backend changes are owned separately by Alex.
 
 ```text
 packages/
@@ -537,6 +548,90 @@ every existing bin. For example, after publication, `npm exec --package @molstar
 selects the rendering package explicitly. Preserve current flags and supported output formats unless a separate
 migration entry records a deliberate change.
 
+### 7.2 MolQL builder and validation design
+
+Status: implemented (2026-10-10). Validation covers syntax and bad field names against symbol and argument-definition
+tables without the molecular query runtime. Argument type checking, required-argument checks, and selection-result
+checking remain outside this pass.
+
+#### Package boundary
+
+`@molstar/query-language` owns the expression language, builder, symbol/argument definitions, text parsers/transpilers
+for MolScript, PyMOL, VMD, and Jmol, and standalone validation. Structure-dependent compilation and evaluation stay in
+`@molstar/model`. The builder's duplicate expression representation has been removed in favor of the language package's
+canonical type. Moved source paths and split symbols are recorded in the migration inventories.
+
+```text
+@molstar/mvs-builder → @molstar/query-language
+@molstar/model       → @molstar/query-language
+@molstar/query-language  → @molstar/core
+@molstar/mvs         → @molstar/mvs-builder + @molstar/model + its existing runtime dependencies
+```
+
+The split avoids a package cycle: structure bundles, schemas, and loci use the expression builder, while loci and
+computed properties also use the executable query compiler. The existing compiler constructs molecular query contexts
+and evaluates constant operations, so it is unsuitable for standalone validation. The pre-extraction source graph had
+282 processed modules for executable compilation versus nine for JSON authoring; these are module counts, not timing
+measurements. Compilation also accepted unknown argument names, and 21 of the standard table's 163 symbols had no
+default runtime implementation. Language validity remains separate from execution support.
+
+Text parsers/transpilers have explicit entry points. JSON builder and validation imports do not reach them. The
+executable compiler and custom-property runtime registration remain model-owned.
+
+#### Text expressions to MolQL
+
+`compileScript(language, source)` in `@molstar/query-language/compile` returns a serializable MolQL `Expression` for any
+of the four supported languages. It parses/translates text, then validates callable and argument names. It does not
+compile executable queries or evaluate constants. Existing supported syntax and unsupported-feature errors are
+preserved; this does not promise full parity with the original PyMOL, VMD, or Jmol engines.
+
+MolScript input must contain exactly one expression. Callable and argument names are also checked against the alias and
+macro tables before expansion, so unused macro arguments cannot hide invalid syntax or misspelled names.
+
+The text-only `Script` API lives at `@molstar/query-language/script`. Its `toExpression` dispatch preserves explicit
+registration: import `@molstar/query-language/transpilers/<lang>` or `transpilers/all` to enable non-MolScript languages
+for plugin use. Direct `transpilers/<lang>/parser` imports work without registration. `compileScript` imports all four
+translators directly, so MVS authoring never depends on prior plugin initialization and does not modify the language
+registry. Model's `Script.toQuery`, `toLoci`, and `getStructureSelection` keep their molecular behavior.
+
+#### Validation pass
+
+`expressionValidationIssues(expression, options?)` in `@molstar/query-language/language/validation` returns
+path-qualified issues or `undefined`. It walks expressions without creating a structure context or executing operations.
+
+- Accept finite JSON literals, symbol objects, and applications with positional arrays or argument maps.
+- Reject unexpected expression fields and malformed heads; an application head must be a symbol.
+- Resolve callable names and nested calls against the standard symbol table.
+- Reject dictionary keys outside `MSymbol.args.map`, including misspelled names and undeclared positional indices.
+  Positional array indices correspond to dictionary keys such as `'0'` and `'1'`. Variadic lists accept nonnegative
+  positional indices, including numeric map keys, and reject named keys.
+- Preserve bare symbol references as string values, matching the existing language semantics.
+- Reject cycles, sparse arrays, and array fields that would be lost during JSON serialization.
+
+`options.getSymbol(name)` supplies an explicit replacement vocabulary for custom definitions; callers can fall back to
+`SymbolMap[name]`. `options.syntaxOnly` checks shapes without resolving names. The language package does not read the
+runtime's global table.
+
+Fixed MVS schema codecs enforce expression syntax and the existing application-root rule. `MVSData.validationIssues` and
+`isValid` additionally validate names throughout scene and animation trees, multiple snapshots, and primitive positions
+with `structure_ref`. Only parameters declared by the node schema are inspected; extra parameters remain ignored unless
+`noExtra` is enabled. Supply custom definitions through `options.getMolQLSymbol`. The default CLI knows only the
+standard vocabulary and reports custom callable names as unknown. CLI failures include the file and expression path,
+return a nonzero status, and do not prevent later files from being checked. MVS runtime validation uses registered
+runtime symbol definitions, then retains executable compilation as the execution-support check.
+
+#### MVS authoring API and checks
+
+`@molstar/mvs-builder/molql` exports `MolScriptBuilder` and `compileScript`. This narrow authoring facade is a
+deliberate exception to the no-convenience-re-export policy in §4.4. Direct defining-module imports from the language
+package remain available; schema/serialization entry points do not import the facade or text parsers.
+
+Unit tests cover syntax, nested callable names, array/map argument keys, custom vocabularies, MVS trees/snapshots, and
+all four translators, including their existing example corpora. `scripts/workspace/query-language-check.mjs` verifies
+source import boundaries and per-language parser independence. Packed smoke consumers exercise all languages and CLI
+success/failure with only the standalone builder's dependency closure installed. Standalone-builder parity with
+molviewspec-ts and coordinated JSR publication remain separate release tasks.
+
 ## 8. Builds and maintenance
 
 ### 8.1 Library and app builds
@@ -615,30 +710,30 @@ access on both registries before the first prerelease.
 These are default prefix mappings; the dependency-relocation audit supplies explicit exceptions. Root/index imports need
 export-map entries as well as prefix rewrites.
 
-| 5.x prefix or API                                                        | 6.0 target                                                                 |
-| ------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `molstar/lib/mol-util`                                                   | `@molstar/core/util`                                                       |
-| `molstar/lib/mol-task`                                                   | `@molstar/core/task`                                                       |
-| `molstar/lib/mol-data`                                                   | `@molstar/core/data`                                                       |
-| `molstar/lib/mol-math`                                                   | `@molstar/core/math`                                                       |
-| `molstar/lib/mol-state`                                                  | `@molstar/core/state`                                                      |
-| `molstar/lib/mol-io`                                                     | `@molstar/io`                                                              |
-| `molstar/lib/mol-model`                                                  | `@molstar/model`                                                           |
-| `molstar/lib/mol-model-formats`                                          | `@molstar/model/formats`                                                   |
-| `molstar/lib/mol-model-props`                                            | `@molstar/model/props`                                                     |
-| `molstar/lib/mol-script`                                                 | `@molstar/model/script`                                                    |
-| `molstar/lib/mol-gl`, `mol-geo`, `mol-theme`, `mol-repr`, `mol-canvas3d` | Corresponding `@molstar/graphics/gl`, `geo`, `theme`, `repr`, `canvas3d`   |
-| `molstar/lib/mol-plugin`                                                 | `@molstar/plugin`                                                          |
-| `molstar/lib/mol-plugin/headless-plugin-context`                         | `@molstar/plugin-headless/headless-plugin-context`                         |
-| `molstar/lib/mol-plugin/util/headless-screenshot`                        | `@molstar/plugin-headless/util/headless-screenshot`                        |
-| `molstar/lib/mol-plugin-state`                                           | `@molstar/plugin/state`                                                    |
-| `molstar/lib/mol-plugin-ui`                                              | `@molstar/plugin-ui`                                                       |
-| `DefaultPluginSpec`                                                      | `@molstar/plugin/default-spec`                                             |
-| `DefaultPluginUISpec`                                                    | `@molstar/plugin-ui/default-spec`                                          |
-| `StateTransforms`                                                        | Individual transformer imports from defining modules                       |
-| `molstar/lib/extensions/mvs`                                             | `@molstar/mvs` for runtime; `@molstar/mvs-builder` for builder/schema APIs |
-| `molstar/lib/extensions/<name>`                                          | `@molstar/<name>-extension`                                                |
-| `molstar/lib/apps/viewer/app`                                            | `@molstar/viewer`                                                          |
+| 5.x prefix or API                                                        | 6.0 target                                                                                 |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `molstar/lib/mol-util`                                                   | `@molstar/core/util`                                                                       |
+| `molstar/lib/mol-task`                                                   | `@molstar/core/task`                                                                       |
+| `molstar/lib/mol-data`                                                   | `@molstar/core/data`                                                                       |
+| `molstar/lib/mol-math`                                                   | `@molstar/core/math`                                                                       |
+| `molstar/lib/mol-state`                                                  | `@molstar/core/state`                                                                      |
+| `molstar/lib/mol-io`                                                     | `@molstar/io`                                                                              |
+| `molstar/lib/mol-model`                                                  | `@molstar/model`                                                                           |
+| `molstar/lib/mol-model-formats`                                          | `@molstar/model/formats`                                                                   |
+| `molstar/lib/mol-model-props`                                            | `@molstar/model/props`                                                                     |
+| `molstar/lib/mol-script`                                                 | `@molstar/query-language` for language/text; `@molstar/model/script` for molecular runtime |
+| `molstar/lib/mol-gl`, `mol-geo`, `mol-theme`, `mol-repr`, `mol-canvas3d` | Corresponding `@molstar/graphics/gl`, `geo`, `theme`, `repr`, `canvas3d`                   |
+| `molstar/lib/mol-plugin`                                                 | `@molstar/plugin`                                                                          |
+| `molstar/lib/mol-plugin/headless-plugin-context`                         | `@molstar/plugin-headless/headless-plugin-context`                                         |
+| `molstar/lib/mol-plugin/util/headless-screenshot`                        | `@molstar/plugin-headless/util/headless-screenshot`                                        |
+| `molstar/lib/mol-plugin-state`                                           | `@molstar/plugin/state`                                                                    |
+| `molstar/lib/mol-plugin-ui`                                              | `@molstar/plugin-ui`                                                                       |
+| `DefaultPluginSpec`                                                      | `@molstar/plugin/default-spec`                                                             |
+| `DefaultPluginUISpec`                                                    | `@molstar/plugin-ui/default-spec`                                                          |
+| `StateTransforms`                                                        | Individual transformer imports from defining modules                                       |
+| `molstar/lib/extensions/mvs`                                             | `@molstar/mvs` for runtime; `@molstar/mvs-builder` for builder/schema APIs                 |
+| `molstar/lib/extensions/<name>`                                          | `@molstar/<name>-extension`                                                                |
+| `molstar/lib/apps/viewer/app`                                            | `@molstar/viewer`                                                                          |
 
 ### 9.2 Migration tool
 
@@ -706,15 +801,17 @@ publishing a new stories library.
 
 ### 10.1 Release gate
 
-Before 6.0 work lands on the default branch:
+The original rollout gate before default-branch integration was:
 
 1. Land the planned 5.x work: particles, MVS changes, and bond-order perception.
 2. Release the final 5.x feature minor.
 3. Cut `v5` for any continuing fixes; freeze new features on that line.
 4. Rename `master` to `main`, updating CI branch filters, docs, and clone instructions in the same change.
 
-Implement 6.0 on `main`, publish `dev` prereleases, then release stable after the acceptance checks. Subsequent 5.x
-fixes stay on `v5`.
+The workspace and composition changes have already landed on `master`; 5.13.0 and 5.13.1 are recorded in the release
+history and `v5` exists for continuing fixes. The branch rename and matching CI/docs changes remain release-coordination
+work; current workflows still target `master`. Keep later 5.x fixes on `v5` and forward-port them using the migration
+records. Publish `dev` prereleases, then release stable after the acceptance checks.
 
 ### 10.2 Technical phases
 
@@ -733,7 +830,7 @@ or generator migration phase.
 | 0     | Verify package names; introduce pnpm, the workspace skeleton, and matching CI                                                                                                                                                                                                                                       |
 | 1     | Audit and relocate reverse dependencies in §3.2; break plugin cycles and add explicit type imports. Record final API locations and verify the proposed package graph, including declaration edges. Retain existing module settings and override `verbatimModuleSyntax: false` for the temporary CJS build if needed |
 | 2     | Split transform/provider modules and default-spec entry points; remove convenience barrels and the transform facade, split mixed implementation modules, migrate consumers to defining-module imports, and remove lazy getters; rename tests                                                                        |
-| 3     | Introduce empty reference-counted registries, `spec.registry` entries, explicit base specs, id-only preset lookup, and presets that import what they run; prove the slim example and full default composition ([plugin-composition plan](../plans/plugin-composition.md) steps 2–4)                                 |
+| 3     | Introduce empty reference-counted registries, `spec.registry` entries, explicit base specs, preset lookup by id or alias, and presets that import what they run; prove the slim example and full default composition ([plugin-composition plan](../plans/plugin-composition.md) steps 2–4)                          |
 | 4     | Drop CJS; set `type: module`, `NodeNext`, and `verbatimModuleSyntax`; use `.js` relative specifiers in source. Convert CommonJS globals/tooling and smoke-test emitted bins                                                                                                                                         |
 | 5     | Move into grouped workspace packages; add exports, project references, direct dependencies, and per-app esbuild. Verify clean builds and packed consumers; stage the CDN-only `molstar` package                                                                                                                     |
 | 6     | Finish standalone MVS builder/runtime, headless library, extension and server/CLI packaging; verify npm/JSR builder parity, headless dependency isolation, and command installation/migration instructions                                                                                                          |

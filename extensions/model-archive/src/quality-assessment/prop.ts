@@ -15,8 +15,8 @@ import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 import { Unit } from '@molstar/model/model/structure';
 import { Model, type ResidueIndex } from '@molstar/model/model/structure/model';
 import { AtomicIndex } from '@molstar/model/model/structure/model/properties/atomic';
-import { CustomPropSymbol } from '@molstar/model/script/language/symbol';
-import { Type } from '@molstar/model/script/language/type';
+import { CustomPropSymbol } from '@molstar/query-language/language/symbol';
+import { Type } from '@molstar/query-language/language/type';
 import { QuerySymbolRuntime } from '@molstar/model/script/runtime/query/compiler';
 import { ParamDefinition, ParamDefinition as PD } from '@molstar/core/util/param-definition';
 

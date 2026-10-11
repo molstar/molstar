@@ -24,7 +24,7 @@
       "path": "../../packages/mvs/runtime"
     },
     {
-      "path": "../../packages/model"
+      "path": "../../packages/query-language"
     }
   ]
 }

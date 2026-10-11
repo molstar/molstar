@@ -15,10 +15,12 @@ import {
 } from '@molstar/mvs-builder/tree/mvs/param-types';
 import { molQLValidationIssues } from '@molstar/mvs/runtime-validation';
 import { buildStory } from '@molstar/mvs-stories-example/stories/molql';
-import { compile } from '@molstar/model/script/runtime/query/base';
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
-import { parse } from '@molstar/model/script/transpile';
-import '@molstar/model/script/transpilers/pymol';
+import { compile, DefaultQueryRuntimeTable, QuerySymbolRuntime } from '@molstar/model/script/runtime/query/base';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
+import { CustomPropSymbol } from '@molstar/query-language/language/symbol';
+import { Type } from '@molstar/query-language/language/type';
+import { parse } from '@molstar/query-language/transpile';
+import '@molstar/query-language/transpilers/pymol';
 
 describe('MVS MolQL selectors', () => {
   const molql = MS.struct.generator.atomGroups({});
@@ -27,7 +29,7 @@ describe('MVS MolQL selectors', () => {
     const malformed = { head: { name: 'not-implemented' } };
     expect(MolQLExpressionT.decode({ molql })._tag).toEqual('Right');
     expect(MolQLExpressionT.decode({ molql: 'not-a-query' })._tag).toEqual('Left');
-    // The standalone builder checks JSON shape; MolScript symbol semantics belong to runtime.
+    // Fixed schema codecs check syntax; MVSData validates names using the caller's symbol vocabulary.
     expect(MolQLExpressionT.decode({ molql: malformed })._tag).toEqual('Right');
     expect(MolQLExpressionT.decode({ molql, label_seq_id: 1 })._tag).toEqual('Left');
     expect(MolQLExpressionT.decode({})._tag).toEqual('Left');
@@ -101,8 +103,30 @@ describe('MVS MolQL selectors', () => {
       .modelStructure()
       .component({ selector: { molql: { head: { name: 'not-implemented' } } } as any });
     const state = builder.getState();
-    expect(MVSData.validationIssues(state)).toEqual(undefined);
+    expect(MVSData.validationIssues(state)?.join('\n')).toContain('Unknown callable symbol');
     expect(molQLValidationIssues(state.root)?.join('\n')).toContain('Invalid MolQL expression');
+  });
+
+  it('validates registered custom symbols in the runtime without changing standalone vocabulary', () => {
+    const symbol = CustomPropSymbol('custom', 'mvs-test', Type.Num);
+    const runtime = QuerySymbolRuntime.Const(symbol, () => 1);
+    const builder = createMVSBuilder();
+    builder
+      .download({ url: 'example.bcif' })
+      .parse({ format: 'bcif' })
+      .modelStructure()
+      .component({
+        selector: { molql: MS.struct.generator.atomGroups({ 'atom-test': MS.core.rel.eq([symbol(), 1]) }) },
+      });
+    const state = builder.getState();
+    DefaultQueryRuntimeTable.addSymbol(runtime);
+    try {
+      expect(molQLValidationIssues(state.root)).toBeUndefined();
+      expect(MVSData.validationIssues(state)?.join('\n')).toContain('Unknown callable symbol');
+    } finally {
+      DefaultQueryRuntimeTable.removeSymbol(runtime);
+    }
+    expect(molQLValidationIssues(state.root)?.join('\n')).toContain('Unknown callable symbol');
   });
 
   it('builds a valid story from MolScriptBuilder and a PyMOL-transpiled expression', () => {

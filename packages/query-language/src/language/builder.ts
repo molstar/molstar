@@ -31,7 +31,7 @@ export namespace MolScriptBuilder {
   }
   /** RegEx constructor */
   export function re(pattern: string, flags?: string) {
-    return core.type.regex([pattern, flags]);
+    return core.type.regex(flags === undefined ? [pattern] : [pattern, flags]);
   }
   /** Function constructor */
   export function fn(x: Expression) {

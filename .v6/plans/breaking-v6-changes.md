@@ -68,23 +68,20 @@ accessing geometry-specific fields.
 changing geometry group counts after creation must recreate the shape with the correct count instead of relying on the
 old getter. The model contract still marks `groupCount` readonly.
 
-## Temporary: standalone MolQL validation
+## Standalone MolQL validation
 
-The standalone builder and `mvs-validate` check MolQL expression structure but do not compile expressions. An unknown
-symbol can therefore pass CLI validation. The MVS runtime still performs compiler validation and rejects it when
-loading.
+The standalone builder and `mvs-validate` validate MolQL syntax, callable names, and argument names against
+`@molstar/query-language` symbol tables without loading the molecular query runtime. Unknown callable names fail
+standalone validation by default; custom definitions can be supplied to `MVSData.validationIssues`/`isValid` through
+`getMolQLSymbol`. Runtime validation also checks executable compilation.
 
-Full CLI validation will return after designing the mol-script import/integration. See the deferred validation item in
-[checklist.md](checklist.md).
+`@molstar/mvs-builder/molql` exposes `MolScriptBuilder` and `compileScript` for MolScript, PyMOL, VMD, and Jmol text.
+Language-only imports moved to `@molstar/query-language`; executable compiler/runtime functionality remains under
+`@molstar/model/script/...`. See [the detailed migration notes](#standalone-query-language-and-mvs-molql-validation) and
+the [validation design](../designs/architecture.md#72-molql-builder-and-validation-design).
 
-This also affects `MVSData.validationIssues`/`isValid` and schema decoding of MolQL selectors in the standalone builder.
-Runtime sanity checks invoke the compiler validation for both scene and animation trees, and selector loading still
-compiles expressions. A syntactically valid unknown symbol can pass standalone checks.
-
-The standalone `@molstar/mvs-builder/expression` module exposes JSON expression construction/shape checks only. Use
-`@molstar/model/script/...` for MolScript compiler/runtime functionality. New `@molstar/mvs/behavior-id` constants keep
-the existing `molviewspec` name and `ms-plugin.molviewspec` transformer ID; the loader now checks that stable ID without
-importing the behavior module. Serialized snapshot identity is unchanged.
+The `@molstar/mvs/behavior-id` constants keep the existing `molviewspec` name and `ms-plugin.molviewspec` transformer
+ID; the loader checks that stable ID without importing the behavior module. Serialized snapshot identity is unchanged.
 
 ## Headless MP4 integration
 
@@ -192,12 +189,12 @@ only want the default UI parts import `DefaultPluginUIComponents()` and `Default
 
 ### Script languages
 
-PyMOL, VMD, and Jmol are no longer enabled implicitly. Import `@molstar/model/script/transpilers/pymol`, `.../vmd`,
-`.../jmol`, or `@molstar/model/script/transpilers/all` to enable a language; the default plugin spec and the Viewer
+PyMOL, VMD, and Jmol are no longer enabled implicitly. Import `@molstar/query-language/transpilers/pymol`, `.../vmd`,
+`.../jmol`, or `@molstar/query-language/transpilers/all` to enable a language; the default plugin spec and the Viewer
 import `all`. Using a language that was not imported throws `Script language '<x>' is not available in this build`.
 `mol-script` is always available. `Script.getAvailableLanguages()` returns `mol-script` plus the registered languages,
 and the script-language select in the plugin UI lists only those. The `_transpiler` object exported by `transpilers/all`
-is removed; after enabling the language, call `parse(language, text)` from `@molstar/model/script/transpile` (or
+is removed; after enabling the language, call `parse(language, text)` from `@molstar/query-language/transpile` (or
 `Script.toExpression`), or import `transpiler` from `.../transpilers/<lang>/parser` directly.
 
 ### Data format providers
@@ -558,7 +555,7 @@ exports exclude tests and build caches.
 
 `molstar` now packages only browser distributions. Library/server/CLI consumers must install the owning `@molstar/*`
 packages instead of importing `molstar/lib/...` or `molstar/lib/commonjs/...`. There is no CommonJS build or `require`
-export condition. Published library modules and the browser ESM distribution target ES2022. All 43 public packages share
+export condition. Published library modules and the browser ESM distribution target ES2022. All 44 public packages share
 one release version.
 
 Native `gl`/`canvas` remain injected by headless callers and are optional peers. `@molstar/plugin-headless/native` adds
@@ -609,3 +606,24 @@ Under Node, platform `fetch` does not load `file://` assets. Callers can provide
 The old `setFSModule(fs)` core IO hook no longer controls standalone builder fetching. This explicit adapter contract
 keeps the builder independent of plugin/rendering code. Tests cover default and custom fetching, resolved file URIs,
 cache reuse, explicit assets, skipped external URIs, and HTTP errors.
+
+## Standalone query language and MVS MolQL validation
+
+Language modules (`language/*`, `script/*`, `transpile`, and `transpilers/*`) move from `@molstar/model/script` to the
+corresponding `@molstar/query-language` subpaths. Molecular `Script` operations and `runtime/query/*` remain in model.
+The text-only `@molstar/query-language/script` API provides `toExpression` and explicit language registration without
+molecular imports. Existing serialized symbol IDs are unchanged.
+
+The duplicated `@molstar/mvs-builder/expression` module is removed. Import the canonical `Expression` from
+`@molstar/query-language/language/expression`. MVS authoring gains `@molstar/mvs-builder/molql`, exporting
+`MolScriptBuilder` and `compileScript(language, source)` for MolScript, PyMOL, VMD, and Jmol. This facade requires no
+registration imports and does not modify the plugin's language registry.
+
+`MVSData.validationIssues` and `isValid`, and the `mvs-validate` CLI, now reject malformed expressions, unknown callable
+symbols, and undeclared argument names. The schema codecs remain vocabulary-independent. Standalone callers validating
+custom symbols must provide `getMolQLSymbol(name)`, including fallback to the standard `SymbolMap` where needed. Runtime
+validation resolves registered custom-property symbols and retains executable compiler checks. Missing required
+arguments, argument/value types, and selection-result types remain outside standalone validation.
+
+`MolScriptBuilder.re(pattern)` omits the absent flags argument instead of including `undefined`, so the result remains a
+valid expression after JSON serialization. Passing flags explicitly preserves the previous array shape.

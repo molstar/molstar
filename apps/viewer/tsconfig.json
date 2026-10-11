@@ -9,6 +9,9 @@
   "exclude": ["src/**/_test/**"],
   "references": [
     {
+      "path": "../../packages/query-language"
+    },
+    {
       "path": "../../packages/mvs/runtime"
     },
     {

@@ -24,7 +24,7 @@ describe('script languages', () => {
   it('importing a transpiler module enables its language only', () => {
     jest.isolateModules(() => {
       const { Script } = require('@molstar/model/script/script') as typeof import('@molstar/model/script/script');
-      require('@molstar/model/script/transpilers/pymol');
+      require('@molstar/query-language/transpilers/pymol');
       expect(Script.getAvailableLanguages()).toEqual(['mol-script', 'pymol']);
       expect(() => Script.toExpression({ language: 'pymol', expression: 'resn ALA' })).not.toThrow();
       expect(() => Script.toExpression({ language: 'vmd', expression: 'resname ALA' })).toThrow(/not available/);
@@ -34,7 +34,7 @@ describe('script languages', () => {
   it('transpilers/all enables every language', () => {
     jest.isolateModules(() => {
       const { Script } = require('@molstar/model/script/script') as typeof import('@molstar/model/script/script');
-      require('@molstar/model/script/transpilers/all');
+      require('@molstar/query-language/transpilers/all');
       expect(Script.getAvailableLanguages().sort()).toEqual(['jmol', 'mol-script', 'pymol', 'vmd']);
     });
   });

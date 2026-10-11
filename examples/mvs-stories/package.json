@@ -50,7 +50,7 @@
     "@molstar/mvs-stories": "workspace:*",
     "@molstar/mvs-builder": "workspace:*",
     "@molstar/mvs": "workspace:*",
-    "@molstar/model": "workspace:*"
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

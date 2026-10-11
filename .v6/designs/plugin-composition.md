@@ -466,7 +466,7 @@ the migration tool refer to them. `DefaultActions` comes before `DefaultFormats`
 and actions are listed per type in registration order; this way the format entries' actions are already registered
 (counted by id) and the 5.x action order is kept. `DefaultPresets` holds today's hierarchy and representation presets;
 the new `BallAndStickPreset` (§12) is not added to it. The module also imports the transformer catalog (§6.1) and
-`@molstar/model/script/transpilers/all` (§7) for their side effects. `DefaultPluginSpec()` in
+`@molstar/query-language/transpilers/all` (§7) for their side effects. `DefaultPluginSpec()` in
 `@molstar/plugin/default-spec` returns `{ registry: DefaultRegistry, behaviors }`; the default custom-property behaviors
 stay behaviors, with unchanged runtime registration.
 
@@ -619,10 +619,10 @@ optional functionality only through ids, config, `has`, and `import type`.
 - **Script languages.** The core `@molstar/model/script/script` module (the `Script` type, `is`, `areEqual`, `Info`, and
   `toExpression`/`toLoci`/`toQuery`/`getStructureSelection`) handles `mol-script` directly and reaches other languages
   only through a module-global transpiler table, like `DefaultQueryRuntimeTable`. The table lives in
-  `@molstar/model/script/transpile`, whose `parse(lang, str)` reads it; `transpile.ts` no longer imports
-  `transpilers/all.ts`, which stops exporting `_transpiler`. Importing `@molstar/model/script/transpilers/<lang>`
+  `@molstar/query-language/transpile`, whose `parse(lang, str)` reads it; `transpile.ts` no longer imports
+  `transpilers/all.ts`, which stops exporting `_transpiler`. Importing `@molstar/query-language/transpilers/<lang>`
   (`pymol`, `vmd`, `jmol`) at the top of the app or spec file registers that language for every plugin on the page;
-  `@molstar/model/script/transpilers/all` imports all three. Code that calls `parse` directly imports the languages it
+  `@molstar/query-language/transpilers/all` imports all three. Code that calls `parse` directly imports the languages it
   parses the same way. Nothing goes in the spec, and languages that are not imported are not bundled.
   `@molstar/plugin/default-registry` and the Viewer import `transpilers/all`. A script in a language that is not enabled
   throws `Script language '<x>' is not available in this build` (in a snapshot, that cell fails), and the script-param
@@ -817,7 +817,7 @@ decision needed to remove it; there are none. The pinned exclusions:
 | Volume representations | `@molstar/graphics/repr/volume/{direct-volume,isosurface,slice,dot,segment}` and their `@molstar/plugin/registry/volume/*` entries                                                                                                                          |
 | Other presets          | Every representation preset module except `ball-and-stick` and `types`, every hierarchy preset module except `default`, `crystal-symmetry` (a helper) and `types`                                                                                           |
 | Catalogs               | Every `catalog.ts` (including the preset catalogs and the selection-query catalog, `StructureSelectionQueries`), `default-spec.ts`, `default-registry.ts`, `behavior.ts`, `behavior/dynamic/custom-props.ts`, `state/actions.ts`                            |
-| Script transpilers     | `@molstar/model/script/transpilers/**` (`all`, `pymol`, `vmd`, `jmol`, and the parsers under them)                                                                                                                                                          |
+| Script transpilers     | `@molstar/query-language/transpilers/**` (`all`, `pymol`, `vmd`, `jmol`, and the parsers under them)                                                                                                                                                        |
 | MP4 export             | `@molstar/mp4-export-extension` (`extensions/mp4-export/**`)                                                                                                                                                                                                |
 
 Beyond the slim target, the default compositions must register the same providers as the step-0 baseline (apart from

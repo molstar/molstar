@@ -22,7 +22,7 @@ import { Viewport, ViewportControls } from '@molstar/plugin-ui/viewport';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginConfig } from '@molstar/plugin/config';
 import { PluginContext } from '@molstar/plugin/context';
-import { MolScriptBuilder as MS } from '@molstar/model/script/language/builder';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { StateObjectRef } from '@molstar/core/state';
 import { Color } from '@molstar/core/util/color';
 import { Material } from '@molstar/core/util/material';

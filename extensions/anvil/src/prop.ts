@@ -13,8 +13,8 @@ import { CustomStructureProperty } from '@molstar/model/props/common/custom-stru
 import { CustomProperty } from '@molstar/model/props/common/custom-property';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { QuerySymbolRuntime } from '@molstar/model/script/runtime/query/base';
-import { CustomPropSymbol } from '@molstar/model/script/language/symbol';
-import { Type } from '@molstar/model/script/language/type';
+import { CustomPropSymbol } from '@molstar/query-language/language/symbol';
+import { Type } from '@molstar/query-language/language/type';
 
 export const MembraneOrientationParams = {
   ...ANVILParams,

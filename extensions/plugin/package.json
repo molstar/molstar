@@ -36,6 +36,7 @@
     "@molstar/plugin-ui": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/model": "workspace:*",
+    "@molstar/query-language": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/mvs": "workspace:*",
     "@molstar/mvs-builder": "workspace:*"
