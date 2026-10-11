@@ -114,6 +114,13 @@ const StructureParams = {
   model: PD.Numeric(1, { min: 1, max: 20, step: 1 }, { label: 'Model index' }),
 };
 
+/** The crystallographic unit cell (Mol*'s unit cell representation): drawn as a box, hidden by default. */
+const UnitCellParams = {
+  color: PD.Color(0x808080 as any, { isEssential: true }),
+  size: PD.Numeric(0.33, { min: 0.1, max: 2, step: 0.01 }, { label: 'Line size', isEssential: true }),
+  alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
+};
+
 const ComponentParams = {
   label: PD.Text(''),
 };
@@ -457,6 +464,16 @@ export function mockScene(
     const water = s.children.value[2] as MockNode;
     water.toggleVisibility();
     water.toggleExpanded();
+    // The unit cell: part of the structure's record, hidden until asked for.
+    const cell = node('1tqn-cell', 'unit-cell', 'box', 'Unit cell', 'I 2 2 2', false);
+    cell.toggleVisibility();
+    cell.menu = [
+      { id: 'select', label: 'Select this', icon: 'mouse-pointer-2', run: act('Selected the unit cell') },
+      { id: 'label', label: 'Edit label', icon: 'pencil', run: act('Editing the label of Unit cell') },
+    ];
+    forms.set('1tqn-cell', new ParamsFormModel(UnitCellParams));
+    facts.set('1tqn-cell', [['Space group', 'I 2 2 2']]);
+    s.add(cell);
     roots.set([s, measurements()]);
   } else if (preset === 'many') {
     // Four CYP3A4 structures superposed on the first: collapsed but the first, so the list stays short.

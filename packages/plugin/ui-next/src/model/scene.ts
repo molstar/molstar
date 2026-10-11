@@ -14,6 +14,7 @@ export type SceneNodeKind =
   | 'representation'
   | 'volume'
   | 'volume-representation'
+  | 'unit-cell'
   | 'measurements'
   | 'measurement';
 
