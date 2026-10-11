@@ -12,11 +12,14 @@ export interface SnapshotStepperModel {
   /** 0-based; -1 when no snapshot is current. */
   index: ReadonlyState<number>;
   title: ReadonlyState<string | undefined>;
+  /** Every snapshot's title, in order (the position dots' tooltips, the list when there are many). */
+  titles: ReadonlyState<readonly string[]>;
   /** Markdown, with the snapshot links (`#key`) and markdown extensions of the plugin. */
   description: ReadonlyState<string | undefined>;
   isPlaying: ReadonlyState<boolean>;
   previous(): void;
   next(): void;
+  goTo(index: number): void;
   togglePlay(): void;
   /** Follows a link in the description: `#key` applies a snapshot; others are commands or URLs. */
   openLink(href: string): void;
@@ -28,10 +31,6 @@ export interface TrajectoryControlsModel {
   /** 0-based. */
   index: ReadonlyState<number>;
   isPlaying: ReadonlyState<boolean>;
-  first(): void;
-  previous(): void;
-  next(): void;
-  last(): void;
   seek(index: number): void;
   togglePlay(): void;
 }

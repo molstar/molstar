@@ -30,10 +30,8 @@ export interface ShellViewProps {
   canvas: Child;
   /** Items floating over the canvas besides the toolbar and status line (snapshots, hover label, …). */
   overlays?: Child;
-  /** The trajectory controls, at the top left of the canvas, above the snapshots. */
-  timeline?: Child;
-  /** The snapshot panel, at the top left of the canvas, below the timeline. */
-  snapshots?: Child;
+  /** Playback at the top left of the canvas (the snapshot and trajectory card). */
+  playback?: Child;
   /**
    * The theme of the chrome over the canvas, from the canvas background (light background: light glass), independent
    * of the UI theme: dark glass over a white canvas would be muddy.
@@ -107,10 +105,7 @@ export function ShellView(props: ShellViewProps) {
           }}
         >
           <Show when={floatingTop}>{() => <FloatingDock shell={shell} dock={top} />}</Show>
-          <div class={canvasClasses.lead}>
-            {props.timeline}
-            {props.snapshots}
-          </div>
+          <div class={canvasClasses.lead}>{props.playback}</div>
           {props.overlays}
           <div class={canvasClasses.bottom}>
             <div class={canvasClasses.bottomGrid}>
