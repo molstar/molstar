@@ -77,6 +77,16 @@ Carry into the proper implementation (from the mock review):
 back to "Apply" (transformer updates stay "Update"). Icons stay a UI concern: ui-next maps action ids to icons in its
 contributions, core does not learn about them.
 
+**Transform controls store their params correctly.** Forms for a cell's transform (updates, the state tree, inspectors)
+emit the complete new params, each of its PD type (Vec3, Mat4 as arrays of their size; colors as numbers; assets kept as
+`Asset` objects; object lists as new lists), never a partial object or a shared reference, and skip the update when
+nothing changed (`PD.areEqual`), so `state.build().to(ref).update(params)` records exactly the new version.
+
+**Fewer re-renders: combine, then debounce.** Where a view depends on several streams (a row's value, its visibility,
+its help; a tree row's label, description, visibility), combine them (`combineLatest`) and add a short debounce (a
+frame, `debounceTime(0)` or `auditTime(16)` with a scheduler) where a burst of updates is expected (state tree rebuilds,
+selection changes), so one change renders once.
+
 `model/sources/*` with tests against a real plugin and fixtures; view models in the order Scene → ParamsForm/Inspector →
 Selection/Focus → Measurements → Snapshots/Animation/Trajectory → Viewport/Screenshot → Sequence → Tasks/
 Notifications/Log → StateTree → Help. Actions extracted from the old UI where logic lives in views.

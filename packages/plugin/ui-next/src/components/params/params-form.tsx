@@ -10,21 +10,28 @@ import type { ParamDefinition as PD } from '@molstar/core/util/param-definition'
 import { Asset } from '@molstar/core/util/assets';
 import { camelCaseToWords } from '@molstar/core/util/string';
 import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
-import { Show } from '../../dom/control-flow.js';
+import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
-import type { ParamsFormModel } from '../../forms/params-form.js';
+import { ParamsFormModel } from '../../forms/params-form.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { OptionList, SelectButton } from '../select/select.js';
 import { ColorPicker, colorToHex } from '../color/color-picker.js';
 import { Icon } from '../icon/icon.js';
 import { classes } from './_generated/params-form.module.css.js';
+import {
+  ColorListRow,
+  IntervalControl,
+  LineGraphRow,
+  Mat4Row,
+  MultiSelectRow,
+  UrlControl,
+  Vec3Control,
+} from './extra-controls.js';
+import type { FieldBinding } from './field-binding.js';
+import { helpOf, withHelp } from './help.js';
 
 /** A field's value as a control sees it: a stream, the current value, and how to change it. */
-interface FieldBinding {
-  value: Observable<any>;
-  get(): any;
-  set(value: any): void;
-}
+export type { FieldBinding };
 
 /**
  * The form for a `ParamsFormModel`: essentials first, the rest under "Advanced" (as the classic UI). Each row binds
@@ -135,48 +142,73 @@ function ParamRow(props: {
       </div>
     );
   }
+  // Its help (a description, a legend; for a theme choice, the chosen theme's): a ? by the label, opening under the row.
+  const { head, block } = withHelp(label, helpOf(param, binding.value));
+  const wrap = (row: Child) => (
+    <div hidden={hidden}>
+      {row}
+      {block}
+    </div>
+  );
   if (param.type === 'mapped') {
-    return (
-      <div hidden={hidden}>
-        {isOnOff(param) ? (
-          <OnOffControl label={label} description={param.description} param={param} binding={binding} />
-        ) : (
-          <MappedControl label={label} param={param} binding={binding} />
-        )}
-      </div>
+    return wrap(
+      isOnOff(param) ? (
+        <OnOffControl label={label} head={head} description={param.description} param={param} binding={binding} />
+      ) : (
+        <MappedControl label={label} head={head} param={param} binding={binding} />
+      ),
     );
   }
   if (param.type === 'select') {
-    return (
-      <div hidden={hidden}>
-        <SelectRow label={label} description={param.description} options={param.options} binding={binding} />
-      </div>
+    return wrap(
+      <SelectRow label={label} head={head} description={param.description} options={param.options} binding={binding} />,
     );
   }
   if (param.type === 'color') {
-    return (
-      <div hidden={hidden}>
-        <ColorRow label={label} description={param.description} binding={binding} />
-      </div>
-    );
+    return wrap(<ColorRow label={label} head={head} description={param.description} binding={binding} />);
   }
-  return (
-    <div class={classes.row} hidden={hidden} title={param.description ?? label}>
-      <span class={classes.label}>{label}</span>
+  // Fields that open something under their row.
+  if (param.type === 'multi-select')
+    return wrap(<MultiSelectRow head={head} label={label} param={param} binding={binding} />);
+  if (param.type === 'mat4') return wrap(<Mat4Row head={head} label={label} param={param} binding={binding} />);
+  if (param.type === 'line-graph')
+    return wrap(<LineGraphRow head={head} label={label} param={param} binding={binding} />);
+  if (param.type === 'color-list')
+    return wrap(<ColorListRow head={head} label={label} param={param} binding={binding} />);
+  if (param.type === 'object-list')
+    return wrap(<ObjectListRow head={head} label={label} param={param} binding={binding} />);
+  if (param.type === 'conditioned')
+    return wrap(<ConditionedControl head={head} label={label} param={param} binding={binding} />);
+  if (param.type === 'script') return wrap(<ScriptControl head={head} label={label} binding={binding} />);
+  // Converted: the control of what it converts to, the value converted both ways.
+  if (param.type === 'converted') {
+    const converted: FieldBinding = {
+      value: binding.value.pipe(map((v) => param.fromValue(v))),
+      get: () => param.fromValue(binding.get()),
+      set: (v) => binding.set(param.toValue(v)),
+    };
+    const inner = { ...param.converted, label: param.converted.label ?? label } as PD.Any;
+    return <ParamRow name={name} param={inner} binding={converted} visible={props.visible} filter={filter} />;
+  }
+  // A plain value (data carried along, not edited): no row, as in the classic UI.
+  if (param.type === 'value') return null;
+  return wrap(
+    <div class={classes.row} title={param.description ?? label}>
+      <span class={classes.label}>{head}</span>
       <div class={classes.control}>{control(param, binding)}</div>
-    </div>
+    </div>,
   );
 }
 
 /** A color: the swatch and hex as a button; the picker opens under the row, full width. */
-function ColorRow(props: { label: string; description?: string; binding: FieldBinding }) {
+function ColorRow(props: { label: string; head?: Child; description?: string; binding: FieldBinding }) {
   const { binding } = props;
   const open = observableState(false);
   const hex = binding.value.pipe(map((v: number) => colorToHex(v)));
   return (
     <>
       <div class={classes.row} title={props.description}>
-        <span class={classes.label}>{props.label}</span>
+        <span class={classes.label}>{props.head ?? props.label}</span>
         <div class={classes.control}>
           <button type="button" class={classes.color} aria-expanded={open} onClick={() => open.set(!open.value)}>
             <span class={classes.swatch} style={{ background: hex }} />
@@ -296,6 +328,12 @@ function control(param: PD.Any, binding: FieldBinding): Child {
     case 'file':
     case 'file-list':
       return <FileControl param={param} binding={binding} />;
+    case 'vec3':
+      return <Vec3Control param={param} binding={binding} />;
+    case 'interval':
+      return <IntervalControl param={param} binding={binding} />;
+    case 'url':
+      return <UrlControl binding={binding} />;
     default:
       return <span class={classes.unsupported}>{param.type}</span>;
   }
@@ -374,6 +412,8 @@ function format(v: number, step?: number) {
  */
 function SelectRow(props: {
   label: string;
+  /** The label's content (with its help); the label text without. */
+  head?: Child;
   description?: string;
   options: readonly PD.SelectOption<any>[];
   binding: FieldBinding;
@@ -385,7 +425,7 @@ function SelectRow(props: {
   return (
     <>
       <div class={classes.row} title={props.description}>
-        <span class={classes.label}>{props.label}</span>
+        <span class={classes.label}>{props.head ?? props.label}</span>
         <div class={classes.control}>
           <SelectButton
             size="sm"
@@ -441,7 +481,13 @@ function isOnOff(param: PD.Mapped<any>): boolean {
  * An on/off mapped param: a switch, and while on, its own settings behind a sliders button, expanding inline under the
  * row (occlusion's samples, radius, bias, blur…).
  */
-function OnOffControl(props: { label: string; description?: string; param: PD.Mapped<any>; binding: FieldBinding }) {
+function OnOffControl(props: {
+  label: string;
+  head?: Child;
+  description?: string;
+  param: PD.Mapped<any>;
+  binding: FieldBinding;
+}) {
   const { param, binding } = props;
   const on = binding.value.pipe(
     map((v) => v?.name === 'on'),
@@ -470,7 +516,7 @@ function OnOffControl(props: { label: string; description?: string; param: PD.Ma
   return (
     <>
       <div class={classes.row} title={props.description}>
-        <span class={classes.label}>{props.label}</span>
+        <span class={classes.label}>{props.head ?? props.label}</span>
         <div class={classes.control}>
           <Toggle binding={toggle} />
           {hasSettings ? (
@@ -505,7 +551,7 @@ function OnOffControl(props: { label: string; description?: string; param: PD.Ma
 }
 
 /** A mapped param: the choice, then the chosen option's own params (rendered again when the choice changes). */
-function MappedControl(props: { label: string; param: PD.Mapped<any>; binding: FieldBinding }) {
+function MappedControl(props: { label: string; head?: Child; param: PD.Mapped<any>; binding: FieldBinding }) {
   const { param, binding } = props;
   const name = binding.value.pipe(
     map((v) => v?.name),
@@ -521,7 +567,7 @@ function MappedControl(props: { label: string; param: PD.Mapped<any>; binding: F
   };
   return (
     <div class={classes.mapped}>
-      <SelectRow label={props.label} options={param.select.options} binding={nameBinding} />
+      <SelectRow label={props.label} head={props.head} options={param.select.options} binding={nameBinding} />
       <Show when={name}>
         {(n) => {
           const inner = param.map(n);
@@ -574,6 +620,166 @@ function Fields(props: { params: PD.Params; binding: FieldBinding; nested?: bool
   );
 }
 
+/** Conditioned: the condition as a choice, then the value's own control for it (nested under the choice). */
+function ConditionedControl(props: {
+  head: Child;
+  label: string;
+  param: PD.Conditioned<any, any, any>;
+  binding: FieldBinding;
+}) {
+  const { param, binding } = props;
+  const condition = binding.value.pipe(
+    map((v) => String(param.conditionForValue(v))),
+    distinctUntilChanged(),
+  );
+  const conditionBinding: FieldBinding = {
+    value: condition,
+    get: () => String(param.conditionForValue(binding.get())),
+    set: (c) => binding.set(param.conditionedValue(binding.get(), c)),
+  };
+  return (
+    <div class={classes.mapped}>
+      <SelectRow label={props.label} head={props.head} options={param.select.options} binding={conditionBinding} />
+      <Show when={condition}>
+        {(c) => (
+          <div class={classes.nested}>
+            <ParamRow name={c} param={param.conditionParams[c]} binding={binding} />
+          </div>
+        )}
+      </Show>
+    </div>
+  );
+}
+
+const ScriptLanguages: PD.SelectOption<string>[] = [
+  ['mol-script', 'MolScript'],
+  ['pymol', 'PyMOL'],
+  ['vmd', 'VMD'],
+  ['jmol', 'Jmol'],
+];
+
+/** A script: its language as a choice, its expression under it (several lines). */
+function ScriptControl(props: { head: Child; label: string; binding: FieldBinding }) {
+  const { binding } = props;
+  const part = (k: 'language' | 'expression'): FieldBinding => ({
+    value: binding.value.pipe(
+      map((v) => v?.[k] ?? ''),
+      distinctUntilChanged(),
+    ),
+    get: () => binding.get()?.[k],
+    set: (x) => binding.set({ ...binding.get(), [k]: x }),
+  });
+  const expression = part('expression');
+  return (
+    <div class={classes.mapped}>
+      <SelectRow label={props.label} head={props.head} options={ScriptLanguages} binding={part('language')} />
+      <div class={classes.nested}>
+        <div class={classes.row}>
+          <span class={classes.label}>Expression</span>
+          <div class={classes.control}>
+            <textarea
+              class={classes.textarea}
+              rows={3}
+              spellcheck={false}
+              value={expression.value}
+              onChange={(e) => expression.set(e.currentTarget.value)}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * An object list (a list of like things: a volume's channels, a set of points): the count in the row; under it the
+ * items by their labels, each with its own form behind the sliders, and remove; Add appends a new one.
+ */
+function ObjectListRow(props: { head: Child; label: string; param: PD.ObjectList<any>; binding: FieldBinding }) {
+  const { param, binding } = props;
+  const items = binding.value.pipe(map((v: unknown[] | undefined) => v ?? []));
+  const replace = (i: number, item: unknown) => {
+    const list = [...(binding.get() ?? [])];
+    list[i] = item;
+    binding.set(list);
+  };
+  return (
+    <>
+      <div class={classes.row} title={param.description}>
+        <span class={classes.label}>{props.head}</span>
+        <div class={classes.control}>
+          <span class={classes.count}>{items.pipe(map((l) => (l.length === 1 ? '1 item' : `${l.length} items`)))}</span>
+          <button
+            type="button"
+            class={classes.settings}
+            title="Add"
+            aria-label={`Add to ${props.label}`}
+            onClick={() => binding.set([...(binding.get() ?? []), param.ctor()])}
+          >
+            <Icon name="plus" size={14} />
+          </button>
+        </div>
+      </div>
+      <div class={classes.items}>
+        <For each={items.pipe(map((l) => l.map((_, i) => i)))}>
+          {(i) => <ObjectListItem param={param} binding={binding} index={i} replace={replace} />}
+        </For>
+      </div>
+    </>
+  );
+}
+
+function ObjectListItem(props: {
+  param: PD.ObjectList<any>;
+  binding: FieldBinding;
+  index: number;
+  replace: (i: number, item: unknown) => void;
+}) {
+  const { param, binding, index } = props;
+  const open = observableState(false);
+  return (
+    <div class={classes.item}>
+      <div class={classes.itemRow}>
+        <span class={classes.itemLabel}>
+          {binding.value.pipe(map((v: unknown[]) => (v?.[index] !== undefined ? param.getLabel(v[index]) : '')))}
+        </span>
+        <button
+          type="button"
+          class={classes.settings}
+          title="Edit"
+          aria-label="Edit"
+          aria-expanded={open}
+          onClick={() => open.set(!open.value)}
+        >
+          <Icon name="sliders-horizontal" size={14} />
+        </button>
+        <button
+          type="button"
+          class={classes.settings}
+          title="Remove"
+          aria-label="Remove"
+          onClick={() => binding.set((binding.get() ?? []).filter((_: unknown, j: number) => j !== index))}
+        >
+          <Icon name="x" size={13} />
+        </button>
+      </div>
+      <Show when={open}>
+        {() => {
+          // The item's own form: each change replaces the item in the list (a new list: the state stores it as is).
+          const form = new ParamsFormModel(param.element, binding.get()?.[index], {
+            onChange: (v) => props.replace(index, v),
+          });
+          return (
+            <div class={classes.subSettings}>
+              <ParamsForm form={form} />
+            </div>
+          );
+        }}
+      </Show>
+    </div>
+  );
+}
+
 function defaults(param: PD.Any): any {
   if (param.type === 'group') {
     const out: Record<string, unknown> = {};
@@ -593,8 +799,9 @@ function Collapsible(props: { title: string; open?: boolean; force?: Observable<
   return (
     <div class={classes.collapsible}>
       <button type="button" class={classes.collapsibleHeader} aria-expanded={open} onClick={() => own.set(!own.value)}>
-        <Icon name="chevron-right" size={12} class={classes.chevron} />
+        {/* The name first, aligned with the labels; the chevron after it. */}
         {props.title}
+        <Icon name="chevron-right" size={12} class={classes.chevron} />
       </button>
       <Show when={open}>{() => <div class={classes.nested}>{props.children()}</div>}</Show>
     </div>

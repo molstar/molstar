@@ -324,27 +324,146 @@ export const LongLabels = render(
   { width: 240 },
 );
 
-/** Types the renderer has no control for yet: each shows its type name. The proper implementation adds them. */
-export const NotYetRendered = render({
-  multiSelect: PD.MultiSelect(
-    ['a'],
+/**
+ * The less common types: multi-select, vec3, mat4 (opens a grid), interval, a line graph (opens an editor), a color
+ * list (opens its presets), an object list (items with their own forms), url, converted, conditioned, script; a plain
+ * value has no row (as in the classic UI).
+ */
+export const MoreTypes = render({
+  chains: PD.MultiSelect(
+    ['A', 'C'],
     [
-      ['a', 'Alpha'],
-      ['b', 'Beta'],
+      ['A', 'Chain A'],
+      ['B', 'Chain B'],
+      ['C', 'Chain C'],
+      ['D', 'Chain D'],
     ],
+    { label: 'Chains (multi-select)' },
   ),
-  vec3: PD.Vec3(Vec3.create(0, 0, 1)),
-  mat4: PD.Mat4(Mat4.identity()),
-  interval: PD.Interval([0, 1], { min: 0, max: 10, step: 0.1 }),
-  lineGraph: PD.LineGraph([] as any),
-  colorList: PD.ColorList('viridis' as any),
-  objectList: PD.ObjectList({ name: PD.Text('') }, (e: any) => e.name, { defaultValue: [] }),
-  url: PD.Url('https://example.org/data.cif'),
-  converted: PD.Converted(
+  axis: PD.Vec3(Vec3.create(0, 0, 1), undefined, { label: 'Axis (vec3)' }),
+  transform: PD.Mat4(Mat4.identity(), { label: 'Transform (mat4)' }),
+  range: PD.Interval([2, 7.5], { min: 0, max: 10, step: 0.5 }, { label: 'Range (interval)' }),
+  transfer: PD.LineGraph(
+    [
+      [0, 0],
+      [0.3, 0.05],
+      [0.55, 0.7],
+      [0.8, 0.9],
+      [1, 1],
+    ] as any,
+    { label: 'Transfer (line graph)' },
+  ),
+  colors: PD.ColorList('viridis' as any, { label: 'Colors (color list)' }),
+  channels: PD.ObjectList(
+    {
+      name: PD.Text('Channel'),
+      isoValue: PD.Numeric(1.5, { min: -5, max: 5, step: 0.1 }),
+      color: PD.Color(0x3362b2 as any),
+    },
+    (e: any) => `${e.name} · ${e.isoValue}σ`,
+    {
+      label: 'Channels (object list)',
+      defaultValue: [
+        { name: '2Fo-Fc', isoValue: 1.5, color: 0x3362b2 },
+        { name: 'Fo-Fc', isoValue: 3, color: 0x33bb33 },
+      ] as any,
+      ctor: () => ({ name: 'Channel', isoValue: 1, color: 0x808080 }),
+    },
+  ),
+  source: PD.Url('https://www.ebi.ac.uk/pdbe/entry-files/download/1tqn.bcif', { label: 'Source (url)' }),
+  opacity: PD.Converted(
     (v: number) => v * 100,
     (v: number) => v / 100,
-    PD.Numeric(50, { min: 0, max: 100, step: 1 }),
+    PD.Numeric(35, { min: 0, max: 100, step: 1 }, { label: 'Opacity % (converted)' }),
   ),
-  value: PD.Value({ a: 1 }),
-  script: PD.Script({ language: 'pymol', expression: 'resn HEM' } as any),
+  level: PD.Conditioned(
+    1.5,
+    {
+      relative: PD.Numeric(1.5, { min: -5, max: 5, step: 0.1 }, { label: 'σ' }),
+      absolute: PD.Numeric(0.035, { min: 0, max: 1, step: 0.001 }, { label: 'Value' }),
+    },
+    (v: number) => (Math.abs(v) >= 0.5 ? 'relative' : 'absolute'),
+    (_v: number, c: string) => (c === 'relative' ? 1.5 : 0.035),
+    { label: 'Level (conditioned)' },
+  ) as any,
+  query: PD.Script({ language: 'pymol', expression: 'resn HEM' } as any, { label: 'Query (script)' }),
+  data: PD.Value({ a: 1 }),
+});
+
+const ChainColors: [string, number][] = [
+  ['A', 0x1b9e77],
+  ['B', 0xd95f02],
+  ['C', 0x7570b3],
+  ['D', 0xe7298a],
+];
+
+/**
+ * Help: a ? by a label (on hover, or while open) opens the param's description and legend under its row: a table of
+ * colors, a scale; a theme choice shows the chosen theme's (`help(value)`), as representation themes do.
+ */
+export const HelpAndLegends = render({
+  quality: PD.Select(
+    'auto',
+    [
+      ['auto', 'Auto'],
+      ['high', 'High'],
+      ['low', 'Low'],
+    ],
+    { description: 'How finely surfaces and cartoons are tessellated; `auto` follows the structure size.' },
+  ),
+  chainColors: PD.Boolean(true, {
+    label: 'Chain colors',
+    description: 'Gives every chain a color based on its `asym_id` value.',
+    legend: { kind: 'table-legend', table: ChainColors as any },
+  }),
+  bFactor: PD.Boolean(false, {
+    label: 'B-factor',
+    description: 'Colors by the atoms’ B-factor, low to high.',
+    legend: { kind: 'scale-legend', minLabel: '12.4', maxLabel: '86.1', colors: [0x0000ff, 0xffffff, 0xff0000] as any },
+  }),
+  colorTheme: PD.MappedStatic(
+    'chain-id',
+    {
+      'chain-id': PD.Group({}),
+      'element-symbol': PD.Group({ carbonColor: PD.Color(0x808080 as any, { label: 'Carbon color' }) }),
+      uncertainty: PD.Group({}),
+    },
+    {
+      label: 'Color theme',
+      options: [
+        ['chain-id', 'Chain ID'],
+        ['element-symbol', 'Element'],
+        ['uncertainty', 'Uncertainty'],
+      ],
+      help: (v: { name: string }) =>
+        v.name === 'chain-id'
+          ? {
+              description: 'Gives every chain a color based on its `asym_id` value.',
+              legend: { kind: 'table-legend', table: ChainColors as any },
+            }
+          : v.name === 'element-symbol'
+            ? {
+                description: 'Colors atoms by their element; carbons in the chosen carbon color.',
+                legend: {
+                  kind: 'table-legend',
+                  table: [
+                    ['C', 0x808080],
+                    ['N', 0x3050f8],
+                    ['O', 0xff0d0d],
+                    ['S', 0xffff30],
+                    ['Fe', 0xe06633],
+                  ] as any,
+                },
+              }
+            : {
+                description: 'Colors by the atoms’ uncertainty (B-factor or pLDDT).',
+                legend: {
+                  kind: 'scale-legend',
+                  minLabel: 'certain',
+                  maxLabel: 'uncertain',
+                  colors: [0x0053d6, 0x65cbf3, 0xffdb13, 0xff7d45] as any,
+                },
+              },
+    },
+  ),
 });

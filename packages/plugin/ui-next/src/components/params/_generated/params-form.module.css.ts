@@ -14,6 +14,7 @@ export const classes = {
   'collapsibleHeader': 'msp-params-params-form-collapsibleHeader',
   'color': 'msp-params-params-form-color',
   'control': 'msp-params-params-form-control',
+  'count': 'msp-params-params-form-count',
   'fields': 'msp-params-params-form-fields',
   'file': 'msp-params-params-form-file',
   'fileClear': 'msp-params-params-form-fileClear',
@@ -22,6 +23,10 @@ export const classes = {
   'form': 'msp-params-params-form-form',
   'hex': 'msp-params-params-form-hex',
   'input': 'msp-params-params-form-input',
+  'item': 'msp-params-params-form-item',
+  'itemLabel': 'msp-params-params-form-itemLabel',
+  'itemRow': 'msp-params-params-form-itemRow',
+  'items': 'msp-params-params-form-items',
   'knob': 'msp-params-params-form-knob',
   'label': 'msp-params-params-form-label',
   'mapped': 'msp-params-params-form-mapped',
@@ -58,10 +63,14 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-label {
+  align-items: center;
+  gap: var(--msp-space-1);
+  min-width: 0;
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: flex;
   overflow: hidden;
 }
 
@@ -287,7 +296,6 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   height: 24px;
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
-  margin-left: -2px;
   display: flex;
 
   &:hover {
@@ -321,11 +329,15 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-subSettings {
-  margin: 2px 0 var(--msp-space-1);
-  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-1) var(--msp-space-3);
+  margin: 2px calc(-1 * var(--msp-space-2)) var(--msp-space-1);
+  padding: var(--msp-space-1) var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
   box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+
+  & .msp-params-params-form-label {
+    padding-left: var(--msp-space-3);
+  }
 }
 
 .msp-params-params-form-file {
@@ -394,6 +406,47 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
     background: var(--msp-color-pressed);
     color: var(--msp-color-text);
   }
+}
+
+.msp-params-params-form-count {
+  padding-left: var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-sm);
+  flex: 1;
+}
+
+.msp-params-params-form-items {
+  display: grid;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.msp-params-params-form-item {
+  display: grid;
+}
+
+.msp-params-params-form-itemRow {
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 26px;
+  padding: 0 0 0 var(--msp-space-3);
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.msp-params-params-form-itemLabel {
+  min-width: 0;
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  overflow: hidden;
 }
 }
 `);

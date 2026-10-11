@@ -1,0 +1,114 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The label's text (it gives way first) and its ? (on hover of the row, or while the help is open). */
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toggle {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  color: var(--msp-color-text-subtle);
+  opacity: 0;
+
+  :hover > * > &,
+  :hover > &,
+  &[aria-expanded="true"],
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover,
+  &[aria-expanded="true"] {
+    color: var(--msp-color-text);
+  }
+}
+
+/* The help: under its row, quiet, the description then the legend. */
+.help {
+  display: grid;
+  gap: var(--msp-space-2);
+  margin: 2px 0 var(--msp-space-1);
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+  font-size: var(--msp-font-size-xs);
+}
+
+.description {
+  margin: 0;
+  color: var(--msp-color-text-muted);
+  line-height: 1.45;
+
+  & code {
+    padding: 0 3px;
+    border-radius: 2px;
+    background: var(--msp-color-control);
+    font-family: var(--msp-font-mono);
+    font-size: 0.95em;
+  }
+}
+
+/* A table legend: a swatch and a name per entry, flowing in columns. */
+.table {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 2px var(--msp-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+}
+
+.swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A scale legend: the colors as a bar, its ends labelled under it. */
+.scale {
+  display: grid;
+  gap: 2px;
+}
+
+.bar {
+  height: 10px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+}
+
+.ends {
+  display: flex;
+  justify-content: space-between;
+  color: var(--msp-color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
