@@ -5,23 +5,26 @@ The agent harness and what it needs: durable agent turns, model adapters, storag
 
 ## Packages (`packages/ai/`)
 
-| Package                      | Holds                                                                                                                                      |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `@molstar/ai-agent`          | the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the `ModelAdapter` port, `hashMessage`, `digest` |
-| `@molstar/ai-harness`        | the contracts (storage port, supervisor) and the platform-free logic: host protocol, runner, tools, nested runs, drives, observation       |
-| `@molstar/ai-components`     | storage (memory, IndexedDB, SQLite at `./harness/storage/sqlite`) on one durable core; the in-process supervisor                           |
-| `@molstar/ai-model-adapters` | Anthropic, OpenAI (Responses or chat completions, any compatible endpoint), Google, on the AI SDK                                          |
-| `@molstar/ai-conformance`    | the suite every storage backend runs, the storage meter, and test doubles at `./testing` (clock, ids, scripted model and tools)            |
+| Package                      | Holds                                                                                                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@molstar/ai-agent`          | the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the `ModelAdapter` port, `hashMessage`, `digest`            |
+| `@molstar/ai-harness`        | the contracts (storage port, supervisor) and the platform-free logic: host protocol, runner, tools, nested runs, drives, observation                  |
+| `@molstar/ai-components`     | storage (memory, IndexedDB, SQLite at `./harness/storage/sqlite`) on one durable core; the in-process supervisor                                      |
+| `@molstar/ai-model-adapters` | Anthropic, OpenAI (Responses or chat completions, any compatible endpoint), Google, on the AI SDK                                                     |
+| `@molstar/ai-tools`          | tools: input as field shapes (or zod), results for the model, bindings, repeated reads, nested tools, schedules, groups (skills) and their disclosure |
+| `@molstar/ai-session`        | an agent session: turns, resume, stop; the default drive; message composition; compaction; one-off runs                                               |
+| `@molstar/ai-conformance`    | the suite every storage backend runs, the storage meter, and test doubles at `./testing` (clock, ids, scripted model and tools)                       |
 
 Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they import nothing of either.
 
 ## Documents
 
-| Document                                           | What it is                                                                      |
-| -------------------------------------------------- | ------------------------------------------------------------------------------- |
-| [harness.md](harness.md)                           | the architecture; code comments cite its sections (`harness.md §6`)             |
-| [plan.md](plan.md)                                 | where it comes from, the move, what is next                                     |
-| [analysis/viewer-mode.md](analysis/viewer-mode.md) | the agent in the viewer mode: tools, skills, the Inspector, fibers (2026-10-11) |
+| Document                                           | What it is                                                                                                     |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [harness.md](harness.md)                           | the architecture; code comments cite its sections (`harness.md §6`)                                            |
+| [tools-and-session.md](tools-and-session.md)       | `@molstar/ai-tools` and `@molstar/ai-session`: tools, field shapes, groups, the session, the drive, compaction |
+| [plan.md](plan.md)                                 | where it comes from, the move, what is next                                                                    |
+| [analysis/viewer-mode.md](analysis/viewer-mode.md) | the agent in the viewer mode: tools, skills, the Inspector, fibers (2026-10-11)                                |
 
 ## Decisions
 

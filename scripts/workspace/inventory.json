@@ -385,6 +385,18 @@
       "private": true
     },
     {
+      "name": "@molstar/ai-tools",
+      "path": "packages/ai/tools",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/ai-session",
+      "path": "packages/ai/session",
+      "kind": "library",
+      "private": true
+    },
+    {
       "name": "@molstar/prism-ui",
       "path": "packages/prism/ui",
       "kind": "library",

@@ -33,9 +33,9 @@ Done:
 1. **Prism hosts it** (the integration step of [../prism-ui/plan.md](../prism-ui/plan.md)): commands as tools, `execute`
    as the handler, the drive, origins, one undo step per turn through the mode's checkpointer ([harness.md](harness.md)
    §18).
-2. **A tool layer** between commands and the harness, in its own `@molstar/ai-*` package: a command's params to JSON
-   Schema, loose argument normalization, read and write scheduling, approval, deferred loading. Stories' layer is the
-   reference; it is not copied.
+2. **The tool layer and the session** (in progress): `@molstar/ai-tools` and `@molstar/ai-session`, ported from Stories'
+   agent with its story cut out ([tools-and-session.md](tools-and-session.md)); then `@molstar/ai-trace`, `ai-fibers`,
+   `ai-toolscript` ([analysis/viewer-mode.md](analysis/viewer-mode.md) §7).
 3. **An MCP server** over the same tools, for headless and outside agents.
 4. **Jest to ESM** for the whole repository, then `jest:ai` folds into `jest`.
 5. **The suite waits on conditions.** Some cases wait a fixed number of event-loop rounds for work that includes

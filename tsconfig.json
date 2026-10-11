@@ -194,6 +194,12 @@
       "path": "./packages/ai/model-adapters"
     },
     {
+      "path": "./packages/ai/tools"
+    },
+    {
+      "path": "./packages/ai/session"
+    },
+    {
       "path": "./packages/prism/ui"
     },
     {

@@ -2349,6 +2349,62 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  packages/ai/session:
+    dependencies:
+      '@molstar/ai-agent':
+        specifier: workspace:*
+        version: link:../agent
+      '@molstar/ai-components':
+        specifier: workspace:*
+        version: link:../components
+      '@molstar/ai-harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@molstar/ai-tools':
+        specifier: workspace:*
+        version: link:../tools
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@molstar/ai-conformance':
+        specifier: workspace:*
+        version: link:../conformance
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/ai/tools:
+    dependencies:
+      '@molstar/ai-agent':
+        specifier: workspace:*
+        version: link:../agent
+      '@molstar/ai-harness':
+        specifier: workspace:*
+        version: link:../harness
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.5
+    devDependencies:
+      '@molstar/ai-components':
+        specifier: workspace:*
+        version: link:../components
+      '@molstar/ai-conformance':
+        specifier: workspace:*
+        version: link:../conformance
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
   packages/core:
     dependencies:
       '@types/node':
