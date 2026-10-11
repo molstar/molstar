@@ -431,6 +431,15 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   }
 }
 
+.msp-shell-canvas-status .msp-shell-canvas-pill {
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  text-shadow: 0 0 2px var(--msp-color-bg),
+    0 0 6px var(--msp-color-bg);
+  background: none;
+  padding-left: 0;
+}
+
 .msp-shell-canvas-pill:not(:has(.msp-shell-canvas-pillButton)) {
   padding-right: var(--msp-space-3);
 }
@@ -497,6 +506,8 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   & .msp-shell-canvas-pill {
     width: 100%;
     max-width: none;
+    padding-left: var(--msp-space-3);
+    text-shadow: none;
     box-shadow: none;
     -webkit-backdrop-filter: none;
     border-top: 1px solid var(--msp-glass-edge);

@@ -421,6 +421,19 @@
   }
 }
 
+/* The status line (messages, tasks) has no frame: ink on the canvas (its color from the canvas theme), with a soft
+   halo of the background color so it reads over the molecule too. */
+.status .pill {
+  padding-left: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  text-shadow:
+    0 0 2px var(--msp-color-bg),
+    0 0 6px var(--msp-color-bg);
+}
+
 /* A pill without a button at its end keeps its padding on the right too. */
 .pill:not(:has(.pillButton)) {
   padding-right: var(--msp-space-3);
@@ -496,6 +509,8 @@
   & .pill {
     width: 100%;
     max-width: none;
+    padding-left: var(--msp-space-3);
+    text-shadow: none;
     border-radius: 0;
     background: none;
     box-shadow: none;
