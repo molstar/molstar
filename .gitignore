@@ -29,3 +29,6 @@ data/sym/syminfo.lib
 
 # Opt-in native rendering dependencies
 .cache/
+
+# Storybook
+storybook-static/

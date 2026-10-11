@@ -355,6 +355,12 @@
       "private": false
     },
     {
+      "name": "@molstar/plugin-ui-next",
+      "path": "packages/plugin/ui-next",
+      "kind": "library",
+      "private": true
+    },
+    {
       "name": "@molstar/plugin-headless",
       "path": "packages/plugin/headless",
       "kind": "library",

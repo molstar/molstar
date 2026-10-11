@@ -69,7 +69,7 @@
     "testEnvironmentOptions": {
       "url": "http://localhost/"
     },
-    "testRegex": "\\.test\\.ts$",
+    "testRegex": "\\.test\\.tsx?$",
     "moduleNameMapper": {
       "\\.(jpe?g|png|gif|svg|webp)$": "<rootDir>/scripts/jest-file-stub.cjs",
       "^@molstar/docking-viewer$": "<rootDir>/apps/docking-viewer/src/index.ts",
@@ -191,6 +191,8 @@
       "^@molstar/plugin/(.*)$": "<rootDir>/packages/plugin/core/src/$1",
       "^@molstar/plugin-ui$": "<rootDir>/packages/plugin/ui/src/index.ts",
       "^@molstar/plugin-ui/(.*)$": "<rootDir>/packages/plugin/ui/src/$1",
+      "^@molstar/plugin-ui-next$": "<rootDir>/packages/plugin/ui-next/src/index.ts",
+      "^@molstar/plugin-ui-next/(.*)$": "<rootDir>/packages/plugin/ui-next/src/$1",
       "^@molstar/plugin-headless$": "<rootDir>/packages/plugin/headless/src/context.ts",
       "^@molstar/plugin-headless/(.*)$": "<rootDir>/packages/plugin/headless/src/$1",
       "^@molstar/perf-tests$": "<rootDir>/perf-tests/src/index.ts",
@@ -299,6 +301,7 @@
     "fs-extra": "catalog:",
     "http-server": "catalog:",
     "jest": "catalog:",
+    "jest-environment-jsdom": "catalog:",
     "jpeg-js": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

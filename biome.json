@@ -67,6 +67,18 @@
     },
     "includes": ["**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}"]
   },
+  "overrides": [
+    {
+      "includes": ["**/*.stories.ts", "**/*.stories.tsx", "**/.storybook/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    }
+  ],
   "javascript": {
     "formatter": {
       "quoteStyle": "single",

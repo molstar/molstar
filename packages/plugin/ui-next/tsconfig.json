@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",
+    "jsxImportSource": "@molstar/plugin-ui-next/dom"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/_test/**", "src/**/_stories/**", "src/**/*.stories.ts", "src/**/*.stories.tsx"],
+  "references": [
+    {
+      "path": "../../core"
+    }
+  ]
+}
