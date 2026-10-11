@@ -5,32 +5,29 @@
  */
 
 import type { WebGLContext } from './context.js';
-import type { ValueCell } from '@molstar/core/util';
-import type { RenderableSchema } from '../renderable/schema.js';
+import { type DefineLookup, isUsed, type RenderableSchema } from '../renderable/schema.js';
 import { idFactory } from '@molstar/core/util/id-factory';
-import { assertUnreachable, type ValueOf } from '@molstar/core/util/type-helpers';
+import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import { type GLRenderingContext, isWebGL2 } from './compat.js';
 import type { WebGLExtensions } from './extensions.js';
 import type { WebGLState } from './state.js';
-import { getBytesPerElement, getFormat, getType, type TextureFormat, type TextureType } from './texture.js';
+import { getFormat, getType } from './texture.js';
+import { getBytesPerElement, type TextureFormat, type TextureType } from '../texture.js';
+import type {
+  ArrayType,
+  AttributeItemSize,
+  AttributeKind,
+  AttributeValues,
+  DataType,
+  ElementsType,
+  UsageHint,
+} from '../buffer.js';
+import type { AttributeLayout } from '../attribute-layout.js';
+import { isDebugMode } from '@molstar/core/util/debug';
 
 const getNextBufferId = idFactory();
 
-export type UsageHint = 'static' | 'dynamic' | 'stream';
-export type DataType = 'uint8' | 'int8' | 'uint16' | 'int16' | 'uint32' | 'int32' | 'float32';
 export type BufferType = 'attribute' | 'elements' | 'uniform' | 'pixel-pack';
-
-export type DataTypeArrayType = {
-  uint8: Uint8Array;
-  int8: Int8Array;
-  uint16: Uint16Array;
-  int16: Int16Array;
-  uint32: Uint32Array;
-  int32: Int32Array;
-  float32: Float32Array;
-};
-export type ArrayType = ValueOf<DataTypeArrayType>;
-export type ArrayKind = keyof DataTypeArrayType;
 
 export function getUsageHint(gl: GLRenderingContext, usageHint: UsageHint) {
   switch (usageHint) {
@@ -191,9 +188,6 @@ function createBuffer(gl: GLRenderingContext, array: ArrayType, usageHint: Usage
 
 //
 
-export type AttributeItemSize = 1 | 2 | 3 | 4 | 16;
-export type AttributeKind = 'float32';
-
 export function getAttribType(gl: GLRenderingContext, kind: AttributeKind, itemSize: AttributeItemSize) {
   switch (kind) {
     case 'float32':
@@ -214,13 +208,10 @@ export function getAttribType(gl: GLRenderingContext, kind: AttributeKind, itemS
   }
 }
 
-export type AttributeDefs = {
-  [k: string]: { kind: AttributeKind; itemSize: AttributeItemSize; divisor: number };
-};
-export type AttributeValues = { [k: string]: ValueCell<ArrayType> };
 export type AttributeBuffers = [string, AttributeBuffer][];
 
 export interface AttributeBuffer extends Buffer {
+  readonly itemSize: AttributeItemSize;
   readonly divisor: number;
   bind: (location: number) => void;
   changeOffset: (location: number, offset: number) => void;
@@ -242,6 +233,7 @@ export function createAttributeBuffer<T extends ArrayType, S extends AttributeIt
 
   return {
     ...buffer,
+    itemSize,
     divisor,
     bind: (location: number) => {
       gl.bindBuffer(_bufferType, buffer.getBuffer());
@@ -271,11 +263,35 @@ export function createAttributeBuffer<T extends ArrayType, S extends AttributeIt
   };
 }
 
-export function createAttributeBuffers(ctx: WebGLContext, schema: RenderableSchema, values: AttributeValues) {
+/**
+ * Binds each buffer at its fixed location, whether a program uses it or not,
+ * so the state (or VAO) is the same for all programs of a render item.
+ */
+export function bindAttributeBuffers(state: WebGLState, layout: AttributeLayout, attributeBuffers: AttributeBuffers) {
+  state.clearVertexAttribsState();
+  for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
+    const [k, buffer] = attributeBuffers[i];
+    const entry = layout.byName[k];
+    if (isDebugMode && (buffer.itemSize !== entry?.itemSize || buffer.divisor !== entry.divisor)) {
+      throw new Error(
+        `attribute '${k}' buffer (itemSize ${buffer.itemSize}, divisor ${buffer.divisor}) does not match the layout (itemSize ${entry?.itemSize}, divisor ${entry?.divisor})`,
+      );
+    }
+    buffer.bind(entry.location);
+  }
+  state.disableUnusedVertexAttribs();
+}
+
+export function createAttributeBuffers(
+  ctx: WebGLContext,
+  schema: RenderableSchema,
+  values: AttributeValues,
+  defines: DefineLookup,
+) {
   const buffers: AttributeBuffers = [];
   Object.keys(schema).forEach((k) => {
     const spec = schema[k];
-    if (spec.type === 'attribute') {
+    if (spec.type === 'attribute' && isUsed(spec, defines)) {
       buffers[buffers.length] = [k, ctx.resources.attribute(values[k].ref.value, spec.itemSize, spec.divisor)];
     }
   });
@@ -283,9 +299,6 @@ export function createAttributeBuffers(ctx: WebGLContext, schema: RenderableSche
 }
 
 //
-
-export type ElementsType = Uint16Array | Uint32Array;
-export type ElementsKind = 'uint16' | 'uint32';
 
 export interface ElementsBuffer extends Buffer {
   bind: () => void;

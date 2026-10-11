@@ -33,7 +33,7 @@ const ModelUnitcell3D = PluginStateTransform.BuiltIn({
       if (!symmetry) return StateObject.Null;
       const data = getUnitcellData(a.data, symmetry.spacegroup.cell, params);
       const repr = UnitcellRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => UnitcellParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);

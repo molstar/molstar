@@ -25,7 +25,7 @@ import { Overpaint } from '@molstar/graphics/theme/overpaint';
 import type { StructureParams } from './params.js';
 import { Clipping } from '@molstar/graphics/theme/clipping';
 import { Transparency } from '@molstar/graphics/theme/transparency';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Substance } from '@molstar/graphics/theme/substance';
 import type { LocationCallback } from '../util.js';
 import { Emissive } from '@molstar/graphics/theme/emissive';
@@ -35,10 +35,15 @@ export function ComplexRepresentation<P extends StructureParams>(
   label: string,
   ctx: RepresentationContext,
   getParams: RepresentationParamsGetter<Structure, P>,
-  visualCtor: (materialId: number, structure: Structure, props: PD.Values<P>, webgl?: WebGLContext) => ComplexVisual<P>,
+  visualCtor: (
+    materialId: number,
+    structure: Structure,
+    props: PD.Values<P>,
+    graphics?: GraphicsContext,
+  ) => ComplexVisual<P>,
 ): StructureRepresentation<P> {
   let version = 0;
-  const { webgl } = ctx;
+  const { graphics } = ctx;
   const updated = new Subject<number>();
   const geometryState = new Representation.GeometryState();
   const materialId = getNextMaterialId();
@@ -62,14 +67,14 @@ export function ComplexRepresentation<P extends StructureParams>(
     return Task.create('Creating or updating ComplexRepresentation', async (runtime) => {
       let newVisual = false;
       if (!visual) {
-        visual = visualCtor(materialId, _structure, _props, webgl);
+        visual = visualCtor(materialId, _structure, _props, graphics);
         newVisual = true;
-      } else if (visual.mustRecreate?.(_structure, _props, webgl)) {
+      } else if (visual.mustRecreate?.(_structure, _props, graphics)) {
         visual.destroy();
-        visual = visualCtor(materialId, _structure, _props, webgl);
+        visual = visualCtor(materialId, _structure, _props, graphics);
         newVisual = true;
       }
-      const promise = visual.createOrUpdate({ webgl, runtime }, _theme, _props, structure);
+      const promise = visual.createOrUpdate({ graphics, runtime }, _theme, _props, structure);
       if (promise) await promise;
       if (newVisual) setState(_state); // current state for new visual
       // update list of renderObjects
@@ -127,22 +132,22 @@ export function ComplexRepresentation<P extends StructureParams>(
     if (state.overpaint !== undefined && visual) {
       // Remap loci from equivalent structure to the current structure
       const remappedOverpaint = Overpaint.remap(state.overpaint, _structure);
-      visual.setOverpaint(remappedOverpaint, webgl);
+      visual.setOverpaint(remappedOverpaint, graphics);
     }
     if (state.transparency !== undefined && visual) {
       // Remap loci from equivalent structure to the current structure
       const remappedTransparency = Transparency.remap(state.transparency, _structure);
-      visual.setTransparency(remappedTransparency, webgl);
+      visual.setTransparency(remappedTransparency, graphics);
     }
     if (state.emissive !== undefined && visual) {
       // Remap loci from equivalent structure to the current structure
       const remappedEmissive = Emissive.remap(state.emissive, _structure);
-      visual.setEmissive(remappedEmissive, webgl);
+      visual.setEmissive(remappedEmissive, graphics);
     }
     if (state.substance !== undefined && visual) {
       // Remap loci from equivalent structure to the current structure
       const remappedSubstance = Substance.remap(state.substance, _structure);
-      visual.setSubstance(remappedSubstance, webgl);
+      visual.setSubstance(remappedSubstance, graphics);
     }
     if (state.clipping !== undefined && visual) {
       // Remap loci from equivalent structure to the current structure
@@ -152,7 +157,7 @@ export function ComplexRepresentation<P extends StructureParams>(
     if (state.wiggle !== undefined && visual) {
       // Remap loci from equivalent structure to the current structure
       const remappedWiggle = Wiggle.remap(state.wiggle, _structure);
-      visual.setWiggle(remappedWiggle, webgl);
+      visual.setWiggle(remappedWiggle, graphics);
     }
     if (state.themeStrength !== undefined && visual) visual.setThemeStrength(state.themeStrength);
     if (state.transform !== undefined && visual) visual.setTransform(state.transform);

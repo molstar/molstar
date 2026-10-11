@@ -5,8 +5,8 @@
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
-import type { WebGLContext } from '../webgl/context.js';
-import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
@@ -48,7 +48,7 @@ export type LinesSchema = typeof LinesSchema;
 export type LinesValues = Values<LinesSchema>;
 
 export function LinesRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   values: LinesValues,
   state: RenderableState,
@@ -70,8 +70,7 @@ export function LinesRenderable(
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
   const shaderCode = LinesShaderCode;
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     'triangles',
     shaderCode,
     schema,

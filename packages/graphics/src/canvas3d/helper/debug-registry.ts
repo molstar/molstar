@@ -5,7 +5,7 @@
  */
 
 import type { Scene } from '@molstar/graphics/gl/scene';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { isDebugMode } from '@molstar/core/util/debug';
 
 export interface DebugHelper<T extends {} = {}> {
@@ -19,12 +19,12 @@ export interface DebugHelper<T extends {} = {}> {
 }
 
 export class DebugRegistry {
-  readonly ctx: WebGLContext;
+  readonly ctx: GraphicsContext;
   readonly parent: Scene;
 
   private readonly entries = new Map<string, DebugHelper>();
 
-  constructor(ctx: WebGLContext, parent: Scene) {
+  constructor(ctx: GraphicsContext, parent: Scene) {
     this.ctx = ctx;
     this.parent = parent;
   }

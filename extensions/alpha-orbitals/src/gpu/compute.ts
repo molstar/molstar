@@ -17,8 +17,8 @@ import { MAIN, UTILS } from './shader.frag.js';
 const Schema = {
   tCenters: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
   tInfo: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
-  tCoeff: TextureSpec('image-float32', 'rgb', 'float', 'nearest'),
-  tAlpha: TextureSpec('image-float32', 'alpha', 'float', 'nearest'),
+  tCoeff: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
+  tAlpha: TextureSpec('image-float32', 'r', 'float', 'nearest'),
   uNCenters: UniformSpec('i'),
   uNAlpha: UniformSpec('i'),
   uNCoeff: UniformSpec('i'),
@@ -123,7 +123,7 @@ function createTextureData(grid: CubeGridInfo, orbital: AlphaOrbital): UnboxedVa
   // L, alpha_offset, coeff_offset_start, coeff_offset_end
   const info = new Float32Array(4 * centerCount);
   const alpha = new Float32Array(baseCount);
-  const coeff = new Float32Array(3 * coeffCount);
+  const coeff = new Float32Array(4 * coeffCount);
 
   let maxCoeffs = 0;
   let cO = 0,
@@ -152,8 +152,8 @@ function createTextureData(grid: CubeGridInfo, orbital: AlphaOrbital): UnboxedVa
 
         const c0 = shell.coefficients[amIndex++];
         for (let i = 0; i < shell.exponents.length; i++) {
-          coeff[3 * (coeffO + i) + 0] = c0[i];
-          coeff[3 * (coeffO + i) + 1] = shell.exponents[i];
+          coeff[4 * (coeffO + i) + 0] = c0[i];
+          coeff[4 * (coeffO + i) + 1] = shell.exponents[i];
         }
 
         if (c0.length > maxCoeffs) {

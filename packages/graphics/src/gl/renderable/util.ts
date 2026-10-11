@@ -7,7 +7,7 @@
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Vec3, Mat4 } from '@molstar/core/math/linear-algebra';
 import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
-import type { TextureFilter } from '../webgl/texture.js';
+import type { TextureFilter } from '../texture.js';
 import { arrayMinMax } from '@molstar/core/util/array';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)

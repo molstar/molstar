@@ -12,6 +12,7 @@ import { ColorNames } from '@molstar/core/util/color/names';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
+import { Points } from '@molstar/graphics/geo/geometry/points/points';
 import { ValueCell } from '@molstar/core/util';
 
 function createSpheresRenderObject(centers: Float32Array, groups: Float32Array, count: number) {
@@ -94,6 +95,31 @@ describe('merged', () => {
     expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([3, 0, 0, 0]);
   });
 
+  it('points', () => {
+    const create = (centers: number[], groups: number[]) => {
+      const points = Points.create(new Float32Array(centers), new Float32Array(groups), groups.length);
+      const props = PD.getDefaultValues(Points.Params);
+      const values = Points.Utils.createValuesSimple(points, props, ColorNames.orange, 1);
+      return createRenderObject('points', values, Points.Utils.createRenderableState(props), -1);
+    };
+    const a = create([0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
+    const b = create([2, 0, 0, 0, 2, 0], [0, 1]);
+    expect(canMergeRenderObjects([a, b])).toBe(true);
+
+    const merged = createMergedRenderObject([a, b]);
+    const mv = merged.values;
+
+    // quads of 6 drawn vertices, one data vertex per point
+    expect(mv.drawCount.ref.value).toBe(5 * 6);
+    expect(mv.uVertexCount.ref.value).toBe(5);
+    expect(merged.merged.segments.vertexBases).toEqual([0, 3]);
+    expect(merged.merged.segments.drawBases).toEqual([0, 3 * 6]);
+
+    const pg = mv.tPositionGroup.ref.value.array;
+    expect(Array.from(pg.subarray(3 * 4, 3 * 4 + 4))).toEqual([2, 0, 0, 0]);
+    expect(Array.from(pg.subarray(4 * 4, 4 * 4 + 4))).toEqual([0, 2, 0, 1]);
+  });
+
   it('mesh', () => {
     const a = createMeshRenderObject(6, 0);
     const b = createMeshRenderObject(9, 100);
@@ -121,7 +147,7 @@ describe('merged', () => {
     expect(positions[6 * 3]).toBe(100);
   });
 
-  const ctx = tryGetGLContext(32, 32, { fragDepth: true, textureFloat: true });
+  const ctx = tryGetGLContext(32, 32, { fragDepth: true });
 
   (ctx ? it : it.skip)('scene', async () => {
     const ctx = getGLContext(32, 32);

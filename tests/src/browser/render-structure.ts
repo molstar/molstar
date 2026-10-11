@@ -150,7 +150,7 @@ async function getStructure(model: Model) {
 }
 
 const reprCtx = {
-  webgl: canvas3d.webgl,
+  graphics: canvas3d.graphics,
   colorThemeRegistry: createColorThemeRegistry(),
   sizeThemeRegistry: createSizeThemeRegistry(),
 };

@@ -9,8 +9,9 @@ import type { Unit, Structure } from '@molstar/model/model/structure';
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { GaussianDensityTexture, GaussianDensityTexture2d } from '@molstar/graphics/geo/gaussian-density/gpu';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import {
   getUnitConformationAndRadius,
   getStructureConformationAndRadius,
@@ -50,8 +51,8 @@ export type GaussianDensityProps = typeof DefaultGaussianDensityProps;
 
 //
 
-export function getTextureMaxCells(webgl: WebGLContext, structure?: Structure) {
-  const d = webgl.maxTextureSize / 3;
+export function getTextureMaxCells(graphics: GraphicsContext, structure?: Structure) {
+  const d = graphics.resources.limits.maxTextureSize / 3;
   return (d * d) / Math.max(1, structure ? structure.units.length / 16 : 1);
 }
 

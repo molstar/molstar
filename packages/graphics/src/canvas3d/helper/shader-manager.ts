@@ -5,8 +5,8 @@
  */
 
 import type { Scene } from '@molstar/graphics/gl/scene';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type { GraphicsRenderVariant } from '@molstar/graphics/gl/webgl/render-item';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { GraphicsRenderVariant } from '@molstar/graphics/gl/render-item';
 import { BloomPass } from '../passes/bloom.js';
 import { IlluminationPass, type IlluminationProps } from '../passes/illumination.js';
 import { MarkingPass, type MarkingProps } from '../passes/marking.js';
@@ -19,8 +19,8 @@ export type ShaderManagerProps = {
 };
 
 export class ShaderManager {
-  static ensureRequired(webgl: WebGLContext, scene: Scene, p: ShaderManagerProps) {
-    const sm = new ShaderManager(webgl, scene);
+  static ensureRequired(graphics: GraphicsContext, scene: Scene, p: ShaderManagerProps) {
+    const sm = new ShaderManager(graphics, scene);
     sm.updateRequired(p);
     sm.finalizeRequired(true);
   }
@@ -28,14 +28,14 @@ export class ShaderManager {
   private readonly required: GraphicsRenderVariant[] = [];
 
   constructor(
-    private readonly webgl: WebGLContext,
+    private readonly graphics: GraphicsContext,
     private readonly scene: Scene,
-  ) {}
+  ) { }
 
   updateRequired(p: ShaderManagerProps) {
     this.required.length = 0;
     this.required.push('color');
-    if (IlluminationPass.isEnabled(this.webgl, p.illumination)) {
+    if (IlluminationPass.isEnabled(this.graphics, p.illumination)) {
       this.required.push('tracing');
     }
     if (MarkingPass.isEnabled(p.marking) && this.scene.markerAverage > 0) {
@@ -45,14 +45,14 @@ export class ShaderManager {
       this.required.push('emissive');
     }
     if (
-      PostprocessingPass.isTransparentDepthRequired(this.scene, p.postprocessing) ||
-      !this.webgl.extensions.drawBuffers ||
-      !this.webgl.extensions.depthTexture ||
-      IlluminationPass.isEnabled(this.webgl, p.illumination)
+      (PostprocessingPass.isTransparentDepthRequired(this.scene, p.postprocessing) && this.scene.opacityAverage < 1) ||
+      !this.graphics.capabilities.multipleRenderTargets ||
+      !this.graphics.capabilities.depthTexture ||
+      IlluminationPass.isEnabled(this.graphics, p.illumination)
     ) {
       this.required.push('depth');
     }
-    this.webgl.resources.linkPrograms(this.required);
+    this.graphics.resources.linkPrograms(this.required);
   }
 
   finalizeRequired(isSynchronous?: boolean) {
@@ -60,6 +60,6 @@ export class ShaderManager {
   }
 
   finalize(variants?: GraphicsRenderVariant[], isSynchronous?: boolean) {
-    return this.webgl.resources.finalizePrograms(variants, isSynchronous);
+    return this.graphics.resources.finalizePrograms(variants, isSynchronous);
   }
 }

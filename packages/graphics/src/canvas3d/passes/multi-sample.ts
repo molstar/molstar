@@ -6,36 +6,34 @@
 
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { TextureSpec, UniformSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
 import { ValueCell } from '@molstar/core/util';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
 import { createComputeRenderable, type ComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import { Camera } from '../camera.js';
 import type { PostprocessingProps } from './postprocessing.js';
 import type { DrawPass } from './draw.js';
 import type { RenderContext } from '../util.js';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
-import { compose_frag } from '@molstar/graphics/gl/shader/compose.frag';
 import type { MarkingProps } from './marking.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 import { clearJitter, getJitterOffsets, getTemporalSamplesPerFrame, setJitter } from './jitter.js';
 import { StereoCamera } from '../camera/stereo.js';
 
-const ComposeSchema = {
+export const ComposeSchema = {
   ...QuadSchema,
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   uTexSize: UniformSpec('v2'),
   uWeight: UniformSpec('f'),
 };
-const ComposeShaderCode = ShaderCode('compose', quad_vert, compose_frag);
+export const ComposeShaderCode = ShaderCode('multi-sample-compose');
 type ComposeRenderable = ComputeRenderable<Values<typeof ComposeSchema>>;
 
-function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture): ComposeRenderable {
+function getComposeRenderable(ctx: GraphicsContext, colorTexture: Texture): ComposeRenderable {
   const values: Values<typeof ComposeSchema> = {
     ...QuadValues,
     tColor: ValueCell.create(colorTexture),
@@ -44,7 +42,7 @@ function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture): Compose
   };
 
   const schema = { ...ComposeSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', ComposeShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', ComposeShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
@@ -89,18 +87,17 @@ export class MultiSamplePass {
   private compose: ComposeRenderable;
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     private drawPass: DrawPass,
   ) {
-    const { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } = webgl.extensions;
+    const { floatRenderTarget, halfFloatRenderTarget } = graphics.capabilities;
     const width = drawPass.colorTarget.getWidth();
     const height = drawPass.colorTarget.getHeight();
-    this.colorTarget = webgl.createRenderTarget(width, height, 'none');
-    const type =
-      colorBufferHalfFloat && textureHalfFloat ? 'fp16' : colorBufferFloat && textureFloat ? 'float32' : 'uint8';
-    this.composeTarget = webgl.createRenderTarget(width, height, 'none', type);
-    this.holdTarget = webgl.createRenderTarget(width, height, 'none');
-    this.compose = getComposeRenderable(webgl, drawPass.colorTarget.texture);
+    this.colorTarget = graphics.createRenderTarget(width, height, 'none');
+    const type = halfFloatRenderTarget ? 'fp16' : floatRenderTarget ? 'float32' : 'uint8';
+    this.composeTarget = graphics.createRenderTarget(width, height, 'none', type);
+    this.holdTarget = graphics.createRenderTarget(width, height, 'none');
+    this.compose = getComposeRenderable(graphics, drawPass.colorTarget.texture);
   }
 
   getByteCount() {
@@ -131,9 +128,8 @@ export class MultiSamplePass {
 
   private renderMultiSample(ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
     const { camera } = ctx;
-    const { compose, composeTarget, drawPass, webgl } = this;
-    const { gl, state } = webgl;
-    if (isTimingMode) webgl.timer.mark('MultiSamplePass.renderMultiSample');
+    const { compose, composeTarget, drawPass, graphics } = this;
+    if (isTimingMode) graphics.timer.group('MultiSamplePass.renderMultiSample');
 
     // based on the Multisample Anti-Aliasing Render Pass
     // contributed to three.js by bhouston / http://clara.io/
@@ -171,18 +167,11 @@ export class MultiSamplePass {
       drawPass.render(ctx, props, false, isSeparateMarking(camera));
 
       // compose rendered scene with compose target
-      composeTarget.bind();
-      state.enable(gl.BLEND);
-      state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
-      state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
-      state.disable(gl.DEPTH_TEST);
-      state.depthMask(false);
-      state.viewport(x, y, width, height);
-      state.scissor(x, y, width, height);
-      if (i === 0) {
-        state.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-      }
+      graphics.beginRenderPass(composeTarget, { label: 'multi-sample compose' });
+      graphics.setRenderState(RenderState.Additive);
+      graphics.setViewport(x, y, width, height);
+      graphics.setScissor(x, y, width, height);
+      if (i === 0) graphics.clear({ color: [0, 0, 0, 0] });
       compose.render();
     }
 
@@ -192,11 +181,11 @@ export class MultiSamplePass {
     ValueCell.update(compose.values.tColor, composeTarget.texture);
     compose.update();
 
-    this.colorTarget.bind();
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
+    graphics.beginRenderPass(this.colorTarget, { label: 'multi-sample output' });
+    graphics.setViewport(x, y, width, height);
+    graphics.setScissor(x, y, width, height);
 
-    state.disable(gl.BLEND);
+    graphics.setRenderState(RenderState.Default);
     compose.render();
 
     clearJitter(camera);
@@ -209,14 +198,13 @@ export class MultiSamplePass {
       samples: offsetList.length,
       shading: drawPass.getMarkingShading(props.postprocessing),
     });
-    if (isTimingMode) webgl.timer.markEnd('MultiSamplePass.renderMultiSample');
+    if (isTimingMode) graphics.timer.groupEnd('MultiSamplePass.renderMultiSample');
   }
 
   private renderTemporalMultiSample(sampleIndex: number, ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
     const { camera } = ctx;
-    const { compose, composeTarget, holdTarget, drawPass, webgl } = this;
-    const { gl, state } = webgl;
-    if (isTimingMode) webgl.timer.mark('MultiSamplePass.renderTemporalMultiSample');
+    const { compose, composeTarget, holdTarget, drawPass, graphics } = this;
+    if (isTimingMode) graphics.timer.group('MultiSamplePass.renderTemporalMultiSample');
 
     // based on the Multisample Anti-Aliasing Render Pass
     // contributed to three.js by bhouston / http://clara.io/
@@ -239,12 +227,10 @@ export class MultiSamplePass {
       ValueCell.update(compose.values.tColor, drawPass.getColorTarget(props.postprocessing).texture);
       compose.update();
 
-      holdTarget.bind();
-      state.disable(gl.BLEND);
-      state.disable(gl.DEPTH_TEST);
-      state.depthMask(false);
-      state.viewport(x, y, width, height);
-      state.scissor(x, y, width, height);
+      graphics.beginRenderPass(holdTarget, { label: 'multi-sample hold' });
+      graphics.setRenderState(RenderState.Default);
+      graphics.setViewport(x, y, width, height);
+      graphics.setScissor(x, y, width, height);
       compose.render();
       sampleIndex += 1;
     } else {
@@ -267,18 +253,11 @@ export class MultiSamplePass {
         drawPass.render(ctx, props, false, isSeparateMarking(camera));
 
         // compose rendered scene with compose target
-        composeTarget.bind();
-        state.enable(gl.BLEND);
-        state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
-        state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
-        state.disable(gl.DEPTH_TEST);
-        state.depthMask(false);
-        state.viewport(x, y, width, height);
-        state.scissor(x, y, width, height);
-        if (sampleIndex === 0) {
-          state.clearColor(0, 0, 0, 0);
-          gl.clear(gl.COLOR_BUFFER_BIT);
-        }
+        graphics.beginRenderPass(composeTarget, { label: 'multi-sample compose' });
+        graphics.setRenderState(RenderState.Additive);
+        graphics.setViewport(x, y, width, height);
+        graphics.setScissor(x, y, width, height);
+        if (sampleIndex === 0) graphics.clear({ color: [0, 0, 0, 0] });
         compose.render();
 
         sampleIndex += 1;
@@ -288,24 +267,23 @@ export class MultiSamplePass {
 
     drawPass.postprocessing.setOcclusionOffset(0, 0);
 
-    this.colorTarget.bind();
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
+    graphics.beginRenderPass(this.colorTarget, { label: 'multi-sample output' });
+    graphics.setViewport(x, y, width, height);
+    graphics.setScissor(x, y, width, height);
 
     const accumulationWeight = sampleIndex * sampleWeight;
     if (accumulationWeight > 0) {
       ValueCell.update(compose.values.uWeight, 1.0);
       ValueCell.update(compose.values.tColor, composeTarget.texture);
       compose.update();
-      state.disable(gl.BLEND);
+      graphics.setRenderState(RenderState.Default);
       compose.render();
     }
     if (accumulationWeight < 1.0) {
       ValueCell.update(compose.values.uWeight, 1.0 - accumulationWeight);
       ValueCell.update(compose.values.tColor, holdTarget.texture);
       compose.update();
-      if (accumulationWeight === 0) state.disable(gl.BLEND);
-      else state.enable(gl.BLEND);
+      graphics.setRenderState(accumulationWeight === 0 ? RenderState.Default : RenderState.Additive);
       compose.render();
     }
 
@@ -319,7 +297,7 @@ export class MultiSamplePass {
       samples: firstFrame ? 1 : samplesPerFrame,
       shading: drawPass.getMarkingShading(props.postprocessing),
     });
-    if (isTimingMode) webgl.timer.markEnd('MultiSamplePass.renderTemporalMultiSample');
+    if (isTimingMode) graphics.timer.groupEnd('MultiSamplePass.renderTemporalMultiSample');
 
     return sampleIndex >= offsetList.length ? -2 : sampleIndex;
   }
@@ -339,5 +317,5 @@ export class MultiSampleHelper {
     return this.sampleIndex < 0;
   }
 
-  constructor(private multiSamplePass: MultiSamplePass) {}
+  constructor(private multiSamplePass: MultiSamplePass) { }
 }

@@ -26,27 +26,22 @@ import { Box3D, type Sphere3D } from '@molstar/core/math/geometry';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { hasPolarNeighbour } from '@molstar/model/props/computed/chemistry/functional-group';
 import { isDebugMode } from '@molstar/core/util/debug';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const m4toArray = Mat4.toArray;
 
 let SphereImpostorWarningShown = false;
 
-export function checkSphereImpostorSupport(webgl?: WebGLContext) {
-  if (!webgl) {
+export function checkSphereImpostorSupport(graphics?: GraphicsContext) {
+  if (!graphics) {
     if (isDebugMode && !SphereImpostorWarningShown) {
-      console.warn('WebGL required for "sphere impostors". Falling back to "sphere mesh".');
+      console.warn('Graphics context required for "sphere impostors". Falling back to "sphere mesh".');
       SphereImpostorWarningShown = true;
     }
-  } else if (!webgl.extensions.fragDepth || !webgl.extensions.textureFloat) {
+  } else if (!graphics.capabilities.fragDepth) {
     if (isDebugMode && !SphereImpostorWarningShown) {
-      const missing: string[] = [];
-      if (!webgl.extensions.fragDepth) missing.push('fragDepth');
-      if (!webgl.extensions.textureFloat) missing.push('textureFloat');
-      console.warn(
-        `Missing "${missing.join('", "')}" extensions required for "sphere impostors". Falling back to "sphere mesh".`,
-      );
+      console.warn('Missing "fragDepth" capability required for "sphere impostors". Falling back to "sphere mesh".');
       SphereImpostorWarningShown = true;
     }
   } else {
@@ -57,19 +52,15 @@ export function checkSphereImpostorSupport(webgl?: WebGLContext) {
 
 let CylinderImpostorWarningShown = false;
 
-export function checkCylinderImpostorSupport(webgl?: WebGLContext) {
-  if (!webgl) {
+export function checkCylinderImpostorSupport(graphics?: GraphicsContext) {
+  if (!graphics) {
     if (isDebugMode && !CylinderImpostorWarningShown) {
-      console.warn('WebGL required for "cylinder impostors". Falling back to "cylinder mesh".');
+      console.warn('Graphics context required for "cylinder impostors". Falling back to "cylinder mesh".');
       CylinderImpostorWarningShown = true;
     }
-  } else if (!webgl.extensions.fragDepth) {
+  } else if (!graphics.capabilities.fragDepth) {
     if (isDebugMode && !CylinderImpostorWarningShown) {
-      const missing: string[] = [];
-      if (!webgl.extensions.fragDepth) missing.push('fragDepth');
-      console.warn(
-        `Missing "${missing.join('", "')}" extensions required for "cylinder impostors". Falling back to "cylinder mesh".`,
-      );
+      console.warn('Missing "fragDepth" capability required for "cylinder impostors". Falling back to "cylinder mesh".');
       CylinderImpostorWarningShown = true;
     }
   } else {

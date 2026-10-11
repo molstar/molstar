@@ -21,7 +21,7 @@ import { createEmptyOverpaint } from '../overpaint-data.js';
 import { createEmptyTransparency } from '../transparency-data.js';
 import type { TextureMeshValues } from '@molstar/graphics/gl/renderable/texture-mesh';
 import { calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
-import { createNullTexture, type Texture } from '@molstar/graphics/gl/webgl/texture';
+import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { createEmptyClipping } from '../clipping-data.js';
 import { NullLocation } from '@molstar/model/model/location';

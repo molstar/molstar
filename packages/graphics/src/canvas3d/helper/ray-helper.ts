@@ -7,7 +7,7 @@
 import type { Renderer } from '@molstar/graphics/gl/renderer';
 import { createFrame } from '@molstar/graphics/gl/renderable';
 import type { Scene } from '@molstar/graphics/gl/scene';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Ray3D } from '@molstar/core/math/geometry/primitives/ray3d';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { degToRad, spiral2d } from '@molstar/core/math/misc';
@@ -18,7 +18,8 @@ import { Viewport } from '../camera/util.js';
 import type { Helper } from './helper.js';
 import {
   type AsyncPickData,
-  PickBuffers,
+  createPickBuffers,
+  type PickBuffers,
   type PickData,
   PickPass,
   type PickOptions,
@@ -56,7 +57,7 @@ export class RayHelper {
   }
 
   private render(camera: Camera) {
-    if (isTimingMode) this.webgl.timer.mark('RayHelper.render', { captureStats: true });
+    if (isTimingMode) this.graphics.timer.group('RayHelper.render', { captureStats: true });
     const { renderer, scene, helper } = this;
 
     renderer.setTransparentBackground(false);
@@ -68,11 +69,11 @@ export class RayHelper {
     // never-reused frame token, so it can never share/collide with the main draw's frame
     this.pickPass.render(renderer, camera, scene, helper, createFrame());
 
-    if (isTimingMode) this.webgl.timer.markEnd('RayHelper.render');
+    if (isTimingMode) this.graphics.timer.groupEnd('RayHelper.render');
   }
 
   private identifyInternal(x: number, y: number): PickData | undefined {
-    if (this.webgl.isContextLost) return;
+    if (this.graphics.isContextLost) return;
 
     const { viewport } = this;
 
@@ -119,27 +120,30 @@ export class RayHelper {
   }
 
   identify(ray: Ray3D, cam: Camera): PickData | undefined {
+    // the backend can't read the pick targets (and render the pick variant) yet
+    if (!this.buffers.supported) return;
     if (!this.intersectsScene(ray, cam.scale)) return;
 
     this.prepare(ray, cam);
 
-    if (isTimingMode) this.webgl.timer.mark('RayHelper.identify');
+    if (isTimingMode) this.graphics.timer.group('RayHelper.identify');
     this.render(this.camera);
     this.buffers.read();
-    if (isTimingMode) this.webgl.timer.markEnd('RayHelper.identify');
+    if (isTimingMode) this.graphics.timer.groupEnd('RayHelper.identify');
 
     return this.getPickData();
   }
 
   asyncIdentify(ray: Ray3D, cam: Camera): AsyncPickData | undefined {
+    if (!this.buffers.supported) return;
     if (!this.intersectsScene(ray, cam.scale)) return;
 
     this.prepare(ray, cam);
 
-    if (isTimingMode) this.webgl.timer.mark('RayHelper.asyncIdentify');
+    if (isTimingMode) this.graphics.timer.group('RayHelper.asyncIdentify');
     this.render(this.camera);
     this.buffers.asyncRead();
-    if (isTimingMode) this.webgl.timer.markEnd('RayHelper.asyncIdentify');
+    if (isTimingMode) this.graphics.timer.groupEnd('RayHelper.asyncIdentify');
 
     return {
       tryGet: () => {
@@ -164,7 +168,7 @@ export class RayHelper {
   }
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     private renderer: Renderer,
     private scene: Scene,
     private helper: Helper,
@@ -173,13 +177,13 @@ export class RayHelper {
     const size = options.pickPadding * 2 + 1;
 
     this.camera = new Camera();
-    this.pickPass = new PickPass(webgl, size, size, 1);
-    this.buffers = new PickBuffers(this.webgl, this.pickPass, options.maxAsyncReadLag);
+    this.pickPass = new PickPass(graphics, size, size, 1);
+    this.buffers = createPickBuffers(this.graphics, this.pickPass, options.maxAsyncReadLag);
     this.pickPadding = options.pickPadding;
 
     this.update();
 
-    if (!checkAsyncPickingSupport(webgl)) {
+    if (!checkAsyncPickingSupport(graphics)) {
       this.asyncIdentify = (ray, cam) => ({
         tryGet: () => this.identify(ray, cam),
       });

@@ -21,10 +21,10 @@ import {
 } from '../representation.js';
 import { Subject } from 'rxjs';
 import { Task } from '@molstar/core/task';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { ParticleVisual, ParticleParams } from './visual.js';
 
-export interface ParticleRepresentation<P extends PD.Params = PD.Params> extends Representation<ParticleList, P> {}
+export interface ParticleRepresentation<P extends PD.Params = PD.Params> extends Representation<ParticleList, P> { }
 
 export type ParticleRepresentationProvider<P extends PD.Params, Id extends string = string> = RepresentationProvider<
   ParticleList,
@@ -48,12 +48,12 @@ export function ParticleRepresentation<P extends ParticleParams>(
     materialId: number,
     particles: ParticleList,
     props: PD.Values<P>,
-    webgl?: WebGLContext,
+    graphics?: GraphicsContext,
   ) => ParticleVisual<P>,
   getLoci: (particles: ParticleList, props: PD.Values<P>) => ModelLoci,
 ): ParticleRepresentation<P> {
   let version = 0;
-  const { webgl } = ctx;
+  const { graphics } = ctx;
   const updated = new Subject<number>();
   const geometryState = new Representation.GeometryState();
   const materialId = getNextMaterialId();
@@ -93,12 +93,12 @@ export function ParticleRepresentation<P extends ParticleParams>(
 
     return Task.create(`Creating or updating '${label}' representation`, async (runtime) => {
       if (!visual) {
-        visual = visualCtor(materialId, _particles, _props, webgl);
-      } else if (visual.mustRecreate?.({ particles: _particles }, _props, webgl)) {
+        visual = visualCtor(materialId, _particles, _props, graphics);
+      } else if (visual.mustRecreate?.({ particles: _particles }, _props, graphics)) {
         visual.destroy();
-        visual = visualCtor(materialId, _particles, _props, webgl);
+        visual = visualCtor(materialId, _particles, _props, graphics);
       }
-      await visual.createOrUpdate({ webgl, runtime }, _theme, _props, { particles: _particles });
+      await visual.createOrUpdate({ graphics, runtime }, _theme, _props, { particles: _particles });
       renderObjects.length = 0;
       if (visual.renderObject) {
         renderObjects.push(visual.renderObject);

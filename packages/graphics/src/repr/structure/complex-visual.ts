@@ -51,7 +51,7 @@ import {
 } from './params.js';
 import type { Clipping } from '@molstar/graphics/theme/clipping';
 import { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { isPromiseLike } from '@molstar/core/util/type-helpers';
 import type { Substance } from '@molstar/graphics/theme/substance';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
@@ -60,7 +60,7 @@ import type { Wiggle } from '@molstar/graphics/theme/wiggle';
 import { Points } from '@molstar/graphics/geo/geometry/points/points';
 import { Image } from '@molstar/graphics/geo/geometry/image/image';
 
-export interface ComplexVisual<P extends StructureParams> extends Visual<Structure, P> {}
+export interface ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
 function createComplexRenderObject<G extends Geometry>(
   structure: Structure,
@@ -104,7 +104,7 @@ interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
     geometry: G,
     props: PD.Values<P>,
     theme: Theme,
-    webgl?: WebGLContext,
+    graphics?: GraphicsContext,
   ) => void;
   dispose?: (geometry: G) => void;
 }
@@ -316,7 +316,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
   function finalize(ctx: VisualContext) {
     if (renderObject) {
-      processValues?.(renderObject.values, geometry, currentProps, currentTheme, ctx.webgl);
+      processValues?.(renderObject.values, geometry, currentProps, currentTheme, ctx.graphics);
     }
   }
 
@@ -380,26 +380,26 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
       Visual.setTransform(renderObject, matrix, instanceMatrices);
     },
-    setOverpaint(overpaint: Overpaint, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setOverpaint(overpaint: Overpaint, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setOverpaint(renderObject, overpaint, lociApply, true, smoothing);
     },
-    setTransparency(transparency: Transparency, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setTransparency(transparency: Transparency, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setTransparency(renderObject, transparency, lociApply, true, smoothing);
     },
-    setEmissive(emissive: Emissive, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setEmissive(emissive: Emissive, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setEmissive(renderObject, emissive, lociApply, true, smoothing);
     },
-    setSubstance(substance: Substance, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setSubstance(substance: Substance, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setSubstance(renderObject, substance, lociApply, true, smoothing);
     },
     setClipping(clipping: Clipping) {
       Visual.setClipping(renderObject, clipping, lociApply, true);
     },
-    setWiggle(wiggle: Wiggle, webgl?: WebGLContext) {
+    setWiggle(wiggle: Wiggle, graphics?: GraphicsContext) {
       Visual.setWiggle(renderObject, wiggle, lociApply, true);
     },
     setThemeStrength(strength: {
@@ -427,7 +427,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 export const ComplexMeshParams = { ...StructureMeshParams, ...StructureParams };
 export type ComplexMeshParams = typeof ComplexMeshParams;
 
-export interface ComplexMeshVisualBuilder<P extends ComplexMeshParams> extends ComplexVisualBuilder<P, Mesh> {}
+export interface ComplexMeshVisualBuilder<P extends ComplexMeshParams> extends ComplexVisualBuilder<P, Mesh> { }
 
 export function ComplexMeshVisual<P extends ComplexMeshParams>(
   builder: ComplexMeshVisualBuilder<P>,
@@ -459,7 +459,7 @@ export function ComplexMeshVisual<P extends ComplexMeshParams>(
 export const ComplexSpheresParams = { ...StructureSpheresParams, ...StructureParams };
 export type ComplexSpheresParams = typeof ComplexSpheresParams;
 
-export interface ComplexSpheresVisualBuilder<P extends ComplexSpheresParams> extends ComplexVisualBuilder<P, Spheres> {}
+export interface ComplexSpheresVisualBuilder<P extends ComplexSpheresParams> extends ComplexVisualBuilder<P, Spheres> { }
 
 export function ComplexSpheresVisual<P extends ComplexSpheresParams>(
   builder: ComplexSpheresVisualBuilder<P>,
@@ -492,7 +492,7 @@ export const ComplexCylindersParams = { ...StructureCylindersParams, ...Structur
 export type ComplexCylindersParams = typeof ComplexCylindersParams;
 
 export interface ComplexCylindersVisualBuilder<P extends ComplexCylindersParams>
-  extends ComplexVisualBuilder<P, Cylinders> {}
+  extends ComplexVisualBuilder<P, Cylinders> { }
 
 export function ComplexCylindersVisual<P extends ComplexCylindersParams>(
   builder: ComplexCylindersVisualBuilder<P>,
@@ -524,7 +524,7 @@ export function ComplexCylindersVisual<P extends ComplexCylindersParams>(
 export const ComplexPointsParams = { ...StructurePointsParams, ...StructureParams };
 export type ComplexPointsParams = typeof ComplexPointsParams;
 
-export interface ComplexPointsVisualBuilder<P extends ComplexPointsParams> extends ComplexVisualBuilder<P, Points> {}
+export interface ComplexPointsVisualBuilder<P extends ComplexPointsParams> extends ComplexVisualBuilder<P, Points> { }
 
 export function ComplexPointsVisual<P extends ComplexPointsParams>(
   builder: ComplexPointsVisualBuilder<P>,
@@ -556,7 +556,7 @@ export function ComplexPointsVisual<P extends ComplexPointsParams>(
 export const ComplexLinesParams = { ...StructureLinesParams, ...StructureParams };
 export type ComplexLinesParams = typeof ComplexLinesParams;
 
-export interface ComplexLinesVisualBuilder<P extends ComplexLinesParams> extends ComplexVisualBuilder<P, Lines> {}
+export interface ComplexLinesVisualBuilder<P extends ComplexLinesParams> extends ComplexVisualBuilder<P, Lines> { }
 
 export function ComplexLinesVisual<P extends ComplexLinesParams>(
   builder: ComplexLinesVisualBuilder<P>,
@@ -588,7 +588,7 @@ export function ComplexLinesVisual<P extends ComplexLinesParams>(
 export const ComplexTextParams = { ...StructureTextParams, ...StructureParams };
 export type ComplexTextParams = typeof ComplexTextParams;
 
-export interface ComplexTextVisualBuilder<P extends ComplexTextParams> extends ComplexVisualBuilder<P, Text> {}
+export interface ComplexTextVisualBuilder<P extends ComplexTextParams> extends ComplexVisualBuilder<P, Text> { }
 
 export function ComplexTextVisual<P extends ComplexTextParams>(
   builder: ComplexTextVisualBuilder<P>,
@@ -633,7 +633,7 @@ export const ComplexDirectVolumeParams = { ...StructureDirectVolumeParams, ...St
 export type ComplexDirectVolumeParams = typeof ComplexDirectVolumeParams;
 
 export interface ComplexDirectVolumeVisualBuilder<P extends ComplexDirectVolumeParams>
-  extends ComplexVisualBuilder<P, DirectVolume> {}
+  extends ComplexVisualBuilder<P, DirectVolume> { }
 
 export function ComplexDirectVolumeVisual<P extends ComplexDirectVolumeParams>(
   builder: ComplexDirectVolumeVisualBuilder<P>,
@@ -666,7 +666,7 @@ export const ComplexTextureMeshParams = { ...StructureTextureMeshParams, ...Stru
 export type ComplexTextureMeshParams = typeof ComplexTextureMeshParams;
 
 export interface ComplexTextureMeshVisualBuilder<P extends ComplexTextureMeshParams>
-  extends ComplexVisualBuilder<P, TextureMesh> {}
+  extends ComplexVisualBuilder<P, TextureMesh> { }
 
 export function ComplexTextureMeshVisual<P extends ComplexTextureMeshParams>(
   builder: ComplexTextureMeshVisualBuilder<P>,
@@ -698,7 +698,7 @@ export function ComplexTextureMeshVisual<P extends ComplexTextureMeshParams>(
 export const ComplexImageParams = { ...StructureImageParams, ...StructureParams };
 export type ComplexImageParams = typeof ComplexImageParams;
 
-export interface ComplexImageVisualBuilder<P extends ComplexImageParams> extends ComplexVisualBuilder<P, Image> {}
+export interface ComplexImageVisualBuilder<P extends ComplexImageParams> extends ComplexVisualBuilder<P, Image> { }
 
 export function ComplexImageVisual<P extends ComplexImageParams>(
   builder: ComplexImageVisualBuilder<P>,

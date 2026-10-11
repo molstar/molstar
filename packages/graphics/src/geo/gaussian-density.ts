@@ -2,7 +2,7 @@ import type { Box3D, PositionData } from '@molstar/core/math/geometry';
 import type { GaussianDensityProps } from '@molstar/core/math/geometry/gaussian-density';
 import type { Mat4, Vec3, Vec2 } from '@molstar/core/math/linear-algebra';
 import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { Task } from '@molstar/core/task/task';
 import { GaussianDensityTexture2d, GaussianDensityTexture3d } from './gaussian-density/gpu.js';
 
@@ -27,7 +27,15 @@ export function computeGaussianDensityTexture(
   webgl: WebGLContext,
   texture?: Texture,
 ) {
-  return _computeGaussianDensityTexture(webgl.isWebGL2 ? '3d' : '2d', position, box, radius, props, webgl, texture);
+  return _computeGaussianDensityTexture(
+    webgl.capabilities.texture3d ? '3d' : '2d',
+    position,
+    box,
+    radius,
+    props,
+    webgl,
+    texture,
+  );
 }
 
 export function computeGaussianDensityTexture2d(

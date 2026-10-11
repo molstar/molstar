@@ -7,20 +7,18 @@
 
 import { type CopyRenderable, QuadSchema, QuadValues, createCopyRenderable } from '@molstar/graphics/gl/compute/util';
 import { DefineSpec, TextureSpec, UniformSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { Texture } from '@molstar/graphics/gl/texture';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { ValueCell } from '@molstar/core/util';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
 import type { Renderer, RendererProps } from '@molstar/graphics/gl/renderer';
 import { Camera, type ICamera } from '../camera.js';
 import type { Scene } from '@molstar/graphics/gl/scene';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
-import { compose_frag } from '@molstar/graphics/gl/shader/illumination/compose.frag';
 import { Vec2 } from '@molstar/core/math/linear-algebra/3d/vec2';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Color } from '@molstar/core/util/color/color';
@@ -28,10 +26,9 @@ import { AntialiasingPass, PostprocessingPass, type PostprocessingProps } from '
 import type { DrawPass } from './draw.js';
 import { type MarkingProps, type MarkingShading, SingleSample } from './marking.js';
 import { DofPass } from './dof.js';
-import { TracingParams, TracingPass } from './tracing.js';
+import { TraceShaderCode, TracingParams, TracingPass } from './tracing.js';
 import { getJitterOffsets, setJitter, clearJitter } from './jitter.js';
 import type { MultiSampleProps } from './multi-sample.js';
-import { compose_frag as multiSample_compose_frag } from '@molstar/graphics/gl/shader/compose.frag';
 import { clamp, lerp } from '@molstar/core/math/interpolate';
 import type { SsaoProps } from './ssao.js';
 import { OutlinePass } from './outline.js';
@@ -40,16 +37,22 @@ import type { RenderContext } from '../util.js';
 
 let IlluminationWarningShown = false;
 
-function checkIlluminationSupport(webgl: WebGLContext) {
-  const { drawBuffers, textureFloat, colorBufferFloat, depthTexture } = webgl.extensions;
-  if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers) {
+function checkIlluminationSupport(graphics: GraphicsContext) {
+  if (!graphics.isProgramSupported(TraceShaderCode) || !graphics.isProgramSupported(ComposeShaderCode)) {
+    if (isDebugMode && !IlluminationWarningShown) {
+      console.log('Programs required for "illumination" not supported');
+      IlluminationWarningShown = true;
+    }
+    return false;
+  }
+  const { floatRenderTarget, depthTexture, multipleRenderTargets } = graphics.capabilities;
+  if (!floatRenderTarget || !depthTexture || !multipleRenderTargets) {
     if (isDebugMode && !IlluminationWarningShown) {
       const missing: string[] = [];
-      if (!textureFloat) missing.push('textureFloat');
-      if (!colorBufferFloat) missing.push('colorBufferFloat');
+      if (!floatRenderTarget) missing.push('floatRenderTarget');
       if (!depthTexture) missing.push('depthTexture');
-      if (!drawBuffers) missing.push('drawBuffers');
-      console.log(`Missing "${missing.join('", "')}" extensions required for "illumination"`);
+      if (!multipleRenderTargets) missing.push('multipleRenderTargets');
+      console.log(`Missing "${missing.join('", "')}" capabilities required for "illumination"`);
       IlluminationWarningShown = true;
     }
     return false;
@@ -140,34 +143,34 @@ export class IlluminationPass {
     return Math.pow(2, props.maxIterations);
   }
 
-  static isSupported(webgl: WebGLContext) {
-    return checkIlluminationSupport(webgl);
+  static isSupported(graphics: GraphicsContext) {
+    return checkIlluminationSupport(graphics);
   }
 
-  static isEnabled(webgl: WebGLContext, props: IlluminationProps) {
-    return props.enabled && checkIlluminationSupport(webgl);
+  static isEnabled(graphics: GraphicsContext, props: IlluminationProps) {
+    return props.enabled && checkIlluminationSupport(graphics);
   }
 
   constructor(
-    private readonly webgl: WebGLContext,
+    private readonly graphics: GraphicsContext,
     private readonly drawPass: DrawPass,
   ) {
-    if (!IlluminationPass.isSupported(webgl)) return;
+    if (!IlluminationPass.isSupported(graphics)) return;
 
     const { colorTarget } = drawPass;
     const width = colorTarget.getWidth();
     const height = colorTarget.getHeight();
 
-    this.tracing = new TracingPass(webgl, this.drawPass);
+    this.tracing = new TracingPass(graphics, this.drawPass);
     this.markingShading = { name: 'traced', shaded: this.tracing.shadedTextureOpaque };
 
-    this.transparentTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'nearest');
-    this.outputTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.transparentTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'nearest');
+    this.outputTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
-    this.copyRenderable = createCopyRenderable(webgl, this.transparentTarget.texture);
+    this.copyRenderable = createCopyRenderable(graphics, this.transparentTarget.texture);
 
     this.composeRenderable = getComposeRenderable(
-      webgl,
+      graphics,
       this.tracing.accumulateTarget.texture,
       this.tracing.normalTextureOpaque,
       this.tracing.colorTextureOpaque,
@@ -181,23 +184,23 @@ export class IlluminationPass {
       false,
     );
 
-    this.multiSampleComposeTarget = webgl.createRenderTarget(width, height, 'none', 'float32');
-    this.multiSampleHoldTarget = webgl.createRenderTarget(width, height, 'none');
-    this.multiSampleAccumulateTarget = webgl.createRenderTarget(width, height, 'none', 'float32');
-    this.multiSampleCompose = getMultiSampleComposeRenderable(webgl, this.outputTarget.texture);
+    this.multiSampleComposeTarget = graphics.createRenderTarget(width, height, 'none', 'float32');
+    this.multiSampleHoldTarget = graphics.createRenderTarget(width, height, 'none');
+    this.multiSampleAccumulateTarget = graphics.createRenderTarget(width, height, 'none', 'float32');
+    this.multiSampleCompose = getMultiSampleComposeRenderable(graphics, this.outputTarget.texture);
 
     this._supported = true;
   }
 
   private renderInput(renderer: Renderer, camera: ICamera, scene: Scene, props: Props) {
-    if (isTimingMode) this.webgl.timer.mark('IlluminationPass.renderInput');
-    const { gl, state } = this.webgl;
+    if (isTimingMode) this.graphics.timer.group('IlluminationPass.renderInput');
 
     const hasTransparent = scene.opacityAverage < 1 || scene.volumes.renderables.length > 0;
 
-    this.transparentTarget.bind();
-    state.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    this.graphics.beginRenderPass(this.transparentTarget, {
+      label: 'transparent clear',
+      clear: { color: [0, 0, 0, 0] },
+    });
 
     const outlineEnabled =
       PostprocessingPass.isTransparentOutlineEnabled(props.postprocessing) && !props.illumination.ignoreOutline;
@@ -206,7 +209,7 @@ export class IlluminationPass {
     const bloomEnabled = BloomPass.isEnabled(props.postprocessing);
 
     if (outlineEnabled || dofEnabled || ssaoEnabled || bloomEnabled) {
-      this.drawPass.depthTargetTransparent.bind();
+      this.graphics.beginRenderPass(this.drawPass.depthTargetTransparent, { label: 'transparent depth clear' });
       renderer.clearDepth(true);
     }
 
@@ -219,44 +222,45 @@ export class IlluminationPass {
           renderer.renderWboitTransparent(scene.volumes, camera, this.drawPass.depthTextureOpaque);
         }
 
-        this.transparentTarget.bind();
+        this.graphics.beginRenderPass(this.transparentTarget, { label: 'wboit evaluate' });
         this.drawPass.wboit.render();
       } else if (this.drawPass.transparency === 'dpoit') {
         const dpoitTextures = this.drawPass.dpoit.bind();
         renderer.renderDpoitTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque, dpoitTextures);
 
         for (let i = 0, iterations = props.dpoitIterations; i < iterations; i++) {
-          if (isTimingMode) this.webgl.timer.mark('DpoitPass.layer');
+          if (isTimingMode) this.graphics.timer.group('DpoitPass.layer');
           const dpoitTextures = this.drawPass.dpoit.bindDualDepthPeeling();
           renderer.renderDpoitTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque, dpoitTextures);
 
           if (iterations > 1) {
-            this.transparentTarget.bind();
+            this.graphics.beginRenderPass(this.transparentTarget, { label: 'dpoit blend back' });
             this.drawPass.dpoit.renderBlendBack();
           }
-          if (isTimingMode) this.webgl.timer.markEnd('DpoitPass.layer');
+          if (isTimingMode) this.graphics.timer.groupEnd('DpoitPass.layer');
         }
 
         // evaluate dpoit
-        this.transparentTarget.bind();
+        this.graphics.beginRenderPass(this.transparentTarget, { label: 'dpoit evaluate' });
         this.drawPass.dpoit.render();
 
         if (scene.volumes.renderables.length > 0) {
           renderer.renderVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
         }
       } else {
-        this.transparentTarget.bind();
         this.drawPass.depthTextureOpaque.attachFramebuffer(this.transparentTarget.framebuffer, 'depth');
+        this.graphics.beginRenderPass(this.transparentTarget, { label: 'transparent' });
         renderer.renderBlendedTransparent(scene.primitives, camera);
         this.drawPass.depthTextureOpaque.detachFramebuffer(this.transparentTarget.framebuffer, 'depth');
 
         if (scene.volumes.renderables.length > 0) {
+          this.graphics.beginRenderPass(this.transparentTarget, { label: 'volume' });
           renderer.renderVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
         }
       }
 
       if (outlineEnabled || dofEnabled || ssaoEnabled || bloomEnabled) {
-        this.drawPass.depthTargetTransparent.bind();
+        this.graphics.beginRenderPass(this.drawPass.depthTargetTransparent, { label: 'transparent depth' });
         if (scene.opacityAverage < 1) {
           renderer.renderDepthTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque);
         }
@@ -275,10 +279,11 @@ export class IlluminationPass {
 
     //
 
-    this.tracing.composeTarget.bind();
-    state.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    if (isTimingMode) this.webgl.timer.markEnd('IlluminationPass.renderInput');
+    this.graphics.beginRenderPass(this.tracing.composeTarget, {
+      label: 'compose clear',
+      clear: { color: [0, 0, 0, 0] },
+    });
+    if (isTimingMode) this.graphics.timer.groupEnd('IlluminationPass.renderInput');
   }
 
   private hasHelpers(helper: RenderContext<Camera>['helper']) {
@@ -287,9 +292,10 @@ export class IlluminationPass {
 
   private renderHelpers(ctx: RenderContext<Camera>) {
     const { renderer, camera, helper, frame } = ctx;
-    this.transparentTarget.bind();
+    this.graphics.beginRenderPass(this.transparentTarget, { label: 'helpers' });
     if (helper.debug.isEnabled || helper.pointer.isEnabled) {
       this.drawPass.depthTextureOpaque.attachFramebuffer(this.transparentTarget.framebuffer, 'depth');
+      this.graphics.beginRenderPass(this.transparentTarget, { label: 'helpers' });
       if (helper.debug.isEnabled) {
         helper.debug.syncVisibility();
         for (const scene of helper.debug.scenes) {
@@ -302,6 +308,7 @@ export class IlluminationPass {
         renderer.renderBlended(helper.pointer.scene, helper.pointer.camera);
       }
       this.drawPass.depthTextureOpaque.detachFramebuffer(this.transparentTarget.framebuffer, 'depth');
+      this.graphics.beginRenderPass(this.transparentTarget, { label: 'helpers' });
     }
     if (helper.handle.isEnabled) {
       renderer.renderBlended(helper.handle.scene, camera);
@@ -375,7 +382,7 @@ export class IlluminationPass {
     if (!this.shouldRender(props.illumination)) return;
 
     if (isTimingMode) {
-      this.webgl.timer.mark('IlluminationPass.render', {
+      this.graphics.timer.group('IlluminationPass.render', {
         note: `iteration ${this._iteration + 1} of ${this.getMaxIterations(props.illumination)}`,
       });
     }
@@ -384,16 +391,16 @@ export class IlluminationPass {
     this.compose(ctx, props, toDrawingBuffer, this._iteration === 0 || forceRenderInput);
 
     this._iteration += 1;
-    if (isTimingMode) this.webgl.timer.markEnd('IlluminationPass.render');
+    if (isTimingMode) this.graphics.timer.groupEnd('IlluminationPass.render');
 
-    this.webgl.gl.flush();
+    this.graphics.flush();
   }
 
   private setupRenderer(ctx: RenderContext<Camera>, props: Props) {
     const { renderer, camera, scene, frame } = ctx;
     renderer.setTransparentBackground(props.transparentBackground);
     renderer.setDrawingBufferSize(this.tracing.composeTarget.getWidth(), this.tracing.composeTarget.getHeight());
-    renderer.setPixelRatio(this.webgl.pixelRatio);
+    renderer.setPixelRatio(this.graphics.pixelRatio);
     const { x, y, width, height } = camera.viewport;
     renderer.setViewport(x, y, width, height);
     renderer.update(camera, scene, frame);
@@ -401,7 +408,6 @@ export class IlluminationPass {
 
   private compose(ctx: RenderContext<Camera>, props: Props, toDrawingBuffer: boolean, forceRenderInput: boolean) {
     const { renderer, camera, scene, frame } = ctx;
-    const { gl, state } = this.webgl;
     const { x, y, width, height } = camera.viewport;
 
     if (forceRenderInput) {
@@ -411,12 +417,9 @@ export class IlluminationPass {
       this.renderHelpers(ctx);
     }
 
-    state.disable(gl.BLEND);
-    state.disable(gl.DEPTH_TEST);
-    state.disable(gl.CULL_FACE);
-    state.depthMask(false);
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
+    this.graphics.setRenderState(RenderState.Default);
+    this.graphics.setViewport(x, y, width, height);
+    this.graphics.setScissor(x, y, width, height);
 
     const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
 
@@ -500,7 +503,7 @@ export class IlluminationPass {
     // bloom composite — compose applies it inline below
 
     renderer.setDrawingBufferSize(this.tracing.composeTarget.getWidth(), this.tracing.composeTarget.getHeight());
-    renderer.setPixelRatio(this.webgl.pixelRatio);
+    renderer.setPixelRatio(this.graphics.pixelRatio);
     renderer.setViewport(x, y, width, height);
     renderer.update(camera, scene, frame);
 
@@ -517,7 +520,7 @@ export class IlluminationPass {
         }
         // transparent color is already cleared in renderInput and may hold helpers, so only reset depth
         if (scene.opacityAverage >= 1) {
-          this.drawPass.depthTargetTransparent.bind();
+          this.graphics.beginRenderPass(this.drawPass.depthTargetTransparent, { label: 'transparent depth clear' });
           renderer.clearDepth(true);
         }
         // seed luminosity bloom from the shaded (lit) color, like the standard path's colorTarget
@@ -543,7 +546,7 @@ export class IlluminationPass {
     // background
 
     // the image is always kept offscreen, so that marking can be redrawn over it without restarting
-    this.tracing.composeTarget.bind();
+    this.graphics.beginRenderPass(this.tracing.composeTarget, { label: 'compose' });
     this._colorTarget = this.tracing.composeTarget;
 
     this.drawPass.postprocessing.background.update(camera, props.postprocessing.background);
@@ -572,16 +575,13 @@ export class IlluminationPass {
       props.multiSample.mode === 'on'
         ? props.illumination.denoiseThreshold[0]
         : lerp(
-            props.illumination.denoiseThreshold[1],
-            props.illumination.denoiseThreshold[0],
-            clamp(this.iteration / (this.getMaxIterations(props.illumination) / 2), 0, 1),
-          );
+          props.illumination.denoiseThreshold[1],
+          props.illumination.denoiseThreshold[0],
+          clamp(this.iteration / (this.getMaxIterations(props.illumination) / 2), 0, 1),
+        );
     ValueCell.updateIfChanged(this.composeRenderable.values.uDenoiseThreshold, denoiseThreshold);
     if (needsUpdateCompose) this.composeRenderable.update();
-    if (compositeBackground) {
-      state.enable(gl.BLEND);
-      state.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    }
+    this.graphics.setRenderState(compositeBackground ? RenderState.Premultiplied : RenderState.Default);
     this.composeRenderable.render();
 
     //
@@ -631,8 +631,7 @@ export class IlluminationPass {
 
   private renderMultiSample(ctx: RenderContext<Camera>, props: Props, toDrawingBuffer: boolean) {
     const { camera } = ctx;
-    const { multiSampleCompose, multiSampleComposeTarget, multiSampleHoldTarget, webgl } = this;
-    const { gl, state } = webgl;
+    const { multiSampleCompose, multiSampleComposeTarget, multiSampleHoldTarget, graphics } = this;
 
     // based on the Multisample Anti-Aliasing Render Pass
     // contributed to three.js by bhouston / http://clara.io/
@@ -647,7 +646,7 @@ export class IlluminationPass {
     const sampleIndex = Math.floor((iteration / maxIterations) * offsetList.length);
 
     if (isTimingMode) {
-      webgl.timer.mark('IlluminationPass.renderMultiSample', {
+      graphics.timer.group('IlluminationPass.renderMultiSample', {
         note: `sampleIndex ${sampleIndex + 1} of ${offsetList.length}`,
       });
     }
@@ -661,12 +660,10 @@ export class IlluminationPass {
       ValueCell.update(multiSampleCompose.values.tColor, this._colorTarget.texture);
       multiSampleCompose.update();
 
-      multiSampleHoldTarget.bind();
-      state.disable(gl.BLEND);
-      state.disable(gl.DEPTH_TEST);
-      state.depthMask(false);
-      state.viewport(x, y, width, height);
-      state.scissor(x, y, width, height);
+      graphics.beginRenderPass(multiSampleHoldTarget, { label: 'multi-sample hold' });
+      graphics.setRenderState(RenderState.Default);
+      graphics.setViewport(x, y, width, height);
+      graphics.setScissor(x, y, width, height);
       multiSampleCompose.render();
     } else {
       ValueCell.update(multiSampleCompose.values.tColor, this._colorTarget.texture);
@@ -681,47 +678,39 @@ export class IlluminationPass {
       this.renderInternal(ctx, props, false, this.prevSampleIndex !== sampleIndex);
 
       // compose rendered scene with compose target
-      multiSampleComposeTarget.bind();
-      state.enable(gl.BLEND);
-      state.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
-      state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
-      state.disable(gl.DEPTH_TEST);
-      state.depthMask(false);
-      state.viewport(x, y, width, height);
-      state.scissor(x, y, width, height);
-      if (iteration === 1) {
-        state.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-      }
+      graphics.beginRenderPass(multiSampleComposeTarget, { label: 'multi-sample compose' });
+      graphics.setRenderState(RenderState.Additive);
+      graphics.setViewport(x, y, width, height);
+      graphics.setScissor(x, y, width, height);
+      if (iteration === 1) graphics.clear({ color: [0, 0, 0, 0] });
       multiSampleCompose.render();
     }
 
     this.prevSampleIndex = sampleIndex;
 
-    this.multiSampleAccumulateTarget.bind();
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
+    this.graphics.beginRenderPass(this.multiSampleAccumulateTarget, { label: 'multi-sample accumulate' });
+    graphics.setViewport(x, y, width, height);
+    graphics.setScissor(x, y, width, height);
 
     const accumulationWeight = iteration * sampleWeight;
     if (accumulationWeight > 0) {
       ValueCell.update(multiSampleCompose.values.uWeight, 1.0);
       ValueCell.update(multiSampleCompose.values.tColor, multiSampleComposeTarget.texture);
       multiSampleCompose.update();
-      state.disable(gl.BLEND);
+      graphics.setRenderState(RenderState.Default);
       multiSampleCompose.render();
     }
     if (accumulationWeight < 1.0) {
       ValueCell.update(multiSampleCompose.values.uWeight, 1.0 - accumulationWeight);
       ValueCell.update(multiSampleCompose.values.tColor, multiSampleHoldTarget.texture);
       multiSampleCompose.update();
-      if (accumulationWeight === 0) state.disable(gl.BLEND);
-      else state.enable(gl.BLEND);
+      graphics.setRenderState(accumulationWeight === 0 ? RenderState.Default : RenderState.Additive);
       multiSampleCompose.render();
     }
 
     if (!toDrawingBuffer) {
-      state.disable(gl.BLEND);
-      this.colorTarget.bind();
+      graphics.setRenderState(RenderState.Default);
+      this.graphics.beginRenderPass(this.colorTarget, { label: 'multi-sample output' });
       if (this.copyRenderable.values.tColor.ref.value !== this.multiSampleAccumulateTarget.texture) {
         ValueCell.update(this.copyRenderable.values.tColor, this.multiSampleAccumulateTarget.texture);
         this.copyRenderable.update();
@@ -742,7 +731,7 @@ export class IlluminationPass {
       samples,
       shading: this.markingShading,
     });
-    if (isTimingMode) webgl.timer.markEnd('IlluminationPass.renderMultiSample');
+    if (isTimingMode) graphics.timer.groupEnd('IlluminationPass.renderMultiSample');
   }
 
   render(ctx: RenderContext<Camera>, props: Props, toDrawingBuffer: boolean) {
@@ -758,7 +747,7 @@ export class IlluminationPass {
 
 //
 
-const ComposeSchema = {
+export const ComposeSchema = {
   ...QuadSchema,
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tNormal: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
@@ -792,11 +781,11 @@ const ComposeSchema = {
   dOutlineScale: DefineSpec('number'),
   dTransparentOutline: DefineSpec('boolean'),
 };
-const ComposeShaderCode = ShaderCode('compose', quad_vert, compose_frag);
+export const ComposeShaderCode = ShaderCode('illumination-compose');
 type ComposeRenderable = ComputeRenderable<Values<typeof ComposeSchema>>;
 
 function getComposeRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   colorTexture: Texture,
   normalTexture: Texture,
   shadedTexture: Texture,
@@ -845,23 +834,23 @@ function getComposeRenderable(
   };
 
   const schema = { ...ComposeSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', ComposeShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', ComposeShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
 
 //
 
-const MultiSampleComposeSchema = {
+export const MultiSampleComposeSchema = {
   ...QuadSchema,
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   uTexSize: UniformSpec('v2'),
   uWeight: UniformSpec('f'),
 };
-const MultiSampleComposeShaderCode = ShaderCode('compose', quad_vert, multiSample_compose_frag);
+export const MultiSampleComposeShaderCode = ShaderCode('illumination-multi-sample-compose');
 type MultiSampleComposeRenderable = ComputeRenderable<Values<typeof MultiSampleComposeSchema>>;
 
-function getMultiSampleComposeRenderable(ctx: WebGLContext, colorTexture: Texture): MultiSampleComposeRenderable {
+function getMultiSampleComposeRenderable(ctx: GraphicsContext, colorTexture: Texture): MultiSampleComposeRenderable {
   const values: Values<typeof MultiSampleComposeSchema> = {
     ...QuadValues,
     tColor: ValueCell.create(colorTexture),
@@ -870,7 +859,7 @@ function getMultiSampleComposeRenderable(ctx: WebGLContext, colorTexture: Textur
   };
 
   const schema = { ...MultiSampleComposeSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', MultiSampleComposeShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', MultiSampleComposeShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }

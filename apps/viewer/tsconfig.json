@@ -18,6 +18,9 @@
       "path": "../../packages/model"
     },
     {
+      "path": "../../packages/graphics"
+    },
+    {
       "path": "../../packages/plugin/core"
     },
     {

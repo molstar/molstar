@@ -46,21 +46,21 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
       return {
         type: registry.default
           ? PD.Mapped<any>(registry.default.name, registry.types, (name) =>
-              PD.Group<any>(registry.get(name).getParams(themeCtx, undefined as any)),
-            )
+            PD.Group<any>(registry.get(name).getParams(themeCtx, undefined as any)),
+          )
           : emptyMappedParams(),
         colorTheme: hasColor
           ? PD.Mapped<any>(
-              type.defaultColorTheme.name,
-              themeCtx.colorThemeRegistry.types,
-              (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({})),
-              colorThemeInfo,
-            )
+            type.defaultColorTheme.name,
+            themeCtx.colorThemeRegistry.types,
+            (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams({})),
+            colorThemeInfo,
+          )
           : emptyMappedParams(),
         sizeTheme: hasSize
           ? PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.types, (name) =>
-              PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({})),
-            )
+            PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams({})),
+          )
           : emptyMappedParams(),
       };
     }
@@ -78,21 +78,21 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
     return {
       type: registry.default
         ? PD.Mapped<any>(registry.default.name, registry.getApplicableTypes(a.data), (name) =>
-            PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
-          )
+          PD.Group<any>(registry.get(name).getParams(themeCtx, a.data)),
+        )
         : emptyMappedParams(),
       colorTheme: hasColor
         ? PD.Mapped<any>(
-            type.defaultColorTheme.name,
-            themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
-            (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx)),
-            colorThemeInfo,
-          )
+          type.defaultColorTheme.name,
+          themeCtx.colorThemeRegistry.getApplicableTypes(dataCtx),
+          (name) => PD.Group<any>(themeCtx.colorThemeRegistry.get(name).getParams(dataCtx)),
+          colorThemeInfo,
+        )
         : emptyMappedParams(),
       sizeTheme: hasSize
         ? PD.Mapped<any>(type.defaultSizeTheme.name, themeCtx.sizeThemeRegistry.getApplicableTypes(dataCtx), (name) =>
-            PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx)),
-          )
+          PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx)),
+        )
         : emptyMappedParams(),
     };
   },
@@ -105,7 +105,7 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
     return Task.create('Particles Representation', async (ctx) => {
       const themes = plugin.representation.particles.themes;
       const provider = plugin.representation.particles.registry.get(params.type.name);
-      const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...themes }, provider.getParams);
+      const repr = provider.factory({ graphics: plugin.canvas3d?.graphics, ...themes }, provider.getParams);
       repr.setTheme(Theme.create(themes, { particles: a.data }, params));
       const props = params.type.params || {};
       await repr.createOrUpdate(props, a.data).runInContext(ctx);

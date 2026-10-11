@@ -6,7 +6,7 @@
 
 import { BehaviorSubject, Subject, type Subscription } from 'rxjs';
 import type { Scene } from '@molstar/graphics/gl/scene';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import { Ray3D } from '@molstar/core/math/geometry/primitives/ray3d';
@@ -274,9 +274,9 @@ export class XRManager {
   private async setSession(xrSession: XRSession | undefined) {
     if (this.xrSession === xrSession) return;
 
-    await this.webgl.xr.set(xrSession, { resolutionScale: this.props.resolutionScale });
+    await this.graphics.xr.set(xrSession, { resolutionScale: this.props.resolutionScale });
 
-    this.xrSession = this.webgl.xr.session;
+    this.xrSession = this.graphics.xr.session;
     this.prevInput = {};
     this.hit = undefined;
 
@@ -303,7 +303,7 @@ export class XRManager {
   }
 
   async end() {
-    await this.webgl.xr.end();
+    await this.graphics.xr.end();
   }
 
   private checkSupported = async () => {
@@ -352,7 +352,7 @@ export class XRManager {
   }
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     private input: InputObserver,
     private scene: Scene,
     private camera: Camera,
@@ -369,8 +369,8 @@ export class XRManager {
       this.hit = position;
     });
 
-    this.sessionChangedSub = webgl.xr.changed.subscribe(async () => {
-      await this.setSession(webgl.xr.session);
+    this.sessionChangedSub = graphics.xr.changed.subscribe(async () => {
+      await this.setSession(graphics.xr.session);
       this.sessionChanged.next();
     });
 

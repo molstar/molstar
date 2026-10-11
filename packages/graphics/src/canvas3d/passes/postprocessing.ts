@@ -10,19 +10,17 @@
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { TextureSpec, type Values, UniformSpec, DefineSpec } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type { Texture, TextureFilter } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import type { Texture, TextureFilter } from '@molstar/graphics/gl/texture';
 import { ValueCell } from '@molstar/core/util';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
 import { createComputeRenderable, type ComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { DrawPass } from './draw.js';
 import type { ICamera } from '../camera.js';
 import type { Scene } from '@molstar/graphics/gl/scene';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
-import { postprocessing_frag } from '@molstar/graphics/gl/shader/postprocessing.frag';
 import { Color } from '@molstar/core/util/color';
 import { FxaaParams, FxaaPass } from './fxaa.js';
 import { SmaaParams, SmaaPass } from './smaa.js';
@@ -37,7 +35,7 @@ import { OutlinePass, type OutlineProps, OutlineParams } from './outline.js';
 import { ShadowPass, type ShadowProps, ShadowParams } from './shadow.js';
 import { SsaoPass, type SsaoProps, SsaoParams } from './ssao.js';
 
-const PostprocessingSchema = {
+export const PostprocessingSchema = {
   ...QuadSchema,
   tSsaoDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tSsaoDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
@@ -74,10 +72,11 @@ const PostprocessingSchema = {
   dOutlineScale: DefineSpec('number'),
   dTransparentOutline: DefineSpec('boolean'),
 };
+export const PostprocessingShaderCode = ShaderCode('postprocessing');
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>;
 
 function getPostprocessingRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   colorTexture: Texture,
   transparentColorTexture: Texture,
   depthTextureOpaque: Texture,
@@ -128,8 +127,7 @@ function getPostprocessingRenderable(
   };
 
   const schema = { ...PostprocessingSchema };
-  const shaderCode = ShaderCode('postprocessing', quad_vert, postprocessing_frag);
-  const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', PostprocessingShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
@@ -222,14 +220,17 @@ export class PostprocessingPass {
     );
   }
 
+  /**
+   * Whether a pass reads the transparent depth. The target is cleared then also for scenes without transparency, so
+   * the passes never read the depth of an earlier frame or scene; transparent objects are only drawn into it if any.
+   */
   static isTransparentDepthRequired(scene: Scene, props: PostprocessingProps) {
     return (
       props.enabled &&
       (DofPass.isEnabled(props) ||
         (OutlinePass.isEnabled(props) && PostprocessingPass.isTransparentOutlineEnabled(props)) ||
         (SsaoPass.isEnabled(props) && PostprocessingPass.isTransparentSsaoEnabled(scene, props)) ||
-        BloomPass.isEnabled(props)) &&
-      scene.opacityAverage < 1
+        BloomPass.isEnabled(props))
     );
   }
 
@@ -264,7 +265,7 @@ export class PostprocessingPass {
   readonly background: BackgroundPass;
 
   constructor(
-    private readonly webgl: WebGLContext,
+    private readonly graphics: GraphicsContext,
     assetManager: AssetManager,
     readonly drawPass: DrawPass,
   ) {
@@ -273,15 +274,15 @@ export class PostprocessingPass {
     const height = colorTarget.getHeight();
 
     // needs to be linear for anti-aliasing pass
-    this.target = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.target = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
-    this.ssao = new SsaoPass(webgl, width, height, packedDepth, depthTextureOpaque, depthTextureTransparent);
-    this.shadow = new ShadowPass(webgl, width, height, depthTextureOpaque);
-    this.outline = new OutlinePass(webgl, width, height, depthTextureTransparent, depthTextureOpaque);
-    this.bloom = new BloomPass(webgl, width, height);
+    this.ssao = new SsaoPass(graphics, width, height, packedDepth, depthTextureOpaque, depthTextureTransparent);
+    this.shadow = new ShadowPass(graphics, width, height, depthTextureOpaque);
+    this.outline = new OutlinePass(graphics, width, height, depthTextureTransparent, depthTextureOpaque);
+    this.bloom = new BloomPass(graphics, width, height);
 
     this.renderable = getPostprocessingRenderable(
-      webgl,
+      graphics,
       colorTarget.texture,
       transparentColorTarget.texture,
       depthTextureOpaque,
@@ -294,7 +295,7 @@ export class PostprocessingPass {
       true,
     );
 
-    this.background = new BackgroundPass(webgl, assetManager, width, height);
+    this.background = new BackgroundPass(graphics, assetManager, width, height);
   }
 
   getByteCount() {
@@ -425,12 +426,7 @@ export class PostprocessingPass {
       this.renderable.update();
     }
 
-    const { gl, state } = this.webgl;
-
-    state.enable(gl.SCISSOR_TEST);
-    state.disable(gl.BLEND);
-    state.disable(gl.DEPTH_TEST);
-    state.depthMask(false);
+    this.graphics.setRenderState(RenderState.Default);
   }
 
   private occlusionOffset: [x: number, y: number] = [0, 0];
@@ -459,7 +455,7 @@ export class PostprocessingPass {
     ambientColor: Vec3,
     bloomEnable: boolean = false,
   ) {
-    if (isTimingMode) this.webgl.timer.mark('PostprocessingPass.render');
+    if (isTimingMode) this.graphics.timer.group('PostprocessingPass.render');
     this.updateState(camera, scene, transparentBackground, backgroundColor, props, light, ambientColor);
 
     if (this.renderable.values.dBloomEnable.ref.value !== bloomEnable) {
@@ -471,7 +467,6 @@ export class PostprocessingPass {
     // premultiplied-over — keeps transparency weight (vs SRC_ALPHA's color*a^2) and lets bloom occlude
     const compositeBackground = this.background.isEnabled(props) || (bloomEnable && !this.transparentBackground);
 
-    const { gl, state } = this.webgl;
     const { x, y, width, height } = camera.viewport;
 
     // don't render occlusion if offset is given,
@@ -480,8 +475,8 @@ export class PostprocessingPass {
       this.ssao.render(camera);
     }
 
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
+    this.graphics.setViewport(x, y, width, height);
+    this.graphics.setScissor(x, y, width, height);
 
     if (props.outline.name === 'on') {
       this.outline.render();
@@ -491,23 +486,15 @@ export class PostprocessingPass {
       this.shadow.render();
     }
 
-    if (toDrawingBuffer) {
-      this.webgl.bindDrawingBuffer();
-    } else {
-      this.target.bind();
-    }
+    this.graphics.beginRenderPass(toDrawingBuffer ? 'drawing-buffer' : this.target, { label: 'postprocessing' });
 
     this.background.update(camera, props.background);
     this.background.clear(props.background, this.transparentBackground, backgroundColor);
     this.background.render(props.background);
 
-    if (compositeBackground) {
-      state.enable(gl.BLEND);
-      state.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    }
-
+    this.graphics.setRenderState(compositeBackground ? RenderState.Premultiplied : RenderState.Default);
     this.renderable.render();
-    if (isTimingMode) this.webgl.timer.markEnd('PostprocessingPass.render');
+    if (isTimingMode) this.graphics.timer.groupEnd('PostprocessingPass.render');
   }
 }
 
@@ -523,13 +510,13 @@ export class AntialiasingPass {
   private readonly smaa: SmaaPass;
   private readonly cas: CasPass;
 
-  constructor(webgl: WebGLContext, width: number, height: number, filter: TextureFilter = 'nearest') {
-    this.target = webgl.createRenderTarget(width, height, 'none', 'uint8', filter);
-    this.internalTarget = webgl.createRenderTarget(width, height, 'none');
+  constructor(graphics: GraphicsContext, width: number, height: number, filter: TextureFilter = 'nearest') {
+    this.target = graphics.createRenderTarget(width, height, 'none', 'uint8', filter);
+    this.internalTarget = graphics.createRenderTarget(width, height, 'none');
 
-    this.fxaa = new FxaaPass(webgl, this.target.texture);
-    this.smaa = new SmaaPass(webgl, this.target.texture);
-    this.cas = new CasPass(webgl, this.target.texture);
+    this.fxaa = new FxaaPass(graphics, this.target.texture);
+    this.smaa = new SmaaPass(graphics, this.target.texture);
+    this.cas = new CasPass(graphics, this.target.texture);
   }
 
   getByteCount() {

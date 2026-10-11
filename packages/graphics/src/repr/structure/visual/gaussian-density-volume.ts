@@ -29,6 +29,7 @@ import {
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { UnitsDirectVolumeParams, type UnitsVisual, UnitsDirectVolumeVisual } from '../units-visual.js';
 import { omitObjectKeys } from '@molstar/core/util/object';
+import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
 
 function createGaussianDensityVolume(
   ctx: VisualContext,
@@ -37,8 +38,8 @@ function createGaussianDensityVolume(
   props: Omit<GaussianDensityProps, 'floodfill'>,
   directVolume?: DirectVolume,
 ): DirectVolume {
-  const { webgl } = ctx;
-  if (!webgl) {
+  const graphics = ctx.graphics;
+  if (!graphics || !isWebGLContext(graphics)) {
     // gpu gaussian density also needs blendMinMax but there is no fallback here so
     // we allow it here with the results that there is no group id assignment and
     // hence no group-based coloring or picking
@@ -50,7 +51,13 @@ function createGaussianDensityVolume(
 
   const create = (directVolume?: DirectVolume) => {
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
-    const densityTextureData = computeStructureGaussianDensityTexture(structure, theme.size, props, webgl, oldTexture);
+    const densityTextureData = computeStructureGaussianDensityTexture(
+      structure,
+      theme.size,
+      props,
+      graphics,
+      oldTexture,
+    );
     const { transform, texture, bbox, gridDim } = densityTextureData;
 
     const unitToCartn = Mat4.mul(Mat4(), transform, Mat4.fromScaling(Mat4(), gridDim));
@@ -131,8 +138,8 @@ function createUnitsGaussianDensityVolume(
   props: Omit<GaussianDensityProps, 'floodfill'>,
   directVolume?: DirectVolume,
 ): DirectVolume {
-  const { webgl } = ctx;
-  if (!webgl) {
+  const graphics = ctx.graphics;
+  if (!graphics || !isWebGLContext(graphics)) {
     // gpu gaussian density also needs blendMinMax but there is no fallback here so
     // we allow it here with the results that there is no group id assignment and
     // hence no group-based coloring or picking
@@ -144,7 +151,14 @@ function createUnitsGaussianDensityVolume(
 
   const create = (directVolume?: DirectVolume) => {
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
-    const densityTextureData = computeUnitGaussianDensityTexture(structure, unit, theme.size, props, webgl, oldTexture);
+    const densityTextureData = computeUnitGaussianDensityTexture(
+      structure,
+      unit,
+      theme.size,
+      props,
+      graphics,
+      oldTexture,
+    );
     const { transform, texture, bbox, gridDim } = densityTextureData;
 
     const unitToCartn = Mat4.mul(Mat4(), transform, Mat4.fromScaling(Mat4(), gridDim));

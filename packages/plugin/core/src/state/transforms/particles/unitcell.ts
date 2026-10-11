@@ -41,7 +41,7 @@ const ParticleListUnitcell3D = PluginStateTransform.BuiltIn({
       const center = Particle.getBoundary(a.data).sphere.center;
       const data = getUnitcellDataFromSymmetry(cell, center, params);
       const repr = UnitcellRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => UnitcellParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);

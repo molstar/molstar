@@ -8,19 +8,13 @@ import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { TextureSpec, UniformSpec, DefineSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
-import { loadImageTexture, type Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { Vec2, Vec4 } from '@molstar/core/math/linear-algebra';
 import { ValueCell } from '@molstar/core/util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { blend_vert } from '@molstar/graphics/gl/shader/smaa/blend.vert';
-import { blend_frag } from '@molstar/graphics/gl/shader/smaa/blend.frag';
-import { weights_vert } from '@molstar/graphics/gl/shader/smaa/weights.vert';
-import { weights_frag } from '@molstar/graphics/gl/shader/smaa/weights.frag';
-import { edges_vert } from '@molstar/graphics/gl/shader/smaa/edges.vert';
-import { edges_frag } from '@molstar/graphics/gl/shader/smaa/edges.frag';
 import { Viewport } from '../camera/util.js';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
 
@@ -44,7 +38,7 @@ export class SmaaPass {
   }
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     input: Texture,
   ) {
     if (typeof HTMLImageElement === 'undefined') {
@@ -55,12 +49,12 @@ export class SmaaPass {
     const width = input.getWidth();
     const height = input.getHeight();
 
-    this.edgesTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
-    this.weightsTarget = webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.edgesTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
+    this.weightsTarget = graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear');
 
-    this.edgesRenderable = getEdgesRenderable(webgl, input);
-    this.weightsRenderable = getWeightsRenderable(webgl, this.edgesTarget.texture);
-    this.blendRenderable = getBlendRenderable(webgl, input, this.weightsTarget.texture);
+    this.edgesRenderable = getEdgesRenderable(graphics, input);
+    this.weightsRenderable = getWeightsRenderable(graphics, this.edgesTarget.texture);
+    this.blendRenderable = getBlendRenderable(graphics, input, this.weightsTarget.texture);
 
     this._supported = true;
   }
@@ -71,20 +65,11 @@ export class SmaaPass {
   }
 
   private updateState(viewport: Viewport) {
-    const { gl, state } = this.webgl;
-
-    state.enable(gl.SCISSOR_TEST);
-    state.disable(gl.BLEND);
-    state.disable(gl.DEPTH_TEST);
-    state.depthMask(false);
-
     const { x, y, width, height } = viewport;
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
-
-    state.colorMask(true, true, true, true);
-    state.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    this.graphics.setRenderState(RenderState.Default);
+    this.graphics.setViewport(x, y, width, height);
+    this.graphics.setScissor(x, y, width, height);
+    this.graphics.clear({ color: [0, 0, 0, 1] });
 
     ValueCell.update(
       this.edgesRenderable.values.uViewport,
@@ -147,29 +132,25 @@ export class SmaaPass {
   }
 
   render(viewport: Viewport, target: RenderTarget | undefined) {
-    if (isTimingMode) this.webgl.timer.mark('SmaaPass.render');
-    this.edgesTarget.bind();
+    if (isTimingMode) this.graphics.timer.group('SmaaPass.render');
+    this.graphics.beginRenderPass(this.edgesTarget, { label: 'smaa edges' });
     this.updateState(viewport);
     this.edgesRenderable.render();
 
-    this.weightsTarget.bind();
+    this.graphics.beginRenderPass(this.weightsTarget, { label: 'smaa weights' });
     this.updateState(viewport);
     this.weightsRenderable.render();
 
-    if (target) {
-      target.bind();
-    } else {
-      this.webgl.bindDrawingBuffer();
-    }
+    this.graphics.beginRenderPass(target ?? 'drawing-buffer', { label: 'smaa blend' });
     this.updateState(viewport);
     this.blendRenderable.render();
-    if (isTimingMode) this.webgl.timer.markEnd('SmaaPass.render');
+    if (isTimingMode) this.graphics.timer.groupEnd('SmaaPass.render');
   }
 }
 
 //
 
-const EdgesSchema = {
+export const EdgesSchema = {
   ...QuadSchema,
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   uTexSizeInv: UniformSpec('v2'),
@@ -177,10 +158,10 @@ const EdgesSchema = {
 
   dEdgeThreshold: DefineSpec('number'),
 };
-const EdgesShaderCode = ShaderCode('smaa-edges', edges_vert, edges_frag);
+export const EdgesShaderCode = ShaderCode('smaa-edges');
 type EdgesRenderable = ComputeRenderable<Values<typeof EdgesSchema>>;
 
-function getEdgesRenderable(ctx: WebGLContext, colorTexture: Texture): EdgesRenderable {
+function getEdgesRenderable(ctx: GraphicsContext, colorTexture: Texture): EdgesRenderable {
   const width = colorTexture.getWidth();
   const height = colorTexture.getHeight();
 
@@ -194,31 +175,31 @@ function getEdgesRenderable(ctx: WebGLContext, colorTexture: Texture): EdgesRend
   };
 
   const schema = { ...EdgesSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', EdgesShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', EdgesShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
 
 //
 
-const WeightsSchema = {
+export const WeightsSchema = {
   ...QuadSchema,
   tEdges: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
-  tArea: TextureSpec('texture', 'rgb', 'ubyte', 'linear'),
+  tArea: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   tSearch: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   uTexSizeInv: UniformSpec('v2'),
   uViewport: UniformSpec('v4'),
 
   dMaxSearchSteps: DefineSpec('number'),
 };
-const WeightsShaderCode = ShaderCode('smaa-weights', weights_vert, weights_frag);
+export const WeightsShaderCode = ShaderCode('smaa-weights');
 type WeightsRenderable = ComputeRenderable<Values<typeof WeightsSchema>>;
 
-function getWeightsRenderable(ctx: WebGLContext, edgesTexture: Texture): WeightsRenderable {
+function getWeightsRenderable(ctx: GraphicsContext, edgesTexture: Texture): WeightsRenderable {
   const width = edgesTexture.getWidth();
   const height = edgesTexture.getHeight();
 
-  const areaTexture = ctx.resources.texture('image-uint8', 'rgb', 'ubyte', 'linear');
+  const areaTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
   const searchTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
 
   const values: Values<typeof WeightsSchema> = {
@@ -233,28 +214,28 @@ function getWeightsRenderable(ctx: WebGLContext, edgesTexture: Texture): Weights
   };
 
   // Note: loading image textures requires `HTMLImageElement` to be available
-  loadImageTexture(getAreaTexture(), values.tArea, areaTexture);
-  loadImageTexture(getSearchTexture(), values.tSearch, searchTexture);
+  ctx.resources.loadImage(areaTexture, getAreaTexture(), values.tArea, 'SMAA area texture');
+  ctx.resources.loadImage(searchTexture, getSearchTexture(), values.tSearch, 'SMAA search texture');
 
   const schema = { ...WeightsSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', WeightsShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', WeightsShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
 
 //
 
-const BlendSchema = {
+export const BlendSchema = {
   ...QuadSchema,
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   tWeights: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   uTexSizeInv: UniformSpec('v2'),
   uViewport: UniformSpec('v4'),
 };
-const BlendShaderCode = ShaderCode('smaa-blend', blend_vert, blend_frag);
+export const BlendShaderCode = ShaderCode('smaa-blend');
 type BlendRenderable = ComputeRenderable<Values<typeof BlendSchema>>;
 
-function getBlendRenderable(ctx: WebGLContext, colorTexture: Texture, weightsTexture: Texture): BlendRenderable {
+function getBlendRenderable(ctx: GraphicsContext, colorTexture: Texture, weightsTexture: Texture): BlendRenderable {
   const width = colorTexture.getWidth();
   const height = colorTexture.getHeight();
 
@@ -267,7 +248,7 @@ function getBlendRenderable(ctx: WebGLContext, colorTexture: Texture, weightsTex
   };
 
   const schema = { ...BlendSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', BlendShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', BlendShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }

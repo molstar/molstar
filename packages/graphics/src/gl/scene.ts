@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { WebGLContext } from './webgl/context.js';
+import type { GraphicsContext } from './context.js';
 import { type GraphicsRenderObject, createRenderable } from './render-object.js';
 import { Object3D } from './object3d.js';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
@@ -15,7 +15,7 @@ import { arraySetRemove } from '@molstar/core/util/array';
 import { BoundaryHelper } from '@molstar/core/math/geometry/boundary-helper';
 import { hash1 } from '@molstar/core/data/util';
 import type { GraphicsRenderable } from './renderable.js';
-import type { Transparency } from './webgl/render-item.js';
+import type { Transparency } from './render-item.js';
 import { clamp } from '@molstar/core/math/interpolate';
 import type { GlobalDefines } from './renderable/schema.js';
 import { ValueCell } from '@molstar/core/util/value-cell';
@@ -114,7 +114,7 @@ namespace Scene {
   }
 
   export function create(
-    ctx: WebGLContext,
+    ctx: GraphicsContext,
     transparency: Transparency = 'blended',
     globals: GlobalDefines = { dColorMarker: true, dLightCount: 1 },
   ): Scene {

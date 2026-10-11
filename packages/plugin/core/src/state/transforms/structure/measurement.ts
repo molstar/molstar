@@ -39,7 +39,7 @@ const StructureSelectionsDistance3D = PluginStateTransform.BuiltIn({
     return Task.create('Structure Distance', async (ctx) => {
       const data = getDistanceDataFromStructureSelections(a.data);
       const repr = DistanceRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => DistanceParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -75,7 +75,7 @@ const StructureSelectionsAngle3D = PluginStateTransform.BuiltIn({
     return Task.create('Structure Angle', async (ctx) => {
       const data = getAngleDataFromStructureSelections(a.data);
       const repr = AngleRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => AngleParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -111,7 +111,7 @@ const StructureSelectionsDihedral3D = PluginStateTransform.BuiltIn({
     return Task.create('Structure Dihedral', async (ctx) => {
       const data = getDihedralDataFromStructureSelections(a.data);
       const repr = DihedralRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => DihedralParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -147,7 +147,7 @@ const StructureSelectionsLabel3D = PluginStateTransform.BuiltIn({
     return Task.create('Structure Label', async (ctx) => {
       const data = getLabelDataFromStructureSelections(a.data);
       const repr = LabelRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => LabelParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -193,7 +193,7 @@ const StructureSelectionsOrientation3D = PluginStateTransform.BuiltIn({
     return Task.create('Structure Orientation', async (ctx) => {
       const data = getOrientationDataFromStructureSelections(a.data);
       const repr = OrientationRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => OrientationParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);
@@ -229,7 +229,7 @@ const StructureSelectionsPlane3D = PluginStateTransform.BuiltIn({
     return Task.create('Structure Plane', async (ctx) => {
       const data = getPlaneDataFromStructureSelections(a.data);
       const repr = PlaneRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => PlaneParams,
       );
       await repr.createOrUpdate(params, data).runInContext(ctx);

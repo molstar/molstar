@@ -7,7 +7,7 @@
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { type TextureImage, createTextureImage } from '@molstar/graphics/gl/renderable/util';
-import { createNullTexture, type Texture } from '@molstar/graphics/gl/webgl/texture';
+import { createNullTexture, type Texture } from '@molstar/graphics/gl/texture';
 
 export type EmissiveType = 'instance' | 'groupInstance' | 'volumeInstance';
 

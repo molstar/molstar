@@ -15,7 +15,7 @@ import { addSphere } from '@molstar/graphics/geo/geometry/mesh/builder/sphere';
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Scene } from '@molstar/graphics/gl/scene';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Color } from '@molstar/core/util/color';
 import { ColorNames } from '@molstar/core/util/color/names';
@@ -46,7 +46,7 @@ export class BoundingSphereHelper implements DebugHelper<BoundingSphereHelperPro
   private sceneData: BoundingSphereData | undefined;
   private visibleSceneData: BoundingSphereData | undefined;
 
-  constructor(ctx: WebGLContext, parent: Scene, props: Partial<BoundingSphereHelperProps>) {
+  constructor(ctx: GraphicsContext, parent: Scene, props: Partial<BoundingSphereHelperProps>) {
     this.scene = Scene.create(ctx, 'blended');
     this.parent = parent;
     this._props = { ...PD.getDefaultValues(BoundingSphereHelperParams), ...props };

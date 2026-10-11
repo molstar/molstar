@@ -9,7 +9,7 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { now } from '@molstar/core/util/now';
 import type { PluginAnimationManager } from '@molstar/plugin/state/manager/animation';
 import { isTimingMode } from '@molstar/core/util/debug';
-import { printTimerResults } from '@molstar/graphics/gl/webgl/timer';
+import { printTimerResults } from '@molstar/graphics/gl/timer';
 
 const MaxProperFrameDelta = 1000 / 30;
 
@@ -42,7 +42,7 @@ export class PluginAnimationLoop {
     this.plugin.canvas3d?.tick(t as now.Timestamp, options);
 
     if (isTimingMode) {
-      const timerResults = this.plugin.canvas3d?.webgl.timer.resolve();
+      const timerResults = this.plugin.canvas3d?.graphics.timer.resolve();
       if (timerResults) {
         for (const result of timerResults) {
           printTimerResults([result]);
@@ -87,5 +87,5 @@ export class PluginAnimationLoop {
     }
   }
 
-  constructor(private plugin: PluginContext) {}
+  constructor(private plugin: PluginContext) { }
 }

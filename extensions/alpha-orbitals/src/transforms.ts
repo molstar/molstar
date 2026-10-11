@@ -31,7 +31,7 @@ export class BasisAndOrbitals extends PluginStateObject.Create<{
   basis: Basis;
   order: SphericalBasisOrder;
   orbitals: AlphaOrbital[];
-}>({ name: 'Basis', typeClass: 'Object' }) {}
+}>({ name: 'Basis', typeClass: 'Object' }) { }
 
 export const StaticBasisAndOrbitals = PluginStateTransform.BuiltIn({
   name: 'static-basis-and-orbitals',
@@ -138,7 +138,7 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
           gridSpacing: params.gridSpacing.map((e) => [e.atomCount, e.spacing] as [number, number]),
         },
         a.data.orbitals[params.index],
-        plugin.canvas3d?.webgl,
+        plugin.canvas3d?.graphics,
       ).runInContext(ctx);
       const volume: Volume = {
         grid: data.grid,
@@ -176,7 +176,7 @@ export const CreateOrbitalDensityVolume = PluginStateTransform.BuiltIn({
           gridSpacing: params.gridSpacing.map((e) => [e.atomCount, e.spacing] as [number, number]),
         },
         a.data.orbitals,
-        plugin.canvas3d?.webgl,
+        plugin.canvas3d?.graphics,
       ).runInContext(ctx);
       const volume: Volume = {
         grid: data.grid,
@@ -226,7 +226,7 @@ export const CreateOrbitalRepresentation3D = PluginStateTransform.BuiltIn({
       if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
       const props = params.type.params || {};
       const repr = provider.factory(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.volume.themes },
         provider.getParams,
       );
       repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, params));

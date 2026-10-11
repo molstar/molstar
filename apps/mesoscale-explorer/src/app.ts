@@ -28,7 +28,7 @@ import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { MesoFocusLoci } from '@molstar/mesoscale-explorer/behavior/camera';
 import { type GraphicsMode, MesoscaleState } from '@molstar/mesoscale-explorer/data/state';
 import { MesoSelectLoci } from '@molstar/mesoscale-explorer/behavior/select';
-import type { Transparency } from '@molstar/graphics/gl/webgl/render-item';
+import type { Transparency } from '@molstar/graphics/gl/render-item';
 import {
   LoadModel,
   loadExampleEntry,
@@ -135,7 +135,7 @@ const DefaultMesoscaleExplorerOptions = {
 type MesoscaleExplorerOptions = typeof DefaultMesoscaleExplorerOptions;
 
 export class MesoscaleExplorer {
-  constructor(public plugin: PluginUIContext) {}
+  constructor(public plugin: PluginUIContext) { }
 
   async loadExample(id: string) {
     const entries = (this.plugin.customState as MesoscaleExplorerState).examples || [];

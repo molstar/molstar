@@ -6,8 +6,8 @@
 
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
 import { createTextureImage, type TextureImage } from '@molstar/graphics/gl/renderable/util';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { Box3D, type Sphere3D } from '@molstar/core/math/geometry';
 import { lerp } from '@molstar/core/math/interpolate';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
@@ -26,7 +26,7 @@ interface ColorSmoothingInput {
   colorType: 'group' | 'groupInstance';
   boundingSphere: Sphere3D;
   invariantBoundingSphere: Sphere3D;
-  itemSize: 4 | 3 | 1;
+  itemSize: 4 | 1;
 }
 
 export type ColorSmoothingOptions = {
@@ -37,7 +37,7 @@ export type ColorSmoothingOptions = {
 export function calcMeshColorSmoothing(
   input: ColorSmoothingInput,
   options: ColorSmoothingOptions,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
   texture?: Texture,
 ) {
   const { colorType, vertexCount, groupCount, positionBuffer, instanceBuffer, transformBuffer, groupBuffer, itemSize } =
@@ -82,7 +82,7 @@ export function calcMeshColorSmoothing(
   for (let i = 0; i < instanceCount; ++i) {
     // - use reordered index for access from GPU
     // - use serial index for access from CPU
-    const instanceIndex = webgl && isInstanceType ? instanceBuffer[i] : i;
+    const instanceIndex = graphics && isInstanceType ? instanceBuffer[i] : i;
     for (let j = 0; j < vertexCount; j += stride) {
       Vec3.fromArray(v, positionBuffer, j * 3);
       if (isInstanceType) Vec3.transformMat4Offset(v, v, transformBuffer, 0, 0, i * 16);
@@ -143,10 +143,10 @@ export function calcMeshColorSmoothing(
   const gridTransform = Vec4.create(min[0], min[1], min[2], scaleFactor);
   const type = isInstanceType ? ('volumeInstance' as const) : ('volume' as const);
 
-  if (webgl) {
+  if (graphics) {
     if (!texture) {
-      const format = itemSize === 4 ? 'rgba' : itemSize === 3 ? 'rgb' : 'alpha';
-      texture = webgl.resources.texture('image-uint8', format, 'ubyte', 'linear');
+      const format = itemSize === 4 ? 'rgba' : 'r';
+      texture = graphics.resources.texture('image-uint8', format, 'ubyte', 'linear');
     }
     texture.load(textureImage);
 
@@ -299,7 +299,7 @@ function isSupportedColorType(x: string): x is 'group' | 'groupInstance' {
 export function applyMeshColorSmoothing(
   values: MeshValues,
   options: ColorSmoothingOptions,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
   colorTexture?: Texture,
 ) {
   if (!isSupportedColorType(values.dColorType.ref.value)) return;
@@ -317,10 +317,10 @@ export function applyMeshColorSmoothing(
       colorType: values.dColorType.ref.value,
       boundingSphere: values.boundingSphere.ref.value,
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
-      itemSize: 3,
+      itemSize: 4,
     },
     options,
-    webgl,
+    graphics,
     colorTexture,
   );
 
@@ -344,7 +344,7 @@ function isSupportedOverpaintType(x: string): x is 'groupInstance' {
 export function applyMeshOverpaintSmoothing(
   values: MeshValues,
   options: ColorSmoothingOptions,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
   colorTexture?: Texture,
 ) {
   if (!isSupportedOverpaintType(values.dOverpaintType.ref.value)) return;
@@ -365,7 +365,7 @@ export function applyMeshOverpaintSmoothing(
       itemSize: 4,
     },
     options,
-    webgl,
+    graphics,
     colorTexture,
   );
   if (smoothingData.kind === 'volume') {
@@ -388,7 +388,7 @@ function isSupportedTransparencyType(x: string): x is 'groupInstance' {
 export function applyMeshTransparencySmoothing(
   values: MeshValues,
   options: ColorSmoothingOptions,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
   colorTexture?: Texture,
 ) {
   if (!isSupportedTransparencyType(values.dTransparencyType.ref.value)) return;
@@ -409,7 +409,7 @@ export function applyMeshTransparencySmoothing(
       itemSize: 1,
     },
     options,
-    webgl,
+    graphics,
     colorTexture,
   );
   if (smoothingData.kind === 'volume') {
@@ -432,7 +432,7 @@ function isSupportedEmissiveType(x: string): x is 'groupInstance' {
 export function applyMeshEmissiveSmoothing(
   values: MeshValues,
   options: ColorSmoothingOptions,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
   colorTexture?: Texture,
 ) {
   if (!isSupportedEmissiveType(values.dEmissiveType.ref.value)) return;
@@ -453,7 +453,7 @@ export function applyMeshEmissiveSmoothing(
       itemSize: 1,
     },
     options,
-    webgl,
+    graphics,
     colorTexture,
   );
   if (smoothingData.kind === 'volume') {
@@ -476,7 +476,7 @@ function isSupportedSubstanceType(x: string): x is 'groupInstance' {
 export function applyMeshSubstanceSmoothing(
   values: MeshValues,
   options: ColorSmoothingOptions,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
   colorTexture?: Texture,
 ) {
   if (!isSupportedSubstanceType(values.dSubstanceType.ref.value)) return;
@@ -497,7 +497,7 @@ export function applyMeshSubstanceSmoothing(
       itemSize: 4,
     },
     options,
-    webgl,
+    graphics,
     colorTexture,
   );
   if (smoothingData.kind === 'volume') {

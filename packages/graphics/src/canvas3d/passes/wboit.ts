@@ -10,28 +10,26 @@ import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { TextureSpec, UniformSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { ValueCell } from '@molstar/core/util';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
-import { evaluateWboit_frag } from '@molstar/graphics/gl/shader/evaluate-wboit.frag';
-import type { Framebuffer } from '@molstar/graphics/gl/webgl/framebuffer';
+import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
-import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
-import type { Renderbuffer } from '@molstar/graphics/gl/webgl/renderbuffer';
+import { isDebugMode } from '@molstar/core/util/debug';
+import type { Renderbuffer } from '@molstar/graphics/gl/renderbuffer';
 
-const EvaluateWboitSchema = {
+export const EvaluateWboitSchema = {
   ...QuadSchema,
   tWboitA: TextureSpec('texture', 'rgba', 'float', 'nearest'),
   tWboitB: TextureSpec('texture', 'rgba', 'float', 'nearest'),
   uTexSize: UniformSpec('v2'),
 };
-const EvaluateWboitShaderCode = ShaderCode('evaluate-wboit', quad_vert, evaluateWboit_frag);
+export const EvaluateWboitShaderCode = ShaderCode('evaluate-wboit');
 type EvaluateWboitRenderable = ComputeRenderable<Values<typeof EvaluateWboitSchema>>;
 
 function getEvaluateWboitRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   wboitATexture: Texture,
   wboitBTexture: Texture,
 ): EvaluateWboitRenderable {
@@ -43,7 +41,7 @@ function getEvaluateWboitRenderable(
   };
 
   const schema = { ...EvaluateWboitSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', EvaluateWboitShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', EvaluateWboitShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
@@ -69,29 +67,14 @@ export class WboitPass {
   }
 
   bind() {
-    const { state, gl } = this.webgl;
-
-    this.framebuffer.bind();
-
-    state.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    state.disable(gl.DEPTH_TEST);
-
-    state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ZERO, gl.ONE_MINUS_SRC_ALPHA);
-    state.enable(gl.BLEND);
+    this.graphics.beginRenderPass(this.framebuffer, { label: 'wboit transparent', clear: { color: [0, 0, 0, 1] } });
   }
 
   render() {
-    if (isTimingMode) this.webgl.timer.mark('WboitPass.render');
-    const { state, gl } = this.webgl;
-
-    state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    state.enable(gl.BLEND);
+    this.graphics.setRenderState(RenderState.Alpha);
 
     this.renderable.update();
     this.renderable.render();
-    if (isTimingMode) this.webgl.timer.markEnd('WboitPass.render');
   }
 
   setSize(width: number, height: number) {
@@ -112,12 +95,7 @@ export class WboitPass {
   }
 
   private _init() {
-    const {
-      extensions: { drawBuffers },
-    } = this.webgl;
-
-    this.framebuffer.bind();
-    drawBuffers!.drawBuffers([drawBuffers!.COLOR_ATTACHMENT0, drawBuffers!.COLOR_ATTACHMENT1]);
+    this.framebuffer.setDrawBuffers(2);
 
     this.textureA.attachFramebuffer(this.framebuffer, 'color0');
     this.textureB.attachFramebuffer(this.framebuffer, 'color1');
@@ -125,18 +103,19 @@ export class WboitPass {
     this.depthRenderbuffer.attachFramebuffer(this.framebuffer);
   }
 
-  static isSupported(webgl: WebGLContext) {
-    const {
-      extensions: { drawBuffers, textureFloat, colorBufferFloat, depthTexture },
-    } = webgl;
-    if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers) {
+  static isSupported(graphics: GraphicsContext) {
+    if (!graphics.isProgramSupported(EvaluateWboitShaderCode)) {
+      if (isDebugMode) console.log(`Programs required for "wboit" not supported`);
+      return false;
+    }
+    const { floatRenderTarget, depthTexture, multipleRenderTargets } = graphics.capabilities;
+    if (!floatRenderTarget || !depthTexture || !multipleRenderTargets) {
       if (isDebugMode) {
         const missing: string[] = [];
-        if (!textureFloat) missing.push('textureFloat');
-        if (!colorBufferFloat) missing.push('colorBufferFloat');
+        if (!floatRenderTarget) missing.push('floatRenderTarget');
         if (!depthTexture) missing.push('depthTexture');
-        if (!drawBuffers) missing.push('drawBuffers');
-        console.log(`Missing "${missing.join('", "')}" extensions required for "wboit"`);
+        if (!multipleRenderTargets) missing.push('multipleRenderTargets');
+        console.log(`Missing "${missing.join('", "')}" capabilities required for "wboit"`);
       }
       return false;
     } else {
@@ -145,13 +124,13 @@ export class WboitPass {
   }
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     width: number,
     height: number,
   ) {
-    if (!WboitPass.isSupported(webgl)) return;
+    if (!WboitPass.isSupported(graphics)) return;
 
-    const { resources, isWebGL2 } = webgl;
+    const { resources } = graphics;
 
     this.textureA = resources.texture('image-float32', 'rgba', 'float', 'nearest');
     this.textureA.define(width, height);
@@ -159,14 +138,9 @@ export class WboitPass {
     this.textureB = resources.texture('image-float32', 'rgba', 'float', 'nearest');
     this.textureB.define(width, height);
 
-    this.depthRenderbuffer = resources.renderbuffer(
-      isWebGL2 ? 'depth32f-stencil8' : 'depth-stencil',
-      'depth-stencil',
-      width,
-      height,
-    );
+    this.depthRenderbuffer = resources.renderbuffer('depth32f-stencil8', 'depth-stencil', width, height);
 
-    this.renderable = getEvaluateWboitRenderable(webgl, this.textureA, this.textureB);
+    this.renderable = getEvaluateWboitRenderable(graphics, this.textureA, this.textureB);
     this.framebuffer = resources.framebuffer();
 
     this._supported = true;

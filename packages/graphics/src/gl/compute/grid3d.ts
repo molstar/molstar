@@ -13,23 +13,25 @@ import {
   DefineSpec,
   type RenderableValues,
 } from '../renderable/schema.js';
-import type { WebGLContext } from '../webgl/context.js';
+import { isWebGLContext, type WebGLContext } from '../webgl/context.js';
 import { getRegularGrid3dDelta, type RegularGrid3d } from '@molstar/core/math/geometry/common';
-import { grid3dTemplate_frag } from '../shader/util/grid3d-template.frag.js';
-import { quad_vert } from '../shader/quad.vert.js';
+import { grid3dTemplate_frag } from '../webgl/shader/util/grid3d-template.frag.js';
+import { quad_vert } from '../webgl/shader/quad.vert.js';
+import { registerGlslProgram } from '../webgl/programs.js';
 import { ShaderCode } from '../shader-code.js';
 import { UUID, ValueCell } from '@molstar/core/util';
 import { objectForEach } from '@molstar/core/util/object';
-import { getUniformGlslType, isUniformValueScalar } from '../webgl/uniform.js';
+import { isUniformValueScalar } from '../uniform.js';
 import { QuadSchema, QuadValues } from './util.js';
-import { createComputeRenderItem } from '../webgl/render-item.js';
 import { createComputeRenderable } from '../renderable.js';
 import { isLittleEndian } from '@molstar/core/util/is-little-endian';
 import type { RuntimeContext } from '@molstar/core/task';
 import { isTimingMode } from '@molstar/core/util/debug';
+import type { GraphicsContext } from '../context.js';
+import { RenderState } from '../render-state.js';
 
-export function canComputeGrid3dOnGPU(webgl?: WebGLContext): webgl is WebGLContext {
-  return !!webgl?.extensions.textureFloat;
+export function canComputeGrid3dOnGPU(graphics?: GraphicsContext): graphics is WebGLContext {
+  return !!graphics && isWebGLContext(graphics);
 }
 
 export interface Grid3DComputeRenderableSpec<S extends RenderableSchema, P, CS> {
@@ -68,50 +70,46 @@ const CumulativeSumSchema = {
   tCumulativeSum: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
 };
 
+/** fragment shader code, declarations are generated from `getGrid3dComputeSchema` */
+export function getGrid3dComputeFrag(spec: Grid3DComputeRenderableSpec<any, any, any>) {
+  return grid3dTemplate_frag
+    .replace('{UTILS}', spec.utilCode ?? '')
+    .replace('{MAIN}', spec.mainCode)
+    .replace('{RETURN}', spec.returnCode);
+}
+
+/** loop bounds are number defines on WebGL1 (constant loop bounds) */
+export function getGrid3dComputeSchema(
+  spec: Grid3DComputeRenderableSpec<any, any, any>,
+  isWebGL2: boolean,
+): RenderableSchema {
+  const schema: { [k: string]: RenderableSchema[string] } = {
+    ...SchemaBase,
+    ...(spec.cumulative ? CumulativeSumSchema : {}),
+    ...spec.schema,
+  };
+  if (!isWebGL2) {
+    for (const b of spec.loopBounds ?? []) schema[b as string] = DefineSpec('number');
+    schema.WEBGL1 = DefineSpec('boolean');
+  }
+  if (spec.cumulative) schema.CUMULATIVE = DefineSpec('boolean');
+  return schema;
+}
+
 export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>(
   spec: Grid3DComputeRenderableSpec<S, P, CS>,
 ) {
   const id = UUID.create22();
 
-  const uniforms: string[] = [];
-
-  objectForEach(spec.schema, (u, k) => {
-    if (u.type === 'define') return;
-    if (u.kind.indexOf('[]') >= 0) throw new Error('array uniforms are not supported');
-    const isBound = (spec.loopBounds?.indexOf(k) ?? -1) >= 0;
-    if (isBound) uniforms.push(`#ifndef ${k}`);
-    if (u.type === 'uniform') uniforms.push(`uniform ${getUniformGlslType(u.kind as any)} ${k};`);
-    else if (u.type === 'texture') uniforms.push(`uniform sampler2D ${k};`);
-    if (isBound) uniforms.push(`#endif`);
+  objectForEach(spec.schema, (u) => {
+    if (u.type === 'uniform' && u.kind.endsWith('[]')) throw new Error('array uniforms are not supported');
   });
 
-  const code = grid3dTemplate_frag
-    .replace('{UNIFORMS}', uniforms.join('\n'))
-    .replace('{UTILS}', spec.utilCode ?? '')
-    .replace('{MAIN}', spec.mainCode)
-    .replace('{RETURN}', spec.returnCode);
-
-  const shader = ShaderCode(id, quad_vert, code);
+  const shader = ShaderCode(id);
+  registerGlslProgram(id, quad_vert, getGrid3dComputeFrag(spec));
 
   return async (ctx: RuntimeContext, webgl: WebGLContext, grid: RegularGrid3d, params: P) => {
-    const schema: RenderableSchema = {
-      ...SchemaBase,
-      ...(spec.cumulative ? CumulativeSumSchema : {}),
-      ...spec.schema,
-    };
-
-    if (!webgl.isWebGL2) {
-      if (spec.loopBounds) {
-        for (const b of spec.loopBounds) {
-          (schema as any)[b] = DefineSpec('number');
-        }
-      }
-      (schema as any)['WEBGL1'] = DefineSpec('boolean');
-    }
-
-    if (spec.cumulative) {
-      (schema as any)['CUMULATIVE'] = DefineSpec('boolean');
-    }
+    const schema = getGrid3dComputeSchema(spec, webgl.isWebGL2);
 
     if (!webgl.namedFramebuffers[FrameBufferName]) {
       webgl.namedFramebuffers[FrameBufferName] = webgl.resources.framebuffer();
@@ -165,13 +163,12 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
       cells = {} as any;
       objectForEach(QuadValues, (v, k) => ((cells as any)[k] = v));
       objectForEach(values, (v, k) => ((cells as any)[k] = ValueCell.create(v)));
-      renderable = createComputeRenderable(createComputeRenderItem(webgl, 'triangles', shader, schema, cells), cells);
+      renderable = createComputeRenderable(webgl.createComputeRenderItem('triangles', shader, schema, cells), cells);
     }
 
     const array = new Uint8Array(uWidth * uWidth * 4);
     if (spec.cumulative) {
-      const { gl, state } = webgl;
-      if (isTimingMode) webgl.timer.mark('Grid3dCompute.renderCumulative');
+      if (isTimingMode) webgl.timer.group('Grid3dCompute.renderCumulative');
 
       const states = spec.cumulative.states(params);
 
@@ -179,13 +176,12 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
       tex[1].define(uWidth, uWidth);
 
       resetGl(webgl, uWidth);
-      state.clearColor(0, 0, 0, 0);
 
       tex[0].attachFramebuffer(framebuffer, 'color0');
-      gl.clear(gl.COLOR_BUFFER_BIT);
+      webgl.beginRenderPass(framebuffer, { label: 'grid3d clear', clear: { color: [0, 0, 0, 0] } });
 
       tex[1].attachFramebuffer(framebuffer, 'color0');
-      gl.clear(gl.COLOR_BUFFER_BIT);
+      webgl.beginRenderPass(framebuffer, { label: 'grid3d clear', clear: { color: [0, 0, 0, 0] } });
 
       if (spec.cumulative.yieldPeriod && !isTimingMode) {
         await ctx.update({ message: 'Computing...', isIndeterminate: false, current: 0, max: states.length });
@@ -193,10 +189,11 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
 
       const yieldPeriod = Math.max(1, spec.cumulative.yieldPeriod ?? 1 | 0);
 
-      if (isTimingMode) webgl.timer.mark('Grid3dCompute.renderBatch');
+      if (isTimingMode) webgl.timer.group('Grid3dCompute.renderBatch');
       for (let i = 0; i < states.length; i++) {
         ValueCell.update(cells.tCumulativeSum, tex[(i + 1) % 2]);
         tex[i % 2].attachFramebuffer(framebuffer, 'color0');
+        webgl.beginRenderPass(framebuffer, { label: 'grid3d' });
         resetGl(webgl, uWidth);
         spec.cumulative.update(params, states[i], cells as any);
         renderable.update();
@@ -205,40 +202,34 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
         if (spec.cumulative.yieldPeriod && i !== states.length - 1) {
           if (i % yieldPeriod === yieldPeriod - 1) {
             webgl.waitForGpuCommandsCompleteSync();
-            if (isTimingMode) webgl.timer.markEnd('Grid3dCompute.renderBatch');
-            if (isTimingMode) webgl.timer.mark('Grid3dCompute.renderBatch');
+            if (isTimingMode) webgl.timer.groupEnd('Grid3dCompute.renderBatch');
+            if (isTimingMode) webgl.timer.group('Grid3dCompute.renderBatch');
           }
           if (ctx.shouldUpdate && !isTimingMode) {
             await ctx.update({ current: i + 1 });
           }
         }
       }
-      if (isTimingMode) webgl.timer.markEnd('Grid3dCompute.renderBatch');
-      if (isTimingMode) webgl.timer.markEnd('Grid3dCompute.renderCumulative');
+      if (isTimingMode) webgl.timer.groupEnd('Grid3dCompute.renderBatch');
+      if (isTimingMode) webgl.timer.groupEnd('Grid3dCompute.renderCumulative');
     } else {
-      if (isTimingMode) webgl.timer.mark('Grid3dCompute.render');
       tex[0].define(uWidth, uWidth);
       tex[0].attachFramebuffer(framebuffer, 'color0');
-      framebuffer.bind();
+      webgl.beginRenderPass(framebuffer, { label: 'grid3d' });
       resetGl(webgl, uWidth);
       renderable.update();
       renderable.render();
-      if (isTimingMode) webgl.timer.markEnd('Grid3dCompute.render');
     }
 
-    if (isTimingMode) webgl.timer.mark('Grid3dCompute.readPixels');
+    if (isTimingMode) webgl.timer.group('Grid3dCompute.readPixels');
     webgl.readPixels(0, 0, uWidth, uWidth, array);
-    if (isTimingMode) webgl.timer.markEnd('Grid3dCompute.readPixels');
+    if (isTimingMode) webgl.timer.groupEnd('Grid3dCompute.readPixels');
     return new Float32Array(array.buffer, array.byteOffset, nx * ny * nz);
   };
 }
 
-function resetGl(webgl: WebGLContext, w: number) {
-  const { gl, state } = webgl;
-  state.viewport(0, 0, w, w);
-  state.scissor(0, 0, w, w);
-  state.disable(gl.SCISSOR_TEST);
-  state.disable(gl.BLEND);
-  state.disable(gl.DEPTH_TEST);
-  state.depthMask(false);
+function resetGl(graphics: GraphicsContext, w: number) {
+  graphics.setViewport(0, 0, w, w);
+  graphics.disableScissor();
+  graphics.setRenderState(RenderState.Default);
 }

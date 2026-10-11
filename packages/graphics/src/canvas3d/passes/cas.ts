@@ -8,17 +8,14 @@ import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { DefineSpec, TextureSpec, UniformSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { ValueCell } from '@molstar/core/util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
 import type { Viewport } from '../camera/util.js';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
-import { isTimingMode } from '@molstar/core/util/debug';
-import { cas_frag } from '@molstar/graphics/gl/shader/cas.frag';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 
 export const CasParams = {
   sharpness: PD.Numeric(0.5, { min: 0, max: 1, step: 0.05 }),
@@ -30,26 +27,18 @@ export class CasPass {
   private readonly renderable: CasRenderable;
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     input: Texture,
   ) {
-    this.renderable = getCasRenderable(webgl, input);
+    this.renderable = getCasRenderable(graphics, input);
   }
 
   private updateState(viewport: Viewport) {
-    const { gl, state } = this.webgl;
-
-    state.enable(gl.SCISSOR_TEST);
-    state.disable(gl.BLEND);
-    state.disable(gl.DEPTH_TEST);
-    state.depthMask(false);
-
     const { x, y, width, height } = viewport;
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
-
-    state.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    this.graphics.setRenderState(RenderState.Default);
+    this.graphics.setViewport(x, y, width, height);
+    this.graphics.setScissor(x, y, width, height);
+    this.graphics.clear({ color: [0, 0, 0, 1] });
   }
 
   setSize(width: number, height: number) {
@@ -81,21 +70,15 @@ export class CasPass {
   }
 
   render(viewport: Viewport, target: RenderTarget | undefined) {
-    if (isTimingMode) this.webgl.timer.mark('CasPass.render');
-    if (target) {
-      target.bind();
-    } else {
-      this.webgl.bindDrawingBuffer();
-    }
+    this.graphics.beginRenderPass(target ?? 'drawing-buffer', { label: 'cas' });
     this.updateState(viewport);
     this.renderable.render();
-    if (isTimingMode) this.webgl.timer.markEnd('CasPass.render');
   }
 }
 
 //
 
-const CasSchema = {
+export const CasSchema = {
   ...QuadSchema,
   tColor: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   uTexSizeInv: UniformSpec('v2'),
@@ -103,10 +86,10 @@ const CasSchema = {
   uSharpness: UniformSpec('f'),
   dDenoise: DefineSpec('boolean'),
 };
-const CasShaderCode = ShaderCode('cas', quad_vert, cas_frag);
+export const CasShaderCode = ShaderCode('cas');
 type CasRenderable = ComputeRenderable<Values<typeof CasSchema>>;
 
-function getCasRenderable(ctx: WebGLContext, colorTexture: Texture): CasRenderable {
+function getCasRenderable(ctx: GraphicsContext, colorTexture: Texture): CasRenderable {
   const width = colorTexture.getWidth();
   const height = colorTexture.getHeight();
 
@@ -120,7 +103,7 @@ function getCasRenderable(ctx: WebGLContext, colorTexture: Texture): CasRenderab
   };
 
   const schema = { ...CasSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', CasShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', CasShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }

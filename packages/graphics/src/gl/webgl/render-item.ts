@@ -5,18 +5,34 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
-import { createAttributeBuffers, type ElementsBuffer, type AttributeKind, type AttributeBuffers } from './buffer.js';
-import { createTextures, type Texture } from './texture.js';
+import { createAttributeBuffers, type ElementsBuffer, type AttributeBuffers } from './buffer.js';
+import type { AttributeKind } from '../buffer.js';
+import { createTextures } from './texture.js';
+import type { Texture } from '../texture.js';
+import {
+  ComputeRenderVariants,
+  type ComputeRenderVariant,
+  type DrawMode,
+  GraphicsRenderVariants,
+  type GraphicsRenderVariant,
+  type GlobalBindings,
+  type MultiDrawBaseData,
+  type RenderItem,
+  type Transparency,
+} from '../render-item.js';
 import type { WebGLContext } from './context.js';
 import type { ShaderCode, DefineValues } from '../shader-code.js';
+import { getContextDefineLookup } from './shader-code.js';
 import type { Program, Programs } from './program.js';
 import {
   type RenderableSchema,
   type RenderableValues,
-  AttributeSpec,
+  type AttributeSpec,
   getValueVersions,
+  isUsed,
   splitValues,
   DefineSpec,
+  type UniformSpec,
 } from '../renderable/schema.js';
 import { idFactory } from '@molstar/core/util/id-factory';
 import { ValueCell } from '@molstar/core/util';
@@ -25,22 +41,17 @@ import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
 import type { VertexArray } from './vertex-array.js';
 import { fillSerial } from '@molstar/core/util/array';
 import { deepClone } from '@molstar/core/util/object';
-import { cloneUniformValues, type UniformsList } from './uniform.js';
+import { cloneUniformValues, type UniformBuffer, type UniformKind, type UniformsList } from '../uniform.js';
+import { getUniformBlockLayout } from '../uniform-layout.js';
+import { getAttributeLayout } from '../attribute-layout.js';
+import { checkRenderPass } from './render-pass.js';
+import { asWebGLGlobalBindings } from './global-bindings.js';
 
 // Handle Firefox's preference [webgl.max-vert-ids-per-draw] which defaults to 30_000_000
 // since FF119, see https://bugzilla.mozilla.org/show_bug.cgi?id=1849433
 const MaxDrawCount = 30_000_000;
 
 const getNextRenderItemId = idFactory();
-
-export type DrawMode =
-  | 'points'
-  | 'lines'
-  | 'line-strip'
-  | 'line-loop'
-  | 'triangles'
-  | 'triangle-strip'
-  | 'triangle-fan';
 
 export function getDrawMode(ctx: WebGLContext, drawMode: DrawMode) {
   const { gl } = ctx;
@@ -62,43 +73,11 @@ export function getDrawMode(ctx: WebGLContext, drawMode: DrawMode) {
   }
 }
 
-export type MultiDrawBaseData = {
-  /** Only used for `multiDrawArraysInstancedBaseInstance` */
-  firsts: Int32Array;
-  counts: Int32Array;
-  /** Only used for `multiDrawElementsInstancedBaseVertexBaseInstance` */
-  offsets: Int32Array;
-  instanceCounts: Int32Array;
-  /** Only used for `multiDrawElementsInstancedBaseVertexBaseInstance` */
-  baseVertices: Int32Array;
-  baseInstances: Uint32Array;
-  count: number;
-  uniforms: UniformsList;
-};
-
-export interface RenderItem<T extends string> {
-  readonly id: number;
-  readonly materialId: number;
-  getByteCount(): number;
+export interface WebGLRenderItem<T extends string> extends RenderItem<T> {
   getProgram: (variant: T) => Program;
-  setTransparency: (transparency: Transparency) => void;
-
-  render: (variant: T, sharedTexturesCount: number, mdbDataList?: MultiDrawBaseData[]) => void;
-  update: () => void;
-  destroy: () => void;
 }
 
 //
-
-const GraphicsRenderVariant = { color: '', pick: '', depth: '', marking: '', emissive: '', tracing: '' };
-export type GraphicsRenderVariant = keyof typeof GraphicsRenderVariant;
-export const GraphicsRenderVariants = Object.keys(GraphicsRenderVariant) as GraphicsRenderVariant[];
-
-const ComputeRenderVariant = { compute: '' };
-export type ComputeRenderVariant = keyof typeof ComputeRenderVariant;
-export const ComputeRenderVariants = Object.keys(ComputeRenderVariant) as ComputeRenderVariant[];
-
-export type ProgramVariant = GraphicsRenderVariant | ComputeRenderVariant;
 
 function createProgramVariant(
   ctx: WebGLContext,
@@ -135,8 +114,6 @@ function resetValueChanges(valueChanges: ValueChanges) {
 
 //
 
-export type Transparency = 'blended' | 'wboit' | 'dpoit';
-
 function getRenderVariant(variant: string, transparency: Transparency | undefined): string {
   if (variant === 'color') {
     switch (transparency) {
@@ -151,7 +128,6 @@ function getRenderVariant(variant: string, transparency: Transparency | undefine
   return variant;
 }
 
-export type GraphicsRenderItem = RenderItem<GraphicsRenderVariant>;
 export function createGraphicsRenderItem(
   ctx: WebGLContext,
   drawMode: DrawMode,
@@ -160,11 +136,10 @@ export function createGraphicsRenderItem(
   values: RenderableValues,
   materialId: number,
   transparency: Transparency,
-) {
+): WebGLRenderItem<GraphicsRenderVariant> {
   return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, GraphicsRenderVariants, transparency);
 }
 
-export type ComputeRenderItem = RenderItem<ComputeRenderVariant>;
 export function createComputeRenderItem(
   ctx: WebGLContext,
   drawMode: DrawMode,
@@ -172,7 +147,7 @@ export function createComputeRenderItem(
   schema: RenderableSchema,
   values: RenderableValues,
   materialId = -1,
-) {
+): WebGLRenderItem<ComputeRenderVariant> {
   return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, ComputeRenderVariants, undefined);
 }
 
@@ -190,7 +165,7 @@ export function createRenderItem<T extends string>(
   materialId: number,
   renderVariants: T[],
   transparency: Transparency | undefined,
-): RenderItem<T> {
+): WebGLRenderItem<T> {
   const id = getNextRenderItemId();
   const { stats, state, resources } = ctx;
   const {
@@ -207,10 +182,15 @@ export function createRenderItem<T extends string>(
   });
 
   // emulate gl_VertexID when needed
-  if (values.uVertexCount && !ctx.extensions.noNonInstancedActiveAttribs) {
-    const vertexCount = values.uVertexCount.ref.value;
-    (values as any).aVertex = ValueCell.create(fillSerial(new Float32Array(vertexCount)));
-    (schema as any).aVertex = AttributeSpec('float32', 1, 0);
+  const contextDefines = getContextDefineLookup(ctx.extensions);
+  const emulateVertexId = schema.aVertex?.type === 'attribute' && isUsed(schema.aVertex, contextDefines);
+  // without elements, every drawn vertex needs an id (e.g. 6 per point quad with one vertex of data per point)
+  const getEmulatedVertexCount = () =>
+    schema.elements
+      ? values.uVertexCount.ref.value
+      : Math.max(values.uVertexCount.ref.value, values.drawCount.ref.value);
+  if (emulateVertexId && values.aVertex.ref.value.length < getEmulatedVertexCount()) {
+    ValueCell.update(values.aVertex, fillSerial(new Float32Array(getEmulatedVertexCount())));
   }
 
   const {
@@ -223,11 +203,63 @@ export function createRenderItem<T extends string>(
     bufferedUniformValues,
   } = splitValues(schema, values);
 
-  const uniformValueEntries = Object.entries(uniformValues);
-  const materialUniformValueEntries = Object.entries(materialUniformValues);
+  // on WebGL2, uniforms assigned to a block are backed by uniform buffers
+  const useUniformBuffers = ctx.isWebGL2;
+  const getBlock = (k: string) => {
+    const { block } = schema[k] as UniformSpec<UniformKind>;
+    return !useUniformBuffers || block === 'draw' ? undefined : block;
+  };
+
+  const uniformValueEntries: UniformsList = [];
+  const objectBlockValueEntries: UniformsList = [];
+  for (const e of Object.entries(uniformValues)) {
+    const block = getBlock(e[0]);
+    if (block === undefined) {
+      uniformValueEntries.push(e);
+    } else if (block === 'object') {
+      objectBlockValueEntries.push(e);
+    } else {
+      throw new Error(`uniform '${e[0]}' of block '${block}' cannot be set by a render item`);
+    }
+  }
+  // 'material' variant uniforms are either classic or in the 'material' block, see `UniformSpec`
+  const materialUniformValueEntries: UniformsList = [];
+  const materialBlockValueEntries: UniformsList = [];
+  for (const e of Object.entries(materialUniformValues)) {
+    if (getBlock(e[0]) === 'material') {
+      materialBlockValueEntries.push(e);
+    } else {
+      materialUniformValueEntries.push(e);
+    }
+  }
+  // 'buffered' variant uniforms are either classic or in the 'object' block, see `UniformSpec`
   const backBufferUniformValueEntries = Object.entries(bufferedUniformValues);
   const frontBufferUniformValueEntries = Object.entries(cloneUniformValues(bufferedUniformValues));
+  const frontBufferClassicValueEntries: UniformsList = [];
+  for (const e of frontBufferUniformValueEntries) {
+    if (getBlock(e[0]) === 'object') {
+      objectBlockValueEntries.push(e);
+    } else {
+      frontBufferClassicValueEntries.push(e);
+    }
+  }
   const defineValueEntries = Object.entries(defineValues);
+
+  // created whenever the program declares the block, members without values stay zero
+  let objectUniforms: { buffer: UniformBuffer; write: () => void } | undefined;
+  const objectLayout = useUniformBuffers ? getUniformBlockLayout('object', schema) : undefined;
+  if (objectLayout) {
+    const buffer = resources.uniformBuffer(objectLayout);
+    objectUniforms = { buffer, write: buffer.createWriter(objectBlockValueEntries) };
+    objectUniforms.write();
+  }
+  let materialUniforms: { buffer: UniformBuffer; write: () => void } | undefined;
+  const materialLayout = useUniformBuffers ? getUniformBlockLayout('material', schema) : undefined;
+  if (materialLayout) {
+    const buffer = resources.materialUniformBuffer(materialId, materialLayout);
+    materialUniforms = { buffer, write: buffer.createWriter(materialBlockValueEntries) };
+    materialUniforms.write();
+  }
 
   const versions = getValueVersions(values);
 
@@ -240,7 +272,7 @@ export function createRenderItem<T extends string>(
 
   const textures = createTextures(ctx, schema, textureValues);
   const materialTextures = createTextures(ctx, schema, materialTextureValues);
-  const attributeBuffers = createAttributeBuffers(ctx, schema, attributeValues);
+  const attributeBuffers = createAttributeBuffers(ctx, schema, attributeValues, contextDefines);
   const instanceBuffers: AttributeBuffers = [];
   for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
     const ab = attributeBuffers[i];
@@ -253,10 +285,11 @@ export function createRenderItem<T extends string>(
     elementsBuffer = resources.elements(elements.ref.value);
   }
 
-  const vertexArrays: Record<string, VertexArray | null> = {};
-  for (const k of renderVariants) {
-    vertexArrays[k] = vertexArrayObject ? resources.vertexArray(programs[k], attributeBuffers, elementsBuffer) : null;
-  }
+  // attribute locations are fixed per schema, so all variants share one vertex array
+  const attributeLayout = getAttributeLayout(schema);
+  let vertexArray: VertexArray | null = vertexArrayObject
+    ? resources.vertexArray(attributeLayout, attributeBuffers, elementsBuffer)
+    : null;
 
   let drawCount: number = values.drawCount.ref.value;
   let instanceCount: number = values.instanceCount.ref.value;
@@ -279,6 +312,7 @@ export function createRenderItem<T extends string>(
         count += attributeBuffers[i][1].getByteCount();
       }
       if (elementsBuffer) count += elementsBuffer.getByteCount();
+      if (objectUniforms) count += objectUniforms.buffer.getByteCount();
       for (let i = 0, il = textures.length; i < il; ++i) {
         count += textures[i][1].getByteCount();
       }
@@ -298,15 +332,22 @@ export function createRenderItem<T extends string>(
       }
     },
 
-    render: (variant: T, sharedTexturesCount: number, mdbDataList?: MultiDrawBaseData[]) => {
+    render: (variant: T, globals?: GlobalBindings, mdbDataList?: MultiDrawBaseData[]) => {
       if (drawCount === 0 || instanceCount === 0) return;
+      checkRenderPass(state, 'draw');
 
       const program = programs[variant];
+      if (globals) asWebGLGlobalBindings(globals).apply(program);
+      const sharedTexturesCount = globals ? globals.textures.length : 0;
       if (program.id === currentProgramId && state.currentRenderItemId === id) {
         program.setUniforms(uniformValueEntries);
+        if (objectUniforms) {
+          objectUniforms.write();
+          objectUniforms.buffer.sync();
+          objectUniforms.buffer.bind();
+        }
         program.bindTextures(textures, sharedTexturesCount);
       } else {
-        const vertexArray = vertexArrays[variant];
         if (
           program.id !== state.currentProgramId ||
           program.id !== currentProgramId ||
@@ -316,12 +357,22 @@ export function createRenderItem<T extends string>(
           // console.log('program.id changed or materialId changed/-1', materialId)
           if (program.id !== state.currentProgramId) program.use();
           program.setUniforms(materialUniformValueEntries);
+          if (materialUniforms) {
+            materialUniforms.write();
+            materialUniforms.buffer.sync();
+            materialUniforms.buffer.bind();
+          }
           program.bindTextures(materialTextures, sharedTexturesCount + textures.length);
           state.currentMaterialId = materialId;
           currentProgramId = program.id;
         }
         program.setUniforms(uniformValueEntries);
-        program.setUniforms(frontBufferUniformValueEntries);
+        program.setUniforms(frontBufferClassicValueEntries);
+        if (objectUniforms) {
+          objectUniforms.write();
+          objectUniforms.buffer.sync();
+          objectUniforms.buffer.bind();
+        }
         program.bindTextures(textures, sharedTexturesCount);
         if (vertexArray) {
           vertexArray.bind();
@@ -446,6 +497,10 @@ export function createRenderItem<T extends string>(
             }
           }
         }
+        if (!multiDrawInstancedBaseVertexBaseInstance && !drawInstancedBaseVertexBaseInstance) {
+          // offsets are recorded in the vertex array, later draws without base instances expect 0
+          program.offsetAttributes(instanceBuffers, 0);
+        }
       } else {
         let offset = 0;
         while (true) {
@@ -475,9 +530,12 @@ export function createRenderItem<T extends string>(
     },
     update: () => {
       resetValueChanges(valueChanges);
+      // values may have changed that the fast path for repeated draws doesn't rebind
+      // (attributes, elements, textures, front-buffer and material uniforms)
+      currentProgramId = -1;
 
-      if (values.aVertex) {
-        const vertexCount = values.uVertexCount.ref.value;
+      if (emulateVertexId) {
+        const vertexCount = getEmulatedVertexCount();
         if (values.aVertex.ref.value.length < vertexCount) {
           ValueCell.update(values.aVertex, fillSerial(new Float32Array(vertexCount)));
         }
@@ -552,15 +610,12 @@ export function createRenderItem<T extends string>(
         versions.elements = values.elements.ref.version;
       }
 
-      if (valueChanges.attributes || valueChanges.defines || valueChanges.elements) {
-        // console.log('program/defines or buffers changed, update vaos');
-        for (const k of renderVariants) {
-          const vertexArray = vertexArrays[k];
-          if (vertexArray) vertexArray.destroy();
-          vertexArrays[k] = vertexArrayObject
-            ? resources.vertexArray(programs[k], attributeBuffers, elementsBuffer)
-            : null;
-        }
+      if (valueChanges.attributes || valueChanges.elements) {
+        // console.log('buffers changed, update vao');
+        if (vertexArray) vertexArray.destroy();
+        vertexArray = vertexArrayObject
+          ? resources.vertexArray(attributeLayout, attributeBuffers, elementsBuffer)
+          : null;
       }
 
       for (let i = 0, il = textures.length; i < il; ++i) {
@@ -608,9 +663,8 @@ export function createRenderItem<T extends string>(
       if (!destroyed) {
         for (const k of renderVariants) {
           programs[k].destroy();
-          const vertexArray = vertexArrays[k];
-          if (vertexArray) vertexArray.destroy();
         }
+        if (vertexArray) vertexArray.destroy();
         textures.forEach(([k, texture]) => {
           // lifetime of textures with kind 'texture' is defined externally
           if (schema[k].kind !== 'texture') texture.destroy();
@@ -621,6 +675,8 @@ export function createRenderItem<T extends string>(
         });
         attributeBuffers.forEach(([_, buffer]) => buffer.destroy());
         if (elementsBuffer) elementsBuffer.destroy();
+        if (objectUniforms) objectUniforms.buffer.destroy();
+        if (materialUniforms) materialUniforms.buffer.destroy();
 
         stats.drawCount -= drawCount;
         stats.instanceCount -= instanceCount;

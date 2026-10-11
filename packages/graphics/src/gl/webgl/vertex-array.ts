@@ -4,11 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { Program } from './program.js';
-import type { ElementsBuffer, AttributeBuffers } from './buffer.js';
+import { type ElementsBuffer, type AttributeBuffers, bindAttributeBuffers } from './buffer.js';
 import type { WebGLExtensions } from './extensions.js';
 import { idFactory } from '@molstar/core/util/id-factory';
 import type { GLRenderingContext } from './compat.js';
+import type { WebGLState } from './state.js';
+import type { AttributeLayout } from '../attribute-layout.js';
 
 const getNextVertexArrayId = idFactory();
 
@@ -41,10 +42,12 @@ export interface VertexArray {
   destroy: () => void;
 }
 
+/** valid for all programs whose schema has `layout`, see `getAttributeLayout` */
 export function createVertexArray(
   gl: GLRenderingContext,
+  state: WebGLState,
   extensions: WebGLExtensions,
-  program: Program,
+  layout: AttributeLayout,
   attributeBuffers: AttributeBuffers,
   elementsBuffer?: ElementsBuffer,
 ): VertexArray {
@@ -55,7 +58,7 @@ export function createVertexArray(
   function update() {
     vertexArrayObject.bindVertexArray(vertexArray);
     if (elementsBuffer) elementsBuffer.bind();
-    program.bindAttributes(attributeBuffers);
+    bindAttributeBuffers(state, layout, attributeBuffers);
     vertexArrayObject.bindVertexArray(null);
     isReady = true;
   }

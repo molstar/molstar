@@ -66,7 +66,7 @@ async function createBlobSurfaceMesh(
   );
 
   Mesh.transform(surface, transform);
-  if (ctx.webgl && !ctx.webgl.isWebGL2) {
+  if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {
     Mesh.uniformTriangleGroup(surface);
     ValueCell.updateIfChanged(surface.varyingGroup, false);
   } else {
@@ -122,7 +122,7 @@ async function createStructureBlobSurfaceMesh(
   );
 
   Mesh.transform(surface, transform);
-  if (ctx.webgl && !ctx.webgl.isWebGL2) {
+  if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {
     Mesh.uniformTriangleGroup(surface);
     ValueCell.updateIfChanged(surface.varyingGroup, false);
   } else {

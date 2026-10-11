@@ -13,8 +13,11 @@ import type { PickingId } from '@molstar/graphics/geo/geometry/picking';
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
 import { type Frame, createFrame } from '@molstar/graphics/gl/renderable';
 import { Renderer, RendererParams, type RendererStats } from '@molstar/graphics/gl/renderer';
+import { MaxLightCount } from '@molstar/graphics/gl/renderable/schema';
 import { Scene } from '@molstar/graphics/gl/scene';
-import { type WebGLContext, createContext, getGLContext } from '@molstar/graphics/gl/webgl/context';
+import { type WebGLContext, createContext, getGLContext, isWebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { createGraphicsContext, type GraphicsBackendDescriptor } from '@molstar/graphics/gl/backend';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { type EasingFunction, EasingParamDefinition } from '@molstar/core/math/easing';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import type { Ray3D } from '@molstar/core/math/geometry/primitives/ray3d';
@@ -59,6 +62,7 @@ import { HiZParams, HiZPass } from './passes/hi-z.js';
 import { IlluminationParams } from './passes/illumination.js';
 import { ImagePass, type ImageProps } from './passes/image.js';
 import { isMaterialColorMarker, MarkingParams, SingleSample } from './passes/marking.js';
+import { createSupportedPropsLimiter } from './passes/supported-props.js';
 import { MultiSampleHelper, MultiSampleParams, MultiSamplePass } from './passes/multi-sample.js';
 import { getJitterOffsets, getTemporalSamplesPerFrame } from './passes/jitter.js';
 import { Passes } from './passes/passes.js';
@@ -184,9 +188,18 @@ export type PartialCanvas3DAttribs = {
 
 export { Canvas3DContext };
 
+function asWebGLContext(graphics: GraphicsContext): WebGLContext {
+  if (!isWebGLContext(graphics)) {
+    throw new Error(`not a WebGL context but '${graphics.capabilities.backend}', use 'graphics'`);
+  }
+  return graphics;
+}
+
 /** Can be used to create multiple Canvas3D objects */
 interface Canvas3DContext {
   readonly canvas?: HTMLCanvasElement;
+  readonly graphics: GraphicsContext;
+  /** The WebGL context, throws for other backends (use `graphics`) */
   readonly webgl: WebGLContext;
   readonly input: InputObserver;
   readonly passes: Passes;
@@ -230,6 +243,41 @@ namespace Canvas3DContext {
   export const DefaultProps = PD.getDefaultValues(Params);
   export type Props = PD.Values<typeof Params>;
 
+  function getPixelScale(p: Props) {
+    const scaled = p.pixelScale / (typeof window !== 'undefined' ? window?.devicePixelRatio || 1 : 1);
+    if (p.resolutionMode === 'auto') {
+      return isMobileBrowser() ? scaled : p.pixelScale;
+    }
+    return p.resolutionMode === 'native' ? p.pixelScale : scaled;
+  }
+
+  /**
+   * Creates the graphics context with the first available of `backends`, e.g.
+   * `[WebGPUBackend, WebGL2Backend, WebGLBackend]`, see `createGraphicsContext`
+   */
+  export async function create(
+    canvas: HTMLCanvasElement,
+    assetManager: AssetManager,
+    backends: readonly GraphicsBackendDescriptor[],
+    attribs: Partial<Attribs> = {},
+    props: Partial<Props> = {},
+  ): Promise<Canvas3DContext> {
+    const a = { ...DefaultAttribs, ...attribs };
+    const p = { ...DefaultProps, ...props };
+    const created = await createGraphicsContext(canvas, backends, {
+      powerPreference: a.powerPreference ?? 'default',
+      failIfMajorPerformanceCaveat: a.failIfMajorPerformanceCaveat,
+      antialias: a.antialias,
+      preserveDrawingBuffer: a.preserveDrawingBuffer,
+      pixelScale: getPixelScale(p),
+    });
+    if (!created) {
+      throw new Error(`Could not create a graphics context with any of: ${backends.map((b) => b.id).join(', ')}`);
+    }
+    return fromGraphics(canvas, created.context, assetManager, a, p);
+  }
+
+  /** Creates a WebGL context (WebGL2 unless `attribs.preferWebGl1` or unavailable) */
   export function fromCanvas(
     canvas: HTMLCanvasElement,
     assetManager: AssetManager,
@@ -252,42 +300,43 @@ namespace Canvas3DContext {
       preferWebGl1,
     });
     if (gl === null) throw new Error('Could not create a WebGL rendering context');
+    return fromGraphics(canvas, createContext(gl, { pixelScale: getPixelScale(p) }), assetManager, a, p);
+  }
 
-    const getPixelScale = () => {
-      const scaled = p.pixelScale / (typeof window !== 'undefined' ? window?.devicePixelRatio || 1 : 1);
-      if (p.resolutionMode === 'auto') {
-        return isMobileBrowser() ? scaled : p.pixelScale;
-      }
-      return p.resolutionMode === 'native' ? p.pixelScale : scaled;
-    };
+  function fromGraphics(
+    canvas: HTMLCanvasElement,
+    graphics: GraphicsContext,
+    assetManager: AssetManager,
+    a: Attribs,
+    p: Props,
+  ): Canvas3DContext {
     const syncPixelScale = () => {
-      const pixelScale = getPixelScale();
+      const pixelScale = getPixelScale(p);
       input.setPixelScale(pixelScale);
-      webgl.setPixelScale(pixelScale);
+      graphics.setPixelScale(pixelScale);
     };
 
     const { pickScale, transparency } = p;
-    const pixelScale = getPixelScale();
+    const pixelScale = getPixelScale(p);
     const input = InputObserver.fromElement(canvas, { pixelScale, preventGestures: true });
-    const webgl = createContext(gl, { pixelScale });
-    const passes = new Passes(webgl, assetManager, { pickScale, transparency });
+    const passes = new Passes(graphics, assetManager, { pickScale, transparency });
 
-    if (isDebugMode) {
-      const loseContextExt = gl.getExtension('WEBGL_lose_context');
+    if (isDebugMode && isWebGLContext(graphics)) {
+      const loseContextExt = graphics.gl.getExtension('WEBGL_lose_context');
       if (loseContextExt) {
         // Hold down shift+ctrl+alt and press any mouse button to call `loseContext`.
         // After 1 second `restoreContext` will be called.
         canvas.addEventListener(
           'mousedown',
           (e) => {
-            if (webgl.isContextLost) return;
+            if (graphics.isContextLost) return;
             if (!e.shiftKey || !e.ctrlKey || !e.altKey) return;
 
             if (isDebugMode) console.log('lose context');
             loseContextExt.loseContext();
 
             setTimeout(() => {
-              if (!webgl.isContextLost) return;
+              if (!graphics.isContextLost) return;
               if (isDebugMode) console.log('restore context');
               loseContextExt.restoreContext();
             }, 1000);
@@ -299,33 +348,46 @@ namespace Canvas3DContext {
 
     // https://www.khronos.org/webgl/wiki/HandlingContextLost
 
+    // the losses the context reports (`setContextLost`), on WebGL from the canvas events below
     const contextLost = new Subject<now.Timestamp>();
+    const resetPasses = () => {
+      passes.draw.reset();
+      passes.pick.reset();
+      passes.illumination.reset();
+    };
+    const contextLostSub = graphics.contextLost.subscribe((t) => {
+      if (isDebugMode) console.log('context lost');
+      contextLost.next(t);
+      // backends replacing the context themselves (WebGPU devices) restore right away
+      graphics.restore?.(resetPasses).then((restored) => {
+        if (isDebugMode) console.log(restored ? 'context restored' : 'context not restored');
+      });
+    });
 
     const handleWebglContextLost = (e: Event) => {
-      webgl.setContextLost();
+      graphics.setContextLost();
       e.preventDefault();
-      if (isDebugMode) console.log('context lost');
-      contextLost.next(now());
     };
 
     const handlewWebglContextRestored = () => {
-      if (!webgl.isContextLost) return;
-      webgl.handleContextRestored(() => {
-        passes.draw.reset();
-        passes.pick.reset();
-        passes.illumination.reset();
-      });
+      if (!graphics.isContextLost) return;
+      graphics.handleContextRestored(resetPasses);
       if (isDebugMode) console.log('context restored');
     };
 
-    canvas.addEventListener('webglcontextlost', handleWebglContextLost, false);
-    canvas.addEventListener('webglcontextrestored', handlewWebglContextRestored, false);
+    if (isWebGLContext(graphics)) {
+      canvas.addEventListener('webglcontextlost', handleWebglContextLost, false);
+      canvas.addEventListener('webglcontextrestored', handlewWebglContextRestored, false);
+    }
 
     const changed = new BehaviorSubject<undefined>(undefined);
 
     return {
       canvas,
-      webgl,
+      graphics,
+      get webgl() {
+        return asWebGLContext(graphics);
+      },
       input,
       passes,
       attribs: a,
@@ -333,11 +395,11 @@ namespace Canvas3DContext {
         return { ...p };
       },
       contextLost,
-      contextRestored: webgl.contextRestored,
+      contextRestored: graphics.contextRestored,
       assetManager,
       changed,
       get pixelScale() {
-        return getPixelScale();
+        return getPixelScale(p);
       },
 
       syncPixelScale,
@@ -382,7 +444,9 @@ namespace Canvas3DContext {
 
         canvas.removeEventListener('webglcontextlost', handleWebglContextLost, false);
         canvas.removeEventListener('webglcontextrestored', handlewWebglContextRestored, false);
-        webgl.destroy(options);
+        contextLostSub.unsubscribe();
+        if (isWebGLContext(graphics)) graphics.destroy(options);
+        else graphics.destroy();
 
         contextLost.complete();
         changed.complete();
@@ -402,6 +466,8 @@ export interface Canvas3DCameraResetOptions {
 }
 
 interface Canvas3D {
+  readonly graphics: GraphicsContext;
+  /** The WebGL context, throws for other backends (use `graphics`) */
   readonly webgl: WebGLContext;
 
   add(repr: Representation.Any): void;
@@ -545,8 +611,10 @@ namespace Canvas3D {
     props: Partial<Canvas3DProps> = {},
     attribs: Partial<Canvas3DAttribs> = {},
   ): Canvas3D {
-    const { webgl, input, passes, assetManager, canvas, contextLost } = ctx;
+    const { graphics, input, passes, assetManager, canvas, contextLost } = ctx;
     const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
+    const limitToSupported = createSupportedPropsLimiter(graphics);
+    limitToSupported(p);
     const a = { ...deepClone(DefaultCanvas3DAttribs), ...deepClone(attribs) };
 
     const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
@@ -559,7 +627,7 @@ namespace Canvas3D {
     const commited = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
     const commitQueueSize = new BehaviorSubject<number>(0);
 
-    const { contextRestored } = webgl;
+    const { contextRestored } = graphics;
 
     let x = 0;
     let y = 0;
@@ -574,9 +642,9 @@ namespace Canvas3D {
 
     syncCanvasBackground(canvas, p);
     updateViewport();
-    const scene = Scene.create(webgl, passes.draw.transparency, {
+    const scene = Scene.create(graphics, passes.draw.transparency, {
       dColorMarker: isMaterialColorMarker(p.renderer, p.marking),
-      dLightCount: p.renderer.light?.length,
+      dLightCount: Math.min(p.renderer.light.length, MaxLightCount),
     });
 
     function getSceneRadius() {
@@ -597,13 +665,13 @@ namespace Canvas3D {
     const stereoCamera = new StereoCamera(camera, p.camera.stereo.params);
 
     const controls = TrackballControls.create(input, camera, scene, p.trackball, a.trackball);
-    const helper = new Helper(webgl, scene, p);
-    const hiZ = new HiZPass(webgl, passes.draw, canvas, p.hiZ);
+    const helper = new Helper(graphics, scene, p);
+    const hiZ = new HiZPass(graphics, passes.draw, canvas, p.hiZ);
 
-    const renderer = Renderer.create(webgl, p.renderer);
+    const renderer = Renderer.create(graphics, p.renderer);
     renderer.setOcclusionTest(hiZ.isOccluded);
 
-    const shaderManager = new ShaderManager(webgl, scene);
+    const shaderManager = new ShaderManager(graphics, scene);
     shaderManager.updateRequired(p);
 
     const pickOptions = {
@@ -611,7 +679,7 @@ namespace Canvas3D {
       maxAsyncReadLag: DefaultPickOptions.maxAsyncReadLag,
     };
     const pickHelper = new PickHelper(
-      webgl,
+      graphics,
       renderer,
       scene,
       helper,
@@ -619,7 +687,7 @@ namespace Canvas3D {
       { x, y, width, height },
       pickOptions,
     );
-    const rayHelper = new RayHelper(webgl, renderer, scene, helper, pickOptions);
+    const rayHelper = new RayHelper(graphics, renderer, scene, helper, pickOptions);
     const interactionHelper = new Canvas3dInteractionHelper(
       identify,
       asyncIdentify,
@@ -628,6 +696,7 @@ namespace Canvas3D {
       camera,
       controls,
       p.interaction,
+      pickHelper.synchronous,
     );
     const multiSampleHelper = new MultiSampleHelper(passes.multiSample);
 
@@ -682,7 +751,7 @@ namespace Canvas3D {
     }
 
     const xrManager = new XRManager(
-      webgl,
+      graphics,
       input,
       scene,
       camera,
@@ -808,8 +877,8 @@ namespace Canvas3D {
     }
 
     function render(force: boolean, xrFrame?: XRFrame) {
-      if (webgl.isContextLost) return false;
-      if (webgl.xr.session && !xrFrame) return false;
+      if (graphics.isContextLost) return false;
+      if (graphics.xr.session && !xrFrame) return false;
 
       let resized = false;
       if (resizeRequested) {
@@ -818,7 +887,7 @@ namespace Canvas3D {
         resized = true;
       }
 
-      const drs = webgl.getDrawingBufferSize();
+      const drs = graphics.getDrawingBufferSize();
       if (x > drs.width || x + width < 0 || y > drs.height || y + height < 0) return false;
 
       if (xrFrame) {
@@ -854,7 +923,7 @@ namespace Canvas3D {
       const redrawMarking = (restart: boolean, samples: number) => {
         // other passes (e.g. pick) reset this, it has to match the last full render
         renderer.setOcclusionTest(illuminationEnabled ? null : hiZ.isOccluded);
-        if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
+        if (isTimingMode) graphics.timer.group('Canvas3D.render', { captureStats: true });
         const redrawn = passes.draw.marking.redraw(
           { renderer, camera, scene, helper, frame },
           p,
@@ -862,7 +931,7 @@ namespace Canvas3D {
           restart,
           samples,
         );
-        if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
+        if (isTimingMode) graphics.timer.groupEnd('Canvas3D.render');
         return redrawn;
       };
 
@@ -894,10 +963,10 @@ namespace Canvas3D {
             passes.illumination.iteration === 0 ||
             p.userInteractionReleaseMs === 0)
         ) {
-          if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
+          if (isTimingMode) graphics.timer.group('Canvas3D.render', { captureStats: true });
           const ctx = { renderer, camera, scene, helper, frame };
           passes.illumination.render(ctx, p, true);
-          if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
+          if (isTimingMode) graphics.timer.groupEnd('Canvas3D.render');
 
           // if only marking has updated, do not set the flag to dirty
           pickHelper.dirty = pickHelper.dirty || shouldRender;
@@ -915,7 +984,7 @@ namespace Canvas3D {
             cam = stereoCamera;
           }
 
-          if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
+          if (isTimingMode) graphics.timer.group('Canvas3D.render', { captureStats: true });
           const ctx = { renderer, camera: cam, scene, helper, frame };
           if (multiSampleEnabled) {
             const forceOn =
@@ -929,7 +998,7 @@ namespace Canvas3D {
             passes.draw.render(ctx, p, true);
           }
           hiZ.render(camera);
-          if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
+          if (isTimingMode) graphics.timer.groupEnd('Canvas3D.render');
 
           // if only marking has updated, do not set the flag to dirty
           pickHelper.dirty = pickHelper.dirty || shouldRender;
@@ -971,7 +1040,7 @@ namespace Canvas3D {
       options?: { isSynchronous?: boolean; manualDraw?: boolean; updateControls?: boolean; xrFrame?: XRFrame },
     ) {
       if (isContextLost) return;
-      if (webgl.xr.session && !options?.xrFrame) return;
+      if (graphics.xr.session && !options?.xrFrame) return;
 
       currentTime = t;
       renderer.setTime((currentTime - startTime) / 1000);
@@ -990,7 +1059,7 @@ namespace Canvas3D {
       }
 
       draw({ isSynchronous: options?.isSynchronous, xrFrame: options?.xrFrame });
-      if (!camera.transition.inTransition && !webgl.isContextLost) {
+      if (!camera.transition.inTransition && !graphics.isContextLost) {
         interactionHelper.tick(currentTime);
       }
     }
@@ -999,14 +1068,14 @@ namespace Canvas3D {
 
     function _requestAnimationFrame(callback: FrameRequestCallback | XRFrameRequestCallback): number {
       animationFrameCB = callback;
-      return webgl.xr.session
-        ? webgl.xr.session.requestAnimationFrame(callback)
+      return graphics.xr.session
+        ? graphics.xr.session.requestAnimationFrame(callback)
         : requestAnimationFrame(callback as FrameRequestCallback);
     }
 
     function _cancelAnimationFrame(handle: number): void {
       animationFrameCB = undefined;
-      webgl.xr.session ? webgl.xr.session.cancelAnimationFrame(handle) : cancelAnimationFrame(handle);
+      graphics.xr.session ? graphics.xr.session.cancelAnimationFrame(handle) : cancelAnimationFrame(handle);
     }
 
     function _animate(_timestamp: number, xrFrame?: XRFrame) {
@@ -1042,7 +1111,7 @@ namespace Canvas3D {
     }
 
     function identify(target: Vec2 | Ray3D): PickData | undefined {
-      if (webgl.isContextLost) return undefined;
+      if (graphics.isContextLost) return undefined;
       shaderManager.finalize(['pick'], true);
 
       if ('origin' in target) {
@@ -1054,7 +1123,7 @@ namespace Canvas3D {
     }
 
     function asyncIdentify(target: Vec2 | Ray3D): AsyncPickData | undefined {
-      if (webgl.isContextLost) return undefined;
+      if (graphics.isContextLost) return undefined;
       shaderManager.finalize(['pick'], true);
 
       if ('origin' in target) {
@@ -1208,9 +1277,9 @@ namespace Canvas3D {
       } else {
         console.log(items);
       }
-      console.log(JSON.stringify(webgl.stats, undefined, 4));
+      console.log(JSON.stringify(graphics.stats, undefined, 4));
 
-      const { texture, cubeTexture, attribute, elements, pixelPack, renderbuffer } = webgl.resources.getByteCounts();
+      const { texture, cubeTexture, attribute, elements, pixelPack, renderbuffer } = graphics.resources.getByteCounts();
       console.log(
         JSON.stringify(
           {
@@ -1269,7 +1338,7 @@ namespace Canvas3D {
       );
 
       if (isTimingMode) {
-        console.log(JSON.stringify(webgl.timer.formatedStats(), undefined, 4));
+        console.log(JSON.stringify(graphics.timer.formatedStats(), undefined, 4));
       }
 
       console.groupEnd();
@@ -1423,6 +1492,11 @@ namespace Canvas3D {
       requestDraw();
     });
 
+    // e.g. images loaded into textures: drawn with placeholders until then
+    const pendingSettledSub = graphics.resources.pending.settled.subscribe(() => {
+      requestDraw();
+    });
+
     // Monitor user interactions
     let isDragging = false;
     let isActivelyInteracting = false;
@@ -1481,7 +1555,10 @@ namespace Canvas3D {
     //
 
     return {
-      webgl,
+      graphics,
+      get webgl() {
+        return ctx.webgl;
+      },
 
       add,
       remove,
@@ -1631,6 +1708,7 @@ namespace Canvas3D {
         if (props.marking) Object.assign(p.marking, props.marking);
         if (props.illumination) Object.assign(p.illumination, props.illumination);
         if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
+        if (props.postprocessing || props.marking || props.multiSample) limitToSupported(p);
         if (props.hiZ) hiZ.setProps(props.hiZ);
         if (props.renderer || props.marking) {
           scene.setGlobals({
@@ -1640,7 +1718,7 @@ namespace Canvas3D {
               },
               p.marking,
             ),
-            dLightCount: props.renderer?.light?.length ?? renderer.props.light.length,
+            dLightCount: Math.min(props.renderer?.light?.length ?? renderer.props.light.length, MaxLightCount),
           });
         }
         if (props.renderer) renderer.setProps(props.renderer);
@@ -1672,7 +1750,7 @@ namespace Canvas3D {
         if (attribs.xr) xrManager.setAttribs(attribs.xr);
       },
       getImagePass: (props: Partial<ImageProps> = {}) => {
-        return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, props);
+        return new ImagePass(graphics, assetManager, renderer, scene, camera, helper, props);
       },
       getRenderObjects(): GraphicsRenderObject[] {
         const renderObjects: GraphicsRenderObject[] = [];
@@ -1704,6 +1782,7 @@ namespace Canvas3D {
         contextLostSub?.unsubscribe();
         contextRestoredSub.unsubscribe();
         ctxChangedSub?.unsubscribe();
+        pendingSettledSub.unsubscribe();
 
         for (const s of xrSubs) s.unsubscribe();
         xrSubs.length = 0;
@@ -1745,7 +1824,7 @@ namespace Canvas3D {
         oldY = y,
         oldWidth = width,
         oldHeight = height;
-      const drs = webgl.getDrawingBufferSize();
+      const drs = graphics.getDrawingBufferSize();
 
       if (p.viewport.name === 'canvas') {
         x = 0;
@@ -1753,10 +1832,10 @@ namespace Canvas3D {
         width = drs.width;
         height = drs.height;
       } else if (p.viewport.name === 'static-frame') {
-        x = p.viewport.params.x * webgl.pixelRatio;
-        height = p.viewport.params.height * webgl.pixelRatio;
-        y = drs.height - height - p.viewport.params.y * webgl.pixelRatio;
-        width = p.viewport.params.width * webgl.pixelRatio;
+        x = p.viewport.params.x * graphics.pixelRatio;
+        height = p.viewport.params.height * graphics.pixelRatio;
+        y = drs.height - height - p.viewport.params.y * graphics.pixelRatio;
+        width = p.viewport.params.width * graphics.pixelRatio;
       } else if (p.viewport.name === 'relative-frame') {
         x = Math.round(p.viewport.params.x * drs.width);
         height = Math.round(p.viewport.params.height * drs.height);

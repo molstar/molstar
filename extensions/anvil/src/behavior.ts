@@ -140,7 +140,7 @@ const MembraneOrientation3D = PluginStateTransform.BuiltIn({
         a.data,
       );
       const repr = MembraneOrientationRepresentation(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         () => MembraneOrientationParams,
       );
       await repr.createOrUpdate(params, a.data).runInContext(ctx);

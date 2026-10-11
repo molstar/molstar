@@ -72,7 +72,7 @@ function main() {
   const cids = [6440397, 2244, 2519, 241];
 
   const reprCtx: RepresentationContext = {
-    webgl: canvas3dContext.webgl,
+    graphics: canvas3dContext.graphics,
     colorThemeRegistry: createColorThemeRegistry(),
     sizeThemeRegistry: createSizeThemeRegistry(),
   };

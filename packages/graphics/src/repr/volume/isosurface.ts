@@ -33,9 +33,10 @@ import {
 } from './util.js';
 import { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
 import { extractIsosurface } from '@molstar/graphics/gl/compute/marching-cubes/isosurface';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { Interval } from '@molstar/core/data/int/interval';
@@ -62,8 +63,8 @@ export const VolumeIsosurfaceTextureParams = {
 export type VolumeIsosurfaceTextureParams = typeof VolumeIsosurfaceTextureParams;
 export type VolumeIsosurfaceTextureProps = PD.Values<VolumeIsosurfaceTextureParams>;
 
-function gpuSupport(webgl: WebGLContext): boolean {
-  return !!(webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.drawBuffers);
+function gpuSupport(graphics: GraphicsContext): boolean {
+  return graphics.capabilities.floatRenderTarget && graphics.capabilities.multipleRenderTargets;
 }
 
 function shouldWrap(volume: Volume, wrap: VolumeIsosurfaceProps['wrap']) {
@@ -74,18 +75,26 @@ function shouldWrap(volume: Volume, wrap: VolumeIsosurfaceProps['wrap']) {
 
 const Padding = 1;
 
-function suitableForGpu(volume: Volume, webgl: WebGLContext) {
+function suitableForGpu(volume: Volume, graphics: GraphicsContext) {
   // small volumes are about as fast or faster on CPU vs integrated GPU
   if (volume.grid.cells.data.length < Math.pow(10, 3)) return false;
   // the GPU is much more memory contraint, especially true for integrated GPUs,
   // fallback to CPU for large volumes
   const gridDim = volume.grid.cells.space.dimensions as Vec3;
   const { powerOfTwoSize } = getVolumeTexture2dLayout(gridDim, Padding);
-  return powerOfTwoSize <= webgl.maxTextureSize / 2;
+  return powerOfTwoSize <= graphics.resources.limits.maxTextureSize / 2;
 }
 
-function useGpu(volume: Volume, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext): boolean {
-  return props.floodfill === 'off' && props.tryUseGpu && !!webgl && gpuSupport(webgl) && suitableForGpu(volume, webgl);
+/** GPU isosurfaces are WebGL-only so far */
+function useGpu(volume: Volume, props: PD.Values<IsosurfaceMeshParams>, graphics?: GraphicsContext): boolean {
+  return (
+    props.floodfill === 'off' &&
+    props.tryUseGpu &&
+    !!graphics &&
+    isWebGLContext(graphics) &&
+    gpuSupport(graphics) &&
+    suitableForGpu(volume, graphics)
+  );
 }
 
 export function IsosurfaceVisual(
@@ -93,9 +102,9 @@ export function IsosurfaceVisual(
   volume: Volume,
   key: number,
   props: PD.Values<IsosurfaceMeshParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ) {
-  if (useGpu(volume, props, webgl)) {
+  if (useGpu(volume, props, graphics)) {
     return IsosurfaceTextureMeshVisual(materialId);
   }
   return IsosurfaceMeshVisual(materialId);
@@ -174,7 +183,7 @@ export async function createVolumeIsosurfaceMesh(
 
   const transform = Grid.getGridToCartesianTransform(volume.grid);
   Mesh.transform(surface, transform);
-  if (ctx.webgl && !ctx.webgl.isWebGL2) {
+  if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {
     // 2nd arg means not to split triangles based on group id. Splitting triangles
     // is too expensive if each cell has its own group id as is the case here.
     Mesh.uniformTriangleGroup(surface, false);
@@ -223,8 +232,8 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
           newProps.floodfill !== currentProps.floodfill;
       },
       geometryUtils: Mesh.Utils,
-      mustRecreate: (volumekey: VolumeKey, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
-        return useGpu(volumekey.volume, props, webgl);
+      mustRecreate: (volumekey: VolumeKey, props: PD.Values<IsosurfaceMeshParams>, graphics?: GraphicsContext) => {
+        return useGpu(volumekey.volume, props, graphics);
       },
     },
     materialId,
@@ -239,7 +248,7 @@ namespace VolumeIsosurfaceTexture {
   export function clear(volume: Volume) {
     delete volume._propertyData[name];
   }
-  export function get(volume: Volume, webgl: WebGLContext, props: VolumeIsosurfaceTextureProps) {
+  export function get(volume: Volume, graphics: GraphicsContext, props: VolumeIsosurfaceTextureProps) {
     const { gpuDataType } = props;
     const wrap = shouldWrap(volume, props.wrap);
 
@@ -251,19 +260,19 @@ namespace VolumeIsosurfaceTexture {
     const gridTexScale = Vec2.create(width / texDim, height / texDim);
     // console.log({ texDim, width, height, gridDimension });
 
-    if (texDim > webgl.maxTextureSize / 2) {
+    if (texDim > graphics.resources.limits.maxTextureSize / 2) {
       throw new Error('volume too large for gpu isosurface extraction');
     }
 
-    const dataType = gpuDataType === 'halfFloat' && !webgl.extensions.textureHalfFloat ? 'float' : gpuDataType;
+    const dataType = gpuDataType === 'halfFloat' && !graphics.capabilities.halfFloatTexture ? 'float' : gpuDataType;
 
     if (volume._propertyData[name]?.dataType !== dataType || volume._propertyData[name]?.wrap !== wrap) {
       const texture =
         dataType === 'byte'
-          ? webgl.resources.texture('image-uint8', 'alpha', 'ubyte', 'linear')
+          ? graphics.resources.texture('image-uint8', 'r', 'ubyte', 'linear')
           : dataType === 'halfFloat'
-            ? webgl.resources.texture('image-float16', 'alpha', 'fp16', 'linear')
-            : webgl.resources.texture('image-float32', 'alpha', 'float', 'linear');
+            ? graphics.resources.texture('image-float16', 'r', 'fp16', 'linear')
+            : graphics.resources.texture('image-float32', 'r', 'float', 'linear');
       volume._propertyData[name] = { texture, dataType, wrap };
       texture.define(texDim, texDim);
       // load volume into sub-section of texture
@@ -294,8 +303,10 @@ function createVolumeIsosurfaceTextureMesh(
   props: VolumeIsosurfaceTextureProps,
   textureMesh?: TextureMesh,
 ) {
-  const { webgl } = ctx;
-  if (!webgl) throw new Error('webgl context required to create volume isosurface texture-mesh');
+  const graphics = ctx.graphics;
+  if (!graphics || !isWebGLContext(graphics)) {
+    throw new Error('webgl context required to create volume isosurface texture-mesh');
+  }
 
   if (volume.grid.cells.data.length <= 1) {
     return TextureMesh.createEmpty(textureMesh);
@@ -317,14 +328,15 @@ function createVolumeIsosurfaceTextureMesh(
   const create = (textureMesh?: TextureMesh) => {
     const { texture, gridDimension, gridTexDim, gridDataDim, gridTexScale, transform } = VolumeIsosurfaceTexture.get(
       volume,
-      webgl,
+      graphics,
       props,
     );
 
     const buffer = textureMesh?.doubleBuffer.get();
     const gv = extractIsosurface(
-      webgl,
+      graphics,
       texture,
+      'red',
       gridDimension,
       gridTexDim,
       gridDataDim,
@@ -352,7 +364,7 @@ function createVolumeIsosurfaceTextureMesh(
   };
 
   const surface = create(textureMesh);
-  surface.meta.webgl = webgl;
+  surface.meta.webgl = graphics;
   surface.meta.reset = () => {
     VolumeIsosurfaceTexture.clear(volume);
     create(surface);
@@ -382,8 +394,8 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
           newProps.wrap !== currentProps.wrap;
       },
       geometryUtils: TextureMesh.Utils,
-      mustRecreate: (volumeKey: VolumeKey, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
-        return !useGpu(volumeKey.volume, props, webgl);
+      mustRecreate: (volumeKey: VolumeKey, props: PD.Values<IsosurfaceMeshParams>, graphics?: GraphicsContext) => {
+        return !useGpu(volumeKey.volume, props, graphics);
       },
       dispose: (geometry: TextureMesh) => {
         geometry.vertexTexture.ref.value.destroy();

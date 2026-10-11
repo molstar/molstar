@@ -121,3 +121,13 @@ These were reported as existing on master, rather than refactor regressions.
 - [ ] Investigate the membrane-orientation server's `--bcifSource` handling.
 - [ ] Recheck reported Node startup and ball-and-stick timing differences with repeated runs before making performance
       changes.
+- [ ] Fix Viewer URL parameter parsing: `getParam` in `apps/viewer/src/index.html` matches substrings (the pattern is
+      `name=` without a boundary). For example, `structure-url=` is also read as `url=` (and `structure-url-format=` as
+      `url-format=`), so the file can be loaded twice. Anchor the pattern to `[?&]` or use `URLSearchParams`.
+- [ ] Fix two GLSL clipping quirks (the WGSL programs replicate the first, not the second; fixing either changes
+      WebGL output in the affected cases):
+      - `clipTest`, `clipDistance` and `clipExit` in `common-clip.glsl.ts` test `hasBit(flag, i + 1)`, i.e. the mask
+        `i + 1` rather than the bit `1 << i` of `Clipping.Groups.Flag`, so clip groups from the third clip object on are
+        exempted from the wrong objects;
+      - `assign-clipping-varying.glsl.ts` reads groupInstance clipping under `dMarkerType_groupInstance` instead of
+        `dClippingType_groupInstance`, so per-group clipping flags are ignored when markers are per instance.

@@ -45,10 +45,11 @@ import {
   ComplexTextureMeshParams,
 } from '../complex-visual.js';
 import { getVolumeSliceInfo, type StructureGroup } from './util/common.js';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { MeshValues } from '@molstar/graphics/gl/renderable/mesh';
 import type { TextureMeshValues } from '@molstar/graphics/gl/renderable/texture-mesh';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { applyMeshColorSmoothing } from '@molstar/graphics/geo/geometry/mesh/color-smoothing';
 import { applyTextureMeshColorSmoothing } from '@molstar/graphics/geo/geometry/texture-mesh/color-smoothing';
 import { ColorSmoothingParams, getColorSmoothingProps } from '@molstar/graphics/geo/geometry/base';
@@ -77,35 +78,32 @@ export const StructureGaussianSurfaceMeshParams = {
 };
 export type StructureGaussianSurfaceMeshParams = typeof StructureGaussianSurfaceMeshParams;
 
-function gpuSupport(webgl: WebGLContext): boolean {
-  return !!(
-    webgl.extensions.colorBufferFloat &&
-    webgl.extensions.textureFloat &&
-    webgl.extensions.textureFloatLinear &&
-    webgl.extensions.blendMinMax &&
-    webgl.extensions.drawBuffers
-  );
+function gpuSupport(graphics: GraphicsContext): boolean {
+  const c = graphics.capabilities;
+  return c.floatRenderTarget && c.floatTextureLinear && c.multipleRenderTargets;
 }
 
-function suitableForGpu(structure: Structure, props: PD.Values<SharedParams>, webgl: WebGLContext) {
+function suitableForGpu(structure: Structure, props: PD.Values<SharedParams>, graphics: GraphicsContext) {
   // lower resolutions are about as fast on CPU vs integrated GPU,
   // very low resolutions have artifacts when calculated on GPU
   if (props.resolution > 1) return false;
   // the GPU is much more memory contraint, especially true for integrated GPUs,
   // being conservative here still allows for small and medium sized assemblies
-  const d = webgl.maxTextureSize / 3;
+  const d = graphics.resources.limits.maxTextureSize / 3;
   const { areaCells, maxAreaCells } = getVolumeSliceInfo(structure.boundary.box, props.resolution, d * d);
   return areaCells < maxAreaCells;
 }
 
-function useGpu(structure: Structure, props: PD.Values<SharedParams>, webgl?: WebGLContext): boolean {
+/** GPU surfaces are WebGL-only so far */
+function useGpu(structure: Structure, props: PD.Values<SharedParams>, graphics?: GraphicsContext): boolean {
   return (
     !props.includeParent &&
     props.floodfill === 'off' &&
     props.tryUseGpu &&
-    !!webgl &&
-    gpuSupport(webgl) &&
-    suitableForGpu(structure, props, webgl)
+    !!graphics &&
+    isWebGLContext(graphics) &&
+    gpuSupport(graphics) &&
+    suitableForGpu(structure, props, graphics)
   );
 }
 
@@ -113,9 +111,9 @@ export function GaussianSurfaceVisual(
   materialId: number,
   structure: Structure,
   props: PD.Values<GaussianSurfaceMeshParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ) {
-  if (useGpu(structure, props, webgl)) {
+  if (useGpu(structure, props, graphics)) {
     return GaussianSurfaceTextureMeshVisual(materialId);
   }
   return GaussianSurfaceMeshVisual(materialId);
@@ -125,9 +123,9 @@ export function StructureGaussianSurfaceVisual(
   materialId: number,
   structure: Structure,
   props: PD.Values<StructureGaussianSurfaceMeshParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ) {
-  if (useGpu(structure, props, webgl)) {
+  if (useGpu(structure, props, graphics)) {
     return StructureGaussianSurfaceTextureMeshVisual(materialId);
   }
   return StructureGaussianSurfaceMeshVisual(materialId);
@@ -171,7 +169,7 @@ async function createGaussianSurfaceMesh(
   }
 
   Mesh.transform(surface, transform);
-  if (ctx.webgl && !ctx.webgl.isWebGL2) {
+  if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {
     Mesh.uniformTriangleGroup(surface);
     ValueCell.updateIfChanged(surface.varyingGroup, false);
   } else {
@@ -220,21 +218,21 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
       mustRecreate: (
         structureGroup: StructureGroup,
         props: PD.Values<GaussianSurfaceMeshParams>,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
-        return useGpu(structureGroup.structure, props, webgl);
+        return useGpu(structureGroup.structure, props, graphics);
       },
       processValues: (
         values: MeshValues,
         geometry: Mesh,
         props: PD.Values<GaussianSurfaceMeshParams>,
         theme: Theme,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
         const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
         if (csp) {
-          applyMeshColorSmoothing(values, csp, webgl, colorTexture);
+          applyMeshColorSmoothing(values, csp, graphics, colorTexture);
           (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
         }
       },
@@ -277,7 +275,7 @@ async function createStructureGaussianSurfaceMesh(
   }
 
   Mesh.transform(surface, transform);
-  if (ctx.webgl && !ctx.webgl.isWebGL2) {
+  if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {
     Mesh.uniformTriangleGroup(surface);
     ValueCell.updateIfChanged(surface.varyingGroup, false);
   } else {
@@ -328,21 +326,21 @@ export function StructureGaussianSurfaceMeshVisual(
       mustRecreate: (
         structure: Structure,
         props: PD.Values<StructureGaussianSurfaceMeshParams>,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
-        return useGpu(structure, props, webgl);
+        return useGpu(structure, props, graphics);
       },
       processValues: (
         values: MeshValues,
         geometry: Mesh,
         props: PD.Values<GaussianSurfaceMeshParams>,
         theme: Theme,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
         const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
         if (csp) {
-          applyMeshColorSmoothing(values, csp, webgl, colorTexture);
+          applyMeshColorSmoothing(values, csp, graphics, colorTexture);
           (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
         }
       },
@@ -366,43 +364,45 @@ function createGaussianSurfaceTextureMesh(
   props: GaussianDensityProps,
   textureMesh?: TextureMesh,
 ): TextureMesh {
-  const { webgl } = ctx;
-  if (!webgl) throw new Error('webgl context required to create gaussian surface texture-mesh');
+  const graphics = ctx.graphics;
+  if (!graphics || !isWebGLContext(graphics)) {
+    throw new Error('webgl context required to create gaussian surface texture-mesh');
+  }
 
   const {
     namedTextures,
     resources,
-    extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat },
-  } = webgl;
+    capabilities: { floatRenderTarget, halfFloatRenderTarget },
+  } = graphics;
   if (!namedTextures[GaussianSurfaceName]) {
-    namedTextures[GaussianSurfaceName] =
-      colorBufferHalfFloat && textureHalfFloat
-        ? resources.texture('image-float16', 'rgba', 'fp16', 'linear')
-        : colorBufferFloat && textureFloat
-          ? resources.texture('image-float32', 'rgba', 'float', 'linear')
-          : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+    namedTextures[GaussianSurfaceName] = halfFloatRenderTarget
+      ? resources.texture('image-float16', 'rgba', 'fp16', 'linear')
+      : floatRenderTarget
+        ? resources.texture('image-float32', 'rgba', 'float', 'linear')
+        : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
   }
 
   const axisOrder = Vec3.create(0, 1, 2);
   const groupCount = unit.elements.length;
 
   const create = (textureMesh?: TextureMesh) => {
-    if (isTimingMode) webgl.timer.mark('createGaussianSurfaceTextureMesh');
+    if (isTimingMode) graphics.timer.group('createGaussianSurfaceTextureMesh');
     const densityTextureData = computeUnitGaussianDensityTexture2d(
       structure,
       unit,
       theme.size,
       true,
       props,
-      webgl,
+      graphics,
       namedTextures[GaussianSurfaceName],
     );
     const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
     const buffer = textureMesh?.doubleBuffer.get();
     const gv = extractIsosurface(
-      webgl,
+      graphics,
       densityTextureData.texture,
+      'alpha',
       densityTextureData.gridDim,
       densityTextureData.gridTexDim,
       densityTextureData.gridDataDim,
@@ -417,7 +417,7 @@ function createGaussianSurfaceTextureMesh(
       buffer?.group,
       buffer?.normal,
     );
-    if (isTimingMode) webgl.timer.markEnd('createGaussianSurfaceTextureMesh');
+    if (isTimingMode) graphics.timer.groupEnd('createGaussianSurfaceTextureMesh');
 
     const extraRadius = props.radiusOffset * (1 + Math.exp(-props.smoothness));
     const boundingSphere = Sphere3D.expand(
@@ -439,7 +439,7 @@ function createGaussianSurfaceTextureMesh(
   };
 
   const surface = create(textureMesh);
-  surface.meta.webgl = webgl;
+  surface.meta.webgl = graphics;
   surface.meta.reset = () => {
     create(surface);
   };
@@ -480,21 +480,21 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
       mustRecreate: (
         structureGroup: StructureGroup,
         props: PD.Values<GaussianSurfaceMeshParams>,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
-        return !useGpu(structureGroup.structure, props, webgl);
+        return !useGpu(structureGroup.structure, props, graphics);
       },
       processValues: (
         values: TextureMeshValues,
         geometry: TextureMesh,
         props: PD.Values<GaussianSurfaceMeshParams>,
         theme: Theme,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
         const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
-        if (csp && webgl) {
-          applyTextureMeshColorSmoothing(values, csp, webgl, colorTexture);
+        if (csp && graphics) {
+          applyTextureMeshColorSmoothing(values, csp, graphics, colorTexture);
           (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
         }
       },
@@ -520,42 +520,44 @@ function createStructureGaussianSurfaceTextureMesh(
   props: GaussianDensityProps,
   textureMesh?: TextureMesh,
 ): TextureMesh {
-  const { webgl } = ctx;
-  if (!webgl) throw new Error('webgl context required to create structure gaussian surface texture-mesh');
+  const graphics = ctx.graphics;
+  if (!graphics || !isWebGLContext(graphics)) {
+    throw new Error('webgl context required to create structure gaussian surface texture-mesh');
+  }
 
   const {
     namedTextures,
     resources,
-    extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat },
-  } = webgl;
+    capabilities: { floatRenderTarget, halfFloatRenderTarget },
+  } = graphics;
   if (!namedTextures[GaussianSurfaceName]) {
-    namedTextures[GaussianSurfaceName] =
-      colorBufferHalfFloat && textureHalfFloat
-        ? resources.texture('image-float16', 'rgba', 'fp16', 'linear')
-        : colorBufferFloat && textureFloat
-          ? resources.texture('image-float32', 'rgba', 'float', 'linear')
-          : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+    namedTextures[GaussianSurfaceName] = halfFloatRenderTarget
+      ? resources.texture('image-float16', 'rgba', 'fp16', 'linear')
+      : floatRenderTarget
+        ? resources.texture('image-float32', 'rgba', 'float', 'linear')
+        : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
   }
 
   const axisOrder = Vec3.create(0, 1, 2);
   const groupCount = structure.elementCount;
 
   const create = (textureMesh?: TextureMesh) => {
-    if (isTimingMode) webgl.timer.mark('createStructureGaussianSurfaceTextureMesh');
+    if (isTimingMode) graphics.timer.group('createStructureGaussianSurfaceTextureMesh');
     const densityTextureData = computeStructureGaussianDensityTexture2d(
       structure,
       theme.size,
       true,
       props,
-      webgl,
+      graphics,
       namedTextures[GaussianSurfaceName],
     );
     const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
     const buffer = textureMesh?.doubleBuffer.get();
     const gv = extractIsosurface(
-      webgl,
+      graphics,
       densityTextureData.texture,
+      'alpha',
       densityTextureData.gridDim,
       densityTextureData.gridTexDim,
       densityTextureData.gridDataDim,
@@ -570,7 +572,7 @@ function createStructureGaussianSurfaceTextureMesh(
       buffer?.group,
       buffer?.normal,
     );
-    if (isTimingMode) webgl.timer.markEnd('createStructureGaussianSurfaceTextureMesh');
+    if (isTimingMode) graphics.timer.groupEnd('createStructureGaussianSurfaceTextureMesh');
 
     const extraRadius = props.radiusOffset * (1 + Math.exp(-props.smoothness));
     const boundingSphere = Sphere3D.expand(
@@ -592,7 +594,7 @@ function createStructureGaussianSurfaceTextureMesh(
   };
 
   const surface = create(textureMesh);
-  surface.meta.webgl = webgl;
+  surface.meta.webgl = graphics;
   surface.meta.reset = () => {
     create(surface);
   };
@@ -635,21 +637,21 @@ export function StructureGaussianSurfaceTextureMeshVisual(
       mustRecreate: (
         structure: Structure,
         props: PD.Values<StructureGaussianSurfaceMeshParams>,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
-        return !useGpu(structure, props, webgl);
+        return !useGpu(structure, props, graphics);
       },
       processValues: (
         values: TextureMeshValues,
         geometry: TextureMesh,
         props: PD.Values<GaussianSurfaceMeshParams>,
         theme: Theme,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
         const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
         const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
-        if (csp && webgl) {
-          applyTextureMeshColorSmoothing(values, csp, webgl, colorTexture);
+        if (csp && graphics) {
+          applyTextureMeshColorSmoothing(values, csp, graphics, colorTexture);
           (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
         }
       },

@@ -15,7 +15,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Bond } from '@molstar/model/model/structure';
 import type { TrackballControls } from '../controls/trackball.js';
 import { Ray3D } from '@molstar/core/math/geometry/primitives/ray3d';
-import type { AsyncPickData } from '../passes/pick.js';
+import type { AsyncPickData, PickData } from '../passes/pick.js';
 
 type Canvas3D = import('../canvas3d.js').Canvas3D;
 type HoverEvent = import('../canvas3d.js').Canvas3D.HoverEvent;
@@ -55,6 +55,17 @@ export class Canvas3dInteractionHelper {
   private ray: Ray3D | undefined = void 0;
 
   private pickData: AsyncPickData | undefined = void 0;
+  /** a click whose pick data is read asynchronously, see `synchronousIdentify` */
+  private pendingClick:
+    | {
+        pickData: AsyncPickData;
+        buttons: ButtonsType;
+        button: ButtonsType.Flag;
+        modifiers: ModifiersKeys;
+        x: number;
+        y: number;
+      }
+    | undefined = void 0;
   private position: Vec3 | undefined = void 0;
 
   private isInteracting = false;
@@ -95,17 +106,45 @@ export class Canvas3dInteractionHelper {
   }
 
   private handleClick() {
+    if (!this.synchronousIdentify) {
+      const pickData = this.canvasAsyncIdentify(this.getTarget());
+      if (pickData) {
+        const { buttons, button, modifiers, endX: x, endY: y } = this;
+        this.pendingClick = { pickData, buttons, button, modifiers, x, y };
+        return;
+      }
+    }
     const pickData = this.canvasIdentify(this.getTarget());
+    this.emitClick(pickData, this.buttons, this.button, this.modifiers, this.endX, this.endY);
+  }
+
+  private emitClick(
+    pickData: PickData | undefined,
+    buttons: ButtonsType,
+    button: ButtonsType.Flag,
+    modifiers: ModifiersKeys,
+    x: number,
+    y: number,
+  ) {
     const loci = this.getLoci(pickData?.id, pickData?.position);
     this.events.click.next({
       current: loci,
-      buttons: this.buttons,
-      button: this.button,
-      modifiers: this.modifiers,
-      page: Vec2.create(this.endX, this.endY),
+      buttons,
+      button,
+      modifiers,
+      page: Vec2.create(x, y),
       position: pickData?.position,
     });
     this.prevLoci = loci;
+  }
+
+  private tickPendingClick() {
+    if (!this.pendingClick) return;
+    const { pickData, buttons, button, modifiers, x, y } = this.pendingClick;
+    const data = pickData.tryGet();
+    if (data === 'pending') return;
+    this.pendingClick = undefined;
+    this.emitClick(data, buttons, button, modifiers, x, y);
   }
 
   private handleDrag() {
@@ -128,6 +167,7 @@ export class Canvas3dInteractionHelper {
   }
 
   tick(t: number) {
+    this.tickPendingClick();
     if (!this.inside) return;
 
     if (this.pickData) {
@@ -283,6 +323,8 @@ export class Canvas3dInteractionHelper {
     private camera: Camera,
     private controls: TrackballControls,
     props: Partial<Canvas3dInteractionHelperProps> = {},
+    /** false if `canvasIdentify` can't read pick data synchronously, clicks then wait for `canvasAsyncIdentify` */
+    private synchronousIdentify = true,
   ) {
     this.props = { ...PD.getDefaultValues(Canvas3dInteractionHelperParams), ...props };
 

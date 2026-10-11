@@ -21,7 +21,7 @@ export function createSpheres() {
 }
 
 describe('spheres', () => {
-  const ctx = tryGetGLContext(32, 32, { fragDepth: true, textureFloat: true });
+  const ctx = tryGetGLContext(32, 32, { fragDepth: true });
 
   (ctx ? it : it.skip)('basic', async () => {
     const ctx = getGLContext(32, 32);

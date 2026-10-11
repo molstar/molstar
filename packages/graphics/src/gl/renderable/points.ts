@@ -5,13 +5,15 @@
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
-import type { WebGLContext } from '../webgl/context.js';
-import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
-  AttributeSpec,
   DefineSpec,
+  TextureSpec,
+  UniformSpec,
+  ValueSpec,
   type Values,
   InternalSchema,
   SizeSchema,
@@ -28,8 +30,10 @@ import { ValueCell } from '@molstar/core/util';
 export const PointsSchema = {
   ...BaseSchema,
   ...SizeSchema,
-  aGroup: AttributeSpec('float32', 1, 0),
-  aPosition: AttributeSpec('float32', 3, 0),
+  uTexDim: UniformSpec('v2'),
+  tPositionGroup: TextureSpec('image-float32', 'rgba', 'float', 'nearest'),
+  centerBuffer: ValueSpec('float32'),
+  groupBuffer: ValueSpec('float32'),
   dPointSizeAttenuation: DefineSpec('boolean'),
   dPointStyle: DefineSpec('string', ['square', 'circle', 'fuzzy']),
 
@@ -39,7 +43,7 @@ export type PointsSchema = typeof PointsSchema;
 export type PointsValues = Values<PointsSchema>;
 
 export function PointsRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   values: PointsValues,
   state: RenderableState,
@@ -61,9 +65,9 @@ export function PointsRenderable(
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
   const shaderCode = PointsShaderCode;
-  const renderItem = createGraphicsRenderItem(
-    ctx,
-    'points',
+  // each point is a quad of two triangles, see the points vertex shader
+  const renderItem = ctx.createGraphicsRenderItem(
+    'triangles',
     shaderCode,
     schema,
     renderValues,

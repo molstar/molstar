@@ -5,8 +5,8 @@
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
-import type { WebGLContext } from '../webgl/context.js';
-import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
@@ -37,7 +37,7 @@ export const TextSchema = {
   elements: ElementsSpec('uint32'),
 
   aTexCoord: AttributeSpec('float32', 2, 0),
-  tFont: TextureSpec('image-uint8', 'alpha', 'ubyte', 'linear'),
+  tFont: TextureSpec('image-uint8', 'r', 'ubyte', 'linear'),
   padding: ValueSpec('number'),
 
   uBorderWidth: UniformSpec('f', 'material'),
@@ -52,7 +52,7 @@ export type TextSchema = typeof TextSchema;
 export type TextValues = Values<TextSchema>;
 
 export function TextRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   values: TextValues,
   state: RenderableState,
@@ -74,8 +74,7 @@ export function TextRenderable(
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
   const shaderCode = TextShaderCode;
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     'triangles',
     shaderCode,
     schema,

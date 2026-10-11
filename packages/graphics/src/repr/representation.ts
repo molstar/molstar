@@ -6,7 +6,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { ColorTheme } from '@molstar/graphics/theme/color';
 import type { SizeTheme } from '@molstar/graphics/theme/size';
 import { type ThemeRegistryContext, Theme } from '@molstar/graphics/theme/theme';
@@ -34,7 +34,7 @@ import type { Location } from '@molstar/model/model/location';
 export type RepresentationProps = { [k: string]: any };
 
 export interface RepresentationContext {
-  readonly webgl?: WebGLContext;
+  readonly graphics?: GraphicsContext;
   readonly colorThemeRegistry: ColorTheme.Registry;
   readonly sizeThemeRegistry: SizeTheme.Registry;
 }
@@ -116,7 +116,7 @@ export class RepresentationRegistry<D, S extends Representation.State> {
     return getTypes(this._list);
   }
 
-  constructor() {}
+  constructor() { }
 
   /** Returns the message `add(provider)` would throw, or `undefined` when it would succeed. Changes nothing. */
   findConflict(provider: RepresentationProvider<D, any, any>): string | undefined {
@@ -320,13 +320,13 @@ namespace Representation {
       state: createState(),
       theme: Theme.createEmpty(),
       createOrUpdate: () => Task.constant('', undefined),
-      setState: () => {},
-      setTheme: () => {},
+      setState: () => { },
+      setTheme: () => { },
       getLoci: () => EmptyLoci,
       getAllLoci: () => [],
-      eachLocation: () => {},
+      eachLocation: () => { },
       mark: () => false,
-      destroy: () => {},
+      destroy: () => { },
     };
   }
 
@@ -590,8 +590,8 @@ namespace Representation {
 
         Representation.updateState(currentState, state);
       },
-      setTheme: () => {},
-      destroy() {},
+      setTheme: () => { },
+      destroy() { },
     };
   }
 }

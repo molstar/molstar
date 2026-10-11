@@ -16,22 +16,19 @@ import {
   ValueSpec,
 } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import { background_frag } from '@molstar/graphics/gl/shader/background.frag';
-import { background_vert } from '@molstar/graphics/gl/shader/background.vert';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
-import { createNullTexture, type CubeFaces, type Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import { createNullTexture, type CubeFaces, type Texture } from '@molstar/graphics/gl/texture';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { isTimingMode } from '@molstar/core/util/debug';
 import { Camera, type ICamera } from '../camera.js';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { Vec2 } from '@molstar/core/math/linear-algebra/3d/vec2';
 import { Color } from '@molstar/core/util/color';
 import { Asset, type AssetManager } from '@molstar/core/util/assets';
 import { Vec4 } from '@molstar/core/math/linear-algebra/3d/vec4';
-import { degToRad, isPowerOfTwo } from '@molstar/core/math/misc';
+import { degToRad } from '@molstar/core/math/misc';
 import { Mat3 } from '@molstar/core/math/linear-algebra/3d/mat3';
 import { Euler } from '@molstar/core/math/linear-algebra/3d/euler';
 import type { PostprocessingProps } from './postprocessing.js';
@@ -133,20 +130,20 @@ export class BackgroundPass {
 
   private skybox:
     | {
-        texture: Texture;
-        props: SkyboxProps;
-        assets: Asset[];
-        loaded: boolean;
-      }
+      texture: Texture;
+      props: SkyboxProps;
+      assets: Asset[];
+      loaded: boolean;
+    }
     | undefined;
 
   private image:
     | {
-        texture: Texture;
-        props: ImageProps;
-        asset: Asset;
-        loaded: boolean;
-      }
+      texture: Texture;
+      props: ImageProps;
+      asset: Asset;
+      loaded: boolean;
+    }
     | undefined;
 
   private readonly camera = new Camera();
@@ -155,12 +152,12 @@ export class BackgroundPass {
   private readonly dir = Vec3();
 
   constructor(
-    private readonly webgl: WebGLContext,
+    private readonly graphics: GraphicsContext,
     private readonly assetManager: AssetManager,
     width: number,
     height: number,
   ) {
-    this.renderable = getBackgroundRenderable(webgl, width, height);
+    this.renderable = getBackgroundRenderable(graphics, width, height);
   }
 
   setSize(width: number, height: number) {
@@ -192,7 +189,7 @@ export class BackgroundPass {
     }
     if (!this.skybox || !tf || !areSkyboxTexturePropsEqual(props.faces, this.skybox.props.faces)) {
       this.clearSkybox();
-      const { texture, assets } = getSkyboxTexture(this.webgl, this.assetManager, props.faces, (errored) => {
+      const { texture, assets } = getSkyboxTexture(this.graphics, this.assetManager, props.faces, (errored) => {
         if (this.skybox) this.skybox.loaded = !errored;
         onload?.(true);
       });
@@ -260,7 +257,7 @@ export class BackgroundPass {
       !areImageTexturePropsEqual(props.source, this.image.props.source)
     ) {
       this.clearImage();
-      const { texture, asset } = getImageTexture(this.webgl, this.assetManager, props.source, (errored) => {
+      const { texture, asset } = getImageTexture(this.graphics, this.assetManager, props.source, (errored) => {
         if (this.image) this.image.loaded = !errored;
         onload?.(true);
       });
@@ -392,24 +389,13 @@ export class BackgroundPass {
   private readonly bgColor = Vec3();
 
   clear(props: BackgroundProps, transparentBackground: boolean, backgroundColor: Color) {
-    const { gl, state } = this.webgl;
-
-    if (this._isEnabled(props)) {
-      if (transparentBackground) {
-        state.clearColor(0, 0, 0, 0);
-      } else {
-        Color.toVec3Normalized(this.bgColor, backgroundColor);
-        state.clearColor(this.bgColor[0], this.bgColor[1], this.bgColor[2], 1);
-      }
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      state.enable(gl.BLEND);
-      state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    if (this._isEnabled(props) && transparentBackground) {
+      this.graphics.clear({ color: [0, 0, 0, 0] });
     } else {
-      // no environment: clear to the opaque background color so a premultiplied scene
+      // without environment: clear to the opaque background color so a premultiplied scene
       // can composite over it (overwritten anyway when the scene is opaque)
       Color.toVec3Normalized(this.bgColor, backgroundColor);
-      state.clearColor(this.bgColor[0], this.bgColor[1], this.bgColor[2], 1);
-      gl.clear(gl.COLOR_BUFFER_BIT);
+      this.graphics.clear({ color: [this.bgColor[0], this.bgColor[1], this.bgColor[2], 1] });
     }
   }
 
@@ -420,9 +406,8 @@ export class BackgroundPass {
       this.updateImageScaling();
     }
 
-    if (isTimingMode) this.webgl.timer.mark('BackgroundPass.render');
+    this.graphics.setRenderState(RenderState.Alpha);
     this.renderable.render();
-    if (isTimingMode) this.webgl.timer.markEnd('BackgroundPass.render');
   }
 
   dispose() {
@@ -490,7 +475,7 @@ function areSkyboxTexturePropsEqual(facesA: SkyboxProps['faces'], facesB: Skybox
 }
 
 function getSkyboxTexture(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   assetManager: AssetManager,
   faces: SkyboxProps['faces'],
   onload?: (errored?: boolean) => void,
@@ -525,7 +510,7 @@ function areImageTexturePropsEqual(sourceA: ImageProps['source'], sourceB: Image
 }
 
 function getImageTexture(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   assetManager: AssetManager,
   source: ImageProps['source'],
   onload?: (errored?: boolean) => void,
@@ -545,9 +530,7 @@ function getImageTexture(
   const img = new Image();
   img.onload = () => {
     texture.load(img);
-    if (ctx.isWebGL2 || (isPowerOfTwo(img.width) && isPowerOfTwo(img.height))) {
-      texture.mipmap();
-    }
+    texture.mipmap();
     onload?.();
   };
   img.onerror = () => {
@@ -566,11 +549,11 @@ function getImageTexture(
 
 //
 
-const BackgroundSchema = {
+export const BackgroundSchema = {
   drawCount: ValueSpec('number'),
   instanceCount: ValueSpec('number'),
   aPosition: AttributeSpec('float32', 2, 0),
-  tSkybox: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+  tSkybox: TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, { dimension: 'cube' }),
   tImage: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   uImageScale: UniformSpec('v2'),
   uImageOffset: UniformSpec('v2'),
@@ -588,12 +571,12 @@ const BackgroundSchema = {
   uRotation: UniformSpec('m3'),
   dVariant: DefineSpec('string', ['skybox', 'image', 'verticalGradient', 'horizontalGradient', 'radialGradient']),
 };
-const SkyboxShaderCode = ShaderCode('background', background_vert, background_frag, {
+export const SkyboxShaderCode = ShaderCode('background', {
   shaderTextureLod: 'optional',
 });
 type BackgroundRenderable = ComputeRenderable<Values<typeof BackgroundSchema>>;
 
-function getBackgroundRenderable(ctx: WebGLContext, width: number, height: number): BackgroundRenderable {
+function getBackgroundRenderable(ctx: GraphicsContext, width: number, height: number): BackgroundRenderable {
   const values: Values<typeof BackgroundSchema> = {
     drawCount: ValueCell.create(6),
     instanceCount: ValueCell.create(1),
@@ -618,7 +601,7 @@ function getBackgroundRenderable(ctx: WebGLContext, width: number, height: numbe
   };
 
   const schema = { ...BackgroundSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', SkyboxShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', SkyboxShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }

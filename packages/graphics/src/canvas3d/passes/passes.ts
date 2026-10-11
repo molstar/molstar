@@ -7,7 +7,7 @@
 import { DrawPass } from './draw.js';
 import { PickPass } from './pick.js';
 import { MultiSamplePass } from './multi-sample.js';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { AssetManager } from '@molstar/core/util/assets';
 import { IlluminationPass } from './illumination.js';
 
@@ -18,15 +18,15 @@ export class Passes {
   readonly illumination: IlluminationPass;
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     assetManager: AssetManager,
     attribs: Partial<{ pickScale: number; transparency: 'wboit' | 'dpoit' | 'blended' }> = {},
   ) {
-    const drs = this.webgl.getDrawingBufferSize();
-    this.draw = new DrawPass(webgl, assetManager, drs.width, drs.height, attribs.transparency || 'blended');
-    this.pick = new PickPass(webgl, drs.width, drs.height, attribs.pickScale || 0.25);
-    this.multiSample = new MultiSamplePass(webgl, this.draw);
-    this.illumination = new IlluminationPass(webgl, this.draw);
+    const drs = this.graphics.getDrawingBufferSize();
+    this.draw = new DrawPass(graphics, assetManager, drs.width, drs.height, attribs.transparency || 'blended');
+    this.pick = new PickPass(graphics, drs.width, drs.height, attribs.pickScale || 0.25);
+    this.multiSample = new MultiSamplePass(graphics, this.draw);
+    this.illumination = new IlluminationPass(graphics, this.draw);
   }
 
   getByteCount() {
@@ -47,7 +47,7 @@ export class Passes {
   }
 
   updateSize() {
-    const drs = this.webgl.getDrawingBufferSize();
+    const drs = this.graphics.getDrawingBufferSize();
     // Avoid setting dimensions to 0x0 because it causes "empty textures are not allowed" error.
     const width = Math.max(drs.width, 2);
     const height = Math.max(drs.height, 2);

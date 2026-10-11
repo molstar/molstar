@@ -31,7 +31,7 @@ import type { VisualUpdateState } from '../../util.js';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { isNucleic, type MoleculeType } from '@molstar/model/model/structure/model/types';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Cylinders } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
 import { CylindersBuilder } from '@molstar/graphics/geo/geometry/cylinders/cylinders-builder';
 import { eachPolymerBackboneLink } from './util/polymer/backbone.js';
@@ -55,9 +55,9 @@ export function PolymerBackboneCylinderVisual(
   materialId: number,
   structure: Structure,
   props: PD.Values<PolymerBackboneCylinderParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ) {
-  return props.tryUseImpostor && checkCylinderImpostorSupport(webgl)
+  return props.tryUseImpostor && checkCylinderImpostorSupport(graphics)
     ? PolymerBackboneCylinderImpostorVisual(materialId)
     : PolymerBackboneCylinderMeshVisual(materialId);
 }
@@ -126,13 +126,13 @@ export function PolymerBackboneCylinderImpostorVisual(materialId: number): Units
         state: VisualUpdateState,
         newProps: PD.Values<PolymerBackboneCylinderParams>,
         currentProps: PD.Values<PolymerBackboneCylinderParams>,
-      ) => {},
+      ) => { },
       mustRecreate: (
         structureGroup: StructureGroup,
         props: PD.Values<PolymerBackboneCylinderParams>,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
-        return !props.tryUseImpostor || !webgl;
+        return !props.tryUseImpostor || !graphics;
       },
     },
     materialId,
@@ -217,9 +217,9 @@ export function PolymerBackboneCylinderMeshVisual(materialId: number): UnitsVisu
       mustRecreate: (
         structureGroup: StructureGroup,
         props: PD.Values<PolymerBackboneCylinderParams>,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
-        return props.tryUseImpostor && !!webgl;
+        return props.tryUseImpostor && !!graphics;
       },
     },
     materialId,

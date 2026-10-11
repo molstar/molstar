@@ -13,6 +13,7 @@ import type { StructureRepresentationPresetProvider } from '@molstar/plugin/stat
 import { PluginFeatureDetection } from '@molstar/plugin/features';
 import type { SaccharideCompIdMapType } from '@molstar/model/model/structure/structure/carbohydrates/constants';
 import type { BackgroundProps } from '@molstar/graphics/canvas3d/passes/background';
+import type { GraphicsBackendDescriptor } from '@molstar/graphics/gl/backend';
 
 export class PluginConfigItem<T = any> {
   toString() {
@@ -43,6 +44,11 @@ export const PluginConfig = {
       'plugin-config.transparency',
       PluginFeatureDetection.defaultTransparency,
     ),
+    /**
+     * Graphics backends tried in order, e.g. `[WebGPUBackend, WebGL2Backend, WebGLBackend]`; WebGL by default
+     * (WebGL1 only with `PreferWebGl1`)
+     */
+    GraphicsBackends: item<readonly GraphicsBackendDescriptor[] | undefined>('plugin-config.graphics-backends', undefined),
     // as of Oct 1 2021, WebGL 2 doesn't work on iOS 15.
     // TODO: check back in a few weeks to see if it was fixed
     PreferWebGl1: item('plugin-config.prefer-webgl1', PluginFeatureDetection.preferWebGl1),

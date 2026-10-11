@@ -4,46 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { Mat3, Mat4, Quat, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
-import { ValueCell } from '@molstar/core/util';
 import type { GLRenderingContext } from './compat.js';
 import type { RenderableSchema } from '../renderable/schema.js';
-import type { ValueOf } from '@molstar/core/util/type-helpers';
-import { deepClone } from '@molstar/core/util/object';
-
-export type UniformKindValue = {
-  b: boolean;
-  'b[]': boolean[];
-  f: number;
-  'f[]': number[];
-  i: number;
-  'i[]': number[];
-  v2: Vec2;
-  'v2[]': number[];
-  v3: Vec3;
-  'v3[]': number[];
-  v4: Vec4;
-  'v4[]': number[];
-  q: Quat;
-  'q[]': number[];
-  iv2: Vec2;
-  'iv2[]': number[];
-  iv3: Vec3;
-  'iv3[]': number[];
-  iv4: Vec4;
-  'iv4[]': number[];
-  m3: Mat3;
-  'm3[]': number[];
-  m4: Mat4;
-  'm4[]': number[];
-  t: number;
-  't[]': number[];
-};
-export type UniformKind = keyof UniformKindValue;
-export type UniformType = ValueOf<UniformKindValue>;
-
-export type UniformValues = { [k: string]: ValueCell<UniformType> };
-export type UniformsList = [string, ValueCell<UniformType>][];
+import type { UniformKind } from '../uniform.js';
 
 export function getUniformType(gl: GLRenderingContext, kind: UniformKind) {
   switch (kind) {
@@ -86,10 +49,6 @@ export function getUniformType(gl: GLRenderingContext, kind: UniformKind) {
     default:
       console.error(`unknown uniform kind '${kind}'`);
   }
-}
-
-export function isArrayUniform(kind: UniformKind) {
-  return kind.endsWith('[]');
 }
 
 export type UniformSetter = (gl: GLRenderingContext, location: number, value: any) => void;
@@ -205,6 +164,12 @@ export function getUniformGlslType(kind: UniformKind): string {
       return 'vec3';
     case 'v4':
       return 'vec4';
+    case 'iv2':
+      return 'ivec2';
+    case 'iv3':
+      return 'ivec3';
+    case 'iv4':
+      return 'ivec4';
     case 'q':
       return 'vec4';
     case 'm3':
@@ -213,23 +178,4 @@ export function getUniformGlslType(kind: UniformKind): string {
       return 'mat4';
   }
   throw new Error(`${kind} has no primitive GLSL type.`);
-}
-
-export function isUniformValueScalar(kind: UniformKind): boolean {
-  switch (kind) {
-    case 'f':
-    case 'i':
-    case 'b':
-      return true;
-    default:
-      return false;
-  }
-}
-
-export function cloneUniformValues(uniformValues: UniformValues): UniformValues {
-  const clonedValues: UniformValues = {};
-  Object.keys(uniformValues).forEach((k) => {
-    clonedValues[k] = ValueCell.create(deepClone(uniformValues[k].ref.value));
-  });
-  return clonedValues;
 }

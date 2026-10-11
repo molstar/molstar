@@ -56,13 +56,13 @@ import {
   StructureImageParams,
 } from './params.js';
 import type { Clipping } from '@molstar/graphics/theme/clipping';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { isPromiseLike } from '@molstar/core/util/type-helpers';
 import type { Substance } from '@molstar/graphics/theme/substance';
 import type { Emissive } from '@molstar/graphics/theme/emissive';
 import type { Wiggle } from '@molstar/graphics/theme/wiggle';
 
-export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> {}
+export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
 function createUnitsRenderObject<G extends Geometry>(
   structureGroup: StructureGroup,
@@ -124,7 +124,7 @@ interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
     geometry: G,
     props: PD.Values<P>,
     theme: Theme,
-    webgl?: WebGLContext,
+    graphics?: GraphicsContext,
   ) => void;
   dispose?: (geometry: G) => void;
 }
@@ -456,7 +456,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
   function finalize(ctx: VisualContext) {
     if (renderObject) {
-      processValues?.(renderObject.values, geometry, currentProps, currentTheme, ctx.webgl);
+      processValues?.(renderObject.values, geometry, currentProps, currentTheme, ctx.graphics);
     }
   }
 
@@ -538,26 +538,26 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
       Visual.setTransform(renderObject, matrix, instanceMatrices);
     },
-    setOverpaint(overpaint: Overpaint, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setOverpaint(overpaint: Overpaint, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setOverpaint(renderObject, overpaint, lociApply, true, smoothing);
     },
-    setTransparency(transparency: Transparency, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setTransparency(transparency: Transparency, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setTransparency(renderObject, transparency, lociApply, true, smoothing);
     },
-    setEmissive(emissive: Emissive, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setEmissive(emissive: Emissive, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setEmissive(renderObject, emissive, lociApply, true, smoothing);
     },
-    setSubstance(substance: Substance, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setSubstance(substance: Substance, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setSubstance(renderObject, substance, lociApply, true, smoothing);
     },
     setClipping(clipping: Clipping) {
       Visual.setClipping(renderObject, clipping, lociApply, true);
     },
-    setWiggle(wiggle: Wiggle, webgl?: WebGLContext) {
+    setWiggle(wiggle: Wiggle, graphics?: GraphicsContext) {
       Visual.setWiggle(renderObject, wiggle, lociApply, true);
     },
     setThemeStrength(strength: {
@@ -584,7 +584,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
 export const UnitsMeshParams = { ...StructureMeshParams, ...StructureParams };
 export type UnitsMeshParams = typeof UnitsMeshParams;
-export interface UnitsMeshVisualBuilder<P extends UnitsMeshParams> extends UnitsVisualBuilder<P, Mesh> {}
+export interface UnitsMeshVisualBuilder<P extends UnitsMeshParams> extends UnitsVisualBuilder<P, Mesh> { }
 
 export function UnitsMeshVisual<P extends UnitsMeshParams>(
   builder: UnitsMeshVisualBuilder<P>,
@@ -623,7 +623,7 @@ export function UnitsMeshVisual<P extends UnitsMeshParams>(
 
 export const UnitsSpheresParams = { ...StructureSpheresParams, ...StructureParams };
 export type UnitsSpheresParams = typeof UnitsSpheresParams;
-export interface UnitsSpheresVisualBuilder<P extends UnitsSpheresParams> extends UnitsVisualBuilder<P, Spheres> {}
+export interface UnitsSpheresVisualBuilder<P extends UnitsSpheresParams> extends UnitsVisualBuilder<P, Spheres> { }
 
 export function UnitsSpheresVisual<P extends UnitsSpheresParams>(
   builder: UnitsSpheresVisualBuilder<P>,
@@ -662,7 +662,7 @@ export function UnitsSpheresVisual<P extends UnitsSpheresParams>(
 
 export const UnitsCylindersParams = { ...StructureCylindersParams, ...StructureParams };
 export type UnitsCylindersParams = typeof UnitsCylindersParams;
-export interface UnitsCylindersVisualBuilder<P extends UnitsCylindersParams> extends UnitsVisualBuilder<P, Cylinders> {}
+export interface UnitsCylindersVisualBuilder<P extends UnitsCylindersParams> extends UnitsVisualBuilder<P, Cylinders> { }
 
 export function UnitsCylindersVisual<P extends UnitsCylindersParams>(
   builder: UnitsCylindersVisualBuilder<P>,
@@ -701,7 +701,7 @@ export function UnitsCylindersVisual<P extends UnitsCylindersParams>(
 
 export const UnitsPointsParams = { ...StructurePointsParams, ...StructureParams };
 export type UnitsPointsParams = typeof UnitsPointsParams;
-export interface UnitsPointVisualBuilder<P extends UnitsPointsParams> extends UnitsVisualBuilder<P, Points> {}
+export interface UnitsPointVisualBuilder<P extends UnitsPointsParams> extends UnitsVisualBuilder<P, Points> { }
 
 export function UnitsPointsVisual<P extends UnitsPointsParams>(
   builder: UnitsPointVisualBuilder<P>,
@@ -740,7 +740,7 @@ export function UnitsPointsVisual<P extends UnitsPointsParams>(
 
 export const UnitsLinesParams = { ...StructureLinesParams, ...StructureParams };
 export type UnitsLinesParams = typeof UnitsLinesParams;
-export interface UnitsLinesVisualBuilder<P extends UnitsLinesParams> extends UnitsVisualBuilder<P, Lines> {}
+export interface UnitsLinesVisualBuilder<P extends UnitsLinesParams> extends UnitsVisualBuilder<P, Lines> { }
 
 export function UnitsLinesVisual<P extends UnitsLinesParams>(
   builder: UnitsLinesVisualBuilder<P>,
@@ -779,7 +779,7 @@ export function UnitsLinesVisual<P extends UnitsLinesParams>(
 
 export const UnitsTextParams = { ...StructureTextParams, ...StructureParams };
 export type UnitsTextParams = typeof UnitsTextParams;
-export interface UnitsTextVisualBuilder<P extends UnitsTextParams> extends UnitsVisualBuilder<P, Text> {}
+export interface UnitsTextVisualBuilder<P extends UnitsTextParams> extends UnitsVisualBuilder<P, Text> { }
 
 export function UnitsTextVisual<P extends UnitsTextParams>(
   builder: UnitsTextVisualBuilder<P>,
@@ -831,7 +831,7 @@ export function UnitsTextVisual<P extends UnitsTextParams>(
 export const UnitsDirectVolumeParams = { ...StructureDirectVolumeParams, ...StructureParams };
 export type UnitsDirectVolumeParams = typeof UnitsDirectVolumeParams;
 export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeParams>
-  extends UnitsVisualBuilder<P, DirectVolume> {}
+  extends UnitsVisualBuilder<P, DirectVolume> { }
 
 export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(
   builder: UnitsDirectVolumeVisualBuilder<P>,
@@ -871,7 +871,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(
 export const UnitsTextureMeshParams = { ...StructureTextureMeshParams, ...StructureParams };
 export type UnitsTextureMeshParams = typeof UnitsTextureMeshParams;
 export interface UnitsTextureMeshVisualBuilder<P extends UnitsTextureMeshParams>
-  extends UnitsVisualBuilder<P, TextureMesh> {}
+  extends UnitsVisualBuilder<P, TextureMesh> { }
 
 export function UnitsTextureMeshVisual<P extends UnitsTextureMeshParams>(
   builder: UnitsTextureMeshVisualBuilder<P>,
@@ -910,7 +910,7 @@ export function UnitsTextureMeshVisual<P extends UnitsTextureMeshParams>(
 
 export const UnitsImageParams = { ...StructureImageParams, ...StructureParams };
 export type UnitsImageParams = typeof UnitsImageParams;
-export interface UnitsImageVisualBuilder<P extends UnitsImageParams> extends UnitsVisualBuilder<P, Image> {}
+export interface UnitsImageVisualBuilder<P extends UnitsImageParams> extends UnitsVisualBuilder<P, Image> { }
 
 export function UnitsImageVisual<P extends UnitsImageParams>(
   builder: UnitsImageVisualBuilder<P>,
