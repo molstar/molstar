@@ -230,7 +230,8 @@
 
 .spark {
   flex: none;
-  width: 48px;
+  /* As wide as a color list's strip: the labels after them line up. */
+  width: 56px;
   height: 14px;
   fill: none;
   stroke: currentColor;

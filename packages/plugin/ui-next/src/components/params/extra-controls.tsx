@@ -319,8 +319,8 @@ export function LineGraphRow(props: { head: Child; label: string; param: PD.Line
       title={props.param.description}
       field={(open) => (
         <Field open={open} label={props.label}>
-          <svg class={classes.spark} viewBox="0 0 48 14" preserveAspectRatio="none" aria-hidden="true">
-            <path d={binding.value.pipe(map((p) => pathOf(p, 48, 14)))} />
+          <svg class={classes.spark} viewBox="0 0 56 14" preserveAspectRatio="none" aria-hidden="true">
+            <path d={binding.value.pipe(map((p) => pathOf(p, 56, 14)))} />
           </svg>
           <span class={classes.stripName}>{binding.value.pipe(map((p: unknown[]) => `${p?.length ?? 0} points`))}</span>
         </Field>

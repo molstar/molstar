@@ -255,7 +255,7 @@ defineStyles('components/params/extra-controls.module.css', `@layer msp.componen
   stroke-width: 1.2px;
   vector-effect: non-scaling-stroke;
   flex: none;
-  width: 48px;
+  width: 56px;
   height: 14px;
 }
 
