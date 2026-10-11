@@ -45,7 +45,7 @@ defineStyles('views/structure/measurements-add.module.css', `@layer msp.componen
 .msp-structure-measurements-add-points {
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
+  background: var(--msp-color-panel);
   display: grid;
 }
 
@@ -66,7 +66,6 @@ defineStyles('views/structure/measurements-add.module.css', `@layer msp.componen
   gap: var(--msp-space-2);
   height: 26px;
   padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
-  border-radius: var(--msp-radius-sm);
   display: flex;
 
   &:hover {

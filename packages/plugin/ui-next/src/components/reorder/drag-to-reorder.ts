@@ -7,8 +7,9 @@
 /**
  * Drags a row of a list by its handle (call it on the handle's pointerdown): the list's rows are its children with
  * `data-id`; the one being moved gets `data-dragging`, the row it would land before `data-drop="before"` (the last one
- * `"after"`), for the list's own styles; release moves it there. The pointer is captured on the handle, so leaving the
- * list keeps the drag. Snapshots, measurement points.
+ * `"after"`), for the list's own styles; release moves it there. The document follows the pointer (not the handle), so
+ * a release anywhere, a cancelled pointer or the window losing focus always ends the drag and clears the marks.
+ * Snapshots, measurement points.
  */
 export function dragToReorder(
   e: PointerEvent,
@@ -19,8 +20,6 @@ export function dragToReorder(
   if (!list || e.button !== 0) return;
   e.preventDefault();
   e.stopPropagation();
-  const handle = e.currentTarget as HTMLElement;
-  handle.setPointerCapture?.(e.pointerId);
   const items = [...list.querySelectorAll<HTMLElement>(':scope > [data-id]')];
   const self = items.find((el) => el.dataset.id === id);
   self?.setAttribute('data-dragging', '');
@@ -45,8 +44,16 @@ export function dragToReorder(
     }
     mark(index);
   };
+  const doc = list.ownerDocument;
+  const view = doc.defaultView;
+  let done = false;
   const onUp = () => {
-    handle.removeEventListener('pointermove', onMove);
+    if (done) return;
+    done = true;
+    doc.removeEventListener('pointermove', onMove, true);
+    doc.removeEventListener('pointerup', onUp, true);
+    doc.removeEventListener('pointercancel', onUp, true);
+    view?.removeEventListener('blur', onUp);
     self?.removeAttribute('data-dragging');
     const from = items.indexOf(self as HTMLElement);
     const to = target;
@@ -54,7 +61,8 @@ export function dragToReorder(
     // Dropping above or below itself leaves it where it is.
     if (to >= 0 && to !== from && to !== from + 1) moveTo(to > from ? to - 1 : to);
   };
-  handle.addEventListener('pointermove', onMove);
-  handle.addEventListener('pointerup', onUp, { once: true });
-  handle.addEventListener('pointercancel', onUp, { once: true });
+  doc.addEventListener('pointermove', onMove, true);
+  doc.addEventListener('pointerup', onUp, true);
+  doc.addEventListener('pointercancel', onUp, true);
+  view?.addEventListener('blur', onUp);
 }

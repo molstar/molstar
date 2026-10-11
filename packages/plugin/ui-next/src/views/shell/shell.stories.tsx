@@ -44,6 +44,7 @@ import { StateTreeTab } from '../state-tree/state-tree-tab.js';
 import { SettingsTab } from '../settings/settings-tab.js';
 import { mockSettings } from '../../_stories/mocks/settings.js';
 import { mockMeasurements, registerMockMeasurements } from '../../_stories/mocks/measurements.js';
+import { mockSuperposition, registerMockSuperposition } from '../../_stories/mocks/superposition.js';
 import { mockStateTree } from '../../_stories/mocks/state-tree.js';
 import { mockImageExport } from '../../_stories/mocks/image-export.js';
 import { mockSnapshotsModel } from '../../_stories/mocks/snapshots.js';
@@ -353,6 +354,11 @@ function mockShell(options: {
     onAction: (text) => status.post(text),
     onMeasure: () => shell.show('selection', 'measure'),
   });
+  // Superposing, with two or more structures: the Selection tab's Superpose section.
+  registerMockSuperposition(
+    shell,
+    mockSuperposition(scene, (t) => status.post(t)),
+  );
   // Adding measurements: the Selection tab's Measure section.
   registerMockMeasurements(
     shell,

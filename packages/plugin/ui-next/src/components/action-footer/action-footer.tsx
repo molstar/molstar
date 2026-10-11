@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type Observable, of } from 'rxjs';
+import { combineLatest, map, type Observable, of } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
 import type { MaybeReactive } from '../../dom/scope.js';
 import { Icon, type IconName } from '../icon/icon.js';
@@ -18,6 +18,8 @@ export interface ActionFooterProps {
   label: MaybeReactive<string>;
   /** Running: the action shows progress and is disabled. */
   busy?: Observable<boolean>;
+  /** Not possible yet (not enough selected): the action is disabled, no progress. */
+  disabled?: Observable<boolean>;
   onApply(): void;
   /** Set defaults (the form's reset); without it, no reset button. */
   onReset?(): void;
@@ -35,6 +37,7 @@ export interface ActionFooterProps {
  */
 export function ActionFooter(props: ActionFooterProps) {
   const busy = props.busy ?? of(false);
+  const disabled = combineLatest([busy, props.disabled ?? of(false)]).pipe(map(([b, d]) => b || d));
   return (
     <div class={classes.footer}>
       {props.onReset ? (
@@ -55,7 +58,7 @@ export function ActionFooter(props: ActionFooterProps) {
           <span>{props.secondary.label}</span>
         </button>
       ) : null}
-      <button type="button" class={classes.apply} disabled={busy} onClick={() => props.onApply()}>
+      <button type="button" class={classes.apply} disabled={disabled} onClick={() => props.onApply()}>
         <Show when={busy} fallback={() => <Icon name={props.icon} size={15} />}>
           {() => <Icon name="loader-circle" size={15} class={classes.spin} />}
         </Show>

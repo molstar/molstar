@@ -1,0 +1,64 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.superpose {
+  display: grid;
+  gap: var(--msp-space-2);
+}
+
+/* What would be superposed: one row per structure, the first the reference. */
+.entries {
+  display: grid;
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  /* In a section's well: a step back toward the panel, so the list reads as one. */
+  background: var(--msp-color-panel);
+}
+
+.hint {
+  margin: 0;
+  padding: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.45;
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 26px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.index {
+  flex: none;
+  min-width: 1.5ch;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}

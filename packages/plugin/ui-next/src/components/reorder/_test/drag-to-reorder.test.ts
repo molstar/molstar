@@ -58,4 +58,18 @@ describe('dragToReorder', () => {
     handle.dispatchEvent(pointer('pointerup', 29));
     expect(moves).toEqual([]);
   });
+
+  it('a release anywhere (or the window losing focus) ends the drag and clears the marks', () => {
+    const el = list(['a', 'b', 'c']);
+    const handle = el.children[0].firstElementChild as HTMLElement;
+    const down = pointer('pointerdown', 5);
+    Object.defineProperty(down, 'currentTarget', { value: handle });
+    dragToReorder(down, el, 'a', () => {});
+    document.body.dispatchEvent(pointer('pointermove', 35));
+    expect((el.children[2] as HTMLElement).dataset.drop).toBe('before');
+    window.dispatchEvent(new Event('blur'));
+    expect([...el.children].some((c) => (c as HTMLElement).dataset.drop || (c as HTMLElement).dataset.dragging)).toBe(
+      false,
+    );
+  });
 });

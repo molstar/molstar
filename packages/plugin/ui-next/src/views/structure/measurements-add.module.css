@@ -21,7 +21,8 @@
   display: grid;
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
-  background: var(--msp-color-well);
+  /* In a section's well: a step back toward the panel, so the list reads as one. */
+  background: var(--msp-color-panel);
 }
 
 .hint,
@@ -43,7 +44,6 @@
   gap: var(--msp-space-2);
   height: 26px;
   padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
-  border-radius: var(--msp-radius-sm);
 
   &:hover {
     background: var(--msp-color-hover);

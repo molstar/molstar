@@ -228,6 +228,12 @@ enough: Distance (2), Angle (3), Dihedral (4), Label (1), Orientation and Plane 
 (distance unit, text color and size). The Measurements row in the tree only lists them (each picked shows its own
 options); its inspector points to Measure.
 
+**Superpose.** With two or more structures, the Selection tab also has a Superpose section (after Mol*'s superposition
+controls, `views/structure/superpose.tsx`, `model/superposition.ts`): the method (Chains, TM-align, UniProt (SIFTS),
+Ligands, Atoms) and its options (align sequences for chains; trace only), what it would superpose (one selection per
+structure, the first the reference, a click focuses one; UniProt uses every structure; otherwise what to select), and
+Superpose in the footer, enabled once there is enough.
+
 ### 4.1b Snapshots tab
 
 A tab beside Structure (`images` icon, `snapshots.show`, ⌘S), in the Structure tab's shape: a header of actions (**+
