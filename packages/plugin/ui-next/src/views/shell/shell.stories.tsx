@@ -15,7 +15,6 @@ import { ActionFooter } from '../../components/action-footer/action-footer.js';
 import { ParamsForm } from '../../components/params/params-form.js';
 import { ParamsFormModel } from '../../forms/params-form.js';
 import { Show } from '../../dom/control-flow.js';
-import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
 import { domView } from '../../dom/view.js';
 import { parseColor, themeForColor } from '../../model/canvas-theme.js';
@@ -42,6 +41,8 @@ import { ImageExport } from '../export/image-export.js';
 import { RemoteStatesPanel } from '../state/remote-states-panel.js';
 import { SnapshotsPanel } from '../state/snapshots-panel.js';
 import { StateTreeTab } from '../state-tree/state-tree-tab.js';
+import { SettingsTab } from '../settings/settings-tab.js';
+import { mockSettings } from '../../_stories/mocks/settings.js';
 import { mockStateTree } from '../../_stories/mocks/state-tree.js';
 import { mockImageExport } from '../../_stories/mocks/image-export.js';
 import { mockSnapshotsModel } from '../../_stories/mocks/snapshots.js';
@@ -65,18 +66,6 @@ import {
 
 const meta: Meta = { title: 'Shell/Shell', parameters: { layout: 'fullscreen' } };
 export default meta;
-
-const pad = 'padding: 12px; display: grid; gap: 12px; align-content: start;';
-const muted = 'color: var(--msp-color-text-muted); font-size: var(--msp-font-size-sm);';
-
-function Placeholder(props: { title: string; children?: Child }) {
-  return (
-    <div style={pad}>
-      <b>{props.title}</b>
-      <p style={muted}>{props.children}</p>
-    </div>
-  );
-}
 
 const Sequence =
   'MALYGTHSHGLFKKLGIPGPTPLPFLGNILSYHKGFCMFDMECHKKYGKVWGFYDGQQPVLAITDPDMIKTVLVKECYSVFTNRRPFGPVGFMKSAISIAEDEEWKRLRSLLSPTFTSGKLKEMVPIIAQYGDVLVRNLRREAETGKPVTLKDVFGAYSMDVITSTSFGVNIDSLNNPQDPFVENTKKLLRFDFLDPFFLSITVFPFLIPILEVLNICVFPREVTNFLRKSVKRMKESRLEDTQKHRVDFLQLMIDSQNSKETESHKALSDLELVAQSIIFIFAGYETTSSVLSFIMYELATHPDVQQKLQEEIDAVLPNKAPPTYDTVLQMEYLDMVVNETLRLFPIAMRLERVCKKDVEINGMFIPKGVVVMIPSYALHRDPKYWTEPEKFLPERFSKKNKDNIDPYIYTPFGSGPRNCIGMRFALMNMKLALIRVLQNFSFKPCKETQIPLKLSLGGLLQPEKPVVLKVESRDGTVSGA';
@@ -314,6 +303,7 @@ function mockShell(options: {
   const home = mockHome((text, kind) => status.post(text, kind), { remoteStates: options.remoteStates });
   const snapshotsModel = mockSnapshotsModel((text, kind) => status.post(text, kind));
   const stateTree = mockStateTree((text) => status.post(text));
+  const settings = mockSettings();
   const snapshotStepper = mockSnapshots((t) => status.post(t));
   const commands = mockCommands(shell);
 
@@ -383,9 +373,7 @@ function mockShell(options: {
       icon: 'settings',
       order: 3,
       place: 'foot',
-      render: domView(() => (
-        <Placeholder title="Settings">Searchable, grouped by intent: appearance, camera, interaction, …</Placeholder>
-      )),
+      render: domView(() => <SettingsTab model={settings} />),
     },
   ]);
   if (options.loaded) {

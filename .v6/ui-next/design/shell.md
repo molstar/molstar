@@ -264,16 +264,19 @@ The label follows the cursor instead of sitting in a corner:
 ### 4.5 Settings tab
 
 Today's settings panel lists every canvas parameter at one level with truncated labels ("Camera Rese…", "Transparent
-…"). The tab keeps the same parameters but organises them for use:
+…"), then the behaviors tree. The tab keeps the same parameters but organises them for use
+(`views/settings/settings-tab.tsx`, `model/settings.ts`):
 
-- **Search** at the top filters across all settings by label and description.
-- **Groups by intent**, essentials first: Appearance (background, lighting/illumination, outline, occlusion, fog),
-  Camera (mode, clipping, reset duration), Interaction (hover label placement, pick padding, trackball), Performance
-  (resolution, multisample, transparency mode, Hi-Z), Layout and theme (UI theme, docks, status line), Advanced
-  (renderer, handle, pointer, XR, behaviors tree). Groups come from a mapping over the existing PD params, so no param
-  is lost and new ones land in Advanced.
-- **Full labels**: labels sit above the control when they do not fit, with the PD description as a hint.
-- **Reset** per group and for all.
+- **Search** at the top filters across all settings by label and description (`ParamsForm`'s `filter`): only matching
+  rows show, their groups open, a group whose name matches shows all its rows, a settings group with no match hides.
+- **Groups by intent**, essentials first: Appearance (background, occlusion, shadows, outline, fog, marking), Camera
+  (mode, field of view, clipping, reset), Interaction (pick padding, trackball, pointer), Performance (resolution, pixel
+  and pick scale, transparency mode, multi-sampling, Hi-Z), Interface (theme, layout, pinned panel, sequence, tooltips),
+  Behaviors (`plugin.state.behaviors` by category, each a switch with its params behind the sliders: the on/off
+  pattern), Advanced (renderer, handle, XR). Groups come from a mapping over the existing PD params, so no param is lost
+  and new ones land in Advanced.
+- **Wider labels** than other forms (a full label as the row's tooltip); Behaviors give the label the row.
+- **Reset** per group (in its header) and for all (by the search). Changes apply as they are made.
 
 ### 4.6 Canvas mode and selection bar
 

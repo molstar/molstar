@@ -9,7 +9,7 @@
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Asset } from '@molstar/core/util/assets';
 import { camelCaseToWords } from '@molstar/core/util/string';
-import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { ParamsFormModel } from '../../forms/params-form.js';
@@ -30,33 +30,108 @@ interface FieldBinding {
  * The form for a `ParamsFormModel`: essentials first, the rest under "Advanced" (as the classic UI). Each row binds
  * only to its own field; groups and mapped params nest.
  */
-export function ParamsForm(props: { form: ParamsFormModel<any> }) {
+export function ParamsForm(props: {
+  form: ParamsFormModel<any>;
+  /**
+   * Shows only the rows whose label or description contains this text (or that hold such rows); groups open while it
+   * is set. A search over settings.
+   */
+  filter?: Observable<string>;
+}) {
   const { form } = props;
+  const filter = normalized(props.filter);
   const { essentials, advanced } = form.layout();
   const row = (name: string) => (
     <ParamRow
       name={name}
       param={form.params[name]}
       visible={form.visible(name)}
+      filter={filter}
       binding={{ value: form.field(name), get: () => form.values.value[name], set: (v) => form.set(name, v) }}
     />
+  );
+  const advancedShown = filter?.pipe(
+    map((q) => advanced.some((name) => matches(name, form.params[name], q))),
+    distinctUntilChanged(),
   );
   return (
     <div class={classes.form}>
       {essentials.map(row)}
-      {advanced.length ? <Collapsible title="Advanced">{() => advanced.map(row)}</Collapsible> : null}
+      {advanced.length ? (
+        <div hidden={advancedShown?.pipe(map((v) => !v))}>
+          <Collapsible title="Advanced" force={searching(filter)}>
+            {() => advanced.map(row)}
+          </Collapsible>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function ParamRow(props: { name: string; param: PD.Any; binding: FieldBinding; visible?: Observable<boolean> }) {
-  const { name, param, binding } = props;
-  const label = param.label || camelCaseToWords(name);
-  const hidden = props.visible?.pipe(map((v) => !v));
+/** The filter text, trimmed and lower-cased; undefined when there is no filter. */
+function normalized(filter?: Observable<string>): Observable<string> | undefined {
+  return filter?.pipe(
+    map((q) => q.trim().toLowerCase()),
+    distinctUntilChanged(),
+  );
+}
+
+function searching(filter?: Observable<string>): Observable<boolean> | undefined {
+  return filter?.pipe(
+    map((q) => q.length > 0),
+    distinctUntilChanged(),
+  );
+}
+
+function labelOf(name: string, param: PD.Any): string {
+  return param.label || camelCaseToWords(name);
+}
+
+/** Whether any of the params (or anything inside them) matches a search text: a settings group with no match hides. */
+export function paramsMatch(params: PD.Params, text: string): boolean {
+  const q = text.trim().toLowerCase();
+  return Object.keys(params).some((k) => !params[k].isHidden && matches(k, params[k], q));
+}
+
+/** Whether a param or anything inside it matches the (normalized) filter text. */
+function matches(name: string, param: PD.Any, q: string): boolean {
+  if (!q) return true;
+  if (labelOf(name, param).toLowerCase().includes(q)) return true;
+  if (param.description?.toLowerCase().includes(q)) return true;
+  if (param.type === 'group') return Object.keys(param.params).some((k) => matches(k, param.params[k], q));
+  if (param.type === 'mapped') {
+    return param.select.options.some(([option]) => {
+      const inner = param.map(option);
+      return inner.type === 'group'
+        ? Object.keys(inner.params).some((k) => matches(k, inner.params[k], q))
+        : matches(option, inner, q);
+    });
+  }
+  return false;
+}
+
+function ParamRow(props: {
+  name: string;
+  param: PD.Any;
+  binding: FieldBinding;
+  visible?: Observable<boolean>;
+  filter?: Observable<string>;
+}) {
+  const { name, param, binding, filter } = props;
+  const label = labelOf(name, param);
+  const shown = filter
+    ? combineLatest([props.visible ?? of(true), filter]).pipe(map(([v, q]) => v && matches(name, param, q)))
+    : props.visible;
+  const hidden = shown?.pipe(
+    map((v) => !v),
+    distinctUntilChanged(),
+  );
   if (param.type === 'group') {
+    // A group whose own name matches shows all of its rows.
+    const inner = filter?.pipe(map((q) => (label.toLowerCase().includes(q) ? '' : q)));
     return (
       <div hidden={hidden}>
-        <GroupControl label={label} param={param} binding={binding} />
+        <GroupControl label={label} param={param} binding={binding} filter={inner} force={searching(filter)} />
       </div>
     );
   }
@@ -86,7 +161,7 @@ function ParamRow(props: { name: string; param: PD.Any; binding: FieldBinding; v
     );
   }
   return (
-    <div class={classes.row} hidden={hidden} title={param.description}>
+    <div class={classes.row} hidden={hidden} title={param.description ?? label}>
       <span class={classes.label}>{label}</span>
       <div class={classes.control}>{control(param, binding)}</div>
     </div>
@@ -326,13 +401,21 @@ function SelectRow(props: {
   );
 }
 
-function GroupControl(props: { label: string; param: PD.Group<any>; binding: FieldBinding }) {
-  const { param, binding } = props;
+function GroupControl(props: {
+  label: string;
+  param: PD.Group<any>;
+  binding: FieldBinding;
+  /** For its rows (cleared when the group's own name matches: all of them show). */
+  filter?: Observable<string>;
+  /** Open while searching. */
+  force?: Observable<boolean>;
+}) {
+  const { param, binding, filter } = props;
   // A flat group has no header of its own: its params are rows like the others.
-  if (param.isFlat) return <Fields params={param.params} binding={binding} />;
+  if (param.isFlat) return <Fields params={param.params} binding={binding} filter={filter} />;
   return (
-    <Collapsible title={props.label} open={!!param.isExpanded}>
-      {() => <Fields params={param.params} binding={binding} />}
+    <Collapsible title={props.label} open={!!param.isExpanded} force={props.force}>
+      {() => <Fields params={param.params} binding={binding} filter={filter} />}
     </Collapsible>
   );
 }
@@ -450,7 +533,7 @@ function MappedControl(props: { label: string; param: PD.Mapped<any>; binding: F
 }
 
 /** The params of a group as rows, bound to the group's value object. */
-function Fields(props: { params: PD.Params; binding: FieldBinding; nested?: boolean }) {
+function Fields(props: { params: PD.Params; binding: FieldBinding; nested?: boolean; filter?: Observable<string> }) {
   const { params, binding } = props;
   return (
     <div class={props.nested ? classes.nested : classes.fields}>
@@ -464,6 +547,7 @@ function Fields(props: { params: PD.Params; binding: FieldBinding; nested?: bool
               name={k}
               param={param}
               visible={visible}
+              filter={props.filter}
               binding={{
                 value: binding.value.pipe(
                   map((v) => v?.[k]),
@@ -489,16 +573,15 @@ function defaults(param: PD.Any): any {
 }
 
 /** A titled block that opens and closes; its content is rendered while open. */
-function Collapsible(props: { title: string; open?: boolean; children: () => Child }) {
-  const open = observableState(!!props.open);
+function Collapsible(props: { title: string; open?: boolean; force?: Observable<boolean>; children: () => Child }) {
+  const own = observableState(!!props.open);
+  // Forced open while a filter is set (its matches are inside); the user's choice again once it clears.
+  const open = props.force
+    ? combineLatest([own.asReadonly, props.force]).pipe(map(([o, f]) => o || f))
+    : own.asReadonly;
   return (
     <div class={classes.collapsible}>
-      <button
-        type="button"
-        class={classes.collapsibleHeader}
-        aria-expanded={open}
-        onClick={() => open.set(!open.value)}
-      >
+      <button type="button" class={classes.collapsibleHeader} aria-expanded={open} onClick={() => own.set(!own.value)}>
         <Icon name="chevron-right" size={14} class={classes.chevron} />
         {props.title}
       </button>

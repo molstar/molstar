@@ -10,7 +10,8 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { render } from '../../../dom/render.js';
 import { ParamsFormModel } from '../../../forms/params-form.js';
-import { ParamsForm } from '../params-form.js';
+import { observableState } from '../../../reactive/observable-state.js';
+import { ParamsForm, paramsMatch } from '../params-form.js';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
@@ -64,5 +65,37 @@ describe('ParamsForm', () => {
     settings.click();
     await flush();
     expect(container.querySelector('input[type=range]')).not.toBeNull();
+  });
+
+  it('filters rows by a search: matches show (groups open), a group whose name matches shows all its rows', async () => {
+    const params = {
+      pickPadding: PD.Numeric(3, { min: 0, max: 10, step: 1 }),
+      trackball: PD.Group({ rotateSpeed: PD.Numeric(5), zoomSpeed: PD.Numeric(7) }),
+      tooltips: PD.Boolean(true),
+    };
+    const form = new ParamsFormModel(params);
+    const filter = observableState('');
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(() => <ParamsForm form={form} filter={filter.asReadonly} />, container);
+    const shown = () =>
+      [...container.querySelectorAll('[title]')]
+        .filter((el) => !el.closest('[hidden]'))
+        .map((el) => el.getAttribute('title'));
+
+    filter.set('zoom');
+    await flush();
+    expect(shown()).toEqual(['Zoom Speed']);
+
+    filter.set('trackball');
+    await flush();
+    expect(shown()).toEqual(['Rotate Speed', 'Zoom Speed']);
+
+    filter.set('');
+    await flush();
+    expect(shown()).toEqual(['Pick Padding', 'Tooltips']);
+
+    expect(paramsMatch(params, 'zoom')).toBe(true);
+    expect(paramsMatch(params, 'nothing')).toBe(false);
   });
 });

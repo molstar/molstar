@@ -128,6 +128,10 @@ const ICONS = [
   'images',
   'cloud-upload',
   'file-code',
+  'gauge',
+  'app-window',
+  'toggle-right',
+  'wrench',
 ];
 
 const require = createRequire(import.meta.url);
