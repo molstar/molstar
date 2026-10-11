@@ -45,19 +45,19 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
   return (
     <div class={classes.panel}>
       <div class={classes.actions}>
-        <Button size="sm" variant="ghost" icon={<Icon name="plus" />} onClick={() => model.add()}>
-          <span class={classes.actionLabel}>Snapshot</span>
+        {/* Buttons that look like buttons (the control surface); Add keeps its +, the others are words. */}
+        <Button size="sm" class={classes.add} icon={<Icon name="plus" />} onClick={() => model.add()}>
+          <span class={classes.actionLabel}>Add</span>
         </Button>
         <Button
           size="sm"
-          variant="ghost"
           icon={<Icon name="download" />}
           pressed={open.asReadonly.pipe(map((o) => o === 'save'))}
           onClick={() => toggle('save')}
         >
           <span class={classes.actionLabel}>Save</span>
         </Button>
-        <Button size="sm" variant="ghost" icon={<Icon name="folder-open" />} onClick={() => file.click()}>
+        <Button size="sm" icon={<Icon name="folder-open" />} onClick={() => file.click()}>
           <span class={classes.actionLabel}>Open</span>
         </Button>
         {file}
@@ -108,7 +108,7 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
           key={(e) => e.id}
           fallback={() => (
             <p class={classes.empty}>
-              No snapshots yet. <strong>Snapshot</strong> saves the current view; saved ones play back in order.
+              No snapshots yet. <strong>Add</strong> saves the current view; saved ones play back in order.
             </p>
           )}
         >

@@ -18,13 +18,23 @@
 .actions {
   flex: none;
   display: flex;
-  gap: var(--msp-space-1);
+  gap: var(--msp-space-2);
   min-width: 0;
 }
 
-/* The header's buttons are words (no icons) while they fit, their icons alone when narrow. */
-.actions > button:has(.actionLabel) > :first-child:not(.actionLabel) {
+/* The header's buttons are words (no icons, but Add's +) while they fit, their icons alone when narrow. */
+.actions > button:has(.actionLabel):not(.add) > :first-child:not(.actionLabel) {
   display: none;
+}
+
+.add {
+  gap: var(--msp-space-1);
+  padding-left: var(--msp-space-2);
+
+  & > :first-child {
+    width: 14px;
+    height: 14px;
+  }
 }
 
 @container (width < 280px) {
