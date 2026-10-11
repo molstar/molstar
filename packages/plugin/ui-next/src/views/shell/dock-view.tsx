@@ -26,6 +26,10 @@ export function DockView(props: {
   const horizontal = dock.id === 'top' || dock.id === 'bottom';
   const hasTabs = dock.tabs.pipe(map((tabs) => tabs.length > 0));
   const compact = shell.mode.pipe(map((m) => m === 'compact' && dock.id === 'right'));
+  // Compact: only the tabs that ask for the bar (the rest are under More); elsewhere all of them.
+  const compactTabs = combineLatest([dock.tabs, compact]).pipe(
+    map(([tabs, c]) => (c && tabs.some((t) => t.compactBar) ? tabs.filter((t) => t.compactBar) : tabs)),
+  );
   // A top or bottom dock with one tab needs no strip: its content collapses itself, and a slim bar expands it.
   const showStrip = horizontal
     ? combineLatest([dock.tabs, dock.active]).pipe(map(([tabs, active]) => tabs.length > 1 && !!active))
@@ -48,7 +52,7 @@ export function DockView(props: {
                 role="tablist"
                 aria-orientation={compact.pipe(map((c) => (c || horizontal ? 'horizontal' : 'vertical')))}
               >
-                <For each={dock.tabs}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
+                <For each={compactTabs}>{(tab) => <TabButton shell={shell} dock={dock} tab={tab} />}</For>
                 {props.stripEnd}
               </nav>
             )}

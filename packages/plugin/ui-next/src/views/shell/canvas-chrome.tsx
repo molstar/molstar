@@ -231,18 +231,39 @@ function ToolMenu(props: { menus: ToolMenus }) {
 }
 
 /**
- * Compact: the rail's actions (command menu, animation, canvas settings, save, export) as a nested group at the end of
- * the bottom tab bar: More opens their list just above it.
+ * Compact: the end of the bottom tab bar. The command menu, then More: the tabs not in the bar (State tree, Log,
+ * Settings) and the rail's actions (selection, animation, canvas settings, save, export), opening just above it.
  */
 export function RailMenu(props: { shell: ShellModel }) {
   const { shell } = props;
   const open = observableState(false);
-  const items = shell.toolbar.pipe(map((all) => all.filter((i) => i.place !== 'canvas')));
+  const right = shell.dock('right');
+  // In the bar: the command menu (the rail's leading items), then More with the tabs not in the bar and the actions.
+  const lead = shell.toolbar.pipe(map((all) => all.filter((i) => i.place !== 'canvas' && !i.group)));
+  const actions = shell.toolbar.pipe(map((all) => all.filter((i) => i.place !== 'canvas' && i.group)));
+  const tabs = right.tabs.pipe(map((all) => (all.some((t) => t.compactBar) ? all.filter((t) => !t.compactBar) : [])));
+  const run = (item: CanvasToolbarItem, anchor: Element) => {
+    open.set(false);
+    if (item.overlay) shell.toggleOverlay(item.overlay, anchor);
+    else item.run?.(anchor);
+  };
   const root = (
     <div class={classes.railMenu}>
+      <For each={lead} key={(i) => i.id}>
+        {(item) => (
+          <button
+            type="button"
+            class={classes.railMenuButton}
+            aria-label={item.caption ? `${item.title} (${item.caption})` : item.title}
+            data-tip={item.caption ? `${item.title} (${item.caption})` : item.title}
+            onClick={(e) => run(item, e.currentTarget)}
+          >
+            <Icon name={item.icon} size={20} />
+          </button>
+        )}
+      </For>
       <button
         type="button"
-        role="tab"
         class={classes.railMenuButton}
         aria-label="More"
         aria-expanded={open}
@@ -254,21 +275,37 @@ export function RailMenu(props: { shell: ShellModel }) {
       <Show when={open}>
         {() => (
           <div class={classes.railMenuList} role="menu" aria-label="More">
-            <For each={items} key={(i) => i.id}>
+            <For each={tabs} key={(t) => t.id}>
+              {(tab) => (
+                <button
+                  type="button"
+                  role="menuitem"
+                  class={classes.toolMenuRow}
+                  onClick={() => {
+                    open.set(false);
+                    shell.show(tab.id);
+                  }}
+                >
+                  <Icon name={tab.icon} size={16} />
+                  <span class={classes.toolMenuLabel}>{tab.title}</span>
+                  <span />
+                </button>
+              )}
+            </For>
+            <Show when={combineLatest([tabs, actions]).pipe(map(([t, a]) => t.length > 0 && a.length > 0))}>
+              {() => <div class={classes.railMenuDivider} />}
+            </Show>
+            <For each={actions} key={(i) => i.id}>
               {(item) => (
                 <button
                   type="button"
                   role="menuitem"
                   class={classes.toolMenuRow}
-                  onClick={(e) => {
-                    open.set(false);
-                    if (item.overlay) shell.toggleOverlay(item.overlay, e.currentTarget);
-                    else item.run?.(e.currentTarget);
-                  }}
+                  onClick={(e) => run(item, e.currentTarget)}
                 >
                   <Icon name={item.icon} size={16} />
                   <span class={classes.toolMenuLabel}>{item.title}</span>
-                  {item.caption ? <kbd class={classes.caption}>{item.caption}</kbd> : <span />}
+                  <span />
                 </button>
               )}
             </For>

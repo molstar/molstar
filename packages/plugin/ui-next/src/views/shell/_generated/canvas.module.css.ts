@@ -42,6 +42,7 @@ export const classes = {
   'progress': 'msp-shell-canvas-progress',
   'railMenu': 'msp-shell-canvas-railMenu',
   'railMenuButton': 'msp-shell-canvas-railMenuButton',
+  'railMenuDivider': 'msp-shell-canvas-railMenuDivider',
   'railMenuList': 'msp-shell-canvas-railMenuList',
   'sections': 'msp-shell-canvas-sections',
   'spin': 'msp-shell-canvas-spin',
@@ -301,7 +302,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-bottomGrid {
-  align-items: end;
+  align-items: center;
   gap: var(--msp-space-3);
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas: "status context";
@@ -432,6 +433,8 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-status .msp-shell-canvas-pill {
+  height: auto;
+  min-height: 24px;
   box-shadow: none;
   -webkit-backdrop-filter: none;
   text-shadow: 0 0 2px var(--msp-color-bg),
@@ -440,12 +443,19 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   padding-left: 0;
 }
 
+.msp-shell-canvas-status .msp-shell-canvas-pillButton {
+  width: 24px;
+  height: 24px;
+  margin-left: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+}
+
 .msp-shell-canvas-pill:not(:has(.msp-shell-canvas-pillButton)) {
   padding-right: var(--msp-space-3);
 }
 
 .msp-shell-canvas-railMenu {
-  display: flex;
+  display: contents;
   position: relative;
 }
 
@@ -506,6 +516,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   & .msp-shell-canvas-pill {
     width: 100%;
     max-width: none;
+    height: 34px;
     padding-left: var(--msp-space-3);
     text-shadow: none;
     box-shadow: none;
@@ -612,6 +623,12 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-busyActions {
   justify-content: flex-end;
   display: flex;
+}
+
+.msp-shell-canvas-railMenuDivider {
+  height: 1px;
+  margin: var(--msp-space-1) var(--msp-space-2);
+  background: var(--msp-glass-edge);
 }
 }
 `);

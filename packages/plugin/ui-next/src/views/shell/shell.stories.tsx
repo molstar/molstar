@@ -285,6 +285,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
   shell.registerTabs([
     {
       id: 'home',
+      compactBar: true,
       title: 'Home',
       icon: 'molstar',
       order: 0,
@@ -293,6 +294,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     },
     {
       id: 'structure',
+      compactBar: true,
       title: 'Structure',
       icon: 'layers',
       order: 1,

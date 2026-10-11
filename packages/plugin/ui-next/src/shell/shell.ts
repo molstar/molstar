@@ -40,6 +40,8 @@ export interface ShellTab {
    * strip (default), or its foot by the command menu (Settings).
    */
   place?: 'head' | 'strip' | 'foot';
+  /** In the compact layout's bottom bar (Home, Structure); the rest go under More there. */
+  compactBar?: boolean;
   render: ViewRenderer<ShellViewContext>;
 }
 

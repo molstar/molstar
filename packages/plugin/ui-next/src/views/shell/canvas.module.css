@@ -288,7 +288,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas: "status context";
-  align-items: end;
+  align-items: center;
   gap: var(--msp-space-3);
 
   & > * {
@@ -424,6 +424,9 @@
 /* The status line (messages, tasks) has no frame: ink on the canvas (its color from the canvas theme), with a soft
    halo of the background color so it reads over the molecule too. */
 .status .pill {
+  /* Its text's own height (no box to center in): at the frame margin, or centered with the selection bar. */
+  height: auto;
+  min-height: 24px;
   padding-left: 0;
   background: none;
   box-shadow: none;
@@ -434,6 +437,14 @@
     0 0 6px var(--msp-color-bg);
 }
 
+/* Frameless, its ✕ is a small rounded square around the icon, not a slice of a pill. */
+.status .pillButton {
+  width: 24px;
+  height: 24px;
+  margin-left: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+}
+
 /* A pill without a button at its end keeps its padding on the right too. */
 .pill:not(:has(.pillButton)) {
   padding-right: var(--msp-space-3);
@@ -442,7 +453,7 @@
 /* Compact: More at the end of the bottom tab bar; its list opens just above it. */
 .railMenu {
   position: relative;
-  display: flex;
+  display: contents;
 }
 
 .railMenuButton {
@@ -509,6 +520,7 @@
   & .pill {
     width: 100%;
     max-width: none;
+    height: 34px;
     padding-left: var(--msp-space-3);
     text-shadow: none;
     border-radius: 0;
@@ -619,4 +631,10 @@
 .busyActions {
   display: flex;
   justify-content: flex-end;
+}
+
+.railMenuDivider {
+  height: 1px;
+  margin: var(--msp-space-1) var(--msp-space-2);
+  background: var(--msp-glass-edge);
 }
