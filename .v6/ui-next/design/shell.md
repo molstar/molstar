@@ -61,15 +61,18 @@ it is where contributions (built-in and extension UI) are placed.
   content carries its own header (the sequence: structure and chain selectors, collapse), and collapsed it is a slim bar
   that expands on click.
 - **Rail sections.** The rail is grouped into glass blocks separated by gaps (no captions), top to bottom: the command
-  palette (the main way in), the tab strip, then the toolbar's sections (`canvas`: reset camera, illumination, XR,
-  expand; `export`: save state, Export). Toolbar items name their section by id (`group`, `order` within it). Extensions
-  do **not** add rail buttons for their features (the rail would grow with every extension): they contribute
-  **sections** to a panel's slot instead, e.g. MP4, geometry and model export as sections of the Export panel (`export`
-  slot), next to the built-in Image and Session & state sections. Everything is also a command, and a command can open a
-  panel at a section (`openOverlay('export', anchor, 'animation')`), so the palette finds "mp4" and lands on it.
-- **Canvas toolbar.** A vertical strip of command buttons (palette, reset camera, screenshot, save state, selection
-  mode, illumination, XR, expand/fullscreen, plus contributed items), each gated by its command's `when` and
-  `PluginConfig.Viewport.*`. A button either runs its command or opens an overlay anchored to it.
+  palette (the main way in), the tab strip, then app actions (`export`: save state, Export). Toolbar items name their
+  section by id (`group`, `order` within it). Extensions do **not** add rail buttons for their features (the rail would
+  grow with every extension): they contribute **sections** to a panel's slot instead, e.g. MP4, geometry and model
+  export as sections of the Export panel (`export` slot), next to the built-in Image and Session & state sections.
+  Everything is also a command, and a command can open a panel at a section
+  (`openOverlay('export', anchor, 'animation')`), so the palette finds "mp4" and lands on it.
+- **Canvas stack.** What acts on the view sits on the canvas itself, at its top right (below the sequence card, beside
+  the rail or the open panel), as a vertical stack of glass blocks: the mode (Interact, Select; §4.6), then the toolbar
+  items placed on the canvas (`place: 'canvas'`): `canvas` (reset camera, illumination, XR, expand) and `view` (show or
+  hide the sequence). Each button runs its command or opens an overlay anchored to it, gated by the command's `when` and
+  `PluginConfig.Viewport.*`. Panels over the canvas are shown and hidden from here: a hidden sequence card takes no room
+  at all (no collapsed pill), and what was below it moves up.
 - **Snapshot panel** (top-left of the canvas, §4.3): stepper and description. Nothing is stacked under it, so a
   description that grows or collapses moves nothing else.
 - **Bottom of the canvas**: messages and tasks on the left, the current selection and focus as chips in the centre (the
@@ -87,7 +90,7 @@ it is where contributions (built-in and extension UI) are placed.
 - **Hover label** next to the cursor (§4.4).
 - **Status line** (bottom of the canvas): the latest log message (fades after a few seconds; errors stay until
   dismissed), running tasks with progress and abort, and chips for the selection and focus (click to focus, ✕ to clear).
-  Clicking the message opens the log overlay.
+  Clicking the message opens the Log tab.
 - **Overlays.** Cards over the canvas, one at a time, closed with Esc or a click outside; unlike dialogs they do not
   block the canvas. With the floating panel collapsed, a card sits beside the rail, level with the button that opened
   it; with the panel open, the card takes the panel's place (same size, opaque: no glass on glass) until it closes.
@@ -144,6 +147,7 @@ class ShellModel extends ReactiveModel {
 | **Home**             | Open files, download by ID (PDB, AlphaFold DB, PDB-IHM, URL as presets), examples, recently opened, a palette hint. Shown by default while nothing is loaded. Contributed import entries (Zenodo) appear here as commands.                                                                                                                                                                                                                                      | Home tab, custom import controls                                          |
 | **Structure** (main) | Top: the scene tree (structures → components → representations; volumes; particles; measurements; generic entries), inline visibility, context menus. Header actions: apply preset, color by, add component (commands). Bottom: the inspector for the picked node (its parameters as a `ParamsFormModel`) followed by contributed sections for that node kind: assembly symmetry, volume streaming, kinemage groups on a structure; volume options on a volume. | Source, Components, Volume, Particles, Measurements list, extension cards |
 | **State tree**       | The full state tree with the current node's editors and applicable actions.                                                                                                                                                                                                                                                                                                                                                                                     | Data tab                                                                  |
+| **Log**              | Every message the status line showed, newest first, with kind and time; the status line opens it.                                                                                                                                                                                                                                                                                                                                                               | Bottom log region, log overlay                                            |
 | **Settings**         | §4.5.                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Settings tab, viewport settings panel                                     |
 | Extension tabs       | Segmentation (volseg), PAE plot (model-archive; also movable to the bottom dock), app-specific tabs.                                                                                                                                                                                                                                                                                                                                                            | Large extension cards                                                     |
 
@@ -163,7 +167,6 @@ choice changes.
 | -------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
 | **Save state** | Toolbar 💾, `state.save`     | Name (auto-filled), three actions: **Snapshot**, **Download session** (`.molx`), **Download state** (`.molj`); the snapshot list below (apply, rename, reorder, delete, edit description). "More" reveals save options, key, markdown description, and remote sharing (upload, server list). | Plugin State tab            |
 | **Screenshot** | Toolbar 📷                   | Preview with crop, size/format options, copy, download.                                                                                                                                                                                                                                      | Screenshot panel            |
-| **Log**        | Status line message          | History with type filter and copy.                                                                                                                                                                                                                                                           | Bottom log region           |
 | **Help**       | `help.*`, `?` palette prefix | Keybindings (generated), palette prefixes, mouse controls, selection help.                                                                                                                                                                                                                   | Help tab, viewport help     |
 | **Animation**  | Playback cluster             | Choose an animation, its parameters, play/stop.                                                                                                                                                                                                                                              | Animation viewport controls |
 
@@ -213,13 +216,14 @@ Today's settings panel lists every canvas parameter at one level with truncated 
 
 ### 4.6 Canvas mode and selection bar
 
-What a click on the canvas does is a mode, and the difference matters, so the mode is always visible rather than a rail
-toggle: a two-segment glass switch at the top right of the canvas, **Interact | Select**
-(`views/canvas/mode-switch.tsx`), below what floats at the top and beside the rail or the open panel. Interact: drag
-rotates, a click focuses. Select: a click selects (Shift extends), drag still rotates. The Select segment takes the
-accent while on, and the switch then shows what a click selects (Residue ▾, the granularity) next to it. Each segment's
-title explains the mode, switching posts a one-line hint to the status line, and the segments are labelled on desktop,
-icons only in compact. The mode is also a command (`selection-mode.toggle`, with a keybinding) and Escape leaves Select.
+What a click on the canvas does is a mode, and the difference matters, so the mode is always visible: the top block of
+the canvas stack is two buttons, **Interact** and **Select** (`views/canvas/mode-switch.tsx`). Interact: drag rotates, a
+click focuses. Select: a click selects (Shift extends), drag still rotates. Select takes the accent while on; each
+button's title explains its mode and switching posts a one-line hint to the status line. While selecting, the picking
+level opens to the left of Select ("Picks ⬡ Residue ▾"; the stack never moves): a button with the level's icon that
+opens the list of Mol*'s granularities (atom, residue, chain, entity, model, operator, structure, and the multi-instance
+levels), the chosen one in the accent (after stories-untold's pick-level control). The mode is also a command
+(`selection-mode.toggle`, with a keybinding) and Escape leaves Select.
 
 In Select, the selection bar shows at the bottom of the canvas: mode (add/remove/intersect/replace), the `select`
 command group as an inline palette, color, create component, undo ([commands.md](commands.md) §10.3). Granularity and

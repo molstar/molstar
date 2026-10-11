@@ -9,10 +9,8 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
-  'anchor': 'msp-canvas-mode-switch-anchor',
   'chevron': 'msp-canvas-mode-switch-chevron',
   'group': 'msp-canvas-mode-switch-group',
-  'label': 'msp-canvas-mode-switch-label',
   'level': 'msp-canvas-mode-switch-level',
   'level-in': 'msp-canvas-mode-switch-level-in',
   'levelButton': 'msp-canvas-mode-switch-levelButton',
@@ -20,21 +18,11 @@ export const classes = {
   'levelRow': 'msp-canvas-mode-switch-levelRow',
   'levels': 'msp-canvas-mode-switch-levels',
   'segment': 'msp-canvas-mode-switch-segment',
+  'selectSlot': 'msp-canvas-mode-switch-selectSlot',
   'switch': 'msp-canvas-mode-switch-switch',
 } as const;
 
 defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
-.msp-canvas-mode-switch-anchor {
-  top: var(--msp-canvas-top-inset, var(--msp-space-4));
-  right: var(--msp-canvas-right-inset, var(--msp-space-4));
-  align-items: flex-end;
-  gap: var(--msp-space-3);
-  transition: right var(--msp-motion-base) var(--msp-ease);
-  flex-direction: column;
-  display: flex;
-  position: absolute;
-}
-
 .msp-canvas-mode-switch-switch, .msp-canvas-mode-switch-levelButton, .msp-canvas-mode-switch-levels {
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
@@ -43,26 +31,24 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
 }
 
 .msp-canvas-mode-switch-switch {
-  align-items: center;
-  gap: 2px;
-  height: 34px;
-  padding: 3px;
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-2);
+  flex-direction: column;
   display: flex;
 }
 
 .msp-canvas-mode-switch-segment {
-  align-items: center;
-  gap: var(--msp-space-2);
-  height: 100%;
-  padding: 0 var(--msp-space-3);
   border-radius: var(--msp-radius-md);
+  width: 34px;
+  height: 34px;
   color: var(--msp-color-text-muted);
-  font-size: var(--msp-font-size-sm);
   transition: background-color var(--msp-motion-fast) var(--msp-ease),
     color var(--msp-motion-fast) var(--msp-ease);
-  display: flex;
+  place-items: center;
+  display: grid;
 
   &:hover {
+    background: var(--msp-color-hover);
     color: var(--msp-color-text);
   }
 
@@ -77,28 +63,35 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
   color: var(--msp-color-accent);
 }
 
+.msp-canvas-mode-switch-selectSlot {
+  position: relative;
+}
+
 .msp-canvas-mode-switch-level {
+  top: 0;
+  right: calc(100% + var(--msp-space-2) + var(--msp-space-3));
   animation: msp-canvas-mode-switch-level-in var(--msp-motion-base) var(--msp-ease);
   flex-direction: column;
   align-items: flex-end;
   display: flex;
-  position: relative;
+  position: absolute;
 }
 
 @keyframes msp-canvas-mode-switch-level-in {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateX(4px);
   }
 }
 
 .msp-canvas-mode-switch-levelButton {
   align-items: center;
   gap: var(--msp-space-2);
-  height: 30px;
+  height: 34px;
   padding: 0 var(--msp-space-3);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
+  white-space: nowrap;
   display: flex;
 
   &:hover, &[aria-expanded="true"] {
@@ -160,11 +153,7 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
   }
 }
 
-:where([data-mode="compact"]) .msp-canvas-mode-switch-anchor {
-  right: var(--msp-canvas-rail-inset, var(--msp-space-4));
-}
-
-:where([data-mode="compact"]) .msp-canvas-mode-switch-label, :where([data-mode="compact"]) .msp-canvas-mode-switch-levelCaption {
+:where([data-mode="compact"]) .msp-canvas-mode-switch-levelCaption {
   display: none;
 }
 }

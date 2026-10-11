@@ -35,9 +35,9 @@ export interface ModeSwitchProps {
 }
 
 /**
- * The canvas mode, always visible at the top right of the canvas: two labelled segments, so the difference between
- * interacting with the scene and selecting in it is visible before the first click. While selecting, the picking level
- * shows below it (the switch itself never moves): a button with the level's icon that opens the list of levels.
+ * The canvas mode, at the top of the canvas stack: two toggle buttons, Interact and Select (the titles explain the
+ * difference; Select takes the accent). While selecting, the picking level shows to the left of Select (the stack never
+ * moves): a button with the level's icon that opens the list of levels below it.
  */
 export function ModeSwitch(props: ModeSwitchProps) {
   const selecting = props.mode.pipe(
@@ -45,30 +45,32 @@ export function ModeSwitch(props: ModeSwitchProps) {
     distinctUntilChanged(),
   );
   return (
-    <div class={classes.anchor}>
-      <div class={classes.switch} role="group" aria-label="Canvas mode" data-canvas-mode={props.mode}>
-        <button
-          type="button"
-          class={classes.segment}
-          aria-pressed={selecting.pipe(map((s) => !s))}
-          title="Interact: drag to rotate, click to focus"
-          onClick={() => props.setMode('interact')}
-        >
-          <Icon name="rotate-3d" size={15} />
-          <span class={classes.label}>Interact</span>
-        </button>
+    <div class={classes.switch} role="group" aria-label="Canvas mode" data-canvas-mode={props.mode}>
+      <button
+        type="button"
+        class={classes.segment}
+        aria-pressed={selecting.pipe(map((s) => !s))}
+        title="Interact: drag to rotate, click to focus"
+        aria-label="Interact"
+        onClick={() => props.setMode('interact')}
+      >
+        <Icon name="rotate-3d" size={20} />
+      </button>
+      <div class={classes.selectSlot}>
         <button
           type="button"
           class={classes.segment}
           aria-pressed={selecting}
           title="Select: click to select, Shift+click to extend; drag still rotates"
+          aria-label="Select"
           onClick={() => props.setMode('select')}
         >
-          <Icon name="mouse-pointer-click" size={15} />
-          <span class={classes.label}>Select</span>
+          <Icon name="mouse-pointer-click" size={20} />
         </button>
+        {props.granularities && props.granularity ? (
+          <Show when={selecting}>{() => <PickLevel {...props} />}</Show>
+        ) : null}
       </div>
-      {props.granularities && props.granularity ? <Show when={selecting}>{() => <PickLevel {...props} />}</Show> : null}
     </div>
   );
 }

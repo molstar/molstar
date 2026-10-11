@@ -14,14 +14,13 @@ import type { ShellModel } from '../../shell/shell.js';
 import type { StatusModel } from '../../shell/status.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/shell.module.css.js';
-import { CanvasToolbar, ContextChips, OverlayHost, StatusLine } from './canvas-chrome.js';
+import { CanvasStack, CanvasToolbar, ContextChips, OverlayHost, StatusLine } from './canvas-chrome.js';
 import { DockView, FloatingDock } from './dock-view.js';
 
 /** Widths (px) of what floats on the right: the rail (tab strip, toolbar), the gap to the card, the edge margin. */
 const RailWidth = 44;
 const Gap = 8;
 const Edge = 12;
-const CollapsedHeight = 28;
 /** The bottom bar's height (one row: the timeline's); floating side panels end above it. */
 const BottomBarHeight = 34;
 
@@ -44,6 +43,8 @@ export interface ShellViewProps {
    * background, so cards read as frosted canvas rather than slabs of panel color.
    */
   canvasColor?: MaybeReactive<string>;
+  /** The top of the canvas stack, above the canvas toolbar items: the interact / select mode buttons. */
+  canvasLead?: Child;
   onOpenLog?: () => void;
 }
 
@@ -61,9 +62,9 @@ export function ShellView(props: ShellViewProps) {
     map(([s, mode]) => s.floating && mode !== 'compact'),
     distinctUntilChanged(),
   );
-  // What floats at the top (the sequence card, or its collapsed pill) takes this much: the snapshot panel goes below.
-  const topInset = combineLatest([top.state, top.tabs, top.active, floatingTop]).pipe(
-    map(([s, tabs, active, f]) => (f && tabs.length ? Edge + (active ? s.size : CollapsedHeight) + Gap : Edge)),
+  // What floats at the top (the sequence card) takes this much: the snapshots and the canvas stack go below.
+  const topInset = combineLatest([top.state, top.active, floatingTop]).pipe(
+    map(([s, active, f]) => (f && active ? Edge + s.size + Gap : Edge)),
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
@@ -111,6 +112,7 @@ export function ShellView(props: ShellViewProps) {
               {props.timeline ? <div class={canvasClasses.timeline}>{props.timeline}</div> : null}
             </div>
           </div>
+          <CanvasStack shell={shell} lead={props.canvasLead} />
           <OverlayHost shell={shell} />
           <Show
             when={floating}

@@ -64,8 +64,9 @@
   display: flex;
   align-items: center;
   gap: var(--msp-space-3);
-  height: var(--msp-row-height);
-  padding: 0 var(--msp-space-2) 0 var(--msp-space-4);
+  height: 40px;
+  /* The trailing icon button has 4px of its own inset: 8 + 4 puts its glyph 12px from the edge, like the title. */
+  padding: 0 var(--msp-space-3) 0 var(--msp-space-4);
   font-weight: 600;
 }
 

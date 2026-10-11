@@ -62,15 +62,14 @@ export function FloatingDock(props: { shell: ShellModel; dock: DockModel; railLe
   const { shell, dock } = props;
   const size = { '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) };
   if (dock.id === 'top' || dock.id === 'bottom') {
-    // A top or bottom card spans the canvas between the edges and what floats on the sides; collapsed, a glass pill.
+    // A top or bottom card spans the canvas between the edges and what floats on the sides. Collapsed, it is gone: a
+    // canvas toolbar button (Sequence) brings it back.
     return (
       <div
         class={`${classes.floating} ${dock.id === 'top' ? classes.floatingTop : classes.floatingBottom}`}
         style={size}
       >
-        <Show when={dock.active} fallback={() => <CollapsedBar shell={shell} dock={dock} />}>
-          {(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}
-        </Show>
+        <Show when={dock.active}>{(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}</Show>
       </div>
     );
   }

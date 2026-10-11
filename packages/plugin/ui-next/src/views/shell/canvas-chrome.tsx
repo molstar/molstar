@@ -13,6 +13,7 @@ import { For, Show } from '../../dom/control-flow.js';
 import { onCleanup } from '../../dom/scope.js';
 import type { CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
 import type { MessageKind, StatusModel, StatusTask } from '../../shell/status.js';
+import type { Child } from '../../dom/jsx-types.js';
 import { classes } from './_generated/canvas.module.css.js';
 import { ViewHost } from './view-host.js';
 
@@ -35,16 +36,20 @@ function sectionsOf(items: readonly CanvasToolbarItem[]): ToolSection[] {
 }
 
 /**
- * The canvas toolbar: its buttons in sections, each a glass block of its own, the gaps between them the grouping.
- * `part` splits it around the rail's tab strip: the leading section (the palette) above it, the others below.
+ * The toolbar: its buttons in sections, each a glass block of its own, the gaps between them the grouping. `part`
+ * picks what to show: the rail's items (`all`), split around its tab strip (`lead`: the palette above it, `rest`
+ * below), or the canvas stack's items (`canvas`).
  */
-export function CanvasToolbar(props: { shell: ShellModel; part?: 'all' | 'lead' | 'rest' }) {
+export function CanvasToolbar(props: { shell: ShellModel; part?: 'all' | 'lead' | 'rest' | 'canvas' }) {
   const { shell } = props;
   const part = props.part ?? 'all';
+  const canvas = part === 'canvas';
   const sections = shell.toolbar.pipe(
-    map(sectionsOf),
+    map((items) => sectionsOf(items.filter((i) => (i.place === 'canvas') === canvas))),
     map((all) =>
-      part === 'all' ? all : all.filter((s) => (part === 'lead' ? s.group === undefined : s.group !== undefined)),
+      part === 'all' || canvas
+        ? all
+        : all.filter((s) => (part === 'lead' ? s.group === undefined : s.group !== undefined)),
     ),
   );
   return (
@@ -88,6 +93,19 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem }) {
     >
       <Icon name={item.icon} size={20} />
     </button>
+  );
+}
+
+/**
+ * The canvas stack at the top right of the canvas, below what floats at the top and beside the rail or the open
+ * panel: the mode buttons (`lead`) and then the toolbar items placed on the canvas (camera, lighting, XR, expand).
+ */
+export function CanvasStack(props: { shell: ShellModel; lead?: Child }) {
+  return (
+    <div class={classes.stack}>
+      {props.lead}
+      <CanvasToolbar shell={props.shell} part="canvas" />
+    </div>
   );
 }
 
@@ -136,7 +154,7 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
   return card;
 }
 
-const KindIcons: Record<MessageKind, IconName> = {
+export const KindIcons: Record<MessageKind, IconName> = {
   info: 'info',
   success: 'circle-check',
   warning: 'triangle-alert',

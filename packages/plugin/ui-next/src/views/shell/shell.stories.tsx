@@ -26,6 +26,7 @@ import { type CanvasMode, type Granularity, ModeSwitch } from '../canvas/mode-sw
 import { SnapshotPanel, Timeline } from '../canvas/playback.js';
 import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
+import { LogView } from './log-view.js';
 import { SectionList } from './section-list.js';
 import { ShellView } from './shell-view.js';
 import { StructureTab } from '../structure/structure-tab.js';
@@ -359,6 +360,13 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
       render: domView(() => <Placeholder title="State tree">The full state tree for advanced use.</Placeholder>),
     },
     {
+      id: 'log',
+      title: 'Log',
+      icon: 'list',
+      order: 2.5,
+      render: domView(() => <LogView status={status} />),
+    },
+    {
       id: 'settings',
       title: 'Settings',
       icon: 'settings',
@@ -439,22 +447,6 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
         );
       }),
     },
-    {
-      id: 'log',
-      title: 'Log',
-      render: domView(() => (
-        <div style={pad}>
-          <For each={status.history} fallback={() => <span style={muted}>No messages.</span>}>
-            {(m) => (
-              <div style="display: flex; gap: 8px">
-                <span style={muted}>{m.time.toLocaleTimeString()}</span>
-                <span>{m.text}</span>
-              </div>
-            )}
-          </For>
-        </div>
-      )),
-    },
   ]);
 
   shell.registerToolbar([
@@ -464,11 +456,19 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
       title: `Commands (${formatChord({ key: 'k', mod: true })})`,
       run: () => status.post('The palette comes next.'),
     },
-    { id: 'reset', group: 'canvas', icon: 'rotate-ccw', title: 'Reset camera', run: () => status.post('Camera reset') },
+    {
+      id: 'reset',
+      place: 'canvas',
+      group: 'canvas',
+      icon: 'rotate-ccw',
+      title: 'Reset camera',
+      run: () => status.post('Camera reset'),
+    },
     { id: 'save', group: 'export', icon: 'save', title: 'Save state (snapshots)', overlay: 'save-state' },
     { id: 'export', group: 'export', icon: 'download', title: 'Export…', overlay: 'export' },
     {
       id: 'illumination',
+      place: 'canvas',
       group: 'canvas',
       icon: 'lightbulb',
       title: 'Illumination',
@@ -477,12 +477,30 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     },
     {
       id: 'xr',
+      place: 'canvas',
       group: 'canvas',
       icon: 'glasses',
       title: 'Enter XR',
       run: () => status.post('XR is not available in this browser.', 'warning'),
     },
-    { id: 'expand', group: 'canvas', icon: 'maximize', title: 'Expand', run: () => status.post('Expanded') },
+    {
+      id: 'expand',
+      place: 'canvas',
+      group: 'canvas',
+      icon: 'maximize',
+      title: 'Expand',
+      run: () => status.post('Expanded'),
+    },
+    // Panels over the canvas: shown and hidden from the stack (hidden, they take no room at all).
+    {
+      id: 'sequence',
+      place: 'canvas',
+      group: 'view',
+      icon: 'sequence',
+      title: 'Sequence',
+      pressed: shell.dock('top').active.pipe(map((t) => !!t)),
+      run: () => shell.toggle('top'),
+    },
   ]);
 
   // One Export button; built-in and extension exports are sections of its panel.
@@ -550,7 +568,6 @@ function ShellStory(props: { loaded: boolean; preset?: MockScenePreset; backgrou
         props.loaded ? (
           <>
             <SnapshotPanel model={snapshots} />
-            {modeSwitch}
             <HoverLabel model={hover} area={() => document.querySelector('main')} />
           </>
         ) : null
@@ -558,7 +575,8 @@ function ShellStory(props: { loaded: boolean; preset?: MockScenePreset; backgrou
       timeline={props.loaded ? <Timeline model={trajectory} /> : null}
       canvasColor={props.background ?? '#ffffff'}
       canvasTheme={themeForColor(parseColor(props.background ?? '#ffffff') ?? 0xffffff)}
-      onOpenLog={() => shell.openOverlay('log')}
+      canvasLead={props.loaded ? modeSwitch : null}
+      onOpenLog={() => shell.show('log')}
     />
   );
 }

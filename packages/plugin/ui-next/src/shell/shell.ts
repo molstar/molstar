@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { Observable } from 'rxjs';
 import type { IconName } from '../components/icon/icon.js';
 import type { ViewRenderer } from '../dom/view.js';
 import { type ObservableRecordState, type ObservableState, observableState } from '../reactive/observable-state.js';
@@ -105,8 +106,13 @@ export interface CanvasToolbarItem {
    */
   group?: string;
   order?: number;
+  /**
+   * Where it shows: the rail (default: panels, the palette, app actions like save and export) or the canvas stack at
+   * the top right of the canvas (what acts on the view: camera, lighting, XR, expand), under the mode buttons.
+   */
+  place?: 'rail' | 'canvas';
   /** Shown pressed (a toggle, or the open overlay's button). */
-  pressed?: ReadonlyState<boolean>;
+  pressed?: Observable<boolean>;
   /** Opens (or closes) this overlay, anchored to the button. */
   overlay?: string;
   run?(anchor: Element): void;

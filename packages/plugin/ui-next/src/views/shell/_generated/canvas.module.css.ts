@@ -26,6 +26,7 @@ export const classes = {
   'sections': 'msp-shell-canvas-sections',
   'separator': 'msp-shell-canvas-separator',
   'spin': 'msp-shell-canvas-spin',
+  'stack': 'msp-shell-canvas-stack',
   'status': 'msp-shell-canvas-status',
   'text': 'msp-shell-canvas-text',
   'timeline': 'msp-shell-canvas-timeline',
@@ -127,6 +128,20 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-cardBody {
   min-height: 0;
   overflow: auto;
+}
+
+.msp-shell-canvas-stack {
+  top: var(--msp-canvas-top-inset, var(--msp-space-4));
+  right: var(--msp-canvas-right-inset, var(--msp-space-4));
+  gap: var(--msp-space-3);
+  transition: right var(--msp-motion-base) var(--msp-ease);
+  flex-direction: column;
+  display: flex;
+  position: absolute;
+}
+
+:where([data-mode="compact"]) .msp-shell-canvas-stack {
+  right: var(--msp-canvas-rail-inset, var(--msp-space-4));
 }
 
 .msp-shell-canvas-toolbarSlot {
