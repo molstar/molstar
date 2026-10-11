@@ -37,6 +37,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-warning: #fcc937;
     --msp-color-info: #b18ac6;
     --msp-shade: #fff;
+    --msp-step-control: 10%;
     --msp-step-hover: 15%;
     --msp-step-pressed: 20%;
     --msp-color-brand-1: #d29a68;
@@ -56,6 +57,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-warning: #fcc937;
     --msp-color-info: #b18ac6;
     --msp-shade: #fff;
+    --msp-step-control: 10%;
     --msp-step-hover: 15%;
     --msp-step-pressed: 20%;
     --msp-color-brand-1: #d29a68;
@@ -76,6 +78,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
       --msp-color-warning: #fcc937;
       --msp-color-info: #b18ac6;
       --msp-shade: #fff;
+      --msp-step-control: 10%;
       --msp-step-hover: 15%;
       --msp-step-pressed: 20%;
       --msp-color-brand-1: #d29a68;
@@ -89,7 +92,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-color-panel: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 3%);
     --msp-color-raised: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 5%);
     --msp-color-well: var(--msp-color-bg);
-    --msp-color-control: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 6.5%);
+    --msp-color-control: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) var(--msp-step-control, 6.5%));
     --msp-color-hover: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) var(--msp-step-hover, 9%));
     --msp-color-pressed: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) var(--msp-step-pressed, 13%));
     --msp-color-border: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 15%);
@@ -137,8 +140,9 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-z-toast: 30;
     --msp-z-tooltip: 40;
     --msp-motion-fast: .1s;
-    --msp-motion-base: .18s;
+    --msp-motion-base: .22s;
     --msp-ease: cubic-bezier(.2, 0, 0, 1);
+    --msp-ease-reveal: cubic-bezier(.4, 0, .2, 1);
   }
 
   [data-msp-ink="light"] {

@@ -42,8 +42,8 @@
     --msp-color-info: #b18ac6;
     --msp-shade: #fff;
 
+    --msp-step-control: 10%;
     --msp-step-hover: 15%;
-
     --msp-step-pressed: 20%;
     --msp-color-brand-1: #d29a68;
     --msp-color-brand-2: #f5d36b;
@@ -63,8 +63,8 @@
     --msp-color-info: #b18ac6;
     --msp-shade: #fff;
 
+    --msp-step-control: 10%;
     --msp-step-hover: 15%;
-
     --msp-step-pressed: 20%;
     --msp-color-brand-1: #d29a68;
     --msp-color-brand-2: #f5d36b;
@@ -85,8 +85,8 @@
       --msp-color-info: #b18ac6;
       --msp-shade: #fff;
 
+      --msp-step-control: 10%;
       --msp-step-hover: 15%;
-
       --msp-step-pressed: 20%;
       --msp-color-brand-1: #d29a68;
       --msp-color-brand-2: #f5d36b;
@@ -103,7 +103,8 @@
     /* A well in a panel (an open action, an inline block): the base color, a step away from the panel the other way,
        so the controls in it (control shade) stand out the more. */
     --msp-color-well: var(--msp-color-bg);
-    --msp-color-control: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 6.5%);
+    /* Controls: a step above the panel; the dark themes take a larger one (toward white it reads as less). */
+    --msp-color-control: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) var(--msp-step-control, 6.5%));
     /* Hover and pressed: a step from the panel that shows. Toward white from a dark base, the same mix reads as a far
        smaller change than toward black from a light one, so the dark themes take larger steps (--msp-step-*). */
     --msp-color-hover: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) var(--msp-step-hover, 9%));
@@ -170,8 +171,11 @@
 
     /* Motion. */
     --msp-motion-fast: 100ms;
-    --msp-motion-base: 180ms;
+    --msp-motion-base: 220ms;
     --msp-ease: cubic-bezier(0.2, 0, 0, 1);
+    /* Content that opens or closes: eases in as well as out, so the growth is even (the quick ease above is mostly
+       done in its first frames, which reads as a jump on a tall block). */
+    --msp-ease-reveal: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Text drawn over the canvas follows the canvas background, not the UI theme. */

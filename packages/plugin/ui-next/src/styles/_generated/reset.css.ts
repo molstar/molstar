@@ -131,7 +131,7 @@ defineStyles('styles/reset.css', `@property --msp-fade {
   }
 
   :where(.msp-root) :where([data-reveal]) {
-    animation: msp-reveal var(--msp-motion-base) var(--msp-ease);
+    animation: msp-reveal var(--msp-motion-base) var(--msp-ease-reveal);
   }
 
   :where(.msp-root) :where([data-reveal="side"]) {

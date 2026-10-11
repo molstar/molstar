@@ -223,7 +223,7 @@ function FoldRow(props: { label: string; children: readonly string[] }) {
 
 /**
  * Motion: what moves, and how (`--msp-motion-fast` for state changes, `--msp-motion-base` for content that opens,
- * `--msp-ease`). Content that opens grows to its height and fades in, and closing plays it back (Show's `reveal`;
+ * `--msp-ease`, and `--msp-ease-reveal` for opening and closing). Content that opens grows to its height and fades in, and closing plays it back (Show's `reveal`;
  * `dom/motion.ts` for code that hides content itself, as section lists do); panels slide in from the side; chevrons
  * turn; hover and press change color; option lists and popovers drop in. Nothing animates on the first render, on a
  * tab switch, for rows of a list, or with reduced motion. Slow motion (×5) to look at them.
@@ -253,7 +253,8 @@ export const Motion: StoryObj = {
               Slow motion (×5)
             </label>
             <p style={note}>
-              --msp-motion-fast 100 ms · --msp-motion-base 180 ms · --msp-ease cubic-bezier(0.2, 0, 0, 1)
+              --msp-motion-fast 100 ms · --msp-motion-base 220 ms · --msp-ease (0.2, 0, 0, 1) · --msp-ease-reveal (0.4,
+              0, 0.2, 1)
             </p>
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">

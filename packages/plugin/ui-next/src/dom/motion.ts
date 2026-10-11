@@ -16,8 +16,8 @@ export function playClose(el: Element, side: boolean): Animation | undefined {
   if (typeof (el as HTMLElement).animate !== 'function' || !el.isConnected) return undefined;
   if (globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
   const style = getComputedStyle(el);
-  const duration = toMs(style.getPropertyValue('--msp-motion-base')) || 180;
-  const easing = style.getPropertyValue('--msp-ease').trim() || 'ease';
+  const duration = toMs(style.getPropertyValue('--msp-motion-base')) || 220;
+  const easing = style.getPropertyValue('--msp-ease-reveal').trim() || 'ease';
   const frames = side
     ? [
         { opacity: 1, translate: '0 0' },
