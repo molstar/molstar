@@ -124,3 +124,25 @@ describe('resume after the tab dies mid-turn', () => {
     two.session.dispose();
   });
 });
+
+describe('claims before the first await', () => {
+  it('a resume holds the session while it reads the harness: a second resume, a turn and a forget wait', async () => {
+    const { session } = fixture();
+    const first = session.resume();
+    expect(session.busy).toBe(true);
+    await expect(session.resume()).resolves.toBeUndefined();
+    await expect(session.turn({ prompt: 'go' })).rejects.toThrow('already running');
+    await expect(session.forget()).rejects.toThrow('stop it first');
+    await expect(first).resolves.toBeUndefined();
+    expect(session.busy).toBe(false);
+  });
+
+  it('a forget holds the session too', async () => {
+    const { session } = fixture();
+    const forgetting = session.forget();
+    expect(session.busy).toBe(true);
+    await expect(session.resume()).resolves.toBeUndefined();
+    await forgetting;
+    expect(session.busy).toBe(false);
+  });
+});

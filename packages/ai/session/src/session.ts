@@ -153,6 +153,11 @@ const wallClock: Clock = {
 
 const uuid = () => globalThis.crypto.randomUUID();
 
+/** What `activeTurn` holds while a resume or a forget reads the harness, before a turn id is known (or for none). */
+const RESUMING = 'resuming';
+const FORGETTING = 'forgetting';
+const claimed = (active: string | undefined) => active === RESUMING || active === FORGETTING;
+
 /**
  * One conversation over one harness (tools-and-session.md §4). Prompts go to its harness as items; a runner (started
  * by an in-process supervisor) works each turn under this session's drive. One turn at a time; stop() cancels the
@@ -659,13 +664,18 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
    */
   async forget(): Promise<void> {
     if (this.activeTurn) throw new Error('A turn is running: stop it first.');
-    const { client } = await this.ensure();
-    const empty = await emptyHead();
-    await client.reset({ key: `forget-${uuid()}`, pointers: { [MAIN]: empty.id } });
-    this.fresh = true;
-    this.decided.clear();
-    this.contextTokens = undefined;
-    this.repeats?.reset();
+    this.activeTurn = FORGETTING;
+    try {
+      const { client } = await this.ensure();
+      const empty = await emptyHead();
+      await client.reset({ key: `forget-${uuid()}`, pointers: { [MAIN]: empty.id } });
+      this.fresh = true;
+      this.decided.clear();
+      this.contextTokens = undefined;
+      this.repeats?.reset();
+    } finally {
+      this.activeTurn = undefined;
+    }
   }
 
   /**
@@ -678,12 +688,22 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     decisions: Readonly<Record<string, ApprovalDecision>> = {},
   ): Promise<TurnResult | undefined> {
     if (this.activeTurn) return undefined;
-    for (const [callId, d] of Object.entries(decisions)) this.decided.set(callId, d);
-    const harness = await this.ensure();
-    const turn = (await harness.client.execution()).turn;
-    if (turn === undefined) return undefined;
-    this.reset(hooks);
-    this.activeTurn = turn.id;
+    // Claimed before the first await, as `turn` does, so a turn, a resume or a forget cannot start meanwhile.
+    this.activeTurn = RESUMING;
+    try {
+      for (const [callId, d] of Object.entries(decisions)) this.decided.set(callId, d);
+      const harness = await this.ensure();
+      const turn = (await harness.client.execution()).turn;
+      if (turn === undefined) return undefined;
+      this.reset(hooks);
+      this.activeTurn = turn.id;
+      return await this.resumed(harness, turn);
+    } finally {
+      this.activeTurn = undefined;
+    }
+  }
+
+  private async resumed(harness: Harness, turn: NonNullable<Execution['turn']>): Promise<TurnResult> {
     try {
       this.begin(turn.id, true);
       const key = `resume-${turn.id}-${Date.now().toString(36)}`;
@@ -698,8 +718,6 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
         error: e instanceof Error ? e.message : String(e),
         tools: this.state.events,
       };
-    } finally {
-      this.activeTurn = undefined;
     }
   }
 
@@ -853,7 +871,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       const active = this.activeTurn;
       if (active?.startsWith('prompt-')) await client.stop({ key, item: active });
       else {
-        const turnId = active ?? (await client.execution()).turn?.id;
+        const turnId = (claimed(active) ? undefined : active) ?? (await client.execution()).turn?.id;
         if (turnId !== undefined) await client.stop({ key, turnId });
       }
     } catch {
