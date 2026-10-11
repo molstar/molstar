@@ -8,7 +8,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ShellStory, story } from '@molstar/prism-ui/testing/index';
+import { story } from '@molstar/prism-ui/testing/index';
+import { ViewerShellStory } from '@molstar/prism-viewer/testing/index';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { mockAgentAddOn } from './testing/index.js';
 
@@ -25,7 +26,7 @@ export const SetUp: StoryObj = {
   render: () =>
     story(() => (
       <div style="height: 100vh">
-        <ShellStory loaded={true} addOn={mockAgentAddOn({ configured: true })} />
+        <ViewerShellStory loaded={true} addOn={mockAgentAddOn({ configured: true })} />
       </div>
     )),
 };
@@ -35,7 +36,7 @@ export const NotSetUp: StoryObj = {
   render: () =>
     story(() => (
       <div style="height: 100vh">
-        <ShellStory loaded={true} addOn={mockAgentAddOn()} />
+        <ViewerShellStory loaded={true} addOn={mockAgentAddOn()} />
       </div>
     )),
 };

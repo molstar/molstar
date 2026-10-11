@@ -373,6 +373,12 @@
       "private": true
     },
     {
+      "name": "@molstar/prism-viewer",
+      "path": "packages/prism/viewer",
+      "kind": "library",
+      "private": true
+    },
+    {
       "name": "@molstar/plugin-headless",
       "path": "packages/plugin/headless",
       "kind": "library",

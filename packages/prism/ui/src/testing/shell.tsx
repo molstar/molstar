@@ -24,16 +24,17 @@ import { ShellModel, type ShellTab } from '../shell/shell.js';
 import { StatusModel } from '../shell/status.js';
 import { ThemeModel, type UITheme, UIThemes } from '../shell/theme.js';
 import { CommandMenu, type CommandMenuAssistant, type CommandMenuPrefix } from '../views/command-menu/command-menu.js';
+import { CanvasPlaceholder } from '../views/shell/canvas-placeholder.js';
+import { CommandManager as Commands } from '../commands/manager.js';
 import { SettingsTab } from '../views/settings/settings-tab.js';
 import { LogView } from '../views/shell/log-view.js';
 import { ShellView } from '../views/shell/shell-view.js';
-import { mockMolstarMode } from './molstar-mode.js';
-import type { MockScenePreset } from './scene.js';
 import { mockSettings } from './settings.js';
 
 // The mock shell, in two layers: the frame (the shell and its view, the status column, the theme, fullscreen, the
 // command menu, Log and Settings, and the add-ons such as the agent) and a mode, what the app is for at the moment:
-// Mol*'s own UI (molstar-mode.tsx) or a story mode (@molstar/prism-stories). A mode brings its tabs, overlays, sections,
+// Mol*'s own UI (@molstar/prism-viewer) or a story mode (@molstar/prism-stories); an app is composed of the modes it
+// includes. A mode brings its tabs, overlays, sections,
 // toolbar items, commands and canvas parts; the frame swaps it at runtime, undoing all it registered
 // (design/modes.md).
 
@@ -122,25 +123,40 @@ function recordingShell(shell: ShellModel): { shell: ShellModel; undo(): void } 
   };
 }
 
-export function ShellStory(props: {
+/** The frame alone, with an empty canvas: for stories about the frame or what is added to it. */
+export function mockBlankMode(): MockMode {
+  return {
+    id: 'blank',
+    title: 'Blank',
+    icon: 'square',
+    activate: ({ background }) => ({
+      commands: new Commands<object>({ context: observableState({}).asReadonly, formats: { get: () => undefined } }),
+      canvas: () => <CanvasPlaceholder empty={false} background={background} />,
+      empty: of(false),
+    }),
+  };
+}
+
+export interface ShellStoryProps {
   loaded: boolean;
-  preset?: MockScenePreset;
   background?: string;
+  /** Opens the Export card at a section (a mode registers the card). */
   openExportAt?: string;
   /** The right panel pinned beside the canvas. */
   pinned?: boolean;
-  /** The spec turns remote states (a state server) on; a number fills the server with that many. */
-  remoteStates?: boolean | number;
   /** Opens with the command menu open. */
   commandMenu?: boolean;
-  /** What the loaded data has to play: a session's snapshots, a trajectory's models (plain 1TQN has neither). */
-  playback?: { snapshots?: boolean; trajectory?: boolean };
   /** What an add-on brings (the agent module's mock: `@molstar/prism-agent/testing`). */
   addOn?: MockShellAddOn;
-  /** The modes the app has, the first active (default: Mol*'s own UI alone). With more, the rail can switch. */
-  modes?: readonly MockMode[];
-}) {
-  const modes = props.modes ?? [mockMolstarMode(props)];
+}
+
+/**
+ * The mock frame with the modes the app is composed of, the first active; with more, the rail and the command menu
+ * switch between them. Mol*'s own UI is `mockViewerMode` (@molstar/prism-viewer), story mode `mockStoryMode`
+ * (@molstar/prism-stories).
+ */
+export function ShellStory(props: ShellStoryProps & { modes: readonly MockMode[] }) {
+  const modes = props.modes;
   const shell = new ShellModel({ docks: { right: { pinned: !!props.pinned } } });
   const status = new StatusModel();
   const commandMenuOpen = observableState(false);

@@ -44,6 +44,7 @@
   "devDependencies": {
     "typescript": "catalog:",
     "@types/node": "catalog:",
-    "@storybook/web-components-vite": "catalog:"
+    "@storybook/web-components-vite": "catalog:",
+    "@molstar/prism-viewer": "workspace:*"
   }
 }

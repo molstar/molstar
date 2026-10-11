@@ -1,6 +1,6 @@
 # Modes: Mol\* and stories
 
-Prism is one app with more than one mode: what the app is for at the moment. **Mol\* mode** is the plugin's own UI
+Prism is one app with more than one mode: what the app is for at the moment. **The viewer mode** is Mol\*'s own UI
 (Home, the Structure tab, the state tree, Mol\*'s commands). **Story mode** builds and plays stories: a story is a
 document (scenes described by schemas and MolViewSpec) that the canvas renders, so it stays serializable and
 reproducible; its UX is Stories Untold's rather than Mol\*'s (no state tree, different commands). More modes can follow
@@ -14,7 +14,7 @@ A mode is a set of contributions activated together and deactivated together:
 - its commands (the command menu and shortcuts run the active mode's);
 - its canvas parts: the canvas content, what floats over it (hover label, playback), the canvas stack's lead and aside,
   the context bar;
-- its models: Mol\* mode's view models over the plugin; story mode's story document and player.
+- its models: the viewer mode's view models over the plugin; the story mode's story document and player.
 
 What stays across modes is the **frame**: the shell (its layout model, the rail, the docks), the status column, Log
 (History with the agent), Settings, the theme, fullscreen, the command menu host, and the add-ons (the agent's Assistant
@@ -26,10 +26,12 @@ command.
 
 ## 2. Packages: bring what you use
 
-Like the agent, story mode is opt-in: `@molstar/prism-stories` (`packages/prism/stories`), which an app gets only by
-depending on it. prism-ui never depends on it or names it (`packages/prism/ui/src/_test/opt-in-boundary.test.ts` checks
-both opt-in packages). As it grows it can split into `@molstar/prism-stories-*` packages (the document model, the
-editor, the reader), on the same rule.
+Every mode is its own package, opt-in like the agent: the viewer mode is `@molstar/prism-viewer`
+(`packages/prism/viewer`), story mode `@molstar/prism-stories` (`packages/prism/stories`), and an app gets a mode only
+by depending on it. An app can be composed of story mode alone, with no state tree, no structure tools and none of their
+code. prism-ui is the common base they build on (the frame, the components, the command menu) and never depends on a
+mode or names one (`packages/prism/ui/src/_test/opt-in-boundary.test.ts` checks the modes and the agent). As it grows it
+can split into `@molstar/prism-stories-*` packages (the document model, the editor, the reader), on the same rule.
 
 ## 3. Story mode's model
 
@@ -45,9 +47,10 @@ plays them; it is a `SnapshotStepperModel`, so the canvas's playback card shows 
 
 ## 4. State (mocks)
 
-- The mock shell is the frame (`ui/src/testing/shell.tsx`, `ShellStory` with `modes`); `mockMolstarMode`
-  (`testing/molstar-mode.tsx`) is Mol\*'s own UI as a mode; a mode registers through a recording shell, so leaving it
-  undoes all of it. Its canvas parts are render functions, rendered in their slots.
+- The mock shell is the frame (`ui/src/testing/shell.tsx`, `ShellStory` with the `modes` the story composes);
+  `mockViewerMode` (`viewer/src/testing/viewer-mode.tsx`) is Mol\*'s own UI as a mode, and `ViewerShellStory` the frame
+  with it; `mockBlankMode` is the frame alone; a mode registers through a recording shell, so leaving it undoes all of
+  it. Its canvas parts are render functions, rendered in their slots.
 - Story mode (`stories/src/testing`, `mockStoryMode`): the Story tab (the story's title, its scenes, Add scene, the
   current scene's caption), the scenes on the canvas's playback card, story commands (Add scene, Play story, Next and
   Previous scene with Alt+arrows, Export story). Shell › Story mode shows both modes and the switch.

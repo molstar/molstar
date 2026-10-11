@@ -13,7 +13,7 @@ import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { onCleanup } from '../dom/scope.js';
 import { observableState } from '../reactive/observable-state.js';
-import { ShellStory } from '../testing/shell.js';
+import { mockBlankMode, ShellStory } from '../testing/shell.js';
 import { story } from '../testing/story-root.js';
 import { preactPanelView } from './_stories/preact/preact-parts.js';
 import { ReactApp, ReactPanel } from './_stories/react-parts.js';
@@ -35,6 +35,7 @@ export const ReactAndPreactTabs: StoryObj = {
         <div style="height: 100vh">
           <ShellStory
             loaded={true}
+            modes={[mockBlankMode()]}
             addOn={({ status, shell }) => {
               const post = (text: string) => status.post(text);
               queueMicrotask(() => shell.show('react'));
@@ -73,7 +74,9 @@ export const InAReactApp: StoryObj = {
       const count = observableState(0);
       const host = document.createElement('div');
       const root = createRoot(host);
-      root.render(createElement(ReactApp, { count, shell: () => <ShellStory loaded={true} /> }));
+      root.render(
+        createElement(ReactApp, { count, shell: () => <ShellStory loaded={true} modes={[mockBlankMode()]} /> }),
+      );
       onCleanup(() => root.unmount());
       return host;
     }),

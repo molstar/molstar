@@ -188,6 +188,9 @@
       "path": "./packages/prism/stories"
     },
     {
+      "path": "./packages/prism/viewer"
+    },
+    {
       "path": "./packages/plugin/headless"
     },
     {

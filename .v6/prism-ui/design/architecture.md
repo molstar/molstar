@@ -27,14 +27,18 @@ Lucide (extracted by `scripts/icons.mjs`) plus a few molecular glyphs drawn in t
 Prism is a family of packages under `packages/prism/`, layered as stories-untold is (an application layer without UI,
 the screens on it, a headless engine beside them; [../analysis/stories-untold.md](../analysis/stories-untold.md)):
 
-| Path                   | Package                | Holds                                                                                                                                                                                      | State                                                      |
-| ---------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| `packages/prism/core`  | `@molstar/prism`       | `PrismContext` (`{ plugin: PluginContext }` and the app's state: sources, view models, the command registry, history and undo); `reactive/`, `forms/`, `commands/`, the `model/` contracts | Planned (Phase 4): carved out of prism-ui with the context |
-| `packages/prism/ui`    | `@molstar/prism-ui`    | the DOM runtime, components, views, the shell, `PrismUIContext`, the React/Preact adapter, `testing/`                                                                                      | Built (mocks)                                              |
-| `packages/prism/agent` | `@molstar/prism-agent` | the assistant: its model contracts, the turn card, History, the Assistant tab, its mocks; opt-in (§6)                                                                                      | Built (mocks)                                              |
-| later                  | `@molstar/prism-…`     | a headless engine (Node: tests, CLI, evals), the new sequence viewer, the narrative features                                                                                               | Planned                                                    |
+| Path                     | Package                  | Holds                                                                                                                                                                                                    | State                                                      |
+| ------------------------ | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `packages/prism/core`    | `@molstar/prism`         | `PrismContext` (`{ plugin: PluginContext }` and the app's state: sources, view models, the command registry, history and undo); `reactive/`, `forms/`, `commands/`, the `model/` contracts               | Planned (Phase 4): carved out of prism-ui with the context |
+| `packages/prism/ui`      | `@molstar/prism-ui`      | the common base every mode builds on: the DOM runtime, components, the shell frame and its views, the command menu, Settings, `PrismUIContext`, the React/Preact adapter, `testing/` (the mock frame)    | Built (mocks)                                              |
+| `packages/prism/viewer`  | `@molstar/prism-viewer`  | the viewer mode (Mol\*'s own UI): Home, the Structure tab, the state tree, snapshots, export, the sequence strip, the canvas's mode switch and selection bar, their `model/` contracts and mocks; opt-in | Built (mocks)                                              |
+| `packages/prism/stories` | `@molstar/prism-stories` | story mode: the story model, the Story tab, its mocks; opt-in ([modes.md](modes.md))                                                                                                                     | Built (sketch)                                             |
+| `packages/prism/agent`   | `@molstar/prism-agent`   | the assistant: its model contracts, the turn card, History, the Assistant tab, its mocks; opt-in (§6)                                                                                                    | Built (mocks)                                              |
+| later                    | `@molstar/prism-…`       | a headless engine (Node: tests, CLI, evals), the new sequence viewer, the narrative features                                                                                                             | Planned                                                    |
 
-`apps/prism` is the app built on them (§5). All are private until stable; public names are decided at release. Same
+`apps/prism` is the app built on them (§5), composed of the modes it includes: the viewer, story mode, or both
+([modes.md](modes.md)). The viewer keeps its files' paths (`views/structure/…`, `model/scene`), so the designs' paths
+hold relative to whichever package has them. All are private until stable; public names are decided at release. Same
 conventions as the rest of v6: ESM, `molstar-src` source condition, `tsc -b` library build.
 
 - **Per-file subpath exports.** `exports` maps `./*` to `src/*.ts` (`molstar-src`) and `lib/*.js`, so a module is
@@ -215,8 +219,9 @@ only by depending on it, prism-ui never imports it (§3), and the UI reaches it 
 `assistant` prop (`CommandMenuAssistant`), the shell view's `agent` slot after the status line's tasks, and tabs and
 commands registered like any other. An app that does not import it ships none of it ([agent.md](agent.md) §6).
 
-State (mocks): the registrations above are real `ShellModel`/`CommandManager` APIs; the mock shell (`testing/shell.tsx`,
-`ShellStory`) assembles the default UI from them by hand and takes a module's contributions as an add-on
+State (mocks): the registrations above are real `ShellModel`/`CommandManager` APIs; the mock frame (`testing/shell.tsx`,
+`ShellStory`, with the modes it is given: `mockViewerMode` from the viewer, `mockStoryMode` from story mode,
+`mockBlankMode` for the frame alone) assembles the UI from them by hand and takes a module's contributions as an add-on
 (`MockShellAddOn`: tabs, one replacing a tab of the same id; the command menu's assistant; the agent slot; finished
 commands). The agent's `mockAgentAddOn` (`@molstar/prism-agent`, `testing/`) is the first. Not yet: the declarative
 `UIContribution` object listed in the spec and activated after `plugin.init()` ([shell.md](shell.md) §5),

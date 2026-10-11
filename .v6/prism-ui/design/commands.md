@@ -260,9 +260,9 @@ shows what Enter would run; it stays while the run runs and clears when it is do
   in a sentence tab, ↵, ⌫, esc).
 - ARIA: the input is a combobox and keeps focus; rows are `role="option"` in a `listbox`.
 
-**State (mocks, `views/command-menu/command-menu.tsx`, Shell › Shell › Command Menu Open):** all of the above. Not yet:
-"open as form" and the dialog for params that are not flat; `opens` as a declared field; color as an inline argument of
-its own; previews while browsing (no `PreviewSink` in the mocks); counts on demand (§10.1).
+**State (mocks, `views/command-menu/command-menu.tsx`, Shell › Viewer mode › Command Menu Open):** all of the above. Not
+yet: "open as form" and the dialog for params that are not flat; `opens` as a declared field; color as an inline
+argument of its own; previews while browsing (no `PreviewSink` in the mocks); counts on demand (§10.1).
 
 ## 6. Keybindings
 

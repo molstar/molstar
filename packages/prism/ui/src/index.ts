@@ -38,16 +38,24 @@ export { Button, type ButtonProps } from './components/button/button.js';
 export { type Choice, Choices } from './components/choices/choices.js';
 export { ColorPicker, type ColorPickerProps } from './components/color/color-picker.js';
 export { Icon, type IconName, type IconProps } from './components/icon/icon.js';
+export { MolstarWordmark } from './components/icon/wordmark.js';
 export { Markdown } from './components/markdown/markdown.js';
 export { ParamsForm } from './components/params/params-form.js';
 export { ScrollArea, type ScrollAreaProps } from './components/scroll-area/scroll-area.js';
-export { Select, type SelectOption, type SelectProps } from './components/select/select.js';
+export { OptionList, Select, type SelectOption, type SelectProps } from './components/select/select.js';
 export { TextInput, type TextInputProps } from './components/text-input/text-input.js';
 export { flattenTree, VirtualList } from './components/virtual-list/virtual-list.js';
 
+export { HoverLabel } from './views/canvas/hover-label.js';
 export { SnapshotCard, TrajectoryBar } from './views/canvas/playback.js';
-export { type CommandMenuAssistant, CommandMenu, type CommandMenuProps } from './views/command-menu/command-menu.js';
+export {
+  type CommandMenuAssistant,
+  CommandMenu,
+  type CommandMenuPrefix,
+  type CommandMenuProps,
+} from './views/command-menu/command-menu.js';
 export { StatusLine, StatusPill } from './views/shell/canvas-chrome.js';
+export { CanvasPlaceholder } from './views/shell/canvas-placeholder.js';
 export { LogView } from './views/shell/log-view.js';
 export { SectionList } from './views/shell/section-list.js';
 export { ShellView, type ShellViewProps } from './views/shell/shell-view.js';

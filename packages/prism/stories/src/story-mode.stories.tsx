@@ -8,7 +8,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { mockMolstarMode, ShellStory, story } from '@molstar/prism-ui/testing/index';
+import { ShellStory, story } from '@molstar/prism-ui/testing/index';
+import { mockViewerMode } from '@molstar/prism-viewer/testing/index';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { mockStoryMode } from './testing/index.js';
 
@@ -17,24 +18,24 @@ export default meta;
 
 /**
  * The app with two modes: story mode (a first sketch: the Story tab with the scenes and the caption, the scenes playing
- * on the canvas, story commands in ⌘K) and Mol*'s own UI. The rail's switch (above the theme) or the command menu
+ * on the canvas, story commands in ⌘K) and the viewer mode (Mol*'s own UI). The rail's switch (above the theme) or the command menu
  * (“Switch to …”) swaps them: the frame stays (status, Log, Settings, the theme), everything a mode brought goes.
  */
 export const SwitchModes: StoryObj = {
   render: () =>
     story(() => (
       <div style="height: 100vh">
-        <ShellStory loaded={true} modes={[mockStoryMode(), mockMolstarMode()]} />
+        <ShellStory loaded={true} modes={[mockStoryMode(), mockViewerMode()]} />
       </div>
     )),
 };
 
-/** Mol*'s UI first, story mode a switch away. */
-export const StartInMolstar: StoryObj = {
+/** The viewer mode first, the story mode a switch away. */
+export const StartInViewer: StoryObj = {
   render: () =>
     story(() => (
       <div style="height: 100vh">
-        <ShellStory loaded={true} modes={[mockMolstarMode(), mockStoryMode()]} />
+        <ShellStory loaded={true} modes={[mockViewerMode(), mockStoryMode()]} />
       </div>
     )),
 };

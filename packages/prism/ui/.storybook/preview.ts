@@ -18,6 +18,7 @@ const preview: Preview = {
           'Overview',
           ['Introduction', 'Foundations'],
           'Shell',
+          ['Viewer mode', 'Story mode', 'Assistant'],
           'Views',
           ['Home tab', 'Structure tab'],
           'Canvas',

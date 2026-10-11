@@ -10,11 +10,12 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 // The opt-in modules are their own packages, which an app gets only by depending on them: the agent
-// (`@molstar/prism-agent`, design/agent.md §6) and story mode (`@molstar/prism-stories`, design/modes.md). prism-ui
+// (`@molstar/prism-agent`, design/agent.md §6) and the modes, viewer and story (`@molstar/prism-viewer`,
+// `@molstar/prism-stories`, design/modes.md). prism-ui
 // knows them only through its ports (tabs, modes, the command menu's assistant, the canvas's agent slot), so neither
 // its manifest nor any of its files (stories and tests included) may name them.
 const root = path.resolve(__dirname, '../..');
-const OptIn = ['@molstar/prism-agent', '@molstar/prism-stories'];
+const OptIn = ['@molstar/prism-agent', '@molstar/prism-stories', '@molstar/prism-viewer'];
 
 function* sources(dir: string): Generator<string> {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

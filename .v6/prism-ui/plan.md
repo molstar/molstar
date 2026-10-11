@@ -4,10 +4,10 @@ Phases are buildable and reviewable on their own. Storybook comes first so the U
 
 Where it stands: phases 0–3 are done in Storybook (with modes: Mol\* and a first story mode,
 [design/modes.md](design/modes.md); the renderer check and its bench included: the `dom` runtime stays,
-[spike.md](spike.md)). The packages are split (`packages/prism/ui`, `packages/prism/agent`, `packages/prism/stories`),
-and the decisions on the contexts, the layout, the core follow-ups and the app are in the designs
-([README.md](README.md), Decisions). Next: the review gate. Phases 4–8 have not started, apart from the core
-`triggerLabel` (phase 4) and the shell's own models the mocks run on (phase 6).
+[spike.md](spike.md)). The packages are split (`packages/prism/ui` the common base; the modes `packages/prism/viewer`
+and `packages/prism/stories`; `packages/prism/agent`), and the decisions on the contexts, the layout, the core
+follow-ups and the app are in the designs ([README.md](README.md), Decisions). Next: the review gate. Phases 4–8 have
+not started, apart from the core `triggerLabel` (phase 4) and the shell's own models the mocks run on (phase 6).
 
 ## Phase 0: package and Storybook skeleton
 
@@ -63,10 +63,10 @@ guard.
 iterated on until the layout and the command UX settled ([design/shell.md](design/shell.md),
 [design/commands.md](design/commands.md), [design/agent.md](design/agent.md)):
 
-- **Shell › Shell**: the whole app over a placeholder canvas: Empty (the wordmark), Loaded, a session with playback,
-  many structures, an EMDB map, a dark canvas background, the command menu open, Export at a section, the pinned panel,
-  remote states (few and many), compact mode, Expand or Fullscreen by context (real frames), the assistant (with a
-  model, and before setup).
+- **Shell › Viewer mode**: the whole app over a placeholder canvas: Empty (the wordmark), Loaded, a session with
+  playback, many structures, an EMDB map, a dark canvas background, the command menu open, Export at a section, the
+  pinned panel, remote states (few and many), compact mode, Expand or Fullscreen by context (real frames), the assistant
+  (with a model, and before setup).
 - **Views**: Home tab, Structure tab (representation, structure, streaming density, many structures, EMDB map and model,
   the tree alone). The other tabs and cards (Selection with measurements and superposition, Snapshots, State tree,
   Settings, Log and History, Assistant, Animation, Canvas settings, Export, Remote states) are seen in the Shell
@@ -178,8 +178,8 @@ the shell and the first tabs run on a real plugin, so feedback comes early; the 
 their own under `packages/prism/`.
 
 **Modes.** A mode is a named set of contributions (tabs, overlays, sections, toolbar items, commands, canvas parts) over
-a frame that stays ([design/modes.md](design/modes.md)): Mol\* mode from the default contributions, story mode from
-`@molstar/prism-stories` (opt-in), whose document model is built on MolViewSpec as its own slice.
+a frame that stays ([design/modes.md](design/modes.md)): the viewer mode from `@molstar/prism-viewer`, the story mode
+from `@molstar/prism-stories` (opt-in), whose document model is built on MolViewSpec as its own slice.
 
 **The sequence view is a placeholder** in the build: a new sequence viewer is being developed separately and comes in as
 a contribution when ready. The mocks' sequence strip stays a layout reference only; do not wire it to a plugin.

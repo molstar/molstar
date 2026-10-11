@@ -45,6 +45,29 @@ function sectionsOf(items: readonly CanvasToolbarItem[]): ToolSection[] {
  * picks what to show: the rail's items (`all`), split around its tab strip (`lead`: the command menu above it, `rest`
  * below), or the canvas stack's items (`canvas`).
  */
+
+/** A toolbar item's title as shown: its face's (it changes: the theme, the mode switch), or its own with its caption. */
+function itemTitle(item: CanvasToolbarItem) {
+  return item.face
+    ? item.face.pipe(map((f) => f.title))
+    : item.caption
+      ? `${item.title} (${item.caption})`
+      : item.title;
+}
+
+/** A toolbar item's icon as shown: its face's, following it, or its own. */
+function ItemIcon(props: { item: CanvasToolbarItem; size: number; class?: string }) {
+  const { item } = props;
+  return item.face ? (
+    <span
+      class={props.class}
+      ref={(el) => bind(item.face!, (f) => el.replaceChildren(Icon({ name: f.icon, size: props.size })))}
+    />
+  ) : (
+    <Icon name={item.icon} size={props.size} />
+  );
+}
+
 export function CanvasToolbar(props: {
   shell: ShellModel;
   part?: 'all' | 'lead' | 'rest' | 'canvas';
@@ -100,19 +123,9 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       type="button"
       class={classes.tool}
       data-captioned={item.caption ? '' : undefined}
-      data-tip={
-        withMenu
-          ? undefined
-          : item.face
-            ? item.face.pipe(map((f) => f.title))
-            : item.caption
-              ? `${item.title} (${item.caption})`
-              : item.title
-      }
+      data-tip={withMenu ? undefined : itemTitle(item)}
       data-tip-side="left"
-      aria-label={
-        item.face ? item.face.pipe(map((f) => f.title)) : item.caption ? `${item.title} (${item.caption})` : item.title
-      }
+      aria-label={itemTitle(item)}
       aria-pressed={pressed}
       aria-haspopup={withMenu ? 'menu' : undefined}
       data-overlay-trigger={item.overlay ? '' : undefined}
@@ -128,14 +141,7 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       onFocus={withMenu ? (e) => withMenu.show(item, e.currentTarget) : undefined}
       onBlur={withMenu ? () => withMenu.hideSoon() : undefined}
     >
-      {item.face ? (
-        <span
-          class={classes.face}
-          ref={(el) => bind(item.face!, (f) => el.replaceChildren(Icon({ name: f.icon, size: 20 })))}
-        />
-      ) : (
-        <Icon name={item.icon} size={item.caption ? 16 : 20} />
-      )}
+      <ItemIcon item={item} size={item.caption ? 16 : 20} class={classes.face} />
       {item.caption ? <span class={classes.caption}>{item.caption}</span> : null}
       {withMenu ? <span class={classes.menuMark} aria-hidden="true" /> : null}
     </button>
@@ -278,11 +284,11 @@ export function RailMenu(props: { shell: ShellModel }) {
           <button
             type="button"
             class={classes.railMenuButton}
-            aria-label={item.caption ? `${item.title} (${item.caption})` : item.title}
-            data-tip={item.caption ? `${item.title} (${item.caption})` : item.title}
+            aria-label={itemTitle(item)}
+            data-tip={itemTitle(item)}
             onClick={(e) => run(item, e.currentTarget)}
           >
-            <Icon name={item.icon} size={20} />
+            <ItemIcon item={item} size={20} class={classes.face} />
           </button>
         )}
       </For>
@@ -327,8 +333,8 @@ export function RailMenu(props: { shell: ShellModel }) {
                   class={classes.toolMenuRow}
                   onClick={(e) => run(item, e.currentTarget)}
                 >
-                  <Icon name={item.icon} size={16} />
-                  <span class={classes.toolMenuLabel}>{item.title}</span>
+                  <ItemIcon item={item} size={16} class={classes.face} />
+                  <span class={classes.toolMenuLabel}>{itemTitle(item)}</span>
                   <span />
                 </button>
               )}
