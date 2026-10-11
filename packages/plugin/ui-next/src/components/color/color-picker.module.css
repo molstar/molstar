@@ -109,6 +109,11 @@
   font-size: var(--msp-font-size-sm);
   font-variant-numeric: tabular-nums;
 
+  /* As TextInput's: what it takes, quietly. */
+  &::placeholder {
+    color: var(--msp-color-text-subtle);
+  }
+
   /* Inside the field: a field at a scrolling panel's edge would have a ring outside it cut off. */
   &:focus-visible {
     outline: 2px solid var(--msp-color-focus-ring);

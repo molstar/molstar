@@ -113,6 +113,10 @@ defineStyles('components/color/color-picker.module.css', `@layer msp.components 
   border: 0;
   flex: 1;
 
+  &::placeholder {
+    color: var(--msp-color-text-subtle);
+  }
+
   &:focus-visible {
     outline: 2px solid var(--msp-color-focus-ring);
     outline-offset: -2px;

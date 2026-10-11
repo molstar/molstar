@@ -255,6 +255,7 @@ export function ColorPicker(props: ColorPickerProps) {
           type="text"
           class={classes.text}
           aria-label="Color"
+          placeholder="r, g, b · #hex · rgb() · name"
           data-tip="r, g, b; hex, rgb(), hsl() or a name"
           spellcheck={false}
           onInput={(e) => {
