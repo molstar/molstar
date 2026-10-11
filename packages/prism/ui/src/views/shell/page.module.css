@@ -6,15 +6,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/* A page over the whole app (ShellPage): flat, the app's own background, nothing of it showing through. */
+/* A page over the whole app (ShellPage): a card like the others, only full size, the app around it at the edge. Opaque,
+   not glass: dense content would read over the canvas and the panels behind it. What is drawn in the background color
+   inside it (sticky headers, hatches) takes the card's surface. */
 .page {
   position: absolute;
-  inset: 0;
+  inset: var(--msp-canvas-edge);
   z-index: var(--msp-z-dialog);
   display: flex;
   flex-direction: column;
   min-width: 0;
+  border-radius: var(--msp-radius-lg);
+  overflow: hidden;
+  --msp-color-bg: var(--msp-color-panel);
   background: var(--msp-color-bg);
+  box-shadow: var(--msp-glass-shadow);
   color: var(--msp-color-text);
   animation: page-in var(--msp-motion-base) var(--msp-ease-reveal);
 }
@@ -26,7 +32,6 @@
   min-width: 0;
   height: 44px;
   padding: 0 var(--msp-space-3) 0 var(--msp-space-5);
-  border-bottom: 1px solid var(--msp-color-border);
 }
 
 .title {
@@ -56,6 +61,7 @@
 @keyframes page-in {
   from {
     opacity: 0;
+    transform: scale(0.99);
   }
 }
 

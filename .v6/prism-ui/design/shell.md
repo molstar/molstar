@@ -107,9 +107,10 @@ extension UI) are placed.
   lives, across tab switches and re-renders), else open by default, or folded where the list reads as a menu of what can
   be done (`SectionList`'s `collapsed`: the Selection tab).
 - **Pages.** For what needs more room than a panel or a card (`ShellPage`: the agent's Inspector), a page over the whole
-  app: flat, the app's own background, a header with its title, its own header content (tabs, facts) and ✕; Esc closes
-  it and focus goes back. Opened by a command or a link at a focus (a tab of the page, an item); opening one closes an
-  open card. The app is unchanged underneath.
+  app: a card like the others, only full size (the app shows at its edge, its corners rounded), opaque (dense content
+  would not read over glass), a header with its title, its own header content (tabs, facts) and ✕; Esc closes it and
+  focus goes back. Opened by a command or a link at a focus (a tab of the page, an item); opening one closes an open
+  card. The app is unchanged underneath.
 - **Overlays.** Cards for short tasks (`ShellOverlay`: Export, Canvas settings, Animation, Remote states; §4.2), one at
   a time, opened by a rail button or a command. Every card takes the right panel's place, full height, whether the panel
   is open or not (one target for everything that opens on the right). Over the open panel it swaps in without a

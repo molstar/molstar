@@ -21,15 +21,19 @@ export const classes = {
 
 defineStyles('views/shell/page.module.css', `@layer msp.components {
 .msp-shell-page-page {
+  inset: var(--msp-canvas-edge);
   z-index: var(--msp-z-dialog);
+  border-radius: var(--msp-radius-lg);
+  --msp-color-bg: var(--msp-color-panel);
   background: var(--msp-color-bg);
   min-width: 0;
+  box-shadow: var(--msp-glass-shadow);
   color: var(--msp-color-text);
   animation: msp-shell-page-page-in var(--msp-motion-base) var(--msp-ease-reveal);
   flex-direction: column;
   display: flex;
   position: absolute;
-  inset: 0;
+  overflow: hidden;
 }
 
 .msp-shell-page-header {
@@ -38,7 +42,6 @@ defineStyles('views/shell/page.module.css', `@layer msp.components {
   min-width: 0;
   height: 44px;
   padding: 0 var(--msp-space-3) 0 var(--msp-space-5);
-  border-bottom: 1px solid var(--msp-color-border);
   display: flex;
 }
 
@@ -68,6 +71,7 @@ defineStyles('views/shell/page.module.css', `@layer msp.components {
 @keyframes msp-shell-page-page-in {
   from {
     opacity: 0;
+    transform: scale(.99);
   }
 }
 
