@@ -1,0 +1,190 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.panel {
+  display: grid;
+  align-content: start;
+  gap: var(--msp-space-4);
+  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  font-size: var(--msp-font-size-sm);
+}
+
+/* Upload: a quiet surface holding the name and the action at its bottom right (as Home's actions). */
+.upload {
+  display: grid;
+  gap: var(--msp-space-2);
+  padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.caption {
+  margin: 0;
+  padding: var(--msp-space-1) 0;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 500;
+}
+
+.states {
+  display: grid;
+  gap: var(--msp-space-1);
+}
+
+.captionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
+}
+
+.list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.item {
+  display: grid;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.open {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-width: 0;
+  height: 28px;
+  padding: 0 var(--msp-space-2);
+  color: var(--msp-color-text-muted);
+  text-align: left;
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+}
+
+.name {
+  flex: 0 1 auto;
+  min-width: 3ch;
+  overflow: hidden;
+  color: var(--msp-color-text);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-right: var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  opacity: 0;
+
+  .row:hover &,
+  &:focus-visible,
+  &[aria-expanded="true"] {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+}
+
+.menu {
+  display: grid;
+  margin: 2px var(--msp-space-1) var(--msp-space-1) calc(var(--msp-space-2) + 15px + var(--msp-space-3));
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+}
+
+.menuItem {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 26px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[data-danger] {
+    color: var(--msp-color-danger);
+
+    &:hover,
+    &:focus-visible {
+      background: color-mix(in oklab, var(--msp-color-danger), transparent 88%);
+      color: var(--msp-color-danger);
+    }
+  }
+}
+
+.server {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--msp-space-3);
+  padding: 0 var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

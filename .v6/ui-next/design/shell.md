@@ -73,10 +73,10 @@ it is where contributions (built-in and extension UI) are placed.
   that expands on click.
 - **Rail sections.** The rail is docked to the right edge: a full-height column, no margin (the panel floats beside it),
   buttons edge to edge, a hairline between sections, no captions. Top to bottom: Home as the Mol* mark (a section of its
-  own), the tab strip, the scene (`scene`: Animation, Canvas settings), app actions (`export`: save state, Export), and
-  at its foot Settings and, a shade apart, the command menu (the main way in). Every overlay card (Animation, Canvas
-  settings, Save state, Export) takes the panel's place, full height. Which buttons show is the app's choice
-  (`ui.layout.buttons` in the spec, `ShellModel.setButtons` at runtime). Tabs choose their place
+  own), the tab strip, the scene (`scene`: Animation, Canvas settings), app actions (`export`: Export, and Remote states
+  when on), and at its foot Log and Settings and, a shade apart, the command menu (the main way in). Every overlay card
+  (Animation, Canvas settings, Export, Remote states) takes the panel's place, full height. Which buttons show is the
+  app's choice (`ui.layout.buttons` in the spec, `ShellModel.setButtons` at runtime). Tabs choose their place
   (`place: 'head' | 'strip' | 'foot'`). The canvas stack is the same kind of frame, floating. Toolbar items name their
   section by id (`group`, `order` within it). Extensions do **not** add rail buttons for their features (the rail would
   grow with every extension): they contribute **sections** to a panel's slot instead, e.g. MP4, geometry and model
@@ -203,14 +203,23 @@ size, σ), shown compactly above the form. Volumes are top-level entries next to
 fitted model); density streaming is a structure inspector section (the volume streaming extension) whose channels appear
 under the structure.
 
+### 4.1b Snapshots tab
+
+A tab beside Structure (`images` icon, `snapshots.show`, ⌘S), in the Structure tab's shape: a header of actions (**+
+Snapshot** adds the current state; **Save** opens two choices inline, session `.molx` or state `.molj`; **Open** a file;
+the sliders open the save options, Mol*'s `PluginState.SnapshotParams`), the snapshots as rows (position, thumbnail when
+saved with an image, name, `#key`, the description's first line; a click applies one; hover shows Replace with the
+current view and ⋯ for move up/down and Remove), and under them at a fixed height the current snapshot's editor: name,
+key, markdown description, how long it shows and the camera transition. Replaces the Plugin State tab's local snapshots.
+
 ### 4.2 Overlays
 
-| Overlay        | Opened from                       | Content                                                                                                                                                                                                                                                                                      | Replaces                    |
-| -------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| **Save state** | Toolbar 💾, `state.save`          | Name (auto-filled), three actions: **Snapshot**, **Download session** (`.molx`), **Download state** (`.molj`); the snapshot list below (apply, rename, reorder, delete, edit description). "More" reveals save options, key, markdown description, and remote sharing (upload, server list). | Plugin State tab            |
-| **Screenshot** | Toolbar 📷                        | Preview with crop, size/format options, copy, download.                                                                                                                                                                                                                                      | Screenshot panel            |
-| **Help**       | `help.*`, `?` command menu prefix | Keybindings (generated), command menu prefixes, mouse controls, selection help.                                                                                                                                                                                                              | Help tab, viewport help     |
-| **Animation**  | Playback cluster                  | Choose an animation, its parameters, play/stop.                                                                                                                                                                                                                                              | Animation viewport controls |
+| Overlay           | Opened from                                                         | Content                                                                                                                                                                                                                    | Replaces                    |
+| ----------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| **Remote states** | Toolbar ☁ next to Export, only when the spec turns remote states on | Upload the current state under a name; the server's states (a click opens one; ⋯ downloads or removes); the server address.                                                                                                | Remote states section       |
+| **Export: Image** | Export card, `export.image`                                         | Preview at the output's shape with the crop (auto-crop chip in its corner), the screenshot params (resolution, format and quality, transparency, axes, illumination), the size with Copy and Download at the bottom right. | Screenshot panel            |
+| **Help**          | `help.*`, `?` command menu prefix                                   | Keybindings (generated), command menu prefixes, mouse controls, selection help.                                                                                                                                            | Help tab, viewport help     |
+| **Animation**     | Playback cluster                                                    | Choose an animation, its parameters, play/stop.                                                                                                                                                                            | Animation viewport controls |
 
 Dialogs (modal) are kept for flows that must not be lost by a stray click: command forms opened "as form", MP4 export,
 Zenodo import.

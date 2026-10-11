@@ -57,6 +57,11 @@ export interface RemoteStatesModel {
   loading: ReadonlyState<boolean>;
   refresh(): void;
   open(id: string): void;
+  /** Uploads the current state under a name (the Remote states panel). */
+  upload?(name: string): void;
+  /** Downloads a state from the server as a file. */
+  download?(id: string): void;
+  remove?(id: string): void;
 }
 
 export interface HomeModel {

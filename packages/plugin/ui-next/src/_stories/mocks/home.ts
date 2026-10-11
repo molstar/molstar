@@ -217,5 +217,14 @@ function mockRemoteStates(post: (text: string) => void): RemoteStatesModel {
       setTimeout(() => loading.set(false), 800);
     },
     open: (id) => post(`Opening "${states.value.find((s) => s.id === id)?.label}"…`),
+    upload: (name) => {
+      states.set([{ id: `${Date.now()}`, label: name, date: 'just now' }, ...states.value]);
+      post(`Uploaded "${name}"`);
+    },
+    download: (id) => post(`Downloading "${states.value.find((s) => s.id === id)?.label}"…`),
+    remove: (id) => {
+      post(`Removed "${states.value.find((s) => s.id === id)?.label}"`);
+      states.set(states.value.filter((s) => s.id !== id));
+    },
   };
 }

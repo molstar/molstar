@@ -122,6 +122,12 @@ const ICONS = [
   'scroll-text',
   'check',
   'hexagon',
+  'arrow-up',
+  'arrow-down',
+  'refresh-ccw',
+  'crop',
+  'images',
+  'cloud-upload',
 ];
 
 const require = createRequire(import.meta.url);

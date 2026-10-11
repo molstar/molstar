@@ -13,8 +13,7 @@ import { formatChord, isMac } from '../../commands/keys.js';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { Select } from '../../components/select/select.js';
-import { TextInput } from '../../components/text-input/text-input.js';
-import { For, Show } from '../../dom/control-flow.js';
+import { Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
 import { domView } from '../../dom/view.js';
@@ -38,6 +37,11 @@ import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
 import { LogView } from './log-view.js';
 import { HomeTab } from '../home/home-tab.js';
+import { ImageExport } from '../export/image-export.js';
+import { RemoteStatesPanel } from '../state/remote-states-panel.js';
+import { SnapshotsPanel } from '../state/snapshots-panel.js';
+import { mockImageExport } from '../../_stories/mocks/image-export.js';
+import { mockSnapshotsModel } from '../../_stories/mocks/snapshots.js';
 import { SectionList } from './section-list.js';
 import { ShellView } from './shell-view.js';
 import { StructureTab } from '../structure/structure-tab.js';
@@ -101,6 +105,7 @@ const ThreeLetter: Record<string, string> = {
  * and extension sections (animation, geometry, models) look alike; each is also a command that opens the panel at it.
  */
 function mockExport(shell: ShellModel, status: StatusModel) {
+  const imageExport = mockImageExport((t, k) => status.post(t, k));
   const rendering = observableState<number | undefined>(undefined);
   const row = 'display: flex; gap: 8px; flex-wrap: wrap';
   shell.registerOverlays([
@@ -117,23 +122,7 @@ function mockExport(shell: ShellModel, status: StatusModel) {
       title: 'Image',
       icon: 'camera',
       order: 0,
-      render: domView(() => (
-        <div style={pad}>
-          <div style="height: 120px; border-radius: var(--msp-radius-md); background: var(--msp-color-control)" />
-          <div style={row}>
-            <Button icon={<Icon name="copy" />} onClick={() => status.post('Copied image', 'success')}>
-              Copy
-            </Button>
-            <Button
-              variant="primary"
-              icon={<Icon name="download" />}
-              onClick={() => status.post('Saved image.png', 'success')}
-            >
-              Download PNG
-            </Button>
-          </div>
-        </div>
-      )),
+      render: domView(() => <ImageExport model={imageExport} />),
     },
     {
       id: 'session',
@@ -258,7 +247,7 @@ const Granularities: readonly Granularity[] = [
 ];
 
 /** A mock of everything around the canvas, with the shell's real model. */
-function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?: boolean }) {
+function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?: boolean; remoteStates?: boolean }) {
   const shell = new ShellModel({ docks: { right: { pinned: !!options.pinned } } });
   const status = new StatusModel();
   const canvasMode = observableState<CanvasMode>('interact');
@@ -267,7 +256,6 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?
   const commandMenuGroup = observableState<string | undefined>(undefined);
   const granularity = observableState('residue');
   const illumination = observableState(false);
-  const snapshots = observableState<readonly string[]>(['Overview', 'Active site']);
   const hoverLines = observableState<readonly string[]>([]);
   // The scene; hovering a node highlights it (the hover label stands in for the 3D highlight here).
   const scene = mockScene({
@@ -278,7 +266,8 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?
   // Extensions' inspector sections (volume streaming, assembly symmetry), contributed to the node kind's slot.
   registerMockInspectorSections(shell, scene);
   const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
-  const home = mockHome((text, kind) => status.post(text, kind));
+  const home = mockHome((text, kind) => status.post(text, kind), { remoteStates: options.remoteStates });
+  const snapshotsModel = mockSnapshotsModel((text, kind) => status.post(text, kind));
   const snapshotStepper = mockSnapshots((t) => status.post(t));
   const commands = mockCommands(shell);
 
@@ -318,6 +307,13 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?
       )),
     },
     {
+      id: 'snapshots',
+      title: 'Snapshots',
+      icon: 'images',
+      order: 1.5,
+      render: domView(() => <SnapshotsPanel model={snapshotsModel} />),
+    },
+    {
       id: 'state-tree',
       title: 'State tree',
       icon: 'list-tree',
@@ -329,6 +325,8 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?
       title: 'Log',
       icon: 'scroll-text',
       order: 2.5,
+      // Not a working panel: with Settings at the rail's foot.
+      place: 'foot',
       render: domView(() => <LogView status={status} />),
     },
     {
@@ -364,52 +362,17 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?
     shell.show('structure');
   }
 
-  shell.registerOverlays([
-    {
-      id: 'save-state',
-      title: 'Save state',
-      render: domView(() => {
-        const name = observableState(`Snapshot ${snapshots.value.length + 1}`);
-        return (
-          <div style={pad}>
-            <TextInput aria-label="Snapshot name" value={name} onInput={(v) => name.set(v)} />
-            <div style="display: flex; gap: 8px; flex-wrap: wrap">
-              <Button
-                variant="primary"
-                icon={<Icon name="plus" />}
-                onClick={() => {
-                  snapshots.set([...snapshots.value, name.value]);
-                  status.post(`Saved snapshot “${name.value}”`, 'success');
-                  name.set(`Snapshot ${snapshots.value.length + 1}`);
-                }}
-              >
-                Snapshot
-              </Button>
-              <Button icon={<Icon name="download" />}>Session</Button>
-              <Button icon={<Icon name="download" />}>State</Button>
-            </div>
-            <div style="display: grid; gap: 2px">
-              <For each={snapshots}>
-                {(s, i) => (
-                  <div style="display: flex; align-items: center; gap: 8px; height: 28px">
-                    <span style={muted}>{i.pipe(map((n) => `${n + 1}.`))}</span>
-                    <span style="flex: 1">{s}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon={<Icon name="trash-2" />}
-                      title="Remove"
-                      onClick={() => snapshots.set(snapshots.value.filter((x) => x !== s))}
-                    />
-                  </div>
-                )}
-              </For>
-            </div>
-          </div>
-        );
-      }),
-    },
-  ]);
+  // Remote states (a state server): a card next to Export, only when the spec turns them on.
+  if (home.remoteStates) {
+    const remote = home.remoteStates;
+    shell.registerOverlays([
+      {
+        id: 'remote-states',
+        title: 'Remote states',
+        render: domView(() => <RemoteStatesPanel model={remote} />),
+      },
+    ]);
+  }
 
   shell.registerToolbar([
     {
@@ -460,8 +423,18 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?
       title: 'Canvas settings',
       overlay: 'canvas-settings',
     },
-    { id: 'save', group: 'export', icon: 'save', title: 'Save state (snapshots)', overlay: 'save-state' },
     { id: 'export', group: 'export', icon: 'download', title: 'Export…', overlay: 'export' },
+    ...(home.remoteStates
+      ? [
+          {
+            id: 'remote-states',
+            group: 'export',
+            icon: 'cloud-upload' as const,
+            title: 'Remote states',
+            overlay: 'remote-states',
+          },
+        ]
+      : []),
     // Rendering modes under one button: a click opens the menu (no action of its own); shown pressed while one is on.
     {
       id: 'rendering',
@@ -567,6 +540,8 @@ function ShellStory(props: {
   openExportAt?: string;
   /** The right panel pinned beside the canvas. */
   pinned?: boolean;
+  /** The spec turns remote states (a state server) on. */
+  remoteStates?: boolean;
   /** Opens with the command menu open. */
   commandMenu?: boolean;
   /** What the loaded data has to play: a session's snapshots, a trajectory's models (plain 1TQN has neither). */
@@ -735,6 +710,11 @@ export const ExportAtSection: StoryObj = {
  */
 export const Pinned: StoryObj = {
   render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} pinned={true} />}</div>),
+};
+
+/** Remote states turned on in the spec: a Remote states card next to Export, and the server's states on Home. */
+export const RemoteStates: StoryObj = {
+  render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} remoteStates={true} />}</div>),
 };
 
 /** A narrow host: the panel becomes a bottom sheet with its tabs along the bottom. */

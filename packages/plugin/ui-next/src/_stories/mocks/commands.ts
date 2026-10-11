@@ -263,12 +263,12 @@ export function mockCommands(shell: ShellModel): CommandManager<Ctx> {
       run: open('export', 'geometry'),
     },
     {
-      id: 'state.save',
-      title: 'Save state…',
+      id: 'snapshots.show',
+      title: 'Snapshots',
       category: 'Snapshots',
-      icon: 'save',
+      icon: 'images',
       shortcut: { key: 's', mod: true },
-      run: open('save-state'),
+      run: show('snapshots'),
     },
     {
       id: 'snapshot.next',
