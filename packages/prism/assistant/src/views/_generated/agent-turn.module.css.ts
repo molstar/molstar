@@ -11,41 +11,41 @@
 import { defineStyles } from '@molstar/prism-ui/styles/registry';
 
 export const classes = {
-  'allow': 'msp-agent-agent-turn-allow',
-  'approval': 'msp-agent-agent-turn-approval',
-  'approvalText': 'msp-agent-agent-turn-approvalText',
-  'approvalWhy': 'msp-agent-agent-turn-approvalWhy',
-  'bar': 'msp-agent-agent-turn-bar',
-  'barFill': 'msp-agent-agent-turn-barFill',
-  'body': 'msp-agent-agent-turn-body',
-  'bodyContent': 'msp-agent-agent-turn-bodyContent',
-  'card': 'msp-agent-agent-turn-card',
-  'deny': 'msp-agent-agent-turn-deny',
-  'footer': 'msp-agent-agent-turn-footer',
-  'header': 'msp-agent-agent-turn-header',
-  'icon': 'msp-agent-agent-turn-icon',
-  'line': 'msp-agent-agent-turn-line',
-  'mark': 'msp-agent-agent-turn-mark',
-  'note': 'msp-agent-agent-turn-note',
-  'prompt': 'msp-agent-agent-turn-prompt',
-  'run': 'msp-agent-agent-turn-run',
-  'runDetail': 'msp-agent-agent-turn-runDetail',
-  'runTime': 'msp-agent-agent-turn-runTime',
-  'runTitle': 'msp-agent-agent-turn-runTitle',
-  'runs': 'msp-agent-agent-turn-runs',
-  'spark': 'msp-agent-agent-turn-spark',
-  'spark-pulse': 'msp-agent-agent-turn-spark-pulse',
-  'spin': 'msp-agent-agent-turn-spin',
-  'state': 'msp-agent-agent-turn-state',
-  'stop': 'msp-agent-agent-turn-stop',
-  'summary': 'msp-agent-agent-turn-summary',
-  'text': 'msp-agent-agent-turn-text',
-  'undo': 'msp-agent-agent-turn-undo',
-  'undone': 'msp-agent-agent-turn-undone',
+  'allow': 'msp-assistant-agent-turn-allow',
+  'approval': 'msp-assistant-agent-turn-approval',
+  'approvalText': 'msp-assistant-agent-turn-approvalText',
+  'approvalWhy': 'msp-assistant-agent-turn-approvalWhy',
+  'bar': 'msp-assistant-agent-turn-bar',
+  'barFill': 'msp-assistant-agent-turn-barFill',
+  'body': 'msp-assistant-agent-turn-body',
+  'bodyContent': 'msp-assistant-agent-turn-bodyContent',
+  'card': 'msp-assistant-agent-turn-card',
+  'deny': 'msp-assistant-agent-turn-deny',
+  'footer': 'msp-assistant-agent-turn-footer',
+  'header': 'msp-assistant-agent-turn-header',
+  'icon': 'msp-assistant-agent-turn-icon',
+  'line': 'msp-assistant-agent-turn-line',
+  'mark': 'msp-assistant-agent-turn-mark',
+  'note': 'msp-assistant-agent-turn-note',
+  'prompt': 'msp-assistant-agent-turn-prompt',
+  'run': 'msp-assistant-agent-turn-run',
+  'runDetail': 'msp-assistant-agent-turn-runDetail',
+  'runTime': 'msp-assistant-agent-turn-runTime',
+  'runTitle': 'msp-assistant-agent-turn-runTitle',
+  'runs': 'msp-assistant-agent-turn-runs',
+  'spark': 'msp-assistant-agent-turn-spark',
+  'spark-pulse': 'msp-assistant-agent-turn-spark-pulse',
+  'spin': 'msp-assistant-agent-turn-spin',
+  'state': 'msp-assistant-agent-turn-state',
+  'stop': 'msp-assistant-agent-turn-stop',
+  'summary': 'msp-assistant-agent-turn-summary',
+  'text': 'msp-assistant-agent-turn-text',
+  'undo': 'msp-assistant-agent-turn-undo',
+  'undone': 'msp-assistant-agent-turn-undone',
 } as const;
 
-defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
-.msp-agent-agent-turn-card {
+defineStyles('assistant/views/agent-turn.module.css', `@layer msp.components {
+.msp-assistant-agent-turn-card {
   margin-top: var(--msp-space-1);
   width: min(380px, calc(100cqw - 2 * var(--msp-space-4)));
   border-radius: var(--msp-radius-lg);
@@ -59,7 +59,7 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   display: flex;
 }
 
-.msp-agent-agent-turn-header {
+.msp-assistant-agent-turn-header {
   align-items: center;
   gap: var(--msp-space-2);
   min-height: 34px;
@@ -67,22 +67,22 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   display: flex;
 }
 
-.msp-agent-agent-turn-spark {
+.msp-assistant-agent-turn-spark {
   color: var(--msp-color-accent);
   flex: none;
 
-  .msp-agent-agent-turn-card:is([data-status="thinking"], [data-status="working"]) & {
-    animation: msp-agent-agent-turn-spark-pulse 1.4s var(--msp-ease) infinite;
+  .msp-assistant-agent-turn-card:is([data-status="thinking"], [data-status="working"]) & {
+    animation: msp-assistant-agent-turn-spark-pulse 1.4s var(--msp-ease) infinite;
   }
 }
 
-@keyframes msp-agent-agent-turn-spark-pulse {
+@keyframes msp-assistant-agent-turn-spark-pulse {
   50% {
     opacity: .35;
   }
 }
 
-.msp-agent-agent-turn-prompt {
+.msp-assistant-agent-turn-prompt {
   min-width: 0;
   mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
@@ -94,21 +94,21 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   overflow: hidden;
 }
 
-.msp-agent-agent-turn-state {
+.msp-assistant-agent-turn-state {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   flex: none;
 
-  .msp-agent-agent-turn-card[data-status="waiting"] & {
+  .msp-assistant-agent-turn-card[data-status="waiting"] & {
     color: var(--msp-color-accent);
   }
 
-  .msp-agent-agent-turn-card[data-status="failed"] & {
+  .msp-assistant-agent-turn-card[data-status="failed"] & {
     color: var(--msp-color-danger);
   }
 }
 
-.msp-agent-agent-turn-icon, .msp-agent-agent-turn-stop {
+.msp-assistant-agent-turn-icon, .msp-assistant-agent-turn-stop {
   justify-content: center;
   align-items: center;
   gap: var(--msp-space-1);
@@ -124,28 +124,28 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   }
 }
 
-.msp-agent-agent-turn-icon {
+.msp-assistant-agent-turn-icon {
   width: 24px;
 }
 
-.msp-agent-agent-turn-stop {
+.msp-assistant-agent-turn-stop {
   padding: 0 var(--msp-space-2);
   background: var(--msp-color-control);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-xs);
 }
 
-.msp-agent-agent-turn-body {
+.msp-assistant-agent-turn-body {
   flex: 0 auto;
 }
 
-.msp-agent-agent-turn-bodyContent {
+.msp-assistant-agent-turn-bodyContent {
   gap: var(--msp-space-2);
   padding: 0 var(--msp-space-3) var(--msp-space-2);
   display: grid;
 }
 
-.msp-agent-agent-turn-text {
+.msp-assistant-agent-turn-text {
   margin: 0;
   line-height: 1.45;
 
@@ -154,17 +154,17 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   }
 }
 
-.msp-agent-agent-turn-note {
+.msp-assistant-agent-turn-note {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   margin: 0;
 }
 
-.msp-agent-agent-turn-runs {
+.msp-assistant-agent-turn-runs {
   display: grid;
 }
 
-.msp-agent-agent-turn-run {
+.msp-assistant-agent-turn-run {
   align-items: center;
   column-gap: var(--msp-space-2);
   min-height: 24px;
@@ -177,30 +177,30 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   }
 }
 
-.msp-agent-agent-turn-mark {
+.msp-assistant-agent-turn-mark {
   color: var(--msp-color-text-subtle);
 
-  .msp-agent-agent-turn-run[data-status="running"] & {
+  .msp-assistant-agent-turn-run[data-status="running"] & {
     color: var(--msp-color-text);
-    animation: .9s linear infinite msp-agent-agent-turn-spin;
+    animation: .9s linear infinite msp-assistant-agent-turn-spin;
   }
 
-  .msp-agent-agent-turn-run[data-status="waiting"] & {
+  .msp-assistant-agent-turn-run[data-status="waiting"] & {
     color: var(--msp-color-accent);
   }
 
-  .msp-agent-agent-turn-run[data-status="failed"] & {
+  .msp-assistant-agent-turn-run[data-status="failed"] & {
     color: var(--msp-color-danger);
   }
 }
 
-@keyframes msp-agent-agent-turn-spin {
+@keyframes msp-assistant-agent-turn-spin {
   to {
     rotate: 360deg;
   }
 }
 
-.msp-agent-agent-turn-runTitle {
+.msp-assistant-agent-turn-runTitle {
   min-width: 0;
   mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
@@ -209,29 +209,29 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   animation-timeline: scroll(self inline);
   overflow: hidden;
 
-  .msp-agent-agent-turn-run[data-status="stopped"] &, .msp-agent-agent-turn-run[data-status="denied"] & {
+  .msp-assistant-agent-turn-run[data-status="stopped"] &, .msp-assistant-agent-turn-run[data-status="denied"] & {
     color: var(--msp-color-text-subtle);
     text-decoration: line-through;
   }
 }
 
-.msp-agent-agent-turn-runTime {
+.msp-assistant-agent-turn-runTime {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   font-variant-numeric: tabular-nums;
 }
 
-.msp-agent-agent-turn-runDetail {
+.msp-assistant-agent-turn-runDetail {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   grid-column: 2 / -1;
 
-  .msp-agent-agent-turn-run[data-status="failed"] & {
+  .msp-assistant-agent-turn-run[data-status="failed"] & {
     color: var(--msp-color-danger);
   }
 }
 
-.msp-agent-agent-turn-bar {
+.msp-assistant-agent-turn-bar {
   height: 2px;
   margin-top: var(--msp-space-1);
   background: var(--msp-color-control);
@@ -240,14 +240,14 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   overflow: hidden;
 }
 
-.msp-agent-agent-turn-barFill {
+.msp-assistant-agent-turn-barFill {
   background: var(--msp-color-text-muted);
   height: 100%;
   transition: width var(--msp-motion-fast) var(--msp-ease);
   display: block;
 }
 
-.msp-agent-agent-turn-approval {
+.msp-assistant-agent-turn-approval {
   align-items: center;
   gap: var(--msp-space-2);
   margin: 0 var(--msp-space-2) var(--msp-space-2);
@@ -257,18 +257,18 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   display: flex;
 }
 
-.msp-agent-agent-turn-approvalText {
+.msp-assistant-agent-turn-approvalText {
   flex: 1;
   min-width: 0;
 }
 
-.msp-agent-agent-turn-approvalWhy {
+.msp-assistant-agent-turn-approvalWhy {
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-xs);
   display: block;
 }
 
-.msp-agent-agent-turn-deny, .msp-agent-agent-turn-allow {
+.msp-assistant-agent-turn-deny, .msp-assistant-agent-turn-allow {
   height: 24px;
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
@@ -279,11 +279,11 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   }
 }
 
-.msp-agent-agent-turn-deny {
+.msp-assistant-agent-turn-deny {
   color: var(--msp-color-text-muted);
 }
 
-.msp-agent-agent-turn-allow {
+.msp-assistant-agent-turn-allow {
   background: color-mix(in oklab, var(--msp-color-accent), transparent 80%);
   color: var(--msp-color-accent-strong);
   font-weight: 600;
@@ -293,7 +293,7 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   }
 }
 
-.msp-agent-agent-turn-footer {
+.msp-assistant-agent-turn-footer {
   align-items: center;
   gap: var(--msp-space-2);
   min-height: 32px;
@@ -302,7 +302,7 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   display: flex;
 }
 
-.msp-agent-agent-turn-summary {
+.msp-assistant-agent-turn-summary {
   min-width: 0;
   mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   color: var(--msp-color-text-subtle);
@@ -315,14 +315,14 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   overflow: hidden;
 }
 
-.msp-agent-agent-turn-undone {
+.msp-assistant-agent-turn-undone {
   padding: 0 var(--msp-space-2);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   flex: none;
 }
 
-.msp-agent-agent-turn-undo {
+.msp-assistant-agent-turn-undo {
   align-items: center;
   gap: var(--msp-space-1);
   height: 24px;
@@ -337,14 +337,14 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
   }
 }
 
-.msp-agent-agent-turn-line {
+.msp-assistant-agent-turn-line {
   display: contents;
 
-  &:is([data-status="thinking"], [data-status="working"]) .msp-agent-agent-turn-spark {
-    animation: msp-agent-agent-turn-spark-pulse 1.4s var(--msp-ease) infinite;
+  &:is([data-status="thinking"], [data-status="working"]) .msp-assistant-agent-turn-spark {
+    animation: msp-assistant-agent-turn-spark-pulse 1.4s var(--msp-ease) infinite;
   }
 
-  &[data-status="waiting"] .msp-agent-agent-turn-state {
+  &[data-status="waiting"] .msp-assistant-agent-turn-state {
     color: var(--msp-color-accent);
   }
 }

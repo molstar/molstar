@@ -33,7 +33,7 @@ Next: the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin ye
 - **Agents through the commands**, opt-in: commands are the tools an agent (in-app or over MCP via any-harness) calls;
   each prompt carries a state account and the person's focus; agent turns are attributed and undo in one step (one
   checkpoint, held only until the next action); the command menu's Ask bar hands typed words to the assistant. The agent
-  is a package an app includes (`@molstar/prism-agent`); the UI knows it only through ports and never depends on it.
+  is a package an app includes (`@molstar/prism-assistant`); the UI knows it only through ports and never depends on it.
   Mocked: the Ask bar, the turn card, History, the Assistant tab; not yet the client API or the harness.
   ([design/agent.md](design/agent.md))
 - **Two contexts and modules**: `PrismContext` (`@molstar/prism`) embeds `{ plugin: PluginContext }` and holds what
@@ -96,7 +96,7 @@ Next: the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin ye
    on state actions and transformers is done.)
 4. **Layout**: `PrismUIContext` has its own (the shell); core `PluginLayout` and `leftPanelTabName` stay the classic
    UI's and are not deprecated in v6.
-5. **Packages**: `packages/prism/*` (`@molstar/prism`, `@molstar/prism-ui`, `@molstar/prism-agent`,
+5. **Packages**: `packages/prism/*` (`@molstar/prism`, `@molstar/prism-ui`, `@molstar/prism-assistant`,
    `@molstar/prism-stories`, `@molstar/prism-viewer`, more as they come: a headless engine, the new sequence viewer),
    private until stable. `apps/prism` is a new app, not a viewer copy.
 6. **Modes**: each its own opt-in package, the viewer (Mol\*'s own UI, `@molstar/prism-viewer`) and the story mode

@@ -85,7 +85,7 @@ run the person confirms). The checkpoint is the mode's (`Checkpointer`, contexts
 snapshot (data, camera, selection, components), so restoring is exact even for changes the state tree's undo does not
 cover; in the story mode the document's inverse operations.
 
-The views bind to `AgentModel` (`@molstar/prism-agent`, `model`), which the client will back: `turn` (the latest
+The views bind to `AgentModel` (`@molstar/prism-assistant`, `model`), which the client will back: `turn` (the latest
 `AgentTurn`: its prompt, status, streamed `text`, `runs`, `checkpoint` held or not, `undone`, `retries`, `usage`),
 `view` (`'card' | 'line' | 'none'`), `history` (`HistoryItem`: a person's `CommandRun` or an `AgentTurn`), `ask`,
 `stop`, `approve`, `undo`, `dismiss`, `hide`, `reopen`, and `settings` (`AISettingsModel`: providers and keys, the
@@ -138,20 +138,20 @@ or `working`, and adds `denied`.
 - While an agent runs, the person's own commands still run (they are attributed to the person); a command of theirs
   after the turn releases its checkpoint, and History says so.
 
-**State (mocks, `@molstar/prism-agent`: `views/`, `testing/mock-agent.ts`; Shell › Assistant, Set up and Not set up):**
-the Ask bar with proposed commands (`selection.color`, `data.download-structure`, `focus.target`) and agent turns, the
-turn card and its line (streaming, steps with progress and durations, a retry note, approval and denial, Stop, failure,
-summary, Undo turn, one checkpoint released by the next action), History with turns and checkpoints, the Assistant tab
-(key needed; providers, model and refresh, own endpoint). Not yet: the `read` and `approval` command fields (they exist
-only on `CommandRun`), the PD → JSON Schema generator, the state and focus accounts, the client API, the harness wiring,
-an answer in a line from the menu's assistant (the port proposes a command or asks the agent), keeping keys (the mock
-holds them in memory whatever the scope; encrypted storage is to come) and keys from a server, the MCP server (a
-separate piece of work).
+**State (mocks, `@molstar/prism-assistant`: `views/`, `testing/mock-agent.ts`; Shell › Assistant, Set up and Not set
+up):** the Ask bar with proposed commands (`selection.color`, `data.download-structure`, `focus.target`) and agent
+turns, the turn card and its line (streaming, steps with progress and durations, a retry note, approval and denial,
+Stop, failure, summary, Undo turn, one checkpoint released by the next action), History with turns and checkpoints, the
+Assistant tab (key needed; providers, model and refresh, own endpoint). Not yet: the `read` and `approval` command
+fields (they exist only on `CommandRun`), the PD → JSON Schema generator, the state and focus accounts, the client API,
+the harness wiring, an answer in a line from the menu's assistant (the port proposes a command or asks the agent),
+keeping keys (the mock holds them in memory whatever the scope; encrypted storage is to come) and keys from a server,
+the MCP server (a separate piece of work).
 
 ## 6. Opt-in: not in every build
 
-The agent is a package an app includes, `@molstar/prism-agent`, not part of the UI: prism-ui does not depend on it and
-none of its files name it (`src/_test/agent-boundary.test.ts`), and the UI knows it only through ports: the command
+The agent is a package an app includes, `@molstar/prism-assistant`, not part of the UI: prism-ui does not depend on it
+and none of its files name it (`src/_test/agent-boundary.test.ts`), and the UI knows it only through ports: the command
 menu's `assistant` (`CommandMenuAssistant`), the shell's `agent` slot (`ShellViewProps.agent`, under the status column's
 tasks), and tabs and commands registered like any contribution (the agent's `mockAgentAddOn` adds the Assistant tab and
 swaps Log for History in the mock shell). An app that does not include it ships none of it. Planned, not built: one that

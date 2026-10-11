@@ -136,7 +136,7 @@ export interface ShellStoryProps {
   pinned?: boolean;
   /** Opens with the command menu open. */
   commandMenu?: boolean;
-  /** What an add-on brings (the agent module's mock: `@molstar/prism-agent/testing`). */
+  /** What an add-on brings (the agent module's mock: `@molstar/prism-assistant/testing`). */
   addOn?: MockShellAddOn;
 }
 

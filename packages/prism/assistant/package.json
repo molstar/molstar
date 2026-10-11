@@ -1,5 +1,5 @@
 {
-  "name": "@molstar/prism-agent",
+  "name": "@molstar/prism-assistant",
   "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
@@ -32,8 +32,8 @@
     "build": "tsc -b",
     "typecheck": "tsc -b",
     "typecheck:storybook": "tsc -p tsconfig.storybook.json",
-    "styles": "node ../ui/scripts/css.mjs --root . --prefix agent",
-    "styles:check": "node ../ui/scripts/css.mjs --root . --prefix agent --check"
+    "styles": "node ../ui/scripts/css.mjs --root . --prefix assistant",
+    "styles:check": "node ../ui/scripts/css.mjs --root . --prefix assistant --check"
   },
   "dependencies": {
     "@molstar/prism-ui": "workspace:*",

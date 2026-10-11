@@ -11,19 +11,19 @@
 import { defineStyles } from '@molstar/prism-ui/styles/registry';
 
 export const classes = {
-  'content': 'msp-agent-assistant-tab-content',
-  'hint': 'msp-agent-assistant-tab-hint',
-  'tab': 'msp-agent-assistant-tab-tab',
+  'content': 'msp-assistant-assistant-tab-content',
+  'hint': 'msp-assistant-assistant-tab-hint',
+  'tab': 'msp-assistant-assistant-tab-tab',
 } as const;
 
-defineStyles('agent/views/assistant-tab.module.css', `@layer msp.components {
-.msp-agent-assistant-tab-tab {
+defineStyles('assistant/views/assistant-tab.module.css', `@layer msp.components {
+.msp-assistant-assistant-tab-tab {
   flex: 1 1 0;
   height: 100%;
   min-height: 0;
 }
 
-.msp-agent-assistant-tab-content {
+.msp-assistant-assistant-tab-content {
   align-content: start;
   gap: var(--msp-space-4);
   padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
@@ -31,7 +31,7 @@ defineStyles('agent/views/assistant-tab.module.css', `@layer msp.components {
   display: grid;
 }
 
-.msp-agent-assistant-tab-hint {
+.msp-assistant-assistant-tab-hint {
   padding: 0 var(--msp-inset);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);

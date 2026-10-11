@@ -8,10 +8,10 @@ test) reads the same view models.
 **State (mocks).** The view-model contracts exist as interfaces in `model/*.ts` (§4.2), with `ParamsFormModel`
 (`forms/params-form`), `StatusModel` (`shell/status`) and `model/canvas-theme` as the only implementations in the
 package. The mocks in `testing/` implement the interfaces in memory (`mockScene`, `mockSelection`, …; the agent's
-`MockAgentModel` is in `@molstar/prism-agent`) and views take them as props. The mocks skipped the plan's fake-sources
-level: they implement view models directly, so sources (§3) are still a design. Not yet: sources, `PrismContext` (§4.1),
-`keyedList`, `fromEvent` and the mount signal (§2), optimistic edits (§5), `model/actions/` (§6). All of these are Phase
-4 ([../plan.md](../plan.md)).
+`MockAgentModel` is in `@molstar/prism-assistant`) and views take them as props. The mocks skipped the plan's
+fake-sources level: they implement view models directly, so sources (§3) are still a design. Not yet: sources,
+`PrismContext` (§4.1), `keyedList`, `fromEvent` and the mount signal (§2), optimistic edits (§5), `model/actions/` (§6).
+All of these are Phase 4 ([../plan.md](../plan.md)).
 
 ## 1. Short answer to "do view models wrap manager behaviors?"
 
@@ -282,8 +282,8 @@ function StructureLabel({ node }: { node: SceneNode }) {
 
 View models are tested without a renderer (jest, as the rest of the repo). Now: `forms/_test/params-form.test.ts`,
 `model/_test/canvas-theme.test.ts`, view tests over the mocks (`views/structure/_test/structure-tab.test.tsx` renders
-`StructureTab` over `mockScene`), and `src/_test/agent-boundary.test.ts` (prism-ui never names `@molstar/prism-agent`).
-With sources (Phase 4):
+`StructureTab` over `mockScene`), and `src/_test/agent-boundary.test.ts` (prism-ui never names
+`@molstar/prism-assistant`). With sources (Phase 4):
 
 - Unit: construct with fake sources, `mount()`, drive states, assert fields and calls.
 - Integration: a real `PluginContext` without a canvas, loading local fixtures (`data/`), asserting the scene tree after

@@ -11,31 +11,31 @@
 import { defineStyles } from '@molstar/prism-ui/styles/registry';
 
 export const classes = {
-  'answer': 'msp-agent-history-tab-answer',
-  'checkpoint': 'msp-agent-history-tab-checkpoint',
-  'checkpointMark': 'msp-agent-history-tab-checkpointMark',
-  'checkpointText': 'msp-agent-history-tab-checkpointText',
-  'chevron': 'msp-agent-history-tab-chevron',
-  'empty': 'msp-agent-history-tab-empty',
-  'fold': 'msp-agent-history-tab-fold',
-  'item': 'msp-agent-history-tab-item',
-  'list': 'msp-agent-history-tab-list',
-  'listContent': 'msp-agent-history-tab-listContent',
-  'prompt': 'msp-agent-history-tab-prompt',
-  'runs': 'msp-agent-history-tab-runs',
-  'spark': 'msp-agent-history-tab-spark',
-  'switch': 'msp-agent-history-tab-switch',
-  'switchButton': 'msp-agent-history-tab-switchButton',
-  'tab': 'msp-agent-history-tab-tab',
-  'turn': 'msp-agent-history-tab-turn',
-  'turnHead': 'msp-agent-history-tab-turnHead',
-  'undo': 'msp-agent-history-tab-undo',
-  'when': 'msp-agent-history-tab-when',
-  'who': 'msp-agent-history-tab-who',
+  'answer': 'msp-assistant-history-tab-answer',
+  'checkpoint': 'msp-assistant-history-tab-checkpoint',
+  'checkpointMark': 'msp-assistant-history-tab-checkpointMark',
+  'checkpointText': 'msp-assistant-history-tab-checkpointText',
+  'chevron': 'msp-assistant-history-tab-chevron',
+  'empty': 'msp-assistant-history-tab-empty',
+  'fold': 'msp-assistant-history-tab-fold',
+  'item': 'msp-assistant-history-tab-item',
+  'list': 'msp-assistant-history-tab-list',
+  'listContent': 'msp-assistant-history-tab-listContent',
+  'prompt': 'msp-assistant-history-tab-prompt',
+  'runs': 'msp-assistant-history-tab-runs',
+  'spark': 'msp-assistant-history-tab-spark',
+  'switch': 'msp-assistant-history-tab-switch',
+  'switchButton': 'msp-assistant-history-tab-switchButton',
+  'tab': 'msp-assistant-history-tab-tab',
+  'turn': 'msp-assistant-history-tab-turn',
+  'turnHead': 'msp-assistant-history-tab-turnHead',
+  'undo': 'msp-assistant-history-tab-undo',
+  'when': 'msp-assistant-history-tab-when',
+  'who': 'msp-assistant-history-tab-who',
 } as const;
 
-defineStyles('agent/views/history-tab.module.css', `@layer msp.components {
-.msp-agent-history-tab-tab {
+defineStyles('assistant/views/history-tab.module.css', `@layer msp.components {
+.msp-assistant-history-tab-tab {
   gap: var(--msp-space-2);
   height: 100%;
   min-height: 0;
@@ -46,13 +46,13 @@ defineStyles('agent/views/history-tab.module.css', `@layer msp.components {
   display: flex;
 }
 
-.msp-agent-history-tab-switch {
+.msp-assistant-history-tab-switch {
   gap: var(--msp-space-1);
   flex: none;
   display: flex;
 }
 
-.msp-agent-history-tab-switchButton {
+.msp-assistant-history-tab-switchButton {
   height: 24px;
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
@@ -68,41 +68,41 @@ defineStyles('agent/views/history-tab.module.css', `@layer msp.components {
   }
 }
 
-.msp-agent-history-tab-list {
+.msp-assistant-history-tab-list {
   flex: 1 1 0;
 }
 
-.msp-agent-history-tab-listContent {
+.msp-assistant-history-tab-listContent {
   gap: var(--msp-space-1);
   display: grid;
 }
 
-.msp-agent-history-tab-empty {
+.msp-assistant-history-tab-empty {
   padding: var(--msp-space-2) var(--msp-space-3);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   margin: 0;
 }
 
-.msp-agent-history-tab-item {
+.msp-assistant-history-tab-item {
   align-items: start;
   column-gap: var(--msp-space-2);
   padding: 0 var(--msp-inset);
   grid-template-columns: minmax(0, 1fr) auto;
   display: grid;
 
-  & > .msp-agent-history-tab-when {
+  & > .msp-assistant-history-tab-when {
     padding-top: 6px;
   }
 }
 
-.msp-agent-history-tab-when {
+.msp-assistant-history-tab-when {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   white-space: nowrap;
 }
 
-.msp-agent-history-tab-turn {
+.msp-assistant-history-tab-turn {
   gap: var(--msp-space-1);
   margin: var(--msp-space-1) 0;
   padding: var(--msp-space-2) var(--msp-space-3);
@@ -116,36 +116,36 @@ defineStyles('agent/views/history-tab.module.css', `@layer msp.components {
   }
 }
 
-.msp-agent-history-tab-turnHead {
+.msp-assistant-history-tab-turnHead {
   align-items: center;
   gap: var(--msp-space-2);
   display: flex;
 }
 
-.msp-agent-history-tab-spark {
+.msp-assistant-history-tab-spark {
   color: var(--msp-color-accent);
   flex: none;
 }
 
-.msp-agent-history-tab-who {
+.msp-assistant-history-tab-who {
   min-width: 0;
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-xs);
   flex: 1;
 }
 
-.msp-agent-history-tab-prompt {
+.msp-assistant-history-tab-prompt {
   margin: 0;
   font-weight: 600;
 }
 
-.msp-agent-history-tab-answer {
+.msp-assistant-history-tab-answer {
   color: var(--msp-color-text-muted);
   margin: 0;
   line-height: 1.45;
 }
 
-.msp-agent-history-tab-fold {
+.msp-assistant-history-tab-fold {
   align-items: center;
   gap: var(--msp-space-1);
   color: var(--msp-color-text-subtle);
@@ -158,19 +158,19 @@ defineStyles('agent/views/history-tab.module.css', `@layer msp.components {
   }
 }
 
-.msp-agent-history-tab-chevron {
+.msp-assistant-history-tab-chevron {
   transition: rotate var(--msp-motion-fast) var(--msp-ease);
 
-  .msp-agent-history-tab-fold[aria-expanded="true"] & {
+  .msp-assistant-history-tab-fold[aria-expanded="true"] & {
     rotate: 180deg;
   }
 }
 
-.msp-agent-history-tab-runs {
+.msp-assistant-history-tab-runs {
   display: grid;
 }
 
-.msp-agent-history-tab-checkpoint {
+.msp-assistant-history-tab-checkpoint {
   align-items: center;
   gap: var(--msp-space-2);
   min-height: 24px;
@@ -180,17 +180,17 @@ defineStyles('agent/views/history-tab.module.css', `@layer msp.components {
   display: flex;
 }
 
-.msp-agent-history-tab-checkpointMark {
+.msp-assistant-history-tab-checkpointMark {
   color: var(--msp-color-text-subtle);
 }
 
-.msp-agent-history-tab-checkpointText {
+.msp-assistant-history-tab-checkpointText {
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   flex: 1;
 }
 
-.msp-agent-history-tab-undo {
+.msp-assistant-history-tab-undo {
   height: 22px;
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);

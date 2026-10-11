@@ -14,8 +14,8 @@
 //   node scripts/css.mjs --check    fail if a generated module is missing, stale or orphaned
 //   node scripts/css.mjs --watch    regenerate on change
 //
-// A package built on prism-ui runs the same script on itself: `--root <package> --prefix <name>` (the agent:
-// `--root . --prefix agent` from packages/prism/agent). Its modules import the registry from `@molstar/prism-ui` and
+// A package built on prism-ui runs the same script on itself: `--root <package> --prefix <name>` (the assistant:
+// `--root . --prefix assistant` from packages/prism/assistant). Its modules import the registry from `@molstar/prism-ui` and
 // name their classes `msp-<name>-<file>-<class>`.
 
 import fs from 'node:fs';
@@ -77,7 +77,7 @@ function listGenerated(dir, out = []) {
 
 /**
  * The class-name prefix of a module: its file name, with its folder when they differ (`tree`, `scene-row`); in a
- * package built on prism-ui, its file name after the package's prefix (`agent-agent-turn`).
+ * package built on prism-ui, its file name after the package's prefix (`assistant-agent-turn`).
  */
 function modulePrefix(pkg, file) {
   const base = path.basename(file, '.module.css');

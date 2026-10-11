@@ -4,10 +4,10 @@ Phases are buildable and reviewable on their own. Storybook comes first so the U
 
 Where it stands: phases 0–3 are done in Storybook (one mode per app, the viewer and a first story mode; the renderer
 check and its bench: the `dom` runtime stays, [spike.md](spike.md)). The packages are split (`packages/prism/ui` the
-common base; the modes `packages/prism/viewer` and `packages/prism/stories`; `packages/prism/agent`). The spec review
-ran ([review.md](review.md)); its skeleton findings are folded into [design/contexts.md](design/contexts.md) (contexts,
-modules, modes, contributions, commands, history, the plugin boundary). Next: bring in the agent harness and the
-sequence viewer against that skeleton, then freeze the rest of the contracts and build phases 4–8.
+common base; the modes `packages/prism/viewer` and `packages/prism/stories`; `packages/prism/assistant`). The spec
+review ran ([review.md](review.md)); its skeleton findings are folded into [design/contexts.md](design/contexts.md)
+(contexts, modules, modes, contributions, commands, history, the plugin boundary). Next: bring in the agent harness and
+the sequence viewer against that skeleton, then freeze the rest of the contracts and build phases 4–8.
 
 ## Phase 0: package and Storybook skeleton
 
@@ -114,7 +114,7 @@ Carry into the proper implementation (from the mock review):
   measurements, superposition, snapshots, playback, home, settings, state tree, image export, agent); the mocks in
   `testing/*` implement them over in-memory data and stay as the stories' data until real view models over fake sources
   replace them. What the review freezes there is what phase 4 builds against.
-- **The agent stays opt-in.** It is its own package (`@molstar/prism-agent`); prism-ui never depends on it
+- **The agent stays opt-in.** It is its own package (`@molstar/prism-assistant`); prism-ui never depends on it
   (`src/_test/opt-in-boundary.test.ts`), and the wiring (phase 5) goes through the same ports (the command menu's
   `assistant`, `ShellView`'s `agent` slot in the status column, contributed tabs and commands), not new imports from the
   core.

@@ -12,8 +12,8 @@ import { defaultClientConditions, mergeConfig, type Plugin } from 'vite';
 import { cssModulesPlugin, cssPackage } from '../scripts/css.mjs';
 
 const monorepoRoot = fileURLToPath(new URL('../../../..', import.meta.url));
-// Packages built on prism-ui show their stories here too (the viewer mode: Shell › Viewer mode, Views; the agent: Shell › Assistant; story mode: Shell › Story mode).
-const agentRoot = fileURLToPath(new URL('../../agent', import.meta.url));
+// Packages built on prism-ui show their stories here too (the viewer mode: Shell › Viewer mode, Views; the assistant: Shell › Assistant; story mode: Shell › Story mode).
+const assistantRoot = fileURLToPath(new URL('../../assistant', import.meta.url));
 const storiesRoot = fileURLToPath(new URL('../../stories', import.meta.url));
 const viewerRoot = fileURLToPath(new URL('../../viewer', import.meta.url));
 
@@ -62,7 +62,7 @@ const config: StorybookConfig = {
   stories: [
     '../src/**/*.mdx',
     '../src/**/*.stories.@(ts|tsx)',
-    '../../agent/src/**/*.stories.@(ts|tsx)',
+    '../../assistant/src/**/*.stories.@(ts|tsx)',
     '../../stories/src/**/*.stories.@(ts|tsx)',
     '../../viewer/src/**/*.stories.@(ts|tsx)',
   ],
@@ -74,7 +74,7 @@ const config: StorybookConfig = {
       plugins: [
         cssModulesPlugin([
           cssPackage(),
-          cssPackage(agentRoot, 'agent'),
+          cssPackage(assistantRoot, 'assistant'),
           cssPackage(storiesRoot, 'stories'),
           cssPackage(viewerRoot, 'viewer'),
         ]),

@@ -378,15 +378,15 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -537,9 +537,6 @@ importers:
       '@molstar/model-export-extension':
         specifier: workspace:*
         version: link:../../extensions/model-export
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/mp4-export-extension':
         specifier: workspace:*
         version: link:../../extensions/mp4-export
@@ -561,6 +558,9 @@ importers:
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       '@molstar/rcsb-extension':
         specifier: workspace:*
         version: link:../../extensions/rcsb
@@ -919,9 +919,6 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/pdbe-extension':
         specifier: workspace:*
         version: link:../../extensions/pdbe
@@ -931,6 +928,9 @@ importers:
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -1218,9 +1218,6 @@ importers:
       '@molstar/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/mvs':
         specifier: workspace:*
         version: link:../../packages/mvs/runtime
@@ -1233,6 +1230,9 @@ importers:
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       '@types/react':
         specifier: 'catalog:'
         version: 18.3.31
@@ -1270,15 +1270,15 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       '@types/react':
         specifier: 'catalog:'
         version: 18.3.31
@@ -1477,12 +1477,12 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -1508,15 +1508,15 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -1620,12 +1620,12 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -1821,15 +1821,15 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       '@types/react':
         specifier: 'catalog:'
         version: 18.3.31
@@ -1938,12 +1938,12 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -1966,9 +1966,6 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/mvs':
         specifier: workspace:*
         version: link:../../packages/mvs/runtime
@@ -1981,6 +1978,9 @@ importers:
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       '@types/react':
         specifier: 'catalog:'
         version: 18.3.31
@@ -2012,12 +2012,12 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -2161,12 +2161,12 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../packages/query-language
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../packages/query-language
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -2306,25 +2306,6 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
-  packages/query-language:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../core
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
   packages/mvs/builder:
     dependencies:
       '@molstar/query-language':
@@ -2373,15 +2354,15 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../../query-language
       '@molstar/mvs-builder':
         specifier: workspace:*
         version: link:../builder
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../plugin/core
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../../query-language
       fp-ts:
         specifier: 'catalog:'
         version: 2.16.11
@@ -2522,7 +2503,7 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
-  packages/prism/agent:
+  packages/prism/assistant:
     dependencies:
       '@molstar/prism-ui':
         specifier: workspace:*
@@ -2655,6 +2636,25 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  packages/query-language:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
   perf-tests:
     dependencies:
       '@molstar/core':
@@ -2666,12 +2666,12 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../packages/model
-      '@molstar/query-language':
-        specifier: workspace:*
-        version: link:../packages/query-language
       '@molstar/pdbe-extension':
         specifier: workspace:*
         version: link:../extensions/pdbe
+      '@molstar/query-language':
+        specifier: workspace:*
+        version: link:../packages/query-language
       '@molstar/structure-info-cli':
         specifier: workspace:*
         version: link:../cli/structure-info

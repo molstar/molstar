@@ -210,7 +210,7 @@ _Merges plan-3, the IconName part of vm-1, and the cycle part of cmd-1._
 _Merges ctx-11 (history part), vm-9 and cmd-3._
 
 **Problem.** shell.md §6 and view-models.md §4.1 give core `PrismContext` a `history: HistoryModel`. That interface
-exists nowhere. `RunSource`, `CommandRun` and `HistoryItem` live in `packages/prism/agent/src/model.ts:12-71`, which
+exists nowhere. `RunSource`, `CommandRun` and `HistoryItem` live in `packages/prism/assistant/src/model.ts:12-71`, which
 core must not import.
 
 `CommandOutcome` (`ui/src/commands/types.ts:37-47`) carries no run id, source, arguments or timing, and `open()` takes

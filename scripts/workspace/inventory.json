@@ -361,8 +361,8 @@
       "private": true
     },
     {
-      "name": "@molstar/prism-agent",
-      "path": "packages/prism/agent",
+      "name": "@molstar/prism-assistant",
+      "path": "packages/prism/assistant",
       "kind": "library",
       "private": true
     },

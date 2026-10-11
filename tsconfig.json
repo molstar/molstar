@@ -182,7 +182,7 @@
       "path": "./packages/prism/ui"
     },
     {
-      "path": "./packages/prism/agent"
+      "path": "./packages/prism/assistant"
     },
     {
       "path": "./packages/prism/stories"
