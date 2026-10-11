@@ -62,8 +62,8 @@ export function HomeTab(props: HomeTabProps) {
   );
 }
 
-/** One action: a header that folds, its form, and the apply button. */
-function ActionBlock(props: { action: HomeAction; open: boolean }) {
+/** One action: a header that folds, its form, and the apply button (Home's actions, the state tree's). */
+export function ActionBlock(props: { action: HomeAction; open: boolean }) {
   const { action } = props;
   const open = observableState(props.open);
   const busy = action.busy ?? of(false);

@@ -127,6 +127,7 @@ const ICONS = [
   'crop',
   'images',
   'cloud-upload',
+  'file-code',
 ];
 
 const require = createRequire(import.meta.url);

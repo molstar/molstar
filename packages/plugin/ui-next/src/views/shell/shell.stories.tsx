@@ -40,6 +40,8 @@ import { HomeTab } from '../home/home-tab.js';
 import { ImageExport } from '../export/image-export.js';
 import { RemoteStatesPanel } from '../state/remote-states-panel.js';
 import { SnapshotsPanel } from '../state/snapshots-panel.js';
+import { StateTreeTab } from '../state-tree/state-tree-tab.js';
+import { mockStateTree } from '../../_stories/mocks/state-tree.js';
 import { mockImageExport } from '../../_stories/mocks/image-export.js';
 import { mockSnapshotsModel } from '../../_stories/mocks/snapshots.js';
 import { SectionList } from './section-list.js';
@@ -268,6 +270,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?
   const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
   const home = mockHome((text, kind) => status.post(text, kind), { remoteStates: options.remoteStates });
   const snapshotsModel = mockSnapshotsModel((text, kind) => status.post(text, kind));
+  const stateTree = mockStateTree((text) => status.post(text));
   const snapshotStepper = mockSnapshots((t) => status.post(t));
   const commands = mockCommands(shell);
 
@@ -318,7 +321,7 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?
       title: 'State tree',
       icon: 'list-tree',
       order: 2,
-      render: domView(() => <Placeholder title="State tree">The full state tree for advanced use.</Placeholder>),
+      render: domView(() => <StateTreeTab model={stateTree} />),
     },
     {
       id: 'log',

@@ -212,6 +212,14 @@ saved with an image, name, `#key`, the description's first line; a click applies
 current view and ⋯ for move up/down and Remove), and under them at a fixed height the current snapshot's editor: name,
 key, markdown description, how long it shows and the camera transition. Replaces the Plugin State tab's local snapshots.
 
+### 4.1c State tree tab
+
+The state tree for advanced use, in the Structure tab's shape and look: cells as rows (the transform's object, its
+description, an error in the danger color; show/hide where there is a visual), each with a ⋯ menu inline: **Update
+{transform}…**, the actions applicable to the cell (Mol*'s Apply Action), and Remove. A click selects a cell; the fixed
+inspector below shows its update form and its actions as Home-style action blocks; a ⋯ entry selects the cell and opens
+its block.
+
 ### 4.2 Overlays
 
 | Overlay           | Opened from                                                         | Content                                                                                                                                                                                                                    | Replaces                    |
