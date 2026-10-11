@@ -49,17 +49,21 @@ defineStyles('components/button/button.module.css', `@layer msp.components {
 }
 
 .msp-button-primary {
-  background: var(--msp-color-accent);
-  color: #fff;
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 84%);
+  color: var(--msp-color-accent-strong);
   font-weight: 600;
 
-  &:hover:not(:disabled), &:active:not(:disabled), &[aria-pressed="true"] {
-    background: var(--msp-color-accent-strong);
+  &:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--msp-color-accent), transparent 76%);
+  }
+
+  &:active:not(:disabled), &[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--msp-color-accent), transparent 70%);
   }
 
   &:disabled {
-    background: color-mix(in oklab, var(--msp-color-accent), transparent 60%);
-    color: #fff;
+    background: color-mix(in oklab, var(--msp-color-accent), transparent 92%);
+    color: var(--msp-color-text-subtle);
   }
 }
 
