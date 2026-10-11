@@ -31,11 +31,12 @@ export const classes = {
 
 defineStyles('views/state/remote-states-panel.module.css', `@layer msp.components {
 .msp-state-remote-states-panel-panel {
-  align-content: start;
   gap: var(--msp-space-4);
+  height: 100%;
   padding: 0 var(--msp-space-2) var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
-  display: grid;
+  flex-direction: column;
+  display: flex;
 }
 
 .msp-state-remote-states-panel-upload {
@@ -43,6 +44,7 @@ defineStyles('views/state/remote-states-panel.module.css', `@layer msp.component
   padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  flex: none;
   display: grid;
 }
 
@@ -61,7 +63,10 @@ defineStyles('views/state/remote-states-panel.module.css', `@layer msp.component
 
 .msp-state-remote-states-panel-states {
   gap: var(--msp-space-1);
-  display: grid;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
 }
 
 .msp-state-remote-states-panel-captionRow {
@@ -72,8 +77,12 @@ defineStyles('views/state/remote-states-panel.module.css', `@layer msp.component
 }
 
 .msp-state-remote-states-panel-list {
+  flex: 1 1 0;
   grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  min-height: 0;
   display: grid;
+  overflow: auto;
 }
 
 .msp-state-remote-states-panel-empty {
@@ -196,6 +205,7 @@ defineStyles('views/state/remote-states-panel.module.css', `@layer msp.component
   padding: 0 var(--msp-space-2);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
+  flex: none;
   grid-template-columns: auto minmax(0, 1fr);
   display: grid;
 }

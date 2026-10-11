@@ -4,16 +4,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+/* Upload at the top, the server at the bottom; the states between take what is left and scroll. */
 .panel {
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: var(--msp-space-4);
+  height: 100%;
   padding: 0 var(--msp-space-2) var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
 }
 
 /* Upload: a quiet surface holding the name and the action at its bottom right (as Home's actions). */
 .upload {
+  flex: none;
   display: grid;
   gap: var(--msp-space-2);
   padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
@@ -35,8 +38,11 @@
 }
 
 .states {
-  display: grid;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
   gap: var(--msp-space-1);
+  min-height: 0;
 }
 
 .captionRow {
@@ -47,8 +53,12 @@
 }
 
 .list {
+  flex: 1 1 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  min-height: 0;
+  overflow: auto;
 }
 
 .empty {
@@ -170,6 +180,7 @@
 }
 
 .server {
+  flex: none;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;

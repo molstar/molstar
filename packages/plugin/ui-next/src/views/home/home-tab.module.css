@@ -4,12 +4,29 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+/* The content scrolls; the command menu hint stays at the bottom. */
 .home {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-size: var(--msp-font-size-sm);
+}
+
+.content {
+  flex: 1 1 0;
   display: grid;
   align-content: start;
   gap: var(--msp-space-4);
+  min-height: 0;
   padding: 0 var(--msp-space-2) var(--msp-space-2);
-  font-size: var(--msp-font-size-sm);
+  overflow: auto;
+}
+
+.states {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-height: 264px;
+  overflow: auto;
 }
 
 .group {
@@ -167,6 +184,8 @@
 
 /* The way to everything else. */
 .hint {
+  flex: none;
+  margin: 0 var(--msp-space-2) var(--msp-space-2);
   display: flex;
   align-items: center;
   gap: var(--msp-space-3);

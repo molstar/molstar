@@ -20,6 +20,7 @@ export const classes = {
   'caption': 'msp-home-home-tab-caption',
   'captionRow': 'msp-home-home-tab-captionRow',
   'chevron': 'msp-home-home-tab-chevron',
+  'content': 'msp-home-home-tab-content',
   'group': 'msp-home-home-tab-group',
   'hint': 'msp-home-home-tab-hint',
   'home': 'msp-home-home-tab-home',
@@ -29,15 +30,32 @@ export const classes = {
   'state': 'msp-home-home-tab-state',
   'stateDate': 'msp-home-home-tab-stateDate',
   'stateLabel': 'msp-home-home-tab-stateLabel',
+  'states': 'msp-home-home-tab-states',
 } as const;
 
 defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 .msp-home-home-tab-home {
+  height: 100%;
+  font-size: var(--msp-font-size-sm);
+  flex-direction: column;
+  display: flex;
+}
+
+.msp-home-home-tab-content {
   align-content: start;
   gap: var(--msp-space-4);
+  min-height: 0;
   padding: 0 var(--msp-space-2) var(--msp-space-2);
-  font-size: var(--msp-font-size-sm);
+  flex: 1 1 0;
   display: grid;
+  overflow: auto;
+}
+
+.msp-home-home-tab-states {
+  grid-template-columns: minmax(0, 1fr);
+  max-height: 264px;
+  display: grid;
+  overflow: auto;
 }
 
 .msp-home-home-tab-group {
@@ -191,12 +209,14 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 }
 
 .msp-home-home-tab-hint {
+  margin: 0 var(--msp-space-2) var(--msp-space-2);
   align-items: center;
   gap: var(--msp-space-3);
   padding: var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
+  flex: none;
   display: flex;
 
   &:hover {

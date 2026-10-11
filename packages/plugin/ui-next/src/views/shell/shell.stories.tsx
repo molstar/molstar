@@ -249,7 +249,12 @@ const Granularities: readonly Granularity[] = [
 ];
 
 /** A mock of everything around the canvas, with the shell's real model. */
-function mockShell(options: { loaded: boolean; preset?: MockScenePreset; pinned?: boolean; remoteStates?: boolean }) {
+function mockShell(options: {
+  loaded: boolean;
+  preset?: MockScenePreset;
+  pinned?: boolean;
+  remoteStates?: boolean | number;
+}) {
   const shell = new ShellModel({ docks: { right: { pinned: !!options.pinned } } });
   const status = new StatusModel();
   const canvasMode = observableState<CanvasMode>('interact');
@@ -542,8 +547,8 @@ function ShellStory(props: {
   openExportAt?: string;
   /** The right panel pinned beside the canvas. */
   pinned?: boolean;
-  /** The spec turns remote states (a state server) on. */
-  remoteStates?: boolean;
+  /** The spec turns remote states (a state server) on; a number fills the server with that many. */
+  remoteStates?: boolean | number;
   /** Opens with the command menu open. */
   commandMenu?: boolean;
   /** What the loaded data has to play: a session's snapshots, a trajectory's models (plain 1TQN has neither). */
@@ -717,6 +722,11 @@ export const Pinned: StoryObj = {
 /** Remote states turned on in the spec: a Remote states card next to Export, and the server's states on Home. */
 export const RemoteStates: StoryObj = {
   render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={true} remoteStates={true} />}</div>),
+};
+
+/** A busy state server (50 states): the lists scroll on their own, on Home and in the Remote states card. */
+export const ManyRemoteStates: StoryObj = {
+  render: () => story(() => <div style="height: 100vh">{<ShellStory loaded={false} remoteStates={50} />}</div>),
 };
 
 /** A narrow host: the panel becomes a bottom sheet with its tabs along the bottom. */

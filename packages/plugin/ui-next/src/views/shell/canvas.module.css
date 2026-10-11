@@ -122,6 +122,8 @@
 }
 
 .cardBody {
+  /* The rest of the card's height: content can fill it (a list that scrolls on its own) or scroll as a whole. */
+  flex: 1 1 0;
   min-height: 0;
   overflow: auto;
 }

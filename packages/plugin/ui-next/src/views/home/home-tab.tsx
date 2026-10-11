@@ -32,12 +32,15 @@ export function HomeTab(props: HomeTabProps) {
   const { home } = props;
   return (
     <div class={classes.home}>
-      <section class={classes.group} aria-label="Actions">
-        <For each={home.actions} key={(a) => a.id}>
-          {(action, index) => <ActionBlock action={action} open={index.value === 0} />}
-        </For>
-      </section>
-      {home.remoteStates ? <RemoteStates model={home.remoteStates} /> : null}
+      {/* What scrolls; the hint below stays in view. */}
+      <div class={classes.content}>
+        <section class={classes.group} aria-label="Actions">
+          <For each={home.actions} key={(a) => a.id}>
+            {(action, index) => <ActionBlock action={action} open={index.value === 0} />}
+          </For>
+        </section>
+        {home.remoteStates ? <RemoteStates model={home.remoteStates} /> : null}
+      </div>
       <button type="button" class={classes.hint} onClick={() => props.onOpenCommandMenu?.()}>
         <kbd>{formatChord({ key: 'k', mod: true })}</kbd>
         <span>Search every command</span>
@@ -109,15 +112,22 @@ function RemoteStates(props: { model: RemoteStatesModel }) {
           onClick={() => model.refresh()}
         />
       </div>
-      <For each={model.states} key={(r) => r.id} fallback={() => <p class={classes.none}>No states on this server.</p>}>
-        {(state) => (
-          <button type="button" class={classes.state} onClick={() => model.open(state.id)}>
-            <Icon name="cloud" size={16} />
-            <span class={classes.stateLabel}>{state.label}</span>
-            <span class={classes.stateDate}>{state.date}</span>
-          </button>
-        )}
-      </For>
+      {/* A long list scrolls on its own, the server field stays under it. */}
+      <div class={classes.states}>
+        <For
+          each={model.states}
+          key={(r) => r.id}
+          fallback={() => <p class={classes.none}>No states on this server.</p>}
+        >
+          {(state) => (
+            <button type="button" class={classes.state} onClick={() => model.open(state.id)}>
+              <Icon name="cloud" size={16} />
+              <span class={classes.stateLabel}>{state.label}</span>
+              <span class={classes.stateDate}>{state.date}</span>
+            </button>
+          )}
+        </For>
+      </div>
       <label class={classes.server}>
         <span>Server</span>
         <TextInput

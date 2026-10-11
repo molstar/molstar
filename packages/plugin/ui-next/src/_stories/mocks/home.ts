@@ -149,7 +149,8 @@ const OpenSession = {
 /** Home for the stories: the root actions with forms; applying posts what would happen. */
 export function mockHome(
   post: (text: string, kind?: 'info' | 'success') => void,
-  options: { remoteStates?: boolean } = {},
+  /** `remoteStates`: on, or on with this many states (a long list). */
+  options: { remoteStates?: boolean | number } = {},
 ): HomeModel {
   const busy = observableState(false);
   const action = (
@@ -202,21 +203,32 @@ export function mockHome(
   return {
     actions: actions.asReadonly,
     formats: ['mmCIF', 'BinaryCIF', 'PDB', 'CCP4', 'MRC', 'MOLX', 'MVSJ'],
-    remoteStates: options.remoteStates ? mockRemoteStates(post) : undefined,
+    remoteStates: options.remoteStates
+      ? mockRemoteStates(post, typeof options.remoteStates === 'number' ? options.remoteStates : undefined)
+      : undefined,
     openFiles: (files) => post(`Opening ${files.map((f) => f.name).join(', ')}…`),
   };
 }
 
 /** A state server with a few saved sessions (Mol*'s Remote States). */
-function mockRemoteStates(post: (text: string) => void): RemoteStatesModel {
+function mockRemoteStates(post: (text: string) => void, count?: number): RemoteStatesModel {
   const serverUrl = observableState('https://webchem.ncbr.muni.cz/molstar-state');
   const loading = observableState(false);
-  const states = observableState<readonly RemoteState[]>([
+  const few: RemoteState[] = [
     { id: '1', label: 'Zika + EM', date: 'Sun, 11 Oct 2026 09:05' },
     { id: '2', label: 'P-450 superposition & validation', date: 'Fri, 9 Oct 2026 16:40' },
     { id: '3', label: 'NPC', date: 'Mon, 5 Oct 2026 11:12' },
     { id: '4', label: '1RB8 assembly symmetry', date: 'Thu, 1 Oct 2026 08:30' },
-  ]);
+  ];
+  const states = observableState<readonly RemoteState[]>(
+    count === undefined
+      ? few
+      : Array.from({ length: count }, (_, i) => ({
+          id: `${i + 1}`,
+          label: `${few[i % few.length].label}${i >= few.length ? ` (${Math.floor(i / few.length) + 1})` : ''}`,
+          date: `${['Sun', 'Sat', 'Fri', 'Thu', 'Wed', 'Tue', 'Mon'][i % 7]}, ${Math.max(1, 28 - (i % 28))} Sep 2026 ${String(8 + (i % 10)).padStart(2, '0')}:${String((i * 7) % 60).padStart(2, '0')}`,
+        })),
+  );
   return {
     serverUrl: serverUrl.asReadonly,
     setServerUrl: (url) => {

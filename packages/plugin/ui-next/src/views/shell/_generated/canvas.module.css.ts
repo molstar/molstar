@@ -157,6 +157,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-cardBody {
+  flex: 1 1 0;
   min-height: 0;
   overflow: auto;
 }
