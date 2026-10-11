@@ -7,7 +7,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { map } from 'rxjs';
+import { combineLatest, map } from 'rxjs';
 import { story } from '../../_stories/story-root.js';
 import { formatChord, isMac } from '../../commands/keys.js';
 import { Button } from '../../components/button/button.js';
@@ -469,8 +469,10 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
       group: 'view',
       icon: 'sequence',
       title: 'Sequence',
-      // Only while the card is hidden: shown, it carries its own collapse button.
-      visible: shell.dock('top').active.pipe(map((t) => !t)),
+      // Only while there is a sequence and its card is hidden (shown, it carries its own collapse button).
+      visible: combineLatest([shell.dock('top').tabs, shell.dock('top').active]).pipe(
+        map(([tabs, active]) => tabs.length > 0 && !active),
+      ),
       run: () => shell.toggle('top'),
     },
   ]);
