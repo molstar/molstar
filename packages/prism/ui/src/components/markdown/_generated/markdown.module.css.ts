@@ -40,10 +40,10 @@ defineStyles('components/markdown/markdown.module.css', `@layer msp.components {
   }
 
   & code {
+    padding: 0 var(--msp-space-1);
     border-radius: var(--msp-radius-sm);
     background: var(--msp-color-control);
     font-family: var(--msp-font-mono);
-    padding: 0 3px;
     font-size: .92em;
   }
 

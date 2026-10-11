@@ -129,6 +129,29 @@ export function compile(file, pkg = ui) {
   return { out, content: lines.join('\n'), prefix };
 }
 
+const Spacing = /(?:^|[\s;{])(padding|margin|gap|row-gap|column-gap|padding-[a-z-]+|margin-[a-z-]+)\s*:([^;{}]*)/g;
+
+/**
+ * Spacing off the scale (styling.md, Spacing): a padding, margin or gap in px other than a 1px hairline, unless the
+ * line says why (`off-scale: …`). The scale is --msp-space-1…6 and the rules named after it (--msp-inset,
+ * --msp-panel-inset, --msp-canvas-edge).
+ */
+function spacingProblems(file, rel) {
+  const problems = [];
+  const lines = fs.readFileSync(file, 'utf8').split('\n');
+  lines.forEach((line, i) => {
+    if (line.includes('off-scale') || /^\s*(\/\*|\*)/.test(line)) return;
+    for (const m of line.matchAll(Spacing)) {
+      // Drop var() fallbacks and the 1px hairlines; what is left in px is off the scale.
+      const value = m[2].replace(/var\([^()]*\)/g, '').replace(/(?<![\d.])-?1px\b/g, '');
+      if (/\d(\.\d+)?px\b/.test(value)) {
+        problems.push(`${rel(file)}:${i + 1}: spacing off the scale: ${m[0].trim()}`);
+      }
+    }
+  });
+  return problems;
+}
+
 /** Regenerates (or, with `check`, verifies) all generated modules; returns the problems found. */
 export function generateAll({ check = false, pkg = ui } = {}) {
   const problems = [];
@@ -136,6 +159,7 @@ export function generateAll({ check = false, pkg = ui } = {}) {
   const expected = new Set();
   const rel = (file) => path.relative(pkg.root, file);
   for (const file of listCss(pkg.srcRoot)) {
+    if (check) problems.push(...spacingProblems(file, rel));
     const { out, content, prefix } = compile(file, pkg);
     expected.add(out);
     if (prefix) {

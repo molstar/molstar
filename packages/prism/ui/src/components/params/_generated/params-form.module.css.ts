@@ -50,7 +50,7 @@ export const classes = {
 
 defineStyles('components/params/params-form.module.css', `@layer msp.components {
 .msp-params-params-form-form {
-  gap: 2px;
+  gap: var(--msp-space-1);
   display: grid;
 }
 
@@ -86,7 +86,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 .msp-params-params-form-input, .msp-params-params-form-number, .msp-params-params-form-textarea {
   width: 100%;
   height: 24px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
   color: var(--msp-color-text);
@@ -244,7 +244,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   width: 100%;
   min-width: 0;
   height: 24px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
   display: flex;
@@ -281,7 +281,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-mapped, .msp-params-params-form-fields, .msp-params-params-form-nested {
-  gap: 2px;
+  gap: var(--msp-space-1);
   display: grid;
 }
 
@@ -340,7 +340,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-subSettings {
-  margin: 2px calc(-1 * var(--msp-space-2)) var(--msp-space-1);
+  margin: var(--msp-space-1) calc(-1 * var(--msp-space-2)) var(--msp-space-1);
   padding: var(--msp-space-1) var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
@@ -376,7 +376,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   gap: var(--msp-space-3);
   min-width: 0;
   height: 100%;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
   text-align: left;
@@ -430,8 +430,8 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-items {
-  margin: 2px calc(-1 * var(--msp-space-2)) var(--msp-space-1);
-  padding: 2px var(--msp-space-2);
+  margin: var(--msp-space-1) calc(-1 * var(--msp-space-2)) var(--msp-space-1);
+  padding: var(--msp-space-1) var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
   box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
@@ -444,12 +444,12 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 
 .msp-params-params-form-itemRow {
   cursor: pointer;
+  align-items: center;
+  gap: var(--msp-space-1);
   height: 26px;
   margin: 0 calc(-1 * var(--msp-space-1));
   padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-space-3));
   border-radius: var(--msp-radius-sm);
-  align-items: center;
-  gap: 2px;
   display: flex;
 
   &:hover {
@@ -481,7 +481,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-itemForm {
-  padding: 2px 0 var(--msp-space-2);
+  padding: var(--msp-space-1) 0 var(--msp-space-2);
 
   & .msp-params-params-form-label {
     padding-left: calc(2 * var(--msp-space-3));

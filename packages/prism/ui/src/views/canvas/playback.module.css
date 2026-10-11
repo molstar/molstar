@@ -107,7 +107,7 @@
   &::-webkit-slider-thumb {
     width: 10px;
     height: 10px;
-    margin-top: -4px;
+    margin-top: -4px; /* off-scale: the thumb centred on the track */
     border-radius: 50%;
     background: var(--msp-color-text);
     appearance: none;

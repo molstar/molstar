@@ -127,12 +127,12 @@ defineStyles('views/sequence/sequence-strip.module.css', `@layer msp.components 
 }
 
 .msp-sequence-sequence-strip-residue {
+  height: 28px;
+  padding: 13px 0 var(--msp-space-1);
   text-align: center;
   cursor: pointer;
   user-select: none;
   width: 1ch;
-  height: 28px;
-  padding: 13px 0 2px;
   position: relative;
 
   &:hover {

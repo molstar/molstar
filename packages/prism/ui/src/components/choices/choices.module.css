@@ -24,7 +24,7 @@
   display: grid;
   /* Equal widths, all in one row when they fit (a word each), wrapping to rows of equal ones when they do not. */
   grid-template-columns: repeat(auto-fit, minmax(min(64px, 100%), 1fr));
-  gap: 2px;
+  gap: var(--msp-space-1);
 }
 
 .choice {

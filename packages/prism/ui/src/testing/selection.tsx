@@ -111,7 +111,7 @@ export function mockSelection(shell: ShellModel, post: (text: string) => void): 
       icon: 'palette',
       order: 0,
       render: domView(() => (
-        <div style="display: grid; gap: 8px">
+        <div style="display: grid; gap: var(--msp-space-3)">
           <ParamsForm form={form} />
           <ActionFooter
             icon="paintbrush"
@@ -132,7 +132,7 @@ export function mockSelection(shell: ShellModel, post: (text: string) => void): 
       icon: 'layers',
       order: 1,
       render: domView(() => (
-        <div style="display: grid; gap: 8px">
+        <div style="display: grid; gap: var(--msp-space-3)">
           <ParamsForm form={component} />
           <ActionFooter
             icon="plus"

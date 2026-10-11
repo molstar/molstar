@@ -8,7 +8,7 @@
 
 .form {
   display: grid;
-  gap: 2px;
+  gap: var(--msp-space-1);
 }
 
 .row {
@@ -46,7 +46,7 @@
 .textarea {
   width: 100%;
   height: 24px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border: 0;
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
@@ -126,7 +126,7 @@
   &::-webkit-slider-thumb {
     width: 10px;
     height: 10px;
-    margin-top: -3.5px;
+    margin-top: -3.5px; /* off-scale: the thumb centred on the track */
     border-radius: 50%;
     background: var(--msp-color-text-muted);
     appearance: none;
@@ -218,7 +218,7 @@
   height: 24px;
   min-width: 0;
   /* The swatch where a dropdown's text starts, the channels after it like a dropdown's label. */
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
 
@@ -257,14 +257,14 @@
 
 .mapped {
   display: grid;
-  gap: 2px;
+  gap: var(--msp-space-1);
 }
 
 /* A group's rows: the form's spacing, whether flat (more rows at the same level) or nested under its choice. */
 .fields,
 .nested {
   display: grid;
-  gap: 2px;
+  gap: var(--msp-space-1);
 }
 
 /* Nested params (a choice's own, a group's): their labels and group headers step in, their controls stay in the
@@ -331,7 +331,7 @@
 .subSettings {
   /* A little wider than the form (4 px each side), its own padding the same: its controls stay in the form's column
      and clear of its edge; its labels step in like nested ones. */
-  margin: 2px calc(-1 * var(--msp-space-2)) var(--msp-space-1);
+  margin: var(--msp-space-1) calc(-1 * var(--msp-space-2)) var(--msp-space-1);
   padding: var(--msp-space-1) var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
@@ -370,7 +370,7 @@
   gap: var(--msp-space-3);
   min-width: 0;
   height: 100%;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
   text-align: left;
@@ -426,8 +426,8 @@
 
 .items {
   display: grid;
-  margin: 2px calc(-1 * var(--msp-space-2)) var(--msp-space-1);
-  padding: 2px var(--msp-space-2);
+  margin: var(--msp-space-1) calc(-1 * var(--msp-space-2)) var(--msp-space-1);
+  padding: var(--msp-space-1) var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
   box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
@@ -441,7 +441,7 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--msp-space-1);
   height: 26px;
   margin: 0 calc(-1 * var(--msp-space-1));
   padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-space-3));
@@ -481,7 +481,7 @@
 
 /* An item's form: inside the list, its labels stepped in under the item's. */
 .itemForm {
-  padding: 2px 0 var(--msp-space-2);
+  padding: var(--msp-space-1) 0 var(--msp-space-2);
 
   & .label {
     padding-left: calc(2 * var(--msp-space-3));

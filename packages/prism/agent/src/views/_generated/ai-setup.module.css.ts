@@ -86,20 +86,20 @@ defineStyles('agent/views/ai-setup.module.css', `@layer msp.components {
 }
 
 .msp-agent-ai-setup-lead {
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   margin: 0;
   font-weight: 600;
 }
 
 .msp-agent-ai-setup-copy {
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-text-muted);
   margin: 0;
   line-height: 1.45;
 }
 
 .msp-agent-ai-setup-note {
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   margin: 0;
@@ -107,7 +107,7 @@ defineStyles('agent/views/ai-setup.module.css', `@layer msp.components {
 
 .msp-agent-ai-setup-caption {
   margin: var(--msp-space-1) 0 0;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   font-weight: 500;
@@ -138,7 +138,7 @@ defineStyles('agent/views/ai-setup.module.css', `@layer msp.components {
 
 .msp-agent-ai-setup-action {
   height: 24px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-accent), transparent 84%);
   color: var(--msp-color-accent-strong);
@@ -156,7 +156,7 @@ defineStyles('agent/views/ai-setup.module.css', `@layer msp.components {
 
 .msp-agent-ai-setup-provider {
   gap: var(--msp-space-1);
-  padding: 2px 0;
+  padding: var(--msp-space-1) 0;
   display: grid;
 
   & > .msp-agent-ai-setup-keyForm {
@@ -201,7 +201,7 @@ defineStyles('agent/views/ai-setup.module.css', `@layer msp.components {
 
 .msp-agent-ai-setup-fold {
   height: 24px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
   justify-self: start;
@@ -266,7 +266,7 @@ defineStyles('agent/views/ai-setup.module.css', `@layer msp.components {
 }
 
 .msp-agent-ai-setup-error {
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-danger);
   font-size: var(--msp-font-size-xs);
   margin: 0;

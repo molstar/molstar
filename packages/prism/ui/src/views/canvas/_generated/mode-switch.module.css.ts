@@ -109,7 +109,7 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
   align-items: center;
   gap: var(--msp-space-2);
   height: var(--msp-stack-row, 40px);
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);
   white-space: nowrap;
@@ -155,7 +155,7 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
   align-items: center;
   gap: var(--msp-space-3);
   height: 28px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);

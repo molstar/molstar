@@ -26,13 +26,13 @@ defineStyles('agent/views/assistant-tab.module.css', `@layer msp.components {
 .msp-agent-assistant-tab-content {
   align-content: start;
   gap: var(--msp-space-4);
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
   display: grid;
 }
 
 .msp-agent-assistant-tab-hint {
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   margin: 0;

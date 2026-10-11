@@ -36,7 +36,7 @@ defineStyles('views/state/remote-states-panel.module.css', `@layer msp.component
   gap: var(--msp-space-4);
   height: 100%;
   min-height: 0;
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
   flex-direction: column;
   flex: 1 1 0;
@@ -168,7 +168,8 @@ defineStyles('views/state/remote-states-panel.module.css', `@layer msp.component
 }
 
 .msp-state-remote-states-panel-menu {
-  margin: 2px var(--msp-space-1) var(--msp-space-1) calc(var(--msp-space-2) + 15px + var(--msp-space-3));
+  margin: var(--msp-space-1) var(--msp-space-1) var(--msp-space-1)
+    calc(var(--msp-space-2) + var(--msp-icon-md) + var(--msp-space-3));
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);

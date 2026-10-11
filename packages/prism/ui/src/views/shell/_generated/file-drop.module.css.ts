@@ -21,7 +21,7 @@ export const classes = {
 defineStyles('views/shell/file-drop.module.css', `@layer msp.components {
 .msp-shell-file-drop-overlay {
   z-index: var(--msp-z-overlay);
-  padding: var(--msp-canvas-edge, 8px);
+  padding: var(--msp-canvas-edge);
   background: color-mix(in oklab, var(--msp-color-bg), transparent 25%);
   -webkit-backdrop-filter: var(--msp-glass-filter);
   animation: msp-shell-file-drop-drop-in var(--msp-motion-fast) var(--msp-ease);

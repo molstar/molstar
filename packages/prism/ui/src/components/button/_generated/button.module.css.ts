@@ -85,7 +85,7 @@ defineStyles('components/button/button.module.css', `@layer msp.components {
 
 .msp-button-small {
   height: 24px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   font-size: var(--msp-font-size-sm);
 }
 

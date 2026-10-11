@@ -46,7 +46,7 @@ const Accents = ['cyan', 'red', 'gray', 'green', 'purple', 'blue', 'orange'];
 
 function Swatch(props: { token: string }) {
   return (
-    <div style="display: grid; gap: 4px; font-size: var(--msp-font-size-xs)">
+    <div style="display: grid; gap: var(--msp-space-2); font-size: var(--msp-font-size-xs)">
       <div
         style={{
           height: '36px',
@@ -60,9 +60,9 @@ function Swatch(props: { token: string }) {
   );
 }
 
-const grid = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px;';
-const section = 'display: grid; gap: 12px; padding: 16px; max-width: 960px;';
-const heading = 'margin: 8px 0 0; font-size: var(--msp-font-size-md);';
+const grid = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: var(--msp-space-4);';
+const section = 'display: grid; gap: var(--msp-space-4); padding: var(--msp-space-5); max-width: 960px;';
+const heading = 'margin: var(--msp-space-3) 0 0; font-size: var(--msp-font-size-md);';
 const note = 'margin: 0; color: var(--msp-color-text-muted); font-size: var(--msp-font-size-sm);';
 
 /** The color tokens of the current theme, by role (switch themes in the toolbar). */
@@ -106,19 +106,19 @@ export const ColorTokens: StoryObj = {
 export const Surfaces: StoryObj = {
   render: () =>
     story(() => (
-      <div style="padding: 16px; display: grid; gap: 8px; max-width: 360px; font-size: var(--msp-font-size-sm)">
-        <div style="padding: 12px; border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); display: grid; gap: 8px">
+      <div style="padding: var(--msp-space-5); display: grid; gap: var(--msp-space-3); max-width: 360px; font-size: var(--msp-font-size-sm)">
+        <div style="padding: var(--msp-space-4); border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); display: grid; gap: var(--msp-space-3)">
           <b>Panel</b>
           <span style="color: var(--msp-color-text-muted)">A label, muted · a hint, subtle</span>
-          <div style="padding: 8px; border-radius: var(--msp-radius-md); background: var(--msp-color-well); display: grid; gap: 4px">
+          <div style="padding: var(--msp-space-3); border-radius: var(--msp-radius-md); background: var(--msp-color-well); display: grid; gap: var(--msp-space-2)">
             <b>Well (an open action)</b>
-            <div style="height: 24px; border-radius: var(--msp-radius-md); background: var(--msp-color-control); padding: 0 8px; display: flex; align-items: center">
+            <div style="height: 24px; border-radius: var(--msp-radius-md); background: var(--msp-color-control); padding: 0 var(--msp-space-3); display: flex; align-items: center">
               Control
             </div>
-            <div style="height: 24px; border-radius: var(--msp-radius-md); background: var(--msp-color-hover); padding: 0 8px; display: flex; align-items: center">
+            <div style="height: 24px; border-radius: var(--msp-radius-md); background: var(--msp-color-hover); padding: 0 var(--msp-space-3); display: flex; align-items: center">
               Hover
             </div>
-            <div style="height: 24px; border-radius: var(--msp-radius-md); background: var(--msp-color-pressed); padding: 0 8px; display: flex; align-items: center">
+            <div style="height: 24px; border-radius: var(--msp-radius-md); background: var(--msp-color-pressed); padding: 0 var(--msp-space-3); display: flex; align-items: center">
               Pressed
             </div>
             <span style="justify-self: end; color: var(--msp-color-accent); font-weight: 600">Download</span>
@@ -137,16 +137,16 @@ export const Themes: StoryObj = {
         {['light', 'dark', 'blue'].map((theme) => (
           <div
             data-msp-theme={theme}
-            style="background: var(--msp-color-bg); color: var(--msp-color-text); padding: 16px; display: grid; gap: 8px; font-size: var(--msp-font-size-sm)"
+            style="background: var(--msp-color-bg); color: var(--msp-color-text); padding: var(--msp-space-5); display: grid; gap: var(--msp-space-3); font-size: var(--msp-font-size-sm)"
           >
             <b style="text-transform: capitalize">{theme}</b>
-            <div style="background: var(--msp-color-panel); padding: 8px; border-radius: var(--msp-radius-md); display: grid; gap: 6px">
+            <div style="background: var(--msp-color-panel); padding: var(--msp-space-3); border-radius: var(--msp-radius-md); display: grid; gap: 6px">
               <span>
                 Panel <span style="color: var(--msp-color-text-muted)">muted</span>{' '}
                 <span style="color: var(--msp-color-text-subtle)">subtle</span>
               </span>
-              <div style="background: var(--msp-color-well); padding: 6px 8px; border-radius: var(--msp-radius-md); display: flex; justify-content: space-between">
-                <span style="background: var(--msp-color-control); padding: 0 8px; border-radius: var(--msp-radius-md)">
+              <div style="background: var(--msp-color-well); padding: 6px var(--msp-space-3); border-radius: var(--msp-radius-md); display: flex; justify-content: space-between">
+                <span style="background: var(--msp-color-control); padding: 0 var(--msp-space-3); border-radius: var(--msp-radius-md)">
                   Field
                 </span>
                 <span style="color: var(--msp-color-accent); font-weight: 600">Apply</span>
@@ -158,8 +158,8 @@ export const Themes: StoryObj = {
     )),
 };
 
-/** Type scale (12 px in panels; 14 px for what is typed and for panel titles) and the spacing steps. */
-export const TypeAndSpace: StoryObj = {
+/** Type: the sizes (11, 12, 14, 16 px; panels read at 12) and the monospace face (sequences, code). */
+export const Type: StoryObj = {
   render: () =>
     story(() => (
       <div style={section}>
@@ -169,19 +169,120 @@ export const TypeAndSpace: StoryObj = {
           </div>
         ))}
         <code style="font-family: var(--msp-font-mono)">--msp-font-mono: MALYGTHSHGLFKKLGIPGPTPLP</code>
-        <div style="display: flex; gap: 8px; align-items: end">
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <div style="display: grid; gap: 4px; justify-items: center; font-size: var(--msp-font-size-xs)">
+      </div>
+    )),
+};
+
+/** The spacing scale and what each step is for (theme.css). */
+const Scale: [token: string, use: string][] = [
+  ['--msp-space-1', 'Between rows of a list; between a label and its hint'],
+  ['--msp-space-2', "Inside a row (icon to text); between controls in a group; a panel's inset"],
+  ['--msp-space-3', "Between groups in a form; a card's inner gap; where text starts in a control"],
+  ['--msp-space-4', "A card's padding; between sections"],
+  ['--msp-space-5', 'Between blocks of a page'],
+  ['--msp-space-6', 'Empty states; large separations'],
+];
+
+/** The rules named after the scale: what a value means, so a change moves everything that follows the rule. */
+const Rules: [token: string, use: string][] = [
+  ['--msp-inset', 'Where text starts inside a control or a row: fields, selects, buttons and tree rows line up'],
+  ['--msp-panel-inset', "A panel's content inset at its sides and bottom (rows inside pad to --msp-inset)"],
+  ['--msp-canvas-edge', 'The margin of everything floating over the canvas'],
+];
+
+const Sizes: [token: string, use: string][] = [
+  ['--msp-row-height', 'A list or tree row'],
+  ['--msp-control-height', 'Fields, selects, buttons'],
+  ['--msp-label-width', "A form's label column"],
+  ['--msp-icon-sm', 'Small icons (a chevron), for indents after them'],
+  ['--msp-icon-md', "A row's kind icon"],
+];
+
+function TokenRow(props: { token: string; use: string; bar?: boolean }) {
+  return (
+    <div style="display: grid; grid-template-columns: 180px 48px 32px 1fr; gap: var(--msp-space-4); align-items: center; min-height: var(--msp-row-height)">
+      <code style="font-size: var(--msp-font-size-xs); color: var(--msp-color-text)">{props.token}</code>
+      <span style="color: var(--msp-color-text-muted); font-variant-numeric: tabular-nums" />
+      <div
+        style={{
+          width: props.bar ? `var(${props.token})` : '0',
+          height: '12px',
+          borderRadius: 'var(--msp-radius-sm)',
+          background: 'var(--msp-color-accent)',
+        }}
+      />
+      <span style={note}>{props.use}</span>
+    </div>
+  );
+}
+
+/** A token's value as the page resolves it. */
+function resolved(token: string) {
+  const probe = document.createElement('div');
+  probe.style.width = `var(${token})`;
+  document.body.append(probe);
+  const px = `${Math.round(probe.getBoundingClientRect().width * 10) / 10}px`;
+  probe.remove();
+  return px;
+}
+
+function TokenTable(props: { rows: [string, string][]; bars?: boolean }) {
+  return (
+    <div style="display: grid">
+      {props.rows.map(([token, use]) => {
+        const row = (<TokenRow token={token} use={use} bar={props.bars} />) as HTMLElement;
+        row.children[1].textContent = resolved(token);
+        return row;
+      })}
+    </div>
+  );
+}
+
+/**
+ * Spacing: every padding, margin and gap is a step of the scale or a rule named after it (styles:check rejects other
+ * px there, but 1px hairlines and values marked `off-scale` with their reason). The panel below is laid out with them:
+ * the panel's inset, rows' text at the inset, rows a step apart.
+ */
+export const Spacing: StoryObj = {
+  render: () =>
+    story(() => (
+      <div style={section}>
+        <h3 style={heading}>Scale</h3>
+        <TokenTable rows={Scale} bars />
+        <h3 style={heading}>Rules</h3>
+        <TokenTable rows={Rules} bars />
+        <h3 style={heading}>Sizes</h3>
+        <TokenTable rows={Sizes} />
+        <h3 style={heading}>In a panel</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--msp-space-5); align-items: start">
+          <div style="display: grid; gap: var(--msp-space-1); padding: 0 var(--msp-panel-inset) var(--msp-panel-inset); border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); box-shadow: inset 0 0 0 1px var(--msp-glass-edge); font-size: var(--msp-font-size-sm)">
+            <div style="display: flex; align-items: center; height: 40px; padding: 0 var(--msp-space-4); font-weight: 600">
+              Panel
+            </div>
+            {['Polymer', 'Ligand', 'Water'].map((label, i) => (
               <div
                 style={{
-                  width: `var(--msp-space-${n})`,
-                  height: `var(--msp-space-${n})`,
-                  background: 'var(--msp-color-text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--msp-space-2)',
+                  height: 'var(--msp-row-height)',
+                  padding: '0 var(--msp-inset)',
+                  borderRadius: 'var(--msp-radius-md)',
+                  background: i === 1 ? 'var(--msp-color-hover)' : 'transparent',
                 }}
-              />
-              {n}
+              >
+                {label}
+                <span style="color: var(--msp-color-text-muted)">a description</span>
+              </div>
+            ))}
+            <div style="display: flex; align-items: center; height: var(--msp-control-height); padding: 0 var(--msp-inset); border-radius: var(--msp-radius-md); background: var(--msp-color-control)">
+              A field: its text at the same inset
             </div>
-          ))}
+          </div>
+          <p style={note}>
+            The panel insets its content by --msp-panel-inset (4px); rows and controls start their text at --msp-inset
+            (8px), so it lines up with the header's 12px; rows are --msp-space-1 apart.
+          </p>
         </div>
       </div>
     )),
@@ -194,7 +295,7 @@ function FoldRow(props: { label: string; children: readonly string[] }) {
     <div>
       <button
         type="button"
-        style="display: flex; align-items: center; gap: 6px; width: 100%; height: 26px; padding: 0 4px; border-radius: var(--msp-radius-md); color: var(--msp-color-text); font-size: var(--msp-font-size-sm);"
+        style="display: flex; align-items: center; gap: 6px; width: 100%; height: 26px; padding: 0 var(--msp-space-2); border-radius: var(--msp-radius-md); color: var(--msp-color-text); font-size: var(--msp-font-size-sm);"
         aria-expanded={open.asReadonly}
         onClick={() => open.set(!open.value)}
       >
@@ -211,7 +312,7 @@ function FoldRow(props: { label: string; children: readonly string[] }) {
       </button>
       <Show when={open.asReadonly} reveal>
         {() => (
-          <div style="display: grid; padding-left: 24px;">
+          <div style="display: grid; padding-left: var(--msp-space-6);">
             {props.children.map((c) => (
               <div style="height: 26px; display: flex; align-items: center; color: var(--msp-color-text-muted); font-size: var(--msp-font-size-sm);">
                 {c}
@@ -238,19 +339,19 @@ export const Motion: StoryObj = {
       const panel = observableState(false);
       const theme = observableState('chain-id');
       const card =
-        'display: grid; gap: 8px; align-content: start; padding: 12px; border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); box-shadow: inset 0 0 0 1px var(--msp-glass-edge);';
+        'display: grid; gap: var(--msp-space-3); align-content: start; padding: var(--msp-space-4); border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); box-shadow: inset 0 0 0 1px var(--msp-glass-edge);';
       return (
         <div
           style={{
             display: 'grid',
-            gap: '12px',
-            padding: '16px',
+            gap: 'var(--msp-space-4)',
+            padding: 'var(--msp-space-5)',
             maxWidth: '960px',
             '--msp-motion-fast': slow.asReadonly.pipe(map((s) => (s ? '500ms' : ''))),
             '--msp-motion-base': slow.asReadonly.pipe(map((s) => (s ? '900ms' : ''))),
           }}
         >
-          <div style="display: flex; gap: 16px; align-items: center;">
+          <div style="display: flex; gap: var(--msp-space-5); align-items: center;">
             <label style="display: flex; gap: 6px; align-items: center; font-size: var(--msp-font-size-sm);">
               <input type="checkbox" checked={slow.asReadonly} onChange={(e) => slow.set(e.currentTarget.checked)} />
               Slow motion (×5)
@@ -260,7 +361,7 @@ export const Motion: StoryObj = {
               0, 0.2, 1)
             </p>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--msp-space-4);">
             <section style={card}>
               <h3 style={heading}>Fold (trees, groups, sections)</h3>
               <p style={note}>The chevron turns (fast); the content grows in (base) and collapses back.</p>
@@ -276,7 +377,7 @@ export const Motion: StoryObj = {
               <div style="min-height: 120px;">
                 <Show when={panel.asReadonly} reveal="side">
                   {() => (
-                    <div style="height: 110px; padding: 12px; border-radius: var(--msp-radius-md); background: var(--msp-color-raised); font-size: var(--msp-font-size-sm);">
+                    <div style="height: 110px; padding: var(--msp-space-4); border-radius: var(--msp-radius-md); background: var(--msp-color-raised); font-size: var(--msp-font-size-sm);">
                       A panel
                     </div>
                   )}
@@ -286,7 +387,7 @@ export const Motion: StoryObj = {
             <section style={card}>
               <h3 style={heading}>State (hover, press, lists)</h3>
               <p style={note}>Colors change (fast); an option list drops in.</p>
-              <div style="display: flex; gap: 8px;">
+              <div style="display: flex; gap: var(--msp-space-3);">
                 <Button size="sm">Hover me</Button>
                 <Button size="sm" variant="primary">
                   Press me
@@ -316,17 +417,17 @@ function LogoPanel(props: { theme: 'light' | 'dark' }) {
       data-msp-theme={props.theme}
       style="display: grid; gap: 20px; padding: 20px; border-radius: var(--msp-radius-lg); background: var(--msp-color-panel); color: var(--msp-color-text);"
     >
-      <div style="display: grid; gap: 8px">
+      <div style="display: grid; gap: var(--msp-space-3)">
         <span style={note}>The wordmark (Home's heading; the empty canvas at 3×): hover it for the logo's colors</span>
-        <div style="display: flex; gap: 24px; align-items: end; flex-wrap: wrap">
+        <div style="display: flex; gap: var(--msp-space-6); align-items: end; flex-wrap: wrap">
           <MolstarWordmark />
           <MolstarWordmark scale={2} />
           <MolstarWordmark scale={3} live />
         </div>
       </div>
-      <div style="display: grid; gap: 8px">
+      <div style="display: grid; gap: var(--msp-space-3)">
         <span style={note}>The Home icon (16, 20, 24, 48 px)</span>
-        <div style="display: flex; gap: 16px; align-items: center">
+        <div style="display: flex; gap: var(--msp-space-5); align-items: center">
           {[16, 20, 24, 48].map((size) => (
             <Icon name="prism" size={size} />
           ))}
@@ -343,7 +444,7 @@ function LogoPanel(props: { theme: 'light' | 'dark' }) {
 export const Logo: StoryObj = {
   render: () =>
     story(() => (
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; padding: 16px">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--msp-space-5); padding: var(--msp-space-5)">
         <LogoPanel theme="light" />
         <LogoPanel theme="dark" />
       </div>

@@ -35,7 +35,7 @@
   }
 
   & code {
-    padding: 0 3px;
+    padding: 0 var(--msp-space-1);
     border-radius: var(--msp-radius-sm);
     background: var(--msp-color-control);
     font-family: var(--msp-font-mono);

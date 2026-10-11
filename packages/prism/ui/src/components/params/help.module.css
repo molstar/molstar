@@ -53,7 +53,7 @@
 .help {
   display: grid;
   gap: var(--msp-space-2);
-  margin: 2px 0 var(--msp-space-1);
+  margin: var(--msp-space-1) 0 var(--msp-space-1);
   padding: var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
@@ -67,7 +67,7 @@
   line-height: 1.45;
 
   & code {
-    padding: 0 3px;
+    padding: 0 var(--msp-space-1);
     border-radius: 2px;
     background: var(--msp-color-control);
     font-family: var(--msp-font-mono);
@@ -79,7 +79,7 @@
 .table {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 2px var(--msp-space-3);
+  gap: var(--msp-space-1) var(--msp-space-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -115,7 +115,7 @@
 /* A scale legend: the colors as a bar, its ends labelled under it. */
 .scale {
   display: grid;
-  gap: 2px;
+  gap: var(--msp-space-1);
 }
 
 .bar {

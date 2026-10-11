@@ -59,7 +59,7 @@
 
 /* What a field opens: under its row, a quiet surface with a hairline edge (as the dropdowns' lists). */
 .under {
-  margin: 2px 0 var(--msp-space-1);
+  margin: var(--msp-space-1) 0 var(--msp-space-1);
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
@@ -124,7 +124,7 @@
 .matrix {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 2px;
+  gap: var(--msp-space-1);
   padding: var(--msp-space-1);
 }
 
@@ -149,7 +149,7 @@
     left: 0;
     right: 0;
     height: 3px;
-    margin-top: -1.5px;
+    margin-top: -1.5px; /* off-scale: centred (half the track) */
     border-radius: 1.5px;
     background: linear-gradient(
       90deg,
@@ -179,7 +179,7 @@
   &::-webkit-slider-thumb {
     width: 10px;
     height: 10px;
-    margin-top: -3.5px;
+    margin-top: -3.5px; /* off-scale: the thumb centred on the track */
     border-radius: 50%;
     background: var(--msp-color-text-muted);
     appearance: none;

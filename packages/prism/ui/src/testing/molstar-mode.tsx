@@ -89,7 +89,7 @@ function mockExport(shell: ShellModel, status: StatusModel) {
   const imageExport = mockImageExport((t, k) => status.post(t, k));
   const rendering = observableState<number | undefined>(undefined);
   // Each section: choose in a form, then one action in the footer (Mol*'s action footer).
-  const form = 'display: grid; gap: 8px';
+  const form = 'display: grid; gap: var(--msp-space-3)';
   const sessionForm = new ParamsFormModel({
     kind: PD.Select('session', [
       ['session', 'Session (.molx) · with data'],

@@ -16,14 +16,14 @@ import { SnapshotCard, TrajectoryBar } from './playback.js';
 const meta: Meta = { title: 'Canvas/Playback' };
 export default meta;
 
-const frame = 'width: 320px; padding: 24px; background: var(--msp-color-bg);';
+const frame = 'width: 320px; padding: var(--msp-space-6); background: var(--msp-color-bg);';
 const post = (text: string) => console.info(text);
 
 /** Two different things, two surfaces: the session's snapshots, and one structure's models. */
 export const SnapshotsAndTrajectory: StoryObj = {
   render: () =>
     story(() => (
-      <div style={`${frame} display: grid; gap: 8px;`}>
+      <div style={`${frame} display: grid; gap: var(--msp-space-3);`}>
         <SnapshotCard model={mockSnapshots(post)} />
         <TrajectoryBar model={mockTrajectory()} />
       </div>

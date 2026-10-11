@@ -20,7 +20,7 @@ import { useObservable } from '../../use-observable.js';
 
 const panel = {
   display: 'grid',
-  gap: '8px',
+  gap: 'var(--msp-space-3)',
   padding: 'var(--msp-space-3) var(--msp-space-4)',
   fontSize: 'var(--msp-font-size-sm)',
   color: 'var(--msp-color-text)',
@@ -29,7 +29,7 @@ const panel = {
 const button = {
   justifySelf: 'start',
   height: '28px',
-  padding: '0 12px',
+  padding: '0 var(--msp-space-4)',
   border: 0,
   borderRadius: 'var(--msp-radius-md)',
   background: 'var(--msp-color-control)',

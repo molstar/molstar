@@ -12,7 +12,7 @@
   inset: 0;
   z-index: var(--msp-z-overlay);
   display: grid;
-  padding: var(--msp-canvas-edge, 8px);
+  padding: var(--msp-canvas-edge);
   background: color-mix(in oklab, var(--msp-color-bg), transparent 25%);
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);

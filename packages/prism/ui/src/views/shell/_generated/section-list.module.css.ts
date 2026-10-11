@@ -23,7 +23,7 @@ defineStyles('views/shell/section-list.module.css', `@layer msp.components {
 .msp-shell-section-list-list {
   font-size: var(--msp-font-size-sm);
   gap: var(--msp-space-1);
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   display: grid;
 }
 
@@ -40,7 +40,7 @@ defineStyles('views/shell/section-list.module.css', `@layer msp.components {
   gap: var(--msp-space-3);
   width: 100%;
   height: var(--msp-row-height);
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   text-align: left;
   font-weight: 600;

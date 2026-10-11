@@ -63,7 +63,7 @@ defineStyles('components/params/help.module.css', `@layer msp.components {
 
 .msp-params-help-help {
   gap: var(--msp-space-2);
-  margin: 2px 0 var(--msp-space-1);
+  margin: var(--msp-space-1) 0 var(--msp-space-1);
   padding: var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
@@ -78,16 +78,16 @@ defineStyles('components/params/help.module.css', `@layer msp.components {
   line-height: 1.45;
 
   & code {
+    padding: 0 var(--msp-space-1);
     background: var(--msp-color-control);
     font-family: var(--msp-font-mono);
     border-radius: 2px;
-    padding: 0 3px;
     font-size: .95em;
   }
 }
 
 .msp-params-help-table {
-  gap: 2px var(--msp-space-3);
+  gap: var(--msp-space-1) var(--msp-space-3);
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   margin: 0;
   padding: 0;
@@ -122,7 +122,7 @@ defineStyles('components/params/help.module.css', `@layer msp.components {
 }
 
 .msp-params-help-scale {
-  gap: 2px;
+  gap: var(--msp-space-1);
   display: grid;
 }
 

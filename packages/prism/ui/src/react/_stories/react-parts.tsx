@@ -27,7 +27,7 @@ export const panelStyle: CSSProperties = {
 export const buttonStyle: CSSProperties = {
   justifySelf: 'start',
   height: 28,
-  padding: '0 12px',
+  padding: '0 var(--msp-space-4)',
   border: 0,
   borderRadius: 'var(--msp-radius-md)',
   background: 'var(--msp-color-control)',

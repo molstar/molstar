@@ -212,7 +212,9 @@ async function stableRows(host: HTMLElement, out: Result[]) {
   box.style.cssText = 'height: 600px; width: 320px; overflow: auto;';
   host.append(box);
   const Line = (props: { row: Row; record: Observable<StateTreeNode> }) => (
-    <div style={`display: flex; gap: 8px; height: 26px; align-items: center; padding-left: ${props.row.depth * 12}px`}>
+    <div
+      style={`display: flex; gap: var(--msp-space-3); height: 26px; align-items: center; padding-left: ${props.row.depth * 12}px`}
+    >
       <span>
         {props.record.pipe(
           map((n) => n.label),
@@ -299,7 +301,7 @@ async function virtualTree(host: HTMLElement, out: Result[]) {
           map((s) => s === props.ref),
           distinctUntilChanged(),
         )}
-        style={`display: flex; gap: 8px; height: 26px; align-items: center; padding-left: ${props.depth * 14 + 4}px`}
+        style={`display: flex; gap: var(--msp-space-3); height: 26px; align-items: center; padding-left: ${props.depth * 14 + 4}px`}
       >
         <span>
           {record.pipe(
@@ -397,10 +399,10 @@ export const StateTree: StoryObj = {
         (window as any).__mspPerf = { hidden: document.hidden, results: out, done: true };
       };
       return (
-        <div style="display: grid; gap: 12px; padding: 16px; font-size: var(--msp-font-size-sm); color: var(--msp-color-text);">
+        <div style="display: grid; gap: var(--msp-space-4); padding: var(--msp-space-5); font-size: var(--msp-font-size-sm); color: var(--msp-color-text);">
           <button
             type="button"
-            style="justify-self: start; height: 28px; padding: 0 12px; border-radius: 6px; background: var(--msp-color-control);"
+            style="justify-self: start; height: 28px; padding: 0 var(--msp-space-4); border-radius: 6px; background: var(--msp-color-control);"
             disabled={running.asReadonly}
             onClick={run}
           >
@@ -410,12 +412,14 @@ export const StateTree: StoryObj = {
             <For each={results.asReadonly}>
               {(r) => (
                 <tr>
-                  <td style="padding: 2px 12px 2px 0">{r.case}</td>
-                  <td style="padding: 2px 12px; text-align: right; font-variant-numeric: tabular-nums">{r.ms} ms</td>
-                  <td style="padding: 2px 12px; text-align: right; font-variant-numeric: tabular-nums">
+                  <td style="padding: var(--msp-space-1) var(--msp-space-4) var(--msp-space-1) 0">{r.case}</td>
+                  <td style="padding: var(--msp-space-1) var(--msp-space-4); text-align: right; font-variant-numeric: tabular-nums">
+                    {r.ms} ms
+                  </td>
+                  <td style="padding: var(--msp-space-1) var(--msp-space-4); text-align: right; font-variant-numeric: tabular-nums">
                     {r.longestTask ? `longest task ${r.longestTask} ms` : 'no long task'}
                   </td>
-                  <td style="padding: 2px 0; color: var(--msp-color-text-subtle)">{r.note ?? ''}</td>
+                  <td style="padding: var(--msp-space-1) 0; color: var(--msp-color-text-subtle)">{r.note ?? ''}</td>
                 </tr>
               )}
             </For>

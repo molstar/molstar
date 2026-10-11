@@ -19,15 +19,15 @@ export const classes = {
 defineStyles('components/tooltip/tooltip.module.css', `@layer msp.components {
 .msp-tooltip-tooltip {
   z-index: var(--msp-z-tooltip);
+  max-width: 240px;
+  padding: var(--msp-space-2) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-text);
-  max-width: 240px;
   color: var(--msp-color-bg);
   font-size: var(--msp-font-size-xs);
   white-space: nowrap;
   pointer-events: none;
   animation: msp-tooltip-tooltip-in var(--msp-motion-fast) var(--msp-ease);
-  padding: 5px 9px;
   line-height: 1.3;
   position: fixed;
   top: 0;
@@ -39,15 +39,15 @@ defineStyles('components/tooltip/tooltip.module.css', `@layer msp.components {
 }
 
 .msp-tooltip-tooltip[data-kind="row"] {
+  max-width: 320px;
+  padding: var(--msp-space-2) var(--msp-inset);
   border-radius: var(--msp-radius-lg);
   background: var(--msp-color-raised);
-  max-width: 320px;
   color: var(--msp-color-text);
   box-shadow: 0 0 0 1px var(--msp-glass-edge),
     var(--msp-shadow-float);
   font-size: var(--msp-font-size-sm);
   white-space: normal;
-  padding: 6px 10px;
   line-height: 1.4;
 }
 

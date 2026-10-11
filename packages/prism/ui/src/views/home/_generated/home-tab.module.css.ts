@@ -53,7 +53,7 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 .msp-home-home-tab-contentInner {
   align-content: start;
   gap: var(--msp-space-4);
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   display: grid;
 }
 
@@ -93,7 +93,7 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
   gap: var(--msp-space-3);
   width: 100%;
   height: 32px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
   text-align: left;
@@ -143,7 +143,7 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
   align-items: center;
   gap: var(--msp-space-3);
   height: 26px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text);
   text-align: left;
@@ -188,11 +188,11 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
   }
 
   & kbd {
+    padding: 1px var(--msp-space-2);
     border-radius: var(--msp-radius-sm);
     background: var(--msp-color-control);
     color: var(--msp-color-text-muted);
     font: inherit;
-    padding: 1px 6px;
   }
 }
 
@@ -221,7 +221,7 @@ defineStyles('views/home/home-tab.module.css', `@layer msp.components {
 }
 
 .msp-home-home-tab-captionActions {
-  gap: 2px;
+  gap: var(--msp-space-1);
   display: flex;
 }
 

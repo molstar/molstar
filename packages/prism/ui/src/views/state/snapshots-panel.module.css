@@ -15,7 +15,7 @@
   flex: 1 1 0;
   height: 100%;
   min-height: 0;
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
   container-type: inline-size;
 }
@@ -320,7 +320,7 @@
 /* A row's menu: inline under the row, like the scene tree's. */
 .menu {
   display: grid;
-  margin: 2px var(--msp-space-1) var(--msp-space-1) calc(var(--msp-space-2) + 2ch + var(--msp-space-3));
+  margin: var(--msp-space-1) var(--msp-space-1) var(--msp-space-1) calc(var(--msp-space-2) + 2ch + var(--msp-space-3));
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
@@ -420,7 +420,7 @@
 /* Rows like a params form's (params-form.module.css .row): label column, control column. */
 .fields {
   display: grid;
-  gap: 2px;
+  gap: var(--msp-space-1);
 }
 
 .field {

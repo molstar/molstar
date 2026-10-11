@@ -13,7 +13,7 @@
   gap: var(--msp-space-2);
   height: 100%;
   min-height: 0;
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
 }
 
@@ -62,10 +62,10 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   column-gap: var(--msp-space-2);
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
 
   & > .when {
-    padding-top: 6px;
+    padding-top: 6px; /* off-scale: the time on the first line's baseline */
   }
 }
 

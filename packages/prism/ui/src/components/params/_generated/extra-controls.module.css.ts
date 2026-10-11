@@ -88,7 +88,7 @@ defineStyles('components/params/extra-controls.module.css', `@layer msp.componen
 }
 
 .msp-params-extra-controls-under {
-  margin: 2px 0 var(--msp-space-1);
+  margin: var(--msp-space-1) 0 var(--msp-space-1);
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
@@ -148,9 +148,9 @@ defineStyles('components/params/extra-controls.module.css', `@layer msp.componen
 }
 
 .msp-params-extra-controls-matrix {
+  gap: var(--msp-space-1);
   padding: var(--msp-space-1);
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 2px;
   display: grid;
 }
 

@@ -16,13 +16,13 @@
   display: grid;
   align-content: start;
   gap: var(--msp-space-4);
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
 }
 
 .hint {
   margin: 0;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   line-height: 1.45;

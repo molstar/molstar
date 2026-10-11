@@ -125,7 +125,7 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   align-items: center;
   gap: var(--msp-space-2);
   height: 26px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-accent), transparent 85%);
   color: var(--msp-color-accent);
@@ -181,7 +181,7 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   align-items: center;
   gap: var(--msp-space-3);
   height: 28px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text);
   cursor: default;
@@ -258,7 +258,7 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 
 .msp-command-menu-value {
   height: 26px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
   color: var(--msp-color-text);
@@ -289,7 +289,7 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   align-items: center;
   gap: var(--msp-space-2);
   height: 28px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-accent);
   color: #fff;
@@ -346,14 +346,14 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
 }
 
 .msp-command-menu-crumb {
+  align-items: center;
+  gap: var(--msp-space-1);
   height: 24px;
   padding: 0 var(--msp-space-1) 0 var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
   flex: none;
-  align-items: center;
-  gap: 2px;
   display: flex;
 
   &:hover {
@@ -371,7 +371,7 @@ defineStyles('views/command-menu/command-menu.module.css', `@layer msp.component
   gap: var(--msp-space-2);
   min-height: 40px;
   margin: 0 var(--msp-space-2) var(--msp-space-2);
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-accent), transparent 90%);
   color: var(--msp-color-text);

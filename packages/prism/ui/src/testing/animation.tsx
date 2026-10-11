@@ -90,7 +90,7 @@ export function registerMockAnimation(shell: ShellModel, post: (text: string) =>
       icon: 'play',
       order: 0,
       render: domView(() => (
-        <div style="display: grid; gap: 8px">
+        <div style="display: grid; gap: var(--msp-space-3)">
           <ParamsForm form={form} />
           {/* Play, or Stop while playing: the footer's action follows. */}
           <Show
@@ -131,7 +131,7 @@ export function registerMockAnimation(shell: ShellModel, post: (text: string) =>
       order: 1,
       // Mol*'s wiggle: motion from B-factors (dynamics) or from model uncertainty; Clear removes it.
       render: domView(() => (
-        <div style="display: grid; gap: 8px">
+        <div style="display: grid; gap: var(--msp-space-3)">
           <ParamsForm form={wiggleForm} />
           <ActionFooter
             icon="orbit"

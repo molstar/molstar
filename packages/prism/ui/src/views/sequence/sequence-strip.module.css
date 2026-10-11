@@ -112,7 +112,7 @@
 .residue {
   position: relative;
   height: 28px;
-  padding: 13px 0 2px;
+  padding: 13px 0 var(--msp-space-1); /* off-scale: the ruler's numbers take the top 13px */
   width: 1ch;
   text-align: center;
   cursor: pointer;

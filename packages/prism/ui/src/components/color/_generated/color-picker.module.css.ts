@@ -106,7 +106,7 @@ defineStyles('components/color/color-picker.module.css', `@layer msp.components 
 .msp-color-color-picker-text {
   min-width: 0;
   height: 24px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
   color: var(--msp-color-text);

@@ -11,7 +11,7 @@
   /* Headers and content at the panels' text size, like Home's actions and the Settings groups. */
   font-size: var(--msp-font-size-sm);
   gap: var(--msp-space-1);
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
 }
 
 .section {
@@ -28,7 +28,7 @@
   gap: var(--msp-space-3);
   width: 100%;
   height: var(--msp-row-height);
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   font-weight: 600;
   text-align: left;

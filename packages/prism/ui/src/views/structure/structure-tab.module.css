@@ -16,7 +16,7 @@
   min-height: 0;
   /* The panel's content inset: 4px at the sides and bottom; boxes inside pad 8px, so text lines up with the header's
      12px. */
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
   container-type: inline-size;
 }

@@ -167,9 +167,9 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
 .msp-agent-agent-turn-run {
   align-items: center;
   column-gap: var(--msp-space-2);
-  grid-template-columns: 14px minmax(0, 1fr) auto;
   min-height: 24px;
-  padding: 2px 0;
+  padding: var(--msp-space-1) 0;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
   display: grid;
 
   &[data-read] {
@@ -232,11 +232,11 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
 }
 
 .msp-agent-agent-turn-bar {
+  height: 2px;
+  margin-top: var(--msp-space-1);
   background: var(--msp-color-control);
   border-radius: 1px;
   grid-column: 2 / -1;
-  height: 2px;
-  margin-top: 2px;
   overflow: hidden;
 }
 
@@ -270,7 +270,7 @@ defineStyles('agent/views/agent-turn.module.css', `@layer msp.components {
 
 .msp-agent-agent-turn-deny, .msp-agent-agent-turn-allow {
   height: 24px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   flex: none;
 

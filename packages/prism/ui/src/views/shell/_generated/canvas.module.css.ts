@@ -113,9 +113,9 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-card {
-  top: var(--msp-canvas-edge, 8px);
+  top: var(--msp-canvas-edge);
   right: var(--msp-canvas-panel-right, 64px);
-  bottom: var(--msp-canvas-edge, 8px);
+  bottom: var(--msp-canvas-edge);
   z-index: var(--msp-z-overlay);
   width: min(var(--msp-right-panel-width, 340px), calc(100% - 96px));
   border-radius: var(--msp-radius-lg);
@@ -134,7 +134,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
   [data-pinned] > & {
     top: 0;
-    right: calc(var(--msp-canvas-rail-inset, 52px) - var(--msp-canvas-edge, 8px));
+    right: calc(var(--msp-canvas-rail-inset, 52px) - var(--msp-canvas-edge));
     box-shadow: -1px 0 0 var(--msp-glass-edge),
       inset -1px 0 0 var(--msp-glass-edge);
     border-radius: 0;
@@ -179,14 +179,14 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-stack {
   --msp-stack-row: 34px;
-  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge, 8px));
-  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, 8px));
+  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge));
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
   position: absolute;
 }
 
 :where([data-mode="compact"]) .msp-shell-canvas-stack {
-  right: var(--msp-canvas-edge, 8px);
-  bottom: var(--msp-canvas-edge, 8px);
+  right: var(--msp-canvas-edge);
+  bottom: var(--msp-canvas-edge);
   pointer-events: none;
 
   & > * {
@@ -217,9 +217,9 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-tool[data-captioned] {
-  flex-direction: column;
   justify-content: center;
-  gap: 2px;
+  gap: var(--msp-space-1);
+  flex-direction: column;
   height: 46px;
   display: flex;
 }
@@ -310,14 +310,14 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-toolbarSlot {
-  top: var(--msp-canvas-edge, 8px);
-  right: var(--msp-canvas-edge, 8px);
+  top: var(--msp-canvas-edge);
+  right: var(--msp-canvas-edge);
   position: absolute;
 }
 
 .msp-shell-canvas-lead {
-  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge, 8px));
-  left: var(--msp-canvas-edge, 8px);
+  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge));
+  left: var(--msp-canvas-edge);
   gap: var(--msp-space-3);
   width: min(320px, 100% - 96px);
   display: grid;
@@ -325,13 +325,13 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 :where([data-mode="compact"]) .msp-shell-canvas-lead {
-  width: min(320px, calc(100% - 36px - 3 * var(--msp-canvas-edge, 8px)));
+  width: min(320px, calc(100% - 36px - 3 * var(--msp-canvas-edge)));
 }
 
 .msp-shell-canvas-bottom {
-  left: var(--msp-canvas-edge, 8px);
-  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, 8px));
-  bottom: var(--msp-canvas-edge, 8px);
+  left: var(--msp-canvas-edge);
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
+  bottom: var(--msp-canvas-edge);
   pointer-events: none;
   position: absolute;
   container: bottom-bar / inline-size;
@@ -584,8 +584,8 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 :where([data-mode="compact"]) .msp-shell-canvas-card {
-  left: var(--msp-canvas-edge, 8px);
-  right: var(--msp-canvas-edge, 8px);
+  left: var(--msp-canvas-edge);
+  right: var(--msp-canvas-edge);
   width: auto;
 }
 

@@ -132,6 +132,11 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     --msp-space-4: 12px;
     --msp-space-5: 16px;
     --msp-space-6: 24px;
+    --msp-inset: var(--msp-space-3);
+    --msp-panel-inset: var(--msp-space-2);
+    --msp-canvas-edge: var(--msp-space-3);
+    --msp-icon-sm: 14px;
+    --msp-icon-md: 15px;
     --msp-radius-sm: 2px;
     --msp-radius-md: 4px;
     --msp-radius-lg: 8px;

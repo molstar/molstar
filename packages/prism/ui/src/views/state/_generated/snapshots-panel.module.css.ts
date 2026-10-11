@@ -57,7 +57,7 @@ defineStyles('views/state/snapshots-panel.module.css', `@layer msp.components {
   gap: var(--msp-space-2);
   height: 100%;
   min-height: 0;
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
   flex-direction: column;
   flex: 1 1 0;
@@ -349,7 +349,7 @@ defineStyles('views/state/snapshots-panel.module.css', `@layer msp.components {
 }
 
 .msp-state-snapshots-panel-menu {
-  margin: 2px var(--msp-space-1) var(--msp-space-1) calc(var(--msp-space-2) + 2ch + var(--msp-space-3));
+  margin: var(--msp-space-1) var(--msp-space-1) var(--msp-space-1) calc(var(--msp-space-2) + 2ch + var(--msp-space-3));
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
@@ -443,7 +443,7 @@ defineStyles('views/state/snapshots-panel.module.css', `@layer msp.components {
 }
 
 .msp-state-snapshots-panel-fields {
-  gap: 2px;
+  gap: var(--msp-space-1);
   display: grid;
 }
 

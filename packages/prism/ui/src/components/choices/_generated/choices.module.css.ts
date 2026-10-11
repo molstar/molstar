@@ -33,8 +33,8 @@ defineStyles('components/choices/choices.module.css', `@layer msp.components {
 }
 
 .msp-choices-row {
+  gap: var(--msp-space-1);
   grid-template-columns: repeat(auto-fit, minmax(min(64px, 100%), 1fr));
-  gap: 2px;
   display: grid;
 }
 

@@ -45,7 +45,7 @@ defineStyles('views/structure/structure-tab.module.css', `@layer msp.components 
   gap: var(--msp-space-2);
   height: 100%;
   min-height: 0;
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
   flex-direction: column;
   flex: 1 1 0;

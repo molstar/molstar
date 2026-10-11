@@ -69,9 +69,9 @@
   /* Every overlay card takes the right panel's place, full height, whether the panel is open or not: one target for
      everything that opens on the right (export, save state, canvas settings). */
   position: absolute;
-  top: var(--msp-canvas-edge, 8px);
+  top: var(--msp-canvas-edge);
   right: var(--msp-canvas-panel-right, 64px);
-  bottom: var(--msp-canvas-edge, 8px);
+  bottom: var(--msp-canvas-edge);
   z-index: var(--msp-z-overlay);
   display: flex;
   flex-direction: column;
@@ -93,7 +93,7 @@
   [data-pinned] > & {
     top: 0;
     /* Right against the rail (its inset less the margin). */
-    right: calc(var(--msp-canvas-rail-inset, 52px) - var(--msp-canvas-edge, 8px));
+    right: calc(var(--msp-canvas-rail-inset, 52px) - var(--msp-canvas-edge));
     bottom: 0;
     border-radius: 0;
     box-shadow:
@@ -149,15 +149,15 @@
   --msp-stack-row: 34px;
 
   position: absolute;
-  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge, 8px));
-  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, 8px));
+  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge));
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
 }
 
 /* Compact: no rail (its actions are under More), so the stack keeps only the frame margin; on a short canvas its
    frame scrolls rather than running past the bottom. */
 :where([data-mode="compact"]) .stack {
-  right: var(--msp-canvas-edge, 8px);
-  bottom: var(--msp-canvas-edge, 8px);
+  right: var(--msp-canvas-edge);
+  bottom: var(--msp-canvas-edge);
   /* Its full-height box must not catch the canvas's pointer: only the frame does. */
   pointer-events: none;
 
@@ -194,7 +194,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
+  gap: var(--msp-space-1);
   height: 46px;
 }
 
@@ -293,8 +293,8 @@
 /* The toolbar's own corner when no floating dock carries it in its rail. */
 .toolbarSlot {
   position: absolute;
-  top: var(--msp-canvas-edge, 8px);
-  right: var(--msp-canvas-edge, 8px);
+  top: var(--msp-canvas-edge);
+  right: var(--msp-canvas-edge);
 }
 
 /* The bottom of the canvas: status on the left, the timeline centred; stacked when the bar is narrow. The bar is a
@@ -302,8 +302,8 @@
 /* Top left of the canvas, below what floats at the top: playback (the trajectory, then the snapshots), one column. */
 .lead {
   position: absolute;
-  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge, 8px));
-  left: var(--msp-canvas-edge, 8px);
+  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge));
+  left: var(--msp-canvas-edge);
   display: grid;
   gap: var(--msp-space-3);
   width: min(320px, calc(100% - 96px));
@@ -312,16 +312,16 @@
 /* A narrow shell: the canvas stack shares the top, the column ends before it. */
 :where([data-mode="compact"]) .lead {
   /* Clear of the stack (36px) and the frame margins. */
-  width: min(320px, calc(100% - 36px - 3 * var(--msp-canvas-edge, 8px)));
+  width: min(320px, calc(100% - 36px - 3 * var(--msp-canvas-edge)));
 }
 
 /* The bottom of the canvas: status on the left, the work in hand (selection, focus) on the right. Its right edge
    follows what floats on the right (the open panel runs the full height), so the chips move with the panel. */
 .bottom {
   position: absolute;
-  left: var(--msp-canvas-edge, 8px);
-  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge, 8px));
-  bottom: var(--msp-canvas-edge, 8px);
+  left: var(--msp-canvas-edge);
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
+  bottom: var(--msp-canvas-edge);
   container: bottom-bar / inline-size;
   pointer-events: none;
 }
@@ -374,7 +374,7 @@
   flex-direction: column;
   align-items: flex-start;
   align-self: end;
-  padding-bottom: 5px;
+  padding-bottom: 5px; /* off-scale: centred on the selection bar (34px rows, 24px lines) */
   pointer-events: none;
 
   & > * {
@@ -602,8 +602,8 @@
 
 /* Compact: no side panel to stand in for; a card fills the canvas. */
 :where([data-mode="compact"]) .card {
-  left: var(--msp-canvas-edge, 8px);
-  right: var(--msp-canvas-edge, 8px);
+  left: var(--msp-canvas-edge);
+  right: var(--msp-canvas-edge);
   width: auto;
 }
 

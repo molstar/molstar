@@ -39,7 +39,7 @@ defineStyles('views/settings/settings-tab.module.css', `@layer msp.components {
 .msp-settings-settings-tab-search {
   align-items: center;
   gap: var(--msp-space-2);
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   flex: none;
   display: flex;
   position: relative;
@@ -54,7 +54,7 @@ defineStyles('views/settings/settings-tab.module.css', `@layer msp.components {
 
 .msp-settings-settings-tab-searchInput {
   min-width: 0;
-  padding-left: calc(var(--msp-space-3) + 14px + var(--msp-space-2));
+  padding-left: calc(var(--msp-space-3) + var(--msp-icon-sm) + var(--msp-space-2));
   flex: 1;
 }
 
@@ -66,7 +66,7 @@ defineStyles('views/settings/settings-tab.module.css', `@layer msp.components {
 .msp-settings-settings-tab-groupsContent {
   align-content: start;
   gap: var(--msp-space-1);
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   display: grid;
 }
 

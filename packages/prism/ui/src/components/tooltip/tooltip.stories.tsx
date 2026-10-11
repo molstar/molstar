@@ -19,7 +19,8 @@ export default meta;
 
 const panel =
   'display: grid; gap: var(--msp-space-4); width: 300px; padding: var(--msp-space-4) var(--msp-space-4) 48px; background: var(--msp-color-panel); color: var(--msp-color-text); font-size: var(--msp-font-size-sm);';
-const row = 'display: flex; gap: var(--msp-space-3); align-items: center; justify-content: center; padding: 24px 0;';
+const row =
+  'display: flex; gap: var(--msp-space-3); align-items: center; justify-content: center; padding: var(--msp-space-6) 0;';
 const muted = 'color: var(--msp-color-text-muted);';
 
 // Removed with the story: the ref runs in the story's scope, so the uninstall function goes to its cleanup.

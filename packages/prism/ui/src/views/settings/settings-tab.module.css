@@ -23,7 +23,7 @@
   display: flex;
   align-items: center;
   gap: var(--msp-space-2);
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
 }
 
 .searchIcon {
@@ -36,7 +36,7 @@
 .searchInput {
   flex: 1;
   min-width: 0;
-  padding-left: calc(var(--msp-space-3) + 14px + var(--msp-space-2));
+  padding-left: calc(var(--msp-space-3) + var(--msp-icon-sm) + var(--msp-space-2));
 }
 
 .groups {
@@ -48,7 +48,7 @@
   display: grid;
   align-content: start;
   gap: var(--msp-space-1);
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
 }
 
 /* A group: folded, a row; open, in the well (as Home's actions). */

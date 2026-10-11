@@ -18,14 +18,14 @@ import { Button } from './button.js';
 const meta: Meta = { title: 'Components/Button' };
 export default meta;
 
-const row = 'display: flex; gap: 8px; align-items: center; flex-wrap: wrap;';
+const row = 'display: flex; gap: var(--msp-space-3); align-items: center; flex-wrap: wrap;';
 
 export const Variants: StoryObj = {
   render: () =>
     story(() => {
       const pressed = observableState(false);
       return (
-        <div style="display: grid; gap: 12px; padding: 16px">
+        <div style="display: grid; gap: var(--msp-space-4); padding: var(--msp-space-5)">
           <div style={row}>
             <Button>Default</Button>
             <Button variant="primary">Apply</Button>

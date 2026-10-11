@@ -301,7 +301,7 @@ defineStyles('views/structure/measurements-add.module.css', `@layer msp.componen
 }
 
 .msp-structure-measurements-add-style {
-  margin: 2px 0 var(--msp-space-1) calc(var(--msp-space-2) + 15px + var(--msp-space-2));
+  margin: var(--msp-space-1) 0 var(--msp-space-1) calc(var(--msp-space-2) + var(--msp-icon-md) + var(--msp-space-2));
   padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-1) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-well);

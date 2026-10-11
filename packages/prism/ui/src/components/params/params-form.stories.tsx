@@ -27,11 +27,12 @@ import { ParamsForm } from './params-form.js';
 const meta: Meta = { title: 'Components/Params form' };
 export default meta;
 
-const surfaces = 'display: grid; grid-template-columns: repeat(auto-fill, 320px); gap: 24px; padding: 16px;';
+const surfaces =
+  'display: grid; grid-template-columns: repeat(auto-fill, 320px); gap: var(--msp-space-6); padding: var(--msp-space-5);';
 const caption =
-  'margin: 0 0 8px; color: var(--msp-color-text-subtle); font: 500 var(--msp-font-size-xs)/1.4 var(--msp-font-sans, inherit);';
+  'margin: 0 0 var(--msp-space-3); color: var(--msp-color-text-subtle); font: 500 var(--msp-font-size-xs)/1.4 var(--msp-font-sans, inherit);';
 const values =
-  'margin: 8px 0 0; padding: 8px; border-radius: 4px; background: var(--msp-color-control); color: var(--msp-color-text-muted); font: 11px/1.4 var(--msp-font-mono); white-space: pre-wrap; word-break: break-all;';
+  'margin: var(--msp-space-3) 0 0; padding: var(--msp-space-3); border-radius: 4px; background: var(--msp-color-control); color: var(--msp-color-text-muted); font: 11px/1.4 var(--msp-font-mono); white-space: pre-wrap; word-break: break-all;';
 
 /** The values as JSON, files by name. */
 function show(v: unknown) {
@@ -58,7 +59,7 @@ function Surfaces(props: { params: PD.Params; width?: number; filter?: boolean }
           style={`padding: ${padding}; border-radius: 4px; background: ${background}; font-size: var(--msp-font-size-sm)`}
         >
           {props.filter ? (
-            <div style="margin-bottom: 8px">
+            <div style="margin-bottom: var(--msp-space-3)">
               <TextInput search size="sm" placeholder="Search" value={query.asReadonly} onInput={(v) => query.set(v)} />
             </div>
           ) : null}

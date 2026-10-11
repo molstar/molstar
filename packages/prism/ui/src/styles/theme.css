@@ -151,12 +151,24 @@
     --msp-row-height: 32px;
     --msp-control-height: 28px;
     --msp-label-width: 110px;
-    --msp-space-1: 2px;
-    --msp-space-2: 4px;
-    --msp-space-3: 8px;
-    --msp-space-4: 12px;
-    --msp-space-5: 16px;
-    --msp-space-6: 24px;
+    /* Spacing (Overview › Foundations › Spacing): the scale, and the rules named after it. Every padding, margin and
+       gap is one of these (styles:check rejects other px there, but 1px hairlines and values marked off-scale). */
+    --msp-space-1: 2px; /* between rows of a list, between a label and its hint */
+    --msp-space-2: 4px; /* inside a row (icon to text), between controls in a group */
+    --msp-space-3: 8px; /* between groups in a form, a card's inner gap */
+    --msp-space-4: 12px; /* a card's padding, between sections */
+    --msp-space-5: 16px; /* between blocks of a page */
+    --msp-space-6: 24px; /* empty states, large separations */
+    /* Where text starts inside a control or a row (fields, selects, buttons, tree rows): text lines up across them. */
+    --msp-inset: var(--msp-space-3);
+    /* A panel's content inset at its sides and bottom: rows and blocks inside pad to --msp-inset, so their text lines
+       up with the panel's header (12px). */
+    --msp-panel-inset: var(--msp-space-2);
+    /* The canvas's margin for what floats over it (the rail, the toolbar, cards, the status column). */
+    --msp-canvas-edge: var(--msp-space-3);
+    /* Icon widths, for indents that line text up after an icon (a tree's chevron, a row's kind icon). */
+    --msp-icon-sm: 14px;
+    --msp-icon-md: 15px;
     /* Radii: lg for every surface floating over the canvas (cards, pills, the rail), md for controls and rows inside
        a surface, sm only for small inline marks (code, chips in text). */
     --msp-radius-sm: 2px;

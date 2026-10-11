@@ -39,7 +39,7 @@ defineStyles('agent/views/history-tab.module.css', `@layer msp.components {
   gap: var(--msp-space-2);
   height: 100%;
   min-height: 0;
-  padding: 0 var(--msp-space-2) var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
   font-size: var(--msp-font-size-sm);
   flex-direction: column;
   flex: 1 1 0;
@@ -87,7 +87,7 @@ defineStyles('agent/views/history-tab.module.css', `@layer msp.components {
 .msp-agent-history-tab-item {
   align-items: start;
   column-gap: var(--msp-space-2);
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   grid-template-columns: minmax(0, 1fr) auto;
   display: grid;
 

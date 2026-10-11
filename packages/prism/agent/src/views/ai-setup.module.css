@@ -55,27 +55,27 @@
 
 .lead {
   margin: 0;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   font-weight: 600;
 }
 
 .copy {
   margin: 0;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-text-muted);
   line-height: 1.45;
 }
 
 .note {
   margin: 0;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
 }
 
 .caption {
   margin: var(--msp-space-1) 0 0;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   font-weight: 500;
@@ -110,7 +110,7 @@
 .action {
   flex: none;
   height: 24px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-accent), transparent 84%);
   color: var(--msp-color-accent-strong);
@@ -128,7 +128,7 @@
 .provider {
   display: grid;
   gap: var(--msp-space-1);
-  padding: 2px 0;
+  padding: var(--msp-space-1) 0;
 
   /* A key being entered: right under its provider, on the panel's edges like every control (no box of its own). */
   & > .keyForm {
@@ -174,7 +174,7 @@
 .fold {
   justify-self: start;
   height: 24px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
 
@@ -241,7 +241,7 @@
 
 .error {
   margin: 0;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   color: var(--msp-color-danger);
   font-size: var(--msp-font-size-xs);
 }

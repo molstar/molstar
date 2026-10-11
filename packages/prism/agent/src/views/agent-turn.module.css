@@ -137,7 +137,7 @@
   align-items: center;
   column-gap: var(--msp-space-2);
   min-height: 24px;
-  padding: 2px 0;
+  padding: var(--msp-space-1) 0;
 
   &[data-read] {
     color: var(--msp-color-text-muted);
@@ -203,7 +203,7 @@
 .bar {
   grid-column: 2 / -1;
   height: 2px;
-  margin-top: 2px;
+  margin-top: var(--msp-space-1);
   overflow: hidden;
   border-radius: 1px;
   background: var(--msp-color-control);
@@ -242,7 +242,7 @@
 .allow {
   flex: none;
   height: 24px;
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
 
   &:hover {

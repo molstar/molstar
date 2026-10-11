@@ -31,7 +31,7 @@ step toward `--msp-shade`, or toward the background for text).
 | Glass       | `--msp-glass-bg` (the panel color, 70% opaque), `--msp-glass-panel-bg` (95%, for larger surfaces read over the canvas), `--msp-glass-filter` (blur and saturate), `--msp-glass-edge` (a hairline color), `--msp-glass-shadow` (that hairline as a 1px spread shadow: no layout)                                                     |
 | Node kinds  | `--msp-accent-cyan`, `-red`, `-gray`, `-green`, `-purple`, `-blue`, `-orange` (the classic card accents for extension and node-kind brands; defined, not used by the mocks yet)                                                                                                                                                     |
 | Type        | `--msp-font-sans`, `--msp-font-mono`, `--msp-font-size-xs` (11px), `-sm` (12px), `-md` (14px), `-lg` (16px, unused), `--msp-line-height` (1.4)                                                                                                                                                                                      |
-| Size        | `--msp-row-height` (32px), `--msp-control-height` (28px), `--msp-label-width` (110px; Settings overrides it), `--msp-space-1…6` (2, 4, 8, 12, 16, 24px), `--msp-radius-sm` (2px, small inline marks), `-md` (4px, controls and rows in a surface), `-lg` (8px, every surface floating over the canvas)                              |
+| Size        | `--msp-row-height` (32px), `--msp-control-height` (28px), `--msp-label-width` (110px; Settings overrides it), `--msp-icon-sm`/`-md` (14, 15px, for indents after an icon), `--msp-radius-sm` (2px, small inline marks), `-md` (4px, controls and rows in a surface), `-lg` (8px, every surface floating over the canvas)            |
 | Elevation   | `--msp-shadow-overlay` (floating select options), `--msp-z-overlay`, `-dialog`, `-tooltip`; `--msp-shadow-float` and `--msp-z-toast` are defined, not used yet (the other drop shadows are literals in their modules)                                                                                                               |
 | Motion      | `--msp-motion-fast` (100ms), `--msp-motion-base` (220ms), `--msp-ease`, `--msp-ease-reveal` (ease in and out, for content that opens and closes); under `prefers-reduced-motion` the reset finishes every animation and transition at once                                                                                          |
 | Layout      | Set inline by the shell, not the theme: `--msp-dock-size` per dock, `--msp-canvas-edge` (8px), `--msp-canvas-top-inset`, `-right-inset`, `-rail-inset`, `-panel-right`, `-pinned`, `--msp-right-panel-width` ([shell.md](shell.md))                                                                                                 |
@@ -46,6 +46,27 @@ The light, dark and blue backgrounds, text and accent colors are those of today'
 recognisable; the shades derive from them rather than copying each Sass variable. The state colors start from the skins'
 log colors, adjusted where they would not read on a theme's background (darker on light; `-info` lighter on dark and
 blue; blue's `-danger`). Not yet: state-tree type-class colors and sequence colors as tokens.
+
+## 2.1 Spacing
+
+Every padding, margin and gap is a step of the scale or a rule named after it (Overview › Foundations › Spacing):
+
+| Token               | Value | For                                                                               |
+| ------------------- | ----- | --------------------------------------------------------------------------------- |
+| `--msp-space-1`     | 2px   | Between rows of a list; between a label and its hint                              |
+| `--msp-space-2`     | 4px   | Inside a row (icon to text); between controls in a group                          |
+| `--msp-space-3`     | 8px   | Between groups in a form; a card's inner gap                                      |
+| `--msp-space-4`     | 12px  | A card's padding; between sections                                                |
+| `--msp-space-5`     | 16px  | Between blocks of a page                                                          |
+| `--msp-space-6`     | 24px  | Empty states; large separations                                                   |
+| `--msp-inset`       | 8px   | Where text starts inside a control or a row (fields, selects, buttons, tree rows) |
+| `--msp-panel-inset` | 4px   | A panel's content inset at its sides and bottom                                   |
+| `--msp-canvas-edge` | 8px   | The margin of everything floating over the canvas                                 |
+
+Use the rule when the value means it (a row's text inset is `--msp-inset`, not `--msp-space-3`), so changing the rule
+moves everything that follows it. `styles:check` rejects a padding, margin or gap in px other than a 1px hairline; a
+value that is geometry rather than spacing (a slider thumb centred on its track, a ruler's numbers above the residues)
+stays in px with an `off-scale: <why>` comment on its line. Inline styles in stories and mocks use the tokens too.
 
 ## 3. Build
 
@@ -94,9 +115,9 @@ outside the layers.
   passes `size="sm"` (12px) or `"xs"` (11px). 11px (`-xs`) for captions, hints, descriptions and secondary lines. 14px
   only where something should read a step larger: what is typed in the command menu, the canvas's selection and focus
   chips, the file drop's title.
-- **One text column, 8px into its box.** Panel content is inset 4px (`--msp-space-2`) at the sides and bottom; every box
-  inside (section headers, Home's action rows and captions, list rows, fields, dropdown buttons) pads its text 8px
-  (`--msp-space-3`). Text therefore starts 12px from the panel's edge, the column of the panel header's title (padded
+- **One text column, 8px into its box.** Panel content is inset 4px (`--msp-panel-inset`) at the sides and bottom; every
+  box inside (section headers, Home's action rows and captions, list rows, fields, dropdown buttons) pads its text 8px
+  (`--msp-inset`). Text therefore starts 12px from the panel's edge, the column of the panel header's title (padded
   12px), and card headers on the canvas keep the same 12px. Controls keep the column too: a dropdown's and a text
   field's text, a slider's track and a switch all start 8px into the control column; nested params step their labels in
   by 8px per level while their controls stay in the form's column. Heights: section headers `--msp-row-height`, buttons

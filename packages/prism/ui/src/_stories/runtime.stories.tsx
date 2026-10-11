@@ -18,7 +18,8 @@ import { story } from '../testing/story-root.js';
 const meta: Meta = { title: 'Internals/Runtime' };
 export default meta;
 
-const box = 'font: 14px system-ui, sans-serif; padding: 16px; display: grid; gap: 12px; max-width: 420px;';
+const box =
+  'font: 14px system-ui, sans-serif; padding: var(--msp-space-5); display: grid; gap: var(--msp-space-4); max-width: 420px;';
 
 /** Text, attributes and classes bound to states; nothing re-renders, bindings update the DOM. */
 export const Bindings: StoryObj = {
@@ -34,7 +35,7 @@ export const Bindings: StoryObj = {
           <p>
             Hello, <b>{name}</b>! Clicked {count} {count.asReadonly.pipe(map((c) => (c === 1 ? 'time' : 'times')))}.
           </p>
-          <div style="display: flex; gap: 8px">
+          <div style="display: flex; gap: var(--msp-space-3)">
             <button onClick={() => count.set(count.value + 1)}>Increment</button>
             <button onClick={() => count.set(0)} disabled={count.asReadonly.pipe(map((c) => c === 0))}>
               Reset
@@ -61,7 +62,7 @@ export const KeyedList: StoryObj = {
       const shuffle = () => items.set([...items.value].sort(() => Math.random() - 0.5));
       return (
         <div style={box}>
-          <div style="display: flex; gap: 8px">
+          <div style="display: flex; gap: var(--msp-space-3)">
             <button onClick={() => items.set([...items.value, { id: next, label: `Item ${next++}` }])}>Add</button>
             <button onClick={shuffle}>Shuffle</button>
             <button onClick={() => items.set(items.value.slice(1))}>Remove first</button>

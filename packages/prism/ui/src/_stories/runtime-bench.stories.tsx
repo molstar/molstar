@@ -277,10 +277,10 @@ export const Runtime: StoryObj = {
         return out;
       };
       return (
-        <div style="display: grid; gap: 12px; padding: 16px; font-size: var(--msp-font-size-sm); color: var(--msp-color-text);">
+        <div style="display: grid; gap: var(--msp-space-4); padding: var(--msp-space-5); font-size: var(--msp-font-size-sm); color: var(--msp-color-text);">
           <button
             type="button"
-            style="justify-self: start; height: 28px; padding: 0 12px; border-radius: 6px; background: var(--msp-color-control);"
+            style="justify-self: start; height: 28px; padding: 0 var(--msp-space-4); border-radius: 6px; background: var(--msp-color-control);"
             disabled={running.asReadonly}
             onClick={run}
           >
@@ -290,11 +290,11 @@ export const Runtime: StoryObj = {
             <For each={results.asReadonly}>
               {(r) => (
                 <tr>
-                  <td style="padding: 2px 12px 2px 0">{r.op}</td>
-                  <td style="padding: 2px 12px; text-align: right; font-variant-numeric: tabular-nums">
+                  <td style="padding: var(--msp-space-1) var(--msp-space-4) var(--msp-space-1) 0">{r.op}</td>
+                  <td style="padding: var(--msp-space-1) var(--msp-space-4); text-align: right; font-variant-numeric: tabular-nums">
                     script {r.script} ms
                   </td>
-                  <td style="padding: 2px 0; text-align: right; font-variant-numeric: tabular-nums">
+                  <td style="padding: var(--msp-space-1) 0; text-align: right; font-variant-numeric: tabular-nums">
                     total {r.total} ms
                   </td>
                 </tr>

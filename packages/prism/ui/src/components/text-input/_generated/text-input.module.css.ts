@@ -18,7 +18,7 @@ defineStyles('components/text-input/text-input.module.css', `@layer msp.componen
 .msp-text-input-input {
   min-width: 0;
   height: var(--msp-control-height);
-  padding: 0 var(--msp-space-3);
+  padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-control);
   color: var(--msp-color-text);

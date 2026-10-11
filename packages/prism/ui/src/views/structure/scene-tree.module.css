@@ -30,7 +30,8 @@
   /* Off screen, a row skips layout and paint (a tree can have thousands; the state tree's 5,000 lay out in ~1 ms). */
   content-visibility: auto;
   contain-intrinsic-size: auto 26px;
-  padding: 0 var(--msp-space-1) 0 calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, 14px));
+  padding: 0 var(--msp-space-1) 0
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)));
   border-radius: var(--msp-radius-md);
   cursor: default;
   user-select: none;
@@ -149,8 +150,8 @@
 /* A row's menu: inline under the row, indented with it, a quiet surface holding it together. */
 .menu {
   display: grid;
-  margin: 2px var(--msp-space-1) var(--msp-space-1)
-    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, 14px) + 22px);
+  margin: var(--msp-space-1) var(--msp-space-1) var(--msp-space-1)
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)) + 22px);
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
@@ -185,7 +186,7 @@
 
 .subItems {
   display: grid;
-  padding-left: calc(14px + var(--msp-space-3));
+  padding-left: calc(var(--msp-icon-sm) + var(--msp-space-3));
 }
 
 .subMenu {
@@ -194,7 +195,12 @@
 
 .loading {
   height: 26px;
-  padding-left: calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, 14px) + 40px);
+  padding-left: calc(
+    var(--msp-space-1) +
+    var(--msp-tree-depth, 0) *
+    var(--msp-tree-indent, var(--msp-icon-sm)) +
+    40px
+  ); /* off-scale: past the chevron and the kind icon */
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   line-height: 26px;
