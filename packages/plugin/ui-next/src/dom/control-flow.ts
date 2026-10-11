@@ -92,8 +92,24 @@ let sliceMade = 0;
 const waiting = new Set<() => void>();
 let flushing = false;
 
+let slicing: boolean | 'auto' = 'auto';
+
+/**
+ * Turns time slicing on or off (`auto`, the default: on where the page renders frames, off without a frame loop or in
+ * jsdom, which has frames but never renders, so there is nothing to yield to and tests stay synchronous).
+ */
+export function timeSlicing(on: boolean | 'auto') {
+  slicing = on;
+}
+
+function slicingOn(): boolean {
+  if (slicing !== 'auto') return slicing;
+  return typeof requestAnimationFrame === 'function' && !/jsdom/i.test(globalThis.navigator?.userAgent ?? '');
+}
+
 /** Counts a new entry; whether the slice still has room for it (it starts one when none is running). */
 function sliceRoom(): boolean {
+  if (!slicingOn()) return true;
   if (sliceEnd === 0) {
     sliceEnd = performance.now() + SliceMs;
     sliceMade = 0;
@@ -115,7 +131,8 @@ function nextSlice(fn: () => void) {
     waiting.clear();
     for (const f of fns) f();
   };
-  if (typeof requestAnimationFrame === 'function' && !document.hidden) requestAnimationFrame(flush);
+  // A hidden page gets no frames (its timers still run, if slower).
+  if (!document.hidden) requestAnimationFrame(flush);
   else setTimeout(flush, 0);
 }
 

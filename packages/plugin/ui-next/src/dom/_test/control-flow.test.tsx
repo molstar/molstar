@@ -8,7 +8,7 @@
  */
 
 import { observableState } from '../../reactive/observable-state.js';
-import { Dynamic, For, Match, Show, Switch } from '../control-flow.js';
+import { Dynamic, For, Match, Show, Switch, timeSlicing } from '../control-flow.js';
 import type { Child } from '../jsx-types.js';
 import { render } from '../render.js';
 import { onCleanup } from '../scope.js';
@@ -140,6 +140,11 @@ describe('For', () => {
 describe('For, a long list', () => {
   it('renders over several slices once the slice is spent, in order, and follows the latest list', async () => {
     jest.useFakeTimers();
+    // jsdom renders nothing, so slicing is off there unless asked for; frames as timers.
+    timeSlicing(true);
+    const g = globalThis as { requestAnimationFrame?: (fn: () => void) => number };
+    const raf = g.requestAnimationFrame;
+    g.requestAnimationFrame = (fn) => setTimeout(fn, 16) as unknown as number;
     // Each reading of the clock costs 1 ms: the 12 ms slice is spent after a dozen new entries past the first 64.
     let clock = 0;
     const now = jest.spyOn(performance, 'now').mockImplementation(() => (clock += 1));
@@ -162,6 +167,8 @@ describe('For, a long list', () => {
     expect(shown()).toEqual(items.value);
     dispose();
     now.mockRestore();
+    g.requestAnimationFrame = raf;
+    timeSlicing('auto');
     jest.useRealTimers();
   });
 });
