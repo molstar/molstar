@@ -7,30 +7,44 @@
 /* Floating chrome over the canvas: compact, translucent, out of the way. */
 
 /* Sections of the rail: separate glass blocks, a clear gap between them. */
-.sections {
+/* A frame of tools: one glass column, buttons edge to edge, a hairline between sections. The rail, the canvas stack
+   and the toolbar's own corner are frames; the toolbar's sections inside them carry no glass of their own. */
+.frame {
   display: flex;
   flex-direction: column;
-  gap: var(--msp-space-3);
-}
-
-.toolbar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--msp-space-1);
-  padding: var(--msp-space-2);
+  width: 44px;
+  overflow: hidden;
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
   backdrop-filter: var(--msp-glass-filter);
   -webkit-backdrop-filter: var(--msp-glass-filter);
+
+  & > * + *,
+  & .sections > * + * {
+    border-top: 1px solid var(--msp-glass-edge);
+  }
+
+  & .sections:empty {
+    display: none;
+  }
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
 }
 
 .tool {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--msp-radius-md);
+  width: 100%;
+  height: 40px;
   color: var(--msp-color-text-muted);
   transition:
     background-color var(--msp-motion-fast) var(--msp-ease),
@@ -45,12 +59,6 @@
     background: var(--msp-color-control);
     color: var(--msp-color-accent);
   }
-}
-
-.separator {
-  height: 1px;
-  margin: var(--msp-space-1) var(--msp-space-2);
-  background: var(--msp-color-border);
 }
 
 .card {
@@ -106,14 +114,12 @@
   overflow: auto;
 }
 
-/* The canvas stack: top right of the canvas, under what floats at the top, beside the rail or the open panel. */
+/* The canvas stack: top right of the canvas, under what floats at the top, beside the rail or the open panel. A frame,
+   and beside it what opens from it (the picking level), outside the frame's clipping. */
 .stack {
   position: absolute;
   top: var(--msp-canvas-top-inset, var(--msp-space-4));
   right: var(--msp-canvas-right-inset, var(--msp-space-4));
-  display: flex;
-  flex-direction: column;
-  gap: var(--msp-space-3);
   transition: right var(--msp-motion-base) var(--msp-ease);
 }
 

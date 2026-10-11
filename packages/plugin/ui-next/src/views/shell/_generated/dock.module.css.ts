@@ -24,6 +24,7 @@ export const classes = {
   'header': 'msp-shell-dock-header',
   'left': 'msp-shell-dock-left',
   'rail': 'msp-shell-dock-rail',
+  'railFoot': 'msp-shell-dock-railFoot',
   'right': 'msp-shell-dock-right',
   'splitter': 'msp-shell-dock-splitter',
   'strip': 'msp-shell-dock-strip',
@@ -221,14 +222,19 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   }
 
   & .msp-shell-dock-strip {
-    border-radius: var(--msp-radius-lg);
-    background: var(--msp-glass-bg);
-    box-shadow: var(--msp-glass-shadow);
-    -webkit-backdrop-filter: var(--msp-glass-filter);
+    background: none;
+    gap: 0;
+    padding: 0;
+  }
+
+  & .msp-shell-dock-tab {
+    border-radius: 0;
+    width: 100%;
+    height: 40px;
   }
 
   & .msp-shell-dock-tab[aria-selected="true"] {
-    background: var(--msp-color-hover);
+    background: var(--msp-color-control);
   }
 }
 
@@ -283,9 +289,13 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-rail {
-  gap: var(--msp-space-3);
-  flex-direction: column;
-  display: flex;
+  flex: none;
+  align-self: stretch;
+}
+
+.msp-shell-dock-railFoot {
+  background: color-mix(in oklab, var(--msp-color-control), transparent 30%);
+  margin-top: auto;
 }
 }
 `);

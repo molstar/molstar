@@ -12,6 +12,7 @@ import { Icon } from '../../components/icon/icon.js';
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
+import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/dock.module.css.js';
 import { ViewHost } from './view-host.js';
 
@@ -54,11 +55,18 @@ export function DockView(props: { shell: ShellModel; dock: DockModel }) {
 }
 
 /**
- * A dock floating over the canvas (the right dock by default): a rail at the edge with the tab strip between any
- * leading items (the palette) and further items (the canvas toolbar's sections), and the active tab's content as a
- * glass card beside it. Collapsed, only the rail stays.
+ * A dock floating over the canvas (the right dock by default): a full-height rail at the edge with the tab strip, the
+ * rail's toolbar sections below it, and its foot (the palette) at the bottom; the active tab's content as a glass card
+ * beside it. Collapsed, only the rail stays.
  */
-export function FloatingDock(props: { shell: ShellModel; dock: DockModel; railLead?: Child; railItems?: Child }) {
+export function FloatingDock(props: {
+  shell: ShellModel;
+  dock: DockModel;
+  railLead?: Child;
+  railItems?: Child;
+  /** At the bottom of the rail (the palette). */
+  railFoot?: Child;
+}) {
   const { shell, dock } = props;
   const size = { '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) };
   if (dock.id === 'top' || dock.id === 'bottom') {
@@ -78,7 +86,7 @@ export function FloatingDock(props: { shell: ShellModel; dock: DockModel; railLe
       class={`${classes.floating} ${dock.id === 'left' ? classes.floatingLeft : classes.floatingRight}`}
       style={size}
     >
-      <div class={classes.rail}>
+      <div class={`${classes.rail} ${canvasClasses.frame}`}>
         {props.railLead}
         <Show when={dock.tabs.pipe(map((tabs) => tabs.length > 0))}>
           {() => (
@@ -88,6 +96,7 @@ export function FloatingDock(props: { shell: ShellModel; dock: DockModel; railLe
           )}
         </Show>
         {props.railItems}
+        {props.railFoot ? <div class={classes.railFoot}>{props.railFoot}</div> : null}
       </div>
       <Show when={dock.active}>{(tab) => <DockContent shell={shell} dock={dock} tab={tab} />}</Show>
     </div>

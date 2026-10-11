@@ -5,19 +5,34 @@
  */
 
 .tab {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--msp-space-2);
-  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-4);
+  height: 100%;
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
 }
 
+/* The tree takes what the inspector leaves and scrolls. */
+.tree {
+  flex: 1 1 0;
+  min-height: 80px;
+  overflow: auto;
+}
+
 .actions {
+  flex: none;
   display: flex;
   gap: var(--msp-space-1);
 }
 
 .inspector {
+  /* Pinned to the bottom of the panel: at most a little over half of it, scrolling inside. */
+  flex: none;
+  max-height: 60%;
+  overflow: auto;
   display: grid;
+  align-content: start;
   gap: var(--msp-space-2);
   padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
   border-radius: var(--msp-radius-md);

@@ -17,27 +17,41 @@ export const classes = {
   'inspectorKind': 'msp-structure-structure-tab-inspectorKind',
   'inspectorTitle': 'msp-structure-structure-tab-inspectorTitle',
   'tab': 'msp-structure-structure-tab-tab',
+  'tree': 'msp-structure-structure-tab-tree',
 } as const;
 
 defineStyles('views/structure/structure-tab.module.css', `@layer msp.components {
 .msp-structure-structure-tab-tab {
   gap: var(--msp-space-2);
-  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-4);
+  height: 100%;
+  padding: var(--msp-space-1) var(--msp-space-2) var(--msp-space-2);
   font-size: var(--msp-font-size-sm);
-  display: grid;
+  flex-direction: column;
+  display: flex;
+}
+
+.msp-structure-structure-tab-tree {
+  flex: 1 1 0;
+  min-height: 80px;
+  overflow: auto;
 }
 
 .msp-structure-structure-tab-actions {
   gap: var(--msp-space-1);
+  flex: none;
   display: flex;
 }
 
 .msp-structure-structure-tab-inspector {
+  align-content: start;
   gap: var(--msp-space-2);
+  max-height: 60%;
   padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 50%);
+  flex: none;
   display: grid;
+  overflow: auto;
 }
 
 .msp-structure-structure-tab-inspectorHeader {

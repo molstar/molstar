@@ -36,14 +36,20 @@ export interface ModeSwitchProps {
 
 /**
  * The canvas mode, at the top of the canvas stack: two toggle buttons, Interact and Select (the titles explain the
- * difference; Select takes the accent). While selecting, the picking level shows to the left of Select (the stack never
- * moves): a button with the level's icon that opens the list of levels below it.
+ * difference; Select takes the accent and carries the picking level as a small badge). `PickLevel` changes the level:
+ * it shows beside Select while the pointer is on Select or on it.
  */
 export function ModeSwitch(props: ModeSwitchProps) {
   const selecting = props.mode.pipe(
     map((m) => m === 'select'),
     distinctUntilChanged(),
   );
+  // The picking level as a badge on Select: what a click picks, at a glance.
+  const levels = props.granularities;
+  const current =
+    levels && props.granularity
+      ? props.granularity.pipe(map((g) => levels.find((l) => l.value === g) ?? levels[0]))
+      : undefined;
   return (
     <div class={classes.switch} role="group" aria-label="Canvas mode" data-canvas-mode={props.mode}>
       <button
@@ -56,26 +62,36 @@ export function ModeSwitch(props: ModeSwitchProps) {
       >
         <Icon name="rotate-3d" size={20} />
       </button>
-      <div class={classes.selectSlot}>
-        <button
-          type="button"
-          class={classes.segment}
-          aria-pressed={selecting}
-          title="Select: click to select, Shift+click to extend; drag still rotates"
-          aria-label="Select"
-          onClick={() => props.setMode('select')}
-        >
-          <Icon name="mouse-pointer-click" size={20} />
-        </button>
-        {props.granularities && props.granularity ? (
-          <Show when={selecting}>{() => <PickLevel {...props} />}</Show>
-        ) : null}
-      </div>
+      <button
+        type="button"
+        class={`${classes.segment} ${classes.select}`}
+        aria-pressed={selecting}
+        title="Select: click to select, Shift+click to extend; drag still rotates"
+        aria-label="Select"
+        onClick={() => props.setMode('select')}
+      >
+        <Icon name="mouse-pointer-click" size={20} />
+        {current ? <Show when={current}>{(l) => <Icon name={l.icon} size={10} class={classes.badge} />}</Show> : null}
+      </button>
     </div>
   );
 }
 
-function PickLevel(props: ModeSwitchProps) {
+/**
+ * The picking level, beside the canvas stack level with Select (outside the stack's frame, so it is not clipped): a
+ * button with the level's icon that opens the list of levels below it. Shown while selecting and the pointer is on
+ * Select or on it, or its list is open; always on touch screens (no hover).
+ */
+export function PickLevel(props: ModeSwitchProps) {
+  if (!props.granularities || !props.granularity) return null;
+  const selecting = props.mode.pipe(
+    map((m) => m === 'select'),
+    distinctUntilChanged(),
+  );
+  return <Show when={selecting}>{() => <PickLevelButton {...props} />}</Show>;
+}
+
+function PickLevelButton(props: ModeSwitchProps) {
   const levels = props.granularities!;
   const current = props.granularity!.pipe(map((g) => levels.find((l) => l.value === g) ?? levels[0]));
   const open = observableState(false);

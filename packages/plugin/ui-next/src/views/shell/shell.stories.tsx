@@ -24,7 +24,13 @@ import type { HoverLabelModel, SnapshotStepperModel, TrajectoryControlsModel } f
 import { ShellModel } from '../../shell/shell.js';
 import { StatusModel } from '../../shell/status.js';
 import { HoverLabel } from '../canvas/hover-label.js';
-import { type CanvasMode, type Granularity, ModeSwitch } from '../canvas/mode-switch.js';
+import {
+  type CanvasMode,
+  type Granularity,
+  ModeSwitch,
+  type ModeSwitchProps,
+  PickLevel,
+} from '../canvas/mode-switch.js';
 import { SnapshotPanel, Timeline } from '../canvas/playback.js';
 import { SequenceStrip } from '../sequence/sequence-strip.js';
 import { CanvasPlaceholder } from './canvas-placeholder.js';
@@ -516,19 +522,19 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
   }
 
   // The canvas mode lives on the canvas, not in the rail: what a click does is visible before the first click.
-  const modeSwitch = (
-    <ModeSwitch
-      mode={canvasMode.asReadonly}
-      setMode={(m) => {
-        if (m === canvasMode.value) return;
-        canvasMode.set(m);
-        status.post(m === 'select' ? 'Select: click to select, Shift+click to extend' : 'Interact: click to focus');
-      }}
-      granularity={granularity.asReadonly}
-      granularities={Granularities}
-      setGranularity={(g) => granularity.set(g)}
-    />
-  );
+  const modeProps: ModeSwitchProps = {
+    mode: canvasMode.asReadonly,
+    setMode: (m) => {
+      if (m === canvasMode.value) return;
+      canvasMode.set(m);
+      status.post(m === 'select' ? 'Select: click to select, Shift+click to extend' : 'Interact: click to focus');
+    },
+    granularity: granularity.asReadonly,
+    granularities: Granularities,
+    setGranularity: (g) => granularity.set(g),
+  };
+  const modeSwitch = <ModeSwitch {...modeProps} />;
+  const pickLevel = <PickLevel {...modeProps} />;
 
   return {
     shell,
@@ -536,13 +542,14 @@ function mockShell(options: { loaded: boolean; preset?: MockScenePreset }) {
     hover,
     hoverLines,
     modeSwitch,
+    pickLevel,
     snapshots: mockSnapshots(status),
     trajectory: mockTrajectory(),
   };
 }
 
 function ShellStory(props: { loaded: boolean; preset?: MockScenePreset; background?: string; openExportAt?: string }) {
-  const { shell, status, hover, hoverLines, modeSwitch, snapshots, trajectory } = mockShell(props);
+  const { shell, status, hover, hoverLines, modeSwitch, pickLevel, snapshots, trajectory } = mockShell(props);
   shell.mount();
   status.mount();
   if (props.openExportAt) shell.openOverlay('export', undefined, props.openExportAt);
@@ -577,6 +584,7 @@ function ShellStory(props: { loaded: boolean; preset?: MockScenePreset; backgrou
       canvasColor={props.background ?? '#ffffff'}
       canvasTheme={themeForColor(parseColor(props.background ?? '#ffffff') ?? 0xffffff)}
       canvasLead={props.loaded ? modeSwitch : null}
+      canvasAside={props.loaded ? pickLevel : null}
       onOpenLog={() => shell.show('log')}
     />
   );

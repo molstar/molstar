@@ -9,25 +9,29 @@
 
 import { render } from '../../../dom/render.js';
 import { observableState } from '../../../reactive/observable-state.js';
-import { type CanvasMode, ModeSwitch } from '../mode-switch.js';
+import { type CanvasMode, ModeSwitch, type ModeSwitchProps, PickLevel } from '../mode-switch.js';
 
 describe('ModeSwitch', () => {
   it('shows the mode, switches it, and offers granularity only while selecting', () => {
     const mode = observableState<CanvasMode>('interact');
     const granularity = observableState('residue');
     const container = document.createElement('div');
+    const props: ModeSwitchProps = {
+      mode: mode.asReadonly,
+      setMode: (m) => mode.set(m),
+      granularity: granularity.asReadonly,
+      granularities: [
+        { value: 'residue', label: 'Residue', icon: 'pick-residue' },
+        { value: 'chain', label: 'Chain', icon: 'pick-chain' },
+      ],
+      setGranularity: (g) => granularity.set(g),
+    };
     render(
       () => (
-        <ModeSwitch
-          mode={mode.asReadonly}
-          setMode={(m) => mode.set(m)}
-          granularity={granularity.asReadonly}
-          granularities={[
-            { value: 'residue', label: 'Residue', icon: 'pick-residue' },
-            { value: 'chain', label: 'Chain', icon: 'pick-chain' },
-          ]}
-          setGranularity={(g) => granularity.set(g)}
-        />
+        <>
+          <ModeSwitch {...props} />
+          <PickLevel {...props} />
+        </>
       ),
       container,
     );

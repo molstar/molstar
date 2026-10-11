@@ -98,13 +98,17 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem }) {
 
 /**
  * The canvas stack at the top right of the canvas, below what floats at the top and beside the rail or the open
- * panel: the mode buttons (`lead`) and then the toolbar items placed on the canvas (camera, lighting, XR, expand).
+ * panel: one frame with the mode buttons (`lead`) and then the toolbar items placed on the canvas (camera, lighting,
+ * XR, expand, sequence); `aside` is what opens beside it (the picking level).
  */
-export function CanvasStack(props: { shell: ShellModel; lead?: Child }) {
+export function CanvasStack(props: { shell: ShellModel; lead?: Child; aside?: Child }) {
   return (
     <div class={classes.stack}>
-      {props.lead}
-      <CanvasToolbar shell={props.shell} part="canvas" />
+      <div class={classes.frame}>
+        {props.lead}
+        <CanvasToolbar shell={props.shell} part="canvas" />
+      </div>
+      {props.aside}
     </div>
   );
 }

@@ -18,6 +18,7 @@ export const classes = {
   'cardTitle': 'msp-shell-canvas-cardTitle',
   'chip': 'msp-shell-canvas-chip',
   'context': 'msp-shell-canvas-context',
+  'frame': 'msp-shell-canvas-frame',
   'lead': 'msp-shell-canvas-lead',
   'message': 'msp-shell-canvas-message',
   'pill': 'msp-shell-canvas-pill',
@@ -25,7 +26,6 @@ export const classes = {
   'pillButton': 'msp-shell-canvas-pillButton',
   'progress': 'msp-shell-canvas-progress',
   'sections': 'msp-shell-canvas-sections',
-  'separator': 'msp-shell-canvas-separator',
   'spin': 'msp-shell-canvas-spin',
   'stack': 'msp-shell-canvas-stack',
   'status': 'msp-shell-canvas-status',
@@ -36,27 +36,33 @@ export const classes = {
 } as const;
 
 defineStyles('views/shell/canvas.module.css', `@layer msp.components {
-.msp-shell-canvas-sections {
-  gap: var(--msp-space-3);
-  flex-direction: column;
-  display: flex;
-}
-
-.msp-shell-canvas-toolbar {
-  gap: var(--msp-space-1);
-  padding: var(--msp-space-2);
+.msp-shell-canvas-frame {
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
+  width: 44px;
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
+  flex-direction: column;
+  display: flex;
+  overflow: hidden;
+
+  & > * + *, & .msp-shell-canvas-sections > * + * {
+    border-top: 1px solid var(--msp-glass-edge);
+  }
+
+  & .msp-shell-canvas-sections:empty {
+    display: none;
+  }
+}
+
+.msp-shell-canvas-sections, .msp-shell-canvas-toolbar {
   flex-direction: column;
   display: flex;
 }
 
 .msp-shell-canvas-tool {
-  border-radius: var(--msp-radius-md);
-  width: 34px;
-  height: 34px;
+  width: 100%;
+  height: 40px;
   color: var(--msp-color-text-muted);
   transition: background-color var(--msp-motion-fast) var(--msp-ease),
     color var(--msp-motion-fast) var(--msp-ease);
@@ -72,12 +78,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
     background: var(--msp-color-control);
     color: var(--msp-color-accent);
   }
-}
-
-.msp-shell-canvas-separator {
-  height: 1px;
-  margin: var(--msp-space-1) var(--msp-space-2);
-  background: var(--msp-color-border);
 }
 
 .msp-shell-canvas-card {
@@ -133,10 +133,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-stack {
   top: var(--msp-canvas-top-inset, var(--msp-space-4));
   right: var(--msp-canvas-right-inset, var(--msp-space-4));
-  gap: var(--msp-space-3);
   transition: right var(--msp-motion-base) var(--msp-ease);
-  flex-direction: column;
-  display: flex;
   position: absolute;
 }
 

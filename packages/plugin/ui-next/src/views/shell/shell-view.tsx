@@ -45,6 +45,8 @@ export interface ShellViewProps {
   canvasColor?: MaybeReactive<string>;
   /** The top of the canvas stack, above the canvas toolbar items: the interact / select mode buttons. */
   canvasLead?: Child;
+  /** Beside the canvas stack, outside its frame: what opens from it (the picking level, next to Select). */
+  canvasAside?: Child;
   onOpenLog?: () => void;
 }
 
@@ -115,12 +117,12 @@ export function ShellView(props: ShellViewProps) {
               <ContextChips status={status} />
             </div>
           </div>
-          <CanvasStack shell={shell} lead={props.canvasLead} />
+          <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} />
           <OverlayHost shell={shell} />
           <Show
             when={floating}
             fallback={() => (
-              <div class={canvasClasses.toolbarSlot}>
+              <div class={`${canvasClasses.toolbarSlot} ${canvasClasses.frame}`}>
                 <CanvasToolbar shell={shell} />
               </div>
             )}
@@ -129,8 +131,8 @@ export function ShellView(props: ShellViewProps) {
               <FloatingDock
                 shell={shell}
                 dock={right}
-                railLead={<CanvasToolbar shell={shell} part="lead" />}
                 railItems={<CanvasToolbar shell={shell} part="rest" />}
+                railFoot={<CanvasToolbar shell={shell} part="lead" />}
               />
             )}
           </Show>

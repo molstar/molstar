@@ -62,8 +62,9 @@ it is where contributions (built-in and extension UI) are placed.
   full height; top and bottom docks span the canvas width only. A top or bottom dock with one tab has no tab strip: its
   content carries its own header (the sequence: structure and chain selectors, collapse), and collapsed it is a slim bar
   that expands on click.
-- **Rail sections.** The rail is grouped into glass blocks separated by gaps (no captions), top to bottom: the command
-  palette (the main way in), the tab strip, then app actions (`export`: save state, Export). Toolbar items name their
+- **Rail sections.** The rail is one full-height glass frame (buttons edge to edge, a hairline between sections, no
+  captions), top to bottom: the tab strip, then app actions (`export`: save state, Export), and at its foot, a shade
+  apart, the command palette (the main way in). The canvas stack is the same kind of frame. Toolbar items name their
   section by id (`group`, `order` within it). Extensions do **not** add rail buttons for their features (the rail would
   grow with every extension): they contribute **sections** to a panel's slot instead, e.g. MP4, geometry and model
   export as sections of the Export panel (`export` slot), next to the built-in Image and Session & state sections.
@@ -159,7 +160,11 @@ returns the node's `ParamsFormModel` and its section slot `inspector:<kind>`. Se
 register into that slot, the same mechanism the Export panel uses. Tree rows are keyed by node id; hover highlights, a
 click picks, visibility and removal sit inline (the eye stays visible while a node is hidden). The form shows the
 essential params first and the rest under Advanced; mapped params (color theme) re-render their nested fields when the
-choice changes.
+choice changes. The tab fills the panel: the tree scrolls on its own and the inspector stays pinned at the bottom (its
+content height, at most 60% of the panel, scrolling inside), however many structures are loaded. Inspections carry facts
+(a structure's chains, residues, atoms; a map's grid, voxel size, σ), shown compactly above the form. Volumes are
+top-level entries next to structures (an EMDB map beside its fitted model); density streaming is a structure inspector
+section (the volume streaming extension) whose channels appear under the structure.
 
 ### 4.2 Overlays
 
@@ -219,10 +224,11 @@ Today's settings panel lists every canvas parameter at one level with truncated 
 What a click on the canvas does is a mode, and the difference matters, so the mode is always visible: the top block of
 the canvas stack is two buttons, **Interact** and **Select** (`views/canvas/mode-switch.tsx`). Interact: drag rotates, a
 click focuses. Select: a click selects (Shift extends), drag still rotates. Select takes the accent while on; each
-button's title explains its mode and switching posts a one-line hint to the status line. While selecting, the picking
-level opens to the left of Select ("Picks ⬡ Residue ▾"; the stack never moves): a button with the level's icon that
-opens the list of Mol*'s granularities (atom, residue, chain, entity, model, operator, structure, and the multi-instance
-levels), the chosen one in the accent (after stories-untold's pick-level control). The mode is also a command
+button's title explains its mode and switching posts a one-line hint to the status line. Select carries the picking
+level as a small badge (its glyph, bottom right). While selecting, hovering Select (or focusing it) shows the level to
+its left ("Picks ⬡ Residue ▾"; the stack never moves; always shown on touch screens): a button that opens the list of
+Mol*'s granularities (atom, residue, chain, entity, model, operator, structure, and the multi-instance levels), the
+chosen one in the accent (after stories-untold's pick-level control). The mode is also a command
 (`selection-mode.toggle`, with a keybinding) and Escape leaves Select.
 
 In Select, the selection bar shows at the bottom of the canvas: mode (add/remove/intersect/replace), the `select`

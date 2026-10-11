@@ -9,6 +9,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'badge': 'msp-canvas-mode-switch-badge',
   'chevron': 'msp-canvas-mode-switch-chevron',
   'group': 'msp-canvas-mode-switch-group',
   'level': 'msp-canvas-mode-switch-level',
@@ -18,12 +19,12 @@ export const classes = {
   'levelRow': 'msp-canvas-mode-switch-levelRow',
   'levels': 'msp-canvas-mode-switch-levels',
   'segment': 'msp-canvas-mode-switch-segment',
-  'selectSlot': 'msp-canvas-mode-switch-selectSlot',
+  'select': 'msp-canvas-mode-switch-select',
   'switch': 'msp-canvas-mode-switch-switch',
 } as const;
 
 defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
-.msp-canvas-mode-switch-switch, .msp-canvas-mode-switch-levelButton, .msp-canvas-mode-switch-levels {
+.msp-canvas-mode-switch-levelButton, .msp-canvas-mode-switch-levels {
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
@@ -31,16 +32,13 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
 }
 
 .msp-canvas-mode-switch-switch {
-  gap: var(--msp-space-1);
-  padding: var(--msp-space-2);
   flex-direction: column;
   display: flex;
 }
 
 .msp-canvas-mode-switch-segment {
-  border-radius: var(--msp-radius-md);
-  width: 34px;
-  height: 34px;
+  width: 100%;
+  height: 40px;
   color: var(--msp-color-text-muted);
   transition: background-color var(--msp-motion-fast) var(--msp-ease),
     color var(--msp-motion-fast) var(--msp-ease);
@@ -63,31 +61,52 @@ defineStyles('views/canvas/mode-switch.module.css', `@layer msp.components {
   color: var(--msp-color-accent);
 }
 
-.msp-canvas-mode-switch-selectSlot {
-  position: relative;
-}
-
 .msp-canvas-mode-switch-level {
-  top: 0;
-  right: calc(100% + var(--msp-space-2) + var(--msp-space-3));
-  animation: msp-canvas-mode-switch-level-in var(--msp-motion-base) var(--msp-ease);
+  padding-right: var(--msp-space-3);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--msp-motion-fast) var(--msp-ease),
+    transform var(--msp-motion-fast) var(--msp-ease),
+    visibility 0s linear .16s;
   flex-direction: column;
   align-items: flex-end;
   display: flex;
   position: absolute;
+  top: 40px;
+  right: 100%;
+  transform: translateX(4px);
 }
 
-@keyframes msp-canvas-mode-switch-level-in {
-  from {
-    opacity: 0;
-    transform: translateX(4px);
+:where(:has( > * .msp-canvas-mode-switch-select:hover,  > * .msp-canvas-mode-switch-select:focus-visible)) > .msp-canvas-mode-switch-level, .msp-canvas-mode-switch-level:hover, .msp-canvas-mode-switch-level:focus-within, .msp-canvas-mode-switch-level:has([aria-expanded="true"]) {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+  transform: none;
+}
+
+@media (hover: none) {
+  .msp-canvas-mode-switch-level {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
   }
+}
+
+.msp-canvas-mode-switch-select {
+  position: relative;
+}
+
+.msp-canvas-mode-switch-badge {
+  opacity: .8;
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
 }
 
 .msp-canvas-mode-switch-levelButton {
   align-items: center;
   gap: var(--msp-space-2);
-  height: 34px;
+  height: 40px;
   padding: 0 var(--msp-space-3);
   color: var(--msp-color-text);
   font-size: var(--msp-font-size-sm);

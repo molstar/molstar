@@ -203,16 +203,21 @@
     overflow: hidden;
   }
 
+  /* In the rail (a frame): edge to edge, like the tools around it. */
   & .strip {
-    border-radius: var(--msp-radius-lg);
-    background: var(--msp-glass-bg);
-    box-shadow: var(--msp-glass-shadow);
-    backdrop-filter: var(--msp-glass-filter);
-    -webkit-backdrop-filter: var(--msp-glass-filter);
+    gap: 0;
+    padding: 0;
+    background: none;
+  }
+
+  & .tab {
+    width: 100%;
+    height: 40px;
+    border-radius: 0;
   }
 
   & .tab[aria-selected="true"] {
-    background: var(--msp-color-hover);
+    background: var(--msp-color-control);
   }
 }
 
@@ -271,7 +276,12 @@
 }
 
 .rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--msp-space-3);
+  flex: none;
+  align-self: stretch;
+}
+
+/* The bottom of the rail (the palette, the main way in): pushed down, a shade apart from the rest of the rail. */
+.railFoot {
+  margin-top: auto;
+  background: color-mix(in oklab, var(--msp-color-control), transparent 30%);
 }

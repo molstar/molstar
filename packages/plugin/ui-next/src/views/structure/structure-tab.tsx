@@ -25,7 +25,8 @@ export interface StructureTabProps {
 
 /**
  * The main tab: the scene tree, then the inspector for the picked node (its parameters, then sections that extensions
- * contribute for that kind of node: assembly symmetry, volume streaming, …).
+ * contribute for that kind of node: assembly symmetry, volume streaming, …). The tab fills the panel: the tree scrolls
+ * on its own, and the inspector stays at the bottom (up to a max height, scrolling inside), however long the scene.
  */
 export function StructureTab(props: StructureTabProps) {
   const { shell, scene } = props;
@@ -42,7 +43,9 @@ export function StructureTab(props: StructureTabProps) {
           Component
         </Button>
       </div>
-      <SceneTree scene={scene} />
+      <div class={classes.tree}>
+        <SceneTree scene={scene} />
+      </div>
       <Show when={scene.picked}>{(node) => <Inspector shell={shell} inspection={scene.inspect(node)} />}</Show>
     </div>
   );
