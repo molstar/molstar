@@ -40,6 +40,14 @@
 
 .title {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  /* One line: cut off, it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
 }
 
 .chevron {

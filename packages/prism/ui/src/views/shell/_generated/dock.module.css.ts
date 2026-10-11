@@ -101,6 +101,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 }
 
 .msp-shell-dock-title {
+  min-width: 0;
   mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   white-space: nowrap;
   flex: 1;

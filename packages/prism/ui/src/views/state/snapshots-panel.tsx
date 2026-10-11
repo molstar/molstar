@@ -48,19 +48,20 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
   return (
     <div class={classes.panel}>
       <div class={classes.actions}>
-        {/* Buttons that look like buttons (the control surface); Add keeps its +, the others are words. */}
-        <Button size="sm" class={classes.add} icon={<Icon name="plus" />} onClick={() => model.add()}>
+        {/* As the Structure tab's header: quiet buttons, an icon and a word each. */}
+        <Button size="sm" variant="ghost" icon={<Icon name="plus" />} onClick={() => model.add()}>
           <span class={classes.actionLabel}>Add</span>
         </Button>
         <Button
           size="sm"
+          variant="ghost"
           icon={<Icon name="download" />}
           pressed={open.asReadonly.pipe(map((o) => o === 'save'))}
           onClick={() => toggle('save')}
         >
           <span class={classes.actionLabel}>Save</span>
         </Button>
-        <Button size="sm" icon={<Icon name="folder-open" />} onClick={() => file.click()}>
+        <Button size="sm" variant="ghost" icon={<Icon name="folder-open" />} onClick={() => file.click()}>
           <span class={classes.actionLabel}>Open</span>
         </Button>
         {file}

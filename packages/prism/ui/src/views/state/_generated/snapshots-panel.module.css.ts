@@ -14,7 +14,6 @@ export const classes = {
   'action': 'msp-state-snapshots-panel-action',
   'actionLabel': 'msp-state-snapshots-panel-actionLabel',
   'actions': 'msp-state-snapshots-panel-actions',
-  'add': 'msp-state-snapshots-panel-add',
   'block': 'msp-state-snapshots-panel-block',
   'blockCaption': 'msp-state-snapshots-panel-blockCaption',
   'blockContent': 'msp-state-snapshots-panel-blockContent',
@@ -66,34 +65,16 @@ defineStyles('views/state/snapshots-panel.module.css', `@layer msp.components {
 }
 
 .msp-state-snapshots-panel-actions {
-  gap: var(--msp-space-2);
+  gap: var(--msp-space-1);
   flex: none;
   min-width: 0;
   display: flex;
-}
-
-.msp-state-snapshots-panel-actions > button:has(.msp-state-snapshots-panel-actionLabel):not(.msp-state-snapshots-panel-add) > :first-child:not(.msp-state-snapshots-panel-actionLabel) {
-  display: none;
-}
-
-.msp-state-snapshots-panel-add {
-  gap: var(--msp-space-1);
-  padding-left: var(--msp-space-2);
-
-  & > :first-child {
-    width: 14px;
-    height: 14px;
-  }
 }
 
 @container (width < 280px) {
   .msp-state-snapshots-panel-actions > button:has(.msp-state-snapshots-panel-actionLabel) {
     width: 24px;
     padding: 0;
-  }
-
-  .msp-state-snapshots-panel-actions > button:has(.msp-state-snapshots-panel-actionLabel) > :first-child:not(.msp-state-snapshots-panel-actionLabel) {
-    display: inline-flex;
   }
 
   .msp-state-snapshots-panel-actionLabel {

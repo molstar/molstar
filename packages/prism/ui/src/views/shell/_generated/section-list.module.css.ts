@@ -52,7 +52,14 @@ defineStyles('views/shell/section-list.module.css', `@layer msp.components {
 }
 
 .msp-shell-section-list-title {
+  white-space: nowrap;
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
   flex: 1;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
 }
 
 .msp-shell-section-list-chevron {

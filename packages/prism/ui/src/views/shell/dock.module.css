@@ -74,6 +74,7 @@
 
 .title {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   /* Cut off: it fades out (reset.css, msp-fade-overflow). */
   mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
