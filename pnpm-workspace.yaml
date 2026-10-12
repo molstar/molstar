@@ -28,7 +28,7 @@ catalog:
   'cors': '2.8.6'
   'express': '5.2.1'
   # Media encoding and containers (WebCodecs): the video export's Mediabunny backend and the AI narration's audio encoding (the browser's own AAC and Opus encoders); MPL-2.0, used unmodified.
-  'mediabunny': '^1.61.3'
+  'mediabunny': '1.61.3'
   'h264-mp4-encoder': '1.0.12'
   'immutable': '5.1.9'
   'io-ts': '2.2.22'
