@@ -308,6 +308,19 @@
 }
 
 /* One line, always: the editor keeps its height. */
+/* The hint, and the curve's Presets at the end when it has them. */
+.graphFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+
+  & > .graphHint {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
 .graphHint {
   margin: 0;
   overflow: hidden;

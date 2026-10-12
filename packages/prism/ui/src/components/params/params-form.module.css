@@ -285,11 +285,21 @@
   display: grid;
 }
 
+/* The header and what sits at its end (a group's Presets). */
+.collapsibleBar {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+}
+
 /* A group's or Advanced's header: a quiet row like a label (as Mol*'s "Options"), not a title. */
 .collapsibleHeader {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
   gap: var(--msp-space-1);
+  min-width: 0;
   height: 24px;
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
@@ -308,6 +318,50 @@
   [aria-expanded="true"] > & {
     transform: rotate(90deg);
   }
+}
+
+/* The preset the group's values match, after the chevron: quieter than the name, fading when long. */
+.collapsibleMeta {
+  min-width: 0;
+  margin-left: var(--msp-space-1);
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+/* Presets (a group's, an object list's, a curve's): a quiet word with its mark, like Mol*'s, never a filled button. */
+.presets {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 24px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+  }
+}
+
+/* The presets' list: under where it opened, as a select's options. */
+.presetsList {
+  display: grid;
+  margin-bottom: var(--msp-space-1);
 }
 
 /* An on/off setting's own settings: a small sliders button after the switch; expanded, under the row on a quiet
@@ -489,6 +543,14 @@
 }
 
 /* Add: the list's last row, quiet. */
+/* Add, and Presets at the end when the list has them. */
+.itemActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msp-space-2);
+}
+
 .itemAdd {
   display: flex;
   align-items: center;

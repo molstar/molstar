@@ -14,7 +14,9 @@ export const classes = {
   'channels': 'msp-params-params-form-channels',
   'chevron': 'msp-params-params-form-chevron',
   'collapsible': 'msp-params-params-form-collapsible',
+  'collapsibleBar': 'msp-params-params-form-collapsibleBar',
   'collapsibleHeader': 'msp-params-params-form-collapsibleHeader',
+  'collapsibleMeta': 'msp-params-params-form-collapsibleMeta',
   'color': 'msp-params-params-form-color',
   'control': 'msp-params-params-form-control',
   'count': 'msp-params-params-form-count',
@@ -26,6 +28,7 @@ export const classes = {
   'form': 'msp-params-params-form-form',
   'input': 'msp-params-params-form-input',
   'item': 'msp-params-params-form-item',
+  'itemActions': 'msp-params-params-form-itemActions',
   'itemAdd': 'msp-params-params-form-itemAdd',
   'itemForm': 'msp-params-params-form-itemForm',
   'itemLabel': 'msp-params-params-form-itemLabel',
@@ -36,6 +39,8 @@ export const classes = {
   'mapped': 'msp-params-params-form-mapped',
   'nested': 'msp-params-params-form-nested',
   'number': 'msp-params-params-form-number',
+  'presets': 'msp-params-params-form-presets',
+  'presetsList': 'msp-params-params-form-presetsList',
   'range': 'msp-params-params-form-range',
   'row': 'msp-params-params-form-row',
   'select': 'msp-params-params-form-select',
@@ -301,12 +306,21 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   display: grid;
 }
 
+.msp-params-params-form-collapsibleBar {
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  display: flex;
+}
+
 .msp-params-params-form-collapsibleHeader {
   align-items: center;
   gap: var(--msp-space-1);
+  min-width: 0;
   height: 24px;
   color: var(--msp-color-text-muted);
   font-size: var(--msp-font-size-sm);
+  flex: auto;
   display: flex;
 
   &:hover {
@@ -322,6 +336,46 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   [aria-expanded="true"] > & {
     transform: rotate(90deg);
   }
+}
+
+.msp-params-params-form-collapsibleMeta {
+  min-width: 0;
+  margin-left: var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
+}
+
+.msp-params-params-form-presets {
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 24px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  flex: none;
+  display: flex;
+
+  &:hover, &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+  }
+}
+
+.msp-params-params-form-presetsList {
+  margin-bottom: var(--msp-space-1);
+  display: grid;
 }
 
 .msp-params-params-form-settings {
@@ -486,6 +540,13 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
   & .msp-params-params-form-label {
     padding-left: calc(2 * var(--msp-space-3));
   }
+}
+
+.msp-params-params-form-itemActions {
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--msp-space-2);
+  display: flex;
 }
 
 .msp-params-params-form-itemAdd {

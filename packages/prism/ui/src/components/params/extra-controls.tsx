@@ -22,6 +22,7 @@ import { ScrollArea } from '../scroll-area/scroll-area.js';
 import { classes } from './_generated/extra-controls.module.css.js';
 import { classes as form } from './_generated/params-form.module.css.js';
 import type { FieldBinding } from './field-binding.js';
+import { PresetsButton, PresetsList, presetIndex } from './presets.js';
 
 /** A row with a field that opens something under it (a list, a grid, an editor), like a dropdown. */
 function ExpandingRow(props: {
@@ -336,12 +337,13 @@ export function LineGraphRow(props: { head: Child; label: string; param: PD.Line
           <span class={classes.stripName}>{binding.value.pipe(map((p: unknown[]) => `${p?.length ?? 0} points`))}</span>
         </Field>
       )}
-      body={() => <LineGraphEditor binding={binding} pathOf={pathOf} />}
+      body={() => <LineGraphEditor param={props.param} binding={binding} pathOf={pathOf} />}
     />
   );
 }
 
 function LineGraphEditor(props: {
+  param: PD.LineGraph;
   binding: FieldBinding;
   pathOf: (p: readonly (readonly [number, number])[] | undefined, w: number, h: number) => string;
 }) {
@@ -350,6 +352,9 @@ function LineGraphEditor(props: {
   const H = 96;
   const hover = observableState('');
   const points = binding.value as Observable<[number, number][]>;
+  // Presets come from the data at hand (a volume's statistics): asked for when opened.
+  const getPresets = props.param.getPresets;
+  const presetsOpen = observableState(false);
   const svg = (
     <svg class={classes.graph} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
       {[0.25, 0.5, 0.75].map((t) => (
@@ -433,7 +438,18 @@ function LineGraphEditor(props: {
         {svg}
         <span class={classes.graphAt}>{hover.asReadonly}</span>
       </div>
-      <p class={classes.graphHint}>Drag a point · click to add · double-click to remove</p>
+      <div class={classes.graphFoot}>
+        <p class={classes.graphHint}>Drag a point · click to add · double-click to remove</p>
+        {getPresets ? <PresetsButton open={presetsOpen} label="Curve" /> : null}
+      </div>
+      {getPresets ? (
+        <PresetsList
+          open={presetsOpen}
+          presets={getPresets}
+          current={binding.value.pipe(map((v) => presetIndex(getPresets(), v)))}
+          onPick={(v) => binding.set(v)}
+        />
+      ) : null}
     </div>
   );
 }

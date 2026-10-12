@@ -14,6 +14,7 @@ import { camelCaseToWords } from '@molstar/core/util/string';
 import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
+import { onCleanup } from '../../dom/scope.js';
 import { ParamsFormModel } from '../../forms/params-form.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { OptionList, SelectButton } from '../select/select.js';
@@ -31,6 +32,7 @@ import {
 } from './extra-controls.js';
 import type { FieldBinding } from './field-binding.js';
 import { helpOf, withHelp } from './help.js';
+import { PresetsButton, PresetsList, presetIndex } from './presets.js';
 
 /** A field's value as a control sees it: a stream, the current value, and how to change it. */
 export type { FieldBinding };
@@ -469,12 +471,83 @@ function GroupControl(props: {
   force?: Observable<boolean>;
 }) {
   const { param, binding, filter } = props;
-  // A flat group has no header of its own: its params are rows like the others.
-  if (param.isFlat) return <Fields params={param.params} binding={binding} filter={filter} />;
+  const presets = param.presets;
+  // A preset sets the fields it names, over the group's current values (Mol*'s presets name them all).
+  const apply = (value: unknown) => binding.set({ ...(binding.get() ?? {}), ...(value as object) });
+  const current = presets
+    ? binding.value.pipe(
+        map((v) => presetIndex(presets, v, true)),
+        distinctUntilChanged(),
+      )
+    : undefined;
+  // A flat group has no header of its own: its params are rows like the others, its presets a row before them.
+  if (param.isFlat)
+    return (
+      <>
+        {presets && current ? (
+          <PresetsRow label={props.label} presets={presets} current={current} onPick={apply} />
+        ) : null}
+        <Fields params={param.params} binding={binding} filter={filter} />
+      </>
+    );
+  if (!presets || !current)
+    return (
+      <Collapsible title={props.label} open={!!param.isExpanded} force={props.force}>
+        {() => <Fields params={param.params} binding={binding} filter={filter} />}
+      </Collapsible>
+    );
+  // With presets: Presets in the header (as Mol*'s), the matching one named after the title; a pick opens the group
+  // so what it set shows.
+  const presetsOpen = observableState(false);
+  const opened = observableState(false);
   return (
-    <Collapsible title={props.label} open={!!param.isExpanded} force={props.force}>
+    <Collapsible
+      title={props.label}
+      open={!!param.isExpanded}
+      force={props.force}
+      openWhen={opened.asReadonly}
+      meta={current.pipe(map((i) => (i === undefined ? '' : presets[i][1])))}
+      action={<PresetsButton open={presetsOpen} label={props.label} />}
+      below={() => (
+        <PresetsList
+          open={presetsOpen}
+          presets={() => presets}
+          current={current}
+          onPick={(v) => {
+            apply(v);
+            opened.set(true);
+          }}
+        />
+      )}
+    >
       {() => <Fields params={param.params} binding={binding} filter={filter} />}
     </Collapsible>
+  );
+}
+
+/** A flat group's presets: a row like a select's, reading the matching preset (or Custom). */
+function PresetsRow(props: {
+  label: string;
+  presets: readonly PD.SelectOption<unknown>[];
+  current: Observable<number | undefined>;
+  onPick(value: unknown): void;
+}) {
+  const open = observableState(false);
+  return (
+    <>
+      <div class={classes.row}>
+        <span class={classes.label}>Presets</span>
+        <div class={classes.control}>
+          <SelectButton
+            size="sm"
+            open={open}
+            aria-label={`${props.label} presets`}
+            label={props.current.pipe(map((i) => (i === undefined ? 'Custom' : props.presets[i][1])))}
+          />
+        </div>
+      </div>
+      <PresetsList open={open} presets={() => props.presets} current={props.current} onPick={props.onPick} />
+    </>
   );
 }
 
@@ -704,6 +777,8 @@ function ScriptControl(props: { head: Child; label: string; binding: FieldBindin
  */
 function ObjectListRow(props: { head: Child; label: string; param: PD.ObjectList<any>; binding: FieldBinding }) {
   const { param, binding } = props;
+  const presets = param.presets;
+  const presetsOpen = observableState(false);
   const items = binding.value.pipe(map((v: unknown[] | undefined) => v ?? []));
   const replace = (i: number, item: unknown) => {
     const list = [...(binding.get() ?? [])];
@@ -723,15 +798,29 @@ function ObjectListRow(props: { head: Child; label: string; param: PD.ObjectList
         <For each={items.pipe(map((l) => l.map((_, i) => i)))}>
           {(i) => <ObjectListItem param={param} binding={binding} index={i} replace={replace} />}
         </For>
-        <button
-          type="button"
-          class={classes.itemAdd}
-          aria-label={`Add to ${props.label}`}
-          onClick={() => binding.set([...(binding.get() ?? []), param.ctor()])}
-        >
-          <Icon name="plus" size={13} />
-          Add
-        </button>
+        <div class={classes.itemActions}>
+          <button
+            type="button"
+            class={classes.itemAdd}
+            aria-label={`Add to ${props.label}`}
+            onClick={() => binding.set([...(binding.get() ?? []), param.ctor()])}
+          >
+            <Icon name="plus" size={13} />
+            Add
+          </button>
+          {presets ? <PresetsButton open={presetsOpen} label={props.label} /> : null}
+        </div>
+        {presets ? (
+          <PresetsList
+            open={presetsOpen}
+            presets={() => presets}
+            current={binding.value.pipe(
+              map((v) => presetIndex(presets, v)),
+              distinctUntilChanged(),
+            )}
+            onPick={(v) => binding.set(v)}
+          />
+        ) : null}
       </div>
     </>
   );
@@ -805,19 +894,48 @@ function defaults(param: PD.Any): any {
 }
 
 /** A titled block that opens and closes; its content is rendered while open. */
-function Collapsible(props: { title: string; open?: boolean; force?: Observable<boolean>; children: () => Child }) {
+function Collapsible(props: {
+  title: string;
+  open?: boolean;
+  force?: Observable<boolean>;
+  /** Quiet words after the title (the preset the values match). */
+  meta?: Observable<string>;
+  /** A control at the header's end (Presets). */
+  action?: Child;
+  /** Under the header, open or folded (the presets' list). */
+  below?: () => Child;
+  /** Opens it when this emits true (a preset picked: what it set shows). */
+  openWhen?: Observable<boolean>;
+  children: () => Child;
+}) {
   const own = observableState(!!props.open);
+  if (props.openWhen) {
+    const sub = props.openWhen.subscribe((o) => {
+      if (o) own.set(true);
+    });
+    onCleanup(() => sub.unsubscribe());
+  }
   // Forced open while a filter is set (its matches are inside); the user's choice again once it clears.
   const open = props.force
     ? combineLatest([own.asReadonly, props.force]).pipe(map(([o, f]) => o || f))
     : own.asReadonly;
   return (
     <div class={classes.collapsible}>
-      <button type="button" class={classes.collapsibleHeader} aria-expanded={open} onClick={() => own.set(!own.value)}>
-        {/* The name first, aligned with the labels; the chevron after it. */}
-        {props.title}
-        <Icon name="chevron-right" size={12} class={classes.chevron} />
-      </button>
+      <div class={classes.collapsibleBar}>
+        <button
+          type="button"
+          class={classes.collapsibleHeader}
+          aria-expanded={open}
+          onClick={() => own.set(!own.value)}
+        >
+          {/* The name first, aligned with the labels; the chevron after it. */}
+          {props.title}
+          <Icon name="chevron-right" size={12} class={classes.chevron} />
+          {props.meta ? <span class={classes.collapsibleMeta}>{props.meta}</span> : null}
+        </button>
+        {props.action}
+      </div>
+      {props.below?.()}
       <Show when={open} reveal>
         {() => <div class={classes.nested}>{props.children()}</div>}
       </Show>

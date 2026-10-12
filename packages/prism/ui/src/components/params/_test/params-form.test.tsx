@@ -14,6 +14,7 @@ import { render } from '../../../dom/render.js';
 import { ParamsFormModel } from '../../../forms/params-form.js';
 import { observableState } from '../../../reactive/observable-state.js';
 import { ParamsForm, paramsMatch } from '../params-form.js';
+import { presetIndex } from '../presets.js';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
@@ -25,6 +26,63 @@ function mount(form: ParamsFormModel<any>) {
 }
 
 describe('ParamsForm', () => {
+  it("applies a group's preset from its header, names the matching one, and a flat group's from its row", async () => {
+    const material = PD.Group(
+      { metalness: PD.Numeric(0), roughness: PD.Numeric(1) },
+      {
+        presets: [
+          [{ metalness: 0, roughness: 1 }, 'Matte'],
+          [{ metalness: 1, roughness: 0.6 }, 'Metallic'],
+        ],
+      },
+    );
+    const size = PD.Group(
+      { width: PD.Numeric(1920), height: PD.Numeric(1080) },
+      {
+        isFlat: true,
+        presets: [
+          [{ width: 1920, height: 1080 }, 'Full HD'],
+          [{ width: 3840, height: 2160 }, '4K'],
+        ],
+      },
+    );
+    const form = new ParamsFormModel({ material, size });
+    const container = mount(form);
+    const button = (label: string) => container.querySelector(`button[aria-label="${label}"]`) as HTMLButtonElement;
+    const option = (label: string) =>
+      [...container.querySelectorAll('[role=listbox] button')].find((b) => b.textContent?.trim() === label) as
+        | HTMLButtonElement
+        | undefined;
+
+    expect(container.textContent).toContain('Matte');
+    button('Material presets').click();
+    await flush();
+    option('Metallic')!.click();
+    await flush();
+    expect((form.values.value as any).material).toEqual({ metalness: 1, roughness: 0.6 });
+    expect(container.textContent).toContain('Metallic');
+    expect(container.querySelector('[role=listbox]')).toBeNull();
+
+    expect(button('Size presets').textContent).toContain('Full HD');
+    button('Size presets').click();
+    await flush();
+    option('4K')!.click();
+    await flush();
+    expect((form.values.value as any).size).toEqual({ width: 3840, height: 2160 });
+    expect(button('Size presets').textContent).toContain('4K');
+  });
+
+  it('finds the preset a value matches: all of it, or the fields a group preset sets', () => {
+    const presets: PD.SelectOption<any>[] = [
+      [{ a: 1 }, 'One'],
+      [{ a: 2, b: 3 }, 'Two'],
+    ];
+    expect(presetIndex(presets, { a: 1, c: 9 }, true)).toBe(0);
+    expect(presetIndex(presets, { a: 1, c: 9 })).toBeUndefined();
+    expect(presetIndex(presets, { a: 2, b: 3 })).toBe(1);
+    expect(presetIndex(presets, { a: 5 }, true)).toBeUndefined();
+  });
+
   it('takes dropped files into a file list, names them, clears', async () => {
     const form = new ParamsFormModel({ files: PD.FileList({ multiple: true }) });
     const container = mount(form);

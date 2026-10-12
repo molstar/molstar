@@ -1,3 +1,5 @@
+/** @jsxImportSource @molstar/prism-ui/dom */
+
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *

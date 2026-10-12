@@ -9,7 +9,9 @@
  */
 
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
+import { Vec2 } from '@molstar/core/math/linear-algebra/3d/vec2';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
+import { Material } from '@molstar/core/util/material';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { map } from 'rxjs';
@@ -81,6 +83,9 @@ function Surfaces(props: { params: PD.Params; width?: number; filter?: boolean }
 const render = (params: PD.Params, options: { width?: number; filter?: boolean } = {}): StoryObj => ({
   render: () => story(() => <Surfaces params={params} width={options.width} filter={options.filter} />),
 });
+
+/** A curve's points (a line graph's value). */
+const curve = (points: readonly (readonly [number, number])[]) => points.map(([x, y]) => Vec2.create(x, y));
 
 const onOff = (on: boolean, params: PD.Params = {}, info: PD.Info = {}) =>
   PD.MappedStatic(on ? 'on' : 'off', { on: PD.Group(params), off: PD.Group({}) }, info);
@@ -225,6 +230,83 @@ export const Groups = render({
       after: PD.Boolean(true),
     },
     { label: 'Group in a group', isExpanded: true },
+  ),
+});
+
+/**
+ * Presets (PD's): named values to start from. A group's in its header (Mol*'s Material Style: Matte, Plastic, Glossy,
+ * Metallic), the matching one named after the title and marked in the list (none: the values are custom); a flat
+ * group's as a row before its fields; an object list's beside Add; a curve's, asked for when opened (from the data).
+ */
+export const Presets = render({
+  material: Material.getParam(),
+  materialOpen: { ...Material.getParam({ isExpanded: true }), label: 'Material (open)' },
+  size: PD.Group(
+    {
+      width: PD.Numeric(1920, { min: 1, max: 8192, step: 1 }),
+      height: PD.Numeric(1080, { min: 1, max: 8192, step: 1 }),
+    },
+    {
+      isFlat: true,
+      presets: [
+        [{ width: 1920, height: 1080 }, 'Full HD'],
+        [{ width: 3840, height: 2160 }, '4K'],
+        [{ width: 1080, height: 1080 }, 'Square'],
+      ],
+    },
+  ),
+  channels: PD.ObjectList(
+    { name: PD.Text('channel'), level: PD.Numeric(1.5, { min: 0, max: 5, step: 0.1 }) },
+    (e) => `${e.name} at ${e.level}σ`,
+    {
+      defaultValue: [{ name: '2fo-fc', level: 1.5 }],
+      presets: [
+        [[{ name: '2fo-fc', level: 1.5 }], 'Electron density'],
+        [
+          [
+            { name: 'fo-fc(+)', level: 3 },
+            { name: 'fo-fc(-)', level: 3 },
+          ],
+          'Difference map',
+        ],
+      ],
+    },
+  ),
+  transfer: PD.LineGraph(
+    curve([
+      [0, 0],
+      [0.5, 0.2],
+      [1, 1],
+    ]),
+    {
+      label: 'Transfer curve',
+      getPresets: () => [
+        [
+          curve([
+            [0, 0],
+            [1, 1],
+          ]),
+          'Linear',
+        ],
+        [
+          curve([
+            [0, 0],
+            [0.5, 0.2],
+            [1, 1],
+          ]),
+          'Soft',
+        ],
+        [
+          curve([
+            [0, 0],
+            [0.4, 0],
+            [0.6, 1],
+            [1, 1],
+          ]),
+          'Step',
+        ],
+      ],
+    },
   ),
 });
 

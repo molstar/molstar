@@ -20,6 +20,7 @@ export const classes = {
   'graphArea': 'msp-params-extra-controls-graphArea',
   'graphAt': 'msp-params-extra-controls-graphAt',
   'graphEditor': 'msp-params-extra-controls-graphEditor',
+  'graphFoot': 'msp-params-extra-controls-graphFoot',
   'graphHint': 'msp-params-extra-controls-graphHint',
   'grid': 'msp-params-extra-controls-grid',
   'interval': 'msp-params-extra-controls-interval',
@@ -323,6 +324,18 @@ defineStyles('components/params/extra-controls.module.css', `@layer msp.componen
   font-variant-numeric: tabular-nums;
   pointer-events: none;
   position: absolute;
+}
+
+.msp-params-extra-controls-graphFoot {
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  display: flex;
+
+  & > .msp-params-extra-controls-graphHint {
+    flex: auto;
+    min-width: 0;
+  }
 }
 
 .msp-params-extra-controls-graphHint {
