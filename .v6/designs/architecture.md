@@ -160,10 +160,10 @@ external modules to the graphics backend; shared device/resource/capture contrac
 to the [backend capture/readback design](webgpu.md) as that boundary is extracted, rather than adding another renderer
 abstraction here.
 
-Keep MP4 integration in an explicit module of the MP4 extension, composed by the rendering CLI or embedding application.
-The base headless context must not import the encoder or register the extension automatically. Record migration of
-existing `getAnimation`/`saveAnimation` calls to the explicit integration. Image rendering and snapshot output should
-work without loading video support.
+Keep video integration in an explicit module of the video export extension, composed by the rendering CLI or embedding
+application. The base headless context must not import the encoder or register the extension automatically. Record
+migration of existing `getAnimation`/`saveAnimation` calls to the explicit integration. Image rendering and snapshot
+output should work without loading video support.
 
 ## 4. Workspace, imports, and dependencies
 
@@ -263,7 +263,8 @@ available to another package. Shared versions live in the pnpm catalog; root `pa
 | `tslib`                                             | Each package whose emit uses imported helpers                  |
 | `argparse`                                          | CLI/server packages that parse arguments                       |
 | `express`, `compression`, `cors`, `swagger-ui-dist` | Server packages                                                |
-| `h264-mp4-encoder`                                  | MP4 export extension                                           |
+| `mediabunny`                                        | Default video export backend                                   |
+| `h264-mp4-encoder`                                  | Explicit H.264 WASM video export backend                       |
 | `io-ts`                                             | MVS builder, plus any remaining direct importer until migrated |
 | `react-markdown`, `remark-gfm`                      | Plugin UI                                                      |
 
@@ -533,10 +534,10 @@ a separate package for every executable or one umbrella CLI that installs all to
 | `@molstar/model-server`   | `servers/model/`        | `model-server`, `model-server-query`, `model-server-preprocess` |
 | `@molstar/volume-server`  | `servers/volume/`       | `volume-server`, `volume-server-query`, `volume-server-pack`    |
 
-`@molstar/mvs-render-cli` composes `@molstar/mvs`, `@molstar/plugin-headless`, the MP4 extension, and its native
-modules/codecs. It owns argument parsing, file processing, and output selection. `@molstar/mvs` retains the reusable
-browser-capable runtime and never imports the rendering CLI or headless package. Validation/schema commands must remain
-usable without native rendering dependencies.
+`@molstar/mvs-render-cli` composes `@molstar/mvs`, `@molstar/plugin-headless`, the video export extension, and its
+native modules/codecs. It owns argument parsing, file processing, and output selection. `@molstar/mvs` retains the
+reusable browser-capable runtime and never imports the rendering CLI or headless package. Validation/schema commands
+must remain usable without native rendering dependencies.
 
 Publish bins as compiled ESM JavaScript with Node shebangs and explicit `package.json` `bin` entries, for example
 `"mvs-render": "./lib/index.js"`. CLI directories use the same source/build layout and dependency rules as other

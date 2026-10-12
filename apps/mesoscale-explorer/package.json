@@ -56,7 +56,7 @@
     "rxjs": "catalog:",
     "@types/react": "catalog:",
     "tslib": "catalog:",
-    "@molstar/mp4-export-extension": "workspace:*",
+    "@molstar/video-export-extension": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/graphics": "workspace:*",
     "@molstar/plugin-ui": "workspace:*",

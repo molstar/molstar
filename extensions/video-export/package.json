@@ -1,8 +1,8 @@
 {
-  "name": "@molstar/mp4-export-extension",
+  "name": "@molstar/video-export-extension",
   "version": "6.0.0-dev.0",
   "type": "module",
-  "description": "Mol* mp4-export-extension",
+  "description": "Mol* video-export-extension",
   "license": "MIT",
   "engines": {
     "node": ">=22.0.0"
@@ -22,7 +22,8 @@
       "molstar-src": "./src/ui.tsx",
       "types": "./lib/ui.d.ts",
       "import": "./lib/ui.js"
-    }
+    },
+    "./_test/*": null
   },
   "files": [
     "lib",
@@ -42,7 +43,8 @@
     "@molstar/core": "workspace:*",
     "@molstar/graphics": "workspace:*",
     "@molstar/plugin-headless": "workspace:*",
-    "@molstar/plugin-ui": "workspace:*"
+    "@molstar/plugin-ui": "workspace:*",
+    "mediabunny": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",

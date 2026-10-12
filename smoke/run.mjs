@@ -207,7 +207,7 @@ async function consumer(roots, callback, options = {}) {
 
 async function nodeCheck() {
   await consumer(
-    ['@molstar/core', '@molstar/io', '@molstar/plugin', '@molstar/mvs-builder', '@molstar/mp4-export-extension'],
+    ['@molstar/core', '@molstar/io', '@molstar/plugin', '@molstar/mvs-builder', '@molstar/video-export-extension'],
     async ({ dir }) => {
       const require = createRequire(join(dir, 'package.json'));
       for (const native of ['gl', 'canvas']) {
@@ -745,8 +745,8 @@ async function headlessCheck() {
     async ({ dir, packed }) => {
       const packageNames = [...packed.selected];
       assert(
-        !packageNames.includes('@molstar/mp4-export-extension'),
-        'Packed headless dependency closure unexpectedly includes MP4 export.',
+        !packageNames.includes('@molstar/video-export-extension'),
+        'Packed headless dependency closure unexpectedly includes video export.',
       );
       for (const name of packageNames) {
         const manifest = JSON.parse(await readFile(join(packed.byName.get(name).path, 'package.json'), 'utf8'));

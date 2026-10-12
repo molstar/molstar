@@ -259,8 +259,8 @@
       "private": false
     },
     {
-      "name": "@molstar/mp4-export-extension",
-      "path": "extensions/mp4-export",
+      "name": "@molstar/video-export-extension",
+      "path": "extensions/video-export",
       "kind": "extension",
       "private": false
     },
