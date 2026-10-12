@@ -28,6 +28,7 @@ const OptIn = [
   '@molstar/ai-session',
   '@molstar/ai-trace',
   '@molstar/ai-fibers',
+  '@molstar/ai-narration',
 ];
 
 function* sources(dir: string): Generator<string> {

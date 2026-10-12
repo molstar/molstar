@@ -214,6 +214,8 @@
       "^@molstar/ai-trace/(.*)$": "<rootDir>/packages/ai/trace/src/$1",
       "^@molstar/ai-fibers$": "<rootDir>/packages/ai/fibers/src/index.ts",
       "^@molstar/ai-fibers/(.*)$": "<rootDir>/packages/ai/fibers/src/$1",
+      "^@molstar/ai-narration$": "<rootDir>/packages/ai/narration/src/index.ts",
+      "^@molstar/ai-narration/(.*)$": "<rootDir>/packages/ai/narration/src/$1",
       "^@molstar/prism-ui$": "<rootDir>/packages/prism/ui/src/index.ts",
       "^@molstar/prism-ui/(.*)$": "<rootDir>/packages/prism/ui/src/$1",
       "^@molstar/prism-assistant$": "<rootDir>/packages/prism/assistant/src/index.ts",

@@ -92,6 +92,8 @@ catalog:
   '@ai-sdk/openai-compatible': '^3.0.62'
   # The AI SDK's peer (its schemas); MIT licensed.
   'zod': '^4.6.5'
+  # Audio encoding and containers for narration (the browser's own AAC and Opus encoders); MPL-2.0, used unmodified.
+  'mediabunny': '^1.61.3'
   # Property tests (the harness and its conformance suite); MIT licensed.
   'fast-check': '4.10.2'
   # IndexedDB in Node (the harness's IndexedDB storage tests only); Apache-2.0 licensed.

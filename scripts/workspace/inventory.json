@@ -409,6 +409,12 @@
       "private": true
     },
     {
+      "name": "@molstar/ai-narration",
+      "path": "packages/ai/narration",
+      "kind": "library",
+      "private": true
+    },
+    {
       "name": "@molstar/prism-ui",
       "path": "packages/prism/ui",
       "kind": "library",

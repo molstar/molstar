@@ -213,6 +213,9 @@ build keeps a placeholder tab; the mocks' sequence strip is a layout reference o
 
 ## Phase 7: extension ports
 
+Contributions at runtime and lazy ones ([design/contexts.md](design/contexts.md) §6) come first: the registry on the
+context, the stub and its replay, the loading task; mp4-export is the first lazy one.
+
 In order of effort: model-export, geo-export (Export sections + commands) → assembly-symmetry, kinemage (inspector
 sections + commands) → mp4-export (an Export section, Animation, whose render holds the plugin as a busy-overlay task) →
 zenodo (dialog) → model-archive PAE (view + embeddable element) → volumes-and-segmentations (view). The Export sections
@@ -223,6 +226,10 @@ the data-only extensions. Each port is a `prism-ui` module in the extension pack
 
 docking-viewer (viewport items), mvs-stories (embeddable elements), mesoscale-explorer (contributed views; the
 modularity test), examples as API checks (`react`, `alpha-orbitals`, `ligand-editor`).
+
+`apps/prism` builds as ESM with code splitting (the other apps are IIFE bundles today), so lazy contributions
+([design/contexts.md](design/contexts.md) §6: video export, narration, the code skill) are chunks loaded on first use,
+and the app's size stays what general use needs.
 
 ## Cross-cutting
 

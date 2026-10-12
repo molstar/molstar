@@ -174,6 +174,14 @@ extensions' come with their contributions.
   `execute` and the tool list all respect them.
 - **One reactive `when`** for tabs, sections, overlays and toolbar items: `when?: (ctx) => Observable<boolean>`,
   subscribed once per item on activation (it follows the data, not only registrations).
+- **At runtime, and lazily.** Contributions are not only the spec's: `PrismContext.contributions.add(c)` activates one
+  in a running app (its modules, commands, tabs, sections, toolbar items, the agent's skills) and returns its undo;
+  `remove(id)` retires it. A **lazy contribution** ships only a stub: an id, a title, what it shows before it is loaded
+  (a command, an Export section, a toolbar item, a skill's summary for the agent) and `load: () => import(…)`. The first
+  use (the command run, the section opened, the skill disclosed) loads it as a task in the status column, adds the real
+  contribution in the stub's place (`replaces`), and replays what triggered it; a failed load says why and keeps the
+  stub. Heavy features (video export, narration, the code skill) then cost nothing until someone uses them; the app's
+  build has to split them into chunks (ESM with splitting, [../plan.md](../plan.md) Phase 8).
 - **Render context**: a contribution's views get `{ shell, models, focus, subject, dock }`, where `models` are what its
   modules made; they are retired with the contribution.
 

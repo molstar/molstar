@@ -48,6 +48,13 @@ In this order (reordered 2026-10-12; [analysis/viewer-mode.md](analysis/viewer-m
    step per turn through the mode's checkpointer, [harness.md](harness.md) §18), the skills, `ai-toolscript` and
    `mvs-code`, the MCP server over the same tools.
 
+Also:
+
+- **`@molstar/ai-narration`** (done): narration voiced, ported from Stories' `stories-narration` for the story mode:
+  text-to-speech providers behind one port (Gemini, OpenAI), the audio encoded behind another (WAV built in; Mediabunny
+  with the browser's own AAC, else Opus, at `./mediabunny`). No MP3 encoding (every MP3 encoder is LAME- or
+  shine-derived, so LGPL); a provider's MP3 is kept as it arrives. Loaded lazily in the app (a lazy contribution).
+
 Later:
 
 - **Evals**: `@molstar/ai-evals`, the common part of Stories' evals (`evals/`, `apps/eval`: scenarios run against real

@@ -206,6 +206,9 @@
       "path": "./packages/ai/fibers"
     },
     {
+      "path": "./packages/ai/narration"
+    },
+    {
       "path": "./packages/prism/ui"
     },
     {
