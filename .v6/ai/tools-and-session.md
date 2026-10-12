@@ -64,7 +64,7 @@ toolkit. Other disclosable texts (Stories' data sources and servers) are entries
 ## 4. `@molstar/ai-session`: a conversation
 
 `AgentSession` is one conversation over one harness: host, client, a runner per launch under an in-process supervisor,
-storage (memory by default; IndexedDB or SQLite to keep it).
+storage (memory by default; IndexedDB to keep it; a host may bring its own `HarnessStorage`).
 
 - `turn(request, hooks)` with `request = { prompt, state?, focus?, notes?, attachments?, model?, preamble? }` →
   `TurnResult` (`completed`, `stopped`, `failed`, `awaiting-approval` with the calls; text, tool events, usage, context

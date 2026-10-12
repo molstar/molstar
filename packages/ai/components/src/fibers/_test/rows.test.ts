@@ -7,19 +7,13 @@
  */
 
 import 'fake-indexeddb/auto';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { createMemoryRows, type FiberRows, type FiberTable, RowConflict } from '@molstar/ai-fibers';
 import { createIndexedDbRows } from '../indexeddb.js';
-import { createSqliteRows } from '../sqlite.js';
 
 // The row store contract, directly, on each backend: what the host relies on (analysis/viewer-mode.md §6).
-const dir = mkdtempSync(join(tmpdir(), 'fibers-rows-'));
 const closers: (() => void)[] = [];
 afterAll(() => {
   for (const close of closers) close();
-  rmSync(dir, { recursive: true, force: true });
 });
 let n = 0;
 const closing = <S extends { close(): void }>(store: S): S => {
@@ -49,14 +43,6 @@ const BACKENDS: Backend[] = [
       return [closing(createIndexedDbRows<FiberTable>(name)), closing(createIndexedDbRows<FiberTable>(name))];
     },
     watches: true,
-  },
-  {
-    name: 'sqlite',
-    open: () => {
-      const path = join(dir, `rows-${++n}.sqlite`);
-      return [closing(createSqliteRows<FiberTable>(path)), closing(createSqliteRows<FiberTable>(path))];
-    },
-    watches: false,
   },
 ];
 
@@ -131,15 +117,6 @@ for (const backend of BACKENDS)
         expect({ heard, own }).toEqual({ heard: ['s', 't'], own: [] });
       });
   });
-
-it('sqlite keeps its rows in the file across connections and closes', async () => {
-  const path = join(dir, 'persist.sqlite');
-  const first = createSqliteRows<FiberTable>(path);
-  await first.apply('s', 0, [put('a', '1')]);
-  first.close();
-  const second = closing(createSqliteRows<FiberTable>(path));
-  expect(await second.load('s')).toEqual({ generation: 1, rows: [put('a', '1')] });
-});
 
 it('indexeddb refuses a database of the same name and version made by something else', async () => {
   const other = indexedDB.open('not-fibers', 1);

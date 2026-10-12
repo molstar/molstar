@@ -86,8 +86,8 @@ export interface AgentSessionOptions<Api extends DisclosureApi, M extends ModelC
   startTools?: 'core' | 'all';
   /** System guidance (the first message of a conversation). */
   guidance: string;
-  /** Where the harness keeps its records; default: in memory only. Pass one over IndexedDB or a SQLite file to
-   * resume across reloads and restarts. Several conversations may share one. */
+  /** Where the harness keeps its records; default: in memory only. Pass one over IndexedDB to resume across
+   * reloads and restarts, or bring your own `HarnessStorage`. Several conversations may share one. */
   storage?: HarnessStorage;
   /** Stable harness id, so durable storage finds this conversation's history. */
   harnessId?: string;

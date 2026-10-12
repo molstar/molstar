@@ -20,7 +20,8 @@ work:
 Done:
 
 - **The workspace**: `packages/ai/*`, the catalog (the AI SDK pinned to its major, zod as its peer), Node 22.13 or later
-  everywhere (`node:sqlite`), the import rules (`biome.json`), prism-ui's opt-in boundary.
+  everywhere (raised for `node:sqlite`, which is deferred; the minimum stays), the import rules (`biome.json`),
+  prism-ui's opt-in boundary.
 - **The code**, logic unchanged: relative imports to `.js`, the header, the repository's formatting and lint, `lib`
   ES2024, Vitest to Jest (the suite's `expect(value, message)` became `expectWith`), the old spec's citations pointed at
   [harness.md](harness.md)'s sections.
@@ -63,3 +64,5 @@ Later:
 - **The suite waits on conditions.** Some cases wait a fixed number of event-loop rounds for work that includes
   WebCrypto hashing; on fake IndexedDB under load that loses the race now and then (it did under Vitest too), so that
   file retries its cases. Waiting on what each case needs (as S3 now waits for its tool to start) removes the retries.
+- **SQLite storage** for the harness and fibers (servers, headless), removed 2026-10-12 until a host needs it; the
+  IndexedDB and memory backends and the conformance suites are the pattern.

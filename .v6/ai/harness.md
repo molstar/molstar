@@ -139,8 +139,9 @@ moved), so a missed emission loses nothing. Views (the trace, cost) are projecti
   pointers, heads and segments; blobs outside it; a watch. Protocol logic is the host's; a backend only stores and
   indexes. Foreign JSON is stored as an opaque string.
 - Heads are stored as segments in size classes, so appending is near-constant and a head reads in about log _n_ reads.
-- Backends: memory (tests, helpers), IndexedDB (the page), SQLite (`node:sqlite`; servers and headless). One durable
-  core under the last two runs a transaction against its staged writes and retries on a conflict.
+- Backends: memory (tests, helpers) and IndexedDB (the page). A SQLite backend for servers and headless hosts is
+  planned, not built. One durable core under the backends runs a transaction against its staged writes and retries on a
+  conflict.
 - **Cost is measured, not timed** (the conformance suite's performance cases): a commit costs a constant plus what it
   adds; cold work is linear in the selected head only.
 
@@ -172,4 +173,5 @@ Prism's side is designed in [../prism-ui/design/contexts.md](../prism-ui/design/
 - **The drive** is the app's: approval through the Assistant (park, then resume with the person's answer), reads
   scheduled together and writes one at a time, compaction at the boundary.
 - **One undo step per turn** through the mode's checkpointer; every change carries its origin (`agent`).
-- **Storage**: IndexedDB in the page; SQLite for a headless or server host. Model keys stay in the host.
+- **Storage**: IndexedDB in the page; a SQLite backend for a headless or server host is planned, not built. Model keys
+  stay in the host.
