@@ -354,7 +354,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 .msp-params-params-form-presets {
   align-items: center;
   gap: var(--msp-space-1);
-  height: 24px;
+  height: 20px;
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-subtle);
@@ -375,7 +375,11 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 
 .msp-params-params-form-presetsList {
   margin: var(--msp-space-1) 0;
-  display: grid;
+  display: block;
+
+  & > * {
+    animation: none;
+  }
 }
 
 .msp-params-params-form-settings {

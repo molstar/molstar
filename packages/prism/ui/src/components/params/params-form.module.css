@@ -340,7 +340,8 @@
   flex: none;
   align-items: center;
   gap: var(--msp-space-1);
-  height: 24px;
+  /* Inside the 24px header with room above and below: highlighted, it does not touch the field under it. */
+  height: 20px;
   padding: 0 var(--msp-space-2);
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-subtle);
@@ -359,10 +360,16 @@
 }
 
 /* The presets' list: under where it opened, as a select's options, clear of the open button (their corners would
-   touch). */
+   touch). A block, not a grid: while it is revealed (growing from nothing), the list keeps its own height and is
+   clipped, instead of being squeezed to the growing height and showing a scrollbar. */
 .presetsList {
-  display: grid;
+  display: block;
   margin: var(--msp-space-1) 0;
+
+  /* The reveal is its one animation (as a group's body): not the list's own fade on top of it. */
+  & > * {
+    animation: none;
+  }
 }
 
 /* An on/off setting's own settings: a small sliders button after the switch; expanded, under the row on a quiet
