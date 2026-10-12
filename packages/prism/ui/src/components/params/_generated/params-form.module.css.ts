@@ -374,7 +374,7 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
 }
 
 .msp-params-params-form-presetsList {
-  margin-bottom: var(--msp-space-1);
+  margin: var(--msp-space-1) 0;
   display: grid;
 }
 

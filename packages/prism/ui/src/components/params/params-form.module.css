@@ -358,10 +358,11 @@
   }
 }
 
-/* The presets' list: under where it opened, as a select's options. */
+/* The presets' list: under where it opened, as a select's options, clear of the open button (their corners would
+   touch). */
 .presetsList {
   display: grid;
-  margin-bottom: var(--msp-space-1);
+  margin: var(--msp-space-1) 0;
 }
 
 /* An on/off setting's own settings: a small sliders button after the switch; expanded, under the row on a quiet
