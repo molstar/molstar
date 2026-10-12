@@ -18,8 +18,8 @@
 What is reused rather than rewritten: PD semantics (the params form in `components/params` renders `PD.Params` as they
 are, one control per PD type; `value-ref` and `data-ref` not yet, they show their type name), and, when the views are
 wired to a plugin, sequence wrappers (`sequence/*.ts`, UI-free), screenshot helpers, markdown extension handling,
-controllers in extensions (`GeometryControls`, `Mp4Controls`, volseg entry data). Icons are not reused: the icon set is
-Lucide (extracted by `scripts/icons.mjs`) plus a few molecular glyphs drawn in the same style
+controllers in extensions (`GeometryControls`, `VideoControls`, volseg entry data). Icons are not reused: the icon set
+is Lucide (extracted by `scripts/icons.mjs`) plus a few molecular glyphs drawn in the same style
 (`components/icon/molecular`).
 
 ## 2. Packages

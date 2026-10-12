@@ -157,7 +157,7 @@ _Merges ctx-9 and the boundary part of plan-2._
 - commands.md §1 says a command's run "may dispatch a PluginCommand", and §2 puts `prism` (with its plugin) on
   `CommandContext`.
 - Mode-specific sources (the state tree, MVS story rendering) would have to live in core. That contradicts modes.md §2.
-- Every Phase 7 port wraps a controller that takes a `PluginContext` (GeometryControls, Mp4Controls, volseg, PAE).
+- Every Phase 7 port wraps a controller that takes a `PluginContext` (GeometryControls, VideoControls, volseg, PAE).
 - `models?(ctx: PrismContext)` gives extensions `ctx.plugin`.
 
 "Not used, ever" is not quite true for PluginLayout: `layout.root` is the container the canvas is sized against. Prism

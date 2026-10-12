@@ -50,7 +50,7 @@
     "@molstar/geo-export-extension": "workspace:*",
     "@molstar/model-archive-extension": "workspace:*",
     "@molstar/model-export-extension": "workspace:*",
-    "@molstar/mp4-export-extension": "workspace:*",
+    "@molstar/video-export-extension": "workspace:*",
     "@molstar/pdbe-extension": "workspace:*",
     "@molstar/rcsb-extension": "workspace:*",
     "@molstar/sb-ncbr-extension": "workspace:*",

@@ -163,7 +163,7 @@ function mockExport(shell: ShellModel, status: StatusModel) {
         </div>
       )),
     },
-    // Contributed by the mp4-export extension.
+    // Contributed by the video-export extension.
     {
       id: 'animation',
       slot: 'export',

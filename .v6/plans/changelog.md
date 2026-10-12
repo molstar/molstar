@@ -45,3 +45,21 @@ the [API change ledger](breaking-v6-changes.md).
 - `mvs-validate` reports file/expression paths and continues checking later inputs after malformed JSON or file errors
 - [Breaking] Remove the duplicate `@molstar/mvs-builder/expression` module; use
   `@molstar/query-language/language/expression`
+
+## Video export
+
+- [Breaking] Rename the MP4 export extension/package, public APIs and viewer option to video export; retain its
+  serialized behavior ID
+- Add a video renderer backend interface and make Mediabunny the default, with runtime-generated codec/container
+  parameters
+- Support all Mediabunny video codecs when an encoder is available, with quality/bitrate, FPS and advanced codec
+  settings
+- Native PD group presets provide Balanced (default), Fast preview, High quality and Smooth motion video settings;
+  presets preserve the selected format and codec, with Automatic hardware selection; unsupported FPS/resolution disables
+  rendering instead of silently replacing the codec
+- Reject invalid API settings, accept fractional Mbps bitrates, and discover codecs supported outside the High preset
+- Reuse codec discovery across formats and regenerate UI schemas only for resolution, FPS or format changes
+- Keep H.264 WASM available through an explicit backend import for headless use; the MVS CLI continues to use it
+- [Breaking] Encoded video results include data, MIME type and extension; backend settings replace top-level
+  quantization
+- Fix encoder cleanup on failure/cancellation, the extra terminal frame and swallowed headless file-write errors

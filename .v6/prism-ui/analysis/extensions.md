@@ -8,13 +8,13 @@ prism-ui contribution kinds (command, panel section, panel, dialog, viewport ove
 
 - Only 8 extensions ship React (12 `.tsx` files). All panels extend `CollapsableControls` and build on
   `ParameterControls`, `ApplyActionControl`, and `UpdateTransformControl`.
-- Their parameters are already `PD.Params` (`Mp4AnimationParams`, `GeometryParams`, model-export `Params`,
-  `AssemblySymmetryProvider.getParams()`, `ZenodoImportParams`), so a generic PD form plus command arguments covers most
-  of them.
+- Their parameters are already `PD.Params` (the backend-generated animation params, `GeometryParams`, model-export
+  `Params`, `AssemblySymmetryProvider.getParams()`, `ZenodoImportParams`), so a generic PD form plus command arguments
+  covers most of them.
 - Most extensions register only data providers (presets, themes, selection queries, loci labels, actions, formats).
   These need no ported UI; they surface through generic UI and, in prism-ui, through commands generated from the
   registry (§3 of [../design/commands.md](../design/commands.md)).
-- Several extensions hold their logic in UI-free controllers already (`GeometryControls`, `Mp4Controls`, volseg entry
+- Several extensions hold their logic in UI-free controllers already (`GeometryControls`, `VideoControls`, volseg entry
   data, `MAPairwiseScorePlot`'s interactivity subject). Ports wrap these in view models.
 - The PAE plot (`MAPairwiseScorePlot`) is used standalone by `examples/alphafolddb-pae`, so it must stay embeddable.
 - `kinemage` probes a non-existent `ctx.customControls`; `zenodo`'s behavior display name says "Export".
@@ -25,7 +25,7 @@ prism-ui contribution kinds (command, panel section, panel, dialog, viewport ove
 | ------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | geo-export                | `GeometryExporterUI` (116): format select, Save, View in AR                                          | `customStructureControls`                                   | A section of the Export panel (`export` slot), plus commands (opening the panel at the section, or exporting directly): `geo-export.export` (format arg: glb/stl/obj/usdz), `geo-export.view-ar` (when supported). Blocked when nothing is drawn. |
 | model-export              | `ModelExportUI` (75): format select, Export (ZIP for several)                                        | `customStructureControls`                                   | Commands: `model-export.export` (format arg: cif/bcif).                                                                                                                                                                                           |
-| mp4-export                | `Mp4EncoderUI` (138): animation, its params, quantization, Render, Save                              | `customStructureControls`; embedded by mesoscale-explorer   | A section of the Export panel (animation params, render progress, save), plus command `mp4-export.export` opening the panel at it; backed by `Mp4ExportModel` over `Mp4Controls`.                                                                 |
+| video-export              | `VideoEncoderUI` (138): animation, its params, quantization, Render, Save                            | `customStructureControls`; embedded by mesoscale-explorer   | A section of the Export panel (animation params, render progress, save), plus command `video-export.export` opening the panel at it; backed by `VideoExportModel` over `VideoControls`.                                                           |
 | zenodo                    | `ZenodoImportUI` (345): record ID → file list → typed import                                         | `customImportControls` (its only user)                      | Command `zenodo.import` with a custom UI (record ID → file list → typed import params), inline in the command menu or as a dialog.                                                                                                                |
 | assembly-symmetry         | `AssemblySymmetryControls` (196): Enable, symmetry params, C1 notice                                 | `customStructureControls` + `genericRepresentationControls` | Section in the Structure tab for structure nodes (shown when applicable) + commands: enable, choose symmetry, color by cluster.                                                                                                                   |
 | kinemage                  | `KinemageControls` (453): views, animate, group/subgroup/master toggles                              | `customStructureControls`                                   | Section in the Structure tab (toggle tree, shown when a kinemage exists) + commands: apply view N, next animate frame.                                                                                                                            |

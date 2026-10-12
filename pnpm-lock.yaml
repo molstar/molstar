@@ -227,6 +227,7 @@ catalogs:
       version: 4.6.5
 
 overrides:
+  '@types/dom-webcodecs': 0.1.19
   '@istanbuljs/load-nyc-config>js-yaml': ^4.3.2
   concurrently>shell-quote: ^1.12.0
   source-map-js: ^1.2.2
@@ -448,15 +449,15 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/mp4-export-extension':
-        specifier: workspace:*
-        version: link:../../extensions/mp4-export
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
       '@molstar/plugin-ui':
         specifier: workspace:*
         version: link:../../packages/plugin/ui
+      '@molstar/video-export-extension':
+        specifier: workspace:*
+        version: link:../../extensions/video-export
       '@types/react':
         specifier: 'catalog:'
         version: 18.3.31
@@ -567,9 +568,6 @@ importers:
       '@molstar/model-export-extension':
         specifier: workspace:*
         version: link:../../extensions/model-export
-      '@molstar/mp4-export-extension':
-        specifier: workspace:*
-        version: link:../../extensions/mp4-export
       '@molstar/mvs':
         specifier: workspace:*
         version: link:../../packages/mvs/runtime
@@ -597,6 +595,9 @@ importers:
       '@molstar/sb-ncbr-extension':
         specifier: workspace:*
         version: link:../../extensions/sb-ncbr
+      '@molstar/video-export-extension':
+        specifier: workspace:*
+        version: link:../../extensions/video-export
       '@molstar/wwpdb-extension':
         specifier: workspace:*
         version: link:../../extensions/wwpdb
@@ -734,9 +735,6 @@ importers:
       '@molstar/graphics':
         specifier: workspace:*
         version: link:../../packages/graphics
-      '@molstar/mp4-export-extension':
-        specifier: workspace:*
-        version: link:../../extensions/mp4-export
       '@molstar/mvs':
         specifier: workspace:*
         version: link:../../packages/mvs/runtime
@@ -749,6 +747,9 @@ importers:
       '@molstar/plugin-headless':
         specifier: workspace:*
         version: link:../../packages/plugin/headless
+      '@molstar/video-export-extension':
+        specifier: workspace:*
+        version: link:../../extensions/video-export
       '@types/argparse':
         specifier: 'catalog:'
         version: 2.0.17
@@ -1917,43 +1918,6 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
-  extensions/mp4-export:
-    dependencies:
-      '@molstar/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@molstar/graphics':
-        specifier: workspace:*
-        version: link:../../packages/graphics
-      '@molstar/plugin':
-        specifier: workspace:*
-        version: link:../../packages/plugin/core
-      '@molstar/plugin-headless':
-        specifier: workspace:*
-        version: link:../../packages/plugin/headless
-      '@molstar/plugin-ui':
-        specifier: workspace:*
-        version: link:../../packages/plugin/ui
-      h264-mp4-encoder:
-        specifier: 'catalog:'
-        version: 1.0.12
-      rxjs:
-        specifier: 'catalog:'
-        version: 7.8.2
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.20.1
-        version: 22.20.1
-      '@types/webxr':
-        specifier: 'catalog:'
-        version: 0.5.24
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
   extensions/pdbe:
     dependencies:
       '@molstar/core':
@@ -2079,6 +2043,46 @@ importers:
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
+      tslib:
+        specifier: 'catalog:'
+        version: 2.8.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.1
+        version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  extensions/video-export:
+    dependencies:
+      '@molstar/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../packages/graphics
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../packages/plugin/core
+      '@molstar/plugin-headless':
+        specifier: workspace:*
+        version: link:../../packages/plugin/headless
+      '@molstar/plugin-ui':
+        specifier: workspace:*
+        version: link:../../packages/plugin/ui
+      h264-mp4-encoder:
+        specifier: 'catalog:'
+        version: 1.0.12
+      mediabunny:
+        specifier: 'catalog:'
+        version: 1.61.3
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.2
       tslib:
         specifier: 'catalog:'
         version: 2.8.1
@@ -4450,8 +4454,8 @@ packages:
   '@types/dom-mediacapture-transform@0.1.12':
     resolution: {integrity: sha512-d7/QsLRwF864A5mgIM/YrfiglHoYn7zgCcAoJgW404r+2DwnNr7EBbLnCWpmOMgH8y0te73L1AV6H1bmauaWFw==}
 
-  '@types/dom-webcodecs@0.1.13':
-    resolution: {integrity: sha512-O5hkiFIcjjszPIYyUSyvScyvrBoV3NOEEZx/pMlsu44TKzWNkLVBBxnxJz42in5n3QIolYOcBYFCPZZ0h8SkwQ==}
+  '@types/dom-webcodecs@0.1.19':
+    resolution: {integrity: sha512-+yFUIDUaASFz0vQpWBErPxun/Lb+F0TdrlTsj50gm7K797YzEx2TmV6fEiwciHyFNghlZYPgQXH5qRcwMHcJFQ==}
 
   '@types/estree-jsx@1.0.5':
     resolution: {integrity: sha512-52CcUVNFyfb1A2ALocQw/Dd1BQFNmSdkuC3BkZ6iqhdMfQz7JWOFRuJFloOzjk+6WijU56m9oKXFAXc7o3Towg==}
@@ -8380,9 +8384,9 @@ snapshots:
 
   '@types/dom-mediacapture-transform@0.1.12':
     dependencies:
-      '@types/dom-webcodecs': 0.1.13
+      '@types/dom-webcodecs': 0.1.19
 
-  '@types/dom-webcodecs@0.1.13': {}
+  '@types/dom-webcodecs@0.1.19': {}
 
   '@types/estree-jsx@1.0.5':
     dependencies:
@@ -10228,7 +10232,7 @@ snapshots:
   mediabunny@1.61.3:
     dependencies:
       '@types/dom-mediacapture-transform': 0.1.12
-      '@types/dom-webcodecs': 0.1.13
+      '@types/dom-webcodecs': 0.1.19
 
   merge-descriptors@2.0.0: {}
 

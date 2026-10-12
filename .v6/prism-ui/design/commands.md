@@ -78,8 +78,8 @@ type CommandTarget =
   the params that are inline: text, selects with string options, booleans (on/off) and numbers (bounded ones as
   `slider`); each with the quiet word before it and its format from `fields`. Everything else (colors, groups, mapped,
   object lists…) is `formOnlyParams`: edited in the full form only, and run at its default from the inline sentence.
-  Hidden params never show. Existing transformer and action params, extension params (`Mp4AnimationParams`,
-  `GeometryParams`, …) become command arguments without rewriting.
+  Hidden params never show. Existing transformer and action params, extension params (the backend-generated animation
+  params, `GeometryParams`, …) become command arguments without rewriting.
 - **Formats** are named argument types (`CommandFormat<Ctx>`, looked up through the `CommandFormats` port by name):
   `hint(ctx)` says in a few words what can be typed, `check(text, ctx)` gives `{ ok, value }` or a message (with a hint,
   and `unreadable` when the text is words rather than a broken value), `complete(text, ctx)` gives completions; a

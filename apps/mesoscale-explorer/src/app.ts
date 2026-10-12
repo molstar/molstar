@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mp4Export } from '@molstar/mp4-export-extension';
+import { VideoExport } from '@molstar/video-export-extension';
 import { Mmcif } from '@molstar/plugin/state/formats/trajectory/mmcif';
 import { Spacefill } from '@molstar/plugin/registry/structure/spacefill';
 import { UniformColorThemeProvider } from '@molstar/graphics/theme/color/uniform';
@@ -91,7 +91,7 @@ function createRegistry(customFormats: [string, DataFormatProvider.Unnamed][] | 
 
 const Extensions = {
   backgrounds: PluginSpec.Behavior(Backgrounds),
-  'mp4-export': PluginSpec.Behavior(Mp4Export),
+  'video-export': PluginSpec.Behavior(VideoExport),
 };
 
 const DefaultMesoscaleExplorerOptions = {

@@ -214,13 +214,14 @@ build keeps a placeholder tab; the mocks' sequence strip is a layout reference o
 ## Phase 7: extension ports
 
 Contributions at runtime and lazy ones ([design/contexts.md](design/contexts.md) §6) come first: the registry on the
-context, the stub and its replay, the loading task; mp4-export is the first lazy one.
+context, the stub and its replay, the loading task; video-export is the first lazy one.
 
 In order of effort: model-export, geo-export (Export sections + commands) → assembly-symmetry, kinemage (inspector
-sections + commands) → mp4-export (an Export section, Animation, whose render holds the plugin as a busy-overlay task) →
-zenodo (dialog) → model-archive PAE (view + embeddable element) → volumes-and-segmentations (view). The Export sections
-are mocked (Shell › Export at section: Image, Session & state, Animation, Geometry, Models). Generated commands cover
-the data-only extensions. Each port is a `prism-ui` module in the extension package, next to its existing `ui.tsx`.
+sections + commands) → video-export (an Export section, Animation, whose render holds the plugin as a busy-overlay task)
+→ zenodo (dialog) → model-archive PAE (view + embeddable element) → volumes-and-segmentations (view). The Export
+sections are mocked (Shell › Export at section: Image, Session & state, Animation, Geometry, Models). Generated commands
+cover the data-only extensions. Each port is a `prism-ui` module in the extension package, next to its existing
+`ui.tsx`.
 
 ## Phase 8: apps
 

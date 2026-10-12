@@ -10,7 +10,7 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
 
 - [x] Fix Node MP4 encoding: use the default `h264-mp4-encoder` import. Cover native Node ESM as well as browser
       bundles.
-- [x] Fix the pre-existing headless MP4 behavior check: check the `Mp4Export` transformer rather than its unqualified
+- [x] Fix the pre-existing headless MP4 behavior check: check the `VideoExport` transformer rather than its unqualified
       name. Verify that animation export reaches encoding; keep native GL installation optional.
 - [x] Support caller-controlled MVSX ZIP options under the third `createMVSX` parameter's `zip` property. Explicit
       `mtime` enables identical bytes across different clock times; the default uses the current time. Verify both
@@ -108,6 +108,8 @@ allow the caller to choose timestamps that are reproducible across time zones.
 - [ ] Remaining convenience-barrel cleanup. The `StateTransforms` facade was removed in plugin composition step 1 (the
       classic Viewer global keeps an app-level object).
 - [ ] Broader test-runner migration and maintainer skills/documentation rewrite.
+- [ ] Add versioned documentation with a v5/v6 version switch. Preserve the existing v5 docs and update the v6 pages
+      separately, including the video-export extension and API changes.
 - [ ] In the documentation rewrite, cover plugin composition. `docs/` is deployed from `master` and still describes the
       published 5.x `molstar/lib/...` paths, so these pages keep their 5.x imports until then:
       `docs/docs/plugin/custom-library.md` and `instance.md` (`DefaultPluginSpec`/`DefaultPluginUISpec` now come from

@@ -60,7 +60,7 @@ too.
 | measurements  | `measurement.add` (distance, angle, dihedral, label), list, remove                                                                                                                                             | new (Stories draws distances as shapes)            |
 | interactions  | `interactions.find`                                                                                                                                                                                            | `find_interactions`                                |
 | snapshots     | `snapshot.add`, `list`, `apply`, `update`, `remove`                                                                                                                                                            | new (scenes are the story's)                       |
-| export        | `image.export`, `state.export`, `structure.export`; an extension's own (`video.export` from mp4-export, §2.1)                                                                                                  | new                                                |
+| export        | `image.export`, `state.export`, `structure.export`; an extension's own (`video.export` from video-export, §2.1)                                                                                                | new                                                |
 | code          | run code against the viewer (`@molstar/ai-toolscript`), MVS scripting (`mvs-code`)                                                                                                                             | `run_story_code`, the mvs-code skill, adapted      |
 
 Not in the viewer mode: scenes, the story's text, animation timelines, narration, claims and articles, the helper
@@ -73,7 +73,7 @@ next to the MVS packages, its imports moved to `@molstar/mvs-builder` and `@mols
 
 ### 2.1 Extensions bring tools
 
-A command is a tool by its metadata, so an extension's commands are tools wherever it is included: mp4-export's
+A command is a tool by its metadata, so an extension's commands are tools wherever it is included: video-export's
 `video.export`, with its params as the schema, needs nothing more. What an extension adds for the agent beyond that (a
 skill: its guidance, which of its commands load together) is the agent's and ships only with it: an `agent` folder in
 the extension (as in the modes, §8), which an app with the assistant registers with the extension. To design with the

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -11,18 +11,18 @@ import { Button } from '@molstar/plugin-ui/controls/common';
 import { CameraOutlinedSvg, GetAppSvg, Icon, SubscriptionsOutlinedSvg } from '@molstar/plugin-ui/controls/icons';
 import { ParameterControls } from '@molstar/plugin-ui/controls/parameters';
 import { download } from '@molstar/core/util/download';
-import { Mp4AnimationParams, Mp4Controls } from '@molstar/mp4-export-extension/controls';
+import { VideoControls } from '@molstar/video-export-extension/controls';
 
 interface State {
   busy?: boolean;
-  data?: { movie: Uint8Array<ArrayBuffer>; filename: string };
+  data?: { movie: Uint8Array<ArrayBuffer>; filename: string; mimeType: string };
 }
 
-export class Mp4EncoderUI extends CollapsableControls<{}, State> {
-  private _controls: Mp4Controls | undefined;
+export class VideoEncoderUI extends CollapsableControls<{}, State> {
+  private _controls: VideoControls | undefined;
 
   get controls() {
-    return this._controls || (this._controls = new Mp4Controls(this.plugin));
+    return this._controls || (this._controls = new VideoControls(this.plugin));
   }
 
   protected defaultState(): State & CollapsableState {
@@ -59,7 +59,9 @@ export class Mp4EncoderUI extends CollapsableControls<{}, State> {
     const ctrl = this.controls;
     const current = ctrl.behaviors.current.value;
     const info = ctrl.behaviors.info.value;
-    const canApply = ctrl.behaviors.canApply.value;
+    const animation = ctrl.behaviors.canApply.value;
+    const encoder = ctrl.behaviors.encoder.value;
+    const canApply = animation.canApply ? encoder : animation;
     return (
       <>
         <ParameterControls
@@ -84,9 +86,9 @@ export class Mp4EncoderUI extends CollapsableControls<{}, State> {
           </div>
         </div>
         <ParameterControls
-          params={Mp4AnimationParams}
-          values={ctrl.behaviors.params.value}
-          onChangeValues={(xs) => ctrl.behaviors.params.next(xs)}
+          params={{ video: ctrl.videoParams }}
+          values={{ video: ctrl.behaviors.params.value }}
+          onChangeValues={(xs) => ctrl.setParams(xs.video)}
           isDisabled={this.state.busy}
         />
         <Button
@@ -108,6 +110,8 @@ export class Mp4EncoderUI extends CollapsableControls<{}, State> {
       this.controls.behaviors.canApply,
       this.controls.behaviors.info,
       this.controls.behaviors.params,
+      this.controls.behaviors.paramsSchema,
+      this.controls.behaviors.encoder,
     );
 
     this.subscribe(merged.pipe(debounceTime(10)), () => {
@@ -122,7 +126,7 @@ export class Mp4EncoderUI extends CollapsableControls<{}, State> {
   }
 
   save = () => {
-    download(new Blob([this.state.data!.movie]), this.state.data!.filename);
+    download(new Blob([this.state.data!.movie], { type: this.state.data!.mimeType }), this.state.data!.filename);
   };
 
   generate = async () => {

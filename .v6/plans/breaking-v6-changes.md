@@ -83,11 +83,33 @@ the [validation design](../designs/architecture.md#72-molql-builder-and-validati
 The `@molstar/mvs/behavior-id` constants keep the existing `molviewspec` name and `ms-plugin.molviewspec` transformer
 ID; the loader checks that stable ID without importing the behavior module. Serialized snapshot identity is unchanged.
 
-## Headless MP4 integration
+## Video export (breaking)
 
-`HeadlessPluginContext` now owns image rendering only. Its former `getAnimation` and `saveAnimation` methods live on
-`Mp4HeadlessPluginContext`, imported from `@molstar/mp4-export-extension/headless`. Register `Mp4Export` in the plugin
-spec when using those methods. Native GL remains opt-in rather than auto-installed.
+The MP4 extension is renamed from `@molstar/mp4-export-extension` to `@molstar/video-export-extension`
+(`extensions/video-export`). Viewer and Mesoscale Explorer extension options use `video-export` instead of `mp4-export`.
+Public names change from `Mp4Export`, `Mp4Controls`, `Mp4EncoderUI`, `Mp4EncoderParams`, and `Mp4HeadlessPluginContext`
+to their `Video` equivalents. `Mp4AnimationParams` is replaced by backend-generated `PD.Params` exposed through
+`VideoControls.behaviors.paramsSchema`. The serialized behavior ID `ms-plugin.extension-mp4-export` is retained so
+existing snapshots remain loadable.
+
+`encodeMp4Animation` becomes `encodeVideoAnimation`; it and headless `getAnimation` return
+`{ data, mimeType, extension }` rather than raw bytes. `fps` remains a shared option; codec settings live in
+`backendParams`. The renderer produces timestamped frames at the requested FPS without the former extra terminal frame.
+`saveAnimation` validates the filename extension and propagates filesystem errors.
+
+Mediabunny is the default backend. Codec/container choices and codec-specific parameters are generated for the current
+runtime, resolution and FPS. Discovery is shared across formats and includes quality fallbacks and explicitly selected
+codec settings. Quality/FPS presets preserve the selected format and codec; Automatic hardware selection remains the
+default. Programmatic exports reject invalid or unknown settings before normalization can substitute defaults.
+Unsupported settings fail before animation playback. ProRes encoding requires a registered custom/server encoder; it is
+not provided by browser WebCodecs. No native encoder dependencies are installed automatically.
+
+`HeadlessPluginContext` owns image rendering only. Use `VideoHeadlessPluginContext` from
+`@molstar/video-export-extension/headless` and register `VideoExport` for animation rendering. For Node environments
+without WebCodecs, explicitly import `H264WasmBackend` from `@molstar/video-export-extension/backends/h264-wasm` and
+pass `{ backend: H264WasmBackend, backendParams: { quantization: 18 } }` to `getAnimation`/`saveAnimation`. This
+replaces the former top-level `quantization`/`quantizationParameter` options. The MVS rendering CLI explicitly uses this
+backend for MP4 output. Browser entry points do not import the WASM encoder. Native GL remains opt-in.
 
 ## Shape bounds and graphics helpers
 
