@@ -58,9 +58,12 @@ paths into another package's source.
 
 Data-only shapes belong to model; rendering shape factories/helpers belong to `@molstar/graphics/geo/shape/shape`. Model
 `Shape.create` takes an explicit group count; the graphics factory derives it from geometry. Model-aware
-molecular/volume writers live in model. GPU density helpers live in graphics. MP4 support is an explicit extension:
-`@molstar/mp4-export-extension/headless` provides `Mp4HeadlessPluginContext`, while the base headless package has no
-encoder import.
+molecular/volume writers live in model. GPU density helpers live in graphics. Video support is an explicit extension:
+`@molstar/video-export-extension/headless` provides `VideoHeadlessPluginContext`, while the base headless package has no
+encoder import. Mediabunny is the default video backend. In Node without WebCodecs, explicitly import `H264WasmBackend`
+from `@molstar/video-export-extension/backends/h264-wasm` and pass
+`{ backend: H264WasmBackend, backendParams: { quantization: 18 } }` to animation export methods. `getAnimation` returns
+`{ data, mimeType, extension }`; `saveAnimation` requires a matching filename extension.
 
 `CollapsableControls`, `CollapsableProps`, and `CollapsableState` now live at `@molstar/plugin-ui/controls/collapsable`;
 base React components stay at `@molstar/plugin-ui/base`. This split prevents initialization cycles between base

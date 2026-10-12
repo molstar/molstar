@@ -49,8 +49,8 @@
       "paths": ["packages/query-language/src/transpilers/**"]
     },
     {
-      "name": "MP4 export",
-      "paths": ["extensions/mp4-export/**"]
+      "name": "Video export",
+      "paths": ["extensions/video-export/**"]
     },
     {
       "name": "Catalogs and default compositions",

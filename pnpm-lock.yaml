@@ -114,6 +114,9 @@ catalogs:
     jpeg-js:
       specifier: 0.4.4
       version: 0.4.4
+    mediabunny:
+      specifier: 1.61.3
+      version: 1.61.3
     mutative:
       specifier: 1.3.0
       version: 1.3.0
@@ -167,6 +170,7 @@ catalogs:
       version: 7.0.2
 
 overrides:
+  '@types/dom-webcodecs': 0.1.19
   '@istanbuljs/load-nyc-config>js-yaml': ^4.3.2
   concurrently>shell-quote: ^1.12.0
   source-map-js: ^1.2.2
@@ -385,9 +389,9 @@ importers:
       '@molstar/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@molstar/mp4-export-extension':
+      '@molstar/video-export-extension':
         specifier: workspace:*
-        version: link:../../extensions/mp4-export
+        version: link:../../extensions/video-export
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin/core
@@ -507,9 +511,9 @@ importers:
       '@molstar/query-language':
         specifier: workspace:*
         version: link:../../packages/query-language
-      '@molstar/mp4-export-extension':
+      '@molstar/video-export-extension':
         specifier: workspace:*
-        version: link:../../extensions/mp4-export
+        version: link:../../extensions/video-export
       '@molstar/mvs':
         specifier: workspace:*
         version: link:../../packages/mvs/runtime
@@ -671,9 +675,9 @@ importers:
       '@molstar/graphics':
         specifier: workspace:*
         version: link:../../packages/graphics
-      '@molstar/mp4-export-extension':
+      '@molstar/video-export-extension':
         specifier: workspace:*
-        version: link:../../extensions/mp4-export
+        version: link:../../extensions/video-export
       '@molstar/mvs':
         specifier: workspace:*
         version: link:../../packages/mvs/runtime
@@ -1854,7 +1858,7 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
-  extensions/mp4-export:
+  extensions/video-export:
     dependencies:
       '@molstar/core':
         specifier: workspace:*
@@ -1874,6 +1878,9 @@ importers:
       h264-mp4-encoder:
         specifier: 'catalog:'
         version: 1.0.12
+      mediabunny:
+        specifier: 'catalog:'
+        version: 1.61.3
       rxjs:
         specifier: 'catalog:'
         version: 7.8.2
@@ -3476,6 +3483,12 @@ packages:
   '@types/debug@4.1.13':
     resolution: {integrity: sha512-KSVgmQmzMwPlmtljOomayoR89W4FynCAi3E8PPs7vmDVPe84hT+vGPKkJfThkmXs0x0jAaa9U8uW8bbfyS2fWw==}
 
+  '@types/dom-mediacapture-transform@0.1.12':
+    resolution: {integrity: sha512-d7/QsLRwF864A5mgIM/YrfiglHoYn7zgCcAoJgW404r+2DwnNr7EBbLnCWpmOMgH8y0te73L1AV6H1bmauaWFw==}
+
+  '@types/dom-webcodecs@0.1.19':
+    resolution: {integrity: sha512-+yFUIDUaASFz0vQpWBErPxun/Lb+F0TdrlTsj50gm7K797YzEx2TmV6fEiwciHyFNghlZYPgQXH5qRcwMHcJFQ==}
+
   '@types/estree-jsx@1.0.5':
     resolution: {integrity: sha512-52CcUVNFyfb1A2ALocQw/Dd1BQFNmSdkuC3BkZ6iqhdMfQz7JWOFRuJFloOzjk+6WijU56m9oKXFAXc7o3Towg==}
 
@@ -4824,6 +4837,9 @@ packages:
   media-typer@1.1.1:
     resolution: {integrity: sha512-yz3xRaG20c6/BOzvYoDaGtPmGscs7YivItZEEqe6GbwNfHuxu9YNmvnEkMzKldAGY4/80pRcQRZSEnhquk9XuQ==}
     engines: {node: '>= 0.8'}
+
+  mediabunny@1.61.3:
+    resolution: {integrity: sha512-kUqLKVXQVwHR62GkOJxYosAmXERJbqnXBgJDTtRlxHEYviVkMg/Evhl9XN6kedqS5LP1tV4kFKyzY/V4a4ofow==}
 
   merge-descriptors@2.0.0:
     resolution: {integrity: sha512-Snk314V5ayFLhp3fkUREub6WtjBfPdCPY1Ln8/8munuLuiYhsABgBVWsozAG+MWMbVEvcdcpbi9R7ww22l9Q3g==}
@@ -6464,6 +6480,12 @@ snapshots:
     dependencies:
       '@types/ms': 2.1.0
 
+  '@types/dom-mediacapture-transform@0.1.12':
+    dependencies:
+      '@types/dom-webcodecs': 0.1.19
+
+  '@types/dom-webcodecs@0.1.19': {}
+
   '@types/estree-jsx@1.0.5':
     dependencies:
       '@types/estree': 1.0.9
@@ -8039,6 +8061,11 @@ snapshots:
       '@types/mdast': 4.0.4
 
   media-typer@1.1.1: {}
+
+  mediabunny@1.61.3:
+    dependencies:
+      '@types/dom-mediacapture-transform': 0.1.12
+      '@types/dom-webcodecs': 0.1.19
 
   merge-descriptors@2.0.0: {}
 

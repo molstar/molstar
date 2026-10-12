@@ -252,13 +252,18 @@ if (serve) {
   const protocol = sslEnabled ? 'https' : 'http';
   const handler = async (req, res) => {
     try {
-      const pathname = decodeURIComponent(new URL(req.url, `${protocol}://localhost`).pathname);
+      const url = new URL(req.url, `${protocol}://localhost`);
+      const pathname = decodeURIComponent(url.pathname);
       const resolved = path.resolve(root, `.${pathname}`);
       if (!resolved.startsWith(root + path.sep) && resolved !== root) {
         res.writeHead(403).end();
         return;
       }
       const stat = await fs.promises.stat(resolved);
+      if (stat.isDirectory() && !url.pathname.endsWith('/')) {
+        res.writeHead(302, { location: `${url.pathname}/${url.search}` }).end();
+        return;
+      }
       const file = stat.isDirectory() ? path.join(resolved, 'index.html') : resolved;
       const body = await fs.promises.readFile(file);
       res.writeHead(200, { 'content-type': mime[path.extname(file)] ?? 'application/octet-stream' }).end(body);

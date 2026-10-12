@@ -9,7 +9,7 @@
   "exclude": ["src/**/_test/**"],
   "references": [
     {
-      "path": "../../extensions/mp4-export"
+      "path": "../../extensions/video-export"
     },
     {
       "path": "../../packages/plugin/core"
