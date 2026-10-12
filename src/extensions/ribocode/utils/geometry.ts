@@ -187,6 +187,23 @@ export function alignDatasetsGeneral<T extends Record<string, any>>(
     const fullX = moving.map(a => a[coordKeys.x]);
     const fullY = moving.map(a => a[coordKeys.y]);
     const fullZ = moving.map(a => a[coordKeys.z]);
+
+    const applyRigidAlignment = (
+        rotation: number[],
+        movingCentroid: Vec3,
+        referenceCentroid: Vec3
+    ): { xR: number[]; yR: number[]; zR: number[] } => {
+        const centeredX = fullX.map(v => v - movingCentroid[0]);
+        const centeredY = fullY.map(v => v - movingCentroid[1]);
+        const centeredZ = fullZ.map(v => v - movingCentroid[2]);
+        const aligned = getRotatedCoordinates(rotation, centeredX, centeredY, centeredZ);
+        for (let i = 0; i < nAtomsNew; i++) {
+            aligned.xR[i] += referenceCentroid[0];
+            aligned.yR[i] += referenceCentroid[1];
+            aligned.zR[i] += referenceCentroid[2];
+        }
+        return aligned;
+    };
     // Alignment logic (same as before, generalized)
     let rotmat: number[] = [];
     if (newCount !== count) {
@@ -213,17 +230,7 @@ export function alignDatasetsGeneral<T extends Record<string, any>>(
             }
             const qcprot = new QCProt(filteredXS, filteredYS, filteredZS, xS, yS, zS);
             rotmat = qcprot.rotmat;
-            for (let i = 0; i < nAtomsNew; i++) {
-                fullX[i] -= filteredCentroid[0];
-                fullY[i] -= filteredCentroid[1];
-                fullZ[i] -= filteredCentroid[2];
-            }
-            const aligned = getRotatedCoordinates(qcprot.rotmat, fullX, fullY, fullZ);
-            for (let i = 0; i < nAtomsNew; i++) {
-                aligned.xR[i] += filteredCentroid[0];
-                aligned.yR[i] += filteredCentroid[1];
-                aligned.zR[i] += filteredCentroid[2];
-            }
+            const aligned = applyRigidAlignment(qcprot.rotmat, filteredCentroid, centroid);
             return { alignedX: aligned.xR, alignedY: aligned.yR, alignedZ: aligned.zR, rotmat, centroid: filteredCentroid, centroidReference: centroid };
         } else {
             for (let i = 0; i < newCount; i++) {
@@ -245,17 +252,7 @@ export function alignDatasetsGeneral<T extends Record<string, any>>(
             }
             const qcprot = new QCProt(newXS, newYS, newZS, filteredXS, filteredYS, filteredZS);
             rotmat = qcprot.rotmat;
-            for (let i = 0; i < nAtomsNew; i++) {
-                fullX[i] += newCentroid[0];
-                fullY[i] += newCentroid[1];
-                fullZ[i] += newCentroid[2];
-            }
-            const aligned = getRotatedCoordinates(qcprot.rotmat, fullX, fullY, fullZ);
-            for (let i = 0; i < nAtomsNew; i++) {
-                aligned.xR[i] -= newCentroid[0];
-                aligned.yR[i] -= newCentroid[1];
-                aligned.zR[i] -= newCentroid[2];
-            }
+            const aligned = applyRigidAlignment(qcprot.rotmat, newCentroid, filteredCentroid);
             return { alignedX: aligned.xR, alignedY: aligned.yR, alignedZ: aligned.zR, rotmat, centroid: newCentroid, centroidReference: filteredCentroid };
         }
     } else {
@@ -273,7 +270,7 @@ export function alignDatasetsGeneral<T extends Record<string, any>>(
         }
         const qcprot = new QCProt(newXS, newYS, newZS, xS, yS, zS);
         rotmat = qcprot.rotmat;
-        const aligned = getRotatedCoordinates(qcprot.rotmat, fullX, fullY, fullZ);
+        const aligned = applyRigidAlignment(qcprot.rotmat, newCentroid, centroid);
         return { alignedX: aligned.xR, alignedY: aligned.yR, alignedZ: aligned.zR, rotmat, centroidReference: centroid, centroid: newCentroid };
     }
 }
