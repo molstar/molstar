@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { DataFormatProvider } from '../provider.js';
 import { DataFormatRegistry } from '../registry.js';
 
@@ -118,7 +119,7 @@ describe('DataFormatRegistry', () => {
   });
 
   it('legacy add with a different name registers a stable named copy and warns once', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       const registry = empty();
       const a = format('a');

@@ -4,14 +4,10 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { BodyLabels } from '../labels.js';
 import { flipHandednessInPlace, recomputeStats, removeDustInPlace } from '../internal/volume-edit.js';
-import {
-  CanonicalOrder,
-  SwappedOrder,
-  createTestVolume,
-  offsetOf,
-} from '@molstar/volume-tools-extension/_test/test-volume';
+import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from '../../_test/test-volume.js';
 
 describe('removeDustInPlace', () => {
   it('zeroes small components above the threshold and refreshes stats', () => {

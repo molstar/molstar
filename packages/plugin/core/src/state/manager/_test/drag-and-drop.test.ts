@@ -4,14 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import type { PluginContext } from '@molstar/plugin/context';
 import { DefaultDragAndDrop } from '../../../default-registry.js';
 import { DragAndDropManager, type PluginDragAndDropHandler } from '../drag-and-drop.js';
 
 function create() {
-  const runTask = jest.fn();
-  const applyAction = jest.fn(() => 'apply-action');
-  const dispatch = jest.fn(() => Promise.resolve());
+  const runTask = vi.fn();
+  const applyAction = vi.fn(() => 'apply-action');
+  const dispatch = vi.fn(() => Promise.resolve());
   const plugin = { runTask, commands: { dispatch }, state: { data: { applyAction } } } as unknown as PluginContext;
   return { manager: new DragAndDropManager(plugin), runTask, applyAction, dispatch };
 }
@@ -21,7 +22,7 @@ function file(name: string) {
 }
 
 function handler(log: string[], name: string, result = false): PluginDragAndDropHandler {
-  return jest.fn((_files: File[]) => {
+  return vi.fn((_files: File[]) => {
     log.push(name);
     return result;
   });
@@ -59,7 +60,7 @@ describe('DragAndDropManager registration', () => {
 
   it('lists entries in registration order', () => {
     const { manager } = create();
-    const h = jest.fn(() => true);
+    const h = vi.fn(() => true);
     manager.addHandler('a', h);
     manager.addHandler('b', h, { fallback: true });
     manager.addHandler('a', h);
@@ -88,7 +89,7 @@ describe('DragAndDropManager registration', () => {
 
   it('treats entries with the same name and handle as the same provider', () => {
     const { manager } = create();
-    const h = jest.fn(() => true);
+    const h = vi.fn(() => true);
     manager.addEntry({ name: 'a', handle: h });
     expect(() => manager.addEntry({ name: 'a', handle: h, fallback: true })).not.toThrow();
   });

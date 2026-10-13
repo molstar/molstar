@@ -4,6 +4,7 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
+import { expect, test } from 'vitest';
 import { parseCryoEtDataPortalNdjson } from '../cryoet/ndjson.js';
 
 test('parses CryoET Data Portal ndjson records', async () => {

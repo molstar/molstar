@@ -4,17 +4,13 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Grid } from '@molstar/model/model/volume';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 import { buildCroppedMaskVolume, computeBodyMask, scatterToFullBox } from '../internal/mask-compute.js';
 import { BodyLabels } from '../labels.js';
-import {
-  CanonicalOrder,
-  SwappedOrder,
-  createTestVolume,
-  offsetOf,
-} from '@molstar/volume-tools-extension/_test/test-volume';
+import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from '../../_test/test-volume.js';
 
 describe('computeBodyMask', () => {
   for (const order of [CanonicalOrder, SwappedOrder]) {

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { StateAction, StateObject, type StateObjectCell, StateTransformer } from '../index.js';
 import { StateActionManager } from '../action/manager.js';
 
@@ -56,8 +57,8 @@ describe('StateTransformer.toAction', () => {
 describe('StateActionManager', () => {
   function setup() {
     const m = new StateActionManager();
-    const added = jest.fn();
-    const removed = jest.fn();
+    const added = vi.fn();
+    const removed = vi.fn();
     m.events.added.subscribe(added);
     m.events.removed.subscribe(removed);
     return { m, added, removed };

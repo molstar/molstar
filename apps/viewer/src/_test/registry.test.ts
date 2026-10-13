@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { PluginContext } from '@molstar/plugin/context';
@@ -62,12 +63,12 @@ describe('createViewerRegistry', () => {
 
   it('loads data with the custom provider of an overridden built-in format', async () => {
     const pdb = DefaultFormats.formats!.find((f) => f.name === 'pdb')!;
-    const parse = jest.fn((...args: Parameters<typeof pdb.parse>) => pdb.parse(...args));
+    const parse = vi.fn((...args: Parameters<typeof pdb.parse>) => pdb.parse(...args));
     const custom = { ...pdb, label: 'Custom pdb', name: undefined, parse };
     const { plugin } = await createPlugin([['pdb', custom]]);
     expect(plugin.dataFormats.get('pdb').label).toBe('Custom pdb');
 
-    const text = fs.readFileSync(path.resolve(__dirname, '../../../../smoke/fixtures/tiny.pdb'), 'utf8');
+    const text = fs.readFileSync(path.resolve(import.meta.dirname, '../../../../smoke/fixtures/tiny.pdb'), 'utf8');
     const data = await plugin.builders.data.rawData({ data: text });
     const trajectory = await plugin.builders.structure.parseTrajectory(data, 'pdb');
     expect(parse).toHaveBeenCalledTimes(1);

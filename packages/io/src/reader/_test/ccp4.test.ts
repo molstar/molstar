@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import * as CCP4 from '../ccp4/parser.js';
 
 function createCcp4Data() {

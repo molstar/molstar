@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import type { Message } from '@molstar/ai-agent';
 import {
   type BeginInput,
@@ -28,7 +29,6 @@ import {
   type Segment,
   type ToolFrame,
 } from '@molstar/ai-harness';
-import { describe, expect, it, jest } from '@jest/globals';
 import { difference, type StorageCounts, totalReads, totalWrites } from '../meter.js';
 import { type ConformanceFixture, createSession, type Session, type SessionSetup } from '../session.js';
 import { simulatedIds } from '../testing/ids.js';
@@ -479,7 +479,7 @@ function observedRunner(s: Session, overrides: Partial<Omit<RunnerOptions, 'port
 
 /** Counts `crypto.subtle.digest` calls (every hash the harness takes goes through it) while `run` works. */
 async function withDigestSpy<T>(run: (digests: { calls(): number; bytes(): number }) => Promise<T>): Promise<T> {
-  const spy = jest.spyOn(globalThis.crypto.subtle, 'digest');
+  const spy = vi.spyOn(globalThis.crypto.subtle, 'digest');
   try {
     return await run({
       calls: () => spy.mock.calls.length,

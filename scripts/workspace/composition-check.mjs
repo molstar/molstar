@@ -3,7 +3,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Acceptance checks of the plugin-composition refactor (.v6/plans/plugin-composition.md, section 6) that need the
- * Viewer's own spec, which the jest setup cannot load (its UI extensions are `.tsx` modules), and the CLI tools:
+ * Viewer's own spec, which the unit-test setup does not load (its UI extensions are `.tsx` modules), and the CLI tools:
  *   - a snapshot made by the default plugin restores in a plugin with the Viewer spec, and one that needs an
  *     unregistered transformer fails before changing the Viewer plugin's state,
  *   - `customFormats` of the Viewer spec can override a built-in format, and the custom provider loads the data,

@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { SpacegroupData } from '../tables.js';
 import { SyminfoEntriesByCcp4Number } from './utils.js';
 

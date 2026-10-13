@@ -4,6 +4,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { FibonacciHeap } from '../fibonacci-heap.js';
 
 describe('fibonacci-heap', () => {

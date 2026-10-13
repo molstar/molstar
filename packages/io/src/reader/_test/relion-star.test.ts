@@ -4,6 +4,7 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
+import { expect, test } from 'vitest';
 import { Column } from '@molstar/core/data/db';
 import { parseCifText } from '../cif/text/parser.js';
 import { parseRelionStar } from '../relion/star.js';

@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
@@ -8,6 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Markdown } from '../markdown.js';
 
 describe('Markdown', () => {

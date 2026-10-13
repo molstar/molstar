@@ -4,12 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 
-const crambin = fs.readFileSync(path.resolve(__dirname, '../../../../../../../../data/examples/1crn.cif'), 'utf8');
+const crambin = fs.readFileSync(
+  path.resolve(import.meta.dirname, '../../../../../../../../data/examples/1crn.cif'),
+  'utf8',
+);
 
 async function createPluginWithStructure() {
   const plugin = new PluginContext(DefaultPluginSpec());
@@ -25,7 +29,7 @@ describe('building a representation with unregistered names in a plugin with the
   it('warns naming the provider and scope and uses the registry default', async () => {
     const { plugin, structure } = await createPluginWithStructure();
     const registry = plugin.representation.structure.registry;
-    const warn = jest.spyOn(plugin.log, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(plugin.log, 'warn').mockImplementation(() => {});
 
     const repr = await plugin.builders.structure.representation.addRepresentation(structure, {
       type: 'no-such-repr' as any,
@@ -52,7 +56,7 @@ describe('building a representation with unregistered names in a plugin with the
 
   it('does not warn for registered names', async () => {
     const { plugin, structure } = await createPluginWithStructure();
-    const warn = jest.spyOn(plugin.log, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(plugin.log, 'warn').mockImplementation(() => {});
     const repr = await plugin.builders.structure.representation.addRepresentation(structure, {
       type: 'ball-and-stick',
       color: 'chain-id',

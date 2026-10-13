@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { expect } from '@jest/globals';
+import { expect } from 'vitest';
 import { hashMessage, type Message } from '@molstar/ai-agent';
 import {
   buildMove,

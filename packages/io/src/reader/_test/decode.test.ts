@@ -4,6 +4,7 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
+import { describe, expect, it } from 'vitest';
 import { B64_DECODE, decodeB64Bytes, decodeB64Str } from '../common/decode.js';
 
 // Known base64: "Man" → [0x4D, 0x61, 0x6E]

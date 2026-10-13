@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /** @jsxImportSource @molstar/prism-ui/dom */
 
 /**
@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { map, Subject } from 'rxjs';
 import { observableState } from '../../reactive/observable-state.js';
 import type { Child } from '../jsx-types.js';

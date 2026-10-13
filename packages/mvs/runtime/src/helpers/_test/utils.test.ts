@@ -4,6 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { range } from '@molstar/core/util/array';
 import { MVSAnnotationRow } from '../schemas.js';
 import { GroupedArray } from '../utils.js';

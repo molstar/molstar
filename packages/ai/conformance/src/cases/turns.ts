@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import {
   type BeginInput,
   type CommitBatch,
@@ -18,7 +19,6 @@ import {
   SCHEMA_VERSION,
   type StorageTx,
 } from '@molstar/ai-harness';
-import { describe, expect, it } from '@jest/globals';
 import { difference, totalWrites } from '../meter.js';
 import { type ConformanceFixture, createSession, type Session } from '../session.js';
 import { settle } from '../testing/clock.js';

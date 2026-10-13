@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it, test } from 'vitest';
 import { SortedRanges } from '../sorted-ranges.js';
 import { OrderedSet } from '../ordered-set.js';
 import { SortedArray } from '../sorted-array.js';

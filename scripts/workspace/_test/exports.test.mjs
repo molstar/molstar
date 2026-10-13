@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, writeFile, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { test } from 'node:test';
+import { test } from 'vitest';
 import { pathToFileURL } from 'node:url';
 import { compactExports, expandExports, resolveExport } from '../exports.mjs';
 

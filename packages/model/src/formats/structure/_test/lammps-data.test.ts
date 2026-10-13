@@ -4,7 +4,8 @@
  * @author Himanshu Raj <himanshuraj6771@gmail.com>
  */
 
-import { parseLammpsData } from '../lammps/data/parser.js';
+import { describe, expect, it } from 'vitest';
+import { parseLammpsData } from '@molstar/io/reader/lammps/data/parser';
 import { trajectoryFromLammpsData } from '@molstar/model/formats/structure/lammps-data';
 
 async function parse(data: string) {

@@ -4,6 +4,7 @@
  * @author Aniruddha Adak <aniruddhaadak80@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import {
   ArrayEncoder,
   ArrayEncoding as E,

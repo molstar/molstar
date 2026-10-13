@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { createMemoryStorage } from '@molstar/ai-components';
 import type { Decisions } from '@molstar/ai-harness';
 import { AgentSession, createDrive, DENIED, type DriveHost, extendBudget, plainFailure, turnBudget } from '../index.js';

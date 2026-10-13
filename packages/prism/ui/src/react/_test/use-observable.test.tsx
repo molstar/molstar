@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /** @jsxImportSource react */
 
 /**
@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { BehaviorSubject, config, map, Observable, of, Subject } from 'rxjs';
@@ -36,7 +37,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe('useObservable', () => {
@@ -61,7 +62,7 @@ describe('useObservable', () => {
   it('uses defaults only to seed a source, resets on replacement, and releases replaced subscriptions', async () => {
     const first = new Subject<number>();
     const second = new Subject<number>();
-    const releases = jest.fn();
+    const releases = vi.fn();
     const source = new Observable<number>((subscriber) => {
       const subscription = first.subscribe(subscriber);
       return () => {
@@ -124,7 +125,7 @@ describe('useObservable', () => {
         </>,
       );
     const previousErrorHandler = config.onUnhandledError;
-    const handleError = jest.fn();
+    const handleError = vi.fn();
     config.onUnhandledError = handleError;
     try {
       await act(async () => render());
@@ -156,8 +157,8 @@ describe('useObservable', () => {
   });
 
   it('handles synchronous emissions and completion under Strict Mode without leaking subscriptions', async () => {
-    const started = jest.fn();
-    const released = jest.fn();
+    const started = vi.fn();
+    const released = vi.fn();
     const source = new Observable<number>((subscriber) => {
       started();
       subscriber.next(3);
@@ -190,7 +191,7 @@ describe('useObservable', () => {
 describe('useObservableProp', () => {
   it('skips current-value replay before selection even when comparison always reports a change', async () => {
     const source = new BehaviorSubject(1);
-    const selector = jest.fn((value: number) => ({ value }));
+    const selector = vi.fn((value: number) => ({ value }));
     let renders = 0;
     function Probe() {
       renders += 1;
@@ -209,7 +210,7 @@ describe('useObservableProp', () => {
 
   it('does not select absent input, but does select defaults and emitted undefined', async () => {
     const source = new Subject<number | undefined>();
-    const selector = jest.fn((value: number | undefined) => (value === undefined ? 'unavailable' : String(value)));
+    const selector = vi.fn((value: number | undefined) => (value === undefined ? 'unavailable' : String(value)));
     function Probe({ seed }: { seed: boolean }) {
       return <span>{useObservableProp(source, selector, seed ? { defaultValue: 1 } : undefined)}</span>;
     }
@@ -232,7 +233,7 @@ describe('useObservableProp', () => {
 
   it('retains selection and subscription across inline selector and comparator identities', async () => {
     const source = new BehaviorSubject({ hot: 0, label: 'one' });
-    const subscribe = jest.spyOn(source, 'subscribe');
+    const subscribe = vi.spyOn(source, 'subscribe');
     const selections: Array<{ label: string }> = [];
     function Probe() {
       const selection = useObservableProp(source, (value) => ({ label: value.label }), {
@@ -254,7 +255,7 @@ describe('useObservableProp', () => {
 
   it('uses current selector and comparator refs on emissions without resubscribing', async () => {
     const changes = new Subject<{ left: number; right: number }>();
-    const started = jest.fn();
+    const started = vi.fn();
     const source = new Observable<{ left: number; right: number }>((subscriber) => {
       started();
       return changes.subscribe(subscriber);
@@ -344,7 +345,7 @@ describe('an unstable source', () => {
   });
 
   it('a new source on renders in a row warns once', async () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const base = new BehaviorSubject(5);
     function Probe({ n }: { n: number }) {
       return <span>{useObservable(base.pipe(map((x) => x * 2 + n)), { defaultValue: 0 })}</span>;
@@ -354,7 +355,7 @@ describe('an unstable source', () => {
   });
 
   it('a source that changes once does not warn', async () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const a = observableState(1);
     const b = observableState(2);
     function Probe({ which }: { which: 'a' | 'b' }) {

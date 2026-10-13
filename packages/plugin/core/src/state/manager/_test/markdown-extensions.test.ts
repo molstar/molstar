@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi, type Mock } from 'vitest';
 import type { PluginContext } from '@molstar/plugin/context';
 import { MarkdownExtensionManager, type MarkdownExtension } from '../markdown-extensions.js';
 import { BuiltInMarkdownExtension } from '../../markdown/catalog.js';
@@ -12,8 +13,8 @@ function create() {
   return new MarkdownExtensionManager({} as unknown as PluginContext);
 }
 
-function ext(name: string, result?: string): MarkdownExtension & { execute: jest.Mock } {
-  return { name, execute: jest.fn(), reactRenderFn: () => result };
+function ext(name: string, result?: string): MarkdownExtension & { execute: Mock } {
+  return { name, execute: vi.fn(), reactRenderFn: () => result };
 }
 
 describe('MarkdownExtensionManager extensions', () => {

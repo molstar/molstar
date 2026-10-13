@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Subject } from 'rxjs';
 import { type CanvasBackgroundProps, canvasTheme, canvasThemeOf, parseColor, themeForColor } from '../canvas-theme.js';
 

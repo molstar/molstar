@@ -16,6 +16,7 @@ tsconfig.commonjs.tsbuildinfo
 .DS_Store
 tmp/
 coverage/
+.vitest/
 
 dev.pem
 dev-key.pem

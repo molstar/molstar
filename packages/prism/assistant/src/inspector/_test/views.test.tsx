@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /** @jsxImportSource @molstar/prism-ui/dom */
 
 /**
@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterEach, describe, expect, it } from 'vitest';
 import { render } from '@molstar/prism-ui/dom/render';
 import { mockInspector } from '../../testing/mock-inspector.js';
 import { findLimit, type InspectorModel } from '../model.js';

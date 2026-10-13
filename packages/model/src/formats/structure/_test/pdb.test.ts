@@ -6,6 +6,7 @@
  * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { TokenBuilder, Tokenizer } from '@molstar/io/reader/common/text/tokenizer';
 import { guessElementSymbolTokens } from '../util.js';
 import { pdbToMmCif } from '../pdb/to-cif.js';

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { MolScriptBuilder as B } from '../builder.js';
 import { Expression } from '../expression.js';
 import { CustomPropSymbol } from '../symbol.js';

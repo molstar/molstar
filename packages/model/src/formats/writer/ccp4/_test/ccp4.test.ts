@@ -4,6 +4,7 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Mat4, Tensor } from '@molstar/core/math/linear-algebra';
 import { volumeFromCcp4 } from '@molstar/model/formats/volume/ccp4';
 import { Grid } from '@molstar/model/model/volume';

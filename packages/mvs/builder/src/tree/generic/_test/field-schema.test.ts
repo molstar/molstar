@@ -4,6 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { RequiredField, fieldValidationIssues, float, int, literal, nullable, str, union } from '../field-schema.js';
 
 describe('fieldValidationIssues', () => {

@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /** @jsxImportSource react */
 
 /**
@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { observableState } from '../../reactive/observable-state.js';

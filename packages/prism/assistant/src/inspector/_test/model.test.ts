@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { firstValueFrom } from 'rxjs';
 import { mockInspector } from '../../testing/mock-inspector.js';
 import { findLimit } from '../model.js';

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { StringBuilder as SB } from '../string-builder.js';
 
 describe('string-builder', () => {

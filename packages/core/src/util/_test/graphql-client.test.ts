@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { RuntimeContext } from '@molstar/core/task';
 import { Asset, AssetManager } from '../assets.js';
 import { ajaxGet } from '../data-source.js';
@@ -13,9 +14,9 @@ import { GraphQLClient } from '../graphql-client.js';
 describe('graphql transport', () => {
   it('adds JSON headers to GraphQL requests', async () => {
     const assetManager = new AssetManager();
-    const dispose = jest.fn();
+    const dispose = vi.fn();
 
-    const resolveSpy = jest.spyOn(assetManager, 'resolve').mockImplementation((asset, type) => {
+    const resolveSpy = vi.spyOn(assetManager, 'resolve').mockImplementation((asset, type) => {
       expect(type).toBe('json');
       expect(Asset.isUrl(asset)).toBe(true);
       if (!Asset.isUrl(asset)) throw new Error('expected URL asset');
@@ -47,7 +48,7 @@ describe('graphql transport', () => {
   });
 
   it('preserves POST body and headers in Node.js HTTP requests', async () => {
-    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       status: 200,
       bytes: async () => new TextEncoder().encode(JSON.stringify({ ok: true })),
     } as any);

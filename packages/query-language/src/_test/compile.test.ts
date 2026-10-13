@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { compileScript } from '../compile.js';
 import { expressionValidationIssues } from '../language/validation.js';
 import { examples as pymol } from '../transpilers/pymol/examples.js';

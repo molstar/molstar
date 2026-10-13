@@ -44,7 +44,7 @@
   "dependencies": {
     "@molstar/ai-agent": "workspace:*",
     "@molstar/ai-harness": "workspace:*",
-    "@jest/globals": "catalog:",
+    "vitest": "catalog:",
     "fast-check": "catalog:",
     "tslib": "catalog:",
     "@molstar/ai-fibers": "workspace:*"

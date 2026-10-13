@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /** @jsxImportSource @molstar/prism-ui/dom */
 
 /**
@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterEach, describe, expect, it } from 'vitest';
 import { mockScene } from '../../../testing/scene.js';
 import { render } from '@molstar/prism-ui/dom/render';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';

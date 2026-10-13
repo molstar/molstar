@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { expect, it, vi } from 'vitest';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { VideoControls } from '../controls.js';
@@ -54,7 +55,7 @@ function fixture(getParams: VideoRendererBackend['getParams'], overrides: Partia
 it('ignores stale asynchronous schema results', async () => {
   const old = deferred<PD.Params>();
   const current = deferred<PD.Params>();
-  const getParams = jest.fn().mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
+  const getParams = vi.fn().mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
   const controls = fixture(getParams);
   controls.setParams({ fps: 60, bitrate: 12 });
   expect(controls.behaviors.encoder.value.canApply).toBe(false);
@@ -90,7 +91,7 @@ it('preserves valid values and replaces unavailable codec settings with new defa
 it('does not publish pending results after disposal', async () => {
   const pending = deferred<PD.Params>();
   const controls = fixture(() => pending.promise);
-  const next = jest.spyOn(controls.behaviors.paramsSchema, 'next');
+  const next = vi.spyOn(controls.behaviors.paramsSchema, 'next');
   controls.dispose();
   pending.resolve({ bitrate: PD.Numeric(8) });
   await flush();
@@ -98,7 +99,7 @@ it('does not publish pending results after disposal', async () => {
 });
 
 it('validates ordinary edits without rediscovery, but regenerates for FPS, format and resolution', async () => {
-  const getParams = jest.fn(async () => ({
+  const getParams = vi.fn(async () => ({
     container: PD.Select('mp4', [
       ['mp4', 'MP4'],
       ['webm', 'WebM'],
@@ -108,7 +109,7 @@ it('validates ordinary edits without rediscovery, but regenerates for FPS, forma
       ['low', 'Low'],
     ]),
   }));
-  const validate = jest.fn(async () => undefined);
+  const validate = vi.fn(async () => undefined);
   const controls = fixture(getParams, { validate });
   await flush();
   controls.setParams({ ...controls.behaviors.params.value, quality: 'low' });
@@ -132,12 +133,12 @@ it('validates ordinary edits without rediscovery, but regenerates for FPS, forma
 it('ignores stale validation results when the schema is reused', async () => {
   const old = deferred<string | undefined>();
   const current = deferred<string | undefined>();
-  const validate = jest
+  const validate = vi
     .fn()
     .mockResolvedValueOnce(undefined)
     .mockReturnValueOnce(old.promise)
     .mockReturnValueOnce(current.promise);
-  const getParams = jest.fn(async () => ({ bitrate: PD.Numeric(8) }));
+  const getParams = vi.fn(async () => ({ bitrate: PD.Numeric(8) }));
   const controls = fixture(getParams, { validate });
   await flush();
   controls.setParams({ fps: 30, bitrate: 9 });
@@ -154,7 +155,7 @@ it('ignores stale validation results when the schema is reused', async () => {
 
 it('exposes PD presets for a backend without codec/quantization parameter names', async () => {
   const presets = [[{ fps: 15, custom: 2 }, 'Preview']] as [Record<string, any>, string][];
-  const getPresets = jest.fn(() => presets);
+  const getPresets = vi.fn(() => presets);
   const controls = fixture(async () => ({ custom: PD.Numeric(1) }), { getPresets });
   await flush();
   expect(controls.videoParams.presets).toBe(presets);

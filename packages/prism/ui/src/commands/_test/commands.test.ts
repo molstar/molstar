@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { observableState } from '../../reactive/observable-state.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { formFields } from '../../forms/flat-fields.js';
@@ -52,7 +53,7 @@ const REPRS = ['cartoon', 'sticks', 'spacefill'].map((r) => ({ value: r, label: 
 
 function setup(options: { assistant?: CommandAssistant<Ctx> } = {}) {
   const context = observableState<Ctx>({ selection: ['A:315'], working: false, log: [] });
-  const preview = { set: jest.fn(), clear: jest.fn() };
+  const preview = { set: vi.fn(), clear: vi.fn() };
   const show: CommandDefinition<Ctx> = {
     id: 'look.show',
     title: 'Show as…',
@@ -130,7 +131,7 @@ describe('CommandManager.query', () => {
     const { manager } = setup();
     const result = { message: 'focused' };
     manager.register([{ id: 'view.focus', title: 'Focus', category: 'View', run: () => result }]);
-    const outcomes = jest.fn();
+    const outcomes = vi.fn();
     const subscription = manager.outcomes.subscribe((outcome) => {
       if (outcome.kind === 'done') outcomes(outcome);
     });
@@ -155,7 +156,7 @@ describe('CommandManager.query', () => {
         run: () => ({}),
       },
     ]);
-    const errors = jest.fn();
+    const errors = vi.fn();
     const subscription = manager.outcomes.subscribe((outcome) => {
       if (outcome.kind === 'blocked') errors(outcome);
     });
@@ -261,7 +262,7 @@ describe('CommandInvocation', () => {
   });
 
   it("checks typed text with the field's format, and offers the assistant only for words", () => {
-    const assistant: CommandAssistant<Ctx> = { propose: jest.fn() };
+    const assistant: CommandAssistant<Ctx> = { propose: vi.fn() };
     const { manager } = setup({ assistant });
     const r = manager.open('view.select');
     if (r.kind !== 'form') throw new Error('expected a form');
@@ -279,7 +280,7 @@ describe('CommandInvocation', () => {
 
   it("takes an assistant's proposal as proposed values; nothing runs until confirmed", async () => {
     const assistant: CommandAssistant<Ctx> = {
-      propose: jest.fn(async () => ({
+      propose: vi.fn(async () => ({
         kind: 'values' as const,
         values: { residues: 'A:248-256,A:315' },
         note: 'P-loop and T315',

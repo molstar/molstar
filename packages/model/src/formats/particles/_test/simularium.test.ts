@@ -4,7 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { parseSimularium } from '../simularium/parser.js';
+import { expect, test } from 'vitest';
+import { parseSimularium } from '@molstar/io/reader/simularium/parser';
 import {
   createParticleListFromSimularium,
   createSimulariumParticleTrajectory,

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { beforeEach, expect, it } from 'vitest';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { VideoControls } from '../controls.js';
 import { CustomVideoEncoder, registerEncoder, type VideoCodec } from 'mediabunny';

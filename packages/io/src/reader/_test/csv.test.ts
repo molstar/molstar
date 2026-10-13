@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { parseCsv } from '../csv/parser.js';
 
 const csvStringBasic = `StrCol,IntCol,FloatCol

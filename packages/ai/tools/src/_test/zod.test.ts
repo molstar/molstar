@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { shapeInput } from '../index.js';
 import { verbatim, zodInput } from '../zod.js';

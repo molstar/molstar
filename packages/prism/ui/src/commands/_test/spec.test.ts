@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { observableState } from '../../reactive/observable-state.js';
 import { CommandManager } from '../manager.js';
@@ -28,7 +29,7 @@ function make(
   options: { formats?: CommandFormats<Ctx>; previewDeps?: (c: Ctx) => readonly unknown[] } = {},
 ) {
   const context = observableState<Ctx>({ current: 's1', selection: ['A:1'], working: false, alignments: 0, log: [] });
-  const preview = { set: jest.fn(), clear: jest.fn() };
+  const preview = { set: vi.fn(), clear: vi.fn() };
   const manager = new CommandManager<Ctx>({
     context: context.asReadonly,
     formats: options.formats ?? none,

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import type { FiberAppendDeltaResult, FiberClock, FiberCommandResult, FiberLimits } from '@molstar/ai-fibers';
 import {
   type DeterministicFiberFixture,

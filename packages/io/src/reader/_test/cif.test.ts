@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it, test } from 'vitest';
 import * as Data from '../cif/data-model.js';
 import * as Schema from '../cif/schema.js';
 import { Column } from '@molstar/core/data/db';

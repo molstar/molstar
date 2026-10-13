@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { createDisposableGroup } from '../disposable-group.js';
 import { sameShallow } from '../same-shallow.js';
 import { shallowEqual } from '../shallow-equal.js';

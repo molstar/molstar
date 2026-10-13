@@ -2,6 +2,7 @@
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  */
 
+import { describe, expect, it } from 'vitest';
 import { decodeLongPath, decodePax, encodePax, encodeTarHeader } from '../tar';
 
 describe('model server tar helpers', () => {

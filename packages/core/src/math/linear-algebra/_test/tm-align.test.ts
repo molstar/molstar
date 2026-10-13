@@ -4,6 +4,7 @@
  * @author Diego del Alamo <diego.delalamo@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { TMAlign } from '../3d/tm-align.js';
 import { Vec3 } from '../3d/vec3.js';
 

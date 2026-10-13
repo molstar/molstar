@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /** @jsxImportSource @molstar/prism-ui/dom */
 
 /**
@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { render } from '../../../dom/render.js';
 import { ParamsFormModel } from '../../../forms/params-form.js';

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { Message, ModelConfiguration } from '@molstar/ai-agent';
 import { createMemoryStorage } from '@molstar/ai-components';
 import { createSession, type Session } from '@molstar/ai-conformance';

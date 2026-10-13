@@ -4,6 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
 

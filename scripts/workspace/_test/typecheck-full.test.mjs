@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { test } from 'node:test';
+import { test } from 'vitest';
 
 test('publish type check rechecks imported declarations despite normal build caches', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'molstar-full-check-'));

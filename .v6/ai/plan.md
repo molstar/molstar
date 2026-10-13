@@ -25,8 +25,8 @@ Done:
 - **The code**, logic unchanged: relative imports to `.js`, the header, the repository's formatting and lint, `lib`
   ES2024, Vitest to Jest (the suite's `expect(value, message)` became `expectWith`), the old spec's citations pointed at
   [harness.md](harness.md)'s sections.
-- **The tests run apart** (`pnpm jest:ai`, `packages/ai/jest.config.cjs`): the AI SDK is ESM only and the repository's
-  Jest is CommonJS, so that config transforms it. It goes when Jest moves to ESM (`.v6/plans/checklist.md`).
+- **The tests run with the repository's** (`pnpm test:unit`, one Vitest run, ESM throughout). They ran apart while the
+  repository was on Jest (CommonJS, the AI SDK is ESM only); that config is gone.
 - **The docs**: this folder, short; the spec, its decisions log and the rewrite's plan stay in Stories Untold's archive.
 
 ## 2. Next
@@ -63,7 +63,7 @@ Later:
 
 - **Evals**: `@molstar/ai-evals`, the common part of Stories' evals (`evals/`, `apps/eval`: scenarios run against real
   models, metering, baselines, the trace of each run), with each mode's scenarios in its `agent` folder.
-- **Vitest** for the whole repository, ESM throughout (`.v6/plans/checklist.md`), then `jest:ai` folds in.
+- **Vitest** for the whole repository, ESM throughout (`.v6/plans/checklist.md`); done, `jest:ai` folded in.
 - **The suite waits on conditions.** Some cases wait a fixed number of event-loop rounds for work that includes
   WebCrypto hashing; on fake IndexedDB under load that loses the race now and then (it did under Vitest too), so that
   file retries its cases. Waiting on what each case needs (as S3 now waits for its tool to start) removes the retries.

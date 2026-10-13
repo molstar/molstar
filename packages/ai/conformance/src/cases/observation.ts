@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { ToolFrame } from '@molstar/ai-harness';
-import { describe, expect, it } from '@jest/globals';
 import { type ConformanceFixture, createSession } from '../session.js';
 
 /** O1 (Observation). */

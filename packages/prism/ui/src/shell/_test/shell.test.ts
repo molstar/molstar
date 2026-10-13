@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { ViewRenderer } from '../../dom/view.js';
 import { ShellModel, type ShellPage, type ShellTab, type ShellViewContext } from '../shell.js';
 

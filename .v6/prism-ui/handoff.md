@@ -77,8 +77,7 @@ items stay where they are: [../ai/plan.md](../ai/plan.md) §2 and [plan.md](plan
   - `npx biome format .`
   - `npx prettier --check "**/*.{md,mdx,yaml,yml,scss}"`
   - `npx tsc -b`
-  - `pnpm jest` (excludes `packages/ai`)
-  - `pnpm jest:ai`, or `pnpm jest:ai packages/ai/<pkg>` for one package
+  - `pnpm test:unit`, or `pnpm test:unit packages/<path>` for one package
   - `node scripts/workspace/check.mjs`
   - `pnpm -C packages/prism/<pkg> styles:check`
   - `pnpm -C packages/prism/<pkg> typecheck:storybook`
@@ -88,8 +87,8 @@ items stay where they are: [../ai/plan.md](../ai/plan.md) §2 and [plan.md](plan
   `exec storybook dev -p 6016`, then revert `.claude/launch.json`. Restart Storybook after changing
   `storybook/packages.ts` or `storybook/.storybook/main.ts`.
 - **Gotchas**:
-  - Every Prism `.tsx` file needs `/** @jsxImportSource @molstar/prism-ui/dom */` first. Without it, Jest compiles it as
-    React, and the runtime prints "Cannot render".
+  - Every Prism `.tsx` file needs `/** @jsxImportSource @molstar/prism-ui/dom */` first. Without it, the test transform
+    compiles it as React, and the runtime prints "Cannot render".
   - The Browser pane pauses animations while it is hidden, so measure with timers, not animation frames.
   - The fake-IndexedDB conformance file retries its cases, because fixed-round waits can lose to WebCrypto under load
     ([../ai/plan.md](../ai/plan.md), "The suite waits on conditions").

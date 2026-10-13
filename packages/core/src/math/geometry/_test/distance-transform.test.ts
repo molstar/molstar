@@ -4,6 +4,7 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { squaredDistanceTransform3D } from '../distance-transform.js';
 
 function bruteForce(inside: Uint8Array, nx: number, ny: number, nz: number) {

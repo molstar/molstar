@@ -6,6 +6,7 @@
  * @author Koya Sakuma <koya.sakuma.work@gmail.com>
  */
 
+import { expect, it } from 'vitest';
 import { Transpiler } from '../transpiler.js';
 import { KeywordDict, PropertyDict, OperatorList } from '../types.js';
 

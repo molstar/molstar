@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { HarnessReader } from '@molstar/ai-harness';
 import { declareTools, toolDefinition, user } from '@molstar/ai-conformance/testing';
 import { formatUsage, type ModelStepView, readTrace, type ToolStepView, type TurnView } from '../index.js';

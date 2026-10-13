@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Expression } from '../expression.js';
 
 describe('MolScript expression shape', () => {

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { type ConformanceFixture, createSession, type Session } from '../session.js';
 import { SimulatedClock, settle } from '../testing/clock.js';
 import { lastStep, stepEvents, with_ } from './helpers.js';

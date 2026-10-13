@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { test } from 'vitest';
 import { exclusionErrors, findExcluded, globToRegExp, loadExclusions } from '../slim-exclusions.mjs';
 
 const matches = (glob, file) => globToRegExp(glob).test(file);

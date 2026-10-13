@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { LaunchReport, Runner } from '@molstar/ai-harness';
 import { createSession, type Session } from '@molstar/ai-conformance';
 import { settle } from '@molstar/ai-conformance/testing';

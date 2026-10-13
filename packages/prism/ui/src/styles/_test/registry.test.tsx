@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /** @jsxImportSource @molstar/prism-ui/dom */
 
 /**
@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { classes } from '../../components/button/_generated/button.module.css.js';
 import { defineElements, MspElement } from '../../dom/element.js';
 import { defineStyles, styleText } from '../registry.js';

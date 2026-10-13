@@ -4,13 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { PluginContext } from '@molstar/plugin/context';
 import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { loadTrajectory } from '@molstar/plugin-extension/loaders';
 
-const pdb = fs.readFileSync(path.resolve(__dirname, '../../../../smoke/fixtures/tiny.pdb'), 'utf8');
+const pdb = fs.readFileSync(path.resolve(import.meta.dirname, '../../../../smoke/fixtures/tiny.pdb'), 'utf8');
 
 function lammpstrj(frames: number) {
   const out: string[] = [];

@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { digest, hashMessage, type Json, type Message } from '@molstar/ai-agent';
 import { type CallRecord, type CommitBatch, MAIN, SCHEMA_VERSION, type Usage } from '@molstar/ai-harness';
-import { describe, expect, it } from '@jest/globals';
 import { type ConformanceFixture, createSession, type Session, type SessionSetup } from '../session.js';
 import { settle } from '../testing/clock.js';
 import { assistant, system, textOf, user } from '../testing/messages.js';

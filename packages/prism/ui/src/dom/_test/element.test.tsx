@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /** @jsxImportSource @molstar/prism-ui/dom */
 
 /**
@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterEach, describe, expect, it } from 'vitest';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
 import { ReactiveModel } from '../../reactive/reactive-model.js';
 import { defineElements, MspElement } from '../element.js';

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { StateTransformer } from '@molstar/core/state';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginState } from '@molstar/plugin/state';
@@ -30,8 +31,8 @@ function stateSnapshot(...entries: PluginState.Snapshot[]): PluginStateSnapshotM
 
 describe('PluginStateSnapshotManager.setStateSnapshot', () => {
   function create() {
-    const setSnapshot = jest.fn(async (_snapshot: PluginState.Snapshot) => {});
-    const plugin = { state: { setSnapshot }, managers: { asset: { delete: jest.fn() } } } as unknown as PluginContext;
+    const setSnapshot = vi.fn(async (_snapshot: PluginState.Snapshot) => {});
+    const plugin = { state: { setSnapshot }, managers: { asset: { delete: vi.fn() } } } as unknown as PluginContext;
     return { manager: new PluginStateSnapshotManager(plugin), setSnapshot };
   }
 
@@ -50,7 +51,7 @@ describe('PluginStateSnapshotManager.setStateSnapshot', () => {
     await manager.setStateSnapshot(stateSnapshot(snapshot('old-1', Valid), snapshot('old-2', Valid)));
     setSnapshot.mockClear();
     const before = manager.state;
-    const changed = jest.fn();
+    const changed = vi.fn();
     manager.events.changed.subscribe(changed);
 
     const next = stateSnapshot(snapshot('new-1', Valid), snapshot('new-2', 'test.missing'));

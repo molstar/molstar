@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /** @jsxImportSource @molstar/prism-ui/dom */
 
 /**
@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { render } from '@molstar/prism-ui/dom/render';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { type CanvasMode, ModeSwitch, type ModeSwitchProps, PickLevel } from '../mode-switch.js';

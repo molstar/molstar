@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { ModelError, type ReasoningParameters } from '@molstar/ai-agent';
 import { createAnthropicModelAdapter } from '../index.js';
 import {

@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { CustomProperties } from '@molstar/model/model/custom-property';
 import { ParticleList } from '@molstar/model/model/particles/particle-list';
 import { Asset } from '@molstar/core/util/assets';

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { OrderedSet } from '../ordered-set.js';
 import { Interval } from '../interval.js';
 import { Segmentation } from '../segmentation.js';

@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { parseObj } from '../obj/parser.js';
 import { parseMtl } from '../obj/mtl-parser.js';
 import { Color } from '@molstar/core/util/color';

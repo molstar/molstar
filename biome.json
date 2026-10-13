@@ -70,7 +70,7 @@
   },
   "overrides": [
     {
-      "includes": ["**/*.stories.ts", "**/*.stories.tsx", "**/.storybook/**"],
+      "includes": ["**/*.stories.ts", "**/*.stories.tsx", "**/.storybook/**", "vitest.config.ts"],
       "linter": {
         "rules": {
           "style": {

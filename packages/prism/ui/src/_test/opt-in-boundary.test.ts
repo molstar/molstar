@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -14,7 +15,7 @@ import * as path from 'node:path';
 // `@molstar/prism-stories`, design/modes.md), and the agent harness (`@molstar/ai-*`, .v6/ai). prism-ui
 // knows them only through its ports (tabs, modes, the command menu's assistant, the canvas's agent slot), so neither
 // its manifest nor any of its files (stories and tests included) may name them.
-const root = path.resolve(__dirname, '../..');
+const root = path.resolve(import.meta.dirname, '../..');
 const OptIn = [
   '@molstar/prism-assistant',
   '@molstar/prism-stories',
@@ -37,7 +38,7 @@ function* sources(dir: string): Generator<string> {
     if (entry.isDirectory()) {
       if (entry.name === 'node_modules' || entry.name === 'lib') continue;
       yield* sources(full);
-    } else if (/\.(tsx?|mjs|mdx)$/.test(entry.name) && full !== __filename) yield full;
+    } else if (/\.(tsx?|mjs|mdx)$/.test(entry.name) && full !== import.meta.filename) yield full;
   }
 }
 

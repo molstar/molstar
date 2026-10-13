@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { Message, ModelAdapter } from '@molstar/ai-agent';
 import { type ModelStep, scriptedModel } from '@molstar/ai-conformance/testing';
 import type { HeadEdit } from '@molstar/ai-harness';

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { defineTool, directRun, render } from '../index.js';
 import { call, toy, tool } from './helpers.js';
 

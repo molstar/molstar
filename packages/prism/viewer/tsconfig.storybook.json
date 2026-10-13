@@ -6,7 +6,7 @@
     "declarationMap": false,
     "noEmit": true,
     "rootDir": ".",
-    "types": ["node", "jest"],
+    "types": ["node"],
     "jsxImportSource": "@molstar/prism-ui/dom"
   },
   "include": ["src/**/*"]

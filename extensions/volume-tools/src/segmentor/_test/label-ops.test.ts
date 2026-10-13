@@ -4,6 +4,7 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Camera } from '@molstar/graphics/canvas3d/camera';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
@@ -11,12 +12,7 @@ import { computeCandidates } from '@molstar/volume-tools-extension/candidates';
 import { assignPolygons, assignRemainder, countUnassigned, countVoxels } from '../internal/label-ops.js';
 import { BodyLabels } from '../labels.js';
 import { ViewMask } from '../types.js';
-import {
-  CanonicalOrder,
-  SwappedOrder,
-  createTestVolume,
-  offsetOf,
-} from '@molstar/volume-tools-extension/_test/test-volume';
+import { CanonicalOrder, SwappedOrder, createTestVolume, offsetOf } from '../../_test/test-volume.js';
 
 /** Orthographic view down -z onto an 8^3 grid, canvas and viewport 100 x 100. */
 function viewMask(polygon: [number, number][], inverted = false): ViewMask {

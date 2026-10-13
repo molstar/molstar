@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { RepresentationRegistry, type RepresentationProvider } from '../representation.js';
 import type { Representation } from '../representation.js';
 

@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Table } from '@molstar/core/data/db';
 import { getMissingResidues } from '../properties.js';
 import { BasicSchema, createBasic } from '../schema.js';

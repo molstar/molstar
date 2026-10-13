@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { expect, it, vi } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { RuntimeContext } from '@molstar/core/task';
 import { encodeVideoAnimation } from '../encoder.js';
@@ -12,7 +13,7 @@ import { H264WasmBackend } from '../backends/h264-wasm.js';
 
 function fixture() {
   const frames: { timestamp: number; duration: number }[] = [];
-  const dispose = jest.fn();
+  const dispose = vi.fn();
   const backend: VideoRendererBackend = {
     name: 'Test',
     dimensionAlignment: 1,
@@ -29,13 +30,13 @@ function fixture() {
   const plugin = {
     animationLoop: {
       isAnimating: true,
-      stop: jest.fn(),
-      start: jest.fn(),
-      resetTime: jest.fn(),
-      tick: jest.fn(async () => {}),
+      stop: vi.fn(),
+      start: vi.fn(),
+      resetTime: vi.fn(),
+      tick: vi.fn(async () => {}),
     },
-    managers: { animation: { play: jest.fn(async () => {}), stop: jest.fn(async () => {}) } },
-    canvas3d: { props: { renderer: { backgroundColor: 0 }, transparentBackground: true }, setProps: jest.fn() },
+    managers: { animation: { play: vi.fn(async () => {}), stop: vi.fn(async () => {}) } },
+    canvas3d: { props: { renderer: { backgroundColor: 0 }, transparentBackground: true }, setProps: vi.fn() },
   };
   const params = {
     animation: { definition: {} as any, params: {}, customDurationMs: 1250 },
@@ -86,7 +87,7 @@ it('releases the backend and restores playback and background on failure/abort',
 
 it('rejects invalid FPS before creating a backend', async () => {
   const f = fixture();
-  f.params.backend.create = jest.fn(f.params.backend.create);
+  f.params.backend.create = vi.fn(f.params.backend.create);
   await expect(
     encodeVideoAnimation(f.plugin as any, RuntimeContext.Synchronous, { ...f.params, fps: 0 }),
   ).rejects.toThrow('Frame rate');

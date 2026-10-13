@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { Message } from '@molstar/ai-agent';
 import {
   type CallRecord,
@@ -17,7 +18,6 @@ import {
   type RunResult,
   type RunSpec,
 } from '@molstar/ai-harness';
-import { describe, expect, it } from '@jest/globals';
 import { type ConformanceFixture, createSession, type Session } from '../session.js';
 import { settle } from '../testing/clock.js';
 import { textOf, toolDefinition, user } from '../testing/messages.js';

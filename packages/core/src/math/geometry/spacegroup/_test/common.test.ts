@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Mat4, Vec3 } from '../../../linear-algebra.js';
 import {
   AxisPermutations,
