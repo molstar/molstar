@@ -1,10 +1,11 @@
 # Prism UI
 
 A new Mol* app and UI built on a view-model layer (rxjs, from any-ui), a VS Code–style command system, a dynamic shell,
-and web components authored in TSX. Its packages live in `packages/prism/` (`ui`, `agent`; `core` with the context) next
-to the classic `@molstar/plugin-ui`, which stays as it is; `apps/prism` will be the base Mol\* viewer plus Stories
-Untold's features for building narratives. Status: **mocked in Storybook**; the designs describe what the mocks settled.
-Next: the spec review ([plan.md](plan.md)). Nothing is wired to a real plugin yet.
+and web components authored in TSX. Its packages live in `packages/prism/` (`ui`, `viewer`, `stories`, `assistant`;
+`core` with the context, later) next to the classic `@molstar/plugin-ui`, which stays as it is; `apps/prism` will be the
+base Mol\* viewer plus Stories Untold's features for building narratives. Status: **mocked in Storybook**; the designs
+describe what the mocks settled. Nothing is wired to a real plugin yet. **Picking this up? Start with
+[handoff.md](handoff.md)** (where things stand, what is next, how the work is done).
 
 ## Summary
 
