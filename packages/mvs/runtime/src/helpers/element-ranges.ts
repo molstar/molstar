@@ -2,11 +2,11 @@
  * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { SortedArray } from '@molstar/core/data/int';
 import type { ElementIndex } from '@molstar/model/model/structure';
-import { arrayExtend, range } from '@molstar/core/util/array';
 
 /** Represents a collection of disjoint elements ranges in a model (atoms, spheres, or gaussians).
  * The number of ranges is `ElementRanges.count(ranges)`,
@@ -15,6 +15,84 @@ export interface ElementRanges {
   from: ElementIndex[];
   to: ElementIndex[];
 }
+
+/** Growable buffer of element ranges (not necessarily disjoint or sorted when filled via `append`), for reuse across calls.
+ * Unlike `ElementRanges` it keeps an explicit `count` (see `IntBuffer` for why), so only the first `count` entries are valid. */
+export class ElementRangesBuffer {
+  from = new Int32Array(256);
+  to = new Int32Array(256);
+  count = 0;
+
+  clear() {
+    this.count = 0;
+    return this;
+  }
+
+  private ensureCapacity(capacity: number) {
+    if (capacity <= this.from.length) return;
+    const newCapacity = Math.max(capacity, this.from.length * 2);
+    const from = new Int32Array(newCapacity);
+    const to = new Int32Array(newCapacity);
+    from.set(this.from.subarray(0, this.count));
+    to.set(this.to.subarray(0, this.count));
+    this.from = from;
+    this.to = to;
+  }
+
+  /** Same as `ElementRanges.add`: the added range must start after the end of the last range (touching ranges get merged). */
+  add(from: number, to: number) {
+    const n = this.count;
+    if (n > 0) {
+      const lastTo = this.to[n - 1];
+      if (from < lastTo) throw new Error('Overlapping ranges not allowed');
+      if (from === lastTo) {
+        this.to[n - 1] = to;
+        return this;
+      }
+    }
+    this.ensureCapacity(n + 1);
+    this.from[n] = from;
+    this.to[n] = to;
+    this.count = n + 1;
+    return this;
+  }
+
+  /** Append ranges from `other` without any checks or merging (use `ElementRanges.normalize` on the result). */
+  append(other: { from: ArrayLike<number>; to: ArrayLike<number>; count: number } | ElementRanges) {
+    const n = 'count' in other ? other.count : other.from.length;
+    this.ensureCapacity(this.count + n);
+    for (let i = 0; i < n; i++) {
+      this.from[this.count + i] = other.from[i];
+      this.to[this.count + i] = other.to[i];
+    }
+    this.count += n;
+    return this;
+  }
+
+  /** Copy the ranges into a new `ElementRanges`. */
+  toRanges(): ElementRanges {
+    return {
+      from: Array.from(this.from.subarray(0, this.count)) as ElementIndex[],
+      to: Array.from(this.to.subarray(0, this.count)) as ElementIndex[],
+    };
+  }
+
+  /** Free the memory if the capacity grew above `limit` (so one huge call does not pin memory forever). */
+  trim(limit: number) {
+    if (this.from.length > limit) {
+      this.from = new Int32Array(256);
+      this.to = new Int32Array(256);
+      this.count = 0;
+    }
+  }
+}
+
+/** Shared buffers (JS is single-threaded and none of the functions below is reentrant). Never returned to callers. */
+const UnionBag = new ElementRangesBuffer();
+let SweepStarts = new Int32Array(0);
+let SweepEnds = new Int32Array(0);
+/** Buffers larger than this are dropped after use so that one huge call does not pin memory forever. */
+const MaxRetainedCapacity = 1 << 22;
 
 export const ElementRanges = {
   /** Return the number of disjoined ranges in a `ElementRanges` object */
@@ -69,28 +147,53 @@ export const ElementRanges = {
 
   /** Compute the set union of multiple `ElementRanges` objects (as sets of elements) */
   union(ranges: (ElementRanges | undefined)[]): ElementRanges {
-    const concat = ElementRanges.empty();
+    const bag = UnionBag.clear();
     for (const r of ranges) {
-      if (r) {
-        arrayExtend(concat.from, r.from);
-        arrayExtend(concat.to, r.to);
+      if (r) bag.append(r);
+    }
+    const result = ElementRanges.normalize(bag);
+    UnionBag.trim(MaxRetainedCapacity);
+    return result;
+  },
+
+  /** Turn a bag of ranges (in any order, possibly overlapping or touching) into a newly allocated `ElementRanges`
+   * of disjoint ranges sorted by start (touching ranges are merged). `bag` is not modified.
+   *
+   * Instead of sorting ranges (which needs an index array and a comparator), the starts and the ends are sorted
+   * independently as typed arrays (native, allocation-free numeric sort) and swept like interval-open/close events:
+   * a merged range starts when the depth goes 0 -> 1 and ends when it goes 1 -> 0 (at equal coordinates a start is
+   * processed before an end, so that touching ranges merge). */
+  normalize(bag: ElementRangesBuffer): ElementRanges {
+    const n = bag.count;
+    const result = ElementRanges.empty();
+    if (n === 0) return result;
+    if (SweepStarts.length < n) {
+      SweepStarts = new Int32Array(Math.max(1024, 1 << Math.ceil(Math.log2(n))));
+      SweepEnds = new Int32Array(SweepStarts.length);
+    }
+    const starts = SweepStarts.subarray(0, n);
+    const ends = SweepEnds.subarray(0, n);
+    starts.set(bag.from.subarray(0, n));
+    ends.set(bag.to.subarray(0, n));
+    starts.sort();
+    ends.sort();
+    let i = 0;
+    let j = 0;
+    let depth = 0;
+    while (j < n) {
+      if (i < n && starts[i] <= ends[j]) {
+        if (depth === 0) result.from.push(starts[i] as ElementIndex);
+        depth++;
+        i++;
+      } else {
+        depth--;
+        if (depth === 0) result.to.push(ends[j] as ElementIndex);
+        j++;
       }
     }
-    const indices = range(concat.from.length).sort((i, j) => concat.from[i] - concat.from[j]); // sort by start of range
-    const result = ElementRanges.empty();
-    let last = -1;
-    for (const i of indices) {
-      const from = concat.from[i];
-      const to = concat.to[i];
-      if (last >= 0 && from <= result.to[last]) {
-        if (to > result.to[last]) {
-          result.to[last] = to;
-        }
-      } else {
-        result.from.push(from);
-        result.to.push(to);
-        last++;
-      }
+    if (SweepStarts.length > MaxRetainedCapacity) {
+      SweepStarts = new Int32Array(0);
+      SweepEnds = new Int32Array(0);
     }
     return result;
   },

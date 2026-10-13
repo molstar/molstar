@@ -16,8 +16,9 @@ import {
 } from '@molstar/model/model/structure';
 import type { CoarseElements } from '@molstar/model/model/structure/model/properties/coarse';
 import { Expression } from '@molstar/query-language/language/expression';
-import { arrayExtend, filterInPlace, range, sortIfNeeded } from '@molstar/core/util/array';
-import { ElementRanges } from './element-ranges.js';
+import { range, sortIfNeeded } from '@molstar/core/util/array';
+import { ElementRanges, ElementRangesBuffer } from './element-ranges.js';
+import { IntBuffer } from './int-buffer.js';
 import {
   type AtomicIndicesAndSortings,
   type CoarseIndicesAndSortings,
@@ -31,13 +32,47 @@ const EmptyArray: readonly any[] = [];
 
 // ATOMIC SELECTIONS
 
-/** Return atom ranges in `model` which satisfy criteria given by `row` */
+/** Reusable buffers for `getAtomRangesForRowInto`, so that processing many rows does not allocate per row.
+ * (JS is single-threaded and the functions are not reentrant, so one scratch can be shared by callers which never interleave.) */
+export class AtomRangesScratch {
+  /** Result of the last `getAtomRangesForRowInto` call which used this scratch (overwritten by the next call). */
+  readonly ranges = new ElementRangesBuffer();
+  readonly chains = new IntBuffer();
+  readonly residues = new IntBuffer();
+
+  /** Drop buffers which grew very large (so that one huge call does not pin memory forever). */
+  trim(limit = MaxRetainedBufferCapacity) {
+    this.ranges.trim(limit);
+    this.chains.trim(limit);
+    this.residues.trim(limit);
+  }
+}
+
+const MaxRetainedBufferCapacity = 1 << 20;
+const SharedScratch = new AtomRangesScratch();
+const RowsBag = new ElementRangesBuffer();
+const IndexRange = { from: 0, to: 0 };
+
+/** Return atom ranges in `model` which satisfy criteria given by `row` (a new object). */
 export function getAtomRangesForRow(
   row: MVSAnnotationRow,
   model: Model,
   instanceId: string,
   indices: IndicesAndSortings,
 ): ElementRanges | undefined {
+  const r = getAtomRangesForRowInto(row, model, instanceId, indices, SharedScratch);
+  return r?.toRanges();
+}
+
+/** Like `getAtomRangesForRow`, but writes the result into `scratch.ranges` and returns it (no allocation per call).
+ * The returned buffer is only valid until the next call with the same `scratch`; copy it if you need to keep it. */
+export function getAtomRangesForRowInto(
+  row: MVSAnnotationRow,
+  model: Model,
+  instanceId: string,
+  indices: IndicesAndSortings,
+  scratch: AtomRangesScratch,
+): ElementRangesBuffer | undefined {
   if (!indices.atomic) return undefined;
   if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
 
@@ -46,60 +81,77 @@ export function getAtomRangesForRow(
   const nAtoms = h.atoms._rowCount;
   if (nAtoms === 0) return undefined;
 
-  const hasAtomIds = isAnyDefined(row.atom_id, row.atom_index);
-  const hasAtomFilter =
-    isAnyDefined(row.label_atom_id, row.auth_atom_id, row.type_symbol) ||
-    (isDefined(row.label_comp_id) && !atomicIndices.residuesByLabelCompIdIsPure) ||
-    (isDefined(row.auth_comp_id) && !atomicIndices.residuesByAuthCompIdIsPure);
-  const hasResidueFilter = isAnyDefined(
-    row.label_seq_id,
-    row.auth_seq_id,
-    row.pdbx_PDB_ins_code,
-    row.beg_label_seq_id,
-    row.end_label_seq_id,
-    row.beg_auth_seq_id,
-    row.end_auth_seq_id,
-    row.label_comp_id,
-    row.auth_comp_id,
-    row.residue_index,
-  );
-  const hasChainFilter = isAnyDefined(row.label_asym_id, row.auth_asym_id, row.label_entity_id);
+  const out = scratch.ranges.clear();
+
+  const hasAtomIds = isDefined(row.atom_id) || isDefined(row.atom_index);
+  const hasLabelAtomId = isDefined(row.label_atom_id);
+  const hasAuthAtomId = isDefined(row.auth_atom_id);
+  const hasTypeSymbol = isDefined(row.type_symbol);
+  const hasLabelCompId = isDefined(row.label_comp_id);
+  const hasAuthCompId = isDefined(row.auth_comp_id);
+  const labelCompIdPerAtom = hasLabelCompId && !atomicIndices.residuesByLabelCompIdIsPure;
+  const authCompIdPerAtom = hasAuthCompId && !atomicIndices.residuesByAuthCompIdIsPure;
+  const hasAtomFilter = hasLabelAtomId || hasAuthAtomId || hasTypeSymbol || labelCompIdPerAtom || authCompIdPerAtom;
+  const hasResidueFilter =
+    isDefined(row.label_seq_id) ||
+    isDefined(row.auth_seq_id) ||
+    isDefined(row.pdbx_PDB_ins_code) ||
+    isDefined(row.beg_label_seq_id) ||
+    isDefined(row.end_label_seq_id) ||
+    isDefined(row.beg_auth_seq_id) ||
+    isDefined(row.end_auth_seq_id) ||
+    hasLabelCompId ||
+    hasAuthCompId ||
+    isDefined(row.residue_index);
+  const hasChainFilter = isDefined(row.label_asym_id) || isDefined(row.auth_asym_id) || isDefined(row.label_entity_id);
 
   if (hasAtomIds) {
     const theAtom = getTheAtomForRow(model, row, atomicIndices);
-    return theAtom !== undefined ? ElementRanges.single(theAtom, (theAtom + 1) as ElementIndex) : undefined;
+    if (theAtom === undefined) return undefined;
+    return out.add(theAtom, theAtom + 1);
   }
 
   if (!hasChainFilter && !hasResidueFilter && !hasAtomFilter) {
-    return ElementRanges.single(0 as ElementIndex, nAtoms as ElementIndex);
+    return out.add(0, nAtoms);
   }
 
-  const qualifyingChains = getQualifyingChains(model, row, atomicIndices);
+  const qualifyingChains = getQualifyingChains(model, row, atomicIndices, scratch.chains);
   if (!hasResidueFilter && !hasAtomFilter) {
     const chainOffsets = h.chainAtomSegments.offsets;
-    const ranges = ElementRanges.empty();
-    for (const iChain of qualifyingChains) {
-      ElementRanges.add(ranges, chainOffsets[iChain], chainOffsets[iChain + 1]);
+    // (`qualifyingChains` is only `undefined` (= all chains) without any chain filter, which was handled above)
+    for (let i = 0, n = qualifyingChains!.length; i < n; i++) {
+      const iChain = qualifyingChains![i];
+      out.add(chainOffsets[iChain], chainOffsets[iChain + 1]);
     }
-    return ranges;
+    return out;
   }
 
-  const qualifyingResidues = getQualifyingResidues(model, row, atomicIndices, qualifyingChains);
+  const qualifyingResidues = getQualifyingResidues(model, row, atomicIndices, qualifyingChains, scratch.residues);
+  const residues = qualifyingResidues.data;
+  const nResidues = qualifyingResidues.n;
+  const residueOffsets = h.residueAtomSegments.offsets;
   if (!hasAtomFilter) {
-    const residueOffsets = h.residueAtomSegments.offsets;
-    const ranges = ElementRanges.empty();
-    for (const iRes of qualifyingResidues) {
-      ElementRanges.add(ranges, residueOffsets[iRes], residueOffsets[iRes + 1]);
+    for (let i = 0; i < nResidues; i++) {
+      const iRes = residues[i];
+      out.add(residueOffsets[iRes], residueOffsets[iRes + 1]);
     }
-    return ranges;
+    return out;
   }
 
-  const qualifyingAtoms = getQualifyingAtoms(model, row, atomicIndices, qualifyingResidues);
-  const ranges = ElementRanges.empty();
-  for (const iAtom of qualifyingAtoms) {
-    ElementRanges.add(ranges, iAtom, (iAtom + 1) as ElementIndex);
+  const { label_atom_id, auth_atom_id, type_symbol, label_comp_id, auth_comp_id } = h.atoms;
+  const typeSymbolUpper = hasTypeSymbol ? row.type_symbol!.toUpperCase() : undefined;
+  for (let i = 0; i < nResidues; i++) {
+    const iRes = residues[i];
+    for (let iAtom = residueOffsets[iRes], stop = residueOffsets[iRes + 1]; iAtom < stop; iAtom++) {
+      if (hasLabelAtomId && label_atom_id.value(iAtom) !== row.label_atom_id) continue;
+      if (hasAuthAtomId && auth_atom_id.value(iAtom) !== row.auth_atom_id) continue;
+      if (hasTypeSymbol && type_symbol.value(iAtom) !== typeSymbolUpper) continue;
+      if (labelCompIdPerAtom && label_comp_id.value(iAtom) !== row.label_comp_id) continue;
+      if (authCompIdPerAtom && auth_comp_id.value(iAtom) !== row.auth_comp_id) continue;
+      out.add(iAtom, iAtom + 1);
+    }
   }
-  return ranges;
+  return out;
 }
 
 /** Return atom ranges in `model` which satisfy criteria given by any of `rows` (atoms that satisfy more rows are still included only once) */
@@ -109,198 +161,247 @@ export function getAtomRangesForRows(
   instanceId: string,
   indices: IndicesAndSortings,
 ): ElementRanges {
-  return ElementRanges.union(rows.map((row) => getAtomRangesForRow(row, model, instanceId, indices)));
+  // Per-row results go to a shared buffer (`SharedScratch`), are collected in a shared bag (`RowsBag`) and merged once;
+  // only the final result is a new object (callers may keep it).
+  const bag = RowsBag.clear();
+  for (const row of rows) {
+    const r = getAtomRangesForRowInto(row, model, instanceId, indices, SharedScratch);
+    if (r) bag.append(r);
+  }
+  const result = ElementRanges.normalize(bag);
+  SharedScratch.trim();
+  RowsBag.trim(MaxRetainedBufferCapacity);
+  return result;
 }
 
-/** Return an array of chain indexes which satisfy criteria given by `row` */
+/** Keep elements of `src` for which `column.value(element) === value`, writing them to `out`
+ * (`src` may be a view of `out` itself, then it is filtered in place). Return a view of the result. */
+function filterByColumn(src: ArrayLike<number>, out: IntBuffer, column: Column<string>, value: string): Int32Array {
+  out.ensureCapacity(src.length);
+  const data = out.data;
+  let n = 0;
+  for (let i = 0; i < src.length; i++) {
+    const x = src[i];
+    if (column.value(x) === value) data[n++] = x;
+  }
+  out.n = n;
+  return out.view();
+}
+
+/** Return chain indexes which satisfy criteria given by `row` (ascending order), or `undefined` if the row has no chain criteria (i.e. all chains qualify).
+ * The returned array can be one of the shared indices or a view of `out` (do not modify it, it is valid until `out` is modified). */
 function getQualifyingChains(
   model: Model,
   row: MVSAnnotationRow,
   indices: AtomicIndicesAndSortings,
-): readonly ChainIndex[] {
-  const { auth_asym_id, label_entity_id, _rowCount: nChains } = model.atomicHierarchy.chains;
-  let result: readonly ChainIndex[] | undefined = undefined;
+  out: IntBuffer,
+): ArrayLike<number> | undefined {
+  const { auth_asym_id, label_entity_id } = model.atomicHierarchy.chains;
+  let result: ArrayLike<number> | undefined = undefined;
   if (isDefined(row.label_asym_id)) {
     result = indices.chainsByLabelAsymId.get(row.label_asym_id) ?? EmptyArray;
   }
   if (isDefined(row.auth_asym_id)) {
     if (result) {
-      result = result.filter((i) => auth_asym_id.value(i) === row.auth_asym_id);
+      result = filterByColumn(result, out, auth_asym_id, row.auth_asym_id);
     } else {
       result = indices.chainsByAuthAsymId.get(row.auth_asym_id) ?? EmptyArray;
     }
   }
   if (isDefined(row.label_entity_id)) {
     if (result) {
-      result = result.filter((i) => label_entity_id.value(i) === row.label_entity_id);
+      result = filterByColumn(result, out, label_entity_id, row.label_entity_id);
     } else {
       result = indices.chainsByLabelEntityId.get(row.label_entity_id) ?? EmptyArray;
     }
   }
-  result ??= range(nChains) as ChainIndex[];
   return result;
 }
 
-/** Return an array of residue indexes which satisfy criteria given by `row` */
+/** Which residue index is used to get the candidate residues in `getQualifyingResidues` (the other criteria are then checked on each candidate). */
+const enum ResidueSource {
+  AllInChain,
+  LabelSeqId,
+  AuthSeqId,
+  ResidueIndex,
+  InsCode,
+  LabelSeqIdRange,
+  AuthSeqIdRange,
+  LabelCompId,
+  AuthCompId,
+}
+
+/** Write residue indexes (ascending) which satisfy criteria given by `row` into `out` (clearing it first) and return it.
+ * `fromChains` are ascending chain indexes to search in, `undefined` means all chains.
+ *
+ * For each chain, the candidates are taken from the index of the first criterion present (so the work is proportional
+ * to the number of candidates, not the size of the chain) and all remaining criteria are checked in one pass,
+ * without intermediate arrays. */
 function getQualifyingResidues(
   model: Model,
   row: MVSAnnotationRow,
   indices: AtomicIndicesAndSortings,
-  fromChains: readonly ChainIndex[],
-): ResidueIndex[] {
+  fromChains: ArrayLike<number> | undefined,
+  out: IntBuffer,
+): IntBuffer {
+  out.clear();
   const { label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = model.atomicHierarchy.residues;
   const { label_comp_id, auth_comp_id } = model.atomicHierarchy.atoms;
   const { residueAtomSegments, chainAtomSegments, residueSourceIndex } = model.atomicHierarchy;
+  const resOffsets = residueAtomSegments.offsets;
   const { Present } = Column.ValueKind;
-  const result: ResidueIndex[] = [];
-  for (const iChain of fromChains) {
-    let residuesHere: readonly ResidueIndex[] | undefined = undefined;
-    if (isDefined(row.label_seq_id)) {
-      const sorting = indices.residuesSortedByLabelSeqId.get(iChain)!;
-      residuesHere = Sorting.getKeysWithValue(sorting, row.label_seq_id);
-    }
-    if (isDefined(row.auth_seq_id)) {
-      if (residuesHere) {
-        residuesHere = residuesHere.filter(
-          (i) => auth_seq_id.valueKind(i) === Present && auth_seq_id.value(i) === row.auth_seq_id,
-        );
-      } else {
-        const sorting = indices.residuesSortedByAuthSeqId.get(iChain)!;
-        residuesHere = Sorting.getKeysWithValue(sorting, row.auth_seq_id);
-      }
-    }
-    if (isDefined(row.residue_index)) {
-      if (residuesHere) {
-        residuesHere = residuesHere.filter((i) => residueSourceIndex.value(i) === row.residue_index);
-      } else {
-        const sorting = indices.residuesSortedBySourceIndex.get(iChain)!;
-        residuesHere = Sorting.getKeysWithValue(sorting, row.residue_index);
-      }
-    }
-    if (isDefined(row.pdbx_PDB_ins_code)) {
-      if (residuesHere) {
-        residuesHere = residuesHere.filter((i) => pdbx_PDB_ins_code.value(i) === row.pdbx_PDB_ins_code);
-      } else {
-        residuesHere = indices.residuesByInsCode.get(iChain)!.get(row.pdbx_PDB_ins_code) ?? EmptyArray;
-      }
-    }
-    if (isDefined(row.beg_label_seq_id) || isDefined(row.end_label_seq_id)) {
-      if (residuesHere) {
-        if (isDefined(row.beg_label_seq_id)) {
-          residuesHere = residuesHere.filter(
-            (i) => label_seq_id.valueKind(i) === Present && label_seq_id.value(i) >= row.beg_label_seq_id!,
-          );
-        }
-        if (isDefined(row.end_label_seq_id)) {
-          residuesHere = residuesHere.filter(
-            (i) => label_seq_id.valueKind(i) === Present && label_seq_id.value(i) <= row.end_label_seq_id!,
-          );
-        }
-      } else {
+
+  const hasLabelSeq = isDefined(row.label_seq_id);
+  const hasAuthSeq = isDefined(row.auth_seq_id);
+  const hasResIdx = isDefined(row.residue_index);
+  const hasIns = isDefined(row.pdbx_PDB_ins_code);
+  const hasBegLabel = isDefined(row.beg_label_seq_id);
+  const hasEndLabel = isDefined(row.end_label_seq_id);
+  const hasBegAuth = isDefined(row.beg_auth_seq_id);
+  const hasEndAuth = isDefined(row.end_auth_seq_id);
+  const hasLabelRange = hasBegLabel || hasEndLabel;
+  const hasAuthRange = hasBegAuth || hasEndAuth;
+  const hasLabelComp = isDefined(row.label_comp_id);
+  const hasAuthComp = isDefined(row.auth_comp_id);
+  const labelCompPure = indices.residuesByLabelCompIdIsPure;
+  const authCompPure = indices.residuesByAuthCompIdIsPure;
+
+  const source = hasLabelSeq
+    ? ResidueSource.LabelSeqId
+    : hasAuthSeq
+      ? ResidueSource.AuthSeqId
+      : hasResIdx
+        ? ResidueSource.ResidueIndex
+        : hasIns
+          ? ResidueSource.InsCode
+          : hasLabelRange
+            ? ResidueSource.LabelSeqIdRange
+            : hasAuthRange
+              ? ResidueSource.AuthSeqIdRange
+              : hasLabelComp
+                ? ResidueSource.LabelCompId
+                : hasAuthComp
+                  ? ResidueSource.AuthCompId
+                  : ResidueSource.AllInChain;
+
+  // criteria which still have to be checked on candidates (the one used as `source` is already satisfied by the index)
+  const checkAuthSeq = hasAuthSeq && source !== ResidueSource.AuthSeqId;
+  const checkResIdx = hasResIdx && source !== ResidueSource.ResidueIndex;
+  const checkIns = hasIns && source !== ResidueSource.InsCode;
+  const checkLabelRange = hasLabelRange && source !== ResidueSource.LabelSeqIdRange;
+  const checkAuthRange = hasAuthRange && source !== ResidueSource.AuthSeqIdRange;
+  const checkLabelComp = hasLabelComp && source !== ResidueSource.LabelCompId;
+  const checkAuthComp = hasAuthComp && source !== ResidueSource.AuthCompId;
+
+  const nFromChains = fromChains ? fromChains.length : model.atomicHierarchy.chains._rowCount;
+  for (let iFrom = 0; iFrom < nFromChains; iFrom++) {
+    const iChain = (fromChains ? fromChains[iFrom] : iFrom) as ChainIndex;
+
+    // candidates are `keys[from..to)` (or consecutive residues `from..to` when `keys` is undefined)
+    let keys: readonly ResidueIndex[] | undefined = undefined;
+    let from = 0;
+    let to = 0;
+    switch (source) {
+      case ResidueSource.LabelSeqId:
+      case ResidueSource.LabelSeqIdRange: {
         const sorting = indices.residuesSortedByLabelSeqId.get(iChain)!;
-        residuesHere = Sorting.getKeysWithValueInRange(sorting, row.beg_label_seq_id, row.end_label_seq_id);
+        keys = sorting.keys;
+        if (source === ResidueSource.LabelSeqId)
+          Sorting.findIndexRange(sorting, row.label_seq_id, row.label_seq_id, IndexRange);
+        else Sorting.findIndexRange(sorting, row.beg_label_seq_id, row.end_label_seq_id, IndexRange);
+        from = IndexRange.from;
+        to = IndexRange.to;
+        break;
       }
-    }
-    if (isDefined(row.beg_auth_seq_id) || isDefined(row.end_auth_seq_id)) {
-      if (residuesHere) {
-        if (isDefined(row.beg_auth_seq_id)) {
-          residuesHere = residuesHere.filter(
-            (i) => auth_seq_id.valueKind(i) === Present && auth_seq_id.value(i) >= row.beg_auth_seq_id!,
-          );
-        }
-        if (isDefined(row.end_auth_seq_id)) {
-          residuesHere = residuesHere.filter(
-            (i) => auth_seq_id.valueKind(i) === Present && auth_seq_id.value(i) <= row.end_auth_seq_id!,
-          );
-        }
-      } else {
+      case ResidueSource.AuthSeqId:
+      case ResidueSource.AuthSeqIdRange: {
         const sorting = indices.residuesSortedByAuthSeqId.get(iChain)!;
-        residuesHere = Sorting.getKeysWithValueInRange(sorting, row.beg_auth_seq_id, row.end_auth_seq_id);
+        keys = sorting.keys;
+        if (source === ResidueSource.AuthSeqId)
+          Sorting.findIndexRange(sorting, row.auth_seq_id, row.auth_seq_id, IndexRange);
+        else Sorting.findIndexRange(sorting, row.beg_auth_seq_id, row.end_auth_seq_id, IndexRange);
+        from = IndexRange.from;
+        to = IndexRange.to;
+        break;
       }
-    }
-    if (isDefined(row.label_comp_id)) {
-      if (residuesHere) {
-        if (indices.residuesByLabelCompIdIsPure) {
-          residuesHere = residuesHere.filter(
-            (i) => label_comp_id.value(residueAtomSegments.offsets[i]) === row.label_comp_id,
-          );
-        } else {
-          residuesHere = residuesHere.filter((i) => {
-            for (
-              let iAtom = residueAtomSegments.offsets[i], stop = residueAtomSegments.offsets[i + 1];
-              iAtom < stop;
-              iAtom++
-            ) {
-              if (label_comp_id.value(iAtom) === row.label_comp_id) return true;
-            }
-          });
-        }
-      } else {
-        residuesHere = indices.residuesByLabelCompId.get(iChain)!.get(row.label_comp_id) ?? EmptyArray;
+      case ResidueSource.ResidueIndex: {
+        const sorting = indices.residuesSortedBySourceIndex.get(iChain)!;
+        keys = sorting.keys;
+        Sorting.findIndexRange(sorting, row.residue_index, row.residue_index, IndexRange);
+        from = IndexRange.from;
+        to = IndexRange.to;
+        break;
       }
+      case ResidueSource.InsCode:
+        keys = indices.residuesByInsCode.get(iChain)!.get(row.pdbx_PDB_ins_code!) ?? EmptyArray;
+        to = keys.length;
+        break;
+      case ResidueSource.LabelCompId:
+        keys = indices.residuesByLabelCompId.get(iChain)!.get(row.label_comp_id!) ?? EmptyArray;
+        to = keys.length;
+        break;
+      case ResidueSource.AuthCompId:
+        keys = indices.residuesByAuthCompId.get(iChain)!.get(row.auth_comp_id!) ?? EmptyArray;
+        to = keys.length;
+        break;
+      case ResidueSource.AllInChain:
+        from = residueAtomSegments.index[chainAtomSegments.offsets[iChain]];
+        to = residueAtomSegments.index[chainAtomSegments.offsets[iChain + 1] - 1] + 1;
+        break;
     }
-    if (isDefined(row.auth_comp_id)) {
-      if (residuesHere) {
-        if (indices.residuesByAuthCompIdIsPure) {
-          residuesHere = residuesHere.filter(
-            (i) => auth_comp_id.value(residueAtomSegments.offsets[i]) === row.auth_comp_id,
-          );
-        } else {
-          residuesHere = residuesHere.filter((i) => {
-            for (
-              let iAtom = residueAtomSegments.offsets[i], stop = residueAtomSegments.offsets[i + 1];
-              iAtom < stop;
-              iAtom++
-            ) {
-              if (auth_comp_id.value(iAtom) === row.auth_comp_id) return true;
-            }
-          });
-        }
-      } else {
-        residuesHere = indices.residuesByAuthCompId.get(iChain)!.get(row.auth_comp_id) ?? EmptyArray;
+
+    const start = out.n;
+    for (let k = from; k < to; k++) {
+      const iRes = (keys ? keys[k] : k) as ResidueIndex;
+      if (checkAuthSeq && !(auth_seq_id.valueKind(iRes) === Present && auth_seq_id.value(iRes) === row.auth_seq_id))
+        continue;
+      if (checkResIdx && residueSourceIndex.value(iRes) !== row.residue_index) continue;
+      if (checkIns && pdbx_PDB_ins_code.value(iRes) !== row.pdbx_PDB_ins_code) continue;
+      if (checkLabelRange) {
+        if (
+          hasBegLabel &&
+          !(label_seq_id.valueKind(iRes) === Present && label_seq_id.value(iRes) >= row.beg_label_seq_id!)
+        )
+          continue;
+        if (
+          hasEndLabel &&
+          !(label_seq_id.valueKind(iRes) === Present && label_seq_id.value(iRes) <= row.end_label_seq_id!)
+        )
+          continue;
       }
+      if (checkAuthRange) {
+        if (hasBegAuth && !(auth_seq_id.valueKind(iRes) === Present && auth_seq_id.value(iRes) >= row.beg_auth_seq_id!))
+          continue;
+        if (hasEndAuth && !(auth_seq_id.valueKind(iRes) === Present && auth_seq_id.value(iRes) <= row.end_auth_seq_id!))
+          continue;
+      }
+      if (checkLabelComp && !residueHasCompId(label_comp_id, resOffsets, iRes, row.label_comp_id!, labelCompPure))
+        continue;
+      if (checkAuthComp && !residueHasCompId(auth_comp_id, resOffsets, iRes, row.auth_comp_id!, authCompPure)) continue;
+      out.push(iRes);
     }
-    if (!residuesHere) {
-      const firstResidueForChain = residueAtomSegments.index[chainAtomSegments.offsets[iChain]];
-      const firstResidueAfterChain = residueAtomSegments.index[chainAtomSegments.offsets[iChain + 1] - 1] + 1;
-      residuesHere = range(firstResidueForChain, firstResidueAfterChain) as ResidueIndex[];
+    // Candidates from a value range are ordered by value, not necessarily by residue index. (Candidates for a single value, from
+    // the other indices and from consecutive residues are already ascending; chains are ascending, so the whole `out` is then too.)
+    if (source === ResidueSource.LabelSeqIdRange || source === ResidueSource.AuthSeqIdRange) {
+      out.data.subarray(start, out.n).sort(); // (native numeric sort of the typed array)
     }
-    arrayExtend(result, residuesHere);
   }
-  sortIfNeeded(result, (a, b) => a - b);
-  return result;
+  return out;
 }
 
-/** Return an array of atom indexes which satisfy criteria given by `row` */
-function getQualifyingAtoms(
-  model: Model,
-  row: MVSAnnotationRow,
-  indices: AtomicIndicesAndSortings,
-  fromResidues: readonly ResidueIndex[],
-): ElementIndex[] {
-  const { label_atom_id, auth_atom_id, type_symbol, label_comp_id, auth_comp_id } = model.atomicHierarchy.atoms;
-  const residueAtomSegments_offsets = model.atomicHierarchy.residueAtomSegments.offsets;
-  const result: ElementIndex[] = [];
-  for (const iRes of fromResidues) {
-    const atomIdcs = range(residueAtomSegments_offsets[iRes], residueAtomSegments_offsets[iRes + 1]) as ElementIndex[];
-    if (isDefined(row.label_atom_id)) {
-      filterInPlace(atomIdcs, (iAtom) => label_atom_id.value(iAtom) === row.label_atom_id);
-    }
-    if (isDefined(row.auth_atom_id)) {
-      filterInPlace(atomIdcs, (iAtom) => auth_atom_id.value(iAtom) === row.auth_atom_id);
-    }
-    if (isDefined(row.type_symbol)) {
-      filterInPlace(atomIdcs, (iAtom) => type_symbol.value(iAtom) === row.type_symbol?.toUpperCase());
-    }
-    if (isDefined(row.label_comp_id) && !indices.residuesByLabelCompIdIsPure) {
-      filterInPlace(atomIdcs, (iAtom) => label_comp_id.value(iAtom) === row.label_comp_id);
-    }
-    if (isDefined(row.auth_comp_id) && !indices.residuesByAuthCompIdIsPure) {
-      filterInPlace(atomIdcs, (iAtom) => auth_comp_id.value(iAtom) === row.auth_comp_id);
-    }
-    arrayExtend(result, atomIdcs);
+/** Does residue `iRes` have `compId` (as the comp_id of its first atom if `pure`, otherwise of any of its atoms)? */
+function residueHasCompId(
+  compIdColumn: Column<string>,
+  residueOffsets: ArrayLike<number>,
+  iRes: ResidueIndex,
+  compId: string,
+  pure: boolean,
+): boolean {
+  if (pure) return compIdColumn.value(residueOffsets[iRes]) === compId;
+  for (let iAtom = residueOffsets[iRes], stop = residueOffsets[iRes + 1]; iAtom < stop; iAtom++) {
+    if (compIdColumn.value(iAtom) === compId) return true;
   }
-  return result;
+  return false;
 }
 
 /** Return index of atom in `model` which satistfies criteria given by `row`, if any.

@@ -18,11 +18,15 @@ import { type Jsonable, canonicalJsonString } from '@molstar/core/util/json';
 import { objectOfArraysToArrayOfObjects, pickObjectKeysWithRemapping, promiseAllObj } from '@molstar/core/util/object';
 import { Choice } from '@molstar/core/util/param-choice';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { ElementRanges } from '@molstar/mvs/helpers/element-ranges';
 import { IndicesAndSortings } from '@molstar/mvs/helpers/indexing';
 import { MaybeStringParamDefinition } from '@molstar/mvs/helpers/param-definition';
 import { type MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '@molstar/mvs/helpers/schemas';
-import { getAtomRangesForRow, getGaussianRangesForRow, getSphereRangesForRow } from '@molstar/mvs/helpers/selections';
+import {
+  AtomRangesScratch,
+  getAtomRangesForRowInto,
+  getGaussianRangesForRow,
+  getSphereRangesForRow,
+} from '@molstar/mvs/helpers/selections';
 import { type Maybe, isDefined, safePromise } from '@molstar/mvs/helpers/utils';
 
 /** Allowed values for the annotation format parameter */
@@ -196,6 +200,9 @@ function getIndexedElementsForUnitKind(indexedModel: IndexedModel, unitKind: Uni
   return null;
 }
 
+/** Reusable buffers for `getAtomRangesForRow` in `MVSAnnotation.getRowForEachAtom` (not reentrant, synchronous use only) */
+const RowScratch = new AtomRangesScratch();
+
 /** Main class for processing MVS annotation */
 export class MVSAnnotation {
   /** Number of annotation rows. */
@@ -299,15 +306,37 @@ export class MVSAnnotation {
     let indexedSpheres: IndexedElements = null;
     let indexedGaussians: IndexedElements = null;
     const rows = this.getRows();
+    const atomScratch = RowScratch;
     for (let iRow = 0, nRows = rows.length; iRow < nRows; iRow++) {
       const row = rows[iRow];
-      const atomRanges = getAtomRangesForRow(row, model, instanceId, indices);
-      indexedAtoms = fillValueOnRanges(indexedAtoms, nAtoms, atomRanges, iRow);
+      const atomRanges = getAtomRangesForRowInto(row, model, instanceId, indices, atomScratch); // consumed right away, so reusing the buffer is safe
+      indexedAtoms = atomRanges
+        ? fillValueOnRanges(indexedAtoms, nAtoms, atomRanges.from, atomRanges.to, atomRanges.count, iRow)
+        : indexedAtoms;
       const sphereRanges = getSphereRangesForRow(row, model, instanceId, indices);
-      indexedSpheres = fillValueOnRanges(indexedSpheres, nSpheres, sphereRanges, iRow);
+      indexedSpheres = sphereRanges
+        ? fillValueOnRanges(
+            indexedSpheres,
+            nSpheres,
+            sphereRanges.from,
+            sphereRanges.to,
+            sphereRanges.from.length,
+            iRow,
+          )
+        : indexedSpheres;
       const gaussianRanges = getGaussianRangesForRow(row, model, instanceId, indices);
-      indexedGaussians = fillValueOnRanges(indexedGaussians, nGaussians, gaussianRanges, iRow);
+      indexedGaussians = gaussianRanges
+        ? fillValueOnRanges(
+            indexedGaussians,
+            nGaussians,
+            gaussianRanges.from,
+            gaussianRanges.to,
+            gaussianRanges.from.length,
+            iRow,
+          )
+        : indexedGaussians;
     }
+    atomScratch.trim();
     return { atoms: indexedAtoms, spheres: indexedSpheres, gaussians: indexedGaussians };
   }
 
@@ -523,15 +552,18 @@ function annotationSourceFromSpec(s: MVSAnnotationSpec): MVSAnnotationSource {
   }
 }
 
-/** In `array`, set value `fillValue` to all positions described by `fillRanges`. In case `array` is `null`, initialize it with length `n` prefilled with -1. */
+/** In `array`, set value `fillValue` to all positions described by the first `count` ranges `[from[i], to[i])`.
+ * In case `array` is `null`, initialize it with length `n` prefilled with -1 (unless there is nothing to fill). */
 function fillValueOnRanges(
   array: IndexedElements,
   n: number,
-  fillRanges: ElementRanges | undefined,
+  from: ArrayLike<number>,
+  to: ArrayLike<number>,
+  count: number,
   fillValue: number,
 ): IndexedElements {
-  if (!fillRanges || ElementRanges.count(fillRanges) === 0) return array;
+  if (count === 0) return array;
   const out = array ?? Array(n).fill(-1);
-  ElementRanges.foreach(fillRanges, (from, to) => out.fill(fillValue, from, to));
+  for (let i = 0; i < count; i++) out.fill(fillValue, from[i], to[i]);
   return out;
 }

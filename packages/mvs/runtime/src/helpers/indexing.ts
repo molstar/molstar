@@ -252,21 +252,34 @@ export const Sorting = {
     return Sorting.getKeysWithValueInRange(sorting, target, target);
   },
 
+  /** Set `out.from`, `out.to` so that `keys.slice(out.from, out.to)` are the keys which have value within interval `[min, max]`
+   * (inclusive; undefined `min` is negative infinity, undefined `max` is positive infinity). Does not allocate. */
+  findIndexRange<K, V extends number>(
+    sorting: Sorting<K, V>,
+    min: V | undefined,
+    max: V | undefined,
+    out: { from: number; to: number },
+  ) {
+    const { keys, values } = sorting;
+    if (!keys) {
+      out.from = 0;
+      out.to = 0;
+      return out;
+    }
+    const n = keys.length;
+    const from = min !== undefined ? SortedArray.findPredecessorIndex(values, min) : 0;
+    // values are integers, so `<= max` is `< max + 1` (binary search instead of a linear scan)
+    const to = max !== undefined ? Math.max(from, SortedArray.findPredecessorIndex(values, (max + 1) as V)) : n;
+    out.from = from;
+    out.to = to;
+    return out;
+  },
+
   /** Return a newly allocated array of keys which have value within interval `[min, max]` (inclusive).
    * The returned keys are sorted by their value.
    * Undefined `min` is interpreted as negative infitity, undefined `max` is interpreted as positive infinity. */
   getKeysWithValueInRange<K, V extends number>(sorting: Sorting<K, V>, min: V | undefined, max: V | undefined): K[] {
-    const { keys, values } = sorting;
-    if (!keys) return [];
-    const n = keys.length;
-    const from = min !== undefined ? SortedArray.findPredecessorIndex(values, min) : 0;
-    let to: number;
-    if (max !== undefined) {
-      to = from;
-      while (to < n && values[to] <= max) to++;
-    } else {
-      to = n;
-    }
-    return keys.slice(from, to);
+    const r = Sorting.findIndexRange(sorting, min, max, { from: 0, to: 0 });
+    return sorting.keys ? sorting.keys.slice(r.from, r.to) : [];
   },
 };
