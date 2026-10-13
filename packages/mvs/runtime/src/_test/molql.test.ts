@@ -87,8 +87,8 @@ describe('MVS MolQL selectors', () => {
     const rows = [{ label_asym_id: 'A' }, { label_asym_id: 'B', label_seq_id: 3 }];
     expect(componentPropsFromSelector(rows)).toEqual({ name: 'schema', params: rows });
     expect(prettyNameFromSelector(wrapped)).toEqual('MolQL Selection');
-    expect(prettyNameFromSelector({ label_asym_id: 'A' })).toEqual('Chain A');
-    expect(prettyNameFromSelector(rows)).toEqual('Chain A + Chain B, residue 3');
+    expect(prettyNameFromSelector({ label_asym_id: 'A' })).toEqual('A');
+    expect(prettyNameFromSelector(rows)).toEqual('A + B3');
     expect(prettyNameFromSelector('protein')).toEqual('Protein');
     expect(prettyNameFromSelector(undefined)).toEqual('All');
   });

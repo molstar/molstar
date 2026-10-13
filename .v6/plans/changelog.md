@@ -59,8 +59,8 @@ the [API change ledger](breaking-v6-changes.md).
   `component` nodes with rows (`StructureComponent` with an `expression` is still used for static and MolQL selectors);
   `componentPropsFromSelector` returns a `Selector` and keeps rows as `schema`. Snapshots with the old expressions still
   load
-- Components, layers and labels made from rows are named by what they select (`Chain A`, `Chain A, residues 10-50`,
-  `Chains A, B, C`, `120 selections`) instead of a dump of the rows
+- Components, layers and labels made from rows are named by what they select in a compact form (`A`, `A432`, `A:10-50`,
+  `A, B, C`, `120 residues`) instead of a dump of the rows
 - Annotation rows use reusable typed-array buffers, a sort-free range union, and paint each element once (later rows
   win, and the pass stops when every element has a row), so overlapping rows no longer cost the sum of their sizes:
   20,000 rows allocate 30 MB instead of 650 MB, and 20,000 overlapping rows take 2 ms instead of 1.5 s
