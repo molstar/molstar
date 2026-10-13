@@ -22,6 +22,9 @@ export async function settle(rounds = 12): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
+/** Real time `runUntil` waits for work still in flight before it calls an idle clock a deadlock. */
+const DeadlockGraceMs = 5_000;
+
 /**
  * Virtual time. Nothing waits for real: `sleep` parks until time is advanced, either explicitly
  * (`advance`) or by `runUntil`, which moves time to the next sleeper whenever nothing else can run.
@@ -128,7 +131,23 @@ export class SimulatedClock implements Clock {
         quiet = this.activity === seen && this.busy === 0 ? quiet + 1 : 0;
       }
       if (done) break;
-      const first = this.sleepers[0];
+      // Nothing runs and nothing sleeps: a deadlock, or work that resolves off the event loop (WebCrypto on a loaded
+      // machine) that has not finished yet. Give it real time, restarted by every sign of life, before saying so.
+      let first = this.sleepers[0];
+      for (
+        let waited = 0, seen = this.activity;
+        first === undefined && !done && waited < DeadlockGraceMs;
+        waited += 5
+      ) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 5));
+        await settle();
+        if (this.activity !== seen) {
+          seen = this.activity;
+          waited = 0;
+        }
+        first = this.sleepers[0];
+      }
+      if (done) break;
       if (first === undefined) throw new Error('SimulatedClock.runUntil: deadlock (nothing runs, nothing sleeps)');
       await this.advance(first.at - this.time);
     }
