@@ -82,6 +82,14 @@ export class SimulatedClock implements Clock {
     });
   }
 
+  /**
+   * Whether something is parked for at least `ms` more of virtual time: a step in a long wait (a slow model or
+   * tool), not the runner's own short housekeeping sleeps. What a case that crashes mid-step waits for.
+   */
+  parked(ms: number): boolean {
+    return this.sleepers.some((sleeper) => sleeper.at - this.time >= ms);
+  }
+
   /** The time of the next sleeper, if any. */
   next(): number | undefined {
     return this.sleepers[0]?.at;

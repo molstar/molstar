@@ -8,27 +8,13 @@
 
 import { describe, expect, it } from 'vitest';
 import { type ConformanceFixture, createSession, type Session } from '../session.js';
-import { SimulatedClock, settle } from '../testing/clock.js';
-import { lastStep, stepEvents, with_ } from './helpers.js';
+import { SimulatedClock } from '../testing/clock.js';
+import { crashMidStep, lastStep, stepEvents, with_ } from './helpers.js';
 
 /** Known lease and launch windows, so the cases can expire them (harness.md §4). */
 const WINDOWS = { leaseMs: 30_000, launchMs: 10_000 };
 
-/**
- * A crash: the runner stops mid-step with no commit and no release, the lease runs out, and `check`
- * launches the runner that re-runs the step (harness.md §4, §6 "lost"). Returns that launch key.
- */
-async function crash(s: Session, launch: string): Promise<string> {
-  const runner = s.runner();
-  const running = runner.run(launch);
-  await settle(40);
-  runner.abort('crash');
-  await s.clock.runUntil(running);
-  await s.clock.advance(WINDOWS.leaseMs + 1_000);
-  const checked = await s.client.check();
-  expect(checked.launch).toBeDefined();
-  return checked.launch as string;
-}
+const crash = (s: Session, launch: string) => crashMidStep(s, launch, WINDOWS.leaseMs);
 
 const modelAttempts = async (s: Session) =>
   stepEvents(await s.events()).flatMap((event) =>
