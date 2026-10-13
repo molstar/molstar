@@ -17,9 +17,9 @@
 
 import { getHeapStatistics } from 'node:v8';
 import { describe, it } from 'vitest';
-import type { Model } from '@molstar/model/model/structure';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
 import { IndicesAndSortings } from '../indexing.js';
+import { Coordinates, type Frame, Model, Time } from '@molstar/model/model/structure';
 import type { MVSAnnotationRow } from '../schemas.js';
 import { getAtomRangesForRows, rowsToExpression } from '../selections.js';
 import { substructureFromRows } from '../row-structure.js';
@@ -157,5 +157,56 @@ describe.skipIf(!process.env.MVS_BENCH)('annotation rows benchmark', () => {
         `elements=${fast.result.elementCount}  speedup x${(ref.ms / fast.ms).toFixed(0)}`,
       );
     }
+
+    console.log('\n--- trajectory: 10 frames, 100 rows -> substructure for each frame');
+    const nFrames = 10;
+    const frames: Frame[] = Array.from({ length: nFrames }, (_, i) => ({
+      elementCount: nAtoms,
+      time: Time(i, 'step'),
+      x: new Float32Array(nAtoms).fill(i),
+      y: new Float32Array(nAtoms).fill(i),
+      z: new Float32Array(nAtoms).fill(i),
+      xyzOrdering: { isIdentity: true },
+    }));
+    const trajectory = Model.trajectoryFromModelAndCoordinates(
+      model,
+      Coordinates.create(frames, Time(1, 'step'), Time(0, 'step')),
+    );
+    const frameModels = Array.from({ length: nFrames }, (_, i) => trajectory.getFrameAtIndex(i) as Model);
+    const rows100 = mixed.slice(0, 100);
+    IndicesAndSortings.get(model); // (already created above, shared by all frames)
+    // per-frame indices (what every frame cost before the indices were shared) + the substructure
+    const rebuilt = measure(() => {
+      let count = 0;
+      for (const f of frameModels) {
+        IndicesAndSortings.create(f);
+        count += substructureFromRows(Structure.ofModel(f), rows100).elementCount;
+      }
+      return count;
+    });
+    const shared = measure(() => {
+      let count = 0;
+      for (const f of frameModels) count += substructureFromRows(Structure.ofModel(f), rows100).elementCount;
+      return count;
+    });
+    report('frames: indices rebuilt per frame', nFrames, rebuilt, `elements=${rebuilt.result}`);
+    report(
+      'frames: indices shared',
+      nFrames,
+      shared,
+      `elements=${shared.result}  speedup x${(rebuilt.ms / shared.ms).toFixed(1)}`,
+    );
+    // the row -> atom mapping of an annotation (colors, tooltips) per frame
+    const annotRows = annotationOf(mixed);
+    annotRows.getRows();
+    const rowMapRebuilt = measure(() => frameModels.map((f) => indexedModelOf(annotationOf(mixed), f).atoms!.length));
+    const rowMapShared = measure(() => frameModels.map((f) => (annotRows as any).getIndexedModel(f, 'x').atoms.length));
+    report('frames: row->atom map rebuilt', nFrames, rowMapRebuilt, '');
+    report(
+      'frames: row->atom map shared',
+      nFrames,
+      rowMapShared,
+      `speedup x${(rowMapRebuilt.ms / Math.max(rowMapShared.ms, 0.01)).toFixed(0)}`,
+    );
   });
 });

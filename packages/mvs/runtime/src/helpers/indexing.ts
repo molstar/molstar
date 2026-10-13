@@ -17,10 +17,43 @@ export interface IndicesAndSortings {
   gaussians?: CoarseIndicesAndSortings;
 }
 
+/** The things the indices (and anything else derived from the hierarchy and the atom ids, but not from the coordinates) depend on.
+ * Models with the same `atomicHierarchy`, `coarseHierarchy` and `atomId` column share one scope: these are the frames of a trajectory
+ * (a copy of a model with other coordinates), so what is computed for one frame is valid for all of them. */
+export interface HierarchyScope {
+  readonly coarseHierarchy: Model['coarseHierarchy'];
+  readonly atomId: Model['atomicConformation']['atomId'];
+  /** Cached `IndicesAndSortings.get` */
+  indices?: IndicesAndSortings;
+}
+
+const HierarchyScopes = new WeakMap<object, HierarchyScope[]>();
+
+export const HierarchyScope = {
+  /** Get the scope of a model (created if the model is the first with its hierarchies and atom ids). Does not keep the model alive. */
+  get(model: Model): HierarchyScope {
+    const { atomicHierarchy, coarseHierarchy } = model;
+    const atomId = model.atomicConformation.atomId;
+    let scopes = HierarchyScopes.get(atomicHierarchy);
+    if (scopes) {
+      for (const s of scopes) {
+        if (s.coarseHierarchy === coarseHierarchy && s.atomId === atomId) return s;
+      }
+    } else {
+      HierarchyScopes.set(atomicHierarchy, (scopes = []));
+    }
+    const scope: HierarchyScope = { coarseHierarchy, atomId };
+    scopes.push(scope);
+    return scope;
+  },
+};
+
 export const IndicesAndSortings = {
-  /** Get `IndicesAndSortings` for a model (use a cached value or create if not available yet) */
+  /** Get `IndicesAndSortings` for a model (use a cached value or create if not available yet).
+   * The cache is shared by the models of a trajectory (see `HierarchyScope`), the indices are created once. */
   get(model: Model): IndicesAndSortings {
-    return (model._dynamicPropertyData['indices-and-sortings'] ??= this.create(model));
+    const scope = HierarchyScope.get(model);
+    return (scope.indices ??= this.create(model));
   },
 
   /** Create `IndicesAndSortings` for a model */

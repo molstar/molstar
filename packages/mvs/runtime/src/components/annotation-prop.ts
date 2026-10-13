@@ -18,7 +18,7 @@ import { type Jsonable, canonicalJsonString } from '@molstar/core/util/json';
 import { objectOfArraysToArrayOfObjects, pickObjectKeysWithRemapping, promiseAllObj } from '@molstar/core/util/object';
 import { Choice } from '@molstar/core/util/param-choice';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { IndicesAndSortings } from '@molstar/mvs/helpers/indexing';
+import { HierarchyScope, IndicesAndSortings } from '@molstar/mvs/helpers/indexing';
 import { MaybeStringParamDefinition } from '@molstar/mvs/helpers/param-definition';
 import { type MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '@molstar/mvs/helpers/schemas';
 import {
@@ -283,18 +283,19 @@ export class MVSAnnotation {
     }
   }
 
-  /** Return cached `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` (or create it if not cached yet) */
+  /** Return cached `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` (or create it if not cached yet).
+   * The mapping does not depend on coordinates, so the models of a trajectory share it (`HierarchyScope`). */
   private getIndexedModel(model: Model, instanceId: string): IndexedModel {
-    const key = this.hasInstanceIds() ? `${model.id}:${instanceId}` : model.id;
-    if (!this._indexedModels.has(key)) {
-      const result = this.getRowForEachAtom(model, instanceId);
-      this._indexedModels.set(key, result);
-    }
-    return this._indexedModels.get(key)!;
+    const scope = HierarchyScope.get(model);
+    let byInstance = this._indexedModels.get(scope);
+    if (!byInstance) this._indexedModels.set(scope, (byInstance = new Map()));
+    const key = this.hasInstanceIds() ? instanceId : '';
+    let result = byInstance.get(key);
+    if (!result) byInstance.set(key, (result = this.getRowForEachAtom(model, instanceId)));
+    return result;
   }
-  /** Cached `IndexedModel` per `Model.id` (if annotation contains no instanceIds)
-   * or per `Model.id:instanceId` combination (if at least one row contains instanceId). */
-  private _indexedModels = new Map<string, IndexedModel>();
+  /** Cached `IndexedModel` per hierarchy scope (models of one trajectory), and per `instanceId` (if at least one row contains instanceId). */
+  private _indexedModels = new WeakMap<HierarchyScope, Map<string, IndexedModel>>();
 
   /** Create `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` */
   private getRowForEachAtom(model: Model, instanceId: string): IndexedModel {
