@@ -1,7 +1,5 @@
-import {
-  PresetStructureRepresentations,
-  StructureRepresentationPresetProvider,
-} from '@molstar/plugin/state/builder/structure/representation-preset';
+import { StructureRepresentationPresetProvider } from '@molstar/plugin/state/builder/structure/representation-presets/types';
+import { AutoPreset } from '@molstar/plugin/state/builder/structure/representation-presets/auto';
 import { StateObjectRef } from '@molstar/core/state';
 import { SbNcbrPartialChargesPropertyProvider } from './property.js';
 import { SbNcbrPartialChargesColorThemeProvider } from './color.js';
@@ -23,7 +21,7 @@ export const SbNcbrPartialChargesPreset = StructureRepresentationPresetProvider(
     if (!structureCell || !structure) return {};
 
     const colorTheme = SbNcbrPartialChargesColorThemeProvider.name as any;
-    return PresetStructureRepresentations.auto.apply(
+    return AutoPreset.apply(
       ref,
       { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme, params: { chargeType: 'atom' } } } },
       plugin,

@@ -1,0 +1,157 @@
+/** @jsxImportSource @molstar/prism-ui/dom */
+
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { ActionFooter } from '@molstar/prism-ui';
+import { ParamsForm } from '@molstar/prism-ui';
+import { domView } from '@molstar/prism-ui/dom/view';
+import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
+import type { SelectionModel } from '../model/selection.js';
+import { observableState } from '@molstar/prism-ui/reactive/observable-state';
+import type { ShellModel } from '@molstar/prism-ui/shell/shell';
+import { SectionList } from '@molstar/prism-ui';
+
+// Mol*'s selection theme actions (the selection toolbar's Theme panel): what to apply to the selected part of which
+// representations.
+const SelectionThemeParams = {
+  action: PD.MappedStatic(
+    'color',
+    {
+      color: PD.Group({ color: PD.Color(0x0090ff as any, { isEssential: true }) }),
+      'reset-color': PD.EmptyGroup(),
+      transparency: PD.Group({ value: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }, { isEssential: true }) }),
+      emissive: PD.Group({ value: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }, { isEssential: true }) }),
+      material: PD.Group({
+        metalness: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { isEssential: true }),
+        roughness: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { isEssential: true }),
+      }),
+      'reset-material': PD.EmptyGroup(),
+      clipping: PD.Group({
+        groups: PD.Select('1', [
+          ['1', 'Group 1'],
+          ['2', 'Group 2'],
+          ['3', 'Group 3'],
+        ]),
+      }),
+      wiggle: PD.Group({ amplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, { isEssential: true }) }),
+    },
+    {
+      label: 'Action',
+      isEssential: true,
+      options: [
+        ['color', 'Color'],
+        ['reset-color', 'Reset color'],
+        ['transparency', 'Transparency'],
+        ['emissive', 'Emissive'],
+        ['material', 'Material'],
+        ['reset-material', 'Reset material'],
+        ['clipping', 'Clipping'],
+        ['wiggle', 'Wiggle'],
+      ] as [any, string][],
+    },
+  ),
+  representation: PD.Select(
+    'all',
+    [
+      ['all', 'All'],
+      ['cartoon', 'Cartoon'],
+      ['ball-and-stick', 'Ball & Stick'],
+      ['molecular-surface', 'Molecular Surface'],
+    ],
+    { label: 'Representations', isEssential: true },
+  ),
+};
+
+/**
+ * The selection (12 residues of 1TQN) with Mol*'s selection actions; Color and Theme open the Selection card (in the
+ * panel's place) with the action preset.
+ */
+export function mockSelection(shell: ShellModel, post: (text: string) => void): SelectionModel {
+  const summary = observableState<string | undefined>('12 residues');
+  const form = new ParamsFormModel(SelectionThemeParams);
+  // The Selection card: what to do with it, as sections (like Export): apply a theme action (color, transparency,
+  // material, …), or make a component of it.
+  const component = new ParamsFormModel({
+    label: PD.Text('Selection', { label: 'Label', isEssential: true }),
+    representation: PD.Select(
+      'ball-and-stick',
+      [
+        ['cartoon', 'Cartoon'],
+        ['ball-and-stick', 'Ball & Stick'],
+        ['spacefill', 'Spacefill'],
+        ['molecular-surface', 'Molecular Surface'],
+      ],
+      { label: 'Representation', isEssential: true },
+    ),
+  });
+  // A panel tab beside Structure: what to do with the selection is structure work, not a scene setting.
+  shell.registerTabs([
+    {
+      id: 'selection',
+      title: 'Selection',
+      icon: 'mouse-pointer-click',
+      order: 1.2,
+      // Opened at a section (the selection bar's Measure: `show('selection', 'measure')`), it brings that one into view.
+      // Folded until opened: the sections read as a list of what can be done with the selection.
+      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="selection" focus={ctx.focus} collapsed />),
+    },
+  ]);
+  shell.registerSections([
+    {
+      id: 'theme',
+      slot: 'selection',
+      title: 'Color, transparency, material…',
+      icon: 'palette',
+      order: 0,
+      render: domView(() => (
+        <div style="display: grid; gap: var(--msp-space-3)">
+          <ParamsForm form={form} />
+          <ActionFooter
+            icon="paintbrush"
+            label="Apply"
+            onReset={() => form.reset()}
+            onApply={() => {
+              const v = form.values.value as any;
+              post(`Applied ${v.action.name} to ${summary.value} (${v.representation})`);
+            }}
+          />
+        </div>
+      )),
+    },
+    {
+      id: 'component',
+      slot: 'selection',
+      title: 'Create component',
+      icon: 'layers',
+      order: 1,
+      render: domView(() => (
+        <div style="display: grid; gap: var(--msp-space-3)">
+          <ParamsForm form={component} />
+          <ActionFooter
+            icon="plus"
+            label="Create"
+            onReset={() => component.reset()}
+            onApply={() => post(`Component "${(component.values.value as any).label}" from ${summary.value}`)}
+          />
+        </div>
+      )),
+    },
+  ]);
+  return {
+    summary: summary.asReadonly,
+    // One way in: the card offers what to do (color, theme, component); focus stays one click.
+    actions: [
+      { id: 'edit', label: 'Color, theme, component…', icon: 'paintbrush', run: () => shell.show('selection') },
+      { id: 'measure', label: 'Measure…', icon: 'ruler', run: () => shell.show('selection', 'measure') },
+      { id: 'focus', label: 'Focus', icon: 'focus', run: () => post(`Focused on ${summary.value}`) },
+    ],
+    clear: () => summary.set(undefined),
+  };
+}

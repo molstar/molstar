@@ -5,7 +5,7 @@
  */
 
 import { Column } from '@molstar/core/data/db';
-import { MmcifFormat } from '@molstar/model/formats/structure/mmcif';
+import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
 import { CustomPropertyDescriptor } from '@molstar/model/model/custom-property';
 import type { Model } from '@molstar/model/model/structure';
 import type { StructureElement } from '@molstar/model/model/structure/structure';

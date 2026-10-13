@@ -7,8 +7,16 @@
 
 import { PluginStateObject as SO } from '../../objects.js';
 import { StateObject, StateTransform, State, StateObjectCell, StateTree, StateTransformer } from '@molstar/core/state';
-import { StateTransforms } from '../../transforms.js';
-import { VolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/behavior';
+import {
+  CustomModelProperties,
+  CustomStructureProperties,
+  TransformStructureConformation,
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { ModelUnitcell3D } from '@molstar/plugin/state/transforms/structure/unitcell';
+import type { StructureComponent } from '@molstar/plugin/state/transforms/structure/selection';
+import type { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import type { VolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/behavior';
+import { isVolumeStreamingObject } from '@molstar/plugin/behavior/dynamic/volume-streaming/id';
 import type { CreateVolumeStreamingBehavior } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 
 export function buildStructureHierarchy(state: State, previous?: StructureHierarchy) {
@@ -75,7 +83,7 @@ function ModelRef(cell: StateObjectCell<SO.Molecule.Model>, trajectory?: Traject
 }
 
 export interface ModelPropertiesRef
-  extends RefBase<'model-properties', SO.Molecule.Model, StateTransforms['Model']['CustomModelProperties']> {
+  extends RefBase<'model-properties', SO.Molecule.Model, typeof CustomModelProperties> {
   model: ModelRef;
 }
 
@@ -83,8 +91,7 @@ function ModelPropertiesRef(cell: StateObjectCell<SO.Molecule.Model>, model: Mod
   return { kind: 'model-properties', cell, version: cell.transform.version, model };
 }
 
-export interface ModelUnitcellRef
-  extends RefBase<'model-unitcell', SO.Shape.Representation3D, StateTransforms['Representation']['ModelUnitcell3D']> {
+export interface ModelUnitcellRef extends RefBase<'model-unitcell', SO.Shape.Representation3D, typeof ModelUnitcell3D> {
   model: ModelRef;
 }
 
@@ -106,11 +113,7 @@ function StructureRef(cell: StateObjectCell<SO.Molecule.Structure>, model?: Mode
 }
 
 export interface StructurePropertiesRef
-  extends RefBase<
-    'structure-properties',
-    SO.Molecule.Structure,
-    StateTransforms['Model']['CustomStructureProperties']
-  > {
+  extends RefBase<'structure-properties', SO.Molecule.Structure, typeof CustomStructureProperties> {
   structure: StructureRef;
 }
 
@@ -122,11 +125,7 @@ function StructurePropertiesRef(
 }
 
 export interface StructureTransformRef
-  extends RefBase<
-    'structure-transform',
-    SO.Molecule.Structure,
-    StateTransforms['Model']['TransformStructureConformation']
-  > {
+  extends RefBase<'structure-transform', SO.Molecule.Structure, typeof TransformStructureConformation> {
   structure: StructureRef;
 }
 
@@ -150,7 +149,7 @@ function StructureVolumeStreamingRef(
 }
 
 export interface StructureComponentRef
-  extends RefBase<'structure-component', SO.Molecule.Structure, StateTransforms['Model']['StructureComponent']> {
+  extends RefBase<'structure-component', SO.Molecule.Structure, typeof StructureComponent> {
   structure: StructureRef;
   key?: string;
   representations: StructureRepresentationRef[];
@@ -180,7 +179,7 @@ export interface StructureRepresentationRef
   extends RefBase<
     'structure-representation',
     SO.Molecule.Structure.Representation3D,
-    StateTransforms['Representation']['StructureRepresentation3D']
+    typeof StructureRepresentation3D
   > {
   component: StructureComponentRef;
 }
@@ -310,7 +309,7 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
     (state) => (state.currentModel = void 0),
   ],
   [
-    isTransformer(StateTransforms.Model.CustomModelProperties),
+    isTransformer(CustomModelProperties),
     (state, cell) => {
       if (!state.currentModel) return false;
       state.currentModel.properties = createOrUpdateRef(state, cell, ModelPropertiesRef, cell, state.currentModel);
@@ -318,7 +317,7 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
     noop,
   ],
   [
-    isTransformer(StateTransforms.Representation.ModelUnitcell3D),
+    isTransformer(ModelUnitcell3D),
     (state, cell) => {
       if (!state.currentModel) return false;
       state.currentModel.unitcell = createOrUpdateRef(state, cell, ModelUnitcellRef, cell, state.currentModel);
@@ -347,7 +346,7 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
     (state) => (state.currentStructure = void 0),
   ],
   [
-    isTransformer(StateTransforms.Model.CustomStructureProperties),
+    isTransformer(CustomStructureProperties),
     (state, cell) => {
       if (!state.currentStructure) return false;
       state.currentStructure.properties = createOrUpdateRef(
@@ -361,7 +360,7 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
     noop,
   ],
   [
-    isTransformer(StateTransforms.Model.TransformStructureConformation),
+    isTransformer(TransformStructureConformation),
     (state, cell) => {
       if (!state.currentStructure) return false;
       state.currentStructure.transform = createOrUpdateRef(
@@ -377,7 +376,7 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
 
   // Volume Streaming
   [
-    isType(VolumeStreaming),
+    (cell) => isVolumeStreamingObject(cell.obj),
     (state, cell) => {
       if (!state.currentStructure) return false;
       state.currentStructure.volumeStreaming = createOrUpdateRef(

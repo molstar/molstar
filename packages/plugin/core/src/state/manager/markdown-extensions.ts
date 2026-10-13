@@ -4,14 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { getCellBoundingSphere } from './focus-camera/focus-object.js';
-import { PluginStateObject } from '../objects.js';
-import { StateObjectCell, StateSelection } from '@molstar/core/state';
+import type { StateObjectCell } from '@molstar/core/state';
 import type { PluginContext } from '@molstar/plugin/context';
-import { Script } from '@molstar/model/script/script';
-import { QueryContext, type QueryFn, StructureElement, StructureSelection } from '@molstar/model/model/structure';
 import { BehaviorSubject } from 'rxjs';
-import { AnimateStateSnapshotTransition } from '../animation/built-in/state-snapshots.js';
 
 export type MarkdownExtensionEvent = 'click' | 'mouse-enter' | 'mouse-leave';
 
@@ -25,218 +20,14 @@ export interface MarkdownExtension {
   reactRenderFn?: (options: { args: Record<string, string>; manager: MarkdownExtensionManager }) => any;
 }
 
-export const BuiltInMarkdownExtension: MarkdownExtension[] = [
-  {
-    name: 'center-camera',
-    execute: ({ event, args, manager }) => {
-      if (event !== 'click') return;
-      if ('center-camera' in args) {
-        manager.plugin.managers.camera.reset();
-      }
-    },
-  },
-  {
-    name: 'apply-snapshot',
-    execute: ({ event, args, manager }) => {
-      if (event !== 'click') return;
-      const key = args['apply-snapshot'];
-      if (!key) return;
-      manager.plugin.managers.snapshot.applyKey(key);
-    },
-  },
-  {
-    name: 'next-snapshot',
-    execute: ({ event, args, manager }) => {
-      if (event !== 'click' || !('next-snapshot' in args)) return;
-      let dir: -1 | 1 = (+args['next-snapshot'] || 1) as -1 | 1;
-      if (!dir) return;
-      if (dir < 0) dir = -1;
-      else dir = 1;
-      manager.plugin.managers.snapshot.applyNext(dir);
-    },
-  },
-  {
-    name: 'focus-refs',
-    execute: ({ event, args, manager }) => {
-      if (event !== 'click') return;
-      const refs = parseArray(args['focus-refs']);
-      if (!refs?.length) return;
-
-      const cells = manager.findCells(refs);
-      if (!cells.length) return;
-
-      const reprs = findRepresentations(manager.plugin, cells);
-      if (!reprs.length) return;
-
-      const spheres = reprs.map((c) => getCellBoundingSphere(manager.plugin, c.transform.ref)).filter((s) => !!s);
-      if (!spheres.length) return;
-      manager.plugin.managers.camera.focusSpheres(spheres, (s) => s, { extraRadius: 3 });
-    },
-  },
-  {
-    name: 'highlight-refs',
-    execute: ({ event, args, manager }) => {
-      const refs = parseArray(args['highlight-refs']);
-      if (!refs?.length) return;
-
-      if (event === 'mouse-leave' && refs.length) {
-        manager.plugin.managers.interactivity.lociHighlights.clearHighlights();
-        return;
-      } else if (event === 'mouse-enter') {
-        const cells = manager.findCells(refs);
-        for (const cell of findRepresentations(manager.plugin, cells)) {
-          if (!cell.obj?.data) continue;
-          const { repr } = cell.obj.data;
-          for (const loci of repr.getAllLoci()) {
-            manager.plugin.managers.interactivity.lociHighlights.highlight({ loci, repr }, false);
-          }
-        }
-      }
-    },
-  },
-  {
-    name: 'query',
-    execute: ({ event, args, manager }) => {
-      const expression = args['query'];
-      if (!expression?.length) return;
-
-      // supported languages: mol-script, pymol, vmd, jmol
-      const language = args['lang'] || 'mol-script';
-      // supported actions: highlight, focus
-      const action = parseArray(args['action'] || 'highlight');
-      const focusRadius = parseFloat(args['focus-radius'] || '3');
-
-      if (event === 'mouse-leave') {
-        if (action.includes('highlight')) {
-          manager.plugin.managers.interactivity.lociHighlights.clearHighlights();
-        }
-        return;
-      }
-
-      let query: QueryFn<StructureSelection>;
-      try {
-        query = Script.toQuery({
-          language: language as Script.Language,
-          expression,
-        });
-      } catch (e) {
-        console.warn(`Failed to parse query '${expression}' (${language})`, e);
-        return;
-      }
-
-      const structures = manager.plugin.state.data.selectQ((q) => q.rootsOfType(PluginStateObject.Molecule.Structure));
-
-      if (event === 'mouse-enter') {
-        if (!action.includes('focus')) {
-          return;
-        }
-        manager.plugin.managers.interactivity.lociHighlights.clearHighlights();
-        for (const structure of structures) {
-          if (!structure.obj?.data) continue;
-          const selection = query(new QueryContext(structure.obj.data));
-          const loci = StructureSelection.toLociWithSourceUnits(selection);
-          manager.plugin.managers.interactivity.lociHighlights.highlight(
-            {
-              loci,
-            },
-            false,
-          );
-        }
-      }
-
-      if (event === 'click') {
-        if (!action.includes('focus')) {
-          return;
-        }
-        const decorated = structures.map((s) =>
-          StateSelection.getDecorated<PluginStateObject.Molecule.Structure>(manager.plugin.state.data, s.transform.ref),
-        );
-        const spheres = decorated
-          .map((s) => {
-            if (!s.obj?.data) return undefined;
-            const selection = query(new QueryContext(s.obj.data));
-            if (StructureSelection.isEmpty(selection)) return;
-
-            const loci = StructureSelection.toLociWithSourceUnits(selection);
-            return StructureElement.Loci.getBoundary(loci).sphere;
-          })
-          .filter((s) => !!s);
-
-        if (spheres.length) {
-          manager.plugin.managers.camera.focusSpheres(spheres, (s) => s, { extraRadius: focusRadius });
-        }
-      }
-    },
-  },
-  {
-    name: 'play-audio',
-    execute: ({ event, args, manager }) => {
-      if (event !== 'click') return;
-
-      const src = args['play-audio'];
-      if (!src?.length) return;
-      manager.audio.play(src);
-    },
-  },
-  {
-    name: 'toggle-audio',
-    execute: ({ event, args, manager }) => {
-      if (event !== 'click' || !('toggle-audio' in args)) return;
-
-      const src = args['toggle-audio'];
-      manager.audio.play(src, { toggle: true });
-    },
-  },
-  {
-    name: 'pause-audio',
-    execute: ({ event, args, manager }) => {
-      if (event !== 'click' || !('pause-audio' in args)) return;
-      manager.audio.pause();
-    },
-  },
-  {
-    name: 'stop-audio',
-    execute: ({ event, args, manager }) => {
-      if (event !== 'click' || !('stop-audio' in args)) return;
-      manager.audio.stop();
-    },
-  },
-  {
-    name: 'dispose-audio',
-    execute: ({ event, args, manager }) => {
-      if (event !== 'click' || !('dispose-audio' in args)) return;
-      manager.audio.dispose();
-    },
-  },
-  {
-    name: 'play-transition',
-    execute: ({ event, args, manager }) => {
-      if (event !== 'click' || !('play-transition' in args)) return;
-      manager.plugin.managers.animation.play(AnimateStateSnapshotTransition, {});
-    },
-  },
-  {
-    name: 'play-snapshots',
-    execute: ({ event, args, manager }) => {
-      if (event !== 'click' || !('play-snapshots' in args)) return;
-      manager.plugin.managers.snapshot.play({ restart: true });
-    },
-  },
-  {
-    name: 'stop-animation',
-    execute: ({ event, args, manager }) => {
-      if (event !== 'click' || !('stop-animation' in args)) return;
-      manager.plugin.managers.snapshot.stop();
-    },
-  },
-];
-
 export class MarkdownExtensionManager {
   state = {
     audioPlayer: new BehaviorSubject<HTMLAudioElement | null>(null),
   };
 
   private extension: MarkdownExtension[] = [];
+  /** Registration counts by extension name */
+  private extensionCounts = new Map<string, number>();
   private refResolvers: Record<string, (plugin: PluginContext, refs: string[]) => StateObjectCell[]> = {
     default: (plugin: PluginContext, refs: string[]) =>
       refs.map((ref) => plugin.state.data.cells.get(ref)).filter((c) => !!c),
@@ -297,18 +88,47 @@ export class MarkdownExtensionManager {
     delete this.uriResolvers[name];
   }
 
+  /** Returns the message `registerExtension` would throw for `command`, without changing anything. */
+  findConflict(command: MarkdownExtension): string | undefined {
+    const existing = this.extension.find((c) => c.name === command.name);
+    if (existing && existing !== command) {
+      return `MarkdownExtensionManager: a different extension is already registered under the name '${command.name}'.`;
+    }
+    return undefined;
+  }
+
+  /**
+   * Extensions are keyed by `name`. Registering the same object again increments a count,
+   * a different object under an existing name throws.
+   */
   registerExtension(command: MarkdownExtension) {
-    const existing = this.extension.findIndex((c) => c.name === command.name);
-    if (existing >= 0) {
-      this.extension[existing] = command;
+    const conflict = this.findConflict(command);
+    if (conflict) throw new Error(conflict);
+
+    const count = this.extensionCounts.get(command.name);
+    if (count !== undefined) {
+      this.extensionCounts.set(command.name, count + 1);
     } else {
+      this.extensionCounts.set(command.name, 1);
       this.extension.push(command);
     }
   }
 
-  removeExtension(name: string) {
+  /**
+   * Decrements the count of the extension (given by name or object) and removes it at zero.
+   * No-op for an unknown name, or for an object that is not the one registered under its name.
+   */
+  removeExtension(nameOrExtension: string | MarkdownExtension) {
+    const name = typeof nameOrExtension === 'string' ? nameOrExtension : nameOrExtension.name;
     const idx = this.extension.findIndex((c) => c.name === name);
-    if (idx >= 0) {
+    if (idx < 0) return;
+    if (typeof nameOrExtension !== 'string' && this.extension[idx] !== nameOrExtension) return;
+
+    const count = this.extensionCounts.get(name) ?? 1;
+    if (count > 1) {
+      this.extensionCounts.set(name, count - 1);
+    } else {
+      this.extensionCounts.delete(name);
       this.extension.splice(idx, 1);
     }
   }
@@ -451,30 +271,7 @@ export class MarkdownExtensionManager {
     },
   };
 
-  constructor(public plugin: PluginContext) {
-    for (const command of BuiltInMarkdownExtension) {
-      this.registerExtension(command);
-    }
-  }
-}
-
-function parseArray(input?: string): string[] {
-  return (
-    input
-      ?.split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0) ?? []
-  );
-}
-
-function findRepresentations(plugin: PluginContext, cells: StateObjectCell[]): StateObjectCell[] {
-  if (!cells.length) return [];
-  return plugin.state.data.selectQ((q) =>
-    q
-      .byValue(...cells)
-      .subtree()
-      .filter((c) => PluginStateObject.isRepresentation3D(c.obj)),
-  );
+  constructor(public plugin: PluginContext) {}
 }
 
 export function defaultParseMarkdownCommandArgs(input: string | undefined): Record<string, string> | undefined {

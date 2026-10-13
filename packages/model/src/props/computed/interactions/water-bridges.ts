@@ -7,13 +7,13 @@
 import { type Structure, Unit, type StructureElement } from '@molstar/model/model/structure';
 import type { IntMap } from '@molstar/core/data/int';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
-import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { MoleculeType, NucleicBackboneAtoms, ProteinBackboneAtoms } from '@molstar/model/model/structure/model/types';
 import { StructureLookup3DResultContext } from '@molstar/model/model/structure/structure/util/lookup3d';
 import { Features } from './features.js';
 import { FeatureType, InteractionType, InteractionFlag } from './common.js';
 import { type GeometryOptions, checkGeometry } from './hydrogen-bonds.js';
 import { degToRad } from '@molstar/core/math/misc';
+import { WaterBridgesParams, type WaterBridgesProps } from './params.js';
 import { cantorPairing } from '@molstar/core/data/util/hash-functions';
 
 export type { WaterBridgeContact, WaterBridgeContacts };
@@ -37,29 +37,6 @@ interface WaterBridgeContact {
 }
 
 type WaterBridgeContacts = ReadonlyArray<WaterBridgeContact>;
-
-export const WaterBridgesParams = {
-  backbone: PD.Boolean(true, { description: 'Include backbone hydrogen bonds' }),
-  ignoreHydrogens: PD.Boolean(true, { description: 'Ignore explicit hydrogens in geometric constraints' }),
-  legDistMin: PD.Numeric(2.5, { min: 1, max: 4, step: 0.1 }, { description: 'Minimum leg distance (Å)' }),
-  legDistMax: PD.Numeric(4.1, { min: 1, max: 6, step: 0.1 }, { description: 'Maximum leg distance (Å)' }),
-  donAngleDevMax: PD.Numeric(
-    80,
-    { min: 0, max: 180, step: 1 },
-    { description: 'Max deviation from ideal donor angle' },
-  ),
-  accAngleDevMax: PD.Numeric(
-    50,
-    { min: 0, max: 180, step: 1 },
-    { description: 'Max deviation from ideal acceptor angle' },
-  ),
-  donOutOfPlaneAngleMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }),
-  accOutOfPlaneAngleMax: PD.Numeric(90, { min: 0, max: 180, step: 1 }),
-  omegaMin: PD.Numeric(71, { min: 0, max: 180, step: 1 }, { description: 'Minimum A–W–B angle (°)' }),
-  omegaMax: PD.Numeric(140, { min: 0, max: 180, step: 1 }, { description: 'Maximum A–W–B angle (°)' }),
-};
-export type WaterBridgesParams = typeof WaterBridgesParams;
-export type WaterBridgesProps = PD.Values<WaterBridgesParams>;
 
 export const WaterBridgesProvider = {
   requiredFeatures: new Set([FeatureType.HydrogenDonor, FeatureType.HydrogenAcceptor]),

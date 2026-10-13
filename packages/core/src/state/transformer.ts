@@ -163,7 +163,11 @@ namespace Transformer {
     readonly name: string;
     readonly from: StateObject.Ctor[];
     readonly to: StateObject.Ctor[];
-    readonly display: { readonly name: string; readonly description?: string };
+    /**
+     * `triggerLabel`: what running it does, for the button that runs it ("Download", "Open", "Load"); a UI falls back to
+     * a generic label ("Apply", "Update") without it.
+     */
+    readonly display: { readonly name: string; readonly description?: string; readonly triggerLabel?: string };
     params?(a: A | undefined, globalCtx: unknown): { [K in keyof P]: PD.Any };
 
     /**
@@ -200,6 +204,11 @@ namespace Transformer {
     return Array.from(registry.values());
   }
 
+  /** Non-throwing check whether a transformer with the given id is registered. */
+  export function has(id: string): boolean {
+    return registry.has(id as Id);
+  }
+
   export function get(id: string): Transformer {
     const t = registry.get(id as Id);
     if (!t) {
@@ -231,12 +240,15 @@ namespace Transformer {
       }
     }
 
+    let action: StateAction<A, void, P> | undefined;
+
     const t: Transformer<A, B, P> = {
       apply(parent, params, props) {
         return StateTransform.create<Transformer<A, B, P>>(parent, t, params, props);
       },
       toAction() {
-        return StateAction.fromTransformer(t);
+        // cached so that a transformer and its action share one identity and id
+        return (action ??= StateAction.fromTransformer(t) as StateAction<A, void, P>);
       },
       namespace,
       id,
@@ -267,7 +279,7 @@ namespace Transformer {
       to: B | B[];
       /** The source StateObject can be undefined: used for generating docs. */
       params?: PD.For<P> | ((a: StateObject.From<A> | undefined, globalCtx: any) => PD.For<P>);
-      display?: string | { name: string; description?: string };
+      display?: string | { name: string; description?: string; triggerLabel?: string };
       isDecorator?: boolean;
     }
 

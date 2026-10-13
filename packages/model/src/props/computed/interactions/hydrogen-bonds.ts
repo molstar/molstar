@@ -24,40 +24,12 @@ import { ValenceModelProvider } from '../valence-model.js';
 import { degToRad } from '@molstar/core/math/misc';
 import { FeatureType, FeatureGroup, InteractionType } from './common.js';
 import type { ContactProvider } from './contacts.js';
+import { GeometryParams, HydrogenBondsParams, WeakHydrogenBondsParams } from './params.js';
 import { MoleculeType, ProteinBackboneAtoms } from '@molstar/model/model/structure/model/types';
 
-export const GeometryParams = {
-  distanceMax: PD.Numeric(3.5, { min: 1, max: 5, step: 0.1 }),
-  backbone: PD.Boolean(true, { description: 'Include backbone-to-backbone hydrogen bonds' }),
-  accAngleDevMax: PD.Numeric(
-    45,
-    { min: 0, max: 180, step: 1 },
-    { description: 'Max deviation from ideal acceptor angle' },
-  ),
-  ignoreHydrogens: PD.Boolean(false, { description: 'Ignore explicit hydrogens in geometric constraints' }),
-  donAngleDevMax: PD.Numeric(
-    45,
-    { min: 0, max: 180, step: 1 },
-    { description: 'Max deviation from ideal donor angle' },
-  ),
-  accOutOfPlaneAngleMax: PD.Numeric(90, { min: 0, max: 180, step: 1 }),
-  donOutOfPlaneAngleMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }),
-};
-export type GeometryParams = typeof GeometryParams;
 type GeometryProps = PD.Values<GeometryParams>;
-
-const HydrogenBondsParams = {
-  ...GeometryParams,
-  water: PD.Boolean(false, { description: 'Include water-to-water hydrogen bonds' }),
-  sulfurDistanceMax: PD.Numeric(4.1, { min: 1, max: 5, step: 0.1 }),
-};
-type HydrogenBondsParams = typeof HydrogenBondsParams;
 type HydrogenBondsProps = PD.Values<HydrogenBondsParams>;
 
-const WeakHydrogenBondsParams = {
-  ...GeometryParams,
-};
-type WeakHydrogenBondsParams = typeof WeakHydrogenBondsParams;
 type WeakHydrogenBondsProps = PD.Values<WeakHydrogenBondsParams>;
 
 //

@@ -1,0 +1,349 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.dock {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  background: var(--msp-color-panel);
+}
+
+.right {
+  grid-area: right;
+  flex-direction: row;
+}
+
+.left {
+  grid-area: left;
+  flex-direction: row-reverse;
+}
+
+/* Top and bottom docks: content beside a slim tab strip, no header (the tab strip collapses them). */
+.top,
+.bottom {
+  flex-direction: row-reverse;
+
+  & .content {
+    flex: 1;
+    width: auto;
+    height: var(--msp-dock-size);
+  }
+
+  & .header,
+  & .splitter {
+    display: none;
+  }
+
+  & .tab {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.top {
+  grid-area: top;
+}
+
+.bottom {
+  grid-area: bottom;
+}
+
+.content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: var(--msp-dock-size);
+  min-width: 0;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 40px;
+  /* The title at 12px: the column the content's text starts in (4px inset, 8px of the boxes' own). */
+  padding: 0 var(--msp-space-3) 0 var(--msp-space-4);
+  font-weight: 600;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+}
+
+/* At least the body's height: a view fills it (a list that scrolls on its own) or runs longer and scrolls as a whole. */
+.bodyContent {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.strip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-2);
+  background: var(--msp-color-bg);
+}
+
+.tab {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  transition:
+    background-color var(--msp-motion-fast) var(--msp-ease),
+    color var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[aria-selected="true"] {
+    background: var(--msp-color-control);
+    color: var(--msp-color-accent);
+  }
+}
+
+.splitter {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 6px;
+  cursor: col-resize;
+  touch-action: none;
+
+  &[data-active] {
+    background: color-mix(in oklab, var(--msp-color-accent), transparent 60%);
+  }
+}
+
+.right .splitter {
+  left: -3px;
+}
+
+.left .splitter {
+  right: -3px;
+}
+
+.collapsedBar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 24px;
+  padding: 0 var(--msp-inset);
+}
+
+.barTab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+}
+
+/* Compact: the right dock is a bottom sheet with its tabs along the bottom edge. */
+.compact {
+  flex-direction: column;
+
+  & .content {
+    width: auto;
+    /* A share of the shell (a size container), not of the window: hosts can be small. */
+    height: min(45cqh, 420px);
+  }
+
+  & .strip {
+    flex-direction: row;
+    justify-content: space-around;
+  }
+
+  & .splitter {
+    display: none;
+  }
+}
+
+/* Floating: over the canvas, inside the canvas layer. The rail (tab strip, toolbar) sits at the edge, the content card
+   beside it, both flat glass; the card is more opaque so trees and forms stay readable over the molecule. */
+.floating {
+  position: absolute;
+  top: var(--msp-canvas-edge);
+  bottom: var(--msp-canvas-edge);
+  display: flex;
+  align-items: flex-start;
+  /* The one gap between floating things (Gap in shell-view.tsx). */
+  gap: var(--msp-space-3);
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+
+  & .content {
+    align-self: stretch;
+    border-radius: var(--msp-radius-lg);
+    background: var(--msp-glass-panel-bg);
+    box-shadow: var(--msp-glass-shadow);
+    backdrop-filter: var(--msp-glass-filter);
+    -webkit-backdrop-filter: var(--msp-glass-filter);
+    overflow: hidden;
+  }
+
+  /* In the rail (a frame): edge to edge, like the tools around it. */
+  & .strip {
+    gap: 0;
+    padding: 0;
+    background: none;
+  }
+
+  & .tab {
+    width: 100%;
+    height: 40px;
+    border-radius: 0;
+  }
+
+  & .tab[aria-selected="true"] {
+    background: var(--msp-color-control);
+  }
+}
+
+.floatingRight {
+  /* The rail is docked to the right edge: a full-height column, no margin; the panel floats beside it, the frame margin
+     from it as from the canvas's other edges (the rail is the edge now). */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  flex-direction: row-reverse;
+  gap: var(--msp-canvas-edge);
+
+  & .rail {
+    border-radius: 0;
+    background: var(--msp-glass-panel-bg);
+    box-shadow: -1px 0 0 var(--msp-glass-edge);
+  }
+
+  & .content {
+    margin: var(--msp-canvas-edge) 0;
+  }
+
+  /* An overlay card open in the panel's place: the panel steps aside (no doubled glass or edges underneath). */
+  [data-overlay="open"] > & .content {
+    visibility: hidden;
+  }
+}
+
+/* Pinned: the panel is a column beside the canvas like the rail, full height, flat, a hairline between them. */
+[data-pinned] > .floatingRight {
+  gap: 0;
+
+  & .content {
+    margin: 0;
+    border-radius: 0;
+    /* Hairlines on both sides: the canvas on the left, the rail on the right. */
+    box-shadow:
+      -1px 0 0 var(--msp-glass-edge),
+      inset -1px 0 0 var(--msp-glass-edge);
+  }
+}
+
+.floatingLeft {
+  left: var(--msp-canvas-edge);
+  flex-direction: row;
+}
+
+.floatingTop,
+.floatingBottom {
+  left: var(--msp-canvas-edge);
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
+  flex-direction: column;
+  align-items: stretch;
+
+  & .content {
+    flex: none;
+    width: auto;
+    height: var(--msp-dock-size);
+  }
+
+  & .header,
+  & .splitter {
+    display: none;
+  }
+
+  & .collapsedBar {
+    flex: none;
+    align-self: flex-start;
+    height: 28px;
+    border-radius: var(--msp-radius-lg);
+    background: var(--msp-glass-bg);
+    box-shadow: var(--msp-glass-shadow);
+    backdrop-filter: var(--msp-glass-filter);
+    -webkit-backdrop-filter: var(--msp-glass-filter);
+  }
+}
+
+.floatingTop {
+  bottom: auto;
+}
+
+.floatingBottom {
+  top: auto;
+  flex-direction: column-reverse;
+}
+
+.rail {
+  flex: none;
+  align-self: stretch;
+}
+
+/* The bottom of the rail: pushed down, its divider above it; the tabs placed there (Settings), then the command menu (the
+   main way in), a shade apart. */
+.railFoot {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+
+  & > :last-child {
+    background: color-mix(in oklab, var(--msp-color-control), transparent 30%);
+  }
+
+  & > * + * {
+    border-top: 1px solid var(--msp-glass-edge);
+  }
+}
+
+/* The pin's glyph is heavier than the ✕ beside it: drawn smaller so the two read as one size. */
+.pin > span {
+  align-items: center;
+  justify-content: center;
+
+  & > svg {
+    width: 14px;
+    height: 14px;
+  }
+}

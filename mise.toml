@@ -1,0 +1,79 @@
+[tools]
+# Node 24 (LTS); pnpm matches `packageManager` in package.json.
+node = "24"
+pnpm = "11.25.0"
+
+# The tasks wrap the package.json scripts; extra arguments are passed through,
+# e.g. `mise run dev:apps viewer` or `mise run jest packages/core`.
+
+[tasks.install]
+description = "Install workspace dependencies"
+run = "pnpm install"
+
+[tasks.build]
+description = "Build libraries, apps and the distribution"
+run = "pnpm build"
+
+[tasks."build:lib"]
+description = "Build the libraries (tsc -b and assets)"
+run = "pnpm build:lib"
+
+[tasks.dev]
+description = "All apps and examples in watch mode"
+run = "pnpm dev"
+
+[tasks."dev:apps"]
+description = "Apps in watch mode (e.g. `mise run dev:apps viewer`)"
+run = "pnpm dev:apps --"
+
+[tasks."dev:examples"]
+description = "Examples in watch mode"
+run = "pnpm dev:examples --"
+
+[tasks.storybook]
+description = "Storybook on port 6006 (the packages registered in storybook/packages.ts)"
+run = "pnpm -C storybook storybook"
+
+[tasks.lint]
+description = "Lint with Biome"
+run = "pnpm lint"
+
+[tasks."lint:fix"]
+description = "Lint with Biome and apply fixes"
+run = "pnpm lint:fix"
+
+[tasks.format]
+description = "Format code, JSON, Markdown, YAML and SCSS"
+run = "pnpm format"
+
+[tasks."format:check"]
+description = "Check formatting"
+run = "pnpm format:check"
+
+[tasks.jest]
+description = "Unit tests"
+run = "pnpm jest"
+
+[tasks."jest:ai"]
+description = "packages/ai tests"
+run = "pnpm jest:ai"
+
+[tasks.test]
+description = "Lint, jest and jest:ai"
+run = "pnpm test"
+
+[tasks.tsc]
+description = "Type-check every project by references"
+run = "pnpm exec tsc -b"
+
+[tasks."check:workspace"]
+description = "Package boundaries, exports, imports, the inventory"
+run = "pnpm check:workspace"
+
+[tasks.clean]
+description = "Remove build outputs"
+run = "pnpm clean"
+
+[tasks.rebuild]
+description = "Clean and build"
+run = "pnpm rebuild"

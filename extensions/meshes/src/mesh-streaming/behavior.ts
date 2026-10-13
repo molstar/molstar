@@ -9,7 +9,7 @@ import { distinctUntilChanged, map } from 'rxjs';
 import { CIF } from '@molstar/io/reader/cif';
 import { Box3D } from '@molstar/core/math/geometry';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginCommand } from '@molstar/plugin/command';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { PluginContext } from '@molstar/plugin/context';

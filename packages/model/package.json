@@ -5,7 +5,7 @@
   "description": "Mol* model",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {
@@ -22,8 +22,8 @@
     "./model/sequence/alignment/_test/*": null,
     "./model/structure/structure/element/_test/*": null,
     "./model/structure/structure/util/_test/*": null,
-    "./script/language/_test/*": null,
-    "./script/transpilers/_test/*": null
+    "./script/_test/*": null,
+    "./script/runtime/query/_test/*": null
   },
   "files": [
     "lib",
@@ -39,7 +39,8 @@
     "immutable": "catalog:",
     "tslib": "catalog:",
     "@molstar/core": "workspace:*",
-    "@molstar/io": "workspace:*"
+    "@molstar/io": "workspace:*",
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

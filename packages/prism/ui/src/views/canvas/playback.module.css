@@ -1,0 +1,245 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.card {
+  /* The panels' text size (the canvas chrome is not the place for larger text). */
+  font-size: var(--msp-font-size-sm);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-1);
+  height: 34px;
+  padding: 0 var(--msp-space-2);
+
+  /* Quiet like the rest of the canvas chrome: muted until hovered, the same size as the stack's icons. */
+  & button {
+    color: var(--msp-color-text-muted);
+
+    &:hover:not(:disabled) {
+      color: var(--msp-color-text);
+    }
+
+    &[aria-pressed="true"] {
+      color: var(--msp-color-accent);
+    }
+  }
+
+  & svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* A leading glyph in a button-sized slot, so it lines up with the buttons of the cards around it. */
+.lead {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--msp-color-text-muted);
+}
+
+.counter {
+  min-width: 44px;
+  font-size: var(--msp-font-size-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--msp-color-text-muted);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.description {
+  max-height: 40cqh;
+}
+
+.descriptionContent {
+  padding: 0 var(--msp-space-4) var(--msp-space-4);
+  font-size: var(--msp-font-size-sm);
+}
+
+.scrubber {
+  flex: 1;
+  min-width: 40px;
+  height: 16px;
+  margin: 0 var(--msp-space-2);
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+
+  /* A quiet track: the played part in muted text, the rest a hairline; the knob in the text color (no accent). */
+  &::-webkit-slider-runnable-track {
+    height: 2px;
+    border-radius: 1px;
+    background: linear-gradient(
+      to right,
+      var(--msp-color-text-muted) var(--msp-progress, 0%),
+      var(--msp-color-border-strong) var(--msp-progress, 0%)
+    );
+  }
+
+  &::-webkit-slider-thumb {
+    width: 10px;
+    height: 10px;
+    margin-top: -4px; /* off-scale: the thumb centred on the track */
+    border-radius: 50%;
+    background: var(--msp-color-text);
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  &::-moz-range-track {
+    height: 2px;
+    border-radius: 1px;
+    background: var(--msp-color-border-strong);
+  }
+
+  &::-moz-range-progress {
+    height: 2px;
+    border-radius: 1px;
+    background: var(--msp-color-text-muted);
+  }
+
+  &::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--msp-color-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--msp-radius-sm);
+  }
+}
+
+/* Which structure's models these are. */
+.trajectoryLabel {
+  overflow: hidden;
+  font-weight: 600;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+/* Few snapshots: one dot each, the current one filled; a generous hit area around each small dot. */
+.dots {
+  display: flex;
+  align-items: center;
+  margin-right: var(--msp-space-2);
+}
+
+.dot {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 24px;
+
+  &::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--msp-color-border-strong);
+    transition: background-color var(--msp-motion-fast) var(--msp-ease);
+  }
+
+  &:hover::before {
+    background: var(--msp-color-text-muted);
+  }
+
+  &[aria-selected="true"]::before {
+    background: var(--msp-color-text);
+  }
+}
+
+/* Many snapshots: the position as a quiet button that opens the list. */
+.position {
+  height: 24px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  font-variant-numeric: tabular-nums;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.list {
+  display: grid;
+  gap: var(--msp-space-2);
+  padding: 0 var(--msp-space-2) var(--msp-space-2);
+}
+
+.listRows {
+  max-height: 220px;
+}
+
+.listRowsContent {
+  display: grid;
+}
+
+.listRow {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: 26px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[aria-selected="true"] {
+    color: var(--msp-color-text);
+    font-weight: 600;
+  }
+}
+
+.listIndex {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}

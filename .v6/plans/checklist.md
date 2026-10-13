@@ -10,7 +10,7 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
 
 - [x] Fix Node MP4 encoding: use the default `h264-mp4-encoder` import. Cover native Node ESM as well as browser
       bundles.
-- [x] Fix the pre-existing headless MP4 behavior check: check the `Mp4Export` transformer rather than its unqualified
+- [x] Fix the pre-existing headless MP4 behavior check: check the `VideoExport` transformer rather than its unqualified
       name. Verify that animation export reaches encoding; keep native GL installation optional.
 - [x] Support caller-controlled MVSX ZIP options under the third `createMVSX` parameter's `zip` property. Explicit
       `mtime` enables identical bytes across different clock times; the default uses the current time. Verify both
@@ -38,16 +38,23 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
 
 ## Deferred validation and tooling
 
-- [ ] Bring back `external-structure` and `external-volume` color themes during registry composition work. Their
-      implementations depend on `PluginStateObject` and, for structures, the plugin backbone selection query. They
-      remain in `@molstar/plugin/themes/*` but are intentionally unregistered in this prototype. Resolve those
-      dependencies and define explicit composition; do not add special registration logic to `PluginContext`.
+- [x] Bring back `external-structure` and `external-volume` color themes during registry composition work. Done in
+      plugin composition: the `ExternalColorThemes` entry (`@molstar/plugin/themes/external`) is part of
+      `DefaultRegistry`; `PluginContext` has no special registration logic.
 
-- [ ] Restore full MolQL validation in `mvs-validate` by importing mol-script. Decide how to expose the compiler
-      dependency without making the standalone builder depend on plugin/rendering code. Then reject unknown symbols and
-      invalid expressions with a nonzero CLI exit status. Until this is implemented, the builder validates expression
-      shape and the runtime performs compiler validation. This is deferred to settle the integration design, not to
-      remove full validation.
+- [x] Add MolQL syntax and field-name validation to `mvs-validate` and the builder, against symbol and
+      argument-definition tables without the molecular query runtime. Reject malformed expressions, unknown calls, and
+      bad argument names; include file/expression paths and a nonzero CLI exit status. Custom symbols use an explicit
+      definition lookup. Argument type, required-argument, and selection-result checks are outside this pass. See the
+      [MolQL design](../designs/architecture.md#72-molql-builder-and-validation-design).
+- [x] Expose `MolScriptBuilder` and `compileScript` through `@molstar/mvs-builder/molql`, backed by the standalone
+      `@molstar/query-language` package. Keep executable molecular compilation/evaluation in model.
+- [x] Provide text-to-MolQL translation for MolScript, PyMOL, VMD, and Jmol. Preserve explicit per-language and
+      all-languages registration for plugin use; keep text parsers out of JSON builder/validation imports. Verify the
+      standalone dependency boundary and packed authoring/CLI consumers.
+- [ ] Verify standalone-builder API/schema/serialization parity before replacing `molviewspec-ts` and JSR
+      `@molstar/molviewspec`. Existing packed smoke checks cover basic MVSJ/MVSX round trips; replacement parity and JSR
+      source publication remain separate release tasks.
 - [x] Migrate compilation to TypeScript 7, including project references, declaration checks, ESM/source conditions,
       incremental builds, and CI. Retain the separate TypeScript 6 compatibility API for AST/config parsing only.
 - [x] Replace ESLint with Biome, documenting rule differences and configuring optional formatting.
@@ -57,6 +64,12 @@ Source: [PR #1951 review](https://github.com/molstar/molstar/pull/1951#pullreque
       `version.json`.
 - [x] Compare clean and incremental builds after tooling changes and rerun the install, lint, test, build, workspace,
       version, tarball, and local smoke checks.
+- [ ] Move the repository's tests to Vitest, ESM throughout (this replaces "Move Jest to ESM"), after the sequence
+      packages land on it (`.v6/seq/plan.md`): one Vitest workspace; `molstar-src` through `resolve.conditions`, so
+      there is no Jest `moduleNameMapper` for a new package to update; `jest.*` to `vi.*` (40 of 285 test files);
+      `@jest-environment` docblocks to `@vitest-environment` (23). The AI packages' separate run (`pnpm jest:ai`,
+      `packages/ai/jest.config.cjs`, which transforms the ESM-only AI SDK to CommonJS) folds in and its config goes
+      ([AI plan](../ai/plan.md)).
 
 Tooling verification (2026-10-05): native TypeScript 7.0.2 forced compilation of all 67 projects took 7.28 s, compared
 with 22.01 s for TypeScript 6.0.3 using the same `skipLibCheck: true` settings. Incremental compiler runs took 0.45 s
@@ -90,22 +103,42 @@ allow the caller to choose timestamps that are reproducible across time zones.
 
 ## Remaining architecture and release work
 
-- [ ] Rendering-backend extraction and GL resource/pass/readback redesign.
-- [ ] WebGPU and Blender integration.
-- [ ] Plugin features, empty registries, explicit base specs, registry-aware presets, slim-plugin guarantees, and
-      transformer/catalog splitting.
-- [ ] Remaining convenience-barrel cleanup and `StateTransforms` facade removal.
+- [ ] Rendering-backend extraction and GL resource/pass/readback redesign (owner: Alex; separate workstream).
+- [x] Plugin composition per the [design](../designs/plugin-composition.md) and [plan](plugin-composition.md): empty
+      registries, `spec.registry` entries, explicit base specs, presets that import what they run, transformer/catalog
+      splitting, snapshot pre-validation, and slim-plugin guarantees.
+- [ ] Remaining convenience-barrel cleanup. The `StateTransforms` facade was removed in plugin composition step 1 (the
+      classic Viewer global keeps an app-level object).
 - [ ] Broader test-runner migration and maintainer skills/documentation rewrite.
-- [ ] Fast types, isolated declarations, and the corresponding API annotations.
+- [ ] Add versioned documentation with a v5/v6 version switch. Preserve the existing v5 docs and update the v6 pages
+      separately, including the video-export extension and API changes.
+- [ ] In the documentation rewrite, cover plugin composition. `docs/` is deployed from `master` and still describes the
+      published 5.x `molstar/lib/...` paths, so these pages keep their 5.x imports until then:
+      `docs/docs/plugin/custom-library.md` and `instance.md` (`DefaultPluginSpec`/`DefaultPluginUISpec` now come from
+      `@molstar/plugin/default-spec` and `@molstar/plugin-ui/default-spec`; literal specs add `DefaultRegistry`),
+      `docs/docs/extensions/tunnels.md` (`StateTransforms` is gone; import `ShapeRepresentation3D` directly), and
+      `docs/docs/plugin/selections.md` (selection queries are split under `@molstar/plugin/state/queries/structure/*`).
 - [ ] JSR publication, migration CLI, and downstream migration validation.
 - [ ] Publishing automation, release coordination, and stable-release readiness.
+- [ ] Write the v6 `CHANGELOG.md` section from the [changelog draft](changelog.md).
+- [ ] Before v6 is ready, forward-port every bug fix from the `v5` branch (`git log master..origin/v5`). Most files have
+      moved, so apply fixes by hand using `migration-map.json` rather than by merging. Ported through 5.13.1
+      (2026-10-08): molstar/molstar#1964, server path interpolation and dependency updates.
 - [ ] Capture a representative pre-migration Viewer render comparison baseline.
+
+## Deferred beyond v6
+
+- Full WebGPU rendering/parity and Blender integration. The v6 scope is the rendering-backend boundary with preserved
+  WebGL behavior; see the [rendering design](../designs/webgpu.md).
+- Fast types, isolated declarations, and the corresponding API annotations. Consider these for v7; v6 permits slow types
+  for validated JSR packages. See the [distribution and fast-types design](../designs/fasttypes.md).
 
 ## Other review findings to revisit
 
 These were reported as existing on master, rather than refactor regressions.
 
-- [ ] Investigate the `state-docs` crash in `getOrientationParticlesParams`.
+- [x] Investigate the `state-docs` crash in `getOrientationParticlesParams`. Fixed in plugin composition step 4:
+      data-less param getters (orientation particles, particle target, operator-hkl theme) accept missing data.
 - [ ] Investigate the membrane-orientation server's `--bcifSource` handling.
 - [ ] Recheck reported Node startup and ball-and-stick timing differences with repeated runs before making performance
       changes.

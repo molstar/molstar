@@ -1,7 +1,9 @@
 # Working with the v6 workspace prototype
 
 The repository is a pnpm workspace. Use Node 22 or newer and the pnpm version recorded in the root `packageManager`
-field. Native headless backends may require an older supported Node ABI and platform build tools.
+field. Native headless backends may require an older supported Node ABI and platform build tools. With
+[mise](https://mise.jdx.dev), `mise install` sets up both from the root `mise.toml`, and `mise tasks` lists tasks that
+wrap the common `package.json` scripts (`mise run build`, `mise run dev:apps viewer`, ...).
 
 ```sh
 pnpm install
@@ -16,6 +18,10 @@ assets. `pnpm build:apps` builds apps and browser examples directly from source 
 condition; it does not need a preceding library build. `pnpm build:distribution` assembles the Viewer/MVS Stories
 classic bundles and browser ESM modules in `distributions/molstar/build`. `pnpm pack:workspace` creates local public
 package tarballs in `build/packages` and checks their version ranges and published entry points/assets.
+
+`tsc -b` does not delete output for removed or moved sources, so a local `lib/` can keep stale modules that would be
+packed. `pnpm clean` removes all generated `lib/` and `build/` output (`clean:lib` and `clean:build` remove one kind),
+and `pnpm rebuild` cleans before building. `pnpm check:publish` builds through `rebuild`.
 
 Use `pnpm dev` to watch all browser apps and examples on one server, or `pnpm dev:apps -- viewer` for a source-based
 Viewer dev server. Each browser app/example also has its own `build` and `dev` scripts. Select examples from the root
@@ -34,6 +40,7 @@ choices and is not a runtime resolver.
 | -------------------------- | -------------------------- | ---------------------------------------------------------- |
 | `packages/core`            | `@molstar/core`            | Utility, data, math, tasks, state                          |
 | `packages/io`              | `@molstar/io`              | Parsers and low-level writers                              |
+| `packages/query-language`  | `@molstar/query-language`  | MolQL builder, text translators, standalone validation     |
 | `packages/model`           | `@molstar/model`           | Models, format adapters, properties, queries               |
 | `packages/graphics`        | `@molstar/graphics`        | Existing GL, geometries, themes, representations, Canvas3D |
 | `packages/plugin/core`     | `@molstar/plugin`          | Plugin context, behavior, state, default catalogs          |
@@ -44,14 +51,21 @@ choices and is not a runtime resolver.
 | `distributions/molstar`    | `molstar`                  | Browser distribution artifacts                             |
 
 Extensions, apps, servers and CLI tools own their manifests in their corresponding top-level directories. The filename
-migration inventory is in [`migration-map.json`](migration-map.json). Cross-package imports use public package subpaths
-rather than relative paths into another package's source.
+migration inventory is in [`migration-map.json`](migration-map.json): each v5 source path maps to its v6 path, to an
+array of v6 paths when the file was split into several modules, or to `null` when it was removed.
+[`migration-symbols.json`](migration-symbols.json) maps the exported symbols of split or partly removed v5 modules to
+their current modules (`null` when removed). `scripts/workspace/check.mjs` fails when a target in either file no longer
+exists or a symbol is not exported by its target. Cross-package imports use public package subpaths rather than relative
+paths into another package's source.
 
 Data-only shapes belong to model; rendering shape factories/helpers belong to `@molstar/graphics/geo/shape/shape`. Model
 `Shape.create` takes an explicit group count; the graphics factory derives it from geometry. Model-aware
-molecular/volume writers live in model. GPU density helpers live in graphics. MP4 support is an explicit extension:
-`@molstar/mp4-export-extension/headless` provides `Mp4HeadlessPluginContext`, while the base headless package has no
-encoder import.
+molecular/volume writers live in model. GPU density helpers live in graphics. Video support is an explicit extension:
+`@molstar/video-export-extension/headless` provides `VideoHeadlessPluginContext`, while the base headless package has no
+encoder import. Mediabunny is the default video backend. In Node without WebCodecs, explicitly import `H264WasmBackend`
+from `@molstar/video-export-extension/backends/h264-wasm` and pass
+`{ backend: H264WasmBackend, backendParams: { quantization: 18 } }` to animation export methods. `getAnimation` returns
+`{ data, mimeType, extension }`; `saveAnimation` requires a matching filename extension.
 
 `CollapsableControls`, `CollapsableProps`, and `CollapsableState` now live at `@molstar/plugin-ui/controls/collapsable`;
 base React components stay at `@molstar/plugin-ui/base`. This split prevents initialization cycles between base
@@ -86,6 +100,34 @@ resolver. Pass `--base-url /your/esm/path/` (or an absolute HTTP URL) to `script
 values for a different deployment. Embed the generated map before any module scripts. Classic assets remain under
 `molstar/build/viewer` and `molstar/build/mvs-stories`. Consumers need no build step; Mol* maintainers build the
 published artifacts once.
+
+## Standalone MolQL authoring and validation
+
+```ts
+import { MVSData } from '@molstar/mvs-builder';
+import { MolScriptBuilder as B, compileScript } from '@molstar/mvs-builder/molql';
+
+const builder = MVSData.createBuilder();
+const structure = builder.download({ url: 'example.bcif' }).parse({ format: 'bcif' }).modelStructure();
+structure.component({ selector: { molql: compileScript('pymol', 'chain A') } }).representation({ type: 'cartoon' });
+structure.component({ selector: { molql: B.struct.generator.all() } }).representation({ type: 'ball_and_stick' });
+const issues = MVSData.validationIssues(builder.getState());
+```
+
+`compileScript` accepts `'mol-script'`, `'pymol'`, `'vmd'`, and `'jmol'`, returning a serializable expression after
+syntax/callable-name/argument-name validation. All languages work immediately through this authoring entry point. The
+builder's ordinary schema/serialization imports do not load text parsers or the molecular query runtime.
+
+For direct imports use `@molstar/query-language/language/builder`, `language/validation`, and `compile`. Individual
+`transpilers/<lang>/parser` modules provide translation without importing the other languages. Plugin language
+registration remains explicit through `@molstar/query-language/transpilers/<lang>` or `transpilers/all`.
+
+`MVSData.validationIssues(data, { getMolQLSymbol })` accepts a lookup of custom `MSymbol` definitions. The lookup
+replaces the default vocabulary; return `SymbolMap[name]` from `@molstar/query-language/language/symbol-table` for
+standard names. `expressionValidationIssues(expression, { getSymbol })` exposes the same pass directly. Validation does
+not check missing required arguments, argument types, selection-result types, or molecular execution support.
+`mvs-validate` uses the standard vocabulary and exits with status 1 if any file fails. Molecular compilation stays in
+model.
 
 ## Versions and checks
 

@@ -15,16 +15,16 @@
       "path": "../../packages/core"
     },
     {
+      "path": "../../packages/plugin/headless"
+    },
+    {
       "path": "../../packages/graphics"
     },
     {
       "path": "../../packages/plugin/core"
     },
     {
-      "path": "../../extensions/mp4-export"
-    },
-    {
-      "path": "../../packages/plugin/headless"
+      "path": "../../extensions/video-export"
     },
     {
       "path": "../../packages/mvs/runtime"

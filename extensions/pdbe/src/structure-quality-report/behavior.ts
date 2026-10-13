@@ -11,6 +11,7 @@ import { Loci } from '@molstar/model/model/loci';
 import { StructureElement } from '@molstar/model/model/structure';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 
 export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: boolean; showTooltip: boolean }>({
   name: 'pdbe-structure-quality-report-prop',
@@ -44,11 +45,16 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
       },
     };
 
+    private unregisterEntry: (() => void) | undefined;
+
     register(): void {
       this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
-      this.ctx.managers.lociLabels.addProvider(this.labelPDBeValidation);
 
-      this.ctx.representation.structure.themes.colorThemeRegistry.add(StructureQualityReportColorThemeProvider);
+      const entry: PluginRegistryEntry = {
+        structure: { themes: { color: [StructureQualityReportColorThemeProvider] } },
+        lociLabels: [this.labelPDBeValidation],
+      };
+      this.unregisterEntry = this.ctx.register(entry);
     }
 
     update(p: { autoAttach: boolean; showTooltip: boolean }) {
@@ -61,8 +67,8 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
 
     unregister() {
       this.ctx.customModelProperties.unregister(StructureQualityReportProvider.descriptor.name);
-      this.ctx.managers.lociLabels.removeProvider(this.labelPDBeValidation);
-      this.ctx.representation.structure.themes.colorThemeRegistry.remove(StructureQualityReportColorThemeProvider);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
     }
   },
   params: () => ({

@@ -5,7 +5,7 @@
   "description": "Mol* plugin-extension",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {
@@ -17,7 +17,8 @@
       "molstar-src": "./src/react.tsx",
       "types": "./lib/react.d.ts",
       "import": "./lib/react.js"
-    }
+    },
+    "./_test/*": null
   },
   "files": [
     "lib",
@@ -35,6 +36,7 @@
     "@molstar/plugin-ui": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/model": "workspace:*",
+    "@molstar/query-language": "workspace:*",
     "@molstar/core": "workspace:*",
     "@molstar/mvs": "workspace:*",
     "@molstar/mvs-builder": "workspace:*"

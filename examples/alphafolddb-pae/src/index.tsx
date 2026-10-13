@@ -38,7 +38,12 @@ export class AlphaFoldPAEExample {
     await this.viewer.loadAlphaFoldDb(id);
 
     try {
-      const req = await fetch(`https://alphafold.ebi.ac.uk/files/AF-${id}-F1-predicted_aligned_error_v4.json`);
+      // Resolve the PAE file through the prediction API so its version matches the loaded model
+      const prediction = await (await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${id}`)).json();
+      const paeUrl: string | undefined = prediction?.[0]?.paeDocUrl;
+      if (!paeUrl) throw new Error(`No PAE data for ${id}`);
+      const req = await fetch(paeUrl);
+      if (!req.ok) throw new Error(`PAE request failed with status ${req.status}`);
       const json = await req.json();
 
       const model = this.viewer.plugin.managers.structure.hierarchy.current.models[0]?.cell.obj?.data!;

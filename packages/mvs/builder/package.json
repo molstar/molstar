@@ -5,7 +5,7 @@
   "description": "Mol* mvs-builder",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {
@@ -39,7 +39,8 @@
     "io-ts": "catalog:",
     "tslib": "catalog:",
     "@types/argparse": "catalog:",
-    "fp-ts": "catalog:"
+    "fp-ts": "catalog:",
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

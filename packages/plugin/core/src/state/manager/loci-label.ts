@@ -22,21 +22,47 @@ export type LociLabelProvider = {
 
 export class LociLabelManager {
   providers: LociLabelProvider[] = [];
+  /** Registration counts by provider identity */
+  private counts = new Map<LociLabelProvider, number>();
 
+  /** Drops all providers and their counts. */
   clearProviders() {
     this.providers = [];
+    this.counts.clear();
     this.isDirty = true;
     this.showLabels();
   }
 
+  /** Providers have no key, so registration never conflicts. */
+  findConflict(_provider: LociLabelProvider): string | undefined {
+    return undefined;
+  }
+
+  /** Registering the same provider again increments its count. */
   addProvider(provider: LociLabelProvider) {
+    const count = this.counts.get(provider);
+    if (count !== undefined) {
+      this.counts.set(provider, count + 1);
+      return;
+    }
+
+    this.counts.set(provider, 1);
     this.providers.push(provider);
     this.providers.sort((a, b) => (b.priority || 0) - (a.priority || 0));
     this.isDirty = true;
     this.showLabels();
   }
 
+  /** Decrements the count and removes the provider at zero; no-op for an unknown provider. */
   removeProvider(provider: LociLabelProvider) {
+    const count = this.counts.get(provider);
+    if (count === undefined) return;
+    if (count > 1) {
+      this.counts.set(provider, count - 1);
+      return;
+    }
+
+    this.counts.delete(provider);
     this.providers = this.providers.filter((p) => p !== provider);
     this.isDirty = true;
     this.showLabels();

@@ -3,7 +3,7 @@ import { Color } from '@molstar/core/util/color';
 import { Task } from '@molstar/core/task';
 import { CIF } from '@molstar/io/reader/cif';
 import { PluginContext } from '@molstar/plugin/context';
-import { DefaultPluginSpec } from '@molstar/plugin/spec';
+import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { unzipSync } from 'fflate';
 import fs from 'node:fs';

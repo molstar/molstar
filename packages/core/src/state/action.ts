@@ -54,7 +54,11 @@ namespace StateAction {
   export interface Definition<A extends StateObject = StateObject, T = any, P extends {} = {}>
     extends DefinitionBase<A, T, P> {
     readonly from: StateObject.Ctor[];
-    readonly display: { readonly name: string; readonly description?: string };
+    /**
+     * `triggerLabel`: what running it does, for the button that runs it ("Download", "Open", "Load"); a UI falls back to
+     * a generic label ("Apply", "Update") without it.
+     */
+    readonly display: { readonly name: string; readonly description?: string; readonly triggerLabel?: string };
     params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any };
   }
 
@@ -98,7 +102,7 @@ namespace StateAction {
     export interface Type<A extends StateObject.Ctor, P extends {}> {
       from?: A | A[];
       params?: PD.For<P> | ((a: StateObject.From<A>, globalCtx: any) => PD.For<P>);
-      display?: string | { name: string; description?: string };
+      display?: string | { name: string; description?: string; triggerLabel?: string };
       isApplicable?: DefinitionBase<StateObject.From<A>, any, P>['isApplicable'];
     }
 

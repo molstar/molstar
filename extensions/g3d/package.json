@@ -5,7 +5,7 @@
   "description": "Mol* g3d-extension",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {
@@ -29,7 +29,8 @@
     "@molstar/io": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/core": "workspace:*",
-    "@molstar/model": "workspace:*"
+    "@molstar/model": "workspace:*",
+    "@molstar/query-language": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

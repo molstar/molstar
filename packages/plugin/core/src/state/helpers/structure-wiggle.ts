@@ -6,7 +6,8 @@
 
 import { Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import type { PluginStateObject } from '../objects.js';
-import { StateTransforms } from '../transforms.js';
+import type { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { WiggleStructureRepresentation3DFromBundle } from '@molstar/plugin/state/transforms/structure/effects/wiggle';
 import type { PluginContext } from '@molstar/plugin/context';
 import { StateBuilder, StateObjectCell, StateSelection, StateTransform } from '@molstar/core/state';
 import type { StructureComponentRef } from '../manager/structure/hierarchy-state.js';
@@ -18,12 +19,9 @@ type WiggleEachReprCallback = (
   update: StateBuilder.Root,
   repr: StateObjectCell<
     PluginStateObject.Molecule.Structure.Representation3D,
-    StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>
+    StateTransform<typeof StructureRepresentation3D>
   >,
-  wiggle?: StateObjectCell<
-    any,
-    StateTransform<typeof StateTransforms.Representation.WiggleStructureRepresentation3DFromBundle>
-  >,
+  wiggle?: StateObjectCell<any, StateTransform<typeof WiggleStructureRepresentation3DFromBundle>>,
 ) => Promise<void>;
 const WiggleManagerTag = 'wiggle-controls';
 
@@ -54,11 +52,9 @@ export async function setStructureWiggle(
       update.to(wiggleCell).update(Wiggle.toBundle(filtered));
     } else {
       const filtered = getFilteredBundle([layer], structure);
-      update
-        .to(repr.transform.ref)
-        .apply(StateTransforms.Representation.WiggleStructureRepresentation3DFromBundle, Wiggle.toBundle(filtered), {
-          tags: WiggleManagerTag,
-        });
+      update.to(repr.transform.ref).apply(WiggleStructureRepresentation3DFromBundle, Wiggle.toBundle(filtered), {
+        tags: WiggleManagerTag,
+      });
     }
   });
 }
@@ -83,7 +79,7 @@ async function eachRepr(plugin: PluginContext, components: StructureComponentRef
     for (const r of c.representations) {
       const wiggle = state.select(
         StateSelection.Generators.ofTransformer(
-          StateTransforms.Representation.WiggleStructureRepresentation3DFromBundle,
+          WiggleStructureRepresentation3DFromBundle,
           r.cell.transform.ref,
         ).withTag(WiggleManagerTag),
       );
@@ -194,11 +190,9 @@ export async function setStructureWiggleFromUncertainty(
     if (wiggleCell) {
       update.to(wiggleCell).update(Wiggle.toBundle(filtered));
     } else {
-      update
-        .to(repr.transform.ref)
-        .apply(StateTransforms.Representation.WiggleStructureRepresentation3DFromBundle, Wiggle.toBundle(filtered), {
-          tags: WiggleManagerTag,
-        });
+      update.to(repr.transform.ref).apply(WiggleStructureRepresentation3DFromBundle, Wiggle.toBundle(filtered), {
+        tags: WiggleManagerTag,
+      });
     }
   });
 }

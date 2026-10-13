@@ -5,6 +5,7 @@
  */
 
 import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { VolumeSegmentorManager } from './manager.js';
 import { BodyLabelColorThemeProvider } from './theme.js';
 
@@ -22,15 +23,18 @@ export const VolumeSegmentorBehavior = PluginBehavior.create({
   },
   ctor: class extends PluginBehavior.Handler {
     private manager: VolumeSegmentorManager | undefined;
+    private unregisterEntry: (() => void) | undefined;
 
     register() {
       this.manager = new VolumeSegmentorManager(this.ctx);
       VolumeSegmentorManager.register(this.ctx, this.manager);
-      this.ctx.representation.volume.themes.colorThemeRegistry.add(BodyLabelColorThemeProvider);
+      const entry: PluginRegistryEntry = { volume: { themes: { color: [BodyLabelColorThemeProvider] } } };
+      this.unregisterEntry = this.ctx.register(entry);
     }
 
     unregister() {
-      this.ctx.representation.volume.themes.colorThemeRegistry.remove(BodyLabelColorThemeProvider);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
       VolumeSegmentorManager.unregister(this.ctx);
       this.manager?.dispose();
       this.manager = undefined;

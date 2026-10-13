@@ -1,5 +1,6 @@
 import type { LociLabelProvider } from '@molstar/plugin/state/manager/loci-label';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { SbNcbrPartialChargesColorThemeProvider } from './color.js';
 import { SbNcbrPartialChargesPropertyProvider } from './property.js';
@@ -15,18 +16,25 @@ export const SbNcbrPartialCharges = PluginBehavior.create<{ autoAttach: boolean;
   ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean; showToolTip: boolean }> {
     private SbNcbrPartialChargesLociLabelProvider: LociLabelProvider = SbNcbrPartialChargesLociLabelProvider(this.ctx);
 
+    private unregisterEntry: (() => void) | undefined;
+
     register(): void {
       this.ctx.customModelProperties.register(SbNcbrPartialChargesPropertyProvider, this.params.autoAttach);
-      this.ctx.representation.structure.themes.colorThemeRegistry.add(SbNcbrPartialChargesColorThemeProvider);
-      this.ctx.managers.lociLabels.addProvider(this.SbNcbrPartialChargesLociLabelProvider);
-      this.ctx.builders.structure.representation.registerPreset(SbNcbrPartialChargesPreset);
+
+      const entry: PluginRegistryEntry = {
+        structure: {
+          themes: { color: [SbNcbrPartialChargesColorThemeProvider] },
+          presets: { representation: [SbNcbrPartialChargesPreset] },
+        },
+        lociLabels: [this.SbNcbrPartialChargesLociLabelProvider],
+      };
+      this.unregisterEntry = this.ctx.register(entry);
     }
 
     unregister() {
       this.ctx.customModelProperties.unregister(SbNcbrPartialChargesPropertyProvider.descriptor.name);
-      this.ctx.representation.structure.themes.colorThemeRegistry.remove(SbNcbrPartialChargesColorThemeProvider);
-      this.ctx.managers.lociLabels.removeProvider(this.SbNcbrPartialChargesLociLabelProvider);
-      this.ctx.builders.structure.representation.unregisterPreset(SbNcbrPartialChargesPreset);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
     }
   },
   params: () => ({

@@ -1,0 +1,335 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* A field like a dropdown's (select.module.css .button): content at the 8px text inset, a chevron. */
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--msp-color-focus-ring);
+    outline-offset: -2px;
+  }
+}
+
+.fieldContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.chevron {
+  flex: none;
+  color: var(--msp-color-text-muted);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(180deg);
+  }
+}
+
+/* What a field opens: under its row, a quiet surface with a hairline edge (as the dropdowns' lists). */
+.under {
+  margin: var(--msp-space-1) 0 var(--msp-space-1);
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+}
+
+.options {
+  max-height: 240px;
+}
+
+.optionsContent {
+  display: grid;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-height: 26px;
+  padding: 0 var(--msp-space-2) 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  & > span:first-child:not(.strip) {
+    flex: 1;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+    outline: none;
+  }
+
+  &[aria-selected="true"] {
+    color: var(--msp-color-accent);
+    font-weight: 600;
+  }
+}
+
+.check {
+  flex: none;
+  margin-left: auto;
+  visibility: hidden;
+
+  [aria-selected="true"] > & {
+    visibility: visible;
+  }
+}
+
+/* Vec3: three fields sharing the control column. */
+.vec {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--msp-space-1);
+  width: 100%;
+}
+
+/* Mat4: its 16 numbers as a grid, by rows. */
+.matrix {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-1);
+}
+
+/* Interval: one track, its chosen span filled, two knobs; the range on the right (as a slider's value). */
+.interval {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  align-items: center;
+  gap: var(--msp-space-2);
+  width: 100%;
+}
+
+.intervalTrack {
+  position: relative;
+  height: 16px;
+  margin-left: var(--msp-space-3);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 3px;
+    margin-top: -1.5px; /* off-scale: centred (half the track) */
+    border-radius: 1.5px;
+    background: linear-gradient(
+      90deg,
+      var(--msp-color-pressed) var(--msp-from),
+      color-mix(in oklab, var(--msp-color-text-muted), transparent 45%) var(--msp-from) var(--msp-to),
+      var(--msp-color-pressed) var(--msp-to)
+    );
+  }
+}
+
+/* Two native ranges on one track: only their knobs take the pointer. */
+.intervalRange {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  pointer-events: none;
+
+  &::-webkit-slider-runnable-track {
+    height: 3px;
+    background: transparent;
+  }
+
+  &::-webkit-slider-thumb {
+    width: 10px;
+    height: 10px;
+    margin-top: -3.5px; /* off-scale: the thumb centred on the track */
+    border-radius: 50%;
+    background: var(--msp-color-text-muted);
+    appearance: none;
+    -webkit-appearance: none;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  &::-moz-range-track {
+    background: transparent;
+  }
+
+  &::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--msp-color-text-muted);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.intervalValue {
+  height: 24px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: 24px;
+  text-align: right;
+}
+
+/* A color list as a strip; a line graph as a small curve. */
+.strip {
+  flex: none;
+  width: 56px;
+  height: 10px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+}
+
+.stripName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.spark {
+  flex: none;
+  /* As wide as a color list's strip: the labels after them line up. */
+  width: 56px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The line graph editor: the curve on a faint grid, its points to drag; a hint and the position under it. */
+.graphEditor {
+  display: grid;
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-1);
+}
+
+.graph {
+  display: block;
+  width: 100%;
+  height: 96px;
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-panel);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.grid {
+  stroke: var(--msp-glass-edge);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.curve {
+  fill: none;
+  stroke: var(--msp-color-text-muted);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.point {
+  fill: var(--msp-color-panel);
+  stroke: var(--msp-color-text);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  cursor: grab;
+
+  &:hover {
+    fill: var(--msp-color-accent);
+  }
+}
+
+.graphArea {
+  position: relative;
+}
+
+.graphAt {
+  position: absolute;
+  top: var(--msp-space-1);
+  right: var(--msp-space-2);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* One line, always: the editor keeps its height. */
+/* The hint, and the curve's Presets at the end when it has them. */
+.graphFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+
+  & > .graphHint {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.graphHint {
+  margin: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}

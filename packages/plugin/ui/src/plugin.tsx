@@ -14,7 +14,7 @@ import type { LogEntry } from '@molstar/core/util/log-entry';
 import { PluginReactContext, PluginUIComponent } from '@molstar/plugin-ui/base';
 import {
   AnimationViewportControls,
-  DefaultStructureTools,
+  MinimalStructureTools,
   LociLabels,
   StateSnapshotViewportControls,
   TrajectoryViewportControls,
@@ -294,7 +294,7 @@ function DragOverlay({
 
 export class ControlsWrapper extends PluginUIComponent {
   render() {
-    const StructureTools = this.plugin.spec.components?.structureTools || DefaultStructureTools;
+    const StructureTools = this.plugin.spec.components?.structureTools || MinimalStructureTools;
     return (
       <div className="msp-scrollable-container">
         <StructureTools />

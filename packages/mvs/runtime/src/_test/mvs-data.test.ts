@@ -9,7 +9,7 @@ import { MVSData } from '@molstar/mvs-builder/mvs-data';
 
 describe('MVSData', () => {
   it.skip('MVSData functions work', async () => {
-    const data = fs.readFileSync('examples/mvs/1cbs.mvsj', { encoding: 'utf8' });
+    const data = fs.readFileSync('data/examples/mvs/1cbs.mvsj', { encoding: 'utf8' });
     const mvsData = MVSData.fromMVSJ(data);
     expect(mvsData).toBeTruthy();
 

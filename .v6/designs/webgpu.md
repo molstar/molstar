@@ -3,6 +3,9 @@
 Design and blast-radius analysis against the current 5.x source tree (`molstar@5.11.0`, inspected September 2026). This
 complements the [v6 architecture](architecture.md). Names below are proposed contracts, not implemented APIs.
 
+Owner: Alex. Rendering-backend implementation proceeds as a separate workstream. Full WebGPU rendering/parity and
+Blender integration remain outside the v6 release scope.
+
 ## 1. Recommendation and scope
 
 Introduce a **rendering-backend boundary around device resources, compiled scenes, render passes, and GPU operations**.
@@ -568,8 +571,8 @@ Mechanical imports can be migrated automatically. Resource ownership, synchronou
 integrations need a manual-work report. Existing WebGL-only integrations may use `backends/webgl/interop`, with runtime
 backend checks; shared code must not depend on that entry point.
 
-Backend selection is separate from `PluginFeature` format/representation registration. Registering a representation does
-not guarantee backend support: its applicability check must account for capabilities and available fallbacks. Keep
+Backend selection is separate from plugin registry entries for formats and representations. Registering a representation
+does not guarantee backend support: its applicability check must account for capabilities and available fallbacks. Keep
 transformer identifiers, picking IDs, and scene semantics stable; include any unavoidable public API breaks in the
 migration guide.
 

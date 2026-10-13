@@ -4,7 +4,7 @@
  * @author Dušan Veľký <dvelky@mail.muni.cz>
  */
 
-import { StateTransforms } from '@molstar/plugin/state/transforms';
+import { ShapeRepresentation3D } from '@molstar/plugin/state/transforms/shape/representation';
 import { PluginContext } from '@molstar/plugin/context';
 import type { ChannelsDBdata, Tunnel, TunnelDB } from './data-model.js';
 import { TunnelsFromRawData, SelectTunnel, TunnelShapeProvider, TunnelFromRawData } from './representation.js';
@@ -37,7 +37,7 @@ export async function runVisualizeTunnels(plugin: PluginContext, url: string = U
     .apply(TunnelShapeProvider, {
       webgl,
     })
-    .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    .apply(ShapeRepresentation3D);
 
   await update.commit();
 }
@@ -56,7 +56,7 @@ export async function runVisualizeTunnel(plugin: PluginContext) {
     .apply(TunnelShapeProvider, {
       webgl,
     })
-    .apply(StateTransforms.Representation.ShapeRepresentation3D);
+    .apply(ShapeRepresentation3D);
 
   await update.commit();
 }

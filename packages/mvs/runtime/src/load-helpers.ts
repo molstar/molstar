@@ -12,9 +12,10 @@ import {
   StructureFromModel,
   StructureInstances,
   TransformStructureConformation,
-} from '@molstar/plugin/state/transforms/model';
-import { StructureRepresentation3D, VolumeRepresentation3D } from '@molstar/plugin/state/transforms/representation';
-import { VolumeInstances, VolumeTransform } from '@molstar/plugin/state/transforms/volume';
+} from '@molstar/plugin/state/transforms/structure/hierarchy';
+import { StructureRepresentation3D } from '@molstar/plugin/state/transforms/structure/representation';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { VolumeInstances, VolumeTransform } from '@molstar/plugin/state/transforms/volume/ops';
 import { StateTransformer } from '@molstar/core/state';
 import { arrayDistinct } from '@molstar/core/util/array';
 import { Clip } from '@molstar/core/util/clip';

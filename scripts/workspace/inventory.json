@@ -157,6 +157,12 @@
       "private": true
     },
     {
+      "name": "@molstar/slim-plugin-example",
+      "path": "examples/slim-plugin",
+      "kind": "example",
+      "private": true
+    },
+    {
       "name": "@molstar/examples-standalone",
       "path": "examples/standalone",
       "kind": "tests",
@@ -253,8 +259,8 @@
       "private": false
     },
     {
-      "name": "@molstar/mp4-export-extension",
-      "path": "extensions/mp4-export",
+      "name": "@molstar/video-export-extension",
+      "path": "extensions/video-export",
       "kind": "extension",
       "private": false
     },
@@ -349,6 +355,90 @@
       "private": false
     },
     {
+      "name": "@molstar/ai-agent",
+      "path": "packages/ai/agent",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/ai-harness",
+      "path": "packages/ai/harness",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/ai-conformance",
+      "path": "packages/ai/conformance",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/ai-components",
+      "path": "packages/ai/components",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/ai-model-adapters",
+      "path": "packages/ai/model-adapters",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/ai-tools",
+      "path": "packages/ai/tools",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/ai-session",
+      "path": "packages/ai/session",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/ai-trace",
+      "path": "packages/ai/trace",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/ai-fibers",
+      "path": "packages/ai/fibers",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/ai-narration",
+      "path": "packages/ai/narration",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/prism-ui",
+      "path": "packages/prism/ui",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/prism-assistant",
+      "path": "packages/prism/assistant",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/prism-stories",
+      "path": "packages/prism/stories",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/prism-viewer",
+      "path": "packages/prism/viewer",
+      "kind": "library",
+      "private": true
+    },
+    {
       "name": "@molstar/plugin-headless",
       "path": "packages/plugin/headless",
       "kind": "library",
@@ -409,9 +499,21 @@
       "private": true
     },
     {
+      "name": "@molstar/storybook",
+      "path": "storybook",
+      "kind": "storybook",
+      "private": true
+    },
+    {
       "name": "@molstar/volseg-api-extension",
       "path": "extensions/volseg-api",
       "kind": "extension",
+      "private": false
+    },
+    {
+      "name": "@molstar/query-language",
+      "path": "packages/query-language",
+      "kind": "library",
       "private": false
     }
   ]

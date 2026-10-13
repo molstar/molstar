@@ -5,7 +5,7 @@
   "description": "Mol* graphics",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "exports": {
     "./*": {
@@ -17,8 +17,10 @@
     "./formats/shape/_test/*": null,
     "./geo/geometry/_test/*": null,
     "./gl/_test/*": null,
+    "./repr/_test/*": null,
     "./repr/particles/representation/_test/*": null,
-    "./repr/volume/_test/*": null
+    "./repr/volume/_test/*": null,
+    "./theme/_test/*": null
   },
   "files": [
     "lib",

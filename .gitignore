@@ -29,3 +29,9 @@ data/sym/syminfo.lib
 
 # Opt-in native rendering dependencies
 .cache/
+
+# Storybook
+storybook-static/
+
+# mise local overrides
+mise.local.toml

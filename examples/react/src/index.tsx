@@ -8,6 +8,8 @@ import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useCreatePluginUIViewModel } from '@molstar/plugin-extension/hooks/use-ui-view-model';
 import { useCreatePluginViewModel } from '@molstar/plugin-extension/hooks/use-view-model';
+import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import { loadAlphaFoldDb, loadPdb, loadMvsState } from '@molstar/plugin-extension/loaders';
 import { PluginCanvas } from '@molstar/plugin-extension/react';
 import { Plugin } from '@molstar/plugin-ui/plugin';
@@ -70,7 +72,7 @@ function Root() {
 }
 
 function OnlyCanvas() {
-  const model = useCreatePluginViewModel();
+  const model = useCreatePluginViewModel({ spec: DefaultPluginSpec() });
   useEffect(() => {
     loadPdb(model.plugin, '1tqn');
   }, [model]);
@@ -78,18 +80,23 @@ function OnlyCanvas() {
   return <PluginCanvas model={model} />;
 }
 
+function createDefaultUISpec() {
+  const spec = DefaultPluginUISpec();
+  return {
+    ...spec,
+    layout: {
+      initial: {
+        isExpanded: false,
+        showControls: false,
+      },
+    },
+    behaviors: [...spec.behaviors, MolViewSpecBehavior],
+  };
+}
+
 function DefaultUI() {
   const model = useCreatePluginUIViewModel({
-    spec: (spec) => ({
-      ...spec,
-      layout: {
-        initial: {
-          isExpanded: false,
-          showControls: false,
-        },
-      },
-      behaviors: [...spec.behaviors, MolViewSpecBehavior],
-    }),
+    spec: createDefaultUISpec(),
   });
   useEffect(() => {
     const builder = MVSData.createBuilder();
@@ -130,11 +137,10 @@ class CustomViewerModel extends PluginUIViewModel {
 
 function ViewerUI() {
   const model = useCreatePluginUIViewModel({
-    spec: () =>
-      createViewerSpec({
-        layoutIsExpanded: false,
-        layoutShowControls: false,
-      }),
+    spec: createViewerSpec({
+      layoutIsExpanded: false,
+      layoutShowControls: false,
+    }),
     model: (spec) => new CustomViewerModel({ spec }),
   });
   useEffect(() => {
@@ -171,7 +177,7 @@ function AFIdLabel({ model }: { model: CustomViewerModel }) {
 
 // In simple apps, the model can just be a global variable.
 // In more complex apps, it can be stored in a context or a state management solution.
-const GlobalModel = new PluginViewModel();
+const GlobalModel = new PluginViewModel({ spec: DefaultPluginSpec() });
 
 // It doesn't really matter where the initial load is, it can live outside the React tree.
 loadPdb(GlobalModel.plugin, '1fdl');

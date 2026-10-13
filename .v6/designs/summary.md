@@ -1,7 +1,9 @@
 # Mol\* 6.0: proposal summary
 
-Mol* 6.0 moves to ESM packages grouped by layer, explicit plugin composition, and per-app builds. This is a proposal;
-see the [architecture and implementation plan](architecture.md) for details.
+Mol* 6.0 moves to ESM packages grouped by layer, explicit plugin composition, and per-app builds. The workspace/ESM
+split, TypeScript 7/Biome tooling, formatting, and plugin composition are implemented. This design also includes work
+still planned; the [checklist](../plans/checklist.md) records current status and the [architecture](architecture.md)
+describes the contracts. Alex owns the rendering-backend workstream.
 
 ## Packages
 
@@ -23,9 +25,9 @@ Use a pnpm workspace with one release version across public packages.
 | `@molstar/<name>-server`                | Server packages and their related commands                                       |
 | `molstar`                               | Viewer and MVS Stories CDN apps, retaining paths and browser APIs                |
 
-The target dependency direction is `plugin → graphics → model → io → core` (“depends on”). The current folders do not
-satisfy it: IO helpers used by core, GPU math, and graphics-dependent model APIs must be relocated before packaging.
-Preserve familiar leaf paths where possible and record exceptions in the migration map.
+The implemented dependency direction is `plugin → graphics → model → io → core` (“depends on”). Packaging relocated
+reverse dependencies, including IO helpers used by core, GPU math, and graphics-dependent model APIs. Familiar leaf
+paths are preserved where possible and exceptions are recorded in the migration map.
 
 Internal Mol* dependencies use exact release versions through `workspace:*`. Every package declares its direct npm
 imports; shared versions live in the pnpm catalog. Root is private tooling. React/React DOM are UI peers. The headless
@@ -41,32 +43,37 @@ Libraries with ancillary bins and server packages retain their domain names. See
 
 ## Plugin composition
 
-Registries start empty. A `PluginFeature` contributes formats, transforms/actions, representations, themes, and
-behaviors without registering them on import.
+See the [plugin-composition design](plugin-composition.md) and its
+[implementation plan](../plans/plugin-composition.md).
+
+Registries start empty. `PluginSpec.registry` lists declarative entries (formats, representations, themes, presets,
+selection queries, and similar providers) that `PluginContext` registers in order, without dependency resolution.
 
 ```ts
-import { PluginSpec } from '@molstar/plugin/spec';
-import { Core } from '@molstar/plugin/features/core';
-import { Sdf } from '@molstar/plugin/state/formats/trajectory/sdf';
-import { BallAndStick } from '@molstar/graphics/repr/structure/representation/ball-and-stick';
-
-const spec = PluginSpec.fromFeatures(Core, Sdf, BallAndStick, {
-    canvas3d: { /* custom overrides */ },
-});
+const spec: PluginSpec = {
+  registry: [Sdf, DefaultHierarchyPreset, BallAndStickPreset],
+  behaviors: [/* ... */],
+  config: [[PluginConfig.Structure.DefaultRepresentationPreset, 'preset-structure-representation-ball-and-stick']],
+};
+// ... create the plugin, download and parse an SDF file
+await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
 ```
 
-The optional last argument supplies settings and extra actions/behaviors. Base entry points, including `createPluginUI`,
-take an explicit spec. Full defaults come from `DefaultPluginSpec` in `@molstar/plugin/default-spec` or
-`DefaultPluginUISpec` in `@molstar/plugin-ui/default-spec`. Viewer extensions remain app choices.
+What is included is what the spec imports and lists; single-file builds tree-shake the same way. Behaviors are unchanged
+and can reuse the entry format through `plugin.register(entry)`. Presets import the providers they run and are applied
+by id or alias; choices such as a format's default preset go through config. Unregistered representation and theme names
+fall back to the registry default, with a warning from the builders, param helpers, and snapshot restore. PyMOL, VMD,
+and Jmol scripts work when the app imports their transpiler modules. Base entry points, including `createPluginUI`, take
+an explicit spec. Full defaults come from `DefaultPluginSpec` in `@molstar/plugin/default-spec` or `DefaultPluginUISpec`
+in `@molstar/plugin-ui/default-spec`. Viewer extensions remain app choices.
 
-Defaults and catalogs stay in their owning packages behind explicit entry points. Lean roots and runtime leaves must not
-import or re-export them. Split transform modules, remove the `StateTransforms` convenience facade and its lazy getters,
-and migrate all consumers to individual transformers. Enforce these module boundaries in CI. Keep built-in name types
-for completion without introducing upward package dependencies. Presets choose applicable registered representations and
-themes.
+The `StateTransforms` facade is removed and transform modules are split by functionality, with format-specific
+transformers next to their providers. Transformers stay globally registered on import; snapshot loading checks their ids
+before changing state. `BuiltIn*` name types remain available through type imports from catalog modules. Module
+boundaries are enforced in workspace checks.
 
-The SDF/ball-and-stick example must render while excluding unrelated parsers, cartoon/volume representations, and MP4
-export. Verify the import graph, bundle, and rendering; empty registries alone are insufficient.
+The SDF/ball-and-stick slim example renders while excluding unrelated parsers, representations, presets, and MP4 export.
+Import-graph, bundle, and rendering acceptance checks are recorded in the plugin-composition plan.
 
 ## Imports, ESM, and builds
 
@@ -109,9 +116,12 @@ scripts, with compiled-JS smoke tests.
 
 ## MolViewSpec
 
-`@molstar/mvs-builder` owns the schema, builder, MVSJ/MVSX serialization/validation, and validation/schema CLIs. It has
-no Mol* package dependency and replaces molviewspec-ts / JSR `@molstar/molviewspec` after parity checks, publishing to
-npm and JSR.
+`@molstar/mvs-builder` owns the schema, builder, MVSJ/MVSX serialization/validation, and validation/schema CLIs. It
+depends on the standalone `@molstar/query-language` package. `@molstar/mvs-builder/molql` exposes `MolScriptBuilder` and
+`compileScript` for MolScript, PyMOL, VMD, and Jmol. Validation checks syntax and callable/argument names against symbol
+tables without the molecular query runtime; custom vocabularies use an explicit lookup. See the
+[MolQL design](architecture.md#72-molql-builder-and-validation-design). Replacing molviewspec-ts / JSR
+`@molstar/molviewspec` still requires parity checks and coordinated npm/JSR publication.
 
 `@molstar/mvs` depends on the builder and owns loading, plugin integration, and annotations. `mvs-render` ships
 separately in `@molstar/mvs-render-cli`, composing MVS, headless support, and MP4 export. Validation/schema commands
@@ -131,7 +141,8 @@ classic-script globals, APIs, CSS/assets, and custom elements. Existing MVS HTML
 a CDN must work without edits; verify against the packed candidate before advancing `latest`. See the
 [browser compatibility contract](architecture.md#93-compatibility-contract). Library consumers migrate from
 `lib/mol-*`/CJS to scoped packages. Keep transformer identifiers and snapshot JSON; restoring a snapshot requires its
-features to be loaded.
+transformers to be imported, and unregistered representation or theme names fall back to the registry default with a
+warning.
 
 Rename tests to `_test/**/*.test.ts`. Add `.agents/` maintainer skills for extensions, formats, representations,
 apps/examples, servers, and dependency updates, referenced by root `AGENTS.md`. Rewrite mkdocs for packages,
@@ -143,17 +154,22 @@ production advisories with explicit exceptions where justified.
 
 ## Release order
 
-First land the planned 5.x work (particles, MVS changes, bond-order perception), release the final feature minor, cut
-`v5` for continuing fixes, and rename `master` to `main` with matching CI/docs changes.
+The original rollout called for finishing 5.x feature work, releasing a final feature minor, cutting `v5`, and renaming
+`master` to `main` before v6 integration. The workspace and composition changes have already landed on `master`; the 5.x
+release history includes 5.13.0 and 5.13.1, and `v5` exists for continuing fixes. The branch rename and corresponding
+CI/docs changes remain release-coordination work; current workflows still target `master`.
 
-Then use separate, buildable phases:
+The technical phases were planned as separate, buildable changes:
 
 1. pnpm/workspace preparation.
 2. Dependency audit, relocations, explicit type imports, and cycle removal.
-3. Split transform/catalog modules, introduce features and empty registries, and validate default/slim compositions.
+3. Split transform/catalog modules, introduce empty registries and `spec.registry`, and validate default/slim
+   compositions.
 4. ESM-only runtime and `.js` relative imports, including scripts and bins.
 5. Physical package moves, exports, direct dependencies, per-app builds, and packed-consumer checks.
 6. Finish MVS, extension/server/CLI packaging, migration tool, skills, mkdocs, CI, and downstream validation.
 
-Maintain docs and the migration map throughout. Publish `6.0.0-dev.N` under the `dev` tag on the way to stable `6.0.0`.
-The [detailed phases](architecture.md#102-technical-phases) define the implementation checkpoints.
+Workspace preparation, dependency relocation, plugin composition, ESM conversion, and physical package moves are
+implemented. Remaining MVS validation/parity, JSR publication, migrator, maintenance, and release work is tracked in the
+checklist. Maintain docs and the migration map throughout. Publish `6.0.0-dev.N` under the `dev` tag on the way to
+stable `6.0.0`. The [detailed phases](architecture.md#102-technical-phases) define the implementation checkpoints.

@@ -6,10 +6,11 @@
 
 import { Volume } from '@molstar/model/model/volume';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
-import { StateTransforms } from '@molstar/plugin/state/transforms';
-import { Download, ParseCif } from '@molstar/plugin/state/transforms/data';
-import { CreateGroup } from '@molstar/plugin/state/transforms/misc';
-import { VolumeFromSegmentationCif } from '@molstar/plugin/state/transforms/volume';
+import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import { Download } from '@molstar/plugin/state/transforms/data/fetch';
+import { ParseCif } from '@molstar/plugin/state/formats/cif';
+import { CreateGroup } from '@molstar/plugin/state/transforms/misc/group';
+import { VolumeFromSegmentationCif } from '@molstar/plugin/state/formats/volume/segmentation';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { Color } from '@molstar/core/util/color';
 
@@ -70,7 +71,7 @@ export class VolsegLatticeSegmentationData {
         .newUpdate()
         .to(volumeNode)
         .apply(
-          StateTransforms.Representation.VolumeRepresentation3D,
+          VolumeRepresentation3D,
           createVolumeRepresentationParams(this.entryData.plugin, volumeData, {
             type: 'segment',
             typeParams: { tryUseGpu: VolsegGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
@@ -101,7 +102,7 @@ export class VolsegLatticeSegmentationData {
     const reprs = this.entryData.findNodesByTags(SEGMENT_VISUAL_TAG);
     const update = this.entryData.newUpdate();
     for (const s of reprs) {
-      update.to(s).update(StateTransforms.Representation.VolumeRepresentation3D, (p) => {
+      update.to(s).update(VolumeRepresentation3D, (p) => {
         p.type.params.alpha = opacity;
       });
     }
@@ -141,7 +142,7 @@ export class VolsegLatticeSegmentationData {
     const mustReselect =
       segments.includes(selectedSegment) && !repr.params?.values.type.params.segments.includes(selectedSegment);
     const update = this.entryData.newUpdate();
-    update.to(repr).update(StateTransforms.Representation.VolumeRepresentation3D, (p) => {
+    update.to(repr).update(VolumeRepresentation3D, (p) => {
       p.type.params.segments = segments;
     });
     await update.commit();

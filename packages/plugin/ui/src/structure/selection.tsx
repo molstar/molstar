@@ -10,13 +10,13 @@
 
 import * as React from 'react';
 import type { Structure } from '@molstar/model/model/structure/structure/structure';
+import { current } from '@molstar/plugin/state/queries/structure/basic';
 import {
   getElementQueries,
   getNonStandardResidueQueries,
   getPolymerAndBranchedEntityQueries,
-  StructureSelectionQueries,
-  type StructureSelectionQuery,
-} from '@molstar/plugin/state/helpers/structure-selection-query';
+} from '@molstar/plugin/state/queries/structure/dynamic';
+import type { StructureSelectionQuery } from '@molstar/plugin/state/queries/structure/query';
 import { InteractivityManager } from '@molstar/plugin/state/manager/interactivity';
 import { StructureComponentManager } from '@molstar/plugin/state/manager/structure/component';
 import type { StructureComponentRef, StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
@@ -204,7 +204,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         ...getElementQueries(structures),
       ].sort((a, b) => b.priority - a.priority);
       this.queriesItems = ActionMenu.createItems(queries, {
-        filter: (q) => q !== StructureSelectionQueries.current && !q.isHidden,
+        filter: (q) => q !== current && !q.isHidden,
         label: (q) => q.label,
         category: (q) => q.category,
         description: (q) => q.description,

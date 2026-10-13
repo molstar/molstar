@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  *
  * Command-line application for rendering images from MolViewSpec files
  * Installed package: npm install @molstar/mvs-render-cli gl canvas
  * Workspace setup: pnpm native:install -- --canvas && pnpm build:lib
- * Workspace run: pnpm native:run -- node cli/mvs-render/lib/mvs-render.js -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
+ * Workspace run: pnpm native:run -- node cli/mvs-render/lib/mvs-render.js -i data/examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
  */
 
 import { ArgumentParser } from 'argparse';
@@ -20,8 +20,9 @@ import { loadNativeModule } from '@molstar/plugin-headless/native';
 import { Canvas3DParams } from '@molstar/graphics/canvas3d/canvas3d';
 import { setCanvasModule } from '@molstar/graphics/geo/geometry/text/font-atlas';
 import { PluginContext } from '@molstar/plugin/context';
-import { Mp4HeadlessPluginContext as HeadlessPluginContext } from '@molstar/mp4-export-extension/headless';
-import { DefaultPluginSpec, PluginSpec } from '@molstar/plugin/spec';
+import { VideoHeadlessPluginContext as HeadlessPluginContext } from '@molstar/video-export-extension/headless';
+import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
+import { PluginSpec } from '@molstar/plugin/spec';
 import { type ExternalModules, defaultCanvas3DParams } from '@molstar/plugin-headless/screenshot';
 import { Task } from '@molstar/core/task';
 import { setFSModule } from '@molstar/core/util/data-source';
@@ -29,7 +30,8 @@ import { onelinerJsonString } from '@molstar/core/util/json';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 
 // MolViewSpec must be imported after HeadlessPluginContext
-import { Mp4Export } from '@molstar/mp4-export-extension';
+import { H264WasmBackend } from '@molstar/video-export-extension/backends/h264-wasm';
+import { VideoExport } from '@molstar/video-export-extension';
 import { MolViewSpec } from '@molstar/mvs/behavior';
 import { loadMVSX } from '@molstar/mvs/components/formats';
 import { loadMVS } from '@molstar/mvs/load';
@@ -127,7 +129,7 @@ async function main(args: Args): Promise<void> {
       await plugin.saveStateSnapshot(withExtension(output, '.molj'));
     }
     if (output.toLowerCase().endsWith('.mp4')) {
-      await plugin.saveAnimation(output);
+      await plugin.saveAnimation(output, { backend: H264WasmBackend });
     } else {
       await plugin.saveImage(output);
     }
@@ -144,7 +146,7 @@ async function createHeadlessPlugin(args: Pick<Args, 'size'>): Promise<HeadlessP
   const externalModules: ExternalModules = { gl, pngjs, 'jpeg-js': jpegjs };
   const spec = DefaultPluginSpec();
   spec.behaviors.push(PluginSpec.Behavior(MolViewSpec));
-  spec.behaviors.push(PluginSpec.Behavior(Mp4Export));
+  spec.behaviors.push(PluginSpec.Behavior(VideoExport));
   const headlessCanvasOptions = defaultCanvas3DParams();
   const canvasOptions = {
     ...PD.getDefaultValues(Canvas3DParams),

@@ -12,8 +12,8 @@ import {
   createStructureComponent,
 } from '@molstar/plugin/state/helpers/structure-component';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
-import { MolScriptBuilder } from '@molstar/model/script/language/builder';
-import { Expression } from '@molstar/model/script/language/expression';
+import { MolScriptBuilder } from '@molstar/query-language/language/builder';
+import { Expression } from '@molstar/query-language/language/expression';
 import { mapArrayToObject, pickObjectKeys } from '@molstar/core/util/object';
 import { Choice } from '@molstar/core/util/param-choice';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';

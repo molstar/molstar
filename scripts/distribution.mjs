@@ -84,10 +84,16 @@ const supported = [
   { alias: '@molstar/core/state', pkg: '@molstar/core', subpath: './state', output: 'core/state' },
   { alias: '@molstar/plugin/config', pkg: '@molstar/plugin', subpath: './config', output: 'plugin/config' },
   {
-    alias: '@molstar/plugin/state/transforms',
+    alias: '@molstar/plugin/state/formats/trajectory/pdb',
     pkg: '@molstar/plugin',
-    subpath: './state/transforms',
-    output: 'plugin/state/transforms',
+    subpath: './state/formats/trajectory/pdb',
+    output: 'plugin/state/formats/trajectory/pdb',
+  },
+  {
+    alias: '@molstar/plugin/state/transforms/catalog',
+    pkg: '@molstar/plugin',
+    subpath: './state/transforms/catalog',
+    output: 'plugin/state/transforms/catalog',
   },
   { alias: '@molstar/plugin-ui/context', pkg: '@molstar/plugin-ui', subpath: './context', output: 'plugin-ui/context' },
   { alias: '@molstar/core/util/color', pkg: '@molstar/core', subpath: './util/color', output: 'core/util/color' },
@@ -95,9 +101,21 @@ const supported = [
   { alias: '@molstar/io/reader/cif', pkg: '@molstar/io', subpath: './reader/cif', output: 'io/reader/cif' },
   { alias: '@molstar/plugin', pkg: '@molstar/plugin', subpath: '.', output: 'plugin/index' },
   { alias: '@molstar/plugin/spec', pkg: '@molstar/plugin', subpath: './spec', output: 'plugin/spec' },
+  {
+    alias: '@molstar/plugin/default-spec',
+    pkg: '@molstar/plugin',
+    subpath: './default-spec',
+    output: 'plugin/default-spec',
+  },
   { alias: '@molstar/plugin-ui', pkg: '@molstar/plugin-ui', subpath: '.', output: 'plugin-ui/index' },
   { alias: '@molstar/plugin-ui/react18', pkg: '@molstar/plugin-ui', subpath: './react18', output: 'plugin-ui/react18' },
   { alias: '@molstar/plugin-ui/spec', pkg: '@molstar/plugin-ui', subpath: './spec', output: 'plugin-ui/spec' },
+  {
+    alias: '@molstar/plugin-ui/default-spec',
+    pkg: '@molstar/plugin-ui',
+    subpath: './default-spec',
+    output: 'plugin-ui/default-spec',
+  },
 ];
 
 async function exists(p) {

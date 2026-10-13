@@ -10,6 +10,8 @@ import { CIF, type CifFrame } from '@molstar/io/reader/cif';
 import { Model, Structure } from '@molstar/model/model/structure';
 import { ColorTheme } from '@molstar/graphics/theme/color';
 import { SizeTheme } from '@molstar/graphics/theme/size';
+import { BuiltInColorThemes } from '@molstar/graphics/theme/color/catalog';
+import { BuiltInSizeThemes } from '@molstar/graphics/theme/size/catalog';
 import { CartoonRepresentationProvider } from '@molstar/graphics/repr/structure/representation/cartoon';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { MolecularSurfaceRepresentationProvider } from '@molstar/graphics/repr/structure/representation/molecular-surface';
@@ -29,6 +31,19 @@ import { AssetManager } from '@molstar/core/util/assets';
 import { MembraneOrientationProvider } from '@molstar/anvil-extension/prop';
 import { MembraneOrientationRepresentationProvider } from '@molstar/anvil-extension/representation';
 import { Vec2 } from '@molstar/core/math/linear-algebra/3d/vec2';
+
+// the registries start empty; these tests render with every built-in theme
+function createColorThemeRegistry() {
+  const registry = ColorTheme.createRegistry();
+  for (const p of Object.values(BuiltInColorThemes)) registry.add(p as ColorTheme.Provider<any, any, any>);
+  return registry;
+}
+
+function createSizeThemeRegistry() {
+  const registry = SizeTheme.createRegistry();
+  for (const p of Object.values(BuiltInSizeThemes)) registry.add(p as SizeTheme.Provider<any>);
+  return registry;
+}
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -136,8 +151,8 @@ async function getStructure(model: Model) {
 
 const reprCtx = {
   webgl: canvas3d.webgl,
-  colorThemeRegistry: ColorTheme.createRegistry(),
-  sizeThemeRegistry: SizeTheme.createRegistry(),
+  colorThemeRegistry: createColorThemeRegistry(),
+  sizeThemeRegistry: createSizeThemeRegistry(),
 };
 function getCartoonRepr() {
   return CartoonRepresentationProvider.factory(reprCtx, CartoonRepresentationProvider.getParams);

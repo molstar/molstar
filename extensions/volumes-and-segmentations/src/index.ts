@@ -5,9 +5,10 @@
  */
 
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
-import { PluginBehavior } from '@molstar/plugin/behavior';
+import { PluginBehavior } from '@molstar/plugin/behavior/behavior';
 import { PluginConfigItem } from '@molstar/plugin/config';
 import { PluginContext } from '@molstar/plugin/context';
+import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { StateAction } from '@molstar/core/state';
 import { Task } from '@molstar/core/task';
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from '@molstar/volumes-and-segmentations-extension/volseg-api/api';
@@ -44,8 +45,11 @@ export const Volseg = PluginBehavior.create<{ autoAttach: boolean; showTooltip: 
     description: 'Volseg',
   },
   ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean; showTooltip: boolean }> {
+    private unregisterEntry: (() => void) | undefined;
+
     register() {
-      this.ctx.state.data.actions.add(LoadVolseg);
+      const entry: PluginRegistryEntry = { actions: [LoadVolseg] };
+      this.unregisterEntry = this.ctx.register(entry);
       this.ctx.customStructureControls.set('volseg', VolsegUI as any);
       this.initializeEntryLists(); // do not await
 
@@ -62,7 +66,8 @@ export const Volseg = PluginBehavior.create<{ autoAttach: boolean; showTooltip: 
       });
     }
     unregister() {
-      this.ctx.state.data.actions.remove(LoadVolseg);
+      this.unregisterEntry?.();
+      this.unregisterEntry = undefined;
       this.ctx.customStructureControls.delete('volseg');
     }
     private async initializeEntryLists() {

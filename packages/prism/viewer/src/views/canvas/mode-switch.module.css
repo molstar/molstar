@@ -1,0 +1,179 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Glass for what opens beside the stack (the stack's frame carries its own). */
+.levelButton,
+.levels {
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+}
+
+/* The top section of the canvas stack's frame: edge-to-edge buttons, like the tools below. */
+.switch {
+  display: flex;
+  flex-direction: column;
+}
+
+.segment {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: var(--msp-stack-row, 40px);
+  color: var(--msp-color-text-muted);
+  transition:
+    background-color var(--msp-motion-fast) var(--msp-ease),
+    color var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--msp-color-control);
+    color: var(--msp-color-text);
+  }
+}
+
+/* Selecting is the mode that changes what a click does: the accent says so. */
+.switch[data-canvas-mode="select"] .segment[aria-pressed="true"] {
+  background: color-mix(in oklab, var(--msp-color-accent), transparent 82%);
+  color: var(--msp-color-accent);
+}
+
+.level {
+  /* Left of the stack, level with Select (its second row). Its right padding bridges the gap to the stack, so the
+     pointer can travel from Select to it without leaving either. */
+  position: absolute;
+  top: var(--msp-stack-row, 40px);
+  right: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding-right: var(--msp-space-3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(4px);
+  transition:
+    opacity var(--msp-motion-fast) var(--msp-ease),
+    transform var(--msp-motion-fast) var(--msp-ease),
+    visibility 0s linear 160ms;
+}
+
+/* Shown while the pointer is on Select or on it, Select has keyboard focus, or its list is open. */
+:where(:has(> * .select:hover, > * .select:focus-visible)) > .level,
+.level:hover,
+.level:focus-within,
+.level:has([aria-expanded="true"]) {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+
+/* No hover on touch screens: always shown while selecting. */
+@media (hover: none) {
+  .level {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+}
+
+/* The picking level on Select, bottom right: what a click picks. */
+.select {
+  position: relative;
+}
+
+.badge {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  opacity: 0.8;
+}
+
+.levelButton {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  height: var(--msp-stack-row, 40px);
+  padding: 0 var(--msp-inset);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  white-space: nowrap;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-glass-panel-bg);
+  }
+}
+
+.levelCaption {
+  color: var(--msp-color-text-subtle);
+}
+
+.chevron {
+  color: var(--msp-color-text-subtle);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(180deg);
+  }
+}
+
+/* The levels: a short list under the button, icon and label per row; the chosen one in the accent. */
+.levels {
+  position: absolute;
+  top: calc(100% + var(--msp-space-2));
+  /* Flush with the button, not with the hover bridge to its right. */
+  right: var(--msp-space-3);
+  z-index: var(--msp-z-overlay);
+  display: grid;
+  min-width: 168px;
+  padding: var(--msp-space-2);
+  background: var(--msp-glass-panel-bg);
+  animation: level-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+.group {
+  padding: var(--msp-space-3) var(--msp-space-3) var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.levelRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 28px;
+  padding: 0 var(--msp-inset);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[aria-checked="true"] {
+    color: var(--msp-color-accent);
+    font-weight: 600;
+  }
+}
+
+/* A narrow shell: the level's caption goes. */
+:where([data-mode="compact"]) .levelCaption {
+  display: none;
+}

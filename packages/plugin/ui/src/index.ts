@@ -8,16 +8,16 @@
 import { createElement } from 'react';
 import { Plugin } from '@molstar/plugin-ui/plugin';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
-import { DefaultPluginUISpec, type PluginUISpec } from '@molstar/plugin-ui/spec';
+import type { PluginUISpec } from '@molstar/plugin-ui/spec';
 
 export async function createPluginUI(options: {
   target: HTMLElement;
   render: (component: any, container: Element) => any;
-  spec?: PluginUISpec;
+  spec: PluginUISpec;
   onBeforeUIRender?: (ctx: PluginUIContext) => Promise<void> | void;
 }) {
   const { spec, target, onBeforeUIRender, render } = options;
-  const ctx = new PluginUIContext(spec || DefaultPluginUISpec());
+  const ctx = new PluginUIContext(spec);
   await ctx.init();
   if (onBeforeUIRender) {
     await onBeforeUIRender(ctx);

@@ -6,7 +6,7 @@
 
 import { HeadlessPluginContext } from '@molstar/plugin-headless/context';
 import type { ExternalModules } from '@molstar/plugin-headless/screenshot';
-import { DefaultPluginSpec } from '@molstar/plugin/spec';
+import { DefaultPluginSpec } from '@molstar/plugin/default-spec';
 
 let hasGl = true;
 let glModule: typeof import('gl') | undefined;

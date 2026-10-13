@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table.js';
+import { MolScriptSymbolTable as MolScript } from '@molstar/query-language/language/symbol-table';
 import { DefaultQueryRuntimeTable, QuerySymbolRuntime, QueryRuntimeArguments } from './base.js';
 import {
   Queries,

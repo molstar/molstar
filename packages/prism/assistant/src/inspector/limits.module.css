@@ -1,0 +1,155 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The Limits view: one column of groups; each row a label (what it bounds under it), the value, its unit, and its
+   default (a reset beside it when changed). Rows apart by spacing, not lines. */
+.limits {
+  flex: 1 1 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.content {
+  display: grid;
+  align-content: start;
+  gap: var(--msp-space-6);
+  max-width: 760px;
+  padding: var(--msp-space-5) var(--msp-space-5) var(--msp-space-6);
+}
+
+.group {
+  display: grid;
+  gap: var(--msp-space-2);
+
+  & > p {
+    padding: 0 var(--msp-space-3);
+  }
+}
+
+.title {
+  margin: 0;
+  padding: 0 var(--msp-space-3);
+  font-size: var(--msp-font-size-md);
+  font-weight: 600;
+}
+
+.rows {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 56px 160px;
+  margin-top: var(--msp-space-3);
+}
+
+.row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  column-gap: var(--msp-space-4);
+  padding: var(--msp-space-3) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-panel);
+  }
+}
+
+.label {
+  display: grid;
+  gap: var(--msp-space-1);
+  min-width: 0;
+}
+
+.what {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* What the latest turn used of it: a thin bar and the counts. */
+.used {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  margin-top: var(--msp-space-1);
+  color: var(--msp-color-text-subtle);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.usedBar {
+  flex: none;
+  width: 96px;
+}
+
+.input,
+.value {
+  width: 100%;
+  height: 24px;
+  padding: 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: 24px;
+  text-align: right;
+}
+
+.input {
+  border: 0;
+  outline: none;
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 1px var(--msp-color-focus-ring);
+  }
+}
+
+.value {
+  color: var(--msp-color-text-muted);
+}
+
+.choice {
+  width: 100%;
+}
+
+.unit {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.default {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Narrow: the label over its value, unit and default. */
+@container inspector (max-width: 560px) {
+  .content {
+    padding: var(--msp-space-4);
+  }
+
+  .rows {
+    grid-template-columns: minmax(0, 1fr) 48px auto;
+  }
+
+  .label {
+    grid-column: 1 / -1;
+    margin-bottom: var(--msp-space-2);
+  }
+}

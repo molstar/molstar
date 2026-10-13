@@ -8,11 +8,11 @@ import { PDBeStructureQualityReport } from '@molstar/pdbe-extension';
 import { EmptyLoci } from '@molstar/model/model/loci';
 import { StructureSelection } from '@molstar/model/model/structure';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
-import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory';
+import type { BuiltInTrajectoryFormat } from '@molstar/plugin/state/formats/trajectory/catalog';
 import { createPluginUI } from '@molstar/plugin-ui';
 import { PluginUIContext } from '@molstar/plugin-ui/context';
 import { renderReact18 } from '@molstar/plugin-ui/react18';
-import { DefaultPluginUISpec } from '@molstar/plugin-ui/spec';
+import { DefaultPluginUISpec } from '@molstar/plugin-ui/default-spec';
 import { PluginCommands } from '@molstar/plugin/commands';
 import { Script } from '@molstar/model/script/script';
 import { Asset } from '@molstar/core/util/assets';
@@ -39,11 +39,12 @@ class BasicWrapper {
   plugin: PluginUIContext;
 
   async init(target: string | HTMLElement) {
+    const defaultSpec = DefaultPluginUISpec();
     this.plugin = await createPluginUI({
       target: typeof target === 'string' ? document.getElementById(target)! : target,
       render: renderReact18,
       spec: {
-        ...DefaultPluginUISpec(),
+        ...defaultSpec,
         layout: {
           initial: {
             isExpanded: false,
@@ -51,6 +52,7 @@ class BasicWrapper {
           },
         },
         components: {
+          ...defaultSpec.components,
           remoteState: 'none',
         },
       },

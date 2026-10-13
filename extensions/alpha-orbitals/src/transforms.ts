@@ -15,7 +15,7 @@ import { PluginContext } from '@molstar/plugin/context';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import { StateTransformer } from '@molstar/core/state';
-import { VolumeRepresentation3DHelpers } from '@molstar/plugin/state/transforms/representation';
+import { VolumeRepresentation3DHelpers } from '@molstar/plugin/state/transforms/volume/representation-helpers';
 import {
   type AlphaOrbital,
   type Basis,

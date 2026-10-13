@@ -19,6 +19,9 @@
     },
     {
       "path": "../../packages/graphics"
+    },
+    {
+      "path": "../../packages/query-language"
     }
   ]
 }

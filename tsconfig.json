@@ -80,6 +80,9 @@
       "path": "./examples/react"
     },
     {
+      "path": "./examples/slim-plugin"
+    },
+    {
       "path": "./examples/standalone"
     },
     {
@@ -128,7 +131,7 @@
       "path": "./extensions/model-export"
     },
     {
-      "path": "./extensions/mp4-export"
+      "path": "./extensions/video-export"
     },
     {
       "path": "./packages/mvs/runtime"
@@ -176,6 +179,48 @@
       "path": "./packages/plugin/ui"
     },
     {
+      "path": "./packages/ai/agent"
+    },
+    {
+      "path": "./packages/ai/harness"
+    },
+    {
+      "path": "./packages/ai/conformance"
+    },
+    {
+      "path": "./packages/ai/components"
+    },
+    {
+      "path": "./packages/ai/model-adapters"
+    },
+    {
+      "path": "./packages/ai/tools"
+    },
+    {
+      "path": "./packages/ai/session"
+    },
+    {
+      "path": "./packages/ai/trace"
+    },
+    {
+      "path": "./packages/ai/fibers"
+    },
+    {
+      "path": "./packages/ai/narration"
+    },
+    {
+      "path": "./packages/prism/ui"
+    },
+    {
+      "path": "./packages/prism/assistant"
+    },
+    {
+      "path": "./packages/prism/stories"
+    },
+    {
+      "path": "./packages/prism/viewer"
+    },
+    {
       "path": "./packages/plugin/headless"
     },
     {
@@ -201,6 +246,9 @@
     },
     {
       "path": "./extensions/volseg-api"
+    },
+    {
+      "path": "./packages/query-language"
     }
   ]
 }
