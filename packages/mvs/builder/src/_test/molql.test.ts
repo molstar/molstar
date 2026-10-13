@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { MVSData } from '../mvs-data.js';
 import { MolScriptBuilder as B, compileScript } from '../molql.js';
 import { molQLValidationIssues } from '../molql-validation.js';

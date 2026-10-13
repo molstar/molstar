@@ -1,5 +1,4 @@
 {
-  "jest.jestCommandLine": "pnpm jest",
   "js/ts.experimental.useTsgo": true,
   "js/ts.tsdk.path": "./node_modules/typescript",
   "[javascript][javascriptreact][typescript][typescriptreact][json][jsonc]": {

@@ -13,5 +13,5 @@ AI packages' own. Architecture and decisions: [.v6/ai](../../.v6/ai/README.md) (
 
 ## Commands
 
-`pnpm jest:ai` runs these packages' tests (their own Jest config, `jest.config.cjs`: the AI SDK is ESM only);
-`pnpm jest:ai packages/ai/<pkg>` one package.
+`pnpm test:unit packages/ai` runs these packages' tests with the rest of the repository's (one Vitest run);
+`pnpm test:unit packages/ai/<pkg>` one package.

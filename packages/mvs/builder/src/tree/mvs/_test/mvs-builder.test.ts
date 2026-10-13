@@ -6,6 +6,7 @@
  * @author Zachary Charlop-Powers <zach.charlop.powers@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { builderDemo, createMVSBuilder } from '../mvs-builder.js';
 

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { argsFor, formFields, formOnlyParams, keptValues, readValue, valueLabel } from '../flat-fields.js';
 

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import {
   createRunner,
   defaultDrive,
@@ -19,7 +20,6 @@ import {
   type ToolFrame,
 } from '@molstar/ai-harness';
 import * as fc from 'fast-check';
-import { describe, expect, it } from '@jest/globals';
 import { type ConformanceFixture, createSession, type Session } from '../session.js';
 import { settle } from '../testing/clock.js';
 import { simulatedIds } from '../testing/ids.js';

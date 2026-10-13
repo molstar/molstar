@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Iterator } from '../iterator.js';
 
 function iteratorToArray<T>(it: Iterator<T>): T[] {

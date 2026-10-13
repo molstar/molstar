@@ -6,13 +6,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 // A component follows a stream with `bind` (dom/scope.ts), which its render scope unsubscribes. A raw `.subscribe(`
 // in a component outlives it unless it is kept in a const and unsubscribed (`onCleanup(() => sub.unsubscribe())`):
 // the command menu's rows and selected rows were, and a closed menu kept recomputing on the registry's changes.
-const src = path.resolve(__dirname, '..');
+const src = path.resolve(import.meta.dirname, '..');
 
 function* components(dir: string): Generator<string> {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

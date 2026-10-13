@@ -28,7 +28,8 @@
       "molstar-src": "./src/stories/index.ts",
       "types": "./lib/stories/index.d.ts",
       "import": "./lib/stories/index.js"
-    }
+    },
+    "./stories/_test/*": null
   },
   "files": [
     "lib",

@@ -11,6 +11,7 @@
 // and the real MP4 and WebM muxers, and to check the output's container, type and size. The codecs are not tested: the
 // browser's are. The stand-ins stay registered for this file only (each Jest test file has its own modules).
 
+import { describe, expect, it } from 'vitest';
 import { CustomAudioEncoder, EncodedPacket, type AudioSample, registerEncoder } from 'mediabunny';
 import { mediabunnyEncoder, type MediabunnyCodec } from '../mediabunny.js';
 import { text, tone } from './helpers.js';

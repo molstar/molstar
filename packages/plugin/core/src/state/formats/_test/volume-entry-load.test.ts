@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { PluginContext } from '@molstar/plugin/context';
 import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { Ccp4, Ccp4Provider } from '../volume/ccp4.js';

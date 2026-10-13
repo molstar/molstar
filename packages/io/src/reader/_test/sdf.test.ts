@@ -6,6 +6,7 @@
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { parseSdf } from '../sdf/parser.js';
 
 const SdfString = `

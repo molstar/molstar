@@ -4,6 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { canonicalJsonString } from '../json.js';
 
 describe('object utils', () => {

@@ -6,30 +6,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { digest, type Json, type Message, type ProjectInput } from '@molstar/ai-agent';
-import { describe, expect, it } from '@jest/globals';
 import { type ConformanceFixture, createSession, type Session } from '../session.js';
-import { settle } from '../testing/clock.js';
 import { declareTools, system, textOf, toolDefinition, user } from '../testing/messages.js';
-import { lastStep, stepEvents, with_ } from './helpers.js';
+import { crashMidStep, lastStep, stepEvents, with_ } from './helpers.js';
 
 const WINDOWS = { leaseMs: 30_000, launchMs: 10_000 };
 /** A small window, so a long prompt does not fit (harness.md §11, Admission). */
 const SMALL_WINDOW = { contextWindowTokens: 10_000, maxOutputTokens: 1_000, defaultMaxOutputTokens: 1_000 };
 const LONG = user('x'.repeat(60_000));
 
-/** A crash and the relaunch after the lease runs out (harness.md §4); returns the new launch key. */
-async function crash(s: Session, launch: string): Promise<string> {
-  const runner = s.runner();
-  const running = runner.run(launch);
-  await settle(40);
-  runner.abort('crash');
-  await s.clock.runUntil(running);
-  await s.clock.advance(WINDOWS.leaseMs + 1_000);
-  const checked = await s.client.check();
-  expect(checked.launch).toBeDefined();
-  return checked.launch as string;
-}
+const crash = (s: Session, launch: string) => crashMidStep(s, launch, WINDOWS.leaseMs);
 
 async function sha256Hex(text: string): Promise<string> {
   const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)));

@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Mat4, Vec3 } from '../../linear-algebra.js';
 import { Box3D } from '../primitives/box3d.js';
 import { Frustum3D } from '../primitives/frustum3d.js';

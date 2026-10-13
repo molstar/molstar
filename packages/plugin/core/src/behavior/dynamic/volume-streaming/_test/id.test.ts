@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { VolumeStreaming } from '../behavior.js';
 import { VolumeStreamingObjectType, isVolumeStreamingObject } from '../id.js';

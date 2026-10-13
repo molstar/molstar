@@ -6,6 +6,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { GridLookup3D } from '../../geometry.js';
 import { sortArray } from '@molstar/core/data/util/sort';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';

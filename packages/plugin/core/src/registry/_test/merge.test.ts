@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { PluginRegistryEntry } from '@molstar/plugin/spec';
 import { mergeRegistryEntries } from '../merge.js';
 

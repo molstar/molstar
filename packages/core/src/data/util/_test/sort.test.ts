@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { radixSort } from '../sort.js';
 
 function randomUints(n: number, max: number) {

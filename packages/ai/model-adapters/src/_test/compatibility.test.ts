@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -31,7 +32,7 @@ interface WireFixture {
 }
 // HTTP body fingerprints captured from the vendored adapters before the port to the new agent
 // package: the same conversation must still produce the same bytes on the wire.
-const fixtures = JSON.parse(readFileSync(join(__dirname, 'retained-wire.json'), 'utf8')) as {
+const fixtures = JSON.parse(readFileSync(join(import.meta.dirname, 'retained-wire.json'), 'utf8')) as {
   readonly fixtures: readonly WireFixture[];
 };
 const factories = {

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { distinctUntilChanged, skip } from 'rxjs';
 
 import { observableState } from '../observable-state.js';
@@ -21,7 +22,7 @@ describe('observableState', () => {
   it('keeps one readonly projection and suppresses shallow-equal replacements for every subscriber', () => {
     const state = observableState({ count: 0, label: 'one' });
     const initial = state.value;
-    const listener = jest.fn();
+    const listener = vi.fn();
     const subscription = state.asReadonly.subscribe(listener);
     state.set({ count: 0, label: 'one' });
     expect(listener).toHaveBeenCalledTimes(1);
@@ -36,7 +37,7 @@ describe('observableState', () => {
   });
 
   it('checks partial fields before merging, and retains fields not supplied by a patch', () => {
-    const readLabel = jest.fn(() => 'one');
+    const readLabel = vi.fn(() => 'one');
     const initial = {
       count: 0,
       get label() {

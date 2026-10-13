@@ -131,8 +131,8 @@ model.
 
 ## Versions and checks
 
-Colocated unit tests use `_test/<name>.test.ts`. Jest discovers `.test.ts` files; package builds and tarballs exclude
-`_test/` directories, including their helpers.
+Colocated unit tests use `_test/<name>.test.ts`. Vitest discovers `.test.ts`, `.test.tsx` and `.test.mjs` files; package
+builds and tarballs exclude `_test/` directories, including their helpers.
 
 All public packages release together. Change `version.json`, run `pnpm version:sync`, and update the lockfile. Workspace
 ranges are `workspace:*`; `pnpm pack` replaces them with the exact release version. `pnpm version:check` detects drift.

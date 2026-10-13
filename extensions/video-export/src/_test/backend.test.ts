@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { expect, it, vi } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { resolveVideoParams, type VideoRendererBackend } from '../backend.js';
 
@@ -30,7 +31,7 @@ function fixture() {
       }),
     }),
   };
-  const validate = jest.fn(async () => undefined);
+  const validate = vi.fn(async () => undefined);
   const backend: VideoRendererBackend = {
     name: 'Test',
     dimensionAlignment: 1,

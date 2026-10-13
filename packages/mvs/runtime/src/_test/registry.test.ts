@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import { setFSModule } from '@molstar/core/util/data-source';
 import { PluginContext } from '@molstar/plugin/context';

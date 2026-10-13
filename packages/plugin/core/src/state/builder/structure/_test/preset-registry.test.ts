@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { PluginContext } from '@molstar/plugin/context';
 import { PluginConfig, PluginConfigManager } from '../../../../config.js';
 import { TrajectoryHierarchyBuilder } from '../hierarchy.js';

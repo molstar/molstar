@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, test } from 'vitest';
 import type { ModelVisiblePart, ToolDefinition } from '@molstar/ai-agent';
 import { type Json, type JsonObject, type Message, ModelError, UnrepresentableInput } from '@molstar/ai-agent';
 import { createAnthropicModelAdapter, createGoogleModelAdapter, createOpenAIModelAdapter } from '../index.js';

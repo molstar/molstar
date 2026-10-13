@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { PluginState } from '@molstar/plugin/state';
 import { StructureRepresentation3D } from '../transforms/structure/representation.js';
 import { VolumeRepresentation3D } from '../transforms/volume/representation.js';

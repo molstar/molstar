@@ -39,7 +39,7 @@ async function main() {
   const help = args[0] === '--help';
   if (help || !['install', 'test', 'run'].includes(action)) {
     console.log('pnpm native:install [-- --canvas]  Install gl (and optionally canvas) in .cache/native');
-    console.log('pnpm test:native                  Run Jest with the installed native GL backend');
+    console.log('pnpm test:native                  Run the unit tests (Vitest) with the installed native GL backend');
     console.log('pnpm native:run -- <command>      Run a command with the native modules available');
     if (!help) process.exitCode = 2;
     return;
@@ -67,13 +67,13 @@ async function main() {
   }
   await requireSetup();
   if (action === 'test') {
-    if (args.length) throw new Error('Use pnpm native:run -- pnpm jest <args> for focused native tests.');
+    if (args.length) throw new Error('Use pnpm native:run -- pnpm test:unit <args> for focused native tests.');
     const gl = require('gl');
     const context = gl(1, 1);
     if (!context)
       throw new Error('Native gl is installed but could not create a WebGL context. On Linux, run under Xvfb.');
     context.getExtension('STACKGL_destroy_context')?.destroy();
-    await run(command('pnpm'), ['jest']);
+    await run(command('pnpm'), ['test:unit']);
   } else {
     if (!args.length)
       throw new Error(

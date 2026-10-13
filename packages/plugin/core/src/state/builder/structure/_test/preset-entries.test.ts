@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { PluginContext } from '@molstar/plugin/context';
@@ -191,7 +192,7 @@ describe('representation preset entries', () => {
   }
 
   it('the preset modules do not import catalogs', () => {
-    const dir = path.resolve(__dirname, '../representation-presets');
+    const dir = path.resolve(import.meta.dirname, '../representation-presets');
     let count = 0;
     for (const file of fs.readdirSync(dir)) {
       if (file === 'catalog.ts') continue;
@@ -228,7 +229,7 @@ describe('hierarchy preset entries', () => {
   });
 
   it('the hierarchy preset modules do not import the representation preset catalog or the auto preset', () => {
-    const dir = path.resolve(__dirname, '../hierarchy-presets');
+    const dir = path.resolve(import.meta.dirname, '../hierarchy-presets');
     for (const file of fs.readdirSync(dir)) {
       if (file === 'catalog.ts') continue;
       const imports = fs

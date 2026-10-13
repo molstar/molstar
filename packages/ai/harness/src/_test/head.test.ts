@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import type { HeadRecord, Segment } from '../contracts/records.js';
 import { buildMove, emptyHead, entriesOf } from '../head/index.js';

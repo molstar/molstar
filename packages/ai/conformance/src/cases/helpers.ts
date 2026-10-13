@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { expect } from '@jest/globals';
+import { expect } from 'vitest';
 import { hashMessage, type Message } from '@molstar/ai-agent';
 import {
   buildMove,
@@ -24,6 +24,27 @@ import {
   type StepEvent,
   type TurnConfiguration,
 } from '@molstar/ai-harness';
+import type { Session } from '../session.js';
+import { settle } from '../testing/clock.js';
+
+/**
+ * A crash mid-step: the runner stops with no commit and no release once the step is parked in a wait longer than the
+ * lease, the lease runs out, and `check` launches the runner that re-runs the step (harness.md §4, §6 "lost").
+ * Waits for that state, not for a number of rounds: WebCrypto work the clock cannot see decides how many it takes.
+ * Returns the new launch key.
+ */
+export async function crashMidStep(s: Session, launch: string, leaseMs: number): Promise<string> {
+  const runner = s.runner();
+  const running = runner.run(launch);
+  for (let i = 0; i < 2_000 && !s.clock.parked(leaseMs + 1); i += 1) await settle();
+  if (!s.clock.parked(leaseMs + 1)) throw new Error('crashMidStep: the step never parked in its wait');
+  runner.abort('crash');
+  await s.clock.runUntil(running);
+  await s.clock.advance(leaseMs + 1_000);
+  const checked = await s.client.check();
+  expect(checked.launch).toBeDefined();
+  return checked.launch as string;
+}
 
 /** A turn configuration for protocol-level cases (no tools). */
 export const TURN: TurnConfiguration = {

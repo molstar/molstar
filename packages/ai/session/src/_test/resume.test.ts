@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { createMemoryStorage } from '@molstar/ai-components';
 import type { Clock, HarnessStorage } from '@molstar/ai-harness';
 import { createToolkit } from '@molstar/ai-tools';

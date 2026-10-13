@@ -4,12 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import type { PluginContext } from '@molstar/plugin/context';
 import { LociLabelManager, type LociLabelProvider } from '../loci-label.js';
 
 function create() {
-  const next = jest.fn();
-  const addProvider = jest.fn();
+  const next = vi.fn();
+  const addProvider = vi.fn();
   const plugin = {
     behaviors: { labels: { highlight: { next } } },
     managers: { interactivity: { lociHighlights: { addProvider } } },

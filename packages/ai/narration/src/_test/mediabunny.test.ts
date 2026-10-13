@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { type NarrationAudio, type ProviderAudio, wavSamples } from '../index.js';
 import { type MediabunnyCodec, mediabunnyEncoder } from '../mediabunny.js';
 import { mp3Frames, text, tone } from './helpers.js';

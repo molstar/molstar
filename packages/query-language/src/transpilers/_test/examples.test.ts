@@ -4,15 +4,17 @@
  * Adapted from MolQL project
  **/
 
+import { describe, it } from 'vitest';
 import type { Transpiler } from '../transpiler.js';
 import { transpiler as jmol } from '../jmol/parser.js';
 import { transpiler as pymol } from '../pymol/parser.js';
 import { transpiler as vmd } from '../vmd/parser.js';
+import { examples as jmolExamples } from '../jmol/examples.js';
+import { examples as pymolExamples } from '../pymol/examples.js';
+import { examples as vmdExamples } from '../vmd/examples.js';
 
-function testTranspilerExamples(name: string, transpiler: Transpiler) {
+function testTranspilerExamples(name: string, examples: { name: string; value: string }[], transpiler: Transpiler) {
   describe(`${name} examples`, () => {
-    const examples = require(`../${name}/examples`).examples;
-    //        console.log(examples);
     for (const e of examples) {
       it(e.name, () => {
         // check if it transpiles and compiles/typechecks.
@@ -22,6 +24,6 @@ function testTranspilerExamples(name: string, transpiler: Transpiler) {
   });
 }
 
-testTranspilerExamples('pymol', pymol);
-testTranspilerExamples('vmd', vmd);
-testTranspilerExamples('jmol', jmol);
+testTranspilerExamples('pymol', pymolExamples, pymol);
+testTranspilerExamples('vmd', vmdExamples, vmd);
+testTranspilerExamples('jmol', jmolExamples, jmol);

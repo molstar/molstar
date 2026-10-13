@@ -6,6 +6,7 @@
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { parseMol, formalChargeMapper } from '../mol/parser.js';
 
 const MolString = `2244

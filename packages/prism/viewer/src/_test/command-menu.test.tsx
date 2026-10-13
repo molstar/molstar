@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /** @jsxImportSource @molstar/prism-ui/dom */
 
 /**
@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockCommands, mockPrefixes } from '../testing/commands.js';
 import { mockSnapshots } from '@molstar/prism-ui/testing/index';
 import { mockScene } from '../testing/scene.js';
@@ -24,7 +25,7 @@ function mount(options: { prefixes?: boolean } = {}) {
   const prefixes = options.prefixes
     ? mockPrefixes({ manager, shell, scene: mockScene(), snapshots: mockSnapshots(() => {}) })
     : undefined;
-  const closed = jest.fn();
+  const closed = vi.fn();
   const results: string[] = [];
   manager.outcomes.subscribe((o) => {
     if (o.kind === 'done') results.push(o.result.message ?? '');
@@ -49,7 +50,7 @@ afterEach(() => {
 describe('CommandMenu', () => {
   it('matches once per keystroke, and not at all once closed', () => {
     const p = mount();
-    const query = jest.spyOn(p.manager, 'query');
+    const query = vi.spyOn(p.manager, 'query');
     // The list and the highlight's bounds read one computation of the rows.
     p.type('reset zo');
     expect(query).toHaveBeenCalledTimes(1);

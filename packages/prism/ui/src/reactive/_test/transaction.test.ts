@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { createOptimisticProjection, createUiTransactionCoordinator, type UiTransactionEvent } from '../transaction.js';
 
 describe('UI transaction coordinator', () => {
@@ -165,7 +166,7 @@ describe('optimistic projection', () => {
   it('reports an inapplicable contribution and retains it for owner resolution', () => {
     const coordinator = createUiTransactionCoordinator();
     const projection = createOptimisticProjection({ version: 1 }, coordinator);
-    const divergence = jest.fn();
+    const divergence = vi.fn();
     projection.divergences.subscribe(divergence);
     const transaction = coordinator.begin();
     projection.contribute(transaction, {

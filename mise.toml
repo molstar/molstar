@@ -4,7 +4,7 @@ node = "24"
 pnpm = "11.25.0"
 
 # The tasks wrap the package.json scripts; extra arguments are passed through,
-# e.g. `mise run dev:apps viewer` or `mise run jest packages/core`.
+# e.g. `mise run dev:apps viewer` or `mise run test:unit packages/core`.
 
 [tasks.install]
 description = "Install workspace dependencies"
@@ -50,16 +50,12 @@ run = "pnpm format"
 description = "Check formatting"
 run = "pnpm format:check"
 
-[tasks.jest]
-description = "Unit tests"
-run = "pnpm jest"
-
-[tasks."jest:ai"]
-description = "packages/ai tests"
-run = "pnpm jest:ai"
+[tasks."test:unit"]
+description = "Unit tests (Vitest)"
+run = "pnpm test:unit"
 
 [tasks.test]
-description = "Lint, jest and jest:ai"
+description = "Lint and the unit tests"
 run = "pnpm test"
 
 [tasks.tsc]

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BehaviorSubject, config, map, Observable } from 'rxjs';
 import { combineBehaviors } from '../combine-behaviors.js';
 import { observableState } from '../observable-state.js';
@@ -417,7 +418,7 @@ describe('an unmount during onMount waits for it', () => {
 // One owner mounts a model; a second mount is said once.
 describe('a model mounted by two owners', () => {
   it('warns once, and stays a no-op', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     let mounts = 0;
     class Example extends ReactiveModel {
       protected override onMount(): void {
@@ -435,7 +436,7 @@ describe('a model mounted by two owners', () => {
   });
 
   it('does not warn when mounted again after an unmount', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     class Example extends ReactiveModel {}
     const model = new Example();
     model.mount();

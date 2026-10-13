@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ANVILMembraneOrientation } from '@molstar/anvil-extension/behavior';
 import { AssemblySymmetry } from '@molstar/assembly-symmetry-extension';
 import { InitAssemblySymmetry3D } from '@molstar/assembly-symmetry-extension/behavior';

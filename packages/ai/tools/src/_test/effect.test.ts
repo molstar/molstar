@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { RepeatedReads, type ToolResult } from '../index.js';
 import { call, toy, tool } from './helpers.js';
 

@@ -277,9 +277,9 @@ modules are plain `.ts` using `createElement`; React test files name `@jsxImport
 
 Both are tested, and shown together in Storybook (Internals › React and Preact):
 
-- Jest: `react/_test/` runs the adapter on React 18 (`react-dom`), and `react/_test/preact.test.tsx` runs the same
-  adapter on Preact with `react` aliased to `preact/compat`, as a Preact app's bundler does (the test sets the `require`
-  export condition: under jsdom Jest would pick Preact's ES module build).
+- Vitest: `react/_test/` runs the adapter on React 18 (`react-dom`), and `react/_test/preact.test.tsx` runs the same
+  adapter on Preact with `react` aliased to `preact/compat` (`vi.mock('react', ...)`), as a Preact app's bundler does
+  (`vitest.config.ts` inlines `preact`, so its hooks and compat modules share one copy).
 - Storybook: React and Preact tabs in the mock shell, both mounted with `reactView` and reading and writing one prism-ui
   state with `useObservable`; and prism-ui hosted in a React app with `MspElementHost`. One page runs both frameworks:
   the Storybook config rewrites `react` to `preact/compat` only in `src/react/_stories/preact/` and in a copy

@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /** @jsxImportSource @molstar/prism-ui/dom */
 
 /**
@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { render } from '../../../dom/render.js';
 import { ScrollArea } from '../scroll-area.js';
 
@@ -49,7 +50,7 @@ describe('ScrollArea', () => {
   });
 
   it('shows itself as scrolling for a moment after a scroll', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const container = document.createElement('div');
     let viewport!: HTMLElement;
     render(
@@ -69,8 +70,8 @@ describe('ScrollArea', () => {
     expect(root.querySelectorAll('[data-orientation]').length).toBe(2);
     viewport.dispatchEvent(new Event('scroll'));
     expect(root.hasAttribute('data-scrolling')).toBe(true);
-    jest.advanceTimersByTime(600);
+    vi.advanceTimersByTime(600);
     expect(root.hasAttribute('data-scrolling')).toBe(false);
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 });

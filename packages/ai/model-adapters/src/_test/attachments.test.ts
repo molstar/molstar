@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { Message, ModelVisiblePart } from '@molstar/ai-agent';
 import { UnrepresentableInput } from '@molstar/ai-agent';
 import { bytesDigest, inlineAttachment } from '../common/attachments.js';

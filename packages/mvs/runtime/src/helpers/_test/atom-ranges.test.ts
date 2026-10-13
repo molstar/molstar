@@ -4,6 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { ElementRanges } from '../element-ranges.js';
 
 describe('union', () => {

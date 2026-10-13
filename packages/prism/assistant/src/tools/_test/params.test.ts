@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { normalize, shapeInput } from '@molstar/ai-tools';
 import { Color } from '@molstar/core/util/color/color';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { ModelError } from '@molstar/ai-agent';
 import { MockLanguageModelV4 } from 'ai/test';
 import { streamPolicy as anthropicPolicy } from '../anthropic/stream.js';

@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /** @jsxImportSource @molstar/prism-ui/dom */
 
 /**
@@ -9,6 +9,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { observableState } from '../../reactive/observable-state.js';
 import { Dynamic, For, Match, Show, Switch, timeSlicing } from '../control-flow.js';
 import type { Child } from '../jsx-types.js';
@@ -215,7 +216,7 @@ describe('For, a long list', () => {
     timeSlicing(true);
     // Each reading of the clock costs 1 ms: the 5 ms slice is spent after a few new entries past the first 64.
     let clock = 0;
-    const now = jest.spyOn(performance, 'now').mockImplementation(() => (clock += 1));
+    const now = vi.spyOn(performance, 'now').mockImplementation(() => (clock += 1));
     const items = observableState(Array.from({ length: 300 }, (_, i) => i));
     const { container, dispose } = mount(() => (
       <div>

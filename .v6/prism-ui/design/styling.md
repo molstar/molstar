@@ -91,8 +91,8 @@ neither Node nor bundler-free browsers can load, so CSS is compiled into TypeScr
    any build setup; `styleText()` gives the whole CSS for a static file if a distribution wants one.
 4. **Tooling**: `pnpm styles` regenerates, `pnpm styles:check` fails on missing, stale or orphaned modules (for CI),
    `pnpm styles:watch` regenerates on change, and Storybook runs the same generator as a Vite plugin
-   (`cssModulesPlugin`). Jest maps `./_generated/x.css.js` to `x.css.ts`. Edit the `.css` file, never the generated
-   module; Biome formats `.css`, so regenerate after formatting.
+   (`cssModulesPlugin`). Vitest resolves `./_generated/x.css.js` to `x.css.ts`. Edit the `.css` file, never the
+   generated module; Biome formats `.css`, so regenerate after formatting.
 5. **Icons** are generated too: `scripts/icons.mjs` copies the inner markup of the Lucide icons the UI uses (the `ICONS`
    list, from `lucide-static`, a pinned devDependency) into `components/icon/_generated/lucide.ts` (committed).
    `pnpm icons` regenerates, `pnpm icons:check` fails when it is missing or stale.

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { batch, observableState } from '../observable-state.js';
 
 describe('batch', () => {

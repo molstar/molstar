@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { CustomPropSymbol } from '@molstar/query-language/language/symbol';
 import { Type } from '@molstar/query-language/language/type';
 import { QueryRuntimeTable, QuerySymbolRuntime } from '../base.js';

@@ -1,7 +1,4 @@
-/**
- * @jest-environment jsdom
- * @jest-environment-options {"customExportConditions": ["require", "default"]}
- */
+/** @vitest-environment jsdom */
 /** @jsxImportSource preact */
 
 /**
@@ -12,18 +9,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRoot } from 'preact/compat/client';
 import { act } from 'preact/test-utils';
 import { defineElements, MspElement } from '../../dom/element.js';
 import { observableState } from '../../reactive/observable-state.js';
+import { MspElementHost } from '../element-host.js';
+import { reactView } from '../react-view.js';
+import { useObservable } from '../use-observable.js';
+import { useObservableProp } from '../use-observable-prop.js';
 
 // What a Preact app's bundler does (`react` aliased to `preact/compat`): the adapter then runs on Preact as written.
-// The repo's transform does not hoist `jest.mock`, so the adapter is required after it.
-jest.mock('react', () => jest.requireActual('preact/compat'));
-const { MspElementHost } = require('../element-host.js') as typeof import('../element-host.js');
-const { reactView } = require('../react-view.js') as typeof import('../react-view.js');
-const { useObservable } = require('../use-observable.js') as typeof import('../use-observable.js');
-const { useObservableProp } = require('../use-observable-prop.js') as typeof import('../use-observable-prop.js');
+vi.mock('react', async () => await import('preact/compat'));
 
 class Greeting extends MspElement<{ name: string }> {
   static tag = 'msp-test-preact-greeting';

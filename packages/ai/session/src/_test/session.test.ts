@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { createToolkit } from '@molstar/ai-tools';
 import type { StatusEvent, ToolEvent, TurnEvent } from '../index.js';
 import { callOf, fixture, guidance, headOf, messagesOf, realClock, resultsIn, textOf, tool } from './helpers.js';

@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { PluginContext } from '@molstar/plugin/context';
@@ -227,7 +228,7 @@ describe('format entries', () => {
   });
 
   it('format modules do not import catalogs or presets', () => {
-    const root = path.resolve(__dirname, '..');
+    const root = path.resolve(import.meta.dirname, '..');
     let count = 0;
     for (const family of ['volume', 'topology', 'coordinates', 'shape', 'particles', 'trajectory']) {
       for (const file of fs.readdirSync(path.join(root, family))) {

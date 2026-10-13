@@ -1,4 +1,4 @@
-/** @jest-environment jsdom */
+/** @vitest-environment jsdom */
 /**
  * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -7,6 +7,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterEach, describe, expect, it } from 'vitest';
 import { observableState } from '../../reactive/observable-state.js';
 import { formatChord } from '../keys.js';
 import { CommandManager } from '../manager.js';

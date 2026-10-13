@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { beforeAll, describe, expect, it } from 'vitest';
 import { Column, Table } from '@molstar/core/data/db';
 import { RuntimeContext } from '@molstar/core/task';
 import { createModels } from '@molstar/model/formats/structure/basic/parser';

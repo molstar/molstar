@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { ToolDefinition } from '@molstar/ai-agent';
 import { FOCUS_MARKER, GUIDANCE_UPDATE, NOTES_HEADING, REQUEST_MARKER, requestOf, turnInput } from '../index.js';
 import { textOf } from './helpers.js';

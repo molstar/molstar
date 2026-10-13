@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { deflate, inflate, unzip, zip } from '../zip/zip.js';
 import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
 

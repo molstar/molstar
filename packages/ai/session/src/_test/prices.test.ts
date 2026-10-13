@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { creditsOf, dollarsOf, type PriceTable } from '../index.js';
 
 // The app's prices (dollars per million tokens); the package has no table of its own.

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { canonicalJson, digest, hashMessage, type Json, type Message } from '../index.js';
 
 const call: Message = {

@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { LaunchKey, RunnerPort } from '@molstar/ai-harness';
-import { describe, expect, it } from '@jest/globals';
 import { type ConformanceFixture, createSession, type Session } from '../session.js';
 import { settle } from '../testing/clock.js';
 import { user } from '../testing/messages.js';

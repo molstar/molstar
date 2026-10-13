@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';
 import { Viewport, cameraProject, cameraUnproject } from '../camera/util.js';

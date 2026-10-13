@@ -16,11 +16,45 @@ interface Sleeper {
   cleanup(): void;
 }
 
-/** Lets pending promises (including WebCrypto's, which resolve off the microtask queue) settle. */
+/**
+ * Hashes in flight. WebCrypto resolves off the event loop, so the clock cannot tell a runner that is waiting for one
+ * from a runner with nothing left to do, and would move virtual time under it (a lease renewal, a deadlock that is
+ * none). Every digest the harness takes goes through `crypto.subtle.digest`; this counts the ones not yet finished.
+ */
+let digestsInFlight = 0;
+const tracked = Symbol.for('molstar.ai-conformance.digest-tracked');
+const subtle = globalThis.crypto?.subtle;
+if (subtle && !(subtle.digest as unknown as Record<symbol, unknown>)[tracked]) {
+  const digest = subtle.digest.bind(subtle) as (...args: unknown[]) => Promise<ArrayBuffer>;
+  const counted = async (...args: unknown[]) => {
+    digestsInFlight += 1;
+    try {
+      return await digest(...args);
+    } finally {
+      digestsInFlight -= 1;
+    }
+  };
+  (counted as unknown as Record<symbol, unknown>)[tracked] = true;
+  (subtle as unknown as { digest: unknown }).digest = counted;
+}
+
+/**
+ * Lets pending promises (including WebCrypto's, which resolve off the microtask queue) settle: a number of rounds of the
+ * event loop, and then for as long as a hash is in flight (its continuation may start the next one).
+ */
 export async function settle(rounds = 12): Promise<void> {
   for (let i = 0; i < rounds; i += 1) await new Promise<void>((resolve) => setImmediate(resolve));
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  for (let waited = 0; waited < 100_000; ) {
+    for (; digestsInFlight > 0 && waited < 100_000; waited += 1)
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    for (let i = 0; i < 3; i += 1) await new Promise<void>((resolve) => setImmediate(resolve));
+    if (digestsInFlight === 0) break;
+  }
 }
+
+/** Real time `runUntil` waits for work still in flight before it calls an idle clock a deadlock. */
+const DeadlockGraceMs = 5_000;
 
 /**
  * Virtual time. Nothing waits for real: `sleep` parks until time is advanced, either explicitly
@@ -79,6 +113,14 @@ export class SimulatedClock implements Clock {
     });
   }
 
+  /**
+   * Whether something is parked for at least `ms` more of virtual time: a step in a long wait (a slow model or
+   * tool), not the runner's own short housekeeping sleeps. What a case that crashes mid-step waits for.
+   */
+  parked(ms: number): boolean {
+    return this.sleepers.some((sleeper) => sleeper.at - this.time >= ms);
+  }
+
   /** The time of the next sleeper, if any. */
   next(): number | undefined {
     return this.sleepers[0]?.at;
@@ -125,10 +167,26 @@ export class SimulatedClock implements Clock {
       for (let quiet = 0, rounds = 0; quiet < 2 && rounds < 10_000 && !done; rounds += 1) {
         const seen = this.activity;
         await settle();
-        quiet = this.activity === seen && this.busy === 0 ? quiet + 1 : 0;
+        quiet = this.activity === seen && this.busy === 0 && digestsInFlight === 0 ? quiet + 1 : 0;
       }
       if (done) break;
-      const first = this.sleepers[0];
+      // Nothing runs and nothing sleeps: a deadlock, or work that resolves off the event loop (WebCrypto on a loaded
+      // machine) that has not finished yet. Give it real time, restarted by every sign of life, before saying so.
+      let first = this.sleepers[0];
+      for (
+        let waited = 0, seen = this.activity;
+        first === undefined && !done && waited < DeadlockGraceMs;
+        waited += 5
+      ) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 5));
+        await settle();
+        if (this.activity !== seen) {
+          seen = this.activity;
+          waited = 0;
+        }
+        first = this.sleepers[0];
+      }
+      if (done) break;
       if (first === undefined) throw new Error('SimulatedClock.runUntil: deadlock (nothing runs, nothing sleeps)');
       await this.advance(first.at - this.time);
     }

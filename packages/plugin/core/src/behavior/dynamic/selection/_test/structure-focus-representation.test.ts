@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { StateSelection } from '@molstar/core/state';
 import { Structure } from '@molstar/model/model/structure';
 import { PluginBehaviors } from '@molstar/plugin/behavior';

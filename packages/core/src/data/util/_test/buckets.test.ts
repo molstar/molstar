@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { createRangeArray } from '../array.js';
 import { makeBuckets } from '../buckets.js';
 

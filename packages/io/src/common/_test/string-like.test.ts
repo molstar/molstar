@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import { ChunkedBigString } from '@molstar/core/util/string-like';
 
 const SAMPLE_ASCII = `Basketball is a team sport in which two teams, most commonly 

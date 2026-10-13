@@ -6,16 +6,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterAll, expect, it, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { runHarnessConformance } from '@molstar/ai-conformance';
 import { createIndexedDbStorage } from '../storage/indexeddb.js';
 
 // The whole suite against IndexedDB (fake-indexeddb in Node), one fresh database per case.
-// fake-indexeddb is slow: the long-history cases (2,000 appends) run close to Jest's default of 5 s. Some cases wait a
+// fake-indexeddb is slow: the long-history cases (2,000 appends) run close to Vitest's default of 5 s. Some cases wait a
 // fixed number of rounds for work that includes WebCrypto hashing (resolved off the event loop), which this backend can
 // outlast under load, so they are retried here (logged) until the suite waits on conditions (.v6/ai/plan.md).
-jest.setTimeout(30_000);
-jest.retryTimes(2, { logErrorsBeforeRetry: true });
+vi.setConfig({ testTimeout: 30_000, retry: 2 });
 let n = 0;
 const opened: { close(): void }[] = [];
 afterAll(() => {

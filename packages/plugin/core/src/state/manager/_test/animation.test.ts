@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PluginContext } from '@molstar/plugin/context';
 import { BehaviorSubject } from 'rxjs';
 import type { PluginStateAnimation } from '../../animation/model.js';
@@ -132,7 +133,7 @@ describe('PluginAnimationManager registration', () => {
 
   it('stops and tears down a playing current animation when it is removed', async () => {
     const manager = create();
-    const teardown = jest.fn();
+    const teardown = vi.fn();
     const a = animation('a', { teardown });
     const b = animation('b');
     manager.register(a);

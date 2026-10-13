@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it, vi } from 'vitest';
 import { Structure } from '@molstar/model/model/structure';
 import { StructureFocusRepresentation } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
 import { StructureFocusRepresentationId } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation/id';
@@ -62,7 +63,7 @@ describe('updateFocusRepr', () => {
 
   it('skips an unregistered theme without a warning', async () => {
     const plugin = await createPlugin();
-    const warn = jest.spyOn(plugin.log, 'warn');
+    const warn = vi.spyOn(plugin.log, 'warn');
     const before = focusParams(plugin);
     expect(updateFocusRepr(plugin, Structure.Empty, 'no-such-theme' as any, undefined)).toBeUndefined();
     expect(focusParams(plugin)).toBe(before);
@@ -76,7 +77,7 @@ describe('updateFocusRepr', () => {
     purge(registry, registry.get('ball-and-stick'));
     expect(registry.has('ball-and-stick')).toBe(false);
 
-    const warn = jest.spyOn(plugin.log, 'warn');
+    const warn = vi.spyOn(plugin.log, 'warn');
     const before = focusParams(plugin);
     expect(updateFocusRepr(plugin, Structure.Empty, 'chain-id', undefined)).toBeUndefined();
     expect(focusParams(plugin)).toBe(before);
@@ -116,7 +117,7 @@ describe('structure focus representation behavior without its default providers'
     purge(registry, registry.get('ball-and-stick'));
     purge(themes.sizeThemeRegistry, themes.sizeThemeRegistry.get('physical'));
 
-    const warn = jest.spyOn(plugin.log, 'warn');
+    const warn = vi.spyOn(plugin.log, 'warn');
     let params: any;
     expect(() => {
       params = StructureFocusRepresentation.createDefaultParams(void 0 as any, plugin);

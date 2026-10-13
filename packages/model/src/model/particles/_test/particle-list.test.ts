@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { CustomProperties } from '../../custom-property.js';
 import { getParticleTransforms, ParticleList } from '../particle-list.js';

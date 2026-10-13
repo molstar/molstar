@@ -4,6 +4,7 @@
  * @author Zach Charlop-Powers <zach.charlop.powers@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { decodeColor } from '../color/utils.js';
 import { Color } from '../color/color.js';
 

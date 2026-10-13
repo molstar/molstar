@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { ToolDefinition } from '@molstar/ai-agent';
 import { definitionTokens, estimatedTokens, type ToolEntry, toolsView } from '../index.js';
 

@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { type ModelStep, scriptedModel } from '@molstar/ai-conformance/testing';
 import { createToolkit } from '@molstar/ai-tools';
 import { runOnce, Settlement, terminalToolFor } from '../index.js';

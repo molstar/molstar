@@ -172,7 +172,7 @@ Adaptations made while copying or soon after:
 | Area              | Change                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Style             | Done: Biome format (2 spaces, repo quote style), `.js` relative imports instead of `.ts`, Mol\* headers, upstream issue markers removed                                                                                                                                                                                                                                                                                           |
-| Compiler          | Done: the repo targets ES2022 with `useDefineForClassFields: false` (the Jest transform sets the flag too); `#private` fields and field initialisers are fine; `ReactiveModel` keeps its `Object.defineProperties` lifecycle guard, and its lifecycle tests run under that setting                                                                                                                                                |
+| Compiler          | Done: the repo targets ES2022 with `useDefineForClassFields: false` (the Vitest transform reads it from the tsconfig); `#private` fields and field initialisers are fine; `ReactiveModel` keeps its `Object.defineProperties` lifecycle guard, and its lifecycle tests run under that setting                                                                                                                                     |
 | Tests             | Done: vitest tests ported to Jest under `_test/**/*.test.ts(x)`; the root `testRegex` takes `.tsx`, so hook and DOM tests stay JSX (§9)                                                                                                                                                                                                                                                                                           |
 | `ReactiveModel`   | Not yet: a mount-scope `signal: AbortSignal`                                                                                                                                                                                                                                                                                                                                                                                      |
 | New helpers       | Not as `reactive/` helpers: keyed lists are the DOM runtime's keyed `For` (`dom/control-flow`); `fromEvent` not added                                                                                                                                                                                                                                                                                                             |
@@ -275,10 +275,10 @@ settle before anything talks to a plugin.
 
 ## 9. Tests and checks
 
-- Jest from the repo root (`pnpm jest`), tests in `_test/` folders next to the code as `*.test.ts` or `*.test.tsx`. The
-  root `moduleNameMapper` maps `@molstar/prism-ui/*` and `@molstar/prism-assistant/*` to their `src/`. DOM tests opt
-  into jsdom per file (`/** @jest-environment jsdom */`) and name their JSX runtime with the pragma
-  ([rendering.md](rendering.md) §4.1). Interaction is tested in Jest (keyboard, focus, events on real nodes), not with
+- Vitest from the repo root (`pnpm test:unit`), tests in `_test/` folders next to the code as `*.test.ts` or
+  `*.test.tsx`. Workspace packages resolve to their `src/` through the `molstar-src` export condition. DOM tests opt
+  into jsdom per file (`/** @vitest-environment jsdom */`) and name their JSX runtime with the pragma
+  ([rendering.md](rendering.md) §4.1). Interaction is tested in Vitest (keyboard, focus, events on real nodes), not with
   Storybook `play`.
 - `tsc -b` builds `lib/` without tests and stories; `typecheck:storybook` (`tsconfig.storybook.json`) checks everything,
   stories and tests included.

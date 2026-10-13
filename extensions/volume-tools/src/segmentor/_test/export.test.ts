@@ -4,6 +4,7 @@
  * @author Tadej Satler <tadej.satler@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Color } from '@molstar/core/util/color';
 import { bodyMaskFileName, maskBaseName, orderBodiesBySize, resolveBodyMaskParams } from '../internal/export.js';
 import { BodyInfo } from '../types.js';

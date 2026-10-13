@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { normalize } from '../index.js';
 
 describe('normalizing what small models send, against the shape (tools-and-session.md §2)', () => {

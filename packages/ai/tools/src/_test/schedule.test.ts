@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { toolSchedule } from '../index.js';
 
 const call = (callId: string, tool: string, order: number) => ({ callId, tool: { id: tool }, order });

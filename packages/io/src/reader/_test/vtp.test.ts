@@ -4,6 +4,7 @@
  * @author Ludovic Autin <autin@scripps.edu>
  */
 
+import { describe, expect, it } from 'vitest';
 import { parseVtp } from '../vtp/parser.js';
 
 /* Builds a minimal uncompressed raw-appended VTP in memory.

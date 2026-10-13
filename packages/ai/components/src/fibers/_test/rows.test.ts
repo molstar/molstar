@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterAll, describe, expect, it } from 'vitest';
 import 'fake-indexeddb/auto';
 import { createMemoryRows, type FiberRows, type FiberTable, RowConflict } from '@molstar/ai-fibers';
 import { createIndexedDbRows } from '../indexeddb.js';

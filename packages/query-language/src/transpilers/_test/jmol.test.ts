@@ -7,6 +7,7 @@
  * Adapted from MolQL project
  */
 
+import { describe, expect, it } from 'vitest';
 import * as u from './utils.js';
 import { transpiler } from '../jmol/parser.js';
 import { keywords } from '../jmol/keywords.js';

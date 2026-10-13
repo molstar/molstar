@@ -6,6 +6,7 @@
  * @author Koya Sakuma <koya.sakuma.work@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import * as u from './utils.js';
 import { transpiler } from '../pymol/parser.js';
 import { keywords } from '../pymol/keywords.js';

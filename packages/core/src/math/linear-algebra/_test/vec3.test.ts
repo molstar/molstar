@@ -4,6 +4,7 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Vec3 } from '../3d/vec3.js';
 
 describe('vec3', () => {

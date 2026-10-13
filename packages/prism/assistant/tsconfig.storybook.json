@@ -7,7 +7,7 @@
     "noEmit": true,
     "lib": ["ES2024", "DOM"],
     "rootDir": ".",
-    "types": ["node", "jest"],
+    "types": ["node"],
     "jsxImportSource": "@molstar/prism-ui/dom"
   },
   "include": ["src/**/*"]

@@ -4,6 +4,7 @@
  * @author Sebastian Bittrich <sebastian.m.bittrich@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { IntAdjacencyGraph } from '../int-adjacency-graph.js';
 import { Mccs } from '../mccs.js';
 

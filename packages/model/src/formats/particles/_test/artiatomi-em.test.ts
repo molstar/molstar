@@ -4,7 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { parseArtiatomiEm, EmHeader_Size, EmDataType, EmMachineCoding } from '../artiatomi/em.js';
+import { expect, test } from 'vitest';
+import { parseArtiatomiEm, EmHeader_Size, EmDataType, EmMachineCoding } from '@molstar/io/reader/artiatomi/em';
 import {
   createParticleListFromArtiatomiEm,
   getArtiatomiMotivelistTomogramIds,

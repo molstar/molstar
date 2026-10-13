@@ -4,6 +4,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import { Mat4 } from '@molstar/core/math/linear-algebra/3d/mat4';

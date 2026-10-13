@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { Spacegroup } from '@molstar/core/math/geometry';
 import { RuntimeContext } from '@molstar/core/task';
 import { computeElectronDensityFromReflections } from '../reflections.js';

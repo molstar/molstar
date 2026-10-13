@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { describe, expect, it } from 'vitest';
 import type { ModelConfiguration } from '@molstar/ai-agent';
 import type { RunResult, RunSpec } from '@molstar/ai-harness';
 import { createToolBindings, NestedTools, toolFor } from '../index.js';

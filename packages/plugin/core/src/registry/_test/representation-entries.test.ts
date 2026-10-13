@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { afterEach, describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { BuiltInStructureRepresentations } from '@molstar/graphics/repr/structure/catalog';
@@ -116,7 +117,7 @@ describe('representation registry entries', () => {
   });
 
   it('entry modules do not import catalogs', () => {
-    const root = path.resolve(__dirname, '..');
+    const root = path.resolve(import.meta.dirname, '..');
     let count = 0;
     for (const scope of ['structure', 'volume', 'particles']) {
       for (const file of fs.readdirSync(path.join(root, scope))) {

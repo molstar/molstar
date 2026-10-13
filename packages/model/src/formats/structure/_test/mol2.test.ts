@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { describe, expect, it } from 'vitest';
 import { parseMol2 } from '@molstar/io/reader/mol2/parser';
 import { transformOperators } from '@molstar/core/math/geometry/spacegroup/common';
 import { Spacegroup, SpacegroupCell } from '@molstar/core/math/geometry/spacegroup/construction';
