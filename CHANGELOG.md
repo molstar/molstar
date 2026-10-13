@@ -10,6 +10,7 @@ here.
 
 ## [Unreleased]
 
+- Marking: fill and dim account for transparent layers (shading, see-through, dim of unmarked transparent objects)
 - Fix `IntAdjacencyGraph.connectedComponents` returning the vertex count as the component count for graphs with at least
   one edge
 - Fix RCSB validation report and ModelArchive quality assessment behaviors updating auto-attach and unregistering via

@@ -130,6 +130,10 @@ export class SsaoPass {
 
   readonly ssaoDepthTexture: Texture;
   readonly ssaoDepthTransparentTexture: Texture;
+  private _transparentRendered = false;
+  get transparentRendered() {
+    return this._transparentRendered;
+  }
 
   private readonly depthBlurProxyTexture: Texture;
 
@@ -545,6 +549,7 @@ export class SsaoPass {
     const { x, y, width, height } = camera.viewport;
 
     const includeTransparent = this.renderable.values.dIncludeTransparent.ref.value;
+    this._transparentRendered = includeTransparent;
     const multiScale = this.renderable.values.dMultiScale.ref.value;
 
     const sx = Math.floor(x * this.ssaoScale);

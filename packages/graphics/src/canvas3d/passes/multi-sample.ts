@@ -208,6 +208,7 @@ export class MultiSamplePass {
       restart: true,
       samples: offsetList.length,
       shading: drawPass.getMarkingShading(props.postprocessing),
+      transparentDepth: drawPass.getMarkingTransparentDepth(ctx.scene, props.postprocessing),
     });
     if (isTimingMode) webgl.timer.markEnd('MultiSamplePass.renderMultiSample');
   }
@@ -318,6 +319,7 @@ export class MultiSamplePass {
       restart: firstFrame,
       samples: firstFrame ? 1 : samplesPerFrame,
       shading: drawPass.getMarkingShading(props.postprocessing),
+      transparentDepth: drawPass.getMarkingTransparentDepth(ctx.scene, props.postprocessing),
     });
     if (isTimingMode) webgl.timer.markEnd('MultiSamplePass.renderTemporalMultiSample');
 

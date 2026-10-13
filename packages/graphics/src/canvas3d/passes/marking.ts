@@ -85,10 +85,12 @@ export type MarkingPresentOptions = {
   samples: number;
   /** how the base image was shaded, kept on tinted and dimmed objects */
   shading: MarkingShading | null;
+  /** depth and alpha of the front transparent layer of the base image, null if it was not rendered */
+  transparentDepth: Texture | null;
 };
 
 export type MarkingShading =
-  | { name: 'ssao'; ssao: Texture }
+  | { name: 'ssao'; ssao: Texture; ssaoTransparent: Texture | null }
   /** the (denoised) base image relative to the direct `shaded` color gives the path traced occlusion and shadows */
   | { name: 'traced'; shaded: Texture };
 
@@ -128,6 +130,7 @@ export class MarkingPass {
   private base: RenderTarget | undefined = undefined;
   /** shading of `base` */
   private baseShading: MarkingShading | null = null;
+  private baseTransparentDepth: Texture | null = null;
 
   constructor(
     private webgl: WebGLContext,
@@ -227,6 +230,7 @@ export class MarkingPass {
     depthTest: boolean,
     shading: MarkingShading | null,
     base: Texture,
+    transparentDepth: Texture | null,
   ) {
     const {
       highlightEdgeColor,
@@ -307,6 +311,17 @@ export class MarkingPass {
       ValueCell.update(overlayValues.tShaded, shading.shaded);
       needsUpdate = true;
     }
+    const ssaoTransparent = shading?.name === 'ssao' ? shading.ssaoTransparent : null;
+    ValueCell.updateIfChanged(overlayValues.uHasSsaoTransparent, !!ssaoTransparent);
+    if (ssaoTransparent && overlayValues.tSsaoDepthTransparent.ref.value !== ssaoTransparent) {
+      ValueCell.update(overlayValues.tSsaoDepthTransparent, ssaoTransparent);
+      needsUpdate = true;
+    }
+    ValueCell.updateIfChanged(overlayValues.uHasTransparentDepth, !!transparentDepth);
+    if (transparentDepth && overlayValues.tTransparentDepth.ref.value !== transparentDepth) {
+      ValueCell.update(overlayValues.tTransparentDepth, transparentDepth);
+      needsUpdate = true;
+    }
     if (needsUpdate) this.overlay.update();
 
     if (markingShading === 'ssao' && occlusionProps.name === 'on') {
@@ -328,6 +343,7 @@ export class MarkingPass {
   invalidate() {
     this.base = undefined;
     this.baseShading = null;
+    this.baseTransparentDepth = null;
   }
 
   /** Whether the layer is still missing samples that can be added by `redraw`. */
@@ -341,7 +357,7 @@ export class MarkingPass {
    * or in place.
    */
   present(ctx: RenderContext, props: Props, options: MarkingPresentOptions) {
-    const { base, toDrawingBuffer, shading } = options;
+    const { base, toDrawingBuffer, shading, transparentDepth } = options;
     const { viewport } = ctx.camera;
     const hasMarking = this.updateLayer(ctx, props, options);
 
@@ -352,6 +368,7 @@ export class MarkingPass {
     if (toDrawingBuffer && !(ctx.camera instanceof StereoCamera)) {
       this.base = base;
       this.baseShading = shading;
+      this.baseTransparentDepth = transparentDepth;
     } else {
       this.invalidate();
     }
@@ -372,6 +389,7 @@ export class MarkingPass {
       restart,
       samples,
       shading: this.baseShading,
+      transparentDepth: this.baseTransparentDepth,
     });
     this.webgl.gl.flush();
     if (isTimingMode) this.webgl.timer.markEnd('MarkingPass.redraw');
@@ -380,7 +398,7 @@ export class MarkingPass {
 
   /** Returns false if there is no marking. */
   private updateLayer(ctx: RenderContext, props: Props, options: MarkingPresentOptions): boolean {
-    const { base, offsets, restart, samples, shading } = options;
+    const { base, offsets, restart, samples, shading, transparentDepth } = options;
     const { renderer, camera, scene, frame } = ctx;
     if (camera instanceof StereoCamera || camera.disabled || !MarkingPass.hasMarking(scene, props)) {
       this.sampleCount = 0;
@@ -401,7 +419,7 @@ export class MarkingPass {
     if (this.sampleCount >= end) {
       // traced shading comes from the base image, which keeps converging; the textures of a single sample are still there
       if (shading?.name === 'traced' && offsets.length === 1) {
-        this.update(props, renderer.props, dim, depthTest, shading, base.texture);
+        this.update(props, renderer.props, dim, depthTest, shading, base.texture, transparentDepth);
         this.renderOverlay(ctx.camera.viewport, 1);
       }
       return true;
@@ -414,7 +432,7 @@ export class MarkingPass {
     renderer.setDrawingBufferSize(this.maskTarget.getWidth(), this.maskTarget.getHeight());
     renderer.setPixelRatio(this.webgl.pixelRatio);
     renderer.setViewport(x, y, width, height);
-    this.update(props, renderer.props, dim, depthTest, shading, base.texture);
+    this.update(props, renderer.props, dim, depthTest, shading, base.texture, transparentDepth);
 
     for (; this.sampleCount < end; ++this.sampleCount) {
       const offset = offsets[this.sampleCount];
@@ -674,6 +692,10 @@ const OverlaySchema = {
   tBase: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tShaded: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   dMarkingShading: DefineSpec('string', ['off', 'ssao', 'traced']),
+  tSsaoDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+  uHasSsaoTransparent: UniformSpec('b'),
+  tTransparentDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+  uHasTransparentDepth: UniformSpec('b'),
 };
 const OverlayShaderCode = ShaderCode('overlay', quad_vert, overlay_frag);
 type OverlayRenderable = ComputeRenderable<Values<typeof OverlaySchema>>;
@@ -711,6 +733,10 @@ function getOverlayRenderable(ctx: WebGLContext, edgeTexture: Texture, maskTextu
     tBase: ValueCell.create(maskTexture),
     tShaded: ValueCell.create(maskTexture),
     dMarkingShading: ValueCell.create('off'),
+    tSsaoDepthTransparent: ValueCell.create(maskTexture),
+    uHasSsaoTransparent: ValueCell.create(false),
+    tTransparentDepth: ValueCell.create(maskTexture),
+    uHasTransparentDepth: ValueCell.create(false),
   };
 
   const schema = { ...OverlaySchema };

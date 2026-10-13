@@ -57,7 +57,6 @@ export class DrawPass {
   readonly dpoit: DpoitPass;
   readonly marking: MarkingPass;
   readonly postprocessing: PostprocessingPass;
-  private readonly ssaoShading: MarkingShading;
   readonly antialiasing: AntialiasingPass;
   readonly dof: DofPass;
 
@@ -113,7 +112,6 @@ export class DrawPass {
     this.dpoit = new DpoitPass(webgl, width, height, this.colorTarget.depthRenderbuffer);
     this.marking = new MarkingPass(webgl, width, height);
     this.postprocessing = new PostprocessingPass(webgl, assetManager, this);
-    this.ssaoShading = { name: 'ssao', ssao: this.postprocessing.ssao.ssaoDepthTexture };
     this.antialiasing = new AntialiasingPass(webgl, width, height);
     this.dof = new DofPass(webgl, width, height);
 
@@ -571,6 +569,7 @@ export class DrawPass {
         restart: true,
         samples: 1,
         shading: this.getMarkingShading(props.postprocessing),
+        transparentDepth: this.getMarkingTransparentDepth(scene, props.postprocessing),
       });
     }
 
@@ -725,7 +724,19 @@ export class DrawPass {
 
   /** shading of the last render that marking tint and dim keep, or null if there is none */
   getMarkingShading(postprocessingProps: PostprocessingProps): MarkingShading | null {
-    return SsaoPass.isEnabled(postprocessingProps) ? this.ssaoShading : null;
+    if (!SsaoPass.isEnabled(postprocessingProps)) return null;
+    const { ssao } = this.postprocessing;
+    return {
+      name: 'ssao',
+      ssao: ssao.ssaoDepthTexture,
+      ssaoTransparent: ssao.transparentRendered ? ssao.ssaoDepthTransparentTexture : null,
+    };
+  }
+
+  getMarkingTransparentDepth(scene: Scene, postprocessingProps: PostprocessingProps): Texture | null {
+    return PostprocessingPass.isTransparentDepthRequired(scene, postprocessingProps)
+      ? this.depthTextureTransparent
+      : null;
   }
 
   getColorTarget(postprocessingProps: PostprocessingProps): RenderTarget {
