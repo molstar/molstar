@@ -9,11 +9,11 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { story } from '../../testing/story-root.js';
-import { onCleanup } from '../../dom/scope.js';
-import { observableState } from '../../reactive/observable-state.js';
-import { installTooltips } from '../tooltip/tooltip.js';
-import { Choices } from './choices.js';
+import { story } from '../../../testing/story-root.js';
+import { onCleanup } from '../../../dom/scope.js';
+import { observableState } from '../../../reactive/observable-state.js';
+import { installTooltips } from '../../tooltip/tooltip.js';
+import { Choices } from '../choices.js';
 
 const meta: Meta = { title: 'Components/Choices' };
 export default meta;

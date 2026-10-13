@@ -12,18 +12,22 @@ const preview: Preview = {
   parameters: {
     layout: 'fullscreen',
     options: {
-      // Overview first, then the app from the whole to its parts, the runtime last.
+      // One group per registered package group (packages.ts). Prism: Overview first, then the app from the whole to its
+      // parts, the runtime last.
       storySort: {
         order: [
-          'Overview',
-          ['Introduction', 'Foundations'],
-          'Shell',
-          ['Viewer mode', 'Story mode', 'Assistant'],
-          'Views',
-          ['Home tab', 'Structure tab'],
-          'Canvas',
-          'Components',
-          'Internals',
+          'Prism',
+          [
+            'Overview',
+            ['Introduction', 'Foundations'],
+            'Shell',
+            ['Viewer mode', 'Story mode', 'Assistant'],
+            'Views',
+            ['Home tab', 'Structure tab'],
+            'Canvas',
+            'Components',
+            'Internals',
+          ],
         ],
       },
     },

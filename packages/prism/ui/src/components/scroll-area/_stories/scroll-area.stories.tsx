@@ -9,8 +9,8 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { story } from '../../testing/story-root.js';
-import { ScrollArea } from './scroll-area.js';
+import { story } from '../../../testing/story-root.js';
+import { ScrollArea } from '../scroll-area.js';
 
 const meta: Meta = { title: 'Components/Scroll area' };
 export default meta;

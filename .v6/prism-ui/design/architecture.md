@@ -49,12 +49,13 @@ conventions as the rest of v6: ESM, `molstar-src` source condition, `tsc -b` lib
   commands, the components, and the shell views a contribution sits in (`ShellView`, `StatusPill`, `LogView`,
   `SectionList`, `CommandMenu`). `@molstar/prism-ui/testing/index` is the same for stories and tests. The top-level
   `./_stories/*` and `./_test/*` are `null` (nested `_test/` paths are not); `tsc -b` leaves tests and stories out of
-  `lib/`, and `files` leaves them and `*.stories.*` out of the published package.
+  `lib/`, and `files` leaves them and `*.stories.*` out of the published package. Every Prism package keeps its stories
+  in `_stories/` folders next to the code they show.
 - **Dependencies.** `@molstar/core`, `rxjs`, `tslib`; `react >= 18` is an optional peer used only by `react/`. The
   `tsconfig.json` references core only: the mocks need nothing from `@molstar/plugin`, `model` or `graphics` yet, and
-  the references grow when sources are wired to a plugin. Storybook, Vite, lit, lightningcss and lucide-static are
-  devDependencies pinned in the workspace catalog as prism-ui only; React, React DOM and Preact are devDependencies too
-  (the `react/` tests and stories).
+  the references grow when sources are wired to a plugin. Storybook's types, lit, lightningcss and lucide-static are
+  devDependencies (Storybook itself and Vite are the top-level `storybook/` package's, §8); React, React DOM and Preact
+  are devDependencies too (the `react/` tests and stories).
 
 ```
 packages/prism/ui/
@@ -83,7 +84,6 @@ packages/prism/ui/
     _test/           package-level tests (the agent boundary)
     index.ts         the public entry (above); createPrismUI later
   scripts/           css.mjs (CSS → generated modules, for prism-ui and packages built on it), icons.mjs (Lucide)
-  .storybook/        (dev only; also shows the stories of packages/prism/assistant)
   package.json, tsconfig.json, tsconfig.storybook.json
 
 packages/prism/assistant/
@@ -91,7 +91,7 @@ packages/prism/assistant/
     model.ts         AgentModel, AISettingsModel and the turn, run and history types
     views/           agent-turn (turn card, run rows, Undo turn), history-tab, assistant-tab, ai-setup
     testing/         MockAgentModel, MockAISettings, mockAssistant, mockAgentAddOn (the agent in the mock shell)
-    assistant.stories.tsx   Shell › Assistant (set up, not set up)
+    _stories/        assistant.stories.tsx: Shell › Assistant (set up, not set up)
     index.ts         the public entry
   package.json       depends on @molstar/prism-ui; `styles` runs prism-ui's css.mjs with `--prefix agent`
 ```
@@ -253,22 +253,25 @@ prism-ui asks core for data a UI needs, never for UI concepts (icons, layout sta
 The UI is built as Storybook mocks first: views are real, the models they read are fakes, so layout and interaction
 settle before anything talks to a plugin.
 
-- Storybook 10 with `@storybook/web-components-vite` (stories return real DOM nodes), addons docs and a11y; a
-  devDependency of prism-ui only. Vite runs only for Storybook: `molstar-src` condition (workspace packages from
-  source), `rxjs` deduped, the monorepo root allowed, and `cssModulesPlugin()` from `scripts/css.mjs` keeps generated
-  CSS modules current while it runs. `pnpm --filter @molstar/prism-ui storybook` / `build-storybook`; not in CI.
+- Storybook 10 with `@storybook/web-components-vite` (stories return real DOM nodes), addons docs and a11y, in the
+  top-level `storybook/` package (`@molstar/storybook`, private). `storybook/packages.ts` registers the packages it
+  shows: every `*.stories.ts(x)` and `*.mdx` under a registered package's `src/` is collected (by convention in
+  `_stories/` folders), and an entry names its sidebar group and the Vite plugins its stories need. Vite runs only for
+  Storybook: `molstar-src` condition (workspace packages from source), `rxjs` deduped, the monorepo root allowed; for
+  each Prism package `cssModulesPlugin()` from prism-ui's `scripts/css.mjs` keeps its generated CSS modules current, and
+  for prism-ui the Preact plugin serves Internals › React and Preact ([rendering.md](rendering.md)).
+  `pnpm -C storybook storybook` / `build-storybook` (or `mise run storybook`); not in CI.
 - A toolbar global sets the theme (`data-msp-theme` on the document root: light, dark, blue, auto).
-- Story order: Overview (Introduction, Foundations), Shell, Views, Canvas, Components, Internals (the DOM runtime, and
-  Performance: the renderer check). Every component but the color picker has a story; `Components/Params form` shows
-  every PD control in its states.
+- Story order, all under one Prism group (the registry's `group`, Storybook's `titlePrefix`): Overview (Introduction,
+  Foundations), Shell, Views, Canvas, Components, Internals (the DOM runtime, and Performance: the renderer check).
+  Every component but the color picker has a story; `Components/Params form` shows every PD control in its states.
 - `testing/story-root` (`story()`) hosts a story's JSX in an `MspElement`, so its bindings are disposed when Storybook
   removes it.
 - `testing/` implements the `model/` contracts with in-memory data (scene, home, snapshots, selection, …), and
   `testing/shell` is the whole mock shell; stories, a few view tests (command menu, Structure tab) and the agent's
   stories import them. The agent's mocks (an agent with scripted turns) are in its package.
-- The Storybook in prism-ui also shows the stories of packages built on it (`packages/prism/assistant`: Shell ›
-  Assistant); `cssModulesPlugin` keeps both packages' CSS current. Stories over a real `PluginContext` (plan's level 3)
-  are not built yet.
+- The Prism packages built on prism-ui are registered too (viewer: Shell › Viewer mode, Views; stories: Shell › Story
+  mode; assistant: Shell › Assistant). Stories over a real `PluginContext` (plan's level 3) are not built yet.
 
 ## 9. Tests and checks
 

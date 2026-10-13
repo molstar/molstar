@@ -9,10 +9,10 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { story } from '../../testing/story-root.js';
-import { LucideIcons } from './_generated/lucide.js';
-import { Icon, type IconName } from './icon.js';
-import { MolecularIcons } from './molecular.js';
+import { story } from '../../../testing/story-root.js';
+import { LucideIcons } from '../_generated/lucide.js';
+import { Icon, type IconName } from '../icon.js';
+import { MolecularIcons } from '../molecular.js';
 
 const meta: Meta = { title: 'Components/Icon' };
 export default meta;

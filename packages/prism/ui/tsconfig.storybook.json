@@ -9,5 +9,5 @@
     "types": ["node", "jest"],
     "jsxImportSource": "@molstar/prism-ui/dom"
   },
-  "include": ["src/**/*", ".storybook/**/*"]
+  "include": ["src/**/*"]
 }

@@ -19,12 +19,14 @@
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
     },
+    "./_stories/*": null,
     "./_test/*": null
   },
   "files": [
     "lib",
     "src",
     "!**/_test/**",
+    "!**/_stories/**",
     "!**/*.stories.*",
     "!**/*.tsbuildinfo"
   ],

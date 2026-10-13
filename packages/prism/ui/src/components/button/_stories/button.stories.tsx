@@ -10,10 +10,10 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { map } from 'rxjs';
-import { story } from '../../testing/story-root.js';
-import { observableState } from '../../reactive/observable-state.js';
-import { Icon } from '../icon/icon.js';
-import { Button } from './button.js';
+import { story } from '../../../testing/story-root.js';
+import { observableState } from '../../../reactive/observable-state.js';
+import { Icon } from '../../icon/icon.js';
+import { Button } from '../button.js';
 
 const meta: Meta = { title: 'Components/Button' };
 export default meta;

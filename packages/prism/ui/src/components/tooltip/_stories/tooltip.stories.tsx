@@ -9,10 +9,10 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { onCleanup } from '../../dom/scope.js';
-import { story } from '../../testing/story-root.js';
-import { Icon } from '../icon/icon.js';
-import { installTooltips } from './tooltip.js';
+import { onCleanup } from '../../../dom/scope.js';
+import { story } from '../../../testing/story-root.js';
+import { Icon } from '../../icon/icon.js';
+import { installTooltips } from '../tooltip.js';
 
 const meta: Meta = { title: 'Components/Tooltip' };
 export default meta;

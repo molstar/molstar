@@ -9,9 +9,9 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { story } from '../../testing/story-root.js';
-import { observableState } from '../../reactive/observable-state.js';
-import { TextInput } from './text-input.js';
+import { story } from '../../../testing/story-root.js';
+import { observableState } from '../../../reactive/observable-state.js';
+import { TextInput } from '../text-input.js';
 
 const meta: Meta = { title: 'Components/Text input' };
 export default meta;

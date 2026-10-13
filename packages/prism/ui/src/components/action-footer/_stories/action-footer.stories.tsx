@@ -10,9 +10,9 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { of } from 'rxjs';
-import { story } from '../../testing/story-root.js';
-import { observableState } from '../../reactive/observable-state.js';
-import { ActionFooter } from './action-footer.js';
+import { story } from '../../../testing/story-root.js';
+import { observableState } from '../../../reactive/observable-state.js';
+import { ActionFooter } from '../action-footer.js';
 
 const meta: Meta = { title: 'Components/Action footer' };
 export default meta;

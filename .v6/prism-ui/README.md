@@ -57,10 +57,10 @@ describe what the mocks settled. Nothing is wired to a real plugin yet. **Pickin
 - **Styling**: CSS Modules compiled by lightningcss into generated TypeScript modules (`_generated/*.css.ts`), `--msp-*`
   tokens, runtime themes (light, dark, blue, auto), `@layer msp`; flat surfaces, few lines, glass over the canvas that
   follows the canvas background; every scrolling area a `ScrollArea`. ([design/styling.md](design/styling.md))
-- **Storybook first** (devDependency of prism-ui; it shows the agent's stories too): Overview, Shell, Views, Canvas,
-  Components, Internals, with `play` interaction tests. Built so far: components and views over mocked view models;
-  integration with a real plugin comes with the build. The renderer check is done; next, a deep multi-agent (ultracode)
-  review of the spec. ([plan.md](plan.md))
+- **Storybook first** (the top-level `storybook/`, showing every Prism package's stories): Overview, Shell, Views,
+  Canvas, Components, Internals, with `play` interaction tests. Built so far: components and views over mocked view
+  models; integration with a real plugin comes with the build. The renderer check is done; next, a deep multi-agent
+  (ultracode) review of the spec. ([plan.md](plan.md))
 
 ## Documents
 

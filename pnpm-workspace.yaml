@@ -11,6 +11,7 @@ packages:
   - 'cli/*'
   - 'distributions/*'
   - 'smoke'
+  - 'storybook'
   - 'tests'
   - 'perf-tests'
 
@@ -74,7 +75,7 @@ catalog:
   'serve-static': '2.2.1'
   '@types/serve-static': '2.2.0'
   '@types/express-serve-static-core': '5.1.2'
-  # Storybook (prism-ui only); all Storybook packages share one version.
+  # Storybook (the top-level storybook/ package; the packages with stories take its types); all Storybook packages share one version.
   'storybook': '10.6.0'
   '@storybook/web-components-vite': '10.6.0'
   '@storybook/addon-docs': '10.6.0'

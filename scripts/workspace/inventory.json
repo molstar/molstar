@@ -499,6 +499,12 @@
       "private": true
     },
     {
+      "name": "@molstar/storybook",
+      "path": "storybook",
+      "kind": "storybook",
+      "private": true
+    },
+    {
       "name": "@molstar/volseg-api-extension",
       "path": "extensions/volseg-api",
       "kind": "extension",

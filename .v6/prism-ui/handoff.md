@@ -100,10 +100,11 @@ Do not start step 2's integration without the user: they want to decide it toget
   - `node scripts/workspace/check.mjs`
   - `pnpm -C packages/prism/<pkg> styles:check`
   - `pnpm -C packages/prism/<pkg> typecheck:storybook`
-- **Storybook**: `pnpm -C packages/prism/ui storybook` (port 6006; the launch config is `prism-ui-storybook`). Another
-  project's Storybook has been holding 6006. For a check, add a temporary launch entry with
+- **Storybook**: `pnpm -C storybook storybook` (port 6006; the launch config is `storybook`). It lives in the top-level
+  `storybook/` package and shows the stories of the packages registered in `storybook/packages.ts`; stories go in
+  `_stories/` folders. Another project's Storybook has been holding 6006. For a check, add a temporary launch entry with
   `exec storybook dev -p 6016`, then revert `.claude/launch.json`. Restart Storybook after changing
-  `.storybook/main.ts`.
+  `storybook/packages.ts` or `storybook/.storybook/main.ts`.
 - **Gotchas**:
   - Every Prism `.tsx` file needs `/** @jsxImportSource @molstar/prism-ui/dom */` first. Without it, Jest compiles it as
     React, and the runtime prints "Cannot render".

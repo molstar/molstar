@@ -17,7 +17,8 @@ the sequence viewer against that skeleton, then freeze the rest of the contracts
   (`molstar-src` to `src/`, `_stories` and `_test` not exported), `tsconfig.json` (a reference in the root
   `tsconfig.json`), workspace registration, Biome, and jest through the root config (`moduleNameMapper` to `src/`; tests
   in `_test` folders).
-- Storybook as a **devDependency of prism-ui only** (`.storybook/`):
+- Storybook as a **devDependency of prism-ui only** (`.storybook/`; since moved to the top-level `storybook/` package,
+  which collects the stories of registered packages, [design/architecture.md](design/architecture.md) §8):
   - Framework `@storybook/web-components-vite` (prism-ui renders real DOM nodes; stories return them).
   - Vite is used only by Storybook. Its config resolves workspace packages to source (`molstar-src` before the default
     conditions), dedupes `rxjs`, allows the monorepo root, and runs the CSS-module generator as a plugin.

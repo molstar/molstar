@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "prism-ui-storybook",
+      "name": "storybook",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@molstar/prism-ui", "storybook", "--ci", "--no-open"],
+      "runtimeArgs": ["--filter", "@molstar/storybook", "storybook", "--ci", "--no-open"],
       "port": 6006
     }
   ]

@@ -9,8 +9,8 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { story } from '../../testing/story-root.js';
-import { MolstarWordmark } from './wordmark.js';
+import { story } from '../../../testing/story-root.js';
+import { MolstarWordmark } from '../wordmark.js';
 
 const meta: Meta = { title: 'Components/Wordmark' };
 export default meta;

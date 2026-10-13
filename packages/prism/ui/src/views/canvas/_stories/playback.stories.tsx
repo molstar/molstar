@@ -9,9 +9,9 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { mockSnapshots, mockTrajectory } from '../../testing/playback.js';
-import { story } from '../../testing/story-root.js';
-import { SnapshotCard, TrajectoryBar } from './playback.js';
+import { mockSnapshots, mockTrajectory } from '../../../testing/playback.js';
+import { story } from '../../../testing/story-root.js';
+import { SnapshotCard, TrajectoryBar } from '../playback.js';
 
 const meta: Meta = { title: 'Canvas/Playback' };
 export default meta;

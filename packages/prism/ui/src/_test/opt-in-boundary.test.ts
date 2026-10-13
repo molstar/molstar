@@ -52,7 +52,7 @@ describe.each(OptIn)('the opt-in module %s', (name) => {
 
   it('is imported by nothing in prism-ui', () => {
     const offenders: string[] = [];
-    for (const dir of ['src', '.storybook', 'scripts']) {
+    for (const dir of ['src', 'scripts']) {
       for (const file of sources(path.join(root, dir))) {
         if (fs.readFileSync(file, 'utf8').includes(`'${name}`)) offenders.push(path.relative(root, file));
       }

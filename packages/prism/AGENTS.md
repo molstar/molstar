@@ -3,9 +3,9 @@
 The new Mol\* UI. The repository's rules ([../../AGENTS.md](../../AGENTS.md)) apply; these are Prism's own. Designs:
 [.v6/prism-ui](../../.v6/prism-ui/README.md) (start with its README; `design/contexts.md` holds the contracts).
 
-- Packages: `ui` (the common base: its own DOM JSX runtime, components, the shell, the command menu, Storybook),
-  `viewer` (the viewer mode, Mol\*'s own UI), `stories` (the story mode), `assistant` (the AI assistant's UI). The modes
-  and the assistant are opt-in: an app gets one only by depending on it, and `ui` never imports them
+- Packages: `ui` (the common base: its own DOM JSX runtime, components, the shell, the command menu), `viewer` (the
+  viewer mode, Mol\*'s own UI), `stories` (the story mode), `assistant` (the AI assistant's UI). The modes and the
+  assistant are opt-in: an app gets one only by depending on it, and `ui` never imports them
   (`ui/src/_test/opt-in-boundary.test.ts`).
 - Not React: views are `.tsx` on the runtime in `ui/src/dom` (`Show`, `For`, `observableState`); state lives in models,
   views bind to their observables.
@@ -16,6 +16,7 @@ The new Mol\* UI. The repository's rules ([../../AGENTS.md](../../AGENTS.md)) ap
 
 ## Commands
 
-`pnpm -C packages/prism/ui storybook` (port 6006; it shows the stories of the other Prism packages too),
+`pnpm -C storybook storybook` or `mise run storybook` (port 6006; the top-level `storybook/` shows the stories of the
+packages registered in `storybook/packages.ts`, every Prism package among them; stories go in `_stories/` folders),
 `pnpm -C packages/prism/<pkg> styles` after editing a CSS module (`styles:check` verifies the generated files and the
 spacing scale), `typecheck:storybook` for stories and tests.

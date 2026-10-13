@@ -11,13 +11,13 @@
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { onCleanup } from '../dom/scope.js';
-import { observableState } from '../reactive/observable-state.js';
-import { mockBlankMode, ShellStory } from '../testing/shell.js';
-import { story } from '../testing/story-root.js';
-import { preactPanelView } from './_stories/preact/preact-parts.js';
-import { ReactApp, ReactPanel } from './_stories/react-parts.js';
-import { reactView } from './react-view.js';
+import { onCleanup } from '../../dom/scope.js';
+import { observableState } from '../../reactive/observable-state.js';
+import { mockBlankMode, ShellStory } from '../../testing/shell.js';
+import { story } from '../../testing/story-root.js';
+import { preactPanelView } from '../_stories/preact/preact-parts.js';
+import { ReactApp, ReactPanel } from '../_stories/react-parts.js';
+import { reactView } from '../react-view.js';
 
 const meta: Meta = { title: 'Internals/React and Preact', parameters: { layout: 'fullscreen' } };
 export default meta;

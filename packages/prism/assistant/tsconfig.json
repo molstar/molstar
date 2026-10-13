@@ -7,7 +7,7 @@
     "jsxImportSource": "@molstar/prism-ui/dom"
   },
   "include": ["src/**/*"],
-  "exclude": ["src/**/_test/**", "src/**/*.stories.ts", "src/**/*.stories.tsx"],
+  "exclude": ["src/**/_test/**", "src/**/_stories/**", "src/**/*.stories.ts", "src/**/*.stories.tsx"],
   "references": [
     {
       "path": "../../ai/agent"

@@ -11,8 +11,8 @@
 import { story } from '@molstar/prism-ui/testing/index';
 import { ViewerShellStory } from '@molstar/prism-viewer/testing/index';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { InspectorPageId } from './inspector-access.js';
-import { mockAgentAddOn, mockTrace } from './testing/index.js';
+import { InspectorPageId } from '../inspector-access.js';
+import { mockAgentAddOn, mockTrace } from '../testing/index.js';
 
 const meta: Meta = { title: 'Shell/Assistant', parameters: { layout: 'fullscreen' } };
 export default meta;

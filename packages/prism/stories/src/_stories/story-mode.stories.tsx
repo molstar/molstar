@@ -11,7 +11,7 @@
 import { PrismAppStory, story } from '@molstar/prism-ui/testing/index';
 import { mockViewerMode } from '@molstar/prism-viewer/testing/index';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { mockStoryMode } from './testing/index.js';
+import { mockStoryMode } from '../testing/index.js';
 
 const meta: Meta = { title: 'Shell/Story mode', parameters: { layout: 'fullscreen' } };
 export default meta;

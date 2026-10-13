@@ -9,9 +9,9 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { mockHome } from '../../testing/home.js';
+import { mockHome } from '../../../testing/home.js';
 import { story } from '@molstar/prism-ui/testing/index';
-import { HomeTab } from './home-tab.js';
+import { HomeTab } from '../home-tab.js';
 
 const meta: Meta = { title: 'Views/Home tab' };
 export default meta;

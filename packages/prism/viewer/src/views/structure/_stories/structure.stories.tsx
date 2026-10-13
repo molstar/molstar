@@ -15,10 +15,10 @@ import {
   mockPresets,
   mockQuickStyles,
   mockSceneWithPicked,
-} from '../../testing/scene.js';
+} from '../../../testing/scene.js';
 import { story } from '@molstar/prism-ui/testing/index';
 import { ShellModel } from '@molstar/prism-ui/shell/shell';
-import { StructureTab } from './structure-tab.js';
+import { StructureTab } from '../structure-tab.js';
 
 const meta: Meta = { title: 'Views/Structure tab' };
 export default meta;

@@ -9,9 +9,9 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { story } from '../../testing/story-root.js';
-import { observableState } from '../../reactive/observable-state.js';
-import { Markdown } from './markdown.js';
+import { story } from '../../../testing/story-root.js';
+import { observableState } from '../../../reactive/observable-state.js';
+import { Markdown } from '../markdown.js';
 
 const meta: Meta = { title: 'Components/Markdown' };
 export default meta;

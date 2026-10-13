@@ -31,8 +31,8 @@ description = "Examples in watch mode"
 run = "pnpm dev:examples --"
 
 [tasks.storybook]
-description = "Prism storybook on port 6006 (stories of all Prism packages)"
-run = "pnpm -C packages/prism/ui storybook"
+description = "Storybook on port 6006 (the packages registered in storybook/packages.ts)"
+run = "pnpm -C storybook storybook"
 
 [tasks.lint]
 description = "Lint with Biome"

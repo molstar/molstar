@@ -10,11 +10,11 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { map } from 'rxjs';
-import { story } from '../../testing/story-root.js';
-import { For } from '../../dom/control-flow.js';
-import { observableState } from '../../reactive/observable-state.js';
-import { Icon } from '../icon/icon.js';
-import { dragToReorder } from './drag-to-reorder.js';
+import { story } from '../../../testing/story-root.js';
+import { For } from '../../../dom/control-flow.js';
+import { observableState } from '../../../reactive/observable-state.js';
+import { Icon } from '../../icon/icon.js';
+import { dragToReorder } from '../drag-to-reorder.js';
 
 const meta: Meta = { title: 'Components/Drag to reorder' };
 export default meta;

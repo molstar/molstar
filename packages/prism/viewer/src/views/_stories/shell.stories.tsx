@@ -10,7 +10,7 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { story } from '@molstar/prism-ui/testing/index';
-import { ViewerShellStory } from '../testing/shell-story.js';
+import { ViewerShellStory } from '../../testing/shell-story.js';
 
 const meta: Meta = { title: 'Shell/Viewer mode', parameters: { layout: 'fullscreen' } };
 export default meta;
@@ -115,7 +115,7 @@ export const ExpandByContext: StoryObj = {
   parameters: { layout: 'fullscreen' },
   render: () =>
     story(() => {
-      const src = 'iframe.html?id=shell-viewer-mode--loaded&viewMode=story';
+      const src = 'iframe.html?id=prism-shell-viewer-mode--loaded&viewMode=story';
       const caption = 'color: var(--msp-color-text-muted); font-size: var(--msp-font-size-sm);';
       const frame =
         'width: 100%; height: 100%; border: 0; border-radius: var(--msp-radius-lg); box-shadow: inset 0 0 0 1px var(--msp-glass-edge);';

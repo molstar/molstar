@@ -15,12 +15,12 @@ import { Material } from '@molstar/core/util/material';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { map } from 'rxjs';
-import { story } from '../../testing/story-root.js';
-import { ParamsFormModel } from '../../forms/params-form.js';
-import { observableState } from '../../reactive/observable-state.js';
-import { TextInput } from '../text-input/text-input.js';
-import { installTooltips } from '../tooltip/tooltip.js';
-import { ParamsForm } from './params-form.js';
+import { story } from '../../../testing/story-root.js';
+import { ParamsFormModel } from '../../../forms/params-form.js';
+import { observableState } from '../../../reactive/observable-state.js';
+import { TextInput } from '../../text-input/text-input.js';
+import { installTooltips } from '../../tooltip/tooltip.js';
+import { ParamsForm } from '../params-form.js';
 
 /**
  * Every PD control, alone, in each state: on a panel and in a well (an open action block), at the panel's width, with
