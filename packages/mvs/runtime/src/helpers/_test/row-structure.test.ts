@@ -37,10 +37,20 @@ function withSecondInstance(structure: Structure) {
 }
 
 describe.each([
-  ['single comp_id per residue', { nChains: 10, nResidues: 30, insertionCodes: true, descendingSeqIds: true }],
+  [
+    'single comp_id per residue',
+    { nChains: 10, nResidues: 30, insertionCodes: true, descendingSeqIds: true, differentAuthComp: true },
+  ],
   [
     'mixed comp_ids within residues',
-    { nChains: 10, nResidues: 30, insertionCodes: true, descendingSeqIds: true, mixedCompIds: true },
+    {
+      nChains: 10,
+      nResidues: 30,
+      insertionCodes: true,
+      descendingSeqIds: true,
+      differentAuthComp: true,
+      mixedCompIds: true,
+    },
   ],
 ] as const)('substructureFromRows vs MolScript expression (%s)', async (_label, dims) => {
   const model = await createModel(dims);

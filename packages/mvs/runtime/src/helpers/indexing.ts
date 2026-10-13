@@ -83,6 +83,8 @@ export interface AtomicIndicesAndSortings {
   residuesByAuthCompIdIsPure: boolean;
   atomsById: Mapping<number, ElementIndex>;
   atomsBySourceIndex: Mapping<number, ElementIndex>;
+  /** Lookups over all chains at once (for rows without chain criteria), each built on first use */
+  global: GlobalResidueIndices;
 }
 
 /** Create `AtomicIndicesAndSortings` for a model */
@@ -183,7 +185,77 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
     residuesByAuthCompIdIsPure,
     atomsById,
     atomsBySourceIndex,
+    global: new GlobalResidueIndices(h),
   };
+}
+
+/** Lookups of residues over the whole model, for rows without chain criteria: the per-chain indices would need a lookup in every chain
+ * (cost proportional to the number of chains even when there is a single match). Unlike them, these are built from one pass
+ * over the residues without sorting, and only when first needed. Residues in each list are ascending. */
+export class GlobalResidueIndices {
+  private _bySourceIndex: Map<number, ResidueIndex> | null | undefined = undefined;
+  private _byInsCode?: MultiMap<string, ResidueIndex>;
+  private _byLabelCompId?: MultiMap<string, ResidueIndex>;
+  private _byAuthCompId?: MultiMap<string, ResidueIndex>;
+
+  constructor(private readonly h: Model['atomicHierarchy']) {}
+
+  /** `residue_index` -> residue, or `null` when `residue_index` is not unique in the model (then use the per-chain indices) */
+  get residueBySourceIndex(): Map<number, ResidueIndex> | null {
+    if (this._bySourceIndex === undefined) {
+      const { residueSourceIndex } = this.h;
+      const nResidues = this.h.residues._rowCount;
+      const map = new Map<number, ResidueIndex>();
+      let unique = true;
+      for (let iRes = 0 as ResidueIndex; iRes < nResidues; iRes++) {
+        const index = residueSourceIndex.value(iRes);
+        if (map.has(index)) {
+          unique = false;
+          break;
+        }
+        map.set(index, iRes);
+      }
+      this._bySourceIndex = unique ? map : null;
+    }
+    return this._bySourceIndex;
+  }
+
+  get residuesByInsCode(): Mapping<string, readonly ResidueIndex[]> {
+    if (!this._byInsCode) {
+      const { pdbx_PDB_ins_code } = this.h.residues;
+      const map = new MultiMap<string, ResidueIndex>();
+      const nResidues = this.h.residues._rowCount;
+      for (let iRes = 0 as ResidueIndex; iRes < nResidues; iRes++) {
+        if (pdbx_PDB_ins_code.valueKind(iRes) === Column.ValueKind.Present)
+          map.add(pdbx_PDB_ins_code.value(iRes), iRes);
+      }
+      this._byInsCode = map;
+    }
+    return this._byInsCode;
+  }
+
+  /** Residues having an atom with the given `label_comp_id` */
+  get residuesByLabelCompId(): Mapping<string, readonly ResidueIndex[]> {
+    return (this._byLabelCompId ??= this.byCompId(this.h.atoms.label_comp_id));
+  }
+
+  /** Residues having an atom with the given `auth_comp_id` */
+  get residuesByAuthCompId(): Mapping<string, readonly ResidueIndex[]> {
+    return (this._byAuthCompId ??= this.byCompId(this.h.atoms.auth_comp_id));
+  }
+
+  private byCompId(compId: Column<string>) {
+    const map = new MultiMap<string, ResidueIndex>();
+    const { offsets } = this.h.residueAtomSegments;
+    const nResidues = this.h.residues._rowCount;
+    const seen = new Set<string>();
+    for (let iRes = 0 as ResidueIndex; iRes < nResidues; iRes++) {
+      for (let iAtom = offsets[iRes], stop = offsets[iRes + 1]; iAtom < stop; iAtom++) seen.add(compId.value(iAtom));
+      for (const id of seen) map.add(id, iRes);
+      seen.clear();
+    }
+    return map;
+  }
 }
 
 /** Auxiliary data structure for efficiently finding chains/elements in a coarse model by their properties */

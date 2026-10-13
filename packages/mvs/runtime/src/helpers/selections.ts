@@ -52,6 +52,7 @@ const MaxRetainedBufferCapacity = 1 << 20;
 const SharedScratch = new AtomRangesScratch();
 const RowsBag = new ElementRangesBuffer();
 const IndexRange = { from: 0, to: 0 };
+const SingleResidue: ResidueIndex[] = [0 as ResidueIndex];
 
 /** Return atom ranges in `model` which satisfy criteria given by `row` (a new object). */
 export function getAtomRangesForRow(
@@ -284,75 +285,115 @@ function getQualifyingResidues(
                   ? ResidueSource.AuthCompId
                   : ResidueSource.AllInChain;
 
-  // criteria which still have to be checked on candidates (the one used as `source` is already satisfied by the index)
-  const checkAuthSeq = hasAuthSeq && source !== ResidueSource.AuthSeqId;
-  const checkResIdx = hasResIdx && source !== ResidueSource.ResidueIndex;
-  const checkIns = hasIns && source !== ResidueSource.InsCode;
-  const checkLabelRange = hasLabelRange && source !== ResidueSource.LabelSeqIdRange;
-  const checkAuthRange = hasAuthRange && source !== ResidueSource.AuthSeqIdRange;
-  const checkLabelComp = hasLabelComp && source !== ResidueSource.LabelCompId;
-  const checkAuthComp = hasAuthComp && source !== ResidueSource.AuthCompId;
+  // Without chain criteria the candidates do not have to be looked up in every chain: some criteria select few residues in the whole
+  // model, so a lookup over all chains at once is better (`covered`: the criterion which the global lookup satisfies).
+  // (Not for sequence-based criteria: they select about one residue in each chain anyway, which is what looking in each chain finds.)
+  let globalKeys: readonly ResidueIndex[] | undefined = undefined;
+  let covered = source;
+  if (!fromChains) {
+    const global = indices.global;
+    const bySeq = hasLabelSeq || hasAuthSeq || hasLabelRange || hasAuthRange;
+    if (hasResIdx && global.residueBySourceIndex) {
+      const iRes = global.residueBySourceIndex.get(row.residue_index!);
+      SingleResidue[0] = iRes as ResidueIndex;
+      globalKeys = iRes === undefined ? EmptyArray : SingleResidue;
+      covered = ResidueSource.ResidueIndex;
+    } else if (hasIns && !bySeq) {
+      globalKeys = global.residuesByInsCode.get(row.pdbx_PDB_ins_code!) ?? EmptyArray;
+      covered = ResidueSource.InsCode;
+    } else if (hasLabelComp && !bySeq) {
+      globalKeys = global.residuesByLabelCompId.get(row.label_comp_id!) ?? EmptyArray;
+      covered = ResidueSource.LabelCompId;
+    } else if (hasAuthComp && !bySeq) {
+      globalKeys = global.residuesByAuthCompId.get(row.auth_comp_id!) ?? EmptyArray;
+      covered = ResidueSource.AuthCompId;
+    }
+  }
 
-  const nFromChains = fromChains ? fromChains.length : model.atomicHierarchy.chains._rowCount;
-  for (let iFrom = 0; iFrom < nFromChains; iFrom++) {
+  // criteria which still have to be checked on candidates (the one used as the source of candidates is already satisfied by its index)
+  const checkLabelSeq = hasLabelSeq && covered !== ResidueSource.LabelSeqId;
+  const checkAuthSeq = hasAuthSeq && covered !== ResidueSource.AuthSeqId;
+  const checkResIdx = hasResIdx && covered !== ResidueSource.ResidueIndex;
+  const checkIns = hasIns && covered !== ResidueSource.InsCode;
+  const checkLabelRange = hasLabelRange && covered !== ResidueSource.LabelSeqIdRange;
+  const checkAuthRange = hasAuthRange && covered !== ResidueSource.AuthSeqIdRange;
+  const checkLabelComp = hasLabelComp && covered !== ResidueSource.LabelCompId;
+  const checkAuthComp = hasAuthComp && covered !== ResidueSource.AuthCompId;
+
+  // one pass over the candidates of a chain, of the whole model, or of a global lookup
+  const nPasses =
+    globalKeys || (!fromChains && source === ResidueSource.AllInChain)
+      ? 1
+      : fromChains
+        ? fromChains.length
+        : model.atomicHierarchy.chains._rowCount;
+  for (let iFrom = 0; iFrom < nPasses; iFrom++) {
     const iChain = (fromChains ? fromChains[iFrom] : iFrom) as ChainIndex;
 
     // candidates are `keys[from..to)` (or consecutive residues `from..to` when `keys` is undefined)
     let keys: readonly ResidueIndex[] | undefined = undefined;
     let from = 0;
     let to = 0;
-    switch (source) {
-      case ResidueSource.LabelSeqId:
-      case ResidueSource.LabelSeqIdRange: {
-        const sorting = indices.residuesSortedByLabelSeqId.get(iChain)!;
-        keys = sorting.keys;
-        if (source === ResidueSource.LabelSeqId)
-          Sorting.findIndexRange(sorting, row.label_seq_id, row.label_seq_id, IndexRange);
-        else Sorting.findIndexRange(sorting, row.beg_label_seq_id, row.end_label_seq_id, IndexRange);
-        from = IndexRange.from;
-        to = IndexRange.to;
-        break;
+    if (globalKeys) {
+      keys = globalKeys;
+      to = globalKeys.length;
+    } else if (!fromChains && source === ResidueSource.AllInChain) {
+      to = model.atomicHierarchy.residues._rowCount; // (all residues in all chains)
+    } else
+      switch (source) {
+        case ResidueSource.LabelSeqId:
+        case ResidueSource.LabelSeqIdRange: {
+          const sorting = indices.residuesSortedByLabelSeqId.get(iChain)!;
+          keys = sorting.keys;
+          if (source === ResidueSource.LabelSeqId)
+            Sorting.findIndexRange(sorting, row.label_seq_id, row.label_seq_id, IndexRange);
+          else Sorting.findIndexRange(sorting, row.beg_label_seq_id, row.end_label_seq_id, IndexRange);
+          from = IndexRange.from;
+          to = IndexRange.to;
+          break;
+        }
+        case ResidueSource.AuthSeqId:
+        case ResidueSource.AuthSeqIdRange: {
+          const sorting = indices.residuesSortedByAuthSeqId.get(iChain)!;
+          keys = sorting.keys;
+          if (source === ResidueSource.AuthSeqId)
+            Sorting.findIndexRange(sorting, row.auth_seq_id, row.auth_seq_id, IndexRange);
+          else Sorting.findIndexRange(sorting, row.beg_auth_seq_id, row.end_auth_seq_id, IndexRange);
+          from = IndexRange.from;
+          to = IndexRange.to;
+          break;
+        }
+        case ResidueSource.ResidueIndex: {
+          const sorting = indices.residuesSortedBySourceIndex.get(iChain)!;
+          keys = sorting.keys;
+          Sorting.findIndexRange(sorting, row.residue_index, row.residue_index, IndexRange);
+          from = IndexRange.from;
+          to = IndexRange.to;
+          break;
+        }
+        case ResidueSource.InsCode:
+          keys = indices.residuesByInsCode.get(iChain)!.get(row.pdbx_PDB_ins_code!) ?? EmptyArray;
+          to = keys.length;
+          break;
+        case ResidueSource.LabelCompId:
+          keys = indices.residuesByLabelCompId.get(iChain)!.get(row.label_comp_id!) ?? EmptyArray;
+          to = keys.length;
+          break;
+        case ResidueSource.AuthCompId:
+          keys = indices.residuesByAuthCompId.get(iChain)!.get(row.auth_comp_id!) ?? EmptyArray;
+          to = keys.length;
+          break;
+        case ResidueSource.AllInChain:
+          from = residueAtomSegments.index[chainAtomSegments.offsets[iChain]];
+          to = residueAtomSegments.index[chainAtomSegments.offsets[iChain + 1] - 1] + 1;
+          break;
       }
-      case ResidueSource.AuthSeqId:
-      case ResidueSource.AuthSeqIdRange: {
-        const sorting = indices.residuesSortedByAuthSeqId.get(iChain)!;
-        keys = sorting.keys;
-        if (source === ResidueSource.AuthSeqId)
-          Sorting.findIndexRange(sorting, row.auth_seq_id, row.auth_seq_id, IndexRange);
-        else Sorting.findIndexRange(sorting, row.beg_auth_seq_id, row.end_auth_seq_id, IndexRange);
-        from = IndexRange.from;
-        to = IndexRange.to;
-        break;
-      }
-      case ResidueSource.ResidueIndex: {
-        const sorting = indices.residuesSortedBySourceIndex.get(iChain)!;
-        keys = sorting.keys;
-        Sorting.findIndexRange(sorting, row.residue_index, row.residue_index, IndexRange);
-        from = IndexRange.from;
-        to = IndexRange.to;
-        break;
-      }
-      case ResidueSource.InsCode:
-        keys = indices.residuesByInsCode.get(iChain)!.get(row.pdbx_PDB_ins_code!) ?? EmptyArray;
-        to = keys.length;
-        break;
-      case ResidueSource.LabelCompId:
-        keys = indices.residuesByLabelCompId.get(iChain)!.get(row.label_comp_id!) ?? EmptyArray;
-        to = keys.length;
-        break;
-      case ResidueSource.AuthCompId:
-        keys = indices.residuesByAuthCompId.get(iChain)!.get(row.auth_comp_id!) ?? EmptyArray;
-        to = keys.length;
-        break;
-      case ResidueSource.AllInChain:
-        from = residueAtomSegments.index[chainAtomSegments.offsets[iChain]];
-        to = residueAtomSegments.index[chainAtomSegments.offsets[iChain + 1] - 1] + 1;
-        break;
-    }
 
     const start = out.n;
     for (let k = from; k < to; k++) {
       const iRes = (keys ? keys[k] : k) as ResidueIndex;
+      if (checkLabelSeq && !(label_seq_id.valueKind(iRes) === Present && label_seq_id.value(iRes) === row.label_seq_id))
+        continue;
       if (checkAuthSeq && !(auth_seq_id.valueKind(iRes) === Present && auth_seq_id.value(iRes) === row.auth_seq_id))
         continue;
       if (checkResIdx && residueSourceIndex.value(iRes) !== row.residue_index) continue;
@@ -382,7 +423,7 @@ function getQualifyingResidues(
     }
     // Candidates from a value range are ordered by value, not necessarily by residue index. (Candidates for a single value, from
     // the other indices and from consecutive residues are already ascending; chains are ascending, so the whole `out` is then too.)
-    if (source === ResidueSource.LabelSeqIdRange || source === ResidueSource.AuthSeqIdRange) {
+    if (!globalKeys && (source === ResidueSource.LabelSeqIdRange || source === ResidueSource.AuthSeqIdRange)) {
       out.data.subarray(start, out.n).sort(); // (native numeric sort of the typed array)
     }
   }

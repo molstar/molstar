@@ -15,10 +15,20 @@ import { combinedCategories, createModel, makeRows, rowCategories } from './anno
 
 /** The per-atom definition of "atom satisfies row" (`atomQualifies`, a linear scan) is the oracle for the index-driven implementation. */
 describe.each([
-  ['single comp_id per residue', { nChains: 12, nResidues: 30, insertionCodes: true, descendingSeqIds: true }],
+  [
+    'single comp_id per residue',
+    { nChains: 12, nResidues: 30, insertionCodes: true, descendingSeqIds: true, differentAuthComp: true },
+  ],
   [
     'mixed comp_ids within residues',
-    { nChains: 12, nResidues: 30, insertionCodes: true, descendingSeqIds: true, mixedCompIds: true },
+    {
+      nChains: 12,
+      nResidues: 30,
+      insertionCodes: true,
+      descendingSeqIds: true,
+      differentAuthComp: true,
+      mixedCompIds: true,
+    },
   ],
 ] as const)('annotation rows vs per-atom brute force (%s)', async (_label, dims) => {
   const model = await createModel(dims);

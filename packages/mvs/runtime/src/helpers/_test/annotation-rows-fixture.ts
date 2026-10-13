@@ -20,6 +20,8 @@ export interface Dims {
   descendingSeqIds?: boolean;
   /** Give the last atom of every 5th residue of every 4th chain a different comp_id (`ALT`), so that residues do not have a single comp_id (e.g. microheterogeneity). */
   mixedCompIds?: boolean;
+  /** Make `auth_comp_id` differ from `label_comp_id` (prefixed with `X`) in every 3rd chain. */
+  differentAuthComp?: boolean;
 }
 
 export const CompIds = ['ALA', 'GLY', 'LEU', 'SER', 'VAL'];
@@ -57,6 +59,7 @@ function createMmcifText({
   insertionCodes,
   descendingSeqIds,
   mixedCompIds,
+  differentAuthComp,
 }: Dims): string {
   const lines: string[] = [
     'data_BENCH',
@@ -94,7 +97,7 @@ function createMmcifText({
         const x = (c * 10 + a).toFixed(3);
         const y = (r * 3.8).toFixed(3);
         lines.push(
-          `ATOM ${id++} ${TypeSymbols[a]} ${AtomNames[a]} . ${atomComp} ${asym} ${entity} ${descendingSeqIds && c % 2 === 1 ? NResidues + 1 - r : r} ${insertionCodes && r % 7 === 0 ? 'A' : '?'} ${x} ${y} 0.000 1 10 ${r + 10} ${atomComp} ${auth} ${AtomNames[a]} 1`,
+          `ATOM ${id++} ${TypeSymbols[a]} ${AtomNames[a]} . ${atomComp} ${asym} ${entity} ${descendingSeqIds && c % 2 === 1 ? NResidues + 1 - r : r} ${insertionCodes && r % 7 === 0 ? 'A' : '?'} ${x} ${y} 0.000 1 10 ${r + 10} ${differentAuthComp && c % 3 === 1 ? `X${atomComp}` : atomComp} ${auth} ${AtomNames[a]} 1`,
         );
       }
     }
@@ -183,6 +186,8 @@ export function combinedCategories({ nChains, nResidues }: Dims, nAtoms: number,
   /** Matches `label_seq_id` of the same residue most of the time, so that combined rows select something. */
   const authOf = (r: () => number, labelSeq: number) => (r() < 0.7 ? labelSeq + 10 : seq(r) + 10);
   const comp = (r: () => number) => (r() < 0.15 ? 'ALT' : CompIds[randInt(r, CompIds.length)]);
+  /** A comp_id as it can be in `auth_comp_id` (see `differentAuthComp`) */
+  const authComp = (r: () => number) => (r() < 0.5 ? comp(r) : `X${comp(r)}`);
   const entity = (r: () => number) => `${1 + randInt(r, NEntities)}`;
   const span = (r: () => number) => {
     const a = seq(r);
@@ -264,6 +269,19 @@ export function combinedCategories({ nChains, nResidues }: Dims, nAtoms: number,
     cat('auth_comp+label_asym / auth_comp only', (r) =>
       r() < 0.5 ? { auth_comp_id: comp(r), label_asym_id: chain(r) } : { auth_comp_id: comp(r) },
     ),
+    cat('residue_index+label_seq (no chain)', (r) => {
+      const i = randInt(r, nChains * nResidues);
+      return { residue_index: i, label_seq_id: r() < 0.6 ? 1 + (i % nResidues) : seq(r) };
+    }),
+    cat('residue_index only, missing', (r) => ({ residue_index: nChains * nResidues + randInt(r, 50) })),
+    cat('ins_code+label_comp (no chain, no seq)', (r) => ({ pdbx_PDB_ins_code: 'A', label_comp_id: comp(r) })),
+    cat('label_comp+auth_comp (no chain)', (r) => ({ label_comp_id: comp(r), auth_comp_id: authComp(r) })),
+    cat('auth_comp only (no chain)', (r) => ({ auth_comp_id: authComp(r) })),
+    cat('comp+seq (no chain)', (r) => ({ label_comp_id: comp(r), label_seq_id: seq(r) })),
+    cat('atom filter only (no chain, no residue)', (r) => ({
+      label_atom_id: r() < 0.5 ? 'CA' : 'CG',
+      type_symbol: 'C',
+    })),
     cat('label_comp+auth_comp', (r) => ({ label_asym_id: chain(r), label_comp_id: comp(r), auth_comp_id: comp(r) })),
     cat('label_comp+label_atom', (r) => ({ label_comp_id: comp(r), label_atom_id: 'CA', label_asym_id: chain(r) })),
     cat('auth_atom+type_symbol+label_asym', (r) => ({
