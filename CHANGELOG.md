@@ -14,6 +14,7 @@ here.
   one edge
 - Fix RCSB validation report and ModelArchive quality assessment behaviors updating auto-attach and unregistering via
   the custom structure property registry instead of the custom model property registry they register with
+- Fix interpolation of camera rotation
 - Fix the cross-link restraint representation's default color theme name (`cross-link`); it fell back to the first
   registered theme
 - Fix the `state-docs` CLI crashing on parameters that need data, and create its output folder
