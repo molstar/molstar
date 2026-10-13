@@ -1,5 +1,7 @@
 # Handoff: Prism and the AI packages (2026-10-13)
 
+The order of work is now [../seq/plan.md](../seq/plan.md); the rest of this file still holds.
+
 For the next agent picking up branch `v6-ui-next`. Read this, then [README.md](README.md) (Prism),
 [../ai/README.md](../ai/README.md) (AI), and the `AGENTS.md` files (root, `packages/prism`, `packages/ai`). Everything
 below is committed and pushed; the working tree was clean.
@@ -38,26 +40,9 @@ built yet.
 
 ## The plan from here
 
-The order was set with the user ([../ai/plan.md](../ai/plan.md) §2;
-[../ai/analysis/viewer-mode.md](../ai/analysis/viewer-mode.md) §7):
-
-1. **Done**: the **model catalog**, `@molstar/ai-model-adapters/model-catalog` ([../ai/plan.md](../ai/plan.md) §2.5).
-   The adapters read it; the session's `thinking` takes a per-model function (the host passes `defaultReasoning`).
-2. **Next, a pause** and write one plan with the Prism UI's ([plan.md](plan.md)), bringing in the sequence viewer
-   (seqstar, in `stories-untold-redux/lib/seqstar-next`; Prism draws its own UI over seqstar's headless context:
-   [analysis/harness-and-seqstar.md](analysis/harness-and-seqstar.md)). After that, Prism hosts the agent: command
-   metadata (`read`, `approval`, `ui`), a selection param with three forms, the core viewer commands, state and focus
-   accounts, the checkpointer, `AgentModel` over `AgentSession`, History over fibers, the selections skill.
-3. **Decided but not built**:
-   - Runtime and lazy contributions (contexts.md §6: `contributions.add/remove`, a stub that loads on first use, with
-     video export first). This needs `apps/prism` built as ESM with code splitting ([plan.md](plan.md) Phases 7–8).
-   - `ai-toolscript` and `mvs-code` for the story mode.
-   - The MCP server.
-   - `@molstar/ai-evals`.
-   - SQLite storage.
-   - Jest as ESM (`.v6/plans/checklist.md`).
-
-Do not start step 2's integration without the user: they want to decide it together.
+Superseded by [../seq/plan.md](../seq/plan.md) (2026-10-13): Seq\* is ported and merged first, then Prism is built over
+it, then the agent in Prism. The model catalog is done ([../ai/plan.md](../ai/plan.md) §2.5). The decided but unbuilt
+items stay where they are: [../ai/plan.md](../ai/plan.md) §2 and [plan.md](plan.md) Phases 7–8.
 
 ## How the user works (keep doing this)
 
@@ -109,9 +94,4 @@ Do not start step 2's integration without the user: they want to decide it toget
   - The fake-IndexedDB conformance file retries its cases, because fixed-round waits can lose to WebCrypto under load
     ([../ai/plan.md](../ai/plan.md), "The suite waits on conditions").
   - `pnpm-lock.yaml` conflicts are regenerated with `pnpm install`, never hand-merged.
-- **Open points to raise with the user**:
-  - The catalog's prices are secondhand (ported from Stories, with their sources and dates); check them before credits
-    are shown.
-  - The Inspector's mock Trace link always lands on the latest turn.
-  - Whether browsers encode AAC and Opus at Gemini's 24 kHz is unverified; there is a runtime check with WAV as the
-    fallback.
+- **Open points**: the follow-ups in [../seq/plan.md](../seq/plan.md) §4.
