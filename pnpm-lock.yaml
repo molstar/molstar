@@ -234,6 +234,8 @@ overrides:
   '@types/express-serve-static-core': 5.1.2
   '@types/node': 22.20.1
 
+packageExtensionsChecksum: sha256-MtVDtKYOViU/oSKoCz5AT1y0moYVdpVzR8L6wyIKNjg=
+
 importers:
 
   .:
@@ -4508,6 +4510,9 @@ packages:
   '@types/jsdom@21.1.7':
     resolution: {integrity: sha512-yOriVnggzrnQ3a9OKOCxaVuSug3w3/SbOj5i7VwXWZEyUNl3bLF9V3MfxGbZKuwqJOQyRfqXyROBB1CoZLFWzA==}
 
+  '@types/json-schema@7.0.15':
+    resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
 
@@ -7336,6 +7341,7 @@ snapshots:
 
   '@ai-sdk/provider@4.0.26':
     dependencies:
+      '@types/json-schema': 7.0.15
       json-schema: 0.4.0
 
   '@asamuzakjp/css-color@3.2.0':
@@ -8450,6 +8456,8 @@ snapshots:
       '@types/node': 22.20.1
       '@types/tough-cookie': 4.0.5
       parse5: 7.3.0
+
+  '@types/json-schema@7.0.15': {}
 
   '@types/mdast@4.0.4':
     dependencies:

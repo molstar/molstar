@@ -111,6 +111,13 @@ overrides:
   '@types/express-serve-static-core': '5.1.2'
   '@types/node': '22.20.1'
 
+packageExtensions:
+  # The AI SDK's provider types import 'json-schema' without declaring its types (@types/json-schema, MIT); a clean
+  # install then fails the full declaration check (skipLibCheck false).
+  '@ai-sdk/provider':
+    dependencies:
+      '@types/json-schema': '7.0.15'
+
 # Native optional peers are installed explicitly, never by workspace setup.
 autoInstallPeers: false
 
