@@ -59,8 +59,12 @@ the [API change ledger](breaking-v6-changes.md).
   `component` nodes with rows (`StructureComponent` with an `expression` is still used for static and MolQL selectors);
   `componentPropsFromSelector` returns a `Selector` and keeps rows as `schema`. Snapshots with the old expressions still
   load
-- Annotation rows use reusable typed-array buffers and a sort-free range union: 20,000 rows allocate 30 MB instead of
-  650 MB
+- Annotation rows use reusable typed-array buffers, a sort-free range union, and paint each element once (later rows
+  win, and the pass stops when every element has a row), so overlapping rows no longer cost the sum of their sizes:
+  20,000 rows allocate 30 MB instead of 650 MB, and 20,000 overlapping rows take 2 ms instead of 1.5 s
+- The row indices are shared by the frames of a trajectory (10 frames of 720k atoms, 100 rows: 777 ms to 102 ms), and
+  rows without chain criteria (`residue_index`, insertion code, `comp_id`) use whole-model lookups instead of a lookup
+  in every chain
 
 ## Mol\* UI v-next, phase 1
 
