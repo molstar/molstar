@@ -49,6 +49,19 @@ the [API change ledger](breaking-v6-changes.md).
 - [Breaking] Remove the duplicate `@molstar/mvs-builder/expression` module; use
   `@molstar/query-language/language/expression`
 
+## MVS selectors through model indices
+
+- MVS selectors given as rows (`label_asym_id`, `auth_seq_id`, `beg_label_seq_id`, ...) are resolved through the indices
+  of the model instead of running a MolScript query on every atom for every row: 1000 rows on a 720k-atom structure take
+  18 ms instead of 3.2 s. Used by `component` nodes, annotation components, inline tooltips and labels, color layers,
+  and primitive positions
+- New `schema` variant of the MVS selector params and a new `mvs.mvs-structure-component-from-schema` transformer for
+  `component` nodes with rows (`StructureComponent` with an `expression` is still used for static and MolQL selectors);
+  `componentPropsFromSelector` returns a `Selector` and keeps rows as `schema`. Snapshots with the old expressions still
+  load
+- Annotation rows use reusable typed-array buffers and a sort-free range union: 20,000 rows allocate 30 MB instead of
+  650 MB
+
 ## Mol\* UI v-next, phase 1
 
 - Prism, the new UI (`packages/prism/*`), and the AI agent packages (`packages/ai/*`): private, not published, mocked in

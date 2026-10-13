@@ -15,6 +15,8 @@ import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { MolScriptBuilder } from '@molstar/query-language/language/builder';
 import { Expression } from '@molstar/query-language/language/expression';
 import { mapArrayToObject, pickObjectKeys } from '@molstar/core/util/object';
+import { substructureFromRows } from '@molstar/mvs/helpers/row-structure';
+import type { MVSAnnotationRow } from '@molstar/mvs/helpers/schemas';
 import { Choice } from '@molstar/core/util/param-choice';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { capitalize } from '@molstar/core/util/string';
@@ -41,6 +43,9 @@ export const SelectorParams = PD.MappedStatic(
     annotation: PD.Group(
       pickObjectKeys(MVSAnnotationStructureComponentParams, ['annotationId', 'fieldName', 'fieldValues']),
     ),
+    /** Selection criteria (rows of `label_asym_id`, `auth_seq_id`, ... fields), an element is selected if it satisfies any of them.
+     * Resolved through the indices of the model, which is much faster than a `expression` equivalent for many rows. */
+    schema: PD.Value<MVSAnnotationRow[]>([]),
   },
   {
     description:
@@ -87,6 +92,7 @@ export const ElementSet = {
 
 /** Return a substructure of `structure` defined by `selector` */
 export function substructureFromSelector(structure: Structure, selector: Selector): Structure {
+  if (selector.name === 'schema') return substructureFromRows(structure, selector.params);
   const pso =
     selector.name === 'annotation'
       ? createMVSAnnotationStructureComponent(structure, { ...selector.params, label: '', nullIfEmpty: false }, {})

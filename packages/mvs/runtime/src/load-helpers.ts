@@ -7,7 +7,6 @@
 
 import { Mat3, Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Volume } from '@molstar/model/model/volume';
-import { StructureComponentParams } from '@molstar/plugin/state/helpers/structure-component';
 import {
   StructureFromModel,
   StructureInstances,
@@ -42,7 +41,7 @@ import {
   type MultilayerColorThemeProps,
   NoColor,
 } from '@molstar/mvs/components/multilayer-color-theme';
-import { SelectorAll } from '@molstar/mvs/components/selector';
+import { type Selector, SelectorAll } from '@molstar/mvs/components/selector';
 import {
   type MVSSplitUniformColorThemeProps,
   MVSSplitUniformColorThemeProvider,
@@ -50,7 +49,6 @@ import {
   SplitColorProp,
 } from '@molstar/mvs/components/split-uniform-color-theme';
 import { MvsNamedColorDicts, MvsNamedColorLists } from '@molstar/mvs/helpers/colors';
-import { rowToExpression, rowsToExpression } from '@molstar/mvs/helpers/selections';
 import { type ElementOfSet, decodeColor, isDefined, stringHash } from '@molstar/mvs/helpers/utils';
 import { MolstarLoadingContext } from '@molstar/mvs/load';
 import { UpdateTarget, mvsRefTags } from '@molstar/mvs/load-generic';
@@ -413,20 +411,19 @@ export function structureProps(node: MolstarNode<'structure'>): StateTransformer
   }
 }
 
-/** Create value for `type` prop for `StructureComponent` transformer based on a MVS selector. */
-export function componentPropsFromSelector(
-  selector?: MolstarNodeParams<'component'>['selector'],
-): StructureComponentParams['type'] {
+/** Create a `Selector` (value for the selector param of MVS layers, and for `type` prop of `StructureComponent` transformer
+ * unless it is `schema`) based on a MVS selector. Rows are kept as they are (`schema`), they are resolved through model indices. */
+export function componentPropsFromSelector(selector?: MolstarNodeParams<'component'>['selector']): Selector {
   if (selector === undefined) {
     return SelectorAll;
   } else if (typeof selector === 'string') {
     return { name: 'static', params: selector };
   } else if (Array.isArray(selector)) {
-    return { name: 'expression', params: rowsToExpression(selector) };
+    return { name: 'schema', params: selector };
   } else if (isMolQLExpression(selector)) {
     return { name: 'expression', params: selector.molql as any };
   } else {
-    return { name: 'expression', params: rowToExpression(selector) };
+    return { name: 'schema', params: [selector] };
   }
 }
 

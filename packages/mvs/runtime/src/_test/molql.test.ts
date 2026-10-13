@@ -79,8 +79,13 @@ describe('MVS MolQL selectors', () => {
     const wrapped = { molql };
     expect(componentPropsFromSelector(wrapped)).toEqual({ name: 'expression', params: molql });
     expect(componentPropsFromSelector('protein')).toEqual({ name: 'static', params: 'protein' });
-    expect(componentPropsFromSelector({ label_asym_id: 'A' })).toMatchObject({ name: 'expression' });
-    expect(componentPropsFromSelector([{ label_asym_id: 'A' }])).toMatchObject({ name: 'expression' });
+    // rows are kept as rows (resolved through model indices), not converted to a MolScript expression
+    expect(componentPropsFromSelector({ label_asym_id: 'A' })).toEqual({
+      name: 'schema',
+      params: [{ label_asym_id: 'A' }],
+    });
+    const rows = [{ label_asym_id: 'A' }, { label_asym_id: 'B', label_seq_id: 3 }];
+    expect(componentPropsFromSelector(rows)).toEqual({ name: 'schema', params: rows });
     expect(prettyNameFromSelector(wrapped)).toEqual('MolQL Selection');
   });
 

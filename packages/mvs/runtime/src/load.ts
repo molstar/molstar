@@ -30,6 +30,7 @@ import {
   ModelFromTrajectory,
   StructureFromModel,
 } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import type { StructureComponentParams } from '@molstar/plugin/state/helpers/structure-component';
 import { StructureComponent } from '@molstar/plugin/state/transforms/structure/selection';
 import { TopologyFromPrmtop } from '@molstar/plugin/state/formats/topology/prmtop';
 import { TopologyFromPsf } from '@molstar/plugin/state/formats/topology/psf';
@@ -61,6 +62,7 @@ import { MVS_BEHAVIOR_ID } from './behavior-id.js';
 import { createPluginStateSnapshotCamera, modifyCanvasProps, resetCanvasProps } from '@molstar/mvs/camera';
 import { MVSAnnotationsProvider } from '@molstar/mvs/components/annotation-prop';
 import { MVSAnnotationStructureComponent } from '@molstar/mvs/components/annotation-structure-component';
+import { MVSSchemaStructureComponent } from '@molstar/mvs/components/schema-structure-component';
 import { MVSAnnotationTooltipsProvider } from '@molstar/mvs/components/annotation-tooltips-prop';
 import {
   type CustomLabelProps,
@@ -529,14 +531,22 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
       return updateParent;
     }
     const selector = node.params.selector;
-    return transformAndInstantiateStructure(
-      UpdateTarget.apply(updateParent, StructureComponent, {
-        type: componentPropsFromSelector(selector),
-        label: prettyNameFromSelector(selector),
-        nullIfEmpty: false,
-      }),
-      node,
-    );
+    const type = componentPropsFromSelector(selector);
+    const label = prettyNameFromSelector(selector);
+    // Rows are resolved through model indices by MVS' own transformer; the plugin's `StructureComponent` only knows MolScript expressions for them.
+    const component =
+      type.name === 'schema'
+        ? UpdateTarget.apply(updateParent, MVSSchemaStructureComponent, {
+            schema: type.params,
+            label,
+            nullIfEmpty: false,
+          })
+        : UpdateTarget.apply(updateParent, StructureComponent, {
+            type: type as StructureComponentParams['type'],
+            label,
+            nullIfEmpty: false,
+          });
+    return transformAndInstantiateStructure(component, node);
   },
   component_from_uri(
     updateParent: UpdateTarget,
