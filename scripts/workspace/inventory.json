@@ -7,6 +7,12 @@
       "private": true
     },
     {
+      "name": "@molstar/docs",
+      "path": "apps/docs",
+      "kind": "docs",
+      "private": true
+    },
+    {
       "name": "@molstar/mesoscale-explorer",
       "path": "apps/mesoscale-explorer",
       "kind": "app",

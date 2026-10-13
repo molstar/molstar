@@ -1,0 +1,8 @@
+---
+// Overrides Starlight's theme picker: the version menu goes next to it, in the header (and in the mobile menu).
+import Default from '@astrojs/starlight/components/ThemeSelect.astro';
+import VersionSelect from './VersionSelect.astro';
+---
+
+<VersionSelect />
+<Default {...Astro.props} />

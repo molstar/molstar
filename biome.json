@@ -14,7 +14,8 @@
       "!!**/build",
       "!!**/lib",
       "!!deploy",
-      "!!docs/site",
+      "!!apps/docs/dist",
+      "!!apps/docs/.astro",
       "!build.mjs",
       "!.v6/baselines",
       "!**/package-lock.json",
@@ -70,7 +71,13 @@
   },
   "overrides": [
     {
-      "includes": ["**/*.stories.ts", "**/*.stories.tsx", "**/.storybook/**", "vitest.config.ts"],
+      "includes": [
+        "**/*.stories.ts",
+        "**/*.stories.tsx",
+        "**/.storybook/**",
+        "vitest.config.ts",
+        "apps/docs/astro.config.ts"
+      ],
       "linter": {
         "rules": {
           "style": {

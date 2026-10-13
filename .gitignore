@@ -1,7 +1,8 @@
 build/
 deploy/
 lib/
-docs/site/
+apps/docs/dist/
+apps/docs/.astro/
 
 node_modules/
 .pnpm-store/

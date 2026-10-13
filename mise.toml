@@ -34,6 +34,10 @@ run = "pnpm dev:examples --"
 description = "Storybook on port 6006 (the packages registered in storybook/packages.ts)"
 run = "pnpm -C storybook storybook"
 
+[tasks.docs]
+description = "Documentation site (apps/docs, Astro Starlight) at http://localhost:4321/docs/"
+run = "pnpm --filter @molstar/docs dev"
+
 [tasks.lint]
 description = "Lint with Biome"
 run = "pnpm lint"

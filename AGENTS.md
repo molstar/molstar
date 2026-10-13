@@ -19,6 +19,7 @@ not).
 | `extensions/`, `apps/`, `examples/`  | each owns its dependencies and build                                                                   |
 | `servers/`, `cli/`, `distributions/` | servers, command-line packages, the `molstar` distribution                                             |
 | `smoke/`                             | packed-consumer and browser checks                                                                     |
+| `apps/docs`                          | the documentation site (Astro Starlight): the v5 and v6 docs in `src/content/docs/`                    |
 | `storybook/`                         | Storybook for the packages registered in `storybook/packages.ts` (stories in `_stories/` folders)      |
 | `.v6/`                               | v6 designs, plans and decisions (`designs/`, `plans/`, `prism-ui/`, `ai/`)                             |
 | `scripts/workspace/`                 | the package inventory (`inventory.json`) and the workspace checks                                      |

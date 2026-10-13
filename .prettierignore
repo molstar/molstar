@@ -12,7 +12,8 @@
 **/build/
 **/lib/
 deploy/
-docs/site/
+apps/docs/dist/
+apps/docs/.astro/
 coverage/
 .cache/
 .pnpm-store/
