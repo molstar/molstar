@@ -1,0 +1,55 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Ink on paper, quick: the inverse of the panel colors, small and opaque so it reads over anything. */
+.tooltip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--msp-z-tooltip);
+  max-width: 240px;
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-text);
+  color: var(--msp-color-bg);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: tooltip-in var(--msp-motion-fast) var(--msp-ease);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+/* Beside a tree row (Claude Code's sidebar does the same): a card at the row's text size, the whole text, wrapping when
+   long; the panel's colors and the glass edge, so it reads as more of the row, not as a hint. */
+.tooltip[data-kind="row"] {
+  max-width: 320px;
+  padding: var(--msp-space-2) var(--msp-inset);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-raised);
+  color: var(--msp-color-text);
+  box-shadow:
+    0 0 0 1px var(--msp-glass-edge),
+    var(--msp-shadow-float);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.muted {
+  color: var(--msp-color-text-muted);
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+  }
+}

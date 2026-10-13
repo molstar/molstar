@@ -1,7 +1,9 @@
 # Working with the v6 workspace prototype
 
 The repository is a pnpm workspace. Use Node 22 or newer and the pnpm version recorded in the root `packageManager`
-field. Native headless backends may require an older supported Node ABI and platform build tools.
+field. Native headless backends may require an older supported Node ABI and platform build tools. With
+[mise](https://mise.jdx.dev), `mise install` sets up both from the root `mise.toml`, and `mise tasks` lists tasks that
+wrap the common `package.json` scripts (`mise run build`, `mise run dev:apps viewer`, ...).
 
 ```sh
 pnpm install

@@ -1,0 +1,60 @@
+# Mol\*
+
+Mol\* is a library and set of apps for viewing and analyzing molecular structures and volumes. This branch line is
+**v6**: a pnpm workspace of ESM packages, explicit plugin composition, per-app builds, and a new UI (Prism) with an
+optional AI assistant. Start with the [v6 summary](.v6/designs/summary.md), the
+[workspace guide](.v6/plans/workspace-usage.md) and the [checklist](.v6/plans/checklist.md) (what is done and what is
+not).
+
+## Where things are
+
+| Path                                 | What                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `packages/{core,io,model,graphics}`  | the library layers; dependencies point one way: `plugin → graphics → model → io → core`                |
+| `packages/plugin/{core,ui,headless}` | the plugin runtime, its classic React UI, Node capture                                                 |
+| `packages/mvs/{builder,runtime}`     | MolViewSpec: standalone builder, Mol\* runtime                                                         |
+| `packages/query-language`            | MolScript and the PyMOL, VMD and Jmol transpilers                                                      |
+| `packages/prism/*`                   | Prism, the new UI ([AGENTS.md](packages/prism/AGENTS.md), [.v6/prism-ui](.v6/prism-ui/README.md))      |
+| `packages/ai/*`                      | the agent harness and what runs on it ([AGENTS.md](packages/ai/AGENTS.md), [.v6/ai](.v6/ai/README.md)) |
+| `extensions/`, `apps/`, `examples/`  | each owns its dependencies and build                                                                   |
+| `servers/`, `cli/`, `distributions/` | servers, command-line packages, the `molstar` distribution                                             |
+| `smoke/`                             | packed-consumer and browser checks                                                                     |
+| `storybook/`                         | Storybook for the packages registered in `storybook/packages.ts` (stories in `_stories/` folders)      |
+| `.v6/`                               | v6 designs, plans and decisions (`designs/`, `plans/`, `prism-ui/`, `ai/`)                             |
+| `scripts/workspace/`                 | the package inventory (`inventory.json`) and the workspace checks                                      |
+
+## Commands
+
+Node 22.13+ and the pnpm version in `package.json`; `mise install` sets up both (`mise.toml`, which also wraps the
+scripts below as tasks: `mise tasks`).
+
+```sh
+pnpm install
+pnpm build                 # libraries, apps, distribution
+pnpm dev:apps -- viewer    # one app in watch mode
+pnpm lint                  # Biome
+pnpm format                # Biome (code, JSON) and Prettier (Markdown, YAML, SCSS); format:check in CI
+pnpm jest                  # unit tests (Jest, CommonJS)
+pnpm jest:ai               # the packages/ai tests (their own config: the AI SDK is ESM only)
+pnpm test                  # lint, jest and jest:ai
+pnpm check:workspace       # package boundaries, exports, imports, the inventory
+npx tsc -b                 # every project, by references
+```
+
+## Rules for every change
+
+- **Packages own their dependencies.** Import only what a package's `package.json` declares, through its exports; never
+  reach into another package's `src` by path. A new package goes into `scripts/workspace/inventory.json`, the root
+  `tsconfig.json` references and Jest's `moduleNameMapper` (root `package.json`); `pnpm check:workspace` checks them.
+- **ESM with NodeNext**: relative imports end in `.js`. Source is resolved through the `molstar-src` export condition in
+  development and tests.
+- **Formatting and lint** are the repository's (`biome.json`, `.prettierrc.json`): run `pnpm format` and `pnpm lint`
+  before committing. Biome's per-package `noRestrictedImports` rules are architecture, not style: do not loosen them to
+  make an import pass.
+- **Headers**: every source file starts with the Mol\* copyright header and its authors; add yourself to the headers of
+  files you change substantially.
+- **Tests** live in `_test/` folders next to the code, run by Jest; they never reach the network.
+- **User-facing changes** go into the `[Unreleased]` section of `CHANGELOG.md` (v6 collects them in
+  `.v6/plans/changelog.md`); a v6 break of a public API is recorded in `.v6/plans/breaking-v6-changes.md`.
+- **Keep the docs true**: a change that moves what a `.v6` design or plan says updates it in the same commit; code
+  comments cite the design section they follow (`harness.md §6`, `contexts.md §4`).

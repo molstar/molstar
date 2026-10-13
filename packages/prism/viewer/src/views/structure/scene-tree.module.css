@@ -1,0 +1,224 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.tree {
+  /* One level's indent; a deep tree (the state tree) sets less. */
+  --msp-tree-indent: 14px;
+
+  display: grid;
+  /* Rows never wider than the panel: the label and description give way, the actions stay in view. */
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.empty {
+  padding: var(--msp-space-4);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  height: 26px;
+  /* Off screen, a row skips layout and paint (a tree can have thousands; the state tree's 5,000 lay out in ~1 ms). */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 26px;
+  padding: 0 var(--msp-space-1) 0
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)));
+  border-radius: var(--msp-radius-md);
+  cursor: default;
+  user-select: none;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.picked {
+  background: var(--msp-color-control);
+
+  & .label {
+    color: var(--msp-color-accent);
+  }
+}
+
+.expander {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-subtle);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > .row > & {
+    transform: rotate(90deg);
+  }
+
+  &:hover {
+    color: var(--msp-color-text);
+  }
+}
+
+.leaf {
+  visibility: hidden;
+}
+
+.kind {
+  flex: none;
+  color: var(--msp-color-text-muted);
+}
+
+.label {
+  flex: 0 1 auto;
+  min-width: 3ch;
+  max-width: 60%;
+  overflow: hidden;
+  font-weight: 500;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.description {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  gap: 1px;
+}
+
+.action {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  opacity: 0;
+
+  .row:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--msp-color-pressed);
+    color: var(--msp-color-text);
+  }
+}
+
+.actionSlot {
+  width: 22px;
+}
+
+/* A hidden node keeps its eye visible: the state is worth seeing at a glance. */
+.keep {
+  opacity: 1;
+}
+
+.hidden {
+  & .label,
+  & .kind {
+    color: var(--msp-color-text-subtle);
+  }
+}
+
+/* A row's menu: inline under the row, indented with it, a quiet surface holding it together. */
+.menu {
+  display: grid;
+  margin: var(--msp-space-1) var(--msp-space-1) var(--msp-space-1)
+    calc(var(--msp-space-1) + var(--msp-tree-depth, 0) * var(--msp-tree-indent, var(--msp-icon-sm)) + 22px);
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+}
+
+.menuItem {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 26px;
+  padding: 0 var(--msp-space-2);
+  border-radius: var(--msp-radius-sm);
+  color: var(--msp-color-text-muted);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.subChevron {
+  justify-self: center;
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(90deg);
+  }
+}
+
+.subItems {
+  display: grid;
+  padding-left: calc(var(--msp-icon-sm) + var(--msp-space-3));
+}
+
+.subMenu {
+  display: grid;
+}
+
+.loading {
+  height: 26px;
+  padding-left: calc(
+    var(--msp-space-1) +
+    var(--msp-tree-depth, 0) *
+    var(--msp-tree-indent, var(--msp-icon-sm)) +
+    40px
+  ); /* off-scale: past the chevron and the kind icon */
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  line-height: 26px;
+}
+
+/* Destructive (Remove): in the danger color, set apart by a hairline from what comes before it (alone, no line). */
+.menuItem[data-danger] {
+  color: var(--msp-color-danger);
+
+  &:not(:first-child) {
+    margin-top: var(--msp-space-1);
+    box-shadow: 0 -1px 0 var(--msp-glass-edge);
+    border-radius: 0 0 var(--msp-radius-sm) var(--msp-radius-sm);
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in oklab, var(--msp-color-danger), transparent 88%);
+    color: var(--msp-color-danger);
+  }
+}

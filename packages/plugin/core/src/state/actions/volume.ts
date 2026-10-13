@@ -26,6 +26,7 @@ const DownloadDensity = StateAction.build({
   display: {
     name: 'Download Density',
     description: 'Load a density from the provided source and create its default visual.',
+    triggerLabel: 'Download',
   },
   params: (a, ctx: PluginContext) => {
     const { options } = ctx.dataFormats;

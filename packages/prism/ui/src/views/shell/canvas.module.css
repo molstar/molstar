@@ -1,0 +1,708 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Floating chrome over the canvas: compact, translucent, out of the way. */
+
+/* Sections of the rail: separate glass blocks, a clear gap between them. */
+/* A frame of tools: one glass column, buttons edge to edge, a hairline between sections. The rail, the canvas stack
+   and the toolbar's own corner are frames; the toolbar's sections inside them carry no glass of their own. */
+.frame {
+  display: flex;
+  flex-direction: column;
+  width: 44px;
+  overflow: hidden;
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+
+  & > * + *,
+  & .stackTools > * + *,
+  & .sections > * + * {
+    border-top: 1px solid var(--msp-glass-edge);
+  }
+
+  & .sections:empty,
+  & .toolbar:not(:has(button)) {
+    display: none;
+  }
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+}
+
+.tool {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 40px;
+  color: var(--msp-color-text-muted);
+  transition:
+    background-color var(--msp-motion-fast) var(--msp-ease),
+    color var(--msp-motion-fast) var(--msp-ease);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--msp-color-control);
+    color: var(--msp-color-accent);
+  }
+}
+
+.card {
+  /* Every overlay card takes the right panel's place, full height, whether the panel is open or not: one target for
+     everything that opens on the right (export, save state, canvas settings). */
+  position: absolute;
+  top: var(--msp-canvas-edge);
+  right: var(--msp-canvas-panel-right, 64px);
+  bottom: var(--msp-canvas-edge);
+  z-index: var(--msp-z-overlay);
+  display: flex;
+  flex-direction: column;
+  width: min(var(--msp-right-panel-width, 340px), calc(100% - 96px));
+  border-radius: var(--msp-radius-lg);
+  overflow: hidden;
+  animation: card-in var(--msp-motion-base) var(--msp-ease);
+  background: var(--msp-glass-panel-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+
+  /* Over the open panel: swapped in without a transition (it replaces the panel's content; nothing new arrives). */
+  [data-right-panel="open"] > & {
+    animation: none;
+  }
+
+  /* Pinned: in the pinned panel's place, its look too (full height, flat, beside the rail). */
+  [data-pinned] > & {
+    top: 0;
+    /* Right against the rail (its inset less the margin). */
+    right: calc(var(--msp-canvas-rail-inset, 52px) - var(--msp-canvas-edge));
+    bottom: 0;
+    border-radius: 0;
+    box-shadow:
+      -1px 0 0 var(--msp-glass-edge),
+      inset -1px 0 0 var(--msp-glass-edge);
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+
+/* The same header as a panel's (dock.module.css .header): one look for everything that opens on the right. */
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  height: 40px;
+  /* The title at 12px: the column the content's text starts in (4px inset, 8px of the boxes' own). */
+  padding: 0 var(--msp-space-3) 0 var(--msp-space-4);
+  font-weight: 600;
+}
+
+.cardTitle {
+  flex: 1;
+}
+
+.cardBody {
+  /* The rest of the card's height: content can fill it (a list that scrolls on its own) or scroll as a whole. */
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* At least the body's height (as a panel's, dock.module.css .bodyContent). */
+.cardBodyContent {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* The canvas stack: top right of the canvas, under what floats at the top, beside the rail or the open panel. A frame,
+   and beside it what opens from it (the picking level), outside the frame's clipping. Denser than the rail: it sits on
+   the canvas. */
+/* Nothing to show in the stack (an empty canvas: no mode buttons, every tool hidden): no empty frame either. */
+.stack:not(:has(button)) {
+  display: none;
+}
+
+.stack {
+  --msp-stack-row: 34px;
+
+  position: absolute;
+  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge));
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
+}
+
+/* Compact: no rail (its actions are under More), so the stack keeps only the frame margin; on a short canvas its
+   frame scrolls rather than running past the bottom. */
+:where([data-mode="compact"]) .stack {
+  right: var(--msp-canvas-edge);
+  bottom: var(--msp-canvas-edge);
+  /* Its full-height box must not catch the canvas's pointer: only the frame does. */
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+
+  & .frame {
+    max-height: 100%;
+  }
+}
+
+.stack .frame {
+  width: 36px;
+}
+
+/* The stack's tools, in a scrolling area (it scrolls only when compact, on a short canvas). */
+.stackTools {
+  display: flex;
+  flex-direction: column;
+}
+
+.stack .tool {
+  height: var(--msp-stack-row);
+}
+
+.stack :is(.tool, button) > svg:first-child {
+  width: 18px;
+  height: 18px;
+}
+
+/* A tool with a caption (the command menu's ⌘K): the icon, the shortcut under it. */
+.tool[data-captioned] {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--msp-space-1);
+  height: 46px;
+}
+
+.caption {
+  color: var(--msp-color-text-subtle);
+  font-size: 10px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A button with a menu: a small corner mark says there is more on hover. */
+.tool {
+  position: relative;
+}
+
+/* A button whose icon changes (the theme switch). */
+.face {
+  display: contents;
+}
+
+.menuMark {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  border-right: 4px solid currentColor;
+  border-top: 4px solid transparent;
+  opacity: 0.45;
+}
+
+/* A tool menu: left of the stack at its button's height; the right padding bridges the gap so the pointer can travel
+   from the button to it. */
+.toolMenu {
+  position: absolute;
+  right: 100%;
+  z-index: var(--msp-z-overlay);
+  padding-right: var(--msp-space-3);
+  animation: tool-menu-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+@keyframes tool-menu-in {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
+}
+
+.toolMenuCard {
+  display: grid;
+  min-width: 200px;
+  padding: var(--msp-space-2);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-panel-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+}
+
+.toolMenuRow {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-height: 32px;
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+
+  /* Not possible here: greyed, its reason in place of the hint. */
+  &:disabled {
+    opacity: 0.55;
+  }
+}
+
+.toolMenuLabel {
+  display: grid;
+  color: var(--msp-color-text);
+}
+
+.toolMenuCheck {
+  color: var(--msp-color-accent);
+}
+
+.toolMenuHint {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* The toolbar's own corner when no floating dock carries it in its rail. */
+.toolbarSlot {
+  position: absolute;
+  top: var(--msp-canvas-edge);
+  right: var(--msp-canvas-edge);
+}
+
+/* The bottom of the canvas: status on the left, the timeline centred; stacked when the bar is narrow. The bar is a
+   container itself: what floats on the right narrows it, not the canvas. */
+/* Top left of the canvas, below what floats at the top: playback (the trajectory, then the snapshots), one column. */
+.lead {
+  position: absolute;
+  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge));
+  left: var(--msp-canvas-edge);
+  display: grid;
+  gap: var(--msp-space-3);
+  width: min(320px, calc(100% - 96px));
+}
+
+/* A narrow shell: the canvas stack shares the top, the column ends before it. */
+:where([data-mode="compact"]) .lead {
+  /* Clear of the stack (36px) and the frame margins. */
+  width: min(320px, calc(100% - 36px - 3 * var(--msp-canvas-edge)));
+}
+
+/* The bottom of the canvas: status on the left, the work in hand (selection, focus) on the right. Its right edge
+   follows what floats on the right (the open panel runs the full height), so the chips move with the panel. */
+.bottom {
+  position: absolute;
+  left: var(--msp-canvas-edge);
+  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
+  bottom: var(--msp-canvas-edge);
+  container: bottom-bar / inline-size;
+  pointer-events: none;
+}
+
+.bottomGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "status context";
+  /* Bottom-aligned: the status stack grows upward; its last line is level with the selection bar's middle. */
+  align-items: end;
+  gap: var(--msp-space-3);
+
+  & > * {
+    pointer-events: auto;
+  }
+}
+
+/* Narrow: the context on a row of its own, above the status. */
+@container bottom-bar (width < 480px) {
+  .bottomGrid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "context"
+      "status";
+  }
+}
+
+.context {
+  grid-area: context;
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--msp-space-2);
+}
+
+/* Selection and focus are the work in hand: a little more presence than messages. */
+.chip {
+  height: 30px;
+  padding: 0 var(--msp-space-4);
+  border-radius: var(--msp-radius-lg);
+  font-size: var(--msp-font-size-md);
+}
+
+.status {
+  grid-area: status;
+  /* The latest message and every running task, one per line, growing upward; the last line level with the middle of
+     the selection bar (34px rows, 24px lines: 5px). */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: end;
+  padding-bottom: 5px; /* off-scale: centred on the selection bar (34px rows, 24px lines) */
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  max-width: 100%;
+  /* One height for everything along the bottom of the canvas (status, tasks, the selection bar). */
+  height: 34px;
+  overflow: hidden;
+  padding: 0 0 0 var(--msp-space-3);
+  border-radius: var(--msp-radius-lg);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  white-space: nowrap;
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+}
+
+.message {
+  animation: pill-in var(--msp-motion-base) var(--msp-ease);
+
+  &[data-kind="error"] {
+    color: var(--msp-color-danger);
+  }
+
+  &[data-kind="warning"] {
+    color: var(--msp-color-warning);
+  }
+
+  &[data-kind="success"] {
+    color: var(--msp-color-success);
+  }
+}
+
+@keyframes pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.text {
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.progress {
+  width: 48px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--msp-color-border);
+  overflow: hidden;
+
+  & > div {
+    height: 100%;
+    background: var(--msp-color-accent);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* A clickable line's body: the line's look, up to its ✕. */
+.pillMain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  height: 100%;
+  color: inherit;
+  text-align: left;
+
+  &:hover .text {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.pillButton {
+  /* Edge to edge, like the canvas stack's buttons: the full height, square, at the pill's end. */
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 100%;
+  color: var(--msp-color-text-muted);
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+/* The status line (messages, tasks) has no frame: ink on the canvas (its color from the canvas theme), with a soft
+   halo of the background color so it reads over the molecule too. */
+.status .pill {
+  /* Its text's own height (no box to center in). Indented as a framed pill's content would be (no frame to set it
+     off the canvas edge). */
+  height: auto;
+  min-height: 24px;
+  padding-left: var(--msp-space-3);
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  text-shadow:
+    0 0 2px var(--msp-color-bg),
+    0 0 6px var(--msp-color-bg);
+}
+
+/* Frameless, its ✕ is a small rounded square around the icon, not a slice of a pill. */
+.status .pillButton {
+  width: 24px;
+  height: 24px;
+  margin-left: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+}
+
+/* A pill without a button at its end keeps its padding on the right too. */
+.pill:not(:has(.pillButton)) {
+  padding-right: var(--msp-space-3);
+}
+
+/* Compact: More at the end of the bottom tab bar; its list opens just above it. */
+.railMenu {
+  position: relative;
+  display: contents;
+}
+
+.railMenuButton {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 40px;
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-text-muted);
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.railMenuList {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--msp-space-2));
+  z-index: var(--msp-z-overlay);
+  display: grid;
+  min-width: 220px;
+  padding: var(--msp-space-2);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  box-shadow:
+    var(--msp-glass-shadow),
+    0 8px 24px rgb(0 0 0 / 0.12);
+  animation: tool-menu-in var(--msp-motion-fast) var(--msp-ease);
+}
+
+/* Compact: progress and the selection docked between the canvas and the sheet (progress first, selection below),
+   as plain full-width rows: no glass, no rounding, a hairline between them. */
+.compactStatus {
+  grid-area: status;
+  display: grid;
+  background: var(--msp-color-panel);
+
+  &:empty {
+    display: none;
+  }
+
+  & .status,
+  & .context {
+    grid-area: auto;
+    padding-bottom: 0;
+    display: grid;
+    justify-self: stretch;
+    justify-content: stretch;
+    gap: 0;
+  }
+
+  /* A task's bar takes the row, its ✕ at the end. */
+  & .progress {
+    flex: 1;
+  }
+
+  & .status:empty,
+  & .context:empty {
+    display: none;
+  }
+
+  & .pill {
+    width: 100%;
+    max-width: none;
+    height: 34px;
+    padding-left: var(--msp-space-3);
+    text-shadow: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-top: 1px solid var(--msp-glass-edge);
+  }
+}
+
+/* Compact: no side panel to stand in for; a card fills the canvas. */
+:where([data-mode="compact"]) .card {
+  left: var(--msp-canvas-edge);
+  right: var(--msp-canvas-edge);
+  width: auto;
+}
+
+/* A task in overlay mode: everything waits under a scrim; one card says what runs and how far. */
+.busy {
+  position: absolute;
+  inset: 0;
+  z-index: var(--msp-z-dialog);
+  display: grid;
+  place-items: center;
+  padding: var(--msp-space-4);
+  background: color-mix(in oklab, var(--msp-color-bg), transparent 30%);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: busy-in var(--msp-motion-base) var(--msp-ease);
+}
+
+@keyframes busy-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.busyCard {
+  display: grid;
+  gap: var(--msp-space-3);
+  width: min(360px, 100%);
+  padding: var(--msp-space-4);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+  box-shadow:
+    var(--msp-glass-shadow),
+    0 12px 32px rgb(0 0 0 / 0.12);
+}
+
+.busyHead {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+}
+
+.busySpin {
+  flex: none;
+  color: var(--msp-color-accent);
+  animation: busy-spin 900ms linear infinite;
+}
+
+@keyframes busy-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.busyLabel {
+  flex: 1;
+  font-weight: 600;
+}
+
+.busyPercent {
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.busyTrack {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--msp-color-control);
+}
+
+.busyBar {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--msp-color-accent);
+  transition: width var(--msp-motion-fast) linear;
+
+  &[data-indeterminate] {
+    animation: busy-slide 1.2s var(--msp-ease) infinite;
+  }
+}
+
+@keyframes busy-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+.busyActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.railMenuDivider {
+  height: 1px;
+  margin: var(--msp-space-1) var(--msp-space-2);
+  background: var(--msp-glass-edge);
+}

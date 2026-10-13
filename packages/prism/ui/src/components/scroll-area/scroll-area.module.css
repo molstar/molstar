@@ -1,0 +1,156 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The area: sized by its parent (or its content, up to a max-height); holds the viewport and the overlay bars. */
+.root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* At the panel's edge (`edge`): the area takes its parent's side padding, the content gives it back, so the bar sits
+   in the gutter by the panel's edge and rows keep their inset. */
+.root[data-edge] {
+  margin-inline-end: calc(-1 * var(--msp-scroll-edge, var(--msp-space-2)));
+}
+
+/* Scrolls natively (wheel, touch, keys), its own scrollbar hidden; its edges fade where there is more to scroll. */
+.viewport {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  .root[data-axis="y"] > & {
+    overflow-x: hidden;
+  }
+
+  .root[data-axis="x"] > & {
+    overflow-y: hidden;
+  }
+
+  /* More to scroll: its edges fade (reset.css, msp-fade-scroll-*). */
+  .root:not([data-axis="x"]) > & {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 var(--msp-fade-top),
+      #000 calc(100% - var(--msp-fade-bottom)),
+      transparent
+    );
+    animation-name: msp-fade-scroll-top, msp-fade-scroll-bottom;
+    animation-fill-mode: both;
+    animation-timing-function: linear;
+    animation-timeline: scroll(self block);
+    animation-range:
+      0 24px,
+      calc(100% - 24px) 100%;
+  }
+}
+
+.content {
+  min-width: 0;
+
+  .root[data-edge] > .viewport > & {
+    padding-inline-end: var(--msp-scroll-edge, var(--msp-space-2));
+  }
+
+  .root[data-axis="x"] > .viewport > &,
+  .root[data-axis="both"] > .viewport > & {
+    width: max-content;
+    min-width: 100%;
+  }
+}
+
+/* An overlay bar: no room taken; a thin thumb in the text color, wider under the pointer. */
+.scrollbar {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  opacity: 0;
+  transition: opacity var(--msp-motion-base) var(--msp-ease);
+  touch-action: none;
+  user-select: none;
+
+  &[data-orientation="vertical"] {
+    top: 2px;
+    right: 1px;
+    bottom: 2px;
+    width: 10px;
+    justify-content: center;
+  }
+
+  &[data-orientation="horizontal"] {
+    right: 2px;
+    bottom: 1px;
+    left: 2px;
+    height: 10px;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* Shown while the area is hovered, scrolling, or the thumb is dragged; never when nothing overflows. */
+  .root:hover > &,
+  .root[data-scrolling] > &,
+  &[data-dragging] {
+    opacity: 1;
+  }
+
+  /* At the panel's edge: the thumb in the gutter the area took (its last 4px), not over the content. */
+  .root[data-edge] > &[data-orientation="vertical"] {
+    right: 0;
+    width: 8px;
+  }
+
+  .root:not([data-overflow-y]) > &[data-orientation="vertical"],
+  .root:not([data-overflow-x]) > &[data-orientation="horizontal"] {
+    display: none;
+  }
+}
+
+.thumb {
+  flex: none;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--msp-color-text), transparent 72%);
+  transition:
+    width var(--msp-motion-fast) var(--msp-ease),
+    height var(--msp-motion-fast) var(--msp-ease),
+    background-color var(--msp-motion-fast) var(--msp-ease);
+
+  [data-orientation="vertical"] > & {
+    width: 4px;
+  }
+
+  [data-orientation="horizontal"] > & {
+    height: 4px;
+  }
+
+  .scrollbar:hover > &,
+  [data-dragging] > & {
+    background: color-mix(in oklab, var(--msp-color-text), transparent 52%);
+  }
+
+  [data-orientation="vertical"]:hover > &,
+  [data-orientation="vertical"][data-dragging] > & {
+    width: 6px;
+  }
+
+  [data-orientation="horizontal"]:hover > &,
+  [data-orientation="horizontal"][data-dragging] > & {
+    height: 6px;
+  }
+}

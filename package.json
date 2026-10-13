@@ -10,12 +10,13 @@
     "url": "https://github.com/molstar/molstar/issues"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "lint": "biome lint .",
     "jest": "jest --runInBand",
-    "test": "pnpm lint && pnpm jest",
+    "jest:ai": "jest --runInBand -c packages/ai/jest.config.cjs",
+    "test": "pnpm lint && pnpm jest && pnpm jest:ai",
     "build:lib": "node scripts/workspace/version.mjs --write && tsc -b && node scripts/workspace/assets.mjs",
     "build:apps": "node scripts/esbuild/app.mjs --all --prd",
     "build:distribution": "node scripts/distribution.mjs",
@@ -69,7 +70,7 @@
     "testEnvironmentOptions": {
       "url": "http://localhost/"
     },
-    "testRegex": "\\.test\\.ts$",
+    "testRegex": "\\.test\\.tsx?$",
     "moduleNameMapper": {
       "\\.(jpe?g|png|gif|svg|webp)$": "<rootDir>/scripts/jest-file-stub.cjs",
       "^@molstar/docking-viewer$": "<rootDir>/apps/docking-viewer/src/index.ts",
@@ -191,6 +192,38 @@
       "^@molstar/plugin/(.*)$": "<rootDir>/packages/plugin/core/src/$1",
       "^@molstar/plugin-ui$": "<rootDir>/packages/plugin/ui/src/index.ts",
       "^@molstar/plugin-ui/(.*)$": "<rootDir>/packages/plugin/ui/src/$1",
+      "^@molstar/ai-agent$": "<rootDir>/packages/ai/agent/src/index.ts",
+      "^@molstar/ai-agent/(.*)$": "<rootDir>/packages/ai/agent/src/$1",
+      "^@molstar/ai-harness$": "<rootDir>/packages/ai/harness/src/index.ts",
+      "^@molstar/ai-harness/(.*)$": "<rootDir>/packages/ai/harness/src/$1",
+      "^@molstar/ai-conformance/fibers$": "<rootDir>/packages/ai/conformance/src/fibers/index.ts",
+      "^@molstar/ai-conformance/testing$": "<rootDir>/packages/ai/conformance/src/testing/index.ts",
+      "^@molstar/ai-conformance$": "<rootDir>/packages/ai/conformance/src/index.ts",
+      "^@molstar/ai-conformance/(.*)$": "<rootDir>/packages/ai/conformance/src/$1",
+      "^@molstar/ai-components$": "<rootDir>/packages/ai/components/src/index.ts",
+      "^@molstar/ai-components/(.*)$": "<rootDir>/packages/ai/components/src/$1",
+      "^@molstar/ai-model-adapters$": "<rootDir>/packages/ai/model-adapters/src/index.ts",
+      "^@molstar/ai-model-adapters/(.*)$": "<rootDir>/packages/ai/model-adapters/src/$1",
+      "^@molstar/ai-tools/zod$": "<rootDir>/packages/ai/tools/src/zod.ts",
+      "^@molstar/ai-tools$": "<rootDir>/packages/ai/tools/src/index.ts",
+      "^@molstar/ai-tools/(.*)$": "<rootDir>/packages/ai/tools/src/$1",
+      "^@molstar/ai-session/compaction$": "<rootDir>/packages/ai/session/src/compaction/index.ts",
+      "^@molstar/ai-session$": "<rootDir>/packages/ai/session/src/index.ts",
+      "^@molstar/ai-session/(.*)$": "<rootDir>/packages/ai/session/src/$1",
+      "^@molstar/ai-trace$": "<rootDir>/packages/ai/trace/src/index.ts",
+      "^@molstar/ai-trace/(.*)$": "<rootDir>/packages/ai/trace/src/$1",
+      "^@molstar/ai-fibers$": "<rootDir>/packages/ai/fibers/src/index.ts",
+      "^@molstar/ai-fibers/(.*)$": "<rootDir>/packages/ai/fibers/src/$1",
+      "^@molstar/ai-narration$": "<rootDir>/packages/ai/narration/src/index.ts",
+      "^@molstar/ai-narration/(.*)$": "<rootDir>/packages/ai/narration/src/$1",
+      "^@molstar/prism-ui$": "<rootDir>/packages/prism/ui/src/index.ts",
+      "^@molstar/prism-ui/(.*)$": "<rootDir>/packages/prism/ui/src/$1",
+      "^@molstar/prism-assistant$": "<rootDir>/packages/prism/assistant/src/index.ts",
+      "^@molstar/prism-assistant/(.*)$": "<rootDir>/packages/prism/assistant/src/$1",
+      "^@molstar/prism-stories$": "<rootDir>/packages/prism/stories/src/index.ts",
+      "^@molstar/prism-stories/(.*)$": "<rootDir>/packages/prism/stories/src/$1",
+      "^@molstar/prism-viewer$": "<rootDir>/packages/prism/viewer/src/index.ts",
+      "^@molstar/prism-viewer/(.*)$": "<rootDir>/packages/prism/viewer/src/$1",
       "^@molstar/plugin-headless$": "<rootDir>/packages/plugin/headless/src/context.ts",
       "^@molstar/plugin-headless/(.*)$": "<rootDir>/packages/plugin/headless/src/$1",
       "^@molstar/perf-tests$": "<rootDir>/perf-tests/src/index.ts",
@@ -207,9 +240,14 @@
       "^@molstar/volume-server/(.*)$": "<rootDir>/servers/volume/src/$1",
       "^@molstar/tests$": "<rootDir>/tests/src/index.ts",
       "^@molstar/tests/(.*)$": "<rootDir>/tests/src/$1",
+      "^(\\.{1,2}/.*\\.css)\\.js$": "$1.ts",
       "^(\\.{1,2}/.*)\\.js$": "$1",
       "^@molstar/query-language/(.*)$": "<rootDir>/packages/query-language/src/$1"
-    }
+    },
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/packages/ai/"
+    ]
   },
   "author": "Mol* Contributors",
   "contributors": [
@@ -300,6 +338,7 @@
     "fs-extra": "catalog:",
     "http-server": "catalog:",
     "jest": "catalog:",
+    "jest-environment-jsdom": "catalog:",
     "jpeg-js": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

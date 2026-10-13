@@ -652,3 +652,20 @@ arguments, argument/value types, and selection-result types remain outside stand
 
 `MolScriptBuilder.re(pattern)` omits the absent flags argument instead of including `undefined`, so the result remains a
 valid expression after JSON serialization. Passing flags explicitly preserves the previous array shape.
+
+## Planned: with the classic UI's retirement (Prism)
+
+Not made in v6: both remove public API, Prism ([../prism-ui/README.md](../prism-ui/README.md)) needs neither, and the
+UI-only maps are still filled and read by the classic UI and its extensions. They land when the classic UI is retired,
+each with a migration note.
+
+- **Dead interactivity commands.** `PluginCommands.Interactivity.Structure.Highlight` and `.Select` are removed (nothing
+  subscribes to them; `Interactivity.Object.Highlight` and `ClearHighlights` stay), and so is `customControl` on
+  `PluginSpec.Action` (`packages/plugin/core/src/spec.ts`), a React component slot that nothing reads.
+- **UI-only maps leave core `PluginContext`.** `customStructureControls`, `customImportControls` and
+  `genericRepresentationControls` (React component classes and UI callbacks in a non-UI package) move to the classic
+  UI's context, or go with it; Prism's contributions replace them. Extensions that fill them register with the UI they
+  target instead.
+
+Compatible core follow-ups made alongside Prism (a registry-changed event, richer `cell.stateUpdated`, settings events,
+a running-task behavior, string ids for `PluginCommands`) are additive and are not listed here.

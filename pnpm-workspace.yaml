@@ -1,6 +1,8 @@
 packages:
   - 'packages/*'
   - 'packages/plugin/*'
+  - 'packages/prism/*'
+  - 'packages/ai/*'
   - 'packages/mvs/*'
   - 'extensions/*'
   - 'apps/*'
@@ -9,6 +11,7 @@ packages:
   - 'cli/*'
   - 'distributions/*'
   - 'smoke'
+  - 'storybook'
   - 'tests'
   - 'perf-tests'
 
@@ -25,6 +28,7 @@ catalog:
   'compression': '1.8.2'
   'cors': '2.8.6'
   'express': '5.2.1'
+  # Media encoding and containers (WebCodecs): the video export's Mediabunny backend and the AI narration's audio encoding (the browser's own AAC and Opus encoders); MPL-2.0, used unmodified.
   'mediabunny': '1.61.3'
   'h264-mp4-encoder': '1.0.12'
   'immutable': '5.1.9'
@@ -54,6 +58,7 @@ catalog:
   'fs-extra': '11.3.6'
   'http-server': '14.1.1'
   'jest': '30.5.2'
+  'jest-environment-jsdom': '30.5.2'
   'jpeg-js': '0.4.4'
   'react': '18.3.1'
   'react-dom': '18.3.1'
@@ -70,6 +75,32 @@ catalog:
   'serve-static': '2.2.1'
   '@types/serve-static': '2.2.0'
   '@types/express-serve-static-core': '5.1.2'
+  # Storybook (the top-level storybook/ package; the packages with stories take its types); all Storybook packages share one version.
+  'storybook': '10.6.0'
+  '@storybook/web-components-vite': '10.6.0'
+  '@storybook/addon-docs': '10.6.0'
+  '@storybook/addon-a11y': '10.6.0'
+  'vite': '8.3.1'
+  'lit': '3.3.3'
+  'lightningcss': '1.33.0'
+  # Icon extraction source (prism-ui only); ISC licensed.
+  'lucide-static': '1.48.0'
+  # Preact (prism-ui's React/Preact adapter tests and stories only); MIT licensed.
+  'preact': '10.29.8'
+  # The AI packages (@molstar/ai-*). The AI SDK and its providers (Apache-2.0) move fast, so only their major is pinned.
+  'ai': '^7.0.124'
+  '@ai-sdk/anthropic': '^4.0.70'
+  '@ai-sdk/google': '^4.0.87'
+  '@ai-sdk/openai': '^4.0.83'
+  '@ai-sdk/openai-compatible': '^3.0.62'
+  # The AI SDK's peer (its schemas); MIT licensed.
+  'zod': '^4.6.5'
+  # Property tests (the harness and its conformance suite); MIT licensed.
+  'fast-check': '4.10.2'
+  # IndexedDB in Node (the harness's IndexedDB storage tests only); Apache-2.0 licensed.
+  'fake-indexeddb': '6.2.5'
+  # The harness conformance suite imports the test API (it is a test library).
+  '@jest/globals': '30.5.2'
 
 overrides:
   # Mediabunny's pinned WebCodecs declarations conflict with the TypeScript 7 DOM library.
@@ -79,6 +110,13 @@ overrides:
   'source-map-js': '^1.2.2'
   '@types/express-serve-static-core': '5.1.2'
   '@types/node': '22.20.1'
+
+packageExtensions:
+  # The AI SDK's provider types import 'json-schema' without declaring its types (@types/json-schema, MIT); a clean
+  # install then fails the full declaration check (skipLibCheck false).
+  '@ai-sdk/provider':
+    dependencies:
+      '@types/json-schema': '7.0.15'
 
 # Native optional peers are installed explicitly, never by workspace setup.
 autoInstallPeers: false
