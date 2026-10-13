@@ -17,159 +17,17 @@
 
 import { getHeapStatistics } from 'node:v8';
 import { describe, it } from 'vitest';
-import { CIF } from '@molstar/io/reader/cif';
-import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import type { Model } from '@molstar/model/model/structure';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
 import { IndicesAndSortings } from '../indexing.js';
 import type { MVSAnnotationRow } from '../schemas.js';
 import { getAtomRangesForRows } from '../selections.js';
+import { NEntities, createModel, makeRows, mulberry32, randInt, rowCategories } from './annotation-rows-fixture.js';
 
 const NChains = Number(process.env.MVS_BENCH_CHAINS ?? 300);
 const NResidues = Number(process.env.MVS_BENCH_RESIDUES ?? 400);
 const NRows = Number(process.env.MVS_BENCH_ROWS ?? 1000);
 const NRuns = 3;
-
-const CompIds = ['ALA', 'GLY', 'LEU', 'SER', 'VAL'];
-const AtomNames = ['N', 'CA', 'C', 'O', 'CB', 'CG'];
-const TypeSymbols = ['N', 'C', 'C', 'O', 'C', 'C'];
-const NEntities = 5;
-
-/** `0 -> A, 25 -> Z, 26 -> AA, ...` */
-function chainName(i: number): string {
-  let s = '';
-  i += 1;
-  while (i > 0) {
-    s = String.fromCharCode(65 + ((i - 1) % 26)) + s;
-    i = Math.floor((i - 1) / 26);
-  }
-  return s;
-}
-/** Every third chain shares its auth_asym_id with the previous one (as in assemblies / split chains). */
-function authChainName(i: number): string {
-  return `x${i - (i % 3 === 2 ? 1 : 0)}`;
-}
-
-function mulberry32(seed: number) {
-  return () => {
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function createMmcifText(): string {
-  const lines: string[] = [
-    'data_BENCH',
-    'loop_',
-    '_atom_site.group_PDB',
-    '_atom_site.id',
-    '_atom_site.type_symbol',
-    '_atom_site.label_atom_id',
-    '_atom_site.label_alt_id',
-    '_atom_site.label_comp_id',
-    '_atom_site.label_asym_id',
-    '_atom_site.label_entity_id',
-    '_atom_site.label_seq_id',
-    '_atom_site.pdbx_PDB_ins_code',
-    '_atom_site.Cartn_x',
-    '_atom_site.Cartn_y',
-    '_atom_site.Cartn_z',
-    '_atom_site.occupancy',
-    '_atom_site.B_iso_or_equiv',
-    '_atom_site.auth_seq_id',
-    '_atom_site.auth_comp_id',
-    '_atom_site.auth_asym_id',
-    '_atom_site.auth_atom_id',
-    '_atom_site.pdbx_PDB_model_num',
-  ];
-  let id = 1;
-  for (let c = 0; c < NChains; c++) {
-    const asym = chainName(c);
-    const auth = authChainName(c);
-    const entity = (c % NEntities) + 1;
-    for (let r = 1; r <= NResidues; r++) {
-      const comp = CompIds[(r + c) % CompIds.length];
-      for (let a = 0; a < AtomNames.length; a++) {
-        const x = (c * 10 + a).toFixed(3);
-        const y = (r * 3.8).toFixed(3);
-        lines.push(
-          `ATOM ${id++} ${TypeSymbols[a]} ${AtomNames[a]} . ${comp} ${asym} ${entity} ${r} ? ${x} ${y} 0.000 1 10 ${r + 10} ${comp} ${auth} ${AtomNames[a]} 1`,
-        );
-      }
-    }
-  }
-  return lines.join('\n') + '\n';
-}
-
-async function createModel(): Promise<Model> {
-  const parsed = await CIF.parseText(createMmcifText()).run();
-  if (parsed.isError) throw new Error(parsed.message);
-  const file = parsed.result;
-  const trajectory = await trajectoryFromMmCIF(file.blocks[0], file).run();
-  return trajectory.representative;
-}
-
-type RowCategory = { name: string; count: number; make: (rnd: () => number, i: number) => MVSAnnotationRow };
-
-function randInt(rnd: () => number, n: number) {
-  return Math.floor(rnd() * n);
-}
-
-/** Mix of selector kinds; `count`s are scaled to `NRows`. */
-function rowCategories(nAtoms: number): RowCategory[] {
-  const chain = (rnd: () => number) => chainName(randInt(rnd, NChains));
-  const seq = (rnd: () => number) => 1 + randInt(rnd, NResidues);
-  const span = (rnd: () => number) => {
-    const beg = seq(rnd);
-    return { beg_label_seq_id: beg, end_label_seq_id: Math.min(NResidues, beg + 5 + randInt(rnd, 35)) };
-  };
-  return [
-    { name: 'residue (asym+seq)', count: 250, make: (r) => ({ label_asym_id: chain(r), label_seq_id: seq(r) }) },
-    { name: 'range (asym+beg/end)', count: 150, make: (r) => ({ label_asym_id: chain(r), ...span(r) }) },
-    {
-      name: 'atom (asym+seq+atom_id)',
-      count: 100,
-      make: (r) => ({ label_asym_id: chain(r), label_seq_id: seq(r), label_atom_id: 'CA' }),
-    },
-    {
-      name: 'residue_index only',
-      count: 100,
-      make: (r) => ({ residue_index: randInt(r, NChains * NResidues) }),
-    },
-    { name: 'comp_id only (all chains)', count: 10, make: (r) => ({ label_comp_id: CompIds[randInt(r, 5)] }) },
-    {
-      name: 'asym+comp_id',
-      count: 40,
-      make: (r) => ({ label_asym_id: chain(r), label_comp_id: CompIds[randInt(r, 5)] }),
-    },
-    {
-      name: 'auth (auth_asym+auth_seq)',
-      count: 100,
-      make: (r) => ({ auth_asym_id: authChainName(randInt(r, NChains)), auth_seq_id: seq(r) + 10 }),
-    },
-    { name: 'entity only', count: 10, make: (r) => ({ label_entity_id: `${1 + randInt(r, NEntities)}` }) },
-    { name: 'chain only', count: 30, make: (r) => ({ label_asym_id: chain(r) }) },
-    { name: 'atom_index', count: 100, make: (r) => ({ atom_index: randInt(r, nAtoms) }) },
-    {
-      name: 'asym+atom_id (whole chain CA)',
-      count: 40,
-      make: (r) => ({ label_asym_id: chain(r), label_atom_id: 'CA' }),
-    },
-    { name: 'seq only (all chains)', count: 20, make: (r) => ({ label_seq_id: seq(r) }) },
-    {
-      name: 'asym+range+type_symbol',
-      count: 50,
-      make: (r) => ({ label_asym_id: chain(r), ...span(r), type_symbol: 'N' }),
-    },
-  ].map((c) => ({ ...c, count: Math.max(1, Math.round((c.count * NRows) / 1000)) }));
-}
-
-function makeRows(categories: RowCategory[], seed: number): { name: string; rows: MVSAnnotationRow[] }[] {
-  const rnd = mulberry32(seed);
-  return categories.map((c) => ({ name: c.name, rows: Array.from({ length: c.count }, (_, i) => c.make(rnd, i)) }));
-}
 
 function allocated() {
   return getHeapStatistics().total_allocated_bytes;
@@ -223,7 +81,7 @@ function report(label: string, nRows: number, m: { ms: number; mb: number }, ext
 describe.skipIf(!process.env.MVS_BENCH)('annotation rows benchmark', () => {
   it('getRowForEachAtom / getAtomRangesForRows', { timeout: 600_000 }, async () => {
     let t0 = performance.now();
-    const model = await createModel();
+    const model = await createModel({ nChains: NChains, nResidues: NResidues });
     const nAtoms = model.atomicHierarchy.atoms._rowCount;
     console.log(
       `structure: ${NChains} chains x ${NResidues} residues, ${nAtoms} atoms (created in ${(performance.now() - t0).toFixed(0)} ms)`,
@@ -235,7 +93,7 @@ describe.skipIf(!process.env.MVS_BENCH)('annotation rows benchmark', () => {
       `IndicesAndSortings.get: ${(performance.now() - t0).toFixed(0)} ms, ${((allocated() - a0) / 1e6).toFixed(1)} MB alloc (one-off, excluded below)\n`,
     );
 
-    const groups = makeRows(rowCategories(nAtoms), 12345);
+    const groups = makeRows(rowCategories({ nChains: NChains, nResidues: NResidues }, nAtoms, NRows), 12345);
     const run = (label: string, rows: MVSAnnotationRow[]) => {
       const annot = annotationOf(rows);
       annot.getRows(); // parse rows outside of the measured part
