@@ -8,34 +8,23 @@
 
 import type { ModelCapabilities, ModelConfiguration, ModelParameters } from '@molstar/ai-agent';
 import {
+  appendsTools,
   defaultMaxOutputTokens,
-  type ModelLimitOverride,
-  type ModelLimits,
+  type ModelLimitOverrides,
   resolveProviderCapabilities,
 } from '../common/capabilities.js';
 
-// Verified exercised targets; custom/gateway models require explicit limits.
-const limits: ModelLimits = {
-  'claude-haiku-4-5': { contextWindowTokens: 200_000, maxOutputTokens: 64_000 },
-  'claude-haiku-4-5-20251001': { contextWindowTokens: 200_000, maxOutputTokens: 64_000 },
-  'claude-haiku-5-5': { contextWindowTokens: 1_000_000, maxOutputTokens: 128_000 },
-  'claude-sonnet-4-5': { contextWindowTokens: 200_000, maxOutputTokens: 64_000 },
-  'claude-sonnet-4-5-20250929': { contextWindowTokens: 200_000, maxOutputTokens: 64_000 },
-  'claude-sonnet-5': { contextWindowTokens: 1_000_000, maxOutputTokens: 128_000 },
-  'claude-sonnet-5-5': { contextWindowTokens: 1_000_000, maxOutputTokens: 128_000 },
-};
-
-/** Native mid-conversation tool changes (`tool_addition`). */
+/** Native mid-conversation tool changes (`tool_addition`), where the catalog says the model has them. */
 export function supportsAnthropicAppendOnly(model: string): boolean {
-  return model === 'claude-sonnet-5-5';
+  return appendsTools('anthropic', model);
 }
 
 /** Anthropic caches by prefix with breakpoints, so a cache scope id is ignored. */
 export function providerCapabilities(
   configuration: ModelConfiguration,
-  overrides: Readonly<Record<string, ModelLimitOverride>> = {},
+  overrides: ModelLimitOverrides = {},
 ): ModelCapabilities {
-  return resolveProviderCapabilities(configuration, 'anthropic', limits, overrides, {
+  return resolveProviderCapabilities(configuration, 'anthropic', overrides, {
     appendsTools: supportsAnthropicAppendOnly(configuration.target.model),
     cacheScope: false,
     outputLimitIncludesReasoning: true,

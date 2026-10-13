@@ -7,32 +7,34 @@
  */
 
 import type { ModelCapabilities, ModelConfiguration, ModelParameters } from '@molstar/ai-agent';
+import { type ModelLimits, modelInfo } from '../model-catalog.js';
 
-export interface ModelLimitOverride {
-  readonly contextWindowTokens: number;
-  readonly maxInputTokens?: number;
-  readonly maxOutputTokens: number;
-  readonly defaultMaxOutputTokens?: number;
-}
-
-export type ModelLimits = Readonly<Record<string, ModelLimitOverride>>;
+/** A model's limits as the application gives them, over the catalog's. */
+export type ModelLimitOverride = ModelLimits;
+export type ModelLimitOverrides = Readonly<Record<string, ModelLimitOverride>>;
 
 export const defaultMaxOutputTokens = 4096;
 
-/** A model's capabilities: the bundled limits or the application's override, plus what the
- * provider can do. Custom and gateway models need explicit limits. */
+/** Whether the catalog (`../model-catalog.ts`) says a model appends tools where they load. */
+export function appendsTools(provider: string, model: string): boolean {
+  return modelInfo(provider, model)?.quirks.appendsTools === true;
+}
+
+/** A model's capabilities: the application's override or the catalog's limits (under `catalog`, the provider's name
+ * there; false for an endpoint that is not a provider's own), plus what the provider can do. Custom and gateway models
+ * need explicit limits. */
 export function resolveProviderCapabilities(
   configuration: ModelConfiguration,
   provider: string,
-  limits: ModelLimits,
-  overrides: ModelLimits,
+  overrides: ModelLimitOverrides,
   features: Pick<ModelCapabilities, 'appendsTools' | 'cacheScope' | 'outputLimitIncludesReasoning'>,
+  catalog: string | false = provider,
 ): ModelCapabilities {
   if (configuration.target.provider !== provider) {
     throw new Error(`${provider} adapter cannot project provider ${configuration.target.provider}.`);
   }
   const model = configuration.target.model;
-  const selected = overrides[model] ?? limits[model];
+  const selected = overrides[model] ?? (catalog ? modelInfo(catalog, model)?.limits : undefined);
   if (selected === undefined) {
     throw new Error(`Unknown ${provider} model ${model}; supply a modelLimits override with explicit token limits.`);
   }

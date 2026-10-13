@@ -7,23 +7,18 @@
  */
 
 import type { ModelCapabilities, ModelConfiguration, ModelParameters } from '@molstar/ai-agent';
-import { type ModelLimitOverride, type ModelLimits, resolveProviderCapabilities } from '../common/capabilities.js';
+import { appendsTools, type ModelLimitOverrides, resolveProviderCapabilities } from '../common/capabilities.js';
 
-// Verified exercised targets; custom/gateway models require explicit limits.
-const limits: ModelLimits = {
-  'gpt-6-luna': { contextWindowTokens: 1_050_000, maxOutputTokens: 128_000 },
-};
-
-/** Positional full tool additions (`additional_tools`). */
+/** Positional full tool additions (`additional_tools`), where the catalog says the model has them. */
 export function supportsOpenAIAppendOnly(model: string): boolean {
-  return model === 'gpt-6-luna';
+  return appendsTools('openai', model);
 }
 
 /** OpenAI maps a cache scope id to the Responses `promptCacheKey`. Another endpoint (`own` false)
  * knows none of OpenAI's models, and chat completions have neither tool additions nor a cache key. */
 export function providerCapabilities(
   configuration: ModelConfiguration,
-  overrides: Readonly<Record<string, ModelLimitOverride>> = {},
+  overrides: ModelLimitOverrides = {},
   endpoint: { provider: string; own: boolean; api: 'responses' | 'chat' } = {
     provider: 'openai',
     own: true,
@@ -31,11 +26,17 @@ export function providerCapabilities(
   },
 ): ModelCapabilities {
   const responses = endpoint.api === 'responses';
-  return resolveProviderCapabilities(configuration, endpoint.provider, endpoint.own ? limits : {}, overrides, {
-    appendsTools: endpoint.own && responses && supportsOpenAIAppendOnly(configuration.target.model),
-    cacheScope: responses,
-    outputLimitIncludesReasoning: true,
-  });
+  return resolveProviderCapabilities(
+    configuration,
+    endpoint.provider,
+    overrides,
+    {
+      appendsTools: endpoint.own && responses && supportsOpenAIAppendOnly(configuration.target.model),
+      cacheScope: responses,
+      outputLimitIncludesReasoning: true,
+    },
+    endpoint.own ? 'openai' : false,
+  );
 }
 
 export function assertSupportedParameters(parameters: ModelParameters, _model: string): void {

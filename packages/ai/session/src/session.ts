@@ -12,6 +12,7 @@ import type {
   ModelBindings,
   ModelCapabilities,
   ModelConfiguration,
+  ReasoningParameters,
   ToolDefinition,
 } from '@molstar/ai-agent';
 import { createInProcessSupervisor, createMemoryStorage } from '@molstar/ai-components';
@@ -52,7 +53,7 @@ import {
   toolkitDomain,
 } from './compaction/index.js';
 import { type CatchUp, turnInput } from './compose.js';
-import { type BudgetPolicy, createDrive, type DriveHost, type DrivePolicy, thinkingFor, turnBudget } from './drive.js';
+import { type BudgetPolicy, createDrive, type DriveHost, type DrivePolicy, turnBudget } from './drive.js';
 import { newTurnState, type TurnState } from './state.js';
 import type {
   ApprovalDecision,
@@ -64,6 +65,17 @@ import type {
   TurnRequest,
   TurnResult,
 } from './types.js';
+
+/** The session's thinking: one for every model, or per model. */
+export type SessionThinking =
+  | ModelChoice['thinking']
+  | ((target: { readonly provider: string; readonly model: string }) => ReasoningParameters | undefined);
+
+/** The reasoning parameters for a turn: the choice's, else the session's; "model" sends none. */
+function reasoningFor(choice: ModelChoice, thinking: SessionThinking): { reasoning?: ReasoningParameters } {
+  const chosen = choice.thinking ?? (typeof thinking === 'function' ? thinking(choice) : thinking);
+  return chosen === undefined || chosen === 'model' ? {} : { reasoning: chosen };
+}
 
 /** Where the session finds models: an adapter per provider (a lookup), and the model it runs by default. */
 export interface ModelSource<M extends ModelChoice = ModelChoice> {
@@ -109,10 +121,11 @@ export interface AgentSessionOptions<Api extends DisclosureApi, M extends ModelC
    */
   maxToolCalls?: number;
   /**
-   * The model's thinking, e.g. `{ mode: "adaptive", effort: "medium" }`; "model" leaves it to the model. Default for
-   * Google: low (see `thinkingFor`).
+   * The model's thinking when the turn's choice gives none, e.g. `{ mode: "adaptive", effort: "medium" }`, or per model
+   * (a host passes the catalog's default: `defaultReasoning` of `@molstar/ai-model-adapters/model-catalog`); "model" or
+   * undefined leaves it to the model.
    */
-  thinking?: ModelChoice['thinking'];
+  thinking?: SessionThinking;
   /** Output tokens per model call, thinking included; default 16384. A reply cut short at the limit is asked for
    * once more with twice the limit. */
   maxOutputTokens?: number;
@@ -838,7 +851,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       target: { provider, model },
       parameters: {
         maxOutputTokens: this.options.maxOutputTokens ?? 16_384,
-        ...thinkingFor(provider, model, chosen.thinking ?? this.options.thinking),
+        ...reasoningFor(chosen, this.options.thinking),
       },
     };
   }

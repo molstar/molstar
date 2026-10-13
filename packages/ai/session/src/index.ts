@@ -19,7 +19,6 @@ export {
   createDrive,
   extendBudget,
   plainFailure,
-  thinkingFor,
   turnBudget,
 } from './drive.js';
 export {
@@ -32,7 +31,7 @@ export {
   terminalToolFor,
 } from './once.js';
 export { creditsOf, dollarsOf, type ModelPrice, type PriceTable } from './prices.js';
-export { AgentSession, type AgentSessionOptions, type ModelSource } from './session.js';
+export { AgentSession, type AgentSessionOptions, type ModelSource, type SessionThinking } from './session.js';
 export type {
   ApprovalDecision,
   ModelChoice,

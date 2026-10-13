@@ -78,7 +78,7 @@ storage (memory by default; IndexedDB to keep it; a host may bring its own `Harn
   (`{ kind: model | tools | permission | retrying | widened | budget-extended | compacting, detail? }`), `onTurn`
   (begun, with the turn id, before the first model call; or resumed: where a host takes its checkpoint).
 - **Models**: an adapter per provider (a lookup), the default model, windows and output limits the app gives for models
-  an adapter does not know, thinking.
+  an adapter does not know, thinking (one for every model, or per model: the host passes the model catalog's default).
 
 ## 5. The drive
 

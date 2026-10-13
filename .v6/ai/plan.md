@@ -39,11 +39,14 @@ In this order (reordered 2026-10-12; [analysis/viewer-mode.md](analysis/viewer-m
    mock data until a session feeds them.
 3. **`@molstar/ai-fibers`** (done): the kernel, the host, the backends in `ai-components`, the conformance.
 4. **PD → field shape** (done: `paramsShape`, `@molstar/prism-assistant/tools/params`), for commands as tools.
-5. **A model catalog** in `@molstar/ai-model-adapters` (`./catalog`): entries by provider and model family, matched by
-   the longest prefix (a new version of a family works unchanged, a new family is one entry), each with its label and
-   note, limits, reasoning (modes, efforts, the default), dated prices, and quirks. The adapters' capabilities, the
-   session's default parameters (replacing `thinkingFor`) and the host's model list and credits read it; the host adds
-   its own endpoints and what the person types.
+5. **A model catalog** (done) in `@molstar/ai-model-adapters/model-catalog`: entries by provider, families matched by
+   prefix at a boundary and models as themselves and their dated snapshots, a model's fields over its families' (a new
+   version of a family gets the limits, reasoning and quirks; only a listed model has a label and a price). Each holds
+   its label and note, limits, reasoning (modes, efforts, the default), dated prices, and quirks (tool additions). The
+   adapters read limits and quirks; the session takes `thinking` per model from the host (`defaultReasoning`), so it
+   knows no models (`thinkingFor` is gone); a host lists the models and prices calls (`dollarsOf`; credits are its own).
+   The host adds its own endpoints and models (a catalog of its own) and what the person types. Gemini 3's rules
+   (reasoning, media in tool results) stay a version rule in the Google adapter.
 6. **Pause**: one plan with the Prism UI's, and the sequence viewer. Then Prism hosts it (the integration step of
    [../prism-ui/plan.md](../prism-ui/plan.md): commands as tools, `execute` as the handler, the drive, origins, one undo
    step per turn through the mode's checkpointer, [harness.md](harness.md) §18), the skills, `ai-toolscript` and

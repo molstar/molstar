@@ -17,7 +17,7 @@ import type {
   ToolSpec,
 } from '@molstar/ai-tools';
 import { defineTool } from '@molstar/ai-tools';
-import { AgentSession, type ModelSource } from './session.js';
+import { AgentSession, type ModelSource, type SessionThinking } from './session.js';
 import type { ModelChoice } from './types.js';
 
 /**
@@ -104,7 +104,7 @@ export interface RunOnceOptions<Api extends DisclosureApi, V, M extends ModelCho
   maxToolCalls?: number;
   /** Model retries on transient errors (default 1). */
   retries?: number;
-  thinking?: ModelChoice['thinking'];
+  thinking?: SessionThinking;
 }
 
 export interface OnceResult<V> {

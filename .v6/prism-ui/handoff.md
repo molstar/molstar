@@ -41,13 +41,10 @@ built yet.
 The order was set with the user ([../ai/plan.md](../ai/plan.md) §2;
 [../ai/analysis/viewer-mode.md](../ai/analysis/viewer-mode.md) §7):
 
-1. **Next, small**: a **model catalog** in `@molstar/ai-model-adapters` (`./catalog`). Entries are by provider and model
-   family, matched by the longest prefix (so a new Gemini version works unchanged and a new family is one entry). Each
-   has its label and note, limits, reasoning modes and default, dated prices, and quirks. The adapters' capabilities,
-   the session's defaults (replacing `thinkingFor` in `ai-session/src/drive.ts`) and the host's model list and credits
-   read it.
-2. **Then pause** and write one plan with the Prism UI's ([plan.md](plan.md)), bringing in the sequence viewer (seqstar,
-   in `stories-untold-redux/lib/seqstar-next`; Prism draws its own UI over seqstar's headless context:
+1. **Done**: the **model catalog**, `@molstar/ai-model-adapters/model-catalog` ([../ai/plan.md](../ai/plan.md) §2.5).
+   The adapters read it; the session's `thinking` takes a per-model function (the host passes `defaultReasoning`).
+2. **Next, a pause** and write one plan with the Prism UI's ([plan.md](plan.md)), bringing in the sequence viewer
+   (seqstar, in `stories-untold-redux/lib/seqstar-next`; Prism draws its own UI over seqstar's headless context:
    [analysis/harness-and-seqstar.md](analysis/harness-and-seqstar.md)). After that, Prism hosts the agent: command
    metadata (`read`, `approval`, `ui`), a selection param with three forms, the core viewer commands, state and focus
    accounts, the checkpointer, `AgentModel` over `AgentSession`, History over fibers, the selections skill.
@@ -113,7 +110,8 @@ Do not start step 2's integration without the user: they want to decide it toget
     ([../ai/plan.md](../ai/plan.md), "The suite waits on conditions").
   - `pnpm-lock.yaml` conflicts are regenerated with `pnpm install`, never hand-merged.
 - **Open points to raise with the user**:
-  - `thinkingFor` holds Google defaults; the catalog fixes it.
+  - The catalog's prices are secondhand (ported from Stories, with their sources and dates); check them before credits
+    are shown.
   - The Inspector's mock Trace link always lands on the latest turn.
   - Whether browsers encode AAC and Opus at Gemini's 24 kHz is unverified; there is a runtime check with WAV as the
     fallback.

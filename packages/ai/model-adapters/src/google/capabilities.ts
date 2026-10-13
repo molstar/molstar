@@ -7,23 +7,15 @@
  */
 
 import type { ModelCapabilities, ModelConfiguration, ModelParameters } from '@molstar/ai-agent';
-import { type ModelLimitOverride, type ModelLimits, resolveProviderCapabilities } from '../common/capabilities.js';
+import { type ModelLimitOverrides, resolveProviderCapabilities } from '../common/capabilities.js';
 import { isGemini3 } from './attachments.js';
-
-const window = { contextWindowTokens: 1_114_112, maxInputTokens: 1_048_576, maxOutputTokens: 65_536 };
-// Verified exercised targets; custom/gateway models require explicit limits.
-const limits: ModelLimits = {
-  'gemini-2.5-flash': window,
-  'gemini-3-flash-preview': window,
-  'gemini-3.8-flash': window,
-};
 
 /** Gemini collects its tools and has no cache scope mapping (its `cachedContent` has a lifecycle). */
 export function providerCapabilities(
   configuration: ModelConfiguration,
-  overrides: Readonly<Record<string, ModelLimitOverride>> = {},
+  overrides: ModelLimitOverrides = {},
 ): ModelCapabilities {
-  return resolveProviderCapabilities(configuration, 'google', limits, overrides, {
+  return resolveProviderCapabilities(configuration, 'google', overrides, {
     appendsTools: false,
     cacheScope: false,
     outputLimitIncludesReasoning: false,

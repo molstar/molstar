@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Json, ModelConfiguration, ReasoningParameters, ToolDefinition } from '@molstar/ai-agent';
+import type { Json, ModelConfiguration, ToolDefinition } from '@molstar/ai-agent';
 import {
   type Decisions,
   type Drive,
@@ -81,27 +81,6 @@ export function extendBudget(payload: Decisions['budget'][0], policy: BudgetPoli
   const ceiling = policy.ceiling[d] ?? Number.POSITIVE_INFINITY;
   if (used + need > ceiling) return undefined;
   return { [d]: Math.min(Math.max(limit + (policy.initial[d] ?? 0), used + need), ceiling) };
-}
-
-const LOW_THINKING: ReasoningParameters = { mode: 'adaptive', effort: 'low' };
-
-/** Gemini models that take reasoning parameters (the adapter refuses them for earlier ones). */
-const GEMINI_THINKING = /^gemini-(?:[3-9]|[1-9]\d)/;
-
-/**
- * The reasoning parameters for a model: `'model'` leaves it to the model; otherwise the given ones; by default
- * Google's low (low passed every eval, 2–5× faster: more thinking made Gemini read and re-read) and the provider's
- * own elsewhere.
- */
-export function thinkingFor(
-  provider: string,
-  model: string,
-  thinking: ReasoningParameters | 'model' | undefined,
-): { reasoning?: ReasoningParameters } {
-  if (thinking === 'model') return {};
-  if (provider === 'google' && !GEMINI_THINKING.test(model)) return {};
-  if (thinking) return { reasoning: thinking };
-  return provider === 'google' ? { reasoning: LOW_THINKING } : {};
 }
 
 /** The providers' names in a failure's words (the host's own table replaces it). */

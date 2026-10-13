@@ -5,15 +5,15 @@ The agent harness and what it needs: durable agent turns, model adapters, storag
 
 ## Packages (`packages/ai/`)
 
-| Package                      | Holds                                                                                                                                                 |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@molstar/ai-agent`          | the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the `ModelAdapter` port, `hashMessage`, `digest`            |
-| `@molstar/ai-harness`        | the contracts (storage port, supervisor) and the platform-free logic: host protocol, runner, tools, nested runs, drives, observation                  |
-| `@molstar/ai-components`     | storage (memory, IndexedDB) on one durable core; the in-process supervisor                                                                            |
-| `@molstar/ai-model-adapters` | Anthropic, OpenAI (Responses or chat completions, any compatible endpoint), Google, on the AI SDK                                                     |
-| `@molstar/ai-tools`          | tools: input as field shapes (or zod), results for the model, bindings, repeated reads, nested tools, schedules, groups (skills) and their disclosure |
-| `@molstar/ai-session`        | an agent session: turns, resume, stop; the default drive; message composition; compaction; one-off runs                                               |
-| `@molstar/ai-conformance`    | the suite every storage backend runs, the storage meter, and test doubles at `./testing` (clock, ids, scripted model and tools)                       |
+| Package                      | Holds                                                                                                                                                     |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@molstar/ai-agent`          | the model side's shapes: `Message` and its parts, tool definitions, `ModelConfiguration`, the `ModelAdapter` port, `hashMessage`, `digest`                |
+| `@molstar/ai-harness`        | the contracts (storage port, supervisor) and the platform-free logic: host protocol, runner, tools, nested runs, drives, observation                      |
+| `@molstar/ai-components`     | storage (memory, IndexedDB) on one durable core; the in-process supervisor                                                                                |
+| `@molstar/ai-model-adapters` | Anthropic, OpenAI (Responses or chat completions, any compatible endpoint), Google, on the AI SDK; the model catalog (`./model-catalog`, no dependencies) |
+| `@molstar/ai-tools`          | tools: input as field shapes (or zod), results for the model, bindings, repeated reads, nested tools, schedules, groups (skills) and their disclosure     |
+| `@molstar/ai-session`        | an agent session: turns, resume, stop; the default drive; message composition; compaction; one-off runs                                                   |
+| `@molstar/ai-conformance`    | the suite every storage backend runs, the storage meter, and test doubles at `./testing` (clock, ids, scripted model and tools)                           |
 
 Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they import nothing of either.
 

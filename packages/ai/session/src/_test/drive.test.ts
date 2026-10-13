@@ -443,7 +443,7 @@ describe('the model per turn', () => {
     expect(seen).toEqual([
       // The asked-for 16k clamped to the model's 8k; the application's window over the adapter's.
       { model: 'scripted-1', window: 1_000_000, output: 8192, reasoning: undefined },
-      // Gemini before 3 takes no reasoning parameters.
+      // No thinking asked for, none sent.
       { model: 'gemini-2.5-pro-custom', window: 200_000, output: 4096, reasoning: undefined },
     ]);
   });
@@ -476,6 +476,30 @@ describe('the model per turn', () => {
     ]);
     const unknown = await session.turn({ prompt: 'Four.', model: { provider: 'openai', model: 'x' } });
     expect(unknown).toMatchObject({ status: 'failed', error: 'No adapter for openai.' });
+  });
+  it('thinks per model as the host says, under the turn’s own choice', async () => {
+    const main = fixture([{ text: 'a' }, { text: 'b' }, { text: 'c' }, { text: 'd' }]);
+    const session = new AgentSession<Toy>({
+      models: { adapterFor: () => main.model.adapter, default: { provider: 'scripted', model: 'fast' } },
+      toolkit: toyToolkit(),
+      api: toy(),
+      guidance,
+      // As a host passes the catalog's default (`defaultReasoning`).
+      thinking: ({ model }) => (model === 'fast' ? { mode: 'adaptive', effort: 'low' } : undefined),
+    });
+    await session.turn({ prompt: 'One.' });
+    await session.turn({ prompt: 'Two.', model: { provider: 'scripted', model: 'other' } });
+    await session.turn({
+      prompt: 'Three.',
+      model: { provider: 'scripted', model: 'fast', thinking: { mode: 'adaptive', effort: 'high' } },
+    });
+    await session.turn({ prompt: 'Four.', model: { provider: 'scripted', model: 'fast', thinking: 'model' } });
+    expect(main.model.projections.map((p) => p.configuration.parameters.reasoning)).toEqual([
+      { mode: 'adaptive', effort: 'low' },
+      undefined,
+      { mode: 'adaptive', effort: 'high' },
+      undefined,
+    ]);
   });
 });
 
