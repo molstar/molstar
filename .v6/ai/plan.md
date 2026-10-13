@@ -63,7 +63,7 @@ Later:
 
 - **Evals**: `@molstar/ai-evals`, the common part of Stories' evals (`evals/`, `apps/eval`: scenarios run against real
   models, metering, baselines, the trace of each run), with each mode's scenarios in its `agent` folder.
-- **Jest to ESM** for the whole repository, then `jest:ai` folds into `jest`.
+- **Vitest** for the whole repository, ESM throughout (`.v6/plans/checklist.md`), then `jest:ai` folds in.
 - **The suite waits on conditions.** Some cases wait a fixed number of event-loop rounds for work that includes
   WebCrypto hashing; on fake IndexedDB under load that loses the race now and then (it did under Vitest too), so that
   file retries its cases. Waiting on what each case needs (as S3 now waits for its tool to start) removes the retries.
