@@ -4,59 +4,45 @@ on:
   push:
     branches: master
     paths:
-      - docs/**
+      - apps/docs/**
+      - pnpm-workspace.yaml
       - '.github/workflows/docs.yml'
   pull_request:
     branches: master
     paths:
-      - docs/**
+      - apps/docs/**
+      - pnpm-workspace.yaml
       - '.github/workflows/docs.yml'
 
 jobs:
-  build:
+  docs:
+    name: Build and deploy
     runs-on: ubuntu-latest
     steps:
       - name: 👨🏼‍💻 checkout
         uses: actions/checkout@v7
 
-      - name: 🐍 python
-        uses: actions/setup-python@v6
+      - uses: pnpm/action-setup@v6
         with:
-          python-version: '3.10'
+          version: 11.25.0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
 
       - name: ⛓️ dependencies
-        run: |
-          pip install mkdocs-material
+        run: pnpm install --frozen-lockfile
+
       - name: 🔧 build site
-        run: |
-          cd docs
-          mkdocs build
+        run: pnpm --filter @molstar/docs build
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/master'
-    steps:
-      - name: 👨🏼‍💻 checkout
-        uses: actions/checkout@v7
-
-      - name: 🐍 python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.10'
-
-      - name: ⛓️ dependencies
-        run: |
-          pip install mkdocs-material
-      - name: 🔧 build site
-        run: |
-          cd docs
-          mkdocs build
-
+      # The site is built for pull requests too (a check); only a push to master publishes it.
       - name: 🚢 deploy docs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: peaceiris/actions-gh-pages@v4
         with:
           deploy_key: ${{ secrets.DOCS_DEPLOY_KEY }}
           external_repository: molstar/docs
           publish_branch: gh-pages
-          publish_dir: ./docs/site
+          publish_dir: ./apps/docs/dist

@@ -204,7 +204,8 @@ for (const [file, pkg] of sourceFiles) {
         errors.push(`${pkg.name}: missing direct dependency on ${dependency.name} (${specifier} in ${rel})`);
       graph.get(pkg.name)?.add(dependency.name);
     } else if (!dependency && !specifier.startsWith('node:') && !ts.isExternalModuleNameRelative(specifier)) {
-      const name = packageName(specifier);
+      // Astro's virtual modules (`astro:content`, ...) come from the `astro` package.
+      const name = specifier.startsWith('astro:') ? 'astro' : packageName(specifier);
       if (builtinModules.includes(name) || builtinModules.includes(`node:${name}`) || name.startsWith('#')) continue;
       const manifest = manifestFor(pkg);
       if (name.startsWith('@molstar/'))

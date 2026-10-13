@@ -10,6 +10,8 @@ the [API change ledger](breaking-v6-changes.md).
   `@molstar/plugin`, ...) instead of `molstar/lib/...`; there is no CommonJS build (#1951)
 - TypeScript 7 builds, Biome lint and formatting (#1958)
 - Node 22.13 or later
+- The documentation is an Astro Starlight site (`apps/docs`) that keeps the v5 docs (`/docs/v5/`) next to the v6 docs
+  (`/docs/v6/`); `/docs/` redirects to the default version and the old page URLs redirect to v5
 
 ## Plugin composition (#1961)
 
