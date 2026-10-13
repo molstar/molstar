@@ -16,10 +16,41 @@ interface Sleeper {
   cleanup(): void;
 }
 
-/** Lets pending promises (including WebCrypto's, which resolve off the microtask queue) settle. */
+/**
+ * Hashes in flight. WebCrypto resolves off the event loop, so the clock cannot tell a runner that is waiting for one
+ * from a runner with nothing left to do, and would move virtual time under it (a lease renewal, a deadlock that is
+ * none). Every digest the harness takes goes through `crypto.subtle.digest`; this counts the ones not yet finished.
+ */
+let digestsInFlight = 0;
+const tracked = Symbol.for('molstar.ai-conformance.digest-tracked');
+const subtle = globalThis.crypto?.subtle;
+if (subtle && !(subtle.digest as unknown as Record<symbol, unknown>)[tracked]) {
+  const digest = subtle.digest.bind(subtle) as (...args: unknown[]) => Promise<ArrayBuffer>;
+  const counted = async (...args: unknown[]) => {
+    digestsInFlight += 1;
+    try {
+      return await digest(...args);
+    } finally {
+      digestsInFlight -= 1;
+    }
+  };
+  (counted as unknown as Record<symbol, unknown>)[tracked] = true;
+  (subtle as unknown as { digest: unknown }).digest = counted;
+}
+
+/**
+ * Lets pending promises (including WebCrypto's, which resolve off the microtask queue) settle: a number of rounds of the
+ * event loop, and then for as long as a hash is in flight (its continuation may start the next one).
+ */
 export async function settle(rounds = 12): Promise<void> {
   for (let i = 0; i < rounds; i += 1) await new Promise<void>((resolve) => setImmediate(resolve));
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  for (let waited = 0; waited < 100_000; ) {
+    for (; digestsInFlight > 0 && waited < 100_000; waited += 1)
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    for (let i = 0; i < 3; i += 1) await new Promise<void>((resolve) => setImmediate(resolve));
+    if (digestsInFlight === 0) break;
+  }
 }
 
 /** Real time `runUntil` waits for work still in flight before it calls an idle clock a deadlock. */
@@ -136,7 +167,7 @@ export class SimulatedClock implements Clock {
       for (let quiet = 0, rounds = 0; quiet < 2 && rounds < 10_000 && !done; rounds += 1) {
         const seen = this.activity;
         await settle();
-        quiet = this.activity === seen && this.busy === 0 ? quiet + 1 : 0;
+        quiet = this.activity === seen && this.busy === 0 && digestsInFlight === 0 ? quiet + 1 : 0;
       }
       if (done) break;
       // Nothing runs and nothing sleeps: a deadlock, or work that resolves off the event loop (WebCrypto on a loaded

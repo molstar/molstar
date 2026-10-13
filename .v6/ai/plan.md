@@ -66,8 +66,9 @@ Later:
 - **Vitest** for the whole repository, ESM throughout (`.v6/plans/checklist.md`); done, `jest:ai` folded in.
 - **The suite waits on conditions.** Some cases wait a fixed number of event-loop rounds for work that includes
   WebCrypto hashing; on fake IndexedDB under load that loses the race now and then (it did under Vitest too), so that
-  file retries its cases. The simulated clock's `runUntil` now gives in-flight work up to 5 s of real time before it
-  reports a deadlock (CI had a false one). Waiting on what each case needs (as S3 now waits for its tool to start)
-  removes the retries.
+  file retries its cases. The simulated clock now counts in-flight `crypto.subtle.digest` calls as pending work
+  (`settle` and `runUntil` wait for them) and gives idle work up to 5 s of real time before it reports a deadlock; CI
+  had false ones. With every hash slowed by 4 ms the whole memory conformance suite passes. Waiting on what each case
+  needs (as S3 now waits for its tool to start) removes the retries.
 - **SQLite storage** for the harness and fibers (servers, headless), removed 2026-10-12 until a host needs it; the
   IndexedDB and memory backends and the conformance suites are the pattern.
