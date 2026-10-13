@@ -11,6 +11,7 @@ import { deepEqual } from '@molstar/core/util';
 import { omitObjectKeys } from '@molstar/core/util/object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { substructureFromRows } from '@molstar/mvs/helpers/row-structure';
+import { describeRows } from '@molstar/mvs/helpers/row-label';
 import type { MVSAnnotationRow } from '@molstar/mvs/helpers/schemas';
 import { MVSTransform } from './annotation-structure-component.js';
 
@@ -65,7 +66,7 @@ export function createMVSSchemaStructureComponent(
   cache.source = structure;
   const component = substructureFromRows(structure, params.schema);
   if (params.nullIfEmpty && component.elementCount === 0) return StateObject.Null;
-  const label = params.label || 'MVS Schema Component';
+  const label = params.label || describeRows(params.schema);
   return new SO.Molecule.Structure(component, { label, description: Structure.elementDescription(component) });
 }
 

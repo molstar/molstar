@@ -93,6 +93,11 @@ describe('rows selectors in a loaded MVS document', async () => {
     expect(cells.filter((c) => c.status === 'error').map((c) => c.errorText)).toEqual([]);
     expect(schemaCells.length).toBe(2);
     expect(schemaCells.map((c) => (c.transform.params as any).schema)).toEqual([rowsA, rowsB]);
+    // the labels describe the rows instead of dumping them
+    expect(schemaCells.map((c) => c.obj!.label)).toEqual([
+      'Chain A, residues 1-20 + Chain A, residue 60, atom CA',
+      'REA',
+    ]);
     // plugin's own `StructureComponent` is only used for static selectors, rows are not turned into expressions
     const standard = cells.filter((c) => c.transform.transformer.id === 'ms-plugin.structure-component');
     expect(standard.map((c) => (c.transform.params as any).type.name)).toEqual(['static', 'static']);
@@ -142,7 +147,7 @@ describe('MVSSchemaStructureComponent', async () => {
       cache,
     ) as any;
     expect(obj.data.elementCount).toBe(20 * 6);
-    expect(obj.label).toBe('MVS Schema Component');
+    expect(obj.label).toBe('Chain B'); // described from the rows when no label is given
     expect(cache.source).toBe(structure);
     const named = createMVSSchemaStructureComponent(
       structure,

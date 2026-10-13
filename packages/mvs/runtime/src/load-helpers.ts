@@ -53,7 +53,8 @@ import { type ElementOfSet, decodeColor, isDefined, stringHash } from '@molstar/
 import { MolstarLoadingContext } from '@molstar/mvs/load';
 import { UpdateTarget, mvsRefTags } from '@molstar/mvs/load-generic';
 import { type Subtree, getChildren } from '@molstar/mvs-builder/tree/generic/tree-schema';
-import { dfs, formatObject } from '@molstar/mvs-builder/tree/generic/tree-utils';
+import { dfs } from '@molstar/mvs-builder/tree/generic/tree-utils';
+import { describeRows } from '@molstar/mvs/helpers/row-label';
 import type {
   MolstarKind,
   MolstarNode,
@@ -427,18 +428,19 @@ export function componentPropsFromSelector(selector?: MolstarNodeParams<'compone
   }
 }
 
-/** Return a pretty name for a value of selector param, e.g.  "protein" -> 'Protein', {label_asym_id: "A"} -> 'Custom Selection: {label_asym_id: "A"}' */
+/** Return a pretty name for a value of selector param, e.g.  "protein" -> 'Protein', {label_asym_id: "A"} -> 'Chain A',
+ * a long list of rows -> '120 selections' (see `describeRows`) */
 export function prettyNameFromSelector(selector?: MolstarNodeParams<'component'>['selector']): string {
   if (selector === undefined) {
     return 'All';
   } else if (typeof selector === 'string') {
     return stringToWords(selector);
   } else if (Array.isArray(selector)) {
-    return `Custom Selection: [${selector.map(formatObject).join(', ')}]`;
+    return describeRows(selector);
   } else if (isMolQLExpression(selector)) {
     return 'MolQL Selection';
   } else {
-    return `Custom Selection: ${formatObject(selector)}`;
+    return describeRows([selector]);
   }
 }
 
