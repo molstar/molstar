@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, type Observable, shareReplay } from 'rxjs';
 import type { CommandInvocation, InvocationState } from '../../commands/invocation.js';
 import { formatChord, isMac } from '../../commands/keys.js';
 import type { CommandManager, CommandMatch } from '../../commands/manager.js';
@@ -18,8 +18,9 @@ import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
-import { onCleanup } from '../../dom/scope.js';
+import { bind, onCleanup } from '../../dom/scope.js';
 import type { FormFieldView } from '../../forms/flat-fields.js';
+import { keyedSelector } from '../../reactive/keyed-selector.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/command-menu.module.css.js';
 
@@ -120,18 +121,14 @@ export function CommandMenu(props: CommandMenuProps) {
   const { manager } = props;
   // The words a sentence was proposed from by the assistant (shown over it), until it closes.
   const proposed = observableState<string | undefined>(undefined);
-  const activeSub = manager.active.subscribe((a) => {
+  bind(manager.active, (a) => {
     if (!a) proposed.set(undefined);
   });
-  onCleanup(() => activeSub.unsubscribe());
   // A command that ran (or failed past its form) closes the command menu; its outcome goes to the status line.
-  const sub = manager.outcomes.subscribe((o) => {
+  bind(manager.outcomes, (o) => {
     if (o.kind === 'done') props.onClose();
   });
-  onCleanup(() => {
-    sub.unsubscribe();
-    manager.close();
-  });
+  onCleanup(() => manager.close());
   return (
     <div
       class={classes.scrim}
@@ -232,6 +229,8 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
         if (m.command !== q.direct?.command && within(m)) add({ kind: 'match', match: m, index: 0 });
       return out;
     }),
+    // One computation for its subscribers (the list, `unmatched`, `current`), not one each.
+    shareReplay({ bufferSize: 1, refCount: true }),
   );
   let current: Row[] = [];
   const picks = () => current.filter((r): r is Pickable => r.kind !== 'caption');
@@ -251,10 +250,12 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
     map(([t, r]) => !!t.trim() && !prefixOf(t) && !r.some((x) => x.kind !== 'caption')),
     distinctUntilChanged(),
   );
-  rows.subscribe((r) => {
+  bind(rows, (r) => {
     current = r;
     if (highlight.value >= picks().length) highlight.set(0);
   });
+  // A move of the highlight notifies the two rows it concerns, not every row.
+  const highlighted = keyedSelector(highlight.asReadonly);
 
   const setText = (t: string) => {
     text.set(t);
@@ -371,7 +372,7 @@ function ListMode(props: CommandMenuProps & { onPropose(words: string): void }) 
           {(row) => {
             if (row.kind === 'caption') return <div class={classes.caption}>{row.label}</div>;
             const i = row.index;
-            const selected = highlight.asReadonly.pipe(map((h) => h === i));
+            const selected = highlighted.is(i);
             const hover = () => highlight.set(i);
             if (row.kind === 'group')
               return (
@@ -537,7 +538,7 @@ function GroupRow(props: {
       <Icon name="chevron-right" size={14} class={classes.rowChevron} />
     </div>
   ) as HTMLElement;
-  props.selected.subscribe((s) => s && queueMicrotask(() => el.scrollIntoView?.({ block: 'nearest' })));
+  bind(props.selected, (s) => s && queueMicrotask(() => el.scrollIntoView?.({ block: 'nearest' })));
   return el;
 }
 
@@ -556,7 +557,7 @@ function ItemRow(props: { item: CommandMenuItem; selected: Observable<boolean>; 
       <span class={classes.rowMeta}>{item.detail}</span>
     </div>
   ) as HTMLElement;
-  props.selected.subscribe((s) => s && queueMicrotask(() => el.scrollIntoView?.({ block: 'nearest' })));
+  bind(props.selected, (s) => s && queueMicrotask(() => el.scrollIntoView?.({ block: 'nearest' })));
   return el;
 }
 
@@ -594,7 +595,7 @@ function CommandRow(props: {
       {c.shortcut ? <kbd class={classes.keys}>{formatChord(c.shortcut)}</kbd> : null}
     </div>
   ) as HTMLElement;
-  props.selected.subscribe((s) => {
+  bind(props.selected, (s) => {
     if (s) queueMicrotask(() => el.scrollIntoView?.({ block: 'nearest' }));
   });
   return el;

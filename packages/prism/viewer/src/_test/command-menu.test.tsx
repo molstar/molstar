@@ -31,7 +31,7 @@ function mount(options: { prefixes?: boolean } = {}) {
   });
   const container = document.createElement('div');
   document.body.append(container);
-  render(() => <CommandMenu manager={manager} prefixes={prefixes} onClose={closed} />, container);
+  const dispose = render(() => <CommandMenu manager={manager} prefixes={prefixes} onClose={closed} />, container);
   const input = () => container.querySelector('input') as HTMLInputElement;
   const type = (text: string) => {
     input().value = text;
@@ -39,7 +39,7 @@ function mount(options: { prefixes?: boolean } = {}) {
   };
   const key = (k: string) => input().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
   const rows = () => [...container.querySelectorAll('[role=option]')].map((r) => r.textContent ?? '');
-  return { manager, closed, results, container, input, type, key, rows };
+  return { manager, closed, results, container, input, type, key, rows, dispose };
 }
 
 afterEach(() => {
@@ -47,6 +47,18 @@ afterEach(() => {
 });
 
 describe('CommandMenu', () => {
+  it('matches once per keystroke, and not at all once closed', () => {
+    const p = mount();
+    const query = jest.spyOn(p.manager, 'query');
+    // The list and the highlight's bounds read one computation of the rows.
+    p.type('reset zo');
+    expect(query).toHaveBeenCalledTimes(1);
+    p.dispose();
+    query.mockClear();
+    p.manager.register([{ id: 'test.late', title: 'Late', category: 'Test', run: () => {} } as never]);
+    expect(query).not.toHaveBeenCalled();
+  });
+
   it('lists commands, searches, and runs one without arguments', async () => {
     const p = mount();
     expect(p.rows().length).toBeGreaterThan(10);
