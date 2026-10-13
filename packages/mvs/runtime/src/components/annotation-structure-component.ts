@@ -4,14 +4,13 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Structure, StructureSelection } from '@molstar/model/model/structure';
-import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
+import { Structure } from '@molstar/model/model/structure';
 import { PluginStateObject as SO } from '@molstar/plugin/state/objects';
 import { StateObject, StateTransformer } from '@molstar/core/state';
 import { deepEqual } from '@molstar/core/util';
 import { omitObjectKeys } from '@molstar/core/util/object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { rowsToExpression } from '@molstar/mvs/helpers/selections';
+import { substructureFromRows } from '@molstar/mvs/helpers/row-structure';
 import { getMVSAnnotationForStructure } from './annotation-prop.js';
 
 /** Parameter definition for `MVSAnnotationStructureComponent` transformer */
@@ -72,10 +71,7 @@ export function createMVSAnnotationSubstructure(
       const selectedValues = new Set<string | undefined>(params.fieldValues.params.map((obj) => obj.value));
       rows = rows.filter((row, i) => selectedValues.has(annotation.getValueForRow(i, params.fieldName)));
     }
-    const expression = rowsToExpression(rows);
-
-    const { selection } = StructureQueryHelper.createAndRun(structure, expression);
-    return StructureSelection.unionStructure(selection);
+    return substructureFromRows(structure, rows);
   } else {
     return Structure.Empty;
   }

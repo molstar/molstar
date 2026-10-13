@@ -18,10 +18,8 @@ import {
 import { getPhysicalRadius } from '@molstar/graphics/theme/size/physical';
 import { arrayExtend } from '@molstar/core/util/array';
 import { ElementRanges } from './element-ranges.js';
-import { IndicesAndSortings } from './indexing.js';
 import type { MVSAnnotationRow } from './schemas.js';
-import { getAtomRangesForRows, getGaussianRangesForRows, getSphereRangesForRows } from './selections.js';
-import { isDefined } from './utils.js';
+import { ElementRangesCache } from './row-structure.js';
 
 /** Properties describing position, size, etc. of a text in 3D */
 export interface TextProps {
@@ -40,34 +38,6 @@ const tmpArray: number[] = [];
 const boundaryHelper = new BoundaryHelper('98');
 const outElements: ElementIndex[] = [];
 const outFirstElementIndex: { value?: number } = {};
-
-/** Helper for caching element ranges qualifying to a group of annotation rows, per `Unit`. */
-class ElementRangesCache {
-  private readonly cache: { [key: string]: ElementRanges } = {};
-  private readonly hasOperators: boolean;
-
-  constructor(private readonly rows: MVSAnnotationRow[]) {
-    this.hasOperators = rows.some((row) => isDefined(row.instance_id));
-  }
-
-  get(unit: Unit): ElementRanges {
-    const instanceId = unit.conformation.operator.instanceId;
-    const key = `${unit.model.id}:${unit.kind}:${this.hasOperators ? instanceId : '*'}`;
-    return (this.cache[key] ??= this.compute(unit));
-  }
-  private compute(unit: Unit): ElementRanges {
-    const instanceId = unit.conformation.operator.instanceId;
-    const indices = IndicesAndSortings.get(unit.model);
-    switch (unit.kind) {
-      case Unit.Kind.Atomic:
-        return getAtomRangesForRows(this.rows, unit.model, instanceId, indices);
-      case Unit.Kind.Spheres:
-        return getSphereRangesForRows(this.rows, unit.model, instanceId, indices);
-      case Unit.Kind.Gaussians:
-        return getGaussianRangesForRows(this.rows, unit.model, instanceId, indices);
-    }
-  }
-}
 
 /** Approximate number of heavy atoms per protein residue (I got 7.55 from 2e2n) */
 const AVG_ATOMS_PER_RESIDUE = 8;

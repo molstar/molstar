@@ -21,7 +21,10 @@ import type { Model } from '@molstar/model/model/structure';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
 import { IndicesAndSortings } from '../indexing.js';
 import type { MVSAnnotationRow } from '../schemas.js';
-import { getAtomRangesForRows } from '../selections.js';
+import { getAtomRangesForRows, rowsToExpression } from '../selections.js';
+import { substructureFromRows } from '../row-structure.js';
+import { Structure, StructureSelection } from '@molstar/model/model/structure';
+import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
 import { NEntities, createModel, makeRows, mulberry32, randInt, rowCategories } from './annotation-rows-fixture.js';
 
 const NChains = Number(process.env.MVS_BENCH_CHAINS ?? 300);
@@ -133,5 +136,26 @@ describe.skipIf(!process.env.MVS_BENCH)('annotation rows benchmark', () => {
       m,
       `ranges=${m.result.from.length} checksum=${checksum([m.result.from, m.result.to])}`,
     );
+
+    console.log(
+      '\n--- rows -> substructure: MolScript expression (per-atom queries) vs index-driven (`substructureFromRows`)',
+    );
+    const structure = Structure.ofModel(model);
+    for (const n of [10, 100, 1000]) {
+      const rows = mixed.slice(0, n);
+      // fewer repetitions for the slow reference
+      const ref = measure(() => {
+        const { selection } = StructureQueryHelper.createAndRun(structure, rowsToExpression(rows));
+        return StructureSelection.unionStructure(selection);
+      });
+      const fast = measure(() => substructureFromRows(structure, rows));
+      report(`expression  (${n} rows)`, n, ref, `elements=${ref.result.elementCount}`);
+      report(
+        `ranges      (${n} rows)`,
+        n,
+        fast,
+        `elements=${fast.result.elementCount}  speedup x${(ref.ms / fast.ms).toFixed(0)}`,
+      );
+    }
   });
 });

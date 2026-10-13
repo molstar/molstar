@@ -156,7 +156,7 @@ export function getAtomRangesForRowInto(
 
 /** Return atom ranges in `model` which satisfy criteria given by any of `rows` (atoms that satisfy more rows are still included only once) */
 export function getAtomRangesForRows(
-  rows: MVSAnnotationRow[],
+  rows: readonly MVSAnnotationRow[],
   model: Model,
   instanceId: string,
   indices: IndicesAndSortings,
@@ -513,7 +513,7 @@ export function getSphereRangesForRow(
 
 /** Return sphere ranges in `model` which satisfy criteria given by any of `rows` (spheres that satisfy more rows are still included only once) */
 export function getSphereRangesForRows(
-  rows: MVSAnnotationRow[],
+  rows: readonly MVSAnnotationRow[],
   model: Model,
   instanceId: string,
   indices: IndicesAndSortings,
@@ -535,7 +535,7 @@ export function getGaussianRangesForRow(
 
 /** Return gaussian ranges in `model` which satisfy criteria given by any of `rows` (gaussians that satisfy more rows are still included only once) */
 export function getGaussianRangesForRows(
-  rows: MVSAnnotationRow[],
+  rows: readonly MVSAnnotationRow[],
   model: Model,
   instanceId: string,
   indices: IndicesAndSortings,

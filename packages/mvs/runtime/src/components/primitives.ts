@@ -43,7 +43,8 @@ import { Color } from '@molstar/core/util/color';
 import { MarkerActions } from '@molstar/core/util/marker-action';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { capitalize } from '@molstar/core/util/string';
-import { rowsToExpression, rowToExpression } from '@molstar/mvs/helpers/selections';
+import { substructureFromRows } from '@molstar/mvs/helpers/row-structure';
+import type { MVSAnnotationRow } from '@molstar/mvs/helpers/schemas';
 import { collectMVSReferences, decodeColor, isDefined } from '@molstar/mvs/helpers/utils';
 import { addParamDefaults } from '@molstar/mvs-builder/tree/generic/params-schema';
 import { treeValidationIssues } from '@molstar/mvs-builder/tree/generic/tree-validation';
@@ -594,6 +595,7 @@ function resolvePosition(
   targetBox: Box3D | undefined,
 ): boolean {
   let expr: Expression | undefined;
+  let rows: readonly MVSAnnotationRow[] | undefined;
   let pivotRef: string | undefined;
 
   if (isVector3(position)) {
@@ -604,17 +606,16 @@ function resolvePosition(
   }
 
   if (isPrimitiveComponentExpression(position)) {
-    // TODO: take schema into account for possible optimization
-    expr = position.expressions ? rowsToExpression(position.expressions) : rowToExpression(position);
+    rows = position.expressions ?? [position];
     pivotRef = position.structure_ref;
   } else if (isPrimitiveMolQLExpression(position)) {
     expr = position.molql as Expression;
     pivotRef = position.structure_ref;
   } else if (isComponentExpression(position)) {
-    expr = rowToExpression(position);
+    rows = [position];
   }
 
-  if (!expr) {
+  if (!expr && !rows) {
     console.error('Invalid expression', position);
     throw new Error('Invalid primitive potition expression, see console for details.');
   }
@@ -633,7 +634,10 @@ function resolvePosition(
     return isDefined;
   }
 
-  const { selection } = StructureQueryHelper.createAndRun(pivot, expr);
+  // (rows are resolved through the model indices, not by running a MolScript query on every atom)
+  const selection = rows
+    ? StructureSelection.Singletons(pivot, substructureFromRows(pivot, rows))
+    : StructureQueryHelper.createAndRun(pivot, expr!).selection;
 
   let box: Box3D;
   let sphere: Sphere3D;
