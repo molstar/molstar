@@ -18,6 +18,7 @@ import { type Jsonable, canonicalJsonString } from '@molstar/core/util/json';
 import { objectOfArraysToArrayOfObjects, pickObjectKeysWithRemapping, promiseAllObj } from '@molstar/core/util/object';
 import { Choice } from '@molstar/core/util/param-choice';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { ElementPainter } from '@molstar/mvs/helpers/element-painter';
 import { HierarchyScope, IndicesAndSortings } from '@molstar/mvs/helpers/indexing';
 import { MaybeStringParamDefinition } from '@molstar/mvs/helpers/param-definition';
 import { type MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '@molstar/mvs/helpers/schemas';
@@ -183,7 +184,7 @@ type FieldRemapping = Record<string, string | null>;
 /** Mapping `ElementIndex` -> annotation row index for all elements of one kind (atoms, spheres, gaussians) in a `Model`.
  * `-1` means no row applies to the element.
  * `null` means no row applies to any element. */
-type IndexedElements = number[] | null;
+type IndexedElements = Int32Array | null;
 
 /** Mapping `ElementIndex` -> annotation row index for atoms, spheres, and gaussians in a `Model`. */
 type IndexedModel = {
@@ -202,6 +203,8 @@ function getIndexedElementsForUnitKind(indexedModel: IndexedModel, unitKind: Uni
 
 /** Reusable buffers for `getAtomRangesForRow` in `MVSAnnotation.getRowForEachAtom` (not reentrant, synchronous use only) */
 const RowScratch = new AtomRangesScratch();
+/** Paints the rows in `MVSAnnotation.getRowForEachAtom` (synchronous use only) */
+const RowPainter = new ElementPainter();
 
 /** Main class for processing MVS annotation */
 export class MVSAnnotation {
@@ -297,48 +300,39 @@ export class MVSAnnotation {
   /** Cached `IndexedModel` per hierarchy scope (models of one trajectory), and per `instanceId` (if at least one row contains instanceId). */
   private _indexedModels = new WeakMap<HierarchyScope, Map<string, IndexedModel>>();
 
-  /** Create `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` */
+  /** Create `ElementIndex` -> `MVSAnnotationRow` mapping for `Model`.
+   * An element gets the index of the last row which applies to it. The rows are visited from the last one, so that each element is
+   * written once (`ElementPainter`), and the pass stops as soon as every element has a row (e.g. a row selecting everything is last). */
   private getRowForEachAtom(model: Model, instanceId: string): IndexedModel {
     const indices = IndicesAndSortings.get(model);
-    const nAtoms = model.atomicHierarchy.atoms._rowCount;
-    const nSpheres = model.coarseHierarchy.spheres.count;
-    const nGaussians = model.coarseHierarchy.gaussians.count;
-    let indexedAtoms: IndexedElements = null;
-    let indexedSpheres: IndexedElements = null;
-    let indexedGaussians: IndexedElements = null;
     const rows = this.getRows();
-    const atomScratch = RowScratch;
-    for (let iRow = 0, nRows = rows.length; iRow < nRows; iRow++) {
-      const row = rows[iRow];
-      const atomRanges = getAtomRangesForRowInto(row, model, instanceId, indices, atomScratch); // consumed right away, so reusing the buffer is safe
-      indexedAtoms = atomRanges
-        ? fillValueOnRanges(indexedAtoms, nAtoms, atomRanges.from, atomRanges.to, atomRanges.count, iRow)
-        : indexedAtoms;
-      const sphereRanges = getSphereRangesForRow(row, model, instanceId, indices);
-      indexedSpheres = sphereRanges
-        ? fillValueOnRanges(
-            indexedSpheres,
-            nSpheres,
-            sphereRanges.from,
-            sphereRanges.to,
-            sphereRanges.from.length,
-            iRow,
-          )
-        : indexedSpheres;
-      const gaussianRanges = getGaussianRangesForRow(row, model, instanceId, indices);
-      indexedGaussians = gaussianRanges
-        ? fillValueOnRanges(
-            indexedGaussians,
-            nGaussians,
-            gaussianRanges.from,
-            gaussianRanges.to,
-            gaussianRanges.from.length,
-            iRow,
-          )
-        : indexedGaussians;
+    const painter = RowPainter;
+    try {
+      painter.begin(model.atomicHierarchy.atoms._rowCount);
+      for (let iRow = rows.length - 1; iRow >= 0 && !painter.isComplete; iRow--) {
+        const r = getAtomRangesForRowInto(rows[iRow], model, instanceId, indices, RowScratch); // consumed right away, so reusing the buffer is safe
+        if (r) painter.paint(r.from, r.to, r.count, iRow);
+      }
+      const atoms = painter.result();
+
+      painter.begin(model.coarseHierarchy.spheres.count);
+      for (let iRow = rows.length - 1; iRow >= 0 && !painter.isComplete; iRow--) {
+        const r = getSphereRangesForRow(rows[iRow], model, instanceId, indices);
+        if (r) painter.paint(r.from, r.to, r.from.length, iRow);
+      }
+      const spheres = painter.result();
+
+      painter.begin(model.coarseHierarchy.gaussians.count);
+      for (let iRow = rows.length - 1; iRow >= 0 && !painter.isComplete; iRow--) {
+        const r = getGaussianRangesForRow(rows[iRow], model, instanceId, indices);
+        if (r) painter.paint(r.from, r.to, r.from.length, iRow);
+      }
+      const gaussians = painter.result();
+      return { atoms, spheres, gaussians };
+    } finally {
+      RowScratch.trim();
+      ElementPainter.release();
     }
-    atomScratch.trim();
-    return { atoms: indexedAtoms, spheres: indexedSpheres, gaussians: indexedGaussians };
   }
 
   /** Parse and return all annotation rows in this annotation, or return cached result if available */
@@ -551,20 +545,4 @@ function annotationSourceFromSpec(s: MVSAnnotationSpec): MVSAnnotationSource {
     case 'source-cif':
       return { kind: 'source-cif' };
   }
-}
-
-/** In `array`, set value `fillValue` to all positions described by the first `count` ranges `[from[i], to[i])`.
- * In case `array` is `null`, initialize it with length `n` prefilled with -1 (unless there is nothing to fill). */
-function fillValueOnRanges(
-  array: IndexedElements,
-  n: number,
-  from: ArrayLike<number>,
-  to: ArrayLike<number>,
-  count: number,
-  fillValue: number,
-): IndexedElements {
-  if (count === 0) return array;
-  const out = array ?? Array(n).fill(-1);
-  for (let i = 0; i < count; i++) out.fill(fillValue, from[i], to[i]);
-  return out;
 }

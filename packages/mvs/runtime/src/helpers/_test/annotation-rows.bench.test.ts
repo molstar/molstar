@@ -120,6 +120,17 @@ describe.skipIf(!process.env.MVS_BENCH)('annotation rows benchmark', () => {
     }
     run('mixed', mixed);
 
+    // rows which select a small part: nothing covers every atom, so every row has to be processed
+    // (a set covering everything lets `getRowForEachAtom` stop early)
+    const broad = new Set(['comp_id only (all chains)', 'entity only', 'seq only (all chains)']);
+    const selective = groups.filter((g) => !broad.has(g.name)).flatMap((g) => g.rows);
+    const rndSel = mulberry32(778);
+    for (let i = selective.length - 1; i > 0; i--) {
+      const j = randInt(rndSel, i + 1);
+      [selective[i], selective[j]] = [selective[j], selective[i]];
+    }
+    run('mixed, selective rows only', selective);
+
     console.log('\n--- getRowForEachAtom, overlapping rows (entity only; each covers 1/5 of atoms)');
     run(
       'overlap: entity only',
