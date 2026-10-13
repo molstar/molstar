@@ -9,6 +9,7 @@ the [API change ledger](breaking-v6-changes.md).
 - [Breaking] Mol\* is published as versioned ESM workspace packages (`@molstar/core`, `@molstar/model`,
   `@molstar/plugin`, ...) instead of `molstar/lib/...`; there is no CommonJS build (#1951)
 - TypeScript 7 builds, Biome lint and formatting (#1958)
+- Node 22.13 or later
 
 ## Plugin composition (#1961)
 
@@ -45,6 +46,13 @@ the [API change ledger](breaking-v6-changes.md).
 - `mvs-validate` reports file/expression paths and continues checking later inputs after malformed JSON or file errors
 - [Breaking] Remove the duplicate `@molstar/mvs-builder/expression` module; use
   `@molstar/query-language/language/expression`
+
+## Mol\* UI v-next, phase 1
+
+- Prism, the new UI (`packages/prism/*`), and the AI agent packages (`packages/ai/*`): private, not published, mocked in
+  Storybook (`storybook/`, the repository's Storybook for the registered packages)
+- State actions and transformers take `display.triggerLabel`, the label of the button that runs them ("Download",
+  "Open"); a UI falls back to a generic one without it
 
 ## Video export
 

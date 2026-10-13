@@ -8,7 +8,8 @@ Supersedes the order of work in [../prism-ui/handoff.md](../prism-ui/handoff.md)
 
 1. **Port Seq\*** from `stories-untold/lib/seqstar` (§2): the layout stays, the review and the fixes come after. The
    move is one way: from then on this repository is Seq\*'s source of truth, and Stories Untold's copy is frozen.
-2. **Review, fix, merge** this branch. With Seq\* it is 300k+ lines, so it merges before the Prism viewer is written.
+2. **Review, fix, merge** Seq\* as a PR of its own (300k+ lines), after Mol\* UI v-next phase 1 (Prism and the AI
+   packages, `v6-ui-next`) has merged, and before the Prism viewer is written.
 3. **Prism over Seq\*** (§3), on a branch of its own.
 4. **Then the agent in Prism**: the handoff's former step 2 (command metadata, the selection param, the core viewer
    commands, the checkpointer, `AgentModel` over `AgentSession`, History over fibers), decided with the user.
