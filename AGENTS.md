@@ -24,7 +24,8 @@ not).
 
 ## Commands
 
-Node 22.13+ and the pnpm version in `package.json`.
+Node 22.13+ and the pnpm version in `package.json`; `mise install` sets up both (`mise.toml`, which also wraps the
+scripts below as tasks: `mise tasks`).
 
 ```sh
 pnpm install

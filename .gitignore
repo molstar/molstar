@@ -32,3 +32,6 @@ data/sym/syminfo.lib
 
 # Storybook
 storybook-static/
+
+# mise local overrides
+mise.local.toml
