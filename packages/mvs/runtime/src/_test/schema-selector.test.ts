@@ -94,10 +94,7 @@ describe('rows selectors in a loaded MVS document', async () => {
     expect(schemaCells.length).toBe(2);
     expect(schemaCells.map((c) => (c.transform.params as any).schema)).toEqual([rowsA, rowsB]);
     // the labels describe the rows instead of dumping them
-    expect(schemaCells.map((c) => c.obj!.label)).toEqual([
-      'A:1-20 + A60 CA',
-      'REA',
-    ]);
+    expect(schemaCells.map((c) => c.obj!.label)).toEqual(['A:1-20 + A60 CA', 'REA']);
     // plugin's own `StructureComponent` is only used for static selectors, rows are not turned into expressions
     const standard = cells.filter((c) => c.transform.transformer.id === 'ms-plugin.structure-component');
     expect(standard.map((c) => (c.transform.params as any).type.name)).toEqual(['static', 'static']);
