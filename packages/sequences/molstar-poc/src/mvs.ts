@@ -14,6 +14,7 @@
 import type { MVSData_State } from '@molstar/mvs-builder/mvs-data';
 import { createMVSBuilder } from '@molstar/mvs-builder/tree/mvs/mvs-builder';
 import type { ColorT } from '@molstar/mvs-builder/tree/mvs/param-types';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 
 /** An MVS state (Mol*'s `MVSData_State`), what a host loads. */
 export type MvsState = MVSData_State;
@@ -74,12 +75,14 @@ export interface StructureScene {
   readonly selection?: { readonly residues: MvsColorTable; readonly label: string } | null;
   readonly defaults?: MolstarDefaults;
   /**
-   * The polymer's color theme by Mol*'s name (MVS's `molstar_color_theme_name`: `plddt-confidence` for a predicted model),
-   * which the plugin must have registered; in place of the base color.
+   * The polymer's color theme by Mol*'s name (MVS's `molstar_color_theme_name`: `plddt-confidence` for a predicted
+   * model), which the plugin must have registered; in place of the base color.
    */
   readonly colorTheme?: string;
   /**
-   * Which ligands show, by chemical component id (`HEM`); absent: all of them. Ions follow `defaults.ligands`.
+   * Which ligands show, by chemical component id (`HEM`): the residues of those components in a non-polymer entity that
+   * is not an ion, so a polymer's residue (a modified one) is never drawn as a ligand, and an ion only once, as an ion.
+   * Absent: every ligand (MVS's `ligand`); empty: none. Ions follow `defaults.ligands`, not this list.
    */
   readonly ligandComps?: readonly string[];
   /** The camera on `chains` (default true when chains are given). */
@@ -94,6 +97,22 @@ const rows = (t: MvsColorTable) =>
     beg_label_seq_id: t.beg_label_seq_id[i],
     end_label_seq_id: t.end_label_seq_id[i],
   }));
+
+/**
+ * The ligands of these chemical components as an MVS MolQL selector: residues of a non-polymer entity that is not an
+ * ion (MVS's `ion` component draws those) whose `label_comp_id` is listed. A polymer's residue never matches.
+ */
+function ligandsOf(comps: readonly string[]) {
+  return {
+    molql: MS.struct.generator.atomGroups({
+      'entity-test': MS.core.logic.and([
+        MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
+        MS.core.rel.neq([MS.ammp('entitySubtype'), 'ion']),
+      ]),
+      'residue-test': MS.core.set.has([MS.set(...comps), MS.ammp('label_comp_id')]),
+    }),
+  };
+}
 
 /** One MVS state: the structure in its representation (its chains in front), colored by the tables, the selection. */
 export function structureMvs(scene: StructureScene): MVSData_State {
@@ -124,9 +143,11 @@ export function structureMvs(scene: StructureScene): MVSData_State {
     if (scene.focus !== false) front.focus({});
   }
   if (d.ligands !== false) {
-    const ligands = scene.ligandComps ? scene.ligandComps.map((c) => ({ label_comp_id: c })) : ['ligand' as const];
-    for (const selector of ligands) {
-      s.component({ selector }).representation({ type: 'ball_and_stick' }).color({ color: '#7b6f62' });
+    const comps = scene.ligandComps;
+    if (!comps || comps.length > 0) {
+      s.component({ selector: comps ? ligandsOf(comps) : 'ligand' })
+        .representation({ type: 'ball_and_stick' })
+        .color({ color: '#7b6f62' });
     }
     s.component({ selector: 'ion' }).representation({ type: 'ball_and_stick' });
   }

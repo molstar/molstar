@@ -61,9 +61,10 @@ describe('a ligand unit in the link', () => {
     const at = (m: NonNullable<typeof ligand>, start: number, stop: number) => {
       const runs = Extents.create(1);
       Extents.add(runs, m.system, start, stop);
-      return link.toLoci(runs);
+      return link.toLoci(runs, { wholeResidue: true });
     };
-    // One heavy atom's position: the ligand's four atoms (hydrogen included).
+    // One heavy atom's position, with the linked views' `wholeResidue` reaction: the ligand's four atoms (hydrogen
+    // included); the link's own mapping stays exact (whole-residue.test.ts).
     expect(StructureElement.Loci.size(at(ligand as NonNullable<typeof ligand>, 0, 1))).toBe(4);
     expect(StructureElement.Loci.size(at(ligand as NonNullable<typeof ligand>, 2, 3))).toBe(4);
     // A polymer position is its residue, as it was.

@@ -544,6 +544,13 @@ export interface LinkReaction {
   readonly maxItems: number;
   readonly maxLength: number;
   readonly over: 'chains' | 'skip';
+  /**
+   * A non-polymer chain's position (one heavy atom) lights and selects its whole residue in 3D, as the unit holds it,
+   * hydrogens and alternate locations included: a ligand as a whole, a glycan's monosaccharide (a branched chain's
+   * residue, not the whole glycan); waters are not linked. False: the atoms the positions name. A polymer's position
+   * is its residue either way. Default true (seqspec:libraries#the-mol-adapter).
+   */
+  readonly wholeResidue: boolean;
 }
 /** The link's reactions (`linkViews`' options): its composition, as the viewer spec is the viewer's. */
 export interface LinkViewsOptions {
@@ -559,8 +566,8 @@ export const DefaultLinkViewsOptions: {
   readonly select: LinkReaction;
   readonly focus: boolean;
 } = {
-  hover: { maxItems: 2_000, maxLength: 20_000, over: 'chains' },
-  select: { maxItems: 20_000, maxLength: 200_000, over: 'chains' },
+  hover: { maxItems: 2_000, maxLength: 20_000, over: 'chains', wholeResidue: true },
+  select: { maxItems: 20_000, maxLength: 200_000, over: 'chains', wholeResidue: true },
   focus: true,
 };
 
@@ -582,14 +589,17 @@ function wholeChains(link: StructureLink, runs: Extents): StructureElement.Loci 
   return StructureElement.Loci(link.structure, elements);
 }
 
-/** A set's loci in 3D under a reaction: residue by residue within its limits, else its chains or nothing. */
+/**
+ * A set's loci in 3D under a reaction: residue by residue within its limits (a non-polymer position its whole residue
+ * under `wholeResidue`), else its chains or nothing.
+ */
 function react(link: StructureLink, r: LinkReaction, size: LociSize | null, read: () => readonly (Loci | null)[]) {
   if (!size) return null;
   const within = size.items <= r.maxItems && size.length <= r.maxLength;
   if (!within && r.over === 'skip') return null;
   const runs = lociRuns(read());
   if (runs.count === 0) return null;
-  return within ? link.toLoci(runs) : wholeChains(link, runs);
+  return within ? link.toLoci(runs, { wholeResidue: r.wholeResidue }) : wholeChains(link, runs);
 }
 
 /**

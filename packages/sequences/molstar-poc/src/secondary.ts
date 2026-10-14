@@ -13,14 +13,16 @@
 
 import { type ProviderEntry, RequiredField, ref, SimpleParamsSchema } from '@molstar/seq-core/format';
 import { ModelSecondaryStructure } from '@molstar/model/formats/structure/property/secondary-structure';
+import type { ResidueIndex } from '@molstar/model/model/structure/model/indexing';
 import { SecondaryStructureType } from '@molstar/model/model/structure/model/types';
 import { chainFor, complexUnits } from './seq-units.js';
 import { StructureSource, structureOf } from './source.js';
 
-export type SecondaryKind = 'helix' | 'strand' | 'turn';
+/** A range's `category` in `molstar:secondary_structure`'s annotation. */
+export type SecondaryCategory = 'helix' | 'strand' | 'turn';
 
 /** A residue's class from Mol*'s flags: a helix (any), a strand (beta), a turn or bend; null: coil. */
-export function secondaryKind(type: SecondaryStructureType): SecondaryKind | null {
+export function secondaryCategory(type: SecondaryStructureType): SecondaryCategory | null {
   if (
     SecondaryStructureType.is(type, SecondaryStructureType.Flag.Helix) ||
     SecondaryStructureType.is(type, SecondaryStructureType.Flag.DoubleHelix)
@@ -35,6 +37,14 @@ export function secondaryKind(type: SecondaryStructureType): SecondaryKind | nul
   return null;
 }
 
+/**
+ * One row per element of the model's assignment (a `struct_conf` helix or turn, a `struct_sheet_range` strand) on each
+ * polymer unit of the complex `of`: two elements that touch stay two rows (a kinked helix given as two helices is two).
+ * It reads the source's first model as deposited (the asymmetric unit), as `molstar:plddt` does, whatever model or
+ * assembly the complex shows: the assignment is the file's, per `label_asym_id`, so an assembly's copy of a chain gets
+ * its chain's rows. A chain the model assigns nothing to (or a model with none) has no rows: the annotation can be
+ * empty, never an error; no assignment is computed (no DSSP).
+ */
 export const SecondaryStructureProvider: ProviderEntry = {
   name: 'molstar:secondary_structure',
   options: SimpleParamsSchema({ of: RequiredField(ref('complex'), 'the complex of a structure') }),
@@ -54,7 +64,8 @@ export const SecondaryStructureProvider: ProviderEntry = {
       if (c?.kind !== 'polymer') continue;
       const ss = ModelSecondaryStructure.Provider.get(c.unit.model);
       if (!ss) continue;
-      let open: SecondaryKind | null = null;
+      let open: SecondaryCategory | null = null;
+      let element = -1;
       let from = 0;
       let last = 0;
       const close = () => {
@@ -66,13 +77,17 @@ export const SecondaryStructureProvider: ProviderEntry = {
         open = null;
       };
       for (let x = 0; x < c.count; x++) {
-        const kind = secondaryKind(ss.type[c.residues[x]]);
+        // The assignment's own index of the residue (`getIndex`), and its element there (`key`).
+        const i = ss.getIndex(c.residues[x] as ResidueIndex);
+        const kind = secondaryCategory(ss.type[i]);
+        const key = ss.key[i];
         const at = c.labels[x] - u.first;
-        // A run goes on while the kind does and the residues are consecutive.
-        if (kind !== open || (open !== null && at !== last + 1)) {
+        // A run goes on while the element does and the residues are consecutive.
+        if (kind !== open || key !== element || (open !== null && at !== last + 1)) {
           close();
           if (kind !== null) {
             open = kind;
+            element = key;
             from = at;
           }
         }
