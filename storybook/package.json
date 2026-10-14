@@ -18,6 +18,7 @@
     "@storybook/addon-docs": "catalog:",
     "@storybook/web-components-vite": "catalog:",
     "@types/node": "catalog:",
+    "remark-gfm": "catalog:",
     "@types/react": "catalog:",
     "react": "catalog:",
     "storybook": "catalog:",

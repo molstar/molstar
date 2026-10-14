@@ -5,6 +5,7 @@
  */
 
 import type { StorybookConfig } from '@storybook/web-components-vite';
+import remarkGfm from 'remark-gfm';
 import { defaultClientConditions, mergeConfig } from 'vite';
 import { monorepoRoot, packageRoot, StoryPackages } from '../packages.js';
 import { storyPreviewsPlugin } from './story-previews.js';
@@ -17,7 +18,14 @@ const config: StorybookConfig = {
     files: '**/*.@(mdx|stories.ts|stories.tsx)',
     titlePrefix: pkg.group,
   })),
-  addons: ['@storybook/addon-docs', '@storybook/addon-a11y'],
+  addons: [
+    // GitHub-flavored Markdown in MDX pages (tables, strikethrough, task lists).
+    {
+      name: '@storybook/addon-docs',
+      options: { mdxPluginOptions: { mdxCompileOptions: { remarkPlugins: [remarkGfm] } } },
+    },
+    '@storybook/addon-a11y',
+  ],
   framework: '@storybook/web-components-vite',
   viteFinal: (viteConfig) =>
     mergeConfig(viteConfig, {
