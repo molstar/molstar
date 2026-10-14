@@ -109,8 +109,34 @@ function findResidueByAuthId(
   return found;
 }
 
+/** Is the chain of waters (its entity is)? */
+function isWaterChain(model: Model, iChain: ChainIndex): boolean {
+  const { entities, atomicHierarchy } = model;
+  const iEntity = entities.getEntityIndex(atomicHierarchy.chains.label_entity_id.value(iChain));
+  return iEntity >= 0 && entities.data.type.value(iEntity) === 'water';
+}
+
+/** The first (or last) residue with this `auth_seq_id` (and insertion code, if there is one) in the order of the file in the chains, or -1. */
+function findResidueInChains(
+  model: Model,
+  indices: AtomicIndicesAndSortings,
+  chains: readonly ChainIndex[],
+  authSeqId: number,
+  insCode: string | undefined | null,
+  first: boolean,
+): number {
+  let found = -1;
+  for (const iChain of chains) {
+    const iRes = findResidueByAuthId(model, indices, iChain, authSeqId, insCode, first);
+    if (iRes >= 0 && (found < 0 || (first ? iRes < found : iRes > found))) found = iRes;
+  }
+  return found;
+}
+
 /** The residues of an auth chain (all the chains with an `auth_asym_id`, e.g. a polymer and its ligands which have label chains of their own) in the range of `row` with
- * insertion codes: from `from` to `to` (both inclusive) in the order of the file, or `null` if a bound is not in any of the chains or they are in reverse order. */
+ * insertion codes: from `from` to `to` (both inclusive) in the order of the file, or `null` if a bound is not in any of the chains or they are in reverse order.
+ * A bound is looked for in the chains which are not waters first, and in the waters only if they are the only ones which have it (waters are numbered
+ * again from 1 in many files, so their numbers are not those of the polymer which they would otherwise take the range to the end of). */
 type InsCodeRange = { from: number; to: number } | null;
 
 function resolveInsCodeRangeOfAuthChain(
@@ -122,24 +148,23 @@ function resolveInsCodeRangeOfAuthChain(
 ): InsCodeRange {
   const { residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
   const chains: readonly ChainIndex[] = indices.chainsByAuthAsymId.get(authAsymId) ?? [iChain];
-  let from = Infinity;
-  let to = -Infinity;
+  const notWaters = chains.length > 1 ? chains.filter((c) => !isWaterChain(model, c)) : chains;
+  const bound = (seqId: number, insCode: string | undefined | null, first: boolean) => {
+    const iRes = notWaters.length > 0 ? findResidueInChains(model, indices, notWaters, seqId, insCode, first) : -1;
+    return iRes >= 0 || notWaters.length === chains.length
+      ? iRes
+      : findResidueInChains(model, indices, chains, seqId, insCode, first);
+  };
+  // (without a bound, the range starts at the first residue of the auth chain and ends at its last)
+  let from: number = Infinity;
+  let to: number = -Infinity;
   for (const iC of chains) {
-    // (without a bound, the range starts at the first residue of the chains and ends at the last)
-    let begin: number = residueAtomSegments.index[chainAtomSegments.offsets[iC]];
-    if (hasValue(row.beg_auth_seq_id)) {
-      begin = findResidueByAuthId(model, indices, iC, row.beg_auth_seq_id, row.beg_auth_ins_code, true);
-      if (begin < 0) begin = Infinity;
-    }
-    from = Math.min(from, begin);
-    to = Math.max(
-      to,
-      hasValue(row.end_auth_seq_id)
-        ? findResidueByAuthId(model, indices, iC, row.end_auth_seq_id, row.end_auth_ins_code, false)
-        : residueAtomSegments.index[chainAtomSegments.offsets[iC + 1] - 1],
-    );
+    from = Math.min(from, residueAtomSegments.index[chainAtomSegments.offsets[iC]]);
+    to = Math.max(to, residueAtomSegments.index[chainAtomSegments.offsets[iC + 1] - 1]);
   }
-  if (from === Infinity || to < 0 || from > to) return null;
+  if (hasValue(row.beg_auth_seq_id)) from = bound(row.beg_auth_seq_id, row.beg_auth_ins_code, true);
+  if (hasValue(row.end_auth_seq_id)) to = bound(row.end_auth_seq_id, row.end_auth_ins_code, false);
+  if (from < 0 || to < 0 || from > to) return null;
   return { from, to };
 }
 
@@ -607,6 +632,7 @@ function addAtomsForAtomIds(
 ) {
   if (!hasValue(row.atom_id) && !hasValue(row.atom_index))
     throw new Error('ArgumentError: at least one of row.atom_id, row.atom_index must be defined.');
+  if (hasInsCodeRange(row)) InsGroups.clear(); // (the range of each auth chain is resolved once for the atoms of the row)
   if (hasValue(row.atom_index)) {
     // (`atomQualifies` also checks `atom_id`, if given)
     const iAtom = indices.atoms.bySourceIndex.get(row.atom_index);
@@ -635,7 +661,7 @@ function atomQualifiesInInsCodeRange(
   const h = model.atomicHierarchy;
   const iRes = h.residueAtomSegments.index[iAtom];
   return (
-    resolveInsCodeRange(model, row, indices, h.chainAtomSegments.index[iAtom], InsRange) &&
+    resolveInsCodeRange(model, row, indices, h.chainAtomSegments.index[iAtom], InsRange, InsGroups) &&
     InsRange.from <= iRes &&
     iRes <= InsRange.to
   );
@@ -852,8 +878,14 @@ function getQualifyingCoarseElements(
   const result: ElementIndex[] = [];
   for (const iChain of fromChains) {
     const sorting = indices.elementsSortedBySeqIdBegin.get(iChain)!;
-    const queryStart = Math.max(row.label_seq_id ?? -Infinity, row.beg_label_seq_id ?? -Infinity);
-    const queryEnd = Math.min(row.label_seq_id ?? Infinity, row.end_label_seq_id ?? Infinity); // inclusive
+    const queryStart = Math.max(
+      hasValue(row.label_seq_id) ? row.label_seq_id : -Infinity,
+      hasValue(row.beg_label_seq_id) ? row.beg_label_seq_id : -Infinity,
+    );
+    const queryEnd = Math.min(
+      hasValue(row.label_seq_id) ? row.label_seq_id : Infinity,
+      hasValue(row.end_label_seq_id) ? row.end_label_seq_id : Infinity,
+    ); // inclusive
     const iStart = SortedArray.findPredecessorIndex(sorting.endUpperBounds, queryStart); // select elements potentially ending >=queryStart (necessary condition)
     const iStop = SortedArray.findPredecessorIndex(sorting.values, queryEnd + 1); // select elements starting <=queryEnd (necessary and suffient condition) // exclusive
 

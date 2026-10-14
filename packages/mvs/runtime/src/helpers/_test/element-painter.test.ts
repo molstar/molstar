@@ -95,4 +95,18 @@ describe('ElementPainter instances', () => {
     p.paint([0], [1], 1, 5);
     expect(Array.from(p.result()!)).toEqual([5, -1, -1, -1]);
   });
+  it('release(0) frees the buffer of the passes (the next pass allocates it again)', () => {
+    const p = new ElementPainter();
+    p.begin(2000);
+    p.paint([0], [2000], 1, 1);
+    expect((p as any).next.length).toBeGreaterThanOrEqual(2000);
+    p.release(); // (small: kept)
+    expect((p as any).next.length).toBeGreaterThanOrEqual(2000);
+    p.release(0);
+    expect((p as any).next.length).toBe(0);
+    expect(p.result()![1999]).toBe(1); // (the result of the pass stays valid)
+    p.begin(5);
+    p.paint([1], [3], 1, 7);
+    expect(Array.from(p.result()!)).toEqual([-1, 7, 7, -1, -1]);
+  });
 });

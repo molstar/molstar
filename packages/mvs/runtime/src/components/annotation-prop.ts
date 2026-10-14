@@ -36,7 +36,7 @@ import {
   getSphereRangesForRow,
   rowsUseOperators,
 } from '@molstar/model/model/structure/structure/element/schema-selection/selections';
-import { isDefined } from '@molstar/core/util/object';
+import { hasValue } from '@molstar/model/model/structure/structure/element/schema-selection/fields';
 import { type Maybe, safePromise } from '@molstar/mvs/helpers/utils';
 
 /** Allowed values for the annotation format parameter */
@@ -221,6 +221,7 @@ const RowScratch = new AtomRangesScratch();
 ScratchMemory.register(SchemaSelectionScratch, () => RowScratch.trim(0));
 /** Paints the rows in `MVSAnnotation.getRowForEachAtom` (synchronous use only) */
 const RowPainter = new ElementPainter();
+ScratchMemory.register(SchemaSelectionScratch, () => RowPainter.release(0));
 
 /** Main class for processing MVS annotation */
 export class MVSAnnotation {
@@ -334,7 +335,7 @@ export class MVSAnnotation {
 
   /** Which properties of the operator of a unit the mapping depends on, according to the rows. */
   private operatorUse(): 'none' | 'instance' | 'both' {
-    return (this._operatorUse ??= this.getRows().some((row) => isDefined(row.operator_name))
+    return (this._operatorUse ??= this.getRows().some((row) => hasValue(row.operator_name))
       ? 'both'
       : rowsUseOperators(this.getRows())
         ? 'instance'

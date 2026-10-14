@@ -413,6 +413,22 @@ describe('Schema.toLoci, the generator element-schema', async () => {
       expect(lociAtoms(Loci.fromExpression(structure, parsed))).toEqual(lociAtoms(Schema.toLoci(structure, schema)));
       expect(lociAtoms(Schema.toLoci(structure, schema)).length).toBeGreaterThan(0);
     }
+    // strings which look like something else are quoted: `1` is a number in the text (the entity ids are text)
+    const awkward: SchemaItem[] = [
+      { label_entity_id: '1' },
+      { auth_asym_id: '1' },
+      { label_asym_id: 'true' },
+      { label_atom_id: '.CA' },
+      { auth_atom_id: '_N' },
+      { label_comp_id: 'A,B' },
+      { auth_comp_id: '1e3' },
+    ];
+    for (const item of awkward) {
+      const text = formatMolScript(Schema.toExpression(item));
+      expect(Script.toExpression({ language: 'mol-script', expression: text }), text).toEqual(
+        Schema.toExpression(item),
+      );
+    }
     // a missing value is not the string null
     expect(formatMolScript(MS.struct.type.schemaItem({ label_asym_id: [null, 'A'] }))).toContain('[empty-value A]');
   });

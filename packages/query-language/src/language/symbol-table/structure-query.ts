@@ -161,7 +161,7 @@ const type = {
     ),
     Types.SchemaItem,
     `A description of elements by the values they have in the fields of the input file, all the given values have to match (an item of 'element-schema').
-Each field is a value, or a list of values (then the item is a table: the lists are its columns, a field which is a single value is the same in every row; use 'empty' where a row has no value).`,
+Each field is a value, or a list of values (then the item is a table: the lists are its columns, a field which is a single value is the same in every row; use 'empty-value' (core.type.empty) or null where a row has no value).`,
   ),
   labelResidueId: symbol(
     Arguments.Dictionary({

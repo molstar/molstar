@@ -32,8 +32,8 @@ describe.each([
     },
   ],
   [
-    'ligands without label_seq_id, repeated atom ids',
-    { nChains: 12, nResidues: 30, insertionSeries: true, ligands: 3, atomIdWrap: 150 },
+    'ligands without label_seq_id, waters, repeated atom ids',
+    { nChains: 12, nResidues: 30, insertionSeries: true, ligands: 3, waters: 14, atomIdWrap: 150 },
   ],
 ] as const)('ranges with insertion codes vs per-atom brute force (%s)', async (_label, dims) => {
   const model = await createModel(dims);
@@ -58,6 +58,27 @@ describe.each([
     // the 6th residue of a chain is 16, the 7th is 16A, the 8th is 16B
     const found = [5, 6, 7].map((i) => `${auth_seq_id.value(i)}${pdbx_PDB_ins_code.value(i)}`);
     expect(found).toEqual(['16', '16A', '16B']);
+  });
+
+  it('the waters (when there are some) are in the entity of waters and in the auth chain of the first chain, with numbers of its residues', () => {
+    const { chains, residues } = model.atomicHierarchy;
+    const iWater = Array.from({ length: chains._rowCount }, (_, i) => i).find(
+      (i) => chains.label_asym_id.value(i) === 'W',
+    );
+    if (!('waters' in dims)) return expect(iWater).toBeUndefined();
+    expect(iWater).toBeDefined();
+    expect(chains.auth_asym_id.value(iWater!)).toBe(chains.auth_asym_id.value(0));
+    expect(model.entities.data.type.value(model.entities.getEntityIndex(chains.label_entity_id.value(iWater!)))).toBe(
+      'water',
+    );
+    const numbers = (iChain: number) => {
+      const { residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
+      const from = residueAtomSegments.index[chainAtomSegments.offsets[iChain]];
+      const to = residueAtomSegments.index[chainAtomSegments.offsets[iChain + 1] - 1];
+      return Array.from({ length: to - from + 1 }, (_, k) => residues.auth_seq_id.value(from + k));
+    };
+    expect(numbers(iWater!).slice(0, 3)).toEqual([11, 12, 13]);
+    expect(numbers(0)).toContain(11);
   });
 
   for (const g of groups) {

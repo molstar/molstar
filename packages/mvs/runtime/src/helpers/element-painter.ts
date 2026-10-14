@@ -60,9 +60,9 @@ export class ElementPainter {
     return this.out;
   }
 
-  /** Free the buffer of the passes if it grew large (the result of the last pass stays valid). */
-  release() {
-    if (this.next.length > MaxRetainedBufferCapacity) this.next = new Int32Array(0);
+  /** Free the buffer of the passes if it grew above `limit` entries (0: always; the result of the last pass stays valid). */
+  release(limit = MaxRetainedBufferCapacity) {
+    if (this.next.length > limit) this.next = new Int32Array(0);
   }
 }
 

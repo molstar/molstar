@@ -72,12 +72,20 @@ export function createRowOracle(model: Model) {
   }
 
   // The residues of every auth chain (all the chains which have an `auth_asym_id`) in the order of the file (all atoms of a residue are the same here)
-  const residuesOfAuthChain = new Map<string, { iRes: number; auth_seq_id: number | undefined; ins: string }[]>();
+  const residuesOfAuthChain = new Map<
+    string,
+    { iRes: number; auth_seq_id: number | undefined; ins: string; water: boolean }[]
+  >();
   for (const a of atoms) {
     const list = residuesOfAuthChain.get(a.auth_asym_id) ?? [];
     residuesOfAuthChain.set(a.auth_asym_id, list);
     if (list.length === 0 || list[list.length - 1].iRes !== a.iRes)
-      list.push({ iRes: a.iRes, auth_seq_id: a.auth_seq_id, ins: a.pdbx_PDB_ins_code });
+      list.push({
+        iRes: a.iRes,
+        auth_seq_id: a.auth_seq_id,
+        ins: a.pdbx_PDB_ins_code,
+        water: a.label_comp_id === 'HOH',
+      });
   }
 
   /** For a row with a range with insertion codes: the residues of each auth chain from the first residue of the beginning to the last of the end
@@ -92,8 +100,12 @@ export function createRowOracle(model: Model) {
       return 'nothing';
     const result = new Map<string, [number, number]>();
     for (const [authAsymId, residues] of residuesOfAuthChain) {
-      const find = (seq: number, ins: string | undefined | null) =>
-        residues.filter((r) => r.auth_seq_id === seq && (!defined(ins) || r.ins === ins)).map((r) => r.iRes);
+      // (a bound is a residue which is not a water, and a water only if no other residue has it)
+      const find = (seq: number, ins: string | undefined | null) => {
+        const matches = residues.filter((r) => r.auth_seq_id === seq && (!defined(ins) || r.ins === ins));
+        const notWaters = matches.filter((r) => !r.water);
+        return (notWaters.length > 0 ? notWaters : matches).map((r) => r.iRes);
+      };
       let lo = residues[0].iRes;
       let hi = residues[residues.length - 1].iRes;
       if (defined(row.beg_auth_seq_id)) {

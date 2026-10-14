@@ -324,6 +324,28 @@ describe('coarse models (spheres and gaussians)', async () => {
       );
       for (const missing of [undefined, null, Number.NaN]) {
         expect(count({ label_asym_id: 'A', label_seq_id: missing })).toBe(count({ label_asym_id: 'A' }));
+        // (also the bounds, with and without the residue)
+        for (const [without, row] of [
+          [
+            { label_asym_id: 'A', label_seq_id: 20 },
+            { label_asym_id: 'A', label_seq_id: 20, beg_label_seq_id: missing },
+          ],
+          [
+            { label_asym_id: 'A', label_seq_id: 20 },
+            { label_asym_id: 'A', label_seq_id: 20, end_label_seq_id: missing },
+          ],
+          [
+            { label_asym_id: 'A', end_label_seq_id: 30 },
+            { label_asym_id: 'A', end_label_seq_id: 30, beg_label_seq_id: missing },
+          ],
+          [
+            { label_asym_id: 'A', beg_label_seq_id: 30 },
+            { label_asym_id: 'A', beg_label_seq_id: 30, end_label_seq_id: missing },
+          ],
+        ] as const) {
+          expect(count(row), JSON.stringify(row)).toBe(count(without));
+          expect(count(without)).toBeGreaterThan(0);
+        }
       }
     });
     it('criteria which only atoms have (auth_*, comp_id, atom ids, ...) select nothing, and warn once', () => {

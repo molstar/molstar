@@ -56,7 +56,9 @@ export const MVSAnnotationStructureComponent = MVSTransform({
   },
   dispose({ b, cache }) {
     // (when everything is selected the component is the source structure, which has other users)
-    if (!(cache as MVSComponentCache | undefined)?.isSource) b?.data.customPropertyDescriptors.dispose();
+    // (the empty structure is shared)
+    if (b && !(cache as MVSComponentCache | undefined)?.isSource && b.data !== Structure.Empty)
+      b.data.customPropertyDescriptors.dispose();
   },
 });
 

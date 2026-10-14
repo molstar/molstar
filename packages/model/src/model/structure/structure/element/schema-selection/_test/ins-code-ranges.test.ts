@@ -23,9 +23,11 @@ const Chains: Record<string, string[]> = {
   C: ['10', '11A', '12'],
   // a ligand chain, which belongs to the auth chain A (as the ligands of a polymer chain do)
   L: ['500', '501'],
+  // the waters of the auth chain A, numbered again from the start (as in many files), and one which only they have
+  W: ['10', '11', '12', '13', '14', '700'],
 };
 /** The `auth_asym_id` of the chains which are not their own auth chain */
-const AuthOf: Record<string, string> = { L: 'A' };
+const AuthOf: Record<string, string> = { L: 'A', W: 'A' };
 
 function mmcif(): string {
   const lines = [
@@ -39,9 +41,10 @@ function mmcif(): string {
   for (const [asym, residues] of Object.entries(Chains)) {
     residues.forEach((residue, i) => {
       const [, seq, ins] = /^(\d+)([A-Z]?)$/.exec(residue)!;
+      const comp = asym === 'W' ? 'HOH' : 'ALA';
       ['N', 'CA'].forEach((name, a) => {
         lines.push(
-          `ATOM ${id++} ${name[0]} ${name} . ALA ${asym} 1 ${i + 1} ${ins || '?'} ${a} ${i} 0 1 10 ${seq} ALA ${AuthOf[asym] ?? asym} ${name} 1`,
+          `ATOM ${id++} ${name[0]} ${name} . ${comp} ${asym} ${asym === 'W' ? 2 : 1} ${i + 1} ${ins || '?'} ${a} ${i} 0 1 10 ${seq} ${comp} ${AuthOf[asym] ?? asym} ${name} 1`,
         );
       });
     });
@@ -197,6 +200,38 @@ describe('ranges of auth_seq_id with insertion codes', async () => {
       'B:19',
       'B:19A',
       'B:18',
+    ]);
+  });
+
+  it('looks for a bound in the chains which are not waters first (waters are numbered again from the start)', () => {
+    // (the waters W:10..14 have numbers of the polymer, and come after it and the ligands in the file: without the rule the end 11 is the water 11)
+    expect(select({ label_asym_id: 'A', beg_auth_seq_id: 10, end_auth_seq_id: 11, end_auth_ins_code: '' })).toEqual(
+      chainA('10', '11'),
+    );
+    expect(select({ auth_asym_id: 'A', beg_auth_seq_id: 10, end_auth_seq_id: 11, end_auth_ins_code: '' })).toEqual(
+      chainA('10', '11'),
+    );
+    expect(
+      select({
+        auth_asym_id: 'A',
+        beg_auth_seq_id: 12,
+        beg_auth_ins_code: '',
+        end_auth_seq_id: 14,
+        end_auth_ins_code: '',
+      }),
+    ).toEqual(chainA('12', '13', '13A', '14'));
+    // the waters get no part of such a range, even when the row asks for them
+    expect(select({ label_asym_id: 'W', beg_auth_seq_id: 10, end_auth_seq_id: 11, end_auth_ins_code: '' })).toEqual([]);
+    // a bound which only the waters have is found in them (the range then goes from the polymer to the water, through the ligands)
+    const toWater = { beg_auth_seq_id: 14, beg_auth_ins_code: '', end_auth_seq_id: 700, end_auth_ins_code: '' };
+    const all = ['A:14', 'A:500', 'A:501', 'A:10', 'A:11', 'A:12', 'A:13', 'A:14', 'A:700'];
+    expect(select({ auth_asym_id: 'A', ...toWater })).toEqual(all);
+    expect(select({ label_asym_id: 'W', ...toWater })).toEqual(all.slice(3));
+    expect(select({ label_asym_id: 'L', ...toWater })).toEqual(['A:500', 'A:501']);
+    // (an open end is the end of the auth chain: the waters)
+    expect(select({ auth_asym_id: 'A', beg_auth_seq_id: 501, beg_auth_ins_code: '' })).toEqual([
+      'A:501',
+      ...all.slice(3),
     ]);
   });
 

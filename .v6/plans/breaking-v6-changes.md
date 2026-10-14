@@ -707,9 +707,11 @@ through the indices of the model instead of a MolScript query on every atom for 
   operator's name) and `instance_id` are honored. A range with `beg_auth_ins_code` or `end_auth_ins_code` is a range of
   residues in the order of the input file, in each auth chain (the chains which share an `auth_asym_id`, e.g. a polymer
   and its ligands): from the first residue with `beg_auth_seq_id` (and that code, `''` for none) to the last with
-  `end_auth_seq_id` (and its code); a bound without a code is the whole number, a missing bound or a range which ends
-  before it begins selects nothing from the auth chain, and so does a code without its number. The chains which the row
-  selects get the part of the range which is theirs.
+  `end_auth_seq_id` (and its code); a bound without a code is the whole number, and it is looked for in the chains which
+  are not waters first (waters are numbered again from the start in many files), and in the waters only if no other
+  chain has it; a missing bound or a range which ends before it begins selects nothing from the auth chain, and so does
+  a code without its number. The chains which the row selects get the part of the range which is theirs (so the waters,
+  which come after the polymer, get none of a range between residues of the polymer).
 - **MVS.** `SelectorParams` (`@molstar/mvs/components/selector`) is unchanged, `componentPropsFromSelector`
   (`@molstar/mvs/load-helpers`) returns a `Selector` instead of the `type` of `StructureComponentParams`, and rows and
   arrays of rows are `{ name: 'expression', params: Schema.toExpression(...) }`, so a `component` node of MVS is the

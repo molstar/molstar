@@ -36,6 +36,8 @@ export interface Dims {
   atomIdWrap?: number;
   /** Add this many ligands: chains `L0`, `L1`, ... of one HETATM residue (comp_id `LIG`, 4 atoms, auth_seq_id 500 + index) which has no `label_seq_id`, as in real files. */
   ligands?: number;
+  /** Add a chain of this many waters (`W`, comp_id `HOH`, one atom each, in an entity of its own) of the auth chain `x0`, numbered from 11 as the residues of the polymer are (as waters are in many files). */
+  waters?: number;
 }
 
 export const CompIds = ['ALA', 'GLY', 'LEU', 'SER', 'VAL'];
@@ -77,6 +79,7 @@ function createMmcifText({
   differentAuthComp,
   atomIdWrap,
   ligands,
+  waters,
 }: Dims): string {
   const lines: string[] = [
     'data_BENCH',
@@ -137,6 +140,12 @@ function createMmcifText({
         `HETATM ${serial} ${a % 2 ? 'O' : 'C'} X${a} . LIG L${l} ${NEntities + 1} . ? ${l * 3 + a} -5 0.000 1 10 ${500 + l} LIG L${l} X${a} 1`,
       );
     }
+  }
+  for (let w = 0; w < (waters ?? 0); w++) {
+    const serial = atomIdWrap ? ((id++ - 1) % atomIdWrap) + 1 : id++;
+    lines.push(
+      `HETATM ${serial} O O . HOH W ${NEntities + 2} . ? ${w} -9 0.000 1 10 ${11 + w} HOH ${authChainName(0)} O 1`,
+    );
   }
   return lines.join('\n') + '\n';
 }

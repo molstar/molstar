@@ -19,6 +19,7 @@
       "import": "./lib/index.js"
     },
     "./_test/*": null,
+    "./components/_test/*": null,
     "./helpers/_test/*": null
   },
   "files": [

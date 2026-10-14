@@ -37,8 +37,9 @@ export interface SchemaItem {
    * in the order of the input file: from the first residue with `beg_auth_seq_id` (and this insertion code) to the last residue with
    * `end_auth_seq_id` (and `end_auth_ins_code`), in each auth chain (the chains which share an
    * `auth_asym_id`, e.g. a polymer and its ligands), and the chains which the other criteria select get the part of the range which is theirs.
-   * A bound without an insertion code is the whole `auth_seq_id` (the first residue of it for `beg`, the last for `end`), a bound which is not
-   * in the auth chain selects nothing from it, and so does a range which ends before it begins. An insertion code without its `auth_seq_id` selects nothing. */
+   * A bound without an insertion code is the whole `auth_seq_id` (the first residue of it for `beg`, the last for `end`). A bound is looked
+   * for in the chains which are not waters first (waters are numbered again from the start in many files), and in the waters only if no
+   * other chain has it. A bound which is not in the auth chain selects nothing from it, and so does a range which ends before it begins. An insertion code without its `auth_seq_id` selects nothing. */
   beg_auth_ins_code?: string;
   /** Insertion code of the last residue of the range which ends at `end_auth_seq_id`, see `beg_auth_ins_code`. */
   end_auth_ins_code?: string;

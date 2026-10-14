@@ -9,7 +9,7 @@ import '@molstar/model/script/runtime/query/table'; // (registers the symbols of
 import { CIF } from '@molstar/io/reader/cif';
 import { StateObject, StateTransformer } from '@molstar/core/state';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
-import { Structure, StructureElement } from '@molstar/model/model/structure';
+import { Coordinates, type Frame, Model, Structure, StructureElement, Time } from '@molstar/model/model/structure';
 import { StructureComponent } from '../../transforms/structure/selection.js';
 import {
   type StructureComponentParams,
@@ -141,19 +141,74 @@ describe('StructureComponent with the expression of a schema', async () => {
       dispose(obj, cache);
       expect(spy).not.toHaveBeenCalled();
     });
-    it('follows the source when an expression component becomes the source, or stops being it', async () => {
+    /** The part of `structure` of the units of chain A (every element of which satisfies the expression of chain A) */
+    const chainA = () => {
+      const builder = structure.subsetBuilder(true);
+      for (const unit of structure.units) {
+        if (unit.model.atomicHierarchy.chains.label_asym_id.value(unit.chainIndex[unit.elements[0]]) === 'A')
+          builder.setUnit(unit.id, unit.elements as any);
+      }
+      return builder.getStructure();
+    };
+    it('follows the source when an expression component becomes the source, or stops being it', () => {
+      const p = params([{ label_asym_id: 'A' }]);
+      const only = chainA();
       const cache: any = {};
-      const everything = params([{}]);
-      const obj = createStructureComponent(structure, everything, cache) as any;
+      const obj = createStructureComponent(only, p, cache) as any;
+      expect(obj.data).toBe(only); // (every element of the source satisfies it)
       expect(cache.isSource).toBe(true);
-      const half = structure.subsetBuilder(true);
-      for (const unit of structure.units) half.setUnit(unit.id, unit.elements.slice(0, 12) as any);
-      const part = half.getStructure();
-      expect(updateStructureComponent(part, obj, everything, everything, cache)).toBe(
-        StateTransformer.UpdateResult.Updated,
+      // the source grows: the component is a part of it now, and its properties are its own
+      expect(updateStructureComponent(structure, obj, p, p, cache)).toBe(StateTransformer.UpdateResult.Updated);
+      expect(obj.data).not.toBe(structure);
+      expect(cache.isSource).toBe(false);
+      const own = vi.spyOn(obj.data.customPropertyDescriptors, 'dispose');
+      const other = vi.spyOn(structure.customPropertyDescriptors, 'dispose');
+      dispose(obj, cache);
+      expect(own).toHaveBeenCalledTimes(1);
+      expect(other).not.toHaveBeenCalled();
+      // the source is the part again: the component is the source
+      expect(updateStructureComponent(only, obj, p, p, cache)).toBe(StateTransformer.UpdateResult.Updated);
+      expect(obj.data).toBe(only);
+      expect(cache.isSource).toBe(true);
+    });
+    it('a static component which is made a copy of its source when the model changes does not dispose the properties of the source', () => {
+      // (the frames of a trajectory: models with the same hierarchy)
+      const nAtoms = structure.model.atomicHierarchy.atoms._rowCount;
+      const frames: Frame[] = [0, 1].map((i) => ({
+        elementCount: nAtoms,
+        time: Time(i, 'step'),
+        x: new Float32Array(nAtoms).fill(i),
+        y: new Float32Array(nAtoms).fill(i),
+        z: new Float32Array(nAtoms).fill(i),
+        xyzOrdering: { isIdentity: true },
+      }));
+      const trajectory = Model.trajectoryFromModelAndCoordinates(
+        structure.model,
+        Coordinates.create(frames, Time(1, 'step'), Time(0, 'step')),
       );
-      expect(obj.data).toBe(part); // (everything of the new source: still the source itself)
+      const first = Structure.ofModel(trajectory.getFrameAtIndex(0) as Model);
+      const second = Structure.ofModel(trajectory.getFrameAtIndex(1) as Model);
+      const all: StructureComponentParams = { type: { name: 'static', params: 'all' }, nullIfEmpty: true, label: '' };
+      const cache: any = {};
+      const obj = createStructureComponent(first, all, cache) as any;
+      expect(obj.data).toBe(first);
       expect(cache.isSource).toBe(true);
+      // (a structure with the same units and elements but another model: the frames have other conformations, which is not "equivalent" for a
+      // structure, so the equivalence is given here, as it is for a model which was replaced by one with the same conformation)
+      const equivalent = vi.spyOn(Structure, 'areEquivalent').mockReturnValue(true);
+      try {
+        expect(updateStructureComponent(second, obj, all, all, cache)).toBe(StateTransformer.UpdateResult.Updated);
+      } finally {
+        equivalent.mockRestore();
+      }
+      expect(obj.data).not.toBe(second);
+      expect(obj.data.model).toBe(second.model); // (a copy of the source with the model of the new one)
+      expect(cache.isSource).toBe(false);
+      const own = vi.spyOn(obj.data.customPropertyDescriptors, 'dispose');
+      const theirs = vi.spyOn(second.customPropertyDescriptors, 'dispose');
+      dispose(obj, cache);
+      expect(own).toHaveBeenCalledTimes(1);
+      expect(theirs).not.toHaveBeenCalled();
     });
     it('does not dispose those of the structure when every element satisfies the schema (the component is the structure)', () => {
       const cache: any = {};
