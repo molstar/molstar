@@ -632,6 +632,16 @@ export function getCoarseElementRangesForRow(
     return undefined;
   }
 
+  // A range which ends before it begins is empty (as it is for atoms). MolScript would select the elements which happen to span the
+  // two bounds there (or by some other rule of its overlap test for a combination with `label_seq_id`), which nobody can mean.
+  if (
+    isDefined(row.beg_label_seq_id) &&
+    isDefined(row.end_label_seq_id) &&
+    row.beg_label_seq_id > row.end_label_seq_id
+  ) {
+    return undefined;
+  }
+
   if (!hasChainFilter && !hasResidueFilter) {
     return ElementRanges.single(0 as ElementIndex, nElements as ElementIndex);
   }
@@ -700,8 +710,8 @@ function getQualifyingCoarseElements(
         result.push(iElem);
       }
     }
-    // This implementation can yield some elements even when queryStart>queryEnd (e.g. { beg_label_seq_id: 70, end_label_seq_id: 58, label_seq_id: 60 } -> sphere 51-100 qualifies ).
-    // This is on purpose, to have the same behavior as MolScript.
+    // `queryStart > queryEnd` is possible when `label_seq_id` is outside of a valid range [beg_label_seq_id, end_label_seq_id]: elements which contain
+    // `label_seq_id` and overlap the range qualify then, as with MolScript (an element is coarse: it can contain one and overlap the other).
   }
   sortIfNeeded(result, (a, b) => a - b);
   return result;

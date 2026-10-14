@@ -80,11 +80,28 @@ function makeCategories(rnd: () => number): Category[] {
     {
       name: 'inverted range (beg > end)',
       differsFromMolScript: true,
-      rows: many(10, () => ({
-        label_asym_id: chain(),
-        beg_label_seq_id: 800 + randInt(rnd, 100),
-        end_label_seq_id: 100 + randInt(rnd, 100),
-      })),
+      rows: [
+        ...many(10, () => ({
+          label_asym_id: chain(),
+          beg_label_seq_id: 800 + randInt(rnd, 100),
+          end_label_seq_id: 100 + randInt(rnd, 100),
+        })),
+        // (close bounds: an element which starts at 1 and ends at 20 contains both, MolScript selects it)
+        { label_asym_id: 'A', beg_label_seq_id: 20, end_label_seq_id: 1 },
+        { label_asym_id: 'C', beg_label_seq_id: 2, end_label_seq_id: 1 },
+        // (with a residue, which MolScript's overlap test then takes as a part of the elements which it selects)
+        { label_asym_id: 'A', beg_label_seq_id: 70, end_label_seq_id: 58, label_seq_id: 60 },
+        { beg_label_seq_id: 30, end_label_seq_id: 10, label_seq_id: 20 },
+        ...many(10, () => {
+          const end = seq();
+          return {
+            label_asym_id: chain(),
+            beg_label_seq_id: end + 1 + randInt(rnd, 30),
+            end_label_seq_id: end,
+            label_seq_id: seq(),
+          };
+        }),
+      ],
     },
     {
       name: 'outside of the sequence',
@@ -230,11 +247,15 @@ describe('coarse models (spheres and gaussians)', async () => {
         '1_555',
       );
 
-    it('a range with beg > end selects nothing (MolScript selects elements which contain no sequence of it, for coarse elements)', () => {
+    it('a range with beg > end selects nothing, also when the bounds are close or a residue is given (MolScript selects elements which span them)', () => {
       expect(substructureFromRows(structure, inverted).units.length).toBe(0);
       const got = mapping(inverted);
       expect(got.spheres).toBeNull();
       expect(got.gaussians).toBeNull();
+      // (and this is a difference: MolScript selects the sphere 1-20 for the bounds 20 and 1)
+      expect(
+        viaExpression(structure, [{ label_asym_id: 'A', beg_label_seq_id: 20, end_label_seq_id: 1 }]).elementCount,
+      ).toBeGreaterThan(0);
     });
     it('criteria which only exist for atoms (auth_*, comp_id, atom ids, ...) select nothing, MolScript throws', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
