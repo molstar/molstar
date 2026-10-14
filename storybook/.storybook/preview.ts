@@ -5,6 +5,8 @@
  */
 
 import type { Preview } from '@storybook/web-components-vite';
+// The decorators of the registered packages' preview modules (packages.ts).
+import packageDecorators from 'virtual:story-package-previews';
 
 const preview: Preview = {
   parameters: {
@@ -50,6 +52,9 @@ const preview: Preview = {
     },
   },
   decorators: [
+    // First, so innermost: a package's decorator may render the story itself (React) instead of calling it, which would
+    // skip the decorators inside it, so the theme sits outside.
+    ...packageDecorators,
     (story, context) => {
       document.documentElement.dataset.mspTheme = context.globals.theme ?? 'light';
       document.body.style.background = 'var(--msp-color-bg)';

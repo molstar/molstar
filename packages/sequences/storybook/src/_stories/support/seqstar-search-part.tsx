@@ -13,11 +13,12 @@
 // the part steps through it and keeps it as a location set.
 
 import { Search, SeqViewerLayout, SeqViewerProvider } from '@molstar/seq-viewer/react';
-import { type RefObject, use, useMemo, useRef, useState } from 'react';
+import { type RefObject, useMemo, useRef, useState } from 'react';
 import { Choices } from '../ui/index.js';
 import { compiledCase, described } from './seqstar-cases.js';
 import f from './seqstar-format.module.css';
 import { PrismCanvas, prism } from './seqstar-prism.js';
+import { readPromise } from './seqstar-read.js';
 import q from './seqstar-search.module.css';
 import { storySearch } from './seqstar-story-search.js';
 import { useCaseContext, useStoryUi, type ViewerOptions } from './seqstar-viewer.js';
@@ -62,7 +63,7 @@ const PLACES = [
 
 /** Case 18's viewer: the Search part where the choice puts it, the suggested searches, the legend (kept results). */
 export function Case18Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase('case18'));
+  const c = readPromise(compiledCase('case18'));
   const doc = useMemo(() => described('case18', c.doc), [c]);
   const [place, setPlace] = useState('bar');
   // The legend lists the kept results under Highlights (left out by `clean`).

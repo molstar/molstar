@@ -11,11 +11,11 @@ import styles from './fold.module.css';
 
 /**
  * What a head folds: always there, its height eased between nothing and all of it (a grid row from 0fr to 1fr, so
- * no measuring), out of reach (inert) while folded.
+ * no measuring), out of reach (inert) while folded. (`inert` as an attribute string: React 18 types and sets no boolean one.)
  */
 export function Fold({ open, className, children }: { open: boolean; className?: string; children: ReactNode }) {
   return (
-    <div className={styles.fold} data-open={open || undefined} inert={!open}>
+    <div className={styles.fold} data-open={open || undefined} {...(open ? {} : { inert: '' })}>
       <div className={styles.inner}>
         <div className={className}>{children}</div>
       </div>

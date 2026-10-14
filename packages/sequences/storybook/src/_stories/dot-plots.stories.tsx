@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useMemo } from 'react';
 import { calmodulinDotPlot } from './support/seqstar-dot-plots.js';
 import { PrismPage } from './support/seqstar-prism.js';

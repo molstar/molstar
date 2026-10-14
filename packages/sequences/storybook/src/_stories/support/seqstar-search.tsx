@@ -24,7 +24,8 @@ import {
 import { KeyKind, type SeqSet } from '@molstar/seq-core/model';
 import { type Coordinates, SeqCommands, type SeqViewerContext } from '@molstar/seq-viewer';
 import { SeqViewerLayout, SeqViewerProvider } from '@molstar/seq-viewer/react';
-import { type KeyboardEvent, type ReactNode, use, useEffect, useMemo, useState } from 'react';
+import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
+import { readPromise } from './seqstar-read.js';
 import { PrismPage } from '../support/seqstar-prism.js';
 import { ScrollArea, TextAction, type TextTab, TextTabs } from '../ui/index.js';
 import { compiledCase } from './seqstar-cases.js';
@@ -273,7 +274,6 @@ function SearchPanel({ ctx, set, config }: { ctx: SeqViewerContext; set: SeqSet;
   const at = hits.count === 0 ? 0 : Math.min(current, hits.count - 1);
 
   // The hits light on every change of the search; scrolling to the current one only when the person steps or picks.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `at` and `focusNext` are read for the focus, not re-lit by it
   useEffect(() => {
     light(ctx, target.key, hits, at, focusNext);
     setFocusNext(false);
@@ -438,7 +438,7 @@ function SearchPanel({ ctx, set, config }: { ctx: SeqViewerContext; set: SeqSet;
 
 /** One case: its viewer on the fixtures, the search panel above it. */
 function CaseSearch({ config }: { config: CaseConfig }) {
-  const c = use(compiledCase(config.name));
+  const c = readPromise(compiledCase(config.name));
   const m = useCaseContext(c.doc, { parts: caseParts(c) });
   const ui = useStoryUi(m);
   return (

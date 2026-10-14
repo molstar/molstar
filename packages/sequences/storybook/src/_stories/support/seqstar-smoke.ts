@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// What each Seq* story opens, for the smoke test (lib/seqstar/storybook/_test/smoke.test.ts and smoke-more.test.ts,
+// What each Seq* story opens, for the smoke test (packages/sequences/storybook/_test/smoke.test.ts and smoke-more.test.ts,
 // half each): per story, the documents it shows, how it loads them, the patches its buttons make and the warnings it
 // shows on purpose. The test opens each on a headless viewer and fails on an error, on a warning not listed here, and
 // on a visible section with nothing in it; and it fails when a story file has an export this list does not name, so a
@@ -151,7 +151,7 @@ export interface SmokeEnv {
 }
 
 export interface SmokeStory {
-  /** `file#Export`, the file under lib/seqstar/storybook/src/_stories/. */
+  /** `file#Export`, the file under packages/sequences/storybook/src/_stories/. */
   readonly key: string;
   readonly cases?: (env: SmokeEnv) => readonly SmokeCase[] | Promise<readonly SmokeCase[]>;
   /** The key of the story with the same documents. */
@@ -827,7 +827,7 @@ export const SMOKE: readonly SmokeStory[] = [
   },
   {
     key: 'jbrowse.stories.tsx#Live',
-    skip: 'Live: reads hg38 files over the network. Its document is opened offline by lib/seqstar/viewer/_test/jbrowse-story.test.ts.',
+    skip: 'Live: reads hg38 files over the network. Its document is opened offline by packages/sequences/viewer/_test/jbrowse-story.test.ts.',
   },
 
   // ---- Seq*/Performance ----

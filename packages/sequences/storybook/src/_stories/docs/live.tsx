@@ -78,7 +78,6 @@ function SvgExample() {
     };
   }, []);
   return svg ? (
-    // biome-ignore lint/security/noDangerouslySetInnerHtml: renderSvg's string from our own document, not user input
     <div className={s.svg} dangerouslySetInnerHTML={{ __html: svg }} />
   ) : (
     <div className={s.note}>Drawing…</div>

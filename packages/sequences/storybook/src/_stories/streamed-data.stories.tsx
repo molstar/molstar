@@ -10,7 +10,7 @@ import type { Loaders } from '@molstar/seq-core/format';
 import { SeqCommands } from '@molstar/seq-viewer';
 import { LETTERS_PER_PX } from '@molstar/seq-viewer/draw';
 import { useLiveVersion, useSeqViewer } from '@molstar/seq-viewer/react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useMemo } from 'react';
 import { lazyStoryDoc, lazyStoryLoaders } from '../../../viewer/_test/lazy-story-fixtures.js';
 import {

@@ -9,8 +9,9 @@
 import { DefaultSeqViewerSpec, type PatchEvent, type SeqViewerContext } from '@molstar/seq-viewer';
 import { InteractionsViewerRegistry } from '@molstar/seq-viewer/interactions/viewer';
 import { SeqViewer, useSeqState, useSeqViewer } from '@molstar/seq-viewer/react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Suspense, use, useEffect, useMemo, useState } from 'react';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
+import { readPromise } from './support/seqstar-read.js';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { fixtureLoaders, MolstarFixture } from '../../../core/_test/format/load-fixtures.js';
 import { compiledCase } from './support/seqstar-cases.js';
 import { antibodyPlain, antibodyWithSnapshots } from './support/seqstar-docs-views.js';
@@ -79,7 +80,7 @@ function PatchLog() {
 /** What the patches are made with, left out by `clean`: the views, the headers (their switches and hidden chips) and the track menu. */
 const PATCH_PARTS = ['ViewTabs', 'SectionHeader', 'TrackActions'] as const;
 function PatchesCase({ ui }: { ui: UiChoice }) {
-  const c = use(compiledCase('case2'));
+  const c = readPromise(compiledCase('case2'));
   const doc = useMemo(() => antibodyWithSnapshots(c.doc), [c]);
   return (
     <ViewerCard doc={doc} label="Fv · trastuzumab" options={{ ui, parts: PATCH_PARTS }}>

@@ -8,7 +8,7 @@
 
 import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
 import { useSeqState, useSeqViewer } from '@molstar/seq-viewer/react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { type ReactNode, useMemo } from 'react';
 import {
   alignmentGallery,

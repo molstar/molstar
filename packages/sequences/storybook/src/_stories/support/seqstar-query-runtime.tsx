@@ -26,7 +26,8 @@ import {
 } from '@molstar/seq-core/query';
 import { type SeqViewerContext, showExtents } from '@molstar/seq-viewer';
 import { SeqViewerLayout, SeqViewerProvider, useSeqState } from '@molstar/seq-viewer/react';
-import { type KeyboardEvent, type ReactNode, use, useEffect, useMemo, useRef, useState } from 'react';
+import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { readPromise } from './seqstar-read.js';
 import { PrismPage } from '../support/seqstar-prism.js';
 import { ScrollArea, Switch, TextAction, TextTabs, Tooltip } from '../ui/index.js';
 import { type CompiledCase, compiledCase } from './seqstar-cases.js';
@@ -293,7 +294,6 @@ function QueryPanel({ ctx, config }: { ctx: SeqViewerContext; config: CaseConfig
     setLit(apply(ctx, ran.selection, highlight, lit, g ?? undefined));
   };
   // The first entry runs once the viewer's set is there.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: once per set, not per edit
   useEffect(() => {
     if (set) go(text);
   }, [set]);
@@ -427,7 +427,7 @@ function Gallery(props: { entries: readonly Entry[]; active: string; onRun: (tex
 
 /** One case: its viewer on the fixtures, the gallery and the box above it. */
 function CaseQueries({ config }: { config: CaseConfig }) {
-  const compiled = config.doc ? null : use(compiledCase(config.name));
+  const compiled = config.doc ? null : readPromise(compiledCase(config.name));
   const doc = config.doc ? config.doc() : (compiled as CompiledCase).doc;
   const m = useCaseContext(doc, { parts: compiled ? caseParts(compiled) : undefined });
   const ui = useStoryUi(m);

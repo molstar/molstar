@@ -7,7 +7,7 @@
  */
 
 import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { largeAlignment, longSequence } from './support/seqstar-docs-views.js';
 import { GenomeView } from './support/seqstar-genome-view.js';
 import { PrismPage } from './support/seqstar-prism.js';

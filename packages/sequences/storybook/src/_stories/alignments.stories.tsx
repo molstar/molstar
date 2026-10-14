@@ -8,7 +8,7 @@
 
 import { button, type DomPart, type RowProps as DomRowProps, setAttr } from '@molstar/seq-viewer/dom';
 import type { RowProps } from '@molstar/seq-viewer/react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useState } from 'react';
 import { familyWithTree, syntheticFamily } from '../../../viewer/_test/families.js';
 import { computedTreeDoc, realignedDoc } from './support/seqstar-docs-views.js';
@@ -40,7 +40,7 @@ const VERTICAL: readonly [string, ViewerOptions][] = [
   ["both, verticalZoom: handles on the window's top and bottom", { verticalNav: 'both', verticalZoom: true }],
   ['none (Alt-wheel and the keyboard still zoom rows)', { verticalNav: 'none' }],
 ];
-/** A synthetic SH2-like family (lib/seqstar/viewer/_test/families.ts: case 3's rows mutated; not real sequences). */
+/** A synthetic SH2-like family (packages/sequences/viewer/_test/families.ts: case 3's rows mutated; not real sequences). */
 const FAMILY = syntheticFamily(160, 10);
 /** The rows' vertical navigation choices (render props `verticalNav`, `verticalZoom`) on 160 rows, 10 in view. */
 export const FamilyVertical: Story = {

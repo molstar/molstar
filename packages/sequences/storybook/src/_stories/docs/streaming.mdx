@@ -108,7 +108,7 @@ failed manifest is `svs.source.load`, one without `systems` and `levels` `svs.so
 A `StreamRequest` names the `source`, the `system` (`null` for the manifest), the half-open `start` and `stop` (and
 `row_start`, `row_stop` for an alignment), the `level` (`-1`: the data itself), `labels` (row labels only) and the
 `priority` (`view`, `margin`, `prefetch`). Its exact shape is in the spec's sources part
-(`lib/seqstar/_spec/sources.md`, "Requests").
+(`packages/sequences/_spec/sources.md`, "Requests").
 
 Always in the source's coordinate system, quantized by the viewer: a region is 256 bins of a level, or 4,096
 positions of the data (level -1), in one system; an alignment's, one 256 × 256 tile of a `[2^ly, 2^lx]` level the
@@ -301,7 +301,7 @@ become the document's through `renamed` (`chrNames`: ClinVar's `1` and `MT` as `
 set, never the document, its patches, history or downloads. [Dynamic nodes: manifest, patch and eviction](?path=/story/seq-streaming-streamed-data--first-part)
 shows a manifest's genes, peaks arriving with their regions as you zoom in, and eviction under a small cache. A patch
 carries its nodes as `{ kind, key, params }` entries beside its data; the spec's sources part
-(`lib/seqstar/_spec/sources.md`) has the shapes.
+(`packages/sequences/_spec/sources.md`) has the shapes.
 
 - **Their ref** is derived, `<source>/<key>`; a node is keyed by (source, key). The same key again with equal params is
   a no-op; with other params `svs.stream.conflict` (a warning), the held one kept.

@@ -11,8 +11,9 @@ import { nodePath, SeqCommands, type TrackActionList, trackDataRefs } from '@mol
 import { button, type DomPart, type RowProps as DomRowProps, setAttr } from '@molstar/seq-viewer/dom';
 import { type RowProps, useLiveVersion, useSeqViewer } from '@molstar/seq-viewer/react';
 import { renderSvg } from '@molstar/seq-viewer/svg';
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { createContext, Suspense, use, useCallback, useContext, useMemo, useState } from 'react';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
+import { readPromise } from './support/seqstar-read.js';
+import { createContext, Suspense, useCallback, useContext, useMemo, useState } from 'react';
 import { CASE_TITLES, type CompiledCase, compiledCase, described, hideEmpty } from './support/seqstar-cases.js';
 import { PLASMID_RING, PSYN_LENGTH, rotateRing, zoomDetail } from './support/seqstar-docs-circular.js';
 import { CODING_PROTEIN } from './support/seqstar-docs-streamed.js';
@@ -85,7 +86,7 @@ const casePartsFor = (name: string, c: CompiledCase) => caseParts(c, CASE_PARTS[
 const TEXT_STYLE = new Set(['case1']);
 
 function CaseViewer({ name, options }: { name: string; options?: ViewerOptions }) {
-  const c = use(compiledCase(name));
+  const c = readPromise(compiledCase(name));
   const o = { ...options, parts: options?.parts ?? casePartsFor(name, c) };
   const [doc, textStyle] = useTextStyle(caseDoc(name, c), TEXT_STYLE.has(name));
   return (
@@ -234,7 +235,7 @@ const ROWS = [
 ];
 /** Case 13's viewer, its split layers' rows all, or only the residues a variant has (`split.empty: "hide"`). */
 function Case13Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase('case13'));
+  const c = readPromise(compiledCase('case13'));
   const [rows, setRows] = useState('all');
   const doc = useMemo(
     () => (rows === 'all' ? caseDoc('case13', c) : { ...caseDoc('case13', c), root: hideEmpty(c.doc.root) }),
@@ -312,7 +313,7 @@ function Case15Controls() {
   );
 }
 function Case15Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase('case15'));
+  const c = readPromise(compiledCase('case15'));
   return (
     <ViewerCard doc={caseDoc('case15', c)} label="WT barnase and four designs" options={{ ...options, maxHeight: 720 }}>
       <Case15Controls />
@@ -385,15 +386,12 @@ function Case16Controls() {
           Export the ring as SVG
         </TextAction>
       </div>
-      {svg && (
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: renderSvg's string from our own document, not user input
-        <div className={vs.figure} dangerouslySetInnerHTML={{ __html: svg }} />
-      )}
+      {svg && <div className={vs.figure} dangerouslySetInnerHTML={{ __html: svg }} />}
     </>
   );
 }
 function Case16Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase('case16'));
+  const c = readPromise(compiledCase('case16'));
   return (
     <ViewerCard doc={caseDoc('case16', c)} label="pSyn, 2,686 nt" options={options}>
       <Case16Controls />
@@ -474,7 +472,7 @@ function Case17Densities() {
 }
 
 function Case17Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase('case17'));
+  const c = readPromise(compiledCase('case17'));
   return (
     <ViewerCard
       doc={caseDoc('case17', c)}
@@ -560,7 +558,7 @@ function StreamStats() {
 }
 /** Case 19's viewer: the ideogram navigator, a registered entry (the cytobands are the story's data). */
 function Case19Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase('case19'));
+  const c = readPromise(compiledCase('case19'));
   return (
     <ViewerCard
       doc={caseDoc('case19', c)}
@@ -619,7 +617,7 @@ function Case20Zooms() {
   );
 }
 function Case20Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase('case20'));
+  const c = readPromise(compiledCase('case20'));
   return (
     <ViewerCard
       doc={caseDoc('case20', c)}
@@ -756,7 +754,7 @@ function Case22Triage({ kept }: { kept: number }) {
   );
 }
 function Case22Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase('case22'));
+  const c = readPromise(compiledCase('case22'));
   const [kept, setKept] = useState<ReadonlySet<number>>(new Set());
   const store = useMemo(
     () => ({

@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The documents of the Seq* stories that build one in code (lib/seqstar/storybook/src/_stories/*.stories.tsx), kept out of the
-// story files so the smoke test (lib/seqstar/storybook/_test/smoke.test.ts) can open each on a headless viewer.
+// The documents of the Seq* stories that build one in code (packages/sequences/storybook/src/_stories/*.stories.tsx), kept out of the
+// story files so the smoke test (packages/sequences/storybook/_test/smoke.test.ts) can open each on a headless viewer.
 // No React here: a story imports its builders from this module, and nothing in it changes what a story shows.
 
 import { createSeqViewSpec, translate } from '@molstar/seq-core/builder';

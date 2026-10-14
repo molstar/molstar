@@ -7,7 +7,7 @@
  */
 
 // The documents and providers of the streaming stories (`Seq*/Dynamic nodes`, `Seq*/Streamed data`, and the atlas of
-// `Seq*/Performance`), kept out of the story files so the smoke test (lib/seqstar/storybook/_test/smoke.test.ts)
+// `Seq*/Performance`), kept out of the story files so the smoke test (packages/sequences/storybook/_test/smoke.test.ts)
 // can open each on a headless viewer. The providers are the committed fixtures of the format's stream-provider.ts.
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';

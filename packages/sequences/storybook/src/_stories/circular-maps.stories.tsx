@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useMemo } from 'react';
 import { circularGenomeDoc } from './support/seqstar-docs-circular.js';
 import { PrismPage } from './support/seqstar-prism.js';

@@ -7,7 +7,7 @@
  */
 
 import { useSeqViewer } from '@molstar/seq-viewer/react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useMemo } from 'react';
 import f from './support/seqstar-format.module.css';
 import {
@@ -34,7 +34,6 @@ function Panel() {
   const { context: ctx } = useSeqViewer();
   return (
     <div className={f.row}>
-      {/* biome-ignore lint/suspicious/noFocusedTests: the viewport's verb, not a focused test. */}
       <TextAction onClick={() => ctx.viewports.get(IDEOGRAM_SECTION)?.fit()}>Whole genome</TextAction>
       {IDEOGRAM_PLACES.map(([label, block, a, e]) => (
         <TextAction key={label} onClick={() => ctx.viewports.get(IDEOGRAM_SECTION)?.zoomTo(block, a, e)}>

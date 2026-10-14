@@ -19,7 +19,7 @@ import {
   renderIssue,
   skillText,
 } from '@molstar/seq-core/query';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useMemo, useState } from 'react';
 import s from './support/seqstar-format.module.css';
 import { PrismPage } from './support/seqstar-prism.js';

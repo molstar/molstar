@@ -10,6 +10,7 @@
   },
   "exports": {
     "./vite": "./vite.ts",
+    "./preview": "./src/preview.ts",
     "./tokens.css": "./src/_stories/ui/tokens.css",
     "./support/cases": "./src/_stories/support/seqstar-cases.ts",
     "./support/viewer": "./src/_stories/support/seqstar-viewer.tsx",
@@ -25,7 +26,7 @@
   "scripts": {
     "test:slow": "vitest run --config vitest.slow.config.ts",
     "test:full": "pnpm -w test:unit packages/sequences/storybook && pnpm test:slow",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
+    "typecheck": "tsc -b ../molstar-poc ../nightingale && tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@molstar/seq-core": "workspace:*",

@@ -9,7 +9,7 @@
 import { DefaultSeqViewerSpec } from '@molstar/seq-viewer';
 import { defineSeqViewer, type SeqViewerElement } from '@molstar/seq-viewer/dom';
 import { InteractionsViewerRegistry } from '@molstar/seq-viewer/interactions/viewer';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useCallback, useEffect, useRef } from 'react';
 import { fixtureLoaders, MolstarFixture } from '../../../core/_test/format/load-fixtures.js';
 import { ComposedDom } from './support/seqstar-composed.js';

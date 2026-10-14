@@ -18,7 +18,7 @@ import {
 } from '@molstar/seq-core/stream/gmod';
 import { SeqCommands, SeqViewerConfig } from '@molstar/seq-viewer';
 import { useLiveVersion, useSeqViewer } from '@molstar/seq-viewer/react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useEffect, useMemo, useState } from 'react';
 import { GRCH38 } from '../../../core/_test/format/stream-provider.js';
 import { JBROWSE_SECTION, jbrowseDoc } from '../../../viewer/_test/jbrowse-story-fixtures.js';

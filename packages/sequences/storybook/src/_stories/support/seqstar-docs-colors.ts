@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The documents of `Seq*/Color schemes` (lib/seqstar/storybook/src/_stories/color-schemes.stories.tsx), kept out of the story
-// file so the smoke test (lib/seqstar/storybook/_test/smoke.test.ts) can open each on a headless viewer.
+// The documents of `Seq*/Color schemes` (packages/sequences/storybook/src/_stories/color-schemes.stories.tsx), kept out of the story
+// file so the smoke test (packages/sequences/storybook/_test/smoke.test.ts) can open each on a headless viewer.
 
 import { createSeqViewSpec, type SchemeRef } from '@molstar/seq-core/builder';
 import { type ColorSchemeEntry, KernelColorSchemes, type SeqViewSpecDoc } from '@molstar/seq-core/format';

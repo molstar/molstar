@@ -172,7 +172,6 @@ export function useCaseContext(
   const fixtures = o.fixtureStructures !== false;
   const key = JSON.stringify([o.navigator, o.verticalNav, o.verticalZoom, o.render, navigator]);
   const partsKey = (o.parts ?? []).join();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: by content (`key`): callers pass options inline.
   const presetList = useMemo(() => presets(o, navigator), [key]);
   useEffect(() => {
     const spec = DefaultSeqViewerSpec();

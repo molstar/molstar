@@ -8,7 +8,7 @@
 
 import { SeqViewerConfig } from '@molstar/seq-viewer';
 import { useSeqViewer } from '@molstar/seq-viewer/react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import f from './support/seqstar-format.module.css';
 import {

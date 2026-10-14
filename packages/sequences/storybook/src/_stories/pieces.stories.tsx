@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useMemo } from 'react';
 import { flipped } from './support/seqstar-docs-views.js';
 import f from './support/seqstar-format.module.css';

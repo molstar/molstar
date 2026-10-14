@@ -7,7 +7,7 @@
  */
 
 import { useSeqViewer } from '@molstar/seq-viewer/react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useMemo, useState } from 'react';
 import pf00042 from '../../../core/_test/fixtures/pf00042.json?raw';
 import { type FamilyRow, keyedFamilyDoc, MODES, type Mode, modePatch } from '../../../viewer/_test/keyed-family.js';

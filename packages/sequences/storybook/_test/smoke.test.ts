@@ -7,7 +7,7 @@
  */
 
 // Every Seq* story's document opened on a headless viewer (smoke-harness.ts): the story registry
-// (lib/seqstar/storybook/src/_stories/support/seqstar-smoke.ts) lists what each story opens; each document is set, its graph settled,
+// (packages/sequences/storybook/src/_stories/support/seqstar-smoke.ts) lists what each story opens; each document is set, its graph settled,
 // every view shown, every snapshot and every patch a story's buttons make applied, and after each step there must be
 // no issue of severity error, no warning the story does not show on purpose, and no visible section without a block
 // or a laid-out track. A story file with an export the registry does not name fails here, so a new story brings its
@@ -28,7 +28,7 @@ import { SMOKE } from '../src/_stories/support/seqstar-smoke.js';
 import { smoke } from './smoke-harness.js';
 import { root, SLOW_STORIES, storyDocuments } from './smoke-stories.js';
 
-const stories = join(root, 'lib/seqstar/storybook/src/_stories');
+const stories = join(root, 'packages/sequences/storybook/src/_stories');
 
 /** The exports of every story file, as `file#Export`. */
 function storyKeys(): string[] {

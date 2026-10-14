@@ -25,7 +25,7 @@ const FILES: Record<string, string> = { 'AF-P04637-F1': 'AF-P04637-F1-model_v6' 
 
 export async function p53MolstarCase(env: SmokeEnv): Promise<SmokeCase> {
   const { MolstarSvsEntry, structureUrl } = (await import(/* @vite-ignore */ MOLSTAR)) as Molstar;
-  const at = (p: string) => env.readFile(`lib/seqstar/core/_test/fixtures/${p}`);
+  const at = (p: string) => env.readFile(`packages/sequences/core/_test/fixtures/${p}`);
   const sequence = (JSON.parse(text(at('p53.json'))) as { sequence: string }).sequence;
   const structures = new Map<string, Uint8Array>();
   for (const s of P53_STRUCTURES) {
@@ -33,7 +33,9 @@ export async function p53MolstarCase(env: SmokeEnv): Promise<SmokeCase> {
     if (url)
       structures.set(
         url,
-        env.readFile(`lib/seqstar/molstar-poc/_test/fixtures/structures/${FILES[s.source.id] ?? s.source.id}.bcif`),
+        env.readFile(
+          `packages/sequences/molstar-poc/_test/fixtures/structures/${FILES[s.source.id] ?? s.source.id}.bcif`,
+        ),
       );
   }
   return {
@@ -42,9 +44,9 @@ export async function p53MolstarCase(env: SmokeEnv): Promise<SmokeCase> {
     loaders: p53Loaders({
       structures,
       fasta: `>sp|P04637|P53_HUMAN\n${sequence}\n`,
-      features: text(env.readFile('lib/seqstar/molstar-poc/_test/fixtures/p53/P04637.json')),
-      variants: text(env.readFile('lib/seqstar/molstar-poc/_test/fixtures/p53/variation-P04637.json')),
-      ptms: text(env.readFile('lib/seqstar/molstar-poc/_test/fixtures/p53/P04637-ptms.tsv')),
+      features: text(env.readFile('packages/sequences/molstar-poc/_test/fixtures/p53/P04637.json')),
+      variants: text(env.readFile('packages/sequences/molstar-poc/_test/fixtures/p53/variation-P04637.json')),
+      ptms: text(env.readFile('packages/sequences/molstar-poc/_test/fixtures/p53/P04637-ptms.tsv')),
     }),
     registry: [{ svs: MolstarSvsEntry }],
     fixtureStructures: false,

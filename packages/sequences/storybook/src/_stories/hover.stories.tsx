@@ -7,7 +7,7 @@
  */
 
 import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import type { ReactNode } from 'react';
 import { splitUnitsDoc } from '../../../viewer/_test/split-units-fixtures.js';
 import { logoDoc, tracksDoc } from './support/seqstar-docs-views.js';

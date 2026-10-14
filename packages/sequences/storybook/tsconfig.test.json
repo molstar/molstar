@@ -11,5 +11,13 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node", "webxr", "vite/client"]
   },
-  "include": ["_test"]
+  "include": ["_test"],
+  "references": [
+    { "path": "../core" },
+    { "path": "../viewer" },
+    { "path": "../nightingale" },
+    { "path": "../molstar-poc" },
+    { "path": "../../core" },
+    { "path": "../../io" }
+  ]
 }

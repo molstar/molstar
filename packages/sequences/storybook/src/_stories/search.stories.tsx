@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { LocationSetsStory } from './support/seqstar-location-sets.js';
 import { SearchStory } from './support/seqstar-search.js';
 

@@ -6,8 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Suspense, use, useMemo } from 'react';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
+import { readPromise } from './support/seqstar-read.js';
+import { Suspense, useMemo } from 'react';
 import { genomeDoc, synthGenome } from '../../../core/_test/format/genome-fixture.js';
 import { compiledCase } from './support/seqstar-cases.js';
 import { ExportCard, ExportFrame } from './support/seqstar-export.js';
@@ -26,7 +27,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 function Case14() {
-  const c = use(compiledCase('case14'));
+  const c = readPromise(compiledCase('case14'));
   return (
     <ExportCard
       doc={c.doc}

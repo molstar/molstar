@@ -10,8 +10,9 @@ import { resolveView } from '@molstar/seq-core/format';
 import type { Issue } from '@molstar/seq-core/model';
 import { materialize, NightingaleSupported } from '@molstar/seq-nightingale';
 import { mount } from '@molstar/seq-nightingale/mount';
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Suspense, use, useEffect, useMemo, useRef, useState } from 'react';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
+import { readPromise } from './support/seqstar-read.js';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { type CompiledCase, compiledCase, reg } from './support/seqstar-cases.js';
 import f from './support/seqstar-format.module.css';
 import { IssueList } from './support/seqstar-issues.js';
@@ -69,7 +70,7 @@ function NightingaleView({ c, view }: { c: CompiledCase; view: string }) {
 }
 
 function SideBySide({ name, navigator, ui }: { name: string; navigator: NavigatorChoice; ui: UiChoice }) {
-  const c = use(compiledCase(name));
+  const c = readPromise(compiledCase(name));
   const v = c.views[0];
   return (
     <div className={s.pair}>

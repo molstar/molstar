@@ -8,7 +8,7 @@
 
 import { SeqViewerLayout, SeqViewerProvider } from '@molstar/seq-viewer/react';
 import { renderSvg } from '@molstar/seq-viewer/svg';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { pDemoRuns, plasmid } from './support/seqstar-docs-views.js';
 import f from './support/seqstar-format.module.css';
@@ -104,7 +104,6 @@ function RingAndExport() {
           </TextAction>
         </div>
         {svg ? (
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: renderSvg's string from our own document, not user input
           <div className={s.figure} dangerouslySetInnerHTML={{ __html: svg }} />
         ) : (
           <div className={f.status}>Drawing…</div>

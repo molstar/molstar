@@ -8,8 +8,9 @@
 
 import { categoryTable, MolstarSvsEntry, readStructure, type StructureFormat } from '@molstar/seq-molstar-poc';
 import { useLiveVersion, useSeqState, useSeqViewer } from '@molstar/seq-viewer/react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { type ReactNode, Suspense, use, useEffect, useMemo, useState } from 'react';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
+import { readPromise } from './support/seqstar-read.js';
+import { type ReactNode, Suspense, useEffect, useMemo, useState } from 'react';
 import kinaseSvsx from '../../../core/_test/format/fixtures/kinase.svsx?url';
 import featuresJson from '../../../molstar-poc/_test/fixtures/p53/P04637.json?raw';
 import variantsJson from '../../../molstar-poc/_test/fixtures/p53/variation-P04637.json?raw';
@@ -605,7 +606,7 @@ const readArchive = () =>
     .then((b) => archiveCase(new Uint8Array(b))));
 
 function ArchiveCase() {
-  const { c, svsx } = use(readArchive());
+  const { c, svsx } = readPromise(readArchive());
   return (
     <>
       <Viewer c={c} label={`The document read from ${DOCUMENT_LABELS.svsx}, over its own files`}>

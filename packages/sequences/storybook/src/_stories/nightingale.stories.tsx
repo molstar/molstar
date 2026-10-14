@@ -10,8 +10,9 @@ import { resolveView } from '@molstar/seq-core/format';
 import type { Issue } from '@molstar/seq-core/model';
 import { extentLoci, materialize, NightingaleSupported } from '@molstar/seq-nightingale';
 import { mount, type NightingaleEvent } from '@molstar/seq-nightingale/mount';
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Suspense, use, useEffect, useMemo, useRef, useState } from 'react';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
+import { readPromise } from './support/seqstar-read.js';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { CASE_TITLES, type CompiledCase, caseSource, compiledCase, preview, reg } from './support/seqstar-cases.js';
 import s from './support/seqstar-format.module.css';
 import { IssueList } from './support/seqstar-issues.js';
@@ -125,7 +126,7 @@ function ViewCard({ c, view }: { c: CompiledCase; view: { ref: string; label: st
 }
 
 function Views({ name }: { name: string }) {
-  const c = use(compiledCase(name));
+  const c = readPromise(compiledCase(name));
   return c.views.map((v) => <ViewCard key={v.ref} c={c} view={v} />);
 }
 

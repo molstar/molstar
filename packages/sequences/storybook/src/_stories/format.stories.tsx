@@ -9,8 +9,9 @@
 import { type ResolvedView, resolveView, supportedAll, toJSON } from '@molstar/seq-core/format';
 import type { SeqSet } from '@molstar/seq-core/model';
 import { NightingaleSupported } from '@molstar/seq-nightingale';
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Suspense, use, useMemo } from 'react';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
+import { readPromise } from './support/seqstar-read.js';
+import { Suspense, useMemo } from 'react';
 import { CASE_TITLES, type CompiledCase, compiledCase, reg } from './support/seqstar-cases.js';
 import s from './support/seqstar-format.module.css';
 import { IssueList } from './support/seqstar-issues.js';
@@ -119,7 +120,7 @@ function ViewSummary({ c, view }: { c: CompiledCase; view: { ref: string; label:
 }
 
 function Document({ name }: { name: string }) {
-  const c = use(compiledCase(name));
+  const c = readPromise(compiledCase(name));
   const json = useMemo(() => toJSON(c.doc, { pretty: true }), [c]);
   return (
     <>
@@ -205,7 +206,7 @@ function Json({ text }: { text: string }) {
 }
 
 function OpenedArchive() {
-  const o = use(opened);
+  const o = readPromise(opened);
   const json = useMemo(() => (o.svsx.doc ? toJSON(o.svsx.doc, { pretty: true }) : ''), [o]);
   return (
     <>
@@ -239,7 +240,7 @@ function OpenedArchive() {
 }
 
 function Bundled() {
-  const b = use(bundle);
+  const b = readPromise(bundle);
   return (
     <>
       <section className={s.card}>

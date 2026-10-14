@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The stories' own search (lib/seqstar/storybook/src/_stories/support/seqstar-story-search.ts) over case 18's Tracks view: item
+// The stories' own search (packages/sequences/storybook/src/_stories/support/seqstar-story-search.ts) over case 18's Tracks view: item
 // names match case-insensitively anywhere in the name, letters match from one letter up, names first.
 // The suggested searches each find what the view shows.
 

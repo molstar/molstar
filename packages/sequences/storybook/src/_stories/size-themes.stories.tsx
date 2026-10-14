@@ -7,7 +7,7 @@
  */
 
 import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { type ReactNode, useMemo } from 'react';
 import { sashimiDoc, scalesDoc, sizesDoc } from './support/seqstar-docs-sizes.js';
 import f from './support/seqstar-format.module.css';

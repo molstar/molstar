@@ -9,7 +9,7 @@
 import { DefaultSeqViewerSpec } from '@molstar/seq-viewer';
 import { InteractionsViewerRegistry } from '@molstar/seq-viewer/interactions/viewer';
 import { SeqViewer } from '@molstar/seq-viewer/react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useMemo } from 'react';
 import { case10 } from '../../../core/_test/format/cases.js';
 import { fixtureLoaders, MolstarFixture } from '../../../core/_test/format/load-fixtures.js';

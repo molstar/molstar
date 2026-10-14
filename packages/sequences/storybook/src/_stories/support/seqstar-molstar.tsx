@@ -137,7 +137,6 @@ function useViewer(
   shown: { readonly current: Shown | null },
   show: (s: Shown) => void,
 ) {
-  // biome-ignore lint/correctness/useExhaustiveDependencies: one viewer per fixture load; `show` and `shown` are stable.
   const ctx = useMemo(() => {
     if (!bytes) return null;
     const item = showInStructureAction(show, () => shown.current);

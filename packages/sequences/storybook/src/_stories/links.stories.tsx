@@ -8,7 +8,7 @@
 
 import type { SectionViewport } from '@molstar/seq-viewer';
 import { useLiveVersion, useSeqViewer } from '@molstar/seq-viewer/react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useMemo } from 'react';
 import { codingPair, linkStrands } from './support/seqstar-docs-views.js';
 import f from './support/seqstar-format.module.css';

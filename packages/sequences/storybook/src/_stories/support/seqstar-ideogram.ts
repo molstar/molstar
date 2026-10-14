@@ -7,7 +7,7 @@
  */
 
 // The ideogram navigator's story (`Seq*/Views and layouts/Navigators`) and the genome browser demo's navigator: hg38's committed
-// cytobands (lib/seqstar/viewer/_test/fixtures/hg38-cytobands.json, UCSC's cytoBandIdeo, recorded by
+// cytobands (packages/sequences/viewer/_test/fixtures/hg38-cytobands.json, UCSC's cytoBandIdeo, recorded by
 // scripts/record-cytobands.ts) registered as the `ideogram` navigator, over the offline streamed genome of the format's
 // stream-provider.ts (24 chromosomes, synthetic letters, genes and variants). Kept out of the story file so the smoke
 // test can open the document. No React here.
@@ -16,7 +16,7 @@ import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import type { Loaders, SeqViewSpecDoc } from '@molstar/seq-core/format';
 import { type CytoBands, ideogramNavigator, type SeqViewerRegistryEntry } from '@molstar/seq-viewer';
 import { hg38Streams } from '../../../../core/_test/format/stream-provider.js';
-import cytobands from '../../../../viewer/_test/fixtures/hg38-cytobands.json';
+import cytobands from '../../../../viewer/_test/fixtures/hg38-cytobands.json' with { type: 'json' };
 
 /** The registry entry that adds the `ideogram` navigator (name it with `ViewerOptions.navigator`). Keep it stable. */
 export const IDEOGRAM_REGISTRY: readonly SeqViewerRegistryEntry[] = [

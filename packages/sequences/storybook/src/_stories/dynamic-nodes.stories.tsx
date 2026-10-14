@@ -9,7 +9,7 @@
 import { SeqViewerConfig } from '@molstar/seq-viewer';
 import { useSeqState, useSeqViewer } from '@molstar/seq-viewer/react';
 import { streamsOf } from '@molstar/seq-viewer/testing';
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
 import { useEffect, useMemo } from 'react';
 import {
   dynamicDoc,

@@ -40,7 +40,7 @@ const molstar = async () => [
   { svs: ((await import(/* @vite-ignore */ MOLSTAR)) as { MolstarSvsEntry: SvsRegistryEntry }).MolstarSvsEntry },
 ];
 const text = (b: Uint8Array) => new TextDecoder().decode(b);
-const fixture = (env: SmokeEnv, path: string) => env.readFile(`lib/seqstar/molstar-poc/_test/fixtures/${path}`);
+const fixture = (env: SmokeEnv, path: string) => env.readFile(`packages/sequences/molstar-poc/_test/fixtures/${path}`);
 const of = (label: string, c: FormatCase, allow?: AllowedWarning[]): SmokeCase => ({
   label,
   doc: c.doc,
@@ -100,7 +100,7 @@ export const FILE_FORMATS_SMOKE: SmokeStory[] = [
     key: 'file-formats.stories.tsx#Documents',
     cases: async (env) => [
       ...DOCUMENT_FORMATS.map((f) => of(`.${f}`, documentCase(f))),
-      of('.svsx', (await archiveCase(env.readFile('lib/seqstar/core/_test/format/fixtures/kinase.svsx'))).c),
+      of('.svsx', (await archiveCase(env.readFile('packages/sequences/core/_test/format/fixtures/kinase.svsx'))).c),
     ],
   },
 ];

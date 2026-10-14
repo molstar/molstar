@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The documents of `Seq*/Themes/Size themes` (lib/seqstar/storybook/src/_stories/size-themes.stories.tsx), kept out of the story
-// file so the smoke test (lib/seqstar/storybook/_test/smoke.test.ts) can open each on a headless viewer.
+// The documents of `Seq*/Themes/Size themes` (packages/sequences/storybook/src/_stories/size-themes.stories.tsx), kept out of the story
+// file so the smoke test (packages/sequences/storybook/_test/smoke.test.ts) can open each on a headless viewer.
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import type { SeqViewSpecDoc } from '@molstar/seq-core/format';

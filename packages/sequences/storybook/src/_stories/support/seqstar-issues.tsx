@@ -15,7 +15,6 @@ export function IssueList({ issues }: { issues: readonly Issue[] }) {
   return (
     <ul className={s.issues}>
       {issues.map((i, k) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: a list drawn once; issues may repeat
         <li key={k}>
           <span className={s.code}>
             {i.code} {i.path}

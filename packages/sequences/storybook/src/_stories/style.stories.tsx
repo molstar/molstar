@@ -7,8 +7,9 @@
  */
 
 import { useSeqState, useSeqViewer } from '@molstar/seq-viewer/react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { type CSSProperties, type ReactNode, Suspense, use } from 'react';
+import type { Meta, StoryObj } from './support/seqstar-story.js';
+import { readPromise } from './support/seqstar-read.js';
+import { type CSSProperties, type ReactNode, Suspense } from 'react';
 import { compiledCase } from './support/seqstar-cases.js';
 import { BAD, FLOORS, HEADS, STYLE_FAMILY, styled } from './support/seqstar-docs-views.js';
 import f from './support/seqstar-format.module.css';
@@ -38,7 +39,7 @@ function Frame({ title, kicker, children }: { title: string; kicker: string; chi
 }
 
 function HeadsCards() {
-  const c = use(compiledCase('case3'));
+  const c = readPromise(compiledCase('case3'));
   return (
     <div className={f.stack}>
       {HEADS.map((style) => (
@@ -97,7 +98,7 @@ function ShownIssues() {
   );
 }
 function InvalidCard() {
-  const c = use(compiledCase('case3'));
+  const c = readPromise(compiledCase('case3'));
   return (
     <ViewerCard doc={styled(c.doc, 'family.main', BAD)} label={<Label style={BAD} />} options={{ parts: ['Issues'] }}>
       <ShownIssues />

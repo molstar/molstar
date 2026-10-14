@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The stories' `storyPatch` (lib/seqstar/storybook/src/_stories/support/seqstar-patch.ts): a patch applied through it keeps the issues
+// The stories' `storyPatch` (packages/sequences/storybook/src/_stories/support/seqstar-patch.ts): a patch applied through it keeps the issues
 // that came back (warning or error) for the banner and logs them; a patch that applies cleanly leaves nothing.
 
 import type { Patch } from '@molstar/seq-core/format';
