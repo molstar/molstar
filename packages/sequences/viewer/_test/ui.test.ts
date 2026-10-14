@@ -283,8 +283,8 @@ describe('the track menu asked for by the keyboard (events.menu)', () => {
     expect(t.key(S, 'F10', { shift: true })).toBe(true);
     expect(t.key(S, 'ContextMenu')).toBe(true);
     expect(asked).toEqual([
-      { section: S, track, origin: 'keyboard' },
-      { section: S, track, origin: 'keyboard' },
+      { section: S, track, origin: 'keyboard', x: -1, y: -1 },
+      { section: S, track, origin: 'keyboard', x: -1, y: -1 },
     ]);
     t.ctx.dispose();
   });

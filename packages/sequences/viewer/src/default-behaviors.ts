@@ -76,7 +76,7 @@ export const internal = (ctx: SeqViewerContext) =>
     log(level: 'info' | 'warning' | 'error', message: string, data?: unknown): void;
     report(code: string, message: string): void;
     activate(section: string, track: string, origin: Origin): void;
-    openMenu(section: string, track: string, origin: Origin): void;
+    openMenu(section: string, track: string, origin: Origin, x?: number, y?: number): void;
     readonly input: InputDispatcher;
   };
 
@@ -349,13 +349,22 @@ export const FocusViewportBehavior = defineBehavior(
   'focusViewport',
   'view',
   0,
-  { animate: true, pad: 0.1 },
-  'Moves the viewports of the sections that show a changed focus, over its transition.',
+  { animate: true, pad: 0.1, reveal: true, revealPad: 12 },
+  'Moves the viewports of the sections that show a changed focus, over its transition. Wrapped text does not zoom: ' +
+    'with `reveal` it scrolls the lines of the focus into view (`revealPad` px clear of the edge), and not at all ' +
+    'when they already are.',
   ({ ctx, h, on }) => {
     on(ctx.focus.changed, (c) => {
       const p = h.forSection(ctx.layout.sectionIndex(c.section));
       const vp = ctx.viewports.get(c.section);
       if (!p || !vp || !c.entry) return;
+      if (ctx.layout.isWrapped(c.section)) {
+        if (!p.reveal) return;
+        const e = c.entry;
+        const y = ctx.layout.revealY(c.section, e.block, e.start, e.stop, p.revealPad);
+        if (!Number.isNaN(y)) vp.scrollTo(vp.live.current.scrollX, y, c.origin);
+        return;
+      }
       const opts = {
         animate: p.animate && c.transitionMs !== 0,
         durationMs: c.transitionMs > 0 ? c.transitionMs : undefined,
@@ -364,6 +373,32 @@ export const FocusViewportBehavior = defineBehavior(
       };
       if (c.entry.blocks) vp.zoomToBlocks(c.entry.blocks, opts);
       else vp.zoomTo(c.entry.block, c.entry.start, c.entry.stop, opts);
+    });
+  },
+);
+
+export const ContextMenuBehavior = defineBehavior(
+  'contextMenu',
+  'interaction',
+  85,
+  { regions: ['data', 'header', 'gutter'] as readonly RegionName[] },
+  "A secondary-button press on a track (its data, its header or its gutter) asks for the track's menu (`events.menu`, origin `pointer`, with the pointer's place), as the keyboard's menu key does; where no track is under the pointer nothing is asked. The menu is the host's.",
+  ({ ctx, h, on }) => {
+    on(ctx.interaction.pointer, (e) => {
+      const i = e.input;
+      if (i.type !== PointerType.down || i.button !== 2) return;
+      const hit = e.hit;
+      const p = h.forSection(hit.section);
+      const rv = ctx.graph.assembled.value?.view?.resolved;
+      const set = ctx.graph.assembled.value?.set;
+      if (!p || !rv || !set || hit.track < 0 || !p.regions.includes(RegionName[hit.region])) return;
+      internal(ctx).openMenu(
+        ctx.layout.sectionRef(hit.section) ?? '',
+        set.strings.get(rv.tracks.ref[hit.track]),
+        'pointer',
+        i.x,
+        i.y,
+      );
     });
   },
 );

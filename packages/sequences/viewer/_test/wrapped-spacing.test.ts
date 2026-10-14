@@ -16,7 +16,7 @@ import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
 import { describe, expect, it } from 'vitest';
 import { case1 } from '../../core/_test/format/cases.js';
 import type { ShownIndex } from '../src/axis.js';
-import { DefaultPresets, EntryKind, KernelRenderers, type LayerRenderer, type RenderProps } from '../src/index.js';
+import { DefaultPresets, EntryKind, Hit, KernelRenderers, type LayerRenderer, type RenderProps } from '../src/index.js';
 import { opened } from './layout-fixtures.js';
 
 const T = EntryKind.track;
@@ -112,5 +112,55 @@ describe("the text layout's spacing", () => {
     expect(compact.props.wrappedGroup).toBe(10);
     expect(compact.props.wrappedGroupGap).toBeLessThan(wrapped.props.wrappedGroupGap);
     expect(compact.h).toBeLessThan(wrapped.h * 0.9);
+  });
+
+  it('wrappedAlign center puts the block of lines in the middle of the area; hits and the margins follow', async () => {
+    // 60 positions: three groups of 10 on a line of ~220 px, in an area of 400.
+    const start = await open(text(60), 400);
+    const centered = await open(text(60), 400, { wrappedAlign: 'center' });
+    const a = start.layout('v.main');
+    const c = centered.layout('v.main');
+    expect(a.lines.count).toBe(c.lines.count);
+    // The area is 400 px less the insets; the lines hold whole groups, narrower than it: equal margins either side.
+    const left = c.dataLeft - a.dataLeft;
+    const right = a.dataRight - c.dataRight;
+    expect(left).toBe(right);
+    expect(left).toBeGreaterThan(0);
+    // The widest line is 4 groups (4 · 72 + 3 · 8 = 312 px): the block is that wide.
+    expect(c.dataRight - c.dataLeft).toBeGreaterThanOrEqual(312);
+    expect(c.dataRight - c.dataLeft).toBeLessThan(312 + 2);
+    // Position 0 is at the centered left edge: a hit there names it, a hit in the margin names nothing.
+    const hit = (t: typeof centered, x: number) => {
+      const y = c.scrolledTop + c.entryTop[0] + 4;
+      const h = Hit.create();
+      t.ctx.layout.hitTest('v.main', x, y, h);
+      return h.shown;
+    };
+    const view = centered.ctx.layout.axis('v.main');
+    expect(view?.x(0, 0 as ShownIndex)).toBeCloseTo(c.dataLeft, 4);
+    expect(hit(centered, c.dataLeft + CELL / 2)).toBe(0);
+    expect(hit(centered, a.dataLeft + left / 2)).not.toBe(0);
+  });
+
+  it('wrappedMaxWidth wraps the lines there, and centered puts that column in the middle', async () => {
+    // 4 groups of 10 are 4 · 72 + 3 · 8 = 312 px; a column of 330 px holds 4, in an area of 600.
+    const wide = await open(text(120), 600, { wrappedAlign: 'center' });
+    const column = await open(text(120), 600, { wrappedAlign: 'center', wrappedMaxWidth: 330 });
+    const w = wide.layout('v.main');
+    const c = column.layout('v.main');
+    // 6 groups of 10 would fit a 600 px area (6 · 72 + 5 · 8 = 472); the column holds 4: more, shorter lines.
+    expect(c.lines.count).toBeGreaterThan(w.lines.count);
+    expect(c.lines.stop[0] - c.lines.start[0]).toBe(40);
+    expect(c.dataRight - c.dataLeft).toBeGreaterThanOrEqual(312);
+    expect(c.dataRight - c.dataLeft).toBeLessThan(312 + 2);
+    // Centered in the whole area: equal margins either side of the column.
+    const start = await open(text(120), 600);
+    const s0 = start.layout('v.main');
+    expect(c.dataLeft - s0.dataLeft).toBe(s0.dataRight - c.dataRight);
+  });
+
+  it('the default is start: nothing moves unless asked', async () => {
+    const t = await open(text(60), 400);
+    expect(t.ctx.layout.props('v.main').wrappedAlign).toBe('start');
   });
 });

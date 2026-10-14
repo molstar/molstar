@@ -38,6 +38,7 @@ import {
   type LineTable,
   layoutRuns,
   lineTable,
+  lineWidth,
   type PreparedRun,
   prepareRun,
 } from './runs.js';
@@ -68,6 +69,28 @@ export interface RenderProps extends ViewportProps {
   readonly wrappedGroup: number;
   /** Wrapped: px between groups on a line. */
   readonly wrappedGroupGap: number;
+  /**
+   * Wrapped: where the lines sit in the data area. `start` (the default): from its left edge; `center`: the block of
+   * lines centered, by the widest line (every line holds whole groups, so they are nearly as wide), the margins to
+   * either side belonging to the gutter. Hits, the selection and the drag read the same geometry.
+   */
+  readonly wrappedAlign: 'start' | 'center';
+  /**
+   * Wrapped: the least of the data area and this many px is as wide as the lines may be (0, the default: the whole
+   * area). The lines wrap there and sit where `wrappedAlign` puts them: a reading column in a wide strip.
+   */
+  readonly wrappedMaxWidth: number;
+  /**
+   * Wrapped: the letters in the layer's color theme (a residue class, a hydrophobicity scale) instead of the ink; false
+   * (the default): the text is plain, as text is.
+   */
+  readonly wrappedColors: boolean;
+  /**
+   * A unit's unobserved positions (in the sequence, not modelled in its structure: `observed` of the unit) drawn in the
+   * skin's `unobserved` color, in the letters' cells and text, not in the layer's color. False (the default): as any
+   * other position.
+   */
+  readonly unobservedGray: boolean;
   /** Wrapped: px between lines (a block's first line keeps `stackGap` from the last). */
   readonly wrappedGap: number;
   /** Wrapped: px between a line's letters and its first annotation lane (underlines). */
@@ -143,6 +166,10 @@ export const DefaultRenderProps: RenderProps = {
   wrappedGutter: 56,
   wrappedGroup: 10,
   wrappedGroupGap: 8,
+  wrappedAlign: 'start',
+  wrappedColors: false,
+  unobservedGray: false,
+  wrappedMaxWidth: 0,
   wrappedGap: 4,
   wrappedTrackGap: 2,
   wrappedLaneHeight: 5,
@@ -627,6 +654,14 @@ export interface LayoutManager {
   presetOf(section: number): PresetEntry | null;
   /** The section's navigator as drawn (its preset's; a `rulerRail` without a ruler: the `rail`). */
   navigatorOf(section: number): NavigatorEntry | null;
+  /** Whether the section is laid out as wrapped text (lines scrolling vertically, no zoom). */
+  isWrapped(section: string): boolean;
+  /**
+   * Wrapped text: the vertical scroll that brings the lines holding the block's indices [start, stop) into view, `pad` px
+   * clear of the edge where it scrolls; NaN where they already are, or nothing here shows them. A range taller than the
+   * view shows its first line at the top. Edge-rate (a focus).
+   */
+  revealY(section: string, block: number, start: number, stop: number, pad?: number): number;
 }
 
 export interface LayoutHost {
@@ -672,6 +707,8 @@ export class SectionEntry {
   runsText = -1;
   /** What the runs' group labels were prepared for: on, the font px, each block's numbering and its path. */
   runsLabels: readonly unknown[] = [];
+  /** Wrapped, `wrappedAlign: 'center'`: px the lines' block is moved in from either side of the data area. */
+  alignMargin = 0;
   dirty = true;
   /** A row zoom waits: the rows' height and the entries below them change, nothing else (`Layouts.rescale`). */
   rescaled = false;
@@ -755,6 +792,35 @@ export class Layouts implements LayoutManager {
   }
   navigatorOf(section: number): NavigatorEntry | null {
     return this.current[section]?.drawnNavigator ?? null;
+  }
+  isWrapped(section: string): boolean {
+    return this.map.get(section)?.layout.geometry === AxisGeometry.wrapped;
+  }
+  revealY(section: string, block: number, start: number, stop: number, pad = 0): number {
+    const e = this.ready(section);
+    const ax = e?.axis;
+    const s = e && this.host.viewports.get(e.ref)?.live.current;
+    if (!e || !ax || !s || e.layout.geometry !== AxisGeometry.wrapped || block < 0 || block >= ax.count)
+      return Number.NaN;
+    const l = e.layout;
+    const lines = l.lines;
+    const lineOf = (index: number) => {
+      const k = ax.shownOf(block, index) as number;
+      if (k < 0) return -1;
+      for (let n = 0; n < lines.count; n++)
+        if (lines.block[n] === block && lines.start[n] <= k && k < lines.stop[n]) return n;
+      return -1;
+    };
+    const first = lineOf(start);
+    const last = Math.max(first, lineOf(Math.max(start, stop - 1)));
+    if (first < 0) return Number.NaN;
+    const top = lines.top[first];
+    const bottom = last + 1 < lines.count ? lines.top[last + 1] : l.scrolledHeight - e.props.wrappedInset;
+    const view = l.height - l.scrolledTop;
+    if (view <= 0) return Number.NaN;
+    if (top - pad >= s.scrollY && bottom + pad <= s.scrollY + view) return Number.NaN;
+    const y = top - pad < s.scrollY || bottom - top + 2 * pad > view ? top - pad : bottom + pad - view;
+    return Math.max(0, Math.min(Math.max(0, l.scrolledHeight - view), y));
   }
 
   get(section: string): Live<SectionLayout> | null {
@@ -1215,6 +1281,11 @@ export class Layouts implements LayoutManager {
     l.vnavWidth = l.vscroll ? overviewWidth(p) : 0;
     l.dataRight = Math.max(ax.left, width - rightOf(p, wrapped) - l.vnavWidth);
     ax.insetX = ax.left + rightOf(p, wrapped) + l.vnavWidth;
+    // Centered text: the block's margins belong to the gutters (the lines were laid out to the whole area).
+    if (wrapped && e.alignMargin > 0) {
+      l.dataLeft += e.alignMargin;
+      l.dataRight -= e.alignMargin;
+    }
     this.blockEntries(l, ax);
   }
 
@@ -1436,9 +1507,20 @@ export class Layouts implements LayoutManager {
       this.stats.prepareRuns += runs.length;
     }
     // No lines before the viewport has a width (one position per line would be a line per position).
-    const width = l.dataRight - l.dataLeft;
+    const area = l.dataRight - l.dataLeft;
+    const width = p.wrappedMaxWidth > 0 ? Math.min(area, p.wrappedMaxWidth) : area;
     const n = width > 0 ? layoutRuns(e.runs, width, p.wrappedGroupGap, l.lines) : 0;
     if (width > 0) this.stats.layoutRuns++;
+    // Centered: the lines hold whole groups, so the block is as wide as its widest line; the margins either side join
+    // the gutters. The lines fit that width as they fit the area (greedy, and the area is at most a pixel wider).
+    if (n > 0 && p.wrappedAlign === 'center') {
+      let widest = 0;
+      for (let k = 0; k < n; k++) {
+        const w = lineWidth(e.runs[l.lines.block[k]], l.lines.start[k], l.lines.stop[k], p.wrappedGroupGap);
+        if (w > widest) widest = w;
+      }
+      e.alignMargin = Math.max(0, Math.floor((area - widest) / 2));
+    } else e.alignMargin = 0;
     // A track that draws nothing wrapped (a ruler, omitted layers) takes no entries; `aboveEnd` puts a band for the
     // group labels above each line.
     const all = items.filter((t) => t >= 0);

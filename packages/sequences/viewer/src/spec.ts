@@ -24,6 +24,7 @@ import type { SeqBehaviorProvider } from './behaviors.js';
 import { CommandsBehavior, SeqCommands } from './commands.js';
 import type { SeqViewerConfigItem } from './config.js';
 import {
+  ContextMenuBehavior,
   CursorBehavior,
   FocusViewportBehavior,
   HeaderHoverBehavior,
@@ -142,6 +143,7 @@ export const SeqViewerBehaviors = {
   RingWindow: RingWindowBehavior,
   VerticalOverview: VerticalOverviewBehavior,
   Headers: HeadersBehavior,
+  ContextMenu: ContextMenuBehavior,
   Select: SelectBehavior,
   DotPlotSelect: DotPlotSelectBehavior,
   DragPan: DragPanBehavior,

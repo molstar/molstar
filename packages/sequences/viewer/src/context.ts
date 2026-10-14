@@ -94,6 +94,12 @@ export interface ActivateEvent {
   readonly section: string;
   readonly track: string;
   readonly origin: Origin;
+  /**
+   * `events.menu` from the pointer (the `contextMenu` behavior): where it was, in the surface's px; -1 from the keyboard
+   * (a host places the menu at the cursor's track). Absent on `events.activate`.
+   */
+  readonly x?: number;
+  readonly y?: number;
 }
 export interface SeqViewerEvents {
   /** A track header activated (the `headers` behavior; the `keyboard` behavior's Enter on a header). */
@@ -284,7 +290,7 @@ class Context implements SeqViewerContext {
   readonly commands: Commands;
   readonly activateEvent: SeqEventEmitter<ActivateEvent>;
   readonly menuEvent: SeqEventEmitter<ActivateEvent>;
-  private readonly menuAsked = { section: '', track: '', origin: 'api' as Origin };
+  private readonly menuAsked = { section: '', track: '', origin: 'api' as Origin, x: -1, y: -1 };
   readonly layout: Layouts;
   readonly streams: Streams;
   readonly viewports: Viewports;
@@ -516,11 +522,13 @@ class Context implements SeqViewerContext {
   }
 
   /** The `keyboard` behavior's menu key (`events.menu`): one record, reused (a held key allocates nothing). */
-  openMenu(section: string, track: string, origin: Origin) {
+  openMenu(section: string, track: string, origin: Origin, x = -1, y = -1) {
     const e = this.menuAsked;
     e.section = section;
     e.track = track;
     e.origin = origin;
+    e.x = x;
+    e.y = y;
     this.menuEvent.emit(e);
   }
 

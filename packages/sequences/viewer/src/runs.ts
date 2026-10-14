@@ -238,6 +238,12 @@ export function runXInto(run: PreparedRun, lineStart: number, k: number, gap: nu
   out[i] = at + gap * (g - groupOf(run, lineStart));
 }
 
+/** The width of the line [start, stop) of a run: its last position's right edge from the line's start. */
+export function lineWidth(run: PreparedRun, start: number, stop: number, gap: number): number {
+  runXInto(run, start, stop - 1, gap, xs, 0);
+  return xs[0] + run.advance;
+}
+
 /** The group holding shown position k: a binary search over `startShown`. */
 export function groupOf(run: PreparedRun, k: number): number {
   const s = run.startShown;

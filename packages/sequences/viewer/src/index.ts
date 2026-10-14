@@ -79,6 +79,7 @@ export {
   type BehaviorKit,
   CursorBehavior,
   defineBehavior,
+  ContextMenuBehavior,
   FocusViewportBehavior,
   HeaderHoverBehavior,
   HoverBehavior,

@@ -208,15 +208,25 @@ as its outline alone).
   ranges. A click on a cell selects its two positions. The cursor there is a crosshair (`cursor`'s `dotPlot`).
 - A band over many rows stays one rectangle. Selections follow their set across updates.
 
+## The track menu
+
+A track's menu is the host's; Seq* says when one is asked for (`events.menu`: the section, the track and the origin).
+The keyboard's menu key (Shift+F10 or ContextMenu on the cursor's track) asks from the cursor; the `contextMenu`
+behavior asks from the pointer: a secondary-button press on a track (its data, header or gutter: its `regions` param)
+emits it with the pointer's place in the surface's px. Where no track is under the pointer nothing is asked, and a spec
+without the behavior asks nothing from the pointer.
+
 ## Focus
 
 `focus.fromLoci` (and `fromExtents`) projects without closure, links and rows included, and frames every block it
 lights, from the first lit position to the last, at the largest cell that shows them all; on a cyclic system, the
 shortest arc. A section's `focus` node is its initial focus; a patch or snapshot that changes it moves the viewport,
-animated by the `focusViewport` behavior. `ctx.refs.toLoci(ref, args)` resolves a ref to loci (a unit, molecule,
-complex, row, annotation, track or layer); range args outside its domain (index args, or labels not there or resolving
-outside it; a complex's, outside every member) give none, never a clipped part. A molecule's args name its positions in
-each of its units.
+animated by the `focusViewport` behavior. Wrapped text does not zoom: the behavior scrolls the lines of the focus into
+view (`reveal`, on by default; `revealPad` px clear of the edge), the first line at the top where the range is taller
+than the view, and not at all where its lines already are shown. `ctx.refs.toLoci(ref, args)` resolves a ref to loci (a
+unit, molecule, complex, row, annotation, track or layer); range args outside its domain (index args, or labels not
+there or resolving outside it; a complex's, outside every member) give none, never a clipped part. A molecule's args
+name its positions in each of its units.
 
 ## Results
 

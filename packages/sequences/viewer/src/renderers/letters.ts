@@ -68,6 +68,7 @@ import {
   ThemeLocation,
   textShown,
   visibleRange,
+  type Skin,
 } from '../draw/api.js';
 
 type Params = Readonly<Record<string, unknown>>;
@@ -204,6 +205,27 @@ let held = new Uint8Array(4096);
  * A block's own letters as cells: the color theme at block index i, keyed by letter where it colors by letter alone.
  * `codes` and `base` are the block's being drawn (a streamed one's: `held` from its hull's start; `raw`: no index).
  */
+/** The skin's `unobserved` color as a number, parsed when the skin changes (a draw reads it per position). */
+let grayOf: Skin | null = null;
+let gray = NO_COLOR;
+function unobservedColor(skin: Skin): number {
+  if (skin !== grayOf) {
+    grayOf = skin;
+    const m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/.exec(skin.unobserved);
+    const hex = /^#([0-9a-f]{6})$/i.exec(skin.unobserved);
+    gray = m ? (Number(m[1]) << 16) | (Number(m[2]) << 8) | Number(m[3]) : hex ? Number.parseInt(hex[1], 16) : NO_COLOR;
+  }
+  return gray;
+}
+/** Whether block b's position i is a unit position the structure does not model (the unit's `observed` ranges). */
+function unobservedAt(ax: Axis, b: number, i: number): boolean {
+  const u = ax.unit[b];
+  const obs = u >= 0 ? ax.set.units.observed[u] : null;
+  if (!obs) return false;
+  for (let k = 0; k < obs.length; k += 2) if (i >= obs[k] && i < obs[k + 1]) return false;
+  return true;
+}
+
 const own: CellSource & {
   v: DrawView | null;
   s: LettersState | null;
@@ -221,6 +243,7 @@ const own: CellSource & {
     const s = own.s as LettersState;
     const codes = own.codes;
     if (!v.color || !codes || !v.axis) return NO_COLOR;
+    if (v.props.unobservedGray && unobservedAt(v.axis, b, i)) return unobservedColor(v.skin);
     // The theme reads the letter shown (`letter_map`), not the stored one; atoms are numbers, never mapped.
     const c = codes[i - own.base];
     if (c === 0) return NO_COLOR;
@@ -438,6 +461,8 @@ function block(v: DrawView, s: LettersState, b: number) {
   const w = v.cell * v.span[b];
   // Residues and atoms alike: their cells in the theme's color at every zoom (a ligand's one position is its pill).
   const cells = !wrapped && v.color !== null;
+  // Wrapped text with `wrappedColors`: the letters themselves in the layer's color (there are no cells to put it on).
+  const tinted = wrapped && v.color !== null && v.props.wrappedColors;
   own.v = v;
   own.s = s;
   own.codes = codes;
@@ -472,7 +497,7 @@ function block(v: DrawView, s: LettersState, b: number) {
     if (stored === 0 && !atoms) continue;
     const c = map !== null ? map[stored & 127] : stored;
     // An atom in its theme's color; a residue in the ink that reads on its cell; a gap quiet.
-    const fill = atoms || cells ? own.color(b, i) : NO_COLOR;
+    const fill = atoms || cells || tinted ? own.color(b, i) : NO_COLOR;
     letters.begin(
       atoms
         ? fill >= 0
@@ -481,7 +506,9 @@ function block(v: DrawView, s: LettersState, b: number) {
         : c === 45 || c === 46
           ? SkinToken.inkQuiet
           : fill >= 0
-            ? cellInk(fill)
+            ? tinted
+              ? fill
+              : cellInk(fill)
             : SkinToken.ink,
     );
     const t = letters.add(atoms ? symbol(c) : CHARS[c & 127]);

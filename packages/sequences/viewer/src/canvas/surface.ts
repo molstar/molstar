@@ -94,6 +94,8 @@ export function watchDpr(win: DprHost, changed: (dpr: number) => void): () => vo
 
 /** Passes with a canvas of their own, in stacking order (`Pass`): the section's four, then the vertical overview's two. */
 const PASSES = 6;
+/** Each pass canvas's `data-pass`, in stacking order (`Pass`). */
+const PASS_NAMES = ['main', 'overlay', 'nav', 'navOverlay', 'vnav', 'vnavOverlay'] as const;
 /** `frameId` while a frame reads the layout: what it triggers is ORed in and drawn by this frame. */
 const DRAWING = -2;
 
@@ -182,6 +184,8 @@ export class SectionSurface implements Surface {
       const c = document.createElement('canvas');
       // 0 × 0 until sized (a canvas is 300 × 150 by default): the vertical overview's stay empty while the rows fit.
       c.width = c.height = 0;
+      // Named for the host's CSS (a host fades the vertical overview and scrollbar in and out by `[data-pass^="vnav"]`).
+      c.dataset.pass = PASS_NAMES[p];
       c.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;pointer-events:none';
       el.appendChild(c);
       this.canvases.push(c);
