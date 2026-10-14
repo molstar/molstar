@@ -49,7 +49,8 @@ import {
   SplitColorProp,
 } from '@molstar/mvs/components/split-uniform-color-theme';
 import { MvsNamedColorDicts, MvsNamedColorLists } from '@molstar/mvs/helpers/colors';
-import { type ElementOfSet, decodeColor, isDefined, stringHash } from '@molstar/mvs/helpers/utils';
+import { isDefined } from '@molstar/core/util/object';
+import { type ElementOfSet, decodeColor, stringHash } from '@molstar/mvs/helpers/utils';
 import { MolstarLoadingContext } from '@molstar/mvs/load';
 import { UpdateTarget, mvsRefTags } from '@molstar/mvs/load-generic';
 import { type Subtree, getChildren } from '@molstar/mvs-builder/tree/generic/tree-schema';

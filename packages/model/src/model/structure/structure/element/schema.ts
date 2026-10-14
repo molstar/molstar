@@ -5,6 +5,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { isDefined } from '@molstar/core/util/object';
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { Expression } from '@molstar/query-language/language/expression';
 import type { Structure } from '../structure.js';
@@ -129,10 +130,6 @@ function toExpression(schema: Schema): Expression {
 
 function unionExpression(expressions: Expression[]): Expression {
   return MS.struct.combinator.merge(expressions.map((e) => MS.struct.modifier.union([e])));
-}
-
-function isDefined<T>(value: T | undefined | null): value is T {
-  return value !== undefined && value !== null;
 }
 
 /**

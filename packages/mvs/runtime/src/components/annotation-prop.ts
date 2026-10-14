@@ -34,7 +34,8 @@ import {
   getSphereRangesForRow,
   rowsUseOperators,
 } from '@molstar/model/model/structure/structure/element/schema-selection/selections';
-import { type Maybe, isDefined, safePromise } from '@molstar/mvs/helpers/utils';
+import { isDefined } from '@molstar/core/util/object';
+import { type Maybe, safePromise } from '@molstar/mvs/helpers/utils';
 
 /** Allowed values for the annotation format parameter */
 const MVSAnnotationFormat = new Choice({ json: 'json', cif: 'cif', bcif: 'bcif' }, 'json');

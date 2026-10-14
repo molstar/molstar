@@ -10,6 +10,7 @@ import { StateObject } from '@molstar/core/state';
 import { range } from '@molstar/core/util/array';
 import { Color } from '@molstar/core/util/color';
 import { decodeColor as _decodeColor } from '@molstar/core/util/color/utils';
+import { isDefined } from '@molstar/core/util/object';
 import { ColorT } from '@molstar/mvs-builder/tree/mvs/param-types';
 
 /** Represents either the result or the reason of failure of an operation that might have failed */
@@ -25,12 +26,6 @@ export async function safePromise<T>(promise: T): Promise<Maybe<Awaited<T>>> {
   }
 }
 
-/** Return `true` if `value` is not `undefined` or `null`.
- * Prefer this over `value !== undefined`
- * (for maybe if we want to allow `null` in `AnnotationRow` in the future) */
-export function isDefined<T>(value: T | undefined | null): value is T {
-  return value !== undefined && value !== null;
-}
 /** Return filtered array containing all original elements except `undefined` or `null`. */
 export function filterDefined<T>(elements: (T | undefined | null)[]): T[] {
   return elements.filter((x) => x !== undefined && x !== null) as T[];

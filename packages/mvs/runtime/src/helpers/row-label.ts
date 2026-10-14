@@ -5,7 +5,7 @@
  */
 
 import type { MVSAnnotationRow } from './schemas.js';
-import { isDefined } from './utils.js';
+import { isDefined } from '@molstar/core/util/object';
 
 /** Longest label made of the descriptions of individual rows (the labels are shown in narrow places, e.g. buttons) */
 const MaxListedLength = 32;
