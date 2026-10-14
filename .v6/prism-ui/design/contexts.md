@@ -4,6 +4,17 @@ The contracts every other design builds on, frozen at the review gate ([../revie
 for the first implementation. Where another document says otherwise, this one holds. Informed by how the agent harness
 and the sequence viewer must be hosted ([../analysis/harness-and-seqstar.md](../analysis/harness-and-seqstar.md)).
 
+> **Direction changed (David, 2026-10-14), to be reconciled with this document later.** Prism takes a library
+> approach: prism-ui is the runtime for generic Mol\* UIs (the shell, the common controls, the canvas-ink abstraction,
+> the agentic wrappers, commands), and the viewer and the story mode are opinionated compositions on it, each owning
+> its features in its own code. There is no extension framework: where this document describes modules (`ModuleKey`,
+> `PrismModule`, the registry, §3) and contributions (`UIContribution`, a mode's `contributions`, §4) as the way
+> features are composed, the compositions own them directly instead, and prefer fewer packages. The rest (one mode per
+> app, the context's lifetime, origins, the plugin boundary, results and state) still holds until the reconciliation.
+> A composition may still take extensions, as the v5 Viewer does through its composition spec: the Prism viewer will,
+> on its own terms; prism-ui, the library, takes no position on how.
+> The first design under the new direction: [../../seq/prism-sequence.md](../../seq/prism-sequence.md) §2.
+
 ## 1. An app, its mode, its lifetime
 
 - **One mode per app.** A Prism app runs one mode: the viewer (`@molstar/prism-viewer`, Mol\*'s own UI) or the story

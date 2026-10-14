@@ -12,11 +12,15 @@ import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
-import { For, Show } from '../../dom/control-flow.js';
+import { activity, For, Show } from '../../dom/control-flow.js';
+import { onCleanup } from '../../dom/scope.js';
 import type { Child } from '../../dom/jsx-types.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/dock.module.css.js';
+import { ItemIcon, itemTitle } from './canvas-chrome.js';
+import { type RailEntry, RailLayout } from './rail.js';
 import { ViewHost } from './view-host.js';
 
 /** A side dock: its tab strip on the outer edge and the active tab's content next to the canvas. */
@@ -79,22 +83,29 @@ export function FloatingDock(props: {
   shell: ShellModel;
   dock: DockModel;
   railLead?: Child;
-  railItems?: Child;
+  /** The rail's toolbar sections; it gets the layout to leave out what does not fit (`CanvasToolbar`'s `hidden`). */
+  railItems?: (rail: RailLayout) => Child;
   /** At the bottom of the rail (the command menu). */
-  railFoot?: Child;
+  railFoot?: (rail: RailLayout) => Child;
 }) {
   const { shell, dock } = props;
   const size = { '--msp-dock-size': dock.state.pipe(map((s) => `${s.size}px`)) };
+  // What does not fit the rail's height, even at its smallest size, is under More (rail.ts).
+  const rail = new RailLayout(shell, dock);
   // Tabs at the head of the rail (Home), in the strip, and at its foot (Settings, by the command menu).
-  const head = dock.tabs.pipe(map((tabs) => tabs.filter((t) => t.place === 'head')));
-  const strip = dock.tabs.pipe(map((tabs) => tabs.filter((t) => !t.place || t.place === 'strip')));
-  const foot = dock.tabs.pipe(map((tabs) => tabs.filter((t) => t.place === 'foot')));
+  const shown = combineLatest([dock.tabs, rail.hidden]).pipe(
+    map(([tabs, hidden]) => (hidden.size ? tabs.filter((t) => !hidden.has(`tab:${t.id}`)) : tabs)),
+  );
+  const head = shown.pipe(map((tabs) => tabs.filter((t) => t.place === 'head')));
+  const strip = shown.pipe(map((tabs) => tabs.filter((t) => !t.place || t.place === 'strip')));
+  const foot = shown.pipe(map((tabs) => tabs.filter((t) => t.place === 'foot')));
   if (dock.id === 'top' || dock.id === 'bottom') {
     // A top or bottom card spans the canvas between the edges and what floats on the sides. Collapsed, it is gone: a
     // canvas toolbar button (Sequence) brings it back.
     return (
       <div
         class={`${classes.floating} ${dock.id === 'top' ? classes.floatingTop : classes.floatingBottom}`}
+        classList={{ [classes.band]: dock.active.pipe(map((tab) => tab?.frame === 'none')) }}
         style={size}
       >
         <Show when={dock.active} reveal>
@@ -103,12 +114,17 @@ export function FloatingDock(props: {
       </div>
     );
   }
-  return (
+  const root = (
     <div
       class={`${classes.floating} ${dock.id === 'left' ? classes.floatingLeft : classes.floatingRight}`}
       style={size}
     >
-      <div class={`${classes.rail} ${canvasClasses.frame}`}>
+      <div
+        class={`${classes.rail} ${canvasClasses.frame}`}
+        ref={(el) => {
+          onCleanup(rail.observe(el));
+        }}
+      >
         {props.railLead}
         <Show when={head.pipe(map((tabs) => tabs.length > 0))}>
           {() => (
@@ -124,7 +140,8 @@ export function FloatingDock(props: {
             </nav>
           )}
         </Show>
-        {props.railItems}
+        {props.railItems?.(rail)}
+        <RailMore shell={shell} dock={dock} rail={rail} root={() => root} />
         <div class={classes.railFoot}>
           <Show when={foot.pipe(map((tabs) => tabs.length > 0))}>
             {() => (
@@ -133,13 +150,130 @@ export function FloatingDock(props: {
               </nav>
             )}
           </Show>
-          {props.railFoot}
+          {props.railFoot?.(rail)}
         </div>
       </div>
       <Show when={dock.active} reveal="side">
-        {(tab) => <DockContent shell={shell} dock={dock} tab={tab} pinnable />}
+        {(tab) => <DockContent shell={shell} dock={dock} tab={tab} pinnable coveredBy={shell.overlay} />}
       </Show>
+      <RailMoreMenu shell={shell} dock={dock} rail={rail} />
     </div>
+  ) as HTMLElement;
+  return root;
+}
+
+/** Runs a tab's button: selects it, or, with an overlay card in the panel's place, closes that and shows the tab. */
+function activateTab(shell: ShellModel, dock: DockModel, tab: ShellTab) {
+  if (dock.id === 'right' && shell.overlay.value) {
+    shell.closeOverlay();
+    shell.show(tab.id);
+  } else shell.select(tab.id);
+}
+
+/**
+ * The rail's More button: where the buttons that do not fit the rail's height go (rail.ts). It is the last button of the
+ * rail's sections, above the foot; its menu (`RailMoreMenu`) opens to the left, outside the rail's clipping.
+ */
+function RailMore(props: { shell: ShellModel; dock: DockModel; rail: RailLayout; root: () => HTMLElement }) {
+  const { rail } = props;
+  const menu = rail.menu;
+  return (
+    <Show when={rail.overflow.pipe(map((o) => o.length > 0))}>
+      {() => {
+        // Gone (the rail grew): the menu is closed, it does not come back open.
+        onCleanup(() => menu.set(undefined));
+        return (
+          <nav class={classes.strip} aria-label="More buttons">
+            <button
+              type="button"
+              class={classes.tab}
+              data-tip="More"
+              data-tip-side="left"
+              aria-label="More"
+              aria-haspopup="menu"
+              aria-expanded={menu.asReadonly.pipe(map((m) => !!m))}
+              onClick={(e) => {
+                if (menu.value) return menu.set(undefined);
+                // One read, on the click: where the button is, so the menu's bottom edge is level with it.
+                const anchor = e.currentTarget;
+                const bottom = props.root().getBoundingClientRect().bottom - anchor.getBoundingClientRect().bottom;
+                menu.set({ bottom, anchor });
+              }}
+            >
+              <Icon name="ellipsis" size={20} />
+            </button>
+          </nav>
+        );
+      }}
+    </Show>
+  );
+}
+
+/** The More menu: a row for each button left out of the rail, in the rail's order; like the canvas menus, a glass card. */
+function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLayout }) {
+  const { shell, dock, rail } = props;
+  const menu = rail.menu;
+  // Open only while there is something in it (the rail grew: nothing is left out).
+  const open = combineLatest([menu.asReadonly, rail.overflow]).pipe(
+    map(([m, o]) => (m && o.length > 0 ? m : undefined)),
+  );
+  const run = (entry: RailEntry, anchor: Element) => {
+    menu.set(undefined);
+    if (entry.tab) return activateTab(shell, dock, entry.tab);
+    const item = entry.item!;
+    if (item.overlay) shell.toggleOverlay(item.overlay, anchor);
+    else item.run?.(anchor);
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape' || !menu.value) return;
+    const anchor = menu.value.anchor as HTMLElement;
+    menu.set(undefined);
+    anchor.focus();
+    e.preventDefault();
+  };
+  const onDown = (e: PointerEvent) => {
+    const m = menu.value;
+    if (!m) return;
+    const target = e.target as Node;
+    if (m.anchor.contains(target) || (target as Element).closest?.(`.${classes.railMenu}`)) return;
+    menu.set(undefined);
+  };
+  document.addEventListener('keydown', onKey);
+  document.addEventListener('pointerdown', onDown);
+  onCleanup(() => {
+    document.removeEventListener('keydown', onKey);
+    document.removeEventListener('pointerdown', onDown);
+  });
+  return (
+    <Show when={open}>
+      {(m) => (
+        <div class={classes.railMenu} style={{ bottom: `${m.bottom}px` }}>
+          <div
+            class={canvasClasses.toolMenuCard}
+            role="menu"
+            aria-label="More"
+            ref={(el) => queueMicrotask(() => el.querySelector('button')?.focus())}
+          >
+            <For each={rail.overflow} key={(e) => e.id}>
+              {(entry) => (
+                <button
+                  type="button"
+                  role="menuitem"
+                  class={canvasClasses.toolMenuRow}
+                  onClick={(e) => run(entry, m.anchor)}
+                >
+                  {entry.tab ? <Icon name={entry.tab.icon} size={16} /> : <ItemIcon item={entry.item!} size={16} />}
+                  <span class={canvasClasses.toolMenuLabel}>
+                    {entry.tab ? entry.tab.title : itemTitle(entry.item!)}
+                  </span>
+                  <span />
+                </button>
+              )}
+            </For>
+          </div>
+        </div>
+      )}
+    </Show>
   );
 }
 
@@ -177,12 +311,7 @@ function TabButton(props: { shell: ShellModel; dock: DockModel; tab: ShellTab })
       data-tip-side="left"
       aria-label={tab.title}
       aria-selected={selected}
-      onClick={() => {
-        if (dock.id === 'right' && shell.overlay.value) {
-          shell.closeOverlay();
-          shell.show(tab.id);
-        } else shell.select(tab.id);
-      }}
+      onClick={() => activateTab(shell, dock, tab)}
     >
       <Icon name={tab.icon} size={20} />
     </button>
@@ -212,10 +341,27 @@ export function PinButton(props: { shell: ShellModel; dock: DockId }) {
   );
 }
 
-function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; pinnable?: boolean }) {
+/**
+ * A tab's content: a card with its header and the view. It is mounted only while its tab is the dock's active one (`Show`
+ * in `DockView`: a closed or replaced panel is gone, not hidden). The one way it stays mounted and hidden is an overlay
+ * card taking the panel's place (`coveredBy`, the shell's open overlay): the panel is then paused and inert (`activity`,
+ * shell.md "Hidden panels"), and comes back as it was.
+ */
+function DockContent(props: {
+  shell: ShellModel;
+  dock: DockModel;
+  tab: ShellTab;
+  pinnable?: boolean;
+  coveredBy?: ReadonlyState<unknown>;
+}) {
   const { shell, dock, tab } = props;
-  return (
-    <section class={classes.content} role="tabpanel" aria-label={tab.title}>
+  const shown = props.coveredBy ? props.coveredBy.pipe(map((o) => !o)) : true;
+  return activity(shown, () => (
+    <section
+      class={tab.frame === 'none' ? `${classes.content} ${classes.frameless}` : classes.content}
+      role="tabpanel"
+      aria-label={tab.title}
+    >
       <Splitter shell={shell} dock={dock} />
       <header class={classes.header}>
         <span class={classes.title}>
@@ -247,7 +393,7 @@ function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab;
         </Show>
       </ScrollArea>
     </section>
-  );
+  ));
 }
 
 /**

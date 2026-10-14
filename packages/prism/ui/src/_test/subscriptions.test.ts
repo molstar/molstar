@@ -13,7 +13,8 @@ import * as path from 'node:path';
 // A component follows a stream with `bind` (dom/scope.ts), which its render scope unsubscribes. A raw `.subscribe(`
 // in a component outlives it unless it is kept in a const and unsubscribed (`onCleanup(() => sub.unsubscribe())`):
 // the command menu's rows and selected rows were, and a closed menu kept recomputing on the registry's changes.
-const src = path.resolve(import.meta.dirname, '..');
+// prism-ui's own components, and the viewer's (the sequence control among them; the stories' mocks, in `testing`, are not).
+const roots = [path.resolve(import.meta.dirname, '..'), path.resolve(import.meta.dirname, '../../../viewer/src')];
 
 function* components(dir: string): Generator<string> {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -53,8 +54,10 @@ describe('subscriptions in components', () => {
 
   it('are bound, or kept and unsubscribed', () => {
     const offenders: string[] = [];
-    for (const file of components(src)) {
-      for (const at of unowned(fs.readFileSync(file, 'utf8'))) offenders.push(`${path.relative(src, file)}:${at}`);
+    for (const src of roots) {
+      for (const file of components(src)) {
+        for (const at of unowned(fs.readFileSync(file, 'utf8'))) offenders.push(`${path.relative(src, file)}:${at}`);
+      }
     }
     expect(offenders).toEqual([]);
   });

@@ -1,0 +1,50 @@
+{
+  "name": "@molstar/seq-storybook",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "The Seq* Storybook content: the stories, their support code and the Seq*/Docs pages. A host's Storybook adds the plugin from ./vite; the decorator is the preview module at src/preview.ts, loaded by path (storybook/packages.ts); nothing here imports an application.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "exports": {
+    "./vite": "./vite.ts",
+    "./support/cases": "./src/_stories/support/seqstar-cases.ts",
+    "./support/viewer": "./src/_stories/support/seqstar-viewer.tsx",
+    "./support/ux.module.css": "./src/_stories/support/seqstar-ux.module.css",
+    "./_stories/*": null,
+    "./_test/*": null
+  },
+  "files": [
+    "src",
+    "vite.ts",
+    "!**/_test/**"
+  ],
+  "scripts": {
+    "test:slow": "vitest run --config vitest.slow.config.ts",
+    "test:full": "pnpm -w test:unit packages/sequences/storybook && pnpm test:slow",
+    "typecheck": "tsc -b ../molstar-poc ../nightingale ../../prism/ui && tsc -p tsconfig.json && tsc -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@molstar/prism-ui": "workspace:*",
+    "@molstar/seq-core": "workspace:*",
+    "@molstar/seq-molstar-poc": "workspace:*",
+    "@molstar/seq-nightingale": "workspace:*",
+    "@molstar/seq-viewer": "workspace:*",
+    "clsx": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@storybook/addon-docs": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/webxr": "catalog:",
+    "storybook": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

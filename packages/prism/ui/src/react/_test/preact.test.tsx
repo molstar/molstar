@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRoot } from 'preact/compat/client';
 import { act } from 'preact/test-utils';
 import { defineElements, MspElement } from '../../dom/element.js';
+import { Scope } from '../../dom/scope.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { MspElementHost } from '../element-host.js';
 import { reactView } from '../react-view.js';
@@ -44,7 +45,7 @@ describe('React adapter on Preact (react aliased to preact/compat)', () => {
     document.body.append(host);
     let dispose: () => void = () => {};
     act(() => {
-      dispose = reactView(View as never, { createRoot: createRoot as never }).mount(host, { label });
+      dispose = reactView(View as never, { createRoot: createRoot as never }).mount(host, { label }, new Scope());
     });
     expect(host.textContent).toBe('one');
     act(() => label.set('two'));

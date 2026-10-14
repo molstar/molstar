@@ -5,8 +5,10 @@
  */
 
 import type { StorybookConfig } from '@storybook/web-components-vite';
+import remarkGfm from 'remark-gfm';
 import { defaultClientConditions, mergeConfig } from 'vite';
 import { monorepoRoot, packageRoot, StoryPackages } from '../packages.js';
+import { storyPreviewsPlugin } from './story-previews.js';
 
 // The stories of every registered package (../packages.ts), under its group; by convention they sit in `_stories/`
 // folders.
@@ -16,15 +18,26 @@ const config: StorybookConfig = {
     files: '**/*.@(mdx|stories.ts|stories.tsx)',
     titlePrefix: pkg.group,
   })),
-  addons: ['@storybook/addon-docs', '@storybook/addon-a11y'],
+  addons: [
+    // GitHub-flavored Markdown in MDX pages (tables, strikethrough, task lists).
+    {
+      name: '@storybook/addon-docs',
+      options: { mdxPluginOptions: { mdxCompileOptions: { remarkPlugins: [remarkGfm] } } },
+    },
+    '@storybook/addon-a11y',
+  ],
   framework: '@storybook/web-components-vite',
   viteFinal: (viteConfig) =>
     mergeConfig(viteConfig, {
-      plugins: StoryPackages.flatMap((pkg) => pkg.plugins?.(packageRoot(pkg)) ?? []),
+      plugins: [
+        storyPreviewsPlugin(StoryPackages),
+        ...StoryPackages.flatMap((pkg) => pkg.plugins?.(packageRoot(pkg)) ?? []),
+      ],
       resolve: {
         // Resolve workspace `@molstar/*` packages to source instead of built `lib/`.
         conditions: ['molstar-src', ...defaultClientConditions],
-        dedupe: ['rxjs'],
+        // One React for the stories, the MDX pages and the docs blocks.
+        dedupe: ['rxjs', 'react', 'react-dom'],
       },
       server: {
         fs: { allow: [monorepoRoot] },

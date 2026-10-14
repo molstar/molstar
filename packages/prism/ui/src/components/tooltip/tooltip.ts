@@ -13,7 +13,7 @@ const ShowDelayMs = 350;
 
 /**
  * Tooltips for icon buttons: any element in `root` with `data-tip` (the text) gets one, placed by `data-tip-side`
- * (`left` for the rail and the canvas stack, `top` for the bottom of the canvas, `bottom` by default), on hover or keyboard focus. One element is reused,
+ * (`left` for the rail and the canvas stack, `top` for the bottom of the canvas, `bottom` by default), on hover or keyboard focus (never for an element in an `inert` part: hidden UI takes no pointer). One element is reused,
  * positioned in the viewport; buttons keep their `aria-label` for assistive technology (no native `title` as well).
  * `data-tip-overflow` (no text) shows the element's own text, only while it is cut off (a long label, faded at its end).
  * `data-tip-row` (a tree row) shows its parts' text (`data-tip-part`: the label, then the description, muted) while
@@ -29,7 +29,12 @@ export function installTooltips(root: HTMLElement): () => void {
   root.append(tip);
 
   let target: HTMLElement | undefined;
+  // Whether the pointer (not the keyboard focus) brought the tip: it then ends when the pointer is not over the anchor.
+  let byPointer = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  // While one is shown: the anchor's size. A view closing or hiding takes its anchor out without a pointerout, and the
+  // tip would stay; an anchor that is gone or has no size ends it (no listener per event, one observer on one element).
+  const watch = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(() => !usable(target) && hide());
 
   const place = (el: HTMLElement) => {
     const row = el.dataset.tipRow !== undefined;
@@ -43,9 +48,11 @@ export function installTooltips(root: HTMLElement): () => void {
     const gap = 8;
     let x: number;
     let y: number;
+    let panel: DOMRect | undefined;
     if (side === 'beside') {
       // Outside the panel the row is in (its tab panel), clear of its edge; on its left, or its right without room.
       const edge = el.closest('[data-tip-edge], [role="tabpanel"]')?.getBoundingClientRect() ?? r;
+      panel = edge;
       const clear = 8;
       x = edge.left - clear - t.width;
       if (x < 4) x = edge.right + clear;
@@ -62,6 +69,9 @@ export function installTooltips(root: HTMLElement): () => void {
     }
     x = Math.max(4, Math.min(x, window.innerWidth - t.width - 4));
     y = Math.max(4, Math.min(y, window.innerHeight - t.height - 4));
+    // A card beside its panel never lies over it: with no room outside either edge there is no card (it would cover the
+    // next rows).
+    if (panel && x < panel.right && x + t.width > panel.left && panel !== r) return hide();
     tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
     tip.dataset.side = side;
   };
@@ -69,12 +79,14 @@ export function installTooltips(root: HTMLElement): () => void {
   const hide = () => {
     if (timer !== undefined) clearTimeout(timer);
     timer = undefined;
+    watch?.disconnect();
     target = undefined;
     tip.hidden = true;
   };
 
-  const show = (el: HTMLElement, immediate: boolean) => {
+  const show = (el: HTMLElement, immediate: boolean, pointer: boolean) => {
     if (timer !== undefined) clearTimeout(timer);
+    byPointer = pointer;
     // Its own text, only when cut off (by more than rounding: scrollWidth rounds a fractional width up, clientWidth
     // down, so text that fits can read 1 px over).
     if (el.dataset.tip === undefined && !cutOff(el)) {
@@ -83,22 +95,34 @@ export function installTooltips(root: HTMLElement): () => void {
       return;
     }
     target = el;
-    if (immediate) place(el);
-    else timer = setTimeout(() => target === el && place(el), ShowDelayMs);
+    const showNow = () => {
+      // The anchor may have gone while the pointer rested (a panel closed): no tip for what is not there.
+      if (target !== el || !usable(el)) return hide();
+      place(el);
+      if (tip.hidden) return;
+      watch?.disconnect();
+      watch?.observe(el);
+    };
+    if (immediate) showNow();
+    else timer = setTimeout(showNow, ShowDelayMs);
   };
 
   const tipOf = (e: Event) => {
     const at = e.target as Element | null;
     const el = at?.closest?.<HTMLElement>('[data-tip], [data-tip-overflow], [data-tip-row]') ?? undefined;
+    // Hidden UI is inert (a panel behind a card, a folded section): no tip for it, whatever hit it.
+    if (el?.closest('[inert]')) return undefined;
     // A row answers only over its text (not its chevron or its buttons).
     if (el?.dataset.tipRow !== undefined && !at?.closest('[data-tip-part]')) return undefined;
     return el;
   };
 
   const onOver = (e: PointerEvent) => {
+    // A pointer event anywhere: a tip whose anchor was removed ends now (a connected check, nothing more).
+    if (target && !target.isConnected) hide();
     const el = tipOf(e);
     if (!el || el === target) return;
-    show(el, !tip.hidden);
+    show(el, !tip.hidden, true);
   };
   const onOut = (e: PointerEvent) => {
     const el = tipOf(e);
@@ -106,10 +130,16 @@ export function installTooltips(root: HTMLElement): () => void {
   };
   const onFocus = (e: FocusEvent) => {
     const el = tipOf(e);
-    if (el?.matches(':focus-visible')) show(el, true);
+    if (el?.matches(':focus-visible')) show(el, true, false);
   };
 
+  const onMove = (e: PointerEvent) => {
+    // The anchor went, or is no longer what is under the pointer (it was hidden, made inert, covered): the tip ends. A
+    // contains check on the one anchor, only while a tip is pending or shown.
+    if (target && (!target.isConnected || (byPointer && !target.contains(e.target as Node)))) hide();
+  };
   root.addEventListener('pointerover', onOver);
+  root.addEventListener('pointermove', onMove, { passive: true });
   root.addEventListener('pointerout', onOut);
   root.addEventListener('focusin', onFocus);
   root.addEventListener('focusout', hide);
@@ -119,7 +149,9 @@ export function installTooltips(root: HTMLElement): () => void {
   return () => {
     hide();
     tip.remove();
+    watch?.disconnect();
     root.removeEventListener('pointerover', onOver);
+    root.removeEventListener('pointermove', onMove);
     root.removeEventListener('pointerout', onOut);
     root.removeEventListener('focusin', onFocus);
     root.removeEventListener('focusout', hide);
@@ -127,6 +159,14 @@ export function installTooltips(root: HTMLElement): () => void {
     window.removeEventListener('keydown', hide);
     window.removeEventListener('scroll', hide, true);
   };
+}
+
+/**
+ * Whether the anchor can still carry a tip: in the document, rendered (not under a `display: none` or `hidden`), and not
+ * in an inert part (a hidden panel).
+ */
+function usable(el: HTMLElement | undefined): el is HTMLElement {
+  return !!el && el.isConnected && (el.checkVisibility?.() ?? true) && !el.closest('[inert]');
 }
 
 /** Cut off by more than rounding (scrollWidth rounds a fractional width up, clientWidth down: text that fits can read

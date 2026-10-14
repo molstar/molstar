@@ -8,21 +8,22 @@ not).
 
 ## Where things are
 
-| Path                                 | What                                                                                                   |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `packages/{core,io,model,graphics}`  | the library layers; dependencies point one way: `plugin → graphics → model → io → core`                |
-| `packages/plugin/{core,ui,headless}` | the plugin runtime, its classic React UI, Node capture                                                 |
-| `packages/mvs/{builder,runtime}`     | MolViewSpec: standalone builder, Mol\* runtime                                                         |
-| `packages/query-language`            | MolScript and the PyMOL, VMD and Jmol transpilers                                                      |
-| `packages/prism/*`                   | Prism, the new UI ([AGENTS.md](packages/prism/AGENTS.md), [.v6/prism-ui](.v6/prism-ui/README.md))      |
-| `packages/ai/*`                      | the agent harness and what runs on it ([AGENTS.md](packages/ai/AGENTS.md), [.v6/ai](.v6/ai/README.md)) |
-| `extensions/`, `apps/`, `examples/`  | each owns its dependencies and build                                                                   |
-| `servers/`, `cli/`, `distributions/` | servers, command-line packages, the `molstar` distribution                                             |
-| `smoke/`                             | packed-consumer and browser checks                                                                     |
-| `apps/docs`                          | the documentation site (Astro Starlight): the v5 and v6 docs in `src/content/docs/`                    |
-| `storybook/`                         | Storybook for the packages registered in `storybook/packages.ts` (stories in `_stories/` folders)      |
-| `.v6/`                               | v6 designs, plans and decisions (`designs/`, `plans/`, `prism-ui/`, `ai/`)                             |
-| `scripts/workspace/`                 | the package inventory (`inventory.json`) and the workspace checks                                      |
+| Path                                 | What                                                                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `packages/{core,io,model,graphics}`  | the library layers; dependencies point one way: `plugin → graphics → model → io → core`                            |
+| `packages/plugin/{core,ui,headless}` | the plugin runtime, its classic React UI, Node capture                                                             |
+| `packages/mvs/{builder,runtime}`     | MolViewSpec: standalone builder, Mol\* runtime                                                                     |
+| `packages/query-language`            | MolScript and the PyMOL, VMD and Jmol transpilers                                                                  |
+| `packages/prism/*`                   | Prism, the new UI ([AGENTS.md](packages/prism/AGENTS.md), [.v6/prism-ui](.v6/prism-ui/README.md))                  |
+| `packages/ai/*`                      | the agent harness and what runs on it ([AGENTS.md](packages/ai/AGENTS.md), [.v6/ai](.v6/ai/README.md))             |
+| `packages/sequences/*`               | Seq\*, the sequence viewer and SeqViewSpec ([AGENTS.md](packages/sequences/AGENTS.md), [.v6/seq](.v6/seq/plan.md)) |
+| `extensions/`, `apps/`, `examples/`  | each owns its dependencies and build                                                                               |
+| `servers/`, `cli/`, `distributions/` | servers, command-line packages, the `molstar` distribution                                                         |
+| `smoke/`                             | packed-consumer and browser checks                                                                                 |
+| `apps/docs`                          | the documentation site (Astro Starlight): the v5 and v6 docs in `src/content/docs/`                                |
+| `storybook/`                         | Storybook for the packages registered in `storybook/packages.ts` (stories in `_stories/` folders)                  |
+| `.v6/`                               | v6 designs, plans and decisions (`designs/`, `plans/`, `prism-ui/`, `ai/`)                                         |
+| `scripts/workspace/`                 | the package inventory (`inventory.json`) and the workspace checks                                                  |
 
 ## Commands
 

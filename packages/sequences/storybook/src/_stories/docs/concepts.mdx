@@ -1,0 +1,193 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Seq*/Docs/Concepts" />
+
+# Concepts
+
+The words the other pages use, in plain language, from the data up to what is drawn. One example
+runs through the page: **barnase–barstar**, the PDB entry 1BRS ([case 7](?path=/story/seq-cases-viewer--case-7)).
+Barnase is a ribonuclease; barstar is its inhibitor; the crystal holds three barnase–barstar pairs,
+barnase as chains A, B and C and barstar as chains D, E and F.
+
+```
+ DATA: what is true             COORDINATE SYSTEMS: how it is numbered        VIEW: what is shown
+ ─────────────────────          ──────────────────────────────────────        ──────────────────────────
+ molecule  barnase (P00648) ──► molecule system  0 … 156                      view "Complex"
+                                      │ coordinate map: [47,157) → [0,110)      section: one axis
+ molecule  1brs entity 1    ──► molecule system  0 … 109                          block A (+ B, C as copies)
+ units     chains A, B, C   ──► unit systems     0 … 109, one each   ──────►      block D (+ E, F)
+ complex   1brs             ──► complex system: A … F, in order        layout     track "Residues"
+ alignment barnase family   ──► a row system per row ──► columns       map          layer letters
+ annotation features, contacts, effects: items in their target systems              track "Contacts"
+                                                                                      layer pairs
+```
+
+## The data
+
+### Molecule
+
+A sequence of letters with an identity: barnase, the 157 residues of UniProt P00648 (with its
+signal peptide and propeptide), or the 110 residues of entity 1 in the 1BRS file (the mature
+enzyme). In a document a molecule is a `sequence` node (or a `ligand`, whose positions are its heavy
+atoms); its letters are given by value or read from a source.
+
+### Unit
+
+One occurrence of a molecule: a chain in a structure, a pose of a ligand, a construct's insert.
+Chains A, B and C are three units over the same molecule, barnase's entity 1. Units and molecules
+differ because data belongs to one or the other: a sequence and its UniProt features are the
+molecule's, while what a structure observed (the residues it resolved, contacts, secondary
+structure) belongs to one chain. A unit may cover a `range` of its molecule. Units over one molecule
+with an equal range are **copies** of each other; a section may show one block per copy group
+(`copies: "one"`) or one per unit (`"each"`). Chain A's data never lands on chain B. Every
+`sequence` node also has its own unit, `<ref>/unit`, so a molecule shown on its own behaves as any
+unit.
+
+### Complex
+
+A set of units shown together: `1brs` holds A to F, in order. It is written by value, or comes from
+a registered complex provider (case 7's `molstar:structure` reads the PDB file). A Mol\* structure
+corresponds to a complex, its chains to units.
+
+### Alignment, rows and columns
+
+An alignment is a table of gapped rows. A **row** is one aligned sequence; its own residues are
+numbered without the gaps. A **column** is one position across all rows. A family alignment of
+barnase homologs would put barnase in one row; then barnase's residue 0 is in some column, and a
+column holds a residue of each row or a gap. Cases [3](?path=/story/seq-cases-viewer--case-3) and
+[9](?path=/story/seq-cases-viewer--case-9) show real families. An alignment may carry a **tree** over
+its rows: given as Newick, or computed from the alignment's distances by a **node provider** (`nj` or `upgma`); an alignment or a set of row mappings can be computed by one too (`realign`, `codon_rows`).
+
+### Position and index, label and numbering
+
+A **position** is one element of a molecule, a unit, a row or the columns: a residue, a nucleotide,
+an atom, a column. Its **index** is its number from 0, and a range of indices is half-open: `start: 4,
+stop: 9` is indices 4 to 8. Indices are what the format, the API and tools use.
+
+A **label** is what a person and a ruler say, in a **numbering**. In 1BRS, barnase's index 0 is
+label 1 in the structure's author numbering and label 48 in UniProt's, since the mature enzyme
+starts at UniProt residue 48. UniProt's active site His149 is index 101 of entity 1 and His102 in
+the structure's numbering. Labels may carry insertion codes: Kabat's `35A` and `35B` sit between 35
+and 36 ([case 2](?path=/story/seq-cases-viewer--case-2)). A table may give the code in a column of its own
+(`ins_code` beside `pos` or `beg`, as a CIF category's `pdbx_PDB_ins_code` beside `auth_seq_id`). Label ranges
+are inclusive (`beg`, `end`); a document converts labels to indices once, at load.
+
+### Annotation and item
+
+An **annotation** is a table of **items** over a target. Its `geometry` says what an item is:
+
+- **ranges**: features over runs of positions, such as UniProt's signal peptide or a helix, and
+  **points** when a range is one position (the active sites);
+- **pairs**: two positions, such as the contacts between chain A and chain D;
+- **values**: a number per position, such as hydropathy;
+- **matrix**: a value per position and state, such as the effect of each of 20 amino acids at
+  each barnase position;
+- **rows**: a value per alignment row, such as each member's species, shown as a data column.
+
+An item may have several fragments (a transcript's exons) and an `id` that names it to events and
+queries.
+
+### Fields
+
+The columns of an annotation's table. Some place an item (`target`, `start`, `stop`, `beg`, `end`,
+`index`, `row`); some describe it (`id`, `label`, `category`, `value`, `tooltip`); any others are
+the data's own. 1BRS's contacts carry a `distance`
+field; a theme can color or size by a field, and a **field provider** can compute one.
+
+## The coordinates
+
+### Coordinate system
+
+Each thing that numbers positions is a **coordinate system**, and every location lives in exactly
+one. Its kinds:
+
+| Kind | Its elements | In 1BRS |
+|---|---|---|
+| `molecule` | a molecule's positions | barnase P00648 (157), entity 1 (110) |
+| `unit` | a unit's positions, its molecule's indices within its range | chains A to F |
+| `row` | one alignment row's own residues | barnase's row in a family alignment |
+| `columns` | an alignment's columns | the family alignment's columns |
+| `complex` | its units' systems, in order | `1brs`: A to F |
+| `external` | a host's own system | Mol\*'s residues of chain A, through `@molstar/seq-core/translate` |
+| `item` | one streamed item's own positions | reserved for streaming |
+
+The viewer adds one more, per section: the **layout** coordinate system, the positions as shown,
+block by block. Only the screen lives in it, never data.
+
+### Coordinate map and route
+
+A **coordinate map** relates the positions of one system to another's. UniProt's barnase maps onto
+entity 1 by one segment, indices 47 to 156 onto 0 to 109. A row maps onto the columns, skipping
+gaps. A protein maps onto its coding DNA with a span of 3: each residue covers a codon
+([case 14](?path=/story/seq-cases-viewer--case-14)). A **route** is maps composed along a path: a
+residue of chain A reaches the alignment's columns as unit A → entity 1 → barnase → the row → the
+columns. Projecting a location along a route is how hover and selection reach every section that
+shows the same thing.
+
+### Closure and granularity
+
+**Closure** adds, to a position, the positions of other systems that contain it: hover a
+nucleotide in case 14, and the residue whose codon holds it lights too. In 1BRS there are no
+codons, so closure changes nothing. **Granularity** widens a selection within its own system: a
+position to its range, its unit, its copy group, its column or its row. Closure crosses systems;
+granularity stays in one.
+
+### Cyclic systems
+
+A plasmid or a circular genome has no ends: a range may cross the origin. A `sequence` marked
+`cyclic` takes its positions modulo its length; a range on it written with `start > stop` runs
+across the origin and is held as its two runs, one item. A block shows a piece across the origin
+(`range: [180, 60]`) or the whole from another `origin`, and a focus on a feature across the origin
+opens on its shortest arc ([A plasmid, linear](?path=/story/seq-views-and-layouts-axes-and-strands--linear)). A link's range may
+cross the origin too (`!seq-select=pDemo&start=200&stop=30`). A section styled `circular` draws it as
+rings ([A plasmid, ring](?path=/story/seq-views-and-layouts-axes-and-strands--ring)): any axis may be drawn so, and a selection or
+highlight across the origin is one sector over every ring.
+
+## The view
+
+### View, section and block
+
+A document holds one or more **views**, which a reader switches between ("Complex" and "Each
+chain" in case 7). A view has **sections**, one under another; each is one horizontal axis. A
+section's axis is made of **blocks**, each showing one unit (or a copy group), or it is one
+alignment's columns.
+
+### Piece
+
+What a block shows of its coordinate system: a `range` of it, laid out in a `direction`. A block
+showing barnase's residues 40 to 90, right to left, is a piece; reversing only changes how the block's positions are laid out on screen,
+never the data ([Direction](?path=/story/seq-views-and-layouts-axes-and-strands--direction)).
+
+### Track, layer and renderer
+
+A **track** is one row of a section ("Residues", "Contacts"); a track holds **layers**, drawn one
+over another, each of a **layer type** (`letters`, `ranges`, `pairs`, `matrix`, …). A
+**renderer** draws one layer type; built-in or an extension's, it is a registry entry, a plug-in
+the viewer is assembled from ([Extending](?path=/docs/seq-docs-extending--docs)).
+
+### Theme, preset and style
+
+A **theme** maps the data under a layer to a **channel**'s values: its color, size or glyph (case
+7 colors the contacts with one `uniform` color). A **preset** is how a section is drawn: geometry,
+row heights, header width, navigator, which behaviors are on (`tracks`, `msa`, `strip`, `wrapped`,
+`compact`). A section's **style** names a preset, or overrides a few of its keys inline. A **color
+scheme** is a named theme as data (Clustal X, Viridis, Okabe–Ito) a layer's color names, or that a
+legend group's title (or a track's menu) switches at runtime ([Color schemes](?path=/docs/seq-docs-color-schemes--docs)).
+
+### Selection, highlight and focus
+
+The viewer's state, never in the document. The **selection** is what the person picked; a
+**highlight** lights a target on a named channel (the host's, a link's, search results), and
+channels add up; **focus** brings a range into a section's window. Each takes loci, and lights
+every section that shows the same positions, through routes and closure. (Stories Untold's own
+Focus, the UI state sent with a prompt, is a different thing.)
+
+### Loci, and Mol\*
+
+**Loci** are many locations of one kind, held compactly: positions of a unit, cells of an
+alignment, rows, columns, items. Seq\*'s loci are the model's, as Mol\*'s are its structures'. To
+reach Mol\*, an event's positions go out with their coordinate system named; `@molstar/seq-core/translate`
+maps them to the host's own system (chain A's residues in the loaded structure), and the planned
+`@molstar/seq-molstar-poc` adapter turns them into a Mol\* `StructureElement.Loci`; a Mol\* hover comes back
+the same way. The interface between A and D, selected once, is one set of runs on chains A and D of
+the `1brs` complex, and one loci on the Mol\* side.

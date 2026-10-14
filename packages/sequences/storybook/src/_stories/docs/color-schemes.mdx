@@ -1,0 +1,156 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Code } from "./live";
+import { IN_DOCUMENT, SchemeTable } from "./color-schemes";
+
+<Meta title="Seq*/Docs/Color schemes" />
+
+# Color schemes
+
+People are particular about colors, so Seq\* makes them easy to switch. A **color scheme** is a
+named, curated way to color one kind of thing: residue letters (Clustal X, Zappo), numbers
+(Viridis) or categories (Okabe–Ito). It is data, registered by name, and it stands for one of the
+[themes](?path=/docs/seq-docs-concepts--docs#theme-preset-and-style) a layer already has (`letter`,
+`field_palette` or a `rules` table), so it adds nothing to drawing: a letter costs what it cost.
+See them all, light and dark, in the [gallery](?path=/story/seq-themes-color-schemes--gallery); switch
+them live in the [picker](?path=/story/seq-themes-color-schemes--picker).
+
+## What a scheme fits
+
+A [layer](?path=/docs/seq-docs-concepts--docs#track-layer-and-renderer)'s color is about one of
+three things: **letters** of an [alphabet](?path=/docs/seq-docs-concepts--docs#molecule) (a
+`letters`, `rows` or `logo` layer), **values** (a layer whose data are numbers), or **categories**
+(ranges, points, pairs colored by a field). Each scheme says what it fits: its alphabets, and for
+Percent identity, which reads each column's consensus, an
+[alignment](?path=/docs/seq-docs-concepts--docs#alignment-rows-and-columns) whose columns are held
+(Clustal X reads the column's composition too, and colors a lone protein as a column of its own).
+A scheme of another kind (Viridis on letters) is drawn as the layer's default and reported
+(`svs.render.theme`).
+
+## Four ways to pick one
+
+**In the document**, a layer's `color` names the scheme through the `scheme` theme; value
+schemes take a `domain`, a `field` and `reverse`:
+
+<Code code={IN_DOCUMENT} language="json" />
+
+**In the builder**, `b.colors` has each scheme as a typed constant (value schemes as functions of
+their options), `auto` for a sensible default per subject (Clustal X on a protein alignment, Zappo on
+a protein, Nucleotide on DNA and RNA, Viridis on values, Okabe–Ito on categories), and `list` for the
+schemes that fit. The [Gallery](?path=/story/seq-themes-color-schemes--gallery) story builds its layers this way.
+
+**At runtime**, click a legend group's title: where more than one scheme fits its layer, the title
+has a quiet dotted underline (a palette icon shows on hover, its label naming the scheme shown) and
+opens a menu of "document" (the document's own color) and the schemes that fit, colorblind-safe ones
+marked. Tracks whose legends are identical share one group ("Transcripts (10)"), and a pick there
+recolors all of them. A track with nothing to list has no legend row; its **⋯** menu has
+**Colors ▸**, the same list, which also gives one track of a group its own scheme. A pick is UI
+state per layer, as the section header's Style switch overrides a section's preset: it is never
+written into the document unless the host asks, it survives patches, and a new document clears it.
+`UI.ColorSchemes` turns the pickers off; `UI.ColorSchemeWrites` makes them write. The legend is
+collapsed by default (a track header's tooltip shows that track's legend): open it with its toggle,
+a UI's `legend: "expanded"` option, or `{"command": "seqv:legend", "params": {"open": true}}`.
+
+The host's side is the `layer.colorScheme` action (`ctx.actions.run("layer.colorScheme", { layer, scheme })`; `write: true`
+writes the pick into the document, `scheme: null` returns to the document's own color) and `ctx.ui.colorSchemes`, the
+picks held. The [Picker](?path=/story/seq-themes-color-schemes--picker) and
+[Many tracks](?path=/story/seq-themes-color-schemes--many-tracks) stories show it running.
+
+**By command**, `seqv:colorScheme` does the same from a description's command link or the Stories
+agent; a scheme that does not fit the layer is refused. The command is
+`{"command": "seqv:colorScheme", "params": {"layer": "family.rows", "scheme": "zappo"}}`.
+
+**Dark mode** needs nothing: on a dark skin a scheme's dark variant draws by itself. A scheme gives
+one, says `"same"`, or gets one derived by a single rule: letters and categories keep their colors
+(they are identities, and each cell's letter ink follows its fill), a sequential ramp lighter at its
+low end is reversed (the more, the brighter), and a diverging ramp has each half reversed, so its
+center is dark and each hue stays on its side.
+
+## Changing a color range
+
+A legend ramp over a scheme or a continuous palette has its two ends as number fields. Type a new end
+and the layer recolors; the range may be wider than the data (the colors then use part of the ramp) or
+narrower (values beyond an end take its color). A thin bar under the ramp marks where the data sits, and
+"reset" returns to the document's range. The pick is UI state, as a scheme pick is. The same from a
+command, `{"command": "seqv:colorRange", "params": {"layer": "family.conservation", "range": [0, 20]}}`
+(`range: null` resets). The [Color range](?path=/story/seq-themes-color-schemes--color-range) story has a
+strip over the data's range, a wider one and a narrower one.
+
+## One scale across layers
+
+Layers that name the same `domain_group` (`"domain_group": "signal"` on each) share every normalized domain they resolve: the union of
+their data's, per field. Two values tracks (or a values track and a matrix) then color the same
+number the same way, bars share a y scale, and the legend lists the ramp once. A layer's own
+`domain` (on `values` and `matrix`) or a palette's `value_domain` end that is not `null` wins in
+its layer; when a layer gives a `domain`, the group's is the union of the given ones, for all of
+its members. A palette over another field takes that field's range over the members' data the same
+way. Layers of a track template are not shared (their instances are not nodes).
+
+The [Shared scales](?path=/story/seq-themes-color-schemes--shared-scales) story shows two signals with
+different ranges, first with a domain each, then in a group, then with one explicit domain.
+
+## Sizes
+
+Color is one channel a layer draws through a theme; its size channels are the others: a pair's `width`, its apex
+`height` (a share of the band) and its ends' `radius`, a feature's `thickness` (a share of its lane), a point's
+`radius`, a variant's and a secondary structure's `thickness` (a share of its mark or shape), a bar's `thickness`.
+They take `uniform`, `rules`, or `field_scale`: a field through a linear, sqrt or log scale into a range, clamped, or
+a string field through a `map`. A size changes how much of its slot an element fills, never the slot. A matrix's
+`height` is reported and not drawn: its bands are image tiles. See
+[Size themes](?path=/story/seq-themes-size-themes--by-size).
+
+**The legend** lists a `field_scale` as its field's name and three samples, the domain's ends and middle, each drawn
+as its channel draws it (a stroke for a width, a bar for a share of a band, a dot for a radius) at its size through
+the scale; a string field's map lists its entries. Where a ramp in the same layer colors by the same field, the
+samples take the ramp's color at their value, so "thick and dark" reads as one scale. A labeled `rules` size lists its
+labels; a `uniform` size lists nothing (one size names nothing).
+
+**Sashimi.** `b.preset.sashimi(section, junctions)` draws splice junctions as `pairs` stroked by read count and
+labeled with it (`labels: true`: an arc's `label`, else its width's field, under its apex where it fits), a track per
+strand, the `+` strand's rising from the line between them and the `-` strand's hanging below it. See
+[Sashimi](?path=/story/seq-themes-size-themes--sashimi).
+
+## Colorblind-safe choices
+
+Eight of the sixteen are designed or rated for the common color vision deficiencies: **Viridis**,
+**Cividis** (built for them) and **Magma** for values; **Blues** and **Red–blue** (ColorBrewer's
+rating) for sequential and diverging values; **Okabe–Ito** for categories; **Nucleotide
+(colorblind-safe)**, the Okabe–Ito colors on A, C, G and T or U; and **Percent identity**, one hue in
+three steps. Clustal X, Zappo and Taylor lean on red against green, so for readers with a red–green
+deficiency pair them with a second cue (the legend's labels, Percent identity, a conservation
+track). Category 10 and Tableau 10 do not separate all their colors for everyone; prefer Okabe–Ito
+for up to seven categories.
+
+## Your own palette
+
+**In a document**, an inline scheme: letters as a dict and as labeled groups (the legend lists the
+labels), a `default` for the alphabet's other letters, and an optional `dark` variant (derived when
+absent); a named scheme with a few letters recolored by `overrides`; or a ramp of stops.
+Validation names what is wrong and what to write: a bad color is `svs.color.invalid`, a letter the
+alphabets lack is `svs.scheme.letter` (with the alphabet's letters), an unknown name is
+`svs.scheme.unknown` (with the registered ones), and `overrides` on a value scheme says to write a
+custom one.
+
+**In the builder**, `b.colors.custom` writes the same, and `b.colors.from` derives from a scheme.
+
+**At runtime**, a host registers a named scheme, a `ColorSchemeEntry` under `svs.colorSchemes`
+(namespaced, as every extension's name). The picker lists it after the built-ins and documents can
+name it; a document naming an extension's scheme that a viewer has not registered is drawn as the
+layer's default with a warning. There is no in-picker editor: a palette someone cares about is
+worth a name, and a settings page that registers one is the host's.
+See [Extending](?path=/docs/seq-docs-extending--docs#a-color-scheme).
+
+The [Your own palette](?path=/story/seq-themes-color-schemes--custom-palette) story shows each of the three, light and
+dark.
+
+## The schemes and where they come from
+
+Each is written from its published definition and cited; no GPL code is copied. Jalview's residue
+schemes are GPL software, so Clustal X and Percent identity are written from Jalview's published
+rules and thresholds, and the letter colors come through Nightingale (MIT), which publishes
+Jalview's values. The value and categorical palettes are MolViewSpec's lists (copied from Mol\*,
+MIT), so a value gets the same color here and in a Mol\* scene. Not in the set: Jalview's helix,
+strand and turn propensity and buried index are `letter` dictionaries
+(`{"theme": "letter", "params": {"colors": "HelixPropensity"}}`); BLOSUM62 coloring scores a letter
+against its column's consensus, a measure the `rules` theme does not have.
+
+<SchemeTable />

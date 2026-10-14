@@ -10,7 +10,7 @@
 
 import { map } from 'rxjs';
 import { Icon } from '../../components/icon/icon.js';
-import { For } from '../../dom/control-flow.js';
+import { activity, For } from '../../dom/control-flow.js';
 import { playClose } from '../../dom/motion.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ShellModel, ShellSection, ShellViewContext } from '../../shell/shell.js';
@@ -110,7 +110,11 @@ function SectionBlock(props: {
         hidden={open.asReadonly.pipe(map((o) => !o))}
         data-reveal={toggled.asReadonly.pipe(map((t) => (t ? '' : undefined)))}
       >
-        <ViewHost renderer={section.render} ctx={ctx} />
+        {/* A folded section stays mounted but quiet: its views follow no model until it opens (`activity`). The `hidden`
+            above is bound outside it, or it would pause with it. */}
+        {activity(open.asReadonly, () => (
+          <ViewHost renderer={section.render} ctx={ctx} />
+        ))}
       </div>
     </section>
   ) as HTMLElement;

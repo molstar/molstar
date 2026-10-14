@@ -94,6 +94,8 @@ const ICONS = [
   'moon',
   'sun-moon',
   'ban',
+  'align-left',
+  'chart-gantt',
   'hourglass',
   'sparkles',
   'shapes',

@@ -1,0 +1,19 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The Style stories (Seq-star): cards at a fixed width. */
+.narrow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-5);
+}
+
+.narrow > * {
+  width: var(--style-card-width);
+  max-width: 100%;
+}

@@ -48,7 +48,7 @@
   display: grid;
   place-items: center;
   width: 100%;
-  height: 40px;
+  height: var(--msp-rail-button, 40px);
   color: var(--msp-color-text-muted);
   transition:
     background-color var(--msp-motion-fast) var(--msp-ease),
@@ -71,7 +71,8 @@
   position: absolute;
   top: var(--msp-canvas-edge);
   right: var(--msp-canvas-panel-right, 64px);
-  bottom: var(--msp-canvas-edge);
+  /* Above the corner (the toolbar), as the floating panel is. */
+  bottom: calc(var(--msp-canvas-edge) + var(--msp-corner-room, 0px));
   z-index: var(--msp-z-overlay);
   display: flex;
   flex-direction: column;
@@ -137,9 +138,8 @@
   min-height: 100%;
 }
 
-/* The canvas stack: top right of the canvas, under what floats at the top, beside the rail or the open panel. A frame,
-   and beside it what opens from it (the picking level), outside the frame's clipping. Denser than the rail: it sits on
-   the canvas. */
+/* The canvas toolbar (the stack): in the canvas' bottom-right corner, one row. A frame, and beside it what opens from it
+   (the picking level), outside the frame's clipping; its menus open upward. Denser than the rail: it sits on the canvas. */
 /* Nothing to show in the stack (an empty canvas: no mode buttons, every tool hidden): no empty frame either. */
 .stack:not(:has(button)) {
   display: none;
@@ -148,40 +148,64 @@
 .stack {
   --msp-stack-row: 34px;
 
-  position: absolute;
-  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge));
-  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
+  position: relative;
 }
 
-/* Compact: no rail (its actions are under More), so the stack keeps only the frame margin; on a short canvas its
-   frame scrolls rather than running past the bottom. */
-:where([data-mode="compact"]) .stack {
-  right: var(--msp-canvas-edge);
+/* The compact rail's toggle: centered in the rail's column (44px, at the right edge), at the corner row's bottom, where
+   the rail, ending above the corner row, slides in around it. */
+.railToggle {
+  position: absolute;
+  right: calc((44px - var(--msp-stack-row)) / 2);
   bottom: var(--msp-canvas-edge);
-  /* Its full-height box must not catch the canvas's pointer: only the frame does. */
-  pointer-events: none;
+  z-index: var(--msp-z-overlay);
+  pointer-events: auto;
+}
 
-  & > * {
-    pointer-events: auto;
-  }
-
-  & .frame {
-    max-height: 100%;
-  }
+/* The corner: the toolbar pinned at the right, and the work in hand (the selection chips) to its left on the same row,
+   bottom-aligned: they appear and go without moving the toolbar. Where the row does not fit, the chips wrap to a row above
+   (the toolbar comes first in the markup, and the row runs right to left). */
+.corner {
+  grid-area: corner;
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap-reverse;
+  align-items: flex-end;
+  justify-self: end;
+  gap: var(--msp-space-3);
+  max-width: 100%;
 }
 
 .stack .frame {
-  width: 36px;
+  flex-direction: row;
+  width: auto;
+  height: var(--msp-stack-row);
+  max-width: 100%;
+  /* The row's separators are vertical. */
+  & > * + *,
+  & .stackTools > * + * {
+    border-top: 0;
+    border-left: 1px solid var(--msp-glass-edge);
+  }
 }
 
-/* The stack's tools, in a scrolling area (it scrolls only when compact, on a short canvas). */
-.stackTools {
+/* The stack's tools: one row, in a scrolling area (it scrolls across only where the row does not fit: narrow). The
+   toolbar's sections and their buttons run along it too. */
+.stackTools,
+.stack .sections,
+.stack .toolbar {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+}
+
+.stack .sections > * + * {
+  border-top: 0;
+  border-left: 1px solid var(--msp-glass-edge);
 }
 
 .stack .tool {
+  width: var(--msp-stack-row);
   height: var(--msp-stack-row);
+  flex: none;
 }
 
 .stack :is(.tool, button) > svg:first-child {
@@ -195,7 +219,20 @@
   flex-direction: column;
   justify-content: center;
   gap: var(--msp-space-1);
-  height: 46px;
+  height: var(--msp-rail-button-captioned, 46px);
+}
+
+/* The rail's steps (dock.module.css) size the icons too; the stack's own rule below is the more specific. */
+.tool > svg,
+.tool > .face > svg {
+  width: var(--msp-rail-icon, 20px);
+  height: var(--msp-rail-icon, 20px);
+}
+
+.tool[data-captioned] > svg,
+.tool[data-captioned] > .face > svg {
+  width: var(--msp-rail-icon-captioned, 16px);
+  height: var(--msp-rail-icon-captioned, 16px);
 }
 
 .caption {
@@ -224,20 +261,20 @@
   opacity: 0.45;
 }
 
-/* A tool menu: left of the stack at its button's height; the right padding bridges the gap so the pointer can travel
-   from the button to it. */
+/* A tool menu: above the stack, its right edge level with its button's; the bottom padding bridges the gap so the
+   pointer can travel from the button to it. */
 .toolMenu {
   position: absolute;
-  right: 100%;
+  bottom: 100%;
   z-index: var(--msp-z-overlay);
-  padding-right: var(--msp-space-3);
+  padding-bottom: var(--msp-space-3);
   animation: tool-menu-in var(--msp-motion-fast) var(--msp-ease);
 }
 
 @keyframes tool-menu-in {
   from {
     opacity: 0;
-    transform: translateX(4px);
+    transform: translateY(4px);
   }
 }
 
@@ -270,10 +307,26 @@
     color: var(--msp-color-text);
   }
 
+  /* The current one of a single choice: icon and label in the accent, as the picking levels' list marks its own. */
+  &[data-choice][aria-checked="true"] {
+    color: var(--msp-color-accent);
+    font-weight: 600;
+
+    & .toolMenuLabel {
+      color: inherit;
+    }
+  }
+
   /* Not possible here: greyed, its reason in place of the hint. */
   &:disabled {
     opacity: 0.55;
   }
+}
+
+.toolMenuDivider {
+  height: 1px;
+  margin: var(--msp-space-2) var(--msp-space-3);
+  background: var(--msp-glass-edge);
 }
 
 .toolMenuLabel {
@@ -315,22 +368,27 @@
   width: min(320px, calc(100% - 36px - 3 * var(--msp-canvas-edge)));
 }
 
-/* The bottom of the canvas: status on the left, the work in hand (selection, focus) on the right. Its right edge
-   follows what floats on the right (the open panel runs the full height), so the chips move with the panel. */
+/* The bottom of the canvas: the status on the left, the corner (the selection above the toolbar) on the right. Its right
+   edge follows what floats on the right (the open panel runs the full height), so the corner moves with the panel. */
 .bottom {
   position: absolute;
   left: var(--msp-canvas-edge);
-  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
+  right: var(--msp-canvas-corner-inset, var(--msp-canvas-edge));
   bottom: var(--msp-canvas-edge);
   container: bottom-bar / inline-size;
   pointer-events: none;
 }
 
+/* Compact: no rail, the corner keeps the frame margin. */
+:where([data-mode="compact"]) .bottom {
+  right: var(--msp-canvas-edge);
+}
+
 .bottomGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "status context";
-  /* Bottom-aligned: the status stack grows upward; its last line is level with the selection bar's middle. */
+  grid-template-areas: "status corner";
+  /* Bottom-aligned: the status stack grows upward; its last line is level with the toolbar's row. */
   align-items: end;
   gap: var(--msp-space-3);
 
@@ -339,19 +397,17 @@
   }
 }
 
-/* Narrow: the context on a row of its own, above the status. */
-@container bottom-bar (width < 480px) {
+/* Narrow: the corner on a row of its own, above the status. */
+@container bottom-bar (width < 560px) {
   .bottomGrid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      "context"
+      "corner"
       "status";
   }
 }
 
 .context {
-  grid-area: context;
-  justify-self: end;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -369,12 +425,11 @@
 .status {
   grid-area: status;
   /* The latest message and every running task, one per line, growing upward; the last line level with the middle of
-     the selection bar (34px rows, 24px lines: 5px). */
+     the toolbar's row. */
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   align-self: end;
-  padding-bottom: 5px; /* off-scale: centred on the selection bar (34px rows, 24px lines) */
   pointer-events: none;
 
   & > * {

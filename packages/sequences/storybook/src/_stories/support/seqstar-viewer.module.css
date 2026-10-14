@@ -1,0 +1,56 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Our viewer in the Seq* stories (seqspec:interaction#the-skin): the skin itself comes from the page and its canvases
+   (seqstar-prism.module.css). */
+
+/* The viewer's root (ui.className): flush in whatever frames it. The story's card and its canvas are the frame; the
+   viewer adds none of its own. */
+.viewer {
+  min-width: 0;
+}
+
+/* Stories' tooltip trigger around any hinted control. */
+.hint {
+  display: inline-flex;
+}
+
+/* The row controls story's toggle (the RowControl slot): on the canvas, so in the canvas chrome's tokens (a control's
+   tone, the picked item's wash when on; seqspec:interaction#the-skin). */
+.rowToggle {
+  padding: 0 var(--msp-space-2);
+  border: 0;
+  border-radius: var(--seq-radius-control, 4px);
+  background: var(--seq-control, color-mix(in oklab, var(--seq-ink) 7%, transparent));
+  color: var(--seq-ink-quiet);
+  font: var(--seq-font-size-small, 11px) var(--seq-font-ui);
+  cursor: pointer;
+}
+.rowToggle[aria-pressed="true"] {
+  background: var(--seq-selected, color-mix(in oklab, var(--seq-accent) 14%, transparent));
+  color: var(--seq-selected-ink, var(--seq-accent));
+}
+
+/* An SVG export shown in a card: as wide as the card allows, its aspect kept. */
+.figure svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--msp-space-4);
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

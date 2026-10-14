@@ -19,15 +19,35 @@ export function Unzip(buf: ArrayBuffer, onlyNames = false) {
   return Task.create('Unzip', (ctx) => unzip(ctx, buf, onlyNames));
 }
 
-export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames = false) {
+/**
+ * What an archive may hold, checked from its central directory before anything is inflated: at most `maxEntries`
+ * entries, their declared sizes summing to at most `maxBytes`, each local entry listed once.
+ */
+export interface UnzipLimits {
+  readonly maxEntries: number;
+  readonly maxBytes: number;
+}
+
+/** An entry as the central directory declares it (its name, sizes, CRC-32 and the local header's offset). */
+interface CentralEntry {
+  readonly name: string;
+  readonly crc: number;
+  readonly csize: number;
+  readonly usize: number;
+  readonly roff: number;
+}
+
+export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames = false, limits?: UnzipLimits) {
   const out: { [k: string]: Uint8Array<ArrayBuffer> | { size: number; csize: number } } = Object.create(null);
   const data = new Uint8Array(buf);
   if (readUshort(data, 0) !== 0x4b50) {
     throw new Error('Invalid ZIP file. A valid ZIP file must start with two magic bytes \\x50\\x4b ("PK" in ASCII).');
   }
-  let eocd = data.length - 4;
-
-  while (readUint(data, eocd) !== 0x06054b50) eocd--;
+  // The end record is in the last 22 bytes, before a comment of at most 65,535; a truncated archive has none
+  let eocd = data.length - 22;
+  const first = Math.max(0, eocd - 65535);
+  while (eocd >= first && readUint(data, eocd) !== 0x06054b50) eocd--;
+  if (eocd < first) throw new Error('no end of central directory (the archive is cut short or not a zip)');
 
   let o = eocd;
   o += 4; // sign  = 0x06054b50
@@ -42,19 +62,25 @@ export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames
   const coffs = readUint(data, o);
   o += 4;
 
+  // The central directory is read whole first and its sizes and CRC are the ones used (the local header's are zeros
+  // in an archive written with a data descriptor), and the limits are checked before anything is inflated.
+  if (limits && cnu > limits.maxEntries) throw new Error(`${cnu} entries, over the bound of ${limits.maxEntries}`);
+  const entries: CentralEntry[] = [];
+  const offsets = new Set<number>();
+  let total = 0;
   o = coffs;
   for (let i = 0; i < cnu; i++) {
-    // const sign = readUint(data, o);
+    if (o + 46 > eocd || readUint(data, o) !== 0x02014b50) throw new Error(`central directory entry ${i} is not one`);
     o += 4;
     o += 4; // versions;
     o += 4; // flag + compr
     o += 4; // time
 
-    // const crc32 = readUint(data, o);
+    const crc32 = readUint(data, o);
     o += 4;
-    // const csize = readUint(data, o);
+    const csize = readUint(data, o);
     o += 4;
-    // const usize = readUint(data, o);
+    const usize = readUint(data, o);
     o += 4;
 
     const nl = readUshort(data, o);
@@ -65,10 +91,18 @@ export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames
 
     const roff = readUint(data, o);
     o += 4;
+    const name = readUTF8(data, o, nl);
     o += nl + el + cl;
 
-    await _readLocal(runtime, data, roff, out, onlyNames);
+    if (offsets.has(roff)) throw new Error(`"${name}" lists a local entry another lists too`);
+    offsets.add(roff);
+    total += usize;
+    if (limits && total > limits.maxBytes) {
+      throw new Error(`the entries inflate to over the bound of ${limits.maxBytes} bytes`);
+    }
+    entries.push({ name, crc: crc32, csize, usize, roff });
   }
+  for (const e of entries) await _readLocal(runtime, data, e, out, onlyNames);
   // console.log(out);
   return out;
 }
@@ -76,37 +110,34 @@ export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames
 async function _readLocal(
   runtime: RuntimeContext,
   data: Uint8Array<ArrayBuffer>,
-  o: number,
+  entry: CentralEntry,
   out: { [k: string]: Uint8Array | { size: number; csize: number } },
   onlyNames: boolean,
 ) {
+  // The sizes, name and CRC are the central directory's; the local header gives the method and the lengths of
+  // its name and extra field.
+  const { name, csize, usize } = entry;
+  let o = entry.roff;
+  if (o + 30 > data.length || readUint(data, o) !== 0x04034b50) throw new Error(`"${name}": no local header`);
   // const sign  = readUint(data, o);
   o += 4;
   // const ver   = readUshort(data, o);
   o += 2;
   // const gpflg = readUshort(data, o);
   o += 2;
-  // if((gpflg&8)!=0) throw "unknown sizes";
   const cmpr = readUshort(data, o);
   o += 2;
 
   // const time  = readUint(data, o);
   o += 4;
 
-  // const crc32 = readUint(data, o);
-  o += 4;
-  const csize = readUint(data, o);
-  o += 4;
-  const usize = readUint(data, o);
-  o += 4;
+  o += 12; // crc32, csize, usize: the central directory's are used
 
   const nlen = readUshort(data, o);
   o += 2;
   const elen = readUshort(data, o);
   o += 2;
 
-  const name = readUTF8(data, o, nlen);
-  // console.log({ name, nlen, elen });
   o += nlen;
   o += elen;
 
@@ -115,16 +146,22 @@ async function _readLocal(
     return;
   }
 
+  if (o + csize > data.length) throw new Error(`"${name}" runs past the end of the archive`);
   const file = new Uint8Array(data.buffer, o, csize);
+  let got: Uint8Array<ArrayBuffer>;
   if (cmpr === 0) {
-    out[name] = file;
+    got = file;
   } else if (cmpr === 8) {
-    const buf = new Uint8Array(usize);
-    await inflateRaw(runtime, file, buf);
-    out[name] = buf;
+    got = await inflateRaw(runtime, file, new Uint8Array(usize));
   } else {
     throw new Error(`unknown compression method: ${cmpr}`);
   }
+  // The bytes are what was declared and stored: a short stream would leave zeros and a flipped byte read as data
+  if (got.length !== usize) throw new Error(`"${name}" holds ${got.length} bytes, declared ${usize}`);
+  if (crc(got, 0, got.length) >>> 0 !== entry.crc) {
+    throw new Error(`"${name}" fails its CRC-32: the archive is damaged`);
+  }
+  out[name] = got;
 }
 
 export async function inflateRaw(

@@ -17,7 +17,8 @@ import { Dynamic, Show } from '../dom/control-flow.js';
 import type { Child } from '../dom/jsx-types.js';
 import { onCleanup } from '../dom/scope.js';
 import { domView } from '../dom/view.js';
-import { parseColor, themeForColor } from '../model/canvas-theme.js';
+import { type CanvasInk, fixedInk } from '../model/canvas-theme.js';
+import type { ReadonlyState } from '../reactive/readonly-state.js';
 import { observableState } from '../reactive/observable-state.js';
 import { FullscreenModel } from '../shell/fullscreen.js';
 import { ShellModel, type ShellPage, type ShellTab } from '../shell/shell.js';
@@ -130,14 +131,20 @@ export function mockBlankMode(): MockMode {
 export interface ShellStoryProps {
   loaded: boolean;
   background?: string;
+  /** The canvas ink as a state that can change (instead of the fixed one of `background`). */
+  ink?: ReadonlyState<CanvasInk>;
   /** Opens the Export card at a section (a mode registers the card). */
   openExportAt?: string;
   /** Opens a card (Animation, Export, …). */
   openCard?: string;
   /** Shows a tab (Help, Settings, …). */
   openTab?: string;
+  /** Starts with no panel open: the rail and the canvas tools only (a tab opens as usual when its rail button is clicked). */
+  noPanel?: boolean;
   /** The right panel pinned beside the canvas. */
   pinned?: boolean;
+  /** A compact rail (`ShellOptions.compactRail`): the rail column hidden behind the canvas corner's button. */
+  compact?: boolean;
   /** Opens with the command menu open. */
   commandMenu?: boolean;
   /** What an add-on brings (the agent module's mock: `@molstar/prism-assistant/testing`). */
@@ -159,7 +166,10 @@ export interface MockApp {
  */
 export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: MockApp }) {
   const { mode, app } = props;
-  const shell = new ShellModel({ docks: { right: { pinned: !!props.pinned } } });
+  const shell = new ShellModel({
+    compactRail: !!props.compact,
+    docks: { right: { pinned: !!props.pinned, collapsed: !!props.noPanel } },
+  });
   const status = new StatusModel();
   const commandMenuOpen = observableState(false);
   // The group the command menu opens in (Preset, Styles); none for ⌘K.
@@ -220,6 +230,8 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
     // The UI theme, by Settings at the rail's foot: a click goes to the next one; the icon is the current one.
     {
       id: 'theme',
+      // The first to go under More on a short rail.
+      priority: 100,
       icon: 'sun',
       title: 'Theme',
       face: theme.theme.pipe(
@@ -232,6 +244,8 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
     },
     {
       id: 'palette',
+      // The main way in: the last to go.
+      priority: -1,
       icon: 'command',
       title: 'Command menu',
       caption: formatChord({ key: 'k', mod: true }),
@@ -301,6 +315,21 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
     },
   ]);
 
+  // A compact rail's column: shown and hidden by the corner's button, or by this (bindable) command.
+  parts.commands.register([
+    {
+      id: 'shell.toggle-rail',
+      title: 'Show or hide the panel rail',
+      alias: ['rail', 'sidebar', 'panels', 'compact'],
+      category: 'View',
+      icon: 'prism',
+      run: () => {
+        shell.toggleRail();
+        return { message: '' };
+      },
+    },
+  ]);
+
   // Switching modes, with more than one: a command that asks (the splash over the app, saying what goes).
   const switching: CommandDefinition<any>[] =
     app && app.modes.length > 1
@@ -361,8 +390,7 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
       canvas={parts.canvas?.() ?? null}
       overlays={parts.overlays?.() ?? null}
       playback={parts.playback?.() ?? null}
-      canvasColor={background}
-      canvasTheme={themeForColor(parseColor(background) ?? 0xffffff)}
+      ink={props.ink ?? fixedInk(background)}
       context={parts.context}
       commandMenu={
         <Show when={commandMenuOpen}>

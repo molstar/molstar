@@ -39,13 +39,21 @@
   },
   "dependencies": {
     "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/model-archive-extension": "workspace:*",
+    "@molstar/plugin": "workspace:*",
     "@molstar/prism-ui": "workspace:*",
+    "@molstar/seq-core": "workspace:*",
+    "@molstar/seq-molstar-poc": "workspace:*",
+    "@molstar/seq-viewer": "workspace:*",
     "rxjs": "catalog:",
     "tslib": "catalog:"
   },
   "devDependencies": {
-    "typescript": "catalog:",
+    "@storybook/web-components-vite": "catalog:",
     "@types/node": "catalog:",
-    "@storybook/web-components-vite": "catalog:"
+    "@types/webxr": "catalog:",
+    "typescript": "catalog:"
   }
 }

@@ -4,7 +4,8 @@
     "rootDir": "src",
     "outDir": "lib",
     "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",
-    "jsxImportSource": "@molstar/prism-ui/dom"
+    "jsxImportSource": "@molstar/prism-ui/dom",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
   "include": ["src/**/*"],
   "exclude": ["src/**/_test/**", "src/**/_stories/**", "src/**/*.stories.ts", "src/**/*.stories.tsx"],
@@ -13,7 +14,28 @@
       "path": "../../core"
     },
     {
+      "path": "../../graphics"
+    },
+    {
+      "path": "../../model"
+    },
+    {
+      "path": "../../../extensions/model-archive"
+    },
+    {
+      "path": "../../plugin/core"
+    },
+    {
       "path": "../ui"
+    },
+    {
+      "path": "../../sequences/core"
+    },
+    {
+      "path": "../../sequences/viewer"
+    },
+    {
+      "path": "../../sequences/molstar-poc"
     }
   ]
 }

@@ -1,0 +1,20 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // The React UI and its tests (no emit); with the DOM lib.
+  "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": ["src/react", "_test/react"],
+  "references": [{ "path": "../core" }, { "path": "../../core" }, { "path": "../../io" }]
+}

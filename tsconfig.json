@@ -249,6 +249,18 @@
     },
     {
       "path": "./packages/query-language"
+    },
+    {
+      "path": "./packages/sequences/core"
+    },
+    {
+      "path": "./packages/sequences/viewer"
+    },
+    {
+      "path": "./packages/sequences/nightingale"
+    },
+    {
+      "path": "./packages/sequences/molstar-poc"
     }
   ]
 }

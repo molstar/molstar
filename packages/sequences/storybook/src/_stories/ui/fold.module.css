@@ -1,0 +1,32 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.fold {
+  display: grid;
+  /* One column as wide as the fold, whatever one-line content would ask for. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 0fr;
+  /* Content that opens eases in and out, in Prism's base time. */
+  transition: grid-template-rows var(--msp-motion-base) var(--msp-ease-reveal);
+}
+.fold[data-open] {
+  grid-template-rows: 1fr;
+}
+.inner {
+  min-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity var(--msp-motion-fast) ease;
+}
+.fold[data-open] > .inner {
+  /* Room for focus rings, which reach past the column. */
+  overflow: clip;
+  overflow-clip-margin: 1.25rem;
+  opacity: 1;
+  transition-delay: 60ms;
+}

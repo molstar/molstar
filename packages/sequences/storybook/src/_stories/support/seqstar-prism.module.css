@@ -1,0 +1,166 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/*
+ * A story page in Mol* Prism's tokens and rules (`@molstar/prism-ui`'s). The page and its cards are the UI (the
+ * toolbar's theme); the viewer's drawing area is a canvas, as Mol*'s 3D canvas is: its own color and theme, and the
+ * viewer's --seq-* skin derived from it. The page derives the same skin, for a viewer a story places outside a canvas.
+ */
+
+/* The page: the theme's base, 12px panel text, blocks 16px apart. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-5);
+  min-height: 100vh;
+  padding: var(--msp-space-6);
+  background: var(--msp-color-bg);
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  line-height: var(--msp-line-height);
+}
+
+/* The title and what the story shows: one step larger than the panel text, no serif; the caption muted, at a reading
+   width. */
+.header {
+  display: grid;
+  gap: var(--msp-space-2);
+  max-width: 960px;
+}
+.title {
+  font-size: var(--msp-font-size-lg);
+  font-weight: 600;
+  line-height: 1.25;
+}
+.caption {
+  color: var(--msp-color-text-muted);
+}
+.caption code {
+  padding: 0 var(--msp-space-1);
+  border-radius: var(--msp-radius-sm);
+  background: var(--msp-color-control);
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* Blocks of the page (cards, a pair of them). */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-5);
+}
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
+  gap: var(--msp-space-4);
+  align-items: start;
+}
+
+/* A card's controls under its canvas: rows of choices 8px apart, their boxes at the panel's inset (a box: seqstar-format's
+   card leaves it at the card's edge). */
+.controls {
+  display: grid;
+  gap: var(--msp-space-3);
+  padding-top: var(--msp-space-1);
+}
+/* Choices with long labels: wider before the row wraps. */
+.wide {
+  --msp-choices-min: 220px;
+}
+/* Choices of a few short words: no wider than they need. */
+.narrow {
+  width: min(100%, 280px);
+}
+/* Boxes: at a card's edge (its panel inset), not in its text column. */
+.controls,
+.wide,
+.narrow,
+.actions {
+  margin-inline: 0;
+}
+/* Text actions and lines: their text in the card's text column. */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-2);
+  padding: 0 var(--msp-inset) var(--msp-space-1);
+}
+
+/*
+ * The canvas: the viewer's drawing area, in its own color (`--msp-color-bg`, set inline) and theme (`data-msp-theme`,
+ * by the color's luminance), so every derived shade follows it, as Prism's canvas layer does. Without either it is the
+ * UI theme's base, a step from the card's panel tone. The viewer's skin (seqspec:interaction#the-skin) comes from it.
+ */
+.canvas {
+  padding-block: var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-bg);
+  color: var(--msp-color-text);
+}
+/* The skin from the canvas's tokens (declared where they are, so a canvas of its own theme or color gets its own). */
+.page,
+.canvas {
+  --seq-surface: var(--msp-color-bg);
+  --seq-surface-alt: var(--msp-color-raised);
+  --seq-ink: var(--msp-color-text);
+  --seq-ink-quiet: var(--msp-color-text-muted);
+  --seq-ink-faint: var(--msp-color-border-strong);
+  --seq-grid: var(--msp-color-border);
+  /* The accent marks the picked item: the selection. Hover is a shade, as a hovered row's is. */
+  --seq-accent: var(--msp-color-accent);
+  --seq-hover: color-mix(in oklab, var(--msp-shade) var(--msp-step-hover, 9%), transparent);
+  --seq-highlight: color-mix(in oklab, var(--msp-color-warning) 26%, transparent);
+  --seq-selection: color-mix(in oklab, var(--msp-color-accent) 14%, transparent);
+  --seq-selection-border: color-mix(in oklab, var(--msp-color-accent) 65%, transparent);
+  --seq-unobserved: var(--msp-color-control);
+  --seq-pending: var(--msp-color-hover);
+  --seq-grip: var(--msp-color-text-subtle);
+  --seq-grip-hover: var(--msp-color-text);
+  --seq-window: color-mix(in oklab, var(--msp-color-text-muted) 10%, transparent);
+  --seq-conflict: var(--msp-color-danger);
+  --seq-focus-ring: var(--msp-color-focus-ring);
+  --seq-font-mono: var(--msp-font-mono);
+  --seq-font-ui: var(--msp-font-sans);
+  /* The chrome on the canvas in Prism's own glass, sizes and radii (seqspec:interaction#the-skin's optional tokens). */
+  --seq-chrome: var(--msp-glass-bg);
+  --seq-chrome-panel: var(--msp-glass-panel-bg);
+  --seq-chrome-filter: var(--msp-glass-filter);
+  --seq-chrome-edge: var(--msp-glass-edge);
+  --seq-menu-shadow: var(--msp-shadow-overlay);
+  --seq-control: var(--msp-color-control);
+  --seq-selected: color-mix(in oklab, var(--msp-color-accent), transparent 82%);
+  --seq-selected-ink: var(--msp-color-accent);
+  --seq-font-size: var(--msp-font-size-sm);
+  --seq-font-size-small: var(--msp-font-size-xs);
+  --seq-radius: var(--msp-radius-lg);
+  --seq-radius-control: var(--msp-radius-md);
+  --seq-chrome-gap: var(--msp-space-3);
+  --seq-canvas-edge: var(--msp-canvas-edge);
+}
+/* A host's own arrangement of the viewer's parts on the canvas (seqstar-composed.tsx): its header row, the viewer, the
+   legend. */
+.composed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-3);
+}
+.hostBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msp-space-2);
+  padding: 0 var(--msp-space-1);
+}
+.grow {
+  flex: 1;
+}
+/* The viewer's root is flush in the canvas: its corners the canvas's. */
+.canvas > :global(.seqv-root) {
+  border-radius: inherit;
+}

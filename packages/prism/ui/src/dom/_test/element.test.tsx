@@ -14,7 +14,7 @@ import { type ObservableState, observableState } from '../../reactive/observable
 import { ReactiveModel } from '../../reactive/reactive-model.js';
 import { defineElements, MspElement } from '../element.js';
 import { render } from '../render.js';
-import { onCleanup } from '../scope.js';
+import { onCleanup, Scope } from '../scope.js';
 import { domView, elementView } from '../view.js';
 
 interface Counter {
@@ -154,14 +154,14 @@ describe('view renderers', () => {
       onCleanup(() => cleaned.push(ctx.name));
       return <p>{ctx.name}</p>;
     });
-    const dispose = view.mount(host, { name: 'tab' });
+    const dispose = view.mount(host, { name: 'tab' }, new Scope());
     expect(host.textContent).toBe('tab');
     dispose();
     expect(host.innerHTML).toBe('');
     expect(cleaned).toEqual(['tab']);
 
     const model = counter();
-    const disposeElement = elementView<Counter>('msp-test-counter', 'model').mount(host, model);
+    const disposeElement = elementView<Counter>('msp-test-counter', 'model').mount(host, model, new Scope());
     expect(host.textContent).toBe('1');
     disposeElement();
     await tick();

@@ -46,8 +46,20 @@ export interface ShellTab {
    * strip (default), or its foot by the command menu (Settings).
    */
   place?: 'head' | 'strip' | 'foot';
+  /**
+   * Which rail buttons go first under More when the rail is too short for all of them, even at its smallest size: the
+   * lower the number, the longer the button stays. Defaults to its position in the rail (top to bottom), so the foot goes
+   * first; the command menu says -1 (it is the main way in).
+   */
+  priority?: number;
   /** In the compact layout's bottom bar (Home, Structure); the rest go under More there. */
   compactBar?: boolean;
+  /**
+   * The look of its content on a floating top or bottom dock: `card` (default) is the glass card, `none` has no card at
+   * all (no fill, shadow, filter or hairline) and the canvas shows through, for a view that draws on the canvas itself
+   * (the sequence). Ignored in a side dock and in the docked (not floating) layout.
+   */
+  frame?: 'card' | 'none';
   render: ViewRenderer<ShellViewContext>;
 }
 
@@ -106,10 +118,25 @@ export interface ShellOptions {
    * off what it does not want (`{ xr: false, animation: false }`) without unregistering anything.
    */
   buttons?: Readonly<Record<string, boolean>>;
+  /**
+   * A compact rail (not the compact `mode`, the narrow layout): the whole rail column is hidden behind a button in the
+   * canvas's corner, which shows and hides it, and the canvas takes its width. Off by default; starts hidden
+   * (`railOpen`).
+   */
+  compactRail?: boolean;
 }
 
+/**
+ * Px a band tab's backdrop (the canvas' own color behind the sequence) fades out over below its content, so the
+ * structure passes under it faded, with no hard cut. The band's view keeps this much clear at its bottom.
+ */
+export const BandFadePx = 28;
+/** Px of the band's last lines over which its backdrop already starts to fade (the dissolve begins within the band). */
+export const BandDissolvePx = 36;
+
 const DefaultSizes: Record<DockId, number> = { left: 300, right: 340, top: 88, bottom: 220 };
-const MinSize = 180;
+// Side docks are resized by their splitter; a top or bottom dock is sized by its view (the sequence follows its content).
+const MinSizes: Record<DockId, number> = { left: 180, right: 180, top: 40, bottom: 40 };
 
 /**
  * A section contributed to a slot of a panel or overlay: the Export panel's `export` slot (image, session, animation,
@@ -142,6 +169,8 @@ export interface CanvasToolbarItem {
    */
   group?: string;
   order?: number;
+  /** For rail items: the same as `ShellTab.priority`; which go under More first when the rail is too short. */
+  priority?: number;
   /**
    * Where it shows: the rail (default: panels, the command menu, app actions like save and export) or the canvas stack at
    * the top right of the canvas (what acts on the view: camera, lighting, XR, expand), under the mode buttons.
@@ -173,8 +202,15 @@ export interface CanvasMenuItem {
   icon?: IconName;
   /** A short explanation, shown under the label. */
   hint?: string;
-  /** A toggle's state: shown with a check mark. */
+  /** A toggle's (or a single choice's) state: shown with a check mark. */
   pressed?: Observable<boolean>;
+  /**
+   * One of a single choice (a group of items of which one is current): `pressed` marks the current one as the picking
+   * levels' list marks its own, in the accent (icon and label), with no trailing check.
+   */
+  choice?: boolean;
+  /** Items of one group sit together; a hairline separates a group from the one before it. */
+  group?: string;
   /** Why it cannot be used here (shown greyed, the reason in place of the hint): fullscreen in an iframe that forbids it. */
   disabled?: string;
   run(): void;
@@ -243,6 +279,9 @@ export class ShellModel extends ReactiveModel {
   readonly #page = observableState<OpenPage | undefined>(undefined);
   readonly #docks: Record<DockId, DockModel>;
   readonly #mode = observableState<ShellLayout['mode']>('auto');
+  readonly #compactRail = observableState(false);
+  readonly #railOpen = observableState(false);
+  readonly #railShown = observableState(true);
   readonly #width = observableState(0);
   readonly #effectiveMode = observableState<ShellMode>('desktop');
   readonly #overlay = observableState<OpenOverlay | undefined>(undefined);
@@ -274,6 +313,46 @@ export class ShellModel extends ReactiveModel {
     }
     this.#mode.set(options.mode ?? 'auto');
     this.#resolveMode();
+    this.setCompactRail(!!options.compactRail);
+  }
+
+  /** The rail is a column hidden behind the canvas corner's button (`ShellOptions.compactRail`). */
+  get compactRail(): ReadonlyState<boolean> {
+    return this.#compactRail.asReadonly;
+  }
+
+  /** In a compact rail: whether the column is shown (it is hidden until the button shows it). */
+  get railOpen(): ReadonlyState<boolean> {
+    return this.#railOpen.asReadonly;
+  }
+
+  /** Whether the rail column is shown: always, unless the rail is compact and not open. */
+  get railShown(): ReadonlyState<boolean> {
+    return this.#railShown.asReadonly;
+  }
+
+  setCompactRail(compact: boolean): void {
+    this.#compactRail.set(compact);
+    this.setRailOpen(false);
+  }
+
+  /**
+   * Shows or hides a compact rail's column. Hiding it closes what opened from it: the overlay card and the right panel,
+   * floating or pinned (a pinned panel without its rail would have no way to switch tabs; the pin is kept for when it
+   * is opened again).
+   */
+  setRailOpen(open: boolean): void {
+    this.#railOpen.set(open);
+    this.#railShown.set(!this.#compactRail.value || open);
+    if (!this.#railShown.value) {
+      this.closeOverlay();
+      const right = this.#docks.right;
+      if (!right.state.value.collapsed) right.update({ collapsed: true }, this.#registered);
+    }
+  }
+
+  toggleRail(): void {
+    if (this.#compactRail.value) this.setRailOpen(!this.#railOpen.value);
   }
 
   dock(id: DockId): DockModel {
@@ -469,7 +548,7 @@ export class ShellModel extends ReactiveModel {
   }
 
   setSize(dock: DockId, size: number): void {
-    this.#docks[dock].update({ size: Math.max(MinSize, Math.round(size)) }, this.#registered);
+    this.#docks[dock].update({ size: Math.max(MinSizes[dock], Math.round(size)) }, this.#registered);
   }
 
   /** Floats a dock over the canvas, or docks it beside the canvas. */

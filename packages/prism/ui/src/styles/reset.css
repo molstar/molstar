@@ -27,10 +27,15 @@
   initial-value: 0px;
 }
 
-@keyframes msp-fade-overflow {
-  from,
-  to {
-    --msp-fade: 20px;
+/* Only where scroll timelines exist: elsewhere (Firefox) `animation-timeline` is ignored and the animation would
+   run on the document timeline, holding its keyframe for good, so every opted-in element would fade. Without the
+   keyframes the animation does nothing and the fade stays 0. */
+@supports (animation-timeline: scroll()) {
+  @keyframes msp-fade-overflow {
+    from,
+    to {
+      --msp-fade: 20px;
+    }
   }
 }
 
@@ -58,21 +63,26 @@
   initial-value: 0px;
 }
 
-@keyframes msp-fade-scroll-top {
-  from {
-    --msp-fade-top: 0px;
+/* Only where scroll timelines exist: elsewhere (Firefox) `animation-timeline` is ignored and the animation would
+   run on the document timeline, holding its keyframe for good, so every opted-in element would fade. Without the
+   keyframes the animation does nothing and the fade stays 0. */
+@supports (animation-timeline: scroll()) {
+  @keyframes msp-fade-scroll-top {
+    from {
+      --msp-fade-top: 0px;
+    }
+    to {
+      --msp-fade-top: 16px;
+    }
   }
-  to {
-    --msp-fade-top: 16px;
-  }
-}
 
-@keyframes msp-fade-scroll-bottom {
-  from {
-    --msp-fade-bottom: 16px;
-  }
-  to {
-    --msp-fade-bottom: 0px;
+  @keyframes msp-fade-scroll-bottom {
+    from {
+      --msp-fade-bottom: 16px;
+    }
+    to {
+      --msp-fade-bottom: 0px;
+    }
   }
 }
 

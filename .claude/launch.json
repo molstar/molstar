@@ -8,6 +8,12 @@
       "port": 6006
     },
     {
+      "name": "storybook-6007",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@molstar/storybook", "exec", "storybook", "dev", "-p", "6007", "--ci", "--no-open"],
+      "port": 6007
+    },
+    {
       "name": "docs",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@molstar/docs", "dev", "--port", "4321"],

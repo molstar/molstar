@@ -1,0 +1,94 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Transparent: the text color is the surrounding one (the canvas layer's ink), so it reads on a light or a dark canvas. */
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-2);
+  min-width: 0;
+  color: var(--msp-color-text);
+  font-size: var(--msp-font-size-sm);
+  line-height: 1.3;
+}
+
+.title {
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-width: 0;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.mark {
+  flex: none;
+  background: var(--legend-color, transparent);
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--msp-radius-sm);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.line {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* No color (missing data): an empty mark, quiet. */
+.none {
+  background: color-mix(in oklab, var(--msp-color-text), transparent 85%);
+}
+
+.ramp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-1);
+}
+
+.caption {
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+}
+
+.bar {
+  display: block;
+  height: 8px;
+  border-radius: var(--msp-radius-sm);
+}
+
+.ends {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--msp-space-3);
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+}

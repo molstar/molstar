@@ -151,7 +151,10 @@ const sourceFiles = new Map();
 function scan(dir, pkg) {
   if (!fs.existsSync(dir)) return;
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (ent.isDirectory() && /^(node_modules|lib|dist|build|tests?|_test|__tests__|fixtures?)$/i.test(ent.name))
+    // `_stories` holds Seq*'s Storybook stories and their support code (a private package whose content they are, like
+    // `_test` not published source); Prism's `_stories` folders are checked like the rest of its source.
+    const skipped = /^(node_modules|lib|dist|build|tests?|_test|__tests__|fixtures?)$/i.test(ent.name);
+    if (ent.isDirectory() && (skipped || (ent.name === '_stories' && pkg.path.startsWith('packages/sequences/'))))
       continue;
     const abs = path.join(dir, ent.name);
     if (ent.isDirectory()) scan(abs, pkg);

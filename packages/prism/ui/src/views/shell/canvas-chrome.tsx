@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
@@ -20,25 +20,8 @@ import type { Child } from '../../dom/jsx-types.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/canvas.module.css.js';
 import { PinButton } from './dock-view.js';
+import { sectionsOf } from './rail.js';
 import { ViewHost } from './view-host.js';
-
-/** A section of the toolbar: its id (none for the leading items: the command menu) and its buttons. */
-interface ToolSection {
-  group: string | undefined;
-  items: readonly CanvasToolbarItem[];
-}
-
-function sectionsOf(items: readonly CanvasToolbarItem[]): ToolSection[] {
-  const sections: ToolSection[] = [];
-  for (const item of items) {
-    const group = item.group;
-    const section = sections.find((s) => s.group === group);
-    if (section) (section.items as CanvasToolbarItem[]).push(item);
-    else sections.push({ group, items: [item] });
-  }
-  // Items without a section (the command menu) lead.
-  return sections.sort((a, b) => (a.group === undefined ? -1 : b.group === undefined ? 1 : 0));
-}
 
 /**
  * The toolbar: its buttons in sections, each a glass block of its own, the gaps between them the grouping. `part`
@@ -47,7 +30,7 @@ function sectionsOf(items: readonly CanvasToolbarItem[]): ToolSection[] {
  */
 
 /** A toolbar item's title as shown: its face's (it changes: the theme, the mode switch), or its own with its caption. */
-function itemTitle(item: CanvasToolbarItem) {
+export function itemTitle(item: CanvasToolbarItem) {
   return item.face
     ? item.face.pipe(map((f) => f.title))
     : item.caption
@@ -56,7 +39,7 @@ function itemTitle(item: CanvasToolbarItem) {
 }
 
 /** A toolbar item's icon as shown: its face's, following it, or its own. */
-function ItemIcon(props: { item: CanvasToolbarItem; size: number; class?: string }) {
+export function ItemIcon(props: { item: CanvasToolbarItem; size: number; class?: string }) {
   const { item } = props;
   return item.face ? (
     <span
@@ -73,11 +56,18 @@ export function CanvasToolbar(props: {
   part?: 'all' | 'lead' | 'rest' | 'canvas';
   /** Where buttons with a menu open it (the canvas stack); without it, menus are not shown. */
   menus?: ToolMenus;
+  /** The rail's left-out buttons (`RailLayout.hidden`): they are not shown, they are under More. */
+  hidden?: Observable<ReadonlySet<string>>;
 }) {
   const { shell } = props;
   const part = props.part ?? 'all';
   const canvas = part === 'canvas';
-  const sections = shell.toolbar.pipe(
+  const items$ = props.hidden
+    ? combineLatest([shell.toolbar, props.hidden]).pipe(
+        map(([items, hidden]) => (hidden.size ? items.filter((i) => !hidden.has(`tool:${i.id}`)) : items)),
+      )
+    : shell.toolbar;
+  const sections = items$.pipe(
     map((items) => sectionsOf(items.filter((i) => (i.place === 'canvas') === canvas))),
     map((all) =>
       part === 'all' || canvas
@@ -92,7 +82,7 @@ export function CanvasToolbar(props: {
           <div
             class={classes.toolbar}
             role="toolbar"
-            aria-orientation="vertical"
+            aria-orientation={props.menus ? 'horizontal' : 'vertical'}
             aria-label={section.group ?? 'commands'}
           >
             {section.items.map((item) =>
@@ -124,7 +114,7 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       class={classes.tool}
       data-captioned={item.caption ? '' : undefined}
       data-tip={withMenu ? undefined : itemTitle(item)}
-      data-tip-side="left"
+      data-tip-side={item.place === 'canvas' ? 'top' : 'left'}
       aria-label={itemTitle(item)}
       aria-pressed={pressed}
       aria-haspopup={withMenu ? 'menu' : undefined}
@@ -158,7 +148,7 @@ export function CanvasStack(props: { shell: ShellModel; lead?: Child; aside?: Ch
   const stack = (
     <div class={classes.stack}>
       <div class={classes.frame}>
-        <ScrollArea contentClass={classes.stackTools}>
+        <ScrollArea axis="x" contentClass={classes.stackTools}>
           {props.lead}
           <CanvasToolbar shell={props.shell} part="canvas" menus={menus} />
         </ScrollArea>
@@ -177,15 +167,16 @@ export function CanvasStack(props: { shell: ShellModel; lead?: Child; aside?: Ch
  * the pointer leaves both the button and the menu (so it can travel between them), on a choice, or on Escape.
  */
 export class ToolMenus {
-  readonly open = observableState<{ item: CanvasToolbarItem; top: number } | undefined>(undefined);
+  readonly open = observableState<{ item: CanvasToolbarItem; right: number } | undefined>(undefined);
   stack: HTMLElement | undefined;
   #timer: ReturnType<typeof setTimeout> | undefined;
 
   show(item: CanvasToolbarItem, button: Element) {
     this.keep();
-    const top = this.stack ? button.getBoundingClientRect().top - this.stack.getBoundingClientRect().top : 0;
+    // The menu opens upward from the stack (a row in the canvas' corner), its right edge level with the button's.
+    const right = this.stack ? this.stack.getBoundingClientRect().right - button.getBoundingClientRect().right : 0;
     const current = this.open.value;
-    if (current?.item !== item || current.top !== top) this.open.set({ item, top });
+    if (current?.item !== item || current.right !== right) this.open.set({ item, right });
   }
 
   keep() {
@@ -222,7 +213,7 @@ function ToolMenu(props: { menus: ToolMenus }) {
       {(open) => (
         <div
           class={classes.toolMenu}
-          style={{ top: `${open.top}px` }}
+          style={{ right: `${open.right}px` }}
           role="menu"
           aria-label={open.item.title}
           onPointerEnter={() => menus.keep()}
@@ -231,27 +222,32 @@ function ToolMenu(props: { menus: ToolMenus }) {
           onFocusOut={() => menus.hideSoon()}
         >
           <div class={classes.toolMenuCard}>
-            {open.item.menu!.map((m) => (
-              <button
-                type="button"
-                role={m.pressed ? 'menuitemcheckbox' : 'menuitem'}
-                aria-checked={m.pressed}
-                class={classes.toolMenuRow}
-                disabled={!!m.disabled}
-                onClick={() => {
-                  menus.hide();
-                  m.run();
-                }}
-              >
-                {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
-                <span class={classes.toolMenuLabel}>
-                  {m.label}
-                  {m.disabled || m.hint ? <span class={classes.toolMenuHint}>{m.disabled ?? m.hint}</span> : null}
-                </span>
-                {m.pressed ? (
-                  <Show when={m.pressed}>{() => <Icon name="check" size={14} class={classes.toolMenuCheck} />}</Show>
+            {open.item.menu!.map((m, i, all) => (
+              <>
+                {i > 0 && m.group !== all[i - 1].group ? (
+                  <div class={classes.toolMenuDivider} role="separator" />
                 ) : null}
-              </button>
+                <button
+                  type="button"
+                  role={m.pressed ? 'menuitemcheckbox' : 'menuitem'}
+                  aria-checked={m.pressed}
+                  class={classes.toolMenuRow}
+                  disabled={!!m.disabled}
+                  onClick={() => {
+                    menus.hide();
+                    m.run();
+                  }}
+                >
+                  {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
+                  <span class={classes.toolMenuLabel}>
+                    {m.label}
+                    {m.disabled || m.hint ? <span class={classes.toolMenuHint}>{m.disabled ?? m.hint}</span> : null}
+                  </span>
+                  {m.pressed ? (
+                    <Show when={m.pressed}>{() => <Icon name="check" size={14} class={classes.toolMenuCheck} />}</Show>
+                  ) : null}
+                </button>
+              </>
             ))}
           </div>
         </div>
@@ -566,5 +562,35 @@ function TaskPill(props: { task: StatusTask }) {
         </button>
       ) : null}
     </span>
+  );
+}
+
+/**
+ * The compact rail's button (`ShellOptions.compactRail`): the rail's head glyph, in a card of its own at the bottom of
+ * the rail's column (centered on its icons, at the viewport's edge); it shows and hides the whole rail column.
+ */
+export function RailToggle(props: { shell: ShellModel }) {
+  const { shell } = props;
+  const icon = shell.dock('right').tabs.pipe(
+    map((tabs) => tabs.find((t) => t.place === 'head')?.icon ?? ('prism' as const)),
+    distinctUntilChanged(),
+  );
+  const title = shell.railOpen.pipe(map((open) => (open ? 'Hide the panel rail' : 'Show the panel rail')));
+  return (
+    <div class={`${classes.stack} ${classes.railToggle}`}>
+      <div class={classes.frame}>
+        <button
+          type="button"
+          class={classes.tool}
+          data-tip={title}
+          data-tip-side="top"
+          aria-label={title}
+          aria-pressed={shell.railOpen}
+          onClick={() => shell.toggleRail()}
+        >
+          <span class={classes.face} ref={(el) => bind(icon, (name) => el.replaceChildren(Icon({ name, size: 18 })))} />
+        </button>
+      </div>
+    </div>
   );
 }

@@ -138,8 +138,31 @@ The scope API, all in `dom/scope`:
 - `bind(source, fn)`: calls `fn` with a plain value once, or with each value of a reactive one while the scope lives.
   The JSX runtime is built on it; views use it with `ref` for imperative updates.
 - `createRoot(fn)`, `runInScope(scope, fn)`, `getScope()`, `requireScope()`, `toStream(value)`.
+- `onActive(fn)`, `Scope.setActive(active)`, `Scope.active`, `Scope.follow(flag)`: see below.
 
 A reactive binding created outside any scope throws instead of leaking its subscription.
+
+**Active and paused scopes** (hidden UI does no UI updates, [styling.md](styling.md) §5). A scope is active unless it was
+set inactive (`scope.setActive(false)`) or a parent is; children made from a paused scope start paused. While a scope is
+inactive its `bind` subscriptions are **dropped** (the binding keeps the stream and the callback, not a subscription, so
+nothing runs for it: no write, no derived `map` or `combineLatest`) and made again on resume, when a state replays its
+current value and the DOM catches up with one write per binding; a source that does not replay (a plain event stream)
+simply misses what happened meanwhile. Nothing is rebuilt: nodes and child scopes stay. An active scope pays nothing
+extra per update (the callback is subscribed directly); a binding costs one small object more than a bare subscription.
+`Show`, `Switch` and `Dynamic` emit the same render function while their content stays (and `Show` treats a value that
+is shallow-equal to the one it showed as the same on resume), so resuming keeps their content; `For` reconciles its
+current list (kept rows keep their nodes) and does not continue a time-sliced render while paused.
+
+- `activity(active, () => content)` (`dom/control-flow`) renders `content` in a child scope that follows `active` (a flag
+  or a state; a part that starts hidden binds nothing until it is shown) and sets `inert` on its top elements while it
+  is not: the shell's way to hide something that stays mounted. Bind what does the hiding (`hidden`, a class) outside it,
+  or it pauses with it.
+- `onActive(fn)` (`scope.onActive`) calls `fn(active)` with the state the scope is in now and on each change: for what
+  bindings cannot pause (observers, rAF loops, timers, a store subscription). Final cleanup stays `onCleanup`; hooks are
+  not called after dispose.
+- `render(fn, container, parent?)` renders in a child scope of `parent`, so a view mounted by `ViewRenderer.mount(host,
+  ctx, scope)` pauses with the scope that hosts it (`domView` does this itself; `reactView` re-renders its component with
+  an `active` prop; an `elementView` or a hand-written renderer uses `scope.onActive`).
 
 ### 4.3 Control flow
 
@@ -236,8 +259,12 @@ Views contributed to the shell (tabs, sections, overlays, a command's custom UI)
 
 ```ts
 interface ViewRenderer<Ctx> {
-  /** Render into `host`; return a disposer. Called when the view becomes visible, disposed when it is closed. */
-  mount(host: HTMLElement, ctx: Ctx): () => void;
+  /**
+   * Render into `host`; return a disposer. Called when the view becomes visible, disposed when it is closed. `scope` is
+   * the scope that hosts it, which the shell pauses while the view is hidden but mounted (§4.2): `render(…, host,
+   * scope)`, or `scope.onActive(active => …)` for work of its own.
+   */
+  mount(host: HTMLElement, ctx: Ctx, scope: Scope): () => void;
 }
 ```
 
@@ -246,7 +273,8 @@ Helpers produce renderers for each technology:
 - `domView(Component)` (`dom/view`): the built-in runtime; renders `Component({ ctx })` with `render` after what `host`
   holds, and the disposer disposes its scope and removes its nodes.
 - `reactView(Component, { createRoot })` (`react/react-view`): appends a `display: contents` container to `host`,
-  creates a root on it and renders `<Component ctx={ctx} />`; the disposer unmounts the root and removes the container.
+  creates a root on it and renders `<Component ctx={ctx} active={active} />` (`active` false while the shell has the view
+  hidden: a component that subscribes to models can skip that meanwhile); the disposer unmounts the root and removes the container.
   The caller passes `createRoot` (from `react-dom/client` or `preact/compat/client`), as `renderReact18` is injected
   today, so prism-ui has no React dependency. Not yet: a `ViewModelContext` provider around the root.
 - `elementView('my-tag', property = 'ctx')` (`dom/view`): creates the element, sets the context on that property and

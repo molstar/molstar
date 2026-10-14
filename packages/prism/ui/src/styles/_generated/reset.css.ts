@@ -16,9 +16,11 @@ defineStyles('styles/reset.css', `@property --msp-fade {
   initial-value: 0;
 }
 
-@keyframes msp-fade-overflow {
-  from, to {
-    --msp-fade: 20px;
+@supports (animation-timeline: scroll()) {
+  @keyframes msp-fade-overflow {
+    from, to {
+      --msp-fade: 20px;
+    }
   }
 }
 
@@ -34,23 +36,25 @@ defineStyles('styles/reset.css', `@property --msp-fade {
   initial-value: 0;
 }
 
-@keyframes msp-fade-scroll-top {
-  from {
-    --msp-fade-top: 0px;
+@supports (animation-timeline: scroll()) {
+  @keyframes msp-fade-scroll-top {
+    from {
+      --msp-fade-top: 0px;
+    }
+
+    to {
+      --msp-fade-top: 16px;
+    }
   }
 
-  to {
-    --msp-fade-top: 16px;
-  }
-}
+  @keyframes msp-fade-scroll-bottom {
+    from {
+      --msp-fade-bottom: 16px;
+    }
 
-@keyframes msp-fade-scroll-bottom {
-  from {
-    --msp-fade-bottom: 16px;
-  }
-
-  to {
-    --msp-fade-bottom: 0px;
+    to {
+      --msp-fade-bottom: 0px;
+    }
   }
 }
 

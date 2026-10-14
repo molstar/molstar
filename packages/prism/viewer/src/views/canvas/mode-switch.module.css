@@ -6,8 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/* Glass for what opens beside the stack (the stack's frame carries its own). */
-.levelButton,
+/* Glass for what opens above the stack (the stack's frame carries its own). */
 .levels {
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
@@ -19,13 +18,13 @@
 /* The top section of the canvas stack's frame: edge-to-edge buttons, like the tools below. */
 .switch {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
 }
 
 .segment {
   display: grid;
   place-items: center;
-  width: 100%;
+  width: var(--msp-stack-row, 40px);
   height: var(--msp-stack-row, 40px);
   color: var(--msp-color-text-muted);
   transition:
@@ -50,18 +49,18 @@
 }
 
 .level {
-  /* Left of the stack, level with Select (its second row). Its right padding bridges the gap to the stack, so the
-     pointer can travel from Select to it without leaving either. */
+  /* Above the stack, over Select (its second button, after Interact). Its bottom padding bridges the gap to the stack,
+     so the pointer can travel from Select to it without leaving either. */
   position: absolute;
-  top: var(--msp-stack-row, 40px);
-  right: 100%;
+  bottom: 100%;
+  left: var(--msp-stack-row, 40px);
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  padding-right: var(--msp-space-3);
+  align-items: flex-start;
+  padding-bottom: var(--msp-space-3);
   opacity: 0;
   visibility: hidden;
-  transform: translateX(4px);
+  transform: translateY(4px);
   transition:
     opacity var(--msp-motion-fast) var(--msp-ease),
     transform var(--msp-motion-fast) var(--msp-ease),
@@ -100,41 +99,9 @@
   opacity: 0.8;
 }
 
-.levelButton {
-  display: flex;
-  align-items: center;
-  gap: var(--msp-space-2);
-  height: var(--msp-stack-row, 40px);
-  padding: 0 var(--msp-inset);
-  color: var(--msp-color-text);
-  font-size: var(--msp-font-size-sm);
-  white-space: nowrap;
-
-  &:hover,
-  &[aria-expanded="true"] {
-    background: var(--msp-glass-panel-bg);
-  }
-}
-
-.levelCaption {
-  color: var(--msp-color-text-subtle);
-}
-
-.chevron {
-  color: var(--msp-color-text-subtle);
-  transition: transform var(--msp-motion-fast) var(--msp-ease);
-
-  [aria-expanded="true"] > & {
-    transform: rotate(180deg);
-  }
-}
-
 /* The levels: a short list under the button, icon and label per row; the chosen one in the accent. */
 .levels {
-  position: absolute;
-  top: calc(100% + var(--msp-space-2));
-  /* Flush with the button, not with the hover bridge to its right. */
-  right: var(--msp-space-3);
+  /* In the flyout, which is above the stack, over Select. */
   z-index: var(--msp-z-overlay);
   display: grid;
   min-width: 168px;

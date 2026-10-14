@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { defineElements, MspElement } from '../../dom/element.js';
+import { Scope } from '../../dom/scope.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { MspElementHost } from '../element-host.js';
 import { reactView } from '../react-view.js';
@@ -42,12 +43,31 @@ describe('React adapter', () => {
     document.body.append(host);
     let dispose: () => void = () => {};
     act(() => {
-      dispose = reactView(View, { createRoot }).mount(host, { label });
+      dispose = reactView(View, { createRoot }).mount(host, { label }, new Scope());
     });
     expect(host.textContent).toBe('one');
     act(() => label.set('two'));
     expect(host.textContent).toBe('two');
     act(() => dispose());
+    expect(host.innerHTML).toBe('');
+  });
+
+  it('tells the view whether it is active, following the scope it is mounted in', () => {
+    const View = ({ active }: { ctx: undefined; active?: boolean }) => <b>{String(active)}</b>;
+    const host = document.createElement('div');
+    document.body.append(host);
+    const scope = new Scope();
+    let dispose: () => void = () => {};
+    act(() => {
+      dispose = reactView(View, { createRoot }).mount(host, undefined, scope);
+    });
+    expect(host.textContent).toBe('true');
+    act(() => scope.setActive(false));
+    expect(host.textContent).toBe('false');
+    act(() => scope.setActive(true));
+    expect(host.textContent).toBe('true');
+    act(() => dispose());
+    scope.setActive(false);
     expect(host.innerHTML).toBe('');
   });
 

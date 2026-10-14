@@ -11,6 +11,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'band': 'msp-shell-dock-band',
   'barTab': 'msp-shell-dock-barTab',
   'body': 'msp-shell-dock-body',
   'bodyContent': 'msp-shell-dock-bodyContent',
@@ -24,11 +25,14 @@ export const classes = {
   'floatingLeft': 'msp-shell-dock-floatingLeft',
   'floatingRight': 'msp-shell-dock-floatingRight',
   'floatingTop': 'msp-shell-dock-floatingTop',
+  'frameless': 'msp-shell-dock-frameless',
   'header': 'msp-shell-dock-header',
   'left': 'msp-shell-dock-left',
   'pin': 'msp-shell-dock-pin',
   'rail': 'msp-shell-dock-rail',
+  'rail-menu-in': 'msp-shell-dock-rail-menu-in',
   'railFoot': 'msp-shell-dock-railFoot',
+  'railMenu': 'msp-shell-dock-railMenu',
   'right': 'msp-shell-dock-right',
   'splitter': 'msp-shell-dock-splitter',
   'strip': 'msp-shell-dock-strip',
@@ -234,6 +238,14 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
     overflow: hidden;
   }
 
+  & .msp-shell-dock-frameless {
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    background: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
   & .msp-shell-dock-strip {
     background: none;
     gap: 0;
@@ -241,9 +253,14 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   }
 
   & .msp-shell-dock-tab {
-    border-radius: 0;
     width: 100%;
-    height: 40px;
+    height: var(--msp-rail-button, 40px);
+    border-radius: 0;
+  }
+
+  & .msp-shell-dock-tab > svg {
+    width: var(--msp-rail-icon, 20px);
+    height: var(--msp-rail-icon, 20px);
   }
 
   & .msp-shell-dock-tab[aria-selected="true"] {
@@ -253,10 +270,17 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
 .msp-shell-dock-floatingRight {
   gap: var(--msp-canvas-edge);
+  transition: transform var(--msp-motion-base) var(--msp-ease),
+    opacity var(--msp-motion-base) var(--msp-ease);
   flex-direction: row-reverse;
   top: 0;
   bottom: 0;
   right: 0;
+
+  &[data-rail-hidden] {
+    opacity: 0;
+    transform: translateX(100%);
+  }
 
   & .msp-shell-dock-rail {
     background: var(--msp-glass-panel-bg);
@@ -264,8 +288,20 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
     border-radius: 0;
   }
 
+  &[data-rail-overlay] {
+    bottom: calc(var(--msp-canvas-edge) + var(--msp-corner-room, 0px));
+
+    & .msp-shell-dock-rail {
+      border-bottom-left-radius: var(--msp-radius-lg);
+    }
+
+    & .msp-shell-dock-content {
+      margin-bottom: var(--msp-canvas-edge);
+    }
+  }
+
   & .msp-shell-dock-content {
-    margin: var(--msp-canvas-edge) 0;
+    margin: var(--msp-canvas-edge) 0 calc(var(--msp-canvas-edge) + var(--msp-corner-room, 0px));
   }
 
   [data-overlay="open"] > & .msp-shell-dock-content {
@@ -320,6 +356,36 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   bottom: auto;
 }
 
+.msp-shell-dock-floating:is(.msp-shell-dock-floatingRight, .msp-shell-dock-floatingLeft, .msp-shell-dock-floatingTop, .msp-shell-dock-floatingBottom) {
+  pointer-events: none;
+}
+
+.msp-shell-dock-floatingTop.msp-shell-dock-band, .msp-shell-dock-floatingBottom.msp-shell-dock-band {
+  left: 0;
+  right: calc(var(--msp-canvas-end, 0px) - var(--msp-canvas-pinned, 0px));
+  background: linear-gradient(to bottom,
+    var(--msp-color-bg) calc(100% - var(--msp-band-fade, 0px) - var(--msp-band-dissolve, 0px)),
+    color-mix(in srgb, var(--msp-color-bg) 60%, transparent) calc(100% - var(--msp-band-fade, 0px) * .6),
+    transparent);
+  pointer-events: none;
+
+  & .msp-shell-dock-content {
+    pointer-events: none;
+  }
+}
+
+.msp-shell-dock-floatingTop.msp-shell-dock-band {
+  top: 0;
+}
+
+.msp-shell-dock-floatingBottom.msp-shell-dock-band {
+  background: linear-gradient(to top,
+    var(--msp-color-bg) calc(100% - var(--msp-band-fade, 0px) - var(--msp-band-dissolve, 0px)),
+    color-mix(in srgb, var(--msp-color-bg) 60%, transparent) calc(100% - var(--msp-band-fade, 0px) * .6),
+    transparent);
+  bottom: 0;
+}
+
 .msp-shell-dock-floatingBottom {
   flex-direction: column-reverse;
   top: auto;
@@ -328,6 +394,45 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 .msp-shell-dock-rail {
   flex: none;
   align-self: stretch;
+  container-type: size;
+}
+
+@container (height <= 619px) {
+  .msp-shell-dock-rail > * {
+    --msp-rail-button: 34px;
+    --msp-rail-button-captioned: 40px;
+    --msp-rail-icon: 18px;
+    --msp-rail-icon-captioned: 15px;
+  }
+}
+
+@container (height <= 529px) {
+  .msp-shell-dock-rail > * {
+    --msp-rail-button: 30px;
+    --msp-rail-button-captioned: 36px;
+    --msp-rail-icon: 16px;
+    --msp-rail-icon-captioned: 14px;
+  }
+}
+
+.msp-shell-dock-railMenu {
+  right: calc(44px + var(--msp-space-2));
+  z-index: var(--msp-z-overlay);
+  max-height: 100%;
+  animation: msp-shell-dock-rail-menu-in var(--msp-motion-fast) var(--msp-ease);
+  display: flex;
+  position: absolute;
+
+  & > * {
+    overflow-y: auto;
+  }
+}
+
+@keyframes msp-shell-dock-rail-menu-in {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
 }
 
 .msp-shell-dock-railFoot {

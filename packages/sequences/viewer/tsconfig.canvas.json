@@ -1,0 +1,21 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // The canvas renderer, its tests and the scripts (run by Node's type stripping, so .ts imports) (no emit); with the DOM lib.
+  "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": ["src/canvas", "_test/canvas", "_test/interactions/canvas", "scripts"],
+  "references": [{ "path": "../core" }, { "path": "../../core" }, { "path": "../../io" }]
+}

@@ -1,0 +1,369 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Code } from "./live";
+import { CONTRACT } from "./snippets";
+
+<Meta title="Seq*/Docs/Streaming" />
+
+# Streaming
+
+For a developer serving data too large to send whole. A **streamed source** is fetched by region and level as the
+view moves: the document says what is streamed and in which shape, the host's **stream provider** answers requests,
+and the viewer decides what to ask for, in what order, and what to keep. The format names no protocol, URL or server.
+The terms are explained in [Concepts](?path=/docs/seq-docs-concepts--docs).
+
+## When to stream
+
+- **Genomes.** GRCh38 is 3.1 billion positions over 24 chromosomes, with tracks over them: scores, coverage,
+  variants, transcripts.
+- **Huge alignments.** A Pfam "full" family, an MSA of a million rows: more cells than a tab should hold.
+- **Anything too big to send whole.** Data by value or a file by `uri` is read whole at load; past tens of megabytes,
+  stream it.
+
+Below that, send it whole: the viewer's density draws hold 3M nucleotides and a 10,000 × 300 alignment in memory
+([Genome-scale](?path=/story/seq-performance-large-documents--genome-scale), [Large alignment](?path=/story/seq-performance-large-documents--large-alignment)),
+and an alignment in memory is already drawn by tiles, computed in place (the same cache, no provider).
+
+**The bench** (`viewer/_test/canvas/hg38.test.ts`): GRCh38's 24
+chromosomes at their real lengths as a letters stream's manifest (a [complex](?path=/docs/seq-docs-concepts--docs#complex)
+of 24 lazy [units](?path=/docs/seq-docs-concepts--docs#unit): nothing per position anywhere), and a values stream over
+them, six BigWig-like levels of 32 to 1,048,576 positions a bin, sampled on demand by a provider that holds nothing.
+A ruler and a values track in Chromium, 1,320 × 300 CSS px, at a device pixel ratio (DPR) of 1 (a standard display,
+one device pixel per CSS pixel) and 2 (a high-density display such as Retina, four device pixels per CSS pixel):
+
+| | DPR 1 (standard) | DPR 2 (high density) |
+|---|---|---|
+| Load: `setDocument` (both manifests) to the first settled whole frame | 44 ms | 31 ms |
+| A full frame at the whole genome (24 coarse regions, one a chromosome) | 1.4 ms | 1.6 ms |
+| A full frame at 1 Mb, at 10 kb | 1.2, 1.3 ms | 1.5, 1.9 ms |
+| Settled after a jump to 1 Mb, then to 10 kb | 4, 2 frames | the same |
+| A tour of 96 windows of 10 kb over every chromosome under an 8 MiB `Stream.CacheBytes` | 858 requests, at most 7.97 MiB held | the same |
+
+A frame costs O(device columns), never O(positions in view), and a pan over held regions allocates nothing.
+
+## The pieces
+
+```
+ DOCUMENT              HOST'S PROVIDER                      VIEWER (ctx.streams)
+ ─────────             ───────────────                      ────────────────────
+ source  ──compile──►  fetch(system: null)  ──► manifest ──► systems, levels, domain: the layout is fixed
+ stream: "signal"                                                │
+ data_kind: "values"                                             ▼ per frame, from the viewport
+                       fetch(request, signal) ◄──────────────  requests: (source, system, [start, stop), level)
+                             │                                   coarse first, the view center out, the margin
+                             └──► data patch ──────────────────► cache: regions by (system, level), under CacheBytes
+                                  items | bins | letters | rows      │
+                                                                     ▼
+                                                                   draw: the view's level, else a coarser one
+```
+
+### A streamed source
+
+A `source` node with `stream`, an id the host's provider resolves, or with `protocol` and `uri`, the address of a
+provider the host registered for that protocol (`seqstar-tiles/1`, below). Exactly one of `uri`, `service`,
+`host_file`, `value` and `stream`; a streamed source has no `format`.
+
+| Param | |
+|---|---|
+| `stream` | the id the host's `loaders.stream` maps to a provider |
+| `protocol`, `uri` | a provider registered for the protocol, at this address (instead of `stream`) |
+| `data_kind` | `letters`, `items`, `values` or `alignment`; required with `stream`; with `protocol`, `null`: each reader's own |
+| `coordinate_system` | an `items` or `values` source's [coordinate system](?path=/docs/seq-docs-concepts--docs#coordinate-system): a `sequence`, `unit`, `complex`, `alignment` or row ref; `null`: the reading annotation's `target`. A `letters` or `alignment` source takes none |
+| `max_depth` | how deeply its patches may nest streamed sources (default 4; the document's source is level 1): a nested source deeper than that is `svs.stream.depth` and never asked for |
+
+Its readers:
+
+| `data_kind` | Read by | Its coordinate systems |
+|---|---|---|
+| `letters` | a `sequence` (`record`: a manifest key); or a `complex` with `source_ref` and no `provider`: a unit `R/<key>` over a sequence `R/<key>/sequence` per system of the manifest | the reader's: [molecules](?path=/docs/seq-docs-concepts--docs#molecule) whose letters are pending, their lengths and numberings the manifest's |
+| `alignment` | an `alignment` | its columns and rows |
+| `items` | an [annotation](?path=/docs/seq-docs-concepts--docs#annotation-and-item) of geometry `ranges` | `coordinate_system`; over a complex, each manifest key is a member (`chr17` is `hg38/chr17`) |
+| `values` | an annotation of geometry `values` | as `items` |
+
+A key that names no member is `svs.stream.ref`; a reader of another kind is `svs.source.format`. A streamed
+[alignment](?path=/docs/seq-docs-concepts--docs#alignment-rows-and-columns)'s tree needs `leaves: "order"`
+(`svs.tree.streamed`), its rows are fetched whole only for the reference row and rows that data targets, and
+`column_stats` with the default params is the provider's (a source of its own, `<ref>#stats`).
+
+### The manifest
+
+The answer to a source's first request (`system: null`), and all that compile reads of it: layout, palettes, legends
+and split rows read the manifest, so they are fixed before any data arrives and nothing moves when it does.
+
+| Field | |
+|---|---|
+| `systems` | required: per coordinate system its `key`, `extent` (half-open), `numbering` (a numbering node's params, or `null`) and `label` |
+| `levels` | required: the summary levels served, finest first: positions per bin, or an alignment's `[rows, columns]` per bin; `[]`: data only |
+| `domain` | `values`: the range of its values over the whole source (the layer's scale) |
+| `vocabulary` | `items`: per categorical field, the values it may take, in order (palette order) |
+| `rows`, `columns`, `inserts`, `labels` | `alignment`: its shape, its insert columns, whether row labels are served |
+| `alphabet` | `letters`, `alignment` |
+| `nodes` | dynamic nodes known up front (below) |
+
+A missing provider is `svs.provider.unavailable` (a warning: the nodes reading it are left out, nothing else fails); a
+failed manifest is `svs.source.load`, one without `systems` and `levels` `svs.source.format`. Declared shapes
+(`row_count`, `column_count`, `length`) are checked against it.
+
+### Requests
+
+A `StreamRequest` names the `source`, the `system` (`null` for the manifest), the half-open `start` and `stop` (and
+`row_start`, `row_stop` for an alignment), the `level` (`-1`: the data itself), `labels` (row labels only) and the
+`priority` (`view`, `margin`, `prefetch`). Its exact shape is in the spec's sources part
+(`packages/sequences/_spec/sources.md`, "Requests").
+
+Always in the source's coordinate system, quantized by the viewer: a region is 256 bins of a level, or 4,096
+positions of the data (level -1), in one system; an alignment's, one 256 × 256 tile of a `[2^ly, 2^lx]` level the
+manifest lists. `priority` lets a provider order or skip what it is sent.
+
+**Through a path.** Streamed `items` and `values` reach a block their system reaches only through a path: a genome's
+genes, variants and scores on a protein's block, by its `codon` mapping; a column statistic on a chain, by its row. The
+view's residues are taken back through the path to the runs of the source's system that code them (its exons), and
+only the regions those reach are asked, never the introns between them. Read back, an item is drawn as its parts on
+the block (an exon's coding part, a variant on its residue), hovered and selected as their hull; a value over a
+residue covers its codon's three positions (a codon split by an intron, both parts). The path holds only its
+stretches, so a protein's path through a 250 Mb chromosome is the size of its CDS. [A protein on its
+genome](?path=/story/seq-streaming-streamed-data--through-a-path) shows it beside the gene's own section. A genome's
+letters are not drawn on a protein's axis (a residue's three bases in its cell is a planned codon track); the copies
+of a merged block reached each by its own path are not placed (`svs.layer.streamed_merged`).
+
+### Data patches
+
+A patch names what it fills (`source`, `system`, `start`, `stop`, `row_start`, `row_stop`, `level`) and a `kind`:
+
+| `kind` | Answers | Holds |
+|---|---|---|
+| `manifest` | the first request | `manifest` |
+| `items` | level -1 of `items` and `values` | `items`, a table in the columns form: a `ranges` table's columns (`start`, `stop`, `id`, `category`, `label`, fields); for `values`, a dense `value` column, one per position |
+| `bins` | a level | one row per bin: `values` `min`, `max`, `mean`; `items` `count` (and optionally `counts` per vocabulary value); `letters` and `alignment` `class` and `share` |
+| `letters` | level -1 of `letters` | the region's one-letter codes, a string of `stop − start` |
+| `rows` | level -1 of `alignment` | `labels`, one per row; `rows`, each row whole as a gapped string, or `null` for labels only |
+
+Patches are data in JSON base types (typed columns allowed: `share` as a `Uint8Array`), idempotent (a patch for a
+region held changes nothing), and may arrive in any order. A region is **pending** until its patch fills it, then
+**loaded**, **empty** (loaded, no rows) or **failed**; a pending region is never drawn or hit as empty. Patches are
+never document: they reach no patch, snapshot, history or download.
+
+### The provider
+
+The host's port: `loaders.stream(source)` returns a provider for a source, or `null`. One method answers every
+request, the manifest first:
+
+<Code code={CONTRACT} />
+
+- **`StreamNotServed`**: the provider does not serve this resource (a chromosome it lacks, a statistic its server has
+  not computed). Reported once, never retried; for a manifest, the source is unavailable rather than failed.
+- **Any other rejection** is a failure: reported once per outage (`svs.stream.load`, a warning, naming the source and the
+  region), retried at 1, 2 and 4 s, then after a 30 s cooldown when next needed.
+- **Aborts.** The viewer aborts what an older view asked for and no view has needed for `Stream.CancelGraceMs` (a
+  jump, a fast pan; at once when its slot is wanted, the longest unneeded first), so a pan jittering across a region's
+  edge keeps it in flight; and everything when the layer leaves or the context is disposed. Stop the work and reject with `signal.reason`: an abort
+  is neither reported nor retried.
+- **Its own caches, batching, auth and endpoints are the provider's.** The viewer holds only what drawing needs.
+
+## What the viewer does for you
+
+The stream manager, `ctx.streams`, runs once a frame from the viewport and layout versions, never from draws, so it
+loads headlessly too. Its passes run on animation frames: in a hidden tab (or a hidden pane) no frame fires, and
+nothing more is asked until one does.
+
+- **The order.** Per block in view: the coarsest level wherever the view is not at it, so the first frame is fast;
+  then the view's level, from the center out; then a margin of `Stream.Margin` view widths each side
+  (`priority: "margin"`). An alignment adds its vertical overview and the row labels in view; a miniature (the
+  `strip` or `band` navigator, a `seqv:map` layer) adds each block whole at about a map pixel's level, before the
+  margin. A region held or in
+  flight is never asked twice; at most `Stream.MaxInFlight` are in flight.
+- **Levels.** A [block](?path=/docs/seq-docs-concepts--docs#view-section-and-block)'s level is the coarsest listed
+  whose bin is at most the positions a device pixel holds; finer than every level, the data (an alignment whose
+  manifest lists some levels: the coarsest listed no wider on either axis, else the nearest coarser). A draw reads the
+  view's level, else the next coarser one loaded, per device column: a region keeps its coarser data drawn while the
+  finer loads.
+- **Letters.** A `letters` stream's data is asked only where a device pixel holds at most `Stream.LettersPerPx`
+  (16) positions: a whole chromosome asks nothing, its `state` is `empty` there, and the track shows a hatched band
+  saying to zoom in. Inside, the regions of 4,096 letters
+  arrive like any data and are held as upper-case codes (a 2bit file's soft-masked lower case drawn upper case); the
+  `letters` layer draws them as cells, thinner than a pixel read per device column, and as letters once a position
+  is wide enough. A position not yet held draws nothing; hovering one names its letter once it is held. See
+  [Streamed data](?path=/story/seq-streaming-streamed-data--letters). A manifest's levels for letters (`class` bins) are not
+  asked yet.
+- **Items.** An `items` stream feeds a `ranges`, `points` or `variants` layer: below its first level, regions of 65,536
+  positions of data, each patch turned into a feature table when it arrives (rows of one `id` are one item's
+  fragments, joined across their gaps; `label` and, for variants, `alt` read); above it, each region's `count` per bin,
+  drawn as density. An item keeps its lane across regions (while a held region holds it) and is drawn once, by the
+  first region in view that holds it. Items or density is one decision a frame, as for data in memory. A streamed item
+  is hovered like any (outlined, its label and fields in the tooltip), and a field theme reaches it: a `field_palette`
+  over `category` colors it in the order of the manifest's `vocabulary`. A value the vocabulary lacks, or a stream
+  that sends none, takes a list color by its hash (FNV-1a), the same in every region and reload; an item with no value
+  of the field (a stream without the column) has the missing color. The legend cannot list those, and the layer says
+  so once (`svs.legend.unlisted`).
+- **Prefetch** (`Stream.Prefetch`, on by default). After the view's regions and the margin's, the viewer asks for what
+  the view is heading to, marked `priority: "prefetch"` so a provider may treat the request as a hint: a view width
+  past the margin on the side the view last panned toward (kept while it rests, moved when it pans back), the next
+  finer or coarser level where it zoomed, and the regions the snapshots next to the one shown focus on, so entering one
+  draws from the cache. A prefetch is never waited for; a view's region takes the slot of one when the in-flight bound
+  is full. The [Prefetch story](?path=/story/seq-streaming-prefetch--ahead) shows the request log beside the view.
+- **Placeholders.** A letters or items region asked and not yet arrived draws a quiet band in the pending
+  shade over its extent, replaced by the data in the frame it arrives (only its columns are redrawn).
+- **Progressive loading**, on the overlay, so the cells are never redrawn for it. A region with nothing drawn in
+  its place (values and rows: no coarser level loaded either) is a **skeleton**: the pending shade with a slow
+  shimmer, one sweep a second. A failed one is an **error band**: tinted red, hatched, "failed to load" where it fits.
+  A region that just arrived **fades in** over 150 ms, regions arriving together alike. Under reduced motion
+  (`Viewport.ReducedMotion`, or the page's `prefers-reduced-motion`) the shade holds still and nothing fades; an
+  export draws no motion either. The hover label says "loading…" over a pending region (and updates when it lands)
+  and "failed" over a failed one. Lazy rows take the same per tile.
+- **Eviction.** Past `Stream.CacheBytes` the least recently needed regions go, down to 7/8 of the bound in one sorted
+  sweep; the regions the current view needs are pinned. A lazy alignment's row labels count too, by their chunks of
+  rows (a label out of view reads none until a view asks its chunk again). A provider holds nothing on the viewer's
+  behalf.
+- **`state(layer, block, index[, lane])`** is the region's state there at the view's level: `RegionState.pending`,
+  `loaded`, `empty` or `failed` (outside the source: empty; on a block out of view: pending); a rows layer's at `lane`
+  (its own lane, from 0; by default the first in view).
+- **`settled()`** resolves at the first pass that finds every region in view loaded, empty or failed at the level the
+  view needs (the margin aside); at once when no pass can run. Tests and exports await it.
+- **`ctx.streams.stats`**, a live record: `requests`, `hits`, `inFlight`, `cancelled`, `coarse` and `fine` arrivals,
+  `bytes` held, `errors`, and `computed` (an in-memory alignment's tiles). Read `stats.current` on
+  `stats.version`, as the example below does (`useLiveVersion` in React).
+- **Retry and Busy.** A layer with a failed region (not `StreamNotServed`) gets **Retry** in its track's "…" menu
+  (`stream.retry`: `ctx.streams.retry(layer)` ends the cooldown and asks again; `hasFailed(layer)` is its `when`);
+  the command `seqv:retry` does the same for a track (`{"track": ref}`), or for every track without one.
+  The **Busy** part shows while requests are in flight, held 250 ms after the last so a pan does not flicker it, or
+  after 750 ms of graph work (`Tasks.BusyDelayMs`).
+- **Export.** `renderSvg(doc, …)` sizes the sections at the export's width, runs its clock until `settled()`, then
+  draws. A live context passed in draws its regions as they stand: await `ctx.streams.settled()` first.
+- **Per-region redraws.** Each arrival, failure or eviction bumps the layer's `StreamView.version`; the composer
+  redraws only that layer's entries, and for an alignment only the columns of the tiles that changed
+  (`StreamView.changed`). A 1-D region redraws its layer's entries whole.
+- **Never document.** Regions live in a data layer under the document: `base`, `shown`, patches, undo and snapshots
+  never see them, and a theme or skin change keeps every region.
+
+The config items (`SeqViewerConfig.Stream`):
+
+| Item | Default | |
+|---|---|---|
+| `Stream.CacheBytes` | 128 MiB | the cache's bound |
+| `Stream.MaxInFlight` | 6 | requests at once |
+| `Stream.CancelGraceMs` | 250 | ms a request no view needs stays in flight; 0: aborted at once |
+| `Stream.Margin` | 1 | view widths asked beyond each side; 0: none |
+| `Stream.SampleBudget` | `null` | an alignment's samples a view at most, where its source lists a level that coarse; `null`: one a device pixel |
+| `Stream.LettersPerPx` | 16 | a letters stream is asked only where a device pixel holds at most this many positions |
+| `Stream.RegionBytes` | 1 MiB | a data request's bound on what its provider reads (`max_bytes`); past it the provider answers with counts |
+| `Stream.ShimmerFps` | 30 | frames a second of a pending region's shimmer; 0: a still band |
+| `Stream.Prefetch` | `true` | request ahead: a view width past the margin on the side last panned toward, a zoom's next level, the regions of the neighboring snapshots |
+
+## Writing a provider
+
+A minimal one is a values source made up on demand (the bench's kind): a provider that holds nothing, answers after a
+delay and stops on an abort, the host's loaders, and a document that streams through them. The
+[Streamed data](?path=/story/seq-streaming-streamed-data--letters) stories run providers live
+([Lazy alignment](?path=/story/seq-streaming-streamed-data--lazy-alignment) is a streamed alignment), and the
+[Prefetch](?path=/story/seq-streaming-prefetch--ahead) story logs the requests.
+
+**`@molstar/seq-core/stream/tiles`** is the reference provider, for alignments: the `seqstar-tiles/1` protocol the first
+viewer spoke, outside the core (nothing in the format, the model or the viewer names it). A source is
+`{ protocol: "seqstar-tiles/1", uri }`, and the host's `loaders.stream` is `tilesStream(open)`: a provider over the
+transport `open(uri)` gives (HTTP GET under the `uri` by default; `null`: not served here), and `null` for any other
+source. With no manifest of its own, it builds one from what the readers declare (`StreamSource.declared`: an
+alignment's `row_count` and `column_count`, an annotation's `length` and `target`). It serves an alignment's tiles
+(`class` and `share` bins at every `[2^ly, 2^lx]`), its rows and labels, `values` and `items` annotations over its
+columns, and column statistics (`stats/<measure>`; a server without one makes the statistic unavailable). The host
+passes `tilesStream()` (HTTP GET under each source's `uri`) or `tilesStream((uri) => transport | null)` as
+`loaders.stream`, and declares the alignment's shape in the document (`row_count`, `column_count`, and a
+`{ protocol: "seqstar-tiles/1", uri }` source).
+
+- **The client** (`tileClient`, `fetchTransport`, `NotServed`, which extends `StreamNotServed`): each call asks the
+  transport once; 404 and 410 are not served, anything else a failure.
+- **The reference server** (`@molstar/seq-core/stream/tiles/server`, `tileServer`): in process, every request in `calls`. A
+  cell is a hash of its place and a tile is made when asked, so it holds nothing: a million rows by 320 columns cost
+  what a tile costs.
+- **Case 9** loads through it ([the viewer](?path=/story/seq-cases-viewer--case-9),
+  [Nightingale](?path=/story/seq-cases-nightingale--case-9)), its conservation track from the server's `stats`.
+
+**`@molstar/seq-core/stream/gmod`** serves indexed genome files over byte-range reads, a reader to a format: `twoBitProvider`
+(`letters`: a system per sequence, N blocks and soft masking handled, a sequence's block lists searched on disk),
+`bigWigProvider` (`values`: the file's zoom reductions are the manifest's `levels`, the zoom records resampled onto the
+request's bins, level -1 the data), `bigBedProvider` and `vcfProvider` (`items`: a row per BED item, per block of a BED12,
+per ALT allele). A transport is `read(offset, length, signal)`: `fetchRanges(url)` over HTTP `Range`, or recorded bytes
+in the tests; `gmodStream(open)` is a host's `loaders.stream`. The package's README keeps the format gotchas (byte order,
+zoom-level choice, BGZF blocks, tabix bins, 0- and 1-based coordinates).
+
+**Never a whole chromosome of items.** Zoomed out, a BigBed's counts come from its zoom records and a VCF's are
+estimated from its tabix index (`estimate: true`): neither reads an item. A data request carries `max_bytes`
+(`Stream.RegionBytes`, 1 MB); past it, or past 2,000 items (a VCF decides from its index, before reading), the provider
+answers with counts (the zoom gate): the track draws them as density and says "zoom in to see variants, or click to
+load them", a click loading what is in view of that region (`force`, in regions of 4,096); once a device pixel holds 64
+positions or fewer, the region's part in view is asked in regions of 4,096 anyway. A VCF's estimate of its items counts
+a record at the compressed bytes the file's own first data blocks show. Letters are asked only inside the letters gate. A file's chromosome names
+become the document's through `renamed` (`chrNames`: ClinVar's `1` and `MT` as `chr1` and `chrM`). See
+[the genome browser demo](?path=/story/seq-cases-genome-browser--live): hg38 read live from UCSC's and NCBI's files.
+
+## Dynamic nodes, nested sources and templates
+
+**Dynamic nodes.** A manifest or a patch may carry `nodes`
+(`{ kind, key, params }`: sequences, ligands, units, mappings, annotations, and nested sources), which join the data
+set, never the document, its patches, history or downloads. [Dynamic nodes: manifest, patch and eviction](?path=/story/seq-streaming-streamed-data--first-part)
+shows a manifest's genes, peaks arriving with their regions as you zoom in, and eviction under a small cache. A patch
+carries its nodes as `{ kind, key, params }` entries beside its data; the spec's sources part
+(`packages/sequences/_spec/sources.md`) has the shapes.
+
+- **Their ref** is derived, `<source>/<key>`; a node is keyed by (source, key). The same key again with equal params is
+  a no-op; with other params `svs.stream.conflict` (a warning), the held one kept.
+- **Checked as document nodes** of their kind: the same param checks, the key a ref suffix; their refs name the
+  document's nodes, the set's keys, held dynamic nodes or the same patch's. A bad node is left out with its issue
+  (`svs.params.*`, `svs.stream.ref`), at `/nodes/<key>`, its message naming the source.
+- **Named before they arrive.** A derived ref of a streamed source is valid in a document (and in a data-mode view
+  over data that reads one). A layer whose data names only nodes not held is pending, never `svs.layer.unplaced`, and
+  a track whose every layer is pending is hidden until one arrives.
+- **Held, then evicted.** A patch's nodes are carried by its region; a shown track's data, the blocks' units, the
+  selection, a highlight and a held node that names one hold them too. They count in `Stream.CacheBytes`, and when the
+  region that brought a node leaves and nothing else holds it, it is evicted, quietly, with the nodes it named that
+  nothing else holds. A manifest's nodes stay while their source does. A template's instances and the hover hold
+  nothing (below); a snapshot holds through the document it applies.
+- **Stable ids.** A node evicted and back (its region asked again) gets its old id, so a selection or a location
+  naming it rebinds.
+- **At stream rate.** Node changes reach the set once a frame (`#assemble.stream`), never once a patch, and an update
+  costs its changes, not the set's size: a node no section, layer or template reads reruns only `#assemble.stream`
+  (about 2 ms over 10,000 held).
+
+**Nested sources.** A `source` node in a manifest or a patch is a streamed source of its own, under its
+parent's ref (`genes/G1/tx`; its `StreamSource.parent` names the parent), with a manifest that may add nodes the same
+way. It streams (`stream` or `protocol`, and `data_kind`, since nothing in the patch is read to infer it), and is
+asked for only when something needs its data: a template whose nodes it holds, a document ref under it, or a held node
+that reads it (`source_ref`: a dynamic annotation over a nested `items` or `values` source is streamed like any). A
+source deeper than its chain's `max_depth` (the document's source is level 1) is `svs.stream.depth` and never asked.
+
+**Track templates.** A track with `for_each` stands for one track per dynamic node it
+selects: `kind`, the `source` they come from (a nested one's ref too), `depth` (0 its own nodes, 1 those of the
+sources it nests, …; `null` any), and `reaching` (`true`: an instance that places nothing on the section's blocks is
+left out). Its layers are written once, `"$node"` standing for the node (`svs.ref.syntax` anywhere else). Instances
+are at the template's place, in key order, each labeled by its node unless the track gives a label; an instance's ref
+is `<track>/<node>`, its layers' `<layer>/<node>`. [Dynamic nodes: templates and nested
+sources](?path=/story/seq-streaming-streamed-data--second-part) shows a track per gene, per transcript and per domain, two
+sources deep. A template is a track with `for_each: { kind, source, depth }` whose layers name `"$node"` as their data.
+
+- **An arrival reruns what the template covers**: its `#template` node and the view, nothing else; every other
+  instance keeps its resolved layer and prepared state. About 6 ms an arrival at 1,000 instances over 10,000 held.
+- **Instances hold nothing.** They show what manifests and regions carry, so a template over a streamed source stays
+  under `Stream.CacheBytes`: an instance leaves with its region. A document track naming the same node holds it.
+- **Order** is key order by default; `order` and `filter` over a `rows` annotation keyed by `node` (keyed sets) sort and
+  drop instances the same way a `rows` layer's do.
+
+## Limits and gotchas
+
+- **Nightingale does not stream.** Its fallback fetches a streamed `values` layer once, at the finest level whose bins
+  are at least a pixel wide, and reports `svs.stream.fallback`; streamed items, letters, rows beyond the reference
+  row and values placed through a path are reported and left empty. It holds no dynamic nodes either: a template there shows the instances its set
+  holds, which is none unless the host put them in.
+- **The margin applies to streamed alignments too**: a ring of the view's level around the view's tiles, in both
+  axes, never counted by `settled()`. An alignment in memory takes none (its tiles are computed when a view needs
+  them). `Stream.Margin` 0 turns it off for both.
+- **Letters are placed directly**: a lazy molecule's letters are its own blocks'. Streamed `items` and `values` reach
+  any block their system reaches through a path (above, "Through a path").
+- **Values and items from `seqstar-tiles/1` are bins only**: a data request is answered with level 0's bins, one per
+  position.
+- **A streamed item is a range on its unit** for the hover, the selection and highlights: hovering one lights its
+  extent across the section, a click selects it; it has no row in the set, so a locus naming the item (its id) does not
+  reach it. Color and glyph themes over a field reach it.
+- **Lanes are capped** at the track's height (12 px a lane at least): a gene with dozens of transcripts leaves the
+  lanes past it undrawn and says "more lanes than fit: raise the track's height". A `ranges` layer with `collapse:
+  "<field>"` (the genome browser's genes: `collapse: "label"`) draws one lane a gene instead, its transcripts folded,
+  while its lanes would not fit; the track menu's "Expand rows" shows every transcript.
+- **A value outside the manifest's vocabulary** takes the palette's missing color: a streamed item has no row to read
+  before it arrives.

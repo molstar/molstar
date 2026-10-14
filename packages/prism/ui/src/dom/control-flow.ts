@@ -9,6 +9,7 @@
 import { Scheduler } from '@molstar/core/task/util/scheduler';
 import { combineLatest, distinctUntilChanged, map, Observable, of } from 'rxjs';
 import { type ObservableState, observableState } from '../reactive/observable-state.js';
+import { sameShallow } from '../reactive/same-shallow.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 import type { Child, Component } from './jsx-types.js';
 import { playClose } from './motion.js';
@@ -19,10 +20,14 @@ function toObservable<T>(value: MaybeReactive<T>): Observable<T> {
   return toStream(value) ?? of(value as T);
 }
 
-/** A fragment holding a region that follows `source`. */
+/**
+ * A fragment holding a region that follows `source`. Its content is kept when the region's subscription is dropped and
+ * made again (the scope was paused, `Scope.setActive`): the sources below emit the same render function while their
+ * content stays, and the region does not render it twice.
+ */
 function region(source: Observable<Child>): Node {
   const fragment = document.createDocumentFragment();
-  insertRegion(fragment, source, null);
+  insertRegion(fragment, source, null, true);
   return fragment;
 }
 
@@ -44,8 +49,11 @@ export function Show<T>(props: {
 }): Node {
   let first = true;
   let shown = false;
-  // The content's top elements, kept to play a closing back on them.
+  // The content's top elements, kept to play a closing back on them; and the shown value with its render function, so
+  // that subscribing again (after a pause) to the same value keeps the content.
   let tops: Element[] = [];
+  let shownValue: unknown;
+  let shownFn: (() => Child) | undefined;
   const content = (v: NonNullable<T>, reveal: boolean) => () => {
     const child = props.children(v);
     tops = topElements(child);
@@ -55,20 +63,33 @@ export function Show<T>(props: {
   return region(
     new Observable<Child>((subscriber) => {
       let closing: Animation[] | undefined;
+      // The first value of this subscription: the one a subscription made again after a pause starts with.
+      let fresh = true;
       const sub = toObservable(props.when)
         .pipe(distinctUntilChanged())
         .subscribe((v) => {
           // Reopened while closing: the closing stops, the content is rendered anew.
           if (closing) for (const a of closing) a.cancel();
           closing = undefined;
-          const opening = !first && !shown && !!v;
-          const closingNow = !first && shown && !v;
+          const wasShown = shown;
+          const opening = !first && !wasShown && !!v;
+          const closingNow = !first && wasShown && !v;
           first = false;
           shown = !!v;
+          const resumed = fresh;
+          fresh = false;
           if (v) {
-            subscriber.next(content(v as NonNullable<T>, !!props.reveal && opening));
+            // Resumed with the value it was showing (a value derived anew on subscribing, like `{ section }`, is the
+            // same when its fields are): the content stays.
+            const same = wasShown && shownFn && (Object.is(v, shownValue) || (resumed && sameShallow(v, shownValue)));
+            if (!same) {
+              shownValue = v;
+              shownFn = content(v as NonNullable<T>, !!props.reveal && opening);
+            }
+            subscriber.next(shownFn);
             return;
           }
+          shownValue = shownFn = undefined;
           const animations = closingNow && props.reveal ? tops.map((el) => playClose(el, props.reveal === 'side')) : [];
           if (animations.length === 0 || animations.some((a) => !a)) {
             subscriber.next(props.fallback ?? null);
@@ -76,6 +97,8 @@ export function Show<T>(props: {
           }
           const these = animations as Animation[];
           closing = these;
+          // Still on screen for the length of the animation, but gone for the pointer, the keyboard and assistive tech.
+          for (const el of tops) setInert(el, true);
           Promise.all(these.map((a) => a.finished)).then(
             () => {
               if (closing !== these || subscriber.closed) return;
@@ -93,6 +116,43 @@ export function Show<T>(props: {
   );
 }
 
+function setInert(el: Element, inert: boolean) {
+  el.toggleAttribute('inert', inert);
+}
+
+/**
+ * Renders what can be hidden while it stays mounted (a panel closed behind another card, a folded section's body) so
+ * that hidden UI is **inert** and **quiet**: `render` runs in a child scope that follows `active`, so while `active` is
+ * false its bindings hold no subscriptions (nothing is written to the hidden DOM, nothing derived is computed) and
+ * `onActive` hooks pause what is imperative; when `active` turns true again they come back, with the current values, in
+ * one write each. The DOM, the scopes and with them what lives in them (a scroll position, a field's draft) are kept.
+ * Its top elements get the `inert` attribute meanwhile (no pointer, no focus, no tooltips, not announced to assistive
+ * tech): bind the element that hides itself (its `hidden`, a class) outside, since what `render` makes pauses.
+ * A part created while `active` is false renders its static structure and fills in on the first resume.
+ *
+ * Content that is removed when it is hidden (`Show`) needs none of this.
+ */
+export function activity<T extends Child>(active: MaybeReactive<boolean>, render: () => T): T {
+  const owner = requireScope('activity');
+  const scope = owner.child();
+  // Before rendering: a part that starts hidden binds nothing until it is shown.
+  scope.follow(active);
+  const result = runInScope(scope, render);
+  const tops = topElements(result);
+  const stream = toStream(active);
+  if (!stream) {
+    if (!active) for (const el of tops) setInert(el, true);
+  } else if (tops.length > 0) {
+    // Not `bind`: the flag must keep reaching the elements while an outer scope is paused.
+    owner.own(
+      stream.subscribe((a) => {
+        for (const el of tops) setInert(el, !a);
+      }),
+    );
+  }
+  return result;
+}
+
 /** The elements a child renders at its top (an element, a list's elements, a fragment's children). */
 function topElements(child: Child): Element[] {
   if (child instanceof Element) return [child];
@@ -104,10 +164,23 @@ function topElements(child: Child): Element[] {
 /** Renders a component that may change; props are passed as they are. */
 export function Dynamic<P>(props: { component: MaybeReactive<Component<P> | undefined> } & P): Node {
   const { component, ...rest } = props;
+  let shown: Component<P> | undefined;
+  let render: (() => Child) | undefined;
   return region(
     toObservable(component).pipe(
       distinctUntilChanged(),
-      map((C) => (C ? () => C(rest as P) : null)),
+      map((C) => {
+        if (!C) {
+          shown = render = undefined;
+          return null;
+        }
+        // The same component as before (a new subscription after a pause): the same function, which is not rendered again.
+        if (C !== shown || !render) {
+          shown = C;
+          render = () => C(rest as P);
+        }
+        return render;
+      }),
     ),
   );
 }
@@ -135,8 +208,26 @@ export function Switch(props: { fallback?: () => Child; children: Child }): Node
     }),
     distinctUntilChanged((a, b) => a.index === b.index && Object.is(a.value, b.value)),
   );
+  let shownIndex = -1;
+  let shownValue: unknown;
+  let render: (() => Child) | undefined;
   return region(
-    active.pipe(map(({ index, value }) => (index < 0 ? (props.fallback ?? null) : () => cases[index].children(value)))),
+    active.pipe(
+      map(({ index, value }) => {
+        if (index < 0) {
+          render = undefined;
+          shownIndex = -1;
+          return props.fallback ?? null;
+        }
+        // The same case and value as before (a new subscription after a pause): the same function, not rendered again.
+        if (index !== shownIndex || !Object.is(value, shownValue) || !render) {
+          shownIndex = index;
+          shownValue = value;
+          render = () => cases[index].children(value);
+        }
+        return render;
+      }),
+    ),
   );
 }
 
@@ -289,7 +380,8 @@ export function For<T>(props: {
     continuing = true;
     nextSlice(() => {
       continuing = false;
-      if (!disposed) reconcile(latest);
+      // Paused meanwhile: the rest is rendered when the scope resumes (the list subscribes again, and reconciles).
+      if (!disposed && owner.active) reconcile(latest);
     });
   };
 

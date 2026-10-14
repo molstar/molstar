@@ -20,7 +20,8 @@
       "!.v6/baselines",
       "!**/package-lock.json",
       "!**/npm-shrinkwrap.json",
-      "!**/_generated/**"
+      "!**/_generated/**",
+      "!packages/sequences/**/_test/**/*.json"
     ]
   },
   "formatter": {
@@ -76,6 +77,7 @@
         "**/*.stories.tsx",
         "**/.storybook/**",
         "vitest.config.ts",
+        "packages/sequences/**/vitest*.config.ts",
         "apps/docs/astro.config.ts"
       ],
       "linter": {
@@ -599,6 +601,284 @@
           }
         }
       }
+    },
+    {
+      "includes": [
+        "packages/sequences/**/src/**",
+        "!packages/sequences/core/src/**",
+        "!packages/sequences/storybook/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@molstar/**", "molstar", "molstar/**", "!@molstar/seq-*", "!@molstar/seq-*/**"],
+                    "message": "Only seq-molstar-poc imports Mol*'s v6 packages (seq-core's msgpack, zip and task imports excepted)."
+                  },
+                  {
+                    "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
+                    "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
+                  },
+                  {
+                    "group": [
+                      "@molstar/seq-core/stream/tiles",
+                      "@molstar/seq-core/stream/tiles/**",
+                      "@molstar/seq-core/stream/gmod",
+                      "@molstar/seq-core/stream/gmod/**"
+                    ],
+                    "message": "A stream provider is the host's: no Seq* package imports seq-core/stream/tiles or stream/gmod."
+                  },
+                  {
+                    "group": ["@nightingale-elements/**"],
+                    "message": "Only seq-nightingale's mount.ts imports Nightingale."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/core/src/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@molstar/**",
+                      "molstar",
+                      "molstar/**",
+                      "!@molstar/seq-*",
+                      "!@molstar/seq-*/**",
+                      "!@molstar/io/common/msgpack/*",
+                      "!@molstar/core/util/zip/zip",
+                      "!@molstar/core/task/execution/synchronous"
+                    ],
+                    "message": "Only seq-molstar-poc imports Mol*'s v6 packages (seq-core's msgpack, zip and task imports excepted)."
+                  },
+                  {
+                    "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
+                    "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
+                  },
+                  {
+                    "group": [
+                      "@molstar/seq-core/stream/tiles",
+                      "@molstar/seq-core/stream/tiles/**",
+                      "@molstar/seq-core/stream/gmod",
+                      "@molstar/seq-core/stream/gmod/**"
+                    ],
+                    "message": "A stream provider is the host's: no Seq* package imports seq-core/stream/tiles or stream/gmod."
+                  },
+                  {
+                    "group": ["@nightingale-elements/**"],
+                    "message": "Only seq-nightingale's mount.ts imports Nightingale."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/molstar-poc/src/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@molstar/plugin-ui", "@molstar/plugin-ui/**"],
+                    "message": "Never Mol*'s default UI: a canvas plus its streams."
+                  },
+                  {
+                    "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
+                    "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
+                  },
+                  {
+                    "group": [
+                      "@molstar/seq-core/stream/tiles",
+                      "@molstar/seq-core/stream/tiles/**",
+                      "@molstar/seq-core/stream/gmod",
+                      "@molstar/seq-core/stream/gmod/**"
+                    ],
+                    "message": "A stream provider is the host's: no Seq* package imports seq-core/stream/tiles or stream/gmod."
+                  },
+                  {
+                    "group": ["@nightingale-elements/**"],
+                    "message": "Only seq-nightingale's mount.ts imports Nightingale."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/nightingale/src/mount.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@molstar/**", "molstar", "molstar/**", "!@molstar/seq-*", "!@molstar/seq-*/**"],
+                    "message": "Only seq-molstar-poc imports Mol*'s v6 packages (seq-core's msgpack, zip and task imports excepted)."
+                  },
+                  {
+                    "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
+                    "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
+                  },
+                  {
+                    "group": [
+                      "@molstar/seq-core/stream/tiles",
+                      "@molstar/seq-core/stream/tiles/**",
+                      "@molstar/seq-core/stream/gmod",
+                      "@molstar/seq-core/stream/gmod/**"
+                    ],
+                    "message": "A stream provider is the host's: no Seq* package imports seq-core/stream/tiles or stream/gmod."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/core/src/links/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@molstar/**",
+                      "react",
+                      "react-dom",
+                      "react/**",
+                      "react-dom/**",
+                      "!@molstar/seq-core/format",
+                      "../**"
+                    ],
+                    "message": "links is platform-free and imports only view-spec, for types."
+                  }
+                ]
+              }
+            },
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "document": "links is platform-free and imports only view-spec, for types.",
+                  "window": "links is platform-free and imports only view-spec, for types.",
+                  "navigator": "links is platform-free and imports only view-spec, for types.",
+                  "HTMLElement": "links is platform-free and imports only view-spec, for types."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/core/src/query/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@molstar/**", "react", "react-dom", "react/**", "react-dom/**", "../**"],
+                    "message": "ql is the language definition: a leaf, platform-free."
+                  }
+                ]
+              }
+            },
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "document": "ql is the language definition: a leaf, platform-free.",
+                  "window": "ql is the language definition: a leaf, platform-free.",
+                  "navigator": "ql is the language definition: a leaf, platform-free.",
+                  "Buffer": "ql is the language definition: a leaf, platform-free.",
+                  "process": "ql is the language definition: a leaf, platform-free."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/**/src/**"],
+      "plugins": ["./packages/sequences/layers.grit"]
+    },
+    {
+      "includes": [
+        "packages/sequences/viewer/src/index.ts",
+        "packages/sequences/viewer/src/draw/**",
+        "packages/sequences/viewer/src/svg/**",
+        "packages/sequences/viewer/src/renderers/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "document": "DOM-free entries.",
+                  "navigator": "DOM-free entries.",
+                  "HTMLElement": "DOM-free entries.",
+                  "HTMLCanvasElement": "DOM-free entries.",
+                  "CanvasRenderingContext2D": "DOM-free entries.",
+                  "OffscreenCanvas": "DOM-free entries.",
+                  "Image": "DOM-free entries.",
+                  "ImageData": "DOM-free entries.",
+                  "requestAnimationFrame": "DOM-free entries.",
+                  "cancelAnimationFrame": "DOM-free entries.",
+                  "ResizeObserver": "DOM-free entries.",
+                  "getComputedStyle": "DOM-free entries.",
+                  "devicePixelRatio": "DOM-free entries.",
+                  "MouseEvent": "DOM-free entries.",
+                  "PointerEvent": "DOM-free entries.",
+                  "KeyboardEvent": "DOM-free entries.",
+                  "window": "DOM-free entries.",
+                  "Blob": "DOM-free entries: the host passes bytes.",
+                  "btoa": "Platform-free entries: no btoa.",
+                  "Buffer": "Platform-free entries: no Node globals.",
+                  "process": "Platform-free entries: no Node globals."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/sequences/core/src/builder/**", "!packages/sequences/core/src/builder/svsx.ts"],
+      "plugins": ["./packages/sequences/core/builder-imports.grit"]
     }
   ],
   "javascript": {

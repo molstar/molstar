@@ -27,3 +27,4 @@ export { RemoteStatesPanel } from './views/state/remote-states-panel.js';
 export { SnapshotsPanel } from './views/state/snapshots-panel.js';
 export { StateTreeTab } from './views/state-tree/state-tree-tab.js';
 export { StructureTab } from './views/structure/structure-tab.js';
+export * from './sequence/index.js';

@@ -32,6 +32,15 @@ here.
 - Fix the cross-link restraint representation's default color theme name (`cross-link`); it fell back to the first
   registered theme
 - Fix the `state-docs` CLI crashing on parameters that need data, and create its output folder
+- Fix UTF-8 encoding of characters outside the Basic Multilingual Plane (`utf8Write`, `utf8ByteCount`): a surrogate pair
+  is written as one 4-byte sequence, not two 3-byte ones
+- Harden zip reading against damaged and malicious archives: the end record is searched only in the last 64 KB, sizes
+  and CRC-32 come from the central directory (also fixes archives written with a data descriptor), entries are checked
+  against their declared size and CRC-32, and a local entry listed twice is refused; `unzip` takes optional
+  `UnzipLimits`
+- MessagePack: extension types, JSON's rules for non-finite numbers (nil), large integers (float 64) and `undefined`
+  object values (left out, so BinaryCIF files no longer carry a nil `mask` key), and checks of the lengths in untrusted
+  input
 
 ## [v5.13.1] - 2026-10-08
 

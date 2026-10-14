@@ -225,3 +225,48 @@ outside the layers.
   `[aria-checked]`, `[data-dragging]`, `[data-axis]`); classes compose with template strings, and the `classList` prop
   toggles classes by (reactive) flags.
 - The old `msp-*` global classes are not reused; prism-ui and the old UI can coexist on one page.
+
+## 5. Performance
+
+The UI must feel instant (David, 2026-10-14). Budgets: an input's response within the frame it arrives in (a pointer
+handler under 2 ms, a click's work under 16 ms or deferred behind visible feedback); no long task (over 50 ms) from an
+interaction; no layout shift when content loads.
+
+- **No layout thrashing.** Never read layout (`getBoundingClientRect`, `offset*`, `client*`, `scroll*`,
+  `getComputedStyle`) after writing styles or the DOM in the same frame. Read sizes from `ResizeObserver` entries or
+  once at the start of a frame (`requestAnimationFrame`), then write. A positioned popup measures once when it opens,
+  not per event.
+- **Pointer-rate paths** (hover, drag, scroll, wheel): coalesce to one update per frame; compare with the last value
+  and touch the DOM only on a change; write `transform` (as `HoverLabel` does), not `top`/`left`; no node creation, no
+  list rebuilds, no new closures or objects per event. Delegate events from a container instead of a listener per row.
+- **The immediate renderer is the tool**: bind the smallest node to the smallest observable (a text node, an
+  attribute, a class), never rebuild a subtree to change one value; `For` keyed over stable ids; `VirtualList` for
+  lists that can grow past a screen; dense data (residues, tracks) drawn on a canvas, not as DOM per item (Seq\*'s
+  surface).
+- **Style recalculation**: toggle state on the element that changes (a `data-` attribute or class on the row), not on
+  an ancestor that restyles a large subtree; selectors stay one class deep (CSS modules), no universal or long
+  descendant selectors, no `:has()` on large containers.
+- **Compositing**: animate only `transform` and `opacity`; `will-change` only while something animates. Expensive
+  paints are budgeted: `backdrop-filter` re-blurs whenever what is under it changes, and over the 3D canvas that is
+  every rendered frame, so glass over the canvas is kept to small areas and measured (a frameless dock tab draws none).
+  Large blurred shadows likewise.
+- **Containment**: panels and cards set `contain: layout paint` (or `content` where their size is known), so a change
+  inside does not relayout the shell; closed or off-screen panels are not rendered or use `content-visibility: auto`.
+- **Hidden UI is inert and does no UI updates** (David, 2026-10-14). A subscription may be expensive (a tree, a table,
+  a derived stream), and a hidden panel has no one to show it to. What is hidden but kept mounted (a folded section, a
+  panel stepping aside for an overlay card, a closing animation) is **inert** (the `inert` attribute: no pointer, no
+  tooltip, no focus, not announced) and **paused**: its render scope is set inactive (`Scope.setActive(false)`, from
+  `activity(flag, () => …)` in `dom/control-flow`), which drops every `bind` subscription under it and so every write to
+  its DOM and every derived stream behind it. When it shows again the subscriptions are made once more and each state
+  replays its current value: one write per binding, nothing rebuilt (the DOM, the scopes and with them a scroll position
+  or a draft stay; `Show`, `Switch` and `Dynamic` keep their content when the value is the same). Views do nothing for
+  this; one that runs its own work (a ResizeObserver, a rAF loop, a timer, a store subscription) pauses it with
+  `onActive(active => …)` (`ViewRenderer.mount` gets the scope: `scope.onActive`; `reactView` passes `active` to the
+  component). Prefer removing content that is cheap to build (`Show`, as the dock panels are: closed means gone) and
+  keep it mounted and paused where state or the cost of building it matters. The tooltip system never shows for an
+  element in an inert part.
+- **Fonts and images** do not shift layout: sizes reserved, fonts with metric-compatible fallbacks.
+- **Check it**: record the interaction in the browser's performance panel (with CPU throttling 4x) and look for
+  forced reflows, long style recalculations and long tasks; a story that exercises a heavy view (many structures, a
+  long sequence) is the place to measure.
+

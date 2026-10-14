@@ -215,6 +215,16 @@
     overflow: hidden;
   }
 
+  /* A tab that asks for no card (frame: 'none'): the canvas shows through, nothing of the card is drawn. */
+  & .frameless {
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    overflow: visible;
+  }
+
   /* In the rail (a frame): edge to edge, like the tools around it. */
   & .strip {
     gap: 0;
@@ -224,8 +234,13 @@
 
   & .tab {
     width: 100%;
-    height: 40px;
+    height: var(--msp-rail-button, 40px);
     border-radius: 0;
+  }
+
+  & .tab > svg {
+    width: var(--msp-rail-icon, 20px);
+    height: var(--msp-rail-icon, 20px);
   }
 
   & .tab[aria-selected="true"] {
@@ -241,6 +256,15 @@
   bottom: 0;
   flex-direction: row-reverse;
   gap: var(--msp-canvas-edge);
+  /* A compact rail's column slides out and fades (transform and opacity only). */
+  transition:
+    transform var(--msp-motion-base) var(--msp-ease),
+    opacity var(--msp-motion-base) var(--msp-ease);
+
+  &[data-rail-hidden] {
+    transform: translateX(100%);
+    opacity: 0;
+  }
 
   & .rail {
     border-radius: 0;
@@ -248,8 +272,23 @@
     box-shadow: -1px 0 0 var(--msp-glass-edge);
   }
 
+  /* A compact rail lies over the canvas' edge and stops above the corner row (the toolbar and its toggle stay clear),
+     as the floating panel does; the panel beside it keeps only the frame margin below. */
+  &[data-rail-overlay] {
+    bottom: calc(var(--msp-canvas-edge) + var(--msp-corner-room, 0px));
+
+    & .rail {
+      border-bottom-left-radius: var(--msp-radius-lg);
+    }
+
+    & .content {
+      margin-bottom: var(--msp-canvas-edge);
+    }
+  }
+
+  /* The floating panel stops above the corner (the toolbar), which does not move for it. */
   & .content {
-    margin: var(--msp-canvas-edge) 0;
+    margin: var(--msp-canvas-edge) 0 calc(var(--msp-canvas-edge) + var(--msp-corner-room, 0px));
   }
 
   /* An overlay card open in the panel's place: the panel steps aside (no doubled glass or edges underneath). */
@@ -311,6 +350,48 @@
   bottom: auto;
 }
 
+/* A floating dock's box spans its side, but only what is drawn in it takes the pointer (the application layer gives its
+   children the pointer: a full-height box, with the panel stopping short of the toolbar, would cover it). */
+.floating:is(.floatingRight, .floatingLeft, .floatingTop, .floatingBottom) {
+  pointer-events: none;
+}
+
+/* A tab with no frame is a band over the canvas' top (the sequence): the canvas' own color behind its lines, fading out
+   over `--msp-band-fade` below them and `--msp-band-dissolve` before (a gradient, no filter), so the structure passes under it faded. It spans the
+   canvas area: to the left edge, and to where the canvas ends (the rail, or a pinned panel; the canvas layer it is in
+   ends at a pinned panel already, so the rail's width is what is left). A floating panel lies over it as over the
+   canvas. Only the lines take the pointer, not the fade. */
+.floatingTop.band,
+.floatingBottom.band {
+  left: 0;
+  right: calc(var(--msp-canvas-end, 0px) - var(--msp-canvas-pinned, 0px));
+  background: linear-gradient(
+    to bottom,
+    var(--msp-color-bg) calc(100% - var(--msp-band-fade, 0px) - var(--msp-band-dissolve, 0px)),
+    color-mix(in srgb, var(--msp-color-bg) 60%, transparent) calc(100% - var(--msp-band-fade, 0px) * 0.6),
+    transparent
+  );
+  pointer-events: none;
+
+  & .content {
+    pointer-events: none;
+  }
+}
+
+.floatingTop.band {
+  top: 0;
+}
+
+.floatingBottom.band {
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    var(--msp-color-bg) calc(100% - var(--msp-band-fade, 0px) - var(--msp-band-dissolve, 0px)),
+    color-mix(in srgb, var(--msp-color-bg) 60%, transparent) calc(100% - var(--msp-band-fade, 0px) * 0.6),
+    transparent
+  );
+}
+
 .floatingBottom {
   top: auto;
   flex-direction: column-reverse;
@@ -319,6 +400,50 @@
 .rail {
   flex: none;
   align-self: stretch;
+  /* Sized by the height it is given: its buttons step down with it (below), nothing is measured for that. rail.ts leaves
+     out what still does not fit, from the same numbers (_test/rail.test.ts keeps the two equal). */
+  container-type: size;
+}
+
+/* The steps: the buttons' height and their icons'. Set on the rail's children (a container's queries style what is
+   inside it) and inherited by the buttons. The normal step is the default of each var(). */
+@container (max-height: 619px) {
+  .rail > * {
+    --msp-rail-button: 34px;
+    --msp-rail-button-captioned: 40px;
+    --msp-rail-icon: 18px;
+    --msp-rail-icon-captioned: 15px;
+  }
+}
+
+@container (max-height: 529px) {
+  .rail > * {
+    --msp-rail-button: 30px;
+    --msp-rail-button-captioned: 36px;
+    --msp-rail-icon: 16px;
+    --msp-rail-icon-captioned: 14px;
+  }
+}
+
+/* The More menu: beside the rail, outside its clipping, its bottom edge level with the More button (set inline). */
+.railMenu {
+  position: absolute;
+  right: calc(44px + var(--msp-space-2));
+  z-index: var(--msp-z-overlay);
+  display: flex;
+  max-height: 100%;
+  animation: rail-menu-in var(--msp-motion-fast) var(--msp-ease);
+
+  & > * {
+    overflow-y: auto;
+  }
+}
+
+@keyframes rail-menu-in {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
 }
 
 /* The bottom of the rail: pushed down, its divider above it; the tabs placed there (Settings), then the command menu (the
