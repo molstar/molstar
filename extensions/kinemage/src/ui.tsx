@@ -424,10 +424,14 @@ export class KinemageControls extends CollapsableControls<{}, KinemageControlSta
       }
 
       // masters
-      for (const [masterKey] of Object.entries(kinData.masterDict || {})) {
+      for (const [masterKey, masterInfo] of Object.entries(kinData.masterDict || {})) {
         const visible = this.isVisible(visControllerRef, { type: 'master', key: masterKey });
+        const indent = !!(masterInfo as any).indent;
         kinBlock.push(
-          <div key={'master-' + title + '-' + masterKey} style={{ padding: '2px 6px' }}>
+          <div
+            key={'master-' + title + '-' + masterKey}
+            style={{ padding: '2px 6px', paddingLeft: indent ? '24px' : '6px' }}
+          >
             <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
               <input
                 type="checkbox"
