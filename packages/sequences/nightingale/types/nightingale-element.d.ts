@@ -11,4 +11,5 @@
 // imports, which NodeNext rejects under the repository's full declaration check (skipLibCheck: false); bundlers and
 // Vitest still resolve the real packages (they ignore `paths`).
 declare const element: CustomElementConstructor;
+// biome-ignore lint/style/noDefaultExport: it stands in for the element packages, whose class is their default export.
 export default element;
