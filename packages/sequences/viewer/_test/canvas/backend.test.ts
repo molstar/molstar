@@ -284,6 +284,7 @@ describe('grouping', () => {
     frame();
     const orig = Number.prototype.toString;
     let made = 0;
+    // biome-ignore lint/nursery/noExtendNative: the test counts the native calls of a hot path.
     Number.prototype.toString = function (this: number, radix?: number) {
       if (radix === 16) made++;
       return orig.call(this, radix);
@@ -291,6 +292,7 @@ describe('grouping', () => {
     try {
       frame();
     } finally {
+      // biome-ignore lint/nursery/noExtendNative: restoring the native method the test counted through.
       Number.prototype.toString = orig;
     }
     expect(made).toBe(0);

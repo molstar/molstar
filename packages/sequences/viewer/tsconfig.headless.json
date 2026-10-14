@@ -12,5 +12,6 @@
     "types": ["node"]
   },
   "include": ["src"],
-  "exclude": ["src/canvas", "src/dom", "src/react"]
+  "exclude": ["src/canvas", "src/dom", "src/react"],
+  "references": [{ "path": "../core" }, { "path": "../../core" }, { "path": "../../io" }]
 }

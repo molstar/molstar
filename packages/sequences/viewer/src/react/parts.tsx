@@ -102,7 +102,6 @@ export { cx };
  * runs before the removal.
  */
 function useLand(near?: (el: HTMLElement) => Node) {
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `near` is a fixed rule of the caller.
   return useCallback((el: HTMLElement | null) => (el ? () => landFocus(el, near?.(el) ?? el) : undefined), []);
 }
 
@@ -467,7 +466,6 @@ export function Tooltip({ context: ctx }: PartProps) {
   const spot = useRef(tipSpot());
   const shown = label !== null;
   // The tip is a new node when a label comes after none: its subscriptions are made again.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `shown` is the node's identity.
   useLayoutEffect(() => {
     const tip = el.current;
     if (!tip) return;
@@ -874,7 +872,6 @@ export function Description({ context: ctx }: PartProps) {
   return (
     <div className="seqv-description">
       {paragraphs.map((p, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: paragraphs are replaced whole, in order.
         <p key={i}>{p}</p>
       ))}
     </div>
@@ -1039,11 +1036,9 @@ export function IssueBadge({ context: ctx }: PartProps) {
 }
 function IssueGroups({ groups }: { groups: readonly IssueGroup[] }) {
   return groups.map((g, k) => (
-    // biome-ignore lint/suspicious/noArrayIndexKey: the list is read in order and replaced whole.
     <div key={k} className="seqv-issue-group">
       <div className="seqv-quiet">{g.ref ?? 'Viewer'}</div>
       {g.issues.map((i, n) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: as above.
         <div key={n} className="seqv-issue" data-severity={i.severity}>
           <code>{i.code}</code> {i.message}
         </div>

@@ -180,7 +180,6 @@ export interface SeqViewerRegistryEntry {
   readonly presets?: readonly PresetEntry[];
   readonly labels?: readonly LabelProvider[];
   /** A command's name is its id (seqspec:viewer#commands). */
-  // biome-ignore lint/suspicious/noExplicitAny: commands with different params, as Mol*'s.
   readonly commands?: readonly SeqCommand<any>[];
   readonly actions?: readonly NamedEntry[];
 }

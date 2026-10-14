@@ -12,5 +12,6 @@
     "types": ["node"]
   },
   "include": ["_test", "bench"],
-  "exclude": ["_test/canvas", "_test/interactions/canvas", "_test/dom", "_test/react"]
+  "exclude": ["_test/canvas", "_test/interactions/canvas", "_test/dom", "_test/react"],
+  "references": [{ "path": "../core" }, { "path": "../../core" }, { "path": "../../io" }]
 }

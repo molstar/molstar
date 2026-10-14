@@ -14,7 +14,7 @@
 // src/dom/section.ts.
 
 import { Height } from '@molstar/seq-core/format';
-import { type ComponentType, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type ComponentType, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { later, off, setAttr, watch } from '../dom/core.js';
 import { focusIndicator, placeScroll, setStyle, type TrackBox, trackBox } from '../dom/shared.js';
 import { shownSections } from '../index.js';
@@ -120,7 +120,7 @@ function TrackActionsAt({ context: ctx, section, Actions }: SectionProps & { Act
   );
 }
 function TrackBoxView(
-  p: TrackProps & { box: RefObject<HTMLDivElement | null>; tracker: TrackBox; Actions: ComponentType<TrackProps> },
+  p: TrackProps & { box: { current: HTMLDivElement | null }; tracker: TrackBox; Actions: ComponentType<TrackProps> },
 ) {
   const { context: ctx, section, track, tracker, Actions } = p;
   // Focus inside it when it goes lands on the section's surface.
@@ -137,8 +137,6 @@ function TrackBoxView(
   }, [ctx, section, tracker]);
   return (
     // Pointer and focus boundaries of a box that holds controls, not a control.
-    // biome-ignore lint/a11y/noStaticElementInteractions: as above.
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: as above.
     <div
       ref={p.box}
       className="seqv-track-actions"

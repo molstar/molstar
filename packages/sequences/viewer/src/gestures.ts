@@ -660,7 +660,6 @@ export const SelectBehavior = defineBehavior(
     // under its x (and on rows the row under its y), the edge's while the point is past it. Past an edge the view
     // scrolls, faster the further past (`overX`, `overY`): text and rows vertically in a box section, a linear section
     // across. The point, its unclamped x and y, its nearest line, block and shown, the scroll's numbers and its frame.
-    let wrapped = false;
     /** Where the drag is: wrapped, linear (by its point), or on rings (by its hit). */
     let geom = 0;
     const at = new Float64Array(4);
@@ -792,7 +791,7 @@ export const SelectBehavior = defineBehavior(
     const stop = () => {
       pause();
       if (scrolled) viewportOf(ctx, pd.section)?.release();
-      scrolled = wrapped = false;
+      scrolled = false;
     };
     // The drag's surface lost focus (another window, a tab hidden): the view stops scrolling.
     on(ctx.interaction.focus, (e) => {
@@ -839,7 +838,6 @@ export const SelectBehavior = defineBehavior(
         e.claim('select');
         adding = columns;
         dragOp = DRAG_SET;
-        wrapped = w;
         geom = w
           ? G_WRAPPED
           : l?.geometry === CIRCULAR || layoutOf(s.section)?.geometry === CIRCULAR

@@ -20,9 +20,8 @@ import { case9 } from '../../../core/_test/format/cases.js';
 import { fixtureLoaders, MolstarFixture } from '../../../core/_test/format/load-fixtures.js';
 import { mountSection } from '../../src/canvas/index.js';
 import { createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from '../../src/index.js';
-import recorded from './case9-pixels.json';
+import recorded from './case9-pixels.json' with { type: 'json' };
 
-// biome-ignore lint/suspicious/noExplicitAny: the surface is read through its canvases.
 type J = any;
 const [W, H] = [1000, 420];
 const LIGHT =

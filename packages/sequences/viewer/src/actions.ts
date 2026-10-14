@@ -223,7 +223,6 @@ export const DefaultActions: readonly ActionEntry[] = [
   ),
   action('selection.clear', 'Clear selection', always, (ctx, _t, o) => ctx.selection.clear(o)),
   action<string | undefined>('viewport.fit', 'Fit', always, (ctx, t) => {
-    // biome-ignore lint/suspicious/noFocusedTests: the viewport's verb, not a focused test.
     for (const ref of t ? [t] : ctx.viewports.sections.value) ctx.viewports.get(ref)?.fit({});
   }),
   action<string>(

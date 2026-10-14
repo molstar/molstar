@@ -26,7 +26,6 @@ import {
 } from '../src/index.js';
 import { preparedRenderers } from './layout-fixtures.js';
 
-// biome-ignore lint/suspicious/noExplicitAny: the manager's cache is read through its regions.
 type J = any;
 type Zoomed = Record<string, { asked: string[]; held: string[] }>;
 const baseline: Zoomed = JSON.parse(readFileSync(new URL('./parity/baselines/tiles.json', import.meta.url), 'utf8'))[

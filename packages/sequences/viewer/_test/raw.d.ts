@@ -9,5 +9,6 @@
 // The stories' support files import sources as text (`?raw`, Vite): story-search.test.ts reads one of them.
 declare module '*?raw' {
   const source: string;
+  // biome-ignore lint/style/noDefaultExport: an ambient module declaration of a default-exporting import.
   export default source;
 }

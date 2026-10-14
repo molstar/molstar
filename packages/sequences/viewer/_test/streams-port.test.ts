@@ -460,7 +460,6 @@ describe('`settled` and the margin (ST2)', () => {
     // second ask used to return at once (asked this pass), so the view's region in flight was not counted.
     const t = await openGenome({ gated: true, chromosomes: THREE });
     show(t, CHR2, 100_000_000, 100_010_000);
-    // biome-ignore lint/suspicious/noExplicitAny: the pass's private counters, as one pass would set them.
     const m = t.manager as any;
     const c = m.order[0];
     const r = c.all.find((x: { flight: unknown; group: number }) => x.flight !== null && x.group === 4);

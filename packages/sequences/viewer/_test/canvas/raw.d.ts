@@ -9,5 +9,6 @@
 // Vite's `?raw` imports (the bundled fixtures of fixture-fs.ts).
 declare module '*?raw' {
   const text: string;
+  // biome-ignore lint/style/noDefaultExport: an ambient module declaration of a default-exporting import.
   export default text;
 }

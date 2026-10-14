@@ -219,7 +219,6 @@ export function useDerived<T>(
       memo.current.dirty = true;
       cb();
     });
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the states' identities are the subscription.
   const subscribe = useCallback(watched, states);
   const get = () => {
     // A state may have changed between a render and the subscription (which skips the replay): its value shows it.

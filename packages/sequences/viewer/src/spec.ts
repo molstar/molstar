@@ -68,7 +68,6 @@ export interface SeqViewerSpec {
 }
 export declare namespace SeqViewerSpec {
   interface Behavior {
-    // biome-ignore lint/suspicious/noExplicitAny: a list of behaviors with different params, as Mol*'s spec.
     readonly behavior: SeqBehaviorProvider<any>;
     readonly defaultParams?: object;
   }

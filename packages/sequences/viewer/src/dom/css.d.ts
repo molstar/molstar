@@ -9,6 +9,7 @@
 // The skin's text, inlined by the bundler (Vite's `?inline`): the element adopts it as constructed stylesheets.
 declare module '*.css?inline' {
   const css: string;
+  // biome-ignore lint/style/noDefaultExport: an ambient module declaration of a default-exporting import.
   export default css;
 }
 
