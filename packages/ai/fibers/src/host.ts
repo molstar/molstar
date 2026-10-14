@@ -12,6 +12,7 @@ import type {
   FiberCommandResult,
   FiberDeltaBatch,
   FiberEntry,
+  FiberFailure,
   FiberPort,
   FiberRemoveResult,
 } from './domain.js';
@@ -76,6 +77,8 @@ export interface FiberHostOptions {
 }
 
 const MAX_CONFLICTS = 8;
+/** A read of a fiber this store does not hold. */
+const MISSING: FiberFailure = { status: 'not-found', reason: 'fiber-missing' };
 const DEFAULT_SCOPE_PREFIX = 'fiber:';
 
 export function createFiberHost(options: FiberHostOptions): FiberHost {
@@ -204,7 +207,7 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
         if (decision.persist && decision.result.status === 'accepted') {
           s.fiber = {
             ...decision.result.value,
-            limits: createFiberLimits(input.limits, input.limits),
+            limits: createFiberLimits(input.limits),
             activeStreamCount: 0,
           };
           remember(
@@ -431,7 +434,7 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
         const now = clock.now();
         if (applyInactivity(s, now)) changed();
         const fiber = s.fiber;
-        if (!fiber) return undefined;
+        if (!fiber) return MISSING;
         const start = fiberWindowRangeStart(input, fiber.nextPosition);
         const take = fiberPageTakeBound(input.limit, fiber.limits.maxWindowEntries);
         const ids =
@@ -445,7 +448,7 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
           if (stored) streams.set(e.entryId, kernelStream(stored));
         }
         const projected = projectFiberWindow({ fiber, entries, streams, request: input, now });
-        return 'status' in projected ? undefined : cloneData(projected);
+        return cloneData(projected);
       }),
 
     deltas: (input) =>
@@ -453,7 +456,7 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
         const now = clock.now();
         if (applyInactivity(s, now)) changed();
         const fiber = s.fiber;
-        if (!fiber) return undefined;
+        if (!fiber) return MISSING;
         const stored = s.streams.get(input.entryId);
         const projected = projectFiberDeltas({
           fiber,
@@ -467,7 +470,7 @@ export function createFiberHost(options: FiberHostOptions): FiberHost {
           ),
           request: input,
         });
-        return projected === undefined || 'status' in projected ? undefined : cloneData(projected);
+        return cloneData(projected);
       }),
 
     remove: (input) =>

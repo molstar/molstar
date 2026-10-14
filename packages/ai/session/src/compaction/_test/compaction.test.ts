@@ -13,6 +13,7 @@ import type { HeadEdit } from '@molstar/ai-harness';
 import { createToolkit } from '@molstar/ai-tools';
 import { AgentSession } from '../../index.js';
 import { callOf, guidance, modelsOf, tool, type Toy, toy } from '../../_test/helpers.js';
+import { GUIDANCE_UPDATE, guidanceLabel, LABEL_CARRY_OVER, LABEL_MEMORY, LABEL_REQUEST } from '../../compose.js';
 import {
   CARRY_OVER_HEADER,
   type CompactionDomain,
@@ -164,6 +165,18 @@ const domain = toolkitDomain(kit());
 const plain = { domain, pins: { skills: [], tools: [] }, settings: { recentTurnsTokens: 0, maxSummaryTokens: 4_000 } };
 
 describe('the toolkit’s domain', () => {
+  it('knows a request by its label, and its words by the label’s data', () => {
+    const labelled = (kind: string, body: string, data?: Message['label']): HeadEntry => ({
+      ...text('x', 'user', body),
+      message: { role: 'user', parts: [{ kind: 'text', text: body }], label: data ?? { kind } },
+    });
+    const request = labelled('', 'State.\n\nRequest: go', { kind: LABEL_REQUEST, data: { prompt: 'Request: go' } });
+    expect(domain.isRequest(request.message)).toBe(true);
+    expect(domain.requestText?.(request.message)).toBe('Request: go');
+    // A labelled entry of another kind is no request, whatever its text.
+    expect(domain.isRequest(labelled(LABEL_CARRY_OVER, 'Request: go').message)).toBe(false);
+  });
+
   it('knows the core, the groups and a request by its marker', () => {
     expect(domain.coreToolIds).toEqual(['get_state', 'set_look', 'disclose_skills', 'disclose_tools']);
     expect(domain.groups.map((g) => g.id)).toEqual(['volumes', 'shapes']);
@@ -189,6 +202,30 @@ describe('the new head', () => {
     const systems = added(plan.edit).filter((m) => m.role === 'system');
     expect(systems.map(textOf)).toEqual(['Guidance one.']);
     expect(kept(plan.edit).at(-1)).toBe('u2');
+  });
+
+  it('labelled: the latest guidance is the last update, given again as the system message, labelled', () => {
+    const labelled = (id: string, role: 'system' | 'user', body: string, label: Message['label']): HeadEntry => {
+      const entry = text(id, role, body);
+      return { ...entry, message: { ...entry.message, label } as Message };
+    };
+    const plan = planCompaction({
+      entries: [
+        labelled('g1', 'system', 'Guidance one.', guidanceLabel('Guidance one.')),
+        text('u1', 'user', 'Request: first'),
+        text('a1', 'assistant', 'Done.'),
+        labelled('g2', 'user', `${GUIDANCE_UPDATE}\n\nGuidance two.`, guidanceLabel('Guidance two.', true)),
+        text('u2', 'user', 'Request: second'),
+      ],
+      answer: undefined,
+      ...plain,
+      memory: 'The memory.',
+    });
+    const systems = added(plan.edit).filter((m) => m.role === 'system');
+    expect(systems.map(textOf)).toEqual(['Guidance two.']);
+    expect(systems[0]?.label).toEqual(guidanceLabel('Guidance two.'));
+    const notes = added(plan.edit).filter((m) => m.role === 'user');
+    expect(notes.map((m) => m.label?.kind)).toEqual([LABEL_CARRY_OVER, LABEL_MEMORY]);
   });
 
   it('starts from the memory as it now stands (its events go with the old context)', () => {

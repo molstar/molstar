@@ -110,8 +110,9 @@ export function defaultDrive(options: DefaultDriveOptions = {}): Drive {
     failure: ({ payload }) => {
       const tool = payload.call !== undefined && payload.call.toolId !== '';
       const attempt = payload.attempt ?? 0;
+      // Not before the provider said it would take the call again (`retryAfterMs`).
       if (payload.attempt !== undefined && payload.failure.transient && attempt < retry.max)
-        return { retry: { afterMs: retry.backoffMs(attempt) } };
+        return { retry: { afterMs: Math.max(retry.backoffMs(attempt), payload.failure.retryAfterMs ?? 0) } };
       return tool ? { report: {} } : { fail: { reason: payload.failure.code, message: payload.failure.message } };
     },
     'model-result': () => 'accept',

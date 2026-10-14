@@ -22,6 +22,7 @@ Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they
 | Document                                           | What it is                                                                                                     |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | [harness.md](harness.md)                           | the architecture; code comments cite its sections (`harness.md §6`)                                            |
+| [packages/ai/\_spec](../../packages/ai/_spec/README.md) | the spec for working with the code: packages, contracts, how they bind, where things are |
 | [tools-and-session.md](tools-and-session.md)       | `@molstar/ai-tools` and `@molstar/ai-session`: tools, field shapes, groups, the session, the drive, compaction |
 | [plan.md](plan.md)                                 | where it comes from, the move, what is next                                                                    |
 | [analysis/viewer-mode.md](analysis/viewer-mode.md) | the agent in the viewer mode: tools, skills, the Inspector, fibers (2026-10-11)                                |
@@ -31,7 +32,9 @@ Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they
 1. **Policy in the drive, mechanism in the harness.** Flow, tool execution, retries and accounting are guaranteed; every
    choice is a decision with a replaceable default, so an app writes only its overrides.
 2. **One home per concern**: the journal for what a model sees, the event log for evidence, the drive for choices.
-3. **Content-addressed, immutable entries** with no metadata bag: harness bookkeeping never changes a `Message`.
+3. **Content-addressed, immutable entries** with no metadata bag: harness bookkeeping never changes a `Message`. What
+   an entry _is_ (the request, the guidance, a skill's guidance) is its optional `label`: content, so hashed, never sent
+   to a provider, and never read by the harness (2026-10-14).
 4. **The runner is trusted.** The host checks leases, compare-and-set, atomicity and replay by key, not the step
    grammar.
 5. **Nested runs re-run instead of being durable.** Much smaller than durable child runs; a crashed parent repeats its

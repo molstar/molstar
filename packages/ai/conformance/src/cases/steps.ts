@@ -8,7 +8,15 @@
 
 import { describe, expect, it } from 'vitest';
 import { digest, hashMessage, type Json, type Message } from '@molstar/ai-agent';
-import { type CallRecord, type CommitBatch, MAIN, SCHEMA_VERSION, type Usage } from '@molstar/ai-harness';
+import {
+  type CallRecord,
+  type CommitBatch,
+  defaultDrive,
+  drive,
+  MAIN,
+  SCHEMA_VERSION,
+  type Usage,
+} from '@molstar/ai-harness';
 import { type ConformanceFixture, createSession, type Session, type SessionSetup } from '../session.js';
 import { settle } from '../testing/clock.js';
 import { assistant, system, textOf, user } from '../testing/messages.js';
@@ -428,6 +436,51 @@ export function stepCases(fixture: ConformanceFixture): void {
       expect(main.filter((m) => textOf(m) === textOf(skill))).toHaveLength(1);
     });
 
+    it('E2 labelled-contribution: a label is part of an entry; the same text under another label is another entry', async () => {
+      const skill: Message = { ...system('skill: how to look closely'), label: { kind: 'tools:skill', key: 'look@1' } };
+      const other: Message = { ...skill, label: { kind: 'host:note' } };
+      const s = await createSession(fixture, {
+        tools: {
+          a: () => ({ text: 'a', contributions: [skill] }),
+          b: () => ({ text: 'b', contributions: [skill] }),
+          c: () => ({ text: 'c', contributions: [other] }),
+        },
+        model: [
+          {
+            calls: [
+              { tool: 'a', arguments: {} },
+              { tool: 'b', arguments: {} },
+              { tool: 'c', arguments: {} },
+            ],
+          },
+          { text: 'final' },
+        ],
+      });
+      await s.send('go');
+      const kept = (await s.main()).filter((m) => textOf(m) === textOf(skill));
+      expect(kept.map((m) => m.label)).toEqual([skill.label, other.label]);
+      expect(await hashMessage(skill)).not.toBe(await hashMessage(other));
+    });
+
+    it('E2 label-not-counted: a label never counts in a context size (it is never sent)', async () => {
+      const sizes: number[] = [];
+      const drive = with_({
+        boundary: ({ payload }) => {
+          sizes.push(payload.size.inputTokens);
+          return 'pass';
+        },
+      });
+      const prompt = user('go');
+      const labelled: Message = { ...prompt, label: { kind: 'session:request', data: { note: 'x'.repeat(40_000) } } };
+      for (const message of [prompt, labelled]) {
+        const s = await createSession(fixture, { model: [{ text: 'ok' }], drive });
+        await s.send([message]);
+        expect((await s.main())[0]).toEqual(message);
+      }
+      expect(sizes).toHaveLength(2);
+      expect(sizes[1]).toBe(sizes[0]);
+    });
+
     it('E2 same-input-twice: two identical user messages in a row are both appended', async () => {
       const s = await createSession(fixture, { model: [{ text: 'ok' }] });
       const { launch } = await s.send('same', { run: false });
@@ -522,6 +575,30 @@ export function stepCases(fixture: ConformanceFixture): void {
       const [first, second] = s.model.invocations;
       expect(second?.digest).toBe(first?.digest);
       expect(second?.adapterRevision).toBe(first?.adapterRevision);
+    });
+
+    it('E4 retry-after: the wait a provider asks for is in the failure, its evidence, and the default retry', async () => {
+      const asked: (number | undefined)[] = [];
+      const s = await createSession(fixture, {
+        model: [{ fail: { transient: true, retryAfterMs: 7_000 } }, { text: 'ok' }],
+        drive: drive(
+          {
+            failure: ({ payload }) => {
+              asked.push(payload.failure.retryAfterMs);
+              return 'pass';
+            },
+          },
+          defaultDrive({ retry: { max: 3, backoffMs: () => 10 } }),
+        ),
+      });
+      const started = s.clock.now();
+      await s.send('go');
+      expect(asked).toEqual([7_000]);
+      const [call] = stepEvents(await s.events()).flatMap((e) => e.calls.filter((c) => c.kind === 'model'));
+      expect(call?.attempts[0]?.failure?.retryAfterMs).toBe(7_000);
+      // The default drive waits what the provider asked, not its own shorter back-off.
+      const second = call?.attempts[1];
+      expect((second?.startedAt ?? 0) - started).toBeGreaterThanOrEqual(7_000);
     });
 
     it('E4 retry-changed-request: an adapter that projects a different request on retry fails the attempt integrity', async () => {

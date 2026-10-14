@@ -8,7 +8,7 @@
 
 import type { Message } from '@molstar/ai-agent';
 import type { DisclosableEntry, ToolGroup, Toolkit } from '@molstar/ai-tools';
-import { REQUEST_MARKER } from '../compose.js';
+import { LABEL_REQUEST, REQUEST_MARKER } from '../compose.js';
 
 /**
  * What compaction keeps is the host's (tools-and-session.md §6): what a request is, the core tools, the groups
@@ -45,8 +45,10 @@ export interface CompactionDomain {
 
 const textOf = (m: Message): string => m.parts.map((p) => (p.kind === 'text' ? p.text : '')).join('');
 
-/** The person's request in a turn's user message (after the state and the Focus). */
+/** The person's request in a turn's user message: its label's prompt (one written before labels: after the marker). */
 export function requestTextOf(m: Message): string {
+  const prompt = m.label?.kind === LABEL_REQUEST ? m.label.data?.prompt : undefined;
+  if (typeof prompt === 'string') return prompt;
   const t = textOf(m);
   const at = t.lastIndexOf(REQUEST_MARKER);
   return at >= 0 ? t.slice(at + REQUEST_MARKER.length) : t;
@@ -57,7 +59,8 @@ export function toolkitDomain<Api>(toolkit: Toolkit<Api>): CompactionDomain {
   const all: (ToolGroup<Api> | DisclosableEntry)[] = [...toolkit.groups, ...toolkit.entries];
   const byId = new Map(all.map((x) => [x.id, x] as const));
   return {
-    isRequest: (m) => m.role === 'user' && textOf(m).includes(REQUEST_MARKER),
+    isRequest: (m) =>
+      m.label !== undefined ? m.label.kind === LABEL_REQUEST : m.role === 'user' && textOf(m).includes(REQUEST_MARKER),
     requestText: requestTextOf,
     coreToolIds: toolkit.coreDefinitions().map((d) => d.tool.id),
     groups: all.map((x) => ({ id: x.id, ...(x.tools ? { tools: x.tools } : {}) })),

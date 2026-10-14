@@ -156,7 +156,7 @@ export function prepareFiberCreate(input: {
   if (input.existingFiber !== undefined) return { kind: 'failure', failure: failure('conflict', 'fiber-exists') };
   let limits: FiberLimits;
   try {
-    limits = createFiberLimits(input.command.limits, input.command.limits);
+    limits = createFiberLimits(input.command.limits);
   } catch {
     return { kind: 'failure', failure: failure('invalid', 'limits') };
   }
@@ -588,8 +588,8 @@ export function projectFiberDeltas(input: {
   readonly stream?: FiberKernelStream;
   readonly deltas: readonly FiberDeltaBatch[];
   readonly request: ReadFiberDeltasRequest;
-}): FiberDeltaPage | FiberFailure | undefined {
-  if (input.entry === undefined) return undefined;
+}): FiberDeltaPage | FiberFailure {
+  if (input.entry === undefined) return failure('not-found', 'entry-missing');
   if (input.request.limit < 1 || input.request.limit > input.fiber.limits.maxDeltaPageBatches) {
     return failure('invalid', 'delta-page-limit');
   }

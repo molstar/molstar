@@ -6,7 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Message, Reference, ToolDefinition } from '@molstar/ai-agent';
+import type { EntryLabel, JsonObject, Message, Reference, ToolDefinition } from '@molstar/ai-agent';
+import { fingerprint, LABEL_DEFINITIONS } from '@molstar/ai-tools';
 
 /**
  * The messages of a turn (tools-and-session.md §4): the first turn sends the guidance, then the tool definitions
@@ -22,6 +23,21 @@ export const FOCUS_MARKER = 'Focus: ';
 export const GUIDANCE_UPDATE = 'Updated guidance (it replaces the earlier version):';
 /** Heads the host's notes in a request (the default; a host sets its own). */
 export const NOTES_HEADING = 'Notes since your last turn:';
+
+/**
+ * The labels the session gives the entries it writes (an `EntryLabel`'s `kind`): what compaction, `catchUp` and a
+ * trace find them by. The markers above stay in the text, for the model.
+ */
+/** A turn's request; its data is `{ prompt, focus? }`. */
+export const LABEL_REQUEST = 'session:request';
+/** The guidance; its key is the text's fingerprint. */
+export const LABEL_GUIDANCE = 'session:guidance';
+/** Guidance sent again because it changed (`GUIDANCE_UPDATE` and the text); its key is the text's fingerprint. */
+export const LABEL_GUIDANCE_UPDATE = 'session:guidance-update';
+/** What compaction carried over from the earlier conversation. */
+export const LABEL_CARRY_OVER = 'session:carry-over';
+/** The host's memory, as compaction placed it. */
+export const LABEL_MEMORY = 'session:memory';
 
 /** What a conversation that began earlier has not seen: tools added or changed since, guidance that changed. */
 export interface CatchUp {
@@ -72,31 +88,56 @@ export function requestOf(
     .join('\n\n');
 }
 
-const define = (tools: readonly ToolDefinition[], deferred: boolean) =>
-  tools.map((definition) => ({ kind: 'tool-definition' as const, definition, deferred }));
+/** Loaded definitions, then declared ones, in one system message (never text). */
+const definitions = (tools: readonly ToolDefinition[], deferred: readonly ToolDefinition[]): Message[] => {
+  const parts = [
+    ...tools.map((definition) => ({ kind: 'tool-definition' as const, definition, deferred: false })),
+    ...deferred.map((definition) => ({ kind: 'tool-definition' as const, definition, deferred: true })),
+  ];
+  return parts.length ? [{ role: 'system', parts, label: { kind: LABEL_DEFINITIONS } }] : [];
+};
+
+/** The request's label: the person's words and focus as data, so no reader parses them out of the text. */
+const requestLabel = (r: Pick<TurnInput, 'prompt' | 'focus'>): JsonObject => ({
+  prompt: r.prompt,
+  ...(r.focus !== undefined ? { focus: r.focus } : {}),
+});
+
+/** The guidance's label, by its text. */
+export const guidanceLabel = (guidance: string, update = false): EntryLabel => ({
+  kind: update ? LABEL_GUIDANCE_UPDATE : LABEL_GUIDANCE,
+  key: fingerprint(guidance),
+});
 
 export function turnInput(options: TurnInput): Message[] {
   const attached = (options.attachments ?? []).map((reference) => ({ kind: 'reference' as const, reference }));
-  const user: Message = { role: 'user', parts: [{ kind: 'text', text: requestOf(options) }, ...attached] };
+  const user: Message = {
+    role: 'user',
+    parts: [{ kind: 'text', text: requestOf(options) }, ...attached],
+    label: { kind: LABEL_REQUEST, data: requestLabel(options) },
+  };
   const { guidance } = options;
   // The first turn: the guidance, then the tools (loaded, then declared), each its own system message.
-  if (options.first) {
-    const definitions = [...define(options.tools, false), ...define(options.deferred ?? [], true)];
+  if (options.first)
     return [
-      { role: 'system', parts: [{ kind: 'text', text: guidance }] },
-      ...(definitions.length ? [{ role: 'system' as const, parts: definitions }] : []),
+      { role: 'system', parts: [{ kind: 'text', text: guidance }], label: guidanceLabel(guidance) },
+      ...definitions(options.tools, options.deferred ?? []),
       user,
     ];
-  }
   const c = options.catchUp;
   if (!c) return [user];
   // Later: definitions in a system message (never text); changed guidance as a user message, since a provider
   // without mid-conversation system text could not place it.
-  const definitions = [...define(c.tools, false), ...define(c.deferred ?? [], true)];
   return [
-    ...(definitions.length ? [{ role: 'system' as const, parts: definitions }] : []),
+    ...definitions(c.tools, c.deferred ?? []),
     ...(c.guidance
-      ? [{ role: 'user' as const, parts: [{ kind: 'text' as const, text: `${GUIDANCE_UPDATE}\n\n${guidance}` }] }]
+      ? [
+          {
+            role: 'user' as const,
+            parts: [{ kind: 'text' as const, text: `${GUIDANCE_UPDATE}\n\n${guidance}` }],
+            label: guidanceLabel(guidance, true),
+          },
+        ]
       : []),
     user,
   ];

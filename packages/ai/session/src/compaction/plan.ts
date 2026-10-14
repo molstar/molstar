@@ -8,6 +8,15 @@
 
 import type { Message, ToolDefinition } from '@molstar/ai-agent';
 import type { HeadEdit } from '@molstar/ai-harness';
+import { LABEL_DEFINITIONS } from '@molstar/ai-tools';
+import {
+  GUIDANCE_UPDATE,
+  guidanceLabel,
+  LABEL_CARRY_OVER,
+  LABEL_GUIDANCE,
+  LABEL_GUIDANCE_UPDATE,
+  LABEL_MEMORY,
+} from '../compose.js';
 import { type CompactionDomain, requestTextOf } from './domain.js';
 import { CARRY_OVER_HEADER, type CompactionSettings, SIZE_NOTE } from './settings.js';
 
@@ -106,8 +115,31 @@ export interface HeadEntry {
 
 const textOf = (m: Message): string => m.parts.map((p) => (p.kind === 'text' ? p.text : '')).join('');
 
+/** A message as a provider gets it: its label is never sent, so it never counts in a size. */
+const sent = ({ role, parts }: Message) => ({ role, parts });
+
 const isResults = (m: Message) => m.role === 'user' && m.parts.some((p) => p.kind === 'tool-result');
-const isCarryOver = (m: Message) => m.role === 'user' && textOf(m).startsWith(CARRY_OVER_HEADER);
+const isCarryOver = (m: Message) =>
+  m.label !== undefined
+    ? m.label.kind === LABEL_CARRY_OVER
+    : m.role === 'user' && textOf(m).startsWith(CARRY_OVER_HEADER);
+
+/**
+ * The guidance as it now stands, as the text a system message gives it: the last labelled guidance or guidance update
+ * (its text after `GUIDANCE_UPDATE`); in a context written before labels, the last system text.
+ */
+function latestGuidance(messages: readonly Message[]): string | undefined {
+  const labelled = messages.findLast(
+    (m) => m.label?.kind === LABEL_GUIDANCE || m.label?.kind === LABEL_GUIDANCE_UPDATE,
+  );
+  if (labelled === undefined) {
+    const system = messages.filter((m) => m.role === 'system' && textOf(m).length > 0).at(-1);
+    return system && textOf(system);
+  }
+  const text = textOf(labelled);
+  const header = `${GUIDANCE_UPDATE}\n\n`;
+  return labelled.label?.kind === LABEL_GUIDANCE_UPDATE && text.startsWith(header) ? text.slice(header.length) : text;
+}
 
 /** Wish lines of a carry-over this code wrote earlier. */
 function carriedWishes(m: Message): string[] {
@@ -128,7 +160,7 @@ function carriedBody(m: Message): string[] {
 }
 
 /** A message's size in tokens, estimated (about 3 characters a token errs high for both providers). */
-export const sizeOf = (m: Message) => Math.ceil(JSON.stringify(m).length / 3);
+export const sizeOf = (m: Message) => Math.ceil(JSON.stringify(sent(m)).length / 3);
 
 /** A turn of the conversation: its request, the model's messages and the results, in order. */
 export interface Turn {
@@ -248,7 +280,11 @@ export interface PlanInput {
   sizeNote?: { estimated: number; target: number; fixed: number };
 }
 
-const textMessage = (role: 'user' | 'system', text: string): Message => ({ role, parts: [{ kind: 'text', text }] });
+const textMessage = (role: 'user' | 'system', text: string, kind: string): Message => ({
+  role,
+  parts: [{ kind: 'text', text }],
+  label: { kind },
+});
 
 export function planCompaction(input: PlanInput): CompactionPlan {
   const { entries, domain } = input;
@@ -353,9 +389,9 @@ export function planCompaction(input: PlanInput): CompactionPlan {
     .filter(Boolean)
     .join('\n\n');
 
-  const notes: Message[] = [textMessage('user', carried)];
+  const notes: Message[] = [textMessage('user', carried, LABEL_CARRY_OVER)];
   // The memory as it now stands: the events of the old context fold into it.
-  if (input.memory) notes.push(textMessage('user', input.memory));
+  if (input.memory) notes.push(textMessage('user', input.memory, LABEL_MEMORY));
   // Retained skills come back at their current guidance, as long as they fit the summary budget.
   let budget = input.settings.maxSummaryTokens - Math.ceil(carried.length / 3);
   const skillsKept: string[] = [];
@@ -370,15 +406,23 @@ export function planCompaction(input: PlanInput): CompactionPlan {
 
   // One system message: the latest guidance (an update after a release replaces the earlier one), its text only;
   // the kept tools after it, in one message.
-  const guidance = messages.filter((m) => m.role === 'system' && textOf(m).length > 0).at(-1);
+  const guidance = latestGuidance(messages);
   const tools = [
     ...keptLoaded.map((definition) => ({ kind: 'tool-definition' as const, definition, deferred: false })),
     ...keptDeclared.map((definition) => ({ kind: 'tool-definition' as const, definition, deferred: true })),
   ];
   const edit: HeadEdit = {
     entries: [
-      ...(guidance ? [textMessage('system', textOf(guidance))] : []),
-      ...(tools.length ? [{ role: 'system' as const, parts: tools }] : []),
+      ...(guidance
+        ? [
+            {
+              role: 'system' as const,
+              parts: [{ kind: 'text' as const, text: guidance }],
+              label: guidanceLabel(guidance),
+            },
+          ]
+        : []),
+      ...(tools.length ? [{ role: 'system' as const, parts: tools, label: { kind: LABEL_DEFINITIONS } }] : []),
       ...notes,
       ...verbatim.map((e) => e.id),
     ],
@@ -412,7 +456,9 @@ function sizeNoteText(n: { estimated: number; target: number; fixed: number }): 
 export function estimatedTokens(edit: HeadEdit, old: readonly HeadEntry[], oldTokens: number): number {
   const chars = (m: Message) =>
     JSON.stringify(
-      m.role === 'system' ? { ...m, parts: m.parts.filter((p) => p.kind !== 'tool-definition' || !p.deferred) } : m,
+      m.role === 'system'
+        ? { role: m.role, parts: m.parts.filter((p) => p.kind !== 'tool-definition' || !p.deferred) }
+        : sent(m),
     ).length;
   const byId = new Map(old.map((e) => [e.id, e.message]));
   const oldChars = old.reduce((a, e) => a + chars(e.message), 0);

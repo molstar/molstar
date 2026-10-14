@@ -342,13 +342,19 @@ export function mapFinishReason(reason: string | undefined): ModelFinish {
 
 /** A failed call as the harness takes it. An HTTP error response means the provider refused before
  * generating (`effect: "none"`); rate limits, timeouts and 5xx are transient, other 4xx are not. A
- * failure with no status (network, mid-stream) is transient with an unknown effect. API keys never
+ * failure with no status (network, mid-stream) is transient with an unknown effect. The wait a
+ * response asks for (`retry-after-ms`, `retry-after`) is kept as `retryAfterMs`. API keys never
  * appear in the message. */
 export function modelError(error: unknown, apiKey: string): ModelError {
   const message = error instanceof Error ? error.message : String(error);
   const safe = apiKey.length > 0 ? message.split(apiKey).join('[redacted]') : message;
   if (error instanceof ModelError) return new ModelError(safe, error);
-  const source = error as { statusCode?: unknown; isRetryable?: unknown; responseBody?: unknown } | null;
+  const source = error as {
+    statusCode?: unknown;
+    isRetryable?: unknown;
+    responseBody?: unknown;
+    responseHeaders?: unknown;
+  } | null;
   const status = typeof source?.statusCode === 'number' ? source.statusCode : undefined;
   // What the provider said, when the SDK did not read it (a body other than its own error format,
   // e.g. `{"detail": "…"}`): kept in the message, without the key.
@@ -359,6 +365,7 @@ export function modelError(error: unknown, apiKey: string): ModelError {
       Object.assign(new Error(`${safe}: ${told.slice(0, 500)}`), {
         statusCode: status,
         isRetryable: source?.isRetryable,
+        responseHeaders: source?.responseHeaders,
       }),
       apiKey,
     );
@@ -371,7 +378,29 @@ export function modelError(error: unknown, apiKey: string): ModelError {
         : true;
   // The status stays readable after the harness keeps only the failure's message (e.g. "… (HTTP 404)").
   const said = status !== undefined && !safe.includes(`HTTP ${status}`) ? `${safe} (HTTP ${status})` : safe;
-  return new ModelError(said, { transient, effect: status !== undefined ? 'none' : 'unknown' });
+  const retryAfterMs = retryAfterOf(source?.responseHeaders);
+  return new ModelError(said, {
+    transient,
+    effect: status !== undefined ? 'none' : 'unknown',
+    ...(retryAfterMs !== undefined ? { retryAfterMs } : {}),
+  });
+}
+
+/** The wait a response asks for, in ms: `retry-after-ms`, else `retry-after` in seconds or as an HTTP date. */
+export function retryAfterOf(headers: unknown, now = Date.now()): number | undefined {
+  if (typeof headers !== 'object' || headers === null) return undefined;
+  const get = (name: string) => {
+    const found = Object.entries(headers).find(([k]) => k.toLowerCase() === name)?.[1];
+    return typeof found === 'string' && found.trim() !== '' ? found.trim() : undefined;
+  };
+  const ms = Number(get('retry-after-ms'));
+  if (Number.isFinite(ms) && ms >= 0) return Math.round(ms);
+  const after = get('retry-after');
+  if (after === undefined) return undefined;
+  const seconds = Number(after);
+  if (Number.isFinite(seconds)) return seconds >= 0 ? Math.round(seconds * 1000) : undefined;
+  const at = Date.parse(after);
+  return Number.isNaN(at) ? undefined : Math.max(0, at - now);
 }
 
 /** A provider's message in an error body: `detail`, `error.message`, `message` or `error`. */

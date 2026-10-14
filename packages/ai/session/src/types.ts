@@ -81,11 +81,21 @@ export interface TurnRequest<M extends ModelChoice = ModelChoice> {
 }
 
 export interface TurnResult {
-  /** awaiting-approval: the turn is parked at its permission decision (resume() with decisions goes on). */
-  status: 'completed' | 'stopped' | 'failed' | 'awaiting-approval';
+  /**
+   * awaiting-approval: the turn is parked at its permission decision (resume() with decisions goes on). reset: a reset
+   * ended it (`forget()`, or another client's).
+   */
+  status: 'completed' | 'stopped' | 'failed' | 'reset' | 'awaiting-approval';
   /** awaiting-approval: the calls the person is asked about. */
   approval?: PendingApproval[];
+  /** The last thing the model said (its last model call with text). */
   text: string;
+  /**
+   * All the model said in the turn, one reply per model call (a retried attempt counts once, a reply asked for again
+   * with more room replaces the one cut short), in order, separated by blank lines. Since this session took the turn
+   * up, for a resumed one.
+   */
+  turnText: string;
   error?: string;
   tools: ToolEvent[];
   /** The turn's tokens: input (with the parts read from and written to the provider's prompt cache,

@@ -204,7 +204,9 @@ export type FiberPort = Readonly<{
   heartbeat(input: HeartbeatFiberEntryCommand): Promise<FiberDeltaResult | FiberFailure>;
   settle(input: SettleFiberEntryCommand): Promise<FiberCommandResult<FiberWriteResult>>;
   abort(input: AbortFiberEntryCommand): Promise<FiberCommandResult<FiberWriteResult>>;
-  window(input: ReadFiberWindowRequest): Promise<FiberWindow | undefined>;
-  deltas(input: ReadFiberDeltasRequest): Promise<FiberDeltaPage | undefined>;
+  /** The page, or why not: `not-found` (`fiber-missing`), `invalid` (a limit out of range, an entry over the bytes). */
+  window(input: ReadFiberWindowRequest): Promise<FiberWindow | FiberFailure>;
+  /** The page, or why not: `not-found` (`fiber-missing`, `entry-missing`), `invalid` (a limit out of range). */
+  deltas(input: ReadFiberDeltasRequest): Promise<FiberDeltaPage | FiberFailure>;
   remove(input: RemoveFiberCommand): Promise<FiberCommandResult<FiberRemoveResult>>;
 }>;

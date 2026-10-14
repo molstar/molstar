@@ -114,14 +114,27 @@ export class UnrepresentableInput extends Error {
   readonly code = 'unrepresentable';
 }
 
-/** A failed model call, as an adapter reports it. */
+/**
+ * A failed model call, as an adapter reports it. By default not transient, with an unknown effect: an adapter says
+ * `effect: 'none'` when the request surely did nothing (so a retry is safe), and `retryAfterMs` when the provider said
+ * how long to wait (`retry-after`).
+ */
 export class ModelError extends Error {
   readonly transient: boolean;
   readonly effect: 'none' | 'unknown';
-  constructor(message: string, options: { readonly transient?: boolean; readonly effect?: 'none' | 'unknown' } = {}) {
+  readonly retryAfterMs?: number;
+  constructor(
+    message: string,
+    options: {
+      readonly transient?: boolean;
+      readonly effect?: 'none' | 'unknown';
+      readonly retryAfterMs?: number;
+    } = {},
+  ) {
     super(message);
     this.name = 'ModelError';
     this.transient = options.transient ?? false;
     this.effect = options.effect ?? 'unknown';
+    if (options.retryAfterMs !== undefined) this.retryAfterMs = options.retryAfterMs;
   }
 }

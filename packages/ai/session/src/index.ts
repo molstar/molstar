@@ -7,7 +7,20 @@
  */
 
 export type { CompactionDomain, CompactionReport, CompactionSettings } from './compaction/index.js';
-export { FOCUS_MARKER, GUIDANCE_UPDATE, NOTES_HEADING, REQUEST_MARKER, requestOf, turnInput } from './compose.js';
+export {
+  FOCUS_MARKER,
+  GUIDANCE_UPDATE,
+  guidanceLabel,
+  LABEL_CARRY_OVER,
+  LABEL_GUIDANCE,
+  LABEL_GUIDANCE_UPDATE,
+  LABEL_MEMORY,
+  LABEL_REQUEST,
+  NOTES_HEADING,
+  REQUEST_MARKER,
+  requestOf,
+  turnInput,
+} from './compose.js';
 export type { CatchUp, TurnInput } from './compose.js';
 export {
   type BudgetPolicy,

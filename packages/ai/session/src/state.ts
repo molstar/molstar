@@ -30,6 +30,10 @@ export interface TurnState {
   /** The streamed text per model attempt. */
   previews: Map<string, string>;
   lastText: string;
+  /** The text of each top-level model call, by call id, in order: its latest attempt's. */
+  replies: Map<string, string>;
+  /** The latest top-level model call (the one a `model-result` replace answers). */
+  lastModelCall: string | undefined;
   /** A reply cut short was asked for again with more room (once per turn). */
   widened: boolean;
   /** What compactions kept during the turn (reported in its result). */
@@ -51,6 +55,8 @@ export function newTurnState(hooks: TurnHooks, key?: string): TurnState {
     retrying: new Map(),
     previews: new Map(),
     lastText: '',
+    replies: new Map(),
+    lastModelCall: undefined,
     widened: false,
     compactions: [],
     compactedSize: undefined,

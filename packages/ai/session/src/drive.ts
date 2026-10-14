@@ -8,6 +8,7 @@
 
 import type { Json, ModelConfiguration, ToolDefinition } from '@molstar/ai-agent';
 import {
+  type AttemptFailure,
   type Decisions,
   type Drive,
   type DriveContext,
@@ -95,7 +96,7 @@ export const DEFAULT_PROVIDER_NAMES: Readonly<Record<string, string>> = {
  * refused key say what to do; a limit that asks for a wait no turn can make says so.
  */
 export function plainFailure(
-  failure: { code: string; message: string },
+  failure: { code: string; message: string; retryAfterMs?: number },
   model?: ModelConfiguration,
   providerNames: Readonly<Record<string, string>> = DEFAULT_PROVIDER_NAMES,
 ): string {
@@ -104,7 +105,7 @@ export function plainFailure(
   if (failure.code === 'unrepresentable')
     return `This model cannot take the request as it is (${failure.message}). Try another model.`;
   const who = model === undefined ? 'The provider' : (providerNames[model.target.provider] ?? model.target.provider);
-  const wait = waitOf(failure.message);
+  const wait = waitOf(failure);
   if (wait !== undefined && wait > MAX_WAIT_SECONDS)
     return `${who} asks to wait ${waitText(wait)} before the next call (${failure.message})`;
   const status = Number(/\(HTTP (\d{3})\)$/.exec(failure.message)?.[1]);
@@ -116,9 +117,13 @@ export function plainFailure(
 /** The longest wait a provider may ask for that the turn makes (seconds). */
 const MAX_WAIT_SECONDS = 60;
 
-/** The wait a provider's message asks for, in seconds ("try again in 1h2m3.5s", "in 20s", "in 337ms"). */
-function waitOf(message: string): number | undefined {
-  const m = /try again in ((?:\d+(?:\.\d+)?(?:ms|[hms]))+)/i.exec(message);
+/**
+ * The wait a provider asks for, in seconds: its `retryAfterMs` (the response's `retry-after`), else what its message
+ * says ("try again in 1h2m3.5s", "in 20s", "in 337ms").
+ */
+function waitOf(failure: Pick<AttemptFailure, 'message' | 'retryAfterMs'>): number | undefined {
+  if (failure.retryAfterMs !== undefined) return failure.retryAfterMs / 1000;
+  const m = /try again in ((?:\d+(?:\.\d+)?(?:ms|[hms]))+)/i.exec(failure.message);
   if (!m) return undefined;
   const per: Record<string, number> = { h: 3600, m: 60, s: 1, ms: 0.001 };
   let seconds = 0;
@@ -245,11 +250,13 @@ export function createDrive<Api>(host: DriveHost<Api>, overrides: DriveHandlers 
         fail: { reason: f.code, message: plainFailure(f, context.configuration?.model, host.policy.providerNames) },
       };
     }
-    const wait = waitOf(f.message);
+    const wait = waitOf(f);
     const retryable = f.transient && (wait === undefined || wait <= MAX_WAIT_SECONDS);
     if (retryable && attempt <= (host.policy.retries ?? 3)) {
       host.status({ kind: 'retrying', detail: f.message });
-      return { retry: { afterMs: (host.policy.retryDelayMs ?? 1500) * attempt } };
+      // Not before the provider said it would take the call again.
+      const backoff = (host.policy.retryDelayMs ?? 1500) * attempt;
+      return { retry: { afterMs: Math.max(backoff, f.retryAfterMs ?? 0) } };
     }
     return {
       fail: { reason: f.code, message: plainFailure(f, context.configuration?.model, host.policy.providerNames) },

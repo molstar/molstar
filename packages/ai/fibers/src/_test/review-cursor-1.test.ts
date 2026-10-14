@@ -11,12 +11,19 @@ import {
   createFiberHost,
   createMemoryRows,
   FIBER_LIMIT_HARD_BOUNDS,
+  type FiberFailure,
   type FiberTable,
   fiberCommandId,
   fiberEntryId,
   fiberId,
   fiberOwnerId,
 } from '../index.js';
+
+/** A read's page; a failure fails the case, naming why. */
+function read<T extends object>(result: T | FiberFailure): T {
+  if ('status' in result && 'reason' in result) throw new Error(`read failed: ${result.status} ${result.reason}`);
+  return result as T;
+}
 
 const id = fiberId('story-1');
 
@@ -32,14 +39,14 @@ describe('review cursor-1: fiber hosts share rows', () => {
       ownerId: fiberOwnerId('me'),
       limits: FIBER_LIMIT_HARD_BOUNDS,
     });
-    expect(await b.window({ fiberId: id, limit: 8, direction: 'backward' })).toBeTruthy();
+    expect(read(await b.window({ fiberId: id, limit: 8, direction: 'backward' }))).toBeTruthy();
     await a.begin({
       commandId: fiberCommandId('begin:0'),
       fiberId: id,
       entryId: fiberEntryId('turn-0'),
       descriptor: { codec: 'json', version: 1, value: { prompt: 'p0' } },
     });
-    const seen = await b.window({ fiberId: id, limit: 8, direction: 'backward' });
+    const seen = read(await b.window({ fiberId: id, limit: 8, direction: 'backward' }));
     let write = 'accepted';
     try {
       await b.begin({

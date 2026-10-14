@@ -165,6 +165,8 @@ export interface AttemptFailure {
   readonly message: string;
   readonly transient: boolean;
   readonly effect: 'none' | 'applied' | 'unknown';
+  /** How long the provider asked to wait before another attempt (a model's `retry-after`), if it said. */
+  readonly retryAfterMs?: number;
 }
 export interface AttemptRecord {
   readonly id: AttemptId;

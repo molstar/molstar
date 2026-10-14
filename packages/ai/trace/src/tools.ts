@@ -15,11 +15,31 @@ import type { ToolGroupView, ToolsData, ToolView } from './types.js';
  * this package knowing it: the tools with where they load, the skills that group them, and what a trace says is loaded.
  */
 
-/** Where a tool loads: with the first turn, with a skill (its tools, or its extras: loaded by name or when called), or by name. */
+/**
+ * Where a tool loads: with the first turn, with a skill (its tools, or its extras: loaded by name or when called), or by
+ * name. Also as `@molstar/ai-tools`' toolkit gives it (`placementOf`), so a host passes that as it is: a `group` is a
+ * skill, and an `entry`'s tools show under the entry (pass the entry in `skills` for its title).
+ */
 export type ToolPlacement =
   | { readonly kind: 'core' }
   | { readonly kind: 'skill'; readonly skill: string; readonly extra?: boolean }
-  | { readonly kind: 'single' };
+  | { readonly kind: 'single' }
+  | { readonly kind: 'group'; readonly group: { readonly id: string }; readonly extra: boolean }
+  | { readonly kind: 'entry'; readonly entry: { readonly id: string } };
+
+/** The skill a placement puts a tool under, and whether as an extra; undefined for the core and single tools. */
+function skillOf(placement: ToolPlacement): { readonly id: string; readonly extra: boolean } | undefined {
+  switch (placement.kind) {
+    case 'skill':
+      return { id: placement.skill, extra: placement.extra === true };
+    case 'group':
+      return { id: placement.group.id, extra: placement.extra };
+    case 'entry':
+      return { id: placement.entry.id, extra: false };
+    default:
+      return undefined;
+  }
+}
 
 export interface ToolEntry {
   readonly definition: ToolDefinition;
@@ -81,7 +101,7 @@ export function toolsView(input: ToolsInput): ToolsData {
       state: loaded.has(id) ? 'loaded' : declared.has(id) ? 'deferred' : 'offered',
       ...(turn !== undefined ? { loadedAtTurn: turn } : {}),
       tokens: definitionTokens(definition),
-      ...(entry.placement.kind === 'skill' && entry.placement.extra ? { extra: true } : {}),
+      ...(skillOf(entry.placement)?.extra ? { extra: true } : {}),
       ...(unavailable ? { unavailable } : {}),
     };
   };
@@ -90,7 +110,7 @@ export function toolsView(input: ToolsInput): ToolsData {
   const single = input.tools.filter((t) => t.placement.kind === 'single');
   const skillIds = [
     ...(input.skills ?? []).map((s) => s.id),
-    ...input.tools.flatMap((t) => (t.placement.kind === 'skill' ? [t.placement.skill] : [])),
+    ...input.tools.flatMap((t) => skillOf(t.placement)?.id ?? []),
   ];
   const groups: ToolGroupView[] = [];
   if (core.length > 0)
@@ -102,10 +122,10 @@ export function toolsView(input: ToolsInput): ToolsData {
     });
   for (const id of [...new Set(skillIds)]) {
     const skill = input.skills?.find((s) => s.id === id);
-    const own = input.tools.filter((t) => t.placement.kind === 'skill' && t.placement.skill === id);
+    const own = input.tools.filter((t) => skillOf(t.placement)?.id === id);
     const ordered = [
-      ...own.filter((t) => !(t.placement.kind === 'skill' && t.placement.extra)),
-      ...own.filter((t) => t.placement.kind === 'skill' && t.placement.extra),
+      ...own.filter((t) => !skillOf(t.placement)?.extra),
+      ...own.filter((t) => skillOf(t.placement)?.extra),
     ];
     groups.push({
       id,

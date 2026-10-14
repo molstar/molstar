@@ -57,8 +57,8 @@ A **toolkit** holds the registrations, the **core** (loaded from the first turn)
 is `{ id, title, summary, tags?, guidance, tools, extras?, unavailable?(api) }`; its tools load with its guidance, its
 extras by name or when called. Every tool has one place (core, a group's tools or extras, or single), which the toolkit
 checks. `disclose_skills` and `disclose_tools` (names configurable) load groups and single tools as contributions: the
-definitions as one system message of `tool-definition` parts, the guidance as a user message keyed by the group and a
-fingerprint of its text (a changed text is given again). Their descriptions list what there is, generated from the
+definitions as one system message of `tool-definition` parts, the guidance as a user message labelled with the group's key, its id and a
+fingerprint of its text (`tools:skill`, `skill:<id>@<fingerprint>`; a changed text is given again). Their descriptions list what there is, generated from the
 toolkit. Other disclosable texts (Stories' data sources and servers) are entries `{ id, summary, text, tools? }`.
 
 ## 4. `@molstar/ai-session`: a conversation
@@ -67,13 +67,15 @@ toolkit. Other disclosable texts (Stories' data sources and servers) are entries
 storage (memory by default; IndexedDB to keep it; a host may bring its own `HarnessStorage`).
 
 - `turn(request, hooks)` with `request = { prompt, state?, focus?, notes?, attachments?, model?, preamble? }` →
-  `TurnResult` (`completed`, `stopped`, `failed`, `awaiting-approval` with the calls; text, tool events, usage, context
-  size, compactions). One turn at a time. `resume(hooks, decisions)`, `stop()`, `interrupted()`, `forget()` (back to an
+  `TurnResult` (`completed`, `stopped`, `failed`, `reset`, `awaiting-approval` with the calls; the last text and the
+  turn's, tool events, usage, context size, compactions). One turn at a time. `resume(hooks, decisions)`, `stop()`, `interrupted()`, `forget()` (back to an
   empty conversation), `dispose()`.
 - **Messages**: the first turn sends the guidance, then the tool definitions (core loaded, the rest declared), then the
   request; later turns send what changed since (new or changed definitions, changed guidance as a user message), then
-  the request. The request is `[preamble][state]\n\nFocus: [focus]\n\n[notes]Request: [prompt]`; the markers are
-  exported for compaction and the trace.
+  the request. The request is `[preamble][state]\n\nFocus: [focus]\n\n[notes]Request: [prompt]`; the markers stay in the
+  text for the model, and every message the session writes is labelled (`session:request` with the prompt and focus
+  as data, `session:guidance`, `session:guidance-update`, `tools:definitions`), so compaction, `catchUp` and the trace
+  read labels, not text (the markers only for entries written before labels).
 - **Hooks**: `onText`, `onTool` (started, progress, succeeded, failed, skipped; with `read` and times), `onStatus`
   (`{ kind: model | tools | permission | retrying | widened | budget-extended | compacting, detail? }`), `onTurn`
   (begun, with the turn id, before the first model call; or resumed: where a host takes its checkpoint).
@@ -88,7 +90,7 @@ Defaults over `defaultDrive`, each replaceable (`drive` option):
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | permission   | an answer given on resume, else `approve(call)`, else the tool's `approvedBy`, else park; a denial is told to the model ("The person did not allow this call.")                                                                                                                                                                                                    |
 | schedule     | `toolSchedule`                                                                                                                                                                                                                                                                                                                                                     |
-| failure      | tool: retry a transient failure (2 times, linear back-off) when its effect is `none` or the tool is idempotent; a failed read is reported; a failed write skips the calls after it in that response. Model: retry a transient failure (3 times) unless the provider asks to wait over 60 s; else fail in plain words. Projection: compact on `capacity`, else fail |
+| failure      | tool: retry a transient failure (2 times, linear back-off) when its effect is `none` or the tool is idempotent; a failed read is reported; a failed write skips the calls after it in that response. Model: retry a transient failure (3 times, not before the provider's `retryAfterMs`) unless it asks to wait over 60 s; else fail in plain words. Projection: compact on `capacity`, else fail |
 | model-result | cut short at the output limit: once per turn, ask again with twice the room (within the model's maximum)                                                                                                                                                                                                                                                           |
 | budget       | extend the short kind by its initial amount toward its ceiling; a nested run fails                                                                                                                                                                                                                                                                                 |
 | repair       | not loaded: answer failed, load its definition, skip the rest; unknown: point to the disclosure tools; not enabled, no handler: say so, load nothing                                                                                                                                                                                                               |
@@ -107,7 +109,8 @@ carry-over, the memory, the kept groups' guidance, the recent turns as they were
 trigger mid-turn, from the soft threshold at a turn's start, and forced (a mechanical digest, no model call) when the
 context no longer fits; not again until the context has grown by the headroom. A wish carried over must quote the
 person's own words. What it keeps is the host's (`CompactionDomain`: what a request is, the core, the groups, the
-memory, pins).
+memory, pins). The new head's guidance is the latest one (an update given after a release included); it labels what it
+writes (`session:guidance`, `tools:definitions`, `session:carry-over`, `session:memory`).
 
 ## 7. One-off runs
 
