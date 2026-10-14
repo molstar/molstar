@@ -107,3 +107,24 @@ the [API change ledger](breaking-v6-changes.md).
 - [Breaking] Encoded video results include data, MIME type and extension; backend settings replace top-level
   quantization
 - Fix encoder cleanup on failure/cancellation, the extra terminal frame and swallowed headless file-write errors
+
+## MessagePack, UTF-8 and zip hardening (Seq\* port)
+
+- MessagePack (`@molstar/io/common/msgpack/encode`, `decode`): extension types. `encodeMsgPack(value, ext?)` takes a
+  `MsgPackExtEncoder`, `decodeMsgPack(buffer, ext?)` a `MsgPackExtDecoder`; without a decoder an extension value reads
+  as `{ type, data }`, and `skipMsgPackValue` skips them
+- MessagePack encoding follows JSON's rules: a number that is not finite is written as nil (it threw), an integer
+  outside the int32 and uint32 ranges as a float 64 (it threw), and the keys of an object whose value is `undefined`
+  are left out (they were written as nil). BinaryCIF files no longer carry a nil `mask` key
+- MessagePack decoding of untrusted input: a cut buffer throws (it read as data), a length header that claims more
+  items than the bytes left throws, arrays grow as items are read rather than at the claimed length, and a
+  `__proto__` key is an own key, as `JSON.parse` makes it. On a 340 KB `.bcif` the checks cost about 3% of a decode
+- Fix UTF-8 encoding of characters outside the Basic Multilingual Plane (`utf8Write`, `utf8ByteCount` in
+  `@molstar/core/util/utf8`): a surrogate pair was written as two 3-byte sequences instead of one 4-byte sequence;
+  ASCII and BMP output is unchanged
+- Zip hardening (`@molstar/core/util/zip/zip`, a security fix): `unzip` looks for the end record only in the last
+  64 KB (a truncated archive looped for ever), reads the central directory first and takes sizes, name and CRC-32 from
+  it (archives written with a data descriptor, as macOS Finder writes them, have zeros in the local header), checks that
+  no local entry is listed twice, and that every entry has its declared size and CRC-32; `inflateRaw` and `inflate` with
+  a buffer stop at its end and return what they inflated. New optional `UnzipLimits` (`maxEntries`, `maxBytes`) as the
+  fourth argument of `unzip`. Invalid or damaged archives that were read before now throw
