@@ -18,8 +18,7 @@ import {
   setBackground as setPluginBackground,
   showMvs,
 } from '@molstar/seq-molstar-poc/plugin';
-import type { StructureView3D } from '@molstar/seq-molstar-poc/viewer';
-import type { HostActions, HostStructure, StructureColoring } from '../sequence/index.js';
+import type { HostActions, HostStructure, SequenceView3D, StructureColoring } from '../sequence/index.js';
 import { type FramingCamera, paddedFocus } from './framing.js';
 import { hoverLines } from './hover-lines.js';
 import { selectionSummary } from './selection.js';
@@ -68,12 +67,18 @@ export interface ViewerPlugin {
     /** Which ligands to show, by chemical component id; absent: all. */
     ligands?: readonly string[];
   }): Promise<void>;
-  /** The plugin's highlight, selection, camera and events over `structure`, for the link. */
-  view3d(structure: Structure): StructureView3D;
+  /**
+   * The plugin's highlight, selection, camera and events over `structure`, for the link; its `resetCamera` is the default
+   * framing below the band, animated (the sequence view asks for it when the person empties the selection there).
+   */
+  view3d(structure: Structure): SequenceView3D;
   /** Resolves when the canvas is mounted. */
   readonly ready: Promise<void>;
   dispose(): void;
 }
+
+/** The color theme name of a polymer drawn with the default coloring (what MolViewSpec's cartoon has). */
+const DefaultColorTheme = 'uniform';
 
 const same = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 
@@ -179,6 +184,30 @@ export function createViewerPlugin(host: HTMLElement, o: { background?: string }
     hoverLines: lines.asReadonly,
     error: error.asReadonly,
     actions: {
+      coloring() {
+        const p = plugin;
+        if (!p) return undefined;
+        // The polymer's representations (not the ligands' ball and stick): one color theme among them, or none of the three.
+        let name: string | undefined;
+        for (const st of p.managers.structure.hierarchy.current.structures) {
+          for (const c of st.components) {
+            for (const r of c.representations) {
+              const params = r.cell.transform.params;
+              if (params?.type?.name === 'ball-and-stick') continue;
+              const theme: string | undefined = params?.colorTheme?.name;
+              if (name !== undefined && theme !== name) return undefined;
+              name = theme;
+            }
+          }
+        }
+        return name === 'plddt-confidence'
+          ? 'plddt'
+          : name === 'secondary-structure'
+            ? 'secondary'
+            : name === 'default' || name === DefaultColorTheme
+              ? 'default'
+              : undefined;
+      },
       async colorStructure(coloring: StructureColoring) {
         const p = plugin;
         if (!p) return;
@@ -250,6 +279,7 @@ export function createViewerPlugin(host: HTMLElement, o: { background?: string }
           source: StructureSource.of(trajectory, format),
           structure: shown,
           ...(predicted ? { predicted: true } : {}),
+          ...(ligands ? { ligands } : {}),
         });
       } catch (e) {
         if (!disposed) error.set(e instanceof Error ? e.message : String(e));
@@ -257,7 +287,7 @@ export function createViewerPlugin(host: HTMLElement, o: { background?: string }
     },
     view3d: (s) => {
       if (!plugin) throw new Error('the plugin is not mounted');
-      return pluginView3D(plugin, s);
+      return { ...pluginView3D(plugin, s), resetCamera: () => frame(250) };
     },
     dispose() {
       if (disposed) return;

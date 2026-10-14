@@ -43,36 +43,45 @@ export function sequenceDocument(o: {
   theme: SequenceTheme;
   /** A predicted model: its pLDDT as a track under the letters, in the AlphaFold bands (`PrismPlddtBands`). */
   predicted?: boolean;
+  /** Only the ligands of these chemical components become units (the ones the 3D view draws); absent: all. */
+  ligands?: readonly string[];
+  /**
+   * The tracks version's own tracks (secondary structure, pLDDT); false: the text version, only the letters. The wrapped
+   * text reserves a lane under each line for a track and draws nothing for some, so the text document has none.
+   */
+  tracks?: boolean;
 }): SeqViewSpecDoc {
   const b = createSeqViewSpec({ title: o.title });
   b.data.complex({
     ref: ComplexRef,
     provider: 'molstar:structure',
     source: { host_file: hostFileOf(o.key), format: o.format },
-  } as never);
-  const section = b.view({ ref: 'sequence', label: o.title }).section({ ref: SectionRef, style: 'compact' } as never);
+    ...(o.ligands ? { options: { ligand_comps: [...o.ligands] } } : {}),
+  });
+  const section = b.view({ ref: 'sequence', label: o.title }).section({ ref: SectionRef, style: 'compact' });
   const letters = o.theme.letters === null ? {} : { color: { theme: 'scheme', params: { name: o.theme.letters } } };
   // The ruler is the tracks version's axis (the text version draws no ruler).
-  section.track({ ref: 'ruler', label: '' } as never).ruler();
-  section.track({ ref: LettersRef, label: '' } as never).letters(letters as never);
+  section.track({ ref: 'ruler', label: '' }).ruler();
+  section.track({ ref: LettersRef, label: '' }).letters(letters);
+  if (o.tracks === false) return b.getDocument();
   // Secondary structure: the model's own helices, strands and turns (blocks and arrows over a coil line).
   const ss = b.data.computed({
     ref: SecondaryRef,
     provider: 'molstar:secondary_structure',
     options: { of: ComplexRef },
-  } as never);
-  section
-    .track({ ref: SecondaryTrack, label: '' } as never)
-    .secondary({ data: ss, color: PrismSecondaryColors } as never);
+  });
+  section.track({ ref: SecondaryTrack, label: '' }).secondary({ data: ss, color: PrismSecondaryColors });
   if (o.predicted) {
     const plddt = b.data.computed({
       ref: PlddtRef,
       provider: 'molstar:plddt',
       options: { of: ComplexRef },
-    } as never);
+    });
+    // The model's confidence as Seq*'s case 8 draws it: the scores as a line in the bands. Its thin band strip under the
+    // line is left out: it sat apart from the line, a gap between.
     section
-      .track({ ref: `${PlddtRef}-track`, label: '' } as never)
-      .values({ data: plddt, color: PrismPlddtBands } as never);
+      .track({ ref: PlddtTrack, label: '', height: 2 })
+      .values({ data: plddt, encoding: 'line', domain: [0, 100], color: PrismPlddtBands });
   }
   return b.getDocument();
 }

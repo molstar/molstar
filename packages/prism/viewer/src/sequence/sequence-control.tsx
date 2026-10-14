@@ -10,13 +10,13 @@
 
 import type { Structure } from '@molstar/model/model/structure';
 import { BandFadePx, bind, type DockId, onCleanup, openContextMenu, type ShellModel } from '@molstar/prism-ui';
-import type { StructureView3D } from '@molstar/seq-molstar-poc/viewer';
 import { Hit, type HoverLabel } from '@molstar/seq-viewer';
 import { HitRegion } from '@molstar/seq-viewer';
 import { mountSection } from '@molstar/seq-viewer/canvas';
 import { combineLatest, of, switchMap } from 'rxjs';
 import { SectionRef } from './document.js';
-import { linkSequence } from './link.js';
+import { mountTrackGutter } from './track-gutter.js';
+import { linkSequence, type SequenceView3D } from './link.js';
 import type { SequenceViewer } from './model.js';
 import { classes } from './_generated/sequence-control.module.css.js';
 
@@ -31,7 +31,7 @@ export interface SequenceControlProps {
    * The 3D view of a structure, for the link (hover and selection both ways, focus); none: the view stands alone.
    * Over the real plugin it is `pluginView3D(plugin, structure)` (sources/).
    */
-  view3d?: (structure: Structure) => StructureView3D | undefined;
+  view3d?: (structure: Structure) => SequenceView3D | undefined;
   /** The shell and its dock, for the height rules (§4): tracks follow their content, the text has a fixed height. */
   shell?: ShellModel;
   dock?: DockId;
@@ -272,5 +272,8 @@ export function SequenceControl(props: SequenceControlProps) {
     });
   }
 
-  return <div class={classes.root}>{surface}</div>;
+  const root = (<div class={classes.root}>{surface}</div>) as HTMLElement;
+  // The coloring icons of the tracks (round 3), where the host offers colorings.
+  onCleanup(mountTrackGutter(viewer, surface, root));
+  return root;
 }

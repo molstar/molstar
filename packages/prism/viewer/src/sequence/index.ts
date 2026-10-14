@@ -9,7 +9,7 @@
 export { LegendOverlay, sequenceCommands, sequenceMenu } from './commands.js';
 export { LegendCard } from './legend-card.js';
 export { ComplexRef, DefaultSequenceTheme, SectionRef, sequenceDocument } from './document.js';
-export { linkSequence } from './link.js';
+export { linkSequence, type SequenceView3D } from './link.js';
 export { legendOf, NoLegend, type SequenceLegend } from './legend.js';
 export {
   createSequenceViewers,

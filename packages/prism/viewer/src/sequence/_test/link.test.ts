@@ -7,10 +7,9 @@
  */
 
 import type { StructureElement } from '@molstar/model/model/structure';
-import type { StructureView3D } from '@molstar/seq-molstar-poc/viewer';
 import { filter, firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
-import { linkSequence } from '../link.js';
+import { linkSequence, type SequenceView3D } from '../link.js';
 import { headlessViewers, hostStructure } from './fixtures.js';
 
 /** A 3D view that records what the link asks of it and what it is subscribed to. */
@@ -18,10 +17,11 @@ function fakeView() {
   const calls: string[] = [];
   const hover = new Set<(l: StructureElement.Loci | null) => void>();
   const select = new Set<(l: StructureElement.Loci | null) => void>();
-  const view: StructureView3D = {
+  const view: SequenceView3D = {
     highlight: (l) => calls.push(`highlight(${l ? 'loci' : 'null'})`),
     select: (l) => calls.push(`select(${l ? 'loci' : 'null'})`),
     focus: () => calls.push('focus'),
+    resetCamera: () => calls.push('reset'),
     onHover: (fn) => {
       hover.add(fn);
       return () => hover.delete(fn);
@@ -86,6 +86,42 @@ describe('linking the sequence to a 3D view', () => {
     h.structure.set(await hostStructure('2ocj'));
     await shown(h);
     none();
+    h.viewers.dispose();
+  });
+
+  it('resets the camera once when the person empties the selection in the sequence, and not for an emptying from 3D', async () => {
+    const h = headlessViewers();
+    const fake = fakeView();
+    const stop = linkSequence(h.viewer, () => fake.view);
+    h.structure.set(await hostStructure());
+    await shown(h);
+    const seq = h.viewer.seq;
+    const set = seq.graph.assembled.value?.set;
+    const ref = set?.strings.get(set.units.key[0]) ?? '';
+    const loci = () => seq.refs.toLoci(ref, { start: 0, stop: 5 });
+    const resets = () => fake.calls.filter((c) => c === 'reset').length;
+
+    // Selecting, and emptying an empty selection: no reset.
+    seq.selection.clear('pointer');
+    seq.selection.set(loci(), 'pointer');
+    expect(resets()).toBe(0);
+    // Emptied by a click in the sequence: one reset, after the 3D selection is cleared.
+    seq.selection.set(null, 'pointer');
+    expect(resets()).toBe(1);
+    expect(fake.calls.slice(-2)).toEqual(['select(null)', 'reset']);
+    // Empty again: nothing more.
+    seq.selection.clear('pointer');
+    expect(resets()).toBe(1);
+
+    // Emptied from 3D (the selection bar, a click in 3D): the camera stays.
+    seq.selection.set(loci(), 'pointer');
+    seq.selection.set(null, 'host:3d');
+    expect(resets()).toBe(1);
+    // A data edit's carry or the API: the same.
+    seq.selection.set(loci(), 'pointer');
+    seq.selection.set(null, 'api');
+    expect(resets()).toBe(1);
+    stop();
     h.viewers.dispose();
   });
 });

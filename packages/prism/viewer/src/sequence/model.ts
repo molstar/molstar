@@ -57,6 +57,8 @@ export interface HostStructure {
   readonly structure: Structure;
   /** A predicted model (AlphaFold, AlphaFill): its per-residue pLDDT is a track, with its four bands in the legend. */
   readonly predicted?: boolean;
+  /** The ligands the 3D view draws, by chemical component id; absent: every ligand. The sequence lists the same ones. */
+  readonly ligands?: readonly string[];
 }
 
 /** What a viewer shows, once its document is in: the link's input. */
@@ -73,6 +75,8 @@ export type StructureColoring = 'default' | 'plddt' | 'secondary';
 /** What the sequence view may ask of the 3D view (the host implements it over its plugin, `sources/`). */
 export interface HostActions {
   colorStructure(coloring: StructureColoring): void | Promise<void>;
+  /** How the 3D view's polymer is colored now (read from the plugin's state, so a change made elsewhere shows); undefined: none of the three. */
+  coloring?(): StructureColoring | undefined;
 }
 
 /** An action a track offers in its context menu. */
@@ -83,14 +87,25 @@ export interface TrackAction {
   run(): void;
 }
 
+/** The coloring a track's icon in the gutter stands for (the track's first action), and whether the 3D view has it now. */
+export interface TrackColoring extends TrackAction {
+  readonly coloring: StructureColoring;
+  /** The 3D polymer is colored this way now (read from the host when asked). */
+  active(): boolean;
+}
+
 /**
  * What each track offers, by its ref: the model's decision, as it set the tracks and their colors (design §6). More tracks
  * and actions slot in here. The 3D coloring each track stands for: its own track colors the structure the same way.
  */
-const TrackMenus: Readonly<Record<string, readonly { id: string; label: string; coloring: StructureColoring }[]>> = {
-  [LettersRef]: [{ id: 'color-default', label: 'Apply default coloring', coloring: 'default' }],
-  [SecondaryTrack]: [{ id: 'color-secondary', label: 'Color by secondary structure', coloring: 'secondary' }],
-  [PlddtTrack]: [{ id: 'color-plddt', label: 'Color by pLDDT', coloring: 'plddt' }],
+const TrackMenus: Readonly<
+  Record<string, readonly { id: string; label: string; icon: IconName; coloring: StructureColoring }[]>
+> = {
+  [LettersRef]: [{ id: 'color-default', label: 'Apply default coloring', icon: 'paintbrush', coloring: 'default' }],
+  [SecondaryTrack]: [
+    { id: 'color-secondary', label: 'Color by secondary structure', icon: 'paintbrush', coloring: 'secondary' },
+  ],
+  [PlddtTrack]: [{ id: 'color-plddt', label: 'Color by pLDDT', icon: 'paintbrush', coloring: 'plddt' }],
 };
 
 export interface SequenceViewer {
@@ -109,8 +124,12 @@ export interface SequenceViewer {
   /** The tracks version's rail: which navigator, how tall (the model registers the preset again). */
   readonly rail: ReadonlyState<TracksRail>;
   setRail(rail: TracksRail): void;
-  /** The context menu of a track (by its ref): its actions on the 3D view; none: the track has no menu. */
+  /**
+   * The context menu of a track (by its ref): its actions on the 3D view; none: the track has no menu.
+   */
   trackActions(track: string): readonly TrackAction[];
+  /** The coloring icon of a track (by its ref); none: the track has none, or the host offers no actions. */
+  trackColoring(track: string): TrackColoring | undefined;
   /** The host's fonts (the control reads its `--msp-font-*` once): part of the skin, not of the ink. */
   setFonts(fonts: SequenceFonts): void;
 }
@@ -209,7 +228,7 @@ class Viewer implements SequenceViewer {
       },
       { loaders, scheduler: deps.scheduler ?? windowFrames(), ...(deps.text ? { text: deps.text } : {}) },
     );
-    this.dropPreset = this.seq.register({ presets: [tracksPreset(DefaultTracksRail)] });
+    this.dropPreset = this.seq.register({ presets: [tracksPreset(DefaultTracksRail, !!this.deps.actions)] });
     this.applySkin(deps.ink.value);
     this.subs.push(
       deps.ink.subscribe((ink) => {
@@ -232,14 +251,34 @@ class Viewer implements SequenceViewer {
     if (!this.disposed) this.seq.setSkin(skinFor(ink, this.fonts));
   }
 
-  trackActions(track: string): readonly TrackAction[] {
+  trackActions(track: string, o?: { unapplied?: boolean }): readonly TrackAction[] {
     const host = this.deps.actions;
     if (!host) return [];
-    return (TrackMenus[track] ?? []).map((a) => ({
+    const now = o?.unapplied ? host.coloring?.() : undefined;
+    return (TrackMenus[track] ?? [])
+      .filter((a) => a.coloring !== now)
+      .map((a) => ({
+        id: a.id,
+        label: a.label,
+        icon: a.icon,
+        run: () => void host.colorStructure(a.coloring),
+      }));
+  }
+
+  trackColoring(track: string): TrackColoring | undefined {
+    const host = this.deps.actions;
+    const a = TrackMenus[track]?.[0];
+    if (!host || !a) return undefined;
+    const active = () => host.coloring?.() === a.coloring;
+    // Applying the coloring the 3D view has is nothing to do: the icon marks it, a click leaves it.
+    return {
       id: a.id,
       label: a.label,
-      run: () => void host.colorStructure(a.coloring),
-    }));
+      icon: a.icon,
+      coloring: a.coloring,
+      active,
+      run: () => active() || void host.colorStructure(a.coloring),
+    };
   }
 
   setFonts(fonts: SequenceFonts) {
@@ -249,7 +288,10 @@ class Viewer implements SequenceViewer {
   }
 
   setStyle(style: SequenceStyle) {
+    const before = this.styleState.value;
     this.styleState.set(style);
+    // The text has only the letters (no lane reserved for the tracks), so its document is another one.
+    if (before !== style) void this.build();
     this.seq.ui.setStyle(SectionRef, presetOf(style));
   }
 
@@ -258,7 +300,7 @@ class Viewer implements SequenceViewer {
     if (now.navigator === rail.navigator && now.height === rail.height) return;
     this.railState.set(rail);
     this.dropPreset?.();
-    this.dropPreset = this.seq.register({ presets: [tracksPreset(rail)] });
+    this.dropPreset = this.seq.register({ presets: [tracksPreset(rail, !!this.deps.actions)] });
     // The section takes the preset again (the layout reads it when the style is set).
     this.seq.ui.setStyle(SectionRef, null);
     this.seq.ui.setStyle(SectionRef, presetOf(this.styleState.value));
@@ -286,6 +328,8 @@ class Viewer implements SequenceViewer {
       format: host.source.format,
       theme: this.themeState.value,
       predicted: host.predicted,
+      ligands: host.ligands,
+      tracks: this.styleState.value === 'tracks',
     });
     // A new structure is not shown as the old one while its document is made.
     if (this.structureState.value && this.structureState.value.structure !== host.structure)

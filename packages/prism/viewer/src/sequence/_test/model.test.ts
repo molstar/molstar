@@ -9,6 +9,7 @@
 import { inkForColor } from '@molstar/prism-ui';
 import { filter, firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
+import { ComplexRef, sequenceDocument } from '../document.js';
 import { skinFor } from '../skin.js';
 import { headlessViewers, hostStructure } from './fixtures.js';
 
@@ -62,7 +63,7 @@ describe('the sequence model', () => {
     h.viewers.dispose();
   });
 
-  it('switches the style by UI state alone, and keeps it across a new document', async () => {
+  it('switches the style, the text with only the letters (no lane for the tracks), and keeps it across a new document', async () => {
     const h = headlessViewers();
     h.structure.set(await hostStructure());
     await settled(h);
@@ -71,10 +72,16 @@ describe('the sequence model', () => {
     h.viewer.setStyle('compact');
     expect(h.viewer.style.value).toBe('compact');
     expect(h.viewer.seq.ui.style.value.get('main')).toBe('compact');
-    expect(h.viewer.seq.document.shown.value).toBe(doc);
+    await settled(h);
+    const text = JSON.stringify(h.viewer.seq.document.shown.value);
+    expect(text).not.toContain('molstar:secondary_structure');
+    expect(h.viewer.seq.document.shown.value).not.toBe(doc);
     h.viewer.setTheme({ letters: 'taylor' });
     await settled(h);
     expect(h.viewer.seq.ui.style.value.get('main')).toBe('compact');
+    h.viewer.setStyle('tracks');
+    await settled(h);
+    expect(JSON.stringify(h.viewer.seq.document.shown.value)).toContain('molstar:secondary_structure');
     h.viewers.dispose();
   });
 
@@ -226,5 +233,23 @@ describe('the sequence model', () => {
     h.ink.set(inkForColor('#000000'));
     h.structure.set(undefined);
     expect(h.viewer.seq.skin.value.surface).not.toBe('rgb(0 0 0)');
+  });
+
+  it('the document lists only the ligands the 3D view draws (the same list), and every one when none is given', async () => {
+    const host = await hostStructure();
+    const base = { title: 'T', key: host.key, format: host.source.format, theme: { letters: null } };
+    const options = (ligands?: string[]) => {
+      const text = JSON.stringify(sequenceDocument({ ...base, ...(ligands ? { ligands } : {}) }));
+      const node = (JSON.parse(text) as { root: unknown }).root;
+      const found: { ref?: string; params?: { options?: { ligand_comps?: string[] } } }[] = [];
+      const walk = (n: { ref?: string; children?: unknown[] }) => {
+        if (n.ref === ComplexRef) found.push(n);
+        for (const c of n.children ?? []) walk(c as never);
+      };
+      walk(node as never);
+      return found[0]?.params?.options;
+    };
+    expect(options()).toBeUndefined();
+    expect(options(['HEM', 'ERY'])?.ligand_comps).toEqual(['HEM', 'ERY']);
   });
 });

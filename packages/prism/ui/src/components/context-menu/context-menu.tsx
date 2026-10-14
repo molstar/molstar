@@ -12,7 +12,7 @@ import { createRoot } from '../../dom/scope.js';
 import { Icon, type IconName } from '../icon/icon.js';
 import { classes } from './_generated/context-menu.module.css.js';
 
-/** One entry: what it is called, what it does; an icon is optional. */
+/** One entry: what it is called, what it does; an icon (shown as the canvas menus show theirs) is optional. */
 export interface ContextMenuItem {
   id: string;
   label: string;
@@ -73,7 +73,7 @@ export function openContextMenu(
               item.run();
             }}
           >
-            {item.icon ? <Icon name={item.icon} size={16} /> : <span />}
+            {item.icon ? <Icon name={item.icon} size={15} /> : <span />}
             <span>{item.label}</span>
           </button>
         ))}

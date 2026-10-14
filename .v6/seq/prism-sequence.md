@@ -335,3 +335,34 @@ Where the code differs from, or fills in, the sections above:
   one thing named, more counted in lower case; Focus and Clear are wired, the mock's color, theme and measure actions are
   left out) and sits to the left of the toolbar. A ligand's position names its whole residue in 3D
   (`StructureLink.toLoci`).
+
+### Round 3 (as built)
+
+- **Icons in the track menus.** `openContextMenu` items take an optional `icon` (an `IconName`), laid out and styled as
+  the pick-granularity list is (15px icon, 28px rows, muted text that takes the text color on hover and focus). The
+  track actions carry one each from prism-ui's set: Apply default coloring `paintbrush`, as Color by pLDDT and
+  Color by secondary structure (round 3 later: one brush for all). Nothing in the menu is sequence-specific.
+- **Zoom out when the selection empties from the sequence.** `linkSequence` watches the selection beside `linkViews`:
+  when it goes from held to empty and the origin is `pointer` or `keyboard` (a click or Shift+drag removing the last
+  stretch, Escape), it asks the 3D view for `resetCamera` (`SequenceView3D`, an optional extension of `StructureView3D`).
+  Over the real plugin that is the default framing below the band (`paddedFocus` through `requestCameraReset`, 250 ms, as
+  Mol\*'s focus). An emptying from 3D (`host:3d`: the selection bar's Clear, a click in 3D), the API, a data edit's carry
+  (`graph`) or an empty selection set again leaves the camera alone. Tested with the fake view in `link.test.ts`.
+- **Track icons in a gutter** (replacing the idea of a dwell menu). The tracks preset leaves `TrackGutterPx` (28) at the
+  left (`gutterLeft` 8 + 28, only where the host offers actions); `track-gutter.tsx` overlays a Prism icon per track row
+  that has a coloring (the first action of the track's `TrackMenus` entry; one icon for all, the `paintbrush`, also in the menus), tooltip =
+  the action's label. Rows (top, height) are read from Seq\*'s section layout (`seq.layout.get(...).current`:
+  `entryTop`, `entryHeight`, `scrolledTop`) when the layout is rebuilt, never per frame; a pointer move only compares
+  its row with the last, and the icon shows (`data-hover`) when that changes. The icon of the coloring the 3D polymer
+  has now stays, in the accent (`HostActions.coloring()`, read from the plugin's representations' color theme, again
+  when the hovered row changes and after a click); clicking an active icon does nothing. The right-click menus stay.
+  The Text view has no gutter.
+- **Text has only the letters.** The document is built per style (`sequenceDocument({ tracks })`): the text's has no
+  secondary structure or pLDDT track, so its lines sit at the compact spacing (Seq\*'s wrapped geometry reserves a lane
+  under each line for a track whether or not that track draws there: worth fixing in Seq\*). A style change rebuilds
+  the document (a moment of no text while it is made).
+- **The pLDDT track is a line** (`encoding: 'line'`, domain 0-100, `height: 2`, the AlphaFold bands). Case 8's thin band
+  strip under it was tried and left out: it sat apart from the line with a gap between.
+- **Only the drawn ligands are in the sequence.** `molstar:structure` takes `ligand_comps` (ligand units of those
+  chemical components; ions, polymers and branched stay); `HostStructure.ligands` is the list `load` gave
+  `structureMvs`, so the story's one list feeds both.

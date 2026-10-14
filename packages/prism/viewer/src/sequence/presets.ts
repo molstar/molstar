@@ -28,7 +28,11 @@ export const TracksPreset = 'prism_tracks';
 
 const NAVIGATORS = { ruler: 'rulerRail', strip: 'strip', band: 'band', rail: 'rail', none: 'none' } as const;
 
-export function tracksPreset(rail: TracksRail): PresetEntry {
+/** The tracks' left gutter where a coloring icon sits per track (`TrackGutter`), px: the icon's cell and the air after it. */
+export const TrackGutterPx = 28;
+
+/** `gutter`: the tracks leave `TrackGutterPx` at their left for the track icons (the host offers colorings). */
+export function tracksPreset(rail: TracksRail, gutter = false): PresetEntry {
   const name = NAVIGATORS[rail.navigator];
   const own = DefaultNavigators.find((n) => n.name === name);
   const navigator =
@@ -36,7 +40,7 @@ export function tracksPreset(rail: TracksRail): PresetEntry {
   return {
     name: TracksPreset,
     geometry: 'linear',
-    render: { headerWidth: 0, gutterLeft: 8, gutterRight: 8 },
+    render: { headerWidth: 0, gutterLeft: 8 + (gutter ? TrackGutterPx : 0), gutterRight: 8 },
     navigator,
   };
 }

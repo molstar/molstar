@@ -31,6 +31,19 @@ describe('openContextMenu', () => {
     root.remove();
   });
 
+  it("shows an item's icon, and keeps the label column where an item has none", () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    openContextMenu(root, { x: 0, y: 0 }, [
+      { id: 'a', label: 'With', icon: 'gauge', run: () => {} },
+      { id: 'b', label: 'Without', run: () => {} },
+    ]);
+    const rows = root.querySelectorAll('[role="menuitem"]');
+    expect(rows[0].querySelector('svg')).not.toBeNull();
+    expect(rows[1].querySelector('svg')).toBeNull();
+    root.remove();
+  });
+
   it('closes on Escape and on a press elsewhere, and not on a press inside', () => {
     const a = setup();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));

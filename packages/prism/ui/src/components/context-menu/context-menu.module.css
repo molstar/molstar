@@ -25,18 +25,19 @@
 
 .row {
   display: grid;
-  grid-template-columns: 16px 1fr;
+  grid-template-columns: 15px 1fr;
   align-items: center;
   gap: var(--msp-space-3);
-  min-height: 28px;
+  height: 28px;
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
-  color: var(--msp-color-text);
+  color: var(--msp-color-text-muted);
   text-align: left;
 
   &:hover,
   &:focus-visible {
     background: var(--msp-color-hover);
+    color: var(--msp-color-text);
   }
 
   &:disabled {

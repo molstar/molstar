@@ -34,16 +34,17 @@ defineStyles('components/context-menu/context-menu.module.css', `@layer msp.comp
 .msp-context-menu-row {
   align-items: center;
   gap: var(--msp-space-3);
-  min-height: 28px;
+  height: 28px;
   padding: 0 var(--msp-inset);
   border-radius: var(--msp-radius-md);
-  color: var(--msp-color-text);
+  color: var(--msp-color-text-muted);
   text-align: left;
-  grid-template-columns: 16px 1fr;
+  grid-template-columns: 15px 1fr;
   display: grid;
 
   &:hover, &:focus-visible {
     background: var(--msp-color-hover);
+    color: var(--msp-color-text);
   }
 
   &:disabled {
