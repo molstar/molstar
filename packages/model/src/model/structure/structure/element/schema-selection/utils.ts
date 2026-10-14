@@ -26,26 +26,37 @@ export class MultiMap<K, V> implements Mapping<K, V[]> {
 export type Mapping<K, V> = Pick<Map<K, V>, 'get'>;
 
 /** Implementation of `Map` where keys are integers and the values are non-negative integers (so they can be kept in a typed array)
- * and most keys are expected to be from interval `[0, limit)`.
+ * and most keys are expected to be from interval `[offset, offset + limit)`.
  * For the keys within this interval, performance is better than `Map` (implemented by array, 4 bytes per key).
- * For the keys out of this interval, performance is slightly worse than `Map`. */
+ * For the keys out of this interval, performance is slightly worse than `Map`.
+ * Keys are numbers: a key of another type has no value (it would otherwise be converted to a number by the array). */
 export class NumberMap<K extends number, V extends number> implements Mapping<K, V> {
   private array: Int32Array;
   private map: Map<K, V>;
-  constructor(public readonly limit: K) {
+  constructor(
+    public readonly limit: number,
+    public readonly offset: number = 0,
+  ) {
     this.array = new Int32Array(limit).fill(-1);
     this.map = new Map();
   }
   get(key: K): V | undefined {
-    if (0 <= key && key < this.limit) {
-      const value = this.array[key];
+    if (typeof key !== 'number') return undefined;
+    const i = key - this.offset;
+    if (0 <= i && i < this.limit) {
+      const value = this.array[i];
       return value < 0 ? undefined : (value as V);
     }
     return this.map.get(key);
   }
   set(key: K, value: V): void {
-    if (0 <= key && key < this.limit) this.array[key] = value;
+    const i = key - this.offset;
+    if (0 <= i && i < this.limit) this.array[i] = value;
     else this.map.set(key, value);
+  }
+  /** The number of keys which are not in the interval of the array */
+  get overflowSize() {
+    return this.map.size;
   }
 }
 

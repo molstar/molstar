@@ -152,13 +152,19 @@ describe('Sorting.findIndexRange', () => {
     const bounds = [undefined, -1, 0, 0.5, 1, 2, 2.5, 3, 4, 5, 6.99, 7, 7.01, 8, 100];
     for (const min of bounds) for (const max of bounds) expect(find(min, max)).toEqual(bruteForce(min, max));
   });
-  it('compares bounds as numbers: numeric strings work as their numbers, other strings select nothing', () => {
-    expect(find('3', '3')).toEqual([11, 12]);
-    expect(find('5', undefined)).toEqual([13, 14, 15]);
-    expect(find(undefined, '5')).toEqual([10, 11, 12, 13]);
-    expect(find('2', '6')).toEqual([11, 12, 13]); // (`'6' + 1` would be '61')
+  it('null bounds are open ends, as undefined ones', () => {
+    expect(find(null, 5)).toEqual(find(undefined, 5));
+    expect(find(3, null)).toEqual(find(3, undefined));
+    expect(find(null, null)).toEqual(keys);
+    expect(find(3, null)).toEqual([11, 12, 13, 14, 15]);
+  });
+  it('bounds which are not numbers select nothing (they are not converted: an index must select what a query does)', () => {
+    expect(find('3', '3')).toEqual([]);
+    expect(find('5', undefined)).toEqual([]);
+    expect(find(undefined, '5')).toEqual([]);
     expect(find('x', 5)).toEqual([]);
     expect(find(1, NaN)).toEqual([]);
+    expect(find(true, 5)).toEqual([]);
   });
   it('getKeysWithValueInRange gives the keys of the same range as a new array', () => {
     for (const [min, max] of [

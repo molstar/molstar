@@ -27,6 +27,26 @@ describe('GlobalResidueIndices', () => {
   });
 });
 
+describe('NumberMap with an offset and strict keys', () => {
+  it('keeps the keys from the offset in the array, others in the map', () => {
+    const map = new NumberMap<number, number>(5, 11); // 11..15
+    for (let k = 11; k <= 15; k++) map.set(k, k - 11);
+    expect([11, 13, 15].map((k) => map.get(k))).toEqual([0, 2, 4]);
+    expect(map.overflowSize).toBe(0);
+    map.set(10, 7);
+    map.set(16, 8);
+    map.set(1000, 9);
+    expect([10, 16, 1000, 17].map((k) => map.get(k))).toEqual([7, 8, 9, undefined]);
+    expect(map.overflowSize).toBe(3);
+  });
+  it('a key which is not a number has no value (an array would convert it)', () => {
+    const map = new NumberMap<number, number>(5, 0);
+    map.set(3, 1);
+    expect(map.get('3' as any)).toBeUndefined();
+    expect(map.get(3)).toBe(1);
+  });
+});
+
 describe('NumberMap', () => {
   it('keeps non-negative integer values for keys in and out of the limit, and has no value for the others', () => {
     const map = new NumberMap<number, number>(5);
@@ -62,14 +82,29 @@ describe('AtomIdIndices', () => {
     return { indices: new AtomIdIndices(ids.length, counting, atomSourceIndex), idReads };
   };
 
+  it('ids which do not start near 0 (the 2nd model of a file) are in the table, not in the overflow map', () => {
+    const second = Array.from({ length: 10 }, (_, i) => 11 + i); // ids 11..20 for 10 atoms
+    const indices = new AtomIdIndices(
+      10,
+      Column.ofIntArray(second),
+      Column.ofIntArray(Array.from({ length: 10 }, (_, i) => i)),
+    );
+    expect([11, 15, 20, 10, 21].map((id) => indices.byId.get(id))).toEqual([0, 4, 9, undefined, undefined]);
+    expect((indices.byId as NumberMap<number, number>).overflowSize).toBe(0);
+    // very sparse ids do not make a huge table: the table is not larger than a small multiple of the number of atoms
+    const sparse = new AtomIdIndices(3, Column.ofIntArray([1, 1_000_000_000, 7]), Column.ofIntArray([0, 1, 2]));
+    expect([1, 1_000_000_000, 7].map((id) => sparse.byId.get(id))).toEqual([0, 1, 2]);
+  });
   it('is not built until a lookup asks for it, and is built once', () => {
     const { indices, idReads } = make();
     expect(idReads.count).toBe(0);
     indices.byId;
-    expect(idReads.count).toBe(ids.length);
+    const afterBuild = idReads.count;
+    expect(afterBuild).toBeGreaterThanOrEqual(ids.length); // (every id is read)
     indices.bySourceIndex;
     indices.repeatedIds;
-    expect(idReads.count).toBe(ids.length);
+    indices.byId;
+    expect(idReads.count).toBe(afterBuild);
   });
   it('the first atom of each id, all the atoms of the repeated ids, and the atom of each source index', () => {
     const { indices } = make();

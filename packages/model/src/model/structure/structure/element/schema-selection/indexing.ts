@@ -11,7 +11,7 @@ import type { ChainIndex, ElementIndex, ResidueIndex } from '../../../model/inde
 import type { Model } from '../../../model.js';
 import type { CoarseElements } from '../../../model/properties/coarse.js';
 import { filterInPlace, range, sortIfNeeded } from '@molstar/core/util/array';
-import { type Mapping, MultiMap, NumberMap } from './utils.js';
+import { type Mapping, MultiMap, NumberMap, isDefined } from './utils.js';
 
 export interface IndicesAndSortings {
   atomic?: AtomicIndicesAndSortings;
@@ -207,7 +207,18 @@ export class AtomIdIndices {
   private build() {
     if (this.built) return;
     const { nAtoms, atomId, atomSourceIndex } = this;
-    const byId = new NumberMap<number, ElementIndex>(nAtoms + 1);
+    // Ids are not necessarily near 0 (e.g. those of the 2nd model of a file continue after those of the 1st), so the table starts at the smallest id,
+    // unless the ids are so sparse that it would be much larger than the number of atoms (the others are then kept in a `Map`).
+    let minId = Infinity;
+    let maxId = -Infinity;
+    for (let iAtom = 0; iAtom < nAtoms; iAtom++) {
+      const id = atomId.value(iAtom);
+      if (id < minId) minId = id;
+      if (id > maxId) maxId = id;
+    }
+    const span = maxId - minId + 1;
+    const dense = nAtoms > 0 && span <= 2 * nAtoms + 1024;
+    const byId = new NumberMap<number, ElementIndex>(dense ? span : nAtoms + 1, dense ? minId : 0);
     const bySourceIndex = new NumberMap<number, ElementIndex>(nAtoms);
     const repeated = new Map<number, ElementIndex[]>();
     for (let iAtom = 0 as ElementIndex; iAtom < nAtoms; iAtom++) {
@@ -414,24 +425,31 @@ export const Sorting = {
   },
 
   /** Set `out.from`, `out.to` so that `keys.slice(out.from, out.to)` are the keys which have value within interval `[min, max]`
-   * (inclusive; undefined `min` is negative infinity, undefined `max` is positive infinity). Does not allocate.
-   * Bounds are compared as numbers (a numeric string works as its number, anything else selects nothing),
-   * and need not be integers. */
+   * (inclusive; an undefined or null `min` is negative infinity, an undefined or null `max` is positive infinity). Does not allocate.
+   * Bounds are numbers (they need not be integers); a bound of another type, or NaN, selects nothing. */
   findIndexRange<K, V extends number>(
     sorting: Sorting<K, V>,
-    min: V | undefined,
-    max: V | undefined,
+    min: V | undefined | null,
+    max: V | undefined | null,
     out: { from: number; to: number },
   ) {
     const { keys, values } = sorting;
-    const lo = min !== undefined ? Number(min) : -Infinity;
-    const hi = max !== undefined ? Number(max) : Infinity;
-    if (!keys || Number.isNaN(lo) || Number.isNaN(hi)) {
+    const hasMin = isDefined(min);
+    const hasMax = isDefined(max);
+    const lo = hasMin ? (min as number) : -Infinity;
+    const hi = hasMax ? (max as number) : Infinity;
+    if (
+      !keys ||
+      (hasMin && typeof min !== 'number') ||
+      (hasMax && typeof max !== 'number') ||
+      Number.isNaN(lo) ||
+      Number.isNaN(hi)
+    ) {
       out.from = 0;
       out.to = 0;
       return out;
     }
-    const from = min !== undefined ? SortedArray.findPredecessorIndex(values, lo as V) : 0;
+    const from = hasMin ? SortedArray.findPredecessorIndex(values, lo as V) : 0;
     // first index with a value greater than `hi`
     let a = from;
     let b = values.length;
@@ -448,7 +466,11 @@ export const Sorting = {
   /** Return a newly allocated array of keys which have value within interval `[min, max]` (inclusive).
    * The returned keys are sorted by their value.
    * Undefined `min` is interpreted as negative infitity, undefined `max` is interpreted as positive infinity. */
-  getKeysWithValueInRange<K, V extends number>(sorting: Sorting<K, V>, min: V | undefined, max: V | undefined): K[] {
+  getKeysWithValueInRange<K, V extends number>(
+    sorting: Sorting<K, V>,
+    min: V | undefined | null,
+    max: V | undefined | null,
+  ): K[] {
     const r = Sorting.findIndexRange(sorting, min, max, { from: 0, to: 0 });
     return sorting.keys ? sorting.keys.slice(r.from, r.to) : [];
   },

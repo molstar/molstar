@@ -44,6 +44,21 @@ describe('JSON annotation values of the wrong type', async () => {
     );
     expect(selected([{ label_entity_id: 1 }]).length).toBeGreaterThan(0);
   });
+  it('null is a missing value, in the object-of-arrays form of JSON annotations', () => {
+    // rows: chain A residues 1..3, and chain A residues from 8 on
+    const nullBounds = selected({
+      label_asym_id: ['A', 'A'],
+      beg_label_seq_id: [1, 8],
+      end_label_seq_id: [3, null],
+    });
+    const expected = selected([
+      { label_asym_id: 'A', beg_label_seq_id: 1, end_label_seq_id: 3 },
+      { label_asym_id: 'A', beg_label_seq_id: 8 },
+    ]);
+    expect(nullBounds).toEqual(expected);
+    expect(nullBounds.length).toBe((3 + 13) * 6); // (residues 1-3 and 8-20)
+    expect(selected({ label_asym_id: ['A'], beg_label_seq_id: [null], end_label_seq_id: [2] }).length).toBe(2 * 6);
+  });
   it('values which are not numbers select nothing and non-integers match no residue', () => {
     expect(selected([{ label_asym_id: 'A', label_seq_id: 'ten' }])).toEqual([]);
     expect(selected([{ label_asym_id: 'A', label_seq_id: 10.5 }])).toEqual([]);

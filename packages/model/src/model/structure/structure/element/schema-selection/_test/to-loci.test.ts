@@ -86,6 +86,12 @@ describe('Schema.toLoci with and without the index', async () => {
     ['residue index', { residue_index: 4 }],
     ['ligand', { label_comp_id: 'LIG' }],
     ['nothing', { label_asym_id: 'Z' }],
+    ['null bounds', { label_asym_id: 'A', beg_label_seq_id: 4, end_label_seq_id: null as any }],
+    ['null begin', { auth_asym_id: 'b', beg_auth_seq_id: null as any, end_auth_seq_id: 103 }],
+    ['null scalar items', { label_asym_id: 'C', label_seq_id: null as any, label_atom_id: undefined }],
+    ['numbers as text select nothing in both', { label_asym_id: 'A', label_seq_id: '3' as any }],
+    ['atom index as text', { atom_index: '4' as any }],
+    ['auth residue as text', { auth_asym_id: 'a', auth_seq_id: '105' as any }],
     ['everything', {}],
     [
       'array of items',
