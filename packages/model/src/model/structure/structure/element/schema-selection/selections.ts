@@ -20,7 +20,7 @@ import {
   Sorting,
 } from './indexing.js';
 import type { SchemaItem } from '../schema.js';
-import { isAnyDefined, isDefined } from './utils.js';
+import { isDefined } from './utils.js';
 
 const EmptyArray: readonly any[] = [];
 
@@ -611,23 +611,23 @@ export function getCoarseElementRangesForRow(
   const nElements = coarseElements.count;
   if (nElements === 0) return undefined;
 
-  const hasResidueFilter = isAnyDefined(row.label_seq_id, row.beg_label_seq_id, row.end_label_seq_id);
-  const hasChainFilter = isAnyDefined(row.label_asym_id, row.label_entity_id);
-  const hasInvalidFilter = isAnyDefined(
-    row.auth_asym_id,
-    row.auth_seq_id,
-    row.pdbx_PDB_ins_code,
-    row.beg_auth_seq_id,
-    row.end_auth_seq_id,
-    row.label_comp_id,
-    row.auth_comp_id,
-    row.residue_index,
-    row.label_atom_id,
-    row.auth_atom_id,
-    row.type_symbol,
-    row.atom_id,
-    row.atom_index,
-  );
+  const hasResidueFilter =
+    isDefined(row.label_seq_id) || isDefined(row.beg_label_seq_id) || isDefined(row.end_label_seq_id);
+  const hasChainFilter = isDefined(row.label_asym_id) || isDefined(row.label_entity_id);
+  const hasInvalidFilter =
+    isDefined(row.auth_asym_id) ||
+    isDefined(row.auth_seq_id) ||
+    isDefined(row.pdbx_PDB_ins_code) ||
+    isDefined(row.beg_auth_seq_id) ||
+    isDefined(row.end_auth_seq_id) ||
+    isDefined(row.label_comp_id) ||
+    isDefined(row.auth_comp_id) ||
+    isDefined(row.residue_index) ||
+    isDefined(row.label_atom_id) ||
+    isDefined(row.auth_atom_id) ||
+    isDefined(row.type_symbol) ||
+    isDefined(row.atom_id) ||
+    isDefined(row.atom_index);
 
   if (hasInvalidFilter) {
     printCoarseSelectorWarning();
