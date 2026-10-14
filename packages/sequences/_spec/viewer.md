@@ -64,8 +64,9 @@ The context's states, by manager: `document`, `graph`, `views`, `snapshots`, `vi
 
 ## Events
 
-`ctx.events`: `activate` (a track header activated), `menu` (a track's menu asked for from the keyboard), `patch` (every
-proposal), `issue` (every new issue), `log`. The DOM element adds its own (`seqspec:interaction#the-dom-element`).
+`ctx.events`: `activate` (a track header activated), `menu` (a track's menu asked for from the keyboard or, with the
+`contextMenu` behavior, the pointer: `seqspec:interaction#the-track-menu`), `patch` (every proposal), `issue` (every new
+issue), `log`. The DOM element adds its own (`seqspec:interaction#the-dom-element`).
 
 ## The document
 
@@ -169,6 +170,9 @@ removed at runtime (`ctx.behaviors.add`, `get(name).setParams`).
   (`repeatClicks`), the drag regions, and the scroll past an edge (`autoscroll`, `autoscrollMin`, `autoscrollRate`,
   `autoscrollMax`). A behavior whose double click means something at a point claims the `doubleClick` query there
   (`doubleClickZoom`, `navigator`, `headers`), so `select` asks the behaviors, never a list.
+- Some built-in behaviors are not in `DefaultSeqViewerSpec` (`SeqViewerOptionalBehaviors`; the generated reference lists
+  them apart): a host adds them. `contextMenu`, the track menu from the pointer, is one
+  (`seqspec:interaction#the-track-menu`).
 
 ## Actions
 
@@ -282,8 +286,8 @@ platform-free: the same code exports from a page and renders figures in Node), a
   allocates nothing.
 - **Surfaces** (`mountSection`, one per section) size their canvases inside a frame only, so the page never paints a
   blank canvas, and follow the host's size and device pixel ratio. Each pass canvas carries `data-pass` (`main`,
-  `overlay`, `nav`, `navOverlay`, `vnav`, `vnavOverlay`) for a host's CSS: a host shows the vertical strip (`vnav*`)
-  only while the pointer is over the band, with an opacity transition.
+  `overlay`, `nav`, `nav-overlay`, `vnav`, `vnav-overlay`), marks for a host's CSS: the vertical overview and scrollbar
+  are the `vnav` ones.
 - **Per-position text** (a block's letters, another polymer's residues, three-letter codes, atom symbols) is set per
   row: one font size and one form for the whole row, from its cells' width and never larger than the row allows nor than
   the cap (the render prop `maxLetterPx`; by default the header labels' size, `labelFontPx`), so zoomed in past it the
@@ -351,12 +355,14 @@ The layout reads no CSS (an SVG export draws it the same): a host that changes `
 between groups, `wrappedGap` between lines, `wrappedTrackGap` between a line's letters and its first annotation lane,
 `wrappedLaneHeight` a lane under the text, `wrappedMaxWidth` the longest line in px (0, the default: the whole data
 area), `wrappedColors` the letters themselves in the layer's color theme (false, the default: the ink), `unobservedGray`
-a unit's unobserved positions (`observed` ranges that leave them out) in the skin's `unobserved` color, in cells and in
-text (false, the default; a zoomed-out cell class by letter ignores it), `wrappedAlign` (`start`, the default, or
-`center`) where the lines sit: centered, the block is as wide as its widest line and the margins either side belong to
-the gutters, hits and the selection reading the same geometry. A line holds whole groups, and a short last group goes on
-a line of its own where a full group would not fit. The `wrapped` preset spaces the text to read; `compact` is the dense
-one (half the group gap, lines and lanes touching, lower lanes), still in groups of 10.
+a unit's unobserved positions (`observed` ranges that leave them out) in the skin's `unobserved` color, opaque, in the
+letters' cells at every zoom (zoomed out, a column's share of them as their own class) and in text, plain or colored
+(false, the default), `wrappedAlign` (`start`, the default, or `center`) where the lines sit: centered, the block is as
+wide as its widest line, centered in the data area the section ends with (the vertical overview's room only where the
+text scrolls), and the margins either side belong to the gutters, hits and the selection reading the same geometry. A
+line holds whole groups, and a short last group goes on a line of its own where a full group would not fit. The
+`wrapped` preset spaces the text to read; `compact` is the dense one (half the group gap, lines and lanes touching,
+lower lanes), still in groups of 10.
 
 ## Performance
 

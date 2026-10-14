@@ -99,6 +99,20 @@ function differing(a: Uint8ClampedArray, b: Uint8ClampedArray): number {
 /** Genes and variants over two blocks: the tracks once seen to blink. */
 const genome = () => scaleDoc({ length: 40_000, ranges: 600, variants: 800 });
 
+describe("the pass canvases' names (data-pass, seqspec:viewer#the-render-backend)", () => {
+  it("mark each canvas in stacking order, kebab-case, for a host's CSS", async () => {
+    const { surface } = await mount(genome(), 600, 200);
+    expect(canvases(surface).map((c) => c.dataset.pass)).toEqual([
+      'main',
+      'overlay',
+      'nav',
+      'nav-overlay',
+      'vnav',
+      'vnav-overlay',
+    ]);
+  });
+});
+
 describe('accessibility of a surface mounted on its own (VB-09)', () => {
   it("is a named group with the role description, its name the section's label, kept up to date", async () => {
     const { ctx, surface, section } = await mount(genome(), 600, 200);

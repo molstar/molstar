@@ -94,8 +94,8 @@ export function watchDpr(win: DprHost, changed: (dpr: number) => void): () => vo
 
 /** Passes with a canvas of their own, in stacking order (`Pass`): the section's four, then the vertical overview's two. */
 const PASSES = 6;
-/** Each pass canvas's `data-pass`, in stacking order (`Pass`). */
-const PASS_NAMES = ['main', 'overlay', 'nav', 'navOverlay', 'vnav', 'vnavOverlay'] as const;
+/** Each pass canvas's `data-pass`, in stacking order (`Pass`): kebab-case, as data attributes' values are. */
+const PASS_NAMES = ['main', 'overlay', 'nav', 'nav-overlay', 'vnav', 'vnav-overlay'] as const;
 /** `frameId` while a frame reads the layout: what it triggers is ORed in and drawn by this frame. */
 const DRAWING = -2;
 

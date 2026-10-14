@@ -94,21 +94,25 @@ export interface ActivateEvent {
   readonly section: string;
   readonly track: string;
   readonly origin: Origin;
+}
+/** `events.menu` (seqspec:interaction#the-track-menu): a track's, and where it was asked from. */
+export interface MenuEvent extends ActivateEvent {
   /**
-   * `events.menu` from the pointer (the `contextMenu` behavior): where it was, in the surface's px; -1 from the keyboard
-   * (a host places the menu at the cursor's track). Absent on `events.activate`.
+   * From the pointer (the `contextMenu` behavior, origin `pointer`): where it was, in the surface's px; from the
+   * keyboard (origin `keyboard`), -1 both: a host places the menu at the cursor's track.
    */
-  readonly x?: number;
-  readonly y?: number;
+  readonly x: number;
+  readonly y: number;
 }
 export interface SeqViewerEvents {
   /** A track header activated (the `headers` behavior; the `keyboard` behavior's Enter on a header). */
   readonly activate: SeqEvent<ActivateEvent>;
   /**
-   * A track's menu asked for: the `keyboard` behavior's Shift+F10 or ContextMenu on the cursor's track. A UI opens it.
-   * The record is reused: read it during the call.
+   * A track's menu asked for: the `keyboard` behavior's Shift+F10 or ContextMenu on the cursor's track, or a secondary
+   * press with the `contextMenu` behavior (a host adds it; with the pointer's place). A UI opens it. The record is
+   * reused: read it during the call.
    */
-  readonly menu: SeqEvent<ActivateEvent>;
+  readonly menu: SeqEvent<MenuEvent>;
   /** A new issue from a node, the engine, a registration, a behavior or a command. */
   readonly issue: SeqEvent<SeqIssue>;
   readonly log: SeqEvent<LogEntry>;
@@ -289,7 +293,7 @@ class Context implements SeqViewerContext {
   readonly behaviors: Behaviors;
   readonly commands: Commands;
   readonly activateEvent: SeqEventEmitter<ActivateEvent>;
-  readonly menuEvent: SeqEventEmitter<ActivateEvent>;
+  readonly menuEvent: SeqEventEmitter<MenuEvent>;
   private readonly menuAsked = { section: '', track: '', origin: 'api' as Origin, x: -1, y: -1 };
   readonly layout: Layouts;
   readonly streams: Streams;
@@ -521,7 +525,10 @@ class Context implements SeqViewerContext {
     this.activateEvent.emit({ section, track, origin });
   }
 
-  /** The `keyboard` behavior's menu key (`events.menu`): one record, reused (a held key allocates nothing). */
+  /**
+   * `events.menu` (the `keyboard` behavior's menu key, `contextMenu`'s press): one record, reused (a held key allocates
+   * nothing).
+   */
   openMenu(section: string, track: string, origin: Origin, x = -1, y = -1) {
     const e = this.menuAsked;
     e.section = section;

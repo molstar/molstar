@@ -63,6 +63,7 @@ export {
 } from './config.js';
 export {
   type ActivateEvent,
+  type MenuEvent,
   createSeqViewer,
   DarkSkin,
   DefaultSkin,
@@ -231,6 +232,7 @@ export {
   DefaultRegistry,
   DefaultSeqViewerSpec,
   SeqViewerBehaviors,
+  SeqViewerOptionalBehaviors,
   SeqViewerSpec,
   ViewerIssueCodes,
   ViewerLayerTypes,

@@ -19,7 +19,7 @@ import { type Axis, AxisGeometry } from '../axis.js';
 import { binClass, binValues, PYRAMID_BASE, type ValuePyramid, valuePyramid } from '../pyramids.js';
 import { type CellClasses, type CellColoring, cellClasses } from '../reductions.js';
 import { OPAQUE, type Theme, ThemeLocation } from '../themes.js';
-import type { RectBatch } from './backend.js';
+import { NO_COLOR, type RectBatch } from './backend.js';
 import type { DrawView } from './view.js';
 
 /**
@@ -37,6 +37,11 @@ export interface CellSource extends CellColoring {
    * seqspec:viewer#performance).
    */
   extent?(b: number, out: Int32Array): void;
+  /**
+   * What the coloring reads beyond the theme (a render prop: the letters' `unobservedGray`), as a number: the classes
+   * are built again when it changes. None: 0.
+   */
+  variant?(v: DrawView): number;
 }
 
 /** The first shown index of block b in the device column of shown k (linear). */
@@ -123,6 +128,8 @@ export function columnLevel(v: DrawView, b: number, levels: number, base = PYRAM
  */
 interface CellIndex {
   theme: Theme;
+  /** The source's `variant` it was built for. */
+  variant: number;
   classes: (CellClasses | null | undefined)[];
   /** Per block the classes' first index from the block's base (a multiple of their top bin) and their length. */
   span: Int32Array;
@@ -134,15 +141,18 @@ interface CellIndex {
   range: Float64Array;
 }
 const indexes = new WeakMap<object, CellIndex>();
-function cellIndex(owner: object, theme: Theme, blocks: number): CellIndex {
+function cellIndex(owner: object, theme: Theme, blocks: number, variant: number): CellIndex {
   const x = indexes.get(owner);
-  return x?.theme === theme && x.classes.length === blocks ? x : newIndex(owner, theme, blocks);
+  return x?.theme === theme && x.variant === variant && x.classes.length === blocks
+    ? x
+    : newIndex(owner, theme, blocks, variant);
 }
 /** Edge-rate, apart: a closure in `cellIndex` would make its context on every call. */
-function newIndex(owner: object, theme: Theme, blocks: number): CellIndex {
+function newIndex(owner: object, theme: Theme, blocks: number, variant: number): CellIndex {
   const none = () => new Array<undefined>(blocks).fill(undefined);
   const x = {
     theme,
+    variant,
     classes: none(),
     span: new Int32Array(2 * blocks),
     levels: new Int32Array(blocks),
@@ -246,14 +256,15 @@ export function drawCells(
     for (let k = lo; k < hi; k++) {
       const i = ax.indexOf(b, k as never);
       const color = src.color(b, i);
-      if (color < 0) continue;
+      // A skin token (below -1) is a color too: the backend resolves it.
+      if (color === NO_COLOR) continue;
       rects.begin(color, src.alpha(b, i));
       const x = v.xd(b, k);
       rects.push(x, top, Math.max(1, v.xe(b, k) - cellBand[2] - x), h);
     }
     return;
   }
-  const x = cellIndex(owner, t, ax.count);
+  const x = cellIndex(owner, t, ax.count, src.variant ? src.variant(v) : 0);
   let mean: Float64Array | null = null;
   let pyr: ValuePyramid | null = null;
   let cls: CellClasses | null = null;
@@ -305,7 +316,8 @@ export function drawCells(
       for (let q = k; q < k1; q++) {
         const i = ax.indexOf(b, q as never);
         const c = src.color(b, i);
-        if (c < 0) continue;
+        if (c === NO_COLOR) continue;
+        // A skin token's key is negative and decodes the same (floor division).
         const key = c * 256 + src.alpha(b, i);
         let s = 0;
         while (s < n && pairKey[s] !== key) s++;
@@ -320,7 +332,7 @@ export function drawCells(
         alpha = pairKey[best] - color * 256;
       }
     }
-    if (color >= 0) {
+    if (color !== NO_COLOR) {
       rects.begin(color, alpha);
       rects.push(x0, top, Math.max(1, v.xd(b, k1) - x0), h);
     }

@@ -171,6 +171,11 @@ three stories: the [viewer](?path=/story/seq-cases-viewer--case-1) with the defa
   pressed on a selected one); Ctrl/⌘ adds or removes; where a double click zooms, a click selects once the double-click time has passed, so a
   double click never selects. The text sits inset from the canvas's edges, in the `wrapped` or the `compact` preset.
   [p53: text and tracks](?path=/story/seq-cases-viewer--case-1) (its Text choice switches the preset).
+- **Text for a host.** Render props shape the text view: `wrappedAlign: "center"` and `wrappedMaxWidth` (a centered
+  reading column), `wrappedColors` (the letters in the layer's colors), and `unobservedGray` (a structure's unobserved
+  residues in the skin's unobserved color, in text and in cells). A focus scrolls the text to its lines
+  (`focusViewport`'s `reveal`), and a new text section opens on its focus. A host that opens its own track menu at
+  the pointer adds the `contextMenu` behavior (`SeqViewerOptionalBehaviors`): a secondary press asks for it.
 - **Follow.** A section follows another's window through a coordinate map, a codon step's third
   included. [Following sections](?path=/story/seq-views-and-layouts-axes-and-strands--follow).
 - **Patches, snapshots, undo.** Filter view, hide and remove, each a patch (a small change to the
@@ -204,7 +209,9 @@ three stories: the [viewer](?path=/story/seq-cases-viewer--case-1) with the defa
   (`checked`).
 - **Structures (Mol\*).** `@molstar/seq-molstar-poc` (a proof of concept) reads structures headless, maps their chains onto
   UniProt by SIFTS, and links a Mol\* canvas: hover and selection both ways, "Show in 3D" from the hover card and the
-  track menu, and the structure colored by any track as drawn (MVS color tables).
+  track menu, and the structure colored by any track as drawn (MVS color tables). Its providers give pLDDT and the
+  model's own secondary structure (`molstar:secondary_structure`); a hover or selection on a ligand lights the whole
+  ligand in 3D (the link's `wholeResidue` reaction).
   [p53: sequence and structure](?path=/story/seq-cases-mol--p-53).
 - **The query language.** SeqQL's reader, binder, checker and printer (`(search "[KR]{2}.{10,12}[KR]{3,}" :in p53 :regex true)` finds a motif by regular expression): an S-expression box with the canonical
   print, the JSON and how each short name bound; and its runtime, a gallery of queries run on the cases.

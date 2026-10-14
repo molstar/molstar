@@ -13,7 +13,7 @@
 import { printParamsTable, type SvsRegistryEntry } from '@molstar/seq-core/format';
 import { SeqViewerConfig, type SeqViewerConfigItem } from './config.js';
 import type { SeqViewerRegistryEntry } from './registry.js';
-import { DefaultSeqViewerSpec, type SeqViewerSpec } from './spec.js';
+import { DefaultSeqViewerSpec, type SeqViewerSpec, SeqViewerOptionalBehaviors } from './spec.js';
 
 const cell = (s: string) => s.replaceAll('|', '\\|').replaceAll('\n', ' ');
 const code = (s: string) => `\`${cell(s)}\``;
@@ -69,6 +69,19 @@ export function printViewerReference(spec: SeqViewerSpec = DefaultSeqViewerSpec(
         String(b.priority),
         cell(b.display.description ?? ''),
         json({ ...b.params, ...defaultParams }),
+      ]),
+    ),
+  );
+  out.push('Built in, not in `DefaultSeqViewerSpec` (`SeqViewerOptionalBehaviors`): a host adds them.', '');
+  out.push(
+    ...table(
+      ['Name', 'Category', 'Priority', 'What it does', 'Params'],
+      Object.values(SeqViewerOptionalBehaviors).map((b) => [
+        code(b.name),
+        b.category,
+        String(b.priority),
+        cell(b.display.description ?? ''),
+        json(b.params),
       ]),
     ),
   );

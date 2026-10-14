@@ -200,7 +200,18 @@ export class Viewport implements SectionViewport {
   private lastInput = 0;
   private settleOrigin: Origin = 'api';
   private frame = -1;
-  private readonly anim = { c0: 1, x0: 0, c1: 1, x1: 0, t0: 0, d: 0, origin: 'api' as Origin };
+  /** An animation's cell and scroll from and to; `y1` NaN: the vertical scroll is not animated. */
+  private readonly anim = {
+    c0: 1,
+    x0: 0,
+    c1: 1,
+    x1: 0,
+    y0: Number.NaN,
+    y1: Number.NaN,
+    t0: 0,
+    d: 0,
+    origin: 'api' as Origin,
+  };
   /** `locate`'s: the view x to find (in), then the shown position (fractional) under it (out). */
   private readonly at = new Float64Array(2);
   /** The plain verbs' numbers, passed to their `…From` variants. */
@@ -262,6 +273,14 @@ export class Viewport implements SectionViewport {
     s.scrollX = x;
     s.scrollY = y;
     this.moved(origin);
+  }
+  /**
+   * The vertical scroll to `y`, animated as a zoom to a focus is (`opts.animate`, `durationMs`; reduced motion and an
+   * inactive context jump): wrapped text's scroll to a focus (`Layouts.reveal`). Edge-rate.
+   */
+  scrollYTo(y: number, opts: MoveOpts = {}) {
+    const s = this.live.current;
+    this.moveTo(s.cell, s.scrollX, opts, y);
   }
   panBy(dx: number, dy: number, origin: Origin = 'pointer') {
     this.args[0] = dx;
@@ -643,7 +662,11 @@ export class Viewport implements SectionViewport {
     return cell;
   }
 
-  private moveTo(cell: number, x: number, opts: MoveOpts) {
+  /**
+   * To `cell` and scroll x, and (unless NaN) scroll y, over the animation `opts` ask for (seqspec:interaction#focus: a
+   * zoom to a focus, wrapped text's scroll to one).
+   */
+  private moveTo(cell: number, x: number, opts: MoveOpts, y = Number.NaN) {
     const s = this.live.current;
     const origin = opts.origin ?? 'api';
     const config = this.host.config;
@@ -653,11 +676,13 @@ export class Viewport implements SectionViewport {
     if (!opts.animate || d <= 0 || reduced || !this.host.active()) {
       s.cell = cell;
       s.scrollX = x;
+      if (!Number.isNaN(y)) s.scrollY = y;
       this.moved(origin);
       return;
     }
     const c1 = clamp(cell, s.minCell, s.maxCell);
-    Object.assign(this.anim, { c0: s.cell, x0: s.scrollX, c1, x1: clamp(x, 0, this.maxScroll(c1)), d, origin });
+    const x1 = clamp(x, 0, this.maxScroll(c1));
+    Object.assign(this.anim, { c0: s.cell, x0: s.scrollX, c1, x1, y0: s.scrollY, y1: y, d, origin });
     this.anim.t0 = this.host.scheduler.now();
     // Interacting through the animation; its last frame clears it.
     s.animating = true;
@@ -684,6 +709,7 @@ export class Viewport implements SectionViewport {
         : dc > 1e-3 * a.c0 || dc < -1e-3 * a.c0
           ? a.x0 + ((a.x1 - a.x0) * (s.cell - a.c0)) / dc
           : a.x0 + (a.x1 - a.x0) * e;
+    if (!Number.isNaN(a.y1)) s.scrollY = k >= 1 ? a.y1 : a.y0 + (a.y1 - a.y0) * e;
     if (k < 1) {
       this.end(a.origin);
       this.frame = this.host.scheduler.requestFrame(this.onFrame);

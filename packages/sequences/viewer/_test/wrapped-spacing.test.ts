@@ -10,6 +10,8 @@
 // `wrappedGap` (between lines), `wrappedTrackGap` (letters to the first annotation lane) and `wrappedLaneHeight` (a
 // lane under the text) place what they name; `compact` is the dense preset, shorter than `wrapped` on case 1. A line
 // holds whole groups alike: a short last group goes on a line of its own where a full group would not fit.
+// `wrappedAlign: center` centers the block of lines by its widest line in the area it ends with, and `wrappedMaxWidth`
+// wraps the lines narrower than the area.
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
@@ -114,21 +116,21 @@ describe("the text layout's spacing", () => {
     expect(compact.h).toBeLessThan(wrapped.h * 0.9);
   });
 
+  /** Mono 12 px groups of 10 with the preset's 8 px gap: `g` groups are `g · 72 + (g − 1) · 8` px. */
+  const groupsPx = (g: number) => g * 10 * CELL + (g - 1) * 8;
+
   it('wrappedAlign center puts the block of lines in the middle of the area; hits and the margins follow', async () => {
-    // 60 positions: three groups of 10 on a line of ~220 px, in an area of 400.
+    // 60 positions in a 400 px section: a data area of 368 px (8 px inset left, 24 px strip right) holds 4 groups a
+    // line (312 px; a fifth would need 392), so two lines, of 40 and 20 positions.
     const start = await open(text(60), 400);
     const centered = await open(text(60), 400, { wrappedAlign: 'center' });
     const a = start.layout('v.main');
     const c = centered.layout('v.main');
-    expect(a.lines.count).toBe(c.lines.count);
-    // The area is 400 px less the insets; the lines hold whole groups, narrower than it: equal margins either side.
-    const left = c.dataLeft - a.dataLeft;
-    const right = a.dataRight - c.dataRight;
-    expect(left).toBe(right);
-    expect(left).toBeGreaterThan(0);
-    // The widest line is 4 groups (4 · 72 + 3 · 8 = 312 px): the block is that wide.
-    expect(c.dataRight - c.dataLeft).toBeGreaterThanOrEqual(312);
-    expect(c.dataRight - c.dataLeft).toBeLessThan(312 + 2);
+    expect([a.dataLeft, a.dataRight]).toEqual([8, 376]);
+    expect(Array.from(c.lines.stop.subarray(0, c.lines.count))).toEqual([40, 60]);
+    // The block is as wide as its widest line, with the rest of the area split evenly: 28 px either side.
+    expect(c.dataRight - c.dataLeft).toBe(groupsPx(4));
+    expect([c.dataLeft - a.dataLeft, a.dataRight - c.dataRight]).toEqual([28, 28]);
     // Position 0 is at the centered left edge: a hit there names it, a hit in the margin names nothing.
     const hit = (t: typeof centered, x: number) => {
       const y = c.scrolledTop + c.entryTop[0] + 4;
@@ -139,24 +141,34 @@ describe("the text layout's spacing", () => {
     const view = centered.ctx.layout.axis('v.main');
     expect(view?.x(0, 0 as ShownIndex)).toBeCloseTo(c.dataLeft, 4);
     expect(hit(centered, c.dataLeft + CELL / 2)).toBe(0);
-    expect(hit(centered, a.dataLeft + left / 2)).not.toBe(0);
+    expect(hit(centered, a.dataLeft + 14)).toBe(-1);
   });
 
   it('wrappedMaxWidth wraps the lines there, and centered puts that column in the middle', async () => {
-    // 4 groups of 10 are 4 · 72 + 3 · 8 = 312 px; a column of 330 px holds 4, in an area of 600.
+    // 120 positions in a 600 px section: the area (568 px) holds 7 groups a line; a column of 330 px holds 4 (312 px).
     const wide = await open(text(120), 600, { wrappedAlign: 'center' });
     const column = await open(text(120), 600, { wrappedAlign: 'center', wrappedMaxWidth: 330 });
     const w = wide.layout('v.main');
     const c = column.layout('v.main');
-    // 6 groups of 10 would fit a 600 px area (6 · 72 + 5 · 8 = 472); the column holds 4: more, shorter lines.
-    expect(c.lines.count).toBeGreaterThan(w.lines.count);
-    expect(c.lines.stop[0] - c.lines.start[0]).toBe(40);
-    expect(c.dataRight - c.dataLeft).toBeGreaterThanOrEqual(312);
-    expect(c.dataRight - c.dataLeft).toBeLessThan(312 + 2);
-    // Centered in the whole area: equal margins either side of the column.
-    const start = await open(text(120), 600);
-    const s0 = start.layout('v.main');
-    expect(c.dataLeft - s0.dataLeft).toBe(s0.dataRight - c.dataRight);
+    expect(Array.from(w.lines.stop.subarray(0, w.lines.count))).toEqual([70, 120]);
+    expect(Array.from(c.lines.stop.subarray(0, c.lines.count))).toEqual([40, 80, 120]);
+    expect(c.dataRight - c.dataLeft).toBe(groupsPx(4));
+    // Centered in the whole area: (568 − 312) / 2 = 128 px either side of the column.
+    const s0 = (await open(text(120), 600)).layout('v.main');
+    expect([c.dataLeft - s0.dataLeft, s0.dataRight - c.dataRight]).toEqual([128, 128]);
+  });
+
+  it('centered with a vertical overview that the text does not need: centered in the area it ends with', async () => {
+    // `verticalNav: overview` reserves the overview while the lines are laid out; text that fits needs no overview,
+    // so the area is the whole width less the inset and the strip, and the margins are measured in it.
+    const props = { verticalNav: 'overview', verticalOverview: 40 } as const;
+    const t = await open(text(60), 400, { ...props, wrappedAlign: 'center' });
+    const l = t.layout('v.main');
+    expect(l.vscroll).toBe(false);
+    expect(l.vnavWidth).toBe(0);
+    const right = 400 - 24;
+    expect(l.dataRight - l.dataLeft).toBe(groupsPx(4));
+    expect([l.dataLeft - 8, right - l.dataRight]).toEqual([28, 28]);
   });
 
   it('the default is start: nothing moves unless asked', async () => {

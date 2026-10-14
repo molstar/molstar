@@ -54,8 +54,9 @@ will follow.
 
 - **Across updates**: a section whose axis is equal keeps its viewport; a changed axis keeps the center's location and
   zoom when it is still shown and the view was not the whole axis (`Viewport.OnAxisChange`), else fits; a new section
-  opens on its focus, else fits.
-- A move made before the section has a width is kept as one pending intent and applied once it has one.
+  opens on its focus (wrapped text: scrolled so its lines are shown), else fits.
+- A move made before the section has a width is kept as one pending intent and applied once it has one; so is wrapped
+  text's scroll to a focus made before it has lines.
 - Default gestures: a drag on data pans (in text, it selects: Selection); Ctrl/⌘ or a pinch with the wheel zooms at the
   cursor; a horizontal wheel (or Shift with a vertical one) pans; a double click zooms in on an element or a position,
   then back out; the navigator jumps, pans and zooms. Reduced motion turns animation off.
@@ -210,11 +211,15 @@ as its outline alone).
 
 ## The track menu
 
-A track's menu is the host's; Seq* says when one is asked for (`events.menu`: the section, the track and the origin).
-The keyboard's menu key (Shift+F10 or ContextMenu on the cursor's track) asks from the cursor; the `contextMenu`
-behavior asks from the pointer: a secondary-button press on a track (its data, header or gutter: its `regions` param)
-emits it with the pointer's place in the surface's px. Where no track is under the pointer nothing is asked, and a spec
-without the behavior asks nothing from the pointer.
+A track's menu is the host's; Seq* says when one is asked for (`events.menu`: the section, the track, the origin and the
+place, `x` and `y`). The keyboard's menu key (Shift+F10 or ContextMenu on the cursor's track) asks from the cursor,
+origin `keyboard`, with `x` and `y` -1: the host places the menu at the cursor's track (the default UIs' at its header).
+From the pointer, only with the `contextMenu` behavior, which `DefaultSeqViewerSpec` leaves out (a host adds it): a
+press of its `on` binding (the secondary button; on macOS a host adds Ctrl with the primary one and takes that from
+`select`'s `toggle`) on a track (its data, header or gutter: its `regions` param) asks with origin `pointer` and the
+pointer's place in the surface's px. Where no track is under the pointer nothing is asked. It asks on the press, as
+macOS and Linux open a menu; Windows opens its own on the release, so there a host that also suppresses the browser's
+menu does so in its own listener for the browser's context-menu event.
 
 ## Focus
 
@@ -222,11 +227,13 @@ without the behavior asks nothing from the pointer.
 lights, from the first lit position to the last, at the largest cell that shows them all; on a cyclic system, the
 shortest arc. A section's `focus` node is its initial focus; a patch or snapshot that changes it moves the viewport,
 animated by the `focusViewport` behavior. Wrapped text does not zoom: the behavior scrolls the lines of the focus into
-view (`reveal`, on by default; `revealPad` px clear of the edge), the first line at the top where the range is taller
-than the view, and not at all where its lines already are shown. `ctx.refs.toLoci(ref, args)` resolves a ref to loci (a
-unit, molecule, complex, row, annotation, track or layer); range args outside its domain (index args, or labels not
-there or resolving outside it; a complex's, outside every member) give none, never a clipped part. A molecule's args
-name its positions in each of its units.
+view (`reveal`, on by default), over the same transition as a zoom: every line from the first shown position it lights
+to the last, on every block it lights (an end outside what is shown is the nearest shown position inside the range; a
+reversed piece's lines in their shown order). Where those lines already are shown nothing moves; else they come
+`revealPad` px clear of the edge the scroll brings them to, the first line at the top where they are taller than the
+view. `ctx.refs.toLoci(ref, args)` resolves a ref to loci (a unit, molecule, complex, row, annotation, track or layer);
+range args outside its domain (index args, or labels not there or resolving outside it; a complex's, outside every
+member) give none, never a clipped part. A molecule's args name its positions in each of its units.
 
 ## Results
 

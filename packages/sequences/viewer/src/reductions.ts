@@ -19,7 +19,7 @@ import { type ClassPyramid, type CountPyramid, classPyramidFrom, countPyramid } 
 
 /** What the class build reads per cell of a block (the draw's theme at a block index; RN1 fills it). */
 export interface CellColoring {
-  /** 0xRRGGBB, or -1 (none). */
+  /** 0xRRGGBB, a skin token (`SkinToken`, below -1: the backend resolves it), or -1 (none). */
   color(block: number, index: number): number;
   /** The theme's alpha as a byte, 0..255 (its own byte beside the color). */
   alpha(block: number, index: number): number;
@@ -55,8 +55,9 @@ function fillClasses(start: number, out: Uint8Array): boolean {
     const key = c.key(job.b, i);
     if (key < 0 || key !== lastKey) {
       const color = c.color(job.b, i);
-      const pair = color < 0 ? -1 : color * 256 + (c.alpha(job.b, i) & 255);
-      let cls = pair === lastPair ? last : pair < 0 ? 0 : (job.pairs.get(pair) ?? -1);
+      // -1: none; a skin token's pair is below -256 (no color's), a color's at least 0.
+      const pair = color === -1 ? -1 : color * 256 + (c.alpha(job.b, i) & 255);
+      let cls = pair === lastPair ? last : pair === -1 ? 0 : (job.pairs.get(pair) ?? -1);
       if (cls < 0) {
         if (job.count === 255) return false;
         cls = ++job.count;

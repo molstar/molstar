@@ -46,7 +46,7 @@ import type { Scheduler } from './scheduler.js';
 import { type Live, live, type SeqState, state, type Unsubscribable, type WritableLive } from './state.js';
 import type { TextManager } from './text.js';
 import type { UiManager } from './ui.js';
-import type { ViewportProps, ViewportState, Viewports } from './viewport.js';
+import type { MoveOpts, ViewportProps, ViewportState, Viewports } from './viewport.js';
 
 /**
  * The layout's and engine's sizes and switches (seqspec:viewer#render-props); a preset's `render` over them per
@@ -637,6 +637,14 @@ export function columnOf(registry: SeqViewerRegistry, type: string): ColumnRende
   return registry.get('columns', type) ?? registry.get('columns', 'text') ?? TEXT_COLUMN;
 }
 
+/** `revealY`'s shown runs (two at most: across a cyclic origin). */
+const REVEAL_RUNS = new Int32Array(4);
+/** The line holding block b's shown position k (lines are in block order, then shown order); -1: none. */
+function lineOf(lines: LineTable, b: number, k: number): number {
+  for (let n = 0; n < lines.count; n++) if (lines.block[n] === b && lines.start[n] <= k && k < lines.stop[n]) return n;
+  return -1;
+}
+
 export interface LayoutManager {
   get(section: string): Live<SectionLayout> | null;
   visibleRows(section: string): Live<VisibleRows> | null;
@@ -657,11 +665,20 @@ export interface LayoutManager {
   /** Whether the section is laid out as wrapped text (lines scrolling vertically, no zoom). */
   isWrapped(section: string): boolean;
   /**
-   * Wrapped text: the vertical scroll that brings the lines holding the block's indices [start, stop) into view, `pad` px
-   * clear of the edge where it scrolls; NaN where they already are, or nothing here shows them. A range taller than the
-   * view shows its first line at the top. Edge-rate (a focus).
+   * Wrapped text (seqspec:interaction#focus): the vertical scroll that shows the lines holding `n` ranges, (block, start,
+   * stop) triples in block indices (a focus's `blocks`, or its one range), from the first shown position of any of them
+   * to the last (a hidden end is the nearest shown position inside the range; a reversed piece's lines are read in
+   * shown order). Where every line is already shown, the current scroll; else `pad` px clear of the edge it scrolls to,
+   * the first line at the top where they are taller than the view. -1: nothing here shows them (or not wrapped); NaN:
+   * the section has no lines yet (no width or height). Edge-rate.
    */
-  revealY(section: string, block: number, start: number, stop: number, pad?: number): number;
+  revealY(section: string, ranges: Int32Array, n: number, pad?: number): number;
+  /**
+   * Scrolls wrapped text to `revealY`'s scroll, animated as `opts` say (`MoveOpts`; `pad` here is px); before the
+   * section has lines it is the section's one pending reveal, applied once it has them (a later reveal replaces it).
+   * False where the section is not wrapped text. Edge-rate.
+   */
+  reveal(section: string, ranges: Int32Array, n: number, pad: number, opts?: MoveOpts): boolean;
 }
 
 export interface LayoutHost {
@@ -707,8 +724,10 @@ export class SectionEntry {
   runsText = -1;
   /** What the runs' group labels were prepared for: on, the font px, each block's numbering and its path. */
   runsLabels: readonly unknown[] = [];
-  /** Wrapped, `wrappedAlign: 'center'`: px the lines' block is moved in from either side of the data area. */
-  alignMargin = 0;
+  /** Wrapped, `wrappedAlign: 'center'`: the widest line's px (0: not centered); the build centers the block by it. */
+  alignWidth = 0;
+  /** Wrapped: a reveal asked before the section had lines (`Layouts.reveal`), applied after the next build. */
+  readonly reveal: { ranges: Int32Array | null; pad: number; opts: MoveOpts } = { ranges: null, pad: 0, opts: {} };
   dirty = true;
   /** A row zoom waits: the rows' height and the entries below them change, nothing else (`Layouts.rescale`). */
   rescaled = false;
@@ -796,30 +815,78 @@ export class Layouts implements LayoutManager {
   isWrapped(section: string): boolean {
     return this.map.get(section)?.layout.geometry === AxisGeometry.wrapped;
   }
-  revealY(section: string, block: number, start: number, stop: number, pad = 0): number {
+  revealY(section: string, ranges: Int32Array, n: number, pad = 0): number {
     const e = this.ready(section);
-    const ax = e?.axis;
-    const s = e && this.host.viewports.get(e.ref)?.live.current;
-    if (!e || !ax || !s || e.layout.geometry !== AxisGeometry.wrapped || block < 0 || block >= ax.count)
-      return Number.NaN;
+    return e ? this.revealOf(e, ranges, n, pad) : -1;
+  }
+  reveal(section: string, ranges: Int32Array, n: number, pad: number, opts: MoveOpts = {}): boolean {
+    const e = this.ready(section);
+    if (!e || e.layout.geometry !== AxisGeometry.wrapped) return false;
+    const y = this.revealOf(e, ranges, n, pad);
+    if (Number.isNaN(y)) {
+      // No lines yet: kept (copied) until the section has them, the last one winning.
+      const w = e.reveal;
+      w.ranges = ranges.slice(0, 3 * n);
+      w.pad = pad;
+      w.opts = opts;
+      return true;
+    }
+    e.reveal.ranges = null;
+    const vp = this.host.viewports.get(e.ref);
+    if (vp && y >= 0 && y !== vp.live.current.scrollY) vp.scrollYTo(y, opts);
+    return true;
+  }
+  /** A pending reveal, once the section has lines (after a build); kept while it still has none. */
+  private revealPending(e: SectionEntry) {
+    const w = e.reveal;
+    if (!w.ranges || e.layout.geometry !== AxisGeometry.wrapped) return;
+    const y = this.revealOf(e, w.ranges, w.ranges.length / 3, w.pad);
+    if (Number.isNaN(y)) return;
+    const opts = w.opts;
+    w.ranges = null;
+    const vp = this.host.viewports.get(e.ref);
+    if (vp && y >= 0 && y !== vp.live.current.scrollY) vp.scrollYTo(y, opts);
+  }
+  /** `revealY` on a ready entry. */
+  private revealOf(e: SectionEntry, ranges: Int32Array, n: number, pad: number): number {
+    const ax = e.axis;
+    const s = this.host.viewports.get(e.ref)?.live.current;
     const l = e.layout;
+    if (!ax || !s || l.geometry !== AxisGeometry.wrapped) return -1;
     const lines = l.lines;
-    const lineOf = (index: number) => {
-      const k = ax.shownOf(block, index) as number;
-      if (k < 0) return -1;
-      for (let n = 0; n < lines.count; n++)
-        if (lines.block[n] === block && lines.start[n] <= k && k < lines.stop[n]) return n;
-      return -1;
-    };
-    const first = lineOf(start);
-    const last = Math.max(first, lineOf(Math.max(start, stop - 1)));
-    if (first < 0) return Number.NaN;
-    const top = lines.top[first];
-    const bottom = last + 1 < lines.count ? lines.top[last + 1] : l.scrolledHeight - e.props.wrappedInset;
     const view = l.height - l.scrolledTop;
-    if (view <= 0) return Number.NaN;
-    if (top - pad >= s.scrollY && bottom + pad <= s.scrollY + view) return Number.NaN;
-    const y = top - pad < s.scrollY || bottom - top + 2 * pad > view ? top - pad : bottom + pad - view;
+    if (lines.count === 0 || view <= 0) return Number.NaN;
+    let first = -1;
+    let last = -1;
+    for (let r = 0; r < n; r++) {
+      const b = ranges[3 * r];
+      const start = ranges[3 * r + 1];
+      const stop = ranges[3 * r + 2];
+      if (b < 0 || b >= ax.count) continue;
+      // The range's shown runs, ascending (a reversed piece's too; a cyclic origin may split it in two): from the
+      // first's start to the last's end. None shown (filtered out, past the piece): the nearest shown position.
+      const m = ax.runToShown(b, Math.min(start, stop), Math.max(start, stop), REVEAL_RUNS);
+      const k0 = m > 0 ? REVEAL_RUNS[0] : ax.nearestShown(b, start);
+      const k1 = m > 0 ? REVEAL_RUNS[2 * m - 1] - 1 : k0;
+      if (k0 < 0) continue;
+      const a = lineOf(lines, b, k0);
+      const z = lineOf(lines, b, k1);
+      if (a >= 0 && (first < 0 || a < first)) first = a;
+      if (z >= 0 && z > last) last = z;
+    }
+    if (first < 0) return -1;
+    if (last < first) last = first;
+    const top = lines.top[first];
+    // The last line's bottom: the next line's top less the gap between them, or the text's end less its inset.
+    const p = e.props;
+    const next = last + 1;
+    const bottom =
+      next < lines.count
+        ? lines.top[next] - (lines.block[next] !== lines.block[last] ? p.stackGap : p.wrappedGap)
+        : l.scrolledHeight - p.wrappedInset;
+    // Shown as they are (no pad: the pad is where a scroll puts them).
+    if (top >= s.scrollY && bottom <= s.scrollY + view) return s.scrollY;
+    const y = top < s.scrollY || bottom - top + 2 * pad > view ? top - pad : bottom + pad - view;
     return Math.max(0, Math.min(Math.max(0, l.scrolledHeight - view), y));
   }
 
@@ -938,6 +1005,7 @@ export class Layouts implements LayoutManager {
       if (e.index >= 0) continue;
       e.axis = null;
       e.model = null;
+      e.reveal.ranges = null;
     }
     this.host.viewports.update(v, set, (i) => this.current[i]?.axis ?? null);
     this.dirtyAll();
@@ -962,6 +1030,14 @@ export class Layouts implements LayoutManager {
     e.props = props;
     const vp = this.host.viewports.get(e.ref);
     if (vp) vp.props = props;
+    // A new section opens on its focus (seqspec:interaction#viewports): wrapped text with its lines in view, once it has
+    // lines (the viewport, which has opened none yet, frames a linear one).
+    const f = v.sections.focus[i];
+    if (wrapped && f && vp && !vp.axis) {
+      e.reveal.ranges = Int32Array.of(f.block - v.sections.blockStart[i], f.start, f.stop);
+      e.reveal.pad = 0;
+      e.reveal.opts = { origin: 'graph' };
+    }
     const ax = new Axis(v, set, i, props.blockGap, props.ligandCells);
     const l = e.layout;
     l.geometry = wrapped ? AxisGeometry.wrapped : circular ? AxisGeometry.circular : AxisGeometry.linear;
@@ -1161,6 +1237,8 @@ export class Layouts implements LayoutManager {
     } finally {
       this.building = false;
     }
+    // A reveal that waited for lines (the section's first focus, a focus before it had a width).
+    this.revealPending(e);
     if (e.index >= 0) this.host.rebuilt?.(e.index);
   }
   /** A built or rescaled layout given out: the viewport's rows, the live layout, the visible rows. */
@@ -1281,10 +1359,12 @@ export class Layouts implements LayoutManager {
     l.vnavWidth = l.vscroll ? overviewWidth(p) : 0;
     l.dataRight = Math.max(ax.left, width - rightOf(p, wrapped) - l.vnavWidth);
     ax.insetX = ax.left + rightOf(p, wrapped) + l.vnavWidth;
-    // Centered text: the block's margins belong to the gutters (the lines were laid out to the whole area).
-    if (wrapped && e.alignMargin > 0) {
-      l.dataLeft += e.alignMargin;
-      l.dataRight -= e.alignMargin;
+    // Centered text: the block's margins belong to the gutters, from the area as it is now (the overview's room
+    // reserved while the lines were laid out is given back where the text does not scroll).
+    const side = wrapped && e.alignWidth > 0 ? Math.floor((l.dataRight - l.dataLeft - e.alignWidth) / 2) : 0;
+    if (side > 0) {
+      l.dataLeft += side;
+      l.dataRight -= side;
     }
     this.blockEntries(l, ax);
   }
@@ -1512,15 +1592,14 @@ export class Layouts implements LayoutManager {
     const n = width > 0 ? layoutRuns(e.runs, width, p.wrappedGroupGap, l.lines) : 0;
     if (width > 0) this.stats.layoutRuns++;
     // Centered: the lines hold whole groups, so the block is as wide as its widest line; the margins either side join
-    // the gutters. The lines fit that width as they fit the area (greedy, and the area is at most a pixel wider).
-    if (n > 0 && p.wrappedAlign === 'center') {
-      let widest = 0;
-      for (let k = 0; k < n; k++) {
-        const w = lineWidth(e.runs[l.lines.block[k]], l.lines.start[k], l.lines.stop[k], p.wrappedGroupGap);
-        if (w > widest) widest = w;
-      }
-      e.alignMargin = Math.max(0, Math.floor((area - widest) / 2));
-    } else e.alignMargin = 0;
+    // the gutters (`build`, once the area is final). The lines fit that width as they fit the area (greedy, and the
+    // area is at most a pixel wider).
+    let widest = 0;
+    for (let k = 0; p.wrappedAlign === 'center' && k < n; k++) {
+      const w = lineWidth(e.runs[l.lines.block[k]], l.lines.start[k], l.lines.stop[k], p.wrappedGroupGap);
+      if (w > widest) widest = w;
+    }
+    e.alignWidth = widest;
     // A track that draws nothing wrapped (a ruler, omitted layers) takes no entries; `aboveEnd` puts a band for the
     // group labels above each line.
     const all = items.filter((t) => t >= 0);

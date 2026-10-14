@@ -140,6 +140,17 @@ shows the wild type's letter. Case 15 colors the cell under uncolored letters in
 
 ## Follow-ups
 
+**The host options' performance pass** (David, 2026-10-14, from the review of the round-2 host options: `wrappedAlign`,
+`wrappedMaxWidth`, `wrappedColors`, `unobservedGray`, `focusViewport`'s `reveal`, `contextMenu`). The options are tested
+but have no heap guards yet. Guards, each with its positive control (the guard template): (a) the letters with
+`unobservedGray` on a linear section zoomed in, over a unit with several `observed` ranges; (b) wrapped text with
+`wrappedColors` and `unobservedGray` (the tinted path); (c) a storm of secondary presses with `contextMenu` added (the
+menu record's fractional `x` and `y`); optionally (d) text selection and hits on a centered `wrappedMaxWidth` layout.
+And the cost they would show: `unobservedAt` (`renderers/letters.ts`) scans the unit's `observed` ranges per position
+per frame; hoist the ranges per block and walk them with a monotone cursor (the positions come in shown order), or
+binary search, or build a per-block mask once per prepared state. _Trigger:_ the PR that brings the text view's lanes
+(Tracks in the text view, above), which reworks the same draw.
+
 **Ligands and other short units in the text view** (David, 2026-10-14, from Prism's sequence strip). In the wrapped
 (`compact`) text a structure's non-polymer units come after the chains with spacing that reads as unrelated: an empty
 block, then a label such as "B HEM CHA" far below the last line. Lay short units out as part of the text (the unit's

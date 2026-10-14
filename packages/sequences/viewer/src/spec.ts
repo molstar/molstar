@@ -143,7 +143,6 @@ export const SeqViewerBehaviors = {
   RingWindow: RingWindowBehavior,
   VerticalOverview: VerticalOverviewBehavior,
   Headers: HeadersBehavior,
-  ContextMenu: ContextMenuBehavior,
   Select: SelectBehavior,
   DotPlotSelect: DotPlotSelectBehavior,
   DragPan: DragPanBehavior,
@@ -161,6 +160,14 @@ export const SeqViewerBehaviors = {
   Follow: FollowBehavior,
   SnapshotControls: SnapshotControlsBehavior,
   Commands: CommandsBehavior,
+};
+
+/**
+ * Built-in behaviors not in `DefaultSeqViewerSpec`: a host adds them (`SeqViewerSpec.Behavior(…)`). `ContextMenu`: a
+ * secondary press asks for a track's menu at the pointer (seqspec:interaction#the-track-menu).
+ */
+export const SeqViewerOptionalBehaviors = {
+  ContextMenu: ContextMenuBehavior,
 };
 
 /** A new object each call. */

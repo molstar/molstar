@@ -10,7 +10,7 @@
 // config item or a built-in shows there.
 
 import { describe, expect, it } from 'vitest';
-import { DefaultSeqViewerSpec, SeqCommands, SeqViewerConfig } from '../src/index.js';
+import { DefaultSeqViewerSpec, SeqCommands, SeqViewerConfig, SeqViewerOptionalBehaviors } from '../src/index.js';
 
 import { printViewerReference } from '../src/reference.js';
 
@@ -26,6 +26,10 @@ describe("the viewer's generated reference", () => {
       expect(text).toContain(`### \`${c.id}\``);
     }
     for (const { behavior } of DefaultSeqViewerSpec().behaviors) expect(text).toContain(`| \`${behavior.name}\` |`);
+    for (const behavior of Object.values(SeqViewerOptionalBehaviors)) {
+      expect(DefaultSeqViewerSpec().behaviors.some((b) => b.behavior === behavior)).toBe(false);
+      expect(text).toContain(`| \`${behavior.name}\` |`);
+    }
     for (const group of Object.values(SeqViewerConfig))
       for (const item of Object.values(group)) {
         expect(item.description).not.toBe('');

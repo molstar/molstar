@@ -260,50 +260,6 @@ describe("wrapped text in the layer's colors (wrappedColors)", () => {
   });
 });
 
-describe('unobserved positions (unobservedGray)', () => {
-  /** A unit of 40 residues, observed at 10–30 only: 0–9 and 30–39 are in the sequence, not in the model. */
-  const doc = (layout?: 'text') => {
-    const b = createSeqViewSpec();
-    b.data.sequence({ ref: 'chain', value: 'MKVLATGHEK'.repeat(4) });
-    b.data.unit({ ref: 'A', sequence: 'chain', observed: [[10, 30]] } as never);
-    const v = b.view({ ref: 'v', label: 'V', ...(layout ? { layout } : {}) });
-    v.block({ unit: 'A' } as never);
-    v.track({ label: 'Letters' }).letters({
-      color: { theme: 'letter', params: { colors: 'Hydrophobicity' } },
-    } as never);
-    return b.getDocument();
-  };
-  const SKIN = 'rgb(200 201 202)';
-  const grayNumber = (200 << 16) | (201 << 8) | 202;
-
-  it("are drawn in the skin's unobserved color in the text, the observed in their own", async () => {
-    const t = await drawn(doc('text'), {
-      width: 900,
-      height: 200,
-      render: { wrappedColors: true, unobservedGray: true, wrappedGroupLabels: 'none' },
-    });
-    t.ctx.setSkin({ ...t.ctx.skin.value, unobserved: SKIN });
-    await t.ctx.graph.update();
-    const letters = texts(record(t.ctx, 'Letters').rec);
-    expect(letters).toHaveLength(40);
-    const gray = letters.map((d) => d.color === grayNumber);
-    expect(gray.slice(0, 10).every(Boolean)).toBe(true);
-    expect(gray.slice(10, 30).some(Boolean)).toBe(false);
-    expect(gray.slice(30).every(Boolean)).toBe(true);
-  });
-
-  it('are as any other position without the prop', async () => {
-    const t = await drawn(doc('text'), {
-      width: 900,
-      height: 200,
-      render: { wrappedColors: true, wrappedGroupLabels: 'none' },
-    });
-    t.ctx.setSkin({ ...t.ctx.skin.value, unobserved: SKIN });
-    await t.ctx.graph.update();
-    expect(texts(record(t.ctx, 'Letters').rec).some((d) => d.color === grayNumber)).toBe(false);
-  });
-});
-
 describe('the ruler over several blocks side by side', () => {
   const PROTEIN = 'MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH';
   const residues = (n: number, seed: number) =>

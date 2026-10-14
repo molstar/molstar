@@ -91,12 +91,18 @@ headless with Mol\*'s parsers (no canvas, no plugin UI), so its format half runs
   numberings. Every unit carries its `mvs` fields. Unit names must be unique (`molstar.unit_name.collision`). An
   insertion code that is not letters is read as none, once reported (`molstar.ins_code.invalid`, a warning).
 - **`molstar:plddt`**: per-residue pLDDT from B-factors, colored by AlphaFold DB's bands by default.
-  **`molstar:sifts_coverage`**: the listed structures' chains on one UniProt sequence, one `ranges` row per resolved
-  stretch with a `structure` field (`instance: true`: rows on each chain's own unit); `molstar:sifts_depth` beside it.
-  **`molstar:pae`**: a model's predicted aligned error (`seqspec:sources#formats-and-services`) as a `grid`, a row per
-  pair of the complex's polymer units (a residue a token, in the complex's order), side a the scored residue and side b
-  the one aligned on (a dot plot draws it as AlphaFold DB does), values in Å; its size must be the units' residues
-  together (`svs.source.format` otherwise). Its default color is AlphaFold DB's green, 0 to 30 Å (`PaeScale`).
+  **`molstar:secondary_structure`**: the model's own secondary structure (mmCIF's `struct_conf` and
+  `struct_sheet_range`; none is computed) as `ranges` on the complex's polymer units, category `helix`, `strand` or
+  `turn` (a bend is a turn; coil is no range), one row per element of the assignment: two elements that touch stay two
+  rows. A chain with no assignment has no rows, and a model with none gives an empty annotation, not an error. It and
+  `molstar:plddt` read the source's first model as deposited (the asymmetric unit), whatever model or assembly the
+  complex shows; an assembly's copy of a chain gets that chain's values. **`molstar:sifts_coverage`**: the listed
+  structures' chains on one UniProt sequence, one `ranges` row per resolved stretch with a `structure` field
+  (`instance: true`: rows on each chain's own unit); `molstar:sifts_depth` beside it. **`molstar:pae`**: a model's
+  predicted aligned error (`seqspec:sources#formats-and-services`) as a `grid`, a row per pair of the complex's polymer
+  units (a residue a token, in the complex's order), side a the scored residue and side b the one aligned on (a dot plot
+  draws it as AlphaFold DB does), values in Å; its size must be the units' residues together (`svs.source.format`
+  otherwise). Its default color is AlphaFold DB's green, 0 to 30 Å (`PaeScale`).
 - **The link** (`StructureLink`): each chain instance but waters is an external system mapped onto the unit with the
   same `label_asym_id` and `instance_id` (else the first with that `label_asym_id`; polymers by `label_seq_id`, others
   by heavy-atom order), so a structure in 3D and its sequences light each other through `ctx.systems`, every copy
@@ -105,13 +111,21 @@ headless with Mol\*'s parsers (no canvas, no plugin UI), so its format half runs
   options (`LinkViewsOptions`, defaults `DefaultLinkViewsOptions`), as a viewer's reactions are in its spec: a Seq\* set
   within `maxItems` items and `maxLength` positions (read from its size before it resolves) goes residue by residue, a
   larger one `over`: the whole chains it touches (the default) or nothing. Defaults: hover 2,000 items and 20,000
-  positions, selection 20,000 and 200,000.
+  positions, selection 20,000 and 200,000. `wholeResidue` (default true, for hover and selection each): a non-polymer
+  chain's position lights and selects its whole residue in 3D, as the structure holds it (hydrogens and alternate
+  locations included): a ligand as a whole, a branched chain's monosaccharide (its residue, not the whole glycan);
+  waters are not linked. Off, the atoms the positions name. A polymer's position is its residue either way, and the
+  link's own mapping (a SeqQL result back in 3D included) is always exact.
 - **SeqQL**: `molstar.select` (`molql`) runs a PyMOL (or VMD, Jmol, MolScript) selection on the linked structure and
   returns its residues on their units; `(input structure)` reads Mol\*'s selection passed by the host.
 - **MVS**: the structure, its colors (as MVS annotation tables), sticks and a selection's label go to the 3D view as an
-  MVS state; highlight, select and focus go as Mol\* loci through the plugin glue.
+  MVS state; highlight, select and focus go as Mol\* loci through the plugin glue. The polymer can take a Mol\* color
+  theme by name in place of its base color (`colorTheme`, one the plugin has registered). `ligandComps` names the
+  ligands shown, by chemical component id: residues of a non-polymer entity that is not an ion, so a polymer's modified
+  residue is never drawn as a ligand and an ion is drawn once, as an ion; absent, every ligand; empty, none.
 - **The viewer half** (`/viewer`): a track's colors as drawn, host actions ("Show in 3D"), and linking a viewer to a
-  Mol\* plugin; `/plugin` mounts Mol\* as a canvas only.
+  Mol\* plugin; `/plugin` mounts Mol\* as a canvas only, MolViewSpec's registry entries and the host's own beside them
+  (`registry`: the color themes and representations its MVS states name).
 
 ## Nightingale
 

@@ -336,8 +336,9 @@ export const SectionSwitches: DomPart<SectionProps> = (host, ctx, { ui, section 
 
 /**
  * The menu at a track header: filter view, focus, hide, remove. Alone in the box `ViewSurface` places at the header,
- * so it appends there. It holds its menu's `open` (leaf state) and opens it on `events.menu` for its track (Shift+F10
- * or ContextMenu on the keyboard cursor, seqspec:viewer#behaviors): a host's `Menu` gets it through `update`.
+ * so it appends there. It holds its menu's `open` (leaf state) and opens it, at the header, on `events.menu` for its
+ * track (Shift+F10 or ContextMenu on the keyboard cursor; a secondary press where a host added the `contextMenu`
+ * behavior, seqspec:interaction#the-track-menu): a host's `Menu` gets it through `update`.
  */
 export const TrackActions: DomPart<TrackProps> = (host, ctx, { ui, section, track, row }) => {
   let [open, items] = [false, [] as readonly MenuItem[]];

@@ -117,7 +117,9 @@ function useAttach<T extends HTMLElement>(attach: (el: T) => (() => void) | unde
 /**
  * A callback ref that lands focus (seqspec:interaction#accessibility, `landFocus`) when React removes the element with
  * focus inside it: for the root of a part that comes and goes (`ref` of a node that may not be rendered); the landing
- * runs before the removal.
+ * runs before the removal. `near` must be stable (a module function or memoized): a new one each render is a new ref,
+ * which React detaches and attaches again on every render, landing focus while the element stays. Every caller today
+ * passes none.
  */
 function useLand(near?: (el: HTMLElement) => Node) {
   return useAttach<HTMLElement>(useCallback((el) => () => landFocus(el, near?.(el) ?? el), [near]));
@@ -382,9 +384,10 @@ export function SectionSwitches({ context: ctx, section }: SectionProps) {
 }
 
 /**
- * The menu at a track header: filter view, focus, hide, remove. It holds its menu's `open` (leaf state) and opens it on
- * `events.menu` for its track (Shift+F10 or ContextMenu on the keyboard cursor, seqspec:viewer#behaviors): a host's
- * `Menu` gets it as its `open`.
+ * The menu at a track header: filter view, focus, hide, remove. It holds its menu's `open` (leaf state) and opens it,
+ * at the header, on `events.menu` for its track (Shift+F10 or ContextMenu on the keyboard cursor; a secondary press
+ * where a host added the `contextMenu` behavior, seqspec:interaction#the-track-menu): a host's `Menu` gets it as its
+ * `open`.
  */
 export function TrackActions({ context: ctx, section, track, row }: TrackProps) {
   const { Menu, Hint } = usePrimitives();

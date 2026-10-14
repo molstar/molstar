@@ -68,7 +68,6 @@ import {
   ThemeLocation,
   textShown,
   visibleRange,
-  type Skin,
 } from '../draw/api.js';
 
 type Params = Readonly<Record<string, unknown>>;
@@ -145,6 +144,8 @@ const MARK_DOTS = MarkForm.dots;
 const MARK_BARS = MarkForm.bars;
 const CIRCLE = GlyphShape.circle;
 const INK = SkinToken.ink;
+const INK_QUIET = SkinToken.inkQuiet;
+const UNOBSERVED = SkinToken.unobserved;
 /** The mark geometry (device px): [0] the dot's diameter, from the cell width in [0] on entry; [1] the row's center; [2] the bar's top, [3] its height. */
 const mk = new Float64Array(4);
 /** The open bar's edges (device px); its end before its start: none open. */
@@ -201,22 +202,6 @@ const three = (c: number) => {
 
 /** A streamed block's codes over its shown hull (`StreamView.letters`), grown at edge rate. */
 let held = new Uint8Array(4096);
-/**
- * A block's own letters as cells: the color theme at block index i, keyed by letter where it colors by letter alone.
- * `codes` and `base` are the block's being drawn (a streamed one's: `held` from its hull's start; `raw`: no index).
- */
-/** The skin's `unobserved` color as a number, parsed when the skin changes (a draw reads it per position). */
-let grayOf: Skin | null = null;
-let gray = NO_COLOR;
-function unobservedColor(skin: Skin): number {
-  if (skin !== grayOf) {
-    grayOf = skin;
-    const m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/.exec(skin.unobserved);
-    const hex = /^#([0-9a-f]{6})$/i.exec(skin.unobserved);
-    gray = m ? (Number(m[1]) << 16) | (Number(m[2]) << 8) | Number(m[3]) : hex ? Number.parseInt(hex[1], 16) : NO_COLOR;
-  }
-  return gray;
-}
 /** Whether block b's position i is a unit position the structure does not model (the unit's `observed` ranges). */
 function unobservedAt(ax: Axis, b: number, i: number): boolean {
   const u = ax.unit[b];
@@ -225,25 +210,40 @@ function unobservedAt(ax: Axis, b: number, i: number): boolean {
   for (let k = 0; k < obs.length; k += 2) if (i >= obs[k] && i < obs[k + 1]) return false;
   return true;
 }
+/** `key`'s for an unobserved position under `unobservedGray`: past every letter code (0..255), one class of its own. */
+const UNOBSERVED_KEY = 256;
 
+/**
+ * A block's own letters as cells: the color theme at block index i, keyed by letter where it colors by letter alone.
+ * `codes` and `base` are the block's being drawn (a streamed one's: `held` from its hull's start; `raw`: no index).
+ * With `unobservedGray`, an unobserved position is the skin's `unobserved` token (the backend resolves it), opaque, and
+ * keyed apart from every letter, so a run of one letter across an observed boundary is not taken for one color.
+ */
 const own: CellSource & {
   v: DrawView | null;
   s: LettersState | null;
   codes: Uint8Array | null;
   base: number;
   raw: boolean;
+  /** The last `color` was the unobserved token: `alpha` reads no theme location for it. */
+  gray: boolean;
 } = {
   v: null,
   s: null,
   codes: null,
   base: 0,
   raw: false,
+  gray: false,
   color(b, i) {
     const v = own.v as DrawView;
     const s = own.s as LettersState;
     const codes = own.codes;
+    own.gray = false;
     if (!v.color || !codes || !v.axis) return NO_COLOR;
-    if (v.props.unobservedGray && unobservedAt(v.axis, b, i)) return unobservedColor(v.skin);
+    if (v.props.unobservedGray && unobservedAt(v.axis, b, i)) {
+      own.gray = true;
+      return UNOBSERVED;
+    }
     // The theme reads the letter shown (`letter_map`), not the stored one; atoms are numbers, never mapped.
     const c = codes[i - own.base];
     if (c === 0) return NO_COLOR;
@@ -254,15 +254,17 @@ const own: CellSource & {
   },
   alpha() {
     const t = (own.v as DrawView).color;
-    return t?.alpha ? t.alpha((own.v as DrawView).loc) : OPAQUE;
+    return own.gray || !t?.alpha ? OPAQUE : t.alpha((own.v as DrawView).loc);
   },
-  key(_b, i) {
+  key(b, i) {
     const v = own.v as DrawView;
     const g = v.color ? v.color.granularity : -1;
     const codes = own.codes;
+    if (v.props.unobservedGray && v.axis && unobservedAt(v.axis, b, i)) return UNOBSERVED_KEY;
     if (g === Granularity.letter && codes && v.axis) return codes[i - own.base];
     return g === Granularity.uniform || g === Granularity.unit ? 0 : -1;
   },
+  variant: (v) => (v.props.unobservedGray ? 1 : 0),
   meanValues: () => null,
   meanPyramid: () => null,
 };
@@ -414,7 +416,8 @@ function blockMarks(v: DrawView, b: number, lo: number, hi: number, base: number
     if (c !== 0 && (atoms || (c !== 45 && c !== 46))) break;
     k++;
   }
-  if (k === hi || (v.color !== null && own.color(b, ax.indexOf(b, k as never)) >= 0)) return;
+  // A cell color (a theme's, or a skin token's: the unobserved) marks the position already.
+  if (k === hi || (v.color !== null && own.color(b, ax.indexOf(b, k as never)) !== NO_COLOR)) return;
   const pad = v.height > 10 ? 2 : 0;
   mk[0] = v.cell * v.span[b];
   const form = markForm(v, Math.round((v.top + pad) * v.dpr) | 0, Math.round((v.top + v.height - pad) * v.dpr) | 0);
@@ -426,7 +429,7 @@ function blockMarks(v: DrawView, b: number, lo: number, hi: number, base: number
   for (; k < hi; k++) {
     const i = ax.indexOf(b, k as never);
     const c = codes[i - base];
-    if (c === 0 || (!atoms && (c === 45 || c === 46)) || own.color(b, i) >= 0) continue;
+    if (c === 0 || (!atoms && (c === 45 || c === 46)) || own.color(b, i) !== NO_COLOR) continue;
     if (form === MARK_DOTS) pushDot(v.xd(b, k), v.xe(b, k));
     else pushBar(v.xd(b, k), v.xe(b, k));
   }
@@ -463,6 +466,8 @@ function block(v: DrawView, s: LettersState, b: number) {
   const cells = !wrapped && v.color !== null;
   // Wrapped text with `wrappedColors`: the letters themselves in the layer's color (there are no cells to put it on).
   const tinted = wrapped && v.color !== null && v.props.wrappedColors;
+  // Plain text (no cells, no tint) with `unobservedGray`: the unobserved letters alone in the skin's `unobserved`.
+  const grayText = !cells && !tinted && v.props.unobservedGray && ax.unit[b] >= 0;
   own.v = v;
   own.s = s;
   own.codes = codes;
@@ -496,20 +501,24 @@ function block(v: DrawView, s: LettersState, b: number) {
     // A streamed position not yet held.
     if (stored === 0 && !atoms) continue;
     const c = map !== null ? map[stored & 127] : stored;
-    // An atom in its theme's color; a residue in the ink that reads on its cell; a gap quiet.
-    const fill = atoms || cells || tinted ? own.color(b, i) : NO_COLOR;
+    // An atom in its theme's color; a residue in the ink that reads on its cell (the ink on an unobserved one), tinted
+    // in its color, or unobserved in that token; a gap quiet.
+    const fill =
+      atoms || cells || tinted ? own.color(b, i) : grayText && unobservedAt(ax, b, i) ? UNOBSERVED : NO_COLOR;
     letters.begin(
       atoms
-        ? fill >= 0
+        ? fill >= 0 || fill === UNOBSERVED
           ? fill
-          : SkinToken.ink
+          : INK
         : c === 45 || c === 46
-          ? SkinToken.inkQuiet
+          ? INK_QUIET
           : fill >= 0
             ? tinted
               ? fill
               : cellInk(fill)
-            : SkinToken.ink,
+            : fill === UNOBSERVED && !cells
+              ? UNOBSERVED
+              : INK,
     );
     const t = letters.add(atoms ? symbol(c) : CHARS[c & 127]);
     letters.x[t] = (v.xd(b, k) + v.xe(b, k)) / 2;
