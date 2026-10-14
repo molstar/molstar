@@ -18,19 +18,28 @@ export interface ReactRoot {
 /**
  * A contributed view written with React or Preact. The caller passes `createRoot` (from `react-dom/client`, or
  * `preact/compat/client`), so prism-ui itself depends on neither.
+ *
+ * Hidden UI does no UI updates: the component gets `active` (false while the shell has the view hidden, a folded
+ * section, a panel behind a card; true otherwise) and renders again when it changes. A component that subscribes to
+ * models can skip that (`useObservable(active ? model.x : undefined)`) or stop its timers; React keeps it mounted.
  */
 export function reactView<Ctx>(
-  component: ComponentType<{ ctx: Ctx }>,
+  component: ComponentType<{ ctx: Ctx; active?: boolean }>,
   options: { createRoot: (container: Element) => ReactRoot },
 ): ViewRenderer<Ctx> {
   return {
-    mount(host, ctx) {
+    mount(host, ctx, scope) {
       const container = host.ownerDocument.createElement('div');
       container.style.display = 'contents';
       host.appendChild(container);
       const root = options.createRoot(container);
-      root.render(createElement(component, { ctx }));
+      let unmounted = false;
+      // Called now with the state it starts in (the first render), then on each change.
+      scope.onActive((active) => {
+        if (!unmounted) root.render(createElement(component, { ctx, active }));
+      });
       return () => {
+        unmounted = true;
         root.unmount();
         container.remove();
       };

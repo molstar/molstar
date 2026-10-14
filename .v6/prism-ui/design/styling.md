@@ -252,6 +252,19 @@ interaction; no layout shift when content loads.
   Large blurred shadows likewise.
 - **Containment**: panels and cards set `contain: layout paint` (or `content` where their size is known), so a change
   inside does not relayout the shell; closed or off-screen panels are not rendered or use `content-visibility: auto`.
+- **Hidden UI is inert and does no UI updates** (David, 2026-10-14). A subscription may be expensive (a tree, a table,
+  a derived stream), and a hidden panel has no one to show it to. What is hidden but kept mounted (a folded section, a
+  panel stepping aside for an overlay card, a closing animation) is **inert** (the `inert` attribute: no pointer, no
+  tooltip, no focus, not announced) and **paused**: its render scope is set inactive (`Scope.setActive(false)`, from
+  `activity(flag, () => …)` in `dom/control-flow`), which drops every `bind` subscription under it and so every write to
+  its DOM and every derived stream behind it. When it shows again the subscriptions are made once more and each state
+  replays its current value: one write per binding, nothing rebuilt (the DOM, the scopes and with them a scroll position
+  or a draft stay; `Show`, `Switch` and `Dynamic` keep their content when the value is the same). Views do nothing for
+  this; one that runs its own work (a ResizeObserver, a rAF loop, a timer, a store subscription) pauses it with
+  `onActive(active => …)` (`ViewRenderer.mount` gets the scope: `scope.onActive`; `reactView` passes `active` to the
+  component). Prefer removing content that is cheap to build (`Show`, as the dock panels are: closed means gone) and
+  keep it mounted and paused where state or the cost of building it matters. The tooltip system never shows for an
+  element in an inert part.
 - **Fonts and images** do not shift layout: sizes reserved, fonts with metric-compatible fallbacks.
 - **Check it**: record the interaction in the browser's performance panel (with CPU throttling 4x) and look for
   forced reflows, long style recalculations and long tasks; a story that exercises a heavy view (many structures, a

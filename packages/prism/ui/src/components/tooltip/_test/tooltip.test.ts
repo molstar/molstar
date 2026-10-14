@@ -56,4 +56,19 @@ describe('tooltips', () => {
     vi.advanceTimersByTime(400);
     expect(tip().hidden).toBe(true);
   });
+
+  it('is never shown for an anchor in an inert part (a hidden panel)', () => {
+    document.getElementById('panel')!.setAttribute('inert', '');
+    over(a());
+    vi.advanceTimersByTime(400);
+    expect(tip().hidden).toBe(true);
+  });
+
+  it('ends when the pointer moves over something that is not the anchor', () => {
+    over(a());
+    vi.advanceTimersByTime(400);
+    expect(tip().hidden).toBe(false);
+    root.dispatchEvent(new PointerEvent('pointermove', { bubbles: true }));
+    expect(tip().hidden).toBe(true);
+  });
 });

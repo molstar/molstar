@@ -13,7 +13,7 @@ const ShowDelayMs = 350;
 
 /**
  * Tooltips for icon buttons: any element in `root` with `data-tip` (the text) gets one, placed by `data-tip-side`
- * (`left` for the rail and the canvas stack, `top` for the bottom of the canvas, `bottom` by default), on hover or keyboard focus. One element is reused,
+ * (`left` for the rail and the canvas stack, `top` for the bottom of the canvas, `bottom` by default), on hover or keyboard focus (never for an element in an `inert` part: hidden UI takes no pointer). One element is reused,
  * positioned in the viewport; buttons keep their `aria-label` for assistive technology (no native `title` as well).
  * `data-tip-overflow` (no text) shows the element's own text, only while it is cut off (a long label, faded at its end).
  * `data-tip-row` (a tree row) shows its parts' text (`data-tip-part`: the label, then the description, muted) while
@@ -29,6 +29,8 @@ export function installTooltips(root: HTMLElement): () => void {
   root.append(tip);
 
   let target: HTMLElement | undefined;
+  // Whether the pointer (not the keyboard focus) brought the tip: it then ends when the pointer is not over the anchor.
+  let byPointer = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   // While one is shown: the anchor's size. A view closing or hiding takes its anchor out without a pointerout, and the
   // tip would stay; an anchor that is gone or has no size ends it (no listener per event, one observer on one element).
@@ -82,8 +84,9 @@ export function installTooltips(root: HTMLElement): () => void {
     tip.hidden = true;
   };
 
-  const show = (el: HTMLElement, immediate: boolean) => {
+  const show = (el: HTMLElement, immediate: boolean, pointer: boolean) => {
     if (timer !== undefined) clearTimeout(timer);
+    byPointer = pointer;
     // Its own text, only when cut off (by more than rounding: scrollWidth rounds a fractional width up, clientWidth
     // down, so text that fits can read 1 px over).
     if (el.dataset.tip === undefined && !cutOff(el)) {
@@ -107,6 +110,8 @@ export function installTooltips(root: HTMLElement): () => void {
   const tipOf = (e: Event) => {
     const at = e.target as Element | null;
     const el = at?.closest?.<HTMLElement>('[data-tip], [data-tip-overflow], [data-tip-row]') ?? undefined;
+    // Hidden UI is inert (a panel behind a card, a folded section): no tip for it, whatever hit it.
+    if (el?.closest('[inert]')) return undefined;
     // A row answers only over its text (not its chevron or its buttons).
     if (el?.dataset.tipRow !== undefined && !at?.closest('[data-tip-part]')) return undefined;
     return el;
@@ -117,7 +122,7 @@ export function installTooltips(root: HTMLElement): () => void {
     if (target && !target.isConnected) hide();
     const el = tipOf(e);
     if (!el || el === target) return;
-    show(el, !tip.hidden);
+    show(el, !tip.hidden, true);
   };
   const onOut = (e: PointerEvent) => {
     const el = tipOf(e);
@@ -125,11 +130,13 @@ export function installTooltips(root: HTMLElement): () => void {
   };
   const onFocus = (e: FocusEvent) => {
     const el = tipOf(e);
-    if (el?.matches(':focus-visible')) show(el, true);
+    if (el?.matches(':focus-visible')) show(el, true, false);
   };
 
-  const onMove = () => {
-    if (target && !target.isConnected) hide();
+  const onMove = (e: PointerEvent) => {
+    // The anchor went, or is no longer what is under the pointer (it was hidden, made inert, covered): the tip ends. A
+    // contains check on the one anchor, only while a tip is pending or shown.
+    if (target && (!target.isConnected || (byPointer && !target.contains(e.target as Node)))) hide();
   };
   root.addEventListener('pointerover', onOver);
   root.addEventListener('pointermove', onMove, { passive: true });
@@ -154,9 +161,12 @@ export function installTooltips(root: HTMLElement): () => void {
   };
 }
 
-/** Whether the anchor can still carry a tip: in the document, and rendered (not under a `display: none` or `hidden`). */
+/**
+ * Whether the anchor can still carry a tip: in the document, rendered (not under a `display: none` or `hidden`), and not
+ * in an inert part (a hidden panel).
+ */
 function usable(el: HTMLElement | undefined): el is HTMLElement {
-  return !!el && el.isConnected && (el.checkVisibility?.() ?? true);
+  return !!el && el.isConnected && (el.checkVisibility?.() ?? true) && !el.closest('[inert]');
 }
 
 /** Cut off by more than rounding (scrollWidth rounds a fractional width up, clientWidth down: text that fits can read

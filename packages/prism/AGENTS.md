@@ -17,6 +17,12 @@ The new Mol\* UI. The repository's rules ([../../AGENTS.md](../../AGENTS.md)) ap
   no layout reads after writes in the same frame, pointer-rate paths that only update what changed (once per frame,
   nothing rebuilt or allocated per event), animation of `transform` and `opacity` only, flat single-class selectors,
   contained and virtualized subtrees. Measure an interaction in the browser's performance panel before calling it done.
+- **Hidden UI is inert and does no UI updates** (David, 2026-10-14;
+  [styling.md §5](../../.v6/prism-ui/design/styling.md)): what the shell hides but keeps mounted (a folded section, a
+  panel behind an overlay card) is `inert` (no hover, tooltip, focus or screen reader) and its scope is paused, so its
+  bindings hold no subscriptions until it shows again (`activity()`, `Scope.setActive`; the runtime does it once, views
+  do nothing). A view that subscribes, observes or loops by itself pauses that with `onActive(active => …)`; content
+  that is hidden by removing it needs none of this.
 
 ## Commands
 

@@ -12,8 +12,9 @@ import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
-import { For, Show } from '../../dom/control-flow.js';
+import { activity, For, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/dock.module.css.js';
@@ -138,7 +139,7 @@ export function FloatingDock(props: {
         </div>
       </div>
       <Show when={dock.active} reveal="side">
-        {(tab) => <DockContent shell={shell} dock={dock} tab={tab} pinnable />}
+        {(tab) => <DockContent shell={shell} dock={dock} tab={tab} pinnable coveredBy={shell.overlay} />}
       </Show>
     </div>
   );
@@ -213,9 +214,22 @@ export function PinButton(props: { shell: ShellModel; dock: DockId }) {
   );
 }
 
-function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; pinnable?: boolean }) {
+/**
+ * A tab's content: a card with its header and the view. It is mounted only while its tab is the dock's active one (`Show`
+ * in `DockView`: a closed or replaced panel is gone, not hidden). The one way it stays mounted and hidden is an overlay
+ * card taking the panel's place (`coveredBy`, the shell's open overlay): the panel is then paused and inert (`activity`,
+ * shell.md "Hidden panels"), and comes back as it was.
+ */
+function DockContent(props: {
+  shell: ShellModel;
+  dock: DockModel;
+  tab: ShellTab;
+  pinnable?: boolean;
+  coveredBy?: ReadonlyState<unknown>;
+}) {
   const { shell, dock, tab } = props;
-  return (
+  const shown = props.coveredBy ? props.coveredBy.pipe(map((o) => !o)) : true;
+  return activity(shown, () => (
     <section
       class={tab.frame === 'none' ? `${classes.content} ${classes.frameless}` : classes.content}
       role="tabpanel"
@@ -252,7 +266,7 @@ function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab;
         </Show>
       </ScrollArea>
     </section>
-  );
+  ));
 }
 
 /**

@@ -121,6 +121,16 @@ extension UI) are placed.
   that tab. It closes with Esc, its ✕, or a pointer down outside it and its button; another card's button or a tab swaps
   it directly, without the panel underneath blinking for a frame. Cards do not block the canvas. Panels and cards share
   one header (title, pin, ✕).
+- **Hidden panels.** A panel is mounted only while its tab is the dock's active one (`Show` in `DockView`: closed, or
+  another tab picked, means gone, and what stays mounted by choice is paused). Whatever the shell hides while keeping it
+  mounted is **inert and paused** ([styling.md](styling.md) §5, `activity` in `dom/control-flow`): the panel behind an
+  overlay card (it only steps aside visually: `inert` on its card, its scope inactive, so the views under it follow no
+  model until the card closes, and it returns as it was), the body of a folded section (`SectionList`: `inert`, scope
+  inactive until it opens, so a list that starts folded binds nothing until opened), and a panel during its closing
+  animation (`inert` from the first frame of the close, so it takes no pointer while it slides out). A dock's content
+  is the card's `section[role=tabpanel]`; the `hidden` or class that does the hiding is bound outside the paused scope.
+  Tooltips ignore elements in an inert part. A view that works on its own (a ResizeObserver, a rAF loop) pauses it with
+  `onActive` ([rendering.md](rendering.md) §4.2).
 - **Pinned panel.** The pin in every panel's and card's header (`setPinned('right', true)`, `DockState.pinned`) keeps
   the floating layout but moves the rail and the open panel beside the canvas: the canvas and its chrome end where they
   begin (`--msp-canvas-pinned`), the panel turns into a flat full-height column like the rail (hairlines on both sides),

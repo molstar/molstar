@@ -148,8 +148,12 @@ function isText(value: unknown): value is string | number | bigint | boolean | n
 /**
  * A range between two comment anchors whose content follows a stream. Text values update one text node in place;
  * anything else replaces the range's content, rendered in a fresh child scope (the previous one is disposed).
+ *
+ * `memo`: a render function that is the one rendered last is not rendered again. The control-flow regions (`Show`,
+ * `Switch`, `Dynamic`) emit the same function while their content stays, so that subscribing again after the scope was
+ * paused and resumed (`Scope.setActive`) keeps what is on screen instead of rebuilding it.
  */
-export function insertRegion(parent: Node, source: Observable<Child>, before: Node | null): void {
+export function insertRegion(parent: Node, source: Observable<Child>, before: Node | null, memo = false): void {
   const owner = requireScope('A reactive child');
   // Text first (the common case: a label, a count): one Text node is its own place. Anchors come only when the value
   // is nodes, around wherever the text was.
@@ -158,7 +162,10 @@ export function insertRegion(parent: Node, source: Observable<Child>, before: No
   let start: Comment | undefined;
   let end: Comment | undefined;
   let scope: Scope | undefined;
+  let rendered: unknown;
   bind(source, (value) => {
+    if (memo && typeof value === 'function' && value === rendered) return;
+    rendered = value;
     if (isText(value)) {
       const data = value === null || value === undefined || typeof value === 'boolean' ? '' : String(value);
       if (text) {
@@ -460,12 +467,13 @@ function toKebab(name: string) {
 // --- Roots ---------------------------------------------------------------------------------------
 
 /**
- * Renders into a container, after what is already there, in a new root scope. Returns a function that disposes the
- * scope and removes what was rendered.
+ * Renders into a container, after what is already there, in a new root scope (or, with `parent`, a child of it: it
+ * pauses and resumes with it, `Scope.setActive`, which is how a view mounted in a hidden panel stays quiet). Returns a
+ * function that disposes the scope and removes what was rendered.
  */
-export function render(fn: () => Child, container: Node): () => void {
+export function render(fn: () => Child, container: Node, parent?: Scope): () => void {
   delegateEvents(container);
-  const scope = new Scope();
+  const scope = parent ? parent.child() : new Scope();
   const start = document.createComment('');
   const end = document.createComment('');
   const fragment = document.createDocumentFragment();
