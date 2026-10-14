@@ -97,12 +97,30 @@ import {
 export { cx };
 
 /**
+ * A callback ref that runs `attach`'s returned cleanup when React detaches the element. React 19 would take a cleanup
+ * returned from the ref, React 18 ignores it and calls the ref with `null` instead, so this keeps the cleanup and runs
+ * it on that `null` (both detach before the node leaves the document, in the commit of the removal).
+ */
+function useAttach<T extends HTMLElement>(attach: (el: T) => (() => void) | undefined) {
+  const off = useRef<(() => void) | undefined>(undefined);
+  return useCallback(
+    (el: T | null) => {
+      const prev = off.current;
+      off.current = undefined;
+      prev?.();
+      if (el) off.current = attach(el);
+    },
+    [attach],
+  );
+}
+
+/**
  * A callback ref that lands focus (seqspec:interaction#accessibility, `landFocus`) when React removes the element with
- * focus inside it: for the root of a part that comes and goes (`ref` of a node that may not be rendered); the cleanup
+ * focus inside it: for the root of a part that comes and goes (`ref` of a node that may not be rendered); the landing
  * runs before the removal.
  */
 function useLand(near?: (el: HTMLElement) => Node) {
-  return useCallback((el: HTMLElement | null) => (el ? () => landFocus(el, near?.(el) ?? el) : undefined), []);
+  return useAttach<HTMLElement>(useCallback((el) => () => landFocus(el, near?.(el) ?? el), [near]));
 }
 
 /**
@@ -111,9 +129,8 @@ function useLand(near?: (el: HTMLElement) => Node) {
  */
 export function Hint({ label, children }: HintProps) {
   const bubble = useRef<HTMLSpanElement>(null);
-  const behave = useCallback(
-    (el: HTMLSpanElement | null) => (el && bubble.current ? hintBehavior(el, bubble.current) : undefined),
-    [],
+  const behave = useAttach<HTMLSpanElement>(
+    useCallback((el) => (bubble.current ? hintBehavior(el, bubble.current) : undefined), []),
   );
   return (
     <span ref={behave} className="seqv-hint">
