@@ -7,7 +7,7 @@
  */
 
 // Records the byte ranges the readers read for _test/cases.ts from the real public files, and the expected answers from
-// sources that do not use the readers. Run by hand (`node scripts/record.ts [twobit|bigwig|bigbed|vcf ...]`), never in
+// sources that do not use the readers. Run by hand (`node --conditions=molstar-src --experimental-transform-types --import ./packages/sequences/scripts/ts-resolve.ts packages/sequences/core/scripts/record-gmod.ts [twobit|bigwig|bigbed|vcf ...]`, from the repository root), never in
 // tests: it needs the network and overwrites _test/fixtures.
 //   expected.json: UCSC's REST API (api.genome.ucsc.edu getData: sequence, gc5BaseBw, knownGene = gencodeV50.bb) for the
 //   2bit, BigWig and BigBed cases, and for the VCF the first/last megabytes of the file inflated with Node's gunzip
@@ -15,9 +15,9 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { constants, gunzipSync } from 'node:zlib';
-import { CASES, type Key, makers, URLS } from '../_test/stream/gmod/cases.ts';
-import type { SliceMeta } from '../_test/stream/gmod/slices.ts';
-import { fetchRanges, type RangeReader } from '../src/stream/gmod/index.ts';
+import { CASES, type Key, makers, URLS } from '../_test/stream/gmod/cases.js';
+import type { SliceMeta } from '../_test/stream/gmod/slices.js';
+import { fetchRanges, type RangeReader } from '../src/stream/gmod/index.js';
 
 const fixtures = new URL('../_test/stream/gmod/fixtures/', import.meta.url);
 const API = 'https://api.genome.ucsc.edu/getData';

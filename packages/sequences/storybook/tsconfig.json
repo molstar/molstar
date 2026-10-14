@@ -2,6 +2,10 @@
   "extends": "../../../tsconfig.base.json",
   // Never built: its content is the stories and their support code (src/_stories), checked here (no emit). Imports Mol* through @molstar/seq-molstar-poc. Its references are the packages it imports, as built `lib` declarations (`tsc -b ../molstar-poc ../nightingale` first: the `typecheck` script); the stories' Storybook types are local (`src/_stories/support/seqstar-story.ts`).
   "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
     "composite": false,
     "declaration": false,
     "declarationMap": false,

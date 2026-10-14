@@ -8,16 +8,16 @@
 - **License**: MIT, Copyright (c) 2021 Paul Pillot; the text in `src/biomsa/LICENSE`.
 - **Copied**: `src/` without `src/**/__tests__/` and `src/dotplot/` (an unused, commented-out dotplot); `TODO.md` kept
   as it was.
-- **Used through**: `src/biomsa-aligner.ts` (the `biomsa` aligner), which calls the default export's `align` on two
-  sequences and reads the gapped rows as a CIGAR, and `src/aligner.ts`, which uses `getSequenceType` to detect the
-  sequence type.
+- **Used through**: `src/biomsa-aligner.ts` (the `biomsa` aligner), which calls `BioMSA.align` (the named export of
+  `src/biomsa/index.ts`; upstream's was the default) on two sequences and reads the gapped rows as a CIGAR, and
+  `src/aligner.ts`, which uses `getSequenceType` to detect the sequence type.
 
 ## Changes
 
-Each change in the code carries a `STORIES-UNTOLD(Bn)` comment, except B5 and B6, which are mechanical and everywhere.
-Nothing else was changed; the code keeps biomsa's names, comments and logic. B7 to B11 (A1 of the Seq* rebuild; B11 from
-A1's review) and B12 to B14 (A1b) fix upstream bugs and move the results away from upstream's: the tests in
-`_test/aligners.test.ts` pin them.
+Each change in the code carries a `STORIES-UNTOLD(Bn)` comment, except B5, B6 and B18, which are mechanical and
+everywhere. Nothing else was changed; the code keeps biomsa's names, comments and logic. B7 to B11 (A1 of the Seq*
+rebuild; B11 from A1's review) and B12 to B14 (A1b) fix upstream bugs and move the results away from upstream's: the
+tests in `_test/aligners.test.ts` pin them.
 
 - **B1, `const enum`s as `as const` objects** (erasable TypeScript, Node's type stripping): `SEQUENCE_TYPE`
   (`align/params.ts`), `TRACE_BACK` and `ALIGNOPT` (`align/align.ts`), `EPATH_2_STRING` (`utils/estring.ts`),
@@ -39,11 +39,18 @@ A1's review) and B12 to B14 (A1b) fix upstream bugs and move the results away fr
   (false) anyway. biomsa's other console calls are left as they were: those behind `DEBUG`, and two on error paths of
   multiple alignment (`console.error`/`console.dir` before a throw in `align/noalign.ts`'s `centerStarNoAlign`,
   `console.trace` in `sequence/sequence.ts`'s distance matrix), which a pairwise alignment does not reach.
-- **B5, imports for Node's type stripping**: relative imports end in `.ts` (`".."` became `"../index.ts"`), and
-  type-only imports are `import type` (TypeScript's `verbatimModuleSyntax`; applied by Biome's `useImportType` fix).
-- **B6, formatting**: Biome's formatter (2 spaces, double quotes, 120 columns), as the repository's. Lint rules the
-  vendored code does not meet are off for `src/biomsa/**` in `biome.json` (an override listing them), and its imports
-  are not reorganized.
+- **B5, imports for NodeNext**: relative imports end in `.js` (`".."` became `"../index.js"`), as the rest of Mol\*'s v6
+  sources, resolved to the `.ts` beside them by the bundlers, Vitest and tsc; type-only imports are `import type`
+  (TypeScript's `verbatimModuleSyntax`; applied by Biome's `useImportType` fix).
+- **B6, formatting**: Biome's formatter with the repository's settings (`biome.json`: 2 spaces, single quotes, 120
+  columns), commit "Mol*'s formatting"; the imports are not reorganized. No lint rule is turned off for `src/biomsa/**`
+  (B18).
+- **B18, Mol\*'s lint** (the port into the Mol\* repository; mechanical, no behaviour change): `let` that is never
+  reassigned became `const`; `==` and `!=` on operands of the same type became `===` and `!==`; the default exports
+  became named ones (`BioMSA` in `index.ts`, `Log` in `utils/logger.ts`, `BitArray` in `utils/bitarray.ts`), with their
+  importers; the unused `score1` (the result of `treeAlign` in `align/progressive.alignment.ts`) was dropped, the call
+  kept; the two `throw`s of a string in `index.ts` stay, each with a `biome-ignore lint/style/useThrowOnlyError` and the
+  reason (callers see the string).
 - **B7, a leading gap in `b` opens like one in `a`** (`align/align.ts`, `pairwiseAlignment`, the start of each row of
   the DP): `lPrevMatch = GAP_OPEN + GAP_START_CORRECTION` where upstream had `GAP_START_CORRECTION` alone. Row 0 of the
   DP starts at `GAP_OPEN + GAP_START_CORRECTION` (-150 by default), column 0 started at `GAP_START_CORRECTION` (+150):

@@ -6,7 +6,7 @@
   "description": "Seq*'s own checks and measures: the export guard, the spec check and the ported-lines measure (packages/sequences/AGENTS.md).",
   "license": "MIT",
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "exports": "node exports.ts",

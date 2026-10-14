@@ -190,6 +190,13 @@ describe('the genome document, built with typed columns', () => {
   });
 });
 
+describe('a Uint8Array through the typed-array extension', () => {
+  it('encodes as ext 0x12, not bin', () => {
+    const bytes = encodeMsgPack(Uint8Array.of(1, 2, 3, 4), encodeTypedArrays);
+    expect(Array.from(bytes)).toEqual([0xd6, 0x12, 1, 2, 3, 4]);
+  });
+});
+
 describe('typed arrays in a document', () => {
   const t: KeyTarget = { kind: -1, id: -1, row: -1 };
   const value = Float64Array.from({ length: 1000 }, (_, i) => (i % 7 === 0 ? Number.NaN : i / 20));

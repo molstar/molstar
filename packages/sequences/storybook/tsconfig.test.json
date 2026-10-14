@@ -2,6 +2,10 @@
   "extends": "../../../tsconfig.base.json",
   // _test (no emit).
   "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
     "composite": false,
     "declaration": false,
     "declarationMap": false,

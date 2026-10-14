@@ -2,6 +2,10 @@
   "extends": "../../../tsconfig.base.json",
   // The query language with the strict index reads (no emit).
   "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
     "composite": false,
     "declaration": false,
     "declarationMap": false,

@@ -68,9 +68,7 @@
         "noImpliedEval": "error"
       }
     },
-    "includes": [
-      "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}"
-    ]
+    "includes": ["**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}"]
   },
   "overrides": [
     {
@@ -91,10 +89,7 @@
       }
     },
     {
-      "includes": [
-        "packages/ai/agent/src/**",
-        "!packages/ai/agent/src/**/_test/**"
-      ],
+      "includes": ["packages/ai/agent/src/**", "!packages/ai/agent/src/**/_test/**"],
       "linter": {
         "rules": {
           "style": {
@@ -114,10 +109,7 @@
                     "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
                   },
                   {
-                    "group": [
-                      "rxjs",
-                      "rxjs/**"
-                    ],
+                    "group": ["rxjs", "rxjs/**"],
                     "message": "The AI packages use HarnessObservable, not rxjs."
                   },
                   {
@@ -134,16 +126,11 @@
                     "message": "The agent package imports nothing from the workspace."
                   },
                   {
-                    "group": [
-                      "node:*"
-                    ],
+                    "group": ["node:*"],
                     "message": "No platform API here: it runs in browsers and Node (runtimes are in ai-components)."
                   },
                   {
-                    "group": [
-                      "zod",
-                      "zod/**"
-                    ],
+                    "group": ["zod", "zod/**"],
                     "message": "zod is ai-tools' own (tools-and-session.md §1): declare inputs as field shapes."
                   }
                 ]
@@ -154,10 +141,7 @@
       }
     },
     {
-      "includes": [
-        "packages/ai/harness/src/**",
-        "!packages/ai/harness/src/**/_test/**"
-      ],
+      "includes": ["packages/ai/harness/src/**", "!packages/ai/harness/src/**/_test/**"],
       "linter": {
         "rules": {
           "style": {
@@ -177,10 +161,7 @@
                     "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
                   },
                   {
-                    "group": [
-                      "rxjs",
-                      "rxjs/**"
-                    ],
+                    "group": ["rxjs", "rxjs/**"],
                     "message": "The AI packages use HarnessObservable, not rxjs."
                   },
                   {
@@ -195,16 +176,11 @@
                     "message": "The harness depends only on the agent package."
                   },
                   {
-                    "group": [
-                      "node:*"
-                    ],
+                    "group": ["node:*"],
                     "message": "No platform API here: it runs in browsers and Node (runtimes are in ai-components)."
                   },
                   {
-                    "group": [
-                      "zod",
-                      "zod/**"
-                    ],
+                    "group": ["zod", "zod/**"],
                     "message": "zod is ai-tools' own (tools-and-session.md §1): declare inputs as field shapes."
                   }
                 ]
@@ -215,10 +191,7 @@
       }
     },
     {
-      "includes": [
-        "packages/ai/components/src/**",
-        "!packages/ai/components/src/**/_test/**"
-      ],
+      "includes": ["packages/ai/components/src/**", "!packages/ai/components/src/**/_test/**"],
       "linter": {
         "rules": {
           "style": {
@@ -238,10 +211,7 @@
                     "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
                   },
                   {
-                    "group": [
-                      "rxjs",
-                      "rxjs/**"
-                    ],
+                    "group": ["rxjs", "rxjs/**"],
                     "message": "The AI packages use HarnessObservable, not rxjs."
                   },
                   {
@@ -254,10 +224,7 @@
                     "message": "Components implement the harness's contracts only."
                   },
                   {
-                    "group": [
-                      "zod",
-                      "zod/**"
-                    ],
+                    "group": ["zod", "zod/**"],
                     "message": "zod is ai-tools' own (tools-and-session.md §1): declare inputs as field shapes."
                   }
                 ]
@@ -268,10 +235,7 @@
       }
     },
     {
-      "includes": [
-        "packages/ai/model-adapters/src/**",
-        "!packages/ai/model-adapters/src/**/_test/**"
-      ],
+      "includes": ["packages/ai/model-adapters/src/**", "!packages/ai/model-adapters/src/**/_test/**"],
       "linter": {
         "rules": {
           "style": {
@@ -291,10 +255,7 @@
                     "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
                   },
                   {
-                    "group": [
-                      "rxjs",
-                      "rxjs/**"
-                    ],
+                    "group": ["rxjs", "rxjs/**"],
                     "message": "The AI packages use HarnessObservable, not rxjs."
                   },
                   {
@@ -309,9 +270,7 @@
                     "message": "Adapters implement the agent package's port only."
                   },
                   {
-                    "group": [
-                      "node:*"
-                    ],
+                    "group": ["node:*"],
                     "message": "No platform API here: it runs in browsers and Node (runtimes are in ai-components)."
                   }
                 ]
@@ -322,10 +281,7 @@
       }
     },
     {
-      "includes": [
-        "packages/ai/conformance/src/**",
-        "!packages/ai/conformance/src/**/_test/**"
-      ],
+      "includes": ["packages/ai/conformance/src/**", "!packages/ai/conformance/src/**/_test/**"],
       "linter": {
         "rules": {
           "style": {
@@ -345,10 +301,7 @@
                     "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
                   },
                   {
-                    "group": [
-                      "rxjs",
-                      "rxjs/**"
-                    ],
+                    "group": ["rxjs", "rxjs/**"],
                     "message": "The AI packages use HarnessObservable, not rxjs."
                   },
                   {
@@ -361,10 +314,7 @@
                     "message": "The suite tests through the contracts; backends bring their own fixtures."
                   },
                   {
-                    "group": [
-                      "zod",
-                      "zod/**"
-                    ],
+                    "group": ["zod", "zod/**"],
                     "message": "zod is ai-tools' own (tools-and-session.md §1): declare inputs as field shapes."
                   }
                 ]
@@ -375,10 +325,7 @@
       }
     },
     {
-      "includes": [
-        "packages/ai/tools/src/**",
-        "!packages/ai/tools/src/**/_test/**"
-      ],
+      "includes": ["packages/ai/tools/src/**", "!packages/ai/tools/src/**/_test/**"],
       "linter": {
         "rules": {
           "style": {
@@ -398,10 +345,7 @@
                     "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
                   },
                   {
-                    "group": [
-                      "rxjs",
-                      "rxjs/**"
-                    ],
+                    "group": ["rxjs", "rxjs/**"],
                     "message": "The AI packages use HarnessObservable, not rxjs."
                   },
                   {
@@ -418,9 +362,7 @@
                     "message": "Tools depend only on the agent package and the harness."
                   },
                   {
-                    "group": [
-                      "node:*"
-                    ],
+                    "group": ["node:*"],
                     "message": "No platform API here: it runs in browsers and Node (runtimes are in ai-components)."
                   }
                 ]
@@ -431,10 +373,7 @@
       }
     },
     {
-      "includes": [
-        "packages/ai/session/src/**",
-        "!packages/ai/session/src/**/_test/**"
-      ],
+      "includes": ["packages/ai/session/src/**", "!packages/ai/session/src/**/_test/**"],
       "linter": {
         "rules": {
           "style": {
@@ -454,10 +393,7 @@
                     "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
                   },
                   {
-                    "group": [
-                      "rxjs",
-                      "rxjs/**"
-                    ],
+                    "group": ["rxjs", "rxjs/**"],
                     "message": "The AI packages use HarnessObservable, not rxjs."
                   },
                   {
@@ -470,16 +406,11 @@
                     "message": "The session takes its adapters from the host."
                   },
                   {
-                    "group": [
-                      "node:*"
-                    ],
+                    "group": ["node:*"],
                     "message": "No platform API here: it runs in browsers and Node (runtimes are in ai-components)."
                   },
                   {
-                    "group": [
-                      "zod",
-                      "zod/**"
-                    ],
+                    "group": ["zod", "zod/**"],
                     "message": "zod is ai-tools' own (tools-and-session.md §1): declare inputs as field shapes."
                   }
                 ]
@@ -490,10 +421,7 @@
       }
     },
     {
-      "includes": [
-        "packages/ai/trace/src/**",
-        "!packages/ai/trace/src/**/_test/**"
-      ],
+      "includes": ["packages/ai/trace/src/**", "!packages/ai/trace/src/**/_test/**"],
       "linter": {
         "rules": {
           "style": {
@@ -513,10 +441,7 @@
                     "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
                   },
                   {
-                    "group": [
-                      "rxjs",
-                      "rxjs/**"
-                    ],
+                    "group": ["rxjs", "rxjs/**"],
                     "message": "The AI packages use HarnessObservable, not rxjs."
                   },
                   {
@@ -539,16 +464,11 @@
                     "message": "The trace reads the harness only."
                   },
                   {
-                    "group": [
-                      "node:*"
-                    ],
+                    "group": ["node:*"],
                     "message": "No platform API here: it runs in browsers and Node (runtimes are in ai-components)."
                   },
                   {
-                    "group": [
-                      "zod",
-                      "zod/**"
-                    ],
+                    "group": ["zod", "zod/**"],
                     "message": "zod is ai-tools' own (tools-and-session.md §1): declare inputs as field shapes."
                   }
                 ]
@@ -559,10 +479,7 @@
       }
     },
     {
-      "includes": [
-        "packages/ai/fibers/src/**",
-        "!packages/ai/fibers/src/**/_test/**"
-      ],
+      "includes": ["packages/ai/fibers/src/**", "!packages/ai/fibers/src/**/_test/**"],
       "linter": {
         "rules": {
           "style": {
@@ -582,10 +499,7 @@
                     "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
                   },
                   {
-                    "group": [
-                      "rxjs",
-                      "rxjs/**"
-                    ],
+                    "group": ["rxjs", "rxjs/**"],
                     "message": "The AI packages use HarnessObservable, not rxjs."
                   },
                   {
@@ -612,16 +526,11 @@
                     "message": "Fibers import nothing of the workspace: they need no harness."
                   },
                   {
-                    "group": [
-                      "node:*"
-                    ],
+                    "group": ["node:*"],
                     "message": "No platform API here: it runs in browsers and Node (runtimes are in ai-components)."
                   },
                   {
-                    "group": [
-                      "zod",
-                      "zod/**"
-                    ],
+                    "group": ["zod", "zod/**"],
                     "message": "zod is ai-tools' own (tools-and-session.md §1): declare inputs as field shapes."
                   }
                 ]
@@ -632,10 +541,7 @@
       }
     },
     {
-      "includes": [
-        "packages/ai/narration/src/**",
-        "!packages/ai/narration/src/**/_test/**"
-      ],
+      "includes": ["packages/ai/narration/src/**", "!packages/ai/narration/src/**/_test/**"],
       "linter": {
         "rules": {
           "style": {
@@ -655,10 +561,7 @@
                     "message": "The AI packages import nothing of Mol* or Prism: Prism hosts them, not the other way round."
                   },
                   {
-                    "group": [
-                      "rxjs",
-                      "rxjs/**"
-                    ],
+                    "group": ["rxjs", "rxjs/**"],
                     "message": "The AI packages use HarnessObservable, not rxjs."
                   },
                   {
@@ -685,16 +588,11 @@
                     "message": "Narration needs nothing of the workspace."
                   },
                   {
-                    "group": [
-                      "node:*"
-                    ],
+                    "group": ["node:*"],
                     "message": "No platform API here: it runs in browsers and Node (runtimes are in ai-components)."
                   },
                   {
-                    "group": [
-                      "zod",
-                      "zod/**"
-                    ],
+                    "group": ["zod", "zod/**"],
                     "message": "zod is ai-tools' own (tools-and-session.md §1): declare inputs as field shapes."
                   }
                 ]
@@ -718,18 +616,11 @@
               "options": {
                 "patterns": [
                   {
-                    "group": [
-                      "@molstar/**",
-                      "!@molstar/seq-*",
-                      "!@molstar/seq-*/**"
-                    ],
+                    "group": ["@molstar/**", "molstar", "molstar/**", "!@molstar/seq-*", "!@molstar/seq-*/**"],
                     "message": "Only seq-molstar-poc imports Mol*'s v6 packages (seq-core's msgpack, zip and task imports excepted)."
                   },
                   {
-                    "group": [
-                      "@molstar/seq-core/links",
-                      "@molstar/seq-core/links/**"
-                    ],
+                    "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
                     "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
                   },
                   {
@@ -742,9 +633,7 @@
                     "message": "A stream provider is the host's: no Seq* package imports seq-core/stream/tiles or stream/gmod."
                   },
                   {
-                    "group": [
-                      "@nightingale-elements/**"
-                    ],
+                    "group": ["@nightingale-elements/**"],
                     "message": "Only seq-nightingale's mount.ts imports Nightingale."
                   }
                 ]
@@ -755,9 +644,7 @@
       }
     },
     {
-      "includes": [
-        "packages/sequences/core/src/**"
-      ],
+      "includes": ["packages/sequences/core/src/**"],
       "linter": {
         "rules": {
           "style": {
@@ -768,19 +655,18 @@
                   {
                     "group": [
                       "@molstar/**",
+                      "molstar",
+                      "molstar/**",
                       "!@molstar/seq-*",
                       "!@molstar/seq-*/**",
                       "!@molstar/io/common/msgpack/*",
                       "!@molstar/core/util/zip/zip",
-                      "!@molstar/core/task/**"
+                      "!@molstar/core/task/execution/synchronous"
                     ],
                     "message": "Only seq-molstar-poc imports Mol*'s v6 packages (seq-core's msgpack, zip and task imports excepted)."
                   },
                   {
-                    "group": [
-                      "@molstar/seq-core/links",
-                      "@molstar/seq-core/links/**"
-                    ],
+                    "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
                     "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
                   },
                   {
@@ -793,9 +679,7 @@
                     "message": "A stream provider is the host's: no Seq* package imports seq-core/stream/tiles or stream/gmod."
                   },
                   {
-                    "group": [
-                      "@nightingale-elements/**"
-                    ],
+                    "group": ["@nightingale-elements/**"],
                     "message": "Only seq-nightingale's mount.ts imports Nightingale."
                   }
                 ]
@@ -806,9 +690,7 @@
       }
     },
     {
-      "includes": [
-        "packages/sequences/molstar-poc/src/**"
-      ],
+      "includes": ["packages/sequences/molstar-poc/src/**"],
       "linter": {
         "rules": {
           "style": {
@@ -817,17 +699,11 @@
               "options": {
                 "patterns": [
                   {
-                    "group": [
-                      "@molstar/plugin-ui",
-                      "@molstar/plugin-ui/**"
-                    ],
+                    "group": ["@molstar/plugin-ui", "@molstar/plugin-ui/**"],
                     "message": "Never Mol*'s default UI: a canvas plus its streams."
                   },
                   {
-                    "group": [
-                      "@molstar/seq-core/links",
-                      "@molstar/seq-core/links/**"
-                    ],
+                    "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
                     "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
                   },
                   {
@@ -840,9 +716,7 @@
                     "message": "A stream provider is the host's: no Seq* package imports seq-core/stream/tiles or stream/gmod."
                   },
                   {
-                    "group": [
-                      "@nightingale-elements/**"
-                    ],
+                    "group": ["@nightingale-elements/**"],
                     "message": "Only seq-nightingale's mount.ts imports Nightingale."
                   }
                 ]
@@ -853,9 +727,7 @@
       }
     },
     {
-      "includes": [
-        "packages/sequences/nightingale/src/mount.ts"
-      ],
+      "includes": ["packages/sequences/nightingale/src/mount.ts"],
       "linter": {
         "rules": {
           "style": {
@@ -864,18 +736,11 @@
               "options": {
                 "patterns": [
                   {
-                    "group": [
-                      "@molstar/**",
-                      "!@molstar/seq-*",
-                      "!@molstar/seq-*/**"
-                    ],
+                    "group": ["@molstar/**", "molstar", "molstar/**", "!@molstar/seq-*", "!@molstar/seq-*/**"],
                     "message": "Only seq-molstar-poc imports Mol*'s v6 packages (seq-core's msgpack, zip and task imports excepted)."
                   },
                   {
-                    "group": [
-                      "@molstar/seq-core/links",
-                      "@molstar/seq-core/links/**"
-                    ],
+                    "group": ["@molstar/seq-core/links", "@molstar/seq-core/links/**"],
                     "message": "Command links are an application's extension: no Seq* package imports seq-core/links."
                   },
                   {
@@ -895,9 +760,7 @@
       }
     },
     {
-      "includes": [
-        "packages/sequences/core/src/links/**"
-      ],
+      "includes": ["packages/sequences/core/src/links/**"],
       "linter": {
         "rules": {
           "style": {
@@ -936,9 +799,7 @@
       }
     },
     {
-      "includes": [
-        "packages/sequences/core/src/query/**"
-      ],
+      "includes": ["packages/sequences/core/src/query/**"],
       "linter": {
         "rules": {
           "style": {
@@ -947,14 +808,7 @@
               "options": {
                 "patterns": [
                   {
-                    "group": [
-                      "@molstar/**",
-                      "react",
-                      "react-dom",
-                      "react/**",
-                      "react-dom/**",
-                      "../**"
-                    ],
+                    "group": ["@molstar/**", "react", "react-dom", "react/**", "react-dom/**", "../**"],
                     "message": "ql is the language definition: a leaf, platform-free."
                   }
                 ]
@@ -977,12 +831,8 @@
       }
     },
     {
-      "includes": [
-        "packages/sequences/**/src/**"
-      ],
-      "plugins": [
-        "./packages/sequences/layers.grit"
-      ]
+      "includes": ["packages/sequences/**/src/**"],
+      "plugins": ["./packages/sequences/layers.grit"]
     },
     {
       "includes": [
@@ -1027,13 +877,8 @@
       }
     },
     {
-      "includes": [
-        "packages/sequences/core/src/builder/**",
-        "!packages/sequences/core/src/builder/svsx.ts"
-      ],
-      "plugins": [
-        "./packages/sequences/core/builder-imports.grit"
-      ]
+      "includes": ["packages/sequences/core/src/builder/**", "!packages/sequences/core/src/builder/svsx.ts"],
+      "plugins": ["./packages/sequences/core/builder-imports.grit"]
     }
   ],
   "javascript": {

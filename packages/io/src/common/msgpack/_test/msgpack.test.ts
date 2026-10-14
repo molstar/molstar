@@ -48,6 +48,14 @@ describe('msgpack', () => {
     const decoder: MsgPackExtDecoder = (type, data) =>
       type === 0x18 ? new Float64Array(data.slice().buffer) : undefined;
 
+    it('asks the extension encoder before the Uint8Array branch, and writes bin without one', () => {
+      const bytes = Uint8Array.of(1, 2, 3, 4);
+      const claim: MsgPackExtEncoder = (v) => (v instanceof Uint8Array ? { type: 0x12, data: v } : undefined);
+      expect(Array.from(encodeMsgPack(bytes, claim))).toEqual([0xd6, 0x12, 1, 2, 3, 4]);
+      expect(Array.from(encodeMsgPack(bytes))).toEqual([0xc4, 4, 1, 2, 3, 4]);
+      expect(Array.from(encodeMsgPack(bytes, () => undefined))).toEqual([0xc4, 4, 1, 2, 3, 4]);
+    });
+
     it('writes fixext for payloads of 1, 2, 4, 8 and 16 bytes, ext 8, 16 and 32 otherwise', () => {
       const head = (n: number) => encodeMsgPack({ type: 5 }, () => ({ type: 5, data: new Uint8Array(n) }))[0];
       expect([1, 2, 4, 8, 16].map(head)).toEqual([0xd4, 0xd5, 0xd6, 0xd7, 0xd8]);

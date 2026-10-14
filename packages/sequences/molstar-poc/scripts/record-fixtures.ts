@@ -11,7 +11,7 @@
 // P04637's UniProt entry and its Proteins API variants are trimmed to what the readers take (the format's `features`):
 // the entry's features but its natural variants, mutagenesis and isoforms; each variant's position, letters and
 // consequence (no description, so the consequence is the row's label).
-// Usage: node packages/sequences/molstar-poc/scripts/record-fixtures.ts [file name…] (P04637-ptms.tsv only when named)
+// Usage: node --conditions=molstar-src --experimental-transform-types --import ./packages/sequences/scripts/ts-resolve.ts packages/sequences/molstar-poc/scripts/record-fixtures.ts [file name…] (P04637-ptms.tsv only when named)
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 

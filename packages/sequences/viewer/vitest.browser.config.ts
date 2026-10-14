@@ -17,7 +17,7 @@ const fixtureFs = {
   name: 'seqstar-fixture-fs',
   enforce: 'pre' as const,
   resolveId(id: string, importer?: string) {
-    return id === 'node:fs' && importer && /\/lib\/seqstar\/[^/]+\/_test\//.test(importer) ? shim : null;
+    return id === 'node:fs' && importer && /\/packages\/sequences\/[^/]+\/_test\//.test(importer) ? shim : null;
   },
 };
 

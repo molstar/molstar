@@ -2,6 +2,10 @@
   "extends": "../../../tsconfig.base.json",
   // The DOM element and its tests (no emit); with the DOM lib.
   "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
     "composite": false,
     "declaration": false,
     "declarationMap": false,
@@ -11,5 +15,6 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node"]
   },
-  "include": ["src/dom", "_test/dom"]
+  "include": ["src/dom", "_test/dom"],
+  "references": [{ "path": "../core" }, { "path": "../../core" }, { "path": "../../io" }]
 }

@@ -2,6 +2,10 @@
   "extends": "../../../tsconfig.base.json",
   // _test, bench and scripts (no emit). The scripts are run by Node's type stripping and import with .ts.
   "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
     "composite": false,
     "declaration": false,
     "declarationMap": false,

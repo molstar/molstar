@@ -3,14 +3,13 @@
   "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
-  "description": "The Seq* Storybook content: the stories, their support code and the Seq*/Docs pages. A host's Storybook adds the plugin from ./vite and the decorator from ./preview; nothing here imports an application.",
+  "description": "The Seq* Storybook content: the stories, their support code and the Seq*/Docs pages. A host's Storybook adds the plugin from ./vite; the decorator is the preview module at src/preview.ts, loaded by path (storybook/packages.ts); nothing here imports an application.",
   "license": "MIT",
   "engines": {
     "node": ">=22.13.0"
   },
   "exports": {
     "./vite": "./vite.ts",
-    "./preview": "./src/preview.ts",
     "./support/cases": "./src/_stories/support/seqstar-cases.ts",
     "./support/viewer": "./src/_stories/support/seqstar-viewer.tsx",
     "./support/ux.module.css": "./src/_stories/support/seqstar-ux.module.css",

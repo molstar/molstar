@@ -5,8 +5,9 @@ coordinate model (positions from a single residue to a whole genome, and the map
 gene's codons across introns, an alignment's rows onto its columns, a design onto its wild type, a chain onto its
 structure; data placed on any of these shows on the others), with its data model, SeqQL, its query language, and the
 builder. The Seq\* viewer renders it, and so does Nightingale. It imports nothing of Mol\*'s apps or UI; of Mol\*'s
-packages, seq-core takes only the MessagePack codec (`@molstar/io`) and zip (`@molstar/core`), and molstar-poc, the
-adapter, the structure packages. This file, the repository's [AGENTS.md](../../AGENTS.md) and the spec are all it needs.
+packages, seq-core takes only the MessagePack codec (`@molstar/io`), zip and the synchronous runtime context of
+`@molstar/core/task`, and molstar-poc, the adapter, the structure packages. This file, the repository's
+[AGENTS.md](../../AGENTS.md) and the spec are all it needs.
 
 - **The spec** is `_spec/` (start with [_spec/README.md](_spec/README.md): what Seq\* is, the packages, the principles,
   the glossary). It says what, never how: contracts and meaning. Tables (nodes, types, layer types, themes, issue codes,
@@ -14,10 +15,10 @@ adapter, the structure packages. This file, the repository's [AGENTS.md](../../A
   hand.
 - **The code is the truth.** The spec holds the contracts and what they mean; where the two disagree, fix whichever is
   wrong (often the spec), in the same commit.
-- **Packages:** `core` (platform-free; of Mol\* only its MessagePack and zip) and `viewer` (with the interactions
-  extension), plus the adapters `nightingale` and `molstar-poc` and the private `storybook` (the table in
-  `_spec/README.md`). Each folder of a package is an entry: inside a folder import relatively; across folders name the
-  entry (`@molstar/seq-core/model`, the package importing itself), never a path into another folder.
+- **Packages:** `core` (platform-free; of Mol\* only its MessagePack, zip and synchronous task context) and `viewer`
+  (with the interactions extension), plus the adapters `nightingale` and `molstar-poc` and the private `storybook` (the
+  table in `_spec/README.md`). Each folder of a package is an entry: inside a folder import relatively; across folders
+  name the entry (`@molstar/seq-core/model`, the package importing itself), never a path into another folder.
   `core/_test/layers.test.ts` holds the core's folder graph. `scripts/` (`@molstar/seq-scripts`) holds Seq*'s own checks
   and measures, and each package's `_test/fixtures/` its recorded data.
 - **Headers:** every source file (`.ts`, `.tsx`, `.css`, in `src`, `_test`, `_stories` and scripts) starts with Mol\*'s

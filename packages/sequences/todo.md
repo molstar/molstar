@@ -10,8 +10,10 @@ Nothing.
 
 ## Next
 
-The move into Mol\* v6's repository (the port: its tooling, `.js` import specifiers, its CI running each package's
-`test` only), then Prism's own UI over the viewer.
+The move into Mol\* v6's repository is done. Next is Prism over Seq\* (`.v6/seq/plan.md` §3, designed in
+`.v6/seq/prism-sequence.md`): the Prism viewer's sequence control, tooltip and legend replacing the default primitives
+(the chrome's next look, below), then the plan's §4 follow-ups: Prism's own tokens in the stories' support (due now),
+and whether `viewer/react` stays.
 
 ## Deferred features
 

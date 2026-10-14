@@ -2,6 +2,10 @@
   "extends": "../../../tsconfig.base.json",
   // The build. Typed arrays everywhere: their index reads are numbers, as in Mol*, not number | undefined. DOM for mount.ts.
   "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
     "rootDir": "src",
     "outDir": "lib",
     "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",

@@ -81,6 +81,11 @@ function encodedSize(value: any, ext: MsgPackExtEncoder | undefined): number {
     }
   }
 
+  if (ext && type === 'object' && value !== null) {
+    const e = ext(value);
+    if (e) return extHeaderSize(e.data.length) + e.data.length;
+  }
+
   if (value instanceof Uint8Array) {
     const length = value.byteLength;
     if (length < 0x100) {
@@ -92,11 +97,6 @@ function encodedSize(value: any, ext: MsgPackExtEncoder | undefined): number {
     if (length < 0x100000000) {
       return 5 + length;
     }
-  }
-
-  if (ext && type === 'object' && value !== null) {
-    const e = ext(value);
-    if (e) return extHeaderSize(e.data.length) + e.data.length;
   }
 
   if (type === 'number') {
@@ -206,6 +206,11 @@ function encodeInternal(
     }
   }
 
+  if (ext && type === 'object' && value !== null) {
+    const e = ext(value);
+    if (e) return encodeExt(e, view, bytes, offset);
+  }
+
   if (value instanceof Uint8Array) {
     const length = value.byteLength;
     const bytes = new Uint8Array(view.buffer);
@@ -230,11 +235,6 @@ function encodeInternal(
       bytes.set(value, offset + 5);
       return 5 + length;
     }
-  }
-
-  if (ext && type === 'object' && value !== null) {
-    const e = ext(value);
-    if (e) return encodeExt(e, view, bytes, offset);
   }
 
   if (type === 'number') {

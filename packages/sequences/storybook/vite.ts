@@ -8,7 +8,7 @@
 
 // What the host Storybook (storybook/packages.ts) takes from this package: a Vite plugin. The stories and docs pages are
 // found by the host's globs (every `*.stories.tsx` and `*.mdx` under `src/`); its preview module
-// (`@molstar/seq-storybook/preview`) has the decorator that mounts the React stories (their styles come with the
+// (`src/preview.ts`, loaded by path, not an export) has the decorator that mounts the React stories (their styles come with the
 // stories: `src/_stories/support/seqstar-styles.ts`).
 
 import { fileURLToPath } from 'node:url';

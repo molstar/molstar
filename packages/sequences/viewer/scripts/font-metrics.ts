@@ -8,14 +8,15 @@
 
 // Generates src/svg/metrics-tables.ts: `metricsMeasurer`'s committed tables (seqspec:viewer#the-render-backend,
 // seqspec:viewer#text-measuring), read from the Chrome that the browser tests use, for the families the skin's stacks
-// start with and the generic ones. Run by hand when the tables should change: `node scripts/font-metrics.ts` in
-// packages/sequences/viewer. The tables are that machine's fonts; a figure's text
-// is anchored by `text-anchor` and placed by `dy`, so a reader with other fonts differs only in the widths fitting used.
+// start with and the generic ones. Run by hand when the tables should change, from the repository root:
+//   node --conditions=molstar-src --experimental-transform-types --import ./packages/sequences/scripts/ts-resolve.ts packages/sequences/viewer/scripts/font-metrics.ts
+// The tables are that machine's fonts; a figure's text is anchored by `text-anchor` and placed by `dy`, so a reader
+// with other fonts differs only in the widths fitting used.
 
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
-import { FONT_FAMILIES, FONT_WEIGHTS, probeFonts } from './font-probe.ts';
+import { FONT_FAMILIES, FONT_WEIGHTS, probeFonts } from './font-probe.js';
 
 const browser = await chromium.launch({ channel: 'chrome' });
 try {
@@ -32,9 +33,9 @@ try {
 // Canvas2D's \`top\`, \`middle\` and \`bottom\` baselines lie on (\`ascent\` above the alphabetic baseline, \`descent\` below), and
 // the ink tops of "H" and "x" above that baseline (\`cap\`, \`xHeight\`), which letters are centered on.
 
-import type { FontMetrics } from "./metrics.ts";
+import type { FontMetrics } from './metrics.js';
 
-const a = (s: string) => Uint16Array.from(s.split(" "), Number);
+const a = (s: string) => Uint16Array.from(s.split(' '), Number);
 // biome-ignore format: generated, a table a line
 export const DefaultFontMetrics: readonly FontMetrics[] = [
 ${rows.join('\n')}

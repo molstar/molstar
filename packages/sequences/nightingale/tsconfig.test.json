@@ -2,6 +2,10 @@
   "extends": "../../../tsconfig.base.json",
   // _test and bench (no emit).
   "compilerOptions": {
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    "erasableSyntaxOnly": true,
     "composite": false,
     "declaration": false,
     "declarationMap": false,
@@ -11,5 +15,6 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node"]
   },
-  "include": ["_test", "bench"]
+  "include": ["_test", "bench"],
+  "references": [{ "path": "../core" }, { "path": "../../core" }, { "path": "../../io" }]
 }
