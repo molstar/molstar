@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { StructureElement } from '@molstar/model/model/structure';
 import { describe, expect, it } from 'vitest';
 import { componentPropsFromSelector, prettyNameFromSelector } from '@molstar/mvs/load-helpers';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
@@ -79,13 +80,17 @@ describe('MVS MolQL selectors', () => {
     const wrapped = { molql };
     expect(componentPropsFromSelector(wrapped)).toEqual({ name: 'expression', params: molql });
     expect(componentPropsFromSelector('protein')).toEqual({ name: 'static', params: 'protein' });
-    // rows are kept as rows (resolved through model indices), not converted to a MolScript expression
+    // rows are the expression element-schema (which resolves them through the indices of the model)
     expect(componentPropsFromSelector({ label_asym_id: 'A' })).toEqual({
-      name: 'schema',
-      params: [{ label_asym_id: 'A' }],
+      name: 'expression',
+      params: StructureElement.Schema.toExpression({ items: [{ label_asym_id: 'A' }] }),
     });
     const rows = [{ label_asym_id: 'A' }, { label_asym_id: 'B', label_seq_id: 3 }];
-    expect(componentPropsFromSelector(rows)).toEqual({ name: 'schema', params: rows });
+    expect(componentPropsFromSelector(rows)).toEqual({
+      name: 'expression',
+      params: StructureElement.Schema.toExpression({ items: rows }),
+    });
+    expect((componentPropsFromSelector(rows).params as any).head.name).toBe('structure-query.generator.element-schema');
     expect(prettyNameFromSelector(wrapped)).toEqual('MolQL Selection');
     expect(prettyNameFromSelector({ label_asym_id: 'A' })).toEqual('A');
     expect(prettyNameFromSelector(rows)).toEqual('A + B3');

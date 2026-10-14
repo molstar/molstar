@@ -8,12 +8,12 @@ import { describe, expect, it, vi } from 'vitest';
 import * as fs from 'node:fs';
 import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
-import { Structure, StructureSelection, Unit } from '@molstar/model/model/structure';
-import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
+import { Structure, Unit } from '@molstar/model/model/structure';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
 import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
+import type { Model } from '@molstar/model/model/structure';
+import type { SchemaItem } from '@molstar/model/model/structure/structure/element/schema';
 import type { MVSAnnotationRow } from '../schemas.js';
-import { rowsToExpression } from '../selections.js';
 import { IdentityOperator, mulberry32, randInt } from './annotation-rows-fixture.js';
 
 /** `data/examples/ihm-coarse-8zzh.cif`: 4 coarse chains of 882 elements (A, C: spheres; B, D: gaussians), 2 entities, no atoms. */
@@ -24,9 +24,76 @@ async function loadCoarseModel() {
   return trajectory.representative;
 }
 
-function viaExpression(structure: Structure, rows: readonly MVSAnnotationRow[]) {
-  const { selection } = StructureQueryHelper.createAndRun(structure, rowsToExpression(rows));
-  return StructureSelection.unionStructure(selection);
+/** An independent definition of "a coarse element satisfies a row" (the one of `StructureElement.Schema`): the chain and the entity of the element are
+ * as given, a residue or the bounds of a range overlap the sequence the element spans (`seq_id_begin` to `seq_id_end`, both inclusive), all the criteria
+ * which are given hold, and a criterion which only atoms have (`auth_*`, the comp ids, atom ids, ...) is not satisfied by anything. A range which ends
+ * before it begins selects nothing. Rows apply to the one operator of the structure (the identity). */
+function createCoarseOracle(model: Model) {
+  const AtomOnly = [
+    'auth_asym_id',
+    'auth_seq_id',
+    'pdbx_PDB_ins_code',
+    'beg_auth_seq_id',
+    'end_auth_seq_id',
+    'beg_auth_ins_code',
+    'end_auth_ins_code',
+    'label_comp_id',
+    'auth_comp_id',
+    'residue_index',
+    'label_atom_id',
+    'auth_atom_id',
+    'type_symbol',
+    'atom_id',
+    'atom_index',
+  ] as const;
+  const defined = (x: unknown) => x !== undefined && x !== null;
+  function satisfies(row: SchemaItem, e: Model['coarseHierarchy']['spheres'], i: number): boolean {
+    if (AtomOnly.some((k) => defined(row[k]))) return false;
+    if (defined(row.instance_id) && row.instance_id !== IdentityOperator.instanceId) return false;
+    if (defined(row.operator_name) && row.operator_name !== IdentityOperator.name) return false;
+    if (defined(row.label_asym_id) && row.label_asym_id !== e.asym_id.value(i)) return false;
+    if (defined(row.label_entity_id) && row.label_entity_id !== e.entity_id.value(i)) return false;
+    const begin = e.seq_id_begin.value(i);
+    const end = e.seq_id_end.value(i);
+    if (defined(row.label_seq_id) && !(begin <= row.label_seq_id && row.label_seq_id <= end)) return false;
+    if (defined(row.beg_label_seq_id) && defined(row.end_label_seq_id) && row.beg_label_seq_id > row.end_label_seq_id)
+      return false;
+    if (defined(row.beg_label_seq_id) && !(end >= row.beg_label_seq_id)) return false;
+    if (defined(row.end_label_seq_id) && !(begin <= row.end_label_seq_id)) return false;
+    return true;
+  }
+  return {
+    /** The index of the last of `rows` which each element satisfies, -1 for none */
+    rowOfEach(rows: readonly SchemaItem[]) {
+      const of = (e: Model['coarseHierarchy']['spheres']) => {
+        const result = new Array<number>(e.count).fill(-1);
+        rows.forEach((row, iRow) => {
+          for (let i = 0; i < e.count; i++) if (satisfies(row, e, i)) result[i] = iRow;
+        });
+        return result;
+      };
+      return { spheres: of(model.coarseHierarchy.spheres), gaussians: of(model.coarseHierarchy.gaussians) };
+    },
+    /** The units (by kind: the elements) which satisfy at least one of `rows` */
+    elementsOf(rows: readonly SchemaItem[]) {
+      const rowOf = this.rowOfEach(rows);
+      return {
+        spheres: rowOf.spheres.flatMap((v, i) => (v >= 0 ? [i] : [])),
+        gaussians: rowOf.gaussians.flatMap((v, i) => (v >= 0 ? [i] : [])),
+      };
+    },
+  };
+}
+/** What `substructureFromRows` selected, as the elements of spheres and gaussians */
+function selectedElements(structure: Structure) {
+  const result = { spheres: [] as number[], gaussians: [] as number[] };
+  for (const unit of structure.units) {
+    const target = unit.kind === Unit.Kind.Spheres ? result.spheres : result.gaussians;
+    for (let i = 0; i < unit.elements.length; i++) target.push(unit.elements[i]);
+  }
+  result.spheres.sort((a, b) => a - b);
+  result.gaussians.sort((a, b) => a - b);
+  return result;
 }
 function unitElements(structure: Structure) {
   return Object.fromEntries(structure.units.map((u) => [u.id, Array.from(u.elements)]));
@@ -38,8 +105,7 @@ const EntityOfChain: Record<string, string> = { A: '1', B: '1', C: '2', D: '2' }
 
 type Category = {
   name: string;
-  rows: MVSAnnotationRow[] /** Not comparable with MolScript, see the tests of `differsFromMolScript` */;
-  differsFromMolScript?: boolean;
+  rows: MVSAnnotationRow[];
 };
 
 function makeCategories(rnd: () => number): Category[] {
@@ -74,22 +140,21 @@ function makeCategories(rnd: () => number): Category[] {
       }),
     },
     {
-      name: 'seq+range together (as MolScript does)',
+      name: 'seq+range together (both have to hold)',
       rows: many(20, () => ({ label_asym_id: chain(), label_seq_id: seq(), ...span() })),
     },
     {
       name: 'inverted range (beg > end)',
-      differsFromMolScript: true,
       rows: [
         ...many(10, () => ({
           label_asym_id: chain(),
           beg_label_seq_id: 800 + randInt(rnd, 100),
           end_label_seq_id: 100 + randInt(rnd, 100),
         })),
-        // (close bounds: an element which starts at 1 and ends at 20 contains both, MolScript selects it)
+        // (close bounds: an element which starts at 1 and ends at 20 contains both, but it is not a range)
         { label_asym_id: 'A', beg_label_seq_id: 20, end_label_seq_id: 1 },
         { label_asym_id: 'C', beg_label_seq_id: 2, end_label_seq_id: 1 },
-        // (with a residue, which MolScript's overlap test then takes as a part of the elements which it selects)
+        // (with a residue)
         { label_asym_id: 'A', beg_label_seq_id: 70, end_label_seq_id: 58, label_seq_id: 60 },
         { beg_label_seq_id: 30, end_label_seq_id: 10, label_seq_id: 20 },
         ...many(10, () => {
@@ -114,7 +179,6 @@ function makeCategories(rnd: () => number): Category[] {
     },
     {
       name: 'fields which do not exist for coarse elements (select nothing)',
-      differsFromMolScript: true,
       rows: [
         { auth_asym_id: 'A' },
         { label_asym_id: 'A', auth_seq_id: 5 },
@@ -150,9 +214,8 @@ describe('coarse models (spheres and gaussians)', async () => {
   const model = await loadCoarseModel();
   const structure = Structure.ofModel(model);
   const categories = makeCategories(mulberry32(2024));
-  const comparable = categories.filter((c) => !c.differsFromMolScript);
+  const oracle = createCoarseOracle(model);
   const allRows = categories.flatMap((c) => c.rows);
-  const comparableRows = comparable.flatMap((c) => c.rows);
 
   it('the test structure is coarse only, with spheres and gaussians in several chains and entities', () => {
     expect(model.atomicHierarchy.atoms._rowCount).toBe(0);
@@ -163,44 +226,30 @@ describe('coarse models (spheres and gaussians)', async () => {
     );
   });
 
-  for (const c of comparable) {
-    it(`substructureFromRows equals the MolScript expression: ${c.name}`, () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      try {
-        const result = substructureFromRows(structure, c.rows);
-        expect(unitElements(result)).toEqual(unitElements(viaExpression(structure, c.rows)));
-      } finally {
-        warn.mockRestore();
-      }
-    });
-  }
-
-  it('substructureFromRows equals the MolScript expression for all categories together', () => {
+  const quiet = <T>(f: () => T): T => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
-      const result = substructureFromRows(structure, comparableRows);
-      expect(unitElements(result)).toEqual(unitElements(viaExpression(structure, comparableRows)));
-      expect(result.elementCount).toBeGreaterThan(100); // (not vacuous)
-      // the other rows select nothing, so adding them changes nothing
-      expect(unitElements(substructureFromRows(structure, allRows))).toEqual(unitElements(result));
+      return f();
     } finally {
       warn.mockRestore();
     }
+  };
+
+  for (const c of categories) {
+    it(`substructureFromRows selects what the definition of the row says: ${c.name}`, () => {
+      quiet(() => expect(selectedElements(substructureFromRows(structure, c.rows))).toEqual(oracle.elementsOf(c.rows)));
+    });
+  }
+
+  it('substructureFromRows for all categories together', () => {
+    quiet(() => {
+      const result = substructureFromRows(structure, allRows);
+      expect(selectedElements(result)).toEqual(oracle.elementsOf(allRows));
+      expect(result.elementCount).toBeGreaterThan(100); // (not vacuous)
+    });
   });
 
   describe('getRowForEachAtom: the last row which selects an element wins', () => {
-    /** Brute force: run the MolScript expression of each row separately and let later rows overwrite earlier ones. */
-    function expected(rows: readonly MVSAnnotationRow[]) {
-      const spheres = new Array<number>(model.coarseHierarchy.spheres.count).fill(-1);
-      const gaussians = new Array<number>(model.coarseHierarchy.gaussians.count).fill(-1);
-      rows.forEach((row, i) => {
-        for (const unit of viaExpression(structure, [row]).units) {
-          const target = unit.kind === Unit.Kind.Spheres ? spheres : gaussians;
-          for (let k = 0; k < unit.elements.length; k++) target[unit.elements[k]] = i;
-        }
-      });
-      return { spheres, gaussians };
-    }
     const mapping = (rows: readonly MVSAnnotationRow[]) =>
       (new MVSAnnotation({ format: 'json', data: rows as any }, 'all_atomic', {}) as any).getRowForEachAtom(
         model,
@@ -211,65 +260,63 @@ describe('coarse models (spheres and gaussians)', async () => {
         gaussians: Int32Array | null;
       };
 
-    for (const c of comparable) {
+    for (const c of categories) {
       it(c.name, () => {
-        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-        try {
+        quiet(() => {
           const got = mapping(c.rows);
-          const exp = expected(c.rows);
+          const exp = oracle.rowOfEach(c.rows);
           expect(got.atoms).toBeNull();
           expect(Array.from(got.spheres ?? new Array(1764).fill(-1))).toEqual(exp.spheres);
           expect(Array.from(got.gaussians ?? new Array(1764).fill(-1))).toEqual(exp.gaussians);
-        } finally {
-          warn.mockRestore();
-        }
+        });
       });
     }
     it('all categories together', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      try {
-        const got = mapping(comparableRows);
-        const exp = expected(comparableRows);
+      quiet(() => {
+        const got = mapping(allRows);
+        const exp = oracle.rowOfEach(allRows);
         expect(Array.from(got.spheres!)).toEqual(exp.spheres);
         expect(Array.from(got.gaussians!)).toEqual(exp.gaussians);
-      } finally {
-        warn.mockRestore();
-      }
+      });
     });
   });
 
-  describe('where the selection differs from the MolScript expression on purpose', () => {
+  describe('rows which cannot select a coarse element', () => {
     const inverted = categories.find((c) => c.name.startsWith('inverted'))!.rows;
     const atomicOnly = categories.find((c) => c.name.startsWith('fields which do not exist'))!.rows;
     const mapping = (rows: readonly MVSAnnotationRow[]) =>
       (new MVSAnnotation({ format: 'json', data: rows as any }, 'all_atomic', {}) as any).getRowForEachAtom(
         model,
-        '1_555',
+        IdentityOperator,
       );
 
-    it('a range with beg > end selects nothing, also when the bounds are close or a residue is given (MolScript selects elements which span them)', () => {
+    it('a range with beg > end selects nothing, also when the bounds are close or a residue is given', () => {
       expect(substructureFromRows(structure, inverted).units.length).toBe(0);
       const got = mapping(inverted);
       expect(got.spheres).toBeNull();
       expect(got.gaussians).toBeNull();
-      // (and this is a difference: MolScript selects the sphere 1-20 for the bounds 20 and 1)
+      // (the sphere 1-20 contains the bounds 20 and 1, but is not in a range from 20 to 1)
       expect(
-        viaExpression(structure, [{ label_asym_id: 'A', beg_label_seq_id: 20, end_label_seq_id: 1 }]).elementCount,
+        substructureFromRows(structure, [{ label_asym_id: 'A', beg_label_seq_id: 20, end_label_seq_id: 1 }])
+          .elementCount,
+      ).toBe(0);
+      expect(
+        substructureFromRows(structure, [{ label_asym_id: 'A', beg_label_seq_id: 1, end_label_seq_id: 20 }])
+          .elementCount,
       ).toBeGreaterThan(0);
     });
-    it('criteria which only exist for atoms (auth_*, comp_id, atom ids, ...) select nothing and warn (the MolScript expression throws)', () => {
+    it('criteria which only atoms have (auth_*, comp_id, atom ids, ...) select nothing, and warn once', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       try {
         expect(substructureFromRows(structure, atomicOnly).units.length).toBe(0);
         const got = mapping(atomicOnly);
         expect(got.spheres).toBeNull();
         expect(got.gaussians).toBeNull();
+        expect(substructureFromRows(structure, [{ auth_asym_id: 'A' }]).units.length).toBe(0); // (does not throw)
+        expect(warn.mock.calls.length).toBeLessThanOrEqual(1); // (once per session; it may have been printed by an earlier test)
       } finally {
         warn.mockRestore();
       }
-      expect(() => viaExpression(structure, [{ auth_asym_id: 'A' }])).toThrow(
-        'Property only available for atomic models',
-      );
     });
   });
 });

@@ -565,7 +565,7 @@ const StructureComponent = PluginStateTransform.BuiltIn({
     return updateStructureComponent(a.data, b, oldParams, newParams, cache as any);
   },
   dispose({ b, cache }) {
-    // A component which is the whole source structure (e.g. every element satisfies a `schema`) is not an own structure: its properties belong
+    // A component which is the whole source structure (e.g. every element satisfies an `element-schema`) is not an own structure: its properties belong
     // to the structure it was made from (a root structure has no parent, so it is never a part of another one).
     if (b && (b.data === (cache as { source?: Structure } | undefined)?.source || !b.data.parent)) return;
     b?.data.customPropertyDescriptors.dispose();

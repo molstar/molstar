@@ -6,6 +6,7 @@
  */
 
 import { Mat3, Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
+import { StructureElement } from '@molstar/model/model/structure';
 import { Volume } from '@molstar/model/model/volume';
 import {
   StructureFromModel,
@@ -413,19 +414,19 @@ export function structureProps(node: MolstarNode<'structure'>): StateTransformer
   }
 }
 
-/** Create a `Selector` (value for the selector param of MVS layers, and for `type` prop of `StructureComponent` transformer
- * unless it is `schema`) based on a MVS selector. Rows are kept as they are (`schema`), they are resolved through model indices. */
+/** Create a `Selector` (value for the selector param of MVS layers, and for `type` prop of `StructureComponent` transformer) based on a MVS selector.
+ * Rows are the expression `element-schema`, which resolves them through the indices of the model. */
 export function componentPropsFromSelector(selector?: MolstarNodeParams<'component'>['selector']): Selector {
   if (selector === undefined) {
     return SelectorAll;
   } else if (typeof selector === 'string') {
     return { name: 'static', params: selector };
   } else if (Array.isArray(selector)) {
-    return { name: 'schema', params: selector };
+    return { name: 'expression', params: StructureElement.Schema.toExpression({ items: selector }) };
   } else if (isMolQLExpression(selector)) {
     return { name: 'expression', params: selector.molql as any };
   } else {
-    return { name: 'schema', params: [selector] };
+    return { name: 'expression', params: StructureElement.Schema.toExpression(selector) };
   }
 }
 

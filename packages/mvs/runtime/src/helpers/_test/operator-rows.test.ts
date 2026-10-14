@@ -8,13 +8,12 @@ import { getHeapStatistics } from 'node:v8';
 import { describe, expect, it, vi } from 'vitest';
 import { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
-import { Structure, StructureElement, StructureSelection } from '@molstar/model/model/structure';
-import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
+import { Structure, StructureElement } from '@molstar/model/model/structure';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
 import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import type { MVSAnnotationRow } from '../schemas.js';
-import { rowsToExpression } from '../selections.js';
 import { createModel } from './annotation-rows-fixture.js';
+import { createRowOracle } from './row-oracle.js';
 
 /** Two copies of `structure` whose operators have the same `instanceId` but different names, which rows can tell apart only by `operator_name`. */
 function sameInstanceIdDifferentNames(structure: Structure) {
@@ -42,8 +41,15 @@ describe('operator_name when the instance id does not tell the operators apart',
     expect(unitNames.filter((n) => n === 'op-b').length).toBe(nUnits);
   });
 
-  const viaExpression = (rows: MVSAnnotationRow[]) =>
-    StructureSelection.unionStructure(StructureQueryHelper.createAndRun(structure, rowsToExpression(rows)).selection);
+  const oracle = createRowOracle(model);
+  /** The elements of each unit which satisfy the rows by the per-atom definition (units of the operators `op-a` and `op-b`, which have the same instance id) */
+  const expectedUnits = (rows: MVSAnnotationRow[]) =>
+    structure.units.flatMap((u) => {
+      const { instanceId, name } = u.conformation.operator;
+      const atoms = new Set(oracle.atomsOf(rows, { instanceId, name }));
+      const elements = Array.from(u.elements).filter((e) => atoms.has(e));
+      return elements.length ? [{ id: u.id, elements }] : [];
+    });
   const unitNamesOf = (s: Structure) => Array.from(new Set(s.units.map((u) => u.conformation.operator.name))).sort();
 
   it('substructureFromRows selects the units of the named operator only', () => {
@@ -56,9 +62,7 @@ describe('operator_name when the instance id does not tell the operators apart',
       [{ operator_name: 'nope' }],
     ] as MVSAnnotationRow[][]) {
       const result = substructureFromRows(structure, rows);
-      const reference = viaExpression(rows);
-      expect(result.elementCount).toBe(reference.elementCount);
-      expect(result.units.map((u) => u.id)).toEqual(reference.units.map((u) => u.id));
+      expect(result.units.map((u) => ({ id: u.id, elements: Array.from(u.elements) }))).toEqual(expectedUnits(rows));
     }
     expect(unitNamesOf(substructureFromRows(structure, [{ operator_name: 'op-a' }]))).toEqual(['op-a']);
     expect(

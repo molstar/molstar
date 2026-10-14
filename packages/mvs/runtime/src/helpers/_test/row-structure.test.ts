@@ -7,22 +7,34 @@
 import { describe, expect, it } from 'vitest';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator';
-import { Structure, StructureSelection } from '@molstar/model/model/structure';
-import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
+import { Structure } from '@molstar/model/model/structure';
 import type { MVSAnnotationRow } from '../schemas.js';
 import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
-import { rowsToExpression } from '../selections.js';
 import { combinedCategories, createModel, makeRows, rowCategories } from './annotation-rows-fixture.js';
+import { createRowOracle } from './row-oracle.js';
 
 /** What the structure looks like for comparisons: unit id -> its elements. */
 function unitElements(structure: Structure) {
   return Object.fromEntries(structure.units.map((u) => [u.id, Array.from(u.elements)]));
 }
 
-/** The reference implementation: run the MolScript expression for the rows on every atom. */
-function viaExpression(structure: Structure, rows: readonly MVSAnnotationRow[]) {
-  const { selection } = StructureQueryHelper.createAndRun(structure, rowsToExpression(rows));
-  return StructureSelection.unionStructure(selection);
+/** The reference implementation: the atoms which satisfy a row, by the per-atom definition (`row-oracle.ts`), in the units of the structure. */
+function reference(
+  oracle: ReturnType<typeof createRowOracle>,
+  structure: Structure,
+  rows: readonly MVSAnnotationRow[],
+) {
+  const byOperator = new Map<string, Set<number>>();
+  const result: Record<number, number[]> = {};
+  for (const unit of structure.units) {
+    const { instanceId, name } = unit.conformation.operator;
+    const key = `${instanceId}|${name}`;
+    let atoms = byOperator.get(key);
+    if (!atoms) byOperator.set(key, (atoms = new Set(oracle.atomsOf(rows, { instanceId, name }))));
+    const elements = Array.from(unit.elements).filter((e) => atoms.has(e));
+    if (elements.length) result[unit.id] = elements;
+  }
+  return result;
 }
 
 /** Two copies of every unit of `structure`, the second one with a different operator (`instanceId` `copy-2`). */
@@ -63,8 +75,9 @@ describe.each([
       atomIdWrap: 150,
     },
   ],
-] as const)('substructureFromRows vs MolScript expression (%s)', async (_label, dims) => {
+] as const)('substructureFromRows vs per-atom brute force (%s)', async (_label, dims) => {
   const model = await createModel(dims);
+  const oracle = createRowOracle(model);
   const nAtoms = model.atomicHierarchy.atoms._rowCount;
   const whole = Structure.ofModel(model);
   const twoInstances = withSecondInstance(whole);
@@ -117,20 +130,14 @@ describe.each([
     for (const g of groups) {
       it(`${structureName}: ${g.name}`, () => {
         const result = substructureFromRows(structure, g.rows);
-        const reference = viaExpression(structure, g.rows);
-        expect(unitElements(result)).toEqual(unitElements(reference));
-        if (result === structure) {
-          // everything is selected (the expression path then returns an equal child structure, or the source itself for a row without criteria)
-          expect(reference.elementCount).toBe(structure.elementCount);
-        } else {
-          expect(result.parent === undefined).toBe(reference.parent === undefined);
-          if (result.parent) expect(result.parent).toBe(reference.parent);
-        }
+        const expected = reference(oracle, structure, g.rows);
+        expect(unitElements(result)).toEqual(expected);
+        if (result !== structure && result.elementCount > 0) expect(result.parent).toBe(structure.parent ?? structure);
       });
     }
     it(`${structureName}: all categories together`, () => {
       const rows = groups.flatMap((g) => g.rows);
-      expect(unitElements(substructureFromRows(structure, rows))).toEqual(unitElements(viaExpression(structure, rows)));
+      expect(unitElements(substructureFromRows(structure, rows))).toEqual(reference(oracle, structure, rows));
     });
   }
 
@@ -139,12 +146,8 @@ describe.each([
     expect(substructureFromRows(Structure.Empty, [{ label_asym_id: 'A' }]).units.length).toBe(0);
   });
 
-  it('selecting everything returns the source structure itself, like the expression path', () => {
-    const rows = [{}]; // everything
-    const result = substructureFromRows(whole, rows);
-    const reference = viaExpression(whole, rows);
-    expect(result.elementCount).toBe(reference.elementCount);
-    expect(result).toBe(reference);
-    expect(result).toBe(whole);
+  it('selecting everything returns the source structure itself', () => {
+    expect(substructureFromRows(whole, [{}])).toBe(whole);
+    expect(substructureFromRows(everyOtherUnit, [{}])).toBe(everyOtherUnit);
   });
 });

@@ -22,10 +22,9 @@ import { IndicesAndSortings } from '@molstar/model/model/structure/structure/ele
 import { Coordinates, type Frame, Model, StructureElement, Time } from '@molstar/model/model/structure';
 import type { MVSAnnotationRow } from '../schemas.js';
 import { getAtomRangesForRows } from '@molstar/model/model/structure/structure/element/schema-selection/selections';
-import { rowsToExpression } from '../selections.js';
 import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
-import { Structure, StructureSelection } from '@molstar/model/model/structure';
-import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
+import { Structure } from '@molstar/model/model/structure';
+import '@molstar/model/script/runtime/query/table'; // (registers the symbols of the queries)
 import {
   NEntities,
   TestOperator,
@@ -158,38 +157,22 @@ describe.skipIf(process.env.MVS_BENCH !== '1')('annotation rows benchmark', () =
     );
 
     console.log(
-      '\n--- rows -> substructure: MolScript expression (per-atom queries) vs index-driven (`substructureFromRows`)',
+      '\n--- rows -> substructure: `substructureFromRows` vs the expression element-schema (`Schema.toLoci`: expression, compile, query, loci)',
     );
     const structure = Structure.ofModel(model);
-    for (const n of [10, 100, 1000]) {
-      const rows = mixed.slice(0, n);
-      // fewer repetitions for the slow reference
-      const ref = measure(() => {
-        const { selection } = StructureQueryHelper.createAndRun(structure, rowsToExpression(rows));
-        return StructureSelection.unionStructure(selection);
-      });
-      const fast = measure(() => substructureFromRows(structure, rows));
-      report(`expression  (${n} rows)`, n, ref, `elements=${ref.result.elementCount}`);
-      report(
-        `ranges      (${n} rows)`,
-        n,
-        fast,
-        `elements=${fast.result.elementCount}  speedup x${(ref.ms / fast.ms).toFixed(0)}`,
-      );
-    }
-
-    console.log('\n--- StructureElement.Schema.toLoci: query (default) vs { useIndex: true } (indices exist already)');
-    for (const n of [1, 10, 100, 1000]) {
-      const items = mixed.slice(0, n) as StructureElement.SchemaItem[];
+    for (const n of [1, 10, 100, 1000, 10000]) {
+      const items = (
+        n <= mixed.length ? mixed.slice(0, n) : Array.from({ length: n }, (_, i) => mixed[i % mixed.length])
+      ) as StructureElement.SchemaItem[];
+      const direct = measure(() => substructureFromRows(structure, items));
       const query = measure(() => StructureElement.Schema.toLoci(structure, { items }));
-      const indexed = measure(() => StructureElement.Schema.toLoci(structure, { items }, { useIndex: true }));
-      const size = StructureElement.Loci.size(indexed.result);
-      report(`toLoci query   (${n} items)`, n, query, `elements=${StructureElement.Loci.size(query.result)}`);
+      const size = StructureElement.Loci.size(query.result);
+      report(`substructureFromRows (${n} rows)`, n, direct, `elements=${direct.result.elementCount}`);
       report(
-        `toLoci indexed (${n} items)`,
+        `toLoci, expression     (${n} rows)`,
         n,
-        indexed,
-        `elements=${size}  speedup x${(query.ms / Math.max(indexed.ms, 0.01)).toFixed(0)}`,
+        query,
+        `elements=${size}  overhead x${(query.ms / Math.max(direct.ms, 0.01)).toFixed(1)}`,
       );
     }
 

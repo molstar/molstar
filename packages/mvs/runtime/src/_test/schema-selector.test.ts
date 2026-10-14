@@ -11,16 +11,16 @@ import { StateObject, StateTransformer } from '@molstar/core/state';
 import { PluginContext } from '@molstar/plugin/context';
 import { PluginSpec } from '@molstar/plugin/spec';
 import { Mmcif } from '@molstar/plugin/state/formats/trajectory/mmcif';
-import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
 import { Column } from '@molstar/core/data/db';
-import { Structure, StructureSelection, Unit } from '@molstar/model/model/structure';
+import { Structure, StructureElement, Unit } from '@molstar/model/model/structure';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { MolViewSpec } from '@molstar/mvs/behavior';
 import { loadMVS } from '@molstar/mvs/load';
 import { MVSRuntimeRegistry } from '@molstar/mvs/registry';
-import { SelectorParams, substructureFromSelector } from '../components/selector.js';
+import { substructureFromSelector } from '../components/selector.js';
+import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import { createModel } from '../helpers/_test/annotation-rows-fixture.js';
-import { rowsToExpression } from '../helpers/selections.js';
+import { createRowOracle } from '../helpers/_test/row-oracle.js';
 
 setFSModule(fs);
 
@@ -85,23 +85,27 @@ describe('rows selectors in a loaded MVS document', async () => {
   }
   const cells = [...plugin.state.data.cells.values()];
   const components = cells.filter((c) => c.transform.transformer.id === 'ms-plugin.structure-component');
-  const schemaCells = components.filter((c) => (c.transform.params as any).type.name === 'schema');
+  /** The components made from rows: the expression `element-schema` */
+  const isRowsExpression = (c: (typeof cells)[number]) =>
+    (c.transform.params as any).type.name === 'expression' &&
+    (c.transform.params as any).type.params.head?.name === 'structure-query.generator.element-schema';
+  const schemaCells = components.filter(isRowsExpression);
   const parentStructure = (cell: (typeof cells)[number]) =>
     plugin.state.data.cells.get(cell.transform.parent)!.obj!.data as Structure;
 
-  it('loads without errors and creates one schema component per rows selector', () => {
+  it('loads without errors and creates one component of the expression element-schema per rows selector', () => {
     expect(cells.filter((c) => c.status === 'error').map((c) => c.errorText)).toEqual([]);
     expect(schemaCells.length).toBe(3);
-    expect(schemaCells.map((c) => (c.transform.params as any).type.params)).toEqual([rowsA, rowsB, [rowC]]);
+    expect(schemaCells.map((c) => (c.transform.params as any).type.params)).toEqual(
+      [rowsA, rowsB, [rowC]].map((items) => StructureElement.Schema.toExpression({ items })),
+    );
     // the labels describe the rows instead of dumping them
     expect(schemaCells.map((c) => c.obj!.label)).toEqual(['A:1-20 + A60 CA', 'REA', 'res <=20']);
-    // the components of the document are all the plugin's own `StructureComponent` (so the classic UI can modify them),
-    // and no rows were turned into an expression
+    // the components of the document are all the plugin's own `StructureComponent` (so the classic UI can modify them)
     const types = components.map((c) => (c.transform.params as any).type.name as string);
     expect(types.length).toBe(5);
     expect(types.filter((t) => t === 'static').length).toBe(2); // (polymer, ligand)
-    expect(types.filter((t) => t === 'schema').length).toBe(3);
-    expect(types.includes('expression')).toBe(false);
+    expect(types.filter((t) => t === 'expression').length).toBe(3);
     expect(
       cells.some((c) => c.transform.transformer.id.startsWith('mvs.') && c.transform.transformer.id.includes('schema')),
     ).toBe(false);
@@ -110,25 +114,30 @@ describe('rows selectors in a loaded MVS document', async () => {
   /** unit id -> its elements */
   const unitElements = (structure: Structure) =>
     Object.fromEntries(structure.units.map((u) => [u.id, Array.from(u.elements)]));
-  const viaExpression = (cell: (typeof cells)[number], rows: any[]) =>
-    StructureSelection.unionStructure(
-      StructureQueryHelper.createAndRun(parentStructure(cell), rowsToExpression(rows)).selection,
-    );
-
   it('the plugin treats them as components it can modify (the classic UI: modify by the current selection)', () => {
     expect(schemaCells.length).toBe(3);
     for (const c of schemaCells) expect(plugin.builders.structure.isComponentTransform(c)).toBe(true);
   });
 
-  it('components contain exactly the elements the MolScript expression for their rows selects', () => {
+  it('components contain exactly the elements which satisfy the rows (per-atom definition)', () => {
     const [a, b] = schemaCells;
     for (const [cell, rows] of [
       [a, rowsA],
       [b, rowsB],
     ] as const) {
-      const expected = viaExpression(cell, rows as any);
-      expect(expected.elementCount).toBeGreaterThan(10);
-      expect(unitElements(cell.obj!.data as Structure)).toEqual(unitElements(expected));
+      const parent = parentStructure(cell);
+      const oracle = createRowOracle(parent.model);
+      const expected = Object.fromEntries(
+        parent.units.flatMap((u) => {
+          const atoms = new Set(oracle.atomsOf(rows, u.conformation.operator));
+          const elements = Array.from(u.elements).filter((e) => atoms.has(e));
+          return elements.length ? [[u.id, elements]] : [];
+        }),
+      );
+      expect(Object.keys(expected).length).toBeGreaterThan(0);
+      expect((cell.obj!.data as Structure).elementCount).toBeGreaterThan(10);
+      expect(unitElements(cell.obj!.data as Structure)).toEqual(expected);
+      expect(unitElements(cell.obj!.data as Structure)).toEqual(unitElements(substructureFromRows(parent, rows)));
     }
   });
 
@@ -148,7 +157,7 @@ describe('rows selectors in a loaded MVS document', async () => {
     }
     expect(expected).toBeGreaterThan(100);
     expect(structure.elementCount).toBe(expected);
-    expect(viaExpression(c, [rowC]).elementCount).toBeGreaterThan(expected); // (MolScript reads a missing label_seq_id as 0)
+    expect(structure.elementCount).toBeLessThan(parent.elementCount); // (the ligand and the waters are not in it)
   });
 
   it('every schema component has a representation, which was built', () => {
@@ -175,30 +184,34 @@ describe('rows selectors in a loaded MVS document', async () => {
     }
   });
 
-  it('tooltips and color layers carry the rows as `schema` selectors', () => {
+  it('tooltips and color layers carry the rows as the expression element-schema', () => {
     const props = cells.find((c) => c.transform.transformer.id === 'ms-plugin.custom-structure-properties')!;
     const tooltips = JSON.stringify((props.transform.params as any).properties);
-    expect(tooltips).toContain('"name":"schema"');
+    expect(tooltips).toContain('structure-query.generator.element-schema');
     expect(tooltips).toContain('rows A');
     const cartoon = cells.find((c) => (c.transform.params as any)?.type?.name === 'cartoon')!;
     const layers = (cartoon.transform.params as any).colorTheme.params.layers as { selection: any }[];
-    expect(layers.map((l) => l.selection.name)).toContain('schema');
-    expect(layers.map((l) => l.selection.params)).toContainEqual([colorLayerRows]);
+    expect(layers.map((l) => l.selection.name)).toContain('expression');
+    expect(layers.map((l) => l.selection.params)).toContainEqual(
+      StructureElement.Schema.toExpression({ items: [colorLayerRows] }),
+    );
   });
 });
 
-describe('Selector with schema rows', async () => {
+describe('Selector with the expression of rows', async () => {
   const structure = Structure.ofModel(await createModel({ nChains: 4, nResidues: 20 }));
 
-  it('is a valid `SelectorParams` value, with an empty default', () => {
-    expect(SelectorParams.select.options.map((o) => o[0])).toContain('schema');
-    expect(SelectorParams.map('schema').defaultValue).toEqual([]);
-  });
-  it('substructureFromSelector resolves rows like the expression selector does', () => {
+  it('substructureFromSelector gives the elements of the rows', () => {
     const rows = [{ label_asym_id: 'A', beg_label_seq_id: 3, end_label_seq_id: 9 }, { auth_asym_id: 'x2' }];
-    const viaSchema = substructureFromSelector(structure, { name: 'schema', params: rows });
-    const viaExpression = substructureFromSelector(structure, { name: 'expression', params: rowsToExpression(rows) });
-    expect(viaSchema.elementCount).toBe(viaExpression.elementCount);
-    expect(viaSchema.elementCount).toBeGreaterThan(0);
+    const viaExpression = substructureFromSelector(structure, {
+      name: 'expression',
+      params: StructureElement.Schema.toExpression({ items: rows }),
+    });
+    const direct = substructureFromRows(structure, rows);
+    expect(viaExpression.elementCount).toBe(direct.elementCount);
+    expect(viaExpression.elementCount).toBeGreaterThan(0);
+    expect(viaExpression.units.map((u) => Array.from(u.elements))).toEqual(
+      direct.units.map((u) => Array.from(u.elements)),
+    );
   });
 });

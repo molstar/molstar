@@ -5,14 +5,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { Structure, StructureSelection } from '@molstar/model/model/structure';
-import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
+import { Structure } from '@molstar/model/model/structure';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
 import { IndicesAndSortings } from '@molstar/model/model/structure/structure/element/schema-selection/indexing';
 import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import type { MVSAnnotationRow } from '../schemas.js';
 import { getAtomRangesForRow } from '@molstar/model/model/structure/structure/element/schema-selection/selections';
-import { rowsToExpression } from '../selections.js';
 import { TestOperator, createModel } from './annotation-rows-fixture.js';
 
 /**
@@ -39,10 +37,6 @@ describe('values which are missing', async () => {
     expect([viaSubstructure, viaAnnotation]).toEqual([viaRanges, viaRanges]);
     return viaRanges;
   }
-  const molScript = (row: MVSAnnotationRow) =>
-    StructureSelection.unionStructure(StructureQueryHelper.createAndRun(structure, rowsToExpression([row])).selection)
-      .elementCount;
-
   it('a residue without label_seq_id never matches a label_seq_id criterion, not even 0', () => {
     expect(counts({ label_seq_id: 0 })).toBe(0);
     expect(counts({ label_asym_id: 'L0', label_seq_id: 1 })).toBe(0);
@@ -62,16 +56,6 @@ describe('values which are missing', async () => {
     // (the residue is found when the criteria are about what it has)
     expect(counts({ residue_index: ligandResidueIndex, auth_seq_id: 500 })).toBe(4);
     expect(counts({ auth_seq_id: 500, auth_asym_id: 'L0' })).toBe(4);
-  });
-  it('... which is where this differs from MolScript, which reads a missing label_seq_id as 0', () => {
-    expect(molScript({ label_seq_id: 0 })).toBe(nLigandAtoms);
-    expect(molScript({ end_label_seq_id: 3 })).toBe(3 * 3 * 6 + nLigandAtoms);
-    expect(molScript({ beg_label_seq_id: -5, end_label_seq_id: 5 })).toBe(3 * 5 * 6 + nLigandAtoms);
-    // (where the value is not 0 or below the bound, they agree)
-    expect(molScript({ beg_label_seq_id: 1 })).toBe(nPolymerAtoms);
-    expect(molScript({ label_seq_id: 5 })).toBe(3 * 6);
-    expect(molScript({ auth_seq_id: 500, end_label_seq_id: 5 })).toBe(4);
-    expect(molScript({ residue_index: 3 * 20, end_label_seq_id: 5 })).toBe(4);
   });
   it('ligands are found by what they have', () => {
     expect(counts({ label_asym_id: 'L0' })).toBe(4);
@@ -93,12 +77,5 @@ describe('values which are missing', async () => {
     // residue 8 (auth_seq_id 18) has none
     expect(counts({ auth_asym_id: 'x0', auth_seq_id: 18, pdbx_PDB_ins_code: '' })).toBe(6);
     expect(counts({ auth_asym_id: 'x0', auth_seq_id: 18, pdbx_PDB_ins_code: 'A' })).toBe(0);
-    for (const row of [
-      { pdbx_PDB_ins_code: 'A' },
-      { pdbx_PDB_ins_code: '' },
-      { label_asym_id: 'B', pdbx_PDB_ins_code: '' },
-    ]) {
-      expect(molScript(row)).toBe(counts(row));
-    }
   });
 });
