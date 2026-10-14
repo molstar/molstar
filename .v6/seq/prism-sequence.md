@@ -133,7 +133,7 @@ b.view({ ref: 'sequence' }).section({ ref: 'main', style: 'compact' /* or 'track
   track, the ruler rail, zoom and pan).
 - **Height**: tracks: the dock follows `seq.layout.contentHeight('main')` (navigator, ruler and one row). Compact:
   the dock's height (`--msp-dock-size`), the text scrolling inside it.
-- **No frame**: `FloatingDock` gets a frameless variant (no `--msp-glass-panel-bg`, shadow or filter on its content);
+- **No frame**: the tab asks for no card (`ShellTab.frame: 'none'`; no `--msp-glass-panel-bg`, shadow or filter);
   the canvas shows through. The surface's canvases clear rather than fill, so the viewer draws on the canvas
   directly. Seq\* draws its text halos in the skin's surface color (§5), which keeps letters legible on any background.
 
@@ -144,7 +144,8 @@ viewer holds its state, and the sequence model subscribes to it and updates its 
 reads the DOM or CSS to find it.
 
 - **The abstraction**: prism-ui exports `CanvasInk = { theme: 'light' | 'dark'; color: string }` and
-  `canvasInk(props$): ReadonlyState<CanvasInk>`, which is the `canvasTheme(props$)` it already computes
+  `canvasInk(props: ReadonlyState<CanvasBackgroundProps>)`, a disposable `ReadonlyState<CanvasInk>` (its owner
+  disposes it; `fixedInk(color)` for the mocks), which is the `canvasTheme(props$)` it already computes
   (`ui/src/model/canvas-theme.ts`, WCAG luminance at 0.179) plus the base color, today handed to the shell only as
   `canvasTheme` / `canvasColor` props; the shell takes the ink state instead. The viewer creates the one ink state and
   gives it to the shell and to `createSequenceViewers`; in the mocks
