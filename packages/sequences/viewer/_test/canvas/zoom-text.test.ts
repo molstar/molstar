@@ -15,11 +15,11 @@
 // nothing is measured again: no `measureText`, no new font. Positive controls: cells drawn from at once (the old
 // behavior) upload a page per new cell; the text caches dropped every frame measure again.
 
-import { describe, expect, it } from "vitest";
-import { case14, case15 } from "../../../core/_test/format/cases.js";
-import type { Canvas2DBackend } from "../../src/canvas/index.js";
-import type { Viewport } from "../../src/viewport.js";
-import { close, type Opened, opened } from "./open.js";
+import { describe, expect, it } from 'vitest';
+import { case14, case15 } from '../../../core/_test/format/cases.js';
+import type { Canvas2DBackend } from '../../src/canvas/index.js';
+import type { Viewport } from '../../src/viewport.js';
+import { close, type Opened, opened } from './open.js';
 
 /** Pages the atlas holds (backend.ts `PAGES`): the most uploads a pass can need. */
 const PAGES = 4;
@@ -33,7 +33,7 @@ const FRAMES = 20;
 
 function atlasOf(t: Opened) {
   const a = (t.surface as unknown as { backend: Canvas2DBackend }).backend.images.atlas;
-  if (!a) throw new Error("no atlas");
+  if (!a) throw new Error('no atlas');
   return a;
 }
 const fontsOf = (t: Opened) => (t.ctx.text as unknown as { fonts: unknown[] }).fonts.length;
@@ -80,16 +80,16 @@ function zoomInOut(t: Opened, x: number, each?: () => void) {
     }
   };
   const s = vp.live.current;
-  vp.zoomCentered(Math.max(vp.props.minLetterCell, s.width / 60), x, { animate: true, origin: "pointer" });
+  vp.zoomCentered(Math.max(vp.props.minLetterCell, s.width / 60), x, { animate: true, origin: 'pointer' });
   run();
-  vp.fit({ animate: true, origin: "pointer" });
+  vp.fit({ animate: true, origin: 'pointer' });
   run();
   return { most, steps };
 }
 
 const CASES = [
-  ["case 14", case14, 300],
-  ["case 15", case15, 400],
+  ['case 14', case14, 300],
+  ['case 15', case15, 400],
 ] as const;
 
 describe("an animated zoom's text work", () => {
@@ -99,7 +99,7 @@ describe("an animated zoom's text work", () => {
       const r = zoomInOut(t, 600);
       const a = atlasOf(t);
       console.log(`${name} cold: ${JSON.stringify({ ...r, made: a.made, uploads: a.uploads })}`);
-      expect(a.made, "cells made by the zoom").toBeGreaterThan(20);
+      expect(a.made, 'cells made by the zoom').toBeGreaterThan(20);
       expect(r.steps, "the animation's steps").toBeGreaterThan(20);
       expect(r.most).toBeLessThanOrEqual(PAGES);
       close(t);
@@ -124,9 +124,9 @@ describe("an animated zoom's text work", () => {
       } finally {
         c.restore();
       }
-      expect(c.calls, "measureText calls").toBe(0);
-      expect(fontsOf(t), "fonts").toBe(fonts);
-      expect(atlasOf(t).made - made, "atlas cells made").toBeLessThanOrEqual(8);
+      expect(c.calls, 'measureText calls').toBe(0);
+      expect(fontsOf(t), 'fonts').toBe(fonts);
+      expect(atlasOf(t).made - made, 'atlas cells made').toBeLessThanOrEqual(8);
       close(t);
     });
     it(`${name}: positive control, the text caches dropped each frame measure again`, async () => {

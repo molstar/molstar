@@ -10,23 +10,23 @@
 // outlined inside its own pixels in the hover ink of its kind's color, in both skins, and nothing else; a cell's ground
 // (no kind under the point) outlined inside the ground; nothing over a cell without contacts.
 
-import { describe, expect, it } from "vitest";
-import { SkinToken } from "../../src/draw/backend.js";
-import { Dirty, hoverInk, Pass, SectionComposer } from "../../src/draw/index.js";
-import { DarkSkin, DefaultSkin, Hit } from "../../src/index.js";
-import { FingerprintRenderer } from "../../src/interactions/viewer/index.js";
-import { LayerFrame, RecordingBackend } from "../../src/testing/index.js";
-import { BoxKind, passBoxes, within } from "../hover-fixtures.js";
-import { layerOf, open, unitScene } from "./fixtures.js";
+import { describe, expect, it } from 'vitest';
+import { SkinToken } from '../../src/draw/backend.js';
+import { Dirty, hoverInk, Pass, SectionComposer } from '../../src/draw/index.js';
+import { DarkSkin, DefaultSkin, Hit } from '../../src/index.js';
+import { FingerprintRenderer } from '../../src/interactions/viewer/index.js';
+import { LayerFrame, RecordingBackend } from '../../src/testing/index.js';
+import { BoxKind, passBoxes, within } from '../hover-fixtures.js';
+import { layerOf, open, unitScene } from './fixtures.js';
 
-describe.each(["light", "dark"] as const)("the fingerprint's hover emphasis, %s", (skin) => {
+describe.each(['light', 'dark'] as const)("the fingerprint's hover emphasis, %s", (skin) => {
   it("the hovered stripe alone, inside its own rect, in its kind's hover ink; a ground inside the ground", async () => {
     const scene = unitScene();
     const t = await open(scene, { dpr: 2, size: [1000, 600], render: { maxCell: 400 } });
-    t.ctx.behaviors.get("hoverLabel")?.remove();
-    const sk = skin === "dark" ? DarkSkin : DefaultSkin;
-    if (skin === "dark") t.ctx.setSkin(DarkSkin);
-    t.ctx.viewports.get(scene.section)?.setView(24, 0, "api");
+    t.ctx.behaviors.get('hoverLabel')?.remove();
+    const sk = skin === 'dark' ? DarkSkin : DefaultSkin;
+    if (skin === 'dark') t.ctx.setSkin(DarkSkin);
+    t.ctx.viewports.get(scene.section)?.setView(24, 0, 'api');
     await t.ctx.graph.update();
     const { k } = layerOf(t.ctx);
     const main = new RecordingBackend();
@@ -37,7 +37,7 @@ describe.each(["light", "dark"] as const)("the fingerprint's hover emphasis, %s"
     const hit = Hit.create();
     const outlines = (r: number[]) => {
       t.ctx.layout.hitTest(scene.section, (r[0] + r[2]) / 4, (r[1] + r[3]) / 4, hit);
-      t.ctx.hover.setFromHit(hit, "pointer");
+      t.ctx.hover.setFromHit(hit, 'pointer');
       const rec = new RecordingBackend();
       composer.frame(rec, Dirty.overlay);
       return passBoxes(rec, Pass.overlay).filter((x) => x[5] === BoxKind.outline || x[4] === hoverInk(sk, r[4]));
@@ -46,7 +46,7 @@ describe.each(["light", "dark"] as const)("the fingerprint's hover emphasis, %s"
     expect(stripes.length).toBeGreaterThan(3);
     for (const r of stripes.slice(0, 6)) {
       const o = outlines(r);
-      expect(o.length, `stripe ${r.join(",")}`).toBe(1);
+      expect(o.length, `stripe ${r.join(',')}`).toBe(1);
       expect(within(o[0], r)).toBe(true);
       expect(o[0][4]).toBe(hoverInk(sk, r[4]));
     }

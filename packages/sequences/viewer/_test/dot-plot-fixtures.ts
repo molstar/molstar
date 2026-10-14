@@ -9,11 +9,11 @@
 // A dot plot's documents, for its test and heap guard: a sequence with a tandem repeat against itself, its word
 // matches as pairs and a grid (|i − j| per pair of positions, missing on the diagonal) on one track, under a ruler.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
 
 /** A repeat of 24, a linker, the repeat again: words of the repeat match at an offset of 30. */
-export const REPEAT = "MKTAYIAKQRQISFVKSHFSRQLE";
+export const REPEAT = 'MKTAYIAKQRQISFVKSHFSRQLE';
 export const SEQ = `${REPEAT}GSGSGS${REPEAT}`;
 
 /** Self matches of `k` letters (i ≠ j), as pairs of ranges merged along each diagonal. */
@@ -29,7 +29,7 @@ export function wordMatches(seq: string, k = 4) {
       if (!word(i, d) || word(i - 1, d)) continue;
       let e = i;
       while (word(e + 1, d)) e++;
-      cols.target.push("s");
+      cols.target.push('s');
       cols.start.push(i);
       cols.stop.push(e + k);
       cols.b_start.push(i + d);
@@ -45,7 +45,7 @@ export function distances(n: number) {
     const [i, j] = [Math.floor(x / n), x % n];
     return i === j ? null : Math.abs(i - j);
   });
-  return { target: ["s"], b_target: ["s"], value: [value] };
+  return { target: ['s'], b_target: ['s'], value: [value] };
 }
 
 /** |i − j| per pair of positions of s as one Float32Array, NaN on the diagonal: a large grid without a JSON list. */
@@ -58,21 +58,21 @@ export function typedDistances(n: number): Float32Array {
 
 /** The fixture; `typed`: its grid's cells one Float32Array (written into the document after the builder). */
 export function dotPlotDoc(seq = SEQ, typed = false): SeqViewSpecDoc {
-  const b = createSeqViewSpec({ title: "dot plot" });
-  const s = b.data.sequence({ ref: "s", value: seq });
-  const cells = typed ? { target: ["s"], b_target: ["s"], value: [[]] } : distances(seq.length);
-  const grid = b.data.annotation({ ref: "dist", label: "Distance", geometry: "grid", value: cells });
-  const words = b.data.annotation({ ref: "words", geometry: "pairs", value: wordMatches(seq) });
-  const v = b.view({ ref: "v", label: "V" });
-  const sec = v.section({ ref: "v.s" }).block({ sequence: s });
-  sec.track({ ref: "t-ruler", label: "" }).ruler();
+  const b = createSeqViewSpec({ title: 'dot plot' });
+  const s = b.data.sequence({ ref: 's', value: seq });
+  const cells = typed ? { target: ['s'], b_target: ['s'], value: [[]] } : distances(seq.length);
+  const grid = b.data.annotation({ ref: 'dist', label: 'Distance', geometry: 'grid', value: cells });
+  const words = b.data.annotation({ ref: 'words', geometry: 'pairs', value: wordMatches(seq) });
+  const v = b.view({ ref: 'v', label: 'V' });
+  const sec = v.section({ ref: 'v.s' }).block({ sequence: s });
+  sec.track({ ref: 't-ruler', label: '' }).ruler();
   sec
-    .track({ ref: "t-plot", label: "Plot" })
-    .dot_plot({ ref: "l-dist", data: grid })
-    .dot_plot({ ref: "l-words", data: words, color: { theme: "uniform", params: { color: "#d1495b" } } });
+    .track({ ref: 't-plot', label: 'Plot' })
+    .dot_plot({ ref: 'l-dist', data: grid })
+    .dot_plot({ ref: 'l-words', data: words, color: { theme: 'uniform', params: { color: '#d1495b' } } });
   const d = b.getDocument();
   if (typed) {
-    const g = (d.root.children ?? []).flatMap((n) => n.children ?? []).find((n) => n.ref === "dist");
+    const g = (d.root.children ?? []).flatMap((n) => n.children ?? []).find((n) => n.ref === 'dist');
     if (g?.params) (g.params.value as { value: unknown[] }).value = [typedDistances(seq.length)];
   }
   return d;

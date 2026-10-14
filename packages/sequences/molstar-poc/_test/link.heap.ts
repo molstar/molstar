@@ -11,20 +11,20 @@
 // allocating an object each (`leaking`), measured alike, is caught. The Seq*-to-3D hover makes a Mol* loci per hover
 // change by design (the link's `react`), so it has no guard.
 
-import { compile } from "@molstar/seq-core/format";
-import { CoordinateSystemKind, Extents, KeyKind } from "@molstar/seq-core/model";
-import { Translator } from "@molstar/seq-core/translate";
-import { describe, expect, it } from "vitest";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../../core/_test/model/heap.js";
-import { readStructure, StructureLink, structureOf } from "../src/index.js";
-import { bytesOf, loaders, p53Doc, registries } from "./fixtures.js";
+import { compile } from '@molstar/seq-core/format';
+import { CoordinateSystemKind, Extents, KeyKind } from '@molstar/seq-core/model';
+import { Translator } from '@molstar/seq-core/translate';
+import { describe, expect, it } from 'vitest';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../../core/_test/model/heap.js';
+import { readStructure, StructureLink, structureOf } from '../src/index.js';
+import { bytesOf, loaders, p53Doc, registries } from './fixtures.js';
 
 const N = 50_000;
-const { set } = await compile(p53Doc([{ ref: "1tup", pdb: "1TUP", entity: "3" }]), registries(), loaders());
-const structure = await structureOf(await readStructure(bytesOf("1tup.bcif"), "bcif"), 0, null);
-const link = StructureLink.attach(new Translator(), "3d", structure, set, "1tup");
+const { set } = await compile(p53Doc([{ ref: '1tup', pdb: '1TUP', entity: '3' }]), registries(), loaders());
+const structure = await structureOf(await readStructure(bytesOf('1tup.bcif'), 'bcif'), 0, null);
+const link = StructureLink.attach(new Translator(), '3d', structure, set, '1tup');
 const t = { kind: 0, id: 0, row: -1 };
-set.byName("1tup/C", t);
+set.byName('1tup/C', t);
 expect(t.kind).toBe(KeyKind.unit);
 const at = (i: number) => {
   const e = Extents.create(1);
@@ -45,14 +45,14 @@ const hover = (i: number) => {
   sink = (sink + seq.start[0]) | 0;
 };
 
-describe("link heap guards", () => {
-  it("a Mol* hover to member runs and Seq* runs", () => {
+describe('link heap guards', () => {
+  it('a Mol* hover to member runs and Seq* runs', () => {
     const r = heapScaling(N, hover);
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
     expect(sink).not.toBe(0.5);
   });
 
-  it("the same step allocating an object each is caught (positive control)", () => {
+  it('the same step allocating an object each is caught (positive control)', () => {
     expect(controlCaught(() => heapScaling(N, leaking(hover)))).toBe(true);
   });
 });

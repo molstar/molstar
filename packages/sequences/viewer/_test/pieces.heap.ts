@@ -17,8 +17,8 @@
 // warm-up and measurement of the frame allocating an object each (`leaking`) must catch it.
 // Each case loads the viewer afresh (`vi.resetModules`; draws.heap.ts says why: Maglev and the module runner).
 
-import { describe, expect, it, vi } from "vitest";
-import type { LayerRenderer } from "../src/index.js";
+import { describe, expect, it, vi } from 'vitest';
+import type { LayerRenderer } from '../src/index.js';
 import {
   controlCaught,
   describeScaling,
@@ -31,7 +31,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = FRAME_N;
 const WARM = FRAME_WARM;
@@ -47,7 +47,7 @@ const guard = (frame: () => void) => {
 };
 /** The positive control as the kit's `heap` hook: a frame's check fails unless its leaking frame is caught. */
 const control = (frame: () => void) => {
-  if (!controlCaught(() => measure(leaking(frame)))) throw new Error("the leaking frame was not caught");
+  if (!controlCaught(() => measure(leaking(frame)))) throw new Error('the leaking frame was not caught');
 };
 
 // A reversed piece goes through the same code for every renderer of a kind (the axis's run conversions), so one
@@ -56,43 +56,43 @@ const control = (frame: () => void) => {
 // draws.heap.ts and rn2-draws.heap.ts. Dropped on 2026-10-12 (the tier's run time): letters on 40,000 positions,
 // color, ruler, emphasis, variants, secondary, ranges and points on their density documents; `HEAP_DEEP` runs them.
 const CASES: [string, string][] = [
-  ["letters", "all types"],
-  ["values", "40,000 positions"],
-  ["pairs", "all types"],
-  ["ranges", "all types"],
-  ["rows", "family"],
-  ["logo", "family"],
-  ["matrix", "matrix"],
-  ["seqv:map", "miniature"],
+  ['letters', 'all types'],
+  ['values', '40,000 positions'],
+  ['pairs', 'all types'],
+  ['ranges', 'all types'],
+  ['rows', 'family'],
+  ['logo', 'family'],
+  ['matrix', 'matrix'],
+  ['seqv:map', 'miniature'],
   ...((HEAP_DEEP
     ? [
-        ["letters", "40,000 positions"],
-        ["color", "means"],
-        ["ruler", "all types"],
-        ["emphasis", "all types"],
-        ["ranges", "density"],
-        ["points", "density"],
-        ["variants", "all types"],
-        ["secondary", "all types"],
+        ['letters', '40,000 positions'],
+        ['color', 'means'],
+        ['ruler', 'all types'],
+        ['emphasis', 'all types'],
+        ['ranges', 'density'],
+        ['points', 'density'],
+        ['variants', 'all types'],
+        ['secondary', 'all types'],
       ]
     : []) as [string, string][]),
 ];
 
 async function run(name: string, doc: string, heap = guard) {
   vi.resetModules();
-  const { KernelRenderers } = await import("../src/index.js");
-  const { rendererConformance } = await import("../src/testing/index.js");
-  const { asText, directed, matrixDoc, miniatureDoc } = await import("./conformance-fixtures.js");
-  const { meanDoc } = await import("./draw-fixtures.js");
-  const { opened } = await import("./layout-fixtures.js");
-  const { allTypes, scaleDoc } = await import("./prepare-fixtures.js");
-  const { densityDoc } = await import("./rn2-fixtures.js");
-  const { case3 } = await import("../../core/_test/format/cases.js");
+  const { KernelRenderers } = await import('../src/index.js');
+  const { rendererConformance } = await import('../src/testing/index.js');
+  const { asText, directed, matrixDoc, miniatureDoc } = await import('./conformance-fixtures.js');
+  const { meanDoc } = await import('./draw-fixtures.js');
+  const { opened } = await import('./layout-fixtures.js');
+  const { allTypes, scaleDoc } = await import('./prepare-fixtures.js');
+  const { densityDoc } = await import('./rn2-fixtures.js');
+  const { case3 } = await import('../../core/_test/format/cases.js');
   const make = {
-    "all types": () => allTypes(),
-    "40,000 positions": () => scaleDoc({ length: 20_000 }),
+    'all types': () => allTypes(),
+    '40,000 positions': () => scaleDoc({ length: 20_000 }),
     means: () => meanDoc(10_000),
-    density: () => densityDoc({ type: name === "ranges" ? "ranges" : "points", items: 6000, len: 300 }),
+    density: () => densityDoc({ type: name === 'ranges' ? 'ranges' : 'points', items: 6000, len: 300 }),
     family: case3,
     matrix: matrixDoc,
     miniature: () => miniatureDoc(),
@@ -103,7 +103,7 @@ async function run(name: string, doc: string, heap = guard) {
     open: async ({ geometry, entry: has }) => {
       const d = directed(make(), -1, true);
       return (
-        await opened(geometry === "wrapped" ? asText(d) : d, {
+        await opened(geometry === 'wrapped' ? asText(d) : d, {
           renderers: has ? [...all] : all.filter((r) => r !== entry),
         })
       ).ctx;
@@ -116,24 +116,24 @@ async function run(name: string, doc: string, heap = guard) {
 describe("AX1: reversed and ranged pieces' frames allocate nothing after warm-up", () => {
   for (const [name, doc] of CASES)
     it(`${name} on ${doc}, reversed`, async () => {
-      const heap = (await run(name, doc)).filter((c) => c.check === "heap");
+      const heap = (await run(name, doc)).filter((c) => c.check === 'heap');
       expect(heap.length).toBeGreaterThan(0);
       expect(heap.filter((c) => !c.ok).map((c) => c.detail)).toEqual([]);
     }, 240_000);
 
-  it("letters on all types, reversed, an object allocated a frame (the positive control)", async () => {
-    const heap = (await run("letters", "all types", control)).filter((c) => c.check === "heap");
+  it('letters on all types, reversed, an object allocated a frame (the positive control)', async () => {
+    const heap = (await run('letters', 'all types', control)).filter((c) => c.check === 'heap');
     expect(heap.length).toBeGreaterThan(0);
     expect(heap.filter((c) => !c.ok).map((c) => c.detail)).toEqual([]);
   }, 240_000);
 });
 
 describe("AX1: the overlay's hover frames on reversed pieces allocate nothing after warm-up", () => {
-  it.each(["scale", "rows"] as const)(
-    "hover frames over %s, reversed, with a selection and a highlight",
+  it.each(['scale', 'rows'] as const)(
+    'hover frames over %s, reversed, with a selection and a highlight',
     async (kind) => {
       vi.resetModules();
-      const { hoverFrames } = await import("./overlay-fixtures.js");
+      const { hoverFrames } = await import('./overlay-fixtures.js');
       const { frame, hovers } = await hoverFrames(kind, -1);
       const t0 = performance.now();
       for (let i = 0; i < WARM || performance.now() - t0 < FRAME_WARM_MS; i++) frame(i);

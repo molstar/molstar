@@ -2,7 +2,10 @@
   "extends": "../../../tsconfig.base.json",
   // _test, bench and scripts (no emit). The scripts are run by Node's type stripping and import with .ts.
   "compilerOptions": {
-    "composite": false, "declaration": false, "declarationMap": false, "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
     "allowImportingTsExtensions": true,
     "useDefineForClassFields": true,
     "noUncheckedIndexedAccess": false,

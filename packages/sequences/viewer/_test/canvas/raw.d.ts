@@ -7,7 +7,7 @@
  */
 
 // Vite's `?raw` imports (the bundled fixtures of fixture-fs.ts).
-declare module "*?raw" {
+declare module '*?raw' {
   const text: string;
   export default text;
 }

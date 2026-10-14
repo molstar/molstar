@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { clsx } from "clsx";
-import type { ReactNode, Ref, UIEventHandler } from "react";
-import styles from "./scroll-area.module.css";
+import { clsx } from 'clsx';
+import type { ReactNode, Ref, UIEventHandler } from 'react';
+import styles from './scroll-area.module.css';
 
 export interface ScrollAreaProps {
   children: ReactNode;
@@ -19,7 +19,7 @@ export interface ScrollAreaProps {
   /** The element that scrolls (for scrollTop, scrollIntoView and the like). */
   viewportRef?: Ref<HTMLDivElement>;
   /** Which way it scrolls; vertical by default. */
-  orientation?: "vertical" | "horizontal" | "both";
+  orientation?: 'vertical' | 'horizontal' | 'both';
   onScroll?: UIEventHandler<HTMLDivElement>;
 }
 
@@ -29,7 +29,7 @@ export function ScrollArea({
   className,
   viewportClassName,
   viewportRef,
-  orientation = "vertical",
+  orientation = 'vertical',
   onScroll,
 }: ScrollAreaProps) {
   return (

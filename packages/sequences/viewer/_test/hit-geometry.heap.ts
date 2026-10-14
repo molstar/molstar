@@ -14,7 +14,7 @@
 // (`leaking`) through the same warm-up and measurement, which must catch it. Each case loads the viewer afresh
 // (`vi.resetModules`).
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -26,26 +26,26 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 async function setup() {
   vi.resetModules();
-  const { lit } = await import("./overlay-fixtures.js");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
-  const { hitGeometryDoc, S } = await import("./hit-geometry-fixtures.js");
-  const { Dirty } = await import("../src/draw/index.js");
-  const { Inputs, PointerType } = await import("../src/index.js");
+  const { lit } = await import('./overlay-fixtures.js');
+  const { recording, COPY_BACK } = await import('./composer-fixtures.js');
+  const { hitGeometryDoc, S } = await import('./hit-geometry-fixtures.js');
+  const { Dirty } = await import('../src/draw/index.js');
+  const { Inputs, PointerType } = await import('../src/index.js');
   const t = await lit(hitGeometryDoc(), { width: 900, height: 600, dpr: 2 });
-  t.ctx.behaviors.get("hoverLabel")?.remove();
+  t.ctx.behaviors.get('hoverLabel')?.remove();
   // The whole sequence in view (fit), so both ends' boundaries are on screen.
-  t.vp?.setView(1, 0, "api");
+  t.vp?.setView(1, 0, 'api');
   const be = recording(COPY_BACK);
   t.frame(be, Dirty.all);
   const p = Inputs.pointer();
   p.section = t.ctx.layout.sectionIndex(S);
   p.type = PointerType.move;
-  const ys = ["t-dots", "t-bars", "t-ticks", "t-pairs", "t-arcs"].map((r) => t.yOf(S, r));
-  const ends = ["t-ticks", "t-tick-points", "t-tick-variants"].map((r) => t.yOf(S, r));
+  const ys = ['t-dots', 't-bars', 't-ticks', 't-pairs', 't-arcs'].map((r) => t.yOf(S, r));
+  const ends = ['t-ticks', 't-tick-points', 't-tick-variants'].map((r) => t.yOf(S, r));
   const x0 = t.xOf(S, 0, 8);
   // The edge after the last position: the end boundary's glyph, the pointer on either side of it.
   const vp = t.ctx.layout.axis(S);
@@ -76,8 +76,8 @@ function run(n: number, frame: (i: number) => void) {
   return heapScaling(n, () => frame(i++));
 }
 
-describe("hover frames over sized shapes", () => {
-  it("allocate nothing; an object allocated per frame is caught", async () => {
+describe('hover frames over sized shapes', () => {
+  it('allocate nothing; an object allocated per frame is caught', async () => {
     const { frame, hovers } = await setup();
     const r = run(FRAME_N, frame);
     expect(isFlat(r), describeScaling(r, FRAME_N)).toBe(true);
@@ -87,20 +87,20 @@ describe("hover frames over sized shapes", () => {
 
   it('"residue" mode over an own unit\'s row allocates nothing', async () => {
     vi.resetModules();
-    const { lit } = await import("./overlay-fixtures.js");
-    const { recording, COPY_BACK } = await import("./composer-fixtures.js");
-    const { splitUnitsDoc } = await import("./split-units-fixtures.js");
-    const { Dirty } = await import("../src/draw/index.js");
-    const { Inputs, PointerType, SeqViewerConfig } = await import("../src/index.js");
+    const { lit } = await import('./overlay-fixtures.js');
+    const { recording, COPY_BACK } = await import('./composer-fixtures.js');
+    const { splitUnitsDoc } = await import('./split-units-fixtures.js');
+    const { Dirty } = await import('../src/draw/index.js');
+    const { Inputs, PointerType, SeqViewerConfig } = await import('../src/index.js');
     const t = await lit(splitUnitsDoc({ highlights: true }), { width: 1000, height: 400, dpr: 2 });
-    t.ctx.behaviors.get("hoverLabel")?.remove();
-    t.ctx.config.set(SeqViewerConfig.UI.OwnRowHover, "residue");
+    t.ctx.behaviors.get('hoverLabel')?.remove();
+    t.ctx.config.set(SeqViewerConfig.UI.OwnRowHover, 'residue');
     const be = recording(COPY_BACK);
     t.frame(be, Dirty.all);
     const p = Inputs.pointer();
     p.section = t.ctx.layout.sectionIndex(t.section);
     p.type = PointerType.move;
-    const ys = [0, 1, 2].map((r) => t.yOf(t.section, "t-chains", r));
+    const ys = [0, 1, 2].map((r) => t.yOf(t.section, 't-chains', r));
     const frame = (i: number) => {
       p.x = t.xOf(t.section, 0, 8 + (i % 44));
       p.y = ys[i % 3];

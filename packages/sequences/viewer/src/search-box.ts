@@ -13,17 +13,17 @@
 // kept", where it was made, so removing never needs the legend open). The viewer ships no search of its own:
 // what a hit is stays the application's.
 
-import { sectionHighlightEntries } from "./chrome.js";
-import type { SeqViewerContext } from "./context.js";
-import type { Result } from "./results.js";
-import { state } from "./state.js";
+import { sectionHighlightEntries } from './chrome.js';
+import type { SeqViewerContext } from './context.js';
+import type { Result } from './results.js';
+import { state } from './state.js';
 
 /** What the part's "Keep" button does, as its hint says. */
-export const KEEP_HINT = "Keep these results highlighted";
+export const KEEP_HINT = 'Keep these results highlighted';
 /** What its "Clear kept" button does. */
-export const CLEAR_KEPT_HINT = "Remove every kept search highlight";
+export const CLEAR_KEPT_HINT = 'Remove every kept search highlight';
 /** The results set the part fills. */
-export const SEARCH_RESULTS = "search";
+export const SEARCH_RESULTS = 'search';
 /** How long the text rests before the search runs. */
 export const SEARCH_SETTLE_MS = 200;
 
@@ -56,7 +56,7 @@ export interface SearchView {
 
 export class SearchBox {
   readonly view = state<SearchView>({
-    text: "",
+    text: '',
     pending: false,
     count: 0,
     index: -1,
@@ -119,7 +119,7 @@ export class SearchBox {
   }
 
   step(dir: 1 | -1): void {
-    this.ctx.results.step(dir, { name: SEARCH_RESULTS, origin: "keyboard" });
+    this.ctx.results.step(dir, { name: SEARCH_RESULTS, origin: 'keyboard' });
   }
 
   /**
@@ -130,16 +130,16 @@ export class SearchBox {
     const section = this.ctx.viewports.sections.value[0];
     const text = this.view.value.text.trim();
     if (!section) return null;
-    const slug = text.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
-    return { section, name: SEARCH_RESULTS, ref: `${section}.keep.${slug || "search"}`, label: text || "Search" };
+    const slug = text.toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
+    return { section, name: SEARCH_RESULTS, ref: `${section}.keep.${slug || 'search'}`, label: text || 'Search' };
   }
   canSave(): boolean {
     const t = this.saveTarget();
-    return !!t && this.ctx.actions.can("results.save", t);
+    return !!t && this.ctx.actions.can('results.save', t);
   }
   save(): boolean {
     const t = this.saveTarget();
-    return !!t && this.ctx.actions.run("results.save", t, "pointer");
+    return !!t && this.ctx.actions.run('results.save', t, 'pointer');
   }
 
   /** The highlights entries a search kept (their data `<section>.keep.<query>`), in the shown view. */
@@ -150,16 +150,16 @@ export class SearchBox {
   clearKept(): void {
     const by = new Map<string, string[]>();
     for (const e of this.keptSets()) by.set(e.section, [...(by.get(e.section) ?? []), e.data]);
-    for (const [section, data] of by) this.ctx.actions.run("highlight.remove", { section, data }, "pointer");
+    for (const [section, data] of by) this.ctx.actions.run('highlight.remove', { section, data }, 'pointer');
   }
 
   /** "2 / 14" ("2 / 2000+" when capped), "no results", "searching…", or the failure. */
   status(v: SearchView = this.view.value): string {
     if (v.error) return v.error;
-    if (v.pending) return "searching…";
-    if (v.text.length === 0) return "";
-    if (v.count === 0) return "no results";
-    return `${v.index < 0 ? "–" : v.index + 1} / ${v.count}${v.more ? "+" : ""}`;
+    if (v.pending) return 'searching…';
+    if (v.text.length === 0) return '';
+    if (v.count === 0) return 'no results';
+    return `${v.index < 0 ? '–' : v.index + 1} / ${v.count}${v.more ? '+' : ''}`;
   }
 
   dispose(): void {

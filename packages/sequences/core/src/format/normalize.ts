@@ -16,14 +16,14 @@ import {
   encodeMsgPack,
   encodeTypedArrays,
   type Issue,
-} from "@molstar/seq-core/model";
-import type { DocNode, SeqViewSpecDoc } from "./doc.js";
-import type { SvsRegistries } from "./registry.js";
-import { isPlainObject } from "./schema/field-schema.js";
-import { normalizeParams } from "./schema/params-schema.js";
-import type { TreeSchema } from "./schema/tree-schema.js";
-import { SvsTreeSchema } from "./tables/svs-tree.js";
-import { checkEnvelope, EnvelopeSchema } from "./validate.js";
+} from '@molstar/seq-core/model';
+import type { DocNode, SeqViewSpecDoc } from './doc.js';
+import type { SvsRegistries } from './registry.js';
+import { isPlainObject } from './schema/field-schema.js';
+import { normalizeParams } from './schema/params-schema.js';
+import type { TreeSchema } from './schema/tree-schema.js';
+import { SvsTreeSchema } from './tables/svs-tree.js';
+import { checkEnvelope, EnvelopeSchema } from './validate.js';
 
 /** Every default filled; idempotent. Unknown kinds, cases and namespaces are kept as they are. */
 export function normalize(doc: SeqViewSpecDoc, reg: SvsRegistries, schema: TreeSchema = SvsTreeSchema): SeqViewSpecDoc {
@@ -35,7 +35,7 @@ function normalizeNode(n: DocNode, schema: TreeSchema, reg: SvsRegistries): DocN
   const ns = isPlainObject(n) && Object.hasOwn(schema.nodes, n.kind) ? schema.nodes[n.kind] : undefined;
   if (!ns) return n;
   const out: DocNode = { kind: n.kind };
-  const ref = n.ref ?? (ns.ref === "implied" ? n.kind : undefined);
+  const ref = n.ref ?? (ns.ref === 'implied' ? n.kind : undefined);
   if (ref !== undefined) out.ref = ref;
   const { params, custom } = normalizeNodeParams(n, schema, reg);
   out.params = params;
@@ -59,7 +59,7 @@ export function normalizeNodeParams(n: DocNode, schema: TreeSchema, reg: SvsRegi
     n.custom &&
     Object.fromEntries(
       Object.entries(n.custom).map(([key, value]) => {
-        const entry = reg.get("custom", `${key}/${n.kind}`);
+        const entry = reg.get('custom', `${key}/${n.kind}`);
         return [key, entry && isPlainObject(value) ? normalizeParams(entry.schema, value, reg) : value];
       }),
     );
@@ -79,7 +79,7 @@ function plainArrays(v: object): object {
 /** `out`, or a copy of `v` made once its `k` changes, with `v[k]` through `plainArrays`. */
 function plainAt(v: Obj, k: string | number, out: Obj | undefined): Obj | undefined {
   const x = v[k];
-  const y = x !== null && typeof x === "object" ? plainArrays(x) : x;
+  const y = x !== null && typeof x === 'object' ? plainArrays(x) : x;
   if (y === x) return out;
   const o = out ?? ((Array.isArray(v) ? v.slice() : { ...v }) as Obj);
   o[k] = y;
@@ -102,12 +102,12 @@ export function toMsgPack(doc: SeqViewSpecDoc, opts?: { typedArrays?: boolean })
 export type DocumentRead = { doc: SeqViewSpecDoc | null; issues: Issue[] };
 /** Parses a document and checks its envelope (format, version); `validate` checks the rest. */
 export function fromJSON(text: string): DocumentRead {
-  return parsed(() => JSON.parse(text), "JSON");
+  return parsed(() => JSON.parse(text), 'JSON');
 }
 
 /** As `fromJSON`; the typed-array extension read as typed arrays. */
 export function fromMsgPack(bytes: Uint8Array): DocumentRead {
-  return parsed(() => decodeMsgPack(bytes, decodeTypedArrays), "MessagePack");
+  return parsed(() => decodeMsgPack(bytes, decodeTypedArrays), 'MessagePack');
 }
 
 /** A MessagePack document starts with a map header, a JSON one with `{` or whitespace. */
@@ -124,7 +124,7 @@ function parsed(parse: () => unknown, what: string): DocumentRead {
     value = parse();
   } catch (e) {
     const message = `not ${what}: ${e instanceof Error ? e.message : String(e)}`;
-    return { doc: null, issues: [{ code: "svs.format.invalid", severity: "error", path: "", message }] };
+    return { doc: null, issues: [{ code: 'svs.format.invalid', severity: 'error', path: '', message }] };
   }
   const issues: Issue[] = [];
   const ok = checkEnvelope(value, issues) !== null;

@@ -5,11 +5,11 @@
  * @copyright 2020
  */
 
-import { ALIGNOPT } from "../align/align.js";
-import { SEQUENCE_TYPE, type TAlignmentParam } from "../align/params.js";
-import BitArray from "../utils/bitarray.js";
-import { estringLength, estringToIdx } from "../utils/estring.js";
-import { aaToNum, nucToNum, type TSequence } from "./sequence.js";
+import { ALIGNOPT } from '../align/align.js';
+import { SEQUENCE_TYPE, type TAlignmentParam } from '../align/params.js';
+import BitArray from '../utils/bitarray.js';
+import { estringLength, estringToIdx } from '../utils/estring.js';
+import { aaToNum, nucToNum, type TSequence } from './sequence.js';
 
 /*
  * ProfPos definition ()
@@ -192,7 +192,7 @@ export function profileFromMSA(pMSA: string[], pWeights: number[], params: TAlig
   /** alignment length (columns count) */
   const l = pMSA[0].length;
 
-  let aa = "", // amino acid name (1 letter code)
+  let aa = '', // amino acid name (1 letter code)
     na = 0, // amino acid # (in lexical order)
     tabCodeResNum: Uint8Array;
   if (params.type === SEQUENCE_TYPE.NUCLEIC) {
@@ -217,14 +217,14 @@ export function profileFromMSA(pMSA: string[], pWeights: number[], params: TAlig
     for (let numSeq = 0, max = pMSA.length; numSeq < max; numSeq++) {
       w = pWeights[numSeq];
       aa = pMSA[numSeq][col];
-      if (aa === "-") {
+      if (aa === '-') {
         fGap += w;
 
-        if (col === 0 || pMSA[numSeq][col - 1] !== "-") {
+        if (col === 0 || pMSA[numSeq][col - 1] !== '-') {
           lProx.m_fcStartOcc += w;
         }
 
-        if (col === l - 1 || pMSA[numSeq][col + 1] !== "-") {
+        if (col === l - 1 || pMSA[numSeq][col + 1] !== '-') {
           lProx.m_fcEndOcc += w;
         }
       } else {

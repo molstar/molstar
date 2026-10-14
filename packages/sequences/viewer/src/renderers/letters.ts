@@ -18,7 +18,7 @@
 // letters gate a hatched band with its hint (ST3a-2, `draw/streamed.ts`).
 // A row with no cell colors (text only), where its text does not fit, marks its residues: dots, then bars (`DOT_OF_CELL`).
 
-import { CoordinateSystemKind, threeLetter } from "@molstar/seq-core/model";
+import { CoordinateSystemKind, threeLetter } from '@molstar/seq-core/model';
 import {
   type Axis,
   AxisGeometry,
@@ -68,7 +68,7 @@ import {
   ThemeLocation,
   textShown,
   visibleRange,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 type Params = Readonly<Record<string, unknown>>;
 
@@ -339,7 +339,7 @@ function draw(v: DrawView, s: LettersState, p: unknown) {
     if (lines.n > 0) v.backend.rects(lines);
     if (bars.n > 0) v.backend.rects(bars);
     if (dots.n > 0) {
-      dots.font = v.text.font("ui", 12, 600);
+      dots.font = v.text.font('ui', 12, 600);
       v.backend.glyphs(dots);
     }
     if (letters.n > 0) v.backend.text(letters);
@@ -451,14 +451,14 @@ function block(v: DrawView, s: LettersState, b: number) {
     drawCells(v, b, lo, hi, own, s, rects);
   }
   const atoms = form === LetterForm.atoms;
-  const font = v.text.font("mono", letterPx(v, b), atoms ? 600 : 400);
+  const font = v.text.font('mono', letterPx(v, b), atoms ? 600 : 400);
   // The letters LOD per block: the block's widest letter, or two for an element symbol.
   const need = atoms ? 2 * v.text.cell(font, null) + 1 : v.text.cell(font, s.alphabet[b]);
   letterRoom[0] = v.height;
   letterRoom[1] = need;
   if (!textShown(v, b)) return blockMarks(v, b, lo, hi, base, atoms);
   if (wrapped) {
-    sups.style(v.text.font("mono", Math.max(6, Math.round(v.fontPx * 0.62))), TextAlign.right, TextBaseline.middle);
+    sups.style(v.text.font('mono', Math.max(6, Math.round(v.fontPx * 0.62))), TextAlign.right, TextBaseline.middle);
     inlineGroupLabels(v, b, lo, hi, sups);
   }
   letterFont(v, font);
@@ -497,8 +497,8 @@ function pill(v: DrawView, s: LettersState, b: number, lo: number, hi: number) {
   const y0 = Math.round((v.top + 3) * dpr);
   const y1 = Math.round((v.top + v.height - 3) * dpr);
   const tm = v.text;
-  const font = tm.font("ui", Math.max(7, Math.min(12, Math.floor(v.height * 0.5))), 600);
-  const name = tm.label(s.names[b] ?? "", font);
+  const font = tm.font('ui', Math.max(7, Math.min(12, Math.floor(v.height * 0.5))), 600);
+  const name = tm.label(s.names[b] ?? '', font);
   pills.style(font, TextAlign.center, TextBaseline.alphabetic);
   letterLines(v, font, y0, y1, baselines);
   pills.begin(SkinToken.ink);
@@ -511,7 +511,7 @@ function pill(v: DrawView, s: LettersState, b: number, lo: number, hi: number) {
     rects.begin(SkinToken.surfaceAlt);
     rects.push(x0 + d, y0 + d, x1 - x0 - 2 * d, y1 - y0 - 2 * d);
     fit[0] = (x1 - x0) / dpr - 6;
-    fit[1] = tm.label("…", font).width;
+    fit[1] = tm.label('…', font).width;
     const n = fitIn(name, fit);
     if (n === 0) continue;
     const t = pills.add(fitted(name, n));
@@ -564,21 +564,21 @@ function drawOf(v: DrawView, s: LettersState, o: OfLetters, p: Params) {
       if (n < least) least = n;
     }
     if (least === 1 << 30) least = span;
-    if (!linear) monoCell(tm, tm.font("mono", v.fontPx));
+    if (!linear) monoCell(tm, tm.font('mono', v.fontPx));
     room[0] = least * (linear ? v.cell * v.span[b] : cellW[0]);
     room[1] = v.height;
     room[2] = letterCap(v.props);
     let chars = 0;
     let font = 0;
     if (!linear || (v.height >= 10 && room[0] >= v.props.minLetterCell)) {
-      if (form === "three" || (form !== "one" && span >= 3)) {
-        font = tm.font("mono", linear ? textPx(3) : v.fontPx);
+      if (form === 'three' || (form !== 'one' && span >= 3)) {
+        font = tm.font('mono', linear ? textPx(3) : v.fontPx);
         // With a margin each side of the larger part (and the hairline that starts a codon): the whole row or none.
         monoCell(tm, font);
         if (room[0] >= 3 * cellW[0] + 2 * OF_MARGIN + (linear && least > 1 ? 1 : 0)) chars = 3;
       }
-      if (chars === 0 && form !== "three") {
-        font = tm.font("mono", linear ? textPx(1) : v.fontPx);
+      if (chars === 0 && form !== 'three') {
+        font = tm.font('mono', linear ? textPx(1) : v.fontPx);
         monoCell(tm, font);
         if (room[0] >= cellW[0]) chars = 1;
       }
@@ -643,8 +643,8 @@ function drawOf(v: DrawView, s: LettersState, o: OfLetters, p: Params) {
 }
 
 /** Below the row's minimum: the same draw (cells only: letters need a row to read them in). */
-export const LettersRenderer = kernelEntry<LettersState>("letters", 22, {
-  geometries: ["linear", "wrapped"],
+export const LettersRenderer = kernelEntry<LettersState>('letters', 22, {
+  geometries: ['linear', 'wrapped'],
   stable,
   miniature: false,
   hit,

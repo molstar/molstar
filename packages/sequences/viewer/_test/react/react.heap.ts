@@ -12,8 +12,8 @@
 // guards do (heap-browser.ts). The positive control: the moves allocating garbage each, sized to the run (`leaking`),
 // warmed and measured alike, are caught.
 
-import { expect, it, vi } from "vitest";
-import { controlCaught, heapScaling, isFlat, leaking } from "../canvas/heap-browser.js";
+import { expect, it, vi } from 'vitest';
+import { controlCaught, heapScaling, isFlat, leaking } from '../canvas/heap-browser.js';
 
 const N = 2_000;
 // A scroll step is cheap and its string would be small (about 30 bytes): enough steps that one per step passes the limit.
@@ -28,9 +28,9 @@ function measure(step: (i: number) => void, warmed = () => {}) {
   return { r, next: i };
 }
 
-it("pointer moves inside one element, on the React UI, render nothing and allocate nothing", async () => {
+it('pointer moves inside one element, on the React UI, render nothing and allocate nothing', async () => {
   vi.resetModules();
-  const { reactFixture } = await import("./heap-fixtures.js");
+  const { reactFixture } = await import('./heap-fixtures.js');
   const t = await reactFixture();
   try {
     let renders = 0;
@@ -40,11 +40,11 @@ it("pointer moves inside one element, on the React UI, render nothing and alloca
     let i = next;
     expect(isFlat(r), JSON.stringify(r)).toBe(true);
     expect(t.renders()).toBe(renders);
-    const tip = t.host.querySelector(".seqv-tooltip") as HTMLElement;
+    const tip = t.host.querySelector('.seqv-tooltip') as HTMLElement;
     const seen = new Set<string>();
     for (let k = 0; k < 8; k++) {
       t.moveStep(i++);
-      seen.add(tip.style.getPropertyValue("--seqv-x"));
+      seen.add(tip.style.getPropertyValue('--seqv-x'));
     }
     expect(seen.size).toBeGreaterThan(3);
   } finally {
@@ -52,12 +52,12 @@ it("pointer moves inside one element, on the React UI, render nothing and alloca
   }
 }, 120_000);
 
-it("a scroll over a few positions moves the row controls in a flat heap", async () => {
+it('a scroll over a few positions moves the row controls in a flat heap', async () => {
   vi.resetModules();
-  const { reactFixture } = await import("./heap-fixtures.js");
-  const t = await reactFixture("msa");
+  const { reactFixture } = await import('./heap-fixtures.js');
+  const t = await reactFixture('msa');
   try {
-    const inner = t.host.querySelector(".seqv-row-controls > div") as HTMLElement;
+    const inner = t.host.querySelector('.seqv-row-controls > div') as HTMLElement;
     expect(inner).not.toBeNull();
     for (let i = 0; i < 3_000; i++) t.scrollStep(i);
     const renders = t.renders();
@@ -66,18 +66,18 @@ it("a scroll over a few positions moves the row controls in a flat heap", async 
     expect(isFlat(r), JSON.stringify(r)).toBe(true);
     expect(t.renders()).toBe(renders);
     t.scrollStep(7);
-    expect(inner.style.getPropertyValue("--seqv-scroll-y")).toBe(`${-(7 * 0.25)}px`);
+    expect(inner.style.getPropertyValue('--seqv-scroll-y')).toBe(`${-(7 * 0.25)}px`);
   } finally {
     await t.dispose();
   }
 }, 120_000);
 
-it("a scroll far down a tall alignment (past 8,192 px) moves the row controls in a flat heap too", async () => {
+it('a scroll far down a tall alignment (past 8,192 px) moves the row controls in a flat heap too', async () => {
   vi.resetModules();
-  const { reactFixture } = await import("./heap-fixtures.js");
-  const t = await reactFixture("msa");
+  const { reactFixture } = await import('./heap-fixtures.js');
+  const t = await reactFixture('msa');
   try {
-    const inner = t.host.querySelector(".seqv-row-controls > div") as HTMLElement;
+    const inner = t.host.querySelector('.seqv-row-controls > div') as HTMLElement;
     // Across a page's edge: 20,479 px and on.
     const far = 20_479;
     for (let i = 0; i < 3_000; i++) t.scrollStep(i, far);
@@ -86,15 +86,15 @@ it("a scroll far down a tall alignment (past 8,192 px) moves the row controls in
     expect(isFlat(r), JSON.stringify(r)).toBe(true);
     t.scrollStep(7, far);
     const y = (name: string) => Number.parseFloat(inner.style.getPropertyValue(name));
-    expect(y("--seqv-scroll-page") + y("--seqv-scroll-y")).toBe(-(far + 7 * 0.25));
+    expect(y('--seqv-scroll-page') + y('--seqv-scroll-y')).toBe(-(far + 7 * 0.25));
   } finally {
     await t.dispose();
   }
 }, 120_000);
 
-it("the same moves allocating garbage sized to the run each are caught (positive control)", async () => {
+it('the same moves allocating garbage sized to the run each are caught (positive control)', async () => {
   vi.resetModules();
-  const { reactFixture } = await import("./heap-fixtures.js");
+  const { reactFixture } = await import('./heap-fixtures.js');
   const t = await reactFixture();
   try {
     expect(controlCaught(() => measure(leaking(t.moveStep, N)).r)).toBe(true);

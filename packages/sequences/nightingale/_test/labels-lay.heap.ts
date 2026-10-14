@@ -11,13 +11,13 @@
 // (LA-28: guards sharing a file share V8's feedback). The positive control is the template's: the same step with a
 // leak.
 
-import { describe, expect, it } from "vitest";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../../core/_test/model/heap.js";
-import { layLabels } from "../src/labels.js";
-import { labels, layout, measure, N, view } from "./labels-heap-fixture.js";
+import { describe, expect, it } from 'vitest';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../../core/_test/model/heap.js';
+import { layLabels } from '../src/labels.js';
+import { labels, layout, measure, N, view } from './labels-heap-fixture.js';
 
-describe("the label layer allocates nothing per frame", () => {
-  it("layLabels at an unchanged view: laid, compared, nothing written", () => {
+describe('the label layer allocates nothing per frame', () => {
+  it('layLabels at an unchanged view: laid, compared, nothing written', () => {
     layLabels(labels, view, layout, measure);
     let writes = 0;
     const step = () => {

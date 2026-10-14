@@ -11,8 +11,8 @@
 // that allocates an object a step fails the same guard (the positive control); and an instance that leaves (its node
 // evicted) is not retained: its resolved layer and prepared state are freed once a later update has run.
 
-import { describe, expect, it, vi } from "vitest";
-import type { Streams } from "../src/streams.js";
+import { describe, expect, it, vi } from 'vitest';
+import type { Streams } from '../src/streams.js';
 import {
   controlCaught,
   describeScaling,
@@ -23,7 +23,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = 1_000;
 const WARM = FRAME_WARM;
@@ -38,31 +38,31 @@ const measure = (frame: () => void) => {
 };
 const guard = (frame: () => void) => {
   const r = measure(frame);
-  return isFlat(r) ? "" : describeScaling(r, N);
+  return isFlat(r) ? '' : describeScaling(r, N);
 };
 const gc = (globalThis as { gc?: () => void }).gc as () => void;
 
 /** The template document with 1,000 instances (ranges on the protein), composed at 1,000 × 400, DPR 2. */
 async function templated() {
-  const { composed, recording } = await import("./composer-fixtures.js");
-  const { Dirty } = await import("../src/draw/composer.js");
-  const { range, templateDoc, templateLoaders, P } = await import("./template-fixtures.js");
+  const { composed, recording } = await import('./composer-fixtures.js');
+  const { Dirty } = await import('../src/draw/composer.js');
+  const { range, templateDoc, templateLoaders, P } = await import('./template-fixtures.js');
   const genes = Array.from({ length: N }, (_, k) => range(`g${k}`, 1 + (k % (P.length - 8))));
   const { loaders } = templateLoaders({ genes, notes: [] });
   const t = await composed(templateDoc(), { width: 1000, height: 400, dpr: 2, loaders });
   const vp = t.vp;
-  if (!vp) throw new Error("no viewport");
+  if (!vp) throw new Error('no viewport');
   vp.zoomTo(0, 20, 120);
   const be = recording();
   for (let k = 0; k < 8; k++) {
-    vp.panBy(k & 1 ? -9 : 9, 0, "pointer");
+    vp.panBy(k & 1 ? -9 : 9, 0, 'pointer');
     t.frame(be, Dirty.all);
   }
   let i = 0;
   return {
     t,
     frame: () => {
-      vp.panBy((i++ & 1) === 0 ? 9 : -9, 0, "pointer");
+      vp.panBy((i++ & 1) === 0 ? 9 : -9, 0, 'pointer');
       (t.ctx.streams as Streams).pass();
       t.frame(be, Dirty.all);
     },
@@ -74,21 +74,21 @@ describe("a template's 1,000 instance tracks", () => {
     vi.resetModules();
     const g = await templated();
     expect(g.t.ctx.graph.assembled.value?.view?.resolved.tracks.count).toBeGreaterThan(N);
-    expect(guard(g.frame)).toBe("");
+    expect(guard(g.frame)).toBe('');
   }, 120_000);
 
-  it("the same frame allocating an object a step is caught (positive control)", async () => {
+  it('the same frame allocating an object a step is caught (positive control)', async () => {
     vi.resetModules();
     const g = await templated();
     expect(controlCaught(() => measure(leaking(g.frame) as () => void))).toBe(true);
   }, 120_000);
 });
 
-describe("an instance that leaves", () => {
-  it("is not retained once a later update has run", async () => {
+describe('an instance that leaves', () => {
+  it('is not retained once a later update has run', async () => {
     vi.resetModules();
-    const { openTemplates, range } = await import("./template-fixtures.js");
-    const t = await openTemplates({ genes: [range("a", 1)] });
+    const { openTemplates, range } = await import('./template-fixtures.js');
+    const t = await openTemplates({ genes: [range('a', 1)] });
     const find = (node: string) => {
       const v = t.ctx.graph.assembled.value?.view;
       for (let k = 0; v && k < v.resolved.layers.count; k++)
@@ -97,17 +97,17 @@ describe("an instance that leaves", () => {
       return null;
     };
     const refs = await (async () => {
-      t.manager.nodes.add("genes", [range("b", 9)]);
+      t.manager.nodes.add('genes', [range('b', 9)]);
       await t.frame();
-      const b = find("genes/b");
-      if (!b) throw new Error("no instance");
+      const b = find('genes/b');
+      if (!b) throw new Error('no instance');
       return { state: new WeakRef(b.state), themes: new WeakRef(b.themes) };
     })();
-    t.manager.nodes.release(["genes/b"]);
+    t.manager.nodes.release(['genes/b']);
     await t.frame();
-    t.manager.nodes.add("genes", [range("c", 12)]);
+    t.manager.nodes.add('genes', [range('c', 12)]);
     await t.frame();
-    expect(find("genes/b")).toBeNull();
+    expect(find('genes/b')).toBeNull();
     for (let k = 0; k < 4 && refs.state.deref(); k++) {
       await new Promise((r) => setTimeout(r, 0));
       gc();

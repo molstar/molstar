@@ -17,15 +17,15 @@
 // when any member gives one, the group's value domain is the union of those, for all of its members. Layers of a
 // template track (instances are not nodes) are left out.
 
-import type { Annotation, SeqSet } from "@molstar/seq-core/model";
-import { KeyKind, type KeyTarget } from "@molstar/seq-core/model";
-import type { ThemeRef } from "../doc.js";
-import { type DocIndex, type StreamedData, StreamProp } from "../load/compile.js";
-import { numberColumn } from "../palettes/fields.js";
-import type { SvsRegistries } from "../registry.js";
-import type { IndexedNode } from "../schema/tree-schema.js";
-import { childrenOf, refsOf } from "./section.js";
-import { forEachOf } from "./template.js";
+import type { Annotation, SeqSet } from '@molstar/seq-core/model';
+import { KeyKind, type KeyTarget } from '@molstar/seq-core/model';
+import type { ThemeRef } from '../doc.js';
+import { type DocIndex, type StreamedData, StreamProp } from '../load/compile.js';
+import { numberColumn } from '../palettes/fields.js';
+import type { SvsRegistries } from '../registry.js';
+import type { IndexedNode } from '../schema/tree-schema.js';
+import { childrenOf, refsOf } from './section.js';
+import { forEachOf } from './template.js';
 
 /** One shared domain of a layer's group, for the resolved table: a field and its union. */
 export interface SharedField {
@@ -57,7 +57,7 @@ export const dataRefs = (doc: DocIndex, n: IndexedNode): string[] =>
   n.params.data != null
     ? refsOf(n.params.data)
     : childrenOf(doc, n)
-        .filter((c) => c.kind === "annotation")
+        .filter((c) => c.kind === 'annotation')
         .map((c) => c.ref);
 const annotationsOf = (doc: DocIndex, set: SeqSet, n: IndexedNode): Annotation[] =>
   dataRefs(doc, n).flatMap((r) =>
@@ -66,7 +66,7 @@ const annotationsOf = (doc: DocIndex, set: SeqSet, n: IndexedNode): Annotation[]
 
 const viewOf = (doc: DocIndex, n: IndexedNode) => {
   let x: IndexedNode | undefined = n;
-  while (x && x.kind !== "view") x = x.parent === null ? undefined : doc.nodes.get(x.parent);
+  while (x && x.kind !== 'view') x = x.parent === null ? undefined : doc.nodes.get(x.parent);
   return x;
 };
 const grouped = new WeakMap<DocIndex, Map<string, IndexedNode[]>>();
@@ -77,8 +77,8 @@ function groupsOf(doc: DocIndex) {
   out = new Map();
   grouped.set(doc, out);
   for (const n of doc.order) {
-    const g = n.kind === "layer" ? n.params.domain_group : null;
-    const view = typeof g === "string" && g !== "" ? viewOf(doc, n) : undefined;
+    const g = n.kind === 'layer' ? n.params.domain_group : null;
+    const view = typeof g === 'string' && g !== '' ? viewOf(doc, n) : undefined;
     if (!view) continue;
     let template = false;
     for (
@@ -96,7 +96,7 @@ function groupsOf(doc: DocIndex) {
 /** The layers of `n`'s view in its `domain_group`, itself included, in document order; none when it is alone in it. */
 export function groupMembers(doc: DocIndex, n: IndexedNode): readonly IndexedNode[] {
   const g = n.params.domain_group;
-  const view = typeof g === "string" && g !== "" ? viewOf(doc, n) : undefined;
+  const view = typeof g === 'string' && g !== '' ? viewOf(doc, n) : undefined;
   const list = view ? groupsOf(doc).get(`${view.ref}\0${g}`) : undefined;
   return list && list.length > 1 && list.includes(n) ? list : [];
 }
@@ -179,22 +179,22 @@ type PaletteParams = {
 export function fillShared(r: ThemeRef | null, g: GroupDomains, used: SharedField[], depth = 0): ThemeRef | null {
   const q = r?.params as PaletteParams | undefined;
   if (!r || !q || depth > 4) return r;
-  if (r.theme === "field_palette" && typeof q.field === "string" && q.field !== "value") {
-    const given = q.palette?.kind === "categorical" ? null : q.palette?.value_domain;
-    if (!given || q.palette?.mode === "absolute" || !given.includes(null)) return r;
+  if (r.theme === 'field_palette' && typeof q.field === 'string' && q.field !== 'value') {
+    const given = q.palette?.kind === 'categorical' ? null : q.palette?.value_domain;
+    if (!given || q.palette?.mode === 'absolute' || !given.includes(null)) return r;
     const [min, max] = g.field(q.field);
     if (!(min <= max)) return r;
     if (!used.some((u) => u.field === q.field)) used.push({ field: q.field, min, max });
     return { ...r, params: { ...q, palette: { ...q.palette, value_domain: [given[0] ?? min, given[1] ?? max] } } };
   }
   // A `field_scale` over another field with no domain of its own takes the group's.
-  if (r.theme === "field_scale" && typeof q.field === "string" && q.field !== "value" && !Array.isArray(q.domain)) {
+  if (r.theme === 'field_scale' && typeof q.field === 'string' && q.field !== 'value' && !Array.isArray(q.domain)) {
     const [min, max] = g.field(q.field);
     if (!(min <= max) || q.map != null) return r;
     if (!used.some((u) => u.field === q.field)) used.push({ field: q.field, min, max });
     return { ...r, params: { ...q, domain: [min, max] } };
   }
-  if (r.theme !== "rules") return r;
+  if (r.theme !== 'rules') return r;
   const rules = (q.rules ?? []).map((x) => (x.theme ? { ...x, theme: fillShared(x.theme, g, used, depth + 1) } : x));
   return { ...r, params: { ...q, rules, default: fillShared(q.default ?? null, g, used, depth + 1) } };
 }

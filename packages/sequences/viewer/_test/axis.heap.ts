@@ -13,10 +13,10 @@
 // records are its own, and show). The positive control runs the axis lookups' step allocating an object each
 // (`leaking`) through the same measurement, which must catch it.
 
-import { beforeAll, describe, expect, it } from "vitest";
-import { type Axis, AxisGeometry, SectionAxisView, type ShownIndex } from "../src/axis.js";
-import { axisOf, open, rangedDoc, resolved, setPiece, vp } from "./axis-fixtures.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { beforeAll, describe, expect, it } from 'vitest';
+import { type Axis, AxisGeometry, SectionAxisView, type ShownIndex } from '../src/axis.js';
+import { axisOf, open, rangedDoc, resolved, setPiece, vp } from './axis-fixtures.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from './heap.js';
 
 const N = 50_000;
 let axes: Axis[] = [];
@@ -25,18 +25,18 @@ const out = new Int32Array(16);
 
 beforeAll(async () => {
   const [v, f, w, c] = await Promise.all([
-    resolved(rangedDoc(), "v"),
-    resolved(rangedDoc(), "f"),
-    resolved(rangedDoc(), "w"),
-    resolved(rangedDoc(), "w"),
+    resolved(rangedDoc(), 'v'),
+    resolved(rangedDoc(), 'f'),
+    resolved(rangedDoc(), 'w'),
+    resolved(rangedDoc(), 'w'),
   ]);
   setPiece(w.view, 0, 0, 20, -1, 20);
   setPiece(c.view, 0, 15, 5, 1, 20);
   axes = [axisOf(v), axisOf(f), axisOf(w), axisOf(c)];
 }, 60_000);
 
-describe("the axis allocates nothing per move", () => {
-  it("indexOf, shownOf, breakAt and x over forward, filtered, reversed and cyclic pieces", () => {
+describe('the axis allocates nothing per move', () => {
+  it('indexOf, shownOf, breakAt and x over forward, filtered, reversed and cyclic pieces', () => {
     const views = axes.map((ax) => {
       const v = new SectionAxisView();
       const l = { geometry: AxisGeometry.linear, dataLeft: 10, dataRight: 300, scrolledTop: 0, height: 100 };
@@ -57,7 +57,7 @@ describe("the axis allocates nothing per move", () => {
     expect(controlCaught(() => heapScaling(N, leaking(step)))).toBe(true);
   });
 
-  it("runToShown and shownToRuns", () => {
+  it('runToShown and shownToRuns', () => {
     const r = heapScaling(N, (i) => {
       for (let a = 0; a < axes.length; a++) {
         const ax = axes[a];
@@ -68,12 +68,12 @@ describe("the axis allocates nothing per move", () => {
   });
 });
 
-describe("the viewport allocates nothing per move", () => {
-  it("pans and anchored zooms at pointer rate, with a live subscriber", async () => {
+describe('the viewport allocates nothing per move', () => {
+  it('pans and anchored zooms at pointer rate, with a live subscriber', async () => {
     const { ctx } = await open();
-    ctx.views.setCurrent("g");
+    ctx.views.setCurrent('g');
     await ctx.graph.update();
-    const v = vp(ctx, "g.one");
+    const v = vp(ctx, 'g.one');
     v.zoomTo(0, 8, 12); // cell 28 (the most), centered: every pan and zoom below changes the view
     v.live.version.subscribe(() => {
       sink = (sink + v.live.current.scrollX + v.live.current.visLo[0]) & 0xffff;
@@ -81,9 +81,9 @@ describe("the viewport allocates nothing per move", () => {
     const before = v.live.version.value;
     const r = heapScaling(N, (k) => {
       // Constants per branch: a double chosen by `?:` is boxed by the caller before the call.
-      if (!(k & 64)) v.panBy(k & 1 ? 3 : -3, 0, "pointer");
-      else if (k & 1) v.zoomAt(1.25, 40, "pointer");
-      else v.zoomAt(0.8, 40, "pointer");
+      if (!(k & 64)) v.panBy(k & 1 ? 3 : -3, 0, 'pointer');
+      else if (k & 1) v.zoomAt(1.25, 40, 'pointer');
+      else v.zoomAt(0.8, 40, 'pointer');
     });
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
     expect(v.live.version.value - before).toBeGreaterThan(N);
@@ -91,27 +91,27 @@ describe("the viewport allocates nothing per move", () => {
   });
 });
 
-describe("an api move allocates nothing while nobody reads `committed`", () => {
+describe('an api move allocates nothing while nobody reads `committed`', () => {
   async function api() {
     const { ctx } = await open();
-    ctx.views.setCurrent("g");
+    ctx.views.setCurrent('g');
     await ctx.graph.update();
-    const v = vp(ctx, "g.one");
+    const v = vp(ctx, 'g.one');
     v.zoomTo(0, 8, 12);
     return v;
   }
-  it("pans and views set with origin api: committed each, built only when read", async () => {
+  it('pans and views set with origin api: committed each, built only when read', async () => {
     const v = await api();
     const before = v.committed.value;
     const r = heapScaling(N, (k) => {
-      if (k & 1) v.panBy(k & 2 ? 3 : -3, 0, "api");
-      else v.setView(k & 2 ? 20 : 24, 40, "api");
+      if (k & 1) v.panBy(k & 2 ? 3 : -3, 0, 'api');
+      else v.setView(k & 2 ? 20 : 24, 40, 'api');
     });
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
     // Read, the last move's record; still at once for api (no interaction).
     expect(v.committed.value).not.toBe(before);
     expect([v.committed.value.origin, v.committed.value.scrollX, v.live.current.interacting]).toEqual([
-      "api",
+      'api',
       v.live.current.scrollX,
       false,
     ]);
@@ -122,7 +122,7 @@ describe("an api move allocates nothing while nobody reads `committed`", () => {
     v.committed.subscribe(() => n++);
     // Short runs: the records fill the young generation within a few thousand moves.
     const M = 1_000;
-    const r = heapScaling(M, (k) => v.panBy(k & 1 ? 3 : -3, 0, "api"));
+    const r = heapScaling(M, (k) => v.panBy(k & 1 ? 3 : -3, 0, 'api'));
     expect(n).toBeGreaterThan(M);
     expect(isFlat(r), describeScaling(r, M)).toBe(false);
   });

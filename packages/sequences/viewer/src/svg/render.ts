@@ -23,22 +23,22 @@
 // export changes any of them the viewer is paused (`setActive(false)`), so its surfaces draw nothing of it. The run
 // commits no viewport (`Viewport.quiet`): a host syncing a URL from `committed` sees no export.
 
-import type { Loaders, SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { ChannelMarks } from "../channels.js";
-import { createSeqViewer, type SeqIssue, type SeqViewerContext } from "../context.js";
-import { Dirty, SectionComposer } from "../draw/composer.js";
-import { drawResources } from "../draw/resources.js";
-import { VerticalNav } from "../draw/vnav.js";
-import type { Skin } from "../graph.js";
-import { Hover } from "../hover.js";
-import type { RenderProps } from "../layout.js";
-import type { SeqViewerRegistryEntry } from "../registry.js";
-import { type ManualScheduler, manualScheduler } from "../scheduler.js";
-import { DefaultRegistry } from "../spec.js";
-import { Viewport } from "../viewport.js";
-import { SvgBackend, type SvgOptions, type SvgPorts } from "./backend.js";
-import { hasMetrics, type MetricsMeasurer, metricsMeasurer } from "./metrics.js";
-import { DefaultFontMetrics } from "./metrics-tables.js";
+import type { Loaders, SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { ChannelMarks } from '../channels.js';
+import { createSeqViewer, type SeqIssue, type SeqViewerContext } from '../context.js';
+import { Dirty, SectionComposer } from '../draw/composer.js';
+import { drawResources } from '../draw/resources.js';
+import { VerticalNav } from '../draw/vnav.js';
+import type { Skin } from '../graph.js';
+import { Hover } from '../hover.js';
+import type { RenderProps } from '../layout.js';
+import type { SeqViewerRegistryEntry } from '../registry.js';
+import { type ManualScheduler, manualScheduler } from '../scheduler.js';
+import { DefaultRegistry } from '../spec.js';
+import { Viewport } from '../viewport.js';
+import { SvgBackend, type SvgOptions, type SvgPorts } from './backend.js';
+import { hasMetrics, type MetricsMeasurer, metricsMeasurer } from './metrics.js';
+import { DefaultFontMetrics } from './metrics-tables.js';
 
 export interface RenderSvgOptions extends SvgOptions {
   /** CSS px, every section's width. */
@@ -83,7 +83,7 @@ type Kept = [ref: string, width: number, height: number, dpr: number, cell: numb
 /** The SVG of `source` (a context, positioned as it should print; or a document, drawn fitted) at `opts.width`. */
 export async function renderSvg(source: SeqViewerContext | SeqViewSpecDoc, opts: RenderSvgOptions): Promise<string> {
   const ports = opts.ports ?? {};
-  if (!("setDocument" in source)) {
+  if (!('setDocument' in source)) {
     const scheduler = manualScheduler();
     const ctx = createSeqViewer(
       { registry: [DefaultRegistry, ...(opts.registry ?? [])], behaviors: [], render: opts.render },
@@ -152,8 +152,8 @@ export async function renderSvg(source: SeqViewerContext | SeqViewSpecDoc, opts:
         if (w <= 0) continue;
         ctx.layout.get(ref);
         const s = vp.live.current;
-        if (s.cell !== cell || s.scrollX !== x) vp.setView(cell, x, "api");
-        if (s.rowScale !== rows || s.scrollY !== y) vp.setRowView(rows, y, "api");
+        if (s.cell !== cell || s.scrollX !== x) vp.setView(cell, x, 'api');
+        if (s.rowScale !== rows || s.scrollY !== y) vp.setRowView(rows, y, 'api');
       }
       for (const q of quiet) q();
       if (was.view !== null && ctx.views.current.value !== was.view) ctx.views.setCurrent(was.view);

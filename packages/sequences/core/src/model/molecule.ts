@@ -16,11 +16,11 @@ import {
   Provenance,
   type ProvenanceInput,
   type StringTable,
-} from "./common.js";
-import { Numbering, type NumberingInput, type NumberingSet } from "./numbering.js";
+} from './common.js';
+import { Numbering, type NumberingInput, type NumberingSet } from './numbering.js';
 
 export const MoleculeKind = { polymer: 0, ligand: 1 } as const;
-export type Alphabet = "protein" | "dna" | "rna" | "generic";
+export type Alphabet = 'protein' | 'dna' | 'rna' | 'generic';
 
 export interface Molecule {
   readonly id: MoleculeId;
@@ -53,7 +53,7 @@ export interface Molecule {
 export interface MoleculeInput {
   key: string;
   /** Polymer by default. */
-  kind?: "polymer" | "ligand";
+  kind?: 'polymer' | 'ligand';
   alphabet?: Alphabet;
   residues?: string;
   /** Letters streamed: no `residues`, an alphabet required. */
@@ -75,12 +75,12 @@ export interface MoleculeInput {
   props?: Record<string, unknown>;
 }
 
-const AMBIGUITY = "RYSWKMBDHV";
+const AMBIGUITY = 'RYSWKMBDHV';
 const LETTERS: Record<Alphabet, string> = {
-  protein: "ACDEFGHIKLMNPQRSTVWYBZJUOX*",
+  protein: 'ACDEFGHIKLMNPQRSTVWYBZJUOX*',
   dna: `ACGTN${AMBIGUITY}`,
   rna: `ACGUN${AMBIGUITY}`,
-  generic: "",
+  generic: '',
 };
 
 // 128-entry tables, built once: residues are ASCII, so a character is a table index, never a string.
@@ -98,7 +98,7 @@ const VALID: Record<Alphabet, Uint8Array> = {
 /** Detection's classes: 1 for `ACGTUN`, 2 for an ambiguity code (a nucleotide code, but not `ACGTUN`), 0 else. */
 const CLASS = Uint8Array.from({ length: 128 }, (_, c) => {
   const ch = String.fromCharCode(c);
-  return "ACGTUN".includes(ch) ? 1 : AMBIGUITY.includes(ch) ? 2 : 0;
+  return 'ACGTUN'.includes(ch) ? 1 : AMBIGUITY.includes(ch) ? 2 : 0;
 });
 /**
  * How many times each code occurs in the residues being checked: one scratch, filled by the pass that reads them
@@ -136,12 +136,12 @@ function detectCounted(code: Uint8Array, out: Detection | undefined): Alphabet {
     else if (k === 0) other += COUNTS[c];
   }
   const n = code.length;
-  if (n === 0 || plain * 10 < n * 9) return "protein";
+  if (n === 0 || plain * 10 < n * 9) return 'protein';
   if (other > 0) {
     if (out) out.at = firstNotIn(code, NUCLEOTIDE);
-    return "protein";
+    return 'protein';
   }
-  return COUNTS[85] > 0 && COUNTS[84] === 0 ? "rna" : "dna";
+  return COUNTS[85] > 0 && COUNTS[84] === 0 ? 'rna' : 'dna';
 }
 
 /**
@@ -201,7 +201,7 @@ function atomicNumber(symbol: string): number {
 }
 /** The symbol of an atomic number ("Fe"); "" when unknown. */
 function elementSymbol(z: number): string {
-  return SYMBOLS[z - 1] ?? "";
+  return SYMBOLS[z - 1] ?? '';
 }
 
 /** A molecule from its input, or null with errors. */
@@ -210,32 +210,32 @@ function build(input: MoleculeInput, id: number, strings: StringTable, issues: I
     issues.push(Issue.error(code, `${path}/${field}`, `Molecule "${input.key}": ${message}`));
     return null;
   };
-  const ligand = input.kind === "ligand";
+  const ligand = input.kind === 'ligand';
   let code: Uint8Array;
   let element: Uint8Array | null = null;
   let alphabet: Alphabet | null = null;
   if (ligand) {
     if (!input.elements || input.residues != null)
-      return err("model.molecule.content", "elements", "a ligand has elements only.");
+      return err('model.molecule.content', 'elements', 'a ligand has elements only.');
     element = new Uint8Array(input.elements.length);
     for (let i = 0; i < element.length; i++) {
       element[i] = atomicNumber(input.elements[i]);
       if (element[i] <= 1) {
-        const what = element[i] ? "hydrogens are left out of a ligand" : "an unknown element symbol";
-        return err("model.ligand.element", `elements/${i}`, `"${input.elements[i]}" is ${what}.`);
+        const what = element[i] ? 'hydrogens are left out of a ligand' : 'an unknown element symbol';
+        return err('model.ligand.element', `elements/${i}`, `"${input.elements[i]}" is ${what}.`);
       }
     }
     code = new Uint8Array(element.length).fill(88);
   } else if (input.lazy) {
     if (input.residues != null || input.elements || !input.alphabet || !(input.lazy.length > 0))
-      return err("model.molecule.content", "lazy", "a lazy sequence has a positive length and an alphabet only.");
+      return err('model.molecule.content', 'lazy', 'a lazy sequence has a positive length and an alphabet only.');
     code = new Uint8Array(0);
     alphabet = input.alphabet;
   } else {
     if (input.residues == null || input.elements)
-      return err("model.molecule.content", "residues", "a sequence has residues only.");
+      return err('model.molecule.content', 'residues', 'a sequence has residues only.');
     const text = input.residues;
-    if (!text.length) return err("model.molecule.content", "residues", "a sequence has residues, and this has none.");
+    if (!text.length) return err('model.molecule.content', 'residues', 'a sequence has residues, and this has none.');
     code = new Uint8Array(text.length);
     // The one pass a valid sequence takes: ASCII, upper case, and the counts detection and validation read.
     COUNTS.fill(0);
@@ -244,7 +244,7 @@ function build(input: MoleculeInput, id: number, strings: StringTable, issues: I
       if (c > 127) {
         // A surrogate pair is named by its code point (U+1F600), at the index of its first half.
         const point = (text.codePointAt(i) ?? c).toString(16).toUpperCase();
-        return err("model.residues.invalid", "residues", `U+${point} at ${i} is not ASCII.`);
+        return err('model.residues.invalid', 'residues', `U+${point} at ${i} is not ASCII.`);
       }
       const u = UPPER[c];
       code[i] = u;
@@ -254,12 +254,12 @@ function build(input: MoleculeInput, id: number, strings: StringTable, issues: I
     alphabet = checkCounted(code, input.alphabet, check);
     if (check.at >= 0) {
       const m = `"${String.fromCharCode(code[check.at])}" at ${check.at} is no nucleotide code, so it is read as protein.`;
-      issues.push(Issue.warning("model.alphabet.detected", `${path}/residues`, `Molecule "${input.key}": ${m}`));
+      issues.push(Issue.warning('model.alphabet.detected', `${path}/residues`, `Molecule "${input.key}": ${m}`));
     }
     const bad = check.invalid;
     if (bad >= 0) {
       const m = `"${String.fromCharCode(code[bad])}" at ${bad} is not a ${alphabet} letter.`;
-      return err("model.residues.invalid", "residues", m);
+      return err('model.residues.invalid', 'residues', m);
     }
   }
   const length = input.lazy && !ligand ? input.lazy.length : code.length;
@@ -267,7 +267,7 @@ function build(input: MoleculeInput, id: number, strings: StringTable, issues: I
   const ccd = input.chemCompIds;
   if (ccd) {
     if (ccd.length !== length && !(ligand && ccd.length === 1)) {
-      return err("model.molecule.length", "chemCompIds", `${ccd.length} chemical components for ${length} positions.`);
+      return err('model.molecule.length', 'chemCompIds', `${ccd.length} chemical components for ${length} positions.`);
     }
     chemCompId = Int32Array.from({ length }, (_, i) => {
       const c = ccd.length === 1 ? ccd[0] : ccd[i];

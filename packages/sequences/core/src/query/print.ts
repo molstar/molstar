@@ -10,10 +10,10 @@
 // wherever it binds back to the same symbol at that place (resolved with the binder's own functions, from what is
 // printed), positionals then keywords in signature order, defaults omitted, one line when it fits in 80 columns.
 // `printQuery(bindQuery(readQuery(t)))` is a fixed point, and binding a print gives the JSON back.
-import { argChain, calledKind, fieldRewrite, kindOfValue, type OperandKind, resolveName } from "./bind.js";
-import { createLanguage, type Language } from "./language.js";
-import { NUMBER } from "./read.js";
-import { type Expression, isApply, type Slot } from "./types.js";
+import { argChain, calledKind, fieldRewrite, kindOfValue, type OperandKind, resolveName } from './bind.js';
+import { createLanguage, type Language } from './language.js';
+import { NUMBER } from './read.js';
+import { type Expression, isApply, type Slot } from './types.js';
 
 const WIDTH = 80;
 /** A word the reader reads back as the same string (seqspec:seqql#the-reader): no delimiter, no leading ":" or "$". */
@@ -23,9 +23,9 @@ const BASE = createLanguage().language;
 type Doc = string | { readonly head: string; readonly parts: readonly (readonly [string | null, Doc])[] };
 
 const atomText = (v: string | number | boolean, quote: boolean) =>
-  typeof v !== "string"
+  typeof v !== 'string'
     ? String(v)
-    : !quote && WORD.test(v) && !NUMBER.test(v) && v !== "true" && v !== "false"
+    : !quote && WORD.test(v) && !NUMBER.test(v) && v !== 'true' && v !== 'false'
       ? v
       : JSON.stringify(v);
 
@@ -50,7 +50,7 @@ function build(language: Language, e: Expression, chain: readonly Slot[] | null,
     const def = positional[Number(k)];
     if (def && !def.rest && args[k] === def.default) continue;
     for (const v of list(args[k])) {
-      const [doc, kind] = build(language, v, def ? argChain(def, chain) : chain, s?.name === "seq.macro.sel");
+      const [doc, kind] = build(language, v, def ? argChain(def, chain) : chain, s?.name === 'seq.macro.sel');
       parts.push([null, doc]);
       kinds.push(kind);
     }
@@ -62,7 +62,7 @@ function build(language: Language, e: Expression, chain: readonly Slot[] | null,
     keywords.push(k);
     for (const v of list(args[k])) parts.push([k, build(language, v, def ? argChain(def, chain) : chain)[0]]);
   }
-  if (!s) return [{ head: e.head, parts }, "unknown"];
+  if (!s) return [{ head: e.head, parts }, 'unknown'];
   const short =
     s.alias !== null &&
     !fieldRewrite(language, s, e.args) &&
@@ -72,14 +72,14 @@ function build(language: Language, e: Expression, chain: readonly Slot[] | null,
 }
 
 const flat = (d: Doc): string =>
-  typeof d === "string"
+  typeof d === 'string'
     ? d
-    : `(${d.head}${d.parts.map(([k, v]) => `${k === null ? " " : ` :${k} `}${flat(v)}`).join("")})`;
+    : `(${d.head}${d.parts.map(([k, v]) => `${k === null ? ' ' : ` :${k} `}${flat(v)}`).join('')})`;
 
 /** One line when it fits; else the head and the positionals that fit, then one argument a line, two spaces in. */
 function layout(d: Doc, column: number): string {
   const line = flat(d);
-  if (typeof d === "string" || column + line.length <= WIDTH) return line;
+  if (typeof d === 'string' || column + line.length <= WIDTH) return line;
   let out = `(${d.head}`;
   let k = 0;
   for (; k < d.parts.length; k++) {
@@ -88,10 +88,10 @@ function layout(d: Doc, column: number): string {
     if (kw !== null || column + out.length + 1 + text.length > WIDTH) break;
     out += ` ${text}`;
   }
-  const pad = " ".repeat(column + 2);
+  const pad = ' '.repeat(column + 2);
   for (; k < d.parts.length; k++) {
     const [kw, v] = d.parts[k] as readonly [string | null, Doc];
-    const lead = kw === null ? "" : `:${kw} `;
+    const lead = kw === null ? '' : `:${kw} `;
     out += `\n${pad}${lead}${layout(v, column + 2 + lead.length)}`;
   }
   return `${out})`;

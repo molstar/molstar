@@ -12,11 +12,11 @@
 // subscriber that moves the
 // view is no loop. The browser half (both UIs, real events, the tooltip) is canvas/resting-hover.test.tsx.
 
-import { describe, expect, it } from "vitest";
-import { Hit, HoverKind } from "../src/index.js";
-import type { InputDispatcher } from "../src/input.js";
-import { FAMILY_SECTION as S, syntheticFamily } from "./families.js";
-import { driven } from "./input-fixtures.js";
+import { describe, expect, it } from 'vitest';
+import { Hit, HoverKind } from '../src/index.js';
+import type { InputDispatcher } from '../src/input.js';
+import { FAMILY_SECTION as S, syntheticFamily } from './families.js';
+import { driven } from './input-fixtures.js';
 
 const open = async () => {
   const t = await driven(syntheticFamily(120, 8), { size: { [S]: [420, 260] } });
@@ -46,11 +46,11 @@ function cells({ t }: Open) {
   };
 }
 
-describe("a moved view under a resting pointer", () => {
-  it("is hit again at the next frame, once for many moves in it; the hover is what is under the pointer", async () => {
+describe('a moved view under a resting pointer', () => {
+  it('is hit again at the next frame, once for many moves in it; the hover is what is under the pointer', async () => {
     const o = await open();
     const { t, counter, rh, x, y } = o;
-    t.pointer("move", S, x, y);
+    t.pointer('move', S, x, y);
     t.advance(16);
     const at = cells(o).hover;
     expect(at.length).toBe(2);
@@ -69,28 +69,28 @@ describe("a moved view under a resting pointer", () => {
     expect(counter.hits).toBe(5);
   });
 
-  it("a view that moved within the same cell: no hover bump (no refresh, unlike a rebuild)", async () => {
+  it('a view that moved within the same cell: no hover bump (no refresh, unlike a rebuild)', async () => {
     const o = await open();
     const { t, x, y } = o;
-    t.pointer("move", S, x, y);
+    t.pointer('move', S, x, y);
     const v = t.ctx.hover.live.version.value;
-    t.vp(S).panBy(0, 1, "api");
+    t.vp(S).panBy(0, 1, 'api');
     t.advance(16);
     expect(t.ctx.hover.live.version.value).toBe(v);
   });
 
-  it("`flush` runs the waiting re-hit now (the engine draws the hover with the view); its frame then finds nothing", async () => {
+  it('`flush` runs the waiting re-hit now (the engine draws the hover with the view); its frame then finds nothing', async () => {
     const o = await open();
     const { t, counter, rh, x, y, input } = o;
-    t.pointer("move", S, x, y);
+    t.pointer('move', S, x, y);
     const at = cells(o).hover;
-    t.vp(S).panBy(0, 3 * rh, "api");
+    t.vp(S).panBy(0, 3 * rh, 'api');
     counter.hits = 0;
     input.flush();
     expect([counter.hits, cells(o).hover]).toEqual([1, [(at[0] as number) + 3, at[1]]]);
     // Another move before the frame: no second request, the same frame.
     const frames = t.scheduler.pendingFrames;
-    t.vp(S).panBy(0, rh, "api");
+    t.vp(S).panBy(0, rh, 'api');
     input.flush();
     expect([counter.hits, t.scheduler.pendingFrames]).toEqual([2, frames]);
     input.flush();
@@ -103,44 +103,44 @@ describe("a moved view under a resting pointer", () => {
     const { t, counter, rh, x, y, input } = o;
     const moved = () => {
       counter.hits = 0;
-      t.vp(S).panBy(0, rh, "api");
+      t.vp(S).panBy(0, rh, 'api');
       t.advance(16);
       return counter.hits;
     };
     expect(moved()).toBe(0); // never over the surface
-    t.pointer("move", S, x, y);
+    t.pointer('move', S, x, y);
     input.leave(t.ctx.layout.sectionIndex(S));
     expect([moved(), t.ctx.hover.live.current.kind]).toEqual([0, HoverKind.none]);
-    t.pointer("move", S, x, y);
-    t.pointer("down", S, x, y);
+    t.pointer('move', S, x, y);
+    t.pointer('down', S, x, y);
     expect(moved()).toBe(0);
-    t.pointer("up", S, x, y);
+    t.pointer('up', S, x, y);
     // The keyboard's cursor holds the hover: it stays.
     const h = Hit.create();
     t.ctx.layout.hitTest(S, x, y, h);
-    t.ctx.hover.setFromHit(h, "keyboard");
+    t.ctx.hover.setFromHit(h, 'keyboard');
     const v = t.ctx.hover.live.version.value;
-    expect([moved(), t.ctx.hover.live.version.value, t.ctx.hover.live.current.owner]).toEqual([0, v, "keyboard"]);
+    expect([moved(), t.ctx.hover.live.version.value, t.ctx.hover.live.current.owner]).toEqual([0, v, 'keyboard']);
   });
 
-  it("no loop: a hover subscriber that moves the view is not hit again for it", async () => {
+  it('no loop: a hover subscriber that moves the view is not hit again for it', async () => {
     const o = await open();
     const { t, counter, rh, x, y } = o;
-    t.pointer("move", S, x, y);
-    const sub = t.ctx.hover.live.version.subscribe(() => t.vp(S).panBy(0, rh, "api"));
+    t.pointer('move', S, x, y);
+    const sub = t.ctx.hover.live.version.subscribe(() => t.vp(S).panBy(0, rh, 'api'));
     counter.hits = 0;
-    t.vp(S).panBy(0, rh, "api");
+    t.vp(S).panBy(0, rh, 'api');
     for (let k = 0; k < 5; k++) t.advance(16);
     sub.unsubscribe();
     expect(counter.hits).toBe(1);
   });
 
-  it("an animated move: the hover follows each frame of it, as the engine draws it (`flush` before the draw)", async () => {
+  it('an animated move: the hover follows each frame of it, as the engine draws it (`flush` before the draw)', async () => {
     const o = await open();
     const { t, x, y, input } = o;
     t.vp(S).zoomTo(0, 0, 8);
     t.advance(1000);
-    t.pointer("move", S, x, y);
+    t.pointer('move', S, x, y);
     const seen = new Set<number>();
     t.vp(S).zoomTo(0, 20, 28, { animate: true, durationMs: 200 });
     for (let k = 0; k < 14; k++) {

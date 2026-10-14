@@ -10,11 +10,11 @@
 // (seqspec:viewer#the-document), entered with its view and its `transition_ms`, and stepped on the scheduler's clock.
 // `current` mirrors the layer, so a snapshot the document leaves (it no longer applies) is left here too, once.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { Issue } from "@molstar/seq-core/model";
-import type { Documents, Views } from "./document.js";
-import type { Scheduler } from "./scheduler.js";
-import { type Origin, type SeqState, state } from "./state.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { Issue } from '@molstar/seq-core/model';
+import type { Documents, Views } from './document.js';
+import type { Scheduler } from './scheduler.js';
+import { type Origin, type SeqState, state } from './state.js';
 
 export interface SnapshotInfo {
   readonly ref: string;
@@ -53,10 +53,10 @@ export interface SnapshotHost {
  * only from the view the snapshot it leaves set).
  */
 function viewOf(base: SeqViewSpecDoc | null, ref: string): string | null | undefined {
-  const root = base?.root.ref ?? "root";
+  const root = base?.root.ref ?? 'root';
   let out: string | null | undefined;
   for (const op of base?.snapshots?.find((s) => s.ref === ref)?.ops ?? []) {
-    if (op.op === "set" && op.ref === root && op.params && Object.hasOwn(op.params, "default_view"))
+    if (op.op === 'set' && op.ref === root && op.params && Object.hasOwn(op.params, 'default_view'))
       out = (op.params.default_view as string | null) ?? null;
   }
   return out;
@@ -77,7 +77,7 @@ export class Snapshots implements SnapshotManager {
     this.host = host;
     const d = host.documents;
     d.base.subscribe((doc) => this.list.set(infos(doc, d.invalidSnapshots())));
-    d.snapshot.subscribe((ref) => this.current.set(ref, d.snapshot.origin ?? "graph"));
+    d.snapshot.subscribe((ref) => this.current.set(ref, d.snapshot.origin ?? 'graph'));
   }
 
   /** Over the base (never over another snapshot); its view and focus changes enter with its `transition_ms`. */
@@ -88,22 +88,22 @@ export class Snapshots implements SnapshotManager {
     if (ref !== null && !info?.valid) {
       const k = this.list.value.indexOf(info as SnapshotInfo);
       const issue = info
-        ? Issue.warning("svs.snapshot.invalid", `/snapshots/${k}`, `snapshot "${ref}" no longer applies`)
-        : Issue.error("svs.ref.unresolved", "/snapshots", `no snapshot "${ref}"`);
+        ? Issue.warning('svs.snapshot.invalid', `/snapshots/${k}`, `snapshot "${ref}" no longer applies`)
+        : Issue.error('svs.ref.unresolved', '/snapshots', `no snapshot "${ref}"`);
       return h.report(issue);
     }
-    h.enter({ ms: opts.animate === false ? 0 : (info?.transitionMs ?? 0), origin: "snapshot" });
+    h.enter({ ms: opts.animate === false ? 0 : (info?.transitionMs ?? 0), origin: 'snapshot' });
     const base = h.documents.base.value;
     const left = this.current.value === null ? undefined : viewOf(base, this.current.value);
-    const first = () => h.views.list.value[0]?.ref ?? "";
+    const first = () => h.views.list.value[0]?.ref ?? '';
     // Still on the view the snapshot it leaves set (the reader has not picked another).
     const onLeft = left !== undefined && h.views.current.value === (left ?? first());
-    h.documents.setSnapshot(ref, "snapshot");
+    h.documents.setSnapshot(ref, 'snapshot');
     // Leaving a snapshot that set a view for one (or the base) that sets none returns to the base's view: the change
     // between the two is a `default_view` change too (seqspec:format#snapshots).
     let view = ref === null ? undefined : viewOf(base, ref);
     if (view === undefined && onLeft) view = (base?.root.params?.default_view as string | null) ?? null;
-    if (view !== undefined) h.views.setCurrent(view ?? first(), "snapshot");
+    if (view !== undefined) h.views.setCurrent(view ?? first(), 'snapshot');
     try {
       await h.update();
     } finally {

@@ -10,7 +10,7 @@
 // path through a chromosome holds its CDS; `Paths` reads it per element and by ranges either way, as the dense arrays
 // it replaced did (checked against the map itself).
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   type ComposedPath,
   type CoordinateSystem,
@@ -21,29 +21,29 @@ import {
   Paths,
   type SeqSet,
   SeqSets,
-} from "../../src/model/index.js";
-import { CDS, GENE, PROTEIN } from "./codon-fixtures.js";
+} from '../../src/model/index.js';
+import { CDS, GENE, PROTEIN } from './codon-fixtures.js';
 
 const CHR = 200_000_000;
 /** A protein coded by three exons of a lazy 200 Mb chromosome, on either strand. */
-function genome(strand: "+" | "-" = "+") {
+function genome(strand: '+' | '-' = '+') {
   const cds: [number, number][] = [
     [120_000_000, 120_000_030],
     [120_004_000, 120_004_031],
     [120_090_000, 120_090_002],
   ];
   const input: MappingInput = {
-    key: "p.codon",
-    from: "p",
-    to: "chr",
-    method: "codon",
-    cds: strand === "+" ? cds : cds.slice().reverse(),
+    key: 'p.codon',
+    from: 'p',
+    to: 'chr',
+    method: 'codon',
+    cds: strand === '+' ? cds : cds.slice().reverse(),
     strand,
   };
   return SeqSets.build({
     molecules: [
-      { key: "chr", alphabet: "dna", lazy: { length: CHR }, ownUnit: true },
-      { key: "p", alphabet: "protein", residues: "M".repeat(21), ownUnit: true },
+      { key: 'chr', alphabet: 'dna', lazy: { length: CHR }, ownUnit: true },
+      { key: 'p', alphabet: 'protein', residues: 'M'.repeat(21), ownUnit: true },
     ],
     mappings: [input],
   }).set;
@@ -87,10 +87,10 @@ function reference(p: ComposedPath, i: number, j: number): number {
   return first;
 }
 
-describe("sparse composed paths", () => {
+describe('sparse composed paths', () => {
   it("a protein's path through a 200 Mb chromosome holds its CDS, not the chromosome", () => {
     const set = genome();
-    const down = compose(set, "chr/unit", "p/unit");
+    const down = compose(set, 'chr/unit', 'p/unit');
     expect([down.length, down.heldTo.length, down.heldSpans, Array.from(down.runs)]).toEqual([
       CHR,
       63,
@@ -100,14 +100,14 @@ describe("sparse composed paths", () => {
     // Codon 10 is split by the first intron: 120,000,030 is intronic.
     const at = [120_000_000, 120_000_029, 120_000_030, 120_004_000, 120_004_002, 119_999_999, CHR - 1, -1];
     expect(at.map((i) => Paths.at(down, i))).toEqual([0, 9, -1, 10, 10, -1, -1, -1]);
-    const up = compose(set, "p/unit", "chr/unit");
+    const up = compose(set, 'p/unit', 'chr/unit');
     expect([up.length, up.heldTo.length, up.heldSpans?.length, up.span]).toEqual([21, 21, 63, 3]);
     expect([0, 1, 2].map((j) => Paths.spanAt(up, 9, j))).toEqual([120_000_027, 120_000_028, 120_000_029]);
     expect([0, 1, 2].map((j) => Paths.spanAt(up, 10, j))).toEqual([120_004_000, 120_004_001, 120_004_002]);
   });
 
   it("reads ranges either way: a residue's codon split across an intron, the exons of a stretch of residues", () => {
-    const down = compose(genome(), "chr/unit", "p/unit");
+    const down = compose(genome(), 'chr/unit', 'p/unit');
     // To (residues) → from (nucleotides): the request's direction.
     expect(runsFrom(down, 9, 11)).toEqual([
       [120_000_027, 120_000_030],
@@ -120,9 +120,9 @@ describe("sparse composed paths", () => {
     ]);
     // From (nucleotides) → to (residues): an item's image; an intronic one reaches nothing.
     expect([runsTo(down, 120_000_020, 120_004_010), runsTo(down, 120_001_000, 120_002_000)]).toEqual([[[6, 14]], []]);
-    expect([Paths.ratio(down), Paths.ratio(compose(genome(), "p/unit", "chr/unit"))]).toEqual([3, 1 / 3]);
+    expect([Paths.ratio(down), Paths.ratio(compose(genome(), 'p/unit', 'chr/unit'))]).toEqual([3, 1 / 3]);
     // On the minus strand residue 0 is at the top of the last exon: runs still come in to order.
-    const minus = compose(genome("-"), "chr/unit", "p/unit");
+    const minus = compose(genome('-'), 'chr/unit', 'p/unit');
     expect([Paths.at(minus, 120_090_001), Paths.at(minus, 120_000_000)]).toEqual([0, 20]);
     expect([runsFrom(minus, 0, 1), runsFrom(minus, 10, 11)]).toEqual([
       [
@@ -134,14 +134,14 @@ describe("sparse composed paths", () => {
   });
 
   it("reads a residue's bases back through the path, in reading order (fromAt)", () => {
-    const down = compose(genome(), "chr/unit", "p/unit");
+    const down = compose(genome(), 'chr/unit', 'p/unit');
     expect([0, 1, 2].map((k) => Paths.fromAt(down, 10, k))).toEqual([120_004_000, 120_004_001, 120_004_002]);
-    const minus = compose(genome("-"), "chr/unit", "p/unit");
+    const minus = compose(genome('-'), 'chr/unit', 'p/unit');
     // Residue 0 on the minus strand: two bases at the top of the last exon, the third at the top of the middle one.
     expect([0, 1, 2, 3].map((k) => Paths.fromAt(minus, 0, k))).toEqual([120_090_001, 120_090_000, 120_004_030, -1]);
     expect([Paths.fromAt(down, -1, 0), Paths.fromAt(down, 21, 0)]).toEqual([-1, -1]);
     // From the protein side (the map read from its own from): a base's residue, k 0 only.
-    const up = compose(genome(), "p/unit", "chr/unit");
+    const up = compose(genome(), 'p/unit', 'chr/unit');
     expect([
       Paths.fromAt(up, 120_004_001, 0),
       Paths.fromAt(up, 120_004_001, 1),
@@ -149,19 +149,19 @@ describe("sparse composed paths", () => {
     ]).toEqual([10, -1, -1]);
   });
 
-  it("agrees with the dense arrays it replaced, element by element, both ways and on both strands", () => {
+  it('agrees with the dense arrays it replaced, element by element, both ways and on both strands', () => {
     const gene = SeqSets.build({
       molecules: [
-        { key: "gene", alphabet: "dna", residues: GENE, ownUnit: true },
-        { key: "protein", alphabet: "protein", residues: PROTEIN, ownUnit: true },
+        { key: 'gene', alphabet: 'dna', residues: GENE, ownUnit: true },
+        { key: 'protein', alphabet: 'protein', residues: PROTEIN, ownUnit: true },
       ],
-      mappings: [{ key: "c", from: "protein", to: "gene", method: "codon", cds: CDS }],
+      mappings: [{ key: 'c', from: 'protein', to: 'gene', method: 'codon', cds: CDS }],
     }).set;
     const cases: [SeqSet, string, string][] = [
-      [gene, "gene/unit", "protein/unit"],
-      [gene, "protein/unit", "gene/unit"],
-      [gene, "gene", "protein"],
-      [genome("-"), "p/unit", "chr/unit"],
+      [gene, 'gene/unit', 'protein/unit'],
+      [gene, 'protein/unit', 'gene/unit'],
+      [gene, 'gene', 'protein'],
+      [genome('-'), 'p/unit', 'chr/unit'],
     ];
     for (const [set, a, b] of cases) {
       const p = compose(set, a, b);

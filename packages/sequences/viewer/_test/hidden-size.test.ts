@@ -11,32 +11,32 @@
 // columns) was laid out at the height its box had before its rows (40 px) and kept it, showing one row, until some
 // input bumped the viewport again.
 
-import { describe, expect, it } from "vitest";
-import { fixtureLoaders } from "../../core/_test/format/load-fixtures.js";
-import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "../src/index.js";
-import { fixtureMeasurer } from "../src/testing/index.js";
-import { familyWithTree } from "./families.js";
+import { describe, expect, it } from 'vitest';
+import { fixtureLoaders } from '../../core/_test/format/load-fixtures.js';
+import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from '../src/index.js';
+import { fixtureMeasurer } from '../src/testing/index.js';
+import { familyWithTree } from './families.js';
 
-const STYLE = { preset: "msa", data_floor: 0 };
+const STYLE = { preset: 'msa', data_floor: 0 };
 function styled() {
   const doc = familyWithTree(60, 12, { columns: true });
   const walk = (n: typeof doc.root): typeof doc.root => ({
     ...n,
-    params: n.ref === "fam.main" ? { ...n.params, style: STYLE } : n.params,
+    params: n.ref === 'fam.main' ? { ...n.params, style: STYLE } : n.params,
     children: n.children?.map(walk),
   });
   return { ...doc, root: walk(doc.root) };
 }
 
-describe("a viewport that is hidden for want of a data width", () => {
-  it("lays out for the height that came after the first layout: every row that fits is visible, no interaction", async () => {
+describe('a viewport that is hidden for want of a data width', () => {
+  it('lays out for the height that came after the first layout: every row that fits is visible, no interaction', async () => {
     const scheduler = manualScheduler();
     const ctx = createSeqViewer(
       { ...DefaultSeqViewerSpec(), registry: [DefaultRegistry] },
       { loaders: fixtureLoaders(), scheduler, text: fixtureMeasurer() },
     );
     await ctx.setDocument(styled());
-    const section = "fam.main";
+    const section = 'fam.main';
     const vp = ctx.viewports.get(section);
     // The box is 40 px tall before its rows are known; then it grows to hold them. 300 px leaves the letters nothing.
     vp?.setSize(300, 40, 1);

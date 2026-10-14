@@ -11,15 +11,15 @@
 // `plotLayer`, `yBlock`, `yStartShown`, `yEndShown`), each end following the point clamped to the plot and to the block
 // the drag started on; on release the ranges, closed, replace the selection (Shift: added). Allocation-free per move.
 
-import type { Closure } from "@molstar/seq-core/format";
-import { Loci } from "@molstar/seq-core/model";
-import type { SeqViewerContext } from "./context.js";
-import { defineBehavior } from "./default-behaviors.js";
-import { dotPlotAt, firstDotPlot, shownAtX } from "./draw/dot-plot.js";
-import { type Hit, HitRegion, HoverKind } from "./hit.js";
-import { Binding, DragPhase } from "./input.js";
-import type { SeqLociAny } from "./lineage.js";
-import { ofRuns } from "./projection.js";
+import type { Closure } from '@molstar/seq-core/format';
+import { Loci } from '@molstar/seq-core/model';
+import type { SeqViewerContext } from './context.js';
+import { defineBehavior } from './default-behaviors.js';
+import { dotPlotAt, firstDotPlot, shownAtX } from './draw/dot-plot.js';
+import { type Hit, HitRegion, HoverKind } from './hit.js';
+import { Binding, DragPhase } from './input.js';
+import type { SeqLociAny } from './lineage.js';
+import { ofRuns } from './projection.js';
 
 const DATA = HitRegion.data;
 const START = DragPhase.start;
@@ -32,7 +32,7 @@ function onPlot(ctx: SeqViewerContext, hit: Hit): boolean {
   const view = ctx.graph.assembled.value?.view;
   if (!view || hit.region !== DATA || hit.layer < 0 || hit.block < 0 || hit.shown < 0) return false;
   const type = view.resolved.layers.type[hit.layer];
-  return type >= 0 && view.set.strings.get(type) === "dot_plot";
+  return type >= 0 && view.set.strings.get(type) === 'dot_plot';
 }
 
 /** The track's first dot plot of layer k (`firstDotPlot`): the one whose overlay draws the rectangle. Edge rate. */
@@ -40,23 +40,23 @@ function plotLayerOf(ctx: SeqViewerContext, k: number): number {
   const view = ctx.graph.assembled.value?.view;
   if (!view) return k;
   const L = view.resolved.layers;
-  const name = (j: number) => (L.type[j] >= 0 ? view.set.strings.get(L.type[j]) : "");
+  const name = (j: number) => (L.type[j] >= 0 ? view.set.strings.get(L.type[j]) : '');
   return firstDotPlot(L.count, (j) => L.track[j], name, k);
 }
 
 export const DotPlotSelectBehavior = defineBehavior(
-  "dotPlotSelect",
-  "interaction",
+  'dotPlotSelect',
+  'interaction',
   60,
   {
     /** The drag that selects a rectangle: a plain one. */
-    dragOn: [{ button: "primary" }] as Binding,
+    dragOn: [{ button: 'primary' }] as Binding,
     /** The drag that adds its rectangle to the selection. */
-    add: [{ button: "primary", shift: true }] as Binding,
+    add: [{ button: 'primary', shift: true }] as Binding,
     /** What the ranges are closed by (seqspec:interaction#channels), as a click's. */
-    closure: "containing" as Closure,
+    closure: 'containing' as Closure,
   },
-  "On a dot plot a drag selects a rectangle: the positions it spans across and down, as two ranges (Shift adds them).",
+  'On a dot plot a drag selects a rectangle: the positions it spans across and down, as two ranges (Shift adds them).',
   ({ ctx, h, on }) => {
     const pd = ctx.selection.pending.current;
     // The pending selection is the selection manager's live record: its owner bumps it (as `select` does).
@@ -102,13 +102,13 @@ export const DotPlotSelectBehavior = defineBehavior(
         n = ax.shownToRuns(b, k0, k1, runs);
       }
       const indices = ofRuns(runs, n);
-      return { kind: "seq-loci", set: ax.set, elements: [{ unit: ax.unit[b], indices }] } as unknown as SeqLociAny;
+      return { kind: 'seq-loci', set: ax.set, elements: [{ unit: ax.unit[b], indices }] } as unknown as SeqLociAny;
     };
     on(ctx.interaction.drag, (e) => {
       const p = h.forSection(e.start.section);
       if (!p) return;
       if (e.phase === START) {
-        if (e.owner !== "" || !onPlot(ctx, e.start)) return;
+        if (e.owner !== '' || !onPlot(ctx, e.start)) return;
         const add = Binding.match(p.add, e.button, e.input.modifiers);
         if (!add && !Binding.match(p.dragOn, e.button, e.input.modifiers)) return;
         const ref = ctx.layout.sectionRef(e.start.section);
@@ -121,7 +121,7 @@ export const DotPlotSelectBehavior = defineBehavior(
         io[1] = e.start.y;
         only = v.axis?.stacked ? e.start.block : -1;
         if (!dotPlotAt(v, frame[0], frame[1], io, true, only, at)) return;
-        e.claim("dotPlotSelect");
+        e.claim('dotPlotSelect');
         adding = add;
         pd.active = true;
         pd.remove = false;
@@ -133,7 +133,7 @@ export const DotPlotSelectBehavior = defineBehavior(
         pd.plotLayer = plotLayerOf(ctx, e.start.layer);
         pd.yBlock = at[0];
         pd.yStartShown = pd.yEndShown = at[1];
-      } else if (e.owner !== "dotPlotSelect") return;
+      } else if (e.owner !== 'dotPlotSelect') return;
       if (e.phase === CANCEL) return clear();
       follow(pd.section, e.input.x, e.input.y);
       if (e.phase !== END) return bump();
@@ -143,8 +143,8 @@ export const DotPlotSelectBehavior = defineBehavior(
       const both = x && y ? (Loci.union(x as never, y as never) as SeqLociAny) : (x ?? y);
       if (!both) return;
       const closed = ctx.selection.close(both, p.closure);
-      if (adding) ctx.selection.add(closed, "pointer");
-      else ctx.selection.set(closed, "pointer");
+      if (adding) ctx.selection.add(closed, 'pointer');
+      else ctx.selection.set(closed, 'pointer');
     });
   },
 );

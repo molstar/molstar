@@ -9,8 +9,8 @@
 // Fixtures for input, behaviors and labels (IN2): LY1's opened contexts with the input records a host or `/canvas`
 // would fill, and the subscriptions a removed behavior must leave.
 
-import type { Loaders, SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.js";
+import type { Loaders, SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { fixtureLoaders, MolstarFixture } from '../../core/_test/format/load-fixtures.js';
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -23,11 +23,11 @@ import {
   type SeqViewerContext,
   type SeqViewerRegistryEntry,
   type SeqViewerSpec,
-} from "../src/index.js";
-import type { Layouts } from "../src/layout.js";
-import { fixtureMeasurer } from "../src/testing/index.js";
-import { WINDOW_FRAME, windowFrame } from "../src/windows.js";
-import { helpers, PRESETS, renderers } from "./layout-fixtures.js";
+} from '../src/index.js';
+import type { Layouts } from '../src/layout.js';
+import { fixtureMeasurer } from '../src/testing/index.js';
+import { WINDOW_FRAME, windowFrame } from '../src/windows.js';
+import { helpers, PRESETS, renderers } from './layout-fixtures.js';
 export interface DrivenOptions {
   size?: Record<string, readonly [number, number]>;
   registry?: SeqViewerRegistryEntry[];
@@ -36,7 +36,7 @@ export interface DrivenOptions {
   /** False: without the built-in label providers (their strings are one allocation per hovered element by design). */
   labels?: false;
   /** The viewer spec's behaviors as a host composes them (default: `DefaultSeqViewerSpec`'s). */
-  behaviors?: (list: SeqViewerSpec["behaviors"]) => SeqViewerSpec["behaviors"];
+  behaviors?: (list: SeqViewerSpec['behaviors']) => SeqViewerSpec['behaviors'];
 }
 export interface PointerOpts {
   shift?: boolean;
@@ -92,8 +92,8 @@ export async function driven(doc: SeqViewSpecDoc, o: DrivenOptions = {}) {
     p.section = ctx.layout.sectionIndex(section);
     p.x = x;
     p.y = y;
-    p.button = type === "move" ? -1 : (opts.button ?? 0);
-    p.buttons = type === "up" || type === "cancel" ? 0 : 1 << (opts.button ?? 0);
+    p.button = type === 'move' ? -1 : (opts.button ?? 0);
+    p.buttons = type === 'up' || type === 'cancel' ? 0 : 1 << (opts.button ?? 0);
     p.modifiers = mods(opts);
     p.pointerId = opts.pointerId ?? 0;
     p.time = scheduler.now();
@@ -101,14 +101,14 @@ export async function driven(doc: SeqViewSpecDoc, o: DrivenOptions = {}) {
   };
   /** A press, moves in `steps` and a release. */
   const drag = (section: string, x0: number, y0: number, x1: number, y1: number, opts: PointerOpts = {}, steps = 4) => {
-    pointer("down", section, x0, y0, opts);
+    pointer('down', section, x0, y0, opts);
     for (let i = 1; i <= steps; i++)
-      pointer("move", section, x0 + ((x1 - x0) * i) / steps, y0 + ((y1 - y0) * i) / steps, opts);
-    pointer("up", section, x1, y1, opts);
+      pointer('move', section, x0 + ((x1 - x0) * i) / steps, y0 + ((y1 - y0) * i) / steps, opts);
+    pointer('up', section, x1, y1, opts);
   };
   const click = (section: string, x: number, y: number, opts: PointerOpts = {}) => {
-    pointer("down", section, x, y, opts);
-    pointer("up", section, x, y, opts);
+    pointer('down', section, x, y, opts);
+    pointer('up', section, x, y, opts);
   };
   const wheel = (section: string, x: number, y: number, deltaX: number, deltaY: number, opts: PointerOpts = {}) => {
     Object.assign(w, { section: ctx.layout.sectionIndex(section), x, y, deltaX, deltaY, modifiers: mods(opts) });
@@ -123,7 +123,7 @@ export async function driven(doc: SeqViewSpecDoc, o: DrivenOptions = {}) {
     Object.assign(k, {
       section: ctx.layout.sectionIndex(section),
       key: name,
-      code: opts.code ?? "",
+      code: opts.code ?? '',
       modifiers: mods(opts),
       typing: !!opts.typing,
     });

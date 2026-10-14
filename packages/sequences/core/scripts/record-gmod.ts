@@ -13,22 +13,22 @@
 //   2bit, BigWig and BigBed cases, and for the VCF the first/last megabytes of the file inflated with Node's gunzip
 //   and filtered by line (no index, no BGZF splitting of ours).
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { constants, gunzipSync } from "node:zlib";
-import { CASES, type Key, makers, URLS } from "../_test/stream/gmod/cases.ts";
-import type { SliceMeta } from "../_test/stream/gmod/slices.ts";
-import { fetchRanges, type RangeReader } from "../src/stream/gmod/index.ts";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { constants, gunzipSync } from 'node:zlib';
+import { CASES, type Key, makers, URLS } from '../_test/stream/gmod/cases.ts';
+import type { SliceMeta } from '../_test/stream/gmod/slices.ts';
+import { fetchRanges, type RangeReader } from '../src/stream/gmod/index.ts';
 
-const fixtures = new URL("../_test/stream/gmod/fixtures/", import.meta.url);
-const API = "https://api.genome.ucsc.edu/getData";
+const fixtures = new URL('../_test/stream/gmod/fixtures/', import.meta.url);
+const API = 'https://api.genome.ucsc.edu/getData';
 const only = process.argv.slice(2);
 const want = (k: string) => only.length === 0 || only.includes(k);
 mkdirSync(fixtures, { recursive: true });
-const slicesFile = new URL("slices.json", fixtures);
-const metas: Record<string, SliceMeta> = existsSync(slicesFile) ? JSON.parse(readFileSync(slicesFile, "utf8")) : {};
-const expectedFile = new URL("expected.json", fixtures);
+const slicesFile = new URL('slices.json', fixtures);
+const metas: Record<string, SliceMeta> = existsSync(slicesFile) ? JSON.parse(readFileSync(slicesFile, 'utf8')) : {};
+const expectedFile = new URL('expected.json', fixtures);
 const expected: Record<string, unknown> = existsSync(expectedFile)
-  ? JSON.parse(readFileSync(expectedFile, "utf8"))
+  ? JSON.parse(readFileSync(expectedFile, 'utf8'))
   : {};
 
 const json = async <T>(url: string): Promise<T> => {
@@ -39,8 +39,8 @@ const json = async <T>(url: string): Promise<T> => {
 
 /** A reader that records every distinct read it passes on. */
 async function recording(key: Key, url: string) {
-  const head = await fetch(url, { method: "HEAD" });
-  const size = Number(head.headers.get("content-length"));
+  const head = await fetch(url, { method: 'HEAD' });
+  const size = Number(head.headers.get('content-length'));
   const base = fetchRanges(url);
   const got = new Map<string, Uint8Array>();
   const read: RangeReader = async (offset, length, signal) => {
@@ -50,8 +50,8 @@ async function recording(key: Key, url: string) {
   };
   const save = () => {
     const entries = [...got.entries()].map(([k, b]) => ({
-      offset: Number(k.split(":")[0]),
-      asked: Number(k.split(":")[1]),
+      offset: Number(k.split(':')[0]),
+      asked: Number(k.split(':')[1]),
       b,
     }));
     entries.sort((a, b) => a.offset - b.offset || a.asked - b.asked);
@@ -59,16 +59,16 @@ async function recording(key: Key, url: string) {
     metas[key] = {
       url,
       size,
-      modified: head.headers.get("last-modified"),
+      modified: head.headers.get('last-modified'),
       chunks: entries.map((e) => [e.offset, e.asked, e.b.length]),
     };
     writeFileSync(slicesFile, `${JSON.stringify(metas, null, 1)}\n`);
     console.log(
       key,
       entries.length,
-      "ranges",
+      'ranges',
       entries.reduce((n, e) => n + e.b.length, 0),
-      "bytes of",
+      'bytes of',
       size,
     );
   };
@@ -78,7 +78,7 @@ async function recording(key: Key, url: string) {
 const signal = new AbortController().signal;
 async function run(key: keyof typeof URLS, read: RangeReader, index?: Uint8Array) {
   const provider =
-    key === "vcf"
+    key === 'vcf'
       ? makers.vcf(read, index as Uint8Array)
       : (makers[key] as (r: RangeReader) => ReturnType<typeof makers.bigwig>)(read);
   const out: Record<string, unknown> = {};
@@ -86,13 +86,13 @@ async function run(key: keyof typeof URLS, read: RangeReader, index?: Uint8Array
   return out;
 }
 
-if (want("twobit")) {
-  const rec = await recording("twobit", URLS.twobit);
-  await run("twobit", rec.read);
+if (want('twobit')) {
+  const rec = await recording('twobit', URLS.twobit);
+  await run('twobit', rec.read);
   rec.save();
   const e: Record<string, unknown> = {};
   for (const [name, r] of CASES.twobit.slice(1)) {
-    const end = Math.min(r.stop, r.system === "chrM" ? 16_569 : r.stop);
+    const end = Math.min(r.stop, r.system === 'chrM' ? 16_569 : r.stop);
     e[name] = (
       await json<{ dna: string }>(`${API}/sequence?genome=hg38;chrom=${r.system};start=${r.start};end=${end}`)
     ).dna;
@@ -100,9 +100,9 @@ if (want("twobit")) {
   expected.twobit = e;
 }
 
-if (want("bigwig")) {
-  const rec = await recording("bigwig", URLS.bigwig);
-  const got = (await run("bigwig", rec.read)) as Record<string, { manifest: { levels: number[] } }>;
+if (want('bigwig')) {
+  const rec = await recording('bigwig', URLS.bigwig);
+  const got = (await run('bigwig', rec.read)) as Record<string, { manifest: { levels: number[] } }>;
   rec.save();
   const e: Record<string, unknown> = { levels: got.manifest.manifest.levels };
   const levels: number[] = got.manifest.manifest.levels;
@@ -133,9 +133,9 @@ if (want("bigwig")) {
   expected.bigwig = e;
 }
 
-if (want("bigbed")) {
-  const rec = await recording("bigbed", URLS.bigbed);
-  await run("bigbed", rec.read);
+if (want('bigbed')) {
+  const rec = await recording('bigbed', URLS.bigbed);
+  await run('bigbed', rec.read);
   rec.save();
   const e: Record<string, unknown> = {};
   for (const [name, r] of CASES.bigbed.slice(1)) {
@@ -150,23 +150,23 @@ if (want("bigbed")) {
       end: g.chromEnd,
       strand: g.strand,
       exons: g.chromStarts
-        .split(",")
+        .split(',')
         .filter(Boolean)
         .map((s, k) => [
           Number(g.chromStart) + Number(s),
-          Number(g.chromStart) + Number(s) + Number(g.blockSizes.split(",")[k]),
+          Number(g.chromStart) + Number(s) + Number(g.blockSizes.split(',')[k]),
         ]),
     }));
   }
   expected.bigbed = e;
 }
 
-if (want("vcf")) {
+if (want('vcf')) {
   const tbi = new Uint8Array(await (await fetch(`${URLS.vcf}.tbi`)).arrayBuffer());
-  writeFileSync(new URL("tbi.bin", fixtures), tbi);
+  writeFileSync(new URL('tbi.bin', fixtures), tbi);
   metas.tbi = { url: `${URLS.vcf}.tbi`, size: tbi.length, modified: null, chunks: [[0, tbi.length, tbi.length]] };
-  const rec = await recording("vcf", URLS.vcf);
-  await run("vcf", rec.read, tbi);
+  const rec = await recording('vcf', URLS.vcf);
+  await run('vcf', rec.read, tbi);
   rec.save();
   // The same lines without the index: from the first (chr 1) and the last (MT) megabytes, as Node inflates them.
   const lines = async (from: number, to: number) => {
@@ -179,30 +179,30 @@ if (want("vcf")) {
     )
       at++;
     bytes = bytes.subarray(at);
-    return gunzipSync(bytes, { finishFlush: constants.Z_SYNC_FLUSH }).toString("latin1").split("\n");
+    return gunzipSync(bytes, { finishFlush: constants.Z_SYNC_FLUSH }).toString('latin1').split('\n');
   };
   const rec_range = fetchRanges(URLS.vcf);
   const size = rec.size;
   const pick = (all: string[], chrom: string, start: number, stop: number) =>
     all
-      .filter((l) => l && l[0] !== "#")
-      .map((l) => l.split("\t"))
+      .filter((l) => l && l[0] !== '#')
+      .map((l) => l.split('\t'))
       .filter((f) => f[0] === chrom && Number(f[1]) - 1 < stop && Number(f[1]) - 1 + f[3].length > start)
       .flatMap((f) =>
-        f[4].split(",").map((alt) => ({
+        f[4].split(',').map((alt) => ({
           start: Number(f[1]) - 1,
           ref: f[3],
           alt,
           name: f[2],
-          clnsig: /(?:^|;)CLNSIG=([^;]*)/.exec(f[7])?.[1] ?? "",
+          clnsig: /(?:^|;)CLNSIG=([^;]*)/.exec(f[7])?.[1] ?? '',
         })),
       );
   const [, r1] = CASES.vcf[1];
   const [, r2] = CASES.vcf[2];
   expected.vcf = {
-    "chr1 variants": pick(await lines(0, 3_000_000), "1", r1.start, r1.stop),
-    "MT variants": pick(await lines(size - 2_000_000, size), "MT", r2.start, r2.stop),
+    'chr1 variants': pick(await lines(0, 3_000_000), '1', r1.start, r1.stop),
+    'MT variants': pick(await lines(size - 2_000_000, size), 'MT', r2.start, r2.stop),
   };
 }
 
-writeFileSync(expectedFile, `${JSON.stringify({ recorded: "2026-10-12", ...expected })}\n`);
+writeFileSync(expectedFile, `${JSON.stringify({ recorded: '2026-10-12', ...expected })}\n`);

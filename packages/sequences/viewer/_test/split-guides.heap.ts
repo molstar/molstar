@@ -14,7 +14,7 @@
 //
 // Its own file, the viewer loaded afresh (`vi.resetModules`): cases in one file share V8's feedback.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -26,7 +26,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = FRAME_N;
 
@@ -45,18 +45,18 @@ function measure(frame: (i: number) => void, warmed = () => {}) {
 /** Case 13 composed at DPR 2, and a frame: a pan and a whole frame, the guides counted. */
 async function setup() {
   vi.resetModules();
-  const { Dirty, SkinToken } = await import("../src/draw/index.js");
-  const { COPY_BACK, composed, recording } = await import("./composer-fixtures.js");
-  const { case13 } = await import("../../core/_test/format/cases.js");
+  const { Dirty, SkinToken } = await import('../src/draw/index.js');
+  const { COPY_BACK, composed, recording } = await import('./composer-fixtures.js');
+  const { case13 } = await import('../../core/_test/format/cases.js');
   const t = await composed(case13(), { width: 1000, height: 900, dpr: 2 });
   const be = recording(COPY_BACK);
-  t.vp?.setView(3, 200, "api");
+  t.vp?.setView(3, 200, 'api');
   t.frame(be, Dirty.all);
   const GRID = SkinToken.grid;
   let guides = 0;
   let full = 0;
   const frame = (i: number) => {
-    t.vp?.panBy((i & 1) === 0 ? 7 : -7, 0, "pointer");
+    t.vp?.panBy((i & 1) === 0 ? 7 : -7, 0, 'pointer');
     t.frame(be, Dirty.all);
     const r = be.rectItems;
     let n = 0;
@@ -89,7 +89,7 @@ describe("a split track's row guides allocate nothing after warm-up", () => {
     expect(guides()).toBeGreaterThan(0);
   }, 120_000);
 
-  it("the same frames allocating an object each are caught (positive control)", async () => {
+  it('the same frames allocating an object each are caught (positive control)', async () => {
     const { frame } = await setup();
     expect(controlCaught(() => measure(leaking(frame)))).toBe(true);
   }, 120_000);

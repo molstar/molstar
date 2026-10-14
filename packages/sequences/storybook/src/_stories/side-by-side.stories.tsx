@@ -6,29 +6,29 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { resolveView } from "@molstar/seq-core/format";
-import type { Issue } from "@molstar/seq-core/model";
-import { materialize, NightingaleSupported } from "@molstar/seq-nightingale";
-import { mount } from "@molstar/seq-nightingale/mount";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Suspense, use, useEffect, useMemo, useRef, useState } from "react";
-import { type CompiledCase, compiledCase, reg } from "./support/seqstar-cases.js";
-import f from "./support/seqstar-format.module.css";
-import { IssueList } from "./support/seqstar-issues.js";
-import { PrismPage } from "./support/seqstar-prism.js";
-import { BuilderCode, type NavigatorChoice, type UiChoice, ViewerCard } from "./support/seqstar-viewer.js";
-import s from "./support/seqstar-viewer.module.css";
-import { type Args, viewerControls } from "./support/seqstar-viewer-args.js";
-import { ScrollArea } from "./ui/index.js";
+import { resolveView } from '@molstar/seq-core/format';
+import type { Issue } from '@molstar/seq-core/model';
+import { materialize, NightingaleSupported } from '@molstar/seq-nightingale';
+import { mount } from '@molstar/seq-nightingale/mount';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Suspense, use, useEffect, useMemo, useRef, useState } from 'react';
+import { type CompiledCase, compiledCase, reg } from './support/seqstar-cases.js';
+import f from './support/seqstar-format.module.css';
+import { IssueList } from './support/seqstar-issues.js';
+import { PrismPage } from './support/seqstar-prism.js';
+import { BuilderCode, type NavigatorChoice, type UiChoice, ViewerCard } from './support/seqstar-viewer.js';
+import s from './support/seqstar-viewer.module.css';
+import { type Args, viewerControls } from './support/seqstar-viewer-args.js';
+import { ScrollArea } from './ui/index.js';
 
 /**
  * The same case and view in our viewer and in Nightingale.
  */
 const meta = {
-  title: "Seq*/Cases/Default UIs",
+  title: 'Seq*/Cases/Default UIs',
   ...viewerControls,
   // Said here too: Storybook reads a story file's layout from its own meta, not through a spread.
-  parameters: { ...viewerControls.parameters, layout: "fullscreen" },
+  parameters: { ...viewerControls.parameters, layout: 'fullscreen' },
 } satisfies Meta<Args>;
 export default meta;
 type Story = StoryObj<Args>;
@@ -38,7 +38,7 @@ function NightingaleView({ c, view }: { c: CompiledCase; view: string }) {
   const r = useMemo(() => {
     const { view: resolved, issues } = resolveView(c.doc, c.set, view, reg, NightingaleSupported);
     const m = materialize(resolved, c.set);
-    const lost = [...issues.filter((i) => i.code.startsWith("svs.render.")), ...m.issues];
+    const lost = [...issues.filter((i) => i.code.startsWith('svs.render.')), ...m.issues];
     return { view: resolved, root: m.root, lost };
   }, [c, view]);
   const host = useRef<HTMLDivElement>(null);
@@ -81,7 +81,7 @@ function SideBySide({ name, navigator, ui }: { name: string; navigator: Navigato
 
 /** The same case and view in our viewer and in Nightingale (the format's second viewer), side by side. */
 export const SideBySideNightingale: Story = {
-  name: "Side by side with Nightingale",
+  name: 'Side by side with Nightingale',
   render: (a) => (
     <PrismPage
       title="Our viewer and Nightingale on case 7, Barnase–barstar"

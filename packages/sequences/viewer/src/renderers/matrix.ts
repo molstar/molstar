@@ -25,7 +25,7 @@ import {
   matrixFrame,
   matrixHitBand,
   outlineMatrixCell,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 const frame = new Int32Array(2);
 /** The state under the point, from the device rows the draw fills; the position stays the hit. */
@@ -56,7 +56,7 @@ function rowHover(v: AxisView, s: MatrixState, _p: unknown, h: HoverState, out: 
  * 160 px times the row zoom (480 at the default `maxRowScale`, 3); whole px, so the zoom does not box it.
  */
 export const MatrixRenderer = kernelEntry<MatrixState>(
-  "matrix",
+  'matrix',
   (s, _p, props, rowScale = 1) =>
     Math.round(Math.max(24, Math.min(160 * rowScale, s.states * Math.min(18, props.rowHeight * rowScale)))),
   {

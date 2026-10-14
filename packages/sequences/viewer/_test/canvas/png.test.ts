@@ -11,9 +11,9 @@
 // zlib stream (it checks the Adler-32), and the image decoder gives the pixels back; stored and compressed through
 // `CompressionStream`.
 
-import { describe, expect, it } from "vitest";
-import { compressionDeflate } from "../../src/dom/index.js";
-import { encodePng } from "../../src/svg/index.js";
+import { describe, expect, it } from 'vitest';
+import { compressionDeflate } from '../../src/dom/index.js';
+import { encodePng } from '../../src/svg/index.js';
 
 /** CRC-32, one bit at a time. */
 function slowCrc(b: Uint8Array): number {
@@ -25,7 +25,7 @@ function slowCrc(b: Uint8Array): number {
   return (c ^ 0xffffffff) >>> 0;
 }
 async function inflate(z: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([z as Uint8Array<ArrayBuffer>]).stream().pipeThrough(new DecompressionStream("deflate"));
+  const stream = new Blob([z as Uint8Array<ArrayBuffer>]).stream().pipeThrough(new DecompressionStream('deflate'));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 /** The chunks checked, the zlib stream inflated: [w, h, scanlines]. */
@@ -37,20 +37,20 @@ async function read(png: Uint8Array, checkCrc: boolean): Promise<[number, number
     const len = dv.getUint32(at);
     const type = String.fromCharCode(...png.subarray(at + 4, at + 8));
     if (checkCrc) expect(dv.getUint32(at + 8 + len), `${type}'s CRC`).toBe(slowCrc(png.subarray(at + 4, at + 8 + len)));
-    if (type === "IHDR") [w, h] = [dv.getUint32(at + 8), dv.getUint32(at + 12)];
-    if (type === "IDAT") z.push(png.subarray(at + 8, at + 8 + len));
+    if (type === 'IHDR') [w, h] = [dv.getUint32(at + 8), dv.getUint32(at + 12)];
+    if (type === 'IDAT') z.push(png.subarray(at + 8, at + 8 + len));
     at += 12 + len;
   }
   return [w, h, await inflate(new Uint8Array(await new Blob(z as BlobPart[]).arrayBuffer()))];
 }
 /** What the image decoder makes of the file: RGBA bytes. */
 async function decoded(png: Uint8Array, w: number, h: number): Promise<Uint8ClampedArray> {
-  const bmp = await createImageBitmap(new Blob([png as Uint8Array<ArrayBuffer>], { type: "image/png" }), {
-    premultiplyAlpha: "none",
-    colorSpaceConversion: "none",
+  const bmp = await createImageBitmap(new Blob([png as Uint8Array<ArrayBuffer>], { type: 'image/png' }), {
+    premultiplyAlpha: 'none',
+    colorSpaceConversion: 'none',
   });
   const c = new OffscreenCanvas(w, h);
-  const g = c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+  const g = c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
   g.drawImage(bmp, 0, 0);
   return g.getImageData(0, 0, w, h).data;
 }
@@ -69,15 +69,15 @@ function pattern(w: number, h: number): Uint32Array {
 }
 
 describe.each([
-  ["stored", undefined],
-  ["through CompressionStream", compressionDeflate],
-])("a PNG written %s", (_, deflate) => {
+  ['stored', undefined],
+  ['through CompressionStream', compressionDeflate],
+])('a PNG written %s', (_, deflate) => {
   it.each([
     [1, 1],
     [37, 19],
     [16384, 3], // a row longer than a stored block
     [200, 700],
-  ])("%i × %i: the CRCs, the zlib stream and the image decoder agree with the pixels", async (w, h) => {
+  ])('%i × %i: the CRCs, the zlib stream and the image decoder agree with the pixels', async (w, h) => {
     const px = pattern(w, h);
     const png = await encodePng(w, h, px, deflate);
     const [rw, rh, raw] = await read(png, w * h < 100_000);
@@ -97,7 +97,7 @@ describe.each([
   });
 });
 
-describe("a damaged file", () => {
+describe('a damaged file', () => {
   it("a wrong Adler-32 or a wrong CRC is refused by the browser's decoders", async () => {
     const png = (await encodePng(8, 8, pattern(8, 8))) as Uint8Array;
     const adler = png.slice();
@@ -109,8 +109,8 @@ describe("a damaged file", () => {
   });
 });
 
-describe("a large image", () => {
-  it("2,048 × 2,048 stored: written in bounded time and read by the browser", async () => {
+describe('a large image', () => {
+  it('2,048 × 2,048 stored: written in bounded time and read by the browser', async () => {
     const [w, h] = [2048, 2048];
     const px = new Uint32Array(w * h).fill(0xff336699);
     const t = performance.now();

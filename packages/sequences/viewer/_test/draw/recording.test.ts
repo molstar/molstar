@@ -10,7 +10,7 @@
 // every batch's items in its stores, so tests read colors, counts and positions; images and layers kept; a replay
 // reproduces the frame; its hash sees a change to any one field, and a composer's frames hash alike on fresh contexts.
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   BackendCaps,
   GlyphBatch,
@@ -24,22 +24,22 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.js";
-import { Dirty } from "../../src/draw/index.js";
-import { hashRecording, Op, RecordingBackend } from "../../src/testing/index.js";
-import { COPY_BACK, composed, recording } from "../composer-fixtures.js";
-import { dotPlotDoc } from "../dot-plot-fixtures.js";
-import { family } from "../overlay-docs.js";
-import { allTypes, linesDoc } from "../prepare-fixtures.js";
-import { drawFrame, Frame, PIXELS } from "../support/frame.js";
+} from '../../src/draw/api.js';
+import { Dirty } from '../../src/draw/index.js';
+import { hashRecording, Op, RecordingBackend } from '../../src/testing/index.js';
+import { COPY_BACK, composed, recording } from '../composer-fixtures.js';
+import { dotPlotDoc } from '../dot-plot-fixtures.js';
+import { family } from '../overlay-docs.js';
+import { allTypes, linesDoc } from '../prepare-fixtures.js';
+import { drawFrame, Frame, PIXELS } from '../support/frame.js';
 
 const codes = (r: RecordingBackend) => Array.from({ length: r.opCount }, (_, k) => r.ops[k * 4]);
 const args = (r: RecordingBackend, k: number, n: number) => [
   ...r.args.subarray(r.ops[k * 4 + 3], r.ops[k * 4 + 3] + n),
 ];
 
-describe("recording backend", () => {
-  it("draws whole frames: no copy, no back target", () => {
+describe('recording backend', () => {
+  it('draws whole frames: no copy, no back target', () => {
     expect(new RecordingBackend().caps & (BackendCaps.Copy | BackendCaps.Back)).toBe(0);
   });
 
@@ -84,7 +84,7 @@ describe("recording backend", () => {
     const t = new TextBatch();
     t.style(4, TextAlign.center, TextBaseline.middle, 0.5);
     t.begin(0x00ff00);
-    t.push(1.5, 2.5, "A");
+    t.push(1.5, 2.5, 'A');
     r.text(t);
     expect(r.count(Op.rects)).toBe(2);
     expect([r.ops[4 + 1], r.ops[4 + 2]]).toEqual([1, 2]);
@@ -94,7 +94,7 @@ describe("recording backend", () => {
     expect([...s.color.subarray(0, 3)]).toEqual([0xff0000, SkinToken.selectionBorder, SkinToken.selectionBorder]);
     expect([s.alpha[0], s.stroke[0], s.stroke[2]]).toEqual([128, 0, 1]);
     expect(args(r, 2, 4)).toEqual([4, TextAlign.center, TextBaseline.middle, 0.5]);
-    expect([r.textItems.text[0], r.textItems.x[0]]).toEqual(["A", 1.5]);
+    expect([r.textItems.text[0], r.textItems.x[0]]).toEqual(['A', 1.5]);
     r.reset();
     expect([r.opCount, r.rectItems.n, r.textItems.n]).toEqual([0, 0, 0]);
   });
@@ -117,7 +117,7 @@ describe("recording backend", () => {
     expect(r.images.content[0]).toBeNull();
   });
 
-  it("replays a frame into another backend as it was recorded", () => {
+  it('replays a frame into another backend as it was recorded', () => {
     const a = new RecordingBackend();
     const f = new Frame(1000, 300);
     const img = a.images.fromPixels(2, 2, PIXELS);
@@ -126,7 +126,7 @@ describe("recording backend", () => {
     a.replay(b);
     expect(codes(b)).toEqual(codes(a));
     expect([...b.args.subarray(0, b.argCount)]).toEqual([...a.args.subarray(0, a.argCount)]);
-    for (const k of ["rectItems", "sectorItems", "pathItems", "glyphItems", "textItems"] as const) {
+    for (const k of ['rectItems', 'sectorItems', 'pathItems', 'glyphItems', 'textItems'] as const) {
       expect(b[k].n).toBe(a[k].n);
       expect(b[k].color.subarray(0, b[k].n)).toEqual(a[k].color.subarray(0, a[k].n));
     }
@@ -138,7 +138,7 @@ describe("recording backend", () => {
     expect(hashRecording(b)).toBe(hashRecording(a));
   });
 
-  it("hashes everything it holds: a change to any one field of any item, argument or image changes the hash", () => {
+  it('hashes everything it holds: a change to any one field of any item, argument or image changes the hash', () => {
     const base = hashRecording(synthetic(SYNTH));
     // Deterministic: the same frame drawn again, and a replayed copy, hash alike.
     expect(hashRecording(synthetic(SYNTH))).toBe(base);
@@ -150,14 +150,14 @@ describe("recording backend", () => {
   });
 
   it("a composer's frames hash alike on fresh contexts, and differ between documents", async () => {
-    const docs = [allTypes(), linesDoc(400, { style: "circular" }), dotPlotDoc(), family()];
+    const docs = [allTypes(), linesDoc(400, { style: 'circular' }), dotPlotDoc(), family()];
     const run = async (k: number) => {
       const t = await composed(docs[k], { width: 900 });
       const be = recording(COPY_BACK);
       const first = hashRecording(t.frame(be, Dirty.all));
-      t.vp?.setView(12, 40, "api");
+      t.vp?.setView(12, 40, 'api');
       t.frame(be, Dirty.all);
-      t.vp?.panBy(30, 0, "api");
+      t.vp?.panBy(30, 0, 'api');
       return [first, hashRecording(t.frame(be, Dirty.all))];
     };
     const a = [];
@@ -208,7 +208,7 @@ const SYNTH = {
   textY: 12.5,
   textSx: 1,
   textSy: 1,
-  text: "Ab",
+  text: 'Ab',
   textColor: 0x123456,
   textAlpha: 250,
   textFont: 4,
@@ -227,13 +227,13 @@ const CHANGES: [string, Partial<typeof SYNTH>][] = Object.entries(SYNTH).map(([k
   k,
   {
     [k]:
-      typeof v === "string"
+      typeof v === 'string'
         ? `${v}~`
-        : k === "pathVerb"
+        : k === 'pathVerb'
           ? PathVerb.move
-          : k === "pathMode"
+          : k === 'pathMode'
             ? PathMode.fill
-            : k === "disposed" || k === "smooth" || k === "rectStroke"
+            : k === 'disposed' || k === 'smooth' || k === 'rectStroke'
               ? 1 - v
               : Number.isInteger(v)
                 ? v + 1

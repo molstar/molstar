@@ -16,44 +16,44 @@
 // The stories' documents are opened half here and half in smoke-more.test.ts (smoke-stories.ts), so the halves run at
 // once; the four with the largest documents are the slow tier's, every other runs in the fast tier.
 
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { CASES } from "../../core/_test/format/cases.js";
-import { keyedFamilyDoc } from "../../viewer/_test/keyed-family.js";
-import { BAD, styled } from "../src/_stories/support/seqstar-docs-views.js";
-import { storyPatch } from "../src/_stories/support/seqstar-patch.js";
-import { SMOKE } from "../src/_stories/support/seqstar-smoke.js";
-import { smoke } from "./smoke-harness.js";
-import { root, SLOW_STORIES, storyDocuments } from "./smoke-stories.js";
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { CASES } from '../../core/_test/format/cases.js';
+import { keyedFamilyDoc } from '../../viewer/_test/keyed-family.js';
+import { BAD, styled } from '../src/_stories/support/seqstar-docs-views.js';
+import { storyPatch } from '../src/_stories/support/seqstar-patch.js';
+import { SMOKE } from '../src/_stories/support/seqstar-smoke.js';
+import { smoke } from './smoke-harness.js';
+import { root, SLOW_STORIES, storyDocuments } from './smoke-stories.js';
 
-const stories = join(root, "lib/seqstar/storybook/src/_stories");
+const stories = join(root, 'lib/seqstar/storybook/src/_stories');
 
 /** The exports of every story file, as `file#Export`. */
 function storyKeys(): string[] {
   return readdirSync(stories)
-    .filter((f) => f.endsWith(".stories.tsx"))
+    .filter((f) => f.endsWith('.stories.tsx'))
     .flatMap((f) =>
-      [...readFileSync(join(stories, f), "utf8").matchAll(/^export const (\w+)\b/gm)].map((m) => `${f}#${m[1]}`),
+      [...readFileSync(join(stories, f), 'utf8').matchAll(/^export const (\w+)\b/gm)].map((m) => `${f}#${m[1]}`),
     );
 }
 
-describe("the story registry", () => {
+describe('the story registry', () => {
   const keys = new Set(SMOKE.map((s) => s.key));
-  it("names every story export, and only story exports", () => {
+  it('names every story export, and only story exports', () => {
     const real = new Set(storyKeys());
     expect([...real].filter((k) => !keys.has(k))).toEqual([]);
     // An entry that is skipped may name a story another branch has not committed yet.
     expect(SMOKE.filter((s) => !s.skip && !real.has(s.key)).map((s) => s.key)).toEqual([]);
   });
-  it("gives each story documents, the key of one that has them, or a reason", () => {
+  it('gives each story documents, the key of one that has them, or a reason', () => {
     for (const s of SMOKE) {
       expect(
         [s.cases, s.same, s.skip].filter((x) => x !== undefined),
         s.key,
       ).toHaveLength(1);
-      if (s.same) expect(SMOKE.find((x) => x.key === s.same)?.cases, `${s.key} -> ${s.same}`).toBeTypeOf("function");
+      if (s.same) expect(SMOKE.find((x) => x.key === s.same)?.cases, `${s.key} -> ${s.same}`).toBeTypeOf('function');
     }
   });
   it("names the slow tier's stories among those with documents", () => {
@@ -63,25 +63,25 @@ describe("the story registry", () => {
 
 storyDocuments(0, 2);
 
-describe("the smoke test catches what broke stories", () => {
+describe('the smoke test catches what broke stories', () => {
   const problems = async (c: Parameters<typeof smoke>[0]) => (await smoke(c)).map((f) => `${f.step}: ${f.problem}`);
-  it("a warning the story does not allow", async () => {
-    const doc = styled(CASES.case3(), "family.main", BAD);
-    const found = await problems({ label: "bad", doc });
-    expect(found.some((p) => p.includes("svs.section.style"))).toBe(true);
+  it('a warning the story does not allow', async () => {
+    const doc = styled(CASES.case3(), 'family.main', BAD);
+    const found = await problems({ label: 'bad', doc });
+    expect(found.some((p) => p.includes('svs.section.style'))).toBe(true);
   });
   it("a button's patch naming a ref that is not there", async () => {
     const found = await problems({
-      label: "bad patch",
+      label: 'bad patch',
       doc: CASES.case1(),
       steps: [
         {
-          label: "wrong ref",
+          label: 'wrong ref',
           run: async (ctx) =>
             (
               await storyPatch(ctx, {
-                format: "seq_view_spec_patch",
-                ops: [{ op: "set", ref: "no-such-node", params: {} }],
+                format: 'seq_view_spec_patch',
+                ops: [{ op: 'set', ref: 'no-such-node', params: {} }],
               })
             ).issues,
         },
@@ -89,22 +89,22 @@ describe("the smoke test catches what broke stories", () => {
     });
     expect(found.some((p) => p.startsWith('step "wrong ref"'))).toBe(true);
   });
-  it("a keyed-set button that patches the track instead of its rows layer", async () => {
+  it('a keyed-set button that patches the track instead of its rows layer', async () => {
     const family = [
-      { label: "A", gapped: "ACDE" },
-      { label: "B", gapped: "ACDF" },
+      { label: 'A', gapped: 'ACDE' },
+      { label: 'B', gapped: 'ACDF' },
     ];
     const found = await problems({
-      label: "track patch",
+      label: 'track patch',
       doc: keyedFamilyDoc(family),
       steps: [
         {
-          label: "by identity",
+          label: 'by identity',
           run: async (ctx) =>
             (
               await storyPatch(ctx, {
-                format: "seq_view_spec_patch",
-                ops: [{ op: "set", ref: "members", params: { order: "data" } }],
+                format: 'seq_view_spec_patch',
+                ops: [{ op: 'set', ref: 'members', params: { order: 'data' } }],
               })
             ).issues,
         },
@@ -112,19 +112,19 @@ describe("the smoke test catches what broke stories", () => {
     });
     expect(found.some((p) => p.startsWith('step "by identity"'))).toBe(true);
   });
-  it("a refused action", async () => {
+  it('a refused action', async () => {
     const found = await problems({
-      label: "refused",
+      label: 'refused',
       doc: CASES.case1(),
-      steps: [{ label: "no such action", run: (ctx) => ctx.actions.run("no.such.action", null) }],
+      steps: [{ label: 'no such action', run: (ctx) => ctx.actions.run('no.such.action', null) }],
     });
     expect(found.some((p) => p.startsWith('step "no such action": the step failed'))).toBe(true);
   });
-  it("a view with no block", async () => {
-    const b = createSeqViewSpec({ title: "empty" });
-    const v = b.view({ ref: "v", label: "V" });
-    v.track({ label: "" }).ruler();
-    const found = await problems({ label: "no block", doc: b.getDocument() });
+  it('a view with no block', async () => {
+    const b = createSeqViewSpec({ title: 'empty' });
+    const v = b.view({ ref: 'v', label: 'V' });
+    v.track({ label: '' }).ruler();
+    const found = await problems({ label: 'no block', doc: b.getDocument() });
     expect(found.length).toBeGreaterThan(0);
   });
 });

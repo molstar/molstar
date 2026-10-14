@@ -6,10 +6,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { useSeqState, useSeqViewer } from "@molstar/seq-viewer/react";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { type ReactNode, useMemo } from "react";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { useSeqState, useSeqViewer } from '@molstar/seq-viewer/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { type ReactNode, useMemo } from 'react';
 import {
   alignmentGallery,
   customDoc,
@@ -21,11 +21,11 @@ import {
   rangeDoc,
   sharedDoc,
   valuesGallery,
-} from "./support/seqstar-docs-colors.js";
-import f from "./support/seqstar-format.module.css";
-import { PrismCanvas, PrismPage, prism } from "./support/seqstar-prism.js";
-import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer.js";
-import { TextAction } from "./ui/index.js";
+} from './support/seqstar-docs-colors.js';
+import f from './support/seqstar-format.module.css';
+import { PrismCanvas, PrismPage, prism } from './support/seqstar-prism.js';
+import { ViewerCard, type ViewerOptions } from './support/seqstar-viewer.js';
+import { TextAction } from './ui/index.js';
 
 /**
  * Color schemes: named schemes as data, picked in the document (`{"theme": "scheme"}`), in the builder
@@ -33,14 +33,14 @@ import { TextAction } from "./ui/index.js";
  * scheme on a protein alignment (case 3's SH2 family), on an RNA alignment (case 4's tRNAs), on values and on
  * categories, light and dark; a live picker with a host's own scheme; and a document's own palettes.
  */
-const meta = { title: "Seq*/Themes/Color schemes", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Themes/Color schemes', parameters: { layout: 'fullscreen' } } satisfies Meta;
 // The pages follow the toolbar's theme; the viewers' canvases are pinned light and dark side by side (comparing a
 // scheme's two variants is what these stories show), the live picker's follows the UI theme.
 export default meta;
 type Story = StoryObj;
 
 /** What these stories are about, left out by `clean` chrome: the legend (`TrackActions` too where the track menu's Colors ▸ is used). */
-const LEGEND = ["Legend"] as const;
+const LEGEND = ['Legend'] as const;
 
 /** The canvas pinned light or dark, whatever the UI theme (seqstar-prism.tsx). */
 const lightCanvas = (viewer: ReactNode) => <PrismCanvas theme="light">{viewer}</PrismCanvas>;
@@ -68,22 +68,22 @@ function Frame({ title, kicker, children }: { title: string; kicker: ReactNode; 
 }
 
 function GalleryCards() {
-  const protein = useMemo(() => alignmentGallery("SH2 family (case 3)", "PF00017.seed.sto", PROTEIN), []);
-  const rna = useMemo(() => alignmentGallery("tRNA family (case 4)", "RF00005.seed.sto", NUCLEIC), []);
+  const protein = useMemo(() => alignmentGallery('SH2 family (case 3)', 'PF00017.seed.sto', PROTEIN), []);
+  const rna = useMemo(() => alignmentGallery('tRNA family (case 4)', 'RF00005.seed.sto', NUCLEIC), []);
   const values = useMemo(valuesGallery, []);
   // The legend expanded (`UI.Legend`, brought back by `parts`; collapsed by default): the gallery shows each scheme's.
-  const rows = { maxHeight: 132, legend: "expanded", parts: LEGEND } as const;
+  const rows = { maxHeight: 132, legend: 'expanded', parts: LEGEND } as const;
   return (
     <>
       <LightAndDark doc={protein} title="Protein letters" options={rows} />
       <LightAndDark doc={rna} title="Nucleotide letters" options={rows} />
-      <LightAndDark doc={values} title="Values and categories" options={{ legend: "expanded", parts: LEGEND }} />
+      <LightAndDark doc={values} title="Values and categories" options={{ legend: 'expanded', parts: LEGEND }} />
     </>
   );
 }
 
 export const Gallery: Story = {
-  name: "Gallery",
+  name: 'Gallery',
   render: () => (
     <Frame
       title="Every v1 color scheme, on a light and a dark canvas"
@@ -109,23 +109,23 @@ function Commands() {
   const { context } = useSeqViewer();
   const picked = useSeqState(context.ui.colorSchemes);
   const run = (layer: string, scheme: string | null) =>
-    void context.commands.run({ command: "seqv:colorScheme", params: { layer, scheme } }, "host:links");
+    void context.commands.run({ command: 'seqv:colorScheme', params: { layer, scheme } }, 'host:links');
   return (
     <div className={prism.actions}>
       <div className={f.row}>
-        <TextAction tone="quiet" onClick={() => run("members", "taylor")}>
+        <TextAction tone="quiet" onClick={() => run('members', 'taylor')}>
           seqv:colorScheme members → taylor
         </TextAction>
-        <TextAction tone="quiet" onClick={() => run("members", "story:pastel")}>
+        <TextAction tone="quiet" onClick={() => run('members', 'story:pastel')}>
           → story:pastel
         </TextAction>
-        <TextAction tone="quiet" onClick={() => run("cons.color", "magma")}>
+        <TextAction tone="quiet" onClick={() => run('cons.color', 'magma')}>
           cons.color → magma
         </TextAction>
-        <TextAction tone="quiet" onClick={() => run("members", "viridis")}>
+        <TextAction tone="quiet" onClick={() => run('members', 'viridis')}>
           members → viridis (refused: letters are not values)
         </TextAction>
-        <TextAction tone="quiet" onClick={() => [run("members", null), run("cons.color", null)]}>
+        <TextAction tone="quiet" onClick={() => [run('members', null), run('cons.color', null)]}>
           reset
         </TextAction>
       </div>
@@ -140,7 +140,7 @@ function PickerCard() {
     <ViewerCard
       doc={doc}
       label="A legend title, or a track's Colors ▸"
-      options={{ maxHeight: 220, registry: HOST, legend: "expanded", parts: [...LEGEND, "TrackActions"] }}
+      options={{ maxHeight: 220, registry: HOST, legend: 'expanded', parts: [...LEGEND, 'TrackActions'] }}
     >
       <Commands />
     </ViewerCard>
@@ -148,7 +148,7 @@ function PickerCard() {
 }
 
 export const Picker: Story = {
-  name: "Live picker",
+  name: 'Live picker',
   render: () => (
     <Frame
       title="Switch and compare: a legend title, a track's menu, and the command"
@@ -158,9 +158,9 @@ export const Picker: Story = {
           open the <b>Members</b> track's ⋯ menu and its <b>Colors ▸</b> (its letters list nothing, so it has no legend
           row): each lists "document" (the document's own color) and the schemes that fit that layer's color (letters of
           its alphabet, values, categories), colorblind-safe ones marked. A pick is UI state (
-          <code>ui.colorSchemes</code>), never written into the document unless the host sets{" "}
-          <code>UI.ColorSchemeWrites</code>; it survives patches and a new document clears it. The host registered{" "}
-          <code>story:pastel</code>, listed after the built-ins. The links below run{" "}
+          <code>ui.colorSchemes</code>), never written into the document unless the host sets{' '}
+          <code>UI.ColorSchemeWrites</code>; it survives patches and a new document clears it. The host registered{' '}
+          <code>story:pastel</code>, listed after the built-ins. The links below run{' '}
           <code>{'{"command": "seqv:colorScheme", "params": {"layer": "members", "scheme": "taylor"}}'}</code>, as a
           description's command link or the Stories agent would.
         </>
@@ -172,7 +172,7 @@ export const Picker: Story = {
 };
 
 export const ManyTracks: Story = {
-  name: "Many tracks",
+  name: 'Many tracks',
   render: () => (
     <Frame
       title="A compact legend over 25 tracks"
@@ -196,13 +196,13 @@ function ManyCards() {
     <LightAndDark
       doc={doc}
       title="25 tracks"
-      options={{ maxHeight: 260, legend: "expanded", parts: [...LEGEND, "TrackActions"] }}
+      options={{ maxHeight: 260, legend: 'expanded', parts: [...LEGEND, 'TrackActions'] }}
     />
   );
 }
 
 export const CustomPalette: Story = {
-  name: "Your own palette",
+  name: 'Your own palette',
   render: () => (
     <Frame
       title="A document's own palettes: custom letters, a derived scheme, a custom ramp"
@@ -223,13 +223,13 @@ export const CustomPalette: Story = {
 };
 function CustomCards() {
   const doc = useMemo(customDoc, []);
-  return <LightAndDark doc={doc} title="Custom" options={{ maxHeight: 160, legend: "expanded", parts: LEGEND }} />;
+  return <LightAndDark doc={doc} title="Custom" options={{ maxHeight: 160, legend: 'expanded', parts: LEGEND }} />;
 }
 
 function SharedCards() {
-  const docs = useMemo(() => (["own", "group", "explicit"] as const).map(sharedDoc), []);
-  const titles = ["Each layer its own domain", "One domain_group", "A group, and one explicit domain"];
-  const options = { legend: "expanded", parts: LEGEND } as const;
+  const docs = useMemo(() => (['own', 'group', 'explicit'] as const).map(sharedDoc), []);
+  const titles = ['Each layer its own domain', 'One domain_group', 'A group, and one explicit domain'];
+  const options = { legend: 'expanded', parts: LEGEND } as const;
   return (
     <>
       {docs.map((doc, i) => (
@@ -240,7 +240,7 @@ function SharedCards() {
 }
 
 export const SharedScales: Story = {
-  name: "Shared scales",
+  name: 'Shared scales',
   render: () => (
     <Frame
       title="domain_group: one number, one color, across layers"
@@ -251,7 +251,7 @@ export const SharedScales: Story = {
           with two ramps in the legend. With <code>domain_group: "signal"</code> on all four layers the domain is the
           union of their data (0..8): the score now stays in the dark end of one shared ramp, the bars share one y
           scale, and the legend lists the ramp once. An explicit domain wins in its layer: the score's color asks for
-          0..16 (<code>b.colors.viridis({"{ domain: [0, 16] }"})</code>) and the count's takes the group's. Check the
+          0..16 (<code>b.colors.viridis({'{ domain: [0, 16] }'})</code>) and the count's takes the group's. Check the
           legend ramps and the same numbers' colors in light and dark.
         </>
       }
@@ -262,7 +262,7 @@ export const SharedScales: Story = {
 };
 
 export const ColorRange: Story = {
-  name: "Color range",
+  name: 'Color range',
   render: () => (
     <Frame
       title="The range of a color scale: wider or narrower than the data"
@@ -272,12 +272,12 @@ export const ColorRange: Story = {
           data (0..20: the strip stays in the dark end), and one narrower (3..5: values beyond the ends take the end
           colors). Each ramp in the legend has its range in two number fields, and a thin bar under the ramp marks where
           the data sits. Type a new end (a range may be larger than the data's) and the strip recolors; the reset link
-          returns to the document's range. The same from a command:{" "}
+          returns to the document's range. The same from a command:{' '}
           <code>{'{"command": "seqv:colorRange", "params": {"layer": "…", "range": [0, 20]}}'}</code>.
         </>
       }
     >
-      <LightAndDark doc={useMemo(rangeDoc, [])} title="Color range" options={{ legend: "expanded", parts: LEGEND }} />
+      <LightAndDark doc={useMemo(rangeDoc, [])} title="Color range" options={{ legend: 'expanded', parts: LEGEND }} />
     </Frame>
   ),
 };

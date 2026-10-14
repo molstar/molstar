@@ -10,13 +10,13 @@
 // `items`, `values`, `input`; the combinators `and`, `or`, `not` over selections; `range` and `slice`. Each emits runs
 // in canonical order; nothing is visited per position but the values scan.
 
-import { BASE_SYMBOLS, type Expression, isApply, type SymbolDef, suggest } from "@molstar/seq-core/query";
-import { type Annotation, Annotations, type Targets } from "../annotation.js";
-import { CoordinateSystemKind as K } from "../coordinates.js";
-import { NO_LABEL, Numbering, type PositionLabel } from "../numbering.js";
-import { KeyKind, type KeyTarget, type SeqSet } from "../set.js";
-import type { CompileContext, QueryFn, SymbolRuntime } from "./compile.js";
-import { F64, type QueryContext } from "./context.js";
+import { BASE_SYMBOLS, type Expression, isApply, type SymbolDef, suggest } from '@molstar/seq-core/query';
+import { type Annotation, Annotations, type Targets } from '../annotation.js';
+import { CoordinateSystemKind as K } from '../coordinates.js';
+import { NO_LABEL, Numbering, type PositionLabel } from '../numbering.js';
+import { KeyKind, type KeyTarget, type SeqSet } from '../set.js';
+import type { CompileContext, QueryFn, SymbolRuntime } from './compile.js';
+import { F64, type QueryContext } from './context.js';
 import {
   addRuns,
   eachRun,
@@ -27,8 +27,8 @@ import {
   sameGroup,
   sameSystem,
   subtractRun,
-} from "./kernels.js";
-import { SeqSelection } from "./selection.js";
+} from './kernels.js';
+import { SeqSelection } from './selection.js';
 import {
   circleOf,
   domainOf,
@@ -39,14 +39,14 @@ import {
   numberingOf,
   toLabel,
   unitsOf,
-} from "./systems.js";
+} from './systems.js';
 
 const SYMBOLS = new Map<string, SymbolDef>(BASE_SYMBOLS.map((s) => [s.name, s]));
 export const rt = (name: string, compile: (c: CompileContext) => QueryFn<unknown>): SymbolRuntime => ({
   symbol: SYMBOLS.get(name) as SymbolDef,
   compile,
 });
-export const KIND_NAMES = ["molecule", "unit", "alignment", "row", "mapping", "annotation", "complex"];
+export const KIND_NAMES = ['molecule', 'unit', 'alignment', 'row', 'mapping', 'annotation', 'complex'];
 /** The ref `resolve` found last. */
 export const t: KeyTarget = { kind: -1, id: -1, row: -1 };
 const dom = new Int32Array(2);
@@ -55,8 +55,8 @@ const la: PositionLabel = { num: NO_LABEL, suffix: -1 as never, name: -1 as neve
 const lb: PositionLabel = { ...la };
 
 // The core: two-valued, a missing value fails every comparison (seqspec:seqql#labels-and-indices).
-const missing = (v: unknown) => v == null || (typeof v === "number" && Number.isNaN(v));
-const nums = (a: unknown, b: unknown) => typeof a === "number" && typeof b === "number";
+const missing = (v: unknown) => v == null || (typeof v === 'number' && Number.isNaN(v));
+const nums = (a: unknown, b: unknown) => typeof a === 'number' && typeof b === 'number';
 /**
  * A relation; a missing side is noted for the empty-result diagnosis. Two sides that are numbers (constants, or
  * properties with a `number` runtime) are compared as doubles read from `F64`, inline: nothing boxed per element
@@ -65,10 +65,10 @@ const nums = (a: unknown, b: unknown) => typeof a === "number" && typeof b === "
 const relation = (name: string, test: (a: unknown, b: unknown) => boolean, op: number) =>
   rt(name, (c) => {
     if (op <= 1) {
-      const probe = textEquals(c, 0, [c.raw("1")]) ?? textEquals(c, 1, [c.raw("0")]);
+      const probe = textEquals(c, 0, [c.raw('1')]) ?? textEquals(c, 1, [c.raw('0')]);
       if (probe) return probe.f(op === 0);
     }
-    const [na, nb, pa, pb] = [c.number("0"), c.number("1"), at(c, 0), at(c, 1)];
+    const [na, nb, pa, pb] = [c.number('0'), c.number('1'), at(c, 0), at(c, 1)];
     if (na && nb)
       return (ctx) => {
         na(ctx);
@@ -91,7 +91,7 @@ const relation = (name: string, test: (a: unknown, b: unknown) => boolean, op: n
                   ? x > y
                   : x >= y;
       };
-    const [a, b] = [c.value("0") as QueryFn<unknown>, c.value("1") as QueryFn<unknown>];
+    const [a, b] = [c.value('0') as QueryFn<unknown>, c.value('1') as QueryFn<unknown>];
     return (ctx) => {
       const x = a(ctx);
       const y = b(ctx);
@@ -106,7 +106,7 @@ const at = (c: CompileContext, k: number) => `${c.path}/args/${k}`;
  * made a string per position): `f(true)` is true where the text is one of the values, `f(false)` where it is none.
  */
 function textEquals(c: CompileContext, k: number, values: readonly unknown[]) {
-  if (values.length === 0 || !values.every((v) => typeof v === "string")) return undefined;
+  if (values.length === 0 || !values.every((v) => typeof v === 'string')) return undefined;
   const probe = c.equals(String(k), values as string[]);
   if (!probe) return undefined;
   const p = at(c, k);
@@ -125,29 +125,29 @@ function textEquals(c: CompileContext, k: number, values: readonly unknown[]) {
 }
 const logic = (name: string, all: boolean) =>
   rt(name, (c) => {
-    const tests = [c.value("0") as QueryFn<unknown>, ...c.values("1")];
+    const tests = [c.value('0') as QueryFn<unknown>, ...c.values('1')];
     return (ctx) => {
       for (let i = 0; i < tests.length; i++) if ((tests[i](ctx) === true) !== all) return !all;
       return all;
     };
   });
 const CORE = [
-  logic("core.logic.and", true),
-  logic("core.logic.or", false),
-  rt("core.logic.not", (c) => {
-    const f = c.value("0") as QueryFn<unknown>;
+  logic('core.logic.and', true),
+  logic('core.logic.or', false),
+  rt('core.logic.not', (c) => {
+    const f = c.value('0') as QueryFn<unknown>;
     return (ctx) => f(ctx) !== true;
   }),
-  relation("core.rel.eq", (a, b) => !missing(a) && a === b, 0),
-  relation("core.rel.neq", (a, b) => !missing(a) && !missing(b) && a !== b, 1),
-  relation("core.rel.lt", (a, b) => nums(a, b) && (a as number) < (b as number), 2),
-  relation("core.rel.lte", (a, b) => nums(a, b) && (a as number) <= (b as number), 3),
-  relation("core.rel.gr", (a, b) => nums(a, b) && (a as number) > (b as number), 4),
-  relation("core.rel.gre", (a, b) => nums(a, b) && (a as number) >= (b as number), 5),
-  rt("core.rel.in", (c) => {
-    const probe = textEquals(c, 0, c.raw<unknown[]>("1") ?? []);
+  relation('core.rel.eq', (a, b) => !missing(a) && a === b, 0),
+  relation('core.rel.neq', (a, b) => !missing(a) && !missing(b) && a !== b, 1),
+  relation('core.rel.lt', (a, b) => nums(a, b) && (a as number) < (b as number), 2),
+  relation('core.rel.lte', (a, b) => nums(a, b) && (a as number) <= (b as number), 3),
+  relation('core.rel.gr', (a, b) => nums(a, b) && (a as number) > (b as number), 4),
+  relation('core.rel.gre', (a, b) => nums(a, b) && (a as number) >= (b as number), 5),
+  rt('core.rel.in', (c) => {
+    const probe = textEquals(c, 0, c.raw<unknown[]>('1') ?? []);
     if (probe) return probe.f(true);
-    const [x, vs, p0] = [c.value("0") as QueryFn<unknown>, c.values("1"), at(c, 0)];
+    const [x, vs, p0] = [c.value('0') as QueryFn<unknown>, c.values('1'), at(c, 0)];
     return (ctx) => {
       const v = x(ctx);
       if (missing(v)) {
@@ -158,11 +158,11 @@ const CORE = [
       return false;
     };
   }),
-  rt("core.str.matches", (c) => {
+  rt('core.str.matches', (c) => {
     const [s, p, flags, p0] = [
-      c.value("0") as QueryFn<unknown>,
-      c.value("1") as QueryFn<unknown>,
-      c.raw("case") ? "" : "i",
+      c.value('0') as QueryFn<unknown>,
+      c.value('1') as QueryFn<unknown>,
+      c.raw('case') ? '' : 'i',
       at(c, 0),
     ];
     let re = /(?:)/;
@@ -176,10 +176,10 @@ const CORE = [
         try {
           re = new RegExp(String(pattern), flags);
         } catch (e) {
-          ctx.fail("seqql.type", c.path, `matches takes a regular expression: ${(e as Error).message}`);
+          ctx.fail('seqql.type', c.path, `matches takes a regular expression: ${(e as Error).message}`);
         }
       }
-      if (typeof text === "string") return re.test(text);
+      if (typeof text === 'string') return re.test(text);
       ctx.miss(p0);
       return false;
     };
@@ -190,10 +190,10 @@ const CORE = [
 
 /** The refs a slot wants, for an unknown ref's message (`unknown ref "stats"; values annotations: cons, plddt`). */
 export const Wants = { any: 0, annotation: 1, values: 2, alignment: 3, system: 4 } as const;
-const WANTED = ["refs", "annotations", "values annotations", "alignments", "sequences"];
+const WANTED = ['refs', 'annotations', 'values annotations', 'alignments', 'sequences'];
 function refsOf(set: SeqSet, want: number): string[] {
   const key = (x: { key: number } | null) => (x ? [set.strings.get(x.key)] : []);
-  const anns = set.annotations.filter((a) => a && (want !== Wants.values || a.geometry === "values"));
+  const anns = set.annotations.filter((a) => a && (want !== Wants.values || a.geometry === 'values'));
   const out = want === Wants.alignment ? [] : anns.flatMap(key);
   if (want === Wants.annotation || want === Wants.values) return out;
   out.push(...set.alignments.flatMap(key));
@@ -205,13 +205,13 @@ function refsOf(set: SeqSet, want: number): string[] {
 function unknownRef(ctx: QueryContext, ref: string, path: string, want: number): never {
   const refs = refsOf(ctx.set, want);
   const near = suggest(ref, refs)[0];
-  const list = refs.length > 8 ? `${refs.slice(0, 8).join(", ")} (and ${refs.length - 8} more)` : refs.join(", ");
+  const list = refs.length > 8 ? `${refs.slice(0, 8).join(', ')} (and ${refs.length - 8} more)` : refs.join(', ');
   const say = near
     ? `did you mean "${near}"?`
     : refs.length
       ? `${WANTED[want]}: ${list}`
       : `there are no ${WANTED[want]}`;
-  ctx.fail("seqql.ref.unknown", path, `unknown ref "${ref}"; ${say}`);
+  ctx.fail('seqql.ref.unknown', path, `unknown ref "${ref}"; ${say}`);
 }
 /** Resolves a ref into `t`: the host's names first (a selection), else the set's keys; an error when unknown. */
 export function resolve(ctx: QueryContext, ref: string, path: string, want: number = Wants.any): SeqSelection | null {
@@ -221,9 +221,9 @@ export function resolve(ctx: QueryContext, ref: string, path: string, want: numb
   return null;
 }
 /** `seqql.ref.kind`: what the ref is, then what was wanted (else the symbol's hint, added at the run's end). */
-export const wrongKind = (ctx: QueryContext, ref: string, path: string, wants = "", what = KIND_NAMES[t.kind]): never =>
-  ctx.fail("seqql.ref.kind", path, `"${ref}" is ${article(what)}${wants && `; ${wants}`}`);
-const article = (w: string) => `${/^[aeio]/.test(w) ? "an" : "a"} ${w}`;
+export const wrongKind = (ctx: QueryContext, ref: string, path: string, wants = '', what = KIND_NAMES[t.kind]): never =>
+  ctx.fail('seqql.ref.kind', path, `"${ref}" is ${article(what)}${wants && `; ${wants}`}`);
+const article = (w: string) => `${/^[aeio]/.test(w) ? 'an' : 'a'} ${w}`;
 
 /** A whole system as one group, when it has positions held. */
 function whole(b: SelectionBuilder, set: SeqSet, kind: number, id: number, row: number) {
@@ -243,7 +243,7 @@ export function refQuery(ref: string, path: string): QueryFn<SeqSelection> {
     const host = resolve(ctx, ref, path);
     if (host) return host;
     if (t.kind === KeyKind.annotation) return items(ctx, ref, t.id, undefined, path);
-    if (t.kind === KeyKind.mapping) wrongKind(ctx, ref, path, "a mapping relates sequences: name one of them");
+    if (t.kind === KeyKind.mapping) wrongKind(ctx, ref, path, 'a mapping relates sequences: name one of them');
     const [set, b, kind, id, row] = [ctx.set, ctx.builder(), t.kind, t.id, t.row];
     if (kind === KeyKind.unit) whole(b, set, K.unit, id, -1);
     else if (kind === KeyKind.molecule) moleculeGroups(b, set, id);
@@ -303,7 +303,7 @@ function eachSystem(
 }
 
 const SYSTEM_KIND: Record<string, number> = { unit: K.unit, molecule: K.molecule, row: K.row, columns: K.columns };
-const OF: Record<string, string> = { unit: "a molecule or a complex", molecule: "a unit or a complex" };
+const OF: Record<string, string> = { unit: 'a molecule or a complex', molecule: 'a unit or a complex' };
 const EVERYWHERE: KeyTarget = { kind: -1, id: -1, row: -1 };
 /** `:of`'s target, copied: a test that resolves a ref (`value-of`, `field :of`) rewrites `t`. */
 const OF_T: KeyTarget = { kind: -1, id: -1, row: -1 };
@@ -323,11 +323,11 @@ function emit(ctx: QueryContext, id: number, row: number): void {
 
 /** `systems` and `rows`: the systems of a kind within `:of`, passing `:where` (the system slot), one group each. */
 function systems(c: CompileContext, kindName: string): QueryFn<SeqSelection> {
-  const [of, where, kind, path] = [c.raw<string>("of"), c.value("where"), SYSTEM_KIND[kindName], `${c.path}/args/of`];
+  const [of, where, kind, path] = [c.raw<string>('of'), c.value('where'), SYSTEM_KIND[kindName], `${c.path}/args/of`];
   const wants =
-    c.call.head === "seq.generator.rows"
-      ? ""
-      : `systems of kind ${kindName} take :of ${OF[kindName] ?? "an alignment"}`;
+    c.call.head === 'seq.generator.rows'
+      ? ''
+      : `systems of kind ${kindName} take :of ${OF[kindName] ?? 'an alignment'}`;
   return (ctx) => {
     const [b, missed] = [ctx.builder(), ctx.missed];
     const host = of === undefined ? null : resolve(ctx, of, path, kind >= K.row ? Wants.alignment : Wants.system);
@@ -346,7 +346,7 @@ function systems(c: CompileContext, kindName: string): QueryFn<SeqSelection> {
         if (host.kind[k] === kind && !repeat) emit(ctx, host.id[k], host.row[k]);
       }
       if (!host && !eachSystem(ctx, kind, target, emit)) wrongKind(ctx, of as string, path, wants);
-      if (where && b.groupCount === 0) ctx.tested(c.path, S.tested, kind === K.row ? "row" : "system", missed);
+      if (where && b.groupCount === 0) ctx.tested(c.path, S.tested, kind === K.row ? 'row' : 'system', missed);
     } finally {
       E.b = b0;
       E.where = where0;
@@ -374,7 +374,7 @@ export function addTarget(b: SelectionBuilder, set: SeqSet, tg: Targets, i: numb
   if (id >= 0 && domainOf(set, kind, id, row, dom)) b.add(kind, id, row, Math.max(s, dom[0]), Math.min(e, dom[1]));
 }
 
-export const hasItems = (a: Annotation) => !a.dense && !a.streamed && a.geometry !== "matrix";
+export const hasItems = (a: Annotation) => !a.dense && !a.streamed && a.geometry !== 'matrix';
 /** One annotation's items passing `where` (the item slot), one tagged group each, with their extents. */
 function itemsInto(ctx: QueryContext, b: SelectionBuilder, a: Annotation, where: QueryFn<unknown> | undefined) {
   const [set, slot, byItem, p] = [ctx.set, ctx.slot, Annotations.itemRows(a), a.pairs];
@@ -399,7 +399,7 @@ export function itemExtent(
 ) {
   for (let k = byItem.start[item]; k < byItem.start[item + 1]; k++) {
     const r = byItem.rows[k];
-    if (a.geometry === "rows") addTarget(b, set, a.target, r, 0, 0x7fffffff);
+    if (a.geometry === 'rows') addTarget(b, set, a.target, r, 0, 0x7fffffff);
     else addTarget(b, set, a.slots, a.slot[r], a.start[r], a.stop[r]);
     if (p)
       addTarget(b, set, p.bTarget, r, p.bStart[r] < 0 ? 0 : p.bStart[r], p.bStart[r] < 0 ? 0x7fffffff : p.bStop[r]);
@@ -419,15 +419,15 @@ function items(
     for (const a of ctx.set.annotations) if (a && hasItems(a)) n += itemsInto(ctx, b, a, where);
   } else {
     const a = ctx.set.annotations[id] as Annotation;
-    if (!hasItems(a)) wrongKind(ctx, of, path, "", `${a.dense ? "values" : a.geometry} annotation`);
+    if (!hasItems(a)) wrongKind(ctx, of, path, '', `${a.dense ? 'values' : a.geometry} annotation`);
     n = itemsInto(ctx, b, a, where);
   }
-  if (where && b.groupCount === 0) ctx.tested(node, n, "item", missed);
+  if (where && b.groupCount === 0) ctx.tested(node, n, 'item', missed);
   return ctx.finish(b);
 }
 
 /** A ref that must name an annotation: its id. */
-export function annotationOf(ctx: QueryContext, ref: string, path: string, want: number, wants = ""): number {
+export function annotationOf(ctx: QueryContext, ref: string, path: string, want: number, wants = ''): number {
   if (resolve(ctx, ref, path, want) || t.kind !== KeyKind.annotation) wrongKind(ctx, ref, path, wants);
   return t.id;
 }
@@ -469,18 +469,18 @@ function spanOf(a: Annotation, of: string): string {
 
 /** Positions of a values annotation passing the bounds, one group per run. */
 function values(c: CompileContext): QueryFn<SeqSelection> {
-  const [of, path] = [c.raw<string>("of") as string, `${c.path}/args/of`];
-  const bounds = ["min", "max", "above", "below"].map((k) => c.value(k));
+  const [of, path] = [c.raw<string>('of') as string, `${c.path}/args/of`];
+  const bounds = ['min', 'max', 'above', 'below'].map((k) => c.value(k));
   return (ctx) => {
     const a = ctx.set.annotations[annotationOf(ctx, of, path, Wants.values)] as Annotation;
-    if (a.geometry !== "values") wrongKind(ctx, of, path, "", `${a.geometry} annotation`);
+    if (a.geometry !== 'values') wrongKind(ctx, of, path, '', `${a.geometry} annotation`);
     for (let i = 0; i < 4; i++) {
       const v = bounds[i]?.(ctx);
-      LIMITS[i] = typeof v === "number" ? v : i % 2 ? Infinity : -Infinity;
+      LIMITS[i] = typeof v === 'number' ? v : i % 2 ? Infinity : -Infinity;
     }
     const [set, b] = [ctx.set, ctx.builder()];
     b.begin();
-    if (a.streamed) ctx.warn("seqql.lazy", path, `the values of ${of} are streamed and were not read`);
+    if (a.streamed) ctx.warn('seqql.lazy', path, `the values of ${of} are streamed and were not read`);
     for (let s = 0; a.dense && s < a.dense.length; s++) {
       ctx.visit(a.dense[s].length, path, of);
       ctx.tick();
@@ -494,7 +494,7 @@ function values(c: CompileContext): QueryFn<SeqSelection> {
     }
     b.end();
     const u = ctx.finish(b);
-    if (u.runCount > ctx.limits.groups) ctx.over("groups", u.runCount);
+    if (u.runCount > ctx.limits.groups) ctx.over('groups', u.runCount);
     if (u.runCount === 0) ctx.because(c.path, spanOf(a, of));
     return eachRun(u);
   };
@@ -503,7 +503,7 @@ function values(c: CompileContext): QueryFn<SeqSelection> {
 // The combinators: `(and A (not B))` removes B from A's groups, never building the complement; a scan that is
 // a direct operand with no `:in` reads only the selection so far.
 
-const SCANS = new Set(["seq.generator.letters", "seq.generator.positions", "seq.generator.search"]);
+const SCANS = new Set(['seq.generator.letters', 'seq.generator.positions', 'seq.generator.search']);
 
 export function unionOf(ctx: QueryContext, s: SeqSelection): SeqSelection {
   if (s.groupCount === 1 && s.groupAnnotation[0] < 0) return s;
@@ -524,9 +524,9 @@ function sharesSystem(a: SeqSelection, u: SeqSelection): boolean {
 }
 
 function intersect(c: CompileContext): QueryFn<SeqSelection> {
-  const first = c.query("0") as QueryFn<SeqSelection>;
-  const rest = (c.raw<Expression[]>("1") ?? []).map((e, i) => {
-    const minus = isApply(e) && e.head === "seq.modifier.complement" && e.args?.in === undefined;
+  const first = c.query('0') as QueryFn<SeqSelection>;
+  const rest = (c.raw<Expression[]>('1') ?? []).map((e, i) => {
+    const minus = isApply(e) && e.head === 'seq.modifier.complement' && e.args?.in === undefined;
     const scan = isApply(e) && SCANS.has(e.head) && e.args?.in === undefined;
     const key = minus ? `1/${i}/args/0` : `1/${i}`;
     return { minus, scan, key: `${c.path}/args/${key}`, q: c.query(key) as QueryFn<SeqSelection> };
@@ -550,7 +550,7 @@ function intersect(c: CompileContext): QueryFn<SeqSelection> {
         else {
           const [x, y] = [nameOf(ctx.set, a.kind[0], a.id[0], a.row[0]), nameOf(ctx.set, u.kind[0], u.id[0], u.row[0])];
           const say = `and meets nothing: its operands share no sequence (${x}, ${y}); carry one onto the other's first: (onto Q R)`;
-          ctx.warn("seqql.empty", c.path, say);
+          ctx.warn('seqql.empty', c.path, say);
         }
       }
       a = out;
@@ -561,7 +561,7 @@ function intersect(c: CompileContext): QueryFn<SeqSelection> {
 
 /** Every group of every operand, in order; a group equal to an earlier one (runs and item) dropped. */
 function merge(c: CompileContext): QueryFn<SeqSelection> {
-  const qs = [c.query("0") as QueryFn<SeqSelection>, ...c.queries("1")];
+  const qs = [c.query('0') as QueryFn<SeqSelection>, ...c.queries('1')];
   return (ctx) => {
     const parts = qs.map((q) => q(ctx));
     const total = parts.reduce((n, p) => n + p.groupCount, 0);
@@ -597,7 +597,7 @@ type Kept = { part: Int32Array; group: Int32Array; count: number };
 
 /** One group: U's positions (default all) not in Q. */
 function complement(c: CompileContext): QueryFn<SeqSelection> {
-  const [q, within] = [c.query("0") as QueryFn<SeqSelection>, c.query("in") ?? all];
+  const [q, within] = [c.query('0') as QueryFn<SeqSelection>, c.query('in') ?? all];
   return (ctx) => {
     const [minus, u, b] = [unionOf(ctx, q(ctx)), unionOf(ctx, within(ctx)), ctx.builder()];
     b.begin();
@@ -675,13 +675,13 @@ function describe(set: SeqSet, s: SeqSelection, k: number): string {
 }
 
 function range(c: CompileContext): QueryFn<SeqSelection> {
-  const q = c.query("0") as QueryFn<SeqSelection>;
-  const parts = (c.raw<(string | number)[]>("1") ?? []).map(String);
+  const q = c.query('0') as QueryFn<SeqSelection>;
+  const parts = (c.raw<(string | number)[]>('1') ?? []).map(String);
   const ends = parts.flatMap((p) => {
     const m = PART.exec(p);
     return m ? [m[1], m[2] ?? m[1]] : [p, p];
   });
-  const name = c.raw<string>("numbering") ?? null;
+  const name = c.raw<string>('numbering') ?? null;
   const out = new Int32Array(4 * parts.length);
   return (ctx) => {
     const s = q(ctx);
@@ -710,20 +710,20 @@ function range(c: CompileContext): QueryFn<SeqSelection> {
     }
     if (found === 0 && lacking >= 0) {
       const [kind, id, row] = [s.kind[lacking], s.id[lacking], s.row[lacking]];
-      const under = numberingNamesUnder(set, kind, id, row, name ?? "");
+      const under = numberingNamesUnder(set, kind, id, row, name ?? '');
       if (under.length > 1) {
-        const msg = `${nameOf(set, kind, id, row)} has ${under.length} numberings under "${name}": ${under.join(", ")}; name one, as :numbering ${under[0]}`;
-        ctx.fail("seqql.numbering.ambiguous", `${c.path}/args/numbering`, msg);
+        const msg = `${nameOf(set, kind, id, row)} has ${under.length} numberings under "${name}": ${under.join(', ')}; name one, as :numbering ${under[0]}`;
+        ctx.fail('seqql.numbering.ambiguous', `${c.path}/args/numbering`, msg);
       }
-      const has = numberingNames(set, kind, id, row).join(", ") || "none";
+      const has = numberingNames(set, kind, id, row).join(', ') || 'none';
       const msg = `${nameOf(set, kind, id, row)} has no numbering "${name}"; it has ${has}`;
-      ctx.fail("seqql.numbering.unknown", `${c.path}/args/numbering`, msg);
+      ctx.fail('seqql.numbering.unknown', `${c.path}/args/numbering`, msg);
     }
     for (let i = 0; last >= 0 && i < parts.length; i++) {
       if (hit[i]) continue;
       const span = labelSpan(set, s, last, name);
-      const msg = `${nameOf(set, s.kind[last], s.id[last], s.row[last])} has no labels ${parts[i]}${name ? ` in ${name}` : ""}; its labels run ${span}`;
-      ctx.warn("seqql.label.unknown", `${c.path}/args/1/${i}`, msg);
+      const msg = `${nameOf(set, s.kind[last], s.id[last], s.row[last])} has no labels ${parts[i]}${name ? ` in ${name}` : ''}; its labels run ${span}`;
+      ctx.warn('seqql.label.unknown', `${c.path}/args/1/${i}`, msg);
     }
     return ctx.finish(b);
   };
@@ -731,8 +731,8 @@ function range(c: CompileContext): QueryFn<SeqSelection> {
 
 /** Index pairs clipped to each run; a pair past a domain is a warning, one outside every system an error. */
 function slice(c: CompileContext): QueryFn<SeqSelection> {
-  const q = c.query("0") as QueryFn<SeqSelection>;
-  const raw = c.raw<number[]>("1") ?? [];
+  const q = c.query('0') as QueryFn<SeqSelection>;
+  const raw = c.raw<number[]>('1') ?? [];
   const order = Array.from({ length: raw.length >> 1 }, (_, i) => i).sort((x, y) => raw[2 * x] - raw[2 * y]);
   const [starts, stops] = [Int32Array.from(order, (i) => raw[2 * i]), Int32Array.from(order, (i) => raw[2 * i + 1])];
   return (ctx) => {
@@ -778,16 +778,16 @@ function slice(c: CompileContext): QueryFn<SeqSelection> {
       `(slice ${nameOf(set, s.kind[k], s.id[k], s.row[k])} ${starts[p]} ${stops[p]}) ${what}: ${describe(set, s, k)}`;
     if (s.runCount > 0 && backwards >= 0) {
       const msg = say(0, backwards, "starts after its stop, which wraps only a cyclic sequence's origin");
-      ctx.fail("seqql.slice.range", `${c.path}/args/1/${2 * order[backwards]}`, `${msg}; write the start first`);
+      ctx.fail('seqql.slice.range', `${c.path}/args/1/${2 * order[backwards]}`, `${msg}; write the start first`);
     }
     const out = inside.indexOf(0);
     if (s.runCount > 0 && out >= 0)
-      ctx.fail("seqql.slice.range", `${c.path}/args/1/${2 * order[out]}`, say(0, out, "is outside it"));
+      ctx.fail('seqql.slice.range', `${c.path}/args/1/${2 * order[out]}`, say(0, out, 'is outside it'));
     if (clipK >= 0)
       ctx.warn(
-        "seqql.slice.clipped",
+        'seqql.slice.clipped',
         `${c.path}/args/1/${2 * order[clipP]}`,
-        say(clipK, clipP, "reaches past it, and was clipped"),
+        say(clipK, clipP, 'reaches past it, and was clipped'),
       );
     return ctx.finish(b);
   };
@@ -795,19 +795,19 @@ function slice(c: CompileContext): QueryFn<SeqSelection> {
 
 export const BASE_RUNTIMES: readonly SymbolRuntime[] = [
   ...CORE,
-  rt("seq.generator.all", () => all),
-  rt("seq.generator.empty", () => (ctx) => SeqSelection.empty(ctx.set)),
-  rt("seq.generator.systems", (c) => systems(c, c.raw<string>("kind") ?? "unit")),
-  rt("seq.generator.rows", (c) => systems(c, "row")),
-  rt("seq.generator.items", (c) => {
-    const [of, where, path] = [c.raw<string>("of"), c.value("where"), `${c.path}/args/of`];
-    const wants = "items takes :of an annotation";
+  rt('seq.generator.all', () => all),
+  rt('seq.generator.empty', () => (ctx) => SeqSelection.empty(ctx.set)),
+  rt('seq.generator.systems', (c) => systems(c, c.raw<string>('kind') ?? 'unit')),
+  rt('seq.generator.rows', (c) => systems(c, 'row')),
+  rt('seq.generator.items', (c) => {
+    const [of, where, path] = [c.raw<string>('of'), c.value('where'), `${c.path}/args/of`];
+    const wants = 'items takes :of an annotation';
     return (ctx) =>
       items(ctx, of, of === undefined ? -1 : annotationOf(ctx, of, path, Wants.annotation, wants), where, path, c.path);
   }),
-  rt("seq.generator.values", values),
-  rt("seq.generator.input", (c) => {
-    const [name, path] = [c.raw<string>("0") as string, `${c.path}/args/0`];
+  rt('seq.generator.values', values),
+  rt('seq.generator.input', (c) => {
+    const [name, path] = [c.raw<string>('0') as string, `${c.path}/args/0`];
     return (ctx) => {
       if (Object.hasOwn(ctx.inputs, name)) {
         if (ctx.inputs[name].groupCount === 0) ctx.because(c.path, `the app passed it empty`);
@@ -815,13 +815,13 @@ export const BASE_RUNTIMES: readonly SymbolRuntime[] = [
       }
       const given = Object.keys(ctx.inputs);
       const near = suggest(name, given)[0];
-      const msg = `no input "${name}" here; inputs given: ${given.join(", ") || "none"}${near ? `; did you mean "${near}"?` : ""}`;
-      return ctx.fail("seqql.input.unknown", path, msg);
+      const msg = `no input "${name}" here; inputs given: ${given.join(', ') || 'none'}${near ? `; did you mean "${near}"?` : ''}`;
+      return ctx.fail('seqql.input.unknown', path, msg);
     };
   }),
-  rt("seq.combinator.intersect", intersect),
-  rt("seq.combinator.merge", merge),
-  rt("seq.modifier.complement", complement),
-  rt("seq.modifier.range", range),
-  rt("seq.modifier.slice", slice),
+  rt('seq.combinator.intersect', intersect),
+  rt('seq.combinator.merge', merge),
+  rt('seq.modifier.complement', complement),
+  rt('seq.modifier.range', range),
+  rt('seq.modifier.slice', slice),
 ];

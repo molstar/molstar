@@ -19,7 +19,7 @@ import {
   type StreamProvider,
   type StreamRequest,
   TILE,
-} from "@molstar/seq-core/format";
+} from '@molstar/seq-core/format';
 
 /** Positions per bin of the levels an items source lists (a level's region is `TILE` of them: 64 kb, 1 Mb, 16 Mb). */
 export const ITEM_LEVELS = [256, 4096, 65536];
@@ -88,14 +88,14 @@ export function itemsProvider(source: ItemsSource, maxItems = MAX_ITEMS): Stream
           label: s.key,
         }));
         const manifest: Manifest = { systems, levels: [...L], vocabulary: source.vocabulary };
-        return { ...at, kind: "manifest", manifest };
+        return { ...at, kind: 'manifest', manifest };
       }
       if (r.level >= L.length) throw new StreamNotServed(`no level ${r.level}: this source lists ${L.length}`);
       if (r.start < 0 || r.stop < r.start) throw new Error(`bad region [${r.start}, ${r.stop})`);
       const binned = (level: number, count: ArrayLike<number>, estimate = false): DataPatch => ({
         ...at,
         level,
-        kind: "bins",
+        kind: 'bins',
         bins: { count },
         ...(estimate ? { estimate } : {}),
       });
@@ -114,7 +114,7 @@ export function itemsProvider(source: ItemsSource, maxItems = MAX_ITEMS): Stream
         if (pre) return binned(gate, pre, source.estimated === true);
       }
       const got = await source.read(r.system, r.start, r.stop, signal);
-      if (r.level < 0 && (r.force || got.start.length <= maxItems)) return { ...at, kind: "items", items: got.table };
+      if (r.level < 0 && (r.force || got.start.length <= maxItems)) return { ...at, kind: 'items', items: got.table };
       const w = L[gate];
       const count = new Uint32Array(Math.ceil((r.stop - r.start) / w));
       for (let i = 0; i < got.start.length; i++) {

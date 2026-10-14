@@ -10,8 +10,8 @@
 // search from 1 digit up on a million random float32s, every float32 in a few dense ranges and the edge values (the slow
 // tier; the fast tier a sample of each). Every float32 was checked once the same way.
 
-import { describe, expect, it } from "vitest";
-import { float32Number } from "../../src/model/index.js";
+import { describe, expect, it } from 'vitest';
+import { float32Number } from '../../src/model/index.js';
 
 /** The search from 1 digit up: the nearest decimal of 1, 2, … 9 digits that reads back. */
 function slow(x: number): number {
@@ -61,16 +61,16 @@ const at = (x: number) => {
   return bits[0];
 };
 
-describe("float32Number", () => {
-  it("equals the search from 1 digit up on 50,000 random float32s", () => {
+describe('float32Number', () => {
+  it('equals the search from 1 digit up on 50,000 random float32s', () => {
     expect(randomDifferences(50_000)).toEqual([]);
   });
 
-  it("equals the search from 1 digit up on a million random float32s", { tags: ["slow"] }, () => {
+  it('equals the search from 1 digit up on a million random float32s', { tags: ['slow'] }, () => {
     expect(randomDifferences(1_000_000)).toEqual([]);
   });
 
-  it("and on float32s in dense ranges, a sample: subnormals, around 1, past 2^43, about every power of two", () => {
+  it('and on float32s in dense ranges, a sample: subnormals, around 1, past 2^43, about every power of two', () => {
     expect(differences(0, 10_000)).toEqual([]);
     expect(differences(at(0.9999), at(1.0001))).toEqual([]);
     expect(differences(at(2 ** 43), at(2 ** 43) + 20_000)).toEqual([]);
@@ -78,8 +78,8 @@ describe("float32Number", () => {
     for (let e = -126; e <= 127; e++) expect(differences(at(2 ** e) - 20, at(2 ** e) + 20)).toEqual([]);
   });
 
-  it("and on every float32 in dense ranges: subnormals, around 1, and where float32 steps exceed 7 digits", {
-    tags: ["slow"],
+  it('and on every float32 in dense ranges: subnormals, around 1, and where float32 steps exceed 7 digits', {
+    tags: ['slow'],
   }, () => {
     expect(differences(0, 100_000)).toEqual([]);
     expect(differences(at(0.999), at(1.001))).toEqual([]);
@@ -88,7 +88,7 @@ describe("float32Number", () => {
     for (let e = -126; e <= 127; e++) expect(differences(at(2 ** e) - 200, at(2 ** e) + 200)).toEqual([]);
   });
 
-  it("edge values: zeros, not finite, subnormals, the largest, integers, the three powers of two", () => {
+  it('edge values: zeros, not finite, subnormals, the largest, integers, the three powers of two', () => {
     const cases: [number, number][] = [
       [0, 0],
       [-0, 0],

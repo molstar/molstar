@@ -10,14 +10,14 @@
 // split track's chevron), a layer's band labels, the rows' header (its tree and row labels), the data columns' cells
 // and heads, each layer's `gutter` and a wrapped line's number. Per frame nothing is allocated (RN1's draw pattern).
 
-import { Lanes } from "@molstar/seq-core/format";
-import { type Axis, AxisGeometry } from "../axis.js";
-import type { ViewModel } from "../graph.js";
-import { CHEVRON_GAP, CHEVRON_HALF, CHEVRON_ROOM, splitChevron } from "../header-toggle.js";
-import { EntryKind, positionLabel, type SectionLayout, SectionLayouts, type SplitFeatures } from "../layout.js";
-import type { RowsState } from "../rows.js";
-import { fitIn, fitted } from "../text.js";
-import { PathMode, PathVerb, SkinToken, TextAlign, TextBaseline } from "./backend.js";
+import { Lanes } from '@molstar/seq-core/format';
+import { type Axis, AxisGeometry } from '../axis.js';
+import type { ViewModel } from '../graph.js';
+import { CHEVRON_GAP, CHEVRON_HALF, CHEVRON_ROOM, splitChevron } from '../header-toggle.js';
+import { EntryKind, positionLabel, type SectionLayout, SectionLayouts, type SplitFeatures } from '../layout.js';
+import type { RowsState } from '../rows.js';
+import { fitIn, fitted } from '../text.js';
+import { PathMode, PathVerb, SkinToken, TextAlign, TextBaseline } from './backend.js';
 import {
   type ComposerFrame,
   depth,
@@ -29,7 +29,7 @@ import {
   place,
   prime,
   release,
-} from "./composer-frame.js";
+} from './composer-frame.js';
 
 /** A group's or split track's chevron, CSS px around its center: open (⌄), then closed (›). */
 const CHEV = new Float64Array([-3.5, -1.5, 0, 1.5, 3.5, -1.5, -1.5, -3.5, 1.5, 0, -1.5, 3.5]);
@@ -64,7 +64,7 @@ export function header(f: ComposerFrame, l: SectionLayout, e: number) {
     rowsHeader(f, l, l.entryRow[e], l.entryRow[e]);
     return f.v.backend.popClip();
   }
-  let text = "";
+  let text = '';
   let indent = 0;
   // A split row: its value, indented under the track's label, small.
   const splitAt = kind === TRACK ? SectionLayouts.splitRow(l, e) : -1;
@@ -77,7 +77,7 @@ export function header(f: ComposerFrame, l: SectionLayout, e: number) {
     // An empty label stays empty (a ruler's); none at all: the track's ref.
     text = name(f, rv.tracks.label[t] >= 0 ? rv.tracks.label[t] : rv.tracks.ref[t]);
     indent = depth(f, l.entryGroup[e]) + (splitAt >= 0 ? 1 : 0);
-    if (splitAt >= 0) text = (m.prepared[split].state as SplitFeatures).split?.labels[splitAt] ?? "";
+    if (splitAt >= 0) text = (m.prepared[split].state as SplitFeatures).split?.labels[splitAt] ?? '';
   }
   // One size for every label (a split row's a px smaller), smaller only in a band too short for it.
   const px = Math.max(
@@ -85,7 +85,7 @@ export function header(f: ComposerFrame, l: SectionLayout, e: number) {
     Math.min(f.v.props.labelFontPx - (splitAt >= 0 ? 1 : 0), Math.floor(b[1] * 0.8)),
   );
   // Regular, as track labels are; only a block's title keeps the heavier weight.
-  const font = f.ctx.text.font("ui", px, kind === TITLE ? 600 : 400);
+  const font = f.ctx.text.font('ui', px, kind === TITLE ? 600 : 400);
   // A group's chevron after its label; a split track's only on a scrolled entry whose split has values.
   const toggle = kind === GROUP || (split >= 0 && splitChevron(m, l, e));
   const x = 10 + indent * 14;
@@ -119,7 +119,7 @@ function bandsHeader(f: ComposerFrame, l: SectionLayout, e: number, x: number): 
   const b = f.box;
   const bh = n > 0 ? (b[4] - 2) / n : 0;
   if (!bands || bh < 9) return false;
-  style(f, f.ctx.text.font("ui", Math.max(8, Math.min(f.v.props.labelFontPx, Math.floor(bh * 0.7)))));
+  style(f, f.ctx.text.font('ui', Math.max(8, Math.min(f.v.props.labelFontPx, Math.floor(bh * 0.7)))));
   for (let q = 0; q < n; q++) {
     at(f, x, b[0] + 1 + (q + 0.5) * bh, l.headerWidth - x - 6);
     label(f, bands.label(s, q), false);
@@ -160,14 +160,14 @@ export function rowsHeader(f: ComposerFrame, l: SectionLayout, d0: number, d1: n
   }
   const rm = rend.rowModel;
   if (!rm || h < 7) return;
-  style(f, f.ctx.text.font("ui", Math.max(8, Math.min(v.props.labelFontPx, Math.floor(h * 0.8)))));
+  style(f, f.ctx.text.font('ui', Math.max(8, Math.min(v.props.labelFontPx, Math.floor(h * 0.8)))));
   for (let d = d0; d <= d1; d++) {
     const lane = SectionLayouts.laneOf(r, d);
     // A collapsed clade's row: its wedge's label, quiet.
     const node = lane < 0 && r.node ? r.node[d] : -1;
     if (lane < 0 && (node < 0 || !rm.wedge)) continue;
     const x = 10 + inset + (lane >= 0 ? Lanes.depthOf(rv.lanes, lane) * 14 : 0);
-    const text = lane >= 0 ? rm.label(s, Lanes.rowOf(rv.lanes, lane)) : (rm.wedge?.(s, node) ?? "");
+    const text = lane >= 0 ? rm.label(s, Lanes.rowOf(rv.lanes, lane)) : (rm.wedge?.(s, node) ?? '');
     at(f, x, f.rg[0] + (d + 0.5) * h, l.headerWidth - x - 6);
     label(f, text, lane < 0);
   }
@@ -184,7 +184,7 @@ export function columns(f: ComposerFrame, l: SectionLayout, d0: number, d1: numb
   const cols = (m.prepared[r.layer]?.state as RowsState | undefined)?.dataColumns;
   const v = f.v;
   for (let c = 0; cols && h >= 7 && c < l.columnCount && c < cols.length; c++) {
-    const cr = f.ctx.registry.get("columns", cols[c].renderer);
+    const cr = f.ctx.registry.get('columns', cols[c].renderer);
     if (!cr?.draw || f.failed.has(r.layer) || !open(f, l.columnX[c], l.columnX[c] + l.columnWidth[c], 0)) continue;
     v.columnX = l.columnX[c];
     v.columnWidth = l.columnWidth[c];
@@ -214,7 +214,7 @@ export function heads(f: ComposerFrame, l: SectionLayout) {
     | readonly { readonly label?: string | null; readonly field: string }[]
     | null;
   const cy = l.headsTop + l.headsHeight / 2;
-  style(f, f.ctx.text.font("ui", 11, 600));
+  style(f, f.ctx.text.font('ui', 11, 600));
   for (let c = 0; cols && c < l.columnCount && c < cols.length; c++) {
     at(f, l.columnX[c] + 6, cy, l.columnWidth[c] - 10);
     label(f, cols[c].label ?? cols[c].field, true);
@@ -255,7 +255,7 @@ function label(f: ComposerFrame, text: string, quiet: boolean) {
   const cy = f.lab[1];
   const p = tm.label(text, t.font);
   fit[0] = f.lab[2];
-  fit[1] = tm.label("…", t.font).width;
+  fit[1] = tm.label('…', t.font).width;
   const n = fitIn(p, fit);
   if (n === 0) return;
   t.begin(quiet ? TOKEN_INK_QUIET : TOKEN_INK);
@@ -298,7 +298,7 @@ export function gutter(f: ComposerFrame, l: SectionLayout, e: number) {
 function lineNumber(f: ComposerFrame, l: SectionLayout, e: number) {
   const v = f.v;
   const line = l.entryRow[e];
-  if (v.props.wrappedGroupLabels !== "none" || (e > l.pinnedCount && l.entryRow[e - 1] === line)) return;
+  if (v.props.wrappedGroupLabels !== 'none' || (e > l.pinnedCount && l.entryRow[e - 1] === line)) return;
   if (f.lineText.length === 0) f.lineText = new Array<string | null>(l.lines.count).fill(null);
   const m = f.model as ViewModel;
   const b0 = m.resolved.sections.blockStart[index(f)];
@@ -308,7 +308,7 @@ function lineNumber(f: ComposerFrame, l: SectionLayout, e: number) {
   if (!text || !open(f, 0, l.dataLeft, 0)) return;
   const t = f.text;
   t.reset();
-  t.style(f.ctx.text.font("mono", Math.round(v.props.wrappedFontPx * 0.8)), RIGHT, MIDDLE);
+  t.style(f.ctx.text.font('mono', Math.round(v.props.wrappedFontPx * 0.8)), RIGHT, MIDDLE);
   t.begin(TOKEN_INK_QUIET);
   const i = t.add(text);
   t.x[i] = Math.round((l.dataLeft - 12) * v.dpr);

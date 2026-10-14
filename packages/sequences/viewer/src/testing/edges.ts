@@ -13,7 +13,7 @@
 // over them is one block, with no origin); a document over
 // sources keeps its blocks as they are, and the kit fails a geometry that did not apply unless the fixture skips it.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
 
 /**
  * - `reversed`: every section's pieces in reverse (`direction: -1`);
@@ -24,7 +24,7 @@ import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
  *   a break every third position);
  * - `copies`: every section's first block shown twice side by side, two copies of one unit.
  */
-export const EdgeKinds = ["reversed", "origin", "stacked", "filtered", "copies"] as const;
+export const EdgeKinds = ['reversed', 'origin', 'stacked', 'filtered', 'copies'] as const;
 export type EdgeKind = (typeof EdgeKinds)[number];
 
 type Node = { kind: string; ref?: string; params?: Record<string, unknown>; children?: Node[] };
@@ -40,59 +40,59 @@ export function edgeDocument(doc: SeqViewSpecDoc, edge: EdgeKind): SeqViewSpecDo
   const lengths = new Map<string, number>();
   let data: Node | undefined;
   walk(root, (n) => {
-    if (n.kind === "data") data ??= n;
-    if (n.kind === "sequence" && n.ref && typeof n.params?.value === "string")
+    if (n.kind === 'data') data ??= n;
+    if (n.kind === 'sequence' && n.ref && typeof n.params?.value === 'string')
       lengths.set(n.ref, n.params.value.length);
     const rows = n.params?.value;
     if (
-      n.kind === "alignment" &&
+      n.kind === 'alignment' &&
       n.ref &&
       Array.isArray(rows) &&
-      typeof rows[0] === "string" &&
-      n.params?.flavor !== "a3m"
+      typeof rows[0] === 'string' &&
+      n.params?.flavor !== 'a3m'
     )
       lengths.set(n.ref, rows[0].length);
   });
   const targetOf = (b: Node) => (b.params?.sequence ?? b.params?.alignment) as string;
   const lengthOf = (b: Node) => lengths.get(targetOf(b)) ?? -1;
   walk(root, (n) => {
-    if (edge === "origin" && n.kind === "sequence" && n.ref && lengths.has(n.ref))
+    if (edge === 'origin' && n.kind === 'sequence' && n.ref && lengths.has(n.ref))
       n.params = { ...n.params, cyclic: true };
-    if (edge === "origin" && n.kind === "block" && lengthOf(n) > 1 && n.params?.range === undefined)
+    if (edge === 'origin' && n.kind === 'block' && lengthOf(n) > 1 && n.params?.range === undefined)
       n.params = { ...n.params, origin: Math.min(30, lengthOf(n) >> 1) };
-    if (n.kind !== "section") return;
-    if (edge === "reversed") n.params = { ...n.params, direction: -1 };
+    if (n.kind !== 'section') return;
+    if (edge === 'reversed') n.params = { ...n.params, direction: -1 };
     const kids = n.children ?? [];
-    const at = kids.findIndex((c) => c.kind === "block" && lengthOf(c) > 1);
+    const at = kids.findIndex((c) => c.kind === 'block' && lengthOf(c) > 1);
     if (at < 0) return;
     const first = kids[at];
     const len = lengthOf(first);
     const copy = (params: Record<string, unknown>): Node => ({
-      kind: "block",
+      kind: 'block',
       ref: `${first.ref ?? n.ref}.edge`,
       params: { ...first.params, ...params },
     });
     // An axis over an alignment is its one block of columns: never stacked, never copied.
     const aligned = first.params?.alignment !== undefined;
-    if (edge === "stacked" && !aligned) {
-      n.params = { ...n.params, arrangement: "stacked" };
+    if (edge === 'stacked' && !aligned) {
+      n.params = { ...n.params, arrangement: 'stacked' };
       kids.splice(at + 1, 0, copy({ range: [0, Math.max(1, Math.floor(len / 2))] }));
     }
-    if (edge === "copies" && !aligned) {
+    if (edge === 'copies' && !aligned) {
       // Two copies of one unit are merged into one block unless the section shows each (`copies: "each"`).
-      n.params = { ...n.params, copies: "each" };
+      n.params = { ...n.params, copies: 'each' };
       kids.splice(at + 1, 0, copy({}));
     }
-    if (edge === "filtered" && data) {
+    if (edge === 'filtered' && data) {
       const ref = `${n.ref}.edge.keep`;
       const start = Array.from({ length: Math.ceil(len / 3) }, (_, i) => 3 * i);
       const stop = start.map((s) => Math.min(len, s + 2));
       data.children = [
         ...(data.children ?? []),
         {
-          kind: "annotation",
+          kind: 'annotation',
           ref,
-          params: { geometry: "ranges", target: targetOf(first), value: { start, stop } },
+          params: { geometry: 'ranges', target: targetOf(first), value: { start, stop } },
         },
       ];
       n.params = { ...n.params, positions: ref };

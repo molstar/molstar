@@ -13,7 +13,7 @@
 // steps allocating an object each (`leaking`), through the same warm-up and measurement, are caught. Each case loads the
 // viewer afresh (`vi.resetModules`).
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -25,7 +25,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 /**
  * The guards' measurement: the shared warm-up (2,000 frames and 3 s, restored after the trim: at 1 s, 240 positions
@@ -45,36 +45,36 @@ function measure(step: (i: number) => void) {
 /** The ring composed over `n` positions, and a step: a pointer move round the rings and a whole frame. */
 async function setup(n: number) {
   vi.resetModules();
-  const { composed, recording } = await import("./composer-fixtures.js");
-  const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
-  const { DefaultPresets } = await import("../src/presets.js");
-  const { Inputs, PointerType } = await import("../src/index.js");
+  const { composed, recording } = await import('./composer-fixtures.js');
+  const { createSeqViewSpec } = await import('@molstar/seq-core/builder');
+  const { DefaultPresets } = await import('../src/presets.js');
+  const { Inputs, PointerType } = await import('../src/index.js');
   const b = createSeqViewSpec();
-  const s = b.data.sequence({ ref: "s", value: "ACGTACGTTA".repeat(n / 10), alphabet: "dna", cyclic: true });
+  const s = b.data.sequence({ ref: 's', value: 'ACGTACGTTA'.repeat(n / 10), alphabet: 'dna', cyclic: true });
   const at = (x: number) => Math.floor(x * n);
   const value = {
     start: [at(0.8), at(1 / 6), at(0.55)],
     stop: [at(1 / 8), at(1 / 2), at(0.7)],
-    label: ["across", "forward", "reverse"],
-    strand: ["+", "+", "-"],
+    label: ['across', 'forward', 'reverse'],
+    strand: ['+', '+', '-'],
   };
-  const f = b.data.annotation({ ref: "f", geometry: "ranges", target: s, value } as never);
-  const cuts = { boundary: [at(0.3), at(0.31), at(0.32), at(0.9)], label: ["A", "B", "C", "D"] };
-  const c = b.data.annotation({ ref: "c", geometry: "ranges", target: s, value: cuts } as never);
-  const pv = { start: [at(0.1), at(0.4)], b_target: ["s", "s"], b_start: [at(0.6), at(0.45)] };
-  const pp = b.data.annotation({ ref: "pp", geometry: "pairs", target: s, value: pv } as never);
-  const v = b.view({ ref: "v", label: "V", style: "circular" }).block({ sequence: s });
-  v.track({ label: "" }).ruler();
-  v.track({ label: "F", height: 2 }).ranges({ data: f, labels: true, direction_field: "strand" } as never);
-  v.track({ label: "C" }).ranges({ data: c, labels: true } as never);
-  v.track({ label: "P" }).pairs({ data: pp, display: "both" } as never);
-  const registry = [{ presets: DefaultPresets.filter((p) => p.name === "circular") }];
+  const f = b.data.annotation({ ref: 'f', geometry: 'ranges', target: s, value } as never);
+  const cuts = { boundary: [at(0.3), at(0.31), at(0.32), at(0.9)], label: ['A', 'B', 'C', 'D'] };
+  const c = b.data.annotation({ ref: 'c', geometry: 'ranges', target: s, value: cuts } as never);
+  const pv = { start: [at(0.1), at(0.4)], b_target: ['s', 's'], b_start: [at(0.6), at(0.45)] };
+  const pp = b.data.annotation({ ref: 'pp', geometry: 'pairs', target: s, value: pv } as never);
+  const v = b.view({ ref: 'v', label: 'V', style: 'circular' }).block({ sequence: s });
+  v.track({ label: '' }).ruler();
+  v.track({ label: 'F', height: 2 }).ranges({ data: f, labels: true, direction_field: 'strand' } as never);
+  v.track({ label: 'C' }).ranges({ data: c, labels: true } as never);
+  v.track({ label: 'P' }).pairs({ data: pp, display: 'both' } as never);
+  const registry = [{ presets: DefaultPresets.filter((p) => p.name === 'circular') }];
   const t = await composed(b.getDocument(), { width: 600, height: 600, dpr: 2, registry });
   const l = t.ctx.layout.get(t.section)?.current;
-  if (!l) throw new Error("no layout");
+  if (!l) throw new Error('no layout');
   const be = recording();
   // The frames alone: the hover label's strings are one allocation per hovered element by design (IN2's guard).
-  t.ctx.behaviors.get("hoverLabel")?.remove();
+  t.ctx.behaviors.get('hoverLabel')?.remove();
   // Marks across the origin, and the keyboard cursor on the letters (set once: a cursor move publishes an object).
   const p = Inputs.pointer();
   p.section = t.ctx.layout.sectionIndex(t.section);
@@ -94,7 +94,7 @@ async function setup(n: number) {
 
 describe("CG2's ring frames allocate nothing after warm-up", () => {
   it.each([240, 120_000])(
-    "labels with leaders, arrowheads and chords, polar hovers round the rings, %i positions",
+    'labels with leaders, arrowheads and chords, polar hovers round the rings, %i positions',
     async (n) => {
       const { step, be } = await setup(n);
       const r = measure(step);
@@ -105,7 +105,7 @@ describe("CG2's ring frames allocate nothing after warm-up", () => {
     120_000,
   );
 
-  it("the same steps allocating an object each are caught (positive control)", async () => {
+  it('the same steps allocating an object each are caught (positive control)', async () => {
     const { step } = await setup(240);
     expect(controlCaught(() => measure(leaking(step)))).toBe(true);
   }, 120_000);

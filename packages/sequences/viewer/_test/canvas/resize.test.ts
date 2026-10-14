@@ -15,21 +15,21 @@
 // Found porting it: the composer sized the navigator's map image from the view's band as the last pass left it, so a
 // resized surface drew its miniature 12 px thick and a fresh one 8 (other bar positions and widths); it sets the row first.
 
-import { afterEach, describe, expect, it } from "vitest";
-import type { PresetEntry } from "../../src/index.js";
-import { twoChains } from "./chains.js";
-import { canvasesOf, close, diff, type Opened, opened, pixelsOf, settle } from "./open.js";
+import { afterEach, describe, expect, it } from 'vitest';
+import type { PresetEntry } from '../../src/index.js';
+import { twoChains } from './chains.js';
+import { canvasesOf, close, diff, type Opened, opened, pixelsOf, settle } from './open.js';
 
 const open: Opened[] = [];
 afterEach(() => {
   for (const t of open.splice(0)) close(t);
 });
 
-const STRIP: PresetEntry = { name: "lab:strip", geometry: "linear", navigator: "strip" };
+const STRIP: PresetEntry = { name: 'lab:strip', geometry: 'linear', navigator: 'strip' };
 const H = 160;
 
 async function strip(width: number, dpr: number) {
-  const t = await opened(twoChains({ length: 300, tracks: 1, layers: ["ranges"] }), {
+  const t = await opened(twoChains({ length: 300, tracks: 1, layers: ['ranges'] }), {
     width,
     height: H,
     dpr,
@@ -43,14 +43,14 @@ async function strip(width: number, dpr: number) {
 }
 /** The ResizeObserver's callback after a layout. */
 const observed = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-const NAMES = ["tracks", "overlay", "navigator", "navigator overlay", "vertical overview", "its overlay"];
+const NAMES = ['tracks', 'overlay', 'navigator', 'navigator overlay', 'vertical overview', 'its overlay'];
 
-describe("a resize equals a fresh mount, pixel for pixel", () => {
+describe('a resize equals a fresh mount, pixel for pixel', () => {
   for (const dpr of [1, 2])
     it(`the strip navigator's miniature, fade and ticks over two blocks, zoomed and at the fit (${dpr} device px per CSS px)`, async () => {
       const t = await strip(900, dpr);
       const vp = t.ctx.viewports.get(t.section);
-      if (!vp) throw new Error("no viewport");
+      if (!vp) throw new Error('no viewport');
       let compared = 0;
       for (const [w, zoom] of [
         [640, true],
@@ -69,13 +69,13 @@ describe("a resize equals a fresh mount, pixel for pixel", () => {
         expect(s.width).toBe(w);
         // A fresh mount at the new size, at the same view.
         const f = await strip(w, dpr);
-        f.ctx.viewports.get(f.section)?.setView(s.cell, s.scrollX, "api");
+        f.ctx.viewports.get(f.section)?.setView(s.cell, s.scrollX, 'api');
         settle(f);
         const fresh = canvasesOf(f).map(pixelsOf);
         for (let k = 0; k < fresh.length; k++) {
           const c = canvasesOf(f)[k];
           const d = diff(resized[k], fresh[k], c.width);
-          expect(d.count, `${w} px${zoom ? ", zoomed" : ""}: ${NAMES[k]} at (${d.x}, ${d.y})`).toBe(0);
+          expect(d.count, `${w} px${zoom ? ', zoomed' : ''}: ${NAMES[k]} at (${d.x}, ${d.y})`).toBe(0);
           compared++;
         }
         close(f);

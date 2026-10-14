@@ -9,12 +9,12 @@
 // The self-test of the browser guard's measurement: a flat step passes, a step that allocates 1 KB does not, and a run
 // that collects is refused.
 
-import { expect, it } from "vitest";
-import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.js";
+import { expect, it } from 'vitest';
+import { controlCaught, heapScaling, isFlat, leaking } from './heap-browser.js';
 
 const sink: { v: unknown } = { v: null };
 
-it("a step that allocates nothing is flat", () => {
+it('a step that allocates nothing is flat', () => {
   let s = 0;
   expect(
     isFlat(
@@ -26,7 +26,7 @@ it("a step that allocates nothing is flat", () => {
   ).toBe(true);
 });
 
-it("a step that allocates 1 KB scales with the run length", () => {
+it('a step that allocates 1 KB scales with the run length', () => {
   const r = heapScaling(8_000, (i) => {
     sink.v = new Float64Array(128).fill(i);
   });
@@ -34,7 +34,7 @@ it("a step that allocates 1 KB scales with the run length", () => {
   expect(isFlat(r)).toBe(false);
 });
 
-it("refuses a run that collects, though both lengths could end under the limit", () => {
+it('refuses a run that collects, though both lengths could end under the limit', () => {
   // About 100 MB a run, over the 64 MB young generation; near 64 MB both runs' growth wraps under 1 MB.
   expect(() =>
     heapScaling(100_000, (i) => {

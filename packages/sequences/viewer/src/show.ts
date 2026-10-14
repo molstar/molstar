@@ -12,10 +12,10 @@
 // the document's order, switched to; when none does, the current view, where the projection may still reach them
 // through links and paths. The other views' blocks are resolved headlessly (`resolveSection`), without drawing them.
 
-import { type BlockRow, childrenOf, type DocIndex, indexDoc, resolveSection } from "@molstar/seq-core/format";
-import { type Extents, CoordinateSystemKind as K, type SeqSet } from "@molstar/seq-core/model";
-import type { SeqViewerContext } from "./context.js";
-import type { Origin } from "./state.js";
+import { type BlockRow, childrenOf, type DocIndex, indexDoc, resolveSection } from '@molstar/seq-core/format';
+import { type Extents, CoordinateSystemKind as K, type SeqSet } from '@molstar/seq-core/model';
+import type { SeqViewerContext } from './context.js';
+import type { Origin } from './state.js';
 
 const shows = (set: SeqSet, b: BlockRow, kind: number, id: number) =>
   kind === K.row || kind === K.columns
@@ -28,7 +28,7 @@ function holds(ctx: SeqViewerContext, index: DocIndex, set: SeqSet, view: string
   const reg = ctx.registry.svs;
   const node = index.nodes.get(view);
   for (const s of node ? childrenOf(index, node) : []) {
-    if (s.kind !== "section") continue;
+    if (s.kind !== 'section') continue;
     for (const b of resolveSection(index, set, s.ref, reg).section.blocks) {
       for (let i = 0; i < ext.count; i++) if (shows(set, b, ext.kind[i], ext.id[i])) return true;
     }

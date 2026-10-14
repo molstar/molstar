@@ -16,29 +16,29 @@
  * hex digits and read once at load.
  */
 
-import { colorList } from "./color.js";
+import { colorList } from './color.js';
 
 const list = colorList;
 
 export const ColorLists = {
-  Reds: list("fff5f0 fee0d2 fcbba1 fc9272 fb6a4a ef3b2c cb181d a50f15 67000d"),
-  Oranges: list("fff5eb fee6ce fdd0a2 fdae6b fd8d3c f16913 d94801 a63603 7f2704"),
-  Greens: list("f7fcf5 e5f5e0 c7e9c0 a1d99b 74c476 41ab5d 238b45 006d2c 00441b"),
-  Blues: list("f7fbff deebf7 c6dbef 9ecae1 6baed6 4292c6 2171b5 08519c 08306b"),
-  Purples: list("fcfbfd efedf5 dadaeb bcbddc 9e9ac8 807dba 6a51a3 54278f 3f007d"),
-  Greys: list("ffffff f0f0f0 d9d9d9 bdbdbd 969696 737373 525252 252525 000000"),
-  OrRd: list("fff7ec fee8c8 fdd49e fdbb84 fc8d59 ef6548 d7301f b30000 7f0000"),
-  BuGn: list("f7fcfd e5f5f9 ccece6 99d8c9 66c2a4 41ae76 238b45 006d2c 00441b"),
-  PuBuGn: list("fff7fb ece2f0 d0d1e6 a6bddb 67a9cf 3690c0 02818a 016c59 014636"),
-  GnBu: list("f7fcf0 e0f3db ccebc5 a8ddb5 7bccc4 4eb3d3 2b8cbe 0868ac 084081"),
-  PuBu: list("fff7fb ece7f2 d0d1e6 a6bddb 74a9cf 3690c0 0570b0 045a8d 023858"),
-  BuPu: list("f7fcfd e0ecf4 bfd3e6 9ebcda 8c96c6 8c6bb1 88419d 810f7c 4d004b"),
-  RdPu: list("fff7f3 fde0dd fcc5c0 fa9fb5 f768a1 dd3497 ae017e 7a0177 49006a"),
-  PuRd: list("f7f4f9 e7e1ef d4b9da c994c7 df65b0 e7298a ce1256 980043 67001f"),
-  YlOrRd: list("ffffcc ffeda0 fed976 feb24c fd8d3c fc4e2a e31a1c bd0026 800026"),
-  YlOrBr: list("ffffe5 fff7bc fee391 fec44f fe9929 ec7014 cc4c02 993404 662506"),
-  YlGn: list("ffffe5 f7fcb9 d9f0a3 addd8e 78c679 41ab5d 238443 006837 004529"),
-  YlGnBu: list("ffffd9 edf8b1 c7e9b4 7fcdbb 41b6c4 1d91c0 225ea8 253494 081d58"),
+  Reds: list('fff5f0 fee0d2 fcbba1 fc9272 fb6a4a ef3b2c cb181d a50f15 67000d'),
+  Oranges: list('fff5eb fee6ce fdd0a2 fdae6b fd8d3c f16913 d94801 a63603 7f2704'),
+  Greens: list('f7fcf5 e5f5e0 c7e9c0 a1d99b 74c476 41ab5d 238b45 006d2c 00441b'),
+  Blues: list('f7fbff deebf7 c6dbef 9ecae1 6baed6 4292c6 2171b5 08519c 08306b'),
+  Purples: list('fcfbfd efedf5 dadaeb bcbddc 9e9ac8 807dba 6a51a3 54278f 3f007d'),
+  Greys: list('ffffff f0f0f0 d9d9d9 bdbdbd 969696 737373 525252 252525 000000'),
+  OrRd: list('fff7ec fee8c8 fdd49e fdbb84 fc8d59 ef6548 d7301f b30000 7f0000'),
+  BuGn: list('f7fcfd e5f5f9 ccece6 99d8c9 66c2a4 41ae76 238b45 006d2c 00441b'),
+  PuBuGn: list('fff7fb ece2f0 d0d1e6 a6bddb 67a9cf 3690c0 02818a 016c59 014636'),
+  GnBu: list('f7fcf0 e0f3db ccebc5 a8ddb5 7bccc4 4eb3d3 2b8cbe 0868ac 084081'),
+  PuBu: list('fff7fb ece7f2 d0d1e6 a6bddb 74a9cf 3690c0 0570b0 045a8d 023858'),
+  BuPu: list('f7fcfd e0ecf4 bfd3e6 9ebcda 8c96c6 8c6bb1 88419d 810f7c 4d004b'),
+  RdPu: list('fff7f3 fde0dd fcc5c0 fa9fb5 f768a1 dd3497 ae017e 7a0177 49006a'),
+  PuRd: list('f7f4f9 e7e1ef d4b9da c994c7 df65b0 e7298a ce1256 980043 67001f'),
+  YlOrRd: list('ffffcc ffeda0 fed976 feb24c fd8d3c fc4e2a e31a1c bd0026 800026'),
+  YlOrBr: list('ffffe5 fff7bc fee391 fec44f fe9929 ec7014 cc4c02 993404 662506'),
+  YlGn: list('ffffe5 f7fcb9 d9f0a3 addd8e 78c679 41ab5d 238443 006837 004529'),
+  YlGnBu: list('ffffd9 edf8b1 c7e9b4 7fcdbb 41b6c4 1d91c0 225ea8 253494 081d58'),
   Magma: list(`
     000004 02020b 050416 090720 0e0b2b 140e36 1a1042 21114d 29115a 331067 3b0f70 440f76 4c117a 54137d 5b157f
     641a80 6b1d81 752181 7c2382 842681 8c2981 942c80 9c2e7f a5317e ad347c b73779 bf3a77 c73d73 ce3f70 d6456b
@@ -105,26 +105,26 @@ export const ColorLists = {
     1872f4 2362fa 2e53fd 3b44ff 4937ff 582afc 681ff8 7715f2 880dea 9707e0 a703d5 b600c8 c400bb d102ac dc059d
     e70b8d ef127d f61c6d fb265d fe324e ff4040
   `),
-  RdBu: list("67001f b2182b d6604d f4a582 fddbc7 f7f7f7 d1e5f0 92c5de 4393c3 2166ac 053061"),
-  RdGy: list("67001f b2182b d6604d f4a582 fddbc7 ffffff e0e0e0 bababa 878787 4d4d4d 1a1a1a"),
-  PiYG: list("8e0152 c51b7d de77ae f1b6da fde0ef f7f7f7 e6f5d0 b8e186 7fbc41 4d9221 276419"),
-  BrBG: list("543005 8c510a bf812d dfc27d f6e8c3 f5f5f5 c7eae5 80cdc1 35978f 01665e 003c30"),
-  PRGn: list("40004b 762a83 9970ab c2a5cf e7d4e8 f7f7f7 d9f0d3 a6dba0 5aae61 1b7837 00441b"),
-  PuOr: list("2d004b 542788 8073ac b2abd2 d8daeb f7f7f7 fee0b6 fdb863 e08214 b35806 7f3b08"),
-  RdYlGn: list("a50026 d73027 f46d43 fdae61 fee08b ffffbf d9ef8b a6d96a 66bd63 1a9850 006837"),
-  RdYlBu: list("a50026 d73027 f46d43 fdae61 fee090 ffffbf e0f3f8 abd9e9 74add1 4575b4 313695"),
-  Spectral: list("9e0142 d53e4f f46d43 fdae61 fee08b ffffbf e6f598 abdda4 66c2a5 3288bd 5e4fa2"),
-  Category10: list("1f77b4 ff7f0e 2ca02c d62728 9467bd 8c564b e377c2 7f7f7f bcbd22 17becf"),
-  Observable10: list("4269d0 efb118 ff725c 6cc5b0 3ca951 ff8ab7 a463f2 97bbf5 9c6b4e 9498a0"),
-  Tableau10: list("4e79a7 f28e2c e15759 76b7b2 59a14f edc949 af7aa1 ff9da7 9c755f bab0ab"),
-  Set1: list("e41a1c 377eb8 4daf4a 984ea3 ff7f00 ffff33 a65628 f781bf 999999"),
-  Set2: list("66c2a5 fc8d62 8da0cb e78ac3 a6d854 ffd92f e5c494 b3b3b3"),
-  Set3: list("8dd3c7 ffffb3 bebada fb8072 80b1d3 fdb462 b3de69 fccde5 d9d9d9 bc80bd ccebc5 ffed6f"),
-  Pastel1: list("fbb4ae b3cde3 ccebc5 decbe4 fed9a6 ffffcc e5d8bd fddaec f2f2f2"),
-  Pastel2: list("b3e2cd fdcdac cbd5e8 f4cae4 e6f5c9 fff2ae f1e2cc cccccc"),
-  Dark2: list("1b9e77 d95f02 7570b3 e7298a 66a61e e6ab02 a6761d 666666"),
-  Paired: list("a6cee3 1f78b4 b2df8a 33a02c fb9a99 e31a1c fdbf6f ff7f00 cab2d6 6a3d9a ffff99 b15928"),
-  Accent: list("7fc97f beaed4 fdc086 ffff99 386cb0 f0027f bf5b17 666666"),
+  RdBu: list('67001f b2182b d6604d f4a582 fddbc7 f7f7f7 d1e5f0 92c5de 4393c3 2166ac 053061'),
+  RdGy: list('67001f b2182b d6604d f4a582 fddbc7 ffffff e0e0e0 bababa 878787 4d4d4d 1a1a1a'),
+  PiYG: list('8e0152 c51b7d de77ae f1b6da fde0ef f7f7f7 e6f5d0 b8e186 7fbc41 4d9221 276419'),
+  BrBG: list('543005 8c510a bf812d dfc27d f6e8c3 f5f5f5 c7eae5 80cdc1 35978f 01665e 003c30'),
+  PRGn: list('40004b 762a83 9970ab c2a5cf e7d4e8 f7f7f7 d9f0d3 a6dba0 5aae61 1b7837 00441b'),
+  PuOr: list('2d004b 542788 8073ac b2abd2 d8daeb f7f7f7 fee0b6 fdb863 e08214 b35806 7f3b08'),
+  RdYlGn: list('a50026 d73027 f46d43 fdae61 fee08b ffffbf d9ef8b a6d96a 66bd63 1a9850 006837'),
+  RdYlBu: list('a50026 d73027 f46d43 fdae61 fee090 ffffbf e0f3f8 abd9e9 74add1 4575b4 313695'),
+  Spectral: list('9e0142 d53e4f f46d43 fdae61 fee08b ffffbf e6f598 abdda4 66c2a5 3288bd 5e4fa2'),
+  Category10: list('1f77b4 ff7f0e 2ca02c d62728 9467bd 8c564b e377c2 7f7f7f bcbd22 17becf'),
+  Observable10: list('4269d0 efb118 ff725c 6cc5b0 3ca951 ff8ab7 a463f2 97bbf5 9c6b4e 9498a0'),
+  Tableau10: list('4e79a7 f28e2c e15759 76b7b2 59a14f edc949 af7aa1 ff9da7 9c755f bab0ab'),
+  Set1: list('e41a1c 377eb8 4daf4a 984ea3 ff7f00 ffff33 a65628 f781bf 999999'),
+  Set2: list('66c2a5 fc8d62 8da0cb e78ac3 a6d854 ffd92f e5c494 b3b3b3'),
+  Set3: list('8dd3c7 ffffb3 bebada fb8072 80b1d3 fdb462 b3de69 fccde5 d9d9d9 bc80bd ccebc5 ffed6f'),
+  Pastel1: list('fbb4ae b3cde3 ccebc5 decbe4 fed9a6 ffffcc e5d8bd fddaec f2f2f2'),
+  Pastel2: list('b3e2cd fdcdac cbd5e8 f4cae4 e6f5c9 fff2ae f1e2cc cccccc'),
+  Dark2: list('1b9e77 d95f02 7570b3 e7298a 66a61e e6ab02 a6761d 666666'),
+  Paired: list('a6cee3 1f78b4 b2df8a 33a02c fb9a99 e31a1c fdbf6f ff7f00 cab2d6 6a3d9a ffff99 b15928'),
+  Accent: list('7fc97f beaed4 fdc086 ffff99 386cb0 f0027f bf5b17 666666'),
   Chainbow: list(`
     4a41b5 4a58dd 426ff2 3987f9 2f9df5 28b2e9 25c6d8 27d7c4 2ee5ae 3bf098 4df884 62fd70 7bfe5f 95fb51 aff444
     c8ea3a dedd32 f0cc2c feb927 ffa423 ff8e1f ff761c f65f18 e54813 d0330e ba2208 a51403 960d00

@@ -12,31 +12,31 @@
 // and the letters of the sequence through an exact matcher, or a regular expression when the text is one (seqstar-story-search.ts). Its answer goes to `ctx.results`;
 // the part steps through it and keeps it as a location set.
 
-import { Search, SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
-import { type RefObject, use, useMemo, useRef, useState } from "react";
-import { Choices } from "../ui/index.js";
-import { compiledCase, described } from "./seqstar-cases.js";
-import f from "./seqstar-format.module.css";
-import { PrismCanvas, prism } from "./seqstar-prism.js";
-import q from "./seqstar-search.module.css";
-import { storySearch } from "./seqstar-story-search.js";
-import { useCaseContext, useStoryUi, type ViewerOptions } from "./seqstar-viewer.js";
+import { Search, SeqViewerLayout, SeqViewerProvider } from '@molstar/seq-viewer/react';
+import { type RefObject, use, useMemo, useRef, useState } from 'react';
+import { Choices } from '../ui/index.js';
+import { compiledCase, described } from './seqstar-cases.js';
+import f from './seqstar-format.module.css';
+import { PrismCanvas, prism } from './seqstar-prism.js';
+import q from './seqstar-search.module.css';
+import { storySearch } from './seqstar-story-search.js';
+import { useCaseContext, useStoryUi, type ViewerOptions } from './seqstar-viewer.js';
 
 /** What the story suggests: each finds something the Tracks view shows (names of items, then letters). */
 const TRY = [
-  { text: "zinc", hint: "the four zinc ligands" },
-  { text: "DNA", hint: "the DNA-binding domain and the DNA-contact residues" },
-  { text: "RHSVV", hint: "letters: where p53 reads RHSVV" },
-  { text: "tetra", hint: "the tetramerization domain" },
-  { text: "[KR]{2}.{10,12}[KR]{3,}", hint: "a regular expression: the bipartite nuclear localization signal" },
+  { text: 'zinc', hint: 'the four zinc ligands' },
+  { text: 'DNA', hint: 'the DNA-binding domain and the DNA-contact residues' },
+  { text: 'RHSVV', hint: 'letters: where p53 reads RHSVV' },
+  { text: 'tetra', hint: 'the tetramerization domain' },
+  { text: '[KR]{2}.{10,12}[KR]{3,}', hint: 'a regular expression: the bipartite nuclear localization signal' },
 ];
 
 /** Types `text` in the first search box under `root`, as a person would: the part's own handlers take it from there. */
 function fill(root: HTMLElement | null, text: string) {
-  const input = root?.querySelector<HTMLInputElement>(".seqv-search-input");
+  const input = root?.querySelector<HTMLInputElement>('.seqv-search-input');
   if (!input) return;
-  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, text);
-  input.dispatchEvent(new Event("input", { bubbles: true }));
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, text);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
   input.focus();
 }
 
@@ -56,19 +56,19 @@ function Try({ root }: { root: RefObject<HTMLElement | null> }) {
 }
 
 const PLACES = [
-  { id: "bar", label: "In the viewer's bar" },
-  { id: "app", label: "Placed by the app, above the viewer" },
+  { id: 'bar', label: "In the viewer's bar" },
+  { id: 'app', label: 'Placed by the app, above the viewer' },
 ];
 
 /** Case 18's viewer: the Search part where the choice puts it, the suggested searches, the legend (kept results). */
 export function Case18Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase("case18"));
-  const doc = useMemo(() => described("case18", c.doc), [c]);
-  const [place, setPlace] = useState("bar");
+  const c = use(compiledCase('case18'));
+  const doc = useMemo(() => described('case18', c.doc), [c]);
+  const [place, setPlace] = useState('bar');
   // The legend lists the kept results under Highlights (left out by `clean`).
-  const m = useCaseContext(doc, { ...options, view: "tracks", navigator: "strip", parts: ["Legend"] });
+  const m = useCaseContext(doc, { ...options, view: 'tracks', navigator: 'strip', parts: ['Legend'] });
   const search = useMemo(() => (m ? storySearch(m.ctx) : undefined), [m]);
-  const extra = useMemo(() => (place === "bar" ? { search } : {}), [place, search]);
+  const extra = useMemo(() => (place === 'bar' ? { search } : {}), [place, search]);
   const ui = useStoryUi(m, extra);
   const card = useRef<HTMLElement>(null);
   return (
@@ -82,7 +82,7 @@ export function Case18Viewer({ options }: { options?: ViewerOptions }) {
       <Try root={card} />
       {m && search ? (
         <SeqViewerProvider context={m.ctx} ui={ui}>
-          {place === "app" ? (
+          {place === 'app' ? (
             <div className={q.outside}>
               <Search context={m.ctx} search={search} />
             </div>

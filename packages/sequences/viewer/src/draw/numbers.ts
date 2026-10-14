@@ -11,20 +11,20 @@
 // wrapped layout's group labels above each line (`aboveEnd`), which the composer draws for a `labels` entry;
 // `inlineStart` labels are the `letters` layer's. Allocation-free once warm.
 
-import { GROUP_LABEL_PAD, groupLabelPx, groupOf } from "../runs.js";
-import { SkinToken, TextAlign, TextBaseline, TextBatch } from "./backend.js";
-import type { DrawView } from "./view.js";
+import { GROUP_LABEL_PAD, groupLabelPx, groupOf } from '../runs.js';
+import { SkinToken, TextAlign, TextBaseline, TextBatch } from './backend.js';
+import type { DrawView } from './view.js';
 
 const SIZE = 4096;
 const keys = new Float64Array(SIZE).fill(Number.NaN);
-const prefixes: string[] = new Array<string>(SIZE).fill("");
-const texts: string[] = new Array<string>(SIZE).fill("");
+const prefixes: string[] = new Array<string>(SIZE).fill('');
+const texts: string[] = new Array<string>(SIZE).fill('');
 const copies = new Int32Array(SIZE);
 /**
  * `n` as text, `prefix` and a space before it when given ("GFP 12"), a copy past the first after it ("48 (copy 2)");
  * cached, so a warm frame makes no string.
  */
-export function numberText(n: number, prefix = "", copy = 1): string {
+export function numberText(n: number, prefix = '', copy = 1): string {
   const h = (Math.imul((n | 0) ^ prefix.length ^ (copy << 12), 0x9e3779b1) >>> 20) & (SIZE - 1);
   if (keys[h] === n && prefixes[h] === prefix && copies[h] === copy) return texts[h];
   keys[h] = n;
@@ -50,7 +50,7 @@ export function drawGroupLabels(v: DrawView): void {
   const starts = run.startShown;
   const dpr = v.dpr;
   labels.reset();
-  labels.style(v.text.font("mono", groupLabelPx(v.fontPx)), TextAlign.right, TextBaseline.alphabetic);
+  labels.style(v.text.font('mono', groupLabelPx(v.fontPx)), TextAlign.right, TextBaseline.alphabetic);
   labels.begin(SkinToken.inkQuiet);
   let clear = Math.round(v.left * dpr);
   for (let g = groupOf(run, lo); g < run.segments && starts[g] < hi; g++) {

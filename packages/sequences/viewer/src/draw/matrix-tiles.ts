@@ -23,15 +23,15 @@
 // color, or the strongest): the state whose color is drawn (`matrixHitBand`), whichever cache drew last (VL-04). The
 // overlay outlines the hovered cell (`outlineMatrixCell`; seqspec:interaction#hover).
 
-import { AxisGeometry, type AxisView } from "../axis.js";
-import type { MatrixState } from "../rows.js";
-import { type Theme, ThemeLocation } from "../themes.js";
-import { type BackendImages, NO_COLOR } from "./backend.js";
-import { visibleRange } from "./cells.js";
-import { packAlpha } from "./density.js";
-import { hoverEmphasis, outlineItem } from "./hover.js";
-import { hitLayer, type SizeView } from "./sizes.js";
-import type { DrawView } from "./view.js";
+import { AxisGeometry, type AxisView } from '../axis.js';
+import type { MatrixState } from '../rows.js';
+import { type Theme, ThemeLocation } from '../themes.js';
+import { type BackendImages, NO_COLOR } from './backend.js';
+import { visibleRange } from './cells.js';
+import { packAlpha } from './density.js';
+import { hoverEmphasis, outlineItem } from './hover.js';
+import { hitLayer, type SizeView } from './sizes.js';
+import type { DrawView } from './view.js';
 
 /** Samples a tile holds at most (a canvas past about 32k px fails). */
 export const MATRIX_TILE = 4096;
@@ -162,7 +162,7 @@ function cellMax(s: MatrixState, b: number, q: number, j0: number, j1: number): 
  */
 function cellColor(
   v: SizeView,
-  theme: Theme<"color"> | null,
+  theme: Theme<'color'> | null,
   s: MatrixState,
   b: number,
   q: number,
@@ -207,7 +207,7 @@ const reduced = new Int32Array(2);
  */
 function reduceRow(
   v: SizeView,
-  theme: Theme<"color"> | null,
+  theme: Theme<'color'> | null,
   s: MatrixState,
   b: number,
   q0: number,
@@ -312,8 +312,8 @@ export function matrixHitBand(v: AxisView, s: MatrixState, b: number, i: number,
   return reduced[1] < 0 ? q0 : q0 + reduced[1];
 }
 /** A layer's first color theme, as the draw's `color` (`DrawView.setThemes`). */
-function colorOf(themes: readonly (Theme | null)[]): Theme<"color"> | null {
-  for (let k = 0; k < themes.length; k++) if (themes[k]?.kind === "color") return themes[k] as Theme<"color">;
+function colorOf(themes: readonly (Theme | null)[]): Theme<'color'> | null {
+  for (let k = 0; k < themes.length; k++) if (themes[k]?.kind === 'color') return themes[k] as Theme<'color'>;
   return null;
 }
 /** The level of block b's device columns: samples of 2^lx positions, each at least a device pixel. */

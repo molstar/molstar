@@ -21,10 +21,10 @@
  * is checked before C's hydrophobic rule, or it could never apply (C is in the hydrophobic group).
  */
 
-import { Color } from "./color.js";
-import { AminoGroupColors as G } from "./dictionaries.js";
+import { Color } from './color.js';
+import { AminoGroupColors as G } from './dictionaries.js';
 
-const HYDROPHOBIC = "WLVIMAFCYHP";
+const HYDROPHOBIC = 'WLVIMAFCYHP';
 
 /**
  * Jalview's table, a rule per line in order: residues, color, criteria. `KR>60`: K and R together above 60% of the
@@ -59,13 +59,13 @@ interface Rule {
 /** Rules per residue, in order: the first that holds colors it. */
 const Rules: Readonly<Record<string, readonly Rule[]>> = (() => {
   const out: Record<string, Rule[]> = {};
-  for (const line of RuleTable.trim().split("\n")) {
+  for (const line of RuleTable.trim().split('\n')) {
     const [residues, group, ...criteria] = line.trim().split(/\s+/);
     const rule: Rule = {
       color: G[group as keyof typeof G],
       criteria: criteria.map((c) => {
-        const [letters, threshold] = c.replace("%", HYDROPHOBIC).split(">");
-        return { letters, threshold: Number.parseFloat(threshold), anyOne: threshold.endsWith("*") };
+        const [letters, threshold] = c.replace('%', HYDROPHOBIC).split('>');
+        return { letters, threshold: Number.parseFloat(threshold), anyOne: threshold.endsWith('*') };
       }),
     };
     for (const r of residues) out[r] = [...(out[r] ?? []), rule];
@@ -126,12 +126,12 @@ export function clustalXColor(c: ColumnComposition, letter: string): Color | und
  */
 export function clustalXRules(): unknown[] {
   const out: unknown[] = [];
-  for (const line of RuleTable.trim().split("\n")) {
+  for (const line of RuleTable.trim().split('\n')) {
     const [residues, group, ...criteria] = line.trim().split(/\s+/);
     const color = Color.toHex(G[group as keyof typeof G]);
     for (const c of criteria) {
-      const [letters, t] = c.replace("%", HYDROPHOBIC).split(">");
-      for (const share of t.endsWith("*") ? [...letters] : [letters]) {
+      const [letters, t] = c.replace('%', HYDROPHOBIC).split('>');
+      for (const share of t.endsWith('*') ? [...letters] : [letters]) {
         out.push({ when: [{ measure: { share }, min: Number.parseFloat(t) / 100 + 1e-9, in: [...residues] }], color });
       }
     }

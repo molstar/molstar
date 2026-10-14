@@ -6,18 +6,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DefaultSeqViewerSpec } from "@molstar/seq-viewer";
-import { defineSeqViewer, type SeqViewerElement } from "@molstar/seq-viewer/dom";
-import { InteractionsViewerRegistry } from "@molstar/seq-viewer/interactions/viewer";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useCallback, useEffect, useRef } from "react";
-import { fixtureLoaders, MolstarFixture } from "../../../core/_test/format/load-fixtures.js";
-import { ComposedDom } from "./support/seqstar-composed.js";
-import { MarkdownDescription } from "./support/seqstar-description.js";
-import { describedCase10 } from "./support/seqstar-docs-views.js";
-import f from "./support/seqstar-format.module.css";
-import { PrismCanvas, PrismPage } from "./support/seqstar-prism.js";
-import { STORY_CHROME } from "./support/seqstar-viewer.js";
+import { DefaultSeqViewerSpec } from '@molstar/seq-viewer';
+import { defineSeqViewer, type SeqViewerElement } from '@molstar/seq-viewer/dom';
+import { InteractionsViewerRegistry } from '@molstar/seq-viewer/interactions/viewer';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useCallback, useEffect, useRef } from 'react';
+import { fixtureLoaders, MolstarFixture } from '../../../core/_test/format/load-fixtures.js';
+import { ComposedDom } from './support/seqstar-composed.js';
+import { MarkdownDescription } from './support/seqstar-description.js';
+import { describedCase10 } from './support/seqstar-docs-views.js';
+import f from './support/seqstar-format.module.css';
+import { PrismCanvas, PrismPage } from './support/seqstar-prism.js';
+import { STORY_CHROME } from './support/seqstar-viewer.js';
 
 /**
  * The viewer's DOM UI: the `<seq-viewer>` element on the canvas
@@ -26,14 +26,14 @@ import { STORY_CHROME } from "./support/seqstar-viewer.js";
  */
 interface Args {
   /** `clean`: the canvas with hover, selection and the tooltip; no tabs, header, menus or legend. */
-  chrome: "full" | "clean";
+  chrome: 'full' | 'clean';
 }
 const meta = {
-  title: "Seq*/Cases/Default UIs",
-  parameters: { layout: "fullscreen" },
+  title: 'Seq*/Cases/Default UIs',
+  parameters: { layout: 'fullscreen' },
   args: { chrome: STORY_CHROME },
   argTypes: {
-    chrome: { control: "inline-radio", options: ["full", "clean"], description: "This UI's parts (a UI option)" },
+    chrome: { control: 'inline-radio', options: ['full', 'clean'], description: "This UI's parts (a UI option)" },
   },
 } satisfies Meta<Args>;
 export default meta;
@@ -46,7 +46,7 @@ function Case10Links({ chrome }: Args) {
   // The element once per mount; its properties follow the args (`chrome` remounts the UI on the same context).
   useEffect(() => {
     defineSeqViewer();
-    const e = document.createElement("seq-viewer");
+    const e = document.createElement('seq-viewer');
     const base = DefaultSeqViewerSpec();
     e.spec = { ...base, registry: [...(base.registry ?? []), { svs: MolstarFixture }, InteractionsViewerRegistry] };
     e.ports = { loaders: fixtureLoaders() };
@@ -75,7 +75,7 @@ function Case10Links({ chrome }: Args) {
     >
       <section className={f.card}>
         <h2 className={f.heading}>
-          {"<seq-viewer>"}, chrome {chrome}
+          {'<seq-viewer>'}, chrome {chrome}
         </h2>
         <PrismCanvas>
           <div ref={host} />
@@ -85,7 +85,7 @@ function Case10Links({ chrome }: Args) {
   );
 }
 export const DescriptionLinks: Story = {
-  name: "DOM UI, description links",
+  name: 'DOM UI, description links',
   render: (a) => <Case10Links {...a} />,
 };
 
@@ -102,20 +102,20 @@ function ComposedElement() {
       title="Case 10: the chrome placed by the host"
       caption={
         <>
-          The DOM parts are functions a host mounts into its own elements: here a <code>clean</code> element, and{" "}
-          <code>ViewTabs</code>, <code>Export</code> and <code>IssueBadge</code> above it and the <code>Legend</code>{" "}
+          The DOM parts are functions a host mounts into its own elements: here a <code>clean</code> element, and{' '}
+          <code>ViewTabs</code>, <code>Export</code> and <code>IssueBadge</code> above it and the <code>Legend</code>{' '}
           below it, each given the element&apos;s context and its <code>mountedUI</code>.
         </>
       }
     >
       <section className={f.card}>
-        <h2 className={f.heading}>{"<seq-viewer chrome=clean>"} and the host&apos;s parts</h2>
+        <h2 className={f.heading}>{'<seq-viewer chrome=clean>'} and the host&apos;s parts</h2>
         <ComposedDom make={make} />
       </section>
     </PrismPage>
   );
 }
 export const DomComposed: Story = {
-  name: "DOM UI, the chrome placed by the host",
+  name: 'DOM UI, the chrome placed by the host',
   render: () => <ComposedElement />,
 };

@@ -11,13 +11,13 @@
 // are plain data, so the format (V2) builds its registered params table from them without this folder importing
 // the format.
 
-import { SEQUENCE_TYPE } from "./biomsa/align/params.js";
-import { getSequenceType } from "./biomsa/sequence/sequence.js";
+import { SEQUENCE_TYPE } from './biomsa/align/params.js';
+import { getSequenceType } from './biomsa/sequence/sequence.js';
 
 /** One option of an aligner, described as data. */
 export interface AlignerParam {
   /** `choice`: one of `choices`; `str`: a string, matching `pattern` when given. */
-  readonly type: "int" | "float" | "choice" | "str";
+  readonly type: 'int' | 'float' | 'choice' | 'str';
   readonly choices?: readonly string[];
   /** A `str`'s format: a regular expression (its source) the whole string must match. */
   readonly pattern?: string;
@@ -57,12 +57,12 @@ export interface Aligner {
 export class AlignerOptionsError extends RangeError {
   constructor(message: string) {
     super(message);
-    this.name = "AlignerOptionsError";
+    this.name = 'AlignerOptionsError';
   }
 }
 
 /** What an aligner treats a sequence as. */
-export type SequenceType = "amino" | "nucleic";
+export type SequenceType = 'amino' | 'nucleic';
 
 const LETTERS = /^[A-Za-z]+$/;
 
@@ -74,7 +74,7 @@ export function alignable(a: string, b: string): boolean {
 /** The sequence's type as biomsa detects it; null when it recognizes neither (an upper-case sequence). */
 export function detectType(seq: string): SequenceType | null {
   try {
-    return getSequenceType(seq) === SEQUENCE_TYPE.PROTEIN ? "amino" : "nucleic";
+    return getSequenceType(seq) === SEQUENCE_TYPE.PROTEIN ? 'amino' : 'nucleic';
   } catch {
     return null;
   }
@@ -85,7 +85,7 @@ export function detectType(seq: string): SequenceType | null {
  * detected types differ or either is not recognized.
  */
 export function pairType(a: string, b: string, type: string | number | null): SequenceType | null {
-  if (type === "amino" || type === "nucleic") return type;
+  if (type === 'amino' || type === 'nucleic') return type;
   const ta = detectType(a);
   return ta !== null && ta === detectType(b) ? ta : null;
 }
@@ -96,7 +96,7 @@ export function readOptions(aligner: string, params: AlignerParams, options: Ali
   for (const name of Object.keys(options)) {
     if (!Object.hasOwn(params, name)) {
       throw new AlignerOptionsError(
-        `${aligner}: unknown option "${name}"; the options are ${Object.keys(params).join(", ")}.`,
+        `${aligner}: unknown option "${name}"; the options are ${Object.keys(params).join(', ')}.`,
       );
     }
   }
@@ -105,16 +105,16 @@ export function readOptions(aligner: string, params: AlignerParams, options: Ali
     const fail = (expected: string) => {
       throw new AlignerOptionsError(`${aligner}: option "${name}" must be ${expected}; got ${JSON.stringify(v)}.`);
     };
-    const str = p.pattern === undefined ? "a string" : `a string matching /${p.pattern}/`;
+    const str = p.pattern === undefined ? 'a string' : `a string matching /${p.pattern}/`;
     if (v === null) {
       if (!p.nullable)
-        fail(p.type === "choice" ? `one of ${p.choices?.join(", ")}` : p.type === "str" ? str : "a number");
-    } else if (p.type === "choice") {
-      if (typeof v !== "string" || !p.choices?.includes(v)) fail(`one of ${p.choices?.join(", ")}`);
-    } else if (p.type === "str") {
-      if (typeof v !== "string" || (p.pattern !== undefined && !new RegExp(`^(?:${p.pattern})$`).test(v))) fail(str);
-    } else if (typeof v !== "number" || !Number.isFinite(v) || (p.type === "int" && !Number.isInteger(v))) {
-      fail(p.type === "int" ? "an integer" : "a finite number");
+        fail(p.type === 'choice' ? `one of ${p.choices?.join(', ')}` : p.type === 'str' ? str : 'a number');
+    } else if (p.type === 'choice') {
+      if (typeof v !== 'string' || !p.choices?.includes(v)) fail(`one of ${p.choices?.join(', ')}`);
+    } else if (p.type === 'str') {
+      if (typeof v !== 'string' || (p.pattern !== undefined && !new RegExp(`^(?:${p.pattern})$`).test(v))) fail(str);
+    } else if (typeof v !== 'number' || !Number.isFinite(v) || (p.type === 'int' && !Number.isInteger(v))) {
+      fail(p.type === 'int' ? 'an integer' : 'a finite number');
     } else if (p.min !== undefined && v < p.min) {
       fail(`at least ${p.min}`);
     }
@@ -125,7 +125,7 @@ export function readOptions(aligner: string, params: AlignerParams, options: Ali
 
 /** Run-length encodes per-column operations (`M`, `I`, `D`, one character each) as a CIGAR. */
 export function cigarOf(ops: string): string {
-  let cigar = "";
+  let cigar = '';
   for (let k = 0; k < ops.length; ) {
     let r = k + 1;
     while (r < ops.length && ops[r] === ops[k]) r++;
@@ -136,13 +136,13 @@ export function cigarOf(ops: string): string {
 }
 
 /** A CIGAR from two gapped rows of equal length (`gap` marks a gap; a column gapped in both is skipped). */
-export function cigarFromRows(a: string, b: string, gap = "-"): string {
+export function cigarFromRows(a: string, b: string, gap = '-'): string {
   if (a.length !== b.length) throw new RangeError(`rows of different lengths: ${a.length} and ${b.length}`);
-  let ops = "";
+  let ops = '';
   for (let i = 0; i < a.length; i++) {
     const inA = a[i] !== gap;
     const inB = b[i] !== gap;
-    if (inA || inB) ops += inA && inB ? "M" : inA ? "I" : "D";
+    if (inA || inB) ops += inA && inB ? 'M' : inA ? 'I' : 'D';
   }
   return cigarOf(ops);
 }

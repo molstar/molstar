@@ -6,35 +6,35 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type ResolvedView, resolveView, supportedAll, toJSON } from "@molstar/seq-core/format";
-import type { SeqSet } from "@molstar/seq-core/model";
-import { NightingaleSupported } from "@molstar/seq-nightingale";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Suspense, use, useMemo } from "react";
-import { CASE_TITLES, type CompiledCase, compiledCase, reg } from "./support/seqstar-cases.js";
-import s from "./support/seqstar-format.module.css";
-import { IssueList } from "./support/seqstar-issues.js";
-import { PrismPage } from "./support/seqstar-prism.js";
-import { makeBundle, openFixture } from "./support/seqstar-svsx.js";
-import { ScrollArea } from "./ui/index.js";
+import { type ResolvedView, resolveView, supportedAll, toJSON } from '@molstar/seq-core/format';
+import type { SeqSet } from '@molstar/seq-core/model';
+import { NightingaleSupported } from '@molstar/seq-nightingale';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Suspense, use, useMemo } from 'react';
+import { CASE_TITLES, type CompiledCase, compiledCase, reg } from './support/seqstar-cases.js';
+import s from './support/seqstar-format.module.css';
+import { IssueList } from './support/seqstar-issues.js';
+import { PrismPage } from './support/seqstar-prism.js';
+import { makeBundle, openFixture } from './support/seqstar-svsx.js';
+import { ScrollArea } from './ui/index.js';
 
 /**
  * The format: each acceptance case as its document, its
  * validation and compile issues on the test fixtures, and each view resolved, summarized: sections, blocks, and
  * layers with the type declared → the type drawn by a viewer that draws everything, and by Nightingale.
  */
-const meta = { title: "Seq*/Cases/Format", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Cases/Format', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const AXIS = ["blocks", "columns"];
-const ARRANGEMENT = ["side", "stacked"];
+const AXIS = ['blocks', 'columns'];
+const ARRANGEMENT = ['side', 'stacked'];
 
 function Summary({ view, set, nightingale }: { view: ResolvedView; set: SeqSet; nightingale: ResolvedView }) {
-  const str = (id: number) => (id >= 0 ? set.strings.get(id) : "–");
+  const str = (id: number) => (id >= 0 ? set.strings.get(id) : '–');
   const S = view.sections;
   const L = view.layers;
-  const drawn = (v: ResolvedView, l: number) => (v.layers.type[l] >= 0 ? str(v.layers.type[l]) : "omitted");
+  const drawn = (v: ResolvedView, l: number) => (v.layers.type[l] >= 0 ? str(v.layers.type[l]) : 'omitted');
   return (
     <>
       {Array.from({ length: S.count }, (_, k) => {
@@ -45,10 +45,10 @@ function Summary({ view, set, nightingale }: { view: ResolvedView; set: SeqSet; 
         return (
           <div key={S.ref[k]} className={s.card}>
             <h3 className={s.subheading}>
-              Section <span className={s.mono}>{str(S.ref[k])}</span>: {AXIS[S.axis[k]]} axis,{" "}
+              Section <span className={s.mono}>{str(S.ref[k])}</span>: {AXIS[S.axis[k]]} axis,{' '}
               {ARRANGEMENT[S.arrangement[k]]}
-              {S.hidden[k] ? ", hidden" : ""}
-              {S.scrollGroup[k] >= 0 ? `, scroll group ${str(S.scrollGroup[k])}` : ""}
+              {S.hidden[k] ? ', hidden' : ''}
+              {S.scrollGroup[k] >= 0 ? `, scroll group ${str(S.scrollGroup[k])}` : ''}
             </h3>
             <table className={s.table}>
               <thead>
@@ -64,7 +64,7 @@ function Summary({ view, set, nightingale }: { view: ResolvedView; set: SeqSet; 
                   <tr key={b}>
                     <td>{str(view.blocks.label[b])}</td>
                     <td>{view.blocks.length[b]}</td>
-                    <td>{view.blocks.positions[b] ? "a subset" : "all"}</td>
+                    <td>{view.blocks.positions[b] ? 'a subset' : 'all'}</td>
                     <td className={s.mono}>{str(view.blocks.numbering[b]?.name ?? -1)}</td>
                   </tr>
                 ))}
@@ -150,27 +150,27 @@ function Case({ name }: { name: string }) {
   );
 }
 
-export const Case1: Story = { name: "p53: text and tracks", render: () => <Case name="case1" /> };
-export const Case2: Story = { name: "Antibody Fv, Kabat and IMGT", render: () => <Case name="case2" /> };
-export const Case3: Story = { name: "SH2 family", render: () => <Case name="case3" /> };
-export const Case4: Story = { name: "tRNA family, base pairs", render: () => <Case name="case4" /> };
-export const Case5: Story = { name: "DNA construct", render: () => <Case name="case5" /> };
-export const Case6: Story = { name: "Imatinib in ABL", render: () => <Case name="case6" /> };
-export const Case7: Story = { name: "Barnase–barstar", render: () => <Case name="case7" /> };
-export const Case8: Story = { name: "AlphaFold DB complex", render: () => <Case name="case8" /> };
-export const Case9: Story = { name: "PF00042 by view", render: () => <Case name="case9" /> };
-export const Case10: Story = { name: "The Stories drafts", render: () => <Case name="case10" /> };
-export const Case12: Story = { name: "Designed dimer", render: () => <Case name="case12" /> };
-export const Case13: Story = { name: "p53 features, UniProt-style", render: () => <Case name="case13" /> };
-export const Case14: Story = { name: "Protein over its coding DNA", render: () => <Case name="case14" /> };
-export const Case15: Story = { name: "Indels in protein designs", render: () => <Case name="case15" /> };
-export const Case16: Story = { name: "A plasmid map", render: () => <Case name="case16" /> };
-export const Case17: Story = { name: "A genotype matrix", render: () => <Case name="case17" /> };
-export const Case18: Story = { name: "Finding things in p53", render: () => <Case name="case18" /> };
-export const Case19: Story = { name: "A chromosome by region", render: () => <Case name="case19" /> };
-export const Case20: Story = { name: "A protein on its genome", render: () => <Case name="case20" /> };
-export const Case21: Story = { name: "A gene on its reverse strand", render: () => <Case name="case21" /> };
-export const Case22: Story = { name: "A family triaged", render: () => <Case name="case22" /> };
+export const Case1: Story = { name: 'p53: text and tracks', render: () => <Case name="case1" /> };
+export const Case2: Story = { name: 'Antibody Fv, Kabat and IMGT', render: () => <Case name="case2" /> };
+export const Case3: Story = { name: 'SH2 family', render: () => <Case name="case3" /> };
+export const Case4: Story = { name: 'tRNA family, base pairs', render: () => <Case name="case4" /> };
+export const Case5: Story = { name: 'DNA construct', render: () => <Case name="case5" /> };
+export const Case6: Story = { name: 'Imatinib in ABL', render: () => <Case name="case6" /> };
+export const Case7: Story = { name: 'Barnase–barstar', render: () => <Case name="case7" /> };
+export const Case8: Story = { name: 'AlphaFold DB complex', render: () => <Case name="case8" /> };
+export const Case9: Story = { name: 'PF00042 by view', render: () => <Case name="case9" /> };
+export const Case10: Story = { name: 'The Stories drafts', render: () => <Case name="case10" /> };
+export const Case12: Story = { name: 'Designed dimer', render: () => <Case name="case12" /> };
+export const Case13: Story = { name: 'p53 features, UniProt-style', render: () => <Case name="case13" /> };
+export const Case14: Story = { name: 'Protein over its coding DNA', render: () => <Case name="case14" /> };
+export const Case15: Story = { name: 'Indels in protein designs', render: () => <Case name="case15" /> };
+export const Case16: Story = { name: 'A plasmid map', render: () => <Case name="case16" /> };
+export const Case17: Story = { name: 'A genotype matrix', render: () => <Case name="case17" /> };
+export const Case18: Story = { name: 'Finding things in p53', render: () => <Case name="case18" /> };
+export const Case19: Story = { name: 'A chromosome by region', render: () => <Case name="case19" /> };
+export const Case20: Story = { name: 'A protein on its genome', render: () => <Case name="case20" /> };
+export const Case21: Story = { name: 'A gene on its reverse strand', render: () => <Case name="case21" /> };
+export const Case22: Story = { name: 'A family triaged', render: () => <Case name="case22" /> };
 
 const opened = openFixture();
 const bundle = makeBundle();
@@ -206,7 +206,7 @@ function Json({ text }: { text: string }) {
 
 function OpenedArchive() {
   const o = use(opened);
-  const json = useMemo(() => (o.svsx.doc ? toJSON(o.svsx.doc, { pretty: true }) : ""), [o]);
+  const json = useMemo(() => (o.svsx.doc ? toJSON(o.svsx.doc, { pretty: true }) : ''), [o]);
   return (
     <>
       <section className={s.card}>
@@ -215,8 +215,8 @@ function OpenedArchive() {
         </h2>
         <FileTable files={o.svsx.files} />
         <p className={s.status}>
-          Main file <span className={s.mono}>{o.svsx.main}</span> (MessagePack, found before{" "}
-          <span className={s.mono}>index.svsj</span>); relative URIs resolve against{" "}
+          Main file <span className={s.mono}>{o.svsx.main}</span> (MessagePack, found before{' '}
+          <span className={s.mono}>index.svsj</span>); relative URIs resolve against{' '}
           <span className={s.mono}>{o.svsx.base || "the archive's root"}</span>.
         </p>
         <h3 className={s.subheading}>The document, as the archive carries it</h3>
@@ -267,7 +267,7 @@ function Bundled() {
 
 /** `.svsx`: one zip, a document and the files it reads, opened with no network. */
 export const Svsx: Story = {
-  name: "A document with its data (.svsx)",
+  name: 'A document with its data (.svsx)',
   render: () => (
     <PrismPage
       title="A document with its data (.svsx)"

@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { QueryStory } from "./support/seqstar-query-runtime.js";
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { QueryStory } from './support/seqstar-query-runtime.js';
 
 /**
  * SeqQL's runtime: a gallery of example queries beside a mounted
@@ -21,11 +21,11 @@ import { QueryStory } from "./support/seqstar-query-runtime.js";
  * (case 3's `(values :of cons :above 1)`). Every base symbol runs: the scans (`letters`, `positions`, `search` with the
  * story's letter-class tables), the position, system and group tests among them.
  */
-const meta = { title: "Seq*/Query and search/SeqQL", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Query and search/SeqQL', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Gallery: Story = {
-  name: "Runtime gallery",
+  name: 'Runtime gallery',
   render: () => <QueryStory />,
 };

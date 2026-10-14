@@ -14,14 +14,14 @@
 // x arguments (`zoomAt`) are px from the data area's left. Block ranges (`zoomTo`, `committed.blocks`) are in the
 // block coordinate system; the axis's run converters take them to shown positions.
 
-import type { ResolvedView, SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { Extents, type SeqSet } from "@molstar/seq-core/model";
-import { Axis, clamp, type ShownIndex, sameList } from "./axis.js";
-import { type ConfigManager, SeqViewerConfig } from "./config.js";
-import type { SeqLociAny } from "./lineage.js";
-import { BlockHulls, type Coordinates, Projector } from "./projection.js";
-import type { Scheduler } from "./scheduler.js";
-import { live, type Origin, pulled, type SeqState, state, type WritableLive } from "./state.js";
+import type { ResolvedView, SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { Extents, type SeqSet } from '@molstar/seq-core/model';
+import { Axis, clamp, type ShownIndex, sameList } from './axis.js';
+import { type ConfigManager, SeqViewerConfig } from './config.js';
+import type { SeqLociAny } from './lineage.js';
+import { BlockHulls, type Coordinates, Projector } from './projection.js';
+import type { Scheduler } from './scheduler.js';
+import { live, type Origin, pulled, type SeqState, state, type WritableLive } from './state.js';
 
 /**
  * Every section of every view of a document, the layouts' and the viewports' lifecycle (seqspec:interaction#viewports).
@@ -29,7 +29,7 @@ import { live, type Origin, pulled, type SeqState, state, type WritableLive } fr
 export function sectionsOf(doc: SeqViewSpecDoc | null): string[] {
   const out: string[] = [];
   for (const v of doc?.root.children ?? [])
-    if (v.kind === "view") for (const c of v.children ?? []) if (c.kind === "section" && c.ref) out.push(c.ref);
+    if (v.kind === 'view') for (const c of v.children ?? []) if (c.kind === 'section' && c.ref) out.push(c.ref);
   return out;
 }
 
@@ -166,7 +166,7 @@ interface ViewportOwner extends ViewportHost {
 
 const EMPTY = new Int32Array(0);
 const INITIAL: CommittedViewport = {
-  origin: "api",
+  origin: 'api',
   cell: 1,
   scrollX: 0,
   scrollY: 0,
@@ -198,9 +198,9 @@ export class Viewport implements SectionViewport {
   private dirty = false;
   private timer = -1;
   private lastInput = 0;
-  private settleOrigin: Origin = "api";
+  private settleOrigin: Origin = 'api';
   private frame = -1;
-  private readonly anim = { c0: 1, x0: 0, c1: 1, x1: 0, t0: 0, d: 0, origin: "api" as Origin };
+  private readonly anim = { c0: 1, x0: 0, c1: 1, x1: 0, t0: 0, d: 0, origin: 'api' as Origin };
   /** `locate`'s: the view x to find (in), then the shown position (fractional) under it (out). */
   private readonly at = new Float64Array(2);
   /** The plain verbs' numbers, passed to their `…From` variants. */
@@ -217,13 +217,13 @@ export class Viewport implements SectionViewport {
   private readonly want = new Float64Array(4);
   /** A pending range move's (block, start, stop) triples; `want[0]` of them. */
   private wantRanges = new Int32Array(3);
-  private wantOrigin: Origin = "api";
+  private wantOrigin: Origin = 'api';
   /** The last commit, not yet in `committed`: cell, scrollX, scrollY, rowScale, first and last entry; runs; axis. */
   private readonly kept = new Float64Array(6);
   private keptLo = EMPTY;
   private keptHi = EMPTY;
   private keptAxis: Axis | null = null;
-  private keptOrigin: Origin = "api";
+  private keptOrigin: Origin = 'api';
   private unpublished = false;
   /** A row zoom's anchored scrollY and its row scale, applied on the next `setRows`; NaN: none. */
   private readonly rowAnchor = new Float64Array([Number.NaN, 1]);
@@ -252,18 +252,18 @@ export class Viewport implements SectionViewport {
       lastEntry: -1,
       animating: false,
       interacting: false,
-      origin: "api",
+      origin: 'api',
     });
   }
 
-  scrollTo(x: number, y: number, origin: Origin = "api") {
+  scrollTo(x: number, y: number, origin: Origin = 'api') {
     this.axis?.ensure?.();
     const s = this.start();
     s.scrollX = x;
     s.scrollY = y;
     this.moved(origin);
   }
-  panBy(dx: number, dy: number, origin: Origin = "pointer") {
+  panBy(dx: number, dy: number, origin: Origin = 'pointer') {
     this.args[0] = dx;
     this.args[1] = dy;
     this.panByFrom(this.args, origin);
@@ -274,7 +274,7 @@ export class Viewport implements SectionViewport {
    * the keyboard make these calls at pointer rate. The plain verbs call them (edge rate).
    * `panByFrom`: dx at `a[0]`, dy at `a[1]`.
    */
-  panByFrom(a: Float64Array, origin: Origin = "pointer") {
+  panByFrom(a: Float64Array, origin: Origin = 'pointer') {
     this.axis?.ensure?.();
     const s = this.start();
     s.scrollX += a[0];
@@ -287,15 +287,15 @@ export class Viewport implements SectionViewport {
     const s = this.start();
     if (x) s.scrollX -= d.dx;
     if (y) s.scrollY -= d.dy;
-    this.moved("pointer");
+    this.moved('pointer');
   }
-  zoomAt(factor: number, x: number, origin: Origin = "pointer") {
+  zoomAt(factor: number, x: number, origin: Origin = 'pointer') {
     this.args[0] = factor;
     this.args[1] = x;
     this.zoomAtFrom(this.args, origin);
   }
   /** `zoomAt`: the factor at `a[0]`, the view x it is anchored at `a[1]`. */
-  zoomAtFrom(a: Float64Array, origin: Origin = "pointer") {
+  zoomAtFrom(a: Float64Array, origin: Origin = 'pointer') {
     this.at[1] = a[1];
     const b = this.locate();
     const ax = this.axis;
@@ -376,7 +376,7 @@ export class Viewport implements SectionViewport {
     const s = this.start();
     s.scrollY = 0;
     s.rowScale = s.minRowScale;
-    this.moved("api");
+    this.moved('api');
   }
   setRowScale(r: number, anchorY: number) {
     this.args[0] = r;
@@ -393,7 +393,7 @@ export class Viewport implements SectionViewport {
     // Clamped below against the rows' height at the old scale; the layout's next `setRows` restores the anchor.
     this.rowAnchor[0] = s.scrollY;
     this.rowAnchor[1] = next;
-    this.moved("pointer");
+    this.moved('pointer');
   }
   setView(cell: number, scrollX: number, origin: Origin) {
     this.args[0] = cell;
@@ -488,7 +488,7 @@ export class Viewport implements SectionViewport {
     // is the layout's to take (else a box that grew after the first layout keeps that layout's rows: one). What the
     // clamp moves is no one's move (`graph`, seqspec:viewer#state): a follower whose inset or DPR changed
     // at the same width leads nothing (VL-03).
-    if (!hidden) this.refresh("graph");
+    if (!hidden) this.refresh('graph');
     else if (taller) this.live.bump();
   }
   setRows(rows: Float64Array) {
@@ -507,8 +507,8 @@ export class Viewport implements SectionViewport {
     if (anchored) s.scrollY = this.rowAnchor[0];
     this.rowAnchor[0] = Number.NaN;
     // A clamp that moved the view commits (unless a gesture will); new extents alone only bump.
-    if (this.end("graph")) {
-      if (!s.interacting && !s.animating) this.commit("graph");
+    if (this.end('graph')) {
+      if (!s.interacting && !s.animating) this.commit('graph');
     } else this.live.bump();
   }
   /**
@@ -526,7 +526,7 @@ export class Viewport implements SectionViewport {
       const t = this.live.current;
       if (t.cell === was[0] && t.scrollX === was[1] && t.scrollY === was[2] && t.rowScale === was[3])
         this.dirty = pending;
-      else this.commit("api");
+      else this.commit('api');
     };
   }
   private muted = 0;
@@ -542,20 +542,20 @@ export class Viewport implements SectionViewport {
    * axis) or fits; a new section opens on
    * its focus, else fits. A focus before the section has a width waits for one.
    */
-  resolve(axis: Axis, focus: { block: number; start: number; stop: number } | null, mode: "keepCenter" | "fit") {
+  resolve(axis: Axis, focus: { block: number; start: number; stop: number } | null, mode: 'keepCenter' | 'fit') {
     const old = this.axis;
     const s = this.live.current;
     if (old?.equals(axis)) {
       this.axis = axis;
-      if (!old.sameFrame(axis)) this.refresh("graph");
+      if (!old.sameFrame(axis)) this.refresh('graph');
       return;
     }
-    let key = "";
+    let key = '';
     let index = -1;
     let frac = 0;
     // A view of the whole axis (fitted, or zoomed out to it) shows the whole new one: a filter's back to everything.
     const whole = this.fitted || s.cell <= s.minCell;
-    if (old && mode === "keepCenter" && !whole && s.width - old.insetX > 0) {
+    if (old && mode === 'keepCenter' && !whole && s.width - old.insetX > 0) {
       this.at[1] = (s.width - old.insetX) / 2;
       const b = this.locate();
       if (b >= 0 && old.shown[b] > 0) {
@@ -570,7 +570,7 @@ export class Viewport implements SectionViewport {
       one[1] = focus.start;
       one[2] = focus.stop;
     }
-    if (!old && focus && this.deferRanges(one, 0, "graph")) return this.refresh("graph");
+    if (!old && focus && this.deferRanges(one, 0, 'graph')) return this.refresh('graph');
     this.clamp();
     const nb = index < 0 ? -1 : axis.keys.indexOf(key);
     const k = nb < 0 ? -1 : axis.shownOf(nb, index);
@@ -578,11 +578,11 @@ export class Viewport implements SectionViewport {
     this.fitted = k < 0 && cell <= 0 && this.pending === Intent.none;
     if (cell > 0) [s.cell, s.scrollX] = [cell, this.anim.x1];
     else if (k >= 0) s.scrollX = this.xOf(nb, k + frac, s.cell) - (s.width - axis.insetX) / 2;
-    this.refresh("graph");
+    this.refresh('graph');
   }
 
   /** A move made while the data width is 0 waits for a width, the last one winning; true: deferred. */
-  private defer(kind: number, a: number, b: number, c: number, pad: number, origin: Origin = "api"): boolean {
+  private defer(kind: number, a: number, b: number, c: number, pad: number, origin: Origin = 'api'): boolean {
     if (this.live.current.width - (this.axis?.insetX ?? 0) > 0) return false;
     this.stop();
     this.pending = kind;
@@ -593,7 +593,7 @@ export class Viewport implements SectionViewport {
   }
 
   /** A range move made while the data width is 0: its ranges kept (copied), as `defer`'s numbers are. */
-  private deferRanges(ranges: Int32Array, pad: number, origin: Origin = "api"): boolean {
+  private deferRanges(ranges: Int32Array, pad: number, origin: Origin = 'api'): boolean {
     if (!this.defer(Intent.range, ranges.length / 3, 0, 0, pad, origin)) return false;
     if (this.wantRanges.length < ranges.length) this.wantRanges = new Int32Array(ranges.length);
     this.wantRanges.set(ranges);
@@ -645,7 +645,7 @@ export class Viewport implements SectionViewport {
 
   private moveTo(cell: number, x: number, opts: MoveOpts) {
     const s = this.live.current;
-    const origin = opts.origin ?? "api";
+    const origin = opts.origin ?? 'api';
     const config = this.host.config;
     const d = opts.durationMs ?? config.get(SeqViewerConfig.Viewport.AnimationMs);
     const reduced = config.get(SeqViewerConfig.Viewport.ReducedMotion) === true;
@@ -964,7 +964,7 @@ export class Viewport implements SectionViewport {
   }
 }
 
-const immediate = (o: Origin) => o === "api" || o === "graph" || o.startsWith("host:");
+const immediate = (o: Origin) => o === 'api' || o === 'graph' || o.startsWith('host:');
 
 export class Viewports implements ViewportManager {
   readonly sections = state<readonly string[]>([], sameList);
@@ -1021,7 +1021,7 @@ export class Viewports implements ViewportManager {
   }
   /** `sections`, after the layout and ui have synced. */
   publish() {
-    this.sections.set(this.all, "graph");
+    this.sections.set(this.all, 'graph');
   }
   private readonly drop = () => {
     for (const vp of this.leaving.values()) vp.close();
@@ -1112,7 +1112,7 @@ export class ScrollGroups implements ScrollGroupManager {
     const a = first instanceof Viewport ? first.axis : null;
     const b = viewport instanceof Viewport ? viewport.axis : null;
     if (a && b && !a.equals(b)) {
-      this.report("svs.section.scroll_group", `"${viewport.ref}" cannot join "${name}": its axis differs`);
+      this.report('svs.section.scroll_group', `"${viewport.ref}" cannot join "${name}": its axis differs`);
       return () => {};
     }
     let sub: { unsubscribe(): void } | null = null;

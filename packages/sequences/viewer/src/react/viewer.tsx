@@ -11,11 +11,11 @@
 // chrome's composition) or in its own arrangement around `SeqViewerRoot` and `ViewSurface`; `SeqViewer` makes a context
 // per mount for everyone else.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { mountSection, windowScheduler } from "../canvas/index.js";
-import { isReactPart, labelText, placedParts, resolveSlots } from "../chrome.js";
-import { withDownloadExport } from "../dom/export.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { mountSection, windowScheduler } from '../canvas/index.js';
+import { isReactPart, labelText, placedParts, resolveSlots } from '../chrome.js';
+import { withDownloadExport } from '../dom/export.js';
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -23,7 +23,7 @@ import {
   type SeqViewerContext,
   type SeqViewerPorts,
   type SeqViewerSpec,
-} from "../index.js";
+} from '../index.js';
 import {
   type PartProps,
   type ResolvedUISpec,
@@ -31,12 +31,12 @@ import {
   type SeqViewerUISpec,
   type SlotName,
   useScope,
-} from "./hooks.js";
-import { HoverCard } from "./hover-card.js";
-import * as P from "./parts.js";
-import { ViewSurface } from "./section.js";
+} from './hooks.js';
+import { HoverCard } from './hover-card.js';
+import * as P from './parts.js';
+import { ViewSurface } from './section.js';
 
-const DEFAULTS: ResolvedUISpec["components"] = {
+const DEFAULTS: ResolvedUISpec['components'] = {
   ViewTabs: P.ViewTabs,
   SectionHeader: P.SectionHeader,
   SectionSwitches: P.SectionSwitches,
@@ -66,7 +66,7 @@ function resolve(context: SeqViewerContext, ui: SeqViewerUISpec | undefined): Re
   return {
     components: resolveSlots(context, DEFAULTS, ui?.components, isReactPart),
     placed: placedParts(context, ui?.chrome, ui?.components, ui?.legend),
-    className: ui?.className ?? "",
+    className: ui?.className ?? '',
     legend: ui?.legend,
     surface: ui?.surface ?? mountSection,
     search: ui?.search,
@@ -113,7 +113,7 @@ function Announcer({ context: ctx }: PartProps) {
   const el = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const sub = ctx.labels.current.subscribe((l) => {
-      if (el.current && ctx.hover.live.current.owner === "keyboard") el.current.textContent = labelText(l);
+      if (el.current && ctx.hover.live.current.owner === 'keyboard') el.current.textContent = labelText(l);
     });
     return () => sub.unsubscribe();
   }, [ctx]);
@@ -128,7 +128,7 @@ function Announcer({ context: ctx }: PartProps) {
 export function SeqViewerRoot({ children }: { children?: ReactNode }) {
   const { context, ui } = useScope();
   return (
-    <div className={P.cx("seqv-root", ui.className)} tabIndex={-1}>
+    <div className={P.cx('seqv-root', ui.className)} tabIndex={-1}>
       {children}
       <Announcer context={context} />
     </div>
@@ -149,21 +149,21 @@ export function SeqViewerLayout() {
   return (
     <SeqViewerRoot>
       <div className="seqv-bar">
-        {part("ViewTabs")}
+        {part('ViewTabs')}
         <span className="seqv-spacer" />
-        {part("Search")}
-        {part("Busy")}
-        {part("Export")}
-        {part("Issues")}
+        {part('Search')}
+        {part('Busy')}
+        {part('Export')}
+        {part('Issues')}
       </div>
-      {part("SnapshotPlayer")}
-      {part("Description")}
-      {part("EmptyState")}
-      {part("ErrorState")}
+      {part('SnapshotPlayer')}
+      {part('Description')}
+      {part('EmptyState')}
+      {part('ErrorState')}
       <ViewSurface context={context} />
-      {part("Legend")}
-      {part("Tooltip")}
-      {part("HoverCard")}
+      {part('Legend')}
+      {part('Tooltip')}
+      {part('HoverCard')}
     </SeqViewerRoot>
   );
 }
@@ -208,7 +208,7 @@ export function SeqViewer(props: SeqViewerProps) {
   useEffect(() => {
     if (context && doc) context.setDocument(doc).catch(() => {});
   }, [context, doc]);
-  if (!context) return <div className={P.cx("seqv-root", props.ui?.className)} />;
+  if (!context) return <div className={P.cx('seqv-root', props.ui?.className)} />;
   return (
     <SeqViewerProvider context={context} ui={props.ui}>
       <SeqViewerLayout />

@@ -17,12 +17,12 @@
 // pointers and releases the page lost, linear drags too; and the drag drawn as the
 // selection it becomes (seqspec:interaction#input-events for the releases).
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { OrderedSet, OrderedSet as OS } from "@molstar/seq-core/model";
-import { describe, expect, it } from "vitest";
-import { case3 } from "../../core/_test/format/cases.js";
-import { Pass, SkinToken } from "../src/draw/index.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { OrderedSet, OrderedSet as OS } from '@molstar/seq-core/model';
+import { describe, expect, it } from 'vitest';
+import { case3 } from '../../core/_test/format/cases.js';
+import { Pass, SkinToken } from '../src/draw/index.js';
 import {
   DefaultPresets,
   Hit,
@@ -34,42 +34,42 @@ import {
   type PresetEntry,
   type Selection,
   type SeqViewerSpec,
-} from "../src/index.js";
-import type { Layouts } from "../src/layout.js";
-import { runX } from "../src/runs.js";
-import { setPiece } from "./axis-fixtures.js";
-import { type Driven, driven } from "./input-fixtures.js";
-import { lit, passRects, seqLoci } from "./overlay-fixtures.js";
-import { allTypes } from "./prepare-fixtures.js";
+} from '../src/index.js';
+import type { Layouts } from '../src/layout.js';
+import { runX } from '../src/runs.js';
+import { setPiece } from './axis-fixtures.js';
+import { type Driven, driven } from './input-fixtures.js';
+import { lit, passRects, seqLoci } from './overlay-fixtures.js';
+import { allTypes } from './prepare-fixtures.js';
 
-const S = "v.main";
-const WRAPPED = DefaultPresets.find((p) => p.name === "wrapped") as PresetEntry;
-const TEXT: PresetEntry = { ...WRAPPED, name: "lab:text" };
+const S = 'v.main';
+const WRAPPED = DefaultPresets.find((p) => p.name === 'wrapped') as PresetEntry;
+const TEXT: PresetEntry = { ...WRAPPED, name: 'lab:text' };
 const INLINE: PresetEntry = {
   ...WRAPPED,
-  name: "lab:inline",
-  render: { ...WRAPPED.render, wrappedGroupLabels: "inlineStart" },
+  name: 'lab:inline',
+  render: { ...WRAPPED.render, wrappedGroupLabels: 'inlineStart' },
 };
 
 /** 400 residues, a second block of 60, the letters and two overlapping features in two lanes. */
 function textDoc() {
   const b = createSeqViewSpec();
-  const a = b.data.sequence({ ref: "a", value: "ACDEFGHIKL".repeat(40) });
-  const c = b.data.sequence({ ref: "c", value: "MKVLATGHEK".repeat(6) });
+  const a = b.data.sequence({ ref: 'a', value: 'ACDEFGHIKL'.repeat(40) });
+  const c = b.data.sequence({ ref: 'c', value: 'MKVLATGHEK'.repeat(6) });
   const f = b.data.annotation({
-    ref: "f",
-    geometry: "ranges",
+    ref: 'f',
+    geometry: 'ranges',
     target: a,
     value: [
-      { start: 2, stop: 30, label: "one" },
-      { start: 20, stop: 40, label: "two" },
+      { start: 2, stop: 30, label: 'one' },
+      { start: 20, stop: 40, label: 'two' },
     ],
   });
-  const v = b.view({ ref: "v", label: "V", layout: "text", height: "box" });
+  const v = b.view({ ref: 'v', label: 'V', layout: 'text', height: 'box' });
   v.block({ sequence: a });
   v.block({ sequence: c });
-  v.track({ ref: "v.letters" }).letters();
-  v.track({ ref: "v.features" }).ranges({ data: f });
+  v.track({ ref: 'v.letters' }).letters();
+  v.track({ ref: 'v.features' }).ranges({ data: f });
   return b.getDocument();
 }
 
@@ -88,11 +88,11 @@ async function text(height = 900, o: TextOptions = {}) {
     renderers: KernelRenderers as LayerRenderer[],
     labels: false,
   });
-  for (const s of sections) t.ctx.ui.setStyle(s, o.preset ?? "lab:text");
+  for (const s of sections) t.ctx.ui.setStyle(s, o.preset ?? 'lab:text');
   await t.ctx.graph.update();
   const l = t.layout(sections[0]);
   /** Shown position k of block b: its line, the center x of its letter and the center y of `track`'s band. */
-  const at = (b: number, k: number, track = "v.letters", section = sections[0]) => {
+  const at = (b: number, k: number, track = 'v.letters', section = sections[0]) => {
     const ls = t.layout(section);
     let line = -1;
     for (let i = 0; i < ls.lines.count; i++) if (ls.lines.block[i] === b && ls.lines.start[i] <= k) line = i;
@@ -139,8 +139,8 @@ function itemY(t: Driven, section: string, x: number, y0: number, y1: number, it
 }
 /** A press, then its moves (no release). */
 function press(t: Driven, x: number, y: number, moves: [number, number][], opts: { shift?: boolean } = {}) {
-  t.pointer("down", S, x, y, opts);
-  for (const [mx, my] of moves) t.pointer("move", S, mx, my, { ...opts, onDocument: true });
+  t.pointer('down', S, x, y, opts);
+  for (const [mx, my] of moves) t.pointer('move', S, mx, my, { ...opts, onDocument: true });
 }
 /** A pointer record with no button down: a move after a release the page lost. */
 function unpressedMove(t: Driven, x: number, y: number) {
@@ -149,19 +149,19 @@ function unpressedMove(t: Driven, x: number, y: number) {
   t.ctx.input.pointer(p);
 }
 
-describe("selecting in text", () => {
-  it("the text preset selects: a click selects, again clears, a double click keeps; Shift extends; nothing clears", async () => {
+describe('selecting in text', () => {
+  it('the text preset selects: a click selects, again clears, a double click keeps; Shift extends; nothing clears', async () => {
     const t = await text();
     const s = t.ctx.layout.sectionIndex(S);
-    expect(t.ctx.behaviors.get("select")?.forSection(s)).not.toBeNull();
+    expect(t.ctx.behaviors.get('select')?.forSection(s)).not.toBeNull();
     // The text's inset from the canvas's edges: left, top, and below its last line.
     const last = t.l.entryCount - 1;
     expect([t.l.dataLeft, t.l.lines.top[0], t.l.scrolledHeight - t.l.entryTop[last] - t.l.entryHeight[last]]).toEqual([
       8, 8, 8,
     ]);
     const p = t.at(0, 15);
-    t.pointer("move", S, p.x, p.y);
-    expect(t.ctx.ui.cursor(S).value).toBe("crosshair");
+    t.pointer('move', S, p.x, p.y);
+    expect(t.ctx.ui.cursor(S).value).toBe('crosshair');
     t.click(S, p.x, p.y);
     expect(positions(sel(t))).toEqual([[0, [15]]]);
     t.advance(500);
@@ -185,10 +185,10 @@ describe("selecting in text", () => {
     const g = t.at(0, 9);
     t.click(S, g.x + g.advance / 2 + 1, g.y);
     expect(sel(t).seq).toBeNull();
-    expect(sel(t).origin).toBe("pointer");
+    expect(sel(t).origin).toBe('pointer');
   });
 
-  it("a double and a triple click are a click: the position stays selected, never cleared", async () => {
+  it('a double and a triple click are a click: the position stays selected, never cleared', async () => {
     const t = await text();
     const p = t.at(0, 23);
     t.click(S, p.x, p.y);
@@ -202,7 +202,7 @@ describe("selecting in text", () => {
     expect(sel(t).seq).toBeNull();
   });
 
-  for (const preset of ["lab:text", "lab:inline"] as const)
+  for (const preset of ['lab:text', 'lab:inline'] as const)
     it(`Shift-click after a drag across lines (${preset}): before it, after it and inside it, both ends exact`, async () => {
       const t = await text(900, { preset });
       const L = t.l.lines;
@@ -233,7 +233,7 @@ describe("selecting in text", () => {
   it("Shift-click on an item's selection (an underline clicked): its far end stays exactly the item's", async () => {
     const t = await text();
     // Item "two" covers [20, 40): a point on its underline at 33, found by the hit.
-    const u = t.at(0, 33, "v.features");
+    const u = t.at(0, 33, 'v.features');
     const y = itemY(t, S, u.x, u.top, u.top + u.height, 1);
     t.click(S, u.x, y);
     expect(sel(t).items).not.toBeNull();
@@ -249,27 +249,27 @@ describe("selecting in text", () => {
     expect(positions(sel(t))).toEqual([[0, range(20, 53)]]);
   });
 
-  it("Shift-click in text extends a selection made in another view (an item, a drag): from the model, ends exact", async () => {
+  it('Shift-click in text extends a selection made in another view (an item, a drag): from the model, ends exact', async () => {
     const b = createSeqViewSpec();
-    const a = b.data.sequence({ ref: "a", value: "ACDEFGHIKL".repeat(40) });
+    const a = b.data.sequence({ ref: 'a', value: 'ACDEFGHIKL'.repeat(40) });
     const f = b.data.annotation({
-      ref: "f",
-      geometry: "ranges",
+      ref: 'f',
+      geometry: 'ranges',
       target: a,
       value: [
-        { start: 2, stop: 30, label: "one" },
-        { start: 20, stop: 40, label: "two" },
+        { start: 2, stop: 30, label: 'one' },
+        { start: 20, stop: 40, label: 'two' },
       ],
     });
-    const tr = b.view({ ref: "t", label: "Tracks" });
+    const tr = b.view({ ref: 't', label: 'Tracks' });
     tr.block({ sequence: a });
-    tr.track({ ref: "t.letters" }).letters();
-    tr.track({ ref: "t.features" }).ranges({ data: f });
-    const v = b.view({ ref: "v", label: "Text", layout: "text", height: "box" });
+    tr.track({ ref: 't.letters' }).letters();
+    tr.track({ ref: 't.features' }).ranges({ data: f });
+    const v = b.view({ ref: 'v', label: 'Text', layout: 'text', height: 'box' });
     v.block({ sequence: a });
-    v.track({ ref: "v.letters" }).letters();
-    v.track({ ref: "v.features" }).ranges({ data: f });
-    const T = "t.main";
+    v.track({ ref: 'v.letters' }).letters();
+    v.track({ ref: 'v.features' }).ranges({ data: f });
+    const T = 't.main';
     const t = await text(900, { doc: b.getDocument() });
     const show = async (view: string) => {
       t.ctx.views.setCurrent(view);
@@ -278,7 +278,7 @@ describe("selecting in text", () => {
       await t.ctx.graph.update();
     };
     // In Tracks: a click on item "two" where it alone lies (35), at a y its bar hits.
-    await show("t");
+    await show('t');
     const lt = t.layout(T);
     const h = Hit.create();
     const x35 = t.xOf(T, 0, 35);
@@ -292,7 +292,7 @@ describe("selecting in text", () => {
     t.advance(500);
     expect(sel(t).items).not.toBeNull();
     // In Text: Shift-click before it, after it, inside it.
-    await show("v");
+    await show('v');
     const shift = (k: number) => {
       const p = t.at(0, k);
       t.click(S, p.x, p.y, { shift: true });
@@ -300,34 +300,34 @@ describe("selecting in text", () => {
       return positions(sel(t));
     };
     expect(shift(8)).toEqual([[0, range(8, 40)]]);
-    await show("t");
+    await show('t');
     t.click(T, x35, y);
     t.advance(500);
-    await show("v");
+    await show('v');
     expect(shift(52)).toEqual([[0, range(20, 53)]]);
-    await show("t");
+    await show('t');
     t.click(T, x35, y);
     t.advance(500);
-    await show("v");
+    await show('v');
     // Inside, with the anchor (35) at neither end: the far end stays.
     expect(shift(25)).toEqual([[0, range(25, 40)]]);
     // A drag in Tracks (Alt: positions), then Shift-click in Text inside it and before it.
-    await show("t");
-    const ly = t.yOf(T, "t.letters");
+    await show('t');
+    const ly = t.yOf(T, 't.letters');
     t.drag(T, t.xOf(T, 0, 10), ly, t.xOf(T, 0, 30), ly, { alt: true });
     expect(positions(sel(t))).toEqual([[0, range(10, 31)]]);
     t.advance(500);
-    await show("v");
+    await show('v');
     expect(shift(20)).toEqual([[0, range(10, 21)]]);
     expect(shift(5)).toEqual([[0, range(5, 21)]]);
   });
 
-  it("Shift-click on a cyclic block across its origin extends the run as shown; after a Shift-drag added a run, from the anchor", async () => {
+  it('Shift-click on a cyclic block across its origin extends the run as shown; after a Shift-drag added a run, from the anchor', async () => {
     const b = createSeqViewSpec();
-    const c = b.data.sequence({ ref: "s", value: "ACGTACGTTA".repeat(4), alphabet: "dna", cyclic: true });
-    b.view({ ref: "v", label: "V", layout: "text", height: "box" })
+    const c = b.data.sequence({ ref: 's', value: 'ACGTACGTTA'.repeat(4), alphabet: 'dna', cyclic: true });
+    b.view({ ref: 'v', label: 'V', layout: 'text', height: 'box' })
       .block({ sequence: c, origin: 2 })
-      .track({ ref: "v.letters" })
+      .track({ ref: 'v.letters' })
       .letters();
     const t = await text(900, { doc: b.getDocument() });
     const [a, z] = [t.at(0, 36), t.at(0, 39)];
@@ -340,7 +340,7 @@ describe("selecting in text", () => {
     expect(positions(sel(t))).toEqual([[0, [0, 1, ...range(32, 40)]]]);
 
     const u = await text();
-    u.ctx.behaviors.get("select")?.setParams({ shiftPositions: "toggle" });
+    u.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'toggle' });
     const at = (k: number) => u.at(0, k);
     u.drag(S, at(2).x, at(2).y, at(4).x, at(4).y);
     u.advance(500);
@@ -348,34 +348,34 @@ describe("selecting in text", () => {
     u.advance(500);
     expect(positions(sel(u))).toEqual([[0, [2, 3, 4, 30, 31, 32, 33]]]);
     // Two runs, the anchor on the block (the added drag's start, 30): extending from it, not across the gap.
-    u.ctx.behaviors.get("select")?.setParams({ shiftPositions: "extend" });
+    u.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     u.click(S, at(40).x, at(40).y, { shift: true });
     expect(positions(sel(u))).toEqual([[0, range(30, 41)]]);
   });
 
-  it("linear: Shift-click on positions extends from the anchor; on an item adds or removes it; Ctrl/⌘ adds or removes", async () => {
+  it('linear: Shift-click on positions extends from the anchor; on an item adds or removes it; Ctrl/⌘ adds or removes', async () => {
     const b = createSeqViewSpec();
-    const a = b.data.sequence({ ref: "a", value: "ACDEFGHIKL".repeat(30) });
+    const a = b.data.sequence({ ref: 'a', value: 'ACDEFGHIKL'.repeat(30) });
     const f = b.data.annotation({
-      ref: "f",
-      geometry: "ranges",
+      ref: 'f',
+      geometry: 'ranges',
       target: a,
       value: [
-        { start: 40, stop: 60, label: "D" },
-        { start: 100, stop: 120, label: "E" },
+        { start: 40, stop: 60, label: 'D' },
+        { start: 100, stop: 120, label: 'E' },
       ],
     });
-    const v = b.view({ ref: "v", label: "V" });
+    const v = b.view({ ref: 'v', label: 'V' });
     v.block({ sequence: a });
-    v.track({ ref: "v.letters" }).letters();
-    v.track({ ref: "v.f" }).ranges({ data: f });
-    const L = "v.main";
+    v.track({ ref: 'v.letters' }).letters();
+    v.track({ ref: 'v.f' }).ranges({ data: f });
+    const L = 'v.main';
     const t = await text(300, { doc: b.getDocument(), sections: [L] });
-    t.ctx.ui.setStyle(L, "tracks");
+    t.ctx.ui.setStyle(L, 'tracks');
     await t.ctx.graph.update();
     t.vp(L).zoomTo(0, 0, 150);
-    const ly = t.yOf(L, "v.letters");
-    const fy = t.yOf(L, "v.f");
+    const ly = t.yOf(L, 'v.letters');
+    const fy = t.yOf(L, 'v.f');
     const x = (i: number) => t.xOf(L, 0, i);
     const click = (i: number, y: number, o: { shift?: boolean; ctrl?: boolean } = {}) => {
       t.click(L, x(i), y, o);
@@ -420,7 +420,7 @@ describe("selecting in text", () => {
     expect(positions(sel(t))).toEqual([[1, range(0, 4)]]);
   });
 
-  it("a plain drag selects positions line by line, and back; never pans", async () => {
+  it('a plain drag selects positions line by line, and back; never pans', async () => {
     const t = await text();
     const L = t.l.lines;
     const a = t.at(0, 5);
@@ -515,7 +515,7 @@ describe("selecting in text", () => {
   });
 
   it("inline group labels: a label belongs between its group and the one before; a press there starts on the drag's side", async () => {
-    const t = await text(900, { preset: "lab:inline" });
+    const t = await text(900, { preset: 'lab:inline' });
     const p = t.at(0, 20);
     const label = p.x - p.advance / 2 - 3;
     const f = t.at(0, 25);
@@ -530,12 +530,12 @@ describe("selecting in text", () => {
     expect(sel(t).seq).toBeNull();
   });
 
-  it("a cyclic block across its origin, a reversed piece: the block indices of the shown range", async () => {
+  it('a cyclic block across its origin, a reversed piece: the block indices of the shown range', async () => {
     const b = createSeqViewSpec();
-    const s = b.data.sequence({ ref: "s", value: "ACGTACGTTA".repeat(4), alphabet: "dna", cyclic: true });
-    b.view({ ref: "v", label: "V", layout: "text", height: "box" })
+    const s = b.data.sequence({ ref: 's', value: 'ACGTACGTTA'.repeat(4), alphabet: 'dna', cyclic: true });
+    b.view({ ref: 'v', label: 'V', layout: 'text', height: 'box' })
       .block({ sequence: s, origin: 2 })
-      .track({ ref: "v.letters" })
+      .track({ ref: 'v.letters' })
       .letters();
     const t = await text(900, { doc: b.getDocument() });
     const a = t.at(0, 36);
@@ -544,14 +544,14 @@ describe("selecting in text", () => {
     expect(positions(sel(t))).toEqual([[0, [0, 1, 38, 39]]]);
 
     const r = createSeqViewSpec();
-    const q = r.data.sequence({ ref: "q", value: "MKVLAAGIVGLLLAQRSTVW" });
-    r.view({ ref: "v", label: "V", layout: "text", height: "box" })
+    const q = r.data.sequence({ ref: 'q', value: 'MKVLAAGIVGLLLAQRSTVW' });
+    r.view({ ref: 'v', label: 'V', layout: 'text', height: 'box' })
       .block({ sequence: q })
-      .track({ ref: "v.letters" })
+      .track({ ref: 'v.letters' })
       .letters();
     const u = await text(900, { doc: r.getDocument() });
     const m = u.ctx.graph.assembled.value?.view;
-    if (!m) throw new Error("no view");
+    if (!m) throw new Error('no view');
     setPiece(m.resolved, 0, 0, 20, -1, 20);
     (u.layouts as Layouts).update(m);
     const c = u.at(0, 2);
@@ -560,31 +560,31 @@ describe("selecting in text", () => {
     expect(positions(sel(u))).toEqual([[0, [14, 15, 16, 17]]]);
   });
 
-  it("several text sections: each selects its own; a drag from one over another stays on its own block", async () => {
+  it('several text sections: each selects its own; a drag from one over another stays on its own block', async () => {
     const b = createSeqViewSpec();
-    const a = b.data.sequence({ ref: "a", value: "ACDEFGHIKL".repeat(20) });
-    const c = b.data.sequence({ ref: "c", value: "MKVLATGHEK".repeat(20) });
-    const v = b.view({ ref: "v", label: "V", layout: "text" });
-    v.section({ ref: "v.one", height: "box" }).block({ sequence: a }).track({ ref: "v.letters" }).letters();
-    v.section({ ref: "v.two", height: "box" }).block({ sequence: c }).track({ ref: "v.letters2" }).letters();
-    const t = await text(300, { doc: b.getDocument(), sections: ["v.one", "v.two"] });
-    const two = (k: number) => t.at(0, k, "v.letters2", "v.two");
+    const a = b.data.sequence({ ref: 'a', value: 'ACDEFGHIKL'.repeat(20) });
+    const c = b.data.sequence({ ref: 'c', value: 'MKVLATGHEK'.repeat(20) });
+    const v = b.view({ ref: 'v', label: 'V', layout: 'text' });
+    v.section({ ref: 'v.one', height: 'box' }).block({ sequence: a }).track({ ref: 'v.letters' }).letters();
+    v.section({ ref: 'v.two', height: 'box' }).block({ sequence: c }).track({ ref: 'v.letters2' }).letters();
+    const t = await text(300, { doc: b.getDocument(), sections: ['v.one', 'v.two'] });
+    const two = (k: number) => t.at(0, k, 'v.letters2', 'v.two');
     const [p, q] = [two(4), two(30)];
-    t.drag("v.two", p.x, p.y, q.x, q.y);
+    t.drag('v.two', p.x, p.y, q.x, q.y);
     const unitOf = (section: string) => t.vp(section).axis?.unit[0] ?? -1;
-    expect(positions(sel(t))).toEqual([[unitOf("v.two"), range(4, 31)]]);
+    expect(positions(sel(t))).toEqual([[unitOf('v.two'), range(4, 31)]]);
     // From the first section down past its bottom (the press's surface keeps the drag, in its own px).
-    const o = t.at(0, 10, "v.letters", "v.one");
-    t.pointer("down", "v.one", o.x, o.y);
-    t.pointer("move", "v.one", o.x, o.y + 10);
-    t.pointer("up", "v.one", o.x, t.layout("v.one").height + 80);
+    const o = t.at(0, 10, 'v.letters', 'v.one');
+    t.pointer('down', 'v.one', o.x, o.y);
+    t.pointer('move', 'v.one', o.x, o.y + 10);
+    t.pointer('up', 'v.one', o.x, t.layout('v.one').height + 80);
     const [[unit, xs]] = positions(sel(t));
-    expect([unit, xs[0]]).toEqual([unitOf("v.one"), 10]);
+    expect([unit, xs[0]]).toEqual([unitOf('v.one'), 10]);
   });
 });
 
 describe("the scroll past the rows' edges", () => {
-  it("each frame while the drag lasts, the range following; back inside it stops; above, up again", async () => {
+  it('each frame while the drag lasts, the range following; back inside it stops; above, up again', async () => {
     const t = await text(160);
     const vp = t.vp(S);
     expect(t.l.vscroll).toBe(true);
@@ -593,7 +593,7 @@ describe("the scroll past the rows' edges", () => {
       [a.x, a.y + 10],
       [a.x, t.l.height + 30],
     ]);
-    expect(t.ctx.ui.drag.value?.owner).toBe("select");
+    expect(t.ctx.ui.drag.value?.owner).toBe('select');
     const y0 = vp.live.current.scrollY;
     const end0 = t.ctx.selection.pending.current.endShown;
     for (let i = 0; i < 20; i++) t.advance(16);
@@ -603,16 +603,16 @@ describe("the scroll past the rows' edges", () => {
     expect(end1).toBeGreaterThan(end0 + 20);
     expect(vp.live.current.interacting).toBe(true);
     // Back inside: the scroll stops.
-    t.pointer("move", S, a.x, t.l.scrolledTop + 40);
+    t.pointer('move', S, a.x, t.l.scrolledTop + 40);
     t.advance(16);
     const y2 = vp.live.current.scrollY;
     t.advance(16);
     expect([vp.live.current.scrollY, t.scheduler.pendingFrames]).toEqual([y2, 0]);
     // Above the top: up again.
-    t.pointer("move", S, a.x, -20, { onDocument: true });
+    t.pointer('move', S, a.x, -20, { onDocument: true });
     for (let i = 0; i < 5; i++) t.advance(16);
     expect(vp.live.current.scrollY).toBeLessThan(y2);
-    t.pointer("up", S, a.x, -20, { onDocument: true });
+    t.pointer('up', S, a.x, -20, { onDocument: true });
     expect(vp.live.current.interacting).toBe(false);
     expect(t.scheduler.pendingFrames).toBe(0);
     // From the press to where the scroll left the point: one range.
@@ -621,18 +621,18 @@ describe("the scroll past the rows' edges", () => {
     expect(xs.at(-1)).toBeGreaterThan(t.l.lines.stop[0]);
   });
 
-  it("starts at the first drag event when it is already past the edge", async () => {
+  it('starts at the first drag event when it is already past the edge', async () => {
     const t = await text(160);
     const a = t.at(0, 5);
     press(t, a.x, a.y, [[a.x, t.l.height + 30]]);
-    expect(t.ctx.ui.drag.value?.owner).toBe("select");
+    expect(t.ctx.ui.drag.value?.owner).toBe('select');
     const y0 = t.vp(S).live.current.scrollY;
     for (let i = 0; i < 10; i++) t.advance(16);
     expect(t.vp(S).live.current.scrollY).toBeGreaterThan(y0 + 40);
-    t.pointer("up", S, a.x, t.l.height + 30, { onDocument: true });
+    t.pointer('up', S, a.x, t.l.height + 30, { onDocument: true });
   });
 
-  it("goes as far in the same time at 60 and 120 frames a second", async () => {
+  it('goes as far in the same time at 60 and 120 frames a second', async () => {
     const run = async (ms: number, frames: number) => {
       const t = await text(160);
       const a = t.at(0, 5);
@@ -640,7 +640,7 @@ describe("the scroll past the rows' edges", () => {
       const y0 = t.vp(S).live.current.scrollY;
       for (let i = 0; i < frames; i++) t.advance(ms);
       const y = t.vp(S).live.current.scrollY - y0;
-      t.pointer("up", S, a.x, t.l.height + 30, { onDocument: true });
+      t.pointer('up', S, a.x, t.l.height + 30, { onDocument: true });
       return y;
     };
     const [slow, fast] = [await run(16, 20), await run(8, 40)];
@@ -660,11 +660,11 @@ describe("the scroll past the rows' edges", () => {
     const end = vp.live.current.scrollY;
     t.advance(50);
     expect(vp.live.current.scrollY).toBe(end);
-    t.pointer("up", S, a.x, t.l.height + 300, { onDocument: true });
+    t.pointer('up', S, a.x, t.l.height + 300, { onDocument: true });
     expect(positions(sel(t))[0][1].at(-1)).toBe(399);
 
     // Blur pauses it; a move starts it again.
-    vp.scrollTo(0, 0, "api");
+    vp.scrollTo(0, 0, 'api');
     press(t, a.x, a.y, [[a.x, t.l.height + 30]]);
     t.advance(16);
     t.focus(S, false);
@@ -672,7 +672,7 @@ describe("the scroll past the rows' edges", () => {
     const y = vp.live.current.scrollY;
     t.advance(16);
     expect(vp.live.current.scrollY).toBe(y);
-    t.pointer("move", S, a.x, t.l.height + 31, { onDocument: true });
+    t.pointer('move', S, a.x, t.l.height + 31, { onDocument: true });
     t.advance(16);
     expect(vp.live.current.scrollY).toBeGreaterThan(y);
 
@@ -689,16 +689,16 @@ describe("the scroll past the rows' edges", () => {
     // The behavior removed mid-drag.
     press(t, a.x, a.y, [[a.x, t.l.height + 30]]);
     t.advance(16);
-    t.ctx.behaviors.get("select")?.remove();
+    t.ctx.behaviors.get('select')?.remove();
     expect([t.scheduler.pendingFrames, t.ctx.selection.pending.current.active]).toEqual([0, false]);
-    t.pointer("up", S, a.x, t.l.height + 30, { onDocument: true });
+    t.pointer('up', S, a.x, t.l.height + 30, { onDocument: true });
   });
 });
 
-describe("modifiers, items and the keyboard", () => {
-  it("Shift-drag adds the dragged positions (`shiftPositions: toggle`); Alt-drag selects as a plain drag", async () => {
+describe('modifiers, items and the keyboard', () => {
+  it('Shift-drag adds the dragged positions (`shiftPositions: toggle`); Alt-drag selects as a plain drag', async () => {
     const t = await text();
-    t.ctx.behaviors.get("select")?.setParams({ shiftPositions: "toggle" });
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'toggle' });
     const a = t.at(0, 2);
     const b = t.at(0, 4);
     t.drag(S, a.x, a.y, b.x, b.y);
@@ -710,7 +710,7 @@ describe("modifiers, items and the keyboard", () => {
     expect(positions(sel(t))).toEqual([[0, [30, 31, 32, 33]]]);
   });
 
-  it("Shift with a click or a drag means the same: `extend` from the anchor; `toggle` adds, or removes from a selected press", async () => {
+  it('Shift with a click or a drag means the same: `extend` from the anchor; `toggle` adds, or removes from a selected press', async () => {
     const t = await text();
     const L = t.l.lines;
     const at = (k: number) => t.at(0, k);
@@ -726,17 +726,17 @@ describe("modifiers, items and the keyboard", () => {
     drag(25, 4);
     expect(positions(sel(t))).toEqual([[0, range(4, 11)]]);
     // Toggle: a drag pressed on an unselected position adds, on a selected one removes, across lines; its preview says.
-    t.ctx.behaviors.get("select")?.setParams({ shiftPositions: "toggle" });
-    t.ctx.selection.set(null, "api");
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'toggle' });
+    t.ctx.selection.set(null, 'api');
     t.drag(S, at(5).x, at(5).y, at(L.start[2] + 5).x, at(L.start[2] + 5).y);
     t.advance(500);
     drag(L.start[2] + 20, L.start[2] + 22);
     expect(positions(sel(t))).toEqual([[0, [...range(5, L.start[2] + 6), ...range(L.start[2] + 20, L.start[2] + 23)]]]);
     const pd = t.ctx.selection.pending.current;
-    t.pointer("down", S, at(12).x, at(12).y, { shift: true });
-    t.pointer("move", S, at(L.start[1] + 3).x, at(L.start[1] + 3).y, { shift: true });
+    t.pointer('down', S, at(12).x, at(12).y, { shift: true });
+    t.pointer('move', S, at(L.start[1] + 3).x, at(L.start[1] + 3).y, { shift: true });
     expect([pd.active, pd.remove]).toEqual([true, true]);
-    t.pointer("up", S, at(L.start[1] + 3).x, at(L.start[1] + 3).y, { shift: true });
+    t.pointer('up', S, at(L.start[1] + 3).x, at(L.start[1] + 3).y, { shift: true });
     expect([pd.active, pd.remove]).toEqual([false, false]);
     expect(positions(sel(t))).toEqual([
       [0, [...range(5, 12), ...range(L.start[1] + 4, L.start[2] + 6), ...range(L.start[2] + 20, L.start[2] + 23)]],
@@ -747,10 +747,10 @@ describe("modifiers, items and the keyboard", () => {
     expect(positions(sel(t))[0][1].includes(6)).toBe(false);
   });
 
-  it("an underline under the letters is its item, by lane; between lanes and under none, the position", async () => {
+  it('an underline under the letters is its item, by lane; between lanes and under none, the position', async () => {
     const t = await text();
     const at = (k: number) => {
-      const p = t.at(0, k, "v.features");
+      const p = t.at(0, k, 'v.features');
       return { x: p.x, lane: (n: number) => p.top + p.height - 5 - n * 5 + 1.5, top: p.top };
     };
     const items = () => {
@@ -777,12 +777,12 @@ describe("modifiers, items and the keyboard", () => {
     expect([sel(t).items, positions(sel(t))]).toEqual([null, [[0, [5]]]]);
   });
 
-  it("ranges, points and secondary: every underline drawn hits the item the hover then outlines there", async () => {
-    const t = await lit(allTypes({ layout: "text" }), { width: 600, height: 4000 });
+  it('ranges, points and secondary: every underline drawn hits the item the hover then outlines there', async () => {
+    const t = await lit(allTypes({ layout: 'text' }), { width: 600, height: 4000 });
     const l = t.layout(t.section);
     const main = passRects(t.frame(), Pass.main);
     const failures: string[] = [];
-    for (const track of ["Features", "Sites", "Secondary"]) {
+    for (const track of ['Features', 'Sites', 'Secondary']) {
       const m = t.ctx.graph.assembled.value?.view?.resolved;
       const set = t.ctx.graph.assembled.value?.set;
       let tr = -1;
@@ -816,38 +816,38 @@ describe("modifiers, items and the keyboard", () => {
   it("the keyboard: Enter selects the cursor's position, Shift+Enter extends to the next, Escape clears", async () => {
     const t = await text();
     t.focus(S);
-    for (let i = 0; i < 3; i++) t.key(S, "ArrowRight");
+    for (let i = 0; i < 3; i++) t.key(S, 'ArrowRight');
     const k = t.ctx.ui.keyCursor.value?.index ?? -1;
-    t.key(S, "Enter");
+    t.key(S, 'Enter');
     expect(positions(sel(t))).toEqual([[0, [k]]]);
-    for (let i = 0; i < 12; i++) t.key(S, "ArrowRight");
+    for (let i = 0; i < 12; i++) t.key(S, 'ArrowRight');
     const k2 = t.ctx.ui.keyCursor.value?.index ?? -1;
-    t.key(S, "Enter", { shift: true });
+    t.key(S, 'Enter', { shift: true });
     expect(positions(sel(t))).toEqual([[0, range(k, k2 + 1)]]);
-    t.key(S, "Escape");
+    t.key(S, 'Escape');
     expect(sel(t).seq).toBeNull();
   });
 });
 
-describe("clicks where a double click means something else", () => {
+describe('clicks where a double click means something else', () => {
   /** A linear section with item "D" [40, 90), and a text view of the same sequence; a host counting selection events. */
   async function both() {
     const b = createSeqViewSpec();
-    const a = b.data.sequence({ ref: "a", value: "ACDEFGHIKL".repeat(30) });
+    const a = b.data.sequence({ ref: 'a', value: 'ACDEFGHIKL'.repeat(30) });
     const f = b.data.annotation({
-      ref: "f",
-      geometry: "ranges",
+      ref: 'f',
+      geometry: 'ranges',
       target: a,
-      value: [{ start: 40, stop: 90, label: "D" }],
+      value: [{ start: 40, stop: 90, label: 'D' }],
     });
-    const v = b.view({ ref: "v", label: "V" });
+    const v = b.view({ ref: 'v', label: 'V' });
     v.block({ sequence: a });
-    v.track({ ref: "v.f" }).ranges({ data: f });
-    const w = b.view({ ref: "w", label: "Text", layout: "text", height: "box" });
+    v.track({ ref: 'v.f' }).ranges({ data: f });
+    const w = b.view({ ref: 'w', label: 'Text', layout: 'text', height: 'box' });
     w.block({ sequence: a });
-    w.track({ ref: "v.letters" }).letters();
-    const t = await text(400, { doc: b.getDocument(), sections: ["v.main", "w.main"] });
-    t.ctx.ui.setStyle("v.main", "tracks");
+    w.track({ ref: 'v.letters' }).letters();
+    const t = await text(400, { doc: b.getDocument(), sections: ['v.main', 'w.main'] });
+    t.ctx.ui.setStyle('v.main', 'tracks');
     await t.ctx.graph.update();
     const events: string[] = [];
     t.ctx.selection.current.subscribe((s) => events.push(s.origin));
@@ -855,19 +855,19 @@ describe("clicks where a double click means something else", () => {
     return { t, events };
   }
 
-  it("a single click on an item selects once, after the double-click time; a double click zooms and never selects", async () => {
+  it('a single click on an item selects once, after the double-click time; a double click zooms and never selects', async () => {
     const { t, events } = await both();
-    const L = "v.main";
+    const L = 'v.main';
     const vp = t.vp(L);
-    const [x, y] = [t.xOf(L, 0, 60), t.yOf(L, "v.f")];
+    const [x, y] = [t.xOf(L, 0, 60), t.yOf(L, 'v.f')];
     t.click(L, x, y);
     expect([events, sel(t).items]).toEqual([[], null]);
     t.advance(320);
-    expect(events).toEqual(["pointer"]);
+    expect(events).toEqual(['pointer']);
     expect(sel(t).items).not.toBeNull();
     t.advance(500);
     // Cleared, then a double click: the zoom, and no selection event at all, ever.
-    t.ctx.selection.set(null, "api");
+    t.ctx.selection.set(null, 'api');
     events.length = 0;
     const cell = vp.live.current.cell;
     t.click(L, x, y);
@@ -878,30 +878,30 @@ describe("clicks where a double click means something else", () => {
     expect(t.ctx.history.canUndo.value).toBe(false);
     // A held click, then Escape, or a host's selection: it never applies.
     t.click(L, x, y);
-    t.key(L, "Escape");
+    t.key(L, 'Escape');
     t.advance(500);
     expect(events).toEqual([]);
     t.click(L, x, y);
-    t.ctx.selection.set(seqLoci(t.ctx.graph.assembled.value?.set as never, "a", 3, 4), "host:x");
+    t.ctx.selection.set(seqLoci(t.ctx.graph.assembled.value?.set as never, 'a', 3, 4), 'host:x');
     t.advance(500);
-    expect(events).toEqual(["host:x"]);
+    expect(events).toEqual(['host:x']);
   });
 
-  it("a held click still applies after a patch carries the selection to a new set meanwhile (VS-06)", async () => {
+  it('a held click still applies after a patch carries the selection to a new set meanwhile (VS-06)', async () => {
     const { t, events } = await both();
-    const L = "v.main";
-    t.ctx.selection.set(seqLoci(t.ctx.graph.assembled.value?.set as never, "a", 3, 4), "api");
-    expect(events).toEqual(["api"]);
+    const L = 'v.main';
+    t.ctx.selection.set(seqLoci(t.ctx.graph.assembled.value?.set as never, 'a', 3, 4), 'api');
+    expect(events).toEqual(['api']);
     const before = sel(t).version;
     // A click held on the item, then a data patch (a new set: the selection is carried with origin `graph`).
-    t.click(L, t.xOf(L, 0, 60), t.yOf(L, "v.f"));
+    t.click(L, t.xOf(L, 0, 60), t.yOf(L, 'v.f'));
     await t.ctx.applyPatch({
-      format: "seq_view_spec_patch",
-      ops: [{ op: "set", ref: "f", params: { label: "Domains" } }],
+      format: 'seq_view_spec_patch',
+      ops: [{ op: 'set', ref: 'f', params: { label: 'Domains' } }],
     });
-    expect(events).toEqual(["api", "graph"]);
+    expect(events).toEqual(['api', 'graph']);
     t.advance(500);
-    expect(events).toEqual(["api", "graph", "pointer"]);
+    expect(events).toEqual(['api', 'graph', 'pointer']);
     expect(sel(t).items).not.toBeNull();
     expect(sel(t).version).toBeGreaterThan(before);
     // The held click's loci were carried to the new set too (LB-06): the selection holds none of the old one's.
@@ -910,35 +910,35 @@ describe("clicks where a double click means something else", () => {
 
   it("in text a click selects at once (nothing takes its double click); one event a click, none for a double click's second", async () => {
     const { t, events } = await both();
-    t.ctx.views.setCurrent("w");
+    t.ctx.views.setCurrent('w');
     await t.ctx.graph.update();
-    t.vp("w.main").setSize(400, 400, 1);
+    t.vp('w.main').setSize(400, 400, 1);
     await t.ctx.graph.update();
-    const p = t.at(0, 15, "v.letters", "w.main");
-    t.click("w.main", p.x, p.y);
-    expect(events).toEqual(["pointer"]);
-    t.click("w.main", p.x, p.y);
-    expect(events).toEqual(["pointer"]);
+    const p = t.at(0, 15, 'v.letters', 'w.main');
+    t.click('w.main', p.x, p.y);
+    expect(events).toEqual(['pointer']);
+    t.click('w.main', p.x, p.y);
+    expect(events).toEqual(['pointer']);
     expect(positions(sel(t))).toEqual([[0, [15]]]);
   });
 });
 
 describe("the rules are the select behavior's params, in the viewer spec", () => {
   /** A linear section of letters and an item [40, 90); `behaviors` composes the spec's. */
-  async function linear(behaviors?: (l: SeqViewerSpec["behaviors"]) => SeqViewerSpec["behaviors"]) {
+  async function linear(behaviors?: (l: SeqViewerSpec['behaviors']) => SeqViewerSpec['behaviors']) {
     const b = createSeqViewSpec();
-    const a = b.data.sequence({ ref: "a", value: "ACDEFGHIKL".repeat(30) });
+    const a = b.data.sequence({ ref: 'a', value: 'ACDEFGHIKL'.repeat(30) });
     const f = b.data.annotation({
-      ref: "f",
-      geometry: "ranges",
+      ref: 'f',
+      geometry: 'ranges',
       target: a,
-      value: [{ start: 40, stop: 90, label: "D" }],
+      value: [{ start: 40, stop: 90, label: 'D' }],
     });
-    const v = b.view({ ref: "v", label: "V" });
+    const v = b.view({ ref: 'v', label: 'V' });
     v.block({ sequence: a });
-    v.track({ ref: "v.letters" }).letters();
-    v.track({ ref: "v.f" }).ranges({ data: f });
-    const L = "v.main";
+    v.track({ ref: 'v.letters' }).letters();
+    v.track({ ref: 'v.f' }).ranges({ data: f });
+    const L = 'v.main';
     const t = await driven(b.getDocument(), {
       size: { [L]: [1000, 200] },
       renderers: KernelRenderers as LayerRenderer[],
@@ -946,24 +946,24 @@ describe("the rules are the select behavior's params, in the viewer spec", () =>
       behaviors,
     });
     t.vp(L).zoomTo(0, 0, 150);
-    return { t, L, x: (i: number) => t.xOf(L, 0, i), y: t.yOf(L, "v.letters") };
+    return { t, L, x: (i: number) => t.xOf(L, 0, i), y: t.yOf(L, 'v.letters') };
   }
 
-  it("a spec without the select behavior selects nothing on a click, a drag or a key", async () => {
-    const { t, L, x, y } = await linear((l) => l.filter((b) => b.behavior.name !== "select"));
-    expect(t.ctx.behaviors.get("select")).toBeNull();
+  it('a spec without the select behavior selects nothing on a click, a drag or a key', async () => {
+    const { t, L, x, y } = await linear((l) => l.filter((b) => b.behavior.name !== 'select'));
+    expect(t.ctx.behaviors.get('select')).toBeNull();
     t.click(L, x(10), y);
     t.advance(500);
     t.drag(L, x(10), y, x(20), y, { alt: true });
     t.focus(L);
-    t.key(L, "ArrowRight");
-    t.key(L, "Enter");
+    t.key(L, 'ArrowRight');
+    t.key(L, 'Enter');
     expect(sel(t).seq).toBeNull();
   });
 
-  it("`shiftPositions: toggle`, `doubleClickWait: false`, `autoscroll: false`, set over the defaults", async () => {
+  it('`shiftPositions: toggle`, `doubleClickWait: false`, `autoscroll: false`, set over the defaults', async () => {
     const { t, L, x, y } = await linear();
-    t.ctx.behaviors.get("select")?.setParams({ shiftPositions: "toggle", doubleClickWait: false, autoscroll: false });
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'toggle', doubleClickWait: false, autoscroll: false });
     // No wait: a click on data selects at once (its double click still zooms).
     t.click(L, x(10), y);
     expect(positions(sel(t))).toEqual([[0, [10]]]);
@@ -974,51 +974,51 @@ describe("the rules are the select behavior's params, in the viewer spec", () =>
     // No scroll past an edge: the view stays, the end at the edge's column.
     const vp = t.vp(L);
     const sx = vp.live.current.scrollX;
-    t.pointer("down", L, x(30), y, { alt: true });
-    t.pointer("move", L, x(35), y, { alt: true });
-    t.pointer("move", L, t.layout(L).width + 40, y, { alt: true, onDocument: true });
+    t.pointer('down', L, x(30), y, { alt: true });
+    t.pointer('move', L, x(35), y, { alt: true });
+    t.pointer('move', L, t.layout(L).width + 40, y, { alt: true, onDocument: true });
     for (let i = 0; i < 10; i++) t.advance(16);
     expect(vp.live.current.scrollX).toBe(sx);
-    t.pointer("up", L, t.layout(L).width + 40, y, { alt: true, onDocument: true });
+    t.pointer('up', L, t.layout(L).width + 40, y, { alt: true, onDocument: true });
   });
 });
 
-describe("a release never seen is no click", () => {
-  it("a press whose release was lost, then a hover minutes later: nothing selected or cleared", async () => {
+describe('a release never seen is no click', () => {
+  it('a press whose release was lost, then a hover minutes later: nothing selected or cleared', async () => {
     const t = await text();
     const p = t.at(0, 15);
-    t.pointer("down", S, p.x, p.y);
+    t.pointer('down', S, p.x, p.y);
     t.advance(120_000);
     unpressedMove(t, p.x + 1, p.y);
     expect(sel(t).seq).toBeNull();
     // Selected, then the same: never cleared by it either.
     t.click(S, p.x, p.y);
     t.advance(500);
-    t.pointer("down", S, p.x, p.y);
+    t.pointer('down', S, p.x, p.y);
     unpressedMove(t, p.x, p.y);
     expect(positions(sel(t))).toEqual([[0, [15]]]);
   });
 
-  it("a lost release, then a real click: one click (count 1), never a double click", async () => {
+  it('a lost release, then a real click: one click (count 1), never a double click', async () => {
     const t = await text();
     const counts: number[] = [];
     t.ctx.interaction.click.subscribe((e) => counts.push(e.count));
     const p = t.at(0, 15);
-    t.pointer("down", S, p.x, p.y);
+    t.pointer('down', S, p.x, p.y);
     t.advance(100);
     t.click(S, p.x, p.y);
     expect(counts).toEqual([1]);
   });
 });
 
-describe("a pressed point outside its surface", () => {
+describe('a pressed point outside its surface', () => {
   it("is clamped to the surface's bounds on every side and corner; its overshoot kept", async () => {
     const t = await text(300);
     const l = t.l;
     const seen: number[][] = [];
     t.ctx.interaction.pointer.subscribe((e) => seen.push([e.input.x, e.input.y, e.input.overX, e.input.overY]));
     const p = t.at(0, 15);
-    t.pointer("down", S, p.x, p.y);
+    t.pointer('down', S, p.x, p.y);
     const pts: [number, number][] = [
       [-50, p.y],
       [l.width + 30, p.y],
@@ -1028,8 +1028,8 @@ describe("a pressed point outside its surface", () => {
       [l.width + 7, l.height + 8],
     ];
     seen.length = 0;
-    for (const [x, y] of pts) t.pointer("move", S, x, y, { onDocument: true });
-    t.pointer("up", S, -50, l.height + 40, { onDocument: true });
+    for (const [x, y] of pts) t.pointer('move', S, x, y, { onDocument: true });
+    t.pointer('up', S, -50, l.height + 40, { onDocument: true });
     expect(seen).toEqual([
       [0, p.y, -50, 0],
       [l.width, p.y, 30, 0],
@@ -1040,7 +1040,7 @@ describe("a pressed point outside its surface", () => {
       [0, l.height, -50, 40],
     ]);
     // Not pressed: as given, no overshoot.
-    t.pointer("move", S, l.width + 30, p.y, { onDocument: true });
+    t.pointer('move', S, l.width + 30, p.y, { onDocument: true });
     expect(seen.at(-1)).toEqual([l.width + 30, p.y, 0, 0]);
   });
 
@@ -1049,75 +1049,75 @@ describe("a pressed point outside its surface", () => {
     const L = t.l.lines;
     const vp = t.vp(S);
     // Scrolled so line 2 is at the top.
-    vp.scrollTo(0, L.top[2] - t.l.scrolledTop + 1, "api");
+    vp.scrollTo(0, L.top[2] - t.l.scrolledTop + 1, 'api');
     await t.ctx.graph.update();
     const a = t.at(0, L.start[3] + 2);
-    t.pointer("down", S, a.x, a.y);
-    t.pointer("move", S, a.x + 8, a.y);
+    t.pointer('down', S, a.x, a.y);
+    t.pointer('move', S, a.x + 8, a.y);
     const pd = t.ctx.selection.pending.current;
     for (const k of [3, 7, 1]) {
-      t.pointer("move", S, t.at(0, L.start[2] + k).x, -15, { onDocument: true });
+      t.pointer('move', S, t.at(0, L.start[2] + k).x, -15, { onDocument: true });
       expect(pd.endShown).toBe(L.start[2] + k);
     }
-    t.pointer("up", S, a.x, t.l.scrolledTop + 40);
+    t.pointer('up', S, a.x, t.l.scrolledTop + 40);
   });
 
-  it("linear: out above or below, the end follows x; past the left or right it pans and extends; back inside it adjusts", async () => {
+  it('linear: out above or below, the end follows x; past the left or right it pans and extends; back inside it adjusts', async () => {
     const b = createSeqViewSpec();
-    const a = b.data.sequence({ ref: "a", value: "ACDEFGHIKL".repeat(60) });
-    const v = b.view({ ref: "v", label: "V" });
+    const a = b.data.sequence({ ref: 'a', value: 'ACDEFGHIKL'.repeat(60) });
+    const v = b.view({ ref: 'v', label: 'V' });
     v.block({ sequence: a });
-    v.track({ ref: "v.letters" }).letters();
-    const L = "v.main";
+    v.track({ ref: 'v.letters' }).letters();
+    const L = 'v.main';
     const t = await text(200, { doc: b.getDocument(), sections: [L] });
-    t.ctx.ui.setStyle(L, "tracks");
+    t.ctx.ui.setStyle(L, 'tracks');
     await t.ctx.graph.update();
     const vp = t.vp(L);
     vp.zoomTo(0, 100, 160);
-    const y = t.yOf(L, "v.letters");
+    const y = t.yOf(L, 'v.letters');
     const x = (i: number) => t.xOf(L, 0, i);
     const pd = t.ctx.selection.pending.current;
     // Alt: a selection drag on data.
-    t.pointer("down", L, x(110), y, { alt: true });
-    t.pointer("move", L, x(112), y, { alt: true });
+    t.pointer('down', L, x(110), y, { alt: true });
+    t.pointer('move', L, x(112), y, { alt: true });
     for (const k of [120, 130, 105]) {
-      t.pointer("move", L, x(k), -30, { alt: true, onDocument: true });
+      t.pointer('move', L, x(k), -30, { alt: true, onDocument: true });
       expect(pd.endShown).toBe(vp.axis?.shownOf(0, k));
-      t.pointer("move", L, x(k), t.layout(L).height + 30, { alt: true, onDocument: true });
+      t.pointer('move', L, x(k), t.layout(L).height + 30, { alt: true, onDocument: true });
       expect(pd.endShown).toBe(vp.axis?.shownOf(0, k));
     }
     // Past the right edge: the view pans right each frame and the end goes with it, past what was in view.
     const sx = vp.live.current.scrollX;
-    t.pointer("move", L, t.layout(L).width + 40, y, { alt: true, onDocument: true });
+    t.pointer('move', L, t.layout(L).width + 40, y, { alt: true, onDocument: true });
     for (let i = 0; i < 20; i++) t.advance(16);
     expect(vp.live.current.scrollX).toBeGreaterThan(sx + 50);
     expect(pd.endShown).toBeGreaterThan(160);
     // Back inside: it adjusts to the column under the point, and the pan stops.
     const xs = vp.live.current.scrollX;
     const inside = (t.layout(L).dataLeft + t.layout(L).dataRight) / 2;
-    t.pointer("move", L, inside, y, { alt: true });
+    t.pointer('move', L, inside, y, { alt: true });
     t.advance(16);
     t.advance(16);
     expect(vp.live.current.scrollX).toBe(xs);
     const h = Hit.create();
     t.ctx.layout.hitTest(L, inside, y, h);
     expect(pd.endShown).toBe(h.shown);
-    t.pointer("up", L, inside, y, { alt: true });
+    t.pointer('up', L, inside, y, { alt: true });
     const [[, xs2]] = positions(sel(t));
     expect([xs2[0], xs2.at(-1)]).toEqual([110, h.index]);
     // Past the left edge: it pans left.
     t.advance(500);
-    t.pointer("down", L, inside, y, { alt: true });
-    t.pointer("move", L, inside - 30, y, { alt: true });
+    t.pointer('down', L, inside, y, { alt: true });
+    t.pointer('move', L, inside - 30, y, { alt: true });
     const sl = vp.live.current.scrollX;
-    t.pointer("move", L, -40, y, { alt: true, onDocument: true });
+    t.pointer('move', L, -40, y, { alt: true, onDocument: true });
     for (let i = 0; i < 20; i++) t.advance(16);
     expect(vp.live.current.scrollX).toBeLessThan(sl - 50);
-    t.pointer("up", L, -40, y, { alt: true, onDocument: true });
+    t.pointer('up', L, -40, y, { alt: true, onDocument: true });
   });
 
-  it("rows: an Alt-drag over cells out below follows x on the bottom row in view; past the bottom the rows scroll", async () => {
-    const F = "family.main";
+  it('rows: an Alt-drag over cells out below follows x on the bottom row in view; past the bottom the rows scroll', async () => {
+    const F = 'family.main';
     const t = await driven(case3(), { size: { [F]: [1000, 150] } });
     const l = t.layout(F);
     const vp = t.vp(F);
@@ -1125,12 +1125,12 @@ describe("a pressed point outside its surface", () => {
     const x = (i: number) => t.xOf(F, 0, i);
     const rowY = (d: number) => l.scrolledTop + l.entryTop[l.rows.entry] + d * l.rows.height + l.rows.height / 2;
     const pd = t.ctx.selection.pending.current;
-    t.pointer("down", F, x(8), rowY(0), { alt: true });
-    t.pointer("move", F, x(9), rowY(0), { alt: true });
-    t.pointer("move", F, x(12), l.height + 10, { alt: true, onDocument: true });
+    t.pointer('down', F, x(8), rowY(0), { alt: true });
+    t.pointer('move', F, x(9), rowY(0), { alt: true });
+    t.pointer('move', F, x(12), l.height + 10, { alt: true, onDocument: true });
     const bottom = pd.rowEnd;
     expect([pd.endShown, bottom > 0]).toEqual([vp.axis?.shownOf(0, 12), true]);
-    t.pointer("move", F, x(15), l.height + 10, { alt: true, onDocument: true });
+    t.pointer('move', F, x(15), l.height + 10, { alt: true, onDocument: true });
     expect(pd.endShown).toBe(vp.axis?.shownOf(0, 15));
     if (l.vscroll) {
       const y0 = vp.live.current.scrollY;
@@ -1138,10 +1138,10 @@ describe("a pressed point outside its surface", () => {
       expect(vp.live.current.scrollY).toBeGreaterThan(y0);
       expect(pd.rowEnd).toBeGreaterThan(bottom);
     }
-    t.pointer("up", F, x(15), l.height + 10, { alt: true, onDocument: true });
+    t.pointer('up', F, x(15), l.height + 10, { alt: true, onDocument: true });
   });
 
-  it("the scroll past an edge reads how far past: faster further out", async () => {
+  it('the scroll past an edge reads how far past: faster further out', async () => {
     const run = async (past: number) => {
       const t = await text(160);
       const a = t.at(0, 5);
@@ -1149,7 +1149,7 @@ describe("a pressed point outside its surface", () => {
       const y0 = t.vp(S).live.current.scrollY;
       for (let i = 0; i < 10; i++) t.advance(16);
       const y = t.vp(S).live.current.scrollY - y0;
-      t.pointer("up", S, a.x, t.l.height + past, { onDocument: true });
+      t.pointer('up', S, a.x, t.l.height + past, { onDocument: true });
       return y;
     };
     const [near, far] = [await run(10), await run(60)];
@@ -1158,7 +1158,7 @@ describe("a pressed point outside its surface", () => {
   });
 });
 
-describe("fast pointers and lost releases", () => {
+describe('fast pointers and lost releases', () => {
   it("jumps, a release right after a jump, across lines, outside the section: the release's range committed, every time", async () => {
     const t = await text(300);
     const L = t.l.lines;
@@ -1167,27 +1167,27 @@ describe("fast pointers and lost releases", () => {
     for (let k = 0; k < 24; k++) {
       const a = (k * 37) % L.stop[2];
       const z = (k * 53 + 11) % L.stop[3];
-      const how = k % 3 === 0 ? "jump" : k % 3 === 1 ? "release" : "outside";
-      t.vp(S).scrollTo(0, 0, "api");
+      const how = k % 3 === 0 ? 'jump' : k % 3 === 1 ? 'release' : 'outside';
+      t.vp(S).scrollTo(0, 0, 'api');
       const p0 = t.at(0, a);
       const p1 = t.at(0, z);
       t.advance(1000);
-      t.pointer("down", S, p0.x, p0.y);
+      t.pointer('down', S, p0.x, p0.y);
       // The end the release must commit, by the nearest-position rule.
       let want = z;
-      if (how === "jump") {
+      if (how === 'jump') {
         // One move past the slop straight to the end, then the release there.
-        t.pointer("move", S, p1.x, p1.y);
+        t.pointer('move', S, p1.x, p1.y);
         if (pd.endShown !== z) failures.push(`${k} jump: the first drag event's end ${pd.endShown}, want ${z}`);
-        t.pointer("up", S, p1.x, p1.y);
-      } else if (how === "release") {
+        t.pointer('up', S, p1.x, p1.y);
+      } else if (how === 'release') {
         // A first move just past the slop, then the release far away with no move between.
-        t.pointer("move", S, p0.x + 6, p0.y);
-        t.pointer("up", S, p1.x, p1.y);
+        t.pointer('move', S, p0.x + 6, p0.y);
+        t.pointer('up', S, p1.x, p1.y);
       } else {
         // A move to the end's letter, then the release outside, right of its line.
-        t.pointer("move", S, p1.x, p1.y);
-        t.pointer("up", S, t.l.width + 60, p1.y, { onDocument: true });
+        t.pointer('move', S, p1.x, p1.y);
+        t.pointer('up', S, t.l.width + 60, p1.y, { onDocument: true });
         // Past the line's end: forward its last position, backward the one after it (the next line's first).
         want = L.stop[p1.line] - 1 < a ? L.stop[p1.line] : L.stop[p1.line] - 1;
       }
@@ -1199,27 +1199,27 @@ describe("fast pointers and lost releases", () => {
     expect(failures).toEqual([]);
   });
 
-  it("a release the page lost (a move with no button, then another press): the range is committed at the last point", async () => {
+  it('a release the page lost (a move with no button, then another press): the range is committed at the last point', async () => {
     const t = await text();
     const a = t.at(0, 5);
     const z = t.at(0, t.l.lines.start[1] + 3);
-    t.pointer("down", S, a.x, a.y);
-    t.pointer("move", S, z.x, z.y);
+    t.pointer('down', S, a.x, a.y);
+    t.pointer('move', S, z.x, z.y);
     unpressedMove(t, 20, 20);
     expect([t.ctx.ui.drag.value, t.ctx.selection.pending.current.active]).toEqual([null, false]);
     expect(positions(sel(t))).toEqual([[0, range(5, t.l.lines.start[1] + 4)]]);
     t.advance(500);
     // The next press while the last one was never released: that one ends first, where it last was.
     const b = t.at(0, 30);
-    t.pointer("down", S, a.x, a.y);
-    t.pointer("move", S, b.x, b.y);
-    t.pointer("down", S, z.x, z.y);
+    t.pointer('down', S, a.x, a.y);
+    t.pointer('move', S, b.x, b.y);
+    t.pointer('down', S, z.x, z.y);
     expect(positions(sel(t))).toEqual([[0, range(5, 31)]]);
-    t.pointer("up", S, z.x, z.y);
+    t.pointer('up', S, z.x, z.y);
   });
 
-  it("linear: a select drag follows its first drag event and its release", async () => {
-    const F = "family.main";
+  it('linear: a select drag follows its first drag event and its release', async () => {
+    const F = 'family.main';
     const t = await driven(case3(), { size: { [F]: [1000, 150] } });
     t.vp(F).zoomTo(0, 5, 25);
     const l = t.layout(F);
@@ -1231,19 +1231,19 @@ describe("fast pointers and lost releases", () => {
       if (c) OS.forEach(c.columns, (i: number) => out.push(i), null);
       return out;
     };
-    t.pointer("down", F, x(8), y);
-    t.pointer("move", F, x(12), y);
+    t.pointer('down', F, x(8), y);
+    t.pointer('move', F, x(12), y);
     expect(t.ctx.selection.pending.current.endShown).toBe(t.vp(F).axis?.shownOf(0, 12));
-    t.pointer("up", F, x(16), y);
+    t.pointer('up', F, x(16), y);
     expect(cols()).toEqual(range(8, 17));
   });
 });
 
-describe("the drag drawn", () => {
-  it("wrapped, the pending range is drawn on each of its lines as the selection it becomes", async () => {
+describe('the drag drawn', () => {
+  it('wrapped, the pending range is drawn on each of its lines as the selection it becomes', async () => {
     const doc = createSeqViewSpec();
-    const a = doc.data.sequence({ ref: "a", value: "MKVLATGHEK".repeat(30) });
-    doc.view({ ref: "v", label: "V", layout: "text", height: "box" }).block({ sequence: a }).track().letters();
+    const a = doc.data.sequence({ ref: 'a', value: 'MKVLATGHEK'.repeat(30) });
+    doc.view({ ref: 'v', label: 'V', layout: 'text', height: 'box' }).block({ sequence: a }).track().letters();
     const t = await lit(doc.getDocument(), { width: 400, height: 600 });
     const l = t.layout(t.section);
     expect(l.lines.count).toBeGreaterThan(4);
@@ -1252,10 +1252,10 @@ describe("the drag drawn", () => {
       passRects(t.overlay(), Pass.overlay).filter(
         (r) => r[4] === SkinToken.selection || r[4] === SkinToken.selectionBorder,
       );
-    t.ctx.selection.set(seqLoci(t.set, "a", k0, k1 + 1), "api");
+    t.ctx.selection.set(seqLoci(t.set, 'a', k0, k1 + 1), 'api');
     const committed = rects();
     expect(new Set(committed.map((r) => r[1])).size).toBe(4);
-    t.ctx.selection.set(null, "api");
+    t.ctx.selection.set(null, 'api');
     const pd = t.ctx.selection.pending.current;
     Object.assign(pd, { active: true, section: 0, block: 0, kind: 1, startShown: k1, endShown: k0 });
     (t.ctx.selection.pending as unknown as { bump(): void }).bump();

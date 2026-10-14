@@ -11,19 +11,19 @@
 // for a pointer move and nothing else: the tooltip placed, the track's box asked), and a viewport whose version is bumped
 // in place (the UI's work for a scroll, without the viewport's own).
 
-import { act, Profiler } from "react";
-import { createRoot } from "react-dom/client";
-import "../../src/skin.css";
-import { Inputs, PointerType } from "../../src/index.js";
-import { SeqViewerLayout, SeqViewerProvider } from "../../src/react/index.js";
-import { at, openedContext, stubSurface, WIDTH, xOf } from "../dom/fixtures.js";
+import { act, Profiler } from 'react';
+import { createRoot } from 'react-dom/client';
+import '../../src/skin.css';
+import { Inputs, PointerType } from '../../src/index.js';
+import { SeqViewerLayout, SeqViewerProvider } from '../../src/react/index.js';
+import { at, openedContext, stubSurface, WIDTH, xOf } from '../dom/fixtures.js';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-export async function reactFixture(view: "chains" | "msa" = "chains") {
+export async function reactFixture(view: 'chains' | 'msa' = 'chains') {
   const { ctx } = await openedContext();
-  if (view === "msa") ctx.views.setCurrent("msa");
-  const host = document.createElement("div");
+  if (view === 'msa') ctx.views.setCurrent('msa');
+  const host = document.createElement('div');
   host.style.width = `${WIDTH}px`;
   document.body.appendChild(host);
   let renders = 0;
@@ -43,7 +43,7 @@ export async function reactFixture(view: "chains" | "msa" = "chains") {
   const p = Inputs.pointer();
   p.section = ctx.layout.sectionIndex(S);
   p.type = PointerType.move;
-  const y = at(ctx, S, view === "msa" ? "t.rows" : "t.res").y;
+  const y = at(ctx, S, view === 'msa' ? 't.rows' : 't.res').y;
   // Moves inside one residue's cell: the hovered element stays.
   const cell = xOf(ctx, S, 13) - xOf(ctx, S, 12);
   const x0 = xOf(ctx, S, 12) - cell / 2 + 0.5;

@@ -6,18 +6,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DefaultSeqViewerSpec } from "@molstar/seq-viewer";
-import { InteractionsViewerRegistry } from "@molstar/seq-viewer/interactions/viewer";
-import { SeqViewer } from "@molstar/seq-viewer/react";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useMemo } from "react";
-import { case10 } from "../../../core/_test/format/cases.js";
-import { fixtureLoaders, MolstarFixture } from "../../../core/_test/format/load-fixtures.js";
-import "@molstar/seq-viewer/skin.css";
-import { ComposedReact } from "./support/seqstar-composed.js";
-import f from "./support/seqstar-format.module.css";
-import { CANVAS_COLORS, type CanvasColor, PrismCanvas, PrismPage } from "./support/seqstar-prism.js";
-import { STORY_CHROME } from "./support/seqstar-viewer.js";
+import { DefaultSeqViewerSpec } from '@molstar/seq-viewer';
+import { InteractionsViewerRegistry } from '@molstar/seq-viewer/interactions/viewer';
+import { SeqViewer } from '@molstar/seq-viewer/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useMemo } from 'react';
+import { case10 } from '../../../core/_test/format/cases.js';
+import { fixtureLoaders, MolstarFixture } from '../../../core/_test/format/load-fixtures.js';
+import '@molstar/seq-viewer/skin.css';
+import { ComposedReact } from './support/seqstar-composed.js';
+import f from './support/seqstar-format.module.css';
+import { CANVAS_COLORS, type CanvasColor, PrismCanvas, PrismPage } from './support/seqstar-prism.js';
+import { STORY_CHROME } from './support/seqstar-viewer.js';
 
 /**
  * The viewer's React UI: `SeqViewer` from `/react` on the canvas
@@ -27,18 +27,18 @@ import { STORY_CHROME } from "./support/seqstar-viewer.js";
  */
 interface Args {
   /** `clean`: the canvas with hover, selection and the tooltip; no tabs, header, menus or legend. */
-  chrome: "full" | "clean";
+  chrome: 'full' | 'clean';
   /** The canvas's color: the UI theme's base, or a color of its own with the theme it implies (seqstar-prism.tsx). */
   canvas: CanvasColor;
 }
 const meta = {
-  title: "Seq*/Cases/Default UIs",
-  parameters: { layout: "fullscreen" },
-  args: { chrome: STORY_CHROME, canvas: "UI theme" },
+  title: 'Seq*/Cases/Default UIs',
+  parameters: { layout: 'fullscreen' },
+  args: { chrome: STORY_CHROME, canvas: 'UI theme' },
   argTypes: {
-    chrome: { control: "inline-radio", options: ["full", "clean"], description: "This UI's parts (a UI option)" },
+    chrome: { control: 'inline-radio', options: ['full', 'clean'], description: "This UI's parts (a UI option)" },
     canvas: {
-      control: "inline-radio",
+      control: 'inline-radio',
       options: Object.keys(CANVAS_COLORS),
       description: "The canvas's color: its chrome follows it, not the toolbar's UI theme",
     },
@@ -63,7 +63,7 @@ function Case10View({ chrome, canvas }: Args) {
         <>
           The default React UI on case 10. <code>clean</code> chrome (the default) is the canvas with hover, selection
           and the tooltip; <code>full</code> adds tabs, section headers and their switches, a track&apos;s menu at the
-          hovered header (or the keyboard cursor&apos;s, Shift+F10), the legend and the export menu. Toggle{" "}
+          hovered header (or the keyboard cursor&apos;s, Shift+F10), the legend and the export menu. Toggle{' '}
           <code>chrome</code>: the parts change, the surfaces stay. The viewer draws on a canvas whose color and theme
           may differ from the UI&apos;s (<code>canvas</code>; the UI theme is the toolbar&apos;s): its chrome follows
           the canvas, as the chrome over the 3D canvas does in Mol* Prism.
@@ -72,7 +72,7 @@ function Case10View({ chrome, canvas }: Args) {
     >
       <section className={f.card}>
         <h2 className={f.heading}>
-          SeqViewer, chrome {chrome}, canvas {color ? `${canvas} (${color})` : "in the UI theme"}
+          SeqViewer, chrome {chrome}, canvas {color ? `${canvas} (${color})` : 'in the UI theme'}
         </h2>
         <PrismCanvas key={canvas} color={color}>
           <SeqViewer spec={spec} ports={ports} document={doc} ui={{ chrome }} />
@@ -82,7 +82,7 @@ function Case10View({ chrome, canvas }: Args) {
   );
 }
 export const Case10: Story = {
-  name: "React UI, with the chrome toggle",
+  name: 'React UI, with the chrome toggle',
   render: (a) => <Case10View {...a} />,
 };
 
@@ -96,16 +96,16 @@ function ComposedView({ canvas }: Args) {
       caption={
         <>
           Every piece of the viewer&apos;s chrome is a component a host places itself, against the viewer&apos;s
-          context: here the viewer is <code>clean</code> (the canvas, hover and the tooltip) and the host puts{" "}
-          <code>ViewTabs</code>, each section&apos;s <code>SectionSwitches</code>, <code>Export</code> and{" "}
-          <code>IssueBadge</code> in a header row of its own, and the <code>Legend</code> below the viewer.{" "}
+          context: here the viewer is <code>clean</code> (the canvas, hover and the tooltip) and the host puts{' '}
+          <code>ViewTabs</code>, each section&apos;s <code>SectionSwitches</code>, <code>Export</code> and{' '}
+          <code>IssueBadge</code> in a header row of its own, and the <code>Legend</code> below the viewer.{' '}
           <code>chrome: &quot;full&quot;</code> is the same parts in the viewer&apos;s own composition.
         </>
       }
     >
       <section className={f.card}>
         <h2 className={f.heading}>
-          A host&apos;s composition, canvas {color ? `${canvas} (${color})` : "in the UI theme"}
+          A host&apos;s composition, canvas {color ? `${canvas} (${color})` : 'in the UI theme'}
         </h2>
         <ComposedReact key={canvas} doc={doc} color={color} />
       </section>
@@ -113,6 +113,6 @@ function ComposedView({ canvas }: Args) {
   );
 }
 export const Composed: Story = {
-  name: "React UI, the chrome placed by the host",
+  name: 'React UI, the chrome placed by the host',
   render: (a) => <ComposedView {...a} />,
 };

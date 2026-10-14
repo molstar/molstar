@@ -20,18 +20,18 @@ import {
   MoleculeKind,
   type NameId,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import type { DocIndex } from "../load/compile.js";
-import { ItemSystemProp } from "../load/nodes.js";
-import type { SvsRegistries } from "../registry.js";
-import { isPlainObject } from "../schema/field-schema.js";
-import type { IndexedNode } from "../schema/tree-schema.js";
-import { type KeyedSay, type KeyFilterValue, keyed, type Members, type OrderKeyValue } from "./keyed.js";
-import type { ResolvedSection, TrackRow } from "./section.js";
+} from '@molstar/seq-core/model';
+import type { DocIndex } from '../load/compile.js';
+import { ItemSystemProp } from '../load/nodes.js';
+import type { SvsRegistries } from '../registry.js';
+import { isPlainObject } from '../schema/field-schema.js';
+import type { IndexedNode } from '../schema/tree-schema.js';
+import { type KeyedSay, type KeyFilterValue, keyed, type Members, type OrderKeyValue } from './keyed.js';
+import type { ResolvedSection, TrackRow } from './section.js';
 
 /** A template track's `for_each`, normalized. */
 export interface ForEach {
-  readonly kind: "sequence" | "ligand" | "unit" | "mapping" | "annotation" | "item_system";
+  readonly kind: 'sequence' | 'ligand' | 'unit' | 'mapping' | 'annotation' | 'item_system';
   readonly source: string;
   readonly depth: number | null;
   readonly reaching: boolean;
@@ -42,7 +42,7 @@ export interface ForEach {
 
 /** A track's `for_each`; null when it is no template. */
 export const forEachOf = (n: IndexedNode | undefined): ForEach | null =>
-  n?.kind === "track" && isPlainObject(n.params.for_each) ? (n.params.for_each as unknown as ForEach) : null;
+  n?.kind === 'track' && isPlainObject(n.params.for_each) ? (n.params.for_each as unknown as ForEach) : null;
 
 /** An instance's ref: its template's (a track's or a layer's), then its node's. */
 export const instanceRef = (template: string, node: string) => `${template}/${node}`;
@@ -52,7 +52,7 @@ const NONE: { has(ref: string): boolean } = new Set<string>();
 /** How many of `nested` lie between `source` and the node `ref` (its prefixes at a `/`): its depth under `source`. */
 function depthUnder(ref: string, source: string, nested: { has(ref: string): boolean }): number {
   let d = 0;
-  for (let i = ref.indexOf("/", source.length + 1); i > 0; i = ref.indexOf("/", i + 1))
+  for (let i = ref.indexOf('/', source.length + 1); i > 0; i = ref.indexOf('/', i + 1))
     if (nested.has(ref.slice(0, i))) d++;
   return d;
 }
@@ -81,20 +81,20 @@ export function templateNodes(
   // Item coordinate systems (ST7) only by `item_system`: never as the source's sequences, units or mappings.
   const item = (mol: number) => set.molecules[mol]?.custom.props.get(ItemSystemProp) === true;
   const K = CoordinateSystemKind;
-  if (fe.kind === "annotation") for (const a of set.annotations) a && see(a.key);
-  else if (fe.kind === "mapping")
+  if (fe.kind === 'annotation') for (const a of set.annotations) a && see(a.key);
+  else if (fe.kind === 'mapping')
     for (const m of set.mappings) m && !(m.from.kind === K.molecule && item(m.from.id)) && see(m.key);
-  else if (fe.kind === "unit")
+  else if (fe.kind === 'unit')
     for (let u = 0; u < set.units.count; u++)
       set.units.alive[u] && !item(set.units.molecule[u]) && see(set.units.key[u] as NameId);
-  else if (fe.kind === "item_system")
+  else if (fe.kind === 'item_system')
     for (const m of set.molecules) m && m.custom.props.get(ItemSystemProp) === true && see(m.key);
   else {
-    const kind = fe.kind === "ligand" ? MoleculeKind.ligand : MoleculeKind.polymer;
+    const kind = fe.kind === 'ligand' ? MoleculeKind.ligand : MoleculeKind.polymer;
     for (const m of set.molecules) if (m?.kind === kind && m.custom.props.get(ItemSystemProp) !== true) see(m.key);
   }
   out.sort();
-  const keyedOrder = fe.order != null && fe.order !== "data" && fe.order !== "tree";
+  const keyedOrder = fe.order != null && fe.order !== 'data' && fe.order !== 'tree';
   if (!reg || !(keyedOrder || fe.filter?.length)) return out;
   // Key tables keyed by `node` (a `rows` annotation's `node` column) order and filter the instances
   // (seqspec:format#layer-types).
@@ -104,7 +104,7 @@ export function templateNodes(
     tree: null,
     // A row with no node names none (GV-11: `String(undefined)` named a node called "undefined").
     of: (ann, i) => {
-      const v = Annotations.rowValue(ann, set, i, "node");
+      const v = Annotations.rowValue(ann, set, i, 'node');
       return v === undefined ? -1 : (at.get(String(v)) ?? -1);
     },
   };
@@ -151,13 +151,13 @@ export function instantiate(
     const fe = nodes ? forEachOf(doc.nodes.get(ref)) : null;
     for (const node of nodes ?? [null]) {
       const i = tracks.length;
-      const label = node === null || tr.params.label != null ? tr.label : labelOf(set, node, fe?.source ?? "");
+      const label = node === null || tr.params.label != null ? tr.label : labelOf(set, node, fe?.source ?? '');
       tracks.push(node === null ? tr : { ...tr, ref: set.strings.intern(instanceRef(ref, node)), label });
       for (const l of own) {
         const r = node === null ? l.ref : instanceRef(l.ref, node);
         at.set(r, layers.push({ ref: r, track: i, type: l.type }) - 1);
       }
-      split.push(splitRef === undefined ? "" : node === null ? splitRef : instanceRef(splitRef, node));
+      split.push(splitRef === undefined ? '' : node === null ? splitRef : instanceRef(splitRef, node));
     }
   });
   for (let i = 0; i < tracks.length; i++)

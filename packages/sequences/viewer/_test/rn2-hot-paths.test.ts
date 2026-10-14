@@ -13,8 +13,8 @@
 // by color; the matrix as tiles of at most 4,096 samples, one run on an unfiltered block, nothing rebuilt or scanned on
 // a second frame.
 
-import { OrderedSet } from "@molstar/seq-core/model";
-import { describe, expect, it } from "vitest";
+import { OrderedSet } from '@molstar/seq-core/model';
+import { describe, expect, it } from 'vitest';
 import {
   Arcs,
   densityColumns,
@@ -27,15 +27,15 @@ import {
   pairsAt,
   pairsInView,
   pushArc,
-} from "../src/draw/api.js";
-import { Dirty, SectionComposer } from "../src/draw/index.js";
-import { MATRIX_TILE, MatrixVisits } from "../src/draw/matrix-tiles.js";
-import { KernelRenderers, type LayerRenderer } from "../src/index.js";
-import { IndexVisits, overlapping, intervalTree as tree } from "../src/intervals.js";
-import { MarkSet } from "../src/marks.js";
-import { Op, RecordingBackend } from "../src/testing/index.js";
-import { entryOf, layerOf, record } from "./draw-fixtures.js";
-import { opened } from "./layout-fixtures.js";
+} from '../src/draw/api.js';
+import { Dirty, SectionComposer } from '../src/draw/index.js';
+import { MATRIX_TILE, MatrixVisits } from '../src/draw/matrix-tiles.js';
+import { KernelRenderers, type LayerRenderer } from '../src/index.js';
+import { IndexVisits, overlapping, intervalTree as tree } from '../src/intervals.js';
+import { MarkSet } from '../src/marks.js';
+import { Op, RecordingBackend } from '../src/testing/index.js';
+import { entryOf, layerOf, record } from './draw-fixtures.js';
+import { opened } from './layout-fixtures.js';
 import {
   bandColumns,
   densityDoc,
@@ -46,10 +46,10 @@ import {
   rng,
   wideMatrix,
   withDensity,
-} from "./rn2-fixtures.js";
+} from './rn2-fixtures.js';
 
 /** The palette's colors of the track's categories, in legend order. */
-function legend(ctx: Awaited<ReturnType<typeof opened>>["ctx"], label: string): number[] {
+function legend(ctx: Awaited<ReturnType<typeof opened>>['ctx'], label: string): number[] {
   const { k } = layerOf(ctx, label);
   const m = ctx.graph.assembled.value?.view;
   const out: number[] = [];
@@ -58,15 +58,15 @@ function legend(ctx: Awaited<ReturnType<typeof opened>>["ctx"], label: string): 
   return out;
 }
 
-describe("density composed per device column", () => {
+describe('density composed per device column', () => {
   /** Per device column of the band, the items' counts by color (k0, k1), brute force: each at its center's column. */
   function brute(
-    ctx: Awaited<ReturnType<typeof opened>>["ctx"],
-    frame: ReturnType<typeof record>["frame"],
+    ctx: Awaited<ReturnType<typeof opened>>['ctx'],
+    frame: ReturnType<typeof record>['frame'],
     o: Parameters<typeof densityItems>[0] = {},
   ) {
     const v = frame.v;
-    const { k } = layerOf(ctx, "D");
+    const { k } = layerOf(ctx, 'D');
     const f = ctx.graph.assembled.value?.view?.prepared[k].state as {
       count: number;
       block: Int32Array;
@@ -83,18 +83,18 @@ describe("density composed per device column", () => {
       const x = v.xd(f.block[i], q);
       if (x < Math.round(v.left * v.dpr) || x >= Math.round(v.right * v.dpr)) continue;
       const e = counts.get(x) ?? [0, 0];
-      e[category[f.row[i]] === "k1" ? 1 : 0]++;
+      e[category[f.row[i]] === 'k1' ? 1 : 0]++;
       counts.set(x, e);
     }
     return counts;
   }
 
   it("stacked: a column of two colors shows both, the palette's first at the bottom, heights by share", async () => {
-    const t = await opened(densityDoc(), { renderers: withDensity("points") });
-    const [k0, k1] = legend(t.ctx, "D");
-    const { rec, frame } = record(t.ctx, "D");
+    const t = await opened(densityDoc(), { renderers: withDensity('points') });
+    const [k0, k1] = legend(t.ctx, 'D');
+    const { rec, frame } = record(t.ctx, 'D');
     expect(lastDraw.mode).toBe(1);
-    const e = entryOf(t.ctx, "D");
+    const e = entryOf(t.ctx, 'D');
     const y1 = Math.round((e.top + e.height) * e.dpr);
     const left = Math.round(e.left * e.dpr);
     const cols = bandColumns(rec, left, Math.round(e.right * e.dpr));
@@ -115,10 +115,10 @@ describe("density composed per device column", () => {
   });
 
   it("majority: the plurality color alone, at its share of the column's bar", async () => {
-    const t = await opened(densityDoc({ density: "majority" }), { renderers: withDensity("points") });
-    const [k0, k1] = legend(t.ctx, "D");
-    const { rec, frame } = record(t.ctx, "D");
-    const e = entryOf(t.ctx, "D");
+    const t = await opened(densityDoc({ density: 'majority' }), { renderers: withDensity('points') });
+    const [k0, k1] = legend(t.ctx, 'D');
+    const { rec, frame } = record(t.ctx, 'D');
+    const e = entryOf(t.ctx, 'D');
     const left = Math.round(e.left * e.dpr);
     const cols = bandColumns(rec, left, Math.round(e.right * e.dpr));
     const counts = brute(t.ctx, frame);
@@ -133,13 +133,13 @@ describe("density composed per device column", () => {
     }
   });
 
-  it("coverage from the count pyramid: every column drawn once, stacked, bars from the bottom", async () => {
-    const t = await opened(densityDoc({ n: 400_000, type: "ranges", items: 20_000, len: 3000 }), {
-      renderers: withDensity("ranges"),
+  it('coverage from the count pyramid: every column drawn once, stacked, bars from the bottom', async () => {
+    const t = await opened(densityDoc({ n: 400_000, type: 'ranges', items: 20_000, len: 3000 }), {
+      renderers: withDensity('ranges'),
     });
-    const { rec } = record(t.ctx, "D");
+    const { rec } = record(t.ctx, 'D');
     expect(lastDraw.mode).toBe(1);
-    const e = entryOf(t.ctx, "D");
+    const e = entryOf(t.ctx, 'D');
     const left = Math.round(e.left * e.dpr);
     const cols = bandColumns(rec, left, Math.round(e.right * e.dpr));
     const y1 = Math.round((e.top + e.height) * e.dpr);
@@ -147,18 +147,18 @@ describe("density composed per device column", () => {
     for (const c of cols) if (c.length > 0) expect(c[0][0] + c[0][1]).toBe(y1);
   });
 
-  it("a layer whose blocks mix pyramid and item reductions draws one band and no item rects", async () => {
-    const t = await opened(densityDoc({ n: 200_000, blocks: 2, items: 20_000 }), { renderers: withDensity("points") });
-    const { section } = layerOf(t.ctx, "D");
+  it('a layer whose blocks mix pyramid and item reductions draws one band and no item rects', async () => {
+    const t = await opened(densityDoc({ n: 200_000, blocks: 2, items: 20_000 }), { renderers: withDensity('points') });
+    const { section } = layerOf(t.ctx, 'D');
     const ax = t.ctx.layout.axis(section)?.axis;
-    if (!ax) throw new Error("no axis");
+    if (!ax) throw new Error('no axis');
     // Block 1 read through its items (a filter of all its positions): the same columns, counted item by item.
     const all = OrderedSet.ofRange(ax.base[1], ax.base[1] + ax.length[1]);
-    const whole = record(t.ctx, "D").rec;
+    const whole = record(t.ctx, 'D').rec;
     forced.positions = [null, all];
     try {
-      const { rec } = record(t.ctx, "D");
-      const e = entryOf(t.ctx, "D");
+      const { rec } = record(t.ctx, 'D');
+      const e = entryOf(t.ctx, 'D');
       const y1 = Math.round((e.top + e.height) * e.dpr);
       const b = rec.rectItems;
       expect(b.n).toBeGreaterThan(100);
@@ -188,18 +188,18 @@ describe("density composed per device column", () => {
   });
 });
 
-describe("one mode per layer per frame, with hysteresis", () => {
-  it("a jittered width sweep across the threshold flips items and density once each way", async () => {
-    const t = await opened(densityDoc({ n: 20_000, type: "ranges", items: 600, len: 20 }), {
-      renderers: withDensity("ranges"),
+describe('one mode per layer per frame, with hysteresis', () => {
+  it('a jittered width sweep across the threshold flips items and density once each way', async () => {
+    const t = await opened(densityDoc({ n: 20_000, type: 'ranges', items: 600, len: 20 }), {
+      renderers: withDensity('ranges'),
     });
-    const { section } = layerOf(t.ctx, "D");
+    const { section } = layerOf(t.ctx, 'D');
     const vp = t.ctx.viewports.get(section);
-    if (!vp) throw new Error("no viewport");
+    if (!vp) throw new Error('no viewport');
     const sweep: number[] = [];
     for (let w = 400; w <= 1200; w += 6) sweep.push(w, w - 4);
     // One composer's view throughout, as a surface keeps its pass's `DrawView` (the mode is kept per view and layer).
-    const frame = record(t.ctx, "D").frame;
+    const frame = record(t.ctx, 'D').frame;
     const rec = new RecordingBackend();
     const run = async (widths: number[]) => {
       const modes: number[] = [];
@@ -221,18 +221,18 @@ describe("one mode per layer per frame, with hysteresis", () => {
     expect(up.naive).toBeGreaterThan(1);
     const down = await run([...sweep].reverse());
     expect(down).toMatchObject({ flips: 1, first: 0, last: 1 });
-    expect(densityColumns).toBeTypeOf("function");
+    expect(densityColumns).toBeTypeOf('function');
   });
 });
 
-describe("the hysteresis through the composer (CS1a: one `DrawView` per composer, kept across frames)", () => {
-  it("a jittered resize sweep flips the mode once each way, frame after frame of the section", async () => {
-    const t = await opened(densityDoc({ n: 20_000, type: "ranges", items: 600, len: 20 }), {
-      renderers: withDensity("ranges"),
+describe('the hysteresis through the composer (CS1a: one `DrawView` per composer, kept across frames)', () => {
+  it('a jittered resize sweep flips the mode once each way, frame after frame of the section', async () => {
+    const t = await opened(densityDoc({ n: 20_000, type: 'ranges', items: 600, len: 20 }), {
+      renderers: withDensity('ranges'),
     });
-    const { section } = layerOf(t.ctx, "D");
+    const { section } = layerOf(t.ctx, 'D');
     const vp = t.ctx.viewports.get(section);
-    if (!vp) throw new Error("no viewport");
+    if (!vp) throw new Error('no viewport');
     const composer = new SectionComposer(t.ctx, section);
     const rec = new RecordingBackend();
     const sweep: number[] = [];
@@ -259,7 +259,7 @@ describe("the hysteresis through the composer (CS1a: one `DrawView` per composer
 });
 
 describe("the interval tree and the pairs' indexes (K4's counters)", () => {
-  it("overlap queries equal a brute force, in sorted order, beside a long interval", () => {
+  it('overlap queries equal a brute force, in sorted order, beside a long interval', () => {
     const rnd = rng(3);
     const n = 3000;
     const iv = Array.from({ length: n }, () => {
@@ -284,13 +284,13 @@ describe("the interval tree and the pairs' indexes (K4's counters)", () => {
     }
   });
 
-  it("the arc hit visits the arcs over the point, never every earlier pair (one long pair spans them all)", async () => {
+  it('the arc hit visits the arcs over the point, never every earlier pair (one long pair spans them all)', async () => {
     const t = await opened(pairsDoc(), { renderers: [...KernelRenderers] as LayerRenderer[] });
-    const { k, section } = layerOf(t.ctx, "Contacts");
+    const { k, section } = layerOf(t.ctx, 'Contacts');
     const st = t.ctx.graph.assembled.value?.view?.prepared[k].state as PairsState;
-    t.ctx.viewports.get(section)?.setView(4, 4 * 15_000, "api");
+    t.ctx.viewports.get(section)?.setView(4, 4 * 15_000, 'api');
     await t.ctx.graph.update();
-    const e = entryOf(t.ctx, "Contacts");
+    const e = entryOf(t.ctx, 'Contacts');
     const h = Hit.create();
     // The first hit after the view moved finds the widest arc in view (`Arcs.frame`): the pairs in view, once.
     t.ctx.layout.hitTest(section, e.left + 1, e.top + e.height / 2, h);
@@ -313,16 +313,16 @@ describe("the interval tree and the pairs' indexes (K4's counters)", () => {
   });
 
   it("the arc hit picks the arc drawn on top: the overlay's last lit one, else the draw's last over the point", async () => {
-    const { lit, overlayOf } = await import("./rn2b-fixtures.js");
-    const t = await opened(pairsDoc({ count: 12_000, colorBy: "category", long: false }), {
+    const { lit, overlayOf } = await import('./rn2b-fixtures.js');
+    const t = await opened(pairsDoc({ count: 12_000, colorBy: 'category', long: false }), {
       renderers: [...KernelRenderers] as LayerRenderer[],
     });
-    const { k, section } = layerOf(t.ctx, "Contacts");
+    const { k, section } = layerOf(t.ctx, 'Contacts');
     const st = t.ctx.graph.assembled.value?.view?.prepared[k].state as PairsState;
-    t.ctx.viewports.get(section)?.setView(3, 3 * 15_000, "api");
+    t.ctx.viewports.get(section)?.setView(3, 3 * 15_000, 'api');
     await t.ctx.graph.update();
-    const e = entryOf(t.ctx, "Contacts");
-    const { rec, frame } = record(t.ctx, "Contacts");
+    const e = entryOf(t.ctx, 'Contacts');
+    const { rec, frame } = record(t.ctx, 'Contacts');
     const v = frame.v;
     // Each recorded arc's pieces (an arc beyond the window drawn as its pieces in view) and its pair, by its ends
     // (pairs sharing both ends, and pieces of an arc cut by the window or the band, left out: -1), in the order drawn:
@@ -356,7 +356,7 @@ describe("the interval tree and the pairs' indexes (K4's counters)", () => {
     const runs: [number, number][] = [];
     for (let j = 0; j < drawnArcs; j += Math.ceil(drawnArcs / 6))
       if (order[j].k >= 0) runs.push([st.start[2 * order[j].k], st.stop[2 * order[j].k]]);
-    arcsOf(overlayOf(t.ctx, "Contacts", lit(MarkBit.selection, runs)));
+    arcsOf(overlayOf(t.ctx, 'Contacts', lit(MarkBit.selection, runs)));
     expect(order.length).toBeGreaterThan(drawnArcs);
     const h = Hit.create();
     let crossed = 0;
@@ -389,14 +389,14 @@ describe("the interval tree and the pairs' indexes (K4's counters)", () => {
     expect(crossed).toBeGreaterThan(20);
   });
 
-  it("the draw strokes the pairs in view once each (those whose curve shows), grouped by color, visiting only them", async () => {
+  it('the draw strokes the pairs in view once each (those whose curve shows), grouped by color, visiting only them', async () => {
     const t = await opened(pairsDoc(), { renderers: [...KernelRenderers] as LayerRenderer[] });
-    const { k, section } = layerOf(t.ctx, "Contacts");
+    const { k, section } = layerOf(t.ctx, 'Contacts');
     const st = t.ctx.graph.assembled.value?.view?.prepared[k].state as PairsState;
-    t.ctx.viewports.get(section)?.setView(4, 4 * 15_000, "api");
+    t.ctx.viewports.get(section)?.setView(4, 4 * 15_000, 'api');
     await t.ctx.graph.update();
     const v0 = IndexVisits.intervals;
-    const { rec, frame } = record(t.ctx, "Contacts");
+    const { rec, frame } = record(t.ctx, 'Contacts');
     const visited = IndexVisits.intervals - v0;
     // In view, brute force: a pair whose keys meet the view's.
     const v = frame.v;
@@ -433,10 +433,10 @@ describe("the interval tree and the pairs' indexes (K4's counters)", () => {
 
   it("the overlay's lit pairs: through the channels' runs and the end index, each once", async () => {
     const t = await opened(pairsDoc({ count: 2000 }), { renderers: [...KernelRenderers] as LayerRenderer[] });
-    const { k, section } = layerOf(t.ctx, "Contacts");
+    const { k, section } = layerOf(t.ctx, 'Contacts');
     const st = t.ctx.graph.assembled.value?.view?.prepared[k].state as PairsState;
     const v = t.ctx.layout.axis(section);
-    if (!v) throw new Error("no axis");
+    if (!v) throw new Error('no axis');
     const sets = [new MarkSet(), new MarkSet()];
     const lit: [number, number][][] = [
       [
@@ -475,11 +475,11 @@ describe("the interval tree and the pairs' indexes (K4's counters)", () => {
 
   it("`tiny` below the row's minimum: the ends in view as density from the end index", async () => {
     const t = await opened(pairsDoc({ count: 400 }), { renderers: [...KernelRenderers] as LayerRenderer[] });
-    const { k } = layerOf(t.ctx, "Contacts");
-    const entry = KernelRenderers.find((r) => r.name === "pairs") as LayerRenderer;
+    const { k } = layerOf(t.ctx, 'Contacts');
+    const entry = KernelRenderers.find((r) => r.name === 'pairs') as LayerRenderer;
     const st = t.ctx.graph.assembled.value?.view?.prepared[k].state as PairsState;
     const v0 = IndexVisits.nodes;
-    const { rec, frame } = record(t.ctx, "Contacts", new RecordingBackend(), true);
+    const { rec, frame } = record(t.ctx, 'Contacts', new RecordingBackend(), true);
     expect(frame.v.height).toBe((entry.minHeight ?? 6) - 1);
     // Every end in view counted once: the bars' total area is at least the columns that hold an end.
     const b = rec.rectItems;
@@ -498,21 +498,21 @@ describe("the interval tree and the pairs' indexes (K4's counters)", () => {
     expect([rec.pathItems.n, rec.glyphItems.n]).toEqual([0, 0]);
     expect(IndexVisits.nodes - v0).toBeLessThan(st.count);
     // At the minimum: the draw, glyphs and arcs.
-    const full = record(t.ctx, "Contacts").rec;
+    const full = record(t.ctx, 'Contacts').rec;
     expect(full.pathItems.n).toBeGreaterThan(0);
   });
 });
 
-describe("matrix tiles (K4)", () => {
-  it("40,000 positions: tiles of at most 4,096 samples, one run, nothing rebuilt or scanned on the next frame", async () => {
+describe('matrix tiles (K4)', () => {
+  it('40,000 positions: tiles of at most 4,096 samples, one run, nothing rebuilt or scanned on the next frame', async () => {
     const t = await opened(wideMatrix(), { renderers: [...KernelRenderers] as LayerRenderer[] });
-    const { section } = layerOf(t.ctx, "M");
-    const e = entryOf(t.ctx, "M");
+    const { section } = layerOf(t.ctx, 'M');
+    const e = entryOf(t.ctx, 'M');
     for (const cell of [1, 0.4, 0.02]) {
-      t.ctx.viewports.get(section)?.setView(cell, cell * 1000, "api");
+      t.ctx.viewports.get(section)?.setView(cell, cell * 1000, 'api');
       await t.ctx.graph.update();
       const m0 = { ...MatrixVisits };
-      const { rec } = record(t.ctx, "M");
+      const { rec } = record(t.ctx, 'M');
       expect(MatrixVisits.runs - m0.runs).toBe(1);
       expect(MatrixVisits.scans).toBe(0);
       const images = rec.count(Op.image);
@@ -530,7 +530,7 @@ describe("matrix tiles (K4)", () => {
         ]);
       }
       const built = MatrixVisits.tiles;
-      record(t.ctx, "M", rec);
+      record(t.ctx, 'M', rec);
       expect(MatrixVisits.tiles).toBe(built);
     }
   });

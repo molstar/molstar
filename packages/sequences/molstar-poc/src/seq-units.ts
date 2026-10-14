@@ -16,12 +16,12 @@ import {
   Coords,
   KeyKind,
   type SeqSet,
-} from "@molstar/seq-core/model";
+} from '@molstar/seq-core/model';
 
 const UNIT = CoordinateSystemKind.unit;
 
-import type { Structure } from "molstar/lib/mol-model/structure";
-import { type ChainInstance, chainsOf } from "./chains.js";
+import type { Structure } from 'molstar/lib/mol-model/structure';
+import { type ChainInstance, chainsOf } from './chains.js';
 
 export interface MvsFields {
   label_asym_id?: string;
@@ -36,11 +36,11 @@ export function complexUnits(set: SeqSet, complex: string): { ref: string; mvs: 
   const cx = set.complexes[t.id];
   return Array.from(cx?.units ?? [], (u) => {
     const mol = set.molecules[set.units.molecule[u]];
-    const label = mol?.numberings.byName(set.strings.find("label") as never);
+    const label = mol?.numberings.byName(set.strings.find('label') as never);
     return {
       ref: set.strings.get(set.units.key[u]),
       mvs: (set.units.custom[u]?.doc as { mvs?: MvsFields } | undefined)?.mvs ?? {},
-      first: label?.method === "offset" ? label.first : 1,
+      first: label?.method === 'offset' ? label.first : 1,
     };
   });
 }

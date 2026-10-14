@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from "vitest";
-import { Interval, OrderedSet, SortedArray, SortedRanges } from "../../src/model/index.js";
+import { describe, expect, it } from 'vitest';
+import { Interval, OrderedSet, SortedArray, SortedRanges } from '../../src/model/index.js';
 
 /** Seeded and deterministic (an LCG). */
 function random(seed: number) {
@@ -46,8 +46,8 @@ const toList = (s: OrderedSet) => {
   return out;
 };
 
-describe("OrderedSet against a naive model", () => {
-  it("answers membership, positions and lower bounds on random sets", () => {
+describe('OrderedSet against a naive model', () => {
+  it('answers membership, positions and lower bounds on random sets', () => {
     const rnd = random(42);
     // Disagreements collected and compared once: an expect per query was most of the run.
     const wrong: string[] = [];
@@ -70,7 +70,7 @@ describe("OrderedSet against a naive model", () => {
     expect(wrong).toEqual([]);
   });
 
-  it("unions and intersects as sets do, in both forms", () => {
+  it('unions and intersects as sets do, in both forms', () => {
     const rnd = random(7);
     for (let trial = 0; trial < 500; trial++) {
       const [a, xa] = randomSet(rnd);
@@ -90,7 +90,7 @@ describe("OrderedSet against a naive model", () => {
     }
   });
 
-  it("makes an interval of a contiguous array and keeps a sparse one", () => {
+  it('makes an interval of a contiguous array and keeps a sparse one', () => {
     expect(Interval.is(OrderedSet.ofSortedArray(Int32Array.of(3, 4, 5)))).toBe(true);
     expect(OrderedSet.ofSortedArray(Int32Array.of(3, 5))).toEqual(Int32Array.of(3, 5));
     expect(OrderedSet.size(OrderedSet.ofRange(5, 2))).toBe(0);
@@ -98,10 +98,10 @@ describe("OrderedSet against a naive model", () => {
   });
 });
 
-describe("the empty set", () => {
+describe('the empty set', () => {
   // Every way of making an empty set is the one `Empty`, so equality is transitive: an empty ofRange(5,5) used to
   // differ from Empty (raw words) while both equalled an empty sorted array.
-  it("is one value however it was made", () => {
+  it('is one value however it was made', () => {
     const empties: OrderedSet[] = [
       OrderedSet.Empty,
       Interval.Empty,
@@ -118,18 +118,18 @@ describe("the empty set", () => {
       expect(OrderedSet.size(a)).toBe(0);
       for (const b of empties) expect(OrderedSet.areEqual(a, b)).toBe(true);
     }
-    for (const a of empties.filter((e) => typeof e === "number")) expect(a).toBe(OrderedSet.Empty);
+    for (const a of empties.filter((e) => typeof e === 'number')) expect(a).toBe(OrderedSet.Empty);
     expect(Interval.areEqual(Interval.ofRange(5, 5), Interval.ofRange(9, 1))).toBe(true);
   });
 
-  it("is not equal to a set with a member", () => {
+  it('is not equal to a set with a member', () => {
     expect(OrderedSet.areEqual(OrderedSet.ofRange(5, 5), OrderedSet.ofRange(5, 6))).toBe(false);
     expect(OrderedSet.areEqual(OrderedSet.Empty, Int32Array.of(0))).toBe(false);
   });
 });
 
-describe("SortedRanges", () => {
-  it("answers membership over half-open pairs", () => {
+describe('SortedRanges', () => {
+  it('answers membership over half-open pairs', () => {
     const r = Int32Array.of(2, 5, 8, 9, 20, 30);
     const naive = (x: number) => (x >= 2 && x < 5) || x === 8 || (x >= 20 && x < 30);
     for (let x = -1; x < 32; x++) expect(SortedRanges.has(r, x)).toBe(naive(x));

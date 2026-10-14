@@ -19,15 +19,15 @@
  * inclusive) with a binary-search `has`.
  */
 
-import type { Brand } from "./common.js";
+import type { Brand } from './common.js';
 
 /** min and max+1 packed in one double (two 32-bit ints). Compare with `Interval.areEqual`, never `===` (NaN). */
-export type Interval<T extends number = number> = Brand<number, "interval"> & { readonly "@elem"?: T };
+export type Interval<T extends number = number> = Brand<number, 'interval'> & { readonly '@elem'?: T };
 /** Strictly increasing. */
-export type SortedArray<T extends number = number> = Int32Array & { readonly "@elem"?: T };
+export type SortedArray<T extends number = number> = Int32Array & { readonly '@elem'?: T };
 export type OrderedSet<T extends number = number> = Interval<T> | SortedArray<T>;
 /** Sorted, non-overlapping half-open ranges as pairs: [s0, t0, s1, t1, ...]. */
-export type SortedRanges<T extends number = number> = Int32Array & { readonly "@elem"?: T };
+export type SortedRanges<T extends number = number> = Int32Array & { readonly '@elem'?: T };
 
 // IntTuple: two int32 in the bits of one float64, through a shared scratch buffer (allocation-free).
 const buf0 = new ArrayBuffer(8);
@@ -88,7 +88,7 @@ function iAreEqual(a: number, b: number) {
 export const Interval = {
   Empty: EMPTY,
   ofRange: iOfRange as <T extends number>(min: T, stop: T) => Interval<T>,
-  is: (x: unknown): x is Interval => typeof x === "number",
+  is: (x: unknown): x is Interval => typeof x === 'number',
   start: fst,
   stop: snd,
   min: fst,
@@ -288,21 +288,21 @@ function ofSortedArray(xs: Int32Array): OS {
   return xs;
 }
 function size(s: OS) {
-  return typeof s === "number" ? iSize(s) : s.length;
+  return typeof s === 'number' ? iSize(s) : s.length;
 }
 function min(s: OS) {
-  return typeof s === "number" ? fst(s) : s[0];
+  return typeof s === 'number' ? fst(s) : s[0];
 }
 function max(s: OS) {
-  return typeof s === "number" ? iMax(s) : s[s.length - 1];
+  return typeof s === 'number' ? iMax(s) : s[s.length - 1];
 }
 
 function areEqual(a: OS, b: OS) {
-  if (typeof a === "number") {
-    if (typeof b === "number") return iAreEqual(a, b);
+  if (typeof a === 'number') {
+    if (typeof b === 'number') return iAreEqual(a, b);
     return areEqualIS(a, b);
   }
-  if (typeof b === "number") return areEqualIS(b, a);
+  if (typeof b === 'number') return areEqualIS(b, a);
   return sAreEqual(a, b);
 }
 function areEqualIS(a: number, b: Int32Array) {
@@ -323,11 +323,11 @@ function isRangeSubset(a: OS, b: OS) {
 }
 
 function union(a: OS, b: OS): OS {
-  if (typeof a === "number") {
-    if (typeof b === "number") return unionII(a, b);
+  if (typeof a === 'number') {
+    if (typeof b === 'number') return unionII(a, b);
     return unionSI(b, a);
   }
-  if (typeof b === "number") return unionSI(a, b);
+  if (typeof b === 'number') return unionSI(a, b);
   return ofSortedArray(sUnion(a, b));
 }
 function unionII(a: number, b: number): OS {
@@ -364,14 +364,14 @@ function unionSI(a: Int32Array, b: number): OS {
 }
 
 function intersect(a: OS, b: OS): OS {
-  if (typeof a === "number") {
-    if (typeof b === "number") {
+  if (typeof a === 'number') {
+    if (typeof b === 'number') {
       if (!areRangesIntersecting(a, b) || !iSize(a)) return Interval.Empty;
       return iOfRange(Math.max(fst(a), fst(b)), Math.min(snd(a), snd(b)));
     }
     return intersectSI(b, a);
   }
-  if (typeof b === "number") return intersectSI(a, b);
+  if (typeof b === 'number') return intersectSI(a, b);
   return ofSortedArray(sIntersect(a, b));
 }
 function intersectSI(a: Int32Array, b: number): OS {
@@ -383,7 +383,7 @@ function intersectSI(a: Int32Array, b: number): OS {
 }
 
 function forEach<T extends number, C>(s: OrderedSet<T>, f: (x: T, i: number, ctx: C) => void, ctx: C) {
-  if (typeof s === "number") {
+  if (typeof s === 'number') {
     const start = fst(s);
     const end = snd(s);
     for (let i = start; i < end; i++) f(i as T, i - start, ctx);
@@ -402,11 +402,11 @@ export const OrderedSet = {
   isEmpty: (s: OS) => size(s) === 0,
   min,
   max,
-  has: (s: OS, x: number) => (typeof s === "number" ? iHas(s, x) : sIndexOf(s, x) >= 0),
-  getAt: <T extends number>(s: OrderedSet<T>, i: number) => (typeof s === "number" ? fst(s) + i : s[i]) as T,
-  indexOf: (s: OS, x: number) => (typeof s === "number" ? iIndexOf(s, x) : sIndexOf(s, x)),
+  has: (s: OS, x: number) => (typeof s === 'number' ? iHas(s, x) : sIndexOf(s, x) >= 0),
+  getAt: <T extends number>(s: OrderedSet<T>, i: number) => (typeof s === 'number' ? fst(s) + i : s[i]) as T,
+  indexOf: (s: OS, x: number) => (typeof s === 'number' ? iIndexOf(s, x) : sIndexOf(s, x)),
   /** The first i with getAt(s, i) >= x; size(s) when none. */
-  lowerBound: (s: OS, x: number) => (typeof s === "number" ? iLowerBound(s, x) : sLowerBound(s, x)),
+  lowerBound: (s: OS, x: number) => (typeof s === 'number' ? iLowerBound(s, x) : sLowerBound(s, x)),
   forEach,
   areEqual,
   /** Allocates: edges. */

@@ -15,7 +15,7 @@
 //
 // Each case loads the viewer afresh (`vi.resetModules`), as composer.heap.ts does.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -26,7 +26,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = 1_000;
 const WARM = FRAME_WARM;
@@ -40,12 +40,12 @@ function measure(frame: (i: number) => void) {
   return heapScaling(N, () => frame(i++));
 }
 
-describe("overlay frames allocate nothing after warm-up", () => {
-  it.each(["scale", "rows"] as const)(
-    "hover frames over %s with a selection and a highlight",
+describe('overlay frames allocate nothing after warm-up', () => {
+  it.each(['scale', 'rows'] as const)(
+    'hover frames over %s with a selection and a highlight',
     async (kind) => {
       vi.resetModules();
-      const { hoverFrames } = await import("./overlay-fixtures.js");
+      const { hoverFrames } = await import('./overlay-fixtures.js');
       const { frame, hovers } = await hoverFrames(kind);
       const r = measure(frame);
       expect(isFlat(r), describeScaling(r, N)).toBe(true);
@@ -55,10 +55,10 @@ describe("overlay frames allocate nothing after warm-up", () => {
     120_000,
   );
 
-  it("hover frames over rows allocating an object each are caught (positive control)", async () => {
+  it('hover frames over rows allocating an object each are caught (positive control)', async () => {
     vi.resetModules();
-    const { hoverFrames } = await import("./overlay-fixtures.js");
-    const { frame } = await hoverFrames("rows");
+    const { hoverFrames } = await import('./overlay-fixtures.js');
+    const { frame } = await hoverFrames('rows');
     expect(controlCaught(() => measure(leaking(frame)))).toBe(true);
   }, 120_000);
 });

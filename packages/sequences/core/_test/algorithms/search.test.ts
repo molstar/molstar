@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   type ApproximateEnds,
   approximateMatcher,
@@ -17,7 +17,7 @@ import {
   regexMatcher,
   textIndex,
   toCodes,
-} from "../../src/algorithms/search/index.js";
+} from '../../src/algorithms/search/index.js';
 
 /** A deterministic generator of integers below n (mulberry32, as in myers.test.ts). */
 function generator(seed: number) {
@@ -31,9 +31,9 @@ function generator(seed: number) {
 }
 type Next = (n: number) => number;
 
-const DNA = toCodes("ACGT");
-const AMINO = toCodes("ACDEFGHIKLMNPQRSTVWY");
-const BINARY = toCodes("AB");
+const DNA = toCodes('ACGT');
+const AMINO = toCodes('ACDEFGHIKLMNPQRSTVWY');
+const BINARY = toCodes('AB');
 const EXTREME = Uint8Array.of(0, 1, 127, 128, 254, 255);
 const ALPHABETS = [DNA, AMINO, BINARY, EXTREME];
 
@@ -87,8 +87,8 @@ function bruteFixed(
   return out;
 }
 
-describe("exactMatcher", () => {
-  it("equals the brute force on random texts, windows and alphabets, linear and cyclic", () => {
+describe('exactMatcher', () => {
+  it('equals the brute force on random texts, windows and alphabets, linear and cyclic', () => {
     const next = generator(1);
     for (let trial = 0; trial < 3000; trial++) {
       const alphabet = ALPHABETS[trial % ALPHABETS.length];
@@ -103,42 +103,42 @@ describe("exactMatcher", () => {
     }
   });
 
-  it("finds overlapping hits, a hit at the very end, and hits across the end of a circle", () => {
-    const aaa = toCodes("AAA");
-    expect(run(exactMatcher(toCodes("AA")), aaa, 0, 3, false)).toEqual([
+  it('finds overlapping hits, a hit at the very end, and hits across the end of a circle', () => {
+    const aaa = toCodes('AAA');
+    expect(run(exactMatcher(toCodes('AA')), aaa, 0, 3, false)).toEqual([
       [0, 2, 0],
       [1, 3, 0],
     ]);
-    expect(run(exactMatcher(toCodes("GT")), toCodes("ACGT"), 0, 4, false)).toEqual([[2, 4, 0]]);
+    expect(run(exactMatcher(toCodes('GT')), toCodes('ACGT'), 0, 4, false)).toEqual([[2, 4, 0]]);
     // The circle AACGTA reads "TAA" from 4, across the end, to 1.
-    expect(run(exactMatcher(toCodes("TAA")), toCodes("AACGTA"), 0, 6, true)).toEqual([[4, 1, 0]]);
-    expect(run(exactMatcher(toCodes("TAA")), toCodes("AACGTA"), 0, 6, false)).toEqual([]);
+    expect(run(exactMatcher(toCodes('TAA')), toCodes('AACGTA'), 0, 6, true)).toEqual([[4, 1, 0]]);
+    expect(run(exactMatcher(toCodes('TAA')), toCodes('AACGTA'), 0, 6, false)).toEqual([]);
     // Both ways: the same circle read from the other side of the origin.
-    expect(run(exactMatcher(toCodes("AAC")), toCodes("ACGTAA"), 0, 6, true)).toEqual([[5, 2, 0]]);
+    expect(run(exactMatcher(toCodes('AAC')), toCodes('ACGTAA'), 0, 6, true)).toEqual([[5, 2, 0]]);
     // As long as the circle: start == stop.
-    expect(run(exactMatcher(toCodes("CGA")), toCodes("ACG"), 0, 3, true)).toEqual([[1, 1, 0]]);
+    expect(run(exactMatcher(toCodes('CGA')), toCodes('ACG'), 0, 3, true)).toEqual([[1, 1, 0]]);
   });
 
-  it("has no hits for an empty pattern, a pattern longer than the text, or an empty window", () => {
-    const seq = toCodes("ACGT");
+  it('has no hits for an empty pattern, a pattern longer than the text, or an empty window', () => {
+    const seq = toCodes('ACGT');
     expect(run(exactMatcher(new Uint8Array(0)), seq, 0, 4, true)).toEqual([]);
-    expect(run(exactMatcher(toCodes("ACGTA")), seq, 0, 4, false)).toEqual([]);
-    expect(run(exactMatcher(toCodes("ACGTA")), seq, 0, 4, true)).toEqual([]);
-    expect(run(exactMatcher(toCodes("A")), seq, 2, 2, false)).toEqual([]);
-    expect(run(exactMatcher(toCodes("A")), new Uint8Array(0), 0, 0, true)).toEqual([]);
+    expect(run(exactMatcher(toCodes('ACGTA')), seq, 0, 4, false)).toEqual([]);
+    expect(run(exactMatcher(toCodes('ACGTA')), seq, 0, 4, true)).toEqual([]);
+    expect(run(exactMatcher(toCodes('A')), seq, 2, 2, false)).toEqual([]);
+    expect(run(exactMatcher(toCodes('A')), new Uint8Array(0), 0, 0, true)).toEqual([]);
   });
 
-  it("copies its pattern, and rejects a window outside the array", () => {
-    const pattern = toCodes("AC");
+  it('copies its pattern, and rejects a window outside the array', () => {
+    const pattern = toCodes('AC');
     const matcher = exactMatcher(pattern);
     pattern[0] = 71;
-    expect(run(matcher, toCodes("ACGAC"), 0, 5, false)).toEqual([
+    expect(run(matcher, toCodes('ACGAC'), 0, 5, false)).toEqual([
       [0, 2, 0],
       [3, 5, 0],
     ]);
-    expect(() => matcher.find(toCodes("ACG"), 0, 4, false, () => {})).toThrow(RangeError);
-    expect(() => matcher.find(toCodes("ACG"), 2, 1, false, () => {})).toThrow(RangeError);
-    expect(() => matcher.find(toCodes("ACG"), 0.5, 2, false, () => {})).toThrow(RangeError);
+    expect(() => matcher.find(toCodes('ACG'), 0, 4, false, () => {})).toThrow(RangeError);
+    expect(() => matcher.find(toCodes('ACG'), 2, 1, false, () => {})).toThrow(RangeError);
+    expect(() => matcher.find(toCodes('ACG'), 0.5, 2, false, () => {})).toThrow(RangeError);
   });
 });
 
@@ -146,8 +146,8 @@ describe("exactMatcher", () => {
 const randomSet = (next: Next, alphabet: Uint8Array): Uint8Array =>
   Uint8Array.from(new Set(Array.from({ length: 1 + next(3) }, () => alphabet[next(alphabet.length)])));
 
-describe("classMatcher", () => {
-  it("equals the brute force with sets per position, patterns up to 64, linear and cyclic", () => {
+describe('classMatcher', () => {
+  it('equals the brute force with sets per position, patterns up to 64, linear and cyclic', () => {
     const next = generator(2);
     for (let trial = 0; trial < 3000; trial++) {
       const alphabet = ALPHABETS[trial % ALPHABETS.length];
@@ -166,31 +166,31 @@ describe("classMatcher", () => {
   });
 
   it("compiles IUPAC letters from the caller's classes, and finds the degenerate motif", () => {
-    const iupac = { R: "AG", Y: "CT", N: "ACGT" };
-    const motif = compileMotif("GRNCY", iupac);
+    const iupac = { R: 'AG', Y: 'CT', N: 'ACGT' };
+    const motif = compileMotif('GRNCY', iupac);
     expect(motif.map((set) => Array.from(set))).toEqual([[71], [65, 71], [65, 67, 71, 84], [67], [67, 84]]);
     // GAACC and GGTCT match; GCACC does not (R is A or G).
-    expect(run(classMatcher(motif), toCodes("GAACCTGGTCTGCACC"), 0, 16, false)).toEqual([
+    expect(run(classMatcher(motif), toCodes('GAACCTGGTCTGCACC'), 0, 16, false)).toEqual([
       [0, 5, 0],
       [6, 11, 0],
     ]);
     // A letter without a class stands for itself, a class does not include its own letter, and it is case-sensitive.
-    expect(compileMotif("rR", { R: "AG" }).map((set) => Array.from(set))).toEqual([[114], [65, 71]]);
-    expect(() => compileMotif("é€", {})).toThrow(RangeError);
-    expect(compileMotif("", iupac)).toEqual([]);
+    expect(compileMotif('rR', { R: 'AG' }).map((set) => Array.from(set))).toEqual([[114], [65, 71]]);
+    expect(() => compileMotif('é€', {})).toThrow(RangeError);
+    expect(compileMotif('', iupac)).toEqual([]);
   });
 
-  it("limits a pattern to 64 positions, and an empty pattern has no hits", () => {
+  it('limits a pattern to 64 positions, and an empty pattern has no hits', () => {
     expect(() => classMatcher(Array.from({ length: 65 }, () => Uint8Array.of(65)))).toThrow(RangeError);
     const max = classMatcher(Array.from({ length: 64 }, () => Uint8Array.of(65)));
     expect(run(max, new Uint8Array(70).fill(65), 0, 70, false).length).toBe(7);
-    expect(run(classMatcher([]), toCodes("ACGT"), 0, 4, true)).toEqual([]);
+    expect(run(classMatcher([]), toCodes('ACGT'), 0, 4, true)).toEqual([]);
   });
 });
 
-describe("regexMatcher", () => {
+describe('regexMatcher', () => {
   const expressions = [/A[CG]+T/, /(AC)+/, /G.A/, /^A/, /T$/, /A{2,3}/, /(?<=G)C/, /.{0}/, /[AC]|GG/];
-  it("equals a sticky test at every start, linear and cyclic, overlapping", () => {
+  it('equals a sticky test at every start, linear and cyclic, overlapping', () => {
     const next = generator(3);
     for (let trial = 0; trial < 1500; trial++) {
       const re = expressions[trial % expressions.length];
@@ -201,7 +201,7 @@ describe("regexMatcher", () => {
       // The text a search reads: the window, and maxLength - 1 codes more across the end of a circle (a lap at most).
       const readable = cyclic ? Math.min(to - from + maxLength - 1, to - from + n) : to - from;
       const text = String.fromCharCode(...Array.from({ length: readable }, (_, i) => seq[(from + i) % n]));
-      const sticky = new RegExp(re.source, "y");
+      const sticky = new RegExp(re.source, 'y');
       const found: [number, number][] = [];
       for (let s = from; s < to; s++) {
         sticky.lastIndex = s - from;
@@ -217,19 +217,19 @@ describe("regexMatcher", () => {
 
   it("reads anchors against the window, counts one hit per start, and keeps the caller's expression unchanged", () => {
     const re = /A/y;
-    expect(run(regexMatcher(re), toCodes("CAA"), 1, 3, false)).toEqual([
+    expect(run(regexMatcher(re), toCodes('CAA'), 1, 3, false)).toEqual([
       [1, 2, 0],
       [2, 3, 0],
     ]);
     expect(re.lastIndex).toBe(0);
-    expect(run(regexMatcher(/^A/), toCodes("CAA"), 1, 3, false)).toEqual([[1, 2, 0]]);
-    expect(run(regexMatcher(/AAC/), toCodes("ACGTAA"), 0, 6, true)).toEqual([[5, 2, 0]]);
+    expect(run(regexMatcher(/^A/), toCodes('CAA'), 1, 3, false)).toEqual([[1, 2, 0]]);
+    expect(run(regexMatcher(/AAC/), toCodes('ACGTAA'), 0, 6, true)).toEqual([[5, 2, 0]]);
     // A cyclic search reads maxLength - 1 codes past the window, so a maxLength below 1 would cut the window short.
     expect(() => regexMatcher(/A/, 0)).toThrow(RangeError);
   });
 
-  it("visits hits in order of their ends, as every matcher does (CB-04)", () => {
-    expect(run(regexMatcher(/A.{3}|X/), toCodes("AXXXY"), 0, 5, false)).toEqual([
+  it('visits hits in order of their ends, as every matcher does (CB-04)', () => {
+    expect(run(regexMatcher(/A.{3}|X/), toCodes('AXXXY'), 0, 5, false)).toEqual([
       [1, 2, 0],
       [2, 3, 0],
       [0, 4, 0],
@@ -243,7 +243,7 @@ describe("regexMatcher", () => {
       x = (x * 1103515245 + 12345) % 2147483648;
       return x / 2147483648;
     };
-    const text = Array.from({ length: 4000 }, () => "ACGT"[Math.floor(rand() * 4)]).join("");
+    const text = Array.from({ length: 4000 }, () => 'ACGT'[Math.floor(rand() * 4)]).join('');
     for (const re of [/A[CGT]{0,12}T/, /A.{0,40}?G|C.{5}|T/, /(?:AC|G){1,9}/]) {
       const hits = run(regexMatcher(re), toCodes(text), 0, text.length, false);
       const sorted = [...hits].sort((a, b) => a[1] - b[1] || a[0] - b[0]);
@@ -252,7 +252,7 @@ describe("regexMatcher", () => {
     }
   });
 
-  it("is exact over 3 million codes in chunks", () => {
+  it('is exact over 3 million codes in chunks', () => {
     const seq = new Uint8Array(3_000_000).fill(67);
     seq[2_999_999] = 71;
     seq[8190] = 71;
@@ -317,7 +317,7 @@ function bruteApproximate(
   }
   for (let j = 0; j < text.length; j++) {
     if (cost[j] > k) continue;
-    if (ends !== "all" && cost[j] > 0) {
+    if (ends !== 'all' && cost[j] > 0) {
       // The run of ends of this cost around j: [first, after).
       let first = j;
       while (first > 0 && cost[first - 1] === cost[j]) first--;
@@ -325,7 +325,7 @@ function bruteApproximate(
       while (after < text.length && cost[after] === cost[j]) after++;
       const before = first > 0 ? cost[first - 1] : m;
       if (before < cost[j] || (after < text.length && cost[after] < cost[j])) continue;
-      if (j !== (ends === "local_best_first" ? first : after - 1)) continue;
+      if (j !== (ends === 'local_best_first' ? first : after - 1)) continue;
     }
     let s = j;
     while (s >= 0 && editDistance(pattern, text.slice(s, j + 1), equal) !== cost[j]) s--;
@@ -350,8 +350,8 @@ function mutate(next: Next, seq: Uint8Array, alphabet: Uint8Array, edits: number
   return Uint8Array.from(out);
 }
 
-describe("approximateMatcher", () => {
-  it("equals the dynamic-programming oracle on planted and random patterns, up to 3 edits, linear and cyclic", () => {
+describe('approximateMatcher', () => {
+  it('equals the dynamic-programming oracle on planted and random patterns, up to 3 edits, linear and cyclic', () => {
     const next = generator(4);
     let hits = 0;
     let withEdits = 0;
@@ -369,15 +369,15 @@ describe("approximateMatcher", () => {
       if (pattern.length === 0) continue;
       const k = Math.min(next(4), pattern.length - 1);
       const [from, to, cyclic] = randomWindow(next, seq.length);
-      const best = bruteApproximate(seq, pattern, k, [], from, to, cyclic, "local_best_last");
+      const best = bruteApproximate(seq, pattern, k, [], from, to, cyclic, 'local_best_last');
       expect(run(approximateMatcher(pattern, k), seq, from, to, cyclic), `trial ${trial}`).toEqual(best);
-      const first = bruteApproximate(seq, pattern, k, [], from, to, cyclic, "local_best_first");
+      const first = bruteApproximate(seq, pattern, k, [], from, to, cyclic, 'local_best_first');
       expect(
-        run(approximateMatcher(pattern, k, { ends: "local_best_first" }), seq, from, to, cyclic),
+        run(approximateMatcher(pattern, k, { ends: 'local_best_first' }), seq, from, to, cyclic),
         `trial ${trial}`,
       ).toEqual(first);
-      const all = bruteApproximate(seq, pattern, k, [], from, to, cyclic, "all");
-      expect(run(approximateMatcher(pattern, k, { ends: "all" }), seq, from, to, cyclic), `trial ${trial}`).toEqual(
+      const all = bruteApproximate(seq, pattern, k, [], from, to, cyclic, 'all');
+      expect(run(approximateMatcher(pattern, k, { ends: 'all' }), seq, from, to, cyclic), `trial ${trial}`).toEqual(
         all,
       );
       hits += best.length;
@@ -406,7 +406,7 @@ describe("approximateMatcher", () => {
       // Mostly the few edits of a search, sometimes many.
       const k = Math.min(trial % 4 === 0 ? next(12) : next(4), pattern.length - 1);
       const [from, to, cyclic] = randomWindow(next, seq.length);
-      for (const ends of ["local_best_last", "local_best_first", "all"] as const) {
+      for (const ends of ['local_best_last', 'local_best_first', 'all'] as const) {
         const expected = bruteApproximate(seq, pattern, k, [], from, to, cyclic, ends);
         expect(run(approximateMatcher(pattern, k, { ends }), seq, from, to, cyclic), `trial ${trial} ${ends}`).toEqual(
           expected,
@@ -415,12 +415,12 @@ describe("approximateMatcher", () => {
     }
   }
 
-  it("equals the oracle for 31 to 70 letters (one to three blocks, full words too), 40 patterns", () =>
+  it('equals the oracle for 31 to 70 letters (one to three blocks, full words too), 40 patterns', () =>
     longPatterns(40));
 
   it(
-    "equals the oracle for 31 to 70 letters (one to three blocks, full words too)",
-    { tags: ["slow"], timeout: 60000 },
+    'equals the oracle for 31 to 70 letters (one to three blocks, full words too)',
+    { tags: ['slow'], timeout: 60000 },
     () => longPatterns(120),
   );
 
@@ -434,7 +434,7 @@ describe("approximateMatcher", () => {
       if (pattern.length < 2) continue;
       const k = Math.min(next(3), pattern.length - 1);
       const [from, to, cyclic] = randomWindow(next, seq.length);
-      const ends = (["local_best_last", "local_best_first", "all"] as const)[trial % 3];
+      const ends = (['local_best_last', 'local_best_first', 'all'] as const)[trial % 3];
       const expected = bruteApproximate(seq, pattern, k, pairs, from, to, cyclic, ends);
       expect(
         run(approximateMatcher(pattern, k, { equal: Uint8Array.from(pairs), ends }), seq, from, to, cyclic),
@@ -443,7 +443,7 @@ describe("approximateMatcher", () => {
     }
   });
 
-  it("with no edits equals the exact matcher, hits overlapping and across the end of a circle", () => {
+  it('with no edits equals the exact matcher, hits overlapping and across the end of a circle', () => {
     const next = generator(7);
     for (let trial = 0; trial < 500; trial++) {
       const seq = randomSeq(next, trial % 2 === 0 ? BINARY : DNA, 1 + next(50));
@@ -455,21 +455,21 @@ describe("approximateMatcher", () => {
     }
   });
 
-  it("reports one hit for a site and its edits, with the stretch and the cost", () => {
+  it('reports one hit for a site and its edits, with the stretch and the cost', () => {
     // ACGT with one extra G: the ends from ACG to ACGGT cost 1; the last is the hit (by default), the insertion.
-    expect(run(approximateMatcher(toCodes("ACGT"), 1), toCodes("TTACGGTTT"), 0, 9, false)).toEqual([[2, 7, 1]]);
+    expect(run(approximateMatcher(toCodes('ACGT'), 1), toCodes('TTACGGTTT'), 0, 9, false)).toEqual([[2, 7, 1]]);
     // An exact site beats the neighbors that cost 1.
-    expect(run(approximateMatcher(toCodes("ACGT"), 1), toCodes("TTACGTTT"), 0, 8, false)).toEqual([[2, 6, 0]]);
+    expect(run(approximateMatcher(toCodes('ACGT'), 1), toCodes('TTACGTTT'), 0, 8, false)).toEqual([[2, 6, 0]]);
     // Across the end of a circle: GT|AC with one substitution.
-    expect(run(approximateMatcher(toCodes("GTTC"), 1), toCodes("ACCCCCGT"), 0, 8, true)).toEqual([[6, 2, 1]]);
-    expect(run(approximateMatcher(toCodes("GTTC"), 1), toCodes("ACCCCCGT"), 0, 8, false)).toEqual([]);
+    expect(run(approximateMatcher(toCodes('GTTC'), 1), toCodes('ACCCCCGT'), 0, 8, true)).toEqual([[6, 2, 1]]);
+    expect(run(approximateMatcher(toCodes('GTTC'), 1), toCodes('ACCCCCGT'), 0, 8, false)).toEqual([]);
     // A run of ends of cost 1 that falls to an exact site is not a minimum: one hit, not AAA with a deletion as well.
-    expect(run(approximateMatcher(toCodes("AAAC"), 1), toCodes("ACAAAACA"), 0, 8, false)).toEqual([[3, 7, 0]]);
+    expect(run(approximateMatcher(toCodes('AAAC'), 1), toCodes('ACAAAACA'), 0, 8, false)).toEqual([[3, 7, 0]]);
   });
 
   it('with ends: "all" reports every end of cost at most k, each as its shortest stretch', () => {
     // The ends of AAA from 2 and from 3 (a deletion: shorter than AAAA, a substitution), AAAC exact, AAACA (an insertion).
-    expect(run(approximateMatcher(toCodes("AAAC"), 1, { ends: "all" }), toCodes("ACAAAACA"), 0, 8, false)).toEqual([
+    expect(run(approximateMatcher(toCodes('AAAC'), 1, { ends: 'all' }), toCodes('ACAAAACA'), 0, 8, false)).toEqual([
       [2, 5, 1],
       [3, 6, 1],
       [3, 7, 0],
@@ -477,44 +477,44 @@ describe("approximateMatcher", () => {
     ]);
     // A run of equal cost: local-best gives its last end or its first, all every end.
     const run1 = (ends: ApproximateEnds) =>
-      run(approximateMatcher(toCodes("ACGT"), 1, { ends }), toCodes("TTACGGTTT"), 0, 9, false);
-    expect(run1("local_best_last")).toEqual([[2, 7, 1]]);
-    expect(run1("local_best_first")).toEqual([[2, 5, 1]]);
-    expect(run1("all").map((h) => h[1])).toEqual([5, 6, 7]);
+      run(approximateMatcher(toCodes('ACGT'), 1, { ends }), toCodes('TTACGGTTT'), 0, 9, false);
+    expect(run1('local_best_last')).toEqual([[2, 7, 1]]);
+    expect(run1('local_best_first')).toEqual([[2, 5, 1]]);
+    expect(run1('all').map((h) => h[1])).toEqual([5, 6, 7]);
   });
 
   it("takes a run's last end or its first: a mismatch at the pattern's end as a substitution or a deletion", () => {
     const at = (ends: ApproximateEnds, pattern: string, text: string) =>
       run(approximateMatcher(toCodes(pattern), 1, { ends }), toCodes(text), 0, text.length, false);
     // The story's cases: RHSWV over RHSVVV, ATGGCC over ATGGCT.
-    expect(at("local_best_last", "RHSWV", "TFRHSVVVPY")).toEqual([[2, 7, 1]]);
-    expect(at("local_best_first", "RHSWV", "TFRHSVVVPY")).toEqual([[2, 6, 1]]);
-    expect(at("local_best_last", "ATGGCC", "CCATGGCTAA")).toEqual([[2, 8, 1]]);
-    expect(at("local_best_first", "ATGGCC", "CCATGGCTAA")).toEqual([[2, 7, 1]]);
+    expect(at('local_best_last', 'RHSWV', 'TFRHSVVVPY')).toEqual([[2, 7, 1]]);
+    expect(at('local_best_first', 'RHSWV', 'TFRHSVVVPY')).toEqual([[2, 6, 1]]);
+    expect(at('local_best_last', 'ATGGCC', 'CCATGGCTAA')).toEqual([[2, 8, 1]]);
+    expect(at('local_best_first', 'ATGGCC', 'CCATGGCTAA')).toEqual([[2, 7, 1]]);
     // A deletion of the pattern's last letter: the first end reads it so, the last a substitution after it.
-    expect(at("local_best_first", "ACGTA", "GGACGTCC")).toEqual([[2, 6, 1]]);
-    expect(at("local_best_last", "ACGTA", "GGACGTCC")).toEqual([[2, 7, 1]]);
+    expect(at('local_best_first', 'ACGTA', 'GGACGTCC')).toEqual([[2, 6, 1]]);
+    expect(at('local_best_last', 'ACGTA', 'GGACGTCC')).toEqual([[2, 7, 1]]);
   });
 
-  it("has no hits for an empty pattern, a pattern longer than the text, or an empty window, and checks its options", () => {
-    expect(run(approximateMatcher(new Uint8Array(0), 2), toCodes("ACGT"), 0, 4, true)).toEqual([]);
-    expect(run(approximateMatcher(toCodes("ACGTACGT"), 1), toCodes("ACGT"), 0, 4, false)).toEqual([]);
-    expect(run(approximateMatcher(toCodes("A"), 0), toCodes("ACGT"), 2, 2, false)).toEqual([]);
-    expect(approximateMatcher(toCodes("ACGT"), 3).length).toBe(7);
-    expect(() => approximateMatcher(toCodes("ACGT"), 4)).toThrow(RangeError);
-    expect(() => approximateMatcher(toCodes("ACGT"), -1)).toThrow(RangeError);
-    expect(() => approximateMatcher(toCodes("ACGT"), 1.5)).toThrow(RangeError);
-    expect(() => approximateMatcher(toCodes("ACGT"), 1, { equal: Uint8Array.of(65) })).toThrow(RangeError);
-    expect(() => approximateMatcher(toCodes("ACGT"), 1, { ends: "local-best" as ApproximateEnds })).toThrow(RangeError);
+  it('has no hits for an empty pattern, a pattern longer than the text, or an empty window, and checks its options', () => {
+    expect(run(approximateMatcher(new Uint8Array(0), 2), toCodes('ACGT'), 0, 4, true)).toEqual([]);
+    expect(run(approximateMatcher(toCodes('ACGTACGT'), 1), toCodes('ACGT'), 0, 4, false)).toEqual([]);
+    expect(run(approximateMatcher(toCodes('A'), 0), toCodes('ACGT'), 2, 2, false)).toEqual([]);
+    expect(approximateMatcher(toCodes('ACGT'), 3).length).toBe(7);
+    expect(() => approximateMatcher(toCodes('ACGT'), 4)).toThrow(RangeError);
+    expect(() => approximateMatcher(toCodes('ACGT'), -1)).toThrow(RangeError);
+    expect(() => approximateMatcher(toCodes('ACGT'), 1.5)).toThrow(RangeError);
+    expect(() => approximateMatcher(toCodes('ACGT'), 1, { equal: Uint8Array.of(65) })).toThrow(RangeError);
+    expect(() => approximateMatcher(toCodes('ACGT'), 1, { ends: 'local-best' as ApproximateEnds })).toThrow(RangeError);
   });
 });
 
-describe("textIndex", () => {
+describe('textIndex', () => {
   /** The reference: a plain array of [key, id], sorted by key then id. */
   class Reference {
     pairs: [string, number][] = [];
     add(id: number, text: string) {
-      const key = text.normalize("NFKC").toLowerCase();
+      const key = text.normalize('NFKC').toLowerCase();
       // GM-08: a text added again for its id is held once.
       if (!this.pairs.some(([k, i]) => k === key && i === id)) this.pairs.push([key, id]);
     }
@@ -532,23 +532,23 @@ describe("textIndex", () => {
     return out;
   };
 
-  it("interleaves add, remove and queries against a sorted array", () => {
+  it('interleaves add, remove and queries against a sorted array', () => {
     const next = generator(8);
     const words = [
-      "",
-      "a",
-      "ab",
-      "abc",
-      "b",
-      "Ab",
-      "ABC",
-      "été",
-      "Été",
-      "Ångström",
-      "ångström",
-      "ﬁsh",
-      "ｆｉｓｈ",
-      "z",
+      '',
+      'a',
+      'ab',
+      'abc',
+      'b',
+      'Ab',
+      'ABC',
+      'été',
+      'Été',
+      'Ångström',
+      'ångström',
+      'ﬁsh',
+      'ｆｉｓｈ',
+      'z',
     ];
     const index = textIndex();
     const ref = new Reference();
@@ -558,7 +558,7 @@ describe("textIndex", () => {
       if (op < 5) {
         const count = 1 + next(5);
         const ids = Int32Array.from({ length: count + 2 }, () => nextId++ % 40);
-        const texts = Array.from({ length: count + 2 }, () => words[next(words.length)] + (next(3) === 0 ? "x" : ""));
+        const texts = Array.from({ length: count + 2 }, () => words[next(words.length)] + (next(3) === 0 ? 'x' : ''));
         index.add(ids, texts, 1, count);
         for (let i = 1; i < 1 + count; i++) ref.add(ids[i], texts[i]);
       } else if (op < 7) {
@@ -568,7 +568,7 @@ describe("textIndex", () => {
         ref.remove(new Set(ids.subarray(0, count)));
       } else {
         const q = words[next(words.length)];
-        const key = q.normalize("NFKC").toLowerCase();
+        const key = q.normalize('NFKC').toLowerCase();
         const sorted = ref.sorted();
         expect(collect((v) => index.exact(q, v))).toEqual(sorted.filter(([k]) => k === key).map(([, id]) => id));
         expect(collect((v) => index.prefix(q, v))).toEqual(
@@ -581,44 +581,44 @@ describe("textIndex", () => {
     }
   });
 
-  it("normalizes keys and queries: compatibility forms, case and accents of precomposed letters", () => {
+  it('normalizes keys and queries: compatibility forms, case and accents of precomposed letters', () => {
     const index = textIndex();
-    index.add(Int32Array.of(1, 2, 3, 4), ["Ångström", "ＡＢＣ", "ﬁsh", "Zeta"], 0, 4);
-    expect(collect((v) => index.prefix("ångs", v))).toEqual([1]);
-    expect(collect((v) => index.prefix("Ångs", v))).toEqual([1]);
-    expect(collect((v) => index.exact("abc", v))).toEqual([2]);
-    expect(collect((v) => index.prefix("FI", v))).toEqual([3]);
+    index.add(Int32Array.of(1, 2, 3, 4), ['Ångström', 'ＡＢＣ', 'ﬁsh', 'Zeta'], 0, 4);
+    expect(collect((v) => index.prefix('ångs', v))).toEqual([1]);
+    expect(collect((v) => index.prefix('Ångs', v))).toEqual([1]);
+    expect(collect((v) => index.exact('abc', v))).toEqual([2]);
+    expect(collect((v) => index.prefix('FI', v))).toEqual([3]);
     // In order of the keys' code units: "ångström" comes last.
-    expect(collect((v) => index.prefix("", v))).toEqual([2, 3, 4, 1]);
-    expect(collect((v) => index.exact("ab", v))).toEqual([]);
+    expect(collect((v) => index.prefix('', v))).toEqual([2, 3, 4, 1]);
+    expect(collect((v) => index.exact('ab', v))).toEqual([]);
     expect(collect((v) => index.matches(/e.a$/g, v))).toEqual([4]);
   });
 
   it("takes the caller's normalization, and keeps several texts under one id", () => {
     const index = textIndex({ normalize: (s) => s });
-    index.add(Int32Array.of(7, 7, 8), ["Gene", "gene", "Gene"], 0, 3);
-    expect(collect((v) => index.exact("Gene", v))).toEqual([7, 8]);
-    expect(collect((v) => index.exact("gene", v))).toEqual([7]);
+    index.add(Int32Array.of(7, 7, 8), ['Gene', 'gene', 'Gene'], 0, 3);
+    expect(collect((v) => index.exact('Gene', v))).toEqual([7, 8]);
+    expect(collect((v) => index.exact('gene', v))).toEqual([7]);
     index.remove(Int32Array.of(7), 1);
-    expect(collect((v) => index.prefix("", v))).toEqual([8]);
+    expect(collect((v) => index.prefix('', v))).toEqual([8]);
     index.remove(Int32Array.of(8), 0);
     expect(index.size).toBe(1);
   });
 
-  it("GM-08: a text added again for its id (a region fetched again) is held once", () => {
+  it('GM-08: a text added again for its id (a region fetched again) is held once', () => {
     const index = textIndex();
-    index.add(Int32Array.of(1, 2, 1), ["BRCA1", "TP53", "brca1"], 0, 3);
+    index.add(Int32Array.of(1, 2, 1), ['BRCA1', 'TP53', 'brca1'], 0, 3);
     expect(index.size).toBe(2);
-    index.add(Int32Array.of(1), ["BRCA1"], 0, 1);
-    expect(collect((v) => index.exact("brca1", v))).toEqual([1]);
+    index.add(Int32Array.of(1), ['BRCA1'], 0, 1);
+    expect(collect((v) => index.exact('brca1', v))).toEqual([1]);
     expect(index.size).toBe(2);
     index.remove(Int32Array.of(1), 1);
-    expect(collect((v) => index.prefix("", v))).toEqual([2]);
+    expect(collect((v) => index.prefix('', v))).toEqual([2]);
   });
 });
 
 // Wall-clock bounds over 3 million nucleotides: the slow tier (the oracles above check the matchers' results).
-describe("large inputs", { tags: ["slow"] }, () => {
+describe('large inputs', { tags: ['slow'] }, () => {
   const N = 3_000_000;
   let seq: Uint8Array = new Uint8Array(0);
   let pattern = seq;
@@ -635,7 +635,7 @@ describe("large inputs", { tags: ["slow"] }, () => {
     return { hits, ms: performance.now() - t };
   };
 
-  it("finds a 20-mer in 3 million nucleotides, exactly, by class and with 2 edits, in a bounded time", () => {
+  it('finds a 20-mer in 3 million nucleotides, exactly, by class and with 2 edits, in a bounded time', () => {
     const exact = timed(exactMatcher(pattern));
     expect(exact.hits).toContainEqual([1_234_567, 1_234_587, 0]);
     const sets = Array.from(pattern, (c) => Uint8Array.of(c));
@@ -650,7 +650,7 @@ describe("large inputs", { tags: ["slow"] }, () => {
     expect(approx.ms).toBeLessThan(2000);
   });
 
-  it("searches a 60-letter pattern with 3 edits (two blocks) in 3 million nucleotides in a bounded time", () => {
+  it('searches a 60-letter pattern with 3 edits (two blocks) in 3 million nucleotides in a bounded time', () => {
     const long = seq.slice(2_000_000, 2_000_060);
     const approx = timed(approximateMatcher(long, 3));
     expect(approx.hits).toContainEqual([2_000_000, 2_000_060, 0]);

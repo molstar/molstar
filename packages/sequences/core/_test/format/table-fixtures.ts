@@ -10,7 +10,7 @@
 // chromosomes whose `target` is dictionary-coded (seqspec:format#positions), as the synthetic genome's GC table with
 // `gcTable: "one"`, built as plain data with no builder.
 
-import type { SeqViewSpecDoc } from "../../src/format/index.js";
+import type { SeqViewSpecDoc } from '../../src/format/index.js';
 
 // biome-ignore lint/suspicious/noExplicitAny: documents are edited freely as JSON.
 type J = any;
@@ -38,38 +38,38 @@ export function codedDoc(n: number, o: CodedOptions = {}): SeqViewSpecDoc {
   const value = new Float64Array(n);
   for (let i = 0; i < n; i++) value[i] = (i % 100) / 100;
   const gc = {
-    kind: "annotation",
-    ref: "gc",
-    params: { geometry: "values", value: { target: { dict, codes }, value } },
+    kind: 'annotation',
+    ref: 'gc',
+    params: { geometry: 'values', value: { target: { dict, codes }, value } },
   };
   const doc: J = {
-    format: "seq_view_spec",
-    version: "1.0.0",
+    format: 'seq_view_spec',
+    version: '1.0.0',
     root: {
-      kind: "root",
+      kind: 'root',
       children: [
         {
-          kind: "data",
+          kind: 'data',
           children: [
-            ...CHROMOSOMES.map((ref) => ({ kind: "sequence", ref, params: { alphabet: "dna", value: "ACGT" } })),
+            ...CHROMOSOMES.map((ref) => ({ kind: 'sequence', ref, params: { alphabet: 'dna', value: 'ACGT' } })),
             gc,
           ],
         },
         {
-          kind: "view",
-          ref: "v",
-          params: { label: "Genome" },
+          kind: 'view',
+          ref: 'v',
+          params: { label: 'Genome' },
           children: [
             {
-              kind: "section",
-              ref: "s",
+              kind: 'section',
+              ref: 's',
               children: [
-                ...CHROMOSOMES.map((c) => ({ kind: "block", ref: `b.${c}`, params: { sequence: c } })),
+                ...CHROMOSOMES.map((c) => ({ kind: 'block', ref: `b.${c}`, params: { sequence: c } })),
                 {
-                  kind: "track",
-                  ref: "t",
-                  params: { label: "GC" },
-                  children: [{ kind: "layer", ref: "l", params: { type: "values", data: "gc" } }],
+                  kind: 'track',
+                  ref: 't',
+                  params: { label: 'GC' },
+                  children: [{ kind: 'layer', ref: 'l', params: { type: 'values', data: 'gc' } }],
                 },
               ],
             },
@@ -79,7 +79,7 @@ export function codedDoc(n: number, o: CodedOptions = {}): SeqViewSpecDoc {
     },
     snapshots: Array.from({ length: o.snapshots ?? 0 }, (_, k) => ({
       ref: `s${k}`,
-      ops: [{ op: "set", ref: "t", params: { hidden: k % 2 === 0 } }],
+      ops: [{ op: 'set', ref: 't', params: { hidden: k % 2 === 0 } }],
     })),
   };
   return doc;
@@ -101,7 +101,7 @@ export function countingCodes(codes: number[]): { codes: number[]; reads: () => 
   let reads = 0;
   const proxy = new Proxy(codes, {
     get(target, key, receiver) {
-      if (typeof key === "string" && /^[0-9]+$/.test(key)) reads++;
+      if (typeof key === 'string' && /^[0-9]+$/.test(key)) reads++;
       return Reflect.get(target, key, receiver);
     },
   });

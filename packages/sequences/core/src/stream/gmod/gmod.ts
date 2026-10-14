@@ -14,12 +14,12 @@ import {
   StreamNotServed,
   type StreamProvider,
   type StreamSource,
-} from "@molstar/seq-core/format";
-import { bigBedProvider } from "./bigbed.js";
-import { bigWigProvider } from "./bigwig.js";
-import { fetchRanges, type RangeReader } from "./ranges.js";
-import { type VcfIndex, vcfProvider } from "./tabix.js";
-import { twoBitProvider } from "./twobit.js";
+} from '@molstar/seq-core/format';
+import { bigBedProvider } from './bigbed.js';
+import { bigWigProvider } from './bigwig.js';
+import { fetchRanges, type RangeReader } from './ranges.js';
+import { type VcfIndex, vcfProvider } from './tabix.js';
+import { twoBitProvider } from './twobit.js';
 
 /**
  * A file a host serves for a source: its format and its reads. A VCF's index file is read whole, by `index`: its
@@ -27,15 +27,15 @@ import { twoBitProvider } from "./twobit.js";
  * a source needs, so its manifest reads only their sizes (CB-07).
  */
 export type GmodFile =
-  | { format: "2bit"; read: RangeReader; only?: (name: string) => boolean }
-  | { format: "bigwig" | "bigbed"; read: RangeReader }
-  | { format: "vcf"; read: RangeReader; index: VcfIndex; info?: string[] };
+  | { format: '2bit'; read: RangeReader; only?: (name: string) => boolean }
+  | { format: 'bigwig' | 'bigbed'; read: RangeReader }
+  | { format: 'vcf'; read: RangeReader; index: VcfIndex; info?: string[] };
 
 /** The reader of a file; BigWig and BigBed share their container, so a mismatched file is an error at its manifest. */
 export function gmodProvider(file: GmodFile): StreamProvider {
-  if (file.format === "vcf") return vcfProvider(file.read, file.index, { info: file.info });
-  if (file.format === "2bit") return twoBitProvider(file.read, { only: file.only });
-  return file.format === "bigwig" ? bigWigProvider(file.read) : bigBedProvider(file.read);
+  if (file.format === 'vcf') return vcfProvider(file.read, file.index, { info: file.info });
+  if (file.format === '2bit') return twoBitProvider(file.read, { only: file.only });
+  return file.format === 'bigwig' ? bigWigProvider(file.read) : bigBedProvider(file.read);
 }
 
 /** A `loaders.stream` over `open`, which maps a source to its file (null: not served here), over HTTP ranges by default. */
@@ -51,9 +51,9 @@ export function gmodStream(open: (source: StreamSource) => GmodFile | null) {
  * after a failure, and an answer other than 2xx is that failure (CB-06: a 404 body was parsed as an index, and one
  * failure failed the source for good).
  */
-export function httpFile(format: GmodFile["format"], url: string): GmodFile {
+export function httpFile(format: GmodFile['format'], url: string): GmodFile {
   const read = fetchRanges(url);
-  if (format !== "vcf") return { format, read } as GmodFile;
+  if (format !== 'vcf') return { format, read } as GmodFile;
   // Under the open's signal: an open every request left stops its download (LA-36).
   const index = async (signal?: AbortSignal) => {
     const r = await fetch(`${url}.tbi`, { signal });
@@ -74,8 +74,8 @@ export function renamed(p: StreamProvider, name: (fileName: string) => string | 
     async fetch(r, signal) {
       if (r.system === null) {
         const patch = await p.fetch(r, signal);
-        if (patch.kind !== "manifest") return patch;
-        const systems: Manifest["systems"] = [];
+        if (patch.kind !== 'manifest') return patch;
+        const systems: Manifest['systems'] = [];
         for (const x of patch.manifest.systems) {
           const key = name(x.key);
           if (key === null) continue;
@@ -94,7 +94,7 @@ export function renamed(p: StreamProvider, name: (fileName: string) => string | 
 
 /** UCSC's names for a file's (Ensembl and NCBI's): `1` → `chr1`, `MT` → `chrM`; a `chr` name kept; others left out. */
 export function chrNames(fileName: string): string | null {
-  if (fileName.startsWith("chr")) return fileName;
-  if (fileName === "MT") return "chrM";
+  if (fileName.startsWith('chr')) return fileName;
+  if (fileName === 'MT') return 'chrM';
   return /^([1-9]|1[0-9]|2[0-2]|X|Y)$/.test(fileName) ? `chr${fileName}` : null;
 }

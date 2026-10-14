@@ -10,8 +10,8 @@
 // showing a document, its first section mounted in a host of a given size, the pixels of any canvas read back, and the
 // comparison of two captures (premultiplied, the way the canvas stores them).
 
-import type { Loaders, SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { mountSection, type SectionSurface } from "../../src/canvas/index.js";
+import type { Loaders, SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { mountSection, type SectionSurface } from '../../src/canvas/index.js';
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -21,8 +21,8 @@ import {
   type RenderProps,
   type SeqViewerContext,
   type SeqViewerRegistryEntry,
-} from "../../src/index.js";
-import { fixtureMeasurer } from "../../src/testing/index.js";
+} from '../../src/index.js';
+import { fixtureMeasurer } from '../../src/testing/index.js';
 
 export interface Opened {
   ctx: SeqViewerContext;
@@ -82,8 +82,8 @@ export async function opened(
   const r = await ctx.setDocument(doc);
   if (!r.ok) throw new Error(JSON.stringify(r.issues));
   const section = ctx.viewports.sections.value[o.section ?? 0];
-  const host = document.createElement("div");
-  host.style.cssText = `width:${o.width ?? 800}px;height:${o.height ?? 300}px;${HOST};${o.style ?? ""}`;
+  const host = document.createElement('div');
+  host.style.cssText = `width:${o.width ?? 800}px;height:${o.height ?? 300}px;${HOST};${o.style ?? ''}`;
   (o.parent ?? document.body).appendChild(host);
   const surface = mountSection(ctx, section, host, {
     dpr: o.dpr ?? 1,
@@ -111,11 +111,11 @@ export function settle(t: Opened) {
 }
 
 /** The surface's canvases, by `Pass`: main, overlay, navigator, its overlay, vertical overview, its overlay. */
-export const canvasesOf = (t: Opened) => Array.from(t.surface.element.querySelectorAll("canvas"));
+export const canvasesOf = (t: Opened) => Array.from(t.surface.element.querySelectorAll('canvas'));
 export const pixelsOf = (c: HTMLCanvasElement) =>
   c.width * c.height === 0
     ? new Uint8ClampedArray(0)
-    : (c.getContext("2d") as CanvasRenderingContext2D).getImageData(0, 0, c.width, c.height).data.slice();
+    : (c.getContext('2d') as CanvasRenderingContext2D).getImageData(0, 0, c.width, c.height).data.slice();
 
 /**
  * Pixels differing between two captures, compared premultiplied (as the canvas stores them) by more than `tolerance`

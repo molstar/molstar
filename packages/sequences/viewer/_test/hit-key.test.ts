@@ -9,11 +9,11 @@
 // The hover element's key (seqspec:interaction#input-events): `HIT_ELEMENT` and the straight-line `HitKey` cannot drift
 // apart.
 
-import { describe, expect, it } from "vitest";
-import { HIT_ELEMENT, HitKey } from "../src/hit.js";
-import { Hit } from "../src/index.js";
+import { describe, expect, it } from 'vitest';
+import { HIT_ELEMENT, HitKey } from '../src/hit.js';
+import { Hit } from '../src/index.js';
 
-describe("HitKey", () => {
+describe('HitKey', () => {
   it("writes the named fields in order, then the system's kind, id and row", () => {
     const h = Hit.create();
     const k = new Int32Array(HitKey.SIZE);
@@ -27,7 +27,7 @@ describe("HitKey", () => {
     expect(HitKey.same(h, k)).toBe(true);
   });
 
-  it("changing any one field of the list, or any slot of the system, is a new element", () => {
+  it('changing any one field of the list, or any slot of the system, is a new element', () => {
     const k = new Int32Array(HitKey.SIZE);
     const h = Hit.create();
     HitKey.write(h, k);
@@ -39,7 +39,7 @@ describe("HitKey", () => {
       h[name] = was;
       expect([name, HitKey.same(h, k)]).toEqual([name, true]);
     }
-    for (const slot of ["kind", "id", "row"] as const) {
+    for (const slot of ['kind', 'id', 'row'] as const) {
       h.system[slot] += 1;
       expect([slot, HitKey.same(h, k)]).toEqual([slot, false]);
       h.system[slot] -= 1;
@@ -51,7 +51,7 @@ describe("HitKey", () => {
     expect(HitKey.same(h, k)).toBe(true);
   });
 
-  it("-2 matches no hit: after a leave or a cancel, the next move is a new element", () => {
+  it('-2 matches no hit: after a leave or a cancel, the next move is a new element', () => {
     const k = new Int32Array(HitKey.SIZE).fill(-2);
     expect(HitKey.same(Hit.create(), k)).toBe(false);
   });

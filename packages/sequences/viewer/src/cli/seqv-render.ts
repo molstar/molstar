@@ -19,24 +19,24 @@
 // `svs.provider.unavailable`) or sources still loading after `--timeout` ms (default 120,000), each said on stderr, so
 // a script can tell a figure with holes from none. Runs with Node's type stripping.
 
-import { readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { deflateSync } from "node:zlib";
-import { type Loaders, readDocument } from "@molstar/seq-core/format";
-import { DefaultFontMetrics, metricsMeasurer, renderSvg } from "../svg/index.js";
-import { rasterizeSvg } from "./rasterize.js";
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { deflateSync } from 'node:zlib';
+import { type Loaders, readDocument } from '@molstar/seq-core/format';
+import { DefaultFontMetrics, metricsMeasurer, renderSvg } from '../svg/index.js';
+import { rasterizeSvg } from './rasterize.js';
 
-const FLAGS = new Set(["--overlay", "--nav", "--background", "--png"]);
+const FLAGS = new Set(['--overlay', '--nav', '--background', '--png']);
 const OPTIONS = new Set([
-  "--view",
-  "--width",
-  "--scale",
-  "--sections",
-  "--title",
-  "--gap",
-  "--root",
-  "--timeout",
-  "-o",
+  '--view',
+  '--width',
+  '--scale',
+  '--sections',
+  '--title',
+  '--gap',
+  '--root',
+  '--timeout',
+  '-o',
 ]);
 const args = process.argv.slice(2);
 const flags = new Set<string>();
@@ -47,15 +47,15 @@ for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (FLAGS.has(a)) flags.add(a);
   else if (OPTIONS.has(a) && i + 1 < args.length) opt.set(a, args[++i]);
-  else if (a.startsWith("-")) bad = true;
+  else if (a.startsWith('-')) bad = true;
   else files.push(a);
 }
 const num = (name: string, fallback: number) => (opt.has(name) ? Number(opt.get(name)) : fallback);
 const [width, scale, gap, timeout] = [
-  num("--width", 1200),
-  num("--scale", 1),
-  num("--gap", 8),
-  num("--timeout", 120_000),
+  num('--width', 1200),
+  num('--scale', 1),
+  num('--gap', 8),
+  num('--timeout', 120_000),
 ];
 if (
   bad ||
@@ -65,8 +65,8 @@ if (
   scale === 0
 ) {
   console.error(
-    "usage: seqv-render <document.svsj|.svsm> [--view <ref>] [--width 1200] [--scale 1] [--sections a,b] [--overlay] [--nav]\n" +
-      "                   [--background] [--title <text>] [--gap 8] [--root <dir>] [--timeout 120000] [--png] [-o <file>]",
+    'usage: seqv-render <document.svsj|.svsm> [--view <ref>] [--width 1200] [--scale 1] [--sections a,b] [--overlay] [--nav]\n' +
+      '                   [--background] [--title <text>] [--gap 8] [--root <dir>] [--timeout 120000] [--png] [-o <file>]',
   );
   process.exit(2);
 }
@@ -78,7 +78,7 @@ try {
   console.error(`seqv-render: ${e instanceof Error ? e.message : e}`);
   process.exit(2);
 }
-const root = resolve(opt.get("--root") ?? dirname(resolve(files[0])));
+const root = resolve(opt.get('--root') ?? dirname(resolve(files[0])));
 /** A source's file inside `--root` (links resolved, so none leads out); else it is refused, as the network is. */
 const inside = (where: string) => {
   // A path that is not there: its nearest existing folder resolved, the rest appended (a missing file is "not
@@ -93,16 +93,16 @@ const inside = (where: string) => {
   };
   const p = real(resolve(root, where));
   const r = relative(real(root), p);
-  if (r === ".." || r.startsWith(`..${sep}`) || isAbsolute(r))
-    throw new Error("seqv-render reads no file outside --root");
+  if (r === '..' || r.startsWith(`..${sep}`) || isAbsolute(r))
+    throw new Error('seqv-render reads no file outside --root');
   return p;
 };
 let failed = false;
 const loaders: Loaders = {
   async load(request) {
-    const where = request.hostFile ?? request.uri ?? "";
+    const where = request.hostFile ?? request.uri ?? '';
     try {
-      if (/^[a-z][a-z0-9+.-]*:\/\//i.test(where)) throw new Error("seqv-render does not use the network");
+      if (/^[a-z][a-z0-9+.-]*:\/\//i.test(where)) throw new Error('seqv-render does not use the network');
       return readFileSync(inside(where));
     } catch (e) {
       failed = true;
@@ -114,17 +114,17 @@ const loaders: Loaders = {
 
 try {
   const { doc, issues } = readDocument(bytes);
-  if (!doc) throw new Error(`not a document: ${issues.map((i) => i.message).join("; ")}`);
+  if (!doc) throw new Error(`not a document: ${issues.map((i) => i.message).join('; ')}`);
   const svg = await renderSvg(doc, {
     width,
     scale,
     gap,
-    view: opt.get("--view"),
-    sections: opt.get("--sections")?.split(","),
-    overlay: flags.has("--overlay"),
-    nav: flags.has("--nav"),
-    background: flags.has("--background"),
-    title: opt.get("--title"),
+    view: opt.get('--view'),
+    sections: opt.get('--sections')?.split(','),
+    overlay: flags.has('--overlay'),
+    nav: flags.has('--nav'),
+    background: flags.has('--background'),
+    title: opt.get('--title'),
     loaders,
     ports: { measurer: metricsMeasurer(DefaultFontMetrics), deflate: (b) => deflateSync(b) },
     timeout,
@@ -137,14 +137,14 @@ try {
     // A warning or an error is data left out (an info is a note on how valid input was read).
     issues: (list) => {
       for (const i of list)
-        if (i.severity !== "info") {
+        if (i.severity !== 'info') {
           failed = true;
-          console.error(`seqv-render: ${i.severity} ${i.code}${i.ref ? ` (${i.ref})` : ""}: ${i.message}`);
+          console.error(`seqv-render: ${i.severity} ${i.code}${i.ref ? ` (${i.ref})` : ''}: ${i.message}`);
         }
     },
   });
-  const out = opt.get("-o");
-  const png = flags.has("--png") || out?.endsWith(".png");
+  const out = opt.get('-o');
+  const png = flags.has('--png') || out?.endsWith('.png');
   const data = png ? await rasterizeSvg(svg) : svg;
   if (out) writeFileSync(out, data);
   else process.stdout.write(data);

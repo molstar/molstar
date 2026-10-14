@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import styles from "./choices.module.css";
-import { Tooltip } from "./tooltip.js";
+import styles from './choices.module.css';
+import { Tooltip } from './tooltip.js';
 
 export interface Choice {
   id: string;

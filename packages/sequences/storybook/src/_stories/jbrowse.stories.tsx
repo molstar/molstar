@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Loaders, StreamProvider } from "@molstar/seq-core/format";
+import type { Loaders, StreamProvider } from '@molstar/seq-core/format';
 import {
   bigBedProvider,
   bigWigProvider,
@@ -15,18 +15,18 @@ import {
   renamed,
   twoBitProvider,
   vcfProvider,
-} from "@molstar/seq-core/stream/gmod";
-import { SeqCommands, SeqViewerConfig } from "@molstar/seq-viewer";
-import { useLiveVersion, useSeqViewer } from "@molstar/seq-viewer/react";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect, useMemo, useState } from "react";
-import { GRCH38 } from "../../../core/_test/format/stream-provider.js";
-import { JBROWSE_SECTION, jbrowseDoc } from "../../../viewer/_test/jbrowse-story-fixtures.js";
-import f from "./support/seqstar-format.module.css";
-import { IDEOGRAM_REGISTRY } from "./support/seqstar-ideogram.js";
-import { PrismPage } from "./support/seqstar-prism.js";
-import { ViewerCard } from "./support/seqstar-viewer.js";
-import { TextAction } from "./ui/index.js";
+} from '@molstar/seq-core/stream/gmod';
+import { SeqCommands, SeqViewerConfig } from '@molstar/seq-viewer';
+import { useLiveVersion, useSeqViewer } from '@molstar/seq-viewer/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useEffect, useMemo, useState } from 'react';
+import { GRCH38 } from '../../../core/_test/format/stream-provider.js';
+import { JBROWSE_SECTION, jbrowseDoc } from '../../../viewer/_test/jbrowse-story-fixtures.js';
+import f from './support/seqstar-format.module.css';
+import { IDEOGRAM_REGISTRY } from './support/seqstar-ideogram.js';
+import { PrismPage } from './support/seqstar-prism.js';
+import { ViewerCard } from './support/seqstar-viewer.js';
+import { TextAction } from './ui/index.js';
 
 /**
  * The genome browser demo: hg38 as JBrowse 2's own demo serves it, read **live**
@@ -35,21 +35,21 @@ import { TextAction } from "./ui/index.js";
  * tabix VCF (named `1`, `MT`: mapped to `chr1`, `chrM` by `renamed` and `chrNames`). Everything is asked by view, the
  * VCF's dense regions through the zoom gate (counts, then finer regions where a pixel holds 16 positions or fewer).
  */
-const meta = { title: "Seq*/Cases/Genome browser", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Cases/Genome browser', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj<{ shimmerFps: number }>;
 
-const UCSC = "https://hgdownload.soe.ucsc.edu";
+const UCSC = 'https://hgdownload.soe.ucsc.edu';
 const FILES = {
   genome: `${UCSC}/goldenPath/hg38/bigZips/hg38.2bit`,
   gc: `${UCSC}/gbdb/hg38/bbi/gc5BaseBw/gc5Base.bw`,
   genes: `${UCSC}/gbdb/hg38/gencode/gencodeV50.bb`,
-  clinvar: "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/archive_2.0/2024/clinvar_20240107.vcf.gz",
+  clinvar: 'https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/archive_2.0/2024/clinvar_20240107.vcf.gz',
 };
 /** The primary assembly's chromosomes and their lengths (the VCF's index has none), chrM's from the 2bit. */
-const LENGTHS = new Map<string, number>([...GRCH38.map(([k, n]) => [k, n] as [string, number]), ["chrM", 16_569]]);
+const LENGTHS = new Map<string, number>([...GRCH38.map(([k, n]) => [k, n] as [string, number]), ['chrM', 16_569]]);
 const primary = (name: string) => (LENGTHS.has(name) ? name : null);
-const CLASSES = ["coding", "nonCoding", "pseudo"];
+const CLASSES = ['coding', 'nonCoding', 'pseudo'];
 
 /** The four providers, made once per page (each keeps its own small caches of the file it reads). */
 let made: Record<string, StreamProvider> | null = null;
@@ -58,7 +58,7 @@ function providers(): Record<string, StreamProvider> {
     genome: twoBitProvider(fetchRanges(FILES.genome), { only: (n) => LENGTHS.has(n) }),
     gc: renamed(bigWigProvider(fetchRanges(FILES.gc)), primary),
     genes: renamed(
-      bigBedProvider(fetchRanges(FILES.genes), { label: "geneName", category: "transcriptClass", vocabulary: CLASSES }),
+      bigBedProvider(fetchRanges(FILES.genes), { label: 'geneName', category: 'transcriptClass', vocabulary: CLASSES }),
       primary,
     ),
     clinvar: renamed(
@@ -66,8 +66,8 @@ function providers(): Record<string, StreamProvider> {
         fetchRanges(FILES.clinvar),
         fetch(`${FILES.clinvar}.tbi`).then(async (r) => new Uint8Array(await r.arrayBuffer())),
         {
-          info: ["CLNSIG", "CLNDN", "GENEINFO"],
-          lengths: Object.fromEntries([...LENGTHS].map(([k, n]) => [k === "chrM" ? "MT" : k.slice(3), n])),
+          info: ['CLNSIG', 'CLNDN', 'GENEINFO'],
+          lengths: Object.fromEntries([...LENGTHS].map(([k, n]) => [k === 'chrM' ? 'MT' : k.slice(3), n])),
         },
       ),
       chrNames,
@@ -76,18 +76,18 @@ function providers(): Record<string, StreamProvider> {
   return made;
 }
 const loaders: Loaders = {
-  load: () => Promise.reject(new Error("no files")),
+  load: () => Promise.reject(new Error('no files')),
   stream: (src) => (src.stream ? (providers()[src.stream] ?? null) : null),
 };
 
 /** Places to go: a gene's locus, an exon at letter zoom, a whole chromosome (its zoom levels and the gates' hints). */
 const PLACES: [string, string, number, number][] = [
-  ["TP53", "chr17", 7_661_779, 7_687_538],
-  ["TP53 exon 5", "chr17", 7_675_990, 7_676_290],
-  ["BRCA1", "chr17", 43_044_295, 43_125_483],
-  ["chr17 whole", "chr17", 0, 83_257_441],
-  ["CFTR", "chr7", 117_480_025, 117_668_665],
-  ["HBB", "chr11", 5_225_464, 5_229_395],
+  ['TP53', 'chr17', 7_661_779, 7_687_538],
+  ['TP53 exon 5', 'chr17', 7_675_990, 7_676_290],
+  ['BRCA1', 'chr17', 43_044_295, 43_125_483],
+  ['chr17 whole', 'chr17', 0, 83_257_441],
+  ['CFTR', 'chr7', 117_480_025, 117_668_665],
+  ['HBB', 'chr11', 5_225_464, 5_229_395],
 ];
 
 function Panel({ chr, onChromosome, shimmerFps }: { chr: string; onChromosome(p: number): void; shimmerFps: number }) {
@@ -101,7 +101,7 @@ function Panel({ chr, onChromosome, shimmerFps }: { chr: string; onChromosome(p:
     if (name === chr) ctx.viewports.get(JBROWSE_SECTION)?.zoomTo(0, a, e);
     else onChromosome(k);
   };
-  const retry = () => void ctx.commands.run({ command: SeqCommands.Retry.id, params: {} }, "api");
+  const retry = () => void ctx.commands.run({ command: SeqCommands.Retry.id, params: {} }, 'api');
   return (
     <div className={f.stack}>
       <div className={f.row}>
@@ -113,7 +113,7 @@ function Panel({ chr, onChromosome, shimmerFps }: { chr: string; onChromosome(p:
         <TextAction onClick={retry}>Retry failed regions</TextAction>
       </div>
       <div className={f.code}>
-        {st.requests} regions asked, {st.inFlight} in flight, {st.cancelled} cancelled, {st.errors} failed;{" "}
+        {st.requests} regions asked, {st.inFlight} in flight, {st.cancelled} cancelled, {st.errors} failed;{' '}
         {(st.bytes / 1024 / 1024).toFixed(1)} MiB held
       </div>
     </div>
@@ -128,9 +128,9 @@ function Card({ shimmerFps }: { shimmerFps: number }) {
     () => ({
       loaders,
       maxHeight: 520,
-      navigator: "ideogram",
+      navigator: 'ideogram',
       registry: IDEOGRAM_REGISTRY,
-      parts: ["TrackActions"] as const,
+      parts: ['TrackActions'] as const,
     }),
     [],
   );
@@ -147,11 +147,11 @@ function Card({ shimmerFps }: { shimmerFps: number }) {
 }
 
 export const Live: Story = {
-  name: "hg38, live",
+  name: 'hg38, live',
   args: { shimmerFps: 30 },
   argTypes: {
     shimmerFps: {
-      control: { type: "range", min: 0, max: 60, step: 5 },
+      control: { type: 'range', min: 0, max: 60, step: 5 },
       description: "`Stream.ShimmerFps`: the skeletons' shimmer, frames a second (0: a still band)",
     },
   },

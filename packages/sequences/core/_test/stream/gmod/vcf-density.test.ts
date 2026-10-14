@@ -11,11 +11,11 @@
 // one chromosome of records every 100 positions, each carrying `width` hex digits of INFO, so a record's bytes differ
 // between the two files by far more than the fixed figure's margin.
 
-import { crc32, deflateRawSync } from "node:zlib";
-import type { StreamRequest } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { type RangeReader, vcfProvider } from "../../../src/stream/gmod/index.js";
-import { req } from "./cases.js";
+import { crc32, deflateRawSync } from 'node:zlib';
+import type { StreamRequest } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { type RangeReader, vcfProvider } from '../../../src/stream/gmod/index.js';
+import { req } from './cases.js';
 
 const signal = new AbortController().signal;
 const N = 3000;
@@ -38,7 +38,7 @@ function block(data: Uint8Array): Uint8Array {
 /** A pseudo-random hex string (incompressible past its alphabet: about half a byte a digit). */
 function hex(seed: number, n: number): string {
   let x = seed * 2654435761;
-  let s = "";
+  let s = '';
   for (let i = 0; i < n; i++) {
     x = (Math.imul(x, 1103515245) + 12345) | 0;
     s += ((x >>> 16) & 15).toString(16);
@@ -52,7 +52,7 @@ function build(width: number, first: number) {
   const groups = [lines.slice(0, first)];
   for (let i = first; i < N; i += 100) groups.push(lines.slice(i, i + 100));
   const enc = new TextEncoder();
-  const blocks = groups.map((g, k) => block(enc.encode((k === 0 ? HEADER : "") + g.join(""))));
+  const blocks = groups.map((g, k) => block(enc.encode((k === 0 ? HEADER : '') + g.join(''))));
   const at = [0];
   for (const b of blocks) at.push(at[at.length - 1] + b.length);
   const file = new Uint8Array(at[at.length - 1]);
@@ -69,7 +69,7 @@ function build(width: number, first: number) {
   dv.setInt32(4, 1, true);
   dv.setInt32(8, 2, true);
   [dv.setInt32(12, 1, true), dv.setInt32(16, 2, true), dv.setInt32(24, 35, true), dv.setInt32(32, 5, true)];
-  bytes.set(enc.encode("chr1\0"), 36);
+  bytes.set(enc.encode('chr1\0'), 36);
   let o = 41;
   const put = (v: number) => {
     dv.setUint32(o, v % 2 ** 32, true);
@@ -97,16 +97,16 @@ function reader(file: Uint8Array): RangeReader & { reads: [number, number][] } {
   return read;
 }
 
-const at = (start: number, stop: number): StreamRequest => ({ ...req("chr1", start, stop), max_bytes: 1 });
+const at = (start: number, stop: number): StreamRequest => ({ ...req('chr1', start, stop), max_bytes: 1 });
 /** The estimated count the provider gives for [start, stop): the sum of its bins (a data request gated by bytes). */
 async function estimated(p: ReturnType<typeof vcfProvider>, start: number, stop: number): Promise<number> {
   const got = await p.fetch(at(start, stop), signal);
-  if (got.kind !== "bins") throw new Error("not bins");
+  if (got.kind !== 'bins') throw new Error('not bins');
   return Array.from(got.bins.count as ArrayLike<number>).reduce((a, b) => a + b, 0);
 }
 
 describe("the VCF's bytes a record, measured from the file", () => {
-  it("estimates a file of wide records and a file of narrow ones to within a fifth of their counts", async () => {
+  it('estimates a file of wide records and a file of narrow ones to within a fifth of their counts', async () => {
     for (const width of [8, 70]) {
       const f = build(width, 0);
       const p = vcfProvider(reader(f.file), f.index);
@@ -129,7 +129,7 @@ describe("the VCF's bytes a record, measured from the file", () => {
     expect(fixed).toBeGreaterThan(1400);
     // A region read (forced) measures the blocks it holds.
     const items = await p.fetch({ ...at(150_000, 200_000), force: true }, signal);
-    expect(items.kind).toBe("items");
+    expect(items.kind).toBe('items');
     const measured = await estimated(p, 60_000, 160_000);
     expect(measured).toBeGreaterThan(800);
     expect(measured).toBeLessThan(1200);

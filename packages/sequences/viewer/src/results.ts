@@ -12,13 +12,13 @@
 // current one. Results are held as given and carried to every new set as the selection's loci are. Bookmarks step
 // through a set of their own (`bookmarks:<section>`, not lit: their band lights them). Edge rate: a set, a step.
 
-import type { SeqSet } from "@molstar/seq-core/model";
-import { SeqSelection } from "@molstar/seq-core/model/query";
-import type { FocusManager } from "./focus.js";
-import type { HighlightManager } from "./highlight.js";
-import { carry, type SeqLociAny } from "./lineage.js";
-import { type Coordinates, isCoordinates } from "./projection.js";
-import { type Origin, type SeqState, state } from "./state.js";
+import type { SeqSet } from '@molstar/seq-core/model';
+import { SeqSelection } from '@molstar/seq-core/model/query';
+import type { FocusManager } from './focus.js';
+import type { HighlightManager } from './highlight.js';
+import { carry, type SeqLociAny } from './lineage.js';
+import { type Coordinates, isCoordinates } from './projection.js';
+import { type Origin, type SeqState, state } from './state.js';
 
 export type Result = SeqLociAny | Coordinates;
 export interface ResultsState {
@@ -32,7 +32,7 @@ export interface ResultsState {
 }
 export interface ResultsOptions {
   /** How every result lights (default `highlight`); the current one is always accented. */
-  readonly style?: "highlight" | "accent";
+  readonly style?: 'highlight' | 'accent';
   readonly labels?: readonly string[];
   readonly section?: string | null;
   /** False: not lit as a set (another channel lights them); the current one still is. Default true. */
@@ -62,7 +62,7 @@ export interface ResultsManager {
 interface Held {
   results: readonly Result[];
   state: ResultsState;
-  readonly style: "highlight" | "accent";
+  readonly style: 'highlight' | 'accent';
   readonly light: boolean;
 }
 
@@ -106,14 +106,14 @@ export class Results implements ResultsManager {
   set(name: string, results: readonly Result[] | null, opts: ResultsOptions = {}) {
     if (!results) return this.clear(name);
     const st = { name, count: results.length, index: -1, labels: opts.labels ?? [], section: opts.section ?? null };
-    this.held.set(name, { results, state: st, style: opts.style ?? "highlight", light: opts.light ?? true });
+    this.held.set(name, { results, state: st, style: opts.style ?? 'highlight', light: opts.light ?? true });
     this.highlight.clear(`results:${name}:current`);
     this.light(name);
     this.publish(name);
   }
 
   step(dir: 1 | -1, opts: { name?: string; origin?: Origin } = {}) {
-    const h = this.held.get(opts.name ?? this.current.value?.name ?? "");
+    const h = this.held.get(opts.name ?? this.current.value?.name ?? '');
     const n = h?.state.count ?? 0;
     if (!h || n === 0) return;
     const i = h.state.index;
@@ -140,8 +140,8 @@ export class Results implements ResultsManager {
     if (!h || !r) return;
     h.state = { ...h.state, index };
     const section = h.state.section;
-    this.highlight.set(`results:${name}:current`, r, { style: "accent", section });
-    this.focus.fromLoci(r, { ...(section ? { section } : {}), origin: opts.origin ?? "api" });
+    this.highlight.set(`results:${name}:current`, r, { style: 'accent', section });
+    this.focus.fromLoci(r, { ...(section ? { section } : {}), origin: opts.origin ?? 'api' });
     this.publish(name);
   }
 
@@ -182,9 +182,9 @@ export class Results implements ResultsManager {
       this.light(name);
       sets.set(name, h.state);
     }
-    this.sets.set(sets, "graph");
+    this.sets.set(sets, 'graph');
     const current = this.current.value && this.held.get(this.current.value.name);
-    if (current && current.state !== this.current.value) this.current.set(current.state, "graph");
+    if (current && current.state !== this.current.value) this.current.set(current.state, 'graph');
   }
 
   private light(name: string) {

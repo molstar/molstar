@@ -13,11 +13,11 @@
 // resize, as a rail drag makes it, where what the page paints in every frame is a whole frame at the host's size, never
 // blank and never a frame behind.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { afterEach, describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared, type DprHost, SectionSurface, watchDpr } from "../../src/canvas/index.js";
-import { type DrawResources, SkinToken } from "../../src/draw/backend.js";
-import { Dirty, SectionComposer } from "../../src/draw/index.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { afterEach, describe, expect, it } from 'vitest';
+import { Canvas2DBackend, Canvas2DShared, type DprHost, SectionSurface, watchDpr } from '../../src/canvas/index.js';
+import { type DrawResources, SkinToken } from '../../src/draw/backend.js';
+import { Dirty, SectionComposer } from '../../src/draw/index.js';
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -26,10 +26,10 @@ import {
   type Scheduler,
   type SeqViewerContext,
   type Skin,
-} from "../../src/index.js";
-import { fixtureMeasurer } from "../../src/testing/index.js";
-import { glyphTableOf } from "../../src/themes.js";
-import { scaleDoc } from "../prepare-fixtures.js";
+} from '../../src/index.js';
+import { fixtureMeasurer } from '../../src/testing/index.js';
+import { glyphTableOf } from '../../src/themes.js';
+import { scaleDoc } from '../prepare-fixtures.js';
 
 const open: { ctx: SeqViewerContext; host: HTMLElement; surface: SectionSurface }[] = [];
 afterEach(() => {
@@ -56,7 +56,7 @@ async function mount(doc: unknown, w: number, h: number, o: { dpr?: number; page
   const r = await ctx.setDocument(doc as never);
   if (!r.ok) throw new Error(JSON.stringify(r.issues));
   await ctx.graph.update();
-  const host = document.createElement("div");
+  const host = document.createElement('div');
   host.style.cssText = `position:absolute;left:0;top:0;width:${w}px;height:${h}px`;
   document.body.appendChild(host);
   const section = ctx.viewports.sections.value[o.section ?? 0];
@@ -64,15 +64,15 @@ async function mount(doc: unknown, w: number, h: number, o: { dpr?: number; page
   open.push({ ctx, host, surface });
   return { ctx, host, surface, section, scheduler };
 }
-const canvases = (s: SectionSurface) => Array.from(s.element.querySelectorAll("canvas"));
+const canvases = (s: SectionSurface) => Array.from(s.element.querySelectorAll('canvas'));
 const pixels = (c: HTMLCanvasElement) =>
-  (c.getContext("2d") as CanvasRenderingContext2D).getImageData(0, 0, c.width, c.height).data;
+  (c.getContext('2d') as CanvasRenderingContext2D).getImageData(0, 0, c.width, c.height).data;
 
 function resources(ctx: SeqViewerContext): DrawResources {
   const glyphs = glyphTableOf(ctx.registry);
   return {
     font: (id) => ctx.text.fontString(id),
-    fontPx: (id) => Number.parseFloat(ctx.text.fontString(id).split(" ")[1]),
+    fontPx: (id) => Number.parseFloat(ctx.text.fontString(id).split(' ')[1]),
     token: (t) => {
       const name = Object.entries(SkinToken).find(([, id]) => id === t)?.[0] as keyof Skin;
       return ctx.skin.value[name] as string;
@@ -83,7 +83,7 @@ function resources(ctx: SeqViewerContext): DrawResources {
 /** A fresh composer's whole tracks frame at the context's current view, through a back target, as pixels. */
 function reference(ctx: SeqViewerContext, section: string, W: number, H: number) {
   const c = new OffscreenCanvas(W, H);
-  const g = c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+  const g = c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
   const composer = new SectionComposer(ctx, section);
   composer.frame(new Canvas2DBackend([g], new Canvas2DShared(resources(ctx))), Dirty.tracks);
   composer.dispose();
@@ -99,36 +99,36 @@ function differing(a: Uint8ClampedArray, b: Uint8ClampedArray): number {
 /** Genes and variants over two blocks: the tracks once seen to blink. */
 const genome = () => scaleDoc({ length: 40_000, ranges: 600, variants: 800 });
 
-describe("accessibility of a surface mounted on its own (VB-09)", () => {
+describe('accessibility of a surface mounted on its own (VB-09)', () => {
   it("is a named group with the role description, its name the section's label, kept up to date", async () => {
     const { ctx, surface, section } = await mount(genome(), 600, 200);
     const el = surface.element;
-    expect([el.tabIndex, el.getAttribute("role"), el.getAttribute("aria-roledescription")]).toEqual([
+    expect([el.tabIndex, el.getAttribute('role'), el.getAttribute('aria-roledescription')]).toEqual([
       0,
-      "group",
-      "sequence view",
+      'group',
+      'sequence view',
     ]);
-    const label = el.getAttribute("aria-label");
+    const label = el.getAttribute('aria-label');
     expect(label).toBeTruthy();
     await ctx.applyPatch({
-      format: "seq_view_spec_patch",
-      ops: [{ op: "set", ref: section, params: { label: "Renamed" } }],
+      format: 'seq_view_spec_patch',
+      ops: [{ op: 'set', ref: section, params: { label: 'Renamed' } }],
     });
-    expect(el.getAttribute("aria-label")).toBe("Renamed");
+    expect(el.getAttribute('aria-label')).toBe('Renamed');
   });
 });
 
-describe("frame scheduling", () => {
-  it("events between two frames ask for one frame, drawn with all their flags; none while paused", async () => {
+describe('frame scheduling', () => {
+  it('events between two frames ask for one frame, drawn with all their flags; none while paused', async () => {
     const t = await mount(genome(), 800, 300, { dpr: 1 });
     const sch = t.scheduler as ReturnType<typeof manualScheduler>;
-    t.ctx.viewports.get(t.section)?.setView(0.5, 0, "api");
+    t.ctx.viewports.get(t.section)?.setView(0.5, 0, 'api');
     sch.advance(0);
     const frames = t.surface.stats.frames;
     expect(sch.pendingFrames).toBe(0);
-    t.ctx.highlight.set("probe", { systems: ["seqstar:chr0"], runs: Int32Array.of(0, 100, 200) });
-    t.ctx.selection.set({ kind: "seq", seq: { chr0: [[300, 310]] } } as never, "api");
-    t.ctx.viewports.get(t.section)?.panBy(30, 0, "api");
+    t.ctx.highlight.set('probe', { systems: ['seqstar:chr0'], runs: Int32Array.of(0, 100, 200) });
+    t.ctx.selection.set({ kind: 'seq', seq: { chr0: [[300, 310]] } } as never, 'api');
+    t.ctx.viewports.get(t.section)?.panBy(30, 0, 'api');
     t.ctx.ui.setKeyCursor(null);
     expect(sch.pendingFrames).toBe(1);
     const tracks = t.surface.composer.stats.copies + t.surface.composer.stats.fullDraws;
@@ -136,7 +136,7 @@ describe("frame scheduling", () => {
     expect(t.surface.stats.frames).toBe(frames + 1);
     expect(t.surface.composer.stats.copies + t.surface.composer.stats.fullDraws).toBe(tracks + 1);
     t.ctx.setActive(false);
-    t.ctx.viewports.get(t.section)?.panBy(30, 0, "api");
+    t.ctx.viewports.get(t.section)?.panBy(30, 0, 'api');
     sch.advance(0);
     expect([sch.pendingFrames, t.surface.stats.frames]).toEqual([0, frames + 1]);
     t.ctx.setActive(true);
@@ -145,45 +145,45 @@ describe("frame scheduling", () => {
     expect(t.surface.stats.frames).toBe(frames + 2);
   });
 
-  it("a section that leaves the document and comes back is drawn on its new viewport and layout", async () => {
+  it('a section that leaves the document and comes back is drawn on its new viewport and layout', async () => {
     const doc = (second: boolean) => {
       const b = createSeqViewSpec();
-      const a = b.data.sequence({ ref: "a", value: "MKVLATGHEKWRSPQIDNCY".repeat(20) });
-      const v = b.view({ ref: "v", label: "V" });
-      v.section({ ref: "s1" }).block({ sequence: a }).track({ label: "L" }).letters();
-      if (second) v.section({ ref: "s2" }).block({ sequence: a }).track({ label: "L" }).letters();
+      const a = b.data.sequence({ ref: 'a', value: 'MKVLATGHEKWRSPQIDNCY'.repeat(20) });
+      const v = b.view({ ref: 'v', label: 'V' });
+      v.section({ ref: 's1' }).block({ sequence: a }).track({ label: 'L' }).letters();
+      if (second) v.section({ ref: 's2' }).block({ sequence: a }).track({ label: 'L' }).letters();
       return b.getDocument();
     };
     const t = await mount(doc(true), 700, 200, { dpr: 1, section: 1 });
     const sch = t.scheduler as ReturnType<typeof manualScheduler>;
     sch.advance(0);
-    const before = [t.ctx.viewports.get("s2"), t.ctx.layout.get("s2")];
+    const before = [t.ctx.viewports.get('s2'), t.ctx.layout.get('s2')];
     await t.ctx.setDocument(doc(false));
     sch.advance(0);
     await t.ctx.setDocument(doc(true));
     await t.ctx.graph.update();
     sch.advance(0);
-    const vp = t.ctx.viewports.get("s2");
-    expect([vp, t.ctx.layout.get("s2")].map((x, k) => x !== before[k] && x !== null)).toEqual([true, true]);
+    const vp = t.ctx.viewports.get('s2');
+    expect([vp, t.ctx.layout.get('s2')].map((x, k) => x !== before[k] && x !== null)).toEqual([true, true]);
     expect(vp?.live.current.width).toBe(700);
     const [main] = canvases(t.surface);
-    expect(differing(pixels(main), reference(t.ctx, "s2", main.width, main.height))).toBe(0);
+    expect(differing(pixels(main), reference(t.ctx, 's2', main.width, main.height))).toBe(0);
     // Bound to the new viewport: a pan draws.
-    vp?.setView(14, 0, "api");
+    vp?.setView(14, 0, 'api');
     sch.advance(0);
     const drawn = t.surface.composer.stats.copies + t.surface.composer.stats.fullDraws;
-    vp?.panBy(40, 0, "api");
+    vp?.panBy(40, 0, 'api');
     sch.advance(0);
     expect(t.surface.composer.stats.copies + t.surface.composer.stats.fullDraws).toBe(drawn + 1);
   });
 });
 
-describe("size and DPR", () => {
+describe('size and DPR', () => {
   it("each canvas is the layout's size times the DPR, shown at the layout's CSS size", async () => {
     for (const dpr of [1, 1.5, 2]) {
       const t = await mount(genome(), 701, 263, { dpr });
       const l = t.ctx.layout.get(t.section)?.current;
-      if (!l) throw new Error("no layout");
+      if (!l) throw new Error('no layout');
       const [main, over, nav] = canvases(t.surface);
       for (const c of [main, over]) expect([c.width, c.height]).toEqual([Math.ceil(701 * dpr), Math.ceil(263 * dpr)]);
       expect(nav.height).toBe(Math.ceil(l.navHeight * dpr));
@@ -191,7 +191,7 @@ describe("size and DPR", () => {
     }
   });
 
-  it("watchDpr follows changes with no size change, its query re-armed at each", () => {
+  it('watchDpr follows changes with no size change, its query re-armed at each', () => {
     const queries: { q: string; on: (() => void) | null }[] = [];
     const win = {
       devicePixelRatio: 1,
@@ -216,20 +216,20 @@ describe("size and DPR", () => {
     queries[1].on?.();
     expect(seen).toEqual([2, 1.25]);
     expect(queries.map((m) => [m.q, m.on !== null])).toEqual([
-      ["(resolution: 1dppx)", false],
-      ["(resolution: 2dppx)", false],
-      ["(resolution: 1.25dppx)", true],
+      ['(resolution: 1dppx)', false],
+      ['(resolution: 2dppx)', false],
+      ['(resolution: 1.25dppx)', true],
     ]);
     stop();
     expect(queries[2].on).toBeNull();
   });
 
-  it("a surface redraws at a new DPR with no size change", async () => {
-    const real = Object.getOwnPropertyDescriptor(window, "devicePixelRatio");
+  it('a surface redraws at a new DPR with no size change', async () => {
+    const real = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio');
     const realMatch = window.matchMedia;
     let fire: (() => void) | null = null;
     let dpr = 1;
-    Object.defineProperty(window, "devicePixelRatio", { configurable: true, get: () => dpr });
+    Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: () => dpr });
     window.matchMedia = (() =>
       ({
         addEventListener: (_: string, f: () => void) => {
@@ -247,7 +247,7 @@ describe("size and DPR", () => {
       expect(differing(pixels(main), reference(t.ctx, t.section, 1200, 480))).toBe(0);
     } finally {
       window.matchMedia = realMatch;
-      if (real) Object.defineProperty(window, "devicePixelRatio", real);
+      if (real) Object.defineProperty(window, 'devicePixelRatio', real);
     }
   });
 
@@ -255,7 +255,7 @@ describe("size and DPR", () => {
     it(`a 30-frame resize paints a whole frame at the host's size in every frame (DPR ${dpr})`, async () => {
       const t = await mount(genome(), 900, 300, { dpr, page: true });
       const vp = t.ctx.viewports.get(t.section);
-      vp?.setView(0.02, 0, "api");
+      vp?.setView(0.02, 0, 'api');
       await t.ctx.graph.update();
       await nextFrame();
       await nextFrame();

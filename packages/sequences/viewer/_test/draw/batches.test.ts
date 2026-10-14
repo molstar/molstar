@@ -9,7 +9,7 @@
 // The batches (seqspec:viewer#the-render-backend): they grow, keep their room across resets, carry colors per item,
 // and append ranges (the recording's stores and its replay).
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   GlyphBatch,
   NO_COLOR,
@@ -23,10 +23,10 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.js";
+} from '../../src/draw/api.js';
 
-describe("RectBatch", () => {
-  it("grows past its capacity with every item kept, and keeps its arrays across resets", () => {
+describe('RectBatch', () => {
+  it('grows past its capacity with every item kept, and keeps its arrays across resets', () => {
     const b = new RectBatch(4);
     b.begin(0x112233, 128, 2);
     for (let i = 0; i < 10; i++) b.push(i, i * 2, 3, 4);
@@ -46,7 +46,7 @@ describe("RectBatch", () => {
     expect(b.stroke[0]).toBe(0);
   });
 
-  it("colors follow `begin`; appended ranges carry their own colors", () => {
+  it('colors follow `begin`; appended ranges carry their own colors', () => {
     const a = new RectBatch(2);
     a.begin(1);
     a.push(0, 0, 1, 1);
@@ -64,8 +64,8 @@ describe("RectBatch", () => {
   });
 });
 
-describe("double batches", () => {
-  it("write through the slot `add` returns, and grow", () => {
+describe('double batches', () => {
+  it('write through the slot `add` returns, and grow', () => {
     const s = new SectorBatch(1);
     s.begin(7, 9);
     for (let i = 0; i < 5; i++) s.push(i, 0, 1, 2, 0.5, 1.5);
@@ -83,26 +83,26 @@ describe("double batches", () => {
     expect([g.glyph[0], g.glyph[1], g.x[0], g.radius[1], g.color[1]]).toEqual([5, 2, 1.25, 4, 3]);
   });
 
-  it("text holds references to the strings it was given, one style per batch", () => {
+  it('text holds references to the strings it was given, one style per batch', () => {
     const t = new TextBatch(1);
     t.style(3, TextAlign.right, TextBaseline.top, Math.PI / 2);
-    const label = "Kinase domain";
+    const label = 'Kinase domain';
     t.begin(0xff0000, 100);
     t.push(1.5, 2.5, label);
     t.begin(SkinToken.inkQuiet);
-    t.push(3, 4, "x");
+    t.push(3, 4, 'x');
     expect(t.n).toBe(2);
     expect(t.text[0]).toBe(label);
     expect([t.font, t.align, t.baseline, t.angle]).toEqual([3, TextAlign.right, TextBaseline.top, Math.PI / 2]);
     expect([t.color[0], t.alpha[0], t.color[1], t.alpha[1]]).toEqual([0xff0000, 100, SkinToken.inkQuiet, 255]);
     const copy = new TextBatch(1);
     copy.append(t, 1, 1);
-    expect(copy.text[0]).toBe("x");
+    expect(copy.text[0]).toBe('x');
   });
 });
 
-describe("PathBatch", () => {
-  it("keeps subpaths with their styles, verbs and coordinates, and appends a range with its offsets", () => {
+describe('PathBatch', () => {
+  it('keeps subpaths with their styles, verbs and coordinates, and appends a range with its offsets', () => {
     const p = new PathBatch(1);
     p.begin(1, 255, PathMode.stroke, 3);
     p.moveTo(0, 0);

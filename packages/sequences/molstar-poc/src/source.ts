@@ -10,25 +10,25 @@
 // `StructureSource` that the `molstar:structure` complex provider, the structure providers and a host's 3D view share.
 // No canvas, no plugin.
 
-import { CIF, type CifFrame } from "molstar/lib/mol-io/reader/cif";
-import { parseMol2 } from "molstar/lib/mol-io/reader/mol2/parser";
-import { parsePDB } from "molstar/lib/mol-io/reader/pdb/parser";
-import { parseSdf } from "molstar/lib/mol-io/reader/sdf/parser";
-import { type Model, Structure, type Trajectory } from "molstar/lib/mol-model/structure";
-import { StructureSymmetry } from "molstar/lib/mol-model/structure/structure/symmetry";
-import { ArrayTrajectory } from "molstar/lib/mol-model/structure/trajectory";
-import { trajectoryFromMmCIF } from "molstar/lib/mol-model-formats/structure/mmcif";
-import { trajectoryFromMol2 } from "molstar/lib/mol-model-formats/structure/mol2";
-import { trajectoryFromPDB } from "molstar/lib/mol-model-formats/structure/pdb";
-import { trajectoryFromSdf } from "molstar/lib/mol-model-formats/structure/sdf";
-import { Task } from "molstar/lib/mol-task/index";
+import { CIF, type CifFrame } from 'molstar/lib/mol-io/reader/cif';
+import { parseMol2 } from 'molstar/lib/mol-io/reader/mol2/parser';
+import { parsePDB } from 'molstar/lib/mol-io/reader/pdb/parser';
+import { parseSdf } from 'molstar/lib/mol-io/reader/sdf/parser';
+import { type Model, Structure, type Trajectory } from 'molstar/lib/mol-model/structure';
+import { StructureSymmetry } from 'molstar/lib/mol-model/structure/structure/symmetry';
+import { ArrayTrajectory } from 'molstar/lib/mol-model/structure/trajectory';
+import { trajectoryFromMmCIF } from 'molstar/lib/mol-model-formats/structure/mmcif';
+import { trajectoryFromMol2 } from 'molstar/lib/mol-model-formats/structure/mol2';
+import { trajectoryFromPDB } from 'molstar/lib/mol-model-formats/structure/pdb';
+import { trajectoryFromSdf } from 'molstar/lib/mol-model-formats/structure/sdf';
+import { Task } from 'molstar/lib/mol-task/index';
 
-export type StructureFormat = "mmcif" | "bcif" | "pdb" | "sdf" | "mol2";
-export const STRUCTURE_FORMATS: readonly StructureFormat[] = ["mmcif", "bcif", "pdb", "sdf", "mol2"];
+export type StructureFormat = 'mmcif' | 'bcif' | 'pdb' | 'sdf' | 'mol2';
+export const STRUCTURE_FORMATS: readonly StructureFormat[] = ['mmcif', 'bcif', 'pdb', 'sdf', 'mol2'];
 
 /** A parsed structure file: its trajectory, its CIF block (for categories) and its structures, each made once. */
 export interface StructureSource {
-  readonly kind: "molstar:structure-source";
+  readonly kind: 'molstar:structure-source';
   readonly format: StructureFormat;
   readonly trajectory: Trajectory;
   /** The CIF data block, null for PDB, SDF and MOL2. */
@@ -38,12 +38,12 @@ export interface StructureSource {
 }
 
 const isSource = (v: unknown): v is StructureSource =>
-  typeof v === "object" && v !== null && (v as StructureSource).kind === "molstar:structure-source";
+  typeof v === 'object' && v !== null && (v as StructureSource).kind === 'molstar:structure-source';
 export const StructureSource = {
   is: isSource,
   /** A source over a trajectory a host parsed itself (its 3D view's), so `Loaders.parsed` can hand it on. */
   of(trajectory: Trajectory, format: StructureFormat, frame: CifFrame | null = null): StructureSource {
-    return { kind: "molstar:structure-source", format, trajectory, frame, structures: new Map() };
+    return { kind: 'molstar:structure-source', format, trajectory, frame, structures: new Map() };
   },
 };
 
@@ -51,7 +51,7 @@ async function frameOf(bytes: Uint8Array, binary: boolean): Promise<CifFrame> {
   const parsed = await (binary ? CIF.parseBinary(bytes) : CIF.parseText(new TextDecoder().decode(bytes))).run();
   if (parsed.isError) throw new Error(`not a CIF file: ${parsed.message}`);
   const block = parsed.result.blocks[0];
-  if (!block) throw new Error("the CIF file has no data block");
+  if (!block) throw new Error('the CIF file has no data block');
   return block;
 }
 
@@ -70,16 +70,16 @@ export function readStructure(bytes: Uint8Array, format: StructureFormat): Promi
 
 async function parse(bytes: Uint8Array, format: StructureFormat): Promise<StructureSource> {
   const text = () => new TextDecoder().decode(bytes);
-  if (format === "mmcif" || format === "bcif") {
-    const frame = await frameOf(bytes, format === "bcif");
+  if (format === 'mmcif' || format === 'bcif') {
+    const frame = await frameOf(bytes, format === 'bcif');
     return StructureSource.of(await trajectoryFromMmCIF(frame).run(), format, frame);
   }
-  if (format === "pdb") {
-    const parsed = await parsePDB(text(), "structure").run();
+  if (format === 'pdb') {
+    const parsed = await parsePDB(text(), 'structure').run();
     if (parsed.isError) throw new Error(`not a PDB file: ${parsed.message}`);
     return StructureSource.of(await trajectoryFromPDB(parsed.result).run(), format);
   }
-  if (format === "sdf") {
+  if (format === 'sdf') {
     const parsed = await parseSdf(text()).run();
     if (parsed.isError) throw new Error(`not an SDF file: ${parsed.message}`);
     const models: Model[] = [];
@@ -87,10 +87,10 @@ async function parse(bytes: Uint8Array, format: StructureFormat): Promise<Struct
       const t = await trajectoryFromSdf(compound).run();
       for (let i = 0; i < t.frameCount; i++) models.push(await modelAt(t, i));
     }
-    if (!models.length) throw new Error("the SDF file has no compound");
+    if (!models.length) throw new Error('the SDF file has no compound');
     return StructureSource.of(new ArrayTrajectory(models), format);
   }
-  const parsed = await parseMol2(text(), "structure").run();
+  const parsed = await parseMol2(text(), 'structure').run();
   if (parsed.isError) throw new Error(`not a MOL2 file: ${parsed.message}`);
   return StructureSource.of(await trajectoryFromMol2(parsed.result).run(), format);
 }

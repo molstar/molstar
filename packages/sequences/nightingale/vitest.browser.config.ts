@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { playwright } from "@vitest/browser-playwright";
-import { defineConfig } from "vitest/config";
-import { browserTests } from "../vitest.shared.js";
+import { playwright } from '@vitest/browser-playwright';
+import { defineConfig } from 'vitest/config';
+import { browserTests } from '../vitest.shared.js';
 
 export default defineConfig(browserTests(playwright));

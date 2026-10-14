@@ -18,7 +18,7 @@ export {
   leaking,
   SCALED_LIMIT,
   type Scaling,
-} from "../../core/_test/model/heap.js";
+} from '../../core/_test/model/heap.js';
 
 // The frame guards' shared run (the conformance kit's and the composer's): a frame is warmed by count (`FRAME_WARM`) and,
 // where the draws compile concurrently, by time (`FRAME_WARM_MS`), then measured over `FRAME_N` steps and `4 * FRAME_N`.
@@ -27,7 +27,7 @@ export {
 // `HEAP_DEEP=1` (`test:heap-deep`) runs the guards as before the trim: the full steps and warm-ups, which catch about
 // 22 bytes a step (the trimmed run about 43), and the cases the trim dropped.
 export const HEAP_DEEP =
-  (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.HEAP_DEEP === "1";
+  (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.HEAP_DEEP === '1';
 export const FRAME_N = HEAP_DEEP ? 1_000 : 500;
 // The warm-up stays as before the trim in both modes: at 1 s and 1,000 frames the ring's and the composer's pan guards
 // failed most runs (code still compiling), which cost more than the seconds saved (2026-10-12).
@@ -66,7 +66,7 @@ export function warmFrame(frame: () => void): void {
  */
 export function settleFrame(frame: () => void, ms: number): void {
   const gc = (globalThis as { gc?: () => void }).gc;
-  if (!gc) throw new Error("Run with --expose-gc (the heap config: pnpm test:heap).");
+  if (!gc) throw new Error('Run with --expose-gc (the heap config: pnpm test:heap).');
   const t0 = performance.now();
   let settled = 0;
   while (settled < 2 && performance.now() - t0 < ms) {

@@ -12,8 +12,8 @@
 // the colors of the track chosen for it, the highlights, the selection); host actions for the hover card and the track
 // menu; and the link between a viewer and a 3D view over `ctx.systems`.
 
-import { equal } from "@molstar/seq-core/format";
-import { type Annotation, Annotations, Extents, KeyKind, type Loci } from "@molstar/seq-core/model";
+import { equal } from '@molstar/seq-core/format';
+import { type Annotation, Annotations, Extents, KeyKind, type Loci } from '@molstar/seq-core/model';
 import {
   type ActionEntry,
   type Coordinates,
@@ -24,19 +24,19 @@ import {
   type SeqViewerContext,
   ThemeLocation,
   type ViewModel,
-} from "@molstar/seq-viewer";
-import { OrderedSet } from "molstar/lib/mol-data/int";
-import { StructureElement } from "molstar/lib/mol-model/structure";
-import { type ComposeInput, complexOf, composeStructureMvs, type StructureRef } from "./compose.js";
-import type { StructureLink } from "./link.js";
-import type { MolstarDefaults } from "./mvs.js";
-import { complexUnits } from "./seq-units.js";
+} from '@molstar/seq-viewer';
+import { OrderedSet } from 'molstar/lib/mol-data/int';
+import { StructureElement } from 'molstar/lib/mol-model/structure';
+import { type ComposeInput, complexOf, composeStructureMvs, type StructureRef } from './compose.js';
+import type { StructureLink } from './link.js';
+import type { MolstarDefaults } from './mvs.js';
+import { complexUnits } from './seq-units.js';
 
-const hex = (c: number) => `#${c.toString(16).padStart(6, "0")}`;
-const COLOR_TYPES = new Set(["ranges", "values", "color", "points", "variants", "emphasis", "secondary", "letters"]);
+const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
+const COLOR_TYPES = new Set(['ranges', 'values', 'color', 'points', 'variants', 'emphasis', 'secondary', 'letters']);
 
 /** An item as "Show in 3D" reads it: the viewer's `ItemTarget` (the hover card's) or its annotation and item. */
-export type ItemRef = Pick<ItemTarget, "annotation" | "item"> & {
+export type ItemRef = Pick<ItemTarget, 'annotation' | 'item'> & {
   readonly track?: string | null;
   readonly split?: number;
 };
@@ -46,11 +46,11 @@ function annotationOf(view: ViewModel, ref: string): Annotation | null {
   return null;
 }
 const structureField = (view: ViewModel, a: Annotation) => {
-  const id = view.set.strings.find("structure");
+  const id = view.set.strings.find('structure');
   const f = a.fields.find((x) => x.name === id);
-  return f?.kind === "json" ? (f.data as readonly (StructureRef | null | undefined)[]) : null;
+  return f?.kind === 'json' ? (f.data as readonly (StructureRef | null | undefined)[]) : null;
 };
-const sameSource = (a: StructureRef["source"], b: StructureRef["source"]) => equal(a, b);
+const sameSource = (a: StructureRef['source'], b: StructureRef['source']) => equal(a, b);
 const sameLoci = (a: StructureElement.Loci | null, b: StructureElement.Loci | null) =>
   a === null || b === null ? a === b : StructureElement.Loci.areEqual(a, b);
 
@@ -79,11 +79,11 @@ export function itemStructure(
 const jsonField = (view: ViewModel, a: Annotation, name: string) => {
   const id = view.set.strings.find(name);
   const f = a.fields.find((x) => x.name === id);
-  return f?.kind === "json" ? (f.data as readonly unknown[]) : null;
+  return f?.kind === 'json' ? (f.data as readonly unknown[]) : null;
 };
 /** Rows that name structures (`structure`, or a list in `structures`) describe structures: they color none. */
 const describesStructures = (view: ViewModel, a: Annotation) =>
-  jsonField(view, a, "structure") !== null || jsonField(view, a, "structures") !== null;
+  jsonField(view, a, 'structure') !== null || jsonField(view, a, 'structures') !== null;
 
 /**
  * The structures a track's data names (its drawn rows' `structure` field, or each one of their `structures`), each
@@ -101,8 +101,8 @@ export function trackStructures(view: ViewModel, track: string): StructureRef[] 
     for (let d = rv.layers.dataStart[i]; d < rv.layers.dataStart[i] + rv.layers.dataCount[i]; d++) {
       const a = view.set.annotations[rv.data[d]];
       if (!a) continue;
-      const one = jsonField(view, a, "structure") as readonly (StructureRef | null)[] | null;
-      const many = jsonField(view, a, "structures") as readonly (readonly StructureRef[] | null)[] | null;
+      const one = jsonField(view, a, 'structure') as readonly (StructureRef | null)[] | null;
+      const many = jsonField(view, a, 'structures') as readonly (readonly StructureRef[] | null)[] | null;
       for (let r = 0; r < a.count; r++) {
         if (rv.kept[d] && !rv.kept[d]?.[r]) continue;
         add(one?.[r]);
@@ -132,12 +132,12 @@ export function layerColors(
   where: RowFilter | null = null,
 ): number {
   const theme = view.prepared[layer]?.themes[0];
-  if (theme?.kind !== "color") return 0;
+  if (theme?.kind !== 'color') return 0;
   const rv = view.resolved;
   const set = view.set;
   const loc = ThemeLocation.create();
   const before = runs.count;
-  if (set.strings.get(rv.layers.type[layer]) === "letters") {
+  if (set.strings.get(rv.layers.type[layer]) === 'letters') {
     const section = rv.tracks.section[rv.layers.track[layer]];
     for (let b = 0; b < rv.blocks.count; b++) {
       const u = rv.blocks.unit[b];
@@ -162,12 +162,12 @@ export function layerColors(
   }
   for (let d = rv.layers.dataStart[layer]; d < rv.layers.dataStart[layer] + rv.layers.dataCount[layer]; d++) {
     const a = set.annotations[rv.data[d]];
-    if (!a || a.geometry === "rows" || a.geometry === "pairs" || describesStructures(view, a)) continue;
+    if (!a || a.geometry === 'rows' || a.geometry === 'pairs' || describesStructures(view, a)) continue;
     // The layer's filter: only the rows it draws.
     const kept = rv.kept[d];
     for (let r = 0; r < a.count; r++) {
       if (kept && !kept[r]) continue;
-      if (where && String(Annotations.rowValue(a, set, r, where.field) ?? "-") !== where.value) continue;
+      if (where && String(Annotations.rowValue(a, set, r, where.field) ?? '-') !== where.value) continue;
       ThemeLocation.reset(loc);
       loc.layer = layer;
       loc.annotation = a.id;
@@ -191,14 +191,14 @@ export function layerColors(
 
 /** Items this long or shorter (residues) are sites: a layer of only such items shows them as sticks in 3D. */
 export const SITE_LENGTH = 3;
-const SITE_TYPES = new Set(["points", "variants"]);
+const SITE_TYPES = new Set(['points', 'variants']);
 
 /** A layer of sites: points or variants by kind, or one whose drawn rows are all at most `SITE_LENGTH` long. */
 function isSiteLayer(view: ViewModel, layer: number): boolean {
   const rv = view.resolved;
   const type = view.set.strings.get(rv.layers.type[layer]);
   if (SITE_TYPES.has(type)) return true;
-  if (type !== "ranges") return false;
+  if (type !== 'ranges') return false;
   let any = false;
   for (let d = rv.layers.dataStart[layer]; d < rv.layers.dataStart[layer] + rv.layers.dataCount[layer]; d++) {
     const a = view.set.annotations[rv.data[d]];
@@ -272,7 +272,7 @@ export interface ComposeOptions {
   readonly selectionLabel?: string;
   /** Highlight channels' color (default `#f2c94c`); null: highlights stay out. */
   readonly highlightColor?: string | null;
-  readonly services?: ComposeInput["services"];
+  readonly services?: ComposeInput['services'];
   /** The 3D canvas's background (the host's surface, light or dark). */
   readonly background?: string;
 }
@@ -302,9 +302,9 @@ export function composeStructureView(
   }
   if (o.highlightColor !== null) {
     const lit: Loci[] = [];
-    for (const e of ctx.highlight.channels.value.values()) if ("set" in e.target) lit.push(e.target as Loci);
+    for (const e of ctx.highlight.channels.value.values()) if ('set' in e.target) lit.push(e.target as Loci);
     const runs = lociRuns(lit);
-    if (runs.count) layers.push({ runs, colors: Array(runs.count).fill(o.highlightColor ?? "#f2c94c") });
+    if (runs.count) layers.push({ runs, colors: Array(runs.count).fill(o.highlightColor ?? '#f2c94c') });
   }
   const sel = ctx.selection.current.value;
   const selected = lociRuns([sel.seq, sel.aligned, sel.rows, sel.items, sel.boundaries] as (Loci | null)[]);
@@ -314,7 +314,7 @@ export function composeStructureView(
     defaults: o.defaults,
     layers,
     selection: selected.count
-      ? { runs: selected, label: o.selectionLabel ?? "Selected in the sequence", color: o.selectionColor }
+      ? { runs: selected, label: o.selectionLabel ?? 'Selected in the sequence', color: o.selectionColor }
       : null,
     services: o.services,
     background: o.background,
@@ -362,7 +362,7 @@ export function splitWhere(view: ViewModel, track: string, value: string): RowFi
   for (let i = 0; i < rv.layers.count; i++) {
     if (view.set.strings.get(rv.tracks.ref[rv.layers.track[i]]) !== track) continue;
     const sp = rv.layers.params[i]?.split as string | { by: string } | null | undefined;
-    const field = typeof sp === "string" ? sp : sp?.by;
+    const field = typeof sp === 'string' ? sp : sp?.by;
     if (field) return { field, value };
   }
   return null;
@@ -376,7 +376,7 @@ export function splitRow(view: ViewModel, track: string, split: number): RowFilt
     if (view.set.strings.get(rv.tracks.ref[rv.layers.track[i]]) !== track) continue;
     const sp = rv.layers.params[i]?.split as string | { by: string } | null | undefined;
     const labels = (view.prepared[i]?.state as { split?: { labels: readonly string[] } } | undefined)?.split?.labels;
-    const field = typeof sp === "string" ? sp : sp?.by;
+    const field = typeof sp === 'string' ? sp : sp?.by;
     if (field && labels && split < labels.length) return { field, value: labels[split] };
   }
   return null;
@@ -393,15 +393,15 @@ export function colorByItemAction(shown: () => Shown | null, show: (s: Shown) =>
     return view && target.track ? splitRow(view, target.track, target.split ?? -1) : null;
   };
   return {
-    name: "molstar:color-3d",
-    title: "Color 3D by this track",
+    name: 'molstar:color-3d',
+    title: 'Color 3D by this track',
     when: (ctx, target) => {
       const s = shown();
       return !!s && !!target.track && colorTracks(ctx, s.structure).some((x) => x.track === target.track);
     },
     titleFor: (ctx, target) => {
       const row = rowOf(ctx, target);
-      return row ? `Color 3D by ${row.value}` : "Color 3D by this track";
+      return row ? `Color 3D by ${row.value}` : 'Color 3D by this track';
     },
     run: (ctx, target) => {
       const s = shown();
@@ -413,14 +413,14 @@ export function colorByItemAction(shown: () => Shown | null, show: (s: Shown) =>
 /** The hover card's button for an item against what 3D shows. */
 export function showTitle(item: StructureRef, shown: Shown | null): string {
   if (!shown || !sameSource(item.source, shown.structure.source) || item.assembly !== shown.structure.assembly) {
-    return "Show in 3D";
+    return 'Show in 3D';
   }
-  const want = item.chains?.length ? [...item.chains].sort().join(", ") : null;
-  const now = shown.structure.chains?.length ? [...shown.structure.chains].sort().join(", ") : null;
-  if (want === now) return "Shown in 3D";
+  const want = item.chains?.length ? [...item.chains].sort().join(', ') : null;
+  const now = shown.structure.chains?.length ? [...shown.structure.chains].sort().join(', ') : null;
+  if (want === now) return 'Shown in 3D';
   // Named by the author's chain IDs, what papers and the PDB's pages use.
-  const name = [...(item.authChains ?? item.chains ?? [])].sort().join(", ");
-  return want ? `Bring chain ${name} to front` : "Show all chains";
+  const name = [...(item.authChains ?? item.chains ?? [])].sort().join(', ');
+  return want ? `Bring chain ${name} to front` : 'Show all chains';
 }
 
 /**
@@ -434,12 +434,12 @@ export function showInStructureAction(show: (s: Shown) => void, shown?: () => Sh
     return view ? itemStructure(view, target) : null;
   };
   return {
-    name: "molstar:show-in-3d",
-    title: "Show in 3D",
+    name: 'molstar:show-in-3d',
+    title: 'Show in 3D',
     when: (ctx, target) => structureOf(ctx, target) !== null,
     titleFor: (ctx, target) => {
       const s = structureOf(ctx, target);
-      return s ? showTitle(s.structure, shown?.() ?? null) : "Show in 3D";
+      return s ? showTitle(s.structure, shown?.() ?? null) : 'Show in 3D';
     },
     run: (ctx, target) => {
       const s = structureOf(ctx, target);
@@ -485,10 +485,10 @@ export function structureTrackActions(o: {
       }),
     ),
     {
-      id: "molstar:color-by",
-      label: "Apply to 3D",
+      id: 'molstar:color-by',
+      label: 'Apply to 3D',
       // On a split row's line, that row alone; on the track's own line, the whole track.
-      labelFor: (_ctx, _section, _track, split) => (split === null ? "Apply to 3D" : `Apply ${split} to 3D`),
+      labelFor: (_ctx, _section, _track, split) => (split === null ? 'Apply to 3D' : `Apply ${split} to 3D`),
       when: (ctx, _section, track, split) => {
         const s = o.shown();
         if (!s) return false;
@@ -543,7 +543,7 @@ export function coordinatesOf(link: StructureLink, runs: Extents): Coordinates {
 export interface LinkReaction {
   readonly maxItems: number;
   readonly maxLength: number;
-  readonly over: "chains" | "skip";
+  readonly over: 'chains' | 'skip';
 }
 /** The link's reactions (`linkViews`' options): its composition, as the viewer spec is the viewer's. */
 export interface LinkViewsOptions {
@@ -559,15 +559,15 @@ export const DefaultLinkViewsOptions: {
   readonly select: LinkReaction;
   readonly focus: boolean;
 } = {
-  hover: { maxItems: 2_000, maxLength: 20_000, over: "chains" },
-  select: { maxItems: 20_000, maxLength: 200_000, over: "chains" },
+  hover: { maxItems: 2_000, maxLength: 20_000, over: 'chains' },
+  select: { maxItems: 20_000, maxLength: 200_000, over: 'chains' },
   focus: true,
 };
 
 /** The whole chains a set's runs touch, as one Mol* loci (a large set's summary). Edge rate. */
 function wholeChains(link: StructureLink, runs: Extents): StructureElement.Loci {
   const members = link.toMembers(runs, Extents.create(16));
-  const units = new Map<number, { unit: StructureElement.Loci["elements"][number]["unit"]; lo: number; hi: number }>();
+  const units = new Map<number, { unit: StructureElement.Loci['elements'][number]['unit']; lo: number; hi: number }>();
   for (let i = 0; i < members.count; i++) {
     const c = link.memberOf(members, i)?.chain;
     if (!c || c.count === 0) continue;
@@ -586,7 +586,7 @@ function wholeChains(link: StructureLink, runs: Extents): StructureElement.Loci 
 function react(link: StructureLink, r: LinkReaction, size: LociSize | null, read: () => readonly (Loci | null)[]) {
   if (!size) return null;
   const within = size.items <= r.maxItems && size.length <= r.maxLength;
-  if (!within && r.over === "skip") return null;
+  if (!within && r.over === 'skip') return null;
   const runs = lociRuns(read());
   if (runs.count === 0) return null;
   return within ? link.toLoci(runs) : wholeChains(link, runs);
@@ -614,7 +614,7 @@ export function linkViews(
     // the replay at link time) is not sent.
     let lit: StructureElement.Loci | null | undefined = null;
     const sub = ctx.hover.live.version.subscribe(() => {
-      if (ctx.hover.live.current.owner === "3d") {
+      if (ctx.hover.live.current.owner === '3d') {
         lit = undefined;
         return;
       }
@@ -627,7 +627,7 @@ export function linkViews(
     stops.push(
       view3d.onHover((loci) => {
         scratch.count = 0;
-        ctx.hover.setLoci(loci ? coordinatesOf(link, link.fromLoci(loci, scratch)) : null, "3d");
+        ctx.hover.setLoci(loci ? coordinatesOf(link, link.fromLoci(loci, scratch)) : null, '3d');
       }),
     );
   }
@@ -654,10 +654,10 @@ export function linkViews(
       // The replay at link time sends a selection Seq* holds, never a clear; a carry only what it changed.
       const same = sameLoci(next, seen);
       seen = next;
-      if (sel.origin === "host:3d" || ((first || sel.origin === "graph") && same)) return;
+      if (sel.origin === 'host:3d' || ((first || sel.origin === 'graph') && same)) return;
       sent3d = next;
       view3d.select(sent3d);
-      if (sent3d && o.focus !== false && !first && sel.origin !== "graph") view3d.focus(sent3d);
+      if (sent3d && o.focus !== false && !first && sel.origin !== 'graph') view3d.focus(sent3d);
     });
     stops.push(() => sub.unsubscribe());
     stops.push(
@@ -668,8 +668,8 @@ export function linkViews(
         scratch.count = 0;
         const coords = loci ? coordinatesOf(link, link.fromLoci(loci, scratch)) : null;
         const seq = coords?.runs.length ? coords : null;
-        ctx.selection.set(seq, "host:3d");
-        if (seq && o.focus !== false) ctx.focus.fromLoci(seq, { origin: "host:3d" });
+        ctx.selection.set(seq, 'host:3d');
+        if (seq && o.focus !== false) ctx.focus.fromLoci(seq, { origin: 'host:3d' });
       }),
     );
   }

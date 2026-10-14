@@ -10,8 +10,8 @@
 // theme references.
 
 /** The format version this package reads and writes (seqspec:format#versioning). */
-export const SvsVersion = "1.0.0";
-export const SvsFormat = "seq_view_spec";
+export const SvsVersion = '1.0.0';
+export const SvsFormat = 'seq_view_spec';
 
 export interface DocNode {
   kind: string;
@@ -24,13 +24,13 @@ export interface DocNode {
 export interface Metadata {
   title?: string | null;
   description?: string | null;
-  description_format?: "markdown" | "plaintext";
+  description_format?: 'markdown' | 'plaintext';
   timestamp?: string | null;
   authors?: string[] | null;
 }
 
 export interface SeqViewSpecDoc {
-  format: "seq_view_spec";
+  format: 'seq_view_spec';
   version: string;
   revision?: string | null;
   metadata?: Metadata;
@@ -43,14 +43,14 @@ export interface Snapshot {
   ref: string;
   title?: string | null;
   description?: string | null;
-  description_format?: "markdown" | "plaintext";
+  description_format?: 'markdown' | 'plaintext';
   ops?: Op[];
   duration_ms?: number;
   transition_ms?: number;
 }
 
 export interface Patch {
-  format: "seq_view_spec_patch";
+  format: 'seq_view_spec_patch';
   base?: string;
   revision?: string;
   ops: Op[];
@@ -59,10 +59,10 @@ export interface Patch {
 /** A sibling's ref, `"first"` or `"last"`. */
 export type Anchor = string;
 export type Op =
-  | { op: "set"; ref: string; params?: Record<string, unknown>; custom?: Record<string, unknown> }
-  | { op: "remove"; ref: string }
-  | { op: "insert"; parent: string; after?: Anchor; node: DocNode }
-  | { op: "move"; ref: string; parent: string; after?: Anchor };
+  | { op: 'set'; ref: string; params?: Record<string, unknown>; custom?: Record<string, unknown> }
+  | { op: 'remove'; ref: string }
+  | { op: 'insert'; parent: string; after?: Anchor; node: DocNode }
+  | { op: 'move'; ref: string; parent: string; after?: Anchor };
 
 /**
  * A request to a viewer, plain JSON (seqspec:format#descriptions-and-invocations): a registered command's id and its
@@ -81,10 +81,10 @@ export interface ThemeRef {
   table?: string;
 }
 
-export type GlyphShape = "circle" | "diamond" | "triangle" | "square" | "pin" | "star" | "cross" | "tick";
+export type GlyphShape = 'circle' | 'diamond' | 'triangle' | 'square' | 'pin' | 'star' | 'cross' | 'tick';
 export type Glyph =
   | GlyphShape
   | { shape?: GlyphShape; char?: string; path?: string; box?: [number, number]; label?: string; fallback?: GlyphShape };
 
 /** The model's, not a second declaration of it. */
-export type { Geometry } from "@molstar/seq-core/model";
+export type { Geometry } from '@molstar/seq-core/model';

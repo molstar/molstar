@@ -10,15 +10,15 @@
 // with the tracks asked for, its providers gated (regions answered on `release`), failing on `fail`, and a frame clock
 // of its own (`clock[0]`, ms: the overlay's shimmer and fades read the scheduler's `now`, set here allocation-free).
 
-import type { Loaders, StreamRequest } from "@molstar/seq-core/format";
-import { GRCH38, hg38Streams } from "../../core/_test/format/stream-provider.js";
-import { SkinToken } from "../src/draw/backend.js";
-import { Dirty } from "../src/draw/composer.js";
-import { RegionState, SeqViewerConfig } from "../src/index.js";
-import type { Streams } from "../src/streams.js";
-import type { RecordingBackend } from "../src/testing/index.js";
-import { composed, recording } from "./composer-fixtures.js";
-import { GENOME, streamedDoc } from "./stream-fixtures.js";
+import type { Loaders, StreamRequest } from '@molstar/seq-core/format';
+import { GRCH38, hg38Streams } from '../../core/_test/format/stream-provider.js';
+import { SkinToken } from '../src/draw/backend.js';
+import { Dirty } from '../src/draw/composer.js';
+import { RegionState, SeqViewerConfig } from '../src/index.js';
+import type { Streams } from '../src/streams.js';
+import type { RecordingBackend } from '../src/testing/index.js';
+import { composed, recording } from './composer-fixtures.js';
+import { GENOME, streamedDoc } from './stream-fixtures.js';
 export interface ProgressOptions {
   items?: boolean;
   sequence?: boolean;
@@ -33,14 +33,14 @@ export async function progressGenome(start: number, stop: number, o: ProgressOpt
   const failing = { on: false, when: null as ((r: StreamRequest) => boolean) | null };
   const s = hg38Streams({ chromosomes: GRCH38.slice(0, 3), letters: true, gated: true });
   // Every provider's data requests fail at once while `failing` is on.
-  const wrap = (p: (typeof s)["genome"]["provider"]): typeof p => ({
+  const wrap = (p: (typeof s)['genome']['provider']): typeof p => ({
     fetch: (r, sig) =>
       r.system !== null && (failing.on || failing.when?.(r))
-        ? Promise.reject(new Error("503 from the fixture"))
+        ? Promise.reject(new Error('503 from the fixture'))
         : p.fetch(r, sig),
   });
   const loaders: Loaders = {
-    load: () => Promise.reject(new Error("none")),
+    load: () => Promise.reject(new Error('none')),
     stream: (src) => {
       const p = s.stream(src);
       return p ? wrap(p) : null;
@@ -58,7 +58,7 @@ export async function progressGenome(start: number, stop: number, o: ProgressOpt
   (t.scheduler as { now: () => number }).now = () => clock[0];
   const m = t.ctx.streams as Streams;
   const vp = t.vp;
-  if (!vp) throw new Error("no viewport");
+  if (!vp) throw new Error('no viewport');
   vp.zoomTo(1, start, stop);
   t.layout(GENOME);
   const be = recording();
@@ -84,7 +84,7 @@ export async function progressGenome(start: number, stop: number, o: ProgressOpt
     async settle() {
       for (let k = 0; k < 8; k++)
         for (const dx of [9, -9]) {
-          vp.panBy(dx, 0, "pointer");
+          vp.panBy(dx, 0, 'pointer');
           t.layout(GENOME);
           await this.release();
         }
@@ -98,7 +98,7 @@ export async function progressGenome(start: number, stop: number, o: ProgressOpt
   };
 }
 
-export type ProgressCase = "pending" | "landed" | "failed";
+export type ProgressCase = 'pending' | 'landed' | 'failed';
 /**
  * The heap guards' overlay frames (streams-progress*.heap.ts): a live composer over the genome with genes, variants,
  * letters and a signal at 100 kb in state `c` (landed: after a second of pending frames, as a page sees it; the clock
@@ -108,10 +108,10 @@ export async function overlayFrame(c: ProgressCase) {
   const g = await progressGenome(100_000_000, 100_100_000, { items: true, sequence: true, values: true, live: true });
   g.ctx.config.set(SeqViewerConfig.Stream.MaxInFlight, 64);
   g.clock[0] = 1000;
-  if (c === "failed") g.failing.on = true;
+  if (c === 'failed') g.failing.on = true;
   g.m.pass();
   await new Promise((ok) => setTimeout(ok, 0));
-  if (c === "landed") {
+  if (c === 'landed') {
     for (let k = 0; k < 64; k++) {
       g.clock[0] += 16;
       g.frame(Dirty.overlay);
@@ -122,7 +122,7 @@ export async function overlayFrame(c: ProgressCase) {
   const next = new Int32Array(1);
   const frame = () => {
     // The shimmer's clock moves a frame; a landed region's stays.
-    if (c === "pending") g.clock[0] += 16;
+    if (c === 'pending') g.clock[0] += 16;
     g.frame(Dirty.overlay);
     if (g.composer.animating) next[0]++;
   };

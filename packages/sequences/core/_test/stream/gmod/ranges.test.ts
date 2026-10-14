@@ -8,12 +8,12 @@
 
 // The transports: HTTP ranges against a local server, and the page cache.
 
-import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { fetchRanges, gmodProvider, gmodStream, httpFile } from "../../../src/stream/gmod/index.js";
-import { once, paged } from "../../../src/stream/gmod/ranges.js";
-import { req } from "./cases.js";
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { fetchRanges, gmodProvider, gmodStream, httpFile } from '../../../src/stream/gmod/index.js';
+import { once, paged } from '../../../src/stream/gmod/ranges.js';
+import { req } from './cases.js';
 
 const bytes = Uint8Array.from({ length: 1000 }, (_, i) => i % 251);
 let server: Server;
@@ -21,35 +21,35 @@ let tbiAsked = 0;
 let url: string;
 beforeAll(async () => {
   server = createServer((req, res) => {
-    const m = /bytes=(\d+)-(\d+)/.exec(req.headers.range ?? "");
-    if (req.url === "/ignores") return void res.end(Buffer.from(bytes));
-    if (req.url?.endsWith(".tbi")) {
+    const m = /bytes=(\d+)-(\d+)/.exec(req.headers.range ?? '');
+    if (req.url === '/ignores') return void res.end(Buffer.from(bytes));
+    if (req.url?.endsWith('.tbi')) {
       tbiAsked++;
-      return void res.writeHead(404).end("not here");
+      return void res.writeHead(404).end('not here');
     }
     if (!m || Number(m[1]) >= bytes.length) return void res.writeHead(416).end();
     const [a, b] = [Number(m[1]), Math.min(Number(m[2]), bytes.length - 1)];
     res.writeHead(206).end(Buffer.from(bytes.subarray(a, b + 1)));
   });
-  await new Promise<void>((ok) => server.listen(0, "127.0.0.1", ok));
+  await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
   url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
 afterAll(() => new Promise<void>((ok) => server.close(() => ok())));
 
-describe("fetchRanges", () => {
-  it("asks for the range, gets fewer bytes at the end of the file and none past it", async () => {
+describe('fetchRanges', () => {
+  it('asks for the range, gets fewer bytes at the end of the file and none past it', async () => {
     const read = fetchRanges(`${url}/f`);
     expect([...(await read(10, 4))]).toEqual([10, 11, 12, 13]);
     expect((await read(990, 100)).length).toBe(10);
     expect((await read(2000, 10)).length).toBe(0);
   });
-  it("is an error, not a download, when the server ignores Range", async () => {
-    await expect(fetchRanges(`${url}/ignores`)(0, 10)).rejects.toThrow("answered 200");
+  it('is an error, not a download, when the server ignores Range', async () => {
+    await expect(fetchRanges(`${url}/ignores`)(0, 10)).rejects.toThrow('answered 200');
   });
 });
 
-describe("paged", () => {
-  it("reads whole pages once and cuts the reads from them", async () => {
+describe('paged', () => {
+  it('reads whole pages once and cuts the reads from them', async () => {
     const asked: [number, number][] = [];
     const read = paged(async (o, l) => {
       asked.push([o, l]);
@@ -66,7 +66,7 @@ describe("paged", () => {
     ]);
   });
 
-  it("keeps a bounded number of pages, the oldest going first", async () => {
+  it('keeps a bounded number of pages, the oldest going first', async () => {
     const seen: number[] = [];
     const read = paged(
       async (o, l) => {
@@ -81,7 +81,7 @@ describe("paged", () => {
   });
 });
 
-describe("shared reads (CB-01)", () => {
+describe('shared reads (CB-01)', () => {
   /** A reader that answers after `release()`, honoring its signal; `signals` the ones it was given. */
   const slow = () => {
     const signals: AbortSignal[] = [];
@@ -93,7 +93,7 @@ describe("shared reads (CB-01)", () => {
       if (signal) signals.push(signal);
       await Promise.race([
         gate,
-        new Promise((_, no) => signal?.addEventListener("abort", () => no(signal.reason), { once: true })),
+        new Promise((_, no) => signal?.addEventListener('abort', () => no(signal.reason), { once: true })),
       ]);
       return bytes.subarray(o, o + l);
     };
@@ -114,7 +114,7 @@ describe("shared reads (CB-01)", () => {
     expect(r.signals[0]?.aborted).toBe(false);
   });
 
-  it("the last caller to leave aborts the read, and the next asks again", async () => {
+  it('the last caller to leave aborts the read, and the next asks again', async () => {
     const r = slow();
     const read = paged(r.read, 100);
     const [a, b] = [new AbortController(), new AbortController()];
@@ -130,7 +130,7 @@ describe("shared reads (CB-01)", () => {
     expect(r.signals.length).toBe(2);
   });
 
-  it("a call whose signal is already aborted starts no read (LA-37: an orphan nothing aborted)", async () => {
+  it('a call whose signal is already aborted starts no read (LA-37: an orphan nothing aborted)', async () => {
     const r = slow();
     const read = paged(r.read, 100);
     const opened = once((s) => r.read(0, 10, s));
@@ -141,25 +141,25 @@ describe("shared reads (CB-01)", () => {
   });
 });
 
-describe("gmodStream", () => {
-  it("maps a source to a provider, or to none", () => {
+describe('gmodStream', () => {
+  it('maps a source to a provider, or to none', () => {
     const source = {
-      ref: "r",
+      ref: 'r',
       stream: null,
-      protocol: "gmod",
-      uri: "x",
-      data_kind: "values",
+      protocol: 'gmod',
+      uri: 'x',
+      data_kind: 'values',
       parent: null,
       declared: {},
     } as const;
     expect(gmodStream(() => null)(source)).toBeNull();
-    expect(gmodStream(() => ({ format: "bigwig", read: async () => new Uint8Array(0) }))(source)?.fetch).toBeTypeOf(
-      "function",
+    expect(gmodStream(() => ({ format: 'bigwig', read: async () => new Uint8Array(0) }))(source)?.fetch).toBeTypeOf(
+      'function',
     );
   });
 
   it("a VCF's .tbi is fetched when first needed, its HTTP status is the failure, and the next fetch asks again (CB-06)", async () => {
-    const file = httpFile("vcf", `${url}/a.vcf.gz`);
+    const file = httpFile('vcf', `${url}/a.vcf.gz`);
     expect(tbiAsked).toBe(0);
     const p = gmodProvider(file);
     const manifest = req(null);
@@ -171,11 +171,11 @@ describe("gmodStream", () => {
 
   it("passes a 2bit's `only` to its reader: the manifest reads the sizes it keeps (CB-07)", async () => {
     const asked: number[] = [];
-    const file = { format: "2bit" as const, read: twoBitIndex(asked), only: (n: string) => n === "b" };
+    const file = { format: '2bit' as const, read: twoBitIndex(asked), only: (n: string) => n === 'b' };
     const p = gmodProvider(file);
     const manifest = req(null);
     const m = await p.fetch(manifest, new AbortController().signal);
-    expect(m.kind === "manifest" && m.manifest.systems.map((s) => s.key)).toEqual(["b"]);
+    expect(m.kind === 'manifest' && m.manifest.systems.map((s) => s.key)).toEqual(['b']);
     expect(asked.filter((o) => o >= 100)).toEqual([116]); // b's record only
   });
 });
@@ -188,8 +188,8 @@ function twoBitIndex(asked: number[]) {
   dv.setUint32(8, 2, true);
   let at = 16;
   for (const [name, offset] of [
-    ["a", 100],
-    ["b", 116],
+    ['a', 100],
+    ['b', 116],
   ] as const) {
     b[at] = 1;
     b[at + 1] = name.charCodeAt(0);

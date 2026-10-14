@@ -12,21 +12,21 @@
 // live section's. A PNG is that SVG drawn by the page itself (an image, a canvas): the viewer has no PNG action, the
 // UI's Export offers SVG only; `seqv-render --png` rasterizes the same file with Chrome.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import type { SeqViewerRegistryEntry } from "@molstar/seq-viewer";
-import { browserExportAction, downloadSvg } from "@molstar/seq-viewer/dom";
-import { SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
-import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { PrismPage } from "../support/seqstar-prism.js";
-import { Choices, TextAction } from "../ui/index.js";
-import f from "./seqstar-format.module.css";
-import { PrismCanvas, prism } from "./seqstar-prism.js";
-import t from "./seqstar-tools.module.css";
-import { useCaseContext, useStoryUi } from "./seqstar-viewer.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import type { SeqViewerRegistryEntry } from '@molstar/seq-viewer';
+import { browserExportAction, downloadSvg } from '@molstar/seq-viewer/dom';
+import { SeqViewerLayout, SeqViewerProvider } from '@molstar/seq-viewer/react';
+import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { PrismPage } from '../support/seqstar-prism.js';
+import { Choices, TextAction } from '../ui/index.js';
+import f from './seqstar-format.module.css';
+import { PrismCanvas, prism } from './seqstar-prism.js';
+import t from './seqstar-tools.module.css';
+import { useCaseContext, useStoryUi } from './seqstar-viewer.js';
 
 /** A file the export made: the SVG as the action offered it, or the PNG the page drew from it. */
 interface Made {
-  readonly kind: "svg" | "png";
+  readonly kind: 'svg' | 'png';
   readonly name: string;
   readonly url: string;
   readonly bytes: number;
@@ -38,22 +38,22 @@ interface Made {
 }
 
 const kb = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(2)} MB` : `${(n / 1e3).toFixed(1)} KB`);
-const ms = (x: number) => `${Math.round(x).toLocaleString("en-US")} ms`;
+const ms = (x: number) => `${Math.round(x).toLocaleString('en-US')} ms`;
 
 /** The SVG drawn at its own size on a canvas and written as a PNG (transparent where the SVG is). */
 async function rasterize(svg: string): Promise<{ png: Blob; w: number; h: number }> {
   const head = /<svg[^>]* width="([\d.]+)" height="([\d.]+)"/.exec(svg);
-  if (!head) throw new Error("the SVG has no size");
+  if (!head) throw new Error('the SVG has no size');
   const [w, h] = [Math.ceil(Number(head[1])), Math.ceil(Number(head[2]))];
-  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
   try {
     const img = new Image();
     img.src = url;
     await img.decode();
-    const canvas = Object.assign(document.createElement("canvas"), { width: w, height: h });
-    (canvas.getContext("2d") as CanvasRenderingContext2D).drawImage(img, 0, 0, w, h);
-    const png = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, "image/png"));
-    if (!png) throw new Error("the canvas wrote no PNG");
+    const canvas = Object.assign(document.createElement('canvas'), { width: w, height: h });
+    (canvas.getContext('2d') as CanvasRenderingContext2D).drawImage(img, 0, 0, w, h);
+    const png = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, 'image/png'));
+    if (!png) throw new Error('the canvas wrote no PNG');
     return { png, w, h };
   } finally {
     URL.revokeObjectURL(url);
@@ -65,10 +65,10 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
   const [scale, setScale] = useState(1);
   const [background, setBackground] = useState(false);
   const [side, setSide] = useState(false);
-  const [busy, setBusy] = useState<"svg" | "png" | null>(null);
-  const [error, setError] = useState("");
+  const [busy, setBusy] = useState<'svg' | 'png' | null>(null);
+  const [error, setError] = useState('');
   const [files, setFiles] = useState<{ svg?: Made; png?: Made }>({});
-  const [shown, setShown] = useState<"svg" | "png">("svg");
+  const [shown, setShown] = useState<'svg' | 'png'>('svg');
   /** What the registered action's `offer` hands the file to: set by each click. */
   const offered = useRef<((svg: string, name: string) => void) | null>(null);
   /** The options the action reads on each run (its `render` is spread then): the checkbox is live. */
@@ -92,7 +92,7 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
     ],
     [],
   );
-  const options = useMemo(() => ({ registry, parts: ["Export"] as const }), [registry]);
+  const options = useMemo(() => ({ registry, parts: ['Export'] as const }), [registry]);
   const m = useCaseContext(doc, options);
   const ui = useStoryUi(m);
   const made = useRef<Made[]>([]);
@@ -111,13 +111,13 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
     setShown(x.kind);
   };
 
-  const run = (kind: "svg" | "png") => {
+  const run = (kind: 'svg' | 'png') => {
     const surface = m?.surfaces.values().next().value;
     if (!m || !surface || busy) return;
     const width = Math.round(surface.element.clientWidth || 1000);
     const t0 = performance.now();
     setBusy(kind);
-    setError("");
+    setError('');
     const watchdog = setTimeout(() => {
       offered.current = null;
       setBusy(null);
@@ -128,8 +128,8 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
       offered.current = null;
       const svgMs = performance.now() - t0;
       try {
-        if (kind === "svg") {
-          const blob = new Blob([svg], { type: "image/svg+xml" });
+        if (kind === 'svg') {
+          const blob = new Blob([svg], { type: 'image/svg+xml' });
           const head = /<svg[^>]* width="([\d.]+)" height="([\d.]+)"/.exec(svg);
           keep({
             kind,
@@ -138,7 +138,7 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
             bytes: blob.size,
             ms: svgMs,
             detail: `render ${ms(svgMs)}`,
-            size: head ? `${head[1]} × ${head[2]}` : "?",
+            size: head ? `${head[1]} × ${head[2]}` : '?',
           });
         } else {
           const t1 = performance.now();
@@ -146,7 +146,7 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
           const rasterMs = performance.now() - t1;
           keep({
             kind,
-            name: name.replace(/\.svg$/, ".png"),
+            name: name.replace(/\.svg$/, '.png'),
             url: URL.createObjectURL(r.png),
             bytes: r.png.size,
             ms: svgMs + rasterMs,
@@ -160,10 +160,10 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
         setBusy(null);
       }
     };
-    m.ctx.actions.run("view.exportSvg", { width, scale });
+    m.ctx.actions.run('view.exportSvg', { width, scale });
   };
 
-  const style = { "--seq-section-max-height": "560px" } as CSSProperties;
+  const style = { '--seq-section-max-height': '560px' } as CSSProperties;
   const figure = files[shown];
   const viewer = m ? (
     <SeqViewerProvider context={m.ctx} ui={ui}>
@@ -179,7 +179,7 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
       <div className={f.subheading}>
         {figure
           ? `The exported ${figure.kind.toUpperCase()} (${figure.size} px), drawn here as an image`
-          : "The exported file appears here"}
+          : 'The exported file appears here'}
       </div>
       {figure ? (
         <img className={t.figure} src={figure.url} alt={`${label}, exported as ${figure.kind}`} />
@@ -193,11 +193,11 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
       <h2 className={f.heading}>{label}</h2>
       <div className={f.kicker}>{note}</div>
       <div className={f.row}>
-        <TextAction tone="strong" disabled={!m || !!busy} onClick={() => run("svg")}>
-          {busy === "svg" ? "Exporting…" : "Export SVG"}
+        <TextAction tone="strong" disabled={!m || !!busy} onClick={() => run('svg')}>
+          {busy === 'svg' ? 'Exporting…' : 'Export SVG'}
         </TextAction>
-        <TextAction tone="strong" disabled={!m || !!busy} onClick={() => run("png")}>
-          {busy === "png" ? "Exporting…" : "Export PNG"}
+        <TextAction tone="strong" disabled={!m || !!busy} onClick={() => run('png')}>
+          {busy === 'png' ? 'Exporting…' : 'Export PNG'}
         </TextAction>
         <div className={prism.narrow}>
           <Choices
@@ -229,14 +229,14 @@ export function ExportCard({ doc, label, note }: { doc: SeqViewSpecDoc; label: s
           </tr>
         </thead>
         <tbody>
-          {(["svg", "png"] as const).map((k) => {
+          {(['svg', 'png'] as const).map((k) => {
             const x = files[k];
             return (
               <tr key={k}>
                 <td>{x ? x.name : `.${k}`}</td>
-                <td>{x ? kb(x.bytes) : "–"}</td>
-                <td>{x ? x.size : "–"}</td>
-                <td>{x ? `${ms(x.ms)} (${x.detail})` : "–"}</td>
+                <td>{x ? kb(x.bytes) : '–'}</td>
+                <td>{x ? x.size : '–'}</td>
+                <td>{x ? `${ms(x.ms)} (${x.detail})` : '–'}</td>
                 <td>
                   {x && (
                     <a className={t.download} href={x.url} download={x.name}>

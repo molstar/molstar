@@ -18,7 +18,7 @@ import {
   WINDOW_WASH,
   windowBox,
   windowOverMap,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 const img = new Float64Array(8);
 
@@ -59,7 +59,7 @@ function draw(v: DrawView, s: { readonly tracks: readonly string[] }): void {
   windowOverMap(v.backend, Math.max(1, Math.round(d)) | 0, SkinToken.surface, WINDOW_WASH);
 }
 
-export const MapRenderer = kernelEntry("seqv:map", 40, {
+export const MapRenderer = kernelEntry('seqv:map', 40, {
   minHeight: 4,
   miniature: false,
   draw,

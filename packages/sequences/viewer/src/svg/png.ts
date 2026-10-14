@@ -153,7 +153,7 @@ export function encodePng(
   return z instanceof Uint8Array ? wrapped(w, h, z) : z.then((s) => wrapped(w, h, s));
 }
 
-const B64 = Uint8Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", (c) => c.charCodeAt(0));
+const B64 = Uint8Array.from('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/', (c) => c.charCodeAt(0));
 /** Standard base64 of `b` (the platform's `btoa` and `Buffer` are not in this entry). */
 export function base64(b: Uint8Array): string {
   const out = new Uint8Array(Math.ceil(b.length / 3) * 4).fill(61);

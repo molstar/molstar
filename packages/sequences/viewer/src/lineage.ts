@@ -9,16 +9,16 @@
 // Held loci follow their set (seqspec:interaction#selection): on every assembled set, the selection, the highlight
 // channels and an external hover are carried to it. Edge-rate: once per held loci per new set.
 
-import { Loci, type SeqSet } from "@molstar/seq-core/model";
+import { Loci, type SeqSet } from '@molstar/seq-core/model';
 
 /** Any loci the viewer holds. */
 export type SeqLociAny = Loci;
 
 /** Within a lineage, whether every owner entity of `l` is the same in `b` as in `a` (its indices then read the same). */
 function sameOwners(l: Loci, a: SeqSet, b: SeqSet): boolean {
-  if ("alignment" in l) return a.alignments[l.alignment] === b.alignments[l.alignment];
+  if ('alignment' in l) return a.alignments[l.alignment] === b.alignments[l.alignment];
   for (const e of l.elements) {
-    if ("annotation" in e) {
+    if ('annotation' in e) {
       if (a.annotations[e.annotation] !== b.annotations[e.annotation]) return false;
       continue;
     }

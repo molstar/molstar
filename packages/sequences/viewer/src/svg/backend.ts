@@ -37,19 +37,19 @@ import {
   TextAlign,
   TextBaseline,
   type TextBatch,
-} from "../draw/backend.js";
-import { ColorGroups } from "../draw/group.js";
-import type { TextMeasurer } from "../text.js";
-import { cssColor, dec, dec3, esc, hex } from "./format.js";
-import { CSS_FONT, type EmBox } from "./metrics.js";
-import { base64, encodePng } from "./png.js";
+} from '../draw/backend.js';
+import { ColorGroups } from '../draw/group.js';
+import type { TextMeasurer } from '../text.js';
+import { cssColor, dec, dec3, esc, hex } from './format.js';
+import { CSS_FONT, type EmBox } from './metrics.js';
+import { base64, encodePng } from './png.js';
 
 export interface SvgFont {
   family: string;
   weight: number;
-  style: "normal" | "italic";
+  style: 'normal' | 'italic';
   data: Uint8Array;
-  format: "woff2" | "woff" | "truetype";
+  format: 'woff2' | 'woff' | 'truetype';
 }
 /** What `toString` and `renderSvg` take from the host: the platform's pieces, so this entry imports none. */
 export interface SvgPorts {
@@ -96,9 +96,9 @@ export interface SvgStats {
   nonFinite: number;
 }
 
-const PASS_CLASS = ["main", "overlay", "nav", "nav-overlay", "vnav", "vnav-overlay"];
+const PASS_CLASS = ['main', 'overlay', 'nav', 'nav-overlay', 'vnav', 'vnav-overlay'];
 const TAU = 2 * Math.PI;
-const MIME = { woff2: "font/woff2", woff: "font/woff", truetype: "font/ttf" } as const;
+const MIME = { woff2: 'font/woff2', woff: 'font/woff', truetype: 'font/ttf' } as const;
 
 /** An image: pixels the renderer made, or a vector layer; kept (unused ones dropped) until the file is written. */
 export interface SvgImage {
@@ -153,7 +153,7 @@ export class SvgShared implements BackendImages {
       w: this.lw,
       h: this.lh,
       px: null,
-      layer: [`<g clip-path="url(#c${id})">`, ...l.out, "</g>"],
+      layer: [`<g clip-path="url(#c${id})">`, ...l.out, '</g>'],
       used: false,
       gone: false,
     });
@@ -174,7 +174,7 @@ export class SvgShared implements BackendImages {
     if (id === undefined) {
       id = this.clips.size;
       this.clips.set(key, id);
-      const [, , x1, y1] = key.split(" ").map(Number);
+      const [, , x1, y1] = key.split(' ').map(Number);
       this.defs.push(
         `<clipPath id="c${id}"><rect x="${dec(x0)}" y="${dec(y0)}" width="${dec(x1 - x0)}" height="${dec(y1 - y0)}"/></clipPath>`,
       );
@@ -252,7 +252,7 @@ export class SvgBackend implements RenderBackend {
     );
   }
   endSection(): void {
-    this.out.push("</g>");
+    this.out.push('</g>');
   }
   /** Passes that follow are offset (x, y) CSS px more inside the section, until `endOffset`: a box of their own (`VerticalNav`). */
   beginOffset(x: number, y: number): void {
@@ -266,7 +266,7 @@ export class SvgBackend implements RenderBackend {
     this.ox -= this.bx;
     this.oy -= this.by;
     this.bx = this.by = 0;
-    this.out.push("</g>");
+    this.out.push('</g>');
   }
 
   beginPass(pass: number, width: number, height: number, dpr: number): void {
@@ -285,10 +285,10 @@ export class SvgBackend implements RenderBackend {
     this.depth = 0;
   }
   endPass(): void {
-    this.trace?.push("endPass");
+    this.trace?.push('endPass');
     if (this.mute) return;
-    for (; this.depth > 0; this.depth--) this.out.push("</g>");
-    this.out.push("</g>");
+    for (; this.depth > 0; this.depth--) this.out.push('</g>');
+    this.out.push('</g>');
   }
   /** Whole frames never clear part of a pass: a clear of all of it drops what was drawn, any other is ignored. */
   clear(x: number, y: number, w: number, h: number): void {
@@ -304,14 +304,14 @@ export class SvgBackend implements RenderBackend {
     this.stats.clips++;
   }
   popClip(): void {
-    this.trace?.push("popClip");
+    this.trace?.push('popClip');
     if (this.mute || this.depth === 0) return;
-    this.out.push("</g>");
+    this.out.push('</g>');
     this.depth--;
   }
   copy(dx: number, dy: number, x: number, y: number, w: number, h: number): void {
     this.trace?.push(`copy ${dx} ${dy} ${x} ${y} ${w} ${h}`);
-    throw new Error("SvgBackend has no Copy: it draws whole frames (caps).");
+    throw new Error('SvgBackend has no Copy: it draws whole frames (caps).');
   }
   present(x: number, y: number, w: number, h: number): void {
     this.trace?.push(`present ${x} ${y} ${w} ${h}`);
@@ -327,7 +327,7 @@ export class SvgBackend implements RenderBackend {
     const groups = G.group(b.color, b.alpha, b.n);
     for (let g = 0; g < groups; g++) {
       const first = G.order[G.start[g]];
-      let d = "";
+      let d = '';
       for (let j = G.start[g]; j < G.start[g + 1]; j++) {
         const i = G.order[j];
         const s = b.stroke[i];
@@ -341,7 +341,7 @@ export class SvgBackend implements RenderBackend {
         }
       }
       this.out.push(
-        `<path${this.paint(b.color[first], b.alpha[first], "fill")} shape-rendering="crispEdges" d="${d}"/>`,
+        `<path${this.paint(b.color[first], b.alpha[first], 'fill')} shape-rendering="crispEdges" d="${d}"/>`,
       );
     }
     this.stats.rects += G.start[groups];
@@ -353,12 +353,12 @@ export class SvgBackend implements RenderBackend {
     const groups = G.group(b.color, b.alpha, b.n);
     for (let g = 0; g < groups; g++) {
       const first = G.order[G.start[g]];
-      let d = "";
+      let d = '';
       for (let j = G.start[g]; j < G.start[g + 1]; j++) {
         const i = G.order[j];
         d += this.sector(b.cx[i], b.cy[i], b.r0[i], b.r1[i], b.a0[i], b.a1[i]);
       }
-      this.out.push(`<path${this.paint(b.color[first], b.alpha[first], "fill")} d="${d}"/>`);
+      this.out.push(`<path${this.paint(b.color[first], b.alpha[first], 'fill')} d="${d}"/>`);
     }
     this.stats.sectors += G.start[groups];
   }
@@ -377,7 +377,7 @@ export class SvgBackend implements RenderBackend {
         b.width[end] === b.width[p]
       )
         end++;
-      let d = "";
+      let d = '';
       let has = false;
       for (let s = p; s < end; s++) {
         let c = b.cstart[s];
@@ -390,15 +390,15 @@ export class SvgBackend implements RenderBackend {
               has = true;
               break;
             case PathVerb.line:
-              d += `${has ? "L" : "M"}${this.pt(k[c], k[c + 1])}`;
+              d += `${has ? 'L' : 'M'}${this.pt(k[c], k[c + 1])}`;
               has = true;
               break;
             case PathVerb.quad:
-              d += `${has ? "" : `M${this.pt(k[c], k[c + 1])}`}Q${this.pt(k[c], k[c + 1])} ${this.pt(k[c + 2], k[c + 3])}`;
+              d += `${has ? '' : `M${this.pt(k[c], k[c + 1])}`}Q${this.pt(k[c], k[c + 1])} ${this.pt(k[c + 2], k[c + 3])}`;
               has = true;
               break;
             case PathVerb.cubic:
-              d += `${has ? "" : `M${this.pt(k[c], k[c + 1])}`}C${this.pt(k[c], k[c + 1])} ${this.pt(k[c + 2], k[c + 3])} ${this.pt(k[c + 4], k[c + 5])}`;
+              d += `${has ? '' : `M${this.pt(k[c], k[c + 1])}`}C${this.pt(k[c], k[c + 1])} ${this.pt(k[c + 2], k[c + 3])} ${this.pt(k[c + 4], k[c + 5])}`;
               has = true;
               break;
             case PathVerb.arc:
@@ -410,15 +410,15 @@ export class SvgBackend implements RenderBackend {
               has = true;
               break;
             default:
-              d += "Z";
+              d += 'Z';
           }
           c += PathVerbCoords[b.verbs[v]];
         }
       }
       const style =
         b.mode[p] === PathMode.stroke
-          ? `${this.paint(b.color[p], b.alpha[p], "stroke")} fill="none" stroke-width="${this.n(Math.round((b.width[p] / 2) * this.q))}"`
-          : this.paint(b.color[p], b.alpha[p], "fill");
+          ? `${this.paint(b.color[p], b.alpha[p], 'stroke')} fill="none" stroke-width="${this.n(Math.round((b.width[p] / 2) * this.q))}"`
+          : this.paint(b.color[p], b.alpha[p], 'fill');
       this.out.push(`<path${style} d="${d}"/>`);
       this.stats.paths += end - p;
       p = end - 1;
@@ -433,15 +433,15 @@ export class SvgBackend implements RenderBackend {
     const font = this.fontOf(res.font(b.font));
     for (let g = 0; g < groups; g++) {
       const first = G.order[G.start[g]];
-      let shapes = "";
-      let marks = "";
+      let shapes = '';
+      let marks = '';
       for (let j = G.start[g]; j < G.start[g + 1]; j++) {
         const i = G.order[j];
         const id = b.glyph[i];
         const rec = id < SHAPE_COUNT ? null : res.glyph(id);
         if (rec?.char) {
           // A character in the batch's font, 2r high, centered on its point.
-          marks += `<text x="${this.p(b.x[i])}" y="${this.p(b.y[i])}" font-size="${this.p(2 * b.radius[i])}"${this.dy(font, TextBaseline.middle, (2 * b.radius[i]) / this.dpr) ?? ""}>${esc(rec.char)}</text>`;
+          marks += `<text x="${this.p(b.x[i])}" y="${this.p(b.y[i])}" font-size="${this.p(2 * b.radius[i])}"${this.dy(font, TextBaseline.middle, (2 * b.radius[i]) / this.dpr) ?? ''}>${esc(rec.char)}</text>`;
         } else if (rec?.path) {
           // Scaled so the box's larger side is 2r, centered on the point.
           const s = (2 * b.radius[i]) / Math.max(rec.box[0], rec.box[1]);
@@ -449,11 +449,11 @@ export class SvgBackend implements RenderBackend {
           marks += `<use xlink:href="#p${id}" transform="translate(${this.p(b.x[i] - (rec.box[0] * s) / 2)} ${this.p(b.y[i] - (rec.box[1] * s) / 2)}) scale(${sig((s * this.q) / 100)})"/>`;
         } else shapes += this.shape(id < SHAPE_COUNT ? id : rec ? rec.fallback : 0, b.x[i], b.y[i], b.radius[i]);
       }
-      const paint = this.paint(b.color[first], b.alpha[first], "fill");
+      const paint = this.paint(b.color[first], b.alpha[first], 'fill');
       if (shapes) this.out.push(`<path${paint} d="${shapes}"/>`);
       if (marks)
         this.out.push(
-          `<g${paint} font-family="${esc(font.family)}"${weight(font)} text-anchor="middle"${font.box ? "" : ' dominant-baseline="central"'}>${marks}</g>`,
+          `<g${paint} font-family="${esc(font.family)}"${weight(font)} text-anchor="middle"${font.box ? '' : ' dominant-baseline="central"'}>${marks}</g>`,
         );
     }
     this.stats.glyphs += G.start[groups];
@@ -464,26 +464,26 @@ export class SvgBackend implements RenderBackend {
     const G = this.groups;
     const groups = G.group(b.color, b.alpha, b.n);
     const font = this.fontOf(this.res.font(b.font));
-    const turned = b.angle !== 0 ? ` rotate(${sig((b.angle * 180) / Math.PI)})` : "";
+    const turned = b.angle !== 0 ? ` rotate(${sig((b.angle * 180) / Math.PI)})` : '';
     const head =
       `<g font-family="${esc(font.family)}" font-size="${this.n(Math.round(font.px * 100))}"${weight(font)}` +
-      `${b.align === TextAlign.left ? "" : ` text-anchor="${b.align === TextAlign.center ? "middle" : "end"}"`}` +
-      `${b.baseline === TextBaseline.alphabetic || font.box ? "" : ` dominant-baseline="${BASELINE[b.baseline]}"`} xml:space="preserve"`;
-    const dy = this.dy(font, b.baseline, font.px) ?? "";
+      `${b.align === TextAlign.left ? '' : ` text-anchor="${b.align === TextAlign.center ? 'middle' : 'end'}"`}` +
+      `${b.baseline === TextBaseline.alphabetic || font.box ? '' : ` dominant-baseline="${BASELINE[b.baseline]}"`} xml:space="preserve"`;
+    const dy = this.dy(font, b.baseline, font.px) ?? '';
     for (let g = 0; g < groups; g++) {
       const first = G.order[G.start[g]];
-      let items = "";
+      let items = '';
       for (let j = G.start[g]; j < G.start[g + 1]; j++) {
         const i = G.order[j];
         const sx = b.sx[i];
         const sy = b.sy[i];
         // Placed by `translate(x y) rotate(a) scale(sx sy)`: the scale about the anchor, before the angle.
         items +=
-          turned === "" && sx === 1 && sy === 1
+          turned === '' && sx === 1 && sy === 1
             ? `<text x="${this.p(b.x[i])}" y="${this.p(b.y[i])}"${dy}>${esc(b.text[i])}</text>`
-            : `<text transform="translate(${this.pt(b.x[i], b.y[i])})${turned}${sx === 1 && sy === 1 ? "" : ` scale(${sig(sx)} ${sig(sy)})`}"${dy}>${esc(b.text[i])}</text>`;
+            : `<text transform="translate(${this.pt(b.x[i], b.y[i])})${turned}${sx === 1 && sy === 1 ? '' : ` scale(${sig(sx)} ${sig(sy)})`}"${dy}>${esc(b.text[i])}</text>`;
       }
-      this.out.push(`${head}${this.paint(b.color[first], b.alpha[first], "fill")}>${items}</g>`);
+      this.out.push(`${head}${this.paint(b.color[first], b.alpha[first], 'fill')}>${items}</g>`);
     }
     this.stats.texts += G.start[groups];
   }
@@ -500,7 +500,7 @@ export class SvgBackend implements RenderBackend {
     const u = m.px ? 1 / this.dpr : 1;
     const use =
       `<use xlink:href="#i${img}" transform="translate(${this.p(dx - sx * kx)} ${this.p(dy - sy * ky)}) scale(${sig(kx * u)} ${sig(ky * u)})"` +
-      `${smooth || !m.px ? "" : ' image-rendering="pixelated"'}/>`;
+      `${smooth || !m.px ? '' : ' image-rendering="pixelated"'}/>`;
     // The source rectangle is the whole image, or the destination cuts it out.
     const whole = sx <= 0 && sy <= 0 && sx + sw >= m.w && sy + sh >= m.h;
     this.out.push(whole ? use : `<g clip-path="url(#c${this.sh.clip(dx, dy, dw, dh, this.q)})">${use}</g>`);
@@ -513,7 +513,7 @@ export class SvgBackend implements RenderBackend {
     for (let k = 0; k < this.sh.imgs.length; k++) {
       const m = this.sh.imgs[k];
       if (!m.used) continue;
-      if (m.layer) images.push(`<g id="i${k}">${m.layer.join("")}</g>`);
+      if (m.layer) images.push(`<g id="i${k}">${m.layer.join('')}</g>`);
       else {
         const png = await encodePng(m.w, m.h, m.px as Uint32Array, ports.deflate);
         images.push(
@@ -525,21 +525,21 @@ export class SvgBackend implements RenderBackend {
     const h = dec(Math.round(this.height * 100));
     const scale = this.opts.scale ?? (this.first || 1);
     const back = this.opts.background
-      ? `<rect width="${w}" height="${h}"${this.paint(SkinToken.surface, 255, "fill")}/>`
-      : "";
+      ? `<rect width="${w}" height="${h}"${this.paint(SkinToken.surface, 255, 'fill')}/>`
+      : '';
     const fonts = (ports.fonts ?? [])
       .map(
         (f) =>
           `@font-face{font-family:"${esc(f.family)}";font-weight:${f.weight};font-style:${f.style};` +
-          `src:url(data:${MIME[f.format]};base64,${base64(f.data)}) format("${f.format === "truetype" ? "truetype" : f.format}")}`,
+          `src:url(data:${MIME[f.format]};base64,${base64(f.data)}) format("${f.format === 'truetype' ? 'truetype' : f.format}")}`,
       )
-      .join("");
+      .join('');
     return (
       `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${dec(Math.round(this.width * scale * 100))}" ` +
       `height="${dec(Math.round(this.height * scale * 100))}" viewBox="0 0 ${w} ${h}">` +
-      (this.opts.title ? `<title>${esc(this.opts.title)}</title>` : "") +
-      (fonts ? `<style>${fonts}</style>` : "") +
-      `<defs>${this.sh.defs.join("")}${images.join("")}</defs>${back}${this.out.join("")}</svg>`
+      (this.opts.title ? `<title>${esc(this.opts.title)}</title>` : '') +
+      (fonts ? `<style>${fonts}</style>` : '') +
+      `<defs>${this.sh.defs.join('')}${images.join('')}</defs>${back}${this.out.join('')}</svg>`
     );
   }
 
@@ -549,7 +549,7 @@ export class SvgBackend implements RenderBackend {
   private n(h: number): string {
     if (Number.isFinite(h)) return dec(h);
     this.stats.nonFinite++;
-    return "0";
+    return '0';
   }
   /** A device px coordinate as CSS px. */
   private p(v: number): string {
@@ -566,7 +566,7 @@ export class SvgBackend implements RenderBackend {
     return `M${this.n(x0)} ${this.n(y0)}h${this.n(Math.round((x + w) * q) - x0)}v${this.n(Math.round((y + h) * q) - y0)}h${this.n(x0 - Math.round((x + w) * q))}z`;
   }
   /** ` fill="#rrggbb" fill-opacity="…"` (or stroke): a skin token's CSS color read to hex and its own opacity. */
-  private paint(c: number, a: number, attr: "fill" | "stroke"): string {
+  private paint(c: number, a: number, attr: 'fill' | 'stroke'): string {
     let color = hex(c);
     let o = a / 255;
     if (c < NO_COLOR) {
@@ -574,14 +574,14 @@ export class SvgBackend implements RenderBackend {
       color = esc(h);
       o *= k;
     }
-    return ` ${attr}="${color}"${o < 1 ? ` ${attr}-opacity="${dec3(o)}"` : ""}`;
+    return ` ${attr}="${color}"${o < 1 ? ` ${attr}-opacity="${dec3(o)}"` : ''}`;
   }
   private fontOf(css: string): Font {
     let f = this.fonts.get(css);
     if (!f) {
       const m = CSS_FONT.exec(css);
       f = {
-        weight: m?.[1] === "normal" ? "400" : (m?.[1] ?? "400"),
+        weight: m?.[1] === 'normal' ? '400' : (m?.[1] ?? '400'),
         px: Number(m?.[2] ?? 12),
         family: m?.[3] ?? css,
         box: this.opts.metrics?.(css) ?? null,
@@ -598,7 +598,7 @@ export class SvgBackend implements RenderBackend {
   private dy(font: Font, baseline: number, px: number): string | null {
     const box = font.box;
     if (!box) return null;
-    if (baseline === TextBaseline.alphabetic) return "";
+    if (baseline === TextBaseline.alphabetic) return '';
     const d =
       baseline === TextBaseline.top
         ? box.ascent
@@ -610,7 +610,7 @@ export class SvgBackend implements RenderBackend {
   private glyphPath(id: number, rec: GlyphRecord): void {
     if (this.sh.glyphs.has(id)) return;
     this.sh.glyphs.add(id);
-    this.sh.defs.push(`<path id="p${id}" d="${esc(rec.path ?? "")}"/>`);
+    this.sh.defs.push(`<path id="p${id}" d="${esc(rec.path ?? '')}"/>`);
   }
 
   /** An annular sector: outer arc clockwise, inner arc back; a full ring as two halves each (Canvas2D's `arc`). */
@@ -618,7 +618,7 @@ export class SvgBackend implements RenderBackend {
     let sweep = a1 - a0;
     const full = sweep >= TAU;
     sweep = full ? TAU : ((sweep % TAU) + TAU) % TAU;
-    if (sweep === 0) return "";
+    if (sweep === 0) return '';
     const at = (r: number, a: number) => this.pt(cx + r * Math.cos(a), cy + r * Math.sin(a));
     const R1 = this.p(r1);
     const R0 = this.p(r0);
@@ -638,7 +638,7 @@ export class SvgBackend implements RenderBackend {
     const at = (a: number) => this.pt(cx + r * Math.cos(a), cy + r * Math.sin(a));
     const R = this.p(r);
     const to = (s: number, large: number) => `A${R} ${R} 0 ${large} ${ccw ? 0 : 1} ${at(a0 + dir * s)}`;
-    const start = `${has ? "L" : "M"}${at(a0)}`;
+    const start = `${has ? 'L' : 'M'}${at(a0)}`;
     if (sweep === 0) return start;
     return full ? `${start}${to(Math.PI, 1)}${to(TAU, 1)}` : start + to(sweep, sweep > Math.PI ? 1 : 0);
   }
@@ -665,11 +665,11 @@ export class SvgBackend implements RenderBackend {
       }
       case 5: {
         // star
-        let d = "";
+        let d = '';
         for (let k = 0; k < 10; k++) {
           const a = -Math.PI / 2 + (k * Math.PI) / 5;
           const q = k % 2 === 0 ? r : r * 0.45;
-          d += `${k === 0 ? "M" : "L"}${P(x + q * Math.cos(a), y + q * Math.sin(a))}`;
+          d += `${k === 0 ? 'M' : 'L'}${P(x + q * Math.cos(a), y + q * Math.sin(a))}`;
         }
         return `${d}Z`;
       }
@@ -687,7 +687,7 @@ export class SvgBackend implements RenderBackend {
   }
 }
 
-const BASELINE = ["alphabetic", "central", "text-before-edge", "text-after-edge"];
-const weight = (f: Font) => (f.weight === "400" ? "" : ` font-weight="${f.weight}"`);
+const BASELINE = ['alphabetic', 'central', 'text-before-edge', 'text-after-edge'];
+const weight = (f: Font) => (f.weight === '400' ? '' : ` font-weight="${f.weight}"`);
 /** Six significant digits, shortest: scales and angles keep relative precision where hundredths would not. */
 const sig = (v: number) => String(Number(v.toPrecision(6)));

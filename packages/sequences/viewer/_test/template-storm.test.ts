@@ -12,10 +12,10 @@
 // times and, apart, what an update spends in the set's `withChanges` and in `templateNodes` at 10,000 held; asserts
 // what reruns and loose times. The slow tier's; the fast tier's storm of 50 instances over 500 checks what reruns.
 
-import { indexDoc, templateNodes } from "@molstar/seq-core/format";
-import { SeqSets } from "@molstar/seq-core/model";
-import { describe, expect, it } from "vitest";
-import { openTemplates, P, range, templateDoc } from "./template-fixtures.js";
+import { indexDoc, templateNodes } from '@molstar/seq-core/format';
+import { SeqSets } from '@molstar/seq-core/model';
+import { describe, expect, it } from 'vitest';
+import { openTemplates, P, range, templateDoc } from './template-fixtures.js';
 
 const median = (xs: number[]) => xs.slice().sort((a, b) => a - b)[xs.length >> 1];
 const ms = (x: number) => Math.round(x * 1000) / 1000;
@@ -29,8 +29,8 @@ async function storm(instances: number, nodes: number, frames: number) {
   const t = await openTemplates({});
   const m = t.manager;
   let t0 = performance.now();
-  for (let k = 0; k < instances; k++) m.nodes.add("genes", [range(`g${k}`, at(k))]);
-  for (let k = 0; k < nodes - instances; k++) m.nodes.add("notes", [range(`n${k}`, at(k))]);
+  for (let k = 0; k < instances; k++) m.nodes.add('genes', [range(`g${k}`, at(k))]);
+  for (let k = 0; k < nodes - instances; k++) m.nodes.add('notes', [range(`n${k}`, at(k))]);
   const hold = performance.now() - t0;
   t0 = performance.now();
   await t.frame();
@@ -50,33 +50,33 @@ async function storm(instances: number, nodes: number, frames: number) {
     }
     return { each, reran: [...reran].sort() };
   };
-  const arrive = await timed((k) => m.nodes.add("genes", [range(`new${k}`, at(k))]));
-  expect(arrive.reran).toEqual(["#assemble.stream", "#template:tpl", "#view:v"]);
+  const arrive = await timed((k) => m.nodes.add('genes', [range(`new${k}`, at(k))]));
+  expect(arrive.reran).toEqual(['#assemble.stream', '#template:tpl', '#view:v']);
   expect(t.instances()).toHaveLength(instances + frames);
-  const other = await timed((k) => m.nodes.add("notes", [range(`more${k}`, at(k))]));
-  expect(other.reran).toEqual(["#assemble.stream"]);
+  const other = await timed((k) => m.nodes.add('notes', [range(`more${k}`, at(k))]));
+  expect(other.reran).toEqual(['#assemble.stream']);
   const leave = await timed((k) => m.nodes.release([`genes/new${k}`]));
-  expect(leave.reran).toEqual(["#assemble.stream", "#template:tpl", "#view:v"]);
+  expect(leave.reran).toEqual(['#assemble.stream', '#template:tpl', '#view:v']);
   expect(t.instances()).toHaveLength(instances);
   return { t, hold, once, arrive, other, leave };
 }
 
-describe("a templated storm", () => {
+describe('a templated storm', () => {
   it("50 instances over 500 held nodes: an arrival reruns its template and the view, another source's nothing", async () => {
     const { t } = await storm(50, 500, 10);
     t.ctx.dispose();
   });
 
   it("1,000 instances over 10,000 held nodes: an arrival reruns its template and the view, another source's nothing", {
-    tags: ["slow"],
+    tags: ['slow'],
     timeout: 300_000,
   }, async () => {
     const { t, hold, once, arrive, other, leave } = await storm(1_000, 10_000, 200);
 
     // Apart: one annotation upserted into the set holding 10,000, and a template's selection over it.
     const set = t.ctx.graph.assembled.value?.set;
-    if (!set) throw new Error("no set");
-    const one = { key: "genes/probe", geometry: "ranges" as const, target: "p", columns: { start: [1], stop: [4] } };
+    if (!set) throw new Error('no set');
+    const one = { key: 'genes/probe', geometry: 'ranges' as const, target: 'p', columns: { start: [1], stop: [4] } };
     const w: number[] = [];
     for (let k = 0; k < 50; k++) {
       const s = performance.now();
@@ -87,7 +87,7 @@ describe("a templated storm", () => {
     const sel: number[] = [];
     for (let k = 0; k < 50; k++) {
       const s = performance.now();
-      templateNodes("tpl", index, set);
+      templateNodes('tpl', index, set);
       sel.push(performance.now() - s);
     }
     const line = (x: { each: number[] }) => `median ${ms(median(x.each))} ms, max ${ms(Math.max(...x.each))} ms`;

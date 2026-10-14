@@ -10,7 +10,7 @@
 // (seqspec:viewer#the-render-backend): the order the Canvas2D backend draws a batch in, shared by the backends that
 // write a group at a time (Canvas2D's and the SVG's). O(items + groups), no allocation once the scratch has grown.
 
-import { NO_COLOR } from "./backend.js";
+import { NO_COLOR } from './backend.js';
 
 export class ColorGroups {
   /** The items group by group: group q is `order[start[q] .. start[q + 1])`. */

@@ -11,17 +11,17 @@
 
 /** The kinds, in bit order. `other`: any category this vocabulary does not know. */
 export const Kinds = [
-  "contact",
-  "hbond",
-  "salt_bridge",
-  "pi_stacking",
-  "cation_pi",
-  "hydrophobic",
-  "halogen",
-  "metal",
-  "water_bridge",
-  "covalent",
-  "other",
+  'contact',
+  'hbond',
+  'salt_bridge',
+  'pi_stacking',
+  'cation_pi',
+  'hydrophobic',
+  'halogen',
+  'metal',
+  'water_bridge',
+  'covalent',
+  'other',
 ] as const;
 export type KindName = (typeof Kinds)[number];
 
@@ -30,17 +30,17 @@ export const Kind = Object.fromEntries(Kinds.map((k, i) => [k, i])) as { readonl
 
 /** Label, color and glyph shape per kind: written out into the kernel fallbacks, so any reader draws the same marks. */
 export const KindStyle: { readonly [K in KindName]: readonly [label: string, color: string, shape: string] } = {
-  contact: ["contact", "#bab0ac", "pin"],
-  hbond: ["hydrogen bond", "#4e79a7", "diamond"],
-  salt_bridge: ["salt bridge", "#e15759", "cross"],
-  pi_stacking: ["π stacking", "#59a14f", "square"],
-  cation_pi: ["cation–π", "#f28e2b", "star"],
-  hydrophobic: ["hydrophobic contact", "#edc948", "circle"],
-  halogen: ["halogen bond", "#76b7b2", "triangle"],
-  metal: ["metal coordination", "#b07aa1", "star"],
-  water_bridge: ["water-mediated", "#9c9ede", "triangle"],
-  covalent: ["covalent bond", "#9c755f", "square"],
-  other: ["other", "#79706e", "circle"],
+  contact: ['contact', '#bab0ac', 'pin'],
+  hbond: ['hydrogen bond', '#4e79a7', 'diamond'],
+  salt_bridge: ['salt bridge', '#e15759', 'cross'],
+  pi_stacking: ['π stacking', '#59a14f', 'square'],
+  cation_pi: ['cation–π', '#f28e2b', 'star'],
+  hydrophobic: ['hydrophobic contact', '#edc948', 'circle'],
+  halogen: ['halogen bond', '#76b7b2', 'triangle'],
+  metal: ['metal coordination', '#b07aa1', 'star'],
+  water_bridge: ['water-mediated', '#9c9ede', 'triangle'],
+  covalent: ['covalent bond', '#9c755f', 'square'],
+  other: ['other', '#79706e', 'circle'],
 };
 
 const byName = new Map<string, number>(Kinds.map((k, i) => [k, i]));

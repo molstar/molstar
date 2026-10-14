@@ -9,9 +9,9 @@
 // What a host's Storybook (.storybook/main.ts) takes from this package: where the stories and docs pages are, and a
 // Vite plugin. The host also imports `@molstar/seq-storybook/tokens.css` in its preview.
 
-import { fileURLToPath } from "node:url";
+import { fileURLToPath } from 'node:url';
 
-const src = fileURLToPath(new URL("./src", import.meta.url));
+const src = fileURLToPath(new URL('./src', import.meta.url));
 
 /** The globs of the package's stories and docs pages, for the host's `stories`. */
 export const seqstarStories = [`${src}/_stories/docs/**/*.mdx`, `${src}/_stories/**/*.stories.@(ts|tsx)`];
@@ -24,10 +24,10 @@ export const seqstarStories = [`${src}/_stories/docs/**/*.mdx`, `${src}/_stories
 export function seqstarFixtureFs() {
   const shim = `${src}/_stories/support/seqstar-fixture-fs.ts`;
   return {
-    name: "seqstar-fixture-fs",
-    enforce: "pre" as const,
+    name: 'seqstar-fixture-fs',
+    enforce: 'pre' as const,
     resolveId(id: string, importer?: string) {
-      return id === "node:fs" && importer && /\/lib\/seqstar\/[^/]+\/_test\//.test(importer) ? shim : null;
+      return id === 'node:fs' && importer && /\/lib\/seqstar\/[^/]+\/_test\//.test(importer) ? shim : null;
     },
   };
 }

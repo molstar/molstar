@@ -13,9 +13,9 @@
 // entry itself. Sums in a typed array, read back as `__genome` in the console: per renderer the draws' calls, total ms
 // and slowest call, and the prepares' ms by type.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { genomeDoc, synthGenome } from "../../../core/_test/format/genome-fixture.js";
-import type { DrawView } from "../../src/draw/view.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { genomeDoc, synthGenome } from '../../../core/_test/format/genome-fixture.js';
+import type { DrawView } from '../../src/draw/view.js';
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -24,8 +24,8 @@ import {
   type LayerRenderer,
   type Scheduler,
   type SeqViewerContext,
-} from "../../src/index.js";
-export const SECTION = "genome.main";
+} from '../../src/index.js';
+export const SECTION = 'genome.main';
 
 /** Per renderer: draw ms summed, calls, the slowest call; prepare ms by type. */
 export const PROBE = {
@@ -69,12 +69,12 @@ export const TIMED: LayerRenderer[] = (KernelRenderers as LayerRenderer[]).map((
       PROBE.prepare[r.name] = (PROBE.prepare[r.name] ?? 0) + performance.now() - t;
       return out;
     },
-    draw: timedDraw(i, r.draw as Draw | undefined) as LayerRenderer["draw"],
+    draw: timedDraw(i, r.draw as Draw | undefined) as LayerRenderer['draw'],
   };
 });
 
 /** Everything is by value: a load is a bug, never a fetch. */
-const NO_LOADS = { load: () => Promise.reject(new Error("the genome story loads nothing")) };
+const NO_LOADS = { load: () => Promise.reject(new Error('the genome story loads nothing')) };
 
 /** The genome document (`genomeDoc` over `synthGenome`), shared by the stack's story and tests. */
 export function genomeDocument(o: Parameters<typeof synthGenome>[0] = {}): SeqViewSpecDoc {

@@ -14,26 +14,26 @@
 // old test's pixel parts are CS2's (copies equal a redraw) and CS1b's (the selection of cells on one row: the overlay's
 // row rects).
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { TILE } from "@molstar/seq-core/format";
-import { NotServed, tilesStream } from "@molstar/seq-core/stream/tiles";
-import { describe, expect, it } from "vitest";
-import { ChannelMarks } from "../src/channels.js";
-import { SkinToken, TextAlign } from "../src/draw/backend.js";
-import { Dirty, VerticalNav } from "../src/draw/index.js";
-import { MapView } from "../src/draw/miniature.js";
-import { DrawView } from "../src/draw/view.js";
-import { KernelRenderers, type LayerRenderer } from "../src/index.js";
-import { letterLines } from "../src/renderer-helpers.js";
-import { RowsRenderer } from "../src/renderers/rows.js";
-import type { RowsState } from "../src/rows.js";
-import type { Streams } from "../src/streams.js";
-import { AffinityField, LayerFrame, Op, RecordingBackend, StarsFormat } from "../src/testing/index.js";
-import { TREE_INSET } from "../src/tree.js";
-import { set } from "./axis-fixtures.js";
-import { drawn, layerOf, rects, texts } from "./draw-fixtures.js";
-import { familyWithTree, wideFamily } from "./families.js";
-import { layer, lazyLoaders, opened } from "./layout-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { TILE } from '@molstar/seq-core/format';
+import { NotServed, tilesStream } from '@molstar/seq-core/stream/tiles';
+import { describe, expect, it } from 'vitest';
+import { ChannelMarks } from '../src/channels.js';
+import { SkinToken, TextAlign } from '../src/draw/backend.js';
+import { Dirty, VerticalNav } from '../src/draw/index.js';
+import { MapView } from '../src/draw/miniature.js';
+import { DrawView } from '../src/draw/view.js';
+import { KernelRenderers, type LayerRenderer } from '../src/index.js';
+import { letterLines } from '../src/renderer-helpers.js';
+import { RowsRenderer } from '../src/renderers/rows.js';
+import type { RowsState } from '../src/rows.js';
+import type { Streams } from '../src/streams.js';
+import { AffinityField, LayerFrame, Op, RecordingBackend, StarsFormat } from '../src/testing/index.js';
+import { TREE_INSET } from '../src/tree.js';
+import { set } from './axis-fixtures.js';
+import { drawn, layerOf, rects, texts } from './draw-fixtures.js';
+import { familyWithTree, wideFamily } from './families.js';
+import { layer, lazyLoaders, opened } from './layout-fixtures.js';
 
 const count = (r: RecordingBackend, op: number) => {
   let n = 0;
@@ -48,15 +48,15 @@ async function settle(ctx: { streams: unknown }) {
   }
 }
 /** The Members track's rows layer drawn through the kit's composer: its recording and entries drawn. */
-function frame(ctx: Awaited<ReturnType<typeof drawn>>["ctx"], label = "Members") {
+function frame(ctx: Awaited<ReturnType<typeof drawn>>['ctx'], label = 'Members') {
   const { k, section } = layerOf(ctx, label);
-  const entry = ctx.registry.get("renderers", "rows") as LayerRenderer;
+  const entry = ctx.registry.get('renderers', 'rows') as LayerRenderer;
   const f = new LayerFrame(ctx, entry, section, k);
   const n = f.draw(f.direct);
   return { rec: f.direct, n, k, section };
 }
 /** A view on the rows layer as the composer sets it for one row (`row`) at (`top`, `height`). */
-function view(ctx: Awaited<ReturnType<typeof drawn>>["ctx"], rec: RecordingBackend, label = "Members") {
+function view(ctx: Awaited<ReturnType<typeof drawn>>['ctx'], rec: RecordingBackend, label = 'Members') {
   const { k, section } = layerOf(ctx, label);
   const p = ctx.graph.assembled.value?.view?.prepared[k];
   const v = new DrawView().from(ctx.layout.axis(section) as never);
@@ -69,13 +69,13 @@ function view(ctx: Awaited<ReturnType<typeof drawn>>["ctx"], rec: RecordingBacke
   return { v, s: p?.state as RowsState, section, k };
 }
 
-describe("rows, the tree, columns draw", () => {
-  it.each([1, 2])("at each level of detail and row height, DPR %i; dense rows in one call", async (dpr) => {
+describe('rows, the tree, columns draw', () => {
+  it.each([1, 2])('at each level of detail and row height, DPR %i; dense rows in one call', async (dpr) => {
     const t = await drawn(wideFamily(160, 80), { dpr, width: 1000, height: 420 });
-    const { section } = layerOf(t.ctx, "Members");
+    const { section } = layerOf(t.ctx, 'Members');
     for (const cell of [16, 4, 1.2, 0.3])
       for (const scale of [1, 0.15, 0.01]) {
-        t.ctx.viewports.get(section)?.setView(cell, 0, "api");
+        t.ctx.viewports.get(section)?.setView(cell, 0, 'api');
         t.ctx.viewports.get(section)?.setRowScale(scale, 0);
         await t.ctx.graph.update();
         await settle(t.ctx);
@@ -101,24 +101,24 @@ describe("rows, the tree, columns draw", () => {
 
   it("letters are inked to read on their cell, a gap quiet; single rows carry their row's residues", async () => {
     const t = await drawn(familyWithTree(40, 12), { width: 1000, height: 420 });
-    const { section } = layerOf(t.ctx, "Members");
-    t.ctx.viewports.get(section)?.setView(16, 0, "api");
+    const { section } = layerOf(t.ctx, 'Members');
+    t.ctx.viewports.get(section)?.setView(16, 0, 'api');
     await t.ctx.graph.update();
     const { rec } = frame(t.ctx);
     const ts = texts(rec);
     expect(ts.length).toBeGreaterThan(50);
     for (const x of ts) expect(x.text.length).toBe(1);
     for (const x of ts) expect([0x181a1e, 0xffffff, SkinToken.inkQuiet]).toContain(x.color);
-    expect(ts.filter((x) => x.text === "-").every((x) => x.color === SkinToken.inkQuiet)).toBe(true);
-    expect(ts.filter((x) => x.text !== "-").every((x) => x.color >= 0)).toBe(true);
+    expect(ts.filter((x) => x.text === '-').every((x) => x.color === SkinToken.inkQuiet)).toBe(true);
+    expect(ts.filter((x) => x.text !== '-').every((x) => x.color >= 0)).toBe(true);
   });
 
-  it.each([1, 2])("the tree header and a hovered clade, DPR %i", async (dpr) => {
+  it.each([1, 2])('the tree header and a hovered clade, DPR %i', async (dpr) => {
     const t = await drawn(familyWithTree(40, 10), { dpr, width: 1000, height: 600 });
     const rec = new RecordingBackend();
     const { v, s } = view(t.ctx, rec);
-    const l = t.ctx.layout.get("fam.main")?.current;
-    if (!l) throw new Error("no layout");
+    const l = t.ctx.layout.get('fam.main')?.current;
+    if (!l) throw new Error('no layout');
     v.top = l.scrolledTop + l.entryTop[l.rows.entry];
     v.height = l.rows.height;
     v.left = 0;
@@ -141,12 +141,12 @@ describe("rows, the tree, columns draw", () => {
     expect(rec.pathItems.nv).toBeLessThan(verbs);
   });
 
-  it("a band of rows: a connector cut at its edges runs a line width past them (no seam where bands meet)", async () => {
+  it('a band of rows: a connector cut at its edges runs a line width past them (no seam where bands meet)', async () => {
     const t = await drawn(familyWithTree(40, 10), { dpr: 2, width: 1000, height: 600 });
     const rec = new RecordingBackend();
     const { v, s } = view(t.ctx, rec);
-    const l = t.ctx.layout.get("fam.main")?.current;
-    if (!l) throw new Error("no layout");
+    const l = t.ctx.layout.get('fam.main')?.current;
+    if (!l) throw new Error('no layout');
     v.top = l.scrolledTop + l.entryTop[l.rows.entry];
     v.height = l.rows.height;
     v.left = 0;
@@ -164,13 +164,13 @@ describe("rows, the tree, columns draw", () => {
     expect([above, below]).toEqual([true, true]);
   });
 
-  it("collapsed clades draw as wedges: a filled triangle each", async () => {
+  it('collapsed clades draw as wedges: a filled triangle each', async () => {
     const t = await drawn(familyWithTree(40, 10), { width: 1000, height: 600 });
     const rec = new RecordingBackend();
     const { v, s, section } = view(t.ctx, rec);
     const wedges = () => {
       const l = t.ctx.layout.get(section)?.current;
-      if (!l) throw new Error("no layout");
+      if (!l) throw new Error('no layout');
       rec.reset();
       v.top = l.scrolledTop + l.entryTop[l.rows.entry];
       v.height = l.rows.height;
@@ -178,7 +178,7 @@ describe("rows, the tree, columns draw", () => {
       return Array.from({ length: rec.pathItems.n }, (_, i) => rec.pathItems.mode[i]).filter((m) => m === 0).length;
     };
     expect(wedges()).toBe(0);
-    t.ctx.ui.toggleClade("family", 2);
+    t.ctx.ui.toggleClade('family', 2);
     await t.ctx.graph.update();
     expect(wedges()).toBe(1);
   });
@@ -201,19 +201,19 @@ async function cells(width: number, dpr = 1) {
     draw: (c: number, row = 3) => {
       rec.reset();
       const dc = s.dataColumns[c];
-      t.ctx.registry.get("columns", dc.renderer)?.draw?.(v, dc.state as never, row);
+      t.ctx.registry.get('columns', dc.renderer)?.draw?.(v, dc.state as never, row);
     },
   };
 }
 
-describe("data columns", () => {
-  it("number right-aligned, fraction a bar and a percentage, text left, category a swatch and a label", async () => {
+describe('data columns', () => {
+  it('number right-aligned, fraction a bar and a percentage, text left, category a swatch and a label', async () => {
     const { rec, draw, s } = await cells(80);
-    expect(s.dataColumns.map((c) => c.renderer)).toEqual(["number", "fraction", "text", "category"]);
-    expect(s.dataColumns.map((c) => c.label)).toEqual(["Len", "Id.", "Species", "Clade"]);
+    expect(s.dataColumns.map((c) => c.renderer)).toEqual(['number', 'fraction', 'text', 'category']);
+    expect(s.dataColumns.map((c) => c.label)).toEqual(['Len', 'Id.', 'Species', 'Clade']);
     draw(0);
     expect(texts(rec).map((x) => [x.text, x.align, x.x, x.color])).toEqual([
-      ["28", TextAlign.right, 174, SkinToken.ink],
+      ['28', TextAlign.right, 174, SkinToken.ink],
     ]);
     draw(1);
     // The bar's track and its share of it, then the percentage, quiet.
@@ -221,13 +221,13 @@ describe("data columns", () => {
       [104, 36, SkinToken.inkFaint],
       [104, Math.round(36 * 0.11), SkinToken.accent],
     ]);
-    expect(texts(rec).map((x) => [x.text, x.align, x.color])).toEqual([["11%", TextAlign.right, SkinToken.inkQuiet]]);
+    expect(texts(rec).map((x) => [x.text, x.align, x.color])).toEqual([['11%', TextAlign.right, SkinToken.inkQuiet]]);
     draw(2);
-    expect(texts(rec).map((x) => [x.text, x.align, x.x])).toEqual([["Species 3", TextAlign.left, 106]]);
+    expect(texts(rec).map((x) => [x.text, x.align, x.x])).toEqual([['Species 3', TextAlign.left, 106]]);
     draw(3);
     expect(rects(rec).length).toBe(1);
     expect(rects(rec)[0][4]).toBeGreaterThanOrEqual(0);
-    expect(texts(rec).map((x) => x.text)).toEqual(["clade 3"]);
+    expect(texts(rec).map((x) => x.text)).toEqual(['clade 3']);
     // A row without a value draws nothing; a row past the annotation too.
     draw(0, -1);
     expect(rec.opCount).toBe(0);
@@ -236,53 +236,53 @@ describe("data columns", () => {
   it("a long name is cut with an ellipsis at the column's width", async () => {
     const full = await cells(110);
     full.draw(2);
-    expect(texts(full.rec)[0].text).toBe("Species 3");
+    expect(texts(full.rec)[0].text).toBe('Species 3');
     const narrow = await cells(36);
     narrow.draw(2);
     const text = texts(narrow.rec)[0].text;
-    expect([text.endsWith("…"), text.length < "Species 3".length]).toEqual([true, true]);
+    expect([text.endsWith('…'), text.length < 'Species 3'.length]).toEqual([true, true]);
     const tiny = await cells(12);
     tiny.draw(2);
     expect(tiny.rec.opCount).toBe(0);
   });
 
-  it("an unknown type is drawn as `text`, reported once with svs.render.fallback", async () => {
+  it('an unknown type is drawn as `text`, reported once with svs.render.fallback', async () => {
     const t = await drawn(familyWithTree(40, 12, { columns: true }));
     const issues: string[] = [];
     t.ctx.events.issue.subscribe((i) => issues.push(i.code));
     const m = t.ctx.graph.assembled.value?.view;
-    const { k, section } = layerOf(t.ctx, "Members");
-    if (!m) throw new Error("no view");
+    const { k, section } = layerOf(t.ctx, 'Members');
+    if (!m) throw new Error('no view');
     const cols = m.resolved.layers.params[k].data_columns as Record<string, unknown>[];
     await t.ctx.applyPatch(
       set(m.set.strings.get(m.resolved.layers.ref[k]), {
-        data_columns: [{ ...cols[2], type: "org.example:sparkline" }],
+        data_columns: [{ ...cols[2], type: 'org.example:sparkline' }],
       }),
     );
     t.ctx.layout.get(section);
     const { v, s } = view(t.ctx, new RecordingBackend());
     void v;
-    expect(s.dataColumns.map((c) => c.renderer)).toEqual(["text"]);
-    expect(issues.filter((c) => c === "svs.render.fallback")).toHaveLength(1);
+    expect(s.dataColumns.map((c) => c.renderer)).toEqual(['text']);
+    expect(issues.filter((c) => c === 'svs.render.fallback')).toHaveLength(1);
   });
 
   it("a field provider's values fill a column wherever a field is (org.example:affinity)", async () => {
-    const b = createSeqViewSpec({ title: "Affinity" });
+    const b = createSeqViewSpec({ title: 'Affinity' });
     const aln = b.data.alignment({
-      ref: "aln",
-      source: { value: "# STOCKHOLM 1.0\nA   MKTAYI\nB   MKTAYV\n//\n", format: "stockholm" },
+      ref: 'aln',
+      source: { value: '# STOCKHOLM 1.0\nA   MKTAYI\nB   MKTAYV\n//\n', format: 'stockholm' },
     });
     const meta = b.data.annotation({
-      ref: "meta",
-      geometry: "rows",
+      ref: 'meta',
+      geometry: 'rows',
       target: aln,
       value: { row: [0, 1], kd_nm: [1, 3] },
-      custom: { "org.example": { unit: "pKd" } },
+      custom: { 'org.example': { unit: 'pKd' } },
     } as never);
-    b.view({ ref: "v", label: "V" })
+    b.view({ ref: 'v', label: 'V' })
       .block({ alignment: aln })
-      .track({ label: "Members" })
-      .rows({ data_columns: [{ data: meta, field: "org.example:affinity", label: "pKd", type: "number" }] } as never);
+      .track({ label: 'Members' })
+      .rows({ data_columns: [{ data: meta, field: 'org.example:affinity', label: 'pKd', type: 'number' }] } as never);
     const t = await opened(b.getDocument(), {
       renderers: [...KernelRenderers] as LayerRenderer[],
       registry: [{ svs: StarsFormat }],
@@ -293,10 +293,10 @@ describe("data columns", () => {
     v.height = 14;
     v.columnWidth = 64;
     const dc = s.dataColumns[0];
-    const draw = t.ctx.registry.get("columns", "number")?.draw;
+    const draw = t.ctx.registry.get('columns', 'number')?.draw;
     draw?.(v, dc.state as never, 0);
     draw?.(v, dc.state as never, 1);
-    expect(texts(rec).map((x) => x.text)).toEqual(["9", "8.52"]);
+    expect(texts(rec).map((x) => x.text)).toEqual(['9', '8.52']);
     void AffinityField;
   });
 });
@@ -306,28 +306,28 @@ describe("the rows' stream key", () => {
     // 40 rows, three kept (0, 31, 32), ordered by `p` (31, 32, 0) or by `q` (32, 0, 31): a base-31 hash's collision.
     const N = 40;
     const rows = Array.from({ length: N }, (_, i) =>
-      Array.from({ length: 12 }, (_, j) => "ACDEFGHIKLMNPQRSTVWY"[(i * 7 + j * (i + 1)) % 20]).join(""),
+      Array.from({ length: 12 }, (_, j) => 'ACDEFGHIKLMNPQRSTVWY'[(i * 7 + j * (i + 1)) % 20]).join(''),
     );
-    const b = createSeqViewSpec({ title: "R" });
-    const aln = b.data.alignment({ ref: "aln", value: rows, labels: rows.map((_, i) => `r${i}`) });
+    const b = createSeqViewSpec({ title: 'R' });
+    const aln = b.data.alignment({ ref: 'aln', value: rows, labels: rows.map((_, i) => `r${i}`) });
     const rank = (order: number[]) => rows.map((_, i) => (order.includes(i) ? order.indexOf(i) : 9));
     const keep = rows.map((_, i) => i === 0 || i === 31 || i === 32);
     b.data.annotation({
-      ref: "kt",
-      geometry: "rows",
+      ref: 'kt',
+      geometry: 'rows',
       target: aln,
       value: { row: rows.map((_, i) => i), p: rank([31, 32, 0]), q: rank([32, 0, 31]), keep },
     } as never);
-    const filter = [{ data: "kt", field: "keep", values: [true] }];
-    b.view({ ref: "v", label: "V", style: "msa" })
+    const filter = [{ data: 'kt', field: 'keep', values: [true] }];
+    b.view({ ref: 'v', label: 'V', style: 'msa' })
       .block({ alignment: aln })
-      .track({ label: "Rows" })
-      .rows({ ref: "members", order: { data: "kt", field: "p" }, filter } as never);
+      .track({ label: 'Rows' })
+      .rows({ ref: 'members', order: { data: 'kt', field: 'p' }, filter } as never);
     const t = await opened(b.getDocument(), { renderers: [...KernelRenderers] as LayerRenderer[] });
-    const state = () => layer(t.ctx, "Rows").state as { rowOf: Int32Array | null; source: { key: string } };
+    const state = () => layer(t.ctx, 'Rows').state as { rowOf: Int32Array | null; source: { key: string } };
     const before = state();
     expect(Array.from(before.rowOf ?? [])).toEqual([31, 32, 0]);
-    await t.ctx.applyPatch(set("members", { order: { data: "kt", field: "q" }, filter }));
+    await t.ctx.applyPatch(set('members', { order: { data: 'kt', field: 'q' }, filter }));
     await t.ctx.graph.update();
     const after = state();
     expect(Array.from(after.rowOf ?? [])).toEqual([32, 0, 31]);
@@ -336,7 +336,7 @@ describe("the rows' stream key", () => {
   });
 });
 
-describe("gutters and lazy rows", () => {
+describe('gutters and lazy rows', () => {
   it("a row's first and last residue numbers sit in the gutters", async () => {
     const t = await drawn(familyWithTree(40, 12), { width: 1000, height: 420 });
     const rec = new RecordingBackend();
@@ -354,7 +354,7 @@ describe("gutters and lazy rows", () => {
     expect(Number(right.text)).toBeGreaterThan(26);
     // Centered on the digits' height in the row, as the row's letters: an alphabetic baseline under the middle (107).
     const lines = new Float64Array(2);
-    letterLines(v, v.text.font("ui", 10), 100, 114, lines);
+    letterLines(v, v.text.font('ui', 10), 100, 114, lines);
     expect([left.y, right.y]).toEqual([lines[0], lines[0]]);
     expect(left.y).toBeGreaterThan(110);
     rec.reset();
@@ -364,31 +364,31 @@ describe("gutters and lazy rows", () => {
   });
 
   it("lazy rows draw from tiles as they arrive; the overview's map pending until its tiles do, in any box", async () => {
-    const uri = "https://example.org/lazy";
-    const b = createSeqViewSpec({ title: "lazy" });
+    const uri = 'https://example.org/lazy';
+    const b = createSeqViewSpec({ title: 'lazy' });
     const aln = b.data.alignment({
-      ref: "lazy",
+      ref: 'lazy',
       row_count: 3000,
       column_count: 400,
-      source: { uri, protocol: "seqstar-tiles/1" },
+      source: { uri, protocol: 'seqstar-tiles/1' },
     });
-    b.view({ ref: "v", label: "V", style: "msa", height: "box" })
+    b.view({ ref: 'v', label: 'V', style: 'msa', height: 'box' })
       .block({ alignment: aln })
-      .track({ label: "Rows" })
+      .track({ label: 'Rows' })
       .rows();
     const t = await opened(b.getDocument(), {
       renderers: [...KernelRenderers] as LayerRenderer[],
       loaders: lazyLoaders(uri, 3000, 400),
-      size: { "v.main": [1000, 400] },
+      size: { 'v.main': [1000, 400] },
     });
-    t.vp("v.main").setView(1.5, 0, "api");
+    t.vp('v.main').setView(1.5, 0, 'api');
     await t.ctx.graph.update();
     // The vertical overview's map (`MapView`) in the column's own box and in a navigator's band: the level the region
     // cache loads for the section's overview column either way (`overviewLevels`), so it fills once its tiles arrive.
-    const { v: v0, s, k } = view(t.ctx, new RecordingBackend(), "Rows");
+    const { v: v0, s, k } = view(t.ctx, new RecordingBackend(), 'Rows');
     const m = t.ctx.graph.assembled.value?.view;
-    const av = t.ctx.layout.axis("v.main");
-    if (!m || !av?.axis) throw new Error("no view");
+    const av = t.ctx.layout.axis('v.main');
+    if (!m || !av?.axis) throw new Error('no view');
     expect(av.vnavWidth).toBeGreaterThan(0);
     const map = new MapView();
     const cache = RowsRenderer.cache?.create(s, v0.skin) ?? null;
@@ -406,17 +406,17 @@ describe("gutters and lazy rows", () => {
       [av.vnavWidth, av.regionBottom - av.regionTop],
       [700, 28],
     ];
-    const before = frame(t.ctx, "Rows");
+    const before = frame(t.ctx, 'Rows');
     // Nothing arrived: no image, nothing drawn but what the draw has of its own; the maps pending.
     expect(count(before.rec, Op.image)).toBe(0);
     for (const [w, h] of boxes) expect(overview(w, h), `${w} × ${h}`).toEqual([false, true]);
     await settle(t.ctx);
-    const after = frame(t.ctx, "Rows");
+    const after = frame(t.ctx, 'Rows');
     expect(count(after.rec, Op.image)).toBeGreaterThan(0);
     for (const [w, h] of boxes) expect(overview(w, h), `${w} × ${h}`).toEqual([true, false]);
     // No overview column: the map at `MAP_WIDTH`'s levels (ST3b; the manager loads them where a miniature names the
     // track), pending here since nothing asked them.
-    t.ctx.layout.axis("v.main");
+    t.ctx.layout.axis('v.main');
     const v = map.of(av, new Float64Array(1), 0, 1, 400);
     v.vnavWidth = 0;
     v.cache = cache;
@@ -424,27 +424,27 @@ describe("gutters and lazy rows", () => {
   });
 
   it("the vertical overview's image keys on its rows layer's regions: another layer's arrival does not rebuild it", async () => {
-    const uri = "https://example.org/lazy";
-    const b = createSeqViewSpec({ title: "lazy" });
+    const uri = 'https://example.org/lazy';
+    const b = createSeqViewSpec({ title: 'lazy' });
     const aln = b.data.alignment({
-      ref: "lazy",
+      ref: 'lazy',
       row_count: 3000,
       column_count: 400,
-      source: { uri, protocol: "seqstar-tiles/1" },
+      source: { uri, protocol: 'seqstar-tiles/1' },
     });
-    b.view({ ref: "v", label: "V", style: "msa", height: "box" })
+    b.view({ ref: 'v', label: 'V', style: 'msa', height: 'box' })
       .block({ alignment: aln })
-      .track({ label: "Rows" })
+      .track({ label: 'Rows' })
       .rows();
     const t = await opened(b.getDocument(), {
       renderers: [...KernelRenderers] as LayerRenderer[],
       loaders: lazyLoaders(uri, 3000, 400),
-      size: { "v.main": [1000, 400] },
+      size: { 'v.main': [1000, 400] },
     });
     await t.ctx.graph.update();
     const { graph, selection, highlight, systems, layout } = t.ctx;
     const marks = new ChannelMarks({ graph, hover: t.ctx.hover, selection, highlight, systems, layout });
-    const vnav = new VerticalNav(t.ctx, "v.main", marks);
+    const vnav = new VerticalNav(t.ctx, 'v.main', marks);
     const rec = new RecordingBackend();
     const builds = () => {
       rec.reset();
@@ -468,29 +468,29 @@ describe("gutters and lazy rows", () => {
   it("10,000,000 lazy rows: the layout, the region cache's passes and frames hold nothing per row", async () => {
     // A transport that serves one tile and labels at once: the procedural tile server (the format's tests) reduces every
     // cell of a sample and keeps every row's string, so at a million rows its overview tile alone runs out of memory.
-    const uri = "https://example.org/huge";
+    const uri = 'https://example.org/huge';
     const tile = new Uint8Array(2 * TILE * TILE).fill(65, 0, TILE * TILE).fill(200, TILE * TILE);
     const calls: string[] = [];
     const transport = async (path: string) => {
       calls.push(path);
-      const [kind, a, b] = path.split("/");
-      if (kind === "tiles") return tile;
-      if (kind !== "labels") throw new NotServed(`404 ${path}`);
+      const [kind, a, b] = path.split('/');
+      if (kind === 'tiles') return tile;
+      if (kind !== 'labels') throw new NotServed(`404 ${path}`);
       const labels = Array.from({ length: Number(b) - Number(a) }, (_, i) => `S${Number(a) + i}`);
       return new TextEncoder().encode(JSON.stringify(labels));
     };
     const N = 10_000_000;
     const before = process.memoryUsage();
-    const b = createSeqViewSpec({ title: "huge" });
+    const b = createSeqViewSpec({ title: 'huge' });
     const aln = b.data.alignment({
-      ref: "huge",
+      ref: 'huge',
       row_count: N,
       column_count: 5000,
-      source: { uri, protocol: "seqstar-tiles/1" },
+      source: { uri, protocol: 'seqstar-tiles/1' },
     });
-    b.view({ ref: "v", label: "V", style: "msa", height: "box" })
+    b.view({ ref: 'v', label: 'V', style: 'msa', height: 'box' })
       .block({ alignment: aln })
-      .track({ label: "Rows" })
+      .track({ label: 'Rows' })
       .rows();
     const t = await opened(b.getDocument(), {
       renderers: [...KernelRenderers] as LayerRenderer[],
@@ -498,14 +498,14 @@ describe("gutters and lazy rows", () => {
         load: (r) => Promise.reject(new Error(`no fixture for ${r.uri}`)),
         stream: tilesStream((u) => (u === uri ? (transport as never) : null)),
       },
-      size: { "v.main": [1000, 400] },
+      size: { 'v.main': [1000, 400] },
     });
     for (const scale of [0.0001, 0.01, 1]) {
-      t.vp("v.main").setView(1.5, 0, "api");
-      t.vp("v.main").setRowScale(scale, 0);
+      t.vp('v.main').setView(1.5, 0, 'api');
+      t.vp('v.main').setRowScale(scale, 0);
       await t.ctx.graph.update();
       await settle(t.ctx);
-      const { rec, n } = frame(t.ctx, "Rows");
+      const { rec, n } = frame(t.ctx, 'Rows');
       expect([n, count(rec, Op.image) > 0], `row scale ${scale}`).toEqual([1, true]);
     }
     const after = process.memoryUsage();

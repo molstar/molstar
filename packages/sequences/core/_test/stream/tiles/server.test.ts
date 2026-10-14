@@ -10,17 +10,17 @@
 // kept (the first version cached every row string, about 4 GB at that size). The million is the slow tier's; the fast
 // tier asks the same of 20,000 rows.
 
-import { TILE } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { tileClient } from "../../../src/stream/tiles/index.js";
-import { proceduralCode, proceduralRow, tileServer } from "../../../src/stream/tiles/server.js";
+import { TILE } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { tileClient } from '../../../src/stream/tiles/index.js';
+import { proceduralCode, proceduralRow, tileServer } from '../../../src/stream/tiles/server.js';
 
-describe("20,000 rows", () => {
+describe('20,000 rows', () => {
   const [R, C] = [20_000, 320];
   const server = tileServer({ rowCount: R, columnCount: C });
-  const client = tileClient("x", server.transport);
+  const client = tileClient('x', server.transport);
 
-  it("answers the tiles of every level, sampled", async () => {
+  it('answers the tiles of every level, sampled', async () => {
     // Level 7's samples are 128 rows apart: the 157th starts past the last row.
     const top = await client.tile(7, 1, 0, 0);
     const mid = await client.tile(4, 0, 2, 0);
@@ -32,22 +32,22 @@ describe("20,000 rows", () => {
     );
   });
 
-  it("the same tile is the same bytes, and a row is the row it would be", async () => {
+  it('the same tile is the same bytes, and a row is the row it would be', async () => {
     const [a, b] = [await client.tile(5, 0, 0, 0), await client.tile(5, 0, 0, 0)];
     expect(Array.from(a.cls.subarray(0, 64))).toEqual(Array.from(b.cls.subarray(0, 64)));
     expect((await client.row(19_999)).row).toBe(proceduralRow(19_999, C));
-    expect((await client.labels(19_998, 20_000)).map((l) => l.split("/")[0])).toEqual(["SEQ19998", "SEQ19999"]);
-    expect(await client.stats("conservation", 0, 0)).toBeNull();
+    expect((await client.labels(19_998, 20_000)).map((l) => l.split('/')[0])).toEqual(['SEQ19998', 'SEQ19999']);
+    expect(await client.stats('conservation', 0, 0)).toBeNull();
     expect(server.calls.length).toBe(8);
   });
 });
 
-describe("a million rows", { tags: ["slow"] }, () => {
+describe('a million rows', { tags: ['slow'] }, () => {
   const [R, C] = [1_000_000, 320];
   const server = tileServer({ rowCount: R, columnCount: C });
-  const client = tileClient("x", server.transport);
+  const client = tileClient('x', server.transport);
 
-  it("answers the tiles of every level in a blink, in memory that does not grow", async () => {
+  it('answers the tiles of every level in a blink, in memory that does not grow', async () => {
     const before = process.memoryUsage().heapUsed;
     const t0 = performance.now();
     const top = await client.tile(15, 1, 0, 0);
@@ -64,12 +64,12 @@ describe("a million rows", { tags: ["slow"] }, () => {
     expect(process.memoryUsage().heapUsed - before).toBeLessThan(100 * 2 ** 20);
   });
 
-  it("the same tile is the same bytes, and a row is the row it would be", async () => {
+  it('the same tile is the same bytes, and a row is the row it would be', async () => {
     const [a, b] = [await client.tile(12, 0, 0, 0), await client.tile(12, 0, 0, 0)];
     expect(Array.from(a.cls.subarray(0, 64))).toEqual(Array.from(b.cls.subarray(0, 64)));
     expect((await client.row(999_999)).row).toBe(proceduralRow(999_999, C));
-    expect((await client.labels(999_998, 1_000_000)).map((l) => l.split("/")[0])).toEqual(["SEQ999998", "SEQ999999"]);
-    expect(await client.stats("conservation", 0, 0)).toBeNull();
+    expect((await client.labels(999_998, 1_000_000)).map((l) => l.split('/')[0])).toEqual(['SEQ999998', 'SEQ999999']);
+    expect(await client.stats('conservation', 0, 0)).toBeNull();
     expect(server.calls.length).toBe(8);
   });
 });

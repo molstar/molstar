@@ -6,13 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Loaders } from "@molstar/seq-core/format";
-import { SeqCommands } from "@molstar/seq-viewer";
-import { LETTERS_PER_PX } from "@molstar/seq-viewer/draw";
-import { useLiveVersion, useSeqViewer } from "@molstar/seq-viewer/react";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useMemo } from "react";
-import { lazyStoryDoc, lazyStoryLoaders } from "../../../viewer/_test/lazy-story-fixtures.js";
+import type { Loaders } from '@molstar/seq-core/format';
+import { SeqCommands } from '@molstar/seq-viewer';
+import { LETTERS_PER_PX } from '@molstar/seq-viewer/draw';
+import { useLiveVersion, useSeqViewer } from '@molstar/seq-viewer/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useMemo } from 'react';
+import { lazyStoryDoc, lazyStoryLoaders } from '../../../viewer/_test/lazy-story-fixtures.js';
 import {
   STREAMED_AT as AT,
   CODING_PROTEIN,
@@ -25,11 +25,11 @@ import {
   streamedLoaders,
   transcriptLoaders,
   transcriptStoryDoc,
-} from "./support/seqstar-docs-streamed.js";
-import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism.js";
-import { ViewerCard } from "./support/seqstar-viewer.js";
-import { TextAction } from "./ui/index.js";
+} from './support/seqstar-docs-streamed.js';
+import f from './support/seqstar-format.module.css';
+import { PrismPage } from './support/seqstar-prism.js';
+import { ViewerCard } from './support/seqstar-viewer.js';
+import { TextAction } from './ui/index.js';
 
 /**
  * Streamed data: a chromosome whose letters a stream serves by region,
@@ -42,16 +42,16 @@ import { TextAction } from "./ui/index.js";
  * hint. Progressive loading, on the overlay: skeletons that shimmer, error bands (the failure knob) with Retry, a
  * fade as regions arrive; genes colored by category (the manifest's vocabulary); and a lazy alignment loaded by view.
  */
-const meta = { title: "Seq*/Streaming/Streamed data", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Streaming/Streamed data', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj<{ latency: number; failure: number }>;
 
 const ZOOMS: [string, number][] = [
-  ["2 Mb", 2_000_000],
-  ["100 kb", 100_000],
-  ["10 kb", 10_000],
-  ["1 kb", 1000],
-  ["100 positions", 100],
+  ['2 Mb', 2_000_000],
+  ['100 kb', 100_000],
+  ['10 kb', 10_000],
+  ['1 kb', 1000],
+  ['100 positions', 100],
 ];
 
 /** The zoom buttons, Retry, and what the stream manager has done. */
@@ -59,7 +59,7 @@ function Panel({ zooms = true }: { zooms?: boolean }) {
   const { context: ctx } = useSeqViewer();
   useLiveVersion(ctx.streams.stats);
   const st = ctx.streams.stats.current;
-  const retry = () => void ctx.commands.run({ command: SeqCommands.Retry.id, params: {} }, "api");
+  const retry = () => void ctx.commands.run({ command: SeqCommands.Retry.id, params: {} }, 'api');
   const go = (span: number) => {
     const vp = ctx.viewports.get(SECTION);
     if (span === 0) vp?.fit();
@@ -78,7 +78,7 @@ function Panel({ zooms = true }: { zooms?: boolean }) {
         <TextAction onClick={retry}>Retry failed regions (seqv:retry)</TextAction>
       </div>
       <div className={f.code}>
-        {st.requests} regions asked, {st.inFlight} in flight, {st.cancelled} cancelled, {st.errors} failed;{" "}
+        {st.requests} regions asked, {st.inFlight} in flight, {st.cancelled} cancelled, {st.errors} failed;{' '}
         {(st.bytes / 1024).toFixed(0)} KiB held
       </div>
     </div>
@@ -89,7 +89,7 @@ function Card({ latency, failure }: { latency: number; failure: number }) {
   streamedKnobs.latency = latency;
   streamedKnobs.failure = failure;
   const d = useMemo(streamedDoc, []);
-  const options = useMemo(() => ({ loaders: streamedLoaders(), parts: ["TrackActions"] as const }), []);
+  const options = useMemo(() => ({ loaders: streamedLoaders(), parts: ['TrackActions'] as const }), []);
   return (
     <ViewerCard doc={d} options={options} label="A 20 Mb chromosome, everything streamed by region">
       <Panel />
@@ -98,15 +98,15 @@ function Card({ latency, failure }: { latency: number; failure: number }) {
 }
 
 const argTypes = {
-  latency: { control: { type: "range", min: 0, max: 3000, step: 50 }, description: "ms before each region's answer" },
+  latency: { control: { type: 'range', min: 0, max: 3000, step: 50 }, description: "ms before each region's answer" },
   failure: {
-    control: { type: "range", min: 0, max: 1, step: 0.05 },
-    description: "the share of region requests that fail (Retry asks them again)",
+    control: { type: 'range', min: 0, max: 1, step: 0.05 },
+    description: 'the share of region requests that fail (Retry asks them again)',
   },
 } as const;
 
 export const Letters: Story = {
-  name: "Letters, genes, variants and a signal",
+  name: 'Letters, genes, variants and a signal',
   args: { latency: 250, failure: 0 },
   argTypes,
   render: (args) => (
@@ -148,7 +148,7 @@ function CodingCard({ latency, failure }: { latency: number; failure: number }) 
   streamedKnobs.latency = latency;
   streamedKnobs.failure = failure;
   const d = useMemo(codingStoryDoc, []);
-  const options = useMemo(() => ({ loaders: codingLoaders(), parts: ["TrackActions"] as const }), []);
+  const options = useMemo(() => ({ loaders: codingLoaders(), parts: ['TrackActions'] as const }), []);
   return (
     <ViewerCard doc={d} options={options} label="P1, 1,334 residues coded by three exons over 220 kb of chr2">
       <CodingZooms />
@@ -175,7 +175,7 @@ function CodingZooms() {
 }
 
 export const ThroughAPath: Story = {
-  name: "A protein on its genome",
+  name: 'A protein on its genome',
   args: { latency: 250, failure: 0 },
   argTypes,
   render: (args) => (
@@ -206,12 +206,12 @@ function TranscriptCard({ latency, failure }: { latency: number; failure: number
   streamedKnobs.latency = latency;
   streamedKnobs.failure = failure;
   const d = useMemo(transcriptStoryDoc, []);
-  const options = useMemo(() => ({ loaders: transcriptLoaders(), parts: ["TrackActions"] as const }), []);
+  const options = useMemo(() => ({ loaders: transcriptLoaders(), parts: ['TrackActions'] as const }), []);
   return <ViewerCard doc={d} options={options} label="T1, a streamed transcript on chr2, and P1 mapped onto it" />;
 }
 
 export const OnItsTranscript: Story = {
-  name: "A protein on its streamed transcript",
+  name: 'A protein on its streamed transcript',
   args: { latency: 250, failure: 0 },
   argTypes,
   render: (args) => (
@@ -242,7 +242,7 @@ function LazyCard({ latency, failure }: { latency: number; failure: number }) {
   streamedKnobs.latency = latency;
   streamedKnobs.failure = failure;
   const d = useMemo(lazyStoryDoc, []);
-  const options = useMemo(() => ({ loaders: lazyLoaders, maxHeight: 460, parts: ["TrackActions"] as const }), []);
+  const options = useMemo(() => ({ loaders: lazyLoaders, maxHeight: 460, parts: ['TrackActions'] as const }), []);
   return (
     <ViewerCard doc={d} options={options} label="20,000 rows × 1,200 columns, tiles loaded by view">
       <Panel zooms={false} />
@@ -251,7 +251,7 @@ function LazyCard({ latency, failure }: { latency: number; failure: number }) {
 }
 
 export const LazyAlignment: Story = {
-  name: "A lazy alignment by view",
+  name: 'A lazy alignment by view',
   args: { latency: 600, failure: 0 },
   argTypes,
   render: (args) => (

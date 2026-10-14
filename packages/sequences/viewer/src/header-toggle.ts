@@ -10,9 +10,9 @@
 // draws and the headers behavior hits, from these numbers (CSS px). The label starts where a track's does (10 px, 14
 // per group level); the text is cut `CHEVRON_ROOM` short, so the chevron always has its place.
 
-import { AxisGeometry } from "./axis.js";
-import type { ViewModel } from "./graph.js";
-import type { SectionLayout, SplitFeatures } from "./layout.js";
+import { AxisGeometry } from './axis.js';
+import type { ViewModel } from './graph.js';
+import type { SectionLayout, SplitFeatures } from './layout.js';
 
 /** The gap between the label's text and the chevron's box. */
 export const CHEVRON_GAP = 4;

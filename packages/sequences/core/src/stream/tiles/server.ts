@@ -14,8 +14,8 @@
 // subset of them, so an alignment of a million rows costs what a tile does (ST2; the first version cached every row
 // string, about 4 GB at a million rows).
 
-import { TILE } from "@molstar/seq-core/format";
-import { NotServed, type TileTransport } from "./client.js";
+import { TILE } from '@molstar/seq-core/format';
+import { NotServed, type TileTransport } from './client.js';
 
 export interface TileServerOptions {
   rowCount: number;
@@ -31,7 +31,7 @@ export interface TileServerOptions {
   counts?: (i: number) => number;
 }
 
-const LETTERS = "ACDEFGHIKLMNPQRSTVWY";
+const LETTERS = 'ACDEFGHIKLMNPQRSTVWY';
 /** The code of a procedural cell: a letter from a hash of (row, column), a gap (45) at about one cell in six. */
 export function proceduralCode(k: number, c: number): number {
   const h = Math.imul((k + 1) * 73856093 + c * 19349663, 2654435761) >>> 0;
@@ -39,7 +39,7 @@ export function proceduralCode(k: number, c: number): number {
 }
 /** A deterministic gapped row (`proceduralCode`'s cells). */
 export function proceduralRow(k: number, columns: number): string {
-  let out = "";
+  let out = '';
   for (let c = 0; c < columns; c++) out += String.fromCharCode(proceduralCode(k, c));
   return out;
 }
@@ -57,7 +57,7 @@ export function tileServer(o: TileServerOptions): { transport: TileTransport; ca
   const calls: string[] = [];
   const text = (k: number) => o.row?.(k) ?? proceduralRow(k, o.columnCount);
   const label =
-    o.label ?? ((k: number) => `SEQ${k}/1-${o.row ? o.row(k).replace(/-/g, "").length : residues(k, o.columnCount)}`);
+    o.label ?? ((k: number) => `SEQ${k}/1-${o.row ? o.row(k).replace(/-/g, '').length : residues(k, o.columnCount)}`);
   const json = (v: unknown) => new TextEncoder().encode(JSON.stringify(v));
   const tile = (ly: number, lx: number, ty: number, tx: number) => {
     const out = new Uint8Array(2 * TILE * TILE);
@@ -115,15 +115,15 @@ export function tileServer(o: TileServerOptions): { transport: TileTransport; ca
   };
   const transport: TileTransport = async (path) => {
     calls.push(path);
-    const [kind, ...rest] = path.split("/");
+    const [kind, ...rest] = path.split('/');
     const a = rest.map(Number);
-    if (kind === "tiles") return tile(a[0], a[1], a[2], a[3]);
-    if (kind === "labels") return json(Array.from({ length: a[1] - a[0] }, (_, i) => label(a[0] + i)));
-    if (kind === "rows" && a[0] < o.rowCount) return json({ label: label(a[0]), row: text(a[0]) });
-    const stat = kind === "stats" ? o.stats?.[rest[0]] : undefined;
+    if (kind === 'tiles') return tile(a[0], a[1], a[2], a[3]);
+    if (kind === 'labels') return json(Array.from({ length: a[1] - a[0] }, (_, i) => label(a[0] + i)));
+    if (kind === 'rows' && a[0] < o.rowCount) return json({ label: label(a[0]), row: text(a[0]) });
+    const stat = kind === 'stats' ? o.stats?.[rest[0]] : undefined;
     if (stat) return oneD(o.columnCount, a[1], a[2], stat);
-    if (kind === "values" && o.values) return oneD(o.length ?? 0, a[0], a[1], o.values);
-    if (kind === "counts" && o.counts) {
+    if (kind === 'values' && o.values) return oneD(o.length ?? 0, a[0], a[1], o.values);
+    if (kind === 'counts' && o.counts) {
       const out = new Uint32Array(TILE);
       for (let s = 0; s < TILE; s++) {
         const from = (a[1] * TILE + s) * 2 ** a[0];

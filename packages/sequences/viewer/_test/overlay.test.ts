@@ -13,31 +13,31 @@
 // arrow key; renderers' `overlay` members and the navigator's marks; highlights of style `band` in the main pass; a
 // tile arrival redrawing only its columns, in its own section only; and the ruler's copies ("48 (copy 2)").
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { type Loci, OrderedSet } from "@molstar/seq-core/model";
-import { describe, expect, it } from "vitest";
-import { Dirty, Pass, SectionComposer, SkinToken } from "../src/draw/index.js";
-import type { DrawView } from "../src/draw/view.js";
-import { HoverKind, KernelRenderers, type LayerRenderer, MarkBit, SeqViewerConfig } from "../src/index.js";
-import type { OverlayMarks } from "../src/marks.js";
-import type { Streams, StreamView } from "../src/streams.js";
-import { Op } from "../src/testing/index.js";
-import { COPY_BACK, composed, recording, textsOf } from "./composer-fixtures.js";
-import { driven } from "./input-fixtures.js";
-import { lazyLoaders } from "./layout-fixtures.js";
-import { family, lit, passRects, rowLoci, seqLoci, twoBlocks } from "./overlay-fixtures.js";
-import { allTypes } from "./prepare-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { type Loci, OrderedSet } from '@molstar/seq-core/model';
+import { describe, expect, it } from 'vitest';
+import { Dirty, Pass, SectionComposer, SkinToken } from '../src/draw/index.js';
+import type { DrawView } from '../src/draw/view.js';
+import { HoverKind, KernelRenderers, type LayerRenderer, MarkBit, SeqViewerConfig } from '../src/index.js';
+import type { OverlayMarks } from '../src/marks.js';
+import type { Streams, StreamView } from '../src/streams.js';
+import { Op } from '../src/testing/index.js';
+import { COPY_BACK, composed, recording, textsOf } from './composer-fixtures.js';
+import { driven } from './input-fixtures.js';
+import { lazyLoaders } from './layout-fixtures.js';
+import { family, lit, passRects, rowLoci, seqLoci, twoBlocks } from './overlay-fixtures.js';
+import { allTypes } from './prepare-fixtures.js';
 
 const S = SkinToken;
 /** Rects of one color: [x, y, w, h, color, alpha, stroke]. */
 const of = (rects: number[][], color: number, alpha = -1) =>
   rects.filter((r) => r[4] === color && (alpha < 0 || r[5] === alpha));
 
-describe("position marks", () => {
+describe('position marks', () => {
   it("stacked: a block's marks stay within its own lane, never across the other block's", async () => {
     const t = await lit(twoBlocks({ stacked: true }), { width: 800, height: 400 });
-    t.ctx.selection.set(seqLoci(t.set, "a", 10, 13), "api");
-    t.ctx.highlight.set("host", seqLoci(t.set, "c", 4, 6));
+    t.ctx.selection.set(seqLoci(t.set, 'a', 10, 13), 'api');
+    t.ctx.highlight.set('host', seqLoci(t.set, 'c', 4, 6));
     const r = passRects(t.overlay(), Pass.overlay);
     const l = t.layout(t.section);
     const lane = (b: number) => {
@@ -63,7 +63,7 @@ describe("position marks", () => {
 
   it("side by side: a column band from the navigator's bottom to the last entry drawn, the hover over it", async () => {
     const t = await lit(twoBlocks(), { width: 900, height: 400 });
-    t.ctx.selection.set(seqLoci(t.set, "c", 3, 4), "api");
+    t.ctx.selection.set(seqLoci(t.set, 'c', 3, 4), 'api');
     const l = t.layout(t.section);
     t.hover(t.xOf(t.section, 1, 3), l.scrolledTop + l.entryTop[l.pinnedCount] + 4);
     const r = passRects(t.overlay(), Pass.overlay);
@@ -78,8 +78,8 @@ describe("position marks", () => {
   it("one `paintMark`: a selection's border as wide wrapped as linear, at DPR 2", async () => {
     const widths = async (wrapped: boolean) => {
       const t = await lit(twoBlocks({ wrapped }), { width: 600, height: 600, dpr: 2 });
-      t.vp?.setView(12, 0, "api");
-      t.ctx.selection.set(seqLoci(t.set, "a", 5, 9), "api");
+      t.vp?.setView(12, 0, 'api');
+      t.ctx.selection.set(seqLoci(t.set, 'a', 5, 9), 'api');
       return of(passRects(t.overlay(), Pass.overlay), S.selectionBorder).map((x) => x[2]);
     };
     const [linear, wrapped] = [await widths(false), await widths(true)];
@@ -89,7 +89,7 @@ describe("position marks", () => {
   });
 });
 
-describe("row marks", () => {
+describe('row marks', () => {
   /** Row d's band (device px, DPR 1) in a family's rows. */
   const rowY = (t: Awaited<ReturnType<typeof lit>>, d: number) => {
     const l = t.layout(t.section);
@@ -97,10 +97,10 @@ describe("row marks", () => {
     return [Math.round(top), Math.round(top + l.rows.height)];
   };
 
-  it("a selected row: its label and data columns lit, its band over its gap, no column lit", async () => {
+  it('a selected row: its label and data columns lit, its band over its gap, no column lit', async () => {
     const t = await lit(family(), { width: 800, height: 300 });
-    t.vp?.setView(30, 0, "api");
-    t.ctx.selection.set(rowLoci(t.set, 0, 0, 5), "api");
+    t.vp?.setView(30, 0, 'api');
+    t.ctx.selection.set(rowLoci(t.set, 0, 0, 5), 'api');
     const r = passRects(t.overlay(), Pass.overlay);
     const l = t.layout(t.section);
     const [y0, y1] = rowY(t, 0);
@@ -118,9 +118,9 @@ describe("row marks", () => {
 
   it("aligned cells: rectangles on their rows, a gap's too; the hover lights the cell's column and its row", async () => {
     const t = await lit(family(), { width: 800, height: 300 });
-    t.vp?.setView(30, 0, "api");
-    const cells = { kind: "aligned-loci", set: t.set, alignment: 0, elements: [{ row: 2, columns: 2 }] };
-    t.ctx.highlight.set("host", {
+    t.vp?.setView(30, 0, 'api');
+    const cells = { kind: 'aligned-loci', set: t.set, alignment: 0, elements: [{ row: 2, columns: 2 }] };
+    t.ctx.highlight.set('host', {
       ...cells,
       elements: [{ row: 2, columns: OrderedSet.ofRange(1, 4) }],
     } as unknown as Loci);
@@ -137,11 +137,11 @@ describe("row marks", () => {
     expect(of(o, S.hover, 255).some((s) => s[3] > 3 * (h1 - h0))).toBe(true);
   });
 
-  it("heads at `headerWidth` 0: the heads band drawn, the hovered row across the data columns", async () => {
+  it('heads at `headerWidth` 0: the heads band drawn, the hovered row across the data columns', async () => {
     const t = await lit(family({ bare: true }), { width: 800, height: 300, render: { headerWidth: 0 } });
     const l = t.layout(t.section);
     expect(l.columnCount).toBe(1);
-    expect(textsOf(t.frame())).toContain("Score");
+    expect(textsOf(t.frame())).toContain('Score');
     const [h0, h1] = rowY(t, 1);
     t.hover(t.xOf(t.section, 0, 3), (h0 + h1) / 2);
     const o = passRects(t.overlay(), Pass.overlay);
@@ -151,15 +151,15 @@ describe("row marks", () => {
   });
 
   it("heads on a row of their own (`ownRow`): row marks and the hovered row on their rows, none in the heads' row", async () => {
-    const t = await lit(family(), { width: 800, height: 300, render: { dataColumnHeads: "ownRow" } });
-    t.vp?.setView(30, 0, "api");
+    const t = await lit(family(), { width: 800, height: 300, render: { dataColumnHeads: 'ownRow' } });
+    t.vp?.setView(30, 0, 'api');
     const l = t.layout(t.section);
     expect([l.pinnedCount, l.headsTop, l.scrolledTop - l.headsTop]).toEqual([
       1,
       l.entryTop[0] + l.entryHeight[0],
       t.ctx.layout.props(t.section).rowHeight,
     ]);
-    t.ctx.selection.set(rowLoci(t.set, 0, 0, 5), "api");
+    t.ctx.selection.set(rowLoci(t.set, 0, 0, 5), 'api');
     const [y0, y1] = rowY(t, 0);
     expect(y0).toBe(Math.round(l.scrolledTop));
     const sel = of(passRects(t.overlay(), Pass.overlay), S.selection);
@@ -187,7 +187,7 @@ describe("the ring, renderers' overlays and the navigator's marks", () => {
     c.frame(rec, Dirty.overlay);
     expect(of(passRects(rec, Pass.overlay), S.focusRing)).toEqual([]);
     t.focus(section);
-    t.key(section, "ArrowRight");
+    t.key(section, 'ArrowRight');
     const cur = t.ctx.ui.keyCursor.value;
     expect(cur?.index).toBe(1);
     rec.reset();
@@ -200,17 +200,17 @@ describe("the ring, renderers' overlays and the navigator's marks", () => {
 
   it("a renderer's `overlay` member per entry, reading the section's marks; the navigator draws them", async () => {
     const seen: number[] = [];
-    const letters = (KernelRenderers as LayerRenderer[]).find((r) => r.name === "letters") as LayerRenderer;
+    const letters = (KernelRenderers as LayerRenderer[]).find((r) => r.name === 'letters') as LayerRenderer;
     const spy = { ...letters, overlay: (v: DrawView) => void seen.push(v.marks.bitsAt(0, 10)) } as LayerRenderer;
     const t = await lit(twoBlocks(), { width: 800, height: 300, replace: { letters: spy } });
-    t.ctx.selection.set(seqLoci(t.set, "a", 10, 11), "api");
+    t.ctx.selection.set(seqLoci(t.set, 'a', 10, 11), 'api');
     const r = t.frame(recording(), Dirty.all);
     expect(seen).toEqual([MarkBit.selection]);
     expect(of(passRects(r, Pass.navOverlay), S.selectionBorder).length).toBeGreaterThan(0);
   });
 });
 
-describe("the hovered item", () => {
+describe('the hovered item', () => {
   it("is the marks' for its layer only (`OverlayMarks.item`, `itemAnnotation`): the pairs overlay lights its own pair", async () => {
     const t = await lit(allTypes(), { width: 900, height: 600 });
     const l = t.layout(t.section);
@@ -225,39 +225,39 @@ describe("the hovered item", () => {
     // With its annotation: a layer drawn from two annotations has an item of that id in each.
     expect(h.item.annotation).toBeGreaterThanOrEqual(0);
     expect([m().itemAnnotation(h.layer), m().itemAnnotation(h.layer + 1)]).toEqual([h.item.annotation, -1]);
-    t.ctx.hover.clear("pointer");
+    t.ctx.hover.clear('pointer');
     expect([m().item(h.layer), m().itemAnnotation(h.layer)]).toEqual([-1, -1]);
   });
 });
 
-describe("the main pass", () => {
-  it("a highlight of style `band`: a full-height band behind the entries, the tracks redrawn on its change", async () => {
+describe('the main pass', () => {
+  it('a highlight of style `band`: a full-height band behind the entries, the tracks redrawn on its change', async () => {
     const t = await lit(twoBlocks(), { width: 800, height: 300 });
     const be = recording(COPY_BACK);
     t.frame(be);
     expect(t.frame(be).opCount).toBe(0);
-    t.ctx.highlight.set("site", seqLoci(t.set, "a", 20, 30), { style: "band" });
+    t.ctx.highlight.set('site', seqLoci(t.set, 'a', 20, 30), { style: 'band' });
     const r = t.frame(be);
     const l = t.layout(t.section);
     const [band] = of(passRects(r, Pass.main), S.highlight);
     expect([band[1], band[3]]).toEqual([Math.round(l.navHeight), Math.round(l.height) - Math.round(l.navHeight)]);
     // Drawn before the entries: the first rects of the frame.
     expect(r.rectItems.color[0]).toBe(S.highlight);
-    t.ctx.highlight.clear("site");
+    t.ctx.highlight.clear('site');
     expect(of(passRects(t.frame(be), Pass.main), S.highlight)).toEqual([]);
   });
 
   it("a stream's arrival redraws only the columns of the regions that changed", async () => {
     const b = createSeqViewSpec();
-    const a = b.data.sequence({ ref: "a", value: "MKVLATGHEK".repeat(200) });
-    const vals = b.data.annotation({ ref: "vals", geometry: "values", target: a, value: { value: [0.5, 1, 0.2] } });
-    const g = b.view({ ref: "g", label: "G" });
-    const one = g.section({ ref: "g.one" }).block({ sequence: a });
-    one.track({ label: "V" }).values({ ref: "g.vals", data: vals });
-    g.section({ ref: "g.two" }).block({ sequence: a }).track({ label: "L" }).letters();
-    const t = await composed(b.getDocument(), { section: "g.one", width: 1000 });
-    t.vp?.setView(4, 0, "api");
-    const other = new SectionComposer(t.ctx, "g.two");
+    const a = b.data.sequence({ ref: 'a', value: 'MKVLATGHEK'.repeat(200) });
+    const vals = b.data.annotation({ ref: 'vals', geometry: 'values', target: a, value: { value: [0.5, 1, 0.2] } });
+    const g = b.view({ ref: 'g', label: 'G' });
+    const one = g.section({ ref: 'g.one' }).block({ sequence: a });
+    one.track({ label: 'V' }).values({ ref: 'g.vals', data: vals });
+    g.section({ ref: 'g.two' }).block({ sequence: a }).track({ label: 'L' }).letters();
+    const t = await composed(b.getDocument(), { section: 'g.one', width: 1000 });
+    t.vp?.setView(4, 0, 'api');
+    const other = new SectionComposer(t.ctx, 'g.two');
     // A layer held by region, whose changes are columns [40, 60): `changed` as the stream manager's.
     const fake = {
       version: 0,
@@ -268,7 +268,7 @@ describe("the main pass", () => {
       },
     } as unknown as StreamView & { version: number };
     const get = t.ctx.streams.get.bind(t.ctx.streams);
-    (t.ctx.streams as { get: typeof get }).get = (ref: string) => (ref === "g.vals" ? fake : get(ref));
+    (t.ctx.streams as { get: typeof get }).get = (ref: string) => (ref === 'g.vals' ? fake : get(ref));
     const [be, quiet] = [recording(COPY_BACK), recording(COPY_BACK)];
     t.frame(be);
     other.frame(quiet, Dirty.tracks);
@@ -284,20 +284,20 @@ describe("the main pass", () => {
     expect([r.args[at], r.args[at + 2]]).toEqual([x(40), x(60) - x(40)]);
   });
 
-  it("a real tile arrival redraws the rows within its columns, and nothing in another section", async () => {
-    const uri = "https://example.org/lazy";
+  it('a real tile arrival redraws the rows within its columns, and nothing in another section', async () => {
+    const uri = 'https://example.org/lazy';
     const b = createSeqViewSpec();
-    const source = { uri, protocol: "seqstar-tiles/1" };
-    const aln = b.data.alignment({ ref: "lazy", row_count: 400, column_count: 2000, source } as never);
-    const g = b.view({ ref: "g", label: "G", style: "bare", height: "box" });
-    g.section({ ref: "g.rows" }).block({ alignment: aln }).track({ label: "Rows" }).rows();
-    const s = b.data.sequence({ ref: "a", value: "MKVLATGHEK".repeat(50) });
-    g.section({ ref: "g.seq" }).block({ sequence: s }).track({ label: "L" }).letters();
-    const t = await composed(b.getDocument(), { section: "g.rows", loaders: lazyLoaders(uri, 400, 2000) });
+    const source = { uri, protocol: 'seqstar-tiles/1' };
+    const aln = b.data.alignment({ ref: 'lazy', row_count: 400, column_count: 2000, source } as never);
+    const g = b.view({ ref: 'g', label: 'G', style: 'bare', height: 'box' });
+    g.section({ ref: 'g.rows' }).block({ alignment: aln }).track({ label: 'Rows' }).rows();
+    const s = b.data.sequence({ ref: 'a', value: 'MKVLATGHEK'.repeat(50) });
+    g.section({ ref: 'g.seq' }).block({ sequence: s }).track({ label: 'L' }).letters();
+    const t = await composed(b.getDocument(), { section: 'g.rows', loaders: lazyLoaders(uri, 400, 2000) });
     // No margin: with one the tiles past the view arrive before the pan, which is what a margin is for (ST2).
     t.ctx.config.set(SeqViewerConfig.Stream.Margin, 0);
-    t.vp?.setView(4, 0, "api");
-    const other = new SectionComposer(t.ctx, "g.seq");
+    t.vp?.setView(4, 0, 'api');
+    const other = new SectionComposer(t.ctx, 'g.seq');
     const [be, quiet] = [recording(COPY_BACK), recording(COPY_BACK)];
     t.frame(be);
     other.frame(quiet, Dirty.tracks);
@@ -317,7 +317,7 @@ describe("the main pass", () => {
         .map((k) => r.args[r.ops[4 * k + 3]]);
     expect(Math.min(...clearsFrom(labelled))).toBe(0);
     // Past the first tile's columns, only tiles arrive: the rows within their columns.
-    t.vp?.setView(4, 600, "api");
+    t.vp?.setView(4, 600, 'api');
     t.frame(be);
     other.frame(quiet, Dirty.tracks);
     await arrive();
@@ -340,22 +340,22 @@ describe("the main pass", () => {
 
   it("the ruler labels a copy past the first: di-ubiquitin's second Ub 45 is “45 (copy 2)”", async () => {
     const b = createSeqViewSpec();
-    b.data.sequence({ ref: "ub", value: "MQIFVKTLTG".repeat(8).slice(0, 76) });
-    b.data.sequence({ ref: "diub", value: "MQIFVKTLTG".repeat(16).slice(0, 152) });
+    b.data.sequence({ ref: 'ub', value: 'MQIFVKTLTG'.repeat(8).slice(0, 76) });
+    b.data.sequence({ ref: 'diub', value: 'MQIFVKTLTG'.repeat(16).slice(0, 152) });
     const segments = [
       [0, 0, 76],
       [76, 0, 76],
     ];
-    b.data.mapping({ ref: "diub-ub", from: "diub", to: "ub", method: "segments", segments } as never);
-    const v = b.view({ ref: "v", label: "V" });
-    v.block({ sequence: "diub" });
-    v.track({ label: "" }).ruler({ of: "ub" } as never);
+    b.data.mapping({ ref: 'diub-ub', from: 'diub', to: 'ub', method: 'segments', segments } as never);
+    const v = b.view({ ref: 'v', label: 'V' });
+    v.block({ sequence: 'diub' });
+    v.track({ label: '' }).ruler({ of: 'ub' } as never);
     const t = await composed(b.getDocument(), { width: 1600 });
-    t.vp?.setView(10, 0, "api");
+    t.vp?.setView(10, 0, 'api');
     const texts = textsOf(t.frame());
-    expect(texts).toContain("40");
+    expect(texts).toContain('40');
     // The second copy's labels are wider: thinned to every second tick of 5.
-    expect(texts).toContain("45 (copy 2)");
-    expect(texts.filter((s) => s.includes("copy 1"))).toEqual([]);
+    expect(texts).toContain('45 (copy 2)');
+    expect(texts.filter((s) => s.includes('copy 1'))).toEqual([]);
   });
 });

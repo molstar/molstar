@@ -10,7 +10,7 @@
 // (RB0b): it catches a small allocation per step that one run under LIMIT does not, and passes a step that allocates
 // nothing or allocates once per run.
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -20,7 +20,7 @@ import {
   LIMIT,
   leaking,
   SCALED_LIMIT,
-} from "./heap.js";
+} from './heap.js';
 
 const sink: { v: unknown } = { v: null };
 const clean = () => {
@@ -33,27 +33,27 @@ const garbage = (count: number) => () => {
   for (let i = 0; i < count; i++) sink.v = { a: i, b: i };
 };
 
-describe("heapGrowth", () => {
-  it("reports no growth for a run that allocates nothing", () => {
+describe('heapGrowth', () => {
+  it('reports no growth for a run that allocates nothing', () => {
     expect(heapGrowth(clean)).toBeLessThan(LIMIT);
   });
 
-  it("reports a deliberate allocation that a single young generation holds", () => {
+  it('reports a deliberate allocation that a single young generation holds', () => {
     expect(heapGrowth(garbage(200_000))).toBeGreaterThan(4 << 20); // 8 MB
   });
 
-  it("fails a run that collects, though the heap ends small", () => {
+  it('fails a run that collects, though the heap ends small', () => {
     // 80 MB over the 64 MB young generation: one scavenge, after which what is left to see depends on where it fell
     // (1.7 million objects left 0.9 MB, 2026-10-11: its blind spot).
     expect(() => heapGrowth(garbage(2_000_000))).toThrow(/GC\(s\) ran during the measured run/);
   });
 });
 
-describe("heapScaling", () => {
+describe('heapScaling', () => {
   const n = 1000;
   const f32 = new Float32Array(256);
 
-  it("passes a step that allocates nothing", () => {
+  it('passes a step that allocates nothing', () => {
     let s = 0;
     const r = heapScaling(n, (i) => {
       s = (s + (i & 7)) | 0;
@@ -73,7 +73,7 @@ describe("heapScaling", () => {
     expect(isFlat(r)).toBe(false);
   });
 
-  it("passes a step that allocates 512 KB once per run, not per step", () => {
+  it('passes a step that allocates 512 KB once per run, not per step', () => {
     const r = heapScaling(n, (i) => {
       if (i === 0) sink.v = new Array(1 << 16).fill(i); // On the heap, as a typed array's store is not.
     });
@@ -81,7 +81,7 @@ describe("heapScaling", () => {
     expect(isFlat(r), describeScaling(r, n)).toBe(true);
   });
 
-  it("refuses a run that collects", () => {
+  it('refuses a run that collects', () => {
     // 40 KB a step, 160 MB over the longer run's 4,000 steps: past the 64 MB young generation.
     expect(() => heapScaling(n, () => garbage(1000)())).toThrow(/GC\(s\) ran during the measured run/);
   });

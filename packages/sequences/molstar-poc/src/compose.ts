@@ -11,7 +11,7 @@
 // through the document's own residue maps (the units' label numbering, the mappings such as SIFTS), as MVS color
 // tables. Pure data: no Mol* structure, no canvas; the viewer half feeds it a view's colors (viewer.ts).
 
-import type { ServiceEntry } from "@molstar/seq-core/format";
+import type { ServiceEntry } from '@molstar/seq-core/format';
 import {
   type CoordinateSystem,
   CoordinateSystemKind,
@@ -19,12 +19,12 @@ import {
   KeyKind,
   MoleculeKind,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import { Translator } from "@molstar/seq-core/translate";
-import type { MVSData_State } from "molstar/lib/extensions/mvs/mvs-data";
-import { type MolstarDefaults, MvsColorTable, structureMvs } from "./mvs.js";
-import { MolstarServices } from "./registry.js";
-import { complexUnits, seqRoutes } from "./seq-units.js";
+} from '@molstar/seq-core/model';
+import { Translator } from '@molstar/seq-core/translate';
+import type { MVSData_State } from 'molstar/lib/extensions/mvs/mvs-data';
+import { type MolstarDefaults, MvsColorTable, structureMvs } from './mvs.js';
+import { MolstarServices } from './registry.js';
+import { complexUnits, seqRoutes } from './seq-units.js';
 
 /**
  * A structure as data: what an item's JSON field `structure` holds. `complex` names the Seq* complex read from it when
@@ -42,14 +42,14 @@ export interface StructureRef {
 
 export type StructureServiceSource = { readonly service: string; readonly id: string };
 export type StructureUriSource = { readonly uri: string; readonly format: string };
-const serviceOf = (s: StructureRef["source"]): StructureServiceSource | null =>
-  "service" in s ? (s as StructureServiceSource) : null;
+const serviceOf = (s: StructureRef['source']): StructureServiceSource | null =>
+  'service' in s ? (s as StructureServiceSource) : null;
 
 /** The source's URL and format: a service's (`pdbe`, `afdb`) through its entry, or as written. */
 export function structureUrl(ref: StructureRef, services: readonly ServiceEntry[] = MolstarServices) {
   const src = serviceOf(ref.source);
   if (!src) return { url: (ref.source as StructureUriSource).uri, format: (ref.source as StructureUriSource).format };
-  const r = services.find((s) => s.name === src.service)?.resolve(src.id, "structure");
+  const r = services.find((s) => s.name === src.service)?.resolve(src.id, 'structure');
   return r ? { url: r.uri, format: r.format } : null;
 }
 
@@ -158,13 +158,13 @@ export function composeStructureMvs(
   const selection =
     projector && sel
       ? {
-          residues: projector.add(sel.runs, Array(sel.runs.count).fill(sel.color ?? "#e8a33d"), MvsColorTable.create()),
+          residues: projector.add(sel.runs, Array(sel.runs.count).fill(sel.color ?? '#e8a33d'), MvsColorTable.create()),
           label: sel.label,
         }
       : null;
   const state = structureMvs({
     url: at.url,
-    format: at.format as "bcif",
+    format: at.format as 'bcif',
     model: structure.model,
     assembly: structure.assembly ?? null,
     chains: structure.chains?.map((c) => ({ label_asym_id: c })) ?? null,

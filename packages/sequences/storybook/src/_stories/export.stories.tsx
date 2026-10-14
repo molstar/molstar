@@ -6,12 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Suspense, use, useMemo } from "react";
-import { genomeDoc, synthGenome } from "../../../core/_test/format/genome-fixture.js";
-import { compiledCase } from "./support/seqstar-cases.js";
-import { ExportCard, ExportFrame } from "./support/seqstar-export.js";
-import f from "./support/seqstar-format.module.css";
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Suspense, use, useMemo } from 'react';
+import { genomeDoc, synthGenome } from '../../../core/_test/format/genome-fixture.js';
+import { compiledCase } from './support/seqstar-cases.js';
+import { ExportCard, ExportFrame } from './support/seqstar-export.js';
+import f from './support/seqstar-format.module.css';
 
 /**
  * Exporting a figure: the viewer's `view.exportSvg` action, which the UI's Export part runs, on
@@ -19,14 +19,14 @@ import f from "./support/seqstar-format.module.css";
  * is drawn beside the canvas; the PNG is that SVG drawn by the page. File sizes, export times and downloads are shown.
  */
 const meta = {
-  title: "Seq*/Cases/Default UIs",
-  parameters: { layout: "fullscreen", docs: { source: { type: "code" } } },
+  title: 'Seq*/Cases/Default UIs',
+  parameters: { layout: 'fullscreen', docs: { source: { type: 'code' } } },
 } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 function Case14() {
-  const c = use(compiledCase("case14"));
+  const c = use(compiledCase('case14'));
   return (
     <ExportCard
       doc={c.doc}
@@ -53,7 +53,7 @@ function Genome() {
 }
 
 export const SvgAndPng: Story = {
-  name: "SVG and PNG export",
+  name: 'SVG and PNG export',
   render: () => (
     <ExportFrame>
       <Suspense fallback={<div className={f.status}>Compiling…</div>}>

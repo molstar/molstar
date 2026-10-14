@@ -11,24 +11,24 @@
 // bands), on `heapScaling` (a step one move). The positive control: the same moves allocating an object each
 // (`leaking`), through the same measurement, are caught.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { expect, it } from "vitest";
-import { case14 } from "../../core/_test/format/cases.js";
-import { Hit, HoverKind, KernelRenderers } from "../src/index.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
-import { opened } from "./layout-fixtures.js";
-import { allTypes, rangesDoc } from "./prepare-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { expect, it } from 'vitest';
+import { case14 } from '../../core/_test/format/cases.js';
+import { Hit, HoverKind, KernelRenderers } from '../src/index.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from './heap.js';
+import { opened } from './layout-fixtures.js';
+import { allTypes, rangesDoc } from './prepare-fixtures.js';
 
 const N = 50_000;
 let sink = 0;
 
 function matrixDoc() {
-  const b = createSeqViewSpec({ title: "Matrix" });
-  const a = b.data.sequence({ ref: "a", label: "A", value: "MKTAYIAKQR".repeat(10) });
+  const b = createSeqViewSpec({ title: 'Matrix' });
+  const a = b.data.sequence({ ref: 'a', label: 'A', value: 'MKTAYIAKQR'.repeat(10) });
   const index = Array.from({ length: 100 }, (_, i) => i);
   const value = { index, value: index.map((i) => [i % 3, (i * 7) % 5, 1]) };
-  const m = b.data.annotation({ ref: "m", geometry: "matrix", target: a, states: ["x", "y", "z"], value } as never);
-  b.view({ ref: "v", label: "V" }).block({ sequence: a }).track({ label: "M" }).matrix({ data: m });
+  const m = b.data.annotation({ ref: 'm', geometry: 'matrix', target: a, states: ['x', 'y', 'z'], value } as never);
+  b.view({ ref: 'v', label: 'V' }).block({ sequence: a }).track({ label: 'M' }).matrix({ data: m });
   return b.getDocument();
 }
 
@@ -47,7 +47,7 @@ it("hit tests per move over the kernel entries' hits allocate nothing", async ()
   const points: [(typeof opens)[number], number, number, number][] = [];
   for (const t of opens) {
     const s = t.ctx.viewports.sections.value[0];
-    t.vp(s).setView(4, 0, "api");
+    t.vp(s).setView(4, 0, 'api');
     const l = t.layout(s);
     const i = t.ctx.layout.sectionIndex(s);
     for (let y = l.navHeight; y < Math.min(l.height, l.scrolledTop + 400); y += 3)

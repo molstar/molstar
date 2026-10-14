@@ -14,10 +14,10 @@
 // are told apart; `settled` waits for the view, failures included; a thousand patches leave the document, its history
 // and the set untouched; and the values renderer draws the regions (`renderSvg` awaiting them).
 
-import { describe, expect, it } from "vitest";
-import { GRCH38, hg38Streams } from "../../core/_test/format/stream-provider.js";
-import { RegionState, SeqViewerConfig } from "../src/index.js";
-import { renderSvg } from "../src/svg/index.js";
+import { describe, expect, it } from 'vitest';
+import { GRCH38, hg38Streams } from '../../core/_test/format/stream-provider.js';
+import { RegionState, SeqViewerConfig } from '../src/index.js';
+import { renderSvg } from '../src/svg/index.js';
 import {
   CacheBytes,
   GENOME,
@@ -26,7 +26,7 @@ import {
   openGenome,
   type StreamedGenome,
   streamedDoc,
-} from "./stream-fixtures.js";
+} from './stream-fixtures.js';
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 /** Three chromosomes of GRCh38's lengths: the manager's logic at full size, fewer blocks to read. */
@@ -47,16 +47,16 @@ async function drain(t: StreamedGenome) {
   }
 }
 
-describe("requests: the view, then the margin; coarse before fine", () => {
-  it("at 10 kb: the coarsest level first, the data in view from the center out, then the margin around it", async () => {
+describe('requests: the view, then the margin; coarse before fine', () => {
+  it('at 10 kb: the coarsest level first, the data in view from the center out, then the margin around it', async () => {
     const t = await openGenome({ gated: true, chromosomes: THREE });
     t.ctx.config.set(MaxInFlight, 100);
     t.streams.phylop.requests.length = 0;
     show(t, CHR2, 100_000_000, 100_010_000);
     const asked = t.streams.phylop.requests.map((r) => [r.system, r.level, r.start, r.stop, r.priority] as const);
-    expect(asked[0]).toEqual(["chr2", 5, 0, 242_193_529, "view"]);
-    const view = asked.filter((r) => r[1] === -1 && r[4] === "view");
-    const margin = asked.filter((r) => r[4] === "margin");
+    expect(asked[0]).toEqual(['chr2', 5, 0, 242_193_529, 'view']);
+    const view = asked.filter((r) => r[1] === -1 && r[4] === 'view');
+    const margin = asked.filter((r) => r[4] === 'margin');
     expect(view.map((r) => r[2])).toEqual([24_415 * 4096, 24_414 * 4096, 24_416 * 4096]);
     expect(asked.slice(1, 1 + view.length)).toEqual(view);
     // A view width on each side: [lo - w, lo) and [hi, hi + w), the regions not already asked for the view.
@@ -80,7 +80,7 @@ describe("requests: the view, then the margin; coarse before fine", () => {
     t.ctx.config.set(Margin, 0);
     t.streams.phylop.requests.length = 0;
     show(t, CHR2, 100_000_000, 100_010_000);
-    expect(t.streams.phylop.requests.map((r) => r.priority)).toEqual(["view", "view", "view", "view"]);
+    expect(t.streams.phylop.requests.map((r) => r.priority)).toEqual(['view', 'view', 'view', 'view']);
     t.ctx.config.set(Margin, 1);
     t.ctx.config.set(MaxInFlight, 2);
     show(t, CHR2, 150_000_000, 150_010_000);
@@ -98,14 +98,14 @@ describe("requests: the view, then the margin; coarse before fine", () => {
     t.manager.pass();
     const asked = t.streams.phylop.requests;
     expect(new Set(asked.map((r) => r.system)).size).toBe(24);
-    expect(asked.every((r) => r.level === 5 && r.priority === "view")).toBe(true);
+    expect(asked.every((r) => r.level === 5 && r.priority === 'view')).toBe(true);
     expect(asked.length).toBe(24);
     t.ctx.dispose();
   });
 });
 
-describe("the cache", () => {
-  it("a jump aborts what left the view; a held region is not asked again and a pass over it changes nothing", async () => {
+describe('the cache', () => {
+  it('a jump aborts what left the view; a held region is not asked again and a pass over it changes nothing', async () => {
     const t = await openGenome({ gated: true, chromosomes: THREE });
     t.ctx.config.set(MaxInFlight, 100);
     show(t, CHR2, 100_000_000, 100_010_000);
@@ -146,11 +146,11 @@ describe("the cache", () => {
     t.ctx.dispose();
   });
 
-  it("pending, loaded and empty told apart: off the view pending, outside the source empty, no values empty", async () => {
+  it('pending, loaded and empty told apart: off the view pending, outside the source empty, no values empty', async () => {
     const t = await openGenome({
       gated: true,
       chromosomes: THREE,
-      answer: (r) => (r.system === "chr3" ? { ...r, kind: "items", items: { value: [] } } : null),
+      answer: (r) => (r.system === 'chr3' ? { ...r, kind: 'items', items: { value: [] } } : null),
     });
     show(t, CHR2, 100_000_000, 100_010_000);
     expect(t.manager.state(t.layer, CHR2, 100_005_000)).toBe(RegionState.pending);
@@ -192,15 +192,15 @@ describe("the cache", () => {
     t.ctx.dispose();
   }
 
-  it("two hundred patches leave the document, its history and the set untouched", () => patches(200));
+  it('two hundred patches leave the document, its history and the set untouched', () => patches(200));
 
-  it("a thousand patches leave the document, its history and the set untouched", { tags: ["slow"] }, () =>
+  it('a thousand patches leave the document, its history and the set untouched', { tags: ['slow'] }, () =>
     patches(1000),
   );
 });
 
-describe("`settled`", () => {
-  it("waits for every region in view at its level, and for failures too (one report an outage)", async () => {
+describe('`settled`', () => {
+  it('waits for every region in view at its level, and for failures too (one report an outage)', async () => {
     const t = await openGenome({ gated: true, chromosomes: THREE });
     show(t, CHR2, 100_000_000, 100_010_000);
     let done = false;
@@ -223,7 +223,7 @@ describe("`settled`", () => {
     t.ctx.dispose();
 
     const issues: string[] = [];
-    const f = await openGenome({ chromosomes: THREE, answer: () => new Error("offline") });
+    const f = await openGenome({ chromosomes: THREE, answer: () => new Error('offline') });
 
     show(f, CHR2, 100_000_000, 100_010_000);
     let failed = false;
@@ -238,17 +238,17 @@ describe("`settled`", () => {
     expect(f.manager.state(f.layer, CHR2, 100_005_000)).toBe(RegionState.failed);
     expect(f.manager.hasFailed(f.layer)).toBe(true);
     issues.push(...f.ctx.issues.current.value.map((i) => i.code));
-    expect(issues).toEqual(["svs.stream.load"]);
+    expect(issues).toEqual(['svs.stream.load']);
     f.ctx.dispose();
   });
 });
 
-describe("a patch the region cannot take (GI-13)", () => {
-  it("fails the region, reported and retried as a failure, never an unhandled rejection that leaves it pending", async () => {
+describe('a patch the region cannot take (GI-13)', () => {
+  it('fails the region, reported and retried as a failure, never an unhandled rejection that leaves it pending', async () => {
     const f = await openGenome({
       chromosomes: THREE,
       // A provider's answer of another shape: a bins patch with no bins.
-      answer: (r) => ({ ...r, kind: "bins" }) as never,
+      answer: (r) => ({ ...r, kind: 'bins' }) as never,
     });
     show(f, CHR2, 100_000_000, 100_010_000);
     let done = false;
@@ -261,12 +261,12 @@ describe("a patch the region cannot take (GI-13)", () => {
     }
     await p;
     expect(f.manager.state(f.layer, CHR2, 100_005_000)).toBe(RegionState.failed);
-    expect(f.ctx.issues.current.value.map((i) => i.code)).toEqual(["svs.stream.load"]);
+    expect(f.ctx.issues.current.value.map((i) => i.code)).toEqual(['svs.stream.load']);
     f.ctx.dispose();
   });
 });
 
-describe("a patch the region cannot take backs off as a failure (LA-04)", () => {
+describe('a patch the region cannot take backs off as a failure (LA-04)', () => {
   /** The requests over 40 s of scheduler time with every answer `answer`, and the issues reported. */
   async function over40s(answer: (r: { system: string | null }) => unknown) {
     let calls = 0;
@@ -287,34 +287,34 @@ describe("a patch the region cannot take backs off as a failure (LA-04)", () => 
     return out;
   }
 
-  it("is retried at 1, 2 and 4 s and then after the cooldown, as a rejection is, and its outage is not ended by it", async () => {
-    const rejected = await over40s(() => new Error("offline"));
-    const malformed = await over40s((r) => ({ ...r, kind: "bins" }));
+  it('is retried at 1, 2 and 4 s and then after the cooldown, as a rejection is, and its outage is not ended by it', async () => {
+    const rejected = await over40s(() => new Error('offline'));
+    const malformed = await over40s((r) => ({ ...r, kind: 'bins' }));
     // A few regions (the view and its margin), each asked about six times, not once a second.
     expect(rejected.calls).toBeLessThan(40);
     expect(malformed).toEqual(rejected);
-    expect(malformed.issues).toEqual(["svs.stream.load"]);
+    expect(malformed.issues).toEqual(['svs.stream.load']);
     expect(malformed.failed).toBe(true);
   }, 30_000);
 
-  it("an answer of another shape than asked is a failure too: a values region answered with letters, rows or a manifest (LB-19)", async () => {
-    const rejected = await over40s(() => new Error("offline"));
-    for (const kind of ["letters", "rows", "manifest"])
+  it('an answer of another shape than asked is a failure too: a values region answered with letters, rows or a manifest (LB-19)', async () => {
+    const rejected = await over40s(() => new Error('offline'));
+    for (const kind of ['letters', 'rows', 'manifest'])
       expect([
         kind,
-        await over40s((r) => ({ ...r, kind, letters: "ACGT", labels: [], rows: null, manifest: {} })),
+        await over40s((r) => ({ ...r, kind, letters: 'ACGT', labels: [], rows: null, manifest: {} })),
       ]).toEqual([kind, rejected]);
   }, 60_000);
 
-  it("a malformed answer during an outage neither ends it nor reports it again (LB-20)", async () => {
-    let mode: "reject" | "malformed" = "reject";
+  it('a malformed answer during an outage neither ends it nor reports it again (LB-20)', async () => {
+    let mode: 'reject' | 'malformed' = 'reject';
     const t = await openGenome({
       chromosomes: THREE,
       answer: (r) =>
-        r.level !== -1 ? null : mode === "reject" ? (new Error("503") as never) : ({ ...r, kind: "bins" } as never),
+        r.level !== -1 ? null : mode === 'reject' ? (new Error('503') as never) : ({ ...r, kind: 'bins' } as never),
     });
     t.ctx.config.set(Margin, 0);
-    const loads = () => t.ctx.issues.current.value.filter((i) => i.code === "svs.stream.load").length;
+    const loads = () => t.ctx.issues.current.value.filter((i) => i.code === 'svs.stream.load').length;
     const at = async (start: number) => {
       show(t, CHR2, start, start + 10_000);
       for (let k = 0; k < 3; k++) {
@@ -327,7 +327,7 @@ describe("a patch the region cannot take backs off as a failure (LA-04)", () => 
     const failedAt = (start: number) => t.manager.state(t.layer, CHR2, start + 5_000);
     expect(failedAt(10_000_000)).toBe(RegionState.failed);
     // The view moves on and its answers are malformed: one outage still, the first view's failed regions kept.
-    mode = "malformed";
+    mode = 'malformed';
     await at(100_000_000);
     expect(loads()).toBe(1);
     expect(failedAt(10_000_000)).toBe(RegionState.failed);
@@ -335,19 +335,19 @@ describe("a patch the region cannot take backs off as a failure (LA-04)", () => 
   });
 });
 
-describe("a provider whose fetch throws (VT-05)", () => {
-  it("fails the region as a rejection would: the pass completes, the slot is freed, it loads once the provider recovers", async () => {
-    const { opened, preparedRenderers } = await import("./layout-fixtures.js");
+describe('a provider whose fetch throws (VT-05)', () => {
+  it('fails the region as a rejection would: the pass completes, the slot is freed, it loads once the provider recovers', async () => {
+    const { opened, preparedRenderers } = await import('./layout-fixtures.js');
     const streams = hg38Streams({ chromosomes: THREE });
     let throwing = true;
     const loaders = {
       load: (r: { uri?: string }) => Promise.reject(new Error(`no file ${r.uri}`)),
       stream: (src: Parameters<typeof streams.stream>[0]) => {
         const p = streams.stream(src);
-        if (!p || src.stream !== "phylop") return p;
+        if (!p || src.stream !== 'phylop') return p;
         return {
           fetch: (r: Parameters<typeof p.fetch>[0], signal: AbortSignal) => {
-            if (throwing && r.system !== null) throw new Error("bad request");
+            if (throwing && r.system !== null) throw new Error('bad request');
             return p.fetch(r, signal);
           },
         };
@@ -358,7 +358,7 @@ describe("a provider whose fetch throws (VT-05)", () => {
       loaders: loaders as never,
       size: { [GENOME]: [1000, 200] },
     });
-    const s = t.ctx.streams as unknown as StreamedGenome["manager"];
+    const s = t.ctx.streams as unknown as StreamedGenome['manager'];
     t.vp(GENOME).zoomTo(CHR2, 100_000_000, 100_010_000);
     t.layout(GENOME);
     expect(() => s.pass()).not.toThrow();
@@ -366,12 +366,12 @@ describe("a provider whose fetch throws (VT-05)", () => {
     expect(s.stats.current.inFlight).toBe(0);
     throwing = false;
     const m = t.ctx.graph.assembled.value?.view;
-    let layer = "";
+    let layer = '';
     for (let k = 0; m && k < m.resolved.layers.count; k++)
-      if (m.set.strings.get(m.resolved.layers.type[k]) === "values")
+      if (m.set.strings.get(m.resolved.layers.type[k]) === 'values')
         layer = m.set.strings.get(m.resolved.layers.ref[k]);
     expect(s.state(layer, CHR2, 100_005_000)).toBe(RegionState.failed);
-    expect(t.ctx.issues.current.value.map((i) => i.code)).toContain("svs.stream.load");
+    expect(t.ctx.issues.current.value.map((i) => i.code)).toContain('svs.stream.load');
     // Its backoff passes, then it is asked again and loads.
     for (let k = 0; k < 8 && s.state(layer, CHR2, 100_005_000) !== RegionState.loaded; k++) {
       t.scheduler.advance(2000);
@@ -382,20 +382,20 @@ describe("a provider whose fetch throws (VT-05)", () => {
     t.ctx.dispose();
   });
 
-  it("a fetch that returns a plain patch or nothing, not a promise: taken, or failed, the slot freed (LB-21)", async () => {
-    const { opened, preparedRenderers } = await import("./layout-fixtures.js");
+  it('a fetch that returns a plain patch or nothing, not a promise: taken, or failed, the slot freed (LB-21)', async () => {
+    const { opened, preparedRenderers } = await import('./layout-fixtures.js');
     for (const plain of [true, false]) {
       const streams = hg38Streams({ chromosomes: THREE });
       const loaders = {
         load: (r: { uri?: string }) => Promise.reject(new Error(`no file ${r.uri}`)),
         stream: (src: Parameters<typeof streams.stream>[0]) => {
           const p = streams.stream(src);
-          if (!p || src.stream !== "phylop") return p;
+          if (!p || src.stream !== 'phylop') return p;
           // A JS provider that is not `async`: the patch the scripted one would give, at once, or nothing.
           const patch = (r: Parameters<typeof p.fetch>[0]) => ({
             ...r,
             source: r.source,
-            kind: "bins",
+            kind: 'bins',
             bins: { mean: [1, 2, 3] },
             row_start: 0,
             row_stop: 0,
@@ -411,7 +411,7 @@ describe("a provider whose fetch throws (VT-05)", () => {
         loaders: loaders as never,
         size: { [GENOME]: [1000, 200] },
       });
-      const s = t.ctx.streams as unknown as StreamedGenome["manager"];
+      const s = t.ctx.streams as unknown as StreamedGenome['manager'];
       t.vp(GENOME).zoomTo(CHR2, 100_000_000, 100_010_000);
       t.layout(GENOME);
       expect(() => s.pass()).not.toThrow();
@@ -423,15 +423,15 @@ describe("a provider whose fetch throws (VT-05)", () => {
   });
 });
 
-describe("an outage ends with a load (VT-04)", () => {
-  it("the source back: a region loading ends the outage and drops the failed regions out of view; the next is reported", async () => {
+describe('an outage ends with a load (VT-04)', () => {
+  it('the source back: a region loading ends the outage and drops the failed regions out of view; the next is reported', async () => {
     let down = true;
     const t = await openGenome({
       chromosomes: THREE,
-      answer: (r) => (down && r.level === -1 ? (new Error("503") as never) : null),
+      answer: (r) => (down && r.level === -1 ? (new Error('503') as never) : null),
     });
     t.ctx.config.set(Margin, 0);
-    const loads = () => t.ctx.issues.current.value.filter((i) => i.code === "svs.stream.load").length;
+    const loads = () => t.ctx.issues.current.value.filter((i) => i.code === 'svs.stream.load').length;
     const at = async (start: number) => {
       t.vp(GENOME).zoomTo(CHR2, start, start + 10_000);
       t.layout(GENOME);
@@ -454,7 +454,7 @@ describe("an outage ends with a load (VT-04)", () => {
   });
 });
 
-describe("`settled` and the margin (ST2)", () => {
+describe('`settled` and the margin (ST2)', () => {
   it("a region the margin asked first in a pass and a view asks after (another block's) is waited for", async () => {
     // Two blocks over one system can share a region: block b's margin can ask it before block b+1's view does. The
     // second ask used to return at once (asked this pass), so the view's region in flight was not counted.
@@ -478,14 +478,14 @@ describe("`settled` and the margin (ST2)", () => {
   });
 });
 
-describe("drawn from the cache", () => {
-  it("the values bars come from the regions: `renderSvg` of a document awaits them", async () => {
+describe('drawn from the cache', () => {
+  it('the values bars come from the regions: `renderSvg` of a document awaits them', async () => {
     const svg = async (empty: boolean) => {
       const s = hg38Streams({
         chromosomes: THREE,
-        answer: empty ? (r) => ({ ...r, kind: "items", items: { value: [] } }) : undefined,
+        answer: empty ? (r) => ({ ...r, kind: 'items', items: { value: [] } }) : undefined,
       });
-      const loaders = { load: () => Promise.reject(new Error("none")), stream: s.stream };
+      const loaders = { load: () => Promise.reject(new Error('none')), stream: s.stream };
       const out = await renderSvg(streamedDoc(), { width: 800, loaders });
       return { out, asked: s.phylop.requests };
     };

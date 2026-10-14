@@ -13,9 +13,9 @@
 // rectangles take them); `y` inputs are the view's CSS px (`v.top` and down).
 // Allocation-free: module scratch, grown only for a run that crosses more filter runs than any before.
 
-import { AxisGeometry, type AxisView, type ShownIndex } from "../axis.js";
-import type { RectBatch } from "./backend.js";
-import type { DrawView } from "./view.js";
+import { AxisGeometry, type AxisView, type ShownIndex } from '../axis.js';
+import type { RectBatch } from './backend.js';
+import type { DrawView } from './view.js';
 
 let shown = new Int32Array(32);
 const piece = new Float64Array(64);

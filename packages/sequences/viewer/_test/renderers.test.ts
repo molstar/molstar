@@ -11,52 +11,52 @@
 // coordinate system runs placed through the axis's converters; a filter and a reversed piece; a wrapped line; rings).
 // A renderer module is imported first here: the API module evaluates before the root entry with no cycle.
 
-import { readdirSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
-import { SectionAxisView } from "../src/axis.js";
-import { AxisGeometry, band, CHARS, DrawView, mark, placeRun, RectBatch, type ShownIndex } from "../src/draw/api.js";
-import { createSeqViewer, KernelRenderers } from "../src/index.js";
-import { RangesRenderer } from "../src/renderers/ranges.js";
+import { readdirSync, readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { SectionAxisView } from '../src/axis.js';
+import { AxisGeometry, band, CHARS, DrawView, mark, placeRun, RectBatch, type ShownIndex } from '../src/draw/api.js';
+import { createSeqViewer, KernelRenderers } from '../src/index.js';
+import { RangesRenderer } from '../src/renderers/ranges.js';
 
-import { layoutRuns, lineTable, prepareRun } from "../src/runs.js";
-import { axisOf, rangedDoc, resolved, setPiece } from "./axis-fixtures.js";
+import { layoutRuns, lineTable, prepareRun } from '../src/runs.js';
+import { axisOf, rangedDoc, resolved, setPiece } from './axis-fixtures.js';
 
-const MODULES = ["letters", "ranges", "points", "emphasis", "variants", "secondary", "values", "color", "ruler"];
-const MORE = ["pairs", "rows", "logo", "matrix", "map"];
+const MODULES = ['letters', 'ranges', 'points', 'emphasis', 'variants', 'secondary', 'values', 'color', 'ruler'];
+const MORE = ['pairs', 'rows', 'logo', 'matrix', 'map'];
 
-describe("renderer modules", () => {
-  it("one module per kernel type and seqv:map, each its own /renderers/* subpath, all in DefaultRegistry", async () => {
+describe('renderer modules', () => {
+  it('one module per kernel type and seqv:map, each its own /renderers/* subpath, all in DefaultRegistry', async () => {
     const ctx = createSeqViewer();
     for (const name of [...MODULES, ...MORE]) {
       const m = (await import(`../src/renderers/${name}.js`)) as Record<string, unknown>;
       const entries = Object.values(m);
       expect(entries).toHaveLength(1);
       const e = entries[0] as { name: string };
-      expect(e.name).toBe(name === "map" ? "seqv:map" : name);
-      expect(ctx.registry.get("renderers", e.name)).toBe(e);
+      expect(e.name).toBe(name === 'map' ? 'seqv:map' : name);
+      expect(ctx.registry.get('renderers', e.name)).toBe(e);
       expect(KernelRenderers).toContain(e);
     }
-    expect(ctx.registry.get("renderers", "ranges")).toBe(RangesRenderer);
+    expect(ctx.registry.get('renderers', 'ranges')).toBe(RangesRenderer);
     ctx.dispose();
   });
 
-  it("one character table (`CHARS`, a string per 7-bit code) in the renderer API, used by every renderer that draws letters", () => {
+  it('one character table (`CHARS`, a string per 7-bit code) in the renderer API, used by every renderer that draws letters', () => {
     expect(CHARS).toHaveLength(128);
-    expect(CHARS[65]).toBe("A");
+    expect(CHARS[65]).toBe('A');
     const table = /String\.fromCharCode\(i\)/;
-    const src = (f: string) => readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8");
-    const own = readdirSync(new URL("../src/renderers/", import.meta.url))
+    const src = (f: string) => readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8');
+    const own = readdirSync(new URL('../src/renderers/', import.meta.url))
       .map((f) => `renderers/${f}`)
-      .concat("draw/points.ts")
+      .concat('draw/points.ts')
       .filter((f) => table.test(src(f)));
     expect(own).toEqual([]);
-    expect(table.test(src("draw/backend.ts"))).toBe(true);
+    expect(table.test(src('draw/backend.ts'))).toBe(true);
     for (const f of [
-      "renderers/letters.ts",
-      "renderers/emphasis.ts",
-      "renderers/logo.ts",
-      "renderers/rows.ts",
-      "draw/points.ts",
+      'renderers/letters.ts',
+      'renderers/emphasis.ts',
+      'renderers/logo.ts',
+      'renderers/rows.ts',
+      'draw/points.ts',
     ])
       expect(src(f), f).toMatch(/\bCHARS\[/);
   });
@@ -64,7 +64,7 @@ describe("renderer modules", () => {
 
 /** A draw view over a section's axis: data area from x 10, `cell` CSS px, `dpr`, shown [lo, hi) of block 0 in view. */
 async function view(o: { cell?: number; dpr?: number; lo?: number; hi?: number; reversed?: boolean; v?: string } = {}) {
-  const r = await resolved(rangedDoc(), o.v ?? "f");
+  const r = await resolved(rangedDoc(), o.v ?? 'f');
   if (o.reversed) setPiece(r.view, 0, 5, 15, -1, 20);
   const ax = axisOf(r);
   const s = new SectionAxisView();
@@ -85,8 +85,8 @@ const out = new Float64Array(16);
 const pieces = (n: number) => Array.from({ length: n }, (_, p) => [out[2 * p], out[2 * p + 1]]);
 const k = (n: number) => n as ShownIndex;
 
-describe("placement helpers", () => {
-  it("linear: a run over a filter (block 7..10 and 12..14 shown) as its shown runs, device px", async () => {
+describe('placement helpers', () => {
+  it('linear: a run over a filter (block 7..10 and 12..14 shown) as its shown runs, device px', async () => {
     const { v } = await view();
     // View f shows unit [5, 15)'s 7, 8, 9, 12, 13: shown 0..4.
     const n = placeRun(v, 0, 7, 14, out);
@@ -106,7 +106,7 @@ describe("placement helpers", () => {
   });
 
   it("a reversed piece: the run's x order flips, the edges stay ascending", async () => {
-    const { v, ax } = await view({ reversed: true, v: "v" });
+    const { v, ax } = await view({ reversed: true, v: 'v' });
     // Unit [5, 15) reversed: shown 0 is index 14.
     expect(ax.indexOf(0, k(0))).toBe(14);
     const n = placeRun(v, 0, 12, 14, out);
@@ -116,7 +116,7 @@ describe("placement helpers", () => {
   });
 
   it("band: a rect per piece in device px; mark: a cell's center, false where not shown", async () => {
-    const { v } = await view({ v: "v" });
+    const { v } = await view({ v: 'v' });
     const rects = new RectBatch();
     rects.begin(0x336699);
     band(v, 0, 6, 9, 20, 30, rects);
@@ -133,7 +133,7 @@ describe("placement helpers", () => {
   });
 
   it("wrapped: pieces on the view's line only, the last cell's right edge across a group gap", async () => {
-    const { ax, v } = await view({ v: "v" });
+    const { ax, v } = await view({ v: 'v' });
     const run = prepareRun(0, ax, 10, 4);
     const lines = lineTable();
     // 10 positions in groups of 4, 60 px a line (gap 6): lines [0, 4), [4, 8), [8, 10).

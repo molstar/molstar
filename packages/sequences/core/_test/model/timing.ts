@@ -11,7 +11,7 @@
 // twice: in the fast tier with its checks and no bound, and in the slow tier (`test:slow`, the `slow` tag) with both.
 // A test whose point is the time (a ratio of two sizes, a storm) is tagged slow instead.
 
-import { expect, it } from "vitest";
+import { expect, it } from 'vitest';
 
 /** Runs `f` (sync, or a promise awaited) and checks it took under `ms` milliseconds; returns what `f` returned. */
 export type Within = <T>(ms: number, f: () => T) => T;
@@ -39,5 +39,5 @@ const bounded: Within = (ms, f) => {
  */
 export function itWithin(name: string, body: (within: Within) => unknown, timeout?: number) {
   it(name, { timeout }, () => body(unbounded));
-  it(`${name}: within its time bounds`, { tags: ["slow"], timeout }, () => body(bounded));
+  it(`${name}: within its time bounds`, { tags: ['slow'], timeout }, () => body(bounded));
 }

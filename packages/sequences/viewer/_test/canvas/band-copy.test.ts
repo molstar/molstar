@@ -14,13 +14,13 @@
 // what a move uncovered is pending copies too (a pending tile's coarse level drawn in its place alone), and each frame
 // redrawn as tiles and labels arrive equals a full redraw.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { tilesStream } from "@molstar/seq-core/stream/tiles";
-import { tileServer } from "@molstar/seq-core/stream/tiles/server";
-import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
-import { type DrawResources, SkinToken } from "../../src/draw/backend.js";
-import { Dirty, SectionComposer } from "../../src/draw/index.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { tilesStream } from '@molstar/seq-core/stream/tiles';
+import { tileServer } from '@molstar/seq-core/stream/tiles/server';
+import { describe, expect, it } from 'vitest';
+import { Canvas2DBackend, Canvas2DShared } from '../../src/canvas/index.js';
+import { type DrawResources, SkinToken } from '../../src/draw/backend.js';
+import { Dirty, SectionComposer } from '../../src/draw/index.js';
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -28,37 +28,37 @@ import {
   manualScheduler,
   type SeqViewerContext,
   type Skin,
-} from "../../src/index.js";
-import type { Streams } from "../../src/streams.js";
-import { fixtureMeasurer } from "../../src/testing/index.js";
-import { holdBack } from "../arrival-fixtures.js";
+} from '../../src/index.js';
+import type { Streams } from '../../src/streams.js';
+import { fixtureMeasurer } from '../../src/testing/index.js';
+import { holdBack } from '../arrival-fixtures.js';
 
-const URI = "https://example.org/lazy";
+const URI = 'https://example.org/lazy';
 const [W, H] = [700, 300];
 
 function lazyDoc() {
   const b = createSeqViewSpec();
-  const source = { uri: URI, protocol: "seqstar-tiles/1" };
-  const aln = b.data.alignment({ ref: "lazy", row_count: 3000, column_count: 4000, source } as never);
-  const v = b.view({ ref: "g", label: "G", height: "box" });
+  const source = { uri: URI, protocol: 'seqstar-tiles/1' };
+  const aln = b.data.alignment({ ref: 'lazy', row_count: 3000, column_count: 4000, source } as never);
+  const v = b.view({ ref: 'g', label: 'G', height: 'box' });
   v.block({ alignment: aln });
-  v.track({ label: "Rows" }).rows();
+  v.track({ label: 'Rows' }).rows();
   return b.getDocument();
 }
 /** An in-memory alignment of 400 rows: its band dense below `denseRowHeight`. */
 function memoryDoc() {
   const b = createSeqViewSpec();
-  const L = "ACDEFGHIKLMNPQRSTVWY-";
+  const L = 'ACDEFGHIKLMNPQRSTVWY-';
   const value = Array.from({ length: 400 }, (_, r) =>
     Array.from(
       { length: 900 },
       (_, c) => L[((Math.imul(r + 7, 2654435761) ^ Math.imul(c + 3, 40503)) >>> 0) % L.length],
-    ).join(""),
+    ).join(''),
   );
-  const aln = b.data.alignment({ ref: "aln", value });
-  const v = b.view({ ref: "g", label: "G", height: "box" });
+  const aln = b.data.alignment({ ref: 'aln', value });
+  const v = b.view({ ref: 'g', label: 'G', height: 'box' });
   v.block({ alignment: aln });
-  v.track({ label: "Rows" }).rows();
+  v.track({ label: 'Rows' }).rows();
   return b.getDocument();
 }
 
@@ -66,7 +66,7 @@ function memoryDoc() {
 function lazyLoaders() {
   const server = tileServer({ rowCount: 3000, columnCount: 4000 });
   return {
-    load: () => Promise.reject(new Error("no fixture")),
+    load: () => Promise.reject(new Error('no fixture')),
     stream: tilesStream((u) => (u === URI ? server.transport : null)),
   };
 }
@@ -89,15 +89,15 @@ function resources(ctx: SeqViewerContext): DrawResources {
     tokens.set(id, (DefaultSkin as Skin)[name as keyof Skin] as string);
   return {
     font: (id) => ctx.text.fontString(id),
-    fontPx: (id) => Number.parseFloat(/([0-9.]+)px/.exec(ctx.text.fontString(id))?.[1] ?? "10"),
-    token: (t) => tokens.get(t) ?? "#ff00ff",
+    fontPx: (id) => Number.parseFloat(/([0-9.]+)px/.exec(ctx.text.fontString(id))?.[1] ?? '10'),
+    token: (t) => tokens.get(t) ?? '#ff00ff',
     glyph: () => null,
   };
 }
 /** A composer drawing into a visible canvas through a back target (the main pass's, as the surface's). */
 function surface(ctx: SeqViewerContext, section: string, w: number, h: number, atlas: boolean) {
   const c = new OffscreenCanvas(w, h);
-  const g = c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+  const g = c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
   const be = new Canvas2DBackend([g], new Canvas2DShared(resources(ctx), { atlas }));
   const composer = new SectionComposer(ctx, section);
   return { composer, frame: () => composer.frame(be, Dirty.tracks), px: () => g.getImageData(0, 0, w, h).data };
@@ -145,11 +145,11 @@ async function moves(o: Run): Promise<number> {
   const ctx = await open(o.lazy ? lazyDoc() : memoryDoc(), o.dpr, o.lazy);
   const section = ctx.viewports.sections.value[0];
   const vp = ctx.viewports.get(section);
-  if (!vp) throw new Error("no viewport");
+  if (!vp) throw new Error('no viewport');
   // From the middle, so no move is clamped at an edge.
-  vp.setView(o.cell, 0, "api");
+  vp.setView(o.cell, 0, 'api');
   vp.setRowScale(o.rowScale, 0);
-  vp.panBy(1500 * o.cell, 600, "api");
+  vp.panBy(1500 * o.cell, 600, 'api');
   await ctx.graph.update();
   const copied = surface(ctx, section, W * o.dpr, H * o.dpr, o.atlas);
   const full = surface(ctx, section, W * o.dpr, H * o.dpr, o.atlas);
@@ -169,7 +169,7 @@ async function moves(o: Run): Promise<number> {
     const far = rnd() < 0.1;
     const dx = rnd() < 0.7 ? (rnd() - 0.5) * (far ? 2000 : 160) : 0;
     const dy = dx === 0 || rnd() < 0.4 ? (rnd() - 0.5) * (far ? 800 : 120) : 0;
-    vp.panBy(dx, dy, "api");
+    vp.panBy(dx, dy, 'api');
     if (rnd() < 0.25) {
       // A frame while what the move uncovered is pending (the band drawn whole), then a frame per arrival: each redraws
       // the regions that changed (their columns; a labels chunk, the band whole) and equals a full redraw.
@@ -194,20 +194,20 @@ async function moves(o: Run): Promise<number> {
   return n;
 }
 
-describe("a rows band copies on pan once its regions arrived, equal to a full redraw", () => {
-  it.each([1, 2])("lazy lettered rows (18 px, cell 14) at DPR %i, letters from the atlas", async (dpr) => {
+describe('a rows band copies on pan once its regions arrived, equal to a full redraw', () => {
+  it.each([1, 2])('lazy lettered rows (18 px, cell 14) at DPR %i, letters from the atlas', async (dpr) => {
     const n = await moves({ lazy: true, dpr, cell: 14, rowScale: 1, atlas: true, seed: dpr, count: 40 });
     expect(n).toBeGreaterThan(20);
   });
-  it("lazy lettered rows at DPR 2, letters by fillText", async () => {
+  it('lazy lettered rows at DPR 2, letters by fillText', async () => {
     const n = await moves({ lazy: true, dpr: 2, cell: 14, rowScale: 1, atlas: false, seed: 5, count: 30 });
     expect(n).toBeGreaterThan(15);
   });
-  it.each([1, 2])("lazy rows of cells (cell 4) at DPR %i", async (dpr) => {
+  it.each([1, 2])('lazy rows of cells (cell 4) at DPR %i', async (dpr) => {
     const n = await moves({ lazy: true, dpr, cell: 4, rowScale: 1, atlas: true, seed: 10 + dpr, count: 30 });
     expect(n).toBeGreaterThan(15);
   });
-  it("lazy dense rows (4 px, 1 px cells), coarse tiles", async () => {
+  it('lazy dense rows (4 px, 1 px cells), coarse tiles', async () => {
     const n = await moves({ lazy: true, dpr: 1, cell: 1, rowScale: 4 / 18, atlas: true, seed: 13, count: 30 });
     expect(n).toBeGreaterThan(15);
   });
@@ -223,7 +223,7 @@ describe("a rows band copies on pan once its regions arrived, equal to a full re
     [1, 3, 0.2],
     [2, 2.7, 0.15],
     [2, 13.7, 1.1],
-  ])("at DPR %i, cell %f, row scale %f the band copies too", async (dpr, cell, rowScale) => {
+  ])('at DPR %i, cell %f, row scale %f the band copies too', async (dpr, cell, rowScale) => {
     const n = await moves({ lazy: true, dpr, cell, rowScale, atlas: true, seed: 30 + dpr, count: 30 });
     expect(n).toBeGreaterThan(15);
   });
@@ -232,11 +232,11 @@ describe("a rows band copies on pan once its regions arrived, equal to a full re
   it.each([
     [1, 0.5, 0.5 / 18],
     [2, 0.3, 0.6 / 18],
-  ])("reduced tiles at DPR %i, cell %f, row scale %f", async (dpr, cell, rowScale) => {
+  ])('reduced tiles at DPR %i, cell %f, row scale %f', async (dpr, cell, rowScale) => {
     const n = await moves({ lazy: true, dpr, cell, rowScale, atlas: true, seed: 60 + dpr, count: 30 });
     expect(n).toBeGreaterThan(15);
   });
-  it("an in-memory dense band at a fractional zoom (cell 2.6, rows 3.6 px) copies", async () => {
+  it('an in-memory dense band at a fractional zoom (cell 2.6, rows 3.6 px) copies', async () => {
     const n = await moves({ lazy: false, dpr: 1, cell: 2.6, rowScale: 0.2, atlas: true, seed: 40, count: 30 });
     expect(n).toBeGreaterThan(15);
   });
@@ -251,28 +251,28 @@ describe("a tile's pixels do not depend on where the view starts", () => {
     [1, 15.12, 1, true],
     [1, 3, 0.2, true],
     [2, 2.6, 0.2, false],
-  ])("at DPR %i, cell %f, row scale %f (lazy %s)", async (dpr, cell, rowScale, lazy) => {
+  ])('at DPR %i, cell %f, row scale %f (lazy %s)', async (dpr, cell, rowScale, lazy) => {
     const ctx = await open(lazy ? lazyDoc() : memoryDoc(), dpr, lazy);
     const section = ctx.viewports.sections.value[0];
     const vp = ctx.viewports.get(section);
-    if (!vp) throw new Error("no viewport");
-    vp.setView(cell, 0, "api");
+    if (!vp) throw new Error('no viewport');
+    vp.setView(cell, 0, 'api');
     vp.setRowScale(rowScale, 0);
-    vp.panBy(1500 * cell, 600, "api");
+    vp.panBy(1500 * cell, 600, 'api');
     await ctx.graph.update();
     const [w, h] = [W * dpr, H * dpr];
     const a = surface(ctx, section, w, h, true);
     await arrive(ctx);
     a.frame();
     const l = ctx.layout.get(section)?.current;
-    if (!l) throw new Error("no layout");
+    if (!l) throw new Error('no layout');
     const [L, R, T] = [Math.round(l.dataLeft * dpr), Math.round(l.dataRight * dpr), Math.round(l.scrolledTop * dpr)];
     const s = vp.live.current;
     let [x0, y0, pa] = [s.scrollX, s.scrollY, a.px()];
     const rnd = random(50 + dpr);
     for (let k = 0; k < 12; k++) {
       // Whole device px in both directions, less than a third of the data area's.
-      vp.panBy(Math.round((rnd() - 0.5) * 0.6 * (R - L)) / dpr, Math.round((rnd() - 0.5) * 0.6 * (h - T)) / dpr, "api");
+      vp.panBy(Math.round((rnd() - 0.5) * 0.6 * (R - L)) / dpr, Math.round((rnd() - 0.5) * 0.6 * (h - T)) / dpr, 'api');
       await arrive(ctx);
       a.composer.redraw();
       a.frame();
@@ -281,7 +281,7 @@ describe("a tile's pixels do not depend on where the view starts", () => {
       const ox = Math.round((x0 - s.scrollX) * dpr);
       const oy = Math.round((y0 - s.scrollY) * dpr);
       let n = 0;
-      let first = "";
+      let first = '';
       for (let y = Math.max(T, T - oy); y < Math.min(h, h - oy); y++)
         for (let x = Math.max(L, L - ox); x < Math.min(R, R - ox); x++) {
           const [i, j] = [4 * (y * w + x), 4 * ((y + oy) * w + x + ox)];
@@ -296,7 +296,7 @@ describe("a tile's pixels do not depend on where the view starts", () => {
   });
 });
 
-describe("a frame redrawn for arrivals alone equals a full redraw", () => {
+describe('a frame redrawn for arrivals alone equals a full redraw', () => {
   /**
    * The lazy alignment at a zoom, every region in view arrived (`hold`: the stream wrapped first, before anything is
    * drawn); a surface drawing it, and a full redraw to compare with.
@@ -305,10 +305,10 @@ describe("a frame redrawn for arrivals alone equals a full redraw", () => {
     const ctx = await open(lazyDoc(), dpr, true);
     const section = ctx.viewports.sections.value[0];
     const vp = ctx.viewports.get(section);
-    if (!vp) throw new Error("no viewport");
-    vp.setView(cell, 0, "api");
+    if (!vp) throw new Error('no viewport');
+    vp.setView(cell, 0, 'api');
     vp.setRowScale(rowScale, 0);
-    vp.panBy(1500 * cell, 600, "api");
+    vp.panBy(1500 * cell, 600, 'api');
     await ctx.graph.update();
     await arrive(ctx);
     const held = hold ? holdBack(ctx, section) : null;
@@ -329,7 +329,7 @@ describe("a frame redrawn for arrivals alone equals a full redraw", () => {
   it.each([
     [1, 0.5, 0.5 / 18],
     [2, 0.3, 0.6 / 18],
-  ])("fine tiles held back, then arriving, at DPR %i, cell %f, row scale %f", async (dpr, cell, rowScale) => {
+  ])('fine tiles held back, then arriving, at DPR %i, cell %f, row scale %f', async (dpr, cell, rowScale) => {
     const t = await at(dpr, cell, rowScale, true);
     const h = t.held as NonNullable<typeof t.held>;
     const lv = Array.from(h.levels);
@@ -337,7 +337,7 @@ describe("a frame redrawn for arrivals alone equals a full redraw", () => {
     const c = h.center();
     for (const tx of [c - 1, c, c + 1]) h.hold(tx);
     t.drawn.frame();
-    t.compare("held");
+    t.compare('held');
     for (const tx of [c, c + 1, c - 1]) {
       h.release(tx);
       t.drawn.frame();
@@ -352,7 +352,7 @@ describe("a frame redrawn for arrivals alone equals a full redraw", () => {
     const t = await at(dpr, 14, 1, false);
     t.drawn.frame();
     for (const row of [1300, 2600]) {
-      t.vp.scrollTo(t.vp.live.current.scrollX, row * 18, "api");
+      t.vp.scrollTo(t.vp.live.current.scrollX, row * 18, 'api');
       t.drawn.frame();
       t.compare(`rows from ${row}, pending`);
       let passes = 0;

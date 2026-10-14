@@ -50,7 +50,7 @@ import {
   type SvsRegistries,
   type ThemeRef,
   templateNodes,
-} from "@molstar/seq-core/format";
+} from '@molstar/seq-core/format';
 import {
   type Annotation,
   type AnnotationInput,
@@ -59,19 +59,19 @@ import {
   type Molecule,
   type SeqSet,
   type SetInput,
-} from "@molstar/seq-core/model";
-import { pickedTheme, schemeEntries, subjectOf, withRange } from "./color-schemes.js";
-import type { InputCollector, NodeKind, PreparedLayer, RunContext, Stage, ViewModel } from "./graph.js";
-import type { LayerInput, LayerRenderer } from "./registry.js";
-import { createTheme, type Theme, themeContext } from "./themes.js";
+} from '@molstar/seq-core/model';
+import { pickedTheme, schemeEntries, subjectOf, withRange } from './color-schemes.js';
+import type { InputCollector, NodeKind, PreparedLayer, RunContext, Stage, ViewModel } from './graph.js';
+import type { LayerInput, LayerRenderer } from './registry.js';
+import { createTheme, type Theme, themeContext } from './themes.js';
 
 /** An alignment a node provider computes from the set (`realign`): assembled with the mappings, after the base set. */
-const computedAlignment = (n: IndexedNode) => n.kind === "alignment" && n.params.provider != null;
+const computedAlignment = (n: IndexedNode) => n.kind === 'alignment' && n.params.provider != null;
 /** A node that reads the set before it is assembled: an `align` or provider mapping, a computed alignment. */
 const readsSet = (n: IndexedNode) =>
-  computedAlignment(n) || (n.kind === "mapping" && (n.params.method === "align" || n.params.method === "provider"));
-const BASE = ["complex", "sequence", "ligand", "unit", "alignment"];
-const head = (ref: string) => ref.split("/")[0];
+  computedAlignment(n) || (n.kind === 'mapping' && (n.params.method === 'align' || n.params.method === 'provider'));
+const BASE = ['complex', 'sequence', 'ligand', 'unit', 'alignment'];
+const head = (ref: string) => ref.split('/')[0];
 
 /**
  * The heads of a node's refs that name another document node: core's `nodeRefs`, every typed ref its params hold
@@ -83,7 +83,7 @@ function refsOf(n: IndexedNode, doc: DocIndex, svs: SvsRegistries): string[] {
   return [...out].filter((r) => doc.nodes.has(r) && r !== n.ref);
 }
 function edges(n: IndexedNode, doc: DocIndex, out: InputCollector, svs: SvsRegistries) {
-  for (const r of refsOf(n, doc, svs)) (doc.nodes.get(r)?.kind === "source" ? out.result : out.status)(r);
+  for (const r of refsOf(n, doc, svs)) (doc.nodes.get(r)?.kind === 'source' ? out.result : out.status)(r);
 }
 /**
  * The computed alignments a node reading the set names, and the ones those name: `compile` assembles each computed
@@ -116,50 +116,50 @@ function withComputed(rc: RunContext, n: IndexedNode): StageContext {
 /** What a ref names in a set: the object (or table) a node reading it depends on. */
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };
 /** The set's table by `KeyKind` (molecule, unit, alignment, row: its alignment, mapping, annotation, complex). */
-const ENTITY = ["molecules", "units", "alignments", "alignments", "mappings", "annotations", "complexes"] as const;
+const ENTITY = ['molecules', 'units', 'alignments', 'alignments', 'mappings', 'annotations', 'complexes'] as const;
 function entity(set: SeqSet | null, ref: string): unknown {
   if (!set?.byName(ref, t)) return undefined;
   const list = set[ENTITY[t.kind]];
-  return ENTITY[t.kind] === "units" ? list : (list as readonly unknown[])[t.id];
+  return ENTITY[t.kind] === 'units' ? list : (list as readonly unknown[])[t.id];
 }
 
-function load(name: string, stage: Stage = "load"): NodeKind<LoadResult> {
+function load(name: string, stage: Stage = 'load'): NodeKind<LoadResult> {
   return {
     name,
     stage,
     inputs(_ref, n, doc, out, svs) {
       if (!n) return;
       edges(n, doc, out, svs);
-      for (const c of childrenOf(doc, n)) if (c.kind === "numbering" || c.kind === "tree") edges(c, doc, out, svs);
+      for (const c of childrenOf(doc, n)) if (c.kind === 'numbering' || c.kind === 'tree') edges(c, doc, out, svs);
       // Targets read from a file may name any data node; an aligner reads its endpoints in the set.
-      if (n.kind === "annotation" && n.params.value == null)
+      if (n.kind === 'annotation' && n.params.value == null)
         for (const d of doc.order) if (BASE.includes(d.kind)) out.status(d.ref);
-      if (readsSet(n)) out.after("#assemble.base");
+      if (readsSet(n)) out.after('#assemble.base');
       for (const r of computedNamed(n, doc, svs)) out.result(r);
       // A complex by value leaves out its unavailable units: it runs once their availability is known.
-      if (n.kind === "complex" && n.params.provider == null && n.params.source_ref == null)
-        for (const c of childrenOf(doc, n)) if (c.kind === "unit") out.status(c.ref);
+      if (n.kind === 'complex' && n.params.provider == null && n.params.source_ref == null)
+        for (const c of childrenOf(doc, n)) if (c.kind === 'unit') out.status(c.ref);
     },
     key(rc, out) {
       const n = rc.node as IndexedNode;
       for (const c of n.node.children ?? []) out.push(rc.token(c.ref ?? c.kind));
-      const parent = rc.doc.nodes.get(n.parent ?? "");
-      if (parent?.kind === "complex") out.push(rc.token(parent.ref));
-      if (typeof n.params.from_source === "string") out.push(rc.token(head(n.params.from_source)));
+      const parent = rc.doc.nodes.get(n.parent ?? '');
+      if (parent?.kind === 'complex') out.push(rc.token(parent.ref));
+      if (typeof n.params.from_source === 'string') out.push(rc.token(head(n.params.from_source)));
       // A lazy alignment fetches the rows the document's annotations and mappings name (`namedRows`).
-      const src = n.kind === "alignment" ? rc.doc.nodes.get(String(n.params.source_ref)) : undefined;
+      const src = n.kind === 'alignment' ? rc.doc.nodes.get(String(n.params.source_ref)) : undefined;
       if (src && (src.params.protocol != null || src.params.stream != null))
-        for (const d of rc.doc.order) if (d.kind === "annotation" || d.kind === "mapping") out.push(rc.token(d.ref));
-      if (n.params.method === "align" || n.params.method === "provider")
+        for (const d of rc.doc.order) if (d.kind === 'annotation' || d.kind === 'mapping') out.push(rc.token(d.ref));
+      if (n.params.method === 'align' || n.params.method === 'provider')
         out.push(entity(rc.stage.set, String(n.params.from)), entity(rc.stage.set, String(n.params.to)));
       // A computed alignment reads its inputs' residues in the set.
       if (computedAlignment(n))
-        for (const r of typeof n.params.inputs === "string" ? [n.params.inputs] : (n.params.inputs as string[]))
+        for (const r of typeof n.params.inputs === 'string' ? [n.params.inputs] : (n.params.inputs as string[]))
           out.push(entity(rc.stage.set, r));
     },
     run: (rc) => {
       const n = rc.node as IndexedNode;
-      if (stage === "complex") return buildComplex(n.node, rc.doc, rc.stage);
+      if (stage === 'complex') return buildComplex(n.node, rc.doc, rc.stage);
       return loadNode(n.node, rc.doc, readsSet(n) ? withComputed(rc, n) : rc.stage, rc.loaders);
     },
   };
@@ -172,25 +172,25 @@ function load(name: string, stage: Stage = "load"): NodeKind<LoadResult> {
  * its `order` reads (a `row_stats`).
  */
 function answersNamed(n: IndexedNode | null, doc: DocIndex, svs: SvsRegistries): string[] {
-  if (n?.params.provider === "redundancy")
-    return keyTables(n.params).filter((r) => r !== n.ref && doc.nodes.get(r)?.kind === "computed");
-  if (n?.params.provider !== "query") return [];
-  return refsOf(n, doc, svs).filter((r) => r !== n.ref && doc.nodes.get(r)?.kind === "computed");
+  if (n?.params.provider === 'redundancy')
+    return keyTables(n.params).filter((r) => r !== n.ref && doc.nodes.get(r)?.kind === 'computed');
+  if (n?.params.provider !== 'query') return [];
+  return refsOf(n, doc, svs).filter((r) => r !== n.ref && doc.nodes.get(r)?.kind === 'computed');
 }
 /** The key tables an `order` and a `filter` of a node's params read (keyed sets, seqspec:format#layer-types). */
 function keyTables(p: Readonly<Record<string, unknown>>): string[] {
   const out = new Set<string>();
   for (const k of [p.order ?? [], p.filter ?? []].flat() as unknown[])
-    if (k && typeof k === "object" && typeof (k as { data?: unknown }).data === "string")
+    if (k && typeof k === 'object' && typeof (k as { data?: unknown }).data === 'string')
       out.add(head((k as { data: string }).data));
   return [...out];
 }
 
 const computed: NodeKind<AnnotationInput | null> = {
-  name: "computed",
-  stage: "compute",
+  name: 'computed',
+  stage: 'compute',
   inputs(_ref, n, doc, out, svs) {
-    out.after("#assemble.mapped");
+    out.after('#assemble.mapped');
     if (n) edges(n, doc, out, svs);
     for (const r of answersNamed(n, doc, svs)) out.result(r);
   },
@@ -224,9 +224,9 @@ interface Assembly {
   readonly deferred?: ReadonlyMap<string, unknown>;
 }
 type Part = Partial<SetInput>;
-const LISTS = ["molecules", "units", "complexes", "alignments", "mappings", "annotations"] as const;
+const LISTS = ['molecules', 'units', 'complexes', 'alignments', 'mappings', 'annotations'] as const;
 const asPart = (v: unknown): Part =>
-  v && typeof v === "object" ? ("geometry" in v ? { annotations: [v as AnnotationInput] } : (v as Part)) : {};
+  v && typeof v === 'object' ? ('geometry' in v ? { annotations: [v as AnnotationInput] } : (v as Part)) : {};
 function add(into: Part, v: unknown, keys?: Set<string>) {
   const p = asPart(v);
   for (const k of LISTS) {
@@ -251,7 +251,7 @@ function checkUnits(parts: Map<string, unknown>, rc: RunContext) {
   if ((all.units ?? []).length === units.length) return;
   const kept = new Set(all.units);
   const bad = new Set(units.flatMap((u) => (kept.has(u) ? [] : [u.key])));
-  const keys = [...bad].join(" ");
+  const keys = [...bad].join(' ');
   for (const [r, v] of parts) {
     const p = asPart(v);
     if (!p.units?.some((u) => bad.has(u.key)) && !p.complexes?.some((c) => c.units.some((u) => bad.has(u)))) continue;
@@ -274,19 +274,19 @@ function checkUnits(parts: Map<string, unknown>, rc: RunContext) {
 function overDynamic(doc: DocIndex, v: unknown): boolean {
   const p = asPart(v);
   for (const m of p.mappings ?? []) if (underStream(doc, m.from) || underStream(doc, m.to)) return true;
-  for (const a of p.annotations ?? []) if (typeof a.target === "string" && underStream(doc, a.target)) return true;
+  for (const a of p.annotations ?? []) if (typeof a.target === 'string' && underStream(doc, a.target)) return true;
   return false;
 }
 /** A ref naming a streamed source's dynamic node (`<source>/<key>`). */
 function underStream(doc: DocIndex, r: unknown): boolean {
-  if (typeof r !== "string") return false;
-  const h = r.slice(0, Math.max(0, r.indexOf("/")));
-  return h !== "" && isStreamedSource(doc.nodes.get(h));
+  if (typeof r !== 'string') return false;
+  const h = r.slice(0, Math.max(0, r.indexOf('/')));
+  return h !== '' && isStreamedSource(doc.nodes.get(h));
 }
 /** An annotation whose per-row `target` or `b_target` names a dynamic node: not supported yet (its rows say so). */
 function rowsOverDynamic(doc: DocIndex, v: unknown): string | null {
   for (const a of asPart(v).annotations ?? [])
-    for (const c of ["target", "b_target"]) {
+    for (const c of ['target', 'b_target']) {
       const col = a.columns?.[c] as ArrayLike<unknown> | undefined;
       for (let i = 0; col && i < col.length; i++) if (underStream(doc, col[i])) return String(col[i]);
     }
@@ -308,7 +308,7 @@ function itemNamesOf(doc: DocIndex, svs: SvsRegistries): ItemNames {
   const sources = new Set<string>();
   for (const d of doc.order) {
     const fe = forEachOf(d);
-    if (fe?.kind === "item_system") sources.add(fe.source);
+    if (fe?.kind === 'item_system') sources.add(fe.source);
   }
   n = { refs: namedUnder(doc, svs), sources };
   itemNames.set(doc, n);
@@ -325,7 +325,7 @@ function namedUnder(doc: DocIndex, svs: SvsRegistries): ReadonlySet<string> {
   const out = new Set<string>();
   for (const d of doc.order)
     for (const u of nodeRefs(d, svs))
-      if (u.ref.includes("/")) out.add(u.ref.endsWith("/unit") ? u.ref.slice(0, -5) : u.ref);
+      if (u.ref.includes('/')) out.add(u.ref.endsWith('/unit') ? u.ref.slice(0, -5) : u.ref);
   refs = out;
   under.set(doc, refs);
   return refs;
@@ -337,21 +337,21 @@ function namedUnder(doc: DocIndex, svs: SvsRegistries): ReadonlySet<string> {
  * included, to their previous set, so the three sets share one lineage and untouched tables.
  */
 function assembly(name: string, seed: string | null, groups: string[][], computed = false): NodeKind<Assembly> {
-  const units = groups.some((g) => g.includes("unit"));
+  const units = groups.some((g) => g.includes('unit'));
   return {
     name,
-    stage: "assemble",
+    stage: 'assemble',
     inputs(_ref, _n, doc, out) {
       if (seed) out.result(seed);
       // `computed`: the alignments a node provider computes belong to this assembly, and the given ones to the base's.
       for (const g of groups)
         for (const d of doc.order)
-          if (g.includes(d.kind) && (d.kind !== "alignment" || computedAlignment(d) === computed)) out.result(d.ref);
+          if (g.includes(d.kind) && (d.kind !== 'alignment' || computedAlignment(d) === computed)) out.result(d.ref);
     },
     run(rc) {
       const prev = rc.prev as Assembly | undefined;
       const first = rc.result(rc.inputs[0]) as Assembly | undefined;
-      const base = first && typeof first === "object" && "parts" in first ? first : null;
+      const base = first && typeof first === 'object' && 'parts' in first ? first : null;
       const own = base ? rc.inputs.slice(1) : rc.inputs;
       const parts = new Map(base?.parts);
       const deferred = new Map(base?.deferred);
@@ -361,8 +361,8 @@ function assembly(name: string, seed: string | null, groups: string[][], compute
         if (row !== null)
           rc.stage.report(
             Issue.warning(
-              "svs.provider.unavailable",
-              `${rc.doc.nodes.get(r)?.path ?? ""}/params`,
+              'svs.provider.unavailable',
+              `${rc.doc.nodes.get(r)?.path ?? ''}/params`,
               `"${r}": a row's target "${row}" names a streamed item: per-row targets cannot wait for one yet; give the annotation one target`,
             ),
           );
@@ -422,7 +422,7 @@ interface Nested {
 }
 type Held = { readonly source: string; readonly node: StreamNode };
 /** `#assemble.stream`'s entry for a document mapping over dynamic nodes (`overDynamic`): its part is its own. */
-const DEFERRED: StreamNode = { kind: "mapping", key: "", params: {} };
+const DEFERRED: StreamNode = { kind: 'mapping', key: '', params: {} };
 /**
  * `#assemble.stream`'s result: the final set over `base` (`#assemble`'s), per dynamic node its node and part, the held
  * nested sources, and per source a version bumped when its nodes change (`own`), or those of any source under it (`tree`).
@@ -444,12 +444,12 @@ function manifestNodes(rc: RunContext, set: SeqSet, nested: ReadonlyMap<string, 
     seen.add(ref);
     for (const node of nodes ?? []) out.set(nodeRef(ref, String(node?.key)), { source: ref, node });
   };
-  for (const [ref, sr] of rc.stage.sources) if (sr.kind === "streamed") from(ref, sr.manifest.nodes);
+  for (const [ref, sr] of rc.stage.sources) if (sr.kind === 'streamed') from(ref, sr.manifest.nodes);
   for (const a of set.annotations) {
     const d = a?.streamed ? (a.custom.props.get(StreamProp) as StreamedData | undefined) : undefined;
     if (d) from(d.source.ref, d.manifest.nodes);
   }
-  for (const [ref, x] of nested) if (x.result?.kind === "streamed") from(ref, x.result.manifest.nodes);
+  for (const [ref, x] of nested) if (x.result?.kind === 'streamed') from(ref, x.result.manifest.nodes);
 }
 
 /** What a document asks of nested sources: the refs its layers and focus name, and its templates (once per index). */
@@ -499,15 +499,15 @@ const NO_VERSIONS: ReadonlyMap<string, number> = new Map();
  * its own previous set, so the final set keeps one lineage and every id, the dynamic nodes' included.
  */
 const streamAssembly: NodeKind<Assembly> = {
-  name: "#assemble.stream",
-  stage: "assemble",
+  name: '#assemble.stream',
+  stage: 'assemble',
   inputs(_ref, _n, doc, out) {
-    out.result("#assemble");
+    out.result('#assemble');
     for (const d of doc.order) if (isStreamedSource(d)) out.result(d.ref);
   },
   key: (rc, out) => out.push(rc.dynamic?.version ?? 0),
   async run(rc) {
-    const base = rc.result("#assemble") as Assembly;
+    const base = rc.result('#assemble') as Assembly;
     const p = rc.prev as Partial<StreamAssembly> | undefined;
     const was = p?.nodes && p.base ? (p as StreamAssembly) : null;
     const want = new Map<string, Held>();
@@ -522,7 +522,7 @@ const streamAssembly: NodeKind<Assembly> = {
     // A node's refs name the document's nodes, the set's keys, or dynamic nodes held or of the same patch (and theirs).
     const known = (r: string) =>
       want.has(r) ||
-      want.has(r.slice(0, Math.max(0, r.lastIndexOf("/")))) ||
+      want.has(r.slice(0, Math.max(0, r.lastIndexOf('/')))) ||
       rc.doc.nodes.has(r) ||
       base.set.byName(r, t);
     for (let round = 0; round < 64; round++) {
@@ -533,12 +533,12 @@ const streamAssembly: NodeKind<Assembly> = {
       const reads = new Set<string>();
       for (const [ref, w] of want) {
         const r = w.node?.params?.source_ref;
-        if (typeof r === "string") reads.add(r);
-        if (w.node?.kind !== "source" || nested.get(ref)?.node === w.node) continue;
+        if (typeof r === 'string') reads.add(r);
+        if (w.node?.kind !== 'source' || nested.get(ref)?.node === w.node) continue;
         const old = was?.nested.get(ref);
         const params = w.node.params ?? {};
-        const node = { kind: "source", ref, params };
-        const index1: IndexedNode = { node, ref, kind: "source", params, parent: w.source, path: "" };
+        const node = { kind: 'source', ref, params };
+        const index1: IndexedNode = { node, ref, kind: 'source', params, parent: w.source, path: '' };
         const x: Nested =
           old?.node === w.node ? old : { source: w.source, node: w.node, index: index1, result: undefined };
         nested.set(ref, x);
@@ -554,7 +554,7 @@ const streamAssembly: NodeKind<Assembly> = {
           loadStreamNode(x.source, x.node, known, stage, rc.loaders, doc).then((r) => {
             x.result = r?.source ?? null;
             if (x.result) results.set(ref, x.result);
-            more ||= x.result?.kind === "streamed" && (x.result.manifest.nodes?.length ?? 0) > 0;
+            more ||= x.result?.kind === 'streamed' && (x.result.manifest.nodes?.length ?? 0) > 0;
           }),
         );
       }
@@ -571,7 +571,7 @@ const streamAssembly: NodeKind<Assembly> = {
     for (const [ref, w] of want) {
       // An item's coordinate system and its `.map` only when something names the item (ST7): else its row's `map`.
       const own = (w as { own?: boolean }).own === true;
-      const item = (w.node?.kind as string) === ItemSystemKind ? ref : ref.endsWith(".map") ? ref.slice(0, -4) : ref;
+      const item = (w.node?.kind as string) === ItemSystemKind ? ref : ref.endsWith('.map') ? ref.slice(0, -4) : ref;
       if (own && !names.refs.has(item) && !names.sources.has(w.source)) continue;
       const old = was?.nodes.get(ref);
       if (old?.node === w.node) {
@@ -588,7 +588,7 @@ const streamAssembly: NodeKind<Assembly> = {
         },
       });
       const part =
-        w.node?.kind === "source" ? null : await loadStreamNode(w.source, w.node, known, ctx, rc.loaders, doc, own);
+        w.node?.kind === 'source' ? null : await loadStreamNode(w.source, w.node, known, ctx, rc.loaders, doc, own);
       nodes.set(ref, { source: w.source, node: w.node, part: part && asPart(part), issues: caught });
       if (part) add(upsert, part);
       if (part) changed.add(w.source);
@@ -597,14 +597,14 @@ const streamAssembly: NodeKind<Assembly> = {
     const upserted = new Set<string>();
     // Held: in the document's set, or a dynamic node read into this one (its `/unit` by its molecule's part).
     const live = (k: string) => nodes.get(k)?.part != null;
-    const held = (k: string) => base.set.byName(k, t) || live(k) || (k.endsWith("/unit") && live(k.slice(0, -5)));
+    const held = (k: string) => base.set.byName(k, t) || live(k) || (k.endsWith('/unit') && live(k.slice(0, -5)));
     for (const [ref, v] of base.deferred ?? []) {
       const part = asPart(v);
       const ends = (part.mappings ?? []).every((m) => held(m.from) && held(m.to));
-      const targets = (part.annotations ?? []).every((a) => typeof a.target !== "string" || held(a.target));
+      const targets = (part.annotations ?? []).every((a) => typeof a.target !== 'string' || held(a.target));
       if (!ends || !targets) continue;
       const old = was?.nodes.get(ref);
-      nodes.set(ref, { source: "", node: DEFERRED, part });
+      nodes.set(ref, { source: '', node: DEFERRED, part });
       if (old?.part !== part) {
         add(upsert, part);
         upserted.add(ref);
@@ -661,10 +661,10 @@ const streamAssembly: NodeKind<Assembly> = {
   },
 };
 
-const entry: NodeKind = { name: "#entry", stage: "load", inputs() {}, run: (rc) => rc.payload };
+const entry: NodeKind = { name: '#entry', stage: 'load', inputs() {}, run: (rc) => rc.payload };
 const wholeSet: NodeKind<Assembly> = {
-  name: "#set",
-  stage: "assemble",
+  name: '#set',
+  stage: 'assemble',
   inputs() {},
   run: (rc) => ({ set: rc.payload as SeqSet, parts: new Map() }),
 };
@@ -692,15 +692,15 @@ export interface SectionResult {
 }
 const setOf = (rc: RunContext) => rc.stage.set as SeqSet;
 const sectionOf = (doc: DocIndex, n: IndexedNode) => {
-  let p = doc.nodes.get(n.parent ?? "");
-  while (p && p.kind !== "section") p = doc.nodes.get(p.parent ?? "");
-  return p?.ref ?? "";
+  let p = doc.nodes.get(n.parent ?? '');
+  while (p && p.kind !== 'section') p = doc.nodes.get(p.parent ?? '');
+  return p?.ref ?? '';
 };
 
 const section: NodeKind<SectionResult> = {
-  name: "section",
-  stage: "section",
-  inputs: (_ref, _n, _doc, out) => out.after("#assemble.stream"),
+  name: 'section',
+  stage: 'section',
+  inputs: (_ref, _n, _doc, out) => out.after('#assemble.stream'),
   // Its view's params (layout), and what it reads of its subtree: blocks, focus, groups, tracks, and of layers only
   // the type, the data (a track's label) and a `rows` layer's params (lanes), so a set on a layer leaves it alone. Of
   // the set (ST1b-b): its data nodes' tables, and the annotations it names (labels, `positions`, a focus,
@@ -708,24 +708,24 @@ const section: NodeKind<SectionResult> = {
   key(rc, out) {
     const n = rc.node as IndexedNode;
     const set = setOf(rc);
-    out.push(rc.token(n.parent ?? ""), set?.lineage, set?.molecules, set?.units, set?.complexes);
+    out.push(rc.token(n.parent ?? ''), set?.lineage, set?.molecules, set?.units, set?.complexes);
     out.push(set?.alignments, set?.mappings);
     for (const r of [n.params.positions ?? []].flat() as (string | { data: string })[])
-      out.push(entity(set, typeof r === "string" ? r : r.data));
+      out.push(entity(set, typeof r === 'string' ? r : r.data));
     // Its `highlights`' data (LS1): a bookmark added gives the view a set that has it.
     for (const h of (n.params.highlights as { data: string }[] | undefined) ?? []) out.push(entity(set, h.data));
     const walk = (p: IndexedNode) => {
       for (const c of childrenOf(rc.doc, p)) {
-        if (c.kind === "annotation") continue;
-        if (c.kind !== "layer") {
+        if (c.kind === 'annotation') continue;
+        if (c.kind !== 'layer') {
           out.push(c.ref, rc.token(c.ref));
-          if (c.kind === "focus") out.push(entity(set, String(c.params.annotation)));
+          if (c.kind === 'focus') out.push(entity(set, String(c.params.annotation)));
           walk(c);
         } else {
-          out.push(c.ref, c.params.type, String(c.params.data), c.params.type === "rows" ? rc.token(c.ref) : 0);
+          out.push(c.ref, c.params.type, String(c.params.data), c.params.type === 'rows' ? rc.token(c.ref) : 0);
           for (const r of [c.params.data ?? []].flat()) out.push(entity(set, String(r)));
           // A `rows` layer's order and filter read key tables: a changed table reorders the lanes (KS1).
-          if (c.params.type === "rows") for (const r of keyTables(c.params)) out.push(entity(set, r));
+          if (c.params.type === 'rows') for (const r of keyTables(c.params)) out.push(entity(set, r));
         }
       }
     };
@@ -749,7 +749,7 @@ const section: NodeKind<SectionResult> = {
 };
 
 const dataOf = (n: IndexedNode, doc: DocIndex) => {
-  const own = childrenOf(doc, n).filter((c) => c.kind === "annotation");
+  const own = childrenOf(doc, n).filter((c) => c.kind === 'annotation');
   const refs = n.params.data != null ? [n.params.data].flat().map((r) => String(r)) : own.map((c) => c.ref);
   return refs;
 };
@@ -757,21 +757,21 @@ const resultOf = (rc: RunContext, n: IndexedNode) => rc.result(sectionOf(rc.doc,
 const axisOf = (rc: RunContext, n: IndexedNode) => resultOf(rc, n)?.axis ?? null;
 /** A theme's name and those nested in a `rules` theme's rules and default. */
 function themeNames(r: ThemeRef | null | undefined, out: string[]) {
-  if (!r || typeof r.theme !== "string") return;
+  if (!r || typeof r.theme !== 'string') return;
   out.push(r.theme);
-  if (r.theme !== "rules") return;
+  if (r.theme !== 'rules') return;
   const q = r.params as { rules?: { theme?: ThemeRef | null }[]; default?: ThemeRef | null } | undefined;
   for (const x of q?.rules ?? []) themeNames(x.theme, out);
   themeNames(q?.default, out);
 }
 
 const layer: NodeKind<ResolvedLayer | null> = {
-  name: "layer",
-  stage: "layer",
+  name: 'layer',
+  stage: 'layer',
   inputs(_ref, n, doc, out) {
     if (!n) return;
     out.after(sectionOf(doc, n));
-    out.after("#assemble.stream");
+    out.after('#assemble.stream');
     // A `domain_group`'s members' data too: the layer's themes read their union (seqspec:format#themes).
     for (const m of [n, ...groupMembers(doc, n).filter((x) => x !== n)])
       for (const r of dataOf(m, doc)) if (doc.nodes.has(head(r))) out.status(head(r));
@@ -798,18 +798,18 @@ const layer: NodeKind<ResolvedLayer | null> = {
     const svs = rc.stage.registries;
     // `letter_map` (an `emphasis`'s: its track's letters layer's), its entry, and the blocks' alphabets it is checked against.
     const map = letterMapParam(rc.doc, n);
-    if (map != null) out.push(map, typeof map === "string" ? svs.get("letterMaps", map) : null);
+    if (map != null) out.push(map, typeof map === 'string' ? svs.get('letterMaps', map) : null);
     for (const x of map != null ? (axis?.blocks ?? []) : [])
       out.push(set.alignments[x.alignment]?.alphabet ?? set.molecules[set.units.molecule[x.unit]]?.alphabet);
     const names: string[] = [];
     let type: unknown = n.params.type;
-    for (let k = 0; typeof type === "string" && k < 9; k++) {
-      const e = svs.get("layerTypes", type);
-      out.push(e, rc.registry.get("renderers", type));
+    for (let k = 0; typeof type === 'string' && k < 9; k++) {
+      const e = svs.get('layerTypes', type);
+      out.push(e, rc.registry.get('renderers', type));
       for (const c of e?.channels ?? []) themeNames((n.params[c.name] ?? c.default) as ThemeRef | null, names);
-      type = k === 0 && typeof n.params.fallback === "string" ? n.params.fallback : e?.fallback;
+      type = k === 0 && typeof n.params.fallback === 'string' ? n.params.fallback : e?.fallback;
     }
-    for (const name of names) out.push(svs.get("themes", name), rc.registry.get("themes", name));
+    for (const name of names) out.push(svs.get('themes', name), rc.registry.get('themes', name));
   },
   run(rc) {
     const n = rc.node as IndexedNode;
@@ -817,7 +817,7 @@ const layer: NodeKind<ResolvedLayer | null> = {
     const failed = dataOf(n, rc.doc).find((r) => rc.failed(head(r)));
     if (!axis || failed) {
       const message = `"${n.ref}" is omitted: its data "${failed}" is unavailable`;
-      if (failed) rc.stage.report({ code: "svs.render.omitted", severity: "warning", path: n.path, message });
+      if (failed) rc.stage.report({ code: 'svs.render.omitted', severity: 'warning', path: n.path, message });
       return null;
     }
     const r = resolveLayer(axis, n.ref, rc.doc, setOf(rc), rc.stage.registries, rc.supported(axis.layout));
@@ -836,7 +836,7 @@ function layerInput(rc: RunContext, l = rc.result((rc.node as IndexedNode).ref) 
 }
 /** A layer's prepared state by its renderer (null: none drawn). */
 function prepared(rc: RunContext, input: LayerInput | null): Prepared | null {
-  const renderer = input && rc.registry.get("renderers", input.set.strings.get(input.layer.type));
+  const renderer = input && rc.registry.get('renderers', input.set.strings.get(input.layer.type));
   if (!input || !renderer) return null;
   // What a prepare leaves out is reported on the layer's node.
   const path = (rc.node as IndexedNode).path;
@@ -846,21 +846,21 @@ function prepared(rc: RunContext, input: LayerInput | null): Prepared | null {
 /** A theme per channel of the layer's type, null where its reference is (themes.ts). */
 function themed(rc: RunContext, input: LayerInput | null, report: (i: Issue) => void): Themes {
   if (!input) return [];
-  const entry = rc.stage.registries.get("layerTypes", input.set.strings.get(input.layer.type));
+  const entry = rc.stage.registries.get('layerTypes', input.set.strings.get(input.layer.type));
   const tc = themeContext(input, rc.skin.dark, rc.registry, report);
   // A color scheme picked at runtime takes the color channel's place (seqspec:interaction#color-schemes-at-runtime).
   const scheme = rc.colorScheme(input.layer.ref);
   const range = rc.colorRange(input.layer.ref);
-  const drawn = rc.registry.get("renderers", input.set.strings.get(input.layer.type))?.sized;
+  const drawn = rc.registry.get('renderers', input.set.strings.get(input.layer.type))?.sized;
   const themes = input.layer.themes.map((given, i) => {
     const channel = entry?.channels[i];
-    const color = channel?.kind === "color";
+    const color = channel?.kind === 'color';
     const picked = scheme !== undefined && color ? pickedTheme(given, scheme) : given;
     const ref = range && color && picked ? withRange(picked, range) : picked;
     // A size channel its renderer does not draw: said once, drawn at the viewer's size.
-    if (ref && channel?.kind === "size" && !drawn?.includes(channel.name)) {
+    if (ref && channel?.kind === 'size' && !drawn?.includes(channel.name)) {
       report(
-        Issue.warning("svs.render.theme", input.layer.ref, `"${channel.name}" is drawn at the viewer's size here`),
+        Issue.warning('svs.render.theme', input.layer.ref, `"${channel.name}" is drawn at the viewer's size here`),
       );
       return null;
     }
@@ -880,12 +880,12 @@ interface Prepared {
 
 // The prepare and theme nodes read their section's result through the layer, which waits for it.
 const prepare: NodeKind<Prepared | null> = {
-  name: "#prepare",
-  stage: "prepare",
+  name: '#prepare',
+  stage: 'prepare',
   inputs: (_ref, n, _doc, out) => n && out.result(n.ref),
   key(rc, out) {
     const l = layerOf(rc);
-    const renderer = l && l.type >= 0 ? rc.registry.get("renderers", setOf(rc).strings.get(l.type)) : null;
+    const renderer = l && l.type >= 0 ? rc.registry.get('renderers', setOf(rc).strings.get(l.type)) : null;
     out.push(renderer, contentOf(rc, [renderer ?? undefined]));
   },
   run: (rc) => prepared(rc, layerInput(rc)),
@@ -901,24 +901,24 @@ const subjects = new WeakMap<Themes, SchemeSubject | null>();
 const providersOf = (rc: RunContext, l: ResolvedLayer | null) => {
   const names: string[] = [];
   for (const r of l?.themes ?? []) themeNames(r, names);
-  return names.map((name) => rc.registry.get("themes", name));
+  return names.map((name) => rc.registry.get('themes', name));
 };
 /** A theme per channel of the layer's type (null where its reference is), down its fallbacks (themes.ts). */
 const theme: NodeKind<Themes> = {
-  name: "#theme",
-  stage: "theme",
+  name: '#theme',
+  stage: 'theme',
   inputs: (_ref, n, _doc, out) => n && out.result(n.ref),
   key(rc, out) {
     const l = layerOf(rc);
     const providers = providersOf(rc, l);
-    const scheme = rc.colorScheme(rc.node?.ref ?? "");
+    const scheme = rc.colorScheme(rc.node?.ref ?? '');
     // A scheme picked at runtime is drawn by the `scheme` theme: its content counts as the document's themes' do.
-    if (scheme !== undefined) providers.push(rc.registry.get("themes", "scheme"));
+    if (scheme !== undefined) providers.push(rc.registry.get('themes', 'scheme'));
     // What its themes read in the set besides the layer's data: a `rules` column or profile (a computed node's answer).
     const set = setOf(rc);
     for (const r of refsOf(rc.node as IndexedNode, rc.doc, rc.registry.svs)) out.push(entity(set, r));
     out.push(
-      rc.colorRange(rc.node?.ref ?? ""),
+      rc.colorRange(rc.node?.ref ?? ''),
       rc.skin,
       contentOf(rc, providers),
       ...providers,
@@ -930,7 +930,7 @@ const theme: NodeKind<Themes> = {
 };
 
 const layersOf = (doc: DocIndex, s: IndexedNode): IndexedNode[] =>
-  childrenOf(doc, s).flatMap((c) => (c.kind === "layer" ? [c] : c.kind === "annotation" ? [] : layersOf(doc, c)));
+  childrenOf(doc, s).flatMap((c) => (c.kind === 'layer' ? [c] : c.kind === 'annotation' ? [] : layersOf(doc, c)));
 
 /** A template instance (seqspec:format#placement): its layers resolved with its node, prepared and themed; shared by
  * successive results while its node and what it reads are unchanged, disposed when the last lets go. */
@@ -954,7 +954,7 @@ interface TemplateResult {
   /** The instances shown, in order. */
   readonly shown: readonly Instance[];
 }
-const streamOf = (rc: RunContext) => rc.result("#assemble.stream") as Partial<StreamAssembly> | undefined;
+const streamOf = (rc: RunContext) => rc.result('#assemble.stream') as Partial<StreamAssembly> | undefined;
 const sameList = (a: readonly unknown[], b: readonly unknown[]) =>
   a.length === b.length && a.every((x, i) => x === b[i]);
 /** What every instance reads besides its node: the axis and content, the set's tables paths go through, registries,
@@ -975,12 +975,12 @@ function templateEnv(rc: RunContext, n: IndexedNode): unknown[] {
  * for another source's, so an arrival reruns the views its templates cover and nothing else.
  */
 const template: NodeKind<TemplateResult> = {
-  name: "#template",
-  stage: "layer",
+  name: '#template',
+  stage: 'layer',
   inputs(_ref, n, doc, out) {
     if (!n) return;
     out.after(sectionOf(doc, n));
-    out.after("#assemble.stream");
+    out.after('#assemble.stream');
   },
   key(rc, out) {
     const n = rc.node as IndexedNode;
@@ -1004,7 +1004,7 @@ const template: NodeKind<TemplateResult> = {
     const all = new Map<string, Instance>();
     const shown: Instance[] = [];
     if (!fe || !axis) return { env, all, shown };
-    const ls = childrenOf(rc.doc, n).filter((c) => c.kind === "layer");
+    const ls = childrenOf(rc.doc, n).filter((c) => c.kind === 'layer');
     // An instance's issues are its template layer's, reported once a run (when first read).
     const seen = new Set<string>();
     const report = (i: Issue) => {
@@ -1014,7 +1014,7 @@ const template: NodeKind<TemplateResult> = {
     };
     const supported = rc.supported(axis.layout);
     const say = (where: string, message: string) =>
-      report({ code: "svs.layer.data", severity: "error", path: `${n.path}/params/for_each/${where}`, message });
+      report({ code: 'svs.layer.data', severity: 'error', path: `${n.path}/params/for_each/${where}`, message });
     for (const node of templateNodes(n.ref, rc.doc, set, streamOf(rc)?.nested, rc.stage.registries, say)) {
       const e = entity(set, node);
       let x = reuse?.get(node);
@@ -1059,16 +1059,16 @@ const template: NodeKind<TemplateResult> = {
 };
 
 const view: NodeKind<ViewModel> = {
-  name: "#view",
-  stage: "view",
+  name: '#view',
+  stage: 'view',
   inputs(_ref, n, doc, out) {
     if (!n) return;
-    out.after("#assemble.stream");
-    for (const s of childrenOf(doc, n).filter((c) => c.kind === "section")) {
+    out.after('#assemble.stream');
+    for (const s of childrenOf(doc, n).filter((c) => c.kind === 'section')) {
       out.result(s.ref);
       const templates = new Set<string>();
       for (const l of layersOf(doc, s)) {
-        const track = doc.nodes.get(l.parent ?? "");
+        const track = doc.nodes.get(l.parent ?? '');
         if (track && forEachOf(track)) templates.add(`#template:${track.ref}`);
         else for (const r of [l.ref, `#prepare:${l.ref}`, `#theme:${l.ref}`]) out.result(r);
       }
@@ -1082,7 +1082,7 @@ const view: NodeKind<ViewModel> = {
     const layers: ResolvedLayer[][] = [];
     const prepared: PreparedLayer[] = [];
     for (const c of childrenOf(rc.doc, n)) {
-      const r = c.kind === "section" ? (rc.result(c.ref) as SectionResult | undefined) : undefined;
+      const r = c.kind === 'section' ? (rc.result(c.ref) as SectionResult | undefined) : undefined;
       if (!r) continue;
       // Each template's instances at its place.
       const instances = new Map<number, string[]>();
@@ -1109,7 +1109,7 @@ const view: NodeKind<ViewModel> = {
         const themes = x ? x.themes : ((rc.result(`#theme:${ref}`) as Themes | undefined) ?? []);
         const subject = subjects.get(themes) ?? null;
         prepared.push({
-          renderer: l.type >= 0 ? set.strings.get(l.type) : "",
+          renderer: l.type >= 0 ? set.strings.get(l.type) : '',
           state: p?.state ?? null,
           themes,
           subject,
@@ -1127,12 +1127,12 @@ const view: NodeKind<ViewModel> = {
 
 /** Every built-in node kind: one per document kind that loads or resolves, and per derived stage. */
 export const DefaultNodeKinds: readonly NodeKind[] = [
-  ...["source", "sequence", "ligand", "unit", "alignment", "mapping", "annotation"].map((k) => load(k)),
-  load("complex", "complex"),
+  ...['source', 'sequence', 'ligand', 'unit', 'alignment', 'mapping', 'annotation'].map((k) => load(k)),
+  load('complex', 'complex'),
   computed,
-  assembly("#assemble.base", null, [["complex"], ["sequence", "ligand", "unit", "alignment"]]),
-  assembly("#assemble.mapped", "#assemble.base", [["alignment", "annotation", "mapping"]], true),
-  assembly("#assemble", "#assemble.mapped", [["computed"]]),
+  assembly('#assemble.base', null, [['complex'], ['sequence', 'ligand', 'unit', 'alignment']]),
+  assembly('#assemble.mapped', '#assemble.base', [['alignment', 'annotation', 'mapping']], true),
+  assembly('#assemble', '#assemble.mapped', [['computed']]),
   streamAssembly,
   entry,
   wholeSet,

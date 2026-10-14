@@ -22,13 +22,13 @@ import {
   type RowIndex,
   type SeqIndex,
   type UnitId,
-} from "./common.js";
-import { type CoordinateMap, type CoordinateSystem, CoordinateSystemKind, Coords } from "./coordinates.js";
-import { GeneticCode } from "./genetic-code.js";
-import { NO_LABEL, Numbering, type PositionLabel } from "./numbering.js";
-import { KeyKind, type KeyTarget, type SeqSet } from "./set.js";
+} from './common.js';
+import { type CoordinateMap, type CoordinateSystem, CoordinateSystemKind, Coords } from './coordinates.js';
+import { GeneticCode } from './genetic-code.js';
+import { NO_LABEL, Numbering, type PositionLabel } from './numbering.js';
+import { KeyKind, type KeyTarget, type SeqSet } from './set.js';
 
-export type MappingMethod = "identity" | "segments" | "pairwise" | "by_numbering" | "codon";
+export type MappingMethod = 'identity' | 'segments' | 'pairwise' | 'by_numbering' | 'codon';
 export const MappingStatus = { exact: 0, conflict: 1, none: 2 } as const;
 
 export interface Mapping {
@@ -64,19 +64,19 @@ export interface CodonInfo {
 
 /** Endpoints by key; a row is `"<alignment>/<row>"`. `align` is the compiler's: it passes `pairwise`. */
 export type MappingInput = { key: string; from: string; to: string; provenance?: ProvenanceInput; custom?: object } & (
-  | { method: "identity"; fromRange?: [number, number] }
-  | { method: "segments"; segments: [number, number, number | null][] }
-  | { method: "pairwise"; cigar: string }
-  | { method: "by_numbering"; numbering: string; toNumbering?: string }
+  | { method: 'identity'; fromRange?: [number, number] }
+  | { method: 'segments'; segments: [number, number, number | null][] }
+  | { method: 'pairwise'; cigar: string }
+  | { method: 'by_numbering'; numbering: string; toNumbering?: string }
   | CodonInput
 );
 /** A protein (`from`) and the DNA or RNA coding it (`to`): `cds` ranges in transcript order, or one from `start`. */
 export type CodonInput = {
-  method: "codon";
+  method: 'codon';
   cds?: [number, number][];
   start?: number;
   fromRange?: [number, number];
-  strand?: "+" | "-";
+  strand?: '+' | '-';
   geneticCode?: number;
 };
 
@@ -162,11 +162,11 @@ const MAX_STEPS = 4;
 /** Shortest paths compared for ambiguity, at most. */
 const MAX_PATHS = 16;
 const DEFAULT_METHOD = {
-  identity: "identity",
-  segments: "curated",
-  pairwise: "alignment",
-  by_numbering: "numbering",
-  codon: "translation",
+  identity: 'identity',
+  segments: 'curated',
+  pairwise: 'alignment',
+  by_numbering: 'numbering',
+  codon: 'translation',
 };
 /** By KeyKind (molecule, unit, alignment, row; set.ts's, written out: the modules import each other). */
 const SPACE_OF_KEY = [
@@ -220,7 +220,7 @@ function lettersOf(set: SeqSet, s: CoordinateSystem): { code: Uint8Array; elemen
     const m = moleculeOf(set, s);
     return { code: m?.code ?? new Uint8Array(), element: m?.element ?? null };
   }
-  const rows = (set.alignments[s.id] as NonNullable<SeqSet["alignments"][number]>).rows;
+  const rows = (set.alignments[s.id] as NonNullable<SeqSet['alignments'][number]>).rows;
   const slot = rows.slotOf(s.row as RowIndex);
   return { code: rows.residues.subarray(rows.residueStart[slot], rows.residueStart[slot + 1]), element: null };
 }
@@ -344,18 +344,18 @@ function codons(
   const alphabetOf = (s: CoordinateSystem) =>
     s.kind === CoordinateSystemKind.row ? set.alignments[s.id]?.alphabet : moleculeOf(set, s)?.alphabet;
   const [fa, ta] = [alphabetOf(from), alphabetOf(to)];
-  if (fa !== "protein" || (ta !== "dna" && ta !== "rna")) {
+  if (fa !== 'protein' || (ta !== 'dna' && ta !== 'rna')) {
     return fail(
-      "model.mapping.codon",
-      "",
+      'model.mapping.codon',
+      '',
       `"${input.from}" must be a protein and "${input.to}" DNA or RNA, not ${fa} and ${ta}.`,
     );
   }
-  const [strand, gc] = [input.strand === "-" ? -1 : 1, input.geneticCode ?? 1];
-  if (!GeneticCode.has(gc)) return fail("model.mapping.codon", "/geneticCode", `NCBI defines no genetic code ${gc}.`);
+  const [strand, gc] = [input.strand === '-' ? -1 : 1, input.geneticCode ?? 1];
+  if (!GeneticCode.has(gc)) return fail('model.mapping.codon', '/geneticCode', `NCBI defines no genetic code ${gc}.`);
   const [r0, r1] = input.fromRange ?? [0, na];
   if (!(int(r0) && int(r1) && r0 >= 0 && r0 < r1 && r1 <= na)) {
-    return fail("model.mapping.range", "/fromRange", `[${r0}, ${r1}) is not within "${input.from}" (${na} residues).`);
+    return fail('model.mapping.range', '/fromRange', `[${r0}, ${r1}) is not within "${input.from}" (${na} residues).`);
   }
   const [start, cyclic] = [input.start ?? 0, isCyclic(set, to)];
   // On a cyclic `to` a CDS crosses the origin once at most: as two ranges, the second from the origin.
@@ -369,18 +369,18 @@ function codons(
   let total = 0;
   for (let k = 0; k < cds.length; k++) {
     const [s, t] = cds[k];
-    const at = input.cds ? `/cds/${k}` : "/start";
+    const at = input.cds ? `/cds/${k}` : '/start';
     if (!(int(s) && int(t) && s >= 0 && s < t && t <= nb)) {
-      return fail("model.mapping.range", at, `[${s}, ${t}) is not within "${input.to}" (${nb} positions).`);
+      return fail('model.mapping.range', at, `[${s}, ${t}) is not within "${input.to}" (${nb} positions).`);
     }
     const back = k > 0 && (strand > 0 ? s < cds[k - 1][1] : t > cds[k - 1][0]);
     if (back && !(cyclic && laps++ === 0 && (strand > 0 ? t <= cds[0][0] : s >= cds[0][1]))) {
-      const order = strand > 0 ? "ascending" : "descending (strand -)";
-      return fail("model.mapping.codon", at, `range ${k} overlaps range ${k - 1} or is out of ${order} order.`);
+      const order = strand > 0 ? 'ascending' : 'descending (strand -)';
+      return fail('model.mapping.codon', at, `range ${k} overlaps range ${k - 1} or is out of ${order} order.`);
     }
     total += t - s;
   }
-  if (total % 3) return fail("model.mapping.codon", "/cds", `the CDS has ${total} nucleotides, not a multiple of 3.`);
+  if (total % 3) return fail('model.mapping.codon', '/cds', `the CDS has ${total} nucleotides, not a multiple of 3.`);
   const paired = Math.min(total / 3, r1 - r0);
   // Codons past the residues (a stop codon) pair with nothing: the support ends at the last paired residue.
   let q = 3 * r0;
@@ -416,8 +416,8 @@ function build(set: SeqSet, input: MappingInput, id: number, issues: Issue[], pa
   };
   const ends = endsOf(set, input);
   if (!ends) {
-    const what = "a sequence, a ligand, a unit or a held alignment row";
-    return err("model.mapping.endpoint", "", `"${input.from}" and "${input.to}" must each name ${what}.`);
+    const what = 'a sequence, a ligand, a unit or a held alignment row';
+    return err('model.mapping.endpoint', '', `"${input.from}" and "${input.to}" must each name ${what}.`);
   }
   const [from, to] = ends;
   const na = systemLength(set, from);
@@ -426,13 +426,13 @@ function build(set: SeqSet, input: MappingInput, id: number, issues: Issue[], pa
   const quads: number[] = [];
   const int = Number.isInteger;
   const sides = `both sides (${na} and ${nb} positions)`;
-  if (input.method === "identity") {
+  if (input.method === 'identity') {
     const [s, t] = input.fromRange ?? [0, Math.min(na, nb)];
     if (!(int(s) && int(t) && s >= 0 && s < t && t <= Math.min(na, nb))) {
-      return err("model.mapping.range", "/fromRange", `[${s}, ${t}) is not within ${sides}.`);
+      return err('model.mapping.range', '/fromRange', `[${s}, ${t}) is not within ${sides}.`);
     }
     quads.push(s, t - s, s, 1);
-  } else if (input.method === "segments") {
+  } else if (input.method === 'segments') {
     const [fc, tc] = [isCyclic(set, from), isCyclic(set, to)];
     /** Per quad, its input segment: one across a cyclic origin is split there. */
     const src: number[] = [];
@@ -441,7 +441,7 @@ function build(set: SeqSet, input: MappingInput, id: number, issues: Issue[], pa
       const n = len ?? Math.min(na - fs, nb - ts);
       const fits = (x: number, c: boolean, max: number) => x >= 0 && x < max && n <= (c ? max : max - x);
       if (!(int(fs) && int(ts) && int(n) && n > 0 && fits(fs, fc, na) && fits(ts, tc, nb))) {
-        return err("model.mapping.range", `/segments/${k}`, `segment ${k} is not within ${sides}.`);
+        return err('model.mapping.range', `/segments/${k}`, `segment ${k} is not within ${sides}.`);
       }
       for (let [a, b, r] = [fs, ts, n]; r > 0; ) {
         const l = Math.min(r, na - a, nb - b);
@@ -456,38 +456,38 @@ function build(set: SeqSet, input: MappingInput, id: number, issues: Issue[], pa
       const [p, k] = [order[i - 1], order[i]];
       if (quads[4 * k] < quads[4 * p] + quads[4 * p + 1]) {
         const later = Math.max(src[p], src[k]);
-        return err("model.mapping.range", `/segments/${later}`, `segment ${later} overlaps an earlier one.`);
+        return err('model.mapping.range', `/segments/${later}`, `segment ${later} overlaps an earlier one.`);
       }
     }
-  } else if (input.method === "pairwise") {
+  } else if (input.method === 'pairwise') {
     if (!/^([0-9]*[MID=X])*$/.test(input.cigar)) {
-      return err("model.mapping.cigar", "/cigar", "a CIGAR is counted operations M, I, D, = and X (`3M1I2M`).");
+      return err('model.mapping.cigar', '/cigar', 'a CIGAR is counted operations M, I, D, = and X (`3M1I2M`).');
     }
     let i = 0;
     let j = 0;
     for (const [, count, op] of input.cigar.matchAll(/([0-9]*)([MID=X])/g)) {
       const n = count ? Number(count) : 1;
-      if (op !== "I" && op !== "D") quads.push(i, Math.min(n, na - i, nb - j), j, 1);
-      if (op !== "D") i += n;
-      if (op !== "I") j += n;
+      if (op !== 'I' && op !== 'D') quads.push(i, Math.min(n, na - i, nb - j), j, 1);
+      if (op !== 'D') i += n;
+      if (op !== 'I') j += n;
     }
     if (i !== na || j !== nb) {
-      return err("model.mapping.cigar", "/cigar", `it covers ${i} and ${j} positions, not ${na} and ${nb}.`);
+      return err('model.mapping.cigar', '/cigar', `it covers ${i} and ${j} positions, not ${na} and ${nb}.`);
     }
-  } else if (input.method === "by_numbering") {
+  } else if (input.method === 'by_numbering') {
     const toName = input.toNumbering ?? input.numbering;
     const nf = numberingOf(set, from, set.strings.find(input.numbering));
     const nt = numberingOf(set, to, set.strings.find(toName));
     if (!nf || !nt) {
       const m = `"${input.from}" has no numbering "${input.numbering}" or "${input.to}" none "${toName}".`;
-      return err("model.mapping.numbering", "/numbering", m);
+      return err('model.mapping.numbering', '/numbering', m);
     }
     // Pairs of equal labels, run-length encoded; a to position takes the first from position that labels it.
     const used = new Uint8Array(nb);
     for (let i = 0; i < na; i++) {
       if (!Numbering.labelOf(nf, i as SeqIndex, label)) continue;
       let j = -1;
-      if (nt.method === "names") j = label.name >= 0 ? Numbering.indexOfName(nt, label.name) : -1;
+      if (nt.method === 'names') j = label.name >= 0 ? Numbering.indexOfName(nt, label.name) : -1;
       else if (label.num !== NO_LABEL) j = Numbering.indexOf(nt, label.num, label.suffix);
       if (j < 0 || used[j]) continue;
       used[j] = 1;
@@ -495,12 +495,12 @@ function build(set: SeqSet, input: MappingInput, id: number, issues: Issue[], pa
       if (k >= 0 && quads[k] + quads[k + 1] === i && quads[k + 2] + quads[k + 1] === j) quads[k + 1]++;
       else quads.push(i, 1, j, 1);
     }
-  } else if (input.method !== "codon") {
-    return err("model.mapping.method", "/method", `unknown method "${(input as { method: string }).method}".`);
+  } else if (input.method !== 'codon') {
+    return err('model.mapping.method', '/method', `unknown method "${(input as { method: string }).method}".`);
   }
 
   // Statuses from both sides' letters, or elements when both are ligands; a codon's by translation.
-  const coded = input.method === "codon" ? codons(set, input, from, to, quads, err) : undefined;
+  const coded = input.method === 'codon' ? codons(set, input, from, to, quads, err) : undefined;
   if (coded === null) return null;
   const map = Coords.create(from, to, coded ? 3 : 1, quads);
   const { forward, spans } = arraysOf(map, na, true);
@@ -518,7 +518,7 @@ function build(set: SeqSet, input: MappingInput, id: number, issues: Issue[], pa
     status[i] = same ? MappingStatus.exact : MappingStatus.conflict;
   }
   if (!map.count) {
-    issues.push(Issue.warning("model.mapping.empty", path, `Mapping "${input.key}" pairs nothing.`));
+    issues.push(Issue.warning('model.mapping.empty', path, `Mapping "${input.key}" pairs nothing.`));
   }
 
   const given = input.provenance ? Provenance.create(input.provenance, set.strings) : null;

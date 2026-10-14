@@ -13,9 +13,9 @@
 // at the edges; lookups and range walks read the arrays and allocate nothing (the callbacks take a context, as Mol*'s
 // iterators do).
 
-import type { Alignment } from "./alignment.js";
-import type { RowIndex, UnitId } from "./common.js";
-import type { SeqSet } from "./set.js";
+import type { Alignment } from './alignment.js';
+import type { RowIndex, UnitId } from './common.js';
+import type { SeqSet } from './set.js';
 
 export const CoordinateSystemKind = {
   molecule: 0,
@@ -137,7 +137,7 @@ function identity(system: CoordinateSystem, [start, stop]: readonly [number, num
 
 /** The same relation read to → from (span 1 only: a span map keeps its protein side as `from`). Edges. */
 function invert(m: CoordinateMap): CoordinateMap {
-  if (m.span !== 1) throw new Error("Coords.invert: a span map keeps its protein side as `from`.");
+  if (m.span !== 1) throw new Error('Coords.invert: a span map keeps its protein side as `from`.');
   const quads: number[] = [];
   for (let k = 0; k < m.count; k++) quads.push(m.toLo[k], m.length[k], m.at[k], m.dir[k]);
   return create(m.to, m.from, 1, quads);
@@ -153,12 +153,12 @@ function compose(
   to: CoordinateSystem,
   [lo, hi]: readonly [number, number],
 ): CoordinateMap {
-  if (a.span > 1 && b.span > 1) throw new Error("Coords.compose: a path holds at most one codon step.");
+  if (a.span > 1 && b.span > 1) throw new Error('Coords.compose: a path holds at most one codon step.');
   const x = b.span > a.span ? b.span : 1;
   const quads: number[] = [];
   for (let i = 0; i < a.count; i++) {
     if (x > 1 && a.dir[i] < 0 && a.length[i] > 1)
-      throw new Error("Coords.compose: a strand - step before a codon step.");
+      throw new Error('Coords.compose: a strand - step before a codon step.');
     // Read per sub-position, one element keeps its phases in order whatever its direction.
     const [aAt, y0, y1, ad] = [x * a.at[i], x * a.toLo[i], x * (a.toLo[i] + a.length[i]), x > 1 ? 1 : a.dir[i]];
     for (let j = lastBelow(b.at, b.count, y1); j >= 0; j--) {

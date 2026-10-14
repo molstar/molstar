@@ -15,10 +15,10 @@
 // allocating an object each (`leaking`), primed and measured as the guards' are, are caught as not flat; the churn's
 // moves allocating two each by the per-change bound; dragPan's cycles allocating eight each by the per-cycle bound.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { case2, case3, case10, case13 } from "../../core/_test/format/cases.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { case2, case3, case10, case13 } from '../../core/_test/format/cases.js';
 import {
   Hit,
   HitRegion,
@@ -28,22 +28,22 @@ import {
   type LayerRenderer,
   Modifier,
   PointerType,
-} from "../src/index.js";
-import type { InputDispatcher } from "../src/input.js";
-import { hitTree, TREE_INSET, type TreeRows, treeOf, treeSpan } from "../src/tree.js";
-import { WindowKind } from "../src/windows.js";
-import { FAMILY_SECTION as F, familyWithTree, syntheticFamily } from "./families.js";
-import { controlCaught, describeScaling, HEAP_DEEP, heapGrowth, heapScaling, isFlat, leak, leaking } from "./heap.js";
-import { type Driven, driven } from "./input-fixtures.js";
-import { renderers } from "./layout-fixtures.js";
+} from '../src/index.js';
+import type { InputDispatcher } from '../src/input.js';
+import { hitTree, TREE_INSET, type TreeRows, treeOf, treeSpan } from '../src/tree.js';
+import { WindowKind } from '../src/windows.js';
+import { FAMILY_SECTION as F, familyWithTree, syntheticFamily } from './families.js';
+import { controlCaught, describeScaling, HEAP_DEEP, heapGrowth, heapScaling, isFlat, leak, leaking } from './heap.js';
+import { type Driven, driven } from './input-fixtures.js';
+import { renderers } from './layout-fixtures.js';
 
 const N = HEAP_DEEP ? 50_000 : 25_000;
-const S = "family.main";
+const S = 'family.main';
 let sink = 0;
 
 const rowsWithTree: LayerRenderer<TreeRows> = {
-  name: "rows",
-  geometries: ["linear"],
+  name: 'rows',
+  geometries: ['linear'],
   prepare: (input) => {
     const a = input.section.blocks[0]?.alignment ?? -1;
     const aln = input.set.alignments[a];
@@ -60,7 +60,7 @@ const rowsWithTree: LayerRenderer<TreeRows> = {
   },
   header: { inset: () => TREE_INSET, hit: (v, s, _p, out) => hitTree(v, s, out), span: treeSpan },
 };
-const withTree = () => [...renderers().filter((r) => r.name !== "rows"), rowsWithTree as LayerRenderer];
+const withTree = () => [...renderers().filter((r) => r.name !== 'rows'), rowsWithTree as LayerRenderer];
 
 /** A point on a section, and what is there. */
 interface Spot {
@@ -154,7 +154,7 @@ function spotsOf(t: Driven, section: string, tag: string): Spot[] {
       const key = h.region * 4 + (h.treeNode >= 0 ? 1 : 0) + (h.kind === HoverKind.item ? 2 : 0);
       if (h.region === HitRegion.none || found.has(key) || !robust(t, section, x, y)) continue;
       found.set(key, {
-        name: `${tag} region ${h.region}${h.treeNode >= 0 ? " node" : ""}${h.kind === HoverKind.item ? " item" : ""}`,
+        name: `${tag} region ${h.region}${h.treeNode >= 0 ? ' node' : ''}${h.kind === HoverKind.item ? ' item' : ''}`,
         t,
         section,
         x,
@@ -169,7 +169,7 @@ function spotsOf(t: Driven, section: string, tag: string): Spot[] {
 const PER_CHANGE = 1280;
 let computed = 0;
 const counting: LabelProvider = {
-  name: "lab:count",
+  name: 'lab:count',
   priority: 1,
   applies: (h) => h.kind !== HoverKind.none,
   label: () => void computed++,
@@ -188,7 +188,7 @@ async function churn(doc: SeqViewSpecDoc, section: string, track: string, row: n
     const h = t.ctx.hover.live.current;
     if (h.kind !== HoverKind.none && h.region <= HitRegion.header) changes++;
   });
-  const spot: Spot = { name: "", t, section, x: 0, y };
+  const spot: Spot = { name: '', t, section, x: 0, y };
   const moved = (k: number) => {
     spot.x = xs[(k >> 3) % xs.length];
     move(spot, (k & 7) * 0.02, 0);
@@ -212,7 +212,7 @@ const within = (s: Spot) => (i: number) => {
   sink = (sink + s.t.ctx.pointer.current.section) & 0xffff;
 };
 
-describe("moves and element changes", () => {
+describe('moves and element changes', () => {
   /** Every spot flat, one after another: a failure names its spot and the growth. */
   const flat = (spots: Spot[]) => {
     const failures: string[] = [];
@@ -223,48 +223,48 @@ describe("moves and element changes", () => {
     return failures;
   };
 
-  it("moves within an element over every region of a box section with a tree, labels on: flat, one label per element", async () => {
+  it('moves within an element over every region of a box section with a tree, labels on: flat, one label per element', async () => {
     const fam = await driven(familyWithTree(160, 20, { columns: true, sites: true }), {
       renderers: withTree(),
       size: { [F]: [1000, 500] },
     });
-    const spots = spotsOf(fam, F, "family");
-    const regions = new Set(spots.map((s) => s.name.replace(/^family /, "")));
-    for (const r of ["region 1", "region 3 node", "region 7", "region 8", "region 9"])
+    const spots = spotsOf(fam, F, 'family');
+    const regions = new Set(spots.map((s) => s.name.replace(/^family /, '')));
+    for (const r of ['region 1', 'region 3 node', 'region 7', 'region 8', 'region 9'])
       expect(regions.has(r), r).toBe(true);
     expect(flat(spots)).toEqual([]);
   }, 120_000);
 
   it("the same over case 3: a column entry, a data column, the navigator's body, edge and outside, and outside the surface", async () => {
     const c3 = await driven(case3(), { size: { [S]: [1000, 150] } });
-    const spots = spotsOf(c3, S, "case3");
+    const spots = spotsOf(c3, S, 'case3');
     const g = c3.frame(S, WindowKind.navigator);
     const nav = c3.layout(S);
     spots.push(
-      { name: "navigator body", t: c3, section: S, x: (g[8] + g[9]) / 2, y: nav.navHeight / 2 },
-      { name: "navigator edge", t: c3, section: S, x: g[8] + 0.7, y: nav.navHeight / 2 },
-      { name: "navigator outside", t: c3, section: S, x: g[8] - 60, y: nav.navHeight / 2 },
-      { name: "outside the surface", t: c3, section: S, x: -12.5, y: 40.5 },
+      { name: 'navigator body', t: c3, section: S, x: (g[8] + g[9]) / 2, y: nav.navHeight / 2 },
+      { name: 'navigator edge', t: c3, section: S, x: g[8] + 0.7, y: nav.navHeight / 2 },
+      { name: 'navigator outside', t: c3, section: S, x: g[8] - 60, y: nav.navHeight / 2 },
+      { name: 'outside the surface', t: c3, section: S, x: -12.5, y: 40.5 },
     );
     expect(flat(spots)).toEqual([]);
   }, 120_000);
 
-  it("and over the rulerRail", async () => {
-    const rail = await driven(case2(), { size: { "fv.main": [1000, 200] } });
-    rail.ctx.ui.setStyle("fv.main", "railed");
+  it('and over the rulerRail', async () => {
+    const rail = await driven(case2(), { size: { 'fv.main': [1000, 200] } });
+    rail.ctx.ui.setStyle('fv.main', 'railed');
     await rail.ctx.graph.update();
-    const spots = spotsOf(rail, "fv.main", "rail");
-    expect(spots.some((s) => s.name.includes("region 7"))).toBe(true);
+    const spots = spotsOf(rail, 'fv.main', 'rail');
+    expect(spots.some((s) => s.name.includes('region 7'))).toBe(true);
     expect(flat(spots)).toEqual([]);
   }, 120_000);
 
-  it("an element change every 8 moves over the same regions, labels off: flat", async () => {
+  it('an element change every 8 moves over the same regions, labels off: flat', async () => {
     const fam = await driven(familyWithTree(160, 20, { columns: true, sites: true }), {
       renderers: withTree(),
       size: { [F]: [1000, 500] },
       labels: false,
     });
-    const spots = spotsOf(fam, F, "family");
+    const spots = spotsOf(fam, F, 'family');
     expect(spots.length).toBeGreaterThan(5);
     let changes = 0;
     fam.ctx.hover.live.version.subscribe(() => changes++);
@@ -277,10 +277,10 @@ describe("moves and element changes", () => {
   }, 120_000);
 
   it("a points track's items (case 13), a wrapped section, split rows and matrix bands: flat", async () => {
-    const f = "features.main";
+    const f = 'features.main';
     const feat = await driven(case13(), { size: { [f]: [1000, 900] }, labels: false });
-    const NV = "features.natural-variants";
-    const y = feat.yOf(f, "features.binding-site") + 0.25;
+    const NV = 'features.natural-variants';
+    const y = feat.yOf(f, 'features.binding-site') + 0.25;
     const h = Hit.create();
     let item = 0;
     while (item < 393 && !(feat.ctx.layout.hitTest(f, feat.xOf(f, 0, item), y, h) && h.kind === HoverKind.item)) item++;
@@ -297,7 +297,7 @@ describe("moves and element changes", () => {
     feat.ctx.interaction.hover.subscribe((ev) => {
       if (ev.hit.split >= 0) seen++;
     });
-    const spot = (p: { x: number; y: number }): Spot => ({ name: "", t: feat, section: f, x: p.x, y: p.y });
+    const spot = (p: { x: number; y: number }): Spot => ({ name: '', t: feat, section: f, x: p.x, y: p.y });
     const list = [...items, ...rows].map(spot);
     const r1 = guard((i) => move(list[(i >> 3) % list.length], (i & 7) * 0.02, 0));
     expect(seen).toBeGreaterThan(0);
@@ -305,11 +305,11 @@ describe("moves and element changes", () => {
 
     // Wrapped, with inline labels.
     const b = createSeqViewSpec();
-    b.data.sequence({ ref: "a", value: "MKVLATGHEK".repeat(30) });
-    b.view({ ref: "v", label: "V", layout: "text" }).track({ ref: "v.letters" }).letters();
-    const w = await driven(b.getDocument(), { size: { "v.main": [400, 900] }, labels: false });
-    const wl = w.layout("v.main");
-    const ws = spotsOf(w, "v.main", "wrapped");
+    b.data.sequence({ ref: 'a', value: 'MKVLATGHEK'.repeat(30) });
+    b.view({ ref: 'v', label: 'V', layout: 'text' }).track({ ref: 'v.letters' }).letters();
+    const w = await driven(b.getDocument(), { size: { 'v.main': [400, 900] }, labels: false });
+    const wl = w.layout('v.main');
+    const ws = spotsOf(w, 'v.main', 'wrapped');
     expect(ws.length).toBeGreaterThan(0);
     expect(wl.lines.count).toBeGreaterThan(5);
     const r2 = guard((i) => move(ws[(i >> 3) % ws.length], (i & 7) * 0.03, 0));
@@ -320,7 +320,7 @@ describe("moves and element changes", () => {
       size: { [S]: [1000, 150] },
       labels: false,
       renderers: renderers().map((r) =>
-        r.name === "points"
+        r.name === 'points'
           ? {
               ...r,
               hit: (_v, _s, _p, out) => {
@@ -332,21 +332,21 @@ describe("moves and element changes", () => {
           : r,
       ),
     });
-    const by = bands.yOf(S, "family.flvr-arginine");
+    const by = bands.yOf(S, 'family.flvr-arginine');
     const bx = bands.xOf(S, 0, 4);
     let states = 0;
     bands.ctx.hover.live.version.subscribe(() => states++);
     const r3 = guard((i) =>
-      move({ name: "", t: bands, section: S, x: bx, y: by }, ((i & 7) - 4) * 0.7, ((i >> 3) & 7) - 4),
+      move({ name: '', t: bands, section: S, x: bx, y: by }, ((i & 7) - 4) * 0.7, ((i >> 3) & 7) - 4),
     );
     expect(states).toBeGreaterThan(N / 4);
     expect(isFlat(r3), describeScaling(r3, N)).toBe(true);
   }, 120_000);
 
-  it("label churn: compute runs once per hover change, never on a move; the bytes per change are bounded", async () => {
-    const position = (await churn(case10(), "chains.main", "chains.residues", -1, 20))();
-    const cell = (await churn(case3(), S, "family.members", 0, 20))();
-    const column = (await churn(case3(), S, "family.logo", -1, 20))();
+  it('label churn: compute runs once per hover change, never on a move; the bytes per change are bounded', async () => {
+    const position = (await churn(case10(), 'chains.main', 'chains.residues', -1, 20))();
+    const cell = (await churn(case3(), S, 'family.members', 0, 20))();
+    const column = (await churn(case3(), S, 'family.logo', -1, 20))();
     console.log(
       `label churn, bytes per hover change: position ${position.toFixed(0)}, aligned cell ${cell.toFixed(0)}, column ${column.toFixed(0)}`,
     );
@@ -408,7 +408,7 @@ function perCycle(cycle: (k: number) => void, warmed = () => {}): number {
   }, 2000);
 }
 
-describe("drags", () => {
+describe('drags', () => {
   /** Press, start the drag with a first move, check its owner, then the guard over `step`; released after. */
   async function dragFlat(
     name: string,
@@ -419,7 +419,7 @@ describe("drags", () => {
     wiggle: (i: number, p: Float64Array) => void,
     mods: { alt?: boolean; shift?: boolean } = {},
   ) {
-    t.pointer("down", section, press[0], press[1], mods);
+    t.pointer('down', section, press[0], press[1], mods);
     const to = dragged(t, section, mods);
     const p = new Float64Array(2);
     for (const i of [0, 1]) {
@@ -433,8 +433,8 @@ describe("drags", () => {
       wiggle(i + 2, p);
       to(p);
     });
-    t.pointer("up", section, press[0], press[1], mods);
-    expect([name, vp.live.version.value > before || owner === "select"]).toEqual([name, true]);
+    t.pointer('up', section, press[0], press[1], mods);
+    expect([name, vp.live.version.value > before || owner === 'select']).toEqual([name, true]);
     return isFlat(r) ? null : `${name}: ${describeScaling(r, N)}`;
   }
 
@@ -445,7 +445,7 @@ describe("drags", () => {
     const failures: (string | null)[] = [];
     vp.zoomTo(0, 10, 20);
     failures.push(
-      await dragFlat("dragPan", t, S, [500.5, y], "dragPan", (i, p) => {
+      await dragFlat('dragPan', t, S, [500.5, y], 'dragPan', (i, p) => {
         p[0] = 490.5 + (i & 15) * 1.25;
         p[1] = y + (i & 3) * 0.25;
       }),
@@ -455,11 +455,11 @@ describe("drags", () => {
     const cx = t.xOf(S, 0, 10);
     failures.push(
       await dragFlat(
-        "select",
+        'select',
         t,
         S,
         [cx, y],
-        "select",
+        'select',
         (i, p) => {
           p[0] = cx + (i % 40) * 3.7;
           p[1] = y + (i & 3) * 0.25;
@@ -473,14 +473,14 @@ describe("drags", () => {
     const ny = t.layout(S).navHeight / 2;
     const mid = (g[8] + g[9]) / 2;
     failures.push(
-      await dragFlat("navigator body", t, S, [mid, ny], "navigator", (i, p) => {
+      await dragFlat('navigator body', t, S, [mid, ny], 'navigator', (i, p) => {
         p[0] = mid + ((i & 31) - 16) * 0.9;
         p[1] = ny;
       }),
     );
     const left = t.frame(S, WindowKind.navigator)[8];
     failures.push(
-      await dragFlat("navigator edge", t, S, [left + 1, ny], "navigator", (i, p) => {
+      await dragFlat('navigator edge', t, S, [left + 1, ny], 'navigator', (i, p) => {
         p[0] = left + 1 - ((i & 31) - 8) * 0.7;
         p[1] = ny;
       }),
@@ -491,7 +491,7 @@ describe("drags", () => {
     const bx = t.layout(S).width - t.layout(S).vnavWidth - 4;
     const by = (b[10] + b[11]) / 2;
     failures.push(
-      await dragFlat("scrollbar thumb", t, S, [bx, by], "scrollbar", (i, p) => {
+      await dragFlat('scrollbar thumb', t, S, [bx, by], 'scrollbar', (i, p) => {
         p[0] = bx;
         p[1] = by + ((i & 31) - 16) * 0.3;
       }),
@@ -499,29 +499,29 @@ describe("drags", () => {
     expect(failures.filter(Boolean)).toEqual([]);
   }, 120_000);
 
-  it("dragPan in a scroll group of three: the others follow each move, flat", async () => {
+  it('dragPan in a scroll group of three: the others follow each move, flat', async () => {
     const b = createSeqViewSpec();
-    const a = b.data.sequence({ ref: "a", value: "MKVLATGHEKLV".repeat(40) });
-    const v = b.view({ ref: "g", label: "G" });
-    for (const ref of ["g.one", "g.two", "g.three"])
-      v.section({ ref, scroll_group: "s" }).block({ sequence: a }).track().letters();
+    const a = b.data.sequence({ ref: 'a', value: 'MKVLATGHEKLV'.repeat(40) });
+    const v = b.view({ ref: 'g', label: 'G' });
+    for (const ref of ['g.one', 'g.two', 'g.three'])
+      v.section({ ref, scroll_group: 's' }).block({ sequence: a }).track().letters();
     const t = await driven(b.getDocument(), { labels: false });
-    const [one, two, three] = ["g.one", "g.two", "g.three"].map((r) => t.vp(r));
+    const [one, two, three] = ['g.one', 'g.two', 'g.three'].map((r) => t.vp(r));
     one.zoomTo(0, 10, 30);
-    expect(t.ctx.scrollGroups.groups.value.get("s")).toHaveLength(3);
-    const y = t.layout("g.one").scrolledTop + 8.5;
-    t.pointer("down", "g.one", 500.5, y);
-    const to = dragged(t, "g.one");
+    expect(t.ctx.scrollGroups.groups.value.get('s')).toHaveLength(3);
+    const y = t.layout('g.one').scrolledTop + 8.5;
+    t.pointer('down', 'g.one', 500.5, y);
+    const to = dragged(t, 'g.one');
     const p = Float64Array.of(490.5, y);
     to(p);
     p[0] = 480.5;
     to(p);
-    expect(t.ctx.ui.drag.value?.owner).toBe("dragPan");
+    expect(t.ctx.ui.drag.value?.owner).toBe('dragPan');
     const r = guard((i) => {
       p[0] = 490.5 + (i & 15) * 1.25;
       to(p);
     });
-    t.pointer("up", "g.one", 500.5, y);
+    t.pointer('up', 'g.one', 500.5, y);
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
     expect([two.live.current.scrollX, three.live.current.scrollX]).toEqual([
       one.live.current.scrollX,
@@ -529,14 +529,14 @@ describe("drags", () => {
     ]);
   }, 120_000);
 
-  it("a full press, drag and release, repeated: bytes per cycle bounded, nothing retained", async () => {
+  it('a full press, drag and release, repeated: bytes per cycle bounded, nothing retained', async () => {
     const t = await driven(case3(), { size: { [S]: [1000, 150] }, labels: false });
     const cycle = cycling(t);
     const gc = (globalThis as { gc?: () => void }).gc as () => void;
     const bytes: Record<string, number> = {};
     for (const [name, alt] of [
-      ["dragPan", false],
-      ["select", true],
+      ['dragPan', false],
+      ['select', true],
     ] as const) {
       let base = 0;
       bytes[name] = perCycle(
@@ -555,7 +555,7 @@ describe("drags", () => {
     console.log(
       `press, drag and release: ${Object.entries(bytes)
         .map(([k, v]) => `${k} ${v.toFixed(0)} bytes`)
-        .join(", ")}`,
+        .join(', ')}`,
     );
     expect(bytes.dragPan).toBeLessThan(PER_PAN_CYCLE);
     expect(bytes.select).toBeLessThan(4096);
@@ -563,7 +563,7 @@ describe("drags", () => {
   }, 120_000);
 });
 
-describe("the wheel", () => {
+describe('the wheel', () => {
   /** The wheel input, written inline by each step: a double passed to a helper is boxed, in the test too. */
   const w = Inputs.wheel();
   const send = (t: Driven) => {
@@ -586,7 +586,7 @@ describe("the wheel", () => {
     w.y = y;
     const cases: [string, (i: number) => void][] = [
       [
-        "ctrl zoom",
+        'ctrl zoom',
         (i) => {
           w.x = 400.5 + (i & 7);
           w.deltaX = 0.5;
@@ -596,7 +596,7 @@ describe("the wheel", () => {
         },
       ],
       [
-        "horizontal pan",
+        'horizontal pan',
         (i) => {
           w.x = 400.5;
           w.deltaX = i & 1 ? -5.5 : 5.5;
@@ -606,7 +606,7 @@ describe("the wheel", () => {
         },
       ],
       [
-        "shift, deltaX only",
+        'shift, deltaX only',
         (i) => {
           w.x = 400.5;
           w.deltaX = i & 1 ? -5.5 : 5.5;
@@ -616,7 +616,7 @@ describe("the wheel", () => {
         },
       ],
       [
-        "shift, deltaY only",
+        'shift, deltaY only',
         (i) => {
           w.x = 400.5;
           w.deltaX = 0;
@@ -626,7 +626,7 @@ describe("the wheel", () => {
         },
       ],
       [
-        "rows scroll",
+        'rows scroll',
         (i) => {
           w.x = 400.5;
           w.deltaX = 0;
@@ -649,7 +649,7 @@ describe("the wheel", () => {
     const input = t.ctx.input as InputDispatcher;
     const x = t.xOf(F, 0, 4) + 0.25;
     const y = t.layout(F).scrolledTop + 2.5 * t.layout(F).rows.height;
-    t.pointer("move", F, x, y);
+    t.pointer('move', F, x, y);
     w.section = t.ctx.layout.sectionIndex(F);
     w.x = x;
     w.y = y;
@@ -666,22 +666,22 @@ describe("the wheel", () => {
     // The positive control: the hover followed the rows (a change about every other step), the view moved each step.
     const changes = t.ctx.hover.live.version.value - v0;
     expect(changes).toBeGreaterThan(WN / 4);
-    expect(t.ctx.hover.live.current.owner).toBe("pointer");
+    expect(t.ctx.hover.live.current.owner).toBe('pointer');
     expect(isFlat(r), describeScaling(r, WN)).toBe(true);
   }, 180_000);
 });
 
 // The controls last: cases in one file share V8's feedback. One per criterion: not flat, bytes per hover change, bytes
 // per cycle.
-describe("positive controls", () => {
-  it("the same moves allocating an object each are caught", async () => {
+describe('positive controls', () => {
+  it('the same moves allocating an object each are caught', async () => {
     const c3 = await driven(case3(), { size: { [S]: [1000, 150] } });
-    const [s] = spotsOf(c3, S, "case3");
+    const [s] = spotsOf(c3, S, 'case3');
     expect(controlCaught(() => guard(leaking(within(s))))).toBe(true);
   }, 120_000);
 
   it("the churn's moves allocating two objects each are caught by the per-change bound", async () => {
-    const measure = await churn(case10(), "chains.main", "chains.residues", -1, 20);
+    const measure = await churn(case10(), 'chains.main', 'chains.residues', -1, 20);
     expect(controlCaught(() => measure((step) => leaking(leaking(step))), PER_CHANGE)).toBe(true);
   }, 120_000);
 

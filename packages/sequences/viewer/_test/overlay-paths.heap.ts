@@ -14,7 +14,7 @@
 // share V8's feedback. The positive control runs the vertical overview's step through the same warm-up, settle and
 // measurement with `leaking` (the guard template).
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -27,7 +27,7 @@ import {
   leaking,
   type Scaling,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 /** The composer guards' run: warmed by count and by time, settled, then measured over `FRAME_N` and `4 · FRAME_N`. */
 function measure(frame: (i: number) => void): Scaling {
@@ -44,14 +44,14 @@ function guard(frame: (i: number) => void) {
 
 async function load() {
   vi.resetModules();
-  const draw = await import("../src/draw/index.js");
-  const viewer = await import("../src/index.js");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
-  const { driven } = await import("./input-fixtures.js");
-  const { lit, twoBlocks } = await import("./overlay-fixtures.js");
-  const { rowLoci } = await import("./overlay-docs.js");
-  const families = await import("./families.js");
-  const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
+  const draw = await import('../src/draw/index.js');
+  const viewer = await import('../src/index.js');
+  const { recording, COPY_BACK } = await import('./composer-fixtures.js');
+  const { driven } = await import('./input-fixtures.js');
+  const { lit, twoBlocks } = await import('./overlay-fixtures.js');
+  const { rowLoci } = await import('./overlay-docs.js');
+  const families = await import('./families.js');
+  const { createSeqViewSpec } = await import('@molstar/seq-core/builder');
   return { ...draw, ...viewer, recording, COPY_BACK, driven, lit, twoBlocks, rowLoci, ...families, createSeqViewSpec };
 }
 
@@ -91,12 +91,12 @@ function moves(
 async function overview() {
   const m = await load();
   const t = await m.lit(m.familyWithTree(400, 30), { width: 1000, height: 400, dpr: 2, section: m.FAMILY_SECTION });
-  t.ctx.ui.setStyle(t.section, "msa");
+  t.ctx.ui.setStyle(t.section, 'msa');
   await t.ctx.graph.update();
   const set = t.ctx.graph.assembled.value?.view?.set;
-  if (!set) throw new Error("no set");
-  t.ctx.selection.set(m.rowLoci(set, 3, 0, 5), "api");
-  t.ctx.highlight.set("host", m.rowLoci(set, 250, 0, 5));
+  if (!set) throw new Error('no set');
+  t.ctx.selection.set(m.rowLoci(set, 3, 0, 5), 'api');
+  t.ctx.highlight.set('host', m.rowLoci(set, 250, 0, 5));
   const marks = new m.ChannelMarks({
     graph: t.ctx.graph,
     hover: t.ctx.hover,
@@ -113,13 +113,13 @@ async function overview() {
   const colors = new Set(be.rectItems.color.subarray(0, be.rectItems.n));
   expect([colors.has(m.SkinToken.selectionBorder), colors.has(m.SkinToken.highlight)]).toEqual([true, true]);
   return (i: number) => {
-    t.vp?.panBy(0, (i & 1) === 0 ? 23 : -23, "pointer");
+    t.vp?.panBy(0, (i & 1) === 0 ? 23 : -23, 'pointer');
     be.reset();
     vnav.frame(be, m.Dirty.overlay);
   };
 }
 
-describe("overlay paths allocate nothing per frame after warm-up", () => {
+describe('overlay paths allocate nothing per frame after warm-up', () => {
   it("the vertical overview and scrollbar's overlay through a vertical scroll", async () => {
     guard(await overview());
   }, 240_000);
@@ -129,15 +129,15 @@ describe("overlay paths allocate nothing per frame after warm-up", () => {
     const t = await m.driven(m.twoBlocks(), { renderers: m.KernelRenderers as never, size: { v: [800, 300] } });
     const section = t.ctx.viewports.sections.value[0];
     const vp = t.ctx.viewports.get(section);
-    vp?.setView(30, 0, "api");
+    vp?.setView(30, 0, 'api');
     t.focus(section);
-    t.key(section, "ArrowRight");
+    t.key(section, 'ArrowRight');
     expect(t.ctx.ui.keyCursor.value).not.toBeNull();
     const c = new m.SectionComposer(t.ctx, section);
     const be = m.recording(m.COPY_BACK);
     c.frame(be, m.Dirty.all);
     guard((i) => {
-      vp?.panBy((i & 1) === 0 ? 3 : -3, 0, "pointer");
+      vp?.panBy((i & 1) === 0 ? 3 : -3, 0, 'pointer');
       be.reset();
       c.frame(be, m.Dirty.all);
     });
@@ -146,7 +146,7 @@ describe("overlay paths allocate nothing per frame after warm-up", () => {
   it("a tree clade's hover, on and off", async () => {
     const m = await load();
     const t = await m.lit(m.familyWithTree(40, 10), { width: 1000, height: 400, dpr: 2, section: m.FAMILY_SECTION });
-    t.ctx.ui.toggleClade("family", 2);
+    t.ctx.ui.toggleClade('family', 2);
     await t.ctx.graph.update();
     const l = t.layout(t.section);
     const top = l.scrolledTop + l.entryTop[l.rows.entry];
@@ -173,11 +173,11 @@ describe("overlay paths allocate nothing per frame after warm-up", () => {
       size: { [m.FAMILY_SECTION]: [1000, 400] },
     });
     const s = m.FAMILY_SECTION;
-    t.ctx.viewports.get(s)?.setView(12, 0, "api");
+    t.ctx.viewports.get(s)?.setView(12, 0, 'api');
     const l = t.layout(s);
     const y = (d: number) => l.scrolledTop + l.entryTop[l.rows.entry] + (d + 0.5) * l.rows.height;
-    t.pointer("down", s, t.xOf(s, 0, 5), y(2), { alt: true });
-    t.pointer("move", s, t.xOf(s, 0, 9), y(4), { alt: true });
+    t.pointer('down', s, t.xOf(s, 0, 5), y(2), { alt: true });
+    t.pointer('move', s, t.xOf(s, 0, 9), y(4), { alt: true });
     expect(t.ctx.selection.pending.current.active).toBe(true);
     const c = new m.SectionComposer(t.ctx, s);
     const be = m.recording(m.COPY_BACK);
@@ -195,31 +195,31 @@ describe("overlay paths allocate nothing per frame after warm-up", () => {
   it("a held drag's pending rectangle on a dot plot", async () => {
     const m = await load();
     const b = m.createSeqViewSpec();
-    const a = b.data.sequence({ ref: "a", value: "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRV" });
+    const a = b.data.sequence({ ref: 'a', value: 'MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRV' });
     const value = Array(40 * 40).fill(1);
     const grid = b.data.annotation({
-      ref: "g",
-      geometry: "grid",
-      value: { target: ["a"], b_target: ["a"], value: [value] },
+      ref: 'g',
+      geometry: 'grid',
+      value: { target: ['a'], b_target: ['a'], value: [value] },
     });
-    const sec = b.view({ ref: "v", label: "V" }).section({ ref: "v.s" });
+    const sec = b.view({ ref: 'v', label: 'V' }).section({ ref: 'v.s' });
     sec.block({ sequence: a });
-    sec.track({ ref: "t-plot", label: "Plot" }).dot_plot({ data: grid });
-    const t = await m.driven(b.getDocument(), { renderers: m.KernelRenderers as never, size: { "v.s": [800, 600] } });
-    const l = t.layout("v.s");
-    const v = t.ctx.layout.axis("v.s");
-    if (!v) throw new Error("no axis");
+    sec.track({ ref: 't-plot', label: 'Plot' }).dot_plot({ data: grid });
+    const t = await m.driven(b.getDocument(), { renderers: m.KernelRenderers as never, size: { 'v.s': [800, 600] } });
+    const l = t.layout('v.s');
+    const v = t.ctx.layout.axis('v.s');
+    if (!v) throw new Error('no axis');
     const e = l.entryCount - 1;
     const top = l.scrolledTop + l.entryTop[e] - v.scrollY;
-    const yOf = (k: number) => top + ((t.xOf("v.s", 0, k) - v.left) / (v.right - v.left)) * l.entryHeight[e];
-    t.pointer("down", "v.s", t.xOf("v.s", 0, 5), yOf(5));
-    t.pointer("move", "v.s", t.xOf("v.s", 0, 12), yOf(14));
+    const yOf = (k: number) => top + ((t.xOf('v.s', 0, k) - v.left) / (v.right - v.left)) * l.entryHeight[e];
+    t.pointer('down', 'v.s', t.xOf('v.s', 0, 5), yOf(5));
+    t.pointer('move', 'v.s', t.xOf('v.s', 0, 12), yOf(14));
     expect(t.ctx.selection.pending.current.active).toBe(true);
-    const c = new m.SectionComposer(t.ctx, "v.s");
+    const c = new m.SectionComposer(t.ctx, 'v.s');
     const be = m.recording(m.COPY_BACK);
     c.frame(be, m.Dirty.all);
-    const xs = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => t.xOf("v.s", 0, 12 + k));
-    const move = moves(m, t.ctx, "v.s", xs, [14, 15, 16, 17].map(yOf), 0);
+    const xs = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => t.xOf('v.s', 0, 12 + k));
+    const move = moves(m, t.ctx, 'v.s', xs, [14, 15, 16, 17].map(yOf), 0);
     guard((i) => {
       move(i);
       be.reset();

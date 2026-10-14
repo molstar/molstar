@@ -9,10 +9,10 @@
 // The query context (seqspec:seqql#the-context, seqspec:seqql#performance): the set, the inputs the host passes, the
 // limits and the abort signal, the issues a run reports, the slots a test reads, and the builders a run reuses.
 
-import { type QueryIssue, seqqlSeverity } from "@molstar/seq-core/query";
-import type { SeqSet } from "../set.js";
-import { type BuildGuard, SelectionBuilder } from "./kernels.js";
-import type { SeqSelection } from "./selection.js";
+import { type QueryIssue, seqqlSeverity } from '@molstar/seq-core/query';
+import type { SeqSet } from '../set.js';
+import { type BuildGuard, SelectionBuilder } from './kernels.js';
+import type { SeqSelection } from './selection.js';
 
 export interface QueryLimits {
   /** Positions visited by scans and tests. */
@@ -105,7 +105,7 @@ export class QueryContext implements BuildGuard {
   /** seqspec:seqql#empty-results: the missing values tests met, the last one's path; the first node that gave nothing from something, the
    * selection it had last (its input), what the runtimes said of theirs, and the printer of a node by its path. */
   missed = 0;
-  missedAt = "";
+  missedAt = '';
   nonEmpty = 0;
   emptyAt: string | null = null;
   emptyFrom: SeqSelection | null = null;
@@ -133,10 +133,10 @@ export class QueryContext implements BuildGuard {
   fail(code: string, path: string, message: string): never {
     throw new QueryAbort(issue(code, path, message));
   }
-  over(what: "runs" | "groups", n: number): never {
-    const limit = what === "runs" ? this.limits.runs : this.limits.groups;
-    const say = `this builds ${n.toLocaleString("en-US")} ${what} or more (limit ${limit.toLocaleString("en-US")})`;
-    this.fail(`seqql.limit.${what}`, "", `${say}; narrow first: intersect with a sequence or a range`);
+  over(what: 'runs' | 'groups', n: number): never {
+    const limit = what === 'runs' ? this.limits.runs : this.limits.groups;
+    const say = `this builds ${n.toLocaleString('en-US')} ${what} or more (limit ${limit.toLocaleString('en-US')})`;
+    this.fail(`seqql.limit.${what}`, '', `${say}; narrow first: intersect with a sequence or a range`);
   }
   /** A test met a missing value. */
   miss(path: string): void {
@@ -153,9 +153,9 @@ export class QueryContext implements BuildGuard {
     const m = this.missed - missed0;
     const miss =
       m > 0
-        ? `; ${this.say(this.missedAt)} was missing ${m === 1 ? "once" : `${m.toLocaleString("en-US")} times`}`
-        : "";
-    const none = n === 1 ? `the one ${what} did not pass` : `none of ${n.toLocaleString("en-US")} ${what}s passed`;
+        ? `; ${this.say(this.missedAt)} was missing ${m === 1 ? 'once' : `${m.toLocaleString('en-US')} times`}`
+        : '';
+    const none = n === 1 ? `the one ${what} did not pass` : `none of ${n.toLocaleString('en-US')} ${what}s passed`;
     if (n > 0) this.because(path, `${none} :where${miss}`);
   }
   /** Counts `n` positions a scan or test is about to visit, against the limit. */
@@ -163,15 +163,15 @@ export class QueryContext implements BuildGuard {
     this.positions += n;
     const max = this.limits.positions;
     if (this.positions > max) {
-      const say = `this visits ${this.positions.toLocaleString("en-US")} positions in ${what}`;
-      this.fail("seqql.limit.positions", path, `${say} (limit ${max.toLocaleString("en-US")}); narrow first`);
+      const say = `this visits ${this.positions.toLocaleString('en-US')} positions in ${what}`;
+      this.fail('seqql.limit.positions', path, `${say} (limit ${max.toLocaleString('en-US')}); narrow first`);
     }
   }
   /** The clock and the abort signal: every 1,024 runs and per system. */
   tick(): void {
-    if (this.options.signal?.aborted) this.fail("seqql.aborted", "", "the query was stopped");
+    if (this.options.signal?.aborted) this.fail('seqql.aborted', '', 'the query was stopped');
     const ms = this.limits.timeMs;
-    if (ms > 0 && Date.now() - this.started > ms) this.fail("seqql.limit.time", "", `the query took over ${ms} ms`);
+    if (ms > 0 && Date.now() - this.started > ms) this.fail('seqql.limit.time', '', `the query took over ${ms} ms`);
   }
 
   /** A builder from the pool every run shares (runs are synchronous); `finish` builds its selection and returns it. */

@@ -9,7 +9,7 @@
 // The controls the Seq* stories that show a viewer share: its navigator, the alignment rows' color theme and the UI
 // (React parts or the `<seq-viewer>` element). A story file spreads `viewerControls` into its meta.
 
-import { NAVIGATORS, type NavigatorChoice, ROWS_COLORS, type RowsColor, type UiChoice } from "./seqstar-viewer.js";
+import { NAVIGATORS, type NavigatorChoice, ROWS_COLORS, type RowsColor, type UiChoice } from './seqstar-viewer.js';
 
 export interface Args {
   /** The navigator, switchable in the Controls panel to compare them on each case. */
@@ -22,21 +22,21 @@ export interface Args {
 
 export const viewerControls = {
   // The stories' source as written, not the rendered JSX with whole documents as props, sent over the dev server's channel.
-  parameters: { layout: "fullscreen", docs: { source: { type: "code" } } },
-  args: { navigator: "rulerRail", rowsColor: "document", ui: "React" } satisfies Args,
+  parameters: { layout: 'fullscreen', docs: { source: { type: 'code' } } },
+  args: { navigator: 'rulerRail', rowsColor: 'document', ui: 'React' } satisfies Args,
   argTypes: {
     ui: {
-      control: "inline-radio",
-      options: ["React", "DOM"],
-      description: "The default UI: React parts (`@molstar/seq-viewer/react`) or the `<seq-viewer>` element (`/dom`)",
+      control: 'inline-radio',
+      options: ['React', 'DOM'],
+      description: 'The default UI: React parts (`@molstar/seq-viewer/react`) or the `<seq-viewer>` element (`/dom`)',
     },
     rowsColor: {
-      control: "select",
+      control: 'select',
       options: Object.keys(ROWS_COLORS),
       description: "The rows layers' color theme: the document's, or one of the themes set on every rows layer",
     },
     navigator: {
-      control: "inline-radio",
+      control: 'inline-radio',
       options: Object.keys(NAVIGATORS),
       description:
         "The linear presets' navigator: rulerRail (their default), rail, strip, band, band with labels, none",

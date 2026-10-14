@@ -12,8 +12,8 @@
 // control: the frames allocating garbage each, sized to the run (`leaking`), warmed and measured alike, are caught.
 // Each case loads the viewer afresh (`vi.resetModules`).
 
-import { expect, it, vi } from "vitest";
-import { controlCaught, heapScaling, isFlat, leaking } from "../../canvas/heap-browser.js";
+import { expect, it, vi } from 'vitest';
+import { controlCaught, heapScaling, isFlat, leaking } from '../../canvas/heap-browser.js';
 
 const N = 1_000;
 const WARM = 2_000;
@@ -41,10 +41,10 @@ interface Drawn {
   images: number;
 }
 
-for (const name of ["many", "compact", "mixed", "absent", "wide"] as const)
+for (const name of ['many', 'compact', 'mixed', 'absent', 'wide'] as const)
   it(`${name}: frames through Canvas2D are flat`, async () => {
     vi.resetModules();
-    const { fingerprintFrames } = await import("./fingerprint-fixtures.js");
+    const { fingerprintFrames } = await import('./fingerprint-fixtures.js');
     const t = await fingerprintFrames(name);
     try {
       const d = t.drawn();
@@ -56,10 +56,10 @@ for (const name of ["many", "compact", "mixed", "absent", "wide"] as const)
     }
   }, 120_000);
 
-it("the same frames allocating garbage each, sized to the run, are caught (positive control)", async () => {
+it('the same frames allocating garbage each, sized to the run, are caught (positive control)', async () => {
   vi.resetModules();
-  const { fingerprintFrames } = await import("./fingerprint-fixtures.js");
-  const t = await fingerprintFrames("many");
+  const { fingerprintFrames } = await import('./fingerprint-fixtures.js');
+  const t = await fingerprintFrames('many');
   try {
     expect(controlCaught(() => measure(leaking(t.step, N)))).toBe(true);
   } finally {

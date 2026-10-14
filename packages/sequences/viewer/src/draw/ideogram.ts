@@ -15,17 +15,17 @@
 // own, and every path is allocation-free once warm: module scratch, grown only. Its gestures are the `navigator`
 // behavior's, as any navigator's.
 
-import type { Axis } from "../axis.js";
-import { type NavigatorEntry, navigatorFrom } from "../navigators.js";
-import { PathBatch, PathVerb, RectBatch, SkinToken } from "./backend.js";
-import type { NavView } from "./nav.js";
+import type { Axis } from '../axis.js';
+import { type NavigatorEntry, navigatorFrom } from '../navigators.js';
+import { PathBatch, PathVerb, RectBatch, SkinToken } from './backend.js';
+import type { NavView } from './nav.js';
 
 /** A genome's bands by chromosome name: [start, stop) 0-based, the band's name and its Giemsa stain (cytoBandIdeo). */
 export type CytoBands = Readonly<Record<string, readonly (readonly [number, number, string, string])[]>>;
 
 // A band's look by stain code: 0 negative (the ground shows), 1 to 4 positive by quarters, 5 and 6 the centromere's
 // two halves (triangles), 7 variable, 8 stalk. Ink at an alpha; the centromere a fixed red.
-const STAINS = ["gneg", "gpos25", "gpos50", "gpos75", "gpos100", "acen", "gvar", "stalk"];
+const STAINS = ['gneg', 'gpos25', 'gpos50', 'gpos75', 'gpos100', 'acen', 'gvar', 'stalk'];
 const [ACEN_LEFT, ACEN_RIGHT] = [5, 6];
 const ALPHA = new Uint8Array([0, 56, 112, 176, 236, 0, 0, 80, 40]);
 const CENTROMERE = 0xb5483f;
@@ -40,10 +40,10 @@ interface Chromosome {
   readonly stain: Uint8Array;
 }
 /** A chromosome's name as the blocks name it: "chr17" and "17" are one. */
-const keyOf = (name: string) => name.replace(/^chr/i, "").toLowerCase();
+const keyOf = (name: string) => name.replace(/^chr/i, '').toLowerCase();
 /** The chromosome a block's name stands for: its last segment that names one ("hg38/chr17", "chr17/unit"). */
 function chromosomeOf(all: ReadonlyMap<string, Chromosome>, name: string): Chromosome | undefined {
-  const parts = name.split("/");
+  const parts = name.split('/');
   for (let k = parts.length - 1; k >= 0; k--) {
     const c = all.get(keyOf(parts[k]));
     if (c) return c;
@@ -163,7 +163,7 @@ function drawIdeogram(n: NavView, all: ReadonlyMap<string, Chromosome>, blocks: 
  * (`{ navigators: [ideogramNavigator(bands)] }`) and name it in a preset's `navigator`. A block is found by the last
  * segment of its name that names a chromosome, with or without "chr" (`hg38/chr17`, `17/unit`).
  */
-export function ideogramNavigator(bands: CytoBands, name = "ideogram"): NavigatorEntry {
+export function ideogramNavigator(bands: CytoBands, name = 'ideogram'): NavigatorEntry {
   const all = chromosomes(bands);
   const blocks = new Blocks();
   const base = navigatorFrom({ height: 24, thickness: 14, axis: [], ground: false, ticks: false }, name);

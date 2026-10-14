@@ -22,18 +22,18 @@ import {
   type Loci,
   OrderedSet,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import type { ViewModel } from "./graph.js";
-import type { SplitFeatures } from "./layout.js";
+} from '@molstar/seq-core/model';
+import type { ViewModel } from './graph.js';
+import type { SplitFeatures } from './layout.js';
 
 /** What a layer's header lights: its shown items, or the row band alone (which the hover draws for any header). */
-export type HeaderLight = "items" | "rowBand";
+export type HeaderLight = 'items' | 'rowBand';
 /** The `headerHover` behavior's params (seqspec:viewer#behaviors). */
 export interface HeaderHoverParams {
   /** A feature layer's (over item annotations: ranges, pairs): its shown items, or the row band alone. */
   readonly features: HeaderLight;
   /** A continuous layer's (letters, values dense or sparse, a matrix): the row band alone. */
-  readonly continuous: "rowBand";
+  readonly continuous: 'rowBand';
   /** Per layer type (its registry name), over the two above. */
   readonly types: Readonly<Record<string, HeaderLight>>;
   /** More shown items than this: the row band only, and nothing forwarded. */
@@ -42,8 +42,8 @@ export interface HeaderHoverParams {
   readonly forward: boolean;
 }
 export const DefaultHeaderHoverParams: HeaderHoverParams = {
-  features: "items",
-  continuous: "rowBand",
+  features: 'items',
+  continuous: 'rowBand',
   types: {},
   maxItems: 5_000,
   forward: true,
@@ -126,18 +126,18 @@ function seenFor(set: SeqSet) {
   }
   touchedN = 0;
 }
-const ITEMS = ["ranges", "pairs"];
+const ITEMS = ['ranges', 'pairs'];
 
 /** Whether layer `i` lights its items under the current params. */
 function lightsItems(model: ViewModel, i: number): boolean {
   const { resolved: rv, set } = model;
   const own = P.types[set.strings.get(rv.layers.type[i])];
-  if (own) return own === "items";
+  if (own) return own === 'items';
   for (let d = rv.layers.dataStart[i]; d < rv.layers.dataStart[i] + rv.layers.dataCount[i]; d++) {
     const ann = set.annotations[rv.data[d]];
     if (!ann || !ITEMS.includes(ann.geometry)) return false;
   }
-  return rv.layers.dataCount[i] > 0 && P.features === "items";
+  return rv.layers.dataCount[i] > 0 && P.features === 'items';
 }
 
 /** Whether row `r` of `ann` is placed by layer `i` (on a block, not left out of a row subset; on `lane` if ≥ 0). */
@@ -289,14 +289,14 @@ export function headerLoci(model: ViewModel | null | undefined, params: HeaderHo
     annotation: annotation as never,
     items: OrderedSet.ofSortedArray(Int32Array.from(new Set(items)).sort()),
   }));
-  return elements.length > 0 ? ({ kind: "item-loci", set: model.set as SeqSet, elements } as ItemLoci) : null;
+  return elements.length > 0 ? ({ kind: 'item-loci', set: model.set as SeqSet, elements } as ItemLoci) : null;
 }
 
 /** Any loci's size: its items (an item loci's, else 0) and the positions its runs cover. Edge-rate: allocates. */
 export function lociSize(loci: Loci | null): LociSize | null {
   if (!loci) return null;
   let items = 0;
-  if (loci.kind === "item-loci") for (const e of loci.elements) items += OrderedSet.size(e.items);
+  if (loci.kind === 'item-loci') for (const e of loci.elements) items += OrderedSet.size(e.items);
   const runs = Extents.create(16);
   Extents.addLoci(runs, loci);
   let length = 0;

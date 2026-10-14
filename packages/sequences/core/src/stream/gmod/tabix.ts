@@ -9,12 +9,12 @@
 // Tabix-indexed VCF: items (README, "Tabix and BGZF"). A BGZF file is gzip members that each hold at most 64 kb, so a
 // region is read by the index's chunks (virtual offsets: block file offset << 16 | offset in its inflated bytes).
 
-import type { StreamProvider } from "@molstar/seq-core/format";
-import { ITEM_LEVELS, type ItemsRead, itemsProvider } from "./items.js";
-import { inflate, once, type RangeReader, text, view } from "./ranges.js";
+import type { StreamProvider } from '@molstar/seq-core/format';
+import { ITEM_LEVELS, type ItemsRead, itemsProvider } from './items.js';
+import { inflate, once, type RangeReader, text, view } from './ranges.js';
 
 const MAX_BLOCK = 65536;
-const TYPES = ["SNV", "MNV", "insertion", "deletion", "structural"];
+const TYPES = ['SNV', 'MNV', 'insertion', 'deletion', 'structural'];
 const SHIFT = 65536;
 
 /** The size of the BGZF block at `at`: its `BC` extra subfield's BSIZE + 1; 0 where fewer than its header is held. */
@@ -23,7 +23,7 @@ function blockSize(bytes: Uint8Array, at: number): number {
   const dv = view(bytes);
   for (let x = at + 12, end = x + dv.getUint16(at + 10, true); x < end; x += 4 + dv.getUint16(x + 2, true))
     if (bytes[x] === 66 && bytes[x + 1] === 67) return dv.getUint16(x + 4, true) + 1;
-  throw new Error("not a BGZF file: a block has no BC field");
+  throw new Error('not a BGZF file: a block has no BC field');
 }
 /** What a whole index may inflate to (a large VCF's `.tbi` is tens of MB). */
 const MAX_INDEX = 256 << 20;
@@ -41,7 +41,7 @@ async function bgzf(bytes: Uint8Array, max = MAX_INDEX) {
     size > 0 && at + size <= bytes.length;
     at += size, size = blockSize(bytes, at)
   ) {
-    const data = await inflate(bytes.subarray(at, at + size), "gzip", MAX_BLOCK);
+    const data = await inflate(bytes.subarray(at, at + size), 'gzip', MAX_BLOCK);
     // A second line: the gzip stream checks the trailer itself (LA-34).
     if (data.length !== dv.getUint32(at + size - 4, true))
       throw new Error(`BGZF: the block at ${at} inflates to ${data.length} bytes, not its ISIZE`);
@@ -70,10 +70,10 @@ interface Ref {
 async function parseTbi(file: Uint8Array): Promise<Ref[]> {
   const b = joined((await bgzf(file)).map((x) => x.data));
   const dv = view(b);
-  if (dv.getUint32(0, true) !== 0x01494254) throw new Error("not a tabix index: no TBI\\1 magic");
-  if ((dv.getInt32(8, true) & 0xffff) !== 2) throw new Error("tabix: only VCF-format indexes are read");
+  if (dv.getUint32(0, true) !== 0x01494254) throw new Error('not a tabix index: no TBI\\1 magic');
+  if ((dv.getInt32(8, true) & 0xffff) !== 2) throw new Error('tabix: only VCF-format indexes are read');
   const names = text(b.subarray(36, 36 + dv.getInt32(32, true)))
-    .split("\0")
+    .split('\0')
     .filter(Boolean);
   const voff = (at: number) => dv.getUint32(at + 4, true) * 2 ** 32 + dv.getUint32(at, true);
   let at = 36 + dv.getInt32(32, true);
@@ -128,7 +128,7 @@ function measured(blocks: { size: number; data: Uint8Array }[]): number {
     const t = text(b.data);
     if (/(^|\n)#/.test(t)) continue;
     bytes += b.size;
-    for (let at = t.indexOf("\n"); at >= 0; at = t.indexOf("\n", at + 1)) records++;
+    for (let at = t.indexOf('\n'); at >= 0; at = t.indexOf('\n', at + 1)) records++;
   }
   return records >= MEASURE_MIN ? bytes / records : 0;
 }
@@ -192,10 +192,10 @@ export function vcfProvider(
   };
   const open = once(async (signal: AbortSignal) => {
     const refs = new Map(
-      (await parseTbi(await (typeof index === "function" ? index(signal) : index))).map((r) => [r.name, r]),
+      (await parseTbi(await (typeof index === 'function' ? index(signal) : index))).map((r) => [r.name, r]),
     );
     // Lengths are not in the index: they are the header's `##contig` lines, in the first blocks.
-    let header = "";
+    let header = '';
     let blocks: Awaited<ReturnType<typeof bgzf>> = [];
     for (let n = 16384; !/\n#CHROM[^\n]*\n/.test(header) && n <= 64 * MAX_BLOCK; n *= 4) {
       blocks = await bgzf(await data(0, n, signal));
@@ -241,7 +241,7 @@ export function vcfProvider(
         if (!ref) throw new Error(`VCF: no chromosome ${system} in the index`);
         const merged = chunksOf(ref, start, stop);
         const t: Record<string, (string | number)[]> = {};
-        for (const k of ["start", "stop", "id", "label", "ref", "alt", "category", "name", ...(o.info ?? [])])
+        for (const k of ['start', 'stop', 'id', 'label', 'ref', 'alt', 'category', 'name', ...(o.info ?? [])])
           t[k] = [];
         const [starts, stops]: number[][] = [[], []];
         for (const [from, to] of merged) {
@@ -254,17 +254,17 @@ export function vcfProvider(
           const bytes = joined(blocks);
           const lines = text(
             bytes.subarray(ubeg, last > 0 ? bytes.length - blocks[blocks.length - 1].length + uend : bytes.length),
-          ).split("\n");
+          ).split('\n');
           for (const line of lines) {
-            if (!line || line[0] === "#") continue;
-            const f = line.split("\t");
+            if (!line || line[0] === '#') continue;
+            const f = line.split('\t');
             const pos = Number(f[1]) - 1;
             if (f[0] !== system) continue;
             const end = Number(/(?:^|;)END=(\d+)/.exec(f[7])?.[1] ?? pos + f[3].length);
             if (end <= start || pos >= stop) continue;
-            for (const alt of f[4].split(",")) {
+            for (const alt of f[4].split(',')) {
               const type =
-                alt[0] === "<"
+                alt[0] === '<'
                   ? 4
                   : alt.length === f[3].length
                     ? alt.length === 1
@@ -277,14 +277,14 @@ export function vcfProvider(
                 start: pos,
                 stop: end,
                 id: `${pos + 1}:${f[3]}>${alt}`,
-                label: f[2] === "." ? `${f[3]}>${alt}` : f[2],
+                label: f[2] === '.' ? `${f[3]}>${alt}` : f[2],
                 ref: f[3],
                 alt,
                 category: TYPES[type],
-                name: f[2] === "." ? "" : f[2],
+                name: f[2] === '.' ? '' : f[2],
               };
               for (const k in row) t[k].push(row[k as keyof typeof row]);
-              for (const k of o.info ?? []) t[k].push(new RegExp(`(?:^|;)${k}=([^;]*)`).exec(f[7])?.[1] ?? "");
+              for (const k of o.info ?? []) t[k].push(new RegExp(`(?:^|;)${k}=([^;]*)`).exec(f[7])?.[1] ?? '');
               starts.push(pos);
               stops.push(end);
             }

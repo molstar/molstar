@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   alignmentDistances,
   type GuideTree,
@@ -15,7 +15,7 @@ import {
   neighborJoining,
   TreeSizeError,
   upgma,
-} from "../../src/algorithms/index.js";
+} from '../../src/algorithms/index.js';
 
 /** Row-major square matrix from a triangle written row by row (`[[b], [c, d]...]` as upper rows). */
 function square(n: number, upper: number[][]): Float64Array {
@@ -43,7 +43,7 @@ function path(t: GuideTree, a: number, b: number): number {
   const ua = up(t, a);
   const ub = new Map(up(t, b).map((x) => [x.node, x.at]));
   for (const x of ua) if (ub.has(x.node)) return x.at + (ub.get(x.node) as number);
-  throw new Error("no common ancestor");
+  throw new Error('no common ancestor');
 }
 /** Each non-root inner node's leaves, as sorted strings `0,1`, sorted. */
 function clades(t: GuideTree): string[] {
@@ -52,24 +52,24 @@ function clades(t: GuideTree): string[] {
     for (const { node } of up(t, v)) leaves.set(node, [...(leaves.get(node) ?? []), v]);
   const out: string[] = [];
   for (const [node, ls] of leaves)
-    if (node >= t.leaves && t.parent[node] >= 0) out.push(ls.sort((x, y) => x - y).join(","));
+    if (node >= t.leaves && t.parent[node] >= 0) out.push(ls.sort((x, y) => x - y).join(','));
   return out.sort();
 }
 /** The unrooted tree's splits: each inner clade as the side without leaf 0 (the root's place does not matter). */
 function splits(t: GuideTree): string[] {
   return clades(t)
-    .map((c) => c.split(",").map(Number))
+    .map((c) => c.split(',').map(Number))
     .map((ls) => (ls.includes(0) ? Array.from({ length: t.leaves }, (_, k) => k).filter((k) => !ls.includes(k)) : ls))
-    .map((ls) => ls.join(","))
+    .map((ls) => ls.join(','))
     .sort();
 }
 const total = (t: GuideTree) => t.branchLength.reduce((s, v) => s + (Number.isNaN(v) ? 0 : v), 0);
 const near = (a: number, b: number) => Math.abs(a - b) < 1e-9;
 
-describe("alignmentDistances", () => {
-  const enc = (rows: string[]) => Uint8Array.from(rows.join("").replace(/-/g, "\0"), (c) => c.charCodeAt(0));
-  it("is the share of mismatches over the columns where both rows have a letter", async () => {
-    const rows = ["ACDEF", "ACDEG", "A-DEG", "-----"];
+describe('alignmentDistances', () => {
+  const enc = (rows: string[]) => Uint8Array.from(rows.join('').replace(/-/g, '\0'), (c) => c.charCodeAt(0));
+  it('is the share of mismatches over the columns where both rows have a letter', async () => {
+    const rows = ['ACDEF', 'ACDEG', 'A-DEG', '-----'];
     const d = await alignmentDistances(enc(rows), 4, 5);
     expect(d[0 * 4 + 1]).toBeCloseTo(1 / 5);
     expect(d[1 * 4 + 0]).toBeCloseTo(1 / 5);
@@ -79,25 +79,25 @@ describe("alignmentDistances", () => {
     expect(d[0 * 4 + 3]).toBe(1); // nothing in common: the largest
     expect(d[3 * 4 + 3]).toBe(0);
   });
-  it("refuses more rows than the limit before allocating", async () => {
+  it('refuses more rows than the limit before allocating', async () => {
     await expect(alignmentDistances(new Uint8Array(0), MAX_TREE_ROWS + 1, 0)).rejects.toBeInstanceOf(TreeSizeError);
   });
 });
 
-describe("neighborJoining", () => {
+describe('neighborJoining', () => {
   // The Wikipedia example (Saitou and Nei's): additive, so the tree is the one with a:2 b:3 c:4 d:2 e:1 and the inner
   // edges 3 ((a, b) to c) and 2 (c to (d, e)); the root sits where the last three nodes join.
   const D = square(5, [[5, 9, 9, 8], [10, 10, 9], [8, 7], [3]]);
-  it("recovers an additive tree: its clades, leaf edges and every path length", async () => {
+  it('recovers an additive tree: its clades, leaf edges and every path length', async () => {
     const t = await neighborJoining(D, 5);
-    expect(splits(t)).toEqual(["2,3,4", "3,4"]); // (a, b) | (c, d, e) and (d, e) | (a, b, c)
+    expect(splits(t)).toEqual(['2,3,4', '3,4']); // (a, b) | (c, d, e) and (d, e) | (a, b, c)
     expect([0, 1, 2, 3, 4].map((v) => t.branchLength[v])).toEqual([2, 3, 4, 2, 1]);
     for (let i = 0; i < 5; i++) for (let j = i + 1; j < 5; j++) expect(near(path(t, i, j), D[i * 5 + j])).toBe(true);
     expect(near(total(t), 17)).toBe(true);
     expect(t.parent.filter((p) => p < 0)).toHaveLength(1);
     expect(Number.isNaN(t.branchLength[t.parent.indexOf(-1)])).toBe(true);
   });
-  it("does not change the matrix and is deterministic, ties by row order", async () => {
+  it('does not change the matrix and is deterministic, ties by row order', async () => {
     const copy = Float64Array.from(D);
     const a = await neighborJoining(D, 5);
     expect(D).toEqual(copy);
@@ -107,7 +107,7 @@ describe("neighborJoining", () => {
     expect(t.parent[0]).toBe(t.parent[1]); // the first pair in row order is joined first
     expect(t.parent[2]).not.toBe(t.parent[0]);
   });
-  it("recovers random additive trees", async () => {
+  it('recovers random additive trees', async () => {
     let seed = 7;
     const rnd = () => {
       seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff;
@@ -148,7 +148,7 @@ describe("neighborJoining", () => {
         for (let j = i + 1; j < rows; j++) expect(near(path(t, i, j), D2[i * rows + j])).toBe(true);
     }
   });
-  it("handles one, two and three rows", async () => {
+  it('handles one, two and three rows', async () => {
     expect((await neighborJoining(new Float64Array(1), 1)).parent).toEqual(Int32Array.of(-1));
     const two = await neighborJoining(square(2, [[3]]), 2);
     expect(Array.from(two.parent)).toEqual([2, 2, -1]);
@@ -157,14 +157,14 @@ describe("neighborJoining", () => {
     expect(Array.from(three.branchLength.slice(0, 3))).toEqual([1, 2, 3]);
     expect(three.parent.slice(0, 3)).toEqual(Int32Array.of(3, 3, 3));
   });
-  it("sets a negative branch length to 0", async () => {
+  it('sets a negative branch length to 0', async () => {
     // Not additive: d(a, b) is too long for the other distances.
     const t = await neighborJoining(square(4, [[10, 2, 2], [2, 2], [1]]), 4);
     expect(t.branchLength.every((v) => Number.isNaN(v) || v >= 0)).toBe(true);
   });
 });
 
-describe("midpointRoot", () => {
+describe('midpointRoot', () => {
   const D = square(5, [[5, 9, 9, 8], [10, 10, 9], [8, 7], [3]]);
   /** The farthest leaf below each of the root's two children, from the root. */
   function reach(t: GuideTree): number[] {
@@ -179,7 +179,7 @@ describe("midpointRoot", () => {
     }
     return far;
   }
-  it("puts a binary root at the middle of the longest path and keeps every distance", async () => {
+  it('puts a binary root at the middle of the longest path and keeps every distance', async () => {
     const t = await neighborJoining(D, 5);
     const r = midpointRoot(t);
     expect(r.leaves).toBe(5);
@@ -199,7 +199,7 @@ describe("midpointRoot", () => {
     const r = midpointRoot(await neighborJoining(big, 6));
     for (let i = 0; i < 6; i++) for (let j = i + 1; j < 6; j++) expect(near(path(r, i, j), big[i * 6 + j])).toBe(true);
   });
-  it("leaves a tree of identical rows as it is: no leaf gets children, no branch is NaN (CB-02)", async () => {
+  it('leaves a tree of identical rows as it is: no leaf gets children, no branch is NaN (CB-02)', async () => {
     const t = await neighborJoining(new Float64Array(16), 4);
     const r = midpointRoot(t);
     expect(r).toBe(t);
@@ -208,12 +208,12 @@ describe("midpointRoot", () => {
   });
 });
 
-describe("upgma", () => {
+describe('upgma', () => {
   // The Wikipedia example: ((a:8.5, b:8.5):2.5, e:11):5.5 and (c:14, d:14):2.5 under one root, at 16.5.
   const D = square(5, [[17, 21, 31, 23], [30, 34, 21], [28, 39], [43]]);
-  it("builds the ultrametric tree of the textbook example", async () => {
+  it('builds the ultrametric tree of the textbook example', async () => {
     const t = await upgma(D, 5);
-    expect(clades(t)).toEqual(["0,1", "0,1,4", "2,3"]);
+    expect(clades(t)).toEqual(['0,1', '0,1,4', '2,3']);
     expect([0, 1, 2, 3, 4].map((v) => t.branchLength[v])).toEqual([8.5, 8.5, 14, 14, 11]);
     const ab = t.parent[0];
     expect(t.branchLength[ab]).toBe(2.5);
@@ -222,7 +222,7 @@ describe("upgma", () => {
     for (let v = 0; v < 5; v++) expect(near(up(t, v).at(-1)?.at as number, 16.5)).toBe(true); // every leaf at one height
     expect(t.parent.filter((p) => p < 0)).toHaveLength(1);
   });
-  it("is deterministic, ties by row order, and handles one and two rows", async () => {
+  it('is deterministic, ties by row order, and handles one and two rows', async () => {
     const flat = square(4, [[1, 1, 1], [1, 1], [1]]);
     const t = await upgma(flat, 4);
     expect(t.parent[0]).toBe(t.parent[1]);
@@ -233,7 +233,7 @@ describe("upgma", () => {
   });
 });
 
-describe("abort and size", () => {
+describe('abort and size', () => {
   const big = (n: number) => {
     const d = new Float64Array(n * n);
     let seed = 1;
@@ -245,25 +245,25 @@ describe("abort and size", () => {
     return d;
   };
   it("rejects with the signal's reason, before starting or while running", async () => {
-    const pre = AbortSignal.abort(new Error("newer request"));
-    await expect(neighborJoining(big(8), 8, pre)).rejects.toThrow("newer request");
-    await expect(upgma(big(8), 8, pre)).rejects.toThrow("newer request");
-    await expect(alignmentDistances(new Uint8Array(8 * 8), 8, 8, pre)).rejects.toThrow("newer request");
+    const pre = AbortSignal.abort(new Error('newer request'));
+    await expect(neighborJoining(big(8), 8, pre)).rejects.toThrow('newer request');
+    await expect(upgma(big(8), 8, pre)).rejects.toThrow('newer request');
+    await expect(alignmentDistances(new Uint8Array(8 * 8), 8, 8, pre)).rejects.toThrow('newer request');
     for (const build of [neighborJoining, upgma]) {
       const c = new AbortController();
       const running = build(big(700), 700, c.signal);
-      setTimeout(() => c.abort(new Error("stop")), 1);
-      await expect(running).rejects.toThrow("stop");
+      setTimeout(() => c.abort(new Error('stop')), 1);
+      await expect(running).rejects.toThrow('stop');
     }
   });
-  it("lets other tasks run during a long build", async () => {
+  it('lets other tasks run during a long build', async () => {
     let ticks = 0;
     const timer = setInterval(() => ticks++, 1);
     await neighborJoining(big(500), 500);
     clearInterval(timer);
     expect(ticks).toBeGreaterThan(0);
   });
-  it("refuses too many rows", async () => {
+  it('refuses too many rows', async () => {
     await expect(neighborJoining(new Float64Array(0), MAX_TREE_ROWS + 1)).rejects.toBeInstanceOf(TreeSizeError);
     await expect(upgma(new Float64Array(0), MAX_TREE_ROWS + 1)).rejects.toBeInstanceOf(TreeSizeError);
   });

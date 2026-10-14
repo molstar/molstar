@@ -476,12 +476,12 @@ export default class BitArray {
   }
 
   toString() {
-    return "{" + this.toArray().join(",") + "}";
+    return '{' + this.toArray().join(',') + '}';
   }
 
   toSeleString() {
-    const sele = this.toArray().join(",");
-    return sele ? "@" + sele : "NONE";
+    const sele = this.toArray().join(',');
+    return sele ? '@' + sele : 'NONE';
   }
 
   /**

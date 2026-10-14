@@ -23,15 +23,15 @@ import {
   type QueryIssue,
   queryIssue,
   type SymbolDef,
-} from "@molstar/seq-core/query";
-import { F64, QueryAbort, QueryContext, type QueryOptions } from "./context.js";
-import { MODIFIER_RUNTIMES } from "./modifiers.js";
-import { ONTO_RUNTIMES } from "./onto.js";
-import { PARTNERS_RUNTIMES } from "./partners.js";
-import { PROPERTY_RUNTIMES } from "./properties.js";
-import { BASE_RUNTIMES, refQuery } from "./runtime.js";
-import { SCAN_RUNTIMES } from "./scans.js";
-import { SeqSelection } from "./selection.js";
+} from '@molstar/seq-core/query';
+import { F64, QueryAbort, QueryContext, type QueryOptions } from './context.js';
+import { MODIFIER_RUNTIMES } from './modifiers.js';
+import { ONTO_RUNTIMES } from './onto.js';
+import { PARTNERS_RUNTIMES } from './partners.js';
+import { PROPERTY_RUNTIMES } from './properties.js';
+import { BASE_RUNTIMES, refQuery } from './runtime.js';
+import { SCAN_RUNTIMES } from './scans.js';
+import { SeqSelection } from './selection.js';
 
 export type QueryFn<T> = (ctx: QueryContext) => T;
 
@@ -124,17 +124,17 @@ function compileNode(e: Expression, path: string, env: QueryEnv, query: boolean,
   if (!r) {
     const s = env.language.symbols.get(e.head);
     const message = `${s?.alias ?? e.head} cannot run here: this host has no runtime for ${e.head}`;
-    throw new QueryAbort(queryIssue("seqql.symbol.unavailable", message, { path, signature: s?.signature ?? null }));
+    throw new QueryAbort(queryIssue('seqql.symbol.unavailable', message, { path, signature: s?.signature ?? null }));
   }
   const c = contextOf(e, path, env);
   if (number && r.number) return r.number(c);
   const f = r.compile(c);
-  return query ? watched(f as QueryFn<SeqSelection>, path, r.symbol.kind === "generator" && !GIVEN.has(e.head)) : f;
+  return query ? watched(f as QueryFn<SeqSelection>, path, r.symbol.kind === 'generator' && !GIVEN.has(e.head)) : f;
 }
 
 /** How a runtime reads the call `e` at `path`: its arguments compiled by the kind it asks for. */
 function contextOf(e: Apply, path: string, env: QueryEnv): CompileContext {
-  const get = (key: string) => key.split("/").reduce<unknown>((x, k) => (x as Record<string, unknown>)?.[k], e.args);
+  const get = (key: string) => key.split('/').reduce<unknown>((x, k) => (x as Record<string, unknown>)?.[k], e.args);
   const at = (key: string) => `${path}/args/${key}`;
   const one = (key: string, q: boolean) => {
     const x = get(key) as Expression | undefined;
@@ -150,7 +150,7 @@ function contextOf(e: Apply, path: string, env: QueryEnv): CompileContext {
     queries: (key) => many(key, true) as QueryFn<SeqSelection>[],
     number: (key) => {
       const x = get(key);
-      if (typeof x === "number")
+      if (typeof x === 'number')
         return () => {
           F64[0] = x;
         };
@@ -170,7 +170,7 @@ function contextOf(e: Apply, path: string, env: QueryEnv): CompileContext {
 }
 
 /** Generators that give nothing on purpose, or what `each` gave. */
-const GIVEN = new Set(["seq.generator.empty", "seq.generator.current"]);
+const GIVEN = new Set(['seq.generator.empty', 'seq.generator.current']);
 /**
  * A selection node, watched for seqspec:seqql#empty-results: the first, in evaluation order, to give nothing from
  * something (a selection inside it that gave groups, or, for a generator, its data) is named if the whole query selects
@@ -193,8 +193,8 @@ function watched(f: QueryFn<SeqSelection>, path: string, source: boolean): Query
 
 /** The path of the call an issue's path is in: the call itself, or the call a written argument belongs to. */
 function callOf(expr: Expression, path: string): string {
-  let [x, at, call] = [expr as unknown, "", ""];
-  for (const k of path.split("/").slice(1)) {
+  let [x, at, call] = [expr as unknown, '', ''];
+  for (const k of path.split('/').slice(1)) {
     x = (x as Record<string, unknown> | undefined)?.[k];
     at += `/${k}`;
     if (isApply(x)) call = at;
@@ -208,19 +208,19 @@ function diagnose(ctx: QueryContext, out: SeqSelection, expr: Expression): void 
   if (ctx.issues.some((i) => callOf(expr, i.path) === at)) return;
   const why = ctx.why?.get(at);
   const from =
-    ctx.emptyFrom && !why ? ` from ${SeqSelection.summary(ctx.emptyFrom, { maxParts: 3, indices: true })}` : "";
-  ctx.warn("seqql.empty", at, `${ctx.say(at)} selected nothing${from}${why ? `: ${why}` : ""}`);
+    ctx.emptyFrom && !why ? ` from ${SeqSelection.summary(ctx.emptyFrom, { maxParts: 3, indices: true })}` : '';
+  ctx.warn('seqql.empty', at, `${ctx.say(at)} selected nothing${from}${why ? `: ${why}` : ''}`);
 }
 
 /**
  * Checks an expression (a bound one, or stored JSON), expands its macros and compiles it. With the binding's
  * `source`, every issue, the runtime's included, points into the text (at the call or the `sel` it came from).
  */
-export function compileQuery(expr: Expression, env: QueryEnv, source?: QueryBinding["source"]): CompiledQuery {
+export function compileQuery(expr: Expression, env: QueryEnv, source?: QueryBinding['source']): CompiledQuery {
   const place = (i: QueryIssue): QueryIssue => {
     if (i.at || !source) return i;
     let p = i.path;
-    while (p && !source.has(p)) p = p.slice(0, p.lastIndexOf("/"));
+    while (p && !source.has(p)) p = p.slice(0, p.lastIndexOf('/'));
     const at = source.get(p)?.at;
     return at ? { ...i, at: { line: at.line, column: at.column } } : i;
   };
@@ -232,19 +232,19 @@ export function compileQuery(expr: Expression, env: QueryEnv, source?: QueryBind
   const help = (i: QueryIssue): QueryIssue => {
     let x: unknown = checked.expr;
     let s = isApply(x) ? env.language.symbols.get(x.head) : undefined;
-    for (const k of i.path.split("/").slice(1)) {
+    for (const k of i.path.split('/').slice(1)) {
       x = (x as Record<string, unknown> | undefined)?.[k];
       if (isApply(x)) s = env.language.symbols.get(x.head) ?? s;
     }
     const hint = s?.hints.find((h) => h.code === i.code && h.value === undefined)?.text;
     return place({ ...i, signature: s?.signature ?? null, message: hint ? `${i.message}; ${hint}` : i.message });
   };
-  const errors = checked.issues.filter((i) => i.severity === "error");
+  const errors = checked.issues.filter((i) => i.severity === 'error');
   let fn: QueryFn<unknown> | null = null;
   const issues = [...checked.issues];
   if (checked.expr !== null && errors.length === 0) {
     try {
-      fn = compileNode(checked.expr, "", env, true);
+      fn = compileNode(checked.expr, '', env, true);
     } catch (e) {
       if (!(e instanceof QueryAbort)) throw e;
       issues.push(place(e.issue));
@@ -257,7 +257,7 @@ export function compileQuery(expr: Expression, env: QueryEnv, source?: QueryBind
       const ctx = new QueryContext(o);
       ctx.say = (path) => {
         let x: unknown = checked.expr;
-        for (const k of path.split("/").slice(1)) x = (x as Record<string, unknown> | undefined)?.[k];
+        for (const k of path.split('/').slice(1)) x = (x as Record<string, unknown> | undefined)?.[k];
         const reads = isApply(x) ? env.language.symbols.get(x.head)?.reads : undefined;
         return x === undefined ? path : printQuery(x as Expression, env.language, reads ? [reads] : null);
       };

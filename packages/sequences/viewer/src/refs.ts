@@ -9,7 +9,7 @@
 // Refs → loci (seqspec:interaction#focus): what commands, highlight channels and hosts name. An edge path: each call
 // allocates. `items` names items by id; unknown and empty ids are dropped, and with none left the ref resolves to null.
 
-import { type DocNode, indexDoc, type SeqViewSpecDoc, toLabel } from "@molstar/seq-core/format";
+import { type DocNode, indexDoc, type SeqViewSpecDoc, toLabel } from '@molstar/seq-core/format';
 import {
   Annotations,
   CoordinateSystemKind,
@@ -24,8 +24,8 @@ import {
   type SeqSet,
   Systems,
   type UnitId,
-} from "@molstar/seq-core/model";
-import type { SeqLociAny } from "./lineage.js";
+} from '@molstar/seq-core/model';
+import type { SeqLociAny } from './lineage.js';
 
 /**
  * A ref narrowed as the format's range args do (seqspec:format#descriptions-and-invocations): indices, labels in a
@@ -60,7 +60,7 @@ const la: PositionLabel = { num: NO_LABEL, suffix: -1 as never, name: -1 as neve
 const lb: PositionLabel = { ...la };
 const range = new Int32Array(2);
 /** A layer's or block's refs to the data it shows. */
-const DATA = ["unit", "sequence", "ligand", "complex", "alignment"];
+const DATA = ['unit', 'sequence', 'ligand', 'complex', 'alignment'];
 
 export class Refs implements RefManager {
   private readonly host: RefHost;
@@ -81,7 +81,7 @@ export class Refs implements RefManager {
     if (set.byName(ref, t)) {
       const outside = rangeOutside(set, t.kind, t.id, t.row, args);
       if (outside === null) {
-        refused.message = "";
+        refused.message = '';
         const l = fromKey(set, t.kind, t.id, t.row, args);
         if (!l && refused.message) why?.(refused.message.replace(REF, ref));
         return l;
@@ -92,23 +92,23 @@ export class Refs implements RefManager {
       return null;
     }
     const n = this.node(ref);
-    if (n?.kind === "block") {
+    if (n?.kind === 'block') {
       const k = DATA.find((p) => n.params?.[p] != null);
       return k ? this.toLoci(String(n.params?.[k]), args, why) : null;
     }
-    if (n?.kind !== "track" && n?.kind !== "layer") return null;
+    if (n?.kind !== 'track' && n?.kind !== 'layer') return null;
     const refs: string[] = [];
     const walk = (x: DocNode) => {
-      if (x.kind === "annotation" && x.ref) refs.push(x.ref);
-      else if (x.kind === "layer") refs.push(...[x.params?.data ?? []].flat().map(String));
-      for (const c of x.kind === "layer" && x.params?.data != null ? [] : (x.children ?? [])) walk(c);
+      if (x.kind === 'annotation' && x.ref) refs.push(x.ref);
+      else if (x.kind === 'layer') refs.push(...[x.params?.data ?? []].flat().map(String));
+      for (const c of x.kind === 'layer' && x.params?.data != null ? [] : (x.children ?? [])) walk(c);
     };
     walk(n);
     let out: SeqLociAny | null = null;
     for (const r of refs) {
       const l = this.toLoci(r, args, why);
       const same =
-        out && l?.kind === out.kind && (!("alignment" in out) || out.alignment === (l as typeof out).alignment);
+        out && l?.kind === out.kind && (!('alignment' in out) || out.alignment === (l as typeof out).alignment);
       if (l && (!out || same)) out = out ? (Loci.union(out, l as never) as SeqLociAny) : l;
     }
     return out;
@@ -122,7 +122,7 @@ export class Refs implements RefManager {
         for (const x of list) if (x) out.add(set.strings.get(x.key));
       for (let u = 0; u < set.units.count; u++) if (set.units.alive[u]) out.add(set.strings.get(set.units.key[u]));
     }
-    this.node("");
+    this.node('');
     for (const r of this.nodes.map.keys()) out.add(r);
     return [...out];
   }
@@ -140,8 +140,8 @@ export class Refs implements RefManager {
 }
 
 /** Why the last `narrow` refused its args (`REF` for the ref); "" when it did not. */
-const refused = { message: "" };
-const REF = "\u0000";
+const refused = { message: '' };
+const REF = '\u0000';
 
 /**
  * Indices [lo, hi) narrowed by `start`/`stop`, or by `beg`/`end` labels in a numbering; null when outside. `cyclic` (a
@@ -168,14 +168,14 @@ function narrow(
       !toLabel(set, n, a.end ?? a.beg, lb) ||
       !Numbering.rangeOf(n, la, lb, range, cyclic)
     ) {
-      if (strict) refused.message = `the labels ${labels} are not positions of "${REF}"${n ? "" : " (no numbering)"}`;
+      if (strict) refused.message = `the labels ${labels} are not positions of "${REF}"${n ? '' : ' (no numbering)'}`;
       return null;
     }
     [s, e] = [range[0], range[1]];
   }
   const wraps = cyclic && s > e && s < hi && e >= lo;
   if (strict && !wraps && (s < lo || e > hi || e <= s)) {
-    refused.message = `[${s}, ${e})${a.beg != null ? ` (labels ${a.beg}..${a.end ?? a.beg})` : ""} is outside "${REF}" (${lo}..${hi})`;
+    refused.message = `[${s}, ${e})${a.beg != null ? ` (labels ${a.beg}..${a.end ?? a.beg})` : ''} is outside "${REF}" (${lo}..${hi})`;
     return null;
   }
   if (wraps) return OrderedSet.union(OrderedSet.ofRange(s, hi), OrderedSet.ofRange(lo, e));
@@ -220,7 +220,7 @@ function fromKey(set: SeqSet, kind: number, id: number, row: number, args: Range
       const indices = units.alive[u] ? narrow(set, n, lo, hi, args, whole, strict) : null;
       return indices ? [{ unit: u as UnitId, indices }] : [];
     });
-    return elements.length ? ({ kind: "seq-loci", set, elements } as unknown as SeqLociAny) : null;
+    return elements.length ? ({ kind: 'seq-loci', set, elements } as unknown as SeqLociAny) : null;
   };
   const ranged = args.start != null || args.stop != null || args.beg != null;
   switch (kind) {
@@ -242,12 +242,12 @@ function fromKey(set: SeqSet, kind: number, id: number, row: number, args: Range
       const n = a ? numbering(CoordinateSystemKind.row, id, row) : null;
       const indices = a ? narrow(set, n, 0, a.rows.lengthOf(row as never), args, false, true) : null;
       return (
-        indices && ({ kind: "row-loci", set, alignment: id, elements: [{ row, indices }] } as unknown as SeqLociAny)
+        indices && ({ kind: 'row-loci', set, alignment: id, elements: [{ row, indices }] } as unknown as SeqLociAny)
       );
     }
     case KeyKind.alignment: {
       const columns = narrow(set, null, 0, set.alignments[id]?.columnCount ?? 0, args, false, true);
-      return columns && ({ kind: "column-loci", set, alignment: id, columns } as unknown as SeqLociAny);
+      return columns && ({ kind: 'column-loci', set, alignment: id, columns } as unknown as SeqLociAny);
     }
     case KeyKind.annotation: {
       const ann = set.annotations[id];
@@ -262,7 +262,7 @@ function fromKey(set: SeqSet, kind: number, id: number, row: number, args: Range
         if (picked.size === 0) return null;
         items = OrderedSet.ofSortedArray(Int32Array.from(picked).sort());
       }
-      return { kind: "item-loci", set, elements: [{ annotation: id as never, items }] } as ItemLoci;
+      return { kind: 'item-loci', set, elements: [{ annotation: id as never, items }] } as ItemLoci;
     }
     default:
       return null;

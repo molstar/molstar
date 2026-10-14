@@ -17,7 +17,7 @@
  * (seqspec:format#positions).
  */
 
-import { ColorNames } from "./names.js";
+import { ColorNames } from './names.js';
 
 /** 0xRRGGBB. */
 export type Color = number;
@@ -39,7 +39,7 @@ export const Color = {
     if (hexColorRegex.test(s)) {
       if (s.length === 4 || s.length === 5) s = `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`;
       else if (s.length === 9) s = s.substring(0, 7);
-      const result = Number.parseInt(s.replace("#", "0x"), 16);
+      const result = Number.parseInt(s.replace('#', '0x'), 16);
       if (!Number.isNaN(result)) return result;
     }
     const named = ColorNames.get(s.toLowerCase());
@@ -56,8 +56,8 @@ export const Color = {
 
   /** A document `Color`'s first half (a split color's); undefined when invalid or not a string. */
   decodeFirst(colorString: unknown): Color | undefined {
-    if (typeof colorString !== "string") return undefined;
-    const slash = colorString.indexOf("/");
+    if (typeof colorString !== 'string') return undefined;
+    const slash = colorString.indexOf('/');
     return Color.decode(slash >= 0 ? colorString.substring(0, slash) : colorString);
   },
 
@@ -69,8 +69,8 @@ export const Color = {
 
   /** MVS's `ColorT` check: `#rgb`, `#rrggbb`, a Mol* color name (case-sensitive, as MVS), or `a/b` of two of them. */
   isValid(value: unknown): value is string {
-    if (typeof value !== "string") return false;
-    const parts = value.split("/");
+    if (typeof value !== 'string') return false;
+    const parts = value.split('/');
     if (parts.length > 2) return false;
     return parts.every((p) => mvsHexRegex.test(p) || ColorNames.has(p));
   },
@@ -100,7 +100,7 @@ export function colorDict(src: string): Readonly<Record<string, Color>> {
   const out: Record<string, Color> = {};
   let color = 0;
   for (const token of src.trim().split(/\s+/)) {
-    if (token.startsWith("#")) color = Color.decodePrimary(token);
+    if (token.startsWith('#')) color = Color.decodePrimary(token);
     else out[token] = color;
   }
   return out;

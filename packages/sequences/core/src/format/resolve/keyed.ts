@@ -13,12 +13,12 @@
 // table changes). Resolve-time code: it allocates per call, never per frame. What a field means is the table's, never
 // read here.
 
-import { type Annotation, ColumnRoles, KeyKind, type KeyTarget, type SeqSet } from "@molstar/seq-core/model";
-import { paletteValue } from "../palettes/fields.js";
-import type { SvsRegistries } from "../registry.js";
+import { type Annotation, ColumnRoles, KeyKind, type KeyTarget, type SeqSet } from '@molstar/seq-core/model';
+import { paletteValue } from '../palettes/fields.js';
+import type { SvsRegistries } from '../registry.js';
 
 /** One key of an order, as the document writes it (defaults filled by normalizing). */
-export type OrderKeyValue = "data" | "tree" | { data: string; field: string; direction?: "asc" | "desc" };
+export type OrderKeyValue = 'data' | 'tree' | { data: string; field: string; direction?: 'asc' | 'desc' };
 /** One filter, as the document writes it. */
 export interface KeyFilterValue {
   data: string;
@@ -48,7 +48,7 @@ export type KeyedSay = (where: string, message: string) => void;
 
 /** Whether a rows layer's rows follow the tree: its order starts with `tree`, or is `null` and the alignment has one. */
 export const followsTree = (order: unknown, hasTree: boolean): boolean =>
-  order == null ? hasTree : (Array.isArray(order) ? order[0] : order) === "tree";
+  order == null ? hasTree : (Array.isArray(order) ? order[0] : order) === 'tree';
 
 /** The members of an alignment's key tables: a table row stands for the row in its `target.row`, of this alignment. */
 export function alignmentRows(alignment: number, count: number, tree: ArrayLike<number> | null): Members {
@@ -58,8 +58,8 @@ export function alignmentRows(alignment: number, count: number, tree: ArrayLike<
 const kind: KeyTarget = { kind: -1, id: -1, row: -1 };
 const MISSING = 2;
 const type = (x: unknown) =>
-  x === undefined || x === null || (typeof x === "number" && Number.isNaN(x)) ? MISSING : typeof x === "string" ? 1 : 0;
-const num = (x: unknown) => (typeof x === "number" ? x : x === true ? 1 : 0);
+  x === undefined || x === null || (typeof x === 'number' && Number.isNaN(x)) ? MISSING : typeof x === 'string' ? 1 : 0;
+const num = (x: unknown) => (typeof x === 'number' ? x : x === true ? 1 : 0);
 
 /** One key table's field read for every member: its value, or undefined where the table has no row for it. */
 function column(
@@ -76,7 +76,7 @@ function column(
     say(`"${ref}" names no annotation or computed node here: give a rows annotation (a key table)`);
     return null;
   }
-  if (ann.geometry !== "rows") {
+  if (ann.geometry !== 'rows') {
     say(`"${ref}" is a ${ann.geometry} annotation: a key table is a rows annotation, keyed by row`);
     return null;
   }
@@ -97,15 +97,15 @@ function column(
   }
   if (found === 0) {
     const fields = [
-      ...Object.keys(ColumnRoles.rows).filter((k) => k !== "row" && k !== "state" && k !== "node"),
+      ...Object.keys(ColumnRoles.rows).filter((k) => k !== 'row' && k !== 'state' && k !== 'node'),
       ...ann.fields.map((f) => set.strings.get(f.name)),
     ];
     // A field the table has but gives no member a value is a field with nothing: the filter keeps none, as for any missing.
-    if (fields.includes(field) || reg.get("fields", field)) {
+    if (fields.includes(field) || reg.get('fields', field)) {
       say(`"${ref}" has no values for "${field}" (every member's is missing)`);
       return out;
     }
-    say(`"${ref}" has no field "${field}"${fields.length ? `; its fields: ${[...new Set(fields)].join(", ")}` : ""}`);
+    say(`"${ref}" has no field "${field}"${fields.length ? `; its fields: ${[...new Set(fields)].join(', ')}` : ''}`);
     return null;
   }
   return out;
@@ -141,18 +141,18 @@ export function keyed(
 ): Keyed {
   const n = members.count;
   const keys =
-    spec.order == null ? [members.tree ? "tree" : "data"] : Array.isArray(spec.order) ? spec.order : [spec.order];
+    spec.order == null ? [members.tree ? 'tree' : 'data'] : Array.isArray(spec.order) ? spec.order : [spec.order];
   const rank = new Int32Array(n).fill(n);
   const tree = members.tree;
   for (let k = 0; tree && k < tree.length; k++) if (tree[k] >= 0 && tree[k] < n) rank[tree[k]] = k;
   const sorts: ((a: number, b: number) => number)[] = [];
   keys.forEach((key, k) => {
-    const where = `order${Array.isArray(spec.order) ? `/${k}` : ""}`;
-    if (key === "data") sorts.push((a, b) => a - b);
-    else if (key === "tree") sorts.push(tree ? (a, b) => rank[a] - rank[b] : (a, b) => a - b);
-    else if (key && typeof key === "object") {
+    const where = `order${Array.isArray(spec.order) ? `/${k}` : ''}`;
+    if (key === 'data') sorts.push((a, b) => a - b);
+    else if (key === 'tree') sorts.push(tree ? (a, b) => rank[a] - rank[b] : (a, b) => a - b);
+    else if (key && typeof key === 'object') {
       const values = column(set, reg, members, key.data, key.field, (m) => say(where, m));
-      const sign = key.direction === "desc" ? -1 : 1;
+      const sign = key.direction === 'desc' ? -1 : 1;
       if (values) sorts.push((a, b) => compare(values[a], values[b], sign));
     }
   });
@@ -171,8 +171,8 @@ export function keyed(
       const pass =
         type(x) !== MISSING &&
         (f.values == null || holds(x, f.values)) &&
-        (f.min == null || (typeof x === "number" && x >= f.min)) &&
-        (f.max == null || (typeof x === "number" && x <= f.max));
+        (f.min == null || (typeof x === 'number' && x >= f.min)) &&
+        (f.max == null || (typeof x === 'number' && x <= f.max));
       if (!pass) kept[m] = 0;
     }
   });

@@ -12,24 +12,24 @@
 // included; a navigator on the ruler draws only its hairline; horizontal and vertical grips; the keyed map image built
 // once.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { AxisGeometry, navUnits, SectionAxisView } from "../src/axis.js";
-import { KeyedImage, SkinToken } from "../src/draw/api.js";
-import { drawGrips, drawNavigator, drawNavigatorWindow, gripAt, NavView } from "../src/draw/nav.js";
-import { DefaultNavigators, MarkBit, navigatorFrom } from "../src/index.js";
-import { SectionMarks } from "../src/marks.js";
-import { fixtureMeasurer, Op, RecordingBackend } from "../src/testing/index.js";
-import { TextManager } from "../src/text.js";
-import { WindowKind } from "../src/windows.js";
-import { axisOf, blocksDoc, resolved } from "./axis-fixtures.js";
-import { driven } from "./input-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { AxisGeometry, navUnits, SectionAxisView } from '../src/axis.js';
+import { KeyedImage, SkinToken } from '../src/draw/api.js';
+import { drawGrips, drawNavigator, drawNavigatorWindow, gripAt, NavView } from '../src/draw/nav.js';
+import { DefaultNavigators, MarkBit, navigatorFrom } from '../src/index.js';
+import { SectionMarks } from '../src/marks.js';
+import { fixtureMeasurer, Op, RecordingBackend } from '../src/testing/index.js';
+import { TextManager } from '../src/text.js';
+import { WindowKind } from '../src/windows.js';
+import { axisOf, blocksDoc, resolved } from './axis-fixtures.js';
+import { driven } from './input-fixtures.js';
 
 const L = { geometry: AxisGeometry.linear, dataLeft: 40, dataRight: 440, scrolledTop: 20, height: 120 };
 
 /** A section's axis view over [40, 440), synced at a cell and scroll, its fit cell as the viewport computes it. */
 async function synced(doc = blocksDoc(3, 50)) {
-  const r = await resolved(doc, "v");
+  const r = await resolved(doc, 'v');
   const ax = axisOf(r);
   const v = new SectionAxisView();
   const gaps = ax.stacked ? 0 : (ax.count - 1) * ax.gap;
@@ -45,10 +45,10 @@ async function synced(doc = blocksDoc(3, 50)) {
 
 function stackedDoc() {
   const b = createSeqViewSpec();
-  const v = b.view({ ref: "v", label: "V", arrangement: "stacked" });
+  const v = b.view({ ref: 'v', label: 'V', arrangement: 'stacked' });
   for (const [i, len] of [80, 120, 40].entries())
-    v.block({ sequence: b.data.sequence({ ref: `c${i}`, value: "M".repeat(len) }) });
-  v.track({ ref: "v.l" }).letters();
+    v.block({ sequence: b.data.sequence({ ref: `c${i}`, value: 'M'.repeat(len) }) });
+  v.track({ ref: 'v.l' }).letters();
   return b.getDocument();
 }
 
@@ -76,7 +76,7 @@ function rects(b: RecordingBackend, color: number) {
   return out;
 }
 
-describe("the map as at the fit", () => {
+describe('the map as at the fit', () => {
   it("per-block extents and the map's width are equal across zooms; the window maps through the blocks", async () => {
     const { ax, v, at, minCell } = await synced();
     at(minCell, 0);
@@ -121,7 +121,7 @@ describe("the map as at the fit", () => {
   it("the gestures go through it: a press jumps the window's center to the pointer; an end dragged holds the other", async () => {
     const t = await driven(blocksDoc(3, 400), { size: {} });
     const sec = t.ctx.viewports.sections.value[0];
-    t.ctx.ui.setStyle(sec, "tracks");
+    t.ctx.ui.setStyle(sec, 'tracks');
     await t.ctx.graph.update();
     const vp = t.ctx.viewports.get(sec);
     vp?.zoomTo(0, 100, 160);
@@ -130,8 +130,8 @@ describe("the map as at the fit", () => {
     const y = 10;
     // A press in block 1's first quarter, right of the window: the window jumps, centered on it.
     const x = av().navX0s[1] + (av().navX1s[1] - av().navX0s[1]) / 4;
-    t.pointer("down", sec, x, y);
-    t.pointer("up", sec, x, y);
+    t.pointer('down', sec, x, y);
+    t.pointer('up', sec, x, y);
     expect(Math.abs((nav()[8] + nav()[9]) / 2 - x)).toBeLessThan(1);
     // Its right end dragged across a gap: the left end held, the right one under the pointer.
     const [x0, x1] = [nav()[8], nav()[9]];
@@ -152,10 +152,10 @@ describe("the map as at the fit", () => {
     expect(Math.abs(nav()[8] - from)).toBeLessThan(0.5);
   });
 
-  it("a floored window (its share under 16 px, drawn wider) follows the pointer as drawn when its body is dragged", async () => {
+  it('a floored window (its share under 16 px, drawn wider) follows the pointer as drawn when its body is dragged', async () => {
     const t = await driven(blocksDoc(3, 20_000), { size: {} });
     const sec = t.ctx.viewports.sections.value[0];
-    t.ctx.ui.setStyle(sec, "tracks");
+    t.ctx.ui.setStyle(sec, 'tracks');
     await t.ctx.graph.update();
     t.ctx.viewports.get(sec)?.zoomTo(1, 100, 110);
     const nav = () => t.frame(sec, WindowKind.navigator);
@@ -171,7 +171,7 @@ describe("the map as at the fit", () => {
 });
 
 describe("the navigator's draws", () => {
-  it("stacked: the fade and grips span the map to the widest lane; marks per lane", async () => {
+  it('stacked: the fade and grips span the map to the widest lane; marks per lane', async () => {
     const { v, at, minCell } = await synced(stackedDoc());
     at(minCell * 4, 0);
     const n = navView(v, navigatorFrom({ lanes: true, height: 30, thickness: 30 }).parts);
@@ -225,7 +225,7 @@ describe("the navigator's draws", () => {
     expect(ops.filter((o) => o === Op.rects).length).toBeGreaterThanOrEqual(2);
   });
 
-  it("on the ruler: only the hairline, even with a map to draw; off it, the map image", async () => {
+  it('on the ruler: only the hairline, even with a map to draw; off it, the map image', async () => {
     const { v, at, minCell } = await synced();
     at(minCell, 0);
     const rail = navView(v, DefaultNavigators[0].parts);
@@ -249,7 +249,7 @@ describe("the navigator's draws", () => {
   });
 });
 
-describe("grips", () => {
+describe('grips', () => {
   /** The grips' pills in a color as [x, y, w, h] (device px), from the path store's round rects. */
   function pills(b: RecordingBackend, color: number) {
     const p = b.pathItems;
@@ -297,8 +297,8 @@ describe("grips", () => {
   });
 });
 
-describe("the keyed map image", () => {
-  it("built once across pans; a key change builds it again, the old disposed", () => {
+describe('the keyed map image', () => {
+  it('built once across pans; a key change builds it again, the old disposed', () => {
     const b = new RecordingBackend();
     const k = new KeyedImage(4);
     const frame = (layout: number, width: number) => {
@@ -327,7 +327,7 @@ describe("the keyed map image", () => {
   });
 });
 
-it("the strip at DPR 2 draws its grounds per block on device pixels", async () => {
+it('the strip at DPR 2 draws its grounds per block on device pixels', async () => {
   const { v, at, minCell } = await synced();
   at(minCell, 0);
   const n = navView(v, DefaultNavigators[2].parts, 2);

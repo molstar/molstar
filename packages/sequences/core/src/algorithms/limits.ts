@@ -19,9 +19,9 @@ export class AlignerSizeError extends Error {
     const cells = (n + 1) * (m + 1);
     super(
       `${aligner}: aligning ${n} against ${m} letters takes ${cells} DP cells; the limit is ${MAX_CELLS}. ` +
-        "The myers aligner has no such limit.",
+        'The myers aligner has no such limit.',
     );
-    this.name = "AlignerSizeError";
+    this.name = 'AlignerSizeError';
     this.cells = cells;
   }
 }

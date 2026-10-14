@@ -11,8 +11,8 @@
 // viewer is loaded afresh for the case (`vi.resetModules`), as the surface's guards do (heap-browser.ts). The positive
 // control: the moves allocating garbage each, sized to the run (`leaking`), warmed and measured alike, are caught.
 
-import { expect, it, vi } from "vitest";
-import { controlCaught, heapScaling, isFlat, leaking } from "../canvas/heap-browser.js";
+import { expect, it, vi } from 'vitest';
+import { controlCaught, heapScaling, isFlat, leaking } from '../canvas/heap-browser.js';
 
 const N = 2_000;
 
@@ -24,9 +24,9 @@ function measure(step: (i: number) => void) {
   return { r, next: i };
 }
 
-it("pointer moves inside one element place the tooltip in a flat heap", async () => {
+it('pointer moves inside one element place the tooltip in a flat heap', async () => {
   vi.resetModules();
-  const { tooltipFixture } = await import("./tooltip-fixtures.js");
+  const { tooltipFixture } = await import('./tooltip-fixtures.js');
   const t = await tooltipFixture();
   try {
     const { r, next } = measure(t.moveStep);
@@ -36,7 +36,7 @@ it("pointer moves inside one element place the tooltip in a flat heap", async ()
     const seen = new Set<string>();
     for (let k = 0; k < 8; k++) {
       t.moveStep(i++);
-      seen.add(t.tip.style.getPropertyValue("--seqv-x"));
+      seen.add(t.tip.style.getPropertyValue('--seqv-x'));
     }
     expect(seen.size).toBeGreaterThan(3);
     expect(t.hovers()).toBe(0);
@@ -47,7 +47,7 @@ it("pointer moves inside one element place the tooltip in a flat heap", async ()
 
 it("the keyboard cursor's anchor is placed in a flat heap", async () => {
   vi.resetModules();
-  const { tooltipFixture } = await import("./tooltip-fixtures.js");
+  const { tooltipFixture } = await import('./tooltip-fixtures.js');
   const t = await tooltipFixture();
   try {
     const { r } = measure(t.cursorStep());
@@ -57,9 +57,9 @@ it("the keyboard cursor's anchor is placed in a flat heap", async () => {
   }
 }, 120_000);
 
-it("the same moves allocating garbage sized to the run each are caught (positive control)", async () => {
+it('the same moves allocating garbage sized to the run each are caught (positive control)', async () => {
   vi.resetModules();
-  const { tooltipFixture } = await import("./tooltip-fixtures.js");
+  const { tooltipFixture } = await import('./tooltip-fixtures.js');
   const t = await tooltipFixture();
   try {
     expect(controlCaught(() => measure(leaking(t.moveStep, N)).r)).toBe(true);

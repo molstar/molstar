@@ -12,14 +12,14 @@
 // (channels.ts); loci are carried to every new set (lineage.ts), `Coordinates` are held by key. Anything else is refused
 // at `set` (several loci: their union, or a channel each); a carry that throws drops its channel alone.
 
-import type { Closure } from "@molstar/seq-core/format";
-import type { SeqSet } from "@molstar/seq-core/model";
-import { carry, type SeqLociAny } from "./lineage.js";
-import { type Coordinates, isCoordinates } from "./projection.js";
-import { type SeqState, state } from "./state.js";
+import type { Closure } from '@molstar/seq-core/format';
+import type { SeqSet } from '@molstar/seq-core/model';
+import { carry, type SeqLociAny } from './lineage.js';
+import { type Coordinates, isCoordinates } from './projection.js';
+import { type SeqState, state } from './state.js';
 
 /** `band`: a section's location set drawn full height in the main pass. */
-export type HighlightStyle = "highlight" | "accent" | "band";
+export type HighlightStyle = 'highlight' | 'accent' | 'band';
 export interface HighlightEntry {
   readonly target: SeqLociAny | Coordinates;
   readonly style: HighlightStyle;
@@ -41,7 +41,7 @@ export interface HighlightManager {
 }
 
 /** Loci (a kind and the set they are of), as a host passes them; arrays and other objects are not. */
-const isLoci = (t: object) => !Array.isArray(t) && typeof (t as { kind?: unknown }).kind === "string" && "set" in t;
+const isLoci = (t: object) => !Array.isArray(t) && typeof (t as { kind?: unknown }).kind === 'string' && 'set' in t;
 
 export class Highlight implements HighlightManager {
   readonly channels = state<ReadonlyMap<string, HighlightEntry>>(new Map());
@@ -61,8 +61,8 @@ export class Highlight implements HighlightManager {
       );
     const entry = {
       target,
-      style: opts.style ?? "highlight",
-      closure: opts.closure ?? "element",
+      style: opts.style ?? 'highlight',
+      closure: opts.closure ?? 'element',
       section: opts.section ?? null,
     } as const;
     this.publish(new Map(this.channels.value).set(channel, entry));
@@ -79,7 +79,7 @@ export class Highlight implements HighlightManager {
   update(set: SeqSet | null) {
     let next: Map<string, HighlightEntry> | null = null;
     for (const [channel, e] of set ? this.channels.value : []) {
-      let target: HighlightEntry["target"] | null;
+      let target: HighlightEntry['target'] | null;
       try {
         target = isCoordinates(e.target) ? e.target : carry(e.target, set as SeqSet);
       } catch (err) {

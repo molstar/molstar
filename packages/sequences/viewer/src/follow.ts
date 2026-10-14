@@ -19,12 +19,12 @@
 // linear section). Vertical scroll is each section's own. Per change nothing is allocated: the tables are built when
 // the view, the scroll groups or the sections change, and doubles pass through Float64Arrays.
 
-import type { ResolvedView } from "@molstar/seq-core/format";
-import type { CoordinateMap } from "@molstar/seq-core/model";
-import type { Axis } from "./axis.js";
-import { defineBehavior } from "./default-behaviors.js";
-import type { Unsubscribable } from "./state.js";
-import { type SectionViewport, Viewport } from "./viewport.js";
+import type { ResolvedView } from '@molstar/seq-core/format';
+import type { CoordinateMap } from '@molstar/seq-core/model';
+import type { Axis } from './axis.js';
+import { defineBehavior } from './default-behaviors.js';
+import type { Unsubscribable } from './state.js';
+import { type SectionViewport, Viewport } from './viewport.js';
 
 /**
  * `io[0]`, a position in the map's `from` system (an element and the fraction of it, in index order), → its image in
@@ -147,11 +147,11 @@ export function followImage(v: ResolvedView, k: number, b: number, io: Float64Ar
 const GROUP = -1;
 
 export const FollowBehavior = defineBehavior(
-  "follow",
-  "view",
+  'follow',
+  'view',
   0,
   {},
-  "Sections that follow each other (`follow`) set their windows through a coordinate map: the other centers the image " +
+  'Sections that follow each other (`follow`) set their windows through a coordinate map: the other centers the image ' +
     "of the leader's center element at the leader's cell times the route's scale; each keeps its vertical scroll.",
   ({ ctx, add }) => {
     /** The view the tables were built from: a change while the graph runs ahead of them leads nothing. */
@@ -184,7 +184,7 @@ export const FollowBehavior = defineBehavior(
     /** Whether node n's section is on rings (its preset's geometry: no layout is built for it). */
     const ring = (n: number): boolean => {
       const vp = nodes[n];
-      return vp !== null && ctx.layout.presetOf(ctx.layout.sectionIndex(vp.ref))?.geometry === "circular";
+      return vp !== null && ctx.layout.presetOf(ctx.layout.sectionIndex(vp.ref))?.geometry === 'circular';
     };
 
     /** Sets y from x along one link; false when x has no center or no route from there (y stays where it is). */
@@ -194,7 +194,7 @@ export const FollowBehavior = defineBehavior(
       if (!from || !to) return false;
       if (k === GROUP) {
         if (ring(x) || ring(y)) return false;
-        to.follow(from, "behavior");
+        to.follow(from, 'behavior');
         return true;
       }
       const v = view;
@@ -209,7 +209,7 @@ export const FollowBehavior = defineBehavior(
       const b = followImage(v, k, a, io, to.axis);
       if (b < 0) return false;
       if (!ring(y)) {
-        to.centerOn(b, io, "behavior");
+        to.centerOn(b, io, 'behavior');
         return true;
       }
       kept[3 * y] = b;
@@ -282,9 +282,9 @@ export const FollowBehavior = defineBehavior(
       seen[o + 1] = s.scrollX;
       seen[o + 2] = s.width;
       // A change the graph made before these tables were rebuilt is resynced when they are.
-      if (busy || (!moved && !resized) || s.origin === "behavior" || ctx.graph.assembled.value?.view?.resolved !== view)
+      if (busy || (!moved && !resized) || s.origin === 'behavior' || ctx.graph.assembled.value?.view?.resolved !== view)
         return;
-      if (s.origin === "graph" || resized) return resync(n);
+      if (s.origin === 'graph' || resized) return resync(n);
       // A ring's own viewport leads nothing (its keys and gestures go to its window's section).
       if (ring(n)) return;
       led[n] = ++clock;
@@ -339,7 +339,7 @@ export const FollowBehavior = defineBehavior(
           led[i] = oldLed[j];
         }
         if (nodes[i] && focused.has(nodes[i] as SectionViewport)) led[i] = ++clock;
-        root[i] = sec && i < sec.count && typeof sec.params[i]?.follow !== "string" ? 1 : 0;
+        root[i] = sec && i < sec.count && typeof sec.params[i]?.follow !== 'string' ? 1 : 0;
       }
       focused.clear();
       busy = true;
@@ -364,7 +364,7 @@ export const FollowBehavior = defineBehavior(
     // (seqspec:interaction#replays-and-carries): it is the last to lead before its viewport emits.
     add(
       ctx.focus.changed.subscribe((c) => {
-        const vp = c.origin === "graph" && c.entry !== null ? ctx.viewports.get(c.section) : null;
+        const vp = c.origin === 'graph' && c.entry !== null ? ctx.viewports.get(c.section) : null;
         if (!vp) return;
         const n = nodes.indexOf(vp);
         if (n >= 0) led[n] = ++clock;

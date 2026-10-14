@@ -8,13 +8,13 @@
 
 // Units, complexes, copy groups and the set (seqspec:model#identity-and-lineage).
 
-import { type Alignment, type AlignmentInput, Alignments } from "./alignment.js";
-import { type Annotation, type AnnotationInput, Annotations } from "./annotation.js";
-import { type ComplexId, CustomData, Issue, type NameId, StringTable, type UnitId } from "./common.js";
-import { type Mapping, type MappingInput, Mappings, type RowBindings } from "./mapping.js";
-import { type Molecule, type MoleculeInput, Molecules } from "./molecule.js";
-import { Numbering, type NumberingInput, type NumberingSet } from "./numbering.js";
-import type { SortedArray, SortedRanges } from "./ordered-set.js";
+import { type Alignment, type AlignmentInput, Alignments } from './alignment.js';
+import { type Annotation, type AnnotationInput, Annotations } from './annotation.js';
+import { type ComplexId, CustomData, Issue, type NameId, StringTable, type UnitId } from './common.js';
+import { type Mapping, type MappingInput, Mappings, type RowBindings } from './mapping.js';
+import { type Molecule, type MoleculeInput, Molecules } from './molecule.js';
+import { Numbering, type NumberingInput, type NumberingSet } from './numbering.js';
+import type { SortedArray, SortedRanges } from './ordered-set.js';
 
 /** Struct-of-arrays, one row per unit id; removed ids are tombstones (`alive` 0). */
 export interface UnitTable {
@@ -155,7 +155,7 @@ function byName(this: SetImpl, key: string, out: KeyTarget): boolean {
 
 /** The row a row ref names (`msa/3`: 3): the digits after its last `/`; -1: none. Data mode reads it too (`Systems`). */
 export function rowOfRef(s: string): number {
-  const slash = s.lastIndexOf("/");
+  const slash = s.lastIndexOf('/');
   if (slash <= 0 || slash === s.length - 1) return -1;
   let row = 0;
   for (let i = slash + 1; i < s.length; i++) {
@@ -170,7 +170,7 @@ export function rowOfRef(s: string): number {
 function rowRef(set: SetImpl, s: string, out: KeyTarget): boolean {
   const row = rowOfRef(s);
   if (row < 0) return false;
-  const slash = s.lastIndexOf("/");
+  const slash = s.lastIndexOf('/');
   for (let a = 0; a < set.alignments.length; a++) {
     const aln = set.alignments[a];
     if (!aln || row >= aln.rowCount) continue;
@@ -198,7 +198,7 @@ const TYPED = {
   score: Float64Array,
   label: Int32Array,
 } as const;
-const LISTS = ["observed", "numberings", "custom"] as const;
+const LISTS = ['observed', 'numberings', 'custom'] as const;
 type Draft = { [K in keyof typeof TYPED]: number[] } & {
   observed: (SortedRanges | null)[];
   numberings: NumberingSet[];
@@ -288,7 +288,7 @@ function apply(
   const ownUnits: [UnitInput, string][] = [];
   /** Per key (NameId) of a molecule, unit or alignment: the path of the upsert or removal that changed it. */
   const changedBy = new Map<number, string>();
-  const sequence = strings.intern("sequence");
+  const sequence = strings.intern('sequence');
 
   /** Keys given back their old id by `claim`: no longer gone once their build succeeds (the sweep below). */
   const claimed: number[] = [];
@@ -300,7 +300,7 @@ function apply(
     const id = strings.intern(key);
     const v = keys.get(id);
     if (seen.has(id) || (v !== undefined && (v & 7) !== kind)) {
-      issues.push(Issue.error("model.key.duplicate", path, `Key "${key}" names something else already.`));
+      issues.push(Issue.error('model.key.duplicate', path, `Key "${key}" names something else already.`));
       return undefined;
     }
     seen.add(id);
@@ -348,25 +348,25 @@ function apply(
     const prev = claim(input.key, KeyKind.unit, path);
     if (prev === undefined) return;
     const mol = molecules[find(input.molecule, KeyKind.molecule)];
-    if (!mol) return err("model.unit.molecule", `no molecule "${input.molecule}".`);
+    if (!mol) return err('model.unit.molecule', `no molecule "${input.molecule}".`);
     const [start, stop] = input.range ?? [0, mol.length];
     if (mol.cyclic && start > stop) {
       const m = `range [${start}, ${stop}) wraps the origin; a unit's range does not yet: show it with a block's range.`;
-      return err("model.unit.range", m);
+      return err('model.unit.range', m);
     }
     if (!(Number.isInteger(start) && Number.isInteger(stop) && start >= 0 && start < stop && stop <= mol.length)) {
-      return err("model.unit.range", `range [${start}, ${stop}) is not within 0..${mol.length}.`);
+      return err('model.unit.range', `range [${start}, ${stop}) is not within 0..${mol.length}.`);
     }
     let observed: Int32Array | null = Int32Array.from((input.observed ?? []).flat());
     for (let i = 0; i < observed.length; i += 2) {
       const lo = i ? observed[i - 1] : start;
       if (!(observed[i] >= lo && observed[i] < observed[i + 1] && observed[i + 1] <= stop)) {
-        return err("model.unit.observed", `observed ranges must be sorted, disjoint and within [${start}, ${stop}).`);
+        return err('model.unit.observed', `observed ranges must be sorted, disjoint and within [${start}, ${stop}).`);
       }
     }
     if (!input.observed || (observed.length === 2 && observed[0] === start && observed[1] === stop)) observed = null;
-    if (!own && input.origin === "sequence")
-      return err("model.unit.origin", `origin "sequence" is reserved for own units.`);
+    if (!own && input.origin === 'sequence')
+      return err('model.unit.origin', `origin "sequence" is reserved for own units.`);
     const u = prev < 0 ? d.key.length : prev;
     const p = `${path}/numberings`;
     d.alive[u] = 1;
@@ -401,7 +401,7 @@ function apply(
       const u = find(key, KeyKind.unit);
       if (u < 0 || d.complex[u] >= 0) {
         const m = u < 0 ? `no unit "${key}".` : `unit "${key}" belongs to a complex already.`;
-        issues.push(Issue.error("model.complex.unit", `${path}/units/${j}`, `Complex "${input.key}": ${m}`));
+        issues.push(Issue.error('model.complex.unit', `${path}/units/${j}`, `Complex "${input.key}": ${m}`));
         return;
       }
       d.complex[u] = id;
@@ -456,7 +456,7 @@ function apply(
     const name = strings.find(key);
     const v = keys.get(name);
     if (v === undefined) {
-      if (!quiet) issues.push(Issue.warning("model.key.unknown", `/remove/${k}`, `No key "${key}" to remove.`));
+      if (!quiet) issues.push(Issue.warning('model.key.unknown', `/remove/${k}`, `No key "${key}" to remove.`));
       return;
     }
     if (quiet) evicted.add(name);
@@ -470,7 +470,7 @@ function apply(
     else if (kind === KeyKind.unit) d.alive[id] = 0;
     else if (kind === KeyKind.complex) complexes[id] = null;
     else
-      lists[kind === KeyKind.alignment ? "alignments" : kind === KeyKind.mapping ? "mappings" : "annotations"][id] =
+      lists[kind === KeyKind.alignment ? 'alignments' : kind === KeyKind.mapping ? 'mappings' : 'annotations'][id] =
         null;
   };
   for (let k = 0; k < remove.length; k++) drop(remove[k], k, false);
@@ -481,13 +481,13 @@ function apply(
   for (let u = 0; u < d.key.length; u++) {
     if (!d.alive[u]) continue;
     const mol = molecules[d.molecule[u]];
-    const path = changedBy.get((mol ?? base.molecules[d.molecule[u]])?.key ?? -1) ?? "";
+    const path = changedBy.get((mol ?? base.molecules[d.molecule[u]])?.key ?? -1) ?? '';
     const unit = `Unit "${strings.get(d.key[u])}"`;
     if (!mol) {
       const ev = evicted.size > 0 && evicted.has(base.molecules[d.molecule[u]]?.key ?? -1);
       if (ev) evicted.add(d.key[u]);
       const quiet = ev || d.origin[u] === sequence;
-      kill(u, quiet ? null : Issue.warning("model.unit.orphaned", path, `${unit} lost its molecule.`), path);
+      kill(u, quiet ? null : Issue.warning('model.unit.orphaned', path, `${unit} lost its molecule.`), path);
       continue;
     }
     if (lengthChanged.has(mol.id) && !upserted.has(u)) {
@@ -495,7 +495,7 @@ function apply(
       if (full && d.numberings[u].count === 0) {
         d.rangeStop[u] = mol.length;
         changedBy.set(d.key[u], path);
-      } else kill(u, Issue.warning("model.unit.stale", path, `${unit} no longer fits its molecule.`), path);
+      } else kill(u, Issue.warning('model.unit.stale', path, `${unit} no longer fits its molecule.`), path);
     }
     if (d.complex[u] >= 0 && !complexes[d.complex[u]]) d.complex[u] = -1;
   }
@@ -532,20 +532,20 @@ function apply(
   /** Whether a dependent is over an evicted key (a row ref by its alignment): evicted with it, quietly. */
   const isEvicted = (over: readonly string[]) => {
     for (let k = 0; evicted.size > 0 && k < over.length; k++)
-      if (evicted.has(strings.find(over[k])) || evicted.has(strings.find(over[k].replace(/\/[0-9]+$/, ""))))
+      if (evicted.has(strings.find(over[k])) || evicted.has(strings.find(over[k].replace(/\/[0-9]+$/, ''))))
         return true;
     return false;
   };
   /** The change a dependent's issue points at: the first of its keys (a row ref by its alignment) that changed. */
   const causeOf = (over: readonly string[]) => {
     for (const k of over) {
-      const at = changedBy.get(strings.find(k)) ?? changedBy.get(strings.find(k.replace(/\/[0-9]+$/, "")));
+      const at = changedBy.get(strings.find(k)) ?? changedBy.get(strings.find(k.replace(/\/[0-9]+$/, '')));
       if (at !== undefined) return at;
     }
-    return changedBy.values().next().value ?? "";
+    return changedBy.values().next().value ?? '';
   };
   const mappings: Dependents<Mapping, MappingInput> = {
-    name: "Mapping",
+    name: 'Mapping',
     kind: KeyKind.mapping,
     ...Mappings.dependents,
   };
@@ -556,7 +556,7 @@ function apply(
   assemble(set, lists.mappings, pending, keys, issues, mappings, causeOf, tombs, stable);
   set.mappings = same(lists.mappings, base.mappings);
   const anns: Dependents<Annotation, AnnotationInput> = {
-    name: "Annotation",
+    name: 'Annotation',
     kind: KeyKind.annotation,
     ...Annotations.dependents,
   };
@@ -611,13 +611,13 @@ function assemble<T extends { readonly key: NameId }, I extends { readonly key: 
     if (!e || status === 0) return;
     const input = d.inputOf(e);
     const local: Issue[] = [];
-    const next = status === 1 ? d.build(set, input, id, local, "") : null;
-    const lost = d.kind === KeyKind.mapping ? "an endpoint" : "its targets";
+    const next = status === 1 ? d.build(set, input, id, local, '') : null;
+    const lost = d.kind === KeyKind.mapping ? 'an endpoint' : 'its targets';
     const code = `model.${d.name.toLowerCase()}.orphaned`;
     // Over an evicted node: evicted with it, nothing reported.
     const quiet = status === 2 && gone.isEvicted(d.keysOf(e));
     if (quiet) gone.evicted.add(e.key);
-    else if (status === 2) local.push(Issue.warning(code, "", `${d.name} "${input.key}" lost ${lost}.`));
+    else if (status === 2) local.push(Issue.warning(code, '', `${d.name} "${input.key}" lost ${lost}.`));
     const cause = causeOf(d.keysOf(e));
     for (const issue of local) issues.push({ ...issue, path: cause });
     list[id] = next;
@@ -651,12 +651,12 @@ function numberingOf(set: SeqSet, unit: UnitId, name: NameId): Numbering | null 
 }
 
 export const SeqSets = {
-  build: (input: SetInput) => apply(emptySet(), input, [], ""),
+  build: (input: SetInput) => apply(emptySet(), input, [], ''),
   /**
    * Upserts by key, then removes and evicts keys; keeps the lineage and shares every table the changes do not touch.
    * A removed key upserted again gets its old id back; an evicted one's dependents go with it, quietly.
    */
   withChanges: (set: SeqSet, changes: { upsert?: Partial<SetInput>; remove?: string[]; evict?: string[] }) =>
-    apply(set as SetImpl, changes.upsert ?? {}, changes.remove ?? [], "/upsert", changes.evict),
+    apply(set as SetImpl, changes.upsert ?? {}, changes.remove ?? [], '/upsert', changes.evict),
   numberingOf,
 };

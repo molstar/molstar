@@ -20,45 +20,45 @@ import {
   type Matcher,
   regexMatcher,
   toCodes,
-} from "@molstar/seq-core/algorithms/search";
-import { KeyKind, type SeqSet } from "@molstar/seq-core/model";
-import { type Coordinates, SeqCommands, type SeqViewerContext } from "@molstar/seq-viewer";
-import { SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
-import { type KeyboardEvent, type ReactNode, use, useEffect, useMemo, useState } from "react";
-import { PrismPage } from "../support/seqstar-prism.js";
-import { ScrollArea, TextAction, type TextTab, TextTabs } from "../ui/index.js";
-import { compiledCase } from "./seqstar-cases.js";
-import f from "./seqstar-format.module.css";
-import { PrismCanvas } from "./seqstar-prism.js";
-import q from "./seqstar-search.module.css";
-import { caseParts, useCaseContext, useStoryUi } from "./seqstar-viewer.js";
+} from '@molstar/seq-core/algorithms/search';
+import { KeyKind, type SeqSet } from '@molstar/seq-core/model';
+import { type Coordinates, SeqCommands, type SeqViewerContext } from '@molstar/seq-viewer';
+import { SeqViewerLayout, SeqViewerProvider } from '@molstar/seq-viewer/react';
+import { type KeyboardEvent, type ReactNode, use, useEffect, useMemo, useState } from 'react';
+import { PrismPage } from '../support/seqstar-prism.js';
+import { ScrollArea, TextAction, type TextTab, TextTabs } from '../ui/index.js';
+import { compiledCase } from './seqstar-cases.js';
+import f from './seqstar-format.module.css';
+import { PrismCanvas } from './seqstar-prism.js';
+import q from './seqstar-search.module.css';
+import { caseParts, useCaseContext, useStoryUi } from './seqstar-viewer.js';
 
-type Mode = "exact" | "degenerate" | "regex" | "approximate";
-type Alphabet = "dna" | "protein";
+type Mode = 'exact' | 'degenerate' | 'regex' | 'approximate';
+type Alphabet = 'dna' | 'protein';
 
 /** IUPAC's nucleotide codes: the application's data, passed to `compileMotif`. */
 const IUPAC: Readonly<Record<string, string>> = {
-  R: "AG",
-  Y: "CT",
-  S: "CG",
-  W: "AT",
-  K: "GT",
-  M: "AC",
-  B: "CGT",
-  D: "AGT",
-  H: "ACT",
-  V: "ACG",
-  N: "ACGT",
+  R: 'AG',
+  Y: 'CT',
+  S: 'CG',
+  W: 'AT',
+  K: 'GT',
+  M: 'AC',
+  B: 'CGT',
+  D: 'AGT',
+  H: 'ACT',
+  V: 'ACG',
+  N: 'ACGT',
 };
 /** A protein grouping of the story's own: B, Z, J and X as in IUPAC, and signs for charge and hydrophobicity. */
 const GROUPS: Readonly<Record<string, string>> = {
-  B: "DN",
-  Z: "EQ",
-  J: "IL",
-  X: "ACDEFGHIKLMNPQRSTVWY",
-  "+": "KRH",
-  "-": "DE",
-  h: "AVILMFWC",
+  B: 'DN',
+  Z: 'EQ',
+  J: 'IL',
+  X: 'ACDEFGHIKLMNPQRSTVWY',
+  '+': 'KRH',
+  '-': 'DE',
+  h: 'AVILMFWC',
 };
 const CLASSES: Record<Alphabet, Readonly<Record<string, string>>> = { dna: IUPAC, protein: GROUPS };
 
@@ -75,51 +75,51 @@ interface CaseConfig {
 }
 const CASES: readonly CaseConfig[] = [
   {
-    name: "case1",
-    tab: "p53 (protein)",
+    name: 'case1',
+    tab: 'p53 (protein)',
     targets: [
       {
-        key: "p53",
-        label: "p53",
-        alphabet: "protein",
-        examples: { exact: "RHSVV", degenerate: "+HSVV", regex: "[KR]{2}.{10,12}[KR]{3,}", approximate: "RHSWV" },
+        key: 'p53',
+        label: 'p53',
+        alphabet: 'protein',
+        examples: { exact: 'RHSVV', degenerate: '+HSVV', regex: '[KR]{2}.{10,12}[KR]{3,}', approximate: 'RHSWV' },
       },
     ],
   },
   {
-    name: "case14",
-    tab: "Gene and protein",
+    name: 'case14',
+    tab: 'Gene and protein',
     targets: [
       {
-        key: "gene",
-        label: "DNA",
-        alphabet: "dna",
-        examples: { exact: "ATGGCT", degenerate: "GCNNCC", regex: "GC..CC", approximate: "ATGGCC" },
+        key: 'gene',
+        label: 'DNA',
+        alphabet: 'dna',
+        examples: { exact: 'ATGGCT', degenerate: 'GCNNCC', regex: 'GC..CC', approximate: 'ATGGCC' },
       },
       {
-        key: "protein",
-        label: "Protein",
-        alphabet: "protein",
-        examples: { exact: "ELT", degenerate: "K-LT", regex: "K[DE]LT", approximate: "KDLTP" },
+        key: 'protein',
+        label: 'Protein',
+        alphabet: 'protein',
+        examples: { exact: 'ELT', degenerate: 'K-LT', regex: 'K[DE]LT', approximate: 'KDLTP' },
       },
     ],
   },
 ];
 const MODES: readonly TextTab[] = [
-  { value: "exact", label: "Exact", hint: "A Horspool search for the pattern's letters." },
+  { value: 'exact', label: 'Exact', hint: "A Horspool search for the pattern's letters." },
   {
-    value: "degenerate",
-    label: "Degenerate",
+    value: 'degenerate',
+    label: 'Degenerate',
     hint: "A set of letters per position, from the application's table: IUPAC codes for DNA (R is A or G), a grouping for proteins (+ basic, - acidic, h hydrophobic, B, Z, J, X).",
   },
   {
-    value: "regex",
-    label: "Regular expression",
+    value: 'regex',
+    label: 'Regular expression',
     hint: "A JavaScript regular expression over the letters, as SeqQL's (search P :regex true): [KR] one of two, . any, {2,4} a count, ^ not in a class. Every start is tried, so hits overlap.",
   },
   {
-    value: "approximate",
-    label: "Approximate",
+    value: 'approximate',
+    label: 'Approximate',
     hint: "Myers' bit-parallel search: the pattern with at most k edits (substitutions, insertions or deletions).",
   },
 ];
@@ -130,35 +130,35 @@ function moleculeCodes(set: SeqSet, key: string): Uint8Array | null {
   return set.byName(key, out) && out.kind === KeyKind.molecule ? (set.molecules[out.id]?.code ?? null) : null;
 }
 
-type HitPolicy = "best" | "all";
-type Tie = "last" | "first";
+type HitPolicy = 'best' | 'all';
+type Tie = 'last' | 'first';
 const ENDS: readonly TextTab[] = [
   {
-    value: "best",
-    label: "Best per site",
-    hint: "The ends whose edit count is a local minimum along the sequence: one hit per site, every exact match included.",
+    value: 'best',
+    label: 'Best per site',
+    hint: 'The ends whose edit count is a local minimum along the sequence: one hit per site, every exact match included.',
   },
   {
-    value: "all",
-    label: "Every end",
-    hint: "Every end with at most k edits: an edit at a site makes its neighbors hits too.",
+    value: 'all',
+    label: 'Every end',
+    hint: 'Every end with at most k edits: an edit at a site makes its neighbors hits too.',
   },
 ];
 const TIES: readonly TextTab[] = [
   {
-    value: "last",
-    label: "Last end",
+    value: 'last',
+    label: 'Last end',
     hint: "Of a run of ends with the same edit count, the last: a mismatch at the pattern's end reads as a substitution (RHSWV finds RHSVV).",
   },
   {
-    value: "first",
-    label: "First end",
+    value: 'first',
+    label: 'First end',
     hint: "Of a run of ends with the same edit count, the first: a mismatch at the pattern's end reads as a deletion (RHSWV finds RHSV).",
   },
 ];
 /** The story's two controls as the library's one option. */
 const endsOf = (hits: HitPolicy, tie: Tie): ApproximateEnds =>
-  hits === "all" ? "all" : tie === "last" ? "local_best_last" : "local_best_first";
+  hits === 'all' ? 'all' : tie === 'last' ? 'local_best_last' : 'local_best_first';
 
 /** The matcher for the application's reading of the box, or a word on why there is none. */
 function matcherFor(
@@ -170,14 +170,14 @@ function matcherFor(
 ): Matcher | string | null {
   if (text.length === 0) return null;
   try {
-    if (mode === "degenerate") {
+    if (mode === 'degenerate') {
       // Lower case stands for itself unless the table gives the letter a meaning ("h"); letters are upper case otherwise.
-      const motif = Array.from(text, (c) => (Object.hasOwn(CLASSES[alphabet], c) ? c : c.toUpperCase())).join("");
+      const motif = Array.from(text, (c) => (Object.hasOwn(CLASSES[alphabet], c) ? c : c.toUpperCase())).join('');
       return classMatcher(compileMotif(motif, CLASSES[alphabet]));
     }
-    if (mode === "regex") return regexMatcher(new RegExp(text, "i"));
+    if (mode === 'regex') return regexMatcher(new RegExp(text, 'i'));
     const pattern = toCodes(text.toUpperCase());
-    if (mode === "exact") return exactMatcher(pattern);
+    if (mode === 'exact') return exactMatcher(pattern);
     return pattern.length <= edits
       ? `${edits} edits need a pattern of ${edits + 1} letters or more`
       : approximateMatcher(pattern, edits, { ends });
@@ -196,7 +196,7 @@ const NO_HITS: Hits = { runs: new Int32Array(0), count: 0, note: null };
 
 function search(codes: Uint8Array | null, matcher: Matcher | string | null): Hits {
   if (matcher === null || !codes) return NO_HITS;
-  if (typeof matcher === "string") return { ...NO_HITS, note: matcher };
+  if (typeof matcher === 'string') return { ...NO_HITS, note: matcher };
   const found: number[] = [];
   matcher.find(codes, 0, codes.length, false, (start, stop, score) => found.push(start, stop, score));
   return { runs: Int32Array.from(found), count: found.length / 3, note: null };
@@ -211,8 +211,8 @@ function coordinatesOf(key: string, hits: Hits, only?: number): Coordinates {
   return { systems: [`seqstar:${key}`], runs };
 }
 
-const CHANNEL = "search";
-const CURRENT = "search:current";
+const CHANNEL = 'search';
+const CURRENT = 'search:current';
 
 /** Lights the hits (a highlight), the current one (an accent), and scrolls the viewer to it. */
 function light(ctx: SeqViewerContext, key: string, hits: Hits, current: number, focus: boolean) {
@@ -221,10 +221,10 @@ function light(ctx: SeqViewerContext, key: string, hits: Hits, current: number, 
     ctx.highlight.clear(CURRENT);
     return;
   }
-  ctx.highlight.set(CHANNEL, coordinatesOf(key, hits), { style: "highlight" });
+  ctx.highlight.set(CHANNEL, coordinatesOf(key, hits), { style: 'highlight' });
   const one = coordinatesOf(key, hits, current);
-  ctx.highlight.set(CURRENT, one, { style: "accent" });
-  if (focus) ctx.focus.fromLoci(one, { origin: "api" });
+  ctx.highlight.set(CURRENT, one, { style: 'accent' });
+  if (focus) ctx.focus.fromLoci(one, { origin: 'api' });
 }
 
 function Hit({
@@ -246,7 +246,7 @@ function Hit({
     <button type="button" className={q.hit} aria-current={on} onClick={onPick}>
       <span className={q.at}>{start + 1}</span>
       <span className={q.letters}>{letters}</span>
-      {score > 0 && <span className={q.edits}>{score === 1 ? "1 edit" : `${score} edits`}</span>}
+      {score > 0 && <span className={q.edits}>{score === 1 ? '1 edit' : `${score} edits`}</span>}
     </button>
   );
 }
@@ -255,10 +255,10 @@ function Hit({
 function SearchPanel({ ctx, set, config }: { ctx: SeqViewerContext; set: SeqSet; config: CaseConfig }) {
   const [targetKey, setTargetKey] = useState(config.targets[0].key);
   const target = config.targets.find((t) => t.key === targetKey) ?? config.targets[0];
-  const [mode, setMode] = useState<Mode>("exact");
+  const [mode, setMode] = useState<Mode>('exact');
   const [edits, setEdits] = useState(1);
-  const [hitPolicy, setHitPolicy] = useState<HitPolicy>("best");
-  const [tie, setTie] = useState<Tie>("last");
+  const [hitPolicy, setHitPolicy] = useState<HitPolicy>('best');
+  const [tie, setTie] = useState<Tie>('last');
   const ends = endsOf(hitPolicy, tie);
   const [text, setText] = useState(target.examples.exact);
   const [current, setCurrent] = useState(0);
@@ -292,7 +292,7 @@ function SearchPanel({ ctx, set, config }: { ctx: SeqViewerContext; set: SeqSet;
     setCurrent((at + dir + hits.count) % hits.count);
   };
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") step(e.shiftKey ? -1 : 1);
+    if (e.key === 'Enter') step(e.shiftKey ? -1 : 1);
   };
   const choose = (m: Mode) => {
     setMode(m);
@@ -309,7 +309,7 @@ function SearchPanel({ ctx, set, config }: { ctx: SeqViewerContext; set: SeqSet;
     if (hits.count > 0)
       void ctx.commands.dispatch(SeqCommands.Select, {
         target: { coordinates: coordinatesOf(target.key, hits) },
-        origin: "host:search",
+        origin: 'host:search',
       });
   };
 
@@ -330,7 +330,7 @@ function SearchPanel({ ctx, set, config }: { ctx: SeqViewerContext; set: SeqSet;
           <span className={q.caption}>Match</span>
           <TextTabs tabs={MODES as TextTab[]} value={mode} onValueChange={(v) => choose(v as Mode)} />
         </div>
-        {mode === "approximate" && (
+        {mode === 'approximate' && (
           <label className={q.edits}>
             edits
             <input
@@ -344,7 +344,7 @@ function SearchPanel({ ctx, set, config }: { ctx: SeqViewerContext; set: SeqSet;
             <b>{edits}</b>
           </label>
         )}
-        {mode === "approximate" && (
+        {mode === 'approximate' && (
           <div className={q.group}>
             <span className={q.caption}>Hits</span>
             <TextTabs
@@ -357,7 +357,7 @@ function SearchPanel({ ctx, set, config }: { ctx: SeqViewerContext; set: SeqSet;
             />
           </div>
         )}
-        {mode === "approximate" && hitPolicy === "best" && (
+        {mode === 'approximate' && hitPolicy === 'best' && (
           <div className={q.group}>
             <span className={q.caption}>Ties</span>
             <TextTabs
@@ -388,11 +388,11 @@ function SearchPanel({ ctx, set, config }: { ctx: SeqViewerContext; set: SeqSet;
         />
         <span className={q.count} aria-live="polite">
           {matcher === null
-            ? "type a pattern"
+            ? 'type a pattern'
             : hits.note
               ? hits.note
               : hits.count === 0
-                ? "no hits"
+                ? 'no hits'
                 : `${at + 1} of ${hits.count}`}
         </span>
         <TextAction onClick={() => step(-1)} disabled={hits.count === 0} title="Previous hit (Shift+Enter)">
@@ -406,7 +406,7 @@ function SearchPanel({ ctx, set, config }: { ctx: SeqViewerContext; set: SeqSet;
         </TextAction>
         <TextAction
           tone="quiet"
-          onClick={() => ctx.selection.clear("host:search")}
+          onClick={() => ctx.selection.clear('host:search')}
           title="Clear the viewer's selection"
         >
           Clear selection

@@ -10,12 +10,12 @@
 // navigator and per-behavior overrides (`forSection`). Picked per section by the layout (`ui.style`, the section's
 // `style` through `Presets.Alias`, else `Presets.Default` by layout and axis).
 
-import type { RenderProps } from "./layout.js";
-import type { NavigatorParts } from "./navigators.js";
+import type { RenderProps } from './layout.js';
+import type { NavigatorParts } from './navigators.js';
 
 export interface PresetEntry {
   readonly name: string;
-  readonly geometry: "linear" | "wrapped" | "circular";
+  readonly geometry: 'linear' | 'wrapped' | 'circular';
   /** Over `ctx.renderProps`, for its sections; the vertical overview is `render.verticalOverview`. */
   readonly render?: Partial<RenderProps>;
   /** A registered navigator's name, or parts (`navigatorFrom`); none when left out. */
@@ -32,17 +32,17 @@ export interface PresetEntry {
  */
 const textBehaviors = {
   // A double click in text is a click (nothing takes it).
-  select: { dragRegions: ["data", "column"], repeatClicks: "click" },
+  select: { dragRegions: ['data', 'column'], repeatClicks: 'click' },
   // Its default regions: on the data `select` claims a drag first (priority), so the inset and the strip pan.
   dragPan: { x: false },
   cursor: {
     byRegion: {
-      data: "crosshair",
-      column: "crosshair",
-      gutter: "grab",
-      header: "pointer",
-      navigator: "pointer",
-      vnav: "pointer",
+      data: 'crosshair',
+      column: 'crosshair',
+      gutter: 'grab',
+      header: 'pointer',
+      navigator: 'pointer',
+      vnav: 'pointer',
     },
   },
   wheel: { zoom: [] },
@@ -51,10 +51,10 @@ const textBehaviors = {
 const TEXT_STRIP = 24;
 export const DefaultPresets: readonly PresetEntry[] = [
   // No row borders (seqspec:viewer#render-props): a document opts in (`style.row_borders`), a host by its render props.
-  { name: "tracks", geometry: "linear", navigator: "rulerRail" },
+  { name: 'tracks', geometry: 'linear', navigator: 'rulerRail' },
   {
-    name: "msa",
-    geometry: "linear",
+    name: 'msa',
+    geometry: 'linear',
     // A header with room for a tree and the labels; gutters for each row's first and last residue numbers.
     render: {
       headerWidth: 200,
@@ -62,21 +62,21 @@ export const DefaultPresets: readonly PresetEntry[] = [
       gutterLeft: 40,
       gutterRight: 40,
       verticalOverview: 72,
-      verticalNav: "both",
+      verticalNav: 'both',
     },
-    navigator: "rulerRail",
+    navigator: 'rulerRail',
   },
-  { name: "strip", geometry: "linear", render: { headerWidth: 0 }, navigator: "strip", behaviors: { select: false } },
+  { name: 'strip', geometry: 'linear', render: { headerWidth: 0 }, navigator: 'strip', behaviors: { select: false } },
   {
-    name: "wrapped",
-    geometry: "wrapped",
+    name: 'wrapped',
+    geometry: 'wrapped',
     render: { headerWidth: 0, gutterRight: TEXT_STRIP },
-    navigator: "none",
+    navigator: 'none',
     behaviors: textBehaviors,
   },
   {
-    name: "compact",
-    geometry: "wrapped",
+    name: 'compact',
+    geometry: 'wrapped',
     render: {
       headerWidth: 0,
       gutterRight: TEXT_STRIP,
@@ -87,15 +87,15 @@ export const DefaultPresets: readonly PresetEntry[] = [
       wrappedTrackGap: 0,
       wrappedLaneHeight: 4,
     },
-    navigator: "none",
+    navigator: 'none',
     behaviors: textBehaviors,
   },
   // Rings (seqspec:viewer#the-render-backend): the whole axis always, no header, gutters or navigator; no zoom or pan.
   {
-    name: "circular",
-    geometry: "circular",
+    name: 'circular',
+    geometry: 'circular',
     render: { headerWidth: 0, gutterLeft: 0, gutterRight: 0, rowBorders: false },
-    navigator: "none",
+    navigator: 'none',
     behaviors: { wheel: { zoom: [] }, dragPan: false },
   },
 ];

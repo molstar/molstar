@@ -7,7 +7,7 @@
  */
 
 // The stories' support files import sources as text (`?raw`, Vite): story-search.test.ts reads one of them.
-declare module "*?raw" {
+declare module '*?raw' {
   const source: string;
   export default source;
 }

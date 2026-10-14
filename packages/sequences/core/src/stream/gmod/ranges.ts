@@ -62,7 +62,7 @@ export function join<T>(s: Shared<T>, signal?: AbortSignal): Promise<T> {
     const leave = () => {
       if (left) return false;
       left = true;
-      signal?.removeEventListener("abort", aborted);
+      signal?.removeEventListener('abort', aborted);
       s.waiters--;
       return true;
     };
@@ -71,7 +71,7 @@ export function join<T>(s: Shared<T>, signal?: AbortSignal): Promise<T> {
       if (s.waiters === 0 && !s.settled) s.controller.abort(signal?.reason);
       reject(signal?.reason);
     };
-    signal?.addEventListener("abort", aborted, { once: true });
+    signal?.addEventListener('abort', aborted, { once: true });
     s.promise.then(
       (v) => leave() && resolve(v),
       (e) => leave() && reject(e),
@@ -138,7 +138,7 @@ export function once<T>(fn: (signal: AbortSignal) => Promise<T>): (signal?: Abor
  * `bytes` decompressed: `deflate` is zlib (a BigWig or BigBed block), `gzip` a gzip member (a BGZF block). Stopped,
  * and an error, past `max` bytes (GI-07: a 61 KB BGZF block held 60 MB of zeros, where the format promises 64 KB).
  */
-export async function inflate(bytes: Uint8Array, format: "deflate" | "gzip", max: number): Promise<Uint8Array> {
+export async function inflate(bytes: Uint8Array, format: 'deflate' | 'gzip', max: number): Promise<Uint8Array> {
   // A view of an ArrayBuffer (DOM lib typings reject a SharedArrayBuffer-backed one as a BlobPart).
   const stream = new Blob([bytes as Uint8Array<ArrayBuffer>]).stream().pipeThrough(new DecompressionStream(format));
   const reader = stream.getReader();
@@ -164,7 +164,7 @@ export async function inflate(bytes: Uint8Array, format: "deflate" | "gzip", max
 export const view = (b: Uint8Array) => new DataView(b.buffer, b.byteOffset, b.byteLength);
 /** A 64-bit file offset as a number (files stay under 2^53 bytes). */
 export const u64 = (dv: DataView, at: number, le: boolean) => Number(dv.getBigUint64(at, le));
-const ascii = new TextDecoder("latin1");
+const ascii = new TextDecoder('latin1');
 export const text = (b: Uint8Array) => ascii.decode(b);
 /** The text of `b` up to its first NUL. */
 export const cstring = (b: Uint8Array) => {

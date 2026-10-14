@@ -472,7 +472,7 @@ export class TextBatch {
     this.y = new Float64Array(capacity);
     this.sx = new Float64Array(capacity);
     this.sy = new Float64Array(capacity);
-    this.text = new Array<string>(capacity).fill("");
+    this.text = new Array<string>(capacity).fill('');
     this.color = new Int32Array(capacity);
     this.alpha = new Uint8Array(capacity);
   }
@@ -525,7 +525,7 @@ export class TextBatch {
     this.y = grown(this.y, m);
     this.sx = grown(this.sx, m);
     this.sy = grown(this.sy, m);
-    while (this.text.length < m) this.text.push("");
+    while (this.text.length < m) this.text.push('');
     this.color = grown(this.color, m);
     this.alpha = grown(this.alpha, m);
   }

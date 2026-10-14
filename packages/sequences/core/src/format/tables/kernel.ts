@@ -10,12 +10,12 @@
 // (seqspec:format#themes) and the `svs.*` issue codes (seqspec:format#validation). Formats, services, providers and
 // aligners are in load/.
 
-import type { Severity } from "@molstar/seq-core/model";
-import type { Geometry, ThemeRef } from "../doc.js";
-import { clustalXRules } from "../palettes/clustal-x.js";
-import { checkSchemeDef, checkSchemeParams, percentIdentityRules } from "../palettes/schemes.js";
-import type { ChannelKind, LayerTypeEntry, SvsRegistryEntry, ThemeEntry } from "../registry.js";
-import { bool, dict, float, int, list, literal, nullable, ref, str, tuple, union } from "../schema/field-schema.js";
+import type { Severity } from '@molstar/seq-core/model';
+import type { Geometry, ThemeRef } from '../doc.js';
+import { clustalXRules } from '../palettes/clustal-x.js';
+import { checkSchemeDef, checkSchemeParams, percentIdentityRules } from '../palettes/schemes.js';
+import type { ChannelKind, LayerTypeEntry, SvsRegistryEntry, ThemeEntry } from '../registry.js';
+import { bool, dict, float, int, list, literal, nullable, ref, str, tuple, union } from '../schema/field-schema.js';
 import {
   type Fields,
   OptionalField,
@@ -23,7 +23,7 @@ import {
   RequiredField,
   SimpleParamsSchema,
   type ValuesFor,
-} from "../schema/params-schema.js";
+} from '../schema/params-schema.js';
 import {
   color,
   glyph,
@@ -34,19 +34,19 @@ import {
   palette,
   rulesSchema,
   themeRef,
-} from "./param-types.js";
+} from './param-types.js';
 
-const fieldPalette = (params: Record<string, unknown> = {}): ThemeRef => ({ theme: "field_palette", params });
-const shape = (g: string): ThemeRef => ({ theme: "uniform", params: { glyph: g } });
+const fieldPalette = (params: Record<string, unknown> = {}): ThemeRef => ({ theme: 'field_palette', params });
+const shape = (g: string): ThemeRef => ({ theme: 'uniform', params: { glyph: g } });
 /** The default themes the layer type rows name. */
 const DEFAULTS: Readonly<Record<string, ThemeRef>> = {
-  letter: { theme: "letter" },
+  letter: { theme: 'letter' },
   palette: fieldPalette(),
-  alt: fieldPalette({ field: "alt" }),
-  secondary: fieldPalette({ palette: { kind: "categorical", colors: "SecondaryStructure" } }),
-  blues: fieldPalette({ palette: { kind: "continuous", colors: "Blues" } }),
-  circle: shape("circle"),
-  tick: shape("tick"),
+  alt: fieldPalette({ field: 'alt' }),
+  secondary: fieldPalette({ palette: { kind: 'categorical', colors: 'SecondaryStructure' } }),
+  blues: fieldPalette({ palette: { kind: 'continuous', colors: 'Blues' } }),
+  circle: shape('circle'),
+  tick: shape('tick'),
 };
 
 /**
@@ -57,9 +57,9 @@ const DEFAULTS: Readonly<Record<string, ThemeRef>> = {
 export function numericDefaultColor(lo: number, hi: number, given: boolean): ThemeRef {
   if (!(lo <= hi)) return DEFAULTS.blues;
   if (lo >= 0)
-    return fieldPalette({ palette: { kind: "continuous", colors: "Blues", value_domain: [given ? lo : 0, hi] } });
+    return fieldPalette({ palette: { kind: 'continuous', colors: 'Blues', value_domain: [given ? lo : 0, hi] } });
   const m = Math.max(-lo, Math.abs(hi));
-  return fieldPalette({ palette: { kind: "continuous", colors: "RdBu", value_domain: [-m, m] } });
+  return fieldPalette({ palette: { kind: 'continuous', colors: 'RdBu', value_domain: [-m, m] } });
 }
 
 /** The layer types' table, a row each: name | shows | data | layouts | axes | sizing | fallback | color | glyph. */
@@ -82,23 +82,23 @@ dot_plot | positions against positions on two axes: pairs as segments, a grid's 
 const letterMapField = OptionalField(
   nullable(letterMap),
   null,
-  "the letter shown for each stored one: a registered map by name (complement, complement_rna, lower) or single letters mapped; null: as stored",
+  'the letter shown for each stored one: a registered map by name (complement, complement_rna, lower) or single letters mapped; null: as stored',
 );
 const density = OptionalField(
-  literal("stacked", "majority"),
-  "stacked",
+  literal('stacked', 'majority'),
+  'stacked',
   "a device column with more items than it draws one by one: each color's share stacked, or the most frequent; a hint",
 );
-const display = <V extends string>(d: V, ...values: V[]) => OptionalField(literal(...values), d, "a hint");
+const display = <V extends string>(d: V, ...values: V[]) => OptionalField(literal(...values), d, 'a hint');
 const split = OptionalField(
   nullable(
     object({
       by: RequiredField(str, "a field of the data's rows: category (a feature type), alt (a substitution)"),
-      order: OptionalField(nullable(list(str)), null, "these rows first, every one; the others in data order"),
+      order: OptionalField(nullable(list(str)), null, 'these rows first, every one; the others in data order'),
       empty: OptionalField(
-        literal("show", "hide"),
-        "show",
-        "a value of order no row has: a row (a fixed grid) or none",
+        literal('show', 'hide'),
+        'show',
+        'a value of order no row has: a row (a fixed grid) or none',
       ),
     }),
   ),
@@ -106,33 +106,33 @@ const split = OptionalField(
   "one labeled row per value of the field; the track's expanded opens them",
 );
 /** Each type's size channels: name and unit; none has a default, the viewer's size. */
-const SIZE_CHANNELS: Readonly<Record<string, readonly (readonly [string, "px" | "band"])[]>> = {
+const SIZE_CHANNELS: Readonly<Record<string, readonly (readonly [string, 'px' | 'band'])[]>> = {
   ranges: [
-    ["thickness", "band"],
-    ["radius", "px"],
+    ['thickness', 'band'],
+    ['radius', 'px'],
   ],
-  points: [["radius", "px"]],
-  variants: [["thickness", "band"]],
-  secondary: [["thickness", "band"]],
-  values: [["thickness", "band"]],
+  points: [['radius', 'px']],
+  variants: [['thickness', 'band']],
+  secondary: [['thickness', 'band']],
+  values: [['thickness', 'band']],
   pairs: [
-    ["width", "px"],
-    ["height", "band"],
-    ["radius", "px"],
+    ['width', 'px'],
+    ['height', 'band'],
+    ['radius', 'px'],
   ],
-  matrix: [["height", "band"]],
+  matrix: [['height', 'band']],
 };
-const sizeParam = OptionalField(nullable(themeRef("size")), null, "a size theme; null: the viewer's size");
+const sizeParam = OptionalField(nullable(themeRef('size')), null, "a size theme; null: the viewer's size");
 /** Each type's params (top-level layer params; the list under the table). Typed as written: `KernelLayerParams`. */
 const LAYER_PARAMS = {
   letters: {
     row: OptionalField(nullable(int), null, "an alignment row's letters; null: the block's (the reference row's)"),
     of: OptionalField(
-      union(literal("mapped"), nullable(ref("sequence", "unit")), list(ref("sequence", "unit"))),
+      union(literal('mapped'), nullable(ref('sequence', 'unit')), list(ref('sequence', 'unit'))),
       null,
       "other polymers' letters where mapping paths place them: one, a list, or mapped (every codon mapping's protein)",
     ),
-    residue_form: OptionalField(literal("auto", "one", "three"), "auto", "a protein's residues as M or Met; a hint"),
+    residue_form: OptionalField(literal('auto', 'one', 'three'), 'auto', "a protein's residues as M or Met; a hint"),
     letter_map: letterMapField,
   },
   rows: {
@@ -144,28 +144,28 @@ const LAYER_PARAMS = {
     filter: OptionalField(
       list(keyFilter),
       [],
-      "rows kept when every filter keeps them: {data, field, values, min, max} over a key table",
+      'rows kept when every filter keeps them: {data, field, values, min, max} over a key table',
     ),
-    show_tree: OptionalField(bool, true, "drawn while the order is the tree"),
-    row_subset: OptionalField(nullable(list(int)), null, "only these rows, applied before the filter"),
+    show_tree: OptionalField(bool, true, 'drawn while the order is the tree'),
+    row_subset: OptionalField(nullable(list(int)), null, 'only these rows, applied before the filter'),
     data_columns: OptionalField(
       list(
         object({
-          data: RequiredField(ref("annotation", "computed"), "a rows annotation"),
-          field: RequiredField(str, "its field"),
-          label: OptionalField(nullable(str), null, ""),
-          type: OptionalField(str, "text", "number, fraction, text, category, <ns>:<name>; unknown: text"),
+          data: RequiredField(ref('annotation', 'computed'), 'a rows annotation'),
+          field: RequiredField(str, 'its field'),
+          label: OptionalField(nullable(str), null, ''),
+          type: OptionalField(str, 'text', 'number, fraction, text, category, <ns>:<name>; unknown: text'),
         }),
       ),
       [],
-      "columns beside the rows",
+      'columns beside the rows',
     ),
     letter_map: letterMapField,
   },
   ranges: {
     thickness: sizeParam,
     radius: sizeParam,
-    display: display("lanes", "lanes", "brackets", "underline", "union"),
+    display: display('lanes', 'lanes', 'brackets', 'underline', 'union'),
     labels: OptionalField(
       bool,
       false,
@@ -189,14 +189,14 @@ const LAYER_PARAMS = {
   secondary: { thickness: sizeParam },
   values: {
     thickness: sizeParam,
-    encoding: display("bars", "bars", "line", "area"),
+    encoding: display('bars', 'bars', 'line', 'area'),
     domain: OptionalField(nullable(tuple(float, float)), null, "null: over all the layer's data; outside: clamped"),
   },
   ruler: {
     of: OptionalField(
-      union(nullable(ref("sequence", "unit", "row")), list(ref("sequence", "unit", "row"))),
+      union(nullable(ref('sequence', 'unit', 'row')), list(ref('sequence', 'unit', 'row'))),
       null,
-      "the coordinate system whose numbering it shows, placed as data is; a list: the first that maps a position",
+      'the coordinate system whose numbering it shows, placed as data is; a list: the first that maps a position',
     ),
     numbering: OptionalField(
       union(nullable(str), list(str)),
@@ -208,26 +208,26 @@ const LAYER_PARAMS = {
     width: sizeParam,
     height: sizeParam,
     radius: sizeParam,
-    display: display("both", "arcs", "ends", "both"),
+    display: display('both', 'arcs', 'ends', 'both'),
     side: OptionalField(
-      nullable(literal("above", "below")),
+      nullable(literal('above', 'below')),
       null,
-      "null: toward the letters (the side facing the nearest letters track; above when there is none); a hint",
+      'null: toward the letters (the side facing the nearest letters track; above when there is none); a hint',
     ),
-    arcs: display("always", "always", "hover"),
+    arcs: display('always', 'always', 'hover'),
     labels: OptionalField(
       bool,
       false,
       "each arc's label, else its width theme's field's value, inside it under its apex where it fits; a hint",
     ),
   },
-  logo: { scale: display("bits", "bits", "probability") },
+  logo: { scale: display('bits', 'bits', 'probability') },
   matrix: {
     height: sizeParam,
     density: OptionalField(
-      literal("majority", "maximum"),
-      "majority",
-      "states thinner than a device pixel, per device row: majority (the most common color, faded by the share of states with one) or maximum (the state with the largest value, so a rare signal shows); a hint",
+      literal('majority', 'maximum'),
+      'majority',
+      'states thinner than a device pixel, per device row: majority (the most common color, faded by the share of states with one) or maximum (the state with the largest value, so a rare signal shows); a hint',
     ),
     domain: OptionalField(nullable(tuple(float, float)), null, "null: over all the layer's data; outside: clamped"),
     order: OptionalField(
@@ -238,7 +238,7 @@ const LAYER_PARAMS = {
     filter: OptionalField(
       list(keyFilter),
       [],
-      "states kept when every filter keeps them: {data, field, values, min, max} over a table keyed by state",
+      'states kept when every filter keeps them: {data, field, values, min, max} over a table keyed by state',
     ),
   },
   dot_plot: {
@@ -253,20 +253,20 @@ const LAYER_PARAMS = {
 
 /** The fourteen kernel layer types, in the table's order (a test keeps it equal to the table and the builder's). */
 export const KERNEL_LAYER_TYPE_NAMES = [
-  "letters",
-  "rows",
-  "ranges",
-  "points",
-  "emphasis",
-  "variants",
-  "secondary",
-  "values",
-  "color",
-  "ruler",
-  "pairs",
-  "logo",
-  "matrix",
-  "dot_plot",
+  'letters',
+  'rows',
+  'ranges',
+  'points',
+  'emphasis',
+  'variants',
+  'secondary',
+  'values',
+  'color',
+  'ruler',
+  'pairs',
+  'logo',
+  'matrix',
+  'dot_plot',
 ] as const;
 export type KernelLayerTypeName = (typeof KERNEL_LAYER_TYPE_NAMES)[number];
 /** Each kernel type's own params (the layer's common ones are the tree table's), for the builder's typed methods. */
@@ -279,9 +279,9 @@ export type KernelLayerParams = {
 const rows = (table: string) =>
   table
     .trim()
-    .split("\n")
-    .map((line) => line.split(" | ").map((c) => c.trim()));
-const orNull = <T>(c: string, value: T) => (c === "-" ? null : value);
+    .split('\n')
+    .map((line) => line.split(' | ').map((c) => c.trim()));
+const orNull = <T>(c: string, value: T) => (c === '-' ? null : value);
 const channel = (kind: ChannelKind, d: ThemeRef | null) => ({ name: kind, kind, unit: null, default: d });
 
 export const KernelLayerTypes: readonly LayerTypeEntry[] = rows(LAYER_TYPES).map(
@@ -289,22 +289,22 @@ export const KernelLayerTypes: readonly LayerTypeEntry[] = rows(LAYER_TYPES).map
     name,
     description,
     options: SimpleParamsSchema((LAYER_PARAMS as Readonly<Record<string, Fields>>)[name] ?? {}),
-    accepts: accepts === "none" ? "none" : (accepts.split(" ") as Geometry[]),
-    layouts: layouts.split(" ") as LayerTypeEntry["layouts"],
-    axes: axes.split(" ") as LayerTypeEntry["axes"],
-    sizing: sizing as LayerTypeEntry["sizing"],
+    accepts: accepts === 'none' ? 'none' : (accepts.split(' ') as Geometry[]),
+    layouts: layouts.split(' ') as LayerTypeEntry['layouts'],
+    axes: axes.split(' ') as LayerTypeEntry['axes'],
+    sizing: sizing as LayerTypeEntry['sizing'],
     fallback: orNull(fallback, fallback),
     channels: [
-      channel("color", orNull(color, DEFAULTS[color])),
-      ...(glyph === "-" ? [] : [channel("glyph", DEFAULTS[glyph])]),
-      ...(SIZE_CHANNELS[name] ?? []).map(([n, unit]) => ({ name: n, kind: "size" as const, unit, default: null })),
+      channel('color', orNull(color, DEFAULTS[color])),
+      ...(glyph === '-' ? [] : [channel('glyph', DEFAULTS[glyph])]),
+      ...(SIZE_CHANNELS[name] ?? []).map(([n, unit]) => ({ name: n, kind: 'size' as const, unit, default: null })),
     ],
   }),
 );
 
 type P = Readonly<Record<string, unknown>>;
 /** A `rules` theme over `rules`, nothing by default (the named tables). */
-const ruled = (rules: unknown[]): ThemeRef => ({ theme: "rules", params: { rules } });
+const ruled = (rules: unknown[]): ThemeRef => ({ theme: 'rules', params: { rules } });
 /** The named rule tables: each the `rules` theme it stands for, its params filling the table. */
 const NAMED_TABLES: Readonly<Record<string, (p: P) => ThemeRef>> = {
   identity_to_row: (p) => ruled([{ when: [{ measure: { equals_row: p.row ?? null }, min: 1 }], theme: p.base }]),
@@ -322,16 +322,16 @@ const themes = (table: string, params: Readonly<Record<string, Fields>>): ThemeE
     name,
     description,
     params: Object.fromEntries(
-      kinds.split(" ").map((k) => [k, SimpleParamsSchema(params[`${name}/${k}`] ?? params[name] ?? {})]),
+      kinds.split(' ').map((k) => [k, SimpleParamsSchema(params[`${name}/${k}`] ?? params[name] ?? {})]),
     ),
     fallback: null,
     expand: NAMED_TABLES[name],
-    check: name === "scheme" ? checkSchemeParams : undefined,
+    check: name === 'scheme' ? checkSchemeParams : undefined,
   }));
 /** An inline color scheme (seqspec:format#color-schemes), checked by `checkSchemeDef`. */
-const schemeDef = { name: "SchemeDef", check: checkSchemeDef };
-const categorical = () => OptionalField(palette, { kind: "categorical", colors: "Category10" }, "");
-const base = OptionalField(themeRef("color"), DEFAULTS.letter, "the theme it shades");
+const schemeDef = { name: 'SchemeDef', check: checkSchemeDef };
+const categorical = () => OptionalField(palette, { kind: 'categorical', colors: 'Category10' }, '');
+const base = OptionalField(themeRef('color'), DEFAULTS.letter, 'the theme it shades');
 
 const KernelThemeList: readonly ThemeEntry[] = themes(
   `
@@ -351,19 +351,19 @@ conservation_shading | color | the base color faded by the column's value where 
 field_map | glyph | the field's value through a map
 field_glyph | glyph | the field's values are shape names or one character`,
   {
-    "uniform/color": { color: RequiredField(color, "the color") },
-    "uniform/glyph": { glyph: RequiredField(glyph, "the glyph") },
-    "uniform/size": { size: RequiredField(float, "the size, in the channel's unit") },
+    'uniform/color': { color: RequiredField(color, 'the color') },
+    'uniform/glyph': { glyph: RequiredField(glyph, 'the glyph') },
+    'uniform/size': { size: RequiredField(float, "the size, in the channel's unit") },
     field_scale: {
-      field: OptionalField(nullable(str), null, "null: value"),
+      field: OptionalField(nullable(str), null, 'null: value'),
       domain: OptionalField(nullable(tuple(float, float)), null, "null: the layer's data's, or its domain_group's"),
       range: RequiredField(tuple(float, float), "the sizes the domain's ends map to, in the channel's unit"),
       scale: OptionalField(
-        literal("linear", "sqrt", "log"),
-        "linear",
+        literal('linear', 'sqrt', 'log'),
+        'linear',
         "log: of one plus the distance from the domain's start",
       ),
-      map: OptionalField(nullable(dict(float)), null, "a string field: value -> size, in place of domain"),
+      map: OptionalField(nullable(dict(float)), null, 'a string field: value -> size, in place of domain'),
       default: OptionalField(
         nullable(float),
         null,
@@ -374,17 +374,17 @@ field_glyph | glyph | the field's values are shape names or one character`,
       field: OptionalField(
         nullable(str),
         null,
-        "null: value for values and matrix; else category, or the item (id, label) when there is no category column",
+        'null: value for values and matrix; else category, or the item (id, label) when there is no category column',
       ),
       palette: categorical(),
     },
-    field_color: { field: OptionalField(str, "color", "") },
+    field_color: { field: OptionalField(str, 'color', '') },
     scheme: {
-      name: OptionalField(nullable(str), null, "a registered color scheme; exactly one of name and custom"),
+      name: OptionalField(nullable(str), null, 'a registered color scheme; exactly one of name and custom'),
       custom: OptionalField(
         nullable(schemeDef),
         null,
-        "an inline scheme: letters, sequential, diverging or categorical",
+        'an inline scheme: letters, sequential, diverging or categorical',
       ),
       overrides: OptionalField(dict(color), {}, "a letters scheme's letters recolored"),
       field: OptionalField(nullable(str), null, "values and categories: the field, as field_palette's"),
@@ -393,7 +393,7 @@ field_glyph | glyph | the field's values are shape names or one character`,
         null,
         "values: [min, max]; null: the layer's",
       ),
-      reverse: OptionalField(bool, false, "values: the ramp reversed"),
+      reverse: OptionalField(bool, false, 'values: the ramp reversed'),
     },
     letter: {
       colors: OptionalField(
@@ -404,27 +404,27 @@ field_glyph | glyph | the field's values are shape names or one character`,
     },
     by_unit: { palette: categorical() },
     by_copy_group: { palette: categorical() },
-    identity_to_row: { row: OptionalField(nullable(int), null, "null: the reference row"), base },
+    identity_to_row: { row: OptionalField(nullable(int), null, 'null: the reference row'), base },
     conservation_shading: {
-      data: RequiredField(ref("annotation", "computed"), "values over the alignment's columns"),
-      threshold: OptionalField(float, 0, ""),
+      data: RequiredField(ref('annotation', 'computed'), "values over the alignment's columns"),
+      threshold: OptionalField(float, 0, ''),
       base,
     },
     field_map: {
-      field: OptionalField(nullable(str), null, "null: category"),
-      map: RequiredField(dict(glyph), "value -> glyph"),
-      default: OptionalField(nullable(glyph), null, "for values the map lacks; null: none"),
+      field: OptionalField(nullable(str), null, 'null: category'),
+      map: RequiredField(dict(glyph), 'value -> glyph'),
+      default: OptionalField(nullable(glyph), null, 'for values the map lacks; null: none'),
     },
-    field_glyph: { field: OptionalField(str, "glyph", "") },
+    field_glyph: { field: OptionalField(str, 'glyph', '') },
   },
 ).map((t) =>
-  t.name === "rules"
+  t.name === 'rules'
     ? {
         ...t,
         params: {
-          color: rulesSchema("color", color),
-          glyph: rulesSchema("glyph", glyph),
-          size: rulesSchema("size", float),
+          color: rulesSchema('color', color),
+          glyph: rulesSchema('glyph', glyph),
+          size: rulesSchema('size', float),
         },
       }
     : t,
@@ -464,19 +464,19 @@ const codes = (s: string, severity: Severity) =>
 export const KernelTables: SvsRegistryEntry = {
   layerTypes: KernelLayerTypes,
   themes: KernelThemeList,
-  issueCodes: [...codes(ERRORS, "error"), ...codes(WARNINGS, "warning"), ...codes(INFOS, "info")],
+  issueCodes: [...codes(ERRORS, 'error'), ...codes(WARNINGS, 'warning'), ...codes(INFOS, 'info')],
 };
 
 const mvsField = (description: string) => OptionalField(nullable(str), null, description);
-const structureRef = mvsField("the MVS ref of the structure node (the application writes it)");
+const structureRef = mvsField('the MVS ref of the structure node (the application writes it)');
 
 /** The `mvs` extension (seqspec:format#extensions): links units to a MolViewSpec state; nothing in Seq* reads it. */
 export const MvsRegistry: SvsRegistryEntry = {
   custom: [
-    { namespace: "mvs", kind: "complex", schema: SimpleParamsSchema({ structure_ref: structureRef }) },
+    { namespace: 'mvs', kind: 'complex', schema: SimpleParamsSchema({ structure_ref: structureRef }) },
     {
-      namespace: "mvs",
-      kind: "unit",
+      namespace: 'mvs',
+      kind: 'unit',
       schema: SimpleParamsSchema({
         structure_ref: structureRef,
         label_asym_id: mvsField("MVS's label_asym_id"),

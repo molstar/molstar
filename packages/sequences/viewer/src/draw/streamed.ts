@@ -18,13 +18,13 @@
 // (progress.ts). ST7: through a path, a region's bins and an item's range are its system's positions, taken to the
 // block's indices (`StreamView.toBlock`).
 
-import { AxisGeometry, type AxisView } from "../axis.js";
-import type { Hit } from "../hit.js";
-import { type Features, featureAt } from "../prepare.js";
-import { segWindow } from "../pyramids.js";
-import { laneHeight, laneInset, lanePad } from "../renderer-helpers.js";
-import { LETTERS_PER_PX, RegionState, type StreamItems } from "../stream-contract.js";
-import { streamStats } from "../stream-sources.js";
+import { AxisGeometry, type AxisView } from '../axis.js';
+import type { Hit } from '../hit.js';
+import { type Features, featureAt } from '../prepare.js';
+import { segWindow } from '../pyramids.js';
+import { laneHeight, laneInset, lanePad } from '../renderer-helpers.js';
+import { LETTERS_PER_PX, RegionState, type StreamItems } from '../stream-contract.js';
+import { streamStats } from '../stream-sources.js';
 import {
   NO_COLOR,
   type PathBatch,
@@ -35,8 +35,8 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "./backend.js";
-import { shownHull, visibleRange } from "./cells.js";
+} from './backend.js';
+import { shownHull, visibleRange } from './cells.js';
 import {
   densityAdd,
   densityCover,
@@ -47,11 +47,11 @@ import {
   densitySlot,
   densityStart,
   featureKey,
-} from "./density.js";
-import { featureHoverKey, laneRows } from "./features.js";
-import { HoverOutline, hoverEmphasis } from "./hover.js";
-import { placeRun } from "./place.js";
-import type { DrawView } from "./view.js";
+} from './density.js';
+import { featureHoverKey, laneRows } from './features.js';
+import { HoverOutline, hoverEmphasis } from './hover.js';
+import { placeRun } from './place.js';
+import type { DrawView } from './view.js';
 
 /** The region drawn: its items' first positions, and in `from` the index below which they are an earlier region's. */
 const owner = { first: null as Int32Array | null };
@@ -166,18 +166,18 @@ export function drawStreamedItems(
 }
 
 // The zoom gate's hints (ST4b): over estimated counts, and over a gated data region (a click there loads it).
-const ZOOM = "zoom in to see features";
+const ZOOM = 'zoom in to see features';
 const CAPPED = "more lanes than fit: raise the track's height";
-const ZOOM_POINTS = "zoom in to see variants";
-const GATED = "zoom in to see features, or click to load them";
-const GATED_POINTS = "zoom in to see variants, or click to load them";
+const ZOOM_POINTS = 'zoom in to see variants';
+const GATED = 'zoom in to see features, or click to load them';
+const GATED_POINTS = 'zoom in to see variants, or click to load them';
 const hints = new TextBatch(2);
 /** The hint centered over the data area between device rows y0 and y1, where it fits. */
 function hinted(v: DrawView, y0: number, y1: number, words: string) {
   const dpr = v.dpr;
   const left = Math.round(v.left * dpr);
   const right = Math.round(v.right * dpr);
-  const font = v.text.font("ui", Math.max(7, Math.min(11, Math.floor(((y1 - y0) * 0.6) / dpr))), 600);
+  const font = v.text.font('ui', Math.max(7, Math.min(11, Math.floor(((y1 - y0) * 0.6) / dpr))), 600);
   if (right - left < v.text.label(words, font).width * dpr + 16 * dpr || y1 - y0 < 9 * dpr) return;
   hints.reset();
   hints.style(font, TextAlign.center, TextBaseline.middle);
@@ -359,7 +359,7 @@ export function lettersGate(
     paths.coords[q] = e;
     paths.coords[q + 1] = y1 - (e - x);
   }
-  const font = v.text.font("ui", Math.max(7, Math.min(11, Math.floor((h * 0.6) / dpr))), 400);
+  const font = v.text.font('ui', Math.max(7, Math.min(11, Math.floor((h * 0.6) / dpr))), 400);
   const w = v.text.label(HINT, font).width * dpr;
   if (x1 - x0 < w + 16 * dpr || h < 9 * dpr) return true;
   text.style(font, TextAlign.center, TextBaseline.middle);
@@ -369,7 +369,7 @@ export function lettersGate(
   text.y[t] = Math.round((y0 + y1) / 2) + 0.5;
   return true;
 }
-const HINT = "zoom in to see letters";
+const HINT = 'zoom in to see letters';
 
 let runs = new Int32Array(64);
 const part = new Float64Array(5);

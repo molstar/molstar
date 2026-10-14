@@ -10,13 +10,13 @@
 // and the formats, the `uniprot` service, the kernel providers, the node providers (`nj`, `upgma`) and the aligners of
 // load/.
 
-import { KernelAligners, KernelProviders } from "./load/entries.js";
-import { KernelFormats, UniprotService } from "./load/formats.js";
-import { KernelNodeProviders } from "./load/node-providers.js";
-import { KernelLetterMaps } from "./palettes/letter-maps.js";
-import { KernelColorSchemes } from "./palettes/schemes.js";
-import type { SvsRegistryEntry } from "./registry.js";
-import { KernelTables } from "./tables/kernel.js";
+import { KernelAligners, KernelProviders } from './load/entries.js';
+import { KernelFormats, UniprotService } from './load/formats.js';
+import { KernelNodeProviders } from './load/node-providers.js';
+import { KernelLetterMaps } from './palettes/letter-maps.js';
+import { KernelColorSchemes } from './palettes/schemes.js';
+import type { SvsRegistryEntry } from './registry.js';
+import { KernelTables } from './tables/kernel.js';
 
 export const KernelRegistry: SvsRegistryEntry = {
   ...KernelTables,

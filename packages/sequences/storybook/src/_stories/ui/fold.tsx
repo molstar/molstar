@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { ReactNode } from "react";
-import styles from "./fold.module.css";
+import type { ReactNode } from 'react';
+import styles from './fold.module.css';
 
 /**
  * What a head folds: always there, its height eased between nothing and all of it (a grid row from 0fr to 1fr, so

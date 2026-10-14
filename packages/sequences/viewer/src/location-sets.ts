@@ -11,15 +11,15 @@
 // bookmarks, an inline `ranges` annotation the bookmark actions edit, stepped through `ctx.results`; and
 // `results.save`, a results set kept as a location set. Edge rate throughout.
 
-import { type DocNode, type Op, sectionHighlights } from "@molstar/seq-core/format";
-import { type AnnotationInput, KeyKind, type KeyTarget, type Loci, type SeqSet } from "@molstar/seq-core/model";
-import { SeqSelection } from "@molstar/seq-core/model/query";
-import { type ActionEntry, nodePath } from "./actions.js";
-import type { SeqViewerContext } from "./context.js";
-import type { Assembled } from "./graph.js";
-import type { HighlightManager } from "./highlight.js";
-import { isCoordinates } from "./projection.js";
-import type { Viewports } from "./viewport.js";
+import { type DocNode, type Op, sectionHighlights } from '@molstar/seq-core/format';
+import { type AnnotationInput, KeyKind, type KeyTarget, type Loci, type SeqSet } from '@molstar/seq-core/model';
+import { SeqSelection } from '@molstar/seq-core/model/query';
+import { type ActionEntry, nodePath } from './actions.js';
+import type { SeqViewerContext } from './context.js';
+import type { Assembled } from './graph.js';
+import type { HighlightManager } from './highlight.js';
+import { isCoordinates } from './projection.js';
+import type { Viewports } from './viewport.js';
 
 /**
  * The channels of the shown view's sections' `highlights`: `set:<section>/<n>`, one per entry, lit in its section only;
@@ -74,20 +74,20 @@ export interface BookmarkStep {
   readonly data?: string;
 }
 type Row = { target: string; start: number; stop: number; id: string; label?: string };
-type Run = Parameters<ActionEntry["run"]>[2];
+type Run = Parameters<ActionEntry['run']>[2];
 
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };
 
 const setOf = (ctx: SeqViewerContext) => ctx.graph.assembled.value?.set ?? null;
 const nodeOf = (ctx: SeqViewerContext, ref: string) => nodePath(ctx.document.shown.value, ref)?.at(-1) ?? null;
 const isSection = (ctx: SeqViewerContext, ref: unknown) =>
-  typeof ref === "string" && nodeOf(ctx, ref)?.kind === "section";
+  typeof ref === 'string' && nodeOf(ctx, ref)?.kind === 'section';
 /** The bookmark set's ref: `data`, else `<section>.bookmarks`. */
 export const bookmarksOf = (section: string, data?: string) => data ?? `${section}.bookmarks`;
 /** An inline rows table of a `ranges` annotation (what the actions write), or null: not one the actions can edit. */
 function rowsOf(n: DocNode | null): Row[] | null {
   const p = n?.params;
-  return n?.kind === "annotation" && p?.geometry === "ranges" && Array.isArray(p.value) ? (p.value as Row[]) : null;
+  return n?.kind === 'annotation' && p?.geometry === 'ranges' && Array.isArray(p.value) ? (p.value as Row[]) : null;
 }
 /** `toRangesInput`'s columns as the rows form a document keeps (no `score`; a null label left out). */
 function rowsFrom(a: AnnotationInput): Row[] {
@@ -112,8 +112,8 @@ function itemIds(set: SeqSet | null, ref: string): string[] {
 function insertSet(ctx: SeqViewerContext, section: string, ref: string, label: string, value: Row[]): Op[] {
   const old = (nodeOf(ctx, section)?.params?.highlights as unknown[] | undefined) ?? [];
   return [
-    { op: "insert", parent: "data", node: { kind: "annotation", ref, params: { geometry: "ranges", label, value } } },
-    { op: "set", ref: section, params: { highlights: [...old, { data: ref }] } },
+    { op: 'insert', parent: 'data', node: { kind: 'annotation', ref, params: { geometry: 'ranges', label, value } } },
+    { op: 'set', ref: section, params: { highlights: [...old, { data: ref }] } },
   ];
 }
 
@@ -124,7 +124,7 @@ function bookmarkResults(ctx: SeqViewerContext, section: string, data?: string):
   const ref = bookmarksOf(section, data);
   const ids = itemIds(setOf(ctx), ref).filter((id) => ctx.refs.toLoci(ref, { items: [id] }));
   const st = ctx.results.sets.value.get(stepName(section));
-  if (!st || st.labels.join("\n") !== ids.join("\n")) {
+  if (!st || st.labels.join('\n') !== ids.join('\n')) {
     const loci = ids.map((id) => ctx.refs.toLoci(ref, { items: [id] }) as Loci);
     ctx.results.set(stepName(section), loci, { labels: ids, section, light: false });
   }
@@ -147,15 +147,15 @@ function add(ctx: SeqViewerContext, a: BookmarkAdd, origin: Run) {
   const sel = SeqSelection.union(SeqSelection.fromLoci(set, [a.loci]));
   const rows = rowsFrom(SeqSelection.toRangesInput(sel, ref, { ids: [`b${n}`], labels: [a.label ?? null] }));
   const ops: Op[] = node
-    ? [{ op: "set", ref, params: { value: [...old, ...rows] } }]
-    : insertSet(ctx, a.section, ref, "Bookmarks", rows);
-  void ctx.document.propose({ format: "seq_view_spec_patch", ops }, "Add bookmark", origin);
+    ? [{ op: 'set', ref, params: { value: [...old, ...rows] } }]
+    : insertSet(ctx, a.section, ref, 'Bookmarks', rows);
+  void ctx.document.propose({ format: 'seq_view_spec_patch', ops }, 'Add bookmark', origin);
 }
 
 function step(ctx: SeqViewerContext, s: BookmarkStep, origin: Run) {
   const at = bookmarkAt(ctx, s.section);
   const ids = bookmarkResults(ctx, s.section, s.data);
-  const i = ids.indexOf(at ?? "");
+  const i = ids.indexOf(at ?? '');
   const next = i < 0 ? (s.dir > 0 ? 0 : ids.length - 1) : (i + s.dir + ids.length) % ids.length;
   ctx.results.go(stepName(s.section), next, { origin });
 }
@@ -179,7 +179,7 @@ export interface ResultsSave {
 /** One item per result (`r<k>`, labeled as the results are), by value, and a `highlights` entry. */
 function save(ctx: SeqViewerContext, a: ResultsSave, origin: Run) {
   const set = setOf(ctx) as SeqSet;
-  const base = a.ref ?? `${a.section}.${a.name.replace(/[^A-Za-z0-9_.-]/g, "-")}`;
+  const base = a.ref ?? `${a.section}.${a.name.replace(/[^A-Za-z0-9_.-]/g, '-')}`;
   // A ref the caller names is replaced when it is an inline set of ours; otherwise (and by default) one of its own.
   const replaced = a.ref !== undefined && rowsOf(nodeOf(ctx, a.ref)) !== null;
   let ref = base;
@@ -194,11 +194,11 @@ function save(ctx: SeqViewerContext, a: ResultsSave, origin: Run) {
   });
   const label = a.label ?? a.name;
   const ops: Op[] = replaced
-    ? [{ op: "set", ref, params: { label, value: rows } }]
+    ? [{ op: 'set', ref, params: { label, value: rows } }]
     : insertSet(ctx, a.section, ref, label, rows);
   void ctx.document.propose(
-    { format: "seq_view_spec_patch", ops },
-    replaced ? "Keep results again" : "Keep results",
+    { format: 'seq_view_spec_patch', ops },
+    replaced ? 'Keep results again' : 'Keep results',
     origin,
   );
 }
@@ -208,7 +208,7 @@ export interface HighlightRemove {
   readonly section: string;
   readonly data: string | readonly string[];
 }
-const datasOf = (a: HighlightRemove): readonly string[] => (typeof a.data === "string" ? [a.data] : a.data);
+const datasOf = (a: HighlightRemove): readonly string[] => (typeof a.data === 'string' ? [a.data] : a.data);
 const highlightsOf = (ctx: SeqViewerContext, section: string) =>
   (nodeOf(ctx, section)?.params?.highlights as { data: string }[] | undefined) ?? [];
 /**
@@ -218,21 +218,21 @@ const highlightsOf = (ctx: SeqViewerContext, section: string) =>
 function removeHighlight(ctx: SeqViewerContext, a: HighlightRemove, origin: Run) {
   const datas = datasOf(a);
   const rest = highlightsOf(ctx, a.section).filter((h) => !datas.includes(h.data));
-  const ops: Op[] = [{ op: "set", ref: a.section, params: { highlights: rest } }];
+  const ops: Op[] = [{ op: 'set', ref: a.section, params: { highlights: rest } }];
   for (const data of datas)
     if (data.startsWith(`${a.section}.`) && rowsOf(nodeOf(ctx, data)) !== null && !rest.some((h) => h.data === data))
-      ops.push({ op: "remove", ref: data });
-  void ctx.document.propose({ format: "seq_view_spec_patch", ops }, "Remove highlight", origin);
+      ops.push({ op: 'remove', ref: data });
+  void ctx.document.propose({ format: 'seq_view_spec_patch', ops }, 'Remove highlight', origin);
 }
 
-const entry = <T>(name: string, title: string, when: ActionEntry<T>["when"], run: ActionEntry<T>["run"]) =>
+const entry = <T>(name: string, title: string, when: ActionEntry<T>['when'], run: ActionEntry<T>['run']) =>
   ({ name, title, when, run }) as ActionEntry;
 
 /** `bookmark.add`, `bookmark.remove`, `bookmark.step`, `bookmark.go`, `highlight.remove` and `results.save`. */
 export const BookmarkActions: readonly ActionEntry[] = [
   entry<BookmarkAdd>(
-    "bookmark.add",
-    "Bookmark",
+    'bookmark.add',
+    'Bookmark',
     (ctx, a) => {
       const set = setOf(ctx);
       if (!a || !isSection(ctx, a.section) || !set || a.loci?.set !== set) return false;
@@ -242,8 +242,8 @@ export const BookmarkActions: readonly ActionEntry[] = [
     add,
   ),
   entry<BookmarkItem>(
-    "bookmark.remove",
-    "Remove bookmark",
+    'bookmark.remove',
+    'Remove bookmark',
     (ctx, a) =>
       !!a &&
       isSection(ctx, a.section) &&
@@ -252,15 +252,15 @@ export const BookmarkActions: readonly ActionEntry[] = [
       const ref = bookmarksOf(a.section, a.data);
       const value = (rowsOf(nodeOf(ctx, ref)) ?? []).filter((r) => r.id !== a.item);
       void ctx.document.propose(
-        { format: "seq_view_spec_patch", ops: [{ op: "set", ref, params: { value } }] },
-        "Remove bookmark",
+        { format: 'seq_view_spec_patch', ops: [{ op: 'set', ref, params: { value } }] },
+        'Remove bookmark',
         origin,
       );
     },
   ),
   entry<BookmarkStep>(
-    "bookmark.step",
-    "Next bookmark",
+    'bookmark.step',
+    'Next bookmark',
     (ctx, s) =>
       !!s &&
       (s.dir === 1 || s.dir === -1) &&
@@ -269,22 +269,22 @@ export const BookmarkActions: readonly ActionEntry[] = [
     step,
   ),
   entry<BookmarkItem>(
-    "bookmark.go",
-    "Go to bookmark",
+    'bookmark.go',
+    'Go to bookmark',
     (ctx, b) =>
       !!b && isSection(ctx, b.section) && itemIds(setOf(ctx), bookmarksOf(b.section, b.data)).includes(b.item),
     go,
   ),
   entry<HighlightRemove>(
-    "highlight.remove",
-    "Remove highlight",
+    'highlight.remove',
+    'Remove highlight',
     (ctx, a) =>
       !!a && isSection(ctx, a.section) && highlightsOf(ctx, a.section).some((h) => datasOf(a).includes(h.data)),
     removeHighlight,
   ),
   entry<ResultsSave>(
-    "results.save",
-    "Keep results",
+    'results.save',
+    'Keep results',
     (ctx, a) => !!a && isSection(ctx, a.section) && !!setOf(ctx) && ctx.results.results(a.name).length > 0,
     save,
   ),

@@ -15,9 +15,9 @@
 // priority (the layer's order, then the longer item). Drawn per ring frame from the kept arrays, upright, on the real
 // backend (not through the ring map): nothing is allocated per frame.
 
-import { fitIn, fitted, type TextManagerApi } from "../text.js";
-import type { RenderBackend } from "./backend.js";
-import { PathBatch, PathMode, PathVerb, SkinToken, TextAlign, TextBaseline, TextBatch } from "./backend.js";
+import { fitIn, fitted, type TextManagerApi } from '../text.js';
+import type { RenderBackend } from './backend.js';
+import { PathBatch, PathMode, PathVerb, SkinToken, TextAlign, TextBaseline, TextBatch } from './backend.js';
 
 /**
  * What a renderer lists for the ring's labels: an item's extent on block `block`, its text, and its annotation and row
@@ -100,8 +100,8 @@ export class RingLabels {
 
   /** Places `items` in `frame`, texts cut to the room their side leaves (edge-rate). */
   place(items: readonly RingLabelInput[], f: RingLabelFrame, text: TextManagerApi): this {
-    const font = text.font("ui", LABEL_PX);
-    const ellipsis = text.label("…", font).width;
+    const font = text.font('ui', LABEL_PX);
+    const ellipsis = text.label('…', font).width;
     const kept: { i: RingLabelInput; side: number; y: number }[] = [];
     const cap = Math.max(0, Math.floor((f.bottom - f.top) / f.line));
     for (const side of [1, -1]) {
@@ -198,7 +198,7 @@ export class RingLabels {
     leaders.reset();
     this.right.reset();
     this.left.reset();
-    const font = text.font("ui", LABEL_PX);
+    const font = text.font('ui', LABEL_PX);
     this.right.style(font, LEFT, MIDDLE);
     this.left.style(font, RIGHT, MIDDLE);
     this.right.begin(INK);

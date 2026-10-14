@@ -10,10 +10,10 @@
 // key, and no alpha, 0 included, turns a color into NO_COLOR or a skin token's key (which a near-white color with 255
 // in its top byte did).
 
-import { expect, it } from "vitest";
-import { NO_COLOR, packAlpha, SkinToken } from "../src/draw/api.js";
+import { expect, it } from 'vitest';
+import { NO_COLOR, packAlpha, SkinToken } from '../src/draw/api.js';
 
-it("a key is the color when opaque, and never NO_COLOR or a skin token", () => {
+it('a key is the color when opaque, and never NO_COLOR or a skin token', () => {
   const tokens = new Set<number>([NO_COLOR, ...Object.values(SkinToken)]);
   for (const c of [0, 0x123456, 0xfffffe, 0xffffff - 3, 0xffffff])
     for (let a = 0; a <= 255; a++) {

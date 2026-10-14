@@ -12,20 +12,20 @@
 // are walked: seqspec:seqql#elements-and-groups, seqspec:seqql#performance). Each reads `ctx.slot`; a value not there
 // is missing. Tests run per element: no destructuring and no closure per call.
 
-import { type Annotation, Annotations } from "../annotation.js";
-import type { NameId, SeqIndex } from "../common.js";
-import { CoordinateSystemKind as K } from "../coordinates.js";
-import { Numbering, type PositionLabel } from "../numbering.js";
-import type { SeqSet } from "../set.js";
-import type { CompileContext, QueryFn, SymbolRuntime } from "./compile.js";
-import { F64, type QueryContext } from "./context.js";
-import { firstAfter } from "./kernels.js";
-import { annotationOf, rt, unionOf, Wants, wrongKind } from "./runtime.js";
-import type { SeqSelection } from "./selection.js";
-import { domainOf, labelAt, nameOf, numberingOf } from "./systems.js";
+import { type Annotation, Annotations } from '../annotation.js';
+import type { NameId, SeqIndex } from '../common.js';
+import { CoordinateSystemKind as K } from '../coordinates.js';
+import { Numbering, type PositionLabel } from '../numbering.js';
+import type { SeqSet } from '../set.js';
+import type { CompileContext, QueryFn, SymbolRuntime } from './compile.js';
+import { F64, type QueryContext } from './context.js';
+import { firstAfter } from './kernels.js';
+import { annotationOf, rt, unionOf, Wants, wrongKind } from './runtime.js';
+import type { SeqSelection } from './selection.js';
+import { domainOf, labelAt, nameOf, numberingOf } from './systems.js';
 
 const dom = new Int32Array(2);
-const KINDS = ["molecule", "unit", "row", "columns"];
+const KINDS = ['molecule', 'unit', 'row', 'columns'];
 const str = (set: SeqSet, id: number) => (id >= 0 ? set.strings.get(id) : undefined);
 
 /** The letter code at a position; 0 where letters are not held (the columns, a lazy molecule, a row not held). */
@@ -48,17 +48,17 @@ const DIGITS = /^(-?[0-9]+)(.*)$/s;
  * per position. Equal exactly where the label's text, as `(label)` gives it, is the constant.
  */
 function labelEquals(c: CompileContext, values: readonly string[]): QueryFn<number> {
-  const name = c.raw<string>("numbering") ?? null;
+  const name = c.raw<string>('numbering') ?? null;
   const at = { set: null as SeqSet | null, kind: -1, id: -1, row: -1, n: null as Numbering | null | undefined };
   const nums = new Float64Array(values.length);
   const ids = new Int32Array(values.length);
-  const empty = values.includes("") ? 1 : 0;
+  const empty = values.includes('') ? 1 : 0;
   const parsed = { set: null as SeqSet | null, n: null as Numbering | null };
   /** The constants as labels of `n`'s kind: `ids` a suffix (-1 none, -2 none can match) or a name. */
   const parse = (set: SeqSet, n: Numbering | null) => {
     for (let k = 0; k < values.length; k++) {
       const v = values[k] as string;
-      if (n?.method === "names") {
+      if (n?.method === 'names') {
         ids[k] = set.strings.find(v);
         continue;
       }
@@ -67,7 +67,7 @@ function labelEquals(c: CompileContext, values: readonly string[]): QueryFn<numb
       nums[k] = ok ? Number(m[1]) : Number.NaN;
       ids[k] = !ok
         ? -2
-        : m[2] === ""
+        : m[2] === ''
           ? -1
           : n === null
             ? -2
@@ -99,7 +99,7 @@ function labelEquals(c: CompileContext, values: readonly string[]): QueryFn<numb
       return 0;
     }
     if (!Numbering.labelOf(n, s.index as SeqIndex, label)) return empty;
-    if (n.method === "names") {
+    if (n.method === 'names') {
       for (let k = 0; k < values.length; k++) if (ids[k] === label.name) return 1;
       return 0;
     }
@@ -110,7 +110,7 @@ function labelEquals(c: CompileContext, values: readonly string[]): QueryFn<numb
 
 /** `(label :numbering N)`: the numbering looked up once per system, the label per position. */
 function positionLabel(c: CompileContext): QueryFn<unknown> {
-  const name = c.raw<string>("numbering") ?? null;
+  const name = c.raw<string>('numbering') ?? null;
   const at = { set: null as SeqSet | null, kind: -1, id: -1, row: -1, n: null as Numbering | null | undefined };
   return (ctx) => {
     const s = ctx.slot;
@@ -121,7 +121,7 @@ function positionLabel(c: CompileContext): QueryFn<unknown> {
       at.id = s.id;
       at.row = s.row;
     }
-    return at.n === undefined ? "" : labelAt(ctx.set, at.n, s.index);
+    return at.n === undefined ? '' : labelAt(ctx.set, at.n, s.index);
   };
 }
 
@@ -153,13 +153,13 @@ const numeric = (name: string, writer: (c: CompileContext) => QueryFn<void>): Sy
 /** `(value-of A)`: A resolved once per set, its slot once per system, its value per position (NaN: none); a dense
  * array is read inline (a double returned from a call is boxed). */
 function valueOfAnnotation(c: CompileContext): QueryFn<void> {
-  const [ref, path] = [String(c.raw("0")), `${c.path}/args/0`];
+  const [ref, path] = [String(c.raw('0')), `${c.path}/args/0`];
   const at = { set: null as SeqSet | null, a: null as Annotation | null, kind: -1, id: -1, row: -1, slot: -1 };
   return (ctx) => {
     const s = ctx.slot;
     if (ctx.set !== at.set) {
       const a = ctx.set.annotations[annotationOf(ctx, ref, path, Wants.values)] as Annotation;
-      if (a.geometry !== "values") wrongKind(ctx, ref, path, "", `${a.geometry} annotation`);
+      if (a.geometry !== 'values') wrongKind(ctx, ref, path, '', `${a.geometry} annotation`);
       at.a = a;
       at.set = ctx.set;
       at.kind = -1;
@@ -205,7 +205,7 @@ const recordOf = (x: Int32Array, row: number) => (row >= 0 && row < x.length ? x
 
 /** `(field name :of K :ns N)`: a built-in, a rows key table's column for the row, or an app's custom field. */
 function systemField(c: CompileContext): QueryFn<unknown> {
-  const [name, of, ns, path] = [String(c.raw("0")), c.raw<string>("of"), c.raw<string>("ns"), `${c.path}/args/of`];
+  const [name, of, ns, path] = [String(c.raw('0')), c.raw<string>('of'), c.raw<string>('ns'), `${c.path}/args/of`];
   const at = { set: null as SeqSet | null, a: null as Annotation | null };
   return (ctx) => {
     const set = ctx.set;
@@ -227,17 +227,17 @@ function systemField(c: CompileContext): QueryFn<unknown> {
         ? x
         : (m?.custom.doc[ns] as Record<string, unknown> | undefined)?.[name];
     }
-    if (name === "molecule") return m ? set.strings.get(m.key) : undefined;
-    if (name === "complex")
+    if (name === 'molecule') return m ? set.strings.get(m.key) : undefined;
+    if (name === 'complex')
       return kind === K.unit ? str(set, set.complexes[set.units.complex[id]]?.key ?? -1) : undefined;
-    if (name === "alignment") return kind >= K.row ? str(set, set.alignments[id]?.key ?? -1) : undefined;
-    return name === "row" && kind === K.row ? row : undefined;
+    if (name === 'alignment') return kind >= K.row ? str(set, set.alignments[id]?.key ?? -1) : undefined;
+    return name === 'row' && kind === K.row ? row : undefined;
   };
 }
 /** `(field name :of K)` as a number: a number column read inline; anything else through the field, NaN unless a
  * number. */
 function fieldNumber(c: CompileContext): QueryFn<void> {
-  const [field, of, name] = [systemField(c), c.raw<string>("of"), String(c.raw("0"))];
+  const [field, of, name] = [systemField(c), c.raw<string>('of'), String(c.raw('0'))];
   // Mutable bindings, not an object's fields: code that read a field written once embedded what it held, and was
   // thrown away when that was collected (QR2b's heap guards).
   let set: SeqSet | null = null;
@@ -250,7 +250,7 @@ function fieldNumber(c: CompileContext): QueryFn<void> {
       if (set !== ctx.set) {
         a = keyTable(ctx, of, name, `${c.path}/args/of`, c.path);
         const f = a.fields.find((x) => ctx.set.strings.get(x.name) === name);
-        data = f?.kind === "number" ? f.data : null;
+        data = f?.kind === 'number' ? f.data : null;
         set = ctx.set;
         aln = -1;
       }
@@ -266,17 +266,17 @@ function fieldNumber(c: CompileContext): QueryFn<void> {
       }
     }
     const v = field(ctx);
-    F64[0] = typeof v === "number" ? v : Number.NaN;
+    F64[0] = typeof v === 'number' ? v : Number.NaN;
   };
 }
 
 /** `:of`'s annotation: a rows key table with the column; else an error naming what it is or what it has. */
 function keyTable(ctx: QueryContext, of: string, name: string, path: string, at: string): Annotation {
   const a = ctx.set.annotations[annotationOf(ctx, of, path, Wants.annotation)] as Annotation;
-  if (a.geometry !== "rows") wrongKind(ctx, of, path, ":of takes a rows key table", `${a.geometry} annotation`);
+  if (a.geometry !== 'rows') wrongKind(ctx, of, path, ':of takes a rows key table', `${a.geometry} annotation`);
   const fields = a.fields.map((f) => ctx.set.strings.get(f.name));
   if (!fields.includes(name))
-    ctx.fail("seqql.field.unknown", at, `${of} has no field "${name}"; its fields: ${fields.join(", ") || "none"}`);
+    ctx.fail('seqql.field.unknown', at, `${of} has no field "${name}"; its fields: ${fields.join(', ') || 'none'}`);
   return a;
 }
 
@@ -288,7 +288,7 @@ export function compileWhere(c: CompileContext): { where: QueryFn<unknown>; prep
   const [outer, prepare] = [preparing, [] as QueryFn<void>[]];
   preparing = prepare;
   try {
-    return { where: c.value("where") as QueryFn<unknown>, prepare };
+    return { where: c.value('where') as QueryFn<unknown>, prepare };
   } finally {
     preparing = outer;
   }
@@ -318,8 +318,8 @@ function near(s: SeqSelection, g: number, u: SeqSelection, n: number, count: boo
   return shared;
 }
 /** `overlaps`, `within`, `count`: Q unioned once per evaluation of the `pick`, each group by binary search. */
-function nearTo(c: CompileContext, mode: "overlaps" | "within" | "count"): QueryFn<unknown> {
-  const [q, n] = [c.query("0") as QueryFn<SeqSelection>, mode === "within" ? (c.raw<number>("1") ?? 0) : 0];
+function nearTo(c: CompileContext, mode: 'overlaps' | 'within' | 'count'): QueryFn<unknown> {
+  const [q, n] = [c.query('0') as QueryFn<SeqSelection>, mode === 'within' ? (c.raw<number>('1') ?? 0) : 0];
   const at = { u: null as SeqSelection | null };
   preparing?.push((ctx) => {
     at.u = unionOf(ctx, q(ctx));
@@ -329,24 +329,24 @@ function nearTo(c: CompileContext, mode: "overlaps" | "within" | "count"): Query
     const g = ctx.slot.group;
     const u = at.u;
     if (!s || g < 0 || !u) return undefined;
-    return mode === "count" ? near(s, g, u, 0, true) : near(s, g, u, n, false) > 0;
+    return mode === 'count' ? near(s, g, u, 0, true) : near(s, g, u, n, false) > 0;
   };
 }
 
 export const PROPERTY_RUNTIMES = [
-  rt("seq.position.index", () => (ctx) => ctx.slot.index),
-  rt("seq.position.letter", () => (ctx) => {
+  rt('seq.position.index', () => (ctx) => ctx.slot.index),
+  rt('seq.position.letter', () => (ctx) => {
     const s = ctx.slot;
     const code = codeAt(ctx.set, s.kind, s.id, s.row, s.index);
-    return code ? String.fromCharCode(code) : "";
+    return code ? String.fromCharCode(code) : '';
   }),
-  { ...rt("seq.position.label", positionLabel), equals: labelEquals },
-  numeric("seq.position.value_of", valueOfAnnotation),
-  system("seq.system.ref", (set, kind, id, row) =>
+  { ...rt('seq.position.label', positionLabel), equals: labelEquals },
+  numeric('seq.position.value_of', valueOfAnnotation),
+  system('seq.system.ref', (set, kind, id, row) =>
     kind === K.columns ? str(set, set.alignments[id]?.key ?? -1) : nameOf(set, kind, id, row),
   ),
-  system("seq.system.kind", (_, kind) => KINDS[kind]),
-  system("seq.system.label", (set, kind, id, row) =>
+  system('seq.system.kind', (_, kind) => KINDS[kind]),
+  system('seq.system.label', (set, kind, id, row) =>
     kind === K.unit
       ? str(set, set.units.label[id])
       : kind === K.molecule
@@ -355,27 +355,27 @@ export const PROPERTY_RUNTIMES = [
           ? (set.alignments[id]?.labelText(row as never) ?? undefined)
           : undefined,
   ),
-  system("seq.system.length", (set, kind, id, row) => (domainOf(set, kind, id, row, dom) ? dom[1] - dom[0] : 0)),
-  system("seq.system.origin", (set, kind, id) => (kind === K.unit ? str(set, set.units.origin[id]) : undefined)),
-  numeric("seq.system.score", () => (ctx) => {
+  system('seq.system.length', (set, kind, id, row) => (domainOf(set, kind, id, row, dom) ? dom[1] - dom[0] : 0)),
+  system('seq.system.origin', (set, kind, id) => (kind === K.unit ? str(set, set.units.origin[id]) : undefined)),
+  numeric('seq.system.score', () => (ctx) => {
     F64[0] = ctx.slot.kind === K.unit ? ctx.set.units.score[ctx.slot.id] : Number.NaN;
   }),
   system(
-    "seq.system.alphabet",
+    'seq.system.alphabet',
     (set, kind, id) => (moleculeOf(set, kind, id)?.alphabet ?? set.alignments[id]?.alphabet) || undefined,
   ),
-  { ...rt("seq.system.field", systemField), number: fieldNumber },
-  group("seq.group.length", (s, g) => {
+  { ...rt('seq.system.field', systemField), number: fieldNumber },
+  group('seq.group.length', (s, g) => {
     let n = 0;
     for (let k = s.groupStart[g]; k < s.groupStart[g + 1]; k++) n += s.stop[k] - s.start[k];
     return n;
   }),
-  group("seq.group.runs", (s, g) => s.groupStart[g + 1] - s.groupStart[g]),
-  numeric("seq.group.score", () => (ctx) => {
+  group('seq.group.runs', (s, g) => s.groupStart[g + 1] - s.groupStart[g]),
+  numeric('seq.group.score', () => (ctx) => {
     const s = ctx.slot.selection;
     F64[0] = s && ctx.slot.group >= 0 ? s.groupScore[ctx.slot.group] : Number.NaN;
   }),
-  rt("seq.group.overlaps", (c) => nearTo(c, "overlaps")),
-  rt("seq.group.within", (c) => nearTo(c, "within")),
-  rt("seq.group.count", (c) => nearTo(c, "count")),
+  rt('seq.group.overlaps', (c) => nearTo(c, 'overlaps')),
+  rt('seq.group.within', (c) => nearTo(c, 'within')),
+  rt('seq.group.count', (c) => nearTo(c, 'count')),
 ];

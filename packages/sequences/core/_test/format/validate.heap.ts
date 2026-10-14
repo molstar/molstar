@@ -11,9 +11,9 @@
 // the same small amount as validating a quarter of it (the old check kept about 52 MB of objects, a path and a ref per
 // cell).
 
-import { describe, expect, it } from "vitest";
-import { validate } from "../../src/format/index.js";
-import { CellKind, CellScan, type Col, ColumnForm, scanCells } from "../../src/format/tables/cells.js";
+import { describe, expect, it } from 'vitest';
+import { validate } from '../../src/format/index.js';
+import { CellKind, CellScan, type Col, ColumnForm, scanCells } from '../../src/format/tables/cells.js';
 import {
   controlCaught,
   describeScaling,
@@ -23,15 +23,15 @@ import {
   leak,
   leaking,
   SCALED_LIMIT,
-} from "../model/heap.js";
-import { kernel } from "./fixtures.js";
-import { CHROMOSOMES, codedDoc, freshParams } from "./table-fixtures.js";
+} from '../model/heap.js';
+import { kernel } from './fixtures.js';
+import { CHROMOSOMES, codedDoc, freshParams } from './table-fixtures.js';
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 250_000;
 const LEN = 4 * N;
 
-const col = (form: number, data: ArrayLike<unknown>, dict: readonly unknown[] | null = null, name = "c"): Col => ({
+const col = (form: number, data: ArrayLike<unknown>, dict: readonly unknown[] | null = null, name = 'c'): Col => ({
   name,
   form,
   data,
@@ -41,10 +41,10 @@ const col = (form: number, data: ArrayLike<unknown>, dict: readonly unknown[] | 
 const ints = Int32Array.from({ length: LEN }, (_, i) => i);
 const doubles = Array.from({ length: LEN }, (_, i) => (i % 100) / 100 + 0.001);
 const columns: [string, Col, number][] = [
-  ["typed indices", col(ColumnForm.typed, ints), CellKind.index],
-  ["typed values", col(ColumnForm.typed, Float64Array.from(doubles)), CellKind.value],
+  ['typed indices', col(ColumnForm.typed, ints), CellKind.index],
+  ['typed values', col(ColumnForm.typed, Float64Array.from(doubles)), CellKind.value],
   [
-    "coded refs",
+    'coded refs',
     col(
       ColumnForm.dict,
       Uint8Array.from(ints, (i) => i % 24),
@@ -53,7 +53,7 @@ const columns: [string, Col, number][] = [
     CellKind.ref,
   ],
   [
-    "string refs",
+    'string refs',
     col(
       ColumnForm.array,
       Array.from(ints, (i) => CHROMOSOMES[i % 24]),
@@ -61,32 +61,32 @@ const columns: [string, Col, number][] = [
     CellKind.ref,
   ],
   [
-    "label strings",
+    'label strings',
     col(
       ColumnForm.array,
       Array.from(ints, (i) => `${i % 900}A`),
     ),
     CellKind.label,
   ],
-  ["an array of doubles", col(ColumnForm.array, doubles), CellKind.value],
+  ['an array of doubles', col(ColumnForm.array, doubles), CellKind.value],
   [
-    "rows",
+    'rows',
     col(
       ColumnForm.rows,
-      Array.from(ints, (i) => ({ start: i, label: "x" })),
+      Array.from(ints, (i) => ({ start: i, label: 'x' })),
       null,
-      "start",
+      'start',
     ),
     CellKind.index,
   ],
 ];
 
-describe("table cells allocate nothing", () => {
-  it.each(columns)("%s", (_, c, kind) => {
+describe('table cells allocate nothing', () => {
+  it.each(columns)('%s', (_, c, kind) => {
     const s = new CellScan();
     s.reset(c);
     const r = heapScaling(N, (i) => scanCells(c, kind, i % LEN, (i % LEN) + 1, s));
-    expect(s.bad, "every cell is valid").toBe(0);
+    expect(s.bad, 'every cell is valid').toBe(0);
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
   });
 
@@ -105,8 +105,8 @@ describe("table cells allocate nothing", () => {
   });
 });
 
-describe("validating the coded genome table", () => {
-  it("3M rows grow the heap as 750k do: no allocation per row", () => {
+describe('validating the coded genome table', () => {
+  it('3M rows grow the heap as 750k do: no allocation per row', () => {
     const reg = kernel();
     /** `perRow` after each validation, once a row: the control's leak, else nothing. */
     const grow = (n: number, perRow: (k: number) => void = () => {}) => {

@@ -22,13 +22,13 @@ import {
   type ProvenanceInput,
   type SeqIndex,
   type UnitId,
-} from "./common.js";
-import { type CoordinateSystem, CoordinateSystemKind, Coords } from "./coordinates.js";
-import { LABEL, NO_LABEL, Numbering, type PositionLabel } from "./numbering.js";
-import { KeyKind, type KeyTarget, type SeqSet, SeqSets } from "./set.js";
+} from './common.js';
+import { type CoordinateSystem, CoordinateSystemKind, Coords } from './coordinates.js';
+import { LABEL, NO_LABEL, Numbering, type PositionLabel } from './numbering.js';
+import { KeyKind, type KeyTarget, type SeqSet, SeqSets } from './set.js';
 
-export type Geometry = "ranges" | "values" | "pairs" | "matrix" | "grid" | "rows";
-const GEOMETRIES: readonly string[] = ["ranges", "values", "pairs", "matrix", "grid", "rows"];
+export type Geometry = 'ranges' | 'values' | 'pairs' | 'matrix' | 'grid' | 'rows';
+const GEOMETRIES: readonly string[] = ['ranges', 'values', 'pairs', 'matrix', 'grid', 'rows'];
 
 /** Per row: what it is over. A unit target also names its molecule. */
 export interface Targets {
@@ -72,9 +72,9 @@ export interface GridColumns {
 }
 
 export type Field =
-  | { readonly name: NameId; readonly kind: "number"; readonly data: Float64Array }
-  | { readonly name: NameId; readonly kind: "string"; readonly data: Int32Array }
-  | { readonly name: NameId; readonly kind: "json"; readonly data: readonly unknown[] };
+  | { readonly name: NameId; readonly kind: 'number'; readonly data: Float64Array }
+  | { readonly name: NameId; readonly kind: 'string'; readonly data: Int32Array }
+  | { readonly name: NameId; readonly kind: 'json'; readonly data: readonly unknown[] };
 
 export interface Annotation {
   readonly id: AnnotationId;
@@ -188,45 +188,45 @@ export const ColumnRole = { target: 0, position: 1, descriptive: 2 } as const;
 const roles = (...byRole: string[]): Record<string, number> =>
   Object.assign(
     Object.create(null),
-    Object.fromEntries(byRole.flatMap((names, role) => (names ? names.split(" ").map((n) => [n, role]) : []))),
+    Object.fromEntries(byRole.flatMap((names, role) => (names ? names.split(' ').map((n) => [n, role]) : []))),
   );
 /**
  * Per geometry, the columns the kernel reads and their role; every other column is a field. A target or positional
  * column of another geometry is `model.columns.unknown`. Read by the validator too.
  */
 export const ColumnRoles: Readonly<Record<Geometry, Readonly<Record<string, number>>>> = {
-  ranges: roles("target", "start stop beg end ins_code boundary", "value id category label tooltip alt"),
-  values: roles("target", "start stop beg end index pos ins_code", "value category label tooltip"),
+  ranges: roles('target', 'start stop beg end ins_code boundary', 'value id category label tooltip alt'),
+  values: roles('target', 'start stop beg end index pos ins_code', 'value category label tooltip'),
   pairs: roles(
-    "target b_target",
-    "start stop beg end ins_code b_start b_stop b_beg b_end b_ins_code",
-    "id category label tooltip numbering b_numbering direction",
+    'target b_target',
+    'start stop beg end ins_code b_start b_stop b_beg b_end b_ins_code',
+    'id category label tooltip numbering b_numbering direction',
   ),
-  matrix: roles("target", "index pos ins_code", "value"),
+  matrix: roles('target', 'index pos ins_code', 'value'),
   grid: roles(
-    "target b_target",
-    "start stop beg end index pos ins_code b_start b_stop b_beg b_end b_ins_code",
-    "value id label tooltip numbering b_numbering",
+    'target b_target',
+    'start stop beg end index pos ins_code b_start b_stop b_beg b_end b_ins_code',
+    'value id label tooltip numbering b_numbering',
   ),
-  rows: roles("row state node"),
+  rows: roles('row state node'),
 };
 /** Columns that place rows, in some geometry. */
 const PLACING = new Set(
   Object.values(ColumnRoles).flatMap((r) => Object.keys(r).filter((k) => r[k] !== ColumnRole.descriptive)),
 );
 /** A key table's member columns: read as string fields too. */
-const KEY_COLUMNS = new Set(["state", "node"]);
+const KEY_COLUMNS = new Set(['state', 'node']);
 const scratch = new Int32Array(2);
 const MAX_ISSUES = 10;
-const isMissing = (v: unknown) => v == null || (typeof v === "number" && Number.isNaN(v));
+const isMissing = (v: unknown) => v == null || (typeof v === 'number' && Number.isNaN(v));
 
 function reader(col: AnnotationColumn | undefined): { n: number; at: (i: number) => unknown } | null {
   if (!col) return null;
-  if (Array.isArray(col) || ArrayBuffer.isView(col) || !("json" in col || "codes" in col)) {
+  if (Array.isArray(col) || ArrayBuffer.isView(col) || !('json' in col || 'codes' in col)) {
     const a = col instanceof Float32Array ? columnNumbers(col, Number.NaN) : (col as ArrayLike<unknown>);
     return { n: a.length, at: (i) => a[i] };
   }
-  if ("json" in col) return { n: col.json.length, at: (i) => col.json[i] };
+  if ('json' in col) return { n: col.json.length, at: (i) => col.json[i] };
   return {
     n: col.codes.length,
     at: (i) => {
@@ -317,7 +317,7 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
     return null;
   };
   const g = input.geometry;
-  if (!GEOMETRIES.includes(g)) return fail("model.annotation.geometry", "/geometry", `unknown geometry "${g}".`);
+  if (!GEOMETRIES.includes(g)) return fail('model.annotation.geometry', '/geometry', `unknown geometry "${g}".`);
   // Every column, and the ones this geometry reads (`ColumnRoles`); the others are fields.
   const cols = new Map<string, NonNullable<ReturnType<typeof reader>>>();
   const read = new Map<string, NonNullable<ReturnType<typeof reader>>>();
@@ -325,43 +325,43 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
   for (const [name, col] of Object.entries(input.columns ?? {})) {
     const r = reader(col);
     if (!r) continue;
-    if (n >= 0 && r.n !== n) return fail("model.columns.length", `/columns/${name}`, `columns differ in length.`);
+    if (n >= 0 && r.n !== n) return fail('model.columns.length', `/columns/${name}`, `columns differ in length.`);
     n = r.n;
     if (ColumnRoles[g][name] !== undefined) read.set(name, r);
     else if (PLACING.has(name)) {
       const m = `Annotation "${input.key}": "${name}" is not a ${g} column.`;
-      issues.push(Issue.error("model.columns.unknown", `${path}/columns/${name}`, m));
+      issues.push(Issue.error('model.columns.unknown', `${path}/columns/${name}`, m));
       continue;
     }
     cols.set(name, r);
   }
   const lazy = input.streamed != null;
   if (lazy && !input.streamed?.length)
-    return fail("model.annotation.target", "", "a streamed annotation needs a coordinate system.");
+    return fail('model.annotation.target', '', 'a streamed annotation needs a coordinate system.');
   const count = lazy ? 0 : Math.max(0, n);
   const has = (c: string) => read.has(c);
   const formA = [
-    has("start") || has("stop") || has("boundary") || has("index"),
-    has("beg") || has("end") || has("pos"),
+    has('start') || has('stop') || has('boundary') || has('index'),
+    has('beg') || has('end') || has('pos'),
   ];
-  const formB = [has("b_start") || has("b_stop"), has("b_beg") || has("b_end")];
+  const formB = [has('b_start') || has('b_stop'), has('b_beg') || has('b_end')];
   if ((formA[0] && formA[1]) || (formB[0] && formB[1])) {
-    return fail("model.position.form", "/columns", "one side mixes indices and labels.");
+    return fail('model.position.form', '/columns', 'one side mixes indices and labels.');
   }
   // An insertion code completes an author number: it needs that side's labels.
   for (const [b, labels] of [
-    ["", formA[1]],
-    ["b_", formB[1]],
+    ['', formA[1]],
+    ['b_', formB[1]],
   ] as const) {
     if (has(`${b}ins_code`) && !labels) {
-      const m = `${b}ins_code completes an author number in ${b ? "b_beg" : "pos or beg"} ("52" and "A" name 52A); this table has no ${b ? "b_beg" : "pos or beg"}: give positions as labels in an author numbering, or leave ${b}ins_code out.`;
-      return fail("model.position.form", `/columns/${b}ins_code`, m);
+      const m = `${b}ins_code completes an author number in ${b ? 'b_beg' : 'pos or beg'} ("52" and "A" name 52A); this table has no ${b ? 'b_beg' : 'pos or beg'}: give positions as labels in an author numbering, or leave ${b}ins_code out.`;
+      return fail('model.position.form', `/columns/${b}ins_code`, m);
     }
   }
   const states = input.states ?? [];
-  if (g === "matrix" && !states.length) return fail("model.annotation.states", "/states", "a matrix needs states.");
+  if (g === 'matrix' && !states.length) return fail('model.annotation.states', '/states', 'a matrix needs states.');
   // Values with no position column are dense: one per position in index order.
-  const dense = g === "values" && !formA[0] && !formA[1];
+  const dense = g === 'values' && !formA[0] && !formA[1];
 
   // Targets: each distinct key resolved once, each (target, numbering) looked up once.
   const slotOfKey = new Map<string, number>();
@@ -369,7 +369,7 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
   const numberings = new Map<string, Numbering | null>();
   const targetKeys = new Set<string>();
   const targetOf = (key: unknown, rowOf: number): number => {
-    if (typeof key !== "string") return -1;
+    if (typeof key !== 'string') return -1;
     const k = `${key}#${rowOf}`;
     let s = slotOfKey.get(k);
     if (s !== undefined) return s;
@@ -387,7 +387,7 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
     return keyedSlot;
   };
   const numberingOf = (slot: number, name: unknown): Numbering | null => {
-    if (typeof name !== "string") return null;
+    if (typeof name !== 'string') return null;
     const k = `${slot}:${name}`;
     if (!numberings.has(k)) numberings.set(k, numberingFor(set, slotRes[slot], strings.intern(name)));
     return numberings.get(k) ?? null;
@@ -400,22 +400,22 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
     out.num = NO_LABEL;
     out.suffix = -1 as NameId;
     out.name = -1 as NameId;
-    if (num.method === "names") {
+    if (num.method === 'names') {
       out.name = strings.find(String(v));
       return out.name >= 0;
     }
-    if (typeof v === "number") {
+    if (typeof v === 'number') {
       out.num = v;
       return Number.isInteger(v);
     }
-    const m = typeof v === "string" ? LABEL.exec(v) : null;
+    const m = typeof v === 'string' ? LABEL.exec(v) : null;
     if (!m) return false;
     out.num = Number(m[1]);
     out.suffix = (m[2] ? strings.intern(m[2]) : -1) as NameId;
     return true;
   };
   const range = new Float64Array(2);
-  const num = (x: unknown) => (typeof x === "number" ? x : Number.NaN);
+  const num = (x: unknown) => (typeof x === 'number' ? x : Number.NaN);
   const v = (c: string, i: number) => read.get(c)?.at(i);
   /**
    * Row i's label on a side joined with its insertion code (`ins_code`: none when missing, "", "?" or "."), as
@@ -423,26 +423,26 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
    */
   const coded = (i: number, b: string, l0: unknown, e0: unknown): [unknown, unknown] | null => {
     const c = v(`${b}ins_code`, i);
-    if (isMissing(c) || c === "" || c === "?" || c === ".") return [l0, e0];
+    if (isMissing(c) || c === '' || c === '?' || c === '.') return [l0, e0];
     const col = `${b}ins_code`;
-    if (typeof c !== "string" || !/^[A-Za-z]+$/.test(c)) {
+    if (typeof c !== 'string' || !/^[A-Za-z]+$/.test(c)) {
       report(
-        "model.position.syntax",
+        'model.position.syntax',
         col,
         i,
         `insertion code ${JSON.stringify(c)} is not letters ("A", "AA"); none is "", "?" or ".".`,
       );
       return null;
     }
-    const pos = b ? "b_beg" : has("pos") ? "pos" : "beg";
+    const pos = b ? 'b_beg' : has('pos') ? 'pos' : 'beg';
     if (!isMissing(e0) && String(e0) !== String(l0)) {
       const m = `${col} "${c}" names one residue, but ${b}beg ${JSON.stringify(l0)} to ${b}end ${JSON.stringify(e0)} is a range: write a range's ends as whole labels (${b}beg "${l0}${c}"), or give ${pos} alone.`;
-      report("model.position.form", col, i, m);
+      report('model.position.form', col, i, m);
       return null;
     }
-    if (typeof l0 === "string" && !/^-?[0-9]+$/.test(l0)) {
+    if (typeof l0 === 'string' && !/^-?[0-9]+$/.test(l0)) {
       const m = `${pos} ${JSON.stringify(l0)} is not an author number to complete with ${col} "${c}": give the number alone (${pos} "52", ${col} "A"), or the whole label without ${col}.`;
-      report("model.position.form", col, i, m);
+      report('model.position.form', col, i, m);
       return null;
     }
     const label = `${l0}${c}`;
@@ -450,7 +450,7 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
   };
   /** What a numbering's labels are, for a label it lacks: their first and last, and the labels on that number. */
   const around = (n: Numbering, l: PositionLabel): string => {
-    let [first, last] = ["", ""];
+    let [first, last] = ['', ''];
     const same: string[] = [];
     for (let k = 0; k < n.length; k++) {
       if (!Numbering.labelOf(n, k as SeqIndex, scratchLabel)) continue;
@@ -459,69 +459,69 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
       last = f;
       if (l.num !== NO_LABEL && scratchLabel.num === l.num && same.length < 8) same.push(f);
     }
-    const at = same.length ? `; on ${l.num}: ${same.join(", ")}` : "";
-    return first ? ` (its labels run ${first}-${last}${at})` : "";
+    const at = same.length ? `; on ${l.num}: ${same.join(', ')}` : '';
+    return first ? ` (its labels run ${first}-${last}${at})` : '';
   };
   /** Side a (b: "b_") of row i into `range`; false (with an issue) leaves the row out. */
   const position = (i: number, slot: number, b: string, numbering: unknown): boolean => {
     const r = slotRes[slot];
     // On a cyclic molecule a range may wrap its origin (start > stop, seqspec:model#cyclic-systems): side a of ranges,
     // values, matrices.
-    const cyclic = !b && g !== "pairs" && g !== "grid" && r.molecule >= 0 && set.molecules[r.molecule]?.cyclic === true;
-    const s0 = b ? v("b_start", i) : (v("start", i) ?? v("index", i));
-    let l0 = b ? v("b_beg", i) : (v("beg", i) ?? v("pos", i));
-    let e0 = v(b ? "b_end" : "end", i);
+    const cyclic = !b && g !== 'pairs' && g !== 'grid' && r.molecule >= 0 && set.molecules[r.molecule]?.cyclic === true;
+    const s0 = b ? v('b_start', i) : (v('start', i) ?? v('index', i));
+    let l0 = b ? v('b_beg', i) : (v('beg', i) ?? v('pos', i));
+    let e0 = v(b ? 'b_end' : 'end', i);
     if (!isMissing(l0)) {
       const c = coded(i, b, l0, e0);
       if (!c) return false;
       [l0, e0] = c;
     }
-    const boundary = !b && !isMissing(v("boundary", i));
+    const boundary = !b && !isMissing(v('boundary', i));
     if (boundary) {
-      range[0] = range[1] = num(v("boundary", i));
+      range[0] = range[1] = num(v('boundary', i));
     } else if (isMissing(s0) && isMissing(l0)) {
       if (b) {
         range[0] = range[1] = -1;
         return true;
       }
       // A grid's side a without a position is its target's whole domain.
-      if (g === "grid") {
+      if (g === 'grid') {
         range[0] = 0;
         range[1] = r.length;
         return true;
       }
-      report("model.position.missing", has("beg") ? "beg" : "start", i, "no position.");
+      report('model.position.missing', has('beg') ? 'beg' : 'start', i, 'no position.');
       return false;
     } else if (!isMissing(s0)) {
       range[0] = num(s0);
-      const t = v(b ? "b_stop" : "stop", i);
+      const t = v(b ? 'b_stop' : 'stop', i);
       range[1] = isMissing(t) ? range[0] + 1 : num(t);
     } else {
       const num = r.space === CoordinateSystemKind.columns ? null : numberingOf(slot, numbering);
       if (!num) {
-        report("model.position.form", `${b}beg`, i, "labels need a numbering of the target.");
+        report('model.position.form', `${b}beg`, i, 'labels need a numbering of the target.');
         return false;
       }
       const end = isMissing(e0) ? l0 : e0;
       const okBeg = toLabel(l0, num, lab1);
       const ok = okBeg && toLabel(end, num, lab2);
       if (!ok || !Numbering.rangeOf(num, lab1, lab2, scratch, cyclic)) {
-        const named = typeof numbering === "string" ? ` in numbering "${numbering}"` : "";
+        const named = typeof numbering === 'string' ? ` in numbering "${numbering}"` : '';
         // Written backwards (`beg` after `end`, either placed by order): an error that says what to write (CF-01).
         // On a cyclic sequence only a whole lap is refused (LA-20).
         if (ok && Numbering.backwards(num, lab1, lab2)) {
           const m = cyclic
             ? `beg "${l0}" comes right after end "${end}"${named}: a range across the origin covers less than a whole lap (for all of the sequence, write its first and last labels).`
             : `beg "${l0}" comes after end "${end}"${named}: write beg ≤ end (a range wraps only on a cyclic sequence).`;
-          report("model.position.range", `${b}beg`, i, m);
+          report('model.position.range', `${b}beg`, i, m);
           return false;
         }
         // Else the label that is not there, by name: beg's when it places nowhere, else end's.
         if (ok) Numbering.placeRange(num, lab1, lab2, scratch);
         const missingBeg = !okBeg || (ok && scratch[0] < 0);
-        const more = reported < MAX_ISSUES && ok ? around(num, missingBeg ? lab1 : lab2) : "";
+        const more = reported < MAX_ISSUES && ok ? around(num, missingBeg ? lab1 : lab2) : '';
         const which = missingBeg ? `${b}beg` : `${b}end`;
-        report("model.position.unknown", which, i, `no position "${missingBeg ? l0 : end}"${named}${more}.`, true);
+        report('model.position.unknown', which, i, `no position "${missingBeg ? l0 : end}"${named}${more}.`, true);
         return false;
       }
       range[0] = scratch[0];
@@ -534,11 +534,11 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
     ) {
       const why =
         s > t && !boundary
-          ? g === "grid" || g === "pairs"
+          ? g === 'grid' || g === 'pairs'
             ? `; a ${g} row's sides never wrap a cyclic origin: write the run across the origin as two rows, [${s}, ${r.length}) and [0, ${t})`
             : "; start > stop wraps only a cyclic sequence's origin"
-          : "";
-      report("model.position.range", `${b}start`, i, `[${s}, ${t}) is not within 0..${r.length}${why}.`);
+          : '';
+      report('model.position.range', `${b}start`, i, `[${s}, ${t}) is not within 0..${r.length}${why}.`);
       return false;
     }
     return true;
@@ -550,13 +550,13 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
    */
   const gridRows: (Float32Array | Float64Array)[] = [];
   const gridRow = (i: number, a: number, b: number): boolean => {
-    const list = v("value", i);
+    const list = v('value', i);
     const typed = list instanceof Float32Array || list instanceof Float64Array;
     const n = typed || Array.isArray(list) ? (list as ArrayLike<unknown>).length : -1;
     if (n !== a * b) {
-      const got = n < 0 ? "no list" : `${n}`;
+      const got = n < 0 ? 'no list' : `${n}`;
       const m = `${a} × ${b} = ${a * b} values are needed (side a's positions × side b's), a-major; got ${got}.`;
-      report("model.annotation.grid", "value", i, m);
+      report('model.annotation.grid', 'value', i, m);
       return false;
     }
     gridRows.push(typed ? list : Float64Array.from(list as unknown[], num));
@@ -574,26 +574,26 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
   const denseBySlot: Float64Array[] = [];
   const denseOrder: number[] = [];
   for (let i = 0; i < count; i++) {
-    const rowOf = g === "rows" ? num(v("row", i)) : -1;
+    const rowOf = g === 'rows' ? num(v('row', i)) : -1;
     // A key table's member by `state` or `node` has no target: it is a field, and `target.row` is -1.
-    const keyed = g === "rows" && !has("row") && (has("state") || has("node"));
-    if (g === "rows" && !keyed && !(Number.isInteger(rowOf) && rowOf >= 0)) {
-      report("model.annotation.row", "row", i, "an alignment row index is needed.");
+    const keyed = g === 'rows' && !has('row') && (has('state') || has('node'));
+    if (g === 'rows' && !keyed && !(Number.isInteger(rowOf) && rowOf >= 0)) {
+      report('model.annotation.row', 'row', i, 'an alignment row index is needed.');
       continue;
     }
-    const key = v("target", i) ?? input.target;
+    const key = v('target', i) ?? input.target;
     const slot = keyed ? memberSlot() : targetOf(key, rowOf);
     if (slot < 0) {
-      report("model.annotation.target", "target", i, `"${key}" names no target here.`);
+      report('model.annotation.target', 'target', i, `"${key}" names no target here.`);
       continue;
     }
-    if (g === "rows") {
+    if (g === 'rows') {
       range[0] = range[1] = -1;
     } else if (dense) {
       // Dense values are no rows: each written straight into its target's array, index order.
       const at = denseFill[slot] ?? 0;
       if (at >= slotRes[slot].length) {
-        report("model.position.range", "value", i, "more values than positions.");
+        report('model.position.range', 'value', i, 'more values than positions.');
         continue;
       }
       denseFill[slot] = at + 1;
@@ -601,25 +601,25 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
         denseBySlot[slot] = new Float64Array(slotRes[slot].length).fill(Number.NaN);
         denseOrder.push(slot);
       }
-      denseBySlot[slot][at] = num(v("value", i));
+      denseBySlot[slot][at] = num(v('value', i));
       continue;
-    } else if (!position(i, slot, "", v("numbering", i) ?? input.numbering)) continue;
+    } else if (!position(i, slot, '', v('numbering', i) ?? input.numbering)) continue;
     const s = range[0];
     const t = range[1];
-    if (g === "pairs" || g === "grid") {
-      const bs = targetOf(v("b_target", i) ?? key, -1);
+    if (g === 'pairs' || g === 'grid') {
+      const bs = targetOf(v('b_target', i) ?? key, -1);
       if (bs < 0) {
-        report("model.annotation.target", "b_target", i, "side b names no target.");
+        report('model.annotation.target', 'b_target', i, 'side b names no target.');
         continue;
       }
-      const bn = v("b_numbering", i) ?? input.bNumbering ?? v("numbering", i) ?? input.numbering;
-      if (!position(i, bs, "b_", bn)) continue;
+      const bn = v('b_numbering', i) ?? input.bNumbering ?? v('numbering', i) ?? input.numbering;
+      if (!position(i, bs, 'b_', bn)) continue;
       // A grid's b side without a range is its b target's whole domain.
-      if (g === "grid" && range[0] < 0) {
+      if (g === 'grid' && range[0] < 0) {
         range[0] = 0;
         range[1] = slotRes[bs].length;
       }
-      if (g === "grid" && !gridRow(i, t - s, range[1] - range[0])) continue;
+      if (g === 'grid' && !gridRow(i, t - s, range[1] - range[0])) continue;
       slotB.push(bs);
       startB.push(range[0]);
       stopB.push(range[1]);
@@ -635,11 +635,11 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
   }
   if (reported > MAX_ISSUES) {
     const m = `Annotation "${input.key}": ${reported - MAX_ISSUES} more rows left out.`;
-    issues.push(Issue.warning("model.annotation.rows", path, m));
+    issues.push(Issue.warning('model.annotation.rows', path, m));
   }
   for (const t of input.streamed ?? []) {
     slotA.push(targetOf(t, -1));
-    if (slotA[slotA.length - 1] < 0) return fail("model.annotation.target", "/target", `"${t}" names no target.`);
+    if (slotA[slotA.length - 1] < 0) return fail('model.annotation.target', '/target', `"${t}" names no target.`);
   }
 
   // Slots: side a's targets of the rows kept, in first-row order.
@@ -667,7 +667,7 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
   const itemKeys: number[] = [];
   const byId = new Map<string, number>();
   kept.forEach((i, k) => {
-    const raw = v("id", i);
+    const raw = v('id', i);
     if (k > 0 && kept[k - 1] === i) item[k] = item[k - 1];
     else if (isMissing(raw)) item[k] = itemKeys.push(-1) - 1;
     else {
@@ -683,8 +683,8 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
 
   const names = (c: string) =>
     has(c) ? Int32Array.from(kept, (i) => (isMissing(v(c, i)) ? -1 : strings.intern(String(v(c, i))))) : null;
-  const hasValue = has("value") && g !== "matrix" && g !== "grid";
-  const sparse = hasValue ? Float64Array.from(kept, (i) => num(v("value", i))) : null;
+  const hasValue = has('value') && g !== 'matrix' && g !== 'grid';
+  const sparse = hasValue ? Float64Array.from(kept, (i) => num(v('value', i))) : null;
   const denseArrays = dense && !lazy ? used.map((s) => denseBySlot[s]) : null;
 
   const fields: Field[] = [];
@@ -694,27 +694,27 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
     const values = kept.map(at);
     const given = values.filter((x) => !isMissing(x));
     const fname = strings.intern(name);
-    const isJson = !Array.isArray(col) && !ArrayBuffer.isView(col) && "json" in col;
-    if (!isJson && given.every((x) => typeof x === "number")) {
-      fields.push({ name: fname, kind: "number", data: Float64Array.from(values, num) });
-    } else if (!isJson && given.every((x) => typeof x === "string")) {
+    const isJson = !Array.isArray(col) && !ArrayBuffer.isView(col) && 'json' in col;
+    if (!isJson && given.every((x) => typeof x === 'number')) {
+      fields.push({ name: fname, kind: 'number', data: Float64Array.from(values, num) });
+    } else if (!isJson && given.every((x) => typeof x === 'string')) {
       const data = Int32Array.from(values, (x) => (isMissing(x) ? -1 : strings.intern(x as string)));
-      fields.push({ name: fname, kind: "string", data });
-    } else fields.push({ name: fname, kind: "json", data: values.map((x) => (x === undefined ? null : x)) });
+      fields.push({ name: fname, kind: 'string', data });
+    } else fields.push({ name: fname, kind: 'json', data: values.map((x) => (x === undefined ? null : x)) });
   }
 
   const links: { label: NameId; template: NameId }[] = [];
   (input.links ?? []).forEach((l, k) => {
-    if (typeof l.url === "string" && l.url.startsWith("https://")) {
+    if (typeof l.url === 'string' && l.url.startsWith('https://')) {
       links.push({ label: strings.intern(l.label), template: strings.intern(l.url) });
     } else
-      issues.push(Issue.error("model.annotation.link", `${path}/links/${k}`, "a link must be an https:// template."));
+      issues.push(Issue.error('model.annotation.link', `${path}/links/${k}`, 'a link must be an https:// template.'));
   });
 
   let pairs: PairColumns | null = null;
-  if (g === "pairs" || g === "grid") {
-    const dir = has("direction")
-      ? Int8Array.from(kept, (i) => (v("direction", i) === "ab" ? 1 : v("direction", i) === "ba" ? -1 : 0))
+  if (g === 'pairs' || g === 'grid') {
+    const dir = has('direction')
+      ? Int8Array.from(kept, (i) => (v('direction', i) === 'ab' ? 1 : v('direction', i) === 'ba' ? -1 : 0))
       : null;
     pairs = {
       bTarget: pick(all, slotB),
@@ -725,14 +725,14 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
   }
 
   let matrix: MatrixColumns | null = null;
-  if (g === "matrix") {
+  if (g === 'matrix') {
     const S = states.length;
     const values = new Float64Array(K * S).fill(Number.NaN);
     const max = new Float64Array(K).fill(Number.NaN);
     kept.forEach((i, k) => {
-      const row = v("value", i);
+      const row = v('value', i);
       if (!Array.isArray(row) || row.length !== S) {
-        if (row != null) report("model.annotation.matrix", "value", i, `${S} values are needed.`);
+        if (row != null) report('model.annotation.matrix', 'value', i, `${S} values are needed.`);
         return;
       }
       for (let j = 0; j < S; j++) {
@@ -744,9 +744,9 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
     matrix = { states: Int32Array.from(states, (s) => strings.intern(s)), values, max };
   }
 
-  const grid = g === "grid" ? { rows: gridRows } : null;
+  const grid = g === 'grid' ? { rows: gridRows } : null;
   const custom = CustomData.create(input.custom, input.props);
-  const unitTable = g === "pairs" || g === "grid";
+  const unitTable = g === 'pairs' || g === 'grid';
   const ann: Built = {
     id: id as AnnotationId,
     key: strings.intern(input.key),
@@ -763,10 +763,10 @@ function build(set: SeqSet, input: AnnotationInput, id: number, issues: Issue[],
     slot,
     start,
     stop,
-    category: names("category"),
-    rowLabel: names("label"),
-    tooltip: names("tooltip"),
-    alt: names("alt"),
+    category: names('category'),
+    rowLabel: names('label'),
+    tooltip: names('tooltip'),
+    alt: names('alt'),
     dense: denseArrays,
     sparse,
     fields,
@@ -869,7 +869,7 @@ function pairIndex(
 /** A kept annotation against the set's current targets (set.ts `assemble`): 0 unchanged, 1 to rebuild, 2 orphaned. */
 function check(set: SeqSet, ann: Annotation): number {
   const a = ann as Built;
-  const deps = depsOf(set, a.targetKeys, a.geometry === "pairs");
+  const deps = depsOf(set, a.targetKeys, a.geometry === 'pairs');
   if (deps.length === a.deps.length && deps.every((d, i) => d === a.deps[i])) return 0;
   const t: KeyTarget = { kind: -1, id: -1, row: -1 };
   return a.targetKeys.every((k) => !set.byName(k, t)) ? 2 : 1;
@@ -963,27 +963,27 @@ function rowValue(ann: Annotation, set: SeqSet, row: number, name: string): unkn
   // A column this geometry does not read is a field (`ColumnRoles`).
   if (ColumnRoles[ann.geometry][name] !== undefined && !KEY_COLUMNS.has(name))
     switch (name) {
-      case "category":
+      case 'category':
         return stringAt(set, ann.category, row);
-      case "label":
+      case 'label':
         return stringAt(set, ann.rowLabel, row);
-      case "tooltip":
+      case 'tooltip':
         return stringAt(set, ann.tooltip, row);
-      case "alt":
+      case 'alt':
         return stringAt(set, ann.alt, row);
-      case "id":
+      case 'id':
         return ann.itemKey[ann.item[row]] >= 0 ? set.strings.get(ann.itemKey[ann.item[row]]) : undefined;
-      case "value":
+      case 'value':
         return ann.sparse ? n(ann.sparse[row]) : undefined;
-      case "start":
-      case "stop":
+      case 'start':
+      case 'stop':
         return ann[name][row];
     }
   const id = set.strings.find(name);
   for (const f of ann.fields) {
     if (f.name !== id) continue;
-    if (f.kind === "number") return n(f.data[row]);
-    if (f.kind === "string") return f.data[row] >= 0 ? set.strings.get(f.data[row]) : undefined;
+    if (f.kind === 'number') return n(f.data[row]);
+    if (f.kind === 'string') return f.data[row] >= 0 ? set.strings.get(f.data[row]) : undefined;
     return f.data[row] ?? undefined;
   }
   return undefined;

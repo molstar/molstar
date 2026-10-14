@@ -10,17 +10,17 @@
 // pass's backend, the skin, the text manager, the layer's channel themes and what the overlay reads. One per surface
 // and pass, preallocated; the composer (CS1) fills it per entry, the conformance kit (testing) in small.
 
-import type { ResolvedView } from "@molstar/seq-core/format";
-import type { ComposedPath, Numbering } from "@molstar/seq-core/model";
-import { AxisGeometry, SectionAxisView, type ShownIndex } from "../axis.js";
-import type { Skin } from "../graph.js";
-import { DefaultRenderProps, type RenderProps } from "../layout.js";
-import { MarkSet, type OverlayMarks } from "../marks.js";
-import { runXInto } from "../runs.js";
-import type { PendingSelection } from "../selection.js";
-import type { TextManagerApi } from "../text.js";
-import { type Theme, ThemeLocation } from "../themes.js";
-import type { RenderBackend } from "./backend.js";
+import type { ResolvedView } from '@molstar/seq-core/format';
+import type { ComposedPath, Numbering } from '@molstar/seq-core/model';
+import { AxisGeometry, SectionAxisView, type ShownIndex } from '../axis.js';
+import type { Skin } from '../graph.js';
+import { DefaultRenderProps, type RenderProps } from '../layout.js';
+import { MarkSet, type OverlayMarks } from '../marks.js';
+import { runXInto } from '../runs.js';
+import type { PendingSelection } from '../selection.js';
+import type { TextManagerApi } from '../text.js';
+import { type Theme, ThemeLocation } from '../themes.js';
+import type { RenderBackend } from './backend.js';
 
 /**
  * The circular geometry's view of an entry (seqspec:viewer#the-render-backend): its ring and angles; `Ring` (ring.ts)
@@ -94,8 +94,8 @@ export class DrawView extends SectionAxisView {
   viewHi: Int32Array = new Int32Array(0);
   /** The layer's channel themes in its type's channel order; the first color and glyph channels. */
   themes: readonly (Theme | null)[] = [];
-  color: Theme<"color"> | null = null;
-  glyph: Theme<"glyph"> | null = null;
+  color: Theme<'color'> | null = null;
+  glyph: Theme<'glyph'> | null = null;
   /** Reused by every draw. */
   readonly loc: ThemeLocation = ThemeLocation.create();
   /** On rings, the map of this unrolled draw onto the circle (`geometry` is then linear); else null. */
@@ -222,8 +222,8 @@ export class DrawView extends SectionAxisView {
     this.color = this.glyph = null;
     for (let i = 0; i < themes.length; i++) {
       const t = themes[i];
-      if (t?.kind === "color" && !this.color) this.color = t as Theme<"color">;
-      if (t?.kind === "glyph" && !this.glyph) this.glyph = t as Theme<"glyph">;
+      if (t?.kind === 'color' && !this.color) this.color = t as Theme<'color'>;
+      if (t?.kind === 'glyph' && !this.glyph) this.glyph = t as Theme<'glyph'>;
     }
   }
 }

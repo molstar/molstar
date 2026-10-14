@@ -12,8 +12,8 @@
 // the overlay reads as `OverlayMarks`. Every buffer grows by doubling and is kept: rebuilding a set allocates nothing
 // once it has room, and no query allocates.
 
-import type { RunSink } from "@molstar/seq-core/format";
-import type { ShownIndex } from "./axis.js";
+import type { RunSink } from '@molstar/seq-core/format';
+import type { ShownIndex } from './axis.js';
 
 /**
  * A channel's bit; the pending selection draws from its own numbers. `row` flags a `RowMarks` rectangle of a row's
@@ -311,7 +311,7 @@ export class RowMarks {
     const bit = new Uint8Array(n);
     bit.set(this.bit);
     this.bit = bit;
-    for (const f of ["block", "rowStart", "rowStop", "start", "stop"] as const) {
+    for (const f of ['block', 'rowStart', 'rowStop', 'start', 'stop'] as const) {
       const a = new Int32Array(n);
       a.set(this[f]);
       this[f] = a;

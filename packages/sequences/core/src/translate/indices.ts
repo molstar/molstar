@@ -10,9 +10,9 @@
 // system. A host passes the data an index reads (its atoms, its labels, its SIFTS rows) as a function of the system;
 // any other `IndexKind` is the host's own.
 
-import type { CoordinateSystem } from "@molstar/seq-core/model";
-import { firstOf } from "./maps.js";
-import type { IndexKind } from "./translator.js";
+import type { CoordinateSystem } from '@molstar/seq-core/model';
+import { firstOf } from './maps.js';
+import type { IndexKind } from './translator.js';
 
 /** Residue → atom ranges: atoms offsets[r] to offsets[r + 1] (each atom's residue index, grouped ascending; Mol*'s). */
 const atomRanges = (name: string, residueOfAtom: (s: CoordinateSystem) => Int32Array): IndexKind<Int32Array> => ({
@@ -29,7 +29,7 @@ const atomRanges = (name: string, residueOfAtom: (s: CoordinateSystem) => Int32A
 
 /** Chain → units: a complex's members by their `structure.labelAsymId` (else their key), in member order. */
 const chainUnits: IndexKind<ReadonlyMap<string, readonly CoordinateSystem[]>> = {
-  name: "chain-units",
+  name: 'chain-units',
   build(s, t) {
     const chains = new Map<string, CoordinateSystem[]>();
     for (const key of t.descriptorOf(s)?.members ?? []) {

@@ -12,7 +12,7 @@
 // fails the same guard (the positive control). Each case loads the viewer and its frame afresh (`vi.resetModules`), as
 // rn3.heap.ts does.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -23,7 +23,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = 1_000;
 const WARM = FRAME_WARM;
@@ -39,38 +39,38 @@ const measure = (frame: () => void) => {
 };
 const guard = (frame: () => void) => {
   const r = measure(frame);
-  return isFlat(r) ? "" : describeScaling(r, N);
+  return isFlat(r) ? '' : describeScaling(r, N);
 };
 
 describe("the streamed genome's pans allocate nothing per frame once its regions are held", () => {
-  for (const at of ["whole", "10 kb"] as const)
+  for (const at of ['whole', '10 kb'] as const)
     for (const draw of [false, true])
-      it(`${draw ? "a pass and a frame" : "a pass"}, ${at}`, async () => {
+      it(`${draw ? 'a pass and a frame' : 'a pass'}, ${at}`, async () => {
         vi.resetModules();
-        const { genomeFrame } = await import("./stream-fixtures.js");
+        const { genomeFrame } = await import('./stream-fixtures.js');
         const g = await genomeFrame(at, draw);
         const asked = g.requests();
-        expect(guard(g.frame)).toBe("");
+        expect(guard(g.frame)).toBe('');
         expect(g.requests()).toBe(asked);
         expect(g.manager.stats.current.hits).toBeGreaterThan(0);
       }, 120_000);
 
   // ST1b-a: with dynamic nodes held (the manifest's genes drawn, every data region's peak), the same.
-  for (const at of ["whole", "10 kb"] as const)
+  for (const at of ['whole', '10 kb'] as const)
     it(`a pass and a frame, ${at}, dynamic nodes held`, async () => {
       vi.resetModules();
-      const { genomeFrame } = await import("./stream-fixtures.js");
+      const { genomeFrame } = await import('./stream-fixtures.js');
       const g = await genomeFrame(at, true, true);
-      expect(g.manager.nodes.entries.size).toBeGreaterThan(at === "whole" ? -1 : 0);
+      expect(g.manager.nodes.entries.size).toBeGreaterThan(at === 'whole' ? -1 : 0);
       const asked = g.requests();
-      expect(guard(g.frame)).toBe("");
+      expect(guard(g.frame)).toBe('');
       expect(g.requests()).toBe(asked);
     }, 120_000);
 
-  it("the same frame allocating an object a step is caught (positive control)", async () => {
+  it('the same frame allocating an object a step is caught (positive control)', async () => {
     vi.resetModules();
-    const { genomeFrame } = await import("./stream-fixtures.js");
-    const g = await genomeFrame("10 kb", true);
+    const { genomeFrame } = await import('./stream-fixtures.js');
+    const g = await genomeFrame('10 kb', true);
     expect(controlCaught(() => measure(leaking(g.frame) as () => void))).toBe(true);
   }, 120_000);
 });

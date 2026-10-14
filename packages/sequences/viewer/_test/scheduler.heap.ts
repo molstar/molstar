@@ -16,9 +16,9 @@
 // rAF hands its own new double each frame). The positive control: the same steps allocating an object each
 // (`leaking`), measured alike, are caught.
 
-import { expect, it } from "vitest";
-import { createSeqViewer, type Scheduler } from "../src/index.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { expect, it } from 'vitest';
+import { createSeqViewer, type Scheduler } from '../src/index.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from './heap.js';
 
 const N = 20_000;
 
@@ -76,7 +76,7 @@ function looping() {
   return out;
 }
 
-it("a frame loop and a timer with stable callbacks allocate nothing through ctx.scheduler", () => {
+it('a frame loop and a timer with stable callbacks allocate nothing through ctx.scheduler', () => {
   const l = looping();
   const r = heapScaling(N, l.step);
   expect(l.frames).toBe(0);
@@ -84,7 +84,7 @@ it("a frame loop and a timer with stable callbacks allocate nothing through ctx.
   l.ctx.dispose();
 });
 
-it("the same steps allocating an object each are caught (positive control)", () => {
+it('the same steps allocating an object each are caught (positive control)', () => {
   const l = looping();
   expect(controlCaught(() => heapScaling(N, leaking(l.step)))).toBe(true);
   l.ctx.dispose();

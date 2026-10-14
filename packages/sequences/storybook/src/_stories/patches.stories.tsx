@@ -6,29 +6,29 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { DefaultSeqViewerSpec, type PatchEvent, type SeqViewerContext } from "@molstar/seq-viewer";
-import { InteractionsViewerRegistry } from "@molstar/seq-viewer/interactions/viewer";
-import { SeqViewer, useSeqState, useSeqViewer } from "@molstar/seq-viewer/react";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Suspense, use, useEffect, useMemo, useState } from "react";
-import { fixtureLoaders, MolstarFixture } from "../../../core/_test/format/load-fixtures.js";
-import { compiledCase } from "./support/seqstar-cases.js";
-import { antibodyPlain, antibodyWithSnapshots } from "./support/seqstar-docs-views.js";
-import f from "./support/seqstar-format.module.css";
-import p from "./support/seqstar-patches.module.css";
-import { PrismCanvas, PrismPage } from "./support/seqstar-prism.js";
-import { STORY_CHROME, type UiChoice, ViewerCard } from "./support/seqstar-viewer.js";
-import { type Args, viewerControls } from "./support/seqstar-viewer-args.js";
-import { ScrollArea, TextAction } from "./ui/index.js";
+import { DefaultSeqViewerSpec, type PatchEvent, type SeqViewerContext } from '@molstar/seq-viewer';
+import { InteractionsViewerRegistry } from '@molstar/seq-viewer/interactions/viewer';
+import { SeqViewer, useSeqState, useSeqViewer } from '@molstar/seq-viewer/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Suspense, use, useEffect, useMemo, useState } from 'react';
+import { fixtureLoaders, MolstarFixture } from '../../../core/_test/format/load-fixtures.js';
+import { compiledCase } from './support/seqstar-cases.js';
+import { antibodyPlain, antibodyWithSnapshots } from './support/seqstar-docs-views.js';
+import f from './support/seqstar-format.module.css';
+import p from './support/seqstar-patches.module.css';
+import { PrismCanvas, PrismPage } from './support/seqstar-prism.js';
+import { STORY_CHROME, type UiChoice, ViewerCard } from './support/seqstar-viewer.js';
+import { type Args, viewerControls } from './support/seqstar-viewer-args.js';
+import { ScrollArea, TextAction } from './ui/index.js';
 
 /**
  * Patches and snapshots: every change a person makes in the viewer is a small ref-addressed patch.
  */
 const meta = {
-  title: "Seq*/Interaction/Patches and snapshots",
+  title: 'Seq*/Interaction/Patches and snapshots',
   ...viewerControls,
   // Said here too: Storybook reads a story file's layout from its own meta, not through a spread.
-  parameters: { ...viewerControls.parameters, layout: "fullscreen" },
+  parameters: { ...viewerControls.parameters, layout: 'fullscreen' },
 } satisfies Meta<Args>;
 export default meta;
 type Story = StoryObj<Args>;
@@ -54,7 +54,7 @@ function PatchLog() {
           type="button"
           className={p.chip}
           disabled={!canUndo}
-          onClick={() => ctx.actions.run("history.undo", null)}
+          onClick={() => ctx.actions.run('history.undo', null)}
         >
           Undo
         </button>
@@ -62,11 +62,11 @@ function PatchLog() {
       {last ? (
         <>
           <span>
-            {last.e.label} · {last.e.routed} · {last.e.patch.ops.length} ops · frame{" "}
-            {last.ms === null ? "…" : `${last.ms.toFixed(1)} ms`}
+            {last.e.label} · {last.e.routed} · {last.e.patch.ops.length} ops · frame{' '}
+            {last.ms === null ? '…' : `${last.ms.toFixed(1)} ms`}
           </span>
           <ScrollArea orientation="both">
-            <pre className={p.ops}>{last.e.patch.ops.map((o) => JSON.stringify(o)).join("\n")}</pre>
+            <pre className={p.ops}>{last.e.patch.ops.map((o) => JSON.stringify(o)).join('\n')}</pre>
           </ScrollArea>
         </>
       ) : (
@@ -77,9 +77,9 @@ function PatchLog() {
 }
 
 /** What the patches are made with, left out by `clean`: the views, the headers (their switches and hidden chips) and the track menu. */
-const PATCH_PARTS = ["ViewTabs", "SectionHeader", "TrackActions"] as const;
+const PATCH_PARTS = ['ViewTabs', 'SectionHeader', 'TrackActions'] as const;
 function PatchesCase({ ui }: { ui: UiChoice }) {
-  const c = use(compiledCase("case2"));
+  const c = use(compiledCase('case2'));
   const doc = useMemo(() => antibodyWithSnapshots(c.doc), [c]);
   return (
     <ViewerCard doc={doc} label="Fv · trastuzumab" options={{ ui, parts: PATCH_PARTS }}>
@@ -89,7 +89,7 @@ function PatchesCase({ ui }: { ui: UiChoice }) {
 }
 /** Filter view, hide and remove, switches, snapshots and undo on the real viewer. */
 export const ViewerPatches: Story = {
-  name: "Filter view, hide and remove, snapshots, undo",
+  name: 'Filter view, hide and remove, snapshots, undo',
   render: (a) => (
     <PrismPage
       title="Filter view, hide and remove, patch snapshots"
@@ -113,12 +113,12 @@ export const ViewerPatches: Story = {
 function Undo({ context: ctx }: { context: SeqViewerContext }) {
   const canUndo = useSeqState(ctx.history.canUndo);
   return (
-    <TextAction tone="quiet" disabled={!canUndo} onClick={() => ctx.actions.run("history.undo", null)}>
+    <TextAction tone="quiet" disabled={!canUndo} onClick={() => ctx.actions.run('history.undo', null)}>
       Undo
     </TextAction>
   );
 }
-function SeqViewerPatchesView({ chrome }: { chrome: "full" | "clean" }) {
+function SeqViewerPatchesView({ chrome }: { chrome: 'full' | 'clean' }) {
   const doc = useMemo(antibodyPlain, []);
   const [ctx, setCtx] = useState<SeqViewerContext | null>(null);
   return (
@@ -143,11 +143,11 @@ function SeqViewerPatchesView({ chrome }: { chrome: "full" | "clean" }) {
     </PrismPage>
   );
 }
-export const SeqViewerPatches: StoryObj<{ chrome: "full" | "clean" }> = {
-  name: "The same through SeqViewer",
+export const SeqViewerPatches: StoryObj<{ chrome: 'full' | 'clean' }> = {
+  name: 'The same through SeqViewer',
   args: { chrome: STORY_CHROME },
   argTypes: {
-    chrome: { control: "inline-radio", options: ["full", "clean"], description: "This UI's parts (a UI option)" },
+    chrome: { control: 'inline-radio', options: ['full', 'clean'], description: "This UI's parts (a UI option)" },
   },
   render: (a) => <SeqViewerPatchesView chrome={a.chrome} />,
 };

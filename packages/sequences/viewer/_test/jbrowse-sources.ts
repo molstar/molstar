@@ -11,12 +11,12 @@
 // fixtures'), replayed; `SEQSTAR_RECORD=1` records a set again, by hand, over curl (Node's fetch is refused in the
 // sandbox this is recorded in), never in a test run. Every read is logged, every request too.
 
-import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import type { DataPatch, Loaders, StreamProvider, StreamRequest } from "@molstar/seq-core/format";
-import { GRCH38 } from "../../core/_test/format/stream-provider.js";
-import { URLS } from "../../core/_test/stream/gmod/cases.js";
-import { whole } from "../../core/_test/stream/gmod/slices.js";
+import { execFile } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import type { DataPatch, Loaders, StreamProvider, StreamRequest } from '@molstar/seq-core/format';
+import { GRCH38 } from '../../core/_test/format/stream-provider.js';
+import { URLS } from '../../core/_test/stream/gmod/cases.js';
+import { whole } from '../../core/_test/stream/gmod/slices.js';
 import {
   bigBedProvider,
   bigWigProvider,
@@ -25,10 +25,10 @@ import {
   renamed,
   twoBitProvider,
   vcfProvider,
-} from "../../core/src/stream/gmod/index.js";
+} from '../../core/src/stream/gmod/index.js';
 
-export const RECORD = process.env.SEQSTAR_RECORD === "1";
-export type Key = "twobit" | "bigwig" | "bigbed" | "vcf";
+export const RECORD = process.env.SEQSTAR_RECORD === '1';
+export type Key = 'twobit' | 'bigwig' | 'bigbed' | 'vcf';
 interface Recorded {
   url: string;
   chunks: [number, number, number][];
@@ -46,9 +46,9 @@ const curl = (url: string, offset: number, length: number) => {
 const curlOne = (url: string, offset: number, length: number) =>
   new Promise<Uint8Array>((ok, no) =>
     execFile(
-      "curl",
-      ["-s", "-f", "--retry", "3", "-H", `Range: bytes=${offset}-${offset + length - 1}`, url],
-      { encoding: "buffer", maxBuffer: 1 << 28 },
+      'curl',
+      ['-s', '-f', '--retry', '3', '-H', `Range: bytes=${offset}-${offset + length - 1}`, url],
+      { encoding: 'buffer', maxBuffer: 1 << 28 },
       (e, out) => (e ? no(e) : ok(new Uint8Array(out))),
     ),
   );
@@ -56,8 +56,8 @@ const curlOne = (url: string, offset: number, length: number) =>
 /** The four providers of the demo over set `name`'s slices: their transports' reads, the requests, and `save`. */
 export function demoSources(name: string, only?: readonly string[]) {
   const dir = new URL(`../../core/_test/stream/gmod/fixtures/${name}/`, import.meta.url);
-  const saved: Record<string, Recorded> = existsSync(new URL("slices.json", dir))
-    ? JSON.parse(readFileSync(new URL("slices.json", dir), "utf8"))
+  const saved: Record<string, Recorded> = existsSync(new URL('slices.json', dir))
+    ? JSON.parse(readFileSync(new URL('slices.json', dir), 'utf8'))
     : {};
   const got = new Map<Key, Map<string, Uint8Array>>();
   const reader = (key: Key) => {
@@ -87,7 +87,7 @@ export function demoSources(name: string, only?: readonly string[]) {
     };
     return { read, reads };
   };
-  const io = { twobit: reader("twobit"), bigwig: reader("bigwig"), bigbed: reader("bigbed"), vcf: reader("vcf") };
+  const io = { twobit: reader('twobit'), bigwig: reader('bigwig'), bigbed: reader('bigbed'), vcf: reader('vcf') };
   const asked: StreamRequest[] = [];
   const logged = (p: StreamProvider): StreamProvider => ({
     fetch: (r, s): Promise<DataPatch> => {
@@ -96,7 +96,7 @@ export function demoSources(name: string, only?: readonly string[]) {
     },
   });
   const lengths = new Map<string, number>(
-    [...GRCH38.map(([k, n]) => [k, n] as [string, number]), ["chrM", 16_569] as [string, number]].filter(
+    [...GRCH38.map(([k, n]) => [k, n] as [string, number]), ['chrM', 16_569] as [string, number]].filter(
       ([k]) => !only || only.includes(k),
     ),
   );
@@ -107,25 +107,25 @@ export function demoSources(name: string, only?: readonly string[]) {
     genes: logged(
       renamed(
         bigBedProvider(io.bigbed.read, {
-          label: "geneName",
-          category: "transcriptClass",
-          vocabulary: ["coding", "nonCoding", "pseudo"],
+          label: 'geneName',
+          category: 'transcriptClass',
+          vocabulary: ['coding', 'nonCoding', 'pseudo'],
         }),
         primary,
       ),
     ),
     clinvar: logged(
       renamed(
-        vcfProvider(io.vcf.read, whole("tbi"), {
-          info: ["CLNSIG"],
-          lengths: Object.fromEntries([...lengths].map(([k, n]) => [k === "chrM" ? "MT" : k.slice(3), n])),
+        vcfProvider(io.vcf.read, whole('tbi'), {
+          info: ['CLNSIG'],
+          lengths: Object.fromEntries([...lengths].map(([k, n]) => [k === 'chrM' ? 'MT' : k.slice(3), n])),
         }),
-        (n) => primary(chrNames(n) ?? ""),
+        (n) => primary(chrNames(n) ?? ''),
       ),
     ),
   };
   const loaders: Loaders = {
-    load: () => Promise.reject(new Error("none")),
+    load: () => Promise.reject(new Error('none')),
     stream: (s) => (s.stream ? (providers[s.stream] ?? null) : null),
   };
   /** In record mode, the reads made written as the set's slices. */
@@ -134,12 +134,12 @@ export function demoSources(name: string, only?: readonly string[]) {
     if (!RECORD || [...got.values()].every((m) => m.size === 0)) return;
     mkdirSync(dir, { recursive: true });
     for (const [key, map] of got) {
-      const entries = [...map].map(([k, b]) => [...k.split(":").map(Number), b] as [number, number, Uint8Array]);
+      const entries = [...map].map(([k, b]) => [...k.split(':').map(Number), b] as [number, number, Uint8Array]);
       entries.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
       writeFileSync(new URL(`${key}.bin`, dir), Buffer.concat(entries.map((e) => e[2])));
       saved[key] = { url: URLS[key], chunks: entries.map(([o, l, b]) => [o, l, b.length]) };
     }
-    writeFileSync(new URL("slices.json", dir), `${JSON.stringify(saved, null, 1)}\n`);
+    writeFileSync(new URL('slices.json', dir), `${JSON.stringify(saved, null, 1)}\n`);
   };
   return { io, asked, loaders, save };
 }

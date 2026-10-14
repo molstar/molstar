@@ -24,13 +24,13 @@ import {
   type MapHit,
   Mappings,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import { reach } from "./reach.js";
-import type { BlockRow } from "./section.js";
-import type { ResolvedView } from "./view.js";
+} from '@molstar/seq-core/model';
+import { reach } from './reach.js';
+import type { BlockRow } from './section.js';
+import type { ResolvedView } from './view.js';
 
 /** A channel's closure option (seqspec:interaction#hover): `containing` adds the elements that contain each element. */
-export type Closure = "element" | "containing";
+export type Closure = 'element' | 'containing';
 /** How a selection widens after closure, each entry in its own coordinate system (seqspec:interaction#selection). */
 export const SelectionGranularity = { position: 0, range: 1, unit: 2, copyGroup: 3, column: 4, row: 5 } as const;
 

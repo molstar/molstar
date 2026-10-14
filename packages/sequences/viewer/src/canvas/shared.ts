@@ -15,12 +15,12 @@
 // boxes too, through the text version): it never sets a measurer, so a host's own (`measurer: false`) stays. Also the
 // browser scheduler and `canvasEmBox`, which `/dom`'s export re-exports.
 
-import { SeqViewerConfig } from "../config.js";
-import { DarkSkin, DefaultSkin, type SeqViewerContext } from "../context.js";
-import type { Skin } from "../graph.js";
-import { rafScheduler, type Scheduler } from "../scheduler.js";
-import type { EmBox, MetricsMeasurer } from "../svg/metrics.js";
-import type { TextMeasurer } from "../text.js";
+import { SeqViewerConfig } from '../config.js';
+import { DarkSkin, DefaultSkin, type SeqViewerContext } from '../context.js';
+import type { Skin } from '../graph.js';
+import { rafScheduler, type Scheduler } from '../scheduler.js';
+import type { EmBox, MetricsMeasurer } from '../svg/metrics.js';
+import type { TextMeasurer } from '../text.js';
 
 /** `ports.scheduler` for a page: animation frames, timers and `performance.now()` of `window`. */
 export function windowScheduler(): Scheduler {
@@ -38,8 +38,8 @@ export function windowScheduler(): Scheduler {
  * reads, so `renderSvg` over a context it measures writes baselines as `dy` (read again when `version` moves).
  */
 export function canvasMeasurer(version?: () => number): MetricsMeasurer {
-  const c = new OffscreenCanvas(1, 1).getContext("2d") as OffscreenCanvasRenderingContext2D;
-  let font = "";
+  const c = new OffscreenCanvas(1, 1).getContext('2d') as OffscreenCanvasRenderingContext2D;
+  let font = '';
   return {
     measure(f, text) {
       if (f !== font) c.font = font = f;
@@ -67,7 +67,7 @@ export function canvasEmBox(version?: () => number): (font: string) => EmBox | n
   const foot = (p: OffscreenCanvasRenderingContext2D, baseline: CanvasTextBaseline): number => {
     p.clearRect(0, 0, 160, 320);
     p.textBaseline = baseline;
-    p.fillText("H", 10, 100);
+    p.fillText('H', 10, 100);
     const d = p.getImageData(0, 0, 160, 320).data;
     for (let y = 319; y >= 0; y--) for (let x = 0; x < 160; x++) if (d[(y * 160 + x) * 4 + 3] > 127) return y + 1;
     return 0;
@@ -78,7 +78,7 @@ export function canvasEmBox(version?: () => number): (font: string) => EmBox | n
    */
   const head = (p: OffscreenCanvasRenderingContext2D, ch: string): number => {
     p.clearRect(0, 0, 160, 320);
-    p.textBaseline = "alphabetic";
+    p.textBaseline = 'alphabetic';
     p.fillText(ch, 10, 100);
     const d = p.getImageData(0, 0, 160, 100).data;
     for (let y = 0; y < 100; y++) {
@@ -102,15 +102,15 @@ export function canvasEmBox(version?: () => number): (font: string) => EmBox | n
     }
     let full = sized.get(font);
     if (full !== undefined) return full;
-    const probe = font.replace(/[\d.]+px/, "100px");
+    const probe = font.replace(/[\d.]+px/, '100px');
     let box = cache.get(probe);
     if (box === undefined) {
-      g ??= new OffscreenCanvas(160, 320).getContext("2d", {
+      g ??= new OffscreenCanvas(160, 320).getContext('2d', {
         willReadFrequently: true,
       }) as OffscreenCanvasRenderingContext2D;
       g.font = probe;
-      const alphabetic = foot(g, "alphabetic");
-      const [top, bottom] = [foot(g, "top"), foot(g, "bottom")];
+      const alphabetic = foot(g, 'alphabetic');
+      const [top, bottom] = [foot(g, 'top'), foot(g, 'bottom')];
       box = alphabetic > 0 ? { ascent: (top - alphabetic) / 100, descent: (alphabetic - bottom) / 100 } : null;
       cache.set(probe, box);
     }
@@ -121,7 +121,7 @@ export function canvasEmBox(version?: () => number): (font: string) => EmBox | n
       const p = g as OffscreenCanvasRenderingContext2D;
       p.font = px > 0 && px <= 100 ? font : probe;
       const em = px > 0 && px <= 100 ? px : 100;
-      full = { ...box, cap: head(p, "H") / em, xHeight: head(p, "x") / em };
+      full = { ...box, cap: head(p, 'H') / em, xHeight: head(p, 'x') / em };
     }
     sized.set(font, full);
     return full;
@@ -129,28 +129,28 @@ export function canvasEmBox(version?: () => number): (font: string) => EmBox | n
 }
 
 const TOKENS: readonly (keyof Skin)[] = [
-  "surface",
-  "surfaceAlt",
-  "ink",
-  "inkQuiet",
-  "inkFaint",
-  "grid",
-  "accent",
-  "hover",
-  "highlight",
-  "selection",
-  "selectionBorder",
-  "unobserved",
-  "pending",
-  "grip",
-  "gripHover",
-  "window",
-  "conflict",
-  "focusRing",
+  'surface',
+  'surfaceAlt',
+  'ink',
+  'inkQuiet',
+  'inkFaint',
+  'grid',
+  'accent',
+  'hover',
+  'highlight',
+  'selection',
+  'selectionBorder',
+  'unobserved',
+  'pending',
+  'grip',
+  'gripHover',
+  'window',
+  'conflict',
+  'focusRing',
 ];
 const cssName = (k: string) => `--seq-${k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
 /** Every property the reader reads, named once. */
-const NAMES: readonly string[] = [...TOKENS.map(cssName), "--seq-font-mono", "--seq-font-ui"];
+const NAMES: readonly string[] = [...TOKENS.map(cssName), '--seq-font-mono', '--seq-font-ui'];
 
 /** WCAG 2's relative luminance of an sRGB channel (0..255). */
 const linear = (c: number) => (c <= 10.31475 ? c / 3294.6 : ((c / 255 + 0.055) / 1.055) ** 2.4);
@@ -162,12 +162,12 @@ const DARK_LUMINANCE = 0.179;
 
 /** Any CSS color (oklch, color-mix, var-substituted) as `[rgb(…), WCAG luminance 0..1]`, through a 1×1 canvas; edge-rate. */
 function normalizer() {
-  const c = new OffscreenCanvas(1, 1).getContext("2d", {
+  const c = new OffscreenCanvas(1, 1).getContext('2d', {
     willReadFrequently: true,
   }) as OffscreenCanvasRenderingContext2D;
   return (css: string): [string, number] => {
     c.clearRect(0, 0, 1, 1);
-    c.fillStyle = "#000";
+    c.fillStyle = '#000';
     c.fillStyle = css;
     c.fillRect(0, 0, 1, 1);
     const [r, g, b, a] = c.getImageData(0, 0, 1, 1).data;
@@ -180,9 +180,9 @@ function normalizer() {
 /** The page's own theme: the root's `data-theme`, else Prism's `data-msp-theme` (blue is dark), else the color scheme. */
 function pageDark(): boolean {
   const { theme, mspTheme } = document.documentElement.dataset;
-  if (theme === "dark" || theme === "light") return theme === "dark";
-  if (mspTheme && mspTheme !== "auto") return mspTheme !== "light";
-  return matchMedia("(prefers-color-scheme: dark)").matches;
+  if (theme === 'dark' || theme === 'light') return theme === 'dark';
+  if (mspTheme && mspTheme !== 'auto') return mspTheme !== 'light';
+  return matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
 /**
@@ -191,7 +191,7 @@ function pageDark(): boolean {
  */
 export function readSkin(el: Element, norm = normalizer()): Skin {
   const style = getComputedStyle(el);
-  const surface = style.getPropertyValue("--seq-surface").trim();
+  const surface = style.getPropertyValue('--seq-surface').trim();
   const y = surface ? norm(surface)[1] : Number.NaN;
   const dark = Number.isNaN(y) ? pageDark() : y < DARK_LUMINANCE;
   const out: Record<string, unknown> = { ...(dark ? DarkSkin : DefaultSkin), dark };
@@ -199,8 +199,8 @@ export function readSkin(el: Element, norm = normalizer()): Skin {
     const v = style.getPropertyValue(cssName(k)).trim();
     if (v) out[k] = norm(v)[0];
   }
-  const mono = style.getPropertyValue("--seq-font-mono").trim();
-  const ui = style.getPropertyValue("--seq-font-ui").trim();
+  const mono = style.getPropertyValue('--seq-font-mono').trim();
+  const ui = style.getPropertyValue('--seq-font-ui').trim();
   if (mono) out.fontMono = mono;
   if (ui) out.fontUi = ui;
   return out as unknown as Skin;
@@ -212,7 +212,7 @@ export function readSkin(el: Element, norm = normalizer()): Skin {
  */
 function hostAncestors(el: Element): Element[] {
   const out: Element[] = [];
-  let n: Node | null = el.closest(".seqv-root") ?? el.parentNode;
+  let n: Node | null = el.closest('.seqv-root') ?? el.parentNode;
   while (n) {
     if (n instanceof Element) out.push(n);
     n = n instanceof ShadowRoot ? n.host : n.parentNode;
@@ -253,14 +253,14 @@ export function joinShared(ctx: SeqViewerContext, el: Element, opts: { measurer?
     const measurer = opts.measurer === false ? null : canvasMeasurer(() => ctx.text.version.value);
     const norm = normalizer();
     let last: Skin | null = null;
-    let raw = "";
+    let raw = '';
     const read = () => {
       frame = 0;
       const first = (s as Shared).surfaces.values().next().value as Element | undefined;
       if (!first || ctx.disposed) return;
       // The tokens as written, and the page's theme: the same as last time, nothing is normalized or published.
       const style = getComputedStyle(first);
-      let now = pageDark() ? "dark" : "light";
+      let now = pageDark() ? 'dark' : 'light';
       for (const n of NAMES) now += `|${style.getPropertyValue(n)}`;
       if (now === raw) return;
       raw = now;
@@ -279,13 +279,13 @@ export function joinShared(ctx: SeqViewerContext, el: Element, opts: { measurer?
     // ancestor, `ui.className` on the root): read when it joins. Not `style`: a host writes inline properties on its
     // layout during drags (a panel's width), so a color set inline asks for a read with `refreshSkin`.
     const mo = new MutationObserver(schedule);
-    const watch = { attributes: true, attributeFilter: ["data-theme", "data-msp-theme", "class"] };
+    const watch = { attributes: true, attributeFilter: ['data-theme', 'data-msp-theme', 'class'] };
     for (const a of hostAncestors(el)) mo.observe(a, watch);
-    const media = matchMedia("(prefers-color-scheme: dark)");
-    media.addEventListener("change", schedule);
+    const media = matchMedia('(prefers-color-scheme: dark)');
+    media.addEventListener('change', schedule);
     // A web font that loads after text was measured: every prepared text is stale (pretext's `clearCache`).
     const fonts = () => !ctx.disposed && ctx.text.invalidate();
-    document.fonts.addEventListener("loadingdone", fonts);
+    document.fonts.addEventListener('loadingdone', fonts);
     s = {
       surfaces: new Set(),
       previous: ctx.text.port,
@@ -294,15 +294,15 @@ export function joinShared(ctx: SeqViewerContext, el: Element, opts: { measurer?
       stop: () => {
         mo.disconnect();
         if (frame) ctx.scheduler.cancelFrame(frame);
-        media.removeEventListener("change", schedule);
-        document.fonts.removeEventListener("loadingdone", fonts);
+        media.removeEventListener('change', schedule);
+        document.fonts.removeEventListener('loadingdone', fonts);
       },
     };
     shared.set(ctx, s);
     s.surfaces.add(el);
     // `Viewport.ReducedMotion` null: the page's preference, read once (seqspec:interaction#accessibility).
     const motion = SeqViewerConfig.Viewport.ReducedMotion;
-    if (ctx.config.get(motion) === null && matchMedia("(prefers-reduced-motion: reduce)").matches)
+    if (ctx.config.get(motion) === null && matchMedia('(prefers-reduced-motion: reduce)').matches)
       ctx.config.set(motion, true);
     if (measurer) ctx.setTextMeasurer(measurer);
     read();

@@ -10,10 +10,10 @@
 // region's state, a layer's description, what drawing reads (`StreamView`) and the host's manager (`StreamManager`).
 // Types and constants only; `streams.ts` re-exports them.
 
-import type { StreamedData, Tile } from "@molstar/seq-core/format";
-import type { ComposedPath } from "@molstar/seq-core/model";
-import type { Features } from "./prepare.js";
-import type { Live, SeqState } from "./state.js";
+import type { StreamedData, Tile } from '@molstar/seq-core/format';
+import type { ComposedPath } from '@molstar/seq-core/model';
+import type { Features } from './prepare.js';
+import type { Live, SeqState } from './state.js';
 
 /** A region's state; one not held is pending (never drawn or hit as empty). */
 export const RegionState = { pending: 0, loaded: 1, empty: 2, failed: 3 } as const;

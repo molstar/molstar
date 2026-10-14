@@ -9,7 +9,7 @@
 // The container BigWig and BigBed share (README, "BigWig and BigBed"): the header, the chromosome tree, the R-tree that
 // finds the data blocks of a region, and the blocks' inflate. What a block holds is the format's (bigwig.ts, bigbed.ts).
 
-import { cstring, inflate, type RangeReader, u64, view } from "./ranges.js";
+import { cstring, inflate, type RangeReader, u64, view } from './ranges.js';
 
 const MAGIC = { bigwig: 0x888ffc26, bigbed: 0x8789f2eb } as const;
 const CHROM_TREE = 0x78ca8c91;
@@ -62,7 +62,7 @@ export async function openBbi(read: RangeReader, signal?: AbortSignal): Promise<
   const kind = (Object.keys(MAGIC) as (keyof typeof MAGIC)[]).find(
     (k) => dv.getUint32(0, true) === MAGIC[k] || dv.getUint32(0, false) === MAGIC[k],
   );
-  if (!kind) throw new Error("not a BigWig or BigBed file: no magic number");
+  if (!kind) throw new Error('not a BigWig or BigBed file: no magic number');
   const le = dv.getUint32(0, true) === MAGIC[kind]; // the file's own byte order, whatever the machine that wrote it
   const [zoomCount, treeAt, dataAt, indexAt] = [dv.getUint16(6, le), u64(dv, 8, le), u64(dv, 16, le), u64(dv, 24, le)];
   const [fieldCount, definedFieldCount, sqlAt, summaryAt] = [
@@ -79,9 +79,9 @@ export async function openBbi(read: RangeReader, signal?: AbortSignal): Promise<
   })).sort((a, b) => a.reduction - b.reduction);
 
   // The chromosome tree is one run of nodes between its offset and the data's: read it whole and walk it in memory.
-  const tree = await read(treeAt, bounded("chromosome tree", dataAt - treeAt, MAX_CHROM_TREE), signal);
+  const tree = await read(treeAt, bounded('chromosome tree', dataAt - treeAt, MAX_CHROM_TREE), signal);
   const tv = view(tree);
-  if (tv.getUint32(0, le) !== CHROM_TREE) throw new Error("bad chromosome tree magic");
+  if (tv.getUint32(0, le) !== CHROM_TREE) throw new Error('bad chromosome tree magic');
   const [keySize, valSize, items] = [tv.getUint32(8, le), tv.getUint32(12, le), u64(tv, 16, le)];
   const chroms = new Map<string, Chrom>();
   // Iterative, each node once, at most MAX_TREE_DEPTH deep and `items` leaves (GI-06: a node pointing twice at the
@@ -106,7 +106,7 @@ export async function openBbi(read: RangeReader, signal?: AbortSignal): Promise<
       }
   }
 
-  const sqlLength = sqlAt > 0 ? bounded("autoSql", (summaryAt || treeAt) - sqlAt, MAX_AUTOSQL) : 0;
+  const sqlLength = sqlAt > 0 ? bounded('autoSql', (summaryAt || treeAt) - sqlAt, MAX_AUTOSQL) : 0;
   const sql = sqlAt > 0 ? cstring(await read(sqlAt, sqlLength, signal)) : null;
   let range: [number, number] | null = null;
   if (summaryAt > 0) {
@@ -169,7 +169,7 @@ export async function openBbi(read: RangeReader, signal?: AbortSignal): Promise<
       return Promise.all(
         found.map(async ([offset, size]) => {
           const raw = await read(offset, size, signal);
-          return uncompressed > 0 ? inflate(raw, "deflate", uncompressed) : raw;
+          return uncompressed > 0 ? inflate(raw, 'deflate', uncompressed) : raw;
         }),
       );
     },

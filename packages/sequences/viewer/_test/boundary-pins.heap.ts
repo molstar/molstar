@@ -12,7 +12,7 @@
 // controls: most frames hovered a boundary, and the same frames allocating an object each (`leaking`), through the same
 // warm-up and measurement, are caught.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -24,19 +24,19 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 async function setup() {
   vi.resetModules();
-  const { lit } = await import("./overlay-fixtures.js");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
-  const { pinsDoc, S } = await import("./boundary-pins-fixtures.js");
-  const { Dirty } = await import("../src/draw/index.js");
-  const { HoverKind, Inputs, PointerType } = await import("../src/index.js");
+  const { lit } = await import('./overlay-fixtures.js');
+  const { recording, COPY_BACK } = await import('./composer-fixtures.js');
+  const { pinsDoc, S } = await import('./boundary-pins-fixtures.js');
+  const { Dirty } = await import('../src/draw/index.js');
+  const { HoverKind, Inputs, PointerType } = await import('../src/index.js');
   const ITEM = HoverKind.item;
   const t = await lit(pinsDoc(), { width: 900, height: 400, dpr: 2 });
-  t.ctx.behaviors.get("hoverLabel")?.remove();
-  t.vp?.setView(16, 0, "api");
+  t.ctx.behaviors.get('hoverLabel')?.remove();
+  t.vp?.setView(16, 0, 'api');
   const be = recording(COPY_BACK);
   t.frame(be, Dirty.all);
   const p = Inputs.pointer();
@@ -46,7 +46,7 @@ async function setup() {
   const at = a ? a.x(0, a.shownOf(0, 20)) : 0;
   // On the middle boundary and a few px off it (its pin), then the residues beside it; on both rows.
   const xs = [at, at - 2, at + 3, at - 8, at + 8, at + 1];
-  const ys = [t.yOf(S, "t-of"), t.yOf(S, "t-own")];
+  const ys = [t.yOf(S, 't-of'), t.yOf(S, 't-own')];
   let boundary = 0;
   let measuring = false;
   const frame = (i: number) => {
@@ -77,8 +77,8 @@ function run(n: number, frame: (i: number) => void, measure = () => {}) {
   return heapScaling(n, () => frame(i++));
 }
 
-describe("pinned boundaries over a hover sweep", () => {
-  it("allocate nothing; the pins hover; an object allocated per frame is caught", async () => {
+describe('pinned boundaries over a hover sweep', () => {
+  it('allocate nothing; the pins hover; an object allocated per frame is caught', async () => {
     const { frame, measure, boundary } = await setup();
     const r = run(FRAME_N, frame, measure);
     expect(isFlat(r), describeScaling(r, FRAME_N)).toBe(true);

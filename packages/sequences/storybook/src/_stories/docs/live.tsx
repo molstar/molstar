@@ -18,29 +18,29 @@ import {
   register,
   type SeqViewSpecDoc,
   validate,
-} from "@molstar/seq-core/format";
-import type { Issue, SeqSet } from "@molstar/seq-core/model";
-import { checkText, createLanguage, printQuery, referenceText, renderIssue, skillText } from "@molstar/seq-core/query";
-import { SeqViewer } from "@molstar/seq-viewer/react";
-import { Markdown, Source, Unstyled } from "@storybook/addon-docs/blocks";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import f from "../support/seqstar-format.module.css";
-import { IssueList } from "../support/seqstar-issues.js";
-import { PrismCanvas } from "../support/seqstar-prism.js";
-import s from "./docs.module.css";
-import { exampleLink, mountNightingaleSide } from "./linked.js";
-import { doc, mountDomExample, svgExample } from "./minimal-example.js";
+} from '@molstar/seq-core/format';
+import type { Issue, SeqSet } from '@molstar/seq-core/model';
+import { checkText, createLanguage, printQuery, referenceText, renderIssue, skillText } from '@molstar/seq-core/query';
+import { SeqViewer } from '@molstar/seq-viewer/react';
+import { Markdown, Source, Unstyled } from '@storybook/addon-docs/blocks';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import f from '../support/seqstar-format.module.css';
+import { IssueList } from '../support/seqstar-issues.js';
+import { PrismCanvas } from '../support/seqstar-prism.js';
+import s from './docs.module.css';
+import { exampleLink, mountNightingaleSide } from './linked.js';
+import { doc, mountDomExample, svgExample } from './minimal-example.js';
 
 /** Whether the page is dark (the docs container sets `data-msp-theme` from the toolbar; blue is a dark theme). */
 const readDark = () => {
   const theme = document.documentElement.dataset.mspTheme ?? document.documentElement.dataset.theme;
-  return theme === "dark" || theme === "blue";
+  return theme === 'dark' || theme === 'blue';
 };
 function useDark() {
   const [dark, setDark] = useState(readDark);
   useEffect(() => {
     const o = new MutationObserver(() => setDark(readDark()));
-    o.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-msp-theme"] });
+    o.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-msp-theme'] });
     setDark(readDark()); // the container sets it in a layout effect, after this component first rendered
     return () => o.disconnect();
   }, []);
@@ -48,7 +48,7 @@ function useDark() {
 }
 
 /** Storybook's `Source`, dark on a dark page. */
-export function Code({ code, language = "tsx" }: { code: string; language?: "tsx" | "json" | "bash" }) {
+export function Code({ code, language = 'tsx' }: { code: string; language?: 'tsx' | 'json' | 'bash' }) {
   return <Source code={code} language={language} dark={useDark()} />;
 }
 
@@ -165,9 +165,9 @@ export function ExampleNightingale() {
           <div ref={host} className={f.nightingale} />
           <div className={s.note}>
             {lost === null ? (
-              "Drawing…"
+              'Drawing…'
             ) : lost.length === 0 ? (
-              "Nightingale reports nothing it cannot draw."
+              'Nightingale reports nothing it cannot draw.'
             ) : (
               <>
                 What Nightingale reports it cannot draw:
@@ -207,7 +207,7 @@ function kernel() {
 const compactJson = (v: unknown) =>
   JSON.stringify(v, null, 2).replace(
     /\[\s+([^[\]{}]*?)\s+\]/g,
-    (_, inner: string) => `[${inner.replace(/\s*\n\s*/g, " ")}]`,
+    (_, inner: string) => `[${inner.replace(/\s*\n\s*/g, ' ')}]`,
   );
 
 /** The example document as JSON, as the builder wrote it. */
@@ -230,7 +230,7 @@ export function ValidationExample() {
   const issues = useMemo(() => validate(broken(), kernel()), []);
   return (
     <Unstyled>
-      <pre className={s.code}>{issues.map((i) => `${i.severity} ${i.code} ${i.path}\n  ${i.message}`).join("\n")}</pre>
+      <pre className={s.code}>{issues.map((i) => `${i.severity} ${i.code} ${i.path}\n  ${i.message}`).join('\n')}</pre>
     </Unstyled>
   );
 }
@@ -240,7 +240,7 @@ export function FormatReference() {
   const text = useMemo(() => printReference(kernel()), []);
   return (
     <details className={s.details}>
-      <summary>The generated reference ({text.split("\n").length.toLocaleString("en-US")} lines)</summary>
+      <summary>The generated reference ({text.split('\n').length.toLocaleString('en-US')} lines)</summary>
       <Markdown options={{ disableParsingRawHTML: true }}>{text}</Markdown>
     </details>
   );
@@ -255,14 +255,14 @@ export function QueryExamples({ texts, json = false }: { texts: readonly string[
     () =>
       texts.map((t) => {
         const r = bound(t);
-        return r.expr === null ? r.issues.map(renderIssue).join("\n") : printQuery(r.expr);
+        return r.expr === null ? r.issues.map(renderIssue).join('\n') : printQuery(r.expr);
       }),
     [texts],
   );
   const first = useMemo(() => (json && texts[0] ? bound(texts[0]).expr : null), [json, texts]);
   return (
     <Unstyled>
-      <pre className={s.code}>{out.join("\n")}</pre>
+      <pre className={s.code}>{out.join('\n')}</pre>
       {first !== null && <pre className={s.code}>{compactJson(first)}</pre>}
     </Unstyled>
   );
@@ -271,7 +271,7 @@ export function QueryExamples({ texts, json = false }: { texts: readonly string[
 /** What the reader and binder say about queries with mistakes, rendered as a person or the agent sees them. */
 export function QueryErrors({ texts }: { texts: readonly string[] }) {
   const out = useMemo(
-    () => texts.map((t) => `${t}\n${bound(t).issues.map(renderIssue).join("\n")}`).join("\n\n"),
+    () => texts.map((t) => `${t}\n${bound(t).issues.map(renderIssue).join('\n')}`).join('\n\n'),
     [texts],
   );
   return (
@@ -296,7 +296,7 @@ export function QueryReference() {
   const text = useMemo(() => referenceText(createLanguage().language), []);
   return (
     <details className={s.details}>
-      <summary>The generated reference ({text.split("\n").length.toLocaleString("en-US")} lines)</summary>
+      <summary>The generated reference ({text.split('\n').length.toLocaleString('en-US')} lines)</summary>
       <Markdown options={{ disableParsingRawHTML: true }}>{text}</Markdown>
     </details>
   );

@@ -9,13 +9,13 @@
 // Fixtures for the projector and marks tests (IN1): a context on the example fixtures' files with a view shown, and a
 // projector over it reading what a target lights per block (by label), as runs or as a count of positions.
 
-import type { ResolvedView, SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { Extents, type Loci, type SeqSet } from "@molstar/seq-core/model";
-import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.js";
-import { type Coordinates, createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from "../src/index.js";
-import { MarkSet } from "../src/marks.js";
-import { Projector } from "../src/projection.js";
-import { kernelFree, stubs } from "./graph-fixtures.js";
+import type { ResolvedView, SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { Extents, type Loci, type SeqSet } from '@molstar/seq-core/model';
+import { fixtureLoaders, MolstarFixture } from '../../core/_test/format/load-fixtures.js';
+import { type Coordinates, createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from '../src/index.js';
+import { MarkSet } from '../src/marks.js';
+import { Projector } from '../src/projection.js';
+import { kernelFree, stubs } from './graph-fixtures.js';
 /** A context with the structure extension's fixture showing `doc`'s view `view` (else its first), and a projector. */
 export async function shown(doc: SeqViewSpecDoc, view?: string) {
   const scheduler = manualScheduler();
@@ -44,17 +44,17 @@ export function over(view: ResolvedView, set: SeqSet) {
   const unit = (key: string) =>
     set.units.key.findIndex((k, u) => set.units.alive[u] === 1 && set.strings.get(k) === key);
   /** The target as extents (closed when asked). */
-  const extents = (target: Loci | Coordinates | Extents, closure: "element" | "containing" = "element") => {
+  const extents = (target: Loci | Coordinates | Extents, closure: 'element' | 'containing' = 'element') => {
     if (target === ext) return ext;
     ext.count = 0;
-    if ("kind" in target && typeof target.kind === "string") p.fromLoci(target, ext);
-    else if ("runs" in target) p.fromLoci(target, ext);
+    if ('kind' in target && typeof target.kind === 'string') p.fromLoci(target, ext);
+    else if ('runs' in target) p.fromLoci(target, ext);
     else for (let i = 0; i < target.count; i++) Extents.add(ext, at(target, i), target.start[i], target.stop[i]);
-    if (closure === "containing") p.close(ext);
+    if (closure === 'containing') p.close(ext);
     return ext;
   };
   /** Per block label (every section): its lit runs, merged and clipped as a MarkSet holds them. */
-  const lit = (target: Loci | Coordinates | Extents, closure: "element" | "containing" = "element") => {
+  const lit = (target: Loci | Coordinates | Extents, closure: 'element' | 'containing' = 'element') => {
     const e = extents(target, closure);
     const out: Record<string, number[][]> = {};
     for (let s = 0; s < view.sections.count; s++) {
@@ -68,12 +68,12 @@ export function over(view: ResolvedView, set: SeqSet) {
     return out;
   };
   /** Per block label: how many positions the target lights. */
-  const marked = (target: Loci | Coordinates | Extents, closure: "element" | "containing" = "element") =>
+  const marked = (target: Loci | Coordinates | Extents, closure: 'element' | 'containing' = 'element') =>
     Object.fromEntries(
       Object.entries(lit(target, closure)).map(([k, runs]) => [k, runs.reduce((n, [s, t]) => n + t - s, 0)]),
     );
   /** The positions a target lights on one block, one by one. */
-  const positions = (block: string, target: Loci | Coordinates | Extents, closure?: "element" | "containing") =>
+  const positions = (block: string, target: Loci | Coordinates | Extents, closure?: 'element' | 'containing') =>
     (lit(target, closure)[block] ?? []).flatMap(([s, t]) => Array.from({ length: t - s }, (_, k) => s + k));
   return { set, view, p, ext, marks, label, unit, extents, lit, marked, positions };
 }

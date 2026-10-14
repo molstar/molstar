@@ -13,18 +13,18 @@
 // `drawDensity`). Every item counts. The overlay outlines the hovered item's glyph or its wrapped underline inside its
 // own cell; in density, nothing (seqspec:interaction#hover).
 
-import { AxisGeometry, type AxisView, type ShownIndex } from "../axis.js";
-import type { Hit } from "../hit.js";
-import type { Features } from "../prepare.js";
-import { segWindow } from "../pyramids.js";
-import { hitItem } from "../renderer-helpers.js";
-import { NO_SIZE, SIZE_ONE, ThemeLocation } from "../themes.js";
-import { CHARS, GlyphBatch, RectBatch, SkinToken, TextAlign, TextBaseline, TextBatch } from "./backend.js";
-import { shownHull, visibleRange } from "./cells.js";
-import { densityMode, densityShown, featureGlyph, featureKey, itemsInView, keyAlpha } from "./density.js";
-import { densityBand, drawLineLanes, featureHoverKey, featureInk, hoveredAt, outlineLineLanes } from "./features.js";
-import { HoverOutline, hoverEmphasis, hoveredItem } from "./hover.js";
-import { boundaryEdge, placeRun } from "./place.js";
+import { AxisGeometry, type AxisView, type ShownIndex } from '../axis.js';
+import type { Hit } from '../hit.js';
+import type { Features } from '../prepare.js';
+import { segWindow } from '../pyramids.js';
+import { hitItem } from '../renderer-helpers.js';
+import { NO_SIZE, SIZE_ONE, ThemeLocation } from '../themes.js';
+import { CHARS, GlyphBatch, RectBatch, SkinToken, TextAlign, TextBaseline, TextBatch } from './backend.js';
+import { shownHull, visibleRange } from './cells.js';
+import { densityMode, densityShown, featureGlyph, featureKey, itemsInView, keyAlpha } from './density.js';
+import { densityBand, drawLineLanes, featureHoverKey, featureInk, hoveredAt, outlineLineLanes } from './features.js';
+import { HoverOutline, hoverEmphasis, hoveredItem } from './hover.js';
+import { boundaryEdge, placeRun } from './place.js';
 import {
   DOT_R,
   DOT_R_MAX,
@@ -35,9 +35,9 @@ import {
   hitReach,
   hitWindowAt,
   sizeTheme,
-} from "./sizes.js";
-import { drawStreamedItems, owned } from "./streamed.js";
-import type { DrawView } from "./view.js";
+} from './sizes.js';
+import { drawStreamedItems, owned } from './streamed.js';
+import type { DrawView } from './view.js';
 
 const bars = new RectBatch(256);
 const dots = new GlyphBatch(256);
@@ -138,7 +138,7 @@ function glyphsAt(v: DrawView, f: Features, stacked: boolean) {
   // An alternative's letter: a capital's ink centered on its mark (seqspec:viewer#the-render-backend, text placement).
   let lift = 0;
   if (letters) {
-    const font = v.text.font("ui", Math.max(7, Math.floor(r * 1.4)), 600);
+    const font = v.text.font('ui', Math.max(7, Math.floor(r * 1.4)), 600);
     alts.style(font, TextAlign.center, TextBaseline.alphabetic);
     lift = v.text.ink(font, Math.round(dpr * 64))[0] / 2;
   }
@@ -213,7 +213,7 @@ export function drawPoints(v: DrawView, f: Features, p: unknown, stacked: boolea
   else glyphsAt(v, f, stacked);
   if (bars.n > 0) v.backend.rects(bars);
   if (dots.n > 0) {
-    dots.font = v.text.font("ui", 12, 600);
+    dots.font = v.text.font('ui', 12, 600);
     v.backend.glyphs(dots);
   }
   if (alts.n > 0) v.backend.text(alts);

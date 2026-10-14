@@ -8,8 +8,8 @@
 
 // The adapter's issues, each at its code's registered severity (seqspec:format#validation): Nightingale reports
 // kernel codes only, so the kernel's code table decides.
-import { createRegistries, issueOf, KernelTables, register, type SvsRegistries } from "@molstar/seq-core/format";
-import type { Issue } from "@molstar/seq-core/model";
+import { createRegistries, issueOf, KernelTables, register, type SvsRegistries } from '@molstar/seq-core/format';
+import type { Issue } from '@molstar/seq-core/model';
 
 let codes: SvsRegistries | null = null;
 

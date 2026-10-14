@@ -13,8 +13,8 @@
 // axis view and layout, a part from a frame. The hit region's kind, the lit part and the rail's grab zone read plain
 // records the caller passes (`ui.window.current`, `ui.drag.value`, the pointer; IN2).
 
-import type { AxisView } from "./axis.js";
-import { HitRegion } from "./hit.js";
+import type { AxisView } from './axis.js';
+import { HitRegion } from './hit.js';
 
 /** `pan` drags the window; the ends resize it (zoom); `page` jumps (the scrollbar pages). */
 export const WindowPart = { none: 0, pan: 1, left: 2, right: 3, top: 4, bottom: 5, page: 6 } as const;
@@ -211,7 +211,7 @@ export function railGrown(
   p: { readonly section: number; readonly x: number; readonly y: number; readonly inside: boolean },
   section: number,
 ): boolean {
-  if (drag && drag.section === section) return drag.owner === "navigator";
+  if (drag && drag.section === section) return drag.owner === 'navigator';
   if (!l || l.railEntry < 0 || !p.inside || p.section !== section) return false;
   const bottom = l.entryTop[l.railEntry] + l.entryHeight[l.railEntry];
   return p.y >= l.railTop && p.y < bottom && p.x >= l.dataLeft && p.x < l.dataRight;

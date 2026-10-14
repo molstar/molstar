@@ -8,13 +8,13 @@
 
 // Numberings (seqspec:model#numberings): labels for the positions of a molecule or a unit; positions are indices.
 
-import { CustomData, Issue, type NameId, type SeqIndex, type StringTable } from "./common.js";
-import { SortedArray } from "./ordered-set.js";
+import { CustomData, Issue, type NameId, type SeqIndex, type StringTable } from './common.js';
+import { SortedArray } from './ordered-set.js';
 
 /** An unlabeled position in a `labels` numbering. */
 export const NO_LABEL = -2147483648;
 
-export type NumberingMethod = "offset" | "segments" | "labels" | "names";
+export type NumberingMethod = 'offset' | 'segments' | 'labels' | 'names';
 export interface NumberingBase {
   readonly name: NameId;
   readonly method: NumberingMethod;
@@ -25,13 +25,13 @@ export interface NumberingBase {
 }
 /** label = index + first; with skipZero, labels jump from -1 to 1. */
 export interface OffsetNumbering extends NumberingBase {
-  readonly method: "offset";
+  readonly method: 'offset';
   readonly first: number;
   readonly skipZero: boolean;
 }
 /** Piecewise linear (UniProt by segments, SIFTS, isoforms): sorted by indexStart, may have holes. */
 export interface SegmentNumbering extends NumberingBase {
-  readonly method: "segments";
+  readonly method: 'segments';
   readonly indexStart: Int32Array;
   readonly labelStart: Int32Array;
   /** The spec's `length` per segment, renamed: `length` is NumberingBase's. */
@@ -41,7 +41,7 @@ export interface SegmentNumbering extends NumberingBase {
 }
 /** Integer labels with sparse suffixes (auth, Kabat, IMGT): "27A", "111.1". */
 export interface LabelNumbering extends NumberingBase {
-  readonly method: "labels";
+  readonly method: 'labels';
   /** NO_LABEL where unlabeled. */
   readonly num: Int32Array;
   /** Positions with a suffix, and its NameId ("A", ".1"). */
@@ -60,7 +60,7 @@ export interface LabelNumbering extends NumberingBase {
 }
 /** A string per position: atom names, named pocket positions. */
 export interface NameNumbering extends NumberingBase {
-  readonly method: "names";
+  readonly method: 'names';
   /** NameId per position, -1: unnamed. The spec's `name`, renamed: `name` is NumberingBase's. */
   readonly names: Int32Array;
   readonly byName: Map<number, number>;
@@ -84,10 +84,10 @@ export interface PositionLabel {
 export const UNKNOWN_SUFFIX = -2 as NameId;
 
 export type NumberingInput = { name: string; isDefault?: boolean; custom?: object } & (
-  | { method: "offset"; first: number; skipZero?: boolean }
-  | { method: "segments"; segments: [number, number, number][] }
-  | { method: "labels"; labels: (number | string | null)[] }
-  | { method: "names"; names: (string | null)[] }
+  | { method: 'offset'; first: number; skipZero?: boolean }
+  | { method: 'segments'; segments: [number, number, number][] }
+  | { method: 'labels'; labels: (number | string | null)[] }
+  | { method: 'names'; names: (string | null)[] }
 );
 
 export interface NumberingSet {
@@ -116,11 +116,11 @@ class NumberingList implements NumberingSet {
  * as `query` imports nothing.
  */
 export const LABEL = /^(-?[0-9]+)([A-Za-z]+|\.[0-9]+)?$/;
-const RESERVED = new Set(["ordinal", "row"]);
+const RESERVED = new Set(['ordinal', 'row']);
 
 function build(input: NumberingInput, length: number, strings: StringTable, issues: Issue[], path: string) {
   const err = (m: string) => {
-    issues.push(Issue.error("model.numbering.invalid", path, `Numbering "${input.name}": ${m}`));
+    issues.push(Issue.error('model.numbering.invalid', path, `Numbering "${input.name}": ${m}`));
     return null;
   };
   const base = {
@@ -129,11 +129,11 @@ function build(input: NumberingInput, length: number, strings: StringTable, issu
     custom: CustomData.create(input.custom),
     length,
   };
-  if (input.method === "offset") {
-    if (!Number.isInteger(input.first)) return err("`first` must be an integer.");
-    return { ...base, method: "offset", first: input.first, skipZero: input.skipZero ?? false } as OffsetNumbering;
+  if (input.method === 'offset') {
+    if (!Number.isInteger(input.first)) return err('`first` must be an integer.');
+    return { ...base, method: 'offset', first: input.first, skipZero: input.skipZero ?? false } as OffsetNumbering;
   }
-  if (input.method === "segments") {
+  if (input.method === 'segments') {
     const n = input.segments.length;
     const indexStart = new Int32Array(n);
     const labelStart = new Int32Array(n);
@@ -155,11 +155,11 @@ function build(input: NumberingInput, length: number, strings: StringTable, issu
         return err(`segment ${byLabel[k]} overlaps segment ${a} in label space; label ranges must be disjoint.`);
       }
     }
-    return { ...base, method: "segments", indexStart, labelStart, segmentLength, byLabel } as SegmentNumbering;
+    return { ...base, method: 'segments', indexStart, labelStart, segmentLength, byLabel } as SegmentNumbering;
   }
-  const values = input.method === "labels" ? input.labels : input.names;
+  const values = input.method === 'labels' ? input.labels : input.names;
   if (values.length !== length) return err(`it has ${values.length} labels for ${length} positions.`);
-  if (input.method === "names") {
+  if (input.method === 'names') {
     const names = new Int32Array(length).fill(-1);
     const byName = new Map<number, number>();
     for (let i = 0; i < length; i++) {
@@ -168,7 +168,7 @@ function build(input: NumberingInput, length: number, strings: StringTable, issu
       names[i] = strings.intern(v);
       if (!byName.has(names[i])) byName.set(names[i], i);
     }
-    return { ...base, method: "names", names, byName } as NameNumbering;
+    return { ...base, method: 'names', names, byName } as NameNumbering;
   }
   const num = new Int32Array(length).fill(NO_LABEL);
   const sufAt: number[] = [];
@@ -178,8 +178,8 @@ function build(input: NumberingInput, length: number, strings: StringTable, issu
   for (let i = 0; i < length; i++) {
     const v = input.labels[i];
     if (v == null) continue;
-    const m = typeof v === "number" ? null : LABEL.exec(v);
-    if (typeof v === "number" ? !Number.isInteger(v) : !m) {
+    const m = typeof v === 'number' ? null : LABEL.exec(v);
+    if (typeof v === 'number' ? !Number.isInteger(v) : !m) {
       return err(`label ${JSON.stringify(v)} at ${i} is not an integer with an optional suffix ("27A", "111.1").`);
     }
     const value = m ? Number(m[1]) : (v as number);
@@ -210,7 +210,7 @@ function build(input: NumberingInput, length: number, strings: StringTable, issu
   }
   return {
     ...base,
-    method: "labels",
+    method: 'labels',
     num,
     sufAt: Int32Array.from(sufAt),
     suffix: Int32Array.from(suffix),
@@ -234,12 +234,12 @@ function buildSet(
 ): NumberingSet {
   const items: Numbering[] = [];
   if (withOrdinal)
-    items.push(build({ name: "ordinal", method: "offset", first: 1 }, length, strings, issues, path) as Numbering);
+    items.push(build({ name: 'ordinal', method: 'offset', first: 1 }, length, strings, issues, path) as Numbering);
   for (let k = 0; k < (inputs?.length ?? 0); k++) {
     const input = (inputs as NumberingInput[])[k];
     const p = `${path}/${k}`;
     if (RESERVED.has(input.name) || items.some((n) => n.name === strings.find(input.name))) {
-      issues.push(Issue.error("model.numbering.name", p, `Numbering name "${input.name}" is reserved or repeated.`));
+      issues.push(Issue.error('model.numbering.name', p, `Numbering name "${input.name}" is reserved or repeated.`));
       continue;
     }
     const n = build(input, length, strings, issues, p);
@@ -255,12 +255,12 @@ function suffixAt(n: LabelNumbering, i: number): number {
 
 function indexOf(n: Numbering, num: number, suffix: NameId): SeqIndex {
   switch (n.method) {
-    case "offset": {
+    case 'offset': {
       if (suffix !== -1 || (n.skipZero && n.first <= 0 && num === 0)) return -1 as SeqIndex;
       const i = num - n.first - (n.skipZero && n.first <= 0 && num > 0 ? 1 : 0);
       return (i >= 0 && i < n.length ? i : -1) as SeqIndex;
     }
-    case "segments": {
+    case 'segments': {
       if (suffix !== -1) return -1 as SeqIndex;
       // The last segment (in label order) starting at or before num.
       let lo = 0;
@@ -275,7 +275,7 @@ function indexOf(n: Numbering, num: number, suffix: NameId): SeqIndex {
       const d = num - n.labelStart[s];
       return (d < n.segmentLength[s] ? n.indexStart[s] + d : -1) as SeqIndex;
     }
-    case "labels": {
+    case 'labels': {
       const k = n.lookupKeys ? SortedArray.indexOf(n.lookupKeys, num) : num - n.lookupMin;
       let i = k >= 0 && k < n.lookupFirst.length ? n.lookupFirst[k] : -1;
       while (i >= 0 && suffixAt(n, i) !== suffix) i = n.nextSame[i];
@@ -296,23 +296,23 @@ function labelOf(n: Numbering, i: SeqIndex, out: PositionLabel): boolean {
   out.name = -1 as NameId;
   if (i < 0 || i >= n.length) return false;
   switch (n.method) {
-    case "offset": {
+    case 'offset': {
       const v = i + n.first;
       out.num = n.skipZero && n.first <= 0 && v >= 0 ? v + 1 : v;
       return true;
     }
-    case "segments": {
+    case 'segments': {
       const k = SortedArray.lowerBound(n.indexStart, i + 1) - 1;
       if (k < 0 || i >= n.indexStart[k] + n.segmentLength[k]) return false;
       out.num = n.labelStart[k] + i - n.indexStart[k];
       return true;
     }
-    case "labels":
+    case 'labels':
       if (n.num[i] === NO_LABEL) return false;
       out.num = n.num[i];
       out.suffix = suffixAt(n, i) as NameId;
       return true;
-    case "names":
+    case 'names':
       out.name = n.names[i] as NameId;
       return out.name >= 0;
   }
@@ -325,12 +325,12 @@ function labelOf(n: Numbering, i: SeqIndex, out: PositionLabel): boolean {
 function suffixRank(n: Numbering, l: PositionLabel): number {
   if (l.suffix === UNKNOWN_SUFFIX) return l.rank ?? 1;
   if (l.suffix < 0) return 0;
-  if (n.method !== "labels") return 1;
+  if (n.method !== 'labels') return 1;
   return rankOf(n.strings.get(l.suffix));
 }
 /** A suffix's place in that order, from its text. */
 function rankOf(s: string): number {
-  if (s[0] === ".") return 1e12 + Number(s.slice(1));
+  if (s[0] === '.') return 1e12 + Number(s.slice(1));
   const u = s.toUpperCase();
   let r = 0;
   for (let k = 0; k < u.length && k < 6; k++) r = r * 27 + (u.charCodeAt(k) - 64);
@@ -347,7 +347,7 @@ const scratch: PositionLabel = { num: 0, suffix: -1 as NameId, name: -1 as NameI
 function placeRange(n: Numbering, beg: PositionLabel, end: PositionLabel, out: Int32Array): void {
   let start: number;
   let last: number;
-  if (n.method === "names") {
+  if (n.method === 'names') {
     start = indexOfName(n, beg.name);
     last = indexOfName(n, end.name);
   } else {
@@ -359,7 +359,7 @@ function placeRange(n: Numbering, beg: PositionLabel, end: PositionLabel, out: I
       const findStart = start < 0;
       const findLast = last < 0;
       // The positions' suffix ranks from the build's table, in step with them: no string per position (CM-09).
-      const sufAt = n.method === "labels" ? n.sufAt : null;
+      const sufAt = n.method === 'labels' ? n.sufAt : null;
       let j = 0;
       for (let i = 0; i < n.length; i++) {
         if (!labelOf(n, i as SeqIndex, scratch)) continue;
@@ -382,7 +382,7 @@ const ends = new Int32Array(2);
  * (num, suffix) as `placeRange` orders an absent one. False when either is not a label of the numbering's kind.
  */
 function backwards(n: Numbering, beg: PositionLabel, end: PositionLabel): boolean {
-  if (n.method === "names") {
+  if (n.method === 'names') {
     const [a, b] = [indexOfName(n, beg.name), indexOfName(n, end.name)];
     return a >= 0 && b >= 0 && b < a;
   }
@@ -408,8 +408,8 @@ function rangeOf(n: Numbering, beg: PositionLabel, end: PositionLabel, out: Int3
 }
 
 function format(n: Numbering, i: SeqIndex, strings: StringTable): string {
-  if (!labelOf(n, i, scratch)) return "";
-  return n.method === "names" ? strings.get(scratch.name) : `${scratch.num}${strings.get(scratch.suffix)}`;
+  if (!labelOf(n, i, scratch)) return '';
+  return n.method === 'names' ? strings.get(scratch.name) : `${scratch.num}${strings.get(scratch.suffix)}`;
 }
 
 /** A set of built numberings (row spaces' `ordinal` and `row`). */

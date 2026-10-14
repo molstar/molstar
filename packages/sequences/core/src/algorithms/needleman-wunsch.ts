@@ -10,10 +10,10 @@
 // mismatch score otherwise. A gap of k letters costs `gap_open + (k - 1) * gap_extend`. Moved from @molstar/seq-core/model's
 // `globalAlign` (M2b), its defaults unchanged.
 
-import { type Aligner, type AlignerParams, alignable, cigarOf, pairType, readOptions } from "./aligner.js";
-import { checkCells } from "./limits.js";
+import { type Aligner, type AlignerParams, alignable, cigarOf, pairType, readOptions } from './aligner.js';
+import { checkCells } from './limits.js';
 
-const ORDER = "ARNDCQEGHILKMFPSTWYVBZX*";
+const ORDER = 'ARNDCQEGHILKMFPSTWYVBZX*';
 // biome-ignore format: BLOSUM62's lower triangle, one row per letter in ORDER
 const LOWER = [
   "4", "-1 5", "-2 0 6", "-2 -2 1 6", "0 -3 -3 -3 9", "-1 1 0 0 -3 5", "-1 0 0 2 -4 2 5", "0 -2 0 -1 -3 -2 -2 6",
@@ -28,11 +28,11 @@ const LOWER = [
 ];
 const K = ORDER.length;
 /** Code → row in ORDER; letters BLOSUM62 lacks (J, U, O) score as X. */
-const INDEX = new Int8Array(128).fill(ORDER.indexOf("X"));
+const INDEX = new Int8Array(128).fill(ORDER.indexOf('X'));
 for (let i = 0; i < K; i++) INDEX[ORDER.charCodeAt(i)] = i;
 const BLOSUM62 = new Int8Array(K * K);
 for (let i = 0; i < K; i++) {
-  const row = LOWER[i].split(" ");
+  const row = LOWER[i].split(' ');
   for (let j = 0; j <= i; j++) BLOSUM62[i * K + j] = BLOSUM62[j * K + i] = Number(row[j]);
 }
 
@@ -47,52 +47,52 @@ const argmax = (a: number, b: number, c: number) => (a >= b && a >= c ? 0 : b >=
 
 const params: AlignerParams = {
   matrix: {
-    type: "choice",
-    choices: ["BLOSUM62"],
+    type: 'choice',
+    choices: ['BLOSUM62'],
     nullable: true,
     default: null,
-    description: "The substitution matrix; null: BLOSUM62 for amino acids, `match`/`mismatch` for other letters.",
+    description: 'The substitution matrix; null: BLOSUM62 for amino acids, `match`/`mismatch` for other letters.',
   },
-  gap_open: { type: "float", nullable: false, min: 0, default: 10, description: "The cost of a gap's first letter." },
-  gap_extend: { type: "float", nullable: false, min: 0, default: 1, description: "The cost of each further letter." },
+  gap_open: { type: 'float', nullable: false, min: 0, default: 10, description: "The cost of a gap's first letter." },
+  gap_extend: { type: 'float', nullable: false, min: 0, default: 1, description: 'The cost of each further letter.' },
   end_gaps: {
-    type: "choice",
-    choices: ["penalized", "free"],
+    type: 'choice',
+    choices: ['penalized', 'free'],
     nullable: false,
-    default: "penalized",
-    description: "free: gaps before and after either sequence cost nothing (a fragment placed in a longer sequence).",
+    default: 'penalized',
+    description: 'free: gaps before and after either sequence cost nothing (a fragment placed in a longer sequence).',
   },
-  match: { type: "float", nullable: false, default: 5, description: "Without a matrix: the score of equal letters." },
+  match: { type: 'float', nullable: false, default: 5, description: 'Without a matrix: the score of equal letters.' },
   mismatch: {
-    type: "float",
+    type: 'float',
     nullable: false,
     default: -4,
-    description: "Without a matrix: the score of different letters.",
+    description: 'Without a matrix: the score of different letters.',
   },
   type: {
-    type: "choice",
-    choices: ["auto", "amino", "nucleic"],
+    type: 'choice',
+    choices: ['auto', 'amino', 'nucleic'],
     nullable: false,
-    default: "auto",
-    description: "What the sequences are, for the default matrix; auto: detected (amino when both are amino acids).",
+    default: 'auto',
+    description: 'What the sequences are, for the default matrix; auto: detected (amino when both are amino acids).',
   },
 };
 
 export const needlemanWunsch: Aligner = {
-  name: "needleman_wunsch",
+  name: 'needleman_wunsch',
   description:
-    "Global alignment with affine gaps (Gotoh). Memory: one byte per cell of the full matrix, refused above 2^26 cells.",
+    'Global alignment with affine gaps (Gotoh). Memory: one byte per cell of the full matrix, refused above 2^26 cells.',
   params,
   async align(a, b, options) {
-    const o = readOptions("needleman_wunsch", params, options);
+    const o = readOptions('needleman_wunsch', params, options);
     if (!alignable(a, b)) return null;
     const A = a.toUpperCase();
     const B = b.toUpperCase();
-    const useMatrix = o.matrix === "BLOSUM62" || (o.matrix === null && pairType(A, B, o.type) === "amino");
+    const useMatrix = o.matrix === 'BLOSUM62' || (o.matrix === null && pairType(A, B, o.type) === 'amino');
     return globalAlign(A, B, {
       open: o.gap_open as number,
       extend: o.gap_extend as number,
-      free: o.end_gaps === "free",
+      free: o.end_gaps === 'free',
       match: o.match as number,
       mismatch: o.mismatch as number,
       useMatrix,
@@ -113,7 +113,7 @@ interface Scoring {
 function globalAlign(a: string, b: string, s: Scoring): string {
   const n = a.length;
   const m = b.length;
-  checkCells("needleman_wunsch", n, m);
+  checkCells('needleman_wunsch', n, m);
   const W = m + 1;
   const free = s.free;
   // Traceback per cell: bits 0-1 M's source, 2-3 I's (consuming a), 4-5 D's (consuming b); states 0 M, 1 I, 2 D.
@@ -171,11 +171,11 @@ function globalAlign(a: string, b: string, s: Scoring): string {
   while (i > 0 || j > 0) {
     const cell = tb[i * W + j];
     const op = i === 0 ? 2 : j === 0 ? 1 : state;
-    ops.push("MID"[op]);
+    ops.push('MID'[op]);
     const next = (cell >> (2 * op)) & 3;
     if (op !== 2) i--;
     if (op !== 1) j--;
     state = next;
   }
-  return cigarOf(ops.reverse().join(""));
+  return cigarOf(ops.reverse().join(''));
 }

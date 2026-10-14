@@ -11,31 +11,31 @@
 // `CompressionStream` for images. Bounded time and size; the PNG is the SVG's size and not blank: dark ink on white.
 // An export over a mounted, zoomed and scrolled section leaves its canvases as they were, pixel for pixel.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { genomeDoc, synthGenome } from "../../../core/_test/format/genome-fixture.js";
-import { FONT_FAMILIES, FONT_WEIGHTS, probeFonts } from "../../scripts/font-probe.js";
-import { canvasMeasurer } from "../../src/canvas/index.js";
-import { browserExportAction, canvasEmBox, compressionDeflate } from "../../src/dom/index.js";
-import { createSeqViewer, DefaultRegistry, manualScheduler } from "../../src/index.js";
-import { hasMetrics, type MetricsMeasurer, renderSvg } from "../../src/svg/index.js";
-import { canvasesOf, close, diff, opened, pixelsOf, settle } from "./open.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { genomeDoc, synthGenome } from '../../../core/_test/format/genome-fixture.js';
+import { FONT_FAMILIES, FONT_WEIGHTS, probeFonts } from '../../scripts/font-probe.js';
+import { canvasMeasurer } from '../../src/canvas/index.js';
+import { browserExportAction, canvasEmBox, compressionDeflate } from '../../src/dom/index.js';
+import { createSeqViewer, DefaultRegistry, manualScheduler } from '../../src/index.js';
+import { hasMetrics, type MetricsMeasurer, renderSvg } from '../../src/svg/index.js';
+import { canvasesOf, close, diff, opened, pixelsOf, settle } from './open.js';
 
 /** The SVG drawn on white at its own size and written as PNG; the pixels too. */
 async function rasterize(svg: string) {
   const size = /<svg[^>]* width="([\d.]+)" height="([\d.]+)"/.exec(svg);
   const [w, h] = [Math.ceil(Number(size?.[1])), Math.ceil(Number(size?.[2]))];
-  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
   const img = new Image();
   img.src = url;
   await img.decode();
   const c = new OffscreenCanvas(w, h);
-  const g = c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
-  g.fillStyle = "#fff";
+  const g = c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+  g.fillStyle = '#fff';
   g.fillRect(0, 0, w, h);
   g.drawImage(img, 0, 0, w, h);
   URL.revokeObjectURL(url);
-  const png = new Uint8Array(await (await c.convertToBlob({ type: "image/png" })).arrayBuffer());
+  const png = new Uint8Array(await (await c.convertToBlob({ type: 'image/png' })).arrayBuffer());
   return { w, h, png, px: g.getImageData(0, 0, w, h).data };
 }
 const darkPixels = (px: Uint8ClampedArray) => {
@@ -44,8 +44,8 @@ const darkPixels = (px: Uint8ClampedArray) => {
   return n;
 };
 
-describe("a headless render as PNG", () => {
-  it("the genome story: 3,000,000 nucleotides across 24 chromosomes", async () => {
+describe('a headless render as PNG', () => {
+  it('the genome story: 3,000,000 nucleotides across 24 chromosomes', async () => {
     const doc = genomeDoc(synthGenome());
     const t = performance.now();
     const svg = await renderSvg(doc, { width: 1200, background: true, ports: { deflate: compressionDeflate } });
@@ -60,7 +60,7 @@ describe("a headless render as PNG", () => {
 });
 
 describe("the browser's export", () => {
-  it("canvasEmBox is the em box a fresh probe reads, to a hundredth of an em, for every family and weight", () => {
+  it('canvasEmBox is the em box a fresh probe reads, to a hundredth of an em, for every family and weight', () => {
     const box = canvasEmBox();
     for (const p of probeFonts({ families: FONT_FAMILIES, weights: FONT_WEIGHTS })) {
       const b = box(`${p.weight} 13px ${FONT_FAMILIES[p.family]}`);
@@ -75,16 +75,16 @@ describe("the browser's export", () => {
       expect(Math.abs((b?.cap ?? 0) * 13 - (p.cap / 1000) * 13)).toBeLessThanOrEqual(1);
     }
     // The em box is the family's and weight's at any size; the ink heights are each size's own.
-    const [a, b] = [box("12px sans-serif"), box("24px sans-serif")];
+    const [a, b] = [box('12px sans-serif'), box('24px sans-serif')];
     expect([a?.ascent, a?.descent]).toEqual([b?.ascent, b?.descent]);
   });
 
-  it("view.exportSvg on a live context: the file offered has dy offsets and no dominant-baseline, and its images are deflated", async () => {
-    const b = createSeqViewSpec({ title: "gene" });
-    const s = b.data.sequence({ ref: "s", alphabet: "dna", value: "GAATTCGCCACCATGGCTTCCAAGGAACTGACCCCACGTGACGGCC" });
-    const v = b.view({ ref: "v", label: "V" }).block({ sequence: s });
-    v.track({ label: "" }).ruler();
-    v.track({ label: "DNA" }).letters();
+  it('view.exportSvg on a live context: the file offered has dy offsets and no dominant-baseline, and its images are deflated', async () => {
+    const b = createSeqViewSpec({ title: 'gene' });
+    const s = b.data.sequence({ ref: 's', alphabet: 'dna', value: 'GAATTCGCCACCATGGCTTCCAAGGAACTGACCCCACGTGACGGCC' });
+    const v = b.view({ ref: 'v', label: 'V' }).block({ sequence: s });
+    v.track({ label: '' }).ruler();
+    v.track({ label: 'DNA' }).letters();
     const offers: { svg: string; name: string }[] = [];
     const ctx = createSeqViewer(
       {
@@ -99,12 +99,12 @@ describe("the browser's export", () => {
     );
     const r = await ctx.setDocument(b.getDocument());
     expect(r.ok).toBe(true);
-    expect(ctx.actions.run("view.exportSvg", { width: 600, scale: 2 })).toBe(true);
+    expect(ctx.actions.run('view.exportSvg', { width: 600, scale: 2 })).toBe(true);
     while (offers.length === 0) await new Promise((res) => setTimeout(res, 10));
-    expect(offers[0].name).toBe("v.svg");
+    expect(offers[0].name).toBe('v.svg');
     expect(offers[0].svg).toMatch(/<svg [^>]* width="1200"/);
     expect(offers[0].svg).toMatch(/<text [^>]*dy="/);
-    expect(offers[0].svg).not.toContain("dominant-baseline");
+    expect(offers[0].svg).not.toContain('dominant-baseline');
     ctx.dispose();
   });
 });
@@ -112,20 +112,20 @@ describe("the browser's export", () => {
 describe("the canvas measurer's em boxes", () => {
   /** A small document of letters, whose texts are drawn at `middle`. */
   const gene = () => {
-    const b = createSeqViewSpec({ title: "gene" });
-    const s = b.data.sequence({ ref: "s", alphabet: "dna", value: "GAATTCGCCACCATGGCTTCC" });
-    const v = b.view({ ref: "v", label: "V" }).block({ sequence: s });
-    v.track({ label: "" }).ruler();
-    v.track({ label: "DNA" }).letters();
+    const b = createSeqViewSpec({ title: 'gene' });
+    const s = b.data.sequence({ ref: 's', alphabet: 'dna', value: 'GAATTCGCCACCATGGCTTCC' });
+    const v = b.view({ ref: 'v', label: 'V' }).block({ sequence: s });
+    v.track({ label: '' }).ruler();
+    v.track({ label: 'DNA' }).letters();
     return b.getDocument();
   };
 
-  it("a plain renderSvg over a mounted section (the canvas measurer, no metrics given) writes dy, not dominant-baseline", async () => {
+  it('a plain renderSvg over a mounted section (the canvas measurer, no metrics given) writes dy, not dominant-baseline', async () => {
     const t = await opened(gene(), { width: 500, height: 120 });
     expect(hasMetrics(t.ctx.text.port)).toBe(true);
     const svg = await renderSvg(t.ctx, { width: 500 });
     expect(svg).toMatch(/<text [^>]*dy="/);
-    expect(svg).not.toContain("dominant-baseline");
+    expect(svg).not.toContain('dominant-baseline');
     close(t);
   });
 
@@ -140,18 +140,18 @@ describe("the canvas measurer's em boxes", () => {
       return read.apply(this, a);
     };
     try {
-      const box = m.metrics("400 13px sans-serif");
+      const box = m.metrics('400 13px sans-serif');
       expect(box).not.toBeNull();
       const once = reads;
       expect(once).toBeGreaterThan(0);
-      expect(m.metrics("400 13px sans-serif")).toBe(box);
+      expect(m.metrics('400 13px sans-serif')).toBe(box);
       expect(reads).toBe(once);
       // Another size: its ink heights read (two probes), the em box not.
-      const other = m.metrics("400 20px sans-serif");
+      const other = m.metrics('400 20px sans-serif');
       expect([other?.ascent, other?.descent]).toEqual([box?.ascent, box?.descent]);
       expect(reads).toBe(once + 2);
-      document.fonts.dispatchEvent(new Event("loadingdone"));
-      expect(m.metrics("400 13px sans-serif")).toEqual(box);
+      document.fonts.dispatchEvent(new Event('loadingdone'));
+      expect(m.metrics('400 13px sans-serif')).toEqual(box);
       expect(reads).toBe(2 * once + 2);
     } finally {
       proto.getImageData = read;
@@ -160,17 +160,17 @@ describe("the canvas measurer's em boxes", () => {
   });
 });
 
-describe("an export over a mounted section", () => {
-  it("leaves its canvases as they were: no resize, the same pixels, zoomed in and scrolled to the far end", async () => {
-    const b = createSeqViewSpec({ title: "gene" });
+describe('an export over a mounted section', () => {
+  it('leaves its canvases as they were: no resize, the same pixels, zoomed in and scrolled to the far end', async () => {
+    const b = createSeqViewSpec({ title: 'gene' });
     const s = b.data.sequence({
-      ref: "s",
-      alphabet: "dna",
-      value: "GAATTCGCCACCATGGCTTCCAAGGAACTGACCCCACGTGACGGCC".repeat(8),
+      ref: 's',
+      alphabet: 'dna',
+      value: 'GAATTCGCCACCATGGCTTCCAAGGAACTGACCCCACGTGACGGCC'.repeat(8),
     });
-    const v = b.view({ ref: "v", label: "V" }).block({ sequence: s });
-    v.track({ label: "" }).ruler();
-    v.track({ label: "DNA" }).letters();
+    const v = b.view({ ref: 'v', label: 'V' }).block({ sequence: s });
+    v.track({ label: '' }).ruler();
+    v.track({ label: 'DNA' }).letters();
     const t = await opened(b.getDocument(), { width: 500, height: 120 });
     const vp = t.ctx.viewports.get(t.section);
     vp?.zoomAt(6, 200);

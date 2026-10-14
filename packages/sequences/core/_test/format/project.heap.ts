@@ -11,10 +11,10 @@
 // inverse image, links across sections, a source used twice and a row through its binding; `close` by the hull search
 // (a nucleotide) and by containment (a residue), then the closed extents projected.
 
-import { Extents } from "@molstar/seq-core/model";
-import { beforeAll, describe, expect, it } from "vitest";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../model/heap.js";
-import { constructs, gene, open, rows } from "./project-fixtures.js";
+import { Extents } from '@molstar/seq-core/model';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../model/heap.js';
+import { constructs, gene, open, rows } from './project-fixtures.js';
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 50_000;
@@ -32,11 +32,11 @@ beforeAll(async () => {
   [g, c, r] = await Promise.all([open(gene({ chromosome: true })), open(constructs()), open(rows())]);
 }, 60_000);
 
-describe("the projection allocates nothing per move", () => {
-  it("project: residues onto their codons, nucleotides onto residues, across the link to the chromosome", () => {
+describe('the projection allocates nothing per move', () => {
+  it('project: residues onto their codons, nucleotides onto residues, across the link to the chromosome', () => {
     const ext = Extents.create(4);
-    const [protein, unit] = [g.system("protein"), g.system("gene/unit")];
-    const blocks = [g.block("gene"), g.block("protein"), g.block("chr")];
+    const [protein, unit] = [g.system('protein'), g.system('gene/unit')];
+    const blocks = [g.block('gene'), g.block('protein'), g.block('chr')];
     const step = (i: number) => {
       ext.count = 0;
       Extents.add(ext, protein, i % 20, (i % 20) + 1);
@@ -50,10 +50,10 @@ describe("the projection allocates nothing per move", () => {
     expect(controlCaught(() => heapScaling(N, leaking(step)))).toBe(true);
   });
 
-  it("project: a source used twice, and a row through its binding to its chain", () => {
+  it('project: a source used twice, and a row through its binding to its chain', () => {
     const ext = Extents.create(4);
-    const [ub, diub] = [c.system("ub"), c.block("diub")];
-    const [row, x, a] = [r.system("a/0"), r.block("x"), r.block("a")];
+    const [ub, diub] = [c.system('ub'), c.block('diub')];
+    const [row, x, a] = [r.system('a/0'), r.block('x'), r.block('a')];
     const rowExt = Extents.create(4);
     const result = heapScaling(N, (i) => {
       ext.count = 0;
@@ -67,13 +67,13 @@ describe("the projection allocates nothing per move", () => {
     expect(isFlat(result), describeScaling(result, N)).toBe(true);
   });
 
-  it("close: a nucleotide by the hull search, a residue by containment, then projected", () => {
+  it('close: a nucleotide by the hull search, a residue by containment, then projected', () => {
     const ext = Extents.create(8);
     const [chr, protein, gene, block] = [
-      g.system("chr/unit"),
-      g.system("protein"),
-      g.system("gene/unit"),
-      g.block("chr"),
+      g.system('chr/unit'),
+      g.system('protein'),
+      g.system('gene/unit'),
+      g.block('chr'),
     ];
     let added = 0;
     const result = heapScaling(N, (i) => {

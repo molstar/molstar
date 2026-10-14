@@ -18,9 +18,9 @@ import {
   KernelRegistry,
   register,
   schemeTheme,
-} from "@molstar/seq-core/format";
-import f from "../support/seqstar-format.module.css";
-import cs from "../support/seqstar-schemes.module.css";
+} from '@molstar/seq-core/format';
+import f from '../support/seqstar-format.module.css';
+import cs from '../support/seqstar-schemes.module.css';
 
 const reg = createRegistries();
 register(reg, KernelRegistry);
@@ -29,11 +29,11 @@ register(reg, KernelRegistry);
 function swatches(e: ColorSchemeEntry, dark: boolean): string[] {
   const named = schemeTheme(reg, { name: e.name }, { dark });
   // A named rule table (Clustal X, Percent identity) as its rules, as resolution expands it.
-  const expand = named ? reg.get("themes", named.theme)?.expand : undefined;
-  const t = named && expand ? expand(named.params ?? {}, "color") : named;
+  const expand = named ? reg.get('themes', named.theme)?.expand : undefined;
+  const t = named && expand ? expand(named.params ?? {}, 'color') : named;
   const p = (t?.params ?? {}) as Record<string, unknown>;
-  if (t?.theme === "letter") return [...new Set(Object.values(p.colors as Record<string, string>))].slice(0, 12);
-  if (t?.theme === "field_palette") {
+  if (t?.theme === 'letter') return [...new Set(Object.values(p.colors as Record<string, string>))].slice(0, 12);
+  if (t?.theme === 'field_palette') {
     const colors = (p.palette as { colors: string[] }).colors;
     const step = Math.max(1, Math.floor(colors.length / 8));
     return colors.filter((_, i) => i % step === 0).slice(0, 10);
@@ -41,10 +41,10 @@ function swatches(e: ColorSchemeEntry, dark: boolean): string[] {
   return [...new Set(((p.rules ?? []) as { color?: string }[]).flatMap((r) => (r.color ? [r.color] : [])))];
 }
 const fits = (e: ColorSchemeEntry) =>
-  e.scheme.kind === "letters" || e.scheme.kind === "theme"
-    ? `${e.scheme.alphabets.join(", ")} letters${e.scheme.kind === "theme" && e.scheme.columns ? " (alignment)" : ""}`
-    : e.scheme.kind === "categorical"
-      ? "categories"
+  e.scheme.kind === 'letters' || e.scheme.kind === 'theme'
+    ? `${e.scheme.alphabets.join(', ')} letters${e.scheme.kind === 'theme' && e.scheme.columns ? ' (alignment)' : ''}`
+    : e.scheme.kind === 'categorical'
+      ? 'categories'
       : `values (${e.scheme.kind})`;
 function Swatches({ colors }: { colors: readonly string[] }) {
   return (
@@ -77,7 +77,7 @@ export function SchemeTable() {
               <code>{e.name}</code> {e.label}: {e.description}
             </td>
             <td>{fits(e)}</td>
-            <td>{e.colorblind ? "yes" : ""}</td>
+            <td>{e.colorblind ? 'yes' : ''}</td>
             <td>
               <Swatches colors={swatches(e, false)} />
             </td>

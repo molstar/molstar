@@ -41,7 +41,7 @@ import {
   sizeTheme,
   ThemeLocation,
   visibleRange,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 // Read once: a module member read per frame allocates under the test runner's module wrapper.
 const STRAND = SecondaryKind.strand;
@@ -258,12 +258,12 @@ function overlay(v: DrawView, f: Features) {
   HoverOutline.hand(v);
 }
 
-export const SecondaryRenderer = kernelEntry<Features>("secondary", 18, {
-  geometries: ["linear", "wrapped"],
+export const SecondaryRenderer = kernelEntry<Features>('secondary', 18, {
+  geometries: ['linear', 'wrapped'],
   draw: (v, f) => draw(v, f, false),
   tiny: (v, f) => draw(v, f, true),
   overlay: (v, f) => overlay(v, f),
   // Wrapped, its underlines on the line's lanes; linear, the position's item (hit.ts's lookup).
   hit: (v, f, _p, out) => hitLineLanes(v, f, out),
-  sized: ["thickness"],
+  sized: ['thickness'],
 });

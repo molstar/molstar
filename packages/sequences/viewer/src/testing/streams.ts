@@ -9,9 +9,9 @@
 // The stream manager as the viewer builds it, for tests, smoke runs and demos that drive it by hand (a pass, the
 // dynamic nodes held): the root entry gives hosts its contract only (`StreamManager`, VT-10).
 
-import type { SeqViewerContext } from "../context.js";
-import type { Streams } from "../streams.js";
+import type { SeqViewerContext } from '../context.js';
+import type { Streams } from '../streams.js';
 
-export type { Streams } from "../streams.js";
+export type { Streams } from '../streams.js';
 /** The context's stream manager, with its pass and held nodes. */
 export const streamsOf = (ctx: SeqViewerContext): Streams => ctx.streams as Streams;

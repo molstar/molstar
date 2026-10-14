@@ -12,7 +12,7 @@
 // its `category` where a renderer sets it (the fingerprint, per cell and kind: a kind index), else its pair row's
 // category. Tables are built in `create`; `value` reads them, allocating nothing.
 
-import { Color } from "@molstar/seq-core/format";
+import { Color } from '@molstar/seq-core/format';
 import {
   dataIndex,
   GlyphShape,
@@ -23,9 +23,9 @@ import {
   type ThemeContext,
   type ThemeLocation,
   type ThemeProvider,
-} from "@molstar/seq-viewer/draw";
-import { fingerprintOf } from "../registry.js";
-import { KindStyle, Kinds, kindByName } from "../vocabulary.js";
+} from '@molstar/seq-viewer/draw';
+import { fingerprintOf } from '../registry.js';
+import { KindStyle, Kinds, kindByName } from '../vocabulary.js';
 
 const COLORS = Int32Array.from(Kinds, (k) => Color.decode(KindStyle[k][1]) ?? NO_COLOR);
 const SHAPES = Int32Array.from(Kinds, (k) => GlyphShape[KindStyle[k][2] as keyof typeof GlyphShape] ?? NO_GLYPH);
@@ -55,21 +55,21 @@ function kindsOf(tc: ThemeContext) {
 }
 
 export const KindTheme: ThemeProvider = {
-  name: "interactions:kind",
-  label: "Interaction kind",
-  category: "interactions",
-  kinds: ["color", "glyph"],
+  name: 'interactions:kind',
+  label: 'Interaction kind',
+  category: 'interactions',
+  kinds: ['color', 'glyph'],
   granularity: Granularity.item,
   isApplicable: () => true,
   create(tc, _params, channel): Theme {
     const { present, kindAt } = kindsOf(tc);
-    const color = channel.kind === "color";
+    const color = channel.kind === 'color';
     const table = color ? COLORS : SHAPES;
     const none = color ? NO_COLOR : NO_GLYPH;
     return {
       kind: channel.kind,
       granularity: Granularity.item,
-      reduction: "classes",
+      reduction: 'classes',
       value: (loc) => {
         const k = kindAt(loc);
         return k >= 0 ? table[k] : none;

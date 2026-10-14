@@ -13,7 +13,7 @@
 // frames allocating an object each (`leaking`) through the same warm-up and measurement, which must catch it. The case
 // loads the viewer afresh (`vi.resetModules`).
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -25,23 +25,23 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 async function setup() {
   vi.resetModules();
-  const { lit } = await import("./overlay-fixtures.js");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
-  const { splitUnitsDoc } = await import("./split-units-fixtures.js");
-  const { Dirty } = await import("../src/draw/index.js");
-  const { Inputs, PointerType } = await import("../src/index.js");
+  const { lit } = await import('./overlay-fixtures.js');
+  const { recording, COPY_BACK } = await import('./composer-fixtures.js');
+  const { splitUnitsDoc } = await import('./split-units-fixtures.js');
+  const { Dirty } = await import('../src/draw/index.js');
+  const { Inputs, PointerType } = await import('../src/index.js');
   const t = await lit(splitUnitsDoc({ highlights: true }), { width: 1000, height: 400, dpr: 2 });
-  t.ctx.behaviors.get("hoverLabel")?.remove();
+  t.ctx.behaviors.get('hoverLabel')?.remove();
   const be = recording(COPY_BACK);
   t.frame(be, Dirty.all);
   const p = Inputs.pointer();
   p.section = t.ctx.layout.sectionIndex(t.section);
   p.type = PointerType.move;
-  const ys = [0, 1, 2].map((r) => t.yOf(t.section, "t-chains", r));
+  const ys = [0, 1, 2].map((r) => t.yOf(t.section, 't-chains', r));
   const frame = (i: number) => {
     p.x = t.xOf(t.section, 0, 8 + (i % 44));
     p.y = ys[i % 3];
@@ -63,8 +63,8 @@ function run(n: number, frame: (i: number) => void) {
   return heapScaling(n, () => frame(i++));
 }
 
-describe("hover frames over split rows on their own units", () => {
-  it("allocate nothing; an object allocated per frame is caught", async () => {
+describe('hover frames over split rows on their own units', () => {
+  it('allocate nothing; an object allocated per frame is caught', async () => {
     const { frame, hovers } = await setup();
     const r = run(FRAME_N, frame);
     expect(isFlat(r), describeScaling(r, FRAME_N)).toBe(true);

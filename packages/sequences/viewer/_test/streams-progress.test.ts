@@ -15,24 +15,24 @@
 // manifest's vocabulary; an items layer's lanes are
 // held by its regions; a miniature naming a rows track in a section without an overview column loads its overview.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { GENE_CATEGORIES, GRCH38, geneAt, hg38Streams, streamedDoc } from "../../core/_test/format/stream-provider.js";
-import { FADE_MS } from "../src/draw/progress.js";
-import { KernelRenderers, type LayerRenderer, SeqCommands } from "../src/index.js";
-import type { Streams } from "../src/streams.js";
-import { driven } from "./input-fixtures.js";
-import { lazyLoaders, opened } from "./layout-fixtures.js";
-import { CacheBytes, GENOME, MaxInFlight } from "./stream-fixtures.js";
-import { Dirty, progressGenome, rectsOf, SkinToken } from "./stream-progress-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { GENE_CATEGORIES, GRCH38, geneAt, hg38Streams, streamedDoc } from '../../core/_test/format/stream-provider.js';
+import { FADE_MS } from '../src/draw/progress.js';
+import { KernelRenderers, type LayerRenderer, SeqCommands } from '../src/index.js';
+import type { Streams } from '../src/streams.js';
+import { driven } from './input-fixtures.js';
+import { lazyLoaders, opened } from './layout-fixtures.js';
+import { CacheBytes, GENOME, MaxInFlight } from './stream-fixtures.js';
+import { Dirty, progressGenome, rectsOf, SkinToken } from './stream-progress-fixtures.js';
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const AT = 100_000_000;
 /** The shimmer's strips: the surface under its full alpha. */
 const sheen = (a: number[]) => a.filter((x) => x < 255).length;
 
-describe("skeletons, fade-in and errors on the overlay", () => {
-  it("a pending region is a skeleton: the shade, shimmering only while live and in motion", async () => {
+describe('skeletons, fade-in and errors on the overlay', () => {
+  it('a pending region is a skeleton: the shade, shimmering only while live and in motion', async () => {
     const g = await progressGenome(AT, AT + 100_000, { items: true, values: true, live: true });
     g.ctx.config.set(MaxInFlight, 64);
     g.m.pass();
@@ -50,14 +50,14 @@ describe("skeletons, fade-in and errors on the overlay", () => {
     const x1 = Array.from(g.frame(Dirty.overlay).rectItems.x.subarray(0, be.rectItems.n));
     expect(x1).not.toEqual(x0);
     // Reduced motion, or an export's composer: the shade alone, no frame asked.
-    g.ctx.config.set((await import("../src/index.js")).SeqViewerConfig.Viewport.ReducedMotion, true);
+    g.ctx.config.set((await import('../src/index.js')).SeqViewerConfig.Viewport.ReducedMotion, true);
     expect(sheen(rectsOf(g.frame(Dirty.overlay), SkinToken.surface).alphas)).toBe(0);
     expect(rectsOf(g.backend, SkinToken.pending).n).toBeGreaterThan(2);
     expect(g.composer.animating).toBe(false);
     g.ctx.dispose();
   });
 
-  it("an arrival fades in over 150 ms, regions landing together alike; then nothing is asked of the overlay", async () => {
+  it('an arrival fades in over 150 ms, regions landing together alike; then nothing is asked of the overlay', async () => {
     const g = await progressGenome(AT, AT + 100_000, { items: true, values: true, live: true });
     g.ctx.config.set(MaxInFlight, 64);
     g.clock[0] = 1000;
@@ -76,7 +76,7 @@ describe("skeletons, fade-in and errors on the overlay", () => {
     g.ctx.dispose();
   });
 
-  it("a failed region is an error band with its hint; `seqv:retry` asks it again", async () => {
+  it('a failed region is an error band with its hint; `seqv:retry` asks it again', async () => {
     const g = await progressGenome(AT, AT + 100_000, { items: true, values: true, live: true });
     g.ctx.config.set(MaxInFlight, 64);
     g.failing.on = true;
@@ -86,32 +86,32 @@ describe("skeletons, fade-in and errors on the overlay", () => {
       const m = g.ctx.graph.assembled.value?.view;
       for (let i = 0; m && i < m.resolved.layers.count; i++)
         if (m.set.strings.get(m.resolved.layers.type[i]) === k) return m.set.strings.get(m.resolved.layers.ref[i]);
-      return "";
+      return '';
     };
-    expect(g.m.hasFailed(ref("ranges"))).toBe(true);
+    expect(g.m.hasFailed(ref('ranges'))).toBe(true);
     g.frame(Dirty.tracks);
     const be = g.frame(Dirty.overlay);
     const tint = rectsOf(be, SkinToken.conflict);
     expect(tint.n).toBeGreaterThan(2);
     expect(new Set(tint.alphas).size).toBe(1);
     expect(be.pathItems.n).toBeGreaterThan(10);
-    expect(be.textItems.text.slice(0, be.textItems.n)).toContain("failed to load");
+    expect(be.textItems.text.slice(0, be.textItems.n)).toContain('failed to load');
     // Failed is no skeleton: nothing shimmers, nothing is asked of the overlay.
     expect(sheen(rectsOf(be, SkinToken.surface).alphas)).toBe(0);
     expect(g.composer.animating).toBe(false);
     // Retry: the cooldown ends and the next pass asks them again; answered, the bands are gone.
     g.failing.on = false;
     const asked = g.asked();
-    expect(await g.ctx.commands.run({ command: SeqCommands.Retry.id, params: {} }, "api")).toBe(true);
+    expect(await g.ctx.commands.run({ command: SeqCommands.Retry.id, params: {} }, 'api')).toBe(true);
     await g.release();
     expect(g.asked()).toBeGreaterThan(asked);
-    expect(g.m.hasFailed(ref("ranges"))).toBe(false);
+    expect(g.m.hasFailed(ref('ranges'))).toBe(false);
     g.frame(Dirty.tracks);
     expect(rectsOf(g.frame(Dirty.overlay), SkinToken.conflict).n).toBe(0);
     g.ctx.dispose();
   });
 
-  it("values keep a coarser level under a pending one: no skeleton there (coarse under fine)", async () => {
+  it('values keep a coarser level under a pending one: no skeleton there (coarse under fine)', async () => {
     const g = await progressGenome(AT, AT + 100_000, { values: true });
     g.ctx.config.set(MaxInFlight, 64);
     g.m.pass();
@@ -127,23 +127,23 @@ describe("skeletons, fade-in and errors on the overlay", () => {
     g.ctx.dispose();
   });
 
-  it("lazy rows: a tile with nothing in its place is a skeleton until its tiles arrive", async () => {
-    const uri = "https://example.org/lazy";
-    const b = createSeqViewSpec({ title: "lazy" });
+  it('lazy rows: a tile with nothing in its place is a skeleton until its tiles arrive', async () => {
+    const uri = 'https://example.org/lazy';
+    const b = createSeqViewSpec({ title: 'lazy' });
     const aln = b.data.alignment({
-      ref: "lazy",
+      ref: 'lazy',
       row_count: 3000,
       column_count: 400,
-      source: { uri, protocol: "seqstar-tiles/1" },
+      source: { uri, protocol: 'seqstar-tiles/1' },
     });
-    b.view({ ref: "v", label: "V", style: "msa", height: "box" })
+    b.view({ ref: 'v', label: 'V', style: 'msa', height: 'box' })
       .block({ alignment: aln })
-      .track({ label: "Rows" })
+      .track({ label: 'Rows' })
       .rows();
-    const { composed, recording } = await import("./composer-fixtures.js");
+    const { composed, recording } = await import('./composer-fixtures.js');
     const t = await composed(b.getDocument(), { loaders: lazyLoaders(uri, 3000, 400) });
     t.composer.live = true;
-    t.vp?.setView(1.5, 0, "api");
+    t.vp?.setView(1.5, 0, 'api');
     await t.ctx.graph.update();
     const be = recording();
     t.frame(be, Dirty.tracks);
@@ -162,22 +162,22 @@ describe("skeletons, fade-in and errors on the overlay", () => {
   });
 });
 
-describe("streamed items: hover, labels, field themes, lanes", () => {
+describe('streamed items: hover, labels, field themes, lanes', () => {
   async function browser(color?: unknown) {
     const s = hg38Streams({ chromosomes: GRCH38.slice(0, 3), letters: true, gated: true });
     const doc = streamedDoc({ items: true, values: false });
     if (color) {
-      const view = (doc.root.children ?? []).find((c) => c.kind === "view");
-      const genes = JSON.stringify(view).includes("Genes") ? view : null;
+      const view = (doc.root.children ?? []).find((c) => c.kind === 'view');
+      const genes = JSON.stringify(view).includes('Genes') ? view : null;
       const walk = (n: { kind: string; params?: Record<string, unknown>; children?: unknown[] }) => {
-        if (n.kind === "layer" && n.params?.type === "ranges") n.params.color = color;
+        if (n.kind === 'layer' && n.params?.type === 'ranges') n.params.color = color;
         for (const c of n.children ?? []) walk(c as never);
       };
       if (genes) walk(genes as never);
     }
     const t = await driven(doc, {
       renderers: [...KernelRenderers] as LayerRenderer[],
-      loaders: { load: () => Promise.reject(new Error("none")), stream: s.stream },
+      loaders: { load: () => Promise.reject(new Error('none')), stream: s.stream },
       size: { [GENOME]: [1000, 300] },
     });
     t.ctx.config.set(MaxInFlight, 64);
@@ -193,13 +193,13 @@ describe("streamed items: hover, labels, field themes, lanes", () => {
     return { t, s, answer };
   }
   /** Down the data area to the track labeled `name`, at x; the hover. */
-  function point(t: Awaited<ReturnType<typeof browser>>["t"], name: string, x: number) {
+  function point(t: Awaited<ReturnType<typeof browser>>['t'], name: string, x: number) {
     const l = t.layout(GENOME);
     const m = t.ctx.graph.assembled.value?.view;
     const h = t.ctx.hover.live.current;
     const label = (k: number) => m?.set.strings.get(m.resolved.tracks.label[k]);
     for (let y = 1; y < 300; y += 1) {
-      t.pointer("move", GENOME, l.dataLeft + x, y);
+      t.pointer('move', GENOME, l.dataLeft + x, y);
       if (h.track >= 0 && label(h.track) === name && h.part >= 0) break;
     }
     return h;
@@ -212,15 +212,15 @@ describe("streamed items: hover, labels, field themes, lanes", () => {
     const label = (k: number) => m?.set.strings.get(m.resolved.tracks.label[k]);
     const h = t.ctx.hover.live.current;
     (t.ctx.streams as Streams).pass();
-    for (let y = 1; y < 300 && (h.track < 0 || label(h.track) !== "Genes"); y += 2)
-      t.pointer("move", GENOME, l.dataLeft + 300, y);
+    for (let y = 1; y < 300 && (h.track < 0 || label(h.track) !== 'Genes'); y += 2)
+      t.pointer('move', GENOME, l.dataLeft + 300, y);
     const lines = () => (t.ctx.labels.current.value?.lines ?? []).map((x) => `${x.key}: ${x.value}`);
-    expect(lines()).toContain("Genes: loading…");
+    expect(lines()).toContain('Genes: loading…');
     await answer();
-    expect(lines()).not.toContain("Genes: loading…");
+    expect(lines()).not.toContain('Genes: loading…');
     // A gene under the pointer: its number in the layer as the hover's part, its label and category as lines.
     let found = -1;
-    for (let x = 10; x < 900 && found < 0; x += 7) found = point(t, "Genes", x).part;
+    for (let x = 10; x < 900 && found < 0; x += 7) found = point(t, 'Genes', x).part;
     expect(found).toBeGreaterThanOrEqual(0);
     const got = lines();
     expect(got.some((x) => /^Genes: G\d+$/.test(x))).toBe(true);
@@ -228,14 +228,14 @@ describe("streamed items: hover, labels, field themes, lanes", () => {
     t.ctx.dispose();
   });
 
-  it("a hovered gene is outlined over its exons, in its lane", async () => {
+  it('a hovered gene is outlined over its exons, in its lane', async () => {
     const { t, answer } = await browser();
     await answer();
     let part = -1;
-    for (let x = 10; x < 900 && part < 0; x += 7) part = point(t, "Genes", x).part;
+    for (let x = 10; x < 900 && part < 0; x += 7) part = point(t, 'Genes', x).part;
     expect(part).toBeGreaterThanOrEqual(0);
-    const { recording } = await import("./composer-fixtures.js");
-    const { SectionComposer } = await import("../src/draw/composer.js");
+    const { recording } = await import('./composer-fixtures.js');
+    const { SectionComposer } = await import('../src/draw/composer.js');
     const c = new SectionComposer(t.ctx, GENOME);
     const be = recording();
     c.frame(be, Dirty.tracks);
@@ -250,11 +250,11 @@ describe("streamed items: hover, labels, field themes, lanes", () => {
   });
 
   it("a field theme reaches streamed items: genes by category in the manifest's vocabulary order", async () => {
-    const palette = { kind: "categorical", colors: ["#ff0000", "#00ff00", "#0000ff"] };
-    const { t, answer } = await browser({ theme: "field_palette", params: { field: "category", palette } });
+    const palette = { kind: 'categorical', colors: ['#ff0000', '#00ff00', '#0000ff'] };
+    const { t, answer } = await browser({ theme: 'field_palette', params: { field: 'category', palette } });
     await answer();
-    const { recording } = await import("./composer-fixtures.js");
-    const { SectionComposer } = await import("../src/draw/composer.js");
+    const { recording } = await import('./composer-fixtures.js');
+    const { SectionComposer } = await import('../src/draw/composer.js');
     const c = new SectionComposer(t.ctx, GENOME);
     const be = recording();
     c.frame(be, Dirty.tracks);
@@ -277,9 +277,9 @@ describe("streamed items: hover, labels, field themes, lanes", () => {
     g.ctx.config.set(MaxInFlight, 64);
     g.ctx.config.set(CacheBytes, 256 * 1024);
     const m = g.ctx.graph.assembled.value?.view;
-    let ref = "";
+    let ref = '';
     for (let k = 0; m && k < m.resolved.layers.count; k++)
-      if (m.set.strings.get(m.resolved.layers.type[k]) === "ranges") ref = m.set.strings.get(m.resolved.layers.ref[k]);
+      if (m.set.strings.get(m.resolved.layers.type[k]) === 'ranges') ref = m.set.strings.get(m.resolved.layers.ref[k]);
     const layer = g.m.get(ref) as unknown as { laneOf: Map<string, unknown>; all: { keys: string[] | null }[] };
     let most = 0;
     for (let k = 0; k < 40; k++) {
@@ -296,23 +296,23 @@ describe("streamed items: hover, labels, field themes, lanes", () => {
   });
 });
 
-describe("a miniature naming a rows track in a section without an overview column", () => {
+describe('a miniature naming a rows track in a section without an overview column', () => {
   it("loads the overview's tiles for it (MAP_WIDTH's levels), and none when nothing names it", async () => {
-    const uri = "https://example.org/lazy";
+    const uri = 'https://example.org/lazy';
     const doc = (named: boolean) => {
-      const b = createSeqViewSpec({ title: "lazy" });
+      const b = createSeqViewSpec({ title: 'lazy' });
       const aln = b.data.alignment({
-        ref: "lazy",
+        ref: 'lazy',
         row_count: 3000,
         column_count: 400,
-        source: { uri, protocol: "seqstar-tiles/1" },
+        source: { uri, protocol: 'seqstar-tiles/1' },
       });
-      const v = b.view({ ref: "v", label: "V", style: "tracks", height: "box" }).block({ alignment: aln });
-      v.track({ ref: "t.rows", label: "Rows" }).rows();
-      v.track({ label: "Map" }).layer({
-        type: "seqv:map",
-        ...(named ? { options: { tracks: ["t.rows"] } } : {}),
-        fallback: "omit",
+      const v = b.view({ ref: 'v', label: 'V', style: 'tracks', height: 'box' }).block({ alignment: aln });
+      v.track({ ref: 't.rows', label: 'Rows' }).rows();
+      v.track({ label: 'Map' }).layer({
+        type: 'seqv:map',
+        ...(named ? { options: { tracks: ['t.rows'] } } : {}),
+        fallback: 'omit',
       } as never);
       return b.getDocument();
     };
@@ -322,9 +322,9 @@ describe("a miniature naming a rows track in a section without an overview colum
         loaders: lazyLoaders(uri, 3000, 400),
         render: { verticalOverview: 0 },
       });
-      t.vp("v.main").setView(1.5, 0, "api");
+      t.vp('v.main').setView(1.5, 0, 'api');
       await t.ctx.graph.update();
-      expect(t.ctx.layout.axis("v.main")?.vnavWidth).toBe(0);
+      expect(t.ctx.layout.axis('v.main')?.vnavWidth).toBe(0);
       (t.ctx.streams as Streams).pass();
       const n = t.ctx.streams.stats.current.requests;
       t.ctx.dispose();

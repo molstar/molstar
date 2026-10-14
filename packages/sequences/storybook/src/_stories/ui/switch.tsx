@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { clsx } from "clsx";
-import styles from "./switch.module.css";
+import { clsx } from 'clsx';
+import styles from './switch.module.css';
 
 export interface SwitchProps {
   /** What it turns on, beside it (and its accessible name). */

@@ -14,20 +14,20 @@
 // at the section's right edge, in device px with its origin there (`box`; `renderSvg` offsets them by it). Per frame
 // nothing is allocated: numbers in typed arrays and fields, no double passed to a helper (RN1's draw pattern).
 
-import { Lanes } from "@molstar/seq-core/format";
-import type { SectionAxisView } from "../axis.js";
-import type { ChannelMarks } from "../channels.js";
-import type { SeqViewerContext } from "../context.js";
-import type { Skin, ViewModel } from "../graph.js";
-import { SCROLLBAR } from "../hit.js";
-import { hasScrollbar, type RenderProps, type SectionLayout, SectionLayouts } from "../layout.js";
-import { MarkBit, type SectionMarks } from "../marks.js";
-import type { LayerRenderer } from "../registry.js";
-import { gripsLit, litPart, WINDOW_FRAME, WindowKind, windowFrame } from "../windows.js";
-import { Pass, RectBatch, type RenderBackend, SkinToken } from "./backend.js";
-import { Dirty } from "./composer.js";
-import { MapView } from "./miniature.js";
-import { drawGrips, gripAt, KeyedImage, WINDOW_WASH, windowBox, windowOverMap } from "./nav.js";
+import { Lanes } from '@molstar/seq-core/format';
+import type { SectionAxisView } from '../axis.js';
+import type { ChannelMarks } from '../channels.js';
+import type { SeqViewerContext } from '../context.js';
+import type { Skin, ViewModel } from '../graph.js';
+import { SCROLLBAR } from '../hit.js';
+import { hasScrollbar, type RenderProps, type SectionLayout, SectionLayouts } from '../layout.js';
+import { MarkBit, type SectionMarks } from '../marks.js';
+import type { LayerRenderer } from '../registry.js';
+import { gripsLit, litPart, WINDOW_FRAME, WindowKind, windowFrame } from '../windows.js';
+import { Pass, RectBatch, type RenderBackend, SkinToken } from './backend.js';
+import { Dirty } from './composer.js';
+import { MapView } from './miniature.js';
+import { drawGrips, gripAt, KeyedImage, WINDOW_WASH, windowBox, windowOverMap } from './nav.js';
 
 // Enum-like members read once: a module member read per frame allocates under the test runner's module wrapper
 // (lib/seqstar/AGENTS.md, Tests; VL-15).
@@ -187,7 +187,7 @@ export class VerticalNav {
     const r = l.rows;
     const w = this.ovl[1];
     const h = this.box[3];
-    const rend = r.layer >= 0 ? ctx.registry.get("renderers", m.prepared[r.layer].renderer) : undefined;
+    const rend = r.layer >= 0 ? ctx.registry.get('renderers', m.prepared[r.layer].renderer) : undefined;
     if (!rend?.overview || this.failed || w < 2 || h < 2 || !av.axis) return -1;
     const images = be.images;
     const k = this.key;
@@ -216,7 +216,7 @@ export class VerticalNav {
   private render(into: RenderBackend, rend: LayerRenderer, l: SectionLayout, av: SectionAxisView, w: number) {
     const ctx = this.ctx;
     const m = this.model as ViewModel;
-    const ax = av.axis as NonNullable<SectionAxisView["axis"]>;
+    const ax = av.axis as NonNullable<SectionAxisView['axis']>;
     const k = l.rows.layer;
     const p = m.prepared[k];
     if (this.zeros.length !== ax.count) this.zeros = new Float64Array(ax.count);
@@ -238,7 +238,7 @@ export class VerticalNav {
     } catch (err) {
       this.failed = true;
       ctx.report(
-        "seqv.renderer.error",
+        'seqv.renderer.error',
         `layer ${k} threw while drawn in the vertical overview and is omitted: ${String(err)}`,
       );
       return false;
@@ -318,7 +318,7 @@ export class VerticalNav {
       const bw = Math.max(1, Math.round(SCROLLBAR * d) | 0);
       const inner = Math.max(1, Math.round((SCROLLBAR - 4) * d) | 0);
       rects.reset();
-      rects.begin(ctx.ui.drag.value?.owner === "scrollbar" ? T_INK_QUIET : T_INK_FAINT);
+      rects.begin(ctx.ui.drag.value?.owner === 'scrollbar' ? T_INK_QUIET : T_INK_FAINT);
       rects.push(bx + ((bw - inner) >> 1), Math.min(y0, H - th), inner, th);
       be.rects(rects);
       // Its ends resize rows only with `verticalZoom`: grips there, none otherwise (a grip says what a drag does).

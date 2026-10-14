@@ -20,7 +20,7 @@ import {
   nodeRefs,
   type StreamNode,
   type SvsRegistries,
-} from "@molstar/seq-core/format";
+} from '@molstar/seq-core/format';
 
 /** A dynamic node held, and what holds it. */
 export interface HeldNode {
@@ -50,14 +50,14 @@ export interface DynamicSource {
 /** The refs a held node names. */
 export type NodeRefsOf = (ref: string, node: StreamNode) => Iterable<string>;
 /** The kinds a provider's patch may hold (`StreamNode`); the viewer's own (an item coordinate system) name nothing. */
-const FORMAT_KINDS = new Set<string>(["sequence", "ligand", "unit", "mapping", "annotation", "source"]);
+const FORMAT_KINDS = new Set<string>(['sequence', 'ligand', 'unit', 'mapping', 'annotation', 'source']);
 /** Core's `nodeRefs` over the format registries: a held node's typed params, a table's targets in any form. */
 export const heldNodeRefs =
   (svs: SvsRegistries): NodeRefsOf =>
   (ref, n) => {
     if (!FORMAT_KINDS.has(n.kind)) return [];
     const node = { kind: n.kind, ref, params: n.params } as DocNode;
-    return nodeRefs({ node, ref, kind: n.kind, params: n.params, parent: null, path: "" }, svs).map((u) => u.ref);
+    return nodeRefs({ node, ref, kind: n.kind, params: n.params, parent: null, path: '' }, svs).map((u) => u.ref);
   };
 
 export class DynamicNodes implements DynamicSource {
@@ -82,10 +82,10 @@ export class DynamicNodes implements DynamicSource {
     let carried: string[] | null = null;
     const fresh: HeldNode[] = [];
     for (const node of nodes) {
-      if (typeof node?.key !== "string") continue;
+      if (typeof node?.key !== 'string') continue;
       // `#` kinds are the viewer's own (`own`: an item's coordinate system), never a provider's.
-      if (!own && String(node.kind).startsWith("#")) {
-        this.report("svs.node.kind", `${source}: "${node.kind}" is no dynamic node's kind a patch may add`);
+      if (!own && String(node.kind).startsWith('#')) {
+        this.report('svs.node.kind', `${source}: "${node.kind}" is no dynamic node's kind a patch may add`);
         continue;
       }
       const ref = nodeRef(source, node.key);
@@ -93,7 +93,7 @@ export class DynamicNodes implements DynamicSource {
       const canon = held?.node === node ? held.canon : canonical([node.kind, node.params ?? {}]);
       if (held && held.canon !== canon) {
         this.report(
-          "svs.stream.conflict",
+          'svs.stream.conflict',
           `${source}: "${node.key}" came again with other params; the held one is kept`,
         );
         continue;
@@ -155,7 +155,7 @@ export class DynamicNodes implements DynamicSource {
     const v = this.version;
     // An item's `.map` is shown with it (one unit: a shown item keeps its path onto its source).
     for (const e of this.entries.values())
-      e.shown = keys.has(e.ref) || (e.own && e.ref.endsWith(".map") && keys.has(e.ref.slice(0, -4)));
+      e.shown = keys.has(e.ref) || (e.own && e.ref.endsWith('.map') && keys.has(e.ref.slice(0, -4)));
     for (const e of [...this.entries.values()]) this.drop(e);
     if (this.version !== v) this.changed();
   }

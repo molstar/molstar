@@ -12,14 +12,14 @@
 // band's top past the edge, a line along the top once both ends were off) and the arcs' scale (the widest span in view)
 // jumped as the widest arc came and went, so a short arc among long ones dropped or rose at once.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { case7, case21 } from "../../core/_test/format/cases.js";
-import type { PairsState } from "../src/prepare.js";
-import { Arcs } from "../src/renderer-helpers.js";
-import { LayerFrame, RecordingBackend } from "../src/testing/index.js";
-import { NO_SIZE } from "../src/themes.js";
-import { drawn } from "./draw-fixtures.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { case7, case21 } from '../../core/_test/format/cases.js';
+import type { PairsState } from '../src/prepare.js';
+import { Arcs } from '../src/renderer-helpers.js';
+import { LayerFrame, RecordingBackend } from '../src/testing/index.js';
+import { NO_SIZE } from '../src/themes.js';
+import { drawn } from './draw-fixtures.js';
 
 /** Samples along each arc: at t = i / SAMPLES of its ends' span. */
 const SAMPLES = 20;
@@ -47,13 +47,13 @@ async function sweep(
   vp?.scrollTo(from, 0);
   await t.ctx.graph.update();
   const m = t.ctx.graph.assembled.value?.view;
-  if (!m) throw new Error("no view");
-  const entry = t.ctx.registry.get("renderers", "pairs");
-  if (!entry) throw new Error("no pairs renderer");
+  if (!m) throw new Error('no view');
+  const entry = t.ctx.registry.get('renderers', 'pairs');
+  if (!entry) throw new Error('no pairs renderer');
   const frames: LayerFrame[] = [];
   for (let k = 0; k < m.prepared.length; k++) {
     const r = m.resolved;
-    if (m.prepared[k].renderer !== "pairs") continue;
+    if (m.prepared[k].renderer !== 'pairs') continue;
     if (m.set.strings.get(r.sections.ref[r.tracks.section[r.layers.track[k]]]) !== section) continue;
     frames.push(new LayerFrame(t.ctx, entry, section, k));
   }
@@ -62,11 +62,11 @@ async function sweep(
   let last = new Map<string, [number, number]>();
   let moveX = 0;
   let moveH = 0;
-  let where = "";
+  let where = '';
   let compared = 0;
   let at = Number.NaN;
   for (let step = 0; step <= steps; step++) {
-    if (step > 0) vp?.panBy(1, 0, "api");
+    if (step > 0) vp?.panBy(1, 0, 'api');
     const now = new Map<string, [number, number]>();
     for (const f of frames) {
       rec.reset();
@@ -116,17 +116,17 @@ async function smooth(p: Promise<Awaited<ReturnType<typeof sweep>>>) {
   expect(moveH, where).toBeLessThanOrEqual(2);
 }
 
-describe("pairs: arcs move continuously as the view pans a px at a time", () => {
+describe('pairs: arcs move continuously as the view pans a px at a time', () => {
   it("case 21's sashimi on the gene's own strand, between zooms, the whole axis", async () => {
-    await smooth(sweep(case21(), "gene2", "gene2.own", [0, 300, 700], 0, 3000));
+    await smooth(sweep(case21(), 'gene2', 'gene2.own', [0, 300, 700], 0, 3000));
   });
   it("case 21's sashimi on the gene's own strand at letter zoom, across exon 2's junctions", async () => {
-    await smooth(sweep(case21(), "gene2", "gene2.own", [0, 734, 790], 1500, 2500));
+    await smooth(sweep(case21(), 'gene2', 'gene2.own', [0, 734, 790], 1500, 2500));
   });
   it("case 21's sashimi on the region as written, between zooms, the whole axis", async () => {
-    await smooth(sweep(case21(), "gene2", "gene2.reference", [0, 500, 900], 0, 3000));
+    await smooth(sweep(case21(), 'gene2', 'gene2.reference', [0, 500, 900], 0, 3000));
   });
   it("case 7's contacts, zoomed in, from barnase into barstar", async () => {
-    await smooth(sweep(case7(), "complex-one", "complex-one.main", [1, 30, 80], 0, 3000));
+    await smooth(sweep(case7(), 'complex-one', 'complex-one.main', [1, 30, 80], 0, 3000));
   });
 });

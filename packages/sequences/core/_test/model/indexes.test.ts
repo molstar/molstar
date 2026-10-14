@@ -10,7 +10,7 @@
 // scaling tests compare a query's cost at two sizes (the best of a few runs), never a time against a constant; they
 // read the clock, so they are the slow tier's.
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   type AlignmentId,
   type Annotation,
@@ -32,8 +32,8 @@ import {
   type SeqSet,
   SeqSets,
   type UnitId,
-} from "../../src/model/index.js";
-import { brs1 } from "./fixtures.js";
+} from '../../src/model/index.js';
+import { brs1 } from './fixtures.js';
 
 const codes = (issues: Issue[]) => issues.map((i) => `${i.code} ${i.path}`);
 const strings = (set: SeqSet, ids: ArrayLike<number>) => Array.from(ids, (id) => set.strings.get(id));
@@ -65,37 +65,37 @@ function random(seed: number) {
 
 /** `n` chains over one molecule, each bound to its own row of an alignment by an identity mapping. */
 function chains(n: number) {
-  const SEQ = "MKVLAAGIVGLPNVGKSTLFNALTKAGIEAANYPFCTIEPNTGVVPMPDP";
+  const SEQ = 'MKVLAAGIVGLPNVGKSTLFNALTKAGIEAANYPFCTIEPNTGVVPMPDP';
   return SeqSets.build({
-    molecules: [{ key: "M", residues: SEQ }],
-    units: Array.from({ length: n }, (_, k) => ({ key: `c${k}`, molecule: "M" })),
-    alignments: [{ key: "aln", flavor: "aligned", gapped: Array.from({ length: n }, () => `-${SEQ}`) }],
+    molecules: [{ key: 'M', residues: SEQ }],
+    units: Array.from({ length: n }, (_, k) => ({ key: `c${k}`, molecule: 'M' })),
+    alignments: [{ key: 'aln', flavor: 'aligned', gapped: Array.from({ length: n }, () => `-${SEQ}`) }],
     mappings: Array.from({ length: n }, (_, k) => ({
       key: `m${k}`,
       from: `aln/${k}`,
       to: `c${k}`,
-      method: "identity" as const,
+      method: 'identity' as const,
     })),
   });
 }
 
-describe("rows slots", () => {
+describe('rows slots', () => {
   const records = (n: number) =>
     SeqSets.build({
       molecules: [],
       alignments: [
         {
-          key: "R",
-          flavor: "aligned",
+          key: 'R',
+          flavor: 'aligned',
           gapped: [],
           lazy: { rowCount: n, columnCount: 5, rows: new Map(), labelOf: () => null },
         },
       ],
       annotations: [
         {
-          key: "meta",
-          geometry: "rows",
-          target: "R",
+          key: 'meta',
+          geometry: 'rows',
+          target: 'R',
           columns: {
             row: Array.from({ length: n }, (_, i) => n - 1 - i),
             species: Array.from({ length: n }, (_, i) => `s${i % 7}`),
@@ -104,26 +104,26 @@ describe("rows slots", () => {
       ],
     });
 
-  it("give 50k records a slot each, through an index", () => {
+  it('give 50k records a slot each, through an index', () => {
     const { set, issues } = records(50_000);
     expect(issues).toEqual([]);
     const a = set.annotations[0] as Annotation;
     expect([a.count, a.slots.row.length, a.slot[49_999], a.slots.row[0], a.slots.row[49_999]]).toEqual([
       50_000, 50_000, 49_999, 49_999, 0,
     ]);
-    expect(Annotations.rowValue(a, set, 3, "species")).toBe("s3");
+    expect(Annotations.rowValue(a, set, 3, 'species')).toBe('s3');
   });
 
-  it("build in time linear in the records: 10 times the records cost under 30 times as much", {
-    tags: ["slow"],
+  it('build in time linear in the records: 10 times the records cost under 30 times as much', {
+    tags: ['slow'],
   }, () => {
     const cost = (n: number) => perCall(() => records(n), 1);
     expect(cost(50_000) / cost(5_000)).toBeLessThan(30);
   });
 });
 
-describe("pairs: touching through a running maximum, endUnits", () => {
-  it("visit what a brute force over every pair finds, at every position of every unit", () => {
+describe('pairs: touching through a running maximum, endUnits', () => {
+  it('visit what a brute force over every pair finds, at every position of every unit', () => {
     const next = random(7);
     const n = 300;
     const pick = <T>(xs: readonly T[]) => xs[Math.floor(next() * xs.length)];
@@ -139,13 +139,13 @@ describe("pairs: touching through a running maximum, endUnits", () => {
       ...brs1(),
       annotations: [
         {
-          key: "p",
-          geometry: "pairs",
+          key: 'p',
+          geometry: 'pairs',
           columns: {
-            target: Array.from({ length: n }, () => pick(["1brs/A", "1brs/B", "1brs/entity:1"])),
+            target: Array.from({ length: n }, () => pick(['1brs/A', '1brs/B', '1brs/entity:1'])),
             start,
             stop,
-            b_target: Array.from({ length: n }, () => pick(["1brs/D", "1brs/entity:2", "1brs/A"])),
+            b_target: Array.from({ length: n }, () => pick(['1brs/D', '1brs/entity:2', '1brs/A'])),
             b_start: bStart,
           },
         },
@@ -153,7 +153,7 @@ describe("pairs: touching through a running maximum, endUnits", () => {
     });
     expect(issues).toEqual([]);
     const p = set.annotations[0] as Annotation;
-    const pc = p.pairs as NonNullable<Annotation["pairs"]>;
+    const pc = p.pairs as NonNullable<Annotation['pairs']>;
     const reaches = (unit: number, row: number, side: number) => {
       const t = side ? pc.bTarget : p.target;
       return t.unit[row] >= 0 ? t.unit[row] === unit : set.units.molecule[unit] === t.molecule[row];
@@ -187,27 +187,27 @@ describe("pairs: touching through a running maximum, endUnits", () => {
     };
     for (let r = 0; r < 5; r++) {
       const key = set.strings.get(set.units.key[p.target.unit[r]] ?? -1);
-      expect(ends(r, 0)).toEqual(p.target.unit[r] >= 0 ? [key] : ["1brs/A", "1brs/B", "1brs/C"]);
+      expect(ends(r, 0)).toEqual(p.target.unit[r] >= 0 ? [key] : ['1brs/A', '1brs/B', '1brs/C']);
     }
     expect(ends(-1, 0)).toEqual([]);
   });
 
-  it("cost about the same per hover near the end of a unit with 32 times the pairs", { tags: ["slow"] }, () => {
+  it('cost about the same per hover near the end of a unit with 32 times the pairs', { tags: ['slow'] }, () => {
     const L = 20_000;
     const contacts = (n: number) => {
       const set = SeqSets.build({
         molecules: [
-          { key: "u", residues: "A".repeat(L), ownUnit: true },
-          { key: "w", residues: "AAAA", ownUnit: true },
+          { key: 'u', residues: 'A'.repeat(L), ownUnit: true },
+          { key: 'w', residues: 'AAAA', ownUnit: true },
         ],
         annotations: [
           {
-            key: "c",
-            geometry: "pairs",
-            target: "u/unit",
+            key: 'c',
+            geometry: 'pairs',
+            target: 'u/unit',
             columns: {
               start: Array.from({ length: n }, (_, i) => Math.floor((i * L) / n)),
-              b_target: Array.from({ length: n }, () => "w/unit"),
+              b_target: Array.from({ length: n }, () => 'w/unit'),
               b_start: Array.from({ length: n }, () => null),
             },
           },
@@ -227,7 +227,7 @@ describe("pairs: touching through a running maximum, endUnits", () => {
   });
 });
 
-describe("toRowLocations through the unit index", () => {
+describe('toRowLocations through the unit index', () => {
   it("give each of 1,000 chains its own row's residue", () => {
     const { set, issues } = chains(1000);
     expect(issues).toEqual([]);
@@ -238,10 +238,10 @@ describe("toRowLocations through the unit index", () => {
       SeqLocation.set(l, u, 7);
       SeqLocation.toRowLocations(l, 0 as AlignmentId, out, (r) => seen.push(`${r.row}:${r.index}`), null);
     }
-    expect(seen).toEqual(["0:7", "1:7", "517:7", "999:7"]);
+    expect(seen).toEqual(['0:7', '1:7', '517:7', '999:7']);
   });
 
-  it("cost about the same per hover with 10 times the chains", { tags: ["slow"] }, () => {
+  it('cost about the same per hover with 10 times the chains', { tags: ['slow'] }, () => {
     const cost = (n: number) => {
       const set = chains(n).set;
       const l = SeqLocation.create(set);
@@ -259,17 +259,17 @@ describe("toRowLocations through the unit index", () => {
   });
 });
 
-describe("items: itemRows, itemOf and remapped item loci", () => {
+describe('items: itemRows, itemOf and remapped item loci', () => {
   const ranges = (ids: (string | null)[]) =>
     SeqSets.build({
       ...brs1(),
       annotations: [
-        { key: "f", geometry: "ranges", target: "1brs/A", columns: { start: ids.map((_, i) => i % 100), id: ids } },
+        { key: 'f', geometry: 'ranges', target: '1brs/A', columns: { start: ids.map((_, i) => i % 100), id: ids } },
       ],
     }).set;
 
   it("give an item's rows and an item by its key", () => {
-    const set = ranges(["a", null, "a", "b", "a"]);
+    const set = ranges(['a', null, 'a', 'b', 'a']);
     const f = set.annotations[0] as Annotation;
     const byItem = Annotations.itemRows(f);
     expect([Array.from(byItem.start), Array.from(byItem.rows)]).toEqual([
@@ -277,18 +277,18 @@ describe("items: itemRows, itemOf and remapped item loci", () => {
       [0, 2, 4, 1, 3],
     ]);
     expect(Annotations.itemRows(f)).toBe(byItem);
-    expect([Annotations.itemOf(f, set.strings.find("b")), Annotations.itemOf(f, set.strings.find("zz"))]).toEqual([
+    expect([Annotations.itemOf(f, set.strings.find('b')), Annotations.itemOf(f, set.strings.find('zz'))]).toEqual([
       2, -1,
     ]);
   });
 
-  it("remap item loci in time linear in the items", { tags: ["slow"] }, () => {
+  it('remap item loci in time linear in the items', { tags: ['slow'] }, () => {
     const cost = (n: number) => {
       const ids = Array.from({ length: n }, (_, i) => `k${i}`);
       const from = ranges(ids);
       const to = ranges([...ids].reverse());
       const loci: ItemLoci = {
-        kind: "item-loci",
+        kind: 'item-loci',
         set: from,
         elements: [{ annotation: 0 as never, items: OrderedSet.ofRange(0 as ItemIndex, n as ItemIndex) }],
       };
@@ -304,12 +304,12 @@ describe("items: itemRows, itemOf and remapped item loci", () => {
   });
 });
 
-describe("loci and labels", () => {
+describe('loci and labels', () => {
   it("forEachLocation sets the out location's set", () => {
     const v1 = SeqSets.build(brs1()).set;
-    const v2 = SeqSets.withChanges(v1, { upsert: { molecules: [{ key: "x", residues: "MK" }] } }).set;
+    const v2 = SeqSets.withChanges(v1, { upsert: { molecules: [{ key: 'x', residues: 'MK' }] } }).set;
     const loci: SeqLoci = {
-      kind: "seq-loci",
+      kind: 'seq-loci',
       set: v2,
       elements: [{ unit: 0 as UnitId, indices: OrderedSet.ofRange(3 as SeqIndex, 5 as SeqIndex) }],
     };
@@ -318,25 +318,25 @@ describe("loci and labels", () => {
     expect(sets.every((s) => s === v2) && sets.length).toBe(2);
   });
 
-  it("leave the string table alone over 1,000 labels of rows not held", () => {
+  it('leave the string table alone over 1,000 labels of rows not held', () => {
     const { set } = SeqSets.build({
       molecules: [],
       alignments: [
         {
-          key: "big",
-          flavor: "aligned",
+          key: 'big',
+          flavor: 'aligned',
           gapped: [],
           lazy: {
             rowCount: 10_000,
             columnCount: 3,
-            rows: new Map([[0, { label: "held", gapped: "MKV" }]]),
+            rows: new Map([[0, { label: 'held', gapped: 'MKV' }]]),
             labelOf: (r) => `row${r}`,
           },
         },
       ],
     });
     const a = set.alignments[0];
-    if (!a) throw new Error("not built");
+    if (!a) throw new Error('not built');
     const size = set.strings.size;
     let text = 0;
     for (let r = 1; r <= 1000; r++) {
@@ -345,8 +345,8 @@ describe("loci and labels", () => {
     }
     expect([set.strings.size, a.labelText(5 as RowIndex), a.labelText(0 as RowIndex), text > 0]).toEqual([
       size,
-      "row5",
-      "held",
+      'row5',
+      'held',
       true,
     ]);
   });
@@ -361,19 +361,19 @@ describe("column roles (the model's half)", () => {
     ]);
     const { set, issues } = SeqSets.build({
       ...brs1(),
-      alignments: [{ key: "msa", flavor: "aligned", gapped: ["MK", "MV"] }],
+      alignments: [{ key: 'msa', flavor: 'aligned', gapped: ['MK', 'MV'] }],
       annotations: [
         {
-          key: "meta",
-          geometry: "rows",
-          target: "msa",
-          columns: { row: [0, 1], label: ["a", "b"], category: ["x", "y"], value: [1, 2] },
+          key: 'meta',
+          geometry: 'rows',
+          target: 'msa',
+          columns: { row: [0, 1], label: ['a', 'b'], category: ['x', 'y'], value: [1, 2] },
         },
-        { key: "r", geometry: "ranges", target: "1brs/A", columns: { start: [1], row: [0] } },
-        { key: "v", geometry: "values", target: "1brs/A", columns: { index: [3], value: [0.5], id: ["q"] } },
+        { key: 'r', geometry: 'ranges', target: '1brs/A', columns: { start: [1], row: [0] } },
+        { key: 'v', geometry: 'values', target: '1brs/A', columns: { index: [3], value: [0.5], id: ['q'] } },
       ],
     });
-    expect(codes(issues)).toEqual(["model.columns.unknown /annotations/1/columns/row"]);
+    expect(codes(issues)).toEqual(['model.columns.unknown /annotations/1/columns/row']);
     const [meta, r, v] = set.annotations as Annotation[];
     expect([
       strings(
@@ -382,8 +382,8 @@ describe("column roles (the model's half)", () => {
       ),
       meta.category,
       meta.sparse,
-    ]).toEqual([["label", "category", "value"], null, null]);
-    expect(Annotations.rowValue(meta, set, 1, "category")).toBe("y");
+    ]).toEqual([['label', 'category', 'value'], null, null]);
+    expect(Annotations.rowValue(meta, set, 1, 'category')).toBe('y');
     expect([r.count, r.fields.length]).toEqual([1, 0]);
     expect([
       strings(
@@ -391,23 +391,23 @@ describe("column roles (the model's half)", () => {
         v.fields.map((f) => f.name),
       ),
       Array.from(v.itemKey),
-    ]).toEqual([["id"], [-1]]);
+    ]).toEqual([['id'], [-1]]);
   });
 });
 
-describe("coverage through an ambiguous path", () => {
-  it("is left out with model.coverage.ambiguous, not as unmapped", () => {
+describe('coverage through an ambiguous path', () => {
+  it('is left out with model.coverage.ambiguous, not as unmapped', () => {
     const barstar = brs1().molecules[1].residues as string;
     const { set, issues } = SeqSets.build({
       ...brs1(),
-      molecules: [...brs1().molecules, { key: "P", residues: barstar }],
+      molecules: [...brs1().molecules, { key: 'P', residues: barstar }],
       mappings: [
-        { key: "m1", from: "P", to: "1brs/entity:2", method: "identity" },
-        { key: "m2", from: "P", to: "1brs/entity:2", method: "segments", segments: [[0, 1, 88]] },
+        { key: 'm1', from: 'P', to: '1brs/entity:2', method: 'identity' },
+        { key: 'm2', from: 'P', to: '1brs/entity:2', method: 'segments', segments: [[0, 1, 88]] },
       ],
     });
     expect(issues).toEqual([]);
-    const r = Providers.coverage(set, { key: "cov", of: ["1brs/D"], reference: "P" });
-    expect(codes(r.issues)).toEqual(["model.coverage.ambiguous /reference"]);
+    const r = Providers.coverage(set, { key: 'cov', of: ['1brs/D'], reference: 'P' });
+    expect(codes(r.issues)).toEqual(['model.coverage.ambiguous /reference']);
   });
 });

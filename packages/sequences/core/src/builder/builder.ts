@@ -24,8 +24,8 @@ import type {
   SvsTreeSchema,
   ThemeRef,
   ValuesFor,
-} from "@molstar/seq-core/format";
-import { Colors } from "./colors.js";
+} from '@molstar/seq-core/format';
+import { Colors } from './colors.js';
 import {
   cigarFromRows,
   f32,
@@ -35,7 +35,7 @@ import {
   SvsVersion,
   translateDna,
   wussPairs,
-} from "./helpers.js";
+} from './helpers.js';
 
 export type BuilderObject = Record<string, unknown>;
 export interface BuilderNode {
@@ -65,11 +65,11 @@ export class NodeHandle<K extends string = string> {
   }
   /** The ref; generated refs are known after `getDocument()`. */
   get ref(): string {
-    return this.suffix === null ? (this.node.ref ?? "") : `${this.node.ref}/${this.suffix}`;
+    return this.suffix === null ? (this.node.ref ?? '') : `${this.node.ref}/${this.suffix}`;
   }
 }
 
-export type BuilderSchemas = (typeof SvsTreeSchema)["nodes"];
+export type BuilderSchemas = (typeof SvsTreeSchema)['nodes'];
 /** A param as the builder takes it: only a `ref<kind>` (a `RefValue`) takes a handle, of one of its kinds.
  *  The mapped type is homomorphic, so lists stay lists and tuples (`domain`, `cds`) keep their length. */
 export type BuilderParam<T> = T extends string
@@ -82,53 +82,53 @@ export type BuilderParam<T> = T extends string
 /** The params a schema accepts, with handles where it has refs. */
 export type BuilderValuesFor<P> = BuilderParam<ValuesFor<P>>;
 export type BuilderCommon = { ref?: string; custom?: BuilderObject };
-export type BuilderParamsOf<K extends keyof BuilderSchemas> = BuilderValuesFor<BuilderSchemas[K]["params"]> &
+export type BuilderParamsOf<K extends keyof BuilderSchemas> = BuilderValuesFor<BuilderSchemas[K]['params']> &
   BuilderCommon;
-export type BuilderSourceParams = BuilderParamsOf<"source">;
+export type BuilderSourceParams = BuilderParamsOf<'source'>;
 export type WithSourceParams<T> = T extends unknown
-  ? Omit<T, "source_ref"> & { source_ref?: string | NodeHandle<"source"> | null; source?: BuilderSourceParams }
+  ? Omit<T, 'source_ref'> & { source_ref?: string | NodeHandle<'source'> | null; source?: BuilderSourceParams }
   : never;
-export type WithoutValue<T> = T extends unknown ? Omit<T, "value"> : never;
+export type WithoutValue<T> = T extends unknown ? Omit<T, 'value'> : never;
 /** `Omit` over each case of a union. */
 export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 /** What a mapping's `from` and `to` name. */
-export type MappingSide = string | NodeHandle<"sequence" | "ligand" | "unit" | "row">;
+export type MappingSide = string | NodeHandle<'sequence' | 'ligand' | 'unit' | 'row'>;
 /** A layer's data: an annotation or computed node, by handle or ref. */
-type Data = string | NodeHandle<"annotation" | "computed">;
-export type AnnotationParams = WithSourceParams<WithoutValue<BuilderParamsOf<"annotation">>> & {
+type Data = string | NodeHandle<'annotation' | 'computed'>;
+export type AnnotationParams = WithSourceParams<WithoutValue<BuilderParamsOf<'annotation'>>> & {
   value?: unknown;
   columnar?: boolean;
 };
 export type MappingParams =
-  | BuilderParamsOf<"mapping">
-  | (BuilderCommon & { from: MappingSide; to: MappingSide; method: "offset"; offset: number })
-  | (BuilderCommon & { from: MappingSide; to: MappingSide; method: "pairwise"; gapped: [string, string] });
+  | BuilderParamsOf<'mapping'>
+  | (BuilderCommon & { from: MappingSide; to: MappingSide; method: 'offset'; offset: number })
+  | (BuilderCommon & { from: MappingSide; to: MappingSide; method: 'pairwise'; gapped: [string, string] });
 /**
  * `split` (seqspec:format#layer-types): a field's name is `{ by, order: null }`; `"alt"` on `variants`, UniProt's grid
  * (shown whole).
  */
-export type LayerSplit = string | { by: string; order?: string[] | null; empty?: "show" | "hide" } | null;
+export type LayerSplit = string | { by: string; order?: string[] | null; empty?: 'show' | 'hide' } | null;
 /** A layer's own annotation, and the common params of any layer type. */
 export type LayerBaseParams = BuilderCommon & { annotation?: AnnotationParams } & BuilderParam<LayerCommonParams>;
 /** A kernel type's params: the common ones and the type's own (`letters`' `of`: one polymer, a list, or `"mapped"`). */
 export type LayerParams<T extends KernelLayerTypeName = KernelLayerTypeName> = LayerBaseParams &
-  ("split" extends keyof KernelLayerParams[T]
-    ? Omit<BuilderParam<KernelLayerParams[T]>, "split"> & { split?: LayerSplit }
+  ('split' extends keyof KernelLayerParams[T]
+    ? Omit<BuilderParam<KernelLayerParams[T]>, 'split'> & { split?: LayerSplit }
     : BuilderParam<KernelLayerParams[T]>);
 /** An extension layer type (`<namespace>:<name>`), its `options` checked by its registered table. */
 export type ExtensionLayerParams = LayerBaseParams & { type: `${string}:${string}` };
 /** UniProt's variant rows (Nightingale's residue order), then a deletion and a stop. */
-export const VARIANT_ROWS = [..."GAVLISTCMDNEQRKHFYWP", "-", "*"];
+export const VARIANT_ROWS = [...'GAVLISTCMDNEQRKHFYWP', '-', '*'];
 /** A kernel provider's params, or an extension's `<namespace>:<name>` with its `options`. */
 export type ComputedParams =
-  | BuilderParamsOf<"computed">
+  | BuilderParamsOf<'computed'>
   | (BuilderCommon & { provider: `${string}:${string}`; options?: BuilderParam<BuilderObject> });
 /** A mapping's params but its ends: `from` is the row, `to` the third argument. */
-export type BindParams = DistributiveOmit<MappingParams, "from" | "to">;
+export type BindParams = DistributiveOmit<MappingParams, 'from' | 'to'>;
 /** Twin: `KERNEL_LAYER_TYPE_NAMES` in the format's `tables/kernel.ts`; a test keeps them equal. */
 const LAYER_TYPES =
-  "letters rows ranges points emphasis variants secondary values color ruler pairs logo matrix dot_plot".split(
-    " ",
+  'letters rows ranges points emphasis variants secondary values color ruler pairs logo matrix dot_plot'.split(
+    ' ',
   ) as KernelLayerTypeName[];
 
 export interface BuilderState {
@@ -153,7 +153,7 @@ function mk(
 ): BuilderNode {
   const { ref, custom, ...rest } = params;
   const n: BuilderNode = { kind, params: rest, children: [], parent, view };
-  if (typeof ref === "string") n.ref = ref;
+  if (typeof ref === 'string') n.ref = ref;
   if (custom) n.custom = custom as BuilderObject;
   parent.children.push(n);
   st.all.push(n);
@@ -165,14 +165,14 @@ function mk(
  * files).
  */
 function sortedJson(x: unknown): string {
-  if (x === null || typeof x !== "object") return JSON.stringify(x) ?? "null";
+  if (x === null || typeof x !== 'object') return JSON.stringify(x) ?? 'null';
   if (ArrayBuffer.isView(x)) return sortedJson(Array.from(x as unknown as ArrayLike<number>));
-  if (Array.isArray(x)) return `[${x.map(sortedJson).join(",")}]`;
+  if (Array.isArray(x)) return `[${x.map(sortedJson).join(',')}]`;
   const keys = Object.keys(x).filter((k) => (x as BuilderObject)[k] !== undefined);
   return `{${keys
     .sort()
     .map((k) => `${JSON.stringify(k)}:${sortedJson((x as BuilderObject)[k])}`)
-    .join(",")}}`;
+    .join(',')}}`;
 }
 
 /**
@@ -185,7 +185,7 @@ function sourceKey(st: BuilderState, p: BuilderObject): string {
     .filter((k) => p[k] !== undefined)
     .sort()
     .map((k) => {
-      if (k !== "value") return `${k}=${sortedJson(p[k])}`;
+      if (k !== 'value') return `${k}=${sortedJson(p[k])}`;
       let id = st.values.get(p[k]);
       if (id === undefined) {
         id = st.values.size;
@@ -193,7 +193,7 @@ function sourceKey(st: BuilderState, p: BuilderObject): string {
       }
       return `value#${id}`;
     })
-    .join("\u0000");
+    .join('\u0000');
 }
 
 /** `source: {...}` as a source node `<consumer ref>.src`, placed before the consumer; equal params share one. */
@@ -204,8 +204,8 @@ function withSource(st: BuilderState, n: BuilderNode) {
   const key = sourceKey(st, p);
   let src = st.sources.get(key);
   if (!src) {
-    src = mk(st, "source", p, st.data, null);
-    src.derived = { node: n, suffix: ".src" };
+    src = mk(st, 'source', p, st.data, null);
+    src.derived = { node: n, suffix: '.src' };
     st.data.children.pop();
     let top: BuilderNode = n;
     while (top.parent && top.parent !== st.data) top = top.parent;
@@ -219,14 +219,14 @@ function withSource(st: BuilderState, n: BuilderNode) {
 
 const KINDS = [Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array, Float64Array];
 const isObj = (v: unknown): v is BuilderObject =>
-  !!v && typeof v === "object" && !Array.isArray(v) && !ArrayBuffer.isView(v);
+  !!v && typeof v === 'object' && !Array.isArray(v) && !ArrayBuffer.isView(v);
 
 /**
  * A table column given as a typed array (seqspec:format#values): one of its kinds, kept as it is (`resolveColumns`).
  */
 function checkColumn(c: unknown, ref: unknown, k: string) {
   if (!ArrayBuffer.isView(c) || KINDS.some((Kind) => c instanceof Kind)) return;
-  const at = `annotation${ref === undefined ? "" : ` "${ref}"`}: column "${k}"`;
+  const at = `annotation${ref === undefined ? '' : ` "${ref}"`}: column "${k}"`;
   throw new TypeError(`${at} is a ${c.constructor.name}; give an array, or Int8-32, Uint8-32, Float32 or Float64.`);
 }
 
@@ -234,7 +234,7 @@ function checkColumn(c: unknown, ref: unknown, k: string) {
 function float32Columns(value: BuilderObject) {
   for (const [k, c] of Object.entries(value)) {
     const xs: unknown[] = c instanceof Float64Array ? Array.from(c) : Array.isArray(c) ? c : [];
-    if (xs.some((x) => !Number.isInteger(x ?? 0)) && xs.every((x) => x === null || typeof x === "number"))
+    if (xs.some((x) => !Number.isInteger(x ?? 0)) && xs.every((x) => x === null || typeof x === 'number'))
       value[k] = Float32Array.from(xs, (x) => (x as number | null) ?? Number.NaN);
   }
 }
@@ -269,7 +269,7 @@ function dictionaryColumn(col: unknown[]) {
       codes[i] = null;
       continue;
     }
-    if (typeof v !== "string") return col;
+    if (typeof v !== 'string') return col;
     let code = index.get(v);
     if (code === undefined) {
       code = index.size;
@@ -282,82 +282,82 @@ function dictionaryColumn(col: unknown[]) {
 }
 
 export class MoleculeHandle<
-  K extends "sequence" | "ligand" | "unit" = "sequence" | "ligand" | "unit",
+  K extends 'sequence' | 'ligand' | 'unit' = 'sequence' | 'ligand' | 'unit',
 > extends NodeHandle<K> {
   /** Adds a numbering child. */
-  numbering(params: BuilderParamsOf<"numbering">): this {
-    mk(this.st, "numbering", params as BuilderObject, this.node, null);
+  numbering(params: BuilderParamsOf<'numbering'>): this {
+    mk(this.st, 'numbering', params as BuilderObject, this.node, null);
     return this;
   }
 }
 
-export class ComplexHandle extends NodeHandle<"complex"> {
+export class ComplexHandle extends NodeHandle<'complex'> {
   /** A provider's unit `R/<suffix>`; or, given params, a `unit` child (a complex by value). */
-  unit(suffix: string): NodeHandle<"unit">;
-  unit(params: BuilderParamsOf<"unit">): MoleculeHandle<"unit">;
-  unit(x: string | BuilderParamsOf<"unit">) {
-    if (typeof x === "string") return new NodeHandle<"unit">(this.st, this.node, x);
-    return new MoleculeHandle<"unit">(this.st, mk(this.st, "unit", x as BuilderObject, this.node, null));
+  unit(suffix: string): NodeHandle<'unit'>;
+  unit(params: BuilderParamsOf<'unit'>): MoleculeHandle<'unit'>;
+  unit(x: string | BuilderParamsOf<'unit'>) {
+    if (typeof x === 'string') return new NodeHandle<'unit'>(this.st, this.node, x);
+    return new MoleculeHandle<'unit'>(this.st, mk(this.st, 'unit', x as BuilderObject, this.node, null));
   }
-  sequence(suffix: string): NodeHandle<"sequence"> {
-    return new NodeHandle<"sequence">(this.st, this.node, suffix);
+  sequence(suffix: string): NodeHandle<'sequence'> {
+    return new NodeHandle<'sequence'>(this.st, this.node, suffix);
   }
-  ligand(suffix: string): NodeHandle<"ligand"> {
-    return new NodeHandle<"ligand">(this.st, this.node, suffix);
+  ligand(suffix: string): NodeHandle<'ligand'> {
+    return new NodeHandle<'ligand'>(this.st, this.node, suffix);
   }
 }
 
-export class AlignmentHandle extends NodeHandle<"alignment"> {
-  tree(params: WithSourceParams<BuilderParamsOf<"tree">>): this {
-    withSource(this.st, mk(this.st, "tree", params as BuilderObject, this.node, null));
+export class AlignmentHandle extends NodeHandle<'alignment'> {
+  tree(params: WithSourceParams<BuilderParamsOf<'tree'>>): this {
+    withSource(this.st, mk(this.st, 'tree', params as BuilderObject, this.node, null));
     return this;
   }
-  row(k: number): NodeHandle<"row"> {
-    return new NodeHandle<"row">(this.st, this.node, String(k));
+  row(k: number): NodeHandle<'row'> {
+    return new NodeHandle<'row'>(this.st, this.node, String(k));
   }
   /** A mapping from row `k` to `to`, ref `<alignment ref>.row-<k>` unless given. */
-  bind(k: number, to: MappingSide, params: BindParams): NodeHandle<"mapping"> {
+  bind(k: number, to: MappingSide, params: BindParams): NodeHandle<'mapping'> {
     const n = mapping(this.st, { ...params, from: this.row(k), to } as MappingParams);
     if (params.ref === undefined) n.derived = { node: this.node, suffix: `.row-${k}` };
-    return new NodeHandle<"mapping">(this.st, n);
+    return new NodeHandle<'mapping'>(this.st, n);
   }
 }
 
 function mapping(st: BuilderState, params: MappingParams): BuilderNode {
   const p = { ...params } as BuilderObject;
-  if (p.method === "offset") {
+  if (p.method === 'offset') {
     const o = p.offset as number;
-    p.method = "segments";
+    p.method = 'segments';
     p.segments = [o >= 0 ? [0, o, null] : [-o, 0, null]];
     delete p.offset;
-  } else if (p.method === "pairwise" && p.gapped) {
-    const [a, b] = (p.gapped as string[]).map((s) => s.replaceAll(".", "-"));
+  } else if (p.method === 'pairwise' && p.gapped) {
+    const [a, b] = (p.gapped as string[]).map((s) => s.replaceAll('.', '-'));
     p.cigar = cigarFromRows(a, b);
     delete p.gapped;
   }
-  return mk(st, "mapping", p, st.data, null);
+  return mk(st, 'mapping', p, st.data, null);
 }
 
 function dataBuilder(st: BuilderState) {
   const node = (kind: string, params: object) => withSource(st, mk(st, kind, { ...params }, st.data, null));
   return {
     source: (params: BuilderSourceParams) =>
-      new NodeHandle<"source">(st, mk(st, "source", { ...params }, st.data, null)),
-    sequence: (params: WithSourceParams<BuilderParamsOf<"sequence">>) =>
-      new MoleculeHandle<"sequence">(st, node("sequence", params)),
-    ligand: (params: WithSourceParams<BuilderParamsOf<"ligand">>) =>
-      new MoleculeHandle<"ligand">(st, node("ligand", params)),
-    unit: (params: BuilderParamsOf<"unit">) => new MoleculeHandle<"unit">(st, node("unit", params)),
-    complex: (params: WithSourceParams<BuilderParamsOf<"complex">>) => new ComplexHandle(st, node("complex", params)),
-    alignment: (params: WithSourceParams<BuilderParamsOf<"alignment">>) =>
-      new AlignmentHandle(st, node("alignment", params)),
-    mapping: (params: MappingParams) => new NodeHandle<"mapping">(st, mapping(st, params)),
+      new NodeHandle<'source'>(st, mk(st, 'source', { ...params }, st.data, null)),
+    sequence: (params: WithSourceParams<BuilderParamsOf<'sequence'>>) =>
+      new MoleculeHandle<'sequence'>(st, node('sequence', params)),
+    ligand: (params: WithSourceParams<BuilderParamsOf<'ligand'>>) =>
+      new MoleculeHandle<'ligand'>(st, node('ligand', params)),
+    unit: (params: BuilderParamsOf<'unit'>) => new MoleculeHandle<'unit'>(st, node('unit', params)),
+    complex: (params: WithSourceParams<BuilderParamsOf<'complex'>>) => new ComplexHandle(st, node('complex', params)),
+    alignment: (params: WithSourceParams<BuilderParamsOf<'alignment'>>) =>
+      new AlignmentHandle(st, node('alignment', params)),
+    mapping: (params: MappingParams) => new NodeHandle<'mapping'>(st, mapping(st, params)),
     annotation(params: AnnotationParams) {
-      const n = node("annotation", params);
+      const n = node('annotation', params);
       annotationValue(n.params, n.ref);
-      return new NodeHandle<"annotation">(st, n);
+      return new NodeHandle<'annotation'>(st, n);
     },
-    computed: (params: ComputedParams) => new NodeHandle<"computed">(st, node("computed", params)),
+    computed: (params: ComputedParams) => new NodeHandle<'computed'>(st, node('computed', params)),
   };
 }
 export type DataBuilder = ReturnType<typeof dataBuilder>;
@@ -366,7 +366,7 @@ export type DataBuilder = ReturnType<typeof dataBuilder>;
 function themeFallback(st: BuilderState, t: unknown) {
   const r = t as ThemeRef | null | undefined;
   if (!r || !isNamespaced(r.theme) || r.fallback !== undefined) return r;
-  return { ...r, fallback: st.registries?.get("themes", r.theme)?.fallback ?? null };
+  return { ...r, fallback: st.registries?.get('themes', r.theme)?.fallback ?? null };
 }
 
 /** A method per kernel layer type, its params that type's; `layer` takes any type, kernel or `<namespace>:<name>`. */
@@ -379,17 +379,17 @@ function trackBuilder(st: BuilderState, track: BuilderNode, view: BuilderNode): 
   const t = {
     layer(params: BuilderObject & { type: string; annotation?: AnnotationParams }) {
       const { annotation, ...rest } = params;
-      const n = mk(st, "layer", rest, track, view);
+      const n = mk(st, 'layer', rest, track, view);
       const p = n.params;
       if (isNamespaced(p.type) && p.fallback == null) {
-        p.fallback = st.registries?.get("layerTypes", p.type)?.fallback ?? undefined;
+        p.fallback = st.registries?.get('layerTypes', p.type)?.fallback ?? undefined;
       }
-      if (typeof p.split === "string")
-        p.split = { by: p.split, order: p.type === "variants" && p.split === "alt" ? [...VARIANT_ROWS] : null };
+      if (typeof p.split === 'string')
+        p.split = { by: p.split, order: p.type === 'variants' && p.split === 'alt' ? [...VARIANT_ROWS] : null };
       if (p.color) p.color = themeFallback(st, p.color);
       if (p.glyph) p.glyph = themeFallback(st, p.glyph);
       if (annotation) {
-        const a = withSource(st, mk(st, "annotation", { ...annotation }, n, view));
+        const a = withSource(st, mk(st, 'annotation', { ...annotation }, n, view));
         annotationValue(a.params, a.ref);
       }
       return t as TrackBuilder;
@@ -403,10 +403,10 @@ function trackBuilder(st: BuilderState, track: BuilderNode, view: BuilderNode): 
 
 function groupBuilder(st: BuilderState, parent: BuilderNode, view: BuilderNode) {
   const g = {
-    group: (params: BuilderParamsOf<"group">) =>
-      groupBuilder(st, mk(st, "group", params as BuilderObject, parent, view), view),
-    track: (params: BuilderParamsOf<"track"> = {}) =>
-      trackBuilder(st, mk(st, "track", params as BuilderObject, parent, view), view),
+    group: (params: BuilderParamsOf<'group'>) =>
+      groupBuilder(st, mk(st, 'group', params as BuilderObject, parent, view), view),
+    track: (params: BuilderParamsOf<'track'> = {}) =>
+      trackBuilder(st, mk(st, 'track', params as BuilderObject, parent, view), view),
   };
   return g;
 }
@@ -415,13 +415,13 @@ function sectionBuilder(st: BuilderState, section: BuilderNode, view: BuilderNod
   const s = {
     ...groupBuilder(st, section, view),
     /** The section, for a param that names one (`follow`). */
-    handle: new NodeHandle<"section">(st, section),
-    block(params: BuilderParamsOf<"block">) {
-      mk(st, "block", params as BuilderObject, section, view);
+    handle: new NodeHandle<'section'>(st, section),
+    block(params: BuilderParamsOf<'block'>) {
+      mk(st, 'block', params as BuilderObject, section, view);
       return s;
     },
-    focus(params: BuilderParamsOf<"focus">) {
-      mk(st, "focus", params as BuilderObject, section, view);
+    focus(params: BuilderParamsOf<'focus'>) {
+      mk(st, 'focus', params as BuilderObject, section, view);
       return s;
     },
   };
@@ -430,16 +430,16 @@ function sectionBuilder(st: BuilderState, section: BuilderNode, view: BuilderNod
 export type SectionBuilder = ReturnType<typeof sectionBuilder>;
 
 /** A view; the section methods go to its main section `<view ref>.main`, made on first use or for section params. */
-function viewBuilder(st: BuilderState, params: BuilderParamsOf<"view"> & Partial<BuilderParamsOf<"section">>) {
+function viewBuilder(st: BuilderState, params: BuilderParamsOf<'view'> & Partial<BuilderParamsOf<'section'>>) {
   const { ref, label, layout, custom, ...sec } = params as BuilderObject;
-  const v = mk(st, "view", { ref, label, layout, custom }, st.root, null);
+  const v = mk(st, 'view', { ref, label, layout, custom }, st.root, null);
   if (layout === undefined) delete v.params.layout;
   let main: SectionBuilder | null = null;
-  const section = (p: BuilderParamsOf<"section">) => sectionBuilder(st, mk(st, "section", p as BuilderObject, v, v), v);
+  const section = (p: BuilderParamsOf<'section'>) => sectionBuilder(st, mk(st, 'section', p as BuilderObject, v, v), v);
   const first = () => {
     if (main) return main;
-    main = section(sec as BuilderParamsOf<"section">);
-    v.children[v.children.length - 1].derived = { node: v, suffix: ".main" };
+    main = section(sec as BuilderParamsOf<'section'>);
+    v.children[v.children.length - 1].derived = { node: v, suffix: '.main' };
     return main;
   };
   if (Object.keys(sec).length > 0) first();
@@ -449,21 +449,21 @@ function viewBuilder(st: BuilderState, params: BuilderParamsOf<"view"> & Partial
     get handle() {
       return first().handle;
     },
-    block: (p: BuilderParamsOf<"block">) => first().block(p),
-    group: (p: BuilderParamsOf<"group">) => first().group(p),
-    track: (p?: BuilderParamsOf<"track">) => first().track(p),
-    focus: (p: BuilderParamsOf<"focus">) => first().focus(p),
+    block: (p: BuilderParamsOf<'block'>) => first().block(p),
+    group: (p: BuilderParamsOf<'group'>) => first().group(p),
+    track: (p?: BuilderParamsOf<'track'>) => first().track(p),
+    focus: (p: BuilderParamsOf<'focus'>) => first().focus(p),
   };
 }
 export type ViewBuilder = ReturnType<typeof viewBuilder>;
 
 const slug = (s: unknown) =>
-  typeof s === "string"
+  typeof s === 'string'
     ? s
         .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-    : "";
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+    : '';
 
 /** Generated refs, in building order; explicit refs win and are avoided. */
 function generateRefs(st: BuilderState) {
@@ -480,10 +480,10 @@ function generateRefs(st: BuilderState) {
       n.ref = free(`${n.derived.node.ref}${n.derived.suffix}`);
       continue;
     }
-    const layerType = (l?: BuilderNode) => slug(String(l?.params.type ?? ""));
+    const layerType = (l?: BuilderNode) => slug(String(l?.params.type ?? ''));
     const s =
       slug(n.params.label) ||
-      (n.kind === "track" ? layerType(n.children[0]) : n.kind === "layer" ? layerType(n) : "") ||
+      (n.kind === 'track' ? layerType(n.children[0]) : n.kind === 'layer' ? layerType(n) : '') ||
       n.kind;
     n.ref = free(n.view ? `${n.view.ref}.${s}` : s);
   }
@@ -493,15 +493,15 @@ function generateRefs(st: BuilderState) {
  *  `resolveColumns`), NaN as null. */
 function resolve(v: unknown, annotation = false): unknown {
   if (v instanceof NodeHandle) return v.ref;
-  if (typeof v === "number") return Number.isNaN(v) ? null : v;
+  if (typeof v === 'number') return Number.isNaN(v) ? null : v;
   if (ArrayBuffer.isView(v))
     return Array.from(v as Float64Array, (x) => resolve(v instanceof Float32Array ? f32(x) : x));
   if (Array.isArray(v)) return v.map((x) => resolve(x));
-  if (v !== null && typeof v === "object") {
+  if (v !== null && typeof v === 'object') {
     return Object.fromEntries(
       Object.entries(v)
         .filter(([, x]) => x !== undefined)
-        .map(([k, x]) => [k, annotation && k === "value" ? resolveColumns(x) : resolve(x)]),
+        .map(([k, x]) => [k, annotation && k === 'value' ? resolveColumns(x) : resolve(x)]),
     );
   }
   return v;
@@ -523,8 +523,8 @@ function resolveColumns(value: unknown) {
 
 function toDoc(n: BuilderNode): DocNode {
   const out: DocNode = { kind: n.kind };
-  if (n.kind !== "root" && n.kind !== "data") out.ref = n.ref;
-  const params = resolve(n.params, n.kind === "annotation") as BuilderObject;
+  if (n.kind !== 'root' && n.kind !== 'data') out.ref = n.ref;
+  const params = resolve(n.params, n.kind === 'annotation') as BuilderObject;
   if (Object.keys(params).length > 0) out.params = params;
   if (n.custom) out.custom = resolve(n.custom) as BuilderObject;
   if (n.children.length > 0) out.children = n.children.map(toDoc);
@@ -533,15 +533,15 @@ function toDoc(n: BuilderNode): DocNode {
 
 /** The layers under a node, in order. */
 const layersUnder = (n: BuilderNode): BuilderNode[] =>
-  n.children.flatMap((c) => (c.kind === "layer" ? [c] : layersUnder(c)));
+  n.children.flatMap((c) => (c.kind === 'layer' ? [c] : layersUnder(c)));
 
 /** A document builder. `registries` give extension layer types and themes their fallbacks. */
 export function createSeqViewSpec(
   metadata: Metadata & { revision?: string } = {},
   opts: { registries?: SvsRegistries } = {},
 ) {
-  const root: BuilderNode = { kind: "root", params: {}, children: [], parent: null, view: null };
-  const data: BuilderNode = { kind: "data", params: {}, children: [], parent: root, view: null };
+  const root: BuilderNode = { kind: 'root', params: {}, children: [], parent: null, view: null };
+  const data: BuilderNode = { kind: 'data', params: {}, children: [], parent: root, view: null };
   root.children.push(data);
   const st: BuilderState = {
     all: [],
@@ -556,20 +556,20 @@ export function createSeqViewSpec(
   const { revision, ...meta } = metadata;
   const b = {
     data: dataBuilder(st),
-    view: (params: BuilderParamsOf<"view"> & Partial<BuilderParamsOf<"section">>) => viewBuilder(st, params),
+    view: (params: BuilderParamsOf<'view'> & Partial<BuilderParamsOf<'section'>>) => viewBuilder(st, params),
     /** Application-level compositions of generic params. */
     preset: {
       /**
        * Several regions on one axis (seqspec:model#pieces-and-layout-maps): a block per `[unit or sequence, start,
        * stop]`, in order, each the piece `range: [start, stop]` of its unit; `direction` on each when given.
        */
-      multiRegion<S extends Pick<SectionBuilder, "block">>(
+      multiRegion<S extends Pick<SectionBuilder, 'block'>>(
         section: S,
-        regions: readonly (readonly [string | NodeHandle<"unit" | "sequence">, number, number])[],
+        regions: readonly (readonly [string | NodeHandle<'unit' | 'sequence'>, number, number])[],
         o: { direction?: 1 | -1 } = {},
       ): S {
         for (const [of, start, stop] of regions) {
-          const key = of instanceof NodeHandle && of.node.kind === "sequence" ? "sequence" : "unit";
+          const key = of instanceof NodeHandle && of.node.kind === 'sequence' ? 'sequence' : 'unit';
           section.block({ [key]: of, range: [start, stop], ...(o.direction ? { direction: o.direction } : {}) });
         }
         return section;
@@ -578,12 +578,12 @@ export function createSeqViewSpec(
        * Only a section's exons: `positions` over the exon annotation (or a list of them), so each block shows its
        * covered positions, the gaps between them as breaks. Call it on a section from `view.section`.
        */
-      exonsOnly<S extends Pick<SectionBuilder, "handle">>(
+      exonsOnly<S extends Pick<SectionBuilder, 'handle'>>(
         section: S,
         exons:
           | string
-          | NodeHandle<"annotation" | "computed">
-          | readonly (string | NodeHandle<"annotation" | "computed">)[],
+          | NodeHandle<'annotation' | 'computed'>
+          | readonly (string | NodeHandle<'annotation' | 'computed'>)[],
       ): S {
         section.handle.node.params.positions = exons;
         return section;
@@ -595,9 +595,9 @@ export function createSeqViewSpec(
        * lists the alphabets it is for, so a protein's letters stay as stored; `map` names another registered table
        * (`complement_rna`).
        */
-      reverseComplement<S extends Pick<SectionBuilder, "handle">>(section: S, o: { map?: string } = {}): S {
+      reverseComplement<S extends Pick<SectionBuilder, 'handle'>>(section: S, o: { map?: string } = {}): S {
         section.handle.node.params.direction = -1;
-        st.complements.set(section.handle.node, o.map ?? "complement");
+        st.complements.set(section.handle.node, o.map ?? 'complement');
         return section;
       },
       /**
@@ -608,8 +608,8 @@ export function createSeqViewSpec(
        * generic params: `style: "circular"`, `labels`, `direction_field`, `display`, size and color themes, `follow`.
        */
       plasmidMap(
-        view: Pick<ViewBuilder, "section">,
-        molecule: BuilderParamsOf<"block">["sequence"],
+        view: Pick<ViewBuilder, 'section'>,
+        molecule: BuilderParamsOf<'block'>['sequence'],
         o: {
           ref?: string;
           label?: string;
@@ -620,19 +620,19 @@ export function createSeqViewSpec(
           detail?: boolean;
         } = {},
       ): { ring: SectionBuilder; detail: SectionBuilder | null } {
-        const direction = o.direction === undefined ? "strand" : o.direction;
+        const direction = o.direction === undefined ? 'strand' : o.direction;
         // On the ring the pairs ring is thin and innermost: the chords leave from just inside the features.
         const tracks = (sec: SectionBuilder, linear: boolean) => {
-          sec.track({ label: "" }).ruler();
-          if (linear) sec.track({ label: "Sequence" }).letters();
+          sec.track({ label: '' }).ruler();
+          if (linear) sec.track({ label: 'Sequence' }).letters();
           const features = o.features
-            ? sec.track({ label: o.sites && !linear ? "Features and sites" : "Features", height: linear ? 2 : 1.4 })
+            ? sec.track({ label: o.sites && !linear ? 'Features and sites' : 'Features', height: linear ? 2 : 1.4 })
             : null;
           features?.ranges({
             data: o.features,
             labels: true,
             ...(direction ? { direction_field: direction } : {}),
-          } as LayerParams<"ranges">);
+          } as LayerParams<'ranges'>);
           // On the ring the sites are a second layer of the features' track (CG3): ticks across its ring, over the
           // features, in one lane, in no data color (a rules theme with no rule: the renderer's faint skin ink, so
           // the skin decides it); linearly a track of their own.
@@ -640,21 +640,21 @@ export function createSeqViewSpec(
             features.ranges({
               data: o.sites,
               labels: true,
-              display: "union",
-              radius: { theme: "uniform", params: { size: 12 } },
-              color: { theme: "rules", params: { rules: [] } },
-            } as LayerParams<"ranges">);
+              display: 'union',
+              radius: { theme: 'uniform', params: { size: 12 } },
+              color: { theme: 'rules', params: { rules: [] } },
+            } as LayerParams<'ranges'>);
           else if (o.sites)
             sec
-              .track({ label: "Sites", height: linear ? 1 : 0.6 })
-              .ranges({ data: o.sites, labels: true } as LayerParams<"ranges">);
+              .track({ label: 'Sites', height: linear ? 1 : 0.6 })
+              .ranges({ data: o.sites, labels: true } as LayerParams<'ranges'>);
           if (o.pairs)
-            sec.track({ label: "Pairs", height: linear ? 3 : 0.4 }).pairs({ data: o.pairs, display: "both" });
+            sec.track({ label: 'Pairs', height: linear ? 3 : 0.4 }).pairs({ data: o.pairs, display: 'both' });
           return sec;
         };
-        const label = o.label ?? "Plasmid map";
+        const label = o.label ?? 'Plasmid map';
         const ring = tracks(
-          view.section({ ref: o.ref, label, style: "circular" }).block({ sequence: molecule }),
+          view.section({ ref: o.ref, label, style: 'circular' }).block({ sequence: molecule }),
           false,
         );
         const detail =
@@ -672,8 +672,8 @@ export function createSeqViewSpec(
        * on a ring of its own; and with `detail` (default) a linear section following it.
        */
       circularGenome(
-        view: Pick<ViewBuilder, "section">,
-        molecule: BuilderParamsOf<"block">["sequence"],
+        view: Pick<ViewBuilder, 'section'>,
+        molecule: BuilderParamsOf<'block'>['sequence'],
         o: {
           ref?: string;
           label?: string;
@@ -684,12 +684,12 @@ export function createSeqViewSpec(
           detail?: boolean;
         } = {},
       ): { ring: SectionBuilder; detail: SectionBuilder | null } {
-        const direction = o.direction ?? "strand";
+        const direction = o.direction ?? 'strand';
         const tracks = (sec: SectionBuilder) => {
-          sec.track({ label: "" }).ruler();
+          sec.track({ label: '' }).ruler();
           for (const [strand, name] of [
-            ["+", "Forward"],
-            ["-", "Reverse"],
+            ['+', 'Forward'],
+            ['-', 'Reverse'],
           ] as const)
             if (o.features)
               sec.track({ label: `${name} strand` }).ranges({
@@ -697,12 +697,12 @@ export function createSeqViewSpec(
                 labels: o.labels ?? false,
                 direction_field: direction,
                 filter: { field: direction, values: [strand] },
-              } as LayerParams<"ranges">);
+              } as LayerParams<'ranges'>);
           for (const values of o.values ?? []) sec.track({ height: 1.5 }).values({ data: values });
           return sec;
         };
-        const label = o.label ?? "Genome";
-        const ring = tracks(view.section({ ref: o.ref, label, style: "circular" }).block({ sequence: molecule }));
+        const label = o.label ?? 'Genome';
+        const ring = tracks(view.section({ ref: o.ref, label, style: 'circular' }).block({ sequence: molecule }));
         const detail =
           o.detail === false
             ? null
@@ -716,9 +716,9 @@ export function createSeqViewSpec(
        * "above"`), those with `-` hang from it (`below`); `strand: null` one track above. Only generic params: `side`,
        * `filter`, `width`, `labels`. Tracks of `height` rows each (3), labeled `label` and the strand.
        */
-      sashimi<S extends Pick<SectionBuilder, "track">>(
+      sashimi<S extends Pick<SectionBuilder, 'track'>>(
         section: S,
-        junctions: string | NodeHandle<"annotation" | "computed">,
+        junctions: string | NodeHandle<'annotation' | 'computed'>,
         o: {
           label?: string;
           count?: string;
@@ -728,26 +728,26 @@ export function createSeqViewSpec(
           color?: ThemeRef;
         } = {},
       ): S {
-        const width = { theme: "field_scale", params: { field: o.count ?? "count", range: [...(o.range ?? [1, 8])] } };
-        const label = o.label ?? "Junctions";
-        const strand = o.strand === undefined ? "strand" : o.strand;
+        const width = { theme: 'field_scale', params: { field: o.count ?? 'count', range: [...(o.range ?? [1, 8])] } };
+        const label = o.label ?? 'Junctions';
+        const strand = o.strand === undefined ? 'strand' : o.strand;
         const sides =
           strand === null
-            ? ([["above", null]] as const)
+            ? ([['above', null]] as const)
             : ([
-                ["above", "+"],
-                ["below", "-"],
+                ['above', '+'],
+                ['below', '-'],
               ] as const);
         for (const [side, value] of sides)
           section.track({ label: value === null ? label : `${label} (${value})`, height: o.height ?? 3 }).pairs({
             data: junctions,
-            display: "arcs",
+            display: 'arcs',
             side,
             labels: true,
             width,
             ...(o.color ? { color: o.color } : {}),
             ...(strand !== null && value !== null ? { filter: { field: strand, values: [value] } } : {}),
-          } as LayerParams<"pairs">);
+          } as LayerParams<'pairs'>);
         return section;
       },
       /**
@@ -757,7 +757,7 @@ export function createSeqViewSpec(
        * `rows`.
        */
       codingPair(
-        view: Pick<ViewBuilder, "section">,
+        view: Pick<ViewBuilder, 'section'>,
         protein: AlignmentHandle,
         cdna: AlignmentHandle,
         o: { rows?: readonly (readonly [number, number])[]; labels?: readonly [string, string] } = {},
@@ -765,9 +765,9 @@ export function createSeqViewSpec(
         const value = protein.node.params.value;
         const rows = o.rows ?? (Array.isArray(value) ? value.map((_, k) => [k, k] as const) : null);
         if (!rows)
-          throw new Error("codingPair: give rows, [protein row, cDNA row] pairs, for an alignment from a source");
-        for (const [p, c] of rows) protein.bind(p, cdna.row(c), { method: "codon" });
-        const [pl, cl] = o.labels ?? ["Protein", "Coding DNA"];
+          throw new Error('codingPair: give rows, [protein row, cDNA row] pairs, for an alignment from a source');
+        for (const [p, c] of rows) protein.bind(p, cdna.row(c), { method: 'codon' });
+        const [pl, cl] = o.labels ?? ['Protein', 'Coding DNA'];
         const top = view.section({ label: pl }).block({ alignment: protein });
         const bottom = view.section({ label: cl, follow: top.handle }).block({ alignment: cdna });
         return { protein: top, cdna: bottom };
@@ -784,7 +784,7 @@ export function createSeqViewSpec(
       generateRefs(st);
       for (const [node, map] of st.complements)
         for (const l of layersUnder(node)) {
-          const own = (l.params.type === "letters" || l.params.type === "rows") && l.params.of == null;
+          const own = (l.params.type === 'letters' || l.params.type === 'rows') && l.params.of == null;
           if (own && l.params.letter_map === undefined) l.params.letter_map = map;
         }
       const doc: SeqViewSpecDoc = { format: SvsFormat, version: SvsVersion, root: toDoc(root) };
@@ -802,13 +802,13 @@ export type SeqViewSpecBuilder = ReturnType<typeof createSeqViewSpec>;
 export function basePairs(
   data: DataBuilder,
   params: BuilderCommon & {
-    target: NonNullable<AnnotationParams["target"]>;
+    target: NonNullable<AnnotationParams['target']>;
     structure: string;
-    notation?: "wuss";
+    notation?: 'wuss';
     label?: string;
     provenance?: BuilderObject;
   },
-): NodeHandle<"annotation"> {
+): NodeHandle<'annotation'> {
   const { structure, notation: _, ...rest } = params;
   const partner = wussPairs(structure);
   const start: number[] = [];
@@ -818,20 +818,20 @@ export function basePairs(
     start.push(i);
     bStart.push(j);
   });
-  const value = { start, b_start: bStart, category: start.map(() => "base_pair") };
-  return data.annotation({ ...rest, geometry: "pairs", value } as AnnotationParams);
+  const value = { start, b_start: bStart, category: start.map(() => 'base_pair') };
+  return data.annotation({ ...rest, geometry: 'pairs', value } as AnnotationParams);
 }
 
 /** The source a translated protein's provenance names (not exported: the import rule's plugin reads exports). */
-const BUILDER = "@molstar/seq-core/builder";
+const BUILDER = '@molstar/seq-core/builder';
 
 /** `translate`'s params: `from` a DNA or RNA sequence handle the builder holds by `value`. */
 export type TranslateParams = BuilderCommon & {
-  from: NodeHandle<"sequence">;
+  from: NodeHandle<'sequence'>;
   label?: string;
   cds?: [number, number][] | null;
   start?: number;
-  strand?: "+" | "-";
+  strand?: '+' | '-';
   genetic_code?: number;
 };
 
@@ -840,23 +840,23 @@ export type TranslateParams = BuilderCommon & {
  * and its `codon` mapping `<ref>.codon` to `from` (seqspec:format#mappings). Throws when `from` is not a sequence held
  * by value: the builder reads no sources.
  */
-export function translate(data: DataBuilder, params: TranslateParams): MoleculeHandle<"sequence"> {
+export function translate(data: DataBuilder, params: TranslateParams): MoleculeHandle<'sequence'> {
   const { from, label, cds, start, strand, genetic_code, ref, custom } = params;
-  const value = from.suffix === null && from.node.kind === "sequence" ? from.node.params.value : undefined;
-  if (typeof value !== "string") {
+  const value = from.suffix === null && from.node.kind === 'sequence' ? from.node.params.value : undefined;
+  if (typeof value !== 'string') {
     throw new TypeError(
-      "translate: `from` must be a sequence handle given by value; a sequence read from a source is translated by whoever reads it.",
+      'translate: `from` must be a sequence handle given by value; a sequence read from a source is translated by whoever reads it.',
     );
   }
   const why = notNucleotide(value, from.node.params.alphabet);
   if (why) throw new TypeError(`translate: \`from\` must be DNA or RNA; ${why}.`);
-  const [s, gc] = [strand ?? "+", genetic_code ?? 1];
+  const [s, gc] = [strand ?? '+', genetic_code ?? 1];
   const residues = translateDna(value, cds ?? null, start ?? 0, s, gc);
   const parameters = { from, ...(cds ? { cds } : { start: start ?? 0 }), strand: s, genetic_code: gc };
-  const provenance = { source: BUILDER, method: "translation", parameters };
-  const protein = data.sequence({ ref, custom, value: residues, alphabet: "protein", label, provenance });
-  const codon = { from: protein, to: from, method: "codon", cds, start, strand, genetic_code } as const;
+  const provenance = { source: BUILDER, method: 'translation', parameters };
+  const protein = data.sequence({ ref, custom, value: residues, alphabet: 'protein', label, provenance });
+  const codon = { from: protein, to: from, method: 'codon', cds, start, strand, genetic_code } as const;
   const m = data.mapping(ref === undefined ? codon : { ...codon, ref: `${ref}.codon` });
-  if (ref === undefined) m.node.derived = { node: protein.node, suffix: ".codon" };
+  if (ref === undefined) m.node.derived = { node: protein.node, suffix: '.codon' };
   return protein;
 }

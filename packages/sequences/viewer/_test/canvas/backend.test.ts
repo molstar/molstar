@@ -11,8 +11,8 @@
 // regions under presented ones; copies read the pass's image as it was at its first copy; a recorded frame replayed
 // draws the same pixels as the frame drawn directly.
 
-import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
+import { describe, expect, it } from 'vitest';
+import { Canvas2DBackend, Canvas2DShared } from '../../src/canvas/index.js';
 import {
   type DrawResources,
   GlyphBatch,
@@ -29,25 +29,25 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.js";
-import { RecordingBackend } from "../../src/testing/index.js";
-import { drawFrame, Frame, H, PIXELS, W } from "../support/frame.js";
+} from '../../src/draw/api.js';
+import { RecordingBackend } from '../../src/testing/index.js';
+import { drawFrame, Frame, H, PIXELS, W } from '../support/frame.js';
 
 const GLYPHS = [
-  { char: "W", path: null, box: [1, 1] as const, fallback: 0 },
-  { char: null, path: "M0 0 L10 0 L0 10 Z", box: [10, 10] as const, fallback: 0 },
+  { char: 'W', path: null, box: [1, 1] as const, fallback: 0 },
+  { char: null, path: 'M0 0 L10 0 L0 10 Z', box: [10, 10] as const, fallback: 0 },
 ];
 const resources: DrawResources = {
-  font: () => "20px sans-serif",
+  font: () => '20px sans-serif',
   fontPx: () => 20,
-  token: (t) => (t === SkinToken.ink ? "#112233" : "#ff00ff"),
+  token: (t) => (t === SkinToken.ink ? '#112233' : '#ff00ff'),
   glyph: (id) => GLYPHS[id - SHAPE_COUNT] ?? null,
 };
 
 /** A backend over one offscreen canvas per pass (`back`: the passes with a back target). */
 function setup(w: number, h: number, back = 0) {
   const canvases = [0, 1].map(() => new OffscreenCanvas(w, h));
-  const gs = canvases.map((c) => c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D);
+  const gs = canvases.map((c) => c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D);
   const be = new Canvas2DBackend(gs, new Canvas2DShared(resources), back);
   const px = (pass = 0) => gs[pass].getImageData(0, 0, w, h).data;
   /** [r, g, b, a] at (x, y). */
@@ -76,8 +76,8 @@ const count = (data: Uint8ClampedArray, rgb: number[]) => {
   return n;
 };
 
-describe.each([1, 2, 3])("pixels at DPR %i", (d) => {
-  it("rects fill and outline whole device px; alpha, skin tokens and NO_COLOR", () => {
+describe.each([1, 2, 3])('pixels at DPR %i', (d) => {
+  it('rects fill and outline whole device px; alpha, skin tokens and NO_COLOR', () => {
     const { be, px, at } = setup(40 * d, 30 * d);
     const b = new RectBatch();
     be.beginPass(Pass.main, 40 * d, 30 * d, d);
@@ -107,7 +107,7 @@ describe.each([1, 2, 3])("pixels at DPR %i", (d) => {
     expect(at(d, 26 * d)[3]).toBe(0);
   });
 
-  it("sectors fill the ring between their radii, clockwise from a0 to a1", () => {
+  it('sectors fill the ring between their radii, clockwise from a0 to a1', () => {
     const { be, at } = setup(60 * d, 60 * d);
     const s = new SectorBatch();
     be.beginPass(Pass.main, 60 * d, 60 * d, d);
@@ -123,7 +123,7 @@ describe.each([1, 2, 3])("pixels at DPR %i", (d) => {
     expect(q(25, Math.PI / 4)[3]).toBe(0);
   });
 
-  it("paths fill and stroke, with round rects", () => {
+  it('paths fill and stroke, with round rects', () => {
     const { be, at } = setup(60 * d, 60 * d);
     const p = new PathBatch();
     be.beginPass(Pass.main, 60 * d, 60 * d, d);
@@ -184,14 +184,14 @@ describe.each([1, 2, 3])("pixels at DPR %i", (d) => {
     expect(at(50 * d - 2, 50 * d - 2)[3]).toBe(0);
   });
 
-  it("text in CSS px scaled by the DPR, placed at its anchor by alignment and baseline, and rotated", () => {
+  it('text in CSS px scaled by the DPR, placed at its anchor by alignment and baseline, and rotated', () => {
     const run = (align: number, angle: number) => {
       const { be, px } = setup(120 * d, 120 * d);
       const t = new TextBatch();
       be.beginPass(Pass.main, 120 * d, 120 * d, d);
       t.style(0, align, TextBaseline.alphabetic, angle);
       t.begin(0x000000);
-      t.push(60 * d, 60 * d, "MMM");
+      t.push(60 * d, 60 * d, 'MMM');
       be.text(t);
       be.endPass();
       return ink(px(), 120 * d);
@@ -220,7 +220,7 @@ describe.each([1, 2, 3])("pixels at DPR %i", (d) => {
       be.beginPass(Pass.main, 160 * d, 160 * d, d);
       t.style(0, TextAlign.left, TextBaseline.alphabetic, angle);
       t.begin(0x000000);
-      const i = t.add("M");
+      const i = t.add('M');
       t.x[i] = t.y[i] = 80 * d;
       t.sx[i] = sx;
       t.sy[i] = sy;
@@ -241,7 +241,7 @@ describe.each([1, 2, 3])("pixels at DPR %i", (d) => {
     expect(h(down) / w(plain)).toBeCloseTo(3, 0);
   });
 
-  it("images from pixels, unsmoothed, and a layer drawn by renderers", () => {
+  it('images from pixels, unsmoothed, and a layer drawn by renderers', () => {
     const { be, at } = setup(40 * d, 40 * d);
     const img = be.images.fromPixels(2, 2, PIXELS);
     const l = be.images.beginLayer(4, 4);
@@ -268,7 +268,7 @@ describe.each([1, 2, 3])("pixels at DPR %i", (d) => {
   });
 });
 
-describe("grouping", () => {
+describe('grouping', () => {
   it("a frame of 1,500 distinct colors (a continuous palette's row) drawn again makes no color string again", () => {
     const { be } = setup(200, 50);
     const b = new RectBatch();
@@ -296,7 +296,7 @@ describe("grouping", () => {
     expect(made).toBe(0);
   });
 
-  it("switches style at most once per distinct color, however the items interleave", () => {
+  it('switches style at most once per distinct color, however the items interleave', () => {
     const { be, at } = setup(200, 50);
     const b = new RectBatch();
     be.beginPass(Pass.main, 200, 50, 1);
@@ -321,7 +321,7 @@ describe("grouping", () => {
     t.style(0, TextAlign.left, TextBaseline.top);
     for (let i = 0; i < 300; i++) {
       t.begin(i % 3);
-      t.push(i % 200, 30, "x");
+      t.push(i % 200, 30, 'x');
     }
     be.styles = 0;
     be.text(t);
@@ -330,7 +330,7 @@ describe("grouping", () => {
   });
 });
 
-describe("grouping: the table is a power of two", () => {
+describe('grouping: the table is a power of two', () => {
   it("a batch of 1,469 items in the logo's twenty colors groups and draws (RN2: it once looped forever)", () => {
     const { be, at } = setup(1500, 4);
     const b = new RectBatch();
@@ -352,7 +352,7 @@ describe("grouping: the table is a power of two", () => {
   });
 });
 
-describe("presentation", () => {
+describe('presentation', () => {
   const fill = (be: Canvas2DBackend, color: number, x: number, y: number, w: number, h: number) => {
     const b = new RectBatch();
     b.begin(color);
@@ -360,7 +360,7 @@ describe("presentation", () => {
     be.rects(b);
   };
 
-  it("a back pass shows nothing until a region is presented, at endPass, and only that region", () => {
+  it('a back pass shows nothing until a region is presented, at endPass, and only that region', () => {
     const { be, at } = setup(40, 20, 1 << Pass.main);
     be.beginPass(Pass.main, 40, 20, 1);
     fill(be, 0xff0000, 0, 0, 40, 20);
@@ -395,7 +395,7 @@ describe("presentation", () => {
     expect(at(25, 15)).toEqual([0, 0, 255, 255]);
   });
 
-  it("a pass without a back target draws at once and ignores present and stale", () => {
+  it('a pass without a back target draws at once and ignores present and stale', () => {
     const { be, at } = setup(40, 20, 1 << Pass.main);
     be.beginPass(Pass.overlay, 40, 20, 1);
     fill(be, 0xff0000, 0, 0, 10, 10);
@@ -423,7 +423,7 @@ describe("presentation", () => {
     expect(at(5, 17)).toEqual([0, 0, 255, 255]);
   });
 
-  it("a clip holds the draws inside it, and the style after it is set again", () => {
+  it('a clip holds the draws inside it, and the style after it is set again', () => {
     const { be, at } = setup(20, 20);
     be.beginPass(Pass.main, 20, 20, 1);
     fill(be, 0xff0000, 0, 0, 2, 2);
@@ -438,8 +438,8 @@ describe("presentation", () => {
   });
 });
 
-describe("recording", () => {
-  it("a recorded frame replayed into Canvas2D draws the pixels the frame drew directly", () => {
+describe('recording', () => {
+  it('a recorded frame replayed into Canvas2D draws the pixels the frame drew directly', () => {
     const direct = setup(W, H, 1 << Pass.main);
     const replayed = setup(W, H, 1 << Pass.main);
     const f = new Frame(2000, 400);

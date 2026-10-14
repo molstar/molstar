@@ -12,17 +12,17 @@
 // overlay and the hit (an arc lit by a hover is the arc drawn). The entries themselves are one module each under
 // `renderers/`. Headless and allocation-free.
 
-import { CoordinateSystemKind } from "@molstar/seq-core/model";
-import type { AxisView } from "./axis.js";
-import { DOT_R } from "./draw/sizes.js";
-import { type Hit, HoverKind } from "./hit.js";
-import type { RenderProps } from "./layout.js";
-import { pairsInView } from "./pairs-index.js";
-import { type PairsState, type PreparedPart, PreparedParts } from "./prepare.js";
-import type { LayerRenderer } from "./registry.js";
-import type { FontId, TextManagerApi } from "./text.js";
-import { type LegendSink, NO_SIZE, SIZE_ONE, type Theme } from "./themes.js";
-import type { TreeRows } from "./tree.js";
+import { CoordinateSystemKind } from '@molstar/seq-core/model';
+import type { AxisView } from './axis.js';
+import { DOT_R } from './draw/sizes.js';
+import { type Hit, HoverKind } from './hit.js';
+import type { RenderProps } from './layout.js';
+import { pairsInView } from './pairs-index.js';
+import { type PairsState, type PreparedPart, PreparedParts } from './prepare.js';
+import type { LayerRenderer } from './registry.js';
+import type { FontId, TextManagerApi } from './text.js';
+import { type LegendSink, NO_SIZE, SIZE_ONE, type Theme } from './themes.js';
+import type { TreeRows } from './tree.js';
 
 type Params = Readonly<Record<string, unknown>>;
 
@@ -68,7 +68,7 @@ export function letterLines(
 }
 
 /** An item hit: the annotation's row as its item (kind item), with its location and coordinate system. */
-export function hitItem(out: Hit, set: PairsState["set"], annotation: number, row: number): boolean {
+export function hitItem(out: Hit, set: PairsState['set'], annotation: number, row: number): boolean {
   const a = set.annotations[annotation];
   if (!a) return false;
   out.kind = HoverKind.item;
@@ -104,8 +104,8 @@ export const Arcs = {
    */
   frame(v: AxisView, s: PairsState, p: Params) {
     const f = s.frame;
-    const below = p.side === "below" || (p.side !== "above" && v.facing > 0);
-    const ends = p.display !== "arcs";
+    const below = p.side === 'below' || (p.side !== 'above' && v.facing > 0);
+    const ends = p.display !== 'arcs';
     const inset = ends ? ENDS_INSET : 3;
     const base = below ? v.top + inset : v.top + v.height - inset;
     const left = v.blockX.length > 0 ? v.blockX[0] : 0;
@@ -222,10 +222,10 @@ export const Arcs = {
 };
 
 /** A collapsed clade's row label (laid out with the tree, "SYN001 +19"); "" when none. */
-export const wedgeLabel = (s: TreeRows, node: number) => s.tree?.wedgeText.get(node) ?? "";
+export const wedgeLabel = (s: TreeRows, node: number) => s.tree?.wedgeText.get(node) ?? '';
 
 /** Kernel types that draw images (matrix tiles, dense rows' tiles, the map's miniature): no ring form. */
-const IMAGES = new Set(["matrix", "rows", "seqv:map"]);
+const IMAGES = new Set(['matrix', 'rows', 'seqv:map']);
 
 /**
  * A kernel type's entry: its prepare and what goes with it (`PreparedParts`), its members over the defaults (linear,
@@ -237,10 +237,10 @@ const IMAGES = new Set(["matrix", "rows", "seqv:map"]);
 export function kernelEntry<S>(
   name: string,
   height: number | ((s: S, p: unknown, props: RenderProps, rowScale?: number, width?: number, room?: number) => number),
-  o: Omit<Partial<LayerRenderer<S>>, "name" | "height"> = {},
+  o: Omit<Partial<LayerRenderer<S>>, 'name' | 'height'> = {},
 ): LayerRenderer<S> {
   const part = PreparedParts[name] as PreparedPart;
-  const geometries = o.geometries ?? ["linear"];
+  const geometries = o.geometries ?? ['linear'];
   return {
     name,
     stable: false,
@@ -248,7 +248,7 @@ export function kernelEntry<S>(
     legend: legendOf,
     ...part,
     ...o,
-    geometries: IMAGES.has(name) ? geometries : [...geometries, "circular"],
-    height: typeof height === "number" ? () => height : height,
+    geometries: IMAGES.has(name) ? geometries : [...geometries, 'circular'],
+    height: typeof height === 'number' ? () => height : height,
   } as LayerRenderer<S>;
 }

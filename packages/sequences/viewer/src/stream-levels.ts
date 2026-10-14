@@ -10,8 +10,8 @@
 // fine and coarse levels for a view, snapped to those its source serves (`listedLevels`), and a tile's sample rows
 // computed in memory (`reduce`). A leaf: it imports core and types only, so any module may import it first.
 
-import { TILE, type Tile, Tiles } from "@molstar/seq-core/format";
-import type { AxisView } from "./axis.js";
+import { TILE, type Tile, Tiles } from '@molstar/seq-core/format';
+import type { AxisView } from './axis.js';
 
 /** Levels per axis; label chunks are a level of their own; a 1-D system's levels from `D1`, `LV` a system (data first). */
 export const L = 16;

@@ -11,7 +11,7 @@
 // lower-case residues and `.` gaps in them, `NAME/start-end` headers); its rows are short made-up stretches
 // of SH2 domains, not the seed's. PF00042 is the viewer spike's fixture (Pfam, CC0).
 
-import { readFileSync } from "node:fs";
+import { readFileSync } from 'node:fs';
 
 /** 33 columns: 30 match columns and inserts at 10, 11 and 22. */
 export const SH2_STOCKHOLM = `# STOCKHOLM 1.0
@@ -39,9 +39,9 @@ P85A_HUMAN/333-360         A-.DGTFLVRDA-
 `;
 
 /** The same rows without `RF`: insert columns come from case. */
-export const SH2_NO_RF = SH2_STOCKHOLM.split("\n")
-  .filter((l) => !l.startsWith("#=GC RF"))
-  .join("\n");
+export const SH2_NO_RF = SH2_STOCKHOLM.split('\n')
+  .filter((l) => !l.startsWith('#=GC RF'))
+  .join('\n');
 
 /** The same rows as A3M: lower case an insert, `.` dropped. */
 export const SH2_A3M = `#A3M written by hand
@@ -69,7 +69,7 @@ seq3  ACGU
 
 /** Rows: [label, first residue number, gapped]. */
 export function pf00042(): { label: string; start: number; gapped: string }[] {
-  const url = new URL("../fixtures/pf00042.json", import.meta.url);
-  const json = JSON.parse(readFileSync(url, "utf8")) as { rows: [string, number, string][] };
+  const url = new URL('../fixtures/pf00042.json', import.meta.url);
+  const json = JSON.parse(readFileSync(url, 'utf8')) as { rows: [string, number, string][] };
   return json.rows.map(([label, start, gapped]) => ({ label, start, gapped }));
 }

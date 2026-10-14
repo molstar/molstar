@@ -10,11 +10,11 @@
 // start, stop), half-open, which may repeat. Beside `CoordinateMap` since VW5 (TR1 had it in translate): the projection
 // core (the format's `resolve/project.ts`) and `translate` read this one declaration.
 
-import { Annotations } from "./annotation.js";
-import { type CoordinateSystem, CoordinateSystemKind as K } from "./coordinates.js";
-import type { ItemLoci, Loci } from "./loci.js";
-import { OrderedSet } from "./ordered-set.js";
-import type { SeqSet } from "./set.js";
+import { Annotations } from './annotation.js';
+import { type CoordinateSystem, CoordinateSystemKind as K } from './coordinates.js';
+import type { ItemLoci, Loci } from './loci.js';
+import { OrderedSet } from './ordered-set.js';
+import type { SeqSet } from './set.js';
 
 export interface Extents {
   count: number;
@@ -47,7 +47,7 @@ function grow(e: Extents) {
   const kind = new Uint8Array(n);
   kind.set(e.kind);
   e.kind = kind;
-  for (const f of ["id", "row", "start", "stop"] as const) {
+  for (const f of ['id', 'row', 'start', 'stop'] as const) {
     const a = new Int32Array(n);
     a.set(e[f]);
     e[f] = a;
@@ -65,7 +65,7 @@ const at = (kind: number, id: number, row = -1): CoordinateSystem => {
 
 /** An ordered set as runs of consecutive indices in `s` (an Interval one run; a SortedArray walked once). */
 function addRuns(out: Extents, s: CoordinateSystem, set: OrderedSet): void {
-  if (typeof set === "number") {
+  if (typeof set === 'number') {
     if (OrderedSet.size(set) > 0) add(out, s, OrderedSet.min(set), OrderedSet.max(set) + 1);
     return;
   }
@@ -117,21 +117,21 @@ function target(t: { unit: Int32Array; molecule: Int32Array; alignment: Int32Arr
 function addLoci(out: Extents, loci: Loci): number {
   const before = out.count;
   const set = loci.set;
-  if (loci.kind === "seq-loci") {
+  if (loci.kind === 'seq-loci') {
     for (const e of loci.elements) addRuns(out, at(K.unit, e.unit), e.indices);
-  } else if (loci.kind === "boundary-loci") {
+  } else if (loci.kind === 'boundary-loci') {
     for (const e of loci.elements)
       for (let i = 0, n = OrderedSet.size(e.indices); i < n; i++) {
         const x = OrderedSet.getAt(e.indices, i);
         add(out, at(K.unit, e.unit), x, x);
       }
-  } else if (loci.kind === "row-loci") {
+  } else if (loci.kind === 'row-loci') {
     for (const e of loci.elements) addRuns(out, at(K.row, loci.alignment, e.row), e.indices);
-  } else if (loci.kind === "column-loci") {
+  } else if (loci.kind === 'column-loci') {
     addRuns(out, at(K.columns, loci.alignment), loci.columns);
-  } else if (loci.kind === "aligned-loci") {
+  } else if (loci.kind === 'aligned-loci') {
     const el = loci.elements;
-    if (!("rows" in el)) for (const e of el) addCells(out, set, loci.alignment, e.row, e.columns);
+    if (!('rows' in el)) for (const e of el) addCells(out, set, loci.alignment, e.row, e.columns);
     else
       for (let i = 0, n = OrderedSet.size(el.rows); i < n; i++)
         addCells(out, set, loci.alignment, OrderedSet.getAt(el.rows, i), el.columns);
@@ -145,7 +145,7 @@ function addLoci(out: Extents, loci: Loci): number {
  * An item loci element's items, each as `addItem`. A function of its own: inline in `addLoci` beside the other kinds,
  * V8 13.6 stopped inlining `size` and `getAt` there and boxed the packed `Interval` into each call (2026-10-13).
  */
-function addItems(out: Extents, set: SeqSet, e: ItemLoci["elements"][number]): void {
+function addItems(out: Extents, set: SeqSet, e: ItemLoci['elements'][number]): void {
   const items = e.items;
   for (let i = 0, n = OrderedSet.size(items); i < n; i++) addItem(out, set, e.annotation, OrderedSet.getAt(items, i));
 }
@@ -153,7 +153,7 @@ function addItems(out: Extents, set: SeqSet, e: ItemLoci["elements"][number]): v
 /** One item's rows (`itemRows`) appended to `out` as `addLoci` adds item loci: a hovered item, allocation-free. */
 function addItem(out: Extents, set: SeqSet, annotation: number, item: number): void {
   const ann = set.annotations[annotation];
-  if (!ann || ann.geometry === "rows" || item < 0 || item >= ann.itemCount) return;
+  if (!ann || ann.geometry === 'rows' || item < 0 || item >= ann.itemCount) return;
   const byItem = Annotations.itemRows(ann);
   for (let k = byItem.start[item]; k < byItem.start[item + 1]; k++) {
     const r = byItem.rows[k];

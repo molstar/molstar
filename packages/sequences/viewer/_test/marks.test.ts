@@ -12,12 +12,12 @@
 // reads them, and the hover's primary as the first lit position the layout shows. Indices are block coordinate system
 // indices unless a title says shown.
 
-import { describe, expect, it } from "vitest";
-import type { ShownIndex } from "../src/axis.js";
-import { MarkBit } from "../src/index.js";
+import { describe, expect, it } from 'vitest';
+import type { ShownIndex } from '../src/axis.js';
+import { MarkBit } from '../src/index.js';
 
-import { MarkSet, RowMarks, SectionMarks, type ShownRuns } from "../src/marks.js";
-import { axisOf, rangedDoc, resolved } from "./axis-fixtures.js";
+import { MarkSet, RowMarks, SectionMarks, type ShownRuns } from '../src/marks.js';
+import { axisOf, rangedDoc, resolved } from './axis-fixtures.js';
 
 /** Block b's runs as pairs. */
 const runsOf = (m: MarkSet, b: number) =>
@@ -33,7 +33,7 @@ function filled(runs: number[][], lo = 0, hi = 1000) {
 }
 
 describe("a MarkSet's runs", () => {
-  it("in-order adds merge when they overlap or touch, and stay apart otherwise", () => {
+  it('in-order adds merge when they overlap or touch, and stay apart otherwise', () => {
     expect(
       runsOf(
         filled([
@@ -50,7 +50,7 @@ describe("a MarkSet's runs", () => {
     ]);
   });
 
-  it("descending adjacency merges into the last run: 5, then 4, then 3", () => {
+  it('descending adjacency merges into the last run: 5, then 4, then 3', () => {
     const m = filled([
       [5, 6],
       [4, 5],
@@ -60,7 +60,7 @@ describe("a MarkSet's runs", () => {
     expect(m.count).toBe(1);
   });
 
-  it("out-of-order adds are sorted at close, then merged", () => {
+  it('out-of-order adds are sorted at close, then merged', () => {
     expect(
       runsOf(
         filled([
@@ -81,7 +81,7 @@ describe("a MarkSet's runs", () => {
     ]);
   });
 
-  it("a merge that extends the last run back over an earlier one is merged at close", () => {
+  it('a merge that extends the last run back over an earlier one is merged at close', () => {
     expect(
       runsOf(
         filled([
@@ -94,7 +94,7 @@ describe("a MarkSet's runs", () => {
     ).toEqual([[0, 6]]);
   });
 
-  it("duplicates collapse and nothing caps them: 100,000 positions in a shuffled order are one run", () => {
+  it('duplicates collapse and nothing caps them: 100,000 positions in a shuffled order are one run', () => {
     const order = Array.from({ length: 100_000 }, (_, i) => (i * 7919) % 100_000);
     const m = new MarkSet();
     m.reset(1);
@@ -105,7 +105,7 @@ describe("a MarkSet's runs", () => {
     expect(runsOf(m, 0)).toEqual([[0, 100_000]]);
   });
 
-  it("10,000 disjoint positions in reverse are kept, sorted", () => {
+  it('10,000 disjoint positions in reverse are kept, sorted', () => {
     const m = new MarkSet();
     m.reset(1);
     m.begin(0);
@@ -139,7 +139,7 @@ describe("a MarkSet's runs", () => {
     expect(runsOf(filled([[0, 3]], 3, 10), 0)).toEqual([]);
   });
 
-  it("empty runs add nothing; blocks are filled in order, a skipped block is empty", () => {
+  it('empty runs add nothing; blocks are filled in order, a skipped block is empty', () => {
     const m = new MarkSet();
     m.reset(4);
     m.begin(0);
@@ -152,7 +152,7 @@ describe("a MarkSet's runs", () => {
     expect([m.first(1), m.first(2), m.first(3), m.first(-1)]).toEqual([-1, 1, -1, -1]);
   });
 
-  it("reused: a reset keeps the buffers, the next fill sees none of the last", () => {
+  it('reused: a reset keeps the buffers, the next fill sees none of the last', () => {
     const m = filled([
       [0, 1],
       [2, 3],
@@ -167,7 +167,7 @@ describe("a MarkSet's runs", () => {
     expect([m.start, m.stop, m.at]).toEqual(buffers);
   });
 
-  it("carets: appended in any order, sorted, distinct and clipped per block by close (seqspec:interaction#channels)", () => {
+  it('carets: appended in any order, sorted, distinct and clipped per block by close (seqspec:interaction#channels)', () => {
     const m = new MarkSet();
     const carets = (b: number) => Array.from(m.caretAt.subarray(m.caretFrom(b), m.caretTo(b)));
     m.reset(4);
@@ -185,7 +185,7 @@ describe("a MarkSet's runs", () => {
   });
 });
 
-describe("has, any and first at their edges", () => {
+describe('has, any and first at their edges', () => {
   const m = filled([
     [2, 4],
     [7, 8],
@@ -214,7 +214,7 @@ describe("has, any and first at their edges", () => {
     expect([m.has(1, 3), m.has(-1, 3)]).toEqual([false, false]);
   });
 
-  it("any: [s, t) overlapping a run, touching one, between two, empty", () => {
+  it('any: [s, t) overlapping a run, touching one, between two, empty', () => {
     expect(m.any(0, 0, 3)).toBe(true);
     expect(m.any(0, 0, 2)).toBe(false);
     expect(m.any(0, 4, 7)).toBe(false);
@@ -226,13 +226,13 @@ describe("has, any and first at their edges", () => {
     expect(m.any(1, 0, 100)).toBe(false);
   });
 
-  it("first: the lowest lit index", () => {
+  it('first: the lowest lit index', () => {
     expect(m.first(0)).toBe(2);
   });
 });
 
-describe("row rectangles", () => {
-  it("consecutive rows with the same columns join into one band; a different row or columns starts another", () => {
+describe('row rectangles', () => {
+  it('consecutive rows with the same columns join into one band; a different row or columns starts another', () => {
     const r = new RowMarks();
     for (let row = 3; row < 9; row++) r.add(MarkBit.selection, 0, row, 10, 20);
     r.add(MarkBit.selection, 0, 9, 10, 21);
@@ -268,9 +268,9 @@ describe("a section's marks as the overlay reads them", () => {
     expect(s.runs(MarkBit.band)).toBe(s.band);
   });
 
-  it("the primary is the first lit position the layout shows; none shown, no tick", async () => {
+  it('the primary is the first lit position the layout shows; none shown, no tick', async () => {
     // [5, 15) filtered to [7, 10) and [12, 14) (view f): 5 and 6 are not shown.
-    const ax = axisOf(await resolved(rangedDoc(), "f"));
+    const ax = axisOf(await resolved(rangedDoc(), 'f'));
     const s = new SectionMarks();
     s.hover.reset(1);
     s.hover.begin(0);
@@ -289,7 +289,7 @@ describe("a section's marks as the overlay reads them", () => {
     expect(s.primary(3)).toBe(-1);
   });
 
-  it("on a reversed piece the primary is the lit position shown first", () => {
+  it('on a reversed piece the primary is the lit position shown first', () => {
     // A stand-in axis over [0, 10) laid out in reverse: shown k is index 9 - k.
     const reversed: ShownRuns = {
       runToShown: (_b, start, stop, out) => {

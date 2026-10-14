@@ -15,7 +15,7 @@
 //
 // Its own file, the viewer loaded afresh (`vi.resetModules`): cases in one file share V8's feedback.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -26,7 +26,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = 1_000;
 
@@ -46,19 +46,19 @@ function measure(frame: (i: number) => void, warmed = () => {}) {
 /** The hover document lit at DPR 2, and a frame: the pointer on a track's row, an overlay frame, the band counted. */
 async function setup() {
   vi.resetModules();
-  const { Dirty, SkinToken } = await import("../src/draw/index.js");
-  const { Inputs, PointerType } = await import("../src/index.js");
-  const { COPY_BACK, recording } = await import("./composer-fixtures.js");
-  const { hoverDoc } = await import("./hover-fixtures.js");
-  const { lit } = await import("./overlay-fixtures.js");
+  const { Dirty, SkinToken } = await import('../src/draw/index.js');
+  const { Inputs, PointerType } = await import('../src/index.js');
+  const { COPY_BACK, recording } = await import('./composer-fixtures.js');
+  const { hoverDoc } = await import('./hover-fixtures.js');
+  const { lit } = await import('./overlay-fixtures.js');
   const t = await lit(hoverDoc(100), { width: 1000, height: 600, dpr: 2 });
   // The overlay alone: the hover label's strings are one allocation per hovered element by design (IN2's guard).
-  t.ctx.behaviors.get("hoverLabel")?.remove();
-  t.vp?.setView(12, 0, "api");
+  t.ctx.behaviors.get('hoverLabel')?.remove();
+  t.vp?.setView(12, 0, 'api');
   await t.ctx.graph.update();
   const be = recording(COPY_BACK);
   t.frame(be, Dirty.all);
-  const tracks = ["t.letters", "t.ranges", "t.points", "t.values", "t.matrix"];
+  const tracks = ['t.letters', 't.ranges', 't.points', 't.values', 't.matrix'];
   const ys: number[] = [];
   for (const ref of tracks) ys.push(t.yOf(t.section, ref));
   // A matrix's three bands, each its own row band.
@@ -86,7 +86,7 @@ async function setup() {
 }
 
 describe("a data hover's row band allocates nothing after warm-up", () => {
-  it("a hover sweep down the tracks, the band drawn", async () => {
+  it('a hover sweep down the tracks, the band drawn', async () => {
     const { frame, hovers, drawn } = await setup();
     let hovers0 = 0;
     let drawn0 = 0;
@@ -109,7 +109,7 @@ describe("a data hover's row band allocates nothing after warm-up", () => {
     expect(drawn() - drawn0).toBeGreaterThan(0.8 * measured);
   }, 120_000);
 
-  it("the same frames allocating an object each are caught (positive control)", async () => {
+  it('the same frames allocating an object each are caught (positive control)', async () => {
     const { frame } = await setup();
     expect(controlCaught(() => measure(leaking(frame)))).toBe(true);
   }, 120_000);

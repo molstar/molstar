@@ -34,5 +34,5 @@ export const Task = {
 };
 
 export function assertUnreachable(_x: never): never {
-  throw new Error("unreachable");
+  throw new Error('unreachable');
 }

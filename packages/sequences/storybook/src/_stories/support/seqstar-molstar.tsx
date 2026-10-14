@@ -15,8 +15,8 @@
 // structure (QM1): `molql` runs a PyMOL selection in Mol*, Mol*'s selection is `(input structure)`, a result lights the
 // sequence and goes back to 3D. Offline: the fixtures are the loaders' bytes and Mol*'s assets at the services' URLs.
 
-import { compileQuery, createQueryEnv, SeqSelection } from "@molstar/seq-core/model/query";
-import { bindQuery, readQuery, renderIssue } from "@molstar/seq-core/query";
+import { compileQuery, createQueryEnv, SeqSelection } from '@molstar/seq-core/model/query';
+import { bindQuery, readQuery, renderIssue } from '@molstar/seq-core/query';
 import {
   MolstarSvsEntry,
   molstarQueryExtension,
@@ -26,7 +26,7 @@ import {
   structureInput,
   structureReach,
   structureUrl,
-} from "@molstar/seq-molstar-poc";
+} from '@molstar/seq-molstar-poc';
 import {
   mountPlugin,
   type PluginContext,
@@ -34,7 +34,7 @@ import {
   selectedLoci,
   setBackground,
   showMvs,
-} from "@molstar/seq-molstar-poc/plugin";
+} from '@molstar/seq-molstar-poc/plugin';
 import {
   colorByItemAction,
   colorTracks,
@@ -44,7 +44,7 @@ import {
   type StructureView3D,
   showInStructureAction,
   structureTrackActions,
-} from "@molstar/seq-molstar-poc/viewer";
+} from '@molstar/seq-molstar-poc/viewer';
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -53,19 +53,19 @@ import {
   SeqViewerConfig,
   type SeqViewerContext,
   SeqViewerSpec,
-} from "@molstar/seq-viewer";
-import { windowScheduler } from "@molstar/seq-viewer/canvas";
-import { SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { P53 } from "../../../../core/_test/format/load-fixtures.js";
-import features from "../../../../molstar-poc/_test/fixtures/p53/P04637.json?raw";
-import ptms from "../../../../molstar-poc/_test/fixtures/p53/P04637-ptms.tsv?raw";
-import variants from "../../../../molstar-poc/_test/fixtures/p53/variation-P04637.json?raw";
-import c1c26 from "../../../../molstar-poc/_test/fixtures/structures/1c26.bcif?url";
-import c1tup from "../../../../molstar-poc/_test/fixtures/structures/1tup.bcif?url";
-import c2ocj from "../../../../molstar-poc/_test/fixtures/structures/2ocj.bcif?url";
-import c2xwr from "../../../../molstar-poc/_test/fixtures/structures/2xwr.bcif?url";
-import caf from "../../../../molstar-poc/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif?url";
+} from '@molstar/seq-viewer';
+import { windowScheduler } from '@molstar/seq-viewer/canvas';
+import { SeqViewerLayout, SeqViewerProvider } from '@molstar/seq-viewer/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { P53 } from '../../../../core/_test/format/load-fixtures.js';
+import features from '../../../../molstar-poc/_test/fixtures/p53/P04637.json?raw';
+import ptms from '../../../../molstar-poc/_test/fixtures/p53/P04637-ptms.tsv?raw';
+import variants from '../../../../molstar-poc/_test/fixtures/p53/variation-P04637.json?raw';
+import c1c26 from '../../../../molstar-poc/_test/fixtures/structures/1c26.bcif?url';
+import c1tup from '../../../../molstar-poc/_test/fixtures/structures/1tup.bcif?url';
+import c2ocj from '../../../../molstar-poc/_test/fixtures/structures/2ocj.bcif?url';
+import c2xwr from '../../../../molstar-poc/_test/fixtures/structures/2xwr.bcif?url';
+import caf from '../../../../molstar-poc/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif?url';
 import {
   coverageTrack,
   P53_STRUCTURES,
@@ -73,30 +73,30 @@ import {
   p53DemoDoc,
   p53Loaders,
   p53ShownPatch,
-} from "../../../../molstar-poc/_test/p53-demo.js";
-import { TextAction } from "../ui/index.js";
-import f from "./seqstar-format.module.css";
-import m from "./seqstar-molstar.module.css";
-import { storyPatch } from "./seqstar-patch.js";
-import { PrismCanvas } from "./seqstar-prism.js";
-import q from "./seqstar-query-runtime.module.css";
-import { partSlots, STORY_CHROME, useStoryUi } from "./seqstar-viewer.js";
+} from '../../../../molstar-poc/_test/p53-demo.js';
+import { TextAction } from '../ui/index.js';
+import f from './seqstar-format.module.css';
+import m from './seqstar-molstar.module.css';
+import { storyPatch } from './seqstar-patch.js';
+import { PrismCanvas } from './seqstar-prism.js';
+import q from './seqstar-query-runtime.module.css';
+import { partSlots, STORY_CHROME, useStoryUi } from './seqstar-viewer.js';
 
 /** The p53 demo's `headerHover` limit, in its viewer spec: a header of more items lights its row band alone. */
 const HEADER_MAX_ITEMS = 500;
 const FIXTURES: Record<string, string> = {
-  "1tup": c1tup,
-  "2ocj": c2ocj,
-  "2xwr": c2xwr,
-  "1c26": c1c26,
-  "AF-P04637-F1": caf,
+  '1tup': c1tup,
+  '2ocj': c2ocj,
+  '2xwr': c2xwr,
+  '1c26': c1c26,
+  'AF-P04637-F1': caf,
 };
 const refOf = (s: P53Structure): StructureRef => ({
   source: s.source,
-  ...("assembly" in s ? { assembly: s.assembly } : {}),
+  ...('assembly' in s ? { assembly: s.assembly } : {}),
 });
-const sourceId = (s: StructureRef | null | undefined) => (s && "id" in s.source ? s.source.id : null);
-const fasta = (seq: string) => `>sp|P04637|P53_HUMAN Cellular tumor antigen p53\n${seq.replace(/(.{60})/g, "$1\n")}\n`;
+const sourceId = (s: StructureRef | null | undefined) => (s && 'id' in s.source ? s.source.id : null);
+const fasta = (seq: string) => `>sp|P04637|P53_HUMAN Cellular tumor antigen p53\n${seq.replace(/(.{60})/g, '$1\n')}\n`;
 
 /** Each structure's bytes, fetched once from the bundled fixtures, by the URL its service resolves to. */
 async function structureBytes(): Promise<Map<string, Uint8Array>> {
@@ -164,7 +164,7 @@ function useViewer(
         config: [
           [SeqViewerConfig.UI.Chrome, STORY_CHROME],
           [SeqViewerConfig.UI.ItemActions, [item.name, color.name]],
-          [SeqViewerConfig.UI.TrackActions, [...(builtIn === "none" ? [] : builtIn), ...tracks]],
+          [SeqViewerConfig.UI.TrackActions, [...(builtIn === 'none' ? [] : builtIn), ...tracks]],
         ],
       },
       {
@@ -199,8 +199,8 @@ function shownEntry(ctx: SeqViewerContext) {
   };
   return {
     async show(s: P53Structure | null) {
-      await storyPatch(ctx, p53ShownPatch(s), "shown in 3D");
-      const want = s ? ["g-pdb", coverageTrack(s)] : [];
+      await storyPatch(ctx, p53ShownPatch(s), 'shown in 3D');
+      const want = s ? ['g-pdb', coverageTrack(s)] : [];
       for (const r of [...opened]) {
         if (want.includes(r)) continue;
         if (ctx.ui.expanded.value.has(r)) toggle(r);
@@ -221,10 +221,10 @@ function ColorChooser({ ctx, shown, show }: { ctx: SeqViewerContext; shown: Show
   const options = useMemo(() => colorTracks(ctx, shown.structure), [ctx, shown.structure]);
   return (
     <label className={m.chooser}>
-      Colored by{" "}
+      Colored by{' '}
       <select
-        value={shown.colorBy ?? ""}
-        onChange={(e) => show({ ...shown, colorBy: e.target.value === "" ? null : e.target.value, where: null })}
+        value={shown.colorBy ?? ''}
+        onChange={(e) => show({ ...shown, colorBy: e.target.value === '' ? null : e.target.value, where: null })}
       >
         <option value="">Its default</option>
         {options.map((o) => (
@@ -247,14 +247,14 @@ interface Linked {
 const MOLQL_DNA = '(molql "polymer.protein and (polymer.nucleic around 4)")';
 // Results stay on the chains (instance space) unless a query projects them onto P04637, which joins the chains.
 const PRESETS = [
-  { label: "Mol* selection", text: "(input structure)", says: "select residues in 3D first" },
-  { label: "Zinc site", text: '(molql "polymer and (resn ZN around 3)")', says: "within 3 Å of a zinc" },
-  { label: "DNA contacts", text: MOLQL_DNA, says: "within 4 Å of DNA (1TUP)" },
-  { label: "DNA contacts on P04637", text: `(onto ${MOLQL_DNA} p53)`, says: "any chain's, on the sequence" },
+  { label: 'Mol* selection', text: '(input structure)', says: 'select residues in 3D first' },
+  { label: 'Zinc site', text: '(molql "polymer and (resn ZN around 3)")', says: 'within 3 Å of a zinc' },
+  { label: 'DNA contacts', text: MOLQL_DNA, says: 'within 4 Å of DNA (1TUP)' },
+  { label: 'DNA contacts on P04637', text: `(onto ${MOLQL_DNA} p53)`, says: "any chain's, on the sequence" },
   {
-    label: "Variants at the DNA",
+    label: 'Variants at the DNA',
     text: `(pick (items :of variants :where (= (length) 1)) :where (overlaps (onto ${MOLQL_DNA} p53)))`,
-    says: "single-residue variants on them",
+    says: 'single-residue variants on them',
   },
 ];
 
@@ -279,18 +279,18 @@ function MolQueries({ ctx, linked }: { ctx: SeqViewerContext; linked: { readonly
       const structure = l ? structureInput(l.link, selectedLoci(l.plugin, l.link.structure)) : SeqSelection.empty(set);
       const r = compileQuery(bound.expr, env, bound.source).run({ set, inputs: { structure } });
       issues.push(...r.issues);
-      if (!r.issues.some((i) => i.severity === "error")) sel = r.selection;
+      if (!r.issues.some((i) => i.severity === 'error')) sel = r.selection;
     }
     for (let i = 0; i < lit.current; i++) ctx.highlight.clear(`molql:${i}`);
     const loci = sel ? SeqSelection.toLoci(sel) : [];
-    for (const [i, l] of loci.entries()) ctx.highlight.set(`molql:${i}`, l, { style: "highlight" });
+    for (const [i, l] of loci.entries()) ctx.highlight.set(`molql:${i}`, l, { style: 'highlight' });
     lit.current = loci.length;
     const l = linked.current;
     const r = l && sel?.groupCount ? structureReach(l.link, sel) : null;
     const n = r?.chains.length ?? 0;
-    const which = `chain${n === 1 ? "" : "s"} ${r?.chains.join(", ")}`;
-    const reach = !r || n === 0 ? "" : r.exact ? `in 3D: ${which}` : `on the sequence: any of ${which} in 3D`;
-    setRan({ text: t, sel, said: issues.map((i) => renderIssue(i).split("\n")[0]), reach });
+    const which = `chain${n === 1 ? '' : 's'} ${r?.chains.join(', ')}`;
+    const reach = !r || n === 0 ? '' : r.exact ? `in 3D: ${which}` : `on the sequence: any of ${which} in 3D`;
+    setRan({ text: t, sel, said: issues.map((i) => renderIssue(i).split('\n')[0]), reach });
   };
   const clear = () => {
     for (let i = 0; i < lit.current; i++) ctx.highlight.clear(`molql:${i}`);
@@ -326,10 +326,10 @@ function MolQueries({ ctx, linked }: { ctx: SeqViewerContext; linked: { readonly
         rows={2}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
+          if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             run(text);
-          } else if (e.key === "Escape") clear();
+          } else if (e.key === 'Escape') clear();
         }}
         spellCheck={false}
         aria-label="SeqQL query"
@@ -345,13 +345,13 @@ function MolQueries({ ctx, linked }: { ctx: SeqViewerContext; linked: { readonly
         {ran?.sel && <span className={q.line}>{SeqSelection.summary(ran.sel, { maxParts: 6 })}</span>}
         {ran?.reach && <span className={q.note}>{ran.reach}</span>}
       </div>
-      {ran && ran.said.length > 0 && <pre className={q.issues}>{ran.said.join("\n")}</pre>}
+      {ran && ran.said.length > 0 && <pre className={q.issues}>{ran.said.join('\n')}</pre>}
     </section>
   );
 }
 
 /** The 3D canvas's color per toolbar theme: Prism's base of that theme (its theme.css), as the sequence canvas has. */
-const CANVAS = { light: "#eeece7", dark: "#111318", blue: "#2d3e50" } as const;
+const CANVAS = { light: '#eeece7', dark: '#111318', blue: '#2d3e50' } as const;
 
 export function MolstarDemo({ theme }: { theme: keyof typeof CANVAS }) {
   const [bytes, setBytes] = useState<Map<string, Uint8Array> | null>(null);
@@ -365,9 +365,9 @@ export function MolstarDemo({ theme }: { theme: keyof typeof CANVAS }) {
   const ctx = useViewer(bytes, shownRef, show);
   const linked = useRef<Linked | null>(null);
   // The track menu has "Show in 3D", "Color 3D by this track" and "Apply to 3D": `clean` leaves it out, the story needs it.
-  const ui = useStoryUi(null, { components: partSlots(["TrackActions"]) });
-  const [status, setStatus] = useState("Loading…");
-  const background = useRef("#ffffff");
+  const ui = useStoryUi(null, { components: partSlots(['TrackActions']) });
+  const [status, setStatus] = useState('Loading…');
+  const background = useRef('#ffffff');
   background.current = CANVAS[theme] ?? CANVAS.light;
 
   useEffect(() => {
@@ -395,7 +395,7 @@ export function MolstarDemo({ theme }: { theme: keyof typeof CANVAS }) {
     let unlink: (() => void) | null = null;
     let link: StructureLink | null = null;
     let live = true;
-    const id = sourceId(shown.structure) ?? "";
+    const id = sourceId(shown.structure) ?? '';
     const same = last.current === id;
     last.current = id;
     void (async () => {
@@ -403,7 +403,7 @@ export function MolstarDemo({ theme }: { theme: keyof typeof CANVAS }) {
       const r = live
         ? composeStructureView(ctx, shown.structure, {
             ...(shown.colorBy ? { tracks: [shown.colorBy], where: shown.where ?? null } : {}),
-            defaults: shown.defaults ?? { representation: "cartoon", base: "#c8c8c8" },
+            defaults: shown.defaults ?? { representation: 'cartoon', base: '#c8c8c8' },
             background: background.current,
           })
         : null;
@@ -417,10 +417,10 @@ export function MolstarDemo({ theme }: { theme: keyof typeof CANVAS }) {
       }
       const set = ctx.graph.assembled.value?.set;
       if (!live || !structure || !set) return;
-      link = StructureLink.attach(ctx.systems, "3d", structure, set, shown.structure.complex ?? id.toLowerCase());
+      link = StructureLink.attach(ctx.systems, '3d', structure, set, shown.structure.complex ?? id.toLowerCase());
       const view3d = pluginView3D(plugin, structure);
       // The link's reactions, composed in its options: a Seq* hover of more than 1,000 items lights its whole chains.
-      unlink = linkViews(ctx, view3d, link, { hover: { maxItems: 1_000, over: "chains" } });
+      unlink = linkViews(ctx, view3d, link, { hover: { maxItems: 1_000, over: 'chains' } });
       linked.current = { plugin, link, view3d };
       setStatus(`${id.toUpperCase()} in 3D, linked: hover or select in either view.`);
     })();

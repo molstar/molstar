@@ -18,9 +18,9 @@ import {
   type RowIndex,
   type SeqIndex,
   type StringTable,
-} from "./common.js";
-import { type Alphabet, Molecules, type ResidueCheck } from "./molecule.js";
-import { NO_LABEL, Numbering, type NumberingSet, type OffsetNumbering } from "./numbering.js";
+} from './common.js';
+import { type Alphabet, Molecules, type ResidueCheck } from './molecule.js';
+import { NO_LABEL, Numbering, type NumberingSet, type OffsetNumbering } from './numbering.js';
 
 /** The code of a gap in `codes` (`-`). */
 export const GAP = 45;
@@ -113,7 +113,7 @@ export interface TreeInput {
   leafRow: Int32Array;
 }
 /** A parsed tree before its leaves are matched to rows. */
-export type ParsedTree = Omit<TreeInput, "leafRow">;
+export type ParsedTree = Omit<TreeInput, 'leafRow'>;
 
 export interface LazyAlignmentInput {
   rowCount: number;
@@ -128,7 +128,7 @@ export interface LazyAlignmentInput {
 export interface AlignmentInput {
   key: string;
   gapped: string[];
-  flavor: "aligned" | "a3m";
+  flavor: 'aligned' | 'a3m';
   labels?: string[];
   alphabet?: Alphabet;
   referenceRow?: number;
@@ -397,7 +397,7 @@ function build(
     issues.push(Issue.error(code, `${path}${at}`, `Alignment "${input.key}": ${m}`));
     return null;
   };
-  const a3m = input.flavor === "a3m";
+  const a3m = input.flavor === 'a3m';
   const lazy = input.lazy ?? null;
   let held: Int32Array | null = null;
   let gapped: readonly string[] = input.gapped;
@@ -408,25 +408,25 @@ function build(
     rowCount = lazy.rowCount;
     C = lazy.columnCount;
     if (!(Number.isInteger(rowCount) && Number.isInteger(C) && rowCount > 0 && C > 0)) {
-      return err("model.alignment.shape", "/lazy", "a lazy alignment needs positive row and column counts.");
+      return err('model.alignment.shape', '/lazy', 'a lazy alignment needs positive row and column counts.');
     }
     const keys = [...lazy.rows.keys()];
     if (keys.some((r) => !(Number.isInteger(r) && r >= 0 && r < rowCount))) {
-      return err("model.alignment.shape", "/lazy/rows", `held rows must be within 0..${rowCount - 1}.`);
+      return err('model.alignment.shape', '/lazy/rows', `held rows must be within 0..${rowCount - 1}.`);
     }
     held = Int32Array.from(keys).sort();
     const rows = Array.from(held, (r) => lazy.rows.get(r) as { label: string; gapped: string });
     gapped = rows.map((x) => x.gapped);
     heldLabels = rows.map((x) => x.label);
-  } else if (rowCount === 0 || C === 0) return err("model.alignment.shape", "/gapped", "it has no rows or no columns.");
+  } else if (rowCount === 0 || C === 0) return err('model.alignment.shape', '/gapped', 'it has no rows or no columns.');
   // A row's path is made on the error path only: a string per row is 20k strings at 20k rows.
   const rowAt = (s: number) => (held ? `/lazy/rows/${held[s]}` : `/gapped/${s}`);
   for (let s = 0; s < gapped.length; s++) {
     const n = columnsOf(gapped[s], a3m);
     const row = held ? held[s] : s;
-    if (n !== C) return err("model.alignment.ragged", rowAt(s), `row ${row} has ${n} columns, not ${C}.`);
+    if (n !== C) return err('model.alignment.ragged', rowAt(s), `row ${row} has ${n} columns, not ${C}.`);
     const bad = nonAscii(gapped[s]);
-    if (bad >= 0) return err("model.residues.invalid", rowAt(s), `row ${row} has a non-ASCII character at ${bad}.`);
+    if (bad >= 0) return err('model.residues.invalid', rowAt(s), `row ${row} has a non-ASCII character at ${bad}.`);
   }
   const perRow = {
     labels: lazy ? null : input.labels,
@@ -435,10 +435,10 @@ function build(
   };
   for (const [field, v] of Object.entries(perRow)) {
     if (v && v.length !== rowCount)
-      return err("model.alignment.shape", `/${field}`, `${v.length} ${field} for ${rowCount} rows.`);
+      return err('model.alignment.shape', `/${field}`, `${v.length} ${field} for ${rowCount} rows.`);
   }
   if (input.insertColumns && input.insertColumns.length !== C) {
-    return err("model.alignment.shape", "/insertColumns", `${input.insertColumns.length} flags for ${C} columns.`);
+    return err('model.alignment.shape', '/insertColumns', `${input.insertColumns.length} flags for ${C} columns.`);
   }
 
   const lower = new Uint8Array(C);
@@ -449,13 +449,13 @@ function build(
   const alphabet = Molecules.checkResidues(d.residues, input.alphabet, check);
   if (check.at >= 0) {
     const m = `"${String.fromCharCode(d.residues[check.at])}" is no nucleotide code, so the rows are read as protein.`;
-    issues.push(Issue.warning("model.alphabet.detected", path, `Alignment "${input.key}": ${m}`));
+    issues.push(Issue.warning('model.alphabet.detected', path, `Alignment "${input.key}": ${m}`));
   }
   if (check.invalid >= 0) {
     let s = 0;
     while (d.residueStart[s + 1] <= check.invalid) s++;
     const c = String.fromCharCode(d.residues[check.invalid]);
-    return err("model.residues.invalid", rowAt(s), `row ${held ? held[s] : s}: "${c}" is not a ${alphabet} letter.`);
+    return err('model.residues.invalid', rowAt(s), `row ${held ? held[s] : s}: "${c}" is not a ${alphabet} letter.`);
   }
 
   // Insert columns: given (Stockholm's RF), else in aligned input the columns whose residues are all lower case.
@@ -481,10 +481,10 @@ function build(
       ? `${inserts} insert columns are given (Stockholm's RF)`
       : insertColumn
         ? `${inserts} columns with only lower-case residues are insert columns`
-        : anyLower && "lower case marks no insert columns";
+        : anyLower && 'lower case marks no insert columns';
   if (what) {
     issues.push(
-      Issue.info("model.alignment.inserts", path, `Alignment "${input.key}": ${what}; letters are upper case.`),
+      Issue.info('model.alignment.inserts', path, `Alignment "${input.key}": ${what}; letters are upper case.`),
     );
   }
 
@@ -495,14 +495,14 @@ function build(
     const row = held ? held[s] : s;
     if (input.rowNumberingFirst) rowFirst[s] = input.rowNumberingFirst[row] ?? NO_LABEL;
     else {
-      const m = HEADER.exec(heldLabels[s] ?? "");
+      const m = HEADER.exec(heldLabels[s] ?? '');
       if (m && Number(m[1]) <= Number(m[2])) rowFirst[s] = Number(m[1]);
       else if (m) descending++;
     }
   }
   if (descending) {
     const m = `${descending} descending row headers (NAME/137-27) give no row numbering.`;
-    issues.push(Issue.warning("model.numbering.descending", path, `Alignment "${input.key}": ${m}`));
+    issues.push(Issue.warning('model.numbering.descending', path, `Alignment "${input.key}": ${m}`));
   }
 
   // A bad parent, or the parent that closes a cycle, is a warning and that row gets none.
@@ -513,7 +513,7 @@ function build(
   const noParent = (r: number, m: string) => {
     parent[r] = -1;
     const message = `Alignment "${input.key}": row ${r}'s parent ${m}; it has none.`;
-    if (bad++ < 10) issues.push(Issue.warning("model.alignment.parent", `${path}/parentRows/${r}`, message));
+    if (bad++ < 10) issues.push(Issue.warning('model.alignment.parent', `${path}/parentRows/${r}`, message));
   };
   for (let r = 0; r < parentRows.length; r++) {
     const p = parentRows[r];
@@ -534,11 +534,11 @@ function build(
   }
   if (bad > 10) {
     const message = `Alignment "${input.key}": ${bad - 10} more rows' parents left out.`;
-    issues.push(Issue.warning("model.alignment.parent", `${path}/parentRows`, message));
+    issues.push(Issue.warning('model.alignment.parent', `${path}/parentRows`, message));
   }
   const referenceRow = input.referenceRow ?? 0;
   if (!(Number.isInteger(referenceRow) && referenceRow >= 0 && referenceRow < rowCount)) {
-    return err("model.alignment.shape", "/referenceRow", `reference row ${referenceRow} is not a row.`);
+    return err('model.alignment.shape', '/referenceRow', `reference row ${referenceRow} is not a row.`);
   }
 
   const rows = new Rows({ count: gapped.length, held, columns: C, rowFirst, ...d });
@@ -558,8 +558,8 @@ function build(
   };
   const rowNumberings = new Map<number, NumberingSet>();
   const offset = (name: string, first: number, length: number): OffsetNumbering => {
-    const n = { name: strings.intern(name), isDefault: name === "row", custom: CustomData.create(), length };
-    return { ...n, method: "offset", first, skipZero: false };
+    const n = { name: strings.intern(name), isDefault: name === 'row', custom: CustomData.create(), length };
+    return { ...n, method: 'offset', first, skipZero: false };
   };
   const numberingsOf = (row: RowIndex) => {
     const s = rows.slotOf(row);
@@ -567,8 +567,8 @@ function build(
     let set = rowNumberings.get(s);
     if (!set) {
       const n = rows.lengthOf(row);
-      const own = rowFirst[s] === NO_LABEL ? [] : [offset("row", rowFirst[s], n)];
-      set = Numbering.setOf([offset("ordinal", 1, n), ...own]);
+      const own = rowFirst[s] === NO_LABEL ? [] : [offset('row', rowFirst[s], n)];
+      set = Numbering.setOf([offset('ordinal', 1, n), ...own]);
       rowNumberings.set(s, set);
     }
     return set;
@@ -601,18 +601,18 @@ function buildTree(input: TreeInput, rowCount: number, strings: StringTable, iss
   const { parent: inParent } = input;
   const n = inParent.length;
   if (input.branchLength.length !== n || input.label.length !== n || input.leafRow.length !== n) {
-    return err("model.tree.shape", `its columns must all have ${n} nodes.`);
+    return err('model.tree.shape', `its columns must all have ${n} nodes.`);
   }
   const childStart = new Int32Array(n + 1);
   let root = -1;
   for (let i = 0; i < n; i++) {
     const p = inParent[i];
-    if (p === -1 && root >= 0) return err("model.tree.shape", "it has more than one root.");
+    if (p === -1 && root >= 0) return err('model.tree.shape', 'it has more than one root.');
     if (p === -1) root = i;
-    else if (p < 0 || p >= n || p === i) return err("model.tree.shape", `node ${i}'s parent ${p} is not a node.`);
+    else if (p < 0 || p >= n || p === i) return err('model.tree.shape', `node ${i}'s parent ${p} is not a node.`);
     else childStart[p + 1]++;
   }
-  if (root < 0) return err("model.tree.shape", "it has no root.");
+  if (root < 0) return err('model.tree.shape', 'it has no root.');
   for (let i = 0; i < n; i++) childStart[i + 1] += childStart[i];
   const children = new Int32Array(n);
   const fill = childStart.slice();
@@ -626,7 +626,7 @@ function buildTree(input: TreeInput, rowCount: number, strings: StringTable, iss
     order[k++] = v;
     for (let j = childStart[v + 1] - 1; j >= childStart[v]; j--) stack.push(children[j]);
   }
-  if (k !== n) return err("model.tree.shape", "some nodes do not descend from the root.");
+  if (k !== n) return err('model.tree.shape', 'some nodes do not descend from the root.');
   const newId = new Int32Array(n);
   for (let i = 0; i < n; i++) newId[order[i]] = i;
 
@@ -639,7 +639,7 @@ function buildTree(input: TreeInput, rowCount: number, strings: StringTable, iss
   const bad: string[] = [];
   for (let i = 0; i < n; i++) {
     const r = input.leafRow[order[i]];
-    const name = `"${input.label[order[i]] ?? ""}"`;
+    const name = `"${input.label[order[i]] ?? ''}"`;
     if (cladeEnd[i] !== i + 1) {
       if (r !== -1) bad.push(`the inner node ${name} names a row`);
     } else if (r === -2) bad.push(`the leaf ${name} names several rows`);
@@ -653,8 +653,8 @@ function buildTree(input: TreeInput, rowCount: number, strings: StringTable, iss
   }
   if (leafOrder.length < rowCount) bad.push(`${rowCount - leafOrder.length} rows have no leaf`);
   if (bad.length) {
-    const more = bad.length > 5 ? `, and ${bad.length - 5} more` : "";
-    return err("model.tree.leaves", `every row must be exactly one leaf: ${bad.slice(0, 5).join("; ")}${more}.`);
+    const more = bad.length > 5 ? `, and ${bad.length - 5} more` : '';
+    return err('model.tree.leaves', `every row must be exactly one leaf: ${bad.slice(0, 5).join('; ')}${more}.`);
   }
   return {
     count: n,
@@ -672,7 +672,7 @@ function buildTree(input: TreeInput, rowCount: number, strings: StringTable, iss
  * Leaf rows for a parsed tree: by `order`, leaf k (in node order) is row k; by `labels`, a leaf names the row
  * whose label equals it, else whose label before its last `/` does. -1: no row, -2: several (reported by build).
  */
-function matchLeaves(tree: ParsedTree, rowLabels: readonly (string | null)[], by: "labels" | "order"): Int32Array {
+function matchLeaves(tree: ParsedTree, rowLabels: readonly (string | null)[], by: 'labels' | 'order'): Int32Array {
   const n = tree.parent.length;
   const inner = new Uint8Array(n);
   for (let i = 0; i < n; i++) if (tree.parent[i] >= 0) inner[tree.parent[i]] = 1;
@@ -680,19 +680,19 @@ function matchLeaves(tree: ParsedTree, rowLabels: readonly (string | null)[], by
   const exact = new Map<string, number>();
   const prefix = new Map<string, number>();
   const add = (m: Map<string, number>, key: string, row: number) => m.set(key, m.has(key) ? -2 : row);
-  if (by === "labels") {
+  if (by === 'labels') {
     rowLabels.forEach((l, r) => {
       if (l == null) return;
       add(exact, l, r);
-      const slash = l.lastIndexOf("/");
+      const slash = l.lastIndexOf('/');
       if (slash > 0) add(prefix, l.slice(0, slash), r);
     });
   }
   let k = 0;
   for (let i = 0; i < n; i++) {
     if (inner[i]) continue;
-    const name = tree.label[i] ?? "";
-    out[i] = by === "order" ? k++ : (exact.get(name) ?? prefix.get(name) ?? -1);
+    const name = tree.label[i] ?? '';
+    out[i] = by === 'order' ? k++ : (exact.get(name) ?? prefix.get(name) ?? -1);
   }
   return out;
 }

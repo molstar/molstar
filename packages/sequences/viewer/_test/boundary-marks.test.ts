@@ -12,37 +12,37 @@
 // the edge on the right; a junction between two pieces of one unit once; before a position a filter hides, after the
 // position before it; and an insert placed through a partial map on the boundary after it (seqspec:format#placement).
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { Hit, HoverKind } from "../src/index.js";
-import { recording } from "./composer-fixtures.js";
-import { lit } from "./overlay-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { Hit, HoverKind } from '../src/index.js';
+import { recording } from './composer-fixtures.js';
+import { lit } from './overlay-fixtures.js';
 
-const S = "v.main";
+const S = 'v.main';
 const N = 40;
 
 type Block = { range?: [number, number]; direction?: 1 | -1 };
 function doc(blocks: Block[] = [{}], positions = false) {
   const b = createSeqViewSpec();
-  const p = b.data.sequence({ ref: "p", value: "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRV".slice(0, N) });
+  const p = b.data.sequence({ ref: 'p', value: 'MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRV'.slice(0, N) });
   const ends = b.data.annotation({
-    ref: "ends",
-    geometry: "ranges",
+    ref: 'ends',
+    geometry: 'ranges',
     target: p,
-    value: { boundary: [0, 20, N], label: ["start", "middle", "end"] },
+    value: { boundary: [0, 20, N], label: ['start', 'middle', 'end'] },
   });
   // Every position but 20, for the filter.
   const kept = b.data.annotation({
-    ref: "kept",
-    geometry: "ranges",
+    ref: 'kept',
+    geometry: 'ranges',
     target: p,
     value: { start: [0, 21], stop: [20, N] },
   });
-  const sec = b.view({ ref: "v", label: "V" }).section({ ref: S, ...(positions ? { positions: kept } : {}) });
+  const sec = b.view({ ref: 'v', label: 'V' }).section({ ref: S, ...(positions ? { positions: kept } : {}) });
   for (const o of blocks) sec.block({ sequence: p, ...o });
-  sec.track({ ref: "t-ranges", label: "Ranges", height: 2 }).ranges({ data: ends });
-  sec.track({ ref: "t-points", label: "Points", height: 2 }).points({ data: ends });
-  sec.track({ ref: "t-variants", label: "Variants", height: 2 }).variants({ data: ends });
+  sec.track({ ref: 't-ranges', label: 'Ranges', height: 2 }).ranges({ data: ends });
+  sec.track({ ref: 't-points', label: 'Points', height: 2 }).points({ data: ends });
+  sec.track({ ref: 't-variants', label: 'Variants', height: 2 }).variants({ data: ends });
   return b.getDocument();
 }
 
@@ -53,7 +53,7 @@ const glyphXs = (be: ReturnType<typeof recording>) =>
 async function open(blocks?: Block[], positions?: boolean) {
   const t = await lit(doc(blocks, positions), { width: 900, height: 400 });
   // 15 px a position: the whole sequence in view.
-  t.vp?.setView(15, 0, "api");
+  t.vp?.setView(15, 0, 'api');
   // The first frame's glyphs (a frame with nothing changed since draws nothing).
   const xs = glyphXs(t.frame(recording()));
   const ax = () => t.ctx.layout.axis(S);
@@ -65,7 +65,7 @@ async function open(blocks?: Block[], positions?: boolean) {
   const hit = Hit.create();
   const at = (x: number, y: number) => {
     t.ctx.layout.hitTest(S, x, y, hit);
-    return hit.kind === HoverKind.item ? `item ${hit.item}` : hit.kind === HoverKind.seq ? `seq ${hit.index}` : "none";
+    return hit.kind === HoverKind.item ? `item ${hit.item}` : hit.kind === HoverKind.seq ? `seq ${hit.index}` : 'none';
   };
   /** What a column `x` hits down a track's band, each once. */
   const down = (x: number, track: string) => {
@@ -79,20 +79,20 @@ async function open(blocks?: Block[], positions?: boolean) {
   return { ...t, edge, at, xs, down };
 }
 
-describe("boundary marks", () => {
-  it("ranges: a boundary after the last position draws and hits on its trailing edge", async () => {
+describe('boundary marks', () => {
+  it('ranges: a boundary after the last position draws and hits on its trailing edge', async () => {
     const t = await open();
-    const y = t.yOf(S, "t-ranges");
-    expect([t.at(t.edge(20) - 2, y), t.at(t.edge(20) + 2, y)]).toEqual(["item 1", "item 1"]);
-    expect(t.at(t.edge(N) - 2, y)).toBe("item 2");
+    const y = t.yOf(S, 't-ranges');
+    expect([t.at(t.edge(20) - 2, y), t.at(t.edge(20) + 2, y)]).toEqual(['item 1', 'item 1']);
+    expect(t.at(t.edge(N) - 2, y)).toBe('item 2');
   });
 
   it("points: a boundary's glyph on its edge, not on the position after it; one after the last position too", async () => {
     const t = await open();
-    const y = t.yOf(S, "t-points");
+    const y = t.yOf(S, 't-points');
     // The edge before 20 is the glyph's center: 3 px either side is it.
-    expect([t.at(t.edge(20) - 3, y), t.at(t.edge(20) + 3, y)]).toEqual(["item 1", "item 1"]);
-    expect(t.at(t.edge(N) - 3, y)).toBe("item 2");
+    expect([t.at(t.edge(20) - 3, y), t.at(t.edge(20) + 3, y)]).toEqual(['item 1', 'item 1']);
+    expect(t.at(t.edge(N) - 3, y)).toBe('item 2');
   });
 
   it("ranges, points and variants: boundaries drawn on their edges, the end's included", async () => {
@@ -112,8 +112,8 @@ describe("boundary marks", () => {
   it("variants: a boundary hits where its glyph is drawn, at its place in the stack, the end's included", async () => {
     const t = await open();
     // Left of the edge before 20 is position 19's column: only the glyph's geometry finds the boundary there.
-    expect(t.down(t.edge(20) - 2, "t-variants").has("item 1")).toBe(true);
-    expect(t.down(t.edge(N) - 2, "t-variants").has("item 2")).toBe(true);
+    expect(t.down(t.edge(20) - 2, 't-variants').has('item 1')).toBe(true);
+    expect(t.down(t.edge(N) - 2, 't-variants').has('item 2')).toBe(true);
   });
 
   it("a reversed piece: on the right edge of the position after the boundary; the end's on the left", async () => {
@@ -136,7 +136,7 @@ describe("boundary marks", () => {
     expect([t.xs.filter((x) => x === first).length, t.xs.filter((x) => x === last).length]).toEqual([3, 0]);
   });
 
-  it("a position the filter hides: its boundary after the position before it", async () => {
+  it('a position the filter hides: its boundary after the position before it', async () => {
     const t = await open([{}], true);
     const a = t.ctx.layout.axis(S);
     expect(a?.shownOf(0, 20)).toBe(-1);
@@ -148,18 +148,18 @@ describe("boundary marks", () => {
 describe("past a block's end", () => {
   it("the end boundary's glyph hits from the gap after its block, never the last residue", async () => {
     const b = createSeqViewSpec();
-    const p = b.data.sequence({ ref: "p", value: "MKTAYIAKQRQISFVKSHFS" });
-    const q = b.data.sequence({ ref: "q", value: "RQLEERLGLIEVQAPILSRV" });
+    const p = b.data.sequence({ ref: 'p', value: 'MKTAYIAKQRQISFVKSHFS' });
+    const q = b.data.sequence({ ref: 'q', value: 'RQLEERLGLIEVQAPILSRV' });
     const end = b.data.annotation({
-      ref: "end",
-      geometry: "ranges",
+      ref: 'end',
+      geometry: 'ranges',
       target: p,
-      value: { boundary: [20], alt: ["GSG"] },
+      value: { boundary: [20], alt: ['GSG'] },
     });
-    const sec = b.view({ ref: "v", label: "V" }).section({ ref: S }).block({ sequence: p }).block({ sequence: q });
-    sec.track({ ref: "t-ranges", label: "Ranges", height: 2 }).ranges({ data: end });
-    sec.track({ ref: "t-points", label: "Points", height: 2 }).points({ data: end });
-    sec.track({ ref: "t-variants", label: "Variants", height: 2 }).variants({ data: end });
+    const sec = b.view({ ref: 'v', label: 'V' }).section({ ref: S }).block({ sequence: p }).block({ sequence: q });
+    sec.track({ ref: 't-ranges', label: 'Ranges', height: 2 }).ranges({ data: end });
+    sec.track({ ref: 't-points', label: 'Points', height: 2 }).points({ data: end });
+    sec.track({ ref: 't-variants', label: 'Variants', height: 2 }).variants({ data: end });
     const t = await lit(b.getDocument(), { width: 900, height: 300 });
     t.frame();
     const a = t.ctx.layout.axis(S);
@@ -173,54 +173,54 @@ describe("past a block's end", () => {
       const seen = new Set<string>();
       for (let y = top; y < top + l.entryHeight[e as number]; y += 0.5) {
         t.ctx.layout.hitTest(S, x, y, hit);
-        seen.add(hit.kind === HoverKind.item ? "item" : hit.kind === HoverKind.seq ? "seq" : "none");
+        seen.add(hit.kind === HoverKind.item ? 'item' : hit.kind === HoverKind.seq ? 'seq' : 'none');
       }
       return seen;
     };
-    for (const track of ["t-ranges", "t-points", "t-variants"]) {
-      expect(down(edge + 2, track).has("item"), track).toBe(true);
+    for (const track of ['t-ranges', 't-points', 't-variants']) {
+      expect(down(edge + 2, track).has('item'), track).toBe(true);
       // Never the last residue from past it.
-      expect(down(edge + 2, track).has("seq"), track).toBe(false);
+      expect(down(edge + 2, track).has('seq'), track).toBe(false);
     }
   });
 
   it("layers hit by position (letters of a mapped design, an alignment's rows, a matrix, pairs, a range's bar) never hover from past it", async () => {
-    const P = "MKTAYIAKQRQISFVKSHFS";
+    const P = 'MKTAYIAKQRQISFVKSHFS';
     const b = createSeqViewSpec();
-    const p = b.data.sequence({ ref: "p", value: P });
-    const q = b.data.sequence({ ref: "q", value: "RQLEERLGLIEVQAPILSRV" });
-    const d = b.data.sequence({ ref: "d", value: P });
-    b.data.mapping({ ref: "d.on_p", from: p, to: d, method: "pairwise", gapped: [P, P] });
+    const p = b.data.sequence({ ref: 'p', value: P });
+    const q = b.data.sequence({ ref: 'q', value: 'RQLEERLGLIEVQAPILSRV' });
+    const d = b.data.sequence({ ref: 'd', value: P });
+    b.data.mapping({ ref: 'd.on_p', from: p, to: d, method: 'pairwise', gapped: [P, P] });
     const index = Array.from({ length: 20 }, (_, i) => i);
     const m = b.data.annotation({
-      ref: "m",
-      geometry: "matrix",
+      ref: 'm',
+      geometry: 'matrix',
       target: p,
-      states: ["x", "y"],
+      states: ['x', 'y'],
       value: { index, value: index.map(() => [1, 2]) },
     } as never);
     const pairs = b.data.annotation({
-      ref: "pp",
-      geometry: "pairs",
+      ref: 'pp',
+      geometry: 'pairs',
       target: p,
-      value: { start: [19], b_target: ["p"], b_start: [2], count: [1] },
+      value: { start: [19], b_target: ['p'], b_start: [2], count: [1] },
     } as never);
-    const bar = b.data.annotation({ ref: "bar", geometry: "ranges", target: p, value: { start: [12], stop: [20] } });
-    const sec = b.view({ ref: "v", label: "V" }).section({ ref: S }).block({ sequence: p }).block({ sequence: q });
-    sec.track({ ref: "t-of", label: "Of", height: 2 }).letters({ of: d });
-    sec.track({ ref: "t-matrix", label: "Matrix", height: 2 }).matrix({ data: m });
-    sec.track({ ref: "t-pairs", label: "Pairs", height: 2 }).pairs({ data: pairs });
-    sec.track({ ref: "t-bar", label: "Bar", height: 2 }).ranges({ data: bar });
+    const bar = b.data.annotation({ ref: 'bar', geometry: 'ranges', target: p, value: { start: [12], stop: [20] } });
+    const sec = b.view({ ref: 'v', label: 'V' }).section({ ref: S }).block({ sequence: p }).block({ sequence: q });
+    sec.track({ ref: 't-of', label: 'Of', height: 2 }).letters({ of: d });
+    sec.track({ ref: 't-matrix', label: 'Matrix', height: 2 }).matrix({ data: m });
+    sec.track({ ref: 't-pairs', label: 'Pairs', height: 2 }).pairs({ data: pairs });
+    sec.track({ ref: 't-bar', label: 'Bar', height: 2 }).ranges({ data: bar });
     // An alignment's rows, in a view of their own: one block, its cells at their widest leaving room after it.
     const c = createSeqViewSpec();
     const aln = c.data.alignment({
-      ref: "aln",
-      source: { value: "# STOCKHOLM 1.0\na MKTAYIAKQR\nb MKT-YIAKQR\n//\n", format: "stockholm" },
+      ref: 'aln',
+      source: { value: '# STOCKHOLM 1.0\na MKTAYIAKQR\nb MKT-YIAKQR\n//\n', format: 'stockholm' },
     });
-    c.view({ ref: "v", label: "V" })
+    c.view({ ref: 'v', label: 'V' })
       .section({ ref: S })
       .block({ alignment: aln })
-      .track({ ref: "t-rows", label: "Rows" })
+      .track({ ref: 't-rows', label: 'Rows' })
       .rows();
     const hit = Hit.create();
     const kinds = (t: Awaited<ReturnType<typeof lit>>, sec: string, at: number, track: string) => {
@@ -245,7 +245,7 @@ describe("past a block's end", () => {
     };
     const t = await lit(b.getDocument(), { width: 900, height: 600 });
     t.frame();
-    for (const track of ["t-of", "t-matrix", "t-pairs", "t-bar"]) {
+    for (const track of ['t-of', 't-matrix', 't-pairs', 't-bar']) {
       const seen = kinds(t, S, 19, track);
       expect(
         [...seen].filter((k) => k >= 0),
@@ -258,47 +258,47 @@ describe("past a block's end", () => {
     }
     const ta = await lit(c.getDocument(), { width: 900, height: 300 });
     ta.frame();
-    const seen = kinds(ta, S, 9, "t-rows");
+    const seen = kinds(ta, S, 9, 't-rows');
     expect([...seen].filter((k) => k >= 0)).toEqual([HoverKind.none]);
     expect([...seen].some((k) => k < -1)).toBe(true);
   });
 });
 
-describe("an insert through a partial map", () => {
-  const WT = "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRV";
+describe('an insert through a partial map', () => {
+  const WT = 'MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRV';
   /** The design: WT with GSGS after 20 and a tag of 3 after the last residue. */
   function mapped() {
     const b = createSeqViewSpec();
-    const wt = b.data.sequence({ ref: "wt", value: WT });
-    const d = b.data.sequence({ ref: "d", value: `${WT.slice(0, 20)}GSGS${WT.slice(20)}HHH` });
+    const wt = b.data.sequence({ ref: 'wt', value: WT });
+    const d = b.data.sequence({ ref: 'd', value: `${WT.slice(0, 20)}GSGS${WT.slice(20)}HHH` });
     b.data.mapping({
-      ref: "d.on_wt",
+      ref: 'd.on_wt',
       from: wt,
       to: d,
-      method: "pairwise",
+      method: 'pairwise',
       gapped: [`${WT.slice(0, 20)}----${WT.slice(20)}---`, `${WT.slice(0, 20)}GSGS${WT.slice(20)}HHH`],
     });
     const own = b.data.annotation({
-      ref: "own",
-      geometry: "ranges",
+      ref: 'own',
+      geometry: 'ranges',
       target: d,
-      value: { start: [21, 44], stop: [23, 47], label: ["inside the graft", "the tag"] },
+      value: { start: [21, 44], stop: [23, 47], label: ['inside the graft', 'the tag'] },
     });
-    b.view({ ref: "v", label: "V" })
+    b.view({ ref: 'v', label: 'V' })
       .section({ ref: S })
       .block({ sequence: wt })
-      .track({ ref: "t-own", label: "Own", height: 2 })
+      .track({ ref: 't-own', label: 'Own', height: 2 })
       .ranges({ data: own });
     return b.getDocument();
   }
 
-  it("lands on the boundary after it on the other side; beyond the pairs (a tag) draws nothing; counted", async () => {
+  it('lands on the boundary after it on the other side; beyond the pairs (a tag) draws nothing; counted', async () => {
     const t = await lit(mapped(), { width: 900, height: 300 });
     const be = t.frame(recording());
     const a = t.ctx.layout.axis(S);
     const edge20 = Math.round(a?.x(0, a?.shownOf(0, 20) ?? 0) ?? 0);
     expect(glyphXs(be)).toEqual([edge20]);
-    const insert = t.ctx.issues.current.value.filter((i) => i.code === "svs.layer.insert");
-    expect(insert.map((i) => i.message.split(" ")[0])).toEqual(["1"]);
+    const insert = t.ctx.issues.current.value.filter((i) => i.code === 'svs.layer.insert');
+    expect(insert.map((i) => i.message.split(' ')[0])).toEqual(['1']);
   });
 });

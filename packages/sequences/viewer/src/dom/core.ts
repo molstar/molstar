@@ -13,10 +13,10 @@
 // host maps to its own (`Hint`, `ScrollArea`, `Menu`) are parts too. A node a part swaps keeps keyboard focus by its
 // `data-seqv-key` (`spot`, seqspec:interaction#accessibility).
 
-import type { MenuItem } from "../chrome.js";
-import type { LegendMode, SearchFn, SeqState, SeqViewerContext, Unsubscribable } from "../index.js";
-import { sameShallow } from "../same.js";
-import { hintBehavior, later, popover, watch } from "./shared.js";
+import type { MenuItem } from '../chrome.js';
+import type { LegendMode, SearchFn, SeqState, SeqViewerContext, Unsubscribable } from '../index.js';
+import { sameShallow } from '../same.js';
+import { hintBehavior, later, popover, watch } from './shared.js';
 
 export { later, watch };
 
@@ -101,18 +101,18 @@ export interface DomSlots {
   Menu: DomPart<MenuProps>;
 }
 export type DomSlotName = keyof DomSlots;
-export type Primitive = "Hint" | "ScrollArea" | "Menu";
+export type Primitive = 'Hint' | 'ScrollArea' | 'Menu';
 
 export interface DomUISpec {
   /**
    * A part, "none" (left out wherever it is placed; a primitive keeps its default), or "default" (its default, also
    * placed under `clean` chrome).
    */
-  readonly slots?: { readonly [K in DomSlotName]?: DomSlots[K] | "none" | "default" };
+  readonly slots?: { readonly [K in DomSlotName]?: DomSlots[K] | 'none' | 'default' };
   /** On the root, where a host scopes its token mapping. */
   readonly className?: string;
   /** The parts `mountSeqViewer` places (`ChromeCompositions`); unset: the context's `UI.Chrome`. Never written to it. */
-  readonly chrome?: "full" | "clean";
+  readonly chrome?: 'full' | 'clean';
   /**
    * This UI's legend (seqspec:interaction#the-legend): collapsed, expanded or hidden; unset: the context's `UI.Legend`.
    */
@@ -135,13 +135,13 @@ export interface DomUI {
   readonly surfaces: Map<string, HTMLElement>;
 }
 
-export const cx = (...names: (string | false | null | undefined)[]) => names.filter(Boolean).join(" ");
+export const cx = (...names: (string | false | null | undefined)[]) => names.filter(Boolean).join(' ');
 
 export type Attr = string | number | boolean | null | undefined;
 /** As React writes them: `aria-*` booleans as "true"/"false"; other booleans present or absent; null/undefined absent. */
 export function setAttr(e: Element, name: string, v: Attr) {
-  const aria = name.startsWith("aria-");
-  const s = v == null || (v === false && !aria) ? null : typeof v === "boolean" ? (aria ? String(v) : "") : String(v);
+  const aria = name.startsWith('aria-');
+  const s = v == null || (v === false && !aria) ? null : typeof v === 'boolean' ? (aria ? String(v) : '') : String(v);
   if (s === null) e.removeAttribute(name);
   else if (e.getAttribute(name) !== s) e.setAttribute(name, s);
 }
@@ -162,8 +162,8 @@ export function h<K extends keyof HTMLElementTagNameMap>(
 }
 /** A button with its click handler. */
 export function button(attrs: Record<string, Attr>, onClick: (e: MouseEvent) => void, ...children: Child[]) {
-  const b = h("button", { type: "button", ...attrs }, ...children);
-  b.addEventListener("click", onClick);
+  const b = h('button', { type: 'button', ...attrs }, ...children);
+  b.addEventListener('click', onClick);
   return b;
 }
 
@@ -182,22 +182,22 @@ interface Held {
 function hold(scope: Element): Held | null {
   const a = activeIn(scope);
   if (!a || !scope.contains(a)) return null;
-  const at = a.closest<HTMLElement>("[data-seqv-key]");
+  const at = a.closest<HTMLElement>('[data-seqv-key]');
   const group = at && scope.contains(at) ? (at.dataset.seqvGroup ?? null) : null;
   const order = group
     ? Array.from(
         scope.querySelectorAll<HTMLElement>(`[data-seqv-group="${CSS.escape(group)}"]`),
-        (e) => e.dataset.seqvKey ?? "",
+        (e) => e.dataset.seqvKey ?? '',
       )
     : [];
-  return { key: at && scope.contains(at) ? (at.dataset.seqvKey ?? "") : "", group, order };
+  return { key: at && scope.contains(at) ? (at.dataset.seqvKey ?? '') : '', group, order };
 }
 /** The section's surface, else the viewer's root: where focus lands when nothing of its own remains. */
 const landing = (near: Node) => {
   const e = near as Element;
   return (
-    e.closest?.(".seqv-section")?.querySelector<HTMLElement>(".seqv-surface [tabindex]") ??
-    e.closest?.<HTMLElement>(".seqv-root") ??
+    e.closest?.('.seqv-section')?.querySelector<HTMLElement>('.seqv-surface [tabindex]') ??
+    e.closest?.<HTMLElement>('.seqv-root') ??
     null
   );
 };
@@ -254,7 +254,7 @@ export interface Spot {
   dispose(): void;
 }
 export function spot(host: Node): Spot {
-  const mark = host.appendChild(document.createComment(""));
+  const mark = host.appendChild(document.createComment(''));
   let shown: ChildNode | null = null;
   return {
     set(n) {
@@ -275,7 +275,7 @@ export function spot(host: Node): Spot {
   };
 }
 
-export type Subscribable = Pick<SeqState<unknown>, "subscribe">;
+export type Subscribable = Pick<SeqState<unknown>, 'subscribe'>;
 /**
  * `apply` with a value derived from states, run when it changed by `compare` (shallow by default; `sameData` for a
  * list of records, or a caller's own): React's `useDerived`, so a part writes only when what it shows changed.
@@ -298,15 +298,15 @@ export function derived<T>(
 /** Unsubscribes and disposes, in order. */
 export function off(subs: readonly (Unsubscribable | { dispose(): void } | undefined | null)[]) {
   for (const s of subs)
-    if (s && "unsubscribe" in s) s.unsubscribe();
+    if (s && 'unsubscribe' in s) s.unsubscribe();
     else s?.dispose();
 }
 
 /** An accessible hint on hover and on keyboard focus, never in the pointer's way (`hintBehavior`). */
 export const Hint: DomPart<HintProps> = (host, _ctx, props) => {
-  const root = h("span", { class: "seqv-hint" });
+  const root = h('span', { class: 'seqv-hint' });
   props.children(root);
-  const bubble = h("span", { class: "seqv-hint-bubble", "aria-hidden": "true" }, props.label);
+  const bubble = h('span', { class: 'seqv-hint-bubble', 'aria-hidden': 'true' }, props.label);
   root.append(bubble);
   host.append(root);
   const behavior = hintBehavior(root, bubble);
@@ -321,7 +321,7 @@ export const Hint: DomPart<HintProps> = (host, _ctx, props) => {
 
 /** A plain region: the default UI scrolls nothing in the DOM (a host maps this to its own scroll area). */
 export const ScrollArea: DomPart<ScrollAreaProps> = (host, _ctx, props) => {
-  const root = h("div", { class: cx("seqv-scroll", props.className) });
+  const root = h('div', { class: cx('seqv-scroll', props.className) });
   props.children(root);
   host.append(root);
   return { dispose: () => root.remove() };
@@ -336,16 +336,16 @@ let menus = 0;
 export const Menu: DomPart<MenuProps> = (host, _ctx, props) => {
   const { trigger: t } = props;
   let p = props;
-  const list = h("span", { id: `seqv-menu-${++menus}`, role: "menu", class: "seqv-menu-list" });
-  const root = h("span", { class: "seqv-menu" }, t);
+  const list = h('span', { id: `seqv-menu-${++menus}`, role: 'menu', class: 'seqv-menu-list' });
+  const root = h('span', { class: 'seqv-menu' }, t);
   const pop = popover(root, t, list, { roving: true, top: true, ask: (open) => p.onOpenChange(open) });
   const item = (i: MenuItem) =>
     button(
       {
-        role: i.checked === undefined ? "menuitem" : "menuitemradio",
-        "aria-checked": i.checked,
-        class: cx("seqv-menu-item", i.danger && "seqv-danger"),
-        "data-seqv-key": `item:${i.key}`,
+        role: i.checked === undefined ? 'menuitem' : 'menuitemradio',
+        'aria-checked': i.checked,
+        class: cx('seqv-menu-item', i.danger && 'seqv-danger'),
+        'data-seqv-key': `item:${i.key}`,
         tabindex: -1,
       },
       () => {
@@ -363,7 +363,7 @@ export const Menu: DomPart<MenuProps> = (host, _ctx, props) => {
     }
     if (p.open) keepFocus(list, fill);
   };
-  setAttr(t, "aria-haspopup", "menu");
+  setAttr(t, 'aria-haspopup', 'menu');
   host.append(root);
   sync();
   return {
@@ -383,7 +383,7 @@ export const primitives = (ui: DomUI | undefined): Pick<DomSlots, Primitive> => 
 
 /** A `Menu` slot whose open state its owner (a header's switch) keeps itself, in this closure. */
 export function ownedMenu(
-  M: DomSlots["Menu"],
+  M: DomSlots['Menu'],
   host: HTMLElement,
   ctx: SeqViewerContext,
   trigger: HTMLButtonElement,

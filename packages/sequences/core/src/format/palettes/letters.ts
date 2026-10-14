@@ -16,13 +16,13 @@
  * letters are not colored.
  */
 
-import { Color, colorDict } from "./color.js";
-import { ColorDictionaries, type ColorDictionaryName, ElementSymbolColors } from "./dictionaries.js";
+import { Color, colorDict } from './color.js';
+import { ColorDictionaries, type ColorDictionaryName, ElementSymbolColors } from './dictionaries.js';
 
 const dict = colorDict;
 
 export const LetterDictionaries = {
-  Zappo: dict("#ffafaf A I L M V #6464ff R H K #00ff00 N Q S T #ff0000 D E #ffff00 C #ff00ff G P #ffc800 F W Y"),
+  Zappo: dict('#ffafaf A I L M V #6464ff R H K #00ff00 N Q S T #ff0000 D E #ffff00 C #ff00ff G P #ffc800 F W Y'),
   Taylor: dict(`
     #ccff00 A #0000ff R #cc00ff N #ff0000 D #ffff00 C #ff00cc Q #ff0066 E #ff9900 G #0066ff H #66ff00 I #33ff00 L
     #6600ff K #00ff00 M #00ff66 F #ffcc00 P #ff3300 S #ff6600 T #00ccff W #00ffcc Y #99ff00 V
@@ -47,8 +47,8 @@ export const LetterDictionaries = {
     #00a35c A #00fc03 R #00eb14 N D B #0000ff C #00f10e Q E Z #009d62 G #00d52a H S #0054ab I #007b84 L #00ff00 K
     #009768 M #008778 F #00e01f P #00db24 T #00a857 W #00e619 Y #005fa0 V #00b649 X
   `),
-  Nucleotide: dict("#64f73f A #ffb340 C #eb413c G #3c88ee T U"),
-  PurinePyrimidine: dict("#ff83fa A G R #40e0d0 C T U Y"),
+  Nucleotide: dict('#64f73f A #ffb340 C #eb413c G #3c88ee T U'),
+  PurinePyrimidine: dict('#ff83fa A G R #40e0d0 C T U Y'),
 };
 
 export type LetterDictionaryName = keyof typeof LetterDictionaries;
@@ -62,15 +62,15 @@ export const LetterDictionaryNames = Object.keys(LetterDictionaries) as readonly
  */
 export function letterColors(
   colors: string | Readonly<Record<string, string>> | null,
-  alphabet: "protein" | "dna" | "rna" | "generic" | null,
+  alphabet: 'protein' | 'dna' | 'rna' | 'generic' | null,
 ): Readonly<Record<string, Color>> | undefined {
   if (colors === null) {
-    if (alphabet === "protein") return LetterDictionaries.Zappo;
-    if (alphabet === "dna" || alphabet === "rna") return LetterDictionaries.Nucleotide;
+    if (alphabet === 'protein') return LetterDictionaries.Zappo;
+    if (alphabet === 'dna' || alphabet === 'rna') return LetterDictionaries.Nucleotide;
     return alphabet === null ? ElementSymbolColors : undefined;
   }
-  if (typeof colors === "string") {
-    if (colors === "ElementSymbol") return ElementSymbolColors;
+  if (typeof colors === 'string') {
+    if (colors === 'ElementSymbol') return ElementSymbolColors;
     if (Object.hasOwn(LetterDictionaries, colors)) return LetterDictionaries[colors as LetterDictionaryName];
     if (Object.hasOwn(ColorDictionaries, colors)) return ColorDictionaries[colors as ColorDictionaryName];
     return undefined;

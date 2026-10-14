@@ -22,23 +22,23 @@
 // Exit 1 on a miss, printing each with where it is.
 //
 // Usage: node lib/seqstar/scripts/spec.ts check
-import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { execFileSync } from 'node:child_process';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 
-const SEQSTAR = join(import.meta.dirname, "..");
-const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd: SEQSTAR, encoding: "utf8" }).trim();
-const SPEC = join(SEQSTAR, "_spec");
+const SEQSTAR = join(import.meta.dirname, '..');
+const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: SEQSTAR, encoding: 'utf8' }).trim();
+const SPEC = join(SEQSTAR, '_spec');
 const CITE = /seqspec:([A-Za-z-]+)#([a-z0-9_-]+)/g;
 const NAMESPACES = /^(svs|model|seqv|interactions|molstar|nightingale)\.[a-z_]+(\.[a-z_]+)+$/;
 const IDENT = /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/;
-const STOP = new Set(["null", "true", "false", "undefined", "number", "string", "boolean", "object", "unknown"]);
+const STOP = new Set(['null', 'true', 'false', 'undefined', 'number', 'string', 'boolean', 'object', 'unknown']);
 // Names the spec uses that are not Seq*'s own: file formats' fields and other libraries' API.
-const EXTERNAL = new Set(["entity_poly_seq"]);
+const EXTERNAL = new Set(['entity_poly_seq']);
 
 function walk(dir: string, keep: (f: string) => boolean, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
-    if (name === "node_modules" || name === "dist") continue;
+    if (name === 'node_modules' || name === 'dist') continue;
     const f = join(dir, name);
     if (statSync(f).isDirectory()) walk(f, keep, out);
     else if (keep(f)) out.push(f);
@@ -49,22 +49,22 @@ function walk(dir: string, keep: (f: string) => boolean, out: string[] = []): st
 /** GitHub's anchor of a heading: lowercased, markup and punctuation dropped, spaces to hyphens. */
 export function slugOf(heading: string): string {
   return heading
-    .replace(/\\(.)/g, "$1")
-    .replace(/`/g, "")
+    .replace(/\\(.)/g, '$1')
+    .replace(/`/g, '')
     .trim()
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
-    .replace(/\s/g, "-");
+    .replace(/[^\p{L}\p{N}\s_-]/gu, '')
+    .replace(/\s/g, '-');
 }
 
 /** Each spec file's anchors, a repeated heading's as GitHub numbers them (`-1`, `-2`). */
 function anchors(): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>();
-  for (const name of readdirSync(SPEC).filter((f) => f.endsWith(".md"))) {
+  for (const name of readdirSync(SPEC).filter((f) => f.endsWith('.md'))) {
     const set = new Set<string>();
     let fence = false;
-    for (const line of readFileSync(join(SPEC, name), "utf8").split("\n")) {
-      if (line.startsWith("```")) fence = !fence;
+    for (const line of readFileSync(join(SPEC, name), 'utf8').split('\n')) {
+      if (line.startsWith('```')) fence = !fence;
       const m = !fence && /^#{1,6}\s+(.*)$/.exec(line);
       if (!m) continue;
       const base = slugOf(m[1]);
@@ -81,7 +81,7 @@ function citations(misses: string[]): number {
   const heads = anchors();
   let count = 0;
   for (const file of walk(SEQSTAR, (f) => /\.(ts|tsx|mdx|md|css|grit|json)$/.test(f))) {
-    const lines = readFileSync(file, "utf8").split("\n");
+    const lines = readFileSync(file, 'utf8').split('\n');
     for (let i = 0; i < lines.length; i++) {
       for (const [cite, stem, slug] of lines[i].matchAll(CITE)) {
         count++;
@@ -96,7 +96,7 @@ function citations(misses: string[]): number {
 
 /** The names a line of TypeScript declares: types, functions, constants and members. */
 function declared(text: string): string[] {
-  const code = text.replace(/\/\/.*$/, "").replace(/\/\*.*?\*\//g, "");
+  const code = text.replace(/\/\/.*$/, '').replace(/\/\*.*?\*\//g, '');
   const out: string[] = [];
   for (const m of code.matchAll(/\b(?:interface|type|const|function|namespace|class)\s+([A-Za-z_$][\w$]*)/g))
     out.push(m[1]);
@@ -109,9 +109,9 @@ function declared(text: string): string[] {
 function namesOf(span: string): string[] {
   const s = span
     .trim()
-    .replace(/\(.*\)$/s, "")
-    .replace(/\[.*\]$/s, "")
-    .replace(/:.*$/s, "")
+    .replace(/\(.*\)$/s, '')
+    .replace(/\[.*\]$/s, '')
+    .replace(/:.*$/s, '')
     .trim();
   if (NAMESPACES.test(s)) return [s];
   if (!IDENT.test(s) || STOP.has(s) || EXTERNAL.has(s)) return [];
@@ -121,12 +121,12 @@ function namesOf(span: string): string[] {
 
 function identifiers(misses: string[]): number {
   const texts = readdirSync(SEQSTAR)
-    .map((pkg) => join(SEQSTAR, pkg, "src"))
+    .map((pkg) => join(SEQSTAR, pkg, 'src'))
     .filter((src) => existsSync(src))
     .flatMap((src) => walk(src, (f) => /\.(ts|tsx|js|json|css)$/.test(f)))
-    .map((f) => readFileSync(f, "utf8"));
-  const corpus = texts.join("\n");
-  const word = (w: string) => new RegExp(`(^|[^\\w$])${w.replace(/\$/g, "\\$")}($|[^\\w$])`);
+    .map((f) => readFileSync(f, 'utf8'));
+  const corpus = texts.join('\n');
+  const word = (w: string) => new RegExp(`(^|[^\\w$])${w.replace(/\$/g, '\\$')}($|[^\\w$])`);
   const found = new Map<string, boolean>();
   const has = (name: string): boolean => {
     let r = found.get(name);
@@ -134,7 +134,7 @@ function identifiers(misses: string[]): number {
     if (NAMESPACES.test(name)) r = corpus.includes(name);
     else {
       // `A.b.c`: every part a word, and the last one in a file that also names the first.
-      const parts = name.split(".");
+      const parts = name.split('.');
       const last = word(parts[parts.length - 1]);
       const first = word(parts[0]);
       r = parts.every((p) => word(p).test(corpus)) && texts.some((t) => last.test(t) && first.test(t));
@@ -143,7 +143,7 @@ function identifiers(misses: string[]): number {
     return r;
   };
   let count = 0;
-  for (const name of readdirSync(SPEC).filter((f) => f.endsWith(".md"))) {
+  for (const name of readdirSync(SPEC).filter((f) => f.endsWith('.md'))) {
     const file = join(SPEC, name);
     const where = (i: number) => `${relative(root, file)}:${i + 1}`;
     const note = (n: string, i: number) => {
@@ -152,10 +152,10 @@ function identifiers(misses: string[]): number {
     };
     let ts = false;
     let fence = false;
-    const lines = readFileSync(file, "utf8").split("\n");
+    const lines = readFileSync(file, 'utf8').split('\n');
     for (let i = 0; i < lines.length; i++) {
       const text = lines[i];
-      if (text.startsWith("```")) {
+      if (text.startsWith('```')) {
         fence = !fence;
         ts = fence && /^```(ts|typescript)\b/.test(text);
         continue;
@@ -165,12 +165,12 @@ function identifiers(misses: string[]): number {
         continue;
       }
       // A code written short after a full one on its line (`svs.source.load`, `.format`) is that code's sibling.
-      let code = "";
+      let code = '';
       for (const m of text.matchAll(/`([^`]+)`/g)) {
         const span = m[1].trim();
         if (NAMESPACES.test(span)) code = span;
         else if (code && /^\.[a-z_]+$/.test(span)) {
-          note(code.slice(0, code.lastIndexOf(".")) + span, i);
+          note(code.slice(0, code.lastIndexOf('.')) + span, i);
           continue;
         }
         for (const n of namesOf(span)) note(n, i);
@@ -183,9 +183,9 @@ function identifiers(misses: string[]): number {
 /** The code tables of the generated references: `| \`code\` | severity |`. */
 function registeredCodes(): Map<string, string> {
   const out = new Map<string, string>();
-  const dir = join(SPEC, "reference");
-  for (const name of readdirSync(dir).filter((f) => f.endsWith(".md"))) {
-    const text = readFileSync(join(dir, name), "utf8");
+  const dir = join(SPEC, 'reference');
+  for (const name of readdirSync(dir).filter((f) => f.endsWith('.md'))) {
+    const text = readFileSync(join(dir, name), 'utf8');
     for (const [, code, severity] of text.matchAll(/^\| `([a-z]+(?:\.[a-z_]+)+)` \| (error|warning|info) \|/gm))
       out.set(code, severity);
   }
@@ -204,13 +204,13 @@ const WRITTEN = [
 function codes(misses: string[]): number {
   const registered = registeredCodes();
   const files = readdirSync(SEQSTAR)
-    .map((pkg) => join(SEQSTAR, pkg, "src"))
+    .map((pkg) => join(SEQSTAR, pkg, 'src'))
     .filter((src) => existsSync(src))
     .flatMap((src) => walk(src, (f) => /\.(ts|tsx)$/.test(f)));
   let count = 0;
   for (const file of files) {
-    const text = readFileSync(file, "utf8");
-    const line = (at: number) => `${relative(root, file)}:${text.slice(0, at).split("\n").length}`;
+    const text = readFileSync(file, 'utf8');
+    const line = (at: number) => `${relative(root, file)}:${text.slice(0, at).split('\n').length}`;
     for (const m of text.matchAll(CODE)) {
       count++;
       if (!registered.has(m[1])) misses.push(`${line(m.index)}\t"${m[1]}" is in no reference's issue codes`);
@@ -232,37 +232,37 @@ function codes(misses: string[]): number {
  * as code); regular expression literals are not told apart from division, which the guard files do not need.
  */
 function codeOnly(text: string): string {
-  let out = "";
+  let out = '';
   const braces: number[] = []; // per open template expression, its `{` depth
   let depth = 0;
   for (let i = 0; i < text.length; ) {
     const c = text[i];
     const two = text.slice(i, i + 2);
-    if (two === "//") {
-      while (i < text.length && text[i] !== "\n") i++;
-    } else if (two === "/*") {
-      const end = text.indexOf("*/", i + 2);
+    if (two === '//') {
+      while (i < text.length && text[i] !== '\n') i++;
+    } else if (two === '/*') {
+      const end = text.indexOf('*/', i + 2);
       i = end < 0 ? text.length : end + 2;
-      out += " ";
+      out += ' ';
     } else if (c === '"' || c === "'") {
-      for (i++; i < text.length && text[i] !== c && text[i] !== "\n"; i++) if (text[i] === "\\") i++;
+      for (i++; i < text.length && text[i] !== c && text[i] !== '\n'; i++) if (text[i] === '\\') i++;
       i++;
       out += '""';
-    } else if (c === "`" || (c === "}" && braces.length > 0 && braces[braces.length - 1] === depth)) {
+    } else if (c === '`' || (c === '}' && braces.length > 0 && braces[braces.length - 1] === depth)) {
       // A template's text, from its start or the end of an expression in it, to its end or its next `${`.
-      if (c === "}") braces.pop();
-      for (i++; i < text.length && text[i] !== "`"; i++) {
-        if (text[i] === "\\") i++;
-        else if (text[i] === "$" && text[i + 1] === "{") break;
+      if (c === '}') braces.pop();
+      for (i++; i < text.length && text[i] !== '`'; i++) {
+        if (text[i] === '\\') i++;
+        else if (text[i] === '$' && text[i + 1] === '{') break;
       }
-      if (text[i] === "$") {
+      if (text[i] === '$') {
         braces.push(depth);
         i += 2;
       } else i++;
-      out += "``";
+      out += '``';
     } else {
-      if (c === "{") depth++;
-      else if (c === "}") depth--;
+      if (c === '{') depth++;
+      else if (c === '}') depth--;
       out += c;
       i++;
     }
@@ -271,19 +271,19 @@ function codeOnly(text: string): string {
 }
 
 /** The guard files not on the template yet, one path under lib/seqstar per line (`#` comments). */
-const PENDING = join(SEQSTAR, "scripts", "guards-pending.txt");
+const PENDING = join(SEQSTAR, 'scripts', 'guards-pending.txt');
 
 function guards(misses: string[]): number {
   const pending = new Set(
-    readFileSync(PENDING, "utf8")
-      .split("\n")
-      .map((l) => l.replace(/#.*$/, "").trim())
+    readFileSync(PENDING, 'utf8')
+      .split('\n')
+      .map((l) => l.replace(/#.*$/, '').trim())
       .filter((l) => l.length > 0),
   );
-  const files = walk(SEQSTAR, (f) => f.endsWith(".heap.ts")).map((f) => relative(SEQSTAR, f));
+  const files = walk(SEQSTAR, (f) => f.endsWith('.heap.ts')).map((f) => relative(SEQSTAR, f));
   for (const f of files) {
     // A call in the code, not a mention in a comment or a string (LC-23: `/* controlCaught( */` passed).
-    const templated = /\bcontrolCaught\(/.test(codeOnly(readFileSync(join(SEQSTAR, f), "utf8")));
+    const templated = /\bcontrolCaught\(/.test(codeOnly(readFileSync(join(SEQSTAR, f), 'utf8')));
     if (!templated && !pending.has(f))
       misses.push(`${f}: a heap guard without the template's control (controlCaught; lib/seqstar/AGENTS.md, Tests)`);
     if (templated && pending.has(f))
@@ -317,8 +317,8 @@ function headers(misses: string[]): number {
     .map((f) => relative(SEQSTAR, f))
     .filter((f) => !HEADER_SKIP.some((r) => r.test(f)));
   for (const f of files) {
-    const text = readFileSync(join(SEQSTAR, f), "utf8");
-    const body = text.startsWith("#!") ? text.slice(text.indexOf("\n") + 1) : text;
+    const text = readFileSync(join(SEQSTAR, f), 'utf8');
+    const body = text.startsWith('#!') ? text.slice(text.indexOf('\n') + 1) : text;
     if (!body.startsWith(HEADER)) misses.push(`${f}: no Mol* header with the Anyfold line (lib/seqstar/AGENTS.md)`);
   }
   return files.length;
@@ -326,8 +326,8 @@ function headers(misses: string[]): number {
 
 function main(): void {
   const cmd = process.argv[2];
-  if (cmd !== "check") {
-    console.error("Usage: node lib/seqstar/scripts/spec.ts check");
+  if (cmd !== 'check') {
+    console.error('Usage: node lib/seqstar/scripts/spec.ts check');
     process.exitCode = 2;
     return;
   }

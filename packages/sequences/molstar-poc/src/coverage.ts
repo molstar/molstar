@@ -24,10 +24,10 @@ import {
   ref,
   SimpleParamsSchema,
   str,
-} from "@molstar/seq-core/format";
-import { KeyKind, MoleculeKind, type NumberingInput, type SeqSet } from "@molstar/seq-core/model";
-import type { StructureRef } from "./compose.js";
-import { complexUnits } from "./seq-units.js";
+} from '@molstar/seq-core/format';
+import { KeyKind, MoleculeKind, type NumberingInput, type SeqSet } from '@molstar/seq-core/model';
+import type { StructureRef } from './compose.js';
+import { complexUnits } from './seq-units.js';
 
 export interface CoverageStructure {
   complex: string;
@@ -49,10 +49,10 @@ function segmentsOf(set: SeqSet, molecule: number, acc: string, target: number):
   const m = set.molecules[molecule];
   if (!m) return null;
   const n = m.numberings.byName(set.strings.find(`uniprot:${acc}`));
-  if (n?.method === "segments") {
+  if (n?.method === 'segments') {
     return Array.from(n.indexStart, (s, k): [number, number, number] => [s, n.labelStart[k], n.segmentLength[k]]);
   }
-  if (n?.method === "offset") return [[0, n.first, m.length]];
+  if (n?.method === 'offset') return [[0, n.first, m.length]];
   // The sequence itself (an AlphaFold model of the accession): equal letters, position by position.
   const t = set.molecules[target];
   if (t && t.length === m.length && Array.from({ length: m.length }).every((_, i) => t.code[i] === m.code[i])) {
@@ -107,7 +107,7 @@ export function coverageRows(set: SeqSet, o: CoverageRowsOptions) {
           rows.end.push(l0 + b - 1 - i0);
           rows.id.push(`${s.complex}/${asym}`);
           // The author's chain ID, its label_asym_id beside it where they differ (the hover card's title).
-          rows.label.push(`${name} chain ${chain}${chain !== asym ? ` (label_asym_id ${asym})` : ""}`);
+          rows.label.push(`${name} chain ${chain}${chain !== asym ? ` (label_asym_id ${asym})` : ''}`);
           rows.chain.push(chain);
           rows.asym.push(asym);
           rows.unit.push(u.ref);
@@ -123,35 +123,35 @@ export function coverageRows(set: SeqSet, o: CoverageRowsOptions) {
 }
 
 const coverageOptions = SimpleParamsSchema({
-  target: RequiredField(ref("sequence"), "the UniProt sequence the rows sit on"),
-  accession: RequiredField(str, "its accession: rows are in its uniprot:<acc> numbering"),
+  target: RequiredField(ref('sequence'), 'the UniProt sequence the rows sit on'),
+  accession: RequiredField(str, 'its accession: rows are in its uniprot:<acc> numbering'),
   structures: RequiredField(
     list(
       object({
-        complex: RequiredField(ref("complex"), "the structure's complex"),
+        complex: RequiredField(ref('complex'), "the structure's complex"),
         source: RequiredField(
-          object({ service: RequiredField(str, "pdbe or afdb"), id: RequiredField(str, "the entry") }),
-          "what Show in 3D loads",
+          object({ service: RequiredField(str, 'pdbe or afdb'), id: RequiredField(str, 'the entry') }),
+          'what Show in 3D loads',
         ),
-        label: OptionalField(nullable(str), null, "its name in labels; null: the id in upper case"),
-        assembly: OptionalField(nullable(str), null, "the assembly Show in 3D shows; null: the deposited model"),
+        label: OptionalField(nullable(str), null, 'its name in labels; null: the id in upper case'),
+        assembly: OptionalField(nullable(str), null, 'the assembly Show in 3D shows; null: the deposited model'),
       }),
     ),
-    "the structures, in row order",
+    'the structures, in row order',
   ),
-  defaults: OptionalField(nullable(object()), null, "custom.molstar: the 3D defaults (representation, base color)"),
+  defaults: OptionalField(nullable(object()), null, 'custom.molstar: the 3D defaults (representation, base color)'),
   instance: OptionalField(bool, false, "rows on each chain's own unit (instance space), not the target's"),
 });
 
 export const SiftsCoverageProvider: ProviderEntry = {
-  name: "molstar:sifts_coverage",
+  name: 'molstar:sifts_coverage',
   options: coverageOptions,
-  geometry: "ranges",
+  geometry: 'ranges',
   async compute(ctx, options) {
     const o = options as CoverageRowsOptions;
     if (!ctx.set) return null;
     const r = coverageRows(ctx.set, o);
-    const numbering: NumberingInput["name"] = `uniprot:${o.accession}`;
+    const numbering: NumberingInput['name'] = `uniprot:${o.accession}`;
     const fields = {
       id: r.id,
       label: r.label,
@@ -163,12 +163,12 @@ export const SiftsCoverageProvider: ProviderEntry = {
     // Instance space: each row on its chain's unit, placed on the target through the mappings.
     if (o.instance) {
       const columns = { target: r.unit, start: r.start, stop: r.stop, ...fields };
-      return { key: "", geometry: "ranges", label: "Chains", columns, custom: { molstar: o.defaults ?? {} } };
+      return { key: '', geometry: 'ranges', label: 'Chains', columns, custom: { molstar: o.defaults ?? {} } };
     }
     return {
-      key: "",
-      geometry: "ranges",
-      label: "PDB coverage",
+      key: '',
+      geometry: 'ranges',
+      label: 'PDB coverage',
       target: o.target,
       numbering,
       columns: { beg: r.beg, end: r.end, ...fields },
@@ -203,7 +203,7 @@ export function coverageDepth(rows: ReturnType<typeof coverageRows>) {
     structures: [] as StructureRef[][],
   };
   const said = (n: readonly string[]) =>
-    `covered by ${n.length} structure${n.length === 1 ? "" : "s"}: ${n.join(", ")}`;
+    `covered by ${n.length} structure${n.length === 1 ? '' : 's'}: ${n.join(', ')}`;
   const positions = [...at.keys()].sort((x, y) => x - y);
   for (let k = 0; k < positions.length; ) {
     const names = (at.get(positions[k]) ?? []).slice().sort();
@@ -217,7 +217,7 @@ export function coverageDepth(rows: ReturnType<typeof coverageRows>) {
     out.beg.push(positions[k]);
     out.end.push(positions[j - 1]);
     out.value.push(names.length);
-    out.label.push(`${names.length} structure${names.length === 1 ? "" : "s"}`);
+    out.label.push(`${names.length} structure${names.length === 1 ? '' : 's'}`);
     out.tooltip.push(said(names));
     out.structures.push(names.map((n) => refs.get(n) as StructureRef));
     k = j;
@@ -227,17 +227,17 @@ export function coverageDepth(rows: ReturnType<typeof coverageRows>) {
 
 /** `molstar:sifts_depth`: the same options; a `ranges` annotation, the coverage's depth in runs (above). */
 export const SiftsDepthProvider: ProviderEntry = {
-  name: "molstar:sifts_depth",
+  name: 'molstar:sifts_depth',
   options: coverageOptions,
-  geometry: "ranges",
+  geometry: 'ranges',
   async compute(ctx, options) {
     const o = options as CoverageRowsOptions;
     if (!ctx.set) return null;
     const d = coverageDepth(coverageRows(ctx.set, o));
     return {
-      key: "",
-      geometry: "ranges",
-      label: "PDB coverage depth",
+      key: '',
+      geometry: 'ranges',
+      label: 'PDB coverage depth',
       target: o.target,
       numbering: `uniprot:${o.accession}`,
       columns: {

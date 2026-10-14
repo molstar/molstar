@@ -42,7 +42,7 @@ import {
   ThemeLocation,
   textShown,
   visibleRange,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 const ground = new RectBatch(64);
 const marks = new RectBatch();
@@ -103,13 +103,13 @@ function draw(v: DrawView, st: EmphasisState) {
       letterRoom[0] = v.height;
       const px = v.geometry === AxisGeometry.wrapped ? v.fontPx : letterFontPx(v, b);
       const atoms = form === LetterForm.atoms;
-      const plain = v.text.font("mono", px, atoms ? 600 : 400);
+      const plain = v.text.font('mono', px, atoms ? 600 : 400);
       letterRoom[1] = aln ? 0 : atoms ? 2 * v.text.cell(plain, null) + 1 : v.text.cell(plain, st.letters.alphabet[b]);
       rowText = textShown(v, b);
     }
     const shows = rowText && codes !== null;
     if (shows) {
-      const font = v.text.font("mono", v.geometry === AxisGeometry.wrapped ? v.fontPx : letterFontPx(v, b), 600);
+      const font = v.text.font('mono', v.geometry === AxisGeometry.wrapped ? v.fontPx : letterFontPx(v, b), 600);
       if (text.n > 0 && text.font !== font) {
         v.backend.text(text);
         text.reset();
@@ -168,8 +168,8 @@ function density(v: DrawView, st: EmphasisState, y0: number, y1: number) {
   if (marks.n > 0) v.backend.rects(marks);
 }
 
-export const EmphasisRenderer = kernelEntry<EmphasisState>("emphasis", 22, {
-  geometries: ["linear", "wrapped"],
+export const EmphasisRenderer = kernelEntry<EmphasisState>('emphasis', 22, {
+  geometries: ['linear', 'wrapped'],
   stable: true,
   draw,
   tiny: (v, s) => density(v, s, Math.round(v.top * v.dpr) | 0, Math.round((v.top + v.height) * v.dpr) | 0),

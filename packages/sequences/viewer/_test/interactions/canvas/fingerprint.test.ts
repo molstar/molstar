@@ -11,10 +11,10 @@
 // cell lacks are the ground, whatever the backend's color grouping; where a pose has no contact the cell is empty; the
 // rows sit two device pixels apart. At DPR 1, 2 and 3.
 
-import { afterEach, describe, expect, it } from "vitest";
-import { Kind, KindStyle } from "../../../src/interactions/index.js";
-import { SectionLayouts } from "../../../src/layout.js";
-import { fingerprintFrames } from "./fingerprint-fixtures.js";
+import { afterEach, describe, expect, it } from 'vitest';
+import { Kind, KindStyle } from '../../../src/interactions/index.js';
+import { SectionLayouts } from '../../../src/layout.js';
+import { fingerprintFrames } from './fingerprint-fixtures.js';
 
 let dispose: (() => void) | null = null;
 afterEach(() => {
@@ -24,7 +24,7 @@ afterEach(() => {
 
 /** A CSS color as RGBA, through a canvas (`rgb(…)`, `#rrggbb`). */
 function rgba(css: string): number[] {
-  const c = document.createElement("canvas").getContext("2d") as CanvasRenderingContext2D;
+  const c = document.createElement('canvas').getContext('2d') as CanvasRenderingContext2D;
   c.fillStyle = css;
   c.fillRect(0, 0, 1, 1);
   return Array.from(c.getImageData(0, 0, 1, 1).data);
@@ -32,11 +32,11 @@ function rgba(css: string): number[] {
 const near = (a: number[], b: number[]) => a.every((x, i) => Math.abs(x - b[i]) <= 2);
 
 describe("the unit scene's fingerprint on Canvas2D", () => {
-  it.each([1, 2, 3])("stripes, grounds and empty cells (DPR %i)", async (dpr) => {
-    const t = await fingerprintFrames("unit", undefined, { dpr, back: 0 });
+  it.each([1, 2, 3])('stripes, grounds and empty cells (DPR %i)', async (dpr) => {
+    const t = await fingerprintFrames('unit', undefined, { dpr, back: 0 });
     dispose = t.dispose;
     t.step();
-    const g = t.canvas.getContext("2d") as CanvasRenderingContext2D;
+    const g = t.canvas.getContext('2d') as CanvasRenderingContext2D;
     const s = t.ctx.graph.assembled.value?.view?.prepared[t.k].state as {
       kinds: Uint8Array;
       contacted: Int32Array[];
@@ -46,7 +46,7 @@ describe("the unit scene's fingerprint on Canvas2D", () => {
     };
     const l = t.ctx.layout.get(t.scene.section)?.current;
     const ax = t.ctx.layout.axis(t.scene.section);
-    if (!l || !ax) throw new Error("no layout");
+    if (!l || !ax) throw new Error('no layout');
     const e = l.entryCount - 1;
     const top = l.scrolledTop + l.entryTop[e];
     // The row's content stands above its border (`SectionLayouts.entryBorder`).

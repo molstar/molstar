@@ -11,13 +11,13 @@
 // what fits the first ones and a "+n"; each glyph is its own hit target (the hit's `part` is its kind), and hovering
 // one lights only that kind's pairs at that end, with their arcs. A cell of one kind draws and hits as before.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { Hit, HoverKind, type SeqViewerContext } from "../src/index.js";
-import { CELL_MIN_GLYPH, CellIO, cellLayout } from "../src/pairs-index.js";
-import type { PairsState } from "../src/prepare.js";
-import { drawn, layerOf, record } from "./draw-fixtures.js";
-import { lit } from "./overlay-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { Hit, HoverKind, type SeqViewerContext } from '../src/index.js';
+import { CELL_MIN_GLYPH, CellIO, cellLayout } from '../src/pairs-index.js';
+import type { PairsState } from '../src/prepare.js';
+import { drawn, layerOf, record } from './draw-fixtures.js';
+import { lit } from './overlay-fixtures.js';
 
 /** A cell state for `cellLayout`: cell 0 holds `kinds` kinds. */
 const cellOf = (kinds: number) => ({ cellKinds: Int32Array.of(kinds) }) as unknown as PairsState;
@@ -30,7 +30,7 @@ function layout(kinds: number, room: number) {
 }
 
 describe("a cell's kinds (`cellLayout`)", () => {
-  it("one kind, or no room for two glyphs: not split", () => {
+  it('one kind, or no room for two glyphs: not split', () => {
     expect(layout(1, 30).shown).toBe(0);
     expect(layout(3, 2 * CELL_MIN_GLYPH - 1).shown).toBe(0);
   });
@@ -55,45 +55,45 @@ describe("a cell's kinds (`cellLayout`)", () => {
     }
     expect(layout(10, 30)).toMatchObject({ shown: 4, hidden: 6 });
   });
-  it("too little room for glyphs and a marker: not split", () => {
+  it('too little room for glyphs and a marker: not split', () => {
     expect(layout(6, 12).shown).toBe(0);
   });
 });
 
-const KINDS = ["hbond", "hydrophobic", "hbond", "pi_stacking"];
+const KINDS = ['hbond', 'hydrophobic', 'hbond', 'pi_stacking'];
 /** Residue 5 touches four partners (residues 6 on) with three kinds; each partner has one. */
 function doc(o: { n?: number; kinds?: string[] } = {}) {
   const kinds = o.kinds ?? KINDS;
-  const b = createSeqViewSpec({ title: "Kinds" });
-  const a = b.data.sequence({ ref: "a", label: "A", value: "ACDEFGHIKLMNPQRSTVWY".repeat((o.n ?? 20) / 20) });
+  const b = createSeqViewSpec({ title: 'Kinds' });
+  const a = b.data.sequence({ ref: 'a', label: 'A', value: 'ACDEFGHIKLMNPQRSTVWY'.repeat((o.n ?? 20) / 20) });
   const partners = kinds.map((_, i) => 6 + i);
   const pairs = b.data.annotation({
-    ref: "pp",
-    geometry: "pairs",
+    ref: 'pp',
+    geometry: 'pairs',
     target: a,
     value: {
       start: partners.map(() => 5),
-      b_target: partners.map(() => "a"),
+      b_target: partners.map(() => 'a'),
       b_start: partners,
       category: kinds,
     },
   } as never);
-  const v = b.view({ ref: "v", label: "V", height: "box" }).block({ sequence: a });
-  v.track({ label: "Letters" }).letters();
-  v.track({ label: "Contacts" }).pairs({
+  const v = b.view({ ref: 'v', label: 'V', height: 'box' }).block({ sequence: a });
+  v.track({ label: 'Letters' }).letters();
+  v.track({ label: 'Contacts' }).pairs({
     data: pairs,
-    arcs: "hover",
-    glyph: { theme: "field_map", params: { map: { hbond: "diamond", hydrophobic: "circle", pi_stacking: "square" } } },
+    arcs: 'hover',
+    glyph: { theme: 'field_map', params: { map: { hbond: 'diamond', hydrophobic: 'circle', pi_stacking: 'square' } } },
   } as never);
   return b.getDocument();
 }
 const stateOf = (ctx: SeqViewerContext) => {
-  const { k } = layerOf(ctx, "Contacts");
+  const { k } = layerOf(ctx, 'Contacts');
   return ctx.graph.assembled.value?.view?.prepared[k].state as PairsState;
 };
 
-describe("several kinds at one cell (draw and hit)", () => {
-  it("indexes the kinds of a cell: residue 5 holds three, in kind order, each with its first end", async () => {
+describe('several kinds at one cell (draw and hit)', () => {
+  it('indexes the kinds of a cell: residue 5 holds three, in kind order, each with its first end', async () => {
     const t = await drawn(doc(), { width: 600, height: 200 });
     const s = stateOf(t.ctx);
     expect(s.count).toBe(4);
@@ -109,11 +109,11 @@ describe("several kinds at one cell (draw and hit)", () => {
 
   it("draws one glyph per kind side by side in the cell, a lone kind's end as before", async () => {
     const t = await drawn(doc(), { width: 600, height: 200 });
-    const g = record(t.ctx, "Contacts").rec.glyphItems;
+    const g = record(t.ctx, 'Contacts').rec.glyphItems;
     // Three at residue 5's cell and the four partners' ends.
     expect(g.n).toBe(3 + 4);
     const x = Array.from(g.x.subarray(0, g.n));
-    const cell = (t.ctx.layout.axis(layerOf(t.ctx, "Contacts").section)?.cell ?? 0) as number;
+    const cell = (t.ctx.layout.axis(layerOf(t.ctx, 'Contacts').section)?.cell ?? 0) as number;
     const split = x.slice(0, 3);
     expect(cell).toBeGreaterThanOrEqual(3 * CELL_MIN_GLYPH);
     // Side by side, a pitch apart, within one cell, the kinds' glyph shapes (diamond, circle, square) in order.
@@ -130,9 +130,9 @@ describe("several kinds at one cell (draw and hit)", () => {
     const wide = await drawn(doc({ kinds, n: 20 }), { width: 600, height: 200 });
     const s = stateOf(wide.ctx);
     expect(s.cellKinds[s.endCell[s.endAt[0]]]).toBe(12);
-    const r = record(wide.ctx, "Contacts").rec;
+    const r = record(wide.ctx, 'Contacts').rec;
     const marker = Array.from({ length: r.textItems.n }, (_, i) => r.textItems.text[i]).filter((x) =>
-      x.startsWith("+"),
+      x.startsWith('+'),
     );
     expect(marker.length).toBe(1);
     expect(Number(marker[0].slice(1))).toBeGreaterThan(0);
@@ -140,15 +140,15 @@ describe("several kinds at one cell (draw and hit)", () => {
     expect(r.glyphItems.n).toBe(12 - Number(marker[0].slice(1)) + 12);
   });
 
-  it("a cell too narrow for its kinds and a marker draws as before: a glyph per end", async () => {
+  it('a cell too narrow for its kinds and a marker draws as before: a glyph per end', async () => {
     const narrow = await drawn(doc({ n: 40 }), { width: 600, height: 200 });
-    expect(record(narrow.ctx, "Contacts").rec.glyphItems.n).toBe(4 + 4);
+    expect(record(narrow.ctx, 'Contacts').rec.glyphItems.n).toBe(4 + 4);
   });
 
   it("hits the glyph under the pointer: its kind is the hit's part and its pair the item", async () => {
     const t = await drawn(doc(), { width: 600, height: 200 });
-    const { section } = layerOf(t.ctx, "Contacts");
-    const { rec } = record(t.ctx, "Contacts");
+    const { section } = layerOf(t.ctx, 'Contacts');
+    const { rec } = record(t.ctx, 'Contacts');
     const s = stateOf(t.ctx);
     const h = Hit.create();
     const xs = Array.from(rec.glyphItems.x.subarray(0, 3));
@@ -168,11 +168,11 @@ describe("several kinds at one cell (draw and hit)", () => {
   });
 });
 
-describe("hovering a glyph of a split cell", () => {
+describe('hovering a glyph of a split cell', () => {
   it("lights only that kind's pairs at that end, with their arcs", async () => {
     const t = await lit(doc(), { width: 600, height: 200 });
-    const { section } = layerOf(t.ctx, "Contacts");
-    const { rec } = record(t.ctx, "Contacts");
+    const { section } = layerOf(t.ctx, 'Contacts');
+    const { rec } = record(t.ctx, 'Contacts');
     const s = stateOf(t.ctx);
     const xs = Array.from(rec.glyphItems.x.subarray(0, 3));
     const y = s.frame[0];

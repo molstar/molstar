@@ -10,30 +10,30 @@
 // story) does with its buttons: rotating the ring's origin and zooming its linear detail. Kept out of the story files so
 // the smoke test can open and drive each on a headless viewer. Synthetic sequences: no fixture, no network.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { Patch, SeqViewSpecDoc } from "@molstar/seq-core/format";
-import type { SeqViewerContext } from "@molstar/seq-viewer";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { Patch, SeqViewSpecDoc } from '@molstar/seq-core/format';
+import type { SeqViewerContext } from '@molstar/seq-viewer';
 
 /** A deterministic synthetic DNA of `n` nucleotides (a linear congruential walk over ACGT). */
 function synthetic(n: number, seed: number): string {
   let x = seed;
-  let out = "";
+  let out = '';
   for (let i = 0; i < n; i++) {
     x = (x * 1103515245 + 12345) & 0x7fffffff;
-    out += "ACGT"[(x >> 16) & 3];
+    out += 'ACGT'[(x >> 16) & 3];
   }
   return out;
 }
 
 /** Case 16's ring section, and its block (generated: the view's first), whose `origin` a rotation patches. */
-export const PLASMID_RING = "pmap.ring";
-const PLASMID_BLOCK = "pmap.block";
+export const PLASMID_RING = 'pmap.ring';
+const PLASMID_BLOCK = 'pmap.block';
 /** pSyn's length. */
 export const PSYN_LENGTH = 2686;
 /** The ring started from `origin` (0-based): "Rotate the origin". */
 export const rotateRing = (origin: number): Patch => ({
-  format: "seq_view_spec_patch",
-  ops: [{ op: "set", ref: PLASMID_BLOCK, params: { origin } }],
+  format: 'seq_view_spec_patch',
+  ops: [{ op: 'set', ref: PLASMID_BLOCK, params: { origin } }],
 });
 
 /**
@@ -52,30 +52,30 @@ export function zoomDetail(ctx: SeqViewerContext): boolean {
  * `b.preset.circularGenome` (two strand rings, a values ring, and a linear detail).
  */
 export function circularGenomeDoc(): SeqViewSpecDoc {
-  const b = createSeqViewSpec({ title: "A circular genome" });
+  const b = createSeqViewSpec({ title: 'A circular genome' });
   const n = 120_000;
-  const g = b.data.sequence({ ref: "chr", label: "chr", alphabet: "dna", cyclic: true, value: synthetic(n, 7) });
+  const g = b.data.sequence({ ref: 'chr', label: 'chr', alphabet: 'dna', cyclic: true, value: synthetic(n, 7) });
   const genes = Array.from({ length: 160 }, (_, i) => {
     const start = Math.floor((i * n) / 160) + ((i * 37) % 200);
-    return [start, start + 300 + ((i * 131) % 400), i % 3 === 0 ? "-" : "+", `g${i + 1}`] as const;
+    return [start, start + 300 + ((i * 131) % 400), i % 3 === 0 ? '-' : '+', `g${i + 1}`] as const;
   });
   const features = b.data.annotation({
-    ref: "genes",
-    geometry: "ranges",
+    ref: 'genes',
+    geometry: 'ranges',
     target: g,
     value: {
       start: genes.map((x) => x[0]),
       stop: genes.map((x) => x[1]),
       strand: genes.map((x) => x[2]),
       label: genes.map((x) => x[3]),
-      category: genes.map((x) => (x[2] === "+" ? "forward" : "reverse")),
+      category: genes.map((x) => (x[2] === '+' ? 'forward' : 'reverse')),
     },
   } as never);
   const bins = 600;
   const skew = b.data.annotation({
-    ref: "skew",
-    label: "GC skew",
-    geometry: "values",
+    ref: 'skew',
+    label: 'GC skew',
+    geometry: 'values',
     target: g,
     value: {
       start: Array.from({ length: bins }, (_, i) => (i * n) / bins),
@@ -86,7 +86,7 @@ export function circularGenomeDoc(): SeqViewSpecDoc {
       ),
     },
   } as never);
-  const v = b.view({ ref: "genome", label: "Genome" });
-  b.preset.circularGenome(v, g, { ref: "genome.ring", label: "chr", features, values: [skew] });
+  const v = b.view({ ref: 'genome', label: 'Genome' });
+  b.preset.circularGenome(v, g, { ref: 'genome.ring', label: 'chr', features, values: [skew] });
   return b.getDocument();
 }

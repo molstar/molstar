@@ -13,11 +13,11 @@
 // and so do range labels sticking at the view's edges (seqspec:sources#levels-and-the-zoom-gate). The overlay as pixels
 // (CS1b): a stacked block's selection stays in its own lane.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
-import { type DrawResources, SkinToken } from "../../src/draw/backend.js";
-import { Dirty, SectionComposer } from "../../src/draw/index.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { Canvas2DBackend, Canvas2DShared } from '../../src/canvas/index.js';
+import { type DrawResources, SkinToken } from '../../src/draw/backend.js';
+import { Dirty, SectionComposer } from '../../src/draw/index.js';
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -26,10 +26,10 @@ import {
   type RenderProps,
   type SeqViewerContext,
   type Skin,
-} from "../../src/index.js";
-import { fixtureMeasurer } from "../../src/testing/index.js";
-import { seqLoci, twoBlocks } from "../overlay-docs.js";
-import { allTypes } from "../prepare-fixtures.js";
+} from '../../src/index.js';
+import { fixtureMeasurer } from '../../src/testing/index.js';
+import { seqLoci, twoBlocks } from '../overlay-docs.js';
+import { allTypes } from '../prepare-fixtures.js';
 
 async function open(doc: ReturnType<typeof allTypes>, w: number, h: number, dpr: number, render = {}) {
   const ctx = createSeqViewer(
@@ -49,15 +49,15 @@ function resources(ctx: SeqViewerContext): DrawResources {
     tokens.set(id, (DefaultSkin as Skin)[name as keyof Skin] as string);
   return {
     font: (id) => ctx.text.fontString(id),
-    fontPx: (id) => Number.parseFloat(/([0-9.]+)px/.exec(ctx.text.fontString(id))?.[1] ?? "10"),
-    token: (t) => tokens.get(t) ?? "#ff00ff",
+    fontPx: (id) => Number.parseFloat(/([0-9.]+)px/.exec(ctx.text.fontString(id))?.[1] ?? '10'),
+    token: (t) => tokens.get(t) ?? '#ff00ff',
     glyph: () => null,
   };
 }
 /** A composer drawing into a visible canvas through a back target (the main pass's, as the surface's). */
 function surface(ctx: SeqViewerContext, section: string, w: number, h: number) {
   const c = new OffscreenCanvas(w, h);
-  const g = c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+  const g = c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
   const be = new Canvas2DBackend([g], new Canvas2DShared(resources(ctx)));
   const composer = new SectionComposer(ctx, section);
   return { composer, frame: () => composer.frame(be, Dirty.tracks), px: () => g.getImageData(0, 0, w, h).data };
@@ -86,19 +86,19 @@ async function moves(o: Run): Promise<number> {
   const ctx = await open(o.doc, W, H, o.dpr, o.render);
   const section = ctx.viewports.sections.value[0];
   const vp = ctx.viewports.get(section);
-  if (!vp) throw new Error("no viewport");
+  if (!vp) throw new Error('no viewport');
   const copied = surface(ctx, section, W * o.dpr, H * o.dpr);
   const full = surface(ctx, section, W * o.dpr, H * o.dpr);
   const rnd = random(o.seed);
   for (const cell of o.cells) {
-    if (!o.vertical) vp.setView(cell, 0, "api");
+    if (!o.vertical) vp.setView(cell, 0, 'api');
     await ctx.graph.update();
     copied.frame();
     for (let k = 0; k < o.count; k++) {
       const far = rnd() < 0.1;
       const dx = o.vertical ? 0 : (rnd() - 0.5) * (far ? 2000 : 160);
       const dy = o.vertical || rnd() < 0.6 ? (rnd() - 0.5) * (far ? 800 : 120) : 0;
-      vp.panBy(dx, dy, "api");
+      vp.panBy(dx, dy, 'api');
       copied.frame();
       full.composer.redraw();
       full.frame();
@@ -122,16 +122,16 @@ async function moves(o: Run): Promise<number> {
 /** Letters, emphasis, values and color over a long protein, wrapped: its lines numbered in the gutter. */
 function wrapped() {
   const b = createSeqViewSpec();
-  const a = b.data.sequence({ ref: "a", value: "MKVLATGHEKWRSPQIDNCY".repeat(40) });
+  const a = b.data.sequence({ ref: 'a', value: 'MKVLATGHEKWRSPQIDNCY'.repeat(40) });
   const d = b.data.annotation({
-    ref: "d",
-    geometry: "ranges",
+    ref: 'd',
+    geometry: 'ranges',
     target: a,
     value: { start: [12, 300], stop: [70, 420] },
   });
-  const v = b.view({ ref: "v", label: "V", layout: "text", height: "box" });
+  const v = b.view({ ref: 'v', label: 'V', layout: 'text', height: 'box' });
   v.block({ sequence: a });
-  const t = v.track({ label: "Letters" });
+  const t = v.track({ label: 'Letters' });
   t.letters();
   t.emphasis({ data: d });
   return b.getDocument();
@@ -140,21 +140,21 @@ function wrapped() {
 /** A protein filtered to 30 sites: a break hairline between each two. */
 function filtered() {
   const b = createSeqViewSpec();
-  const a = b.data.sequence({ ref: "a", value: "MKVLATGHEKWRSPQIDNCY".repeat(40) });
+  const a = b.data.sequence({ ref: 'a', value: 'MKVLATGHEKWRSPQIDNCY'.repeat(40) });
   const start = Array.from({ length: 30 }, (_, k) => k * 26);
   const site = b.data.annotation({
-    ref: "site",
-    geometry: "ranges",
+    ref: 'site',
+    geometry: 'ranges',
     target: a,
     value: { start, stop: start.map((x) => x + 12) },
   });
-  const v = b.view({ ref: "v", label: "V", positions: site });
+  const v = b.view({ ref: 'v', label: 'V', positions: site });
   v.block({ sequence: a });
-  v.track({ label: "Letters" }).letters();
-  v.track({ label: "Values" }).values({
+  v.track({ label: 'Letters' }).letters();
+  v.track({ label: 'Values' }).values({
     data: b.data.annotation({
-      ref: "vals",
-      geometry: "values",
+      ref: 'vals',
+      geometry: 'values',
       target: a,
       value: { value: start.map((_, k) => k / 30) },
     }),
@@ -165,47 +165,47 @@ function filtered() {
 /** Long labeled ranges over a protein, in two lanes: each label cut by the view's edges as it pans, sticking there. */
 function labeled() {
   const b = createSeqViewSpec();
-  const a = b.data.sequence({ ref: "a", value: "MKVLATGHEKWRSPQIDNCY".repeat(30) });
+  const a = b.data.sequence({ ref: 'a', value: 'MKVLATGHEKWRSPQIDNCY'.repeat(30) });
   const r = b.data.annotation({
-    ref: "r",
-    geometry: "ranges",
+    ref: 'r',
+    geometry: 'ranges',
     target: a,
     value: {
       start: [20, 250, 300, 330, 420],
       stop: [260, 290, 380, 336, 590],
-      label: ["Kinase domain", "Linker", "SH2 domain", "Site", "C-terminal tail"],
+      label: ['Kinase domain', 'Linker', 'SH2 domain', 'Site', 'C-terminal tail'],
     },
   });
-  const v = b.view({ ref: "v", label: "V" });
+  const v = b.view({ ref: 'v', label: 'V' });
   v.block({ sequence: a });
-  v.track({ label: "Letters" }).letters();
-  v.track({ label: "Features" }).ranges({ data: r, labels: true });
-  v.track({ label: "Brackets" }).ranges({ data: r, labels: true, display: "brackets" } as never);
+  v.track({ label: 'Letters' }).letters();
+  v.track({ label: 'Features' }).ranges({ data: r, labels: true });
+  v.track({ label: 'Brackets' }).ranges({ data: r, labels: true, display: 'brackets' } as never);
   return b.getDocument();
 }
 
-describe("copies equal a full redraw, pixel for pixel", () => {
+describe('copies equal a full redraw, pixel for pixel', () => {
   it.each([1, 2])("range labels sticking at the view's edges pan at DPR %i", async (dpr) => {
     const n = await moves({ doc: labeled(), dpr, cells: [14, 6, 2.5], count: 40, seed: 13 + dpr });
     expect(n).toBeGreaterThan(80);
   });
 
-  it.each([1, 2])("every RN1 type side by side at DPR %i; unstable layers redrawn whole", async (dpr) => {
+  it.each([1, 2])('every RN1 type side by side at DPR %i; unstable layers redrawn whole', async (dpr) => {
     const n = await moves({ doc: allTypes({ length: 600 }), dpr, cells: [14, 4, 1.5, 0.6], count: 30, seed: dpr });
     expect(n).toBeGreaterThan(60);
   });
-  it("stacked scrolls and pans copy", async () => {
+  it('stacked scrolls and pans copy', async () => {
     const doc = structuredClone(allTypes({ length: 600 }));
     type Node = { kind: string; params?: Record<string, unknown>; children?: Node[] };
     const walk = (n: Node): void => {
-      if (n.kind === "section") n.params = { ...n.params, arrangement: "stacked" };
+      if (n.kind === 'section') n.params = { ...n.params, arrangement: 'stacked' };
       n.children?.forEach(walk);
     };
     walk(doc.root as Node);
     const n = await moves({ doc, dpr: 2, cells: [12, 3], count: 30, seed: 3 });
     expect(n).toBeGreaterThan(30);
   });
-  it.each(["none", "aboveEnd"] as const)(
+  it.each(['none', 'aboveEnd'] as const)(
     "wrapped scrolls with %s group labels (the gutter's numbers once)",
     async (labels) => {
       const n = await moves({
@@ -237,26 +237,26 @@ describe("copies equal a full redraw, pixel for pixel", () => {
   });
 });
 
-describe("the overlay as pixels", () => {
+describe('the overlay as pixels', () => {
   it("stacked: a block's selection and hover stay in its own lane after scrolls, at DPR 2", async () => {
     const [W, H, dpr] = [600, 300, 2];
     const ctx = await open(twoBlocks({ stacked: true }), W, H, dpr);
     const section = ctx.viewports.sections.value[0];
     const set = ctx.graph.assembled.value?.set;
-    if (!set) throw new Error("no set");
-    ctx.selection.set(seqLoci(set, "a", 10, 13), "api");
-    const canvas = () => new OffscreenCanvas(W * dpr, H * dpr).getContext("2d", { willReadFrequently: true });
+    if (!set) throw new Error('no set');
+    ctx.selection.set(seqLoci(set, 'a', 10, 13), 'api');
+    const canvas = () => new OffscreenCanvas(W * dpr, H * dpr).getContext('2d', { willReadFrequently: true });
     const targets = [0, 1, 2, 3].map(canvas) as OffscreenCanvasRenderingContext2D[];
     const g = targets[1];
     const be = new Canvas2DBackend(targets, new Canvas2DShared(resources(ctx)));
     const composer = new SectionComposer(ctx, section);
     const vp = ctx.viewports.get(section);
     for (const dy of [0, 7, 13]) {
-      vp?.panBy(0, dy, "api");
+      vp?.panBy(0, dy, 'api');
       composer.frame(be, Dirty.tracks | Dirty.overlay);
       const l = ctx.layout.get(section)?.current;
       const ax = ctx.layout.axis(section);
-      if (!l || !ax) throw new Error("no layout");
+      if (!l || !ax) throw new Error('no layout');
       const px = g.getImageData(0, 0, W * dpr, H * dpr).data;
       const x = Math.round(((ax.x(0, 10 as never) + ax.x(0, 13 as never)) / 2) * dpr);
       const alpha = (y: number) => px[(Math.round(y * dpr) * W * dpr + x) * 4 + 3];

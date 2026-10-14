@@ -12,20 +12,20 @@
 // thick bars) and kept it, so the layer's whole redraw after the copy reused it. Case 21's junctions (the gene's own
 // strand and the + strand) and case 7's contacts, through pans both ways, each frame against a fresh composer's.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { case7, case21 } from "../../core/_test/format/cases.js";
-import { Dirty, type PathBatch, type RenderBackend, SectionComposer } from "../src/draw/index.js";
-import { KernelRenderers, type LayerRenderer } from "../src/index.js";
-import type { PairsState } from "../src/prepare.js";
-import type { RecordingBackend } from "../src/testing/index.js";
-import { COPY_BACK, opNames, recording } from "./composer-fixtures.js";
-import { layerOf } from "./draw-fixtures.js";
-import { opened } from "./layout-fixtures.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { case7, case21 } from '../../core/_test/format/cases.js';
+import { Dirty, type PathBatch, type RenderBackend, SectionComposer } from '../src/draw/index.js';
+import { KernelRenderers, type LayerRenderer } from '../src/index.js';
+import type { PairsState } from '../src/prepare.js';
+import type { RecordingBackend } from '../src/testing/index.js';
+import { COPY_BACK, opNames, recording } from './composer-fixtures.js';
+import { layerOf } from './draw-fixtures.js';
+import { opened } from './layout-fixtures.js';
 
 /** The pairs renderer, its draws' subpaths noted: per recording, the [from, to) of its path items. */
 const spans = new WeakMap<RenderBackend, number[]>();
-const kernel = (KernelRenderers as LayerRenderer[]).find((r) => r.name === "pairs") as LayerRenderer;
+const kernel = (KernelRenderers as LayerRenderer[]).find((r) => r.name === 'pairs') as LayerRenderer;
 const noted: LayerRenderer = {
   ...kernel,
   draw(v, s, p) {
@@ -82,12 +82,12 @@ async function panned(doc: SeqViewSpecDoc, view: string, at: string, block: numb
     // The arcs' frame is kept on the prepared state, which every composer shares: forgotten, so the full frame's own.
     const m = t.ctx.graph.assembled.value?.view;
     for (let k = 0; m && k < m.prepared.length; k++)
-      if (m.prepared[k].renderer === "pairs") forget(m.prepared[k].state);
+      if (m.prepared[k].renderer === 'pairs') forget(m.prepared[k].state);
     const whole = recording(COPY_BACK);
     const fresh = new SectionComposer(t.ctx, section);
     fresh.frame(whole, Dirty.all);
     fresh.dispose();
-    return { pan: arcsOf(be), full: arcsOf(whole), drew: be.opCount > 0, copied: opNames(be).includes("copy") };
+    return { pan: arcsOf(be), full: arcsOf(whole), drew: be.opCount > 0, copied: opNames(be).includes('copy') };
   };
   step();
   return { vp, step };
@@ -99,7 +99,7 @@ async function sweep(p: Awaited<ReturnType<typeof panned>>, dx: number, n: numbe
   let arcs = 0;
   for (const dir of [1, -1]) {
     for (let i = 0; i < n; i++) {
-      p.vp?.panBy(dir * dx, 0, "api");
+      p.vp?.panBy(dir * dx, 0, 'api');
       const { pan, full, drew, copied } = p.step();
       // At the axis's end the pan moves nothing, and nothing is drawn.
       if (!drew) continue;
@@ -117,12 +117,12 @@ async function sweep(p: Awaited<ReturnType<typeof panned>>, dx: number, n: numbe
 
 describe("a pan's frame draws the pairs' arcs of a full frame at its view", () => {
   it("case 21's junctions on the gene's own strand", async () => {
-    await sweep(await panned(case21(), "gene2", "gene2.own", 0, 300, 500), 23, 16);
+    await sweep(await panned(case21(), 'gene2', 'gene2.own', 0, 300, 500), 23, 16);
   });
   it("case 21's junctions on the region as written", async () => {
-    await sweep(await panned(case21(), "gene2", "gene2.reference", 0, 300, 600), 31, 20);
+    await sweep(await panned(case21(), 'gene2', 'gene2.reference', 0, 300, 600), 31, 20);
   });
   it("case 7's contacts, zoomed into barnase", async () => {
-    await sweep(await panned(case7(), "complex-one", "Contacts", 0, 20, 70), 19, 24);
+    await sweep(await panned(case7(), 'complex-one', 'Contacts', 0, 20, 70), 19, 24);
   });
 });

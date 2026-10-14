@@ -11,7 +11,7 @@
 // never ends; an overlay frame allocates nothing. A frame allocating an object a step fails the same guard (the positive
 // control).
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -22,7 +22,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = 1_000;
 /** The file's warm-up, settle and measurement, as its guards and its control run them. */
@@ -35,26 +35,26 @@ const measure = (frame: () => void) => {
 };
 const guard = (frame: () => void) => {
   const r = measure(frame);
-  return isFlat(r) ? "" : describeScaling(r, N);
+  return isFlat(r) ? '' : describeScaling(r, N);
 };
 
 describe("the overlay's fade-in allocates nothing per frame", () => {
-  it("every region landed, fading", async () => {
+  it('every region landed, fading', async () => {
     vi.resetModules();
-    const { overlayFrame, rectsOf, SkinToken } = await import("./stream-progress-fixtures.js");
-    const { g, frame, next } = await overlayFrame("landed");
+    const { overlayFrame, rectsOf, SkinToken } = await import('./stream-progress-fixtures.js');
+    const { g, frame, next } = await overlayFrame('landed');
     frame();
     // Not vacuous: the shade over every region just drawn; a frame asked while they fade.
     expect(rectsOf(g.backend, SkinToken.pending).n).toBeGreaterThan(2);
     expect(next[0]).toBeGreaterThan(0);
-    expect(guard(frame)).toBe("");
+    expect(guard(frame)).toBe('');
     g.ctx.dispose();
   }, 120_000);
 
-  it("the same frame allocating an object a step is caught (positive control)", async () => {
+  it('the same frame allocating an object a step is caught (positive control)', async () => {
     vi.resetModules();
-    const { overlayFrame } = await import("./stream-progress-fixtures.js");
-    const { frame } = await overlayFrame("landed");
+    const { overlayFrame } = await import('./stream-progress-fixtures.js');
+    const { frame } = await overlayFrame('landed');
     expect(controlCaught(() => measure(leaking(frame) as () => void))).toBe(true);
   }, 120_000);
 });

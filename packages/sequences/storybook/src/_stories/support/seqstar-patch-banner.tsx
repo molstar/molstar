@@ -6,13 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { useSeqViewer } from "@molstar/seq-viewer/react";
-import { useSyncExternalStore } from "react";
-import { TextAction } from "../ui/index.js";
-import f from "./seqstar-format.module.css";
-import { IssueList } from "./seqstar-issues.js";
-import { patchNotices } from "./seqstar-patch.js";
-import b from "./seqstar-patch.module.css";
+import { useSeqViewer } from '@molstar/seq-viewer/react';
+import { useSyncExternalStore } from 'react';
+import { TextAction } from '../ui/index.js';
+import f from './seqstar-format.module.css';
+import { IssueList } from './seqstar-issues.js';
+import { patchNotices } from './seqstar-patch.js';
+import b from './seqstar-patch.module.css';
 
 /** The issues of the story's patches (`storyPatch`), under the viewer, each patch's own and dismissible. Inside the viewer's provider. */
 export function PatchBanner() {

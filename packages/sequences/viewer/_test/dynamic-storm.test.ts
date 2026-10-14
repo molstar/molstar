@@ -12,10 +12,10 @@
 // the same 1,000 again (no-ops). Reports the time a patch costs to hold, an update's time and what it reran; asserts
 // what reruns, and loose times. The slow tier's; the fast tier's storm of 50 checks what reruns.
 
-import { describe, expect, it } from "vitest";
-import { GRCH38 } from "../../core/_test/format/stream-provider.js";
-import type { Streams } from "../src/streams.js";
-import { dynamicDoc, GENES, openGenome, peakNode, type StreamedGenome, withPeaks } from "./stream-fixtures.js";
+import { describe, expect, it } from 'vitest';
+import { GRCH38 } from '../../core/_test/format/stream-provider.js';
+import type { Streams } from '../src/streams.js';
+import { dynamicDoc, GENES, openGenome, peakNode, type StreamedGenome, withPeaks } from './stream-fixtures.js';
 
 const node = (k: number) => peakNode(GRCH38[k % 3][0], 4096 * (1000 + k));
 const median = (xs: number[]) => xs.slice().sort((a, b) => a - b)[xs.length >> 1];
@@ -39,7 +39,7 @@ async function storm(n: number) {
 
   // All at once: n patches held, then one frame applies them.
   let t0 = performance.now();
-  for (let k = 0; k < n; k++) m.nodes.add("phylop_src", [node(k)]);
+  for (let k = 0; k < n; k++) m.nodes.add('phylop_src', [node(k)]);
   const hold = (performance.now() - t0) / n;
   t0 = performance.now();
   await frame(t);
@@ -52,21 +52,21 @@ async function storm(n: number) {
   const each: number[] = [];
   const reran = new Set<string>();
   for (let k = 0; k < n; k++) {
-    m.nodes.add("phylop_src", [node(n + k)]);
+    m.nodes.add('phylop_src', [node(n + k)]);
     t0 = performance.now();
     await frame(t);
     each.push(performance.now() - t0);
     for (const r of t.ctx.graph.ran) reran.add(r);
   }
   // A node no track names changes the set only: no section, layer or view reads it (ST1b-b).
-  expect([...reran].sort()).toEqual(["#assemble.stream"]);
+  expect([...reran].sort()).toEqual(['#assemble.stream']);
   expect(t.ctx.graph.assembled.value?.view?.resolved.layers.ref).toEqual(view0?.resolved.layers.ref);
 
   // The same n again: no-ops, the set and the version kept.
   const version = m.nodes.version;
   const set2 = t.ctx.graph.assembled.value?.set;
   t0 = performance.now();
-  for (let k = 0; k < n; k++) m.nodes.add("phylop_src", [node(k)]);
+  for (let k = 0; k < n; k++) m.nodes.add('phylop_src', [node(k)]);
   const again = (performance.now() - t0) / n;
   await frame(t);
   expect([m.nodes.version, t.ctx.graph.assembled.value?.set]).toEqual([version, set2]);
@@ -74,13 +74,13 @@ async function storm(n: number) {
   return { hold, once, each, again };
 }
 
-describe("a storm of dynamic nodes", () => {
-  it("50 node patches: applied in one update a frame that reruns no section, layer or view; again, no-ops", async () => {
+describe('a storm of dynamic nodes', () => {
+  it('50 node patches: applied in one update a frame that reruns no section, layer or view; again, no-ops', async () => {
     await storm(50);
   });
 
-  it("1,000 node patches: held in microseconds each, applied in one update a frame that reruns no section, layer or view", {
-    tags: ["slow"],
+  it('1,000 node patches: held in microseconds each, applied in one update a frame that reruns no section, layer or view', {
+    tags: ['slow'],
     timeout: 120_000,
   }, async () => {
     const { hold, once, each, again } = await storm(1_000);

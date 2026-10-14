@@ -20,15 +20,15 @@ export interface ParsedLink {
 }
 
 /** One per key of a `!` href, in order; [] for anything else. A malformed escape skips its pair. */
-export function parseLink(href: string, link = ""): readonly ParsedLink[] {
-  if (!href.startsWith("!")) return [];
+export function parseLink(href: string, link = ''): readonly ParsedLink[] {
+  if (!href.startsWith('!')) return [];
   const pairs: [string, string][] = [];
   const args: Record<string, string> = {};
-  for (const part of href.slice(1).split("&")) {
-    const eq = part.indexOf("=");
+  for (const part of href.slice(1).split('&')) {
+    const eq = part.indexOf('=');
     try {
       const k = decodeURIComponent(eq < 0 ? part : part.slice(0, eq));
-      const v = eq < 0 ? "" : decodeURIComponent(part.slice(eq + 1));
+      const v = eq < 0 ? '' : decodeURIComponent(part.slice(eq + 1));
       pairs.push([k, v]);
       args[k] = v;
     } catch {}
@@ -40,8 +40,8 @@ export function parseLink(href: string, link = ""): readonly ParsedLink[] {
  * destination as it is (an unbalanced `)` would end it). */
 const esc = (s: string) =>
   encodeURIComponent(s)
-    .replace(/%2C/g, ",")
-    .replace(/[()]/g, (c) => (c === "(" ? "%28" : "%29"));
+    .replace(/%2C/g, ',')
+    .replace(/[()]/g, (c) => (c === '(' ? '%28' : '%29'));
 
 /** For builders and agents: `parseLink(formatLink(k, v, a))` gives back `k`, `v` and `a`. */
 export function formatLink(key: string, value: string, args?: Readonly<Record<string, string | number>>): string {

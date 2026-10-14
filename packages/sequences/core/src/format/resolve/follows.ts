@@ -25,10 +25,10 @@ import {
   Mappings,
   type PathStep,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import { SectionAxis } from "./codes.js";
-import { blockSystem } from "./reach.js";
-import type { ResolvedSection } from "./section.js";
+} from '@molstar/seq-core/model';
+import { SectionAxis } from './codes.js';
+import { blockSystem } from './reach.js';
+import type { ResolvedSection } from './section.js';
 
 /** One row per pair (`a` followed by `b`), and per pair a route per block of `a`, then per block of `b`. */
 export interface ResolvedFollows {
@@ -86,26 +86,26 @@ export function followsOf(
     up[find(i)] = find(groups.get(g) ?? i);
   }
   const say = (s: ResolvedSection, param: string, message: string) =>
-    issues.push(Issue.error("svs.section.follow", `${s.path}/params/${param}`, message));
+    issues.push(Issue.error('svs.section.follow', `${s.path}/params/${param}`, message));
   const anchors = sections.map((s) => anchorOf(set, s, say));
   const out = { a: [] as number[], b: [] as number[], scale: [] as number[], routeStart: [] as number[] };
   const routes = { path: [] as number[], to: [] as number[], forward: [] as number[] };
   for (let bi = 0; bi < sections.length; bi++) {
     const s = sections[bi];
     const ref = s.row.params.follow;
-    if (typeof ref !== "string") continue;
+    if (typeof ref !== 'string') continue;
     const ai = index.get(ref) ?? -1;
     if (ai < 0) {
-      say(s, "follow", `"${ref}" is not a section of view "${view}": a section follows one of its own view`);
+      say(s, 'follow', `"${ref}" is not a section of view "${view}": a section follows one of its own view`);
       continue;
     }
     if (ai === bi) {
-      say(s, "follow", "a section cannot follow itself: name another section of this view");
+      say(s, 'follow', 'a section cannot follow itself: name another section of this view');
       continue;
     }
     if (find(ai) === find(bi)) {
       const why = `"${s.ref}" and "${ref}" are already linked (by follow or a scroll group); a loop has no leader`;
-      say(s, "follow", `following "${ref}" closes a loop: ${why}`);
+      say(s, 'follow', `following "${ref}" closes a loop: ${why}`);
       continue;
     }
     up[find(bi)] = find(ai);
@@ -131,7 +131,7 @@ export function followsOf(
       routes.path.length = start;
       routes.to.length = start;
       routes.forward.length = start;
-      say(s, "follow", `no mapping path joins "${s.ref}" and "${ref}": map what one shows to what the other does`);
+      say(s, 'follow', `no mapping path joins "${s.ref}" and "${ref}": map what one shows to what the other does`);
       continue;
     }
     out.a.push(ai);
@@ -168,23 +168,23 @@ function anchorOf(
   const block = s.blocks[0];
   if (!block) return PENDING;
   if (s.row.axis !== SectionAxis.columns) {
-    if (typeof ref === "string")
+    if (typeof ref === 'string')
       say(
         s,
-        "follow_anchor",
-        "follow_anchor anchors an alignment axis; a blocks axis follows the block under its center",
+        'follow_anchor',
+        'follow_anchor anchors an alignment axis; a blocks axis follows the block under its center',
       );
     return undefined;
   }
   const aln = set.alignments[block.alignment];
   if (!aln) return PENDING;
   let a: CoordinateSystem = { kind: CoordinateSystemKind.row, id: aln.id, row: aln.referenceRow };
-  if (typeof ref === "string") {
+  if (typeof ref === 'string') {
     if (!set.byName(ref, t)) return PENDING;
     if (t.kind === KeyKind.unit) a = { kind: CoordinateSystemKind.unit, id: t.id, row: -1 };
     else if (t.kind === KeyKind.row && t.id === aln.id) a = { kind: CoordinateSystemKind.row, id: t.id, row: t.row };
     else {
-      say(s, "follow_anchor", `"${ref}" is not a row of this section's alignment, nor a unit`);
+      say(s, 'follow_anchor', `"${ref}" is not a row of this section's alignment, nor a unit`);
       return PENDING;
     }
   }

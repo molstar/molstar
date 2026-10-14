@@ -15,4 +15,4 @@ export {
   LIMIT,
   SCALED_LIMIT,
   type Scaling,
-} from "../../../core/_test/model/heap.js";
+} from '../../../core/_test/model/heap.js';

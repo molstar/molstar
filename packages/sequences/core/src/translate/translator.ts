@@ -18,16 +18,16 @@ import {
   Coords,
   Extents,
   type MapHit,
-} from "@molstar/seq-core/model";
+} from '@molstar/seq-core/model';
 
-export type SystemRefKind = "molecule" | "unit" | "complex" | "alignment" | "annotation" | "item" | "section";
-export type SystemStructureField = "structureRef" | "entity" | "labelAsymId" | "authAsymId" | "instanceId";
+export type SystemRefKind = 'molecule' | 'unit' | 'complex' | 'alignment' | 'annotation' | 'item' | 'section';
+export type SystemStructureField = 'structureRef' | 'entity' | 'labelAsymId' | 'authAsymId' | 'instanceId';
 
 /** Plain data, no host types: what a host and the viewer say about a system (seqspec:interaction#focus). */
 export interface SystemDescriptor {
   /** Stable across patches and reloads: "seqstar:1brs/A", "molstar:3d-1/A@1". */
   readonly key: string;
-  readonly kind: "molecule" | "unit" | "row" | "columns" | "item" | "complex" | "layout" | "external";
+  readonly kind: 'molecule' | 'unit' | 'row' | 'columns' | 'item' | 'complex' | 'layout' | 'external';
   /** Its domain. */
   readonly start: number;
   readonly stop: number;
@@ -112,7 +112,7 @@ export class Translator {
     this.indices[n] = null;
     const before = this.owned.get(d.key);
     if (before) this.maps = this.maps.filter((m) => !before.includes(m));
-    const own = typeof maps === "function" ? maps(s) : maps;
+    const own = typeof maps === 'function' ? maps(s) : maps;
     this.owned.set(d.key, own);
     for (const m of own) this.addMap(m);
     this.changed();

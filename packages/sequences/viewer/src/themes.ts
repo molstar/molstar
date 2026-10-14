@@ -34,7 +34,7 @@ import {
   type ThemeEntry,
   type ThemeRef,
   themeRef,
-} from "@molstar/seq-core/format";
+} from '@molstar/seq-core/format';
 import {
   type Annotation,
   Annotations,
@@ -43,10 +43,10 @@ import {
   Molecules,
   type SeqSet,
   type StringTable,
-} from "@molstar/seq-core/model";
-import type { Axis } from "./axis.js";
-import { type GlyphRecord, GlyphShape, NO_COLOR, SHAPE_COUNT } from "./draw/backend.js";
-import type { SeqViewerRegistry } from "./registry.js";
+} from '@molstar/seq-core/model';
+import type { Axis } from './axis.js';
+import { type GlyphRecord, GlyphShape, NO_COLOR, SHAPE_COUNT } from './draw/backend.js';
+import type { SeqViewerRegistry } from './registry.js';
 
 /** What a theme's value varies with: a renderer hoists `value` out of loops it does not vary in. */
 export const Granularity = {
@@ -181,7 +181,7 @@ export interface Theme<C extends ChannelKind = ChannelKind> {
    * How zoomed-out cells reduce it (seqspec:sources#levels-and-the-zoom-gate): the plurality class, or `palette(mean)`
    * of a value.
    */
-  readonly reduction: "classes" | "mean";
+  readonly reduction: 'classes' | 'mean';
   /** Color: 0xRRGGBB or NO_COLOR; size: in 1/`SIZE_ONE` of the channel's unit, NO_SIZE the default; glyph: a GlyphId or NO_GLYPH. */
   value(loc: ThemeLocation): number;
   /** Color only, as the batch's byte 0..255 (a double returned from a call is boxed): themes that fade. */
@@ -227,16 +227,16 @@ export class GlyphTable {
   private readonly keys = new Map<string, number>();
   /** A document `Glyph` (a shape name or an object); NO_GLYPH when it is none of them. Edge-rate. */
   intern(g: unknown): number {
-    if (typeof g === "string") return SHAPES.indexOf(g);
-    if (g === null || typeof g !== "object") return NO_GLYPH;
+    if (typeof g === 'string') return SHAPES.indexOf(g);
+    if (g === null || typeof g !== 'object') return NO_GLYPH;
     const o = g as { shape?: string; char?: string; path?: string; box?: [number, number]; fallback?: string };
-    if (typeof o.shape === "string") return this.intern(o.shape);
-    if (typeof o.char !== "string" && typeof o.path !== "string") return NO_GLYPH;
+    if (typeof o.shape === 'string') return this.intern(o.shape);
+    if (typeof o.char !== 'string' && typeof o.path !== 'string') return NO_GLYPH;
     // Its keys in any order: one glyph.
     const key = canonical(g);
     let id = this.keys.get(key);
     if (id !== undefined) return id;
-    const fallback = Math.max(0, this.intern(o.fallback ?? "circle"));
+    const fallback = Math.max(0, this.intern(o.fallback ?? 'circle'));
     this.records.push({ char: o.char ?? null, path: o.path ?? null, box: o.box ?? [1, 1], fallback });
     id = SHAPE_COUNT + this.records.length - 1;
     this.keys.set(key, id);
@@ -296,7 +296,7 @@ export function themeContext(
     resolve(ref, channel) {
       if (depth + 1 < MAX_DEPTH)
         return createTheme(themeContext(input, dark, registry, report, depth + 1), ref, channel, registry, report);
-      const code = channel.kind === "glyph" ? "svs.glyph.invalid" : "svs.color.invalid";
+      const code = channel.kind === 'glyph' ? 'svs.glyph.invalid' : 'svs.color.invalid';
       report(Issue.error(code, l.ref, `themes nest at most ${MAX_DEPTH} deep`));
       return null;
     },
@@ -320,32 +320,32 @@ export function createTheme(
   for (let k = 0; next && k < 8; k++) {
     const norm = (r: ThemeRef) => (themeRef(kind).normalize?.(r, registry.svs) ?? r) as ThemeRef;
     let ref = norm(next);
-    const entry: ThemeEntry | undefined = registry.svs.get("themes", ref.theme);
+    const entry: ThemeEntry | undefined = registry.svs.get('themes', ref.theme);
     if (entry?.expand) ref = norm({ ...entry.expand(ref.params ?? {}, kind), table: ref.theme });
-    const p: ThemeProvider | undefined = registry.get("themes", ref.theme);
+    const p: ThemeProvider | undefined = registry.get('themes', ref.theme);
     const params = ref.params ?? {};
     if (p?.kinds.includes(kind) && p.isApplicable(tc, kind, params)) {
-      if (k > 0) report(Issue.warning("svs.render.theme", tc.layer.ref, `"${given.theme}" is drawn as "${ref.theme}"`));
+      if (k > 0) report(Issue.warning('svs.render.theme', tc.layer.ref, `"${given.theme}" is drawn as "${ref.theme}"`));
       return p.create(tc, params, channel);
     }
-    const letter = p && kind === "color" && ref.theme !== "letter" ? { theme: "letter" } : null;
+    const letter = p && kind === 'color' && ref.theme !== 'letter' ? { theme: 'letter' } : null;
     next = ref.fallback ?? entry?.fallback ?? letter;
   }
-  report(Issue.warning("svs.render.theme", tc.layer.ref, `"${given.theme}" has no implementation and no fallback`));
+  report(Issue.warning('svs.render.theme', tc.layer.ref, `"${given.theme}" has no implementation and no fallback`));
   return null;
 }
 
 /** A theme's value function, or its parts: the provider fills the rest, one shape for every theme. */
 export type ThemeValueFn = (loc: ThemeLocation) => number;
-export type ThemeParts = Pick<Theme, "value"> &
-  Partial<Pick<Theme, "granularity" | "reduction" | "alpha" | "rowValue" | "legend" | "raw">>;
+export type ThemeParts = Pick<Theme, 'value'> &
+  Partial<Pick<Theme, 'granularity' | 'reduction' | 'alpha' | 'rowValue' | 'legend' | 'raw'>>;
 /** A patch's columns by name (a streamed region's items, `StreamItems.table`). */
 export type FieldTable = Readonly<Record<string, ArrayLike<unknown>>>;
 /** A streamed item's field as a palette reads it (`Theme.raw`): a number or a string; null: none. */
 function cellOf(t: FieldTable, field: string, row: number): string | number | null {
   const c = t[field];
   const v = c && row < c.length ? c[row] : null;
-  return v == null ? null : typeof v === "number" ? v : String(v);
+  return v == null ? null : typeof v === 'number' ? v : String(v);
 }
 export type ThemeParams = Readonly<Record<string, unknown>>;
 export function themeProvider(
@@ -358,18 +358,18 @@ export function themeProvider(
   return {
     name,
     label: name,
-    category: "kernel",
+    category: 'kernel',
     kinds,
     granularity,
     content: o.content ?? false,
     isApplicable: o.isApplicable ?? (() => true),
     create(tc, p, channel) {
       const made = create(tc, p, channel);
-      const t = typeof made === "function" ? { value: made } : made;
+      const t = typeof made === 'function' ? { value: made } : made;
       return {
         kind: channel.kind,
         granularity: t.granularity ?? granularity,
-        reduction: t.reduction ?? "classes",
+        reduction: t.reduction ?? 'classes',
         value: t.value,
         alpha: t.alpha,
         rowValue: t.rowValue,
@@ -408,10 +408,10 @@ function rowReader(tc: ThemeContext, rows: Int32Array[], other: ThemeValueFn = (
 
 // --- the built-ins ------------------------------------------------------------------------------------------------
 
-const CATEGORY10: Palette = { kind: "categorical", colors: "Category10" };
+const CATEGORY10: Palette = { kind: 'categorical', colors: 'Category10' };
 const orNone = (c: number | undefined) => (c === undefined ? NO_COLOR : c);
 const numeric = (a: Annotation | undefined) =>
-  a?.geometry === "values" || a?.geometry === "matrix" || a?.geometry === "grid";
+  a?.geometry === 'values' || a?.geometry === 'matrix' || a?.geometry === 'grid';
 const RAMP = 16;
 
 /**
@@ -419,10 +419,10 @@ const RAMP = 16;
  * ends); null for a normalized palette or a plain list.
  */
 function absoluteSpan(palette: Palette): [number, number] | null {
-  if (palette.kind === "categorical" || palette.mode !== "absolute" || typeof palette.colors === "string") return null;
+  if (palette.kind === 'categorical' || palette.mode !== 'absolute' || typeof palette.colors === 'string') return null;
   const at: number[] = [];
   for (const c of palette.colors ?? [])
-    if (Array.isArray(c)) for (const x of c.slice(1)) if (typeof x === "number" && Number.isFinite(x)) at.push(x);
+    if (Array.isArray(c)) for (const x of c.slice(1)) if (typeof x === 'number' && Number.isFinite(x)) at.push(x);
   return at.length >= 2 ? [Math.min(...at), Math.max(...at)] : null;
 }
 
@@ -430,7 +430,7 @@ function absoluteSpan(palette: Palette): [number, number] | null {
 function byValue(tc: ThemeContext, f: PaletteFunction): ThemeValueFn {
   const seen = new Set<number>();
   for (const a of tc.annotations) {
-    for (const x of (a && numberColumn(a, tc.set, "value")) ?? []) seen.add(x);
+    for (const x of (a && numberColumn(a, tc.set, 'value')) ?? []) seen.add(x);
     for (const d of a?.dense ?? []) for (let i = 0; i < d.length; i++) seen.add(d[i]);
     for (const x of a?.matrix?.values ?? []) seen.add(x);
     for (const row of a?.grid?.rows ?? []) for (let i = 0; i < row.length; i++) seen.add(row[i]);
@@ -460,11 +460,11 @@ function atValue(f: PaletteFunction): ThemeValueFn {
 function ramp(tc: ThemeContext, f: PaletteFunction, palette: Palette, out: LegendSink, field: string) {
   // An absolute palette ignores `value_domain`: the layer's domain, else its checkpoints' span.
   const span = absoluteSpan(palette);
-  const given = palette.kind === "categorical" || span ? null : palette.value_domain;
+  const given = palette.kind === 'categorical' || span ? null : palette.value_domain;
   const lo = f.domain?.[0] ?? given?.[0] ?? tc.domain?.[0] ?? span?.[0] ?? 0;
   const hi = f.domain?.[1] ?? given?.[1] ?? tc.domain?.[1] ?? span?.[1] ?? 1;
   const at = (t: number) => orNone(f(lo + t * (hi - lo)));
-  if (palette.kind === "discrete") {
+  if (palette.kind === 'discrete') {
     const n = 1024;
     const s: number[] = [0, at(0)];
     for (let k = 1, prev = at(0); k <= n; k++) {
@@ -486,10 +486,10 @@ function ramp(tc: ThemeContext, f: PaletteFunction, palette: Palette, out: Legen
 }
 
 /** The row's field through the layer's one palette; dense values by value; a ramp or keys. */
-const fieldPalette = themeProvider("field_palette", ["color"], G.item, (tc, p) => {
-  const field = typeof p.field === "string" ? p.field : null;
+const fieldPalette = themeProvider('field_palette', ['color'], G.item, (tc, p) => {
+  const field = typeof p.field === 'string' ? p.field : null;
   const palette = (p.palette ?? CATEGORY10) as Palette;
-  const cat = palette.kind === "categorical";
+  const cat = palette.kind === 'categorical';
   const f = layerPalette(tc.set, tc.annotations, palette, field, tc.domain ?? [Number.NaN, Number.NaN], tc.svs);
   // Streamed values with no vocabulary are colored by their hash (seqspec:format#palettes), and an item that sends no
   // value of the field has the missing color: one note per layer, true of both.
@@ -498,20 +498,20 @@ const fieldPalette = themeProvider("field_palette", ["color"], G.item, (tc, p) =
     const message =
       `the stream lists no values of ${what}: an item's value is colored by its hash, an item without one has the ` +
       "missing color, and the legend cannot list them; list the values in the manifest's vocabulary for a legend";
-    tc.report?.(Issue.info("svs.legend.unlisted", tc.layer.ref, message));
+    tc.report?.(Issue.info('svs.legend.unlisted', tc.layer.ref, message));
   }
-  const columns = tc.annotations.map((a) => (a && !cat ? numberColumn(a, tc.set, field ?? "value", tc.svs) : null));
+  const columns = tc.annotations.map((a) => (a && !cat ? numberColumn(a, tc.set, field ?? 'value', tc.svs) : null));
   const rows = perRow(tc, (a, r, k) => {
     const column = columns[k];
     return orNone(f(column ? column[r] : paletteValue(a, tc.set, r, field, tc.svs)));
   });
-  const value = field === "value" || (field === null && numeric(tc.annotations[0]));
+  const value = field === 'value' || (field === null && numeric(tc.annotations[0]));
   return {
     value: rowReader(tc, rows, cat ? byValue(tc, f) : atValue(f)),
     // A streamed item's own value as a held row's (`paletteValue`): its category, else its id, else its label.
-    raw: (t, r) => orNone(f(cellOf(t, field ?? (t.category ? "category" : t.id ? "id" : "label"), r))),
+    raw: (t, r) => orNone(f(cellOf(t, field ?? (t.category ? 'category' : t.id ? 'id' : 'label'), r))),
     granularity: value ? G.value : G.item,
-    reduction: cat ? "classes" : "mean",
+    reduction: cat ? 'classes' : 'mean',
     rowValue: cat
       ? undefined
       : (annotation, row) => {
@@ -522,12 +522,12 @@ const fieldPalette = themeProvider("field_palette", ["color"], G.item, (tc, p) =
       ? (out) => {
           for (const key of f.keys ?? []) out.item(key, orNone(f(key)), NO_GLYPH);
         }
-      : (out) => ramp(tc, f, palette, out, field ?? "value"),
+      : (out) => ramp(tc, f, palette, out, field ?? 'value'),
   };
 });
 
-const fieldColor = themeProvider("field_color", ["color"], G.item, (tc, p) => {
-  const field = typeof p.field === "string" ? p.field : "color";
+const fieldColor = themeProvider('field_color', ['color'], G.item, (tc, p) => {
+  const field = typeof p.field === 'string' ? p.field : 'color';
   return {
     value: rowReader(
       tc,
@@ -538,11 +538,11 @@ const fieldColor = themeProvider("field_color", ["color"], G.item, (tc, p) => {
 });
 
 /** Every kind: one value. */
-const uniform = themeProvider("uniform", ["color", "glyph", "size"], G.uniform, (tc, p, { kind }) => {
+const uniform = themeProvider('uniform', ['color', 'glyph', 'size'], G.uniform, (tc, p, { kind }) => {
   const v =
-    kind === "color"
-      ? Color.decodePrimary(p.color ?? "black")
-      : kind === "glyph"
+    kind === 'color'
+      ? Color.decodePrimary(p.color ?? 'black')
+      : kind === 'glyph'
         ? tc.glyphs.intern(p.glyph)
         : sizeOf(Number(p.size));
   return () => v;
@@ -552,7 +552,7 @@ const uniform = themeProvider("uniform", ["color", "glyph", "size"], G.uniform, 
 function scaleAt(x: number, lo: number, hi: number, scale: unknown): number {
   const d = hi - lo;
   const u = d > 0 ? Math.min(1, Math.max(0, (x - lo) / d)) : 0;
-  return scale === "sqrt" ? Math.sqrt(u) : scale === "log" ? (d > 0 ? Math.log1p(u * d) / Math.log1p(d) : 0) : u;
+  return scale === 'sqrt' ? Math.sqrt(u) : scale === 'log' ? (d > 0 ? Math.log1p(u * d) / Math.log1p(d) : 0) : u;
 }
 /**
  * A number through `scale` over [lo, hi] (clamped) into `range`, as a size (`sizeOf`); NaN: none. Per row at the theme
@@ -567,14 +567,14 @@ function scaled(x: number, lo: number, hi: number, scale: unknown, range: readon
  * the value, else the field's over the layer's data) into `range`, clamped; a string field through `map` (`default` for
  * a value it lacks); a dense position's value (no row) by the value.
  */
-const fieldScale = themeProvider("field_scale", ["size"], G.item, (tc, p, channel) => {
-  const field = typeof p.field === "string" ? p.field : null;
-  const name = field ?? "value";
+const fieldScale = themeProvider('field_scale', ['size'], G.item, (tc, p, channel) => {
+  const field = typeof p.field === 'string' ? p.field : null;
+  const name = field ?? 'value';
   const range = p.range as [number, number];
   const map = (p.map ?? null) as Record<string, number> | null;
   const columns = tc.annotations.map((a) => (a && !map ? numberColumn(a, tc.set, name, tc.svs) : null));
   let [lo, hi] = Array.isArray(p.domain) ? (p.domain as [number, number]) : [Number.NaN, Number.NaN];
-  if (!(lo <= hi) && name === "value" && tc.domain) [lo, hi] = tc.domain;
+  if (!(lo <= hi) && name === 'value' && tc.domain) [lo, hi] = tc.domain;
   if (!(lo <= hi)) {
     [lo, hi] = [Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY];
     for (const c of columns)
@@ -615,7 +615,7 @@ function scaleLegend(
   scale: unknown,
   range: readonly [number, number],
 ) {
-  const unit = channel.unit === "band" ? SizeUnit.band : SizeUnit.px;
+  const unit = channel.unit === 'band' ? SizeUnit.band : SizeUnit.px;
   if (map) {
     for (const [key, size] of Object.entries(map).slice(0, MAP_SAMPLES))
       out.size(key, size, unit, { channel: channel.name, field });
@@ -659,7 +659,7 @@ export function ofAlphabet(tc: ThemeContext): string | null | undefined {
   const m = from.kind === K.unit ? tc.set.units.molecule[from.id] : from.kind === K.molecule ? from.id : -1;
   return tc.set.molecules[m]?.alphabet;
 }
-const letter = themeProvider("letter", ["color"], G.letter, (tc, p) => {
+const letter = themeProvider('letter', ['color'], G.letter, (tc, p) => {
   const of = ofAlphabet(tc);
   const made = new Map<string | null, Int32Array>();
   const table = (alphabet: string | null) => {
@@ -677,7 +677,7 @@ const letter = themeProvider("letter", ["color"], G.letter, (tc, p) => {
 
 /** One color per unit (by unit ref, data order) or per copy group (by its first unit), the same in every block. */
 function byUnit(name: string, group: boolean) {
-  return themeProvider(name, ["color"], G.unit, (tc, p) => {
+  return themeProvider(name, ['color'], G.unit, (tc, p) => {
     const u = tc.set.units;
     const key = (id: number) => tc.set.strings.get(u.key[id]);
     const first = (id: number) => (group ? tc.set.groups.first[u.group[id]] : id);
@@ -699,19 +699,19 @@ function glyphRows(tc: ThemeContext, field: string, pick: (value: unknown) => un
     raw: (t, r) => tc.glyphs.intern(pick(cellOf(t, field, r))),
   };
 }
-const fieldMap = themeProvider("field_map", ["glyph"], G.item, (tc, p) => {
+const fieldMap = themeProvider('field_map', ['glyph'], G.item, (tc, p) => {
   const map = (p.map ?? {}) as ThemeParams;
   const fallback = p.default ?? null;
-  return glyphRows(tc, typeof p.field === "string" ? p.field : "category", (v) =>
+  return glyphRows(tc, typeof p.field === 'string' ? p.field : 'category', (v) =>
     v != null && Object.hasOwn(map, String(v)) ? map[String(v)] : fallback,
   );
 });
 /** One grapheme (as the format checks `char`): a plain character without the segmenter, else segmented (edge rate). */
-const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 const oneGrapheme = (v: string) => v.length === 1 || (v.length > 1 && [...graphemes.segment(v)].length === 1);
-const fieldGlyph = themeProvider("field_glyph", ["glyph"], G.item, (tc, p) =>
-  glyphRows(tc, typeof p.field === "string" ? p.field : "glyph", (v) =>
-    typeof v === "string" && !SHAPES.includes(v) && oneGrapheme(v) ? { char: v } : v,
+const fieldGlyph = themeProvider('field_glyph', ['glyph'], G.item, (tc, p) =>
+  glyphRows(tc, typeof p.field === 'string' ? p.field : 'glyph', (v) =>
+    typeof v === 'string' && !SHAPES.includes(v) && oneGrapheme(v) ? { char: v } : v,
   ),
 );
 
@@ -722,8 +722,8 @@ export const KernelThemes: readonly ThemeProvider[] = [
   fieldPalette,
   fieldColor,
   letter,
-  byUnit("by_unit", false),
-  byUnit("by_copy_group", true),
+  byUnit('by_unit', false),
+  byUnit('by_copy_group', true),
   fieldMap,
   fieldGlyph,
 ] as ThemeProvider[];

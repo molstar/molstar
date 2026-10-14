@@ -22,8 +22,8 @@ export {
   type LegendTarget,
   nodePath,
   trackDataRefs,
-} from "./actions.js";
-export type { AxisFrame, SectionAxisView } from "./axis.js";
+} from './actions.js';
+export type { AxisFrame, SectionAxisView } from './axis.js';
 export {
   type BehaviorHandle,
   type BehaviorInfo,
@@ -31,8 +31,8 @@ export {
   type SeqBehavior,
   type SeqBehaviorProvider,
   SeqBehaviors,
-} from "./behaviors.js";
-export { Channel, ChannelMarks, type ChannelSources } from "./channels.js";
+} from './behaviors.js';
+export { Channel, ChannelMarks, type ChannelSources } from './channels.js';
 // The default UIs' compositions and what a host's own composition reads (seqspec:interaction#slots-and-chrome).
 export {
   ChromeCompositions,
@@ -42,7 +42,7 @@ export {
   type SectionSwitch,
   sectionInfo,
   shownSections,
-} from "./chrome.js";
+} from './chrome.js';
 export {
   type CommandManager,
   CommandsBehavior,
@@ -50,7 +50,7 @@ export {
   SeqCommands,
   type SeqTarget,
   TargetRangeError,
-} from "./commands.js";
+} from './commands.js';
 export {
   type ConfigManager,
   type CustomTrackAction,
@@ -60,7 +60,7 @@ export {
   SeqViewerConfigItem,
   type TrackActionId,
   type TrackActionList,
-} from "./config.js";
+} from './config.js';
 export {
   type ActivateEvent,
   createSeqViewer,
@@ -73,8 +73,8 @@ export {
   type SeqViewerContext,
   type SeqViewerEvents,
   type SeqViewerPorts,
-} from "./context.js";
-export type { SeqDataInput, SetDataOptions } from "./data.js";
+} from './context.js';
+export type { SeqDataInput, SetDataOptions } from './data.js';
 export {
   type BehaviorKit,
   CursorBehavior,
@@ -86,7 +86,7 @@ export {
   HoverRowBehavior,
   ScrollGroupsBehavior,
   SnapshotControlsBehavior,
-} from "./default-behaviors.js";
+} from './default-behaviors.js';
 export type {
   DocumentManager,
   DocumentPort,
@@ -97,12 +97,12 @@ export type {
   Routed,
   ViewInfo,
   ViewManager,
-} from "./document.js";
+} from './document.js';
 // The ideogram navigator a host registers (`navigators`), apart from the renderer API (VL-16).
-export { type CytoBands, ideogramNavigator } from "./draw/ideogram.js";
-export type { DynamicSource, HeldNode } from "./dynamic.js";
-export type { FocusChange, FocusEntry, FocusManager } from "./focus.js";
-export { FollowBehavior } from "./follow.js";
+export { type CytoBands, ideogramNavigator } from './draw/ideogram.js';
+export type { DynamicSource, HeldNode } from './dynamic.js';
+export type { FocusChange, FocusEntry, FocusManager } from './focus.js';
+export { FollowBehavior } from './follow.js';
 export {
   DoubleClickZoomBehavior,
   DragPanBehavior,
@@ -113,7 +113,7 @@ export {
   SelectBehavior,
   VerticalOverviewBehavior,
   WheelBehavior,
-} from "./gestures.js";
+} from './gestures.js';
 export type {
   Assembled,
   DataEntry,
@@ -127,7 +127,7 @@ export type {
   Skin,
   Stage,
   ViewModel,
-} from "./graph.js";
+} from './graph.js';
 export {
   DefaultHeaderHoverParams,
   type HeaderHoverParams,
@@ -135,11 +135,11 @@ export {
   type HeaderSet,
   type LociSize,
   lociSize,
-} from "./header-hover.js";
-export type { HighlightEntry, HighlightManager, HighlightOptions, HighlightStyle } from "./highlight.js";
-export { Hit, HitRegion, HoverKind } from "./hit.js";
-export type { HoverManager, HoverState, PointerState } from "./hover.js";
-export type { ItemTarget } from "./hover-card.js";
+} from './header-hover.js';
+export type { HighlightEntry, HighlightManager, HighlightOptions, HighlightStyle } from './highlight.js';
+export { Hit, HitRegion, HoverKind } from './hit.js';
+export type { HoverManager, HoverState, PointerState } from './hover.js';
+export type { ItemTarget } from './hover-card.js';
 export {
   Binding,
   Button,
@@ -160,9 +160,9 @@ export {
   type Trigger,
   type WheelEvt,
   type WheelInput,
-} from "./input.js";
-export { KeyboardBehavior } from "./keyboard.js";
-export { DefaultLabelProviders } from "./label-providers.js";
+} from './input.js';
+export { KeyboardBehavior } from './keyboard.js';
+export { DefaultLabelProviders } from './label-providers.js';
 export type {
   HoverLabel,
   LabelContext,
@@ -170,7 +170,7 @@ export type {
   LabelProvider,
   LabelSink,
   ReachedNumbering,
-} from "./labels.js";
+} from './labels.js';
 export {
   DefaultRenderProps,
   EntryKind,
@@ -179,9 +179,9 @@ export {
   type RowModel,
   type SectionLayout,
   type VisibleRows,
-} from "./layout.js";
-export type { HeaderLegend, LegendItem, LegendRamp, LegendSize } from "./legend.js";
-export type { SeqLociAny } from "./lineage.js";
+} from './layout.js';
+export type { HeaderLegend, LegendItem, LegendRamp, LegendSize } from './legend.js';
+export type { SeqLociAny } from './lineage.js';
 export {
   BookmarkActions,
   type BookmarkAdd,
@@ -191,8 +191,8 @@ export {
   bookmarksOf,
   type HighlightRemove,
   type ResultsSave,
-} from "./location-sets.js";
-export { MarkBit, type SectionMarks, type ShownRuns } from "./marks.js";
+} from './location-sets.js';
+export { MarkBit, type SectionMarks, type ShownRuns } from './marks.js';
 export {
   DefaultNavigatorParts,
   DefaultNavigators,
@@ -200,11 +200,11 @@ export {
   type NavigatorEntry,
   type NavigatorParts,
   navigatorFrom,
-} from "./navigators.js";
-export { DefaultNodeKinds } from "./node-kinds.js";
-export { DefaultPresets, type PresetEntry } from "./presets.js";
-export { type Coordinates, isCoordinates } from "./projection.js";
-export type { RangeArgs, RefManager } from "./refs.js";
+} from './navigators.js';
+export { DefaultNodeKinds } from './node-kinds.js';
+export { DefaultPresets, type PresetEntry } from './presets.js';
+export { type Coordinates, isCoordinates } from './projection.js';
+export type { RangeArgs, RefManager } from './refs.js';
 export {
   type ColumnRenderer,
   type LayerInput,
@@ -217,15 +217,15 @@ export {
   type ViewerEntries,
   type ViewerEntryOf,
   type ViewerKind,
-} from "./registry.js";
-export { KernelColumns, KernelRenderers } from "./renderer-list.js";
-export type { Result, ResultsManager, ResultsOptions, ResultsState } from "./results.js";
-export { DefaultThemes } from "./rules.js";
-export { type FrameHost, type ManualScheduler, manualScheduler, rafScheduler, type Scheduler } from "./scheduler.js";
-export type { SearchFn } from "./search-box.js";
-export type { PendingSelection, Selection, SelectionManager } from "./selection.js";
-export { showExtents } from "./show.js";
-export type { SnapshotInfo, SnapshotManager } from "./snapshots.js";
+} from './registry.js';
+export { KernelColumns, KernelRenderers } from './renderer-list.js';
+export type { Result, ResultsManager, ResultsOptions, ResultsState } from './results.js';
+export { DefaultThemes } from './rules.js';
+export { type FrameHost, type ManualScheduler, manualScheduler, rafScheduler, type Scheduler } from './scheduler.js';
+export type { SearchFn } from './search-box.js';
+export type { PendingSelection, Selection, SelectionManager } from './selection.js';
+export { showExtents } from './show.js';
+export type { SnapshotInfo, SnapshotManager } from './snapshots.js';
 export {
   DefaultRegistry,
   DefaultSeqViewerSpec,
@@ -233,7 +233,7 @@ export {
   SeqViewerSpec,
   ViewerIssueCodes,
   ViewerLayerTypes,
-} from "./spec.js";
+} from './spec.js';
 export type {
   Live,
   Origin,
@@ -243,11 +243,11 @@ export type {
   Unsubscribable,
   WritableLive,
   WritableSeqState,
-} from "./state.js";
+} from './state.js';
 // The stream manager as a host reads it; what drawing reads is `/draw`'s, the rest internal.
-export { RegionState, type StreamManager, type StreamStats } from "./streams.js";
-export { SystemRegistry } from "./systems.js";
-export { monospaceMeasurer, type TextManagerApi, type TextMeasurer } from "./text.js";
+export { RegionState, type StreamManager, type StreamStats } from './streams.js';
+export { SystemRegistry } from './systems.js';
+export { monospaceMeasurer, type TextManagerApi, type TextMeasurer } from './text.js';
 export {
   KernelThemes,
   type Theme,
@@ -258,7 +258,7 @@ export {
   type ThemeProvider,
   type ThemeValueFn,
   themeProvider,
-} from "./themes.js";
+} from './themes.js';
 export type {
   DragState,
   IssueManager,
@@ -268,7 +268,7 @@ export type {
   TaskManager,
   UiManager,
   WindowHover,
-} from "./ui.js";
+} from './ui.js';
 export {
   type CommittedViewport,
   Lod,
@@ -279,4 +279,4 @@ export {
   type ViewportManager,
   type ViewportProps,
   type ViewportState,
-} from "./viewport.js";
+} from './viewport.js';

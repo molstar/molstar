@@ -10,9 +10,9 @@
 // generic/field-schema.ts), no io-ts. Each type checks a value, reporting issues with a code and a JSON pointer, may
 // normalize it (defaults filled), and names itself for the generated reference.
 
-import { Issue } from "@molstar/seq-core/model";
-import { issueOf } from "../load/issues.js";
-import type { SvsRegistries } from "../registry.js";
+import { Issue } from '@molstar/seq-core/model';
+import { issueOf } from '../load/issues.js';
+import type { SvsRegistries } from '../registry.js';
 
 /** A typed ref met while checking; the validator resolves it once the tree is indexed. */
 export interface RefUse {
@@ -55,17 +55,17 @@ export interface FieldType<V = unknown> {
 export type ValueOf<T> = T extends FieldType<infer V> ? V : never;
 
 export function isPlainObject(v: unknown): v is Record<string, unknown> {
-  return v !== null && typeof v === "object" && !Array.isArray(v);
+  return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
 /** A JSON pointer one step down (RFC 6901 escapes). */
 export function ptr(path: string, key: string | number): string {
-  return `${path}/${String(key).replaceAll("~", "~0").replaceAll("/", "~1")}`;
+  return `${path}/${String(key).replaceAll('~', '~0').replaceAll('/', '~1')}`;
 }
 
 /** A value for a message, cut short. */
 export function show(v: unknown): string {
-  const s = v === undefined ? "nothing" : JSON.stringify(v);
+  const s = v === undefined ? 'nothing' : JSON.stringify(v);
   return s.length > 40 ? `${s.slice(0, 37)}...` : s;
 }
 
@@ -78,12 +78,12 @@ export function report(ctx: CheckContext, code: string, path: string, message: s
 export function reportUnknown(ctx: CheckContext, code: string, path: string, message: string): void {
   ctx.issues.push(
     ctx.lenient
-      ? Issue.warning("svs.version.newer_minor", path, `${message} (a newer minor version: ignored)`)
+      ? Issue.warning('svs.version.newer_minor', path, `${message} (a newer minor version: ignored)`)
       : Issue.error(code, path, message),
   );
 }
 
-export function typeError(ctx: CheckContext, path: string, expected: string, v: unknown, code = "svs.params.type") {
+export function typeError(ctx: CheckContext, path: string, expected: string, v: unknown, code = 'svs.params.type') {
   report(ctx, code, path, `expected ${expected}, got ${show(v)}`);
 }
 
@@ -94,10 +94,10 @@ export function scratch(ctx: CheckContext): CheckContext {
 
 /** A context that reports nowhere (normalizing reads shapes it does not report on). */
 export function quiet(registries: SvsRegistries): CheckContext {
-  return { issues: [], registries, refs: [], lenient: true, from: "", depth: 0 };
+  return { issues: [], registries, refs: [], lenient: true, from: '', depth: 0 };
 }
 
-export function scalar<V>(name: string, test: (v: unknown) => boolean, code = "svs.params.type"): FieldType<V> {
+export function scalar<V>(name: string, test: (v: unknown) => boolean, code = 'svs.params.type'): FieldType<V> {
   return {
     name,
     check(v, path, ctx) {
@@ -111,22 +111,22 @@ export function refined(name: string, valid: (s: string) => boolean, code: strin
   return {
     name,
     check(v, path, ctx) {
-      if (typeof v !== "string") return typeError(ctx, path, name, v);
+      if (typeof v !== 'string') return typeError(ctx, path, name, v);
       if (!valid(v)) report(ctx, code, path, `${show(v)} is not ${hint}`);
     },
   };
 }
 
-export const str = scalar<string>("str", (v) => typeof v === "string");
-export const int = scalar<number>("int", (v) => Number.isInteger(v));
-export const float = scalar<number>("float", (v) => typeof v === "number" && Number.isFinite(v));
-export const bool = scalar<boolean>("bool", (v) => typeof v === "boolean");
+export const str = scalar<string>('str', (v) => typeof v === 'string');
+export const int = scalar<number>('int', (v) => Number.isInteger(v));
+export const float = scalar<number>('float', (v) => typeof v === 'number' && Number.isFinite(v));
+export const bool = scalar<boolean>('bool', (v) => typeof v === 'boolean');
 /** Any JSON value. */
-export const json = scalar<unknown>("json", () => true);
+export const json = scalar<unknown>('json', () => true);
 
 export function literal<V extends string | number | boolean>(...values: V[]): FieldType<V> {
   const set = new Set<unknown>(values);
-  return scalar(values.map((v) => JSON.stringify(v)).join(" | "), (v) => set.has(v));
+  return scalar(values.map((v) => JSON.stringify(v)).join(' | '), (v) => set.has(v));
 }
 
 export function list<V>(item: FieldType<V>): FieldType<V[]> {
@@ -142,7 +142,7 @@ export function list<V>(item: FieldType<V>): FieldType<V[]> {
 }
 
 export function tuple<V extends unknown[]>(...items: { [K in keyof V]: FieldType<V[K]> }): FieldType<V> {
-  const name = `[${items.map((t) => t.name).join(", ")}]`;
+  const name = `[${items.map((t) => t.name).join(', ')}]`;
   return {
     name,
     check(v, path, ctx) {
@@ -169,12 +169,12 @@ export function nullable<V>(type: FieldType<V>): FieldType<V | null> {
  * error naming every alternative.
  */
 export function union<T extends FieldType<unknown>[]>(...types: T): FieldType<ValueOf<T[number]>> {
-  const name = types.map((t) => t.name).join(" | ");
+  const name = types.map((t) => t.name).join(' | ');
   const pick = (v: unknown, ctx: CheckContext) => {
     const tries = types.map((t) => ({ t, c: scratch(ctx) }));
     for (const x of tries) {
-      x.t.check(v, "", x.c);
-      if (!x.c.issues.some((i) => i.severity === "error")) return x;
+      x.t.check(v, '', x.c);
+      if (!x.c.issues.some((i) => i.severity === 'error')) return x;
     }
     return null;
   };
@@ -187,7 +187,7 @@ export function union<T extends FieldType<unknown>[]>(...types: T): FieldType<Va
       for (const t of types) {
         const c = scratch(ctx);
         t.check(v, path, c);
-        const shapeOnly = c.issues.every((i) => i.path === path && i.code === "svs.params.type");
+        const shapeOnly = c.issues.every((i) => i.path === path && i.code === 'svs.params.type');
         if (!shapeOnly && (!best || c.issues.length < best.issues.length)) best = c;
       }
       if (best) for (const i of best.issues) ctx.issues.push(i);
@@ -218,17 +218,17 @@ export function dict<V>(value: FieldType<V>): FieldType<Record<string, V>> {
 const NAMESPACE = /^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$/;
 const NAMESPACED = /^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*:[A-Za-z0-9][A-Za-z0-9_.-]*$/;
 /** No extension registers these; `mvs` is the kernel's own table, and the only one a document's `custom` may name. */
-export const ReservedNamespaces: ReadonlySet<string> = new Set(["svs", "seqv", "mvs"]);
+export const ReservedNamespaces: ReadonlySet<string> = new Set(['svs', 'seqv', 'mvs']);
 export const isNamespace = (ns: string) => NAMESPACE.test(ns);
 /** `<namespace>.<code>`: dotted lower-case segments, the namespace being all but (at least) the last. */
 export const isIssueCode = (code: string) => /^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)+$/.test(code);
-export const isNamespaced = (name: unknown): name is string => typeof name === "string" && NAMESPACED.test(name);
+export const isNamespaced = (name: unknown): name is string => typeof name === 'string' && NAMESPACED.test(name);
 
 const AUTHOR_REF = /^[A-Za-z0-9][A-Za-z0-9_.-]*$/;
 const DERIVED_REF = /^[A-Za-z0-9][A-Za-z0-9_.-]*(\/[A-Za-z0-9_.:@-]+)+$/;
 
 /** What a track template's layers write for the node an instance stands for (seqspec:format#placement). */
-export const TEMPLATE_NODE = "$node";
+export const TEMPLATE_NODE = '$node';
 
 export function isRefSyntax(s: string, derived: boolean): boolean {
   return AUTHOR_REF.test(s) || (derived && DERIVED_REF.test(s));
@@ -246,15 +246,15 @@ export interface RefFieldType<K extends string = string> extends FieldType<RefVa
  * (seqspec:format#nodes-and-refs).
  */
 export function ref<K extends string>(...kinds: K[]): RefFieldType<K> {
-  const name = `ref<${kinds.join(" | ")}>`;
+  const name = `ref<${kinds.join(' | ')}>`;
   return {
     name,
     kinds,
     check(v, path, ctx) {
-      if (typeof v !== "string") return typeError(ctx, path, name, v);
+      if (typeof v !== 'string') return typeError(ctx, path, name, v);
       // A template's node: resolved against its track (`svs.ref.syntax` outside a template).
       if (!isRefSyntax(v, true) && v !== TEMPLATE_NODE) {
-        return report(ctx, "svs.ref.syntax", path, `"${v}" is not a ref: [A-Za-z0-9][A-Za-z0-9_.-]*, then /suffixes`);
+        return report(ctx, 'svs.ref.syntax', path, `"${v}" is not a ref: [A-Za-z0-9][A-Za-z0-9_.-]*, then /suffixes`);
       }
       ctx.refs.push({ ref: v, kinds, path, from: ctx.from });
     },

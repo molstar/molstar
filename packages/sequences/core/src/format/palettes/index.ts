@@ -6,13 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from "./clustal-x.js";
-export * from "./color.js";
-export * from "./dictionaries.js";
-export * from "./fields.js";
-export * from "./letter-maps.js";
-export * from "./letters.js";
-export * from "./lists.js";
-export * from "./names.js";
-export * from "./palette.js";
-export * from "./schemes.js";
+export * from './clustal-x.js';
+export * from './color.js';
+export * from './dictionaries.js';
+export * from './fields.js';
+export * from './letter-maps.js';
+export * from './letters.js';
+export * from './lists.js';
+export * from './names.js';
+export * from './palette.js';
+export * from './schemes.js';

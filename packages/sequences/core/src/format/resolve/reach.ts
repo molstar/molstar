@@ -22,9 +22,9 @@ import {
   Paths,
   type SeqSet,
   type Targets,
-} from "@molstar/seq-core/model";
-import { numberColumn } from "../palettes/fields.js";
-import type { BlockRow } from "./section.js";
+} from '@molstar/seq-core/model';
+import { numberColumn } from '../palettes/fields.js';
+import type { BlockRow } from './section.js';
 
 /** A side-a slot, or a distinct side-b target of a pairs annotation (slot = slot count + its first-row order). */
 export interface End {
@@ -89,11 +89,11 @@ export function pathTo(
   set: SeqSet,
   from: CoordinateSystem,
   to: CoordinateSystem,
-): ComposedPath | null | undefined | "ambiguous" {
+): ComposedPath | null | undefined | 'ambiguous' {
   searched++;
   const n = Mappings.path(set, from, to, steps);
   if (n === -1 || n === 0) return n === 0 ? null : undefined;
-  return n === -2 ? "ambiguous" : Mappings.compose(set, from, steps);
+  return n === -2 ? 'ambiguous' : Mappings.compose(set, from, steps);
 }
 
 /** The row whose edge the last path crossed (its lane), or -1. */
@@ -115,8 +115,8 @@ export function reach(
 ): boolean {
   if (block.alignment >= 0) {
     const p = pathTo(set, from, columnsSystem(block.alignment));
-    if (p !== undefined && p !== "ambiguous") cb(-1, p, p ? rowOf() : -1);
-    return p !== "ambiguous";
+    if (p !== undefined && p !== 'ambiguous') cb(-1, p, p ? rowOf() : -1);
+    return p !== 'ambiguous';
   }
   if (from.kind === CoordinateSystemKind.molecule && from.id === set.units.molecule[block.unit]) {
     cb(-1, null, -1);
@@ -130,8 +130,8 @@ export function reach(
       continue;
     }
     const p = pathTo(set, from, unitSystem(m));
-    ok &&= p !== "ambiguous";
-    if (!p || p === "ambiguous") continue;
+    ok &&= p !== 'ambiguous';
+    if (!p || p === 'ambiguous') continue;
     const last = steps[steps.length - 1];
     const alike = last.unit >= 0 && last.reversed;
     cb(merged && !alike ? m : -1, p, rowOf());
@@ -155,7 +155,7 @@ export function cover(
   const dense = end.side === 0 ? ann.dense?.[end.slot] : undefined;
   if (dense) for (let i = 0; i < dense.length; i++) if (!Number.isNaN(dense[i])) mark(path, i, mask);
   // A row with no value covers nothing only in `values` geometry; a ranges row's `value` is optional.
-  const valued = ann.geometry === "values" ? ann.sparse : null;
+  const valued = ann.geometry === 'values' ? ann.sparse : null;
   const rows = end.rows;
   for (let k = 0; k < rows.length; k++) {
     const r = rows[k];

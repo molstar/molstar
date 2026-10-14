@@ -13,22 +13,22 @@
 // changes params alone and checked against the cells by brute force, and the hovered cell's ink from the track's first
 // dot plot with a grid there.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { afterEach, describe, expect, it } from "vitest";
-import { DotPlotLimits, type DotPlotState, DotPlotVisits, dotPlotSample } from "../src/draw/dot-plot.js";
-import { BackendCaps, Dirty, Pass } from "../src/draw/index.js";
-import { Op, type RecordingBackend } from "../src/testing/index.js";
-import { recording } from "./composer-fixtures.js";
-import { directed } from "./conformance-fixtures.js";
-import { dotPlotDoc } from "./dot-plot-fixtures.js";
-import { lit, passRects } from "./overlay-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { afterEach, describe, expect, it } from 'vitest';
+import { DotPlotLimits, type DotPlotState, DotPlotVisits, dotPlotSample } from '../src/draw/dot-plot.js';
+import { BackendCaps, Dirty, Pass } from '../src/draw/index.js';
+import { Op, type RecordingBackend } from '../src/testing/index.js';
+import { recording } from './composer-fixtures.js';
+import { directed } from './conformance-fixtures.js';
+import { dotPlotDoc } from './dot-plot-fixtures.js';
+import { lit, passRects } from './overlay-fixtures.js';
 
 const limits = { ...DotPlotLimits };
 afterEach(() => Object.assign(DotPlotLimits, limits));
 
 type Lit = Awaited<ReturnType<typeof lit>>;
-function prepared(t: Lit, layer = "l-plot"): DotPlotState {
+function prepared(t: Lit, layer = 'l-plot'): DotPlotState {
   const m = (
     t.ctx.graph.assembled.value as unknown as {
       view: {
@@ -48,20 +48,20 @@ function images(r: RecordingBackend) {
 }
 /** One sequence of n residues and a grid on it. */
 function oneSeqGrid(n: number, grid: Record<string, unknown>, stacked = false) {
-  const b = createSeqViewSpec({ title: "one" });
-  const a = b.data.sequence({ ref: "a", value: "M".repeat(n) });
-  const g = b.data.annotation({ ref: "g", label: "G", geometry: "grid", value: grid });
-  b.view({ ref: "v", label: "V" })
-    .section({ ref: "v.s", arrangement: stacked ? "stacked" : "side" })
+  const b = createSeqViewSpec({ title: 'one' });
+  const a = b.data.sequence({ ref: 'a', value: 'M'.repeat(n) });
+  const g = b.data.annotation({ ref: 'g', label: 'G', geometry: 'grid', value: grid });
+  b.view({ ref: 'v', label: 'V' })
+    .section({ ref: 'v.s', arrangement: stacked ? 'stacked' : 'side' })
     .block({ sequence: a })
-    .track({ ref: "t", label: "P" })
-    .dot_plot({ ref: "l-plot", data: g });
+    .track({ ref: 't', label: 'P' })
+    .dot_plot({ ref: 'l-plot', data: g });
   return b.getDocument() as SeqViewSpecDoc;
 }
 /** n chains of L residues, a grid per pair (`self`: on the diagonal only), side by side or stacked. */
 function chains(n: number, L: number, o: { self?: boolean; stacked?: boolean } = {}) {
-  const b = createSeqViewSpec({ title: "chains" });
-  const cs = Array.from({ length: n }, (_, k) => b.data.sequence({ ref: `c${k}`, value: "M".repeat(L) }));
+  const b = createSeqViewSpec({ title: 'chains' });
+  const cs = Array.from({ length: n }, (_, k) => b.data.sequence({ ref: `c${k}`, value: 'M'.repeat(L) }));
   const cols = { target: [] as string[], b_target: [] as string[], value: [] as Float32Array[] };
   for (let p = 0; p < n; p++)
     for (let q = 0; q < n; q++) {
@@ -70,10 +70,10 @@ function chains(n: number, L: number, o: { self?: boolean; stacked?: boolean } =
       cols.b_target.push(`c${q}`);
       cols.value.push(new Float32Array(L * L).map((_, x) => (x % 31) / 3));
     }
-  const g = b.data.annotation({ ref: "g", label: "G", geometry: "grid", value: cols });
-  const sec = b.view({ ref: "v", label: "V" }).section({ ref: "v.s", arrangement: o.stacked ? "stacked" : "side" });
+  const g = b.data.annotation({ ref: 'g', label: 'G', geometry: 'grid', value: cols });
+  const sec = b.view({ ref: 'v', label: 'V' }).section({ ref: 'v.s', arrangement: o.stacked ? 'stacked' : 'side' });
   for (const c of cs) sec.block({ sequence: c });
-  sec.track({ ref: "t", label: "P" }).dot_plot({ ref: "l-plot", data: g });
+  sec.track({ ref: 't', label: 'P' }).dot_plot({ ref: 'l-plot', data: g });
   return b.getDocument() as SeqViewSpecDoc;
 }
 /** Frames on a progressive backend until none asks for another (at most `max`): their count and the tiles built. */
@@ -88,14 +88,14 @@ function settle(t: Lit, be: RecordingBackend, max = 200, whole = true) {
   return { frames, built: DotPlotVisits.tiles - before };
 }
 
-describe("grids at scale", () => {
-  it("a 1 × 1 grid has its one-bin level and draws zoomed out", async () => {
+describe('grids at scale', () => {
+  it('a 1 × 1 grid has its one-bin level and draws zoomed out', async () => {
     const t = await lit(
       oneSeqGrid(2400, {
-        target: ["a"],
+        target: ['a'],
         start: [5],
         stop: [6],
-        b_target: ["a"],
+        b_target: ['a'],
         b_start: [7],
         b_stop: [8],
         value: [[3]],
@@ -106,22 +106,22 @@ describe("grids at scale", () => {
     expect([s.grids[0].nx, s.grids[0].ny, s.grids[0].levels?.length]).toEqual([1, 1, 1]);
     const be = t.frame(recording(), Dirty.all);
     expect(images(be)).toBe(1);
-    expect(t.ctx.issues.current.value.filter((i) => i.code.startsWith("seqv.render"))).toEqual([]);
+    expect(t.ctx.issues.current.value.filter((i) => i.code.startsWith('seqv.render'))).toEqual([]);
   });
 
-  it("a small grid on a long block keeps tiles over the grid, not the block (2 Mb, zoomed in on it)", async () => {
+  it('a small grid on a long block keeps tiles over the grid, not the block (2 Mb, zoomed in on it)', async () => {
     const value = [new Float32Array(100 * 100).fill(5)];
     const doc = oneSeqGrid(2_000_000, {
-      target: ["a"],
+      target: ['a'],
       start: [1000],
       stop: [1100],
-      b_target: ["a"],
+      b_target: ['a'],
       b_start: [1000],
       b_stop: [1100],
       value,
     });
     const t = await lit(doc, { width: 900, height: 600, dpr: 2 });
-    t.vp?.setView(4, 1000 * 4, "api");
+    t.vp?.setView(4, 1000 * 4, 'api');
     const before = process.memoryUsage().arrayBuffers;
     const tiles = DotPlotVisits.tiles;
     const be = t.frame(recording(BackendCaps.Progressive), Dirty.all);
@@ -131,7 +131,7 @@ describe("grids at scale", () => {
     expect(process.memoryUsage().arrayBuffers - before).toBeLessThan(8e6);
   });
 
-  it("many block pairs: the first frame builds the coarse levels only, then a budget of samples a frame", async () => {
+  it('many block pairs: the first frame builds the coarse levels only, then a budget of samples a frame', async () => {
     const t = await lit(chains(20, 135), { width: 1400, height: 900, dpr: 2 });
     expect(prepared(t).grids.length).toBe(400);
     const be = recording(BackendCaps.Progressive);
@@ -165,19 +165,19 @@ describe("grids at scale", () => {
     return built;
   }
 
-  it("stacked lanes share one frame count and budget: they settle, and steady frames build nothing (6 lanes)", async () => {
+  it('stacked lanes share one frame count and budget: they settle, and steady frames build nothing (6 lanes)', async () => {
     expect(await stacked(6, 500)).toBeLessThan(300);
   });
 
-  it("stacked lanes share one frame count and budget: they settle, and steady frames build nothing", {
-    tags: ["slow"],
+  it('stacked lanes share one frame count and budget: they settle, and steady frames build nothing', {
+    tags: ['slow'],
   }, async () => {
     // Before: each lane counted a frame and evicted the others' levels (2,262 tiles in 100 frames, never settled).
     expect(await stacked(12, 1000)).toBeLessThan(300);
   });
 
   it("while tiles build, only the plot's entry is drawn again, not the whole section", async () => {
-    const t = await lit(dotPlotDoc("MKTAYIAKQR".repeat(240), true), { width: 900, height: 600, dpr: 2 });
+    const t = await lit(dotPlotDoc('MKTAYIAKQR'.repeat(240), true), { width: 900, height: 600, dpr: 2 });
     DotPlotLimits.samplesPerFrame = 256 * 256;
     const be = recording(BackendCaps.Progressive);
     t.frame(be, Dirty.all);
@@ -189,12 +189,12 @@ describe("grids at scale", () => {
     expect(t.composer.stats.fullDraws).toBe(full);
   });
 
-  it("past the cap, tiles not drawn in the last two frames go, one by one; a view in use keeps its own", async () => {
-    const t = await lit(dotPlotDoc("MKTAYIAKQR".repeat(240), true), { width: 900, height: 600, dpr: 2 });
+  it('past the cap, tiles not drawn in the last two frames go, one by one; a view in use keeps its own', async () => {
+    const t = await lit(dotPlotDoc('MKTAYIAKQR'.repeat(240), true), { width: 900, height: 600, dpr: 2 });
     DotPlotLimits.tiles = 8;
     const be = recording();
     const vp = t.vp;
-    if (!vp) throw new Error("no viewport");
+    if (!vp) throw new Error('no viewport');
     // The fit: 2,400 residues at level 1, some 25 tiles, over the cap of 8.
     const fit = vp.live.current.cell;
     const tiles = settle(t, be, 3).built;
@@ -202,20 +202,20 @@ describe("grids at scale", () => {
     // In use: no rebuilds in steady frames, though over the cap.
     expect(settle(t, be, 3).built).toBe(0);
     // Zoomed in elsewhere for three frames, then back: the fit's tiles past the cap went and are built again.
-    vp.setView(8, 8 * 1200, "api");
+    vp.setView(8, 8 * 1200, 'api');
     for (let k = 0; k < 3; k++) settle(t, be, 3);
-    vp.setView(fit, 0, "api");
+    vp.setView(fit, 0, 'api');
     expect(settle(t, be, 3).built).toBeGreaterThanOrEqual(tiles - 8);
   });
 
   it("a patch to a plot's color reuses its cells and pyramid (they key on the data, not the params)", async () => {
-    const t = await lit(dotPlotDoc("MKTAYIAKQR".repeat(20)), { width: 900, height: 600 });
-    const s0 = prepared(t, "l-dist");
+    const t = await lit(dotPlotDoc('MKTAYIAKQR'.repeat(20)), { width: 900, height: 600 });
+    const s0 = prepared(t, 'l-dist');
     await t.ctx.applyPatch({
-      format: "seq_view_spec_patch",
-      ops: [{ op: "set", ref: "l-dist", params: { color: { theme: "uniform", params: { color: "#336699" } } } }],
+      format: 'seq_view_spec_patch',
+      ops: [{ op: 'set', ref: 'l-dist', params: { color: { theme: 'uniform', params: { color: '#336699' } } } }],
     } as never);
-    const s1 = prepared(t, "l-dist");
+    const s1 = prepared(t, 'l-dist');
     expect(s1).not.toBe(s0);
     expect([s1.grids[0].values === s0.grids[0].values, s1.grids[0].levels === s0.grids[0].levels]).toEqual([
       true,
@@ -224,20 +224,20 @@ describe("grids at scale", () => {
   });
 });
 
-describe("the pyramid", () => {
+describe('the pyramid', () => {
   for (const dir of [1, -1] as const)
     for (const ranged of [false, true])
-      it(`is the mean of each sample's cells at every level, by brute force (direction ${dir}${ranged ? ", ranged" : ""})`, async () => {
+      it(`is the mean of each sample's cells at every level, by brute force (direction ${dir}${ranged ? ', ranged' : ''})`, async () => {
         const n = 77;
         const rnd = (k: number) => ((k * 2654435761) % 1000) / 10;
         // a[13, 70) × a[5, 64): odd offsets and sizes, a fifth missing.
         const [s, t1, u, w] = [13, 70, 5, 64];
         const value = Array.from({ length: (t1 - s) * (w - u) }, (_, k) => (k % 5 === 2 ? null : rnd(k)));
         const grid = {
-          target: ["a"],
+          target: ['a'],
           start: [s],
           stop: [t1],
-          b_target: ["a"],
+          b_target: ['a'],
           b_start: [u],
           b_stop: [w],
           value: [value],
@@ -245,7 +245,7 @@ describe("the pyramid", () => {
         const t = await lit(directed(oneSeqGrid(n, grid), dir, ranged), { width: 900, height: 600 });
         const g = prepared(t).grids[0];
         const ax = t.ctx.layout.axis(t.section)?.axis;
-        if (!ax) throw new Error("no axis");
+        if (!ax) throw new Error('no axis');
         const N = ax.shown[0];
         let bad = 0;
         for (let L = 0; L <= 8; L++) {
@@ -271,7 +271,7 @@ describe("the pyramid", () => {
       });
 });
 
-describe("the hovered cell", () => {
+describe('the hovered cell', () => {
   it("is outlined once, in its grid's ink, whether the grid's plot or another dot plot comes first on the track", async () => {
     const outline = async (wordsFirst: boolean) => {
       const doc = dotPlotDoc();
@@ -280,7 +280,7 @@ describe("the hovered cell", () => {
           .flatMap(function walk(n): (typeof n)[] {
             return [n, ...(n.children ?? []).flatMap(walk)];
           })
-          .find((n) => n.ref === "t-plot");
+          .find((n) => n.ref === 't-plot');
         track?.children?.reverse();
       }
       const t = await lit(doc, { width: 900, height: 600 });
@@ -288,8 +288,8 @@ describe("the hovered cell", () => {
       const l = t.ctx.layout.get(t.section)?.current;
       const v = t.ctx.layout.axis(t.section);
       const a = t.ctx.graph.assembled.value;
-      if (!l || !v || !a) throw new Error("no layout");
-      const track = a.view?.resolved.tracks.ref.findIndex((r) => a.set.strings.get(r) === "t-plot") ?? -1;
+      if (!l || !v || !a) throw new Error('no layout');
+      const track = a.view?.resolved.tracks.ref.findIndex((r) => a.set.strings.get(r) === 't-plot') ?? -1;
       const e = Array.from({ length: l.entryCount }, (_, k) => k).find((k) => l.entryTrack[k] === track) ?? -1;
       const top = l.scrolledTop + l.entryTop[e] - v.scrollY;
       const xOf = (k: number) => v.x(0, k as never) + v.cell / 2;

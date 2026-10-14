@@ -11,15 +11,15 @@
 // synthetic one, offline); the log records every region the viewer asks of them, with the priority it asked it at.
 // No React here.
 
-import type { Loaders, StreamRequest } from "@molstar/seq-core/format";
-import { STREAMED_SECTION, streamedDoc, streamedLoaders } from "./seqstar-docs-streamed.js";
+import type { Loaders, StreamRequest } from '@molstar/seq-core/format';
+import { STREAMED_SECTION, streamedDoc, streamedLoaders } from './seqstar-docs-streamed.js';
 
 export const PREFETCH_SECTION = STREAMED_SECTION;
 /** The snapshots: a title, and the 100 kb of the chromosome it focuses on (far apart, so one's data is not the next's). */
 export const PREFETCH_SNAPSHOTS: readonly (readonly [string, number, number])[] = [
-  ["A", 2_000_000, 2_100_000],
-  ["B", 9_000_000, 9_100_000],
-  ["C", 16_000_000, 16_100_000],
+  ['A', 2_000_000, 2_100_000],
+  ['B', 9_000_000, 9_100_000],
+  ['C', 16_000_000, 16_100_000],
 ];
 export const prefetchDoc = () => streamedDoc({ snapshots: PREFETCH_SNAPSHOTS });
 
@@ -30,7 +30,7 @@ export interface Asked {
   readonly level: number;
   readonly start: number;
   readonly stop: number;
-  readonly priority: StreamRequest["priority"];
+  readonly priority: StreamRequest['priority'];
 }
 /** The requests in the order made, newest kept `KEEP` of, observable for a panel. */
 export class AskedLog {

@@ -17,14 +17,14 @@
 //   - the runner is disposed with the viewer;
 //   - each rendered document takes its own `prefix`, so the same link in two descriptions lights two channels.
 
-import { createLinkRunner, type LinkRunner } from "@molstar/seq-core/links";
-import { descriptionOf } from "@molstar/seq-viewer";
-import type { DomPart, PartProps } from "@molstar/seq-viewer/dom";
-import { type CSSProperties, createElement, type ReactNode, useEffect, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { type HastNode, markdownToHast } from "../../../../core/_test/links/markdown.js";
+import { createLinkRunner, type LinkRunner } from '@molstar/seq-core/links';
+import { descriptionOf } from '@molstar/seq-viewer';
+import type { DomPart, PartProps } from '@molstar/seq-viewer/dom';
+import { type CSSProperties, createElement, type ReactNode, useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { type HastNode, markdownToHast } from '../../../../core/_test/links/markdown.js';
 
-const LINK: CSSProperties = { color: "var(--seq-accent)", cursor: "pointer", textDecoration: "underline dotted" };
+const LINK: CSSProperties = { color: 'var(--seq-accent)', cursor: 'pointer', textDecoration: 'underline dotted' };
 
 /** A `!` link: the runner's events, released when the link leaves the tree. */
 function SeqLink({
@@ -39,18 +39,18 @@ function SeqLink({
   children: ReactNode;
 }) {
   useEffect(() => () => runner.release(id), [id, runner]);
-  const run = (event: "enter" | "leave") => () => void runner.run(href, event, id);
+  const run = (event: 'enter' | 'leave') => () => void runner.run(href, event, id);
   return (
     <a
       href={href}
       style={LINK}
-      onPointerEnter={run("enter")}
-      onPointerLeave={run("leave")}
-      onFocus={run("enter")}
-      onBlur={run("leave")}
+      onPointerEnter={run('enter')}
+      onPointerLeave={run('leave')}
+      onFocus={run('enter')}
+      onBlur={run('leave')}
       onClick={(e) => {
         e.preventDefault();
-        runner.run(href, "click", id);
+        runner.run(href, 'click', id);
       }}
     >
       {children}
@@ -58,22 +58,22 @@ function SeqLink({
   );
 }
 
-const VOID = new Set(["br", "hr", "img"]);
+const VOID = new Set(['br', 'hr', 'img']);
 function toReact(n: HastNode, key: number, runner: LinkRunner): ReactNode {
-  if (n.type === "text") return n.value;
-  if (n.type === "root") return n.children?.map((c, i) => toReact(c, i, runner));
-  if (n.type !== "element" || !n.tagName) return null;
+  if (n.type === 'text') return n.value;
+  if (n.type === 'root') return n.children?.map((c, i) => toReact(c, i, runner));
+  if (n.type !== 'element' || !n.tagName) return null;
   const kids = (n.children ?? []).map((c, i) => toReact(c, i, runner));
   const props = n.properties ?? {};
-  if (n.tagName === "a" && typeof props.dataSeqLink === "string")
+  if (n.tagName === 'a' && typeof props.dataSeqLink === 'string')
     return (
       <SeqLink key={key} href={String(props.href)} id={props.dataSeqLink} runner={runner}>
         {kids}
       </SeqLink>
     );
-  if (n.tagName === "a")
+  if (n.tagName === 'a')
     return (
-      <a key={key} href={String(props.href ?? "")} target="_blank" rel="noopener noreferrer" style={LINK}>
+      <a key={key} href={String(props.href ?? '')} target="_blank" rel="noopener noreferrer" style={LINK}>
         {kids}
       </a>
     );
@@ -95,11 +95,11 @@ function Markdown({ text, prefix, runner }: { text: string; prefix: string; runn
 
 /** The host's `Description`: markdown, interactive. A DOM part (the slot's contract) that renders React into its node. */
 export const MarkdownDescription: DomPart<PartProps> = (host, ctx) => {
-  const box = document.createElement("div");
-  box.className = "seqv-description";
+  const box = document.createElement('div');
+  box.className = 'seqv-description';
   host.append(box);
   const root = createRoot(box);
-  const runner = createLinkRunner((inv) => ctx.commands.run(inv, "host:links"));
+  const runner = createLinkRunner((inv) => ctx.commands.run(inv, 'host:links'));
   const prefixes = new Map<string, string>();
   const render = () => {
     const d = descriptionOf(ctx);

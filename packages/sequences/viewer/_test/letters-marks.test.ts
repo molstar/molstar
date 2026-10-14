@@ -10,15 +10,15 @@
 // residue (seqspec:viewer#the-render-backend): a dot in each cell while a cell holds one, then a thin bar over each
 // run of residues, so a deletion stays a break; a row with cell colors, or where text fits, marks nothing.
 
-import { describe, expect, it } from "vitest";
-import { SkinToken } from "../src/draw/backend.js";
-import { drawn, layerOf, record, rects, texts } from "./draw-fixtures.js";
-import { marksDoc } from "./letters-marks-fixtures.js";
+import { describe, expect, it } from 'vitest';
+import { SkinToken } from '../src/draw/backend.js';
+import { drawn, layerOf, record, rects, texts } from './draw-fixtures.js';
+import { marksDoc } from './letters-marks-fixtures.js';
 
-async function marks(color: boolean, cell: number, dpr: number, label = "Design") {
+async function marks(color: boolean, cell: number, dpr: number, label = 'Design') {
   const t = await drawn(marksDoc(color), { width: 600, height: 200, dpr });
   const { section } = layerOf(t.ctx, label);
-  t.ctx.viewports.get(section)?.setView(cell, 0, "api");
+  t.ctx.viewports.get(section)?.setView(cell, 0, 'api');
   await t.ctx.graph.update();
   const { rec } = record(t.ctx, label);
   const g = rec.glyphItems;
@@ -29,7 +29,7 @@ async function marks(color: boolean, cell: number, dpr: number, label = "Design"
   return { dots, bars, strings };
 }
 
-describe("a text-only letters row where text does not fit", () => {
+describe('a text-only letters row where text does not fit', () => {
   it("dots in the residues' cells while a cell holds a dot; none over the deletion", async () => {
     // 5 CSS px a cell at 2x: 10 device px, a dot of 4 (40%) across.
     const r = await marks(false, 5, 2);
@@ -44,7 +44,7 @@ describe("a text-only letters row where text does not fit", () => {
     expect(gaps.filter((x) => x !== 1)).toEqual([11]);
   });
 
-  it("a bar per run of residues below that: the deletion a break", async () => {
+  it('a bar per run of residues below that: the deletion a break', async () => {
     for (const [cell, dpr] of [
       [5, 1],
       [2, 2],
@@ -61,7 +61,7 @@ describe("a text-only letters row where text does not fit", () => {
     }
   });
 
-  it("a row with cell colors, or where text fits, marks nothing; a plain row is one bar", async () => {
+  it('a row with cell colors, or where text fits, marks nothing; a plain row is one bar', async () => {
     for (const [color, cell, dpr] of [
       [true, 5, 2],
       [true, 1.2, 2],
@@ -71,9 +71,9 @@ describe("a text-only letters row where text does not fit", () => {
       expect(r.dots, `${color} ${cell}`).toEqual([]);
       expect(r.bars, `${color} ${cell}`).toEqual([]);
     }
-    const plain = await marks(false, 5, 1, "Plain");
+    const plain = await marks(false, 5, 1, 'Plain');
     expect(plain.dots).toEqual([]);
     expect(plain.bars.length).toBe(1);
-    expect((await marks(false, 5, 2, "Plain")).dots.length).toBeGreaterThan(60);
+    expect((await marks(false, 5, 2, 'Plain')).dots.length).toBeGreaterThan(60);
   });
 });

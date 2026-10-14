@@ -8,8 +8,8 @@
 
 // The browser config reaches Chromium with a canvas (the surface and renderer tests of later phases need one).
 
-import { expect, it } from "vitest";
+import { expect, it } from 'vitest';
 
-it("runs in a browser with a 2D canvas", () => {
-  expect(document.createElement("canvas").getContext("2d")).not.toBeNull();
+it('runs in a browser with a 2D canvas', () => {
+  expect(document.createElement('canvas').getContext('2d')).not.toBeNull();
 });

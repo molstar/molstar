@@ -12,9 +12,9 @@
 // bands). Each case on fresh modules (`vi.resetModules`); warmed by count and by time, then settled. The positive
 // control: the pending frames allocating an object each (`leaking`), warmed and measured alike, are caught.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { Loaders } from "@molstar/seq-core/format";
-import { describe, expect, it, vi } from "vitest";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { Loaders } from '@molstar/seq-core/format';
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -25,10 +25,10 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = 1_000;
-const URI = "https://example.org/lazy";
+const URI = 'https://example.org/lazy';
 
 /** The guard's measurement: warmed by count and by time, settled (`settleFrame`), then `N` frames and `4N`. */
 function measure(frame: (i: number) => void) {
@@ -40,36 +40,36 @@ function measure(frame: (i: number) => void) {
 }
 
 /** The lazy rows composed live with every tile pending (its answers never come) or failed, and an overlay frame. */
-async function rowsFrame(c: "pending" | "failed") {
+async function rowsFrame(c: 'pending' | 'failed') {
   vi.resetModules();
-  const { tilesStream } = await import("@molstar/seq-core/stream/tiles");
-  const { tileServer } = await import("@molstar/seq-core/stream/tiles/server");
-  const { composed, recording } = await import("./composer-fixtures.js");
-  const { Dirty } = await import("../src/draw/composer.js");
-  const { SkinToken } = await import("../src/draw/backend.js");
-  const b = createSeqViewSpec({ title: "lazy" });
+  const { tilesStream } = await import('@molstar/seq-core/stream/tiles');
+  const { tileServer } = await import('@molstar/seq-core/stream/tiles/server');
+  const { composed, recording } = await import('./composer-fixtures.js');
+  const { Dirty } = await import('../src/draw/composer.js');
+  const { SkinToken } = await import('../src/draw/backend.js');
+  const b = createSeqViewSpec({ title: 'lazy' });
   const aln = b.data.alignment({
-    ref: "lazy",
+    ref: 'lazy',
     row_count: 3000,
     column_count: 400,
-    source: { uri: URI, protocol: "seqstar-tiles/1" },
+    source: { uri: URI, protocol: 'seqstar-tiles/1' },
   });
-  b.view({ ref: "v", label: "V", style: "msa", height: "box" })
+  b.view({ ref: 'v', label: 'V', style: 'msa', height: 'box' })
     .block({ alignment: aln })
-    .track({ label: "Rows" })
+    .track({ label: 'Rows' })
     .rows();
   // The reference server, but for its tiles: never answered (pending) or refused (failed).
   const server = tileServer({ rowCount: 3000, columnCount: 400 });
   const loaders: Loaders = {
-    load: () => Promise.reject(new Error("none")),
+    load: () => Promise.reject(new Error('none')),
     stream: tilesStream((u) =>
       u === URI
         ? (path, signal) =>
-            !path.startsWith("tiles/")
+            !path.startsWith('tiles/')
               ? server.transport(path, signal)
-              : c === "pending"
+              : c === 'pending'
                 ? new Promise<Uint8Array>(() => {})
-                : Promise.reject(new Error("503 from the fixture"))
+                : Promise.reject(new Error('503 from the fixture'))
         : null,
     ),
   };
@@ -79,7 +79,7 @@ async function rowsFrame(c: "pending" | "failed") {
   const clock = new Float64Array(1);
   clock[0] = 1000;
   (t.scheduler as { now: () => number }).now = () => clock[0];
-  t.vp?.setView(1.5, 0, "api");
+  t.vp?.setView(1.5, 0, 'api');
   await t.ctx.graph.update();
   const be = recording();
   t.frame(be, Dirty.tracks);
@@ -89,7 +89,7 @@ async function rowsFrame(c: "pending" | "failed") {
   t.frame(be, Dirty.tracks);
   const frame = () => {
     // The shimmer's clock moves a frame; failed bands do not animate.
-    if (c === "pending") clock[0] += 16;
+    if (c === 'pending') clock[0] += 16;
     t.frame(be, Dirty.overlay);
   };
   const shown = (token: number) => {
@@ -97,25 +97,25 @@ async function rowsFrame(c: "pending" | "failed") {
     for (let k = 0; k < be.rectItems.n; k++) if (be.rectItems.color[k] === token) n++;
     return n;
   };
-  const token = c === "pending" ? SkinToken.pending : SkinToken.conflict;
+  const token = c === 'pending' ? SkinToken.pending : SkinToken.conflict;
   return { t, frame, drawn: () => shown(token) };
 }
 
-describe("the 2-D skeleton and error bands allocate nothing per frame", () => {
-  for (const c of ["pending", "failed"] as const)
+describe('the 2-D skeleton and error bands allocate nothing per frame', () => {
+  for (const c of ['pending', 'failed'] as const)
     it(`every tile ${c}`, async () => {
       const { t, frame, drawn } = await rowsFrame(c);
       frame();
       // Not vacuous: the shades drawn; a pending skeleton shimmers.
       expect(drawn()).toBeGreaterThan(0);
-      expect(t.composer.animating).toBe(c === "pending");
+      expect(t.composer.animating).toBe(c === 'pending');
       const r = measure(frame);
       expect(isFlat(r), describeScaling(r, N)).toBe(true);
       t.ctx.dispose();
     }, 120_000);
 
-  it("the same pending frames allocating an object each are caught (positive control)", async () => {
-    const { t, frame } = await rowsFrame("pending");
+  it('the same pending frames allocating an object each are caught (positive control)', async () => {
+    const { t, frame } = await rowsFrame('pending');
     expect(controlCaught(() => measure(leaking(frame)))).toBe(true);
     t.ctx.dispose();
   }, 120_000);

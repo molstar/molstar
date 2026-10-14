@@ -5,16 +5,16 @@
  * @copyright 2020-2021
  */
 
-import { makeSequence, getSequenceType, type TSequence } from "./sequence/sequence.js";
-import { DEBUG, SEQUENCE_TYPE, getAlignmentParameters, DEFAULT_GAP_CHAR } from "./align/params.js";
-import { pairwiseAlignment } from "./align/align.js";
-import { progressiveAlignment } from "./align/progressive.alignment.js";
-import Log from "./utils/logger.js";
-import { centerStarNoAlign, noalignPair } from "./align/noalign.js";
-import { applyEstring } from "./utils/estring.js";
+import { makeSequence, getSequenceType, type TSequence } from './sequence/sequence.js';
+import { DEBUG, SEQUENCE_TYPE, getAlignmentParameters, DEFAULT_GAP_CHAR } from './align/params.js';
+import { pairwiseAlignment } from './align/align.js';
+import { progressiveAlignment } from './align/progressive.alignment.js';
+import Log from './utils/logger.js';
+import { centerStarNoAlign, noalignPair } from './align/noalign.js';
+import { applyEstring } from './utils/estring.js';
 
-type TAlignMethod = "diag" | "complete" | "auto";
-type TAlignSequenceType = "amino" | "nucleic" | "auto";
+type TAlignMethod = 'diag' | 'complete' | 'auto';
+type TAlignSequenceType = 'amino' | 'nucleic' | 'auto';
 export type TAlignOpt = {
   /**
    * Gap open penalty (generally a negative number)
@@ -75,9 +75,9 @@ type TBioMSAConfig = {
 };
 
 const DEFAULT_CONFIG: TBioMSAConfig = {
-  sequenceType: "auto",
+  sequenceType: 'auto',
   gapchar: DEFAULT_GAP_CHAR,
-  alignmentMethod: "auto",
+  alignmentMethod: 'auto',
   debug: false,
 };
 
@@ -109,8 +109,8 @@ class BioMSAClass {
 
     // Sanity checks
 
-    if (typeof seq !== "string") {
-      throw new TypeError("String type expected for sequences to add.");
+    if (typeof seq !== 'string') {
+      throw new TypeError('String type expected for sequences to add.');
     }
     seq = seq.toUpperCase();
 
@@ -120,7 +120,7 @@ class BioMSAClass {
     // create the sequences eagerly (unrecognized residues are interpolated
     // randomly)
 
-    if (this.config.sequenceType === "auto") {
+    if (this.config.sequenceType === 'auto') {
       const type = getSequenceType(seq);
 
       // First one
@@ -130,7 +130,7 @@ class BioMSAClass {
 
         // Once set, all the others must follow
       } else if (this.typeSeq !== type) {
-        throw new Error("All sequences must be of same type.");
+        throw new Error('All sequences must be of same type.');
       }
     }
 
@@ -159,12 +159,12 @@ class BioMSAClass {
       return allowed.some((v) => v == value);
     }
 
-    if (opt.method && isValid<TAlignOpt["method"]>(opt.method, ["complete", "diag"]))
+    if (opt.method && isValid<TAlignOpt['method']>(opt.method, ['complete', 'diag']))
       this.config.alignmentMethod = opt.method;
 
-    if (opt.type && isValid<TAlignOpt["type"]>(opt.type, ["amino", "nucleic"])) {
+    if (opt.type && isValid<TAlignOpt['type']>(opt.type, ['amino', 'nucleic'])) {
       this.config.sequenceType = opt.type;
-      this.typeSeq = opt.type === "amino" ? SEQUENCE_TYPE.PROTEIN : SEQUENCE_TYPE.NUCLEIC;
+      this.typeSeq = opt.type === 'amino' ? SEQUENCE_TYPE.PROTEIN : SEQUENCE_TYPE.NUCLEIC;
     }
 
     if (opt.gapchar?.length === 1) this.config.gapchar = opt.gapchar;
@@ -188,12 +188,12 @@ class BioMSAClass {
     const msa = (async () => {
       // Sequences prerequisites
 
-      if (!Array.isArray(seqArr) || seqArr.some((v) => typeof v !== "string")) {
-        throw "Array of sequences expected";
+      if (!Array.isArray(seqArr) || seqArr.some((v) => typeof v !== 'string')) {
+        throw 'Array of sequences expected';
       }
 
       if (seqArr.length < 2) {
-        throw "At least 2 sequences are required.";
+        throw 'At least 2 sequences are required.';
       }
 
       this.reset();
@@ -204,19 +204,19 @@ class BioMSAClass {
       const sequences = this.sequences;
       const gapchar = this.config.gapchar;
 
-      if (DEBUG) Log.add("Prepared sequences");
+      if (DEBUG) Log.add('Prepared sequences');
 
       const lParam = getAlignmentParameters(this.typeSeq, opt);
 
-      if (DEBUG) Log.add("Get sequences type");
+      if (DEBUG) Log.add('Get sequences type');
 
       // Set heuristics used:
       // if sequences are long and user does not dislike it, go for
       // fast alignment.
 
       let doNoAlign = false;
-      if (this.config.alignmentMethod === "auto") doNoAlign = sequences.some((seq) => seq.rawSeq.length > 1600);
-      else doNoAlign = this.config.alignmentMethod === "diag";
+      if (this.config.alignmentMethod === 'auto') doNoAlign = sequences.some((seq) => seq.rawSeq.length > 1600);
+      else doNoAlign = this.config.alignmentMethod === 'diag';
 
       // Start alignment
 

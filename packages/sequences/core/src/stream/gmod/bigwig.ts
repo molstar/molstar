@@ -9,9 +9,9 @@
 // BigWig: values (README, "BigWig"). The file's zoom levels are the manifest's levels; a level request resamples the
 // zoom records onto the request's bins, level -1 is the data itself.
 
-import { type DataPatch, StreamNotServed, type StreamProvider, type StreamRequest } from "@molstar/seq-core/format";
-import { type Chrom, openBbi } from "./bbi.js";
-import { once, type RangeReader, view } from "./ranges.js";
+import { type DataPatch, StreamNotServed, type StreamProvider, type StreamRequest } from '@molstar/seq-core/format';
+import { type Chrom, openBbi } from './bbi.js';
+import { once, type RangeReader, view } from './ranges.js';
 
 /** A BigWig file as a `values` provider: one coordinate system per chromosome, `levels` the file's zoom reductions. */
 export function bigWigProvider(read: RangeReader): StreamProvider {
@@ -19,7 +19,7 @@ export function bigWigProvider(read: RangeReader): StreamProvider {
   return {
     async fetch(r: StreamRequest, signal: AbortSignal): Promise<DataPatch> {
       const bbi = await open(signal);
-      if (bbi.kind !== "bigwig") throw new Error("not a BigWig file (this is a BigBed)");
+      if (bbi.kind !== 'bigwig') throw new Error('not a BigWig file (this is a BigBed)');
       const at = {
         source: r.source,
         system: r.system,
@@ -41,7 +41,7 @@ export function bigWigProvider(read: RangeReader): StreamProvider {
           levels: bbi.zooms.map((z) => z.reduction),
           domain: bbi.range ?? ([0, 0] as [number, number]),
         };
-        return { ...at, kind: "manifest", manifest };
+        return { ...at, kind: 'manifest', manifest };
       }
       const chrom = bbi.chroms.get(r.system);
       if (!chrom) throw new Error(`BigWig: no chromosome ${r.system}`);
@@ -55,7 +55,7 @@ export function bigWigProvider(read: RangeReader): StreamProvider {
           decode(b, bbi.le, chrom, (s, e, v) =>
             value.fill(v, Math.max(s, start) - start, Math.min(e, stop, chrom.size) - start),
           );
-        return { ...at, kind: "items", items: { value } };
+        return { ...at, kind: 'items', items: { value } };
       }
       const zoom = bbi.zooms[r.level];
       const w = zoom.reduction;
@@ -76,7 +76,7 @@ export function bigWigProvider(read: RangeReader): StreamProvider {
         });
       for (let j = 0; j < n; j++) if (!(count[j] > 0)) min[j] = max[j] = Number.NaN; // no value in the bin
       const mean = sum.map((t, j) => t / count[j]);
-      return { ...at, kind: "bins", bins: { min, max, mean } };
+      return { ...at, kind: 'bins', bins: { min, max, mean } };
     },
   };
 }

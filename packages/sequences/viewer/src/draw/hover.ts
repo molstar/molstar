@@ -15,11 +15,11 @@
 // filled in the ink, a glyph ringed only inside its cell, else outlined inset; `outlineItem` and `ringItem` are one
 // call each for an extension's overlay. Allocation-free once warm.
 
-import type { Axis } from "../axis.js";
-import type { Skin } from "../graph.js";
-import type { Features } from "../prepare.js";
-import { GlyphBatch, NO_COLOR, PathBatch, PathMode, PathVerb, RectBatch, SkinToken } from "./backend.js";
-import type { DrawView } from "./view.js";
+import type { Axis } from '../axis.js';
+import type { Skin } from '../graph.js';
+import type { Features } from '../prepare.js';
+import { GlyphBatch, NO_COLOR, PathBatch, PathMode, PathVerb, RectBatch, SkinToken } from './backend.js';
+import type { DrawView } from './view.js';
 
 /** The hover outline's width, CSS px: the pairs' hovered arc with `arcs: "hover"` too. */
 export const HOVER_WIDTH = 1.5;
@@ -61,9 +61,9 @@ const rgba = new Float64Array(4);
  * `#rrggbbaa`, into `rgba` (0..255, alpha 0..1); false: another form.
  */
 function parse(css: unknown): boolean {
-  if (typeof css !== "string") return false;
+  if (typeof css !== 'string') return false;
   const t = css.trim().toLowerCase();
-  if (t[0] === "#") {
+  if (t[0] === '#') {
     const h = t.length === 4 ? t[1] + t[1] + t[2] + t[2] + t[3] + t[3] : t.slice(1);
     if (!/^[0-9a-f]{6}([0-9a-f]{2})?$/.test(h)) return false;
     for (let i = 0; i < 3; i++) rgba[i] = Number.parseInt(h.slice(2 * i, 2 * i + 2), 16);
@@ -74,7 +74,7 @@ function parse(css: unknown): boolean {
   const p = m ? m[1].split(/[\s,/]+/).filter(Boolean) : [];
   if (p.length < 3) return false;
   for (let i = 0; i < 3; i++) rgba[i] = Math.max(0, Math.min(255, Number.parseFloat(p[i]) || 0));
-  rgba[3] = p.length > 3 ? Math.max(0, Math.min(1, Number.parseFloat(p[3]) / (p[3].endsWith("%") ? 100 : 1))) : 1;
+  rgba[3] = p.length > 3 ? Math.max(0, Math.min(1, Number.parseFloat(p[3]) / (p[3].endsWith('%') ? 100 : 1))) : 1;
   return true;
 }
 const packed = () => (Math.round(rgba[0]) << 16) | (Math.round(rgba[1]) << 8) | Math.round(rgba[2]);
@@ -320,7 +320,7 @@ export const HoverOutline = {
     if (boxes.n > 0) v.backend.rects(boxes);
     if (rings.n > 0) v.backend.paths(rings);
     if (inkGlyphs.n === 0) return;
-    inkGlyphs.font = fillGlyphs.font = v.text.font("ui", 12, 600);
+    inkGlyphs.font = fillGlyphs.font = v.text.font('ui', 12, 600);
     v.backend.glyphs(inkGlyphs);
     if (fillGlyphs.n > 0) v.backend.glyphs(fillGlyphs);
   },
@@ -352,7 +352,7 @@ export interface ItemOrder {
 }
 const orders = new WeakMap<Features, ItemOrder>();
 /** Edge rate: on the layer's first item hover. */
-function newOrder(f: Features, set: Axis["set"]): ItemOrder {
+function newOrder(f: Features, set: Axis['set']): ItemOrder {
   const id = (k: number) => set.annotations[f.annotation[k]]?.item[f.row[k]] ?? -1;
   const ks = Array.from({ length: f.count }, (_, k) => k).sort(
     (a, b) => id(a) - id(b) || f.annotation[a] - f.annotation[b] || a - b,

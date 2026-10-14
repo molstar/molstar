@@ -9,9 +9,9 @@
 // A host's language: the base table plus its extensions' symbols, assembled per call with no module state
 // (seqspec:seqql#extension), and the alias index the binder resolves short names from
 // (seqspec:seqql#binding-and-checking).
-import { queryIssue } from "./issue.js";
-import { BASE_SYMBOLS } from "./table.js";
-import type { QueryIssue, SymbolDef } from "./types.js";
+import { queryIssue } from './issue.js';
+import { BASE_SYMBOLS } from './table.js';
+import type { QueryIssue, SymbolDef } from './types.js';
 
 export interface Language {
   /** By full name. */
@@ -26,7 +26,7 @@ export interface LanguageExtension {
 }
 
 /** Namespaces of the base symbols and the format's codes; an extension's full names use its own. */
-export const RESERVED_NAMESPACES: ReadonlySet<string> = new Set(["core", "seq", "svs", "seqv"]);
+export const RESERVED_NAMESPACES: ReadonlySet<string> = new Set(['core', 'seq', 'svs', 'seqv']);
 
 const BASE_ALIASES: ReadonlySet<string> = new Set(BASE_SYMBOLS.flatMap((s) => (s.alias === null ? [] : [s.alias])));
 const NUMBER = /^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?$/;
@@ -35,15 +35,15 @@ const WORD = /^[^\s()";[\],:$.][^\s()";[\],.]*$/;
 
 /** Why an extension's alias is refused, or null: a base short name, or a word the reader reads as something else. */
 function aliasProblem(alias: string): string | null {
-  if (BASE_ALIASES.has(alias)) return "is a base short name";
-  if (!WORD.test(alias) || NUMBER.test(alias) || alias === "true" || alias === "false") {
-    return "is not a word the reader reads as a name (no spaces, parentheses, brackets, quotes, commas, dots or a leading : or $; not a number, true or false)";
+  if (BASE_ALIASES.has(alias)) return 'is a base short name';
+  if (!WORD.test(alias) || NUMBER.test(alias) || alias === 'true' || alias === 'false') {
+    return 'is not a word the reader reads as a name (no spaces, parentheses, brackets, quotes, commas, dots or a leading : or $; not a number, true or false)';
   }
   return null;
 }
 
 /** Whether the binder can tell two symbols with one short name apart: only properties reading different slots. */
-const distinct = (a: SymbolDef, b: SymbolDef) => a.kind === "property" && b.kind === "property" && a.reads !== b.reads;
+const distinct = (a: SymbolDef, b: SymbolDef) => a.kind === 'property' && b.kind === 'property' && a.reads !== b.reads;
 
 const issue = (code: string, message: string): QueryIssue => queryIssue(code, message);
 
@@ -64,12 +64,12 @@ export function createLanguage(ext: readonly LanguageExtension[] = []): {
   const added: SymbolDef[] = [];
   for (const entry of ext) {
     for (const s of entry.symbols ?? []) {
-      const dot = s.name.indexOf(".");
+      const dot = s.name.indexOf('.');
       if (dot <= 0 || dot === s.name.length - 1 || RESERVED_NAMESPACES.has(s.name.slice(0, dot))) {
         const msg = `"${s.name}" is not an extension's full name: write <namespace>.<name>, outside core, seq, svs and seqv`;
-        issues.push(issue("seqql.symbol.namespace", msg));
+        issues.push(issue('seqql.symbol.namespace', msg));
       } else if (symbols.has(s.name)) {
-        issues.push(issue("seqql.symbol.duplicate", `"${s.name}" is defined twice; the later definition is left out`));
+        issues.push(issue('seqql.symbol.duplicate', `"${s.name}" is defined twice; the later definition is left out`));
       } else {
         symbols.set(s.name, s);
         added.push(s);
@@ -84,7 +84,7 @@ export function createLanguage(ext: readonly LanguageExtension[] = []): {
     const problem = aliasProblem(s.alias);
     if (problem) {
       issues.push(
-        issue("seqql.alias.reserved", `the short name "${s.alias}" of ${s.name} ${problem}; use the full name`),
+        issue('seqql.alias.reserved', `the short name "${s.alias}" of ${s.name} ${problem}; use the full name`),
       );
       refused.add(s);
     } else byAlias.set(s.alias, [...(byAlias.get(s.alias) ?? []), s]);
@@ -94,9 +94,9 @@ export function createLanguage(ext: readonly LanguageExtension[] = []): {
     if (clash.length === 0) continue;
     for (const s of clash) refused.add(s);
     const names = clash.map((s) => s.name).sort();
-    const who = `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+    const who = `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
     const msg = `the short name "${alias}" is defined by ${who}, which the binder cannot tell apart; use the full names`;
-    issues.push(issue("seqql.alias.collision", msg));
+    issues.push(issue('seqql.alias.collision', msg));
   }
 
   const aliases = new Map<string, SymbolDef[]>();

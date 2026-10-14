@@ -12,10 +12,10 @@
 // map's; marks per lane when stacked; on the ruler only `hairline` and `labels`. A miniature or overview is an image
 // the composer keeps (`KeyedImage`). Device px as int32 throughout, batches owned and handed once.
 
-import type { Axis, AxisView } from "../axis.js";
-import { MarkBit, type OverlayMarks } from "../marks.js";
-import { DefaultNavigatorParts, type NavigatorEntry, type NavigatorParts } from "../navigators.js";
-import { fitIn, fitted, type TextManagerApi } from "../text.js";
+import type { Axis, AxisView } from '../axis.js';
+import { MarkBit, type OverlayMarks } from '../marks.js';
+import { DefaultNavigatorParts, type NavigatorEntry, type NavigatorParts } from '../navigators.js';
+import { fitIn, fitted, type TextManagerApi } from '../text.js';
 import {
   type BackendImages,
   PathBatch,
@@ -26,7 +26,7 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "./backend.js";
+} from './backend.js';
 
 /** What a navigator draws from: filled by the composer per pass (`from`, then the band and window), reused. */
 export class NavView {
@@ -160,7 +160,7 @@ export function drawNavigator(n: NavView): void {
   if (grounds.n > 0) n.backend.paths(grounds);
   for (let k = 0; k < p.axis.length; k++) {
     const a = p.axis[k];
-    if (a === "overview" || a === "miniature") {
+    if (a === 'overview' || a === 'miniature') {
       if (p.onRuler || n.map < 0) continue;
       img[0] = img[1] = 0;
       img[2] = img[6] = Math.max(1, Math.round((n.left + n.width) * d) - Math.round(n.left * d));
@@ -171,11 +171,11 @@ export function drawNavigator(n: NavView): void {
       n.overMap = true;
       return;
     }
-    if (a === "labels") {
+    if (a === 'labels') {
       drawLabels(n);
       return;
     }
-    if (a === "hairline") {
+    if (a === 'hairline') {
       const hair = Math.max(1, Math.round(d)) | 0;
       under.begin(SkinToken.inkFaint);
       for (let b = 0; b < ax.count; b++) {
@@ -202,11 +202,11 @@ function drawLabels(n: NavView): void {
   const lh = band[3];
   // 60% of the lane, 8 to 11 px: no Math builtin over a double (Maglev boxes its arguments: RN1).
   const px = ((lh * 3) / (5 * d)) | 0;
-  const font = tm.font("ui", px < 8 ? 8 : px > 11 ? 11 : px);
+  const font = tm.font('ui', px < 8 ? 8 : px > 11 ? 11 : px);
   const lw = Math.max(1, Math.round(d)) | 0;
   const pad = Math.round(5 * d) | 0;
   const names = n.names;
-  fitArgs[1] = tm.label("…", font).width;
+  fitArgs[1] = tm.label('…', font).width;
   boxes.begin(SkinToken.inkFaint, 255, lw);
   labels.style(font, TextAlign.left, TextBaseline.middle);
   labels.begin(SkinToken.inkQuiet);
@@ -215,7 +215,7 @@ function drawLabels(n: NavView): void {
     const w = Math.max(2 * lw, Math.round(n.x1s[b] * d) - x) | 0;
     const y = band[0] + (lanes > 1 ? b * lh : 0);
     boxes.push(x, y, w, lanes > 1 ? lh : band[1]);
-    const label = tm.label(b < names.length ? names[b] : "", font);
+    const label = tm.label(b < names.length ? names[b] : '', font);
     fitArgs[0] = w / d - 10;
     const count = fitIn(label, fitArgs);
     if (count <= 0) continue;

@@ -13,8 +13,8 @@
 // value (`UNNAMED_ITEM`), so one color, and legends leave it out, since it names nothing. A streamed value the palette's
 // keys lack (no vocabulary of the field) takes a list color by its hash (`paletteHash`), which no legend lists.
 
-import { type Annotation, Annotations, ColumnRoles, type SeqSet } from "@molstar/seq-core/model";
-import type { FieldProviderEntry, SvsRegistries } from "../registry.js";
+import { type Annotation, Annotations, ColumnRoles, type SeqSet } from '@molstar/seq-core/model';
+import type { FieldProviderEntry, SvsRegistries } from '../registry.js';
 import {
   categoricalList,
   makePaletteFunction,
@@ -22,10 +22,10 @@ import {
   type PaletteFunction,
   type PaletteValue,
   paletteHash,
-} from "./palette.js";
+} from './palette.js';
 
 /** The default's value for an item with no category, id or label: one for all of them; never listed in a legend. */
-export const UNNAMED_ITEM = "\u0000unnamed";
+export const UNNAMED_ITEM = '\u0000unnamed';
 
 const provided = new WeakMap<Annotation, Map<FieldProviderEntry, Float64Array | Int32Array>>();
 /**
@@ -34,7 +34,7 @@ const provided = new WeakMap<Annotation, Map<FieldProviderEntry, Float64Array | 
  * does not apply.
  */
 function providedField(reg: SvsRegistries | undefined, a: Annotation, set: SeqSet, name: string) {
-  const e = reg && name.includes(":") ? reg.get("fields", name) : undefined;
+  const e = reg && name.includes(':') ? reg.get('fields', name) : undefined;
   if (!e?.applies(a)) return null;
   let held = provided.get(a);
   if (!held) {
@@ -43,7 +43,7 @@ function providedField(reg: SvsRegistries | undefined, a: Annotation, set: SeqSe
   }
   let out = held.get(e);
   if (!out) {
-    out = e.type === "number" ? new Float64Array(a.count).fill(Number.NaN) : new Int32Array(a.count).fill(-1);
+    out = e.type === 'number' ? new Float64Array(a.count).fill(Number.NaN) : new Int32Array(a.count).fill(-1);
     e.read(a, out, set.strings);
     held.set(e, out);
   }
@@ -62,23 +62,23 @@ export function paletteValue(
   const p = field !== null ? providedField(reg, ann, set, field) : null;
   if (p) return p instanceof Float64Array ? p[row] : p[row] >= 0 ? set.strings.get(p[row]) : null;
   if (field !== null) return value(ann, set, row, field);
-  if (ann.geometry === "values" || ann.geometry === "matrix") return value(ann, set, row, "value");
-  if (ann.category !== null) return value(ann, set, row, "category");
-  return value(ann, set, row, "id") ?? value(ann, set, row, "label") ?? UNNAMED_ITEM;
+  if (ann.geometry === 'values' || ann.geometry === 'matrix') return value(ann, set, row, 'value');
+  if (ann.category !== null) return value(ann, set, row, 'category');
+  return value(ann, set, row, 'id') ?? value(ann, set, row, 'label') ?? UNNAMED_ITEM;
 }
 
 /** A number column by name, read as `rowValue` reads it (`value`, else a number field, else a provider's); null: none. */
 export function numberColumn(a: Annotation, set: SeqSet, name: string, reg?: SvsRegistries): Float64Array | null {
-  if (name === "value" && ColumnRoles[a.geometry].value !== undefined) return a.sparse;
+  if (name === 'value' && ColumnRoles[a.geometry].value !== undefined) return a.sparse;
   const id = set.strings.find(name);
-  for (const f of a.fields) if (f.name === id) return f.kind === "number" ? f.data : null;
+  for (const f of a.fields) if (f.name === id) return f.kind === 'number' ? f.data : null;
   const p = providedField(reg, a, set, name);
   return p instanceof Float64Array ? p : null;
 }
 
 type Vocab = { manifest?: { vocabulary?: Record<string, string[]> } } | undefined;
-const numeric = (a: Annotation) => a.geometry === "values" || a.geometry === "matrix" || a.geometry === "grid";
-const num = (v: unknown) => (typeof v === "number" ? v : typeof v === "string" ? Number.parseFloat(v) : Number.NaN);
+const numeric = (a: Annotation) => a.geometry === 'values' || a.geometry === 'matrix' || a.geometry === 'grid';
+const num = (v: unknown) => (typeof v === 'number' ? v : typeof v === 'string' ? Number.parseFloat(v) : Number.NaN);
 
 /**
  * A layer's one palette: first occurrence and a normalized palette's domain over all rows of all its data, whatever its
@@ -94,11 +94,11 @@ export function layerPalette(
   domain: readonly [number, number],
   reg?: SvsRegistries,
 ): PaletteFunction {
-  const value = field === "value" || (field === null && data.length > 0 && numeric(data[0]));
-  const dense = field === null || field === "value";
-  if (palette.kind !== "categorical") {
+  const value = field === 'value' || (field === null && data.length > 0 && numeric(data[0]));
+  const dense = field === null || field === 'value';
+  if (palette.kind !== 'categorical') {
     const given = palette.value_domain ?? [null, null];
-    if (palette.mode === "absolute" || (given[0] !== null && given[1] !== null))
+    if (palette.mode === 'absolute' || (given[0] !== null && given[1] !== null))
       return makePaletteFunction(palette, []);
     let [lo, hi] = value ? domain : [Number.NaN, Number.NaN];
     if (!(lo <= hi)) {
@@ -108,7 +108,7 @@ export function layerPalette(
         if (x > hi) hi = x;
       };
       for (const a of data) {
-        const column = numberColumn(a, set, field ?? "value", reg);
+        const column = numberColumn(a, set, field ?? 'value', reg);
         for (let r = 0; r < a.count; r++) see(column ? column[r] : num(paletteValue(a, set, r, field, reg)));
         for (const d of dense ? (a.dense ?? []) : []) for (let i = 0; i < d.length; i++) see(d[i]);
         if (dense && a.matrix) for (let i = 0; i < a.matrix.values.length; i++) see(a.matrix.values[i]);
@@ -125,7 +125,7 @@ export function layerPalette(
     // A streamed annotation has no rows: its manifest's vocabulary for the field gives the order
     // (seqspec:sources#streamed-sources; `svs:stream`, load/compile.ts' `StreamProp`, read by name: no import of the
     // compiler here). With no field, the one `paletteValue` reads: the category, else the id, else the label.
-    const vocab = a.streamed ? (a.custom.props.get("svs:stream") as Vocab)?.manifest?.vocabulary : undefined;
+    const vocab = a.streamed ? (a.custom.props.get('svs:stream') as Vocab)?.manifest?.vocabulary : undefined;
     const given = vocab ? (field ? vocab[field] : (vocab.category ?? vocab.id ?? vocab.label)) : undefined;
     if (given) values.push(...given);
     streamed ||= !!a.streamed;
@@ -153,7 +153,7 @@ export function layerPalette(
   const known = new Set(f.keys);
   const n = list.length;
   const hashed = (v: PaletteValue) => {
-    if (v === null || v === undefined || v === "." || v === "?") return f(v);
+    if (v === null || v === undefined || v === '.' || v === '?') return f(v);
     const s = fold ? `${v}`.toUpperCase() : `${v}`;
     return known.has(s) ? f(v) : list[paletteHash(s) % n];
   };

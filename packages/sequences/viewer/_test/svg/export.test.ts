@@ -11,19 +11,19 @@
 // two, rasterized by Chrome as `seqv-render --png` does, with the pixels checked in _test/canvas/export.test.ts. Chrome,
 // the times and the 3,000,000-nucleotide genome are the slow tier's; the fast tier draws a tenth of the genome.
 
-import { deflateSync } from "node:zlib";
-import { describe, expect, it } from "vitest";
-import { case14 } from "../../../core/_test/format/cases.js";
-import { genomeDoc, synthGenome } from "../../../core/_test/format/genome-fixture.js";
-import { itWithin } from "../../../core/_test/model/timing.js";
-import { rasterizeSvg } from "../../src/cli/rasterize.js";
-import { DefaultFontMetrics, metricsMeasurer, renderSvg } from "../../src/svg/index.js";
-import { decodePng } from "./png.js";
-import { all, parseXml } from "./xml.js";
+import { deflateSync } from 'node:zlib';
+import { describe, expect, it } from 'vitest';
+import { case14 } from '../../../core/_test/format/cases.js';
+import { genomeDoc, synthGenome } from '../../../core/_test/format/genome-fixture.js';
+import { itWithin } from '../../../core/_test/model/timing.js';
+import { rasterizeSvg } from '../../src/cli/rasterize.js';
+import { DefaultFontMetrics, metricsMeasurer, renderSvg } from '../../src/svg/index.js';
+import { decodePng } from './png.js';
+import { all, parseXml } from './xml.js';
 
 const ports = { measurer: metricsMeasurer(DefaultFontMetrics), deflate: (b: Uint8Array) => deflateSync(b) };
 
-describe.each([1, 2])("case 14 at scale %i", (scale) => {
+describe.each([1, 2])('case 14 at scale %i', (scale) => {
   itWithin("a protein over its coding DNA: letters, the gene's tracks, the codons", async (within) => {
     // About 30 ms.
     const xml = await within(5000, () => renderSvg(case14(), { width: 1200, scale, overlay: true, nav: true, ports }));
@@ -31,15 +31,15 @@ describe.each([1, 2])("case 14 at scale %i", (scale) => {
     expect(xml).not.toMatch(/NaN|Infinity|undefined/);
     const svg = parseXml(xml);
     expect(svg.attrs.width).toBe(String(1200 * scale));
-    expect(svg.attrs.viewBox?.startsWith("0 0 1200 ")).toBe(true);
-    const letters = all(svg, "text").map((e) => e.text);
-    for (const want of ["DNA", "Protein", "Exons", "Domain", "Phosphosite"]) expect(letters, want).toContain(want);
+    expect(svg.attrs.viewBox?.startsWith('0 0 1200 ')).toBe(true);
+    const letters = all(svg, 'text').map((e) => e.text);
+    for (const want of ['DNA', 'Protein', 'Exons', 'Domain', 'Phosphosite']) expect(letters, want).toContain(want);
     // Baselines are explicit offsets (the tables carry an em box), and nothing is left to a reader's dominant-baseline.
-    expect(xml).not.toContain("dominant-baseline");
+    expect(xml).not.toContain('dominant-baseline');
   });
 });
 
-describe("as PNG, through Chrome", { timeout: 120_000, tags: ["slow"] }, () => {
+describe('as PNG, through Chrome', { timeout: 120_000, tags: ['slow'] }, () => {
   /** A PNG of the SVG, and of the same size with nothing drawn: Chrome's PNG filters, so only sizes are compared. */
   async function drawnAndBlank(svg: string) {
     const [w, h] = [/ width="([\d.]+)"/.exec(svg)?.[1], / height="([\d.]+)"/.exec(svg)?.[1]];
@@ -57,7 +57,7 @@ describe("as PNG, through Chrome", { timeout: 120_000, tags: ["slow"] }, () => {
     expect(r.drawn.length).toBeLessThan(1_000_000);
     expect(r.ms).toBeLessThan(60_000);
   });
-  it("the genome story", async () => {
+  it('the genome story', async () => {
     const svg = await renderSvg(genomeDoc(synthGenome()), { width: 1200, ports });
     const r = await drawnAndBlank(svg);
     expect(decodePng(r.drawn).w).toBe(1200);
@@ -77,10 +77,10 @@ async function genomeAtTwoScales(doc: ReturnType<typeof genomeDoc>) {
   const [a, b] = [await run(1), await run(2)];
   for (const r of [a, b]) {
     expect(r.xml).not.toMatch(/NaN|Infinity|undefined/);
-    expect(all(parseXml(r.xml), "text").map((e) => e.text)).toContain("chr1");
-    for (const want of ["Cytobands", "Genes", "GC content", "Repeats"])
+    expect(all(parseXml(r.xml), 'text').map((e) => e.text)).toContain('chr1');
+    for (const want of ['Cytobands', 'Genes', 'GC content', 'Repeats'])
       expect(
-        all(parseXml(r.xml), "text").map((e) => e.text),
+        all(parseXml(r.xml), 'text').map((e) => e.text),
         want,
       ).toContain(want);
   }
@@ -88,15 +88,15 @@ async function genomeAtTwoScales(doc: ReturnType<typeof genomeDoc>) {
   return [a, b];
 }
 
-describe("the genome story", () => {
-  it("a tenth of it, 300,000 nucleotides: two scales", async () => {
+describe('the genome story', () => {
+  it('a tenth of it, 300,000 nucleotides: two scales', async () => {
     await genomeAtTwoScales(
       genomeDoc(synthGenome({ total: 300_000, genes: 300, proteins: 30, variants: 2000, repeats: 1000 })),
     );
   });
 
-  it("24 chromosomes, 3,000,000 nucleotides: two scales in a bounded time and size", {
-    tags: ["slow"],
+  it('24 chromosomes, 3,000,000 nucleotides: two scales in a bounded time and size', {
+    tags: ['slow'],
     timeout: 60_000,
   }, async () => {
     for (const r of await genomeAtTwoScales(genomeDoc(synthGenome()))) {

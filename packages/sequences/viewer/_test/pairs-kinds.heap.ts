@@ -11,7 +11,7 @@
 // control runs the same frames allocating an object each (`leaking`) through the same warm-up and measurement, which must
 // catch it. The case loads the viewer afresh (`vi.resetModules`), as the composer's guards do.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -23,16 +23,16 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 async function setup() {
   vi.resetModules();
-  const { lit } = await import("./overlay-fixtures.js");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
-  const { layerOf } = await import("./draw-fixtures.js");
-  const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
+  const { lit } = await import('./overlay-fixtures.js');
+  const { recording, COPY_BACK } = await import('./composer-fixtures.js');
+  const { layerOf } = await import('./draw-fixtures.js');
+  const { createSeqViewSpec } = await import('@molstar/seq-core/builder');
   const b = createSeqViewSpec();
-  const a = b.data.sequence({ ref: "a", value: "MKVLATGHEKWRSPQIDNCY".repeat(100) });
+  const a = b.data.sequence({ ref: 'a', value: 'MKVLATGHEKWRSPQIDNCY'.repeat(100) });
   // Hubs every 12 residues: one with 3 kinds, the next with 11 (more than fit: a marker), partners on the next cells.
   const start: number[] = [];
   const bStart: number[] = [];
@@ -46,25 +46,25 @@ async function setup() {
     }
   }
   const pairs = b.data.annotation({
-    ref: "pp",
-    geometry: "pairs",
+    ref: 'pp',
+    geometry: 'pairs',
     target: a,
-    value: { start, b_target: start.map(() => "a"), b_start: bStart, category },
+    value: { start, b_target: start.map(() => 'a'), b_start: bStart, category },
   } as never);
-  const v = b.view({ ref: "v", label: "V", height: "box" }).block({ sequence: a });
-  v.track({ label: "Letters" }).letters();
-  v.track({ label: "Contacts" }).pairs({
+  const v = b.view({ ref: 'v', label: 'V', height: 'box' }).block({ sequence: a });
+  v.track({ label: 'Letters' }).letters();
+  v.track({ label: 'Contacts' }).pairs({
     data: pairs,
-    arcs: "hover",
-    glyph: { theme: "field_map", params: { map: { k0: "diamond", k1: "circle", k2: "square" } } },
+    arcs: 'hover',
+    glyph: { theme: 'field_map', params: { map: { k0: 'diamond', k1: 'circle', k2: 'square' } } },
   } as never);
   const t = await lit(b.getDocument(), { width: 1000, height: 300, dpr: 2 });
   const be = recording(COPY_BACK);
-  t.vp?.setView(4, 0, "api");
+  t.vp?.setView(4, 0, 'api');
   t.frame(be, 7);
   // The hover label's strings are one allocation per hovered element by design (IN2's guard): the overlay alone.
-  t.ctx.behaviors.get("hoverLabel")?.remove();
-  const { k } = layerOf(t.ctx, "Contacts");
+  t.ctx.behaviors.get('hoverLabel')?.remove();
+  const { k } = layerOf(t.ctx, 'Contacts');
   const s = t.ctx.graph.assembled.value?.view?.prepared[k].state as { frame: Float64Array; cellKinds: Int32Array };
   return { t, be, s };
 }
@@ -80,18 +80,18 @@ function run(n: number, frame: (i: number) => void) {
   return heapScaling(n, () => frame(i++));
 }
 
-describe("frames over cells of several kinds", () => {
-  it("pans, a hover on each glyph and its overlay allocate nothing; an object allocated per frame is caught", async () => {
+describe('frames over cells of several kinds', () => {
+  it('pans, a hover on each glyph and its overlay allocate nothing; an object allocated per frame is caught', async () => {
     const { t, be, s } = await setup();
     expect(s.cellKinds.some((n) => n > 1)).toBe(true);
-    const into = (await import("./composer-fixtures.js")).recording();
+    const into = (await import('./composer-fixtures.js')).recording();
     // The glyphs of the first hubs, from a draw of the layer.
-    const { record, layerOf } = await import("./draw-fixtures.js");
-    const glyphs = Array.from(record(t.ctx, "Contacts").rec.glyphItems.x.subarray(0, 24), (x) => x / 2);
-    expect(layerOf(t.ctx, "Contacts").section).toBe(t.section);
+    const { record, layerOf } = await import('./draw-fixtures.js');
+    const glyphs = Array.from(record(t.ctx, 'Contacts').rec.glyphItems.x.subarray(0, 24), (x) => x / 2);
+    expect(layerOf(t.ctx, 'Contacts').section).toBe(t.section);
     const y = s.frame[0];
     const frame = (i: number) => {
-      t.vp?.panBy((i & 1) === 0 ? 5 : -5, 0, "pointer");
+      t.vp?.panBy((i & 1) === 0 ? 5 : -5, 0, 'pointer');
       t.frame(be, 7);
       t.hover(glyphs[i % glyphs.length], y);
       t.overlay(into);

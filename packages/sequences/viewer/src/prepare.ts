@@ -15,7 +15,7 @@
 // covers its residue's larger part. Prepare-time code allocates; the frame and the hit run only `featureAt`, `ofPartAt`
 // and `positionKey`.
 
-import { endsOf, letterMapTable, reach, splitRows } from "@molstar/seq-core/format";
+import { endsOf, letterMapTable, reach, splitRows } from '@molstar/seq-core/format';
 import {
   type Alphabet,
   type Annotation,
@@ -28,15 +28,15 @@ import {
   Paths,
   type SeqSet,
   Systems,
-} from "@molstar/seq-core/model";
-import { intervalTree } from "./intervals.js";
-import { predecessor, prefixReach, type ValuePyramid, valuePyramid } from "./pyramids.js";
-import type { LayerInput, LayerRenderer, PrepareContext } from "./registry.js";
-import { prepareMap, prepareMatrix, prepareRows, RowsHeader, rowsStream } from "./rows.js";
-import { laneLineHeights } from "./runs.js";
-import type { StreamLayer } from "./stream-contract.js";
-import { lettersStream, trackStream } from "./stream-sources.js";
-import type { FieldTable } from "./themes.js";
+} from '@molstar/seq-core/model';
+import { intervalTree } from './intervals.js';
+import { predecessor, prefixReach, type ValuePyramid, valuePyramid } from './pyramids.js';
+import type { LayerInput, LayerRenderer, PrepareContext } from './registry.js';
+import { prepareMap, prepareMatrix, prepareRows, RowsHeader, rowsStream } from './rows.js';
+import { laneLineHeights } from './runs.js';
+import type { StreamLayer } from './stream-contract.js';
+import { lettersStream, trackStream } from './stream-sources.js';
+import type { FieldTable } from './themes.js';
 
 /** One placement's kept rows on its block, with its path. */
 interface Placed {
@@ -226,7 +226,7 @@ const withSplit =
   (prep: (input: LayerInput) => Features) =>
   (input: LayerInput, rc?: PrepareContext): Features => {
     const { layer, set } = input;
-    const sp = input.params.split as { by: string; order?: string[] | null; empty?: "show" | "hide" } | null;
+    const sp = input.params.split as { by: string; order?: string[] | null; empty?: 'show' | 'hide' } | null;
     const anns = layer.data.map((id) => set.annotations[id] as Annotation);
     const on =
       sp && !layer.placements.some((p) => p.lane >= 0) ? splitRows(set, anns, layer.kept, sp, rc?.registry.svs) : null;
@@ -272,7 +272,7 @@ export function features(
   const part = new Int32Array(2);
   for (const p of placed(input, true)) {
     const a = p.ann;
-    if (a.geometry !== "ranges") continue;
+    if (a.geometry !== 'ranges') continue;
     for (const r of p.rows) {
       const lab = a.rowLabel && a.rowLabel[r] >= 0 ? input.set.strings.get(a.rowLabel[r]) : null;
       const base = {
@@ -502,7 +502,7 @@ export function perPosition(input: LayerInput, rows = true, minmax = false): Per
     else
       for (const r of p.rows) {
         const v = a.sparse ? a.sparse[r] : Number.NaN;
-        if (a.geometry === "values")
+        if (a.geometry === 'values')
           for (let i = a.start[r]; i < Math.max(a.stop[r], a.start[r] + 1); i++)
             eachCell(p.path, i, (j) => set(j, v, r));
         else if (!p.path) for (let j = a.start[r]; j < Math.max(a.stop[r], a.start[r] + 1); j++) set(j, v, r);
@@ -619,7 +619,7 @@ function prepareLetters(input: LayerInput): LettersState {
   const names: (string | null)[] = [];
   const unit = new Int32Array(n);
   const alignment = new Int32Array(n);
-  const row = typeof params.row === "number" ? params.row : -1;
+  const row = typeof params.row === 'number' ? params.row : -1;
   const alphabet: (Alphabet | null)[] = [];
   const codes = section.blocks.map((b, i) => {
     unit[i] = b.unit;
@@ -636,7 +636,7 @@ function prepareLetters(input: LayerInput): LettersState {
     const mol = b.unit >= 0 ? set.molecules[set.units.molecule[b.unit]] : null;
     if (mol?.element && b.ligand) {
       form[i] = LetterForm.ligand;
-      names[i] = mol.chemCompId ? set.strings.get(mol.chemCompId[0]) : "";
+      names[i] = mol.chemCompId ? set.strings.get(mol.chemCompId[0]) : '';
     } else if (mol?.element) form[i] = LetterForm.atoms;
     if (mol?.lazy) return null;
     const all = mol ? (mol.element ?? mol.code) : null;
@@ -716,13 +716,13 @@ const numberingsOf = (set: SeqSet, s: CoordinateSystem, named: readonly string[]
 function prepareRuler(input: LayerInput): RulerState {
   const { set, section, params, layer } = input;
   const own = Array.isArray(params.numbering) ? params.numbering : params.numbering != null ? [params.numbering] : [];
-  const named = own.filter((n): n is string => typeof n === "string");
+  const named = own.filter((n): n is string => typeof n === 'string');
   const list = Array.isArray(params.of);
   const sources = section.blocks.map((b, i): RulerSource[] | null => {
     if (params.of == null) {
       const mine =
         b.unit >= 0 ? numberingsOf(set, { kind: CoordinateSystemKind.unit, id: b.unit, row: -1 }, named) : [];
-      return named.length > 0 && mine.length > 0 ? [{ path: null, numberings: mine, prefix: "" }] : null;
+      return named.length > 0 && mine.length > 0 ? [{ path: null, numberings: mine, prefix: '' }] : null;
     }
     const out: RulerSource[] = [];
     for (const pl of layer.placements) {
@@ -730,12 +730,12 @@ function prepareRuler(input: LayerInput): RulerState {
       const path = pl.path >= 0 ? layer.paths[pl.path] : null;
       const from = path ? path.from : { kind: CoordinateSystemKind.unit, id: b.unit, row: -1 };
       const label = from.kind === CoordinateSystemKind.unit ? set.units.label[from.id] : set.molecules[from.id]?.label;
-      const prefix = list && label !== undefined && label >= 0 ? set.strings.get(label) : "";
+      const prefix = list && label !== undefined && label >= 0 ? set.strings.get(label) : '';
       out.push({ path, numberings: numberingsOf(set, from, named), prefix });
     }
     return out;
   });
-  const names = section.blocks.map((b) => (b.label >= 0 ? set.strings.get(b.label) : ""));
+  const names = section.blocks.map((b) => (b.label >= 0 ? set.strings.get(b.label) : ''));
   return { sources, names };
 }
 
@@ -748,7 +748,7 @@ export const keyOf = (block: number, index: number) => block * 4294967296 + inde
  * (`pushArc`), as for an end filtered out within its block. An interval index over their keys (arcs' hits).
  */
 export interface PairsState {
-  readonly set: LayerInput["set"];
+  readonly set: LayerInput['set'];
   readonly count: number;
   /** Per pair, per end (a, b): block, part start, stop; -1, -1, -1 for an end in a block left out. */
   readonly block: Int32Array;
@@ -822,7 +822,7 @@ function inLeftOut(input: LayerInput, id: number, slot: number): boolean {
  * and stop are a run. Prepare-time.
  */
 function pairCells(
-  set: LayerInput["set"],
+  set: LayerInput['set'],
   rows: readonly number[][],
   s: { block: Int32Array; start: Int32Array; stop: Int32Array },
   ends: Int32Array,
@@ -831,8 +831,8 @@ function pairCells(
   const kind = new Int32Array(rows.length);
   rows.forEach((x, k) => {
     const a = set.annotations[x[6]];
-    const v = a ? Annotations.rowValue(a, set, x[7], "category") : undefined;
-    const name = v == null ? "" : String(v);
+    const v = a ? Annotations.rowValue(a, set, x[7], 'category') : undefined;
+    const name = v == null ? '' : String(v);
     if (!names.has(name)) names.set(name, names.size);
     kind[k] = names.get(name) as number;
   });
@@ -959,10 +959,10 @@ function preparePairs(input: LayerInput): PairsState {
  * A row's `alt` as its first character's code (a variant's substitution); a boundary's (an insertion's inserted
  * letters) as minus its length; 0: none.
  */
-function firstCode(a: Annotation, set: LayerInput["set"], r: number): number {
+function firstCode(a: Annotation, set: LayerInput['set'], r: number): number {
   const id = a.alt ? a.alt[r] : -1;
-  const v = id >= 0 ? set.strings.get(id) : Annotations.rowValue(a, set, r, "alt");
-  if (typeof v !== "string" || v.length === 0) return 0;
+  const v = id >= 0 ? set.strings.get(id) : Annotations.rowValue(a, set, r, 'alt');
+  if (typeof v !== 'string' || v.length === 0) return 0;
   return a.start[r] === a.stop[r] && /^[A-Za-z]+$/.test(v) ? -v.length : v.charCodeAt(0);
 }
 
@@ -982,13 +982,13 @@ const SECONDARY: Readonly<Record<string, number>> = {
 export const SecondaryKind = { helix: 0, strand: 1, turn: 2, other: 3 } as const;
 
 // `display: "union"`: every item in one lane, drawn over each other (their union, as coverage).
-const ranges = (input: LayerInput) => features(input, { runs: true, pack: input.params.display !== "union" });
+const ranges = (input: LayerInput) => features(input, { runs: true, pack: input.params.display !== 'union' });
 const secondary = (input: LayerInput) =>
   features(input, {
     runs: true,
     pack: false,
     kind: (a, r) =>
-      SECONDARY[a.category && a.category[r] >= 0 ? input.set.strings.get(a.category[r]) : ""] ?? SecondaryKind.other,
+      SECONDARY[a.category && a.category[r] >= 0 ? input.set.strings.get(a.category[r]) : ''] ?? SecondaryKind.other,
   });
 const positions = (input: LayerInput) => features(input, { runs: false, pack: false });
 /** Variants whole (a deletion over several positions is one), each at its place in its position's stack. */
@@ -1028,8 +1028,8 @@ const withStream =
 const featureStream = (f: Features) => f.stream ?? null;
 
 /** A kernel type's prepare and what goes with its state: whether it reads content, wrapped bands, the tree header. */
-export type PreparedPart = Pick<LayerRenderer, "content" | "lineHeights" | "header" | "stream"> &
-  Required<Pick<LayerRenderer, "prepare">>;
+export type PreparedPart = Pick<LayerRenderer, 'content' | 'lineHeights' | 'header' | 'stream'> &
+  Required<Pick<LayerRenderer, 'prepare'>>;
 const lanes = { content: false, lineHeights: laneLineHeights };
 /**
  * Every kernel type's prepare (LY3's entries spread them): `ranges`, `points` and `secondary` banded in wrapped lines
@@ -1050,5 +1050,5 @@ export const PreparedParts: Readonly<Record<string, PreparedPart>> = {
   rows: { prepare: prepareRows, header: RowsHeader, stream: rowsStream },
   logo: { prepare: (input) => prepareMatrix(input, true), content: false },
   matrix: { prepare: (input) => prepareMatrix(input), content: false },
-  "seqv:map": { prepare: prepareMap, content: false },
+  'seqv:map': { prepare: prepareMap, content: false },
 };

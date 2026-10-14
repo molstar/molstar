@@ -2,7 +2,10 @@
   "extends": "../../../tsconfig.base.json",
   // The canvas renderer, its tests and the scripts (run by Node's type stripping, so .ts imports) (no emit); with the DOM lib.
   "compilerOptions": {
-    "composite": false, "declaration": false, "declarationMap": false, "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
     "allowImportingTsExtensions": true,
     "useDefineForClassFields": true,
     "noUncheckedIndexedAccess": false,

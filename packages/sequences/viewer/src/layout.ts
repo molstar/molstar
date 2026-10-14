@@ -21,15 +21,15 @@ import {
   type ResolvedView,
   RowSizing,
   Sizing,
-} from "@molstar/seq-core/format";
-import { type Alphabet, Numbering, type SeqSet, type SortedArray } from "@molstar/seq-core/model";
-import { Axis, AxisGeometry, SectionAxisView, type ShownIndex, sameList } from "./axis.js";
-import { type ConfigManager, SeqViewerConfig } from "./config.js";
-import type { ViewModel } from "./graph.js";
-import { Hit, hitTest, type StreamLookup, sourceAt } from "./hit.js";
-import { type NavigatorEntry, navigatorOf } from "./navigators.js";
-import type { PresetEntry } from "./presets.js";
-import type { ColumnRenderer, LayerRenderer, SeqViewerRegistry } from "./registry.js";
+} from '@molstar/seq-core/format';
+import { type Alphabet, Numbering, type SeqSet, type SortedArray } from '@molstar/seq-core/model';
+import { Axis, AxisGeometry, SectionAxisView, type ShownIndex, sameList } from './axis.js';
+import { type ConfigManager, SeqViewerConfig } from './config.js';
+import type { ViewModel } from './graph.js';
+import { Hit, hitTest, type StreamLookup, sourceAt } from './hit.js';
+import { type NavigatorEntry, navigatorOf } from './navigators.js';
+import type { PresetEntry } from './presets.js';
+import type { ColumnRenderer, LayerRenderer, SeqViewerRegistry } from './registry.js';
 import {
   GROUP_LABEL_PAD,
   type GroupLabeler,
@@ -40,12 +40,12 @@ import {
   lineTable,
   type PreparedRun,
   prepareRun,
-} from "./runs.js";
-import type { Scheduler } from "./scheduler.js";
-import { type Live, live, type SeqState, state, type Unsubscribable, type WritableLive } from "./state.js";
-import type { TextManager } from "./text.js";
-import type { UiManager } from "./ui.js";
-import type { ViewportProps, ViewportState, Viewports } from "./viewport.js";
+} from './runs.js';
+import type { Scheduler } from './scheduler.js';
+import { type Live, live, type SeqState, state, type Unsubscribable, type WritableLive } from './state.js';
+import type { TextManager } from './text.js';
+import type { UiManager } from './ui.js';
+import type { ViewportProps, ViewportState, Viewports } from './viewport.js';
 
 /**
  * The layout's and engine's sizes and switches (seqspec:viewer#render-props); a preset's `render` over them per
@@ -84,7 +84,7 @@ export interface RenderProps extends ViewportProps {
    * letter, in the ruler's band (`aboveEnd`); its first position's as a superscript before it (`inlineStart`); or
    * none.
    */
-  readonly wrappedGroupLabels: "aboveEnd" | "inlineStart" | "none";
+  readonly wrappedGroupLabels: 'aboveEnd' | 'inlineStart' | 'none';
   readonly labelFontPx: number;
   /**
    * The largest per-position text (a block's letters, another polymer's residues, three-letter codes, atom symbols),
@@ -107,7 +107,7 @@ export interface RenderProps extends ViewportProps {
   readonly blit: boolean;
   readonly verticalOverview: number;
   /** The rows' vertical navigation: a scrollbar, the overview map, both, or none. */
-  readonly verticalNav: "scrollbar" | "overview" | "both" | "none";
+  readonly verticalNav: 'scrollbar' | 'overview' | 'both' | 'none';
   /** Row zoom as a control: the overview window's top and bottom handles, the scrollbar thumb's ends. */
   readonly verticalZoom: boolean;
   /**
@@ -121,7 +121,7 @@ export interface RenderProps extends ViewportProps {
    * The data columns' heads: `shared`, on the last pinned entry's line, a row reserved above the first scrolled entry
    * only when nothing is pinned; `ownRow`, always a row of their own there, never a track's line.
    */
-  readonly dataColumnHeads: "shared" | "ownRow";
+  readonly dataColumnHeads: 'shared' | 'ownRow';
   /** The least data area, CSS px, data columns leave: they yield from the last below it; 0: never. */
   readonly dataFloor: number;
   /**
@@ -147,7 +147,7 @@ export const DefaultRenderProps: RenderProps = {
   wrappedTrackGap: 2,
   wrappedLaneHeight: 5,
   wrappedInset: 8,
-  wrappedGroupLabels: "aboveEnd",
+  wrappedGroupLabels: 'aboveEnd',
   labelFontPx: 12,
   maxLetterPx: 0,
   controlWidth: 0,
@@ -160,12 +160,12 @@ export const DefaultRenderProps: RenderProps = {
   reductions: true,
   blit: true,
   verticalOverview: 0,
-  verticalNav: "scrollbar",
+  verticalNav: 'scrollbar',
   verticalZoom: false,
   ringGap: 2,
   hubRadius: 0.35,
   labelRing: true,
-  dataColumnHeads: "shared",
+  dataColumnHeads: 'shared',
   dataFloor: 64,
   hoverEmphasis: true,
 };
@@ -174,9 +174,9 @@ export const DefaultRenderProps: RenderProps = {
 const OVERVIEW_WIDTH = 72;
 /** The vertical overview's width: its px when `verticalNav` shows the map. */
 const overviewWidth = (p: RenderProps) =>
-  p.verticalNav === "overview" || p.verticalNav === "both" ? p.verticalOverview : 0;
+  p.verticalNav === 'overview' || p.verticalNav === 'both' ? p.verticalOverview : 0;
 /** Whether a `box` section's rows get a scrollbar when they overflow. */
-export const hasScrollbar = (p: RenderProps) => p.verticalNav === "scrollbar" || p.verticalNav === "both";
+export const hasScrollbar = (p: RenderProps) => p.verticalNav === 'scrollbar' || p.verticalNav === 'both';
 
 /**
  * Render props over the defaults, in one shape: a clone of the defaults assigned over (a spread of two records can
@@ -216,7 +216,7 @@ export function sectionProps(
 ): RenderProps {
   const out = mergeProps(host, preset, inline) as { -readonly [K in keyof RenderProps]: RenderProps[K] };
   // A document asking for the map gets one where its preset gives the map no width.
-  if (inline?.verticalNav && inline.verticalNav !== "scrollbar" && out.verticalOverview === 0)
+  if (inline?.verticalNav && inline.verticalNav !== 'scrollbar' && out.verticalOverview === 0)
     out.verticalOverview = OVERVIEW_WIDTH;
   // Clamped, then each size that follows another derived from it clamped (the letters' cap from the header labels', the
   // text layout's letters from the cap), then clamped again: a clamp of `labelFontPx` reaches the cap it gives, the
@@ -231,7 +231,7 @@ export function sectionProps(
   return out;
 }
 /** The sizes 0 leaves to follow another (`letterCap`, `wrappedFontPx`). */
-const FOLLOWING: readonly string[] = ["maxLetterPx", "wrappedFontPx"];
+const FOLLOWING: readonly string[] = ['maxLetterPx', 'wrappedFontPx'];
 function bound(out: { -readonly [K in keyof RenderProps]: RenderProps[K] }, clamp: RenderClamp | null, auto: boolean) {
   const skip = (k: string) => auto && out[k as NumericRenderProp] === 0 && FOLLOWING.includes(k);
   for (const [k, v] of Object.entries(clamp?.min ?? {}))
@@ -604,10 +604,10 @@ export interface SplitFeatures {
   } | null;
 }
 
-const TEXT_COLUMN = { name: "text", width: COLUMN_WIDTH } as ColumnRenderer;
+const TEXT_COLUMN = { name: 'text', width: COLUMN_WIDTH } as ColumnRenderer;
 /** A data column type's renderer, else `text`'s: layout and prepare resolve it alike. */
 export function columnOf(registry: SeqViewerRegistry, type: string): ColumnRenderer {
-  return registry.get("columns", type) ?? registry.get("columns", "text") ?? TEXT_COLUMN;
+  return registry.get('columns', type) ?? registry.get('columns', 'text') ?? TEXT_COLUMN;
 }
 
 export interface LayoutManager {
@@ -776,7 +776,7 @@ export class Layouts implements LayoutManager {
   hitTest(section: number | string, x: number, y: number, out: Hit): boolean {
     out.x = x;
     out.y = y;
-    return this.hitEntry(typeof section === "number" ? this.current[section] : this.map.get(section), out);
+    return this.hitEntry(typeof section === 'number' ? this.current[section] : this.map.get(section), out);
   }
   hitTestAt(section: number, out: Hit): boolean {
     return this.hitEntry(this.current[section], out);
@@ -789,7 +789,7 @@ export class Layouts implements LayoutManager {
       out.section = e ? e.index : -1;
       return false;
     }
-    const residue = this.host.config.get(SeqViewerConfig.UI.OwnRowHover) === "residue";
+    const residue = this.host.config.get(SeqViewerConfig.UI.OwnRowHover) === 'residue';
     return hitTest(e, this.synced(e), this.host.registry, out, this.host.stream ?? null, residue);
   }
 
@@ -883,8 +883,8 @@ export class Layouts implements LayoutManager {
     e.preset = preset;
     const clamp = this.host.config.get(SeqViewerConfig.Render.Clamp);
     const props = sectionProps(this.host.renderProps.value, preset?.render, v.sections.render[i], clamp);
-    const wrapped = preset?.geometry ? preset.geometry === "wrapped" : v.layout === Layout.text;
-    const circular = preset?.geometry === "circular" && !wrapped;
+    const wrapped = preset?.geometry ? preset.geometry === 'wrapped' : v.layout === Layout.text;
+    const circular = preset?.geometry === 'circular' && !wrapped;
     e.rowsLayer = wrapped ? -1 : rowsLayer(v, set, i);
     const nav = navigatorOf(this.host.registry, preset?.navigator);
     e.navigator = e.drawnNavigator = nav;
@@ -915,11 +915,11 @@ export class Layouts implements LayoutManager {
     lefts[0] = x + props.gutterLeft;
     columns.forEach((c, k) => {
       l.columnX[k] = x;
-      x += l.columnWidth[k] = this.column(e, String(c.type ?? "text")).width;
+      x += l.columnWidth[k] = this.column(e, String(c.type ?? 'text')).width;
       lefts[k + 1] = x + props.gutterLeft;
     });
     // Wrapped, the gutter holds the lines' numbers, drawn only without group labels: else no width.
-    const gutter = props.wrappedGroupLabels === "none" ? props.wrappedGutter : 0;
+    const gutter = props.wrappedGroupLabels === 'none' ? props.wrappedGutter : 0;
     if (wrapped) lefts[0] = props.headerWidth + props.wrappedInset + gutter;
     ax.lefts = lefts;
     ax.reserve = rightOf(props, wrapped) + overviewWidth(props);
@@ -931,7 +931,7 @@ export class Layouts implements LayoutManager {
     if (vp0 && vp0.width > 0) ax.fitWidth(vp0.width);
     l.columnCount = ax.columnsShown;
     if (wrapped)
-      ax.fixedCell = this.host.text.cell(this.host.text.font("mono", props.wrappedFontPx), alphabetOf(ax, 0));
+      ax.fixedCell = this.host.text.cell(this.host.text.font('mono', props.wrappedFontPx), alphabetOf(ax, 0));
     ax.entriesIn = e.entriesIn;
     ax.rows = l.rows;
     ax.ensure = e.ensure;
@@ -952,7 +952,7 @@ export class Layouts implements LayoutManager {
     const r = columnOf(this.host.registry, type);
     if (r.name !== type && !this.reported.has(`${e.ref}|column ${type}`)) {
       this.reported.add(`${e.ref}|column ${type}`);
-      this.host.report("svs.render.fallback", `section "${e.ref}": no data column type "${type}"; drawn as "text"`);
+      this.host.report('svs.render.fallback', `section "${e.ref}": no data column type "${type}"; drawn as "text"`);
     }
     return r;
   }
@@ -966,12 +966,12 @@ export class Layouts implements LayoutManager {
     const fallback = v.layout === Layout.text ? defaults.text : columns ? defaults.columns : defaults.blocks;
     const key =
       this.host.ui.style.value.get(ref) ?? (style ? (c.get(SeqViewerConfig.Presets.Alias)[style] ?? style) : fallback);
-    const found = this.host.registry.get("presets", key);
+    const found = this.host.registry.get('presets', key);
     if (!found && key !== fallback && !this.reported.has(`${ref}|${key}`)) {
       this.reported.add(`${ref}|${key}`);
-      this.host.report("svs.render.preset", `section "${ref}": no preset "${key}"; drawn with "${fallback}"`);
+      this.host.report('svs.render.preset', `section "${ref}": no preset "${key}"; drawn with "${fallback}"`);
     }
-    return found ?? this.host.registry.get("presets", fallback) ?? null;
+    return found ?? this.host.registry.get('presets', fallback) ?? null;
   }
 
   private dirtyAll() {
@@ -1098,7 +1098,7 @@ export class Layouts implements LayoutManager {
     if (e.index >= 0) this.host.rebuilt?.(e.index);
   }
   /** A built or rescaled layout given out: the viewport's rows, the live layout, the visible rows. */
-  private published(e: SectionEntry, vp: ReturnType<Viewports["get"]>, s: ViewportState | undefined) {
+  private published(e: SectionEntry, vp: ReturnType<Viewports['get']>, s: ViewportState | undefined) {
     const l = e.layout;
     if (vp) {
       ROWS[0] = l.scrolledHeight;
@@ -1154,7 +1154,7 @@ export class Layouts implements LayoutManager {
       e.rail && linearSide
         ? items.find((t) => t >= 0 && isPinned(v, model.set, t) && isRuler(v, model.set, t))
         : undefined;
-    const fallback = e.rail && ruler === undefined ? (this.host.registry.get("navigators", "rail") ?? null) : null;
+    const fallback = e.rail && ruler === undefined ? (this.host.registry.get('navigators', 'rail') ?? null) : null;
     e.drawnNavigator = fallback ?? e.navigator;
     l.navHeight = e.rail ? (fallback?.height(p) ?? 0) : e.nav;
     l.railEntry = -1;
@@ -1176,7 +1176,7 @@ export class Layouts implements LayoutManager {
     // Data columns' heads are a band directly above the first scrolled entry: the last pinned entry's line when they
     // share it, else a row of their own.
     l.headsTop = l.headsHeight = 0;
-    if (l.columnCount > 0 && pinned > 0 && p.dataColumnHeads === "shared") {
+    if (l.columnCount > 0 && pinned > 0 && p.dataColumnHeads === 'shared') {
       l.headsTop = l.entryTop[pinned - 1];
       l.headsHeight = l.entryHeight[pinned - 1];
     } else if (l.columnCount > 0) {
@@ -1248,7 +1248,7 @@ export class Layouts implements LayoutManager {
     const first = l.pinnedCount < l.entryCount ? l.entryTrack[l.pinnedCount] : -1;
     const ruler = first >= 0 && isRuler(model.resolved, model.set, first);
     const t = this.host.text;
-    const widest = ruler ? Math.ceil(t.numberWidth(t.font("ui", 11), Math.max(1, e.axis?.cells ?? 1))) : 0;
+    const widest = ruler ? Math.ceil(t.numberWidth(t.font('ui', 11), Math.max(1, e.axis?.cells ?? 1))) : 0;
     let margin = !p.labelRing ? BOTTOM : ruler ? widest + 2 * RING_LABEL_GAP : RING_LABELS;
     const across = items ? Math.min(width - 2 * side, box - 2 * RING_ITEM_TOP) : Math.min(width, box);
     for (let pass = 0; pass < (ruler && p.labelRing ? 2 : 1); pass++) {
@@ -1280,7 +1280,7 @@ export class Layouts implements LayoutManager {
       for (let k = l.entryLayer[e]; t >= 0 && k >= 0 && k < rv.layers.count && rv.layers.track[k] === t; k++)
         if (
           rv.layers.params[k].labels === true &&
-          this.host.registry.get("renderers", model.prepared[k]?.renderer ?? "")?.ringLabels
+          this.host.registry.get('renderers', model.prepared[k]?.renderer ?? '')?.ringLabels
         )
           return true;
     }
@@ -1429,7 +1429,7 @@ export class Layouts implements LayoutManager {
     const p = e.props;
     if (!e.runs) {
       const runs: PreparedRun[] = [];
-      const labeler = p.wrappedGroupLabels !== "none" ? this.labeler(e) : null;
+      const labeler = p.wrappedGroupLabels !== 'none' ? this.labeler(e) : null;
       for (let b = 0; b < ax.count; b++) runs.push(prepareRun(b, ax, ax.fixedCell, p.wrappedGroup, labeler));
       e.runs = runs;
       e.runsText = this.host.text.version.value;
@@ -1442,7 +1442,7 @@ export class Layouts implements LayoutManager {
     // A track that draws nothing wrapped (a ruler, omitted layers) takes no entries; `aboveEnd` puts a band for the
     // group labels above each line.
     const all = items.filter((t) => t >= 0);
-    const above = p.wrappedGroupLabels === "aboveEnd" ? groupLabelBand(p.wrappedFontPx) : 0;
+    const above = p.wrappedGroupLabels === 'aboveEnd' ? groupLabelBand(p.wrappedFontPx) : 0;
     if (e.bands.length < all.length * n) e.bands = new Float32Array(2 * all.length * n);
     e.view.axis = ax;
     e.view.runs = e.runs;
@@ -1485,8 +1485,8 @@ export class Layouts implements LayoutManager {
     const ax = e.axis as Axis;
     const b0 = v.sections.blockStart[e.index];
     const tm = this.host.text;
-    const font = tm.font("mono", groupLabelPx(e.props.wrappedFontPx));
-    const pad = e.props.wrappedGroupLabels === "inlineStart" ? GROUP_LABEL_PAD : 0;
+    const font = tm.font('mono', groupLabelPx(e.props.wrappedFontPx));
+    const pad = e.props.wrappedGroupLabels === 'inlineStart' ? GROUP_LABEL_PAD : 0;
     return {
       inline: pad > 0,
       text: (b, k) => positionLabel(v, set, ax, b0, b, k),
@@ -1526,10 +1526,10 @@ export class Layouts implements LayoutManager {
         nothing = false;
         continue;
       }
-      const type = v.layers.type[k] >= 0 ? set.strings.get(v.layers.type[k]) : "";
-      if (type === "" || type === "ruler") continue;
+      const type = v.layers.type[k] >= 0 ? set.strings.get(v.layers.type[k]) : '';
+      if (type === '' || type === 'ruler') continue;
       nothing = false;
-      fixed = Math.max(fixed, type === "letters" ? Math.ceil(p.wrappedFontPx * 1.6) : p.rowHeight);
+      fixed = Math.max(fixed, type === 'letters' ? Math.ceil(p.wrappedFontPx * 1.6) : p.rowHeight);
     }
     // A layer with per-line heights shares the band with the fixed ones (letters and their emphasis).
     for (let i = 0; i < lines; i++) out[at + i] = Math.max(out[at + i], fixed);
@@ -1582,7 +1582,7 @@ export class Layouts implements LayoutManager {
 
   private renderer(v: ResolvedView, set: SeqSet, layer: number): LayerRenderer | undefined {
     const type = v.layers.type[layer];
-    return type >= 0 ? this.host.registry.get("renderers", set.strings.get(type)) : undefined;
+    return type >= 0 ? this.host.registry.get('renderers', set.strings.get(type)) : undefined;
   }
 
   /**
@@ -1650,13 +1650,13 @@ const NO_RUNS: readonly PreparedRun[] = [];
  * numbering. The group labels' and the wrapped gutter's, formatted once per group or line.
  */
 export function positionLabel(v: ResolvedView, set: SeqSet, ax: Axis, b0: number, b: number, k: number): string {
-  if (v.blocks.ligand[b0 + b]) return "";
+  if (v.blocks.ligand[b0 + b]) return '';
   const i = ax.indexOf(b, k as ShownIndex);
   const n = v.blocks.numbering[b0 + b];
   if (!n) return String(i + 1);
   const path = v.paths[v.blocks.numberingPath[b0 + b]];
   const j = path ? sourceAt(path, i) : i;
-  return j < 0 ? "" : Numbering.format(n, j as never, set.strings);
+  return j < 0 ? '' : Numbering.format(n, j as never, set.strings);
 }
 
 /**
@@ -1680,7 +1680,7 @@ const typeIs = (v: ResolvedView, set: SeqSet, k: number, name: string) =>
 /** The track's `rows` layer; -1: none. */
 function rowsOf(v: ResolvedView, set: SeqSet, t: number): number {
   for (let k = firstLayer(v, t); k >= 0 && k < v.layers.count && v.layers.track[k] === t; k++)
-    if (typeIs(v, set, k, "rows")) return k;
+    if (typeIs(v, set, k, 'rows')) return k;
   return -1;
 }
 /** The section's first `rows` layer on a shown track. */
@@ -1703,7 +1703,7 @@ function isRuler(v: ResolvedView, set: SeqSet, t: number): boolean {
   let any = false;
   for (let k = firstLayer(v, t); k >= 0 && k < v.layers.count && v.layers.track[k] === t; k++) {
     if (v.layers.type[k] < 0) continue;
-    if (!typeIs(v, set, k, "ruler")) return false;
+    if (!typeIs(v, set, k, 'ruler')) return false;
     any = true;
   }
   return any;

@@ -22,8 +22,8 @@ export function prng(seed: number): () => number {
   };
 }
 
-const AMINO = "ACDEFGHIKLMNPQRSTVWY";
-const dna = (rand: () => number, n: number) => Array.from({ length: n }, () => "ACGT"[(rand() * 4) | 0]).join("");
+const AMINO = 'ACDEFGHIKLMNPQRSTVWY';
+const dna = (rand: () => number, n: number) => Array.from({ length: n }, () => 'ACGT'[(rand() * 4) | 0]).join('');
 
 export interface AlignmentFixture {
   readonly length: number;
@@ -40,9 +40,9 @@ export function alignment(o: { rows?: number; length?: number; seed?: number } =
   const rand = prng(seed);
   const root = Array.from({ length }, () => AMINO[(rand() * 20) | 0]);
   const rows = Array.from({ length: count }, () =>
-    root.map((c) => (rand() < 0.08 ? "-" : rand() < 0.15 ? AMINO[(rand() * 20) | 0] : c)).join(""),
+    root.map((c) => (rand() < 0.08 ? '-' : rand() < 0.15 ? AMINO[(rand() * 20) | 0] : c)).join(''),
   );
-  const bound = [0, count >> 1].map((row) => ({ row, sequence: rows[row].replaceAll("-", "") }));
+  const bound = [0, count >> 1].map((row) => ({ row, sequence: rows[row].replaceAll('-', '') }));
   return { length, labels: rows.map((_, i) => `seq${i}`), rows, bound };
 }
 
@@ -66,8 +66,8 @@ const CODON: Record<string, string> = {
 export function gene(o: { exons?: number; span?: number; residues?: number; seed?: number } = {}): GeneFixture {
   const { exons: count = 79, span = 2_220_000, residues = 3685, seed = 2 } = o;
   const rand = prng(seed);
-  const protein = `M${Array.from({ length: residues - 1 }, () => AMINO[(rand() * 20) | 0]).join("")}`;
-  const cds = `${[...protein].map((c) => CODON[c]).join("")}TAA`;
+  const protein = `M${Array.from({ length: residues - 1 }, () => AMINO[(rand() * 20) | 0]).join('')}`;
+  const cds = `${[...protein].map((c) => CODON[c]).join('')}TAA`;
   // The CDS cut into `count` pieces of random size, laid along the span with an intron before each exon.
   const cuts = Array.from({ length: count - 1 }, () => (rand() * cds.length) | 0).sort((a, b) => a - b);
   const pieces = [0, ...cuts, cds.length].slice(0, -1).map((s, i, a) => cds.slice(s, a[i + 1] ?? cds.length));
@@ -82,7 +82,7 @@ export function gene(o: { exons?: number; span?: number; residues?: number; seed
     at += p.length;
     return e;
   });
-  return { dna: parts.join(""), exons, cds, protein };
+  return { dna: parts.join(''), exons, cds, protein };
 }
 
 export interface TableFixture {
@@ -111,5 +111,5 @@ export function table(o: { rows?: number; seed?: number } = {}): TableFixture {
     value[i] = rand();
     category[i] = (rand() * 5) | 0;
   }
-  return { rows, categories: ["A", "B", "C", "D", "E"], start, stop, value, category };
+  return { rows, categories: ['A', 'B', 'C', 'D', 'E'], start, stop, value, category };
 }

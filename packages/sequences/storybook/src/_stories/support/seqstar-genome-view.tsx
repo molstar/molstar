@@ -19,24 +19,24 @@ import {
   register,
   type SeqViewSpecDoc,
   validate,
-} from "@molstar/seq-core/format";
+} from '@molstar/seq-core/format';
 import {
   createSeqViewer,
   DefaultRegistry,
   DefaultSeqViewerSpec,
   SeqViewerConfig,
   type SeqViewerConfigItem,
-} from "@molstar/seq-viewer";
-import { windowScheduler } from "@molstar/seq-viewer/canvas";
-import { SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
-import { genomeDoc, synthGenome } from "../../../../core/_test/format/genome-fixture.js";
-import SOURCE from "../../../../core/_test/format/genome-fixture.ts?raw";
-import { PROBE, TIMED } from "../../../../viewer/_test/canvas/genome-probe.js";
-import { PrismPage } from "../support/seqstar-prism.js";
-import { Choices, TextAction } from "../ui/index.js";
-import f from "./seqstar-format.module.css";
-import { PrismCanvas, prism } from "./seqstar-prism.js";
+} from '@molstar/seq-viewer';
+import { windowScheduler } from '@molstar/seq-viewer/canvas';
+import { SeqViewerLayout, SeqViewerProvider } from '@molstar/seq-viewer/react';
+import { type CSSProperties, useEffect, useMemo, useState } from 'react';
+import { genomeDoc, synthGenome } from '../../../../core/_test/format/genome-fixture.js';
+import SOURCE from '../../../../core/_test/format/genome-fixture.ts?raw';
+import { PROBE, TIMED } from '../../../../viewer/_test/canvas/genome-probe.js';
+import { PrismPage } from '../support/seqstar-prism.js';
+import { Choices, TextAction } from '../ui/index.js';
+import f from './seqstar-format.module.css';
+import { PrismCanvas, prism } from './seqstar-prism.js';
 import {
   BuilderCode,
   type Mounted,
@@ -45,16 +45,16 @@ import {
   STORY_CHROME,
   type UiChoice,
   useStoryUi,
-} from "./seqstar-viewer.js";
+} from './seqstar-viewer.js';
 
-const SECTION = "genome.main";
+const SECTION = 'genome.main';
 (globalThis as { __genome?: typeof PROBE }).__genome = PROBE;
 /** Everything is by value: a load is a bug, never a fetch. */
-const NO_LOADS: Loaders = { load: () => Promise.reject(new Error("the genome story loads nothing")) };
+const NO_LOADS: Loaders = { load: () => Promise.reject(new Error('the genome story loads nothing')) };
 
 export interface GenomeChoice {
   readonly proteins: number;
-  readonly gcTable: "one" | "each";
+  readonly gcTable: 'one' | 'each';
 }
 interface Built {
   readonly doc: SeqViewSpecDoc;
@@ -129,7 +129,7 @@ function useGenome(doc: SeqViewSpecDoc, navigator: NavigatorChoice) {
         surface.composer.redraw();
         surface.invalidate(7);
         surface.renderNow();
-        surface.element.querySelector("canvas")?.getContext("2d")?.getImageData(0, 0, 1, 1);
+        surface.element.querySelector('canvas')?.getContext('2d')?.getImageData(0, 0, 1, 1);
         setLoad({
           graphMs,
           firstFrameMs,
@@ -166,17 +166,17 @@ async function phases(doc: SeqViewSpecDoc) {
   return { validateMs: t1 - t0, compileMs: t2 - t1, issues: issues.length + c.issues.length };
 }
 
-const ms = (x: number) => `${Math.round(x).toLocaleString("en-US")} ms`;
+const ms = (x: number) => `${Math.round(x).toLocaleString('en-US')} ms`;
 const PROTEINS = [0, 30, 300] as const;
 
 export function GenomeView({ navigator, ui }: { navigator: NavigatorChoice; ui: UiChoice }) {
-  const [choice, setChoice] = useState<GenomeChoice>({ proteins: 300, gcTable: "each" });
+  const [choice, setChoice] = useState<GenomeChoice>({ proteins: 300, gcTable: 'each' });
   const b = useMemo(() => built(choice), [choice]);
   const { m, load } = useGenome(b.doc, navigator);
   const spec = useStoryUi(m);
-  const [timed, setTimed] = useState<string>("");
-  const style = { "--seq-section-max-height": "720px" } as CSSProperties;
-  const dpr = typeof window === "undefined" ? 1 : window.devicePixelRatio;
+  const [timed, setTimed] = useState<string>('');
+  const style = { '--seq-section-max-height': '720px' } as CSSProperties;
+  const dpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio;
   return (
     <PrismPage
       title="A genome at scale: 3,000,000 nucleotides on one axis"
@@ -190,8 +190,8 @@ export function GenomeView({ navigator, ui }: { navigator: NavigatorChoice; ui: 
     >
       <BuilderCode
         source={{
-          code: SOURCE.slice(SOURCE.indexOf("// #region genome\n") + 18, SOURCE.indexOf("// #endregion")).trimEnd(),
-          uses: "The data from synthGenome (core/_test/format/genome-fixture.ts): a seeded PRNG, no network",
+          code: SOURCE.slice(SOURCE.indexOf('// #region genome\n') + 18, SOURCE.indexOf('// #endregion')).trimEnd(),
+          uses: 'The data from synthGenome (core/_test/format/genome-fixture.ts): a seeded PRNG, no network',
         }}
       />
       <div className={prism.controls}>
@@ -209,11 +209,11 @@ export function GenomeView({ navigator, ui }: { navigator: NavigatorChoice; ui: 
           <Choices
             label="GC"
             choices={[
-              { id: "each", label: "a table per chromosome" },
-              { id: "one", label: "one table, a target per row" },
+              { id: 'each', label: 'a table per chromosome' },
+              { id: 'one', label: 'one table, a target per row' },
             ]}
             active={choice.gcTable}
-            onPick={(id) => setChoice({ ...choice, gcTable: id as "each" | "one" })}
+            onPick={(id) => setChoice({ ...choice, gcTable: id as 'each' | 'one' })}
           />
         </div>
       </div>
@@ -228,7 +228,7 @@ export function GenomeView({ navigator, ui }: { navigator: NavigatorChoice; ui: 
         ) : (
           <div className={f.status}>Loading…</div>
         )}
-        {ui === "DOM" && <div className={f.code}>This story draws the React UI only.</div>}
+        {ui === 'DOM' && <div className={f.code}>This story draws the React UI only.</div>}
       </section>
       <div className={f.code}>
         {`Window ${window.innerWidth} × ${window.innerHeight} CSS px, DPR ${dpr}. Synthesis ${ms(b.synthMs)}, builder ${ms(b.builderMs)}. `}
@@ -237,8 +237,8 @@ export function GenomeView({ navigator, ui }: { navigator: NavigatorChoice; ui: 
               load.prepare,
             )
               .map(([k, v]) => `${k} ${ms(v)}`)
-              .join(", ")}.`
-          : "Loading…"}
+              .join(', ')}.`
+          : 'Loading…'}
       </div>
       <div className={f.row}>
         <TextAction tone="quiet" onClick={() => void phases(b.doc).then((r) => setTimed(JSON.stringify(r)))}>

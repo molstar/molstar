@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { MolstarDemo } from "./support/seqstar-molstar.js";
-import { PrismPage } from "./support/seqstar-prism.js";
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { MolstarDemo } from './support/seqstar-molstar.js';
+import { PrismPage } from './support/seqstar-prism.js';
 
 /**
  * The Mol* adapter: P04637 in the Seq* viewer beside a Mol* canvas. The structures are complexes of the document,
@@ -21,12 +21,12 @@ import { PrismPage } from "./support/seqstar-prism.js";
  * reaches the structure through the link: `molql` runs a PyMOL selection in Mol* (`molstarQueryExtension`), and Mol*'s
  * selection is the `structure` input.
  */
-const meta = { title: "Seq*/Cases/Mol*", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Cases/Mol*', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj;
 
 export const P53: Story = {
-  name: "p53: sequence and structure",
+  name: 'p53: sequence and structure',
   render: (_args, { globals }) => (
     <PrismPage
       title="p53: sequence and structure"
@@ -49,7 +49,7 @@ export const P53: Story = {
         </>
       }
     >
-      <MolstarDemo theme={globals.theme === "dark" || globals.theme === "blue" ? globals.theme : "light"} />
+      <MolstarDemo theme={globals.theme === 'dark' || globals.theme === 'blue' ? globals.theme : 'light'} />
     </PrismPage>
   ),
 };

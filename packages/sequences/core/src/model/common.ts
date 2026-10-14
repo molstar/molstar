@@ -8,27 +8,27 @@
 
 // Numbers, strings, issues, provenance and custom data (seqspec:model#custom-data). `-1` means none for every brand.
 
-import type { SeqSet } from "./set.js";
+import type { SeqSet } from './set.js';
 
-export type Brand<T, B extends string> = T & { readonly "@type": B };
+export type Brand<T, B extends string> = T & { readonly '@type': B };
 /** A position in a sequence, 0..length-1. */
-export type SeqIndex = Brand<number, "seq-index">;
+export type SeqIndex = Brand<number, 'seq-index'>;
 /** Between positions, 0..length. */
-export type BoundaryIndex = Brand<number, "boundary">;
-export type ColumnIndex = Brand<number, "column">;
+export type BoundaryIndex = Brand<number, 'boundary'>;
+export type ColumnIndex = Brand<number, 'column'>;
 /** An alignment row, 0..rowCount-1. */
-export type RowIndex = Brand<number, "row">;
+export type RowIndex = Brand<number, 'row'>;
 /** A sequence or a ligand. */
-export type MoleculeId = Brand<number, "molecule">;
-export type UnitId = Brand<number, "unit">;
-export type ComplexId = Brand<number, "complex">;
-export type GroupId = Brand<number, "copyGroup">;
-export type AlignmentId = Brand<number, "alignment">;
-export type AnnotationId = Brand<number, "annotation">;
-export type MappingId = Brand<number, "mapping">;
-export type ItemIndex = Brand<number, "item">;
+export type MoleculeId = Brand<number, 'molecule'>;
+export type UnitId = Brand<number, 'unit'>;
+export type ComplexId = Brand<number, 'complex'>;
+export type GroupId = Brand<number, 'copyGroup'>;
+export type AlignmentId = Brand<number, 'alignment'>;
+export type AnnotationId = Brand<number, 'annotation'>;
+export type MappingId = Brand<number, 'mapping'>;
+export type ItemIndex = Brand<number, 'item'>;
 /** An interned string. */
-export type NameId = Brand<number, "name">;
+export type NameId = Brand<number, 'name'>;
 
 /**
  * Each distinct string once; append-only, shared by every version of one lineage (seqspec:model#identity-and-lineage).
@@ -50,7 +50,7 @@ export class StringTable {
   }
   /** `""` for -1. */
   get(id: number): string {
-    return id < 0 ? "" : (this.values[id] ?? "");
+    return id < 0 ? '' : (this.values[id] ?? '');
   }
   /** -1 when absent. */
   find(s: string): NameId {
@@ -62,7 +62,7 @@ export class StringTable {
  * An issue's severity (seqspec:format#validation): `error` invalid input, `warning` a loss the person should know
  * about, `info` a quiet note on how valid input was read.
  */
-export type Severity = "error" | "warning" | "info";
+export type Severity = 'error' | 'warning' | 'info';
 
 /** The one shape every package reports. `path` is a JSON pointer into the input. */
 export interface Issue {
@@ -73,9 +73,9 @@ export interface Issue {
 }
 
 export const Issue = {
-  error: (code: string, path: string, message: string): Issue => ({ code, severity: "error", path, message }),
-  warning: (code: string, path: string, message: string): Issue => ({ code, severity: "warning", path, message }),
-  info: (code: string, path: string, message: string): Issue => ({ code, severity: "info", path, message }),
+  error: (code: string, path: string, message: string): Issue => ({ code, severity: 'error', path, message }),
+  warning: (code: string, path: string, message: string): Issue => ({ code, severity: 'warning', path, message }),
+  info: (code: string, path: string, message: string): Issue => ({ code, severity: 'info', path, message }),
 };
 
 /** seqspec:format#positions; `method` an open vocabulary, `confidence` NaN when not stated. */

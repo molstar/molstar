@@ -14,13 +14,13 @@
 // read gives the upper-case codes held and 0 elsewhere; at letter zoom the letters renderer draws exactly the region's
 // letters, thin cells below it, and nothing where no region is held.
 
-import { type StreamedData, StreamProp } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { GRCH38, letterAt } from "../../core/_test/format/stream-provider.js";
-import { RegionState } from "../src/index.js";
-import { LETTERS_PER_PX, type Streams } from "../src/streams.js";
-import { composed, recording, textsOf } from "./composer-fixtures.js";
-import { GENOME, MaxInFlight, openGenome, type StreamedGenome, streamedDoc } from "./stream-fixtures.js";
+import { type StreamedData, StreamProp } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { GRCH38, letterAt } from '../../core/_test/format/stream-provider.js';
+import { RegionState } from '../src/index.js';
+import { LETTERS_PER_PX, type Streams } from '../src/streams.js';
+import { composed, recording, textsOf } from './composer-fixtures.js';
+import { GENOME, MaxInFlight, openGenome, type StreamedGenome, streamedDoc } from './stream-fixtures.js';
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const THREE = GRCH38.slice(0, 3);
@@ -32,11 +32,11 @@ const R0 = Math.floor(AT / SPAN);
 const upper = (s: number, x: number) => letterAt(s, x).toUpperCase().charCodeAt(0);
 
 /** The letters layer's ref in the shown view. */
-function lettersRef(t: { ctx: StreamedGenome["ctx"] }): string {
+function lettersRef(t: { ctx: StreamedGenome['ctx'] }): string {
   const m = t.ctx.graph.assembled.value?.view;
   for (let k = 0; m && k < m.resolved.layers.count; k++)
-    if (m.set.strings.get(m.resolved.layers.type[k]) === "letters") return m.set.strings.get(m.resolved.layers.ref[k]);
-  throw new Error("no letters layer");
+    if (m.set.strings.get(m.resolved.layers.type[k]) === 'letters') return m.set.strings.get(m.resolved.layers.ref[k]);
+  throw new Error('no letters layer');
 }
 async function genome(gated = true) {
   const t = await openGenome({ chromosomes: THREE, gated, letters: true, doc: streamedDoc({ sequence: true }) });
@@ -60,7 +60,7 @@ async function drain(t: StreamedGenome) {
   }
 }
 
-describe("requests: the data only, within the letters gate", () => {
+describe('requests: the data only, within the letters gate', () => {
   it("none at the whole view or at 100 kb; at 10 kb the view's regions from the center out, then the margin", async () => {
     const t = await genome();
     const ref = lettersRef(t);
@@ -70,16 +70,16 @@ describe("requests: the data only, within the letters gate", () => {
     expect(t.manager.state(ref, CHR2, AT)).toBe(RegionState.empty);
     show(t, CHR2, AT, AT + 10_000);
     const asked = t.streams.genome.requests;
-    expect(asked.every((r) => r.level === -1 && r.system === "chr2" && r.stop - r.start === SPAN)).toBe(true);
-    const view = asked.filter((r) => r.priority === "view").map((r) => r.start / SPAN);
-    const margin = asked.filter((r) => r.priority === "margin").map((r) => r.start / SPAN);
+    expect(asked.every((r) => r.level === -1 && r.system === 'chr2' && r.stop - r.start === SPAN)).toBe(true);
+    const view = asked.filter((r) => r.priority === 'view').map((r) => r.start / SPAN);
+    const margin = asked.filter((r) => r.priority === 'margin').map((r) => r.start / SPAN);
     // The regions over [AT, AT + 10 kb), the one at its middle first; the margin a view width each side.
     const r = (x: number) => Math.floor(x / SPAN);
     expect(view[0]).toBe(r(AT + 5000));
     expect(view.slice().sort()).toEqual(Array.from({ length: r(AT + 9999) - R0 + 1 }, (_, k) => R0 + k));
     expect(Math.min(...margin)).toBe(r(AT - 10_000));
     expect(Math.max(...margin)).toBe(r(AT + 19_999));
-    expect(asked.findIndex((r) => r.priority === "margin")).toBe(view.length);
+    expect(asked.findIndex((r) => r.priority === 'margin')).toBe(view.length);
     expect(t.manager.state(ref, CHR2, AT)).toBe(RegionState.pending);
     await drain(t);
     expect(t.manager.state(ref, CHR2, AT)).toBe(RegionState.loaded);
@@ -107,8 +107,8 @@ describe("requests: the data only, within the letters gate", () => {
   });
 });
 
-describe("`StreamView.letters`", () => {
-  it("the held codes upper case, 0 where no region is held; the count held", async () => {
+describe('`StreamView.letters`', () => {
+  it('the held codes upper case, 0 where no region is held; the count held', async () => {
     const t = await genome();
     const ref = lettersRef(t);
     show(t, CHR2, AT, AT + 10_000);
@@ -119,7 +119,7 @@ describe("`StreamView.letters`", () => {
     const i0 = (R0 + 1) * SPAN - 150;
     expect(st?.letters?.(CHR2, i0, i0 + 300, out)).toBe(300);
     expect(Array.from(out)).toEqual(Array.from({ length: 300 }, (_, j) => upper(CHR2, i0 + j)));
-    expect(new Set(Array.from(out, (c) => String.fromCharCode(c)))).toEqual(new Set("ACGT"));
+    expect(new Set(Array.from(out, (c) => String.fromCharCode(c)))).toEqual(new Set('ACGT'));
     // Far from the view: nothing held, zeros written.
     out.fill(7);
     expect(st?.letters?.(CHR2, 50_000_000, 50_000_300, out)).toBe(0);
@@ -129,11 +129,11 @@ describe("`StreamView.letters`", () => {
   });
 });
 
-describe("drawn from the cache", () => {
+describe('drawn from the cache', () => {
   async function drawn(stop: number, letters = true) {
-    const { hg38Streams } = await import("../../core/_test/format/stream-provider.js");
+    const { hg38Streams } = await import('../../core/_test/format/stream-provider.js');
     const s = hg38Streams({ chromosomes: THREE, letters });
-    const loaders = { load: () => Promise.reject(new Error("none")), stream: s.stream };
+    const loaders = { load: () => Promise.reject(new Error('none')), stream: s.stream };
     const t = await composed(streamedDoc({ sequence: true }), { width: 1000, height: 200, loaders });
     const m = t.ctx.streams as Streams;
     t.vp?.zoomTo(CHR2, AT, AT + stop);
@@ -150,12 +150,12 @@ describe("drawn from the cache", () => {
     // The view's 60 positions and the one the edge cuts.
     const letters = textsOf(frame).filter((x) => /^[ACGTN]$/.test(x));
     expect(letters.length).toBe(61);
-    expect(letters.join("")).toBe(Array.from({ length: 61 }, (_, j) => letterAt(CHR2, AT + j).toUpperCase()).join(""));
+    expect(letters.join('')).toBe(Array.from({ length: 61 }, (_, j) => letterAt(CHR2, AT + j).toUpperCase()).join(''));
     const none = await drawn(60, false);
     expect(textsOf(none.frame).filter((x) => /^[ACGTN]$/.test(x))).toEqual([]);
   });
 
-  it("below letter zoom, cells; past the gate nothing is asked or drawn", async () => {
+  it('below letter zoom, cells; past the gate nothing is asked or drawn', async () => {
     const thin = await drawn(10_000);
     const failed = await drawn(10_000, false);
     expect(thin.frame.rectItems.n).toBeGreaterThan(failed.frame.rectItems.n + 500);
@@ -164,15 +164,15 @@ describe("drawn from the cache", () => {
   });
 });
 
-describe("the hover label", () => {
+describe('the hover label', () => {
   it("names a streamed position's letter once its region is held", async () => {
-    const { driven } = await import("./input-fixtures.js");
-    const { hg38Streams } = await import("../../core/_test/format/stream-provider.js");
-    const { KernelRenderers } = await import("../src/index.js");
+    const { driven } = await import('./input-fixtures.js');
+    const { hg38Streams } = await import('../../core/_test/format/stream-provider.js');
+    const { KernelRenderers } = await import('../src/index.js');
     const s = hg38Streams({ chromosomes: THREE, letters: true, gated: true });
     const t = await driven(streamedDoc({ sequence: true }), {
       renderers: [...KernelRenderers] as never,
-      loaders: { load: () => Promise.reject(new Error("none")), stream: s.stream },
+      loaders: { load: () => Promise.reject(new Error('none')), stream: s.stream },
       size: { [GENOME]: [1000, 200] },
     });
     t.vp(GENOME).zoomTo(CHR2, AT, AT + 60);
@@ -182,10 +182,10 @@ describe("the hover label", () => {
     const h = t.ctx.hover.live.current;
     // Down the data area to the sequence track.
     const label = (k: number) => m?.set.strings.get(m.resolved.tracks.label[k]);
-    for (let y = 1; y < 200 && (h.track < 0 || label(h.track) !== "Sequence"); y += 2)
-      t.pointer("move", GENOME, l.dataLeft + 5, y);
+    for (let y = 1; y < 200 && (h.track < 0 || label(h.track) !== 'Sequence'); y += 2)
+      t.pointer('move', GENOME, l.dataLeft + 5, y);
     const i = h.seq.index as number;
-    const title = () => t.ctx.labels.current.value?.title ?? "";
+    const title = () => t.ctx.labels.current.value?.title ?? '';
     expect(i).toBeGreaterThanOrEqual(AT);
     // Not held: the position's number, no letter.
     expect(title()).toMatch(/^chr2 \d/);
@@ -202,7 +202,7 @@ describe("the hover label", () => {
 });
 
 describe("aside layers (a codon label's letters)", () => {
-  it("two that no lazy molecule reads any longer close in one update, and the update completes (VT-01)", async () => {
+  it('two that no lazy molecule reads any longer close in one update, and the update completes (VT-01)', async () => {
     const t = await openGenome({ chromosomes: THREE, letters: true, doc: streamedDoc({ sequence: true }) });
     t.vp(GENOME).zoomTo(1, 100_040_100, 100_050_100);
     t.layout(GENOME);
@@ -210,7 +210,7 @@ describe("aside layers (a codon label's letters)", () => {
     const model = t.ctx.graph.assembled.value?.view ?? null;
     let data: StreamedData | undefined;
     for (const m of model?.set.molecules ?? []) if (m?.lazy) data = m.custom.props.get(StreamProp) as StreamedData;
-    if (!data) throw new Error("no lazy molecule");
+    if (!data) throw new Error('no lazy molecule');
     // Two streams no molecule of the set reads (another document's, as a hover's codon label before a switch).
     const at = Int32Array.of(5);
     const out = new Uint8Array(1);

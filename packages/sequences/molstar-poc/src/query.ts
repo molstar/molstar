@@ -11,44 +11,44 @@
 // MolScript selection on the linked structure and gives its residues on their Seq* units, and a result back as a
 // Mol* loci. Both directions go through the link (link.ts), so the query and the model know nothing of Mol*.
 
-import { CoordinateSystemKind, Extents } from "@molstar/seq-core/model";
-import { QueryAbort, type QueryExtension, SeqSelection, type SymbolRuntime } from "@molstar/seq-core/model/query";
-import { defineSymbol, queryIssue } from "@molstar/seq-core/query";
+import { CoordinateSystemKind, Extents } from '@molstar/seq-core/model';
+import { QueryAbort, type QueryExtension, SeqSelection, type SymbolRuntime } from '@molstar/seq-core/model/query';
+import { defineSymbol, queryIssue } from '@molstar/seq-core/query';
 import {
   QueryContext as MolQueryContext,
   type QueryFn as MolQueryFn,
   StructureElement,
   StructureSelection,
-} from "molstar/lib/mol-model/structure";
-import { compile } from "molstar/lib/mol-script/runtime/query/compiler";
-import { Script } from "molstar/lib/mol-script/script";
-import { _transpiler } from "molstar/lib/mol-script/transpilers/all";
-import type { StructureLink } from "./link.js";
+} from 'molstar/lib/mol-model/structure';
+import { compile } from 'molstar/lib/mol-script/runtime/query/compiler';
+import { Script } from 'molstar/lib/mol-script/script';
+import { _transpiler } from 'molstar/lib/mol-script/transpilers/all';
+import type { StructureLink } from './link.js';
 
-const LANGS = ["pymol", "vmd", "jmol", "mol-script"] as const;
+const LANGS = ['pymol', 'vmd', 'jmol', 'mol-script'] as const;
 type Lang = (typeof LANGS)[number];
 
 export const MOLSTAR_SELECT = defineSymbol({
-  name: "molstar.select",
-  alias: "molql",
-  kind: "generator",
+  name: 'molstar.select',
+  alias: 'molql',
+  kind: 'generator',
   args: [
-    { name: "S", type: "str", positional: true, doc: 'a selection, as "polymer and (resn ZN around 3)"' },
-    { name: "lang", type: { enum: LANGS }, optional: true, default: "pymol", doc: "its language; default pymol" },
+    { name: 'S', type: 'str', positional: true, doc: 'a selection, as "polymer and (resn ZN around 3)"' },
+    { name: 'lang', type: { enum: LANGS }, optional: true, default: 'pymol', doc: 'its language; default pymol' },
   ],
-  result: "query",
+  result: 'query',
   signature: '(molql "S" :lang L)',
-  doc: "the residues Mol* selects in the structure shown in 3D, on their sequences, one group",
+  doc: 'the residues Mol* selects in the structure shown in 3D, on their sequences, one group',
   examples: [{ text: '(onto (molql "polymer and (resn ZN around 3)") p53)', says: "the zinc site's residues on p53" }],
-  hints: [{ code: "seqql.symbol.unavailable", text: "it runs where a structure is shown in 3D and linked" }],
+  hints: [{ code: 'seqql.symbol.unavailable', text: 'it runs where a structure is shown in 3D and linked' }],
 });
 
 /** The definition alone: a host without Mol* checks and documents `molql`, and a run says it is unavailable. */
-export const MOLSTAR_QUERY_SYMBOLS: QueryExtension = { namespace: "molstar", symbols: [MOLSTAR_SELECT] };
+export const MOLSTAR_QUERY_SYMBOLS: QueryExtension = { namespace: 'molstar', symbols: [MOLSTAR_SELECT] };
 
 /** A selection's text as a Mol* query; throws Mol*'s parse or compile error. */
 function molQuery(text: string, lang: Lang): MolQueryFn<StructureSelection> {
-  const expr = lang === "mol-script" ? Script.toExpression(Script(text, lang)) : _transpiler[lang](text);
+  const expr = lang === 'mol-script' ? Script.toExpression(Script(text, lang)) : _transpiler[lang](text);
   return compile<StructureSelection>(expr);
 }
 
@@ -60,17 +60,17 @@ export function molstarQueryExtension(link: () => StructureLink | null): QueryEx
   const runtime: SymbolRuntime = {
     symbol: MOLSTAR_SELECT,
     compile: (c) => {
-      const text = c.raw<string>("0") ?? "";
-      const lang = c.raw<Lang>("lang") ?? "pymol";
+      const text = c.raw<string>('0') ?? '';
+      const lang = c.raw<Lang>('lang') ?? 'pymol';
       let query: MolQueryFn<StructureSelection>;
       try {
         query = molQuery(text, lang);
       } catch (e) {
-        const why = (e instanceof Error ? e.message : String(e)).split("\n")[0];
+        const why = (e instanceof Error ? e.message : String(e)).split('\n')[0];
         const message = `Mol* cannot read "${text}" as ${lang}: ${why}; write a ${lang} selection, as "polymer and (resn ZN around 3)"`;
         const path = `${c.path}/args/0`;
         throw new QueryAbort(
-          queryIssue("molstar.select.syntax", message, { path, signature: MOLSTAR_SELECT.signature }),
+          queryIssue('molstar.select.syntax', message, { path, signature: MOLSTAR_SELECT.signature }),
         );
       }
       const runs = Extents.create(64);
@@ -78,9 +78,9 @@ export function molstarQueryExtension(link: () => StructureLink | null): QueryEx
         const l = link();
         if (!l || l.set !== ctx.set) {
           return ctx.fail(
-            "seqql.symbol.unavailable",
+            'seqql.symbol.unavailable',
             c.path,
-            "molql needs a structure shown in 3D over these sequences",
+            'molql needs a structure shown in 3D over these sequences',
           );
         }
         const loci = StructureSelection.toLociWithSourceUnits(query(new MolQueryContext(l.structure)));
@@ -126,7 +126,7 @@ export function structureReach(link: StructureLink, sel: SeqSelection): { chains
   }
   const members = link.toMembers(runs, Extents.create(16));
   const chains = new Set<string>();
-  for (let i = 0; i < members.count; i++) chains.add(link.memberOf(members, i)?.chain.authAsymId ?? "");
-  chains.delete("");
+  for (let i = 0; i < members.count; i++) chains.add(link.memberOf(members, i)?.chain.authAsymId ?? '');
+  chains.delete('');
   return { chains: [...chains].sort(), exact };
 }

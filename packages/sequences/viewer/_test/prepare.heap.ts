@@ -13,8 +13,8 @@
 // cell key and the mode's hysteresis. Each is what a draw or a hit runs per column, item or move. The positive control:
 // the windows' reads allocating an object each (`leaking`), measured alike, are caught.
 
-import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
-import { beforeAll, describe, expect, it } from "vitest";
+import { createSeqViewSpec, translate } from '@molstar/seq-core/builder';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   type Features,
   featureAt,
@@ -23,7 +23,7 @@ import {
   ofPartAt,
   type PerPosition,
   positionKey,
-} from "../src/prepare.js";
+} from '../src/prepare.js';
 import {
   binClass,
   binCounts,
@@ -32,11 +32,11 @@ import {
   levelFor,
   segWindow,
   type ValuePyramid,
-} from "../src/pyramids.js";
-import { type CellClasses, cellClasses, densityOn, ItemDensity } from "../src/reductions.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
-import { layer, opened, preparedRenderers } from "./layout-fixtures.js";
-import { itemsIn, scaleDoc } from "./prepare-fixtures.js";
+} from '../src/pyramids.js';
+import { type CellClasses, cellClasses, densityOn, ItemDensity } from '../src/reductions.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from './heap.js';
+import { layer, opened, preparedRenderers } from './layout-fixtures.js';
+import { itemsIn, scaleDoc } from './prepare-fixtures.js';
 
 const N = 50_000;
 const P = { renderers: preparedRenderers() };
@@ -53,19 +53,19 @@ const LENGTH = 200_000;
 
 beforeAll(async () => {
   const t = await opened(scaleDoc({ length: LENGTH, ranges: 3000, variants: 4000 }), P);
-  genes = layer(t.ctx, "Genes").state as Features;
-  variants = layer(t.ctx, "Variants").state as Features;
-  values = layer(t.ctx, "Values").state as PerPosition;
-  bands = layer(t.ctx, "Bands").state as PerPosition;
+  genes = layer(t.ctx, 'Genes').state as Features;
+  variants = layer(t.ctx, 'Variants').state as Features;
+  values = layer(t.ctx, 'Values').state as PerPosition;
+  bands = layer(t.ctx, 'Bands').state as PerPosition;
   const b = createSeqViewSpec();
-  const dna = Array.from({ length: 60_000 }, (_, i) => "ACGT"[(i * 7 + (i >> 3)) % 4]).join("");
-  const gene = b.data.sequence({ ref: "gene", alphabet: "dna", value: dna });
+  const dna = Array.from({ length: 60_000 }, (_, i) => 'ACGT'[(i * 7 + (i >> 3)) % 4]).join('');
+  const gene = b.data.sequence({ ref: 'gene', alphabet: 'dna', value: dna });
   const cds: [number, number][] = [];
   for (let s = 30; s + 600 < 60_000; s += 900) cds.push([s, s + 600]);
-  const p = translate(b.data, { ref: "p", from: gene, cds });
-  b.view({ ref: "v", label: "V" }).block({ sequence: gene }).track({ label: "P" }).letters({ of: p });
+  const p = translate(b.data, { ref: 'p', from: gene, cds });
+  b.view({ ref: 'v', label: 'V' }).block({ sequence: gene }).track({ label: 'P' }).letters({ of: p });
   const u = await opened(b.getDocument(), P);
-  of = (layer(u.ctx, "P").state as LettersState).of as OfLetters;
+  of = (layer(u.ctx, 'P').state as LettersState).of as OfLetters;
   const c = cellClasses(
     {
       color: (bb, i) => (bands.row[bb]?.[i] ?? -1) & 7,
@@ -76,7 +76,7 @@ beforeAll(async () => {
     0,
     LENGTH,
   );
-  if (!c) throw new Error("no classes");
+  if (!c) throw new Error('no classes');
   classes = c;
   counts = new ItemDensity(genes, (k) => genes.annotation[k] & 3, false).pyramid(0, 0, LENGTH) as CountPyramid;
 }, 120_000);
@@ -95,7 +95,7 @@ const windows = (i: number) => {
 };
 
 describe("LY2's reads allocate nothing", () => {
-  it("segment windows and the count in view (items or density) as the view pans and zooms", () => {
+  it('segment windows and the count in view (items or density) as the view pans and zooms', () => {
     expect(itemsIn(genes, 0, 0, LENGTH, -1, 1e9)).toBeGreaterThan(100);
     const r = heapScaling(N, windows);
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
@@ -111,7 +111,7 @@ describe("LY2's reads allocate nothing", () => {
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
   });
 
-  it("`ofPartAt` stepping along a frame and jumping between frames", () => {
+  it('`ofPartAt` stepping along a frame and jumping between frames', () => {
     expect(of.count).toBeGreaterThan(10_000);
     const r = heapScaling(N, (i) => {
       const at = i & 1 ? i % 60_000 : (i * 7919) % 60_000;

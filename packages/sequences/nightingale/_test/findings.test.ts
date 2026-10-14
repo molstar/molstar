@@ -11,7 +11,7 @@
 // section's label, and G1-2 the `color` track over dense values; PL's color parity against `layerPalette` (the function
 // the viewer colors through).
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import {
   Color,
   compile,
@@ -23,18 +23,18 @@ import {
   register,
   resolveView,
   type SeqViewSpecDoc,
-} from "@molstar/seq-core/format";
-import { Annotations, type SeqSet } from "@molstar/seq-core/model";
-import { describe, expect, it } from "vitest";
-import { type ElementDesc, materialize, NIGHTINGALE_MAX_POSITIONS, NightingaleSupported } from "../src/index.js";
-import { lanesOf } from "../src/materialize.js";
+} from '@molstar/seq-core/format';
+import { Annotations, type SeqSet } from '@molstar/seq-core/model';
+import { describe, expect, it } from 'vitest';
+import { type ElementDesc, materialize, NIGHTINGALE_MAX_POSITIONS, NightingaleSupported } from '../src/index.js';
+import { lanesOf } from '../src/materialize.js';
 
 const kernel = createRegistries();
 register(kernel, [KernelRegistry, MvsRegistry]);
-const none = { load: async () => Promise.reject(new Error("no files")) };
+const none = { load: async () => Promise.reject(new Error('no files')) };
 
 type Builder = ReturnType<typeof createSeqViewSpec>;
-async function draw(build: (b: Builder) => void, view = "v") {
+async function draw(build: (b: Builder) => void, view = 'v') {
   const b = createSeqViewSpec();
   build(b);
   const doc: SeqViewSpecDoc = b.getDocument();
@@ -48,71 +48,71 @@ const all = (d: ElementDesc, tag: string, out: ElementDesc[] = []): ElementDesc[
   return out;
 };
 type F = { accession: string; start: number; end: number; fill?: string; color?: string; tooltipContent?: string };
-const features = (d: ElementDesc) => all(d, "nightingale-track").map((t) => t.properties.data as F[]);
-const words = (n: number) => Array.from({ length: n }, (_, i) => "ACDEFGHIKLMNPQRSTVWY"[(i * 7) % 20]).join("");
-const MKV = "MKVLAAGIVGLLLAQ";
+const features = (d: ElementDesc) => all(d, 'nightingale-track').map((t) => t.properties.data as F[]);
+const words = (n: number) => Array.from({ length: n }, (_, i) => 'ACDEFGHIKLMNPQRSTVWY'[(i * 7) % 20]).join('');
+const MKV = 'MKVLAAGIVGLLLAQ';
 
-describe("scale", () => {
-  it("200,000 letters, no spread over the call stack", async () => {
+describe('scale', () => {
+  it('200,000 letters, no spread over the call stack', async () => {
     const text = words(200_000);
     const { root, issues } = await draw((b) => {
-      const s = b.data.sequence({ ref: "s", value: text });
-      b.view({ ref: "v", label: "V" }).block({ sequence: s }).track({ label: "L" }).letters();
+      const s = b.data.sequence({ ref: 's', value: text });
+      b.view({ ref: 'v', label: 'V' }).block({ sequence: s }).track({ label: 'L' }).letters();
     });
-    expect((all(root, "nightingale-sequence")[0].properties.data as string) === text).toBe(true);
+    expect((all(root, 'nightingale-sequence')[0].properties.data as string) === text).toBe(true);
     expect(issues).toEqual([]);
   });
 
-  it("150,000 features in a collapsed group are its merged row, copied without a spread", async () => {
+  it('150,000 features in a collapsed group are its merged row, copied without a spread', async () => {
     const n = 150_000;
     const { root } = await draw((b) => {
-      const s = b.data.sequence({ ref: "s", value: words(n) });
+      const s = b.data.sequence({ ref: 's', value: words(n) });
       const value = { start: Array.from({ length: n }, (_, i) => i), stop: Array.from({ length: n }, (_, i) => i + 1) };
-      const a = b.data.annotation({ ref: "a", geometry: "ranges", target: s, value });
-      b.view({ ref: "v", label: "V" })
+      const a = b.data.annotation({ ref: 'a', geometry: 'ranges', target: s, value });
+      b.view({ ref: 'v', label: 'V' })
         .block({ sequence: s })
-        .group({ label: "G", collapsed: true })
-        .track({ label: "A" })
+        .group({ label: 'G', collapsed: true })
+        .track({ label: 'A' })
         .ranges({ data: a });
     });
-    const sizes = all(root, "nightingale-track-canvas").map((t) => (t.properties.data as F[]).length);
+    const sizes = all(root, 'nightingale-track-canvas').map((t) => (t.properties.data as F[]).length);
     expect(sizes).toEqual([n, n]); // the track's, and the group's merged row
   });
 
-  it("5,000 features with one id take one suffix each, counted from the base", async () => {
+  it('5,000 features with one id take one suffix each, counted from the base', async () => {
     const n = 5_000;
     const { root } = await draw((b) => {
-      const s = b.data.sequence({ ref: "s", value: MKV });
-      const value = { start: Array(n).fill(2), stop: Array(n).fill(5), id: Array(n).fill("same") };
-      const a = b.data.annotation({ ref: "a", geometry: "ranges", target: s, value });
-      b.view({ ref: "v", label: "V" }).block({ sequence: s }).track({ label: "A" }).ranges({ data: a });
+      const s = b.data.sequence({ ref: 's', value: MKV });
+      const value = { start: Array(n).fill(2), stop: Array(n).fill(5), id: Array(n).fill('same') };
+      const a = b.data.annotation({ ref: 'a', geometry: 'ranges', target: s, value });
+      b.view({ ref: 'v', label: 'V' }).block({ sequence: s }).track({ label: 'A' }).ranges({ data: a });
     });
     // Features drawn alike are one: the id is not repeated into a track (merged copies' items at one place).
-    expect(features(root)[0].map((f) => f.accession)).toEqual(["same"]);
+    expect(features(root)[0].map((f) => f.accession)).toEqual(['same']);
     const second = await draw((b) => {
-      const s = b.data.sequence({ ref: "s", value: MKV });
-      const value = { start: [0, 1, 2, 3], stop: [1, 2, 3, 4], id: ["x", "x", "x", "x"] };
-      const a = b.data.annotation({ ref: "a", geometry: "ranges", target: s, value });
-      b.view({ ref: "v", label: "V" }).block({ sequence: s }).track({ label: "A" }).ranges({ data: a });
+      const s = b.data.sequence({ ref: 's', value: MKV });
+      const value = { start: [0, 1, 2, 3], stop: [1, 2, 3, 4], id: ['x', 'x', 'x', 'x'] };
+      const a = b.data.annotation({ ref: 'a', geometry: 'ranges', target: s, value });
+      b.view({ ref: 'v', label: 'V' }).block({ sequence: s }).track({ label: 'A' }).ranges({ data: a });
     });
     // One id on four rows is one item; unnamed rows get the layer's ref, the annotation and the row.
-    expect(features(second.root)[0].map((f) => f.accession)).toEqual(["x"]);
+    expect(features(second.root)[0].map((f) => f.accession)).toEqual(['x']);
     const unnamed = await draw((b) => {
-      const s = b.data.sequence({ ref: "s", value: MKV });
+      const s = b.data.sequence({ ref: 's', value: MKV });
       const a = b.data.annotation({
-        ref: "a",
-        geometry: "ranges",
+        ref: 'a',
+        geometry: 'ranges',
         target: s,
         value: { start: [0, 3, 6], stop: [2, 5, 8] },
       });
-      b.view({ ref: "v", label: "V" }).block({ sequence: s }).track({ label: "A" }).points({ data: a });
+      b.view({ ref: 'v', label: 'V' }).block({ sequence: s }).track({ label: 'A' }).points({ data: a });
     });
     const ids = features(unnamed.root)[0].map((f) => f.accession);
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
 
-describe("lanes", () => {
+describe('lanes', () => {
   type R = { start: number; end: number };
   /** The first-fit reference: the old packing, quadratic and simple. */
   const naive = (fs: R[]) => {
@@ -125,7 +125,7 @@ describe("lanes", () => {
     return lanes.length;
   };
 
-  it("pack as first fit does, to at most LANES", () => {
+  it('pack as first fit does, to at most LANES', () => {
     let seed = 11;
     const rand = () => {
       seed = (seed * 1103515245 + 12345) % 2147483648;
@@ -154,7 +154,7 @@ describe("lanes", () => {
     expect(lanesOf(Array.from({ length: 30 }, () => ({ start: 1, end: 2 })))).toBe(10);
   });
 
-  it("40,000 disjoint ranges in one lane: O(n) for sorted input, O(n log n) probes and O(n) moves for any order", () => {
+  it('40,000 disjoint ranges in one lane: O(n) for sorted input, O(n log n) probes and O(n) moves for any order', () => {
     const n = 40_000;
     const sortedInput = Array.from({ length: n }, (_, i) => ({ start: 3 * i, end: 3 * i + 1 }));
     const probes = { probes: 0, moves: 0 };
@@ -178,50 +178,50 @@ describe("lanes", () => {
   });
 });
 
-describe("one palette per layer", () => {
-  const color = { theme: "field_palette", params: { palette: { kind: "categorical", colors: "Category10" } } };
-  const build = (b: Builder, extra: Record<string, unknown> = {}, arrangement = "side") => {
-    const [a, c] = ["A", "B"].map((x) => b.data.sequence({ ref: x, value: MKV }));
+describe('one palette per layer', () => {
+  const color = { theme: 'field_palette', params: { palette: { kind: 'categorical', colors: 'Category10' } } };
+  const build = (b: Builder, extra: Record<string, unknown> = {}, arrangement = 'side') => {
+    const [a, c] = ['A', 'B'].map((x) => b.data.sequence({ ref: x, value: MKV }));
     const cat = (ref: string, target: unknown, category: string[]) =>
       b.data.annotation({
         ref,
-        geometry: "ranges",
+        geometry: 'ranges',
         target: target as never,
         value: { start: [0, 5], stop: [3, 8], category },
       });
-    const [fa, fb] = [cat("fa", a, ["x", "y"]), cat("fb", c, ["z", "y"])];
+    const [fa, fb] = [cat('fa', a, ['x', 'y']), cat('fb', c, ['z', 'y'])];
     const layer = { data: [fa, fb], color, ...extra } as never;
-    const both = b.view({ ref: "both", label: "Both", arrangement } as never);
+    const both = b.view({ ref: 'both', label: 'Both', arrangement } as never);
     both.block({ sequence: a }).block({ sequence: c });
-    both.track({ label: "F" }).ranges(layer);
-    const only = b.view({ ref: "only", label: "B" });
+    both.track({ label: 'F' }).ranges(layer);
+    const only = b.view({ ref: 'only', label: 'B' });
     only.block({ sequence: c });
-    only.track({ label: "F" }).ranges(layer);
+    only.track({ label: 'F' }).ranges(layer);
   };
   const byName = (fs: F[]) => Object.fromEntries(fs.map((f) => [f.tooltipContent, f.fill]));
 
-  it("a value has one color whatever the view shows: B alone colors as B in the view of both", async () => {
-    const both = await draw((b) => build(b), "both");
-    const only = await draw((b) => build(b), "only");
+  it('a value has one color whatever the view shows: B alone colors as B in the view of both', async () => {
+    const both = await draw((b) => build(b), 'both');
+    const only = await draw((b) => build(b), 'only');
     const all2 = features(both.root).at(-1) as F[]; // after the block labels' track
     const fromB = features(only.root).at(-1) as F[];
     expect(fromB).toHaveLength(2);
     // A palette over the layer's data, in data order: x, y, z.
-    expect(Object.keys(byName(all2)).sort()).toEqual(["x", "y", "z"]);
+    expect(Object.keys(byName(all2)).sort()).toEqual(['x', 'y', 'z']);
     for (const f of fromB)
       expect(f.fill).toBe(
-        Color.toHex(paletteFor(both.set, both.view, "category")(f.tooltipContent as string) as number),
+        Color.toHex(paletteFor(both.set, both.view, 'category')(f.tooltipContent as string) as number),
       );
     const shared = new Set(all2.map((f) => f.fill));
     expect(fromB.every((f) => shared.has(f.fill))).toBe(true);
     // "y" is on both chains: one color for it everywhere.
-    const y = [...all2, ...fromB].filter((f) => f.tooltipContent === "y").map((f) => f.fill);
+    const y = [...all2, ...fromB].filter((f) => f.tooltipContent === 'y').map((f) => f.fill);
     expect(new Set(y).size).toBe(1);
   });
 
   it("a stacked section's second block does not restart at the first color", async () => {
-    const stacked = await draw((b) => build(b, {}, "stacked"), "both");
-    const [first, second] = all(stacked.root, "nightingale-manager").map((m) => features(m)[0]);
+    const stacked = await draw((b) => build(b, {}, 'stacked'), 'both');
+    const [first, second] = all(stacked.root, 'nightingale-manager').map((m) => features(m)[0]);
     const f = Object.fromEntries([...first, ...second].map((x) => [x.tooltipContent, x.fill]));
     // x, y on A and z, y on B in the layer's data order: z is the third value, not the first.
     expect(f.z).toBe(Color.toHex(0x2ca02c));
@@ -229,96 +229,96 @@ describe("one palette per layer", () => {
     expect(f.y).toBe(Color.toHex(0xff7f0e));
   });
 
-  it("a filtered layer keeps its colors", async () => {
-    const plain = await draw((b) => build(b), "only");
-    const filtered = await draw((b) => build(b, { filter: { field: "category", values: ["y"] } }), "only");
+  it('a filtered layer keeps its colors', async () => {
+    const plain = await draw((b) => build(b), 'only');
+    const filtered = await draw((b) => build(b, { filter: { field: 'category', values: ['y'] } }), 'only');
     const [p] = features(plain.root);
     const [f] = features(filtered.root);
     expect(f).toHaveLength(1);
-    expect(f[0].fill).toBe(p.find((x) => x.tooltipContent === "y")?.fill);
+    expect(f[0].fill).toBe(p.find((x) => x.tooltipContent === 'y')?.fill);
   });
 
   /** The layer's palette as the viewer builds it, over every row of the layer's data. */
-  function paletteFor(set: SeqSet, view: Awaited<ReturnType<typeof draw>>["view"], field: string) {
+  function paletteFor(set: SeqSet, view: Awaited<ReturnType<typeof draw>>['view'], field: string) {
     const data = Array.from(view.data, (id) => set.annotations[id] as never);
-    return layerPalette(set, data, { kind: "categorical", colors: "Category10" } as Palette, field, [
+    return layerPalette(set, data, { kind: 'categorical', colors: 'Category10' } as Palette, field, [
       Number.NaN,
       Number.NaN,
     ]);
   }
 });
 
-describe("colors", () => {
+describe('colors', () => {
   it("a split color 'red/blue' is its first half, as the viewer draws it", async () => {
     const { root } = await draw((b) => {
-      const s = b.data.sequence({ ref: "s", value: MKV });
-      const value = { start: [0, 4], stop: [2, 6], color: ["red/blue", "#00ff00"] };
-      const a = b.data.annotation({ ref: "a", geometry: "ranges", target: s, value });
-      b.view({ ref: "v", label: "V" })
+      const s = b.data.sequence({ ref: 's', value: MKV });
+      const value = { start: [0, 4], stop: [2, 6], color: ['red/blue', '#00ff00'] };
+      const a = b.data.annotation({ ref: 'a', geometry: 'ranges', target: s, value });
+      b.view({ ref: 'v', label: 'V' })
         .block({ sequence: s })
-        .track({ label: "A" })
-        .ranges({ data: a, color: { theme: "field_color", params: { field: "color" } } } as never);
+        .track({ label: 'A' })
+        .ranges({ data: a, color: { theme: 'field_color', params: { field: 'color' } } } as never);
     });
-    expect(features(root)[0].map((f) => f.fill)).toEqual(["#ff0000", "#00ff00"]);
+    expect(features(root)[0].map((f) => f.fill)).toEqual(['#ff0000', '#00ff00']);
   });
 
   it("the section's label, else its ref; shown when more than one section is", async () => {
     const two = await draw((b) => {
-      const s = b.data.sequence({ ref: "s", value: MKV });
-      const v = b.view({ ref: "v", label: "V" });
-      v.section({ ref: "first", label: "First section" }).block({ sequence: s }).track({ label: "L" }).letters();
-      v.section({ ref: "second" }).block({ sequence: s }).track({ label: "L" }).letters();
+      const s = b.data.sequence({ ref: 's', value: MKV });
+      const v = b.view({ ref: 'v', label: 'V' });
+      v.section({ ref: 'first', label: 'First section' }).block({ sequence: s }).track({ label: 'L' }).letters();
+      v.section({ ref: 'second' }).block({ sequence: s }).track({ label: 'L' }).letters();
     });
     expect(
-      all(two.root, "div")
-        .filter((d) => d.attributes.class === "svs-section-label")
+      all(two.root, 'div')
+        .filter((d) => d.attributes.class === 'svs-section-label')
         .map((d) => d.properties.textContent),
-    ).toEqual(["First section", "second"]);
+    ).toEqual(['First section', 'second']);
     const one = await draw((b) => {
-      const s = b.data.sequence({ ref: "s", value: MKV });
-      b.view({ ref: "v", label: "V" })
-        .section({ ref: "only", label: "Only" })
+      const s = b.data.sequence({ ref: 's', value: MKV });
+      b.view({ ref: 'v', label: 'V' })
+        .section({ ref: 'only', label: 'Only' })
         .block({ sequence: s })
-        .track({ label: "L" })
+        .track({ label: 'L' })
         .letters();
     });
-    expect(all(one.root, "div").filter((d) => d.attributes.class === "svs-section-label")).toEqual([]);
+    expect(all(one.root, 'div').filter((d) => d.attributes.class === 'svs-section-label')).toEqual([]);
   });
 
   it("a section past NIGHTINGALE_MAX_POSITIONS is left out with one issue; the view's other sections render (GM-05)", async () => {
     const r = await draw((b) => {
-      const big = b.data.sequence({ ref: "big", value: "A".repeat(NIGHTINGALE_MAX_POSITIONS + 1) });
-      const s = b.data.sequence({ ref: "s", value: MKV });
-      const v = b.view({ ref: "v", label: "V" });
-      v.section({ ref: "genome" }).block({ sequence: big }).track({ label: "L" }).letters();
-      v.section({ ref: "protein" }).block({ sequence: s }).track({ label: "L" }).letters();
+      const big = b.data.sequence({ ref: 'big', value: 'A'.repeat(NIGHTINGALE_MAX_POSITIONS + 1) });
+      const s = b.data.sequence({ ref: 's', value: MKV });
+      const v = b.view({ ref: 'v', label: 'V' });
+      v.section({ ref: 'genome' }).block({ sequence: big }).track({ label: 'L' }).letters();
+      v.section({ ref: 'protein' }).block({ sequence: s }).track({ label: 'L' }).letters();
     });
     expect(r.issues.map((i) => [i.severity, i.code, i.path, i.message])).toEqual([
       [
-        "warning",
-        "svs.render.omitted",
-        "genome",
-        "Nightingale: a section of 1,000,001 positions, past its limit of 1,000,000 (an element per position)",
+        'warning',
+        'svs.render.omitted',
+        'genome',
+        'Nightingale: a section of 1,000,001 positions, past its limit of 1,000,000 (an element per position)',
       ],
     ]);
-    const sections = all(r.root, "div").filter((d) => d.attributes.class === "svs-section");
-    expect(sections.map((d) => d.attributes["data-svs-section"])).toEqual(["protein"]);
-    expect(all(sections[0], "nightingale-sequence")).toHaveLength(1);
+    const sections = all(r.root, 'div').filter((d) => d.attributes.class === 'svs-section');
+    expect(sections.map((d) => d.attributes['data-svs-section'])).toEqual(['protein']);
+    expect(all(sections[0], 'nightingale-sequence')).toHaveLength(1);
   });
 });
 
-describe("G1-2 and PL: a color layer over dense values", () => {
+describe('G1-2 and PL: a color layer over dense values', () => {
   const palettes: [string, Palette][] = [
-    ["categorical", { kind: "categorical", colors: { "1": "#ff0000", "2": "#00ff00", "3": "#0000ff" } }],
-    ["continuous", { kind: "continuous", colors: "Viridis" }],
+    ['categorical', { kind: 'categorical', colors: { '1': '#ff0000', '2': '#00ff00', '3': '#0000ff' } }],
+    ['continuous', { kind: 'continuous', colors: 'Viridis' }],
     [
-      "discrete",
+      'discrete',
       {
-        kind: "discrete",
-        mode: "absolute",
+        kind: 'discrete',
+        mode: 'absolute',
         colors: [
-          ["#ff0000", 0],
-          ["#0000ff", 2],
+          ['#ff0000', 0],
+          ['#0000ff', 2],
         ],
       },
     ],
@@ -328,12 +328,12 @@ describe("G1-2 and PL: a color layer over dense values", () => {
     async (_, palette) => {
       const dense = [1, 1, 2, 2, 2, Number.NaN, 3, 1, 1, 1, 2, 3, 3, 1, 2];
       const { root, set, view } = await draw((b) => {
-        const s = b.data.sequence({ ref: "s", value: MKV });
-        const d = b.data.annotation({ ref: "d", geometry: "values", target: s, value: { value: dense } });
-        b.view({ ref: "v", label: "V" })
+        const s = b.data.sequence({ ref: 's', value: MKV });
+        const d = b.data.annotation({ ref: 'd', geometry: 'values', target: s, value: { value: dense } });
+        b.view({ ref: 'v', label: 'V' })
           .block({ sequence: s })
-          .track({ label: "C" })
-          .color({ data: d, color: { theme: "field_palette", params: { palette } } } as never);
+          .track({ label: 'C' })
+          .color({ data: d, color: { theme: 'field_palette', params: { palette } } } as never);
       });
       const ann = set.annotations[view.data[0]] as never;
       const f = layerPalette(set, [ann], palette, null, [view.layers.domainMin[0], view.layers.domainMax[0]]);
@@ -349,17 +349,17 @@ describe("G1-2 and PL: a color layer over dense values", () => {
     },
   );
 
-  it("walks 200,000 positions in runs, one palette call per value change", async () => {
+  it('walks 200,000 positions in runs, one palette call per value change', async () => {
     const n = 200_000;
     const dense = Array.from({ length: n }, (_, i) => 1 + (Math.floor(i / 1000) % 3));
     const { root } = await draw((b) => {
-      const s = b.data.sequence({ ref: "s", value: words(n) });
-      const d = b.data.annotation({ ref: "d", geometry: "values", target: s, value: { value: dense } });
-      const palette = { kind: "categorical", colors: { "1": "#ff0000", "2": "#00ff00", "3": "#0000ff" } };
-      b.view({ ref: "v", label: "V" })
+      const s = b.data.sequence({ ref: 's', value: words(n) });
+      const d = b.data.annotation({ ref: 'd', geometry: 'values', target: s, value: { value: dense } });
+      const palette = { kind: 'categorical', colors: { '1': '#ff0000', '2': '#00ff00', '3': '#0000ff' } };
+      b.view({ ref: 'v', label: 'V' })
         .block({ sequence: s })
-        .track({ label: "C" })
-        .color({ data: d, color: { theme: "field_palette", params: { palette } } } as never);
+        .track({ label: 'C' })
+        .color({ data: d, color: { theme: 'field_palette', params: { palette } } } as never);
     });
     const drawn = features(root)[0];
     expect(drawn).toHaveLength(200);

@@ -6,16 +6,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
-import { renderSvg } from "@molstar/seq-viewer/svg";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { pDemoRuns, plasmid } from "./support/seqstar-docs-views.js";
-import f from "./support/seqstar-format.module.css";
-import { PrismCanvas, PrismPage } from "./support/seqstar-prism.js";
-import { useCaseContext, useStoryUi, ViewerCard } from "./support/seqstar-viewer.js";
-import s from "./support/seqstar-viewer.module.css";
-import { TextAction } from "./ui/index.js";
+import { SeqViewerLayout, SeqViewerProvider } from '@molstar/seq-viewer/react';
+import { renderSvg } from '@molstar/seq-viewer/svg';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { pDemoRuns, plasmid } from './support/seqstar-docs-views.js';
+import f from './support/seqstar-format.module.css';
+import { PrismCanvas, PrismPage } from './support/seqstar-prism.js';
+import { useCaseContext, useStoryUi, ViewerCard } from './support/seqstar-viewer.js';
+import s from './support/seqstar-viewer.module.css';
+import { TextAction } from './ui/index.js';
 
 /**
  * Cyclic coordinate systems: a sequence may be `cyclic`, its
@@ -23,12 +23,12 @@ import { TextAction } from "./ui/index.js";
  * shows a piece across the origin (`range`) or the whole from another `origin`. Drawn linearly, and as a ring
  * with its ruler, marks, hover, keyboard cursor and an SVG export.
  */
-const meta = { title: "Seq*/Views and layouts/Axes and strands", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Views and layouts/Axes and strands', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj;
 
 export const Linear: Story = {
-  name: "A plasmid, linear",
+  name: 'A plasmid, linear',
   render: () => {
     const doc = useMemo(plasmid, []);
     return (
@@ -49,7 +49,7 @@ export const Linear: Story = {
         <ViewerCard
           doc={doc}
           label="Four linear sections over one cyclic sequence"
-          options={{ parts: ["SectionHeader"] }}
+          options={{ parts: ['SectionHeader'] }}
         />
       </PrismPage>
     );
@@ -62,7 +62,7 @@ export const Linear: Story = {
  */
 function RingAndExport() {
   const doc = useMemo(plasmid, []);
-  const m = useCaseContext(doc, { view: "ring" });
+  const m = useCaseContext(doc, { view: 'ring' });
   const ui = useStoryUi(m);
   const [svg, setSvg] = useState<string | null>(null);
   const exported = useCallback(() => {
@@ -73,11 +73,11 @@ function RingAndExport() {
     if (!m) return;
     let done = false;
     const sub = m.ctx.graph.assembled.subscribe((a) => {
-      if (done || !a?.view || m.ctx.views.current.value !== "ring") return;
+      if (done || !a?.view || m.ctx.views.current.value !== 'ring') return;
       done = true;
       // The selection 226 … 12 and the highlight 236 … 6, both across the origin; then the export of the figure.
-      m.ctx.selection.set(pDemoRuns(0, 225, 240, 0, 0, 12), "api");
-      m.ctx.highlight.set("story", pDemoRuns(0, 235, 240, 0, 0, 6));
+      m.ctx.selection.set(pDemoRuns(0, 225, 240, 0, 0, 12), 'api');
+      m.ctx.highlight.set('story', pDemoRuns(0, 235, 240, 0, 0, 6));
       exported();
     });
     return () => sub.unsubscribe();
@@ -98,7 +98,7 @@ function RingAndExport() {
       </section>
       <section className={f.card}>
         <div className={f.row}>
-          <h2 className={f.heading}>renderSvg(ctx, {"{ width: 480, overlay: true, hover: true }"})</h2>
+          <h2 className={f.heading}>renderSvg(ctx, {'{ width: 480, overlay: true, hover: true }'})</h2>
           <TextAction tone="quiet" onClick={exported}>
             Export again
           </TextAction>
@@ -115,7 +115,7 @@ function RingAndExport() {
 }
 
 export const Ring: Story = {
-  name: "A plasmid, ring",
+  name: 'A plasmid, ring',
   render: () => (
     <PrismPage
       title="A cyclic plasmid as a ring: the circular geometry"

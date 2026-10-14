@@ -11,10 +11,10 @@
 // fetches it once through the source's provider, at the level whose bins are the finest at least a pixel wide at the
 // container's width (else the coarsest). Platform-free: no DOM, no Nightingale.
 
-import { type StreamedData, StreamNotServed, streamRequest, TILE } from "@molstar/seq-core/format";
-import type { Issue } from "@molstar/seq-core/model";
-import { type AxisBlock, indexAt } from "./axis.js";
-import { nightingaleIssue } from "./issues.js";
+import { type StreamedData, StreamNotServed, streamRequest, TILE } from '@molstar/seq-core/format';
+import type { Issue } from '@molstar/seq-core/model';
+import { type AxisBlock, indexAt } from './axis.js';
+import { nightingaleIssue } from './issues.js';
 
 /** One placement of a streamed `values` annotation on the axis: its source, the manifest system and block it shows. */
 export interface StreamedPart {
@@ -86,13 +86,13 @@ export async function fetchStreamed(
             )
             .then(
               (r) => {
-                const t = r.kind === "bins" ? r.bins : null;
+                const t = r.kind === 'bins' ? r.bins : null;
                 if (t?.mean && t.min && t.max) regions.set(tx, [t.min as never, t.max as never, t.mean as never]);
                 else failed.push(`${at}: no bins`);
               },
               (e: unknown) => {
                 if (signal?.aborted) return;
-                const why = e instanceof StreamNotServed ? "is not served" : e instanceof Error ? e.message : String(e);
+                const why = e instanceof StreamNotServed ? 'is not served' : e instanceof Error ? e.message : String(e);
                 failed.push(`${at}: ${why}`);
               },
             ),
@@ -110,9 +110,9 @@ export async function fetchStreamed(
     }),
   );
   if (failed.length > 0) {
-    const more = failed.length > 3 ? ` and ${failed.length - 3} more` : "";
-    const message = `Nightingale: ${failed.length} tile(s) failed: ${failed.slice(0, 3).join("; ")}${more}`;
-    issues.push(nightingaleIssue("svs.stream.load", p.ref, message));
+    const more = failed.length > 3 ? ` and ${failed.length - 3} more` : '';
+    const message = `Nightingale: ${failed.length} tile(s) failed: ${failed.slice(0, 3).join('; ')}${more}`;
+    issues.push(nightingaleIssue('svs.stream.load', p.ref, message));
   }
   return { values, level, issues: signal?.aborted ? [] : issues };
 }

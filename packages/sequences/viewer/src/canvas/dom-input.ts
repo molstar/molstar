@@ -14,7 +14,7 @@
 // is pressed. A press never starts the browser's drag and drop where the surface is the target. Nothing here decides
 // what a gesture does: behaviors do, from the base events. Handlers are bound once; an event allocates nothing.
 
-import { type InputSink, Inputs, Modifier, PointerType } from "../input.js";
+import { type InputSink, Inputs, Modifier, PointerType } from '../input.js';
 
 const LINE_PX = 16;
 
@@ -29,7 +29,7 @@ function typing(t: EventTarget | null): boolean {
   if (!(t instanceof HTMLElement)) return false;
   if (t.isContentEditable) return true;
   const n = t.tagName;
-  return n === "INPUT" || n === "TEXTAREA" || n === "SELECT";
+  return n === 'INPUT' || n === 'TEXTAREA' || n === 'SELECT';
 }
 
 /**
@@ -56,26 +56,26 @@ export class DomInput {
     this.el = el;
     this.sink = sink;
     this.section = section;
-    el.addEventListener("pointerdown", this.down);
-    el.addEventListener("pointermove", this.move);
-    el.addEventListener("pointerleave", this.leave);
-    el.addEventListener("wheel", this.wheel, { passive: false });
-    el.addEventListener("keydown", this.key);
-    el.addEventListener("focus", this.focus);
-    el.addEventListener("blur", this.blur);
-    el.addEventListener("dragstart", this.noDrag);
+    el.addEventListener('pointerdown', this.down);
+    el.addEventListener('pointermove', this.move);
+    el.addEventListener('pointerleave', this.leave);
+    el.addEventListener('wheel', this.wheel, { passive: false });
+    el.addEventListener('keydown', this.key);
+    el.addEventListener('focus', this.focus);
+    el.addEventListener('blur', this.blur);
+    el.addEventListener('dragstart', this.noDrag);
   }
 
   stop(notify: boolean): void {
     const el = this.el;
-    el.removeEventListener("pointerdown", this.down);
-    el.removeEventListener("pointermove", this.move);
-    el.removeEventListener("pointerleave", this.leave);
-    el.removeEventListener("wheel", this.wheel);
-    el.removeEventListener("keydown", this.key);
-    el.removeEventListener("focus", this.focus);
-    el.removeEventListener("blur", this.blur);
-    el.removeEventListener("dragstart", this.noDrag);
+    el.removeEventListener('pointerdown', this.down);
+    el.removeEventListener('pointermove', this.move);
+    el.removeEventListener('pointerleave', this.leave);
+    el.removeEventListener('wheel', this.wheel);
+    el.removeEventListener('keydown', this.key);
+    el.removeEventListener('focus', this.focus);
+    el.removeEventListener('blur', this.blur);
+    el.removeEventListener('dragstart', this.noDrag);
     if (notify && this.pressed) this.sink.cancel(this.section());
     if (notify && this.focused) this.sink.focus(this.section(), false);
     this.release();
@@ -85,10 +85,10 @@ export class DomInput {
   /** The press over: the document's listeners removed. */
   private release() {
     if (this.pressed) {
-      document.removeEventListener("pointermove", this.docMove, true);
-      document.removeEventListener("pointerup", this.up, true);
-      document.removeEventListener("pointercancel", this.up, true);
-      document.removeEventListener("scroll", this.scrolled, true);
+      document.removeEventListener('pointermove', this.docMove, true);
+      document.removeEventListener('pointerup', this.up, true);
+      document.removeEventListener('pointercancel', this.up, true);
+      document.removeEventListener('scroll', this.scrolled, true);
     }
     this.pressed = false;
     this.rect = null;
@@ -119,10 +119,10 @@ export class DomInput {
   private readonly down = (e: PointerEvent) => {
     if (!e.isPrimary) return;
     if (!this.pressed) {
-      document.addEventListener("pointermove", this.docMove, true);
-      document.addEventListener("pointerup", this.up, true);
-      document.addEventListener("pointercancel", this.up, true);
-      document.addEventListener("scroll", this.scrolled, true);
+      document.addEventListener('pointermove', this.docMove, true);
+      document.addEventListener('pointerup', this.up, true);
+      document.addEventListener('pointercancel', this.up, true);
+      document.addEventListener('scroll', this.scrolled, true);
     }
     this.pressed = true;
     this.rect = this.el.getBoundingClientRect();
@@ -149,7 +149,7 @@ export class DomInput {
   };
   private readonly up = (e: PointerEvent) => {
     if (!this.pressed || !e.isPrimary) return;
-    this.fill(e, e.type === "pointercancel" ? PointerType.cancel : PointerType.up);
+    this.fill(e, e.type === 'pointercancel' ? PointerType.cancel : PointerType.up);
     this.release();
   };
   /** Something scrolled during a press: the rect again, so the drag's moves stay in the surface's px. */

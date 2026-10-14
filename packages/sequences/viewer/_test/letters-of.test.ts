@@ -11,47 +11,47 @@
 // residue's three-letter code or none; never a column's text left out among its neighbors' (the dropped columns a fit
 // measured per glyph on rounded cell widths gave).
 
-import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { recording } from "./composer-fixtures.js";
-import { lit } from "./overlay-fixtures.js";
+import { createSeqViewSpec, translate } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { recording } from './composer-fixtures.js';
+import { lit } from './overlay-fixtures.js';
 
-const UNIT = "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRV";
+const UNIT = 'MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRV';
 /** 400 residues; the design lacks 15–17 and has GSGS after 30. */
 const WT = UNIT.repeat(10);
-const CODING = "ATGGCTTCCAAGGAACTGACCCCACGTGACGGCCATTGGTACTTCAACAGCCAGGTGGAG";
+const CODING = 'ATGGCTTCCAAGGAACTGACCCCACGTGACGGCCATTGGTACTTCAACAGCCAGGTGGAG';
 /** 480 coding nucleotides and a stop: 160 residues. */
 const GENE = `${CODING.repeat(8)}TAA`;
 
-function mappedDoc(form?: "three") {
+function mappedDoc(form?: 'three') {
   const b = createSeqViewSpec();
-  const wt = b.data.sequence({ ref: "wt", alphabet: "protein", value: WT });
+  const wt = b.data.sequence({ ref: 'wt', alphabet: 'protein', value: WT });
   const d = b.data.sequence({
-    ref: "d",
-    alphabet: "protein",
+    ref: 'd',
+    alphabet: 'protein',
     value: `${WT.slice(0, 14)}${WT.slice(17, 30)}GSGS${WT.slice(30)}`,
   });
   const gapped: [string, string] = [
     `${WT.slice(0, 30)}----${WT.slice(30)}`,
     `${WT.slice(0, 14)}---${WT.slice(17, 30)}GSGS${WT.slice(30)}`,
   ];
-  b.data.mapping({ ref: "d.on_wt", from: wt, to: d, method: "pairwise", gapped });
-  b.view({ ref: "v", label: "V" })
-    .section({ ref: "v.main" })
+  b.data.mapping({ ref: 'd.on_wt', from: wt, to: d, method: 'pairwise', gapped });
+  b.view({ ref: 'v', label: 'V' })
+    .section({ ref: 'v.main' })
     .block({ sequence: wt })
-    .track({ label: "" })
+    .track({ label: '' })
     .letters({ of: d, ...(form ? { residue_form: form } : {}) });
   return b.getDocument();
 }
 
 function codonDoc() {
   const b = createSeqViewSpec();
-  const gene = b.data.sequence({ ref: "gene", alphabet: "dna", value: GENE });
-  const protein = translate(b.data, { ref: "protein", from: gene, cds: [[0, GENE.length]] });
-  b.view({ ref: "v", label: "V" })
-    .section({ ref: "v.main" })
+  const gene = b.data.sequence({ ref: 'gene', alphabet: 'dna', value: GENE });
+  const protein = translate(b.data, { ref: 'protein', from: gene, cds: [[0, GENE.length]] });
+  b.view({ ref: 'v', label: 'V' })
+    .section({ ref: 'v.main' })
     .block({ sequence: gene })
-    .track({ label: "" })
+    .track({ label: '' })
     .letters({ of: protein });
   return b.getDocument();
 }
@@ -63,7 +63,7 @@ async function texts(doc: ReturnType<typeof mappedDoc>, cells: readonly number[]
   const t = await lit(doc, { width: 1200, height: 300 });
   const out: { cell: number; strings: string[]; xs: number[]; fonts: Set<number> }[] = [];
   for (const cell of cells) {
-    t.vp?.setView(cell, 0, "api");
+    t.vp?.setView(cell, 0, 'api');
     const be = t.frame(recording());
     const b = be.textItems;
     const strings: string[] = [];
@@ -90,8 +90,8 @@ const steps = (xs: number[], cell: number, span: number) =>
 
 const CELLS = [1, 2, 3, 4, 5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 11, 12, 13, 14, 16, 18, 20, 24];
 
-describe("letters of another polymer", () => {
-  it("through a gapped mapping: one letter a column, none left out, at one size; or none", async () => {
+describe('letters of another polymer', () => {
+  it('through a gapped mapping: one letter a column, none left out, at one size; or none', async () => {
     let drawn = 0;
     for (const r of await texts(mappedDoc(), CELLS)) {
       if (r.strings.length === 0) continue;
@@ -127,9 +127,9 @@ describe("letters of another polymer", () => {
     expect([...forms].sort()).toEqual([1, 3]);
   });
 
-  it("`residue_form: three` through a gapped mapping: every three-letter code, none left out; or none", async () => {
+  it('`residue_form: three` through a gapped mapping: every three-letter code, none left out; or none', async () => {
     let drawn = 0;
-    for (const r of await texts(mappedDoc("three"), CELLS)) {
+    for (const r of await texts(mappedDoc('three'), CELLS)) {
       if (r.strings.length === 0) continue;
       drawn++;
       expect(

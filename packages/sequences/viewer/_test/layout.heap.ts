@@ -12,19 +12,19 @@
 // and cached labels; `layoutRuns` on resize; a wrapped line's lanes over 5,000 features on 35,000 residues. The
 // positive control: hit testing's moves allocating an object each (`leaking`), through the same measurement, are caught.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { beforeAll, describe, expect, it } from "vitest";
-import { case1, case3, case6, case9, case13 } from "../../core/_test/format/cases.js";
-import type { ShownIndex } from "../src/axis.js";
-import { Hit, type LayerRenderer } from "../src/index.js";
-import { type Layouts, SectionLayouts } from "../src/layout.js";
-import { type LaneSegments, laneLineHeights, layoutRuns, lineTable } from "../src/runs.js";
-import { fitCount } from "../src/text.js";
-import { hitTree, TREE_INSET, type TreeRows, treeOf, treeSpan } from "../src/tree.js";
-import { setPiece } from "./axis-fixtures.js";
-import { FAMILY_SECTION as F, familyWithTree } from "./families.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
-import { laneRanges, type Opened, opened, renderers } from "./layout-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { case1, case3, case6, case9, case13 } from '../../core/_test/format/cases.js';
+import type { ShownIndex } from '../src/axis.js';
+import { Hit, type LayerRenderer } from '../src/index.js';
+import { type Layouts, SectionLayouts } from '../src/layout.js';
+import { type LaneSegments, laneLineHeights, layoutRuns, lineTable } from '../src/runs.js';
+import { fitCount } from '../src/text.js';
+import { hitTree, TREE_INSET, type TreeRows, treeOf, treeSpan } from '../src/tree.js';
+import { setPiece } from './axis-fixtures.js';
+import { FAMILY_SECTION as F, familyWithTree } from './families.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from './heap.js';
+import { laneRanges, type Opened, opened, renderers } from './layout-fixtures.js';
 
 const N = 50_000;
 let sink = 0;
@@ -34,8 +34,8 @@ type Point = readonly [Opened, number, number, number];
 const points: Point[] = [];
 
 const rowsWithTree: LayerRenderer<TreeRows> = {
-  name: "rows",
-  geometries: ["linear"],
+  name: 'rows',
+  geometries: ['linear'],
   prepare: (input) => {
     const a = input.section.blocks[0]?.alignment ?? -1;
     const aln = input.set.alignments[a];
@@ -61,47 +61,47 @@ function grid(t: Opened, section: string, dx: number, dy: number) {
 
 beforeAll(async () => {
   const [c3, c6, c9, c13] = await Promise.all([
-    opened(case3(), { size: { "family.main": [1000, 150] } }),
+    opened(case3(), { size: { 'family.main': [1000, 150] } }),
     opened(case6()),
     opened(case9()),
-    opened(case13(), { size: { "features.main": [1000, 900] } }),
+    opened(case13(), { size: { 'features.main': [1000, 900] } }),
   ]);
-  c9.vp("msa.main").scrollTo(0, 4711 * 18, "api");
-  grid(c3, "family.main", 23, 7);
-  grid(c6, "chains.main", 17, 9);
-  grid(c9, "msa.main", 29, 11);
-  grid(c13, "features.main", 31, 5);
+  c9.vp('msa.main').scrollTo(0, 4711 * 18, 'api');
+  grid(c3, 'family.main', 23, 7);
+  grid(c6, 'chains.main', 17, 9);
+  grid(c9, 'msa.main', 29, 11);
+  grid(c13, 'features.main', 31, 5);
   // Wrapped with inline labels: positions under a fractional x.
   const b = createSeqViewSpec();
-  b.data.sequence({ ref: "a", value: "MKVLATGHEK".repeat(30) });
-  b.view({ ref: "v", label: "V", layout: "text" }).track({ ref: "v.letters" }).letters();
+  b.data.sequence({ ref: 'a', value: 'MKVLATGHEK'.repeat(30) });
+  b.view({ ref: 'v', label: 'V', layout: 'text' }).track({ ref: 'v.letters' }).letters();
   const w = await opened(b.getDocument(), {
-    size: { "v.main": [400, 900] },
-    render: { wrappedGroupLabels: "inlineStart" },
+    size: { 'v.main': [400, 900] },
+    render: { wrappedGroupLabels: 'inlineStart' },
   });
-  grid(w, "v.main", 3.7, 13);
+  grid(w, 'v.main', 3.7, 13);
   // A reversed and a cyclic piece.
   for (const [start, stop, dir] of [
     [0, 300, -1],
     [150, 150, 1],
   ]) {
-    const t = await opened(b.getDocument(), { size: { "v.main": [400, 300] } });
+    const t = await opened(b.getDocument(), { size: { 'v.main': [400, 300] } });
     const m = t.ctx.graph.assembled.value?.view;
-    if (!m) throw new Error("no view");
+    if (!m) throw new Error('no view');
     setPiece(m.resolved, 0, start, stop, dir, 300);
     (t.layouts as Layouts).update(m);
-    grid(t, "v.main", 7.3, 11);
+    grid(t, 'v.main', 7.3, 11);
   }
   // The tree's header.
   const fam = await opened(familyWithTree(160, 20), {
-    renderers: [...renderers().filter((r) => r.name !== "rows"), rowsWithTree as LayerRenderer],
+    renderers: [...renderers().filter((r) => r.name !== 'rows'), rowsWithTree as LayerRenderer],
     size: { [F]: [1000, 500] },
   });
   grid(fam, F, 3.1, 4);
 }, 120_000);
 
 describe("LY1's hot paths allocate nothing", () => {
-  it("hit testing per pointer move: cases 3, 6, 9 and 13 (split rows), wrapped with inline labels, reversed and cyclic pieces, the tree", () => {
+  it('hit testing per pointer move: cases 3, 6, 9 and 13 (split rows), wrapped with inline labels, reversed and cyclic pieces, the tree', () => {
     const hit = Hit.create();
     const kinds = new Set<number>();
     let nodes = 0;
@@ -121,44 +121,44 @@ describe("LY1's hot paths allocate nothing", () => {
     expect(controlCaught(() => heapScaling(N, leaking(step)))).toBe(true);
   });
 
-  it("layout lookups per frame: the layout, the axis view and its x, the visible rows and entries, with the view moving", async () => {
-    const t = await opened(case3(), { size: { "family.main": [1000, 150] } });
-    const vp = t.vp("family.main");
+  it('layout lookups per frame: the layout, the axis view and its x, the visible rows and entries, with the view moving', async () => {
+    const t = await opened(case3(), { size: { 'family.main': [1000, 150] } });
+    const vp = t.vp('family.main');
     vp.zoomTo(0, 0, 10);
     const layout = t.ctx.layout;
     const r = heapScaling(N, (i) => {
-      if (i & 1) vp.panBy(i & 2 ? 4 : -4, i & 4 ? 3 : -3, "pointer");
-      const l = layout.get("family.main")?.current;
-      const v = layout.axis("family.main");
-      const rows = layout.visibleRows("family.main")?.current;
+      if (i & 1) vp.panBy(i & 2 ? 4 : -4, i & 4 ? 3 : -3, 'pointer');
+      const l = layout.get('family.main')?.current;
+      const v = layout.axis('family.main');
+      const rows = layout.visibleRows('family.main')?.current;
       if (!l || !v || !rows) return;
       sink = (sink + v.visLo[0] + v.x(0, (i & 15) as ShownIndex) + rows.count + SectionLayouts.entryAt(l, 9)) & 0xffff;
     });
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
   });
 
-  it("fits, numbers and cached labels", async () => {
+  it('fits, numbers and cached labels', async () => {
     const t = await opened(case1());
-    const f = t.ctx.text.font("ui", 12);
-    const p = t.ctx.text.label("Homo sapiens (human) hemoglobin subunit alpha", f);
-    const e = t.ctx.text.label("…", f).width;
+    const f = t.ctx.text.font('ui', 12);
+    const p = t.ctx.text.label('Homo sapiens (human) hemoglobin subunit alpha', f);
+    const e = t.ctx.text.label('…', f).width;
     const r = heapScaling(N, (i) => {
       sink = (sink + fitCount(p, 40 + (i & 127), e)) & 0xffff;
       sink = (sink + t.ctx.text.numberWidth(f, (i & 4095) - 2048)) & 0xffff;
-      sink = (sink + t.ctx.text.label("Homo sapiens (human) hemoglobin subunit alpha", f).ends.length) & 0xffff;
+      sink = (sink + t.ctx.text.label('Homo sapiens (human) hemoglobin subunit alpha', f).ends.length) & 0xffff;
     });
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
   });
 
   it("layoutRuns on resize (case 1's text view, and 35,000 residues)", async () => {
-    const t = await opened(case1(), { size: { "text.main": [900, 400] } });
-    const small = t.ctx.layout.axis("text.main")?.runs ?? [];
+    const t = await opened(case1(), { size: { 'text.main': [900, 400] } });
+    const small = t.ctx.layout.axis('text.main')?.runs ?? [];
     const b = createSeqViewSpec();
-    const letters = "ACDEFGHIKLMNPQRSTVWY";
-    b.data.sequence({ ref: "big", value: Array.from({ length: 35_000 }, (_, i) => letters[(i * 7) % 20]).join("") });
-    b.view({ ref: "v", label: "V", layout: "text" }).track({ ref: "v.letters" }).letters();
-    const u = await opened(b.getDocument(), { size: { "v.main": [1320, 640] } });
-    const big = u.ctx.layout.axis("v.main")?.runs ?? [];
+    const letters = 'ACDEFGHIKLMNPQRSTVWY';
+    b.data.sequence({ ref: 'big', value: Array.from({ length: 35_000 }, (_, i) => letters[(i * 7) % 20]).join('') });
+    b.view({ ref: 'v', label: 'V', layout: 'text' }).track({ ref: 'v.letters' }).letters();
+    const u = await opened(b.getDocument(), { size: { 'v.main': [1320, 640] } });
+    const big = u.ctx.layout.axis('v.main')?.runs ?? [];
     expect([small.length, big[0]?.count]).toEqual([1, 35_000]);
     const out = lineTable(8192);
     const r = heapScaling(2_000, (i) => {
@@ -170,20 +170,20 @@ describe("LY1's hot paths allocate nothing", () => {
 
   it("a wrapped line's lanes: 5,000 features over 35,000 residues, every line's band", async () => {
     const b = createSeqViewSpec();
-    const a = b.data.sequence({ ref: "big", value: "MKVLATGHEK".repeat(3_500) });
+    const a = b.data.sequence({ ref: 'big', value: 'MKVLATGHEK'.repeat(3_500) });
     const start = Array.from({ length: 5_000 }, (_, i) => i * 7);
-    b.data.annotation({ ref: "f", geometry: "ranges", target: a, value: { start, stop: start.map((s) => s + 4) } });
-    const v = b.view({ ref: "v", label: "V", layout: "text" });
-    v.track({ ref: "v.f" }).ranges({ data: "f" });
+    b.data.annotation({ ref: 'f', geometry: 'ranges', target: a, value: { start, stop: start.map((s) => s + 4) } });
+    const v = b.view({ ref: 'v', label: 'V', layout: 'text' });
+    v.track({ ref: 'v.f' }).ranges({ data: 'f' });
     const t = await opened(b.getDocument(), {
-      renderers: renderers().map((x) => (x.name === "ranges" ? laneRanges() : x)),
-      size: { "v.main": [1320, 640] },
+      renderers: renderers().map((x) => (x.name === 'ranges' ? laneRanges() : x)),
+      size: { 'v.main': [1320, 640] },
     });
-    const l = t.layout("v.main");
-    const view = t.ctx.layout.axis("v.main");
+    const l = t.layout('v.main');
+    const view = t.ctx.layout.axis('v.main');
     const m = t.ctx.graph.assembled.value?.view;
-    const f = m?.prepared.find((x) => x.renderer === "ranges")?.state as LaneSegments;
-    if (!view || !f) throw new Error("not opened");
+    const f = m?.prepared.find((x) => x.renderer === 'ranges')?.state as LaneSegments;
+    if (!view || !f) throw new Error('not opened');
     expect([l.lines.count > 200, f.seg.length > 1]).toEqual([true, true]);
     const out = new Float32Array(l.lines.count);
     const step = () => {

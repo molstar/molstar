@@ -12,24 +12,24 @@
 // pointer move, hit test, label and overlay frame), the numbers printed by `GENOME=1` for the progress file; the heap
 // of the loaded genome stays under 400 MB in Node.
 
-import { afterAll, expect, it } from "vitest";
-import { commands } from "vitest/browser";
-import { mountSection } from "../../src/canvas/index.js";
-import { Inputs, manualScheduler, PointerType } from "../../src/index.js";
-import { genomeContext, genomeDocument, PROBE, SECTION } from "./genome-probe.js";
+import { afterAll, expect, it } from 'vitest';
+import { commands } from 'vitest/browser';
+import { mountSection } from '../../src/canvas/index.js';
+import { Inputs, manualScheduler, PointerType } from '../../src/index.js';
+import { genomeContext, genomeDocument, PROBE, SECTION } from './genome-probe.js';
 
 const median = (xs: number[]) => xs.slice().sort((a, b) => a - b)[xs.length >> 1];
 const out: string[] = [];
 // The numbers go to __debug__/genome.txt (gitignored) for the progress file.
-afterAll(() => commands.writeFile("__debug__/genome.txt", out.join("\n")));
+afterAll(() => commands.writeFile('__debug__/genome.txt', out.join('\n')));
 
 for (const dpr of [1, 2])
   it(`the genome's whole view draws under 16 ms and a hover step under 2 ms (DPR ${dpr})`, async () => {
     const manual = manualScheduler(0);
     const { ctx, ready } = genomeContext(manual, genomeDocument());
     await ready;
-    const host = document.createElement("div");
-    host.style.cssText = "position:absolute;left:0;top:0;width:1320px;height:640px";
+    const host = document.createElement('div');
+    host.style.cssText = 'position:absolute;left:0;top:0;width:1320px;height:640px';
     document.body.appendChild(host);
     const surface = mountSection(ctx, SECTION, host, { dpr });
     await ctx.graph.update();
@@ -42,16 +42,16 @@ for (const dpr of [1, 2])
       const t = performance.now();
       surface.renderNow();
       // The deferred raster is flushed by a one-pixel read, as a visible page's compositor would.
-      (host.querySelector("canvas") as HTMLCanvasElement).getContext("2d")?.getImageData(0, 0, 1, 1);
+      (host.querySelector('canvas') as HTMLCanvasElement).getContext('2d')?.getImageData(0, 0, 1, 1);
       return performance.now() - t;
     };
     const rows: string[] = [];
     for (const [label, cell] of [
-      ["whole", 0],
-      ["1 Mb", 0.001],
-      ["10 kb", 0.1],
+      ['whole', 0],
+      ['1 Mb', 0.001],
+      ['10 kb', 0.1],
     ] as const) {
-      if (cell > 0) vp?.setView(cell, 0, "api");
+      if (cell > 0) vp?.setView(cell, 0, 'api');
       else vp?.fit();
       manual.advance(16);
       for (let i = 0; i < 5; i++) full();
@@ -66,7 +66,7 @@ for (const dpr of [1, 2])
     manual.advance(16);
     surface.renderNow();
     const l = ctx.layout.get(SECTION)?.current;
-    if (!l) throw new Error("no layout");
+    if (!l) throw new Error('no layout');
     const p = Inputs.pointer();
     p.section = ctx.layout.sectionIndex(SECTION);
     p.type = PointerType.move;
@@ -82,7 +82,7 @@ for (const dpr of [1, 2])
     }
     rows.push(`hover: ${median(hovers).toFixed(2)} ms, max ${Math.max(...hovers).toFixed(2)}`);
     expect(median(hovers), `hover at DPR ${dpr}`).toBeLessThan(2);
-    out.push(`DPR ${dpr}: ${rows.join("; ")}`);
+    out.push(`DPR ${dpr}: ${rows.join('; ')}`);
     surface.dispose();
     ctx.dispose();
     host.remove();

@@ -23,8 +23,8 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-} from "react";
-import { createPortal, flushSync } from "react-dom";
+} from 'react';
+import { createPortal, flushSync } from 'react-dom';
 import {
   type ColorsDrill,
   dataSpan,
@@ -51,8 +51,8 @@ import {
   sectionChromeStates,
   sectionHighlightEntries,
   trackMenuModel,
-} from "../chrome.js";
-import { cx, h, landFocus, later } from "../dom/core.js";
+} from '../chrome.js';
+import { cx, h, landFocus, later } from '../dom/core.js';
 import {
   busyShown,
   CROSS,
@@ -68,7 +68,7 @@ import {
   popover,
   sizeCaption,
   tipSpot,
-} from "../dom/shared.js";
+} from '../dom/shared.js';
 import {
   type LegendRamp,
   type LegendSize,
@@ -77,10 +77,10 @@ import {
   SeqViewerConfig,
   type SeqViewerContext,
   type Unsubscribable,
-} from "../index.js";
-import { sameData } from "../same.js";
+} from '../index.js';
+import { sameData } from '../same.js';
 
-import { CLEAR_KEPT_HINT, KEEP_HINT, SearchBox } from "../search-box.js";
+import { CLEAR_KEPT_HINT, KEEP_HINT, SearchBox } from '../search-box.js';
 import {
   type HintProps,
   type MenuProps,
@@ -92,7 +92,7 @@ import {
   useLanding,
   useScopeMaybe,
   useSeqState,
-} from "./hooks.js";
+} from './hooks.js';
 
 export { cx };
 
@@ -129,7 +129,7 @@ export function Hint({ label, children }: HintProps) {
 /** A plain region: the default UI scrolls nothing in the DOM (a host maps this to its own scroll area). */
 export function ScrollArea({ children, viewportRef, className }: ScrollAreaProps) {
   return (
-    <div ref={viewportRef as RefObject<HTMLDivElement>} className={cx("seqv-scroll", className)}>
+    <div ref={viewportRef as RefObject<HTMLDivElement>} className={cx('seqv-scroll', className)}>
       {children}
     </div>
   );
@@ -184,20 +184,20 @@ function usePopover(
 export function Menu({ trigger, items, open, onOpenChange }: MenuProps) {
   const root = useRef<HTMLSpanElement>(null);
   const id = useId();
-  const [list] = useState(() => h("span", { id: `seqv-menu-${id}`, role: "menu", class: "seqv-menu-list" }));
+  const [list] = useState(() => h('span', { id: `seqv-menu-${id}`, role: 'menu', class: 'seqv-menu-list' }));
   useLanding(root);
   usePopover(root, list, { roving: true, top: true, open, onOpenChange });
   const t = trigger as ReactElement<ButtonHTMLAttributes<HTMLButtonElement>>;
   return (
     <span ref={root} className="seqv-menu">
-      {cloneElement(t, { "aria-haspopup": "menu" })}
+      {cloneElement(t, { 'aria-haspopup': 'menu' })}
       {createPortal(
         items.map((i) => (
           <button
             key={i.key}
             type="button"
-            {...(i.checked === undefined ? { role: "menuitem" } : { role: "menuitemradio", "aria-checked": i.checked })}
-            className={cx("seqv-menu-item", i.danger && "seqv-danger")}
+            {...(i.checked === undefined ? { role: 'menuitem' } : { role: 'menuitemradio', 'aria-checked': i.checked })}
+            className={cx('seqv-menu-item', i.danger && 'seqv-danger')}
             data-seqv-key={`item:${i.key}`}
             tabIndex={-1}
             onClick={() => {
@@ -227,7 +227,7 @@ export function ViewTabs({ context: ctx }: PartProps) {
   if (views.length < 2) return null;
   const go = (at: number, el: HTMLElement) => {
     const v = views[(at + views.length) % views.length];
-    ctx.actions.run("view.switch", v.ref);
+    ctx.actions.run('view.switch', v.ref);
     (el.parentElement?.children[views.indexOf(v)] as HTMLElement | undefined)?.focus();
   };
   return (
@@ -242,10 +242,10 @@ export function ViewTabs({ context: ctx }: PartProps) {
           className="seqv-tab"
           data-seqv-key={`tab:${v.ref}`}
           data-seqv-group="tabs"
-          onClick={() => ctx.actions.run("view.switch", v.ref)}
+          onClick={() => ctx.actions.run('view.switch', v.ref)}
           onKeyDown={(e) => {
-            if (e.key === "ArrowRight" || e.key === "ArrowLeft")
-              go(i + (e.key === "ArrowRight" ? 1 : -1), e.currentTarget);
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft')
+              go(i + (e.key === 'ArrowRight' ? 1 : -1), e.currentTarget);
           }}
         >
           <span className="seqv-tab-label">{v.label}</span>
@@ -259,7 +259,7 @@ export function ViewTabs({ context: ctx }: PartProps) {
 function Switch({ sw, run }: { sw: SectionSwitch; run: (value: string | null) => void }) {
   const { Menu } = usePrimitives();
   const [open, setOpen] = useState(false);
-  const shown = sw.options.find((o) => o.value === sw.value)?.label ?? sw.value ?? "default";
+  const shown = sw.options.find((o) => o.value === sw.value)?.label ?? sw.value ?? 'default';
   if (sw.options.length > 3)
     return (
       <Menu
@@ -337,7 +337,7 @@ export function SectionHeader({ context: ctx, section }: SectionProps) {
           className="seqv-chip"
           aria-label={`Show all positions (now only ${info.filter})`}
           data-seqv-key="filter"
-          onClick={() => ctx.actions.run("section.clearFilter", section)}
+          onClick={() => ctx.actions.run('section.clearFilter', section)}
         >
           Only {info.filter} <span aria-hidden="true">✕</span>
         </button>
@@ -423,7 +423,7 @@ export function TrackActions({ context: ctx, section, track, row }: TrackProps) 
 }
 
 /** One chip: focus on it when it goes lands on the next chip, else the previous, else the surface. */
-function Chip({ children, ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { "data-seqv-key": string }) {
+function Chip({ children, ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { 'data-seqv-key': string }) {
   const land = useLand();
   return (
     <button ref={land} type="button" className="seqv-chip" data-seqv-group="chips" {...p}>
@@ -439,7 +439,7 @@ export function HiddenChips({ context: ctx, section }: SectionProps) {
   return (
     <fieldset aria-label="Hidden tracks" className="seqv-chips">
       {hidden.map((t) => (
-        <Chip key={t.ref} data-seqv-key={`chip:${t.ref}`} onClick={() => ctx.actions.run("track.show", t.ref)}>
+        <Chip key={t.ref} data-seqv-key={`chip:${t.ref}`} onClick={() => ctx.actions.run('track.show', t.ref)}>
           Show {t.label}
         </Chip>
       ))}
@@ -507,7 +507,7 @@ export function Tooltip({ context: ctx }: PartProps) {
         <div className="seqv-tooltip-legend">
           {label.legend.items.map((i) => (
             <span key={`${i.label}:${i.color}`} className="seqv-legend-item">
-              <span className="seqv-swatch" style={{ background: i.color ?? "var(--seq-ink)" }} />
+              <span className="seqv-swatch" style={{ background: i.color ?? 'var(--seq-ink)' }} />
               {i.label}
             </span>
           ))}
@@ -608,7 +608,7 @@ function KeptHighlights({ context: ctx, entries }: PartProps & { entries: readon
                 className="seqv-legend-remove"
                 aria-label={`Remove ${e.label}`}
                 data-seqv-key={`hl:${e.key}`}
-                onClick={() => ctx.actions.run("highlight.remove", { section: e.section, data: e.data }, "pointer")}
+                onClick={() => ctx.actions.run('highlight.remove', { section: e.section, data: e.data }, 'pointer')}
               >
                 ✕
               </button>
@@ -628,7 +628,7 @@ function More({ context: ctx, name, more }: PartProps & { name: string; more: nu
       data-seqv-key={`more:${name}`}
       onClick={() => ctx.ui.toggleLegend(name)}
     >
-      {more > 0 ? `+${more} more` : "fewer"}
+      {more > 0 ? `+${more} more` : 'fewer'}
     </button>
   );
 }
@@ -700,7 +700,7 @@ function LegendRow({ context: ctx, group: g }: PartProps & { group: LegendGroup 
       <span className="seqv-legend-items">
         {items.map((i) => (
           <span key={`${i.label}:${i.color}`} className="seqv-legend-item">
-            <span className="seqv-swatch" style={{ background: i.color ?? "var(--seq-ink)" }} />
+            <span className="seqv-swatch" style={{ background: i.color ?? 'var(--seq-ink)' }} />
             {i.label}
           </span>
         ))}
@@ -723,25 +723,25 @@ function LegendRow({ context: ctx, group: g }: PartProps & { group: LegendGroup 
 function RangeRamp({ context: ctx, group: g, ramp: r }: PartProps & { group: LegendGroup; ramp: LegendRamp }) {
   const range = g.range as LegendRange;
   const span = dataSpan(range);
-  const field = (end: "lo" | "hi") => (
+  const field = (end: 'lo' | 'hi') => (
     <input
       key={`${end}:${range[end]}`}
       className="seqv-range-input"
       type="text"
       inputMode="decimal"
-      aria-label={`${end === "lo" ? "Lowest" : "Highest"} value of the color scale`}
+      aria-label={`${end === 'lo' ? 'Lowest' : 'Highest'} value of the color scale`}
       data-seqv-key={`range-${end}:${g.key}`}
       defaultValue={rampEnd(range[end])}
       onBlur={(e) => {
         if (e.currentTarget.value !== rampEnd(range[end]) && !editRange(ctx, range, end, e.currentTarget.value))
           e.currentTarget.value = rampEnd(range[end]);
       }}
-      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+      onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
     />
   );
   return (
     <span className="seqv-ramp seqv-ramp-edit">
-      {field("lo")}
+      {field('lo')}
       <span className="seqv-ramp-track">
         <span className="seqv-ramp-bar" aria-hidden="true" style={{ background: legendGradient(r) }} />
         {span && (
@@ -752,7 +752,7 @@ function RangeRamp({ context: ctx, group: g, ramp: r }: PartProps & { group: Leg
           />
         )}
       </span>
-      {field("hi")}
+      {field('hi')}
       {range.edited && (
         <button
           type="button"
@@ -823,27 +823,27 @@ export function SnapshotPlayer({ context: ctx }: PartProps) {
   );
   return (
     <fieldset ref={land} aria-label="Snapshots" className="seqv-player">
-      {icon("prev", "Previous snapshot", "‹", () => void ctx.snapshots.next(-1), at <= 0)}
+      {icon('prev', 'Previous snapshot', '‹', () => void ctx.snapshots.next(-1), at <= 0)}
       {icon(
-        "play",
-        playing ? "Pause" : "Play",
-        playing ? "❚❚" : "▶",
+        'play',
+        playing ? 'Pause' : 'Play',
+        playing ? '❚❚' : '▶',
         () => (playing ? ctx.snapshots.stop() : ctx.snapshots.play()),
         undefined,
         playing,
       )}
-      {icon("next", "Next snapshot", "›", () => void ctx.snapshots.next(1), at >= list.length - 1)}
-      <span className="seqv-player-title">{at >= 0 ? (list[at].title ?? list[at].ref) : "Start"}</span>
+      {icon('next', 'Next snapshot', '›', () => void ctx.snapshots.next(1), at >= list.length - 1)}
+      <span className="seqv-player-title">{at >= 0 ? (list[at].title ?? list[at].ref) : 'Start'}</span>
       <ol className="seqv-snapshots">
         {list.map((s, i) => (
           <li key={s.ref}>
             <button
               type="button"
               className="seqv-dot"
-              aria-current={s.ref === current ? "step" : undefined}
-              aria-label={`${i + 1}. ${s.title ?? s.ref}${s.valid ? "" : " (no longer applies)"}`}
+              aria-current={s.ref === current ? 'step' : undefined}
+              aria-label={`${i + 1}. ${s.title ?? s.ref}${s.valid ? '' : ' (no longer applies)'}`}
               aria-disabled={!s.valid}
-              data-invalid={s.valid ? undefined : ""}
+              data-invalid={s.valid ? undefined : ''}
               data-seqv-key={`dot:${s.ref}`}
               data-seqv-group="dots"
               onClick={() => s.valid && void ctx.snapshots.apply(s.ref)}
@@ -947,7 +947,7 @@ function SearchBar({ context: ctx, box }: { context: SeqViewerContext; box: Sear
           value={v.text}
           onChange={(e) => box.input(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key !== "Enter") return;
+            if (e.key !== 'Enter') return;
             e.preventDefault();
             box.step(e.shiftKey ? -1 : 1);
           }}
@@ -956,15 +956,15 @@ function SearchBar({ context: ctx, box }: { context: SeqViewerContext; box: Sear
           {box.status(v)}
         </span>
       </div>
-      {icon("prev", "Previous result", "‹", -1)}
-      {icon("next", "Next result", "›", 1)}
+      {icon('prev', 'Previous result', '‹', -1)}
+      {icon('next', 'Next result', '›', 1)}
       <Hint label={KEEP_HINT}>
         <button
           type="button"
           className="seqv-switch-trigger seqv-keep"
           data-seqv-key="save"
           ref={save}
-          data-idle={idle ? "" : undefined}
+          data-idle={idle ? '' : undefined}
           onClick={() => box.save()}
         >
           <svg className="seqv-pin" aria-hidden="true" viewBox="0 0 16 16">
@@ -981,7 +981,7 @@ function SearchBar({ context: ctx, box }: { context: SeqViewerContext; box: Sear
           aria-label="Clear kept"
           data-seqv-key="clear-kept"
           ref={clear}
-          data-idle={v.kept > 0 ? undefined : ""}
+          data-idle={v.kept > 0 ? undefined : ''}
           onClick={() => box.clearKept()}
         >
           <svg className="seqv-pin" aria-hidden="true" viewBox="0 0 16 16">
@@ -993,7 +993,7 @@ function SearchBar({ context: ctx, box }: { context: SeqViewerContext; box: Sear
   );
 }
 
-const EXPORT = "view.exportSvg";
+const EXPORT = 'view.exportSvg';
 /** "Export as SVG" when the context registers `view.exportSvg` (`browserExportAction`): a menu in the bar. */
 export function Export({ context: ctx }: PartProps) {
   const { Menu } = usePrimitives();
@@ -1002,7 +1002,7 @@ export function Export({ context: ctx }: PartProps) {
   useSeqState(ctx.views.current);
   const [open, setOpen] = useState(false);
   const land = useLand();
-  const entry = ctx.registry.get("actions", EXPORT) as { title?: string } | undefined;
+  const entry = ctx.registry.get('actions', EXPORT) as { title?: string } | undefined;
   if (!entry) return null;
   const width = () => Math.round(surfaces?.values().next().value?.clientWidth || 1000);
   return (
@@ -1015,8 +1015,8 @@ export function Export({ context: ctx }: PartProps) {
         }
         items={[
           {
-            key: "svg",
-            label: entry.title ?? "Export as SVG",
+            key: 'svg',
+            label: entry.title ?? 'Export as SVG',
             run: () => void ctx.actions.run(EXPORT, { width: width() }),
           },
         ]}
@@ -1041,7 +1041,7 @@ function IssueGroups({ groups }: { groups: readonly IssueGroup[] }) {
   return groups.map((g, k) => (
     // biome-ignore lint/suspicious/noArrayIndexKey: the list is read in order and replaced whole.
     <div key={k} className="seqv-issue-group">
-      <div className="seqv-quiet">{g.ref ?? "Viewer"}</div>
+      <div className="seqv-quiet">{g.ref ?? 'Viewer'}</div>
       {g.issues.map((i, n) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: as above.
         <div key={n} className="seqv-issue" data-severity={i.severity}>
@@ -1062,7 +1062,7 @@ function IssueBox({
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLSpanElement>(null);
   const id = useId();
-  const [list] = useState(() => h("div", { id: `seqv-issues-${id}`, class: "seqv-issue-list" }));
+  const [list] = useState(() => h('div', { id: `seqv-issues-${id}`, class: 'seqv-issue-list' }));
   useLanding(root);
   usePopover(root, list, { roving: false, open, onOpenChange: setOpen });
   const shown = open ? issueList(issues) : null;

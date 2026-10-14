@@ -9,10 +9,10 @@
 // The static phase of validation (seqspec:format#validation): every issue in one pass, stable codes, JSON pointers,
 // messages that say what is wrong and what would be valid. Nothing is repaired.
 
-import { Issue, KeyKind, type KeyResolver, type KeyTarget, MoleculeKind } from "@molstar/seq-core/model";
-import { type DocNode, type SeqViewSpecDoc, SvsFormat } from "./doc.js";
-import { snapshotIssues } from "./patch/patch.js";
-import { registeredNamespaces, type SvsRegistries } from "./registry.js";
+import { Issue, KeyKind, type KeyResolver, type KeyTarget, MoleculeKind } from '@molstar/seq-core/model';
+import { type DocNode, type SeqViewSpecDoc, SvsFormat } from './doc.js';
+import { snapshotIssues } from './patch/patch.js';
+import { registeredNamespaces, type SvsRegistries } from './registry.js';
 import {
   float,
   isNamespace,
@@ -30,46 +30,46 @@ import {
   str,
   TEMPLATE_NODE,
   typeError,
-} from "./schema/field-schema.js";
-import { checkParams, OptionalField, object, RequiredField, SimpleParamsSchema } from "./schema/params-schema.js";
-import { type IndexedNode, nodeList, type TreeContext, type TreeSchema } from "./schema/tree-schema.js";
-import { SvsTreeSchema } from "./tables/svs-tree.js";
+} from './schema/field-schema.js';
+import { checkParams, OptionalField, object, RequiredField, SimpleParamsSchema } from './schema/params-schema.js';
+import { type IndexedNode, nodeList, type TreeContext, type TreeSchema } from './schema/tree-schema.js';
+import { SvsTreeSchema } from './tables/svs-tree.js';
 
 const optStr = (description: string) => OptionalField(nullable(str), null, description);
-const descriptionFormat = OptionalField(literal("markdown", "plaintext"), "markdown", "");
+const descriptionFormat = OptionalField(literal('markdown', 'plaintext'), 'markdown', '');
 
 /** The envelope (seqspec:format#the-document); `format`, `version` and `root` are checked apart. */
 export const EnvelopeSchema = SimpleParamsSchema({
   format: RequiredField(json, '"seq_view_spec"'),
-  version: RequiredField(json, "the format version the document was written for (semver)"),
+  version: RequiredField(json, 'the format version the document was written for (semver)'),
   revision: optStr("the owner's name for this version of the document; a patch's base"),
   metadata: OptionalField(
     object({
-      title: optStr(""),
-      description: optStr("markdown, sanitized"),
+      title: optStr(''),
+      description: optStr('markdown, sanitized'),
       description_format: descriptionFormat,
-      timestamp: optStr(""),
-      authors: OptionalField(nullable(list(str)), null, ""),
+      timestamp: optStr(''),
+      authors: OptionalField(nullable(list(str)), null, ''),
     }),
     {},
-    "never read for meaning",
+    'never read for meaning',
   ),
-  requires: OptionalField(list(str), [], "extension namespaces needed to interpret the document"),
+  requires: OptionalField(list(str), [], 'extension namespaces needed to interpret the document'),
   root: RequiredField(json, "the document's tree"),
   snapshots: OptionalField(
     list(
       object({
-        ref: RequiredField(str, "unique among the snapshots"),
-        title: optStr(""),
-        description: optStr(""),
+        ref: RequiredField(str, 'unique among the snapshots'),
+        title: optStr(''),
+        description: optStr(''),
         description_format: descriptionFormat,
-        ops: OptionalField(list(object()), [], "a patch over the base tree, without base"),
-        duration_ms: OptionalField(float, 1000, "how long a player stays on it"),
-        transition_ms: OptionalField(float, 0, "the transition into it"),
+        ops: OptionalField(list(object()), [], 'a patch over the base tree, without base'),
+        duration_ms: OptionalField(float, 1000, 'how long a player stays on it'),
+        transition_ms: OptionalField(float, 0, 'the transition into it'),
       }),
     ),
     [],
-    "an ordered story over the tree",
+    'an ordered story over the tree',
   ),
 });
 
@@ -88,7 +88,7 @@ interface Frame {
 }
 
 const isNode = (v: unknown): v is Record<string, unknown> | unknown[] =>
-  v !== null && typeof v === "object" && !ArrayBuffer.isView(v);
+  v !== null && typeof v === 'object' && !ArrayBuffer.isView(v);
 
 /**
  * The path of a value nested deeper than `max` objects and arrays (typed arrays are leaves), or null; found without
@@ -108,7 +108,7 @@ export function tooDeep(value: unknown, max = MAX_JSON_DEPTH): string | null {
     stack.push({ o, keys: Array.isArray(o) ? null : Object.keys(o), i: 0, h: 0, path });
     return true;
   };
-  if (!push(value, "")) return "";
+  if (!push(value, '')) return '';
   while (stack.length > 0) {
     const f = stack[stack.length - 1];
     const n = f.keys ? f.keys.length : (f.o as unknown[]).length;
@@ -135,29 +135,29 @@ export function tooDeep(value: unknown, max = MAX_JSON_DEPTH): string | null {
  */
 export function checkEnvelope(doc: unknown, issues: Issue[], strict = false): boolean | null {
   if (!isPlainObject(doc) || doc.format !== SvsFormat) {
-    issues.push(Issue.error("svs.format.invalid", "/format", `not a SeqViewSpec: format must be "${SvsFormat}"`));
+    issues.push(Issue.error('svs.format.invalid', '/format', `not a SeqViewSpec: format must be "${SvsFormat}"`));
     return null;
   }
   const deep = tooDeep(doc);
   if (deep !== null) {
     const message = `the document nests deeper than ${MAX_JSON_DEPTH} objects and lists here: it cannot be read`;
-    issues.push(Issue.error("svs.format.invalid", deep, message));
+    issues.push(Issue.error('svs.format.invalid', deep, message));
     return null;
   }
-  const m = typeof doc.version === "string" ? /^(\d+)\.(\d+)\.(\d+)$/.exec(doc.version) : null;
+  const m = typeof doc.version === 'string' ? /^(\d+)\.(\d+)\.(\d+)$/.exec(doc.version) : null;
   if (!m) {
-    issues.push(Issue.error("svs.version.missing", "/version", 'version must be the format\'s semver, "1.0.0"'));
+    issues.push(Issue.error('svs.version.missing', '/version', 'version must be the format\'s semver, "1.0.0"'));
     return null;
   }
-  if (m[1] !== "1") {
+  if (m[1] !== '1') {
     issues.push(
-      Issue.error("svs.version.unsupported_major", "/version", `version ${doc.version}: this reader reads 1.x`),
+      Issue.error('svs.version.unsupported_major', '/version', `version ${doc.version}: this reader reads 1.x`),
     );
     return null;
   }
-  if (m[2] === "0") return false;
+  if (m[2] === '0') return false;
   const message = `written for ${doc.version}, read as 1.0.0: unknown params, kinds, types and themes are warnings`;
-  issues.push(Issue.warning("svs.version.newer_minor", "/version", message));
+  issues.push(Issue.warning('svs.version.newer_minor', '/version', message));
   return !strict;
 }
 
@@ -180,29 +180,29 @@ export function validate(doc: unknown, reg: SvsRegistries, opts: ValidateOptions
   if (lenient === null) return issues;
   const d = doc as Record<string, unknown>;
   const nodes = new Map<string, IndexedNode>();
-  const ctx: TreeContext = { issues, registries: reg, refs: [], lenient, from: "", depth: 0, nodes, base: opts.base };
-  checkParams(EnvelopeSchema, d, "", ctx);
+  const ctx: TreeContext = { issues, registries: reg, refs: [], lenient, from: '', depth: 0, nodes, base: opts.base };
+  checkParams(EnvelopeSchema, d, '', ctx);
   const schema: TreeSchema = SvsTreeSchema;
   const order: IndexedNode[] = [];
-  if (d.root !== undefined) indexNode(d.root, null, "/root", schema, ctx, order);
+  if (d.root !== undefined) indexNode(d.root, null, '/root', schema, ctx, order);
   for (const n of order) checkNode(n, schema, ctx);
   resolveRefs(ctx, opts.set);
   const known = registeredNamespaces(reg);
   if (Array.isArray(d.requires)) {
     d.requires.forEach((ns, i) => {
-      if (typeof ns === "string" && !known.has(ns)) {
-        report(ctx, "svs.requires.unknown", `/requires/${i}`, `namespace "${ns}" is required but not registered`);
+      if (typeof ns === 'string' && !known.has(ns)) {
+        report(ctx, 'svs.requires.unknown', `/requires/${i}`, `namespace "${ns}" is required but not registered`);
       }
     });
   }
   if (Array.isArray(d.snapshots)) checkSnapshots(d.snapshots, ctx);
-  if (Array.isArray(d.snapshots) && !issues.some((i) => i.severity === "error")) {
+  if (Array.isArray(d.snapshots) && !issues.some((i) => i.severity === 'error')) {
     for (const i of snapshotIssues(doc as SeqViewSpecDoc, reg, { set: opts.set, base: opts.base })) issues.push(i);
   }
   return issues;
 }
 
-const NODE_KEYS = new Set(["kind", "ref", "params", "custom", "children"]);
+const NODE_KEYS = new Set(['kind', 'ref', 'params', 'custom', 'children']);
 
 function indexNode(
   v: unknown,
@@ -212,43 +212,43 @@ function indexNode(
   ctx: TreeContext,
   order: IndexedNode[],
 ) {
-  if (!isPlainObject(v) || typeof v.kind !== "string")
-    return typeError(ctx, path, "a node {kind, ref, params, ...}", v);
+  if (!isPlainObject(v) || typeof v.kind !== 'string')
+    return typeError(ctx, path, 'a node {kind, ref, params, ...}', v);
   const kind = v.kind;
   const ns = Object.hasOwn(schema.nodes, kind) ? schema.nodes[kind] : undefined;
   if (!ns) {
-    const kinds = Object.keys(schema.nodes).join(", ");
-    return reportUnknown(ctx, "svs.node.kind", ptr(path, "kind"), `unknown kind "${kind}"; kinds: ${kinds}`);
+    const kinds = Object.keys(schema.nodes).join(', ');
+    return reportUnknown(ctx, 'svs.node.kind', ptr(path, 'kind'), `unknown kind "${kind}"; kinds: ${kinds}`);
   }
   if (parent === null ? kind !== schema.rootKind : !ns.parent.includes(parent.kind)) {
-    const allowed = ns.parent.length > 0 ? ns.parent.join(", ") : "none: it is the root";
+    const allowed = ns.parent.length > 0 ? ns.parent.join(', ') : 'none: it is the root';
     report(
       ctx,
-      "svs.node.parent",
+      'svs.node.parent',
       path,
-      `${kind} cannot sit ${parent ? `under ${parent.kind}` : "at the root"}; its parents: ${allowed}`,
+      `${kind} cannot sit ${parent ? `under ${parent.kind}` : 'at the root'}; its parents: ${allowed}`,
     );
   }
   let ref = v.ref;
-  if (ref === undefined && ns.ref === "implied") ref = kind;
-  else if (ref === undefined) report(ctx, "svs.ref.missing", path, `this ${kind} needs a ref`);
-  else if (typeof ref !== "string" || !isRefSyntax(ref, false) || (ns.ref === "implied" && ref !== kind)) {
-    const why = ns.ref === "implied" ? `the ${kind}'s ref is "${kind}"` : "a ref matches [A-Za-z0-9][A-Za-z0-9_.-]*";
-    report(ctx, "svs.ref.syntax", ptr(path, "ref"), `${JSON.stringify(ref)}: ${why}`);
+  if (ref === undefined && ns.ref === 'implied') ref = kind;
+  else if (ref === undefined) report(ctx, 'svs.ref.missing', path, `this ${kind} needs a ref`);
+  else if (typeof ref !== 'string' || !isRefSyntax(ref, false) || (ns.ref === 'implied' && ref !== kind)) {
+    const why = ns.ref === 'implied' ? `the ${kind}'s ref is "${kind}"` : 'a ref matches [A-Za-z0-9][A-Za-z0-9_.-]*';
+    report(ctx, 'svs.ref.syntax', ptr(path, 'ref'), `${JSON.stringify(ref)}: ${why}`);
     ref = undefined;
   } else if (ctx.nodes.has(ref)) {
-    report(ctx, "svs.ref.duplicate", ptr(path, "ref"), `"${ref}" is already the ref of ${ctx.nodes.get(ref)?.path}`);
+    report(ctx, 'svs.ref.duplicate', ptr(path, 'ref'), `"${ref}" is already the ref of ${ctx.nodes.get(ref)?.path}`);
     ref = undefined;
   }
   for (const k of Object.keys(v)) {
     if (!NODE_KEYS.has(k))
-      report(ctx, "svs.params.unknown", ptr(path, k), `a node has kind, ref, params, custom, children`);
+      report(ctx, 'svs.params.unknown', ptr(path, k), `a node has kind, ref, params, custom, children`);
   }
   const params = isPlainObject(v.params) ? v.params : {};
-  if (v.params !== undefined && !isPlainObject(v.params)) typeError(ctx, ptr(path, "params"), "object", v.params);
+  if (v.params !== undefined && !isPlainObject(v.params)) typeError(ctx, ptr(path, 'params'), 'object', v.params);
   const n: IndexedNode = {
     node: v as unknown as DocNode,
-    ref: (ref as string) ?? "",
+    ref: (ref as string) ?? '',
     kind,
     params,
     parent: parent?.ref ?? null,
@@ -257,18 +257,18 @@ function indexNode(
   if (n.ref) (ctx.nodes as Map<string, IndexedNode>).set(n.ref, n);
   order.push(n);
   if (v.children !== undefined && !Array.isArray(v.children)) {
-    typeError(ctx, ptr(path, "children"), "a list of nodes", v.children);
+    typeError(ctx, ptr(path, 'children'), 'a list of nodes', v.children);
   }
   const kids = nodeList(v.children);
   kids.forEach((c, i) => {
-    indexNode(c, n, ptr(ptr(path, "children"), i), schema, ctx, order);
+    indexNode(c, n, ptr(ptr(path, 'children'), i), schema, ctx, order);
   });
   for (const [k, child] of Object.entries(schema.nodes)) {
     if (!child.count || !child.parent.includes(kind)) continue;
     const c = kids.filter((x) => isPlainObject(x) && x.kind === k).length;
-    const ok = child.count === "one" ? c === 1 : child.count === "some" ? c >= 1 : c <= 1;
-    const need = child.count === "one" ? "exactly one" : child.count === "some" ? "one or more" : "at most one";
-    if (!ok) report(ctx, "svs.node.count", path, `this ${kind} has ${c} ${k} children; it needs ${need}`);
+    const ok = child.count === 'one' ? c === 1 : child.count === 'some' ? c >= 1 : c <= 1;
+    const need = child.count === 'one' ? 'exactly one' : child.count === 'some' ? 'one or more' : 'at most one';
+    if (!ok) report(ctx, 'svs.node.count', path, `this ${kind} has ${c} ${k} children; it needs ${need}`);
   }
 }
 
@@ -353,7 +353,7 @@ function checkNode(n: IndexedNode, schema: TreeSchema, ctx: TreeContext) {
 
 function checkOwn(n: IndexedNode, schema: TreeSchema, ctx: TreeContext) {
   const ns = schema.nodes[n.kind];
-  const at = ptr(n.path, "params");
+  const at = ptr(n.path, 'params');
   checkParams(ns.params, n.params, at, ctx);
   const owned = ns.owned?.schema(n.params, ctx.registries);
   if (ns.owned && owned) checkParams(owned, n.params[ns.owned.param] ?? {}, ptr(at, ns.owned.param), ctx);
@@ -362,35 +362,35 @@ function checkOwn(n: IndexedNode, schema: TreeSchema, ctx: TreeContext) {
     if (given.length !== 1) {
       report(
         ctx,
-        "svs.params.exclusive",
+        'svs.params.exclusive',
         at,
-        `give exactly one of ${set.join(", ")} (given: ${given.join(", ") || "none"})`,
+        `give exactly one of ${set.join(', ')} (given: ${given.join(', ') || 'none'})`,
       );
     }
   }
   const custom = n.node.custom;
-  if (custom !== undefined) checkCustom(n, custom, ptr(n.path, "custom"), ctx);
+  if (custom !== undefined) checkCustom(n, custom, ptr(n.path, 'custom'), ctx);
 }
 
 /** `custom` by namespace (seqspec:format#extensions): registered tables checked, other namespaces passed through. */
 function checkCustom(n: IndexedNode, custom: unknown, path: string, ctx: TreeContext) {
-  if (!isPlainObject(custom)) return typeError(ctx, path, "an object keyed by namespace", custom, "svs.custom.invalid");
+  if (!isPlainObject(custom)) return typeError(ctx, path, 'an object keyed by namespace', custom, 'svs.custom.invalid');
   for (const [ns, value] of Object.entries(custom)) {
     const at = ptr(path, ns);
-    if (!isNamespace(ns) || ns === "svs" || ns === "seqv") {
+    if (!isNamespace(ns) || ns === 'svs' || ns === 'seqv') {
       report(
         ctx,
-        "svs.custom.namespace",
+        'svs.custom.namespace',
         at,
         `"${ns}" is not a namespace (a short name or reverse-DNS; not svs, seqv)`,
       );
     } else if (!isPlainObject(value)) {
-      typeError(ctx, at, `an object of "${ns}" fields`, value, "svs.custom.invalid");
+      typeError(ctx, at, `an object of "${ns}" fields`, value, 'svs.custom.invalid');
     } else {
-      const entry = ctx.registries.get("custom", `${ns}/${n.kind}`);
+      const entry = ctx.registries.get('custom', `${ns}/${n.kind}`);
       if (!entry) {
-        if (ctx.registries.list("custom").some((e) => e.namespace === ns)) {
-          report(ctx, "svs.custom.invalid", at, `namespace "${ns}" has no fields on ${n.kind} nodes`);
+        if (ctx.registries.list('custom').some((e) => e.namespace === ns)) {
+          report(ctx, 'svs.custom.invalid', at, `namespace "${ns}" has no fields on ${n.kind} nodes`);
         }
         continue;
       }
@@ -398,7 +398,7 @@ function checkCustom(n: IndexedNode, custom: unknown, path: string, ctx: TreeCon
       checkParams(entry.schema, value, at, sub);
       for (const r of sub.refs) ctx.refs.push(r);
       for (const i of sub.issues)
-        ctx.issues.push(i.code.startsWith("svs.params.") ? { ...i, code: "svs.custom.invalid" } : i);
+        ctx.issues.push(i.code.startsWith('svs.params.') ? { ...i, code: 'svs.custom.invalid' } : i);
     }
   }
 }
@@ -407,32 +407,32 @@ function checkCustom(n: IndexedNode, custom: unknown, path: string, ctx: TreeCon
  * A dynamic node's kinds (seqspec:sources#dynamic-nodes): what a streamed source's derived refs may name, known when
  * held.
  */
-const DYNAMIC = ["sequence", "ligand", "unit", "mapping", "annotation", "source"];
+const DYNAMIC = ['sequence', 'ligand', 'unit', 'mapping', 'annotation', 'source'];
 /** A `source` node that streams (seqspec:sources#streamed-sources): its derived refs are its dynamic nodes. */
 export const isStreamedSource = (n: { kind: string; params: Record<string, unknown> } | undefined) =>
-  n?.kind === "source" && (n.params.stream != null || n.params.protocol != null);
+  n?.kind === 'source' && (n.params.stream != null || n.params.protocol != null);
 
 /** What a derived ref's suffix can name, by the node it is under (seqspec:format#nodes-and-refs). */
 function yields(n: IndexedNode, suffix: string): string[] {
-  if ((n.kind === "sequence" || n.kind === "ligand") && suffix === "unit") return ["unit"];
+  if ((n.kind === 'sequence' || n.kind === 'ligand') && suffix === 'unit') return ['unit'];
   if (isStreamedSource(n)) return DYNAMIC;
   // A provider's complex, or a letters stream's (`source_ref`, its units by the manifest's keys; ST4b).
-  if (n.kind === "complex" && (n.params.provider != null || n.params.source_ref != null))
-    return ["sequence", "ligand", "unit"];
-  return n.kind === "alignment" && /^[0-9]+$/.test(suffix) ? ["row"] : [];
+  if (n.kind === 'complex' && (n.params.provider != null || n.params.source_ref != null))
+    return ['sequence', 'ligand', 'unit'];
+  return n.kind === 'alignment' && /^[0-9]+$/.test(suffix) ? ['row'] : [];
 }
 
 /** By KeyKind; a molecule is a sequence unless a ligand. Shared: a table's target column resolves a ref per row. */
 const KEY_KINDS: readonly (readonly string[])[] = [
-  ["sequence"],
-  ["unit"],
-  ["alignment"],
-  ["row"],
-  ["mapping"],
-  ["annotation", "computed"],
-  ["complex"],
+  ['sequence'],
+  ['unit'],
+  ['alignment'],
+  ['row'],
+  ['mapping'],
+  ['annotation', 'computed'],
+  ['complex'],
 ];
-const LIGAND: readonly string[] = ["ligand"];
+const LIGAND: readonly string[] = ['ligand'];
 
 /** The kinds of node a set's key can stand for: a molecule is a sequence or a ligand, an annotation key either kind. */
 function kindsOfKey(set: KeyResolver, t: KeyTarget): readonly string[] {
@@ -453,7 +453,7 @@ function resolveRefs(ctx: TreeContext, set: KeyResolver | undefined) {
     let hint = hints.get(kinds);
     if (hint === undefined) {
       const like = [...ctx.nodes.values()].filter((x) => kinds.includes(x.kind)).map((x) => x.ref);
-      hint = like.length > 0 ? `; ${kinds.join(" or ")} refs here: ${like.slice(0, 6).join(", ")}` : "";
+      hint = like.length > 0 ? `; ${kinds.join(' or ')} refs here: ${like.slice(0, 6).join(', ')}` : '';
       hints.set(kinds, hint);
     }
     return hint;
@@ -461,27 +461,27 @@ function resolveRefs(ctx: TreeContext, set: KeyResolver | undefined) {
   for (const u of ctx.refs) {
     if (u.ref === TEMPLATE_NODE) {
       // A template's node: only in a layer of a track with `for_each` (seqspec:format#placement).
-      const track = ctx.nodes.get(ctx.nodes.get(u.from)?.parent ?? "");
+      const track = ctx.nodes.get(ctx.nodes.get(u.from)?.parent ?? '');
       if (track?.params.for_each == null)
-        report(ctx, "svs.ref.syntax", u.path, `"${u.ref}" stands for a template's node: only in a track with for_each`);
+        report(ctx, 'svs.ref.syntax', u.path, `"${u.ref}" stands for a template's node: only in a track with for_each`);
       continue;
     }
-    const rows = u.count !== undefined && u.count > 1 ? ` (${u.count} rows)` : "";
-    const slash = u.ref.indexOf("/");
+    const rows = u.count !== undefined && u.count > 1 ? ` (${u.count} rows)` : '';
+    const slash = u.ref.indexOf('/');
     const head = slash < 0 ? u.ref : u.ref.slice(0, slash);
     const n = ctx.nodes.get(head);
     if (!n) {
       if (set?.byName(u.ref, target)) {
         const kinds = kindsOfKey(set, target);
         if (!overlaps(kinds, u.kinds)) {
-          const message = `"${u.ref}" is a ${kinds[0]}; expected ${u.kinds.join(" or ")}${rows}`;
-          report(ctx, "svs.ref.wrong_kind", u.path, message);
+          const message = `"${u.ref}" is a ${kinds[0]}; expected ${u.kinds.join(' or ')}${rows}`;
+          report(ctx, 'svs.ref.wrong_kind', u.path, message);
         }
         continue;
       }
       // A streamed source's dynamic node, not held yet: its kind is known when it arrives.
       if (set?.dynamic?.(u.ref) && overlaps(DYNAMIC, u.kinds)) continue;
-      report(ctx, "svs.ref.unresolved", u.path, `"${u.ref}" names no node${hintOf(u.kinds)}${rows}`);
+      report(ctx, 'svs.ref.unresolved', u.path, `"${u.ref}" names no node${hintOf(u.kinds)}${rows}`);
       continue;
     }
     const kinds = slash < 0 ? [n.kind] : yields(n, u.ref.slice(slash + 1));
@@ -490,13 +490,13 @@ function resolveRefs(ctx: TreeContext, set: KeyResolver | undefined) {
         slash < 0
           ? `of kind ${n.kind}`
           : kinds.length > 0
-            ? `a derived ${kinds.join(" or ")}`
+            ? `a derived ${kinds.join(' or ')}`
             : `nothing ${n.kind} nodes yield`;
-      report(ctx, "svs.ref.wrong_kind", u.path, `"${u.ref}" is ${is}; expected ${u.kinds.join(" or ")}${rows}`);
+      report(ctx, 'svs.ref.wrong_kind', u.path, `"${u.ref}" is ${is}; expected ${u.kinds.join(' or ')}${rows}`);
       continue;
     }
     // A section's `follow` links windows, not data: its loops are resolve's (`svs.section.follow`), never a cycle here.
-    if (u.kinds.length === 1 && u.kinds[0] === "section") continue;
+    if (u.kinds.length === 1 && u.kinds[0] === 'section') continue;
     // A set per node: a table's target column is a ref per row (a genome's GC: 3M), so no copy per ref (was quadratic).
     const to = edges.get(u.from);
     if (to) to.add(head);
@@ -507,8 +507,8 @@ function resolveRefs(ctx: TreeContext, set: KeyResolver | undefined) {
     state.set(r, 1);
     for (const next of edges.get(r) ?? []) {
       if (state.get(next) === 1) {
-        const cycle = [...trail.slice(trail.indexOf(next)), next].join(" -> ");
-        report(ctx, "svs.ref.cycle", ctx.nodes.get(next)?.path ?? "", `refs form a cycle: ${cycle}`);
+        const cycle = [...trail.slice(trail.indexOf(next)), next].join(' -> ');
+        report(ctx, 'svs.ref.cycle', ctx.nodes.get(next)?.path ?? '', `refs form a cycle: ${cycle}`);
       } else if (!state.has(next)) visit(next, [...trail, next]);
     }
     state.set(r, 2);
@@ -541,7 +541,7 @@ export function checkStreamNode(
   const deep = tooDeep(n.params);
   if (deep !== null) {
     const message = `params nest deeper than ${MAX_JSON_DEPTH} objects and lists: the node cannot be read`;
-    return { issues: [Issue.error("svs.params.type", `${n.path}/params${deep}`, message)], refs: [] };
+    return { issues: [Issue.error('svs.params.type', `${n.path}/params${deep}`, message)], refs: [] };
   }
   checkOwn(n, schema, ctx);
   schema.nodes[n.kind].check?.(n, ctx);
@@ -581,15 +581,15 @@ export function nodeRefs(n: IndexedNode, reg: SvsRegistries, opts: NodeRefsOptio
 function checkSnapshots(snapshots: unknown[], ctx: TreeContext) {
   const refs = new Set<string>();
   snapshots.forEach((s, k) => {
-    if (!isPlainObject(s) || typeof s.ref !== "string") return;
-    if (!isRefSyntax(s.ref, false) || s.ref === "next" || s.ref === "prev") {
+    if (!isPlainObject(s) || typeof s.ref !== 'string') return;
+    if (!isRefSyntax(s.ref, false) || s.ref === 'next' || s.ref === 'prev') {
       const why = isRefSyntax(s.ref, false)
         ? "is reserved (a link's steps)"
-        : "is not a ref: [A-Za-z0-9][A-Za-z0-9_.-]*";
-      report(ctx, "svs.ref.syntax", `/snapshots/${k}/ref`, `snapshot "${s.ref}" ${why}`);
+        : 'is not a ref: [A-Za-z0-9][A-Za-z0-9_.-]*';
+      report(ctx, 'svs.ref.syntax', `/snapshots/${k}/ref`, `snapshot "${s.ref}" ${why}`);
     }
     if (refs.has(s.ref))
-      report(ctx, "svs.ref.duplicate", `/snapshots/${k}/ref`, `snapshot "${s.ref}" is already defined`);
+      report(ctx, 'svs.ref.duplicate', `/snapshots/${k}/ref`, `snapshot "${s.ref}" is already defined`);
     refs.add(s.ref);
   });
 }

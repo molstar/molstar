@@ -9,11 +9,11 @@
 // The DOM UI's default `Hint` never blocks the pointer (seqspec:interaction#accessibility): the cases are
 // hint-cases.ts, shared with React's.
 
-import { describe } from "vitest";
-import * as D from "../../src/dom/index.js";
-import { hintCases } from "./hint-cases.js";
+import { describe } from 'vitest';
+import * as D from '../../src/dom/index.js';
+import { hintCases } from './hint-cases.js';
 
-describe("the DOM Hint", () => {
+describe('the DOM Hint', () => {
   hintCases(async (host, buttons) => {
     const parts = buttons.map((b, i) =>
       D.Hint(host, {} as never, { label: `Hint ${i}`, children: (x: HTMLElement) => x.append(b) }),

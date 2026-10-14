@@ -16,14 +16,14 @@
 // way (so Nightingale's echo of a range, and the viewer's settling on the range it was given, send nothing). One
 // section, its first block: a range is that block's positions.
 
-import type { ResolvedView } from "@molstar/seq-core/format";
-import { Loci, type SeqSet } from "@molstar/seq-core/model";
-import { extentLoci } from "@molstar/seq-nightingale";
-import type { NightingaleEvent } from "@molstar/seq-nightingale/mount";
-import type { SeqViewerContext } from "@molstar/seq-viewer";
+import type { ResolvedView } from '@molstar/seq-core/format';
+import { Loci, type SeqSet } from '@molstar/seq-core/model';
+import { extentLoci } from '@molstar/seq-nightingale';
+import type { NightingaleEvent } from '@molstar/seq-nightingale/mount';
+import type { SeqViewerContext } from '@molstar/seq-viewer';
 
 /** The origin Nightingale's moves carry in the viewer. */
-export const NIGHTINGALE = "host:nightingale";
+export const NIGHTINGALE = 'host:nightingale';
 
 /** What the link needs of Nightingale's side: `mount`'s, over the first section's manager (a fake in tests). */
 export interface NightingaleSide {
@@ -66,7 +66,7 @@ function selected(ctx: SeqViewerContext): Loci | null {
 /** Both, when they are of one kind (a union); else the first (a hover over a selection of another kind). */
 function together(a: Loci | null, b: Loci | null): Loci | null {
   if (!a || !b) return a ?? b;
-  return a.kind === b.kind && a.set === b.set && !("alignment" in a && "alignment" in b && a.alignment !== b.alignment)
+  return a.kind === b.kind && a.set === b.set && !('alignment' in a && 'alignment' in b && a.alignment !== b.alignment)
     ? Loci.union(a, b)
     : a;
 }
@@ -103,8 +103,8 @@ export function linkNightingale(
   // Nightingale's hover and click in the viewer.
   stops.push(
     side.onEvent((e) => {
-      const loci = e.kind === "leave" ? null : extentLoci(side.view, side.set, e.extent);
-      if (e.kind === "click") {
+      const loci = e.kind === 'leave' ? null : extentLoci(side.view, side.set, e.extent);
+      if (e.kind === 'click') {
         const held = ctx.selection.current.value;
         if (!loci) return;
         if (held.origin === NIGHTINGALE && held.seq && Loci.areEqual(held.seq, loci)) ctx.selection.clear(NIGHTINGALE);

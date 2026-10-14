@@ -12,27 +12,27 @@
 // at most at `maxLetterPx`, by default the header labels' size (`labelFontPx`); a host raises the cap, or moves it
 // with the labels' size. The text layout's letters are the cap's size by default.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { case14, case15 } from "../../core/_test/format/cases.js";
-import { DefaultRenderProps, type RenderProps } from "../src/layout.js";
-import { LayerFrame, RecordingBackend } from "../src/testing/index.js";
-import { fontPx } from "../src/text.js";
-import { drawn, texts } from "./draw-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { case14, case15 } from '../../core/_test/format/cases.js';
+import { DefaultRenderProps, type RenderProps } from '../src/layout.js';
+import { LayerFrame, RecordingBackend } from '../src/testing/index.js';
+import { fontPx } from '../src/text.js';
+import { drawn, texts } from './draw-fixtures.js';
 
 /** The renderers that draw per-position text. */
-const PER_POSITION = new Set(["letters", "rows", "emphasis"]);
+const PER_POSITION = new Set(['letters', 'rows', 'emphasis']);
 
 /** An alignment's rows. */
 function alignmentRows(): SeqViewSpecDoc {
   const b = createSeqViewSpec();
   const aln = b.data.alignment({
-    ref: "aln",
-    value: ["MSEEKLKELAEKAIRL", "MSEE-LKELAEKAIRL", "MSDEKLKE-AEKAIRL"],
-    flavor: "aligned",
+    ref: 'aln',
+    value: ['MSEEKLKELAEKAIRL', 'MSEE-LKELAEKAIRL', 'MSDEKLKE-AEKAIRL'],
+    flavor: 'aligned',
   } as never);
-  b.view({ ref: "v", label: "V", height: "box" }).block({ alignment: aln }).track({ label: "Rows" }).rows();
+  b.view({ ref: 'v', label: 'V', height: 'box' }).block({ alignment: aln }).track({ label: 'Rows' }).rows();
   return b.getDocument();
 }
 
@@ -44,17 +44,17 @@ async function sizesAtFullZoom(doc: SeqViewSpecDoc, render?: Partial<RenderProps
   const t = await drawn(doc, { width: 1000, height: 600, dpr: 2, render });
   for (const ref of t.ctx.viewports.sections.value) {
     const vp = t.ctx.viewports.get(ref);
-    vp?.setView(vp.live.current.maxCell, 0, "api");
+    vp?.setView(vp.live.current.maxCell, 0, 'api');
   }
   await t.ctx.graph.update();
   const m = t.ctx.graph.assembled.value?.view;
-  if (!m) throw new Error("no view");
+  if (!m) throw new Error('no view');
   const px: number[] = [];
   const renderers = new Set<string>();
   for (let k = 0; k < m.prepared.length; k++) {
     const name = m.prepared[k].renderer;
     if (!PER_POSITION.has(name)) continue;
-    const entry = t.ctx.registry.get("renderers", name);
+    const entry = t.ctx.registry.get('renderers', name);
     const section = m.set.strings.get(m.resolved.sections.ref[m.resolved.tracks.section[m.resolved.layers.track[k]]]);
     if (!entry) continue;
     const rec = new RecordingBackend();
@@ -71,8 +71,8 @@ async function sizesAtFullZoom(doc: SeqViewSpecDoc, render?: Partial<RenderProps
 
 describe("per-position text is capped at the header labels' size", () => {
   for (const [name, doc] of [
-    ["case 14", case14],
-    ["case 15", case15],
+    ['case 14', case14],
+    ['case 15', case15],
     ["an alignment's rows", alignmentRows],
   ] as const)
     it(`${name}: no text above the cap at the closest zoom, and some at it`, async () => {
@@ -94,8 +94,8 @@ describe("per-position text is capped at the header labels' size", () => {
 
   it("the text layout's letters are the cap's size unless given", async () => {
     const b = createSeqViewSpec();
-    const s = b.data.sequence({ ref: "s", alphabet: "protein", value: "MSEEKLKELAEKAIRL" });
-    b.view({ ref: "v", label: "V", layout: "text" }).block({ sequence: s }).track({ label: "P" }).letters();
+    const s = b.data.sequence({ ref: 's', alphabet: 'protein', value: 'MSEEKLKELAEKAIRL' });
+    b.view({ ref: 'v', label: 'V', layout: 'text' }).block({ sequence: s }).track({ label: 'P' }).letters();
     const doc = b.getDocument();
     const t = await drawn(doc, { render: { maxLetterPx: 14 } });
     expect(t.ctx.layout.props(t.ctx.viewports.sections.value[0]).wrappedFontPx).toBe(14);

@@ -13,12 +13,12 @@
 // residue on its own columns read without the row's cached map, which allocates on a miss). The positive control: each
 // step allocating an object too (`leaking`), measured alike, is caught.
 
-import { CoordinateSystemKind as K, type SeqSet } from "@molstar/seq-core/model";
-import { beforeAll, describe, expect, it } from "vitest";
-import { gene, rows } from "../../core/_test/format/project-fixtures.js";
-import { ChannelMarks, Hit, HitRegion, HoverKind, MarkBit } from "../src/index.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
-import { shown } from "./projection-fixtures.js";
+import { CoordinateSystemKind as K, type SeqSet } from '@molstar/seq-core/model';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { gene, rows } from '../../core/_test/format/project-fixtures.js';
+import { ChannelMarks, Hit, HitRegion, HoverKind, MarkBit } from '../src/index.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from './heap.js';
+import { shown } from './projection-fixtures.js';
 
 let sink = 0;
 let g: Awaited<ReturnType<typeof shown>>;
@@ -28,7 +28,7 @@ const ROWS = 10_000;
 beforeAll(async () => {
   [g, r] = await Promise.all([shown(gene({ chromosome: true })), shown(rows(ROWS))]);
   // The channels alone: the hover label's churn per element change is IN2's guard (input.heap.ts), not this one.
-  for (const t of [g, r]) t.ctx.behaviors.get("hoverLabel")?.remove();
+  for (const t of [g, r]) t.ctx.behaviors.get('hoverLabel')?.remove();
 }, 60_000);
 
 /** A hit on a residue of `unit`, reused. */
@@ -42,14 +42,14 @@ function seqHit(set: SeqSet, unit: number) {
 
 /** A nucleotide or a residue hovered by turns, the channels synced, a section's marks read. */
 function geneStep(ch: ChannelMarks) {
-  const [gu, pu] = [g.unit("gene/unit"), g.unit("protein/unit")];
+  const [gu, pu] = [g.unit('gene/unit'), g.unit('protein/unit')];
   const [nt, aa] = [seqHit(g.set, gu), seqHit(g.set, pu)];
   return (i: number) => {
     const h = i & 1 ? aa : nt;
     const x = i & 1 ? i % 20 : i % 120;
     h.index = h.shown = x;
     h.seq.index = x as never;
-    g.ctx.hover.setFromHit(h, "pointer");
+    g.ctx.hover.setFromHit(h, 'pointer');
     ch.sync();
     const m = ch.marks(i % 3);
     sink += (m?.bitsAt(0, x) ?? 0) + (m?.primary(0) ?? 0) + (m?.any(0, 40, 80, MarkBit.hover) ? 1 : 0);
@@ -57,7 +57,7 @@ function geneStep(ch: ChannelMarks) {
 }
 
 describe("the channels' hover allocates nothing per element change", () => {
-  it("a nucleotide or a residue hovered, closed, projected into every section with its primary, and read", () => {
+  it('a nucleotide or a residue hovered, closed, projected into every section with its primary, and read', () => {
     const ch = new ChannelMarks(g.ctx);
     const result = heapScaling(50_000, geneStep(ch));
     expect(ch.rebuilds.hover).toBeGreaterThan(200_000);
@@ -78,7 +78,7 @@ describe("the channels' hover allocates nothing per element change", () => {
       hit.index = hit.shown = column;
       hit.aligned.row = row as never;
       hit.aligned.column = column as never;
-      r.ctx.hover.setFromHit(hit, "pointer");
+      r.ctx.hover.setFromHit(hit, 'pointer');
       ch.sync();
       sink += ch.marks(0)?.hover.count ?? 0;
     });
@@ -87,7 +87,7 @@ describe("the channels' hover allocates nothing per element change", () => {
     expect(isFlat(result), describeScaling(result, 250_000)).toBe(true);
   });
 
-  it("the same steps allocating an object each are caught (positive control)", () => {
+  it('the same steps allocating an object each are caught (positive control)', () => {
     const ch = new ChannelMarks(g.ctx);
     expect(controlCaught(() => heapScaling(50_000, leaking(geneStep(ch))))).toBe(true);
   });

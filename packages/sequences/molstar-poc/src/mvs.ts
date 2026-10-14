@@ -11,9 +11,9 @@
 // annotation tables (the `residue_range` schema, columns as arrays: label_asym_id, beg/end_label_seq_id, color), each
 // applied by a `color_from_uri` node over a `data:` URI, in order, so a later table wins where two color one residue.
 
-import type { MVSData_State } from "molstar/lib/extensions/mvs/mvs-data";
-import { createMVSBuilder } from "molstar/lib/extensions/mvs/tree/mvs/mvs-builder";
-import type { ColorT } from "molstar/lib/extensions/mvs/tree/mvs/param-types";
+import type { MVSData_State } from 'molstar/lib/extensions/mvs/mvs-data';
+import { createMVSBuilder } from 'molstar/lib/extensions/mvs/tree/mvs/mvs-builder';
+import type { ColorT } from 'molstar/lib/extensions/mvs/tree/mvs/param-types';
 
 /** An MVS state (Mol*'s `MVSData_State`), what a host loads. */
 export type MvsState = MVSData_State;
@@ -38,7 +38,7 @@ export const MvsColorTable = {
 };
 function base64(text: string): string {
   const bytes = new TextEncoder().encode(text);
-  let s = "";
+  let s = '';
   for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
   return btoa(s);
 }
@@ -48,7 +48,7 @@ function base64(text: string): string {
  * values.
  */
 export interface MolstarDefaults {
-  readonly representation?: "cartoon" | "surface" | "ball_and_stick" | "spacefill" | "backbone";
+  readonly representation?: 'cartoon' | 'surface' | 'ball_and_stick' | 'spacefill' | 'backbone';
   /** The polymer's color where no table reaches. */
   readonly base?: string;
   /** Ligands and ions as ball and stick (default true). */
@@ -59,7 +59,7 @@ export interface MolstarDefaults {
 
 export interface StructureScene {
   readonly url: string;
-  readonly format: "bcif" | "mmcif" | "pdb";
+  readonly format: 'bcif' | 'mmcif' | 'pdb';
   /** The model, 0-based (`model_index`). */
   readonly model?: number;
   /** An assembly id; null: the deposited model. */
@@ -97,35 +97,35 @@ export function structureMvs(scene: StructureScene): MVSData_State {
       ? parsed.assemblyStructure({ assembly_id: scene.assembly, model_index: scene.model ?? 0 })
       : parsed.modelStructure({ model_index: scene.model ?? 0 });
   const chains = scene.chains?.length ? scene.chains.map((c) => ({ ...c })) : null;
-  const front = s.component({ selector: chains ?? "polymer" });
-  const repr = front.representation({ type: d.representation ?? "cartoon" });
-  repr.color({ color: (d.base ?? "#c8c8c8") as ColorT });
+  const front = s.component({ selector: chains ?? 'polymer' });
+  const repr = front.representation({ type: d.representation ?? 'cartoon' });
+  repr.color({ color: (d.base ?? '#c8c8c8') as ColorT });
   for (const t of scene.colors ?? []) {
     if (MvsColorTable.size(t) === 0) continue;
-    repr.colorFromUri({ uri: MvsColorTable.dataUri(t), format: "json", schema: "residue_range" });
+    repr.colorFromUri({ uri: MvsColorTable.dataUri(t), format: 'json', schema: 'residue_range' });
   }
   if (chains) {
-    s.component({ selector: "polymer" })
-      .representation({ type: d.representation ?? "cartoon" })
-      .color({ color: "#e0e0e0" })
+    s.component({ selector: 'polymer' })
+      .representation({ type: d.representation ?? 'cartoon' })
+      .color({ color: '#e0e0e0' })
       .opacity({ opacity: d.faint ?? 0.25 });
     if (scene.focus !== false) front.focus({});
   }
   if (d.ligands !== false) {
-    s.component({ selector: "ligand" }).representation({ type: "ball_and_stick" }).color({ color: "#7b6f62" });
-    s.component({ selector: "ion" }).representation({ type: "ball_and_stick" });
+    s.component({ selector: 'ligand' }).representation({ type: 'ball_and_stick' }).color({ color: '#7b6f62' });
+    s.component({ selector: 'ion' }).representation({ type: 'ball_and_stick' });
   }
   for (const t of scene.sticks ?? []) {
     if (MvsColorTable.size(t) === 0) continue;
     const uri = MvsColorTable.dataUri(t);
-    s.componentFromUri({ uri, format: "json", schema: "residue_range" })
-      .representation({ type: "ball_and_stick" })
-      .colorFromUri({ uri, format: "json", schema: "residue_range" });
+    s.componentFromUri({ uri, format: 'json', schema: 'residue_range' })
+      .representation({ type: 'ball_and_stick' })
+      .colorFromUri({ uri, format: 'json', schema: 'residue_range' });
   }
   const sel = scene.selection;
   if (sel && MvsColorTable.size(sel.residues) > 0) {
     const c = s.component({ selector: rows(sel.residues) });
-    c.representation({ type: "ball_and_stick" }).color({ color: (sel.residues.color[0] ?? "#e8a33d") as ColorT });
+    c.representation({ type: 'ball_and_stick' }).color({ color: (sel.residues.color[0] ?? '#e8a33d') as ColorT });
     c.label({ text: sel.label });
   }
   return b.getState();

@@ -12,7 +12,7 @@
 // labeled once), and nothing is asked while measured. A frame allocating an object a step fails the same guard (the
 // positive control).
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -23,7 +23,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = 1_000;
 const WARM = 6 * FRAME_WARM;
@@ -37,24 +37,24 @@ const measure = (frame: () => void) => {
 };
 const guard = (frame: () => void) => {
   const r = measure(frame);
-  return isFlat(r) ? "" : describeScaling(r, N);
+  return isFlat(r) ? '' : describeScaling(r, N);
 };
 
 async function foldedFrame() {
-  const { composed, recording } = await import("./composer-fixtures.js");
-  const { Dirty } = await import("../src/draw/composer.js");
-  const { demoSources } = await import("./jbrowse-sources.js");
-  const { JBROWSE_SECTION, jbrowseDoc } = await import("./jbrowse-story-fixtures.js");
-  const src = demoSources("nav");
-  const t = await composed(jbrowseDoc("chr17", 7_661_779, 7_687_538), {
+  const { composed, recording } = await import('./composer-fixtures.js');
+  const { Dirty } = await import('../src/draw/composer.js');
+  const { demoSources } = await import('./jbrowse-sources.js');
+  const { JBROWSE_SECTION, jbrowseDoc } = await import('./jbrowse-story-fixtures.js');
+  const src = demoSources('nav');
+  const t = await composed(jbrowseDoc('chr17', 7_661_779, 7_687_538), {
     width: 1000,
     height: 300,
     dpr: 2,
     loaders: src.loaders,
   });
-  const m = t.ctx.streams as import("../src/streams.js").Streams;
+  const m = t.ctx.streams as import('../src/streams.js').Streams;
   const vp = t.vp;
-  if (!vp) throw new Error("no viewport");
+  if (!vp) throw new Error('no viewport');
   t.layout(JBROWSE_SECTION);
   let done = false;
   void m.settled().then(() => {
@@ -67,7 +67,7 @@ async function foldedFrame() {
   const be = recording();
   let i = 0;
   const frame = () => {
-    vp.panBy((i++ & 1) === 0 ? 9 : -9, 0, "pointer");
+    vp.panBy((i++ & 1) === 0 ? 9 : -9, 0, 'pointer');
     m.pass();
     t.frame(be, Dirty.all);
   };
@@ -82,19 +82,19 @@ async function foldedFrame() {
 }
 
 describe("the folded genes' pans allocate nothing per frame once their regions are held", () => {
-  it("a pass and a frame, TP53 folded", async () => {
+  it('a pass and a frame, TP53 folded', async () => {
     vi.resetModules();
     const g = await foldedFrame();
     g.frame();
     const names = g.backend.textItems.text.slice(0, g.backend.textItems.n);
-    expect(names.filter((x) => x === "TP53").length).toBe(1);
+    expect(names.filter((x) => x === 'TP53').length).toBe(1);
     const asked = g.requests();
-    expect(guard(g.frame)).toBe("");
+    expect(guard(g.frame)).toBe('');
     expect(g.requests()).toBe(asked);
     g.dispose();
   }, 120_000);
 
-  it("the same frame allocating an object a step is caught (positive control)", async () => {
+  it('the same frame allocating an object a step is caught (positive control)', async () => {
     vi.resetModules();
     const g = await foldedFrame();
     expect(controlCaught(() => measure(leaking(g.frame) as () => void))).toBe(true);

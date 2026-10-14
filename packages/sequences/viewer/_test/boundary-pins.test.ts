@@ -12,12 +12,12 @@
 // block's ends inside the data area. Below the letters LOD, its glyph on the lane as before. It hits within a few px of
 // the boundary over the whole row.
 
-import { describe, expect, it } from "vitest";
-import { Hit, HoverKind } from "../src/index.js";
-import { Op, type RecordingBackend } from "../src/testing/index.js";
-import { pinsDoc as doc, S } from "./boundary-pins-fixtures.js";
-import { recording } from "./composer-fixtures.js";
-import { lit } from "./overlay-fixtures.js";
+import { describe, expect, it } from 'vitest';
+import { Hit, HoverKind } from '../src/index.js';
+import { Op, type RecordingBackend } from '../src/testing/index.js';
+import { pinsDoc as doc, S } from './boundary-pins-fixtures.js';
+import { recording } from './composer-fixtures.js';
+import { lit } from './overlay-fixtures.js';
 
 type Box = [number, number, number, number];
 const meets = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
@@ -85,7 +85,7 @@ describe("a boundary over its track's letters", () => {
       it(`never covers a letter's ink: ${cell} px a position, DPR ${dpr}`, async () => {
         const t = await open(1, dpr);
         // The view from the graft's boundary on: the start, the middle (20) and, at 9 px, the end in view.
-        t.vp?.setView(cell, 0, "api");
+        t.vp?.setView(cell, 0, 'api');
         const r = t.frame(recording());
         const color = triangleColor(r);
 
@@ -98,9 +98,9 @@ describe("a boundary over its track's letters", () => {
         for (const m of boxes) for (const k of inks) expect(meets(m, k), `${m} over ${k}`).toBe(false);
       });
 
-  it("where no room is left above the text, the hairline alone, still clear of the ink", async () => {
+  it('where no room is left above the text, the hairline alone, still clear of the ink', async () => {
     const t = await open(0.55, 2);
-    t.vp?.setView(16, 0, "api");
+    t.vp?.setView(16, 0, 'api');
     const r = t.frame(recording());
     const inks = inkBoxes(r, t.ink);
     expect(inks.length).toBeGreaterThan(20);
@@ -127,13 +127,13 @@ describe("a boundary over its track's letters", () => {
     // The hit: a few px each side of the middle boundary, top to bottom of the row, is the insertion.
     const a = t.ctx.layout.axis(S);
     const x = a ? a.x(0, a.shownOf(0, 20)) : 0;
-    const y = t.yOf(S, "t-of");
+    const y = t.yOf(S, 't-of');
     const hit = Hit.create();
     const at = (px: number, py: number) => {
       t.ctx.layout.hitTest(S, px, py, hit);
       return hit.kind === HoverKind.item ? hit.item : hit.kind === HoverKind.seq ? -1 : -2;
     };
-    const rowTop = l.scrolledTop + l.entryTop[l.entryTrack.indexOf(t.trackIndex("t-of"))];
+    const rowTop = l.scrolledTop + l.entryTop[l.entryTrack.indexOf(t.trackIndex('t-of'))];
     for (const dx of [-3, 0, 3]) for (const py of [rowTop + 1, y, rowTop + 18]) expect(at(x + dx, py)).toBe(1);
     // Beside it, the letters' residues.
     expect(at(x - 7, y)).toBe(-1);

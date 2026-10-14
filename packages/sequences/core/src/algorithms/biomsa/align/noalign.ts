@@ -50,12 +50,12 @@
  *
  */
 
-import type { TSequence } from "../sequence/sequence.js";
-import { DEQueue } from "../utils/queue.js";
-import { DEBUG, type TAlignmentParam } from "./params.js";
-import Log from "../utils/logger.js";
-import { hammingWeight } from "../utils/bitarray.js";
-import { ALIGNOPT, pairwiseAlignment } from "./align.js";
+import type { TSequence } from '../sequence/sequence.js';
+import { DEQueue } from '../utils/queue.js';
+import { DEBUG, type TAlignmentParam } from './params.js';
+import Log from '../utils/logger.js';
+import { hammingWeight } from '../utils/bitarray.js';
+import { ALIGNOPT, pairwiseAlignment } from './align.js';
 import {
   epath2estring,
   EPATH_2_STRING,
@@ -65,7 +65,7 @@ import {
   estringLength,
   estringMerge,
   estringProduct,
-} from "../utils/estring.js";
+} from '../utils/estring.js';
 
 type TRange = {
   /** diagonal number. 0 is the main diagonal. negative numbers are diagonals
@@ -264,9 +264,9 @@ export function noalignPair(
   const [lMinzA, lMinzAStore, lKmerAArr] = pMinzA ?? extractMinimizers(seqA, KSIZE, WSIZE);
   const [lMinzB, lMinzBStore, lKmerBArr] = pMinzB ?? extractMinimizers(seqB, KSIZE, WSIZE);
   if (DEBUG) {
-    Log.add("Extract Minimizers");
-    lDebugStats["Nb Minimizers"] = { a: lMinzAStore.count, b: lMinzBStore.count };
-    lDebugStats["Dupl. Minimizers"] = { a: lMinzAStore.count - lMinzA.size, b: lMinzBStore.count - lMinzB.size };
+    Log.add('Extract Minimizers');
+    lDebugStats['Nb Minimizers'] = { a: lMinzAStore.count, b: lMinzBStore.count };
+    lDebugStats['Dupl. Minimizers'] = { a: lMinzAStore.count - lMinzA.size, b: lMinzBStore.count - lMinzB.size };
   }
 
   let lNbCommonWindows = 0;
@@ -329,8 +329,8 @@ export function noalignPair(
     }
   }
   if (DEBUG) {
-    Log.add("Filter Common Minimizers");
-    lDebugStats["Nb common windows"] = { all: lNbCommonWindows };
+    Log.add('Filter Common Minimizers');
+    lDebugStats['Nb common windows'] = { all: lNbCommonWindows };
   }
 
   let lDiagList: TRange[] = [];
@@ -351,8 +351,8 @@ export function noalignPair(
     });
   });
   if (DEBUG) {
-    Log.add("Merge Minimizers");
-    lDebugStats["Nb diagonals"] = { all: lDiagList.length };
+    Log.add('Merge Minimizers');
+    lDebugStats['Nb diagonals'] = { all: lDiagList.length };
   }
 
   // Special case: no diagonal found: fallback to NW alignment
@@ -368,7 +368,7 @@ export function noalignPair(
     let lDelta = a.begin - b.begin;
     return lDelta === 0 ? a.diagId - b.diagId : lDelta;
   });
-  if (DEBUG) Log.add("Sort Minimizers");
+  if (DEBUG) Log.add('Sort Minimizers');
 
   const lLenA = seqA.encodedSeq.length;
   const lLenB = seqB.encodedSeq.length;
@@ -379,15 +379,15 @@ export function noalignPair(
   lDiagList.push({ diagId: lLenA - lLenB, begin: lLenA, end: lLenA });
 
   if (DEBUG) {
-    Log.add("Filter Minimizers - Optimal list");
+    Log.add('Filter Minimizers - Optimal list');
     let lCoverage = 0;
     lDiagList.forEach((d) => {
       lCoverage += d.end - d.begin;
     });
     lCoverage /= lMaxLen;
-    lDebugStats["Strict Coverage"] = { all: lCoverage };
+    lDebugStats['Strict Coverage'] = { all: lCoverage };
 
-    lDebugStats["Nb filtered diagonals"] = { all: lDiagList.length };
+    lDebugStats['Nb filtered diagonals'] = { all: lDiagList.length };
   }
 
   // Extend consecutive segments on same diagonal. We apply a tolerance for
@@ -516,14 +516,14 @@ export function noalignPair(
   }
 
   if (DEBUG) {
-    Log.add("Diagonals extension");
+    Log.add('Diagonals extension');
     let lCoverage = 0;
     lExtDiagList.forEach((d) => {
       lCoverage += d.end - d.begin;
     });
     lCoverage /= lMaxLen;
-    lDebugStats["Coverage"] = { all: lCoverage };
-    lDebugStats["Extended Diagonals"] = { all: lExtDiagList.length };
+    lDebugStats['Coverage'] = { all: lCoverage };
+    lDebugStats['Extended Diagonals'] = { all: lExtDiagList.length };
     console.table(lDebugStats);
 
     //console.table(lMissingSegments);
@@ -597,7 +597,7 @@ export function noalignPair(
   else if (lEszA < lEszB) lEstringA = estringCat(lEstringA, [lEszA - lEszB]);
 
   if (DEBUG) {
-    Log.add("Fill between diagonals");
+    Log.add('Fill between diagonals');
   }
 
   // TODO: Finalize alignment here
@@ -678,7 +678,7 @@ export function centerStarNoAlign(pSeq: TSequence[], pAlignParam: TAlignmentPara
     let lDiff = estringDifference(lCenterEString, lCenterEStringRaw[i]);
     if (!lDiff) {
       console.error(
-        "An error occured while computing the center diff. for sequence #" + i,
+        'An error occured while computing the center diff. for sequence #' + i,
         lCenterEString,
         lCenterEStringRaw[i],
       );

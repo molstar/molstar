@@ -14,7 +14,7 @@
 // the selection's and highlights' row residues and cells (a gap's too) are also rectangles. One per surface (CS1);
 // `sync` before reading. The hover's rebuild allocates nothing once buffers have room.
 
-import type { ResolvedView } from "@molstar/seq-core/format";
+import type { ResolvedView } from '@molstar/seq-core/format';
 import {
   type AlignedLoci,
   Extents,
@@ -22,21 +22,21 @@ import {
   type Loci,
   OrderedSet,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import type { Assembled, ViewModel } from "./graph.js";
-import type { HighlightManager, HighlightStyle } from "./highlight.js";
-import { HoverKind } from "./hit.js";
+} from '@molstar/seq-core/model';
+import type { Assembled, ViewModel } from './graph.js';
+import type { HighlightManager, HighlightStyle } from './highlight.js';
+import { HoverKind } from './hit.js';
 
 /** Read once: a member read in a hover-rate path allocates under the test runner's module wrapper. */
 const HEADER = HoverKind.header;
 
-import type { HoverManager, HoverState } from "./hover.js";
-import type { SplitFeatures } from "./layout.js";
-import { MarkBit, type MarkSet, type RowMarks, SectionMarks, type ShownRuns } from "./marks.js";
-import { type Coordinates, isCoordinates, Projector } from "./projection.js";
-import type { Selection } from "./selection.js";
-import type { SeqState, Unsubscribable } from "./state.js";
-import type { SystemRegistry } from "./systems.js";
+import type { HoverManager, HoverState } from './hover.js';
+import type { SplitFeatures } from './layout.js';
+import { MarkBit, type MarkSet, type RowMarks, SectionMarks, type ShownRuns } from './marks.js';
+import { type Coordinates, isCoordinates, Projector } from './projection.js';
+import type { Selection } from './selection.js';
+import type { SeqState, Unsubscribable } from './state.js';
+import type { SystemRegistry } from './systems.js';
 
 /** The managers a surface's channels read (a context is one). */
 export interface ChannelSources {
@@ -53,11 +53,11 @@ export const Channel = { hover: 1, selection: 2, highlight: 4 } as const;
 const ALL = 7;
 const UNIT = K.unit;
 type Target = Loci | Coordinates;
-const PARTS = ["seq", "boundaries", "rows", "columns", "items", "aligned"] as const;
+const PARTS = ['seq', 'boundaries', 'rows', 'columns', 'items', 'aligned'] as const;
 const STYLES: readonly [HighlightStyle, number][] = [
-  ["highlight", MarkBit.highlight],
-  ["accent", MarkBit.accent],
-  ["band", MarkBit.band],
+  ['highlight', MarkBit.highlight],
+  ['accent', MarkBit.accent],
+  ['band', MarkBit.band],
 ];
 
 export class ChannelMarks {
@@ -137,7 +137,7 @@ export class ChannelMarks {
     if (h.external) p.fromLoci(h.external, ext);
     else p.fromHover(h, ext);
     // An item's rows and a header's set close nothing (seqspec:interaction#channels).
-    if (h.closure === "containing" && h.kind !== HoverKind.item && h.kind !== HEADER) p.close(ext);
+    if (h.closure === 'containing' && h.kind !== HoverKind.item && h.kind !== HEADER) p.close(ext);
     for (let s = 0; s < this.count; s++) {
       const m = this.sections[s];
       p.project(ext, s, m.hover);
@@ -183,8 +183,8 @@ export class ChannelMarks {
         const ref = s >= 0 && strings ? strings.get((this.view as ResolvedView).sections.ref[s]) : null;
         // Channels closed by containment first, then closed once together; the others after, as given.
         const mine = all.filter((e) => e.style === style && (e.section === null || e.section === ref));
-        const closed = mine.filter((e) => e.closure === "containing").map((e) => e.target);
-        const given = mine.filter((e) => e.closure !== "containing").map((e) => e.target);
+        const closed = mine.filter((e) => e.closure === 'containing').map((e) => e.target);
+        const given = mine.filter((e) => e.closure !== 'containing').map((e) => e.target);
         this.light(given, closed, bit, of, s);
       }
     }
@@ -208,8 +208,8 @@ export class ChannelMarks {
     ext.count = 0;
     for (const t of closed) p.fromLoci(t, ext);
     if (closed.length) p.close(ext);
-    const aligned = given.filter((t): t is AlignedLoci => !isCoordinates(t) && t.kind === "aligned-loci");
-    for (const t of given) if (isCoordinates(t) || t.kind !== "aligned-loci") p.fromLoci(t, ext);
+    const aligned = given.filter((t): t is AlignedLoci => !isCoordinates(t) && t.kind === 'aligned-loci');
+    for (const t of given) if (isCoordinates(t) || t.kind !== 'aligned-loci') p.fromLoci(t, ext);
     const rows = ext.count;
     for (const t of aligned) p.fromLoci(t, ext);
     for (let s = Math.max(only, 0); s < (only >= 0 ? only + 1 : this.count); s++) {
@@ -309,7 +309,7 @@ export class ChannelMarks {
       };
       const el = l.elements;
       // A band: by column run, then row, so consecutive rows join one rectangle.
-      if ("rows" in el)
+      if ('rows' in el)
         runs(el.columns, (c0, c1) => OrderedSet.forEach(el.rows, (r) => out.add(bit, b, r, c0, c1), null));
       else for (const e of el) runs(e.columns, (c0, c1) => out.add(bit, b, e.row, c0, c1));
     }

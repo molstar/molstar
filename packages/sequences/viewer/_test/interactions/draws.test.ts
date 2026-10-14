@@ -13,18 +13,18 @@
 // drawn before stripes; below a device pixel the cells merge by device column and cover what the cells would; the
 // blocks without the property are the `matrix` renderer's tiles.
 
-import { describe, expect, it } from "vitest";
-import { case6 } from "../../../core/_test/format/cases.js";
-import { SkinToken } from "../../src/draw/backend.js";
-import { Hit, KernelRenderers } from "../../src/index.js";
-import { Kind, KindStyle, Kinds } from "../../src/interactions/index.js";
+import { describe, expect, it } from 'vitest';
+import { case6 } from '../../../core/_test/format/cases.js';
+import { SkinToken } from '../../src/draw/backend.js';
+import { Hit, KernelRenderers } from '../../src/index.js';
+import { Kind, KindStyle, Kinds } from '../../src/interactions/index.js';
 import {
   FingerprintRenderer,
   type FingerprintState,
   InteractionsViewerRegistry,
-} from "../../src/interactions/viewer/index.js";
-import { LayerFrame, Op, type RecordedImages, RecordingBackend } from "../../src/testing/index.js";
-import { opened } from "../layout-fixtures.js";
+} from '../../src/interactions/viewer/index.js';
+import { LayerFrame, Op, type RecordedImages, RecordingBackend } from '../../src/testing/index.js';
+import { opened } from '../layout-fixtures.js';
 import {
   absentScene,
   layerOf,
@@ -35,12 +35,12 @@ import {
   ShortFingerprint,
   unitScene,
   wideScene,
-} from "./fixtures.js";
+} from './fixtures.js';
 
 const COLOR = Int32Array.from(Kinds, (k) => Number.parseInt(KindStyle[k][1].slice(1), 16));
 const kindOfColor = (c: number) => COLOR.indexOf(c);
 const GROUND = SkinToken.grid;
-const CASE6: Scene = { doc: case6(), section: "poses-view.main", track: "poses-view.fingerprint" };
+const CASE6: Scene = { doc: case6(), section: 'poses-view.main', track: 'poses-view.fingerprint' };
 
 type Opened = Awaited<ReturnType<typeof open>>;
 interface Rect {
@@ -62,7 +62,7 @@ async function draw(
       ? Object.assign(
           await opened(CASE6.doc, {
             renderers: [...KernelRenderers],
-            view: "poses-view",
+            view: 'poses-view',
             registry: [InteractionsViewerRegistry],
             render: { maxCell: 400 },
           }),
@@ -74,7 +74,7 @@ async function draw(
     await t.ctx.graph.update();
   }
   const vp = t.ctx.viewports.get(scene.section);
-  if (o.cell !== undefined && o.cell !== null) vp?.setView(o.cell, 0, "api");
+  if (o.cell !== undefined && o.cell !== null) vp?.setView(o.cell, 0, 'api');
   await t.ctx.graph.update();
   const { k, state } = layerOf(t.ctx);
   const rec = new RecordingBackend();
@@ -151,7 +151,7 @@ describe("case 6's rects against the old rows and stripes, and hits on every str
     [2, null],
     [3, 60],
     [2, 150],
-  ])("DPR %i at cell %s: a ground and a stripe per kind held, on the rounded rows and stripes", async (dpr, cell) => {
+  ])('DPR %i at cell %s: a ground and a stripe per kind held, on the rounded rows and stripes', async (dpr, cell) => {
     const d = await draw(CASE6, { dpr, cell });
     const S = d.s.matrix.states;
     const K = d.s.kinds.length;
@@ -208,7 +208,7 @@ describe("case 6's rects against the old rows and stripes, and hits on every str
     expect(stripes).toBeGreaterThan(20);
     // A ground (the cell's, where a stripe of a kind it lacks would be) hits the row and no kind.
     const g = d.rects.find((r) => r.color === GROUND);
-    if (!g) throw new Error("no ground");
+    if (!g) throw new Error('no ground');
     for (let y = g.y; y < g.y + g.h; y++) {
       hitAt(d, g.x + g.w / 2, y + 0.5, hit);
       expect(hit.state).toBe(o.rows.findIndex((row) => g.y >= row.y0 && g.y < row.y1));
@@ -237,14 +237,14 @@ describe("case 6's rects against the old rows and stripes, and hits on every str
   });
 });
 
-describe("the hit at every device pixel row equals what the draw painted there (DPR 1, 1.5 and 2)", () => {
+describe('the hit at every device pixel row equals what the draw painted there (DPR 1, 1.5 and 2)', () => {
   // A brute force over the recorded rects: per contacted cell in view and device row, the painted stripe (the last rect
   // covering the pixel) is the hit's `part`, the row (its gap included) its `state`, outside the rows none. Points at the
   // top, middle and bottom of each device row, so the hit's one-step corrections meet every rounding edge.
   const SCENES = [
-    ["case 6", () => CASE6],
-    ["20 × 8", () => manyScene()],
-    ["compact", () => unitScene({ hint: 1 })],
+    ['case 6', () => CASE6],
+    ['20 × 8', () => manyScene()],
+    ['compact', () => unitScene({ hint: 1 })],
   ] as const;
   for (const [name, scene] of SCENES)
     it.each([1, 1.5, 2])(`${name} at DPR %f`, async (dpr) => {
@@ -285,8 +285,8 @@ describe("the hit at every device pixel row equals what the draw painted there (
     });
 });
 
-describe("20 poses with 8 kinds keep every stripe", () => {
-  it.each([1, 2])("DPR %i: each kind drawn and hit at least once per row that holds it", async (dpr) => {
+describe('20 poses with 8 kinds keep every stripe', () => {
+  it.each([1, 2])('DPR %i: each kind drawn and hit at least once per row that holds it', async (dpr) => {
     const d = await draw(manyScene(), { dpr });
     const S = 20;
     const K = 8;
@@ -363,7 +363,7 @@ describe("a short track draws compact: the first kind in the stripes' order, non
 
   // `minTrackHeight` is DPR-free (S + 2 CSS px): at any DPR from 1 a row is at least a device px, fractional ones too.
   it.each([1, 1.25, 1.5, 2])(
-    "DPR %f: every kind of a many-kinds layer survives in a track of a CSS px a row",
+    'DPR %f: every kind of a many-kinds layer survives in a track of a CSS px a row',
     async (dpr) => {
       const d = await draw(manyScene(20, 8, 1), { dpr });
       expect(d.height).toBe(22);
@@ -384,7 +384,7 @@ describe("a short track draws compact: the first kind in the stripes' order, non
   );
 });
 
-describe("thin cells merge by device column and cover what the cells would", () => {
+describe('thin cells merge by device column and cover what the cells would', () => {
   it.each([null, 0.03])(
     "at cell %s of 20,000 positions: the stripes' coverage equals the brute force's",
     async (cell) => {
@@ -412,7 +412,7 @@ describe("thin cells merge by device column and cover what the cells would", () 
             }
       let compared = 0;
       for (const [key, cols] of want) {
-        const [q, kind] = key.split(":").map(Number);
+        const [q, kind] = key.split(':').map(Number);
         expect([...covered(d.rects, q, kind)].sort((a, b) => a - b)).toEqual([...cols].sort((a, b) => a - b));
         compared++;
       }
@@ -441,15 +441,15 @@ describe("the blocks without the property are the `matrix` renderer's tiles", ()
   it("the property absent: tiles equal a kernel `matrix` layer's over the same data, in the counts' Blues", async () => {
     const mine = await draw(absentScene());
     const doc = structuredClone(absentScene().doc);
-    const layer = JSON.stringify(doc).includes("interactions:fingerprint");
+    const layer = JSON.stringify(doc).includes('interactions:fingerprint');
     expect(layer).toBe(true);
     const text = JSON.stringify(doc).replace('"type":"interactions:fingerprint"', '"type":"matrix"');
-    const t = await opened(JSON.parse(text), { renderers: [...KernelRenderers], view: "v" });
-    const k = t.ctx.graph.assembled.value?.view?.prepared.findIndex((p) => p.renderer === "matrix") ?? -1;
+    const t = await opened(JSON.parse(text), { renderers: [...KernelRenderers], view: 'v' });
+    const k = t.ctx.graph.assembled.value?.view?.prepared.findIndex((p) => p.renderer === 'matrix') ?? -1;
     const rec = new RecordingBackend();
-    const entry = t.ctx.registry.get("renderers", "matrix");
-    if (!entry) throw new Error("no matrix");
-    new LayerFrame(t.ctx, entry, "v.main", k).draw(rec);
+    const entry = t.ctx.registry.get('renderers', 'matrix');
+    if (!entry) throw new Error('no matrix');
+    new LayerFrame(t.ctx, entry, 'v.main', k).draw(rec);
     const a = images(mine.rec);
     const b = images(rec);
     expect(a.length).toBeGreaterThan(0);
@@ -458,7 +458,7 @@ describe("the blocks without the property are the `matrix` renderer's tiles", ()
     expect(mine.rects).toEqual([]);
   });
 
-  it("mixed data: rows of each fingerprint, bounded by its own rows, the matrix block as an image beside them", async () => {
+  it('mixed data: rows of each fingerprint, bounded by its own rows, the matrix block as an image beside them', async () => {
     const d = await draw(mixedScene());
     const o = oracle(d.top, d.height, 1, 5, d.s.kinds.length);
     // Block 1 is cut to three rows: no rect of it below row 3's top.
@@ -477,7 +477,7 @@ describe("the blocks without the property are the `matrix` renderer's tiles", ()
         expect(d.rec.args[d.rec.ops[4 * k + 3] + 5]).toBe(Math.round((d.top + 1) * d.dpr));
   });
 
-  it("a throw inside the tiles leaves the view as it was: its cache, color, top and height", async () => {
+  it('a throw inside the tiles leaves the view as it was: its cache, color, top and height', async () => {
     const d = await draw(mixedScene());
     const f = new LayerFrame(d.t.ctx, FingerprintRenderer as never, d.scene.section, d.k);
     const rec = new RecordingBackend();
@@ -488,21 +488,21 @@ describe("the blocks without the property are the `matrix` renderer's tiles", ()
     // The tiles' image call throws: the composer catches it and omits the layer, the view goes on to the next one.
     v.backend = Object.assign(new RecordingBackend(), {
       image: () => {
-        throw new Error("image");
+        throw new Error('image');
       },
     });
-    expect(() => FingerprintRenderer.draw?.(v, d.s, null)).toThrow("image");
+    expect(() => FingerprintRenderer.draw?.(v, d.s, null)).toThrow('image');
     expect([v.cache, v.color, v.top, v.height]).toEqual(before);
-    expect(() => FingerprintRenderer.tiny?.(v, d.s, null)).toThrow("image");
+    expect(() => FingerprintRenderer.tiny?.(v, d.s, null)).toThrow('image');
     expect([v.cache, v.color, v.top, v.height]).toEqual(before);
   });
 
-  it("the format half alone draws `matrix`, with one `svs.render.fallback` for the layer", async () => {
+  it('the format half alone draws `matrix`, with one `svs.render.fallback` for the layer', async () => {
     const t = await open(mixedScene(), {
       registry: [{ svs: InteractionsViewerRegistry.svs }, ShortFingerprint] as never,
     });
-    const fb = t.ctx.issues.current.value.filter((i) => i.code === "svs.render.fallback");
+    const fb = t.ctx.issues.current.value.filter((i) => i.code === 'svs.render.fallback');
     expect(fb).toHaveLength(1);
-    expect(t.ctx.graph.assembled.value?.view?.prepared.some((p) => p.renderer === "matrix")).toBe(true);
+    expect(t.ctx.graph.assembled.value?.view?.prepared.some((p) => p.renderer === 'matrix')).toBe(true);
   });
 });

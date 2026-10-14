@@ -40,7 +40,7 @@ import {
   streamedBlock,
   ThemeLocation,
   visibleRange,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 const rects = new RectBatch();
 /** The band and the area, translucent, under the bars (a backend groups a batch by color and alpha). */
@@ -85,7 +85,7 @@ function draw(v: DrawView, s: PerPosition, p: unknown) {
   const ax = v.axis;
   if (!ax || v.geometry !== AxisGeometry.linear) return;
   const encoding = (p as { encoding?: string }).encoding;
-  const bars = encoding !== "line" && encoding !== "area";
+  const bars = encoding !== 'line' && encoding !== 'area';
   const dpr = v.dpr;
   const top = Math.round((v.top + (v.height > 10 ? 3 : 0)) * dpr);
   band[0] = Math.round((v.top + v.height - (v.height > 10 ? 2 : 0)) * dpr);
@@ -142,7 +142,7 @@ function draw(v: DrawView, s: PerPosition, p: unknown) {
         rects.push(x + ((bw - tw) >> 1), bottom - h, tw, h);
         continue;
       }
-      if (encoding === "area") {
+      if (encoding === 'area') {
         under.begin(fill, AREA);
         under.push(x, bottom - h, Math.max(1, w), h);
       }
@@ -229,7 +229,7 @@ function overlay(v: DrawView, s: PerPosition, p: unknown) {
   const w = v.xe(b, k) - x;
   const bottom = band[0] | 0;
   const encoding = (p as { encoding?: string }).encoding;
-  if (encoding !== "line" && encoding !== "area") {
+  if (encoding !== 'line' && encoding !== 'area') {
     const key = colorAt(v, b, el[1]);
     const t = sizeTheme(v, 0, 1);
     const bw = Math.max(1, w - (w > 5 * dpr ? 1 : 0));
@@ -242,9 +242,9 @@ function overlay(v: DrawView, s: PerPosition, p: unknown) {
   if (r + hoverWidth(dpr) + 1 <= w >> 1) ringItem(v, colorAt(v, b, el[1]), 0, x + (w >> 1), bottom - h, r, w >> 1);
 }
 
-export const ValuesRenderer = kernelEntry<PerPosition>("values", 40, {
+export const ValuesRenderer = kernelEntry<PerPosition>('values', 40, {
   draw,
   tiny: draw,
   overlay,
-  sized: ["thickness"],
+  sized: ['thickness'],
 });

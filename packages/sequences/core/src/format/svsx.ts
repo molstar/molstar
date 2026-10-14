@@ -9,20 +9,20 @@
 // `.svsx` (seqspec:sources#archives): a zip with a document at its main file and the files it reads. Reading, the
 // relative URIs inside it, and the loaders that answer them. Writing is the builder's.
 
-import { Issue } from "@molstar/seq-core/model";
-import type { Loaders, StreamSource } from "./contract.js";
-import type { SeqViewSpecDoc } from "./doc.js";
-import { KernelRegistry } from "./kernel-registry.js";
-import { readDocument } from "./normalize.js";
-import { createRegistries, register, type SvsRegistries } from "./registry.js";
-import { MvsRegistry } from "./tables/kernel.js";
-import { isRelativeUri, resolveArchivePath } from "./uri-path.js";
-import { validate } from "./validate.js";
-import { RuntimeContext } from "./zip/shims.js";
-import { unzip, zip } from "./zip/zip.js";
+import { Issue } from '@molstar/seq-core/model';
+import type { Loaders, StreamSource } from './contract.js';
+import type { SeqViewSpecDoc } from './doc.js';
+import { KernelRegistry } from './kernel-registry.js';
+import { readDocument } from './normalize.js';
+import { createRegistries, register, type SvsRegistries } from './registry.js';
+import { MvsRegistry } from './tables/kernel.js';
+import { isRelativeUri, resolveArchivePath } from './uri-path.js';
+import { validate } from './validate.js';
+import { RuntimeContext } from './zip/shims.js';
+import { unzip, zip } from './zip/zip.js';
 
 /** The main files of an archive, in the order a reader looks for them (MessagePack first). */
-export const SvsxMainFiles = ["index.svsm", "index.svsj"] as const;
+export const SvsxMainFiles = ['index.svsm', 'index.svsj'] as const;
 
 export interface Svsx {
   /** The document (decoded, validated with `base`); null when it could not be read. */
@@ -62,20 +62,20 @@ export async function readSvsx(bytes: Uint8Array, opts: ReadSvsxOptions = {}): P
     };
     const entries = await unzip(RuntimeContext, copy, false, limits);
     for (const [path, file] of Object.entries(entries))
-      if (file instanceof Uint8Array && !path.endsWith("/")) files.set(path, file);
+      if (file instanceof Uint8Array && !path.endsWith('/')) files.set(path, file);
   } catch (e) {
     const message = `the archive cannot be read: ${e instanceof Error ? e.message : String(e)}`;
-    return { doc: null, issues: [Issue.error("svs.format.invalid", "", message)], main: "", base: "", files };
+    return { doc: null, issues: [Issue.error('svs.format.invalid', '', message)], main: '', base: '', files };
   }
-  const main = opts.main ?? SvsxMainFiles.find((f) => files.has(f)) ?? "";
+  const main = opts.main ?? SvsxMainFiles.find((f) => files.has(f)) ?? '';
   const file = files.get(main);
   if (file === undefined) {
     const message = opts.main
       ? `the archive has no ${opts.main}`
-      : `the archive has neither ${SvsxMainFiles.join(" nor ")}`;
-    return { doc: null, issues: [Issue.error("svs.format.invalid", "", message)], main, base: "", files };
+      : `the archive has neither ${SvsxMainFiles.join(' nor ')}`;
+    return { doc: null, issues: [Issue.error('svs.format.invalid', '', message)], main, base: '', files };
   }
-  const base = main.includes("/") ? main.slice(0, main.lastIndexOf("/")) : "";
+  const base = main.includes('/') ? main.slice(0, main.lastIndexOf('/')) : '';
   const read = readDocument(file);
   const reg = opts.registries ?? createRegistries();
   if (!opts.registries) register(reg, [KernelRegistry, MvsRegistry]);
@@ -93,7 +93,7 @@ export async function zipFiles(files: Readonly<Record<string, Uint8Array>>): Pro
  * else to `fallback`. A relative URI the archive lacks, or that climbs above its root, fails to load. A streamed
  * source's relative `uri` reaches the fallback's `stream` as its path from the archive's root.
  */
-export function archiveLoaders(files: ReadonlyMap<string, Uint8Array>, fallback: Loaders, base = ""): Loaders {
+export function archiveLoaders(files: ReadonlyMap<string, Uint8Array>, fallback: Loaders, base = ''): Loaders {
   const relative = (uri: string | null) => uri !== null && isRelativeUri(uri);
   return {
     base,
@@ -102,7 +102,7 @@ export function archiveLoaders(files: ReadonlyMap<string, Uint8Array>, fallback:
       const path = resolveArchivePath(request.uri as string, base);
       const file = path === null ? undefined : files.get(path);
       if (file === undefined) {
-        throw new Error(`${request.uri} is ${path === null ? "outside the archive" : `not in the archive (${path})`}`);
+        throw new Error(`${request.uri} is ${path === null ? 'outside the archive' : `not in the archive (${path})`}`);
       }
       return file;
     },

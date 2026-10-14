@@ -13,19 +13,19 @@
 // the hovered item's outline, the ruler's minor ticks, the keyboard cursor going round, and a type with no ring form
 // drawn as bars.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { Extents } from "@molstar/seq-core/model";
-import { describe, expect, it } from "vitest";
-import { Dirty, Pass, SkinToken } from "../src/draw/index.js";
-import { Hit, HoverKind, KernelRenderers, type LayerRenderer } from "../src/index.js";
-import type { Features } from "../src/prepare.js";
-import { DefaultPresets } from "../src/presets.js";
-import { Op, type RecordingBackend } from "../src/testing/index.js";
-import { composed, recording } from "./composer-fixtures.js";
-import { driven } from "./input-fixtures.js";
-import { layer } from "./layout-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { Extents } from '@molstar/seq-core/model';
+import { describe, expect, it } from 'vitest';
+import { Dirty, Pass, SkinToken } from '../src/draw/index.js';
+import { Hit, HoverKind, KernelRenderers, type LayerRenderer } from '../src/index.js';
+import type { Features } from '../src/prepare.js';
+import { DefaultPresets } from '../src/presets.js';
+import { Op, type RecordingBackend } from '../src/testing/index.js';
+import { composed, recording } from './composer-fixtures.js';
+import { driven } from './input-fixtures.js';
+import { layer } from './layout-fixtures.js';
 
-const registry = [{ presets: DefaultPresets.filter((p) => p.name === "circular") }];
+const registry = [{ presets: DefaultPresets.filter((p) => p.name === 'circular') }];
 const TAU = 2 * Math.PI;
 
 /** A pass's sectors: [r0, r1, a0, a1, color, alpha]; or its paths' points and width: [[x, y]…, color, width]. */
@@ -64,19 +64,19 @@ function passPaths(r: RecordingBackend, pass: number): { points: number[][]; col
 const turn = (a: number) => ((((a + Math.PI / 2) / TAU) % 1) + 1) % 1;
 
 /** A cyclic sequence of `n` (240 by default) on rings: a ruler, its letters, and features [200, 30) and [40, 112). */
-function plasmid(n = 240, style: string | null = "circular") {
+function plasmid(n = 240, style: string | null = 'circular') {
   const b = createSeqViewSpec();
-  const s = b.data.sequence({ ref: "s", value: "ACGTACGTTA".repeat(n / 10), alphabet: "dna", cyclic: true });
+  const s = b.data.sequence({ ref: 's', value: 'ACGTACGTTA'.repeat(n / 10), alphabet: 'dna', cyclic: true });
   const f = b.data.annotation({
-    ref: "f",
-    geometry: "ranges",
+    ref: 'f',
+    geometry: 'ranges',
     target: s,
     value: { start: [200, 40], stop: [30, 112] },
   });
-  const v = b.view({ ref: "v", label: "V", ...(style ? { style } : {}) }).block({ sequence: s });
-  v.track({ label: "" }).ruler();
-  v.track({ label: "S" }).letters();
-  v.track({ label: "F" }).ranges({ data: f });
+  const v = b.view({ ref: 'v', label: 'V', ...(style ? { style } : {}) }).block({ sequence: s });
+  v.track({ label: '' }).ruler();
+  v.track({ label: 'S' }).letters();
+  v.track({ label: 'F' }).ranges({ data: f });
   return b.getDocument();
 }
 
@@ -84,7 +84,7 @@ async function rings(n = 240) {
   const t = await composed(plasmid(n), { width: 500, height: 500, registry });
   const l = t.ctx.layout.get(t.section)?.current;
   const av = t.ctx.layout.axis(t.section);
-  if (!l || !av) throw new Error("no layout");
+  if (!l || !av) throw new Error('no layout');
   /** The angle of shown k (block 0), and the radius at surface y. */
   const angle = (k: number) => -Math.PI / 2 + (TAU * (av.x(0, k as never) - l.dataLeft)) / l.ringW;
   const radius = (y: number) => l.ringR - (y - l.scrolledTop) * l.ringScale;
@@ -96,8 +96,8 @@ async function rings(n = 240) {
   return { t, l, av, angle, radius, entry };
 }
 
-describe("rings", () => {
-  it("lays the entries out as rings from the outside in, the section its diameter and label ring", async () => {
+describe('rings', () => {
+  it('lays the entries out as rings from the outside in, the section its diameter and label ring', async () => {
     const { l } = await rings();
     expect(l.geometry).toBe(2);
     expect([l.ringCx, l.entryCount]).toEqual([250, 3]);
@@ -110,7 +110,7 @@ describe("rings", () => {
     expect(l.ringR).toBeLessThanOrEqual(250 - 8);
   });
 
-  it("fills its box: a section with no height is as tall as wide within [320, 560], the ring the box less its labels", async () => {
+  it('fills its box: a section with no height is as tall as wide within [320, 560], the ring the box less its labels', async () => {
     const t = await composed(plasmid(), { width: 1800, height: 200, registry });
     const l0 = t.ctx.layout.get(t.section)?.current;
     // The section asks for 560 px (its content height); sized so, the ring fills it less the label ring.
@@ -118,7 +118,7 @@ describe("rings", () => {
     t.vp?.setSize(1800, 560, 1);
     await t.ctx.graph.update();
     const l = t.ctx.layout.get(t.section)?.current;
-    if (!l) throw new Error("no layout");
+    if (!l) throw new Error('no layout');
     expect([l.ringCx, l.ringCy]).toEqual([900, 280]);
     // The margin is the widest number ("240") past the ticks less the ruler's room above them: the ring grows into it.
     expect(l.ringR).toBeGreaterThan(260);
@@ -136,7 +136,7 @@ describe("rings", () => {
     const { t, l, angle, radius, entry } = await rings();
     const r = t.frame(recording());
     const s = r.sectorItems;
-    const e = entry("F");
+    const e = entry('F');
     const [r1, r0] = [radius(l.scrolledTop + l.entryTop[e]), radius(l.scrolledTop + l.entryTop[e] + l.entryHeight[e])];
     // Sectors within the features' ring, by their angles (device px = CSS px at dpr 1; edges rounded to a px).
     const near = (a: number, b: number) => Math.abs(a - b) < TAU / l.ringW + 1e-9;
@@ -160,9 +160,9 @@ describe("rings", () => {
     expect(ticks).toBeLessThan(l.ringR);
   });
 
-  it("packs by arc: the feature across the origin shares its lane with one outside its arc", async () => {
+  it('packs by arc: the feature across the origin shares its lane with one outside its arc', async () => {
     const { t } = await rings();
-    const f = layer(t.ctx, "F").state as Features;
+    const f = layer(t.ctx, 'F').state as Features;
     expect([f.lanes, Array.from(f.lane.subarray(0, f.count))]).toEqual([1, [0, 0, 0]]);
     expect(Array.from(f.joinFrom.subarray(0, f.count))).toEqual([-1, -1, -1]);
   });
@@ -170,23 +170,23 @@ describe("rings", () => {
   it("the story's plasmid: the replication origin, lacZα and AmpR on one lane, the MCS on the next", async () => {
     const b = createSeqViewSpec();
     const p = b.data.sequence({
-      ref: "p",
-      alphabet: "dna",
+      ref: 'p',
+      alphabet: 'dna',
       cyclic: true,
-      source: { host_file: "pDemo.fasta", format: "fasta" },
+      source: { host_file: 'pDemo.fasta', format: 'fasta' },
     });
     const f = b.data.annotation({
-      ref: "f",
-      geometry: "ranges",
+      ref: 'f',
+      geometry: 'ranges',
       target: p,
-      source: { host_file: "pDemo.tsv", format: "tsv" },
+      source: { host_file: 'pDemo.tsv', format: 'tsv' },
     });
-    b.view({ ref: "v", label: "V", style: "circular" })
+    b.view({ ref: 'v', label: 'V', style: 'circular' })
       .block({ sequence: p })
-      .track({ label: "F" })
+      .track({ label: 'F' })
       .ranges({ data: f, labels: true });
     const t = await composed(b.getDocument(), { width: 500, height: 500, registry });
-    const s = layer(t.ctx, "F").state as Features;
+    const s = layer(t.ctx, 'F').state as Features;
     const lanes = Array.from({ length: s.count }, (_, k) => [s.start[k], s.lane[k]]).sort((x, y) => x[0] - y[0]);
     expect(lanes).toEqual([
       [0, 0],
@@ -197,9 +197,9 @@ describe("rings", () => {
     ]);
   });
 
-  it("hits are polar: the radius picks the ring, the angle the position", async () => {
+  it('hits are polar: the radius picks the ring, the angle the position', async () => {
     const { t, l, angle, radius, entry } = await rings();
-    const e = entry("F");
+    const e = entry('F');
     const at = (k: number) => {
       const a = angle(k + 0.5);
       const r = radius(l.scrolledTop + l.entryTop[e] + l.entryHeight[e] / 2);
@@ -222,19 +222,19 @@ describe("rings", () => {
     expect(t.ctx.layout.hitTest(t.section, 2, 2, hit)).toBe(false);
   });
 
-  it("reduces per angular column: 120,000 positions draw at most a sector per device column of the ring", async () => {
+  it('reduces per angular column: 120,000 positions draw at most a sector per device column of the ring', async () => {
     const { t, l, entry } = await rings(120_000);
     const r = t.frame(recording());
-    const e = entry("S");
+    const e = entry('S');
     expect(e).toBeGreaterThanOrEqual(0);
     expect(r.sectorItems.n).toBeGreaterThan(100);
     expect(r.sectorItems.n).toBeLessThan(4 * l.ringW);
   });
 
-  it("a focus on a whole cyclic unit is its shortest arc (start > stop across the origin)", async () => {
+  it('a focus on a whole cyclic unit is its shortest arc (start > stop across the origin)', async () => {
     const { t } = await rings();
     const set = t.ctx.graph.assembled.value?.set;
-    const u = set ? set.units.key.findIndex((k) => set.strings.get(k) === "s/unit") : -1;
+    const u = set ? set.units.key.findIndex((k) => set.strings.get(k) === 's/unit') : -1;
     const ext = Extents.create();
     Extents.add(ext, { kind: 1, id: u, row: -1 }, 200, 240);
     Extents.add(ext, { kind: 1, id: u, row: -1 }, 0, 30);
@@ -244,8 +244,8 @@ describe("rings", () => {
 
   it("marks are sectors across the rings: a selection and a highlight across the origin, from the ruler's ticks down", async () => {
     const { t, l } = await rings();
-    t.ctx.selection.set({ systems: ["seqstar:s/unit"], runs: Int32Array.of(0, 225, 240, 0, 0, 12) }, "api");
-    t.ctx.highlight.set("host", { systems: ["seqstar:s/unit"], runs: Int32Array.of(0, 230, 240, 0, 0, 6) });
+    t.ctx.selection.set({ systems: ['seqstar:s/unit'], runs: Int32Array.of(0, 225, 240, 0, 0, 12) }, 'api');
+    t.ctx.highlight.set('host', { systems: ['seqstar:s/unit'], runs: Int32Array.of(0, 230, 240, 0, 0, 6) });
     const r = t.frame(recording(), Dirty.overlay);
     const sel = passSectors(r, Pass.overlay).filter((s) => s[4] === SkinToken.selection);
     const hl = passSectors(r, Pass.overlay).filter((s) => s[4] === SkinToken.highlight);
@@ -273,15 +273,15 @@ describe("rings", () => {
     expect(sides.length).toBe(4);
   });
 
-  it("the hover: a position as a radial line as wide at the hub as at the rim, an item as its sector and outline", async () => {
+  it('the hover: a position as a radial line as wide at the hub as at the rim, an item as its sector and outline', async () => {
     // 120,000 positions: a cell is far below a pixel, so a hovered position is a line.
     const big = await rings(120_000);
-    const e = big.entry("S");
+    const e = big.entry('S');
     const rr = big.radius(big.l.scrolledTop + big.l.entryTop[e] + big.l.entryHeight[e] / 2);
     const a = big.angle(30_000.5);
     const hit = Hit.create();
     big.t.ctx.layout.hitTest(big.t.section, big.l.ringCx + rr * Math.cos(a), big.l.ringCy + rr * Math.sin(a), hit);
-    big.t.ctx.hover.setFromHit(hit, "pointer");
+    big.t.ctx.hover.setFromHit(hit, 'pointer');
     const lines = passPaths(big.t.frame(recording(), Dirty.overlay), Pass.overlay).filter(
       (p) => p.color === SkinToken.hover,
     );
@@ -298,11 +298,11 @@ describe("rings", () => {
     expect(lines[0].width).toBe(4);
     // 240 positions and an item: no line; its range's sector, and its outline (the renderer's overlay) on its ring.
     const { t, l, angle, radius, entry } = await rings();
-    const f = entry("F");
+    const f = entry('F');
     const b = angle(76.5);
     const r = radius(l.scrolledTop + l.entryTop[f] + l.entryHeight[f] / 2);
     t.ctx.layout.hitTest(t.section, l.ringCx + r * Math.cos(b), l.ringCy + r * Math.sin(b), hit);
-    t.ctx.hover.setFromHit(hit, "pointer");
+    t.ctx.hover.setFromHit(hit, 'pointer');
     expect([hit.kind, hit.item]).toEqual([HoverKind.item, 1]);
     const rec = t.frame(recording(), Dirty.overlay);
     expect(passPaths(rec, Pass.overlay).filter((p) => p.color === SkinToken.hover)).toEqual([]);
@@ -317,7 +317,7 @@ describe("rings", () => {
     expect(outline.length).toBeGreaterThanOrEqual(4);
   });
 
-  it("the ruler: unlabeled minor ticks between its numbers on rings, a fifth of the step apart; none linearly", async () => {
+  it('the ruler: unlabeled minor ticks between its numbers on rings, a fifth of the step apart; none linearly', async () => {
     const { t, l } = await rings();
     const r = t.frame(recording());
     // The ticks are the sectors in the ruler's ring; labeled every 10 (the numbers), minor every 2 (1-based: index 9 is
@@ -341,22 +341,22 @@ describe("rings", () => {
     const t = await driven(plasmid(), {
       renderers: KernelRenderers as LayerRenderer[],
       registry,
-      size: { "v.main": [500, 500] },
+      size: { 'v.main': [500, 500] },
     });
     const section = t.ctx.viewports.sections.value[0];
     t.focus(section);
-    t.key(section, "End");
+    t.key(section, 'End');
     expect(t.ctx.ui.keyCursor.value?.index).toBe(239);
-    t.key(section, "ArrowRight");
+    t.key(section, 'ArrowRight');
     expect(t.ctx.ui.keyCursor.value).toMatchObject({ index: 0, header: false });
-    t.key(section, "ArrowLeft");
-    t.key(section, "ArrowLeft");
+    t.key(section, 'ArrowLeft');
+    t.key(section, 'ArrowLeft');
     expect(t.ctx.ui.keyCursor.value?.index).toBe(238);
     // The hover follows it (the cell's middle on the surface hits it).
     expect(t.ctx.hover.live.current.index).toBe(238);
-    t.key(section, "Home");
+    t.key(section, 'Home');
     expect(t.ctx.ui.keyCursor.value).toMatchObject({ index: 0, header: false });
-    const { SectionComposer } = await import("../src/draw/index.js");
+    const { SectionComposer } = await import('../src/draw/index.js');
     const c = new SectionComposer(t.ctx, section);
     const rec = recording();
     c.frame(rec, Dirty.all);
@@ -371,13 +371,13 @@ describe("rings", () => {
 
   it("a type with no ring form (a matrix's image tiles) is drawn as bars, and the section says so once", async () => {
     const b = createSeqViewSpec();
-    const s = b.data.sequence({ ref: "s", value: "MKTAYIAKQR".repeat(10) });
+    const s = b.data.sequence({ ref: 's', value: 'MKTAYIAKQR'.repeat(10) });
     const index = Array.from({ length: 100 }, (_, i) => i);
     const value = { index, value: index.map((i) => [i % 3, (i * 7) % 5, 1]) };
-    const m = b.data.annotation({ ref: "m", geometry: "matrix", target: s, states: ["x", "y", "z"], value } as never);
-    b.view({ ref: "v", label: "V", style: "circular" })
+    const m = b.data.annotation({ ref: 'm', geometry: 'matrix', target: s, states: ['x', 'y', 'z'], value } as never);
+    b.view({ ref: 'v', label: 'V', style: 'circular' })
       .block({ sequence: s })
-      .track({ label: "M" })
+      .track({ label: 'M' })
       .matrix({ data: m });
     const t = await composed(b.getDocument(), { width: 400, height: 400, registry });
     const said: string[] = [];

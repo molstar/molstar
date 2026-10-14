@@ -10,7 +10,7 @@
 // runs of 250,000 and a million steps, the longer growing at most 64 KB beyond the shorter (vitest.heap.config.ts).
 // Each run is warmed up first (JIT, lazy state).
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   AlignedLocation,
   type AlignedLoci,
@@ -51,13 +51,13 @@ import {
   StringTable,
   Trees,
   type UnitId,
-} from "../../src/model/index.js";
-import { pf00042, SH2_A3M } from "./alignment-fixtures.js";
-import { contacts, iep1 } from "./annotation-fixtures.js";
-import { CDS, GENE, PROTEIN } from "./codon-fixtures.js";
-import { a3n1, brs1 } from "./fixtures.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
-import { gene as dmd } from "./support/generators.js";
+} from '../../src/model/index.js';
+import { pf00042, SH2_A3M } from './alignment-fixtures.js';
+import { contacts, iep1 } from './annotation-fixtures.js';
+import { CDS, GENE, PROTEIN } from './codon-fixtures.js';
+import { a3n1, brs1 } from './fixtures.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from './heap.js';
+import { gene as dmd } from './support/generators.js';
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 250_000;
@@ -69,7 +69,7 @@ let acc = 0;
 const ctx = { n: 0 };
 
 const strings = new StringTable();
-const build = (input: NumberingInput, length: number) => Numbering.build(input, length, strings, [], "") as Numbering;
+const build = (input: NumberingInput, length: number) => Numbering.build(input, length, strings, [], '') as Numbering;
 const L = 400;
 /**
  * Suffixed labels of both kinds: a letter (`3A`) and a multi-digit `.n` (`7.12`), whose rank the pre-CM-09 code made
@@ -78,11 +78,11 @@ const L = 400;
 const labels: (number | string)[] = Array.from({ length: L }, (_, i) =>
   i % 10 === 3 ? `${i}A` : i % 10 === 7 ? `${i}.12` : i + 1,
 );
-const offset = build({ name: "o", method: "offset", first: -47, skipZero: true }, L);
+const offset = build({ name: 'o', method: 'offset', first: -47, skipZero: true }, L);
 const segments = build(
   {
-    name: "s",
-    method: "segments",
+    name: 's',
+    method: 'segments',
     segments: [
       [0, 100, 150],
       [160, 400, 240],
@@ -90,9 +90,9 @@ const segments = build(
   },
   L,
 );
-const labelNumbering = build({ name: "l", method: "labels", labels }, L);
-const names = build({ name: "n", method: "names", names: labels.map(String) }, L) as NameNumbering;
-const suffixA = strings.find("A");
+const labelNumbering = build({ name: 'l', method: 'labels', labels }, L);
+const names = build({ name: 'n', method: 'names', names: labels.map(String) }, L) as NameNumbering;
+const suffixA = strings.find('A');
 const nameIds = Int32Array.from(labels, (x) => strings.find(String(x)));
 const out: PositionLabel = { num: 0, suffix: -1 as NameId, name: -1 as NameId };
 const range = new Int32Array(2);
@@ -107,7 +107,7 @@ const observed = Int32Array.from({ length: 200 }, (_, i) => i * 10 + (i % 2) * 5
 
 const { set } = SeqSets.build(brs1());
 const seqLoci: SeqLoci = {
-  kind: "seq-loci",
+  kind: 'seq-loci',
   set,
   elements: [0, 2, 4].map((u) => ({
     unit: u as UnitId,
@@ -115,7 +115,7 @@ const seqLoci: SeqLoci = {
   })),
 };
 const rect: AlignedLoci = {
-  kind: "aligned-loci",
+  kind: 'aligned-loci',
   set,
   alignment: 0 as AlignmentId,
   elements: {
@@ -129,14 +129,14 @@ const target: KeyTarget = { kind: -1, id: -1, row: -1 };
 const unitKey = set.units.key[4] as NameId;
 
 const globin = pf00042();
-const rowName = "globin/17";
-const tree = Newick.parse(`(${globin.map((r, i) => (i % 2 ? `${r.label})` : `(${r.label}`)).join(",")});`).tree;
+const rowName = 'globin/17';
+const tree = Newick.parse(`(${globin.map((r, i) => (i % 2 ? `${r.label})` : `(${r.label}`)).join(',')});`).tree;
 const msa = SeqSets.build({
   molecules: [],
   alignments: [
     {
-      key: "globin",
-      flavor: "aligned",
+      key: 'globin',
+      flavor: 'aligned',
       gapped: globin.map((r) => r.gapped),
       labels: globin.map((r) => r.label),
       tree: tree
@@ -145,15 +145,15 @@ const msa = SeqSets.build({
             leafRow: Trees.matchLeaves(
               tree,
               globin.map((r) => r.label),
-              "labels",
+              'labels',
             ),
           }
         : undefined,
     },
-    Fasta.alignment(Fasta.parse(SH2_A3M).records, "sh2", "a3m").input,
+    Fasta.alignment(Fasta.parse(SH2_A3M).records, 'sh2', 'a3m').input,
     {
-      key: "lazy",
-      flavor: "aligned",
+      key: 'lazy',
+      flavor: 'aligned',
       gapped: [],
       lazy: {
         rowCount: 100_000,
@@ -172,13 +172,13 @@ const rowMap = new Int32Array(1000);
 const HBA = a3n1().molecules[0].residues as string;
 const bound = SeqSets.build({
   ...a3n1(),
-  molecules: [...a3n1().molecules, { key: "P69905", residues: HBA }],
-  units: [...(a3n1().units ?? []), { key: "P69905/u", molecule: "P69905" }],
-  alignments: [{ key: "globin", flavor: "aligned", gapped: globin.map((r) => r.gapped) }],
+  molecules: [...a3n1().molecules, { key: 'P69905', residues: HBA }],
+  units: [...(a3n1().units ?? []), { key: 'P69905/u', molecule: 'P69905' }],
+  alignments: [{ key: 'globin', flavor: 'aligned', gapped: globin.map((r) => r.gapped) }],
   mappings: [
-    { key: "hba", from: "globin/0", to: "1a3n/entity:1", method: "segments", segments: [[0, 25, null]] },
-    { key: "hbb", from: "1a3n/entity:2", to: "globin/1", method: "segments", segments: [[0, 0, 60]] },
-    { key: "uniprot", from: "P69905", to: "1a3n/entity:1", method: "identity" },
+    { key: 'hba', from: 'globin/0', to: '1a3n/entity:1', method: 'segments', segments: [[0, 25, null]] },
+    { key: 'hbb', from: '1a3n/entity:2', to: 'globin/1', method: 'segments', segments: [[0, 0, 60]] },
+    { key: 'uniprot', from: 'P69905', to: '1a3n/entity:1', method: 'identity' },
   ],
 }).set;
 const hba = bound.mappings[0] as Mapping;
@@ -208,13 +208,13 @@ function count(_: unknown, ctx: { n: number }) {
 // M3: 1IEP's contacts (five ligand poses) as pairs; ranges (with values) and dense values over 1BRS.
 const iep = SeqSets.build({ ...iep1(), annotations: [contacts()] }).set;
 const pairs = iep.annotations[0] as Annotation;
-const ranges = Array.from({ length: 400 }, (_, k) => ({ t: k % 3 ? "1brs/A" : "1brs/entity:1", s: (k * 7) % 100 }));
+const ranges = Array.from({ length: 400 }, (_, k) => ({ t: k % 3 ? '1brs/A' : '1brs/entity:1', s: (k * 7) % 100 }));
 const brs = SeqSets.build({
   ...brs1(),
   annotations: [
     {
-      key: "r",
-      geometry: "ranges",
+      key: 'r',
+      geometry: 'ranges',
       columns: {
         target: ranges.map((r) => r.t),
         start: ranges.map((r) => r.s),
@@ -223,7 +223,7 @@ const brs = SeqSets.build({
         value: ranges.map((_, k) => k),
       },
     },
-    { key: "v", geometry: "values", target: "1brs/D", columns: { value: Array.from({ length: 89 }, (_, i) => i) } },
+    { key: 'v', geometry: 'values', target: '1brs/D', columns: { value: Array.from({ length: 89 }, (_, i) => i) } },
   ],
 }).set;
 const [rangesAnn, valuesAnn] = brs.annotations as Annotation[];
@@ -241,15 +241,15 @@ function partnerSum(unit: number, index: number, row: number, ctx: { n: number }
 // C1: case 14's protein over its gene; one codon step each way, composed.
 const coding = SeqSets.build({
   molecules: [
-    { key: "gene", alphabet: "dna", residues: GENE, ownUnit: true },
-    { key: "protein", alphabet: "protein", residues: PROTEIN, ownUnit: true },
+    { key: 'gene', alphabet: 'dna', residues: GENE, ownUnit: true },
+    { key: 'protein', alphabet: 'protein', residues: PROTEIN, ownUnit: true },
   ],
-  mappings: [{ key: "c", from: "protein", to: "gene", method: "codon", cds: CDS }],
+  mappings: [{ key: 'c', from: 'protein', to: 'gene', method: 'codon', cds: CDS }],
 }).set;
 // Own units in molecule order: gene/unit 0, protein/unit 1.
 const [gene, protein] = [0, 1].map((u) => ({ kind: CoordinateSystemKind.unit, id: u, row: -1 }));
 const codonSteps: PathStep[] = [];
-if (Mappings.path(coding, protein, gene, codonSteps) !== 3) throw new Error("no codon path");
+if (Mappings.path(coding, protein, gene, codonSteps) !== 3) throw new Error('no codon path');
 const down = Mappings.compose(coding, protein, codonSteps);
 Mappings.path(coding, gene, protein, codonSteps);
 const up = Mappings.compose(coding, gene, codonSteps);
@@ -262,10 +262,10 @@ function runSum(start: number, stop: number, ctx: { n: number }) {
 const dmdGene = dmd();
 const dmdSet = SeqSets.build({
   molecules: [
-    { key: "dmd", alphabet: "dna", residues: dmdGene.dna },
-    { key: "dystrophin", alphabet: "protein", residues: dmdGene.protein },
+    { key: 'dmd', alphabet: 'dna', residues: dmdGene.dna },
+    { key: 'dystrophin', alphabet: 'protein', residues: dmdGene.protein },
   ],
-  mappings: [{ key: "c", from: "dystrophin", to: "dmd", method: "codon", cds: dmdGene.exons.map(([s, t]) => [s, t]) }],
+  mappings: [{ key: 'c', from: 'dystrophin', to: 'dmd', method: 'codon', cds: dmdGene.exons.map(([s, t]) => [s, t]) }],
 }).set;
 const dmdMap = (dmdSet.mappings[0] as Mapping).map;
 const span = dmdMap.toStop - dmdMap.toStart;
@@ -275,33 +275,33 @@ const span = dmdMap.toStop - dmdMap.toStart;
 const BIG = 20_000;
 const bigPairs = SeqSets.build({
   molecules: [
-    { key: "u", residues: "A".repeat(BIG), ownUnit: true },
-    { key: "w", residues: "AAAA", ownUnit: true },
+    { key: 'u', residues: 'A'.repeat(BIG), ownUnit: true },
+    { key: 'w', residues: 'AAAA', ownUnit: true },
   ],
   annotations: [
     {
-      key: "c",
-      geometry: "pairs",
-      target: "u/unit",
+      key: 'c',
+      geometry: 'pairs',
+      target: 'u/unit',
       columns: {
         start: Array.from({ length: 64_000 }, (_, i) => (i * 7919) % BIG),
         stop: Array.from({ length: 64_000 }, (_, i) => ((i * 7919) % BIG) + 1 + (i % 9)),
-        b_target: Array.from({ length: 64_000 }, (_, i) => (i % 5 ? "w/unit" : "u/unit")),
+        b_target: Array.from({ length: 64_000 }, (_, i) => (i % 5 ? 'w/unit' : 'u/unit')),
         b_start: Array.from({ length: 64_000 }, (_, i) => (i % 101 === 0 ? null : i % 4)),
       },
     },
   ],
 }).set.annotations[0] as Annotation;
-const CHAIN = "MKVLAAGIVGLPNVGKSTLFNALTKAGIEAANYPFCTIEPNTGVVPMPDP";
+const CHAIN = 'MKVLAAGIVGLPNVGKSTLFNALTKAGIEAANYPFCTIEPNTGVVPMPDP';
 const chainSet = SeqSets.build({
-  molecules: [{ key: "M", residues: CHAIN }],
-  units: Array.from({ length: 1000 }, (_, k) => ({ key: `c${k}`, molecule: "M" })),
-  alignments: [{ key: "aln", flavor: "aligned", gapped: Array.from({ length: 1000 }, () => `-${CHAIN}`) }],
+  molecules: [{ key: 'M', residues: CHAIN }],
+  units: Array.from({ length: 1000 }, (_, k) => ({ key: `c${k}`, molecule: 'M' })),
+  alignments: [{ key: 'aln', flavor: 'aligned', gapped: Array.from({ length: 1000 }, () => `-${CHAIN}`) }],
   mappings: Array.from({ length: 1000 }, (_, k) => ({
     key: `m${k}`,
     from: `aln/${k}`,
     to: `c${k}`,
-    method: "identity" as const,
+    method: 'identity' as const,
   })),
 }).set;
 const chainHover = { seq: SeqLocation.create(chainSet), row: RowLocation.create(chainSet) };
@@ -311,7 +311,7 @@ function unitSum(unit: number, ctx: { n: number }) {
 
 const paths: [string, number, (i: number) => void][] = [
   [
-    "MD3: touching over 64k pairs with whole-unit endpoints, and endUnits",
+    'MD3: touching over 64k pairs with whole-unit endpoints, and endUnits',
     N,
     (i) => {
       Pairs.touching(bigPairs, 0 as UnitId, ((i * 31) % BIG) as SeqIndex, pairSum, ctx);
@@ -319,7 +319,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "MD3: toRowLocations over 1,000 bound chains",
+    'MD3: toRowLocations over 1,000 bound chains',
     N,
     (i) => {
       SeqLocation.set(chainHover.seq, i % 1000, i % 50);
@@ -327,7 +327,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "coordinate maps: toAt, forEachFromAt, forEachTo (runs and boundaries) and forEachFrom on a 79-exon codon map",
+    'coordinate maps: toAt, forEachFromAt, forEachTo (runs and boundaries) and forEachFrom on a 79-exon codon map',
     N,
     (i) => {
       const r = (i * 7919) % 3685;
@@ -347,7 +347,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "codons: SeqLocation.toSystemEach both ways, Mappings.forEachRun, GeneticCode.translate and isStart",
+    'codons: SeqLocation.toSystemEach both ways, Mappings.forEachRun, GeneticCode.translate and isStart',
     N,
     (i) => {
       SeqLocation.set(codonHover.l, protein.id, i % 20);
@@ -365,7 +365,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "offset indexOf and labelOf",
+    'offset indexOf and labelOf',
     N,
     (i) => {
       acc = (acc + Numbering.indexOf(offset, (i % 300) - 50, -1 as NameId)) & MASK;
@@ -373,7 +373,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "segments indexOf and labelOf",
+    'segments indexOf and labelOf',
     N,
     (i) => {
       acc = (acc + Numbering.indexOf(segments, 90 + (i % 600), -1 as NameId)) & MASK;
@@ -381,7 +381,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "labels indexOf with suffixes, labelOf and rangeOf",
+    'labels indexOf with suffixes, labelOf and rangeOf',
     N,
     (i) => {
       const k = i % L;
@@ -392,14 +392,14 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "names indexOfName",
+    'names indexOfName',
     N,
     (i) => {
       acc = (acc + Numbering.indexOfName(names, nameIds[i % L] as NameId)) & MASK;
     },
   ],
   [
-    "OrderedSet has, indexOf, lowerBound and getAt on both forms",
+    'OrderedSet has, indexOf, lowerBound and getAt on both forms',
     N,
     (i) => {
       const x = (i * 7) % 16000;
@@ -415,7 +415,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "locations: set, Loci.has, SeqSet.byKey, byName",
+    'locations: set, Loci.has, SeqSet.byKey, byName',
     N,
     (i) => {
       SeqLocation.set(seq, i % 6, i % 100);
@@ -426,7 +426,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "Loci.forEachLocation over a million cells",
+    'Loci.forEachLocation over a million cells',
     2,
     () => {
       // A step is a whole walk: runs of 2 and 8 walks.
@@ -436,7 +436,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "colToPos and colOf on aligned, A3M and lazy rows",
+    'colToPos and colOf on aligned, A3M and lazy rows',
     N,
     (i) => {
       const C = aligned.columnCount;
@@ -448,7 +448,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "posToCol into a reused array, posMap hits and cladeRows",
+    'posToCol into a reused array, posMap hits and cladeRows',
     N,
     (i) => {
       const t = aligned.tree;
@@ -459,7 +459,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "mapping lookups and SeqLocation.toSystem along a composed path",
+    'mapping lookups and SeqLocation.toSystem along a composed path',
     N,
     (i) => {
       const k = i % 141;
@@ -470,7 +470,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "hover conversions: column, cell and row to units, and back",
+    'hover conversions: column, cell and row to units, and back',
     N,
     (i) => {
       ColumnLocation.set(hover.column, 0, i % boundColumns);
@@ -487,7 +487,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "annotation interval queries and valueAt, sparse and dense",
+    'annotation interval queries and valueAt, sparse and dense',
     N,
     (i) => {
       const at = i % 110;
@@ -498,7 +498,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "pair lookups: touching and partnersOf",
+    'pair lookups: touching and partnersOf',
     N,
     (i) => {
       Pairs.touching(pairs, 0 as UnitId, (20 + (i % 160)) as SeqIndex, pairSum, ctx);
@@ -507,7 +507,7 @@ const paths: [string, number, (i: number) => void][] = [
     },
   ],
   [
-    "SeqLocation.itemsAt over a unit and its molecule",
+    'SeqLocation.itemsAt over a unit and its molecule',
     N,
     (i) => {
       SeqLocation.set(itemQuery.seq, i % 3, i % 110);
@@ -517,7 +517,7 @@ const paths: [string, number, (i: number) => void][] = [
 ];
 
 describe("heap guards: a step's growth does not scale with the run", () => {
-  it("runs over a bound row and a composed path", () => {
+  it('runs over a bound row and a composed path', () => {
     const b = Mappings.bindingsOf(bound, 0);
     expect([steps.length, Paths.at(AtoC, 50), b?.unit.length, Array.from(b?.rowIsFrom ?? [])]).toEqual([
       3,
@@ -527,21 +527,21 @@ describe("heap guards: a step's growth does not scale with the run", () => {
     ]);
   });
 
-  it("runs over a DMD-sized codon map", () => {
+  it('runs over a DMD-sized codon map', () => {
     expect([dmdMap.count, dmdMap.toStop - dmdMap.toStart > 2_000_000]).toEqual([79, true]);
   });
 
-  it("runs over built annotations", () => {
+  it('runs over built annotations', () => {
     expect([pairs.count, rangesAnn.count, rangesAnn.slots.unit.length, valuesAnn.dense?.[0].length]).toEqual([
       83, 400, 2, 89,
     ]);
   });
 
-  it("runs over built alignments and a tree", () => {
+  it('runs over built alignments and a tree', () => {
     expect([aligned.tree?.count, a3m.columnCount, lazy.rows.count]).toEqual([49, 30, 32]);
   });
 
-  it("places a label endpoint the numbering lacks by order", () => {
+  it('places a label endpoint the numbering lacks by order', () => {
     expect([Numbering.rangeOf(labelNumbering, absent, end, range), range[0] > 0]).toEqual([true, true]);
   });
 
@@ -554,7 +554,7 @@ describe("heap guards: a step's growth does not scale with the run", () => {
   }
 
   // CM-05: the template's control, one guarded step with a leak, caught by the same measurement.
-  it("the same step with a leak is caught (the positive control)", () => {
+  it('the same step with a leak is caught (the positive control)', () => {
     const [, n, step] = paths[0];
     expect(controlCaught(() => heapScaling(n, leaking(step)))).toBe(true);
   });

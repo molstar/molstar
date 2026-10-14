@@ -16,7 +16,7 @@
 // Each case loads the viewer afresh (`vi.resetModules`), as overlay.heap.ts does, and is warmed by count and by time,
 // then settled (`settleFrame`): the composer's passes are calls across its modules, a longer climb to TurboFan.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -27,7 +27,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = 1_000;
 
@@ -40,12 +40,12 @@ function measure(frame: (i: number) => void) {
   return heapScaling(N, () => frame(i++));
 }
 
-describe("hover emphasis frames allocate nothing after warm-up", () => {
-  it.each(["t.ranges", "t.points", "t.variants", "t.matrix"] as const)(
-    "a hover sweep over %s",
+describe('hover emphasis frames allocate nothing after warm-up', () => {
+  it.each(['t.ranges', 't.points', 't.variants', 't.matrix'] as const)(
+    'a hover sweep over %s',
     async (track) => {
       vi.resetModules();
-      const { hoverSweep } = await import("./hover-sweep.js");
+      const { hoverSweep } = await import('./hover-sweep.js');
       const { frame, hovers, drawn } = await hoverSweep(track);
       const r = measure(frame);
       expect(isFlat(r), describeScaling(r, N)).toBe(true);
@@ -56,10 +56,10 @@ describe("hover emphasis frames allocate nothing after warm-up", () => {
     120_000,
   );
 
-  it("the same frames allocating an object each are caught (positive control)", async () => {
+  it('the same frames allocating an object each are caught (positive control)', async () => {
     vi.resetModules();
-    const { hoverSweep } = await import("./hover-sweep.js");
-    const { frame } = await hoverSweep("t.ranges");
+    const { hoverSweep } = await import('./hover-sweep.js');
+    const { frame } = await hoverSweep('t.ranges');
     expect(controlCaught(() => measure(leaking(frame)))).toBe(true);
   }, 120_000);
 });

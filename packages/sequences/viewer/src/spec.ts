@@ -17,12 +17,12 @@ import {
   ref,
   SimpleParamsSchema,
   type SvsRegistryEntry,
-} from "@molstar/seq-core/format";
-import type { Severity } from "@molstar/seq-core/model";
-import { DefaultActions } from "./actions.js";
-import type { SeqBehaviorProvider } from "./behaviors.js";
-import { CommandsBehavior, SeqCommands } from "./commands.js";
-import type { SeqViewerConfigItem } from "./config.js";
+} from '@molstar/seq-core/format';
+import type { Severity } from '@molstar/seq-core/model';
+import { DefaultActions } from './actions.js';
+import type { SeqBehaviorProvider } from './behaviors.js';
+import { CommandsBehavior, SeqCommands } from './commands.js';
+import type { SeqViewerConfigItem } from './config.js';
 import {
   CursorBehavior,
   FocusViewportBehavior,
@@ -32,9 +32,9 @@ import {
   HoverRowBehavior,
   ScrollGroupsBehavior,
   SnapshotControlsBehavior,
-} from "./default-behaviors.js";
-import { DotPlotSelectBehavior } from "./dot-plot.js";
-import { FollowBehavior } from "./follow.js";
+} from './default-behaviors.js';
+import { DotPlotSelectBehavior } from './dot-plot.js';
+import { FollowBehavior } from './follow.js';
 import {
   DoubleClickZoomBehavior,
   DragPanBehavior,
@@ -45,18 +45,18 @@ import {
   SelectBehavior,
   VerticalOverviewBehavior,
   WheelBehavior,
-} from "./gestures.js";
-import { KeyboardBehavior } from "./keyboard.js";
-import { DefaultLabelProviders } from "./label-providers.js";
-import type { RenderProps } from "./layout.js";
-import { BookmarkActions } from "./location-sets.js";
-import { DefaultNavigators } from "./navigators.js";
-import { DefaultNodeKinds } from "./node-kinds.js";
-import { DefaultPresets } from "./presets.js";
-import type { SeqViewerRegistryEntry } from "./registry.js";
-import { KernelColumns, KernelRenderers } from "./renderer-list.js";
-import { RingWindowBehavior } from "./ring-window.js";
-import { DefaultThemes } from "./rules.js";
+} from './gestures.js';
+import { KeyboardBehavior } from './keyboard.js';
+import { DefaultLabelProviders } from './label-providers.js';
+import type { RenderProps } from './layout.js';
+import { BookmarkActions } from './location-sets.js';
+import { DefaultNavigators } from './navigators.js';
+import { DefaultNodeKinds } from './node-kinds.js';
+import { DefaultPresets } from './presets.js';
+import type { SeqViewerRegistryEntry } from './registry.js';
+import { KernelColumns, KernelRenderers } from './renderer-list.js';
+import { RingWindowBehavior } from './ring-window.js';
+import { DefaultThemes } from './rules.js';
 
 export interface SeqViewerSpec {
   /** Registered by createSeqViewer, in order, before any behavior is created. */
@@ -84,7 +84,7 @@ export const SeqViewerSpec = {
  * objects' identity: a page holding two copies of the viewer (an HMR update, a host that bundles it twice) makes its
  * spec with one and its context with the other. Not enumerable, so a spread copy (an extension's) is not the viewer's.
  */
-const OWN = Symbol.for("seqstar.viewer.seqv");
+const OWN = Symbol.for('seqstar.viewer.seqv');
 const own = (e: SvsRegistryEntry): SvsRegistryEntry => Object.defineProperty(e, OWN, { value: true });
 /** Whether `e` is one of the viewer's own format entries, from any copy of the viewer. */
 export const isViewerOwn = (e: SvsRegistryEntry): boolean => (e as { [OWN]?: boolean })[OWN] === true;
@@ -92,13 +92,13 @@ export const isViewerOwn = (e: SvsRegistryEntry): boolean => (e as { [OWN]?: boo
 /**
  * The viewer's own issue codes (seqspec:viewer#registration), declared in the format's half so validation knows them.
  */
-const codes = (severity: Severity, names: string) => names.split(" ").map((c) => ({ code: `seqv.${c}`, severity }));
+const codes = (severity: Severity, names: string) => names.split(' ').map((c) => ({ code: `seqv.${c}`, severity }));
 export const ViewerIssueCodes: SvsRegistryEntry = own({
   issueCodes: [
-    ...codes("warning", "patch.dropped patch.skipped history.refused port.refused issues.truncated ui.slot"),
+    ...codes('warning', 'patch.dropped patch.skipped history.refused port.refused issues.truncated ui.slot'),
     // Ring labels that do not fit are hidden: that depends on the width, not the input (seqspec:format#validation).
-    ...codes("info", "render.labels"),
-    ...codes("error", "renderer.error behavior.error command.error state.error target.range"),
+    ...codes('info', 'render.labels'),
+    ...codes('error', 'renderer.error behavior.error command.error state.error target.range'),
   ],
 });
 
@@ -106,14 +106,14 @@ export const ViewerIssueCodes: SvsRegistryEntry = own({
 export const ViewerLayerTypes: SvsRegistryEntry = own({
   layerTypes: [
     {
-      name: "seqv:map",
-      description: "other tracks in miniature over the whole axis, the view as a window",
-      options: SimpleParamsSchema({ tracks: OptionalField(list(ref("track")), [], "the tracks; empty: all others") }),
-      accepts: "none",
-      layouts: ["tracks"],
-      axes: ["blocks", "columns"],
-      sizing: "free",
-      fallback: "omit",
+      name: 'seqv:map',
+      description: 'other tracks in miniature over the whole axis, the view as a window',
+      options: SimpleParamsSchema({ tracks: OptionalField(list(ref('track')), [], 'the tracks; empty: all others') }),
+      accepts: 'none',
+      layouts: ['tracks'],
+      axes: ['blocks', 'columns'],
+      sizing: 'free',
+      fallback: 'omit',
       channels: [],
     },
   ],

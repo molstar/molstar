@@ -9,23 +9,23 @@
 // BigBed: items (README, "BigBed"). A BED row is an item; a BED12 row with blocks is one row per block under one `id`
 // (the viewer joins rows of an `id` into one feature: exons of a gene).
 
-import type { StreamProvider } from "@molstar/seq-core/format";
-import { openBbi } from "./bbi.js";
-import { spread, zoomRecords } from "./bigwig.js";
-import { ITEM_LEVELS, type ItemsRead, itemsProvider } from "./items.js";
-import { once, type RangeReader, text, view } from "./ranges.js";
+import type { StreamProvider } from '@molstar/seq-core/format';
+import { openBbi } from './bbi.js';
+import { spread, zoomRecords } from './bigwig.js';
+import { ITEM_LEVELS, type ItemsRead, itemsProvider } from './items.js';
+import { once, type RangeReader, text, view } from './ranges.js';
 
 /** The BED columns after chrom, start and end, by position (a file without autoSql, or fields it does not name). */
 const BED = [
-  "name",
-  "score",
-  "strand",
-  "thick_start",
-  "thick_stop",
-  "color",
-  "block_count",
-  "block_sizes",
-  "block_starts",
+  'name',
+  'score',
+  'strand',
+  'thick_start',
+  'thick_stop',
+  'color',
+  'block_count',
+  'block_sizes',
+  'block_starts',
 ];
 const [NAME, BLOCKS] = [0, 6]; // field positions: name, and the three block fields of a BED12
 /** The item levels counted from items (regions of 64 kb, cheap to read); coarser ones are the file's zoom levels. */
@@ -39,7 +39,7 @@ const FINE = 1;
 export const sqlFields = (sql: string | null) =>
   sql === null
     ? []
-    : [...sql.slice(sql.indexOf("(")).matchAll(/^\s*(?:\w+(?:\[\w*\])?|(?:enum|set)\([^)]*\))\s+(\w+)\s*;/gm)]
+    : [...sql.slice(sql.indexOf('(')).matchAll(/^\s*(?:\w+(?:\[\w*\])?|(?:enum|set)\([^)]*\))\s+(\w+)\s*;/gm)]
         .map((m) => m[1])
         .slice(3);
 
@@ -86,7 +86,7 @@ export function bigBedProvider(
       },
       async systems(signal) {
         const bbi = await open(signal);
-        if (bbi.kind !== "bigbed") throw new Error("not a BigBed file (this is a BigWig)");
+        if (bbi.kind !== 'bigbed') throw new Error('not a BigBed file (this is a BigWig)');
         return [...bbi.chroms.values()].map((c) => ({ key: c.name, extent: c.size }));
       },
       async read(system, start, stop, signal): Promise<ItemsRead> {
@@ -104,7 +104,7 @@ export function bigBedProvider(
         // Keyed by the file's names: a `__proto__` field is a column (null prototype), and a field named like a
         // column made here, or like an earlier field, is named by its position instead (one push per item, LA-39).
         const columns: Record<string, unknown[]> = Object.create(null);
-        for (const c of ["start", "stop", "id", "label", ...(categoryAt >= 0 ? ["category"] : [])]) columns[c] = [];
+        for (const c of ['start', 'stop', 'id', 'label', ...(categoryAt >= 0 ? ['category'] : [])]) columns[c] = [];
         // The block fields are consumed.
         const kept = names.map((n, f) => {
           if (blocked && f >= BLOCKS && f < BLOCKS + 3) return null;
@@ -119,12 +119,12 @@ export function bigBedProvider(
             const nul = block.indexOf(0, at + 12);
             const end = nul < 0 ? block.length : nul;
             const [id, s, e] = [dv.getUint32(at, bbi.le), dv.getUint32(at + 4, bbi.le), dv.getUint32(at + 8, bbi.le)];
-            const rest = text(block.subarray(at + 12, end)).split("\t");
+            const rest = text(block.subarray(at + 12, end)).split('\t');
             at = end + 1;
             if (id !== chrom.id || e <= start || s >= stop) continue;
-            const key = `${rest[NAME] ?? ""}@${s}-${e}`;
-            const sizes = blocked ? (rest[BLOCKS + 1] ?? "").split(",").filter(Boolean).map(Number) : [];
-            const offsets = blocked ? (rest[BLOCKS + 2] ?? "").split(",").filter(Boolean).map(Number) : [];
+            const key = `${rest[NAME] ?? ''}@${s}-${e}`;
+            const sizes = blocked ? (rest[BLOCKS + 1] ?? '').split(',').filter(Boolean).map(Number) : [];
+            const offsets = blocked ? (rest[BLOCKS + 2] ?? '').split(',').filter(Boolean).map(Number) : [];
             for (let k = 0; k < Math.max(1, sizes.length); k++) {
               columns.start.push(sizes.length ? s + offsets[k] : s);
               columns.stop.push(sizes.length ? s + offsets[k] + sizes[k] : e);

@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export { IndexKinds } from "./indices.js";
-export { TranslateMaps } from "./maps.js";
+export { IndexKinds } from './indices.js';
+export { TranslateMaps } from './maps.js';
 export {
   type IndexKind,
   type SystemDescriptor,
@@ -15,4 +15,4 @@ export {
   type SystemStructureField,
   Translator,
   type TranslatorVisit,
-} from "./translator.js";
+} from './translator.js';

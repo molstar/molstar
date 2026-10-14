@@ -12,16 +12,16 @@
 // not inline it (16 bytes), which is all the guard allows. The positive control: `metrics` calls allocating an object
 // each (`leaking`), through the same measurement, are caught.
 
-import { expect, it } from "vitest";
-import { DefaultFontMetrics, type EmBox, metricsMeasurer } from "../../src/svg/index.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking, SCALED_LIMIT } from "../heap.js";
+import { expect, it } from 'vitest';
+import { DefaultFontMetrics, type EmBox, metricsMeasurer } from '../../src/svg/index.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking, SCALED_LIMIT } from '../heap.js';
 
 const N = 100_000;
 const m = metricsMeasurer(DefaultFontMetrics);
-const fonts = ["400 12px ui-sans-serif, system-ui, sans-serif", "600 11px ui-monospace, Menlo, monospace"];
-const texts = ["chr12:1,234,567-1,299,999", "Zinc ligands (UniProt) é", "ABCDEFGHIKLMNPQRSTVWY"];
+const fonts = ['400 12px ui-sans-serif, system-ui, sans-serif', '600 11px ui-monospace, Menlo, monospace'];
+const texts = ['chr12:1,234,567-1,299,999', 'Zinc ligands (UniProt) é', 'ABCDEFGHIKLMNPQRSTVWY'];
 
-it("metrics() allocates nothing once a font string is known", () => {
+it('metrics() allocates nothing once a font string is known', () => {
   const sum = new Float64Array(1);
   const step = (i: number) => {
     sum[0] += (m.metrics(fonts[i & 1]) as EmBox).ascent;
@@ -32,7 +32,7 @@ it("metrics() allocates nothing once a font string is known", () => {
   expect(controlCaught(() => heapScaling(N, leaking(step)))).toBe(true);
 });
 
-it("measure() allocates only the width it returns", () => {
+it('measure() allocates only the width it returns', () => {
   const sum = new Float64Array(1); // a captured `let` double would be boxed on every step
   const r = heapScaling(N, (i) => {
     sum[0] += m.measure(fonts[i & 1], texts[i % 3]);

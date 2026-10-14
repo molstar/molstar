@@ -11,7 +11,7 @@
 // location-level ones are the hover path and allocate nothing; loci-level ones are edges and report into a reused
 // `Conversion`.
 
-import { type Annotation, Annotations, Pairs } from "./annotation.js";
+import { type Annotation, Annotations, Pairs } from './annotation.js';
 import type {
   AlignmentId,
   AnnotationId,
@@ -21,27 +21,27 @@ import type {
   RowIndex,
   SeqIndex,
   UnitId,
-} from "./common.js";
-import { CoordinateSystemKind, Coords, type MapHit } from "./coordinates.js";
-import { type ComposedPath, Mappings, Paths } from "./mapping.js";
-import { OrderedSet, SortedArray } from "./ordered-set.js";
-import { KeyKind, type KeyTarget, type SeqSet } from "./set.js";
+} from './common.js';
+import { CoordinateSystemKind, Coords, type MapHit } from './coordinates.js';
+import { type ComposedPath, Mappings, Paths } from './mapping.js';
+import { OrderedSet, SortedArray } from './ordered-set.js';
+import { KeyKind, type KeyTarget, type SeqSet } from './set.js';
 
 export interface SeqLocation {
-  readonly kind: "seq";
+  readonly kind: 'seq';
   set: SeqSet;
   unit: UnitId;
   index: SeqIndex;
 }
 export interface BoundaryLocation {
-  readonly kind: "boundary";
+  readonly kind: 'boundary';
   set: SeqSet;
   unit: UnitId;
   at: BoundaryIndex;
 }
 /** A residue of an alignment row (unaligned). */
 export interface RowLocation {
-  readonly kind: "row";
+  readonly kind: 'row';
   set: SeqSet;
   alignment: AlignmentId;
   row: RowIndex;
@@ -49,20 +49,20 @@ export interface RowLocation {
 }
 /** A cell: a row at a column. */
 export interface AlignedLocation {
-  readonly kind: "aligned";
+  readonly kind: 'aligned';
   set: SeqSet;
   alignment: AlignmentId;
   row: RowIndex;
   column: ColumnIndex;
 }
 export interface ColumnLocation {
-  readonly kind: "column";
+  readonly kind: 'column';
   set: SeqSet;
   alignment: AlignmentId;
   column: ColumnIndex;
 }
 export interface ItemLocation {
-  readonly kind: "item";
+  readonly kind: 'item';
   set: SeqSet;
   annotation: AnnotationId;
   item: ItemIndex;
@@ -70,17 +70,17 @@ export interface ItemLocation {
 export type Location = SeqLocation | BoundaryLocation | RowLocation | AlignedLocation | ColumnLocation | ItemLocation;
 
 export interface SeqLoci {
-  readonly kind: "seq-loci";
+  readonly kind: 'seq-loci';
   readonly set: SeqSet;
   readonly elements: readonly { readonly unit: UnitId; readonly indices: OrderedSet<SeqIndex> }[];
 }
 export interface BoundaryLoci {
-  readonly kind: "boundary-loci";
+  readonly kind: 'boundary-loci';
   readonly set: SeqSet;
   readonly elements: readonly { readonly unit: UnitId; readonly indices: OrderedSet<BoundaryIndex> }[];
 }
 export interface RowLoci {
-  readonly kind: "row-loci";
+  readonly kind: 'row-loci';
   readonly set: SeqSet;
   readonly alignment: AlignmentId;
   readonly elements: readonly { readonly row: RowIndex; readonly indices: OrderedSet<SeqIndex> }[];
@@ -91,19 +91,19 @@ export interface AlignedRect {
   readonly columns: OrderedSet<ColumnIndex>;
 }
 export interface AlignedLoci {
-  readonly kind: "aligned-loci";
+  readonly kind: 'aligned-loci';
   readonly set: SeqSet;
   readonly alignment: AlignmentId;
   readonly elements: readonly { readonly row: RowIndex; readonly columns: OrderedSet<ColumnIndex> }[] | AlignedRect;
 }
 export interface ColumnLoci {
-  readonly kind: "column-loci";
+  readonly kind: 'column-loci';
   readonly set: SeqSet;
   readonly alignment: AlignmentId;
   readonly columns: OrderedSet<ColumnIndex>;
 }
 export interface ItemLoci {
-  readonly kind: "item-loci";
+  readonly kind: 'item-loci';
   readonly set: SeqSet;
   readonly elements: readonly { readonly annotation: AnnotationId; readonly items: OrderedSet<ItemIndex> }[];
 }
@@ -115,31 +115,31 @@ type Grouped = Exclude<Loci, ColumnLoci>;
 
 /** Per location kind: its fields after `set`; the loci kind; the element's owner and set fields. */
 const FIELDS = {
-  seq: ["unit", "index"],
-  boundary: ["unit", "at"],
-  row: ["alignment", "row", "index"],
-  aligned: ["alignment", "row", "column"],
-  column: ["alignment", "column"],
-  item: ["annotation", "item"],
+  seq: ['unit', 'index'],
+  boundary: ['unit', 'at'],
+  row: ['alignment', 'row', 'index'],
+  aligned: ['alignment', 'row', 'column'],
+  column: ['alignment', 'column'],
+  item: ['annotation', 'item'],
 } as const;
 const LOCI_OF = {
-  seq: "seq-loci",
-  boundary: "boundary-loci",
-  row: "row-loci",
-  aligned: "aligned-loci",
-  column: "column-loci",
-  item: "item-loci",
+  seq: 'seq-loci',
+  boundary: 'boundary-loci',
+  row: 'row-loci',
+  aligned: 'aligned-loci',
+  column: 'column-loci',
+  item: 'item-loci',
 } as const;
 /** [owner, set, the location's value field]. */
 const SHAPE = {
-  "seq-loci": ["unit", "indices", "index"],
-  "boundary-loci": ["unit", "indices", "at"],
-  "row-loci": ["row", "indices", "index"],
-  "aligned-loci": ["row", "columns", "column"],
-  "item-loci": ["annotation", "items", "item"],
+  'seq-loci': ['unit', 'indices', 'index'],
+  'boundary-loci': ['unit', 'indices', 'at'],
+  'row-loci': ['row', 'indices', 'index'],
+  'aligned-loci': ['row', 'columns', 'column'],
+  'item-loci': ['annotation', 'items', 'item'],
 } as const;
 
-function locationKind<L extends Location>(kind: L["kind"]) {
+function locationKind<L extends Location>(kind: L['kind']) {
   const f: readonly string[] = FIELDS[kind];
   return {
     create(set: SeqSet): L {
@@ -163,12 +163,12 @@ function locationKind<L extends Location>(kind: L["kind"]) {
   };
 }
 
-export const SeqLocation = { ...locationKind<SeqLocation>("seq"), toSystem, toSystemEach, toRowLocations, itemsAt };
-export const BoundaryLocation = locationKind<BoundaryLocation>("boundary");
-export const RowLocation = { ...locationKind<RowLocation>("row"), toAligned, toSeqLocations: rowToSeq };
-export const AlignedLocation = { ...locationKind<AlignedLocation>("aligned"), toRow };
-export const ColumnLocation = { ...locationKind<ColumnLocation>("column"), toSeqLocations: columnToSeq };
-export const ItemLocation = locationKind<ItemLocation>("item");
+export const SeqLocation = { ...locationKind<SeqLocation>('seq'), toSystem, toSystemEach, toRowLocations, itemsAt };
+export const BoundaryLocation = locationKind<BoundaryLocation>('boundary');
+export const RowLocation = { ...locationKind<RowLocation>('row'), toAligned, toSeqLocations: rowToSeq };
+export const AlignedLocation = { ...locationKind<AlignedLocation>('aligned'), toRow };
+export const ColumnLocation = { ...locationKind<ColumnLocation>('column'), toSeqLocations: columnToSeq };
+export const ItemLocation = locationKind<ItemLocation>('item');
 
 // Location-level conversions: the hover path, allocation-free.
 
@@ -251,7 +251,7 @@ function begin<L extends Location, C>(set: SeqSet, unit: number, out: L, cb: (l:
   v.set = set;
   v.unit = unit;
   v.out = out;
-  v.cb = cb as Via["cb"];
+  v.cb = cb as Via['cb'];
   v.ctx = ctx;
   v.n = 0;
   return v;
@@ -392,7 +392,7 @@ function beginQuery<C>(
 ) {
   items.ann = ann;
   items.out = out;
-  items.cb = cb as ItemQuery["cb"];
+  items.cb = cb as ItemQuery['cb'];
   items.ctx = ctx;
   items.n = 0;
   out.set = set;
@@ -428,13 +428,13 @@ function itemsAt<C>(
   return q.n;
 }
 
-function isRect(e: AlignedLoci["elements"]): e is AlignedRect {
+function isRect(e: AlignedLoci['elements']): e is AlignedRect {
   return !Array.isArray(e);
 }
 
 /** Per-owner elements; a rectangle expanded per row (edges). */
 function elementsOf(loci: Grouped): readonly El[] {
-  if (loci.kind !== "aligned-loci" || !isRect(loci.elements)) return loci.elements as unknown as readonly El[];
+  if (loci.kind !== 'aligned-loci' || !isRect(loci.elements)) return loci.elements as unknown as readonly El[];
   const { rows, columns } = loci.elements;
   const out: El[] = [];
   for (let i = 0; i < OrderedSet.size(rows); i++)
@@ -445,28 +445,28 @@ function elementsOf(loci: Grouped): readonly El[] {
 function fromLocation(l: Location): Loci {
   const one = OrderedSet.ofSingleton;
   switch (l.kind) {
-    case "column":
-      return { kind: "column-loci", set: l.set, alignment: l.alignment, columns: one(l.column) };
-    case "aligned":
+    case 'column':
+      return { kind: 'column-loci', set: l.set, alignment: l.alignment, columns: one(l.column) };
+    case 'aligned':
       return {
-        kind: "aligned-loci",
+        kind: 'aligned-loci',
         set: l.set,
         alignment: l.alignment,
         elements: [{ row: l.row, columns: one(l.column) }],
       };
-    case "row":
+    case 'row':
       return {
-        kind: "row-loci",
+        kind: 'row-loci',
         set: l.set,
         alignment: l.alignment,
         elements: [{ row: l.row, indices: one(l.index) }],
       };
-    case "seq":
-      return { kind: "seq-loci", set: l.set, elements: [{ unit: l.unit, indices: one(l.index) }] };
-    case "boundary":
-      return { kind: "boundary-loci", set: l.set, elements: [{ unit: l.unit, indices: one(l.at) }] };
-    case "item":
-      return { kind: "item-loci", set: l.set, elements: [{ annotation: l.annotation, items: one(l.item) }] };
+    case 'seq':
+      return { kind: 'seq-loci', set: l.set, elements: [{ unit: l.unit, indices: one(l.index) }] };
+    case 'boundary':
+      return { kind: 'boundary-loci', set: l.set, elements: [{ unit: l.unit, indices: one(l.at) }] };
+    case 'item':
+      return { kind: 'item-loci', set: l.set, elements: [{ annotation: l.annotation, items: one(l.item) }] };
   }
 }
 
@@ -474,9 +474,9 @@ function fromLocation(l: Location): Loci {
 function has(loci: Loci, l: Location): boolean {
   if (LOCI_OF[l.kind] !== loci.kind) return false;
   const o = l as unknown as Rec;
-  if ("alignment" in loci && loci.alignment !== o.alignment) return false;
-  if (loci.kind === "column-loci") return OrderedSet.has(loci.columns, o.column);
-  if (loci.kind === "aligned-loci" && isRect(loci.elements)) {
+  if ('alignment' in loci && loci.alignment !== o.alignment) return false;
+  if (loci.kind === 'column-loci') return OrderedSet.has(loci.columns, o.column);
+  if (loci.kind === 'aligned-loci' && isRect(loci.elements)) {
     return OrderedSet.has(loci.elements.rows, o.row) && OrderedSet.has(loci.elements.columns, o.column);
   }
   const s = SHAPE[loci.kind];
@@ -491,15 +491,15 @@ function forEachLocation<L extends Location, C>(loci: Loci, out: L, cb: (l: L, c
   const o = out as unknown as Rec;
   let n = 0;
   (out as { set: SeqSet }).set = loci.set; // Never a stale set's bindings
-  if ("alignment" in loci) o.alignment = loci.alignment;
-  if (loci.kind === "column-loci") {
+  if ('alignment' in loci) o.alignment = loci.alignment;
+  if (loci.kind === 'column-loci') {
     for (let i = 0, k = OrderedSet.size(loci.columns); i < k; i++, n++) {
       o.column = OrderedSet.getAt(loci.columns, i);
       cb(out, ctx);
     }
     return n;
   }
-  if (loci.kind === "aligned-loci" && isRect(loci.elements)) {
+  if (loci.kind === 'aligned-loci' && isRect(loci.elements)) {
     const { rows, columns } = loci.elements;
     for (let r = 0, nr = OrderedSet.size(rows), nc = OrderedSet.size(columns); r < nr; r++) {
       o.row = OrderedSet.getAt(rows, r);
@@ -547,25 +547,25 @@ function collect(loci: Grouped, into: Map<number, OrderedSet>) {
 
 /** Same kind (and alignment); edges. A rectangle stays one when the result is one. */
 function union<L extends Loci>(a: L, b: L): L {
-  if ((a as Loci).kind !== b.kind || ("alignment" in a && "alignment" in b && a.alignment !== b.alignment)) {
+  if ((a as Loci).kind !== b.kind || ('alignment' in a && 'alignment' in b && a.alignment !== b.alignment)) {
     throw new Error(`Loci.union: ${a.kind} and ${b.kind} over different elements.`);
   }
-  if (a.kind === "column-loci") return { ...a, columns: OrderedSet.union(a.columns, (b as ColumnLoci).columns) };
+  if (a.kind === 'column-loci') return { ...a, columns: OrderedSet.union(a.columns, (b as ColumnLoci).columns) };
   const ga = a as Grouped;
   const gb = b as Grouped;
-  const rect = ga.kind === "aligned-loci" && (isRect(ga.elements) || isRect((gb as AlignedLoci).elements));
+  const rect = ga.kind === 'aligned-loci' && (isRect(ga.elements) || isRect((gb as AlignedLoci).elements));
   return grouped(ga, collect(gb, collect(ga, new Map())), rect, a.set) as L;
 }
 
 function isEmpty(loci: Loci): boolean {
-  if (loci.kind === "column-loci") return OrderedSet.isEmpty(loci.columns);
+  if (loci.kind === 'column-loci') return OrderedSet.isEmpty(loci.columns);
   return elementsOf(loci).every((e) => OrderedSet.isEmpty(e[SHAPE[loci.kind][1]]));
 }
 
 function areEqual(a: Loci, b: Loci): boolean {
   if (a.kind !== b.kind || a.set.lineage !== b.set.lineage) return false;
-  if ("alignment" in a && "alignment" in b && a.alignment !== b.alignment) return false;
-  if (a.kind === "column-loci") return OrderedSet.areEqual(a.columns, (b as ColumnLoci).columns);
+  if ('alignment' in a && 'alignment' in b && a.alignment !== b.alignment) return false;
+  if (a.kind === 'column-loci') return OrderedSet.areEqual(a.columns, (b as ColumnLoci).columns);
   const ma = collect(a, new Map());
   const mb = collect(b as Grouped, new Map());
   const keys = (m: Map<number, OrderedSet>) => [...m.keys()].filter((k) => !OrderedSet.isEmpty(m.get(k) as OrderedSet));
@@ -586,12 +586,12 @@ function remap<L extends Loci>(loci: L, from: SeqSet, to: SeqSet): L {
     to.byName(from.strings.get(key), target) && target.kind === kind ? target.id : -1;
   const below = (s: OrderedSet, n: number) => OrderedSet.intersect(s, OrderedSet.ofRange(0, Math.max(0, n)));
   let alignment = -1;
-  if ("alignment" in loci) {
+  if ('alignment' in loci) {
     const fa = from.alignments[loci.alignment];
     alignment = fa ? resolve(fa.key, KeyKind.alignment) : -1;
   }
   const ta = to.alignments[alignment];
-  if (loci.kind === "column-loci") {
+  if (loci.kind === 'column-loci') {
     return { ...loci, set: to, alignment, columns: below(loci.columns, ta?.columnCount ?? 0) };
   }
   const pairs = new Map<number, OrderedSet>();
@@ -601,22 +601,22 @@ function remap<L extends Loci>(loci: L, from: SeqSet, to: SeqSet): L {
     const v = e[s[1]];
     let id = -1;
     let next: OrderedSet = v;
-    if (loci.kind === "seq-loci" || loci.kind === "boundary-loci") {
+    if (loci.kind === 'seq-loci' || loci.kind === 'boundary-loci') {
       id = resolve(from.units.key[owner], KeyKind.unit);
       const length = id < 0 ? 0 : (to.molecules[to.units.molecule[id]]?.length ?? 0);
-      next = below(v, length + (loci.kind === "boundary-loci" ? 1 : 0));
-    } else if (loci.kind === "item-loci") {
+      next = below(v, length + (loci.kind === 'boundary-loci' ? 1 : 0));
+    } else if (loci.kind === 'item-loci') {
       id = resolve(from.annotations[owner]?.key ?? -1, KeyKind.annotation);
       next = id < 0 ? OrderedSet.Empty : remapItems(v, from, to, owner, id);
     } else if (ta && owner < ta.rowCount) {
       id = owner;
-      if (loci.kind === "aligned-loci") next = below(v, ta.columnCount);
+      if (loci.kind === 'aligned-loci') next = below(v, ta.columnCount);
     }
     if (id >= 0) pairs.set(id, pairs.has(id) ? OrderedSet.union(pairs.get(id) as OrderedSet, next) : next);
   }
-  const rect = loci.kind === "aligned-loci" && isRect(loci.elements);
+  const rect = loci.kind === 'aligned-loci' && isRect(loci.elements);
   const out = grouped(loci, pairs, rect, to);
-  return ("alignment" in out ? { ...out, alignment } : out) as L;
+  return ('alignment' in out ? { ...out, alignment } : out) as L;
 }
 
 function remapItems(items: OrderedSet, from: SeqSet, to: SeqSet, fromId: number, toId: number): OrderedSet {
@@ -735,19 +735,19 @@ function alignedToRowLoci(loci: AlignedLoci, c: Conversion): RowLoci {
     AlignedLocation.create(loci.set),
     RowLocation.create(loci.set),
     single(toRow),
-    "row",
-    "index",
+    'row',
+    'index',
     c,
   );
-  return grouped({ kind: "row-loci", set: loci.set, alignment: loci.alignment, elements: [] }, pairs, false, loci.set);
+  return grouped({ kind: 'row-loci', set: loci.set, alignment: loci.alignment, elements: [] }, pairs, false, loci.set);
 }
 
 /** Residues to cells; A3M inserts and rows not held dropped. */
 function rowToAlignedLoci(loci: RowLoci, c: Conversion): AlignedLoci {
   const to = AlignedLocation.create(loci.set);
-  const pairs = convert(loci, RowLocation.create(loci.set), to, single(toAligned), "row", "column", c);
+  const pairs = convert(loci, RowLocation.create(loci.set), to, single(toAligned), 'row', 'column', c);
   return grouped(
-    { kind: "aligned-loci", set: loci.set, alignment: loci.alignment, elements: [] },
+    { kind: 'aligned-loci', set: loci.set, alignment: loci.alignment, elements: [] },
     pairs,
     false,
     loci.set,
@@ -759,42 +759,42 @@ function alignedToColumnLoci(loci: AlignedLoci, c: Conversion): ColumnLoci {
   const all = [...collect(loci, new Map()).values()];
   const columns = all.reduce((a, b) => OrderedSet.union(a, b), OrderedSet.Empty) as OrderedSet<ColumnIndex>;
   Object.assign(c, Conversion.create());
-  return { kind: "column-loci", set: loci.set, alignment: loci.alignment, columns };
+  return { kind: 'column-loci', set: loci.set, alignment: loci.alignment, columns };
 }
 
 /** The columns' cells in `rows`: one rectangle. */
 function columnToAlignedLoci(loci: ColumnLoci, rows: OrderedSet<RowIndex>, c: Conversion): AlignedLoci {
   Object.assign(c, Conversion.create());
-  return { kind: "aligned-loci", set: loci.set, alignment: loci.alignment, elements: { rows, columns: loci.columns } };
+  return { kind: 'aligned-loci', set: loci.set, alignment: loci.alignment, elements: { rows, columns: loci.columns } };
 }
 
 /** Row residues to the units their rows are bound to; a molecule-level binding gives every unit over it. */
 function rowToSeqLoci(loci: RowLoci, c: Conversion): SeqLoci {
-  const pairs = convert(loci, RowLocation.create(loci.set), SeqLocation.create(loci.set), rowToSeq, "unit", "index", c);
+  const pairs = convert(loci, RowLocation.create(loci.set), SeqLocation.create(loci.set), rowToSeq, 'unit', 'index', c);
   markAmbiguous(
     c,
     loci.set,
     loci.alignment,
     Array.from(loci.elements, (e) => e.row as number),
   );
-  return grouped({ kind: "seq-loci", set: loci.set, elements: [] }, pairs, false, loci.set);
+  return grouped({ kind: 'seq-loci', set: loci.set, elements: [] }, pairs, false, loci.set);
 }
 
 /** Unit positions to the residues of an alignment's rows bound to them. */
 function seqToRowLoci(loci: SeqLoci, alignment: AlignmentId, c: Conversion): RowLoci {
   const one = (l: SeqLocation, out: RowLocation, cb: Visit<RowLocation>, acc: Acc) =>
     toRowLocations(l, alignment, out, cb, acc);
-  const pairs = convert(loci, SeqLocation.create(loci.set), RowLocation.create(loci.set), one, "row", "index", c);
+  const pairs = convert(loci, SeqLocation.create(loci.set), RowLocation.create(loci.set), one, 'row', 'index', c);
   markAmbiguous(c, loci.set, alignment, pairs.keys());
-  return grouped({ kind: "row-loci", set: loci.set, alignment, elements: [] }, pairs, false, loci.set);
+  return grouped({ kind: 'row-loci', set: loci.set, alignment, elements: [] }, pairs, false, loci.set);
 }
 
 /** Unit positions along a composed path to a unit (a linked section); a residue's three nucleotides are `multiplied`. */
 function seqAlongPath(loci: SeqLoci, path: ComposedPath, c: Conversion): SeqLoci {
   const one = (l: SeqLocation, out: SeqLocation, cb: Visit<SeqLocation>, acc: Acc) =>
     toSystemEach(l, path, out, cb, acc);
-  const pairs = convert(loci, SeqLocation.create(loci.set), SeqLocation.create(loci.set), one, "unit", "index", c);
-  return grouped({ kind: "seq-loci", set: loci.set, elements: [] }, pairs, false, loci.set);
+  const pairs = convert(loci, SeqLocation.create(loci.set), SeqLocation.create(loci.set), one, 'unit', 'index', c);
+  return grouped({ kind: 'seq-loci', set: loci.set, elements: [] }, pairs, false, loci.set);
 }
 
 export const SeqLoci = { ...lociKind<SeqLoci, SeqLocation>(), toRowLoci: seqToRowLoci, toSystem: seqAlongPath };
@@ -836,14 +836,14 @@ function toItemLoci(loci: Loci, annotation: AnnotationId, c: Conversion): ItemLo
     const slot = Annotations.slotOf(ann as Annotation, space);
     if (slot >= 0 && index >= 0) Annotations.itemsOver(ann as Annotation, slot, index, index + 1, visitRow, items);
   };
-  if (ann && loci.kind === "item-loci") {
+  if (ann && loci.kind === 'item-loci') {
     for (const e of loci.elements)
       if (e.annotation === annotation) OrderedSet.forEach(e.items, (i) => found.push(i), null);
     inputs = found.length;
-  } else if (ann && loci.kind === "seq-loci") {
+  } else if (ann && loci.kind === 'seq-loci') {
     forEachLocation(loci, SeqLocation.create(set), (l) => count(itemsAt(l, annotation, out, push, null)), null);
-  } else if (ann && (loci.kind === "row-loci" || loci.kind === "aligned-loci" || loci.kind === "column-loci")) {
-    const at = loci.kind === "row-loci" ? RowLocation : loci.kind === "aligned-loci" ? AlignedLocation : ColumnLocation;
+  } else if (ann && (loci.kind === 'row-loci' || loci.kind === 'aligned-loci' || loci.kind === 'column-loci')) {
+    const at = loci.kind === 'row-loci' ? RowLocation : loci.kind === 'aligned-loci' ? AlignedLocation : ColumnLocation;
     const rows = set.alignments[loci.alignment]?.rows;
     forEachLocation(
       loci,
@@ -851,9 +851,9 @@ function toItemLoci(loci: Loci, annotation: AnnotationId, c: Conversion): ItemLo
       (l) => {
         const q = beginQuery(ann, annotation, set, out, push, null);
         const o = l as unknown as Rec;
-        if (l.kind === "row") over(CoordinateSystemKind.row, l.alignment, l.row, l.index);
+        if (l.kind === 'row') over(CoordinateSystemKind.row, l.alignment, l.row, l.index);
         else over(CoordinateSystemKind.columns, o.alignment, -1, o.column);
-        if (l.kind === "aligned")
+        if (l.kind === 'aligned')
           over(CoordinateSystemKind.row, l.alignment, l.row, rows?.colToPos(l.row, l.column) ?? -1);
         count(q.n);
       },
@@ -869,7 +869,7 @@ function toItemLoci(loci: Loci, annotation: AnnotationId, c: Conversion): ItemLo
   const elements = found.length
     ? [{ annotation, items: OrderedSet.ofSortedArray(SortedArray.ofUnsortedArray(Int32Array.from(found))) }]
     : [];
-  return { kind: "item-loci", set, elements: elements as ItemLoci["elements"] };
+  return { kind: 'item-loci', set, elements: elements as ItemLoci['elements'] };
 }
 
 export const Loci = { fromLocation, has, forEachLocation, union, isEmpty, areEqual, remap, toItemLoci };

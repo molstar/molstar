@@ -14,12 +14,12 @@
 // labels, no string per position (CM-04). The positive
 // control is the template's: an object a run, through `(leak Q)` (query-leak.ts), caught by the same measurement.
 
-import { checkText } from "@molstar/seq-core/query";
-import { describe, expect, it } from "vitest";
-import { SeqSets } from "../../src/model/index.js";
-import { compileQuery, createQueryEnv } from "../../src/model/query/index.js";
-import { controlCaught, heapGrowth, LIMIT } from "./heap.js";
-import { leakExtension } from "./query-leak.js";
+import { checkText } from '@molstar/seq-core/query';
+import { describe, expect, it } from 'vitest';
+import { SeqSets } from '../../src/model/index.js';
+import { compileQuery, createQueryEnv } from '../../src/model/query/index.js';
+import { controlCaught, heapGrowth, LIMIT } from './heap.js';
+import { leakExtension } from './query-leak.js';
 
 const N = 1_000_000;
 const ROWS = 100_000;
@@ -29,45 +29,45 @@ const { set } = SeqSets.build({
   // author labels with a letter or a multi-digit `.n` suffix every tenth, and an offset.
   molecules: [
     {
-      key: "big",
-      residues: "ACGT".repeat(N / 4),
+      key: 'big',
+      residues: 'ACGT'.repeat(N / 4),
       ownUnit: true,
-      alphabet: "dna",
+      alphabet: 'dna',
       numberings: [
         {
-          name: "auth",
-          method: "labels",
+          name: 'auth',
+          method: 'labels',
           labels: Array.from({ length: N }, (_, i) => (i % 10 === 3 ? `${i}A` : i % 10 === 7 ? `${i}.12` : i + 1)),
         },
-        { name: "off", method: "offset", first: -47 },
+        { name: 'off', method: 'offset', first: -47 },
       ],
     },
   ],
   alignments: [
-    { key: "msa", gapped: Array.from({ length: ROWS }, (_, r) => (r % 2 ? "AC-GT" : "ACGGT")), flavor: "aligned" },
+    { key: 'msa', gapped: Array.from({ length: ROWS }, (_, r) => (r % 2 ? 'AC-GT' : 'ACGGT')), flavor: 'aligned' },
   ],
   annotations: [
     // passes in runs of 5 every 10, values that are no small integers (a boxed double would show)
     {
-      key: "v",
-      geometry: "values",
-      target: "big",
+      key: 'v',
+      geometry: 'values',
+      target: 'big',
       columns: { value: Float64Array.from({ length: N }, (_, i) => (i % 10 < 5 ? 0.75 : 0.25)) },
     },
     // 50,000 items of 4 positions, every 20
     {
-      key: "reps",
-      geometry: "ranges",
-      target: "big",
+      key: 'reps',
+      geometry: 'ranges',
+      target: 'big',
       columns: {
         start: Int32Array.from({ length: N / 20 }, (_, i) => 20 * i + 3),
         stop: Int32Array.from({ length: N / 20 }, (_, i) => 20 * i + 7),
       },
     },
     {
-      key: "stats",
-      geometry: "rows",
-      target: "msa",
+      key: 'stats',
+      geometry: 'rows',
+      target: 'msa',
       columns: {
         row: Int32Array.from({ length: ROWS }, (_, r) => r),
         identity: Float64Array.from({ length: ROWS }, (_, r) => (r % 4) * 0.3 + 0.05),
@@ -76,14 +76,14 @@ const { set } = SeqSets.build({
   ],
 });
 
-const env = createQueryEnv([leakExtension({ dna: { N: "ACGT", R: "AG", Y: "CT" } })]);
+const env = createQueryEnv([leakExtension({ dna: { N: 'ACGT', R: 'AG', Y: 'CT' } })]);
 
 const QUERIES: [string, number][] = [
-  ["(letters A :in big)", 250_000],
-  ["(and big (letters CG))", 1],
-  ["(positions :in big :where (< (index) 500000))", 1],
-  ["(positions :in big :where (= (letter) T))", 250_000],
-  ["(positions :in big :where (> (value-of v) 0.5))", 100_000],
+  ['(letters A :in big)', 250_000],
+  ['(and big (letters CG))', 1],
+  ['(positions :in big :where (< (index) 500000))', 1],
+  ['(positions :in big :where (= (letter) T))', 250_000],
+  ['(positions :in big :where (> (value-of v) 0.5))', 100_000],
   // CM-04: a label compared as the numbering holds it (an ordinal label here), never a string a position.
   ['(positions :in big :where (= (label) "500000"))', 1],
   ['(positions :in big :where (!= (label) "1"))', 1],
@@ -94,14 +94,14 @@ const QUERIES: [string, number][] = [
   ['(positions :in big :where (in (label :numbering auth) "10" "23A" "57.12"))', 3],
   ['(positions :in big :where (= (label :numbering off) "100"))', 1],
   ['(positions :in big :where (in (label :numbering off) "-40" "20" "999000"))', 3],
-  ["(search ACG :in big)", 250_000],
-  ["(search NRY :in big :classes dna)", 250_000],
-  ["(search ACGA :in big :edits 1)", 200_000],
-  ["(pick (values :of v :above 0.5) :where (overlaps reps))", 50_000],
-  ["(pick (values :of v :above 0.5) :where (within reps 2))", 50_000],
-  ["(pick (values :of v :above 0.5) :where (>= (count reps) 2))", 50_000],
-  ["(pick (values :of v :above 0.5) :where (and (= (runs) 1) (> (length) 4)))", 100_000],
-  ["(rows :of msa :where (and (> (length) 3) (= (kind) row) (< (score) 1)))", 0],
+  ['(search ACG :in big)', 250_000],
+  ['(search NRY :in big :classes dna)', 250_000],
+  ['(search ACGA :in big :edits 1)', 200_000],
+  ['(pick (values :of v :above 0.5) :where (overlaps reps))', 50_000],
+  ['(pick (values :of v :above 0.5) :where (within reps 2))', 50_000],
+  ['(pick (values :of v :above 0.5) :where (>= (count reps) 2))', 50_000],
+  ['(pick (values :of v :above 0.5) :where (and (= (runs) 1) (> (length) 4)))', 100_000],
+  ['(rows :of msa :where (and (> (length) 3) (= (kind) row) (< (score) 1)))', 0],
 ];
 
 /** The least of three measured runs after ten warm-ups (a loaded machine's late compiles can box in one run). */
@@ -125,7 +125,7 @@ describe("QR2b's runtimes allocate nothing per run", () => {
   }
 
   it("an object a run is caught by the same measurement (the template's control)", () => {
-    for (const text of ["(letters A :in big)", "(search ACG :in big)", "(positions :in big :where (= (letter) T))"]) {
+    for (const text of ['(letters A :in big)', '(search ACG :in big)', '(positions :in big :where (= (letter) T))']) {
       expect([text, controlCaught(() => growth(`(leak ${text})`).growth)]).toEqual([text, true]);
     }
   });

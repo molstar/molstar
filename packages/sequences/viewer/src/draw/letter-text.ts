@@ -11,11 +11,11 @@
 // shows some columns' text and not others' (VL-06). Doubles are read from `letterRoom`, never passed (a double passed
 // to a call is boxed below TurboFan).
 
-import { Molecules } from "@molstar/seq-core/model";
-import { AxisGeometry } from "../axis.js";
-import { letterCap } from "../layout.js";
-import { Lod } from "../viewport.js";
-import type { DrawView } from "./view.js";
+import { Molecules } from '@molstar/seq-core/model';
+import { AxisGeometry } from '../axis.js';
+import { letterCap } from '../layout.js';
+import { Lod } from '../viewport.js';
+import type { DrawView } from './view.js';
 
 // Read once: a module member read per frame allocates under the test runner's module wrapper.
 const WRAPPED = AxisGeometry.wrapped;
@@ -48,6 +48,6 @@ export function textShown(v: DrawView, b: number): boolean {
 const SYMBOLS: string[] = [];
 /** An atom's element symbol by atomic number ("X" when none), made on first use: the letters' and emphasis's. */
 export function elementSymbol(z: number): string {
-  SYMBOLS[z] ??= Molecules.elementSymbol(z) || "X";
+  SYMBOLS[z] ??= Molecules.elementSymbol(z) || 'X';
   return SYMBOLS[z];
 }

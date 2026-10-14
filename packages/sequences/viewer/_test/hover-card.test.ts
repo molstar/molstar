@@ -11,19 +11,19 @@
 // while the pointer is in it; closed after the grace off both, by a zoom, and by running an action (which gets the item
 // as its target).
 
-import { describe, expect, it } from "vitest";
-import { case13 } from "../../core/_test/format/cases.js";
-import { trackMenu } from "../src/chrome.js";
-import { createHoverCard, HOVER_CARD_GRACE_MS } from "../src/hover-card.js";
-import { type ActionEntry, Hit, HoverKind, type ItemTarget, SeqViewerConfig } from "../src/index.js";
-import { opened } from "./layout-fixtures.js";
+import { describe, expect, it } from 'vitest';
+import { case13 } from '../../core/_test/format/cases.js';
+import { trackMenu } from '../src/chrome.js';
+import { createHoverCard, HOVER_CARD_GRACE_MS } from '../src/hover-card.js';
+import { type ActionEntry, Hit, HoverKind, type ItemTarget, SeqViewerConfig } from '../src/index.js';
+import { opened } from './layout-fixtures.js';
 
-const SECTION = "features.main";
+const SECTION = 'features.main';
 const ran: ItemTarget[] = [];
 const ShowIt: ActionEntry<ItemTarget> = {
-  name: "test:show",
-  title: "Show it",
-  when: (_ctx, t) => t.annotation === "p53-features",
+  name: 'test:show',
+  title: 'Show it',
+  when: (_ctx, t) => t.annotation === 'p53-features',
   run: (_ctx, t) => void ran.push(t),
 };
 
@@ -34,30 +34,30 @@ async function viewer(actions: string[]) {
   const hit = Hit.create();
   /** The pointer on the Domain track at a residue (an item there), or off every item. */
   const hover = (index: number | null) => {
-    const y = t.yOf(SECTION, "features.domain");
+    const y = t.yOf(SECTION, 'features.domain');
     t.ctx.layout.hitTest(SECTION, index === null ? 2 : t.xOf(SECTION, 0, index), index === null ? 2 : y, hit);
-    t.ctx.hover.setFromHit(hit, "pointer");
+    t.ctx.hover.setFromHit(hit, 'pointer');
     return hit.kind;
   };
   return { ...t, card, hover };
 }
 
-describe("the hover card", () => {
-  it("opens after the delay on an item with actions, with the label and the actions that apply", async () => {
-    const t = await viewer(["test:show", "test:missing"]);
+describe('the hover card', () => {
+  it('opens after the delay on an item with actions, with the label and the actions that apply', async () => {
+    const t = await viewer(['test:show', 'test:missing']);
     expect(t.hover(150)).toBe(HoverKind.item);
     t.scheduler.advance(399);
     expect(t.card.current.value).toBe(null);
     t.scheduler.advance(1);
     const c = t.card.current.value;
-    expect(c?.actions).toEqual([{ name: "test:show", title: "Show it" }]);
-    expect(c?.target).toMatchObject({ section: SECTION, track: "features.domain", annotation: "p53-features" });
+    expect(c?.actions).toEqual([{ name: 'test:show', title: 'Show it' }]);
+    expect(c?.target).toMatchObject({ section: SECTION, track: 'features.domain', annotation: 'p53-features' });
     expect(c?.label?.title).toBeTruthy();
     t.card.dispose();
   });
 
-  it("stays across the gap into the card and while the pointer is in it; closes after the grace off both", async () => {
-    const t = await viewer(["test:show"]);
+  it('stays across the gap into the card and while the pointer is in it; closes after the grace off both', async () => {
+    const t = await viewer(['test:show']);
     t.hover(150);
     t.scheduler.advance(400);
     t.hover(null);
@@ -71,25 +71,25 @@ describe("the hover card", () => {
     t.card.dispose();
   });
 
-  it("closes on a zoom; running an action closes it and hands the item to the action", async () => {
-    const t = await viewer(["test:show"]);
+  it('closes on a zoom; running an action closes it and hands the item to the action', async () => {
+    const t = await viewer(['test:show']);
     t.hover(150);
     t.scheduler.advance(400);
-    t.vp(SECTION).zoomAt(2, 500, "pointer");
+    t.vp(SECTION).zoomAt(2, 500, 'pointer');
     t.scheduler.advance(20);
     expect(t.card.current.value).toBe(null);
     t.hover(null);
     t.hover(150);
     t.scheduler.advance(400);
     const item = t.card.current.value?.target.item;
-    t.card.run("test:show");
+    t.card.run('test:show');
     expect(t.card.current.value).toBe(null);
-    expect(ran.at(-1)).toMatchObject({ annotation: "p53-features", item });
+    expect(ran.at(-1)).toMatchObject({ annotation: 'p53-features', item });
     t.card.dispose();
   });
 
   it("stays across a reassembly of the same document (a skin's dark); a new document closes it (VB-07)", async () => {
-    const t = await viewer(["test:show"]);
+    const t = await viewer(['test:show']);
     t.hover(150);
     t.scheduler.advance(400);
     const before = t.ctx.graph.assembled.value;
@@ -102,19 +102,19 @@ describe("the hover card", () => {
     t.card.dispose();
   });
 
-  it("is inert without UI.ItemActions, and on items no action applies to", async () => {
+  it('is inert without UI.ItemActions, and on items no action applies to', async () => {
     const none = await viewer([]);
     none.hover(150);
     none.scheduler.advance(1000);
     expect(none.card.current.value).toBe(null);
-    const other = await viewer(["test:show"]);
+    const other = await viewer(['test:show']);
     expect(other.hover(null)).not.toBe(HoverKind.item);
     other.scheduler.advance(1000);
     expect(other.card.current.value).toBe(null);
   });
 
   it("moving from one item (its card open) to another opens the other's card after the delay", async () => {
-    const t = await viewer(["test:show"]);
+    const t = await viewer(['test:show']);
     t.hover(150);
     t.scheduler.advance(400);
     const first = t.card.current.value?.target.item;
@@ -136,29 +136,29 @@ describe("the hover card", () => {
   });
 });
 
-describe("item actions from the keyboard (VB-08)", () => {
+describe('item actions from the keyboard (VB-08)', () => {
   it("the track's menu lists the cursor's item's actions first, and runs them on the item", async () => {
-    const t = await viewer(["test:show"]);
+    const t = await viewer(['test:show']);
     t.hover(150);
     const item = t.ctx.hover.live.current.item.item;
     // The keyboard's cursor on the same item: the hover is the keyboard's.
     const h = Hit.create();
-    t.ctx.layout.hitTest(SECTION, t.xOf(SECTION, 0, 150), t.yOf(SECTION, "features.domain"), h);
-    t.ctx.hover.setFromHit(h, "keyboard");
-    const menu = trackMenu(t.ctx, SECTION, "features.domain");
-    expect(menu[0]).toMatchObject({ key: `item:test:show:p53-features:${item}:-1`, label: "Show it" });
+    t.ctx.layout.hitTest(SECTION, t.xOf(SECTION, 0, 150), t.yOf(SECTION, 'features.domain'), h);
+    t.ctx.hover.setFromHit(h, 'keyboard');
+    const menu = trackMenu(t.ctx, SECTION, 'features.domain');
+    expect(menu[0]).toMatchObject({ key: `item:test:show:p53-features:${item}:-1`, label: 'Show it' });
     menu[0].run();
-    expect(ran.at(-1)).toMatchObject({ annotation: "p53-features", item, track: "features.domain" });
+    expect(ran.at(-1)).toMatchObject({ annotation: 'p53-features', item, track: 'features.domain' });
     // The pointer's hover is the card's: the menu lists no item actions then; nor on another track.
     t.hover(150);
-    expect(trackMenu(t.ctx, SECTION, "features.domain").some((m) => m.key.startsWith("item:"))).toBe(false);
-    t.ctx.hover.setFromHit(h, "keyboard");
+    expect(trackMenu(t.ctx, SECTION, 'features.domain').some((m) => m.key.startsWith('item:'))).toBe(false);
+    t.ctx.hover.setFromHit(h, 'keyboard');
     const view = t.ctx.graph.assembled.value?.view;
-    const other = Array.from(view?.resolved.tracks.ref ?? [], (r) => view?.set.strings.get(r) ?? "").find(
-      (r) => r.startsWith("features.") && r !== "features.domain",
+    const other = Array.from(view?.resolved.tracks.ref ?? [], (r) => view?.set.strings.get(r) ?? '').find(
+      (r) => r.startsWith('features.') && r !== 'features.domain',
     );
     expect(other).toBeTruthy();
-    expect(trackMenu(t.ctx, SECTION, other as string).some((m) => m.key.startsWith("item:"))).toBe(false);
+    expect(trackMenu(t.ctx, SECTION, other as string).some((m) => m.key.startsWith('item:'))).toBe(false);
     t.card.dispose();
   });
 });

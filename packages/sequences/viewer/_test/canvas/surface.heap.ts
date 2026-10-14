@@ -15,8 +15,8 @@
 // none (CS2 hot paths: the composer's, routed). The positive control: hover frames allocating garbage each, sized to
 // the run (`leaking`), warmed and measured alike, are caught.
 
-import { expect, it, vi } from "vitest";
-import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.js";
+import { expect, it, vi } from 'vitest';
+import { controlCaught, heapScaling, isFlat, leaking } from './heap-browser.js';
 
 /** Steps per measured run: pans draw more, so fewer fit before a scavenge. */
 const N = { hover: 2_000, pan: 1_000, both: 1_000 };
@@ -32,10 +32,10 @@ function measure(step: (i: number) => void, n: number, warmed = () => {}) {
   return { r, steps: i };
 }
 
-for (const kind of ["hover", "pan", "both"] as const)
+for (const kind of ['hover', 'pan', 'both'] as const)
   it(`${kind} frames through a mounted surface are flat`, async () => {
     vi.resetModules();
-    const { surfaceFrames } = await import("./surface-fixtures.js");
+    const { surfaceFrames } = await import('./surface-fixtures.js');
     const t = await surfaceFrames(kind);
     try {
       let frames = 0;
@@ -45,17 +45,17 @@ for (const kind of ["hover", "pan", "both"] as const)
       expect(isFlat(r), JSON.stringify(r)).toBe(true);
       // Every pan asked for one frame and drew it; a pointer move only when the hover changed.
       const drawn = t.surface.stats.frames - frames;
-      if (kind === "hover") expect(drawn).toBeGreaterThan(steps / 2);
+      if (kind === 'hover') expect(drawn).toBeGreaterThan(steps / 2);
       else expect(drawn).toBe(steps);
     } finally {
       t.dispose();
     }
   }, 120_000);
 
-it("hover frames allocating garbage sized to the run each are caught (positive control)", async () => {
+it('hover frames allocating garbage sized to the run each are caught (positive control)', async () => {
   vi.resetModules();
-  const { surfaceFrames } = await import("./surface-fixtures.js");
-  const t = await surfaceFrames("hover");
+  const { surfaceFrames } = await import('./surface-fixtures.js');
+  const t = await surfaceFrames('hover');
   try {
     expect(controlCaught(() => measure(leaking(t.step, N.hover), N.hover).r)).toBe(true);
   } finally {

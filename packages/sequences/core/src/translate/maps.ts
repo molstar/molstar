@@ -9,7 +9,7 @@
 // Map builders from common identities (seqspec:libraries#translate): a host's system against Seq*'s, each one
 // `CoordinateMap` (span 1), built at the edge.
 
-import { type CoordinateSystem, Coords, type NameId, NO_LABEL, Numbering } from "@molstar/seq-core/model";
+import { type CoordinateSystem, Coords, type NameId, NO_LABEL, Numbering } from '@molstar/seq-core/model';
 
 /** Pairs from element `f` with to position `t`, extending the last segment when both continue it. */
 function pair(quads: number[], f: number, t: number) {
@@ -50,7 +50,7 @@ function byNumbering(
   const quads: number[] = [];
   for (let j = 0; j < labels.length; j++) {
     const code = codes?.[j];
-    const suffix = code ? (n.method === "labels" ? n.strings.find(code) : -1) : -1;
+    const suffix = code ? (n.method === 'labels' ? n.strings.find(code) : -1) : -1;
     if (code && suffix < 0) continue;
     const i = Numbering.indexOf(n, labels[j], suffix as NameId);
     if (i >= 0) pair(quads, i, j);

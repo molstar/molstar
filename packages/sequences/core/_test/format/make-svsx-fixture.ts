@@ -7,9 +7,9 @@
  */
 
 // By hand: `node lib/seqstar/core/_test/format/make-svsx-fixture.ts` rewrites fixtures/kinase.svsx from svsx-fixture.ts.
-import { writeFileSync } from "node:fs";
-import { bundleUris, writeSvsx } from "@molstar/seq-core/builder/svsx";
-import { absoluteDoc, fixtureFetch } from "./svsx-fixture.js";
+import { writeFileSync } from 'node:fs';
+import { bundleUris, writeSvsx } from '@molstar/seq-core/builder/svsx';
+import { absoluteDoc, fixtureFetch } from './svsx-fixture.js';
 
 const { doc, files } = await bundleUris(absoluteDoc(), fixtureFetch().fetch);
-writeFileSync(new URL("fixtures/kinase.svsx", import.meta.url), await writeSvsx(doc, files));
+writeFileSync(new URL('fixtures/kinase.svsx', import.meta.url), await writeSvsx(doc, files));

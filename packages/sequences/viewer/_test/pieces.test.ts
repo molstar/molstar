@@ -12,20 +12,20 @@
 // a highlight and the hover, the navigator and its marks); the ruler labels descend; a boundary sits on its position's
 // right; hits read the piece; the SVG export of a reversed piece.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import type { ShownIndex } from "../src/axis.js";
-import { Dirty, Pass } from "../src/draw/index.js";
-import { Hit, HoverKind } from "../src/index.js";
-import { renderSvg } from "../src/svg/index.js";
-import { type MirrorItem, mirrorItems, type RecordingBackend, unmatched } from "../src/testing/index.js";
-import { recording } from "./composer-fixtures.js";
-import { directed } from "./conformance-fixtures.js";
-import { entryOf } from "./draw-fixtures.js";
-import { family, lit, rowLoci, seqLoci } from "./overlay-fixtures.js";
-import { allTypes } from "./prepare-fixtures.js";
-import { all, parseXml } from "./svg/xml.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import type { ShownIndex } from '../src/axis.js';
+import { Dirty, Pass } from '../src/draw/index.js';
+import { Hit, HoverKind } from '../src/index.js';
+import { renderSvg } from '../src/svg/index.js';
+import { type MirrorItem, mirrorItems, type RecordingBackend, unmatched } from '../src/testing/index.js';
+import { recording } from './composer-fixtures.js';
+import { directed } from './conformance-fixtures.js';
+import { entryOf } from './draw-fixtures.js';
+import { family, lit, rowLoci, seqLoci } from './overlay-fixtures.js';
+import { allTypes } from './prepare-fixtures.js';
+import { all, parseXml } from './svg/xml.js';
 
 type Lit = Awaited<ReturnType<typeof lit>>;
 
@@ -57,27 +57,27 @@ const PASSES = { main: Pass.main, overlay: Pass.overlay, navOverlay: Pass.navOve
 /** One protein of 120 residues with a ruler, letters, features, values and boundaries: one block, to zoom in on. */
 function oneBlock() {
   const b = createSeqViewSpec();
-  const a = b.data.sequence({ ref: "a", label: "A", value: "MKVLATGHEKGSWQERTYIP".repeat(6) });
+  const a = b.data.sequence({ ref: 'a', label: 'A', value: 'MKVLATGHEKGSWQERTYIP'.repeat(6) });
   const f = b.data.annotation({
-    ref: "f",
-    geometry: "ranges",
+    ref: 'f',
+    geometry: 'ranges',
     target: a,
-    value: { start: [3, 30, 70], stop: [12, 31, 95], label: ["one", "two", "three"] },
+    value: { start: [3, 30, 70], stop: [12, 31, 95], label: ['one', 'two', 'three'] },
   } as never);
-  const cut = b.data.annotation({ ref: "cut", geometry: "ranges", target: a, value: { boundary: [8, 20] } } as never);
+  const cut = b.data.annotation({ ref: 'cut', geometry: 'ranges', target: a, value: { boundary: [8, 20] } } as never);
   const vals = b.data.annotation({
-    ref: "vals",
-    geometry: "values",
+    ref: 'vals',
+    geometry: 'values',
     target: a,
     value: { value: Array.from({ length: 120 }, (_, i) => ((i * 31) % 100) / 100) },
   } as never);
-  const v = b.view({ ref: "v", label: "V", height: "box" });
+  const v = b.view({ ref: 'v', label: 'V', height: 'box' });
   v.block({ sequence: a });
-  v.track({ label: "" }).ruler();
-  v.track({ label: "Letters" }).letters();
-  v.track({ label: "Features" }).ranges({ data: f, labels: true } as never);
-  v.track({ label: "Values" }).values({ data: vals } as never);
-  v.track({ label: "Boundaries" }).ranges({ data: cut } as never);
+  v.track({ label: '' }).ruler();
+  v.track({ label: 'Letters' }).letters();
+  v.track({ label: 'Features' }).ranges({ data: f, labels: true } as never);
+  v.track({ label: 'Values' }).values({ data: vals } as never);
+  v.track({ label: 'Boundaries' }).ranges({ data: cut } as never);
   return b.getDocument();
 }
 
@@ -92,25 +92,25 @@ interface Case {
 }
 const CASES: Case[] = [
   {
-    name: "every layer type on two chains at the fit: a selection, a highlight and the hover",
+    name: 'every layer type on two chains at the fit: a selection, a highlight and the hover',
     doc: () => allTypes({ length: 50 }),
     marks: (t) => {
-      t.ctx.selection.set(seqLoci(t.set, "a", 5, 12), "api");
-      t.ctx.highlight.set("host", seqLoci(t.set, "c", 20, 26));
+      t.ctx.selection.set(seqLoci(t.set, 'a', 5, 12), 'api');
+      t.ctx.highlight.set('host', seqLoci(t.set, 'c', 20, 26));
     },
-    hover: [0, 30, "Letters"],
+    hover: [0, 30, 'Letters'],
   },
   {
     name: "an alignment's rows at the fit, a row's residues selected",
     doc: () => family(),
-    marks: (t) => t.ctx.selection.set(rowLoci(t.set, 1, 1, 4), "api"),
-    hover: [0, 4, "Rows"],
+    marks: (t) => t.ctx.selection.set(rowLoci(t.set, 1, 1, 4), 'api'),
+    hover: [0, 4, 'Rows'],
   },
   {
-    name: "one block zoomed in: the forward start against the reversed end, and the navigator",
+    name: 'one block zoomed in: the forward start against the reversed end, and the navigator',
     doc: oneBlock,
-    marks: (t) => t.ctx.selection.set(seqLoci(t.set, "a", 5, 12), "api"),
-    hover: [0, 8, "Letters"],
+    marks: (t) => t.ctx.selection.set(seqLoci(t.set, 'a', 5, 12), 'api'),
+    hover: [0, 8, 'Letters'],
     cell: 16,
   },
 ];
@@ -122,8 +122,8 @@ describe("a reversed piece's whole frame is the forward one mirrored, pass by pa
       for (const direction of [1, -1] as const) {
         const t = await lit(directed(c.doc(), direction), { width: 1000, height: 420 });
         if (c.cell) {
-          t.vp?.setView(c.cell, 0, "api");
-          if (direction < 0) t.vp?.setView(c.cell, 1e9, "api");
+          t.vp?.setView(c.cell, 0, 'api');
+          if (direction < 0) t.vp?.setView(c.cell, 1e9, 'api');
           await t.ctx.graph.update();
         }
         c.marks(t);
@@ -157,14 +157,14 @@ describe("a reversed piece's whole frame is the forward one mirrored, pass by pa
 });
 
 /** 30 residues (`SEQ`) with a ruler and letters; `range` and `direction` on its one block. */
-const SEQ = "MKVLATGHEKGSWQERTYIPACDNLLFRSV";
+const SEQ = 'MKVLATGHEKGSWQERTYIPACDNLLFRSV';
 function short(o: { range?: [number, number]; direction?: 1 | -1 } = {}) {
   const b = createSeqViewSpec();
-  const a = b.data.sequence({ ref: "a", label: "A", value: SEQ });
-  const v = b.view({ ref: "v", label: "V", height: "box" });
+  const a = b.data.sequence({ ref: 'a', label: 'A', value: SEQ });
+  const v = b.view({ ref: 'v', label: 'V', height: 'box' });
   v.block({ sequence: a, ...o });
-  v.track({ label: "" }).ruler();
-  v.track({ label: "Letters" }).letters();
+  v.track({ label: '' }).ruler();
+  v.track({ label: 'Letters' }).letters();
   return b.getDocument();
 }
 /** Text drawn in the main pass, left to right: the ruler's numbers and the letters. */
@@ -175,11 +175,11 @@ function textsByX(rec: RecordingBackend) {
   return out.sort((a, b) => a[0] - b[0]).map((x) => x[1]);
 }
 
-describe("pieces in the format, through the viewer", () => {
+describe('pieces in the format, through the viewer', () => {
   it("a ranged reversed piece: its letters from the range's last down, the ruler's numbers descending", async () => {
     const t = await lit(short({ range: [4, 24], direction: -1 }), { width: 900, height: 200 });
     const texts = textsByX(t.frame(recording(), Dirty.all));
-    expect(texts.filter((s) => /^[A-Z]$/.test(s)).join("")).toBe([...SEQ.slice(4, 24)].reverse().join(""));
+    expect(texts.filter((s) => /^[A-Z]$/.test(s)).join('')).toBe([...SEQ.slice(4, 24)].reverse().join(''));
     const numbers = texts.filter((s) => /^\d+$/.test(s)).map(Number);
     expect(numbers.length).toBeGreaterThan(2);
     expect(numbers).toEqual([...numbers].sort((a, b) => b - a));
@@ -189,15 +189,15 @@ describe("pieces in the format, through the viewer", () => {
 
   it("hits read the piece: each position's center gives its index; the hover label names the piece hovered", async () => {
     const b = createSeqViewSpec();
-    const a = b.data.sequence({ ref: "a", label: "A", value: SEQ });
-    const v = b.view({ ref: "v", label: "V", height: "box" });
-    v.block({ sequence: a, range: [2, 10], direction: -1, label: "first" });
-    v.block({ sequence: a, range: [20, 28], label: "second" });
-    v.track({ label: "Letters" }).letters();
+    const a = b.data.sequence({ ref: 'a', label: 'A', value: SEQ });
+    const v = b.view({ ref: 'v', label: 'V', height: 'box' });
+    v.block({ sequence: a, range: [2, 10], direction: -1, label: 'first' });
+    v.block({ sequence: a, range: [20, 28], label: 'second' });
+    v.track({ label: 'Letters' }).letters();
     const t = await lit(b.getDocument(), { width: 900, height: 200 });
     const ax = t.ctx.layout.axis(t.section);
-    if (!ax?.axis) throw new Error("no layout");
-    const e = entryOf(t.ctx, "Letters");
+    if (!ax?.axis) throw new Error('no layout');
+    const e = entryOf(t.ctx, 'Letters');
     const y = e.top + e.height / 2;
     const hit = Hit.create();
     const read = (blk: number) =>
@@ -214,23 +214,23 @@ describe("pieces in the format, through the viewer", () => {
     expect(t.ctx.labels.compute(t.ctx.hover.live.current)?.title).toBe(`first ${SEQ[5]}6`);
   });
 
-  it("the hover label says which copy of a source residue a position is, past the first, either way (Ub 45 (copy 2))", async () => {
-    const UB = "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG";
+  it('the hover label says which copy of a source residue a position is, past the first, either way (Ub 45 (copy 2))', async () => {
+    const UB = 'MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG';
     for (const direction of [1, -1] as const) {
       const b = createSeqViewSpec();
-      b.data.sequence({ ref: "ub", value: UB }).numbering({ name: "uniprot", method: "offset" });
-      b.data.sequence({ ref: "diub", value: UB + UB });
+      b.data.sequence({ ref: 'ub', value: UB }).numbering({ name: 'uniprot', method: 'offset' });
+      b.data.sequence({ ref: 'diub', value: UB + UB });
       const segments = [
         [0, 0, 76],
         [76, 0, 76],
       ];
-      b.data.mapping({ ref: "diub-ub", from: "diub", to: "ub", method: "segments", segments } as never);
-      const v = b.view({ ref: "v", label: "V", numbering: "uniprot", direction });
-      v.block({ sequence: "diub", label: "Ub2" }).track({ label: "Letters" }).letters();
+      b.data.mapping({ ref: 'diub-ub', from: 'diub', to: 'ub', method: 'segments', segments } as never);
+      const v = b.view({ ref: 'v', label: 'V', numbering: 'uniprot', direction });
+      v.block({ sequence: 'diub', label: 'Ub2' }).track({ label: 'Letters' }).letters();
       const t = await lit(b.getDocument(), { width: 1600, height: 200 });
-      t.vp?.setView(10, direction > 0 ? 0 : 1e9, "api");
+      t.vp?.setView(10, direction > 0 ? 0 : 1e9, 'api');
       await t.ctx.graph.update();
-      const e = entryOf(t.ctx, "Letters");
+      const e = entryOf(t.ctx, 'Letters');
       const y = e.top + e.height / 2;
       const title = (i: number) => {
         t.hover(xOf(t, 0, i), y);
@@ -240,13 +240,13 @@ describe("pieces in the format, through the viewer", () => {
     }
   });
 
-  it("the SVG export of a reversed piece: its letters and numbers as drawn", async () => {
+  it('the SVG export of a reversed piece: its letters and numbers as drawn', async () => {
     const xml = await renderSvg(short({ direction: -1 }), { width: 900 });
-    const texts = all(parseXml(xml), "text")
+    const texts = all(parseXml(xml), 'text')
       .map((e) => [Number(e.attrs.x), e.text] as const)
       .sort((p, q) => p[0] - q[0])
       .map((p) => p[1]);
-    expect(texts.filter((s) => /^[A-Z]$/.test(s)).join("")).toBe([...SEQ].reverse().join(""));
+    expect(texts.filter((s) => /^[A-Z]$/.test(s)).join('')).toBe([...SEQ].reverse().join(''));
     const numbers = texts.filter((s) => /^\d+$/.test(s)).map(Number);
     expect(numbers.length).toBeGreaterThan(2);
     expect(numbers).toEqual([...numbers].sort((p, q) => q - p));

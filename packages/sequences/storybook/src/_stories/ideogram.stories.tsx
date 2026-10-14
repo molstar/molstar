@@ -6,27 +6,27 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { useSeqViewer } from "@molstar/seq-viewer/react";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useMemo } from "react";
-import f from "./support/seqstar-format.module.css";
+import { useSeqViewer } from '@molstar/seq-viewer/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useMemo } from 'react';
+import f from './support/seqstar-format.module.css';
 import {
   IDEOGRAM_PLACES,
   IDEOGRAM_REGISTRY,
   IDEOGRAM_SECTION,
   ideogramDoc,
   ideogramLoaders,
-} from "./support/seqstar-ideogram.js";
-import { PrismPage } from "./support/seqstar-prism.js";
-import { ViewerCard } from "./support/seqstar-viewer.js";
-import { TextAction } from "./ui/index.js";
+} from './support/seqstar-ideogram.js';
+import { PrismPage } from './support/seqstar-prism.js';
+import { ViewerCard } from './support/seqstar-viewer.js';
+import { TextAction } from './ui/index.js';
 
 /**
  * The ideogram navigator: each block's chromosome drawn as its karyotype strip from hg38's committed cytobands (UCSC's
  * cytoBandIdeo, 862 bands recorded once), the view's window over it. The data is the story's (a registry entry,
  * `ideogramNavigator(bands)`); the navigator knows no biology but the stains. Offline: the sequence is synthetic.
  */
-const meta = { title: "Seq*/Views and layouts/Navigators", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Views and layouts/Navigators', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj;
 
@@ -46,11 +46,11 @@ function Panel() {
 }
 
 export const Karyotype: Story = {
-  name: "hg38 karyotype",
+  name: 'hg38 karyotype',
   render: () => {
     const doc = useMemo(ideogramDoc, []);
     const options = useMemo(
-      () => ({ loaders: ideogramLoaders(), maxHeight: 420, navigator: "ideogram", registry: IDEOGRAM_REGISTRY }),
+      () => ({ loaders: ideogramLoaders(), maxHeight: 420, navigator: 'ideogram', registry: IDEOGRAM_REGISTRY }),
       [],
     );
     return (

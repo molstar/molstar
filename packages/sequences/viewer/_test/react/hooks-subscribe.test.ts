@@ -9,9 +9,9 @@
 // The React hooks' store subscription (`useSeqState`, `useDerived`): a state's replay on subscribe is not a change, so
 // it calls nothing back; each change calls back once.
 
-import { describe, expect, it } from "vitest";
-import { subscriber } from "../../src/react/hooks.js";
-import { live, state } from "../../src/state.js";
+import { describe, expect, it } from 'vitest';
+import { subscriber } from '../../src/react/hooks.js';
+import { live, state } from '../../src/state.js';
 
 describe("the hooks' store subscription", () => {
   it("skips each state's replay on subscribe and calls back once per change", () => {

@@ -28,9 +28,9 @@
 // COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import type { Alphabet } from "@molstar/seq-core/model";
-import { type SeqState, state } from "./state.js";
-import { hasMetrics } from "./svg/metrics.js";
+import type { Alphabet } from '@molstar/seq-core/model';
+import { type SeqState, state } from './state.js';
+import { hasMetrics } from './svg/metrics.js';
 
 /** `ports.text`: a width in CSS px. The engine's is canvas `measureText`. */
 export interface TextMeasurer {
@@ -68,10 +68,10 @@ const CAP_EM = 0.72;
 const X_EM = 0.54;
 
 const LETTERS: Record<Alphabet, string> = {
-  protein: "ACDEFGHIKLMNPQRSTVWYBZJUOX",
-  dna: "ACGTN",
-  rna: "ACGUN",
-  generic: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  protein: 'ACDEFGHIKLMNPQRSTVWYBZJUOX',
+  dna: 'ACGTN',
+  rna: 'ACGUN',
+  generic: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
 };
 
 class Label implements PreparedLabel {
@@ -95,7 +95,7 @@ class Label implements PreparedLabel {
 
 interface FontCache {
   font: string;
-  readonly role: "mono" | "ui";
+  readonly role: 'mono' | 'ui';
   readonly px: number;
   readonly weight: number;
   advances: Float32Array | null;
@@ -112,7 +112,7 @@ export interface TextManagerApi {
   /** A new measurer or a loaded font: every prepared text is stale. */
   readonly version: SeqState<number>;
   /** Interned by (role, px to a quarter, weight): the table stays bounded whatever sizes are asked for. */
-  font(role: "mono" | "ui", px: number, weight?: 400 | 600): FontId;
+  font(role: 'mono' | 'ui', px: number, weight?: 400 | 600): FontId;
   /** The CSS font string a canvas draws it with. */
   fontString(font: FontId): string;
   advances(font: FontId): Float32Array;
@@ -141,7 +141,7 @@ export interface TextManagerApi {
 export class TextManager implements TextManagerApi {
   readonly version = state(0);
   /** The families fonts are made of; the engine sets the skin's (R1). */
-  readonly families = { mono: "monospace", ui: "sans-serif" };
+  readonly families = { mono: 'monospace', ui: 'sans-serif' };
   private measurer: TextMeasurer;
   private readonly capacity: () => number;
   private readonly ids = new Map<number, FontId>();
@@ -180,11 +180,11 @@ export class TextManager implements TextManagerApi {
     this.version.set(this.version.value + 1);
   }
 
-  font(role: "mono" | "ui", px0: number, weight: 400 | 600 = 400): FontId {
+  font(role: 'mono' | 'ui', px0: number, weight: 400 | 600 = 400): FontId {
     // A quarter px at most: a size that follows a zoom continuously makes a few fonts a px, never one a frame (each
     // a font string, its advances measured, its ink read and its atlas cells).
     const px = Math.round(px0 * 4) / 4;
-    const key = (px * 1024 + weight) * 2 + (role === "mono" ? 1 : 0);
+    const key = (px * 1024 + weight) * 2 + (role === 'mono' ? 1 : 0);
     const id = this.ids.get(key);
     if (id !== undefined) return id;
     const font = `${weight} ${px}px ${this.families[role]}`;
@@ -231,7 +231,7 @@ export class TextManager implements TextManagerApi {
 
   cell(font: FontId, alphabet: Alphabet | null): number {
     const f = this.fonts[font];
-    const key = alphabet ?? "generic";
+    const key = alphabet ?? 'generic';
     let w = f.cells.get(key);
     if (w === undefined) {
       const a = this.advances(font);
@@ -284,7 +284,7 @@ export class TextManager implements TextManagerApi {
       return new Label(text, ends, null, ++f.stamp);
     }
     // Graphemes (Intl.Segmenter), each cut measured as the prefix that ends there, as pretext fits a segment.
-    this.segmenter ??= new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    this.segmenter ??= new Intl.Segmenter(undefined, { granularity: 'grapheme' });
     const starts: number[] = [];
     for (const g of this.segmenter.segment(text)) starts.push(g.index);
     const offsets = Uint16Array.from([...starts, text.length]);

@@ -18,24 +18,24 @@ import {
   type SvsRegistries,
   type SvsRegistryEntry,
   type ThemeEntry,
-} from "@molstar/seq-core/format";
-import type { Annotation, Field, Issue, SeqSet } from "@molstar/seq-core/model";
-import type { AxisView } from "./axis.js";
-import type { SeqCommand } from "./commands.js";
-import type { RingLabelSink } from "./draw/ring-labels.js";
-import type { DrawView } from "./draw/view.js";
-import type { NodeKind, Skin } from "./graph.js";
-import type { Hit } from "./hit.js";
-import type { HoverState } from "./hover.js";
-import type { LabelContext, LabelProvider, LabelSink } from "./labels.js";
-import type { RenderProps } from "./layout.js";
-import type { NavigatorEntry } from "./navigators.js";
-import type { PresetEntry } from "./presets.js";
-import type { LineTable } from "./runs.js";
-import { isViewerOwn } from "./spec.js";
-import { type SeqState, state, type WritableSeqState } from "./state.js";
-import type { StreamLayer } from "./streams.js";
-import type { LegendSink, Theme, ThemeProvider } from "./themes.js";
+} from '@molstar/seq-core/format';
+import type { Annotation, Field, Issue, SeqSet } from '@molstar/seq-core/model';
+import type { AxisView } from './axis.js';
+import type { SeqCommand } from './commands.js';
+import type { RingLabelSink } from './draw/ring-labels.js';
+import type { DrawView } from './draw/view.js';
+import type { NodeKind, Skin } from './graph.js';
+import type { Hit } from './hit.js';
+import type { HoverState } from './hover.js';
+import type { LabelContext, LabelProvider, LabelSink } from './labels.js';
+import type { RenderProps } from './layout.js';
+import type { NavigatorEntry } from './navigators.js';
+import type { PresetEntry } from './presets.js';
+import type { LineTable } from './runs.js';
+import { isViewerOwn } from './spec.js';
+import { type SeqState, state, type WritableSeqState } from './state.js';
+import type { StreamLayer } from './streams.js';
+import type { LegendSink, Theme, ThemeProvider } from './themes.js';
 
 // The entry kinds. VC1 declares what registration and the graph read (a name, the format entry a kind pairs with,
 // `prepare`, `create`, `content`); the phases that run each kind extend these with their full interfaces.
@@ -49,7 +49,7 @@ export interface LayerRenderer<S = unknown> extends NamedEntry {
    * The geometries it draws: the supported set per layout (seqspec:model#pieces-and-layout-maps); without `circular`, a
    * section on rings draws its extents as bars and says so (`svs.render.fallback`, seqspec:viewer#the-render-backend).
    */
-  readonly geometries: readonly ("linear" | "wrapped" | "circular")[];
+  readonly geometries: readonly ('linear' | 'wrapped' | 'circular')[];
   /**
    * False: `prepare` never reads residues or alignment content, so a residue edit keeps its state
    * (seqspec:viewer#updates-and-status).
@@ -201,27 +201,27 @@ export type ViewerEntryOf<K extends ViewerKind> = ViewerEntries[K];
 
 /** The interface's order: within one entry, kinds register in it. */
 const KINDS: readonly ViewerKind[] = [
-  "nodeKinds",
-  "renderers",
-  "columns",
-  "themes",
-  "navigators",
-  "presets",
-  "labels",
-  "commands",
-  "actions",
+  'nodeKinds',
+  'renderers',
+  'columns',
+  'themes',
+  'navigators',
+  'presets',
+  'labels',
+  'commands',
+  'actions',
 ];
 
 const nameOf = (kind: ViewerKind, item: unknown) =>
-  kind === "commands" ? (item as { id: string }).id : (item as { name: string }).name;
+  kind === 'commands' ? (item as { id: string }).id : (item as { name: string }).name;
 
 /** A renderer's or theme provider's format entry, registered or in this call: none, or one missing a kind it serves. */
 function unpaired(kind: ViewerKind, item: unknown, reg: SvsRegistries, svs: readonly SvsRegistryEntry[]): boolean {
   const name = nameOf(kind, item);
-  if (kind === "renderers")
-    return !reg.get("layerTypes", name) && !svs.some((s) => s.layerTypes?.some((e) => e.name === name));
-  if (kind !== "themes") return false;
-  const e = reg.get("themes", name) ?? svs.flatMap((s) => s.themes ?? []).find((t: ThemeEntry) => t.name === name);
+  if (kind === 'renderers')
+    return !reg.get('layerTypes', name) && !svs.some((s) => s.layerTypes?.some((e) => e.name === name));
+  if (kind !== 'themes') return false;
+  const e = reg.get('themes', name) ?? svs.flatMap((s) => s.themes ?? []).find((t: ThemeEntry) => t.name === name);
   return !e || (item as ThemeProvider).kinds.some((k) => !e.params[k]);
 }
 
@@ -239,8 +239,8 @@ export interface SeqViewerRegistry {
 export class SeqRegistrationError extends Error {
   readonly conflicts: readonly string[];
   constructor(conflicts: readonly string[]) {
-    super(`register: ${conflicts.length} conflict(s), nothing registered:\n- ${conflicts.join("\n- ")}`);
-    this.name = "SeqRegistrationError";
+    super(`register: ${conflicts.length} conflict(s), nothing registered:\n- ${conflicts.join('\n- ')}`);
+    this.name = 'SeqRegistrationError';
     this.conflicts = conflicts;
   }
 }
@@ -259,7 +259,7 @@ const SEQV: ReadonlySet<SvsRegistryEntry> = new ViewerOwned();
 /** The format's error lists its conflicts as "- " lines. */
 function svsConflicts(e: unknown): string[] {
   const message = e instanceof Error ? e.message : String(e);
-  const lines = message.split("\n- ").slice(1);
+  const lines = message.split('\n- ').slice(1);
   return lines.length > 0 ? lines.map((l) => `svs ${l}`) : [`svs: ${message}`];
 }
 
@@ -308,7 +308,7 @@ export class ViewerRegistry implements SeqViewerRegistry {
           const held = map.get(name) ?? pending.get(`${kind} ${name}`);
           if (held === item) continue;
           if (held !== undefined) {
-            conflicts.push(`${kind}: "${name}" is ${map.has(name) ? "already registered" : "listed twice"}`);
+            conflicts.push(`${kind}: "${name}" is ${map.has(name) ? 'already registered' : 'listed twice'}`);
             continue;
           }
           if (unpaired(kind, item, this.svs, svs))

@@ -9,10 +9,10 @@
 // State primitives (seqspec:viewer#state): states with a synchronous value, live records, events. Emission is a plain
 // loop over subscribers and allocates nothing; rxjs 7's `Subject.next` is not used.
 
-import { Observable, type Subscriber, type TeardownLogic } from "rxjs";
+import { Observable, type Subscriber, type TeardownLogic } from 'rxjs';
 
 /** Who made a change, carried so a host skips its own echoes. */
-export type Origin = "pointer" | "keyboard" | "api" | "behavior" | "graph" | "snapshot" | `host:${string}`;
+export type Origin = 'pointer' | 'keyboard' | 'api' | 'behavior' | 'graph' | 'snapshot' | `host:${string}`;
 
 /** An rxjs `Observable` with a synchronous `value` (structurally any-ui's ReadonlyState); subscribing replays it. */
 export interface SeqState<T> extends Observable<T> {
@@ -52,7 +52,7 @@ export interface SeqEventEmitter<T> extends SeqEvent<T> {
 }
 
 function isPlain(x: unknown): x is Record<string, unknown> {
-  if (x === null || typeof x !== "object") return false;
+  if (x === null || typeof x !== 'object') return false;
   const p = Object.getPrototypeOf(x);
   return p === Object.prototype || p === null;
 }

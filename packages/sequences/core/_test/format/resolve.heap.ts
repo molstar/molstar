@@ -11,41 +11,41 @@
 // (a number column compared as numbers, no double boxed), and a row's color through the layer's one categorical
 // palette. Resolve allocates per layer and per call, never per row or position.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { SeqSet } from "@molstar/seq-core/model";
-import { beforeAll, describe, expect, it } from "vitest";
-import { compile, type End, layerPalette, paletteValue, resolveView, supportedAll } from "../../src/format/index.js";
-import { cover, matcher } from "../../src/format/resolve/reach.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../model/heap.js";
-import { fixtureLoaders, registries } from "./load-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { SeqSet } from '@molstar/seq-core/model';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { compile, type End, layerPalette, paletteValue, resolveView, supportedAll } from '../../src/format/index.js';
+import { cover, matcher } from '../../src/format/resolve/reach.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../model/heap.js';
+import { fixtureLoaders, registries } from './load-fixtures.js';
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 20_000;
 const ROWS = 4 * N;
 const reg = registries();
 let set: SeqSet;
-let view: ReturnType<typeof resolveView>["view"];
+let view: ReturnType<typeof resolveView>['view'];
 
 beforeAll(async () => {
   // A 300-residue protein over its 900-nucleotide gene; ROWS one-residue rows on it, with categories and values.
   const b = createSeqViewSpec();
-  const protein = Array.from({ length: 300 }, (_, i) => "ACDEFGHIKLMNPQRSTVWY"[i % 20]).join("");
-  const gene = b.data.sequence({ ref: "gene", alphabet: "dna", value: "ATG".repeat(300) });
-  b.data.sequence({ ref: "p", alphabet: "protein", value: protein });
-  b.data.mapping({ ref: "m", from: "p", to: "gene", method: "codon", cds: [[0, 900]] } as never);
+  const protein = Array.from({ length: 300 }, (_, i) => 'ACDEFGHIKLMNPQRSTVWY'[i % 20]).join('');
+  const gene = b.data.sequence({ ref: 'gene', alphabet: 'dna', value: 'ATG'.repeat(300) });
+  b.data.sequence({ ref: 'p', alphabet: 'protein', value: protein });
+  b.data.mapping({ ref: 'm', from: 'p', to: 'gene', method: 'codon', cds: [[0, 900]] } as never);
   const start = Array.from({ length: ROWS }, (_, i) => i % 300);
-  const category = start.map((i) => ["helix", "strand", "turn"][i % 3]);
+  const category = start.map((i) => ['helix', 'strand', 'turn'][i % 3]);
   const value = start.map((i) => i / 300);
-  b.data.annotation({ ref: "a", geometry: "ranges", target: "p", value: { start, category, value } });
-  b.view({ ref: "v", label: "V" }).block({ sequence: gene }).track({ label: "A" }).ranges({ data: "a" });
+  b.data.annotation({ ref: 'a', geometry: 'ranges', target: 'p', value: { start, category, value } });
+  b.view({ ref: 'v', label: 'V' }).block({ sequence: gene }).track({ label: 'A' }).ranges({ data: 'a' });
   const doc = b.getDocument();
   const r = await compile(doc, reg, fixtureLoaders());
   expect(r.issues).toEqual([]);
   set = r.set;
-  view = resolveView(doc, set, "v", reg, supportedAll(reg)).view;
+  view = resolveView(doc, set, 'v', reg, supportedAll(reg)).view;
 }, 60_000);
 
-const annotation = () => set.annotations[view.data[0]] as NonNullable<SeqSet["annotations"][number]>;
+const annotation = () => set.annotations[view.data[0]] as NonNullable<SeqSet['annotations'][number]>;
 
 describe("resolve's per-row paths allocate nothing", () => {
   it("cover: a row's codons marked through the map", () => {
@@ -64,10 +64,10 @@ describe("resolve's per-row paths allocate nothing", () => {
 
   it("the filter's test of a row, a string and a number field", () => {
     const a = annotation();
-    const keep = matcher(["helix", 0.5, "1"]);
+    const keep = matcher(['helix', 0.5, '1']);
     let kept = 0;
     const r = heapScaling(N, (i) => {
-      kept += +keep(a, set, i, "category") + +keep(a, set, i, "value");
+      kept += +keep(a, set, i, 'category') + +keep(a, set, i, 'value');
     });
     expect(kept).toBeGreaterThan(0);
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
@@ -77,10 +77,10 @@ describe("resolve's per-row paths allocate nothing", () => {
   // the palette's function is boxed, so it is not guarded here.
   it("a row's color through the layer's categorical palette", () => {
     const a = annotation();
-    const f = layerPalette(set, [a], { kind: "categorical" }, "category", [0, 1]);
+    const f = layerPalette(set, [a], { kind: 'categorical' }, 'category', [0, 1]);
     let colored = 0;
     const r = heapScaling(N, (i) => {
-      colored += f(paletteValue(a, set, i, "category")) === undefined ? 0 : 1;
+      colored += f(paletteValue(a, set, i, 'category')) === undefined ? 0 : 1;
     });
     expect(colored % N).toBe(0); // every row colored, in every run
     expect(isFlat(r), describeScaling(r, N)).toBe(true);

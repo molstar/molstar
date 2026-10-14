@@ -15,12 +15,12 @@
 // closes on leaving both, on Escape or a press outside (the UI parts), on a pan or zoom, and on a new document. Both
 // UIs draw it from this one controller; a host may replace the part, restyle it, or leave it out.
 
-import type { ActionEntry } from "./actions.js";
-import { SeqViewerConfig } from "./config.js";
-import type { SeqViewerContext } from "./context.js";
-import { HoverKind } from "./hit.js";
-import type { HoverLabel } from "./labels.js";
-import { type SeqState, state } from "./state.js";
+import type { ActionEntry } from './actions.js';
+import { SeqViewerConfig } from './config.js';
+import type { SeqViewerContext } from './context.js';
+import { HoverKind } from './hit.js';
+import type { HoverLabel } from './labels.js';
+import { type SeqState, state } from './state.js';
 
 /** An annotation's item, what an item action acts on. */
 export interface ItemTarget {
@@ -83,7 +83,7 @@ export function itemActionsOf(
   };
   const actions: { name: string; title: string }[] = [];
   for (const name of ctx.config.get(SeqViewerConfig.UI.ItemActions)) {
-    const entry = ctx.registry.get("actions", name) as ActionEntry<ItemTarget> | undefined;
+    const entry = ctx.registry.get('actions', name) as ActionEntry<ItemTarget> | undefined;
     if (ctx.actions.can(name, target))
       actions.push({ name, title: entry?.titleFor?.(ctx, target) ?? entry?.title ?? name });
   }
@@ -135,7 +135,7 @@ export function createHoverCard(ctx: SeqViewerContext): HoverCard {
     opening = 0;
     // The pointer went into the card it crossed to: that card stays.
     if (inCard) return;
-    const found = itemActionsOf(ctx, "pointer");
+    const found = itemActionsOf(ctx, 'pointer');
     if (!found || found.target.item !== item) return;
     const p = ctx.pointer.current;
     [openAnnotation, openItem] = [annotation, item];
@@ -152,7 +152,7 @@ export function createHoverCard(ctx: SeqViewerContext): HoverCard {
   const onHover = () => {
     const h = ctx.hover.live.current;
     const isItem =
-      h.owner === "pointer" && (h.kind === HoverKind.item || h.kind === HoverKind.seq) && h.item.annotation >= 0;
+      h.owner === 'pointer' && (h.kind === HoverKind.item || h.kind === HoverKind.seq) && h.item.annotation >= 0;
     const a = isItem ? h.item.annotation : -1;
     const i = isItem ? h.item.item : -1;
     if (a === annotation && i === item) return;
@@ -216,7 +216,7 @@ export function createHoverCard(ctx: SeqViewerContext): HoverCard {
       const c = current.value;
       if (!c) return;
       close();
-      actions.run(name, c.target, "pointer");
+      actions.run(name, c.target, 'pointer');
     },
     close,
     dispose() {

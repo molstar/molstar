@@ -11,54 +11,54 @@
 // 1,000,000-residue protein over 3,000,000 nucleotides, and `partners` over a million pairs; `expand` on the genome's
 // GC runs. Run with `pnpm --filter @molstar/seq-core/model bench`.
 
-import { checkText } from "@molstar/seq-core/query";
-import { bench, describe } from "vitest";
-import { prng } from "../../_test/model/support/generators.js";
-import { SeqSets } from "../../src/model/index.js";
-import { compileQuery, createQueryEnv, SeqSelection } from "../../src/model/query/index.js";
+import { checkText } from '@molstar/seq-core/query';
+import { bench, describe } from 'vitest';
+import { prng } from '../../_test/model/support/generators.js';
+import { SeqSets } from '../../src/model/index.js';
+import { compileQuery, createQueryEnv, SeqSelection } from '../../src/model/query/index.js';
 
 const rand = prng(20261013);
 const ROWS = 100_000;
 const COLS = 300;
-const AA = "ACDEFGHIKLMNPQRSTVWY";
+const AA = 'ACDEFGHIKLMNPQRSTVWY';
 /** Rows of 300 columns, about one gap in eight; row 0 is bound to the unit `ref`. */
 const gapped = Array.from({ length: ROWS }, () => {
-  let s = "";
-  for (let c = 0; c < COLS; c++) s += rand() < 0.125 ? "-" : AA[Math.floor(rand() * 20)];
+  let s = '';
+  for (let c = 0; c < COLS; c++) s += rand() < 0.125 ? '-' : AA[Math.floor(rand() * 20)];
   return s;
 });
-const ref = gapped[0].replaceAll("-", "");
+const ref = gapped[0].replaceAll('-', '');
 const P = 1_000_000;
 const PAIRS = 1_000_000;
 const U = 100_000;
 const { set } = SeqSets.build({
   molecules: [
-    { key: "ref", residues: ref, ownUnit: true },
-    { key: "prot", residues: "MA".repeat(P / 2), ownUnit: true },
-    { key: "gene", residues: "ATG".repeat(P), ownUnit: true, alphabet: "dna" },
-    { key: "x", residues: "A".repeat(U), ownUnit: true },
-    { key: "y", residues: "A".repeat(U), ownUnit: true },
+    { key: 'ref', residues: ref, ownUnit: true },
+    { key: 'prot', residues: 'MA'.repeat(P / 2), ownUnit: true },
+    { key: 'gene', residues: 'ATG'.repeat(P), ownUnit: true, alphabet: 'dna' },
+    { key: 'x', residues: 'A'.repeat(U), ownUnit: true },
+    { key: 'y', residues: 'A'.repeat(U), ownUnit: true },
   ],
-  alignments: [{ key: "msa", gapped, flavor: "aligned" }],
+  alignments: [{ key: 'msa', gapped, flavor: 'aligned' }],
   mappings: [
-    { key: "bind", from: "msa/0", to: "ref", method: "identity" },
-    { key: "codon", from: "prot", to: "gene", method: "codon", start: 0 },
+    { key: 'bind', from: 'msa/0', to: 'ref', method: 'identity' },
+    { key: 'codon', from: 'prot', to: 'gene', method: 'codon', start: 0 },
   ],
   annotations: [
     {
-      key: "pv",
-      geometry: "values",
-      target: "prot",
+      key: 'pv',
+      geometry: 'values',
+      target: 'prot',
       columns: { value: Float64Array.from({ length: P }, (_, i) => (i % 10 < 5 ? 1 : 0)) },
     },
     // a million contacts between x and y: ten per residue of y, to residues of x near it
     {
-      key: "pp",
-      geometry: "pairs",
+      key: 'pp',
+      geometry: 'pairs',
       columns: {
-        target: Array(PAIRS).fill("x"),
+        target: Array(PAIRS).fill('x'),
         start: Int32Array.from({ length: PAIRS }, (_, i) => Math.min(U - 1, Math.floor(i / 10) + (i % 7))),
-        b_target: Array(PAIRS).fill("y"),
+        b_target: Array(PAIRS).fill('y'),
         b_start: Int32Array.from({ length: PAIRS }, (_, i) => Math.floor(i / 10)),
       },
     },
@@ -85,19 +85,19 @@ const query = (text: string) => {
   };
 };
 
-describe("onto and partners at scale", () => {
+describe('onto and partners at scale', () => {
   const cases = [
-    "(onto (input selection) msa)",
+    '(onto (input selection) msa)',
     '(onto (sel "ref[1-50]") msa :kind row)',
     '(onto (sel "msa[100-120]") msa/0)',
-    "(onto msa ref)",
+    '(onto msa ref)',
     '(onto (sel "prot[200000-700000]") gene)',
-    "(onto (values :of pv :above 0.5) gene)",
+    '(onto (values :of pv :above 0.5) gene)',
     '(onto (sel "gene[1000000-1500000]") prot)',
-    "(partners y :via pp)",
+    '(partners y :via pp)',
     '(partners (sel "y[1-10000]") :via pp)',
-    "(and x (partners y :via pp :side a))",
-    "(expand (values :of pv :above 0.5) 3)",
+    '(and x (partners y :via pp :side a))',
+    '(expand (values :of pv :above 0.5) 3)',
   ];
   for (const text of cases) bench(text, query(text), { time: 300 });
 });

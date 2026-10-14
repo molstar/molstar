@@ -12,8 +12,8 @@
 // counted), dropped on a theme change, the least recently drawn evicted; coarse in place of a fine tile not arrived
 // (only there), the overview's pending shade; tiles at their whole scale.
 
-import { TILE, type Tile } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
+import { TILE, type Tile } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
 import {
   DrawView,
   NO_COLOR,
@@ -22,26 +22,26 @@ import {
   type StreamView,
   type Theme,
   type ThemeLocation,
-} from "../src/draw/api.js";
-import { paintLevels, paintTiles, RowTiles, rowGeo, tileImage } from "../src/renderers/rows-tiles.js";
-import { Op, RecordingBackend } from "../src/testing/index.js";
-import { drawn, layerOf } from "./draw-fixtures.js";
-import { syntheticFamily } from "./families.js";
+} from '../src/draw/api.js';
+import { paintLevels, paintTiles, RowTiles, rowGeo, tileImage } from '../src/renderers/rows-tiles.js';
+import { Op, RecordingBackend } from '../src/testing/index.js';
+import { drawn, layerOf } from './draw-fixtures.js';
+import { syntheticFamily } from './families.js';
 
 /** A theme by letter, its alpha by column: what `rules` with a column alpha gives (case 3). */
-const shading: Theme<"color"> = {
-  kind: "color",
+const shading: Theme<'color'> = {
+  kind: 'color',
   granularity: 3,
-  reduction: "classes",
+  reduction: 'classes',
   value: (l: ThemeLocation) => (l.letter === 45 ? NO_COLOR : l.letter * 0x010203),
   alpha: (l: ThemeLocation) => (l.column * 8) & 255,
   contextHash: 1,
 };
 
 /** The family's rows layer drawn by a `DrawView` from its section's axis view, the theme given. */
-async function family(theme: Theme<"color"> = shading) {
+async function family(theme: Theme<'color'> = shading) {
   const t = await drawn(syntheticFamily(120, 12));
-  const { k, section } = layerOf(t.ctx, "Members");
+  const { k, section } = layerOf(t.ctx, 'Members');
   const m = t.ctx.graph.assembled.value?.view;
   const s = m?.prepared[k].state as RowsState;
   const v = new DrawView().from(t.ctx.layout.axis(section) as never);
@@ -72,7 +72,7 @@ const tile = (cls: number, share: number): Tile => ({
   share: new Uint8Array(TILE * TILE).fill(share),
 });
 
-describe("the tile image build", () => {
+describe('the tile image build', () => {
   it("held rows at the finest level: each cell its theme's color at its theme's alpha", async () => {
     const { s, v, rec, c } = await family();
     const img = tileImage(v, s, c, 0, 0, 0, 0, 0, false);
@@ -97,7 +97,7 @@ describe("the tile image build", () => {
 
   it("a reduced tile: opaque by its share times the theme's alpha; gap samples a quiet gray at half; -1 when absent", async () => {
     const { s, v, rec, c } = await family();
-    v.stream = stream(s, { "1/1/0/0": tile(65, 200), "1/2/0/0": tile(45, 200) });
+    v.stream = stream(s, { '1/1/0/0': tile(65, 200), '1/2/0/0': tile(45, 200) });
     const img = tileImage(v, s, c, 0, 1, 1, 0, 0, false);
     // Column of sample 3 at lx 1: 6, alpha 48; 200 × 48 / 255.
     expect(pixelOf(rec, img, 3, 0)).toEqual([65 * 0x010203, Math.round((200 * 48) / 255)]);
@@ -108,7 +108,7 @@ describe("the tile image build", () => {
 
   it("a new theme or another backend's images drops them; past the slots, the least recently drawn goes", async () => {
     const { s, v, rec, c } = await family();
-    const { beginTiles } = await import("../src/renderers/rows-tiles.js");
+    const { beginTiles } = await import('../src/renderers/rows-tiles.js');
     beginTiles(v, c);
     const img = tileImage(v, s, c, 0, 0, 0, 0, 0, false);
     beginTiles(v, c);
@@ -152,10 +152,10 @@ function imageParts(rec: RecordingBackend) {
   return out;
 }
 
-describe("painting the rows", () => {
-  it("a tile in parts at its whole scale, odd sample counts placed through xd from its first column; clipped to the view", async () => {
+describe('painting the rows', () => {
+  it('a tile in parts at its whole scale, odd sample counts placed through xd from its first column; clipped to the view', async () => {
     const { s, v, rec, c } = await family();
-    const { beginTiles } = await import("../src/renderers/rows-tiles.js");
+    const { beginTiles } = await import('../src/renderers/rows-tiles.js');
     rowGeo[0] = 50;
     rowGeo[1] = 12;
     rowGeo[2] = 1;
@@ -184,7 +184,7 @@ describe("painting the rows", () => {
   it("coarse in place of a fine tile not arrived; the overview's pending shade where none has", async () => {
     const { s, v, rec, c } = await family();
     const remote = { ...s, codes: null, slot: null } as RowsState;
-    v.stream = stream(remote, { "2/2/0/0": tile(65, 255) });
+    v.stream = stream(remote, { '2/2/0/0': tile(65, 255) });
     rowGeo[0] = 0;
     rowGeo[1] = 1;
     rowGeo[2] = 0;
@@ -198,11 +198,11 @@ describe("painting the rows", () => {
     expect([rec.count(Op.image), rec.rectItems.n, rec.rectItems.color[0]]).toEqual([0, 1, SkinToken.pending]);
   });
 
-  it("the coarse level only in place of a fine tile not arrived, clipped to its part", async () => {
+  it('the coarse level only in place of a fine tile not arrived, clipped to its part', async () => {
     const { s, v, rec, c } = await family();
     const remote = { ...s, codes: null, slot: null } as RowsState;
     // Lanes 0 to 399 at 1 px: fine tile row 0 arrived, row 1 not; the coarse level's one tile holds both.
-    v.stream = stream(remote, { "0/0/0/0": tile(65, 255), "2/0/0/0": tile(66, 255) });
+    v.stream = stream(remote, { '0/0/0/0': tile(65, 255), '2/0/0/0': tile(66, 255) });
     rowGeo[0] = 10;
     rowGeo[1] = 1;
     rowGeo[2] = 0;

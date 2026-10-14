@@ -6,5 +6,5 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export { fetchTransport, NotServed, type TilesClient, type TileTransport, tileClient } from "./client.js";
-export { PROTOCOL, tilesProvider, tilesStream } from "./provider.js";
+export { fetchTransport, NotServed, type TilesClient, type TileTransport, tileClient } from './client.js';
+export { PROTOCOL, tilesProvider, tilesStream } from './provider.js';

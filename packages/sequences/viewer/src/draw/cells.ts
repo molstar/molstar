@@ -15,12 +15,12 @@
 // so a copied strip and a full redraw count the same bins. Columns are found in closed form. Allocation-free once warm:
 // module scratch, grown only.
 
-import { type Axis, AxisGeometry } from "../axis.js";
-import { binClass, binValues, PYRAMID_BASE, type ValuePyramid, valuePyramid } from "../pyramids.js";
-import { type CellClasses, type CellColoring, cellClasses } from "../reductions.js";
-import { OPAQUE, type Theme, ThemeLocation } from "../themes.js";
-import type { RectBatch } from "./backend.js";
-import type { DrawView } from "./view.js";
+import { type Axis, AxisGeometry } from '../axis.js';
+import { binClass, binValues, PYRAMID_BASE, type ValuePyramid, valuePyramid } from '../pyramids.js';
+import { type CellClasses, type CellColoring, cellClasses } from '../reductions.js';
+import { OPAQUE, type Theme, ThemeLocation } from '../themes.js';
+import type { RectBatch } from './backend.js';
+import type { DrawView } from './view.js';
 
 /**
  * What cells read: a coloring by block index (`alpha` reads the location `color` filled for the same position), and
@@ -257,7 +257,7 @@ export function drawCells(
   let mean: Float64Array | null = null;
   let pyr: ValuePyramid | null = null;
   let cls: CellClasses | null = null;
-  if (t.reduction === "mean") {
+  if (t.reduction === 'mean') {
     if (x.values[b] === undefined) valuesOf(x, src, b);
     mean = x.values[b] as Float64Array | null;
     if (mean && x.pyramids[b] === undefined) x.pyramids[b] = src.meanPyramid(b) ?? valuePyramid(mean, false);

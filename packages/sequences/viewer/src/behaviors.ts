@@ -10,16 +10,16 @@
 // removed at runtime. Lifecycle as Mol*'s PluginBehavior: `create` builds it, `register` subscribes, `dispose`
 // releases.
 
-import { Subscription } from "rxjs";
-import type { SeqViewerContext } from "./context.js";
-import type { PresetEntry } from "./presets.js";
-import { type SeqState, state, type WritableSeqState } from "./state.js";
+import { Subscription } from 'rxjs';
+import type { SeqViewerContext } from './context.js';
+import type { PresetEntry } from './presets.js';
+import { type SeqState, state, type WritableSeqState } from './state.js';
 
 export interface SeqBehaviorProvider<P extends object = object> {
   /** Built-ins bare ("select"); an extension's `<ns>:<name>`. */
   readonly name: string;
   readonly display: { readonly name: string; readonly description?: string };
-  readonly category: "interaction" | "view" | "link" | "commands";
+  readonly category: 'interaction' | 'view' | 'link' | 'commands';
   /** Its order in base events. */
   readonly priority: number;
   /** Defaults; data only. */
@@ -121,7 +121,7 @@ export class Behaviors implements BehaviorManager {
   }
 
   add<P extends object>(b: SeqBehaviorProvider<P>, params?: Partial<P>): () => void {
-    if (this.ctx.disposed) throw new Error("SeqViewerContext: used after dispose");
+    if (this.ctx.disposed) throw new Error('SeqViewerContext: used after dispose');
     if (this.handles.has(b.name)) throw new Error(`behaviors: "${b.name}" is already added`);
     const h = new Handle<P>(this, b, { ...b.params, ...params });
     this.handles.set(h.name, h as unknown as Handle<object>);

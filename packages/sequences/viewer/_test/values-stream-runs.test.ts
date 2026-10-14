@@ -9,10 +9,10 @@
 // VT-06's draw side: a streamed values column read run by run. A device column across a cyclic block's origin (or a
 // filter's gap) asks the stream each run's positions, not the hull of its two ends (the whole system but the column).
 
-import { expect, it } from "vitest";
-import { streamColumn } from "../src/draw/api.js";
+import { expect, it } from 'vitest';
+import { streamColumn } from '../src/draw/api.js';
 
-it("a column across a cyclic origin asks its two runs, and merges their statistics", () => {
+it('a column across a cyclic origin asks its two runs, and merges their statistics', () => {
   const L = 5_000_000;
   // Shown k from the origin at 2,500,000: block index (k + L − 2.5 M) mod L.
   const indexOf = (_b: number, k: number) => (k + L - 2_500_000) % L;

@@ -6,18 +6,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { fileURLToPath } from "node:url";
-import { playwright } from "@vitest/browser-playwright";
-import { defineConfig } from "vitest/config";
-import { browserTests } from "../vitest.shared.js";
+import { fileURLToPath } from 'node:url';
+import { playwright } from '@vitest/browser-playwright';
+import { defineConfig } from 'vitest/config';
+import { browserTests } from '../vitest.shared.js';
 
 /** The Seq* fixtures read their JSON with `node:fs`; in the browser those test modules get the bundled copies. */
-const shim = fileURLToPath(new URL("./_test/canvas/fixture-fs.ts", import.meta.url));
+const shim = fileURLToPath(new URL('./_test/canvas/fixture-fs.ts', import.meta.url));
 const fixtureFs = {
-  name: "seqstar-fixture-fs",
-  enforce: "pre" as const,
+  name: 'seqstar-fixture-fs',
+  enforce: 'pre' as const,
   resolveId(id: string, importer?: string) {
-    return id === "node:fs" && importer && /\/lib\/seqstar\/[^/]+\/_test\//.test(importer) ? shim : null;
+    return id === 'node:fs' && importer && /\/lib\/seqstar\/[^/]+\/_test\//.test(importer) ? shim : null;
   },
 };
 

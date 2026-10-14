@@ -10,7 +10,7 @@
 // a Set, a Map or a class instance is equal only to itself, so a changed handler is a change.
 
 const isRecord = (v: unknown): v is Record<string, unknown> => {
-  if (typeof v !== "object" || v === null || Array.isArray(v)) return false;
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return false;
   const proto = Object.getPrototypeOf(v);
   return proto === Object.prototype || proto === null;
 };

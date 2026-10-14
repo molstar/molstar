@@ -14,25 +14,25 @@
 // the entries and the break hairlines. Per frame nothing is allocated: numbers in typed arrays and fields, no double
 // passed to a helper (RN1's draw pattern).
 
-import { Lanes } from "@molstar/seq-core/format";
-import { type Axis, AxisGeometry, type SectionAxisView, type ShownIndex } from "../axis.js";
-import type { ChannelMarks } from "../channels.js";
-import type { SeqViewerContext } from "../context.js";
-import type { Skin, ViewModel } from "../graph.js";
-import { EntryKind, entryBorder, facingOf, type SectionLayout, SectionLayouts, type SplitFeatures } from "../layout.js";
-import { MarkBit, type SectionMarks } from "../marks.js";
-import type { LayerRenderer } from "../registry.js";
-import { Ring } from "../ring.js";
-import { RING_WINDOW } from "../ring-window.js";
-import type { StreamView } from "../streams.js";
-import type { ViewportState } from "../viewport.js";
-import { WINDOW_FRAME } from "../windows.js";
-import { PathBatch, RectBatch, type RenderBackend, SkinToken, TextBatch } from "./backend.js";
-import { Miniature } from "./miniature.js";
-import { NavView } from "./nav.js";
-import { RingBackend } from "./ring.js";
-import { RingLabels } from "./ring-labels.js";
-import { DrawView } from "./view.js";
+import { Lanes } from '@molstar/seq-core/format';
+import { type Axis, AxisGeometry, type SectionAxisView, type ShownIndex } from '../axis.js';
+import type { ChannelMarks } from '../channels.js';
+import type { SeqViewerContext } from '../context.js';
+import type { Skin, ViewModel } from '../graph.js';
+import { EntryKind, entryBorder, facingOf, type SectionLayout, SectionLayouts, type SplitFeatures } from '../layout.js';
+import { MarkBit, type SectionMarks } from '../marks.js';
+import type { LayerRenderer } from '../registry.js';
+import { Ring } from '../ring.js';
+import { RING_WINDOW } from '../ring-window.js';
+import type { StreamView } from '../streams.js';
+import type { ViewportState } from '../viewport.js';
+import { WINDOW_FRAME } from '../windows.js';
+import { PathBatch, RectBatch, type RenderBackend, SkinToken, TextBatch } from './backend.js';
+import { Miniature } from './miniature.js';
+import { NavView } from './nav.js';
+import { RingBackend } from './ring.js';
+import { RingLabels } from './ring-labels.js';
+import { DrawView } from './view.js';
 
 /** An entry's parts; `clear` clears its data box first. */
 export const Part = { header: 1, data: 2, gutter: 4, clear: 8 } as const;
@@ -314,7 +314,7 @@ export function fail(f: ComposerFrame, k: number, err: unknown) {
   const m = f.model as ViewModel;
   const ref = m.set.strings.get(m.resolved.layers.ref[k]);
   const message = err instanceof Error ? err.message : String(err);
-  f.ctx.report("seqv.renderer.error", `layer "${ref}" threw while drawing and is omitted: ${message}`);
+  f.ctx.report('seqv.renderer.error', `layer "${ref}" threw while drawing and is omitted: ${message}`);
 }
 /** A rows entry drawn as one band: lazy rows, or rows thinner than `denseRowHeight`. */
 export function banded(f: ComposerFrame, l: SectionLayout, e: number): boolean {
@@ -326,7 +326,7 @@ export function gutterWidth(f: ComposerFrame, l: SectionLayout): number {
   return l.geometry === WRAPPED ? l.dataLeft - l.headerWidth : f.v.props.gutterLeft;
 }
 export function name(f: ComposerFrame, id: number): string {
-  return id >= 0 ? (f.model as ViewModel).set.strings.get(id) : "";
+  return id >= 0 ? (f.model as ViewModel).set.strings.get(id) : '';
 }
 export function depth(f: ComposerFrame, group: number): number {
   const parent = (f.model as ViewModel).resolved.groups.parent;

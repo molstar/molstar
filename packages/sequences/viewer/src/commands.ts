@@ -37,17 +37,17 @@ import {
   SimpleParamsSchema,
   str,
   union,
-} from "@molstar/seq-core/format";
-import { Extents, Loci } from "@molstar/seq-core/model";
-import type { SeqViewerContext } from "./context.js";
-import { defineBehavior, internal } from "./default-behaviors.js";
-import type { HighlightStyle } from "./highlight.js";
-import type { SeqLociAny } from "./lineage.js";
-import type { Coordinates } from "./projection.js";
-import type { RangeArgs } from "./refs.js";
-import type { SeqViewerRegistry } from "./registry.js";
-import type { Origin } from "./state.js";
-import type { Viewports } from "./viewport.js";
+} from '@molstar/seq-core/format';
+import { Extents, Loci } from '@molstar/seq-core/model';
+import type { SeqViewerContext } from './context.js';
+import { defineBehavior, internal } from './default-behaviors.js';
+import type { HighlightStyle } from './highlight.js';
+import type { SeqLociAny } from './lineage.js';
+import type { Coordinates } from './projection.js';
+import type { RangeArgs } from './refs.js';
+import type { SeqViewerRegistry } from './registry.js';
+import type { Origin } from './state.js';
+import type { Viewports } from './viewport.js';
 
 /** A command is callable: `cmd(ctx, params)` dispatches it on that context. */
 export interface SeqCommand<T> {
@@ -59,7 +59,7 @@ export interface SeqCommand<T> {
   (ctx: { readonly commands: CommandManager }, params: T): Promise<void>;
 }
 /** Ids are namespaced: the viewer's `seqv:*`, an extension's `<ns>:<name>`. */
-export function SeqCommand<T>(id: string, params: ParamsSchema, description = ""): SeqCommand<T> {
+export function SeqCommand<T>(id: string, params: ParamsSchema, description = ''): SeqCommand<T> {
   const cmd: SeqCommand<T> = Object.assign(
     (ctx: { readonly commands: CommandManager }, p: T) => ctx.commands.dispatch(cmd, p),
     { id, params, description },
@@ -87,7 +87,7 @@ export type SeqTarget =
   | { readonly coordinates: Coordinates };
 
 /** `Coordinates` as data: systems, and (system, start, stop) triples into them. */
-const shape = object({ systems: RequiredField(list(str), ""), runs: RequiredField(list(int), "") });
+const shape = object({ systems: RequiredField(list(str), ''), runs: RequiredField(list(int), '') });
 const coordinates: FieldType<Coordinates> = {
   name: shape.name,
   check(v, path, ctx) {
@@ -98,105 +98,105 @@ const coordinates: FieldType<Coordinates> = {
     let ok = runs.length % 3 === 0;
     for (let i = 0; ok && i < runs.length; i += 3)
       ok = runs[i] >= 0 && runs[i] < systems.length && runs[i + 1] <= runs[i + 2];
-    if (!ok) report(ctx, "svs.params.type", path, "runs are (system index, start, stop) triples, start ≤ stop");
+    if (!ok) report(ctx, 'svs.params.type', path, 'runs are (system index, start, stop) triples, start ≤ stop');
   },
 };
 const target = union(
   object({
     refs: RequiredField(
-      list(ref("unit", "sequence", "ligand", "complex", "alignment", "row", "annotation", "track", "layer", "block")),
-      "document refs, derived refs included",
+      list(ref('unit', 'sequence', 'ligand', 'complex', 'alignment', 'row', 'annotation', 'track', 'layer', 'block')),
+      'document refs, derived refs included',
     ),
     args: OptionalField(
       nullable(
         object({
-          start: OptionalField(nullable(int), null, "an index"),
-          stop: OptionalField(nullable(int), null, "an index"),
-          beg: OptionalField(nullable(str), null, "a label in `numbering`"),
-          end: OptionalField(nullable(str), null, "a label in `numbering`"),
+          start: OptionalField(nullable(int), null, 'an index'),
+          stop: OptionalField(nullable(int), null, 'an index'),
+          beg: OptionalField(nullable(str), null, 'a label in `numbering`'),
+          end: OptionalField(nullable(str), null, 'a label in `numbering`'),
           numbering: OptionalField(nullable(str), null, "the labels' numbering"),
-          items: OptionalField(nullable(list(str)), null, "item ids of an annotation ref"),
+          items: OptionalField(nullable(list(str)), null, 'item ids of an annotation ref'),
         }),
       ),
       null,
-      "narrows each ref",
+      'narrows each ref',
     ),
   }),
-  object({ coordinates: RequiredField(coordinates, "runs in coordinate systems by key (seqspec:interaction#focus)") }),
+  object({ coordinates: RequiredField(coordinates, 'runs in coordinate systems by key (seqspec:interaction#focus)') }),
 );
-const closure = OptionalField(literal<Closure>("element", "containing"), "element", "closed before it lights or acts");
-const origin = OptionalField(str, "api", "the caller's: `run` sets it");
-const animate = OptionalField(bool, true, "false: at once");
+const closure = OptionalField(literal<Closure>('element', 'containing'), 'element', 'closed before it lights or acts');
+const origin = OptionalField(str, 'api', "the caller's: `run` sets it");
+const animate = OptionalField(bool, true, 'false: at once');
 
 /** The built-ins, handled by the `commands` behavior (below). */
 export const SeqCommands = {
   Highlight: SeqCommand<{ channel: string; target: SeqTarget | null; style?: HighlightStyle; closure?: Closure }>(
-    "seqv:highlight",
+    'seqv:highlight',
     SimpleParamsSchema({
       channel: RequiredField(str, "the owner's channel; others are left as they are"),
-      target: RequiredField(nullable(target), "null clears the channel"),
-      style: OptionalField(literal<HighlightStyle>("highlight", "accent", "band"), "highlight", ""),
+      target: RequiredField(nullable(target), 'null clears the channel'),
+      style: OptionalField(literal<HighlightStyle>('highlight', 'accent', 'band'), 'highlight', ''),
       closure,
     }),
-    "Lights a target on one highlight channel, projected onto every section that shows it; null clears the channel.",
+    'Lights a target on one highlight channel, projected onto every section that shows it; null clears the channel.',
   ),
   Select: SeqCommand<{
     target: SeqTarget | null;
-    mode?: "set" | "add" | "remove" | "toggle";
+    mode?: 'set' | 'add' | 'remove' | 'toggle';
     closure?: Closure;
     origin?: Origin;
   }>(
-    "seqv:select",
+    'seqv:select',
     SimpleParamsSchema({
-      target: RequiredField(nullable(target), "null clears the selection"),
-      mode: OptionalField(literal("set", "add", "remove", "toggle"), "set", ""),
+      target: RequiredField(nullable(target), 'null clears the selection'),
+      mode: OptionalField(literal('set', 'add', 'remove', 'toggle'), 'set', ''),
       closure,
       origin,
     }),
-    "Sets, adds to, removes from or toggles the selection; null clears it.",
+    'Sets, adds to, removes from or toggles the selection; null clears it.',
   ),
   Focus: SeqCommand<{ target: SeqTarget; section?: string | null; animate?: boolean; origin?: Origin }>(
-    "seqv:focus",
+    'seqv:focus',
     SimpleParamsSchema({
-      target: RequiredField(target, ""),
-      section: OptionalField(nullable(str), null, "null: every section that shows it"),
+      target: RequiredField(target, ''),
+      section: OptionalField(nullable(str), null, 'null: every section that shows it'),
       animate,
       origin,
     }),
-    "Brings a target into view in one section or in every section that shows it.",
+    'Brings a target into view in one section or in every section that shows it.',
   ),
   SetSnapshot: SeqCommand<{ ref: string | null; animate?: boolean }>(
-    "seqv:setSnapshot",
+    'seqv:setSnapshot',
     SimpleParamsSchema({
       ref: RequiredField(nullable(str), 'a snapshot ref, "next" or "prev"; null: the base'),
       animate,
     }),
-    "Shows a snapshot of the document, the next or the previous one, or the base.",
+    'Shows a snapshot of the document, the next or the previous one, or the base.',
   ),
   SetView: SeqCommand<{ ref: string }>(
-    "seqv:setView",
-    SimpleParamsSchema({ ref: RequiredField(str, "a view ref") }),
-    "Switches to another view of the document; nothing is reloaded.",
+    'seqv:setView',
+    SimpleParamsSchema({ ref: RequiredField(str, 'a view ref') }),
+    'Switches to another view of the document; nothing is reloaded.',
   ),
   /**
    * The `layer.colorScheme` action (seqspec:interaction#color-schemes-at-runtime): refused (nothing done) for a scheme
    * that does not fit.
    */
   ColorScheme: SeqCommand<{ layer: string; scheme: string | null; write?: boolean; origin?: Origin }>(
-    "seqv:colorScheme",
+    'seqv:colorScheme',
     SimpleParamsSchema({
-      layer: RequiredField(ref("layer"), "the layer whose color it sets"),
-      scheme: RequiredField(nullable(str), "a registered color scheme that fits the layer; null: its own color"),
+      layer: RequiredField(ref('layer'), 'the layer whose color it sets'),
+      scheme: RequiredField(nullable(str), 'a registered color scheme that fits the layer; null: its own color'),
       write: OptionalField(bool, false, "true: into the document (a patch on the layer's color); false: UI state"),
       origin,
     }),
-    "Colors a layer by a registered color scheme, or back to its own color; refused (nothing done) for a scheme that does not fit.",
+    'Colors a layer by a registered color scheme, or back to its own color; refused (nothing done) for a scheme that does not fit.',
   ),
   /** The `layer.colorRange` action: the layer's color scale over [lo, hi], wider or narrower than its data; null: its own. */
   ColorRange: SeqCommand<{ layer: string; range: [number, number] | null; origin?: Origin }>(
-    "seqv:colorRange",
+    'seqv:colorRange',
     SimpleParamsSchema({
-      layer: RequiredField(ref("layer"), "the layer whose color range it sets"),
+      layer: RequiredField(ref('layer'), 'the layer whose color range it sets'),
       range: RequiredField(json, "[lo, hi] with lo < hi; null: the layer's own range"),
       origin,
     }),
@@ -206,31 +206,31 @@ export const SeqCommands = {
    * The `view.legend` action (seqspec:interaction#the-legend): the legend open, closed, or toggled; anything else is
    * refused.
    */
-  Legend: SeqCommand<{ open: boolean | "toggle"; origin?: Origin }>(
-    "seqv:legend",
+  Legend: SeqCommand<{ open: boolean | 'toggle'; origin?: Origin }>(
+    'seqv:legend',
     SimpleParamsSchema({ open: RequiredField(json, 'true, false or "toggle"'), origin }),
-    "Opens, closes or toggles the legend; any other value is refused.",
+    'Opens, closes or toggles the legend; any other value is refused.',
   ),
   /**
    * The `stream.retry` action (seqspec:interaction#the-default-ui): a track's failed regions requested again now, or
    * every track's (ST3b).
    */
   Retry: SeqCommand<{ track?: string | null; origin?: Origin }>(
-    "seqv:retry",
+    'seqv:retry',
     SimpleParamsSchema({
-      track: OptionalField(nullable(ref("track")), null, "null: every track with a failed region"),
+      track: OptionalField(nullable(ref('track')), null, 'null: every track with a failed region'),
       origin,
     }),
     "Requests a track's failed stream regions again now, or every track's.",
   ),
   RunAction: SeqCommand<{ name: string; target: unknown; origin?: Origin }>(
-    "seqv:runAction",
+    'seqv:runAction',
     SimpleParamsSchema({
-      name: RequiredField(str, "a registered action"),
-      target: OptionalField(json, null, ""),
+      name: RequiredField(str, 'a registered action'),
+      target: OptionalField(json, null, ''),
       origin,
     }),
-    "Runs a registered action on a target, as a menu or a hover card would.",
+    'Runs a registered action on a target, as a menu or a hover card would.',
   ),
 } as const;
 
@@ -256,7 +256,7 @@ export class Commands implements CommandManager {
   }
 
   subscribe<T>(cmd: SeqCommand<T>, action: (params: T) => unknown) {
-    if (this.disposed) throw new Error("commands: the context is disposed");
+    if (this.disposed) throw new Error('commands: the context is disposed');
     const a = action as Action;
     this.subs.set(cmd.id, [...(this.subs.get(cmd.id) ?? []), a]);
     let done = false;
@@ -272,9 +272,9 @@ export class Commands implements CommandManager {
   }
 
   run(invocation: Invocation, origin: Origin): Promise<boolean> {
-    if (this.disposed) return Promise.reject(new Error("commands: run on a disposed context"));
+    if (this.disposed) return Promise.reject(new Error('commands: run on a disposed context'));
     const id = invocation?.command;
-    const cmd = typeof id === "string" ? this.registry.get("commands", id) : undefined;
+    const cmd = typeof id === 'string' ? this.registry.get('commands', id) : undefined;
     if (!cmd) return Promise.resolve(false);
     const params = invocation.params ?? {};
     const ctx: CheckContext = {
@@ -282,15 +282,15 @@ export class Commands implements CommandManager {
       registries: this.registry.svs,
       refs: [],
       lenient: false,
-      from: "",
+      from: '',
       depth: 0,
     };
-    checkParams(cmd.params, params, "", ctx);
-    if (ctx.issues.some((i) => i.severity === "error")) return Promise.resolve(false);
+    checkParams(cmd.params, params, '', ctx);
+    if (ctx.issues.some((i) => i.severity === 'error')) return Promise.resolve(false);
     const s = cmd.params;
     const fields =
-      s.type === "simple" ? s.fields : caseOf(s, (params as Record<string, unknown>)[s.discriminator])?.fields;
-    const p = fields && Object.hasOwn(fields, "origin") ? { ...params, origin } : params;
+      s.type === 'simple' ? s.fields : caseOf(s, (params as Record<string, unknown>)[s.discriminator])?.fields;
+    const p = fields && Object.hasOwn(fields, 'origin') ? { ...params, origin } : params;
     return this.dispatch(cmd, p).then(
       () => true,
       (e: unknown) => {
@@ -327,7 +327,7 @@ export class Commands implements CommandManager {
   /** Rejects every pending dispatch; later dispatches reject. */
   dispose() {
     this.disposed = true;
-    for (const reject of this.pending) reject(new Error("commands: the context was disposed"));
+    for (const reject of this.pending) reject(new Error('commands: the context was disposed'));
     this.pending.clear();
     this.subs.clear();
   }
@@ -344,8 +344,8 @@ export class TargetRangeError extends Error {}
  */
 function targetOf(ctx: SeqViewerContext, t: SeqTarget | null): readonly SeqLociAny[] | Coordinates | null | undefined {
   if (!t) return null;
-  if ("loci" in t) return [t.loci];
-  if ("coordinates" in t) {
+  if ('loci' in t) return [t.loci];
+  if ('coordinates' in t) {
     const { systems, runs } = t.coordinates;
     return { systems, runs: runs instanceof Int32Array ? runs : Int32Array.from(runs) };
   }
@@ -357,12 +357,12 @@ function targetOf(ctx: SeqViewerContext, t: SeqTarget | null): readonly SeqLociA
     const l = ctx.refs.toLoci(ref, t.args ?? undefined, outside);
     if (!l) continue;
     const k = out.findIndex(
-      (o) => o.kind === l.kind && (!("alignment" in o) || o.alignment === (l as typeof o).alignment),
+      (o) => o.kind === l.kind && (!('alignment' in o) || o.alignment === (l as typeof o).alignment),
     );
     if (k < 0) out.push(l);
     else out[k] = Loci.union(out[k], l as never) as SeqLociAny;
   }
-  if (out.length === 0) internal(ctx).log("info", `a command's target resolves to nothing: ${t.refs.join(", ")}`);
+  if (out.length === 0) internal(ctx).log('info', `a command's target resolves to nothing: ${t.refs.join(', ')}`);
   return out.length ? out : undefined;
 }
 const isList = (t: readonly SeqLociAny[] | Coordinates): t is readonly SeqLociAny[] => Array.isArray(t);
@@ -370,11 +370,11 @@ const isList = (t: readonly SeqLociAny[] | Coordinates): t is readonly SeqLociAn
 const partChannel = (channel: string, k: number) => (k === 0 ? channel : `${channel}/${k}`);
 
 export const CommandsBehavior = defineBehavior(
-  "commands",
-  "commands",
+  'commands',
+  'commands',
   0,
   {},
-  "Handles the built-in commands (SeqCommands) with the managers.",
+  'Handles the built-in commands (SeqCommands) with the managers.',
   ({ ctx, add }) => {
     const C = SeqCommands;
     // The parts each command channel set: only those are cleared (a host's own `<channel>/1` is not a part).
@@ -396,15 +396,15 @@ export const CommandsBehavior = defineBehavior(
     add(
       ctx.commands.subscribe(C.Select, (p) => {
         const t = targetOf(ctx, p.target);
-        const [origin, mode] = [p.origin ?? "api", p.mode ?? "set"];
+        const [origin, mode] = [p.origin ?? 'api', p.mode ?? 'set'];
         if (t === null) return ctx.selection.clear(origin);
         if (!t) return;
         // Closed before the verb; `Coordinates` first as loci in the shown set, one per kind (a set: the first sets).
         const parts = isList(t) ? t : (ctx.viewports as Viewports).projector.lociOf(t);
-        if (mode === "set" && parts.length === 0) ctx.selection.clear(origin);
+        if (mode === 'set' && parts.length === 0) ctx.selection.clear(origin);
         for (let i = 0; i < parts.length; i++) {
-          const loci = ctx.selection.close(parts[i], p.closure ?? "element");
-          ctx.selection[mode === "set" && i > 0 ? "add" : mode](loci, origin);
+          const loci = ctx.selection.close(parts[i], p.closure ?? 'element');
+          ctx.selection[mode === 'set' && i > 0 ? 'add' : mode](loci, origin);
         }
       }),
     );
@@ -425,13 +425,13 @@ export const CommandsBehavior = defineBehavior(
           for (const part of t) (ctx.viewports as Viewports).projector.fromLoci(part, ext);
           shown = ctx.focus.fromExtents(ext, opts);
         }
-        if (!shown) internal(ctx).log("info", "a focus target is shown nowhere");
+        if (!shown) internal(ctx).log('info', 'a focus target is shown nowhere');
       }),
     );
     add(
       ctx.commands.subscribe(C.SetSnapshot, (p) =>
-        p.ref === "next" || p.ref === "prev"
-          ? ctx.snapshots.next(p.ref === "next" ? 1 : -1, { animate: p.animate })
+        p.ref === 'next' || p.ref === 'prev'
+          ? ctx.snapshots.next(p.ref === 'next' ? 1 : -1, { animate: p.animate })
           : ctx.snapshots.apply(p.ref, { animate: p.animate }),
       ),
     );
@@ -439,7 +439,7 @@ export const CommandsBehavior = defineBehavior(
     add(ctx.commands.subscribe(C.RunAction, (p) => ctx.actions.run(p.name, p.target, p.origin)));
     add(
       ctx.commands.subscribe(C.Retry, (p) => {
-        if (p.track) return void ctx.actions.run("stream.retry", p.track, p.origin);
+        if (p.track) return void ctx.actions.run('stream.retry', p.track, p.origin);
         const m = ctx.graph.assembled.value?.view;
         for (let k = 0; m && k < m.resolved.layers.count; k++)
           ctx.streams.retry(m.set.strings.get(m.resolved.layers.ref[k]));
@@ -447,21 +447,21 @@ export const CommandsBehavior = defineBehavior(
     );
     add(
       ctx.commands.subscribe(C.Legend, (p) => {
-        if (!ctx.actions.run("view.legend", { open: p.open }, p.origin))
-          internal(ctx).log("info", `the legend's "open" is true, false or "toggle", not ${JSON.stringify(p.open)}`);
+        if (!ctx.actions.run('view.legend', { open: p.open }, p.origin))
+          internal(ctx).log('info', `the legend's "open" is true, false or "toggle", not ${JSON.stringify(p.open)}`);
       }),
     );
     add(
       ctx.commands.subscribe(C.ColorRange, (p) => {
-        if (!ctx.actions.run("layer.colorRange", { layer: p.layer, range: p.range }, p.origin))
-          internal(ctx).log("info", `the color range of "${p.layer}" is [lo, hi] with lo < hi, or null`);
+        if (!ctx.actions.run('layer.colorRange', { layer: p.layer, range: p.range }, p.origin))
+          internal(ctx).log('info', `the color range of "${p.layer}" is [lo, hi] with lo < hi, or null`);
       }),
     );
     add(
       ctx.commands.subscribe(C.ColorScheme, (p) => {
         const t = { layer: p.layer, scheme: p.scheme, write: p.write ?? false };
-        if (!ctx.actions.run("layer.colorScheme", t, p.origin))
-          internal(ctx).log("info", `color scheme "${p.scheme}" does not fit layer "${p.layer}"`);
+        if (!ctx.actions.run('layer.colorScheme', t, p.origin))
+          internal(ctx).log('info', `color scheme "${p.scheme}" does not fit layer "${p.layer}"`);
       }),
     );
   },

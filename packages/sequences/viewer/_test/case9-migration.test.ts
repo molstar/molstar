@@ -12,10 +12,10 @@
 // default margin (ST2 gave remote alignments one, as 1-D layers have) the baseline's are a subset: the extra tiles are
 // the ring around the view. The pixels are `canvas/case9-pixels.test.ts`'s.
 
-import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
-import { case9 } from "../../core/_test/format/cases.js";
-import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.js";
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { case9 } from '../../core/_test/format/cases.js';
+import { fixtureLoaders, MolstarFixture } from '../../core/_test/format/load-fixtures.js';
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -23,14 +23,14 @@ import {
   manualScheduler,
   RegionState,
   SeqViewerConfig,
-} from "../src/index.js";
-import { preparedRenderers } from "./layout-fixtures.js";
+} from '../src/index.js';
+import { preparedRenderers } from './layout-fixtures.js';
 
 // biome-ignore lint/suspicious/noExplicitAny: the manager's cache is read through its regions.
 type J = any;
 type Zoomed = Record<string, { asked: string[]; held: string[] }>;
-const baseline: Zoomed = JSON.parse(readFileSync(new URL("./parity/baselines/tiles.json", import.meta.url), "utf8"))[
-  "case 9"
+const baseline: Zoomed = JSON.parse(readFileSync(new URL('./parity/baselines/tiles.json', import.meta.url), 'utf8'))[
+  'case 9'
 ];
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 
@@ -59,32 +59,32 @@ async function run(margin: number): Promise<Zoomed> {
   // Through the graph's own driver (not `compile`): nothing reported, the alignment and its statistic both streamed.
   expect(ctx.graph.issues.value).toEqual([]);
   const set = ctx.graph.assembled.value?.set as J;
-  const streamed = ["pf00042", "cons"].map((k) =>
+  const streamed = ['pf00042', 'cons'].map((k) =>
     set.annotations.concat(set.alignments).find((x: J) => set.strings.get(x.key) === k),
   );
   expect(streamed.map((x: J) => [x?.streamed ?? x?.lazy])).toEqual([[true], [true]]);
-  const vp = ctx.viewports.get("msa.main") as J;
+  const vp = ctx.viewports.get('msa.main') as J;
   const zooms: Record<string, () => void> = {
     opened: () => {},
-    "every column, rows at 0.01": () => {
+    'every column, rows at 0.01': () => {
       vp.zoomTo(0, 0, 320);
       vp.setRowScale(0.01, 0);
     },
-    "letters at HBA_HUMAN": () => {
+    'letters at HBA_HUMAN': () => {
       vp.setRowScale(1, 0);
       vp.zoomTo(0, 40, 90);
-      vp.scrollTo(vp.live.current.scrollX, 4711 * 18, "api");
+      vp.scrollTo(vp.live.current.scrollX, 4711 * 18, 'api');
     },
   };
   const m = ctx.graph.assembled.value?.view as J;
-  let layer = "";
+  let layer = '';
   for (let k = 0; m && k < m.resolved.layers.count; k++)
-    if (m.set.strings.get(m.resolved.layers.type[k]) === "rows") layer = m.set.strings.get(m.resolved.layers.ref[k]);
+    if (m.set.strings.get(m.resolved.layers.type[k]) === 'rows') layer = m.set.strings.get(m.resolved.layers.ref[k]);
   const got: Zoomed = {};
   for (const [name, zoom] of Object.entries(zooms)) {
     const from = loaders.tiles.length;
     zoom();
-    ctx.layout.get("msa.main");
+    ctx.layout.get('msa.main');
     for (let i = 0, was = -1; i < 40; i++) {
       (ctx.streams as J).pass();
       await flush();
@@ -93,7 +93,7 @@ async function run(margin: number): Promise<Zoomed> {
       if (now === was && s.inFlight === 0) break;
       was = now;
     }
-    const asked = [...new Set(loaders.tiles.slice(from).filter((p: string) => p.startsWith("tiles/")))].sort();
+    const asked = [...new Set(loaders.tiles.slice(from).filter((p: string) => p.startsWith('tiles/')))].sort();
     const held: string[] = [];
     for (const r of (ctx.streams.get(layer) as J)?.all ?? [])
       if (r.tile && r.level < 256) held.push(`${r.level >> 4}/${r.level & 15}/${r.ty}/${r.tx} #${hash(r.tile)}`);
@@ -104,7 +104,7 @@ async function run(margin: number): Promise<Zoomed> {
 }
 
 describe("case 9 through the tiles provider (SW1's baselines)", () => {
-  it("with no margin asks the tiles the old client asked and holds the bytes it held, at each zoom", async () => {
+  it('with no margin asks the tiles the old client asked and holds the bytes it held, at each zoom', async () => {
     expect(await run(0)).toEqual(baseline);
   });
 
@@ -119,20 +119,20 @@ describe("case 9 through the tiles provider (SW1's baselines)", () => {
     await done;
     await ctx.graph.update();
     const m = ctx.graph.assembled.value?.view as J;
-    let layer = "";
+    let layer = '';
     for (let k = 0; k < m.resolved.layers.count; k++)
-      if (m.set.strings.get(m.resolved.layers.type[k]) === "values")
+      if (m.set.strings.get(m.resolved.layers.type[k]) === 'values')
         layer = m.set.strings.get(m.resolved.layers.ref[k]);
-    ctx.layout.get("msa.main");
+    ctx.layout.get('msa.main');
     for (let i = 0; i < 20 && ctx.streams.state(layer, 0, 5) !== RegionState.loaded; i++) {
       (ctx.streams as J).pass();
       await flush();
     }
     // 320 columns over 1000 px: the data (one value a column), (c % 10) / 10 as the fixture serves it.
     expect(ctx.streams.state(layer, 0, 5)).toBe(RegionState.loaded);
-    expect(loaders.tiles.filter((p) => p.startsWith("stats/conservation/0/"))).toEqual([
-      "stats/conservation/0/0",
-      "stats/conservation/0/1",
+    expect(loaders.tiles.filter((p) => p.startsWith('stats/conservation/0/'))).toEqual([
+      'stats/conservation/0/0',
+      'stats/conservation/0/1',
     ]);
     const out = new Float64Array(4);
     out[0] = 0.32;
@@ -142,7 +142,7 @@ describe("case 9 through the tiles provider (SW1's baselines)", () => {
     ctx.dispose();
   });
 
-  it("with the margin asks the same tiles and the ring around the view, holding the same bytes", async () => {
+  it('with the margin asks the same tiles and the ring around the view, holding the same bytes', async () => {
     const got = await run(1);
     const extra = Object.fromEntries(
       Object.entries(got).map(([name, z]) => [name, z.asked.filter((p) => !baseline[name].asked.includes(p))]),
@@ -154,8 +154,8 @@ describe("case 9 through the tiles provider (SW1's baselines)", () => {
     // The view's four tiles at 3/0 lie in rows 0 to 2,047; the ring adds the band of rows below.
     expect(extra).toEqual({
       opened: [],
-      "every column, rows at 0.01": ["tiles/3/0/2/0", "tiles/3/0/2/1"],
-      "letters at HBA_HUMAN": [],
+      'every column, rows at 0.01': ['tiles/3/0/2/0', 'tiles/3/0/2/1'],
+      'letters at HBA_HUMAN': [],
     });
   });
 });

@@ -11,12 +11,12 @@
 // identity as a grid (the share of equal residues over 9 positions centered on each pair), and the 4-letter words both
 // copies share as segments over it. Computed here, as data: the format only draws them.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
 
 /** Human calmodulin (UniProt P0DP23), the initiator methionine included. */
 export const CALMODULIN =
-  "MADQLTEEQIAEFKEAFSLFDKDGDGTITTKELGTVMRSLGQNPTEAELQDMINEVDADGNGTIDFPEFLTMMARKMKDTDSEEEIREAFRVFDKDGNGYISAAELRHVMTNLGEKLTDEEVDEMIREADIDGDGQVNYEEFVQMMTAK";
+  'MADQLTEEQIAEFKEAFSLFDKDGDGTITTKELGTVMRSLGQNPTEAELQDMINEVDADGNGTIDFPEFLTMMARKMKDTDSEEEIREAFRVFDKDGNGYISAAELRHVMTNLGEKLTDEEVDEMIREADIDGDGQVNYEEFVQMMTAK';
 /** UniProt's EF hands, 1-based inclusive. */
 const EF_HANDS = [
   [8, 43],
@@ -63,53 +63,53 @@ function sharedWords(s: string, k = 4) {
 }
 
 export function calmodulinDotPlot(): SeqViewSpecDoc {
-  const b = createSeqViewSpec({ title: "Calmodulin against itself" });
-  const s = b.data.sequence({ ref: "cam", label: "Calmodulin", value: CALMODULIN });
+  const b = createSeqViewSpec({ title: 'Calmodulin against itself' });
+  const s = b.data.sequence({ ref: 'cam', label: 'Calmodulin', value: CALMODULIN });
   const ef = b.data.annotation({
-    ref: "ef-hands",
-    geometry: "ranges",
+    ref: 'ef-hands',
+    geometry: 'ranges',
     target: s,
     value: {
       start: EF_HANDS.map((r) => r[0] - 1),
       stop: EF_HANDS.map((r) => r[1]),
-      label: ["EF 1", "EF 2", "EF 3", "EF 4"],
+      label: ['EF 1', 'EF 2', 'EF 3', 'EF 4'],
     },
   });
   const identity = b.data.annotation({
-    ref: "identity",
-    label: "Identity over 9",
-    geometry: "grid",
-    value: { target: ["cam"], b_target: ["cam"], value: [windowIdentity(CALMODULIN)] },
+    ref: 'identity',
+    label: 'Identity over 9',
+    geometry: 'grid',
+    value: { target: ['cam'], b_target: ['cam'], value: [windowIdentity(CALMODULIN)] },
   });
   const words = b.data.annotation({
-    ref: "words",
-    label: "Shared words",
-    geometry: "pairs",
+    ref: 'words',
+    label: 'Shared words',
+    geometry: 'pairs',
     target: s,
     value: sharedWords(CALMODULIN),
   });
-  const sec = b.view({ ref: "self", label: "Against itself" }).section({ ref: "self.cam" }).block({ sequence: s });
-  sec.track({ label: "" }).ruler();
-  sec.track({ label: "Residues" }).letters();
-  sec.track({ label: "EF hands" }).ranges({ data: ef, labels: true });
-  const plot = sec.track({ label: "Calmodulin × calmodulin" });
+  const sec = b.view({ ref: 'self', label: 'Against itself' }).section({ ref: 'self.cam' }).block({ sequence: s });
+  sec.track({ label: '' }).ruler();
+  sec.track({ label: 'Residues' }).letters();
+  sec.track({ label: 'EF hands' }).ranges({ data: ef, labels: true });
+  const plot = sec.track({ label: 'Calmodulin × calmodulin' });
   plot.dot_plot({
     data: identity,
     color: {
-      theme: "field_palette",
+      theme: 'field_palette',
       params: {
-        field: "value",
+        field: 'value',
         palette: {
-          kind: "continuous",
-          mode: "absolute",
+          kind: 'continuous',
+          mode: 'absolute',
           colors: [
-            ["#a9bdd6", 1 / 3],
-            ["#2b5c8a", 1],
+            ['#a9bdd6', 1 / 3],
+            ['#2b5c8a', 1],
           ],
         },
       },
     },
   });
-  plot.dot_plot({ data: words, color: { theme: "uniform", params: { color: "#d1495b" } } });
+  plot.dot_plot({ data: words, color: { theme: 'uniform', params: { color: '#d1495b' } } });
   return b.getDocument();
 }

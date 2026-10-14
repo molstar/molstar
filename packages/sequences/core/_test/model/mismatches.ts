@@ -10,7 +10,7 @@
 // `expect` costs microseconds; the case it checks, often less). The loop records each case that disagrees, and the test
 // checks once that none did: the same checks, and a failure lists the cases that failed.
 
-import { expect } from "vitest";
+import { expect } from 'vitest';
 
 /** Numbers, strings and arrays of them as `toEqual` compares them: NaN equals NaN, -0 is not 0, arrays by element. */
 function same(a: unknown, b: unknown): boolean {

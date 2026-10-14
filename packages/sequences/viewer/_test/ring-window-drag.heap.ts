@@ -12,23 +12,23 @@
 // positive control: the same moves allocating an object each (`leaking`), through the same warm-up, settle and
 // measurement, are caught.
 
-import { describe, expect, it } from "vitest";
-import { controlCaught, describeScaling, isFlat, leaking } from "./heap.js";
-import { measure, run, setup } from "./ring-window-heap-run.js";
+import { describe, expect, it } from 'vitest';
+import { controlCaught, describeScaling, isFlat, leaking } from './heap.js';
+import { measure, run, setup } from './ring-window-heap-run.js';
 
 /** A deep guard's steps: the trimmed run's 500 catch about 43 bytes a step, these about 22 (the drag once cost 32). */
 const STEPS = 1_000;
 
 describe("CG3's ring window drag allocates nothing after warm-up", () => {
-  it("a drag of the window, each move setting the linear section", async () => {
-    const { r, owner } = await run("drag", 600, STEPS);
-    expect(owner).toBe("ringWindow");
+  it('a drag of the window, each move setting the linear section', async () => {
+    const { r, owner } = await run('drag', 600, STEPS);
+    expect(owner).toBe('ringWindow');
     expect(isFlat(r), describeScaling(r, STEPS)).toBe(true);
   }, 120_000);
 
-  it("the same moves allocating an object each are caught (positive control)", async () => {
-    const s = await setup("drag", 600);
+  it('the same moves allocating an object each are caught (positive control)', async () => {
+    const s = await setup('drag', 600);
     expect(controlCaught(() => measure(leaking(s.step), STEPS))).toBe(true);
-    expect(s.owner()).toBe("ringWindow");
+    expect(s.owner()).toBe('ringWindow');
   }, 120_000);
 });

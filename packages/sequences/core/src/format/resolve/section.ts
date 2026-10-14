@@ -33,16 +33,16 @@ import {
   type SortedArray,
   SortedRanges,
   type UnitId,
-} from "@molstar/seq-core/model";
-import type { DocIndex } from "../load/compile.js";
-import { issueOf } from "../load/issues.js";
-import type { SvsRegistries } from "../registry.js";
-import type { IndexedNode } from "../schema/tree-schema.js";
-import { resolveStyle, type StyleRenderProps } from "../tables/style.js";
-import { Arrangement, Height, Layout, LigandForm, RowSizing, SectionAxis } from "./codes.js";
-import { layoutOf } from "./coordinates.js";
-import { alignmentRows, type KeyFilterValue, keyed, type OrderKeyValue } from "./keyed.js";
-import { blockSystem, columnsSystem, cover, endsOf, matcher, pathTo, reach, steps, unitSystem } from "./reach.js";
+} from '@molstar/seq-core/model';
+import type { DocIndex } from '../load/compile.js';
+import { issueOf } from '../load/issues.js';
+import type { SvsRegistries } from '../registry.js';
+import type { IndexedNode } from '../schema/tree-schema.js';
+import { resolveStyle, type StyleRenderProps } from '../tables/style.js';
+import { Arrangement, Height, Layout, LigandForm, RowSizing, SectionAxis } from './codes.js';
+import { layoutOf } from './coordinates.js';
+import { alignmentRows, type KeyFilterValue, keyed, type OrderKeyValue } from './keyed.js';
+import { blockSystem, columnsSystem, cover, endsOf, matcher, pathTo, reach, steps, unitSystem } from './reach.js';
 
 export type ResolvedParams = Readonly<Record<string, unknown>>;
 export interface BlockRow {
@@ -165,9 +165,9 @@ export interface ResolvedSection {
 }
 
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };
-const kindOf = (set: SeqSet, ref: unknown) => (typeof ref === "string" && set.byName(ref, t) ? t.kind : -1);
-const head = (ref: string) => ref.split("/")[0];
-export const refsOf = (v: unknown): string[] => (typeof v === "string" ? [v] : Array.isArray(v) ? v : []);
+const kindOf = (set: SeqSet, ref: unknown) => (typeof ref === 'string' && set.byName(ref, t) ? t.kind : -1);
+const head = (ref: string) => ref.split('/')[0];
+export const refsOf = (v: unknown): string[] => (typeof v === 'string' ? [v] : Array.isArray(v) ? v : []);
 /** A node's params with its `custom`, as the resolved tables carry them. */
 export const paramsOf = (n: IndexedNode): ResolvedParams =>
   n.node.custom ? { ...n.params, custom: n.node.custom } : n.params;
@@ -182,8 +182,8 @@ const LABEL = /^(-?[0-9]+)([A-Za-z]+|\.[0-9]+)?$/;
 export function toLabel(set: SeqSet, n: Numbering, v: unknown, out: PositionLabel): boolean {
   out.num = NO_LABEL;
   out.suffix = out.name = -1 as NameId;
-  out.name = n.method === "names" ? set.strings.find(String(v)) : out.name;
-  if (n.method === "names") return out.name >= 0;
+  out.name = n.method === 'names' ? set.strings.find(String(v)) : out.name;
+  if (n.method === 'names') return out.name >= 0;
   const m = LABEL.exec(String(v));
   if (!m) return false;
   out.num = Number(m[1]);
@@ -204,37 +204,37 @@ function entriesOf(doc: DocIndex, set: SeqSet, blocks: IndexedNode[], say: Say):
   const push = (unit: number, alignment: number, b: IndexedNode | null) =>
     out.push({ unit, alignment, node: b?.ref ?? null, params: b ? paramsOf(b) : {} });
   for (const b of blocks) {
-    const param = ["unit", "sequence", "ligand", "complex", "alignment"].find((k) => b.params[k] != null) as string;
+    const param = ['unit', 'sequence', 'ligand', 'complex', 'alignment'].find((k) => b.params[k] != null) as string;
     const ref = b.params[param] as string;
     const at = `${b.path}/params/${param}`;
     // A ref under a node the set does not hold (a streamed source's dynamic node not held yet) is left out quietly.
     const k = kindOf(set, ref);
     if (k < 0 && kindOf(set, head(ref)) < 0) continue;
-    if (k < 0) say("svs.ref.derived_unknown", at, `"${ref}" names nothing its node yielded`);
-    else if (param === "alignment" || param === "unit") {
-      const unit = param === "unit";
+    if (k < 0) say('svs.ref.derived_unknown', at, `"${ref}" names nothing its node yielded`);
+    else if (param === 'alignment' || param === 'unit') {
+      const unit = param === 'unit';
       if (k === (unit ? KeyKind.unit : KeyKind.alignment)) push(unit ? t.id : -1, unit ? -1 : t.id, b);
-    } else if (param === "complex") for (const u of set.complexes[t.id]?.units ?? []) push(u, -1, b);
+    } else if (param === 'complex') for (const u of set.complexes[t.id]?.units ?? []) push(u, -1, b);
     else if (
       k !== KeyKind.molecule ||
-      set.molecules[t.id]?.kind !== (param === "ligand" ? MoleculeKind.ligand : MoleculeKind.polymer)
+      set.molecules[t.id]?.kind !== (param === 'ligand' ? MoleculeKind.ligand : MoleculeKind.polymer)
     ) {
-      say("svs.ref.wrong_kind", at, `"${ref}" is not a ${param}`);
+      say('svs.ref.wrong_kind', at, `"${ref}" is not a ${param}`);
     } else if (kindOf(set, `${ref}/unit`) !== KeyKind.unit) {
-      say("svs.ref.wrong_kind", at, `"${ref}" is a provider's ${param}, with no own unit: name its units`);
+      say('svs.ref.wrong_kind', at, `"${ref}" is a provider's ${param}, with no own unit: name its units`);
     } else push(t.id, -1, b);
   }
   if (blocks.length > 0) return out;
-  const data = doc.order.filter((n) => n.parent === "data");
+  const data = doc.order.filter((n) => n.parent === 'data');
   const units: number[] = [];
   for (const d of data) {
     const k = kindOf(set, d.ref);
-    if (d.kind === "unit" && k === KeyKind.unit) units.push(t.id);
-    if (d.kind === "complex" && k === KeyKind.complex) for (const u of set.complexes[t.id]?.units ?? []) units.push(u);
+    if (d.kind === 'unit' && k === KeyKind.unit) units.push(t.id);
+    if (d.kind === 'complex' && k === KeyKind.complex) for (const u of set.complexes[t.id]?.units ?? []) units.push(u);
   }
   if (units.length === 0) {
     for (const d of data) {
-      if ((d.kind === "sequence" || d.kind === "ligand") && kindOf(set, `${d.ref}/unit`) === KeyKind.unit) {
+      if ((d.kind === 'sequence' || d.kind === 'ligand') && kindOf(set, `${d.ref}/unit`) === KeyKind.unit) {
         units.push(t.id);
       }
     }
@@ -243,13 +243,13 @@ function entriesOf(doc: DocIndex, set: SeqSet, blocks: IndexedNode[], say: Say):
   for (const u of [...units.filter((u) => !isLigand(u)), ...units.filter(isLigand)]) push(u, -1, null);
   const aln = units.length
     ? undefined
-    : data.find((d) => d.kind === "alignment" && kindOf(set, d.ref) === KeyKind.alignment);
+    : data.find((d) => d.kind === 'alignment' && kindOf(set, d.ref) === KeyKind.alignment);
   if (aln) push(-1, t.id, null);
   return out;
 }
 
 type Say = (code: string, path: string, message: string) => void;
-const ordinal = (set: SeqSet) => set.strings.intern("ordinal");
+const ordinal = (set: SeqSet) => set.strings.intern('ordinal');
 
 /** A block's numbering: its unit's or molecule's, else one a path reaches, carried through it. */
 function numberingOf(set: SeqSet, b: BlockRow, name: unknown, paths: ComposedPath[], say: Say, at: string) {
@@ -261,7 +261,7 @@ function numberingOf(set: SeqSet, b: BlockRow, name: unknown, paths: ComposedPat
     const all = [...(set.units.numberings[u]?.items ?? []), ...mol.numberings.items];
     return { numbering: all.find((n) => n.isDefault) ?? mol.numberings.byName(ordinal(set)), path: -1 };
   };
-  if (typeof name !== "string") return fallback();
+  if (typeof name !== 'string') return fallback();
   const id = set.strings.intern(name);
   const aln = set.alignments[b.alignment];
   const from: CoordinateSystem = aln
@@ -270,7 +270,7 @@ function numberingOf(set: SeqSet, b: BlockRow, name: unknown, paths: ComposedPat
   const own = aln ? aln.numberingsOf(aln.referenceRow)?.byName(id) : SeqSets.numberingOf(set, u as UnitId, id);
   const found: { numbering: Numbering; path: ComposedPath | null }[] = [];
   const rowPath = aln ? pathTo(set, from, columnsSystem(aln.id)) : null;
-  if (own) found.push({ numbering: own, path: rowPath && rowPath !== "ambiguous" ? rowPath : null });
+  if (own) found.push({ numbering: own, path: rowPath && rowPath !== 'ambiguous' ? rowPath : null });
   else if (mol?.kind === MoleculeKind.ligand) return fallback();
   let best = Number.POSITIVE_INFINITY;
   for (const m of own ? [] : set.molecules) {
@@ -278,21 +278,21 @@ function numberingOf(set: SeqSet, b: BlockRow, name: unknown, paths: ComposedPat
     const mid = { kind: CoordinateSystemKind.molecule, id: m?.id as number, row: -1 };
     const p = n ? pathTo(set, mid, blockSystem(b)) : undefined;
     // Labels are never carried across a codon step, either way: a residue's label does not name a nucleotide.
-    if (!n || !p || p === "ambiguous" || p.codon >= 0 || steps.length > best) continue;
+    if (!n || !p || p === 'ambiguous' || p.codon >= 0 || steps.length > best) continue;
     if (steps.length < best) found.length = 0;
     best = steps.length;
     found.push({ numbering: n, path: p });
   }
   if (found.length === 0) {
     say(
-      "svs.numbering.fallback",
+      'svs.numbering.fallback',
       at,
       `no numbering "${name}" on this block or anything a path reaches from it; its default numbering is used`,
     );
     return fallback();
   }
   if (found.length > 1 && !found.every((f) => sameLabels(f, found[0], b.start, b.stop))) {
-    say("svs.mapping.ambiguous", at, `paths to ${found.length} numberings "${name}" give different labels`);
+    say('svs.mapping.ambiguous', at, `paths to ${found.length} numberings "${name}" give different labels`);
   }
   const p = found[0].path;
   return { numbering: found[0].numbering, path: p ? paths.push(p) - 1 : -1 };
@@ -399,16 +399,16 @@ export function resolveSection(
   const say: Say = (code, path, message) => issues.push(issueOf(reg, code, path, message));
   const n = doc.nodes.get(section) as IndexedNode;
   const p = n.params;
-  const view = doc.nodes.get(n.parent ?? "");
+  const view = doc.nodes.get(n.parent ?? '');
   const kids = childrenOf(doc, n);
-  const str = (v: unknown) => (typeof v === "string" ? set.strings.intern(v) : -1);
+  const str = (v: unknown) => (typeof v === 'string' ? set.strings.intern(v) : -1);
   const paths: ComposedPath[] = [];
 
   // Blocks, copies merged at the first one's place.
   const entries = entriesOf(
     doc,
     set,
-    kids.filter((c) => c.kind === "block"),
+    kids.filter((c) => c.kind === 'block'),
     say,
   );
   // Copies merge when they show the same piece: two pieces of one unit stay two blocks.
@@ -417,7 +417,7 @@ export function resolveSection(
   const dirOf = (e: Entry) => ((e.params.direction ?? p.direction) === -1 ? -1 : 1);
   for (const e of entries) {
     const piece = `${e.params.range}|${e.params.origin}|${dirOf(e)}`;
-    const g = e.unit >= 0 && p.copies !== "each" ? `${set.units.group[e.unit]}|${piece}` : "";
+    const g = e.unit >= 0 && p.copies !== 'each' ? `${set.units.group[e.unit]}|${piece}` : '';
     const into = byGroup.get(g);
     if (into && g) into.push(e);
     else merged.push(g ? (byGroup.set(g, [e]).get(g) as Entry[]) : [e]);
@@ -425,11 +425,11 @@ export function resolveSection(
   // Each entry of `positions`: a data ref, or `{ data, filter }`, whose covered rows are those the filter keeps.
   const positions = (Array.isArray(p.positions) ? p.positions : p.positions == null ? [] : [p.positions]).flatMap(
     (e: string | { data: string; filter: { field?: string | null; values: unknown[] } }) => {
-      const [r, f] = typeof e === "string" ? [e, null] : [e.data, e.filter];
+      const [r, f] = typeof e === 'string' ? [e, null] : [e.data, e.filter];
       const ann = kindOf(set, r) === KeyKind.annotation ? set.annotations[t.id] : undefined;
-      if (!ann || ann.geometry === "rows") return [];
+      if (!ann || ann.geometry === 'rows') return [];
       const keeps = f && matcher(f.values);
-      const field = f?.field ?? "category";
+      const field = f?.field ?? 'category';
       return [{ ann, keep: keeps ? (row: number) => keeps(ann, set, row, field) : undefined }];
     },
   );
@@ -441,11 +441,11 @@ export function resolveSection(
     const uniq = [...new Set(group.map((x) => x.unit))];
     const members = uniq.length > 1 ? (Int32Array.from(uniq).sort() as SortedArray<UnitId>) : null;
     const mol = aln ? null : set.molecules[set.units.molecule[e.unit]];
-    const ligand = mol?.kind === MoleculeKind.ligand && p.ligand_form !== "atoms" ? 1 : 0;
+    const ligand = mol?.kind === MoleculeKind.ligand && p.ligand_form !== 'atoms' ? 1 : 0;
     const unitLabel = (u: number) => set.strings.get(set.units.label[u]);
     let label = e.params.label as string | null;
     if (label == null && members) {
-      label = `${set.strings.get(mol?.label ?? -1)} ×${uniq.length} (${uniq.map(unitLabel).join(", ")})`;
+      label = `${set.strings.get(mol?.label ?? -1)} ×${uniq.length} (${uniq.map(unitLabel).join(', ')})`;
     }
     const nodes = [...new Set(group.flatMap((x) => (x.node ? [x.node] : [])))];
     // The piece: `range` of the domain or all of it (a ligand's one position), laid out in `direction`. On a whole
@@ -457,9 +457,9 @@ export function resolveSection(
     const params = `${e.node ? doc.nodes.get(e.node)?.path : n.path}/params`;
     const wraps = range != null && range[1] < range[0] && cyclic && range[0] < length && range[1] >= 0;
     if (range && (range[0] < base || range[1] > base + length || (range[1] <= range[0] && !wraps))) {
-      const why = range[1] < range[0] && !cyclic ? "; start > stop wraps only a cyclic sequence's origin" : "";
+      const why = range[1] < range[0] && !cyclic ? "; start > stop wraps only a cyclic sequence's origin" : '';
       say(
-        "svs.position.range",
+        'svs.position.range',
         `${params}/range`,
         `[${range}] is outside the unit's domain [${base}, ${base + length})${why}: left out`,
       );
@@ -468,7 +468,7 @@ export function resolveSection(
     let origin = range ? 0 : ((e.params.origin as number | undefined) ?? 0);
     if (origin !== 0 && !(cyclic && origin > 0 && origin < length)) {
       const where = cyclic ? `within [0, ${length})` : "on a cyclic sequence's whole unit";
-      say("svs.position.range", `${params}/origin`, `origin ${origin} is ${where} only: ignored`);
+      say('svs.position.range', `${params}/origin`, `origin ${origin} is ${where} only: ignored`);
       origin = 0;
     }
     const [from, to] = origin ? [origin, origin] : range ? range : [base, base + length];
@@ -477,9 +477,9 @@ export function resolveSection(
     // blocks may hold more: a whole genome), so a block past `MaxBlockPositions` gets an issue here, not a wrap later.
     const count = start === stop ? length : stop > start ? stop - start : length - start + stop;
     if (count > MaxBlockPositions) {
-      const f = (x: number) => x.toLocaleString("en-US");
+      const f = (x: number) => x.toLocaleString('en-US');
       say(
-        "svs.position.range",
+        'svs.position.range',
         params,
         `the block holds ${f(count)} positions, past the ${f(MaxBlockPositions)} a block lays out: left out; show a \`range\` of it`,
       );
@@ -540,7 +540,7 @@ export function resolveSection(
   const walk = (parent: IndexedNode, group: number) => {
     for (const c of childrenOf(doc, parent)) {
       const cp = c.params;
-      if (c.kind === "group") {
+      if (c.kind === 'group') {
         groups.push({
           ref: str(c.ref),
           parent: group,
@@ -551,17 +551,17 @@ export function resolveSection(
         });
         walk(c, groups.length - 1);
       }
-      if (c.kind !== "track") continue;
+      if (c.kind !== 'track') continue;
       // The section's first `rows` layer wins; a later one is left out.
       const ls = childrenOf(doc, c).filter((l) => {
-        if (l.kind !== "layer" || l.params.type !== "rows") return l.kind === "layer";
+        if (l.kind !== 'layer' || l.params.type !== 'rows') return l.kind === 'layer';
         rowsLayer ??= l.ref;
         if (rowsLayer === l.ref) return true;
-        say("svs.layer.rows", l.path, `a section has one rows layer; "${rowsLayer}" is drawn, this one left out`);
+        say('svs.layer.rows', l.path, `a section has one rows layer; "${rowsLayer}" is drawn, this one left out`);
         return false;
       });
       const laneStart = lanes.row.length;
-      const rowsNode = ls.find((l) => l.params.type === "rows");
+      const rowsNode = ls.find((l) => l.params.type === 'rows');
       const rows = rowsNode?.params;
       let lazyRows = 0;
       if (rows && columns) {
@@ -570,24 +570,24 @@ export function resolveSection(
         const asked = rows.order as OrderKeyValue | OrderKeyValue[] | null;
         // A streamed alignment is ordered by tree or data only: its tiles are fetched by lane, so a permutation by a key
         // table would draw one row's letters under another's label. The key order and filter are left out, and said so.
-        const keys = columns.lazy && asked != null && asked !== "tree" && asked !== "data";
+        const keys = columns.lazy && asked != null && asked !== 'tree' && asked !== 'data';
         const tell = (where: string, what: string) =>
           say(
-            "svs.provider.lazy",
+            'svs.provider.lazy',
             `${rowsNode?.path}/params/${where}`,
             `a streamed alignment is ordered by tree or data only: its ${what} over key tables is left out`,
           );
-        if (keys) tell("order", "order");
-        if (columns.lazy && given.length > 0) tell("filter", "filter");
+        if (keys) tell('order', 'order');
+        if (columns.lazy && given.length > 0) tell('filter', 'filter');
         const order = keys ? null : asked;
         const filter = columns.lazy ? [] : given;
         // Rows with a parent are indented under it only where they stay under it: in tree or data order.
         const first = Array.isArray(order) ? order[0] : order;
-        const indent = first == null || first === "tree" || first === "data";
+        const indent = first == null || first === 'tree' || first === 'data';
         // A lazy alignment's rows are never listed: a run, in tree or data order.
         if (columns.lazy && !subset) {
           lazyRows = columns.rowCount;
-          const byTree = (order ?? (columns.tree ? "tree" : "data")) === "tree" && columns.tree;
+          const byTree = (order ?? (columns.tree ? 'tree' : 'data')) === 'tree' && columns.tree;
           lazy.push({
             track: tracks.length,
             start: -1,
@@ -598,7 +598,7 @@ export function resolveSection(
         } else {
           const members = alignmentRows(columns.id, columns.rowCount, columns.tree ? columns.tree.leafOrder : null);
           const k = keyed(set, reg, members, { order, filter, subset }, (where, message) =>
-            say("svs.layer.data", `${rowsNode?.path}/params/${where}`, message),
+            say('svs.layer.data', `${rowsNode?.path}/params/${where}`, message),
           );
           for (const r of k.permutation) {
             if (!k.kept[r]) continue;
@@ -608,7 +608,7 @@ export function resolveSection(
         }
       }
       const first =
-        ls[0] && (refsOf(ls[0].params.data)[0] ?? childrenOf(doc, ls[0]).find((x) => x.kind === "annotation")?.ref);
+        ls[0] && (refsOf(ls[0].params.data)[0] ?? childrenOf(doc, ls[0]).find((x) => x.kind === 'annotation')?.ref);
       const label =
         cp.label != null
           ? str(cp.label)
@@ -620,12 +620,12 @@ export function resolveSection(
         ref: str(c.ref),
         group,
         label,
-        height: typeof cp.height === "number" ? cp.height : Number.NaN,
+        height: typeof cp.height === 'number' ? cp.height : Number.NaN,
         hidden: flag(cp.hidden),
         laneStart,
         laneCount: lazyRows || lanes.row.length - laneStart,
         split: split < 0 ? -1 : layers.length + split,
-        expanded: flag(cp.expanded ?? ls[split]?.params.type === "variants"),
+        expanded: flag(cp.expanded ?? ls[split]?.params.type === 'variants'),
         params: paramsOf(c),
       });
       for (const l of ls) layers.push({ ref: l.ref, track: tracks.length - 1, type: String(l.params.type) });
@@ -640,16 +640,16 @@ export function resolveSection(
   }
 
   const axis = blocks.some((b) => b.alignment >= 0) ? SectionAxis.columns : SectionAxis.blocks;
-  const focusNode = kids.filter((c) => c.kind === "focus").pop();
+  const focusNode = kids.filter((c) => c.kind === 'focus').pop();
   const style = resolveStyle(p.style);
   const row: SectionRow = {
     ref: str(n.ref),
     axis,
-    arrangement: p.arrangement === "stacked" ? Arrangement.stacked : Arrangement.side,
-    ligandForm: p.ligand_form === "atoms" ? LigandForm.atoms : LigandForm.position,
-    height: p.height === "content" ? Height.content : Height.box,
-    heightRows: typeof p.height_rows === "number" ? p.height_rows : -1,
-    rowSizing: p.row_sizing === "natural" ? RowSizing.natural : RowSizing.uniform,
+    arrangement: p.arrangement === 'stacked' ? Arrangement.stacked : Arrangement.side,
+    ligandForm: p.ligand_form === 'atoms' ? LigandForm.atoms : LigandForm.position,
+    height: p.height === 'content' ? Height.content : Height.box,
+    heightRows: typeof p.height_rows === 'number' ? p.height_rows : -1,
+    rowSizing: p.row_sizing === 'natural' ? RowSizing.natural : RowSizing.uniform,
     hidden: flag(p.hidden),
     style: str(style.preset),
     render: style.render,
@@ -657,22 +657,22 @@ export function resolveSection(
     focus: focusNode ? focusOf(set, focusNode, blocks, say) : null,
     params: paramsOf(n),
   };
-  const layout = view?.params.layout === "text" ? Layout.text : Layout.tracks;
+  const layout = view?.params.layout === 'text' ? Layout.text : Layout.tracks;
   const axisKey = [
     axis,
     layout,
     ...blocks.map((b) => `${b.nodes}|${b.unit}|${b.alignment}|${b.members}|${b.length}|${b.ligand}`),
-    lanes.row.join(","),
+    lanes.row.join(','),
     // A run's order by its contents too, as the stored lanes' rows are: a changed permutation is another axis.
-    lazy.map((z) => `${z.start}+${z.length}${z.order ? `t${orderHash(z.order)}` : "d"}`).join(","),
+    lazy.map((z) => `${z.start}+${z.length}${z.order ? `t${orderHash(z.order)}` : 'd'}`).join(','),
     // A layer reads its track only for lanes: which layers sit on a track with lanes, never the order of tracks.
     tracks
       .flatMap((x, i) => {
         const on = x.laneCount > 0 ? layers.filter((l) => l.track === i).map((l) => l.ref) : [];
         return on.length ? [`${x.laneStart}:${x.laneCount}:${on}`] : [];
       })
-      .join(","),
-  ].join(";");
+      .join(','),
+  ].join(';');
   const out = { ref: n.ref, path: n.path, layout, row, blocks, leftOut, groups, tracks, lanes, layers, paths, axisKey };
   return { section: out, issues };
 }
@@ -681,7 +681,7 @@ export function resolveSection(
 function focusOf(set: SeqSet, f: IndexedNode, blocks: BlockRow[], say: Say) {
   const fp = f.params;
   const fail = (why: string) => {
-    say("svs.focus.range", f.path, `the focus ${why}`);
+    say('svs.focus.range', f.path, `the focus ${why}`);
     return null;
   };
   if (fp.annotation != null) {
@@ -707,7 +707,7 @@ function focusOf(set: SeqSet, f: IndexedNode, blocks: BlockRow[], say: Say) {
   const k = kindOf(set, fp.target);
   // An unavailable target is ignored quietly; a derived ref its node did not yield is reported.
   if (k < 0 && kindOf(set, head(String(fp.target))) >= 0)
-    say("svs.ref.derived_unknown", `${f.path}/params/target`, `"${fp.target}" names nothing its node yielded`);
+    say('svs.ref.derived_unknown', `${f.path}/params/target`, `"${fp.target}" names nothing its node yielded`);
   if (k < 0) return null;
   const id = t.id;
   const row = t.row;
@@ -762,7 +762,7 @@ function focusOf(set: SeqSet, f: IndexedNode, blocks: BlockRow[], say: Say) {
   if (k === KeyKind.row && aln) {
     const map = aln.rows.posMap(row as never) as Int32Array;
     const cols = Array.from(map.subarray(start, stop)).filter((c) => c >= 0);
-    if (!cols.length) return fail("covers only inserts");
+    if (!cols.length) return fail('covers only inserts');
     [start, stop] = [cols[0], (cols.at(-1) as number) + 1];
   }
   // The first block whose piece shows part of it (two pieces of one unit are two blocks).

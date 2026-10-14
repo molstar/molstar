@@ -12,11 +12,11 @@
 // runs. `expand` (QR2a) on the GC runs; `letters` (under 20 ms) and `search` (under 15 ms), QR2b's. Run with
 // `pnpm --filter @molstar/seq-core/model bench`.
 
-import { checkText } from "@molstar/seq-core/query";
-import { bench, describe } from "vitest";
-import { prng } from "../../_test/model/support/generators.js";
-import { Extents, SeqSets } from "../../src/model/index.js";
-import { compileQuery, createQueryEnv, SeqSelection } from "../../src/model/query/index.js";
+import { checkText } from '@molstar/seq-core/query';
+import { bench, describe } from 'vitest';
+import { prng } from '../../_test/model/support/generators.js';
+import { Extents, SeqSets } from '../../src/model/index.js';
+import { compileQuery, createQueryEnv, SeqSelection } from '../../src/model/query/index.js';
 
 const N = 3_000_000;
 const rand = prng(20261012);
@@ -42,19 +42,19 @@ for (let w = 0; w < N; w += 1000) {
 const REPEATS = 30_000;
 const at = Int32Array.from({ length: REPEATS }, (_, k) => Math.floor((k * N) / REPEATS) + Math.floor(rand() * 50));
 const { set } = SeqSets.build({
-  molecules: [{ key: "chr1", residues: new TextDecoder().decode(code), alphabet: "dna", ownUnit: true }],
+  molecules: [{ key: 'chr1', residues: new TextDecoder().decode(code), alphabet: 'dna', ownUnit: true }],
   annotations: [
-    { key: "gc", geometry: "values", target: "chr1", columns: { value: gc } },
-    { key: "noisy", geometry: "values", target: "chr1", columns: { value: noisy } },
+    { key: 'gc', geometry: 'values', target: 'chr1', columns: { value: gc } },
+    { key: 'noisy', geometry: 'values', target: 'chr1', columns: { value: noisy } },
     {
-      key: "repeats",
-      geometry: "ranges",
-      target: "chr1",
+      key: 'repeats',
+      geometry: 'ranges',
+      target: 'chr1',
       columns: { start: at, stop: Int32Array.from(at, (s) => s + 20 + Math.floor(rand() * 300)) },
     },
   ],
 });
-const env = createQueryEnv([{ namespace: "app", symbols: [], classes: { iupac: { N: "ACGT", R: "AG", Y: "CT" } } }]);
+const env = createQueryEnv([{ namespace: 'app', symbols: [], classes: { iupac: { N: 'ACGT', R: 'AG', Y: 'CT' } } }]);
 const query = (text: string) => {
   const q = compileQuery(checkText(text, env.language).expr as never, env);
   const r = q.run({ set });
@@ -65,37 +65,37 @@ const query = (text: string) => {
   };
 };
 
-describe("SeqQL on 3,000,000 positions", () => {
+describe('SeqQL on 3,000,000 positions', () => {
   const cases = [
     '(sel "chr1[1000000-1200000]")',
     '(sel "chr1@1000000:1200000")',
-    "(values :of gc :above 0.6)",
-    "(values :of noisy :above 0.6)",
-    "(and (values :of gc :above 0.6) (not repeats))",
-    "(and chr1 repeats)",
-    "(items :of repeats)",
-    "(range (values :of gc :above 0.6) 1-1500000)",
-    "(or (values :of gc :above 0.6) repeats)",
-    "(not repeats :in chr1)",
+    '(values :of gc :above 0.6)',
+    '(values :of noisy :above 0.6)',
+    '(and (values :of gc :above 0.6) (not repeats))',
+    '(and chr1 repeats)',
+    '(items :of repeats)',
+    '(range (values :of gc :above 0.6) 1-1500000)',
+    '(or (values :of gc :above 0.6) repeats)',
+    '(not repeats :in chr1)',
     // QR2a: the "linear in runs" case
-    "(expand (values :of gc :above 0.6) 50)",
-    "(and (expand (values :of gc :above 0.6) 50) (not repeats))",
+    '(expand (values :of gc :above 0.6) 50)',
+    '(and (expand (values :of gc :above 0.6) 50) (not repeats))',
     // QR2b: the scans
-    "(letters G)",
-    "(letters GC)",
-    "(and (values :of gc :above 0.6) (letters G))",
-    "(search GAATTC)",
-    "(search GAATTC :edits 1)",
-    "(search GANTTC :classes iupac)",
+    '(letters G)',
+    '(letters GC)',
+    '(and (values :of gc :above 0.6) (letters G))',
+    '(search GAATTC)',
+    '(search GAATTC :edits 1)',
+    '(search GANTTC :classes iupac)',
   ];
   for (const text of cases) bench(text, query(text), { time: 300 });
-  const wide = compileQuery(checkText("(values :of noisy :above 0.6)").expr as never, env).run({ set }).selection;
-  bench("toLoci of the GC runs", () => void SeqSelection.toLoci(wide), { time: 300 });
+  const wide = compileQuery(checkText('(values :of noisy :above 0.6)').expr as never, env).run({ set }).selection;
+  bench('toLoci of the GC runs', () => void SeqSelection.toLoci(wide), { time: 300 });
   const ext = Extents.create(1 << 20);
   const toExtents = () => {
     ext.count = 0;
     SeqSelection.toExtents(wide, ext);
   };
-  bench("toExtents of the GC runs", toExtents, { time: 300 });
-  bench("summary of the GC runs", () => void SeqSelection.summary(wide, { indices: true }), { time: 300 });
+  bench('toExtents of the GC runs', toExtents, { time: 300 });
+  bench('summary of the GC runs', () => void SeqSelection.summary(wide, { indices: true }), { time: 300 });
 });

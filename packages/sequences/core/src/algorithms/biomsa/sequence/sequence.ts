@@ -4,9 +4,9 @@
  * @license MIT
  * @copyright 2020
  */
-import BitArray from "../utils/bitarray.js";
-import { DEBUG, SEQUENCE_TYPE } from "../align/params.js";
-import Log from "../utils/logger.js";
+import BitArray from '../utils/bitarray.js';
+import { DEBUG, SEQUENCE_TYPE } from '../align/params.js';
+import Log from '../utils/logger.js';
 
 export type TSequence = {
   /** Sequence as a string */
@@ -44,7 +44,7 @@ export function getSequenceType(seq: string) {
 
   if (regExtAmino.test(seq)) return guessSequenceType(seq);
 
-  throw new Error("Unrecognized sequence type: " + seq);
+  throw new Error('Unrecognized sequence type: ' + seq);
 }
 
 function guessSequenceType(seq: string) {
@@ -54,12 +54,12 @@ function guessSequenceType(seq: string) {
 
   for (let i = 0; i < LEN; i++) {
     switch (seq[i]) {
-      case "A":
-      case "T":
-      case "U":
-      case "G":
-      case "C":
-      case "N":
+      case 'A':
+      case 'T':
+      case 'U':
+      case 'G':
+      case 'C':
+      case 'N':
         lNucScore++;
     }
   }
@@ -146,27 +146,27 @@ function setRandomCode(letter: string, type: SEQUENCE_TYPE) {
   switch (type) {
     case SEQUENCE_TYPE.NUCLEIC:
       switch (letter) {
-        case "M":
+        case 'M':
           return 0; // A or C (amino)
-        case "R":
+        case 'R':
           return 0; // A or G (purine)
-        case "W":
+        case 'W':
           return 0; // A or T (weak)
-        case "S":
+        case 'S':
           return 1; // C or G (strong)
-        case "Y":
+        case 'Y':
           return 1; // C or T (pyrimidine)
-        case "K":
+        case 'K':
           return 2; // G or T (keto)
-        case "V":
+        case 'V':
           return 0; // A or C or G
-        case "H":
+        case 'H':
           return 0; // A or C or T
-        case "D":
+        case 'D':
           return 0; // A or G or T
-        case "B":
+        case 'B':
           return 1; // C or G or T
-        case "N": // passthrough intentional
+        case 'N': // passthrough intentional
         default:
           return 0;
       }
@@ -174,14 +174,14 @@ function setRandomCode(letter: string, type: SEQUENCE_TYPE) {
     case SEQUENCE_TYPE.PROTEIN:
     default:
       switch (letter) {
-        case "B":
+        case 'B':
           return 2; // Asx (D or N)
-        case "Z":
+        case 'Z':
           return 3; // Glx (E or Q)
-        case "J":
+        case 'J':
           return 7; // Xle (I or L)
-        case "U": // passtrhough intentional    Selenocysteine
-        case "X": // passthrough intentional
+        case 'U': // passtrhough intentional    Selenocysteine
+        case 'X': // passthrough intentional
         default:
           return 0;
       }
@@ -270,7 +270,7 @@ export function distanceMatrix(tabSeq: TSequence[]) {
     return bitset;
   });
 
-  if (DEBUG) Log.add("K-mer bitset computation");
+  if (DEBUG) Log.add('K-mer bitset computation');
 
   // Compute distance matrix values, with correction for sequence length.
   // The distance is based on shared kmers. Intuitively, the closest 2 sequences
@@ -324,7 +324,7 @@ export function distanceMatrix(tabSeq: TSequence[]) {
   }
 
   if (DEBUG) {
-    Log.add("K-mer distance computation");
+    Log.add('K-mer distance computation');
     console.table(distTab);
   }
   return distTab;
@@ -388,12 +388,12 @@ const dayhoffPams = [
  * @returns {number} fractional identity between both sequences
  */
 function fractionalIdentity(seqA: string, seqB: string) {
-  seqA = seqA || "";
-  seqB = seqB || "";
+  seqA = seqA || '';
+  seqB = seqB || '';
 
   let match = 0,
-    tokenA = "",
-    tokenB = "",
+    tokenA = '',
+    tokenB = '',
     lA = 0,
     lB = 0;
   const maxI = seqA.length;
@@ -401,10 +401,10 @@ function fractionalIdentity(seqA: string, seqB: string) {
   for (let i = 0; i < maxI; i++) {
     tokenA = seqA.charAt(i);
     tokenB = seqB.charAt(i);
-    lA += tokenA !== "-" ? 1 : 0;
-    lB += tokenB !== "-" ? 1 : 0;
+    lA += tokenA !== '-' ? 1 : 0;
+    lB += tokenB !== '-' ? 1 : 0;
 
-    if (tokenA === "-" || tokenB === "-") {
+    if (tokenA === '-' || tokenB === '-') {
       continue;
     }
 
@@ -459,7 +459,7 @@ export function distanceKimura(msa: string[]) {
         pIndex = Math.floor((p - 0.75) * 1000 + 0.5);
 
         if (pIndex < 0 || pIndex >= dayhoffPams.length) {
-          console.trace("Dayhoff parameter not found");
+          console.trace('Dayhoff parameter not found');
         } else {
           dk = dayhoffPams[pIndex] / 100;
         }

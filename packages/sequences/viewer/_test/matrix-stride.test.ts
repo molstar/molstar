@@ -13,13 +13,13 @@
 // `value` label reads a block's value with its stride too, and none at a band past its states.
 // (A resolved layer's matrices all share their states; a host's state, a hand-made `LayerInput`, meets this.)
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { type SeqSet, SeqSets } from "@molstar/seq-core/model";
-import { describe, expect, it } from "vitest";
-import { drawMatrixTiles, Hit, HoverKind, type MatrixState, prepareMatrix } from "../src/draw/api.js";
-import { HitRegion, KernelRenderers } from "../src/index.js";
-import { LayerFrame, RecordingBackend } from "../src/testing/index.js";
-import { opened } from "./layout-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { type SeqSet, SeqSets } from '@molstar/seq-core/model';
+import { describe, expect, it } from 'vitest';
+import { drawMatrixTiles, Hit, HoverKind, type MatrixState, prepareMatrix } from '../src/draw/api.js';
+import { HitRegion, KernelRenderers } from '../src/index.js';
+import { LayerFrame, RecordingBackend } from '../src/testing/index.js';
+import { opened } from './layout-fixtures.js';
 
 const N = 12;
 /** The value of state q of position i in block b's annotation (a distinct number per cell; never missing). */
@@ -29,17 +29,17 @@ function twoMatrices() {
   const states = [5, 3];
   const { set, issues } = SeqSets.build({
     molecules: [
-      { key: "a", residues: "A".repeat(N) },
-      { key: "b", residues: "C".repeat(N) },
+      { key: 'a', residues: 'A'.repeat(N) },
+      { key: 'b', residues: 'C'.repeat(N) },
     ],
     units: [
-      { key: "A", molecule: "a" },
-      { key: "B", molecule: "b" },
+      { key: 'A', molecule: 'a' },
+      { key: 'B', molecule: 'b' },
     ],
     annotations: states.map((n, b) => ({
       key: `m${b}`,
-      geometry: "matrix",
-      target: "AB"[b],
+      geometry: 'matrix',
+      target: 'AB'[b],
       states: Array.from({ length: n }, (_, q) => `s${q}`),
       columns: {
         index: Array.from({ length: N }, (_, i) => i),
@@ -47,17 +47,17 @@ function twoMatrices() {
       },
     })) as never,
   });
-  expect(issues.filter((i) => i.severity === "error")).toEqual([]);
+  expect(issues.filter((i) => i.severity === 'error')).toEqual([]);
   const anns = [0, 1].map((b) => {
     const a = set.annotations.find((x) => x && set.strings.get(x.key) === `m${b}`);
-    if (!a) throw new Error("no annotation");
+    if (!a) throw new Error('no annotation');
     return a;
   });
   return { set, anns };
 }
 
-describe("prepareMatrix over blocks with different state counts", () => {
-  it("the bands are the most states; each block keeps the stride of its own annotation", () => {
+describe('prepareMatrix over blocks with different state counts', () => {
+  it('the bands are the most states; each block keeps the stride of its own annotation', () => {
     const { set, anns } = twoMatrices();
     const input = {
       set,
@@ -72,20 +72,20 @@ describe("prepareMatrix over blocks with different state counts", () => {
     };
     const s = prepareMatrix(input as never);
     expect([s.states, Array.from(s.stride)]).toEqual([5, [5, 3]]);
-    expect(s.labels).toEqual(["s0", "s1", "s2", "s3", "s4"]);
+    expect(s.labels).toEqual(['s0', 's1', 's2', 's3', 's4']);
     expect(s.rows.map((r) => r?.length)).toEqual([N, N]);
   });
 });
 
 /** A document with the two matrices' layers in two tracks of one view (blocks A and B); the first's state, joined. */
 async function joinedLayer() {
-  const b = createSeqViewSpec({ title: "Strides" });
-  const seqs = ["A", "B"].map((k) => b.data.sequence({ ref: `s${k}`, label: k, value: "AC".repeat(N / 2) }));
-  const units = ["A", "B"].map((k, i) => b.data.unit({ ref: `u${k}`, sequence: seqs[i], label: k } as never));
+  const b = createSeqViewSpec({ title: 'Strides' });
+  const seqs = ['A', 'B'].map((k) => b.data.sequence({ ref: `s${k}`, label: k, value: 'AC'.repeat(N / 2) }));
+  const units = ['A', 'B'].map((k, i) => b.data.unit({ ref: `u${k}`, sequence: seqs[i], label: k } as never));
   const ms = [5, 3].map((n, k) =>
     b.data.annotation({
       ref: `m${k}`,
-      geometry: "matrix",
+      geometry: 'matrix',
       target: units[k],
       states: Array.from({ length: n }, (_, q) => `s${q}`),
       value: {
@@ -94,14 +94,14 @@ async function joinedLayer() {
       },
     } as never),
   );
-  const v = b.view({ ref: "v", label: "V" }).block({ unit: units[0] }).block({ unit: units[1] });
+  const v = b.view({ ref: 'v', label: 'V' }).block({ unit: units[0] }).block({ unit: units[1] });
   for (const [k, m] of ms.entries()) v.track({ ref: `v.m${k}`, label: `M${k}` }).matrix({ data: m } as never);
   const t = await opened(b.getDocument(), { renderers: [...KernelRenderers] });
   const m = t.ctx.graph.assembled.value?.view;
-  const prepared = [0, 1].map((k) => m?.prepared.findIndex((p, i) => p.renderer === "matrix" && i === k) ?? -1);
+  const prepared = [0, 1].map((k) => m?.prepared.findIndex((p, i) => p.renderer === 'matrix' && i === k) ?? -1);
   const [s0, s1] = prepared.map((k) => m?.prepared[k].state as MatrixState);
-  const matrix = t.ctx.registry.get("renderers", "matrix");
-  if (!m || !matrix || !s0 || !s1) throw new Error("no matrix layers");
+  const matrix = t.ctx.registry.get('renderers', 'matrix');
+  if (!m || !matrix || !s0 || !s1) throw new Error('no matrix layers');
   // Both blocks in one state, as a host's single layer would hold them.
   const joined: MatrixState = {
     ...s0,
@@ -114,10 +114,10 @@ async function joinedLayer() {
 }
 
 describe("the tiles read each block's values with its own stride", () => {
-  it("block B (3 states) shows its values in its first 3 bands and nothing below, beside block A (5)", async () => {
+  it('block B (3 states) shows its values in its first 3 bands and nothing below, beside block A (5)', async () => {
     const { t, m, matrix, prepared, joined } = await joinedLayer();
     const rec = new RecordingBackend();
-    const frame = new LayerFrame(t.ctx, matrix, "v.main", prepared[0]);
+    const frame = new LayerFrame(t.ctx, matrix, 'v.main', prepared[0]);
     frame.draw(rec);
     frame.v.backend = rec;
     rec.reset();
@@ -163,7 +163,7 @@ describe("the value label reads each block's values with its own stride", () => 
         state: q,
       });
       Object.assign(hit.seq, { set, unit: r.blocks.unit[g], index: j });
-      t.ctx.hover.setFromHit(hit, "pointer");
+      t.ctx.hover.setFromHit(hit, 'pointer');
       const label = t.ctx.labels.compute(t.ctx.hover.live.current);
       return (label?.lines ?? []).filter((l) => l.key === `s${q}`).map((l) => l.value);
     };

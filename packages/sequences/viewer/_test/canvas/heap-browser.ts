@@ -51,13 +51,13 @@ function growth(n: number, step: (i: number) => void): number | undefined {
  * a collection ran during a measured run, after one retry: shorten the run, the growth it would report is unknowable.
  */
 export function heapScaling(n: number, step: (i: number) => void): { short: number; long: number; scaled: number } {
-  if (!(globalThis as { gc?: unknown }).gc) throw new Error("Run with HEAP=1 (the browser heap config).");
+  if (!(globalThis as { gc?: unknown }).gc) throw new Error('Run with HEAP=1 (the browser heap config).');
   for (let attempt = 0; attempt < 2; attempt++) {
     const short = growth(n, step);
     const long = short === undefined ? undefined : growth(4 * n, step);
     if (short !== undefined && long !== undefined) return { short, long, scaled: long - short };
   }
-  throw new Error("A GC ran during a measured run, twice: it hides allocation. Make the run shorter.");
+  throw new Error('A GC ran during a measured run, twice: it hides allocation. Make the run shorter.');
 }
 
 /** True when neither run grew past the limit and the longer run did not grow with its length. */
@@ -106,7 +106,7 @@ export function controlCaught(
 ): boolean {
   try {
     const r = measure();
-    return typeof r === "number" ? r >= limit : !isFlat(r);
+    return typeof r === 'number' ? r >= limit : !isFlat(r);
   } catch (e) {
     if (e instanceof Error && /GC ran during a measured run/.test(e.message)) return true;
     throw e;

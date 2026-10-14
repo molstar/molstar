@@ -11,13 +11,13 @@
 // seqspec:viewer#the-render-backend). And a lazy alignment's row labels, arriving after its tiles, are drawn in the
 // header (an arrival once redrew only the data box).
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { tilesStream } from "@molstar/seq-core/stream/tiles";
-import { tileServer } from "@molstar/seq-core/stream/tiles/server";
-import { afterEach, expect, it } from "vitest";
-import { Dirty } from "../../src/draw/index.js";
-import { syntheticFamily } from "../families.js";
-import { canvasesOf, close, diff, type Opened, opened, pixelsOf } from "./open.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { tilesStream } from '@molstar/seq-core/stream/tiles';
+import { tileServer } from '@molstar/seq-core/stream/tiles/server';
+import { afterEach, expect, it } from 'vitest';
+import { Dirty } from '../../src/draw/index.js';
+import { syntheticFamily } from '../families.js';
+import { canvasesOf, close, diff, type Opened, opened, pixelsOf } from './open.js';
 
 let t: Opened | null = null;
 afterEach(() => {
@@ -40,9 +40,9 @@ for (const dpr of [1, 2])
     const o = t;
     const vp = o.ctx.viewports.get(o.section);
     const l = o.ctx.layout.get(o.section)?.current;
-    if (!vp || !l) throw new Error("no viewport");
+    if (!vp || !l) throw new Error('no viewport');
     const [main] = canvasesOf(o);
-    const g = main.getContext("2d") as CanvasRenderingContext2D;
+    const g = main.getContext('2d') as CanvasRenderingContext2D;
     const y0 = Math.round(l.navHeight * dpr);
     const band = () => g.getImageData(0, y0, main.width, Math.round(l.scrolledTop * dpr) - y0).data;
     const redraw = () => {
@@ -56,7 +56,7 @@ for (const dpr of [1, 2])
     const rnd = random(9);
     for (let k = 0; k < 60; k++) {
       if (k % 20 === 19) vp.setRowScale(0.5 + rnd(), 0);
-      vp.panBy(0, (rnd() - 0.45) * 90, "pointer");
+      vp.panBy(0, (rnd() - 0.45) * 90, 'pointer');
       o.advance(16);
       o.surface.renderNow();
       const copied = band();
@@ -69,23 +69,23 @@ for (const dpr of [1, 2])
   });
 
 it("a lazy alignment's row labels that arrive after its tiles are drawn in the header, as a whole redraw draws them", async () => {
-  const uri = "https://example.org/held";
+  const uri = 'https://example.org/held';
   const server = tileServer({ rowCount: 400, columnCount: 300 });
   // The labels' chunks wait until released; the tiles come at once.
   let release = () => {};
   const held = new Promise<void>((r) => {
     release = r;
   });
-  const b = createSeqViewSpec({ title: "held" });
+  const b = createSeqViewSpec({ title: 'held' });
   const aln = b.data.alignment({
-    ref: "held",
+    ref: 'held',
     row_count: 400,
     column_count: 300,
-    source: { uri, protocol: "seqstar-tiles/1" },
+    source: { uri, protocol: 'seqstar-tiles/1' },
   } as never);
-  b.view({ ref: "v", label: "V", style: "msa", height: "box" })
+  b.view({ ref: 'v', label: 'V', style: 'msa', height: 'box' })
     .block({ alignment: aln })
-    .track({ label: "Rows" })
+    .track({ label: 'Rows' })
     .rows();
   t = await opened(b.getDocument(), {
     width: 900,
@@ -95,7 +95,7 @@ it("a lazy alignment's row labels that arrive after its tiles are drawn in the h
       stream: tilesStream((u) =>
         u === uri
           ? async (path, signal) => {
-              if (path.startsWith("labels/")) await held;
+              if (path.startsWith('labels/')) await held;
               return server.transport(path, signal);
             }
           : null,
@@ -120,6 +120,6 @@ it("a lazy alignment's row labels that arrive after its tiles are drawn in the h
   o.surface.invalidate(Dirty.all);
   o.surface.renderNow();
   const whole = pixelsOf(main);
-  expect(diff(unlabelled, whole, main.width, 1).count, "the labels show in a whole redraw").toBeGreaterThan(100);
-  expect(diff(arrived, whole, main.width, 1).count, "the frames after the labels arrived").toBe(0);
+  expect(diff(unlabelled, whole, main.width, 1).count, 'the labels show in a whole redraw').toBeGreaterThan(100);
+  expect(diff(arrived, whole, main.width, 1).count, 'the frames after the labels arrived').toBe(0);
 });

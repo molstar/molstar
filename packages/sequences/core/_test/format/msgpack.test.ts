@@ -13,14 +13,14 @@
 // numbers; a source reads `format: "msgpack"` data from a host file; the CLIs convert and validate either form; a large
 // values table's size.
 
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { Annotations, encodeMsgPack, encodeTypedArrays, float32Number, type KeyTarget } from "@molstar/seq-core/model";
-import { describe, expect, it } from "vitest";
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { Annotations, encodeMsgPack, encodeTypedArrays, float32Number, type KeyTarget } from '@molstar/seq-core/model';
+import { describe, expect, it } from 'vitest';
 import {
   compile,
   fromJSON,
@@ -31,28 +31,28 @@ import {
   toJSON,
   toMsgPack,
   validate,
-} from "../../src/format/index.js";
-import { CASES, case17 } from "./cases.js";
-import { fullDoc } from "./fixtures.js";
-import { genomeDoc, synthGenome } from "./genome-fixture.js";
-import { fixtureLoaders, registries } from "./load-fixtures.js";
+} from '../../src/format/index.js';
+import { CASES, case17 } from './cases.js';
+import { fullDoc } from './fixtures.js';
+import { genomeDoc, synthGenome } from './genome-fixture.js';
+import { fixtureLoaders, registries } from './load-fixtures.js';
 
 const reg = registries();
 type J = Record<string, unknown>;
 /** Every case and the full document, case 17 small (8 samples over 20 sites); at its full size (600,000 genotypes) slow. */
 const DOCS: [string, () => SeqViewSpecDoc][] = [
   ...Object.entries(CASES).map(([name, make]): [string, () => SeqViewSpecDoc] =>
-    name === "case17" ? [name, () => case17(8, 20)] : [name, make],
+    name === 'case17' ? [name, () => case17(8, 20)] : [name, make],
   ),
-  ["fullDoc", () => fullDoc() as never],
+  ['fullDoc', () => fullDoc() as never],
 ];
 const EACH: [string, () => SeqViewSpecDoc, string[]][] = [
   ...DOCS.map(([name, make]): [string, () => SeqViewSpecDoc, string[]] => [name, make, []]),
-  ["case17 at full size", () => case17(), ["slow"]],
+  ['case17 at full size', () => case17(), ['slow']],
 ];
 
-describe.each(EACH)("%s", (_, make, tags) => {
-  it("JSON → MessagePack → JSON: the same text, deep equal, validated alike", { tags }, () => {
+describe.each(EACH)('%s', (_, make, tags) => {
+  it('JSON → MessagePack → JSON: the same text, deep equal, validated alike', { tags }, () => {
     const text = toJSON(make());
     const json = fromJSON(text).doc as SeqViewSpecDoc;
     for (const typedArrays of [true, false]) {
@@ -73,16 +73,16 @@ function typedColumns(doc: SeqViewSpecDoc): SeqViewSpecDoc {
   const typed = (c: unknown) => {
     if (
       !Array.isArray(c) ||
-      !c.some((x) => typeof x === "number") ||
-      !c.every((x) => x === null || typeof x === "number")
+      !c.some((x) => typeof x === 'number') ||
+      !c.every((x) => x === null || typeof x === 'number')
     )
       return c;
     if (c.every((x) => x !== null && (x | 0) === x)) return Int32Array.from(c);
     return Float64Array.from(c, (x) => x ?? Number.NaN);
   };
-  const walk = (n: SeqViewSpecDoc["root"]) => {
+  const walk = (n: SeqViewSpecDoc['root']) => {
     const v = n.params?.value;
-    if (n.kind === "annotation" && v && typeof v === "object" && !Array.isArray(v)) {
+    if (n.kind === 'annotation' && v && typeof v === 'object' && !Array.isArray(v)) {
       for (const [k, c] of Object.entries(v as J)) {
         const col = c as J;
         if (Array.isArray(col?.codes)) col.codes = typed(col.codes);
@@ -95,8 +95,8 @@ function typedColumns(doc: SeqViewSpecDoc): SeqViewSpecDoc {
   return doc;
 }
 
-describe.each(EACH)("%s, its columns typed", (_, make, tags) => {
-  it("JSON → MessagePack → JSON and MessagePack → MessagePack: the same text; decoded, validated as the JSON", {
+describe.each(EACH)('%s, its columns typed', (_, make, tags) => {
+  it('JSON → MessagePack → JSON and MessagePack → MessagePack: the same text; decoded, validated as the JSON', {
     tags,
   }, () => {
     const text = toJSON(make());
@@ -114,23 +114,23 @@ describe.each(EACH)("%s, its columns typed", (_, make, tags) => {
   });
 });
 
-it("typed columns: Int32 and Float64 columns and codes, in most cases", () => {
+it('typed columns: Int32 and Float64 columns and codes, in most cases', () => {
   const kinds = (v: unknown): string[] =>
     ArrayBuffer.isView(v)
       ? [v.constructor.name]
-      : v !== null && typeof v === "object"
+      : v !== null && typeof v === 'object'
         ? Object.values(v).flatMap(kinds)
         : [];
   const per = DOCS.map(([, make]) => kinds(fromMsgPack(toMsgPack(typedColumns(make()))).doc));
   expect(per.filter((k) => k.length > 0).length).toBeGreaterThanOrEqual(10);
-  expect(new Set(per.flat())).toEqual(new Set(["Int32Array", "Float64Array"]));
+  expect(new Set(per.flat())).toEqual(new Set(['Int32Array', 'Float64Array']));
 });
 
-describe("the genome document, built with typed columns", () => {
-  it("validates with 0 errors as JSON and as decoded MessagePack", () => {
+describe('the genome document, built with typed columns', () => {
+  it('validates with 0 errors as JSON and as decoded MessagePack', () => {
     const doc = genomeDoc(synthGenome({ total: 300_000, genes: 300, proteins: 30, variants: 2000, repeats: 1000 }));
-    const gc = doc.root.children?.[0].children?.find((n) => n.ref === "gc.chr1")?.params?.value as J;
-    const genes = doc.root.children?.[0].children?.find((n) => n.ref === "genes")?.params?.value as J;
+    const gc = doc.root.children?.[0].children?.find((n) => n.ref === 'gc.chr1')?.params?.value as J;
+    const genes = doc.root.children?.[0].children?.find((n) => n.ref === 'genes')?.params?.value as J;
     expect([gc.value, genes.start, (genes.target as J).codes].map((c) => (c as object).constructor)).toEqual([
       Float64Array,
       Int32Array,
@@ -139,13 +139,13 @@ describe("the genome document, built with typed columns", () => {
     const json = fromJSON(toJSON(doc)).doc;
     const back = fromMsgPack(toMsgPack(doc)).doc;
     expect(
-      (back?.root.children?.[0].children?.find((n) => n.ref === "genes")?.params?.value as J | undefined)?.start,
+      (back?.root.children?.[0].children?.find((n) => n.ref === 'genes')?.params?.value as J | undefined)?.start,
     ).toEqual(genes.start);
-    const errors = (d: unknown) => validate(d, reg).filter((i) => i.severity === "error");
+    const errors = (d: unknown) => validate(d, reg).filter((i) => i.severity === 'error');
     expect([errors(json), errors(back)]).toEqual([[], []]);
   });
 
-  it("JSON: the same text as through a replacer of every value, GC as Float64 and Float32; the document untouched", () => {
+  it('JSON: the same text as through a replacer of every value, GC as Float64 and Float32; the document untouched', () => {
     // A fifth of the other tests' genome: the replacer's search per value is the run's cost, and size is not the point.
     const doc = genomeDoc(synthGenome({ total: 60_000, genes: 60, proteins: 6, variants: 400, repeats: 200 }));
     const slow = (x: number) => {
@@ -157,7 +157,7 @@ describe("the genome document, built with typed columns", () => {
         ? Array.from(v as Float64Array, (x) => (Number.isNaN(x) ? null : v instanceof Float32Array ? slow(x) : x))
         : v;
     const gcs = (doc.root.children?.[0].children ?? []).flatMap((n) =>
-      n.ref?.startsWith("gc.") ? [n.params?.value as J] : [],
+      n.ref?.startsWith('gc.') ? [n.params?.value as J] : [],
     );
     for (const f32 of [false, true]) {
       if (f32) for (const t of gcs) t.value = Float32Array.from(t.value as []);
@@ -179,32 +179,32 @@ describe("the genome document, built with typed columns", () => {
       bits[i] = s;
     }
     f.set([0, -0, Number.NaN, Number.POSITIVE_INFINITY, 1e-45, 2 ** -96, 2 ** 87, 2 ** 90, 16777217, 9.0000005e12]);
-    const b = createSeqViewSpec({ title: "Twin" });
-    b.data.sequence({ ref: "s", value: "MKVL" });
-    b.view({ ref: "v", label: "V" })
+    const b = createSeqViewSpec({ title: 'Twin' });
+    b.data.sequence({ ref: 's', value: 'MKVL' });
+    b.view({ ref: 'v', label: 'V' })
       .track({})
-      .values({ data: "s", domain: f as never });
-    const find = (n: SeqViewSpecDoc["root"]): unknown => n.params?.domain ?? n.children?.map(find).find((d) => d);
+      .values({ data: 's', domain: f as never });
+    const find = (n: SeqViewSpecDoc['root']): unknown => n.params?.domain ?? n.children?.map(find).find((d) => d);
     const domain = find(b.getDocument().root);
     expect(domain).toEqual(Array.from(f, (x) => (Number.isNaN(x) ? null : float32Number(x))));
   });
 });
 
-describe("typed arrays in a document", () => {
+describe('typed arrays in a document', () => {
   const t: KeyTarget = { kind: -1, id: -1, row: -1 };
   const value = Float64Array.from({ length: 1000 }, (_, i) => (i % 7 === 0 ? Number.NaN : i / 20));
   const start = Int32Array.from({ length: 10 }, (_, i) => 3 * i);
   function doc() {
-    const b = createSeqViewSpec({ title: "Typed" });
-    const s = b.data.sequence({ ref: "s", value: "ACGT".repeat(250) });
+    const b = createSeqViewSpec({ title: 'Typed' });
+    const s = b.data.sequence({ ref: 's', value: 'ACGT'.repeat(250) });
     // The builder keeps table columns given as lossless typed arrays.
-    b.data.annotation({ ref: "gc", geometry: "values", target: s, value: { value } });
-    b.data.annotation({ ref: "r", geometry: "ranges", target: s, value: { start, stop: start.map((x) => x + 2) } });
-    b.view({ ref: "v", label: "V" }).track({}).values({ data: "gc" });
+    b.data.annotation({ ref: 'gc', geometry: 'values', target: s, value: { value } });
+    b.data.annotation({ ref: 'r', geometry: 'ranges', target: s, value: { start, stop: start.map((x) => x + 2) } });
+    b.view({ ref: 'v', label: 'V' }).track({}).values({ data: 'gc' });
     return b.getDocument();
   }
 
-  it("come back as the same kinds and numbers, validate and compile alike, and print as JSON arrays", async () => {
+  it('come back as the same kinds and numbers, validate and compile alike, and print as JSON arrays', async () => {
     const d = doc();
     const back = fromMsgPack(toMsgPack(d)).doc as SeqViewSpecDoc;
     expect(back).toEqual(d);
@@ -215,18 +215,18 @@ describe("typed arrays in a document", () => {
     expect(JSON.parse(toJSON(d)).root.children[0].children[1].params.value.value[1]).toBe(0.05);
     expect([validate(d, reg), validate(back, reg)]).toEqual([[], []]);
     const [a, b] = await Promise.all([d, back].map((x) => compile(x, reg, fixtureLoaders())));
-    const gc = (r: typeof a) => (r.set.byName("gc", t) ? r.set.annotations[t.id] : null);
+    const gc = (r: typeof a) => (r.set.byName('gc', t) ? r.set.annotations[t.id] : null);
     const exact = (r: typeof a) => Array.from({ length: 1000 }, (_, i) => Annotations.valueAt(gc(r) as never, 0, i));
     expect(exact(b)).toEqual(Array.from(value));
     expect(exact(a)).toEqual(exact(b));
   });
 
   it("a Float32 column (the producer's choice): its shortest decimals in JSON, Float32 through MessagePack", () => {
-    const b = createSeqViewSpec({ title: "Float32" });
-    const s = b.data.sequence({ ref: "s", value: "MKVL" });
+    const b = createSeqViewSpec({ title: 'Float32' });
+    const s = b.data.sequence({ ref: 's', value: 'MKVL' });
     const score = Float32Array.of(0.15, Number.NaN, 0.3, 1 / 3);
-    b.data.annotation({ ref: "sc", geometry: "values", target: s, value: { value: score } });
-    b.view({ ref: "v", label: "V" }).track({}).values({ data: "sc" });
+    b.data.annotation({ ref: 'sc', geometry: 'values', target: s, value: { value: score } });
+    b.view({ ref: 'v', label: 'V' }).track({}).values({ data: 'sc' });
     const d = b.getDocument();
     const text = toJSON(d);
     expect(text).toContain('"value":{"value":[0.15,null,0.3,0.33333334]}');
@@ -236,7 +236,7 @@ describe("typed arrays in a document", () => {
     expect([validate(d, reg), validate(back, reg)]).toEqual([[], []]);
   });
 
-  it("a large values table: 8 bytes a value with the float64 extension, 9 plain; JSON by the digits", () => {
+  it('a large values table: 8 bytes a value with the float64 extension, 9 plain; JSON by the digits', () => {
     const n = 100_000;
     const full = Float64Array.from({ length: n }, (_, i) => Math.sin(i / 1000));
     const short = full.map((x) => Math.round(1000 * x) / 1000);
@@ -254,31 +254,31 @@ describe("typed arrays in a document", () => {
 });
 
 describe('a source in `format: "msgpack"`', () => {
-  it("reads a table from a host file, either form, typed arrays or plain", async () => {
+  it('reads a table from a host file, either form, typed arrays or plain', async () => {
     const value = [0.15, 0.3, null, 0.1];
     const files: Record<string, Uint8Array> = {
-      "columns.msgpack": encodeMsgPack({ value: Float64Array.of(0.15, 0.3, Number.NaN, 0.1) }, encodeTypedArrays),
-      "rows.msgpack": encodeMsgPack(value.map((v, index) => ({ index, value: v }))),
+      'columns.msgpack': encodeMsgPack({ value: Float64Array.of(0.15, 0.3, Number.NaN, 0.1) }, encodeTypedArrays),
+      'rows.msgpack': encodeMsgPack(value.map((v, index) => ({ index, value: v }))),
     };
     const base = fixtureLoaders();
     const loaders = {
       ...base,
       load: async (r: Parameters<typeof base.load>[0], signal: AbortSignal) =>
-        files[r.hostFile ?? ""] ?? base.load(r, signal),
+        files[r.hostFile ?? ''] ?? base.load(r, signal),
     };
-    const b = createSeqViewSpec({ title: "MessagePack data" });
-    const s = b.data.sequence({ ref: "s", value: "MKVL" });
+    const b = createSeqViewSpec({ title: 'MessagePack data' });
+    const s = b.data.sequence({ ref: 's', value: 'MKVL' });
     for (const f of Object.keys(files)) {
-      const ref = f.split(".")[0];
-      b.data.annotation({ ref, geometry: "values", target: s, source: { host_file: f, format: "msgpack" } });
+      const ref = f.split('.')[0];
+      b.data.annotation({ ref, geometry: 'values', target: s, source: { host_file: f, format: 'msgpack' } });
     }
-    b.view({ ref: "v", label: "V" }).track({}).values({ data: "rows" });
+    b.view({ ref: 'v', label: 'V' }).track({}).values({ data: 'rows' });
     const d = b.getDocument();
     expect(validate(d, reg)).toEqual([]);
     const { set, issues } = await compile(d, reg, loaders);
     expect(issues).toEqual([]);
     const t: KeyTarget = { kind: -1, id: -1, row: -1 };
-    for (const ref of ["columns", "rows"]) {
+    for (const ref of ['columns', 'rows']) {
       const a = set.byName(ref, t) ? set.annotations[t.id] : null;
       const at = (i: number) => Annotations.valueAt(a as never, 0, i);
       expect([0, 1, 2, 3].map(at), ref).toEqual([0.15, 0.3, Number.NaN, 0.1]);
@@ -289,24 +289,24 @@ describe('a source in `format: "msgpack"`', () => {
   });
 });
 
-describe("CLIs", { tags: ["slow"] }, () => {
-  const dir = mkdtempSync(join(tmpdir(), "svs-msgpack-"));
+describe('CLIs', { tags: ['slow'] }, () => {
+  const dir = mkdtempSync(join(tmpdir(), 'svs-msgpack-'));
   const cli = (name: string, ...args: string[]) =>
     spawnSync(process.execPath, [fileURLToPath(new URL(`../../src/format/cli/${name}.ts`, import.meta.url)), ...args], {
-      encoding: "utf8",
+      encoding: 'utf8',
     });
   const path = (name: string) => join(dir, name);
 
-  it("svs-convert: JSON to MessagePack and back to the same text; svs-validate reads either", () => {
+  it('svs-convert: JSON to MessagePack and back to the same text; svs-validate reads either', () => {
     const text = toJSON(CASES.case1());
-    writeFileSync(path("a.svsj"), text);
-    expect(cli("svs-convert", path("a.svsj"), path("a.svsm")).status).toBe(0);
-    expect(isMsgPack(readFileSync(path("a.svsm")))).toBe(true);
-    expect(cli("svs-convert", path("a.svsm"), path("b.svsj")).status).toBe(0);
-    expect(readFileSync(path("b.svsj"), "utf8")).toBe(text);
-    const ok = cli("svs-validate", path("a.svsm"));
-    expect([ok.status, ok.stderr.trim()]).toEqual([0, `${path("a.svsm")}: 0 error(s), 0 warning(s), 0 note(s)`]);
-    writeFileSync(path("bad.svsm"), Uint8Array.of(0x81, 0xc1));
-    expect([cli("svs-convert", path("bad.svsm"), path("c.svsj")).status, cli("svs-convert").status]).toEqual([1, 2]);
+    writeFileSync(path('a.svsj'), text);
+    expect(cli('svs-convert', path('a.svsj'), path('a.svsm')).status).toBe(0);
+    expect(isMsgPack(readFileSync(path('a.svsm')))).toBe(true);
+    expect(cli('svs-convert', path('a.svsm'), path('b.svsj')).status).toBe(0);
+    expect(readFileSync(path('b.svsj'), 'utf8')).toBe(text);
+    const ok = cli('svs-validate', path('a.svsm'));
+    expect([ok.status, ok.stderr.trim()]).toEqual([0, `${path('a.svsm')}: 0 error(s), 0 warning(s), 0 note(s)`]);
+    writeFileSync(path('bad.svsm'), Uint8Array.of(0x81, 0xc1));
+    expect([cli('svs-convert', path('bad.svsm'), path('c.svsj')).status, cli('svs-convert').status]).toEqual([1, 2]);
   });
 });

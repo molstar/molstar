@@ -12,7 +12,7 @@
 // providers. A missing provider or aligner makes its node unavailable (a warning), and a node whose load reported an
 // error is unavailable; nodes that refer to it are left out quietly, so nothing cascades.
 
-import { AlignerSizeError, TreeSizeError } from "@molstar/seq-core/algorithms";
+import { AlignerSizeError, TreeSizeError } from '@molstar/seq-core/algorithms';
 import {
   type Alignment,
   type AlignmentInput,
@@ -33,8 +33,8 @@ import {
   type TreeInput,
   Trees,
   type UnitInput,
-} from "@molstar/seq-core/model";
-import type { SeqQLQuery } from "@molstar/seq-core/query";
+} from '@molstar/seq-core/model';
+import type { SeqQLQuery } from '@molstar/seq-core/query';
 import {
   type AlignerInput,
   emptyRequest,
@@ -49,21 +49,21 @@ import {
   StreamNotServed,
   type StreamRequest,
   type StreamSource,
-} from "../contract.js";
-import type { DocNode, SeqViewSpecDoc } from "../doc.js";
-import { equal } from "../equal.js";
-import { normalizeNodeParams } from "../normalize.js";
-import { queryRefs } from "../query.js";
-import type { SvsRegistries } from "../registry.js";
-import { type CheckContext, isNamespaced } from "../schema/field-schema.js";
-import type { IndexedNode } from "../schema/tree-schema.js";
-import { CellKind, cellKind, cellOk } from "../tables/cells.js";
-import { SvsTreeSchema } from "../tables/svs-tree.js";
-import { renameFields, table, typeColumns } from "../tables/table.js";
-import { validate } from "../validate.js";
-import { tableColumns } from "./formats.js";
-import { at, report, svsIssue } from "./issues.js";
-import type { AlignmentSummary, RealignInput } from "./node-providers.js";
+} from '../contract.js';
+import type { DocNode, SeqViewSpecDoc } from '../doc.js';
+import { equal } from '../equal.js';
+import { normalizeNodeParams } from '../normalize.js';
+import { queryRefs } from '../query.js';
+import type { SvsRegistries } from '../registry.js';
+import { type CheckContext, isNamespaced } from '../schema/field-schema.js';
+import type { IndexedNode } from '../schema/tree-schema.js';
+import { CellKind, cellKind, cellOk } from '../tables/cells.js';
+import { SvsTreeSchema } from '../tables/svs-tree.js';
+import { renameFields, table, typeColumns } from '../tables/table.js';
+import { validate } from '../validate.js';
+import { tableColumns } from './formats.js';
+import { at, report, svsIssue } from './issues.js';
+import type { AlignmentSummary, RealignInput } from './node-providers.js';
 
 /**
  * The runtime property (seqspec:model#custom-data; seqspec:sources#the-loader) of what a streamed source serves: a lazy
@@ -71,7 +71,7 @@ import type { AlignmentSummary, RealignInput } from "./node-providers.js";
  * the reader's own), each its manifest system's index; `labels`: row labels as they arrive (the viewer's stream manager
  * fills it).
  */
-export const StreamProp = "svs:stream";
+export const StreamProp = 'svs:stream';
 export interface StreamedData extends Streamed {
   readonly systems: ReadonlyMap<string, number>;
   readonly labels: Map<number, string>;
@@ -87,7 +87,7 @@ export function streamRequest(source: string, system: string | null, over: Parti
     row_stop: 0,
     level: -1,
     labels: false,
-    priority: "view",
+    priority: 'view',
     ...over,
   };
 }
@@ -151,7 +151,7 @@ export function indexDoc(
       walk(c, n.ref, `${path}/children/${i}`);
     });
   };
-  walk(doc.root, null, "/root");
+  walk(doc.root, null, '/root');
   return { nodes, order };
 }
 
@@ -172,29 +172,29 @@ const MiB = 1 << 20;
 const ROWS_AT_A_TIME = 8;
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const encoder = new TextEncoder();
-const head = (ref: string) => ref.split("/")[0];
+const head = (ref: string) => ref.split('/')[0];
 /** The object without null and undefined values: model inputs take absent, never null. */
 const clean = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null)) as T;
 const node = (doc: DocIndex, n: DocNode) => doc.nodes.get(n.ref ?? n.kind) as IndexedNode;
 const pathOf = (n: IndexedNode, param?: string) => (param ? `${n.path}/params/${param}` : n.path);
 const UNAVAILABLE: LoadResult = { unavailable: true };
 function unavailable(ctx: StageContext, n: IndexedNode, why: string): LoadResult {
-  report(ctx, "svs.provider.unavailable", n.path, `"${n.ref}" is unavailable: ${why}`);
+  report(ctx, 'svs.provider.unavailable', n.path, `"${n.ref}" is unavailable: ${why}`);
   return UNAVAILABLE;
 }
 
 const REF_PARAMS =
-  "source_ref from_source sequence ligand from to target alignment of reference pairs partner options query items order";
+  'source_ref from_source sequence ligand from to target alignment of reference pairs partner options query items order';
 /** Whether a ref param names an unavailable node (then this node is unavailable too, quietly). */
 function blocked(ctx: StageContext, n: IndexedNode): boolean {
   const gone = ctx.unavailable;
   const hit = (v: unknown): boolean =>
-    typeof v === "string"
+    typeof v === 'string'
       ? gone.has(head(v))
       : Array.isArray(v)
         ? v.some(hit)
-        : v !== null && typeof v === "object" && Object.values(v).some(hit);
-  return gone.size > 0 && REF_PARAMS.split(" ").some((k) => hit(n.params[k]));
+        : v !== null && typeof v === 'object' && Object.values(v).some(hit);
+  return gone.size > 0 && REF_PARAMS.split(' ').some((k) => hit(n.params[k]));
 }
 
 /**
@@ -205,9 +205,9 @@ export function sourceParse(doc: DocIndex, sources: ReadonlyMap<string, SourceRe
   const n = doc.nodes.get(head(ref));
   const implied = n && impliedSource(n, doc);
   const r =
-    sources.get(n?.kind === "source" ? n.ref : implied ? implied.ref : String(n?.params.source_ref)) ??
+    sources.get(n?.kind === 'source' ? n.ref : implied ? implied.ref : String(n?.params.source_ref)) ??
     (implied ? sources.get(n.ref) : undefined);
-  return r?.kind === "loaded" ? r.parsed : null;
+  return r?.kind === 'loaded' ? r.parsed : null;
 }
 
 /** A source's bytes, loaded once; its parses by request, each once, reported at its path. */
@@ -215,29 +215,29 @@ async function open(src: IndexedNode, ctx: StageContext, loaders: Loaders): Prom
   const p = src.params;
   const c = at(ctx, src.path);
   const fail = (code: string, m: string): SourceResult => {
-    report(c, code, "", m);
-    return { kind: code === "svs.provider.unavailable" ? "unavailable" : "failed" };
+    report(c, code, '', m);
+    return { kind: code === 'svs.provider.unavailable' ? 'unavailable' : 'failed' };
   };
   let uri = (p.uri as string | null) ?? null;
   let format = p.format as string | null;
-  const service = p.service == null ? null : ctx.registries.get("services", p.service as string);
+  const service = p.service == null ? null : ctx.registries.get('services', p.service as string);
   const [id, resource] = [String(p.id), String(p.resource ?? service?.resources[0])];
   if (p.service != null) {
-    if (!service) return fail("svs.provider.unavailable", `service "${p.service}" is not registered`);
+    if (!service) return fail('svs.provider.unavailable', `service "${p.service}" is not registered`);
     let r: ReturnType<typeof service.resolve>;
     try {
       r = service.resolve(id, resource);
     } catch (e) {
-      return fail("svs.source.load", `${service.name}: ${messageOf(e)}`);
+      return fail('svs.source.load', `${service.name}: ${messageOf(e)}`);
     }
-    if (!r) return fail("svs.source.load", `${service.name} has no resource "${resource}" (${service.resources})`);
+    if (!r) return fail('svs.source.load', `${service.name} has no resource "${resource}" (${service.resources})`);
     uri = r.uri;
     format ??= r.format;
   }
   // A format no package registered: unavailable, so a document opens without the extension
   // (seqspec:sources#data-by-reference).
-  const entry = format == null ? undefined : ctx.registries.get("formats", format);
-  if (!entry) return fail("svs.provider.unavailable", `format "${format}" is not registered`);
+  const entry = format == null ? undefined : ctx.registries.get('formats', format);
+  if (!entry) return fail('svs.provider.unavailable', `format "${format}" is not registered`);
   const req = {
     uri,
     hostFile: (p.host_file as string | null) ?? null,
@@ -250,11 +250,11 @@ async function open(src: IndexedNode, ctx: StageContext, loaders: Loaders): Prom
     if (!shared) {
       bytes = p.value != null ? encoder.encode(p.value as string) : await loaders.load(req, ctx.signal);
       const max = req.maxBytes ?? (p.value != null ? MiB : null);
-      if (max != null && bytes.length > max) return fail("svs.source.size_bound", `${bytes.length} bytes, over ${max}`);
+      if (max != null && bytes.length > max) return fail('svs.source.size_bound', `${bytes.length} bytes, over ${max}`);
     }
   } catch (e) {
     ctx.signal.throwIfAborted();
-    return fail("svs.source.load", `${uri ?? req.hostFile ?? "the value"}: ${messageOf(e)}`);
+    return fail('svs.source.load', `${uri ?? req.hostFile ?? 'the value'}: ${messageOf(e)}`);
   }
   // A read that reports an error is unreadable (null): its readers are unavailable, quietly. A source's issues are
   // said once however many reads of it meet them (GV-02: a FASTA alignment's, twice, on two nodes).
@@ -264,7 +264,7 @@ async function open(src: IndexedNode, ctx: StageContext, loaders: Loaders): Prom
     let failed = false;
     const counted: StageContext = Object.assign(Object.create(c), {
       report: (i: Issue) => {
-        failed ||= i.severity === "error";
+        failed ||= i.severity === 'error';
         const key = `${i.code}\0${i.path}\0${i.message}`;
         if (said.has(key)) return;
         said.add(key);
@@ -276,7 +276,7 @@ async function open(src: IndexedNode, ctx: StageContext, loaders: Loaders): Prom
       return failed ? null : service?.after ? service.after(result, id, resource, counted) : result;
     } catch (e) {
       rc.signal.throwIfAborted();
-      report(rc, "svs.source.load", src.path, `${uri ?? req.hostFile ?? "the value"}: ${messageOf(e)}`);
+      report(rc, 'svs.source.load', src.path, `${uri ?? req.hostFile ?? 'the value'}: ${messageOf(e)}`);
       return null;
     }
   };
@@ -286,9 +286,9 @@ async function open(src: IndexedNode, ctx: StageContext, loaders: Loaders): Prom
     // record and a geometry choose a tag's reading only: N alignments over N records of one file parse it once.
     const key = JSON.stringify(
       entry.reads.map((k) =>
-        k === "want"
+        k === 'want'
           ? (request.want ?? entry.gives[0])
-          : (k === "record" || k === "geometry") && request.tag == null
+          : (k === 'record' || k === 'geometry') && request.tag == null
             ? null
             : request[k],
       ),
@@ -297,11 +297,11 @@ async function open(src: IndexedNode, ctx: StageContext, loaders: Loaders): Prom
     reads.set(key, r);
     return r;
   };
-  return { kind: "loaded", format: entry.name, parsed: null, read };
+  return { kind: 'loaded', format: entry.name, parsed: null, read };
 }
 
 /** The readers' params a provider with no manifest of its own is told (`StreamSource.declared`). */
-const SHAPE = ["row_count", "column_count", "length", "target"];
+const SHAPE = ['row_count', 'column_count', 'length', 'target'];
 /**
  * A streamed source (seqspec:sources#streamed-sources), by `stream` or by `protocol` with `uri`: its provider
  * (`loaders.stream`) asked for the manifest, and nothing else; its readers' shape params `declared`, and with
@@ -322,15 +322,15 @@ async function streamSource(
   if (p.coordinate_system != null) declared.target = p.coordinate_system;
   const first = readers[0];
   const kind = (p.data_kind ??
-    (first?.kind === "alignment"
-      ? "alignment"
-      : first?.params.geometry === "values"
-        ? "values"
-        : first?.params.geometry === "ranges"
-          ? "items"
+    (first?.kind === 'alignment'
+      ? 'alignment'
+      : first?.params.geometry === 'values'
+        ? 'values'
+        : first?.params.geometry === 'ranges'
+          ? 'items'
           : null)) as StreamDataKind | null;
   // A protocol source nothing reads is not asked.
-  if (kind === null) return { kind: "unavailable" };
+  if (kind === null) return { kind: 'unavailable' };
   const source: StreamSource = {
     ref: n.ref,
     stream: (p.stream as string | null) ?? null,
@@ -344,45 +344,45 @@ async function streamSource(
   const provider = loaders.stream?.(source) ?? null;
   if (!provider) {
     unavailable(ctx, n, `the host provides no ${name}`);
-    return { kind: "unavailable" };
+    return { kind: 'unavailable' };
   }
   let m: Manifest;
   try {
     const patch = await provider.fetch(streamRequest(n.ref, null), ctx.signal);
-    if (patch.kind !== "manifest") throw new Error(`its first answer is ${patch.kind}, not a manifest`);
+    if (patch.kind !== 'manifest') throw new Error(`its first answer is ${patch.kind}, not a manifest`);
     m = patch.manifest;
   } catch (e) {
     ctx.signal.throwIfAborted();
     if (e instanceof StreamNotServed) {
       unavailable(ctx, n, `${name}: ${messageOf(e)}`);
-      return { kind: "unavailable" };
+      return { kind: 'unavailable' };
     }
-    report(ctx, "svs.source.load", n.path, `${name}: the manifest: ${messageOf(e)}`);
-    return { kind: "failed" };
+    report(ctx, 'svs.source.load', n.path, `${name}: the manifest: ${messageOf(e)}`);
+    return { kind: 'failed' };
   }
   const fault =
     !Array.isArray(m?.systems) || !Array.isArray(m.levels)
-      ? "a manifest has systems and levels"
-      : kind === "values" && !Array.isArray(m.domain)
-        ? "a values manifest has a domain"
-        : kind === "alignment" && !((m.rows ?? 0) > 0 && (m.columns ?? 0) > 0)
-          ? "an alignment manifest has rows and columns"
+      ? 'a manifest has systems and levels'
+      : kind === 'values' && !Array.isArray(m.domain)
+        ? 'a values manifest has a domain'
+        : kind === 'alignment' && !((m.rows ?? 0) > 0 && (m.columns ?? 0) > 0)
+          ? 'an alignment manifest has rows and columns'
           : null;
   if (fault) {
-    report(ctx, "svs.source.format", n.path, `${name}: ${fault}`);
-    return { kind: "failed" };
+    report(ctx, 'svs.source.format', n.path, `${name}: ${fault}`);
+    return { kind: 'failed' };
   }
-  return { kind: "streamed", source, manifest: m, provider };
+  return { kind: 'streamed', source, manifest: m, provider };
 }
 
 /** A node's streamed source by its `source_ref`; null: none. A reader of another data kind is reported. */
 function streamedOf(n: IndexedNode, doc: DocIndex, ctx: StageContext, want: StreamDataKind | null): Streamed | null {
   const src = sourceOf(doc, n.params.source_ref);
   const sr = src && ctx.sources.get(src.ref);
-  if (sr?.kind !== "streamed") return null;
+  if (sr?.kind !== 'streamed') return null;
   if (want === sr.source.data_kind) return sr;
-  const m = `a ${sr.source.data_kind} stream is not read by this ${n.kind}${want ? ` (it reads ${want})` : ""}`;
-  report(ctx, "svs.source.format", pathOf(n, "source_ref"), m);
+  const m = `a ${sr.source.data_kind} stream is not read by this ${n.kind}${want ? ` (it reads ${want})` : ''}`;
+  report(ctx, 'svs.source.format', pathOf(n, 'source_ref'), m);
   return null;
 }
 
@@ -391,12 +391,12 @@ function streamedOf(n: IndexedNode, doc: DocIndex, ctx: StageContext, want: Stre
  * (seqspec:model#molecules), the stream as its `svs:stream` (its one system, by its key: the viewer draws its letters
  * from the regions, ST3a).
  */
-function lazySequence(key: string, s: Streamed, sys: Manifest["systems"][number], alphabet: unknown): MoleculeInput {
+function lazySequence(key: string, s: Streamed, sys: Manifest['systems'][number], alphabet: unknown): MoleculeInput {
   const data: StreamedData = { ...s, systems: new Map([[key, s.manifest.systems.indexOf(sys)]]), labels: new Map() };
   return clean({
     key,
-    kind: "polymer" as const,
-    alphabet: (alphabet ?? s.manifest.alphabet ?? undefined) as MoleculeInput["alphabet"],
+    kind: 'polymer' as const,
+    alphabet: (alphabet ?? s.manifest.alphabet ?? undefined) as MoleculeInput['alphabet'],
     lazy: { length: sys.extent[1] },
     label: sys.label ?? undefined,
     numberings: sys.numbering ? [numberingOf(sys.numbering, undefined)] : undefined,
@@ -407,16 +407,16 @@ function lazySequence(key: string, s: Streamed, sys: Manifest["systems"][number]
 /** A source node, or the source an annotation's `uri` implies: its default parse, or its streamed provider. */
 async function loadSource(n: IndexedNode, ctx: StageContext, loaders: Loaders, doc?: DocIndex): Promise<SourceResult> {
   // A nested source (seqspec:sources#dynamic-nodes) sits under the source that added it.
-  const parent = doc?.nodes.get(n.parent ?? "")?.kind === "source" ? n.parent : null;
+  const parent = doc?.nodes.get(n.parent ?? '')?.kind === 'source' ? n.parent : null;
   if (n.params.stream != null || n.params.protocol != null) return streamSource(n, ctx, loaders, doc, parent);
   const r = await open(n, ctx, loaders);
-  return r.kind === "loaded" ? { ...r, parsed: await r.read(emptyRequest(), ctx) } : r;
+  return r.kind === 'loaded' ? { ...r, parsed: await r.read(emptyRequest(), ctx) } : r;
 }
 
 /** The source a node reads (`source_ref`), or null (reported) when it names none. */
 function sourceOf(doc: DocIndex, ref: unknown): IndexedNode | null {
-  const n = typeof ref === "string" ? doc.nodes.get(ref) : undefined;
-  return n?.kind === "source" ? n : null;
+  const n = typeof ref === 'string' ? doc.nodes.get(ref) : undefined;
+  return n?.kind === 'source' ? n : null;
 }
 
 /**
@@ -426,21 +426,21 @@ function sourceOf(doc: DocIndex, ref: unknown): IndexedNode | null {
  */
 function impliedSource(n: IndexedNode, doc: DocIndex): IndexedNode | null {
   const p = n.params;
-  if (n.kind === "annotation" && p.uri != null)
-    return { ...n, ref: `${n.ref}#uri`, kind: "source", params: { uri: p.uri, format: p.format } };
-  if (n.kind !== "computed" || p.provider !== "column_stats" || p.measure === "consensus") return null;
-  if (p.row_subset != null || p.reference_row != null || p.gaps !== "count") return null;
+  if (n.kind === 'annotation' && p.uri != null)
+    return { ...n, ref: `${n.ref}#uri`, kind: 'source', params: { uri: p.uri, format: p.format } };
+  if (n.kind !== 'computed' || p.provider !== 'column_stats' || p.measure === 'consensus') return null;
+  if (p.row_subset != null || p.reference_row != null || p.gaps !== 'count') return null;
   const aln = doc.nodes.get(String(p.alignment));
   const src = sourceOf(doc, aln?.params.source_ref);
   if (!aln || !src || (src.params.stream == null && src.params.protocol == null)) return null;
   const declared = clean({ measure: p.measure, length: aln.params.column_count, target: aln.ref });
-  return { ...n, ref: `${n.ref}#stats`, kind: "source", params: { ...src.params, data_kind: "values", declared } };
+  return { ...n, ref: `${n.ref}#stats`, kind: 'source', params: { ...src.params, data_kind: 'values', declared } };
 }
 
 /** One record of a source's list: by id (`key`), by index, or the only one. */
 function pick<T extends { key: string }>(ctx: StageContext, n: IndexedNode, list: T[], record: unknown): T | null {
   const r =
-    typeof record === "string"
+    typeof record === 'string'
       ? list.find((x) => x.key === record)
       : record == null
         ? list.length === 1
@@ -448,9 +448,9 @@ function pick<T extends { key: string }>(ctx: StageContext, n: IndexedNode, list
           : null
         : list[Number(record)];
   if (r) return r;
-  const ids = list.map((x, k) => x.key || k).join(", ");
+  const ids = list.map((x, k) => x.key || k).join(', ');
   const why = record == null ? `has ${list.length} records; set record` : `has no record ${JSON.stringify(record)}`;
-  report(ctx, "svs.source.record", pathOf(n, "record"), `the source ${why} (records: ${ids || "none"})`);
+  report(ctx, 'svs.source.record', pathOf(n, 'record'), `the source ${why} (records: ${ids || 'none'})`);
   return null;
 }
 
@@ -458,11 +458,11 @@ function pick<T extends { key: string }>(ctx: StageContext, n: IndexedNode, list
 async function read(n: IndexedNode, doc: DocIndex, ctx: StageContext, request: Partial<FormatRequest>) {
   const src = sourceOf(doc, n.params.source_ref);
   const sr = src && ctx.sources.get(src.ref);
-  if (sr?.kind === "streamed") streamedOf(n, doc, ctx, null);
-  if (sr?.kind !== "loaded") return null;
+  if (sr?.kind === 'streamed') streamedOf(n, doc, ctx, null);
+  if (sr?.kind !== 'loaded') return null;
   const r = await sr.read(emptyRequest(request), ctx);
   if (r && r.kind !== request.want) {
-    report(ctx, "svs.source.format", pathOf(n, "source_ref"), `the source gives ${r.kind}, not ${request.want}`);
+    report(ctx, 'svs.source.format', pathOf(n, 'source_ref'), `the source gives ${r.kind}, not ${request.want}`);
     return null;
   }
   return r;
@@ -471,26 +471,26 @@ async function read(n: IndexedNode, doc: DocIndex, ctx: StageContext, request: P
 /** A `numbering` node's params (seqspec:model#numberings) as the model's input: a node's, or a manifest system's. */
 function numberingOf(p: P, custom: object | undefined): NumberingInput {
   const base = { name: p.name as string, isDefault: p.default === true, custom };
-  if (p.method === "offset")
-    return { ...base, method: "offset", first: p.first as number, skipZero: p.skip_zero === true };
-  if (p.method === "segments")
-    return { ...base, method: "segments", segments: p.segments as [number, number, number][] };
-  if (p.method === "names") return { ...base, method: "names", names: p.labels as (string | null)[] };
-  return { ...base, method: "labels", labels: p.labels as (number | string | null)[] };
+  if (p.method === 'offset')
+    return { ...base, method: 'offset', first: p.first as number, skipZero: p.skip_zero === true };
+  if (p.method === 'segments')
+    return { ...base, method: 'segments', segments: p.segments as [number, number, number][] };
+  if (p.method === 'names') return { ...base, method: 'names', names: p.labels as (string | null)[] };
+  return { ...base, method: 'labels', labels: p.labels as (number | string | null)[] };
 }
 function numberings(n: IndexedNode, doc: DocIndex): NumberingInput[] {
   return (n.node.children ?? [])
-    .filter((c) => c.kind === "numbering")
+    .filter((c) => c.kind === 'numbering')
     .map((c) => numberingOf(node(doc, c).params, c.custom));
 }
 
-const provenance = (p: P) => (p.provenance ?? undefined) as MoleculeInput["provenance"];
+const provenance = (p: P) => (p.provenance ?? undefined) as MoleculeInput['provenance'];
 
 async function molecule(n: IndexedNode, doc: DocIndex, ctx: StageContext): Promise<LoadResult> {
   const p = n.params;
-  const ligand = n.kind === "ligand";
+  const ligand = n.kind === 'ligand';
   let m: MoleculeInput = { key: n.ref };
-  const streamed = ligand ? null : streamedOf(n, doc, ctx, "letters");
+  const streamed = ligand ? null : streamedOf(n, doc, ctx, 'letters');
   if (p.value != null)
     m = ligand ? { key: n.ref, elements: p.value as string[] } : { key: n.ref, residues: p.value as string };
   else if (streamed) {
@@ -498,20 +498,20 @@ async function molecule(n: IndexedNode, doc: DocIndex, ctx: StageContext): Promi
     if (!sys) return UNAVAILABLE;
     m = lazySequence(n.ref, streamed, sys, p.alphabet);
   } else {
-    const r = await read(n, doc, ctx, { want: "molecules", record: p.record as string | number | null });
-    const got = r?.kind === "molecules" ? pick(ctx, n, r.molecules, p.record) : null;
+    const r = await read(n, doc, ctx, { want: 'molecules', record: p.record as string | number | null });
+    const got = r?.kind === 'molecules' ? pick(ctx, n, r.molecules, p.record) : null;
     if (!got) return UNAVAILABLE;
     m = got;
   }
   const input: MoleculeInput = clean({
     ...m,
     key: n.ref,
-    kind: ligand ? "ligand" : "polymer",
-    alphabet: (p.alphabet ?? m.alphabet) as MoleculeInput["alphabet"],
+    kind: ligand ? 'ligand' : 'polymer',
+    alphabet: (p.alphabet ?? m.alphabet) as MoleculeInput['alphabet'],
     cyclic: p.cyclic === true || m.cyclic,
     chemCompIds: (p.chem_comp_ids ?? m.chemCompIds) as (string | null)[],
     label: (p.label ?? m.label) as string,
-    identifiers: [...(m.identifiers ?? []), ...((p.identifiers as MoleculeInput["identifiers"]) ?? [])],
+    identifiers: [...(m.identifiers ?? []), ...((p.identifiers as MoleculeInput['identifiers']) ?? [])],
     numberings: [...(m.numberings ?? []), ...numberings(n, doc)],
     provenance: provenance(p) ?? m.provenance,
     ownUnit: true,
@@ -522,8 +522,8 @@ async function molecule(n: IndexedNode, doc: DocIndex, ctx: StageContext): Promi
 
 function unit(n: IndexedNode, doc: DocIndex): SetPart {
   const p = n.params;
-  const parent = doc.nodes.get(n.parent ?? "");
-  const origin = (parent?.kind === "complex" ? parent.params.origin : null) ?? p.origin;
+  const parent = doc.nodes.get(n.parent ?? '');
+  const origin = (parent?.kind === 'complex' ? parent.params.origin : null) ?? p.origin;
   const u: UnitInput = clean({
     key: n.ref,
     molecule: (p.sequence ?? p.ligand) as string,
@@ -544,19 +544,19 @@ function unit(n: IndexedNode, doc: DocIndex): SetPart {
  */
 async function providerTree(tn: IndexedNode, ctx: StageContext, a: AlignmentInput | null) {
   const name = String(tn.params.provider);
-  const entry = ctx.registries.get("nodeProviders", name);
+  const entry = ctx.registries.get('nodeProviders', name);
   const why = (m: string) => unavailable(ctx, tn, m);
   if (!entry) return void why(`node provider "${name}" is not registered`);
-  if (entry.kind !== "tree") return void why(`node provider "${name}" computes a ${entry.kind}, not a tree`);
+  if (entry.kind !== 'tree') return void why(`node provider "${name}" computes a ${entry.kind}, not a tree`);
   if (!a) {
-    report(ctx, "svs.provider.lazy", tn.path, `"${tn.ref}": a tree is not computed over a streamed alignment's rows`);
+    report(ctx, 'svs.provider.lazy', tn.path, `"${tn.ref}": a tree is not computed over a streamed alignment's rows`);
     return undefined;
   }
   try {
     return (await entry.compute(at(ctx, tn.path), [a], tn.params.options, ctx.signal)) as TreeInput | null;
   } catch (e) {
     ctx.signal.throwIfAborted();
-    if (e instanceof TreeSizeError) report(ctx, "svs.provider.size", tn.path, `"${tn.ref}": ${e.message}`);
+    if (e instanceof TreeSizeError) report(ctx, 'svs.provider.size', tn.path, `"${tn.ref}": ${e.message}`);
     else why(`node provider "${name}" failed: ${messageOf(e)}`);
     return undefined;
   }
@@ -569,7 +569,7 @@ async function treeOf(
   labels: (string | null)[],
   held: AlignmentInput | null = null,
 ) {
-  const t = (n.node.children ?? []).find((c) => c.kind === "tree");
+  const t = (n.node.children ?? []).find((c) => c.kind === 'tree');
   if (!t) return undefined;
   const tn = node(doc, t);
   if (tn.params.provider != null) return (await providerTree(tn, ctx, held)) ?? undefined;
@@ -578,16 +578,16 @@ async function treeOf(
     r =
       tn.params.value != null
         ? await ctx.registries
-            .get("formats", "newick")
+            .get('formats', 'newick')
             ?.read(encoder.encode(tn.params.value as string), emptyRequest(), at(ctx, tn.path))
-        : await read(tn, doc, ctx, { want: "tree" });
+        : await read(tn, doc, ctx, { want: 'tree' });
   } catch (e) {
     ctx.signal.throwIfAborted();
-    report(ctx, "svs.source.format", tn.path, messageOf(e));
+    report(ctx, 'svs.source.format', tn.path, messageOf(e));
     return undefined;
   }
-  if (r?.kind !== "tree") return undefined;
-  return { ...r.tree, leafRow: Trees.matchLeaves(r.tree, labels, tn.params.leaves as "labels" | "order") };
+  if (r?.kind !== 'tree') return undefined;
+  return { ...r.tree, leafRow: Trees.matchLeaves(r.tree, labels, tn.params.leaves as 'labels' | 'order') };
 }
 
 const named = new WeakMap<DocIndex, Promise<Map<string, Set<number>>>>();
@@ -598,13 +598,13 @@ const named = new WeakMap<DocIndex, Promise<Map<string, Set<number>>>>();
 function namedRows(doc: DocIndex, ctx: StageContext, loaders: Loaders): Promise<Map<string, Set<number>>> {
   const out = new Map<string, Set<number>>();
   const see = (v: unknown) => {
-    const m = typeof v === "string" ? /^(.+)\/(\d+)$/.exec(v) : null;
+    const m = typeof v === 'string' ? /^(.+)\/(\d+)$/.exec(v) : null;
     if (m) out.set(m[1], (out.get(m[1]) ?? new Set()).add(Number(m[2])));
   };
   const scan = async () => {
     for (const n of doc.order) {
-      if (n.kind === "mapping") [n.params.from, n.params.to].forEach(see);
-      if (n.kind !== "annotation" || n.params.geometry === "rows") continue;
+      if (n.kind === 'mapping') [n.params.from, n.params.to].forEach(see);
+      if (n.kind !== 'annotation' || n.params.geometry === 'rows') continue;
       see(n.params.target);
       const t = await tableOf(n, doc, ctx, loaders, false);
       for (const k of TARGETS) t?.columns[k]?.forEach(see);
@@ -627,7 +627,7 @@ function namedRows(doc: DocIndex, ctx: StageContext, loaders: Loaders): Promise<
  */
 async function lazyAlignment(n: IndexedNode, src: IndexedNode, doc: DocIndex, ctx: StageContext, loaders: Loaders) {
   const p = n.params;
-  const s = streamedOf(n, doc, ctx, "alignment");
+  const s = streamedOf(n, doc, ctx, 'alignment');
   if (!s) return UNAVAILABLE;
   const labels = new Map<number, string>();
   const sys = s.manifest.systems[0]?.key ?? n.ref;
@@ -637,7 +637,7 @@ async function lazyAlignment(n: IndexedNode, src: IndexedNode, doc: DocIndex, ct
       streamRequest(src.ref, sys, { stop: s.manifest.columns ?? 0, row_start: k, row_stop: k + 1 }),
       signal,
     );
-    if (r.kind !== "rows" || !r.rows) throw new Error(`a ${r.kind} patch, not rows`);
+    if (r.kind !== 'rows' || !r.rows) throw new Error(`a ${r.kind} patch, not rows`);
     labels.set(k, r.labels[0]);
     return { label: r.labels[0], row: r.rows[0] };
   };
@@ -670,24 +670,24 @@ async function lazyAlignment(n: IndexedNode, src: IndexedNode, doc: DocIndex, ct
   }
   // One issue for every row that failed, with the first few (GV-07: an outage gave one per row scanned).
   if (failed.length > 0) {
-    const more = failed.length > 3 ? ` and ${failed.length - 3} more` : "";
-    const message = `${name}: ${failed.length} row(s) failed: ${failed.slice(0, 3).join("; ")}${more}`;
-    report(ctx, "svs.source.load", pathOf(n, "source_ref"), message);
+    const more = failed.length > 3 ? ` and ${failed.length - 3} more` : '';
+    const message = `${name}: ${failed.length} row(s) failed: ${failed.slice(0, 3).join('; ')}${more}`;
+    report(ctx, 'svs.source.load', pathOf(n, 'source_ref'), message);
   }
   const [rowCount, columnCount] = [s.manifest.rows ?? 0, s.manifest.columns ?? 0];
   for (const [k, v] of [
-    ["row_count", rowCount],
-    ["column_count", columnCount],
+    ['row_count', rowCount],
+    ['column_count', columnCount],
   ] as const)
     if (p[k] != null && p[k] !== v)
-      report(ctx, "svs.alignment.shape", pathOf(n, k), `${k} is ${p[k]}; the manifest's ${v}`);
+      report(ctx, 'svs.alignment.shape', pathOf(n, k), `${k} is ${p[k]}; the manifest's ${v}`);
   const a: AlignmentInput = clean({
     key: n.ref,
     gapped: [],
-    flavor: "aligned",
+    flavor: 'aligned',
     lazy: { rowCount, columnCount, rows, labelOf: (k: number) => labels.get(k) ?? null },
     tree: await treeOf(n, doc, ctx, [], null),
-    alphabet: p.alphabet as AlignmentInput["alphabet"],
+    alphabet: p.alphabet as AlignmentInput['alphabet'],
     referenceRow: p.reference_row as number,
     parentRows: p.parent_rows as (number | null)[],
     custom: n.node.custom,
@@ -705,18 +705,18 @@ function realignInputs(n: IndexedNode, ctx: StageContext) {
   const set = ctx.set;
   const p = n.params;
   const say = (code: string, message: string) => {
-    report(ctx, code, pathOf(n, "inputs"), message);
+    report(ctx, code, pathOf(n, 'inputs'), message);
     return null;
   };
-  if (!set) return say("svs.ref.derived_unknown", "nothing is loaded to align");
-  const keys = typeof p.inputs === "string" ? [p.inputs] : (p.inputs as string[]);
+  if (!set) return say('svs.ref.derived_unknown', 'nothing is loaded to align');
+  const keys = typeof p.inputs === 'string' ? [p.inputs] : (p.inputs as string[]);
   const t: KeyTarget = { kind: -1, id: -1, row: -1 };
   const inputs: RealignInput[] = [];
   const targets: string[] = [];
   const see = (
     key: string,
     label: string | null,
-    alphabet: AlignerInput["alphabet"],
+    alphabet: AlignerInput['alphabet'],
     code: Uint8Array,
     bind: string,
   ) => {
@@ -726,7 +726,7 @@ function realignInputs(n: IndexedNode, ctx: StageContext) {
   const fromRows = (aln: Alignment, key: string, rows: Iterable<number>) => {
     for (const k of rows) {
       const slot = aln.rows.slotOf(k as never);
-      if (slot < 0) return say("svs.provider.lazy", `"${key}/${k}" is a row that is not held (a streamed alignment)`);
+      if (slot < 0) return say('svs.provider.lazy', `"${key}/${k}" is a row that is not held (a streamed alignment)`);
       const code = aln.rows.residues.subarray(aln.rows.residueStart[slot], aln.rows.residueStart[slot + 1]);
       see(`${key}/${k}`, aln.labelText(k as never), aln.alphabet, code, `${key}/${k}`);
     }
@@ -734,8 +734,8 @@ function realignInputs(n: IndexedNode, ctx: StageContext) {
   };
   for (const key of keys) {
     if (key === n.ref || key.startsWith(`${n.ref}/`))
-      return say("svs.ref.cycle", `"${key}" is this alignment's own: it cannot be aligned from itself`);
-    if (!set.byName(key, t)) return say("svs.ref.derived_unknown", `"${key}" names nothing loaded to align`);
+      return say('svs.ref.cycle', `"${key}" is this alignment's own: it cannot be aligned from itself`);
+    if (!set.byName(key, t)) return say('svs.ref.derived_unknown', `"${key}" names nothing loaded to align`);
     if (t.kind === KeyKind.alignment) {
       const aln = set.alignments[t.id] as Alignment;
       if (
@@ -747,22 +747,22 @@ function realignInputs(n: IndexedNode, ctx: StageContext) {
       )
         return null;
     } else if (t.kind === KeyKind.row) {
-      if (!fromRows(set.alignments[t.id] as Alignment, key.slice(0, key.lastIndexOf("/")), [t.row])) return null;
+      if (!fromRows(set.alignments[t.id] as Alignment, key.slice(0, key.lastIndexOf('/')), [t.row])) return null;
     } else if (t.kind === KeyKind.molecule || t.kind === KeyKind.unit) {
       const u = t.kind === KeyKind.unit;
       const m = set.molecules[u ? set.units.molecule[t.id] : t.id] as Molecule;
       if (m.kind !== MoleculeKind.polymer)
-        return say("svs.ligand.unsupported", `"${key}" is a ligand: it cannot be aligned`);
-      if (m.lazy) return say("svs.provider.lazy", `"${key}" is a streamed sequence: its letters are not held`);
+        return say('svs.ligand.unsupported', `"${key}" is a ligand: it cannot be aligned`);
+      if (m.lazy) return say('svs.provider.lazy', `"${key}" is a streamed sequence: its letters are not held`);
       const code = u ? m.code.subarray(set.units.rangeStart[t.id], set.units.rangeStop[t.id]) : m.code;
       const label = m.label >= 0 ? set.strings.get(m.label) : null;
       see(key, label, m.alphabet, code, key);
-    } else return say("svs.ref.wrong_kind", `"${key}" is no sequence, unit, row or alignment`);
+    } else return say('svs.ref.wrong_kind', `"${key}" is no sequence, unit, row or alignment`);
   }
   return {
     inputs,
     targets,
-    reference: typeof p.inputs === "string" ? ((set.alignments[t.id] as Alignment).referenceRow as number) : 0,
+    reference: typeof p.inputs === 'string' ? ((set.alignments[t.id] as Alignment).referenceRow as number) : 0,
   };
 }
 
@@ -776,9 +776,9 @@ function realignInputs(n: IndexedNode, ctx: StageContext) {
 async function computedAlignment(n: IndexedNode, doc: DocIndex, ctx: StageContext): Promise<LoadResult> {
   const p = n.params;
   const name = String(p.provider);
-  const entry = ctx.registries.get("nodeProviders", name);
+  const entry = ctx.registries.get('nodeProviders', name);
   if (!entry) return unavailable(ctx, n, `node provider "${name}" is not registered`);
-  if (entry.kind !== "alignment")
+  if (entry.kind !== 'alignment')
     return unavailable(ctx, n, `node provider "${name}" computes a ${entry.kind}, not an alignment`);
   const read = realignInputs(n, ctx);
   if (!read) return UNAVAILABLE;
@@ -787,7 +787,7 @@ async function computedAlignment(n: IndexedNode, doc: DocIndex, ctx: StageContex
     result = await entry.compute(at(ctx, n.path), read.inputs, p.options, ctx.signal);
   } catch (e) {
     ctx.signal.throwIfAborted();
-    if (e instanceof AlignerSizeError) report(ctx, "svs.provider.size", n.path, `"${n.ref}": ${e.message}`);
+    if (e instanceof AlignerSizeError) report(ctx, 'svs.provider.size', n.path, `"${n.ref}": ${e.message}`);
     else unavailable(ctx, n, `node provider "${name}" failed: ${messageOf(e)}`);
     return UNAVAILABLE;
   }
@@ -796,7 +796,7 @@ async function computedAlignment(n: IndexedNode, doc: DocIndex, ctx: StageContex
     ...(result as AlignmentInput),
     key: n.ref,
     labels: (p.labels ?? (result as AlignmentInput).labels) as string[],
-    alphabet: (p.alphabet ?? (result as AlignmentInput).alphabet) as AlignmentInput["alphabet"],
+    alphabet: (p.alphabet ?? (result as AlignmentInput).alphabet) as AlignmentInput['alphabet'],
     referenceRow: (p.reference_row ?? read.reference) as number,
     parentRows: p.parent_rows as (number | null)[],
     custom: n.node.custom,
@@ -807,7 +807,7 @@ async function computedAlignment(n: IndexedNode, doc: DocIndex, ctx: StageContex
     key: `${n.ref}.row-${k}`,
     from: `${n.ref}/${k}`,
     to,
-    method: "identity",
+    method: 'identity',
   }));
   return { alignments: [a], mappings };
 }
@@ -818,14 +818,14 @@ async function alignment(n: IndexedNode, doc: DocIndex, ctx: StageContext, loade
   const src = sourceOf(doc, p.source_ref);
   if (src?.params.protocol != null || src?.params.stream != null) return lazyAlignment(n, src, doc, ctx, loaders);
   let a: AlignmentInput;
-  if (p.value != null) a = { key: n.ref, gapped: p.value as string[], flavor: p.flavor as "aligned" | "a3m" };
+  if (p.value != null) a = { key: n.ref, gapped: p.value as string[], flavor: p.flavor as 'aligned' | 'a3m' };
   else {
     const r = await read(n, doc, ctx, {
-      want: "alignments",
-      flavor: p.flavor as "aligned",
+      want: 'alignments',
+      flavor: p.flavor as 'aligned',
       record: p.record as number,
     });
-    const got = r?.kind === "alignments" ? pick(ctx, n, r.alignments, p.record) : null;
+    const got = r?.kind === 'alignments' ? pick(ctx, n, r.alignments, p.record) : null;
     if (!got) return UNAVAILABLE;
     a = got;
   }
@@ -833,18 +833,18 @@ async function alignment(n: IndexedNode, doc: DocIndex, ctx: StageContext, loade
     ...a,
     key: n.ref,
     labels: (p.labels ?? a.labels) as string[],
-    alphabet: (p.alphabet ?? a.alphabet) as AlignmentInput["alphabet"],
+    alphabet: (p.alphabet ?? a.alphabet) as AlignmentInput['alphabet'],
     referenceRow: p.reference_row as number,
     parentRows: p.parent_rows as (number | null)[],
     custom: n.node.custom,
   });
-  const width = a.flavor === "a3m" ? (a.gapped[0] ?? "").replace(/[a-z.]/g, "").length : (a.gapped[0]?.length ?? 0);
+  const width = a.flavor === 'a3m' ? (a.gapped[0] ?? '').replace(/[a-z.]/g, '').length : (a.gapped[0]?.length ?? 0);
   for (const [k, v] of [
-    ["row_count", a.gapped.length],
-    ["column_count", width],
+    ['row_count', a.gapped.length],
+    ['column_count', width],
   ] as const) {
     if (p[k] != null && p[k] !== v)
-      report(ctx, "svs.alignment.shape", pathOf(n, k), `${k} is ${p[k]}; the data has ${v}`);
+      report(ctx, 'svs.alignment.shape', pathOf(n, k), `${k} is ${p[k]}; the data has ${v}`);
   }
   const tree = await treeOf(n, doc, ctx, a.labels ?? a.gapped.map(() => null), a);
   if (tree) a.tree = tree;
@@ -875,36 +875,36 @@ async function mapping(n: IndexedNode, ctx: StageContext): Promise<LoadResult> {
     custom: n.node.custom,
   });
   let m: MappingInput;
-  if (p.method === "identity") m = clean({ ...base, method: "identity", fromRange: p.from_range as [number, number] });
-  else if (p.method === "segments")
-    m = { ...base, method: "segments", segments: p.segments as [number, number, number | null][] };
-  else if (p.method === "pairwise") m = { ...base, method: "pairwise", cigar: p.cigar as string };
-  else if (p.method === "by_numbering") {
+  if (p.method === 'identity') m = clean({ ...base, method: 'identity', fromRange: p.from_range as [number, number] });
+  else if (p.method === 'segments')
+    m = { ...base, method: 'segments', segments: p.segments as [number, number, number | null][] };
+  else if (p.method === 'pairwise') m = { ...base, method: 'pairwise', cigar: p.cigar as string };
+  else if (p.method === 'by_numbering') {
     m = clean({
       ...base,
-      method: "by_numbering",
+      method: 'by_numbering',
       numbering: p.numbering as string,
       toNumbering: p.to_numbering as string,
     });
-  } else if (p.method === "codon") {
+  } else if (p.method === 'codon') {
     m = clean({
       ...base,
-      method: "codon",
+      method: 'codon',
       cds: p.cds as [number, number][],
       start: p.start as number,
       fromRange: p.from_range as [number, number],
-      strand: p.strand as "+" | "-",
+      strand: p.strand as '+' | '-',
       geneticCode: p.genetic_code as number,
     });
-  } else if (p.method === "provider") {
+  } else if (p.method === 'provider') {
     return mappingProvider(n, ctx);
   } else {
-    const entry = ctx.registries.get("aligners", p.aligner as string);
+    const entry = ctx.registries.get('aligners', p.aligner as string);
     if (!entry) return unavailable(ctx, n, `aligner "${p.aligner}" is not registered`);
     const [a, b] = ctx.set ? [alignerInput(ctx.set, base.from), alignerInput(ctx.set, base.to)] : [null, null];
     if (!a || !b) {
-      const which = a ? "to" : "from";
-      report(ctx, "svs.ref.derived_unknown", pathOf(n, which), `"${p[which]}" names nothing loaded to align`);
+      const which = a ? 'to' : 'from';
+      report(ctx, 'svs.ref.derived_unknown', pathOf(n, which), `"${p[which]}" names nothing loaded to align`);
       return UNAVAILABLE;
     }
     let cigar: string | null;
@@ -912,7 +912,7 @@ async function mapping(n: IndexedNode, ctx: StageContext): Promise<LoadResult> {
       cigar = await entry.align(at(ctx, n.path), a, b, p.options);
     } catch (e) {
       ctx.signal.throwIfAborted();
-      report(ctx, "svs.mapping.align", n.path, `${entry.name}: ${messageOf(e)}`);
+      report(ctx, 'svs.mapping.align', n.path, `${entry.name}: ${messageOf(e)}`);
       return UNAVAILABLE;
     }
     // A null is an aligner that did not align, its reason reported by the entry: the mapping is unavailable.
@@ -922,24 +922,24 @@ async function mapping(n: IndexedNode, ctx: StageContext): Promise<LoadResult> {
     const parameters = { ...(given?.parameters as object | undefined), aligner: entry.name, options: p.options };
     m = {
       ...base,
-      method: "pairwise",
+      method: 'pairwise',
       cigar,
-      provenance: given ? { ...given, parameters } : { source: entry.name, method: "alignment", parameters },
+      provenance: given ? { ...given, parameters } : { source: entry.name, method: 'alignment', parameters },
     };
   }
   return { mappings: [m] };
 }
 
 /** An alignment's key and row count, as a mapping provider reads its endpoints; null with the reason reported. */
-function summaryOf(n: IndexedNode, ctx: StageContext, param: "from" | "to"): AlignmentSummary | null {
+function summaryOf(n: IndexedNode, ctx: StageContext, param: 'from' | 'to'): AlignmentSummary | null {
   const t: KeyTarget = { kind: -1, id: -1, row: -1 };
   const key = String(n.params[param]);
   const set = ctx.set;
   if (!set?.byName(key, t) || t.kind !== KeyKind.alignment) {
-    const why = set?.byName(key, t) ? "is not an alignment" : "names nothing loaded";
+    const why = set?.byName(key, t) ? 'is not an alignment' : 'names nothing loaded';
     report(
       ctx,
-      "svs.ref.derived_unknown",
+      'svs.ref.derived_unknown',
       pathOf(n, param),
       `"${key}" ${why}: the provider pairs the rows of two alignments`,
     );
@@ -947,7 +947,7 @@ function summaryOf(n: IndexedNode, ctx: StageContext, param: "from" | "to"): Ali
   }
   const a = set.alignments[t.id] as Alignment;
   if (a.lazy) {
-    report(ctx, "svs.provider.lazy", pathOf(n, param), `"${key}" is a streamed alignment: its rows are not held`);
+    report(ctx, 'svs.provider.lazy', pathOf(n, param), `"${key}" is a streamed alignment: its rows are not held`);
     return null;
   }
   return { key, rowCount: a.rowCount };
@@ -959,11 +959,11 @@ function summaryOf(n: IndexedNode, ctx: StageContext, param: "from" | "to"): Ali
  */
 async function mappingProvider(n: IndexedNode, ctx: StageContext): Promise<LoadResult> {
   const name = String(n.params.provider);
-  const entry = ctx.registries.get("nodeProviders", name);
+  const entry = ctx.registries.get('nodeProviders', name);
   if (!entry) return unavailable(ctx, n, `node provider "${name}" is not registered`);
-  if (entry.kind !== "mapping")
+  if (entry.kind !== 'mapping')
     return unavailable(ctx, n, `node provider "${name}" computes a ${entry.kind}, not a mapping`);
-  const [from, to] = [summaryOf(n, ctx, "from"), summaryOf(n, ctx, "to")];
+  const [from, to] = [summaryOf(n, ctx, 'from'), summaryOf(n, ctx, 'to')];
   if (!from || !to) return UNAVAILABLE;
   let result: Awaited<ReturnType<typeof entry.compute>>;
   try {
@@ -983,7 +983,7 @@ async function mappingProvider(n: IndexedNode, ctx: StageContext): Promise<LoadR
   };
 }
 
-const TARGETS = ["target", "b_target"];
+const TARGETS = ['target', 'b_target'];
 
 /**
  * An annotation's table: from a file, `fields` applied and text cells typed, targets prefixed; null when unreadable.
@@ -1001,12 +1001,12 @@ async function tableOf(
   let prefix: string | null = null;
   if (p.value == null) {
     const request = emptyRequest({
-      want: "table",
+      want: 'table',
       tag: p.tag as string | null,
       categoryName: p.category_name as string | null,
       blockHeader: p.block_header as string | null,
       blockIndex: p.block_index as number,
-      geometry: p.geometry as FormatRequest["geometry"],
+      geometry: p.geometry as FormatRequest['geometry'],
     });
     let src = sourceOf(doc, p.source_ref);
     const inline = impliedSource(n, doc);
@@ -1015,7 +1015,7 @@ async function tableOf(
       const from = doc.nodes.get(head(p.from_source as string));
       src = sourceOf(doc, from?.params.source_ref);
       if (!src) {
-        report(ctx, "svs.source.load", pathOf(n, "from_source"), `"${p.from_source}" was not read from a file`);
+        report(ctx, 'svs.source.load', pathOf(n, 'from_source'), `"${p.from_source}" was not read from a file`);
         return null;
       }
       request.record = (from?.params.record as number | null) ?? null;
@@ -1025,15 +1025,15 @@ async function tableOf(
       inline && src === inline
         ? (ctx.sources.get(inline.ref) ?? (await loadSource(inline, ctx, loaders)))
         : src && ctx.sources.get(src.ref);
-    const r = sr?.kind === "loaded" ? await sr.read(request, ctx) : null;
-    if (r?.kind !== "table") {
-      if (r && loud) report(ctx, "svs.source.format", n.path, `the source gives ${r.kind}, not a table`);
+    const r = sr?.kind === 'loaded' ? await sr.read(request, ctx) : null;
+    if (r?.kind !== 'table') {
+      if (r && loud) report(ctx, 'svs.source.format', n.path, `the source gives ${r.kind}, not a table`);
       return null;
     }
     // `fields` read the file's columns as read; a text file's cells are typed after them, then checked as an inline
     // table's are (CF-03: one issue per column, its rows left out).
     const named = renameFields(r.columns, (p.fields ?? {}) as Record<string, string | null>);
-    t = { columns: (r.text ? typeColumns(named as never) : named) as Table["columns"], length: r.length };
+    t = { columns: (r.text ? typeColumns(named as never) : named) as Table['columns'], length: r.length };
     if (r.text) t = checkedCells(t, p.geometry as Geometry, n, ctx);
     prefix ??= (p.target as string | null) ?? null;
   }
@@ -1061,7 +1061,7 @@ function checkedCells(t: Table, geometry: Geometry, n: IndexedNode, ctx: StageCo
     const c = t.columns[k] as ArrayLike<unknown>;
     for (let i = 0; i < t.length; i++) {
       const v = c[i];
-      if (v == null || (typeof v === "number" && Number.isNaN(v)) || cellOk(kind, v)) continue;
+      if (v == null || (typeof v === 'number' && Number.isNaN(v)) || cellOk(kind, v)) continue;
       keep ??= new Uint8Array(t.length).fill(1);
       keep[i] = 0;
     }
@@ -1077,8 +1077,8 @@ function checkedCells(t: Table, geometry: Geometry, n: IndexedNode, ctx: StageCo
     depth: 0,
   };
   table(geometry).check(t.columns, `${n.path}/source`, check);
-  for (const i of check.issues) if (i.code === "svs.columns.type") ctx.report(i);
-  const columns: Table["columns"] = Object.create(null);
+  for (const i of check.issues) if (i.code === 'svs.columns.type') ctx.report(i);
+  const columns: Table['columns'] = Object.create(null);
   for (const [k, c] of Object.entries(t.columns))
     columns[k] = Array.from(c as ArrayLike<unknown>).filter((_, i) => kept[i] === 1);
   return { columns, length: kept.reduce((n, x) => n + x, 0) };
@@ -1088,7 +1088,7 @@ async function annotation(n: IndexedNode, doc: DocIndex, ctx: StageContext, load
   const p = n.params;
   const base = {
     key: n.ref,
-    geometry: p.geometry as AnnotationInput["geometry"],
+    geometry: p.geometry as AnnotationInput['geometry'],
     semanticType: p.semantic_type as string,
     label: p.label as string,
     target: p.target as string,
@@ -1102,17 +1102,17 @@ async function annotation(n: IndexedNode, doc: DocIndex, ctx: StageContext, load
   // source, so `ctx.source(ref)` finds it by the annotation's ref (`sourceParse`).
   const inline = p.value == null ? impliedSource(n, doc) : null;
   const own = inline && !ctx.sources.has(inline.ref) ? await loadSource(inline, ctx, loaders) : null;
-  const loaded = own?.kind === "loaded" && inline ? own : null;
+  const loaded = own?.kind === 'loaded' && inline ? own : null;
   const sources = loaded && inline ? new Map(ctx.sources).set(inline.ref, loaded) : null;
   const t = await tableOf(n, doc, sources ? Object.assign(Object.create(ctx), { sources }) : ctx, loaders);
   if (!t) return UNAVAILABLE;
   // Keyed by data: a `__proto__` column stays a column when the rows are filtered below (CF-02).
-  const cols: Table["columns"] = Object.assign(Object.create(null), t.columns);
+  const cols: Table['columns'] = Object.assign(Object.create(null), t.columns);
   // Rows over unavailable nodes are left out quietly.
   const gone = ctx.unavailable;
   const keep =
     gone.size > 0
-      ? Array.from({ length: t.length }, (_, i) => !TARGETS.some((k) => gone.has(head(String(cols[k]?.[i] ?? "")))))
+      ? Array.from({ length: t.length }, (_, i) => !TARGETS.some((k) => gone.has(head(String(cols[k]?.[i] ?? '')))))
       : [];
   if (keep.includes(false)) for (const k of Object.keys(cols)) cols[k] = cols[k].filter((_, i) => keep[i]);
   const a: AnnotationInput = clean({
@@ -1121,7 +1121,7 @@ async function annotation(n: IndexedNode, doc: DocIndex, ctx: StageContext, load
     bNumbering: p.b_numbering as string,
     columns: cols,
     states: p.states as string[],
-    links: (p.links as AnnotationInput["links"])?.length ? (p.links as AnnotationInput["links"]) : undefined,
+    links: (p.links as AnnotationInput['links'])?.length ? (p.links as AnnotationInput['links']) : undefined,
   });
   return loaded ? { annotations: [a], source: loaded } : { annotations: [a] };
 }
@@ -1135,33 +1135,33 @@ function streamedAnnotation(
   n: IndexedNode,
   doc: DocIndex,
   ctx: StageContext,
-  base: Omit<AnnotationInput, "columns">,
+  base: Omit<AnnotationInput, 'columns'>,
 ): LoadResult {
   const p = n.params;
-  const s = streamedOf(n, doc, ctx, p.geometry === "values" ? "values" : p.geometry === "ranges" ? "items" : null);
+  const s = streamedOf(n, doc, ctx, p.geometry === 'values' ? 'values' : p.geometry === 'ranges' ? 'items' : null);
   if (!s) return UNAVAILABLE;
   const cs = (sourceOf(doc, p.source_ref)?.params.coordinate_system ?? p.target) as string | null;
   const c = cs == null ? undefined : doc.nodes.get(cs);
-  if (cs == null) report(ctx, "svs.params.missing", pathOf(n, "target"), "a streamed annotation needs a target");
+  if (cs == null) report(ctx, 'svs.params.missing', pathOf(n, 'target'), 'a streamed annotation needs a target');
   // A complex's members: its units by value, or a letters stream's systems.
-  const lettered = c?.kind === "complex" && c.params.provider == null ? sourceOf(doc, c.params.source_ref) : null;
+  const lettered = c?.kind === 'complex' && c.params.provider == null ? sourceOf(doc, c.params.source_ref) : null;
   const ls = lettered && ctx.sources.get(lettered.ref);
   const members = new Set(
-    c?.kind !== "complex"
+    c?.kind !== 'complex'
       ? [cs]
-      : ls?.kind === "streamed"
+      : ls?.kind === 'streamed'
         ? ls.manifest.systems.map((x) => `${cs}/${x.key}`)
         : (c.node.children ?? []).map((u) => u.ref),
   );
   const systems = new Map<string, number>();
   s.manifest.systems.forEach((sys, i) => {
-    const t = c?.kind === "complex" ? `${cs}/${sys.key}` : sys.key;
+    const t = c?.kind === 'complex' ? `${cs}/${sys.key}` : sys.key;
     if (members.has(t)) systems.set(t, i);
     else
       report(
         ctx,
-        "svs.stream.ref",
-        pathOf(n, "source_ref"),
+        'svs.stream.ref',
+        pathOf(n, 'source_ref'),
         `the manifest's "${sys.key}" names no ${cs} coordinate system`,
       );
   });
@@ -1178,17 +1178,17 @@ function streamedAnnotation(
  */
 export async function loadNode(dn: DocNode, doc: DocIndex, ctx: StageContext, loaders: Loaders): Promise<LoadResult> {
   const n = node(doc, dn);
-  if (n.kind === "source") {
+  if (n.kind === 'source') {
     const source = await loadSource(n, ctx, loaders, doc);
     // A source that failed is unavailable like one no package reads: its readers are left out quietly.
-    return { source, unavailable: source.kind === "unavailable" || source.kind === "failed" };
+    return { source, unavailable: source.kind === 'unavailable' || source.kind === 'failed' };
   }
   if (blocked(ctx, n)) return UNAVAILABLE;
-  if (n.kind === "sequence" || n.kind === "ligand") return molecule(n, doc, ctx);
-  if (n.kind === "unit") return unit(n, doc);
-  if (n.kind === "alignment") return alignment(n, doc, ctx, loaders);
-  if (n.kind === "mapping") return mapping(n, ctx);
-  if (n.kind === "annotation") return annotation(n, doc, ctx, loaders);
+  if (n.kind === 'sequence' || n.kind === 'ligand') return molecule(n, doc, ctx);
+  if (n.kind === 'unit') return unit(n, doc);
+  if (n.kind === 'alignment') return alignment(n, doc, ctx, loaders);
+  if (n.kind === 'mapping') return mapping(n, ctx);
+  if (n.kind === 'annotation') return annotation(n, doc, ctx, loaders);
   return {};
 }
 
@@ -1199,7 +1199,7 @@ export async function buildComplex(dn: DocNode, doc: DocIndex, ctx: StageContext
   const custom = n.node.custom;
   if (p.provider == null && p.source_ref != null) {
     // From a letters stream: per system of its manifest a unit `R/<key>` over a lazy `R/<key>/sequence`.
-    const s = streamedOf(n, doc, ctx, "letters");
+    const s = streamedOf(n, doc, ctx, 'letters');
     if (!s) return UNAVAILABLE;
     const R = (k: string) => `${n.ref}/${k}`;
     const sys = s.manifest.systems;
@@ -1216,21 +1216,21 @@ export async function buildComplex(dn: DocNode, doc: DocIndex, ctx: StageContext
   if (p.provider == null) {
     // By value, whatever the document's order: the units that are unavailable are left out quietly, and with none left
     // the complex is unavailable.
-    const all = (n.node.children ?? []).filter((c) => c.kind === "unit").map((c) => node(doc, c).ref);
+    const all = (n.node.children ?? []).filter((c) => c.kind === 'unit').map((c) => node(doc, c).ref);
     const units = all.filter((u) => !ctx.unavailable.has(u));
     if (all.length > 0 && units.length === 0) return UNAVAILABLE;
     return { complexes: [clean({ key: n.ref, units, label: p.label as string, custom })] };
   }
-  const entry = ctx.registries.get("complexProviders", p.provider as string);
+  const entry = ctx.registries.get('complexProviders', p.provider as string);
   if (!entry) return unavailable(ctx, n, `complex provider "${p.provider}" is not registered`);
   const src = sourceOf(doc, p.source_ref);
   const sr = src && ctx.sources.get(src.ref);
-  const source = sr?.kind === "loaded" ? sr.parsed : null;
+  const source = sr?.kind === 'loaded' ? sr.parsed : null;
   if (!src || !source) return UNAVAILABLE;
   // The format that read the source, a service's included: a provider never runs on one it does not read.
-  const format = sr?.kind === "loaded" ? sr.format : null;
+  const format = sr?.kind === 'loaded' ? sr.format : null;
   if (format == null || !entry.formats.includes(format)) {
-    report(ctx, "svs.source.format", pathOf(n, "source_ref"), `${entry.name} reads ${entry.formats}, not ${format}`);
+    report(ctx, 'svs.source.format', pathOf(n, 'source_ref'), `${entry.name} reads ${entry.formats}, not ${format}`);
     return UNAVAILABLE;
   }
   let out: Awaited<ReturnType<typeof entry.build>>;
@@ -1294,7 +1294,7 @@ export async function computeProvider(
 ): Promise<AnnotationInput | null> {
   const n = node(doc, dn);
   const { provider, ...params } = n.params;
-  const entry = ctx.registries.get("providers", provider as string);
+  const entry = ctx.registries.get('providers', provider as string);
   if (!entry) {
     unavailable(ctx, n, `provider "${provider}" is not registered`);
     return null;
@@ -1315,13 +1315,13 @@ export async function computeProvider(
 
 /** A statistic served by a streamed source (`<ref>#stats`) as a streamed `values` annotation over the alignment's columns. */
 function servedStatistic(n: IndexedNode, alignment: string, sr: SourceResult): AnnotationInput | null {
-  if (sr.kind !== "streamed") return null;
+  if (sr.kind !== 'streamed') return null;
   const props = {
     [StreamProp]: { ...sr, systems: new Map([[alignment, 0]]), labels: new Map() } satisfies StreamedData,
   };
   return clean({
     key: n.ref,
-    geometry: "values" as const,
+    geometry: 'values' as const,
     columns: {},
     streamed: [alignment],
     custom: n.node.custom,
@@ -1329,7 +1329,7 @@ function servedStatistic(n: IndexedNode, alignment: string, sr: SourceResult): A
   });
 }
 
-const LISTS = ["molecules", "units", "complexes", "alignments", "mappings", "annotations"] as const;
+const LISTS = ['molecules', 'units', 'complexes', 'alignments', 'mappings', 'annotations'] as const;
 function merge(into: SetPart, part: SetPart) {
   for (const k of LISTS) if (part[k]?.length) into[k] = [...(into[k] ?? []), ...(part[k] as never[])] as never;
 }
@@ -1344,7 +1344,7 @@ export function remapIssues(issues: Issue[], input: Partial<SetInput>, doc: DocI
     const key = m ? (input[m[1] as (typeof LISTS)[number]]?.[Number(m[2])] as { key?: string })?.key : undefined;
     const n = key ? doc.nodes.get(head(key)) : undefined;
     if (!n || !m) return i;
-    const value = m[3].startsWith("/columns") && n.params.value != null;
+    const value = m[3].startsWith('/columns') && n.params.value != null;
     return { ...i, path: value ? `${n.path}/params/value${m[3].slice(8)}` : n.path };
   });
 }
@@ -1354,14 +1354,14 @@ export function remapIssues(issues: Issue[], input: Partial<SetInput>, doc: DocI
  * `svs.ref.wrong_kind`) is left out of `input.units`. `input` holds the units' molecules.
  */
 export function checkUnitKinds(input: Partial<SetInput>, doc: DocIndex, ctx: StageContext): void {
-  const kinds = new Map((input.molecules ?? []).map((m) => [m.key, m.kind ?? "polymer"]));
+  const kinds = new Map((input.molecules ?? []).map((m) => [m.key, m.kind ?? 'polymer']));
   input.units = input.units?.filter((u) => {
     const n = doc.nodes.get(u.key);
-    const param = n?.params.ligand != null ? "ligand" : "sequence";
+    const param = n?.params.ligand != null ? 'ligand' : 'sequence';
     const got = kinds.get(u.molecule);
-    if (!n || !got || (got === "ligand") === (param === "ligand")) return true;
-    const message = `"${u.molecule}" is a ${got === "ligand" ? "ligand" : "polymer"}, not a ${param}`;
-    report(ctx, "svs.ref.wrong_kind", pathOf(n, param), message);
+    if (!n || !got || (got === 'ligand') === (param === 'ligand')) return true;
+    const message = `"${u.molecule}" is a ${got === 'ligand' ? 'ligand' : 'polymer'}, not a ${param}`;
+    report(ctx, 'svs.ref.wrong_kind', pathOf(n, param), message);
     return false;
   });
 }
@@ -1377,7 +1377,7 @@ export async function compile(
   signal: AbortSignal = new AbortController().signal,
 ): Promise<{ set: SeqSet; issues: Issue[] }> {
   const issues = validate(doc, reg, { base: loaders.base });
-  if (issues.some((i) => i.severity === "error")) return { set: SeqSets.build({ molecules: [] }).set, issues };
+  if (issues.some((i) => i.severity === 'error')) return { set: SeqSets.build({ molecules: [] }).set, issues };
   const index = indexDoc(doc, reg);
   const [sources, gone] = [new Map<string, SourceResult>(), new Set<string>()];
   const ctx = {
@@ -1411,8 +1411,8 @@ export async function compile(
   const load = (d: DocNode) => loadNode(d, index, ctx, loaders);
   // The sources, and the ones the annotations' `uri` imply (read once, by whoever reads them).
   for (const n of index.order) {
-    const implied = n.kind === "annotation" ? impliedSource(n, index) : null;
-    if (n.kind !== "source" && !implied) continue;
+    const implied = n.kind === 'annotation' ? impliedSource(n, index) : null;
+    if (n.kind !== 'source' && !implied) continue;
     signal.throwIfAborted();
     const r: LoadResult = implied ? { source: await loadSource(implied, ctx, loaders, index) } : await load(n.node);
     const ref = implied ? implied.ref : n.ref;
@@ -1423,11 +1423,11 @@ export async function compile(
   // them; complexes by value last, once their units' availability is known.
   // A complex from a provider or a letters stream (`source_ref` without a provider) gives its molecules and units.
   // An alignment computed by a provider reads the set, so it is loaded once its inputs are in it (as `align` mappings).
-  const given = (d: DocNode) => node(index, d).kind !== "alignment" || node(index, d).params.provider == null;
+  const given = (d: DocNode) => node(index, d).kind !== 'alignment' || node(index, d).params.provider == null;
   const byProvider = (d: DocNode) => node(index, d).params.provider != null || node(index, d).params.source_ref != null;
   await stage(
-    [...of("complex").filter(byProvider), ...of("sequence", "ligand", "alignment").filter(given), ...of("unit")],
-    (d) => (d.kind === "complex" ? buildComplex(d, index, ctx) : load(d)),
+    [...of('complex').filter(byProvider), ...of('sequence', 'ligand', 'alignment').filter(given), ...of('unit')],
+    (d) => (d.kind === 'complex' ? buildComplex(d, index, ctx) : load(d)),
     (input) => {
       // A unit left out for naming the wrong kind is unavailable, so a complex by value leaves it out too.
       const before = input.units ?? [];
@@ -1437,25 +1437,25 @@ export async function compile(
     },
   );
   await stage(
-    of("complex").filter((d) => !byProvider(d)),
+    of('complex').filter((d) => !byProvider(d)),
     (d) => buildComplex(d, index, ctx),
   );
   // One stage each, in document order: a later one may align the rows of an earlier one.
-  for (const d of of("alignment").filter((d) => !given(d))) await stage([d], load);
-  await stage(of("annotation", "mapping"), load);
+  for (const d of of('alignment').filter((d) => !given(d))) await stage([d], load);
+  await stage(of('annotation', 'mapping'), load);
   const compute = async (d: DocNode): Promise<LoadResult> => {
     const a = await computeProvider(d, index, ctx, loaders);
     return a ? { annotations: [a] } : UNAVAILABLE;
   };
-  const isQuery = (d: DocNode) => node(index, d).params.provider === "query";
+  const isQuery = (d: DocNode) => node(index, d).params.provider === 'query';
   // `redundancy` orders by a key table, a computed node's result, so it runs after the others, in document order.
-  const isLate = (d: DocNode) => node(index, d).params.provider === "redundancy";
+  const isLate = (d: DocNode) => node(index, d).params.provider === 'redundancy';
   await stage(
-    of("computed").filter((d) => !isQuery(d) && !isLate(d)),
+    of('computed').filter((d) => !isQuery(d) && !isLate(d)),
     compute,
   );
-  for (const d of of("computed").filter(isLate)) await stage([d], compute);
+  for (const d of of('computed').filter(isLate)) await stage([d], compute);
   // Queries last, each in a stage of its own, after the queries it names (seqspec:seqql#in-documents).
-  for (const d of queryOrder(of("computed").filter(isQuery), index)) await stage([d], compute);
+  for (const d of queryOrder(of('computed').filter(isQuery), index)) await stage([d], compute);
   return { set: ctx.set as SeqSet, issues };
 }

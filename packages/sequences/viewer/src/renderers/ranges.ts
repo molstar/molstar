@@ -17,7 +17,7 @@
 // boundary keeps off their text: a small triangle pinned to the row's top edge and a hairline down the boundary, or the
 // hairline alone (seqspec:viewer#the-render-backend). The overlay outlines the hovered item's pieces
 // (seqspec:interaction#hover).
-import { Annotations } from "@molstar/seq-core/model";
+import { Annotations } from '@molstar/seq-core/model';
 import {
   type Axis,
   AxisGeometry,
@@ -80,7 +80,7 @@ import {
   type TextManagerApi,
   ThemeLocation,
   visibleRange,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 type Params = Readonly<Record<string, unknown>>;
 
@@ -103,18 +103,18 @@ let shown = new Int32Array(16);
 
 /** Per prepared state, its items' directions by `direction_field` (1, -1; 0: none). Edge-rate: on first draw. */
 const directions = new WeakMap<Features, { field: string; d: Int8Array }>();
-const FORWARD = new Set(["+", "1", "forward", "fwd"]);
-const REVERSE = new Set(["-", "-1", "reverse", "rev"]);
+const FORWARD = new Set(['+', '1', 'forward', 'fwd']);
+const REVERSE = new Set(['-', '-1', 'reverse', 'rev']);
 function directionsOf(v: DrawView, f: Features, p: Params): Int8Array | null {
   const field = p.direction_field;
   const set = v.axis?.set;
-  if (typeof field !== "string" || !set) return null;
+  if (typeof field !== 'string' || !set) return null;
   const known = directions.get(f);
   if (known && known.field === field) return known.d;
   const d = new Int8Array(f.annotation.length);
   for (let k = 0; k < d.length; k++) {
     const a = set.annotations[f.annotation[k]];
-    const x = a && f.row[k] >= 0 ? String(Annotations.rowValue(a, set, f.row[k], field) ?? "").toLowerCase() : "";
+    const x = a && f.row[k] >= 0 ? String(Annotations.rowValue(a, set, f.row[k], field) ?? '').toLowerCase() : '';
     d[k] = FORWARD.has(x) ? 1 : REVERSE.has(x) ? -1 : 0;
   }
   directions.set(f, { field, d });
@@ -209,7 +209,7 @@ function pinFor(v: DrawView, b: number): number {
   px = px | 0;
   if (px > cap) px = cap;
   if (px < 6) px = 6;
-  const font = v.text.font("mono", px | 0);
+  const font = v.text.font('mono', px | 0);
   // The font's ink and advance and the DPR's sizes, read when the font or DPR changes (a call's double is boxed).
   const tm = v.text;
   if (font !== inkOf[0] || dpr !== inkOf[1] || tm !== inkText?.deref() || tm.version.value !== inkOf[7]) {
@@ -442,7 +442,7 @@ function items(v: DrawView, f: Features, p: Params, flat: boolean, lanes = f.lan
   const ys = laneRows(v, f, flat, lanes);
   edge[0] = Math.round(v.left * v.dpr) | 0;
   edge[1] = Math.round(v.right * v.dpr) | 0;
-  const brackets = !flat && p.display === "brackets";
+  const brackets = !flat && p.display === 'brackets';
   dirs = flat ? null : directionsOf(v, f, p);
   // Labels need a lane of 10 px and over; one font for the draw. On rings they are the section's, outside (ring-labels.ts).
   const font = !flat && !v.ring && p.labels === true && ys[1] - ys[0] >= 10 * v.dpr ? labelFont(v, ys[1] - ys[0]) : -1;
@@ -478,9 +478,9 @@ const regionFlat = (v: DrawView, f: Features, p: unknown, lanes: number) => item
 
 /** The labels' font for a lane of `h` device px, set on the labels' batch; its id. */
 function labelFont(v: DrawView, h: number): number {
-  const font = v.text.font("ui", Math.max(7, Math.min(11, Math.floor((h * 0.72) / v.dpr))));
+  const font = v.text.font('ui', Math.max(7, Math.min(11, Math.floor((h * 0.72) / v.dpr))));
   names.style(font, TextAlign.center, TextBaseline.middle);
-  fit[1] = v.text.label("…", font).width;
+  fit[1] = v.text.label('…', font).width;
   return font;
 }
 
@@ -502,7 +502,7 @@ function draw(v: DrawView, f: Features, p: Params, flat: boolean) {
   if (rects.n > 0) v.backend.rects(rects);
   if (heads.n > 0) v.backend.paths(heads);
   if (glyphs.n > 0) {
-    glyphs.font = v.text.font("ui", 12, 600);
+    glyphs.font = v.text.font('ui', 12, 600);
     v.backend.glyphs(glyphs);
   }
   if (names.n > 0) v.backend.text(names);
@@ -542,7 +542,7 @@ function hit(v: AxisView, f: Features, p: Params, out: Hit): boolean {
   if (over && k >= 0 && f.stop[k] <= f.start[k]) k = -1;
   if (past && k < 0) return false;
   const flat = v.height < (RangesRenderer.minHeight ?? 0);
-  if (k >= 0 && f.stop[k] > f.start[k] && !flat && p.display !== "brackets") {
+  if (k >= 0 && f.stop[k] > f.start[k] && !flat && p.display !== 'brackets') {
     // The bar's band as the draw places it (`laneRows`, then `barBand`; device px).
     const top = v.top + lanePad(v.height) + lane * h;
     const y0 = Math.round((top + inset * h) * v.dpr) | 0;
@@ -633,7 +633,7 @@ function overlay(v: DrawView, f: Features, p: Params) {
   const right = Math.round(v.right * dpr) | 0;
   edge[0] = Math.round(v.left * dpr) | 0;
   edge[1] = right;
-  const brackets = !flat && p.display === "brackets";
+  const brackets = !flat && p.display === 'brackets';
   HoverOutline.reset();
   for (let j = hovered[0]; j < hovered[1]; j++) {
     const k = hoveredAt(v, f, x, j);
@@ -677,14 +677,14 @@ function overlay(v: DrawView, f: Features, p: Params) {
   HoverOutline.hand(v);
 }
 
-export const RangesRenderer = kernelEntry<Features>("ranges", 22, {
-  geometries: ["linear", "wrapped"],
+export const RangesRenderer = kernelEntry<Features>('ranges', 22, {
+  geometries: ['linear', 'wrapped'],
   hit: (v, f, p, out) => hit(v, f, p as Params, out),
   hitsPastEnd: true,
   draw: (v, f, p) => draw(v, f, p as Params, false),
   tiny: (v, f, p) => draw(v, f, p as Params, true),
   overlay: (v, f, p) => overlay(v, f, p as Params),
-  sized: ["thickness", "radius"],
+  sized: ['thickness', 'radius'],
   // With `labels`, on rings: each labeled item, for the section's labels outside the rings.
   ringLabels: (f, p, out) => {
     if ((p as Params).labels !== true) return;

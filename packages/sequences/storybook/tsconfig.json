@@ -2,7 +2,10 @@
   "extends": "../../../tsconfig.base.json",
   // Never built: its content is the stories and their support code (src/_stories), checked here (no emit). Imports Mol* through @molstar/seq-molstar-poc. Does not compile until the Storybook types are local (plan step C1).
   "compilerOptions": {
-    "composite": false, "declaration": false, "declarationMap": false, "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
     "useDefineForClassFields": true,
     "noUncheckedIndexedAccess": false,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],

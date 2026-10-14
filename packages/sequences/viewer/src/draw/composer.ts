@@ -24,15 +24,15 @@
 // every pass shares), composer-entries.ts, composer-headers.ts, composer-marks.ts and composer-overlay.ts. The ring
 // labels are placed here (edge rate), not in ring-labels.ts, which the hit imports and which imports no layout.
 
-import { AxisGeometry, type SectionAxisView, type ShownIndex } from "../axis.js";
-import { ChannelMarks } from "../channels.js";
-import type { Skin, ViewModel } from "../graph.js";
-import { EntryKind, type SectionLayout } from "../layout.js";
-import type { SectionMarks } from "../marks.js";
-import { lanesInView } from "../streams.js";
-import { Lod, type ViewportState } from "../viewport.js";
-import { BackendCaps, Pass, type RenderBackend } from "./backend.js";
-import { bandCopies, cutRows, entry } from "./composer-entries.js";
+import { AxisGeometry, type SectionAxisView, type ShownIndex } from '../axis.js';
+import { ChannelMarks } from '../channels.js';
+import type { Skin, ViewModel } from '../graph.js';
+import { EntryKind, type SectionLayout } from '../layout.js';
+import type { SectionMarks } from '../marks.js';
+import { lanesInView } from '../streams.js';
+import { Lod, type ViewportState } from '../viewport.js';
+import { BackendCaps, Pass, type RenderBackend } from './backend.js';
+import { bandCopies, cutRows, entry } from './composer-entries.js';
 import {
   ALL,
   banded,
@@ -45,11 +45,11 @@ import {
   Part,
   setClip,
   view,
-} from "./composer-frame.js";
-import { heads } from "./composer-headers.js";
-import { nav, overlay } from "./composer-overlay.js";
-import { placedRingLabels, type RingLabelInput } from "./ring-labels.js";
-import { nextFrameId } from "./view.js";
+} from './composer-frame.js';
+import { heads } from './composer-headers.js';
+import { nav, overlay } from './composer-overlay.js';
+import { placedRingLabels, type RingLabelInput } from './ring-labels.js';
+import { nextFrameId } from './view.js';
 
 // Enum-like members read once (a read per frame allocated under the test runner's module wrapper).
 const CIRCULAR = AxisGeometry.circular;
@@ -69,7 +69,7 @@ const PASS_MAIN = Pass.main;
 /** What a frame draws: the tracks (main pass), the overlay, the navigator. */
 export const Dirty = { tracks: 1, overlay: 2, nav: 4, all: 7 } as const;
 
-export type { ComposerStats } from "./composer-frame.js";
+export type { ComposerStats } from './composer-frame.js';
 
 export class SectionComposer extends ComposerFrame {
   /** Draws what `flags` (`Dirty`) ask into `be`, whole; the tracks only where the view, layout, data or skin changed. */
@@ -153,8 +153,8 @@ export class SectionComposer extends ComposerFrame {
       this.caches.delete(state);
     }
     const p = model?.prepared ?? [];
-    this.renderers = p.map((x) => this.ctx.registry.get("renderers", x.renderer));
-    this.refs = p.map((_, k) => model?.set.strings.get(model.resolved.layers.ref[k]) ?? "");
+    this.renderers = p.map((x) => this.ctx.registry.get('renderers', x.renderer));
+    this.refs = p.map((_, k) => model?.set.strings.get(model.resolved.layers.ref[k]) ?? '');
     this.streams = p.map(() => null);
     this.streamAt = new Float64Array(p.length).fill(-1);
     this.fresh = new Uint8Array(p.length);
@@ -304,7 +304,7 @@ export class SectionComposer extends ComposerFrame {
     const k0 = l.pinnedCount;
     const ruler = k0 < l.entryCount && l.ringTop > l.scrolledTop + l.entryTop[k0] + 0.5;
     const t = this.ctx.text;
-    const numbers = ruler ? t.numberWidth(t.font("ui", 11), Math.max(1, av?.axis?.cells ?? 1)) + 10 : 0;
+    const numbers = ruler ? t.numberWidth(t.font('ui', 11), Math.max(1, av?.axis?.cells ?? 1)) + 10 : 0;
     this.ringLabels.place(
       items,
       {
@@ -324,7 +324,7 @@ export class SectionComposer extends ComposerFrame {
     if (this.ringLabels.hidden > 0 && !this.labelsHidden) {
       this.labelsHidden = true;
       this.ctx.report(
-        "seqv.render.labels",
+        'seqv.render.labels',
         `${this.ringLabels.hidden} of ${items.length} labels on the rings of section "${this.section}" do not fit beside them: hidden`,
       );
     }
@@ -463,7 +463,7 @@ export class SectionComposer extends ComposerFrame {
       // A band's rows layer copies (`bandCopies`): only the other layers on it count.
       const band = k === l.rows.layer && banded(this, l, e);
       const whole =
-        moved && r && !band && !(typeof st === "function" ? st(m.prepared[k].state, rv.layers.params[k]) : st);
+        moved && r && !band && !(typeof st === 'function' ? st(m.prepared[k].state, rv.layers.params[k]) : st);
       if (whole || (this.fresh[k] === 1 && (this.cols[2 * k] < 0 || l.geometry !== LINEAR))) {
         sp[0] = L;
         sp[1] = R;

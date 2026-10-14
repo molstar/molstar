@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { defineConfig } from "vitest/config";
-import { nodeTests } from "../vitest.shared.js";
+import { defineConfig } from 'vitest/config';
+import { nodeTests } from '../vitest.shared.js';
 
 export default defineConfig(nodeTests(import.meta.dirname));

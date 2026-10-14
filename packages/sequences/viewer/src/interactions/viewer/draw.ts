@@ -30,9 +30,9 @@ import {
   type Theme,
   ThemeLocation,
   visibleRange,
-} from "@molstar/seq-viewer/draw";
-import { compactRows, Geo, geo, LEAD, rowFrame, rowTop, stripeTop } from "./geometry.js";
-import type { FingerprintCache, FingerprintState } from "./renderer.js";
+} from '@molstar/seq-viewer/draw';
+import { compactRows, Geo, geo, LEAD, rowFrame, rowTop, stripeTop } from './geometry.js';
+import type { FingerprintCache, FingerprintState } from './renderer.js';
 
 const grounds = new RectBatch(256);
 const stripes = new RectBatch(1024);
@@ -136,7 +136,7 @@ function tiles(v: DrawView, s: FingerprintState, inset: number): void {
   saved[1] = v.height;
   try {
     v.cache = held === null ? null : held.tiles;
-    v.color = (v.themes[1] ?? null) as Theme<"color"> | null;
+    v.color = (v.themes[1] ?? null) as Theme<'color'> | null;
     v.top += inset;
     v.height -= 2 * inset;
     drawMatrixTiles(v, s.fallback as MatrixState);
@@ -251,7 +251,7 @@ export function overlay(v: DrawView, s: FingerprintState, _p: unknown): void {
     saved[0] = v.top;
     saved[1] = v.height;
     try {
-      v.color = (v.themes[1] ?? null) as Theme<"color"> | null;
+      v.color = (v.themes[1] ?? null) as Theme<'color'> | null;
       v.top += 1;
       v.height -= 2;
       outlineMatrixCell(v, s.fallback);

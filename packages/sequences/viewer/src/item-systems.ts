@@ -13,7 +13,7 @@
 // that carry them, as a patch's own nodes do (dynamic.ts), but are read into the set only when something names the item
 // (`#assemble.stream`): until then they are its row's `map`, held in the cache. Arrival-rate.
 
-import { ItemSystemKind, type StreamNode, type StreamTable } from "@molstar/seq-core/format";
+import { ItemSystemKind, type StreamNode, type StreamTable } from '@molstar/seq-core/format';
 
 /**
  * An item's own length from its map's params, or why none can be read: a codon map's residues (its `from_range`'s
@@ -22,11 +22,11 @@ import { ItemSystemKind, type StreamNode, type StreamTable } from "@molstar/seq-
  */
 function lengthOf(p: Readonly<Record<string, unknown>>): number | string {
   const rows = (x: unknown): unknown[][] => (Array.isArray(x) ? x.filter((r): r is unknown[] => Array.isArray(r)) : []);
-  const int = (v: unknown) => typeof v === "number" && Number.isInteger(v);
-  if (p.method === "codon") {
+  const int = (v: unknown) => typeof v === 'number' && Number.isInteger(v);
+  if (p.method === 'codon') {
     const range = p.from_range;
     if (Array.isArray(range) && range.length === 2 && int(range[1])) return range[1] as number;
-    if (!Array.isArray(p.cds)) return "a codon map needs cds (or from_range)";
+    if (!Array.isArray(p.cds)) return 'a codon map needs cds (or from_range)';
     let n = 0;
     for (const [a, e] of rows(p.cds)) {
       if (!int(a) || !int(e)) continue;
@@ -38,13 +38,13 @@ function lengthOf(p: Readonly<Record<string, unknown>>): number | string {
       ? n / 3
       : `its CDS is ${n} bases, not a multiple of 3 (write a partial CDS from its first whole codon)`;
   }
-  if (p.method !== "segments") return `a map is a codon or segments mapping's params, not "${String(p.method)}"`;
+  if (p.method !== 'segments') return `a map is a codon or segments mapping's params, not "${String(p.method)}"`;
   let n = 0;
   for (const [f, , len] of rows(p.segments)) {
     if (!int(f) || !int(len)) return "a segments map needs each segment's length";
     n = Math.max(n, (f as number) + (len as number));
   }
-  return n > 0 ? n : "a segments map needs at least one segment";
+  return n > 0 ? n : 'a segments map needs at least one segment';
 }
 
 /**
@@ -65,18 +65,18 @@ export function itemSystemNodes(
   const seen = new Set<string>();
   for (let j = 0; j < map.length && j < id.length; j++) {
     const m = map[j];
-    const key = id[j] == null ? "" : String(id[j]);
-    if (m == null || typeof m !== "object" || Array.isArray(m) || key === "" || seen.has(key)) continue;
+    const key = id[j] == null ? '' : String(id[j]);
+    if (m == null || typeof m !== 'object' || Array.isArray(m) || key === '' || seen.has(key)) continue;
     seen.add(key);
     const p = m as Readonly<Record<string, unknown>>;
     const length = lengthOf(p);
-    if (typeof length === "string") {
-      report("svs.stream.item_map", `${source}: item "${key}"'s map is left out: ${length}`);
+    if (typeof length === 'string') {
+      report('svs.stream.item_map', `${source}: item "${key}"'s map is left out: ${length}`);
       continue;
     }
     const label = t.label && j < t.label.length && t.label[j] != null ? String(t.label[j]) : key;
-    const alphabet = p.method === "codon" ? "protein" : "generic";
-    out.push({ kind: ItemSystemKind as StreamNode["kind"], key, params: { length, alphabet, label } });
-    out.push({ kind: "mapping", key: `${key}.map`, params: { ...p, from: `${source}/${key}`, to } });
+    const alphabet = p.method === 'codon' ? 'protein' : 'generic';
+    out.push({ kind: ItemSystemKind as StreamNode['kind'], key, params: { length, alphabet, label } });
+    out.push({ kind: 'mapping', key: `${key}.map`, params: { ...p, from: `${source}/${key}`, to } });
   }
 }

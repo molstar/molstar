@@ -6,19 +6,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useMemo } from "react";
-import { flipped } from "./support/seqstar-docs-views.js";
-import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism.js";
-import { ViewerCard } from "./support/seqstar-viewer.js";
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useMemo } from 'react';
+import { flipped } from './support/seqstar-docs-views.js';
+import f from './support/seqstar-format.module.css';
+import { PrismPage } from './support/seqstar-prism.js';
+import { ViewerCard } from './support/seqstar-viewer.js';
 
 /**
  * Pieces: what a block shows of its coordinate system, a `range` of it,
  * laid out in a `direction`. A reversed piece is a layout map, never new data: every layer draws it mirrored, the ruler
  * descends, and hover and selection reach the same positions in every section that shows them.
  */
-const meta = { title: "Seq*/Views and layouts/Axes and strands", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Views and layouts/Axes and strands', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj;
 
@@ -29,15 +29,15 @@ function Cards() {
       <ViewerCard
         doc={doc}
         label="The construct, its reverse strand and the GFP fragment reversed"
-        options={{ parts: ["SectionHeader"] }}
+        options={{ parts: ['SectionHeader'] }}
       />
-      <ViewerCard doc={doc} label="The reverse strand as text" options={{ view: "seq" }} />
+      <ViewerCard doc={doc} label="The reverse strand as text" options={{ view: 'seq' }} />
     </div>
   );
 }
 
 export const Direction: Story = {
-  name: "Direction of a piece",
+  name: 'Direction of a piece',
   render: () => (
     <PrismPage
       title="Case 5, flipped: pieces with range and direction"

@@ -11,7 +11,7 @@
 // from `count` bins) and at 200 Mb (the letters gate's hatch and hint). A frame allocating an object a step fails the same
 // guard (the positive control). The glyphs and the placeholders are streams-items-glyphs.heap.ts's.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -22,7 +22,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = 1_000;
 /**
@@ -41,32 +41,32 @@ const measure = (frame: () => void) => {
 };
 const guard = (frame: () => void) => {
   const r = measure(frame);
-  return isFlat(r) ? "" : describeScaling(r, N);
+  return isFlat(r) ? '' : describeScaling(r, N);
 };
 
 describe("the streamed items' pans allocate nothing per frame once their regions are held", () => {
   for (const [label, start, stop] of [
-    ["100 kb", 100_000_000, 100_100_000],
-    ["1 Mb", 100_000_000, 101_000_000],
-    ["200 Mb", 20_000_000, 220_000_000],
+    ['100 kb', 100_000_000, 100_100_000],
+    ['1 Mb', 100_000_000, 101_000_000],
+    ['200 Mb', 20_000_000, 220_000_000],
   ] as const)
     it(`a pass and a frame, ${label}`, async () => {
       vi.resetModules();
-      const { itemsFrame } = await import("./stream-items-fixtures.js");
+      const { itemsFrame } = await import('./stream-items-fixtures.js');
       const g = await itemsFrame(start, stop);
       g.frame();
       // Not vacuous: genes and variants drawn (rects), at 200 Mb the hatch too.
       expect(g.backend.rectItems.n).toBeGreaterThan(100);
       if (start === 20_000_000) expect(g.backend.pathItems.n).toBeGreaterThan(0);
       const asked = g.asked();
-      expect(guard(g.frame)).toBe("");
+      expect(guard(g.frame)).toBe('');
       expect(g.asked()).toBe(asked);
       g.dispose();
     }, 120_000);
 
-  it("the same frame allocating an object a step is caught (positive control)", async () => {
+  it('the same frame allocating an object a step is caught (positive control)', async () => {
     vi.resetModules();
-    const { itemsFrame } = await import("./stream-items-fixtures.js");
+    const { itemsFrame } = await import('./stream-items-fixtures.js');
     const g = await itemsFrame(100_000_000, 100_100_000);
     expect(controlCaught(() => measure(leaking(g.frame) as () => void))).toBe(true);
   }, 120_000);

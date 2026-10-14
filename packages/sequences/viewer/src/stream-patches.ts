@@ -9,14 +9,14 @@
 // A region's patch as it arrives (seqspec:sources#data-patches): an alignment's tile, a 1-D region's values or items, and
 // the bytes each holds. Arrival rate.
 
-import { type DataPatch, TILE, type Tile } from "@molstar/seq-core/format";
-import { Paths } from "@molstar/seq-core/model";
-import type { Features } from "./prepare.js";
-import { prefixReach } from "./pyramids.js";
-import type { StreamItems } from "./stream-contract.js";
-import type { Region } from "./stream-layer.js";
-import * as Store from "./stream-layer.js";
-import * as Levels from "./stream-levels.js";
+import { type DataPatch, TILE, type Tile } from '@molstar/seq-core/format';
+import { Paths } from '@molstar/seq-core/model';
+import type { Features } from './prepare.js';
+import { prefixReach } from './pyramids.js';
+import type { StreamItems } from './stream-contract.js';
+import type { Region } from './stream-layer.js';
+import * as Store from './stream-layer.js';
+import * as Levels from './stream-levels.js';
 
 // Read once into module constants: a read through an import is a property read of the module per use, which
 // the test runner's module wrapper turns into an allocation on per-frame paths.
@@ -27,7 +27,7 @@ const num = (x: unknown) => (x == null ? Number.NaN : Number(x));
 
 /** An alignment's `bins` patch as a 256 × 256 tile: as sent when whole, else its samples placed row-major. */
 export function tileOf(p: DataPatch, lx: number): Tile {
-  const b = p.kind === "bins" ? p.bins : null;
+  const b = p.kind === 'bins' ? p.bins : null;
   const cls = b?.class;
   const share = b?.share;
   if (
@@ -54,7 +54,7 @@ export function tileOf(p: DataPatch, lx: number): Tile {
  */
 export function held1(r: Region, p: DataPatch, values: boolean): number {
   if (r.owner.isItems) return heldItems(r, p);
-  if (p.kind === "letters") {
+  if (p.kind === 'letters') {
     // Upper case by ASCII rules (a 2bit file's soft-masked repeats are lower case), as a molecule's code.
     const t = p.letters;
     const codes = new Uint8Array(t.length);
@@ -65,7 +65,7 @@ export function held1(r: Region, p: DataPatch, values: boolean): number {
     r.codes = codes;
     return codes.length > 0 ? codes.length : -1;
   }
-  if (values && p.kind === "bins") {
+  if (values && p.kind === 'bins') {
     const { min, max, mean } = p.bins;
     const n = mean?.length ?? 0;
     const v = new Float64Array(3 * n);
@@ -78,7 +78,7 @@ export function held1(r: Region, p: DataPatch, values: boolean): number {
     r.stride = 3;
     return n > 0 ? v.byteLength : -1;
   }
-  if (values && p.kind === "items") {
+  if (values && p.kind === 'items') {
     const t = p.items;
     const v = new Float64Array(Math.max(0, p.stop - p.start)).fill(Number.NaN);
     const value = t.value;
@@ -100,7 +100,7 @@ export function held1(r: Region, p: DataPatch, values: boolean): number {
 function heldItems(r: Region, p: DataPatch): number {
   const c = r.owner;
   const lvl = ((r.level - D1) % LV) - 1;
-  if (p.kind === "bins") {
+  if (p.kind === 'bins') {
     const n = p.bins.count?.length ?? 0;
     const bins = Float64Array.from({ length: n }, (_, j) => num((p.bins.count as ArrayLike<unknown>)[j]) || 0);
     // The zoom gate (seqspec:sources#streamed-sources): a data request answered with a listed level's bins, held as
@@ -111,7 +111,7 @@ function heldItems(r: Region, p: DataPatch): number {
     r.items = { features: null, first: new Int32Array(0), bins, width, table: null, item: null, ends: null, hint };
     return n > 0 ? bins.byteLength : -1;
   }
-  if (p.kind !== "items") return -1;
+  if (p.kind !== 'items') return -1;
   const t = p.items;
   const own = itemsOf(r, t, null);
   // A layer with a `collapse` field holds its items folded too, beside these (one lane a group; a draw picks).
@@ -148,7 +148,7 @@ function itemsOf(r: Region, t: Record<string, ArrayLike<unknown>>, group: string
   for (let j = 0; j < n; j++) {
     const s0 = Number(t.start[j]);
     const e0 = Math.max(s0, Number(t.stop?.[j] ?? s0 + 1));
-    const item = col("id", j) ?? `${col("label", j)}|${s0}|${e0}`;
+    const item = col('id', j) ?? `${col('label', j)}|${s0}|${e0}`;
     let key = item;
     if (group !== null) {
       memberOf.push(item);
@@ -244,7 +244,7 @@ function itemsOf(r: Region, t: Record<string, ArrayLike<unknown>>, group: string
   if (group === null) c.lanes = Math.max(c.lanes, lanes);
   else c.foldedLanes = Math.max(c.foldedLanes, lanes);
   const I = (f: (x: (typeof frags)[number]) => number) => Int32Array.from(frags, f);
-  const alt = (j: number) => (col("alt", j) ?? "").toUpperCase().charCodeAt(0) || 0;
+  const alt = (j: number) => (col('alt', j) ?? '').toUpperCase().charCodeAt(0) || 0;
   // An item's label on one fragment (a BED12's blocks each carry it): drawn once, not per exon (ST4b). An item's, its
   // first; a group's, its widest (the first of its members' exons is often too narrow for a name).
   const carrier = new Map<string, number>();
@@ -271,7 +271,7 @@ function itemsOf(r: Region, t: Record<string, ArrayLike<unknown>>, group: string
     seg: new Int32Array(sys.length * lanes + 1),
     reach: new Int32Array(m),
     joinFrom: new Int32Array(m).fill(-1),
-    label: frags.map((x, i) => (carrier.get(`${x.b}|${x.id}`) === i ? col("label", x.row) : null)),
+    label: frags.map((x, i) => (carrier.get(`${x.b}|${x.id}`) === i ? col('label', x.row) : null)),
     split: null,
     fields: { table: t, theme: null, keys: null, glyphTheme: null, glyphs: null },
   };

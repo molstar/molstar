@@ -25,14 +25,14 @@
 // columns) and the rectangle being dragged (the track's first dot plot), and the hovered cell's outline (the first
 // with a grid there). Allocation-free once warm.
 
-import { endsOf } from "@molstar/seq-core/format";
-import { type ComposedPath, Issue, type SeqSet } from "@molstar/seq-core/model";
-import { AxisGeometry, type AxisView } from "../axis.js";
-import { MarkBit } from "../marks.js";
-import { partOf } from "../prepare.js";
-import type { LayerInput, PrepareContext } from "../registry.js";
-import { ThemeLocation } from "../themes.js";
-import { inkOf } from "./arcs.js";
+import { endsOf } from '@molstar/seq-core/format';
+import { type ComposedPath, Issue, type SeqSet } from '@molstar/seq-core/model';
+import { AxisGeometry, type AxisView } from '../axis.js';
+import { MarkBit } from '../marks.js';
+import { partOf } from '../prepare.js';
+import type { LayerInput, PrepareContext } from '../registry.js';
+import { ThemeLocation } from '../themes.js';
+import { inkOf } from './arcs.js';
 import {
   BackendCaps,
   type BackendImages,
@@ -43,12 +43,12 @@ import {
   PathMode,
   RectBatch,
   SkinToken,
-} from "./backend.js";
-import { visibleRange } from "./cells.js";
-import { keyAlpha, packAlpha } from "./density.js";
-import { hoverEmphasis, outlineItem } from "./hover.js";
-import { DOT_R } from "./sizes.js";
-import type { DrawView } from "./view.js";
+} from './backend.js';
+import { visibleRange } from './cells.js';
+import { keyAlpha, packAlpha } from './density.js';
+import { hoverEmphasis, outlineItem } from './hover.js';
+import { DOT_R } from './sizes.js';
+import type { DrawView } from './view.js';
 
 /**
  * The bounds: the floats a block pair's grid allocates (its own copy, unless one Float32Array row is the whole grid on
@@ -125,7 +125,7 @@ export interface DotPlotState {
  */
 export function firstDotPlot(n: number, track: (j: number) => number, type: (j: number) => string, k: number): number {
   const t = track(k);
-  for (let j = 0; j < n; j++) if (track(j) === t && type(j) === "dot_plot") return j;
+  for (let j = 0; j < n; j++) if (track(j) === t && type(j) === 'dot_plot') return j;
   return k;
 }
 
@@ -210,7 +210,7 @@ export function prepareDotPlot(input: LayerInput, rc?: PrepareContext): DotPlotS
     ) === own;
   let last = own >= 0;
   for (let j = own + 1; last && j < ls.length; j++)
-    if (ls[j].track === ls[own].track && ls[j].type === "dot_plot") last = false;
+    if (ls[j].track === ls[own].track && ls[j].type === 'dot_plot') last = false;
   return {
     set,
     grids,
@@ -312,17 +312,17 @@ function gridOf(input: LayerInput, list: Part[], index: number, rc?: PrepareCont
   const own = whole ? 0 : nx * ny;
   const floats = own + (pyramided ? pyramidSize(g) : 0);
   if (floats > DotPlotLimits.cells) {
-    const what = whole ? "its mean pyramid" : "a copy of its cells and its mean pyramid";
+    const what = whole ? 'its mean pyramid' : 'a copy of its cells and its mean pyramid';
     const message =
       `"${input.layer.ref}": the grid on ${label(bx)} × ${label(by)} is ${nx} × ${ny} = ${nx * ny} cells, and ${what} ` +
       `would take ${floats} floats, past the ${DotPlotLimits.cells} a block pair may allocate: it is left out (narrow ` +
       `the blocks' range, or give the block pair one Float32Array row covering exactly the cells it places, which ` +
       `is referenced, not copied)`;
-    rc?.report?.(Issue.warning("svs.render.omitted", "", message));
+    rc?.report?.(Issue.warning('svs.render.omitted', '', message));
     return null;
   }
   // The same data placed the same way (a layer's color or other params patched) reuses its cells and pyramid.
-  const key = `${list.map(partKey).join(";")}|${x0},${nx},${y0},${ny},${g.firstX},${g.dirX},${g.firstY},${g.dirY},${pyramided}`;
+  const key = `${list.map(partKey).join(';')}|${x0},${nx},${y0},${ny},${g.firstX},${g.dirX},${g.firstY},${g.dirY},${pyramided}`;
   const byData = built.get(list[0].values) ?? new Map<string, Built>();
   built.set(list[0].values, byData);
   const was = byData.get(key);
@@ -372,7 +372,7 @@ const partKey = (q: Part) => `${idOf(q.values)}:${q.s}:${q.t}:${q.u}:${q.w}:${id
 
 /** `u` of block index i (shown order of a block shown whole). */
 const uOf = (first: number, dir: number, i: number) => (dir > 0 ? i - first : first - i);
-type Placing = Omit<DotPlotGrid, "levels" | "values">;
+type Placing = Omit<DotPlotGrid, 'levels' | 'values'>;
 /** The grid's hull in shown order, [ux0, ux1] × [uy0, uy1] (inclusive), into `hull`. */
 const hull = new Int32Array(4);
 function hullOf(g: Placing) {
@@ -401,7 +401,7 @@ function pyramidSize(g: Placing): number {
  * Levels 1.. of a grid's mean pyramid in shown order, down to one bin: bin j of level L holds u ∈ [j·2^L, (j + 1)·2^L).
  * Each level from the one below, weighted by its cells with a value (counts kept only while building).
  */
-function pyramid(g: Omit<DotPlotGrid, "levels">): DotPlotLevel[] {
+function pyramid(g: Omit<DotPlotGrid, 'levels'>): DotPlotLevel[] {
   hullOf(g);
   const [ux0, ux1, uy0, uy1] = [hull[0], hull[1], hull[2], hull[3]];
   const levels: DotPlotLevel[] = [];
@@ -445,7 +445,7 @@ function pyramid(g: Omit<DotPlotGrid, "levels">): DotPlotLevel[] {
 const mean = new Float64Array(1);
 /** A sample's y cells' grid rows (the per-cell path), grown only. */
 let rowsOf = new Int32Array(256);
-function sampleAt(ax: NonNullable<AxisView["axis"]>, g: DotPlotGrid, L: number, sx: number, sy: number) {
+function sampleAt(ax: NonNullable<AxisView['axis']>, g: DotPlotGrid, L: number, sx: number, sy: number) {
   const levels = g.levels;
   if (levels !== null) {
     if (L === 0) {
@@ -493,7 +493,7 @@ function sampleAt(ax: NonNullable<AxisView["axis"]>, g: DotPlotGrid, L: number, 
 }
 
 /** A sample's mean at level L (tests; `sampleAt` is the draw's, through a module slot): NaN where none has a value. */
-export function dotPlotSample(ax: NonNullable<AxisView["axis"]>, g: DotPlotGrid, L: number, sx: number, sy: number) {
+export function dotPlotSample(ax: NonNullable<AxisView['axis']>, g: DotPlotGrid, L: number, sx: number, sy: number) {
   sampleAt(ax, g, L, sx, sy);
   return mean[0];
 }
@@ -744,7 +744,7 @@ function levelOf(v: DrawView, g: DotPlotGrid): number {
 /** Samples a side of the level a draw always has (built past the budget): its blocks about 16 to 32 samples a side. */
 const COARSE = 32;
 /** The coarsest level a draw falls back to, built whatever the budget: the larger block `COARSE` samples or fewer. */
-function coarseOf(ax: NonNullable<AxisView["axis"]>, g: DotPlotGrid): number {
+function coarseOf(ax: NonNullable<AxisView['axis']>, g: DotPlotGrid): number {
   let L = 0;
   while (L < LEVELS - 1 && Math.max(ax.shown[g.bx], ax.shown[g.by]) > COARSE * 2 ** L) L++;
   return L;
@@ -832,7 +832,7 @@ function drawPart(
   b0: number,
   b1: number,
 ) {
-  const ax = v.axis as NonNullable<AxisView["axis"]>;
+  const ax = v.axis as NonNullable<AxisView['axis']>;
   const step = 2 ** L;
   const T = DOT_PLOT_TILE;
   const kx1 = Math.min(ax.shown[g.bx], a1 * step);
@@ -901,7 +901,7 @@ function drawGrid(v: DrawView, c: DotPlotTiles, set: DotPlotTileSet, g: DotPlotG
   visibleRange(v, g.by, ys);
   if (xs[0] >= xs[1] || ys[0] >= ys[1]) return;
   const L = levelOf(v, g);
-  const top = coarseOf(v.axis as NonNullable<AxisView["axis"]>, g);
+  const top = coarseOf(v.axis as NonNullable<AxisView['axis']>, g);
   const T = DOT_PLOT_TILE;
   const step = 2 ** L;
   extentAt(c, g, L);
@@ -1245,7 +1245,7 @@ export function pendingSpan(lo: number, hi: number, s: number, e: number, out: I
 }
 /** The track's first dot plot's part of the overlay: the channels' rows and the rectangle being dragged. */
 function lit(v: DrawView, _s: DotPlotState) {
-  const ax = v.axis as NonNullable<AxisView["axis"]>;
+  const ax = v.axis as NonNullable<AxisView['axis']>;
   const only = ax.stacked ? v.onlyBlock : -1;
   fills.reset();
   edges.reset();

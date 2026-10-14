@@ -13,30 +13,30 @@
 //   - Any other file is all new.
 // (The name stays from when a rebuilt file was diffed against its old source and counted as ported.)
 // Usage: node lib/seqstar/scripts/ported-lines.ts [--base <rev>]
-import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
 
-const SEQSTAR = join(import.meta.dirname, "..");
-const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd: SEQSTAR, encoding: "utf8" }).trim();
+const SEQSTAR = join(import.meta.dirname, '..');
+const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: SEQSTAR, encoding: 'utf8' }).trim();
 /** Seq*'s folder as git paths start: "lib/seqstar/" here, "" in a repository of its own. */
-const PREFIX = relative(root, SEQSTAR) ? `${relative(root, SEQSTAR)}/` : "";
+const PREFIX = relative(root, SEQSTAR) ? `${relative(root, SEQSTAR)}/` : '';
 // Mol*'s zip, copied (lib/seqstar/core/src/format/zip/VENDORED.md), is vendored, not production.
-const WATCHED = new RegExp(`^${PREFIX.replace(/[/.]/g, "\\$&")}(?!core/src/format/zip/)[^/]+/src/.*\\.(tsx?|css)$`);
+const WATCHED = new RegExp(`^${PREFIX.replace(/[/.]/g, '\\$&')}(?!core/src/format/zip/)[^/]+/src/.*\\.(tsx?|css)$`);
 
 /** The production lines of a text, trimmed: not blank, not `//` comments, not `/* … *​/` blocks. */
 export function productionLines(text: string): string[] {
   const out: string[] = [];
   let block = false;
-  for (const raw of text.split("\n")) {
+  for (const raw of text.split('\n')) {
     const line = raw.trim();
     if (block) {
-      block = !line.includes("*/");
+      block = !line.includes('*/');
       continue;
     }
-    if (!line || line.startsWith("//")) continue;
-    if (line.startsWith("/*")) {
-      block = !line.includes("*/");
+    if (!line || line.startsWith('//')) continue;
+    if (line.startsWith('/*')) {
+      block = !line.includes('*/');
       continue;
     }
     out.push(line);
@@ -64,25 +64,25 @@ export function added(file: string, base: string): number {
 }
 
 const git = (...args: string[]) =>
-  execFileSync("git", args, { cwd: root, maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] }).toString();
+  execFileSync('git', args, { cwd: root, maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
 
 if (import.meta.main) {
-  const i = process.argv.indexOf("--base");
-  const base = i > 0 ? process.argv[i + 1] : "HEAD";
+  const i = process.argv.indexOf('--base');
+  const base = i > 0 ? process.argv[i + 1] : 'HEAD';
   const files = [
-    ...git("diff", "--name-only", base).split("\n"),
-    ...git("ls-files", "-o", "--exclude-standard").split("\n"),
+    ...git('diff', '--name-only', base).split('\n'),
+    ...git('ls-files', '-o', '--exclude-standard').split('\n'),
   ].filter((f, k, all) => WATCHED.test(f) && all.indexOf(f) === k && existsSync(join(root, f)));
   let total = 0;
   for (const f of files.sort()) {
-    const text = readFileSync(join(root, f), "utf8");
-    let at = "";
+    const text = readFileSync(join(root, f), 'utf8');
+    let at = '';
     try {
-      at = git("show", `${base}:${f}`);
+      at = git('show', `${base}:${f}`);
     } catch {}
     const n = added(text, at);
     total += n;
-    console.log(`${String(n).padStart(6)} new  ${relative(".", f)}`);
+    console.log(`${String(n).padStart(6)} new  ${relative('.', f)}`);
   }
   console.log(`${String(total).padStart(6)} new  total, ${files.length} files`);
 }

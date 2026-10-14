@@ -12,21 +12,21 @@
 // columns as the stream manager logs a tile's arrival, so the next frame redraws those columns alone. The rest is the
 // real stream's. Hold columns before any composer draws them: a drawn tile's image is kept by the renderer.
 
-import { TILE } from "@molstar/seq-core/format";
-import type { SeqViewerContext } from "../src/index.js";
-import { blockLevels, lanesInView, RegionState, type StreamView } from "../src/streams.js";
+import { TILE } from '@molstar/seq-core/format';
+import type { SeqViewerContext } from '../src/index.js';
+import { blockLevels, lanesInView, RegionState, type StreamView } from '../src/streams.js';
 
 export function holdBack(ctx: SeqViewerContext, section: string) {
   const m = ctx.graph.assembled.value?.view;
   const av = ctx.layout.axis(section);
   const l = ctx.layout.get(section)?.current;
-  if (!m || !av || !l) throw new Error("no view");
-  const k = m.prepared.findIndex((p) => p.renderer === "rows");
+  if (!m || !av || !l) throw new Error('no view');
+  const k = m.prepared.findIndex((p) => p.renderer === 'rows');
   const ref = m.set.strings.get(m.resolved.layers.ref[k]);
   const streams = ctx.streams as unknown as { get(ref: string): StreamView | null };
   const get = streams.get.bind(streams);
   const real = get(ref);
-  if (!real) throw new Error("no stream");
+  if (!real) throw new Error('no stream');
   // The fine level the rows draw: the stream manager's (`blockLevels` over the lanes in view).
   const lanes = new Float64Array(8);
   lanesInView(l, av, lanes);

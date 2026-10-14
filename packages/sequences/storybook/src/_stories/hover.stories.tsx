@@ -6,14 +6,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { ReactNode } from "react";
-import { splitUnitsDoc } from "../../../viewer/_test/split-units-fixtures.js";
-import { logoDoc, tracksDoc } from "./support/seqstar-docs-views.js";
-import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism.js";
-import { ViewerCard } from "./support/seqstar-viewer.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { ReactNode } from 'react';
+import { splitUnitsDoc } from '../../../viewer/_test/split-units-fixtures.js';
+import { logoDoc, tracksDoc } from './support/seqstar-docs-views.js';
+import f from './support/seqstar-format.module.css';
+import { PrismPage } from './support/seqstar-prism.js';
+import { ViewerCard } from './support/seqstar-viewer.js';
 
 /**
  * Hover emphasis: the element under the pointer, and only it, outlined inside its own pixels in an
@@ -22,7 +22,7 @@ import { ViewerCard } from "./support/seqstar-viewer.js";
  * over its stretched letters read as wrong, and the hover band marks the column); the
  * keyboard cursor's item too (click the viewer, then the arrow keys); and a section with `hover_emphasis: false`.
  */
-const meta = { title: "Seq*/Interaction/Hover", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Interaction/Hover', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj;
 
@@ -39,12 +39,12 @@ function Frame({ title, kicker, children }: { title: string; kicker: ReactNode; 
   );
 }
 
-const TRACKS = tracksDoc("p53, every emphasized type");
+const TRACKS = tracksDoc('p53, every emphasized type');
 const LOGO = logoDoc();
-const OFF = tracksDoc("p53, hover emphasis off", { hover_emphasis: false });
+const OFF = tracksDoc('p53, hover emphasis off', { hover_emphasis: false });
 
 export const Emphasis: Story = {
-  name: "Hover emphasis",
+  name: 'Hover emphasis',
   render: () => (
     <Frame
       title="Hover emphasis"
@@ -65,15 +65,15 @@ export const Emphasis: Story = {
 };
 
 export const Off: Story = {
-  name: "Hover emphasis off",
+  name: 'Hover emphasis off',
   render: () => (
     <Frame
       title="Hover emphasis off"
       kicker={
         <>
           <span className={f.code}>
-            "style": {"{"}"hover_emphasis": false{"}"}
-          </span>{" "}
+            "style": {'{'}"hover_emphasis": false{'}'}
+          </span>{' '}
           on the section (or the render prop <span className={f.code}>hoverEmphasis</span>): the hover band alone, with
           no outline.
         </>
@@ -87,7 +87,7 @@ export const Off: Story = {
 const SPLIT = splitUnitsDoc({ highlights: true });
 
 export const RowMarks: Story = {
-  name: "Per-row marks",
+  name: 'Per-row marks',
   render: () => (
     <Frame
       title="Per-row marks"

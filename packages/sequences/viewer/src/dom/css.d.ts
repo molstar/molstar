@@ -7,10 +7,10 @@
  */
 
 // The skin's text, inlined by the bundler (Vite's `?inline`): the element adopts it as constructed stylesheets.
-declare module "*.css?inline" {
+declare module '*.css?inline' {
   const css: string;
   export default css;
 }
 
 // The skin as a side-effect import (the browser tests load it to measure the legend's grid).
-declare module "*.css";
+declare module '*.css';

@@ -50,30 +50,30 @@ import {
   TILE,
   type Tile,
   Tiles,
-} from "@molstar/seq-core/format";
-import { Paths } from "@molstar/seq-core/model";
-import type { AxisView, ShownIndex } from "./axis.js";
-import { type ConfigManager, SeqViewerConfig } from "./config.js";
-import { DynamicNodes, heldNodeRefs } from "./dynamic.js";
-import type { ViewModel } from "./graph.js";
-import { itemSystemNodes } from "./item-systems.js";
-import { type Layouts, type RowModel, type SectionLayout, SectionLayouts } from "./layout.js";
-import type { Hint } from "./prefetch.js";
-import type { SeqViewerRegistry } from "./registry.js";
-import type { Scheduler } from "./scheduler.js";
-import { live, state, type Unsubscribable } from "./state.js";
+} from '@molstar/seq-core/format';
+import { Paths } from '@molstar/seq-core/model';
+import type { AxisView, ShownIndex } from './axis.js';
+import { type ConfigManager, SeqViewerConfig } from './config.js';
+import { DynamicNodes, heldNodeRefs } from './dynamic.js';
+import type { ViewModel } from './graph.js';
+import { itemSystemNodes } from './item-systems.js';
+import { type Layouts, type RowModel, type SectionLayout, SectionLayouts } from './layout.js';
+import type { Hint } from './prefetch.js';
+import type { SeqViewerRegistry } from './registry.js';
+import type { Scheduler } from './scheduler.js';
+import { live, state, type Unsubscribable } from './state.js';
 import {
   type LocalCells,
   RegionState,
   type StreamManager,
   type StreamStats,
   type StreamView,
-} from "./stream-contract.js";
-import type { Layer, Region } from "./stream-layer.js";
-import * as Store from "./stream-layer.js";
-import * as Levels from "./stream-levels.js";
-import { held1, tileOf } from "./stream-patches.js";
-import type { Viewports } from "./viewport.js";
+} from './stream-contract.js';
+import type { Layer, Region } from './stream-layer.js';
+import * as Store from './stream-layer.js';
+import * as Levels from './stream-levels.js';
+import { held1, tileOf } from './stream-patches.js';
+import type { Viewports } from './viewport.js';
 
 export {
   LETTERS_PER_PX,
@@ -84,9 +84,9 @@ export {
   type StreamManager,
   type StreamStats,
   type StreamView,
-} from "./stream-contract.js";
-export { blockLevels, listedLevels, MAP_WIDTH, overviewLevels, reduce, tileLevels } from "./stream-levels.js";
-export { lettersStream, streamedBlock, streamStats, trackStream } from "./stream-sources.js";
+} from './stream-contract.js';
+export { blockLevels, listedLevels, MAP_WIDTH, overviewLevels, reduce, tileLevels } from './stream-levels.js';
+export { lettersStream, streamedBlock, streamStats, trackStream } from './stream-sources.js';
 
 // Read once into module constants: a read through an import is a property read of the module per use, which
 // the test runner's module wrapper turns into an allocation on per-frame paths.
@@ -110,7 +110,7 @@ const LOADED = RegionState.loaded;
 const EMPTY = RegionState.empty;
 const FAILED = RegionState.failed;
 
-const PRIORITY = ["view", "view", "view", "view", "margin", "prefetch"] as const;
+const PRIORITY = ['view', 'view', 'view', 'view', 'margin', 'prefetch'] as const;
 /** The groups from this one on are never waited for (`settled`): the margin's, and the prefetch's. */
 const MARGIN = 4;
 const PREFETCH = 5;
@@ -328,7 +328,7 @@ export class Streams implements StreamManager {
     const rv = model?.resolved;
     for (let k = 0; model && rv && k < rv.layers.count; k++) {
       const type = rv.layers.type[k];
-      const r = type >= 0 ? this.host.registry.get("renderers", model.set.strings.get(type)) : undefined;
+      const r = type >= 0 ? this.host.registry.get('renderers', model.set.strings.get(type)) : undefined;
       const src = r?.stream?.(model.prepared[k]?.state) ?? null;
       if (!src) continue;
       const ref = model.set.strings.get(rv.layers.ref[k]);
@@ -400,7 +400,7 @@ export class Streams implements StreamManager {
       if (c === undefined) {
         const systems = Int32Array.of(s);
         c = new Store.Layer(`${data.source.ref}#letters`, {
-          key: "",
+          key: '',
           rows: 0,
           columns: 0,
           remote: data,
@@ -583,7 +583,7 @@ export class Streams implements StreamManager {
    */
   private map1(i: number, v: AxisView, on: boolean) {
     const c = this.order[i];
-    const ax = v.axis as NonNullable<AxisView["axis"]>;
+    const ax = v.axis as NonNullable<AxisView['axis']>;
     const sys = c.source.systems as Int32Array;
     if (c.mapChosen.length !== sys.length) {
       c.mapChosen = new Int16Array(sys.length);
@@ -634,7 +634,7 @@ export class Streams implements StreamManager {
     mid: number,
   ) {
     const c = this.order[i];
-    const ax = v.axis as NonNullable<AxisView["axis"]>;
+    const ax = v.axis as NonNullable<AxisView['axis']>;
     const dir = c.moves[2];
     const zoom = c.moves[3];
     const shown = ax.shown[b];
@@ -819,15 +819,15 @@ export class Streams implements StreamManager {
     const t = rv.layers.track[c.layer];
     if (all && rv.tracks.hidden[t]) return false;
     const ref = m.set.strings.get(rv.tracks.ref[t]);
-    const r = all ? this.host.registry.get("renderers", m.prepared[c.layer]?.renderer ?? "") : undefined;
+    const r = all ? this.host.registry.get('renderers', m.prepared[c.layer]?.renderer ?? '') : undefined;
     const any = all && r?.miniature !== false;
     const p = this.host.layout.navigatorOf(rv.tracks.section[t])?.parts;
-    const maps = p && !p.onRuler && (p.axis.includes("miniature") || p.axis.includes("overview"));
+    const maps = p && !p.onRuler && (p.axis.includes('miniature') || p.axis.includes('overview'));
     if (maps && (p.tracks?.length ? p.tracks.includes(ref) : any)) return true;
     for (let k = 0; k < rv.layers.count; k++) {
       const s = m.prepared[k]?.state as { tracks?: readonly string[] } | undefined;
       const same = rv.tracks.section[rv.layers.track[k]] === rv.tracks.section[t];
-      if (same && m.prepared[k].renderer === "seqv:map" && (s?.tracks?.length ? s.tracks.includes(ref) : any))
+      if (same && m.prepared[k].renderer === 'seqv:map' && (s?.tracks?.length ? s.tracks.includes(ref) : any))
         return true;
     }
     return false;
@@ -1207,23 +1207,23 @@ export class Streams implements StreamManager {
     const kind = rem.source.data_kind;
     const asked =
       r.level === LABELS
-        ? p.kind === "rows"
+        ? p.kind === 'rows'
         : r.level < D1
-          ? p.kind === "bins"
-          : kind === "values" || r.owner.isItems
-            ? p.kind === "bins" || p.kind === "items"
+          ? p.kind === 'bins'
+          : kind === 'values' || r.owner.isItems
+            ? p.kind === 'bins' || p.kind === 'items'
             : p.kind === kind;
     if (!asked)
       throw new Error(
-        `a "${p.kind}" answer where "${r.level === LABELS ? "rows" : r.level < D1 ? "bins" : kind}" was asked`,
+        `a "${p.kind}" answer where "${r.level === LABELS ? 'rows' : r.level < D1 ? 'bins' : kind}" was asked`,
       );
-    const rows = r.level === LABELS && p.kind === "rows" ? p : null;
+    const rows = r.level === LABELS && p.kind === 'rows' ? p : null;
     const n = rows === null ? 0 : rows.labels.length;
     if (p.nodes !== undefined && p.nodes.length > 0) r.carried = this.nodes.add(rem.source.ref, p.nodes);
     // Items with a `map`: their coordinate systems, carried by the region as its patch's own nodes are (ST7).
-    if (p.kind === "items" && rem.source.data_kind === "items" && r.level >= D1 && p.items.map !== undefined)
+    if (p.kind === 'items' && rem.source.data_kind === 'items' && r.level >= D1 && p.items.map !== undefined)
       this.itemSystems(r, rem, p.items);
-    const bytes1 = r.level !== LABELS && r.level >= D1 ? held1(r, p, rem.source.data_kind === "values") : 0;
+    const bytes1 = r.level !== LABELS && r.level >= D1 ? held1(r, p, rem.source.data_kind === 'values') : 0;
     const tile = r.level < D1 && r.level !== LABELS ? tileOf(p, r.level & (L - 1)) : null;
     r.tries = 0;
     this.recovered(r);
@@ -1262,7 +1262,7 @@ export class Streams implements StreamManager {
             : `tile ${r.level >> 4}/${r.level & 15}/${r.ty}/${r.tx}`;
       const why = e instanceof Error ? e.message : String(e);
       const src = c.source.remote?.source;
-      this.host.report("svs.stream.load", `${src?.uri ?? src?.stream ?? c.ref}: ${what} failed (${why})`);
+      this.host.report('svs.stream.load', `${src?.uri ?? src?.stream ?? c.ref}: ${what} failed (${why})`);
     }
     r.failing ||= !notServed;
     const now = this.host.scheduler.now();
@@ -1365,7 +1365,7 @@ export class Streams implements StreamManager {
   /** Region r's items' coordinate systems held (`itemSystemNodes`), carried by it. Arrival-rate. */
   private itemSystems(r: Region, rem: StreamedData, items: StreamTable) {
     const s = ((r.level - D1) / LV) | 0;
-    let to = "";
+    let to = '';
     for (const [key, i] of rem.systems) if (i === s) to = key;
     const nodes: StreamNode[] = [];
     // Each fault once per source and code (a transcripts file repeats it per transcript and region).
@@ -1375,7 +1375,7 @@ export class Streams implements StreamManager {
       this.reported.add(k);
       this.host.report(code, message);
     };
-    if (to !== "") itemSystemNodes(rem.source.ref, to, items, nodes, once);
+    if (to !== '') itemSystemNodes(rem.source.ref, to, items, nodes, once);
     const more = nodes.length > 0 ? this.nodes.add(rem.source.ref, nodes, true) : null;
     if (more !== null) r.carried = r.carried === null ? more : [...r.carried, ...more];
   }

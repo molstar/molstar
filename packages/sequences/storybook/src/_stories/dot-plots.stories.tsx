@@ -6,22 +6,22 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useMemo } from "react";
-import { calmodulinDotPlot } from "./support/seqstar-dot-plots.js";
-import { PrismPage } from "./support/seqstar-prism.js";
-import { ViewerCard } from "./support/seqstar-viewer.js";
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useMemo } from 'react';
+import { calmodulinDotPlot } from './support/seqstar-dot-plots.js';
+import { PrismPage } from './support/seqstar-prism.js';
+import { ViewerCard } from './support/seqstar-viewer.js';
 
 /**
  * Dot plots: positions against positions on one section's axis, x across as every track's and the same window down
  * the track, so zooming and panning the tracks moves both. A grid's values are cells; pairs are segments.
  */
-const meta = { title: "Seq*/Views and layouts/Dot plots", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Views and layouts/Dot plots', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj;
 
 export const SelfComparison: Story = {
-  name: "A sequence against itself",
+  name: 'A sequence against itself',
   render: function Render() {
     const doc = useMemo(calmodulinDotPlot, []);
     return (

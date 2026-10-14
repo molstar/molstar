@@ -11,11 +11,11 @@
 // throw omits the layer, reported once), a split row's guide, the rows' band in one `rows` call, and a moved lazy
 // band's cut rows. Per frame nothing is allocated (RN1's draw pattern).
 
-import { AxisGeometry } from "../axis.js";
-import type { ViewModel } from "../graph.js";
-import { EntryKind, type SectionLayout, SectionLayouts, SPLIT_GUIDE_PX } from "../layout.js";
-import type { ViewportState } from "../viewport.js";
-import { type RenderBackend, SkinToken } from "./backend.js";
+import { AxisGeometry } from '../axis.js';
+import type { ViewModel } from '../graph.js';
+import { EntryKind, type SectionLayout, SectionLayouts, SPLIT_GUIDE_PX } from '../layout.js';
+import type { ViewportState } from '../viewport.js';
+import { type RenderBackend, SkinToken } from './backend.js';
 import {
   banded,
   bands,
@@ -32,9 +32,9 @@ import {
   release,
   setClip,
   stateOf,
-} from "./composer-frame.js";
-import { columns, gutter, header, rowsHeader } from "./composer-headers.js";
-import { drawGroupLabels } from "./numbers.js";
+} from './composer-frame.js';
+import { columns, gutter, header, rowsHeader } from './composer-headers.js';
+import { drawGroupLabels } from './numbers.js';
 
 /** A split row's guide: the grid tone at this alpha (0..255), well under a row border's full strength. */
 const SPLIT_GUIDE_ALPHA = 150;
@@ -122,7 +122,7 @@ function layer(f: ComposerFrame, k: number, l: SectionLayout, e: number) {
   prime(f, k, l, e);
   try {
     if (!r.draw) bare(f, k, l);
-    else if (v.ring && !r.geometries.includes("circular")) ringless(f, k);
+    else if (v.ring && !r.geometries.includes('circular')) ringless(f, k);
     else if (l.geometry === WRAPPED || v.height >= (r.minHeight ?? 0)) {
       const more = v.more;
       v.more = false;
@@ -141,8 +141,8 @@ function layer(f: ComposerFrame, k: number, l: SectionLayout, e: number) {
 function bare(f: ComposerFrame, k: number, l: SectionLayout) {
   if (!f.undrawn.has(k)) {
     f.undrawn.add(k);
-    const geometry = l.geometry === WRAPPED ? "wrapped" : "linear";
-    f.ctx.report("svs.render.fallback", `layer "${f.refs[k]}" declares ${geometry} and has no draw: drawn as bars`);
+    const geometry = l.geometry === WRAPPED ? 'wrapped' : 'linear';
+    f.ctx.report('svs.render.fallback', `layer "${f.refs[k]}" declares ${geometry} and has no draw: drawn as bars`);
   }
   bars(f);
 }
@@ -156,7 +156,7 @@ function ringless(f: ComposerFrame, k: number) {
     const m = f.model as ViewModel;
     const type = m.set.strings.get(m.resolved.layers.type[k]);
     f.ctx.report(
-      "svs.render.fallback",
+      'svs.render.fallback',
       `layer "${f.refs[k]}" (${type}) has no ring form in section "${f.section}": drawn as bars`,
     );
   }

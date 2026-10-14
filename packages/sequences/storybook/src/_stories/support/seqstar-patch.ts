@@ -11,9 +11,9 @@
 // stories did). This applies the patch and keeps what came back (warnings and errors) in a per-context list that
 // `PatchBanner` shows under the viewer, dismissible, and logs it with `console.warn`.
 
-import type { Patch } from "@molstar/seq-core/format";
-import type { Issue } from "@molstar/seq-core/model";
-import type { Origin, SeqViewerContext } from "@molstar/seq-viewer";
+import type { Patch } from '@molstar/seq-core/format';
+import type { Issue } from '@molstar/seq-core/model';
+import type { Origin, SeqViewerContext } from '@molstar/seq-viewer';
 
 /** What one patch gave back: its label and the issues of severity warning or error. */
 export interface PatchNotice {
@@ -52,9 +52,9 @@ export function patchNotices(ctx: object): PatchNotices {
       return () => void subs.delete(fn);
     },
     report(label, issues) {
-      const bad = issues.filter((i) => i.severity === "warning" || i.severity === "error");
+      const bad = issues.filter((i) => i.severity === 'warning' || i.severity === 'error');
       if (bad.length === 0) return;
-      console.warn(`[story patch] "${label}": ${bad.map((i) => `${i.code} ${i.path}: ${i.message}`).join(" | ")}`);
+      console.warn(`[story patch] "${label}": ${bad.map((i) => `${i.code} ${i.path}: ${i.message}`).join(' | ')}`);
       set([...list, { id: next++, label, issues: bad }]);
     },
     dismiss: (id) => set(list.filter((n) => n.id !== id)),
@@ -69,8 +69,8 @@ export function patchNotices(ctx: object): PatchNotices {
 export async function storyPatch(
   ctx: SeqViewerContext,
   patch: Patch,
-  label = "patch",
-  opts?: { layer?: "base" | "local" | "preview"; snapshot?: string | null; origin?: Origin },
+  label = 'patch',
+  opts?: { layer?: 'base' | 'local' | 'preview'; snapshot?: string | null; origin?: Origin },
 ) {
   const r = await ctx.applyPatch(patch, opts);
   patchNotices(ctx).report(label, r.issues);

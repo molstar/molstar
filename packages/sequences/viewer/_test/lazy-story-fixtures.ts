@@ -11,20 +11,20 @@
 // story cannot silently load nothing again. Tiles of letters (and their share) from a hash of the cell, labels by
 // index; nothing kept (the atlas story's transport).
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { type Loaders, type SeqViewSpecDoc, TILE } from "@molstar/seq-core/format";
-import { type TileTransport, tilesStream } from "@molstar/seq-core/stream/tiles";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { type Loaders, type SeqViewSpecDoc, TILE } from '@molstar/seq-core/format';
+import { type TileTransport, tilesStream } from '@molstar/seq-core/stream/tiles';
 
-export const LAZY_URI = "https://example.org/streamed-lazy";
+export const LAZY_URI = 'https://example.org/streamed-lazy';
 export const LAZY_ROWS = 20_000;
 export const LAZY_COLUMNS = 1_200;
-const AMINO = "ACDEFGHIKLMNPQRSTVWY";
+const AMINO = 'ACDEFGHIKLMNPQRSTVWY';
 const encoder = new TextEncoder();
 
 export const sampledTiles: TileTransport = async (path) => {
-  const [kind, ...rest] = path.split("/");
+  const [kind, ...rest] = path.split('/');
   const a = rest.map(Number);
-  if (kind === "tiles") {
+  if (kind === 'tiles') {
     const out = new Uint8Array(2 * TILE * TILE);
     for (let i = 0; i < TILE * TILE; i++) {
       const h = Math.imul(i * 2654435761 + a[2] * 97 + a[3] * 31 + a[0], 40503) >>> 0;
@@ -33,14 +33,14 @@ export const sampledTiles: TileTransport = async (path) => {
     }
     return out;
   }
-  if (kind === "labels")
+  if (kind === 'labels')
     return encoder.encode(JSON.stringify(Array.from({ length: a[1] - a[0] }, (_, i) => `SEQ${a[0] + i}`)));
   // A row whole (its label and gapped string): the viewer asks for the reference row.
-  if (kind === "rows") {
-    let row = "";
+  if (kind === 'rows') {
+    let row = '';
     for (let c = 0; c < LAZY_COLUMNS; c++) {
       const h = Math.imul((a[0] + 1) * 73856093 + c * 19349663, 2654435761) >>> 0;
-      row += h % 7 === 0 ? "-" : AMINO[(h >>> 8) % 20];
+      row += h % 7 === 0 ? '-' : AMINO[(h >>> 8) % 20];
     }
     return encoder.encode(JSON.stringify({ label: `SEQ${a[0]}`, row }));
   }
@@ -55,10 +55,10 @@ export function lazyStoryLoaders(
   wrap: (fetch: () => Promise<Uint8Array>) => Promise<Uint8Array> = (f) => f(),
 ): Loaders {
   return {
-    load: () => Promise.reject(new Error("no files")),
+    load: () => Promise.reject(new Error('no files')),
     stream: tilesStream((u) =>
       u === LAZY_URI
-        ? (path) => (path.startsWith("tiles/") ? wrap(() => sampledTiles(path)) : sampledTiles(path))
+        ? (path) => (path.startsWith('tiles/') ? wrap(() => sampledTiles(path)) : sampledTiles(path))
         : null,
     ),
   };
@@ -66,17 +66,17 @@ export function lazyStoryLoaders(
 
 /** The story's document: a ruler and the rows of a lazy alignment, `LAZY_ROWS` × `LAZY_COLUMNS`. */
 export function lazyStoryDoc(): SeqViewSpecDoc {
-  const b = createSeqViewSpec({ title: "A lazy alignment" });
+  const b = createSeqViewSpec({ title: 'A lazy alignment' });
   const aln = b.data.alignment({
-    ref: "lazy",
+    ref: 'lazy',
     row_count: LAZY_ROWS,
     column_count: LAZY_COLUMNS,
-    source: { uri: LAZY_URI, protocol: "seqstar-tiles/1" },
+    source: { uri: LAZY_URI, protocol: 'seqstar-tiles/1' },
   } as never);
   // Its own ref: the view named "lazy" like the alignment was `svs.ref.duplicate`, and the story showed nothing (ST3b).
-  const v = b.view({ ref: "rows", label: "Lazy", height: "box" });
+  const v = b.view({ ref: 'rows', label: 'Lazy', height: 'box' });
   v.block({ alignment: aln });
-  v.track({ label: "" }).ruler();
-  v.track({ label: "Rows" }).rows();
+  v.track({ label: '' }).ruler();
+  v.track({ label: 'Rows' }).rows();
   return b.getDocument();
 }

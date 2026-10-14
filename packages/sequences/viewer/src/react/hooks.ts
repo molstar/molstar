@@ -22,15 +22,15 @@ import {
   useLayoutEffect,
   useRef,
   useSyncExternalStore,
-} from "react";
-import { type Observable, skip } from "rxjs";
-import type { MenuItem } from "../chrome.js";
-import { landFocus, type SurfaceFactory } from "../dom/core.js";
-import type { LegendMode, Live, SearchFn, SeqState, SeqViewerContext } from "../index.js";
-import { sameShallow } from "../same.js";
+} from 'react';
+import { type Observable, skip } from 'rxjs';
+import type { MenuItem } from '../chrome.js';
+import { landFocus, type SurfaceFactory } from '../dom/core.js';
+import type { LegendMode, Live, SearchFn, SeqState, SeqViewerContext } from '../index.js';
+import { sameShallow } from '../same.js';
 
 // The surface contract is the DOM UI's: one declaration for both.
-export type { MountedSurface, SurfaceFactory } from "../dom/core.js";
+export type { MountedSurface, SurfaceFactory } from '../dom/core.js';
 
 export interface PartProps {
   readonly context: SeqViewerContext;
@@ -62,7 +62,7 @@ export interface ScrollAreaProps {
  */
 export interface MenuProps {
   /** The button that opens it; the menu adds its own handlers and ARIA state. */
-  readonly trigger: ReactElement<{ onClick?: () => void; "aria-expanded"?: boolean }>;
+  readonly trigger: ReactElement<{ onClick?: () => void; 'aria-expanded'?: boolean }>;
   readonly items: readonly MenuItem[];
   readonly open: boolean;
   /** Asked for on the trigger, Escape, Tab, an item chosen and a press outside; the owner answers with `open`. */
@@ -108,11 +108,11 @@ export interface SeqViewerUISpec {
    * A component, "none" (the part is left out wherever it is placed), or "default" (its default, also placed under
    * `clean` chrome).
    */
-  readonly components?: { readonly [K in SlotName]?: SlotComponents[K] | "none" | "default" };
+  readonly components?: { readonly [K in SlotName]?: SlotComponents[K] | 'none' | 'default' };
   /** On the root, where a host scopes its token mapping. */
   readonly className?: string;
   /** The parts `SeqViewerLayout` places (`ChromeCompositions`); unset: the context's `UI.Chrome`. Never written to it. */
-  readonly chrome?: "full" | "clean";
+  readonly chrome?: 'full' | 'clean';
   /**
    * This UI's legend (seqspec:interaction#the-legend): collapsed, expanded or hidden; unset: the context's `UI.Legend`.
    */
@@ -144,7 +144,7 @@ export const ScopeContext = createContext<ViewerScope | null>(null);
 
 export function useScope(): ViewerScope {
   const s = useContext(ScopeContext);
-  if (!s) throw new Error("Seq* parts render under SeqViewerProvider");
+  if (!s) throw new Error('Seq* parts render under SeqViewerProvider');
   return s;
 }
 /** The provider's scope, or null: a part placed without one draws with the default primitives. */

@@ -11,10 +11,10 @@
 // track header's tooltip (`headerLegend`, through the hover's label). Edge-rate: computed when the view changes, never
 // per frame or hover.
 
-import { NO_COLOR } from "./draw/backend.js";
-import type { ViewModel } from "./graph.js";
-import type { SeqViewerRegistry } from "./registry.js";
-import type { LegendSink } from "./themes.js";
+import { NO_COLOR } from './draw/backend.js';
+import type { ViewModel } from './graph.js';
+import type { SeqViewerRegistry } from './registry.js';
+import type { LegendSink } from './themes.js';
 
 export interface LegendItem {
   readonly label: string;
@@ -59,7 +59,7 @@ export interface HeaderLegend {
 }
 export const HEADER_LEGEND_ITEMS = 6;
 
-const hex = (c: number) => `#${c.toString(16).padStart(6, "0")}`;
+const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
 const legends = new WeakMap<ViewModel, ReadonlyMap<number, TrackLegend>>();
 const headers = new WeakMap<ViewModel, Map<number, HeaderLegend | null>>();
 
@@ -79,7 +79,7 @@ export function trackLegends(registry: SeqViewerRegistry, view: ViewModel): Read
   const all = new Map<number, { items: LegendItem[]; ramps: LegendRamp[]; sizes: LegendSize[]; layers: number[] }>();
   for (let i = 0; i < rv.layers.count; i++) {
     const t = rv.layers.track[i];
-    const r = registry.get("renderers", prepared[i]?.renderer ?? "");
+    const r = registry.get('renderers', prepared[i]?.renderer ?? '');
     if (rv.tracks.hidden[t] || rv.sections.hidden[rv.tracks.section[t]] || !r?.legend) continue;
     const g = all.get(t) ?? { items: [], ramps: [], sizes: [], layers: [] };
     all.set(t, g);

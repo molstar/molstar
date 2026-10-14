@@ -12,18 +12,18 @@
 // a registry module like the built-ins, so a canvas host and a headless one register the same entry. The viewer core
 // imports nothing from here.
 
-import type { LayerRenderer, SeqViewerRegistryEntry } from "@molstar/seq-viewer/draw";
-import { InteractionsRegistry } from "../registry.js";
-import { FingerprintRenderer } from "./renderer.js";
-import { KindTheme } from "./themes.js";
+import type { LayerRenderer, SeqViewerRegistryEntry } from '@molstar/seq-viewer/draw';
+import { InteractionsRegistry } from '../registry.js';
+import { FingerprintRenderer } from './renderer.js';
+import { KindTheme } from './themes.js';
 
 export {
   FINGERPRINT,
   FingerprintRenderer,
   type FingerprintState,
   prepareFingerprint,
-} from "./renderer.js";
-export { KindTheme } from "./themes.js";
+} from './renderer.js';
+export { KindTheme } from './themes.js';
 
 /** The extension's one registry entry: what a host adds to `spec.registry`, headless or drawing. */
 export const InteractionsViewerRegistry: SeqViewerRegistryEntry = {

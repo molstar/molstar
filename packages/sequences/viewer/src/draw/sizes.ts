@@ -11,11 +11,11 @@
 // 1/`SIZE_ONE` of the channel's unit (px, or a share of the lane, the row or the cell), `NO_SIZE` the viewer's own
 // size. Part of the renderer API.
 
-import type { Axis, AxisView } from "../axis.js";
-import type { Features } from "../prepare.js";
-import { NO_SIZE, SIZE_ONE, type Theme, ThemeLocation } from "../themes.js";
-import { shownHull } from "./cells.js";
-import { featureLoc } from "./density.js";
+import type { Axis, AxisView } from '../axis.js';
+import type { Features } from '../prepare.js';
+import { NO_SIZE, SIZE_ONE, type Theme, ThemeLocation } from '../themes.js';
+import { shownHull } from './cells.js';
+import { featureLoc } from './density.js';
 
 /**
  * The viewer's own dot, CSS px: the radius of a glyph no size theme sizes (a pair's end, a point at a narrow cell; 9 px
@@ -66,7 +66,7 @@ export function hitWindowAt(v: AxisView, b: number, out: Int32Array): boolean {
 /** The layer's size theme `k` of its type's `n` size channels (the last in its channel order); null: the viewer's size. */
 export function sizeTheme(v: SizeView, k: number, n: number): Theme | null {
   const t = v.themes[v.themes.length - n + k];
-  return t?.kind === "size" ? t : null;
+  return t?.kind === 'size' ? t : null;
 }
 /** Feature k's size by `t` (an int, see above); `NO_SIZE` without a theme. Leaves `v.loc` at k. */
 export function featureSize(v: SizeView, f: Features, k: number, t: Theme | null): number {

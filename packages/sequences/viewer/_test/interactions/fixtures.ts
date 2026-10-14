@@ -8,12 +8,12 @@
 
 // The scenes (scenes.ts) opened in a viewer context for the Node tests, and their fingerprint layer.
 
-import { KernelRenderers, type SeqViewerContext, type SeqViewerRegistryEntry } from "../../src/index.js";
-import { InteractionsViewerRegistry } from "../../src/interactions/viewer/index.js";
-import { opened } from "../layout-fixtures.js";
-import { type Scene, ShortFingerprint } from "./scenes.js";
+import { KernelRenderers, type SeqViewerContext, type SeqViewerRegistryEntry } from '../../src/index.js';
+import { InteractionsViewerRegistry } from '../../src/interactions/viewer/index.js';
+import { opened } from '../layout-fixtures.js';
+import { type Scene, ShortFingerprint } from './scenes.js';
 
-export * from "./scenes.js";
+export * from './scenes.js';
 
 /**
  * A context showing the scene's section with the kernel renderers and, by default, the extension's entry; `dpr` sizes the
@@ -26,7 +26,7 @@ export async function open(
   const t = await opened(scene.doc, {
     renderers: [...KernelRenderers],
     registry: o.registry ?? [InteractionsViewerRegistry, ShortFingerprint],
-    view: scene.section.split(".")[0],
+    view: scene.section.split('.')[0],
     render: o.render,
   });
   const [w, h] = o.size ?? [1000, 400];
@@ -38,6 +38,6 @@ export async function open(
 /** The fingerprint layer: its index and prepared state. */
 export function layerOf(ctx: SeqViewerContext) {
   const m = ctx.graph.assembled.value?.view;
-  const k = m?.prepared.findIndex((p) => p.renderer === "interactions:fingerprint") ?? -1;
+  const k = m?.prepared.findIndex((p) => p.renderer === 'interactions:fingerprint') ?? -1;
   return { k, m, state: m?.prepared[k]?.state };
 }

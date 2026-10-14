@@ -18,11 +18,11 @@
 
 /** The families the committed tables are made of, by the name `metricsMeasurer` finds them under, and their CSS. */
 export const FONT_FAMILIES: Record<string, string> = {
-  "ui-sans-serif": "ui-sans-serif, system-ui, sans-serif",
-  "ui-monospace": "ui-monospace, Menlo, monospace",
-  "sans-serif": "sans-serif",
-  monospace: "monospace",
-  serif: "serif",
+  'ui-sans-serif': 'ui-sans-serif, system-ui, sans-serif',
+  'ui-monospace': 'ui-monospace, Menlo, monospace',
+  'sans-serif': 'sans-serif',
+  monospace: 'monospace',
+  serif: 'serif',
 };
 export const FONT_WEIGHTS = [400, 600];
 
@@ -48,13 +48,13 @@ export function probeFonts({
   const WIDTHS_AT = 12;
   const out: ProbedFont[] = [];
   const c = new OffscreenCanvas(1400, 3200);
-  const g = c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+  const g = c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
   /** The lowest row with ink in the "H" drawn with `baseline` at y = 1,600. */
   const foot = (baseline: CanvasTextBaseline): number => {
     g.clearRect(0, 0, 1400, 3200);
     g.textBaseline = baseline;
-    g.fillStyle = "#000";
-    g.fillText("H", 100, 1600);
+    g.fillStyle = '#000';
+    g.fillText('H', 100, 1600);
     const d = g.getImageData(100, 0, 600, 3200).data;
     for (let y = 3199; y >= 0; y--) for (let x = 0; x < 600; x++) if (d[(y * 600 + x) * 4 + 3] > 127) return y + 1;
     return 0;
@@ -62,8 +62,8 @@ export function probeFonts({
   /** The highest row with ink in `ch` drawn on the alphabetic baseline at y = 1,600. */
   const head = (ch: string): number => {
     g.clearRect(0, 0, 1400, 3200);
-    g.textBaseline = "alphabetic";
-    g.fillStyle = "#000";
+    g.textBaseline = 'alphabetic';
+    g.fillStyle = '#000';
     g.fillText(ch, 100, 1600);
     const d = g.getImageData(100, 0, 600, 3200).data;
     for (let y = 0; y < 3200; y++) for (let x = 0; x < 600; x++) if (d[(y * 600 + x) * 4 + 3] > 127) return y;
@@ -71,23 +71,23 @@ export function probeFonts({
   };
   for (const [family, css] of Object.entries(families))
     for (const weight of weights) {
-      g.textBaseline = "alphabetic";
+      g.textBaseline = 'alphabetic';
       g.font = `${weight} ${WIDTHS_AT}px ${css}`;
       const em = (s: string) => Math.round((g.measureText(s).width / WIDTHS_AT) * 1000);
       const advances: number[] = [];
       for (let ch = 32; ch < 127; ch++) advances.push(em(String.fromCharCode(ch)));
-      const fallback = em("é");
+      const fallback = em('é');
       g.font = `${weight} ${SIZE}px ${css}`;
-      const alphabetic = foot("alphabetic");
+      const alphabetic = foot('alphabetic');
       out.push({
         family,
         weight,
         advances,
         fallback,
-        ascent: foot("top") - alphabetic,
-        descent: alphabetic - foot("bottom"),
-        cap: alphabetic - head("H"),
-        xHeight: alphabetic - head("x"),
+        ascent: foot('top') - alphabetic,
+        descent: alphabetic - foot('bottom'),
+        cap: alphabetic - head('H'),
+        xHeight: alphabetic - head('x'),
       });
     }
   return out;

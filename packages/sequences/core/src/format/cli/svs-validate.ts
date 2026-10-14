@@ -12,13 +12,13 @@
 // errors in any (warnings and notes allowed); 1: errors; 2: usage, or a file that cannot be read (the others are still
 // validated). Runs with Node's type stripping.
 
-import { readFileSync } from "node:fs";
-import { createRegistries, KernelRegistry, MvsRegistry, readDocument, register, validate } from "../index.js";
+import { readFileSync } from 'node:fs';
+import { createRegistries, KernelRegistry, MvsRegistry, readDocument, register, validate } from '../index.js';
 
 const args = process.argv.slice(2);
-const files = args.filter((a) => !a.startsWith("--"));
-if (files.length === 0 || args.some((a) => a.startsWith("--") && a !== "--strict")) {
-  console.error("usage: svs-validate <document.svsj|.svsm>... [--strict]");
+const files = args.filter((a) => !a.startsWith('--'));
+if (files.length === 0 || args.some((a) => a.startsWith('--') && a !== '--strict')) {
+  console.error('usage: svs-validate <document.svsj|.svsm>... [--strict]');
   process.exit(2);
 }
 const reg = createRegistries();
@@ -34,11 +34,11 @@ for (const file of files) {
     continue;
   }
   const { doc, issues: envelope } = readDocument(bytes);
-  const issues = doc ? validate(doc, reg, { strict: args.includes("--strict") }) : envelope;
+  const issues = doc ? validate(doc, reg, { strict: args.includes('--strict') }) : envelope;
   for (const i of issues) console.log(`${file}#${i.path}: ${i.severity} ${i.code}: ${i.message}`);
   const count = (s: string) => issues.filter((i) => i.severity === s).length;
-  const errors = count("error");
-  console.error(`${file}: ${errors} error(s), ${count("warning")} warning(s), ${count("info")} note(s)`);
+  const errors = count('error');
+  console.error(`${file}: ${errors} error(s), ${count('warning')} warning(s), ${count('info')} note(s)`);
   if (errors > 0 && code === 0) code = 1;
 }
 process.exit(code);

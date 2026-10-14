@@ -8,15 +8,15 @@
 
 // Theme fixtures (LY3a): a theme context over a hand-made layer through the default registry, a reused location.
 
-import type { ChannelEntry, ChannelKind, ResolvedLayer, ResolvedSection, ThemeRef } from "@molstar/seq-core/format";
-import type { Issue, KeyTarget, SeqSet } from "@molstar/seq-core/model";
-import { createSeqViewer, type Theme, ThemeLocation } from "../src/index.js";
+import type { ChannelEntry, ChannelKind, ResolvedLayer, ResolvedSection, ThemeRef } from '@molstar/seq-core/format';
+import type { Issue, KeyTarget, SeqSet } from '@molstar/seq-core/model';
+import { createSeqViewer, type Theme, ThemeLocation } from '../src/index.js';
 
-import { createTheme, themeContext } from "../src/themes.js";
+import { createTheme, themeContext } from '../src/themes.js';
 
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };
 const idOf = (set: SeqSet, key: string) => (set.byName(key, t) ? t.id : -1);
-export const channel = (kind: ChannelKind, unit: ChannelEntry["unit"] = null): ChannelEntry => ({
+export const channel = (kind: ChannelKind, unit: ChannelEntry['unit'] = null): ChannelEntry => ({
   name: kind,
   kind,
   unit,
@@ -37,9 +37,9 @@ export function context(set: SeqSet, o: Opts = {}) {
   const issues: Issue[] = [];
   const data = (o.data ?? []).map((k) => idOf(set, k));
   const [domainMin, domainMax] = o.domain ?? [Number.NaN, Number.NaN];
-  const layer = { ref: "L", data, kept: data.map(() => null), domainMin, domainMax, params: {}, placements: [] };
+  const layer = { ref: 'L', data, kept: data.map(() => null), domainMin, domainMax, params: {}, placements: [] };
   if (o.type) Object.assign(layer, { type: set.strings.intern(o.type) });
-  const blocks = (o.blocks ?? [{ unit: "A" }]).map((b) => ({
+  const blocks = (o.blocks ?? [{ unit: 'A' }]).map((b) => ({
     unit: b.unit ? idOf(set, b.unit) : -1,
     alignment: b.alignment ? idOf(set, b.alignment) : -1,
   }));
@@ -47,7 +47,7 @@ export function context(set: SeqSet, o: Opts = {}) {
     set,
     section: { blocks } as unknown as ResolvedSection,
     layer: layer as unknown as ResolvedLayer,
-    annotations: data.map((id) => set.annotations[id] as NonNullable<SeqSet["annotations"][number]>),
+    annotations: data.map((id) => set.annotations[id] as NonNullable<SeqSet['annotations'][number]>),
   };
   const report = (i: Issue) => issues.push(i);
   const tc = themeContext(input, o.dark ?? false, registry, report);
@@ -57,11 +57,11 @@ export function context(set: SeqSet, o: Opts = {}) {
       createTheme(
         tc,
         { theme, params, fallback: fallback ?? null },
-        channel(kind, kind === "size" ? "px" : null),
+        channel(kind, kind === 'size' ? 'px' : null),
         registry,
         report,
       ) as Theme;
-  return { tc, issues, registry, color: make("color"), glyph: make("glyph"), size: make("size") };
+  return { tc, issues, registry, color: make('color'), glyph: make('glyph'), size: make('size') };
 }
 const loc = ThemeLocation.create();
 export const at = (o: Partial<ThemeLocation>) => {

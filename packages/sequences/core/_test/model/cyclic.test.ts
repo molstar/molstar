@@ -11,44 +11,44 @@
 // labels that wrap, mapping segments and CDSs split at the origin, and what stays linear (a ligand, a pair, a unit's
 // range).
 
-import { describe, expect, it } from "vitest";
-import { type Annotation, Coords, type Mapping, type SeqSet, SeqSets } from "../../src/model/index.js";
+import { describe, expect, it } from 'vitest';
+import { type Annotation, Coords, type Mapping, type SeqSet, SeqSets } from '../../src/model/index.js';
 
-const COMPLEMENT: Record<string, string> = { A: "T", T: "A", C: "G", G: "C" };
+const COMPLEMENT: Record<string, string> = { A: 'T', T: 'A', C: 'G', G: 'C' };
 const revcomp = (s: string) =>
   [...s]
     .reverse()
     .map((c) => COMPLEMENT[c] ?? c)
-    .join("");
+    .join('');
 const codes = (issues: readonly { code: string }[]) => issues.map((i) => i.code);
 const rows = (a: Annotation) => Array.from(a.start, (s, r) => [s, a.stop[r], a.item[r]]);
 
 /** A 40-nucleotide cyclic molecule "ring" and its own unit, with the given annotations and mappings. */
 function ring(extra: Partial<Parameters<typeof SeqSets.build>[0]> = {}) {
-  const residues = "ACGTACGTTA".repeat(4);
+  const residues = 'ACGTACGTTA'.repeat(4);
   return SeqSets.build({
     ...extra,
     molecules: [
-      { key: "ring", alphabet: "dna", residues, cyclic: true, ownUnit: true },
-      { key: "line", alphabet: "dna", residues, ownUnit: true },
+      { key: 'ring', alphabet: 'dna', residues, cyclic: true, ownUnit: true },
+      { key: 'line', alphabet: 'dna', residues, ownUnit: true },
       ...(extra.molecules ?? []),
     ],
   });
 }
 
-describe("cyclic coordinate systems", () => {
+describe('cyclic coordinate systems', () => {
   it("is a polymer's flag: a ligand's never", () => {
-    const { set, issues } = ring({ molecules: [{ key: "x", kind: "ligand", elements: ["C", "O"], cyclic: true }] });
+    const { set, issues } = ring({ molecules: [{ key: 'x', kind: 'ligand', elements: ['C', 'O'], cyclic: true }] });
     expect(issues).toEqual([]);
     expect(set.molecules.map((m) => m?.cyclic)).toEqual([true, false, false]);
   });
 
-  it("measures distance the short way round", () => {
+  it('measures distance the short way round', () => {
     expect([0, 5, 20, 35, 39].map((b) => Coords.cyclicDistance(2, b, 40))).toEqual([2, 3, 18, 7, 3]);
     expect(Coords.cyclicDistance(39, 0, 40)).toBe(1);
   });
 
-  it("splits a range across the origin into its two runs, an empty one left out", () => {
+  it('splits a range across the origin into its two runs, an empty one left out', () => {
     const out = new Int32Array(4);
     const runs = (s: number, t: number) => Array.from(out.subarray(0, 2 * Coords.cyclicRuns(s, t, 40, out)));
     expect([runs(5, 9), runs(36, 4), runs(36, 0)]).toEqual([
@@ -58,7 +58,7 @@ describe("cyclic coordinate systems", () => {
     ]);
   });
 
-  it("gives the shortest arc holding the runs, the circle less its largest gap (against a brute force)", () => {
+  it('gives the shortest arc holding the runs, the circle less its largest gap (against a brute force)', () => {
     let seed = 7;
     const next = (n: number) => {
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
@@ -98,21 +98,21 @@ describe("cyclic coordinate systems", () => {
     expect(Coords.cyclicHull(new Int32Array(0), 0, 40, out)).toBe(0);
   });
 
-  it("stores an annotation row across the origin as two runs of one item, by index and by label", () => {
+  it('stores an annotation row across the origin as two runs of one item, by index and by label', () => {
     const { set, issues } = ring({
       annotations: [
         {
-          key: "f",
-          geometry: "ranges",
+          key: 'f',
+          geometry: 'ranges',
           columns: {
-            target: ["ring", "ring/unit", "ring", "ring"],
+            target: ['ring', 'ring/unit', 'ring', 'ring'],
             start: [36, 30, 2, 38],
             stop: [4, 35, 6, 0],
-            id: [null, null, "ori", null],
+            id: [null, null, 'ori', null],
           },
         },
-        { key: "lab", geometry: "ranges", target: "ring", numbering: "ordinal", columns: { beg: [39], end: [2] } },
-        { key: "v", geometry: "values", target: "ring", columns: { start: [38], stop: [1], value: [0.5] } },
+        { key: 'lab', geometry: 'ranges', target: 'ring', numbering: 'ordinal', columns: { beg: [39], end: [2] } },
+        { key: 'v', geometry: 'values', target: 'ring', columns: { start: [38], stop: [1], value: [0.5] } },
       ],
     });
     expect(issues).toEqual([]);
@@ -142,38 +142,38 @@ describe("cyclic coordinate systems", () => {
   it("keeps a linear molecule's, and a pair's, start > stop an error that says what wraps", () => {
     const { issues } = ring({
       annotations: [
-        { key: "f", geometry: "ranges", target: "line", columns: { start: [36], stop: [4] } },
+        { key: 'f', geometry: 'ranges', target: 'line', columns: { start: [36], stop: [4] } },
         {
-          key: "p",
-          geometry: "pairs",
-          target: "ring",
+          key: 'p',
+          geometry: 'pairs',
+          target: 'ring',
           columns: { start: [36], stop: [4], b_start: [10], b_stop: [11] },
         },
       ],
     });
-    expect(codes(issues)).toEqual(["model.position.range", "model.position.range"]);
+    expect(codes(issues)).toEqual(['model.position.range', 'model.position.range']);
     expect(issues[0].message).toContain("start > stop wraps only a cyclic sequence's origin");
   });
 
   it("does not yet let a unit's range wrap: a block's range shows the wrap", () => {
-    const { issues } = ring({ units: [{ key: "u", molecule: "ring", range: [30, 5] }] });
-    expect(codes(issues)).toEqual(["model.unit.range"]);
+    const { issues } = ring({ units: [{ key: 'u', molecule: 'ring', range: [30, 5] }] });
+    expect(codes(issues)).toEqual(['model.unit.range']);
     expect(issues[0].message).toContain("a block's range");
   });
 
   it("splits a mapping's segment at a cyclic origin, either side", () => {
     // "frag" is the ring's 12 positions from 34 round to 6.
-    const residues = "ACGTACGTTA".repeat(4);
+    const residues = 'ACGTACGTTA'.repeat(4);
     const frag = residues.slice(34) + residues.slice(0, 6);
     const { set, issues } = ring({
-      molecules: [{ key: "frag", alphabet: "dna", residues: frag, ownUnit: true }],
+      molecules: [{ key: 'frag', alphabet: 'dna', residues: frag, ownUnit: true }],
       mappings: [
-        { key: "in", from: "frag", to: "ring", method: "segments", segments: [[0, 34, 12]] },
-        { key: "out", from: "ring", to: "frag", method: "segments", segments: [[34, 0, 12]] },
-        { key: "bad", from: "frag", to: "line", method: "segments", segments: [[0, 34, 12]] },
+        { key: 'in', from: 'frag', to: 'ring', method: 'segments', segments: [[0, 34, 12]] },
+        { key: 'out', from: 'ring', to: 'frag', method: 'segments', segments: [[34, 0, 12]] },
+        { key: 'bad', from: 'frag', to: 'line', method: 'segments', segments: [[0, 34, 12]] },
       ],
     });
-    expect(codes(issues)).toEqual(["model.mapping.range"]);
+    expect(codes(issues)).toEqual(['model.mapping.range']);
     const [a, b] = set.mappings as Mapping[];
     const segments = (m: Mapping) => Array.from(m.map.at, (at, k) => [at, m.map.length[k], m.map.toLo[k]]);
     expect(segments(a)).toEqual([
@@ -190,17 +190,17 @@ describe("cyclic coordinate systems", () => {
     ]);
   });
 
-  it("reads a CDS across a cyclic origin, from two ranges or one start, on both strands", () => {
-    const cds = "ATGAAATTTGGG"; // M K F G
-    const plus = `${cds.slice(5)}${"C".repeat(10)}${cds.slice(0, 5)}`; // the CDS from 17 round to 7
+  it('reads a CDS across a cyclic origin, from two ranges or one start, on both strands', () => {
+    const cds = 'ATGAAATTTGGG'; // M K F G
+    const plus = `${cds.slice(5)}${'C'.repeat(10)}${cds.slice(0, 5)}`; // the CDS from 17 round to 7
     const minus = revcomp(plus); // the CDS from 4 down round to 15
     const build = (dna: string, m: object) =>
       SeqSets.build({
         molecules: [
-          { key: "p", alphabet: "dna", residues: dna, cyclic: true, ownUnit: true },
-          { key: "prot", alphabet: "protein", residues: "MKFG", ownUnit: true },
+          { key: 'p', alphabet: 'dna', residues: dna, cyclic: true, ownUnit: true },
+          { key: 'prot', alphabet: 'protein', residues: 'MKFG', ownUnit: true },
         ],
-        mappings: [{ key: "c", from: "prot", to: "p", method: "codon", ...m } as never],
+        mappings: [{ key: 'c', from: 'prot', to: 'p', method: 'codon', ...m } as never],
       });
     const cases: [string, object, number][] = [
       [
@@ -221,11 +221,11 @@ describe("cyclic coordinate systems", () => {
             [0, 5],
             [15, 22],
           ],
-          strand: "-",
+          strand: '-',
         },
         4,
       ],
-      [minus, { start: 15, strand: "-" }, 4],
+      [minus, { start: 15, strand: '-' }, 4],
     ];
     for (const [dna, m, first] of cases) {
       const { set, issues } = build(dna, m);
@@ -244,19 +244,19 @@ describe("cyclic coordinate systems", () => {
           ],
         }).issues,
       ),
-    ).toEqual(["model.mapping.codon"]);
+    ).toEqual(['model.mapping.codon']);
     const linear = (set: SeqSet) => set.molecules[0]?.cyclic;
     const { set, issues } = SeqSets.build({
       molecules: [
-        { key: "p", alphabet: "dna", residues: plus, ownUnit: true },
-        { key: "prot", alphabet: "protein", residues: "MKFG", ownUnit: true },
+        { key: 'p', alphabet: 'dna', residues: plus, ownUnit: true },
+        { key: 'prot', alphabet: 'protein', residues: 'MKFG', ownUnit: true },
       ],
       mappings: [
         {
-          key: "c",
-          from: "prot",
-          to: "p",
-          method: "codon",
+          key: 'c',
+          from: 'prot',
+          to: 'p',
+          method: 'codon',
           cds: [
             [17, 22],
             [0, 7],
@@ -264,6 +264,6 @@ describe("cyclic coordinate systems", () => {
         },
       ],
     });
-    expect([linear(set), codes(issues)]).toEqual([false, ["model.mapping.codon"]]);
+    expect([linear(set), codes(issues)]).toEqual([false, ['model.mapping.codon']]);
   });
 });

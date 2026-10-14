@@ -11,7 +11,7 @@
 // coordinate systems through the edge-rate projector (seqspec:interaction#channels); the verbs take `Coordinates` too,
 // converted to loci through `ctx.systems` (what names no registered system is dropped).
 
-import { type Closure, SelectionGranularity } from "@molstar/seq-core/format";
+import { type Closure, SelectionGranularity } from '@molstar/seq-core/format';
 import {
   AlignedLocation,
   AlignedLoci,
@@ -31,10 +31,10 @@ import {
   type SeqLoci,
   type SeqSet,
   SortedArray,
-} from "@molstar/seq-core/model";
-import { carry, type SeqLociAny } from "./lineage.js";
-import { type Coordinates, isCoordinates, type Projector } from "./projection.js";
-import { live, type Origin, type SeqState, state, type WritableLive, type WritableSeqState } from "./state.js";
+} from '@molstar/seq-core/model';
+import { carry, type SeqLociAny } from './lineage.js';
+import { type Coordinates, isCoordinates, type Projector } from './projection.js';
+import { live, type Origin, type SeqState, state, type WritableLive, type WritableSeqState } from './state.js';
 
 export interface Selection {
   readonly version: number;
@@ -83,33 +83,33 @@ export interface SelectionManager {
   readonly pending: { readonly current: PendingSelection; readonly version: SeqState<number> };
 }
 
-type Field = "seq" | "aligned" | "columns" | "rows" | "items" | "boundaries";
-const FIELD: Record<SeqLociAny["kind"], Field> = {
-  "seq-loci": "seq",
-  "aligned-loci": "aligned",
-  "column-loci": "columns",
-  "row-loci": "rows",
-  "item-loci": "items",
-  "boundary-loci": "boundaries",
+type Field = 'seq' | 'aligned' | 'columns' | 'rows' | 'items' | 'boundaries';
+const FIELD: Record<SeqLociAny['kind'], Field> = {
+  'seq-loci': 'seq',
+  'aligned-loci': 'aligned',
+  'column-loci': 'columns',
+  'row-loci': 'rows',
+  'item-loci': 'items',
+  'boundary-loci': 'boundaries',
 };
 const FIELDS = Object.values(FIELD);
 type Parts = { -readonly [k in Field]: SeqLociAny | null };
 const NONE: Parts = { seq: null, aligned: null, columns: null, rows: null, items: null, boundaries: null };
 /** Per loci kind: the element's owner and set fields, and the location's value field. */
 const SHAPE = {
-  "seq-loci": ["unit", "indices", "index"],
-  "boundary-loci": ["unit", "indices", "at"],
-  "row-loci": ["row", "indices", "index"],
-  "aligned-loci": ["row", "columns", "column"],
-  "item-loci": ["annotation", "items", "item"],
+  'seq-loci': ['unit', 'indices', 'index'],
+  'boundary-loci': ['unit', 'indices', 'at'],
+  'row-loci': ['row', 'indices', 'index'],
+  'aligned-loci': ['row', 'columns', 'column'],
+  'item-loci': ['annotation', 'items', 'item'],
 } as const;
 const LOCATION = {
-  "seq-loci": SeqLocation,
-  "boundary-loci": BoundaryLocation,
-  "row-loci": RowLocation,
-  "aligned-loci": AlignedLocation,
-  "column-loci": ColumnLocation,
-  "item-loci": ItemLocation,
+  'seq-loci': SeqLocation,
+  'boundary-loci': BoundaryLocation,
+  'row-loci': RowLocation,
+  'aligned-loci': AlignedLocation,
+  'column-loci': ColumnLocation,
+  'item-loci': ItemLocation,
 };
 const locationOf = (loci: SeqLociAny) => LOCATION[loci.kind].create(loci.set) as Location;
 const ofList = (xs: number[]) => OrderedSet.ofSortedArray(SortedArray.ofUnsortedArray(Int32Array.from(xs)));
@@ -117,12 +117,12 @@ const empty = (l: SeqLociAny | null) => !l || Loci.isEmpty(l);
 const sameOwner = (a: SeqLociAny, b: SeqLociAny) =>
   a.kind === b.kind &&
   a.set.lineage === b.set.lineage &&
-  (!("alignment" in a) || a.alignment === (b as never as typeof a).alignment);
+  (!('alignment' in a) || a.alignment === (b as never as typeof a).alignment);
 
 /** The locations of `a` that pass `keep`, as loci of its kind; edge-rate. */
 function filter(a: SeqLociAny, keep: (l: Location) => boolean): SeqLociAny {
   const l = locationOf(a);
-  if (a.kind === "column-loci") {
+  if (a.kind === 'column-loci') {
     const cols: number[] = [];
     Loci.forEachLocation(a, l, (x) => keep(x) && cols.push((x as ColumnLocation).column), null);
     return { ...a, columns: ofList(cols) } as SeqLociAny;
@@ -173,7 +173,7 @@ export class Selections implements SelectionManager {
 
   constructor(projector: () => Projector | null = () => null) {
     this.projector = projector;
-    this.current = state<Selection>({ version: 0, origin: "api", ...NONE } as Selection);
+    this.current = state<Selection>({ version: 0, origin: 'api', ...NONE } as Selection);
   }
 
   set(target: SeqLociAny | Coordinates | null, origin: Origin) {
@@ -224,7 +224,7 @@ export class Selections implements SelectionManager {
     const set = loci.set;
     const c = Conversion.create();
     const units = set.units;
-    if (granularity === G.range && loci.kind === "item-loci") {
+    if (granularity === G.range && loci.kind === 'item-loci') {
       const by = new Map<number, number[]>();
       for (const e of loci.elements) {
         const ann = set.annotations[e.annotation];
@@ -241,9 +241,9 @@ export class Selections implements SelectionManager {
         }
       }
       const elements = [...by].sort((a, b) => a[0] - b[0]).map(([unit, xs]) => ({ unit, indices: ofList(xs) }));
-      return { kind: "seq-loci", set, elements } as unknown as SeqLoci;
+      return { kind: 'seq-loci', set, elements } as unknown as SeqLoci;
     }
-    if (loci.kind === "seq-loci" && (granularity === G.unit || granularity === G.copyGroup)) {
+    if (loci.kind === 'seq-loci' && (granularity === G.unit || granularity === G.copyGroup)) {
       const by = new Map<number, OrderedSet>();
       for (const e of loci.elements) {
         const whole = OrderedSet.ofRange(units.rangeStart[e.unit], units.rangeStop[e.unit]);
@@ -256,7 +256,7 @@ export class Selections implements SelectionManager {
       return { ...loci, elements } as unknown as SeqLoci;
     }
     const aligned =
-      loci.kind === "row-loci" ? RowLoci.toAlignedLoci(loci, c) : loci.kind === "aligned-loci" ? loci : null;
+      loci.kind === 'row-loci' ? RowLoci.toAlignedLoci(loci, c) : loci.kind === 'aligned-loci' ? loci : null;
     if (aligned && granularity === G.column) return AlignedLoci.toColumnLoci(aligned, c);
     if (aligned && (granularity === G.row || granularity === G.unit)) {
       const a = set.alignments[aligned.alignment];
@@ -268,7 +268,7 @@ export class Selections implements SelectionManager {
         row,
         indices: OrderedSet.ofRange(0, a?.rows.lengthOf(row as never) ?? 0),
       }));
-      return { kind: "row-loci", set, alignment: aligned.alignment, elements } as unknown as RowLoci;
+      return { kind: 'row-loci', set, alignment: aligned.alignment, elements } as unknown as RowLoci;
     }
     return loci;
   }
@@ -288,7 +288,7 @@ export class Selections implements SelectionManager {
       next[f] = carry(l, set);
       changed ||= next[f] !== l;
     }
-    if (changed) this.emit(next, "graph");
+    if (changed) this.emit(next, 'graph');
   }
 
   /** Loci as given; `Coordinates` through the projector's systems into loci per kind (nothing registered: none). */

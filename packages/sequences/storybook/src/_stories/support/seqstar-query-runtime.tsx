@@ -12,9 +12,9 @@
 // the view that shows it when the current one shows none (`showExtents`). The viewer has no commands for queries yet: here the result goes through the existing channels, `selection`, `highlight` and focus. The result's groups
 // can be stepped through, one at a time.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { Extents, type SeqSet } from "@molstar/seq-core/model";
-import { compileQuery, createQueryEnv, SeqSelection } from "@molstar/seq-core/model/query";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { Extents, type SeqSet } from '@molstar/seq-core/model';
+import { compileQuery, createQueryEnv, SeqSelection } from '@molstar/seq-core/model/query';
 import {
   bindQuery,
   checkText,
@@ -23,30 +23,30 @@ import {
   type QueryIssue,
   readQuery,
   renderIssue,
-} from "@molstar/seq-core/query";
-import { type SeqViewerContext, showExtents } from "@molstar/seq-viewer";
-import { SeqViewerLayout, SeqViewerProvider, useSeqState } from "@molstar/seq-viewer/react";
-import { type KeyboardEvent, type ReactNode, use, useEffect, useMemo, useRef, useState } from "react";
-import { PrismPage } from "../support/seqstar-prism.js";
-import { ScrollArea, Switch, TextAction, TextTabs, Tooltip } from "../ui/index.js";
-import { type CompiledCase, compiledCase } from "./seqstar-cases.js";
-import { familyDoc } from "./seqstar-docs-views.js";
-import f from "./seqstar-format.module.css";
-import { PrismCanvas } from "./seqstar-prism.js";
-import q from "./seqstar-query-runtime.module.css";
-import { caseParts, useCaseContext, useStoryUi } from "./seqstar-viewer.js";
+} from '@molstar/seq-core/query';
+import { type SeqViewerContext, showExtents } from '@molstar/seq-viewer';
+import { SeqViewerLayout, SeqViewerProvider, useSeqState } from '@molstar/seq-viewer/react';
+import { type KeyboardEvent, type ReactNode, use, useEffect, useMemo, useRef, useState } from 'react';
+import { PrismPage } from '../support/seqstar-prism.js';
+import { ScrollArea, Switch, TextAction, TextTabs, Tooltip } from '../ui/index.js';
+import { type CompiledCase, compiledCase } from './seqstar-cases.js';
+import { familyDoc } from './seqstar-docs-views.js';
+import f from './seqstar-format.module.css';
+import { PrismCanvas } from './seqstar-prism.js';
+import q from './seqstar-query-runtime.module.css';
+import { caseParts, useCaseContext, useStoryUi } from './seqstar-viewer.js';
 
 /** The story's app registers its letter-class tables as data: `search :classes`. */
 const ENV = createQueryEnv([
   {
-    namespace: "story",
+    namespace: 'story',
     symbols: [],
-    classes: { protein: { X: "ACDEFGHIKLMNPQRSTVWY" }, iupac: { N: "ACGT", R: "AG", Y: "CT", S: "CG", W: "AT" } },
+    classes: { protein: { X: 'ACDEFGHIKLMNPQRSTVWY' }, iupac: { N: 'ACGT', R: 'AG', Y: 'CT', S: 'CG', W: 'AT' } },
   },
 ]);
-const ORIGIN = "host:query";
+const ORIGIN = 'host:query';
 /** Highlight channels, one per loci the result gives (a unit's and an alignment's are two). */
-const CHANNEL = "query";
+const CHANNEL = 'query';
 
 interface Entry {
   readonly text: string;
@@ -67,137 +67,137 @@ let family: SeqViewSpecDoc | null = null;
 // runs; letters, motifs, position and system tests, group tests and an empty result that says why.
 const CASES: readonly CaseConfig[] = [
   {
-    name: "case7",
-    tab: "Barnase–barstar",
+    name: 'case7',
+    tab: 'Barnase–barstar',
     entries: [
-      { text: '(sel "1brs/A[10-20]")', says: "residues 10 to 20 of barnase, chain A: a chain range in its labels" },
-      { text: '(sel "1brs/A[10-20], 1brs/D[30-40]")', says: "a site on each chain: a union, one group each" },
-      { text: "(items :of contacts)", says: "each contact with both its ends: an annotation's items" },
-      { text: "(and 1brs/A (not iface))", says: "barnase chain A outside the interface" },
+      { text: '(sel "1brs/A[10-20]")', says: 'residues 10 to 20 of barnase, chain A: a chain range in its labels' },
+      { text: '(sel "1brs/A[10-20], 1brs/D[30-40]")', says: 'a site on each chain: a union, one group each' },
+      { text: '(items :of contacts)', says: "each contact with both its ends: an annotation's items" },
+      { text: '(and 1brs/A (not iface))', says: 'barnase chain A outside the interface' },
       {
-        text: "(and 1brs/A (partners 1brs/D :via contacts))",
+        text: '(and 1brs/A (partners 1brs/D :via contacts))',
         says: "interface residues with their partner: barnase's residues in contact with barstar (chain D)",
       },
-      { text: "(partners 1brs/A :via contacts)", says: "barstar's side of the same contacts, one group per run" },
+      { text: '(partners 1brs/A :via contacts)', says: "barstar's side of the same contacts, one group per run" },
       {
-        text: "(systems :of 1brs :where (> (length) 100))",
+        text: '(systems :of 1brs :where (> (length) 100))',
         says: "the complex's chains longer than 100: barnase's three",
       },
       {
         text: '(pick (items :of contacts) :where (within (sel "1brs/A[80-90]") 2))',
-        says: "contacts within 2 residues of barnase 80-90: a group test, its selection read once",
+        says: 'contacts within 2 residues of barnase 80-90: a group test, its selection read once',
       },
     ],
   },
   {
-    name: "family",
-    tab: "Barnase family",
+    name: 'family',
+    tab: 'Barnase family',
     doc: () => {
       family ??= familyDoc();
       return family;
     },
     entries: [
       {
-        text: "(onto (and 1brs/A (partners 1brs/D :via contacts)) msa)",
+        text: '(onto (and 1brs/A (partners 1brs/D :via contacts)) msa)',
         says: "barnase's interface on the family's columns: Show me switches to the Family view",
       },
       {
-        text: "(onto (values :of cons :above 0.8) 1brs/A)",
+        text: '(onto (values :of cons :above 0.8) 1brs/A)',
         says: "the family's conserved columns on chain A, through row 0's binding: back to the Complex view",
       },
       { text: '(onto (sel "msa[40-60]") msa :kind row)', says: "columns 40 to 60 on every row's residues" },
-      { text: "(onto msa/3 1brs/A)", says: "a row bound to no sequence: nothing, and a warning that says why" },
-      { text: '(rows :of msa :where (matches (label) "HOM0[1-3]"))', says: "rows by their labels: a system test" },
+      { text: '(onto msa/3 1brs/A)', says: 'a row bound to no sequence: nothing, and a warning that says why' },
+      { text: '(rows :of msa :where (matches (label) "HOM0[1-3]"))', says: 'rows by their labels: a system test' },
     ],
   },
   {
-    name: "case1",
-    tab: "p53",
+    name: 'case1',
+    tab: 'p53',
     entries: [
-      { text: '(sel "p53@0:50")', says: "the first 50 positions, as indices a tool returned: an index pointer" },
-      { text: "(items :of regions)", says: "p53's regions, one group each" },
-      { text: "(and p53 (not regions))", says: "what lies between the regions" },
-      { text: '(range p53 175 245-249 :numbering "uniprot:P04637")', says: "hotspots by their UniProt numbers" },
+      { text: '(sel "p53@0:50")', says: 'the first 50 positions, as indices a tool returned: an index pointer' },
+      { text: '(items :of regions)', says: "p53's regions, one group each" },
+      { text: '(and p53 (not regions))', says: 'what lies between the regions' },
+      { text: '(range p53 175 245-249 :numbering "uniprot:P04637")', says: 'hotspots by their UniProt numbers' },
       {
-        text: "(pick (items :of regions) :where (matches (label) binding))",
+        text: '(pick (items :of regions) :where (matches (label) binding))',
         says: "an item by its label, as kinase domains are picked: p53's DNA-binding region",
       },
-      { text: "(first (items :of regions) 2)", says: "the first two regions" },
-      { text: '(expand (sel "p53[175]") 20)', says: "20 residues either side of residue 175" },
-      { text: "(each (items :of regions) (expand (current) 5))", says: "every region widened by 5, one group each" },
-      { text: "(letters C :in p53)", says: "p53's cysteines, one group per run: step through them" },
-      { text: "(positions :in p53 :where (in (letter) C H))", says: "cysteines and histidines: a test per position" },
+      { text: '(first (items :of regions) 2)', says: 'the first two regions' },
+      { text: '(expand (sel "p53[175]") 20)', says: '20 residues either side of residue 175' },
+      { text: '(each (items :of regions) (expand (current) 5))', says: 'every region widened by 5, one group each' },
+      { text: '(letters C :in p53)', says: "p53's cysteines, one group per run: step through them" },
+      { text: '(positions :in p53 :where (in (letter) C H))', says: 'cysteines and histidines: a test per position' },
       {
-        text: "(each (items :of regions) (and (current) (letters C)))",
-        says: "the cysteines of each region, one group each",
+        text: '(each (items :of regions) (and (current) (letters C)))',
+        says: 'the cysteines of each region, one group each',
       },
     ],
   },
   {
-    name: "case3",
-    tab: "SH2 family",
+    name: 'case3',
+    tab: 'SH2 family',
     entries: [
-      { text: "(values :of cons :above 0.8)", says: "columns with conservation above 0.8, one group per run" },
-      { text: "(rows :of sh2)", says: "the family's rows, one group each" },
-      { text: '(sel "sh2/1[10-30]")', says: "residues 10 to 30 of the second member" },
-      { text: "(and (rows :of sh2) (letters W))", says: "tryptophans in every row: a scan of the rows only" },
-      { text: "(values :of cons :above 1)", says: "nothing passes: the warning says what cons holds" },
+      { text: '(values :of cons :above 0.8)', says: 'columns with conservation above 0.8, one group per run' },
+      { text: '(rows :of sh2)', says: "the family's rows, one group each" },
+      { text: '(sel "sh2/1[10-30]")', says: 'residues 10 to 30 of the second member' },
+      { text: '(and (rows :of sh2) (letters W))', says: 'tryptophans in every row: a scan of the rows only' },
+      { text: '(values :of cons :above 1)', says: 'nothing passes: the warning says what cons holds' },
     ],
   },
   {
-    name: "case13",
-    tab: "p53 features",
+    name: 'case13',
+    tab: 'p53 features',
     entries: [
       {
-        text: "(pick (items :of p53-variants) :where (overlaps (items :of p53-features :where (= (category) Domain))))",
-        says: "variants overlapping a domain: the hotspots in the DNA-binding domain",
+        text: '(pick (items :of p53-variants) :where (overlaps (items :of p53-features :where (= (category) Domain))))',
+        says: 'variants overlapping a domain: the hotspots in the DNA-binding domain',
       },
-      { text: "(search PXXP :classes protein :in p53)", says: "a motif: PXXP, the proline-rich region's SH3 sites" },
+      { text: '(search PXXP :classes protein :in p53)', says: "a motif: PXXP, the proline-rich region's SH3 sites" },
       {
         text: '(search "[KR]{2}.{10,12}[KR]{3,}" :in p53 :regex true)',
-        says: "a regular expression (quoted): the bipartite nuclear localization signal, residues 305 to 321",
+        says: 'a regular expression (quoted): the bipartite nuclear localization signal, residues 305 to 321',
       },
-      { text: "(items :of p53-features :where (= (category) Domain))", says: "the features that are domains" },
+      { text: '(items :of p53-features :where (= (category) Domain))', says: 'the features that are domains' },
       {
-        text: "(search PPXP :classes protein :edits 1 :in p53)",
-        says: "PPXP with one edit allowed: each hit scored by its edits, as you step through them",
+        text: '(search PPXP :classes protein :edits 1 :in p53)',
+        says: 'PPXP with one edit allowed: each hit scored by its edits, as you step through them',
       },
     ],
   },
   {
-    name: "case14",
-    tab: "Gene and protein",
+    name: 'case14',
+    tab: 'Gene and protein',
     entries: [
-      { text: "(or exons domain)", says: "the exons and the protein's domain: a union of two annotations' items" },
-      { text: "(and gene (not exons))", says: "the gene outside its exons: the intron and the untranslated ends" },
-      { text: '(sel "gene[1-12]")', says: "the 5′ untranslated region by its labels" },
-      { text: '(onto (sel "protein[5-10]") gene)', says: "the codons of residues 5 to 10, across the codon mapping" },
+      { text: '(or exons domain)', says: "the exons and the protein's domain: a union of two annotations' items" },
+      { text: '(and gene (not exons))', says: 'the gene outside its exons: the intron and the untranslated ends' },
+      { text: '(sel "gene[1-12]")', says: 'the 5′ untranslated region by its labels' },
+      { text: '(onto (sel "protein[5-10]") gene)', says: 'the codons of residues 5 to 10, across the codon mapping' },
       {
         text: '(onto (sel "gene[40-60]") protein)',
-        says: "the residues whose codons touch nucleotides 40 to 60 (by overlap)",
+        says: 'the residues whose codons touch nucleotides 40 to 60 (by overlap)',
       },
-      { text: "(search ATG :in gene)", says: "the start codon, after the 5′ untranslated region" },
-      { text: "(search TRA :classes iupac :in gene)", says: "stop codons TAA and TGA, by IUPAC classes" },
+      { text: '(search ATG :in gene)', says: 'the start codon, after the 5′ untranslated region' },
+      { text: '(search TRA :classes iupac :in gene)', says: 'stop codons TAA and TGA, by IUPAC classes' },
     ],
   },
 ];
 
 /** The text with each issue under its line: a caret at its column, then the issue. */
 function inline(text: string, issues: readonly QueryIssue[]): string {
-  const lines = text.split("\n");
+  const lines = text.split('\n');
   const out = lines.flatMap((line, k) => [
     line,
     ...issues
       .filter((i) => i.at?.line === k + 1)
-      .map((i) => `${" ".repeat((i.at?.column ?? 1) - 1)}^ ${renderIssue(i).replace(/^\S+ /, "").split("\n")[0]}`),
+      .map((i) => `${' '.repeat((i.at?.column ?? 1) - 1)}^ ${renderIssue(i).replace(/^\S+ /, '').split('\n')[0]}`),
   ]);
-  return [...out, ...issues.filter((i) => !i.at).map((i) => renderIssue(i).split("\n")[0])].join("\n");
+  return [...out, ...issues.filter((i) => !i.at).map((i) => renderIssue(i).split('\n')[0])].join('\n');
 }
 
 /** The expansion `sel` stands for, printed, when the text uses it. */
 function expansion(text: string): string | null {
   const c = checkText(text);
-  return text.includes("(sel ") && c.expanded ? printQuery(c.expanded as Expression) : null;
+  return text.includes('(sel ') && c.expanded ? printQuery(c.expanded as Expression) : null;
 }
 
 /** The person's selection as a query input (`(input selection)`). */
@@ -218,11 +218,11 @@ function run(ctx: SeqViewerContext, set: SeqSet, text: string): Ran {
   const bound = read.node ? bindQuery(read.node, ENV.language) : null;
   if (!bound?.expr) return { text, selection: null, issues: [...read.issues, ...(bound?.issues ?? [])] };
   const r = compileQuery(bound.expr, ENV, bound.source).run({ set, inputs: { selection: selectionInput(ctx, set) } });
-  const failed = r.issues.some((i) => i.severity === "error");
+  const failed = r.issues.some((i) => i.severity === 'error');
   return { text, selection: failed ? null : r.selection, issues: [...bound.issues, ...r.issues] };
 }
 
-const count = (n: number, what: string) => `${n.toLocaleString("en-US")} ${what}${n === 1 ? "" : "s"}`;
+const count = (n: number, what: string) => `${n.toLocaleString('en-US')} ${what}${n === 1 ? '' : 's'}`;
 
 /** Its systems: distinct (kind, id, row) of its runs, in canonical order. */
 function systemCount(sel: SeqSelection): number {
@@ -253,7 +253,7 @@ function apply(
   for (let i = 0; i < lit; i++) ctx.highlight.clear(`${CHANNEL}:${i}`);
   const loci = sel ? SeqSelection.toLoci(sel, { group }) : [];
   if (highlight) {
-    for (const [i, l] of loci.entries()) ctx.highlight.set(`${CHANNEL}:${i}`, l, { style: "highlight" });
+    for (const [i, l] of loci.entries()) ctx.highlight.set(`${CHANNEL}:${i}`, l, { style: 'highlight' });
     return loci.length;
   }
   ctx.selection.set(loci[0] ?? null, ORIGIN);
@@ -271,7 +271,7 @@ function showMe(ctx: SeqViewerContext, sel: SeqSelection): Promise<boolean> {
 function QueryPanel({ ctx, config }: { ctx: SeqViewerContext; config: CaseConfig }) {
   const set = useSeqState(ctx.graph.assembled)?.set ?? null;
   const [text, setText] = useState(config.entries[0].text);
-  const [ran, setRan] = useState<Ran>({ text: "", selection: null, issues: [] });
+  const [ran, setRan] = useState<Ran>({ text: '', selection: null, issues: [] });
   const [highlight, setHighlight] = useState(false);
   const [lit, setLit] = useState(0);
   const [shown, setShown] = useState<boolean | null>(null);
@@ -317,7 +317,7 @@ function QueryPanel({ ctx, config }: { ctx: SeqViewerContext; config: CaseConfig
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) go(text);
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) go(text);
           }}
           spellCheck={false}
           rows={2}
@@ -342,7 +342,7 @@ function QueryPanel({ ctx, config }: { ctx: SeqViewerContext; config: CaseConfig
         {sel && shownSel && (
           <div className={q.summary} aria-live="polite">
             <span className={q.line}>{SeqSelection.summary(shownSel, { indices: true, maxParts: 6 })}</span>
-            {sel.groupCount > 0 && <span className={q.note}>in {count(systemCount(shownSel), "system")}</span>}
+            {sel.groupCount > 0 && <span className={q.note}>in {count(systemCount(shownSel), 'system')}</span>}
             {step !== null && !Number.isNaN(sel.groupScore[step]) && (
               <span className={q.note}>score {sel.groupScore[step]}</span>
             )}

@@ -14,15 +14,15 @@
 // holds the pointer lit, both over the body, none outside (the old stack tested the horizontal rail's only). Skin
 // colors made distinct to read them exactly.
 
-import type { SeqSet } from "@molstar/seq-core/model";
-import { afterEach, describe, expect, it } from "vitest";
-import type { AxisView } from "../../src/axis.js";
-import { SCROLLBAR } from "../../src/hit.js";
-import { Inputs, PointerType, type SectionLayout } from "../../src/index.js";
-import { WINDOW_FRAME, WindowKind, windowFrame } from "../../src/windows.js";
-import { syntheticFamily } from "../families.js";
-import { rowLoci } from "../overlay-docs.js";
-import { canvasesOf, close, type Opened, opened, pixelsOf, settle } from "./open.js";
+import type { SeqSet } from '@molstar/seq-core/model';
+import { afterEach, describe, expect, it } from 'vitest';
+import type { AxisView } from '../../src/axis.js';
+import { SCROLLBAR } from '../../src/hit.js';
+import { Inputs, PointerType, type SectionLayout } from '../../src/index.js';
+import { WINDOW_FRAME, WindowKind, windowFrame } from '../../src/windows.js';
+import { syntheticFamily } from '../families.js';
+import { rowLoci } from '../overlay-docs.js';
+import { canvasesOf, close, type Opened, opened, pixelsOf, settle } from './open.js';
 
 let t: Opened | null = null;
 afterEach(() => {
@@ -31,10 +31,10 @@ afterEach(() => {
 });
 
 const SKIN =
-  "--seq-surface:rgb(0 255 0);--seq-surface-alt:rgb(255 255 0);--seq-ink-faint:rgb(200 200 200);" +
-  "--seq-ink-quiet:rgb(50 50 50);--seq-grip:rgb(255 0 0);--seq-grip-hover:rgb(0 0 255);" +
-  "--seq-selection-border:rgb(255 0 255);--seq-highlight:rgb(0 255 255)";
-const [GROUND, FAINT, QUIET, REST, LIT] = ["0,255,0", "200,200,200", "50,50,50", "255,0,0", "0,0,255"];
+  '--seq-surface:rgb(0 255 0);--seq-surface-alt:rgb(255 255 0);--seq-ink-faint:rgb(200 200 200);' +
+  '--seq-ink-quiet:rgb(50 50 50);--seq-grip:rgb(255 0 0);--seq-grip-hover:rgb(0 0 255);' +
+  '--seq-selection-border:rgb(255 0 255);--seq-highlight:rgb(0 255 255)';
+const [GROUND, FAINT, QUIET, REST, LIT] = ['0,255,0', '200,200,200', '50,50,50', '255,0,0', '0,0,255'];
 
 async function msa(dpr: number, o: { zoom?: boolean; rows?: number; height?: number; skin?: string } = {}) {
   const x = await opened(syntheticFamily(o.rows ?? 120, 8), {
@@ -54,7 +54,7 @@ function reader(c: HTMLCanvasElement) {
   return (x: number, y: number) => {
     const i = (y * c.width + x) * 4;
     return px[i + 3] === 0
-      ? ""
+      ? ''
       : px[i + 3] === 255
         ? `${px[i]},${px[i + 1]},${px[i + 2]}`
         : `${px[i]},${px[i + 1]},${px[i + 2]}/${px[i + 3]}`;
@@ -95,7 +95,7 @@ function geometry(o: Opened, dpr: number) {
   };
 }
 
-describe("the box and the overview", () => {
+describe('the box and the overview', () => {
   for (const dpr of [1, 2])
     it(`the passes lie in the rows' band at the right edge: the scrollbar and the overview (DPR ${dpr})`, async () => {
       t = await msa(dpr);
@@ -114,7 +114,7 @@ describe("the box and the overview", () => {
       expect(c[0].width).toBe(Math.ceil(801 * dpr));
     });
 
-  it("no box while the rows fit: both canvases empty", async () => {
+  it('no box while the rows fit: both canvases empty', async () => {
     t = await msa(1, { rows: 6 });
     const c = canvasesOf(t);
     expect([c[VNAV].width, c[VNAV].height, c[OVER].width, c[OVER].height]).toEqual([0, 0, 0, 0]);
@@ -125,20 +125,20 @@ describe("the box and the overview", () => {
       t = await msa(dpr);
       const g = geometry(t, dpr);
       const px = reader(canvasesOf(t)[VNAV]);
-      expect(px(2, 4)).toBe("");
-      expect(px(g.ovx - 1, 4)).toBe("");
+      expect(px(2, 4)).toBe('');
+      expect(px(g.ovx - 1, 4)).toBe('');
       const colors = new Set<string>();
       for (let y = 0; y < g.bottom; y += 3) for (let x = g.ovx; x < g.right; x += 2) colors.add(px(x, y));
       // The map has the rows' cells (several classes), not just the ground.
       expect(colors.size).toBeGreaterThan(4);
       // Drawn again on a scroll without rebuilding the image: the same pixels.
       const before = pixelsOf(canvasesOf(t)[VNAV]);
-      t.ctx.viewports.get(t.section)?.scrollTo(0, 400, "api");
+      t.ctx.viewports.get(t.section)?.scrollTo(0, 400, 'api');
       settle(t);
       expect(pixelsOf(canvasesOf(t)[VNAV])).toEqual(before);
     });
 
-  it("the window outside washed, in two tones inside (a light line outside a dark one), the rows lit by a selection marked", async () => {
+  it('the window outside washed, in two tones inside (a light line outside a dark one), the rows lit by a selection marked', async () => {
     t = await msa(2);
     const o = t;
     const g = geometry(o, 2);
@@ -149,42 +149,42 @@ describe("the box and the overview", () => {
     expect([px(g.x0, mid), px(g.x0 + g.lw, mid), px(g.x0 + 2 * g.lw + 1, mid)]).toEqual([
       expect.stringMatching(/^255,255,255\/24\d$/),
       expect.stringMatching(/^1[67],19,2[34]\/217$/),
-      "",
+      '',
     ]);
     // Below the window the map is washed with the ground (translucent), inside it is not.
     expect(px(g.ovx + 30, g.y1 + 20)).toMatch(/^255,255,0\/158$/);
-    expect(px(g.ovx + 30, (g.y0 + g.y1) >> 1)).toBe("");
+    expect(px(g.ovx + 30, (g.y0 + g.y1) >> 1)).toBe('');
   });
 
-  it("the rows a selection or a highlight lights are marked across the overview, at least two device px each", async () => {
+  it('the rows a selection or a highlight lights are marked across the overview, at least two device px each', async () => {
     t = await msa(2);
     const o = t;
     const g = geometry(o, 2);
     const set = o.ctx.graph.assembled.value?.set as SeqSet;
-    o.ctx.selection.set(rowLoci(set, 60, 0, 10), "api");
-    o.ctx.highlight.set("host", rowLoci(set, 30, 0, 10));
+    o.ctx.selection.set(rowLoci(set, 60, 0, 10), 'api');
+    o.ctx.highlight.set('host', rowLoci(set, 30, 0, 10));
     settle(o);
     const px = reader(canvasesOf(o)[OVER]);
     const at = (row: number) => Math.floor((row * g.bottom) / 120);
     const x = g.ovx + 20;
-    expect([px(x, at(60)), px(x, at(60) + 1)]).toEqual(["255,0,255", "255,0,255"]);
-    expect([px(x, at(30)), px(x, at(30) + 1)]).toEqual(["0,255,255", "0,255,255"]);
+    expect([px(x, at(60)), px(x, at(60) + 1)]).toEqual(['255,0,255', '255,0,255']);
+    expect([px(x, at(30)), px(x, at(30) + 1)]).toEqual(['0,255,255', '0,255,255']);
     // Elsewhere the map shows through (washed, or the window's own: nothing drawn here).
     expect(px(x, at(90))).toMatch(/^255,255,0\/158$/);
     // Cleared, the marks go.
-    o.ctx.selection.clear("api");
-    o.ctx.highlight.clear("host");
+    o.ctx.selection.clear('api');
+    o.ctx.highlight.clear('host');
     settle(o);
     expect(reader(canvasesOf(o)[OVER])(x, at(60))).toMatch(/^255,255,0\/158$/);
   });
 });
 
-describe("the scrollbar", () => {
+describe('the scrollbar', () => {
   for (const dpr of [1, 2])
     it(`the thumb at its share of the span, in the faint tone, darker while it is dragged (DPR ${dpr})`, async () => {
       t = await msa(dpr);
       const o = t;
-      o.ctx.viewports.get(o.section)?.scrollTo(0, 900, "api");
+      o.ctx.viewports.get(o.section)?.scrollTo(0, 900, 'api');
       settle(o);
       const g = geometry(o, dpr);
       const px = reader(canvasesOf(o)[OVER]);
@@ -194,11 +194,11 @@ describe("the scrollbar", () => {
       const bottom = Math.round((g.s[11] - inset) * dpr) - g.oy;
       const x = Math.floor(bx);
       expect([px(x, top), px(x, (top + bottom) >> 1), px(x, bottom - 1)]).toEqual([FAINT, FAINT, FAINT]);
-      expect(px(x, top - 2)).toBe("");
+      expect(px(x, top - 2)).toBe('');
       // The strip's edges: 2 CSS px of margin each side.
       expect([px(1, (top + bottom) >> 1), px(Math.round((SCROLLBAR - 1) * dpr), (top + bottom) >> 1)]).toEqual([
-        "",
-        "",
+        '',
+        '',
       ]);
       // A press on the thumb and a move: the scrollbar owns the drag, the thumb darkens.
       const p = Inputs.pointer();
@@ -213,14 +213,14 @@ describe("the scrollbar", () => {
       p.y += 20;
       o.ctx.input.pointer(p);
       settle(o);
-      expect(o.ctx.ui.drag.value?.owner).toBe("scrollbar");
+      expect(o.ctx.ui.drag.value?.owner).toBe('scrollbar');
       const px2 = reader(canvasesOf(o)[OVER]);
       const moved = Math.round((geometry(o, dpr).s[10] + 1) * dpr) - g.oy;
       expect(px2(x, moved + 3)).toBe(QUIET);
     });
 });
 
-describe("the end grips", () => {
+describe('the end grips', () => {
   /** The pill's four pixel columns or rows through its center, and the halo outside them. */
   for (const dpr of [1, 2])
     it(`the overview's column grips sit at the window's ends and its row grips with verticalZoom, on whole device pixels (DPR ${dpr})`, async () => {
@@ -244,7 +244,7 @@ describe("the end grips", () => {
       expect([px(rx - Math.round(10 * dpr), ty), px(rx + Math.round(10 * dpr), ty)]).not.toContain(REST);
     });
 
-  it("without verticalZoom the window has column grips only, and the thumb none", async () => {
+  it('without verticalZoom the window has column grips only, and the thumb none', async () => {
     t = await msa(2);
     const g = geometry(t, 2);
     const px = reader(canvasesOf(t)[OVER]);
@@ -279,11 +279,11 @@ describe("the end grips", () => {
     o.ctx.input.pointer(p);
     settle(o);
   };
-  it("the grip whose edge zone holds the pointer is lit; both over the body; none outside", async () => {
+  it('the grip whose edge zone holds the pointer is lit; both over the body; none outside', async () => {
     t = await msa(1, { zoom: true });
     const o = t;
     // Scrolled into the rows so the window floats, not at the span's ends.
-    o.ctx.viewports.get(o.section)?.scrollTo(0, 800, "api");
+    o.ctx.viewports.get(o.section)?.scrollTo(0, 800, 'api');
     settle(o);
     const g = geometry(o, 1);
     const cx = (g.x0 + g.x1) >> 1;

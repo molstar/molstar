@@ -10,11 +10,11 @@
 // streamdown) does with the links adapter, in the form a story can import (the packages are this package's, so a
 // story reaches them through this file). Not part of the package.
 
-import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
-import remarkParse from "remark-parse";
-import remarkRehype from "remark-rehype";
-import { unified } from "unified";
-import { rehypeSeqLinks, seqLinkSchema } from "../../src/links/remark.js";
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import remarkParse from 'remark-parse';
+import remarkRehype from 'remark-rehype';
+import { unified } from 'unified';
+import { rehypeSeqLinks, seqLinkSchema } from '../../src/links/remark.js';
 
 export interface HastNode {
   type: string;
@@ -28,7 +28,7 @@ export interface HastNode {
  * `markdown` parsed, `!` links marked with `data-seq-link` (ids from `prefix`, so the same link in two documents lights two
  * channels) and the tree sanitized with the schema that keeps the mark.
  */
-export async function markdownToHast(markdown: string, prefix = "seq-link-"): Promise<HastNode> {
+export async function markdownToHast(markdown: string, prefix = 'seq-link-'): Promise<HastNode> {
   const pipeline = unified()
     .use(remarkParse)
     .use(remarkRehype)

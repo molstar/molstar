@@ -7,7 +7,7 @@
  */
 
 // The model's alphabets, which the color schemes' tables name (`LetterScheme`, the builder's `CustomScheme`).
-export type { Alphabet } from "@molstar/seq-core/model";
+export type { Alphabet } from '@molstar/seq-core/model';
 export {
   type AlignerInput,
   type DataPatch,
@@ -27,7 +27,7 @@ export {
   type StreamSource,
   type StreamTable,
   type Tile,
-} from "./contract.js";
+} from './contract.js';
 export {
   type Anchor,
   type DocNode,
@@ -43,9 +43,9 @@ export {
   SvsFormat,
   SvsVersion,
   type ThemeRef,
-} from "./doc.js";
-export { equal } from "./equal.js";
-export { KernelRegistry } from "./kernel-registry.js";
+} from './doc.js';
+export { equal } from './equal.js';
+export { KernelRegistry } from './kernel-registry.js';
 export {
   assembleSet,
   buildComplex,
@@ -63,8 +63,8 @@ export {
   StreamProp,
   sourceParse,
   streamRequest,
-} from "./load/compile.js";
-export { issueOf } from "./load/issues.js";
+} from './load/compile.js';
+export { issueOf } from './load/issues.js';
 export {
   ItemSystemKind,
   ItemSystemProp,
@@ -75,8 +75,8 @@ export {
   nodeRef,
   streamedSources,
   withDynamic,
-} from "./load/nodes.js";
-export { TILE, Tiles } from "./load/tiles.js";
+} from './load/nodes.js';
+export { TILE, Tiles } from './load/tiles.js';
 export {
   type DocumentRead,
   fromJSON,
@@ -86,7 +86,7 @@ export {
   readDocument,
   toJSON,
   toMsgPack,
-} from "./normalize.js";
+} from './normalize.js';
 export {
   AminoGroupColors,
   type CategoricalPalette,
@@ -138,10 +138,10 @@ export {
   schemesFor,
   schemeTheme,
   type ThemeScheme,
-} from "./palettes/index.js";
-export { applyPatch, diff, type PatchOptions, rebase, snapshotDoc, snapshotIssues } from "./patch/patch.js";
-export { canonical } from "./patch/tree-patch.js";
-export { printParamsTable, printReference } from "./reference.js";
+} from './palettes/index.js';
+export { applyPatch, diff, type PatchOptions, rebase, snapshotDoc, snapshotIssues } from './patch/patch.js';
+export { canonical } from './patch/tree-patch.js';
+export { printParamsTable, printReference } from './reference.js';
 export {
   type AlignerEntry,
   type ChannelEntry,
@@ -167,12 +167,12 @@ export {
   type SvsRegistries,
   type SvsRegistryEntry,
   type ThemeEntry,
-} from "./registry.js";
-export { Arrangement, Height, Layout, LigandForm, RowSizing, SectionAxis, Sizing } from "./resolve/codes.js";
-export { layoutOf, type ResolvedSystems } from "./resolve/coordinates.js";
-export { dataDomain, groupMembers, type SharedField } from "./resolve/domains.js";
-export type { ResolvedFollows } from "./resolve/follows.js";
-export { type SectionHighlight, type SectionHighlightStyle, sectionHighlights } from "./resolve/highlights.js";
+} from './registry.js';
+export { Arrangement, Height, Layout, LigandForm, RowSizing, SectionAxis, Sizing } from './resolve/codes.js';
+export { layoutOf, type ResolvedSystems } from './resolve/coordinates.js';
+export { dataDomain, groupMembers, type SharedField } from './resolve/domains.js';
+export type { ResolvedFollows } from './resolve/follows.js';
+export { type SectionHighlight, type SectionHighlightStyle, sectionHighlights } from './resolve/highlights.js';
 export {
   alignmentRows,
   followsTree,
@@ -182,7 +182,7 @@ export {
   keyed,
   type Members,
   type OrderKeyValue,
-} from "./resolve/keyed.js";
+} from './resolve/keyed.js';
 export {
   letterMapParam,
   type PlacementRow,
@@ -190,9 +190,9 @@ export {
   resolveLayer,
   splitRows,
   supportedAll,
-} from "./resolve/layer.js";
-export { type Closure, type Projection, projectionOf, type RunSink, SelectionGranularity } from "./resolve/project.js";
-export { cover, type End, endsOf, pathTo, reach } from "./resolve/reach.js";
+} from './resolve/layer.js';
+export { type Closure, type Projection, projectionOf, type RunSink, SelectionGranularity } from './resolve/project.js';
+export { cover, type End, endsOf, pathTo, reach } from './resolve/reach.js';
 export {
   type BlockRow,
   childrenOf,
@@ -207,8 +207,8 @@ export {
   type SectionRow,
   type TrackRow,
   toLabel,
-} from "./resolve/section.js";
-export { type ForEach, forEachOf, instantiate, templateNodes } from "./resolve/template.js";
+} from './resolve/section.js';
+export { type ForEach, forEachOf, instantiate, templateNodes } from './resolve/template.js';
 export {
   composeView,
   Lanes,
@@ -219,7 +219,7 @@ export {
   type TableLists,
   type TableParams,
   type TableRows,
-} from "./resolve/view.js";
+} from './resolve/view.js';
 export {
   bool,
   type CheckContext,
@@ -251,7 +251,7 @@ export {
   tuple,
   union,
   type ValueOf,
-} from "./schema/field-schema.js";
+} from './schema/field-schema.js';
 export {
   type Cases,
   caseOf,
@@ -268,14 +268,14 @@ export {
   UnionParamsSchema,
   type ValuesFor,
   type ValuesForFields,
-} from "./schema/params-schema.js";
+} from './schema/params-schema.js';
 export {
   type IndexedNode,
   type NodeSchema,
   type NodeSchemas,
   type TreeContext,
   TreeSchema,
-} from "./schema/tree-schema.js";
+} from './schema/tree-schema.js';
 export {
   archiveLoaders,
   type ReadSvsxOptions,
@@ -284,7 +284,7 @@ export {
   SvsxLimits,
   SvsxMainFiles,
   zipFiles,
-} from "./svsx.js";
+} from './svsx.js';
 export {
   KERNEL_LAYER_TYPE_NAMES,
   type KernelLayerParams,
@@ -292,7 +292,7 @@ export {
   KernelTables,
   MvsRegistry,
   numericDefaultColor,
-} from "./tables/kernel.js";
+} from './tables/kernel.js';
 export {
   color,
   filter,
@@ -310,7 +310,7 @@ export {
   provenance,
   themeRef,
   uri,
-} from "./tables/param-types.js";
+} from './tables/param-types.js';
 export {
   resolveStyle,
   type SectionStyle,
@@ -318,8 +318,8 @@ export {
   SectionStyleKeys,
   type StyleRenderProps,
   sectionStyle,
-} from "./tables/style.js";
-export { type LayerCommonParams, type SvsKind, SvsTreeSchema } from "./tables/svs-tree.js";
+} from './tables/style.js';
+export { type LayerCommonParams, type SvsKind, SvsTreeSchema } from './tables/svs-tree.js';
 export {
   GeometryColumns,
   isList,
@@ -328,8 +328,8 @@ export {
   type TableColumn,
   type TypedColumn,
   table,
-} from "./tables/table.js";
-export { type UpgradeStep, UpgradeSteps, upgrade } from "./upgrade.js";
+} from './tables/table.js';
+export { type UpgradeStep, UpgradeSteps, upgrade } from './upgrade.js';
 export {
   isStreamedSource,
   MAX_JSON_DEPTH,
@@ -338,4 +338,4 @@ export {
   tooDeep,
   type ValidateOptions,
   validate,
-} from "./validate.js";
+} from './validate.js';

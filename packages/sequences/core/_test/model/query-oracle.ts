@@ -11,7 +11,7 @@
 // the runtime's kernels. Its labels follow seqspec:format#positions read from each position's own label
 // (Numbering.labelOf), never through `rangeOf`. The runtime's results are compared against it (query.test.ts).
 
-import { type Expression, isApply } from "@molstar/seq-core/query";
+import { type Expression, isApply } from '@molstar/seq-core/query';
 import {
   type Annotation,
   Annotations,
@@ -31,8 +31,8 @@ import {
   SeqSets,
   type Targets,
   type UnitId,
-} from "../../src/model/index.js";
-import type { SeqSelection } from "../../src/model/query/index.js";
+} from '../../src/model/index.js';
+import type { SeqSelection } from '../../src/model/query/index.js';
 
 /** One group: its item (-1, -1: none) and its positions, as sorted keys; a search hit's score. */
 export interface OGroup {
@@ -130,13 +130,13 @@ export class Oracle {
     return out;
   }
   items(a: Annotation): OGroup[] {
-    if (a.dense || a.geometry === "matrix") throw new OracleError("seqql.ref.kind");
+    if (a.dense || a.geometry === 'matrix') throw new OracleError('seqql.ref.kind');
     const out: OGroup[] = [];
     for (let item = 0; item < a.itemCount; item++) {
       const pos: number[] = [];
       for (let r = 0; r < a.count; r++) {
         if (a.item[r] !== item) continue;
-        if (a.geometry === "rows") pos.push(...this.target(a.target, r, 0, 1e5));
+        if (a.geometry === 'rows') pos.push(...this.target(a.target, r, 0, 1e5));
         else pos.push(...this.target(a.slots, a.slot[r], a.start[r], a.stop[r]));
         const p = a.pairs;
         if (p)
@@ -150,7 +150,7 @@ export class Oracle {
   ref(ref: string): OGroup[] {
     const { set } = this;
     const t = { kind: -1, id: -1, row: -1 };
-    if (!set.byName(ref, t)) throw new OracleError("seqql.ref.unknown");
+    if (!set.byName(ref, t)) throw new OracleError('seqql.ref.unknown');
     if (t.kind === KeyKind.unit) return nonEmpty([this.whole(K.unit, t.id, -1)]);
     if (t.kind === KeyKind.molecule) {
       const units = this.unitsOver(t.id);
@@ -163,7 +163,7 @@ export class Oracle {
     if (t.kind === KeyKind.row) return nonEmpty([this.whole(K.row, t.id, t.row)]);
     if (t.kind === KeyKind.alignment) return nonEmpty([this.whole(K.columns, t.id, -1)]);
     if (t.kind === KeyKind.annotation) return this.items(set.annotations[t.id] as Annotation);
-    throw new OracleError("seqql.ref.kind");
+    throw new OracleError('seqql.ref.kind');
   }
 
   /** A system's numbering by name, or its default; null: index + 1; undefined: it lacks that name. */
@@ -183,7 +183,7 @@ export class Oracle {
       return (kind === K.row ? own : molecule)?.byName(n as never) ?? undefined;
     }
     const list = [...(own?.items ?? []), ...(molecule?.items ?? [])];
-    return list.find((x) => x.isDefault) ?? list.find((x) => set.strings.get(x.name) === "ordinal") ?? null;
+    return list.find((x) => x.isDefault) ?? list.find((x) => set.strings.get(x.name) === 'ordinal') ?? null;
   }
 
   /** Whether position p's label lies in the range [a, z] by seqspec:seqql#overview: index order between present endpoints, an absent
@@ -195,19 +195,19 @@ export class Oracle {
     type L = [number, string];
     const at = (p: number): L | null => {
       if (!(n && Numberings.labelOf(n, p as never, lab))) return null;
-      if (n.method === "names") return [0, set.strings.get(lab.name)];
-      return [lab.num, lab.suffix >= 0 ? set.strings.get(lab.suffix) : ""];
+      if (n.method === 'names') return [0, set.strings.get(lab.name)];
+      return [lab.num, lab.suffix >= 0 ? set.strings.get(lab.suffix) : ''];
     };
     const parse = (x: string): L | null => {
-      if (n?.method === "names") return [0, x];
+      if (n?.method === 'names') return [0, x];
       const m = /^(-?[0-9]+)([A-Za-z]|\.[0-9]+)?$/.exec(x);
-      return m ? [Number(m[1]), m[2] ?? ""] : null;
+      return m ? [Number(m[1]), m[2] ?? ''] : null;
     };
     const [la, lz] = [parse(a), parse(z)];
     if (!la || !lz) return none;
     if (!n) return la[1] || lz[1] ? none : (p) => p + 1 >= la[0] && p + 1 <= lz[0];
     const rank = (x: string) =>
-      !x ? 0 : x[0] === "." ? 1000 + Number(x.slice(1)) : x.toUpperCase().charCodeAt(0) - 64;
+      !x ? 0 : x[0] === '.' ? 1000 + Number(x.slice(1)) : x.toUpperCase().charCodeAt(0) - 64;
     const cmp = (x: L, y: L) => x[0] - y[0] || rank(x[1]) - rank(y[1]);
     const same = (x: L | null, y: L) => !!x && x[0] === y[0] && x[1] === y[1];
     let start = -1;
@@ -216,7 +216,7 @@ export class Oracle {
       if (same(at(p), la)) start = p;
       if (same(at(p), lz)) last = p;
     }
-    if (n.method !== "names") {
+    if (n.method !== 'names') {
       for (let p = 0; start < 0 && p < n.length; p++) if (at(p) && cmp(at(p) as L, la) >= 0) start = p;
       if (last < 0) for (let p = 0; p < n.length; p++) if (at(p) && cmp(at(p) as L, lz) <= 0) last = p;
     }
@@ -248,7 +248,7 @@ export class Oracle {
         }),
       ),
     );
-    if (found === 0 && lacking > 0) throw new OracleError("seqql.numbering.unknown");
+    if (found === 0 && lacking > 0) throw new OracleError('seqql.numbering.unknown');
     return nonEmpty(out);
   }
 
@@ -261,7 +261,7 @@ export class Oracle {
         const [lo, hi] = this.domain(kind, id, row);
         return p0 < hi && p1 > lo;
       });
-      if (systems.size > 0 && !inside) throw new OracleError("seqql.slice.range");
+      if (systems.size > 0 && !inside) throw new OracleError('seqql.slice.range');
     }
     return nonEmpty(
       q.map((g) => group(g.pos.filter((k) => pairs.some(([a, b]) => decode(k).p >= a && decode(k).p < b)))),
@@ -269,7 +269,7 @@ export class Oracle {
   }
 
   values(a: Annotation, lo: number, hi: number, above: number, below: number): OGroup[] {
-    if (a.geometry !== "values") throw new OracleError("seqql.ref.kind");
+    if (a.geometry !== 'values') throw new OracleError('seqql.ref.kind');
     const ok = (v: number) => v >= lo && v <= hi && v > above && v < below;
     const pos: number[] = [];
     for (let s = 0; a.dense && s < a.dense.length; s++) {
@@ -284,7 +284,7 @@ export class Oracle {
   systems(kind: string, of: Expression | undefined): OGroup[] {
     const { set } = this;
     const t = { kind: -1, id: -1, row: -1 };
-    if (of !== undefined && !set.byName(String(of), t)) throw new OracleError("seqql.ref.unknown");
+    if (of !== undefined && !set.byName(String(of), t)) throw new OracleError('seqql.ref.unknown');
     const range = (n: number) => Array.from({ length: n }, (_, i) => i);
     const sorted = (c: number) => [...(set.complexes[c]?.units ?? [])].sort((a, b) => a - b);
     const rows = (a: number) => range(set.alignments[a]?.rowCount ?? 0).map((r) => [a, r]);
@@ -314,7 +314,7 @@ export class Oracle {
     };
     const k = { unit: K.unit, molecule: K.molecule, row: K.row, columns: K.columns }[kind] as number;
     const list = by[kind][of === undefined ? -1 : t.kind];
-    if (!list) throw new OracleError("seqql.ref.kind");
+    if (!list) throw new OracleError('seqql.ref.kind');
     return nonEmpty(list().map(([id, row]) => this.whole(k, id, row)));
   }
 
@@ -323,84 +323,84 @@ export class Oracle {
     const arg = (k: string) => e.args?.[k] as Expression;
     const many = (k: string) => (e.args?.[k] ?? []) as Expression[];
     switch (e.head) {
-      case "seq.generator.all":
+      case 'seq.generator.all':
         return this.all();
-      case "seq.generator.empty":
+      case 'seq.generator.empty':
         return [];
-      case "seq.generator.input": {
-        const x = this.inputs[String(arg("0"))];
-        if (!x) throw new OracleError("seqql.input.unknown");
+      case 'seq.generator.input': {
+        const x = this.inputs[String(arg('0'))];
+        if (!x) throw new OracleError('seqql.input.unknown');
         return x;
       }
-      case "seq.generator.items": {
-        const of = arg("of");
+      case 'seq.generator.items': {
+        const of = arg('of');
         // QR2a: `:where` on the item slot, tested for every item in order (as the runtime does, empty ones included).
         const where = (a: Annotation) => {
           const keep = Array.from({ length: a.itemCount }, (_, item) => {
             this.slot = { ann: a.id, item };
-            return arg("where") === undefined || this.test(arg("where")) === true;
+            return arg('where') === undefined || this.test(arg('where')) === true;
           });
           return this.items(a).filter((g) => keep[g.item]);
         };
         if (of === undefined)
-          return this.set.annotations.flatMap((a) => (a && !a.dense && a.geometry !== "matrix" ? where(a) : []));
+          return this.set.annotations.flatMap((a) => (a && !a.dense && a.geometry !== 'matrix' ? where(a) : []));
         const t = { kind: -1, id: -1, row: -1 };
-        if (!this.set.byName(String(of), t)) throw new OracleError("seqql.ref.unknown");
-        if (t.kind !== KeyKind.annotation) throw new OracleError("seqql.ref.kind");
+        if (!this.set.byName(String(of), t)) throw new OracleError('seqql.ref.unknown');
+        if (t.kind !== KeyKind.annotation) throw new OracleError('seqql.ref.kind');
         const a = this.set.annotations[t.id] as Annotation;
-        if (a.dense || a.geometry === "matrix") throw new OracleError("seqql.ref.kind");
+        if (a.dense || a.geometry === 'matrix') throw new OracleError('seqql.ref.kind');
         return where(a);
       }
-      case "seq.generator.values": {
+      case 'seq.generator.values': {
         const t = { kind: -1, id: -1, row: -1 };
-        if (!this.set.byName(String(arg("of")), t)) throw new OracleError("seqql.ref.unknown");
-        if (t.kind !== KeyKind.annotation) throw new OracleError("seqql.ref.kind");
-        const num = (k: string, d: number) => (typeof arg(k) === "number" ? (arg(k) as number) : d);
+        if (!this.set.byName(String(arg('of')), t)) throw new OracleError('seqql.ref.unknown');
+        if (t.kind !== KeyKind.annotation) throw new OracleError('seqql.ref.kind');
+        const num = (k: string, d: number) => (typeof arg(k) === 'number' ? (arg(k) as number) : d);
         const a = this.set.annotations[t.id] as Annotation;
         return this.values(
           a,
-          num("min", -Infinity),
-          num("max", Infinity),
-          num("above", -Infinity),
-          num("below", Infinity),
+          num('min', -Infinity),
+          num('max', Infinity),
+          num('above', -Infinity),
+          num('below', Infinity),
         );
       }
-      case "seq.generator.systems":
-      case "seq.generator.rows":
-        return this.systems(e.head.endsWith("rows") ? "row" : String(arg("kind") ?? "unit"), arg("of")).filter((g) => {
+      case 'seq.generator.systems':
+      case 'seq.generator.rows':
+        return this.systems(e.head.endsWith('rows') ? 'row' : String(arg('kind') ?? 'unit'), arg('of')).filter((g) => {
           const { kind, id, row } = decode(g.pos[0]);
           Object.assign(this.at, { kind, id, row, p: -1, g: null });
-          return arg("where") === undefined || this.test(arg("where")) === true;
+          return arg('where') === undefined || this.test(arg('where')) === true;
         });
-      case "seq.combinator.intersect": {
-        let a = this.eval(arg("0"));
-        for (const x of many("1")) {
-          const minus = isApply(x) && x.head === "seq.modifier.complement" && x.args?.in === undefined;
+      case 'seq.combinator.intersect': {
+        let a = this.eval(arg('0'));
+        for (const x of many('1')) {
+          const minus = isApply(x) && x.head === 'seq.modifier.complement' && x.args?.in === undefined;
           // QR2b: a scan with no :in of its own reads the selection so far (seqspec:seqql#performance)
           const scan = isApply(x) && /^seq\.generator\.(letters|positions|search)$/.test(x.head) && !x.args?.in;
           if (scan) this.within = norm(a.flatMap((g) => g.pos));
-          const u = new Set(this.eval(minus && isApply(x) ? (x.args?.["0"] as Expression) : x).flatMap((g) => g.pos));
+          const u = new Set(this.eval(minus && isApply(x) ? (x.args?.['0'] as Expression) : x).flatMap((g) => g.pos));
           a = nonEmpty(a.map((g) => group(g.pos.filter((k) => u.has(k) !== minus))));
         }
         return a;
       }
-      case "seq.combinator.merge": {
+      case 'seq.combinator.merge': {
         const out: OGroup[] = [];
-        for (const g of [arg("0"), ...many("1")].flatMap((x) => this.eval(x))) {
+        for (const g of [arg('0'), ...many('1')].flatMap((x) => this.eval(x))) {
           const same = out.some((h) => h.ann === g.ann && h.item === g.item && h.pos.join() === g.pos.join());
           if (!same) out.push(g);
         }
         return out;
       }
-      case "seq.modifier.complement": {
-        const q = new Set(this.eval(arg("0")).flatMap((g) => g.pos));
-        const u = arg("in") === undefined ? this.all() : this.eval(arg("in"));
+      case 'seq.modifier.complement': {
+        const q = new Set(this.eval(arg('0')).flatMap((g) => g.pos));
+        const u = arg('in') === undefined ? this.all() : this.eval(arg('in'));
         return nonEmpty([group(u.flatMap((g) => g.pos).filter((k) => !q.has(k)))]);
       }
-      case "seq.modifier.range":
-        return this.range(this.eval(arg("0")), many("1").map(String), (arg("numbering") as string) ?? null);
-      case "seq.modifier.slice":
-        return this.slice(this.eval(arg("0")), many("1") as number[]);
+      case 'seq.modifier.range':
+        return this.range(this.eval(arg('0')), many('1').map(String), (arg('numbering') as string) ?? null);
+      case 'seq.modifier.slice':
+        return this.slice(this.eval(arg('0')), many('1') as number[]);
       default:
         return this.qr2a(e);
     }
@@ -414,18 +414,18 @@ export class Oracle {
   slot = { ann: -1, item: -1 };
 
   qr2a(e: Expression & object): OGroup[] {
-    if (!isApply(e)) throw new Error("not a call");
+    if (!isApply(e)) throw new Error('not a call');
     const arg = (k: string) => e.args?.[k] as Expression;
     const many = (k: string) => (e.args?.[k] ?? []) as Expression[];
     switch (e.head) {
-      case "seq.generator.current":
-        if (!this.current) throw new OracleError("seqql.current");
+      case 'seq.generator.current':
+        if (!this.current) throw new OracleError('seqql.current');
         return [this.current];
-      case "seq.modifier.expand": {
-        const n = (arg("1") as number) ?? 0;
-        const [l, r] = [(arg("left") as number) ?? n, (arg("right") as number) ?? n];
+      case 'seq.modifier.expand': {
+        const n = (arg('1') as number) ?? 0;
+        const [l, r] = [(arg('left') as number) ?? n, (arg('right') as number) ?? n];
         return nonEmpty(
-          this.eval(arg("0")).map((g) =>
+          this.eval(arg('0')).map((g) =>
             group(
               g.pos.flatMap((k) => {
                 const { kind, id, row, p } = decode(k);
@@ -438,52 +438,52 @@ export class Oracle {
           ),
         );
       }
-      case "seq.modifier.group": {
-        const all = norm(this.eval(arg("0")).flatMap((g) => g.pos));
-        if (arg("by") === "run") return runsOf(all);
-        if (arg("by") === "none") return nonEmpty([group(all)]);
+      case 'seq.modifier.group': {
+        const all = norm(this.eval(arg('0')).flatMap((g) => g.pos));
+        if (arg('by') === 'run') return runsOf(all);
+        if (arg('by') === 'none') return nonEmpty([group(all)]);
         const by = new Map<number, number[]>();
         for (const k of all) by.set(decode(k).system, [...(by.get(decode(k).system) ?? []), k]);
         return [...by.values()].map((pos) => group(pos));
       }
-      case "seq.modifier.each": {
+      case 'seq.modifier.each': {
         const out: OGroup[] = [];
         const prev = this.current;
-        for (const g of this.eval(arg("0"))) {
+        for (const g of this.eval(arg('0'))) {
           this.current = g;
-          out.push(...this.eval(arg("1")));
+          out.push(...this.eval(arg('1')));
         }
         this.current = prev;
         return out;
       }
-      case "seq.filter.pick": {
+      case 'seq.filter.pick': {
         // QR2b: a group test's selection is the same for every group of one pick (computed once there,
         // seqspec:seqql#elements-and-groups)
         const memo = this.memo;
         this.memo = new Map();
-        const out = this.eval(arg("0")).filter((g) => {
+        const out = this.eval(arg('0')).filter((g) => {
           this.slot = { ann: g.ann, item: g.item };
           const one = new Set(g.pos.map((k) => decode(k).system)).size === 1;
           const { kind, id, row } = one ? decode(g.pos[0]) : { kind: -1, id: -1, row: -1 };
           Object.assign(this.at, { kind, id, row, p: -1, g });
-          return this.test(arg("where")) === true;
+          return this.test(arg('where')) === true;
         });
         this.memo = memo;
         return out;
       }
-      case "seq.filter.first":
-        return this.eval(arg("0")).slice(0, (arg("1") as number) ?? 1);
-      case "seq.filter.ids": {
-        const ids = many("1").map(String);
-        return this.eval(arg("0")).filter((g) => {
+      case 'seq.filter.first':
+        return this.eval(arg('0')).slice(0, (arg('1') as number) ?? 1);
+      case 'seq.filter.ids': {
+        const ids = many('1').map(String);
+        return this.eval(arg('0')).filter((g) => {
           const a = this.set.annotations[g.ann];
           const k = a && g.item >= 0 ? a.itemKey[g.item] : -1;
           return k >= 0 && ids.includes(this.set.strings.get(k));
         });
       }
-      case "seq.modifier.onto":
+      case 'seq.modifier.onto':
         return this.onto(e);
-      case "seq.modifier.partners":
+      case 'seq.modifier.partners':
         return this.partners(e);
       default:
         return this.qr2b(e);
@@ -499,9 +499,9 @@ export class Oracle {
   test(e: Expression): unknown {
     if (!isApply(e)) return e;
     const v = (k: string) => this.test(e.args?.[k] as Expression);
-    const rest = () => ((e.args?.["1"] ?? []) as Expression[]).map((x) => this.test(x));
-    const missing = (x: unknown) => x === undefined || x === null || (typeof x === "number" && Number.isNaN(x));
-    const nums = (a: unknown, b: unknown) => typeof a === "number" && typeof b === "number";
+    const rest = () => ((e.args?.['1'] ?? []) as Expression[]).map((x) => this.test(x));
+    const missing = (x: unknown) => x === undefined || x === null || (typeof x === 'number' && Number.isNaN(x));
+    const nums = (a: unknown, b: unknown) => typeof a === 'number' && typeof b === 'number';
     const a = this.set.annotations[this.slot.ann];
     const item = this.slot.item;
     const row = () => (a ? Array.from({ length: a.count }, (_, r) => r).find((r) => a.item[r] === item) : undefined);
@@ -510,56 +510,56 @@ export class Oracle {
       return a && r !== undefined ? Annotations.rowValue(a, this.set, r, name) : undefined;
     };
     switch (e.head) {
-      case "core.logic.and":
-        return [e.args?.["0"] as Expression, ...((e.args?.["1"] ?? []) as Expression[])].every(
+      case 'core.logic.and':
+        return [e.args?.['0'] as Expression, ...((e.args?.['1'] ?? []) as Expression[])].every(
           (x) => this.test(x) === true,
         );
-      case "core.logic.or":
-        return [e.args?.["0"] as Expression, ...((e.args?.["1"] ?? []) as Expression[])].some(
+      case 'core.logic.or':
+        return [e.args?.['0'] as Expression, ...((e.args?.['1'] ?? []) as Expression[])].some(
           (x) => this.test(x) === true,
         );
-      case "core.logic.not":
-        return v("0") !== true;
-      case "core.rel.eq":
-        return ((x, y) => !missing(x) && x === y)(v("0"), v("1"));
-      case "core.rel.neq":
-        return ((x, y) => !missing(x) && !missing(y) && x !== y)(v("0"), v("1"));
-      case "core.rel.lt":
-        return ((x, y) => nums(x, y) && (x as number) < (y as number))(v("0"), v("1"));
-      case "core.rel.gr":
-        return ((x, y) => nums(x, y) && (x as number) > (y as number))(v("0"), v("1"));
-      case "core.rel.lte":
-        return ((x, y) => nums(x, y) && (x as number) <= (y as number))(v("0"), v("1"));
-      case "core.rel.gre":
-        return ((x, y) => nums(x, y) && (x as number) >= (y as number))(v("0"), v("1"));
-      case "core.rel.in": {
-        const x = v("0");
+      case 'core.logic.not':
+        return v('0') !== true;
+      case 'core.rel.eq':
+        return ((x, y) => !missing(x) && x === y)(v('0'), v('1'));
+      case 'core.rel.neq':
+        return ((x, y) => !missing(x) && !missing(y) && x !== y)(v('0'), v('1'));
+      case 'core.rel.lt':
+        return ((x, y) => nums(x, y) && (x as number) < (y as number))(v('0'), v('1'));
+      case 'core.rel.gr':
+        return ((x, y) => nums(x, y) && (x as number) > (y as number))(v('0'), v('1'));
+      case 'core.rel.lte':
+        return ((x, y) => nums(x, y) && (x as number) <= (y as number))(v('0'), v('1'));
+      case 'core.rel.gre':
+        return ((x, y) => nums(x, y) && (x as number) >= (y as number))(v('0'), v('1'));
+      case 'core.rel.in': {
+        const x = v('0');
         return !missing(x) && rest().includes(x);
       }
-      case "core.str.matches": {
-        const [text, pattern] = [v("0"), v("1")];
-        return typeof text === "string" && new RegExp(String(pattern), e.args?.case ? "" : "i").test(text);
+      case 'core.str.matches': {
+        const [text, pattern] = [v('0'), v('1')];
+        return typeof text === 'string' && new RegExp(String(pattern), e.args?.case ? '' : 'i').test(text);
       }
-      case "seq.item.id":
+      case 'seq.item.id':
         return a && item >= 0 && a.itemKey[item] >= 0 ? this.set.strings.get(a.itemKey[item]) : undefined;
-      case "seq.item.label":
-        return col("label");
-      case "seq.item.category":
-        return col("category");
-      case "seq.item.value":
-        return col("value");
-      case "seq.item.type":
+      case 'seq.item.label':
+        return col('label');
+      case 'seq.item.category':
+        return col('category');
+      case 'seq.item.value':
+        return col('value');
+      case 'seq.item.type':
         return a && item >= 0 && a.semanticType >= 0 ? this.set.strings.get(a.semanticType) : undefined;
-      case "seq.item.annotation":
+      case 'seq.item.annotation':
         return a && item >= 0 ? this.set.strings.get(a.key) : undefined;
-      case "seq.item.length":
+      case 'seq.item.length':
         return a && item >= 0 ? this.itemPositions(a, item).length : undefined;
-      case "seq.item.field": {
-        const name = String(e.args?.["0"]);
+      case 'seq.item.field': {
+        const name = String(e.args?.['0']);
         if (!a || item < 0) return undefined;
         const known =
           ColumnRoles[a.geometry][name] !== undefined || a.fields.some((f) => this.set.strings.get(f.name) === name);
-        if (!known) throw new OracleError("seqql.field.unknown");
+        if (!known) throw new OracleError('seqql.field.unknown');
         return col(name);
       }
       default:
@@ -589,17 +589,17 @@ export class Oracle {
     const { set } = this;
     if (kind === K.unit || kind === K.molecule) {
       const m = set.molecules[kind === K.unit ? set.units.molecule[id] : id];
-      return m && !m.lazy ? new TextDecoder().decode(m.code) : "";
+      return m && !m.lazy ? new TextDecoder().decode(m.code) : '';
     }
     const rows = kind === K.row ? set.alignments[id]?.rows : undefined;
     const s = rows ? rows.slotOf(row as never) : -1;
     return rows && s >= 0
       ? new TextDecoder().decode(rows.residues.subarray(rows.residueStart[s], rows.residueStart[s + 1]))
-      : "";
+      : '';
   }
   /** The positions a scan reads: its `:in`, else every unit (and, but for search, every row). */
   scope(e: Expression & object, rows: boolean): number[] {
-    if (!isApply(e)) throw new Error("not a call");
+    if (!isApply(e)) throw new Error('not a call');
     const within = this.within;
     this.within = null;
     if (e.args?.in !== undefined) return norm(this.eval(e.args.in as Expression).flatMap((g) => g.pos));
@@ -612,11 +612,11 @@ export class Oracle {
   }
   /** Search hits in the runs of `pos`, each start tried: exact letters, a motif of classes, or a sticky regex. */
   hits(pos: number[], e: Expression & object): OGroup[] {
-    if (!isApply(e)) throw new Error("not a call");
-    const p = String(e.args?.["0"]);
+    if (!isApply(e)) throw new Error('not a call');
+    const p = String(e.args?.['0']);
     const table = e.args?.classes === undefined ? null : this.classes[String(e.args.classes)];
-    if (e.args?.classes !== undefined && !table) throw new OracleError("seqql.classes.unknown");
-    const re = e.args?.regex ? new RegExp(p, "iy") : null;
+    if (e.args?.classes !== undefined && !table) throw new OracleError('seqql.classes.unknown');
+    const re = e.args?.regex ? new RegExp(p, 'iy') : null;
     const sets = [...p.toUpperCase()].map((c) => (table && Object.hasOwn(table, c) ? table[c] : c));
     const out: OGroup[] = [];
     for (const run of runsOf(pos)) {
@@ -635,11 +635,11 @@ export class Oracle {
   }
 
   qr2b(e: Expression & object): OGroup[] {
-    if (!isApply(e)) throw new Error("not a call");
+    if (!isApply(e)) throw new Error('not a call');
     const where = e.args?.where as Expression | undefined;
     switch (e.head) {
-      case "seq.generator.letters": {
-        const L = String(e.args?.["0"]).toUpperCase();
+      case 'seq.generator.letters': {
+        const L = String(e.args?.['0']).toUpperCase();
         const ok = (k: number) => {
           const { kind, id, row, p } = decode(k);
           const c = this.letters(kind, id, row)[p];
@@ -647,7 +647,7 @@ export class Oracle {
         };
         return runsOf(this.scope(e, true).filter(ok));
       }
-      case "seq.generator.positions":
+      case 'seq.generator.positions':
         return runsOf(
           this.scope(e, true).filter((k) => {
             const { kind, id, row, p } = decode(k);
@@ -655,7 +655,7 @@ export class Oracle {
             return where === undefined || this.test(where) === true;
           }),
         );
-      case "seq.generator.search":
+      case 'seq.generator.search':
         return this.hits(this.scope(e, false), e);
       default:
         throw new Error(`the oracle has no ${e.head}`);
@@ -664,7 +664,7 @@ export class Oracle {
 
   /** The position, system and group properties, read from `at`. */
   property(e: Expression & object): unknown {
-    if (!isApply(e)) throw new Error("not a call");
+    if (!isApply(e)) throw new Error('not a call');
     const { set } = this;
     const { kind, id, row, p, g } = this.at;
     const arg = (k: string) => e.args?.[k] as Expression;
@@ -680,22 +680,22 @@ export class Oracle {
       [this.at, this.slot] = [saved[0], saved[1]];
       return out;
     };
-    if (e.head.startsWith("seq.system.") && kind < 0) return undefined;
-    if (e.head.startsWith("seq.group.") && !g) return undefined;
+    if (e.head.startsWith('seq.system.') && kind < 0) return undefined;
+    if (e.head.startsWith('seq.group.') && !g) return undefined;
     switch (e.head) {
-      case "seq.position.index":
+      case 'seq.position.index':
         return p;
-      case "seq.position.letter":
-        return this.letters(kind, id, row)[p] ?? "";
-      case "seq.position.label": {
-        const n = this.numbering(kind, id, row, (arg("numbering") as string) ?? null);
-        return n === undefined ? "" : n ? Numberings.format(n, p as never, set.strings) : String(p + 1);
+      case 'seq.position.letter':
+        return this.letters(kind, id, row)[p] ?? '';
+      case 'seq.position.label': {
+        const n = this.numbering(kind, id, row, (arg('numbering') as string) ?? null);
+        return n === undefined ? '' : n ? Numberings.format(n, p as never, set.strings) : String(p + 1);
       }
-      case "seq.position.value_of": {
+      case 'seq.position.value_of': {
         const t = { kind: -1, id: -1, row: -1 };
-        if (!set.byName(String(arg("0")), t)) throw new OracleError("seqql.ref.unknown");
+        if (!set.byName(String(arg('0')), t)) throw new OracleError('seqql.ref.unknown');
         const a = set.annotations[t.id];
-        if (t.kind !== KeyKind.annotation || !a || a.geometry !== "values") throw new OracleError("seqql.ref.kind");
+        if (t.kind !== KeyKind.annotation || !a || a.geometry !== 'values') throw new OracleError('seqql.ref.kind');
         const sl = a.slots;
         const own = (s: number) =>
           kind === K.unit
@@ -708,15 +708,15 @@ export class Oracle {
           s = sl.unit.findIndex((u, x) => u < 0 && sl.molecule[x] === set.units.molecule[id]);
         return s < 0 ? Number.NaN : Annotations.valueAt(a, s, p);
       }
-      case "seq.system.ref":
+      case 'seq.system.ref':
         return kind === K.columns
           ? str(aln?.key ?? -1)
           : kind === K.row
             ? `${str(aln?.key ?? -1)}/${row}`
             : str(kind === K.unit ? set.units.key[id] : (mol?.key ?? -1));
-      case "seq.system.kind":
-        return ["molecule", "unit", "row", "columns"][kind];
-      case "seq.system.label":
+      case 'seq.system.kind':
+        return ['molecule', 'unit', 'row', 'columns'][kind];
+      case 'seq.system.label':
         return kind === K.unit
           ? str(set.units.label[id])
           : kind === K.molecule
@@ -724,58 +724,58 @@ export class Oracle {
             : kind === K.row
               ? (aln?.labelText(row as never) ?? undefined)
               : undefined;
-      case "seq.system.length": {
+      case 'seq.system.length': {
         const [lo, hi] = this.domain(kind, id, row);
         return Math.max(0, hi - lo);
       }
-      case "seq.system.origin":
+      case 'seq.system.origin':
         return kind === K.unit ? str(set.units.origin[id]) : undefined;
-      case "seq.system.score":
+      case 'seq.system.score':
         return kind === K.unit ? set.units.score[id] : Number.NaN;
-      case "seq.system.alphabet":
+      case 'seq.system.alphabet':
         return (mol?.alphabet ?? aln?.alphabet) || undefined;
-      case "seq.system.field": {
-        const name = String(arg("0"));
-        if (arg("of") !== undefined) {
+      case 'seq.system.field': {
+        const name = String(arg('0'));
+        if (arg('of') !== undefined) {
           const t = { kind: -1, id: -1, row: -1 };
-          if (!set.byName(String(arg("of")), t)) throw new OracleError("seqql.ref.unknown");
+          if (!set.byName(String(arg('of')), t)) throw new OracleError('seqql.ref.unknown');
           const a = set.annotations[t.id];
-          if (t.kind !== KeyKind.annotation || !a || a.geometry !== "rows") throw new OracleError("seqql.ref.kind");
-          if (!a.fields.some((f) => set.strings.get(f.name) === name)) throw new OracleError("seqql.field.unknown");
+          if (t.kind !== KeyKind.annotation || !a || a.geometry !== 'rows') throw new OracleError('seqql.ref.kind');
+          if (!a.fields.some((f) => set.strings.get(f.name) === name)) throw new OracleError('seqql.field.unknown');
           const r = Array.from({ length: a.count }, (_, x) => x).find(
             (x) => kind === K.row && a.target.alignment[x] === id && a.target.row[x] === row,
           );
           return r === undefined ? undefined : Annotations.rowValue(a, set, r, name);
         }
-        if (arg("ns") !== undefined) {
-          const ns = String(arg("ns"));
+        if (arg('ns') !== undefined) {
+          const ns = String(arg('ns'));
           const own = kind === K.unit ? set.units.custom[id] : (mol?.custom ?? aln?.custom);
           const v = (own?.doc[ns] as Record<string, unknown> | undefined)?.[name];
           return v !== undefined || kind !== K.unit
             ? v
             : (mol?.custom.doc[ns] as Record<string, unknown> | undefined)?.[name];
         }
-        if (name === "molecule") return mol ? str(mol.key) : undefined;
-        if (name === "complex")
+        if (name === 'molecule') return mol ? str(mol.key) : undefined;
+        if (name === 'complex')
           return kind === K.unit ? str(set.complexes[set.units.complex[id]]?.key ?? -1) : undefined;
-        if (name === "alignment") return aln ? str(aln.key) : undefined;
-        return name === "row" && kind === K.row ? row : undefined;
+        if (name === 'alignment') return aln ? str(aln.key) : undefined;
+        return name === 'row' && kind === K.row ? row : undefined;
       }
-      case "seq.group.length":
+      case 'seq.group.length':
         return g?.pos.length;
-      case "seq.group.runs":
+      case 'seq.group.runs':
         return runsOf(g?.pos ?? []).length;
-      case "seq.group.score":
+      case 'seq.group.score':
         return g?.score ?? Number.NaN;
-      case "seq.group.overlaps":
-      case "seq.group.within": {
-        const q = positionsOf(arg("0"));
-        const n = e.head.endsWith("within") ? (arg("1") as number) : 0;
+      case 'seq.group.overlaps':
+      case 'seq.group.within': {
+        const q = positionsOf(arg('0'));
+        const n = e.head.endsWith('within') ? (arg('1') as number) : 0;
         const near = (k: number) => Array.from({ length: 2 * n + 1 }, (_, d) => k - n + d).some((x) => q.has(x));
         return (g?.pos ?? []).some(near);
       }
-      case "seq.group.count": {
-        const q = positionsOf(arg("0"));
+      case 'seq.group.count': {
+        const q = positionsOf(arg('0'));
         return (g?.pos ?? []).filter((k) => q.has(k)).length;
       }
       default:
@@ -794,21 +794,21 @@ export class Oracle {
     const rows = (a: number) => {
       for (let r = 0; r < (set.alignments[a]?.rowCount ?? 0); r++) add(K.row, a, r);
     };
-    if (ref === undefined && kind === undefined) throw new OracleError("seqql.arg.missing");
+    if (ref === undefined && kind === undefined) throw new OracleError('seqql.arg.missing');
     if (ref === undefined) {
-      if (kind === "unit") for (let u = 0; u < set.units.count; u++) add(K.unit, u);
-      if (kind === "molecule") for (let m = 0; m < set.molecules.length; m++) add(K.molecule, m);
+      if (kind === 'unit') for (let u = 0; u < set.units.count; u++) add(K.unit, u);
+      if (kind === 'molecule') for (let m = 0; m < set.molecules.length; m++) add(K.molecule, m);
       for (let a = 0; a < set.alignments.length; a++)
-        kind === "row" ? rows(a) : kind === "columns" ? add(K.columns, a) : 0;
+        kind === 'row' ? rows(a) : kind === 'columns' ? add(K.columns, a) : 0;
       return out;
     }
     const t = { kind: -1, id: -1, row: -1 };
-    if (!set.byName(String(ref), t)) throw new OracleError("seqql.ref.unknown");
-    if (t.kind === KeyKind.annotation || t.kind === KeyKind.mapping) throw new OracleError("seqql.ref.kind");
+    if (!set.byName(String(ref), t)) throw new OracleError('seqql.ref.unknown');
+    if (t.kind === KeyKind.annotation || t.kind === KeyKind.mapping) throw new OracleError('seqql.ref.kind');
     if (t.kind === KeyKind.alignment) {
-      if (kind === "row") rows(t.id);
-      else if (kind === undefined || kind === "columns") add(K.columns, t.id);
-      else throw new OracleError("seqql.type");
+      if (kind === 'row') rows(t.id);
+      else if (kind === undefined || kind === 'columns') add(K.columns, t.id);
+      else throw new OracleError('seqql.type');
     } else if (t.kind === KeyKind.unit) add(K.unit, t.id);
     else if (t.kind === KeyKind.row) add(K.row, t.id, t.row);
     else if (t.kind === KeyKind.complex)
@@ -898,9 +898,9 @@ export class Oracle {
 
   onto(e: Expression & object): OGroup[] {
     const args = (e as { args?: Record<string, Expression> }).args ?? {};
-    const targets = this.targets(args["1"], args.kind as string | undefined);
+    const targets = this.targets(args['1'], args.kind as string | undefined);
     return nonEmpty(
-      this.eval(args["0"]).map((g) => {
+      this.eval(args['0']).map((g) => {
         const pos = g.pos.flatMap((k) => {
           const { kind, id, row, p } = decode(k);
           return targets.flatMap((T) => this.image({ kind, id, row }, p, T).map((x) => key(T.kind, T.id, T.row, x)));
@@ -913,12 +913,12 @@ export class Oracle {
   partners(e: Expression & object): OGroup[] {
     const args = (e as { args?: Record<string, Expression> }).args ?? {};
     const t = { kind: -1, id: -1, row: -1 };
-    if (!this.set.byName(String(args.via), t)) throw new OracleError("seqql.ref.unknown");
+    if (!this.set.byName(String(args.via), t)) throw new OracleError('seqql.ref.unknown');
     const a = this.set.annotations[t.id];
-    if (t.kind !== KeyKind.annotation || !a?.pairs) throw new OracleError("seqql.ref.kind");
+    if (t.kind !== KeyKind.annotation || !a?.pairs) throw new OracleError('seqql.ref.kind');
     const pc = a.pairs;
-    const q = new Set(this.eval(args["0"]).flatMap((g) => g.pos));
-    const side = (args.side as string) ?? "any";
+    const q = new Set(this.eval(args['0']).flatMap((g) => g.pos));
+    const side = (args.side as string) ?? 'any';
     const end = (r: number, sd: number) => {
       const s = sd ? pc.bStart[r] : a.start[r];
       const z = sd ? pc.bStop[r] : a.stop[r];
@@ -933,7 +933,7 @@ export class Oracle {
     for (let r = 0; r < a.count; r++) {
       for (const sd of [0, 1]) {
         const other = 1 - sd;
-        if (side !== "any" && side !== (other ? "b" : "a")) continue;
+        if (side !== 'any' && side !== (other ? 'b' : 'a')) continue;
         if (!end(r, sd).some((k) => q.has(k))) continue;
         this.slot = { ann: a.id, item: a.item[r] };
         if (args.where !== undefined && this.test(args.where) !== true) continue;

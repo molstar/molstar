@@ -6,16 +6,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { categoryTable, MolstarSvsEntry, readStructure, type StructureFormat } from "@molstar/seq-molstar-poc";
-import { useLiveVersion, useSeqState, useSeqViewer } from "@molstar/seq-viewer/react";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { type ReactNode, Suspense, use, useEffect, useMemo, useState } from "react";
-import kinaseSvsx from "../../../core/_test/format/fixtures/kinase.svsx?url";
-import featuresJson from "../../../molstar-poc/_test/fixtures/p53/P04637.json?raw";
-import variantsJson from "../../../molstar-poc/_test/fixtures/p53/variation-P04637.json?raw";
-import ocjUrl from "../../../molstar-poc/_test/fixtures/structures/2ocj.bcif?url";
-import afUrl from "../../../molstar-poc/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif?url";
-import ins1 from "../../../molstar-poc/_test/fixtures/structures/ins1.cif?raw";
+import { categoryTable, MolstarSvsEntry, readStructure, type StructureFormat } from '@molstar/seq-molstar-poc';
+import { useLiveVersion, useSeqState, useSeqViewer } from '@molstar/seq-viewer/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { type ReactNode, Suspense, use, useEffect, useMemo, useState } from 'react';
+import kinaseSvsx from '../../../core/_test/format/fixtures/kinase.svsx?url';
+import featuresJson from '../../../molstar-poc/_test/fixtures/p53/P04637.json?raw';
+import variantsJson from '../../../molstar-poc/_test/fixtures/p53/variation-P04637.json?raw';
+import ocjUrl from '../../../molstar-poc/_test/fixtures/structures/2ocj.bcif?url';
+import afUrl from '../../../molstar-poc/_test/fixtures/structures/AF-P04637-F1-model_v6.bcif?url';
+import ins1 from '../../../molstar-poc/_test/fixtures/structures/ins1.cif?raw';
 import {
   AF_P53_URI,
   ALIGNMENT_FORMATS,
@@ -49,12 +49,12 @@ import {
   UNIPROT_SHOWN,
   uniprotDoc,
   uniprotFiles,
-} from "./support/seqstar-file-formats.js";
-import f from "./support/seqstar-format.module.css";
-import { IssueList } from "./support/seqstar-issues.js";
-import { PrismPage, prism } from "./support/seqstar-prism.js";
-import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer.js";
-import { Choices, ScrollArea } from "./ui/index.js";
+} from './support/seqstar-file-formats.js';
+import f from './support/seqstar-format.module.css';
+import { IssueList } from './support/seqstar-issues.js';
+import { PrismPage, prism } from './support/seqstar-prism.js';
+import { ViewerCard, type ViewerOptions } from './support/seqstar-viewer.js';
+import { Choices, ScrollArea } from './ui/index.js';
 
 /**
  * Loading data, one story a family of formats (seqspec:sources#formats-and-services): the nodes that load it as the
@@ -62,7 +62,7 @@ import { Choices, ScrollArea } from "./ui/index.js";
  * it, and what loading reported. Offline by default, on the committed fixtures or files written here from them; the
  * service stories have a live mode that fetches the public APIs. Documents and loaders: seqstar-file-formats.ts.
  */
-const meta = { title: "Seq*/File formats", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/File formats', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
@@ -103,7 +103,7 @@ function Requests({ log }: { log: readonly Fetched[] }) {
       <h3 className={f.subheading}>The requests, as answered</h3>
       {log.length === 0 ? <div className={f.none}>none yet</div> : null}
       {log.map((x) => (
-        <Code key={x.uri} label={`${x.uri}, ${x.bytes.toLocaleString("en-US")} bytes`} text={x.head} />
+        <Code key={x.uri} label={`${x.uri}, ${x.bytes.toLocaleString('en-US')} bytes`} text={x.head} />
       ))}
     </div>
   );
@@ -197,19 +197,19 @@ function SequencesPage() {
     </PrismPage>
   );
 }
-export const Sequences: Story = { name: "Sequences", render: () => <SequencesPage /> };
+export const Sequences: Story = { name: 'Sequences', render: () => <SequencesPage /> };
 
 // ---- Alignments and trees ----
 
 const ALIGNMENT_LABELS: Record<AlignmentFormat, string> = {
-  fasta: "Aligned FASTA",
-  a3m: "A3M",
-  stockholm: "Stockholm",
-  clustal: "Clustal",
+  fasta: 'Aligned FASTA',
+  a3m: 'A3M',
+  stockholm: 'Stockholm',
+  clustal: 'Clustal',
 };
 
 function AlignmentsPage() {
-  const [format, setFormat] = useState<AlignmentFormat>("stockholm");
+  const [format, setFormat] = useState<AlignmentFormat>('stockholm');
   const c = useMemo(() => alignmentCase(format), [format]);
   return (
     <PrismPage
@@ -217,11 +217,11 @@ function AlignmentsPage() {
       caption={
         <>
           Pfam's PF00042 seed (its first eight globins, CC0) in four alignment formats, and a Newick tree over them
-          (written for the story), matched to the rows by name: a leaf <code>HBA_HUMAN</code> is the row{" "}
+          (written for the story), matched to the rows by name: a leaf <code>HBA_HUMAN</code> is the row{' '}
           <code>HBA_HUMAN/27-137</code>. Aligned FASTA reads every column; A3M reads lower case as inserts, outside the
           columns (the first row's gaps made into inserts here; noted as <code>svs.alignment.inserts</code>); Stockholm
           keeps its tags, and its <code>#=GS … AC</code> lines are read as a rows table (<code>tag: "GS:AC"</code>, a
-          data column). The Stockholm file was cut before its closing <code>{"//"}</code>: it reads, with a note (
+          data column). The Stockholm file was cut before its closing <code>{'//'}</code>: it reads, with a note (
           <code>svs.source.unterminated</code>). Clustal (<code>.aln</code>, CLUSTAL W's layout) joins each row's blocks
           in order; its residue counts and conservation lines are not read.
         </>
@@ -238,19 +238,19 @@ function AlignmentsPage() {
     </PrismPage>
   );
 }
-export const Alignments: Story = { name: "Alignments and trees", render: () => <AlignmentsPage /> };
+export const Alignments: Story = { name: 'Alignments and trees', render: () => <AlignmentsPage /> };
 
 // ---- Tables ----
 
 const TABLE_LABELS: Record<TableFormat, string> = {
-  tsv: "TSV",
-  csv: "CSV",
-  json_rows: "JSON, rows",
-  json_columns: "JSON, columns",
+  tsv: 'TSV',
+  csv: 'CSV',
+  json_rows: 'JSON, rows',
+  json_columns: 'JSON, columns',
 };
 
 function TablesPage() {
-  const [format, setFormat] = useState<TableFormat>("tsv");
+  const [format, setFormat] = useState<TableFormat>('tsv');
   const c = useMemo(() => tablesCase(format), [format]);
   return (
     <PrismPage
@@ -259,7 +259,7 @@ function TablesPage() {
         <>
           Two annotations read from table files, in four forms: TSV and CSV (cells are text, typed by their column's
           role), and JSON as an array of row objects or an object of columns (both read the same). The files name their
-          own columns; <code>fields</code> maps them to the format's (<code>first</code> → <code>beg</code>,{" "}
+          own columns; <code>fields</code> maps them to the format's (<code>first</code> → <code>beg</code>,{' '}
           <code>kd</code> → <code>value</code>). Positions are Kabat labels: the hydropathy file gives each residue's
           number and insertion code apart, and <code>ins_code</code> joins them (52 and A name 52A), so the inserted
           residues 52A, 82A–C and 100A–C get their own values. Trastuzumab's VH from the format's fixtures; the files
@@ -278,13 +278,13 @@ function TablesPage() {
     </PrismPage>
   );
 }
-export const Tables: Story = { name: "Tables", render: () => <TablesPage /> };
+export const Tables: Story = { name: 'Tables', render: () => <TablesPage /> };
 
 // ---- Structure files ----
 
 /** A CIF category's first rows as a text table, from a structure file read with the adapter's parser. */
 function useCategory(bytes: Uint8Array | null, format: StructureFormat, name: string, rows = 10): string {
-  const [text, setText] = useState("reading…");
+  const [text, setText] = useState('reading…');
   useEffect(() => {
     if (!bytes) return;
     let live = true;
@@ -295,16 +295,16 @@ function useCategory(bytes: Uint8Array | null, format: StructureFormat, name: st
       const names = Object.keys(t.columns);
       const cells = [
         names,
-        ...Array.from({ length: Math.min(rows, t.length) }, (_, i) => names.map((k) => t.columns[k][i] ?? "?")),
+        ...Array.from({ length: Math.min(rows, t.length) }, (_, i) => names.map((k) => t.columns[k][i] ?? '?')),
       ];
       const w = names.map((_, k) => Math.max(...cells.map((r) => r[k].length)));
       const lines = cells.map((r) =>
         r
           .map((x, k) => x.padEnd(w[k]))
-          .join("  ")
+          .join('  ')
           .trimEnd(),
       );
-      setText(`${lines.join("\n")}\n… (${t.length.toLocaleString("en-US")} rows)`);
+      setText(`${lines.join('\n')}\n… (${t.length.toLocaleString('en-US')} rows)`);
     });
     return () => {
       live = false;
@@ -328,16 +328,16 @@ function useBytes(url: string): Uint8Array | null {
 }
 
 const STRUCTURE_LABELS: Record<StructureForm, string> = {
-  bcif: "BinaryCIF: an AlphaFold DB model",
-  mmcif: "mmCIF: insertion codes",
+  bcif: 'BinaryCIF: an AlphaFold DB model',
+  mmcif: 'mmCIF: insertion codes',
 };
 const STRUCTURE_OPTIONS: ViewerOptions = { registry: MOLSTAR, fixtureStructures: false };
 
 function StructureCase({ form, af }: { form: StructureForm; af: Uint8Array }) {
   const c = useMemo(() => structuresCase(form, { af, ins1 }), [form, af]);
-  const category = useCategory(form === "bcif" ? af : null, "bcif", "ma_qa_metric_local");
+  const category = useCategory(form === 'bcif' ? af : null, 'bcif', 'ma_qa_metric_local');
   const given: readonly Given[] =
-    form === "bcif"
+    form === 'bcif'
       ? [{ label: `${AF_P53_URI} (recorded): its ma_qa_metric_local, as Mol*'s parser reads it`, text: category }]
       : c.given;
   return (
@@ -345,7 +345,7 @@ function StructureCase({ form, af }: { form: StructureForm; af: Uint8Array }) {
       <Viewer
         key={form}
         c={c}
-        label={form === "bcif" ? "AF-P04637-F1, chain A" : "INS1, chain H: 52, 52A, 52B in auth numbering"}
+        label={form === 'bcif' ? 'AF-P04637-F1, chain A' : 'INS1, chain H: 52, 52A, 52B in auth numbering'}
         options={STRUCTURE_OPTIONS}
       />
       <Sources c={c} given={given} />
@@ -354,7 +354,7 @@ function StructureCase({ form, af }: { form: StructureForm; af: Uint8Array }) {
 }
 
 function StructuresPage() {
-  const [form, setForm] = useState<StructureForm>("bcif");
+  const [form, setForm] = useState<StructureForm>('bcif');
   const af = useBytes(afUrl);
   return (
     <PrismPage
@@ -363,10 +363,10 @@ function StructuresPage() {
         <>
           A structure file read by URI through the Mol* adapter (<code>@molstar/seq-molstar-poc</code>, Mol*'s own
           parsers, headless): the <code>molstar:structure</code> complex provider makes its chains units, and a CIF
-          category is read as a table (<code>from_source</code>, <code>category_name</code>), its columns mapped by{" "}
-          <code>fields</code>. AlphaFold DB's model of P04637 (BinaryCIF, CC BY 4.0) gives its pLDDT from{" "}
-          <code>ma_qa_metric_local</code> by <code>label_seq_id</code>; a small hand-written mmCIF gives B-factors from{" "}
-          <code>atom_site</code> by author numbers, <code>auth_seq_id</code> with <code>pdbx_PDB_ins_code</code> as{" "}
+          category is read as a table (<code>from_source</code>, <code>category_name</code>), its columns mapped by{' '}
+          <code>fields</code>. AlphaFold DB's model of P04637 (BinaryCIF, CC BY 4.0) gives its pLDDT from{' '}
+          <code>ma_qa_metric_local</code> by <code>label_seq_id</code>; a small hand-written mmCIF gives B-factors from{' '}
+          <code>atom_site</code> by author numbers, <code>auth_seq_id</code> with <code>pdbx_PDB_ins_code</code> as{' '}
           <code>ins_code</code>, so 52A and 52B are their own residues. PDB, SDF and MOL2 read the same way, without
           categories. Recorded, no network.
         </>
@@ -382,23 +382,23 @@ function StructuresPage() {
     </PrismPage>
   );
 }
-export const Structures: Story = { name: "Structure files", render: () => <StructuresPage /> };
+export const Structures: Story = { name: 'Structure files', render: () => <StructuresPage /> };
 
 // ---- Services ----
 
-type Mode = "recorded" | "live";
+type Mode = 'recorded' | 'live';
 const MODES: readonly { id: Mode; label: string }[] = [
-  { id: "recorded", label: "Recorded" },
-  { id: "live", label: "Live (calls the public API)" },
+  { id: 'recorded', label: 'Recorded' },
+  { id: 'live', label: 'Live (calls the public API)' },
 ];
 
 function UniprotPage() {
-  const [mode, setMode] = useState<Mode>("recorded");
+  const [mode, setMode] = useState<Mode>('recorded');
   const doc = useMemo(uniprotDoc, []);
   const c = useMemo<FormatCase>(
     () => ({
       doc,
-      loaders: mode === "live" ? liveLoaders() : recordedLoaders(uniprotFiles(featuresJson, variantsJson)),
+      loaders: mode === 'live' ? liveLoaders() : recordedLoaders(uniprotFiles(featuresJson, variantsJson)),
       shown: UNIPROT_SHOWN,
       given: [],
     }),
@@ -409,8 +409,8 @@ function UniprotPage() {
       title="UniProt: sequence, features, variants"
       caption={
         <>
-          The kernel's one service, <code>uniprot</code>: a record id and a resource resolve to a request,{" "}
-          <code>sequence</code> to UniProt's FASTA (the sequence gets the numbering <code>uniprot:P04637</code>),{" "}
+          The kernel's one service, <code>uniprot</code>: a record id and a resource resolve to a request,{' '}
+          <code>sequence</code> to UniProt's FASTA (the sequence gets the numbering <code>uniprot:P04637</code>),{' '}
           <code>features</code> to the entry's JSON and <code>variants</code> to the Proteins API's variation, both read
           as ranges. Recorded: the responses committed for P04637 (UniProtKB, CC BY 4.0; trimmed to what the readers
           take). Live calls the public APIs from your browser (rest.uniprot.org, www.ebi.ac.uk), the whole entry and its
@@ -425,12 +425,12 @@ function UniprotPage() {
       </Viewer>
       <Sources
         c={c}
-        given={[{ label: "The service's requests", text: Object.values(P53_URIS).slice(0, 3).join("\n") }]}
+        given={[{ label: "The service's requests", text: Object.values(P53_URIS).slice(0, 3).join('\n') }]}
       />
     </PrismPage>
   );
 }
-export const UniProt: Story = { name: "UniProt", render: () => <UniprotPage /> };
+export const UniProt: Story = { name: 'UniProt', render: () => <UniprotPage /> };
 
 const PDBE_OPTIONS: ViewerOptions = { registry: MOLSTAR, fixtureStructures: false };
 
@@ -439,13 +439,13 @@ function PdbeAfdbCase({ mode, pdbe, afdb }: { mode: Mode; pdbe: Uint8Array; afdb
   const c = useMemo<FormatCase>(
     () => ({
       doc,
-      loaders: mode === "live" ? liveLoaders() : recordedLoaders(pdbeAfdbFiles({ pdbe, afdb })),
+      loaders: mode === 'live' ? liveLoaders() : recordedLoaders(pdbeAfdbFiles({ pdbe, afdb })),
       shown: PDBE_AFDB_SHOWN,
       given: [],
     }),
     [doc, mode, pdbe, afdb],
   );
-  const sifts = useCategory(pdbe, "bcif", "pdbx_sifts_unp_segments");
+  const sifts = useCategory(pdbe, 'bcif', 'pdbx_sifts_unp_segments');
   return (
     <>
       <Viewer key={mode} c={c} label={`AF-P04637-F1 with 2OCJ's chains, ${mode}`} options={PDBE_OPTIONS}>
@@ -454,9 +454,9 @@ function PdbeAfdbCase({ mode, pdbe, afdb }: { mode: Mode; pdbe: Uint8Array; afdb
       <Sources
         c={c}
         given={[
-          { label: "The services' requests", text: Object.values(P53_URIS).slice(3).join("\n") },
+          { label: "The services' requests", text: Object.values(P53_URIS).slice(3).join('\n') },
           {
-            label: "2ocj.bcif (recorded): its pdbx_sifts_unp_segments, the SIFTS the numbering comes from",
+            label: '2ocj.bcif (recorded): its pdbx_sifts_unp_segments, the SIFTS the numbering comes from',
             text: sifts,
           },
         ]}
@@ -466,7 +466,7 @@ function PdbeAfdbCase({ mode, pdbe, afdb }: { mode: Mode; pdbe: Uint8Array; afdb
 }
 
 function PdbeAfdbPage() {
-  const [mode, setMode] = useState<Mode>("recorded");
+  const [mode, setMode] = useState<Mode>('recorded');
   const pdbe = useBytes(ocjUrl);
   const afdb = useBytes(afUrl);
   return (
@@ -476,7 +476,7 @@ function PdbeAfdbPage() {
         <>
           The Mol* adapter's services: <code>pdbe</code> (<code>structure</code>, PDBe's BinaryCIF with the updated
           mmCIF's SIFTS; <code>sifts</code>, the updated mmCIF) and <code>afdb</code> (<code>structure</code>, the
-          model's BinaryCIF; <code>pae</code>, its predicted aligned error). 2OCJ's chains carry the numbering{" "}
+          model's BinaryCIF; <code>pae</code>, its predicted aligned error). 2OCJ's chains carry the numbering{' '}
           <code>uniprot:P04637</code> from SIFTS and map onto P04637 by it; AlphaFold DB's model maps onto P04637 one to
           one, its pLDDT from its B-factors (<code>molstar:plddt</code>), its PAE a dot plot (<code>molstar:pae</code>,
           in the closed group), 2OCJ's coverage placed on it through P04637. Recorded: PDBe's and AlphaFold DB's files
@@ -495,7 +495,7 @@ function PdbeAfdbPage() {
     </PrismPage>
   );
 }
-export const PdbeAfdb: Story = { name: "PDBe and AlphaFold DB", render: () => <PdbeAfdbPage /> };
+export const PdbeAfdb: Story = { name: 'PDBe and AlphaFold DB', render: () => <PdbeAfdbPage /> };
 
 // ---- Streamed genome files ----
 
@@ -507,12 +507,12 @@ function Reads({ reads }: { reads: Readonly<Record<string, [number, number][]>> 
   const lines = Object.entries(reads).map(([file, list]) => {
     const bytes = list.reduce((n, [, l]) => n + l, 0);
     const last = list.slice(-3).map(([o, l]) => `${o}–${o + l - 1}`);
-    return `${file.padEnd(7)} ${String(list.length).padStart(3)} reads, ${bytes.toLocaleString("en-US").padStart(7)} bytes; last: ${last.join(", ") || "none"}`;
+    return `${file.padEnd(7)} ${String(list.length).padStart(3)} reads, ${bytes.toLocaleString('en-US').padStart(7)} bytes; last: ${last.join(', ') || 'none'}`;
   });
   return (
     <Code
       label={`The byte ranges read: ${st.requests} regions asked of the providers, ${st.inFlight} in flight, ${st.errors} failed`}
-      text={lines.join("\n")}
+      text={lines.join('\n')}
     />
   );
 }
@@ -525,12 +525,12 @@ function GenomePage() {
       caption={
         <>
           Indexed genome files read by region through the host's stream providers (
-          <code>@molstar/seq-core/stream/gmod</code>), never whole: the sources name a stream and its{" "}
+          <code>@molstar/seq-core/stream/gmod</code>), never whole: the sources name a stream and its{' '}
           <code>data_kind</code>, the host maps each to a reader over byte ranges. A synthetic genome of two sequences (
           <code>chrS1</code>, <code>chrS2</code>), its files written in memory by the format's test helper (
           <code>demo-files.ts</code>): a 2bit (an N run, soft-masked repeats), a BigWig of GC percent, a BigBed of BED12
           genes (exons joined by id) and a bgzipped VCF with its tabix index. Pan and zoom to see the reads grow; zoom
-          in for letters. hg38's real files, live, are the{" "}
+          in for letters. hg38's real files, live, are the{' '}
           <a href="?path=/story/seq-cases-genome-browser--live">genome browser demo</a>.
         </>
       }
@@ -544,7 +544,7 @@ function GenomePage() {
     </PrismPage>
   );
 }
-export const GenomeFiles: Story = { name: "Streamed genome files", render: () => <GenomePage /> };
+export const GenomeFiles: Story = { name: 'Streamed genome files', render: () => <GenomePage /> };
 
 // ---- The tiles server ----
 
@@ -553,12 +553,12 @@ function Calls({ calls }: { calls: readonly string[] }) {
   const { context } = useSeqViewer();
   useLiveVersion(context.streams.stats);
   const kinds = new Map<string, number>();
-  for (const p of calls) kinds.set(p.split("/")[0], (kinds.get(p.split("/")[0]) ?? 0) + 1);
-  const summary = [...kinds].map(([k, n]) => `${k} ${n}`).join(", ");
+  for (const p of calls) kinds.set(p.split('/')[0], (kinds.get(p.split('/')[0]) ?? 0) + 1);
+  const summary = [...kinds].map(([k, n]) => `${k} ${n}`).join(', ');
   return (
     <Code
-      label={`${calls.length} requests to ${TILES_URI}${summary ? `: ${summary}` : ""}`}
-      text={calls.slice(0, 24).join("\n") + (calls.length > 24 ? `\n… ${calls.length - 24} more` : "")}
+      label={`${calls.length} requests to ${TILES_URI}${summary ? `: ${summary}` : ''}`}
+      text={calls.slice(0, 24).join('\n') + (calls.length > 24 ? `\n… ${calls.length - 24} more` : '')}
     />
   );
 }
@@ -587,14 +587,14 @@ function TilesPage() {
     </PrismPage>
   );
 }
-export const Tiles: Story = { name: "The tiles server", render: () => <TilesPage /> };
+export const Tiles: Story = { name: 'The tiles server', render: () => <TilesPage /> };
 
 // ---- Seq*'s own documents ----
 
 const DOCUMENT_LABELS: Record<DocumentFormat, string> = {
-  svsj: ".svsj (JSON)",
-  svsm: ".svsm (MessagePack)",
-  svsx: ".svsx (an archive)",
+  svsj: '.svsj (JSON)',
+  svsm: '.svsm (MessagePack)',
+  svsx: '.svsx (an archive)',
 };
 
 /** The fixture archive, read once. */
@@ -610,8 +610,8 @@ function ArchiveCase() {
     <>
       <Viewer c={c} label={`The document read from ${DOCUMENT_LABELS.svsx}, over its own files`}>
         <div className={f.kicker}>
-          Its sources name the files by paths relative to the archive's base (its main file's directory:{" "}
-          {svsx.base || "the root"}); the viewer's loaders, <code>archiveLoaders</code>, carry that base, so the
+          Its sources name the files by paths relative to the archive's base (its main file's directory:{' '}
+          {svsx.base || 'the root'}); the viewer's loaders, <code>archiveLoaders</code>, carry that base, so the
           document validates and each path is answered from the archive.
         </div>
         <Requests log={c.loaders.fetched} />
@@ -622,15 +622,15 @@ function ArchiveCase() {
 }
 
 function DocumentsPage() {
-  const [format, setFormat] = useState<DocumentFormat>("svsj");
-  const c = useMemo(() => (format === "svsx" ? null : documentCase(format)), [format]);
+  const [format, setFormat] = useState<DocumentFormat>('svsj');
+  const c = useMemo(() => (format === 'svsx' ? null : documentCase(format)), [format]);
   return (
     <PrismPage
       title="Seq*'s own documents: .svsj, .svsm, .svsx"
       caption={
         <>
           A SeqViewSpec document as JSON (<code>.svsj</code>) or MessagePack (<code>.svsm</code>, typed arrays as its
-          typed-array extension), told apart by their first byte (<code>readDocument</code>), and the <code>.svsx</code>{" "}
+          typed-array extension), told apart by their first byte (<code>readDocument</code>), and the <code>.svsx</code>{' '}
           archive: a zip with the document as <code>index.svsm</code> (or <code>index.svsj</code>) and the files it
           reads, by relative paths. One document in all three: an ABL kinase excerpt from a FASTA and its sites from a
           TSV (the format's <code>kinase.svsx</code> fixture); the JSON and MessagePack ones name the files by their
@@ -640,7 +640,7 @@ function DocumentsPage() {
     >
       <Pick<DocumentFormat>
         label="The document's format"
-        choices={[...DOCUMENT_FORMATS, "svsx" as const].map((id) => ({ id, label: DOCUMENT_LABELS[id] }))}
+        choices={[...DOCUMENT_FORMATS, 'svsx' as const].map((id) => ({ id, label: DOCUMENT_LABELS[id] }))}
         active={format}
         onPick={setFormat}
       />
@@ -657,4 +657,4 @@ function DocumentsPage() {
     </PrismPage>
   );
 }
-export const Documents: Story = { name: "Seq* documents", render: () => <DocumentsPage /> };
+export const Documents: Story = { name: 'Seq* documents', render: () => <DocumentsPage /> };

@@ -9,7 +9,7 @@
 // The ring window's fixture (CG3): a cyclic sequence on rings and a linear section following it, for the tests and the
 // heap guards.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
 
 export const N = 600;
 
@@ -26,32 +26,32 @@ export interface RingWindowOptions {
  */
 export function ringWindowDoc(origin = 0, n = N, o: RingWindowOptions = {}) {
   const b = createSeqViewSpec();
-  const s = b.data.sequence({ ref: "s", value: "ACGTACGTTA".repeat(n / 10), alphabet: "dna", cyclic: true });
+  const s = b.data.sequence({ ref: 's', value: 'ACGTACGTTA'.repeat(n / 10), alphabet: 'dna', cyclic: true });
   const f = b.data.annotation({
-    ref: "f",
-    geometry: "ranges",
+    ref: 'f',
+    geometry: 'ranges',
     target: s,
     value: {
       start: [n / 6, n / 2, (11 * n) / 12],
       stop: [n / 3, (2 * n) / 3, n / 12],
-      label: ["alpha", "beta", "gamma"],
+      label: ['alpha', 'beta', 'gamma'],
     },
   } as never);
-  const v = b.view({ ref: "v", label: "V" });
-  const ring = v.section({ ref: "ring", style: "circular" });
+  const v = b.view({ ref: 'v', label: 'V' });
+  const ring = v.section({ ref: 'ring', style: 'circular' });
   if (o.before) {
-    const s2 = b.data.sequence({ ref: "s2", value: "ACGTACGTTA".repeat(n / 10), alphabet: "dna" });
-    ring.block({ ref: "ring.b2", sequence: s2 });
+    const s2 = b.data.sequence({ ref: 's2', value: 'ACGTACGTTA'.repeat(n / 10), alphabet: 'dna' });
+    ring.block({ ref: 'ring.b2', sequence: s2 });
   }
-  ring.block({ ref: "ring.b", sequence: s, origin });
-  ring.track({ label: "" }).ruler();
-  ring.track({ label: "F", height: 2 }).ranges({ data: f, labels: true } as never);
+  ring.block({ ref: 'ring.b', sequence: s, origin });
+  ring.track({ label: '' }).ruler();
+  ring.track({ label: 'F', height: 2 }).ranges({ data: f, labels: true } as never);
   for (let k = 1; k <= (o.followers ?? 1); k++) {
     const lin = v
-      .section({ ref: k === 1 ? "lin" : `lin${k}`, follow: ring.handle })
+      .section({ ref: k === 1 ? 'lin' : `lin${k}`, follow: ring.handle })
       .block({ sequence: s, ...(o.range ? { range: [...o.range] } : {}) });
-    lin.track({ label: "" }).ruler();
-    lin.track({ label: "F" }).ranges({ data: f } as never);
+    lin.track({ label: '' }).ruler();
+    lin.track({ label: 'F' }).ranges({ data: f } as never);
   }
   return b.getDocument();
 }

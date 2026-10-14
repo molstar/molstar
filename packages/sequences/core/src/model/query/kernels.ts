@@ -11,19 +11,19 @@
 // kind, id, row; then start), disjoint, merged where they touch. The kernels work on runs, never per position, and
 // allocate nothing.
 
-import { CoordinateSystemKind as K } from "../coordinates.js";
-import type { SeqSet } from "../set.js";
-import type { SeqSelection } from "./selection.js";
+import { CoordinateSystemKind as K } from '../coordinates.js';
+import type { SeqSet } from '../set.js';
+import type { SeqSelection } from './selection.js';
 
 /** What a builder reports to: the context's limits (runs, groups) and its clock, read every 1,024 runs. */
 export interface BuildGuard {
   readonly maxRuns: number;
   readonly maxGroups: number;
-  over(what: "runs" | "groups", count: number): never;
+  over(what: 'runs' | 'groups', count: number): never;
   tick(): void;
 }
 
-type Runs = Pick<SeqSelection, "kind" | "id" | "row" | "start" | "stop">;
+type Runs = Pick<SeqSelection, 'kind' | 'id' | 'row' | 'start' | 'stop'>;
 const grow = <T extends Int32Array | Uint8Array | Float64Array>(a: T, n: number): T => {
   const b = new (a.constructor as new (n: number) => T)(Math.max(n, 2 * a.length));
   b.set(a);
@@ -92,7 +92,7 @@ export class SelectionBuilder {
     }
     if (k + 1 === this.kind.length) {
       const self = this as unknown as Record<string, Int32Array>;
-      for (const f of ["kind", "id", "row", "start", "stop"]) self[f] = grow(self[f], 0);
+      for (const f of ['kind', 'id', 'row', 'start', 'stop']) self[f] = grow(self[f], 0);
     }
     const i = ++this.runCount - 1;
     this.kind[i] = kind;
@@ -103,7 +103,7 @@ export class SelectionBuilder {
     const g = this.guard;
     if (g && (i & 1023) === 1023) {
       g.tick();
-      if (this.runCount > g.maxRuns) g.over("runs", this.runCount);
+      if (this.runCount > g.maxRuns) g.over('runs', this.runCount);
     }
   }
 
@@ -112,7 +112,7 @@ export class SelectionBuilder {
     if (!this.sorted) normalize(this, this.open, this.runCount);
     if (this.runCount === this.open) return;
     this.groupStart[++this.groupCount] = this.runCount;
-    if (this.guard && this.groupCount > this.guard.maxGroups) this.guard.over("groups", this.groupCount);
+    if (this.guard && this.groupCount > this.guard.maxGroups) this.guard.over('groups', this.groupCount);
   }
 
   /** One group of one run. */
@@ -155,7 +155,7 @@ function normalize(b: SelectionBuilder, from: number, to: number): void {
   for (let i = 0; i < n; i++) order[i] = from + i;
   sorting = b;
   order.subarray(0, n).sort(byRun);
-  for (const f of ["kind", "id", "row", "start", "stop"] as const) {
+  for (const f of ['kind', 'id', 'row', 'start', 'stop'] as const) {
     const a = b[f];
     for (let i = 0; i < n; i++) tmp[i] = a[order[i]];
     for (let i = 0; i < n; i++) a[from + i] = tmp[i];

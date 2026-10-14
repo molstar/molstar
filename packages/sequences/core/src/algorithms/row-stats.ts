@@ -12,7 +12,7 @@
 // none. `redundancy` is greedy clustering, rows × representatives × columns at most, so it is bounded
 // (`Redundancy.MaxCells`) and takes an abort signal, which it honors between slices of work (`Pacer`, pace.ts).
 
-import { Pacer } from "./pace.js";
+import { Pacer } from './pace.js';
 
 /** An alignment's cells, row-major `rows × columns`; `gap` is the code of a cell with no letter. */
 export interface RowCodes {
@@ -33,7 +33,7 @@ export class RedundancySizeError extends Error {
     super(
       `clustering ${rows} rows of ${columns} columns compares up to ${cells} cells; the limit is ${Redundancy.MaxCells}.`,
     );
-    this.name = "RedundancySizeError";
+    this.name = 'RedundancySizeError';
     this.cells = cells;
   }
 }

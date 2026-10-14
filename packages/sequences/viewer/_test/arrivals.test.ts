@@ -14,10 +14,10 @@
 // of it under the others (reduced tiles, translucent by their share); a jump to rows whose labels and tiles have not
 // arrived redraws, pass by pass, what changed. The pixels in Chromium: canvas/band-copy.test.ts.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { tilesStream } from "@molstar/seq-core/stream/tiles";
-import { tileServer } from "@molstar/seq-core/stream/tiles/server";
-import { describe, expect, it } from "vitest";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { tilesStream } from '@molstar/seq-core/stream/tiles';
+import { tileServer } from '@molstar/seq-core/stream/tiles/server';
+import { describe, expect, it } from 'vitest';
 import {
   BackendCaps,
   Dirty,
@@ -30,13 +30,13 @@ import {
   SectionComposer,
   type SectorBatch,
   type TextBatch,
-} from "../src/draw/index.js";
-import { createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from "../src/index.js";
-import type { Streams } from "../src/streams.js";
-import { fixtureMeasurer, RecordedImages } from "../src/testing/index.js";
-import { holdBack } from "./arrival-fixtures.js";
+} from '../src/draw/index.js';
+import { createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from '../src/index.js';
+import type { Streams } from '../src/streams.js';
+import { fixtureMeasurer, RecordedImages } from '../src/testing/index.js';
+import { holdBack } from './arrival-fixtures.js';
 
-const URI = "https://example.org/lazy";
+const URI = 'https://example.org/lazy';
 const [W, H] = [700, 300];
 
 const mix = (h: number, k: number) => (Math.imul(h ^ k, 0x9e3779b1) + 0x7f4a7c15) | 0;
@@ -155,20 +155,20 @@ async function lazy(dpr: number, cell: number, rowScale: number) {
     scheduler: manualScheduler(),
     text: fixtureMeasurer(),
     loaders: {
-      load: () => Promise.reject(new Error("no fixture")),
+      load: () => Promise.reject(new Error('no fixture')),
       stream: tilesStream((u) => (u === URI ? server.transport : null)),
     },
   });
   const b = createSeqViewSpec();
   const aln = b.data.alignment({
-    ref: "lazy",
+    ref: 'lazy',
     row_count: 3000,
     column_count: 4000,
-    source: { uri: URI, protocol: "seqstar-tiles/1" },
+    source: { uri: URI, protocol: 'seqstar-tiles/1' },
   } as never);
-  const v = b.view({ ref: "g", label: "G", height: "box" });
+  const v = b.view({ ref: 'g', label: 'G', height: 'box' });
   v.block({ alignment: aln });
-  v.track({ label: "Rows" }).rows();
+  v.track({ label: 'Rows' }).rows();
   const done = ctx.setDocument(b.getDocument());
   for (const ref of ctx.viewports.sections.value) ctx.viewports.get(ref)?.setSize(W, H, dpr);
   const r = await done;
@@ -176,10 +176,10 @@ async function lazy(dpr: number, cell: number, rowScale: number) {
   await ctx.graph.update();
   const section = ctx.viewports.sections.value[0];
   const vp = ctx.viewports.get(section);
-  if (!vp) throw new Error("no viewport");
-  vp.setView(cell, 0, "api");
+  if (!vp) throw new Error('no viewport');
+  vp.setView(cell, 0, 'api');
   vp.setRowScale(rowScale, 0);
-  vp.panBy(1500 * cell, 600, "api");
+  vp.panBy(1500 * cell, 600, 'api');
   await ctx.graph.update();
   const arrive = async (each?: (k: number) => void) => {
     const st = ctx.streams as Streams;
@@ -211,12 +211,12 @@ function compare(a: Stacks, b: Stacks, where: string) {
   expect(n, `${where}, first at (${first % a.w}, ${Math.floor(first / a.w)})`).toBe(0);
 }
 
-describe("a frame redrawn for arrivals alone equals a full redraw, batch for batch", () => {
+describe('a frame redrawn for arrivals alone equals a full redraw, batch for batch', () => {
   it.each([
     [1, 0.5, 0.5 / 18],
     [2, 0.3, 0.6 / 18],
   ])(
-    "fine tiles held back, then arriving one column a frame, at DPR %i, cell %f, row scale %f",
+    'fine tiles held back, then arriving one column a frame, at DPR %i, cell %f, row scale %f',
     async (dpr, cell, rs) => {
       const t = await lazy(dpr, cell, rs);
       const h = holdBack(t.ctx, t.section);
@@ -231,7 +231,7 @@ describe("a frame redrawn for arrivals alone equals a full redraw, batch for bat
         full.frame();
         compare(drawn.be, full.be, where);
       };
-      check("held");
+      check('held');
       for (const tx of [c, c + 1, c - 1]) {
         h.release(tx);
         check(`column ${tx} arrived`);
@@ -251,9 +251,9 @@ describe("a frame redrawn for arrivals alone equals a full redraw, batch for bat
       full.frame();
       compare(drawn.be, full.be, where);
     };
-    check("arrived");
+    check('arrived');
     for (const row of [1300, 2600]) {
-      t.vp.scrollTo(t.vp.live.current.scrollX, row * 18, "api");
+      t.vp.scrollTo(t.vp.live.current.scrollX, row * 18, 'api');
       check(`rows from ${row}, pending`);
       await t.arrive((p) => check(`rows from ${row}, pass ${p}`));
     }

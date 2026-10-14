@@ -23,25 +23,25 @@ import {
   type KeyTarget,
   type NameId,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import type { ThemeRef } from "../doc.js";
-import type { DocIndex } from "../load/compile.js";
-import { issueOf } from "../load/issues.js";
-import { streamedSources } from "../load/nodes.js";
-import { paletteValue } from "../palettes/fields.js";
-import { type SchemeSubject, schemeFits, schemeOf, schemeSubject } from "../palettes/schemes.js";
-import type { ChannelKind, LayerTypeEntry, SvsRegistries } from "../registry.js";
-import { isNamespaced, isPlainObject, TEMPLATE_NODE } from "../schema/field-schema.js";
-import type { IndexedNode } from "../schema/tree-schema.js";
-import { numericDefaultColor } from "../tables/kernel.js";
-import { themeRef } from "../tables/param-types.js";
-import { isStreamedSource } from "../validate.js";
-import { Layout, SectionAxis, Sizing } from "./codes.js";
-import { dataDomain, fillShared, groupMembers, type SharedField, sharedDomains } from "./domains.js";
-import { type KeyFilterValue, keyed, type Members, type OrderKeyValue } from "./keyed.js";
-import { endsOf, matcher, reach } from "./reach.js";
-import { childrenOf, paramsOf, type ResolvedSection, refsOf } from "./section.js";
-import { instanceRef } from "./template.js";
+} from '@molstar/seq-core/model';
+import type { ThemeRef } from '../doc.js';
+import type { DocIndex } from '../load/compile.js';
+import { issueOf } from '../load/issues.js';
+import { streamedSources } from '../load/nodes.js';
+import { paletteValue } from '../palettes/fields.js';
+import { type SchemeSubject, schemeFits, schemeOf, schemeSubject } from '../palettes/schemes.js';
+import type { ChannelKind, LayerTypeEntry, SvsRegistries } from '../registry.js';
+import { isNamespaced, isPlainObject, TEMPLATE_NODE } from '../schema/field-schema.js';
+import type { IndexedNode } from '../schema/tree-schema.js';
+import { numericDefaultColor } from '../tables/kernel.js';
+import { themeRef } from '../tables/param-types.js';
+import { isStreamedSource } from '../validate.js';
+import { Layout, SectionAxis, Sizing } from './codes.js';
+import { dataDomain, fillShared, groupMembers, type SharedField, sharedDomains } from './domains.js';
+import { type KeyFilterValue, keyed, type Members, type OrderKeyValue } from './keyed.js';
+import { endsOf, matcher, reach } from './reach.js';
+import { childrenOf, paramsOf, type ResolvedSection, refsOf } from './section.js';
+import { instanceRef } from './template.js';
 
 /** One (layer, block, annotation, slot, member, lane) with its path; indices local to the section and layer. */
 export interface PlacementRow {
@@ -101,8 +101,8 @@ function withNode(p: Readonly<Record<string, unknown>>, node: string): Readonly<
 
 /** Every registered layer type and theme, and the `char` and `path` glyphs: a viewer that draws everything. */
 export function supportedAll(reg: SvsRegistries): Set<string> {
-  const kinds = ["layerTypes", "themes"] as const;
-  return new Set([...kinds.flatMap((k) => reg.list(k).map((e) => e.name)), "char", "path"]);
+  const kinds = ['layerTypes', 'themes'] as const;
+  return new Set([...kinds.flatMap((k) => reg.list(k).map((e) => e.name)), 'char', 'path']);
 }
 
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };
@@ -116,7 +116,7 @@ export function splitRows(
   set: SeqSet,
   anns: readonly Annotation[],
   kept: readonly (Uint8Array | null)[],
-  split: { by: string; order?: readonly string[] | null; empty?: "show" | "hide" },
+  split: { by: string; order?: readonly string[] | null; empty?: 'show' | 'hide' },
   reg?: SvsRegistries,
 ): { values: string[]; rowOf: Int32Array[] } {
   const values = [...(split.order ?? [])];
@@ -125,12 +125,12 @@ export function splitRows(
     Int32Array.from({ length: a.count }, (_, r) => {
       if (kept[d] && !kept[d]?.[r]) return -1;
       const x = paletteValue(a, set, r, split.by, reg);
-      const v = x == null || x === "" ? "-" : String(x);
+      const v = x == null || x === '' ? '-' : String(x);
       if (!at.has(v)) at.set(v, values.push(v) - 1);
       return at.get(v) as number;
     }),
   );
-  if (split.empty !== "hide") return { values, rowOf };
+  if (split.empty !== 'hide') return { values, rowOf };
   // Renumber the values some row has, in their order.
   const to = new Int32Array(values.length).fill(-1);
   for (const of of rowOf) for (const v of of) if (v >= 0) to[v] = 0;
@@ -145,12 +145,12 @@ export function splitRows(
  * `rows` layer before it in its track, whose letters it redraws.
  */
 export function letterMapParam(doc: DocIndex, n: IndexedNode): unknown {
-  if (n.params.type !== "emphasis") return n.params.letter_map;
+  if (n.params.type !== 'emphasis') return n.params.letter_map;
   const track = n.parent === null ? undefined : doc.nodes.get(n.parent);
   const siblings = track ? childrenOf(doc, track) : [];
   let m: unknown;
   for (const x of siblings.slice(0, siblings.indexOf(n)))
-    if ((x.params.type === "letters" && x.params.of == null) || x.params.type === "rows") m = x.params.letter_map;
+    if ((x.params.type === 'letters' && x.params.of == null) || x.params.type === 'rows') m = x.params.letter_map;
   return m;
 }
 
@@ -166,9 +166,9 @@ function letterMapped(
   alphabets: () => readonly (Alphabet | null)[],
 ) {
   if (m == null) return params;
-  const e = typeof m === "string" ? reg.get("letterMaps", m) : undefined;
+  const e = typeof m === 'string' ? reg.get('letterMaps', m) : undefined;
   const fits = !e?.alphabets || alphabets().every((a) => a === null || e.alphabets?.includes(a));
-  return { ...params, letter_map: typeof m === "string" ? (fits && e ? e.map : null) : m };
+  return { ...params, letter_map: typeof m === 'string' ? (fits && e ? e.map : null) : m };
 }
 
 /**
@@ -194,17 +194,17 @@ export function resolveLayer(
 
   // The type drawn: the declared one, else down its fallback chain (the layer's first step, then the types'), each
   // checked against the viewer, the section's axis and its layout.
-  const axis = section.row.axis === SectionAxis.columns ? "columns" : "blocks";
-  const layout = section.layout === Layout.text ? "text" : "tracks";
+  const axis = section.row.axis === SectionAxis.columns ? 'columns' : 'blocks';
+  const layout = section.layout === Layout.text ? 'text' : 'tracks';
   let type: string | null = p.type as string;
-  for (let k = 0; type !== null && type !== "omit"; k++) {
-    const e: LayerTypeEntry | undefined = reg.get("layerTypes", type);
+  for (let k = 0; type !== null && type !== 'omit'; k++) {
+    const e: LayerTypeEntry | undefined = reg.get('layerTypes', type);
     if (e && supported.has(type) && e.axes.includes(axis) && e.layouts.includes(layout)) break;
-    type = k > 8 ? null : ((k === 0 && typeof p.fallback === "string" ? p.fallback : e?.fallback) ?? null);
+    type = k > 8 ? null : ((k === 0 && typeof p.fallback === 'string' ? p.fallback : e?.fallback) ?? null);
   }
-  const entry = type === null ? undefined : reg.get("layerTypes", type);
-  if (!entry) say("svs.render.omitted", "type", `"${p.type}" cannot be drawn here; its fallbacks end in omit`);
-  else if (type !== p.type) say("svs.render.fallback", "type", `"${p.type}" cannot be drawn here; drawn as "${type}"`);
+  const entry = type === null ? undefined : reg.get('layerTypes', type);
+  if (!entry) say('svs.render.omitted', 'type', `"${p.type}" cannot be drawn here; its fallbacks end in omit`);
+  else if (type !== p.type) say('svs.render.fallback', 'type', `"${p.type}" cannot be drawn here; drawn as "${type}"`);
 
   // Themes after defaults and fallbacks; a named rule table expanded (its name kept as `table`), so a viewer implements
   // `rules` alone, the themes nested in a `rules` theme resolved alike; glyphs a viewer cannot draw as their fallback
@@ -223,28 +223,28 @@ export function resolveLayer(
   ): ThemeRef | null => {
     let r = given;
     for (let k = 0; r && k < 5; k++) {
-      const e = reg.get("themes", r.theme);
+      const e = reg.get('themes', r.theme);
       // Clustal X reads a protein column's composition: not on nucleotides, nor a lazy alignment's.
-      const nt = r.theme === "clustal_x" && (alphabet !== "protein" || aln0?.lazy === true);
+      const nt = r.theme === 'clustal_x' && (alphabet !== 'protein' || aln0?.lazy === true);
       // A color scheme of another subject (Viridis on letters), or unknown here: the layer's default
       // (seqspec:format#color-schemes).
-      const def = r.theme === "scheme" ? schemeOf(reg, r.params ?? {}) : undefined;
-      const ns = r.theme === "scheme" && !(def && subject && schemeFits(def, subject));
+      const def = r.theme === 'scheme' ? schemeOf(reg, r.params ?? {}) : undefined;
+      const ns = r.theme === 'scheme' && !(def && subject && schemeFits(def, subject));
       // Only namespaced themes are checked against `supported`: a kernel theme is registered, so it counts as drawn.
       if (e?.params[kind] && !nt && !ns && (!isNamespaced(r.theme) || supported.has(r.theme))) break;
       r = nt
-        ? { theme: "letter" }
+        ? { theme: 'letter' }
         : ns
           ? (r.fallback ?? (byDefault !== r ? byDefault : null))
           : (r.fallback ?? e?.fallback ?? null);
     }
     if (r !== given)
-      say("svs.render.theme", param, `"${given?.theme}" is drawn as ${r ? `"${r.theme}"` : "the default"}`);
-    const expand = r && depth < 4 ? reg.get("themes", r.theme)?.expand : undefined;
+      say('svs.render.theme', param, `"${given?.theme}" is drawn as ${r ? `"${r.theme}"` : 'the default'}`);
+    const expand = r && depth < 4 ? reg.get('themes', r.theme)?.expand : undefined;
     if (r && expand) r = { ...expand(r.params ?? {}, kind), table: r.theme };
     // Normalized, so a viewer reads every param (a type's default is written short).
     r = r && (themeRef(kind).normalize?.(r, reg) as ThemeRef);
-    if (r?.theme !== "rules" || depth >= 4) return r;
+    if (r?.theme !== 'rules' || depth >= 4) return r;
     const q = r.params as { rules: { theme: ThemeRef | null }[]; default: ThemeRef | null };
     const nested = (x: ThemeRef | null) => x && theme(x, kind, param, depth + 1);
     const rules = q.rules.map((x) => (x.theme ? { ...x, theme: nested(x.theme) } : x));
@@ -255,19 +255,19 @@ export function resolveLayer(
   const shape = (g: unknown) => {
     if (
       !isPlainObject(g) ||
-      !((g.char != null && !supported.has("char")) || (g.path != null && !supported.has("path")))
+      !((g.char != null && !supported.has('char')) || (g.path != null && !supported.has('path')))
     )
       return g;
-    const kind = g.char != null ? "char" : "path";
+    const kind = g.char != null ? 'char' : 'path';
     if (!fellBack.has(kind) && fellBack.add(kind))
-      say("svs.render.glyph", "glyph", `a ${kind} glyph is drawn as its fallback`);
-    return g.fallback ?? "circle";
+      say('svs.render.glyph', 'glyph', `a ${kind} glyph is drawn as its fallback`);
+    return g.fallback ?? 'circle';
   };
   const glyphs = (glyph: ThemeRef | null) => {
     const gp = glyph?.params;
-    const one = gp && glyph?.theme === "uniform" ? shape(gp.glyph) : undefined;
-    if (gp && glyph?.theme === "uniform" && one !== gp.glyph) return { ...glyph, params: { ...gp, glyph: one } };
-    if (gp && glyph?.theme === "field_map" && isPlainObject(gp.map)) {
+    const one = gp && glyph?.theme === 'uniform' ? shape(gp.glyph) : undefined;
+    if (gp && glyph?.theme === 'uniform' && one !== gp.glyph) return { ...glyph, params: { ...gp, glyph: one } };
+    if (gp && glyph?.theme === 'field_map' && isPlainObject(gp.map)) {
       const map = Object.fromEntries(Object.entries(gp.map).map(([k, g]) => [k, shape(g)]));
       const fallback = shape(gp.default);
       if (Object.keys(map).some((k) => map[k] !== (gp.map as Record<string, unknown>)[k]) || fallback !== gp.default)
@@ -277,7 +277,7 @@ export function resolveLayer(
   };
 
   // Data (a matrix's first data's states win), the rows the filter keeps, the domain over every row.
-  const own = childrenOf(doc, n).filter((c) => c.kind === "annotation");
+  const own = childrenOf(doc, n).filter((c) => c.kind === 'annotation');
   const refs = p.data != null ? refsOf(p.data) : own.map((c) => c.ref);
   const all = refs.flatMap((r) =>
     set.byName(r, t) && t.kind === KeyKind.annotation ? [set.annotations[t.id] as Annotation] : [],
@@ -289,27 +289,27 @@ export function resolveLayer(
     (a.matrix.states.length !== states.length || a.matrix.states.some((x, i) => x !== states[i]));
   // Valid data the layer cannot draw beside the first matrix: a loss, a warning (seqspec:format#validation).
   if (all.some(other))
-    say("svs.render.omitted", "data", "data whose states differ from the first matrix's are left out");
+    say('svs.render.omitted', 'data', "data whose states differ from the first matrix's are left out");
   const anns = all.filter((a) => !other(a));
   // A rows or matrix layer's `filter` is a list of key filters over its members (keyed.ts), not a filter of the data's rows.
-  const members = p.type === "matrix" && states ? matrixStates(set, reg, states, p, say) : null;
+  const members = p.type === 'matrix' && states ? matrixStates(set, reg, states, p, say) : null;
   const filter =
-    p.type === "rows" || p.type === "matrix" ? null : (p.filter as { field: string | null; values: unknown[] } | null);
+    p.type === 'rows' || p.type === 'matrix' ? null : (p.filter as { field: string | null; values: unknown[] } | null);
   const keeps = filter && matcher(filter.values);
   const kept = anns.map((a) => {
     if (!filter || !keeps) return null;
     const out = new Uint8Array(a.count);
-    for (let r = 0; r < a.count; r++) out[r] = +keeps(a, set, r, filter.field ?? "category");
+    for (let r = 0; r < a.count; r++) out[r] = +keeps(a, set, r, filter.field ?? 'category');
     return out;
   });
   // A split by a field no row of the data has (streamed data is not read here).
   const by = (p.split as { by: string } | null)?.by;
   const lacks = (a: Annotation) => {
-    for (let r = 0; r < a.count; r++) if (paletteValue(a, set, r, by ?? "", reg) != null) return false;
+    for (let r = 0; r < a.count; r++) if (paletteValue(a, set, r, by ?? '', reg) != null) return false;
     return !a.streamed;
   };
   if (by && anns.length > 0 && anns.every(lacks))
-    say("svs.layer.split", "split", `no row of its data has "${by}": split by a field it has (category, alt, …)`);
+    say('svs.layer.split', 'split', `no row of its data has "${by}": split by a field it has (category, alt, …)`);
   // The domain: the layer's own `domain`, else its data's; a `domain_group` shares the union of its members' (domains.ts).
   const explicit = Array.isArray(p.domain);
   let [lo, hi] = explicit ? (p.domain as number[]) : dataDomain(anns);
@@ -355,7 +355,7 @@ export function resolveLayer(
   // `letters` and `ruler` with `of`: other polymers' letters or numberings on every block their coordinate
   // systems reach, as data is; each placement's path's `from` names its polymer. `mapped`: every polymer a codon
   // mapping takes to the block's coordinate system, a row's included.
-  const ofs = (type === "letters" || type === "ruler") && p.of != null ? ofSystems(set, p.of) : null;
+  const ofs = (type === 'letters' || type === 'ruler') && p.of != null ? ofSystems(set, p.of) : null;
   if (ofs) {
     for (const [from, to] of ofs)
       for (const i of shown) {
@@ -363,13 +363,13 @@ export function resolveLayer(
         ambiguous ||= !reach(set, from, section.blocks[i], (member, path, row) => add(i, -1, -1, member, path, row));
       }
     if (placements.length === 0 && node === undefined)
-      say("svs.layer.unplaced", "of", `"${p.of}" reaches no block of this section`);
+      say('svs.layer.unplaced', 'of', `"${p.of}" reaches no block of this section`);
   } else if (entry && refs.length === 0) {
-    const where = type === "rows" ? shown.filter((i) => section.blocks[i].alignment >= 0) : shown;
-    if (entry.accepts === "none" || isNamespaced(p.type)) for (const i of where) add(i, -1, -1, -1, null, -1);
+    const where = type === 'rows' ? shown.filter((i) => section.blocks[i].alignment >= 0) : shown;
+    if (entry.accepts === 'none' || isNamespaced(p.type)) for (const i of where) add(i, -1, -1, -1, null, -1);
   }
   for (const a of entry ? anns : []) {
-    if (a.geometry === "rows") continue;
+    if (a.geometry === 'rows') continue;
     for (const end of endsOf(a)) {
       const own = ownMolecule(set, section.blocks, end.system);
       for (const i of shown) {
@@ -384,7 +384,7 @@ export function resolveLayer(
             return;
           }
           add(i, a.id, end.slot, member, path, row);
-          if (!path || a.geometry !== "ranges") return;
+          if (!path || a.geometry !== 'ranges') return;
           for (const r of end.rows) if (a.start[r] < a.stop[r] && insert(path, a.start[r], a.stop[r])) inserts++;
         });
       }
@@ -392,15 +392,15 @@ export function resolveLayer(
   }
   if (merged)
     say(
-      "svs.layer.streamed_merged",
-      "data",
+      'svs.layer.streamed_merged',
+      'data',
       'streamed data reaches the copies of a merged block by different paths: show the copies apart (copies: "each")',
     );
-  if (ambiguous) say("svs.mapping.ambiguous", "data", "several shortest paths reach a block with different results");
+  if (ambiguous) say('svs.mapping.ambiguous', 'data', 'several shortest paths reach a block with different results');
   if (inserts > 0)
     say(
-      "svs.layer.insert",
-      "data",
+      'svs.layer.insert',
+      'data',
       `${inserts} range(s) lie inside an insert (unpaired between paired positions): drawn at the boundary after it`,
     );
   // Data with no rows (an empty table) reaches nothing, and that is no fault of the layer's (VW2).
@@ -409,18 +409,18 @@ export function resolveLayer(
   // source with a count and the first refs (`svs.ref.pending`, info; seqspec:sources#dynamic-nodes).
   const waited = refs.map((r) => waitedFor(doc, set, r));
   const pending = refs.length > 0 && all.length === 0 && waited.every((w) => w !== null);
-  if (pending) notePending(waited as Waited[], (m) => say("svs.ref.pending", "data", m));
+  if (pending) notePending(waited as Waited[], (m) => say('svs.ref.pending', 'data', m));
   if (entry && refs.length > 0 && placements.length === 0 && !rowless && !pending && !merged && node === undefined)
-    say("svs.layer.unplaced", "data", "its data reaches no block of this section");
+    say('svs.layer.unplaced', 'data', 'its data reaches no block of this section');
   // The color's default: the providers' when all the data is one provider's that declares one; a numeric
   // one over the layer's domain for a matrix, for color over values and a dot plot over grids, sequential or diverging
   // at 0.
-  const from = refs.map((r) => doc.nodes.get(r)).map((x) => (x?.kind === "computed" ? String(x.params.provider) : ""));
-  const declared = from.length > 0 && from.every((x) => x === from[0]) ? reg.get("providers", from[0]) : undefined;
+  const from = refs.map((r) => doc.nodes.get(r)).map((x) => (x?.kind === 'computed' ? String(x.params.provider) : ''));
+  const declared = from.length > 0 && from.every((x) => x === from[0]) ? reg.get('providers', from[0]) : undefined;
   const numeric =
-    type === "matrix" ||
-    (type === "color" && anns.length > 0 && anns.every((a) => a.geometry === "values")) ||
-    (type === "dot_plot" && anns.length > 0 && anns.every((a) => a.geometry === "grid"));
+    type === 'matrix' ||
+    (type === 'color' && anns.length > 0 && anns.every((a) => a.geometry === 'values')) ||
+    (type === 'dot_plot' && anns.length > 0 && anns.every((a) => a.geometry === 'grid'));
   const byDefault = numeric ? numericDefaultColor(lo, hi, shared ? shared.explicit : explicit) : null;
   // The color's subject: letters of `of`'s polymer where the layer has one.
   const layerSubject = () => {
@@ -431,18 +431,18 @@ export function resolveLayer(
   };
   const used: SharedField[] = [];
   const themes = (entry?.channels ?? []).map((c) => {
-    if (c.kind === "color") subject = layerSubject();
+    if (c.kind === 'color') subject = layerSubject();
     const given = (p[c.name] ??
-      (c.kind === "color" ? (declared?.defaultColor ?? byDefault) : null) ??
+      (c.kind === 'color' ? (declared?.defaultColor ?? byDefault) : null) ??
       c.default) as ThemeRef | null;
     const r = theme(
       given,
       c.kind,
       c.name,
       0,
-      c.kind === "color" ? (declared?.defaultColor ?? byDefault ?? c.default) : null,
+      c.kind === 'color' ? (declared?.defaultColor ?? byDefault ?? c.default) : null,
     );
-    return c.kind === "glyph" ? glyphs(r) : shared ? fillShared(r, shared, used) : r;
+    return c.kind === 'glyph' ? glyphs(r) : shared ? fillShared(r, shared, used) : r;
   });
   if (run?.order && ranked.length > 0) {
     const rank = new Map<number, number>();
@@ -465,7 +465,7 @@ export function resolveLayer(
     track,
     type: entry && type ? str(type) : -1,
     declared: str(p.type as string),
-    sizing: entry?.sizing === "free" ? Sizing.free : Sizing.row,
+    sizing: entry?.sizing === 'free' ? Sizing.free : Sizing.row,
     themes,
     domainMin: lo <= hi ? lo : Number.NaN,
     domainMax: lo <= hi ? hi : Number.NaN,
@@ -502,7 +502,7 @@ interface Waited {
 /** The streamed source whose dynamic node `ref` names (`<source>/<key>`), else null. */
 function sourceUnder(doc: DocIndex, set: SeqSet, ref: string): string | null {
   const sources = streamedSources(set);
-  for (let k = ref.indexOf("/"); k > 0; k = ref.indexOf("/", k + 1)) {
+  for (let k = ref.indexOf('/'); k > 0; k = ref.indexOf('/', k + 1)) {
     const head = ref.slice(0, k);
     if (sources.has(head) || isStreamedSource(doc.nodes.get(head))) return head;
   }
@@ -517,7 +517,7 @@ function waitedFor(doc: DocIndex, set: SeqSet, ref: string): Waited | null {
   const own = sourceUnder(doc, set, ref);
   if (own !== null) return { source: own, ref };
   const target = doc.nodes.get(ref)?.params.target;
-  const source = typeof target === "string" ? sourceUnder(doc, set, target) : null;
+  const source = typeof target === 'string' ? sourceUnder(doc, set, target) : null;
   return source === null ? null : { source, ref: target as string };
 }
 
@@ -540,11 +540,11 @@ function notePending(waited: readonly Waited[], note: (message: string) => void)
     const shown = refs
       .slice(0, PENDING_SHOWN)
       .map((r) => `"${r}"`)
-      .join(", ");
-    const more = refs.length > PENDING_SHOWN ? ` and ${refs.length - PENDING_SHOWN} more` : "";
+      .join(', ');
+    const more = refs.length > PENDING_SHOWN ? ` and ${refs.length - PENDING_SHOWN} more` : '';
     const one = refs.length === 1;
     note(
-      `${shown}${more} name${one ? "s" : ""} nothing "${source}" has sent yet: shown when ${one ? "it arrives" : "they arrive"}`,
+      `${shown}${more} name${one ? 's' : ''} nothing "${source}" has sent yet: shown when ${one ? 'it arrives' : 'they arrive'}`,
     );
   }
 }
@@ -563,16 +563,16 @@ function matrixStates(
 ): Int32Array | null {
   const asked = p.order as OrderKeyValue | OrderKeyValue[] | null | undefined;
   const keys = asked == null ? [] : Array.isArray(asked) ? asked : [asked];
-  const tree = keys.indexOf("tree");
+  const tree = keys.indexOf('tree');
   if (tree >= 0)
     say(
-      "svs.layer.data",
-      Array.isArray(asked) ? `order/${tree}` : "order",
+      'svs.layer.data',
+      Array.isArray(asked) ? `order/${tree}` : 'order',
       'a matrix has no tree: its states are in data order; order by "data" or a key table\'s field',
     );
-  const order = tree >= 0 ? keys.map((k) => (k === "tree" ? "data" : k)) : asked;
+  const order = tree >= 0 ? keys.map((k) => (k === 'tree' ? 'data' : k)) : asked;
   const filter = (Array.isArray(p.filter) ? p.filter : []) as KeyFilterValue[];
-  if (keys.every((k) => k === "data" || k === "tree") && filter.length === 0) return null;
+  if (keys.every((k) => k === 'data' || k === 'tree') && filter.length === 0) return null;
   const at = new Map<string, number>();
   for (let i = 0; i < states.length; i++) {
     const name = set.strings.get(states[i] as NameId);
@@ -583,14 +583,14 @@ function matrixStates(
     tree: null,
     // A row with no state names none (GV-11: `String(undefined)` named a state called "undefined").
     of: (ann, i) => {
-      const v = Annotations.rowValue(ann, set, i, "state");
+      const v = Annotations.rowValue(ann, set, i, 'state');
       return v === undefined ? -1 : (at.get(String(v)) ?? -1);
     },
   };
-  const k = keyed(set, reg, members, { order, filter }, (where, message) => say("svs.layer.data", where, message));
+  const k = keyed(set, reg, members, { order, filter }, (where, message) => say('svs.layer.data', where, message));
   const kept = Int32Array.from(k.permutation.filter((m) => k.kept[m] === 1));
   if (kept.length === 0 && states.length > 0)
-    say("svs.layer.empty", "filter", "the filter keeps no state of the matrix: its track is drawn empty");
+    say('svs.layer.empty', 'filter', 'the filter keeps no state of the matrix: its track is drawn empty');
   return kept;
 }
 
@@ -607,10 +607,10 @@ function alphabetOf(set: SeqSet, s: CoordinateSystem): Alphabet | null {
  * or `mapped` (every polymer the from side of a `codon` mapping, placed only on blocks over its `to`).
  */
 function ofSystems(set: SeqSet, of: unknown): [CoordinateSystem, CoordinateSystem | null][] {
-  if (of === "mapped") {
+  if (of === 'mapped') {
     const out = new Map<string, [CoordinateSystem, CoordinateSystem]>();
     for (const m of set.mappings) {
-      if (m?.method !== "codon") continue;
+      if (m?.method !== 'codon') continue;
       out.set(`${m.from.kind}:${m.from.id}:${m.to.kind}:${m.to.id}:${m.to.row}`, [{ ...m.from }, { ...m.to }]);
     }
     return [...out.values()];
@@ -622,7 +622,7 @@ function ofSystems(set: SeqSet, of: unknown): [CoordinateSystem, CoordinateSyste
   };
   const out: [CoordinateSystem, null][] = [];
   for (const r of Array.isArray(of) ? of : [of]) {
-    if (typeof r !== "string" || !set.byName(r, t) || kinds[t.kind] === undefined) continue;
+    if (typeof r !== 'string' || !set.byName(r, t) || kinds[t.kind] === undefined) continue;
     out.push([{ kind: kinds[t.kind], id: t.id, row: t.kind === KeyKind.row ? t.row : -1 }, null]);
   }
   return out;
@@ -633,7 +633,7 @@ function ofSystems(set: SeqSet, of: unknown): [CoordinateSystem, CoordinateSyste
  * is placed only on its molecule's blocks, copies by the copy rule, never through an alignment or another path onto
  * another molecule's block.
  */
-function ownMolecule(set: SeqSet, blocks: ResolvedSection["blocks"], s: CoordinateSystem): number {
+function ownMolecule(set: SeqSet, blocks: ResolvedSection['blocks'], s: CoordinateSystem): number {
   const mol =
     s.kind === CoordinateSystemKind.unit
       ? set.units.molecule[s.id]

@@ -6,27 +6,27 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { useSeqState, useSeqViewer } from "@molstar/seq-viewer/react";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { type CSSProperties, type ReactNode, Suspense, use } from "react";
-import { compiledCase } from "./support/seqstar-cases.js";
-import { BAD, FLOORS, HEADS, STYLE_FAMILY, styled } from "./support/seqstar-docs-views.js";
-import f from "./support/seqstar-format.module.css";
-import { IssueList } from "./support/seqstar-issues.js";
-import { PrismPage } from "./support/seqstar-prism.js";
-import st from "./support/seqstar-style.module.css";
-import { ViewerCard } from "./support/seqstar-viewer.js";
+import { useSeqState, useSeqViewer } from '@molstar/seq-viewer/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { type CSSProperties, type ReactNode, Suspense, use } from 'react';
+import { compiledCase } from './support/seqstar-cases.js';
+import { BAD, FLOORS, HEADS, STYLE_FAMILY, styled } from './support/seqstar-docs-views.js';
+import f from './support/seqstar-format.module.css';
+import { IssueList } from './support/seqstar-issues.js';
+import { PrismPage } from './support/seqstar-prism.js';
+import st from './support/seqstar-style.module.css';
+import { ViewerCard } from './support/seqstar-viewer.js';
 
 /**
  * A section's `style` as a preset name or an inline preset: `preset` names the base and a curated
  * list of keys overrides it for that section, mapped onto the viewer's render props. The
  * document's key beats the preset's value; a bad key is a warning in the issues, the rest applies.
  */
-const meta = { title: "Seq*/Views and layouts/Section style", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Views and layouts/Section style', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj;
 
-const json = (v: unknown) => JSON.stringify(v).replaceAll(",", ", ").replaceAll(":", ": ");
+const json = (v: unknown) => JSON.stringify(v).replaceAll(',', ', ').replaceAll(':', ': ');
 const Label = ({ style }: { style: unknown }) => <span className={f.code}>"style": {json(style)}</span>;
 
 function Frame({ title, kicker, children }: { title: string; kicker: string; children: ReactNode }) {
@@ -38,13 +38,13 @@ function Frame({ title, kicker, children }: { title: string; kicker: string; chi
 }
 
 function HeadsCards() {
-  const c = use(compiledCase("case3"));
+  const c = use(compiledCase('case3'));
   return (
     <div className={f.stack}>
       {HEADS.map((style) => (
         <ViewerCard
           key={style.column_heads}
-          doc={styled(c.doc, "family.main", style)}
+          doc={styled(c.doc, 'family.main', style)}
           label={<Label style={style} />}
         />
       ))}
@@ -53,7 +53,7 @@ function HeadsCards() {
 }
 /** Case 3 with the data column's head (Species) on the last pinned track's line, and on a row of its own. */
 export const ColumnHeads: Story = {
-  name: "Column heads",
+  name: 'Column heads',
   render: () => (
     <Frame
       title="Case 3: the data columns' heads, shared or on their own row"
@@ -66,17 +66,17 @@ export const ColumnHeads: Story = {
 
 /** The family's four data columns at 640 px: each floor keeps a data area of at least that many px. */
 export const DataFloor: Story = {
-  name: "Data floor at a narrow width",
+  name: 'Data floor at a narrow width',
   render: () => (
     <Frame
       title="The data area's floor: data columns yield to a narrow width"
       kicker="A synthetic family with four data columns (Len, Id., Species, Clade) in a 640 px card. data_floor 0: no column yields, and at this width they leave the letters nothing, so the view waits for a width (the overview still maps the rows); 64 (msa's default, left out): columns yield from the last while the data area would be narrower; 160: more yield. Widen the window to see them come back."
     >
-      <div className={st.narrow} style={{ "--style-card-width": "640px" } as CSSProperties}>
+      <div className={st.narrow} style={{ '--style-card-width': '640px' } as CSSProperties}>
         {FLOORS.map((style) => (
           <ViewerCard
             key={String(style.data_floor)}
-            doc={styled(STYLE_FAMILY, "fam.main", style)}
+            doc={styled(STYLE_FAMILY, 'fam.main', style)}
             label={<Label style={style} />}
           />
         ))}
@@ -97,16 +97,16 @@ function ShownIssues() {
   );
 }
 function InvalidCard() {
-  const c = use(compiledCase("case3"));
+  const c = use(compiledCase('case3'));
   return (
-    <ViewerCard doc={styled(c.doc, "family.main", BAD)} label={<Label style={BAD} />} options={{ parts: ["Issues"] }}>
+    <ViewerCard doc={styled(c.doc, 'family.main', BAD)} label={<Label style={BAD} />} options={{ parts: ['Issues'] }}>
       <ShownIssues />
     </ViewerCard>
   );
 }
 /** A misspelled key and a bad value: two warnings naming what is allowed; the section takes `row_height` (26 px). */
 export const InvalidKey: Story = {
-  name: "An invalid key",
+  name: 'An invalid key',
   render: () => (
     <Frame
       title="Case 3 with a misspelled style key and a bad value"

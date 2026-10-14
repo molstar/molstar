@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { type KeyboardEvent, type ReactNode, useRef } from "react";
-import styles from "./text-tabs.module.css";
-import { Tooltip } from "./tooltip.js";
+import { type KeyboardEvent, type ReactNode, useRef } from 'react';
+import styles from './text-tabs.module.css';
+import { Tooltip } from './tooltip.js';
 
 export interface TextTab {
   value: string;
@@ -30,7 +30,7 @@ export interface TextTabsProps {
 export function TextTabs({ tabs, value, onValueChange, end }: TextTabsProps) {
   const list = useRef<HTMLDivElement>(null);
   const onKeyDown = (e: KeyboardEvent) => {
-    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
     if (!step) return;
     const at = tabs.findIndex((t) => t.value === value);
     const next = tabs[(at + step + tabs.length) % tabs.length];
@@ -42,7 +42,7 @@ export function TextTabs({ tabs, value, onValueChange, end }: TextTabsProps) {
   return (
     <div ref={list} role="tablist" className={styles.list} onKeyDown={onKeyDown}>
       {tabs.map((t) => {
-        const count = t.count !== undefined && t.count !== "" ? t.count : undefined;
+        const count = t.count !== undefined && t.count !== '' ? t.count : undefined;
         const tab = (
           <button
             key={t.value}

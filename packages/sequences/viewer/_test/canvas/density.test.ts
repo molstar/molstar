@@ -10,9 +10,9 @@
 // palette order (the first at the bottom) with heights by share; under `majority`, the plurality color alone at its
 // share. The band is drawn by the shared helper through the test `points` entry.
 
-import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
-import { type DrawResources, SkinToken } from "../../src/draw/backend.js";
+import { describe, expect, it } from 'vitest';
+import { Canvas2DBackend, Canvas2DShared } from '../../src/canvas/index.js';
+import { type DrawResources, SkinToken } from '../../src/draw/backend.js';
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -22,14 +22,14 @@ import {
   manualScheduler,
   type SeqViewerContext,
   type Skin,
-} from "../../src/index.js";
-import { fixtureMeasurer, LayerFrame } from "../../src/testing/index.js";
-import { densityDoc, densityItems, withDensity } from "../rn2-fixtures.js";
+} from '../../src/index.js';
+import { fixtureMeasurer, LayerFrame } from '../../src/testing/index.js';
+import { densityDoc, densityItems, withDensity } from '../rn2-fixtures.js';
 
 async function open(doc: ReturnType<typeof densityDoc>, dpr: number) {
   const spec = DefaultSeqViewerSpec();
   const ctx = createSeqViewer(
-    { ...spec, registry: [{ ...DefaultRegistry, renderers: withDensity("points") }] },
+    { ...spec, registry: [{ ...DefaultRegistry, renderers: withDensity('points') }] },
     { scheduler: manualScheduler(), text: fixtureMeasurer() },
   );
   const done = ctx.setDocument(doc);
@@ -45,19 +45,19 @@ function resources(): DrawResources {
   for (const [name, id] of Object.entries(SkinToken))
     tokens.set(id, (DefaultSkin as Skin)[name as keyof Skin] as string);
   return {
-    font: () => "10px monospace",
+    font: () => '10px monospace',
     fontPx: () => 10,
-    token: (t) => tokens.get(t) ?? "#ff00ff",
+    token: (t) => tokens.get(t) ?? '#ff00ff',
     glyph: () => null,
   };
 }
 /** The track's frame, its palette (legend order) and its items' categories by data row. */
 function frameOf(ctx: SeqViewerContext) {
   const m = ctx.graph.assembled.value?.view;
-  if (!m) throw new Error("no view");
+  if (!m) throw new Error('no view');
   const k = 0;
   const section = m.set.strings.get(m.resolved.sections.ref[m.resolved.tracks.section[m.resolved.layers.track[k]]]);
-  const entry = ctx.registry.get("renderers", m.prepared[k].renderer) as LayerRenderer;
+  const entry = ctx.registry.get('renderers', m.prepared[k].renderer) as LayerRenderer;
   const colors: number[] = [];
   for (const t of m.prepared[k].themes)
     t?.legend?.({ item: (_l, c) => colors.push(c), ramp: () => {}, size: () => {} });
@@ -70,14 +70,14 @@ interface Features {
   row: Int32Array;
 }
 
-describe("density composed per device column, as pixels", () => {
-  for (const density of ["stacked", "majority"] as const)
+describe('density composed per device column, as pixels', () => {
+  for (const density of ['stacked', 'majority'] as const)
     it.each([1, 2])(`${density}, at DPR %i`, async (dpr) => {
       const ctx = await open(densityDoc({ density }), dpr);
       const { f, colors, state } = frameOf(ctx);
       const [w, h] = [900 * dpr, 300 * dpr];
       const c = new OffscreenCanvas(w, h);
-      const g = c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+      const g = c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
       f.draw(new Canvas2DBackend([g], new Canvas2DShared(resources()), 0));
       const px = g.getImageData(0, 0, w, h).data;
       const v = f.v;
@@ -91,7 +91,7 @@ describe("density composed per device column, as pixels", () => {
         const x = q >= 0 ? v.xd(0, q) : -1;
         if (x < Math.round(v.left * dpr) || x >= Math.round(v.right * dpr)) continue;
         const e = counts.get(x) ?? [0, 0];
-        e[category[state.row[i]] === "k1" ? 1 : 0]++;
+        e[category[state.row[i]] === 'k1' ? 1 : 0]++;
         counts.set(x, e);
       }
       const rgb = (y: number, x: number) => {
@@ -110,7 +110,7 @@ describe("density composed per device column, as pixels", () => {
         }
         const bar = runs.reduce((s, r) => s + r[1], 0);
         expect(bar, `column ${x}`).toBeGreaterThan(0);
-        if (density === "majority") {
+        if (density === 'majority') {
           expect(runs.map((r) => r[0])).toEqual([n1 > n0 ? colors[1] : colors[0]]);
           continue;
         }
@@ -119,7 +119,7 @@ describe("density composed per device column, as pixels", () => {
         expect(runs.map((r) => r[0])).toEqual([colors[0], colors[1]]);
         expect(Math.abs(runs[0][1] - (bar * n0) / (n0 + n1))).toBeLessThanOrEqual(1);
       }
-      if (density === "stacked") expect(both).toBeGreaterThan(50);
+      if (density === 'stacked') expect(both).toBeGreaterThan(50);
       ctx.dispose();
     });
 });

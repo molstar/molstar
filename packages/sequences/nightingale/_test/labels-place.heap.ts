@@ -10,16 +10,16 @@
 // (every zoom frame; the style writes, strings by nature, aside), its width, cut and height fractional (LA-13). A file
 // of its own (LA-28). The positive control is the template's: the same step with a leak.
 
-import { describe, expect, it } from "vitest";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../../core/_test/model/heap.js";
-import { type LabelBox, layLabels, type NightingaleAxis, placeLabel } from "../src/labels.js";
-import { COUNT, HEIGHT, labels, layout, measure, N, view } from "./labels-heap-fixture.js";
+import { describe, expect, it } from 'vitest';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../../core/_test/model/heap.js';
+import { type LabelBox, layLabels, type NightingaleAxis, placeLabel } from '../src/labels.js';
+import { COUNT, HEIGHT, labels, layout, measure, N, view } from './labels-heap-fixture.js';
 
-describe("the label layer allocates nothing per frame", () => {
-  it("placeLabel at a panned view each step", () => {
+describe('the label layer allocates nothing per frame', () => {
+  it('placeLabel at a panned view each step', () => {
     // Laid once, for the labels' measured widths and cuts.
     layLabels(labels, view, layout, measure);
-    const [panned, out]: [NightingaleAxis, LabelBox] = [{ ...view }, { mode: "none", left: 0, width: 0 }];
+    const [panned, out]: [NightingaleAxis, LabelBox] = [{ ...view }, { mode: 'none', left: 0, width: 0 }];
     // Zoomed in and out every other step: a label's 4-position fragment is about 200 px wide over 60 positions (its
     // text fits: "full") and 20 px over 600 (its cut or nothing). Every mode is placed.
     const modes = { full: 0, cut: 0, none: 0 };

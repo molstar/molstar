@@ -13,9 +13,9 @@
 // primitives (`Hint`, `ScrollArea`, `Menu`), the helpers a host's parts can build with (`spot`, `popover`, `hintBehavior`) and the
 // browser's SVG export. Imports no React.
 
-export type { MenuItem } from "../chrome.js";
-export * from "./core.js";
-export { downloadSvg } from "./download.js";
+export type { MenuItem } from '../chrome.js';
+export * from './core.js';
+export { downloadSvg } from './download.js';
 export {
   createDomUI,
   defineSeqViewer,
@@ -24,11 +24,11 @@ export {
   type SeqHoverDetail,
   type SeqSelectionDetail,
   SeqViewerElement,
-} from "./element.js";
-export { browserExportAction, canvasEmBox, compressionDeflate, withDownloadExport } from "./export.js";
-export { HoverCardPart } from "./hover-card.js";
-export * from "./parts.js";
-export { ViewSurface } from "./section.js";
+} from './element.js';
+export { browserExportAction, canvasEmBox, compressionDeflate, withDownloadExport } from './export.js';
+export { HoverCardPart } from './hover-card.js';
+export * from './parts.js';
+export { ViewSurface } from './section.js';
 export {
   focusIndicator,
   HINT_DELAY_MS,
@@ -37,4 +37,4 @@ export {
   type Popover,
   placeHint,
   popover,
-} from "./shared.js";
+} from './shared.js';

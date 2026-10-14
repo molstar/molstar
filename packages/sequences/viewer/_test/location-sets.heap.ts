@@ -13,7 +13,7 @@
 // rebuild per frame) is not flat either. Each case loads the viewer afresh (`vi.resetModules`), as the composer's
 // guards do.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -25,29 +25,29 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 async function setup() {
   vi.resetModules();
-  const { composed, recording, COPY_BACK } = await import("./composer-fixtures.js");
-  const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
+  const { composed, recording, COPY_BACK } = await import('./composer-fixtures.js');
+  const { createSeqViewSpec } = await import('@molstar/seq-core/builder');
   const b = createSeqViewSpec();
-  const a = b.data.sequence({ ref: "a", value: "MKVLATGHEKWRSPQIDNCY".repeat(100) });
+  const a = b.data.sequence({ ref: 'a', value: 'MKVLATGHEKWRSPQIDNCY'.repeat(100) });
   const starts = Array.from({ length: 120 }, (_, k) => k * 16);
   const sites = b.data.annotation({
-    ref: "sites",
-    geometry: "ranges",
+    ref: 'sites',
+    geometry: 'ranges',
     target: a,
     value: { start: starts, stop: starts.map((s) => s + 5), id: starts.map((_, k) => `s${k}`) },
   });
-  const highlights = [{ data: "sites" }, { data: "sites", items: ["s3", "s40", "s77"], style: "highlight" }];
-  const v = b.view({ ref: "v", label: "V", highlights } as never);
+  const highlights = [{ data: 'sites' }, { data: 'sites', items: ['s3', 's40', 's77'], style: 'highlight' }];
+  const v = b.view({ ref: 'v', label: 'V', highlights } as never);
   v.block({ sequence: a });
-  v.track({ label: "L" }).letters();
-  v.track({ label: "R" }).ranges({ data: sites });
+  v.track({ label: 'L' }).letters();
+  v.track({ label: 'R' }).ranges({ data: sites });
   const t = await composed(b.getDocument(), { width: 1000, height: 300, dpr: 2 });
   const be = recording(COPY_BACK);
-  t.vp?.setView(4, 200, "api");
+  t.vp?.setView(4, 200, 'api');
   t.frame(be, 7);
   return { t, be };
 }
@@ -67,47 +67,47 @@ describe("location sets' frames", () => {
   it("pans with a band set, a highlight set and a bookmark's accent allocate nothing", async () => {
     const { t, be } = await setup();
     const set = t.ctx.graph.assembled.value?.set;
-    t.ctx.actions.run("bookmark.add", { section: t.section, loci: t.ctx.refs.toLoci("sites", { items: ["s5"] }) });
+    t.ctx.actions.run('bookmark.add', { section: t.section, loci: t.ctx.refs.toLoci('sites', { items: ['s5'] }) });
     await t.ctx.graph.update();
     expect(t.ctx.graph.assembled.value?.set).not.toBe(set);
-    expect(t.ctx.actions.run("bookmark.step", { section: t.section, dir: 1 })).toBe(true);
+    expect(t.ctx.actions.run('bookmark.step', { section: t.section, dir: 1 })).toBe(true);
     const r = run(FRAME_N, (i) => {
-      t.vp?.panBy((i & 1) === 0 ? 7 : -7, 0, "pointer");
+      t.vp?.panBy((i & 1) === 0 ? 7 : -7, 0, 'pointer');
       t.frame(be, 7);
     });
     expect(isFlat(r), describeScaling(r, FRAME_N)).toBe(true);
   }, 120_000);
 
-  it("a band set in a wrapped section, painted as a highlight on the overlay (LS2), allocates nothing per frame", async () => {
+  it('a band set in a wrapped section, painted as a highlight on the overlay (LS2), allocates nothing per frame', async () => {
     vi.resetModules();
-    const { lit, twoBlocks, seqLoci } = await import("./overlay-fixtures.js");
-    const { recording, COPY_BACK } = await import("./composer-fixtures.js");
+    const { lit, twoBlocks, seqLoci } = await import('./overlay-fixtures.js');
+    const { recording, COPY_BACK } = await import('./composer-fixtures.js');
     const t = await lit(twoBlocks({ wrapped: true }), { width: 600, height: 300, dpr: 2 });
     const be = recording(COPY_BACK);
-    t.ctx.highlight.set("site", seqLoci(t.set, "a", 20, 60), { style: "band" });
+    t.ctx.highlight.set('site', seqLoci(t.set, 'a', 20, 60), { style: 'band' });
     t.frame(be, 7);
     const r = run(FRAME_N, (i) => {
-      t.vp?.panBy(0, (i & 1) === 0 ? 9 : -9, "pointer");
+      t.vp?.panBy(0, (i & 1) === 0 ? 9 : -9, 'pointer');
       t.frame(be, 7);
     });
     expect(isFlat(r), describeScaling(r, FRAME_N)).toBe(true);
   }, 120_000);
 
-  it("the same pans allocating an object a frame are caught (positive control)", async () => {
+  it('the same pans allocating an object a frame are caught (positive control)', async () => {
     const { t, be } = await setup();
     const pan = (i: number) => {
-      t.vp?.panBy((i & 1) === 0 ? 7 : -7, 0, "pointer");
+      t.vp?.panBy((i & 1) === 0 ? 7 : -7, 0, 'pointer');
       t.frame(be, 7);
     };
     expect(controlCaught(() => run(FRAME_N, leaking(pan)))).toBe(true);
   }, 120_000);
 
-  it("a channel set on every frame (a rebuild per frame) is not flat", async () => {
+  it('a channel set on every frame (a rebuild per frame) is not flat', async () => {
     const { t, be } = await setup();
-    const loci = t.ctx.refs.toLoci("sites", { items: ["s9"] });
+    const loci = t.ctx.refs.toLoci('sites', { items: ['s9'] });
     const r = run(2_000, (i) => {
-      t.ctx.highlight.set("host", loci, { style: "band" });
-      t.vp?.panBy((i & 1) === 0 ? 7 : -7, 0, "pointer");
+      t.ctx.highlight.set('host', loci, { style: 'band' });
+      t.vp?.panBy((i & 1) === 0 ? 7 : -7, 0, 'pointer');
       t.frame(be, 7);
     });
     expect(isFlat(r), describeScaling(r, 2_000)).toBe(false);

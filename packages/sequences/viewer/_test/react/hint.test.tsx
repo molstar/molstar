@@ -9,11 +9,11 @@
 // The React UI's default `Hint` never blocks the pointer (seqspec:interaction#accessibility): the cases are
 // dom/hint-cases.ts, shared with the DOM UI's.
 
-import { act, useLayoutEffect, useRef } from "react";
-import { createRoot } from "react-dom/client";
-import { describe } from "vitest";
-import { Hint } from "../../src/react/index.js";
-import { hintCases } from "../dom/hint-cases.js";
+import { act, useLayoutEffect, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
+import { describe } from 'vitest';
+import { Hint } from '../../src/react/index.js';
+import { hintCases } from '../dom/hint-cases.js';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -26,7 +26,7 @@ function Adopt({ el }: { el: HTMLElement }) {
   return <span ref={at} />;
 }
 
-describe("the React Hint", () => {
+describe('the React Hint', () => {
   hintCases(async (host, buttons) => {
     const root = createRoot(host);
     await act(async () =>

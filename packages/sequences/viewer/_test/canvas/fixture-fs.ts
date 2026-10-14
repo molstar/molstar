@@ -11,23 +11,23 @@
 // with `readFileSync(new URL(…, import.meta.url))`; here those files come bundled, by name. Nothing else is served.
 // The same shim as Storybook's (lib/seqstar/storybook/src/_stories/support/seqstar-fixture-fs.ts).
 
-import brs from "../../../core/_test/fixtures/1brs.json?raw";
-import iep from "../../../core/_test/fixtures/1iep.json?raw";
-import pae from "../../../core/_test/fixtures/af-barnase-barstar-pae.json?raw";
-import p53 from "../../../core/_test/fixtures/p53.json?raw";
-import pf00042 from "../../../core/_test/fixtures/pf00042.json?raw";
+import brs from '../../../core/_test/fixtures/1brs.json?raw';
+import iep from '../../../core/_test/fixtures/1iep.json?raw';
+import pae from '../../../core/_test/fixtures/af-barnase-barstar-pae.json?raw';
+import p53 from '../../../core/_test/fixtures/p53.json?raw';
+import pf00042 from '../../../core/_test/fixtures/pf00042.json?raw';
 
 const FILES: Readonly<Record<string, string>> = {
-  "1iep.json": iep,
-  "1brs.json": brs,
-  "af-barnase-barstar-pae.json": pae,
-  "p53.json": p53,
-  "pf00042.json": pf00042,
+  '1iep.json': iep,
+  '1brs.json': brs,
+  'af-barnase-barstar-pae.json': pae,
+  'p53.json': p53,
+  'pf00042.json': pf00042,
 };
 
 export function readFileSync(path: string | URL): string {
   const name = String(path instanceof URL ? path.pathname : path)
-    .split("/")
+    .split('/')
     .pop() as string;
   const text = FILES[name];
   if (text === undefined) throw new Error(`no bundled fixture ${name}`);

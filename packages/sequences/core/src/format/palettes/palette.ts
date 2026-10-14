@@ -22,15 +22,15 @@
  * values past its end uncolored; MVS's default is `false`).
  */
 
-import { Color } from "./color.js";
-import { ColorDictionaries, type ColorDictionaryName } from "./dictionaries.js";
-import { type ColorListName, ColorLists } from "./lists.js";
+import { Color } from './color.js';
+import { ColorDictionaries, type ColorDictionaryName } from './dictionaries.js';
+import { type ColorListName, ColorLists } from './lists.js';
 
 /** A document `Color` string (`#rgb`, `#rrggbb`, a Mol* color name, `a/b`). */
 export type ColorString = string;
 
 export interface CategoricalPalette {
-  readonly kind: "categorical";
+  readonly kind: 'categorical';
   /** A list name, a dictionary name, colors, or `{value: Color}`. */
   readonly colors?:
     | ColorListName
@@ -38,14 +38,14 @@ export interface CategoricalPalette {
     | readonly ColorString[]
     | Readonly<Record<string, ColorString>>;
   readonly repeat_color_list?: boolean;
-  readonly sort?: "none" | "lexical" | "numeric";
-  readonly sort_direction?: "ascending" | "descending";
+  readonly sort?: 'none' | 'lexical' | 'numeric';
+  readonly sort_direction?: 'ascending' | 'descending';
   readonly case_insensitive?: boolean;
   readonly missing_color?: ColorString | null;
 }
 
 export interface DiscretePalette {
-  readonly kind: "discrete";
+  readonly kind: 'discrete';
   /** A list name, colors, `[Color, checkpoint]` pairs, or `[Color | null, from | null, to | null]` ranges. */
   readonly colors?:
     | ColorListName
@@ -53,19 +53,19 @@ export interface DiscretePalette {
     | readonly (readonly [ColorString, number])[]
     | readonly (readonly [ColorString | null, number | null, number | null])[];
   readonly reverse?: boolean;
-  readonly mode?: "normalized" | "absolute";
+  readonly mode?: 'normalized' | 'absolute';
   readonly value_domain?: readonly [number | null, number | null];
 }
 
 export interface ContinuousPalette {
-  readonly kind: "continuous";
+  readonly kind: 'continuous';
   /** A list name, colors, or `[Color, checkpoint]` pairs. */
   readonly colors?: ColorListName | readonly ColorString[] | readonly (readonly [ColorString, number])[];
   readonly reverse?: boolean;
-  readonly mode?: "normalized" | "absolute";
+  readonly mode?: 'normalized' | 'absolute';
   readonly value_domain?: readonly [number | null, number | null];
-  readonly underflow_color?: "auto" | ColorString | null;
-  readonly overflow_color?: "auto" | ColorString | null;
+  readonly underflow_color?: 'auto' | ColorString | null;
+  readonly overflow_color?: 'auto' | ColorString | null;
 }
 
 export type Palette = CategoricalPalette | DiscretePalette | ContinuousPalette;
@@ -73,26 +73,26 @@ export type Palette = CategoricalPalette | DiscretePalette | ContinuousPalette;
 /** MVS's defaults (`CategoricalPaletteDefaults`, `DiscretePaletteDefaults`, `ContinuousPaletteDefaults`), but a list repeats. */
 export const PaletteDefaults = {
   categorical: {
-    kind: "categorical",
-    colors: "Category10",
+    kind: 'categorical',
+    colors: 'Category10',
     repeat_color_list: true,
-    sort: "none",
-    sort_direction: "ascending",
+    sort: 'none',
+    sort_direction: 'ascending',
     case_insensitive: false,
     missing_color: null,
   } satisfies Required<CategoricalPalette>,
   discrete: {
-    kind: "discrete",
-    colors: "YlGn",
+    kind: 'discrete',
+    colors: 'YlGn',
     reverse: false,
-    mode: "normalized",
+    mode: 'normalized',
     value_domain: [null, null],
   } satisfies Required<DiscretePalette>,
   continuous: {
-    kind: "continuous",
-    colors: "YlGn",
+    kind: 'continuous',
+    colors: 'YlGn',
     reverse: false,
-    mode: "normalized",
+    mode: 'normalized',
     value_domain: [null, null],
     underflow_color: null,
     overflow_color: null,
@@ -123,7 +123,7 @@ export type PaletteFunction = ((value: PaletteValue) => Color | undefined) & {
 
 /** Missing values, `.` and `?`: no list color and no domain; a categorical palette's `missing_color` alone. */
 function isMissing(value: PaletteValue): boolean {
-  return value === null || value === undefined || value === "." || value === "?";
+  return value === null || value === undefined || value === '.' || value === '?';
 }
 
 /**
@@ -131,9 +131,9 @@ function isMissing(value: PaletteValue): boolean {
  * order, rows in order (first occurrence and the normalized domain come from them).
  */
 export function makePaletteFunction(palette: Palette, values: Iterable<PaletteValue>): PaletteFunction {
-  if (palette.kind === "categorical")
+  if (palette.kind === 'categorical')
     return categorical({ ...PaletteDefaults.categorical, ...defined(palette) }, values);
-  if (palette.kind === "discrete") return discrete({ ...PaletteDefaults.discrete, ...defined(palette) }, values);
+  if (palette.kind === 'discrete') return discrete({ ...PaletteDefaults.discrete, ...defined(palette) }, values);
   return continuous({ ...PaletteDefaults.continuous, ...defined(palette) }, values);
 }
 
@@ -163,12 +163,12 @@ function named(name: string): readonly Color[] | Readonly<Record<string, Color>>
 
 function categorical(p: Required<CategoricalPalette>, values: Iterable<PaletteValue>): PaletteFunction {
   const map = new Map<string, Color>();
-  const source = typeof p.colors === "string" ? (named(p.colors) ?? []) : p.colors;
-  const decode = (c: Color | ColorString) => (typeof c === "number" ? c : Color.decodePrimary(c));
+  const source = typeof p.colors === 'string' ? (named(p.colors) ?? []) : p.colors;
+  const decode = (c: Color | ColorString) => (typeof c === 'number' ? c : Color.decodePrimary(c));
   const keys = distinct(values, p.case_insensitive);
-  if (p.sort === "lexical") keys.sort();
-  else if (p.sort === "numeric") keys.sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b));
-  if (p.sort_direction === "descending") keys.reverse();
+  if (p.sort === 'lexical') keys.sort();
+  else if (p.sort === 'numeric') keys.sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b));
+  if (p.sort_direction === 'descending') keys.reverse();
   if (!Array.isArray(source)) {
     for (const [key, color] of Object.entries(source as Record<string, Color | ColorString>)) {
       map.set(p.case_insensitive ? key.toUpperCase() : key, decode(color));
@@ -231,19 +231,19 @@ export function paletteHash(s: string): number {
 /** A categorical palette's list colors (a named list or a given list); null for a dictionary or `{value: Color}`. */
 export function categoricalList(palette: CategoricalPalette): readonly Color[] | null {
   const colors = palette.colors ?? PaletteDefaults.categorical.colors;
-  const source = typeof colors === "string" ? named(colors) : colors;
+  const source = typeof colors === 'string' ? named(colors) : colors;
   if (!Array.isArray(source)) return null;
-  return (source as readonly (Color | ColorString)[]).map((c) => (typeof c === "number" ? c : Color.decodePrimary(c)));
+  return (source as readonly (Color | ColorString)[]).map((c) => (typeof c === 'number' ? c : Color.decodePrimary(c)));
 }
 
 /** A value as a number (`parseFloat` of its string, as MVS). */
 function toNumber(value: PaletteValue): number {
-  if (typeof value === "number") return value;
+  if (typeof value === 'number') return value;
   return isMissing(value) ? Number.NaN : Number.parseFloat(`${value}`);
 }
 
 function listColors(colors: string | readonly unknown[]): readonly unknown[] {
-  return typeof colors === "string"
+  return typeof colors === 'string'
     ? Object.hasOwn(ColorLists, colors)
       ? ColorLists[colors as ColorListName]
       : []
@@ -254,7 +254,7 @@ function discrete(p: Required<DiscretePalette>, values: Iterable<PaletteValue>):
   let colors = listColors(p.colors);
   let bins: { color: Color | undefined; from: number; to: number }[] = [];
   const decode = (c: unknown) =>
-    c === null ? undefined : typeof c === "number" ? c : Color.decodePrimary(c as string);
+    c === null ? undefined : typeof c === 'number' ? c : Color.decodePrimary(c as string);
   if (colors.every((t) => !Array.isArray(t))) {
     if (p.reverse) colors = colors.slice().reverse();
     const section = 1 / colors.length;
@@ -311,7 +311,7 @@ function discrete(p: Required<DiscretePalette>, values: Iterable<PaletteValue>):
 function continuous(p: Required<ContinuousPalette>, values: Iterable<PaletteValue>): PaletteFunction {
   let colors = listColors(p.colors);
   let stops: { color: Color; checkpoint: number }[];
-  const decode = (c: unknown) => (typeof c === "number" ? c : Color.decodePrimary(c as string));
+  const decode = (c: unknown) => (typeof c === 'number' ? c : Color.decodePrimary(c as string));
   if (colors.every((t) => !Array.isArray(t))) {
     if (p.reverse) colors = colors.slice().reverse();
     const n = colors.length - 1;
@@ -324,9 +324,9 @@ function continuous(p: Required<ContinuousPalette>, values: Iterable<PaletteValu
     }));
   }
   if (stops.length === 0) return () => undefined;
-  const flow = (option: "auto" | ColorString | null, pick: (a: number, b: number) => boolean) => {
+  const flow = (option: 'auto' | ColorString | null, pick: (a: number, b: number) => boolean) => {
     if (option === null) return undefined;
-    if (option !== "auto") return Color.decodePrimary(option);
+    if (option !== 'auto') return Color.decodePrimary(option);
     return stops.reduce((a, b) => (pick(a.checkpoint, b.checkpoint) ? a : b)).color;
   };
   const underflow = flow(p.underflow_color, (a, b) => a < b);
@@ -397,7 +397,7 @@ function numericRange(
   p: Required<DiscretePalette> | Required<ContinuousPalette>,
   values: Iterable<PaletteValue>,
 ): Float64Array {
-  if (p.mode !== "normalized") return Float64Array.of(Number.NaN, Number.NaN);
+  if (p.mode !== 'normalized') return Float64Array.of(Number.NaN, Number.NaN);
   let [xMin, xMax] = p.value_domain;
   if (xMin === null || xMax === null) {
     const numbers = distinct(values, false)

@@ -13,8 +13,8 @@
 // letters', the rows' and an odd height, DPR 1 and 2. A `middle` baseline drew capitals 1 to 2.4 device px high
 // (ui-monospace, 10 to 14 px). Which renderers place their letters so is the recordings' (_test/letter-lines.test.ts).
 
-import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared, canvasMeasurer } from "../../src/canvas/index.js";
+import { describe, expect, it } from 'vitest';
+import { Canvas2DBackend, Canvas2DShared, canvasMeasurer } from '../../src/canvas/index.js';
 import {
   type DrawResources,
   LETTER_LINE,
@@ -25,16 +25,16 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.js";
-import { DefaultSkin } from "../../src/index.js";
-import { SvgBackend } from "../../src/svg/index.js";
-import { TextManager } from "../../src/text.js";
+} from '../../src/draw/api.js';
+import { DefaultSkin } from '../../src/index.js';
+import { SvgBackend } from '../../src/svg/index.js';
+import { TextManager } from '../../src/text.js';
 
 /**
  * Capitals, and lower-case letters of the x-height alone (no ascender or descender: their ink is the x-height's). Not
  * "W": its pointed feet and diagonals at 8 px, DPR 1, measure 0.6 device px off in an odd cell.
  */
-const CHARS = ["M", "S", "D", "E", "H", "x", "a", "e", "s"];
+const CHARS = ['M', 'S', 'D', 'E', 'H', 'x', 'a', 'e', 's'];
 /** A column per letter (CSS px). */
 const COLUMN = 32;
 /** Cells: [top, height] in CSS px, as the letters (22, inset 2), the rows (22, inset 1) and a short track (15, inset 2). */
@@ -52,7 +52,7 @@ function textManager() {
 const resources = (tm: TextManager): DrawResources => ({
   font: (id) => tm.fontString(id),
   fontPx: (id) => Number(/([\d.]+)px/.exec(tm.fontString(id))?.[1] ?? 0),
-  token: () => "#000",
+  token: () => '#000',
   glyph: () => null,
 });
 
@@ -77,7 +77,7 @@ async function drawn(tm: TextManager, font: number, dpr: number, y0: number, y1:
   const h = 40 * dpr;
   const canvas = (atlas: boolean) => {
     const c = new OffscreenCanvas(w, h);
-    const g = c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+    const g = c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
     const be = new Canvas2DBackend([g], new Canvas2DShared(resources(tm), { atlas }), 0);
     be.beginPass(Pass.main, w, h, dpr);
     letters(be, tm, font, dpr, y0, y1);
@@ -88,12 +88,12 @@ async function drawn(tm: TextManager, font: number, dpr: number, y0: number, y1:
   svg.beginPass(Pass.main, w, h, dpr);
   letters(svg, tm, font, dpr, y0, y1);
   svg.endPass();
-  const url = URL.createObjectURL(new Blob([await svg.toString()], { type: "image/svg+xml" }));
+  const url = URL.createObjectURL(new Blob([await svg.toString()], { type: 'image/svg+xml' }));
   const img = new Image();
   img.src = url;
   await img.decode();
   const s = new OffscreenCanvas(w, h);
-  const sg = s.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+  const sg = s.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
   sg.drawImage(img, 0, 0, w, h);
   URL.revokeObjectURL(url);
   return { w, h, atlas: canvas(true), fillText: canvas(false), svg: sg.getImageData(0, 0, w, h).data };
@@ -119,20 +119,20 @@ function inkY(d: Uint8ClampedArray, w: number, h: number, x0: number, x1: number
   return [t + 1 - share(t), b + share(b)];
 }
 
-describe("letters centered on their cells", () => {
+describe('letters centered on their cells', () => {
   const fonts: [string, number, 400 | 600][] = [
-    ["mono", 8, 400],
-    ["mono", 10, 400],
-    ["mono", 12, 400],
-    ["mono", 14, 400],
-    ["mono", 14, 600],
-    ["ui", 10, 600],
+    ['mono', 8, 400],
+    ['mono', 10, 400],
+    ['mono', 12, 400],
+    ['mono', 14, 400],
+    ['mono', 14, 600],
+    ['ui', 10, 600],
   ];
   for (const dpr of [1, 2])
     for (const [role, px, weight] of fonts)
       it(`${role} ${px} px ${weight}, DPR ${dpr}: a capital's ink and a lower-case letter's x-height on the cell's center`, async () => {
         const tm = textManager();
-        const font = tm.font(role as "mono" | "ui", px, weight);
+        const font = tm.font(role as 'mono' | 'ui', px, weight);
         const off: string[] = [];
         for (const [top, height] of CELLS) {
           const y0 = Math.round(top * dpr);
@@ -143,9 +143,9 @@ describe("letters centered on their cells", () => {
             const x0 = i * COLUMN * dpr;
             const x1 = (i + 1) * COLUMN * dpr;
             for (const [by, d] of [
-              ["atlas", r.atlas],
-              ["fillText", r.fillText],
-              ["svg", r.svg],
+              ['atlas', r.atlas],
+              ['fillText', r.fillText],
+              ['svg', r.svg],
             ] as const) {
               const [a, b] = inkY(d, r.w, r.h, x0, x1);
               const mid = (a + b) / 2;

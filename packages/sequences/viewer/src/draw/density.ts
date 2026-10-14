@@ -16,20 +16,20 @@
 // rows track) its items, into the same columns: one band, no item rects. Allocation-free once warm: module scratch,
 // grown only.
 
-import { type Axis, AxisGeometry } from "../axis.js";
-import type { Features, StreamFields } from "../prepare.js";
-import { binCounts, segWindow } from "../pyramids.js";
-import { densityOn, ITEM_BASE, ItemDensity, SLOTS } from "../reductions.js";
-import { type Theme, ThemeLocation } from "../themes.js";
-import { NO_COLOR, type RectBatch } from "./backend.js";
-import { columnBins, columnEnd, columnLevel, shownHull, visibleRange } from "./cells.js";
-import type { SizeView } from "./sizes.js";
-import type { DrawView } from "./view.js";
+import { type Axis, AxisGeometry } from '../axis.js';
+import type { Features, StreamFields } from '../prepare.js';
+import { binCounts, segWindow } from '../pyramids.js';
+import { densityOn, ITEM_BASE, ItemDensity, SLOTS } from '../reductions.js';
+import { type Theme, ThemeLocation } from '../themes.js';
+import { NO_COLOR, type RectBatch } from './backend.js';
+import { columnBins, columnEnd, columnLevel, shownHull, visibleRange } from './cells.js';
+import type { SizeView } from './sizes.js';
+import type { DrawView } from './view.js';
 
 /** The layer's `density` param (seqspec:format#layer-types): `stacked` (the default) or `majority`. */
 export const DensityKind = { stacked: 0, majority: 1 } as const;
 export const densityKindOf = (p: unknown): number =>
-  (p as { density?: unknown } | null)?.density === "majority" ? DensityKind.majority : DensityKind.stacked;
+  (p as { density?: unknown } | null)?.density === 'majority' ? DensityKind.majority : DensityKind.stacked;
 
 /**
  * Feature k's color key: its color theme's at its location, its alpha folded in where it fades (bits 24 up hold 255 −
@@ -69,14 +69,14 @@ export function featureGlyph(v: DrawView, f: Features, k: number, none: number):
 }
 /** Edge rate: a region's items' glyphs by `t`; feature k's. */
 function glyphValues(f: Features, s: StreamFields, t: Theme, k: number): number {
-  const raw = t.raw as NonNullable<Theme["raw"]>;
+  const raw = t.raw as NonNullable<Theme['raw']>;
   s.glyphs = Int32Array.from({ length: f.count }, (_, q) => raw(s.table, f.row[q]));
   s.glyphTheme = t;
   return s.glyphs[k];
 }
 /** Edge rate (a region's first draw under a theme): its items' values of `t` (`Theme.raw`); feature k's. */
 function fieldValues(f: Features, s: StreamFields, t: Theme, k: number): number {
-  const raw = t.raw as NonNullable<Theme["raw"]>;
+  const raw = t.raw as NonNullable<Theme['raw']>;
   s.keys = Int32Array.from({ length: f.count }, (_, q) => raw(s.table, f.row[q]));
   s.theme = t;
   return s.keys[k];

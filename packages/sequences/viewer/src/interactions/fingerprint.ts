@@ -23,9 +23,9 @@ import {
   type SeqSet,
   SortedArray,
   type UnitId,
-} from "@molstar/seq-core/model";
-import { Interactions } from "./queries.js";
-import { KindMask } from "./vocabulary.js";
+} from '@molstar/seq-core/model';
+import { Interactions } from './queries.js';
+import { KindMask } from './vocabulary.js';
 
 export interface Fingerprint {
   /** UnitId per ligand or pose. */
@@ -96,9 +96,9 @@ function build(
   // One issue for the build, naming the units (GV-07: one per unit).
   if (unmapped.size > 0) {
     const named = [...unmapped].map(([unit, n]) => `${n} of "${set.strings.get(set.units.key[unit])}"`);
-    const more = named.length > 5 ? ` and ${named.length - 5} more units` : "";
-    const message = `contacted positions with no path into the system, left out: ${named.slice(0, 5).join(", ")}${more}.`;
-    options.issues?.push(Issue.warning("interactions.fingerprint.unmapped", "", message));
+    const more = named.length > 5 ? ` and ${named.length - 5} more units` : '';
+    const message = `contacted positions with no path into the system, left out: ${named.slice(0, 5).join(', ')}${more}.`;
+    options.issues?.push(Issue.warning('interactions.fingerprint.unmapped', '', message));
   }
   return { rows: Int32Array.from(ligands), system: to, columns, cells };
 }

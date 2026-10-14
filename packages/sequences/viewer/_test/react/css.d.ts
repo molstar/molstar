@@ -7,4 +7,4 @@
  */
 
 // The skin as a side-effect import (the browser tests load it to measure the legend's grid).
-declare module "*.css";
+declare module '*.css';

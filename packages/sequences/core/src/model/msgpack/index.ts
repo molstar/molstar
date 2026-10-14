@@ -2,8 +2,8 @@
 // extension, ours: an array of numbers as packed little-endian elements, one extension type per element kind, only the
 // kinds that hold their numbers exactly. It decodes to a typed array of the kind written.
 
-import { decodeMsgPack, type MsgPackExtDecoder } from "./decode.js";
-import { encodeMsgPack, type MsgPackExtData, type MsgPackExtEncoder } from "./encode.js";
+import { decodeMsgPack, type MsgPackExtDecoder } from './decode.js';
+import { encodeMsgPack, type MsgPackExtData, type MsgPackExtEncoder } from './encode.js';
 
 export { decodeMsgPack, encodeMsgPack, type MsgPackExtData, type MsgPackExtDecoder, type MsgPackExtEncoder };
 

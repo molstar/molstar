@@ -13,7 +13,7 @@
 // each (`leaking`) through the same warm-up and measurement, which must catch it. The case loads the viewer afresh
 // (`vi.resetModules`), as the composer's guards do.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -25,25 +25,25 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 async function setup() {
   vi.resetModules();
-  const { lit } = await import("./overlay-fixtures.js");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
-  const { layerOf, record } = await import("./draw-fixtures.js");
-  const { case7 } = await import("../../core/_test/format/cases.js");
+  const { lit } = await import('./overlay-fixtures.js');
+  const { recording, COPY_BACK } = await import('./composer-fixtures.js');
+  const { layerOf, record } = await import('./draw-fixtures.js');
+  const { case7 } = await import('../../core/_test/format/cases.js');
   const t = await lit(case7(), { width: 1000, height: 400, dpr: 2 });
   const be = recording(COPY_BACK);
   t.vp?.zoomTo(1, 34, 86);
   await t.ctx.graph.update();
   t.frame(be, 7);
   // The hover label's strings are one allocation per hovered element by design (IN2's guard): the overlay alone.
-  t.ctx.behaviors.get("hoverLabel")?.remove();
-  const { k, section } = layerOf(t.ctx, "Contacts");
+  t.ctx.behaviors.get('hoverLabel')?.remove();
+  const { k, section } = layerOf(t.ctx, 'Contacts');
   expect(section).toBe(t.section);
   const s = t.ctx.graph.assembled.value?.view?.prepared[k].state as { frame: Float64Array };
-  const glyphs = Array.from(record(t.ctx, "Contacts").rec.glyphItems.x.subarray(0, 12), (x) => x / 2);
+  const glyphs = Array.from(record(t.ctx, 'Contacts').rec.glyphItems.x.subarray(0, 12), (x) => x / 2);
   return { t, be, s, glyphs };
 }
 
@@ -58,14 +58,14 @@ function run(n: number, frame: (i: number) => void) {
   return heapScaling(n, () => frame(i++));
 }
 
-describe("frames of arcs whose partners are beyond the window", () => {
-  it("pans, a hover on an end and its overlay allocate nothing; an object allocated per frame is caught", async () => {
+describe('frames of arcs whose partners are beyond the window', () => {
+  it('pans, a hover on an end and its overlay allocate nothing; an object allocated per frame is caught', async () => {
     const { t, be, s, glyphs } = await setup();
     expect(glyphs.length).toBeGreaterThan(5);
-    const into = (await import("./composer-fixtures.js")).recording();
+    const into = (await import('./composer-fixtures.js')).recording();
     const y = s.frame[0];
     const frame = (i: number) => {
-      t.vp?.panBy((i & 1) === 0 ? 5 : -5, 0, "pointer");
+      t.vp?.panBy((i & 1) === 0 ? 5 : -5, 0, 'pointer');
       t.frame(be, 7);
       t.hover(glyphs[i % glyphs.length], y);
       t.overlay(into);

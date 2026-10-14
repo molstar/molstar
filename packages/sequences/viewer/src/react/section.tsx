@@ -13,11 +13,11 @@
 // shown change. Keyboard focus on a surface is shown only when it came from Tab (seqspec:interaction#accessibility). As
 // src/dom/section.ts.
 
-import { Height } from "@molstar/seq-core/format";
-import { type ComponentType, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { later, off, setAttr, watch } from "../dom/core.js";
-import { focusIndicator, placeScroll, setStyle, type TrackBox, trackBox } from "../dom/shared.js";
-import { shownSections } from "../index.js";
+import { Height } from '@molstar/seq-core/format';
+import { type ComponentType, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { later, off, setAttr, watch } from '../dom/core.js';
+import { focusIndicator, placeScroll, setStyle, type TrackBox, trackBox } from '../dom/shared.js';
+import { shownSections } from '../index.js';
 import {
   type PartProps,
   type RowProps,
@@ -26,7 +26,7 @@ import {
   useDerived,
   useLanding,
   useScope,
-} from "./hooks.js";
+} from './hooks.js';
 
 const toParent = (el: HTMLElement) => el.parentElement ?? el;
 
@@ -44,12 +44,12 @@ export function ViewSurface({ context: ctx }: PartProps) {
 function SectionFrame({ context: ctx, section }: SectionProps) {
   const { ui, surfaces } = useScope();
   // The section's chrome, as the layout's composition places it (seqspec:interaction#slots-and-chrome).
-  const placed = <K extends "SectionHeader" | "TrackActions" | "RowControl">(k: K) =>
+  const placed = <K extends 'SectionHeader' | 'TrackActions' | 'RowControl'>(k: K) =>
     ui.placed.has(k) ? ui.components[k] : null;
   const [SectionHeader, TrackActions, RowControl] = [
-    placed("SectionHeader"),
-    placed("TrackActions"),
-    placed("RowControl"),
+    placed('SectionHeader'),
+    placed('TrackActions'),
+    placed('RowControl'),
   ];
   const root = useRef<HTMLElement>(null);
   const host = useRef<HTMLDivElement>(null);
@@ -61,8 +61,8 @@ function SectionFrame({ context: ctx, section }: SectionProps) {
     surfaces.set(section, s.element);
     const subs = [
       ctx.layout.contentHeight(section)?.subscribe((height) => {
-        setStyle(el, "height", `${Math.max(40, Math.ceil(height))}px`);
-        setAttr(el, "data-height", ctx.layout.get(section)?.current.heightMode === Height.box ? "box" : "content");
+        setStyle(el, 'height', `${Math.max(40, Math.ceil(height))}px`);
+        setAttr(el, 'data-height', ctx.layout.get(section)?.current.heightMode === Height.box ? 'box' : 'content');
       }),
     ];
     const indicator = focusIndicator(el, s.element);

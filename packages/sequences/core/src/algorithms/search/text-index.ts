@@ -31,7 +31,7 @@ export interface TextIndexOptions {
 
 const byKey = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 // NFKC and `toLowerCase`: not full case folding ("STRASSE" does not find "Straße"); a host that needs it passes `normalize`.
-const defaultNormalize = (s: string): string => s.normalize("NFKC").toLowerCase();
+const defaultNormalize = (s: string): string => s.normalize('NFKC').toLowerCase();
 
 class SortedTextIndex implements TextIndex {
   private readonly normalize: (s: string) => string;

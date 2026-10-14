@@ -17,8 +17,8 @@
 // about 52 bytes a step, and HEAD's uncolored line the same (68), a draw V8 left in its middle tier under the vitest
 // module runner (draws.heap.ts's header); alone it is flat.
 
-import { expect, it, vi } from "vitest";
-import type { LayerRenderer } from "../src/index.js";
+import { expect, it, vi } from 'vitest';
+import type { LayerRenderer } from '../src/index.js';
 import {
   controlCaught,
   describeScaling,
@@ -28,7 +28,7 @@ import {
   heapScaling,
   isFlat,
   leaking,
-} from "./heap.js";
+} from './heap.js';
 
 /** The guard's measurement: warmed by count and by time, then `FRAME_N` frames and 4× measured. */
 const measure = (frame: (i: number) => void) => {
@@ -42,33 +42,33 @@ const guard = (frame: () => void) => {
 };
 /** The positive control as the kit's `heap` hook: a frame's check fails unless its leaking frame is caught. */
 const control = (frame: () => void) => {
-  if (!controlCaught(() => measure(leaking(frame)))) throw new Error("the leaking frame was not caught");
+  if (!controlCaught(() => measure(leaking(frame)))) throw new Error('the leaking frame was not caught');
 };
 
 async function run(heap = guard) {
   vi.resetModules();
-  const { KernelRenderers } = await import("../src/index.js");
-  const { rendererConformance } = await import("../src/testing/index.js");
-  const { opened } = await import("./layout-fixtures.js");
-  const { linesDoc } = await import("./prepare-fixtures.js");
+  const { KernelRenderers } = await import('../src/index.js');
+  const { rendererConformance } = await import('../src/testing/index.js');
+  const { opened } = await import('./layout-fixtures.js');
+  const { linesDoc } = await import('./prepare-fixtures.js');
   const all = KernelRenderers as LayerRenderer[];
-  const entry = all.find((r) => r.name === "values") as LayerRenderer;
+  const entry = all.find((r) => r.name === 'values') as LayerRenderer;
   const checks = await rendererConformance(entry, {
     open: async ({ entry: has }) =>
       (await opened(linesDoc(20_000), { renderers: has ? all : all.filter((r) => r !== entry) })).ctx,
     heap,
     items: false,
   });
-  return checks.filter((c) => c.check === "heap" && c.geometry === "linear");
+  return checks.filter((c) => c.check === 'heap' && c.geometry === 'linear');
 }
 
-it("a frame of values colored by their values allocates nothing after warm-up, at every zoom", async () => {
+it('a frame of values colored by their values allocates nothing after warm-up, at every zoom', async () => {
   const heap = await run();
   expect(heap.length).toBeGreaterThan(0);
   expect(heap.filter((c) => !c.ok).map((c) => c.detail)).toEqual([]);
 }, 240_000);
 
-it("a values frame allocating an object each is caught, at every zoom (positive control)", async () => {
+it('a values frame allocating an object each is caught, at every zoom (positive control)', async () => {
   const heap = await run(control);
   expect(heap.length).toBeGreaterThan(0);
   expect(heap.filter((c) => !c.ok).map((c) => c.detail)).toEqual([]);

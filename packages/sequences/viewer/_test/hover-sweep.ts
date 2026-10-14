@@ -11,26 +11,26 @@
 // alternating between the track's items (or a matrix's cells) so the hovered element changes on most moves; and the
 // positive control, the frames whose overlay drew an emphasis.
 
-import { Dirty } from "../src/draw/index.js";
-import { Inputs, PointerType } from "../src/index.js";
-import { COPY_BACK, recording } from "./composer-fixtures.js";
-import { hoverDoc } from "./hover-fixtures.js";
-import { lit } from "./overlay-fixtures.js";
+import { Dirty } from '../src/draw/index.js';
+import { Inputs, PointerType } from '../src/index.js';
+import { COPY_BACK, recording } from './composer-fixtures.js';
+import { hoverDoc } from './hover-fixtures.js';
+import { lit } from './overlay-fixtures.js';
 
 /** Per track: the zoom (CSS px a position; 0: the fit), the positions swept and the CSS px below the entry's top. */
 const SWEEPS = {
-  "t.ranges": { cell: 0, at: [12, 42, 18, 65, 35, 75], dy: [6, 6, 15, 6, 15, 6] },
-  "t.points": { cell: 0, at: [12, 50, 70], dy: [11] },
-  "t.variants": { cell: 0, at: [12, 50], dy: [8] },
-  "t.matrix": { cell: 12, at: [3, 4, 5, 6, 7, 8, 9], dy: [4, 20, 36] },
+  't.ranges': { cell: 0, at: [12, 42, 18, 65, 35, 75], dy: [6, 6, 15, 6, 15, 6] },
+  't.points': { cell: 0, at: [12, 50, 70], dy: [11] },
+  't.variants': { cell: 0, at: [12, 50], dy: [8] },
+  't.matrix': { cell: 12, at: [3, 4, 5, 6, 7, 8, 9], dy: [4, 20, 36] },
 } as const;
 
 export async function hoverSweep(track: keyof typeof SWEEPS) {
   const s = SWEEPS[track];
   const t = await lit(hoverDoc(100), { width: 1000, height: 600, dpr: 2 });
   // The overlay alone: the hover label's strings are one allocation per hovered element by design (IN2's guard).
-  t.ctx.behaviors.get("hoverLabel")?.remove();
-  if (s.cell > 0) t.vp?.setView(s.cell, 0, "api");
+  t.ctx.behaviors.get('hoverLabel')?.remove();
+  if (s.cell > 0) t.vp?.setView(s.cell, 0, 'api');
   await t.ctx.graph.update();
   const be = recording(COPY_BACK);
   t.frame(be, Dirty.all);

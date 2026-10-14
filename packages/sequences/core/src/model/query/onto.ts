@@ -13,16 +13,16 @@
 // (`Mappings.path`, ambiguous paths skipped). Routes are built once per (source, target) system in a run; a walk reads
 // the maps (`Coords`) with module visitors and allocates nothing per run.
 
-import type { RowIndex } from "../common.js";
-import { type CoordinateMap, Coords, CoordinateSystemKind as K } from "../coordinates.js";
-import { Mappings, type PathStep, type RowBindings } from "../mapping.js";
-import { KeyKind, type SeqSet } from "../set.js";
-import type { CompileContext, QueryFn } from "./compile.js";
-import type { QueryContext } from "./context.js";
-import { addRuns, type SelectionBuilder, sameSystem } from "./kernels.js";
-import { KIND_NAMES, resolve, rt, t, Wants, wrongKind } from "./runtime.js";
-import type { SeqSelection } from "./selection.js";
-import { domainOf, nameOf, unitsOf } from "./systems.js";
+import type { RowIndex } from '../common.js';
+import { type CoordinateMap, Coords, CoordinateSystemKind as K } from '../coordinates.js';
+import { Mappings, type PathStep, type RowBindings } from '../mapping.js';
+import { KeyKind, type SeqSet } from '../set.js';
+import type { CompileContext, QueryFn } from './compile.js';
+import type { QueryContext } from './context.js';
+import { addRuns, type SelectionBuilder, sameSystem } from './kernels.js';
+import { KIND_NAMES, resolve, rt, t, Wants, wrongKind } from './runtime.js';
+import type { SeqSelection } from './selection.js';
+import { domainOf, nameOf, unitsOf } from './systems.js';
 
 /** A leg: the input clipped to [lo, hi) of its system, then through `map` (read 1: from → to; -1: the inverse image). */
 interface Step {
@@ -133,7 +133,7 @@ function fromRows(set: SeqSet, S: Sys, T: Sys, prefix: Step[], out: Step[][], wh
       }
     }
   }
-  if (rows.length === 0) why.say ||= `no row of ${nameOf(set, K.columns, a, -1).split(" ")[0]} is bound to a sequence`;
+  if (rows.length === 0) why.say ||= `no row of ${nameOf(set, K.columns, a, -1).split(' ')[0]} is bound to a sequence`;
 }
 
 /** From a unit bound to rows of T's alignment: its own row, else through its rows and the columns. False: unbound. */
@@ -197,23 +197,23 @@ function targetsOf(ctx: QueryContext, c: CompileContext, ref: string | undefined
   if (host) return out;
   const [kk, id, row] = [t.kind, t.id, t.row];
   if (kk === KeyKind.annotation || kk === KeyKind.mapping)
-    wrongKind(ctx, ref, rPath, "onto takes a unit, molecule, row or alignment");
+    wrongKind(ctx, ref, rPath, 'onto takes a unit, molecule, row or alignment');
   if (kk === KeyKind.alignment) {
-    if (kind === "row") rows(id);
-    else if (kind === undefined || kind === "columns") add(K.columns, id);
+    if (kind === 'row') rows(id);
+    else if (kind === undefined || kind === 'columns') add(K.columns, id);
     else {
       const say = `:kind ${kind} onto an alignment: it gives its columns, or its rows with :kind row; for the ${kind}s bound to its rows, leave R out: (onto Q :kind ${kind})`;
-      ctx.fail("seqql.type", kPath, say);
+      ctx.fail('seqql.type', kPath, say);
     }
     return out;
   }
   if (kind !== undefined) {
-    const alignment = nameOf(set, K.columns, id, -1).split(" ")[0];
+    const alignment = nameOf(set, K.columns, id, -1).split(' ')[0];
     const say =
       kk === KeyKind.row
         ? `"${ref}" is one row already: :kind is for an alignment's rows or columns, (onto Q ${alignment} :kind row) for all its rows; it was ignored`
         : `"${ref}" is a ${KIND_NAMES[kk]}: :kind is for an alignment's rows or columns, or for every system of a kind without R; it was ignored`;
-    ctx.warn("seqql.onto.kind", kPath, say);
+    ctx.warn('seqql.onto.kind', kPath, say);
   }
   const units = unitsOf(set);
   if (kk === KeyKind.unit) add(K.unit, id);
@@ -235,15 +235,15 @@ const sameTargets = (a: readonly Sys[], b: readonly Sys[]) => a.length === b.len
 
 /** `(onto Q R :kind K :keep b)`: each group's image on R's systems; a group with none is dropped and counted. */
 function onto(c: CompileContext): QueryFn<SeqSelection> {
-  const q = c.query("0") as QueryFn<SeqSelection>;
-  const [ref, kind, keep] = [c.raw<string>("1"), c.raw<string>("kind"), c.raw<boolean>("keep") === true];
+  const q = c.query('0') as QueryFn<SeqSelection>;
+  const [ref, kind, keep] = [c.raw<string>('1'), c.raw<string>('kind'), c.raw<boolean>('keep') === true];
   // Routes compose maps (a row's, a path's): built once per (set, targets), reused by every run until they change.
   const memo = { set: null as SeqSet | null, targets: [] as Sys[], routes: new Map<string, Routes>() };
   return (ctx) => {
     if (ref === undefined && kind === undefined) {
       const say =
-        "onto needs where to go: a ref, (onto Q msa), or :kind for every system of a kind, (onto Q :kind unit)";
-      ctx.fail("seqql.arg.missing", c.path, say);
+        'onto needs where to go: a ref, (onto Q msa), or :kind for every system of a kind, (onto Q :kind unit)';
+      ctx.fail('seqql.arg.missing', c.path, say);
     }
     const targets = targetsOf(ctx, c, ref === undefined ? undefined : String(ref), kind);
     const [set, s, b] = [ctx.set, q(ctx), ctx.builder()];
@@ -252,7 +252,7 @@ function onto(c: CompileContext): QueryFn<SeqSelection> {
       memo.targets = targets;
       memo.routes = new Map();
     }
-    const why: Why = { say: "", ambiguous: "" };
+    const why: Why = { say: '', ambiguous: '' };
     const [lo, hi] = [new Int32Array(targets.length), new Int32Array(targets.length)];
     for (let i = 0; i < targets.length; i++) {
       domainOf(set, targets[i].kind, targets[i].id, targets[i].row, dom);
@@ -294,11 +294,11 @@ function onto(c: CompileContext): QueryFn<SeqSelection> {
     }
     W.b = null;
     const where = ref ?? `every ${kind}`;
-    if (why.ambiguous) ctx.warn("seqql.onto.ambiguous", c.path, `${why.ambiguous}; it was skipped`);
+    if (why.ambiguous) ctx.warn('seqql.onto.ambiguous', c.path, `${why.ambiguous}; it was skipped`);
     if (unmapped > 0) {
-      const say = why.say || "their positions map to nothing there (gaps, inserts, or what the maps do not pair)";
-      const n = `${unmapped} of ${s.groupCount} group${s.groupCount === 1 ? "" : "s"}`;
-      ctx.warn("seqql.onto.unmapped", c.path, `${n} ${unmapped === 1 ? "has" : "have"} no image on ${where}: ${say}`);
+      const say = why.say || 'their positions map to nothing there (gaps, inserts, or what the maps do not pair)';
+      const n = `${unmapped} of ${s.groupCount} group${s.groupCount === 1 ? '' : 's'}`;
+      ctx.warn('seqql.onto.unmapped', c.path, `${n} ${unmapped === 1 ? 'has' : 'have'} no image on ${where}: ${say}`);
     }
     return ctx.finish(b);
   };
@@ -309,7 +309,7 @@ function routesOf(set: SeqSet, memo: Map<string, Routes>, S: Sys, targets: reado
   const key = `${S.kind}:${S.id}:${S.row}`;
   let r = memo.get(key);
   if (!r) {
-    const why: Why = { say: "", ambiguous: "" };
+    const why: Why = { say: '', ambiguous: '' };
     let chains: Step[][][];
     try {
       chains = targets.map((T) => {
@@ -327,4 +327,4 @@ function routesOf(set: SeqSet, memo: Map<string, Routes>, S: Sys, targets: reado
   return r;
 }
 
-export const ONTO_RUNTIMES = [rt("seq.modifier.onto", onto)];
+export const ONTO_RUNTIMES = [rt('seq.modifier.onto', onto)];

@@ -10,15 +10,15 @@
 // (seqspec:libraries#the-mol-adapter), and the structure an MVS load left in it. Loci are carried onto that structure
 // (`remap`): Mol*'s hover reports a component's substructure, whose positions differ from the root's.
 
-import { MolViewSpecBehavior } from "molstar/lib/extensions/mvs/behavior";
-import { loadMVS } from "molstar/lib/extensions/mvs/load";
-import type { MVSData_State } from "molstar/lib/extensions/mvs/mvs-data";
-import { type Structure, StructureElement } from "molstar/lib/mol-model/structure";
-import { PluginContext } from "molstar/lib/mol-plugin/context";
-import { DefaultPluginSpec } from "molstar/lib/mol-plugin/spec";
-import { Asset } from "molstar/lib/mol-util/assets";
-import { Color } from "molstar/lib/mol-util/color/color";
-import type { StructureView3D } from "./viewer.js";
+import { MolViewSpecBehavior } from 'molstar/lib/extensions/mvs/behavior';
+import { loadMVS } from 'molstar/lib/extensions/mvs/load';
+import type { MVSData_State } from 'molstar/lib/extensions/mvs/mvs-data';
+import { type Structure, StructureElement } from 'molstar/lib/mol-model/structure';
+import { PluginContext } from 'molstar/lib/mol-plugin/context';
+import { DefaultPluginSpec } from 'molstar/lib/mol-plugin/spec';
+import { Asset } from 'molstar/lib/mol-util/assets';
+import { Color } from 'molstar/lib/mol-util/color/color';
+import type { StructureView3D } from './viewer.js';
 
 export type { PluginContext };
 
@@ -34,13 +34,13 @@ export async function mountPlugin(
   spec.behaviors = [...spec.behaviors, MolViewSpecBehavior];
   spec.canvas3d = {
     ...spec.canvas3d,
-    camera: { ...spec.canvas3d?.camera, helper: { axes: { name: "off", params: {} } } },
+    camera: { ...spec.canvas3d?.camera, helper: { axes: { name: 'off', params: {} } } },
   };
   const plugin = new PluginContext(spec);
   await plugin.init();
   await plugin.mountAsync(host);
   for (const [url, bytes] of o.files ?? []) {
-    const name = url.split("/").pop() ?? url;
+    const name = url.split('/').pop() ?? url;
     plugin.managers.asset.set(Asset.Url(url), new File([bytes as Uint8Array<ArrayBuffer>], name), { isStatic: true });
   }
   plugin.behaviors.interaction.selectionMode.next(true);

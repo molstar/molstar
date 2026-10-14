@@ -14,7 +14,7 @@
 // Positive controls: most measured frames drew a hover's caret beside the selection's, and the same frames allocating an
 // object each (`leaking`), through the same warm-up and measurement, are caught.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -26,48 +26,48 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 async function setup() {
   vi.resetModules();
-  const { lit } = await import("./overlay-fixtures.js");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
-  const { caretsDoc } = await import("./insert-carets-fixtures.js");
-  const { Dirty, SectionComposer } = await import("../src/draw/index.js");
-  const { Inputs, PointerType } = await import("../src/index.js");
-  const { OrderedSet } = await import("@molstar/seq-core/model");
+  const { lit } = await import('./overlay-fixtures.js');
+  const { recording, COPY_BACK } = await import('./composer-fixtures.js');
+  const { caretsDoc } = await import('./insert-carets-fixtures.js');
+  const { Dirty, SectionComposer } = await import('../src/draw/index.js');
+  const { Inputs, PointerType } = await import('../src/index.js');
+  const { OrderedSet } = await import('@molstar/seq-core/model');
   const t = await lit(caretsDoc(), { width: 2400, height: 400, dpr: 2 });
-  t.ctx.behaviors.get("hoverLabel")?.remove();
+  t.ctx.behaviors.get('hoverLabel')?.remove();
   // WT 30–32, deleted in the design, selected: a caret at the design's junction (its 33), drawn every frame.
   const set = t.set;
-  const unit = set.units.key.findIndex((k) => set.strings.get(k) === "wt/unit");
+  const unit = set.units.key.findIndex((k) => set.strings.get(k) === 'wt/unit');
   t.ctx.selection.set(
-    { kind: "seq-loci", set, elements: [{ unit, indices: OrderedSet.ofRange(29, 32) }] } as never,
-    "api",
+    { kind: 'seq-loci', set, elements: [{ unit, indices: OrderedSet.ofRange(29, 32) }] } as never,
+    'api',
   );
   const be = recording(COPY_BACK);
   t.frame(be, Dirty.all);
   // The design's section too (the fixture's composer draws the first, the wild type's).
-  const dc = new SectionComposer(t.ctx, "v.d");
+  const dc = new SectionComposer(t.ctx, 'v.d');
   const bd = recording(COPY_BACK);
   dc.frame(bd, Dirty.all);
   const p = Inputs.pointer();
   p.type = PointerType.move;
-  const D = t.ctx.layout.sectionIndex("v.d");
-  const W = t.ctx.layout.sectionIndex("v.wt");
-  const wt = t.ctx.layout.axis("v.wt");
+  const D = t.ctx.layout.sectionIndex('v.d');
+  const W = t.ctx.layout.sectionIndex('v.wt');
+  const wt = t.ctx.layout.axis('v.wt');
   const end = wt ? wt.x(0, (wt.shownOf(0, 39) + 1) as never) : 0;
-  if (end + 5 >= t.layout("v.wt").dataRight) throw new Error("no room past the wild type's block");
+  if (end + 5 >= t.layout('v.wt').dataRight) throw new Error("no room past the wild type's block");
   // The design's inserted residues (20–23), its residues beside them and past the junction; the wild type's 29–31,
   // and past its end.
   const points: [number, number, number][] = [
     ...[20, 21, 22, 23, 18, 33, 22, 34].map((i): [number, number, number] => [
       D,
-      t.xOf("v.d", 0, i),
-      t.yOf("v.d", "t-d"),
+      t.xOf('v.d', 0, i),
+      t.yOf('v.d', 't-d'),
     ]),
-    ...[29, 30, 31].map((i): [number, number, number] => [W, t.xOf("v.wt", 0, i), t.yOf("v.wt", "t-wt")]),
-    [W, end + 5, t.yOf("v.wt", "t-wt")],
+    ...[29, 30, 31].map((i): [number, number, number] => [W, t.xOf('v.wt', 0, i), t.yOf('v.wt', 't-wt')]),
+    [W, end + 5, t.yOf('v.wt', 't-wt')],
   ];
   let carets = 0;
   let frames = 0;
@@ -110,8 +110,8 @@ function run(n: number, frame: (i: number) => void, measure = () => {}) {
   return heapScaling(n, () => frame(i++));
 }
 
-describe("carets over a hover sweep", () => {
-  it("allocate nothing; most frames draw a caret; an object allocated per frame is caught", async () => {
+describe('carets over a hover sweep', () => {
+  it('allocate nothing; most frames draw a caret; an object allocated per frame is caught', async () => {
     const { frame, measure, share } = await setup();
     const r = run(FRAME_N, frame, measure);
     expect(isFlat(r), describeScaling(r, FRAME_N)).toBe(true);

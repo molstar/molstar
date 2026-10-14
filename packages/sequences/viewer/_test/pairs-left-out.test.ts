@@ -12,36 +12,36 @@
 // left out: the contacts' kinase ends still draw their glyphs (each pair half-placed), and the poses' contacts, whose
 // ligands are in no block of the section, stay out as before.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { case10 } from "../../core/_test/format/cases.js";
-import type { PairsState } from "../src/prepare.js";
-import { drawn, layerOf, record } from "./draw-fixtures.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { case10 } from '../../core/_test/format/cases.js';
+import type { PairsState } from '../src/prepare.js';
+import { drawn, layerOf, record } from './draw-fixtures.js';
 
-const CONTACTS = "Contacts (STI)";
+const CONTACTS = 'Contacts (STI)';
 async function chains(snapshot: string | null, doc: SeqViewSpecDoc = case10()) {
   const t = await drawn(doc);
   await t.ctx.snapshots.apply(snapshot);
-  t.ctx.views.setCurrent("chains");
+  t.ctx.views.setCurrent('chains');
   await t.ctx.graph.update();
   for (const ref of t.ctx.viewports.sections.value) t.ctx.viewports.get(ref)?.setSize(1000, 400, 1);
   await t.ctx.graph.update();
   const { k } = layerOf(t.ctx, CONTACTS);
   const view = t.ctx.graph.assembled.value?.view;
-  const shown = t.ctx.layout.axis("chains.main")?.axis?.shown;
+  const shown = t.ctx.layout.axis('chains.main')?.axis?.shown;
   return { view, shown, state: view?.prepared[k].state as PairsState, rec: record(t.ctx, CONTACTS).rec };
 }
 /** Case 10 with "The pocket" filtered to `pocket` alone. */
 function pocketOnly() {
   const doc = case10();
-  const s2 = doc.snapshots?.find((s) => s.ref === "s2");
-  if (s2) s2.ops = [{ op: "set", ref: "chains.main", params: { positions: "pocket" } }];
+  const s2 = doc.snapshots?.find((s) => s.ref === 's2');
+  if (s2) s2.ops = [{ op: 'set', ref: 'chains.main', params: { positions: 'pocket' } }];
   return doc;
 }
 
-describe("pairs under a positions filter", () => {
+describe('pairs under a positions filter', () => {
   it("case 10's pocket keeps the STI block: every contact placed whole, a glyph per kinase end, a glyph per kind at STI", async () => {
-    const pocket = await chains("s2");
+    const pocket = await chains('s2');
     expect(pocket.view?.resolved.blocks.count).toBe(2);
     const s = pocket.state;
     expect(s.count).toBe(18);
@@ -59,11 +59,11 @@ describe("pairs under a positions filter", () => {
   });
 
   it("filtered to `pocket` alone: the contacts' kinase ends draw, one glyph each, and no pose contact", async () => {
-    const all = await chains("s1");
+    const all = await chains('s1');
     const kinaseEnds = Array.from(all.state.block).filter((b, e) => e % 2 === 0 && b === 0).length;
     expect([all.state.count, all.rec.glyphItems.n]).toEqual([18, 36]);
 
-    const pocket = await chains("s2", pocketOnly());
+    const pocket = await chains('s2', pocketOnly());
     expect(pocket.view?.resolved.blocks.count).toBe(1);
     const s = pocket.state;
     expect(s.count).toBe(kinaseEnds);

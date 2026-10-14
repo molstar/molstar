@@ -8,8 +8,8 @@
 
 // `upgrade` (seqspec:format#versioning): one step per older version, up to the version this package reads.
 
-import { SvsFormat, SvsVersion } from "./doc.js";
-import { isPlainObject } from "./schema/field-schema.js";
+import { SvsFormat, SvsVersion } from './doc.js';
+import { isPlainObject } from './schema/field-schema.js';
 
 /** A document of version `from` (`major.minor`) to `to`; `run` gets a copy it may change. */
 export interface UpgradeStep {
@@ -21,7 +21,7 @@ export interface UpgradeStep {
 /** The step registry: none yet, 1.0 being the first version. */
 export const UpgradeSteps: readonly UpgradeStep[] = [];
 
-const minorOf = (v: unknown) => (typeof v === "string" ? (/^(\d+\.\d+)\.\d+$/.exec(v)?.[1] ?? null) : null);
+const minorOf = (v: unknown) => (typeof v === 'string' ? (/^(\d+\.\d+)\.\d+$/.exec(v)?.[1] ?? null) : null);
 
 /**
  * Runs the step from the document's version while there is one and it is older than `SvsVersion`; each step sets

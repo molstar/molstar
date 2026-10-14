@@ -19,7 +19,7 @@ import {
   RedundancySizeError,
   type RowCodes,
   rowStats,
-} from "@molstar/seq-core/algorithms";
+} from '@molstar/seq-core/algorithms';
 import {
   type Alignment,
   type Annotation,
@@ -32,29 +32,29 @@ import {
   Paths,
   type RowIndex,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import type { StageContext } from "../contract.js";
-import type { ProviderEntry } from "../registry.js";
-import { alignmentRows, keyed, type OrderKeyValue } from "../resolve/keyed.js";
-import { endsOf, pathTo, steps } from "../resolve/reach.js";
-import type { UnionParamsSchema } from "../schema/params-schema.js";
-import { SvsTreeSchema } from "../tables/svs-tree.js";
-import { report } from "./issues.js";
-import { cached, contentKey } from "./node-providers.js";
+} from '@molstar/seq-core/model';
+import type { StageContext } from '../contract.js';
+import type { ProviderEntry } from '../registry.js';
+import { alignmentRows, keyed, type OrderKeyValue } from '../resolve/keyed.js';
+import { endsOf, pathTo, steps } from '../resolve/reach.js';
+import type { UnionParamsSchema } from '../schema/params-schema.js';
+import { SvsTreeSchema } from '../tables/svs-tree.js';
+import { report } from './issues.js';
+import { cached, contentKey } from './node-providers.js';
 
 const cases = (SvsTreeSchema.nodes.computed.params as UnionParamsSchema).cases;
 const kind: KeyTarget = { kind: -1, id: -1, row: -1 };
-const latin1 = new TextDecoder("latin1");
+const latin1 = new TextDecoder('latin1');
 
 /** The alignment `ref` names, and its cells as the algorithms read them; null with the reason reported. */
 function cellsOf(ctx: StageContext, set: SeqSet, ref: string, what: string): { a: Alignment; cells: RowCodes } | null {
   const fail = (code: string, message: string) => {
-    ctx.report(Issue.error(code, "/params/alignment", `${what}: ${message}`));
+    ctx.report(Issue.error(code, '/params/alignment', `${what}: ${message}`));
     return null;
   };
   const a = set.byName(ref, kind) && kind.kind === KeyKind.alignment ? set.alignments[kind.id] : undefined;
-  if (!a) return fail("model.provider.input", `no alignment "${ref}".`);
-  if (a.lazy) return fail("model.provider.lazy", "a progressive alignment's rows are not all held.");
+  if (!a) return fail('model.provider.input', `no alignment "${ref}".`);
+  if (a.lazy) return fail('model.provider.lazy', "a progressive alignment's rows are not all held.");
   // The held rows are in row order; a different slot order is copied into it.
   const C = a.columnCount;
   let codes = a.rows.codes;
@@ -99,7 +99,7 @@ function itemsOn(set: SeqSet, a: Alignment, cells: RowCodes, ann: Annotation, o:
       const wide = end.system.kind === CoordinateSystemKind.columns;
       if (wide && end.system.id !== a.id) continue;
       const path = own || wide ? null : pathTo(set, end.system, row);
-      if (path === undefined || path === "ambiguous") continue;
+      if (path === undefined || path === 'ambiguous') continue;
       // Only the rows a mapping binds: a path through the alignment's columns to another row is not on that row.
       if (path && steps.some((st) => st.mapping < 0 && st.unit < 0)) continue;
       const through = path?.heldSpans ? path : null;
@@ -123,7 +123,7 @@ function itemsOn(set: SeqSet, a: Alignment, cells: RowCodes, ann: Annotation, o:
           }
           if (o.score !== null) {
             const x = Annotations.rowValue(ann, set, i, o.score);
-            if (typeof x === "number" && !(score[r] >= x)) score[r] = x;
+            if (typeof x === 'number' && !(score[r] >= x)) score[r] = x;
           }
           break;
         }
@@ -135,18 +135,18 @@ function itemsOn(set: SeqSet, a: Alignment, cells: RowCodes, ann: Annotation, o:
 
 /** `row_stats`: per row of an alignment its identity to a reference row, coverage, length, and the items on it. */
 const rowStatsProvider: ProviderEntry = {
-  name: "row_stats",
-  geometry: "rows",
+  name: 'row_stats',
+  geometry: 'rows',
   options: cases.row_stats,
   async compute(ctx, options) {
     const o = options as { alignment: string; reference_row: number | null } & ItemOptions;
-    if (!ctx.set) return { key: "", geometry: "rows", columns: {} };
-    const found = cellsOf(ctx, ctx.set, o.alignment, "row_stats");
+    if (!ctx.set) return { key: '', geometry: 'rows', columns: {} };
+    const found = cellsOf(ctx, ctx.set, o.alignment, 'row_stats');
     if (!found) return null;
     const { a, cells } = found;
     const ref = o.reference_row ?? a.referenceRow;
     if (!Number.isInteger(ref) || ref < 0 || ref >= a.rowCount) {
-      ctx.report(Issue.error("model.provider.input", "/params/reference_row", `row_stats: no reference row ${ref}.`));
+      ctx.report(Issue.error('model.provider.input', '/params/reference_row', `row_stats: no reference row ${ref}.`));
       return null;
     }
     const stats = rowStats(cells, ref);
@@ -163,7 +163,7 @@ const rowStatsProvider: ProviderEntry = {
       const ok = ctx.set.byName(o.items, kind) && kind.kind === KeyKind.annotation;
       const ann = ok ? ctx.set.annotations[kind.id] : undefined;
       if (!ann) {
-        ctx.report(Issue.error("model.provider.input", "/params/items", `row_stats: no annotation "${o.items}".`));
+        ctx.report(Issue.error('model.provider.input', '/params/items', `row_stats: no annotation "${o.items}".`));
         return null;
       }
       const r = itemsOn(ctx.set, a, cells, ann, o, ctx.signal);
@@ -171,36 +171,36 @@ const rowStatsProvider: ProviderEntry = {
       if (o.score !== null) columns.score = r.score;
     }
     const key = a.key;
-    return { key: "", geometry: "rows", target: ctx.set.strings.get(key), columns } as AnnotationInput;
+    return { key: '', geometry: 'rows', target: ctx.set.strings.get(key), columns } as AnnotationInput;
   },
 };
 
 /** `redundancy`: greedy clustering of an alignment's rows at an identity threshold, in the given order. */
 const redundancyProvider: ProviderEntry = {
-  name: "redundancy",
-  geometry: "rows",
+  name: 'redundancy',
+  geometry: 'rows',
   options: cases.redundancy,
   async compute(ctx, options) {
     const o = options as { alignment: string; threshold: number; order: OrderKeyValue | OrderKeyValue[] | null };
-    if (!ctx.set) return { key: "", geometry: "rows", columns: {} };
-    const found = cellsOf(ctx, ctx.set, o.alignment, "redundancy");
+    if (!ctx.set) return { key: '', geometry: 'rows', columns: {} };
+    const found = cellsOf(ctx, ctx.set, o.alignment, 'redundancy');
     if (!found) return null;
     const { a, cells } = found;
     // The rows in the order asked for (a key table's fields, the tree's or data order): the same resolver a rows layer uses.
     const members = alignmentRows(a.id, a.rowCount, a.tree ? a.tree.leafOrder : null);
-    const order = keyed(ctx.set, ctx.registries, members, { order: o.order ?? "data" }, (where, message) =>
-      report(ctx, "svs.layer.data", `/params/${where}`, message),
+    const order = keyed(ctx.set, ctx.registries, members, { order: o.order ?? 'data' }, (where, message) =>
+      report(ctx, 'svs.layer.data', `/params/${where}`, message),
     ).permutation;
     const rows: string[] = [];
     for (let r = 0; r < cells.rows; r++)
       rows.push(latin1.decode(cells.codes.subarray(r * cells.columns, (r + 1) * cells.columns)));
-    const key = contentKey("redundancy", { threshold: o.threshold }, rows, [String(order.join(","))]);
+    const key = contentKey('redundancy', { threshold: o.threshold }, rows, [String(order.join(','))]);
     let result: Clusters | null;
     try {
       result = await cached<Clusters>(key, () => cluster(cells, o.threshold, order, ctx.signal));
     } catch (e) {
       if (!(e instanceof RedundancySizeError)) throw e;
-      ctx.report(Issue.error("model.provider.size", "/params/alignment", `redundancy: ${e.message}`));
+      ctx.report(Issue.error('model.provider.size', '/params/alignment', `redundancy: ${e.message}`));
       return null;
     }
     if (!result) return null;
@@ -209,7 +209,7 @@ const redundancyProvider: ProviderEntry = {
       cluster: result.cluster,
       representative: Array.from(result.representative, (x) => x === 1),
     };
-    return { key: "", geometry: "rows", target: ctx.set.strings.get(a.key), columns } as AnnotationInput;
+    return { key: '', geometry: 'rows', target: ctx.set.strings.get(a.key), columns } as AnnotationInput;
   },
 };
 

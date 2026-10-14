@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from "./builder.js";
-export * from "./fingerprint.js";
-export * from "./queries.js";
-export * from "./registry.js";
-export * from "./vocabulary.js";
+export * from './builder.js';
+export * from './fingerprint.js';
+export * from './queries.js';
+export * from './registry.js';
+export * from './vocabulary.js';

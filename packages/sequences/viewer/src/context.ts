@@ -10,13 +10,13 @@
 // config, the registry, events, the scheduler, the graph, the document, the history and the views; later phases add the
 // managers in their order, each subscribing through the context's guarded fan-out (`Fanout`).
 
-import { issueOf, type Loaders, type Patch, type SeqViewSpecDoc, validate } from "@molstar/seq-core/format";
-import type { Issue, KeyResolver } from "@molstar/seq-core/model";
-import { type ActionManager, createActions, nodePath } from "./actions.js";
-import { type BehaviorManager, Behaviors } from "./behaviors.js";
-import { type CommandManager, Commands, TargetRangeError } from "./commands.js";
-import { type ConfigManager, createConfigManager, SeqViewerConfig } from "./config.js";
-import { dataKeys, dataMode, dataViews, type SeqDataInput, type SetDataOptions } from "./data.js";
+import { issueOf, type Loaders, type Patch, type SeqViewSpecDoc, validate } from '@molstar/seq-core/format';
+import type { Issue, KeyResolver } from '@molstar/seq-core/model';
+import { type ActionManager, createActions, nodePath } from './actions.js';
+import { type BehaviorManager, Behaviors } from './behaviors.js';
+import { type CommandManager, Commands, TargetRangeError } from './commands.js';
+import { type ConfigManager, createConfigManager, SeqViewerConfig } from './config.js';
+import { dataKeys, dataMode, dataViews, type SeqDataInput, type SetDataOptions } from './data.js';
 import {
   type DocumentManager,
   type DocumentPort,
@@ -25,26 +25,26 @@ import {
   type Routed,
   type ViewManager,
   Views,
-} from "./document.js";
-import { Focus, type FocusManager } from "./focus.js";
-import { type Assembled, Graph, type SeqGraph, type Skin } from "./graph.js";
-import { cutHeaderText } from "./header-text.js";
-import { Highlight, type HighlightManager } from "./highlight.js";
-import { Hover, type HoverManager, type PointerState } from "./hover.js";
-import { InputDispatcher, type InputSink, type InteractionEvents } from "./input.js";
-import { type LabelManager, Labels } from "./labels.js";
-import { DefaultRenderProps, type LayoutManager, Layouts, mergeProps, type RenderProps } from "./layout.js";
-import type { SeqLociAny } from "./lineage.js";
-import { SetChannels } from "./location-sets.js";
-import { snapshotHints } from "./prefetch.js";
-import { isCoordinates } from "./projection.js";
-import { type RefManager, Refs } from "./refs.js";
-import { type SeqViewerRegistry, type SeqViewerRegistryEntry, ViewerRegistry } from "./registry.js";
-import { Results, type ResultsManager } from "./results.js";
-import { manualScheduler, type Scheduler, type TrackedScheduler, trackedScheduler } from "./scheduler.js";
-import { type SelectionManager, Selections } from "./selection.js";
-import { type SnapshotManager, Snapshots } from "./snapshots.js";
-import { DefaultSeqViewerSpec, type SeqViewerSpec } from "./spec.js";
+} from './document.js';
+import { Focus, type FocusManager } from './focus.js';
+import { type Assembled, Graph, type SeqGraph, type Skin } from './graph.js';
+import { cutHeaderText } from './header-text.js';
+import { Highlight, type HighlightManager } from './highlight.js';
+import { Hover, type HoverManager, type PointerState } from './hover.js';
+import { InputDispatcher, type InputSink, type InteractionEvents } from './input.js';
+import { type LabelManager, Labels } from './labels.js';
+import { DefaultRenderProps, type LayoutManager, Layouts, mergeProps, type RenderProps } from './layout.js';
+import type { SeqLociAny } from './lineage.js';
+import { SetChannels } from './location-sets.js';
+import { snapshotHints } from './prefetch.js';
+import { isCoordinates } from './projection.js';
+import { type RefManager, Refs } from './refs.js';
+import { type SeqViewerRegistry, type SeqViewerRegistryEntry, ViewerRegistry } from './registry.js';
+import { Results, type ResultsManager } from './results.js';
+import { manualScheduler, type Scheduler, type TrackedScheduler, trackedScheduler } from './scheduler.js';
+import { type SelectionManager, Selections } from './selection.js';
+import { type SnapshotManager, Snapshots } from './snapshots.js';
+import { DefaultSeqViewerSpec, type SeqViewerSpec } from './spec.js';
 import {
   event,
   type Live,
@@ -54,15 +54,15 @@ import {
   type SeqEventEmitter,
   type SeqState,
   state,
-} from "./state.js";
-import { type StreamManager, Streams } from "./streams.js";
-import { SystemRegistry } from "./systems.js";
-import { monospaceMeasurer, TextManager, type TextManagerApi, type TextMeasurer } from "./text.js";
-import { type IssueManager, Issues, type TaskManager, Tasks, Ui, type UiManager } from "./ui.js";
-import { type ScrollGroupManager, ScrollGroups, sectionsOf, type ViewportManager, Viewports } from "./viewport.js";
+} from './state.js';
+import { type StreamManager, Streams } from './streams.js';
+import { SystemRegistry } from './systems.js';
+import { monospaceMeasurer, TextManager, type TextManagerApi, type TextMeasurer } from './text.js';
+import { type IssueManager, Issues, type TaskManager, Tasks, Ui, type UiManager } from './ui.js';
+import { type ScrollGroupManager, ScrollGroups, sectionsOf, type ViewportManager, Viewports } from './viewport.js';
 
 export interface LogEntry {
-  readonly level: "info" | "warning" | "error";
+  readonly level: 'info' | 'warning' | 'error';
   readonly message: string;
   readonly data?: unknown;
 }
@@ -113,52 +113,52 @@ export interface SeqViewerEvents {
 /** The light skin, until the engine's skin reader or a host sets one. */
 export const DefaultSkin: Skin = {
   dark: false,
-  surface: "rgb(255 255 255)",
-  surfaceAlt: "rgb(246 247 249)",
-  ink: "rgb(27 31 36)",
-  inkQuiet: "rgb(91 99 112)",
-  inkFaint: "rgb(196 200 207)",
-  grid: "rgb(229 231 235)",
-  accent: "rgb(181 69 44)",
-  hover: "rgb(43 127 255 / 0.14)",
-  highlight: "rgb(242 180 0 / 0.22)",
-  selection: "rgb(43 127 255 / 0.1)",
-  selectionBorder: "rgb(43 127 255 / 0.6)",
-  unobserved: "rgb(214 217 222)",
-  pending: "rgb(226 222 214)",
-  grip: "rgb(124 131 142)",
-  gripHover: "rgb(27 31 36)",
-  window: "rgb(91 99 112 / 0.1)",
-  conflict: "rgb(192 38 45)",
-  focusRing: "rgb(43 127 255)",
-  fontMono: "ui-monospace, SFMono-Regular, Menlo, monospace",
-  fontUi: "ui-sans-serif, system-ui, sans-serif",
+  surface: 'rgb(255 255 255)',
+  surfaceAlt: 'rgb(246 247 249)',
+  ink: 'rgb(27 31 36)',
+  inkQuiet: 'rgb(91 99 112)',
+  inkFaint: 'rgb(196 200 207)',
+  grid: 'rgb(229 231 235)',
+  accent: 'rgb(181 69 44)',
+  hover: 'rgb(43 127 255 / 0.14)',
+  highlight: 'rgb(242 180 0 / 0.22)',
+  selection: 'rgb(43 127 255 / 0.1)',
+  selectionBorder: 'rgb(43 127 255 / 0.6)',
+  unobserved: 'rgb(214 217 222)',
+  pending: 'rgb(226 222 214)',
+  grip: 'rgb(124 131 142)',
+  gripHover: 'rgb(27 31 36)',
+  window: 'rgb(91 99 112 / 0.1)',
+  conflict: 'rgb(192 38 45)',
+  focusRing: 'rgb(43 127 255)',
+  fontMono: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+  fontUi: 'ui-sans-serif, system-ui, sans-serif',
 };
 /** The dark skin where a token is not set: skin.css's dark block (the skin reader's fallback; the light one is `DefaultSkin`). */
 export const DarkSkin: Skin = {
   ...DefaultSkin,
   dark: true,
-  surface: "rgb(24 26 30)",
-  surfaceAlt: "rgb(34 37 43)",
-  ink: "rgb(230 232 235)",
-  inkQuiet: "rgb(156 163 175)",
-  inkFaint: "rgb(75 80 90)",
-  grid: "rgb(48 52 60)",
-  accent: "rgb(240 128 96)",
-  hover: "rgb(110 160 255 / 0.2)",
-  highlight: "rgb(250 204 21 / 0.28)",
-  selection: "rgb(110 160 255 / 0.14)",
-  selectionBorder: "rgb(110 160 255 / 0.7)",
-  unobserved: "rgb(60 64 72)",
-  pending: "rgb(56 53 48)",
-  grip: "rgb(140 147 158)",
-  gripHover: "rgb(240 242 245)",
-  window: "rgb(156 163 175 / 0.12)",
-  conflict: "rgb(255 123 114)",
-  focusRing: "rgb(110 160 255)",
+  surface: 'rgb(24 26 30)',
+  surfaceAlt: 'rgb(34 37 43)',
+  ink: 'rgb(230 232 235)',
+  inkQuiet: 'rgb(156 163 175)',
+  inkFaint: 'rgb(75 80 90)',
+  grid: 'rgb(48 52 60)',
+  accent: 'rgb(240 128 96)',
+  hover: 'rgb(110 160 255 / 0.2)',
+  highlight: 'rgb(250 204 21 / 0.28)',
+  selection: 'rgb(110 160 255 / 0.14)',
+  selectionBorder: 'rgb(110 160 255 / 0.7)',
+  unobserved: 'rgb(60 64 72)',
+  pending: 'rgb(56 53 48)',
+  grip: 'rgb(140 147 158)',
+  gripHover: 'rgb(240 242 245)',
+  window: 'rgb(156 163 175 / 0.12)',
+  conflict: 'rgb(255 123 114)',
+  focusRing: 'rgb(110 160 255)',
 };
 const refusing: Loaders = {
-  load: (r) => Promise.reject(new Error(`the host passed no loaders (${r.uri ?? r.hostFile ?? "a file"})`)),
+  load: (r) => Promise.reject(new Error(`the host passed no loaders (${r.uri ?? r.hostFile ?? 'a file'})`)),
 };
 
 export interface SeqViewerContext {
@@ -220,7 +220,7 @@ export interface SeqViewerContext {
   /** `snapshot`: a local patch's tag (default: the snapshot shown). */
   applyPatch(
     patch: Patch,
-    opts?: { layer?: "base" | "local" | "preview"; snapshot?: string | null; origin?: Origin },
+    opts?: { layer?: 'base' | 'local' | 'preview'; snapshot?: string | null; origin?: Origin },
   ): Promise<GraphResult>;
   /** A host override of the skin until `setSkin(null)`, which shows the skin the reader last read. */
   setSkin(skin: Skin | null): void;
@@ -276,7 +276,7 @@ class Context implements SeqViewerContext {
     () => this.graph?.assembled.value?.view ?? null,
     () => this.systems?.version.value ?? 0,
   );
-  readonly highlight = new Highlight((m) => this.report("seqv.state.error", m));
+  readonly highlight = new Highlight((m) => this.report('seqv.state.error', m));
   readonly systems = new SystemRegistry();
   readonly labels: Labels;
   readonly input: InputDispatcher;
@@ -284,7 +284,7 @@ class Context implements SeqViewerContext {
   readonly commands: Commands;
   readonly activateEvent: SeqEventEmitter<ActivateEvent>;
   readonly menuEvent: SeqEventEmitter<ActivateEvent>;
-  private readonly menuAsked = { section: "", track: "", origin: "api" as Origin };
+  private readonly menuAsked = { section: '', track: '', origin: 'api' as Origin };
   readonly layout: Layouts;
   readonly streams: Streams;
   readonly viewports: Viewports;
@@ -328,7 +328,7 @@ class Context implements SeqViewerContext {
     this.scheduler = trackedScheduler(this.ports.scheduler);
     this.config = createConfigManager(spec.config);
     this.registry = new ViewerRegistry();
-    const onError = (e: unknown) => this.log("error", "an event subscriber threw", e);
+    const onError = (e: unknown) => this.log('error', 'an event subscriber threw', e);
     this.issueEvent = event(onError);
     this.logEvent = event(onError);
     this.patchEvent = event(onError);
@@ -410,7 +410,7 @@ class Context implements SeqViewerContext {
     const view = (a: Assembled | null) => a?.view?.resolved ?? null;
     // The view's managers update when the view does: a set that changes under the same view (a dynamic node no section
     // reads, ST1b-b) lays nothing out again.
-    let shown: Assembled["view"] | undefined;
+    let shown: Assembled['view'] | undefined;
     let moved = true;
     f.assembled.push(
       (a) => {
@@ -467,16 +467,16 @@ class Context implements SeqViewerContext {
       scheduler: this.scheduler,
       active,
       setDrag: (d) => this.ui.setDrag(d),
-      onError: (e) => this.report("seqv.behavior.error", `a behavior's subscriber threw: ${message(e)}`),
+      onError: (e) => this.report('seqv.behavior.error', `a behavior's subscriber threw: ${message(e)}`),
     });
     // CM1: commands, before the behaviors that handle them.
     this.commands = new Commands(this.registry, (id, e) =>
       e instanceof TargetRangeError
-        ? this.report("seqv.target.range", `command "${id}": ${message(e)}`)
-        : this.report("seqv.command.error", `command "${id}" failed: ${message(e)}`),
+        ? this.report('seqv.target.range', `command "${id}": ${message(e)}`)
+        : this.report('seqv.command.error', `command "${id}" failed: ${message(e)}`),
     );
     this.behaviors = new Behaviors(this, (name, e) =>
-      this.report("seqv.behavior.error", `behavior "${name}" threw and was disposed: ${message(e)}`),
+      this.report('seqv.behavior.error', `behavior "${name}" threw and was disposed: ${message(e)}`),
     );
     this.watch(this.selection.current, () => this.streams.rehold());
     this.watch(this.highlight.channels, () => this.streams.rehold());
@@ -533,7 +533,7 @@ class Context implements SeqViewerContext {
     try {
       fn(v);
     } catch (e) {
-      this.report("seqv.state.error", `a viewer subscriber threw: ${message(e)}`);
+      this.report('seqv.state.error', `a viewer subscriber threw: ${message(e)}`);
     }
   }
 
@@ -551,7 +551,7 @@ class Context implements SeqViewerContext {
     // An archive's document: its relative URIs are valid against the base its loaders carry, as `compile` reads them
     // (seqspec:sources#archives).
     const issues = validate(doc, this.registry.svs, { base: this.ports.loaders.base });
-    if (issues.some((i) => i.severity === "error")) return { ok: false, issues };
+    if (issues.some((i) => i.severity === 'error')) return { ok: false, issues };
     this.issues.clear();
     // Its warnings are listed until the next document, as a base patch's are (an inline style's bad key,
     // seqspec:format#sections).
@@ -574,7 +574,7 @@ class Context implements SeqViewerContext {
     const keys = dataKeys(data);
     const doc = dataViews(data, opts);
     const issues = validate(doc, this.registry.svs, { set: keys });
-    if (issues.some((i) => i.severity === "error")) return { ok: false, issues };
+    if (issues.some((i) => i.severity === 'error')) return { ok: false, issues };
     this.issues.clear();
     // Its warnings are listed until the next document, as a base patch's are (an inline style's bad key).
     for (const i of issues) this.issueEvent.emit({ ...i, ref: null });
@@ -588,17 +588,17 @@ class Context implements SeqViewerContext {
 
   async applyPatch(
     patch: Patch,
-    opts: { layer?: "base" | "local" | "preview"; snapshot?: string | null; origin?: Origin } = {},
+    opts: { layer?: 'base' | 'local' | 'preview'; snapshot?: string | null; origin?: Origin } = {},
   ) {
     this.check();
     const d = this.document;
     const r =
-      opts.layer === "preview"
+      opts.layer === 'preview'
         ? d.previewPatch(patch)
-        : opts.layer === "local"
+        : opts.layer === 'local'
           ? d.addLocal(patch, opts.snapshot)
           : d.applyBase(patch, opts.origin, true);
-    return this.settle(r.issues, r.ok, opts.layer === "preview");
+    return this.settle(r.issues, r.ok, opts.layer === 'preview');
   }
 
   setSkin(skin: Skin | null) {
@@ -646,18 +646,18 @@ class Context implements SeqViewerContext {
    */
   private async settle(issues: readonly Issue[], ok: boolean, preview = false): Promise<GraphResult> {
     if (preview && ok)
-      this.issues.setPreview(issues.flatMap((i) => (i.code === "svs.snapshot.invalid" ? [{ ...i, ref: null }] : [])));
+      this.issues.setPreview(issues.flatMap((i) => (i.code === 'svs.snapshot.invalid' ? [{ ...i, ref: null }] : [])));
     await this.run();
     return { ok, issues: [...issues, ...this.graph.issues.value] };
   }
 
   report(code: string, text: string) {
-    const issue: SeqIssue = { ...issueOf(this.registry.svs, code, "", text), ref: null };
+    const issue: SeqIssue = { ...issueOf(this.registry.svs, code, '', text), ref: null };
     this.issueEvent.emit(issue);
     this.log(issue.severity, text, issue);
   }
 
-  log(level: LogEntry["level"], text: string, data?: unknown) {
+  log(level: LogEntry['level'], text: string, data?: unknown) {
     const entry: LogEntry = { level, message: text, data };
     try {
       this.ports.log?.(entry);
@@ -668,7 +668,7 @@ class Context implements SeqViewerContext {
   }
 
   check() {
-    if (this.disposed) throw new Error("SeqViewerContext: used after dispose");
+    if (this.disposed) throw new Error('SeqViewerContext: used after dispose');
   }
 
   /** Disposal, the parts built so far: timers, the graph's work, states and events, the registry. */
@@ -727,12 +727,12 @@ export function createSeqViewer(
  * stream. The hover holds nothing: what it points at is drawn, held by its placement or its region.
  */
 function heldBy(l: SeqLociAny | null, out: Set<string>) {
-  if (l?.kind === "item-loci")
+  if (l?.kind === 'item-loci')
     for (const e of l.elements) {
       const a = l.set.annotations[e.annotation];
       if (a) out.add(l.set.strings.get(a.key));
     }
-  if (l?.kind !== "seq-loci" && l?.kind !== "boundary-loci") return;
+  if (l?.kind !== 'seq-loci' && l?.kind !== 'boundary-loci') return;
   const set = l.set;
   for (const e of l.elements) {
     out.add(set.strings.get(set.units.key[e.unit]));

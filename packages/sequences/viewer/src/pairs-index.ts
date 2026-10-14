@@ -13,10 +13,10 @@
 // pair. Headless and allocation-free: results into the caller's `Int32Array` (room for every pair), keys through module
 // scratch so no double crosses a call.
 
-import type { AxisView } from "./axis.js";
-import { IndexVisits, overlapping } from "./intervals.js";
-import type { OverlayMarks } from "./marks.js";
-import type { PairsState } from "./prepare.js";
+import type { AxisView } from './axis.js';
+import { IndexVisits, overlapping } from './intervals.js';
+import type { OverlayMarks } from './marks.js';
+import type { PairsState } from './prepare.js';
 
 /** A block's keys start here (`keyOf`: block × 2^32 + index, exact in a double). */
 const BLOCK = 4294967296;

@@ -11,8 +11,8 @@
 // canvas: the row controls and the track header's menu. Those follow the viewport by styles set in subscriptions; their
 // nodes change only when the rows in view or the hovered header change. As src/react/section.tsx.
 
-import { Height } from "@molstar/seq-core/format";
-import { type SeqViewerContext, shownSections, type Unsubscribable } from "../index.js";
+import { Height } from '@molstar/seq-core/format';
+import { type SeqViewerContext, shownSections, type Unsubscribable } from '../index.js';
 import {
   type DomHandle,
   type DomPart,
@@ -26,8 +26,8 @@ import {
   type RowProps,
   setAttr,
   watch,
-} from "./core.js";
-import { focusIndicator, placeScroll, setStyle, trackBox } from "./shared.js";
+} from './core.js';
+import { focusIndicator, placeScroll, setStyle, trackBox } from './shared.js';
 
 interface Frame {
   readonly root: HTMLElement;
@@ -36,7 +36,7 @@ interface Frame {
 
 /** The canvas: it needs its UI (`createDomUI`), whose surfaces map and composition it fills and reads. */
 export const ViewSurface: DomPart<{ readonly ui: DomUI }> = (host, ctx, { ui }) => {
-  const root = h("div", { class: "seqv-view" });
+  const root = h('div', { class: 'seqv-view' });
   host.append(root);
   const frames = new Map<string, Frame>();
   const subs = derived(
@@ -68,26 +68,26 @@ export const ViewSurface: DomPart<{ readonly ui: DomUI }> = (host, ctx, { ui }) 
 /** A section's frame; `place` puts it in the document before its surface mounts (the engine measures its host). */
 function sectionFrame(ctx: SeqViewerContext, ui: DomUI, section: string, place: (el: HTMLElement) => void): Frame {
   // The section's chrome, as the layout's composition places it (seqspec:interaction#slots-and-chrome).
-  const placed = <K extends "SectionHeader" | "RowControl" | "TrackActions">(k: K) =>
+  const placed = <K extends 'SectionHeader' | 'RowControl' | 'TrackActions'>(k: K) =>
     ui.placed.has(k) ? ui.slots[k] : null;
   const [SectionHeader, RowControl, TrackActions] = [
-    placed("SectionHeader"),
-    placed("RowControl"),
-    placed("TrackActions"),
+    placed('SectionHeader'),
+    placed('RowControl'),
+    placed('TrackActions'),
   ];
-  const root = h("section", { class: "seqv-section" });
+  const root = h('section', { class: 'seqv-section' });
   const parts: { dispose(): void }[] = [];
   if (SectionHeader) parts.push(SectionHeader(root, ctx, { ui, section }));
-  const el = h("div", { class: "seqv-surface" });
-  const stage = h("div", { class: "seqv-stage" }, el);
+  const el = h('div', { class: 'seqv-surface' });
+  const stage = h('div', { class: 'seqv-stage' }, el);
   root.append(stage);
   place(root);
   const s = ui.surface(ctx, section, el);
   ui.surfaces.set(section, s.element);
   const subs = [
     ctx.layout.contentHeight(section)?.subscribe((height) => {
-      setStyle(el, "height", `${Math.max(40, Math.ceil(height))}px`);
-      setAttr(el, "data-height", ctx.layout.get(section)?.current.heightMode === Height.box ? "box" : "content");
+      setStyle(el, 'height', `${Math.max(40, Math.ceil(height))}px`);
+      setAttr(el, 'data-height', ctx.layout.get(section)?.current.heightMode === Height.box ? 'box' : 'content');
     }),
   ];
   const indicator = focusIndicator(el, s.element);
@@ -115,7 +115,7 @@ function trackActionsAt(
   ctx: SeqViewerContext,
   ui: DomUI,
   section: string,
-  Actions: DomSlots["TrackActions"],
+  Actions: DomSlots['TrackActions'],
 ): { dispose(): void } {
   let box: HTMLElement | null = null;
   let part: { dispose(): void } | null = null;
@@ -136,10 +136,10 @@ function trackActionsAt(
     show(track) {
       clear();
       if (!track) return;
-      const b = h("div", { class: "seqv-track-actions" });
-      b.addEventListener("pointerenter", () => tracker.hold(track));
-      b.addEventListener("pointerleave", () => tracker.hold(null));
-      b.addEventListener("focusout", tracker.later);
+      const b = h('div', { class: 'seqv-track-actions' });
+      b.addEventListener('pointerenter', () => tracker.hold(track));
+      b.addEventListener('pointerleave', () => tracker.hold(null));
+      b.addEventListener('focusout', tracker.later);
       stage.append(b);
       box = b;
       part = Actions(b, ctx, { ui, section, track, row: () => tracker.row() });
@@ -173,23 +173,23 @@ function rowControls(
   ctx: SeqViewerContext,
   ui: DomUI,
   section: string,
-  Control: DomSlots["RowControl"],
+  Control: DomSlots['RowControl'],
 ): { dispose(): void } {
   const rows = ctx.layout.visibleRows(section);
   const layout = ctx.layout.get(section);
   const vp = ctx.viewports.get(section);
   if (!rows || !layout) return { dispose() {} };
-  const inner = h("div");
-  const box = h("div", { class: "seqv-row-controls" }, inner);
+  const inner = h('div');
+  const box = h('div', { class: 'seqv-row-controls' }, inner);
   stage.append(box);
   const shown = new Map<number, Control>();
   const drop = (d: number, c: Control) => [c.part.dispose(), c.el.remove(), shown.delete(d)];
   // Edge-rate: when the rows in view change, not per scroll. Layout is read here, in a subscription, never in a render.
   const update = () => {
     const [r, l, w] = [rows.current, layout.current, ctx.layout.props(section).controlWidth];
-    setStyle(box, "top", `${l.scrolledTop}px`);
-    setStyle(box, "left", `${l.headerWidth - w}px`);
-    setStyle(box, "width", `${w}px`);
+    setStyle(box, 'top', `${l.scrolledTop}px`);
+    setStyle(box, 'left', `${l.headerWidth - w}px`);
+    setStyle(box, 'width', `${w}px`);
     const want = new Map<number, number>();
     for (let i = 0; i < r.count; i++) want.set(r.displayRow[i], r.dataRow[i]);
     for (const [d, c] of shown) if (want.get(d) !== c.dataRow) drop(d, c);
@@ -197,13 +197,13 @@ function rowControls(
       const [displayRow, dataRow] = [r.displayRow[i], r.dataRow[i]];
       let c = shown.get(displayRow);
       if (!c) {
-        const el = h("div", { class: "seqv-row-control" });
+        const el = h('div', { class: 'seqv-row-control' });
         inner.insertBefore(el, inner.children[i] ?? null);
         c = { el, dataRow, part: Control(el, ctx, { ui, section, displayRow, dataRow }) };
         shown.set(displayRow, c);
       } else if (inner.children[i] !== c.el) inner.insertBefore(c.el, inner.children[i] ?? null);
-      setStyle(c.el, "top", `${r.top[i]}px`);
-      setStyle(c.el, "height", `${r.height[i]}px`);
+      setStyle(c.el, 'top', `${r.top[i]}px`);
+      setStyle(c.el, 'height', `${r.height[i]}px`);
     }
   };
   // The scroll follows by a custom property (skin.css), written when the quarter pixel changes: no string per frame.

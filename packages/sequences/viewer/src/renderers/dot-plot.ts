@@ -26,7 +26,7 @@ import {
   overlayDotPlot,
   prepareDotPlot,
   type RenderProps,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 const io = new Float64Array(2);
 const at = new Int32Array(2);
@@ -56,16 +56,16 @@ function label(h: HoverState, lc: LabelContext, out: LabelSink, s: DotPlotState)
   if (!mol || by < 0) return;
   const n = rv.blocks.numbering[b0 + by] ?? set.units.numberings[u].items[0] ?? mol.numberings.items[0];
   const i = h.pairIndex;
-  const res = mol.element ? "" : String.fromCharCode(mol.code[i]);
+  const res = mol.element ? '' : String.fromCharCode(mol.code[i]);
   const name = set.strings.get(set.units.label[u]);
-  out.line("with", `${name} ${res}${n && i < n.length ? lc.format(n, i as never) : i + 1}`);
+  out.line('with', `${name} ${res}${n && i < n.length ? lc.format(n, i as never) : i + 1}`);
   // The cell's value in each grid of the track's dot plots (the hit names the topmost layer).
   for (let k = 0; k < rv.layers.count; k++) {
     const st = rv.layers.track[k] === h.track ? (lc.view.prepared[k]?.state as DotPlotState | undefined) : undefined;
     const at = st?.grids ? gridAt(st, h.block, by) : -1;
     const value = st && at >= 0 ? dotPlotValue(st, h.block, h.index, by, i) : Number.NaN;
-    const key = st && at >= 0 ? set.strings.get(set.annotations[st.grids[at].annotation]?.label ?? -1) : "";
-    if (!Number.isNaN(value)) out.line(key || "value", `${Number(value.toPrecision(4))}`);
+    const key = st && at >= 0 ? set.strings.get(set.annotations[st.grids[at].annotation]?.label ?? -1) : '';
+    if (!Number.isNaN(value)) out.line(key || 'value', `${Number(value.toPrecision(4))}`);
   }
 }
 
@@ -119,7 +119,7 @@ function height(s: DotPlotState, p: unknown, props: RenderProps, rowScale = 1, w
 }
 
 export const DotPlotRenderer = {
-  ...kernelEntry<DotPlotState>("dot_plot", height, {
+  ...kernelEntry<DotPlotState>('dot_plot', height, {
     content: false,
     zooms: true,
     minHeight: 24,
@@ -133,5 +133,5 @@ export const DotPlotRenderer = {
     rowHover: () => false,
     cache: { create: () => new DotPlotTiles(), dispose: (c) => (c as DotPlotTiles).dispose() },
   }),
-  geometries: ["linear"] as const,
+  geometries: ['linear'] as const,
 };

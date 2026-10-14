@@ -9,12 +9,12 @@
 // A layer's stream description at prepare time (`trackStream`, `lettersStream`) and the draw-side helpers over it
 // (`streamedBlock`, `streamStats`) (seqspec:viewer#extension-points).
 
-import { type StreamedData, StreamProp } from "@molstar/seq-core/format";
-import { type ComposedPath, type CoordinateSystem, CoordinateSystemKind, type SeqSet } from "@molstar/seq-core/model";
-import type { ShownIndex } from "./axis.js";
-import type { DrawView } from "./draw/view.js";
-import type { LayerInput } from "./registry.js";
-import type { StreamLayer } from "./stream-contract.js";
+import { type StreamedData, StreamProp } from '@molstar/seq-core/format';
+import { type ComposedPath, type CoordinateSystem, CoordinateSystemKind, type SeqSet } from '@molstar/seq-core/model';
+import type { ShownIndex } from './axis.js';
+import type { DrawView } from './draw/view.js';
+import type { LayerInput } from './registry.js';
+import type { StreamLayer } from './stream-contract.js';
 
 /**
  * A layer's streamed annotations (`svs:stream`, one source a layer): its description, per placed block its system, by
@@ -25,7 +25,7 @@ export function trackStream(input: LayerInput): StreamLayer | null {
   let data: StreamedData | undefined;
   let systems: Int32Array | null = null;
   let paths: (ComposedPath | null)[] | null = null;
-  let routed = "";
+  let routed = '';
   for (const pl of layer.placements) {
     const a = set.annotations[pl.annotation];
     const d = a?.streamed ? (a.custom.props.get(StreamProp) as StreamedData | undefined) : undefined;
@@ -51,9 +51,9 @@ export function trackStream(input: LayerInput): StreamLayer | null {
   }
   if (!data || !systems) return null;
   const collapse =
-    typeof input.params.collapse === "string" && input.params.collapse !== "" ? input.params.collapse : null;
+    typeof input.params.collapse === 'string' && input.params.collapse !== '' ? input.params.collapse : null;
   return {
-    key: `${data.source.ref}#${systems.join()}${routed}${collapse === null ? "" : `|${collapse}`}`,
+    key: `${data.source.ref}#${systems.join()}${routed}${collapse === null ? '' : `|${collapse}`}`,
     rows: 0,
     columns: 0,
     remote: data,

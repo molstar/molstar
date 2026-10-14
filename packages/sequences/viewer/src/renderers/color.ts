@@ -26,7 +26,7 @@ import {
   rowValues,
   ThemeLocation,
   visibleRange,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 const rects = new RectBatch();
 const range = new Int32Array(2);
@@ -95,8 +95,8 @@ function draw(v: DrawView, s: PerPosition) {
   }
 }
 
-export const ColorRenderer = kernelEntry<PerPosition>("color", 14, {
-  geometries: ["linear", "wrapped"],
+export const ColorRenderer = kernelEntry<PerPosition>('color', 14, {
+  geometries: ['linear', 'wrapped'],
   stable: true,
   draw,
   tiny: draw,

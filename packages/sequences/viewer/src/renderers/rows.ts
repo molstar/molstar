@@ -14,8 +14,8 @@
 // per block from `blockLevels` over `DrawView.lanes`, the same the stream manager requests. Batches are this module's,
 // reset at a draw's start and handed over once at its end.
 
-import { TILE, type Tile } from "@molstar/seq-core/format";
-import { NO_LABEL } from "@molstar/seq-core/model";
+import { TILE, type Tile } from '@molstar/seq-core/format';
+import { NO_LABEL } from '@molstar/seq-core/model';
 import {
   type Axis,
   blockLevels,
@@ -44,8 +44,8 @@ import {
   ThemeLocation,
   textShown,
   wedgeLabel,
-} from "../draw/api.js";
-import { beginTiles, paintLevels, paintTiles, RowTiles, rowGeo } from "./rows-tiles.js";
+} from '../draw/api.js';
+import { beginTiles, paintLevels, paintTiles, RowTiles, rowGeo } from './rows-tiles.js';
 
 const gaps = new RectBatch(256);
 /** Insert columns' cells, veiled in the surface's tone. */
@@ -59,7 +59,7 @@ const lv = new Int32Array(4);
 const baselines = new Float64Array(2);
 
 /** A display row's lane offset (the layout's `RowModel`); -1: a collapsed clade's wedge. */
-const laneAt = (r: NonNullable<Axis["rows"]>, d: number) =>
+const laneAt = (r: NonNullable<Axis['rows']>, d: number) =>
   r.node && r.node[d] >= 0 ? -1 : r.lane ? r.lane[d] - r.laneStart : d;
 /** Whether block b shows this layer's alignment and is drawn here. */
 const shows = (v: DrawView, s: RowsState, b: number) =>
@@ -120,7 +120,7 @@ function row(v: DrawView, s: RowsState, c: RowTiles, k: number): void {
         if (ins[ax.indexOf(b, q as never)] === 1) muted.push(v.xd(b, q), y0, v.xe(b, q) - v.xd(b, q), y1 - y0);
     }
     if (!textShown(v, b)) continue;
-    const font = v.text.font("mono", letterFontPx(v, b));
+    const font = v.text.font('mono', letterFontPx(v, b));
     if (letters.n > 0 && letters.font !== font) {
       v.backend.text(letters);
       letters.reset();
@@ -248,7 +248,7 @@ function gutter(v: DrawView, s: RowsState): void {
   if (slot < 0) return;
   const first = a.rows.rowFirst[slot] === NO_LABEL ? 1 : a.rows.rowFirst[slot];
   // Digits centered on their height in the row, as the row's letters (`letterLines`; a `middle` baseline drew them high).
-  const font = v.text.font("ui", 10);
+  const font = v.text.font('ui', 10);
   letterLines(v, font, Math.round(v.top * v.dpr) | 0, Math.round((v.top + v.height) * v.dpr) | 0, baselines);
   const y = baselines[0];
   for (let side = 0; side < 2; side++) {
@@ -270,7 +270,7 @@ function gutter(v: DrawView, s: RowsState): void {
   }
 }
 
-export const RowsRenderer = kernelEntry<RowsState>("rows", (_s, _p, props) => props.rowHeight, {
+export const RowsRenderer = kernelEntry<RowsState>('rows', (_s, _p, props) => props.rowHeight, {
   minHeight: 1,
   miniature: false,
   draw,

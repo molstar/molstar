@@ -9,15 +9,15 @@
 // The `.svsx` story's data: the committed fixture opened with the
 // reader and compiled over `archiveLoaders` (no network), and the bundle step run over a fixture fetch (offline).
 
-import { bundleUris, writeSvsx } from "@molstar/seq-core/builder/svsx";
-import { archiveLoaders, compile, readSvsx, type Svsx, toJSON } from "@molstar/seq-core/format";
-import fixtureUrl from "../../../../core/_test/format/fixtures/kinase.svsx?url";
-import { absoluteDoc, fixtureFetch, SVSX_FILES } from "../../../../core/_test/format/svsx-fixture.js";
-import { type CompiledCase, reg } from "./seqstar-cases.js";
+import { bundleUris, writeSvsx } from '@molstar/seq-core/builder/svsx';
+import { archiveLoaders, compile, readSvsx, type Svsx, toJSON } from '@molstar/seq-core/format';
+import fixtureUrl from '../../../../core/_test/format/fixtures/kinase.svsx?url';
+import { absoluteDoc, fixtureFetch, SVSX_FILES } from '../../../../core/_test/format/svsx-fixture.js';
+import { type CompiledCase, reg } from './seqstar-cases.js';
 
 const refuse = {
   async load(): Promise<Uint8Array> {
-    throw new Error("the archive has no such file, and nothing else is asked");
+    throw new Error('the archive has no such file, and nothing else is asked');
   },
 };
 
@@ -34,7 +34,7 @@ export async function openFixture(): Promise<Opened> {
   if (!svsx.doc) return { svsx, size: bytes.length, compiled: null };
   const { set, issues } = await compile(svsx.doc, reg, archiveLoaders(svsx.files, refuse, svsx.base));
   const views = (svsx.doc.root.children ?? [])
-    .filter((c) => c.kind === "view")
+    .filter((c) => c.kind === 'view')
     .map((c) => ({ ref: c.ref as string, label: String(c.params?.label ?? c.ref) }));
   return {
     svsx,

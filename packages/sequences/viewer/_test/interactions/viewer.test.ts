@@ -14,13 +14,13 @@
 // kernel fallbacks; without the viewer half, the `matrix` fallback reported; the viewer core importing nothing from
 // here. The draws: draws.test.ts; the hit's heap guard: fingerprint.heap.ts.
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import type { DocNode, SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { case6 } from "../../../core/_test/format/cases.js";
-import { legendGroups } from "../../src/chrome.js";
-import { GlyphShape } from "../../src/draw/backend.js";
-import { Dirty, SectionComposer } from "../../src/draw/index.js";
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import type { DocNode, SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { case6 } from '../../../core/_test/format/cases.js';
+import { legendGroups } from '../../src/chrome.js';
+import { GlyphShape } from '../../src/draw/backend.js';
+import { Dirty, SectionComposer } from '../../src/draw/index.js';
 import {
   Hit,
   HoverKind,
@@ -28,7 +28,7 @@ import {
   type LayerRenderer,
   type SeqViewerContext,
   ThemeLocation,
-} from "../../src/index.js";
+} from '../../src/index.js';
 import {
   Fingerprints,
   InteractionsRegistry,
@@ -37,16 +37,16 @@ import {
   Kind,
   KindStyle,
   Kinds,
-} from "../../src/interactions/index.js";
+} from '../../src/interactions/index.js';
 import {
   FINGERPRINT,
   FingerprintRenderer,
   type FingerprintState,
   InteractionsViewerRegistry,
-} from "../../src/interactions/viewer/index.js";
-import type { MatrixState } from "../../src/rows.js";
-import { LayerFrame, RecordingBackend } from "../../src/testing/index.js";
-import { opened } from "../layout-fixtures.js";
+} from '../../src/interactions/viewer/index.js';
+import type { MatrixState } from '../../src/rows.js';
+import { LayerFrame, RecordingBackend } from '../../src/testing/index.js';
+import { opened } from '../layout-fixtures.js';
 import {
   absentScene,
   alignmentScene,
@@ -57,15 +57,15 @@ import {
   open,
   type Scene,
   unitScene,
-} from "./fixtures.js";
+} from './fixtures.js';
 
-const SECTION = "poses-view.main";
+const SECTION = 'poses-view.main';
 const T315 = 314;
 const M318 = 317;
-const LIGANDS = ["1iep/C", "Vina pose 1", "Vina pose 2", "Vina pose 3", "Vina pose 4"];
+const LIGANDS = ['1iep/C', 'Vina pose 1', 'Vina pose 2', 'Vina pose 3', 'Vina pose 4'];
 
 const poses = (registry = [InteractionsViewerRegistry]) =>
-  opened(case6(), { renderers: [...KernelRenderers], view: "poses-view", registry });
+  opened(case6(), { renderers: [...KernelRenderers], view: 'poses-view', registry });
 const stateOf = (ctx: SeqViewerContext) => layerOf(ctx).state as FingerprintState;
 
 /** The point (x of a block index, y of a fraction down the track's entry) tested, and what hovering it labels. */
@@ -84,20 +84,20 @@ function probe(t: Awaited<ReturnType<typeof open>>, scene: Scene) {
     },
     label: (block: number, index: number, y: number) => {
       t.ctx.layout.hitTest(scene.section, t.xOf(scene.section, block, index), y, hit);
-      t.ctx.hover.setFromHit(hit, "pointer");
+      t.ctx.hover.setFromHit(hit, 'pointer');
       return t.ctx.labels.compute(t.ctx.hover.live.current);
     },
   };
 }
 
 describe("case 6's poses through InteractionsViewerRegistry", () => {
-  it("prepares the KLIFS-style cells from the runtime property: a stripe per kind, the hydrogen bonds poses 3 and 4 lose", async () => {
+  it('prepares the KLIFS-style cells from the runtime property: a stripe per kind, the hydrogen bonds poses 3 and 4 lose', async () => {
     const t = await poses();
     const codes = t.ctx.issues.current.value.map((i) => i.code);
-    expect(codes.filter((c) => c.startsWith("svs.render") || c.startsWith("seqv."))).toEqual([]);
+    expect(codes.filter((c) => c.startsWith('svs.render') || c.startsWith('seqv.'))).toEqual([]);
     const s = stateOf(t.ctx);
     const f = s.fp[0];
-    if (!f) throw new Error("no fingerprint");
+    if (!f) throw new Error('no fingerprint');
     expect(s.fallback).toBeNull();
     // The kinds present, in stripe order (hydrogen bond, π stacking, cation–π, hydrophobic, the rest): a stripe each.
     expect(Array.from(s.kinds)).toEqual([Kind.hbond, Kind.pi_stacking, Kind.cation_pi, Kind.hydrophobic]);
@@ -118,33 +118,33 @@ describe("case 6's poses through InteractionsViewerRegistry", () => {
     }
     // A band per ligand, as a matrix's (five of 18 px) under the pocket's numbers and letters.
     expect(t.entries(SECTION).map(([, ref, , , h]) => [ref, h])).toEqual([
-      ["poses-view.ruler", 26],
-      ["poses-view.pocket", 22],
-      ["poses-view.fingerprint", 90],
+      ['poses-view.ruler', 26],
+      ['poses-view.pocket', 22],
+      ['poses-view.fingerprint', 90],
     ]);
   });
 
   it("hits (ligand, position, the stripe's kind) and labels it; the legend lists the kinds", async () => {
     const t = await poses();
     const { k } = layerOf(t.ctx);
-    const top = t.yOf(SECTION, "poses-view.fingerprint") - 45;
+    const top = t.yOf(SECTION, 'poses-view.fingerprint') - 45;
     /** At DPR 1, 88 px for five rows 18 px apart (16 and a gap of 2), four stripes of 4 px each. */
     const label = (index: number, band: number, stripe: number, part = -1) => {
       const hit = Hit.create();
       const y = top + 1 + band * 18 + stripe * 4 + 2;
       expect(t.ctx.layout.hitTest(SECTION, t.xOf(SECTION, 0, index), y, hit)).toBe(true);
       expect([hit.kind, hit.layer, hit.seq.index, hit.state, hit.part]).toEqual([HoverKind.seq, k, index, band, part]);
-      t.ctx.hover.setFromHit(hit, "pointer");
+      t.ctx.hover.setFromHit(hit, 'pointer');
       return t.ctx.labels.compute(t.ctx.hover.live.current);
     };
-    expect(label(T315, 0, 0, Kind.hbond)?.title).toBe("1iep/C · T315 · hbond");
+    expect(label(T315, 0, 0, Kind.hbond)?.title).toBe('1iep/C · T315 · hbond');
     // Over a stripe whose kind the cell lacks (its ground): the kinds there.
-    expect(label(T315, 0, 3)?.title).toBe("1iep/C · T315 · hbond");
-    expect(label(T315, 3, 0)?.title).toBe("Vina pose 3 · T315 · no contact");
-    expect(label(T315, 4, 3, Kind.hydrophobic)?.title).toBe("Vina pose 4 · T315 · hydrophobic");
+    expect(label(T315, 0, 3)?.title).toBe('1iep/C · T315 · hbond');
+    expect(label(T315, 3, 0)?.title).toBe('Vina pose 3 · T315 · no contact');
+    expect(label(T315, 4, 3, Kind.hydrophobic)?.title).toBe('Vina pose 4 · T315 · hydrophobic');
     const m318 = label(M318, 4, 1);
-    expect(m318?.title).toBe("Vina pose 4 · M318 · no contact");
-    expect(m318?.lines).toContainEqual({ key: "ligand", value: "Vina pose 4" });
+    expect(m318?.title).toBe('Vina pose 4 · M318 · no contact');
+    expect(m318?.lines).toContainEqual({ key: 'ligand', value: 'Vina pose 4' });
     // Moving between bands at one position is a new hovered element (the state is part of it), as between stripes.
     let v0 = t.ctx.hover.live.version.value;
     label(M318, 0, 1);
@@ -155,13 +155,13 @@ describe("case 6's poses through InteractionsViewerRegistry", () => {
     label(M318, 0, 0, Kind.hbond);
     expect(t.ctx.hover.live.version.value).toBe(v0);
 
-    const legend = legendGroups(t.ctx).find((g) => g.track === "Fingerprint");
+    const legend = legendGroups(t.ctx).find((g) => g.track === 'Fingerprint');
     const item = (k: keyof typeof KindStyle) => ({
       label: KindStyle[k][0],
       color: KindStyle[k][1],
       glyph: GlyphShape[KindStyle[k][2] as keyof typeof GlyphShape],
     });
-    expect(legend?.items).toEqual([item("hbond"), item("pi_stacking"), item("cation_pi"), item("hydrophobic")]);
+    expect(legend?.items).toEqual([item('hbond'), item('pi_stacking'), item('cation_pi'), item('hydrophobic')]);
     // Every block has the property: no ramp.
     expect(legend?.ramps).toEqual([]);
   });
@@ -171,17 +171,17 @@ describe("case 6's poses through InteractionsViewerRegistry", () => {
     const map = (n: DocNode): DocNode => ({
       ...n,
       params:
-        n.kind === "layer" && n.params?.type === "pairs"
+        n.kind === 'layer' && n.params?.type === 'pairs'
           ? { ...n.params, color: interactionColors(), glyph: interactionGlyphs() }
           : n.params,
       children: n.children?.map(map),
     });
     const doc: SeqViewSpecDoc = { ...case6(), root: map(case6().root) };
     const t = await opened(doc, { renderers: [...KernelRenderers], registry: [InteractionsViewerRegistry] });
-    expect(t.ctx.issues.current.value.filter((i) => i.code === "svs.render.theme")).toEqual([]);
+    expect(t.ctx.issues.current.value.filter((i) => i.code === 'svs.render.theme')).toEqual([]);
     const m = t.ctx.graph.assembled.value?.view;
-    const k = m?.prepared.findIndex((p) => p.renderer === "pairs") ?? -1;
-    if (!m || k < 0) throw new Error("no pairs layer");
+    const k = m?.prepared.findIndex((p) => p.renderer === 'pairs') ?? -1;
+    if (!m || k < 0) throw new Error('no pairs layer');
     const a = m.set.annotations[m.resolved.data[m.resolved.layers.dataStart[k]]];
     const [color, glyph] = [m.prepared[k].themes[0], m.prepared[k].themes[1]];
     const loc = ThemeLocation.create();
@@ -191,33 +191,33 @@ describe("case 6's poses through InteractionsViewerRegistry", () => {
       const kind = m.set.strings.get(a.category?.[r] ?? -1) as keyof typeof KindStyle;
       expect([color?.value(loc), glyph?.value(loc)]).toEqual([
         Number.parseInt(KindStyle[kind][1].slice(1), 16),
-        ["circle", "diamond", "triangle", "square", "pin", "star", "cross", "tick"].indexOf(KindStyle[kind][2]),
+        ['circle', 'diamond', 'triangle', 'square', 'pin', 'star', 'cross', 'tick'].indexOf(KindStyle[kind][2]),
       ]);
     }
   });
 });
 
-describe("one provider serves color and glyph; a missing category is `other` everywhere", () => {
+describe('one provider serves color and glyph; a missing category is `other` everywhere', () => {
   it("the theme's color, glyph and legend per row of the contacts equal the kernel fallbacks', null categories as `other`", async () => {
     const scene = unitScene({ arcs: true });
     const withExt = await open(scene, { registry: [InteractionsViewerRegistry] });
     const without = await open(scene, { registry: [{ svs: InteractionsRegistry }] });
     // The arcs are the scene's second view.
     for (const t of [withExt, without]) {
-      t.ctx.viewports.get("w.main")?.setSize(1000, 400, 1);
-      t.ctx.views.setCurrent("w");
+      t.ctx.viewports.get('w.main')?.setSize(1000, 400, 1);
+      t.ctx.views.setCurrent('w');
       await t.ctx.graph.update();
     }
     const themes = (ctx: SeqViewerContext) => {
       const m = ctx.graph.assembled.value?.view;
-      const k = m?.prepared.findIndex((p) => p.renderer === "pairs") ?? -1;
-      if (!m || k < 0) throw new Error("no pairs layer");
+      const k = m?.prepared.findIndex((p) => p.renderer === 'pairs') ?? -1;
+      if (!m || k < 0) throw new Error('no pairs layer');
       return { m, themes: m.prepared[k].themes, annotation: m.resolved.data[m.resolved.layers.dataStart[k]] };
     };
     const a = themes(withExt.ctx);
     const b = themes(without.ctx);
     // Without the extension each theme falls back (reported), to the kernel's field_palette and field_map.
-    expect(without.ctx.issues.current.value.filter((i) => i.code === "svs.render.theme").length).toBeGreaterThan(0);
+    expect(without.ctx.issues.current.value.filter((i) => i.code === 'svs.render.theme').length).toBeGreaterThan(0);
     const rows = withExt.ctx.graph.assembled.value?.set.annotations[a.annotation]?.count ?? 0;
     expect(rows).toBeGreaterThan(8);
     const loc = ThemeLocation.create();
@@ -234,8 +234,8 @@ describe("one provider serves color and glyph; a missing category is `other` eve
       ]);
     }
     // The document has rows of a kind this vocabulary does not know and rows with none: both `other`.
-    expect(cats.has("weird")).toBe(true);
-    expect(cats.has("")).toBe(true);
+    expect(cats.has('weird')).toBe(true);
+    expect(cats.has('')).toBe(true);
     const other = Object.assign(ThemeLocation.create(), { category: Kind.other });
     expect(a.themes[0]?.value(other)).toBe(Number.parseInt(KindStyle.other[1].slice(1), 16));
     withExt.ctx.dispose();
@@ -254,7 +254,7 @@ describe("the shared scenes' systems", () => {
     expect([h.kind, h.state, h.part]).toEqual([HoverKind.seq, 0, Kind.hbond]);
     // Pose 3 lost the bond at residue 7; a row's gap belongs to the row above it.
     const lost = p.label(0, 7, p.top + 1 + 2 * 18 + 2);
-    expect(lost?.title).toBe("L pose 3 · K8 · no contact");
+    expect(lost?.title).toBe('L pose 3 · K8 · no contact');
     expect(p.hit(0, 7, p.top + 1 + 16 + 1).state).toBe(0);
     // Rows with a kind of no vocabulary entry, and none: `other` both.
     const odd = p.label(0, 7, p.top + 1 + 3 * 18 + 14);
@@ -262,7 +262,7 @@ describe("the shared scenes' systems", () => {
     t.ctx.dispose();
   });
 
-  it("an alignment system: the hover is a column, titled `column N`, and the row is the pose", async () => {
+  it('an alignment system: the hover is a column, titled `column N`, and the row is the pose', async () => {
     const scene = alignmentScene();
     const t = await open(scene);
     const p = probe(t, scene);
@@ -287,37 +287,37 @@ describe("the shared scenes' systems", () => {
   });
 });
 
-describe("rows and sizing", () => {
-  it("20 poses × 8 kinds: 18 px rows of 16, every stripe 2 px; a track `height` hint raised to a device pixel a row", async () => {
+describe('rows and sizing', () => {
+  it('20 poses × 8 kinds: 18 px rows of 16, every stripe 2 px; a track `height` hint raised to a device pixel a row', async () => {
     const t = await open(manyScene());
-    expect(t.entries("v.main").at(-1)?.[4]).toBe(360);
+    expect(t.entries('v.main').at(-1)?.[4]).toBe(360);
     const s = stateOf(t.ctx);
     expect(s.kinds.length).toBe(8);
     // No 160 cap: 20 rows × 18.
-    expect(FingerprintRenderer.height?.(s, {}, t.ctx.layout.props("v.main"))).toBe(360);
+    expect(FingerprintRenderer.height?.(s, {}, t.ctx.layout.props('v.main'))).toBe(360);
     expect(FingerprintRenderer.minTrackHeight?.(s, {})).toBe(22);
     t.ctx.dispose();
     // A hint of one row gives a row's height for 40 rows: raised to 42 (S + 2); without the floor it stays one row's.
-    const rowHeight = t.ctx.layout.props("v.main").rowHeight;
+    const rowHeight = t.ctx.layout.props('v.main').rowHeight;
     const u = await open(manyScene(40, 3, 1));
-    expect(u.entries("v.main").at(-1)?.[4]).toBe(42);
+    expect(u.entries('v.main').at(-1)?.[4]).toBe(42);
     const bare = { ...FingerprintRenderer, minTrackHeight: undefined } as LayerRenderer;
     const v = await open(manyScene(40, 3, 1), { registry: [{ ...InteractionsViewerRegistry, renderers: [bare] }] });
-    expect(v.entries("v.main").at(-1)?.[4]).toBe(rowHeight);
+    expect(v.entries('v.main').at(-1)?.[4]).toBe(rowHeight);
     // A taller hint wins as before.
     const w = await open(manyScene(20, 8, 40));
-    expect(w.entries("v.main").at(-1)?.[4]).toBe(40 * rowHeight);
+    expect(w.entries('v.main').at(-1)?.[4]).toBe(40 * rowHeight);
     for (const x of [u, v, w]) x.ctx.dispose();
   });
 
   it("a track without a hint is not raised, and few poses keep the matrix's 24 px floor", async () => {
-    const t = await open(unitScene({ contacts: [[[3, "hbond"]]] }));
-    expect(t.entries("v.main").at(-1)?.[4]).toBe(24);
+    const t = await open(unitScene({ contacts: [[[3, 'hbond']]] }));
+    expect(t.entries('v.main').at(-1)?.[4]).toBe(24);
     t.ctx.dispose();
   });
 });
 
-describe("mixed data and the absent property", () => {
+describe('mixed data and the absent property', () => {
   it("each fingerprint bounds its own rows, and the block without one is hit as a matrix's bands", async () => {
     const scene = mixedScene();
     const t = await open(scene);
@@ -343,11 +343,11 @@ describe("mixed data and the absent property", () => {
     const row = (q: number) => p.top + 1 + q * 18 + 8;
     const plain = p.label(2, 3, row(1));
     // Plain matrix state values: (3 + 1) % 3 → 1 + 1 = 2.
-    expect(plain?.lines).toContainEqual({ key: "a pose 2", value: "2" });
+    expect(plain?.lines).toContainEqual({ key: 'a pose 2', value: '2' });
     expect(plain?.title).not.toMatch(/·/);
     expect(p.label(0, 3, row(0))?.title).toMatch(/^a pose 1 · /);
     // Nothing of the fingerprint's own past its cut rows.
-    expect(p.label(1, 4, row(4))?.title ?? "").not.toMatch(/·/);
+    expect(p.label(1, 4, row(4))?.title ?? '').not.toMatch(/·/);
     t.ctx.dispose();
   });
 
@@ -359,7 +359,7 @@ describe("mixed data and the absent property", () => {
     const s = stateOf(t.ctx);
     const values = Float64Array.from({ length: 4 * 3 }, (_, i) => 100 + 10 * Math.floor(i / 3) + (i % 3));
     for (const m of [s.matrix, s.fallback as MatrixState]) {
-      const ann = m.ann[2] as NonNullable<MatrixState["ann"][number]>;
+      const ann = m.ann[2] as NonNullable<MatrixState['ann'][number]>;
       (m.ann as unknown[])[2] = { ...ann, matrix: { ...ann.matrix, values } };
       m.stride[2] = 3;
     }
@@ -369,16 +369,16 @@ describe("mixed data and the absent property", () => {
     const line = (q: number) =>
       (p.label(2, 4, row(q))?.lines ?? []).filter((l) => l.key === `a pose ${q + 1}`).map((l) => l.value);
     // Position 4 is the matrix's row 1.
-    expect([0, 1, 2].map(line)).toEqual([["110"], ["111"], ["112"]]);
+    expect([0, 1, 2].map(line)).toEqual([['110'], ['111'], ['112']]);
     expect([3, 4].map(line)).toEqual([[], []]);
     t.ctx.dispose();
   });
 
   it("the legend lists the kinds and, as there are blocks without the property, the counts' ramp, captioned", async () => {
     const t = await open(mixedScene());
-    const g = legendGroups(t.ctx).find((x) => x.track === "FP");
-    expect(g?.items.map((i) => i.label)).toEqual(["hydrogen bond", "salt bridge", "π stacking", "hydrophobic contact"]);
-    expect(g?.ramps.map((r) => [r.caption, r.lo])).toEqual([["contacts (number of kinds)", 0]]);
+    const g = legendGroups(t.ctx).find((x) => x.track === 'FP');
+    expect(g?.items.map((i) => i.label)).toEqual(['hydrogen bond', 'salt bridge', 'π stacking', 'hydrophobic contact']);
+    expect(g?.ramps.map((r) => [r.caption, r.lo])).toEqual([['contacts (number of kinds)', 0]]);
     t.ctx.dispose();
   });
 
@@ -386,8 +386,8 @@ describe("mixed data and the absent property", () => {
     const t = await open(absentScene());
     const s = stateOf(t.ctx);
     expect([s.kinds.length, s.fallback?.rows.length, s.matrix.states]).toEqual([0, 1, 4]);
-    const g = legendGroups(t.ctx).find((x) => x.track === "FP");
-    expect([g?.items.length, g?.ramps.length, g?.ramps[0]?.caption]).toEqual([0, 1, "contacts (number of kinds)"]);
+    const g = legendGroups(t.ctx).find((x) => x.track === 'FP');
+    expect([g?.items.length, g?.ramps.length, g?.ramps[0]?.caption]).toEqual([0, 1, 'contacts (number of kinds)']);
     // Blues from 0 (light) to the largest count (dark).
     const [lo, hi] = [g?.ramps[0]?.stops[0].color, g?.ramps[0]?.stops.at(-1)?.color];
     expect(lo).not.toBe(hi);
@@ -395,12 +395,12 @@ describe("mixed data and the absent property", () => {
   });
 });
 
-describe("a declared geometry with no draw", () => {
-  it("is reported once over several frames, as svs.render.fallback (a warning), and drawn as bars", async () => {
+describe('a declared geometry with no draw', () => {
+  it('is reported once over several frames, as svs.render.fallback (a warning), and drawn as bars', async () => {
     const bare = { ...FingerprintRenderer, draw: undefined, tiny: undefined } as LayerRenderer;
     const t = await opened(case6(), {
       renderers: [...KernelRenderers],
-      view: "poses-view",
+      view: 'poses-view',
       registry: [{ ...InteractionsViewerRegistry, renderers: [bare] }],
     });
     for (const ref of t.ctx.viewports.sections.value) t.ctx.viewports.get(ref)?.setSize(1000, 400, 1);
@@ -414,65 +414,65 @@ describe("a declared geometry with no draw", () => {
       bars = Array.from(r.rectItems.color.subarray(0, r.rectItems.n)).filter((c) => c === -6).length;
     }
     // Drawn otherwise than written: a fallback, not a failure (GV-10).
-    const said = t.ctx.issues.current.value.filter((i) => i.code === "svs.render.fallback");
+    const said = t.ctx.issues.current.value.filter((i) => i.code === 'svs.render.fallback');
     expect(said.map((e) => [e.severity, e.message])).toEqual([
-      ["warning", expect.stringContaining("declares linear and has no draw")],
+      ['warning', expect.stringContaining('declares linear and has no draw')],
     ]);
     expect(bars).toBeGreaterThan(0);
     t.ctx.dispose();
   });
 });
 
-describe("in a miniature", () => {
+describe('in a miniature', () => {
   it("`seqv:map` draws the fingerprint's tracks in lanes: the kinds' colors are in the map's image", async () => {
     const scene = unitScene({ map: true });
     const t = await open(scene);
     const m = t.ctx.graph.assembled.value?.view;
-    const k = m?.prepared.findIndex((p) => p.renderer === "seqv:map") ?? -1;
-    const entry = t.ctx.registry.get("renderers", "seqv:map");
-    if (!entry) throw new Error("no map");
+    const k = m?.prepared.findIndex((p) => p.renderer === 'seqv:map') ?? -1;
+    const entry = t.ctx.registry.get('renderers', 'seqv:map');
+    if (!entry) throw new Error('no map');
     const f = new LayerFrame(t.ctx, entry, scene.section, k);
     f.draw(f.direct);
     const layer = f.direct.images.content.find((c): c is RecordingBackend => c instanceof RecordingBackend);
     const colors = new Set(Array.from(layer?.rectItems.color.subarray(0, layer.rectItems.n) ?? []));
-    expect(t.ctx.issues.current.value.filter((i) => i.code === "seqv.renderer.error")).toEqual([]);
+    expect(t.ctx.issues.current.value.filter((i) => i.code === 'seqv.renderer.error')).toEqual([]);
     for (const kind of [Kind.hbond, Kind.hydrophobic])
       expect(colors.has(Number.parseInt(KindStyle[Kinds[kind]][1].slice(1), 16))).toBe(true);
     t.ctx.dispose();
   });
 });
 
-describe("without the viewer half", () => {
-  it("the format half alone: the layer is drawn as its `matrix` fallback, reported once", async () => {
+describe('without the viewer half', () => {
+  it('the format half alone: the layer is drawn as its `matrix` fallback, reported once', async () => {
     const t = await poses([{ svs: InteractionsRegistry }] as never);
-    expect(t.ctx.graph.assembled.value?.view?.prepared.map((p) => p.renderer)).toContain("matrix");
+    expect(t.ctx.graph.assembled.value?.view?.prepared.map((p) => p.renderer)).toContain('matrix');
     expect(layerOf(t.ctx).k).toBe(-1);
-    const fallback = t.ctx.issues.current.value.filter((i) => i.code === "svs.render.fallback");
+    const fallback = t.ctx.issues.current.value.filter((i) => i.code === 'svs.render.fallback');
     expect(fallback.map((i) => i.message)).toEqual([expect.stringContaining(FINGERPRINT)]);
   });
 
-  it("the viewer core imports nothing from this package (and Biome refuses it: layers.grit)", () => {
-    const root = new URL("../../src/", import.meta.url);
+  it('the viewer core imports nothing from this package (and Biome refuses it: layers.grit)', () => {
+    const root = new URL('../../src/', import.meta.url);
     const files: string[] = [];
     const walk = (dir: string) => {
       for (const name of readdirSync(dir)) {
         const p = `${dir}/${name}`;
         if (statSync(p).isDirectory()) {
-          if (name !== "interactions") walk(p);
+          if (name !== 'interactions') walk(p);
         } else if (/\.(ts|tsx)$/.test(name)) files.push(p);
       }
     };
-    walk(root.pathname.replace(/\/$/, ""));
+    walk(root.pathname.replace(/\/$/, ''));
     expect(files.length).toBeGreaterThan(40);
     const imports = /(?:from|import)\s*\(?\s*["']([^"']+)["']/g;
     const offending = files.flatMap((f) =>
-      [...readFileSync(f, "utf8").matchAll(imports)]
+      [...readFileSync(f, 'utf8').matchAll(imports)]
         .map((m) => m[1])
-        .filter((s) => s.startsWith("@molstar/seq-viewer/interactions") || /(^|\/)interactions\//.test(s))
+        .filter((s) => s.startsWith('@molstar/seq-viewer/interactions') || /(^|\/)interactions\//.test(s))
         .map((s) => `${f}: ${s}`),
     );
     expect(offending).toEqual([]);
-    const grit = readFileSync(new URL("../../../layers.grit", import.meta.url), "utf8");
-    expect(grit.includes("@molstar/seq-viewer/interactions")).toBe(true);
+    const grit = readFileSync(new URL('../../../layers.grit', import.meta.url), 'utf8');
+    expect(grit.includes('@molstar/seq-viewer/interactions')).toBe(true);
   });
 });

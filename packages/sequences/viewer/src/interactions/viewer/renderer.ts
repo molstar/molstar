@@ -13,7 +13,7 @@
 // property is drawn by the `matrix` renderer's tiles and hit and labeled as its bands. The draw is draw.ts; the integer
 // geometry the draw and the hit share is geometry.ts.
 
-import { SortedArray } from "@molstar/seq-core/model";
+import { SortedArray } from '@molstar/seq-core/model';
 import {
   type AxisView,
   type Hit,
@@ -29,14 +29,14 @@ import {
   prepareMatrix,
   sourceAt,
   type Theme,
-} from "@molstar/seq-viewer/draw";
-import type { Fingerprint } from "../fingerprint.js";
-import { fingerprintOf } from "../registry.js";
-import { KindMask, Kinds } from "../vocabulary.js";
-import { draw, overlay, tiny } from "./draw.js";
-import { compactRows, Geo, geo, LEAD, rowFrame, rowTop, STRIPES, stripeTop } from "./geometry.js";
+} from '@molstar/seq-viewer/draw';
+import type { Fingerprint } from '../fingerprint.js';
+import { fingerprintOf } from '../registry.js';
+import { KindMask, Kinds } from '../vocabulary.js';
+import { draw, overlay, tiny } from './draw.js';
+import { compactRows, Geo, geo, LEAD, rowFrame, rowTop, STRIPES, stripeTop } from './geometry.js';
 
-export const FINGERPRINT = "interactions:fingerprint";
+export const FINGERPRINT = 'interactions:fingerprint';
 
 /** The engine's cache per prepared state and skin: the fallback blocks' tiles. */
 export interface FingerprintCache {
@@ -193,7 +193,7 @@ function positionText(h: HoverState, lc: LabelContext, g: number): string {
   const n = rv.blocks.numbering[g];
   const np = rv.blocks.numberingPath[g];
   const at = np >= 0 && rv.paths[np] ? sourceAt(rv.paths[np], index) : index;
-  const letter = mol && !mol.element ? String.fromCharCode(mol.code[index]) : "";
+  const letter = mol && !mol.element ? String.fromCharCode(mol.code[index]) : '';
   return `${letter}${n && at >= 0 && at < n.length ? lc.format(n, at as never) : index + 1}`;
 }
 
@@ -208,15 +208,15 @@ function label(h: HoverState, lc: LabelContext, out: LabelSink, s: FingerprintSt
   const rv = lc.view.resolved;
   const g = rv.sections.blockStart[lc.section] + b;
   const j = h.index - rv.blocks.base[g];
-  const ligand = s.matrix.labels[h.state] ?? "";
+  const ligand = s.matrix.labels[h.state] ?? '';
   if (s.fp[b] !== null) {
     if (h.state >= s.rowsOf[b]) return;
     const cols = s.colOf[b];
     const col = j >= 0 && j < cols.length ? cols[j] : -1;
     const mask = col >= 0 ? s.cells[b][h.state * s.width[b] + col] : 0;
-    const kinds = h.part >= 0 ? Kinds[h.part] : mask ? KindMask.names(mask).join(", ") : "no contact";
+    const kinds = h.part >= 0 ? Kinds[h.part] : mask ? KindMask.names(mask).join(', ') : 'no contact';
     out.replaceTitle(`${ligand} · ${positionText(h, lc, g)} · ${kinds}`);
-    out.line("ligand", ligand);
+    out.line('ligand', ligand);
     return;
   }
   const rows = s.fallback?.rows[b];
@@ -227,7 +227,7 @@ function label(h: HoverState, lc: LabelContext, out: LabelSink, s: FingerprintSt
   if (!Number.isNaN(v)) out.line(ligand, `${Number(v.toPrecision(4))}`);
 }
 
-const COUNTS = "contacts (number of kinds)";
+const COUNTS = 'contacts (number of kinds)';
 /** The kinds present (the `color` channel's legend), and, if any block has no fingerprint, the counts' ramp, captioned. */
 function legend(_p: unknown, themes: readonly (Theme | null)[], out: LegendSink, s: FingerprintState): void {
   themes[0]?.legend?.(out);
@@ -242,7 +242,7 @@ function legend(_p: unknown, themes: readonly (Theme | null)[], out: LegendSink,
 /** The fingerprint entry: a band per ligand or pose, a stripe per kind. */
 export const FingerprintRenderer: LayerRenderer<FingerprintState> = {
   name: FINGERPRINT,
-  geometries: ["linear"],
+  geometries: ['linear'],
   content: false,
   stable: false,
   minHeight: 4,
@@ -255,7 +255,7 @@ export const FingerprintRenderer: LayerRenderer<FingerprintState> = {
   hit,
   label,
   legend,
-  bands: { count: (s) => s.matrix.states, label: (s, q) => s.matrix.labels[q] ?? "" },
+  bands: { count: (s) => s.matrix.states, label: (s, q) => s.matrix.labels[q] ?? '' },
   cache: { create: () => ({ tiles: new MatrixTiles() }), dispose: (c) => (c as FingerprintCache).tiles.dispose() },
   draw,
   tiny,

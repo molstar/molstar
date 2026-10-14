@@ -20,7 +20,8 @@
       "!.v6/baselines",
       "!**/package-lock.json",
       "!**/npm-shrinkwrap.json",
-      "!**/_generated/**"
+      "!**/_generated/**",
+      "!packages/sequences/**/_test/**/*.json"
     ]
   },
   "formatter": {

@@ -11,37 +11,37 @@
 // bookmarks. The panel edits the document only through patches (each one undo step): an entry's style, an entry
 // removed or added, a bookmark added from the viewer's selection or removed; stepping is the runtime `bookmark.step`.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import type { Loci } from "@molstar/seq-core/model";
-import { bookmarkAt, type SeqViewerContext } from "@molstar/seq-viewer";
-import { SeqViewerLayout, SeqViewerProvider, useSeqState } from "@molstar/seq-viewer/react";
-import { Fragment, type ReactNode, useMemo, useState } from "react";
-import { PrismPage } from "../support/seqstar-prism.js";
-import { TextAction, type TextTab, TextTabs } from "../ui/index.js";
-import { BOOKMARKS, locationSetsDoc, LOCATION_SECTION as SECTION } from "./seqstar-docs-views.js";
-import f from "./seqstar-format.module.css";
-import { storyPropose } from "./seqstar-patch.js";
-import { PatchBanner } from "./seqstar-patch-banner.js";
-import { PrismCanvas } from "./seqstar-prism.js";
-import q from "./seqstar-search.module.css";
-import { useCaseContext, useStoryUi } from "./seqstar-viewer.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import type { Loci } from '@molstar/seq-core/model';
+import { bookmarkAt, type SeqViewerContext } from '@molstar/seq-viewer';
+import { SeqViewerLayout, SeqViewerProvider, useSeqState } from '@molstar/seq-viewer/react';
+import { Fragment, type ReactNode, useMemo, useState } from 'react';
+import { PrismPage } from '../support/seqstar-prism.js';
+import { TextAction, type TextTab, TextTabs } from '../ui/index.js';
+import { BOOKMARKS, locationSetsDoc, LOCATION_SECTION as SECTION } from './seqstar-docs-views.js';
+import f from './seqstar-format.module.css';
+import { storyPropose } from './seqstar-patch.js';
+import { PatchBanner } from './seqstar-patch-banner.js';
+import { PrismCanvas } from './seqstar-prism.js';
+import q from './seqstar-search.module.css';
+import { useCaseContext, useStoryUi } from './seqstar-viewer.js';
 
 type Json = { kind: string; ref?: string; params?: Record<string, unknown>; children?: Json[] };
-type Entry = { data: string; items?: string[] | null; style?: "band" | "highlight" | "accent" };
+type Entry = { data: string; items?: string[] | null; style?: 'band' | 'highlight' | 'accent' };
 type Row = { target: string; start: number; stop: number; id: string; label?: string };
 
 /** What the panel offers to add as a location set: the case's annotations and a query node. */
 const DATA: readonly { ref: string; label: string }[] = [
-  { ref: "cysteines", label: "Cysteines (a SeqQL query)" },
-  { ref: "zinc", label: "Zinc ligands" },
-  { ref: "dna-contacts", label: "DNA-binding residues" },
-  { ref: "domains", label: "Domains" },
-  { ref: BOOKMARKS, label: "Bookmarks" },
+  { ref: 'cysteines', label: 'Cysteines (a SeqQL query)' },
+  { ref: 'zinc', label: 'Zinc ligands' },
+  { ref: 'dna-contacts', label: 'DNA-binding residues' },
+  { ref: 'domains', label: 'Domains' },
+  { ref: BOOKMARKS, label: 'Bookmarks' },
 ];
 const STYLES: TextTab[] = [
-  { value: "band", label: "band", hint: "A full-height band behind the tracks, drawn in the main pass." },
-  { value: "highlight", label: "highlight", hint: "The selection's marks on the overlay, in the highlight color." },
-  { value: "accent", label: "accent", hint: "The overlay's accent: the highlight color at a quarter of its strength." },
+  { value: 'band', label: 'band', hint: 'A full-height band behind the tracks, drawn in the main pass.' },
+  { value: 'highlight', label: 'highlight', hint: "The selection's marks on the overlay, in the highlight color." },
+  { value: 'accent', label: 'accent', hint: "The overlay's accent: the highlight color at a quarter of its strength." },
 ];
 
 const nodeOf = (doc: SeqViewSpecDoc | null, ref: string): Json | undefined => {
@@ -52,9 +52,9 @@ const nodeOf = (doc: SeqViewSpecDoc | null, ref: string): Json | undefined => {
 const propose = (ctx: SeqViewerContext, title: string, highlights: Entry[]) =>
   void storyPropose(
     ctx,
-    { format: "seq_view_spec_patch", ops: [{ op: "set", ref: SECTION, params: { highlights } }] },
+    { format: 'seq_view_spec_patch', ops: [{ op: 'set', ref: SECTION, params: { highlights } }] },
     title,
-    "host:story",
+    'host:story',
   );
 /** The selection's first part a bookmark can keep, or null. */
 function selected(ctx: SeqViewerContext): Loci | null {
@@ -68,8 +68,8 @@ function SetsPanel({ ctx, entries }: { ctx: SeqViewerContext; entries: Entry[] }
   const restyle = (k: number, style: string) =>
     propose(
       ctx,
-      "Style",
-      entries.map((e, i) => (i === k ? { ...e, style: style as Entry["style"] } : e)),
+      'Style',
+      entries.map((e, i) => (i === k ? { ...e, style: style as Entry['style'] } : e)),
     );
   return (
     <div className={q.panel}>
@@ -79,13 +79,13 @@ function SetsPanel({ ctx, entries }: { ctx: SeqViewerContext; entries: Entry[] }
       {entries.map((e, k) => (
         <div className={q.box} key={e.data}>
           <code className={q.count}>{e.data}</code>
-          <TextTabs tabs={STYLES} value={e.style ?? "band"} onValueChange={(v) => restyle(k, v)} />
+          <TextTabs tabs={STYLES} value={e.style ?? 'band'} onValueChange={(v) => restyle(k, v)} />
           <TextAction
             tone="quiet"
             onClick={() =>
               propose(
                 ctx,
-                "Remove",
+                'Remove',
                 entries.filter((_, i) => i !== k),
               )
             }
@@ -97,7 +97,7 @@ function SetsPanel({ ctx, entries }: { ctx: SeqViewerContext; entries: Entry[] }
       <div className={q.box}>
         <span className={q.caption}>Add</span>
         {DATA.filter((d) => !shown.has(d.ref)).map((d) => (
-          <TextAction key={d.ref} tone="quiet" onClick={() => propose(ctx, "Add", [...entries, { data: d.ref }])}>
+          <TextAction key={d.ref} tone="quiet" onClick={() => propose(ctx, 'Add', [...entries, { data: d.ref }])}>
             {d.label}
           </TextAction>
         ))}
@@ -108,7 +108,7 @@ function SetsPanel({ ctx, entries }: { ctx: SeqViewerContext; entries: Entry[] }
 
 /** The bookmarks: the set's items as chips (the current one marked), stepping, adding the selection, removing one. */
 function BookmarksPanel({ ctx, rows }: { ctx: SeqViewerContext; rows: Row[] }) {
-  const [label, setLabel] = useState("");
+  const [label, setLabel] = useState('');
   // Re-rendered on every channel change: the step's accent and the selection's light both pass through here.
   useSeqState(ctx.highlight.channels);
   useSeqState(ctx.selection.current);
@@ -116,7 +116,7 @@ function BookmarksPanel({ ctx, rows }: { ctx: SeqViewerContext; rows: Row[] }) {
   const target = loci && { section: SECTION, loci, label: label || undefined };
   const at = bookmarkAt(ctx, SECTION);
   const ids = [...new Set(rows.map((r) => r.id))];
-  const step = (dir: 1 | -1) => ctx.actions.run("bookmark.step", { section: SECTION, dir }, "host:story");
+  const step = (dir: 1 | -1) => ctx.actions.run('bookmark.step', { section: SECTION, dir }, 'host:story');
   return (
     <div className={q.panel}>
       <span className={q.caption}>
@@ -145,10 +145,10 @@ function BookmarksPanel({ ctx, rows }: { ctx: SeqViewerContext; rows: Row[] }) {
         />
         <TextAction
           onClick={() => {
-            if (target && ctx.actions.run("bookmark.add", target, "host:story")) setLabel("");
+            if (target && ctx.actions.run('bookmark.add', target, 'host:story')) setLabel('');
           }}
           title="Select a stretch in the viewer first (drag over the letters)"
-          disabled={!target || !ctx.actions.can("bookmark.add", target)}
+          disabled={!target || !ctx.actions.can('bookmark.add', target)}
         >
           Add
         </TextAction>
@@ -163,18 +163,18 @@ function BookmarksPanel({ ctx, rows }: { ctx: SeqViewerContext; rows: Row[] }) {
                 type="button"
                 className={q.hit}
                 aria-current={id === at}
-                onClick={() => ctx.actions.run("bookmark.go", { section: SECTION, item: id }, "host:story")}
+                onClick={() => ctx.actions.run('bookmark.go', { section: SECTION, item: id }, 'host:story')}
                 // The current one again, or Escape, unselects it: no accent, the focus stays.
-                onKeyDown={(e) => e.key === "Escape" && ctx.results.clearCurrent(`bookmarks:${SECTION}`)}
+                onKeyDown={(e) => e.key === 'Escape' && ctx.results.clearCurrent(`bookmarks:${SECTION}`)}
               >
                 <span className={q.at}>{id}</span>
-                <span className={q.letters}>{own[0].label ?? ""}</span>
-                <span className={q.at}>{own.map((r) => `${r.start + 1}–${r.stop}`).join(", ")}</span>
+                <span className={q.letters}>{own[0].label ?? ''}</span>
+                <span className={q.at}>{own.map((r) => `${r.start + 1}–${r.stop}`).join(', ')}</span>
               </button>
               <TextAction
                 tone="quiet"
                 title={`Remove ${id}`}
-                onClick={() => ctx.actions.run("bookmark.remove", { section: SECTION, item: id }, "host:story")}
+                onClick={() => ctx.actions.run('bookmark.remove', { section: SECTION, item: id }, 'host:story')}
               >
                 ×
               </TextAction>
@@ -197,7 +197,7 @@ function Panels({ ctx }: { ctx: SeqViewerContext }) {
       <BookmarksPanel ctx={ctx} rows={rows} />
       <TextAction
         tone="quiet"
-        onClick={() => ctx.actions.run("history.undo", null)}
+        onClick={() => ctx.actions.run('history.undo', null)}
         disabled={!ctx.history.canUndo.value}
       >
         Undo
@@ -209,7 +209,7 @@ function Panels({ ctx }: { ctx: SeqViewerContext }) {
 /** The story: the viewer on p53's Tracks view, the two panels above it. */
 export function LocationSetsStory(): ReactNode {
   const doc = useMemo(locationSetsDoc, []);
-  const m = useCaseContext(doc, { view: "tracks" });
+  const m = useCaseContext(doc, { view: 'tracks' });
   const ui = useStoryUi(m);
   return (
     <PrismPage

@@ -8,13 +8,13 @@
 
 // Genome files made by hand to break the readers (the review gate's untrusted input, GI-05 to GI-07): each is an error
 // at once, never a hang or a memory blow-up.
-import { crc32, deflateRawSync, deflateSync } from "node:zlib";
-import { describe, expect, it } from "vitest";
-import { bigBedProvider, sqlFields } from "../../../src/stream/gmod/bigbed.js";
-import { vcfProvider } from "../../../src/stream/gmod/tabix.js";
-import { twoBitProvider } from "../../../src/stream/gmod/twobit.js";
-import { itWithin } from "../../model/timing.js";
-import { req } from "./cases.js";
+import { crc32, deflateRawSync, deflateSync } from 'node:zlib';
+import { describe, expect, it } from 'vitest';
+import { bigBedProvider, sqlFields } from '../../../src/stream/gmod/bigbed.js';
+import { vcfProvider } from '../../../src/stream/gmod/tabix.js';
+import { twoBitProvider } from '../../../src/stream/gmod/twobit.js';
+import { itWithin } from '../../model/timing.js';
+import { req } from './cases.js';
 
 /** A little-endian byte writer. */
 class W {
@@ -154,51 +154,51 @@ const record = (start: number, end: number, name: string, nul = true) => {
 const reader = (b: Uint8Array) => async (o: number, n: number) => b.subarray(o, o + n);
 const signal = new AbortController().signal;
 
-describe("BigBed (GI-05, GI-06)", () => {
-  it("reads a good one", async () => {
-    const p = bigBedProvider(reader(bigBed({ block: [...record(10, 20, "a"), ...record(30, 40, "b")] })));
-    const r = await p.fetch(req("chr1", 0, 1000), signal);
-    expect(r.kind === "items" && Array.from(r.items.id as ArrayLike<unknown>)).toEqual(["a@10-20", "b@30-40"]);
+describe('BigBed (GI-05, GI-06)', () => {
+  it('reads a good one', async () => {
+    const p = bigBedProvider(reader(bigBed({ block: [...record(10, 20, 'a'), ...record(30, 40, 'b')] })));
+    const r = await p.fetch(req('chr1', 0, 1000), signal);
+    expect(r.kind === 'items' && Array.from(r.items.id as ArrayLike<unknown>)).toEqual(['a@10-20', 'b@30-40']);
   });
 
-  it("a block whose last record has no NUL ends with it", async () => {
-    const p = bigBedProvider(reader(bigBed({ block: [...record(10, 20, "a"), ...record(30, 40, "b", false)] })));
-    const r = await p.fetch(req("chr1", 0, 1000), signal);
-    expect(r.kind === "items" && Array.from(r.items.id as ArrayLike<unknown>)).toEqual(["a@10-20", "b@30-40"]);
+  it('a block whose last record has no NUL ends with it', async () => {
+    const p = bigBedProvider(reader(bigBed({ block: [...record(10, 20, 'a'), ...record(30, 40, 'b', false)] })));
+    const r = await p.fetch(req('chr1', 0, 1000), signal);
+    expect(r.kind === 'items' && Array.from(r.items.id as ArrayLike<unknown>)).toEqual(['a@10-20', 'b@30-40']);
   });
 
-  itWithin("a chromosome tree of shared children is walked once per node, and no deeper than 32", async (within) => {
+  itWithin('a chromosome tree of shared children is walked once per node, and no deeper than 32', async (within) => {
     const ok = await within(1000, () =>
-      bigBedProvider(reader(bigBed({ block: record(10, 20, "a"), treeDepth: 30 }))).fetch(req(null), signal),
+      bigBedProvider(reader(bigBed({ block: record(10, 20, 'a'), treeDepth: 30 }))).fetch(req(null), signal),
     );
-    expect(ok.kind === "manifest" && ok.manifest.systems.map((s) => s.key)).toEqual(["chr1"]);
-    const deep = bigBedProvider(reader(bigBed({ block: record(10, 20, "a"), treeDepth: 40 })));
+    expect(ok.kind === 'manifest' && ok.manifest.systems.map((s) => s.key)).toEqual(['chr1']);
+    const deep = bigBedProvider(reader(bigBed({ block: record(10, 20, 'a'), treeDepth: 40 })));
     await expect(deep.fetch(req(null), signal)).rejects.toThrow(/deeper than 32/);
   });
 
   it("lists the chromosomes in the tree's order across leaves (LA-03: the walk reversed each node's children)", async () => {
-    const leaves = [["chrA", "chrB"], ["chrC", "chrD"], ["chrE"]];
-    const p = bigBedProvider(reader(bigBed({ block: record(10, 20, "a"), leaves })));
+    const leaves = [['chrA', 'chrB'], ['chrC', 'chrD'], ['chrE']];
+    const p = bigBedProvider(reader(bigBed({ block: record(10, 20, 'a'), leaves })));
     const m = await p.fetch(req(null), signal);
-    expect(m.kind === "manifest" && m.manifest.systems.map((s) => s.key)).toEqual([
-      "chrA",
-      "chrB",
-      "chrC",
-      "chrD",
-      "chrE",
+    expect(m.kind === 'manifest' && m.manifest.systems.map((s) => s.key)).toEqual([
+      'chrA',
+      'chrB',
+      'chrC',
+      'chrD',
+      'chrE',
     ]);
   });
 
   it("a compressed block that inflates past the header's uncompressBufSize is refused (GI-07)", async () => {
     const block = Array.from({ length: 40 }, (_, k) => record(10 * k, 10 * k + 5, `item${k}`)).flat();
     const fits = bigBedProvider(reader(bigBed({ block, compressed: block.length })));
-    const r = await fits.fetch(req("chr1", 0, 1000), signal);
-    expect(r.kind === "items" && (r.items.id as ArrayLike<unknown>).length).toBe(40);
+    const r = await fits.fetch(req('chr1', 0, 1000), signal);
+    expect(r.kind === 'items' && (r.items.id as ArrayLike<unknown>).length).toBe(40);
     const past = bigBedProvider(reader(bigBed({ block, compressed: block.length - 1 })));
-    await expect(past.fetch(req("chr1", 0, 1000), signal)).rejects.toThrow(/inflates past \d+ bytes/);
+    await expect(past.fetch(req('chr1', 0, 1000), signal)).rejects.toThrow(/inflates past \d+ bytes/);
   });
 
-  it("an autoSql field named __proto__, or like a column the reader makes, is a column of its own (LA-39)", async () => {
+  it('an autoSql field named __proto__, or like a column the reader makes, is a column of its own (LA-39)', async () => {
     const autoSql = `table t
 "t"
 (
@@ -209,27 +209,27 @@ string name; "n"
 string start; "a field named like the item's start"
 string __proto__; "a field named like the prototype"
 )`;
-    const p = bigBedProvider(reader(bigBed({ block: record(10, 20, "a\t7\tx"), autoSql, fields: 6 })));
-    const r = await p.fetch(req("chr1", 0, 1000), signal);
-    if (r.kind !== "items") throw new Error(r.kind);
+    const p = bigBedProvider(reader(bigBed({ block: record(10, 20, 'a\t7\tx'), autoSql, fields: 6 })));
+    const r = await p.fetch(req('chr1', 0, 1000), signal);
+    if (r.kind !== 'items') throw new Error(r.kind);
     const t = r.items as unknown as Record<string, ArrayLike<unknown>>;
-    const PROTO = "__proto__"; // read as data: a literal `.__proto__` reads the prototype
+    const PROTO = '__proto__'; // read as data: a literal `.__proto__` reads the prototype
     expect([Object.keys(t), Array.from(t.start), Array.from(t.field5), Array.from(t[PROTO])]).toEqual([
-      ["start", "stop", "id", "label", "name", "field5", "__proto__"],
+      ['start', 'stop', 'id', 'label', 'name', 'field5', '__proto__'],
       [10],
-      ["7"],
-      ["x"],
+      ['7'],
+      ['x'],
     ]);
   });
 
-  it("an R-tree whose root points at itself visits it once", async () => {
-    const p = bigBedProvider(reader(bigBed({ block: record(10, 20, "a"), rtreeCycle: true })));
-    const r = await p.fetch(req("chr1", 0, 1000), signal);
-    expect(r.kind === "items" && Array.from(r.items.id as ArrayLike<unknown>)).toEqual([]);
+  it('an R-tree whose root points at itself visits it once', async () => {
+    const p = bigBedProvider(reader(bigBed({ block: record(10, 20, 'a'), rtreeCycle: true })));
+    const r = await p.fetch(req('chr1', 0, 1000), signal);
+    expect(r.kind === 'items' && Array.from(r.items.id as ArrayLike<unknown>)).toEqual([]);
   });
 });
 
-describe("BGZF (GI-07)", () => {
+describe('BGZF (GI-07)', () => {
   /** One BGZF member holding `raw`, with its ISIZE `isize`. */
   const member = (raw: Uint8Array, isize = raw.length) => {
     const body = deflateRawSync(raw, { level: 9 });
@@ -277,9 +277,9 @@ describe("BGZF (GI-07)", () => {
   });
 });
 
-describe("lengths and counts from a header (GI-11, GI-12)", () => {
-  it("a BigBed whose header puts its data a terabyte past the tree is refused before the read", async () => {
-    const b = bigBed({ block: record(10, 20, "a") });
+describe('lengths and counts from a header (GI-11, GI-12)', () => {
+  it('a BigBed whose header puts its data a terabyte past the tree is refused before the read', async () => {
+    const b = bigBed({ block: record(10, 20, 'a') });
     new DataView(b.buffer).setBigUint64(16, 2n ** 40n, true);
     const asked: number[] = [];
     const p = bigBedProvider(async (o, n) => {
@@ -319,7 +319,7 @@ describe("lengths and counts from a header (GI-11, GI-12)", () => {
         return b.subarray(o, o + n);
       });
       const m = await p.fetch(req(null), signal);
-      expect(m.kind === "manifest" && m.manifest.systems.length).toBe(2000);
+      expect(m.kind === 'manifest' && m.manifest.systems.length).toBe(2000);
       expect(most).toBeLessThanOrEqual(16);
       const huge = twoBit(1);
       new DataView(huge.buffer).setUint32(8, 4_000_000_000, true);
@@ -333,31 +333,31 @@ describe("lengths and counts from a header (GI-11, GI-12)", () => {
 
   it("a 2bit's bound counts the sequences `only` keeps, not the index's (LA-33: a draft assembly of 10M scaffolds)", async () => {
     const b = twoBit(2000);
-    const few = twoBitProvider(reader(b), { only: (n) => n === "s7" || n === "s1999", maxSequences: 1000 });
+    const few = twoBitProvider(reader(b), { only: (n) => n === 's7' || n === 's1999', maxSequences: 1000 });
     const m = await few.fetch(req(null), signal);
-    expect(m.kind === "manifest" && m.manifest.systems.map((x) => x.key)).toEqual(["s7", "s1999"]);
+    expect(m.kind === 'manifest' && m.manifest.systems.map((x) => x.key)).toEqual(['s7', 's1999']);
     await expect(twoBitProvider(reader(b), { maxSequences: 1000 }).fetch(req(null), signal)).rejects.toThrow(
       /over 1000 sequences kept, the bound: name the ones to read/,
     );
   });
 
   it("a BigBed's autoSql and R-tree node are bounded (GI-11, GI-05)", async () => {
-    const sql = bigBed({ block: record(10, 20, "a"), autoSql: "table t" });
+    const sql = bigBed({ block: record(10, 20, 'a'), autoSql: 'table t' });
     new DataView(sql.buffer).setBigUint64(44, 2n ** 30n, true);
     await expect(bigBedProvider(reader(sql)).fetch(req(null), signal)).rejects.toThrow(
       /the header's autoSql is \d+ bytes: past its bound of 1048576/,
     );
-    const wide = bigBed({ block: record(10, 20, "a") });
+    const wide = bigBed({ block: record(10, 20, 'a') });
     const dv = new DataView(wide.buffer);
     dv.setUint32(Number(dv.getBigUint64(24, true)) + 4, 70_000, true);
-    await expect(bigBedProvider(reader(wide)).fetch(req("chr1", 0, 1000), signal)).rejects.toThrow(
+    await expect(bigBedProvider(reader(wide)).fetch(req('chr1', 0, 1000), signal)).rejects.toThrow(
       /block size 70000: past 65536 items/,
     );
   });
 });
 
-describe("BigBed autoSql (CB-03)", () => {
-  it("names the fields after an enum or a set, its values over lines, in order", () => {
+describe('BigBed autoSql (CB-03)', () => {
+  it('names the fields after an enum or a set, its values over lines, in order', () => {
     const sql = `table bigGenePred
 "bigGenePred gene models"
    (
@@ -372,6 +372,6 @@ describe("BigBed autoSql (CB-03)", () => {
    int[blockCount] blockSizes; "Comma separated list of block sizes"
    string geneName;    "Primary identifier for gene"
    )`;
-    expect(sqlFields(sql)).toEqual(["name", "score", "cdsStartStat", "flags", "blockSizes", "geneName"]);
+    expect(sqlFields(sql)).toEqual(['name', 'score', 'cdsStartStat', 'flags', 'blockSizes', 'geneName']);
   });
 });

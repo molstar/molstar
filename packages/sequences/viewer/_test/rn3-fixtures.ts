@@ -10,32 +10,32 @@
 // case (`vi.resetModules`), so each frame's code meets one copy of the viewer's classes. Frames built in the test
 // module are shared by the cases, and a load there polymorphic over two copies' double fields boxes (RN1).
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { TILE } from "@molstar/seq-core/format";
-import { AxisGeometry, SectionAxisView } from "../src/axis.js";
-import * as api from "../src/draw/api.js";
-import { Dirty } from "../src/draw/index.js";
-import * as nav from "../src/draw/nav.js";
-import { navigatorFrom } from "../src/index.js";
-import { SectionMarks } from "../src/marks.js";
-import { RowsRenderer } from "../src/renderers/rows.js";
-import * as tiles from "../src/renderers/rows-tiles.js";
-import { lanesInView, type Streams } from "../src/streams.js";
-import { fixtureMeasurer, RecordingBackend } from "../src/testing/index.js";
-import { TextManager } from "../src/text.js";
-import { axisOf, resolved } from "./axis-fixtures.js";
-import { COPY_BACK, composed, recording } from "./composer-fixtures.js";
-import { drawn, layerOf } from "./draw-fixtures.js";
-import { familyWithTree, syntheticFamily, wideFamily } from "./families.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { TILE } from '@molstar/seq-core/format';
+import { AxisGeometry, SectionAxisView } from '../src/axis.js';
+import * as api from '../src/draw/api.js';
+import { Dirty } from '../src/draw/index.js';
+import * as nav from '../src/draw/nav.js';
+import { navigatorFrom } from '../src/index.js';
+import { SectionMarks } from '../src/marks.js';
+import { RowsRenderer } from '../src/renderers/rows.js';
+import * as tiles from '../src/renderers/rows-tiles.js';
+import { lanesInView, type Streams } from '../src/streams.js';
+import { fixtureMeasurer, RecordingBackend } from '../src/testing/index.js';
+import { TextManager } from '../src/text.js';
+import { axisOf, resolved } from './axis-fixtures.js';
+import { COPY_BACK, composed, recording } from './composer-fixtures.js';
+import { drawn, layerOf } from './draw-fixtures.js';
+import { familyWithTree, syntheticFamily, wideFamily } from './families.js';
 
 /** A pan's frame: the axis view synced (its window mapped), the navigator's axis and window over 24 blocks. */
 export async function navigatorFrame(stacked: boolean, labels: boolean) {
   const b = createSeqViewSpec();
-  const view = b.view({ ref: "v", label: "V", arrangement: stacked ? "stacked" : "side" });
+  const view = b.view({ ref: 'v', label: 'V', arrangement: stacked ? 'stacked' : 'side' });
   for (let i = 0; i < 24; i++)
-    view.block({ sequence: b.data.sequence({ ref: `c${i}`, value: "M".repeat(200 + i * 40) }) });
-  view.track({ ref: "v.l" }).letters();
-  const r = await resolved(b.getDocument(), "v");
+    view.block({ sequence: b.data.sequence({ ref: `c${i}`, value: 'M'.repeat(200 + i * 40) }) });
+  view.track({ ref: 'v.l' }).letters();
+  const r = await resolved(b.getDocument(), 'v');
   const ax = axisOf(r);
   const av = new SectionAxisView();
   const L = { geometry: AxisGeometry.linear, dataLeft: 40, dataRight: 1040, scrolledTop: 20, height: 400 };
@@ -58,7 +58,7 @@ export async function navigatorFrame(stacked: boolean, labels: boolean) {
     lanes: stacked,
     height: 36,
     thickness: 28,
-    axis: labels ? ["labels"] : ["hairline"],
+    axis: labels ? ['labels'] : ['hairline'],
   });
   const n = new nav.NavView().from(av);
   const rec = new RecordingBackend();
@@ -90,7 +90,7 @@ export async function navigatorFrame(stacked: boolean, labels: boolean) {
 /** A frame of the family's rows: dense lanes, single rows, the overview's map, coarse under fine when `remote`. */
 export async function rowsFrame(remote: boolean) {
   const t = await drawn(syntheticFamily(600, 40), { width: 1000, height: 600 });
-  const { k, section } = layerOf(t.ctx, "Members");
+  const { k, section } = layerOf(t.ctx, 'Members');
   const p = t.ctx.graph.assembled.value?.view?.prepared[k];
   const s0 = p?.state as api.RowsState;
   const s = remote ? ({ ...s0, codes: null, slot: null } as typeof s0) : s0;
@@ -138,15 +138,15 @@ export async function rowsFrame(remote: boolean) {
  * gutters' numbers, the tree header and a hovered clade, the data columns' cells, or (`dense`) the dense band in one
  * call over reduced tiles; `remote`: the same single rows from the region cache's tiles, none held.
  */
-export async function rowsDrawFrame(kind: "single" | "dense" | "remote", parts = 31) {
-  const doc = kind === "dense" ? wideFamily(400, 80) : familyWithTree(400, 40, { columns: true });
+export async function rowsDrawFrame(kind: 'single' | 'dense' | 'remote', parts = 31) {
+  const doc = kind === 'dense' ? wideFamily(400, 80) : familyWithTree(400, 40, { columns: true });
   const t = await drawn(doc, { width: 1000, height: 600, dpr: 2 });
-  const { k, section } = layerOf(t.ctx, "Members");
+  const { k, section } = layerOf(t.ctx, 'Members');
   const vp = t.ctx.viewports.get(section);
-  if (kind === "dense") {
-    vp?.setView(0.5, 0, "api");
+  if (kind === 'dense') {
+    vp?.setView(0.5, 0, 'api');
     vp?.setRowScale(0.04, 0);
-  } else vp?.setView(16, 0, "api");
+  } else vp?.setView(16, 0, 'api');
   await t.ctx.graph.update();
   for (let i = 0; i < 4; i++) {
     (t.ctx.streams as Streams).pass();
@@ -155,7 +155,7 @@ export async function rowsDrawFrame(kind: "single" | "dense" | "remote", parts =
   const m = t.ctx.graph.assembled.value?.view;
   const p = m?.prepared[k];
   const s0 = p?.state as api.RowsState;
-  const s = kind === "remote" ? ({ ...s0, codes: null, slot: null } as typeof s0) : s0;
+  const s = kind === 'remote' ? ({ ...s0, codes: null, slot: null } as typeof s0) : s0;
   const l = t.ctx.layout.get(section)?.current;
   const v = new api.DrawView().from(t.ctx.layout.axis(section) as never);
   const rec = new RecordingBackend();
@@ -168,7 +168,7 @@ export async function rowsDrawFrame(kind: "single" | "dense" | "remote", parts =
   v.cache = RowsRenderer.cache?.create(s, v.skin) ?? null;
   const tile = { cls: new Uint8Array(TILE * TILE).fill(65), share: new Uint8Array(TILE * TILE).fill(200) };
   v.stream =
-    kind === "remote"
+    kind === 'remote'
       ? {
           source: s.source,
           version: 0,
@@ -177,18 +177,18 @@ export async function rowsDrawFrame(kind: "single" | "dense" | "remote", parts =
           state: () => 1,
           label: () => null,
         }
-      : t.ctx.streams.get(m?.set.strings.get(m.resolved.layers.ref[k]) ?? "");
+      : t.ctx.streams.get(m?.set.strings.get(m.resolved.layers.ref[k]) ?? '');
   if (l) lanesInView(l, v, v.lanes);
   const h = l?.rows.height ?? 18;
   const top = (l?.scrolledTop ?? 0) + (l?.entryTop[l.rows.entry] ?? 0);
   const P = {};
-  const cols = s.dataColumns.map((c) => t.ctx.registry.get("columns", c.renderer));
+  const cols = s.dataColumns.map((c) => t.ctx.registry.get('columns', c.renderer));
   v.height = h;
   v.gutterLeft = 56;
   v.columnWidth = 80;
   return () => {
     rec.reset();
-    if (kind === "dense") {
+    if (kind === 'dense') {
       v.top = top;
       v.row = v.dataRow = -1;
       RowsRenderer.rows?.(v, s, P, 0, 300);
@@ -216,32 +216,32 @@ export async function rowsDrawFrame(kind: "single" | "dense" | "remote", parts =
  */
 export async function mapFrame(bare = false) {
   const b = createSeqViewSpec();
-  const a = b.data.sequence({ ref: "a", value: "MKTAYIAKQR".repeat(60) });
+  const a = b.data.sequence({ ref: 'a', value: 'MKTAYIAKQR'.repeat(60) });
   const hot = b.data.annotation({
-    ref: "hot",
-    geometry: "ranges",
+    ref: 'hot',
+    geometry: 'ranges',
     target: a,
-    value: { start: [10, 120, 300], stop: [60, 180, 320], category: ["a", "b", "a"] },
+    value: { start: [10, 120, 300], stop: [60, 180, 320], category: ['a', 'b', 'a'] },
   } as never);
-  const v = b.view({ ref: "v", label: "V" }).block({ sequence: a });
-  v.track({ label: "L" }).letters();
+  const v = b.view({ ref: 'v', label: 'V' }).block({ sequence: a });
+  v.track({ label: 'L' }).letters();
   if (!bare) {
-    v.track({ label: "Hot" }).ranges({ data: hot } as never);
-    v.track({ label: "Map" }).layer({ type: "seqv:map", fallback: "omit" } as never);
+    v.track({ label: 'Hot' }).ranges({ data: hot } as never);
+    v.track({ label: 'Map' }).layer({ type: 'seqv:map', fallback: 'omit' } as never);
   }
-  const preset = { name: "lab:band", geometry: "linear", navigator: "band" } as const;
+  const preset = { name: 'lab:band', geometry: 'linear', navigator: 'band' } as const;
   const t = await composed(b.getDocument(), { width: 1000, height: 300, dpr: 2, registry: [{ presets: [preset] }] });
   t.ctx.ui.setStyle(t.section, preset.name);
   await t.ctx.graph.update();
   const be = recording(COPY_BACK);
-  t.vp?.setView(8, 200, "api");
+  t.vp?.setView(8, 200, 'api');
   t.frame(be, Dirty.all);
   let i = 0;
   return {
     composer: t.composer,
     frame: () => {
       // A pan (small ints: a double passed to a call is boxed), every pass drawn.
-      t.vp?.panBy((i++ & 1) === 0 ? 9 : -9, 0, "pointer");
+      t.vp?.panBy((i++ & 1) === 0 ? 9 : -9, 0, 'pointer');
       t.frame(be, Dirty.all);
     },
   };

@@ -20,20 +20,20 @@ import type {
   StringTable,
   TreeInput,
   UnitInput,
-} from "@molstar/seq-core/model";
-import type { AlignerInput, FormatRequest, FormatResult, StageContext } from "./contract.js";
-import type { Geometry, ThemeRef } from "./doc.js";
-import { KernelRegistry } from "./kernel-registry.js";
-import type { SchemeDef } from "./palettes/schemes.js";
-import type { CheckContext } from "./schema/field-schema.js";
-import { isIssueCode, isNamespace, isNamespaced, ReservedNamespaces } from "./schema/field-schema.js";
-import type { ParamsSchema } from "./schema/params-schema.js";
-import { MvsRegistry } from "./tables/kernel.js";
+} from '@molstar/seq-core/model';
+import type { AlignerInput, FormatRequest, FormatResult, StageContext } from './contract.js';
+import type { Geometry, ThemeRef } from './doc.js';
+import { KernelRegistry } from './kernel-registry.js';
+import type { SchemeDef } from './palettes/schemes.js';
+import type { CheckContext } from './schema/field-schema.js';
+import { isIssueCode, isNamespace, isNamespaced, ReservedNamespaces } from './schema/field-schema.js';
+import type { ParamsSchema } from './schema/params-schema.js';
+import { MvsRegistry } from './tables/kernel.js';
 
 export interface FormatEntry {
   readonly name: string;
   readonly extensions?: readonly string[];
-  readonly gives: readonly FormatResult["kind"][];
+  readonly gives: readonly FormatResult['kind'][];
   /** The request fields its parse depends on: one parse per source and distinct values of these. */
   readonly reads: readonly (keyof FormatRequest)[];
   read(bytes: Uint8Array, request: FormatRequest, ctx: StageContext): FormatResult | Promise<FormatResult>;
@@ -85,7 +85,7 @@ export interface ProviderEntry {
  */
 export interface NodeProviderEntry {
   readonly name: string;
-  readonly kind: "tree" | "alignment" | "mapping";
+  readonly kind: 'tree' | 'alignment' | 'mapping';
   readonly options: ParamsSchema;
   compute(
     ctx: StageContext,
@@ -100,7 +100,7 @@ export interface NodeProviderEntry {
  */
 export interface FieldProviderEntry {
   readonly name: string;
-  readonly type: "number" | "string";
+  readonly type: 'number' | 'string';
   applies(a: Annotation): boolean;
   /** One value per row into `out` (NaN, or -1 for a string: none); strings as codes interned in `strings`. */
   read(a: Annotation, out: Float64Array | Int32Array, strings: StringTable): void;
@@ -111,21 +111,21 @@ export interface LayerTypeEntry {
   readonly description?: string;
   /** Its params: top-level layer params for a kernel type, the layer's `options` for an extension's. */
   readonly options: ParamsSchema;
-  readonly accepts: readonly Geometry[] | "none";
-  readonly layouts: readonly ("tracks" | "text")[];
-  readonly axes: readonly ("blocks" | "columns")[];
-  readonly sizing: "row" | "free";
+  readonly accepts: readonly Geometry[] | 'none';
+  readonly layouts: readonly ('tracks' | 'text')[];
+  readonly axes: readonly ('blocks' | 'columns')[];
+  readonly sizing: 'row' | 'free';
   /** A kernel type or `"omit"`; null: none (`letters`, `ranges`: every viewer draws them). */
   readonly fallback: string | null;
   /** What its layers take as channel params, `color` first (seqspec:format#layer-types). */
   readonly channels: readonly ChannelEntry[];
 }
-export type ChannelKind = "color" | "size" | "glyph";
+export type ChannelKind = 'color' | 'size' | 'glyph';
 export interface ChannelEntry {
   readonly name: string;
   readonly kind: ChannelKind;
   /** A size channel's unit; null for the others. */
-  readonly unit: "px" | "band" | null;
+  readonly unit: 'px' | 'band' | null;
   /** null: the viewer's (the ink, a size). */
   readonly default: ThemeRef | null;
 }
@@ -216,19 +216,19 @@ export interface SvsRegistries {
 
 /** The interface's order: entries register kind by kind in it. */
 const KINDS: readonly RegistryKind[] = [
-  "formats",
-  "services",
-  "complexProviders",
-  "providers",
-  "nodeProviders",
-  "fields",
-  "aligners",
-  "layerTypes",
-  "themes",
-  "letterMaps",
-  "colorSchemes",
-  "custom",
-  "issueCodes",
+  'formats',
+  'services',
+  'complexProviders',
+  'providers',
+  'nodeProviders',
+  'fields',
+  'aligners',
+  'layerTypes',
+  'themes',
+  'letterMaps',
+  'colorSchemes',
+  'custom',
+  'issueCodes',
 ];
 
 function itemsOf(e: SvsRegistryEntry, kind: RegistryKind): readonly unknown[] {
@@ -237,8 +237,8 @@ function itemsOf(e: SvsRegistryEntry, kind: RegistryKind): readonly unknown[] {
 
 function nameOf(kind: RegistryKind, item: unknown): string {
   const e = item as Record<string, string>;
-  if (kind === "custom") return `${e.namespace}/${e.kind}`;
-  return kind === "issueCodes" ? e.code : e.name;
+  if (kind === 'custom') return `${e.namespace}/${e.kind}`;
+  return kind === 'issueCodes' ? e.code : e.name;
 }
 
 class Registries implements SvsRegistries {
@@ -266,7 +266,7 @@ export function createRegistries(): SvsRegistries {
   return new Registries();
 }
 
-const FLAT: ReadonlySet<RegistryKind> = new Set(["formats", "services"]);
+const FLAT: ReadonlySet<RegistryKind> = new Set(['formats', 'services']);
 let kernelNames: Set<string> | undefined;
 
 /** Why a name cannot be registered (namespaced, except the kernel's and formats' and services'); `owned`:
@@ -278,20 +278,20 @@ function invalidName(kind: RegistryKind, name: string, owned: string | null): st
     ),
   );
   if (FLAT.has(kind) || kernelNames.has(`${kind} ${name}`)) return null;
-  const head = (kind === "custom" ? name.split("/") : kind === "issueCodes" ? name.split(".") : name.split(":"))[0];
+  const head = (kind === 'custom' ? name.split('/') : kind === 'issueCodes' ? name.split('.') : name.split(':'))[0];
   if (ReservedNamespaces.has(head) && head !== owned)
-    return `${kind}: "${kind === "issueCodes" ? name : head}" is reserved`;
-  if (kind === "custom") return isNamespace(head) ? null : `custom: "${head}" is not a namespace`;
-  const ok = kind === "issueCodes" ? isIssueCode(name) : isNamespaced(name);
-  return ok ? null : `${kind}: "${name}" is not namespaced (${kind === "issueCodes" ? "<ns>.<code>" : "<ns>:<name>"})`;
+    return `${kind}: "${kind === 'issueCodes' ? name : head}" is reserved`;
+  if (kind === 'custom') return isNamespace(head) ? null : `custom: "${head}" is not a namespace`;
+  const ok = kind === 'issueCodes' ? isIssueCode(name) : isNamespaced(name);
+  return ok ? null : `${kind}: "${name}" is not namespaced (${kind === 'issueCodes' ? '<ns>.<code>' : '<ns>:<name>'})`;
 }
 
 /** `register`'s error: every conflict, nothing registered; the message lists them one per line. */
 export class SvsRegistrationError extends Error {
   readonly conflicts: readonly string[];
   constructor(conflicts: readonly string[]) {
-    super(`register: ${conflicts.length} conflict(s), nothing registered:\n- ${conflicts.join("\n- ")}`);
-    this.name = "SvsRegistrationError";
+    super(`register: ${conflicts.length} conflict(s), nothing registered:\n- ${conflicts.join('\n- ')}`);
+    this.name = 'SvsRegistrationError';
     this.conflicts = conflicts;
   }
 }
@@ -314,13 +314,13 @@ export function register(
   entry: SvsRegistryEntry | readonly SvsRegistryEntry[],
   opts: RegisterOptions = {},
 ): () => void {
-  if (!(reg instanceof Registries)) throw new Error("register: registries not made by createRegistries()");
+  if (!(reg instanceof Registries)) throw new Error('register: registries not made by createRegistries()');
   const entries: readonly SvsRegistryEntry[] = Array.isArray(entry) ? entry : [entry as SvsRegistryEntry];
   const added: [Map<string, unknown>, string, unknown][] = [];
   const pending = new Map<string, unknown>();
   const conflicts: string[] = [];
   for (const e of entries) {
-    const owned = opts.seqv?.has(e) ? "seqv" : null;
+    const owned = opts.seqv?.has(e) ? 'seqv' : null;
     for (const kind of KINDS) {
       for (const item of itemsOf(e, kind)) {
         const name = nameOf(kind, item);
@@ -328,7 +328,7 @@ export function register(
         const held = map.get(name) ?? pending.get(`${kind} ${name}`);
         if (held === item) continue;
         if (held !== undefined) {
-          conflicts.push(`${kind}: "${name}" is ${map.has(name) ? "already registered" : "listed twice"}`);
+          conflicts.push(`${kind}: "${name}" is ${map.has(name) ? 'already registered' : 'listed twice'}`);
           continue;
         }
         const invalid = invalidName(kind, name, owned);
@@ -354,7 +354,7 @@ export function register(
 
 /** The longest of `known` (and the reserved) namespaces an issue code starts with: `org.example.bad` is `org.example`'s. */
 export function namespaceOfCode(known: ReadonlySet<string>, code: string): string | null {
-  for (let i = code.lastIndexOf("."); i > 0; i = code.lastIndexOf(".", i - 1)) {
+  for (let i = code.lastIndexOf('.'); i > 0; i = code.lastIndexOf('.', i - 1)) {
     const ns = code.slice(0, i);
     if (known.has(ns) || ReservedNamespaces.has(ns)) return ns;
   }
@@ -365,15 +365,15 @@ export function namespaceOfCode(known: ReadonlySet<string>, code: string): strin
 export function registeredNamespaces(reg: SvsRegistries): Set<string> {
   const out = new Set<string>();
   for (const kind of KINDS) {
-    if (kind === "issueCodes") continue;
+    if (kind === 'issueCodes') continue;
     for (const e of reg.list(kind)) {
       const name = nameOf(kind, e);
-      if (kind === "custom") out.add(name.split("/")[0]);
-      else if (name.includes(":")) out.add(name.split(":")[0]);
+      if (kind === 'custom') out.add(name.split('/')[0]);
+      else if (name.includes(':')) out.add(name.split(':')[0]);
     }
   }
   const named = new Set(out);
-  for (const c of reg.list("issueCodes")) {
+  for (const c of reg.list('issueCodes')) {
     const ns = namespaceOfCode(named, c.code);
     if (ns) out.add(ns);
   }

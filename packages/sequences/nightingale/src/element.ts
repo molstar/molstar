@@ -9,7 +9,7 @@
 // Element descriptions (seqspec:libraries#nightingale): plain data that `mount` turns into Nightingale's elements,
 // compared by tests without a DOM; and the supported set to resolve with.
 
-import { KernelRegistry } from "@molstar/seq-core/format";
+import { KernelRegistry } from '@molstar/seq-core/format';
 
 export interface ElementDesc {
   tag: string;
@@ -29,25 +29,25 @@ export function el(
   attributes: Record<string, string> = {},
   properties: Record<string, unknown> = {},
   children: ElementDesc[] = [],
-  calls: ElementDesc["calls"] = [],
+  calls: ElementDesc['calls'] = [],
 ): ElementDesc {
   return { tag, attributes, properties, calls, children };
 }
 
 /** The kernel layer types Nightingale draws (`emphasis` is drawn as its fallback, `points`). */
 const NightingaleTypes = [
-  "letters",
-  "rows",
-  "ranges",
-  "points",
-  "variants",
-  "secondary",
-  "values",
-  "color",
-  "ruler",
-  "pairs",
-  "logo",
-  "matrix",
+  'letters',
+  'rows',
+  'ranges',
+  'points',
+  'variants',
+  'secondary',
+  'values',
+  'color',
+  'ruler',
+  'pairs',
+  'logo',
+  'matrix',
 ] as const;
 
 /**

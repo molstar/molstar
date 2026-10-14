@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Issue } from "@molstar/seq-core/model";
-import s from "./seqstar-format.module.css";
+import type { Issue } from '@molstar/seq-core/model';
+import s from './seqstar-format.module.css';
 
 /** Issues as code, path and message; "none" when empty. */
 export function IssueList({ issues }: { issues: readonly Issue[] }) {
@@ -19,7 +19,7 @@ export function IssueList({ issues }: { issues: readonly Issue[] }) {
         <li key={k}>
           <span className={s.code}>
             {i.code} {i.path}
-          </span>{" "}
+          </span>{' '}
           {i.message}
         </li>
       ))}

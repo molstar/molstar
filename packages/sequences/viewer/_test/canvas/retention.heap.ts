@@ -13,12 +13,12 @@
 // scheduler) keeps any of them. Run with the browser heap config (`gc` exposed). The positive control: the same, with
 // the host keeping the context, collected and counted alike, is caught.
 
-import { expect, it } from "vitest";
-import { mountSection } from "../../src/canvas/index.js";
-import { Inputs, PointerType } from "../../src/index.js";
-import { syntheticFamily } from "../families.js";
-import { controlCaught } from "./heap-browser.js";
-import { opened } from "./open.js";
+import { expect, it } from 'vitest';
+import { mountSection } from '../../src/canvas/index.js';
+import { Inputs, PointerType } from '../../src/index.js';
+import { syntheticFamily } from '../families.js';
+import { controlCaught } from './heap-browser.js';
+import { opened } from './open.js';
 
 const gc = (globalThis as { gc?: () => void }).gc as () => void;
 
@@ -29,12 +29,12 @@ const gc = (globalThis as { gc?: () => void }).gc as () => void;
 async function used(kept?: unknown[]) {
   const t = await opened(syntheticFamily(60, 8), { width: 600, height: 260, dpr: 2 });
   const { ctx, surface, host, section } = t;
-  const host2 = document.createElement("div");
-  host2.style.cssText = "width:300px;height:200px";
+  const host2 = document.createElement('div');
+  host2.style.cssText = 'width:300px;height:200px';
   document.body.appendChild(host2);
   const second = mountSection(ctx, section, host2, { dpr: 1 });
   const vp = ctx.viewports.get(section);
-  vp?.setView(12, 0, "api");
+  vp?.setView(12, 0, 'api');
   const p = Inputs.pointer();
   p.type = PointerType.move;
   p.section = 0;
@@ -42,7 +42,7 @@ async function used(kept?: unknown[]) {
     p.x = 150 + k * 7;
     p.y = 90 + k;
     ctx.input.pointer(p);
-    vp?.panBy(9, 0, "pointer");
+    vp?.panBy(9, 0, 'pointer');
     t.advance();
     surface.renderNow();
     second.renderNow();
@@ -53,7 +53,7 @@ async function used(kept?: unknown[]) {
     view: new WeakRef(ctx.graph.assembled.value?.view as object),
     surface: new WeakRef(surface),
     second: new WeakRef(second),
-    canvas: new WeakRef(surface.element.querySelector("canvas") as object),
+    canvas: new WeakRef(surface.element.querySelector('canvas') as object),
   };
   // The completing context disposes both surfaces; the host removes their parents.
   ctx.dispose();
@@ -76,11 +76,11 @@ async function collected(refs: Record<string, WeakRef<object>>) {
   return live();
 }
 
-it("a disposed context with mounted surfaces, used, frees all of it once the host drops it", async () => {
+it('a disposed context with mounted surfaces, used, frees all of it once the host drops it', async () => {
   expect(await collected(await used())).toEqual([]);
 });
 
-it("the same with the host keeping the context is caught (positive control)", async () => {
+it('the same with the host keeping the context is caught (positive control)', async () => {
   const kept: unknown[] = [];
   const live = await collected(await used(kept));
   expect(controlCaught(() => live.length, 1)).toBe(true);

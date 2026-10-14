@@ -25,10 +25,10 @@ import {
   numberColumn,
   paletteValue,
   type ThemeRef,
-} from "@molstar/seq-core/format";
-import { type Annotation, Annotations, CoordinateSystemKind, KeyKind, type KeyTarget } from "@molstar/seq-core/model";
-import { SchemeTheme } from "./color-schemes.js";
-import { NO_COLOR } from "./draw/backend.js";
+} from '@molstar/seq-core/format';
+import { type Annotation, Annotations, CoordinateSystemKind, KeyKind, type KeyTarget } from '@molstar/seq-core/model';
+import { SchemeTheme } from './color-schemes.js';
+import { NO_COLOR } from './draw/backend.js';
 import {
   coverGranularity,
   dataIndex,
@@ -44,7 +44,7 @@ import {
   type ThemeLocation,
   type ThemeProvider,
   themeProvider,
-} from "./themes.js";
+} from './themes.js';
 
 interface Clause {
   readonly measure?: unknown;
@@ -66,12 +66,12 @@ const M = { value: 0, field: 1, fieldIn: 2, column: 3, share: 4, shareOf: 5, ran
 const MEASURE_GRANULARITY = [G.value, G.item, G.item, G.column, G.column, G.column, G.column, G.column];
 
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };
-const isObject = (m: unknown): m is Record<string, unknown> => m !== null && typeof m === "object";
-const usesColumns = (m: unknown) => isObject(m) && ("share" in m || "rank" in m);
+const isObject = (m: unknown): m is Record<string, unknown> => m !== null && typeof m === 'object';
+const usesColumns = (m: unknown) => isObject(m) && ('share' in m || 'rank' in m);
 /** The section's alignment (an alignment axis has one block, the columns); -1: none. */
 const alignmentOf = (tc: ThemeContext) => tc.section.blocks[0]?.alignment ?? -1;
 const annotationOf = (tc: ThemeContext, ref: unknown): Annotation | null =>
-  typeof ref === "string" && tc.set.byName(ref, t) && t.kind === KeyKind.annotation
+  typeof ref === 'string' && tc.set.byName(ref, t) && t.kind === KeyKind.annotation
     ? (tc.set.annotations[t.id] ?? null)
     : null;
 /** The letter's index 0..25 (case-blind); -1: not a letter. */
@@ -119,7 +119,7 @@ class Measures {
 
   /** A string field (no number column in the layer's data): `in` tests its value, not the letter. */
   stringField(m: unknown): boolean {
-    if (!isObject(m) || typeof m.field !== "string") return false;
+    if (!isObject(m) || typeof m.field !== 'string') return false;
     return !this.tc.annotations.some((a) => a && numberColumn(a, this.tc.set, m.field as string, this.tc.svs));
   }
   add(m: unknown, inSet: readonly string[] | null): number {
@@ -132,7 +132,7 @@ class Measures {
     let data: Float64Array | Uint8Array | null = null;
     let rows: (Float64Array | null)[] = [];
     const aln = tc.set.alignments[alignmentOf(tc)];
-    if (isObject(m) && typeof m.field === "string") {
+    if (isObject(m) && typeof m.field === 'string') {
       const name = m.field;
       code = inSet ? M.fieldIn : M.field;
       const of = new Set(inSet);
@@ -142,10 +142,10 @@ class Measures {
           if (column) return column[r];
           const v = paletteValue(a, tc.set, r, name, tc.svs);
           if (inSet) return v == null ? Number.NaN : +of.has(String(v));
-          return typeof v === "number" ? v : typeof v === "string" ? Number.parseFloat(v) : Number.NaN;
+          return typeof v === 'number' ? v : typeof v === 'string' ? Number.parseFloat(v) : Number.NaN;
         });
       });
-    } else if (isObject(m) && "column" in m) {
+    } else if (isObject(m) && 'column' in m) {
       code = M.column;
       const a = annotationOf(tc, m.column);
       const n = aln?.columnCount ?? 0;
@@ -154,15 +154,15 @@ class Measures {
       data = Float64Array.from({ length: a && slot >= 0 ? n : 0 }, (_, c) =>
         Annotations.valueAt(a as Annotation, slot, c),
       );
-    } else if (isObject(m) && "equals_row" in m) {
+    } else if (isObject(m) && 'equals_row' in m) {
       code = M.equalsRow;
-      const row = typeof m.equals_row === "number" ? m.equals_row : Math.max(0, aln?.referenceRow ?? 0);
+      const row = typeof m.equals_row === 'number' ? m.equals_row : Math.max(0, aln?.referenceRow ?? 0);
       // A lazy alignment's row where it is held (the reference row is fetched); else none (`isApplicable` says no).
       const slot = aln ? aln.rows.slotOf(row as never) : -1;
       data = aln && slot >= 0 ? aln.rows.codes.subarray(slot * aln.columnCount, (slot + 1) * aln.columnCount) : null;
-    } else if (isObject(m) && ("share" in m || "rank" in m)) {
-      const of = typeof m.share === "string" && m.share !== "letter" ? m.share : null;
-      code = "rank" in m ? M.rank : of !== null ? M.shareOf : M.share;
+    } else if (isObject(m) && ('share' in m || 'rank' in m)) {
+      const of = typeof m.share === 'string' && m.share !== 'letter' ? m.share : null;
+      code = 'rank' in m ? M.rank : of !== null ? M.shareOf : M.share;
       if (of !== null)
         data = Uint8Array.from(new Set([...of].map((c) => letterOf(c.charCodeAt(0))).filter((x) => x >= 0)));
       if (this.comp === undefined) this.comp = composition(tc, this.profile);
@@ -220,14 +220,14 @@ function compile(tc: ThemeContext, p: Params, channel: ChannelEntry) {
       c++;
     }
     const v = (rule as Params)[kind];
-    if (kind === "color") vals[r] = v == null ? NO_COLOR : (Color.decodeFirst(v) ?? NO_COLOR);
-    else if (kind === "glyph") vals[r] = v == null ? NO_GLYPH : tc.glyphs.intern(v);
-    sizes.push(typeof v === "number" ? v : Number.NaN);
-    if (kind === "size") sized[r] = typeof v === "number" ? sizeOf(v) : NO_SIZE;
+    if (kind === 'color') vals[r] = v == null ? NO_COLOR : (Color.decodeFirst(v) ?? NO_COLOR);
+    else if (kind === 'glyph') vals[r] = v == null ? NO_GLYPH : tc.glyphs.intern(v);
+    sizes.push(typeof v === 'number' ? v : Number.NaN);
+    if (kind === 'size') sized[r] = typeof v === 'number' ? sizeOf(v) : NO_SIZE;
     const nested = rule.theme ? tc.resolve(rule.theme, channel) : null;
     themes.push(nested);
     if (nested) g = coverGranularity(g, nested.granularity);
-    if (kind === "color" && rule.alpha != null) {
+    if (kind === 'color' && rule.alpha != null) {
       alphaM[r] = ms.add(rule.alpha, null);
       g = coverGranularity(g, MEASURE_GRANULARITY[ms.code[alphaM[r]]]);
     }
@@ -311,9 +311,9 @@ function compile(tc: ThemeContext, p: Params, channel: ChannelEntry) {
         memoValue[0] = loc.value;
         return r;
       };
-  const none = kind === "color" ? NO_COLOR : kind === "glyph" ? NO_GLYPH : NO_SIZE;
+  const none = kind === 'color' ? NO_COLOR : kind === 'glyph' ? NO_GLYPH : NO_SIZE;
   const value =
-    kind === "size"
+    kind === 'size'
       ? (loc: ThemeLocation) => {
           const r = search(loc);
           const n = r >= 0 ? themes[r] : dflt;
@@ -336,16 +336,16 @@ function compile(tc: ThemeContext, p: Params, channel: ChannelEntry) {
   return {
     value,
     granularity: g,
-    alpha: kind === "color" && fades ? alpha : undefined,
+    alpha: kind === 'color' && fades ? alpha : undefined,
     legend: labeled
-      ? (out: Parameters<NonNullable<Theme["legend"]>>[0]) => {
+      ? (out: Parameters<NonNullable<Theme['legend']>>[0]) => {
           rules.forEach((rule, r) => {
             if (!rule.label) return;
-            if (kind === "size")
-              out.size(rule.label, sizes[r], channel.unit === "band" ? SizeUnit.band : SizeUnit.px, {
+            if (kind === 'size')
+              out.size(rule.label, sizes[r], channel.unit === 'band' ? SizeUnit.band : SizeUnit.px, {
                 channel: channel.name,
               });
-            else if (kind === "glyph") out.item(rule.label, NO_COLOR, vals[r]);
+            else if (kind === 'glyph') out.item(rule.label, NO_COLOR, vals[r]);
             else if (vals[r] !== NO_COLOR) out.item(rule.label, vals[r], NO_GLYPH);
           });
         }
@@ -364,8 +364,8 @@ export function rulesTheme(name: string, kinds: readonly ChannelKind[]): ThemePr
       const rules = (p.rules ?? []) as readonly Rule[];
       // `equals_row` reads its row: a lazy alignment's only where it is held.
       const unheld = (m: unknown) => {
-        if (!isObject(m) || !("equals_row" in m)) return false;
-        const row = typeof m.equals_row === "number" ? m.equals_row : Math.max(0, aln.referenceRow ?? 0);
+        if (!isObject(m) || !('equals_row' in m)) return false;
+        const row = typeof m.equals_row === 'number' ? m.equals_row : Math.max(0, aln.referenceRow ?? 0);
         return aln.rows.slotOf(row as never) < 0;
       };
       const reads = (m: unknown) => (p.profile == null && usesColumns(m)) || unheld(m);
@@ -373,7 +373,7 @@ export function rulesTheme(name: string, kinds: readonly ChannelKind[]): ThemePr
     },
   }) as ThemeProvider;
 }
-const RulesTheme = rulesTheme("rules", ["color", "glyph", "size"]);
+const RulesTheme = rulesTheme('rules', ['color', 'glyph', 'size']);
 
 /** Every built-in theme; `DefaultRegistry` registers them. */
 export const DefaultThemes: readonly ThemeProvider[] = [...KernelThemes, RulesTheme, SchemeTheme];

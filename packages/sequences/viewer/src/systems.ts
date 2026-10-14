@@ -21,12 +21,12 @@ import {
   type Loci,
   type SeqSet,
   Systems,
-} from "@molstar/seq-core/model";
-import { type SystemDescriptor, Translator } from "@molstar/seq-core/translate";
-import type { Coordinates } from "./projection.js";
-import { state } from "./state.js";
+} from '@molstar/seq-core/model';
+import { type SystemDescriptor, Translator } from '@molstar/seq-core/translate';
+import type { Coordinates } from './projection.js';
+import { state } from './state.js';
 
-const PREFIX = "seqstar:";
+const PREFIX = 'seqstar:';
 /** An own system's descriptor, valid while `owner` (the table or entity it reads) is the set's. */
 interface Own {
   readonly set: SeqSet;
@@ -143,28 +143,28 @@ export class SystemRegistry extends Translator {
     const str = (k: number) => set.strings.get(k);
     Systems.domainOf(set, kind, id, row, domain);
     const [start, stop] = [domain[0], Math.max(domain[0], domain[1])];
-    const base = { key, start, stop, refs: {}, members: null, structure: null, numberings: [], owner: "seqstar" };
+    const base = { key, start, stop, refs: {}, members: null, structure: null, numberings: [], owner: 'seqstar' };
     if (kind === K.unit) {
       const m = set.molecules[u.molecule[id]];
       const cx = set.complexes[u.complex[id]];
-      const mvs = (u.custom[id]?.doc as { mvs?: SystemDescriptor["structure"] } | undefined)?.mvs ?? null;
+      const mvs = (u.custom[id]?.doc as { mvs?: SystemDescriptor['structure'] } | undefined)?.mvs ?? null;
       return {
         ...base,
-        kind: "unit",
+        kind: 'unit',
         refs: { unit: str(u.key[id]), molecule: m ? str(m.key) : undefined, complex: cx ? str(cx.key) : undefined },
         structure: mvs,
         numberings: Systems.numberingNames(set, kind, id, row),
       };
     }
-    if (kind === K.molecule) return { ...base, kind: "molecule", refs: { molecule: key.slice(PREFIX.length) } };
+    if (kind === K.molecule) return { ...base, kind: 'molecule', refs: { molecule: key.slice(PREFIX.length) } };
     if (kind === K.complex) {
       const cx = set.complexes[id];
       const members = Array.from(cx?.units ?? [], (x) => PREFIX + str(u.key[x]));
-      return { ...base, kind: "complex", refs: { complex: key.slice(PREFIX.length) }, members };
+      return { ...base, kind: 'complex', refs: { complex: key.slice(PREFIX.length) }, members };
     }
     const a = set.alignments[id];
     const alignment = a ? str(a.key) : undefined;
-    if (kind === K.columns) return { ...base, kind: "columns", refs: { alignment } };
-    return { ...base, kind: "row", refs: { alignment, row } };
+    if (kind === K.columns) return { ...base, kind: 'columns', refs: { alignment } };
+    return { ...base, kind: 'row', refs: { alignment, row } };
   }
 }

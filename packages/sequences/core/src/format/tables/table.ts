@@ -15,7 +15,7 @@
 // only; a repeated failure is one issue with its count. A table's columns are read once per table object (`tableOf`),
 // on the immutability `validate`'s memo assumes.
 
-import { ColumnRole, ColumnRoles, columnNumbers, type Geometry } from "@molstar/seq-core/model";
+import { ColumnRole, ColumnRoles, columnNumbers, type Geometry } from '@molstar/seq-core/model';
 import {
   type CheckContext,
   type FieldType,
@@ -25,8 +25,8 @@ import {
   report,
   show,
   typeError,
-} from "../schema/field-schema.js";
-import { CellKind, CellScan, type Col, ColumnForm, cellAt, cellKind, cellOk, scanCells } from "./cells.js";
+} from '../schema/field-schema.js';
+import { CellKind, CellScan, type Col, ColumnForm, cellAt, cellKind, cellOk, scanCells } from './cells.js';
 
 export type TypedColumn =
   | Int8Array
@@ -51,29 +51,29 @@ export const GeometryColumns: Readonly<Record<Geometry, readonly string[]>> = Ob
 ) as unknown as Record<Geometry, readonly string[]>;
 /** Per geometry, sets of which a table with rows has at least one column. */
 const REQUIRED: Readonly<Record<Geometry, readonly (readonly string[])[]>> = {
-  ranges: [["start", "beg", "boundary"]],
-  values: [["value"]],
-  pairs: [["start", "beg"]],
-  matrix: [["index", "pos"], ["value"]],
-  grid: [["value"]],
-  rows: [["row", "state", "node"]],
+  ranges: [['start', 'beg', 'boundary']],
+  values: [['value']],
+  pairs: [['start', 'beg']],
+  matrix: [['index', 'pos'], ['value']],
+  grid: [['value']],
+  rows: [['row', 'state', 'node']],
 };
 /** Target and positional columns: read only where a geometry lists them, `svs.columns.unknown` elsewhere. */
 const PLACING = new Set(
   Object.values(ColumnRoles).flatMap((r) => Object.keys(r).filter((k) => r[k] !== ColumnRole.descriptive)),
 );
-const TARGET_KINDS: readonly string[] = ["sequence", "ligand", "unit", "alignment", "row"];
+const TARGET_KINDS: readonly string[] = ['sequence', 'ligand', 'unit', 'alignment', 'row'];
 const EXPECTED = [
-  "an index (int >= 0)",
+  'an index (int >= 0)',
   'Label (315, "27A", "111.1", or a name such as "N13")',
-  "a ref",
-  "float | null",
-  "a list of float | null, one per state",
+  'a ref',
+  'float | null',
+  'a list of float | null, one per state',
   '"ab" | "ba" | null',
-  "str",
-  "a list of float | null (or a Float32Array, a Float64Array), one per pair of positions, a-major",
+  'str',
+  'a list of float | null (or a Float32Array, a Float64Array), one per pair of positions, a-major',
 ];
-const rows = (n: number) => (n > 1 ? ` (${n} rows)` : "");
+const rows = (n: number) => (n > 1 ? ` (${n} rows)` : '');
 
 /** An array, or a typed array (codes may be one too). */
 export const isList = (v: unknown): v is ArrayLike<unknown> => Array.isArray(v) || ArrayBuffer.isView(v);
@@ -173,10 +173,10 @@ export function labelSides(v: unknown, _ctx?: CheckContext): LabelSides {
   const t = tableOf(v);
   if (!t) return NO_SIDES;
   t.sides ??= {
-    a: anyPresent(t, ["beg", "end", "pos"]),
-    b: anyPresent(t, ["b_beg", "b_end"]),
-    numbering: present(t, "numbering"),
-    bNumbering: present(t, "b_numbering"),
+    a: anyPresent(t, ['beg', 'end', 'pos']),
+    b: anyPresent(t, ['b_beg', 'b_end']),
+    numbering: present(t, 'numbering'),
+    bNumbering: present(t, 'b_numbering'),
   };
   return t.sides;
 }
@@ -185,8 +185,8 @@ export function labelSides(v: unknown, _ctx?: CheckContext): LabelSides {
 function cellPath(path: string, c: Col, i: number): string {
   if (c.form === ColumnForm.rows) return ptr(ptr(path, i), c.name);
   const at = ptr(path, c.name);
-  if (c.form === ColumnForm.dict) return ptr(ptr(at, "codes"), i);
-  return ptr(c.form === ColumnForm.json ? ptr(at, "json") : at, i);
+  if (c.form === ColumnForm.dict) return ptr(ptr(at, 'codes'), i);
+  return ptr(c.form === ColumnForm.json ? ptr(at, 'json') : at, i);
 }
 
 const scan = new CellScan();
@@ -196,8 +196,8 @@ function checkColumn(c: Col, kind: number, path: string, ctx: CheckContext) {
   scan.reset(c);
   scanCells(c, kind, 0, c.length, scan);
   const at = ptr(path, c.name);
-  const code = kind === CellKind.label ? "svs.position.syntax" : "svs.columns.type";
-  let firstPath = scan.firstBad < 0 ? "" : cellPath(path, c, scan.firstBad);
+  const code = kind === CellKind.label ? 'svs.position.syntax' : 'svs.columns.type';
+  let firstPath = scan.firstBad < 0 ? '' : cellPath(path, c, scan.firstBad);
   let first = scan.firstBad < 0 ? null : cellAt(c, scan.firstBad);
   const refs: { ref: string; count: number; path: string }[] = [];
   if (c.form === ColumnForm.dict) {
@@ -205,18 +205,18 @@ function checkColumn(c: Col, kind: number, path: string, ctx: CheckContext) {
     if (scan.badCodes > 0) {
       const bad = c.data[scan.firstBadCode];
       const message = `expected a code in 0..${dict.length - 1} or null, got ${show(bad)}${rows(scan.badCodes)}`;
-      report(ctx, "svs.columns.type", cellPath(path, c, scan.firstBadCode), message);
+      report(ctx, 'svs.columns.type', cellPath(path, c, scan.firstBadCode), message);
     }
     // Each entry the codes use, checked once for all its rows.
     for (let e = 0; e < dict.length; e++) {
       const n = scan.perEntry[e];
       const x = dict[e];
       if (n === 0 || x === null) continue;
-      if (kind === CellKind.ref && typeof x === "string")
-        refs.push({ ref: x, count: n, path: ptr(ptr(at, "dict"), e) });
+      if (kind === CellKind.ref && typeof x === 'string')
+        refs.push({ ref: x, count: n, path: ptr(ptr(at, 'dict'), e) });
       else if (!cellOk(kind, x)) {
         if (scan.bad === 0) {
-          firstPath = ptr(ptr(at, "dict"), e);
+          firstPath = ptr(ptr(at, 'dict'), e);
           first = x;
         }
         scan.bad += n;
@@ -230,7 +230,7 @@ function checkColumn(c: Col, kind: number, path: string, ctx: CheckContext) {
   for (const r of refs) {
     if (!isRefSyntax(r.ref, true)) {
       const message = `"${r.ref}" is not a ref: [A-Za-z0-9][A-Za-z0-9_.-]*, then /suffixes${rows(r.count)}`;
-      report(ctx, "svs.ref.syntax", r.path, message);
+      report(ctx, 'svs.ref.syntax', r.path, message);
     } else ctx.refs.push({ ref: r.ref, kinds: TARGET_KINDS, path: r.path, from: ctx.from, count: r.count });
   }
 }
@@ -241,52 +241,52 @@ export function table(geometry: Geometry): FieldType<Table> {
     name: `Table<${geometry}>`,
     check(v, path, ctx) {
       const t = tableOf(v);
-      if (!t) return typeError(ctx, path, "a Table: row objects or column arrays", v);
+      if (!t) return typeError(ctx, path, 'a Table: row objects or column arrays', v);
       if (t.badRows > 0) {
         const message = `expected a row object, got ${show((v as unknown[])[t.firstBadRow])}${rows(t.badRows)}`;
-        report(ctx, "svs.params.type", ptr(path, t.firstBadRow), message);
+        report(ctx, 'svs.params.type', ptr(path, t.firstBadRow), message);
       }
       for (const k of t.badShapes) {
         const col = (v as Record<string, unknown>)[k];
-        typeError(ctx, ptr(path, k), "a column: an array, {dict, codes} or {json}", col, "svs.columns.type");
+        typeError(ctx, ptr(path, k), 'a column: an array, {dict, codes} or {json}', col, 'svs.columns.type');
       }
       const first = t.cols.values().next().value;
       for (const c of t.cols.values()) {
         const at = c.form === ColumnForm.rows ? path : ptr(path, c.name);
         if (first && c.form !== ColumnForm.rows && c.length !== first.length) {
           const message = `column "${c.name}" has ${c.length} values; the first column has ${first.length}`;
-          report(ctx, "svs.columns.length", at, message);
+          report(ctx, 'svs.columns.length', at, message);
         }
-        if (c.dict && !c.dict.every((s) => typeof s === "string"))
-          typeError(ctx, ptr(at, "dict"), "list<str>", c.dict, "svs.columns.type");
+        if (c.dict && !c.dict.every((s) => typeof s === 'string'))
+          typeError(ctx, ptr(at, 'dict'), 'list<str>', c.dict, 'svs.columns.type');
         if (roles[c.name] !== undefined) checkColumn(c, cellKind(c.name, geometry), path, ctx);
         else if (PLACING.has(c.name)) {
-          const names = GeometryColumns[geometry].join(", ");
-          report(ctx, "svs.columns.unknown", at, `"${c.name}" is not a ${geometry} column; ${geometry} reads ${names}`);
+          const names = GeometryColumns[geometry].join(', ');
+          report(ctx, 'svs.columns.unknown', at, `"${c.name}" is not a ${geometry} column; ${geometry} reads ${names}`);
         }
       }
       // A table with no rows needs no columns.
       for (const set of t.length > 0 ? REQUIRED[geometry] : []) {
         if (!set.some((k) => t.cols.has(k))) {
-          report(ctx, "svs.params.missing", path, `a ${geometry} table needs a column ${set.join(" or ")}`);
+          report(ctx, 'svs.params.missing', path, `a ${geometry} table needs a column ${set.join(' or ')}`);
         }
       }
       const form = (idx: string[], lab: string[], side: string) => {
         if (anyPresent(t, idx) && anyPresent(t, lab)) {
-          report(ctx, "svs.position.form", path, `${side}: use indices (${idx}) or labels (${lab}), not both`);
+          report(ctx, 'svs.position.form', path, `${side}: use indices (${idx}) or labels (${lab}), not both`);
         }
       };
-      form(["start", "stop", "boundary", "index"], ["beg", "end", "pos"], "positions");
-      form(["b_start", "b_stop"], ["b_beg", "b_end"], "side b");
+      form(['start', 'stop', 'boundary', 'index'], ['beg', 'end', 'pos'], 'positions');
+      form(['b_start', 'b_stop'], ['b_beg', 'b_end'], 'side b');
       // An insertion code completes an author number: it needs its side's labels.
       for (const [code, lab] of [
-        ["ins_code", ["beg", "pos"]],
-        ["b_ins_code", ["b_beg"]],
+        ['ins_code', ['beg', 'pos']],
+        ['b_ins_code', ['b_beg']],
       ] as const) {
         if (!present(t, code) || anyPresent(t, lab)) continue;
-        const idx = code === "ins_code" ? "start, index" : "b_start";
-        const m = `${code} completes an author number in ${lab.join(" or ")} ("52" and "A" name 52A); without ${lab.join(" or ")} (indices: ${idx}) there is none: give positions as labels in an author numbering, or leave ${code} out`;
-        report(ctx, "svs.position.form", path, m);
+        const idx = code === 'ins_code' ? 'start, index' : 'b_start';
+        const m = `${code} completes an author number in ${lab.join(' or ')} ("52" and "A" name 52A); without ${lab.join(' or ')} (indices: ${idx}) there is none: give positions as labels in an author numbering, or leave ${code} out`;
+        report(ctx, 'svs.position.form', path, m);
       }
     },
     normalize(v) {
@@ -336,7 +336,7 @@ const NUMBER = /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/;
 const TEXT = new Set(
   Object.values(ColumnRoles).flatMap((r) =>
     Object.keys(r).filter((k) => {
-      const kind = cellKind(k, "ranges");
+      const kind = cellKind(k, 'ranges');
       return kind !== CellKind.index && kind !== CellKind.value;
     }),
   ),
@@ -357,12 +357,12 @@ export function typeColumns(
     if (TEXT.has(k) || !cells.every((s) => s === null || NUMBER.test(s))) {
       // An index or value column with a cell that is no number: its numbers read as numbers, the rest left as
       // written, for the static check to name and the loader to leave out (CF-03).
-      const numeric = cellKind(k, "ranges") === CellKind.index || k === "value";
+      const numeric = cellKind(k, 'ranges') === CellKind.index || k === 'value';
       out[k] = !TEXT.has(k) && numeric ? cells.map((s) => (s !== null && NUMBER.test(s) ? Number(s) : s)) : cells;
       continue;
     }
     const nums = Float64Array.from(cells, (s) => (s === null ? Number.NaN : Number(s)));
-    const int32 = cellKind(k, "ranges") === CellKind.index && nums.every((x) => (x | 0) === x);
+    const int32 = cellKind(k, 'ranges') === CellKind.index && nums.every((x) => (x | 0) === x);
     out[k] = int32 ? Int32Array.from(nums) : nums;
   }
   return out;

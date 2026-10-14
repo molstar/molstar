@@ -10,7 +10,7 @@
 // `OptionalField`, `SimpleParamsSchema`, `UnionParamsSchema`. Added: a union may be open (`opts.open`: the params of
 // a `<namespace>:<name>` case, whose `options` its registry entry checks).
 
-import type { SvsRegistries } from "../registry.js";
+import type { SvsRegistries } from '../registry.js';
 import {
   type CheckContext,
   type FieldType,
@@ -21,7 +21,7 @@ import {
   reportUnknown,
   show,
   typeError,
-} from "./field-schema.js";
+} from './field-schema.js';
 
 export interface RequiredField<V = unknown> {
   readonly type: FieldType<V>;
@@ -47,16 +47,16 @@ export type ParamField<V = unknown> = RequiredField<V> | OptionalField<V>;
 export type Fields = { readonly [key: string]: ParamField };
 
 export interface SimpleParamsSchema<F extends Fields = Fields> {
-  readonly type: "simple";
+  readonly type: 'simple';
   readonly fields: F;
 }
 export function SimpleParamsSchema<F extends Fields>(fields: F): SimpleParamsSchema<F> {
-  return { type: "simple", fields };
+  return { type: 'simple', fields };
 }
 
 export type Cases = { readonly [name: string]: SimpleParamsSchema };
 export interface UnionParamsSchema<D extends string = string, C extends Cases = Cases> {
-  readonly type: "union";
+  readonly type: 'union';
   readonly discriminator: D;
   readonly discriminatorDescription: string;
   readonly cases: C;
@@ -69,7 +69,7 @@ export function UnionParamsSchema<D extends string, C extends Cases>(
   cases: C,
   opts?: { open?: SimpleParamsSchema },
 ): UnionParamsSchema<D, C> {
-  return { type: "union", discriminator, discriminatorDescription, cases, open: opts?.open ?? null };
+  return { type: 'union', discriminator, discriminatorDescription, cases, open: opts?.open ?? null };
 }
 
 export type ParamsSchema = SimpleParamsSchema | UnionParamsSchema;
@@ -88,19 +88,19 @@ export type ValuesFor<P> =
 
 /** The case a union's discriminator selects: a kernel case, the open case, or undefined. */
 export function caseOf(schema: UnionParamsSchema, d: unknown): SimpleParamsSchema | undefined {
-  if (typeof d === "string" && Object.hasOwn(schema.cases, d)) return schema.cases[d];
+  if (typeof d === 'string' && Object.hasOwn(schema.cases, d)) return schema.cases[d];
   return isNamespaced(d) && schema.open ? schema.open : undefined;
 }
 
 export function checkParams(schema: ParamsSchema, values: unknown, path: string, ctx: CheckContext) {
-  if (!isPlainObject(values)) return typeError(ctx, path, "an object of params", values);
-  if (schema.type === "simple") return checkFields(schema.fields, values, path, ctx, null);
+  if (!isPlainObject(values)) return typeError(ctx, path, 'an object of params', values);
+  if (schema.type === 'simple') return checkFields(schema.fields, values, path, ctx, null);
   const d = values[schema.discriminator];
   const at = ptr(path, schema.discriminator);
   if (d === undefined) {
     return report(
       ctx,
-      "svs.params.missing",
+      'svs.params.missing',
       at,
       `missing "${schema.discriminator}": ${schema.discriminatorDescription}`,
     );
@@ -111,9 +111,9 @@ export function checkParams(schema: ParamsSchema, values: unknown, path: string,
     if (schema.open) known.push('"<namespace>:<name>"');
     return reportUnknown(
       ctx,
-      "svs.params.type",
+      'svs.params.type',
       at,
-      `${schema.discriminator} ${show(d)} is none of ${known.join(", ")}`,
+      `${schema.discriminator} ${show(d)} is none of ${known.join(', ')}`,
     );
   }
   checkFields(c.fields, values, path, ctx, schema.discriminator);
@@ -131,20 +131,20 @@ function checkFields(
     const v = values[key];
     if (v !== undefined) field.type.check(v, ptr(path, key), ctx);
     else if (field.required)
-      report(ctx, "svs.params.missing", ptr(path, key), `missing "${key}": ${field.description}`);
+      report(ctx, 'svs.params.missing', ptr(path, key), `missing "${key}": ${field.description}`);
   }
   for (const key of Object.keys(values)) {
     if (key === skip || Object.hasOwn(fields, key)) continue;
-    const names = Object.keys(fields).join(", ");
-    reportUnknown(ctx, "svs.params.unknown", ptr(path, key), `unknown param "${key}"; known: ${names || "none"}`);
+    const names = Object.keys(fields).join(', ');
+    reportUnknown(ctx, 'svs.params.unknown', ptr(path, key), `unknown param "${key}"; known: ${names || 'none'}`);
   }
 }
 
-const clone = <V>(v: V): V => (v !== null && typeof v === "object" ? structuredClone(v) : v);
+const clone = <V>(v: V): V => (v !== null && typeof v === 'object' ? structuredClone(v) : v);
 
 /** Every default filled, nested values normalized (MVS's `addParamDefaults`). Unknown cases are kept as they are. */
 export function normalizeParams(schema: ParamsSchema, values: Record<string, unknown>, reg: SvsRegistries) {
-  const c = schema.type === "simple" ? schema : caseOf(schema, values[schema.discriminator]);
+  const c = schema.type === 'simple' ? schema : caseOf(schema, values[schema.discriminator]);
   if (!c) return { ...values };
   const out: Record<string, unknown> = { ...values };
   for (const key of Object.keys(c.fields)) {
@@ -168,10 +168,10 @@ export function paramsField<V = Record<string, unknown>>(schema: ParamsSchema, n
 export function object<F extends Fields>(fields?: F): FieldType<ValuesFor<SimpleParamsSchema<F>>> {
   if (!fields) {
     return {
-      name: "object",
-      check: (v, path, ctx) => (isPlainObject(v) ? undefined : typeError(ctx, path, "object", v)),
+      name: 'object',
+      check: (v, path, ctx) => (isPlainObject(v) ? undefined : typeError(ctx, path, 'object', v)),
     };
   }
-  const parts = Object.entries(fields).map(([k, f]) => `${k}${f.required ? "" : "?"}: ${f.type.name}`);
-  return paramsField(SimpleParamsSchema(fields), `{${parts.join(", ")}}`);
+  const parts = Object.entries(fields).map(([k, f]) => `${k}${f.required ? '' : '?'}: ${f.type.name}`);
+  return paramsField(SimpleParamsSchema(fields), `{${parts.join(', ')}}`);
 }

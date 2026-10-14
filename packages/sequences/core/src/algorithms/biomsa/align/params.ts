@@ -5,7 +5,7 @@
  * @copyright 2020
  */
 
-import type { TAlignOpt } from "../index.js";
+import type { TAlignOpt } from '../index.js';
 
 // STORIES-UNTOLD(B1): const enum as an `as const` object and a type (erasable TypeScript).
 export const SEQUENCE_TYPE = {
@@ -16,7 +16,7 @@ export const SEQUENCE_TYPE = {
 export type SEQUENCE_TYPE = (typeof SEQUENCE_TYPE)[keyof typeof SEQUENCE_TYPE];
 
 export const DEBUG = false;
-export const DEFAULT_GAP_CHAR = "-";
+export const DEFAULT_GAP_CHAR = '-';
 
 // const BLOSUM62 = {
 //     matrix: [

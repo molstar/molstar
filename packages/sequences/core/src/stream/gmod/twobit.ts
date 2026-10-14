@@ -9,11 +9,11 @@
 // 2bit: a genome's letters (README, "2bit"). A sequence's size is read for the manifest, the rest of its record lazily,
 // and its block lists by binary search, so a region of chr1 does not read its 200,000 mask blocks.
 
-import { type DataPatch, StreamNotServed, type StreamProvider, type StreamRequest } from "@molstar/seq-core/format";
-import { join, live, once, paged, type RangeReader, type Shared, share, view } from "./ranges.js";
+import { type DataPatch, StreamNotServed, type StreamProvider, type StreamRequest } from '@molstar/seq-core/format';
+import { join, live, once, paged, type RangeReader, type Shared, share, view } from './ranges.js';
 
 const SIGNATURE = 0x1a412743;
-const BASES = "TCAG"; // codes 0..3
+const BASES = 'TCAG'; // codes 0..3
 const [UPPER_N, LOWER] = [78, 0x20];
 
 interface Sequence {
@@ -51,8 +51,8 @@ export function twoBitProvider(
   const opened = once(async (signal: AbortSignal) => {
     const head = view(await read(0, 16, signal));
     const le = head.getUint32(0, true) === SIGNATURE;
-    if (!le && head.getUint32(0, false) !== SIGNATURE) throw new Error("not a 2bit file: no 0x1A412743 signature");
-    if (head.getUint32(4, le) !== 0) throw new Error("2bit version 1 (64-bit offsets) is not read");
+    if (!le && head.getUint32(0, false) !== SIGNATURE) throw new Error('not a 2bit file: no 0x1A412743 signature');
+    if (head.getUint32(4, le) !== 0) throw new Error('2bit version 1 (64-bit offsets) is not read');
     // The index: per sequence its name's length, name and offset; its size is the first word of its record.
     const count = head.getUint32(8, le);
     // The index is read as far as the file holds it: a count past it (a corrupt one, up to 2^32) ends at its end.
@@ -149,7 +149,7 @@ export function twoBitProvider(
           numbering: null,
           label: s.name,
         }));
-        return { ...at, kind: "manifest", manifest: { systems, levels: [], alphabet: "dna" } };
+        return { ...at, kind: 'manifest', manifest: { systems, levels: [], alphabet: 'dna' } };
       }
       if (r.level !== -1) throw new StreamNotServed(`a 2bit file serves letters (level -1), not level ${r.level}`);
       const s = sequences.get(r.system);
@@ -171,7 +171,7 @@ export function twoBitProvider(
       for (const [a, b] of ns) letters.fill(UPPER_N, Math.max(a, start) - start, Math.min(b, stop) - start);
       for (const [a, b] of mask)
         for (let p = Math.max(a, start); p < Math.min(b, stop); p++) letters[p - start] |= LOWER;
-      return { ...at, kind: "letters", letters: new TextDecoder("latin1").decode(letters) };
+      return { ...at, kind: 'letters', letters: new TextDecoder('latin1').decode(letters) };
     },
   };
 }

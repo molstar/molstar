@@ -9,7 +9,7 @@
 // VL-13: a stacked density column in a band thinner than its colors stays in the band: every rect a positive height
 // inside it (an SVG export gets no negative or out-of-band rect).
 
-import { expect, it } from "vitest";
+import { expect, it } from 'vitest';
 import {
   DensityKind,
   type DrawView,
@@ -18,9 +18,9 @@ import {
   densitySlot,
   densityStart,
   RectBatch,
-} from "../src/draw/api.js";
+} from '../src/draw/api.js';
 
-it("six colors in a band of three device rows", () => {
+it('six colors in a band of three device rows', () => {
   densityStart({ left: 0, right: 10, dpr: 1 } as DrawView);
   for (let s = 0; s < 6; s++) densityAdd(3, densitySlot(0x100000 * (s + 1)), 1);
   const rects = new RectBatch();

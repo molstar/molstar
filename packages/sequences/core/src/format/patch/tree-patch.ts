@@ -11,14 +11,14 @@
 // or nothing, the inverse, every untouched subtree and `params`/`custom` object shared; and `diffTree`. SVS's
 // validation, revisions and snapshots are patch.ts's.
 
-import { columnNumbers, Issue } from "@molstar/seq-core/model";
-import type { DocNode, Op } from "../doc.js";
-import { equal } from "../equal.js";
-import { normalizeNodeParams } from "../normalize.js";
-import type { SvsRegistries } from "../registry.js";
-import { isPlainObject } from "../schema/field-schema.js";
-import { caseOf } from "../schema/params-schema.js";
-import type { TreeSchema } from "../schema/tree-schema.js";
+import { columnNumbers, Issue } from '@molstar/seq-core/model';
+import type { DocNode, Op } from '../doc.js';
+import { equal } from '../equal.js';
+import { normalizeNodeParams } from '../normalize.js';
+import type { SvsRegistries } from '../registry.js';
+import { isPlainObject } from '../schema/field-schema.js';
+import { caseOf } from '../schema/params-schema.js';
+import type { TreeSchema } from '../schema/tree-schema.js';
 
 export interface TreeOptions {
   readonly schema: TreeSchema;
@@ -43,7 +43,7 @@ interface Tree {
 }
 
 const implied = (opts: TreeOptions, kind: string) =>
-  Object.hasOwn(opts.schema.nodes, kind) && opts.schema.nodes[kind].ref === "implied";
+  Object.hasOwn(opts.schema.nodes, kind) && opts.schema.nodes[kind].ref === 'implied';
 /** A node's ref (`refless` and `checkOp` have seen to it that it has one, or that its kind implies it). */
 const refOf = (n: DocNode) => n.ref ?? n.kind;
 
@@ -55,7 +55,7 @@ function add(t: Tree, n: DocNode, parent: string | null): string {
   return ref;
 }
 function draft(root: DocNode, opts: TreeOptions): Tree {
-  const t = { map: new Map<string, Draft>(), root: "", opts };
+  const t = { map: new Map<string, Draft>(), root: '', opts };
   return Object.assign(t, { root: add(t, root, null) });
 }
 
@@ -79,14 +79,14 @@ function drop(t: Tree, ref: string) {
 
 /** Where `after` puts a node among `parent`'s children; -1: not a child. */
 function anchor(parent: Draft, after: string | undefined): number {
-  if (after === undefined || after === "last") return parent.children.length;
-  if (after === "first") return 0;
+  if (after === undefined || after === 'last') return parent.children.length;
+  if (after === 'first') return 0;
   const j = parent.children.indexOf(after);
   return j < 0 ? -1 : j + 1;
 }
 const before = (parent: Draft, ref: string) => {
   const k = parent.children.indexOf(ref);
-  return k === 0 ? "first" : parent.children[k - 1];
+  return k === 0 ? 'first' : parent.children[k - 1];
 };
 function subtreeRefs(n: DocNode, opts: TreeOptions, out: string[] = []): string[] {
   if (n.ref !== undefined || implied(opts, n.kind)) out.push(refOf(n));
@@ -108,7 +108,7 @@ function merge(cur: Obj | undefined, change: Obj, old: Obj): Obj | undefined {
 /** A discriminator switch nulls the old case's params the new case lacks. */
 function switched(t: Tree, kind: string, cur: Obj | undefined, change: Obj): Obj {
   const ps = Object.hasOwn(t.opts.schema.nodes, kind) ? t.opts.schema.nodes[kind].params : undefined;
-  if (ps?.type !== "union" || !(ps.discriminator in change) || change[ps.discriminator] === cur?.[ps.discriminator])
+  if (ps?.type !== 'union' || !(ps.discriminator in change) || change[ps.discriminator] === cur?.[ps.discriminator])
     return change;
   const [from, to] = [caseOf(ps, cur?.[ps.discriminator]), caseOf(ps, change[ps.discriminator])];
   const out = { ...change };
@@ -123,10 +123,10 @@ type Why = { code: string; message: string };
 
 /** The path of the first node (preorder) that is not an object with a kind and a ref (implied for some kinds); null: none. */
 function refless(n: unknown, opts: TreeOptions, path: string, seen = new Set<string>()): string | null {
-  if (!isPlainObject(n) || typeof n.kind !== "string") return path;
-  if (typeof n.ref !== "string" && !implied(opts, n.kind)) return path;
+  if (!isPlainObject(n) || typeof n.kind !== 'string') return path;
+  if (typeof n.ref !== 'string' && !implied(opts, n.kind)) return path;
   // A ref met twice (a second `data`, or a `root` under the root) would make a node its own ancestor in the draft.
-  const ref = typeof n.ref === "string" ? n.ref : n.kind;
+  const ref = typeof n.ref === 'string' ? n.ref : n.kind;
   if (seen.has(ref)) return path;
   seen.add(ref);
   if (n.children === undefined) return null;
@@ -140,12 +140,12 @@ function refless(n: unknown, opts: TreeOptions, path: string, seen = new Set<str
 
 /** Why a node an op inserts is malformed (its subtree too), or null: `where` names it in the message. */
 function checkNode(n: unknown, opts: TreeOptions, where: string): Why | null {
-  const bad = (message: string, code = "svs.params.type") => ({ code, message: `${where}: ${message}` });
-  if (!isPlainObject(n) || typeof n.kind !== "string") return bad("a node is {kind, ref, params, custom, children}");
-  if (typeof n.ref !== "string" && !implied(opts, n.kind)) return bad(`this ${n.kind} needs a ref`, "svs.ref.missing");
-  for (const k of ["params", "custom"]) if (n[k] !== undefined && !isPlainObject(n[k])) return bad(`${k} is an object`);
+  const bad = (message: string, code = 'svs.params.type') => ({ code, message: `${where}: ${message}` });
+  if (!isPlainObject(n) || typeof n.kind !== 'string') return bad('a node is {kind, ref, params, custom, children}');
+  if (typeof n.ref !== 'string' && !implied(opts, n.kind)) return bad(`this ${n.kind} needs a ref`, 'svs.ref.missing');
+  for (const k of ['params', 'custom']) if (n[k] !== undefined && !isPlainObject(n[k])) return bad(`${k} is an object`);
   if (n.children === undefined) return null;
-  if (!Array.isArray(n.children)) return bad("children is a list of nodes");
+  if (!Array.isArray(n.children)) return bad('children is a list of nodes');
   for (let i = 0; i < n.children.length; i++) {
     const why = checkNode(n.children[i], opts, `${where}, child ${i}`);
     if (why) return why;
@@ -155,38 +155,38 @@ function checkNode(n: unknown, opts: TreeOptions, where: string): Why | null {
 
 /** Why an op is malformed (every shape is checked before any op applies), or null. */
 function checkOp(op: unknown, opts: TreeOptions): Why | null {
-  if (!isPlainObject(op) || !["set", "remove", "insert", "move"].includes(op.op as string)) {
-    return { code: "svs.params.type", message: 'an op is {op: "set" | "remove" | "insert" | "move", ...}' };
+  if (!isPlainObject(op) || !['set', 'remove', 'insert', 'move'].includes(op.op as string)) {
+    return { code: 'svs.params.type', message: 'an op is {op: "set" | "remove" | "insert" | "move", ...}' };
   }
-  for (const k of ["params", "custom"]) {
+  for (const k of ['params', 'custom']) {
     if (op[k] !== undefined && !isPlainObject(op[k])) {
-      return { code: "svs.params.type", message: `${op.op}: ${k} is an object (null inside it removes a key)` };
+      return { code: 'svs.params.type', message: `${op.op}: ${k} is an object (null inside it removes a key)` };
     }
   }
-  for (const k of op.op === "insert" ? ["parent"] : op.op === "move" ? ["ref", "parent"] : ["ref"]) {
-    if (typeof op[k] !== "string") return { code: "svs.params.type", message: `${op.op}: ${k} is a node's ref` };
+  for (const k of op.op === 'insert' ? ['parent'] : op.op === 'move' ? ['ref', 'parent'] : ['ref']) {
+    if (typeof op[k] !== 'string') return { code: 'svs.params.type', message: `${op.op}: ${k} is a node's ref` };
   }
-  if (op.after !== undefined && typeof op.after !== "string") {
-    return { code: "svs.params.type", message: `${op.op}: after is a sibling's ref, "first" or "last"` };
+  if (op.after !== undefined && typeof op.after !== 'string') {
+    return { code: 'svs.params.type', message: `${op.op}: after is a sibling's ref, "first" or "last"` };
   }
-  return op.op === "insert" ? checkNode(op.node, opts, "insert node") : null;
+  return op.op === 'insert' ? checkNode(op.node, opts, 'insert node') : null;
 }
 
 /** One op on the draft; its inverse, or null (reported). `touch` is told every ref the op changes. */
 function applyOp(t: Tree, op: Op, fail: Fail, touch: (ref: string) => void): Op | null {
   const get = (ref: unknown, what: string) => {
-    const d = typeof ref === "string" ? t.map.get(ref) : undefined;
-    if (!d) fail("svs.patch.ref", `${what} ${JSON.stringify(ref)} names no node (ops never address derived refs)`);
+    const d = typeof ref === 'string' ? t.map.get(ref) : undefined;
+    if (!d) fail('svs.patch.ref', `${what} ${JSON.stringify(ref)} names no node (ops never address derived refs)`);
     return d;
   };
   const fixed = (d: Draft) =>
     d.parent === null || implied(t.opts, d.node.kind)
-      ? fail("svs.patch.ref", `"${d.ref}" (${d.node.kind}) may be set, never removed or moved`)
+      ? fail('svs.patch.ref', `"${d.ref}" (${d.node.kind}) may be set, never removed or moved`)
       : d;
-  if (op.op === "set") {
-    const d = get(op.ref, "ref");
+  if (op.op === 'set') {
+    const d = get(op.ref, 'ref');
     if (!d) return null;
-    const inv: Op & { op: "set" } = { op: "set", ref: d.ref };
+    const inv: Op & { op: 'set' } = { op: 'set', ref: d.ref };
     if (isPlainObject(op.params)) {
       inv.params = {};
       d.params = merge(d.params, switched(t, d.node.kind, d.params, op.params), inv.params);
@@ -199,41 +199,41 @@ function applyOp(t: Tree, op: Op, fail: Fail, touch: (ref: string) => void): Op 
     touch(d.ref);
     return inv;
   }
-  if (op.op === "remove") {
-    const d = get(op.ref, "ref");
+  if (op.op === 'remove') {
+    const d = get(op.ref, 'ref');
     if (!d || !fixed(d)) return null;
     const p = t.map.get(d.parent as string) as Draft;
-    const inv: Op = { op: "insert", parent: p.ref, after: before(p, d.ref), node: build(t, d.ref) };
+    const inv: Op = { op: 'insert', parent: p.ref, after: before(p, d.ref), node: build(t, d.ref) };
     p.children = p.children.filter((c) => c !== d.ref);
     p.dirty = true;
     touch(p.ref);
     drop(t, d.ref);
     return inv;
   }
-  const p = get(op.parent, "parent");
+  const p = get(op.parent, 'parent');
   if (!p) return null;
-  if (op.op === "insert") {
-    if (!isPlainObject(op.node) || typeof op.node.kind !== "string") return fail("svs.params.type", "insert a node");
+  if (op.op === 'insert') {
+    if (!isPlainObject(op.node) || typeof op.node.kind !== 'string') return fail('svs.params.type', 'insert a node');
     const refs = subtreeRefs(op.node, t.opts);
     const taken = refs.find((r, i) => t.map.has(r) || refs.indexOf(r) !== i);
-    if (taken !== undefined) return fail("svs.patch.ref", `"${taken}" is already a ref of the document`);
+    if (taken !== undefined) return fail('svs.patch.ref', `"${taken}" is already a ref of the document`);
     const at = anchor(p, op.after);
-    if (at < 0) return fail("svs.patch.anchor", `"${op.after}" is not a child of "${p.ref}"`);
+    if (at < 0) return fail('svs.patch.anchor', `"${op.after}" is not a child of "${p.ref}"`);
     p.children.splice(at, 0, add(t, op.node, p.ref));
     p.dirty = true;
     for (const r of [p.ref, ...refs]) touch(r);
-    return { op: "remove", ref: refOf(op.node) };
+    return { op: 'remove', ref: refOf(op.node) };
   }
-  const d = get(op.ref, "ref");
+  const d = get(op.ref, 'ref');
   if (!d || !fixed(d)) return null;
   for (let a: Draft | undefined = p; a; a = a.parent === null ? undefined : t.map.get(a.parent)) {
-    if (a === d) return fail("svs.patch.cycle", `"${d.ref}" cannot move into its own subtree ("${p.ref}")`);
+    if (a === d) return fail('svs.patch.cycle', `"${d.ref}" cannot move into its own subtree ("${p.ref}")`);
   }
   const old = t.map.get(d.parent as string) as Draft;
-  const inv: Op = { op: "move", ref: d.ref, parent: old.ref, after: before(old, d.ref) };
+  const inv: Op = { op: 'move', ref: d.ref, parent: old.ref, after: before(old, d.ref) };
   old.children = old.children.filter((c) => c !== d.ref);
   const at = anchor(p, op.after);
-  if (at < 0) return fail("svs.patch.anchor", `"${op.after}" is not a child of "${p.ref}"`);
+  if (at < 0) return fail('svs.patch.anchor', `"${op.after}" is not a child of "${p.ref}"`);
   p.children.splice(at, 0, d.ref);
   d.parent = p.ref;
   old.dirty = p.dirty = true;
@@ -250,19 +250,19 @@ export function patchTree(root: DocNode, ops: readonly Op[], opts: TreeOptions) 
   const touched = new Map<string, number>();
   const inverse: Op[] = [];
   const issues: Issue[] = [];
-  if (!Array.isArray(ops)) issues.push(Issue.error("svs.params.type", "/ops", "ops is a list of ops"));
+  if (!Array.isArray(ops)) issues.push(Issue.error('svs.params.type', '/ops', 'ops is a list of ops'));
   else {
     ops.forEach((op, k) => {
       const why = checkOp(op, opts);
       if (why) issues.push(Issue.error(why.code, `/ops/${k}`, why.message));
     });
   }
-  const bare = issues.length === 0 ? refless(root, opts, "/root") : null;
+  const bare = issues.length === 0 ? refless(root, opts, '/root') : null;
   if (bare !== null) {
     issues.push(
       Issue.error(
-        "svs.ref.missing",
-        "/ops",
+        'svs.ref.missing',
+        '/ops',
         `a tree is patched by ref, and the node at ${bare} has none or repeats one`,
       ),
     );
@@ -283,11 +283,11 @@ export function patchTree(root: DocNode, ops: readonly Op[], opts: TreeOptions) 
 
 /** JSON with keys sorted: equal values give equal text. */
 export function canonical(x: unknown): string {
-  if (x === null || typeof x !== "object") return JSON.stringify(x) ?? "null";
+  if (x === null || typeof x !== 'object') return JSON.stringify(x) ?? 'null';
   if (ArrayBuffer.isView(x)) return canonical(columnNumbers(x as Float64Array, null));
-  if (Array.isArray(x)) return `[${x.map(canonical).join(",")}]`;
+  if (Array.isArray(x)) return `[${x.map(canonical).join(',')}]`;
   const keys = Object.keys(x).sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonical((x as Obj)[k])}`).join(",")}}`;
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonical((x as Obj)[k])}`).join(',')}}`;
 }
 
 /**
@@ -310,7 +310,7 @@ function changed(na: Obj, nb: Obj, b: Obj | undefined): Obj | null {
  * ref (other than the implied ones), which no op could name.
  */
 export function diffTree(a: DocNode, b: DocNode, opts: TreeOptions): Op[] | null {
-  if (refless(a, opts, "") !== null || refless(b, opts, "") !== null) return null;
+  if (refless(a, opts, '') !== null || refless(b, opts, '') !== null) return null;
   // The same tree: nothing to do (CF-04: the viewer rebases on every `setDocument`).
   if (a === b) return [];
   const t = draft(a, opts);
@@ -332,7 +332,7 @@ export function diffTree(a: DocNode, b: DocNode, opts: TreeOptions): Op[] | null
   };
   const prune = (ref: string, keep: (d: Draft) => boolean) => {
     const d = t.map.get(ref) as Draft;
-    if (!keep(d)) run({ op: "remove", ref });
+    if (!keep(d)) run({ op: 'remove', ref });
     else for (const c of d.children.slice()) prune(c, keep);
   };
   prune(t.root, (d) => !want.has(d.ref) || want.get(d.ref)?.kind === d.node.kind);
@@ -350,14 +350,14 @@ export function diffTree(a: DocNode, b: DocNode, opts: TreeOptions): Op[] | null
       const nb = normalizeNodeParams(n, opts.schema, opts.reg);
       const params = changed(na.params, nb.params, n.params);
       const custom = changed(na.custom ?? {}, nb.custom ?? {}, n.custom);
-      if (params || custom) run({ op: "set", ref, ...(params && { params }), ...(custom && { custom }) });
+      if (params || custom) run({ op: 'set', ref, ...(params && { params }), ...(custom && { custom }) });
     }
     (n.children ?? []).forEach((c, k) => {
       const r = refOf(c);
-      const prev = k === 0 ? "first" : refOf((n.children as DocNode[])[k - 1]);
+      const prev = k === 0 ? 'first' : refOf((n.children as DocNode[])[k - 1]);
       const cur = t.map.get(r);
-      if (!cur) run({ op: "insert", parent: ref, after: prev, node: fresh(c) });
-      else if (cur.parent !== ref || before(d, r) !== prev) run({ op: "move", ref: r, parent: ref, after: prev });
+      if (!cur) run({ op: 'insert', parent: ref, after: prev, node: fresh(c) });
+      else if (cur.parent !== ref || before(d, r) !== prev) run({ op: 'move', ref: r, parent: ref, after: prev });
       walk(c, r);
     });
   };

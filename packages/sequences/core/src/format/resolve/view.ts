@@ -24,23 +24,23 @@ import {
   type SeqSet,
   type SortedArray,
   type UnitId,
-} from "@molstar/seq-core/model";
-import type { SeqViewSpecDoc, ThemeRef } from "../doc.js";
-import { type DocIndex, indexDoc } from "../load/compile.js";
-import { issueOf } from "../load/issues.js";
-import type { SvsRegistries } from "../registry.js";
-import type { StyleRenderProps } from "../tables/style.js";
-import { type ResolvedSystems, systemsOf } from "./coordinates.js";
-import { followsOf, type ResolvedFollows } from "./follows.js";
-import { type ResolvedLayer, resolveLayer } from "./layer.js";
-import { blockSystem, pathTo } from "./reach.js";
-import { type BlockRow, childrenOf, depthOf, type ResolvedSection, resolveSection } from "./section.js";
-import { forEachOf, instantiate, templateNodes } from "./template.js";
+} from '@molstar/seq-core/model';
+import type { SeqViewSpecDoc, ThemeRef } from '../doc.js';
+import { type DocIndex, indexDoc } from '../load/compile.js';
+import { issueOf } from '../load/issues.js';
+import type { SvsRegistries } from '../registry.js';
+import type { StyleRenderProps } from '../tables/style.js';
+import { type ResolvedSystems, systemsOf } from './coordinates.js';
+import { followsOf, type ResolvedFollows } from './follows.js';
+import { type ResolvedLayer, resolveLayer } from './layer.js';
+import { blockSystem, pathTo } from './reach.js';
+import { type BlockRow, childrenOf, depthOf, type ResolvedSection, resolveSection } from './section.js';
+import { forEachOf, instantiate, templateNodes } from './template.js';
 
 export type TableColumns<K extends string, T> = { readonly [k in K]: T };
 /** A table: `count` rows, a column each. */
 export type TableRows<T> = { readonly count: number } & T;
-export type TableParams = TableColumns<"params", readonly Readonly<Record<string, unknown>>[]>;
+export type TableParams = TableColumns<'params', readonly Readonly<Record<string, unknown>>[]>;
 export type TableLists<K extends string, T> = TableColumns<K, readonly T[]>;
 
 /** One view's tables: what viewers draw from. */
@@ -48,68 +48,68 @@ export interface ResolvedView {
   readonly ref: NameId;
   readonly layout: number;
   readonly sections: TableRows<
-    TableColumns<"ref" | "heightRows" | "style" | "scrollGroup" | "blockStart" | "blockCount", Int32Array> &
-      TableColumns<"axis" | "arrangement" | "ligandForm" | "height" | "rowSizing" | "hidden", Uint8Array> &
-      TableLists<"focus", { block: number; start: number; stop: number } | null> &
-      TableLists<"render", StyleRenderProps | null> &
+    TableColumns<'ref' | 'heightRows' | 'style' | 'scrollGroup' | 'blockStart' | 'blockCount', Int32Array> &
+      TableColumns<'axis' | 'arrangement' | 'ligandForm' | 'height' | 'rowSizing' | 'hidden', Uint8Array> &
+      TableLists<'focus', { block: number; start: number; stop: number } | null> &
+      TableLists<'render', StyleRenderProps | null> &
       TableParams
   >;
   readonly blocks: TableRows<
     TableColumns<
-      "section" | "unit" | "alignment" | "base" | "start" | "stop" | "first" | "length" | "label" | "numberingPath",
+      'section' | 'unit' | 'alignment' | 'base' | 'start' | 'stop' | 'first' | 'length' | 'label' | 'numberingPath',
       Int32Array
     > &
-      TableColumns<"ligand", Uint8Array> &
-      TableColumns<"dir", Int8Array> &
-      TableLists<"layout", CoordinateMap> &
-      TableLists<"members", SortedArray<UnitId> | null> &
-      TableLists<"positions" | "varying", OrderedSet | null> &
-      TableLists<"numbering", Numbering | null> &
+      TableColumns<'ligand', Uint8Array> &
+      TableColumns<'dir', Int8Array> &
+      TableLists<'layout', CoordinateMap> &
+      TableLists<'members', SortedArray<UnitId> | null> &
+      TableLists<'positions' | 'varying', OrderedSet | null> &
+      TableLists<'numbering', Numbering | null> &
       TableParams
   >;
   readonly groups: TableRows<
-    TableColumns<"ref" | "section" | "parent" | "label", Int32Array> &
-      TableColumns<"collapsed" | "hidden", Uint8Array> &
+    TableColumns<'ref' | 'section' | 'parent' | 'label', Int32Array> &
+      TableColumns<'collapsed' | 'hidden', Uint8Array> &
       TableParams
   >;
   readonly tracks: TableRows<
-    TableColumns<"ref" | "section" | "group" | "label" | "laneStart" | "laneCount" | "split", Int32Array> &
-      TableColumns<"height", Float64Array> &
-      TableColumns<"hidden" | "expanded", Uint8Array> &
+    TableColumns<'ref' | 'section' | 'group' | 'label' | 'laneStart' | 'laneCount' | 'split', Int32Array> &
+      TableColumns<'height', Float64Array> &
+      TableColumns<'hidden' | 'expanded', Uint8Array> &
       TableParams
   >;
   readonly lanes: ResolvedLanes;
   readonly layers: TableRows<
     TableColumns<
-      | "ref"
-      | "track"
-      | "type"
-      | "declared"
-      | "domainGroup"
-      | "dataStart"
-      | "dataCount"
-      | "placementStart"
-      | "placementCount",
+      | 'ref'
+      | 'track'
+      | 'type'
+      | 'declared'
+      | 'domainGroup'
+      | 'dataStart'
+      | 'dataCount'
+      | 'placementStart'
+      | 'placementCount',
       Int32Array
     > &
-      TableColumns<"sizing", Uint8Array> &
-      TableColumns<"domainMin" | "domainMax", Float64Array> &
-      TableLists<"themes", readonly (ThemeRef | null)[]> &
+      TableColumns<'sizing', Uint8Array> &
+      TableColumns<'domainMin' | 'domainMax', Float64Array> &
+      TableLists<'themes', readonly (ThemeRef | null)[]> &
       /** A template instance's node (seqspec:format#placement); null: a document layer. */
-      TableLists<"node", string | null> &
+      TableLists<'node', string | null> &
       /** A matrix's states drawn, in order (seqspec:format#keyed-sets); null: all, in data order. */
-      TableLists<"members", Int32Array | null> &
+      TableLists<'members', Int32Array | null> &
       TableParams
   >;
   readonly data: Int32Array;
   readonly kept: readonly (Uint8Array | null)[];
   readonly placements: TableRows<
-    TableColumns<"layer" | "block" | "annotation" | "slot" | "member" | "lane" | "path", Int32Array>
+    TableColumns<'layer' | 'block' | 'annotation' | 'slot' | 'member' | 'lane' | 'path', Int32Array>
   >;
   readonly paths: readonly ComposedPath[];
-  readonly links: TableRows<TableColumns<"fromBlock" | "toBlock" | "path", Int32Array>>;
+  readonly links: TableRows<TableColumns<'fromBlock' | 'toBlock' | 'path', Int32Array>>;
   /** Shared domains per (group, field), of the layers that share a `domain_group` (domains.ts). */
-  readonly domains: TableRows<TableColumns<"group" | "field", Int32Array> & TableColumns<"min" | "max", Float64Array>>;
+  readonly domains: TableRows<TableColumns<'group' | 'field', Int32Array> & TableColumns<'min' | 'max', Float64Array>>;
   /** Section pairs that follow each other (`follow`), with a route per block of either side (follows.ts). */
   readonly follows: ResolvedFollows;
   readonly systems: ResolvedSystems;
@@ -126,9 +126,9 @@ export interface ResolvedLanes {
   readonly depth: Int32Array;
   /** Lane `start + k` is row `order[k]` (null: `k`, data order); depth by `parent` (the alignment's, shared). */
   readonly lazy: TableRows<
-    TableColumns<"start" | "length", Int32Array> &
-      TableLists<"order", Int32Array | null> &
-      TableLists<"parent", Int32Array>
+    TableColumns<'start' | 'length', Int32Array> &
+      TableLists<'order', Int32Array | null> &
+      TableLists<'parent', Int32Array>
   >;
 }
 
@@ -164,7 +164,7 @@ function pack(rows: readonly Row[], typed: Record<string, Typed>, plain: string[
   for (const k of plain) out[k] = rows.map((r) => r[k]);
   return out;
 }
-const cols = (T: Typed, keys: string) => Object.fromEntries(keys.split(" ").map((k) => [k, T]));
+const cols = (T: Typed, keys: string) => Object.fromEntries(keys.split(' ').map((k) => [k, T]));
 
 /** Sections and their layers as one view's tables, with `links` between blocks of different sections. */
 export function composeView(
@@ -243,7 +243,7 @@ export function composeView(
     }
     s.tracks.forEach((t, k) => {
       const laneStart = t.laneCount > 0 ? laneOf(t.laneStart) : t.laneStart + l0;
-      const split = t.split < 0 ? -1 : (composed.get(s.layers[t.split]?.ref ?? "") ?? -1);
+      const split = t.split < 0 ? -1 : (composed.get(s.layers[t.split]?.ref ?? '') ?? -1);
       const hidden = pending.get(k) === true ? 1 : t.hidden;
       tracks.push({ ...t, section, group: t.group < 0 ? -1 : t.group + g0, laneStart, split, hidden });
     });
@@ -260,9 +260,9 @@ export function composeView(
       // Columns reach other systems through each of their rows (seqspec:model#projection): two alignments joined row by
       // row (a protein's and its cDNA's) are not one link, and that is no error.
       const columns = a.kind === CoordinateSystemKind.columns || b.kind === CoordinateSystemKind.columns;
-      if (p === "ambiguous" && !columns)
-        issues.push(Issue.error("svs.mapping.ambiguous", "", `blocks ${i} and ${j}: several paths`));
-      else if (p !== undefined && p !== "ambiguous")
+      if (p === 'ambiguous' && !columns)
+        issues.push(Issue.error('svs.mapping.ambiguous', '', `blocks ${i} and ${j}: several paths`));
+      else if (p !== undefined && p !== 'ambiguous')
         links.push({ fromBlock: i, toBlock: j, path: pathOf(p ?? Mappings.compose(set, a, [])) });
     }
   }
@@ -275,7 +275,7 @@ export function composeView(
       if (!seen.has(`${l.group}\0${field}`) && seen.add(`${l.group}\0${field}`) && min <= max)
         domains.push({ group: l.domainGroup, field: set.strings.intern(field), min, max });
     };
-    add("value", l.domainMin, l.domainMax);
+    add('value', l.domainMin, l.domainMax);
     for (const f of l.shared) add(f.field, f.min, f.max);
   }
   const I = Int32Array;
@@ -304,29 +304,29 @@ export function composeView(
     sections: pack(
       sec,
       {
-        ...cols(I, "ref heightRows style scrollGroup blockStart blockCount"),
-        ...cols(U, "axis arrangement ligandForm height rowSizing hidden"),
+        ...cols(I, 'ref heightRows style scrollGroup blockStart blockCount'),
+        ...cols(U, 'axis arrangement ligandForm height rowSizing hidden'),
       },
-      ["focus", "render", "params"],
+      ['focus', 'render', 'params'],
     ),
     blocks: pack(
       blocks,
       {
-        ...cols(I, "section unit alignment base start stop first length label numberingPath"),
+        ...cols(I, 'section unit alignment base start stop first length label numberingPath'),
         ligand: U,
         dir: Int8Array,
       },
-      "layout members positions varying numbering params".split(" "),
+      'layout members positions varying numbering params'.split(' '),
     ),
-    groups: pack(groups, { ...cols(I, "ref section parent label"), ...cols(U, "collapsed hidden") }, ["params"]),
+    groups: pack(groups, { ...cols(I, 'ref section parent label'), ...cols(U, 'collapsed hidden') }, ['params']),
     tracks: pack(
       tracks,
       {
-        ...cols(I, "ref section group label laneStart laneCount split"),
+        ...cols(I, 'ref section group label laneStart laneCount split'),
         height: Float64Array,
-        ...cols(U, "hidden expanded"),
+        ...cols(U, 'hidden expanded'),
       },
-      ["params"],
+      ['params'],
     ),
     lanes: {
       ...lanes,
@@ -336,18 +336,18 @@ export function composeView(
     layers: pack(
       lrows,
       {
-        ...cols(I, "ref track type declared domainGroup dataStart dataCount placementStart placementCount"),
+        ...cols(I, 'ref track type declared domainGroup dataStart dataCount placementStart placementCount'),
         sizing: U,
-        ...cols(F, "domainMin domainMax"),
+        ...cols(F, 'domainMin domainMax'),
       },
-      ["themes", "node", "members", "params"],
+      ['themes', 'node', 'members', 'params'],
     ),
     data: I.from(data),
     kept,
-    placements: pack(placements, cols(I, "layer block annotation slot member lane path")),
+    placements: pack(placements, cols(I, 'layer block annotation slot member lane path')),
     paths,
-    links: pack(links, cols(I, "fromBlock toBlock path")),
-    domains: pack(domains, { ...cols(I, "group field"), ...cols(F, "min max") }),
+    links: pack(links, cols(I, 'fromBlock toBlock path')),
+    domains: pack(domains, { ...cols(I, 'group field'), ...cols(F, 'min max') }),
     follows,
     systems,
   } as unknown as ResolvedView;
@@ -405,7 +405,7 @@ function scrollGroups(sections: readonly ResolvedSection[], set: SeqSet, issues:
     if (s.row.scrollGroup >= 0 && !first) groups.set(s.row.scrollGroup, s);
     else if (first && !equalAxes(first, s)) {
       const message = `scroll group "${set.strings.get(s.row.scrollGroup)}": its axis differs from "${first.ref}"'s`;
-      issues.push(Issue.error("svs.section.scroll_group", s.path, message));
+      issues.push(Issue.error('svs.section.scroll_group', s.path, message));
     }
   }
 }
@@ -445,17 +445,17 @@ export function resolveView(
   reg: SvsRegistries,
   supported: ReadonlySet<string>,
 ): { view: ResolvedView; issues: Issue[] } {
-  const index = "nodes" in doc ? doc : indexDoc(doc, reg);
+  const index = 'nodes' in doc ? doc : indexDoc(doc, reg);
   const issues: Issue[] = [];
   const v = index.nodes.get(view);
-  if (v?.kind !== "view") {
-    issues.push(Issue.error("svs.ref.unresolved", "", `"${view}" is not a view`));
+  if (v?.kind !== 'view') {
+    issues.push(Issue.error('svs.ref.unresolved', '', `"${view}" is not a view`));
     return { view: composeView(view, [], [], set), issues };
   }
   const sections: ResolvedSection[] = [];
   const layers: ResolvedLayer[][] = [];
   for (const c of childrenOf(index, v)) {
-    if (c.kind !== "section") continue;
+    if (c.kind !== 'section') continue;
     const r = resolveSection(index, set, c.ref, reg);
     for (const i of r.issues) issues.push(i);
     // A template track's instances in place of its layers; an instance placing nothing left out (`reaching`).
@@ -474,7 +474,7 @@ export function resolveView(
       if (!fe) for (const l of ls) own.set(l.ref, resolve(l.ref));
       else
         for (const node of templateNodes(ref, index, set, undefined, reg, (where, m) =>
-          issues.push(issueOf(reg, "svs.layer.data", `${index.nodes.get(ref)?.path}/params/for_each/${where}`, m)),
+          issues.push(issueOf(reg, 'svs.layer.data', `${index.nodes.get(ref)?.path}/params/for_each/${where}`, m)),
         )) {
           const xs = ls.map((l) => resolve(l.ref, node));
           if (fe.reaching && xs.every((x) => x.placements.length === 0)) continue;

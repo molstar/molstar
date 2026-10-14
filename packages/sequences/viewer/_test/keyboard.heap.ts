@@ -14,14 +14,14 @@
 // controls, one per criterion: the presses that leave the cursor allocating an object each (`leaking`), primed and
 // measured alike, are caught as not flat, and the presses that move it, allocating likewise, by the per-press bound.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { case3 } from "../../core/_test/format/cases.js";
-import { Inputs, type KeyCursor, Modifier } from "../src/index.js";
-import { cursorRect } from "../src/keyboard.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
-import { type Driven, driven } from "./input-fixtures.js";
-import { lazyLoaders } from "./layout-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { case3 } from '../../core/_test/format/cases.js';
+import { Inputs, type KeyCursor, Modifier } from '../src/index.js';
+import { cursorRect } from '../src/keyboard.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from './heap.js';
+import { type Driven, driven } from './input-fixtures.js';
+import { lazyLoaders } from './layout-fixtures.js';
 
 const N = 20_000;
 /** One published cursor (88 bytes; 93 measured, 2026-10-11) is all a press may make. */
@@ -46,11 +46,11 @@ const guard = (step: (i: number) => void) => {
 };
 
 async function family() {
-  const t = await driven(case3(), { size: { "family.main": [1000, 150] }, labels: false });
-  t.focus("family.main");
+  const t = await driven(case3(), { size: { 'family.main': [1000, 150] }, labels: false });
+  t.focus('family.main');
   return t;
 }
-const S = "family.main";
+const S = 'family.main';
 /** One `KeyInput` for all presses, as an engine's (the fixtures' `key` makes a literal per call). */
 const k = Inputs.key();
 function press(t: Driven, key: string, shift = false, section = S) {
@@ -61,15 +61,15 @@ function press(t: Driven, key: string, shift = false, section = S) {
 }
 
 /** Presses that move the cursor: Right along a row across the header, then Left back. */
-const along = (t: Driven) => (i: number) => void press(t, i % 66 < 33 ? "ArrowRight" : "ArrowLeft");
+const along = (t: Driven) => (i: number) => void press(t, i % 66 < 33 ? 'ArrowRight' : 'ArrowLeft');
 /** Presses that leave the cursor at the end of the bottom row: Right, Down, the menu key, End. */
 const staying = (t: Driven) => (i: number) =>
-  void press(t, i % 4 === 0 ? "ArrowRight" : i % 4 === 1 ? "ArrowDown" : i % 4 === 2 ? "F10" : "End", i % 4 === 2);
+  void press(t, i % 4 === 0 ? 'ArrowRight' : i % 4 === 1 ? 'ArrowDown' : i % 4 === 2 ? 'F10' : 'End', i % 4 === 2);
 
 describe("IN4's key repeat", { timeout: 300_000 }, () => {
-  it("a press that leaves the cursor where it is allocates nothing: the end of a row, the bottom, the top, the menu key", async () => {
+  it('a press that leaves the cursor where it is allocates nothing: the end of a row, the bottom, the top, the menu key', async () => {
     const t = await family();
-    const keys = ["End", "ArrowRight", "ArrowDown", "ArrowDown", "ArrowDown", "ArrowDown", "ArrowDown"];
+    const keys = ['End', 'ArrowRight', 'ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown'];
     for (const k of keys) press(t, k);
     const at = t.ctx.ui.keyCursor.value;
     const r = guard(staying(t));
@@ -77,11 +77,11 @@ describe("IN4's key repeat", { timeout: 300_000 }, () => {
     expect(t.ctx.ui.keyCursor.value).toBe(at);
   });
 
-  it("cursorRect, read per frame by the ring and the tooltip, allocates nothing: on data, a row and a header", async () => {
+  it('cursorRect, read per frame by the ring and the tooltip, allocates nothing: on data, a row and a header', async () => {
     const t = await family();
     const out = new Float64Array(6);
     const at: KeyCursor[] = [];
-    for (const k of ["ArrowRight", "ArrowDown", "Home"]) {
+    for (const k of ['ArrowRight', 'ArrowDown', 'Home']) {
       press(t, k);
       at.push(t.ctx.ui.keyCursor.value as KeyCursor);
     }
@@ -89,52 +89,52 @@ describe("IN4's key repeat", { timeout: 300_000 }, () => {
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
   });
 
-  it("zoom keys, anchored at the cursor, allocate nothing; the cursor is not republished", async () => {
+  it('zoom keys, anchored at the cursor, allocate nothing; the cursor is not republished', async () => {
     const t = await family();
-    press(t, "ArrowRight");
+    press(t, 'ArrowRight');
     const at = t.ctx.ui.keyCursor.value;
-    const r = guard((i) => void press(t, i & 1 ? "+" : "-"));
+    const r = guard((i) => void press(t, i & 1 ? '+' : '-'));
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
     expect(t.ctx.ui.keyCursor.value).toBe(at);
   });
 
-  it("Left and Right along a row, across the header and back: a bounded record per press, flat in the count", async () => {
+  it('Left and Right along a row, across the header and back: a bounded record per press, flat in the count', async () => {
     const t = await family();
     const r = guard(along(t));
     expect(r.scaled / (3 * N), describeScaling(r, N)).toBeLessThan(PER_PRESS);
   });
 
-  it("Up and Down along the tracks and rows, and Home and End: the same bound", async () => {
+  it('Up and Down along the tracks and rows, and Home and End: the same bound', async () => {
     const t = await family();
-    const r = guard((i) => void press(t, ["ArrowDown", "ArrowDown", "End", "ArrowUp", "ArrowUp", "Home"][i % 6]));
+    const r = guard((i) => void press(t, ['ArrowDown', 'ArrowDown', 'End', 'ArrowUp', 'ArrowUp', 'Home'][i % 6]));
     expect(r.scaled / (3 * N), describeScaling(r, N)).toBeLessThan(PER_PRESS);
   });
 
-  it("the rows of a million-row run: Down and Up keep the bound, however far the cursor is from the first row", async () => {
-    const [uri, n] = ["https://example.org/huge", 1_000_000];
+  it('the rows of a million-row run: Down and Up keep the bound, however far the cursor is from the first row', async () => {
+    const [uri, n] = ['https://example.org/huge', 1_000_000];
     const b = createSeqViewSpec();
     const aln = b.data.alignment({
-      ref: "huge",
+      ref: 'huge',
       row_count: n,
       column_count: 200,
-      source: { uri, protocol: "seqstar-tiles/1" },
+      source: { uri, protocol: 'seqstar-tiles/1' },
     });
-    b.view({ ref: "v", label: "V" }).block({ alignment: aln }).track({ ref: "v.rows" }).rows();
+    b.view({ ref: 'v', label: 'V' }).block({ alignment: aln }).track({ ref: 'v.rows' }).rows();
     const t = await driven(b.getDocument(), { loaders: lazyLoaders(uri, n, 200), labels: false });
-    t.focus("v.main");
-    const down = (i: number) => void press(t, i % 400 < 200 ? "ArrowDown" : "ArrowUp", false, "v.main");
+    t.focus('v.main');
+    const down = (i: number) => void press(t, i % 400 < 200 ? 'ArrowDown' : 'ArrowUp', false, 'v.main');
     const r = guard(down);
     expect(r.scaled / (3 * N), describeScaling(r, N)).toBeLessThan(PER_PRESS);
   });
 
   // The controls last: cases in one file share V8's feedback.
-  it("the same presses allocating an object each are caught (positive control)", async () => {
+  it('the same presses allocating an object each are caught (positive control)', async () => {
     const t = await family();
-    for (const k of ["End", "ArrowRight", "ArrowDown", "ArrowDown", "ArrowDown", "ArrowDown", "ArrowDown"]) press(t, k);
+    for (const k of ['End', 'ArrowRight', 'ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown']) press(t, k);
     expect(controlCaught(() => guard(leaking(staying(t))))).toBe(true);
   });
 
-  it("presses that move the cursor, allocating an object each, are caught by the per-press bound (positive control)", async () => {
+  it('presses that move the cursor, allocating an object each, are caught by the per-press bound (positive control)', async () => {
     const t = await family();
     expect(controlCaught(() => guard(leaking(along(t))).scaled / (3 * N), PER_PRESS)).toBe(true);
   });

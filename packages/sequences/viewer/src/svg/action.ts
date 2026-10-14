@@ -14,10 +14,10 @@
 // share its viewports. Run as data it is
 // `{ command: "seqv:runAction", params: { name: "view.exportSvg", target: { view, width } } }`.
 
-import type { ActionEntry } from "../actions.js";
-import type { SeqViewerContext } from "../context.js";
-import type { SvgPorts } from "./backend.js";
-import { type RenderSvgOptions, renderSvg } from "./render.js";
+import type { ActionEntry } from '../actions.js';
+import type { SeqViewerContext } from '../context.js';
+import type { SvgPorts } from './backend.js';
+import { type RenderSvgOptions, renderSvg } from './render.js';
 
 export interface ExportSvgTarget {
   /** The view to export; default the current one. */
@@ -31,30 +31,30 @@ export interface ExportSvgOptions {
   /** The browser's pieces: `deflate` over `CompressionStream("deflate")` for the images; absent: stored PNGs. */
   readonly ports?: SvgPorts;
   /** What the figure shows beyond the tracks (`overlay`, `nav`, `background`, `title`, `gap`), and the em boxes for `dy`. */
-  readonly render?: Pick<RenderSvgOptions, "overlay" | "nav" | "background" | "title" | "gap" | "metrics">;
+  readonly render?: Pick<RenderSvgOptions, 'overlay' | 'nav' | 'background' | 'title' | 'gap' | 'metrics'>;
   /** The finished file, named after its view. */
   offer(svg: string, name: string): void | Promise<void>;
 }
 
 const queues = new WeakMap<object, Promise<void>>();
-const positive = (n: unknown) => typeof n === "number" && Number.isFinite(n) && n > 0;
+const positive = (n: unknown) => typeof n === 'number' && Number.isFinite(n) && n > 0;
 
 export function exportSvgAction(o: ExportSvgOptions): ActionEntry {
   const entry: ActionEntry<ExportSvgTarget> = {
-    name: "view.exportSvg",
-    title: "Export as SVG",
+    name: 'view.exportSvg',
+    title: 'Export as SVG',
     when: (ctx, t) =>
       t !== null &&
-      typeof t === "object" &&
+      typeof t === 'object' &&
       positive(t.width) &&
       (t.scale === undefined || positive(t.scale)) &&
       (t.view === undefined || ctx.views.list.value.some((v) => v.ref === t.view)),
     run(ctx: SeqViewerContext, t) {
-      const name = `${t.view ?? ctx.views.current.value ?? "view"}.svg`;
+      const name = `${t.view ?? ctx.views.current.value ?? 'view'}.svg`;
       const job = (queues.get(ctx) ?? Promise.resolve())
         .then(() => renderSvg(ctx, { ...o.render, width: t.width, scale: t.scale, view: t.view, ports: o.ports }))
         .then((svg) => o.offer(svg, name))
-        .catch((e) => ctx.report("seqv.command.error", `view.exportSvg failed: ${e instanceof Error ? e.message : e}`));
+        .catch((e) => ctx.report('seqv.command.error', `view.exportSvg failed: ${e instanceof Error ? e.message : e}`));
       queues.set(ctx, job);
     },
   };

@@ -14,7 +14,7 @@
 // The positive control: the same moves allocating an object each (`leaking`), warmed and measured alike, are caught.
 // Each case loads the viewer afresh (`vi.resetModules`): cases in one file share V8's feedback.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -25,44 +25,44 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 /** A deep guard's steps: 500 catch about 43 bytes a step, these about 22. */
 const STEPS = 1_000;
 
 /** The drag's viewer and step, and the file's warm-up and measurement of a step (the guards' and the control's). */
-async function setup(mode: "lines" | "scroll") {
+async function setup(mode: 'lines' | 'scroll') {
   vi.resetModules();
-  const { driven } = await import("./input-fixtures.js");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
-  const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
-  const { DefaultPresets, Hit, HoverKind, Inputs, KernelRenderers, PointerType } = await import("../src/index.js");
-  const { runX } = await import("../src/runs.js");
-  const { Dirty, SectionComposer } = await import("../src/draw/index.js");
-  const S = "v.main";
+  const { driven } = await import('./input-fixtures.js');
+  const { recording, COPY_BACK } = await import('./composer-fixtures.js');
+  const { createSeqViewSpec } = await import('@molstar/seq-core/builder');
+  const { DefaultPresets, Hit, HoverKind, Inputs, KernelRenderers, PointerType } = await import('../src/index.js');
+  const { runX } = await import('../src/runs.js');
+  const { Dirty, SectionComposer } = await import('../src/draw/index.js');
+  const S = 'v.main';
   const b = createSeqViewSpec();
-  const a = b.data.sequence({ ref: "a", value: "ACDEFGHIKL".repeat(200) });
+  const a = b.data.sequence({ ref: 'a', value: 'ACDEFGHIKL'.repeat(200) });
   const f = b.data.annotation({
-    ref: "f",
-    geometry: "ranges",
+    ref: 'f',
+    geometry: 'ranges',
     target: a,
     value: Array.from({ length: 60 }, (_, i) => ({ start: i * 30, stop: i * 30 + 45, label: `f${i}` })),
   });
-  const v = b.view({ ref: "v", label: "V", layout: "text", height: "box" });
+  const v = b.view({ ref: 'v', label: 'V', layout: 'text', height: 'box' });
   v.block({ sequence: a });
-  v.track({ ref: "v.letters" }).letters();
-  v.track({ ref: "v.features" }).ranges({ data: f });
-  const text = DefaultPresets.find((p) => p.name === "wrapped");
+  v.track({ ref: 'v.letters' }).letters();
+  v.track({ ref: 'v.features' }).ranges({ data: f });
+  const text = DefaultPresets.find((p) => p.name === 'wrapped');
   const t = await driven(b.getDocument(), {
-    size: { [S]: [500, mode === "scroll" ? 300 : 1200] },
-    registry: [{ presets: [{ ...(text as NonNullable<typeof text>), name: "lab:text" }] }],
+    size: { [S]: [500, mode === 'scroll' ? 300 : 1200] },
+    registry: [{ presets: [{ ...(text as NonNullable<typeof text>), name: 'lab:text' }] }],
     renderers: KernelRenderers as never,
     labels: false,
   });
-  t.ctx.ui.setStyle(S, "lab:text");
+  t.ctx.ui.setStyle(S, 'lab:text');
   await t.ctx.graph.update();
   // The frames alone: the hover label's strings are one allocation per hovered element by design (IN2's guard).
-  t.ctx.behaviors.get("hoverLabel")?.remove();
+  t.ctx.behaviors.get('hoverLabel')?.remove();
   // The scroll's frame, run by the step: the manual scheduler's frame map is the test's, not the viewer's.
   let frame: ((t: number) => void) | null = null;
   const port = t.scheduler as unknown as {
@@ -79,13 +79,13 @@ async function setup(mode: "lines" | "scroll") {
   const l = t.layout(S);
   const ax = t.ctx.layout.axis(S);
   const run0 = ax?.runs[0];
-  if (!ax || !run0 || l.lines.count < 6) throw new Error("no lines");
+  if (!ax || !run0 || l.lines.count < 6) throw new Error('no lines');
   const composer = new SectionComposer(t.ctx, S);
   const be = recording(COPY_BACK);
   composer.frame(be, Dirty.all);
   // Points over lines 1 to 4: on letters, past a line's end, on its labels band, between groups, and on the features'
   // underlines, lane 0 and lane 1 (each an item's hit by lane, `hitLineLanes`).
-  const features = t.trackIndex("v.features");
+  const features = t.trackIndex('v.features');
   const band = (line: number) => {
     for (let e = 0; e < l.entryCount; e++)
       if (l.entryTrack[e] === features && l.entryRow[e] === line) return l.entryTop[e] + l.entryHeight[e];
@@ -128,7 +128,7 @@ async function setup(mode: "lines" | "scroll") {
   /** The last scroll, in a Float64Array: a double in a closure's variable is boxed on each write. */
   const lastY = new Float64Array(1);
   const step = (i: number) => {
-    if (mode === "lines") {
+    if (mode === 'lines') {
       p.x = pts[2 * (i & 31)];
       p.y = pts[2 * (i & 31) + 1];
       t.ctx.input.pointer(p);
@@ -160,33 +160,33 @@ async function setup(mode: "lines" | "scroll") {
   const state = () => ({ owner: t.ctx.ui.drag.value?.owner, ends, active: pd.active, scrolls });
   return { step, measure, state };
 }
-async function run(mode: "lines" | "scroll") {
+async function run(mode: 'lines' | 'scroll') {
   const d = await setup(mode);
   const r = d.measure(d.step);
   return { r, ...d.state() };
 }
 
-describe("a select drag in text allocates nothing after warm-up", () => {
-  it("moves across four lines, past their ends and over their labels bands, the pending range drawn each step", async () => {
-    const { r, owner, ends, active } = await run("lines");
-    expect([owner, active]).toEqual(["select", true]);
+describe('a select drag in text allocates nothing after warm-up', () => {
+  it('moves across four lines, past their ends and over their labels bands, the pending range drawn each step', async () => {
+    const { r, owner, ends, active } = await run('lines');
+    expect([owner, active]).toEqual(['select', true]);
     // The range followed the pointer: its end changed on most steps.
     expect(ends).toBeGreaterThan(STEPS);
     expect(isFlat(r), describeScaling(r, STEPS)).toBe(true);
   }, 120_000);
 
   it("the scroll past the rows' edges, a frame a step, the range following", async () => {
-    const { r, owner, ends, scrolls } = await run("scroll");
+    const { r, owner, ends, scrolls } = await run('scroll');
     // The rows scrolled on every step but the turns, and the range's end followed them across lines.
-    expect(owner).toBe("select");
+    expect(owner).toBe('select');
     expect(scrolls).toBeGreaterThan(9 * STEPS);
     expect(ends).toBeGreaterThan(STEPS);
     expect(isFlat(r), describeScaling(r, STEPS)).toBe(true);
   }, 120_000);
 
-  it("the same moves allocating an object each are caught (positive control)", async () => {
-    const d = await setup("lines");
+  it('the same moves allocating an object each are caught (positive control)', async () => {
+    const d = await setup('lines');
     expect(controlCaught(() => d.measure(leaking(d.step)))).toBe(true);
-    expect(d.state().owner).toBe("select");
+    expect(d.state().owner).toBe('select');
   }, 120_000);
 });

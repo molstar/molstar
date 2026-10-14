@@ -12,22 +12,22 @@
 // focused, as before. A selection made in 3D that Seq* holds only in part (an atom: its residue; an atom of a unit no
 // Seq* system covers) is not sent back by a carry either (LB-04): Mol*'s own selection stays.
 
-import type { SeqSet } from "@molstar/seq-core/model";
-import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "@molstar/seq-viewer";
-import { OrderedSet } from "molstar/lib/mol-data/int";
-import { StructureElement, Unit } from "molstar/lib/mol-model/structure";
-import { expect, it } from "vitest";
-import { fixtureMeasurer } from "../../viewer/src/testing/index.js";
-import { MolstarSvsEntry, readStructure, StructureLink, structureOf } from "../src/index.js";
-import { linkViews } from "../src/viewer.js";
-import { bytesOf, demoLoaders, P53 } from "./fixtures.js";
-import { P53_STRUCTURES, p53DemoDoc, p53ShownPatch } from "./p53-demo.js";
+import type { SeqSet } from '@molstar/seq-core/model';
+import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from '@molstar/seq-viewer';
+import { OrderedSet } from 'molstar/lib/mol-data/int';
+import { StructureElement, Unit } from 'molstar/lib/mol-model/structure';
+import { expect, it } from 'vitest';
+import { fixtureMeasurer } from '../../viewer/src/testing/index.js';
+import { MolstarSvsEntry, readStructure, StructureLink, structureOf } from '../src/index.js';
+import { linkViews } from '../src/viewer.js';
+import { bytesOf, demoLoaders, P53 } from './fixtures.js';
+import { P53_STRUCTURES, p53DemoDoc, p53ShownPatch } from './p53-demo.js';
 
 type DocNode = { ref?: string; params?: Record<string, unknown>; children?: DocNode[] };
 const find = (n: DocNode | undefined, ref: string): DocNode | undefined =>
   n?.ref === ref ? n : (n?.children ?? []).map((c) => find(c, ref)).find(Boolean);
 
-it("a replay or a carry sends nothing to 3D; a Seq* selection is sent and focused", async () => {
+it('a replay or a carry sends nothing to 3D; a Seq* selection is sent and focused', async () => {
   const scheduler = manualScheduler();
   const ctx = createSeqViewer(
     { ...DefaultSeqViewerSpec(), registry: [DefaultRegistry, { svs: MolstarSvsEntry }] },
@@ -39,15 +39,15 @@ it("a replay or a carry sends nothing to 3D; a Seq* selection is sent and focuse
   await ctx.graph.update();
   scheduler.advance(50);
   const set = ctx.graph.assembled.value?.set as SeqSet;
-  const structure = await structureOf(await readStructure(bytesOf("1tup.bcif"), "bcif"), 0, null);
-  const link = StructureLink.attach(ctx.systems, "3d", structure, set, "1tup");
+  const structure = await structureOf(await readStructure(bytesOf('1tup.bcif'), 'bcif'), 0, null);
+  const link = StructureLink.attach(ctx.systems, '3d', structure, set, '1tup');
   const calls: string[] = [];
   const unlink = linkViews(
     ctx,
     {
-      highlight: (l) => calls.push(`highlight(${l === null ? "null" : "loci"})`),
-      select: (l) => calls.push(`select(${l === null ? "null" : "loci"})`),
-      focus: () => calls.push("focus"),
+      highlight: (l) => calls.push(`highlight(${l === null ? 'null' : 'loci'})`),
+      select: (l) => calls.push(`select(${l === null ? 'null' : 'loci'})`),
+      focus: () => calls.push('focus'),
       onHover: () => () => {},
       onSelect: () => () => {},
     },
@@ -55,23 +55,23 @@ it("a replay or a carry sends nothing to 3D; a Seq* selection is sent and focuse
   );
   // Linked with nothing in Seq*: the 3D view's own hover and selection stay.
   expect(calls).toEqual([]);
-  ctx.selection.set(ctx.refs.toLoci("p53", { start: 100, stop: 110 }), "pointer");
-  expect(calls).toEqual(["select(loci)", "focus"]);
+  ctx.selection.set(ctx.refs.toLoci('p53', { start: 100, stop: 110 }), 'pointer');
+  expect(calls).toEqual(['select(loci)', 'focus']);
   calls.length = 0;
   // A label patch, then a data patch: the selection is carried (origin `graph`), the same residues.
   await ctx.applyPatch(p53ShownPatch(P53_STRUCTURES[0]));
   scheduler.advance(50);
-  const hp = find(ctx.document.shown.value?.root as DocNode, "hydropathy");
+  const hp = find(ctx.document.shown.value?.root as DocNode, 'hydropathy');
   const value = structuredClone(hp?.params?.value) as { value?: number[] } | number[];
   if (Array.isArray(value)) value[0] += 1;
   else if (Array.isArray(value.value)) value.value[0] += 1;
   const r = await ctx.applyPatch({
-    format: "seq_view_spec_patch",
-    ops: [{ op: "set", ref: "hydropathy", params: { ...hp?.params, value } }],
+    format: 'seq_view_spec_patch',
+    ops: [{ op: 'set', ref: 'hydropathy', params: { ...hp?.params, value } }],
   });
   expect(r.ok).toBe(true);
   scheduler.advance(50);
-  expect(ctx.selection.current.value.origin).toBe("graph");
+  expect(ctx.selection.current.value.origin).toBe('graph');
   expect(calls).toEqual([]);
   unlink();
   link.detach();
@@ -89,16 +89,16 @@ it("a 3D selection Seq* holds only in part (an atom, another unit's atom) surviv
   await done;
   await ctx.graph.update();
   scheduler.advance(50);
-  const structure = await structureOf(await readStructure(bytesOf("1tup.bcif"), "bcif"), 0, null);
-  const link = StructureLink.attach(ctx.systems, "3d", structure, ctx.graph.assembled.value?.set as SeqSet, "1tup");
+  const structure = await structureOf(await readStructure(bytesOf('1tup.bcif'), 'bcif'), 0, null);
+  const link = StructureLink.attach(ctx.systems, '3d', structure, ctx.graph.assembled.value?.set as SeqSet, '1tup');
   const calls: string[] = [];
   const hooks: { select: ((l: StructureElement.Loci | null) => void) | null } = { select: null };
   const unlink = linkViews(
     ctx,
     {
       highlight: () => {},
-      select: (l) => calls.push(`select(${l === null ? "null" : StructureElement.Loci.size(l)})`),
-      focus: () => calls.push("focus"),
+      select: (l) => calls.push(`select(${l === null ? 'null' : StructureElement.Loci.size(l)})`),
+      focus: () => calls.push('focus'),
       onHover: () => () => {},
       onSelect: (f) => {
         hooks.select = f;
@@ -109,13 +109,13 @@ it("a 3D selection Seq* holds only in part (an atom, another unit's atom) surviv
   );
   let edits = 0;
   const dataPatch = async () => {
-    const hp = find(ctx.document.shown.value?.root as DocNode, "hydropathy");
+    const hp = find(ctx.document.shown.value?.root as DocNode, 'hydropathy');
     const value = structuredClone(hp?.params?.value) as { value?: number[] } | number[];
     if (Array.isArray(value)) value[0] += ++edits;
     else if (Array.isArray(value.value)) value.value[0] += ++edits;
     const r = await ctx.applyPatch({
-      format: "seq_view_spec_patch",
-      ops: [{ op: "set", ref: "hydropathy", params: { ...hp?.params, value } }],
+      format: 'seq_view_spec_patch',
+      ops: [{ op: 'set', ref: 'hydropathy', params: { ...hp?.params, value } }],
     });
     scheduler.advance(50);
     return r.ok;
@@ -132,9 +132,9 @@ it("a 3D selection Seq* holds only in part (an atom, another unit's atom) surviv
   ]) {
     calls.length = 0;
     hooks.select?.(loci);
-    expect(ctx.selection.current.value.origin).toBe("host:3d");
+    expect(ctx.selection.current.value.origin).toBe('host:3d');
     expect(await dataPatch()).toBe(true);
-    expect(ctx.selection.current.value.origin).toBe("graph");
+    expect(ctx.selection.current.value.origin).toBe('graph');
     expect(calls).toEqual([]);
   }
   unlink();

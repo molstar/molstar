@@ -12,7 +12,7 @@
 // allocating an object a step fails the same guard (the positive control). Apart from streams-items.heap.ts: run after
 // its cases in one isolate, this one allocated.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -23,7 +23,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = 1_000;
 /**
@@ -42,50 +42,50 @@ const measure = (frame: () => void) => {
 };
 const guard = (frame: () => void) => {
   const r = measure(frame);
-  return isFlat(r) ? "" : describeScaling(r, N);
+  return isFlat(r) ? '' : describeScaling(r, N);
 };
 
-describe("the streamed glyphs and placeholders allocate nothing per frame", () => {
-  it("a pass and a frame, 5 kb", async () => {
+describe('the streamed glyphs and placeholders allocate nothing per frame', () => {
+  it('a pass and a frame, 5 kb', async () => {
     vi.resetModules();
-    const { itemsFrame } = await import("./stream-items-fixtures.js");
+    const { itemsFrame } = await import('./stream-items-fixtures.js');
     const g = await itemsFrame(100_040_000, 100_045_000);
     g.frame();
     expect(g.backend.glyphItems.n).toBeGreaterThan(0);
     const asked = g.asked();
-    expect(guard(g.frame)).toBe("");
+    expect(guard(g.frame)).toBe('');
     expect(g.asked()).toBe(asked);
     g.dispose();
   }, 120_000);
 
-  it("a pass and a frame, 5 kb, the variants as points (unstacked glyphs, region by region)", async () => {
+  it('a pass and a frame, 5 kb, the variants as points (unstacked glyphs, region by region)', async () => {
     vi.resetModules();
-    const { itemsFrame } = await import("./stream-items-fixtures.js");
-    const g = await itemsFrame(100_040_000, 100_045_000, false, "points");
+    const { itemsFrame } = await import('./stream-items-fixtures.js');
+    const g = await itemsFrame(100_040_000, 100_045_000, false, 'points');
     g.frame();
     expect(g.backend.glyphItems.n).toBeGreaterThan(0);
     const asked = g.asked();
-    expect(guard(g.frame)).toBe("");
+    expect(guard(g.frame)).toBe('');
     expect(g.asked()).toBe(asked);
     g.dispose();
   }, 120_000);
 
-  it("a frame with every region pending (placeholder bands)", async () => {
+  it('a frame with every region pending (placeholder bands)', async () => {
     vi.resetModules();
-    const { itemsFrame } = await import("./stream-items-fixtures.js");
-    const { SkinToken } = await import("../src/draw/backend.js");
+    const { itemsFrame } = await import('./stream-items-fixtures.js');
+    const { SkinToken } = await import('../src/draw/backend.js');
     const g = await itemsFrame(100_000_000, 100_100_000, true);
     g.frame();
     let bands = 0;
     for (let k = 0; k < g.backend.rectItems.n; k++) if (g.backend.rectItems.color[k] === SkinToken.pending) bands++;
     expect(bands).toBeGreaterThan(2);
-    expect(guard(g.frame)).toBe("");
+    expect(guard(g.frame)).toBe('');
     g.dispose();
   }, 120_000);
 
-  it("the same frame allocating an object a step is caught (positive control)", async () => {
+  it('the same frame allocating an object a step is caught (positive control)', async () => {
     vi.resetModules();
-    const { itemsFrame } = await import("./stream-items-fixtures.js");
+    const { itemsFrame } = await import('./stream-items-fixtures.js');
     const g = await itemsFrame(100_040_000, 100_045_000);
     expect(controlCaught(() => measure(leaking(g.frame) as () => void))).toBe(true);
   }, 120_000);

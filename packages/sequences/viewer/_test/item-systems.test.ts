@@ -11,9 +11,9 @@
 // letterless molecule and unit) mapped onto chr2; a protein mapped onto it shows its domains along the transcript's
 // exons in a genome view, and a section of the transcript's own residues shows them with the genome's data.
 
-import { ItemSystemKind, ItemSystemProp, type StreamNode } from "@molstar/seq-core/format";
-import { OrderedSet, type SeqLoci, type SeqSet } from "@molstar/seq-core/model";
-import { describe, expect, it } from "vitest";
+import { ItemSystemKind, ItemSystemProp, type StreamNode } from '@molstar/seq-core/format';
+import { OrderedSet, type SeqLoci, type SeqSet } from '@molstar/seq-core/model';
+import { describe, expect, it } from 'vitest';
 import {
   CODING_CDS,
   GENE_LEVELS,
@@ -27,14 +27,14 @@ import {
   transcriptItems,
   VOCABULARY,
   variantAt,
-} from "../../core/_test/format/stream-provider.js";
-import { DynamicNodes, heldNodeRefs } from "../src/dynamic.js";
-import { ChannelMarks, createSeqViewer, Hit, MarkBit } from "../src/index.js";
-import { itemSystemNodes } from "../src/item-systems.js";
-import type { Features } from "../src/prepare.js";
-import type { Streams } from "../src/streams.js";
-import { composed } from "./composer-fixtures.js";
-import { CacheBytes } from "./stream-fixtures.js";
+} from '../../core/_test/format/stream-provider.js';
+import { DynamicNodes, heldNodeRefs } from '../src/dynamic.js';
+import { ChannelMarks, createSeqViewer, Hit, MarkBit } from '../src/index.js';
+import { itemSystemNodes } from '../src/item-systems.js';
+import type { Features } from '../src/prepare.js';
+import type { Streams } from '../src/streams.js';
+import { composed } from './composer-fixtures.js';
+import { CacheBytes } from './stream-fixtures.js';
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const THREE = GRCH38.slice(0, 3);
@@ -54,13 +54,13 @@ async function opened(
     transcriptItems(r, KEYS, o.map ?? null, o.cds),
   );
   genes.gated = true;
-  const stream = (src: { stream: string | null }) => (src.stream === "genes" ? genes.provider : s.stream(src));
-  const loaders = { load: () => Promise.reject(new Error("none")), stream };
+  const stream = (src: { stream: string | null }) => (src.stream === 'genes' ? genes.provider : s.stream(src));
+  const loaders = { load: () => Promise.reject(new Error('none')), stream };
   const t = await composed(transcriptDoc(o), {
     width: 1000,
     height: 400,
     loaders,
-    section: o.section ?? "tx.genome",
+    section: o.section ?? 'tx.genome',
   });
   const m = t.ctx.streams as Streams;
   const drain = async () => {
@@ -77,7 +77,7 @@ async function opened(
 }
 
 /** Layer `ref`'s prepared features (a `ranges` layer's), and the resolved view. */
-function featuresOf(t: Awaited<ReturnType<typeof opened>>["t"], ref: string) {
+function featuresOf(t: Awaited<ReturnType<typeof opened>>['t'], ref: string) {
   const v = t.ctx.graph.assembled.value?.view;
   const r = v?.resolved;
   for (let k = 0; v && r && k < r.layers.count; k++)
@@ -99,33 +99,33 @@ function exonRuns(a: number, e: number): [number, number][] {
 
 const unitOf = (set: SeqSet, key: string) => Array.from(set.units.key).indexOf(set.strings.find(key));
 /** A key's id in the current set; -1: none. */
-function idOf(t: Awaited<ReturnType<typeof opened>>["t"], ref: string): number {
+function idOf(t: Awaited<ReturnType<typeof opened>>['t'], ref: string): number {
   const key = { kind: -1, id: -1, row: -1 };
   return t.ctx.graph.assembled.value?.set.byName(ref, key) ? key.id : -1;
 }
-function lengthOf(t: Awaited<ReturnType<typeof opened>>["t"], ref: string): number {
+function lengthOf(t: Awaited<ReturnType<typeof opened>>['t'], ref: string): number {
   const set = t.ctx.graph.assembled.value?.set;
   const id = idOf(t, ref);
   return id >= 0 ? (set?.molecules[id]?.length ?? -1) : -1;
 }
-const codes = (t: Awaited<ReturnType<typeof opened>>["t"]) => t.ctx.issues.current.value.map((i) => i.code);
+const codes = (t: Awaited<ReturnType<typeof opened>>['t']) => t.ctx.issues.current.value.map((i) => i.code);
 /** P1's domains' fragments on chr2's block of the genome section, sorted. */
-function domainsOnChr2(t: Awaited<ReturnType<typeof opened>>["t"]): [number, number][] {
-  const { f, v } = featuresOf(t, "tx.ranges-2");
-  const chr2 = v.resolved.blocks.unit.indexOf(v.set.units.key.indexOf(v.set.strings.find("hg38/chr2")));
+function domainsOnChr2(t: Awaited<ReturnType<typeof opened>>['t']): [number, number][] {
+  const { f, v } = featuresOf(t, 'tx.ranges-2');
+  const chr2 = v.resolved.blocks.unit.indexOf(v.set.units.key.indexOf(v.set.strings.find('hg38/chr2')));
   const frags: [number, number][] = [];
   for (let q = 0; f && q < f.count; q++) if (f.block[q] === chr2) frags.push([f.start[q], f.stop[q]]);
   return frags.sort((a, b) => a[0] - b[0]);
 }
 
-describe("item coordinate systems", () => {
+describe('item coordinate systems', () => {
   it("a transcript's map becomes its own coordinate system, mapped onto chr2", async () => {
     const g = await opened();
     const set = g.t.ctx.graph.assembled.value?.set;
     const key = { kind: -1, id: -1, row: -1 };
     expect(set?.byName(`genes_src/${TRANSCRIPT}`, key)).toBe(true);
     const mol = set?.molecules[key.id];
-    expect([mol?.length, mol?.lazy, mol ? set?.strings.get(mol.label) : ""]).toEqual([1334, true, TRANSCRIPT]);
+    expect([mol?.length, mol?.lazy, mol ? set?.strings.get(mol.label) : '']).toEqual([1334, true, TRANSCRIPT]);
     expect(mol?.custom.props.get(ItemSystemProp)).toBe(true);
     expect(set?.byName(`genes_src/${TRANSCRIPT}.map`, key)).toBe(true);
     expect(g.t.ctx.issues.current.value.map((i) => i.code)).toEqual([]);
@@ -134,8 +134,8 @@ describe("item coordinate systems", () => {
 
   it("a protein mapped onto it shows its domains along the transcript's exons on chr2", async () => {
     const g = await opened();
-    const { f, v } = featuresOf(g.t, "tx.ranges-2");
-    const chr2 = v.resolved.blocks.unit.indexOf(v.set.units.key.indexOf(v.set.strings.find("hg38/chr2")));
+    const { f, v } = featuresOf(g.t, 'tx.ranges-2');
+    const chr2 = v.resolved.blocks.unit.indexOf(v.set.units.key.indexOf(v.set.strings.find('hg38/chr2')));
     const frags: [number, number][] = [];
     for (let q = 0; q < f.count; q++) if (f.block[q] === chr2) frags.push([f.start[q], f.stop[q]]);
     frags.sort((a, b) => a[0] - b[0]);
@@ -146,15 +146,15 @@ describe("item coordinate systems", () => {
   });
 
   it("a section of the transcript's own residues: the protein's domains, the genome's variants through its map", async () => {
-    const g = await opened({ item: true, section: "tx.item" });
+    const g = await opened({ item: true, section: 'tx.item' });
     const v = g.t.ctx.graph.assembled.value?.view;
     const r = v?.resolved;
-    const s = r ? r.sections.ref.indexOf(v.set.strings.find("tx.item")) : -1;
+    const s = r ? r.sections.ref.indexOf(v.set.strings.find('tx.item')) : -1;
     expect(r?.sections.blockCount[s]).toBe(1);
     const unit = r?.blocks.unit[r.sections.blockStart[s]] ?? -1;
     expect(v?.set.strings.get(v.set.units.key[unit])).toBe(`genes_src/${TRANSCRIPT}/unit`);
     // The domains on the item's residues as on P1's (base for base).
-    const { f } = featuresOf(g.t, "tx.ranges-3");
+    const { f } = featuresOf(g.t, 'tx.ranges-3');
     const own: [number, number][] = [];
     for (let q = 0; q < f.count; q++) own.push([f.start[q], f.stop[q]]);
     expect(own.sort((a, b) => a[0] - b[0])).toEqual([
@@ -163,7 +163,7 @@ describe("item coordinate systems", () => {
       [880, 1000],
     ]);
     // Variants through the item's codon map, on the residues their positions code.
-    const st = g.m.get("tx.variants-2");
+    const st = g.m.get('tx.variants-2');
     const out = new Int32Array(7);
     const got = new Set<number>();
     for (let k = 0; st?.items; k++) {
@@ -182,26 +182,26 @@ describe("item coordinate systems", () => {
     g.t.ctx.dispose();
   });
 
-  it("hovered, a transcript residue is numbered in its own positions; its codon is read through its map", async () => {
-    const g = await opened({ item: true, section: "tx.item" });
+  it('hovered, a transcript residue is numbered in its own positions; its codon is read through its map', async () => {
+    const g = await opened({ item: true, section: 'tx.item' });
     g.t.vp?.zoomTo(0, 480, 520);
     await g.drain();
     // The label of residue 500 (its codon split by the first intron), read where the pointer would be.
     const h = Hit.create();
-    const l = g.t.layout("tx.item");
+    const l = g.t.layout('tx.item');
     let label: Record<string, string> = {};
     for (let y = 1; y < l.height && !label.codon; y += 2)
       for (let x = l.dataLeft; x < l.width && !label.codon; x++) {
-        g.t.ctx.layout.hitTest("tx.item", x, y, h);
+        g.t.ctx.layout.hitTest('tx.item', x, y, h);
         if (h.block !== 0 || h.index !== 500) continue;
-        g.t.ctx.hover.setFromHit(h, "pointer");
+        g.t.ctx.hover.setFromHit(h, 'pointer');
         const lines = g.t.ctx.labels.compute(g.t.ctx.hover.live.current)?.lines ?? [];
-        if (lines.some((q) => q.key === "codon" && q.value !== "loading…"))
+        if (lines.some((q) => q.key === 'codon' && q.value !== 'loading…'))
           label = Object.fromEntries(lines.map((q) => [q.key, q.value]));
         else await g.drain();
       }
-    expect(g.t.ctx.labels.compute(g.t.ctx.hover.live.current)?.title).toBe("T1 501");
-    expect([label.codon, label["codon at"]]).toEqual(["T|CA", "chr2 100011501 | 100090001–100090002 (+)"]);
+    expect(g.t.ctx.labels.compute(g.t.ctx.hover.live.current)?.title).toBe('T1 501');
+    expect([label.codon, label['codon at']]).toEqual(['T|CA', 'chr2 100011501 | 100090001–100090002 (+)']);
     g.t.ctx.dispose();
   });
 
@@ -213,11 +213,11 @@ describe("item coordinate systems", () => {
     g.t.ctx.config.set(CacheBytes, 1);
     g.t.vp?.zoomTo(0, 10_000_000, 10_100_000);
     await g.drain();
-    expect([idOf(g.t, T1), idOf(g.t, "p1.t1")]).toEqual([-1, -1]);
+    expect([idOf(g.t, T1), idOf(g.t, 'p1.t1')]).toEqual([-1, -1]);
     g.t.ctx.config.set(CacheBytes, 64 << 20);
     g.t.vp?.zoomTo(1, CODING_CDS[0][0] - 5000, CODING_CDS[2][1] + 5000);
     await g.drain();
-    expect([idOf(g.t, T1), idOf(g.t, "p1.t1") >= 0]).toEqual([id, true]);
+    expect([idOf(g.t, T1), idOf(g.t, 'p1.t1') >= 0]).toEqual([id, true]);
     expect(domainsOnChr2(g.t)).toEqual([...exonRuns(20, 200), ...exonRuns(480, 620), ...exonRuns(880, 1000)]);
     expect(codes(g.t)).toEqual([]);
     g.t.ctx.dispose();
@@ -231,60 +231,60 @@ describe("item coordinate systems", () => {
     g.t.ctx.dispose();
   });
 
-  it("a storm of items with maps nothing names reruns no section, layer or view, and the set is the same", async () => {
+  it('a storm of items with maps nothing names reruns no section, layer or view, and the set is the same', async () => {
     const g = await opened({ named: false });
     const set0 = g.t.ctx.graph.assembled.value?.set;
     const reran = new Set<string>();
     for (let k = 0; k < 300; k++) {
       const out: StreamNode[] = [];
-      const t = { id: [`X${k}`], map: [{ method: "codon", cds: [[100 * k, 100 * k + 300]] }], label: [`X${k}`] };
-      itemSystemNodes("genes_src", "hg38/chr2", t, out, () => {});
-      g.m.nodes.add("genes_src", out, true);
+      const t = { id: [`X${k}`], map: [{ method: 'codon', cds: [[100 * k, 100 * k + 300]] }], label: [`X${k}`] };
+      itemSystemNodes('genes_src', 'hg38/chr2', t, out, () => {});
+      g.m.nodes.add('genes_src', out, true);
       await g.t.ctx.graph.update();
       for (const r of g.t.ctx.graph.ran) reran.add(r);
     }
-    expect([...reran].sort()).toEqual(["#assemble.stream"]);
+    expect([...reran].sort()).toEqual(['#assemble.stream']);
     expect(g.t.ctx.graph.assembled.value?.set).toBe(set0);
     g.t.ctx.dispose();
   });
 
   it("a map's faults: once per source as warnings; no item coordinate system for them", async () => {
     for (const [map, cds, said] of [
-      [{ method: "codon" }, undefined, "a codon map needs cds"],
+      [{ method: 'codon' }, undefined, 'a codon map needs cds'],
       [
         null,
         [
           [100_010_000, 100_011_500],
           [100_090_000, 100_091_201],
         ],
-        "not a multiple of 3",
+        'not a multiple of 3',
       ],
-      [{ method: "segments", segments: [[0, 100_010_000, null]] }, undefined, "each segment's length"],
+      [{ method: 'segments', segments: [[0, 100_010_000, null]] }, undefined, "each segment's length"],
       // A reversed CDS range, as core's codon map refuses it (VS-27).
-      [null, [[100_011_500, 100_010_000]], "is empty or reversed"],
+      [null, [[100_011_500, 100_010_000]], 'is empty or reversed'],
     ] as const) {
       const g = await opened({
         map: map as Record<string, unknown> | null,
         cds: cds as [number, number][] | undefined,
       });
-      const issues = g.t.ctx.issues.current.value.filter((i) => i.code === "svs.stream.item_map");
-      expect([issues.length, issues[0]?.severity, issues[0]?.message.includes(said)]).toEqual([1, "warning", true]);
+      const issues = g.t.ctx.issues.current.value.filter((i) => i.code === 'svs.stream.item_map');
+      expect([issues.length, issues[0]?.severity, issues[0]?.message.includes(said)]).toEqual([1, 'warning', true]);
       expect(idOf(g.t, `genes_src/${TRANSCRIPT}`)).toBe(-1);
       g.t.ctx.dispose();
     }
   });
 
-  it("from_range gives the length; a segments map; the minus strand", async () => {
-    const r = await opened({ map: { method: "codon", cds: CODING_CDS, from_range: [0, 1334] } });
+  it('from_range gives the length; a segments map; the minus strand', async () => {
+    const r = await opened({ map: { method: 'codon', cds: CODING_CDS, from_range: [0, 1334] } });
     expect(lengthOf(r.t, `genes_src/${TRANSCRIPT}`)).toBe(1334);
     r.t.ctx.dispose();
     // Segments: the transcript's first 100 bases, base for base: P1's Alpha (20–200) over it as its first 100.
-    const s = await opened({ map: { method: "segments", segments: [[0, CODING_CDS[0][0], 100]] } });
+    const s = await opened({ map: { method: 'segments', segments: [[0, CODING_CDS[0][0], 100]] } });
     expect(lengthOf(s.t, `genes_src/${TRANSCRIPT}`)).toBe(100);
     expect(domainsOnChr2(s.t)).toEqual([[CODING_CDS[0][0] + 20, CODING_CDS[0][0] + 100]]);
     s.t.ctx.dispose();
     // Minus: the same exons read downward: Alpha at the top of the last exon.
-    const minus = await opened({ map: { method: "codon", cds: CODING_CDS.slice().reverse(), strand: "-" } });
+    const minus = await opened({ map: { method: 'codon', cds: CODING_CDS.slice().reverse(), strand: '-' } });
     const top = CODING_CDS[2][1];
     expect(domainsOnChr2(minus.t)[0 + 2]).toEqual([top - 600, top - 60]);
     minus.t.ctx.dispose();
@@ -292,31 +292,31 @@ describe("item coordinate systems", () => {
 
   it("a mapping naming the item's unit, and an annotation targeting the item, wait for it and join", async () => {
     const u = await opened({ to: `genes_src/${TRANSCRIPT}/unit` });
-    expect([idOf(u.t, "p1.t1") >= 0, domainsOnChr2(u.t).length, codes(u.t)]).toEqual([true, 5, []]);
+    expect([idOf(u.t, 'p1.t1') >= 0, domainsOnChr2(u.t).length, codes(u.t)]).toEqual([true, 5, []]);
     u.t.ctx.dispose();
     const a = await opened({ target: true });
     expect([domainsOnChr2(a.t).length, codes(a.t)]).toEqual([5, []]);
     a.t.ctx.dispose();
   });
 
-  it("a mapping retargeted between the item and a document sequence, both ways, stays in the set", async () => {
+  it('a mapping retargeted between the item and a document sequence, both ways, stays in the set', async () => {
     const g = await opened();
     const retarget = async (to: string) => {
       await g.t.ctx.applyPatch({
-        format: "seq_view_spec_patch",
-        ops: [{ op: "set", ref: "p1.t1", params: { to } }],
+        format: 'seq_view_spec_patch',
+        ops: [{ op: 'set', ref: 'p1.t1', params: { to } }],
       } as never);
       await g.drain();
-      return idOf(g.t, "p1.t1") >= 0;
+      return idOf(g.t, 'p1.t1') >= 0;
     };
-    expect(await retarget("p1copy")).toBe(true);
+    expect(await retarget('p1copy')).toBe(true);
     expect(await retarget(`genes_src/${TRANSCRIPT}`)).toBe(true);
     expect(domainsOnChr2(g.t).length).toBe(5);
     g.t.ctx.dispose();
   });
 
-  it("shown, the item keeps its map when the regions that carried them are evicted: its section keeps its tracks", async () => {
-    const g = await opened({ item: true, section: "tx.genome" });
+  it('shown, the item keeps its map when the regions that carried them are evicted: its section keeps its tracks', async () => {
+    const g = await opened({ item: true, section: 'tx.genome' });
     g.t.ctx.config.set(CacheBytes, 1);
     g.t.vp?.zoomTo(0, 10_000_000, 10_100_000);
     await g.drain();
@@ -327,15 +327,15 @@ describe("item coordinate systems", () => {
     const v = g.t.ctx.graph.assembled.value?.view;
     const r = v?.resolved;
     let k = 0;
-    while (r && k < r.layers.count && v?.set.strings.get(r.layers.ref[k]) !== "tx.variants-2") k++;
+    while (r && k < r.layers.count && v?.set.strings.get(r.layers.ref[k]) !== 'tx.variants-2') k++;
     expect(r?.layers.placementCount[k]).toBeGreaterThan(0);
     g.t.ctx.dispose();
   });
 
   it("a provider's manifest may not add an item coordinate system", async () => {
-    const node = { kind: ItemSystemKind as StreamNode["kind"], key: "Z", params: { length: 9 } };
+    const node = { kind: ItemSystemKind as StreamNode['kind'], key: 'Z', params: { length: 9 } };
     const g = await opened({ nodes: [node] });
-    expect([codes(g.t).includes("svs.node.kind"), idOf(g.t, "phylop_src/Z")]).toEqual([true, -1]);
+    expect([codes(g.t).includes('svs.node.kind'), idOf(g.t, 'phylop_src/Z')]).toEqual([true, -1]);
     g.t.ctx.dispose();
   });
 
@@ -356,23 +356,23 @@ describe("item coordinate systems", () => {
       heldNodeRefs(createSeqViewer().registry.svs),
     );
     const out: StreamNode[] = [];
-    const t = { id: ["T1"], map: [{ method: "codon", cds: [[0, 30]] }], label: ["T1"] };
-    itemSystemNodes("genes_src", "hg38/chr2", t, out, () => {});
-    const a = nodes.add("genes_src", out, true) ?? [];
-    const b = nodes.add("genes_src", out, true) ?? [];
+    const t = { id: ['T1'], map: [{ method: 'codon', cds: [[0, 30]] }], label: ['T1'] };
+    itemSystemNodes('genes_src', 'hg38/chr2', t, out, () => {});
+    const a = nodes.add('genes_src', out, true) ?? [];
+    const b = nodes.add('genes_src', out, true) ?? [];
     nodes.release(a);
-    expect(nodes.entries.has("genes_src/T1")).toBe(true);
+    expect(nodes.entries.has('genes_src/T1')).toBe(true);
     nodes.release(b);
-    expect(nodes.entries.has("genes_src/T1")).toBe(false);
+    expect(nodes.entries.has('genes_src/T1')).toBe(false);
     const other: StreamNode[] = [];
-    itemSystemNodes("other_src", "hg38/chr2", t, other, () => {});
-    nodes.add("genes_src", out, true);
-    nodes.add("other_src", other, true);
-    expect([nodes.entries.has("genes_src/T1"), nodes.entries.has("other_src/T1")]).toEqual([true, true]);
+    itemSystemNodes('other_src', 'hg38/chr2', t, other, () => {});
+    nodes.add('genes_src', out, true);
+    nodes.add('other_src', other, true);
+    expect([nodes.entries.has('genes_src/T1'), nodes.entries.has('other_src/T1')]).toEqual([true, true]);
     const changed: StreamNode[] = [];
-    itemSystemNodes("genes_src", "hg38/chr2", { ...t, map: [{ method: "codon", cds: [[0, 33]] }] }, changed, () => {});
-    nodes.add("genes_src", changed, true);
-    expect(said).toContain("svs.stream.conflict");
+    itemSystemNodes('genes_src', 'hg38/chr2', { ...t, map: [{ method: 'codon', cds: [[0, 33]] }] }, changed, () => {});
+    nodes.add('genes_src', changed, true);
+    expect(said).toContain('svs.stream.conflict');
   });
 
   it("a selection of the transcript's residues lights their codons on chr2, across its map", async () => {
@@ -380,17 +380,17 @@ describe("item coordinate systems", () => {
     const set = g.t.ctx.graph.assembled.value?.set as SeqSet;
     const unit = Array.from(set.units.key).indexOf(set.strings.find(`genes_src/${TRANSCRIPT}/unit`));
     const loci = {
-      kind: "seq-loci",
+      kind: 'seq-loci',
       set,
       elements: [{ unit, indices: OrderedSet.ofRange(499, 501) }],
     } as unknown as SeqLoci;
-    g.t.ctx.selection.set(loci, "api");
+    g.t.ctx.selection.set(loci, 'api');
     const ch = new ChannelMarks(g.t.ctx);
     ch.sync();
     const v = g.t.ctx.graph.assembled.value?.view;
     const r = v?.resolved;
-    const sec = r ? r.sections.ref.indexOf(v.set.strings.find("tx.genome")) : -1;
-    const chr2 = r ? r.blocks.unit.indexOf(unitOf(set, "hg38/chr2")) - (r.sections.blockStart[sec] ?? 0) : -1;
+    const sec = r ? r.sections.ref.indexOf(v.set.strings.find('tx.genome')) : -1;
+    const chr2 = r ? r.blocks.unit.indexOf(unitOf(set, 'hg38/chr2')) - (r.sections.blockStart[sec] ?? 0) : -1;
     const m = ch.marks(sec)?.runs(MarkBit.selection);
     const runs: number[][] = [];
     for (let q = m ? m.from(chr2) : 0; m && q < m.to(chr2); q++) runs.push([m.start[q], m.stop[q]]);
@@ -399,19 +399,19 @@ describe("item coordinate systems", () => {
     g.t.ctx.dispose();
   });
 
-  it("an annotation whose rows target the item one by one is said not to be supported yet", async () => {
+  it('an annotation whose rows target the item one by one is said not to be supported yet', async () => {
     const g = await opened({ rows: true });
-    const said = g.t.ctx.issues.current.value.find((i) => i.message.includes("per-row targets"));
+    const said = g.t.ctx.issues.current.value.find((i) => i.message.includes('per-row targets'));
     // An unsupported case, not an unknown ref: the node is unavailable, a warning (GV-10).
-    expect([said?.code, said?.severity]).toEqual(["svs.provider.unavailable", "warning"]);
+    expect([said?.code, said?.severity]).toEqual(['svs.provider.unavailable', 'warning']);
     g.t.ctx.dispose();
   });
 
   it("a held-back mapping's issue stays while it is in, across later stream versions", async () => {
     const g = await opened();
     await g.t.ctx.applyPatch({
-      format: "seq_view_spec_patch",
-      ops: [{ op: "set", ref: "p1.t1", params: { segments: [[0, 2000, 5]] } }],
+      format: 'seq_view_spec_patch',
+      ops: [{ op: 'set', ref: 'p1.t1', params: { segments: [[0, 2000, 5]] } }],
     } as never);
     await g.drain();
     const has = () => g.t.ctx.issues.current.value.some((i) => i.message.includes('"p1.t1"'));
@@ -429,19 +429,19 @@ describe("item coordinate systems", () => {
       () => {},
       heldNodeRefs(createSeqViewer().registry.svs),
     );
-    const seq: StreamNode = { kind: "sequence", key: "s1", params: { value: "MKV" } };
-    nodes.add("src", [seq]);
+    const seq: StreamNode = { kind: 'sequence', key: 's1', params: { value: 'MKV' } };
+    nodes.add('src', [seq]);
     const ann: StreamNode = {
-      kind: "annotation",
-      key: "a1",
+      kind: 'annotation',
+      key: 'a1',
       params: {
-        geometry: "ranges",
-        value: { target: { dict: ["src/s1"], codes: [0, 0] }, start: [0, 1], stop: [1, 2] },
+        geometry: 'ranges',
+        value: { target: { dict: ['src/s1'], codes: [0, 0] }, start: [0, 1], stop: [1, 2] },
       },
     };
-    nodes.add("src", [ann]);
-    expect(nodes.entries.get("src/s1")?.referrers).toBe(1);
-    expect(nodes.entries.get("src/a1")?.names).toEqual(["src/s1"]);
+    nodes.add('src', [ann]);
+    expect(nodes.entries.get('src/s1')?.referrers).toBe(1);
+    expect(nodes.entries.get('src/a1')?.names).toEqual(['src/s1']);
   });
 
   it("a provider's patch may not add an item coordinate system itself", () => {
@@ -451,8 +451,8 @@ describe("item coordinate systems", () => {
       (code) => said.push(code),
       heldNodeRefs(createSeqViewer().registry.svs),
     );
-    const node = { kind: ItemSystemKind as StreamNode["kind"], key: "X", params: { length: 5 } };
-    expect([nodes.add("genes_src", [node]), said, nodes.entries.size]).toEqual([null, ["svs.node.kind"], 0]);
-    expect([nodes.add("genes_src", [node], true), nodes.entries.size]).toEqual([["genes_src/X"], 1]);
+    const node = { kind: ItemSystemKind as StreamNode['kind'], key: 'X', params: { length: 5 } };
+    expect([nodes.add('genes_src', [node]), said, nodes.entries.size]).toEqual([null, ['svs.node.kind'], 0]);
+    expect([nodes.add('genes_src', [node], true), nodes.entries.size]).toEqual([['genes_src/X'], 1]);
   });
 });

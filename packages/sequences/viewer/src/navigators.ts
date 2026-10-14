@@ -11,11 +11,11 @@
 // An entry is its parts; `navigatorFrom` makes one from a partial set, and the canvas engine draws any entry from its
 // parts (canvas/navigators.ts) unless it brings its own draws. Presets name a navigator or give parts.
 
-import type { NavView } from "./draw/nav.js";
-import type { RenderProps } from "./layout.js";
-import type { SeqViewerRegistry } from "./registry.js";
+import type { NavView } from './draw/nav.js';
+import type { RenderProps } from './layout.js';
+import type { SeqViewerRegistry } from './registry.js';
 
-export type NavigatorAxis = "overview" | "miniature" | "labels" | "hairline";
+export type NavigatorAxis = 'overview' | 'miniature' | 'labels' | 'hairline';
 export interface NavigatorParts {
   /** The row, and the axis drawing centered in it. */
   readonly height: number;
@@ -47,7 +47,7 @@ export const DefaultNavigatorParts: NavigatorParts = {
   height: 20,
   thickness: 12,
   highlightMark: true,
-  axis: ["overview", "miniature"],
+  axis: ['overview', 'miniature'],
   tracks: null,
   ground: true,
   radius: 2,
@@ -73,18 +73,18 @@ export interface NavigatorEntry {
   drawWindow?(n: NavView): void;
 }
 
-export function navigatorFrom(parts: Partial<NavigatorParts>, name = "custom"): NavigatorEntry {
+export function navigatorFrom(parts: Partial<NavigatorParts>, name = 'custom'): NavigatorEntry {
   const p: NavigatorParts = { ...DefaultNavigatorParts, ...parts };
   return { name, parts: p, edge: p.edge, height: () => (p.onRuler ? 0 : p.height) };
 }
 
-const rail = { thickness: 2, axis: ["hairline"], ground: false, fade: 0, segment: 3, ticks: false } as const;
+const rail = { thickness: 2, axis: ['hairline'], ground: false, fade: 0, segment: 3, ticks: false } as const;
 export const DefaultNavigators: readonly NavigatorEntry[] = [
-  navigatorFrom({ ...rail, height: 0, onRuler: true }, "rulerRail"),
-  navigatorFrom({ height: 36, thickness: 28, lanes: true, box: true, fade: 0 }, "band"),
-  navigatorFrom({ height: 20, thickness: 12 }, "strip"),
-  navigatorFrom({ ...rail, height: 12 }, "rail"),
-  navigatorFrom({ height: 0, axis: [], highlightMark: false, hoverMark: false }, "none"),
+  navigatorFrom({ ...rail, height: 0, onRuler: true }, 'rulerRail'),
+  navigatorFrom({ height: 36, thickness: 28, lanes: true, box: true, fade: 0 }, 'band'),
+  navigatorFrom({ height: 20, thickness: 12 }, 'strip'),
+  navigatorFrom({ ...rail, height: 12 }, 'rail'),
+  navigatorFrom({ height: 0, axis: [], highlightMark: false, hoverMark: false }, 'none'),
 ];
 
 const made = new WeakMap<object, NavigatorEntry>();
@@ -94,7 +94,7 @@ export function navigatorOf(
   nav: string | Partial<NavigatorParts> | undefined,
 ): NavigatorEntry | null {
   if (nav === undefined) return null;
-  if (typeof nav === "string") return registry.get("navigators", nav) ?? null;
+  if (typeof nav === 'string') return registry.get('navigators', nav) ?? null;
   let e = made.get(nav);
   if (!e) {
     e = navigatorFrom(nav);

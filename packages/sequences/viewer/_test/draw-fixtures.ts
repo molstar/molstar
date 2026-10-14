@@ -12,24 +12,24 @@
 // 1,000 distinct values, many emphasized positions), and the readers tests use on a recording: rects by device column,
 // texts with their x.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { Pass } from "../src/draw/backend.js";
-import { drawGroupLabels } from "../src/draw/numbers.js";
-import { DrawView } from "../src/draw/view.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { Pass } from '../src/draw/backend.js';
+import { drawGroupLabels } from '../src/draw/numbers.js';
+import { DrawView } from '../src/draw/view.js';
 import {
   EntryKind,
   KernelRenderers,
   type LayerRenderer,
   type RenderProps,
   type SeqViewerContext,
-} from "../src/index.js";
-import { LayerFrame, Op, RecordingBackend } from "../src/testing/index.js";
-import { opened } from "./layout-fixtures.js";
+} from '../src/index.js';
+import { LayerFrame, Op, RecordingBackend } from '../src/testing/index.js';
+import { opened } from './layout-fixtures.js';
 
-const PROTEIN = "MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH";
+const PROTEIN = 'MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH';
 const residues = (n: number, seed = 0) =>
-  Array.from({ length: n }, (_, i) => PROTEIN[(i * 7 + seed * 13) % PROTEIN.length]).join("");
+  Array.from({ length: n }, (_, i) => PROTEIN[(i * 7 + seed * 13) % PROTEIN.length]).join('');
 
 /** A context showing `doc` with the kernel renderers (every viewport `width` × `height` at `dpr`). */
 export async function drawn(
@@ -46,7 +46,7 @@ export async function drawn(
 /** The layer of a track (by its label) and its section's ref. */
 export function layerOf(ctx: SeqViewerContext, label: string): { k: number; section: string } {
   const m = ctx.graph.assembled.value?.view;
-  if (!m) throw new Error("no view");
+  if (!m) throw new Error('no view');
   const r = m.resolved;
   for (let k = 0; k < r.layers.count; k++) {
     const t = r.layers.track[k];
@@ -59,7 +59,7 @@ export function layerOf(ctx: SeqViewerContext, label: string): { k: number; sect
 /** A track's layer drawn into a fresh recording (or `into`) through the kit's composer; its frame. */
 export function record(ctx: SeqViewerContext, label: string, into = new RecordingBackend(), tiny = false) {
   const { k, section } = layerOf(ctx, label);
-  const entry = ctx.registry.get("renderers", ctx.graph.assembled.value?.view?.prepared[k].renderer ?? "");
+  const entry = ctx.registry.get('renderers', ctx.graph.assembled.value?.view?.prepared[k].renderer ?? '');
   if (!entry) throw new Error(`no renderer for "${label}"`);
   const f = new LayerFrame(ctx, entry, section, k);
   f.tiny = tiny;
@@ -100,20 +100,20 @@ export function columns(r: RecordingBackend, x0: number, x1: number, y?: number)
  * `Marks` emphasis on every 7th position, and letters and a ruler; `blocks` chains.
  */
 export function meanDoc(n = 100_000, blocks = 1) {
-  const b = createSeqViewSpec({ title: "Means" });
-  const view = b.view({ ref: "v", label: "Means", height: "box" });
+  const b = createSeqViewSpec({ title: 'Means' });
+  const view = b.view({ ref: 'v', label: 'Means', height: 'box' });
   const shades = [];
   const scores = [];
   for (let c = 0; c < blocks; c++) {
     const a = b.data.sequence({ ref: `s${c}`, label: `S${c}`, value: residues(n, c) });
     view.block({ sequence: a });
     const value = Array.from({ length: n }, (_, i) => Math.floor((i * 1000) / n) / 1000);
-    shades.push(b.data.annotation({ ref: `shade${c}`, geometry: "values", target: a, value: { value } }));
+    shades.push(b.data.annotation({ ref: `shade${c}`, geometry: 'values', target: a, value: { value } }));
     const rows = 400;
     scores.push(
       b.data.annotation({
         ref: `scores${c}`,
-        geometry: "ranges",
+        geometry: 'ranges',
         target: a,
         value: {
           start: Array.from({ length: rows }, (_, r) => Math.floor((r * n) / rows)),
@@ -125,33 +125,33 @@ export function meanDoc(n = 100_000, blocks = 1) {
     );
   }
   const viridis = {
-    theme: "field_palette",
-    params: { field: "score", palette: { kind: "continuous", colors: "Viridis" } },
+    theme: 'field_palette',
+    params: { field: 'score', palette: { kind: 'continuous', colors: 'Viridis' } },
   };
   const sites = b.data.annotation({
-    ref: "sites",
-    geometry: "ranges",
-    target: "s0",
+    ref: 'sites',
+    geometry: 'ranges',
+    target: 's0',
     value: { start: Array.from({ length: Math.floor(n / 7) }, (_, i) => i * 7) },
   } as never);
-  view.track({ label: "" }).ruler();
-  view.track({ label: "Letters" }).letters();
-  view.track({ label: "Marks" }).emphasis({ data: sites });
+  view.track({ label: '' }).ruler();
+  view.track({ label: 'Letters' }).letters();
+  view.track({ label: 'Marks' }).emphasis({ data: sites });
   const shade = {
-    theme: "field_palette",
-    params: { field: "value", palette: { kind: "continuous", colors: "Viridis" } },
+    theme: 'field_palette',
+    params: { field: 'value', palette: { kind: 'continuous', colors: 'Viridis' } },
   };
-  view.track({ label: "Shade" }).color({ data: shades as never, color: shade } as never);
-  view.track({ label: "Scores" }).color({ data: scores as never, color: viridis } as never);
+  view.track({ label: 'Shade' }).color({ data: shades as never, color: shade } as never);
+  view.track({ label: 'Scores' }).color({ data: scores as never, color: viridis } as never);
   view
-    .track({ label: "Codes" })
-    .color({ data: scores as never, color: { theme: "field_palette", params: { field: "category" } } } as never);
+    .track({ label: 'Codes' })
+    .color({ data: scores as never, color: { theme: 'field_palette', params: { field: 'category' } } } as never);
   // A categorical palette over the dense values: by value, past 255 colors (the raw path).
   const levels = {
-    theme: "field_palette",
-    params: { field: "value", palette: { kind: "categorical", colors: "Category10" } },
+    theme: 'field_palette',
+    params: { field: 'value', palette: { kind: 'categorical', colors: 'Category10' } },
   };
-  view.track({ label: "Levels" }).color({ data: shades as never, color: levels } as never);
+  view.track({ label: 'Levels' }).color({ data: shades as never, color: levels } as never);
   return b.getDocument();
 }
 
@@ -159,7 +159,7 @@ export function meanDoc(n = 100_000, blocks = 1) {
 export function recordLabels(ctx: SeqViewerContext, section: string, into = new RecordingBackend()) {
   const l = ctx.layout.get(section)?.current;
   const ax = ctx.layout.axis(section);
-  if (!l || !ax) throw new Error("no layout");
+  if (!l || !ax) throw new Error('no layout');
   const v = new DrawView();
   into.reset();
   into.beginPass(Pass.main, Math.ceil(l.width * ax.dpr), Math.ceil(l.height * ax.dpr), ax.dpr);
@@ -188,7 +188,7 @@ export function entryOf(ctx: SeqViewerContext, label: string) {
   const l = ctx.layout.get(section)?.current;
   const ax = ctx.layout.axis(section);
   const t = ctx.graph.assembled.value?.view?.resolved.layers.track[k];
-  if (!l || !ax) throw new Error("no layout");
+  if (!l || !ax) throw new Error('no layout');
   for (let e = 0; e < l.entryCount; e++)
     if (l.entryKind[e] === EntryKind.track && l.entryTrack[e] === t) {
       const top = e < l.pinnedCount ? l.entryTop[e] : l.scrolledTop + l.entryTop[e] - ax.scrollY;

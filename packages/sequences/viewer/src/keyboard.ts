@@ -12,37 +12,37 @@
 // coordinate system and repaired against the axis and layout it is read from, so a filter, a view switch or a relayout
 // never leaves a stale index.
 
-import { type Closure, Lanes, type ResolvedView } from "@molstar/seq-core/format";
-import type { SeqSet, Tree } from "@molstar/seq-core/model";
-import { type Axis, AxisGeometry, cellGap, type SectionAxisView, type ShownIndex } from "./axis.js";
-import type { SeqViewerContext } from "./context.js";
-import { defineBehavior, internal, viewportOf } from "./default-behaviors.js";
-import { Hit, HitRegion, HoverKind } from "./hit.js";
-import { type ClickEvt, Inputs, KeyBinding, type KeyEvt, Modifier, PointerType } from "./input.js";
-import { EntryKind, type SectionLayout, SectionLayouts } from "./layout.js";
-import { lanePad } from "./renderer-helpers.js";
-import { Ring } from "./ring.js";
-import { ringWindowZoom } from "./ring-window.js";
-import { runXInto } from "./runs.js";
-import type { KeyCursor } from "./ui.js";
-import type { Viewport } from "./viewport.js";
+import { type Closure, Lanes, type ResolvedView } from '@molstar/seq-core/format';
+import type { SeqSet, Tree } from '@molstar/seq-core/model';
+import { type Axis, AxisGeometry, cellGap, type SectionAxisView, type ShownIndex } from './axis.js';
+import type { SeqViewerContext } from './context.js';
+import { defineBehavior, internal, viewportOf } from './default-behaviors.js';
+import { Hit, HitRegion, HoverKind } from './hit.js';
+import { type ClickEvt, Inputs, KeyBinding, type KeyEvt, Modifier, PointerType } from './input.js';
+import { EntryKind, type SectionLayout, SectionLayouts } from './layout.js';
+import { lanePad } from './renderer-helpers.js';
+import { Ring } from './ring.js';
+import { ringWindowZoom } from './ring-window.js';
+import { runXInto } from './runs.js';
+import type { KeyCursor } from './ui.js';
+import type { Viewport } from './viewport.js';
 
 const BINDINGS = {
-  left: [{ key: "ArrowLeft" }],
-  right: [{ key: "ArrowRight" }],
-  up: [{ key: "ArrowUp" }],
-  down: [{ key: "ArrowDown" }],
-  home: [{ key: "Home" }],
-  end: [{ key: "End" }],
-  zoomIn: [{ key: "+" }, { key: "=" }],
-  zoomOut: [{ key: "-" }, { key: "_" }],
-  rowZoomIn: [{ code: "Equal", alt: true }],
-  rowZoomOut: [{ code: "Minus", alt: true }],
-  select: [{ key: "Enter" }],
-  extend: [{ key: "Enter", shift: true }],
-  toggle: [{ key: " " }],
-  menu: [{ key: "F10", shift: true }, { key: "ContextMenu" }],
-  clear: [{ key: "Escape" }],
+  left: [{ key: 'ArrowLeft' }],
+  right: [{ key: 'ArrowRight' }],
+  up: [{ key: 'ArrowUp' }],
+  down: [{ key: 'ArrowDown' }],
+  home: [{ key: 'Home' }],
+  end: [{ key: 'End' }],
+  zoomIn: [{ key: '+' }, { key: '=' }],
+  zoomOut: [{ key: '-' }, { key: '_' }],
+  rowZoomIn: [{ code: 'Equal', alt: true }],
+  rowZoomOut: [{ code: 'Minus', alt: true }],
+  select: [{ key: 'Enter' }],
+  extend: [{ key: 'Enter', shift: true }],
+  toggle: [{ key: ' ' }],
+  menu: [{ key: 'F10', shift: true }, { key: 'ContextMenu' }],
+  clear: [{ key: 'Escape' }],
 } satisfies Record<string, KeyBinding>;
 type Action = keyof typeof BINDINGS;
 const ACTIONS = Object.keys(BINDINGS) as Action[];
@@ -96,7 +96,7 @@ function cladeOf(tree: Tree | null, row: number): number {
  * repaired to the nearest block, position, entry and row still there (`resolve(…, true)`), or refused.
  */
 class Spot {
-  ref = "";
+  ref = '';
   sec = -1;
   t = -1;
   e = -1;
@@ -403,7 +403,7 @@ class Spot {
     if (dx === 0 && dy === 0) return false;
     by[0] = dx;
     by[1] = dy;
-    this.vp.panByFrom(by, "keyboard");
+    this.vp.panByFrom(by, 'keyboard');
     return true;
   }
 
@@ -522,13 +522,13 @@ export function cursorRect(ctx: SeqViewerContext, cursor: KeyCursor, out: Float6
 }
 
 export const KeyboardBehavior = defineBehavior(
-  "keyboard",
-  "interaction",
+  'keyboard',
+  'interaction',
   0,
-  { bindings: BINDINGS as Readonly<Record<Action, KeyBinding>>, closure: "containing" as Closure },
-  "A cursor over positions, rows and headers (the hover, owner `keyboard`): arrows, Home and End; +/- zoom, Alt+=/Alt+- " +
+  { bindings: BINDINGS as Readonly<Record<Action, KeyBinding>>, closure: 'containing' as Closure },
+  'A cursor over positions, rows and headers (the hover, owner `keyboard`): arrows, Home and End; +/- zoom, Alt+=/Alt+- ' +
     "row zoom; Enter and Space select or activate; Shift+F10 or ContextMenu asks for the track's menu (`events.menu`); " +
-    "Escape clears the selection and puts the cursor away; a press puts it away too. Tab leaves the surface.",
+    'Escape clears the selection and puts the cursor away; a press puts it away too. Tab leaves the surface.',
   ({ ctx, h, on, add }) => {
     /** The key's cursor; `rs` is the settle's own, since it runs inside the other's `land`. */
     const r = new Spot();
@@ -542,12 +542,12 @@ export const KeyboardBehavior = defineBehavior(
     let busy = false;
     /** A press came before the focus it gives (no cursor on it). */
     let pressed = false;
-    let watched = "";
+    let watched = '';
     let layoutSub: { unsubscribe(): void } | null = null;
 
     const drop = () => {
       if (ctx.ui.keyCursor.value) ctx.ui.setKeyCursor(null);
-      ctx.hover.clear("keyboard");
+      ctx.hover.clear('keyboard');
     };
     /** The hover follows the cursor's cell; none where it is not in view. */
     const show = (s: Spot) => {
@@ -556,8 +556,8 @@ export const KeyboardBehavior = defineBehavior(
       hit.x = rect[4];
       hit.y = rect[5];
       if (p && ok && s.inView(rect) && ctx.layout.hitTestAt(s.sec, hit) && hit.kind !== HoverKind.none)
-        ctx.hover.setFromHit(hit, "keyboard", p.closure);
-      else ctx.hover.clear("keyboard");
+        ctx.hover.setFromHit(hit, 'keyboard', p.closure);
+      else ctx.hover.clear('keyboard');
     };
     /**
      * Publishes the spot (when it differs from the cursor) and follows it with the hover; `settled` (a relayout, not a
@@ -572,7 +572,7 @@ export const KeyboardBehavior = defineBehavior(
         ctx.ui.setKeyCursor(next);
       }
       const owner = ctx.hover.live.current.owner;
-      if (!settled || owner === "keyboard" || owner === "") show(s);
+      if (!settled || owner === 'keyboard' || owner === '') show(s);
     };
     /** The spot becomes the cursor, brought into view first. */
     const land = () => {
@@ -644,9 +644,9 @@ export const KeyboardBehavior = defineBehavior(
         if (KeyBinding.match(p.bindings[ACTIONS[i]] ?? NONE, k)) act = ACTIONS[i];
       const ref = ctx.layout.sectionRef(k.section);
       if (e.handled || !p || act === null || ref === null) return;
-      if (act === "clear") {
+      if (act === 'clear') {
         // The cursor goes too; the next key brings it back where it was (`memo`).
-        ctx.selection.clear("keyboard");
+        ctx.selection.clear('keyboard');
         drop();
         e.handled = true;
         return;
@@ -654,36 +654,36 @@ export const KeyboardBehavior = defineBehavior(
       const c = ctx.ui.keyCursor.value;
       if (!(c?.section === ref ? r.resolve(ctx, c, true) : start(ref))) return;
       e.handled = true;
-      if (act === "menu") {
+      if (act === 'menu') {
         // The track menu is the UI's (`events.menu`): the cursor's track opens it; a group's header has none.
-        if (r.t >= 0) internal(ctx).openMenu(r.ref, r.track as string, "keyboard");
+        if (r.t >= 0) internal(ctx).openMenu(r.ref, r.track as string, 'keyboard');
         return;
       }
       const l = r.l;
       switch (act) {
-        case "left":
-        case "right":
-          if (!r.header) r.along(act === "left" ? -1 : 1);
-          else if (act === "left") break;
+        case 'left':
+        case 'right':
+          if (!r.header) r.along(act === 'left' ? -1 : 1);
+          else if (act === 'left') break;
           // A wrapped header is its line's: onto the line's first position.
           else if (l.geometry === AxisGeometry.wrapped) r.moveTo(l.lines.block[r.d], l.lines.start[r.d]);
           else r.firstInView();
           break;
-        case "up":
-        case "down":
-          r.step(act === "up" ? -1 : 1);
+        case 'up':
+        case 'down':
+          r.step(act === 'up' ? -1 : 1);
           break;
-        case "home":
+        case 'home':
           // Rings have no header: their first position.
           if (l.geometry === AxisGeometry.circular) r.firstInView();
           else r.header = true;
           break;
-        case "end":
+        case 'end':
           r.last();
           break;
-        case "zoomIn":
-        case "zoomOut":
-          by[0] = act === "zoomIn" ? ZOOM_IN : ZOOM_OUT;
+        case 'zoomIn':
+        case 'zoomOut':
+          by[0] = act === 'zoomIn' ? ZOOM_IN : ZOOM_OUT;
           // Rings show their whole axis: the keys zoom the section their window shows, about its center (CG3).
           if (l.geometry === AxisGeometry.circular) {
             ringWindowZoom(ctx, r.sec, by);
@@ -692,18 +692,18 @@ export const KeyboardBehavior = defineBehavior(
           // Anchored at the cursor's cell, on a header at the view's center.
           r.rect(rect);
           by[1] = r.header ? (r.vp.live.current.width - r.ax.insetX) / 2 : rect[4] - r.v.left;
-          r.vp.zoomAtFrom(by, "keyboard");
+          r.vp.zoomAtFrom(by, 'keyboard');
           break;
-        case "rowZoomIn":
-        case "rowZoomOut":
+        case 'rowZoomIn':
+        case 'rowZoomOut':
           r.rect(rect);
-          by[0] = r.vp.live.current.rowScale * (act === "rowZoomIn" ? ZOOM_IN : ZOOM_OUT);
+          by[0] = r.vp.live.current.rowScale * (act === 'rowZoomIn' ? ZOOM_IN : ZOOM_OUT);
           by[1] = rect[5] - l.scrolledTop;
           r.vp.setRowScaleFrom(by);
           break;
       }
       land();
-      if (act !== "select" && act !== "extend" && act !== "toggle") return;
+      if (act !== 'select' && act !== 'extend' && act !== 'toggle') return;
       if (!r.header) {
         // On data, a click on the cell: the `select` behavior's policy, Shift for `extend`.
         const input = click.input;
@@ -712,11 +712,11 @@ export const KeyboardBehavior = defineBehavior(
         input.button = 0;
         input.x = hit.x;
         input.y = hit.y;
-        input.modifiers = act === "extend" ? Modifier.shift : 0;
+        input.modifiers = act === 'extend' ? Modifier.shift : 0;
         if (hit.kind !== HoverKind.none && hit.region !== HitRegion.none && r.inView(rect))
           internal(ctx).input.synthClick(click);
-      } else if (act !== "toggle") {
-        if (r.t >= 0) internal(ctx).activate(r.ref, r.track as string, "keyboard");
+      } else if (act !== 'toggle') {
+        if (r.t >= 0) internal(ctx).activate(r.ref, r.track as string, 'keyboard');
       } else {
         // Space on a header expands or collapses a group, a split track, or a clade: a wedge's, a leaf's parent's.
         const str = (id: number) => r.set.strings.get(id);
@@ -732,8 +732,8 @@ export const KeyboardBehavior = defineBehavior(
     add(
       ctx.ui.keyCursor.subscribe((c) => {
         // The layout of the cursor's section; moves within it do not resubscribe.
-        if ((c?.section ?? "") === watched) return;
-        watched = c?.section ?? "";
+        if ((c?.section ?? '') === watched) return;
+        watched = c?.section ?? '';
         layoutSub?.unsubscribe();
         layoutSub = c ? (ctx.layout.get(c.section)?.version.subscribe(settle) ?? null) : null;
       }),

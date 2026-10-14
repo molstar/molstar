@@ -21,10 +21,10 @@ import {
   Newick,
   Stockholm,
   type StockholmRecord,
-} from "@molstar/seq-core/model";
-import type { FormatResult, StageContext } from "../contract.js";
-import type { FormatEntry, ServiceEntry } from "../registry.js";
-import { isList } from "../tables/table.js";
+} from '@molstar/seq-core/model';
+import type { FormatResult, StageContext } from '../contract.js';
+import type { FormatEntry, ServiceEntry } from '../registry.js';
+import { isList } from '../tables/table.js';
 
 const decoder = new TextDecoder();
 const text = (bytes: Uint8Array) => decoder.decode(bytes);
@@ -32,9 +32,9 @@ type Cells = Record<string, unknown[]>;
 /** An object keyed by data (column names): no prototype, so `constructor` or `__proto__` is a key like any other. */
 const cells = (): Cells => Object.create(null);
 const table = (columns: Record<string, ArrayLike<unknown>>, length: number, text = false): FormatResult =>
-  text ? { kind: "table", columns, length, text } : { kind: "table", columns, length };
+  text ? { kind: 'table', columns, length, text } : { kind: 'table', columns, length };
 const fail = (ctx: StageContext, m: string): FormatResult => {
-  ctx.report({ code: "svs.source.format", severity: "error", path: "", message: m });
+  ctx.report({ code: 'svs.source.format', severity: 'error', path: '', message: m });
   return table({}, 0);
 };
 
@@ -48,24 +48,24 @@ const fail = (ctx: StageContext, m: string): FormatResult => {
  */
 let fastaSlot: { bytes: Uint8Array; parsed: ReturnType<typeof Fasta.parse> } | null = null;
 
-function fasta(flavor: "aligned" | "a3m" | null): FormatEntry["read"] {
+function fasta(flavor: 'aligned' | 'a3m' | null): FormatEntry['read'] {
   return (bytes, request, ctx) => {
     if (fastaSlot?.bytes !== bytes) fastaSlot = { bytes, parsed: Fasta.parse(text(bytes)) };
     const { records, issues } = fastaSlot.parsed;
     for (const i of issues) ctx.report(i);
-    if (request.tag === "header") {
+    if (request.tag === 'header') {
       return table(
         { row: records.map((_, k) => k), id: records.map((r) => r.id), header: records.map((r) => r.description) },
         records.length,
       );
     }
-    if (flavor || request.want === "alignments") {
-      const a = Fasta.alignment(records, "", flavor ?? request.flavor);
+    if (flavor || request.want === 'alignments') {
+      const a = Fasta.alignment(records, '', flavor ?? request.flavor);
       for (const i of a.issues) ctx.report(i);
-      return { kind: "alignments", alignments: [a.input] };
+      return { kind: 'alignments', alignments: [a.input] };
     }
     const molecules = records.map((r) => ({ key: r.id, residues: r.sequence, label: r.id }));
-    return { kind: "molecules", molecules };
+    return { kind: 'molecules', molecules };
   };
 }
 
@@ -86,8 +86,8 @@ interface Out {
  */
 function tagTable(rec: StockholmRecord, tag: string, geometry: Geometry | null, ctx: StageContext): FormatResult {
   const [kind, feature] = [tag.slice(0, 2), tag.slice(3)];
-  if (kind === "GS") {
-    if (geometry != null && geometry !== "rows") return fail(ctx, `${tag} is read as rows, not ${geometry}`);
+  if (kind === 'GS') {
+    if (geometry != null && geometry !== 'rows') return fail(ctx, `${tag} is read as rows, not ${geometry}`);
     const row: number[] = [];
     const values: string[] = [];
     rec.names.forEach((name, k) => {
@@ -98,14 +98,14 @@ function tagTable(rec: StockholmRecord, tag: string, geometry: Geometry | null, 
     });
     return table({ row: Int32Array.from(row), [feature]: values }, row.length);
   }
-  if (kind !== "GC" && kind !== "GR") return fail(ctx, `"${tag}" is not GC:<tag>, GR:<tag> or GS:<tag>`);
-  const geo = geometry ?? "ranges";
-  if (geo !== "ranges" && geo !== "values" && geo !== "pairs") {
+  if (kind !== 'GC' && kind !== 'GR') return fail(ctx, `"${tag}" is not GC:<tag>, GR:<tag> or GS:<tag>`);
+  const geo = geometry ?? 'ranges';
+  if (geo !== 'ranges' && geo !== 'values' && geo !== 'pairs') {
     return fail(ctx, `${tag} is read as ranges, values or pairs, not ${geo}`);
   }
   /** The tag's strings: the columns' one, or each row's, its `target` one string. */
   const strings: { s: string; row: number; target: string | null }[] = [];
-  if (kind === "GC") {
+  if (kind === 'GC') {
     const s = rec.gc.get(feature);
     if (s === undefined) return fail(ctx, `the alignment has no #=GC ${feature}`);
     strings.push({ s, row: -1, target: null });
@@ -127,8 +127,8 @@ function tagTable(rec: StockholmRecord, tag: string, geometry: Geometry | null, 
       const [n0, gapped] = [n, x.row < 0 ? null : rec.rows[x.row]];
       // A column's index among the kept ones: all of them, or a row's residues with its gap columns dropped.
       for (let c = 0, k = 0; c < x.s.length; c++) pos[c] = gapped && isGap(gapped.charCodeAt(c)) ? -1 : k++;
-      if (geo === "pairs") {
-        const partner = Stockholm.pairs(x.s, bad, "");
+      if (geo === 'pairs') {
+        const partner = Stockholm.pairs(x.s, bad, '');
         if (!partner) return -1;
         for (let c = 0; c < x.s.length; c++) {
           const d = partner[c];
@@ -139,7 +139,7 @@ function tagTable(rec: StockholmRecord, tag: string, geometry: Geometry | null, 
           }
           n++;
         }
-      } else if (geo === "values") {
+      } else if (geo === 'values') {
         for (let c = 0; c < x.s.length; c++) {
           if (pos[c] < 0) continue;
           const ch = x.s.charCodeAt(c);
@@ -180,43 +180,43 @@ function tagTable(rec: StockholmRecord, tag: string, geometry: Geometry | null, 
     for (const i of bad) ctx.report({ ...i, message: `${tag}: ${i.message}` });
     return table({}, 0);
   }
-  if (geo === "values" && numbers === 0) return fail(ctx, `${tag} has no digit or * to read as a value`);
+  if (geo === 'values' && numbers === 0) return fail(ctx, `${tag} has no digit or * to read as a value`);
   const out: Out = {
-    start: new Int32Array(geo === "values" ? 0 : n),
-    stop: new Int32Array(geo === "values" ? 0 : n),
-    value: new Float64Array(geo === "values" ? n : 0),
-    label: new Array<string>(geo === "ranges" ? n : 0),
-    target: kind === "GR" ? new Array<string>(n) : null,
+    start: new Int32Array(geo === 'values' ? 0 : n),
+    stop: new Int32Array(geo === 'values' ? 0 : n),
+    value: new Float64Array(geo === 'values' ? n : 0),
+    label: new Array<string>(geo === 'ranges' ? n : 0),
+    target: kind === 'GR' ? new Array<string>(n) : null,
   };
   pass(out);
   const cols: Record<string, ArrayLike<unknown>> = out.target ? { target: out.target } : {};
-  if (geo === "values") return table({ ...cols, value: out.value }, n);
-  if (geo === "pairs") {
-    return table({ ...cols, start: out.start, b_start: out.stop, category: Array(n).fill("base_pair") }, n);
+  if (geo === 'values') return table({ ...cols, value: out.value }, n);
+  if (geo === 'pairs') {
+    return table({ ...cols, start: out.start, b_start: out.stop, category: Array(n).fill('base_pair') }, n);
   }
   return table({ ...cols, start: out.start, stop: out.stop, label: out.label }, n);
 }
 
-const stockholm: FormatEntry["read"] = (bytes, request, ctx) => {
+const stockholm: FormatEntry['read'] = (bytes, request, ctx) => {
   const { records, issues } = Stockholm.parse(text(bytes));
   for (const i of issues) ctx.report(i);
-  if (request.tag == null) return { kind: "alignments", alignments: records.map((r) => Stockholm.alignment(r, "")) };
-  const r = records[typeof request.record === "number" ? request.record : 0];
+  if (request.tag == null) return { kind: 'alignments', alignments: records.map((r) => Stockholm.alignment(r, '')) };
+  const r = records[typeof request.record === 'number' ? request.record : 0];
   return r ? tagTable(r, request.tag, request.geometry, ctx) : fail(ctx, `no record ${request.record ?? 0}`);
 };
 
 /** Clustal (`.aln`): one alignment; a file it cannot read reported once, nothing read. */
-const clustal: FormatEntry["read"] = (bytes, _, ctx) => {
+const clustal: FormatEntry['read'] = (bytes, _, ctx) => {
   const { record, issues } = Clustal.parse(text(bytes));
   for (const i of issues) ctx.report(i);
-  return record ? { kind: "alignments", alignments: [Clustal.alignment(record, "")] } : table({}, 0);
+  return record ? { kind: 'alignments', alignments: [Clustal.alignment(record, '')] } : table({}, 0);
 };
 
-const newick: FormatEntry["read"] = (bytes, _, ctx) => {
+const newick: FormatEntry['read'] = (bytes, _, ctx) => {
   const { tree, issues } = Newick.parse(text(bytes));
   for (const i of issues) ctx.report(i);
   // No tree: the parse said why, once.
-  return tree ? { kind: "tree", tree } : issues.length ? table({}, 0) : fail(ctx, "no tree");
+  return tree ? { kind: 'tree', tree } : issues.length ? table({}, 0) : fail(ctx, 'no tree');
 };
 
 /**
@@ -241,7 +241,7 @@ function delimitedRows(s: string, sep: string, onRow: (cells: readonly string[],
     for (let c = s.charCodeAt(j); j < n && c !== S && (c === 32 || c === 9); c = s.charCodeAt(++j));
     let cell: string;
     if (j < n && s.charCodeAt(j) === 34) {
-      cell = "";
+      cell = '';
       for (let from = j + 1; ; ) {
         const q = s.indexOf('"', from);
         cell += s.slice(from, q < 0 ? n : q);
@@ -264,7 +264,7 @@ function delimitedRows(s: string, sep: string, onRow: (cells: readonly string[],
       i++;
       continue;
     }
-    if ((count > 1 || row[0] !== "") && !onRow(row, count)) return;
+    if ((count > 1 || row[0] !== '') && !onRow(row, count)) return;
     if (c < 0) return;
     count = 0;
     i += c === 13 && s.charCodeAt(i + 1) === 10 ? 2 : 1;
@@ -275,7 +275,7 @@ function delimitedRows(s: string, sep: string, onRow: (cells: readonly string[],
  * A table by its header, its cells text (empty ones null), typed after `fields` (seqspec:format#annotation-tables); a
  * repeated name is an error.
  */
-function delimited(sep: string): FormatEntry["read"] {
+function delimited(sep: string): FormatEntry['read'] {
   return (bytes, _, ctx) => {
     const s = text(bytes);
     // Columns are sized once, by an upper bound on the rows, and cut to them after: grown by a push a cell, each
@@ -284,10 +284,10 @@ function delimited(sep: string): FormatEntry["read"] {
     // `k - 1` separators and its line end, the last row's aside): the slots are then at most the text's length, whatever
     // the header (GI-04: sized by the lines alone, 20,000 names over 200,000 empty lines asked for 4 billion).
     let lines = 1;
-    for (let at = s.indexOf("\n"); at >= 0; at = s.indexOf("\n", at + 1)) lines++;
+    for (let at = s.indexOf('\n'); at >= 0; at = s.indexOf('\n', at + 1)) lines++;
     let names: string[] | null = null;
     let cols: (string | null)[][] = [];
-    let [length, error] = [0, ""];
+    let [length, error] = [0, ''];
     delimitedRows(s, sep, (cells, count) => {
       if (!names) {
         names = cells.slice(0, count).map((name) => name.trim());
@@ -299,12 +299,12 @@ function delimited(sep: string): FormatEntry["read"] {
       } else if (count !== names.length) {
         error = `row ${length + 2} has ${count} cells; the header has ${names.length}`;
       } else {
-        for (let k = 0; k < count; k++) cols[k][length] = cells[k] === "" ? null : cells[k];
+        for (let k = 0; k < count; k++) cols[k][length] = cells[k] === '' ? null : cells[k];
         length++;
       }
       return !error;
     });
-    if (!names) return fail(ctx, "no header row");
+    if (!names) return fail(ctx, 'no header row');
     if (error) return fail(ctx, error);
     const out = cells();
     (names as string[]).forEach((name, k) => {
@@ -315,7 +315,7 @@ function delimited(sep: string): FormatEntry["read"] {
   };
 }
 
-const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
+const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /** A `Table` (seqspec:format#positions) as columns, dictionaries decoded; null when the value is neither form. */
 export function tableColumns(v: unknown): { columns: Cells; length: number } | null {
@@ -341,7 +341,7 @@ export function tableColumns(v: unknown): { columns: Cells; length: number } | n
 }
 
 /** A `Table` in either form, else an object, from a parse of the bytes (JSON or MessagePack, seqspec:format#values). */
-function tableOrObject(parse: (bytes: Uint8Array) => unknown, what: string): FormatEntry["read"] {
+function tableOrObject(parse: (bytes: Uint8Array) => unknown, what: string): FormatEntry['read'] {
   return (bytes, _, ctx) => {
     let v: unknown;
     try {
@@ -350,43 +350,43 @@ function tableOrObject(parse: (bytes: Uint8Array) => unknown, what: string): For
       return fail(ctx, `not ${what}: ${e instanceof Error ? e.message : e}`);
     }
     const t = tableColumns(v);
-    return t ? table(t.columns, t.length) : { kind: "object", value: v };
+    return t ? table(t.columns, t.length) : { kind: 'object', value: v };
   };
 }
 
 export const KernelFormats: readonly FormatEntry[] = [
   {
-    name: "fasta",
-    extensions: ["fasta", "fa", "faa", "fna"],
-    gives: ["molecules", "alignments", "table"],
-    reads: ["want", "flavor", "tag"],
+    name: 'fasta',
+    extensions: ['fasta', 'fa', 'faa', 'fna'],
+    gives: ['molecules', 'alignments', 'table'],
+    reads: ['want', 'flavor', 'tag'],
     read: fasta(null),
   },
-  { name: "a3m", extensions: ["a3m"], gives: ["alignments"], reads: ["want", "tag"], read: fasta("a3m") },
+  { name: 'a3m', extensions: ['a3m'], gives: ['alignments'], reads: ['want', 'tag'], read: fasta('a3m') },
   {
-    name: "stockholm",
-    extensions: ["sto", "stk"],
-    gives: ["alignments", "table"],
-    reads: ["want", "flavor", "tag", "geometry", "record"],
+    name: 'stockholm',
+    extensions: ['sto', 'stk'],
+    gives: ['alignments', 'table'],
+    reads: ['want', 'flavor', 'tag', 'geometry', 'record'],
     read: stockholm,
   },
-  { name: "clustal", extensions: ["aln", "clustal", "clw"], gives: ["alignments"], reads: [], read: clustal },
-  { name: "newick", extensions: ["nwk", "newick", "tree"], gives: ["tree"], reads: [], read: newick },
-  { name: "tsv", extensions: ["tsv", "tab"], gives: ["table"], reads: [], read: delimited("\t") },
-  { name: "csv", extensions: ["csv"], gives: ["table"], reads: [], read: delimited(",") },
+  { name: 'clustal', extensions: ['aln', 'clustal', 'clw'], gives: ['alignments'], reads: [], read: clustal },
+  { name: 'newick', extensions: ['nwk', 'newick', 'tree'], gives: ['tree'], reads: [], read: newick },
+  { name: 'tsv', extensions: ['tsv', 'tab'], gives: ['table'], reads: [], read: delimited('\t') },
+  { name: 'csv', extensions: ['csv'], gives: ['table'], reads: [], read: delimited(',') },
   {
-    name: "json",
-    extensions: ["json"],
-    gives: ["table", "object"],
+    name: 'json',
+    extensions: ['json'],
+    gives: ['table', 'object'],
     reads: [],
-    read: tableOrObject((b) => JSON.parse(text(b)), "JSON"),
+    read: tableOrObject((b) => JSON.parse(text(b)), 'JSON'),
   },
   {
-    name: "msgpack",
-    extensions: ["msgpack", "mpk"],
-    gives: ["table", "object"],
+    name: 'msgpack',
+    extensions: ['msgpack', 'mpk'],
+    gives: ['table', 'object'],
     reads: [],
-    read: tableOrObject((b) => decodeMsgPack(b, decodeTypedArrays), "MessagePack"),
+    read: tableOrObject((b) => decodeMsgPack(b, decodeTypedArrays), 'MessagePack'),
   },
 ];
 
@@ -414,7 +414,7 @@ function features(value: unknown, ctx: StageContext | undefined, what: string): 
   const list = (isObject(value) && Array.isArray(value.features) ? value.features : []) as Feature[];
   const seq = isObject(value) ? value.sequence : undefined;
   const length =
-    typeof seq === "string" ? seq.length : isObject(seq) && Number.isInteger(seq.length) ? (seq.length as number) : -1;
+    typeof seq === 'string' ? seq.length : isObject(seq) && Number.isInteger(seq.length) ? (seq.length as number) : -1;
   const cols: Cells = { start: [], stop: [], category: [], label: [], id: [], alt: [], original: [] };
   let [past, clipped] = [0, 0];
   for (const f of list) {
@@ -430,9 +430,9 @@ function features(value: unknown, ctx: StageContext | undefined, what: string): 
       e = length;
     }
     const a = f.alternativeSequence;
-    const original = typeof a === "string" ? (f.wildType ?? null) : (a?.originalSequence ?? null);
-    const given = typeof a === "string" ? [a] : (a?.alternativeSequences ?? []);
-    for (const alt of given.length ? given : [original != null ? "" : null]) {
+    const original = typeof a === 'string' ? (f.wildType ?? null) : (a?.originalSequence ?? null);
+    const given = typeof a === 'string' ? [a] : (a?.alternativeSequences ?? []);
+    for (const alt of given.length ? given : [original != null ? '' : null]) {
       cols.start.push(s - 1);
       cols.stop.push(e);
       cols.category.push(f.type ?? null);
@@ -442,38 +442,38 @@ function features(value: unknown, ctx: StageContext | undefined, what: string): 
       cols.original.push(original);
     }
   }
-  for (const k of ["id", "alt", "original"]) if (cols[k].every((v) => v === null)) delete cols[k];
+  for (const k of ['id', 'alt', 'original']) if (cols[k].every((v) => v === null)) delete cols[k];
   if (ctx && (past || clipped)) {
     const said = [
-      past ? `${past} start past the sequence's end (${length}) and are left out` : "",
-      clipped ? `${clipped} run past ${past ? "it" : `the sequence's end (${length})`} and are clipped` : "",
+      past ? `${past} start past the sequence's end (${length}) and are left out` : '',
+      clipped ? `${clipped} run past ${past ? 'it' : `the sequence's end (${length})`} and are clipped` : '',
     ];
-    const message = `${what}: ${said.filter(Boolean).join("; ")}`;
-    ctx.report({ code: "svs.source.skipped", severity: "info", path: "", message });
+    const message = `${what}: ${said.filter(Boolean).join('; ')}`;
+    ctx.report({ code: 'svs.source.skipped', severity: 'info', path: '', message });
   }
   return table(cols, cols.start.length);
 }
 
 /** `uniprot`: an accession or isoform; a sequence it reads gets the numbering `uniprot:<id>`. */
 export const UniprotService: ServiceEntry = {
-  name: "uniprot",
-  resources: ["sequence", "features", "variants"],
+  name: 'uniprot',
+  resources: ['sequence', 'features', 'variants'],
   resolve(id, resource) {
-    const base = "https://rest.uniprot.org/uniprotkb";
-    if (resource === "sequence") return { uri: `${base}/${id}.fasta`, format: "fasta" };
-    if (resource === "features") return { uri: `${base}/${id}.json`, format: "json" };
-    if (resource === "variants") return { uri: `https://www.ebi.ac.uk/proteins/api/variation/${id}`, format: "json" };
+    const base = 'https://rest.uniprot.org/uniprotkb';
+    if (resource === 'sequence') return { uri: `${base}/${id}.fasta`, format: 'fasta' };
+    if (resource === 'features') return { uri: `${base}/${id}.json`, format: 'json' };
+    if (resource === 'variants') return { uri: `https://www.ebi.ac.uk/proteins/api/variation/${id}`, format: 'json' };
     return null;
   },
   after(result, id, resource, ctx) {
-    if (result.kind === "object") return features(result.value, ctx, `uniprot ${id} ${resource}`);
-    if (result.kind !== "molecules") return result;
+    if (result.kind === 'object') return features(result.value, ctx, `uniprot ${id} ${resource}`);
+    if (result.kind !== 'molecules') return result;
     const molecules = result.molecules.map((m) => ({
       ...m,
       label: id,
-      identifiers: [{ namespace: "uniprot", value: id }],
-      numberings: [...(m.numberings ?? []), { name: `uniprot:${id}`, method: "offset" as const, first: 1 }],
+      identifiers: [{ namespace: 'uniprot', value: id }],
+      numberings: [...(m.numberings ?? []), { name: `uniprot:${id}`, method: 'offset' as const, first: 1 }],
     }));
-    return { kind: "molecules", molecules };
+    return { kind: 'molecules', molecules };
   },
 };

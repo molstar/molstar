@@ -9,12 +9,12 @@
 // Callable symbol definitions (seqspec:seqql#overview, seqspec:seqql#extension): a symbol called with its arguments
 // builds the canonical JSON application, as MolQL's `MSymbol` does; defaults are omitted, so equal queries give equal
 // JSON (seqspec:seqql#names).
-import type { Apply, Expression, Keywords, SymbolDef, SymbolSpec } from "./types.js";
+import type { Apply, Expression, Keywords, SymbolDef, SymbolSpec } from './types.js';
 
 type ArgValue = Expression | readonly Expression[];
 
 function isKeywords(x: unknown): x is Keywords {
-  return typeof x === "object" && x !== null && !Array.isArray(x) && !("head" in x);
+  return typeof x === 'object' && x !== null && !Array.isArray(x) && !('head' in x);
 }
 
 function apply(def: SymbolSpec, input: readonly (Expression | Keywords)[]): Apply {
@@ -55,6 +55,6 @@ export function defineSymbol<const N extends string>(
     spec.normalize ? spec.normalize(apply(spec, args)) : apply(spec, args);
   // A function's own `name` is read-only: redefined, not assigned.
   const { name, ...rest } = spec;
-  Object.defineProperty(call, "name", { value: name, enumerable: true });
+  Object.defineProperty(call, 'name', { value: name, enumerable: true });
   return Object.freeze(Object.assign(call, rest)) as never;
 }

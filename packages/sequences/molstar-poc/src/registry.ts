@@ -16,47 +16,47 @@ import {
   issueOf,
   type ServiceEntry,
   type SvsRegistryEntry,
-} from "@molstar/seq-core/format";
-import { StructureProvider } from "./complex.js";
-import { SiftsCoverageProvider, SiftsDepthProvider } from "./coverage.js";
-import { PaeFormat, PaeProvider } from "./pae.js";
-import { PlddtProvider } from "./plddt.js";
-import { categoryTable, readStructure, type StructureFormat } from "./source.js";
+} from '@molstar/seq-core/format';
+import { StructureProvider } from './complex.js';
+import { SiftsCoverageProvider, SiftsDepthProvider } from './coverage.js';
+import { PaeFormat, PaeProvider } from './pae.js';
+import { PlddtProvider } from './plddt.js';
+import { categoryTable, readStructure, type StructureFormat } from './source.js';
 
 /** A structure format: the parsed structure (`object`), or with `category_name` a CIF category as a table. */
 function structureFormat(name: StructureFormat, extensions: string[]): FormatEntry {
-  const cif = name === "mmcif" || name === "bcif";
+  const cif = name === 'mmcif' || name === 'bcif';
   return {
     name,
     extensions,
-    gives: cif ? ["object", "table"] : ["object"],
-    reads: ["want", "categoryName"],
+    gives: cif ? ['object', 'table'] : ['object'],
+    reads: ['want', 'categoryName'],
     async read(bytes, request, ctx): Promise<FormatResult> {
       const source = await readStructure(bytes, name);
-      if (request.categoryName == null && request.want !== "table") return { kind: "object", value: source };
+      if (request.categoryName == null && request.want !== 'table') return { kind: 'object', value: source };
       const table = source.frame && request.categoryName ? categoryTable(source.frame, request.categoryName) : null;
       if (!table) {
         ctx.report(
           issueOf(
             ctx.registries,
-            "svs.source.category",
-            "",
+            'svs.source.category',
+            '',
             `the ${name} file has no category "${request.categoryName}"`,
           ),
         );
-        return { kind: "table", columns: {}, length: 0 };
+        return { kind: 'table', columns: {}, length: 0 };
       }
-      return { kind: "table", ...table, text: true };
+      return { kind: 'table', ...table, text: true };
     },
   };
 }
 
 export const MolstarFormats: readonly FormatEntry[] = [
-  structureFormat("mmcif", ["cif", "mmcif"]),
-  structureFormat("bcif", ["bcif"]),
-  structureFormat("pdb", ["pdb", "ent"]),
-  structureFormat("sdf", ["sdf", "mol"]),
-  structureFormat("mol2", ["mol2"]),
+  structureFormat('mmcif', ['cif', 'mmcif']),
+  structureFormat('bcif', ['bcif']),
+  structureFormat('pdb', ['pdb', 'ent']),
+  structureFormat('sdf', ['sdf', 'mol']),
+  structureFormat('mol2', ['mol2']),
   PaeFormat,
 ];
 
@@ -67,28 +67,28 @@ export const MolstarFormats: readonly FormatEntry[] = [
  */
 export const MolstarServices: readonly ServiceEntry[] = [
   {
-    name: "pdbe",
-    resources: ["structure", "sifts"],
+    name: 'pdbe',
+    resources: ['structure', 'sifts'],
     resolve: (id, resource) => {
       const pdb = id.toLowerCase();
       if (!/^[0-9][a-z0-9]{3}$/.test(pdb)) return null;
-      return resource === "sifts"
-        ? { uri: `https://www.ebi.ac.uk/pdbe/entry-files/download/${pdb}_updated.cif`, format: "mmcif" }
-        : { uri: `https://www.ebi.ac.uk/pdbe/entry-files/download/${pdb}.bcif`, format: "bcif" };
+      return resource === 'sifts'
+        ? { uri: `https://www.ebi.ac.uk/pdbe/entry-files/download/${pdb}_updated.cif`, format: 'mmcif' }
+        : { uri: `https://www.ebi.ac.uk/pdbe/entry-files/download/${pdb}.bcif`, format: 'bcif' };
     },
   },
   {
-    name: "afdb",
-    resources: ["structure", "pae"],
+    name: 'afdb',
+    resources: ['structure', 'pae'],
     resolve: (id, resource) => {
       if (!/^AF-[A-Z0-9-]+-F\d+(-model_v\d+)?$/.test(id)) return null;
-      const file = id.includes("-model_v") ? id : `${id}-model_v6`;
-      if (resource === "pae")
+      const file = id.includes('-model_v') ? id : `${id}-model_v6`;
+      if (resource === 'pae')
         return {
-          uri: `https://alphafold.ebi.ac.uk/files/${file.replace("-model_", "-predicted_aligned_error_")}.json`,
-          format: "afdb_pae",
+          uri: `https://alphafold.ebi.ac.uk/files/${file.replace('-model_', '-predicted_aligned_error_')}.json`,
+          format: 'afdb_pae',
         };
-      return { uri: `https://alphafold.ebi.ac.uk/files/${file}.bcif`, format: "bcif" };
+      return { uri: `https://alphafold.ebi.ac.uk/files/${file}.bcif`, format: 'bcif' };
     },
   },
 ];
@@ -100,7 +100,7 @@ export const MolstarSvsEntry: SvsRegistryEntry = {
   complexProviders: [StructureProvider],
   providers: [PlddtProvider, PaeProvider, SiftsCoverageProvider, SiftsDepthProvider],
   issueCodes: [
-    { code: "molstar.unit_name.collision", severity: "error" },
-    { code: "molstar.ins_code.invalid", severity: "warning" },
+    { code: 'molstar.unit_name.collision', severity: 'error' },
+    { code: 'molstar.ins_code.invalid', severity: 'warning' },
   ],
 };

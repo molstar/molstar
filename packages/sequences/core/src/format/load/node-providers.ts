@@ -20,11 +20,11 @@ import {
   midpointRoot,
   neighborJoining,
   upgma,
-} from "@molstar/seq-core/algorithms";
-import type { AlignmentInput, MappingInput, TreeInput } from "@molstar/seq-core/model";
-import type { AlignerInput } from "../contract.js";
-import { canonical } from "../patch/tree-patch.js";
-import type { NodeProviderEntry } from "../registry.js";
+} from '@molstar/seq-core/algorithms';
+import type { AlignmentInput, MappingInput, TreeInput } from '@molstar/seq-core/model';
+import type { AlignerInput } from '../contract.js';
+import { canonical } from '../patch/tree-patch.js';
+import type { NodeProviderEntry } from '../registry.js';
 import {
   type FieldType,
   int,
@@ -34,9 +34,9 @@ import {
   str,
   tuple,
   typeError,
-} from "../schema/field-schema.js";
-import { OptionalField, object, SimpleParamsSchema } from "../schema/params-schema.js";
-import { report } from "./issues.js";
+} from '../schema/field-schema.js';
+import { OptionalField, object, SimpleParamsSchema } from '../schema/params-schema.js';
+import { report } from './issues.js';
 
 /** Results kept: a small LRU of the latest (a tree of at most `2 * MAX_TREE_ROWS` nodes, a realigned family). */
 const KEPT = 16;
@@ -66,7 +66,7 @@ export function contentKey(name: string, options: unknown, texts: readonly strin
     hashInto(h, `${t.length}:`);
     hashInto(h, t);
   }
-  hashInto(h, "\0");
+  hashInto(h, '\0');
   for (const t of more) {
     hashInto(h, `${t.length}:`);
     hashInto(h, t);
@@ -114,9 +114,9 @@ export function clearNodeProviderCache() {
 
 /** The alignment's columns as codes, row-major, 0 where a row has no letter: upper case, `-` and `.` are gaps, an A3M's lower case is out. */
 export function alignmentCodes(a: AlignmentInput): { codes: Uint8Array; rows: number; columns: number } {
-  const a3m = a.flavor === "a3m";
+  const a3m = a.flavor === 'a3m';
   const rows = a.gapped.length;
-  const strip = (s: string) => (a3m ? s.replace(/[a-z.]/g, "") : s);
+  const strip = (s: string) => (a3m ? s.replace(/[a-z.]/g, '') : s);
   const text = a.gapped.map(strip);
   const columns = text.reduce((m, s) => Math.max(m, s.length), 0);
   const codes = new Uint8Array(rows * columns);
@@ -144,14 +144,14 @@ export function treeInput(t: GuideTree, labels: readonly string[] | undefined): 
 }
 
 /** The one distance: `identity` was the same number, and says so. */
-const distance: FieldType<"p"> = {
+const distance: FieldType<'p'> = {
   name: '"p"',
   check(v, path, ctx) {
-    if (v === "p") return;
-    if (v === "identity")
+    if (v === 'p') return;
+    if (v === 'identity')
       reportField(
         ctx,
-        "svs.params.type",
+        'svs.params.type',
         path,
         '"identity" is the same distance as "p": write "p" (mismatches over the columns where both rows have a letter)',
       );
@@ -161,8 +161,8 @@ const distance: FieldType<"p"> = {
 const treeOptions = SimpleParamsSchema({
   distance: OptionalField(
     distance,
-    "p",
-    "p: mismatches over the columns where both rows have a letter, as a share of them",
+    'p',
+    'p: mismatches over the columns where both rows have a letter, as a share of them',
   ),
 });
 
@@ -172,7 +172,7 @@ function treeProvider(
 ): NodeProviderEntry {
   return {
     name,
-    kind: "tree",
+    kind: 'tree',
     options: treeOptions,
     async compute(_ctx, inputs, opts, signal) {
       const a = inputs[0] as AlignmentInput;
@@ -196,34 +196,34 @@ export interface AlignmentSummary {
 
 const decoder = new TextDecoder();
 const realignOptions = SimpleParamsSchema({
-  aligner: OptionalField(str, "biomsa", "a registered aligner that aligns many sequences (biomsa)"),
+  aligner: OptionalField(str, 'biomsa', 'a registered aligner that aligns many sequences (biomsa)'),
   aligner_options: OptionalField(object(), {}, "the aligner's params, checked by its table; {}: its defaults"),
 });
 
 const realign: NodeProviderEntry = {
-  name: "realign",
-  kind: "alignment",
+  name: 'realign',
+  kind: 'alignment',
   options: realignOptions,
   async compute(ctx, inputs, opts, signal) {
     const o = opts as { aligner: string; aligner_options: Record<string, unknown> };
     const ins = inputs as readonly RealignInput[];
-    const entry = ctx.registries.get("aligners", o.aligner);
+    const entry = ctx.registries.get('aligners', o.aligner);
     if (!entry) {
-      report(ctx, "svs.provider.unavailable", "", `aligner "${o.aligner}" is not registered`);
+      report(ctx, 'svs.provider.unavailable', '', `aligner "${o.aligner}" is not registered`);
       return null;
     }
     if (!entry.alignMany) {
       report(
         ctx,
-        "svs.provider.unavailable",
-        "",
+        'svs.provider.unavailable',
+        '',
         `aligner "${o.aligner}" aligns two sequences only: realign needs one that aligns many (biomsa)`,
       );
       return null;
     }
     const texts = ins.map((m) => decoder.decode(m.code));
     const labels = ins.map((m) => m.label ?? String(m.key));
-    const key = contentKey(`realign#${entryId(entry)}`, o, texts, [...labels, ...ins.map((m) => m.alphabet ?? "")]);
+    const key = contentKey(`realign#${entryId(entry)}`, o, texts, [...labels, ...ins.map((m) => m.alphabet ?? '')]);
     return cached<AlignmentInput>(key, async () => {
       let rows: string[] | null;
       try {
@@ -231,16 +231,16 @@ const realign: NodeProviderEntry = {
       } catch (e) {
         signal.throwIfAborted();
         if (!(e instanceof AlignerOptionsError)) throw e;
-        report(ctx, "svs.params.type", "/params/options/aligner_options", e.message);
+        report(ctx, 'svs.params.type', '/params/options/aligner_options', e.message);
         return null;
       }
       if (rows == null) return null;
       const alphabets = new Set(ins.map((m) => m.alphabet));
       const [alphabet] = alphabets;
       return {
-        key: "",
+        key: '',
         gapped: rows,
-        flavor: "aligned",
+        flavor: 'aligned',
         labels,
         ...(alphabets.size === 1 && alphabet ? { alphabet } : {}),
       };
@@ -250,11 +250,11 @@ const realign: NodeProviderEntry = {
 
 const rowPairs = nullable(list(tuple(int, int)));
 const codonRows: NodeProviderEntry = {
-  name: "codon_rows",
-  kind: "mapping",
+  name: 'codon_rows',
+  kind: 'mapping',
   options: SimpleParamsSchema({
-    rows: OptionalField(rowPairs, null, "[protein row, cDNA row] pairs; null: row k with row k"),
-    genetic_code: OptionalField(int, 1, "an NCBI genetic code id (gc.prt; 1 the standard code)"),
+    rows: OptionalField(rowPairs, null, '[protein row, cDNA row] pairs; null: row k with row k'),
+    genetic_code: OptionalField(int, 1, 'an NCBI genetic code id (gc.prt; 1 the standard code)'),
   }),
   async compute(ctx, inputs, opts) {
     const [protein, cdna] = inputs as readonly [AlignmentSummary, AlignmentSummary];
@@ -264,8 +264,8 @@ const codonRows: NodeProviderEntry = {
       if (protein.rowCount !== cdna.rowCount) {
         report(
           ctx,
-          "svs.mapping.codon",
-          "/params/options/rows",
+          'svs.mapping.codon',
+          '/params/options/rows',
           `"${protein.key}" has ${protein.rowCount} rows and "${cdna.key}" ${cdna.rowCount}: give rows, the [protein row, cDNA row] pairs`,
         );
         return null;
@@ -276,8 +276,8 @@ const codonRows: NodeProviderEntry = {
     if (bad) {
       report(
         ctx,
-        "svs.mapping.codon",
-        "/params/options/rows",
+        'svs.mapping.codon',
+        '/params/options/rows',
         `the pair [${bad}] names a row that does not exist: "${protein.key}" has rows 0 to ${protein.rowCount - 1}, "${cdna.key}" 0 to ${cdna.rowCount - 1}`,
       );
       return null;
@@ -288,7 +288,7 @@ const codonRows: NodeProviderEntry = {
         key: `row-${p}`,
         from: `${protein.key}/${p}`,
         to: `${cdna.key}/${c}`,
-        method: "codon",
+        method: 'codon',
         geneticCode: o.genetic_code,
       }),
     );
@@ -296,8 +296,8 @@ const codonRows: NodeProviderEntry = {
 };
 
 export const KernelNodeProviders: readonly NodeProviderEntry[] = [
-  treeProvider("nj", async (d, n, signal) => midpointRoot(await neighborJoining(d, n, signal))),
-  treeProvider("upgma", upgma),
+  treeProvider('nj', async (d, n, signal) => midpointRoot(await neighborJoining(d, n, signal))),
+  treeProvider('upgma', upgma),
   realign,
   codonRows,
 ];

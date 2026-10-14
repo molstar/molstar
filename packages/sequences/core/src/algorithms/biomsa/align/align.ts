@@ -11,11 +11,11 @@
  * https://doi.org/10.1186/1471-2105-5-113
  */
 
-import type { TAlignmentParam } from "./params.js";
-import type { TSequence } from "../sequence/sequence.js";
-import type { InternalNode, LeafNode } from "../sequence/tree.js";
-import { epath2estring } from "../utils/estring.js";
-import { checkCells } from "../../limits.js";
+import type { TAlignmentParam } from './params.js';
+import type { TSequence } from '../sequence/sequence.js';
+import type { InternalNode, LeafNode } from '../sequence/tree.js';
+import { epath2estring } from '../utils/estring.js';
+import { checkCells } from '../../limits.js';
 
 /**
  * Trace back matrix transitions values
@@ -53,7 +53,7 @@ export function pairwiseAlignment(seqA: TSequence, seqB: TSequence, params: TAli
   const lSeqALen = sA.length;
   const lSeqBLen = sB.length;
   // STORIES-UNTOLD(B10): refuse, before allocating the traceback, a pair whose full DP passes MAX_CELLS.
-  checkCells("biomsa", lSeqALen, lSeqBLen);
+  checkCells('biomsa', lSeqALen, lSeqBLen);
   let lMatch = 0, // match score
     // Textbook approach considers 3 n x m matrices for holding
     // the match / delete / insert values computed. These could be
@@ -231,7 +231,7 @@ export function MSASeqAlignment(nodeA: InternalNode, nodeB: LeafNode, params: TA
     lSeqBLen = seqB.rawSeq.length,
     lProfALen = nodeA.profile.length;
   // STORIES-UNTOLD(B16): refuse, before allocating the traceback, a profile and a sequence whose DP passes MAX_CELLS.
-  checkCells("biomsa", lProfALen, lSeqBLen);
+  checkCells('biomsa', lProfALen, lSeqBLen);
 
   let lMatch = 0.0, // match score
     lMatchArr: number[] = [],
@@ -398,7 +398,7 @@ export function MSASeqAlignment(nodeA: InternalNode, nodeB: LeafNode, params: TA
 
 export function MSAMSAAlignment(nodeA: InternalNode, nodeB: InternalNode, params: TAlignmentParam, opt = 0) {
   // STORIES-UNTOLD(B16): refuse, before allocating the traceback, two profiles whose DP passes MAX_CELLS.
-  checkCells("biomsa", nodeA.profile.length, nodeB.profile.length);
+  checkCells('biomsa', nodeA.profile.length, nodeB.profile.length);
   const lProfALen = nodeA.profile.length,
     lProfBLen = nodeB.profile.length,
     tbM = new Uint8Array(Math.ceil(((lProfALen + 1) * (lProfBLen + 1)) / 2) + 1);

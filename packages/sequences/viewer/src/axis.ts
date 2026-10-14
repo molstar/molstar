@@ -13,15 +13,15 @@
 // same per-block segment table, built once from `blocks.layout` and the filter's `positions`. `AxisView` is the axis
 // under the current viewport, one per section, which hits and draws share.
 
-import { Arrangement, LigandForm, type ResolvedView } from "@molstar/seq-core/format";
-import { type Brand, OrderedSet, type SeqSet, type SortedArray } from "@molstar/seq-core/model";
-import type { RowModel } from "./layout.js";
-import { type PreparedRun, runXInto } from "./runs.js";
-import type { StreamView } from "./streams.js";
-import type { ViewportState } from "./viewport.js";
+import { Arrangement, LigandForm, type ResolvedView } from '@molstar/seq-core/format';
+import { type Brand, OrderedSet, type SeqSet, type SortedArray } from '@molstar/seq-core/model';
+import type { RowModel } from './layout.js';
+import { type PreparedRun, runXInto } from './runs.js';
+import type { StreamView } from './streams.js';
+import type { ViewportState } from './viewport.js';
 
 /** An index in a section's layout coordinate system: a block's shown position, from 0. */
-export type ShownIndex = Brand<number, "shown">;
+export type ShownIndex = Brand<number, 'shown'>;
 
 export const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 export const sameList = <T>(a: readonly T[], b: readonly T[]) => a.length === b.length && a.every((x, i) => x === b[i]);
@@ -156,7 +156,7 @@ export class Axis {
       names.push(a ? set.strings.get(a.key) : key(this.unit[b]));
       const m = this.members[b];
       const piece = `${bv.start[b0 + b]}|${bv.stop[b0 + b]}|${this.dir[b]}`;
-      keys.push(`${names[b]}|${m ? Array.from(m, key) : ""}|${piece}|${this.span[b]}`);
+      keys.push(`${names[b]}|${m ? Array.from(m, key) : ''}|${piece}|${this.span[b]}`);
     }
     this.breaks = Int32Array.from(breaks);
     this.cells = cells;
@@ -167,12 +167,12 @@ export class Axis {
     // The section's tracks of residues (`letters`, `rows`), once: a template's thousand instances are not squared.
     const residues: number[] = [];
     for (let j = 0; j < L.count; j++) {
-      const type = L.type[j] >= 0 ? set.strings.get(L.type[j]) : "";
-      if (view.tracks.section[L.track[j]] === s && (type === "letters" || type === "rows")) residues.push(L.track[j]);
+      const type = L.type[j] >= 0 ? set.strings.get(L.type[j]) : '';
+      if (view.tracks.section[L.track[j]] === s && (type === 'letters' || type === 'rows')) residues.push(L.track[j]);
       // Layers of a track are consecutive: after a letters layer, its track's later layers are lettered.
       if (j > 0 && L.track[j - 1] === L.track[j])
         this.lettered[j] =
-          this.lettered[j - 1] === 1 || (L.type[j - 1] >= 0 && set.strings.get(L.type[j - 1]) === "letters") ? 1 : 0;
+          this.lettered[j - 1] === 1 || (L.type[j - 1] >= 0 && set.strings.get(L.type[j - 1]) === 'letters') ? 1 : 0;
     }
     for (let k = 0; k < L.count; k++) {
       const t = L.track[k];
@@ -227,7 +227,7 @@ export class Axis {
           into(t, end) === (end === this.sDir[t] > 0 ? this.sI0[t] + this.sLen[t] - 1 : this.sI0[t]);
         if (!reach(s - 1, true) || !reach(s, false)) breaks.push(k0);
       }
-      for (let r = lb + 1; p !== null && typeof p !== "number" && r < ub; r++) {
+      for (let r = lb + 1; p !== null && typeof p !== 'number' && r < ub; r++) {
         if (p[r] !== p[r - 1] + 1) breaks.push(k0 + (m.dir[g] > 0 ? r - lb : ub - r));
       }
       k0 += this.sN[s];

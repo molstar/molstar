@@ -13,7 +13,7 @@
 // each hit finds where it starts. Everything is allocated by the constructor: a search allocates nothing, hits
 // included.
 
-import { checkWindow, type HitVisitor, type Matcher, readEnd } from "./matchers.js";
+import { checkWindow, type HitVisitor, type Matcher, readEnd } from './matchers.js';
 
 /**
  * One text column of Myers' algorithm over the blocks of a pattern: updates the vertical deltas `P` (+1) and `M` (-1)
@@ -79,7 +79,7 @@ function matchBits(pattern: Uint8Array, equal: Uint8Array | undefined, blocks: n
  *   deletion (`RHSWV` in `RHSVVV`: `RHSVV` or `RHSV`).
  * - `"all"`: every end whose cost is at most `maxEdits` (an edit at a site makes several neighboring ends hits).
  */
-export type ApproximateEnds = "local_best_last" | "local_best_first" | "all";
+export type ApproximateEnds = 'local_best_last' | 'local_best_first' | 'all';
 
 export interface ApproximateOptions {
   /** Pairs of codes `[a0, b0, a1, b1, …]` that also match, both ways, besides equal codes (N against every nucleotide). */
@@ -106,7 +106,7 @@ class ApproximateMatcher implements Matcher {
   constructor(pattern: Uint8Array, maxEdits: number, options: ApproximateOptions | undefined) {
     const m = pattern.length;
     const equal = options?.equal;
-    const ends = options?.ends ?? "local_best_last";
+    const ends = options?.ends ?? 'local_best_last';
     if (!Number.isInteger(maxEdits) || maxEdits < 0) {
       throw new RangeError(`approximateMatcher: maxEdits must be an integer of at least 0; got ${maxEdits}`);
     }
@@ -116,16 +116,16 @@ class ApproximateMatcher implements Matcher {
       );
     }
     if (equal && equal.length % 2 !== 0)
-      throw new RangeError("approximateMatcher: equal is pairs of codes, an even count");
-    if (ends !== "local_best_last" && ends !== "local_best_first" && ends !== "all") {
+      throw new RangeError('approximateMatcher: equal is pairs of codes, an even count');
+    if (ends !== 'local_best_last' && ends !== 'local_best_first' && ends !== 'all') {
       throw new RangeError(
         `approximateMatcher: ends is "local_best_last", "local_best_first" or "all"; got ${String(ends)}`,
       );
     }
     this.m = m;
     this.k = maxEdits;
-    this.all = ends === "all";
-    this.last = ends === "local_best_last";
+    this.all = ends === 'all';
+    this.last = ends === 'local_best_last';
     this.length = m === 0 ? 0 : m + maxEdits;
     this.blocks = (m + 31) >>> 5;
     this.lastBit = m === 0 ? 0 : 1 << ((m - 1) & 31);

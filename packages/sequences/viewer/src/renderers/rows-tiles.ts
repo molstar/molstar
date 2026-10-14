@@ -17,7 +17,7 @@
 // made on a miss (edge rate: `builds` counts them) and kept per (level, tile) in an LRU of slots, all dropped when the
 // theme or the backend's images change; a frame whose images are made allocates nothing.
 
-import { TILE } from "@molstar/seq-core/format";
+import { TILE } from '@molstar/seq-core/format';
 import {
   type Axis,
   type BackendImages,
@@ -29,7 +29,7 @@ import {
   rowAt,
   type Theme,
   ThemeLocation,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 /** Levels per axis (the region cache's); the overview's images (`ov`) are a set of levels of their own. */
 const L = 16;

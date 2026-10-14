@@ -10,8 +10,8 @@
 // Storybook's toolbar (the host sets `data-msp-theme` on the document, as Mol*'s Storybook does), and the canvas the
 // viewer draws on, whose color and theme may differ from the UI's (Prism's canvas layer: `ShellView`'s `canvasColor`).
 
-import type { CSSProperties, ReactNode } from "react";
-import p from "./seqstar-prism.module.css";
+import type { CSSProperties, ReactNode } from 'react';
+import p from './seqstar-prism.module.css';
 
 /** A story page: its title, what it shows, then its blocks. Carries `.msp-root` (Prism's reset). */
 export function PrismPage({
@@ -35,7 +35,7 @@ export function PrismPage({
 }
 
 /** Prism's themes; a canvas takes `light` or `dark` by its color. */
-export type PrismTheme = "light" | "dark" | "blue";
+export type PrismTheme = 'light' | 'dark' | 'blue';
 
 /** The relative luminance (WCAG, 0..1) of `#rrggbb` (Prism's model/canvas-theme.ts). */
 function luminance(hex: string): number {
@@ -48,12 +48,12 @@ function luminance(hex: string): number {
 }
 
 /** The chrome's theme over a canvas of this color: dark (light text) below 0.179, where both texts contrast equally. */
-export function canvasThemeOf(hex: string): "light" | "dark" {
-  return luminance(hex) < 0.179 ? "dark" : "light";
+export function canvasThemeOf(hex: string): 'light' | 'dark' {
+  return luminance(hex) < 0.179 ? 'dark' : 'light';
 }
 
 /** Canvas colors a story offers: the UI theme's base (none), or one of its own as Mol*'s canvas background is. */
-export const CANVAS_COLORS = { "UI theme": null, white: "#ffffff", black: "#000000", slate: "#1f2733" } as const;
+export const CANVAS_COLORS = { 'UI theme': null, white: '#ffffff', black: '#000000', slate: '#1f2733' } as const;
 export type CanvasColor = keyof typeof CANVAS_COLORS;
 
 /**
@@ -65,7 +65,7 @@ export type CanvasColor = keyof typeof CANVAS_COLORS;
  */
 export function PrismCanvas({ color, theme, children }: { color?: string; theme?: PrismTheme; children: ReactNode }) {
   const t = color ? canvasThemeOf(color) : theme;
-  const style = color ? ({ "--msp-color-bg": color } as CSSProperties) : undefined;
+  const style = color ? ({ '--msp-color-bg': color } as CSSProperties) : undefined;
   return (
     <div className={p.canvas} data-msp-theme={t} data-msp-box="" style={style}>
       {children}

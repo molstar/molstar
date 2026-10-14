@@ -9,9 +9,9 @@
 // The load stages' contract types (seqspec:sources#the-loader): the host's loaders, format requests and results, the
 // stage context. Additions to the spec's shapes are marked: `FormatRequest.want` and `.geometry`, and `AlignerInput`.
 
-import type { AlignmentInput, Issue, Molecule, MoleculeInput, ParsedTree, SeqSet } from "@molstar/seq-core/model";
-import type { Geometry } from "./doc.js";
-import type { SvsRegistries } from "./registry.js";
+import type { AlignmentInput, Issue, Molecule, MoleculeInput, ParsedTree, SeqSet } from '@molstar/seq-core/model';
+import type { Geometry } from './doc.js';
+import type { SvsRegistries } from './registry.js';
 
 /** One file the host loads: a URI or a host file; `maxBytes` its bound. */
 export interface LoadRequest {
@@ -44,7 +44,7 @@ export interface Loaders {
 }
 
 // The stream contract (seqspec:sources#dynamic-nodes): wire shapes, in the format's names.
-export type StreamDataKind = "letters" | "items" | "values" | "alignment";
+export type StreamDataKind = 'letters' | 'items' | 'values' | 'alignment';
 export interface StreamSource {
   /** The source node's ref, or a nested source's derived ref. */
   readonly ref: string;
@@ -61,7 +61,7 @@ export interface StreamSource {
 export class StreamNotServed extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "StreamNotServed";
+    this.name = 'StreamNotServed';
   }
 }
 export interface StreamRequest {
@@ -76,7 +76,7 @@ export interface StreamRequest {
   /** Into the manifest's `levels`; -1: the data itself. */
   level: number;
   labels: boolean;
-  priority: "view" | "margin" | "prefetch";
+  priority: 'view' | 'margin' | 'prefetch';
   /**
    * A data request's bound on what a provider reads for it (ST4b, the zoom gate by size): past it, as past its own
    * item bound, it answers with a level's bins, estimated where it can without reading the data. Absent or null: none.
@@ -93,13 +93,13 @@ export interface Manifest {
   vocabulary?: Record<string, string[]>;
   rows?: number;
   columns?: number;
-  alphabet?: "protein" | "dna" | "rna" | "generic" | null;
+  alphabet?: 'protein' | 'dna' | 'rna' | 'generic' | null;
   inserts?: [number, number][];
   labels?: boolean;
   nodes?: StreamNode[];
 }
 export interface StreamNode {
-  kind: "sequence" | "ligand" | "unit" | "mapping" | "annotation" | "source";
+  kind: 'sequence' | 'ligand' | 'unit' | 'mapping' | 'annotation' | 'source';
   key: string;
   params: Record<string, unknown>;
 }
@@ -115,11 +115,11 @@ export type DataPatch = {
   level: number;
   nodes?: StreamNode[];
 } & (
-  | { kind: "manifest"; manifest: Manifest }
-  | { kind: "items"; items: StreamTable }
-  | { kind: "bins"; bins: StreamTable; estimate?: boolean } // `estimate`: from an index, not counted (ST4b)
-  | { kind: "letters"; letters: string }
-  | { kind: "rows"; labels: string[]; rows: string[] | null }
+  | { kind: 'manifest'; manifest: Manifest }
+  | { kind: 'items'; items: StreamTable }
+  | { kind: 'bins'; bins: StreamTable; estimate?: boolean } // `estimate`: from an index, not counted (ST4b)
+  | { kind: 'letters'; letters: string }
+  | { kind: 'rows'; labels: string[]; rows: string[] | null }
 );
 export interface StreamProvider {
   /** Every request, the manifest first. Rejects with `StreamNotServed`, any other error (a failure), or the signal's reason. */
@@ -138,24 +138,24 @@ export interface FormatRequest {
   categoryName: string | null;
   blockHeader: string | null;
   blockIndex: number;
-  flavor: "aligned" | "a3m";
+  flavor: 'aligned' | 'a3m';
   /** Added: what the reader wants (FASTA is molecules for a sequence, an alignment for an alignment); null: the format's first. */
-  want: FormatResult["kind"] | null;
+  want: FormatResult['kind'] | null;
   /** Added: the reading annotation's geometry (a Stockholm `SS_cons` read as pairs gives base pairs). */
   geometry: Geometry | null;
 }
 
 export type FormatResult =
-  | { kind: "molecules"; molecules: MoleculeInput[] }
-  | { kind: "alignments"; alignments: AlignmentInput[] }
-  | { kind: "tree"; tree: ParsedTree }
+  | { kind: 'molecules'; molecules: MoleculeInput[] }
+  | { kind: 'alignments'; alignments: AlignmentInput[] }
+  | { kind: 'tree'; tree: ParsedTree }
   /**
    * `text`: the cells are strings (TSV, CSV), typed after `fields` by their column's role
    * (seqspec:format#annotation-tables).
    */
-  | { kind: "table"; columns: Record<string, ArrayLike<unknown>>; length: number; text?: boolean }
+  | { kind: 'table'; columns: Record<string, ArrayLike<unknown>>; length: number; text?: boolean }
   /** An extension format's parsed source (a structure), for its complex and annotation providers. */
-  | { kind: "object"; value: unknown };
+  | { kind: 'object'; value: unknown };
 
 export interface StageContext {
   readonly signal: AbortSignal;
@@ -175,21 +175,21 @@ export interface StageContext {
 export type SourceResult =
   /** The default request's parse (null: unreadable, reported) and a parse per request, each once, kept here. */
   | {
-      readonly kind: "loaded";
+      readonly kind: 'loaded';
       /** The registered format that reads it. */
       readonly format: string;
       readonly parsed: FormatResult | null;
       read(request: FormatRequest, ctx: StageContext): Promise<FormatResult | null>;
     }
   /** A streamed source: its manifest fetched, its data by region through its provider. */
-  | ({ readonly kind: "streamed" } & Streamed)
+  | ({ readonly kind: 'streamed' } & Streamed)
   /** The bytes could not be loaded (reported): its readers get nothing. */
-  | { readonly kind: "failed" }
+  | { readonly kind: 'failed' }
   /** No package reads it: a format, service or protocol not registered or served (`svs.provider.unavailable`). */
-  | { readonly kind: "unavailable" };
+  | { readonly kind: 'unavailable' };
 
 /** What an aligner reads of a molecule; an alignment row's own residues are aligned too (as a polymer). */
-export type AlignerInput = Pick<Molecule, "key" | "kind" | "alphabet" | "length" | "code">;
+export type AlignerInput = Pick<Molecule, 'key' | 'kind' | 'alphabet' | 'length' | 'code'>;
 
 export const emptyRequest = (over: Partial<FormatRequest> = {}): FormatRequest => ({
   record: null,
@@ -197,7 +197,7 @@ export const emptyRequest = (over: Partial<FormatRequest> = {}): FormatRequest =
   categoryName: null,
   blockHeader: null,
   blockIndex: 0,
-  flavor: "aligned",
+  flavor: 'aligned',
   want: null,
   geometry: null,
   ...over,

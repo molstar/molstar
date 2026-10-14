@@ -10,25 +10,25 @@
 // kept under a key (a pan or a zoom builds none, a width change builds another), the view's window washed and outlined
 // over it; the navigator's map image through the same host, none on the ruler.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { Miniature } from "../src/draw/miniature.js";
-import { drawNavigator, NavView } from "../src/draw/nav.js";
-import { DefaultNavigators, KernelRenderers, type LayerRenderer } from "../src/index.js";
-import { LayerFrame, Op, RecordingBackend } from "../src/testing/index.js";
-import { miniatureDoc } from "./conformance-fixtures.js";
-import { layerOf } from "./draw-fixtures.js";
-import { opened } from "./layout-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { Miniature } from '../src/draw/miniature.js';
+import { drawNavigator, NavView } from '../src/draw/nav.js';
+import { DefaultNavigators, KernelRenderers, type LayerRenderer } from '../src/index.js';
+import { LayerFrame, Op, RecordingBackend } from '../src/testing/index.js';
+import { miniatureDoc } from './conformance-fixtures.js';
+import { layerOf } from './draw-fixtures.js';
+import { opened } from './layout-fixtures.js';
 
 const open = (d = miniatureDoc()) => opened(d, { renderers: [...KernelRenderers] as LayerRenderer[] });
 const layers = (r: RecordingBackend) =>
   r.images.content.filter((c): c is RecordingBackend => c instanceof RecordingBackend);
 
-describe("the seqv:map miniature", () => {
-  it("is built once across pans and zooms, again on a width change; its window is outlined", async () => {
+describe('the seqv:map miniature', () => {
+  it('is built once across pans and zooms, again on a width change; its window is outlined', async () => {
     const t = await open();
-    const { k, section } = layerOf(t.ctx, "Map");
-    const f = new LayerFrame(t.ctx, t.ctx.registry.get("renderers", "seqv:map") as LayerRenderer, section, k);
+    const { k, section } = layerOf(t.ctx, 'Map');
+    const f = new LayerFrame(t.ctx, t.ctx.registry.get('renderers', 'seqv:map') as LayerRenderer, section, k);
     const vp = t.ctx.viewports.get(section);
     f.draw(f.direct);
     expect(layers(f.direct)).toHaveLength(1);
@@ -38,8 +38,8 @@ describe("the seqv:map miniature", () => {
     expect(Array.from(f.direct.rectItems.stroke.subarray(0, f.direct.rectItems.n)).some((s) => s > 0)).toBe(true);
     expect(f.direct.count(Op.image)).toBe(1);
     for (const cell of [8, 4, 12]) {
-      vp?.setView(cell, 0, "api");
-      vp?.panBy(40, 0, "api");
+      vp?.setView(cell, 0, 'api');
+      vp?.panBy(40, 0, 'api');
       await t.ctx.graph.update();
       f.draw(f.direct);
     }
@@ -51,12 +51,12 @@ describe("the seqv:map miniature", () => {
     expect(f.direct.images.w.length).toBe(2);
   });
 
-  it("draws the tracks it names, else every track whose renderer is in miniatures", async () => {
+  it('draws the tracks it names, else every track whose renderer is in miniatures', async () => {
     const all = await open();
-    const only = await open(miniatureDoc(["t.hot"]));
+    const only = await open(miniatureDoc(['t.hot']));
     const sizes = [all, only].map((t) => {
-      const { k, section } = layerOf(t.ctx, "Map");
-      const f = new LayerFrame(t.ctx, t.ctx.registry.get("renderers", "seqv:map") as LayerRenderer, section, k);
+      const { k, section } = layerOf(t.ctx, 'Map');
+      const f = new LayerFrame(t.ctx, t.ctx.registry.get('renderers', 'seqv:map') as LayerRenderer, section, k);
       f.draw(f.direct);
       return layers(f.direct)[0].rectItems.n;
     });
@@ -66,9 +66,9 @@ describe("the seqv:map miniature", () => {
 });
 
 describe("the navigator's map image", () => {
-  it("is the miniature in the band, kept across calls; none on the ruler", async () => {
+  it('is the miniature in the band, kept across calls; none on the ruler', async () => {
     const t = await open();
-    const { section } = layerOf(t.ctx, "Map");
+    const { section } = layerOf(t.ctx, 'Map');
     const av = t.ctx.layout.axis(section);
     const rec = new RecordingBackend();
     const n = new NavView().from(av as never);
@@ -88,20 +88,20 @@ describe("the navigator's map image", () => {
     mini.dispose();
   });
 
-  it("with no track to draw is none, kept under its key: no image built frame after frame", async () => {
+  it('with no track to draw is none, kept under its key: no image built frame after frame', async () => {
     const b = createSeqViewSpec();
-    b.view({ ref: "v", label: "V" })
-      .block({ sequence: b.data.sequence({ ref: "a", value: "MKTAYIAKQR".repeat(20) }) })
-      .track({ label: "L" })
+    b.view({ ref: 'v', label: 'V' })
+      .block({ sequence: b.data.sequence({ ref: 'a', value: 'MKTAYIAKQR'.repeat(20) }) })
+      .track({ label: 'L' })
       .letters();
     const t = await opened(b.getDocument(), { renderers: [...KernelRenderers] as LayerRenderer[] });
-    const av = t.ctx.layout.axis("v.main");
+    const av = t.ctx.layout.axis('v.main');
     const rec = new RecordingBackend();
     const n = new NavView().from(av as never);
     n.backend = rec;
     n.parts = DefaultNavigators[2].parts;
     n.height = 20;
-    const mini = new Miniature(t.ctx, "v.main");
+    const mini = new Miniature(t.ctx, 'v.main');
     for (let i = 0; i < 3; i++) expect(mini.image(n)).toBe(-1);
     expect(rec.images.w.length).toBe(0);
   });

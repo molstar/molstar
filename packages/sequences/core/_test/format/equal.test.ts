@@ -7,9 +7,9 @@
  */
 
 // `equal`: the canonical JSON's equality, compared in place (the equality sweep's one helper).
-import { describe, expect, it } from "vitest";
-import { canonical, equal } from "../../src/format/index.js";
-import { itWithin } from "../model/timing.js";
+import { describe, expect, it } from 'vitest';
+import { canonical, equal } from '../../src/format/index.js';
+import { itWithin } from '../model/timing.js';
 
 /** A seeded generator (mulberry32), so a failure repeats. */
 function random(seed: number) {
@@ -31,7 +31,7 @@ function value(r: () => number, depth: number): unknown {
   const pick = <T>(xs: readonly T[]) => xs[Math.floor(r() * xs.length)] as T;
   if (k === 0) return pick([null, undefined]);
   if (k === 1) return pick(NUMBERS);
-  if (k === 2) return pick(["", "a", "b", "0"]);
+  if (k === 2) return pick(['', 'a', 'b', '0']);
   if (k === 3) return r() < 0.5;
   if (k === 4)
     return new (pick([Float32Array, Float64Array, Int32Array]))(
@@ -40,21 +40,21 @@ function value(r: () => number, depth: number): unknown {
   if (k === 5) return Array.from({ length: Math.floor(r() * 3) }, () => pick(NUMBERS));
   if (k < 8) return Array.from({ length: Math.floor(r() * 3) }, () => value(r, depth + 1));
   const o: Record<string, unknown> = {};
-  for (const key of ["x", "y", "z"]) if (r() < 0.5) o[key] = value(r, depth + 1);
+  for (const key of ['x', 'y', 'z']) if (r() < 0.5) o[key] = value(r, depth + 1);
   return o;
 }
 
 /** The same value rebuilt: other objects, keys in another order, typed arrays as lists of their JSON numbers. */
 function rebuilt(x: unknown, r: () => number): unknown {
-  if (x === null || typeof x !== "object") return x;
+  if (x === null || typeof x !== 'object') return x;
   if (ArrayBuffer.isView(x)) return r() < 0.5 ? x : JSON.parse(canonical(x));
   if (Array.isArray(x)) return x.map((v) => rebuilt(v, r));
   const keys = Object.keys(x).reverse();
   return Object.fromEntries(keys.map((k) => [k, rebuilt((x as Record<string, unknown>)[k], r)]));
 }
 
-describe("equal", () => {
-  it("agrees with canonical text on 20,000 random pairs, equal and not", () => {
+describe('equal', () => {
+  it('agrees with canonical text on 20,000 random pairs, equal and not', () => {
     const r = random(7);
     let same = 0;
     const wrong: string[] = [];
@@ -79,10 +79,10 @@ describe("equal", () => {
     expect(equal({ a: 1, b: [2] }, { b: [2], a: 1 })).toBe(true);
     expect(equal({ a: undefined }, {})).toBe(false);
     expect(equal([1], { 0: 1 })).toBe(false);
-    expect(equal("1", 1)).toBe(false);
+    expect(equal('1', 1)).toBe(false);
   });
 
-  itWithin("compares a 9M-cell grid in place, sharing nothing, in a few tens of ms", (within) => {
+  itWithin('compares a 9M-cell grid in place, sharing nothing, in a few tens of ms', (within) => {
     const a = new Float32Array(3000 * 3000).map((_, i) => i % 97);
     const b = a.slice();
     within(500, () => {

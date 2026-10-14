@@ -15,7 +15,7 @@
 // (45 bytes a frame from the second case on). The positive control: the rows' tiles of held rows allocating an object a
 // frame (`leaking`), through the same warm-up and measurement, are caught.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -27,7 +27,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = FRAME_N;
 const WARM = FRAME_WARM;
@@ -44,40 +44,40 @@ const measure = (frame: (i: number) => void) => {
 };
 const guard = (frame: () => void) => {
   const r = measure(frame);
-  return isFlat(r) ? "" : describeScaling(r, N);
+  return isFlat(r) ? '' : describeScaling(r, N);
 };
 
 describe("RN3's hot paths allocate nothing per frame after warm-up", () => {
   for (const stacked of [false, true])
     for (const labels of [false, true])
-      it(`the navigator, ${stacked ? "stacked in lanes" : "side by side"}, ${labels ? "labels" : "hairline"}`, async () => {
+      it(`the navigator, ${stacked ? 'stacked in lanes' : 'side by side'}, ${labels ? 'labels' : 'hairline'}`, async () => {
         vi.resetModules();
-        const { navigatorFrame } = await import("./rn3-fixtures.js");
-        expect(guard(await navigatorFrame(stacked, labels))).toBe("");
+        const { navigatorFrame } = await import('./rn3-fixtures.js');
+        expect(guard(await navigatorFrame(stacked, labels))).toBe('');
       }, 120_000);
   for (const remote of [false, true])
-    it(`the rows' tiles, ${remote ? "from the region cache" : "held rows"}`, async () => {
+    it(`the rows' tiles, ${remote ? 'from the region cache' : 'held rows'}`, async () => {
       vi.resetModules();
-      const { rowsFrame } = await import("./rn3-fixtures.js");
-      expect(guard(await rowsFrame(remote))).toBe("");
+      const { rowsFrame } = await import('./rn3-fixtures.js');
+      expect(guard(await rowsFrame(remote))).toBe('');
     }, 120_000);
   it("the rows' tiles, held rows, an object allocated a frame (the positive control)", async () => {
     vi.resetModules();
-    const { rowsFrame } = await import("./rn3-fixtures.js");
+    const { rowsFrame } = await import('./rn3-fixtures.js');
     const frame = await rowsFrame(false);
     expect(controlCaught(() => measure(leaking(frame)))).toBe(true);
   }, 120_000);
-  for (const kind of ["single", "dense", "remote"] as const)
+  for (const kind of ['single', 'dense', 'remote'] as const)
     it(`the rows' own draws, ${kind}: cells, gaps, letters, gutters, the tree and the data columns`, async () => {
       vi.resetModules();
-      const { rowsDrawFrame } = await import("./rn3-fixtures.js");
-      expect(guard(await rowsDrawFrame(kind))).toBe("");
+      const { rowsDrawFrame } = await import('./rn3-fixtures.js');
+      expect(guard(await rowsDrawFrame(kind))).toBe('');
     }, 120_000);
   for (const bare of [false, true])
-    it(`a pan's composer frames, ${bare ? "no track in miniature" : "seqv:map and the navigator's map"}: images kept`, async () => {
+    it(`a pan's composer frames, ${bare ? 'no track in miniature' : "seqv:map and the navigator's map"}: images kept`, async () => {
       vi.resetModules();
-      const { mapFrame } = await import("./rn3-fixtures.js");
+      const { mapFrame } = await import('./rn3-fixtures.js');
       const { frame } = await mapFrame(bare);
-      expect(guard(frame)).toBe("");
+      expect(guard(frame)).toBe('');
     }, 120_000);
 });

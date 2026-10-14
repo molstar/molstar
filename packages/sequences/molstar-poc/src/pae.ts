@@ -23,8 +23,8 @@ import {
   ref,
   SimpleParamsSchema,
   type ThemeRef,
-} from "@molstar/seq-core/format";
-import { KeyKind } from "@molstar/seq-core/model";
+} from '@molstar/seq-core/format';
+import { KeyKind } from '@molstar/seq-core/model';
 
 /**
  * A predicted aligned error matrix: `size` tokens, by scored token (row j: token j's error aligned on each token i, at
@@ -32,29 +32,29 @@ import { KeyKind } from "@molstar/seq-core/model";
  * (`seqspec:model#annotations`).
  */
 export interface PaeMatrix {
-  readonly kind: "afdb_pae";
+  readonly kind: 'afdb_pae';
   readonly size: number;
   readonly values: Float32Array;
 }
 export const PaeMatrix = {
-  is: (x: unknown): x is PaeMatrix => (x as PaeMatrix | null)?.kind === "afdb_pae",
+  is: (x: unknown): x is PaeMatrix => (x as PaeMatrix | null)?.kind === 'afdb_pae',
 };
 
 /** AlphaFold DB's PAE plot colors: dark green at 0 Å to white at 30 Å and beyond. */
 export const PaeScale: ThemeRef = {
-  theme: "field_palette",
+  theme: 'field_palette',
   params: {
-    field: "value",
+    field: 'value',
     palette: {
-      kind: "continuous",
-      mode: "absolute",
+      kind: 'continuous',
+      mode: 'absolute',
       colors: [
-        ["#0e5326", 0],
-        ["#3b9a54", 10],
-        ["#a5d8a7", 20],
-        ["#f4fbf2", 30],
+        ['#0e5326', 0],
+        ['#3b9a54', 10],
+        ['#a5d8a7', 20],
+        ['#f4fbf2', 30],
       ],
-      overflow_color: "#f4fbf2",
+      overflow_color: '#f4fbf2',
     },
   },
 };
@@ -62,7 +62,7 @@ export const PaeScale: ThemeRef = {
 /** The matrix of AlphaFold DB's JSON (a list of one object, or the object); a message when it is not one. */
 function readPae(json: unknown): PaeMatrix | string {
   const o = (Array.isArray(json) ? json[0] : json) as Record<string, unknown> | null;
-  if (!o || typeof o !== "object") return "not an object or a list of one";
+  if (!o || typeof o !== 'object') return 'not an object or a list of one';
   const rows = o.predicted_aligned_error;
   if (Array.isArray(rows)) {
     const n = rows.length;
@@ -70,14 +70,14 @@ function readPae(json: unknown): PaeMatrix | string {
     for (let i = 0; i < n; i++) {
       const row = rows[i];
       if (!Array.isArray(row) || row.length !== n) return `row ${i} is not a list of ${n} numbers`;
-      for (let j = 0; j < n; j++) values[j * n + i] = typeof row[j] === "number" ? row[j] : Number.NaN;
+      for (let j = 0; j < n; j++) values[j * n + i] = typeof row[j] === 'number' ? row[j] : Number.NaN;
     }
-    return { kind: "afdb_pae", size: n, values };
+    return { kind: 'afdb_pae', size: n, values };
   }
   // The older form: 1-based residue pairs and their distance, every pair listed.
   const [r1, r2, d] = [o.residue1, o.residue2, o.distance];
   if (!Array.isArray(r1) || !Array.isArray(r2) || !Array.isArray(d) || r1.length !== d.length || r2.length !== d.length)
-    return "no predicted_aligned_error, and no residue1, residue2 and distance lists of one length";
+    return 'no predicted_aligned_error, and no residue1, residue2 and distance lists of one length';
   const n = Math.round(Math.sqrt(d.length));
   if (n * n !== d.length) return `${d.length} distances are not N × N`;
   const values = new Float32Array(n * n).fill(Number.NaN);
@@ -85,15 +85,15 @@ function readPae(json: unknown): PaeMatrix | string {
     const [i, j] = [r1[k], r2[k]];
     if (!Number.isInteger(i) || !Number.isInteger(j) || i < 1 || j < 1 || i > n || j > n)
       return `pair ${k} (residue1 ${i}, residue2 ${j}) is not two residues 1..${n}`;
-    values[(j - 1) * n + (i - 1)] = typeof d[k] === "number" ? d[k] : Number.NaN;
+    values[(j - 1) * n + (i - 1)] = typeof d[k] === 'number' ? d[k] : Number.NaN;
   }
-  return { kind: "afdb_pae", size: n, values };
+  return { kind: 'afdb_pae', size: n, values };
 }
 
 export const PaeFormat: FormatEntry = {
-  name: "afdb_pae",
+  name: 'afdb_pae',
   extensions: [],
-  gives: ["object"],
+  gives: ['object'],
   reads: [],
   read(bytes, _request, ctx) {
     let json: unknown;
@@ -103,30 +103,30 @@ export const PaeFormat: FormatEntry = {
       json = null;
     }
     const m = readPae(json);
-    if (typeof m !== "string") return { kind: "object", value: m };
-    ctx.report(issueOf(ctx.registries, "svs.source.format", "", `AlphaFold DB's PAE: ${m}`));
-    return { kind: "object", value: null };
+    if (typeof m !== 'string') return { kind: 'object', value: m };
+    ctx.report(issueOf(ctx.registries, 'svs.source.format', '', `AlphaFold DB's PAE: ${m}`));
+    return { kind: 'object', value: null };
   },
 };
 
 export const PaeProvider: ProviderEntry = {
-  name: "molstar:pae",
+  name: 'molstar:pae',
   options: SimpleParamsSchema({
-    of: RequiredField(ref("complex"), "the complex of a predicted model: its polymer units, in order, are the tokens"),
-    source: RequiredField(ref("source"), "AlphaFold DB's PAE (service afdb, resource pae)"),
+    of: RequiredField(ref('complex'), 'the complex of a predicted model: its polymer units, in order, are the tokens'),
+    source: RequiredField(ref('source'), "AlphaFold DB's PAE (service afdb, resource pae)"),
   }),
-  geometry: "grid",
+  geometry: 'grid',
   defaultColor: PaeScale,
   async compute(ctx, options) {
     const o = options as { of: string; source: string };
     const parsed = ctx.source(o.source);
-    const m = parsed?.kind === "object" && PaeMatrix.is(parsed.value) ? parsed.value : null;
+    const m = parsed?.kind === 'object' && PaeMatrix.is(parsed.value) ? parsed.value : null;
     const set = ctx.set;
     const t = { kind: 0, id: 0, row: -1 };
     if (!m || !set) return null;
     if (!set.byName(o.of, t) || t.kind !== KeyKind.complex) {
       const message = `"${o.of}" is not a complex: give the predicted model's complex, whose polymer units are the PAE's tokens`;
-      ctx.report(issueOf(ctx.registries, "svs.provider.unavailable", "", message));
+      ctx.report(issueOf(ctx.registries, 'svs.provider.unavailable', '', message));
       return null;
     }
     // The complex's polymer units, each over its range, in the complex's order.
@@ -138,7 +138,7 @@ export const PaeProvider: ProviderEntry = {
     const total = length.reduce((a, b) => a + b, 0);
     if (total !== m.size) {
       const message = `the PAE has ${m.size} tokens, the complex's polymer units ${total} residues`;
-      ctx.report(issueOf(ctx.registries, "svs.source.format", "", message));
+      ctx.report(issueOf(ctx.registries, 'svs.source.format', '', message));
       return null;
     }
     const cols = { target: [] as string[], start: [] as number[], stop: [] as number[], value: [] as Float32Array[] };
@@ -161,6 +161,6 @@ export const PaeProvider: ProviderEntry = {
         b.b_stop.push(start[q] + length[q]);
         cols.value.push(block);
       }
-    return { key: "", geometry: "grid", semanticType: "pae", label: "PAE", columns: { ...cols, ...b } };
+    return { key: '', geometry: 'grid', semanticType: 'pae', label: 'PAE', columns: { ...cols, ...b } };
   },
 };

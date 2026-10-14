@@ -6,14 +6,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { SectionViewport } from "@molstar/seq-viewer";
-import { useLiveVersion, useSeqViewer } from "@molstar/seq-viewer/react";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useMemo } from "react";
-import { codingPair, linkStrands } from "./support/seqstar-docs-views.js";
-import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism.js";
-import { ViewerCard } from "./support/seqstar-viewer.js";
+import type { SectionViewport } from '@molstar/seq-viewer';
+import { useLiveVersion, useSeqViewer } from '@molstar/seq-viewer/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useMemo } from 'react';
+import { codingPair, linkStrands } from './support/seqstar-docs-views.js';
+import f from './support/seqstar-format.module.css';
+import { PrismPage } from './support/seqstar-prism.js';
+import { ViewerCard } from './support/seqstar-viewer.js';
 
 /**
  * Axis links: a section that `follow`s another. When either moves, the
@@ -21,7 +21,7 @@ import { ViewerCard } from "./support/seqstar-viewer.js";
  * them and takes the leader's cell times the route's scale. Hover and selection already crossed the route; following
  * couples the windows.
  */
-const meta = { title: "Seq*/Views and layouts/Axes and strands", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Views and layouts/Axes and strands', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj;
 
@@ -36,7 +36,7 @@ function CenterOf({ vp, unit }: { vp: SectionViewport; unit: string }) {
   useLiveVersion(vp.live);
   const b = vp.centerElement(out);
   const at =
-    b < 0 ? "no center" : `${unit} ${(out[0] + 1).toFixed(2)} at the center, ${out[1].toFixed(2)} px a ${unit}`;
+    b < 0 ? 'no center' : `${unit} ${(out[0] + 1).toFixed(2)} at the center, ${out[1].toFixed(2)} px a ${unit}`;
   return (
     <div className={f.status} data-follow={vp.ref}>
       {vp.ref}: {at} (last moved by {vp.live.current.origin})
@@ -64,7 +64,7 @@ function Cards() {
 }
 
 export const Follow: Story = {
-  name: "Following sections",
+  name: 'Following sections',
   render: () => (
     <PrismPage
       title="Two views following each other: axis links"

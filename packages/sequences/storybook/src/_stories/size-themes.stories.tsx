@@ -6,13 +6,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { type ReactNode, useMemo } from "react";
-import { sashimiDoc, scalesDoc, sizesDoc } from "./support/seqstar-docs-sizes.js";
-import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism.js";
-import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { type ReactNode, useMemo } from 'react';
+import { sashimiDoc, scalesDoc, sizesDoc } from './support/seqstar-docs-sizes.js';
+import f from './support/seqstar-format.module.css';
+import { PrismPage } from './support/seqstar-prism.js';
+import { ViewerCard, type ViewerOptions } from './support/seqstar-viewer.js';
 
 /**
  * Size themes: a layer's size channels (a pair's width, apex height and its ends' radius, a feature's thickness, a
@@ -20,12 +20,12 @@ import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer.js";
  * through a linear, sqrt or log scale into a range, or a string field through a map. Their legends: sample sizes drawn
  * as the channel draws them. The sashimi preset. The legend expanded; the theme is the toolbar's.
  */
-const meta = { title: "Seq*/Themes/Size themes", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Themes/Size themes', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj;
 
 /** The legend (left out by `clean`) brought back and expanded (collapsed by default), so the size samples show. */
-const EXPANDED: ViewerOptions = { legend: "expanded", parts: ["Legend"] };
+const EXPANDED: ViewerOptions = { legend: 'expanded', parts: ['Legend'] };
 /** One viewer, in the toolbar's theme (light, dark, blue). */
 function One({ doc, title }: { doc: SeqViewSpecDoc; title: string }) {
   return <ViewerCard doc={doc} label={title} options={EXPANDED} />;
@@ -44,7 +44,7 @@ function Sizes() {
   return (
     <>
       <One doc={doc} title="Sized by a field" />
-      <ViewerCard doc={doc} label="Sized by a field, the DOM UI" options={{ ...EXPANDED, ui: "DOM" }} />
+      <ViewerCard doc={doc} label="Sized by a field, the DOM UI" options={{ ...EXPANDED, ui: 'DOM' }} />
     </>
   );
 }
@@ -54,7 +54,7 @@ function Scales() {
 }
 
 export const BySize: Story = {
-  name: "Sized by a field",
+  name: 'Sized by a field',
   render: () => (
     <Frame
       title="Size themes: a field sets how large an element is"
@@ -77,14 +77,14 @@ export const BySize: Story = {
 };
 
 export const ByScale: Story = {
-  name: "Linear, sqrt and log scales",
+  name: 'Linear, sqrt and log scales',
   render: () => (
     <Frame
       title="One score, three scales"
       kicker={
         <>
-          The same twelve scores (1 to 100) as a point's radius, 2 to 8 px, through <code>scale</code>:{" "}
-          <code>linear</code> (the large scores dominate), <code>sqrt</code> (area follows the value), and{" "}
+          The same twelve scores (1 to 100) as a point's radius, 2 to 8 px, through <code>scale</code>:{' '}
+          <code>linear</code> (the large scores dominate), <code>sqrt</code> (area follows the value), and{' '}
           <code>log</code> (of one plus the distance from the domain's start: the small scores stay visible).
         </>
       }
@@ -100,15 +100,15 @@ function SashimiCards() {
 }
 
 export const Sashimi: Story = {
-  name: "Sashimi",
+  name: 'Sashimi',
   render: () => (
     <Frame
       title="Sashimi: splice junctions stroked by their read count"
       kicker={
         <>
           <code>b.preset.sashimi(section, junctions)</code> writes a <code>pairs</code> track per strand over a
-          junctions table: rows whose <code>strand</code> is <code>+</code> rise from the line between the tracks,{" "}
-          <code>-</code> hang below it (<code>side</code>, <code>filter</code>), each arc stroked by its{" "}
+          junctions table: rows whose <code>strand</code> is <code>+</code> rise from the line between the tracks,{' '}
+          <code>-</code> hang below it (<code>side</code>, <code>filter</code>), each arc stroked by its{' '}
           <code>count</code> (<code>width: field_scale</code>, 1 to 8 px) and labeled with it under its apex where it
           fits (<code>labels: true</code>). Only generic params: the biology is the preset's. The exon-skipping junction
           (exon 1 to 3, 6 reads) is thin; the legend lists the widths for 2, 22 and 42 reads.

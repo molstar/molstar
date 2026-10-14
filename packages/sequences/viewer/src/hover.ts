@@ -12,7 +12,7 @@
 // touches either. A header's hover carries what it stands for (`header`, header-hover.ts) as the `headerHover` behavior
 // describes it, counted once when it lands; `toLoci` and `size` are getters, resolved when read, cached per version.
 
-import type { Closure } from "@molstar/seq-core/format";
+import type { Closure } from '@molstar/seq-core/format';
 import {
   type AlignedLocation,
   type ColumnLocation,
@@ -23,8 +23,8 @@ import {
   type RowLocation,
   type SeqLocation,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import type { ViewModel } from "./graph.js";
+} from '@molstar/seq-core/model';
+import type { ViewModel } from './graph.js';
 import {
   describeHeader,
   type HeaderHoverParams,
@@ -33,11 +33,11 @@ import {
   headerSet,
   type LociSize,
   lociSize,
-} from "./header-hover.js";
-import { Hit, HitKey, HitRegion, HoverKind } from "./hit.js";
-import { carry, type SeqLociAny } from "./lineage.js";
-import { type Coordinates, isCoordinates, type Projector } from "./projection.js";
-import { live, type SeqState, type WritableLive } from "./state.js";
+} from './header-hover.js';
+import { Hit, HitKey, HitRegion, HoverKind } from './hit.js';
+import { carry, type SeqLociAny } from './lineage.js';
+import { type Coordinates, isCoordinates, type Projector } from './projection.js';
+import { live, type SeqState, type WritableLive } from './state.js';
 
 /** Read once: a member read in a hover-rate path allocates under the test runner's module wrapper. */
 const HEADER = HoverKind.header;
@@ -162,14 +162,14 @@ export class Hover implements HoverManager {
     this.model = model;
     const { seq, row, aligned, column, itemLoc } = Hit.create();
     this.live = live<HoverState>({
-      owner: "",
+      owner: '',
       section: -1,
       region: HitRegion.none,
       kind: HoverKind.none,
       block: -1,
       index: -1,
       system: { kind: -1, id: -1, row: -1 },
-      closure: "containing",
+      closure: 'containing',
       seq,
       row,
       aligned,
@@ -213,7 +213,7 @@ export class Hover implements HoverManager {
     }
   }
 
-  setFromHit(hit: Hit, owner: string, closure: Closure = "containing") {
+  setFromHit(hit: Hit, owner: string, closure: Closure = 'containing') {
     const h = this.live.current;
     if (h.owner === owner && h.external === null && h.closure === closure && this.same(hit)) return;
     h.owner = owner;
@@ -283,7 +283,7 @@ export class Hover implements HoverManager {
 
   setLoci(target: SeqLociAny | Coordinates | null, owner: string, opts: { closure?: Closure } = {}) {
     const h = this.live.current;
-    const closure = opts.closure ?? "element";
+    const closure = opts.closure ?? 'element';
     if (!target) return this.clear(owner);
     if (h.owner === owner && h.external === target && h.closure === closure) return;
     this.reset(owner, target);
@@ -293,7 +293,7 @@ export class Hover implements HoverManager {
 
   clear(owner: string) {
     if (this.live.current.owner !== owner) return;
-    this.reset("", null);
+    this.reset('', null);
     this.live.bump();
   }
 
@@ -394,7 +394,7 @@ export class Hover implements HoverManager {
     if (ext) p?.fromLoci(ext, e);
     else p?.fromHover(h, e);
     if (!p || e.count === 0) return null;
-    if (h.closure === "containing") p.close(e);
+    if (h.closure === 'containing') p.close(e);
     return p.toSeqLoci(e);
   }
 
@@ -414,7 +414,7 @@ export class Hover implements HoverManager {
     const next = carry(h.external, set);
     if (next === h.external) return;
     if (next) h.external = next;
-    else this.reset("", null);
+    else this.reset('', null);
     this.live.bump();
   }
 
@@ -435,6 +435,6 @@ export class Hover implements HoverManager {
   }
 
   refresh() {
-    if (this.live.current.owner === "pointer") this.live.bump();
+    if (this.live.current.owner === 'pointer') this.live.bump();
   }
 }

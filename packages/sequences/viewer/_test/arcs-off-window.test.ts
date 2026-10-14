@@ -14,28 +14,28 @@
 // second: an apex past the band, a steep line out of it). A pair spanning the window is the widest arc over it;
 // stacked, a partner on another lane is a tick.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { case7 } from "../../core/_test/format/cases.js";
-import { pushArc } from "../src/draw/arcs.js";
-import { PathBatch, PathMode, PathVerb } from "../src/draw/backend.js";
-import type { DrawView } from "../src/draw/view.js";
-import type { PairsState } from "../src/prepare.js";
-import { ARC_MARGIN, ARC_PAST, Arcs } from "../src/renderer-helpers.js";
-import { drawn, layerOf, record } from "./draw-fixtures.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { case7 } from '../../core/_test/format/cases.js';
+import { pushArc } from '../src/draw/arcs.js';
+import { PathBatch, PathMode, PathVerb } from '../src/draw/backend.js';
+import type { DrawView } from '../src/draw/view.js';
+import type { PairsState } from '../src/prepare.js';
+import { ARC_MARGIN, ARC_PAST, Arcs } from '../src/renderer-helpers.js';
+import { drawn, layerOf, record } from './draw-fixtures.js';
 
 /** Case 7's "Complex" view, its section's blocks side by side (or stacked), `block`'s [start, stop) in view. */
 async function zoomed(block: number, start: number, stop: number, doc: SeqViewSpecDoc = case7()) {
   const t = await drawn(doc);
-  t.ctx.views.setCurrent("complex-one");
+  t.ctx.views.setCurrent('complex-one');
   await t.ctx.graph.update();
   for (const ref of t.ctx.viewports.sections.value) t.ctx.viewports.get(ref)?.setSize(1000, 400, 1);
   await t.ctx.graph.update();
-  const { k, section } = layerOf(t.ctx, "Contacts");
+  const { k, section } = layerOf(t.ctx, 'Contacts');
   t.ctx.viewports.get(section)?.zoomTo(block, start, stop);
   await t.ctx.graph.update();
   const s = t.ctx.graph.assembled.value?.view?.prepared[k].state as PairsState;
-  const { rec, frame } = record(t.ctx, "Contacts");
+  const { rec, frame } = record(t.ctx, 'Contacts');
   return { s, rec, v: frame.v };
 }
 
@@ -43,7 +43,7 @@ function stacked(): SeqViewSpecDoc {
   const doc = case7();
   type Node = { kind: string; params?: Record<string, unknown>; children?: Node[] };
   const walk = (n: Node): void => {
-    if (n.kind === "section") n.params = { ...n.params, arrangement: "stacked" };
+    if (n.kind === 'section') n.params = { ...n.params, arrangement: 'stacked' };
     n.children?.forEach(walk);
   };
   walk(doc.root as Node);
@@ -102,7 +102,7 @@ function heightAt(s: PairsState, x: number): number {
  * from the edge; the scale at most the window and both margins). Its count, and how many partners were beyond the
  * margin.
  */
-function checkOffWindow(s: PairsState, v: DrawView, rec: PathBatch, beyond: "left" | "right") {
+function checkOffWindow(s: PairsState, v: DrawView, rec: PathBatch, beyond: 'left' | 'right') {
   const f = s.frame;
   const W = v.right - v.left;
   const M = ARC_MARGIN * W;
@@ -122,7 +122,7 @@ function checkOffWindow(s: PairsState, v: DrawView, rec: PathBatch, beyond: "lef
     if (inA === inB) continue;
     const xin = inA ? xa : xb;
     const xout = inA ? xb : xa;
-    expect(beyond === "left" ? xout < v.left : xout > v.right).toBe(true);
+    expect(beyond === 'left' ? xout < v.left : xout > v.right).toBe(true);
     // One subpath, a quadratic, its coordinates near the view at any zoom, within the band, on the hit's curve.
     expect(any).toBe(true);
     const [p] = subpaths(arcs);
@@ -142,13 +142,13 @@ function checkOffWindow(s: PairsState, v: DrawView, rec: PathBatch, beyond: "lef
     expect(p.coords[first]).toBeCloseTo(xin, 6);
     expect(p.coords[first + 1]).toBeCloseTo(f[0], 6);
     // On the parabola over the end in view and its partner taken in at the margin.
-    const vout = beyond === "left" ? Math.max(xout, v.left - M) : Math.min(xout, v.right + M);
+    const vout = beyond === 'left' ? Math.max(xout, v.left - M) : Math.min(xout, v.right + M);
     const mid = pts[5];
     const c = h(mid[1]) / ((mid[0] - xin) * (vout - mid[0]));
     expect(c).toBeGreaterThan(0);
     for (const [x, y] of pts) expect(h(y)).toBeCloseTo(c * (x - xin) * (vout - x), 6);
     // Not flat toward the edge.
-    const edge = beyond === "left" ? v.left : v.right;
+    const edge = beyond === 'left' ? v.left : v.right;
     const d = Math.abs(edge - xin);
     if (Math.abs(xout - edge) >= M) {
       far++;
@@ -161,14 +161,14 @@ function checkOffWindow(s: PairsState, v: DrawView, rec: PathBatch, beyond: "lef
   return { checked, far };
 }
 
-describe("pairs: an arc whose partner is beyond the window", () => {
+describe('pairs: an arc whose partner is beyond the window', () => {
   for (const [start, stop] of [
     [34, 86],
     [36, 60],
   ])
     it(`barstar ${start}–${stop}: each partner left in barnase, the true piece rising to the left edge`, async () => {
       const { s, rec, v } = await zoomed(1, start, stop);
-      const { checked, far } = checkOffWindow(s, v, rec.pathItems, "left");
+      const { checked, far } = checkOffWindow(s, v, rec.pathItems, 'left');
       expect(checked).toBeGreaterThan(5);
       expect(far).toBeGreaterThan(0);
     });
@@ -179,7 +179,7 @@ describe("pairs: an arc whose partner is beyond the window", () => {
   ])
     it(`barnase ${start}–${stop}: each partner right in barstar, the true piece rising to the right edge`, async () => {
       const { s, rec, v } = await zoomed(0, start, stop);
-      const { checked, far } = checkOffWindow(s, v, rec.pathItems, "right");
+      const { checked, far } = checkOffWindow(s, v, rec.pathItems, 'right');
       expect(checked).toBeGreaterThan(2);
       expect(far).toBeGreaterThan(0);
     });

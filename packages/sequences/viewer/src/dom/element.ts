@@ -15,10 +15,10 @@
 // object). A context the element made outlives a move in the DOM (its disposal waits a task, which a reconnect
 // cancels); a host's outlives the element.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import type { Loci } from "@molstar/seq-core/model";
-import { mountSection, windowScheduler } from "../canvas/index.js";
-import { isDomPart, labelText, placedParts, resolveSlots } from "../chrome.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import type { Loci } from '@molstar/seq-core/model';
+import { mountSection, windowScheduler } from '../canvas/index.js';
+import { isDomPart, labelText, placedParts, resolveSlots } from '../chrome.js';
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -31,8 +31,8 @@ import {
   type SeqViewerPorts,
   type SeqViewerSpec,
   type Unsubscribable,
-} from "../index.js";
-import skin from "../skin.css?inline";
+} from '../index.js';
+import skin from '../skin.css?inline';
 import {
   cx,
   type DomPart,
@@ -46,13 +46,13 @@ import {
   off,
   type PartProps,
   ScrollArea,
-} from "./core.js";
-import { withDownloadExport } from "./export.js";
-import { HoverCardPart } from "./hover-card.js";
-import * as P from "./parts.js";
-import { ViewSurface } from "./section.js";
+} from './core.js';
+import { withDownloadExport } from './export.js';
+import { HoverCardPart } from './hover-card.js';
+import * as P from './parts.js';
+import { ViewSurface } from './section.js';
 
-const DEFAULTS: DomUI["slots"] = {
+const DEFAULTS: DomUI['slots'] = {
   ViewTabs: P.ViewTabs,
   SectionHeader: P.SectionHeader,
   SectionSwitches: P.SectionSwitches,
@@ -88,7 +88,7 @@ export function createDomUI(
   return {
     slots: resolveSlots(context, DEFAULTS, spec.slots, isDomPart),
     placed: placedParts(context, spec.chrome, spec.slots, spec.legend),
-    className: spec.className ?? "",
+    className: spec.className ?? '',
     legend: spec.legend,
     surface: spec.surface ?? mountSection,
     search: spec.search,
@@ -108,13 +108,13 @@ export function mountSeqViewerRoot(
   ui: DomUI,
   compose: (root: HTMLElement) => readonly { dispose(): void }[],
 ): { readonly root: HTMLElement; dispose(): void } {
-  const root = h("div", { class: cx("seqv-root", ui.className), tabindex: -1 });
+  const root = h('div', { class: cx('seqv-root', ui.className), tabindex: -1 });
   container.append(root);
   const parts = compose(root);
-  const live = h("span", { "aria-live": "polite", class: "seqv-sr-only" });
+  const live = h('span', { 'aria-live': 'polite', class: 'seqv-sr-only' });
   root.append(live);
   const sub = context.labels.current.subscribe((l) => {
-    if (context.hover.live.current.owner === "keyboard") live.textContent = labelText(l);
+    if (context.hover.live.current.owner === 'keyboard') live.textContent = labelText(l);
   });
   return {
     root,
@@ -138,27 +138,27 @@ export function mountSeqViewer(
 ): { readonly ui: DomUI; dispose(): void } {
   const ui = createDomUI(context, spec, surfaces);
   const mounted = mountSeqViewerRoot(container, context, ui, (root) => {
-    const bar = h("div", { class: "seqv-bar" });
+    const bar = h('div', { class: 'seqv-bar' });
     root.append(bar);
     const parts: { dispose(): void }[] = [];
-    const part = (name: DomSlotName | "ViewSurface", host = root) => {
-      const Part = (name === "ViewSurface" ? ViewSurface : ui.placed.has(name) ? ui.slots[name] : null) as DomPart<
+    const part = (name: DomSlotName | 'ViewSurface', host = root) => {
+      const Part = (name === 'ViewSurface' ? ViewSurface : ui.placed.has(name) ? ui.slots[name] : null) as DomPart<
         PartProps & { ui: DomUI }
       > | null;
       if (Part) parts.push(Part(host, context, { ui }));
     };
-    part("ViewTabs", bar);
-    bar.append(h("span", { class: "seqv-spacer" }));
-    for (const p of ["Search", "Busy", "Export", "Issues"] as const) part(p, bar);
+    part('ViewTabs', bar);
+    bar.append(h('span', { class: 'seqv-spacer' }));
+    for (const p of ['Search', 'Busy', 'Export', 'Issues'] as const) part(p, bar);
     for (const p of [
-      "SnapshotPlayer",
-      "Description",
-      "EmptyState",
-      "ErrorState",
-      "ViewSurface",
-      "Legend",
-      "Tooltip",
-      "HoverCard",
+      'SnapshotPlayer',
+      'Description',
+      'EmptyState',
+      'ErrorState',
+      'ViewSurface',
+      'Legend',
+      'Tooltip',
+      'HoverCard',
     ] as const)
       part(p);
     return parts;
@@ -175,7 +175,7 @@ function adoptSkin(doc: Document, shadow: ShadowRoot) {
     all.replaceSync(`:host { display: block; }\n${skin}`);
     const tokens = new CSSStyleSheet();
     for (const r of Array.from(all.cssRules))
-      if (r.cssText.includes(":root")) tokens.insertRule(r.cssText, tokens.cssRules.length);
+      if (r.cssText.includes(':root')) tokens.insertRule(r.cssText, tokens.cssRules.length);
     sheets = { shadow: all, tokens };
   }
   const { tokens, shadow: s } = sheets;
@@ -195,7 +195,7 @@ function described(ctx: SeqViewerContext, loci: readonly Loci[]) {
     for (let i = 0; i < c.runs.length; i += 3)
       runs.push(keys.indexOf(c.systems[c.runs[i]]), c.runs[i + 1], c.runs[i + 2]);
   }
-  const systems: Record<string, ReturnType<SeqViewerContext["systems"]["descriptor"]> & object> = {};
+  const systems: Record<string, ReturnType<SeqViewerContext['systems']['descriptor']> & object> = {};
   for (const k of keys) {
     const d = ctx.systems.descriptor(k);
     if (d) systems[k] = d;
@@ -223,20 +223,20 @@ export interface SeqHoverDetail {
   readonly loci: Loci | null;
   /** Its size (`hover.size()`: items, covered positions), known before `loci` resolves: a large one can be left alone. */
   readonly size: LociSize | null;
-  readonly coordinates: ReturnType<typeof described>["coordinates"] | null;
-  readonly systems: ReturnType<typeof described>["systems"];
+  readonly coordinates: ReturnType<typeof described>['coordinates'] | null;
+  readonly systems: ReturnType<typeof described>['systems'];
 }
 /** What `seq-selection` carries, frozen: the selection value and its loci as coordinates with their systems. */
 export interface SeqSelectionDetail {
-  readonly selection: SeqViewerContext["selection"]["current"]["value"];
-  readonly origin: SeqViewerContext["selection"]["current"]["value"]["origin"];
-  readonly coordinates: ReturnType<typeof described>["coordinates"];
-  readonly systems: ReturnType<typeof described>["systems"];
+  readonly selection: SeqViewerContext['selection']['current']['value'];
+  readonly origin: SeqViewerContext['selection']['current']['value']['origin'];
+  readonly coordinates: ReturnType<typeof described>['coordinates'];
+  readonly systems: ReturnType<typeof described>['systems'];
   /** The selection's size (items, covered positions), as `lociSize` reads its parts. */
   readonly size: LociSize;
 }
 
-const NO_SYSTEMS: SeqHoverDetail["systems"] = Object.freeze({});
+const NO_SYSTEMS: SeqHoverDetail['systems'] = Object.freeze({});
 /** The hover at `version`; its loci and their coordinates are a reader's cost (an event a frame, read or not). */
 function hoverDetail(ctx: SeqViewerContext, version: number): SeqHoverDetail {
   const h = ctx.hover.live.current;
@@ -246,7 +246,7 @@ function hoverDetail(ctx: SeqViewerContext, version: number): SeqHoverDetail {
   const read = () => {
     if (lit) return lit;
     const loci =
-      h.owner === "" || ctx.hover.live.version.value !== version ? null : (ctx.hover.toLoci() as Loci | null);
+      h.owner === '' || ctx.hover.live.version.value !== version ? null : (ctx.hover.toLoci() as Loci | null);
     lit = { loci, d: loci ? described(ctx, [loci]) : null };
     return lit;
   };
@@ -261,7 +261,7 @@ function hoverDetail(ctx: SeqViewerContext, version: number): SeqHoverDetail {
       return read().loci;
     },
     get size() {
-      sized ??= { size: h.owner === "" || ctx.hover.live.version.value !== version ? null : ctx.hover.size() };
+      sized ??= { size: h.owner === '' || ctx.hover.live.version.value !== version ? null : ctx.hover.size() };
       return sized.size;
     },
     get coordinates() {
@@ -285,8 +285,8 @@ function selectionDetail(ctx: SeqViewerContext): SeqSelectionDetail {
   return Object.freeze({ selection: s, origin: s.origin, ...d, size: Object.freeze(size) });
 }
 
-const PROPS = ["context", "spec", "ports", "ui", "slots", "chrome", "legend", "document", "data"] as const;
-const LEGEND_MODES: readonly string[] = ["collapsed", "expanded", "hidden"];
+const PROPS = ['context', 'spec', 'ports', 'ui', 'slots', 'chrome', 'legend', 'document', 'data'] as const;
+const LEGEND_MODES: readonly string[] = ['collapsed', 'expanded', 'hidden'];
 
 /**
  * `<seq-viewer>`: set `context` (outlives the element) or `spec` (a context made on connect), then `document` or
@@ -296,14 +296,14 @@ const LEGEND_MODES: readonly string[] = ["collapsed", "expanded", "hidden"];
  * seqspec:interaction#the-legend) are this UI's options; the context's config is never written.
  */
 export class SeqViewerElement extends HTMLElement {
-  static readonly observedAttributes = ["chrome", "legend"];
+  static readonly observedAttributes = ['chrome', 'legend'];
   #host: SeqViewerContext | null = null;
   #made: SeqViewerContext | null = null;
   #spec: SeqViewerSpec | null = null;
   #ports: Partial<SeqViewerPorts> | null = null;
   #ui: DomUISpec | null = null;
-  #slots: DomUISpec["slots"] = {};
-  #chrome: "full" | "clean" | null = null;
+  #slots: DomUISpec['slots'] = {};
+  #chrome: 'full' | 'clean' | null = null;
   #legend: LegendMode | null = null;
   #document: SeqViewSpecDoc | null = null;
   #data: SeqDataInput | null = null;
@@ -319,7 +319,7 @@ export class SeqViewerElement extends HTMLElement {
 
   constructor() {
     super();
-    this.attachShadow({ mode: "open" });
+    this.attachShadow({ mode: 'open' });
     // Properties a host set before the element was defined shadow the accessors: pass them through.
     for (const k of PROPS) {
       if (!Object.hasOwn(this, k)) continue;
@@ -363,18 +363,18 @@ export class SeqViewerElement extends HTMLElement {
     this.#ui = u;
     this.#remountUI();
   }
-  get slots(): DomUISpec["slots"] {
+  get slots(): DomUISpec['slots'] {
     return this.#slots;
   }
-  set slots(s: DomUISpec["slots"]) {
+  set slots(s: DomUISpec['slots']) {
     this.#slots = s ?? {};
     this.#remountUI();
   }
-  get chrome(): "full" | "clean" {
-    return this.#chrome ?? this.#ui?.chrome ?? this.context?.config.get(SeqViewerConfig.UI.Chrome) ?? "clean";
+  get chrome(): 'full' | 'clean' {
+    return this.#chrome ?? this.#ui?.chrome ?? this.context?.config.get(SeqViewerConfig.UI.Chrome) ?? 'clean';
   }
-  set chrome(c: "full" | "clean" | null) {
-    this.#chrome = c === "clean" || c === "full" ? c : null;
+  set chrome(c: 'full' | 'clean' | null) {
+    this.#chrome = c === 'clean' || c === 'full' ? c : null;
     this.#remountUI();
   }
   /**
@@ -386,15 +386,15 @@ export class SeqViewerElement extends HTMLElement {
     return this.#mounted?.ui ?? null;
   }
   get legend(): LegendMode {
-    return this.#legend ?? this.#ui?.legend ?? this.context?.config.get(SeqViewerConfig.UI.Legend) ?? "collapsed";
+    return this.#legend ?? this.#ui?.legend ?? this.context?.config.get(SeqViewerConfig.UI.Legend) ?? 'collapsed';
   }
   set legend(m: LegendMode | null) {
     this.#legend = m !== null && LEGEND_MODES.includes(m) ? m : null;
     this.#remountUI();
   }
   attributeChangedCallback(name: string, _old: string | null, value: string | null) {
-    if (name === "legend") this.legend = value as LegendMode | null;
-    else this.chrome = value as "full" | "clean" | null;
+    if (name === 'legend') this.legend = value as LegendMode | null;
+    else this.chrome = value as 'full' | 'clean' | null;
   }
   get document() {
     return this.#document;
@@ -444,7 +444,7 @@ export class SeqViewerElement extends HTMLElement {
   #mount() {
     const shadow = this.shadowRoot as ShadowRoot;
     adoptSkin(this.ownerDocument, shadow);
-    shadow.append(h("slot", { name: "header" }));
+    shadow.append(h('slot', { name: 'header' }));
     let ctx: SeqViewerContext;
     try {
       ctx = this.#host ?? this.#made ?? this.#make();
@@ -460,16 +460,16 @@ export class SeqViewerElement extends HTMLElement {
       return this.#fail(shadow, e);
     }
     // The bar takes its look while the host's toolbar has something in it (a slot's content is not the bar's child).
-    const toolbar = h("slot", { name: "toolbar" });
-    const bar = shadow.querySelector(".seqv-bar");
-    bar?.querySelector(":scope > .seqv-spacer")?.after(toolbar);
-    toolbar.addEventListener("slotchange", () =>
-      bar?.toggleAttribute("data-seqv-filled", toolbar.assignedElements().length > 0),
+    const toolbar = h('slot', { name: 'toolbar' });
+    const bar = shadow.querySelector('.seqv-bar');
+    bar?.querySelector(':scope > .seqv-spacer')?.after(toolbar);
+    toolbar.addEventListener('slotchange', () =>
+      bar?.toggleAttribute('data-seqv-filled', toolbar.assignedElements().length > 0),
     );
     this.#subs = this.#relay(ctx);
     this.#announce(ctx);
     this.dispatchEvent(
-      new CustomEvent("seq-ui", { detail: Object.freeze({ ui: this.mountedUI }), bubbles: true, composed: true }),
+      new CustomEvent('seq-ui', { detail: Object.freeze({ ui: this.mountedUI }), bubbles: true, composed: true }),
     );
     this.#load();
   }
@@ -481,14 +481,14 @@ export class SeqViewerElement extends HTMLElement {
   #fail(shadow: ShadowRoot, e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
     const root = h(
-      "div",
-      { class: "seqv-root", tabindex: -1 },
-      h("div", { role: "alert", class: "seqv-state seqv-error" }, message),
+      'div',
+      { class: 'seqv-root', tabindex: -1 },
+      h('div', { role: 'alert', class: 'seqv-state seqv-error' }, message),
     );
     shadow.append(root);
     this.#mounted = { ui: null, dispose: () => root.remove() };
     this.dispatchEvent(
-      new CustomEvent("seq-error", { detail: Object.freeze({ error: e }), bubbles: true, composed: true }),
+      new CustomEvent('seq-error', { detail: Object.freeze({ error: e }), bubbles: true, composed: true }),
     );
   }
 
@@ -518,7 +518,7 @@ export class SeqViewerElement extends HTMLElement {
     if (this.#told === ctx) return;
     this.#told = ctx;
     this.dispatchEvent(
-      new CustomEvent("seq-context", { detail: Object.freeze({ context: ctx }), bubbles: true, composed: true }),
+      new CustomEvent('seq-context', { detail: Object.freeze({ context: ctx }), bubbles: true, composed: true }),
     );
   }
 
@@ -547,28 +547,28 @@ export class SeqViewerElement extends HTMLElement {
     let frame = 0;
     const send = () => {
       frame = 0;
-      emit("seq-hover", hoverDetail(ctx, ctx.hover.live.version.value));
+      emit('seq-hover', hoverDetail(ctx, ctx.hover.live.version.value));
     };
     const hover = later(ctx.hover.live.version, () => {
       frame ||= ctx.scheduler.requestFrame(send);
     });
     return [
-      later(ctx.selection.current, () => emit("seq-selection", selectionDetail(ctx))),
+      later(ctx.selection.current, () => emit('seq-selection', selectionDetail(ctx))),
       hover,
       { unsubscribe: () => void (frame && ctx.scheduler.cancelFrame(frame)) },
-      later(ctx.snapshots.current, (ref) => emit("seq-snapshot", Object.freeze({ ref }))),
+      later(ctx.snapshots.current, (ref) => emit('seq-snapshot', Object.freeze({ ref }))),
     ];
   }
 }
 
 /** Registers the element once (`seq-viewer` by default; another tag gets a subclass). */
-export function defineSeqViewer(tag = "seq-viewer"): void {
+export function defineSeqViewer(tag = 'seq-viewer'): void {
   if (customElements.get(tag)) return;
-  customElements.define(tag, tag === "seq-viewer" ? SeqViewerElement : class extends SeqViewerElement {});
+  customElements.define(tag, tag === 'seq-viewer' ? SeqViewerElement : class extends SeqViewerElement {});
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    "seq-viewer": SeqViewerElement;
+    'seq-viewer': SeqViewerElement;
   }
 }

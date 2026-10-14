@@ -10,10 +10,10 @@
 // as item loci on the set, for a viewer's highlight channels (the Seq* viewer's `set:<section>/<n>`) and Nightingale's
 // `highlight`. A query node is an annotation, so it is data here as any other. Edge rate: allocates.
 
-import { Annotations, type ItemLoci, KeyKind, type KeyTarget, OrderedSet, type SeqSet } from "@molstar/seq-core/model";
-import type { ResolvedView } from "./view.js";
+import { Annotations, type ItemLoci, KeyKind, type KeyTarget, OrderedSet, type SeqSet } from '@molstar/seq-core/model';
+import type { ResolvedView } from './view.js';
 
-export type SectionHighlightStyle = "band" | "highlight" | "accent";
+export type SectionHighlightStyle = 'band' | 'highlight' | 'accent';
 export interface SectionHighlight {
   /** The entry's `data`, `items` and `style` as written (defaults applied). */
   readonly data: string;
@@ -31,7 +31,7 @@ export function sectionHighlights(view: ResolvedView, set: SeqSet, s: number): S
   if (!Array.isArray(list)) return [];
   return list.map((e: { data: string; items?: string[] | null; style?: SectionHighlightStyle }) => {
     const items = e.items ?? null;
-    return { data: e.data, items, style: e.style ?? "band", loci: itemLoci(set, e.data, items) };
+    return { data: e.data, items, style: e.style ?? 'band', loci: itemLoci(set, e.data, items) };
   });
 }
 
@@ -50,5 +50,5 @@ function itemLoci(set: SeqSet, ref: string, ids: readonly string[] | null): Item
     if (picked.length === 0) return null;
     items = OrderedSet.ofSortedArray(Int32Array.from(picked).sort());
   }
-  return { kind: "item-loci", set, elements: [{ annotation: t.id as never, items: items as never }] };
+  return { kind: 'item-loci', set, elements: [{ annotation: t.id as never, items: items as never }] };
 }

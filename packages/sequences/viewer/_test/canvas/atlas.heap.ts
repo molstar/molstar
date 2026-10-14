@@ -13,8 +13,8 @@
 // positive controls: the full frames allocating garbage each, sized to the run (`leaking`), warmed and measured alike,
 // are caught; so is an object injected every 16th letter in the atlas's draw (about 6 KB a frame).
 
-import { expect, it, vi } from "vitest";
-import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.js";
+import { expect, it, vi } from 'vitest';
+import { controlCaught, heapScaling, isFlat, leaking } from './heap-browser.js';
 
 const N = { full: 200, pan: 1_000, api: 1_000 };
 const WARM_MS = 3_000;
@@ -32,10 +32,10 @@ function measure(step: (i: number) => void, n: number, warmed = () => {}) {
   return r;
 }
 
-for (const kind of ["full", "pan", "api"] as const)
+for (const kind of ['full', 'pan', 'api'] as const)
   it(`${kind} frames of lettered rows through the atlas are flat`, async () => {
     vi.resetModules();
-    const { atlasFrames } = await import("./atlas-fixtures.js");
+    const { atlasFrames } = await import('./atlas-fixtures.js');
     const t = await atlasFrames(kind);
     try {
       let made = 0;
@@ -48,16 +48,16 @@ for (const kind of ["full", "pan", "api"] as const)
       // Every letter a hit after the warm-up; a pan copies the band.
       expect(made).toBeGreaterThan(20);
       expect(t.shared.atlas?.made).toBe(made);
-      if (kind !== "full") expect(t.composer.stats.copies - copies).toBe(measured);
+      if (kind !== 'full') expect(t.composer.stats.copies - copies).toBe(measured);
     } finally {
       t.dispose();
     }
   }, 120_000);
 
-it("the same full frames allocating garbage each, sized to the run, are caught (positive control)", async () => {
+it('the same full frames allocating garbage each, sized to the run, are caught (positive control)', async () => {
   vi.resetModules();
-  const { atlasFrames } = await import("./atlas-fixtures.js");
-  const t = await atlasFrames("full");
+  const { atlasFrames } = await import('./atlas-fixtures.js');
+  const t = await atlasFrames('full');
   try {
     expect(controlCaught(() => measure(leaking(t.step, N.full), N.full))).toBe(true);
   } finally {
@@ -67,8 +67,8 @@ it("the same full frames allocating garbage each, sized to the run, are caught (
 
 it("the guard sees an allocation injected in the atlas's draw (positive control)", async () => {
   vi.resetModules();
-  const { atlasFrames } = await import("./atlas-fixtures.js");
-  const t = await atlasFrames("full");
+  const { atlasFrames } = await import('./atlas-fixtures.js');
+  const t = await atlasFrames('full');
   try {
     const atlas = t.shared.atlas as NonNullable<typeof t.shared.atlas>;
     const draw = atlas.draw.bind(atlas);

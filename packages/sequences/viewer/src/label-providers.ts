@@ -11,7 +11,7 @@
 // numbers only. Numberings reached through mappings (another isoform's) are found once per unit and set (`lc.reached`),
 // then read.
 
-import { paletteValue, TILE } from "@molstar/seq-core/format";
+import { paletteValue, TILE } from '@molstar/seq-core/format';
 import {
   type Alignment,
   type Annotation,
@@ -22,21 +22,21 @@ import {
   Paths,
   type SeqSet,
   SortedArray,
-} from "@molstar/seq-core/model";
-import { codonLabel } from "./codon-label.js";
-import type { ViewModel } from "./graph.js";
-import { copyAt, HoverKind, sourceAt } from "./hit.js";
-import type { HoverState } from "./hover.js";
-import type { LabelContext, LabelProvider, LabelSink } from "./labels.js";
-import type { PerPosition } from "./prepare.js";
-import type { MatrixState } from "./rows.js";
-import { RegionState, type StreamItems } from "./streams.js";
-import { TreeNode, type TreeRows } from "./tree.js";
+} from '@molstar/seq-core/model';
+import { codonLabel } from './codon-label.js';
+import type { ViewModel } from './graph.js';
+import { copyAt, HoverKind, sourceAt } from './hit.js';
+import type { HoverState } from './hover.js';
+import type { LabelContext, LabelProvider, LabelSink } from './labels.js';
+import type { PerPosition } from './prepare.js';
+import type { MatrixState } from './rows.js';
+import { RegionState, type StreamItems } from './streams.js';
+import { TreeNode, type TreeRows } from './tree.js';
 
 const K = HoverKind;
-const name = (set: SeqSet, id: number) => (id >= 0 ? set.strings.get(id) : "");
+const name = (set: SeqSet, id: number) => (id >= 0 ? set.strings.get(id) : '');
 /** A position's label in a numbering; "" outside it. */
-const fmt = (lc: LabelContext, n: Numbering, i: number) => (i >= 0 && i < n.length ? lc.format(n, i as never) : "");
+const fmt = (lc: LabelContext, n: Numbering, i: number) => (i >= 0 && i < n.length ? lc.format(n, i as never) : '');
 
 /** The hovered unit's block in the section: its own or a merged copy group's; -1: none. */
 function blockOf(v: ViewModel, section: number, unit: number): number {
@@ -66,7 +66,7 @@ function streamedLetter(h: HoverState, lc: LabelContext, b: number, i: number): 
   const r = lc.view.resolved;
   const local = b - r.sections.blockStart[lc.section];
   for (let k = 0; b >= 0 && k < r.layers.count; k++) {
-    const st = r.layers.track[k] === h.track && typeOf(lc, k) === "letters" ? lc.stream(k) : null;
+    const st = r.layers.track[k] === h.track && typeOf(lc, k) === 'letters' ? lc.stream(k) : null;
     if (!st?.letters) continue;
     if (st.letters(local, i, i + 1, one) > 0) return one[0];
     lc.waiting();
@@ -77,7 +77,7 @@ function streamedLetter(h: HoverState, lc: LabelContext, b: number, i: number): 
 /** Layer k's type name ("" when omitted). */
 const typeOf = (lc: LabelContext, k: number) => {
   const t = lc.view.resolved.layers.type[k];
-  return t >= 0 ? lc.set.strings.get(t) : "";
+  return t >= 0 ? lc.set.strings.get(t) : '';
 };
 type MapState = { readonly map?: Uint8Array | null; readonly of?: { readonly unit: Int32Array } | null } | undefined;
 /**
@@ -85,8 +85,8 @@ type MapState = { readonly map?: Uint8Array | null; readonly of?: { readonly uni
  * layer shows no letters of it (not `letters` or `rows`, or an `of` layer of other polymers).
  */
 function mapOf(lc: LabelContext, k: number, unit: number): Uint8Array | null | undefined {
-  const type = k >= 0 ? typeOf(lc, k) : "";
-  const s = type === "letters" || type === "rows" ? (lc.view.prepared[k]?.state as MapState) : undefined;
+  const type = k >= 0 ? typeOf(lc, k) : '';
+  const s = type === 'letters' || type === 'rows' ? (lc.view.prepared[k]?.state as MapState) : undefined;
   if (!s || (s.of && (unit < 0 || !s.of.unit.includes(unit)))) return undefined;
   return s.map ?? null;
 }
@@ -109,16 +109,16 @@ const P = {
   lc: null as LabelContext | null,
   out: null as LabelSink | null,
   bn: null as Numbering | null,
-  number: "",
+  number: '',
   named: false,
 };
 /** A line per other numbering whose label differs from the title's; `ordinal` only alone; never `label` (a structure's internal one). */
 function numbered(n: Numbering, j: number) {
   const lc = P.lc as LabelContext;
   const key = name(lc.set, n.name);
-  const v = key === "ordinal" || n === P.bn ? "" : fmt(lc, n, j);
-  P.named ||= key !== "ordinal";
-  if (key !== "label" && v !== "" && v !== P.number) (P.out as LabelSink).line(key, v);
+  const v = key === 'ordinal' || n === P.bn ? '' : fmt(lc, n, j);
+  P.named ||= key !== 'ordinal';
+  if (key !== 'label' && v !== '' && v !== P.number) (P.out as LabelSink).line(key, v);
 }
 
 /**
@@ -127,7 +127,7 @@ function numbered(n: Numbering, j: number) {
  * never `label`; `ordinal` only when nothing named was seen; equal lines grouped by the sink.
  */
 const position: LabelProvider = {
-  name: "position",
+  name: 'position',
   priority: 100,
   applies: (h) => h.kind === K.seq,
   label(h, lc, out) {
@@ -145,36 +145,36 @@ const position: LabelProvider = {
     // A lazy molecule's letter from the hovered track's letters regions (ST3a); none held: no letter.
     const stored = mol.element ? 0 : mol.lazy ? streamedLetter(h, lc, b, i) : mol.code[i];
     const shown = mol.element || stored === 0 ? 0 : shownCode(h, lc, stored, u);
-    const residue = mol.element ? name(set, mol.chemCompId?.[0] ?? -1) : shown ? String.fromCharCode(shown) : "";
+    const residue = mol.element ? name(set, mol.chemCompId?.[0] ?? -1) : shown ? String.fromCharCode(shown) : '';
     const number = bn ? fmt(lc, bn, at) : `${i + 1}`;
     // A construct position whose source residue has several copies says which, past the first (the ruler's rule).
     const copy = np >= 0 && bn ? copyAt(r.paths[np], i) : 1;
-    out.title(`${label} ${residue}${mol.element ? " " : ""}${number}${copy > 1 ? ` (copy ${copy})` : ""}`.trim());
-    if (shown !== stored) out.line("stored", String.fromCharCode(stored));
+    out.title(`${label} ${residue}${mol.element ? ' ' : ''}${number}${copy > 1 ? ` (copy ${copy})` : ''}`.trim());
+    if (shown !== stored) out.line('stored', String.fromCharCode(stored));
     P.lc = lc;
     P.out = out;
     P.bn = bn;
     P.number = number;
-    P.named = bn !== null && name(set, bn.name) !== "ordinal";
+    P.named = bn !== null && name(set, bn.name) !== 'ordinal';
     for (const n of set.units.numberings[u].items) numbered(n, i);
     for (const n of mol.numberings.items) numbered(n, i);
     for (const x of lc.reached(u)) {
       const j = Paths.at(x.path, i);
       if (j >= 0) numbered(x.n, j);
     }
-    if (!P.named) out.line("ordinal", number);
+    if (!P.named) out.line('ordinal', number);
     P.lc = null;
     P.out = null;
     P.bn = null;
     const obs = set.units.observed[u];
     let observed = obs === null;
     for (let k = 0; obs && k < obs.length; k += 2) observed ||= i >= obs[k] && i < obs[k + 1];
-    if (!observed) out.line("unobserved", "not in the model");
+    if (!observed) out.line('unobserved', 'not in the model');
   },
 };
 
 const copies: LabelProvider = {
-  name: "copies",
+  name: 'copies',
   priority: 95,
   applies: (h) => h.kind === K.seq,
   label(h, lc, out) {
@@ -183,9 +183,9 @@ const copies: LabelProvider = {
     const m = b >= 0 ? r.blocks.members[b] : null;
     if (!m) return;
     const labels = Array.from(m, (u) => name(lc.set, lc.set.units.label[u]));
-    out.line("copies", `× ${m.length} (${labels.join(", ")})`);
+    out.line('copies', `× ${m.length} (${labels.join(', ')})`);
     const varying = r.blocks.varying[b];
-    if (varying && OrderedSet.has(varying, h.seq.index)) out.line("copies", "varies");
+    if (varying && OrderedSet.has(varying, h.seq.index)) out.line('copies', 'varies');
   },
 };
 
@@ -205,9 +205,9 @@ function clade(h: HoverState, lc: LabelContext, out: LabelSink) {
     const g = r.layers.track[k] === h.track ? (lc.view.prepared[k]?.state as TreeRows | undefined)?.tree : null;
     collapsed = !!g && g.state[h.treeNode] === TreeNode.wedge;
   }
-  out.title(name(lc.set, t.label[h.treeNode]) || "Clade");
-  out.line("clade", `${n} ${n === 1 ? "row" : "rows"}`);
-  out.line("click", collapsed ? "expand" : "collapse");
+  out.title(name(lc.set, t.label[h.treeNode]) || 'Clade');
+  out.line('clade', `${n} ${n === 1 ? 'row' : 'rows'}`);
+  out.line('click', collapsed ? 'expand' : 'collapse');
 }
 
 /** What a streamed row's cell is while its tile is not here: in flight, or the source could not serve it. */
@@ -222,7 +222,7 @@ function streamedCell(h: HoverState, lc: LabelContext, row: number, column: numb
   const r = lc.view.resolved;
   let layer = -1;
   for (let k = 0; k < r.layers.count && layer < 0; k++)
-    if (r.layers.track[k] === h.track && typeOf(lc, k) === "rows") layer = k;
+    if (r.layers.track[k] === h.track && typeOf(lc, k) === 'rows') layer = k;
   const stream = layer >= 0 ? lc.stream(layer) : null;
   if (!stream || column < 0) return LOADING;
   const k = (h.lane >= 0 ? h.lane : row) - (h.track >= 0 ? r.tracks.laneStart[h.track] : 0);
@@ -237,7 +237,7 @@ function streamedCell(h: HoverState, lc: LabelContext, row: number, column: numb
 }
 
 const row: LabelProvider = {
-  name: "row",
+  name: 'row',
   priority: 90,
   applies: (h) => h.kind === K.aligned || h.kind === K.row || (h.kind === K.header && h.treeNode >= 0),
   label(h, lc, out) {
@@ -250,13 +250,13 @@ const row: LabelProvider = {
     if (aln.lazy) return lazyRow(h, lc, out, aln, r);
     out.title(name(set, aln.labelOf(r)) || `row ${r + 1}`);
     const index = h.kind === K.aligned ? aln.rows.colToPos(r, h.aligned.column) : h.row.index;
-    const rowN = aln.numberingsOf(r)?.byName(set.strings.find("row"));
+    const rowN = aln.numberingsOf(r)?.byName(set.strings.find('row'));
     const stored = index >= 0 ? aln.rows.residues[aln.rows.residueStart[aln.rows.slotOf(r)] + index] : 0;
     const shown = index >= 0 ? shownCode(h, lc, stored, -1) : 0;
-    const residue = index >= 0 ? String.fromCharCode(shown) : "";
-    out.line("residue", index < 0 ? "gap" : `${residue}${rowN ? fmt(lc, rowN, index) : index + 1}`);
-    if (shown !== stored) out.line("stored", String.fromCharCode(stored));
-    if (h.kind === K.aligned) out.line("column", `${h.aligned.column + 1}`);
+    const residue = index >= 0 ? String.fromCharCode(shown) : '';
+    out.line('residue', index < 0 ? 'gap' : `${residue}${rowN ? fmt(lc, rowN, index) : index + 1}`);
+    if (shown !== stored) out.line('stored', String.fromCharCode(stored));
+    if (h.kind === K.aligned) out.line('column', `${h.aligned.column + 1}`);
   },
 };
 
@@ -268,20 +268,20 @@ function lazyRow(h: HoverState, lc: LabelContext, out: LabelSink, aln: Alignment
   const set = lc.set;
   const column = h.kind === K.aligned ? h.aligned.column : -1;
   const held = aln.labelOf(r as never);
-  let label = held >= 0 ? name(set, held) : "";
-  for (let k = 0; label === "" && k < lc.view.resolved.layers.count; k++)
-    if (lc.view.resolved.layers.track[k] === h.track && typeOf(lc, k) === "rows") label = lc.stream(k)?.label(r) ?? "";
+  let label = held >= 0 ? name(set, held) : '';
+  for (let k = 0; label === '' && k < lc.view.resolved.layers.count; k++)
+    if (lc.view.resolved.layers.track[k] === h.track && typeOf(lc, k) === 'rows') label = lc.stream(k)?.label(r) ?? '';
   out.title(label || `row ${r + 1}`);
   const stored = column >= 0 ? streamedCell(h, lc, r, column) : 0;
-  if (stored === LOADING) out.line("residue", "loading");
-  else if (stored === UNAVAILABLE) out.line("residue", "not available");
-  else if (stored <= 0 || stored === 45 || stored === 46) out.line("residue", "gap");
+  if (stored === LOADING) out.line('residue', 'loading');
+  else if (stored === UNAVAILABLE) out.line('residue', 'not available');
+  else if (stored <= 0 || stored === 45 || stored === 46) out.line('residue', 'gap');
   else {
     const shown = shownCode(h, lc, stored, -1);
-    out.line("residue", String.fromCharCode(shown));
-    if (shown !== stored) out.line("stored", String.fromCharCode(stored));
+    out.line('residue', String.fromCharCode(shown));
+    if (shown !== stored) out.line('stored', String.fromCharCode(stored));
   }
-  if (h.kind === K.aligned) out.line("column", `${column + 1}`);
+  if (h.kind === K.aligned) out.line('column', `${column + 1}`);
 }
 
 /** The first row of an item. */
@@ -293,7 +293,7 @@ function firstRow(item: Int32Array, it: number) {
 /** A row's field as a label shows it: the data's own, else a field provider's (`ns:name`); undefined: none. */
 function fieldOf(lc: LabelContext, a: Annotation, row: number, field: string): unknown {
   const v = paletteValue(a, lc.set, row, field, lc.registry.svs);
-  return v === null || (typeof v === "number" && Number.isNaN(v)) ? undefined : v;
+  return v === null || (typeof v === 'number' && Number.isNaN(v)) ? undefined : v;
 }
 
 /** The fields a layer's channel themes read (`field` anywhere in their params: palettes, scales, rule tables). */
@@ -303,19 +303,19 @@ function encoded(params: Readonly<Record<string, unknown>>): string[] {
   if (out) return out;
   out = [];
   const walk = (x: unknown, key: string) => {
-    if (key === "field" && typeof x === "string" && !out?.includes(x)) out?.push(x);
-    else if (x && typeof x === "object") for (const [k, y] of Object.entries(x)) walk(y, k);
+    if (key === 'field' && typeof x === 'string' && !out?.includes(x)) out?.push(x);
+    else if (x && typeof x === 'object') for (const [k, y] of Object.entries(x)) walk(y, k);
   };
-  for (const v of Object.values(params)) if (v && typeof v === "object" && "theme" in v) walk(v, "");
+  for (const v of Object.values(params)) if (v && typeof v === 'object' && 'theme' in v) walk(v, '');
   encodedOf.set(params, out);
   return out;
 }
 
 /** `byName`'s target, reused; the item's fields shown after its title. */
 const target = { kind: -1, id: -1, row: -1 };
-const FIELDS = ["category", "tooltip", "alt"];
+const FIELDS = ['category', 'tooltip', 'alt'];
 const item: LabelProvider = {
-  name: "item",
+  name: 'item',
   priority: 80,
   applies: (h) =>
     h.kind === K.item ||
@@ -337,8 +337,8 @@ const item: LabelProvider = {
     const r = a ? firstRow(a.item, h.item.item) : -1;
     if (!a || r < 0) return;
     const field = (f: string) => fieldOf(lc, a, r, f);
-    out.title(String(field("label") ?? field("id") ?? (name(set, a.label) || "item")));
-    if (a.label >= 0) out.line("annotation", name(set, a.label));
+    out.title(String(field('label') ?? field('id') ?? (name(set, a.label) || 'item')));
+    if (a.label >= 0) out.line('annotation', name(set, a.label));
     for (const f of FIELDS) if (field(f) !== undefined) out.line(f, String(field(f)));
     // The fields the hovered layer's themes encode (its color or size by a field: "score 64").
     const params = h.layer >= 0 ? lc.view.resolved.layers.params[h.layer] : null;
@@ -346,14 +346,14 @@ const item: LabelProvider = {
       if (!FIELDS.includes(f) && field(f) !== undefined) out.line(f, String(field(f)));
     for (let k = 0; k < a.links.length; k++) {
       const url = Annotations.linkOf(a, set, k, r);
-      if (url) out.line(name(set, a.links[k].label) || "link", url);
+      if (url) out.line(name(set, a.links[k].label) || 'link', url);
     }
   },
 };
 
 /** A value line, to 4 significant digits; none for NaN (no value there). */
 const valueLine = (out: LabelSink, key: string, v: number) =>
-  Number.isNaN(v) || out.line(key || "value", `${Number(v.toPrecision(4))}`);
+  Number.isNaN(v) || out.line(key || 'value', `${Number(v.toPrecision(4))}`);
 
 /**
  * The value drawn under the pointer: for each `values` and `color` layer of the hovered track, its prepared value at
@@ -361,7 +361,7 @@ const valueLine = (out: LabelSink, key: string, v: number) =>
  * codons reads what the draw reads (no `slotOf`); a matrix's at the hovered state.
  */
 const value: LabelProvider = {
-  name: "value",
+  name: 'value',
   priority: 70,
   applies: (h) => h.kind === K.seq && h.track >= 0 && h.block >= 0,
   label(h, lc, out) {
@@ -372,12 +372,12 @@ const value: LabelProvider = {
       if (r.layers.track[k] !== h.track) continue;
       const type = name(lc.set, r.layers.type[k]);
       const st = lc.view.prepared[k]?.state as (PerPosition & MatrixState) | undefined;
-      if ((type === "values" || type === "color") && st?.value) {
+      if ((type === 'values' || type === 'color') && st?.value) {
         const v = st.value[b];
         const at = st.annotation[b];
         const a = v && j >= 0 && j < v.length ? lc.set.annotations[at ? at[j] : st.only[b]] : undefined;
         if (v && a) valueLine(out, name(lc.set, a.label), v[j]);
-      } else if (type === "matrix" && st?.rows && h.state >= 0 && h.state < st.stride[b]) {
+      } else if (type === 'matrix' && st?.rows && h.state >= 0 && h.state < st.stride[b]) {
         const rows = st.rows[b];
         const m = st.ann[b]?.matrix;
         const row = rows && j >= 0 && j < rows.length ? rows[j] : -1;
@@ -389,7 +389,7 @@ const value: LabelProvider = {
 
 /** The partner endpoint of a pair row, in the partner unit's own first named numbering. */
 const pair: LabelProvider = {
-  name: "pair",
+  name: 'pair',
   priority: 70,
   applies: (h) => h.kind === K.item,
   label(h, lc, out) {
@@ -398,7 +398,7 @@ const pair: LabelProvider = {
     if (!a?.pairs) return;
     const end = (u: number, m: number, i: number) => {
       const mol = set.molecules[u >= 0 ? set.units.molecule[u] : m];
-      if (!mol || i < 0) return "";
+      if (!mol || i < 0) return '';
       const ns = u >= 0 ? set.units.numberings[u].items : [];
       const n = ns[0] ?? mol.numberings.items[0];
       const who = name(set, u >= 0 ? set.units.label[u] : mol.label);
@@ -410,7 +410,7 @@ const pair: LabelProvider = {
       const s = a.slot[r];
       const b = a.pairs.bTarget;
       out.line(
-        "pair",
+        'pair',
         `${end(a.slots.unit[s], a.slots.molecule[s], a.start[r])} – ${end(b.unit[r], b.molecule[r], a.pairs.bStart[r])}`,
       );
     }
@@ -419,7 +419,7 @@ const pair: LabelProvider = {
 
 /** Consensus and conservation: annotations of the view over the alignment's columns, at the hovered column. */
 const column: LabelProvider = {
-  name: "column",
+  name: 'column',
   priority: 60,
   applies: (h) => h.kind === K.column || h.kind === K.aligned,
   label(h, lc, out) {
@@ -434,9 +434,9 @@ const column: LabelProvider = {
       const a = set.annotations[data[d]];
       const slot = a ? Annotations.slotOf(a, space) : -1;
       if (!a || slot < 0) continue;
-      if (a.geometry === "values") {
+      if (a.geometry === 'values') {
         const v = Annotations.valueAt(a, slot, loc.column);
-        if (!Number.isNaN(v)) out.line(name(set, a.label) || "value", `${Number(v.toPrecision(3))}`);
+        if (!Number.isNaN(v)) out.line(name(set, a.label) || 'value', `${Number(v.toPrecision(3))}`);
       } else
         Annotations.itemsOver(
           a,
@@ -444,8 +444,8 @@ const column: LabelProvider = {
           loc.column,
           loc.column + 1,
           (r: number, o: LabelSink) => {
-            const c = Annotations.rowValue(a, set, r, "category") ?? Annotations.rowValue(a, set, r, "label");
-            if (c !== undefined) o.line(name(set, a.label) || "consensus", String(c));
+            const c = Annotations.rowValue(a, set, r, 'category') ?? Annotations.rowValue(a, set, r, 'label');
+            if (c !== undefined) o.line(name(set, a.label) || 'consensus', String(c));
           },
           out,
         );
@@ -455,20 +455,20 @@ const column: LabelProvider = {
 
 /** A renderer type's own lines for the hovered element of its layer (`LayerRenderer.label`). */
 const layerEntry: LabelProvider = {
-  name: "layer",
+  name: 'layer',
   priority: 75,
   applies: (h) => h.layer >= 0,
   label(h, lc, out) {
     const p = lc.view.prepared[h.layer];
     lc.registry
-      .get("renderers", p?.renderer ?? "")
+      .get('renderers', p?.renderer ?? '')
       ?.label?.(h, lc, out, p.state, lc.view.resolved.layers.params[h.layer]);
   },
 };
 
 const at = new Int32Array(6);
 /** A streamed item's columns not written as fields (its place, its key, its map). */
-const PLACE = new Set(["start", "stop", "id", "label", "map"]);
+const PLACE = new Set(['start', 'stop', 'id', 'label', 'map']);
 const FIELD_LINES = 8;
 /**
  * Streamed layers of the hovered track (ST3b): "loading…" over a pending region (made again when it arrives), "failed"
@@ -476,18 +476,18 @@ const FIELD_LINES = 8;
  * layer), its label and fields from its region's table, as `item` writes an annotation's.
  */
 const stream: LabelProvider = {
-  name: "stream",
+  name: 'stream',
   priority: 50,
   applies: (h) => h.kind === K.seq && h.track >= 0 && h.block >= 0,
   label(h, lc, out) {
     const r = lc.view.resolved;
     const t = h.track;
-    const key = name(lc.set, r.tracks.label[t] >= 0 ? r.tracks.label[t] : r.tracks.ref[t]) || "data";
+    const key = name(lc.set, r.tracks.label[t] >= 0 ? r.tracks.label[t] : r.tracks.ref[t]) || 'data';
     for (let k = 0; k < r.layers.count; k++) {
       const st = r.layers.track[k] === t ? lc.stream(k) : null;
       const s = st?.stateAt ? st.stateAt(h.block, h.index) : RegionState.empty;
       if (s === RegionState.pending) {
-        out.line(key, "loading…");
+        out.line(key, 'loading…');
         lc.waiting();
       } else if (s === RegionState.failed) out.line(key, "failed: Retry in the track's … menu");
       if (s !== RegionState.loaded || h.part < 0 || k !== h.layer || !st?.items) continue;
@@ -506,9 +506,9 @@ const stream: LabelProvider = {
       const cell = (c: string) => {
         const col = x.table?.[c];
         const v = col && f.row[q] < col.length ? col[f.row[q]] : null;
-        return v == null || v === "" ? null : String(v);
+        return v == null || v === '' ? null : String(v);
       };
-      out.line(key, cell("label") ?? cell("id") ?? "item");
+      out.line(key, cell('label') ?? cell('id') ?? 'item');
       let n = 0;
       for (const c in x.table)
         if (!PLACE.has(c) && cell(c) !== null && n++ < FIELD_LINES) out.line(c, cell(c) as string);

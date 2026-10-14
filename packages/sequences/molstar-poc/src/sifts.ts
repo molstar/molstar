@@ -10,8 +10,8 @@
 // `pdbx_sifts_unp_segments`, each row an entity instance's segment onto a UniProt accession. An entity gets one
 // `uniprot:<acc>` numbering per accession, a `segments` numbering with holes, from its first instance's rows.
 
-import type { NumberingInput } from "@molstar/seq-core/model";
-import type { CifFrame } from "molstar/lib/mol-io/reader/cif";
+import type { NumberingInput } from '@molstar/seq-core/model';
+import type { CifFrame } from 'molstar/lib/mol-io/reader/cif';
 
 export interface SiftsSegment {
   readonly entityId: string;
@@ -32,14 +32,14 @@ export function siftsSegments(frame: CifFrame | null): SiftsSegment[] {
   if (!cat) return [];
   const f = (n: string) => cat.getField(n);
   const [entity, asym, acc, best, s0, s1, u0, u1] = [
-    "entity_id",
-    "asym_id",
-    "unp_acc",
-    "best_mapping",
-    "seq_id_start",
-    "seq_id_end",
-    "unp_start",
-    "unp_end",
+    'entity_id',
+    'asym_id',
+    'unp_acc',
+    'best_mapping',
+    'seq_id_start',
+    'seq_id_end',
+    'unp_start',
+    'unp_end',
   ].map(f);
   if (!entity || !asym || !acc || !s0 || !s1 || !u0 || !u1) return [];
   const out: SiftsSegment[] = [];
@@ -48,7 +48,7 @@ export function siftsSegments(frame: CifFrame | null): SiftsSegment[] {
       entityId: entity.str(i),
       asymId: asym.str(i),
       accession: acc.str(i),
-      best: best ? best.str(i) === "y" : true,
+      best: best ? best.str(i) === 'y' : true,
       seqStart: s0.int(i),
       seqEnd: s1.int(i),
       unpStart: u0.int(i),
@@ -79,7 +79,7 @@ export function siftsNumberings(
   }
   const numberings: NumberingInput[] = [...byAcc].map(([acc, segments]) => ({
     name: `uniprot:${acc}`,
-    method: "segments",
+    method: 'segments',
     segments: segments.sort((a, b) => a[0] - b[0]),
   }));
   return { numberings, accessions: [...byAcc.keys()] };

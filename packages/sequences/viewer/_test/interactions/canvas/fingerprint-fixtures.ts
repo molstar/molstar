@@ -10,19 +10,19 @@
 // afresh per case: a scene's context (inline data only: no Node files), the layer's `LayerFrame`, and a step that
 // draws it into a canvas, with the kit's composer-in-small filling the view as the real one does.
 
-import { Canvas2DBackend, Canvas2DShared } from "../../../src/canvas/index.js";
-import { Pass, SkinToken } from "../../../src/draw/backend.js";
-import { drawResources } from "../../../src/draw/resources.js";
+import { Canvas2DBackend, Canvas2DShared } from '../../../src/canvas/index.js';
+import { Pass, SkinToken } from '../../../src/draw/backend.js';
+import { drawResources } from '../../../src/draw/resources.js';
 import {
   createSeqViewer,
   DefaultRegistry,
   DefaultSeqViewerSpec,
   type LayerRenderer,
   manualScheduler,
-} from "../../../src/index.js";
-import { InteractionsViewerRegistry } from "../../../src/interactions/viewer/index.js";
-import { fixtureMeasurer, LayerFrame, Op, RecordingBackend } from "../../../src/testing/index.js";
-import { absentScene, manyScene, mixedScene, type Scene, ShortFingerprint, unitScene, wideScene } from "../scenes.js";
+} from '../../../src/index.js';
+import { InteractionsViewerRegistry } from '../../../src/interactions/viewer/index.js';
+import { fixtureMeasurer, LayerFrame, Op, RecordingBackend } from '../../../src/testing/index.js';
+import { absentScene, manyScene, mixedScene, type Scene, ShortFingerprint, unitScene, wideScene } from '../scenes.js';
 export const SCENES: Record<string, () => Scene> = {
   unit: () => unitScene(),
   many: () => manyScene(),
@@ -44,26 +44,26 @@ export async function fingerprintFrames(
   const ctx = createSeqViewer(spec, { scheduler: manualScheduler(), text: fixtureMeasurer() });
   const r = await ctx.setDocument(scene.doc);
   if (!r.ok) throw new Error(JSON.stringify(r.issues));
-  ctx.views.setCurrent(scene.section.split(".")[0]);
+  ctx.views.setCurrent(scene.section.split('.')[0]);
   for (const ref of ctx.viewports.sections.value) ctx.viewports.get(ref)?.setSize(900, 500, dpr);
   await ctx.graph.update();
   const m = ctx.graph.assembled.value?.view;
-  const k = m?.prepared.findIndex((p) => p.renderer === "interactions:fingerprint") ?? -1;
-  if (k < 0) throw new Error("no fingerprint layer");
-  const entry = ctx.registry.get("renderers", "interactions:fingerprint") as LayerRenderer;
+  const k = m?.prepared.findIndex((p) => p.renderer === 'interactions:fingerprint') ?? -1;
+  if (k < 0) throw new Error('no fingerprint layer');
+  const entry = ctx.registry.get('renderers', 'interactions:fingerprint') as LayerRenderer;
   const frame = new LayerFrame(ctx, wrap ? wrap(entry) : entry, scene.section, k);
-  const canvas = document.createElement("canvas");
+  const canvas = document.createElement('canvas');
   canvas.width = 900 * dpr;
   canvas.height = 500 * dpr;
   const shared = new Canvas2DShared(drawResources(ctx));
   const backend = new Canvas2DBackend(
-    [canvas.getContext("2d", { willReadFrequently: true })],
+    [canvas.getContext('2d', { willReadFrequently: true })],
     shared,
     o.back ?? 1 << Pass.main,
   );
   // Mixed: its three blocks of 30 in view (the third the tiles'); wide: cells under a device px.
-  const cell = name === "wide" ? 0.05 : name === "mixed" ? 8 : 24;
-  if (name !== "unit") ctx.viewports.get(scene.section)?.setView(cell, 0, "api");
+  const cell = name === 'wide' ? 0.05 : name === 'mixed' ? 8 : 24;
+  if (name !== 'unit') ctx.viewports.get(scene.section)?.setView(cell, 0, 'api');
   /** What one frame draws, recorded: its rects, the grounds among them, and the tiles' images. */
   const drawn = () => {
     const rec = new RecordingBackend();

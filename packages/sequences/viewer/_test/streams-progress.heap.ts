@@ -14,7 +14,7 @@
 // allocated where alone it did not, as ST3a-2's glyph case). A frame allocating an object a step fails the same guard (the
 // positive control).
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -25,7 +25,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = 1_000;
 /** The file's warm-up, settle and measurement, as its guards and its control run them. */
@@ -38,28 +38,28 @@ const measure = (frame: () => void) => {
 };
 const guard = (frame: () => void) => {
   const r = measure(frame);
-  return isFlat(r) ? "" : describeScaling(r, N);
+  return isFlat(r) ? '' : describeScaling(r, N);
 };
 
 describe("the overlay's skeletons and error bands allocate nothing per frame", () => {
-  for (const c of ["pending", "failed"] as const)
+  for (const c of ['pending', 'failed'] as const)
     it(`every region ${c}`, async () => {
       vi.resetModules();
-      const { overlayFrame, rectsOf, SkinToken } = await import("./stream-progress-fixtures.js");
+      const { overlayFrame, rectsOf, SkinToken } = await import('./stream-progress-fixtures.js');
       const { g, frame, next } = await overlayFrame(c);
       frame();
       // Not vacuous: the shades drawn (and the hatches over failed regions); a frame asked while one shimmers.
-      expect(rectsOf(g.backend, c === "failed" ? SkinToken.conflict : SkinToken.pending).n).toBeGreaterThan(2);
-      if (c === "failed") expect(g.backend.pathItems.n).toBeGreaterThan(10);
-      expect(next[0] > 0).toBe(c === "pending");
-      expect(guard(frame)).toBe("");
+      expect(rectsOf(g.backend, c === 'failed' ? SkinToken.conflict : SkinToken.pending).n).toBeGreaterThan(2);
+      if (c === 'failed') expect(g.backend.pathItems.n).toBeGreaterThan(10);
+      expect(next[0] > 0).toBe(c === 'pending');
+      expect(guard(frame)).toBe('');
       g.ctx.dispose();
     }, 120_000);
 
-  it("the same frame allocating an object a step is caught (positive control)", async () => {
+  it('the same frame allocating an object a step is caught (positive control)', async () => {
     vi.resetModules();
-    const { overlayFrame } = await import("./stream-progress-fixtures.js");
-    const { frame } = await overlayFrame("pending");
+    const { overlayFrame } = await import('./stream-progress-fixtures.js');
+    const { frame } = await overlayFrame('pending');
     expect(controlCaught(() => measure(leaking(frame) as () => void))).toBe(true);
   }, 120_000);
 });

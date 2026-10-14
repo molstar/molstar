@@ -10,13 +10,13 @@
 // at its bottom edge in the grid tone, drawn whether or not `rowBorders` is on, under the data, and only where the row
 // is at least 4 device px tall; an unsplit track has none, and a real border (a row over 8 px) takes its place.
 
-import { describe, expect, it } from "vitest";
-import { case7, case13 } from "../../core/_test/format/cases.js";
-import { Dirty, SkinToken } from "../src/draw/index.js";
-import type { LayerRenderer } from "../src/index.js";
-import { VariantsRenderer } from "../src/renderers/variants.js";
-import { composed, opNames } from "./composer-fixtures.js";
-import { rects } from "./draw-fixtures.js";
+import { describe, expect, it } from 'vitest';
+import { case7, case13 } from '../../core/_test/format/cases.js';
+import { Dirty, SkinToken } from '../src/draw/index.js';
+import type { LayerRenderer } from '../src/index.js';
+import { VariantsRenderer } from '../src/renderers/variants.js';
+import { composed, opNames } from './composer-fixtures.js';
+import { rects } from './draw-fixtures.js';
 
 const ROWS = 22;
 
@@ -37,7 +37,7 @@ async function guides(o: { dpr?: number; rowHeight?: number; rowBorders?: boolea
 }
 
 describe("a split track's row guides", () => {
-  it("case 13: a hairline at the bottom of each of the 22 rows but the last, in the grid tone, half-strength", async () => {
+  it('case 13: a hairline at the bottom of each of the 22 rows but the last, in the grid tone, half-strength', async () => {
     const { grid, t } = await guides({});
     const dpr = 2;
     // The rows are 8 px tall: the guides are 2 device px (a CSS px's hairline at DPR 2) wide across the data area.
@@ -57,14 +57,14 @@ describe("a split track's row guides", () => {
     expect(grid.filter((r) => r[5] === 255).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("rows 4 device px tall have guides, 3 none (at DPR 1)", async () => {
+  it('rows 4 device px tall have guides, 3 none (at DPR 1)', async () => {
     expect((await guides({ dpr: 1, rowHeight: 4 })).grid).toHaveLength(ROWS - 1);
     expect((await guides({ dpr: 1, rowHeight: 3 })).grid).toHaveLength(0);
     // The threshold is in device px: 2 CSS px at DPR 2.
     expect((await guides({ dpr: 2, rowHeight: 2 })).grid).toHaveLength(ROWS - 1);
   });
 
-  it("rows over 8 px with `rowBorders` have borders, not guides; without it, guides", async () => {
+  it('rows over 8 px with `rowBorders` have borders, not guides; without it, guides', async () => {
     const borders = (await guides({ rowHeight: 12, rowBorders: true })).grid;
     expect(borders.every((r) => r[5] === 255)).toBe(true);
     expect(borders.length).toBeGreaterThanOrEqual(ROWS);
@@ -73,15 +73,15 @@ describe("a split track's row guides", () => {
     expect(plain.every((r) => r[5] < 255)).toBe(true);
   });
 
-  it("an unsplit document has no guides", async () => {
+  it('an unsplit document has no guides', async () => {
     expect((await guides({ doc: case7() })).grid).toHaveLength(0);
   });
 
   it("the guides are under the data: the first guide is drawn before the variants' glyphs", async () => {
     const { rec } = await guides({});
     const ops = opNames(rec);
-    const rectsAt = ops.indexOf("rects");
-    const glyphsAt = ops.indexOf("glyphs");
+    const rectsAt = ops.indexOf('rects');
+    const glyphsAt = ops.indexOf('glyphs');
     expect(rectsAt).toBeGreaterThanOrEqual(0);
     expect(glyphsAt).toBeGreaterThan(rectsAt);
   });

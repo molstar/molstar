@@ -21,18 +21,18 @@ import {
   type Matcher,
   regexMatcher,
   toCodes,
-} from "@molstar/seq-core/algorithms/search";
-import { CoordinateSystemKind as K } from "../coordinates.js";
-import type { SeqSet } from "../set.js";
-import type { CompileContext, QueryFn } from "./compile.js";
-import type { QueryContext } from "./context.js";
-import { eachRun, type SelectionBuilder, sameSystem } from "./kernels.js";
-import { rt, unionOf } from "./runtime.js";
-import type { SeqSelection } from "./selection.js";
-import { domainOf } from "./systems.js";
+} from '@molstar/seq-core/algorithms/search';
+import { CoordinateSystemKind as K } from '../coordinates.js';
+import type { SeqSet } from '../set.js';
+import type { CompileContext, QueryFn } from './compile.js';
+import type { QueryContext } from './context.js';
+import { eachRun, type SelectionBuilder, sameSystem } from './kernels.js';
+import { rt, unionOf } from './runtime.js';
+import type { SeqSelection } from './selection.js';
+import { domainOf } from './systems.js';
 
 const dom = new Int32Array(2);
-const count = (n: number, what: string) => `${n.toLocaleString("en-US")} ${what}${n === 1 ? "" : "s"}`;
+const count = (n: number, what: string) => `${n.toLocaleString('en-US')} ${what}${n === 1 ? '' : 's'}`;
 
 /** Where a scan reads, one canonical group: its `:in`; else the `and`'s selection; else every unit (and held row). */
 function scope(ctx: QueryContext, within: QueryFn<SeqSelection> | undefined, rows: boolean): SeqSelection {
@@ -92,13 +92,13 @@ function visits(ctx: QueryContext, u: SeqSelection, path: string, letters: boole
     if (held > 0) n += u.stop[k] - u.start[k];
   }
   if (letters && cols > 0) {
-    const say = "alignment columns have no letters and were skipped; name the rows: (and (rows :of A) (letters C))";
-    ctx.warn("seqql.letters.columns", path, say);
+    const say = 'alignment columns have no letters and were skipped; name the rows: (and (rows :of A) (letters C))';
+    ctx.warn('seqql.letters.columns', path, say);
   }
   if (lazy > 0)
-    ctx.warn("seqql.lazy", path, `the letters of ${count(lazy, "sequence")} are not loaded and were not read`);
-  const what = [seqs && count(seqs, "sequence"), rows && count(rows, "row"), cols && count(cols, "column range")];
-  ctx.visit(n, path, what.filter((x) => x).join(" and ") || "nothing");
+    ctx.warn('seqql.lazy', path, `the letters of ${count(lazy, 'sequence')} are not loaded and were not read`);
+  const what = [seqs && count(seqs, 'sequence'), rows && count(rows, 'row'), cols && count(cols, 'column range')];
+  ctx.visit(n, path, what.filter((x) => x).join(' and ') || 'nothing');
   return n;
 }
 
@@ -116,7 +116,7 @@ function scanMask(b: SelectionBuilder, mask: Uint8Array, kind: number, id: numbe
 
 /** `(letters L :in Q)`: positions whose letter is one of L, case-insensitive; one group per run. */
 function letters(c: CompileContext): QueryFn<SeqSelection> {
-  const [L, within] = [String(c.raw("0") ?? ""), c.query("in")];
+  const [L, within] = [String(c.raw('0') ?? ''), c.query('in')];
   const mask = new Uint8Array(256);
   for (const ch of L.toUpperCase()) if (ch.charCodeAt(0) < 256) mask[ch.charCodeAt(0)] = 1;
   return (ctx) => {
@@ -134,8 +134,8 @@ function letters(c: CompileContext): QueryFn<SeqSelection> {
     }
     b.end();
     const out = ctx.finish(b);
-    if (out.runCount > ctx.limits.groups) ctx.over("groups", out.runCount);
-    if (out.runCount === 0) ctx.because(c.path, `no ${[...L.toUpperCase()].join(", ")} in ${count(n, "position")}`);
+    if (out.runCount > ctx.limits.groups) ctx.over('groups', out.runCount);
+    if (out.runCount === 0) ctx.because(c.path, `no ${[...L.toUpperCase()].join(', ')} in ${count(n, 'position')}`);
     return eachRun(out);
   };
 }
@@ -159,7 +159,7 @@ function testRun(ctx: QueryContext, b: SelectionBuilder, where: QueryFn<unknown>
 
 /** `(positions :in Q :where T)`: the general case, a test per position over the reused slot; one group per run. */
 function positions(c: CompileContext): QueryFn<SeqSelection> {
-  const [within, where] = [c.query("in"), c.value("where")];
+  const [within, where] = [c.query('in'), c.value('where')];
   return (ctx) => {
     const u = scope(ctx, within, true);
     const n = visits(ctx, u, c.path, false);
@@ -177,8 +177,8 @@ function positions(c: CompileContext): QueryFn<SeqSelection> {
     }
     b.end();
     const out = ctx.finish(b);
-    if (out.runCount > ctx.limits.groups) ctx.over("groups", out.runCount);
-    if (out.runCount === 0) ctx.tested(c.path, n, "position", missed);
+    if (out.runCount > ctx.limits.groups) ctx.over('groups', out.runCount);
+    if (out.runCount === 0) ctx.tested(c.path, n, 'position', missed);
     return eachRun(out);
   };
 }
@@ -210,12 +210,12 @@ function matcherOf(ctx: QueryContext, c: CompileContext, p: Pattern): Matcher {
   const table = p.classes === undefined ? null : c.env.classes.get(p.classes);
   if (p.classes !== undefined && !table) {
     const have = [...c.env.classes.keys()];
-    const say = have.length ? `its tables: ${have.join(", ")}` : "this host registers none";
-    ctx.fail("seqql.classes.unknown", `${c.path}/args/classes`, `no letter-class table "${p.classes}" here; ${say}`);
+    const say = have.length ? `its tables: ${have.join(', ')}` : 'this host registers none';
+    ctx.fail('seqql.classes.unknown', `${c.path}/args/classes`, `no letter-class table "${p.classes}" here; ${say}`);
   }
   const upper = p.text.toUpperCase();
   try {
-    if (p.regex) return regexMatcher(new RegExp(p.text, "i"));
+    if (p.regex) return regexMatcher(new RegExp(p.text, 'i'));
     if (!table) return p.edits > 0 ? approximateMatcher(toCodes(upper), p.edits, p) : exactMatcher(toCodes(upper));
     if (p.edits === 0) return classMatcher(compileMotif(upper, table));
     const equal: number[] = [];
@@ -223,20 +223,20 @@ function matcherOf(ctx: QueryContext, c: CompileContext, p: Pattern): Matcher {
     return approximateMatcher(toCodes(upper), p.edits, { ends: p.ends, equal: Uint8Array.from(equal) });
   } catch (e) {
     if (!(e instanceof RangeError || e instanceof SyntaxError)) throw e;
-    const why = e.message.replace(/^\w+: /, "");
-    return ctx.fail("seqql.type", `${c.path}/args/0`, `search cannot use the pattern "${p.text}": ${why}`);
+    const why = e.message.replace(/^\w+: /, '');
+    return ctx.fail('seqql.type', `${c.path}/args/0`, `search cannot use the pattern "${p.text}": ${why}`);
   }
 }
 
 /** `(search P :in Q :edits n :classes C :regex b :ends e)`: one group per hit, in the order of their ends per run. */
 function search(c: CompileContext): QueryFn<SeqSelection> {
-  const within = c.query("in");
+  const within = c.query('in');
   const p: Pattern = {
-    text: String(c.raw("0") ?? ""),
-    edits: c.raw<number>("edits") ?? 0,
-    classes: c.raw<string>("classes"),
-    regex: c.raw<boolean>("regex") === true,
-    ends: c.raw<ApproximateEnds>("ends") ?? "local_best_last",
+    text: String(c.raw('0') ?? ''),
+    edits: c.raw<number>('edits') ?? 0,
+    classes: c.raw<string>('classes'),
+    regex: c.raw<boolean>('regex') === true,
+    ends: c.raw<ApproximateEnds>('ends') ?? 'local_best_last',
   };
   let m: Matcher | null = null;
   return (ctx) => {
@@ -260,14 +260,14 @@ function search(c: CompileContext): QueryFn<SeqSelection> {
     }
     H.b = null;
     const out = ctx.finish(b);
-    const more = p.edits > 0 || p.regex ? "" : "; allow edits with :edits 1";
-    if (out.groupCount === 0) ctx.because(c.path, `no hit in ${count(n, "position")}${more}`);
+    const more = p.edits > 0 || p.regex ? '' : '; allow edits with :edits 1';
+    if (out.groupCount === 0) ctx.because(c.path, `no hit in ${count(n, 'position')}${more}`);
     return out;
   };
 }
 
 export const SCAN_RUNTIMES = [
-  rt("seq.generator.letters", letters),
-  rt("seq.generator.positions", positions),
-  rt("seq.generator.search", search),
+  rt('seq.generator.letters', letters),
+  rt('seq.generator.positions', positions),
+  rt('seq.generator.search', search),
 ];

@@ -21,12 +21,12 @@ import {
   type SeqIndex,
   type SeqSet,
   type UnitId,
-} from "@molstar/seq-core/model";
-import { Kind, type KindMask, kindByName } from "./vocabulary.js";
+} from '@molstar/seq-core/model';
+import { Kind, type KindMask, kindByName } from './vocabulary.js';
 
 /** Per row of a pairs annotation, its kind, read from `category` once. */
 const RowKinds: CustomProperty<Annotation, Uint8Array> = {
-  name: "interactions:kinds",
+  name: 'interactions:kinds',
   compute(a, set) {
     const out = new Uint8Array(a.count).fill(Kind.other);
     for (let r = 0; a.category && r < a.count; r++) out[r] = kindByName(set.strings.get(a.category[r]));
@@ -152,7 +152,7 @@ function atomsContacting<C>(
     s.set = set;
     s.pairs = pairs;
     s.kinds = rowKinds(set, pairs);
-    s.visit = visit as Atoms["visit"];
+    s.visit = visit as Atoms['visit'];
     s.ctx = ctx;
     Pairs.touching(pairs, unit, index, touched, s);
   } finally {

@@ -11,9 +11,9 @@
 // per-item scale of a run), then every batch kind's coverage. Rectangles are exact at DPR 1; curves and text differ by
 // antialiasing and hinting.
 
-import { describe, expect, it } from "vitest";
-import { probeFonts } from "../../scripts/font-probe.js";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
+import { describe, expect, it } from 'vitest';
+import { probeFonts } from '../../scripts/font-probe.js';
+import { Canvas2DBackend, Canvas2DShared } from '../../src/canvas/index.js';
 import {
   type DrawResources,
   GlyphBatch,
@@ -29,23 +29,23 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.js";
-import { type FontMetrics, metricsMeasurer, SvgBackend } from "../../src/svg/index.js";
+} from '../../src/draw/api.js';
+import { type FontMetrics, metricsMeasurer, SvgBackend } from '../../src/svg/index.js';
 
 const GLYPHS = [
-  { char: "W", path: null, box: [1, 1] as const, fallback: 0 },
-  { char: null, path: "M0 0 L10 0 L0 10 Z", box: [10, 10] as const, fallback: 0 },
+  { char: 'W', path: null, box: [1, 1] as const, fallback: 0 },
+  { char: null, path: 'M0 0 L10 0 L0 10 Z', box: [10, 10] as const, fallback: 0 },
 ];
 const resources: DrawResources = {
-  font: (id) => (id === 1 ? "600 16px serif" : "400 20px sans-serif"),
+  font: (id) => (id === 1 ? '600 16px serif' : '400 20px sans-serif'),
   fontPx: (id) => (id === 1 ? 16 : 20),
-  token: (t) => (t === SkinToken.ink ? "#112233" : "rgb(43 127 255 / 0.5)"),
+  token: (t) => (t === SkinToken.ink ? '#112233' : 'rgb(43 127 255 / 0.5)'),
   glyph: (id) => GLYPHS[id - SHAPE_COUNT] ?? null,
 };
 
 /** The em boxes of this browser's fonts, read as the committed tables' generator reads them. */
 const live = metricsMeasurer(
-  probeFonts({ families: { "sans-serif": "sans-serif", serif: "serif" }, weights: [400, 600] }).map(
+  probeFonts({ families: { 'sans-serif': 'sans-serif', serif: 'serif' }, weights: [400, 600] }).map(
     (p): FontMetrics => ({ ...p, unitsPerEm: 1000, advances: Uint16Array.from(p.advances) }),
   ),
 );
@@ -54,7 +54,7 @@ const metrics = (font: string) => live.metrics(font);
 /** The batches drawn on Canvas2D and as SVG, both as [w × h × 4] pixels at `dpr`. */
 async function both(draw: (be: RenderBackend) => void, w: number, h: number, dpr = 1, baselines = true) {
   const c = new OffscreenCanvas(w, h);
-  const g = c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+  const g = c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
   const canvas = new Canvas2DBackend([g], new Canvas2DShared(resources), 0);
   canvas.beginPass(Pass.main, w, h, dpr);
   draw(canvas);
@@ -63,12 +63,12 @@ async function both(draw: (be: RenderBackend) => void, w: number, h: number, dpr
   svg.beginPass(Pass.main, w, h, dpr);
   draw(svg);
   svg.endPass();
-  const url = URL.createObjectURL(new Blob([await svg.toString()], { type: "image/svg+xml" }));
+  const url = URL.createObjectURL(new Blob([await svg.toString()], { type: 'image/svg+xml' }));
   const img = new Image();
   img.src = url;
   await img.decode();
   const s = new OffscreenCanvas(w, h);
-  const sg = s.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+  const sg = s.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
   sg.drawImage(img, 0, 0, w, h);
   URL.revokeObjectURL(url);
   return { canvas: g.getImageData(0, 0, w, h).data, svg: sg.getImageData(0, 0, w, h).data, text: await svg.toString() };
@@ -108,7 +108,7 @@ function run(
   const t = new TextBatch();
   t.style(o.font ?? 0, align, baseline, o.angle ?? 0);
   t.begin(0xcc0000);
-  const k = t.add("Hxgé");
+  const k = t.add('Hxgé');
   t.x[k] = 80;
   t.y[k] = 60;
   t.sx[k] = o.sx ?? 1;
@@ -116,7 +116,7 @@ function run(
   be.text(t);
 }
 
-describe("text placed as Canvas2D places it", () => {
+describe('text placed as Canvas2D places it', () => {
   const alignments = [TextAlign.left, TextAlign.center, TextAlign.right];
   const baselines = [TextBaseline.alphabetic, TextBaseline.middle, TextBaseline.top, TextBaseline.bottom];
   for (const dpr of [1, 2])
@@ -142,12 +142,12 @@ describe("text placed as Canvas2D places it", () => {
       const [c, s, d] = [ink(off.canvas, 160), ink(off.svg, 160), ink(on.svg, 160)];
       expect(near(c, s, 0.12 * 20 + 1), `canvas ${c} dominant-baseline ${s}`).toBe(true);
       expect(near(c, d, 1), `canvas ${c} dy ${d}`).toBe(true);
-      expect(off.text).toContain("dominant-baseline");
-      expect(on.text).not.toContain("dominant-baseline");
+      expect(off.text).toContain('dominant-baseline');
+      expect(on.text).not.toContain('dominant-baseline');
     }
   });
 
-  it("an angle and a per-item scale: the same box", async () => {
+  it('an angle and a per-item scale: the same box', async () => {
     for (const o of [{ angle: Math.PI / 2 }, { sx: 2, sy: 0.5 }, { angle: -Math.PI / 6, sx: 1.5, sy: 1.2 }]) {
       const { canvas, svg } = await both((be) => run(be, TextAlign.center, TextBaseline.middle, o), 160, 120);
       const [c, s] = [ink(canvas, 160), ink(svg, 160)];
@@ -173,8 +173,8 @@ describe("text placed as Canvas2D places it", () => {
   });
 });
 
-describe("every batch kind covers what Canvas2D covers", () => {
-  it("rects: exact, fills, alpha, an outline and a skin token", async () => {
+describe('every batch kind covers what Canvas2D covers', () => {
+  it('rects: exact, fills, alpha, an outline and a skin token', async () => {
     const { canvas, svg } = await both(
       (be) => {
         const b = new RectBatch();
@@ -194,7 +194,7 @@ describe("every batch kind covers what Canvas2D covers", () => {
     expect(differing(canvas, svg)).toBe(0);
   });
 
-  it("sectors, paths and glyph shapes: the same coverage", async () => {
+  it('sectors, paths and glyph shapes: the same coverage', async () => {
     const draw = (be: RenderBackend) => {
       const s = new SectorBatch();
       s.begin(0x884400, 200);
@@ -236,12 +236,12 @@ describe("every batch kind covers what Canvas2D covers", () => {
     expect(Math.abs(coverage(canvas) - coverage(svg)) / coverage(canvas)).toBeLessThan(0.02);
   });
 
-  it("images: smoothed or not, whole or a source rectangle", async () => {
+  it('images: smoothed or not, whole or a source rectangle', async () => {
     const px = new Uint32Array(4 * 4);
     for (let i = 0; i < 16; i++)
       px[i] = new Uint32Array(new Uint8Array([(i * 16) & 255, 255 - i * 16, 100, 255]).buffer)[0];
     const c = new OffscreenCanvas(60, 40);
-    const g = c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+    const g = c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
     const shared = new Canvas2DShared(resources);
     const canvas = new Canvas2DBackend([g], shared, 0);
     const svg = new SvgBackend(resources);
@@ -254,12 +254,12 @@ describe("every batch kind covers what Canvas2D covers", () => {
       be.image(id, r2, false);
       be.endPass();
     }
-    const url = URL.createObjectURL(new Blob([await svg.toString()], { type: "image/svg+xml" }));
+    const url = URL.createObjectURL(new Blob([await svg.toString()], { type: 'image/svg+xml' }));
     const img = new Image();
     img.src = url;
     await img.decode();
     const s = new OffscreenCanvas(60, 40);
-    const sg = s.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+    const sg = s.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
     sg.drawImage(img, 0, 0);
     expect(differing(g.getImageData(0, 0, 60, 40).data, sg.getImageData(0, 0, 60, 40).data)).toBeLessThan(40);
   });

@@ -7,7 +7,7 @@
  */
 
 // `test:slow`: the Node tests tagged slow (timing, fuzz, scale, Chrome, CLIs), by hand or at checkpoints, never in CI.
-import { defineConfig } from "vitest/config";
-import { nodeTests } from "../vitest.shared.js";
+import { defineConfig } from 'vitest/config';
+import { nodeTests } from '../vitest.shared.js';
 
-export default defineConfig(nodeTests(import.meta.dirname, "slow"));
+export default defineConfig(nodeTests(import.meta.dirname, 'slow'));

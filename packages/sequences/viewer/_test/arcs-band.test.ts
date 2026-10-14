@@ -11,12 +11,12 @@
 // rising above their ends) and case 7's contacts. The bug: an arc wider than the window had its apex past the band, so
 // zoomed in its visible piece was a steep, near-straight line out of the band into the next section.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { case7, case21 } from "../../core/_test/format/cases.js";
-import { type PathBatch, PathMode, PathVerb } from "../src/draw/backend.js";
-import { LayerFrame, RecordingBackend } from "../src/testing/index.js";
-import { drawn } from "./draw-fixtures.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { case7, case21 } from '../../core/_test/format/cases.js';
+import { type PathBatch, PathMode, PathVerb } from '../src/draw/backend.js';
+import { LayerFrame, RecordingBackend } from '../src/testing/index.js';
+import { drawn } from './draw-fixtures.js';
 
 /** Points along each subpath of a stroked batch: its moves and lines, and 11 along each quad. */
 function points(b: PathBatch): [number, number][] {
@@ -58,14 +58,14 @@ async function arcsAt(doc: SeqViewSpecDoc, view: string, section: string, zoom: 
   if (zoom) t.ctx.viewports.get(section)?.zoomTo(zoom[0], zoom[1], zoom[2], { durationMs: 0 });
   await t.ctx.graph.update();
   const m = t.ctx.graph.assembled.value?.view;
-  if (!m) throw new Error("no view");
+  if (!m) throw new Error('no view');
   const out: { top: number; bottom: number; pts: [number, number][] }[] = [];
   for (let k = 0; k < m.prepared.length; k++) {
     const r = m.resolved;
-    if (m.prepared[k].renderer !== "pairs") continue;
+    if (m.prepared[k].renderer !== 'pairs') continue;
     if (m.set.strings.get(r.sections.ref[r.tracks.section[r.layers.track[k]]]) !== section) continue;
-    const entry = t.ctx.registry.get("renderers", "pairs");
-    if (!entry) throw new Error("no pairs renderer");
+    const entry = t.ctx.registry.get('renderers', 'pairs');
+    if (!entry) throw new Error('no pairs renderer');
     const f = new LayerFrame(t.ctx, entry, section, k);
     const rec = new RecordingBackend();
     f.draw(rec);
@@ -75,17 +75,17 @@ async function arcsAt(doc: SeqViewSpecDoc, view: string, section: string, zoom: 
 }
 
 const ZOOMS: [string, [number, number, number] | null][] = [
-  ["fitted", null],
-  ["mid", [0, 300, 700]],
-  ["letters 735–790", [0, 734, 790]],
-  ["letters 600–650", [0, 599, 650]],
+  ['fitted', null],
+  ['mid', [0, 300, 700]],
+  ['letters 735–790', [0, 734, 790]],
+  ['letters 600–650', [0, 599, 650]],
 ];
 
 describe("pairs: every arc within its track's band", () => {
-  for (const section of ["gene2.own", "gene2.reference"])
+  for (const section of ['gene2.own', 'gene2.reference'])
     for (const [name, zoom] of ZOOMS)
       it(`case 21's sashimi, ${section}, ${name}`, async () => {
-        const layers = await arcsAt(case21(), "gene2", section, zoom);
+        const layers = await arcsAt(case21(), 'gene2', section, zoom);
         expect(layers.length).toBe(2);
         let n = 0;
         let out = 0;
@@ -98,13 +98,13 @@ describe("pairs: every arc within its track's band", () => {
       });
 
   for (const [name, zoom] of [
-    ["fitted", null],
-    ["barnase 20–70", [0, 20, 70]],
-    ["barstar 30–80", [1, 30, 80]],
-    ["barstar 36–60", [1, 36, 60]],
+    ['fitted', null],
+    ['barnase 20–70', [0, 20, 70]],
+    ['barstar 30–80', [1, 30, 80]],
+    ['barstar 36–60', [1, 36, 60]],
   ] as const)
     it(`case 7's contacts, ${name}`, async () => {
-      const layers = await arcsAt(case7(), "complex-one", "complex-one.main", zoom as [number, number, number] | null);
+      const layers = await arcsAt(case7(), 'complex-one', 'complex-one.main', zoom as [number, number, number] | null);
       expect(layers.length).toBe(1);
       const [{ top, bottom, pts }] = layers;
       expect(pts.length).toBeGreaterThan(0);

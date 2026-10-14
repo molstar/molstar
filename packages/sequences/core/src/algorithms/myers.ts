@@ -42,7 +42,7 @@
 // and its DELETE (a letter only in the target) our `D` (seqspec:model#coordinate-maps), so its path reads as our CIGAR
 // unchanged.
 
-import { type Aligner, type AlignerParams, alignable, readOptions } from "./aligner.js";
+import { type Aligner, type AlignerParams, alignable, readOptions } from './aligner.js';
 
 const WORD_SIZE = 32;
 /** edlib's EDLIB_EDOP_*: INSERT a letter only in `a` (our I), DELETE a letter only in `b` (our D). */
@@ -98,7 +98,7 @@ export interface MyersResult {
   readonly end: number;
 }
 
-export type MyersMode = "global" | "prefix" | "infix";
+export type MyersMode = 'global' | 'prefix' | 'infix';
 
 /**
  * The unit-cost alignment of `a` to `b`: `global` end to end, `prefix` `a` against the start of `b`, `infix` `a`
@@ -109,22 +109,22 @@ export type MyersMode = "global" | "prefix" | "infix";
 export function myersAlign(
   a: string,
   b: string,
-  mode: MyersMode = "global",
+  mode: MyersMode = 'global',
   maxDistance: number | null = null,
   equalities: readonly string[] = [],
 ): MyersResult | null {
   const queryLength = a.length;
   const targetLength = b.length;
-  if (queryLength === 0 || targetLength === 0) throw new RangeError("myers: empty sequence");
+  if (queryLength === 0 || targetLength === 0) throw new RangeError('myers: empty sequence');
   // Letters only: `& 127` below would alias a non-ASCII character to an ASCII one.
-  if (!alignable(a, b)) throw new RangeError("myers: sequences must be letters A-Z only");
+  if (!alignable(a, b)) throw new RangeError('myers: sequences must be letters A-Z only');
   if (maxDistance !== null && !(Number.isInteger(maxDistance) && maxDistance >= 0)) {
     throw new RangeError(`myers: maxDistance must be null or an integer of at least 0; got ${maxDistance}`);
   }
   for (const pair of equalities) {
     if (!/^[A-Za-z]{2}$/.test(pair)) throw new RangeError(`myers: an equality is two letters; got "${pair}"`);
   }
-  const m = mode === "prefix" ? MODE.SHW : mode === "infix" ? MODE.HW : MODE.NW;
+  const m = mode === 'prefix' ? MODE.SHW : mode === 'infix' ? MODE.HW : MODE.NW;
 
   // transformSequences: letters to their index in the alphabet, in order of appearance.
   const index = new Int16Array(128).fill(-1);
@@ -228,24 +228,24 @@ export function myersAlign(
 
 const params: AlignerParams = {
   mode: {
-    type: "choice",
-    choices: ["global", "prefix", "infix"],
+    type: 'choice',
+    choices: ['global', 'prefix', 'infix'],
     nullable: false,
-    default: "global",
+    default: 'global',
     description:
-      "global: end to end; prefix: `a` against the start of `b`; infix: `a` found anywhere inside `b` (a construct " +
-      "in its UniProt sequence). The unmatched ends of `b` become D.",
+      'global: end to end; prefix: `a` against the start of `b`; infix: `a` found anywhere inside `b` (a construct ' +
+      'in its UniProt sequence). The unmatched ends of `b` become D.',
   },
   max_distance: {
-    type: "int",
+    type: 'int',
     nullable: true,
     min: 0,
     default: null,
-    description: "The largest edit distance accepted; beyond it the sequences are not aligned. null: no bound.",
+    description: 'The largest edit distance accepted; beyond it the sequences are not aligned. null: no bound.',
   },
   equalities: {
-    type: "str",
-    pattern: "[A-Za-z]{2}([ ,]+[A-Za-z]{2})*",
+    type: 'str',
+    pattern: '[A-Za-z]{2}([ ,]+[A-Za-z]{2})*',
     nullable: true,
     default: null,
     description: 'Letter pairs that match besides equal letters, separated by spaces, e.g. "NA NC NG NT". null: none.',
@@ -253,13 +253,13 @@ const params: AlignerParams = {
 };
 
 export const myers: Aligner = {
-  name: "myers",
+  name: 'myers',
   description:
     "Unit-cost edit distance (Myers' bit-vector algorithm, ported from edlib), for near-identical sequences: " +
     "fast and exact, but gaps cost as much as substitutions. Memory: a bit per cell up to 1 MB, then Hirschberg's split.",
   params,
   async align(a, b, options) {
-    const o = readOptions("myers", params, options);
+    const o = readOptions('myers', params, options);
     if (!alignable(a, b)) return null;
     const pairs = o.equalities === null ? [] : (o.equalities as string).split(/[ ,]+/);
     return myersAlign(a, b, o.mode as MyersMode, o.max_distance as number | null, pairs)?.cigar ?? null;
@@ -268,11 +268,11 @@ export const myers: Aligner = {
 
 /** A CIGAR from edit operations, matches and mismatches both as `M`. */
 function cigarOfOps(ops: Uint8Array, n: number): string {
-  let cigar = "";
+  let cigar = '';
   for (let k = 0; k < n; ) {
-    const op = ops[k] === EDOP.INSERT ? "I" : ops[k] === EDOP.DELETE ? "D" : "M";
+    const op = ops[k] === EDOP.INSERT ? 'I' : ops[k] === EDOP.DELETE ? 'D' : 'M';
     let r = k + 1;
-    while (r < n && (ops[r] === EDOP.INSERT ? "I" : ops[r] === EDOP.DELETE ? "D" : "M") === op) r++;
+    while (r < n && (ops[r] === EDOP.INSERT ? 'I' : ops[r] === EDOP.DELETE ? 'D' : 'M') === op) r++;
     cigar += `${r - k}${op}`;
     k = r;
   }
@@ -779,7 +779,7 @@ function hirschberg(
   // The left half's last column, unwrapped top first; scoresLeftStartIdx is the row of its first cell.
   buildPeq(w, w.peq, query, queryLength);
   let status = nw(w, w.peq, W, maxNumBlocks, queryLength, target, targetLength, bestScore, false, leftHalfWidth - 1);
-  if (status !== STOPPED) throw new Error("myers: no optimal path through the left half (an internal error)");
+  if (status !== STOPPED) throw new Error('myers: no optimal path through the left half (an internal error)');
   const firstLeft = w.firstBlocks[0];
   const lastLeft = w.lastBlocks[0];
   let scoresLeftLength = (lastLeft - firstLeft + 1) * WORD_SIZE;
@@ -798,7 +798,7 @@ function hirschberg(
   // The right half's first column from the reversed problem, unwrapped and reversed (top first in the forward rows).
   buildPeq(w, w.rPeq, rQuery, queryLength);
   status = nw(w, w.rPeq, W, maxNumBlocks, queryLength, rTarget, targetLength, bestScore, false, rightHalfWidth - 1);
-  if (status !== STOPPED) throw new Error("myers: no optimal path through the right half (an internal error)");
+  if (status !== STOPPED) throw new Error('myers: no optimal path through the right half (an internal error)');
   const firstRight = w.firstBlocks[0];
   const lastRight = w.lastBlocks[0];
   let scoresRightLength = (lastRight - firstRight + 1) * WORD_SIZE;
@@ -852,7 +852,7 @@ function hirschberg(
     rightScore = rightHalfWidth;
     if (leftScore + rightScore === bestScore) queryIdxLeftAlignment = queryLength - 1;
   }
-  if (queryIdxLeftAlignment === -2) throw new Error("myers: no optimal path across the halves (an internal error)");
+  if (queryIdxLeftAlignment === -2) throw new Error('myers: no optimal path across the halves (an internal error)');
 
   // The upper left and the lower right quarter, in order: their paths concatenate.
   const ulHeight = queryIdxLeftAlignment + 1;

@@ -10,9 +10,9 @@
 // (`heapScaling`, RB0b), each path warmed up first. The positive control: the state sets allocating an object a step
 // (`leaking`), measured alike, are caught.
 
-import { describe, expect, it } from "vitest";
-import { event, live, state } from "../src/state.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { describe, expect, it } from 'vitest';
+import { event, live, state } from '../src/state.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from './heap.js';
 
 const N = 20_000;
 const MASK = 0xfffff;
@@ -28,29 +28,29 @@ function setting() {
   s.subscribe((v) => {
     sink = (sink ^ v) & MASK;
   });
-  return (k: number) => s.set(k & MASK, "pointer");
+  return (k: number) => s.set(k & MASK, 'pointer');
 }
 
-describe("emission allocates nothing", () => {
-  it("state sets, with rxjs subscribers", () => {
+describe('emission allocates nothing', () => {
+  it('state sets, with rxjs subscribers', () => {
     const r = heapScaling(N, setting());
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
   });
 
-  it("state sets queued during delivery", () => {
+  it('state sets queued during delivery', () => {
     const s = state(0);
     // An odd value sets the next one from inside the delivery: each outer set queues one.
     s.subscribe((v) => {
-      if (v & 1) s.set((v + 1) & MASK, "behavior");
+      if (v & 1) s.set((v + 1) & MASK, 'behavior');
     });
     s.subscribe((v) => {
       sink = (sink + v) & MASK;
     });
-    const r = heapScaling(N, (k) => s.set((2 * k + 1) & MASK, "pointer"));
+    const r = heapScaling(N, (k) => s.set((2 * k + 1) & MASK, 'pointer'));
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
   });
 
-  it("live version bumps", () => {
+  it('live version bumps', () => {
     const l = live({ x: 0 });
     l.version.subscribe((v) => {
       sink = (sink + v + l.current.x) & MASK;
@@ -62,9 +62,9 @@ describe("emission allocates nothing", () => {
     expect(isFlat(r), describeScaling(r, N)).toBe(true);
   });
 
-  it("events with a reused record, by priority", () => {
+  it('events with a reused record, by priority', () => {
     const e = event<{ x: number; owner: string }>();
-    const rec = { x: 0, owner: "" };
+    const rec = { x: 0, owner: '' };
     e.subscribe(
       (r) => {
         sink = (sink + r.x) & MASK;
@@ -73,7 +73,7 @@ describe("emission allocates nothing", () => {
     );
     e.subscribe(
       (r) => {
-        if (r.x === -1) r.owner = "never";
+        if (r.x === -1) r.owner = 'never';
       },
       { priority: 50 },
     );
@@ -89,7 +89,7 @@ describe("emission allocates nothing", () => {
   });
 
   // The control last: cases in one file share V8's feedback.
-  it("the same sets allocating an object each are caught (positive control)", () => {
+  it('the same sets allocating an object each are caught (positive control)', () => {
     expect(controlCaught(() => heapScaling(N, leaking(setting())))).toBe(true);
   });
 });

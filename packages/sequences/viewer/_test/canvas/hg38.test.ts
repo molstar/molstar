@@ -16,10 +16,10 @@
 // numbers to __debug__/hg38.txt. ST3a-2: genes and variants streamed too (density from `count` bins zoomed out, items
 // region by region below their first level).
 
-import { afterAll, expect, it } from "vitest";
-import { commands } from "vitest/browser";
-import { GRCH38, hg38Streams, streamedDoc } from "../../../core/_test/format/stream-provider.js";
-import { mountSection } from "../../src/canvas/index.js";
+import { afterAll, expect, it } from 'vitest';
+import { commands } from 'vitest/browser';
+import { GRCH38, hg38Streams, streamedDoc } from '../../../core/_test/format/stream-provider.js';
+import { mountSection } from '../../src/canvas/index.js';
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -27,13 +27,13 @@ import {
   manualScheduler,
   SeqViewerConfig,
   type SeqViewerContext,
-} from "../../src/index.js";
-import type { Streams } from "../../src/streams.js";
+} from '../../src/index.js';
+import type { Streams } from '../../src/streams.js';
 
-const SECTION = "browser.main";
+const SECTION = 'browser.main';
 const median = (xs: number[]) => xs.slice().sort((a, b) => a - b)[xs.length >> 1];
 const out: string[] = [];
-afterAll(() => commands.writeFile("__debug__/hg38.txt", out.join("\n")));
+afterAll(() => commands.writeFile('__debug__/hg38.txt', out.join('\n')));
 
 /** The clock run until every region in view has arrived; the frames it took. */
 async function settle(ctx: SeqViewerContext, manual: ManualScheduler): Promise<number> {
@@ -46,7 +46,7 @@ async function settle(ctx: SeqViewerContext, manual: ManualScheduler): Promise<n
     manual.advance(16);
     await new Promise((ok) => setTimeout(ok, 0));
   }
-  if (!done) throw new Error("the streams did not settle");
+  if (!done) throw new Error('the streams did not settle');
   return k;
 }
 
@@ -56,38 +56,38 @@ for (const dpr of [1, 2])
     const s = hg38Streams({ letters: true });
     const ctx = createSeqViewer(DefaultSeqViewerSpec(), {
       scheduler: manual,
-      loaders: { load: () => Promise.reject(new Error("the bench loads nothing")), stream: s.stream },
+      loaders: { load: () => Promise.reject(new Error('the bench loads nothing')), stream: s.stream },
     });
     const t0 = performance.now();
     const r = await ctx.setDocument(streamedDoc({ sequence: true, items: true }));
     if (!r.ok) throw new Error(JSON.stringify(r.issues));
-    const host = document.createElement("div");
-    host.style.cssText = "position:absolute;left:0;top:0;width:1320px;height:300px";
+    const host = document.createElement('div');
+    host.style.cssText = 'position:absolute;left:0;top:0;width:1320px;height:300px';
     document.body.appendChild(host);
     const surface = mountSection(ctx, SECTION, host, { dpr });
     await ctx.graph.update();
     const vp = ctx.viewports.get(SECTION);
-    if (!vp) throw new Error("no viewport");
+    if (!vp) throw new Error('no viewport');
     vp.fit();
     await settle(ctx, manual);
     surface.renderNow();
     const load = performance.now() - t0;
-    const canvas = host.querySelector("canvas") as HTMLCanvasElement;
+    const canvas = host.querySelector('canvas') as HTMLCanvasElement;
     const full = () => {
       surface.composer.redraw();
       surface.invalidate(7);
       const t = performance.now();
       surface.renderNow();
-      canvas.getContext("2d")?.getImageData(0, 0, 1, 1);
+      canvas.getContext('2d')?.getImageData(0, 0, 1, 1);
       return performance.now() - t;
     };
     const manager = ctx.streams as Streams;
     const rows = [`load ${load.toFixed(0)} ms`];
     for (const [label, span] of [
-      ["whole", 0],
-      ["1 Mb", 1_000_000],
-      ["10 kb", 10_000],
-      ["100 b", 100],
+      ['whole', 0],
+      ['1 Mb', 1_000_000],
+      ['10 kb', 10_000],
+      ['100 b', 100],
     ] as const) {
       // 100 positions clear of the synthetic genome's N runs (each 100 kb's first 1 kb).
       const at = span === 100 ? 100_040_100 : 100_000_000;
@@ -125,7 +125,7 @@ for (const dpr of [1, 2])
     );
     expect(most).toBeLessThanOrEqual(cap);
     expect(s.phylop.requests.length + s.genome.requests.length + items).toBe(st.requests);
-    out.push(`DPR ${dpr}: ${rows.join("; ")}`);
+    out.push(`DPR ${dpr}: ${rows.join('; ')}`);
     surface.dispose();
     ctx.dispose();
     host.remove();

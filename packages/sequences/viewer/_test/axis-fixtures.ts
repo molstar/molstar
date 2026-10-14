@@ -10,7 +10,7 @@
 // rewritten to a reversed or cyclic one through resolve's `layoutOf` (AX1 and CY1 give the format), and a context on a
 // manual clock opened on the managers' document (the old s3 fixtures), sized before the graph settles or after.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import {
   compile,
   layoutOf,
@@ -19,13 +19,13 @@ import {
   resolveView,
   type SeqViewSpecDoc,
   supportedAll,
-} from "@molstar/seq-core/format";
-import type { CoordinateMap } from "@molstar/seq-core/model";
-import { fixtureLoaders, registries } from "../../core/_test/format/load-fixtures.js";
-import { Axis, type ShownIndex } from "../src/axis.js";
-import { manualScheduler, type SeqViewerContext, type SeqViewerPorts } from "../src/index.js";
-import type { Viewport } from "../src/viewport.js";
-import { viewer } from "./graph-fixtures.js";
+} from '@molstar/seq-core/format';
+import type { CoordinateMap } from '@molstar/seq-core/model';
+import { fixtureLoaders, registries } from '../../core/_test/format/load-fixtures.js';
+import { Axis, type ShownIndex } from '../src/axis.js';
+import { manualScheduler, type SeqViewerContext, type SeqViewerPorts } from '../src/index.js';
+import type { Viewport } from '../src/viewport.js';
+import { viewer } from './graph-fixtures.js';
 
 const reg = registries(false);
 
@@ -70,28 +70,28 @@ export function toRuns(ax: Axis, b: number, k0: number, k1: number) {
 /** 20 residues; `u` its unit over [5, 15); `site` [7, 10) and [12, 14). View `v` the unit, `f` it filtered by `site`. */
 export function rangedDoc(): SeqViewSpecDoc {
   const b = createSeqViewSpec();
-  const s = b.data.sequence({ ref: "s", value: "MKVLAAGIVGLLLAQRSTVW" });
-  const u = b.data.unit({ ref: "u", sequence: s, range: [5, 15] });
+  const s = b.data.sequence({ ref: 's', value: 'MKVLAAGIVGLLLAQRSTVW' });
+  const u = b.data.unit({ ref: 'u', sequence: s, range: [5, 15] });
   const site = b.data.annotation({
-    ref: "site",
-    geometry: "ranges",
+    ref: 'site',
+    geometry: 'ranges',
     target: s,
     value: { start: [7, 12], stop: [10, 14] },
   });
-  const v = b.view({ ref: "v", label: "V" });
-  v.block({ unit: u }).track({ ref: "v.l" }).letters();
-  v.focus({ ref: "v.f", target: u });
-  b.view({ ref: "f", label: "F", positions: site }).block({ unit: u }).track({ ref: "f.l" }).letters();
-  b.view({ ref: "w", label: "Whole" }).block({ sequence: s }).track({ ref: "w.l" }).letters();
+  const v = b.view({ ref: 'v', label: 'V' });
+  v.block({ unit: u }).track({ ref: 'v.l' }).letters();
+  v.focus({ ref: 'v.f', target: u });
+  b.view({ ref: 'f', label: 'F', positions: site }).block({ unit: u }).track({ ref: 'f.l' }).letters();
+  b.view({ ref: 'w', label: 'Whole' }).block({ sequence: s }).track({ ref: 'w.l' }).letters();
   return b.getDocument();
 }
 
 /** `n` sequences of `len` residues side by side in one section (24 chromosomes). */
 export function blocksDoc(n: number, len = 10): SeqViewSpecDoc {
   const b = createSeqViewSpec();
-  const v = b.view({ ref: "v", label: "V" });
-  for (let i = 0; i < n; i++) v.block({ sequence: b.data.sequence({ ref: `c${i}`, value: "M".repeat(len) }) });
-  v.track({ ref: "v.l" }).letters();
+  const v = b.view({ ref: 'v', label: 'V' });
+  for (let i = 0; i < n; i++) v.block({ sequence: b.data.sequence({ ref: `c${i}`, value: 'M'.repeat(len) }) });
+  v.track({ ref: 'v.l' }).letters();
   return b.getDocument();
 }
 
@@ -102,19 +102,19 @@ export function blocksDoc(n: number, len = 10): SeqViewSpecDoc {
  */
 export function s3Doc(): SeqViewSpecDoc {
   const b = createSeqViewSpec();
-  const src = b.data.source({ ref: "pasted", value: ">a\nMKVLATGHEKMKVLATGHEK\n>b\nMKVLATGHEK\n", format: "fasta" });
-  const a = b.data.sequence({ ref: "a", source_ref: src, record: "a" });
-  const s = b.data.sequence({ ref: "b", source_ref: src, record: "b" });
-  b.data.mapping({ ref: "m", from: s, to: a, method: "segments", segments: [[0, 10, 10]] });
-  b.data.annotation({ ref: "dom", geometry: "ranges", target: "a", value: { start: [0, 10], stop: [4, 16] } });
-  const v = b.view({ ref: "v", label: "V" });
-  v.focus({ ref: "v.f", target: "a", start: 2, stop: 12 });
-  v.track({ ref: "v.letters" }).letters({ ref: "v.letters.l" });
-  v.track({ ref: "v.dom" }).ranges({ ref: "v.dom.l", data: "dom" });
-  const g = b.view({ ref: "g", label: "G" });
-  g.section({ ref: "g.one", scroll_group: "s" }).block({ sequence: a }).track().letters();
-  g.section({ ref: "g.two", scroll_group: "s" }).block({ sequence: a }).track().ranges({ data: "dom" });
-  g.section({ ref: "g.b" }).block({ sequence: s }).track().letters();
+  const src = b.data.source({ ref: 'pasted', value: '>a\nMKVLATGHEKMKVLATGHEK\n>b\nMKVLATGHEK\n', format: 'fasta' });
+  const a = b.data.sequence({ ref: 'a', source_ref: src, record: 'a' });
+  const s = b.data.sequence({ ref: 'b', source_ref: src, record: 'b' });
+  b.data.mapping({ ref: 'm', from: s, to: a, method: 'segments', segments: [[0, 10, 10]] });
+  b.data.annotation({ ref: 'dom', geometry: 'ranges', target: 'a', value: { start: [0, 10], stop: [4, 16] } });
+  const v = b.view({ ref: 'v', label: 'V' });
+  v.focus({ ref: 'v.f', target: 'a', start: 2, stop: 12 });
+  v.track({ ref: 'v.letters' }).letters({ ref: 'v.letters.l' });
+  v.track({ ref: 'v.dom' }).ranges({ ref: 'v.dom.l', data: 'dom' });
+  const g = b.view({ ref: 'g', label: 'G' });
+  g.section({ ref: 'g.one', scroll_group: 's' }).block({ sequence: a }).track().letters();
+  g.section({ ref: 'g.two', scroll_group: 's' }).block({ sequence: a }).track().ranges({ data: 'dom' });
+  g.section({ ref: 'g.b' }).block({ sequence: s }).track().letters();
   return b.getDocument();
 }
 
@@ -150,6 +150,6 @@ export function center(v: Viewport): number {
 }
 
 export const set = (ref: string, params: Record<string, unknown>): Patch => ({
-  format: "seq_view_spec_patch",
-  ops: [{ op: "set", ref, params }],
+  format: 'seq_view_spec_patch',
+  ops: [{ op: 'set', ref, params }],
 });

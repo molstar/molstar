@@ -21,8 +21,8 @@
  * https://doi.org/10.1186/1471-2105-5-113
  */
 
-import { DEFAULT_GAP_CHAR } from "../align/params.js";
-import type { TSequence } from "../sequence/sequence.js";
+import { DEFAULT_GAP_CHAR } from '../align/params.js';
+import type { TSequence } from '../sequence/sequence.js';
 
 type TAlignedSeqFormat = {
   gapchar: string;
@@ -59,7 +59,7 @@ export function estringTransform(text: string, estring: number[], opt: TAlignedS
       lPos += n;
     }
   }
-  return lPieces.join("");
+  return lPieces.join('');
 }
 
 /**

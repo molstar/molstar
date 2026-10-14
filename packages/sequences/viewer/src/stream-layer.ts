@@ -9,11 +9,11 @@
 // One layer's held regions and every per-frame read of them (seqspec:sources#the-viewers-side): `Region`, `Layer` (the
 // `StreamView` drawing reads), and the 1-D routes through a block's path. Allocation-free on its read paths.
 
-import { type StreamedData, TILE, type Tile, Tiles } from "@molstar/seq-core/format";
-import { type ComposedPath, Paths } from "@molstar/seq-core/model";
-import type { Hint } from "./prefetch.js";
-import { LETTERS_PER_PX, RegionState, type StreamItems, type StreamLayer, type StreamView } from "./stream-contract.js";
-import * as Levels from "./stream-levels.js";
+import { type StreamedData, TILE, type Tile, Tiles } from '@molstar/seq-core/format';
+import { type ComposedPath, Paths } from '@molstar/seq-core/model';
+import type { Hint } from './prefetch.js';
+import { LETTERS_PER_PX, RegionState, type StreamItems, type StreamLayer, type StreamView } from './stream-contract.js';
+import * as Levels from './stream-levels.js';
 
 // Read once into module constants: a read through an import is a property read of the module per use, which
 // the test runner's module wrapper turns into an allocation on per-frame paths.
@@ -249,7 +249,7 @@ export class Layer implements StreamView {
    */
   readonly moves = new Float64Array(4);
   /** The layer's track, and whether the person expanded it (set when the view is). */
-  track = "";
+  track = '';
   isExpanded: (() => boolean) | null = null;
   ids = 0;
   /** The items cursor's walk: per region its level key, index, start and stop, and how many (grown only). */
@@ -316,14 +316,14 @@ export class Layer implements StreamView {
   /** The manifest's levels read once per source: 1-D widths; an alignment's [2^ly, 2^lx] by grid level (-1: not served). */
   listed() {
     const lv = this.source.remote?.manifest.levels ?? [];
-    this.seq = this.source.remote?.source.data_kind === "letters";
-    this.isItems = this.source.remote?.source.data_kind === "items";
+    this.seq = this.source.remote?.source.data_kind === 'letters';
+    this.isItems = this.source.remote?.source.data_kind === 'items';
     this.span = this.isItems ? ITEMS_SPAN : DATA_SPAN;
     // Positions a bin, integers: the reads' index arithmetic stays in int32 (ST3b: a double phi there was boxed).
-    this.widths = Int32Array.from(lv, (w) => (typeof w === "number" ? w : 0));
+    this.widths = Int32Array.from(lv, (w) => (typeof w === 'number' ? w : 0));
     this.grid.fill(-1);
     lv.forEach((w, i) => {
-      if (typeof w === "number") return;
+      if (typeof w === 'number') return;
       const [ly, lx] = [Math.log2(w[0]), Math.log2(w[1])];
       if (Number.isInteger(ly) && Number.isInteger(lx) && ly < L && lx < L) this.grid[ly * L + lx] = i;
     });

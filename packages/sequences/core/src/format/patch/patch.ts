@@ -9,22 +9,22 @@
 // SVS patches and snapshots (seqspec:format#patches, seqspec:format#snapshots): `applyPatch` (revisions, the result
 // validated, snapshots re-checked), `diff`, `snapshotDoc`, and the static checks of snapshot ops `validate` runs.
 
-import { Issue, type KeyResolver } from "@molstar/seq-core/model";
-import type { DocNode, Op, Patch, SeqViewSpecDoc } from "../doc.js";
-import { KernelRegistry } from "../kernel-registry.js";
-import { issueOf } from "../load/issues.js";
-import { createRegistries, register, type SvsRegistries } from "../registry.js";
-import { isPlainObject } from "../schema/field-schema.js";
-import { nodeList } from "../schema/tree-schema.js";
-import { MvsRegistry } from "../tables/kernel.js";
-import { SvsTreeSchema } from "../tables/svs-tree.js";
-import { validate } from "../validate.js";
-import { diffTree, patchTree } from "./tree-patch.js";
+import { Issue, type KeyResolver } from '@molstar/seq-core/model';
+import type { DocNode, Op, Patch, SeqViewSpecDoc } from '../doc.js';
+import { KernelRegistry } from '../kernel-registry.js';
+import { issueOf } from '../load/issues.js';
+import { createRegistries, register, type SvsRegistries } from '../registry.js';
+import { isPlainObject } from '../schema/field-schema.js';
+import { nodeList } from '../schema/tree-schema.js';
+import { MvsRegistry } from '../tables/kernel.js';
+import { SvsTreeSchema } from '../tables/svs-tree.js';
+import { validate } from '../validate.js';
+import { diffTree, patchTree } from './tree-patch.js';
 
-const PatchFormat = "seq_view_spec_patch";
+const PatchFormat = 'seq_view_spec_patch';
 const opts = (reg: SvsRegistries) => ({ schema: SvsTreeSchema, reg });
 const at = (prefix: string, issues: Issue[]) => issues.map((i) => ({ ...i, path: prefix + i.path }));
-const errors = (issues: Issue[]) => issues.filter((i) => i.severity === "error");
+const errors = (issues: Issue[]) => issues.filter((i) => i.severity === 'error');
 
 /** What a patch's result is validated with: `set`, a set or a resolver whose keys refs may name. */
 export interface PatchOptions {
@@ -35,10 +35,10 @@ export interface PatchOptions {
 
 /** The ref of the node a path into the result names: the deepest node on its way down `children`; null: none. */
 function nodeAt(root: DocNode, path: string): string | null {
-  const seg = path.split("/").slice(1);
-  if (seg[0] !== "root") return null;
+  const seg = path.split('/').slice(1);
+  if (seg[0] !== 'root') return null;
   let n = root;
-  for (let i = 1; seg[i] === "children" && n.children?.[Number(seg[i + 1])]; i += 2) n = n.children[Number(seg[i + 1])];
+  for (let i = 1; seg[i] === 'children' && n.children?.[Number(seg[i + 1])]; i += 2) n = n.children[Number(seg[i + 1])];
   return n.ref ?? n.kind;
 }
 
@@ -51,7 +51,7 @@ function repath(issues: Issue[], root: DocNode, touched: ReadonlyMap<string, num
     const ref = nodeAt(root, i.path);
     const k = ref === null ? undefined : touched.get(ref);
     const where = ref === null ? i.path : `${ref}: ${i.path}`;
-    return { ...i, path: k === undefined ? "/ops" : `/ops/${k}`, message: `${i.message} (at ${where})` };
+    return { ...i, path: k === undefined ? '/ops' : `/ops/${k}`, message: `${i.message} (at ${where})` };
   });
 }
 
@@ -75,18 +75,18 @@ export function applyPatch(
 ): { doc: SeqViewSpecDoc; inverse: Patch | null; issues: Issue[] } {
   const fail = (issues: Issue[]) => ({ doc, inverse: null, issues });
   if (!isPlainObject(patch))
-    return fail([Issue.error("svs.params.type", "", "a patch is {format, base, revision, ops}")]);
+    return fail([Issue.error('svs.params.type', '', 'a patch is {format, base, revision, ops}')]);
   if (patch.format != null && patch.format !== PatchFormat) {
     return fail([
-      Issue.error("svs.format.invalid", "/format", `a patch's format is "${PatchFormat}", not "${patch.format}"`),
+      Issue.error('svs.format.invalid', '/format', `a patch's format is "${PatchFormat}", not "${patch.format}"`),
     ]);
   }
   if (patch.base != null && patch.base !== (doc.revision ?? undefined)) {
     return fail([
       Issue.error(
-        "svs.patch.base",
-        "/base",
-        `for revision "${patch.base}"; the document is at "${doc.revision ?? "none"}"`,
+        'svs.patch.base',
+        '/base',
+        `for revision "${patch.base}"; the document is at "${doc.revision ?? 'none'}"`,
       ),
     ]);
   }
@@ -99,7 +99,7 @@ export function applyPatch(
     if (!bad || (bad.issues.length === 0 && bad.invalid.length === 0)) return [];
     const why = [...bad.issues, ...bad.invalid][0];
     return [
-      issueOf(reg, "svs.snapshot.invalid", `/snapshots/${k}`, `snapshot "${s.ref}" no longer applies: ${why.message}`),
+      issueOf(reg, 'svs.snapshot.invalid', `/snapshots/${k}`, `snapshot "${s.ref}" no longer applies: ${why.message}`),
     ];
   });
   const inverse: Patch = { format: PatchFormat, ops: r.inverse };
@@ -148,12 +148,12 @@ export function snapshotDoc(
   o: PatchOptions = {},
 ): { doc: SeqViewSpecDoc; issues: Issue[] } {
   const k = (doc.snapshots ?? []).findIndex((s) => s != null && s.ref === snapshot);
-  if (k < 0) return { doc, issues: [Issue.error("svs.ref.unresolved", "/snapshots", `no snapshot "${snapshot}"`)] };
+  if (k < 0) return { doc, issues: [Issue.error('svs.ref.unresolved', '/snapshots', `no snapshot "${snapshot}"`)] };
   const r = over(doc, doc.snapshots?.[k].ops ?? [], reg, o);
   const issues = at(`/snapshots/${k}`, [...r.issues, ...r.invalid]);
   if (issues.length === 0) return { doc: { ...doc, root: r.root, snapshots: [] }, issues };
   const message = `snapshot "${snapshot}" does not apply: ${issues[0].message}`;
-  return { doc, issues: [...issues, issueOf(reg, "svs.snapshot.invalid", `/snapshots/${k}`, message)] };
+  return { doc, issues: [...issues, issueOf(reg, 'svs.snapshot.invalid', `/snapshots/${k}`, message)] };
 }
 
 /**
@@ -166,27 +166,27 @@ export function snapshotIssues(doc: SeqViewSpecDoc, reg: SvsRegistries, o: Patch
   const inserted = new Map<string, string>();
   const note = (n: DocNode, parent: string, path: string) => {
     const where = `${n.kind} under ${parent}`;
-    if (typeof n.ref === "string" && (inserted.get(n.ref) ?? where) !== where) {
-      issues.push(Issue.error("svs.snapshot.ref", path, `"${n.ref}" is inserted as ${inserted.get(n.ref)} elsewhere`));
+    if (typeof n.ref === 'string' && (inserted.get(n.ref) ?? where) !== where) {
+      issues.push(Issue.error('svs.snapshot.ref', path, `"${n.ref}" is inserted as ${inserted.get(n.ref)} elsewhere`));
     }
-    if (typeof n.ref === "string") inserted.set(n.ref, where);
+    if (typeof n.ref === 'string') inserted.set(n.ref, where);
     for (const c of nodeList(n.children)) if (isPlainObject(c)) note(c, String(n.ref), path);
   };
   (doc.snapshots ?? []).forEach((s, k) => {
     if (!isPlainObject(s) || !Array.isArray(s.ops)) return;
-    for (const t of ["duration_ms", "transition_ms"] as const) {
-      if (typeof s[t] === "number" && s[t] < 0) {
-        issues.push(Issue.error("svs.params.type", `/snapshots/${k}/${t}`, `${t} is a duration, >= 0`));
+    for (const t of ['duration_ms', 'transition_ms'] as const) {
+      if (typeof s[t] === 'number' && s[t] < 0) {
+        issues.push(Issue.error('svs.params.type', `/snapshots/${k}/${t}`, `${t} is a duration, >= 0`));
       }
     }
     const r = over(doc, s.ops, reg, o);
     for (const i of at(`/snapshots/${k}`, r.issues)) issues.push(i);
     if (r.invalid.length > 0) {
       const message = `snapshot "${s.ref}" gives an invalid document: ${r.invalid[0].message}`;
-      issues.push(issueOf(reg, "svs.snapshot.invalid", `/snapshots/${k}`, message));
+      issues.push(issueOf(reg, 'svs.snapshot.invalid', `/snapshots/${k}`, message));
     }
     s.ops.forEach((op, j) => {
-      if (isPlainObject(op) && op.op === "insert" && isPlainObject(op.node)) {
+      if (isPlainObject(op) && op.op === 'insert' && isPlainObject(op.node)) {
         note(op.node as DocNode, String(op.parent), `/snapshots/${k}/ops/${j}`);
       }
     });

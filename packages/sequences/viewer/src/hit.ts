@@ -12,7 +12,7 @@
 // block's through its layout map (a reversed or cyclic piece alike), items through the annotation's interval index, so
 // hits are logarithmic in features. `Hit`, its regions and kinds live here (hover reads them).
 
-import { Lanes } from "@molstar/seq-core/format";
+import { Lanes } from '@molstar/seq-core/format';
 import {
   AlignedLocation,
   Annotations,
@@ -26,11 +26,11 @@ import {
   RowLocation,
   SeqLocation,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import { AxisGeometry, type SectionAxisView, type ShownIndex } from "./axis.js";
-import { placedRingLabels } from "./draw/ring-labels.js";
-import { hitLayer } from "./draw/sizes.js";
-import { hitStreamed } from "./draw/streamed.js";
+} from '@molstar/seq-core/model';
+import { AxisGeometry, type SectionAxisView, type ShownIndex } from './axis.js';
+import { placedRingLabels } from './draw/ring-labels.js';
+import { hitLayer } from './draw/sizes.js';
+import { hitStreamed } from './draw/streamed.js';
 import {
   EntryKind,
   entryBorder,
@@ -40,12 +40,12 @@ import {
   type SectionLayout,
   SectionLayouts,
   type SplitFeatures,
-} from "./layout.js";
-import type { SeqViewerRegistry } from "./registry.js";
-import { hitItem } from "./renderer-helpers.js";
-import { Ring } from "./ring.js";
-import { linePositionAt, linePositionDrawnNear, runXInto } from "./runs.js";
-import type { StreamView } from "./streams.js";
+} from './layout.js';
+import type { SeqViewerRegistry } from './registry.js';
+import { hitItem } from './renderer-helpers.js';
+import { Ring } from './ring.js';
+import { linePositionAt, linePositionDrawnNear, runXInto } from './runs.js';
+import type { StreamView } from './streams.js';
 
 /** A layer's regions by its ref (`ctx.streams.get`): a hit reads a streamed layer's items through `v.stream`. */
 export type StreamLookup = (layer: string) => StreamView | null;
@@ -126,25 +126,25 @@ type NumberKeys<T> = { [K in keyof T]: T[K] extends number ? K : never }[keyof T
  * type-checked against `Hit` and compared by `HitKey` (no loop over the names: a keyed load per field is megamorphic).
  */
 export const HIT_ELEMENT = [
-  "section",
-  "region",
-  "kind",
-  "entry",
-  "layer",
-  "displayRow",
-  "block",
-  "shown",
-  "annotation",
-  "item",
-  "side",
-  "treeNode",
-  "dataColumn",
-  "state",
-  "split",
-  "part",
-  "pairBlock",
-  "pairUnit",
-  "pairIndex",
+  'section',
+  'region',
+  'kind',
+  'entry',
+  'layer',
+  'displayRow',
+  'block',
+  'shown',
+  'annotation',
+  'item',
+  'side',
+  'treeNode',
+  'dataColumn',
+  'state',
+  'split',
+  'part',
+  'pairBlock',
+  'pairUnit',
+  'pairIndex',
 ] as const satisfies readonly NumberKeys<Hit>[];
 /** `HitKey`'s record: the `HIT_ELEMENT` names in order, then the system's kind, id and row. */
 const SIZE = HIT_ELEMENT.length + 3;
@@ -431,7 +431,7 @@ function hitAt(
   }
   if (out.region === HitRegion.header) {
     out.kind = HoverKind.header;
-    const r = onRows ? registry.get("renderers", set.strings.get(rv.layers.type[rows.layer])) : undefined;
+    const r = onRows ? registry.get('renderers', set.strings.get(rv.layers.type[rows.layer])) : undefined;
     const h = r?.header?.hit;
     if (h) {
       // The header's view: display row 0's y and a row's height (the tree's rows; restored for the passes).
@@ -566,7 +566,7 @@ function hitAt(
   for (let k = last; k >= 0 && rv.layers.track[k] === t && !found; k--) {
     if ((at >= 0 && k !== out.layer) || (l.entryRow[entry] === -2 && k === rv.tracks.split[t])) continue;
     const type = rv.layers.type[k];
-    const r = type >= 0 ? registry.get("renderers", set.strings.get(type)) : undefined;
+    const r = type >= 0 ? registry.get('renderers', set.strings.get(type)) : undefined;
     if (past && r?.hitsPastEnd !== true) continue;
     const s = model.prepared[k]?.state;
     // Its themes, so a renderer's `hit` sizes its glyphs and bands as its draw does (hits by drawn geometry).
@@ -654,7 +654,7 @@ const NO_THEMES: readonly never[] = [];
  * placement on the block: the hover is that unit's; off its residues, the block's position as it is.
  */
 function ownUnitAt(e: SectionEntry, b: number, out: Hit): boolean {
-  const { resolved: rv, set, prepared } = e.model as NonNullable<SectionEntry["model"]>;
+  const { resolved: rv, set, prepared } = e.model as NonNullable<SectionEntry['model']>;
   const k = rv.tracks.split[out.track];
   const unit = k >= 0 ? (prepared[k]?.state as SplitFeatures | undefined)?.split?.unit : undefined;
   const u = unit !== undefined && out.split < unit.length ? unit[out.split] : -1;
@@ -685,7 +685,7 @@ const pixelRuns = new Int32Array(64);
  * columns'.
  */
 function itemAt(e: SectionEntry, k: number, b: number, k0: number, k1: number, lane: number, out: Hit, at: number) {
-  const { resolved: rv, set, prepared } = e.model as NonNullable<SectionEntry["model"]>;
+  const { resolved: rv, set, prepared } = e.model as NonNullable<SectionEntry['model']>;
   const ax = e.axis;
   if (!ax) return false;
   const block = b + rv.sections.blockStart[e.index];
@@ -698,7 +698,7 @@ function itemAt(e: SectionEntry, k: number, b: number, k0: number, k1: number, l
   for (let p = p0; p < p0 + rv.layers.placementCount[k]; p++) {
     if (pl.block[p] !== block || (pl.lane[p] >= 0 && pl.lane[p] !== lane)) continue;
     const ann = set.annotations[pl.annotation[p]];
-    if (ann?.geometry !== "ranges") continue;
+    if (ann?.geometry !== 'ranges') continue;
     const path = pl.path[p] >= 0 ? rv.paths[pl.path[p]] : null;
     const j = path ? sourceAt(path, index) : index;
     if (j < 0 && runs === 0) continue;

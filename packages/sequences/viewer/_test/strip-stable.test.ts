@@ -9,26 +9,26 @@
 // VL-07 (seqspec:viewer#extension-points, `stable`): a stable renderer's draw of a pan's uncovered strip equals a full
 // frame's in that strip. Emphasis decides items or density over the whole view, not the strip's few items.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { SkinToken } from "../src/draw/backend.js";
-import { Dirty, SectionComposer } from "../src/draw/index.js";
-import { COPY_BACK, composed, opNames, recording } from "./composer-fixtures.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { SkinToken } from '../src/draw/backend.js';
+import { Dirty, SectionComposer } from '../src/draw/index.js';
+import { COPY_BACK, composed, opNames, recording } from './composer-fixtures.js';
 
 function doc() {
   const b = createSeqViewSpec();
   const n = 4000;
-  const a = b.data.sequence({ ref: "a", value: "MKVLATGHEK".repeat(n / 10) });
+  const a = b.data.sequence({ ref: 'a', value: 'MKVLATGHEK'.repeat(n / 10) });
   const start = Array.from({ length: n / 7 }, (_, i) => i * 7);
   const d = b.data.annotation({
-    ref: "d",
-    geometry: "ranges",
+    ref: 'd',
+    geometry: 'ranges',
     target: a,
     value: { start, stop: start.map((s) => s + 1) },
   });
-  const v = b.view({ ref: "v", label: "V", height: "box" });
+  const v = b.view({ ref: 'v', label: 'V', height: 'box' });
   v.block({ sequence: a });
-  v.track({ label: "E" }).emphasis({ data: d });
+  v.track({ label: 'E' }).emphasis({ data: d });
   return b.getDocument();
 }
 
@@ -44,14 +44,14 @@ const accent = (r: ReturnType<typeof recording>, x0: number, x1: number) => {
 describe("VL-07: a stable draw's strip equals the full frame there", () => {
   it("emphasis at 2 px a cell: the pan's strip draws density, as the full frame does", async () => {
     const t = await composed(doc(), { width: 1400, height: 300, dpr: 1 });
-    t.vp?.setView(2, 200, "api");
+    t.vp?.setView(2, 200, 'api');
     const be = recording(COPY_BACK);
     t.frame(be);
-    t.vp?.panBy(30, 0, "api");
+    t.vp?.panBy(30, 0, 'api');
     t.frame(be);
-    expect(opNames(be)).toContain("copy");
+    expect(opNames(be)).toContain('copy');
     // The strip uncovered at the data area's right.
-    const right = Math.round(t.layout("v.main").dataRight);
+    const right = Math.round(t.layout('v.main').dataRight);
     const strip = accent(be, right - 30, right);
     // The same view drawn whole, by a fresh composer.
     const fresh = new SectionComposer(t.ctx, t.section);

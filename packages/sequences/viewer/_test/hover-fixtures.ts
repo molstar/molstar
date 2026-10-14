@@ -11,53 +11,53 @@
 // stacked at a position, secondary structure, values as bars and as a line, a matrix), and readers of what a recorded
 // pass drew as boxes: rects (outlines and fills), rings (a stroked arc's outer box) and glyphs.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { Op, type RecordingBackend } from "../src/testing/index.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { Op, type RecordingBackend } from '../src/testing/index.js';
 
-const PROTEIN = "MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH";
+const PROTEIN = 'MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH';
 
 /**
  * The hover document: `n` residues, a track per type, each by ref (`t.<type>`); `lineColor`: the line's color theme
  * (none: one color).
  */
 export function hoverDoc(n = 100, o: { style?: Record<string, unknown>; lineColor?: unknown } = {}) {
-  const b = createSeqViewSpec({ title: "Hover" });
+  const b = createSeqViewSpec({ title: 'Hover' });
   const a = b.data.sequence({
-    ref: "a",
-    label: "A",
-    value: Array.from({ length: n }, (_, i) => PROTEIN[(i * 7) % PROTEIN.length]).join(""),
+    ref: 'a',
+    label: 'A',
+    value: Array.from({ length: n }, (_, i) => PROTEIN[(i * 7) % PROTEIN.length]).join(''),
   });
   const ann = (ref: string, geometry: string, value: unknown, more: object = {}) =>
     b.data.annotation({ ref, geometry, target: a, value, ...more } as never);
   // g1 in two fragments, g2 over g1's positions (another lane), g3 alone.
-  const rg = ann("rg", "ranges", {
-    id: ["g1", "g1", "g2", "g3"],
+  const rg = ann('rg', 'ranges', {
+    id: ['g1', 'g1', 'g2', 'g3'],
     start: [10, 30, 14, 60],
     stop: [20, 45, 40, 80],
-    category: ["x", "x", "y", "z"],
+    category: ['x', 'x', 'y', 'z'],
   });
-  const pt = ann("pt", "ranges", { start: [12, 50, 70], stop: [13, 51, 71], category: ["p", "q", "p"] });
-  const vr = ann("vr", "ranges", { start: [12, 12, 50], stop: [13, 13, 51], alt: ["A", "C", "D"] });
-  const ss = ann("ss", "ranges", { start: [5, 25, 55], stop: [15, 35, 65], category: ["helix", "strand", "turn"] });
+  const pt = ann('pt', 'ranges', { start: [12, 50, 70], stop: [13, 51, 71], category: ['p', 'q', 'p'] });
+  const vr = ann('vr', 'ranges', { start: [12, 12, 50], stop: [13, 13, 51], alt: ['A', 'C', 'D'] });
+  const ss = ann('ss', 'ranges', { start: [5, 25, 55], stop: [15, 35, 65], category: ['helix', 'strand', 'turn'] });
   const index = Array.from({ length: n }, (_, i) => i);
-  const vv = ann("vv", "values", { index, value: index.map((i) => 0.2 + ((i * 31) % 80) / 100) });
+  const vv = ann('vv', 'values', { index, value: index.map((i) => 0.2 + ((i * 31) % 80) / 100) });
   const mx = ann(
-    "mx",
-    "matrix",
+    'mx',
+    'matrix',
     { index, value: index.map((i) => [(i % 7) / 7, (i % 11) / 11, (i % 3) / 3]) },
-    { states: ["x", "y", "z"] },
+    { states: ['x', 'y', 'z'] },
   );
-  const v = b.view({ ref: "v", label: "Hover", height: "box", ...(o.style ? { style: o.style } : {}) } as never);
+  const v = b.view({ ref: 'v', label: 'Hover', height: 'box', ...(o.style ? { style: o.style } : {}) } as never);
   v.block({ sequence: a });
-  v.track({ ref: "t.letters", label: "Letters" }).letters();
-  v.track({ ref: "t.ranges", label: "Ranges" }).ranges({ data: rg });
-  v.track({ ref: "t.points", label: "Points" }).points({ data: pt });
-  v.track({ ref: "t.variants", label: "Variants" }).variants({ data: vr });
-  v.track({ ref: "t.secondary", label: "Secondary" }).secondary({ data: ss });
-  v.track({ ref: "t.values", label: "Values" }).values({ data: vv });
+  v.track({ ref: 't.letters', label: 'Letters' }).letters();
+  v.track({ ref: 't.ranges', label: 'Ranges' }).ranges({ data: rg });
+  v.track({ ref: 't.points', label: 'Points' }).points({ data: pt });
+  v.track({ ref: 't.variants', label: 'Variants' }).variants({ data: vr });
+  v.track({ ref: 't.secondary', label: 'Secondary' }).secondary({ data: ss });
+  v.track({ ref: 't.values', label: 'Values' }).values({ data: vv });
   const lineColor = o.lineColor ? { color: o.lineColor } : {};
-  v.track({ ref: "t.line", label: "Line" }).values({ data: vv, encoding: "line", ...lineColor } as never);
-  v.track({ ref: "t.matrix", label: "Matrix" }).matrix({ data: mx });
+  v.track({ ref: 't.line', label: 'Line' }).values({ data: vv, encoding: 'line', ...lineColor } as never);
+  v.track({ ref: 't.matrix', label: 'Matrix' }).matrix({ data: mx });
   return b.getDocument();
 }
 

@@ -11,8 +11,8 @@
 // hover, the pointer's hover deduped before it is located, the per-manager highlight dedupe (`lit`), and the merge of
 // fetched values into a series.
 
-import { type AxisMeta, AxisRuns, type Located, locate } from "./axis.js";
-import { type NightingaleAxis, positionAt } from "./labels.js";
+import { type AxisMeta, AxisRuns, type Located, locate } from './axis.js';
+import { type NightingaleAxis, positionAt } from './labels.js';
 
 export type Detail = Record<string, unknown> & { feature?: Record<string, unknown> | null };
 
@@ -26,13 +26,13 @@ function onlyValue(o: Record<string, unknown>): unknown {
  * linegraph's name, the one key of its feature).
  */
 export function positionOf(detail: Detail, series?: string): number {
-  const h = (detail.highlight ?? (detail.type === "highlight" ? detail.value : null)) as string | null;
-  if (typeof h === "string" && h) return Number.parseInt(h, 10);
+  const h = (detail.highlight ?? (detail.type === 'highlight' ? detail.value : null)) as string | null;
+  if (typeof h === 'string' && h) return Number.parseInt(h, 10);
   const f = detail.feature;
-  if (typeof f?.position === "number") return f.position;
-  if (typeof f?.start === "number") return f.start;
+  if (typeof f?.position === 'number') return f.position;
+  if (typeof f?.start === 'number') return f.start;
   const line = (f && (series !== undefined ? f[series] : onlyValue(f))) as { position?: number } | undefined;
-  return typeof line?.position === "number" ? line.position : -1;
+  return typeof line?.position === 'number' ? line.position : -1;
 }
 
 interface Fragments {
@@ -52,8 +52,8 @@ export function rangesOf(detail: Detail, at: number, out: AxisRuns): AxisRuns {
     for (const l of locations) for (const x of l.fragments) AxisRuns.add(out, x.start - 1, x.end);
     return AxisRuns.finish(out);
   }
-  const h = detail.highlight ?? (detail.type === "highlight" ? detail.value : null);
-  if (typeof h === "string" && h) return AxisRuns.parse(h, out);
+  const h = detail.highlight ?? (detail.type === 'highlight' ? detail.value : null);
+  if (typeof h === 'string' && h) return AxisRuns.parse(h, out);
   if (at > 0) AxisRuns.add(out, at - 1, at);
   return out;
 }
@@ -66,10 +66,10 @@ export interface Arbiter {
  * Whether a component's event goes on to the host: a hover only for an item (a feature, a variant, a contact: the pointer
  * hovers by position otherwise), a leave only after an item's hover. A click changes neither.
  */
-export function arbitrate(a: Arbiter, kind: "hover" | "click" | "leave", item: boolean): boolean {
-  if (kind === "hover" && !item) return false;
-  if (kind === "leave" && !a.onItem) return false;
-  if (kind !== "click") a.onItem = kind === "hover";
+export function arbitrate(a: Arbiter, kind: 'hover' | 'click' | 'leave', item: boolean): boolean {
+  if (kind === 'hover' && !item) return false;
+  if (kind === 'leave' && !a.onItem) return false;
+  if (kind !== 'click') a.onItem = kind === 'hover';
   return true;
 }
 

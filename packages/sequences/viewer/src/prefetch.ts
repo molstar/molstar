@@ -12,7 +12,7 @@
 // ops over the base's focus nodes; the manager matches it to the blocks that show the target, at the level that view
 // would need. Edge-rate: made when the document or the snapshot changes, read as a stable list.
 
-import type { DocNode, SeqViewSpecDoc } from "@molstar/seq-core/format";
+import type { DocNode, SeqViewSpecDoc } from '@molstar/seq-core/format';
 
 export interface Hint {
   /** A block's unit by name: `hg38/chr17`, or its first segment(s): `hg38`'s members and `chr17/unit` both name it. */
@@ -25,7 +25,7 @@ export interface Hint {
 function foci(doc: SeqViewSpecDoc): Map<string, Record<string, unknown>> {
   const out = new Map<string, Record<string, unknown>>();
   const walk = (n: DocNode) => {
-    if (n.kind === "focus" && n.ref && n.params) out.set(n.ref, n.params);
+    if (n.kind === 'focus' && n.ref && n.params) out.set(n.ref, n.params);
     for (const c of n.children ?? []) walk(c);
   };
   walk(doc.root);
@@ -45,7 +45,7 @@ export function snapshotHints(doc: SeqViewSpecDoc | null, current: string | null
   const out: Hint[] = [];
   const add = (params: Record<string, unknown>) => {
     const { target, start, stop } = params;
-    if (typeof target === "string" && typeof start === "number" && typeof stop === "number" && stop > start)
+    if (typeof target === 'string' && typeof start === 'number' && typeof stop === 'number' && stop > start)
       out.push({ target, start, stop });
   };
   for (const k of [at - 1, at + 1]) {
@@ -56,7 +56,7 @@ export function snapshotHints(doc: SeqViewSpecDoc | null, current: string | null
     }
     const merged = new Map<string, Record<string, unknown>>();
     for (const op of list[k].ops ?? []) {
-      if (op.op !== "set" || !op.ref || !base.has(op.ref)) continue;
+      if (op.op !== 'set' || !op.ref || !base.has(op.ref)) continue;
       merged.set(op.ref, { ...(merged.get(op.ref) ?? base.get(op.ref)), ...op.params });
     }
     for (const p of merged.values()) add(p);

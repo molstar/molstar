@@ -20,7 +20,7 @@ import {
   type ResolvedView,
   type RunSink,
   sectionHighlights,
-} from "@molstar/seq-core/format";
+} from '@molstar/seq-core/format';
 import {
   type CoordinateMap,
   Coords,
@@ -29,7 +29,7 @@ import {
   type MapHit,
   OrderedSet,
   type SeqSet,
-} from "@molstar/seq-core/model";
+} from '@molstar/seq-core/model';
 
 /** One block on a manager's axis; plain data (it travels in the element description). */
 export interface AxisBlock {
@@ -205,8 +205,8 @@ function copyRuns(to: AxisRuns, from: AxisRuns): void {
 }
 /** Nightingale's ranges (`a:b,…`, 1-based, inclusive); the string is its boundary, built once per changed manager. */
 function runsText(r: AxisRuns): string {
-  let out = "";
-  for (let i = 0; i < r.count; i++) out += `${i > 0 ? "," : ""}${r.start[i] + 1}:${r.stop[i]}`;
+  let out = '';
+  for (let i = 0; i < r.count; i++) out += `${i > 0 ? ',' : ''}${r.start[i] + 1}:${r.stop[i]}`;
   return out;
 }
 /** Parses Nightingale's `a:b,…` (1-based, inclusive) into `out` with a char-code scan; ranges without a colon are skipped. */
@@ -410,7 +410,7 @@ export function extentLoci(view: ResolvedView, set: SeqSet, extent: readonly Blo
   const alignment = B.alignment[extent[0].block];
   if (alignment >= 0) {
     const columns = setOf(extent.filter((r) => B.alignment[r.block] === alignment)) as never;
-    return { kind: "column-loci", set, alignment: alignment as never, columns };
+    return { kind: 'column-loci', set, alignment: alignment as never, columns };
   }
   const units = new Map<number, BlockRun[]>();
   for (const r of extent) {
@@ -418,7 +418,7 @@ export function extentLoci(view: ResolvedView, set: SeqSet, extent: readonly Blo
     for (const u of B.members[r.block] ?? [B.unit[r.block]]) (units.get(u) ?? units.set(u, []).get(u))?.push(r);
   }
   const elements = Array.from(units, ([unit, runs]) => ({ unit: unit as never, indices: setOf(runs) as never }));
-  return { kind: "seq-loci", set, elements };
+  return { kind: 'seq-loci', set, elements };
 }
 
 /**
@@ -452,6 +452,6 @@ export function prepareLoci(p: Projection, ext: Extents, loci: Loci | null, clos
   ext.count = 0;
   if (!loci || loci.set !== p.set) return false;
   Extents.addLoci(ext, loci);
-  if (closure === "containing") p.close(ext);
+  if (closure === 'containing') p.close(ext);
   return ext.count > 0;
 }

@@ -10,19 +10,19 @@
 // asked again when the section's width changes (one layout a resize), within the room a box shows its rows in; `null`
 // keeps the fixed height.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { KernelRenderers, type LayerRenderer } from "../src/index.js";
-import { dotPlotDoc } from "./dot-plot-fixtures.js";
-import { driven } from "./input-fixtures.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { KernelRenderers, type LayerRenderer } from '../src/index.js';
+import { dotPlotDoc } from './dot-plot-fixtures.js';
+import { driven } from './input-fixtures.js';
 
-const SECTION = "v.s";
+const SECTION = 'v.s';
 /** The fixture with every dot plot layer's `aspect_ratio` set (undefined: the default). */
 function withRatio(ratio: number | null | undefined): SeqViewSpecDoc {
   const d = structuredClone(dotPlotDoc());
   type N = { kind: string; params?: Record<string, unknown>; children?: N[] };
   const walk = (n: N) => {
-    if (n.kind === "layer" && n.params?.type === "dot_plot" && ratio !== undefined)
+    if (n.kind === 'layer' && n.params?.type === 'dot_plot' && ratio !== undefined)
       n.params = { ...n.params, aspect_ratio: ratio };
     n.children?.forEach(walk);
   };
@@ -96,7 +96,7 @@ describe("a dot plot's aspect ratio", () => {
     expect(heights[0]).toBeLessThan(700);
   });
 
-  it("settles: a bounce (a page scrollbar coming and going) keeps the taller height after one round; a resize lands exactly", async () => {
+  it('settles: a bounce (a page scrollbar coming and going) keeps the taller height after one round; a resize lands exactly', async () => {
     const { t, sizeOf } = await plot(1, 1200);
     const at = (w: number) => {
       t.vp(SECTION).setSize(w, 3000, 1);

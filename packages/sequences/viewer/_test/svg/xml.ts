@@ -15,7 +15,7 @@ export interface El {
   children: El[];
   text: string;
 }
-const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
 const decode = (s: string) =>
   s.replace(/&(\w+);/g, (_, n) => {
     if (!(n in ENTITIES)) throw new Error(`unknown entity &${n};`);
@@ -23,7 +23,7 @@ const decode = (s: string) =>
   });
 
 export function parseXml(xml: string): El {
-  const root: El = { name: "#root", attrs: {}, children: [], text: "" };
+  const root: El = { name: '#root', attrs: {}, children: [], text: '' };
   const stack = [root];
   const tag = /<(\/?)([\w:-]+)((?:\s+[\w:-]+="[^"]*")*)\s*(\/?)>|([^<]+)/gy;
   let at = 0;
@@ -35,7 +35,7 @@ export function parseXml(xml: string): El {
       if (top.name !== m[2]) throw new Error(`</${m[2]}> closes <${top.name}>`);
       stack.pop();
     } else {
-      const el: El = { name: m[2], attrs: {}, children: [], text: "" };
+      const el: El = { name: m[2], attrs: {}, children: [], text: '' };
       for (const a of m[3].matchAll(/([\w:-]+)="([^"]*)"/g)) el.attrs[a[1]] = decode(a[2]);
       top.children.push(el);
       if (!m[4]) stack.push(el);
@@ -43,7 +43,7 @@ export function parseXml(xml: string): El {
   }
   if (at !== xml.length) throw new Error(`not well formed at ${at}: ${xml.slice(at, at + 40)}`);
   if (stack.length !== 1) throw new Error(`<${stack[stack.length - 1].name}> is not closed`);
-  if (root.children.length !== 1) throw new Error("one root element expected");
+  if (root.children.length !== 1) throw new Error('one root element expected');
   return root.children[0];
 }
 /** Every descendant (and the element itself) named `name`, in document order. */

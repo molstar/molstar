@@ -52,7 +52,7 @@ export function positionAt(v: NightingaleAxis, x: number): number {
 
 /** A label's box: the visible span of its widest fragment, its text centered in it; `none`: hidden. */
 export interface LabelBox {
-  mode: "full" | "cut" | "none";
+  mode: 'full' | 'cut' | 'none';
   left: number;
   width: number;
 }
@@ -64,7 +64,7 @@ const MIN_HEIGHT = 9;
 
 /** The shortest a label is cut to: its first `CUT_CHARS` characters and "…"; null when it is no longer than that. */
 export const cutText = (text: string): string | null =>
-  [...text].length > CUT_CHARS ? `${[...text].slice(0, CUT_CHARS).join("")}…` : null;
+  [...text].length > CUT_CHARS ? `${[...text].slice(0, CUT_CHARS).join('')}…` : null;
 
 /**
  * Where a feature's label goes at a view: in the widest visible span of its fragments (1-based, inclusive). Written
@@ -95,9 +95,9 @@ export function placeLabel(
   }
   out.left = left;
   out.width = Math.max(0, width);
-  if (width <= 0 || height < MIN_HEIGHT) out.mode = "none";
-  else if (text + LABEL_PAD <= width) out.mode = "full";
-  else out.mode = cut + LABEL_PAD <= width ? "cut" : "none";
+  if (width <= 0 || height < MIN_HEIGHT) out.mode = 'none';
+  else if (text + LABEL_PAD <= width) out.mode = 'full';
+  else out.mode = cut + LABEL_PAD <= width ? 'cut' : 'none';
   return out;
 }
 
@@ -105,7 +105,7 @@ export function placeLabel(
 function luminance(hex: string): number | null {
   const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim());
   if (!m) return null;
-  const h = m[1].length === 3 ? [...m[1]].map((c) => c + c).join("") : m[1];
+  const h = m[1].length === 3 ? [...m[1]].map((c) => c + c).join('') : m[1];
   const [r, g, b] = [0, 2, 4].map((k) => {
     const c = Number.parseInt(h.slice(k, k + 2), 16) / 255;
     return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
@@ -114,14 +114,14 @@ function luminance(hex: string): number | null {
 }
 
 /** Dark and light ink for labels on Nightingale's white ground. */
-export const INK = { dark: "#1f1f1f", light: "#ffffff" } as const;
+export const INK = { dark: '#1f1f1f', light: '#ffffff' } as const;
 
 /**
  * The ink that reads on a feature's fill (Nightingale's: `fill`, else `color`, else gray, at `opacity` over white),
  * whichever of dark and light has the higher contrast.
  */
 export function inkOn(fill: string | undefined, opacity = 0.9): string {
-  const l = luminance(fill ?? "") ?? luminance("#808080") ?? 0;
+  const l = luminance(fill ?? '') ?? luminance('#808080') ?? 0;
   const seen = opacity * l + (1 - opacity); // over white, in linear light
   const [dark, light] = [luminance(INK.dark) ?? 0, 1];
   return (seen + 0.05) / (dark + 0.05) >= (light + 0.05) / (seen + 0.05) ? INK.dark : INK.light;
@@ -180,7 +180,7 @@ export function layLabels(
     const left = l.box.left;
     const width = l.box.width;
     placeLabel(l.box, view, l.fragments, l.width, l.cut, height);
-    const visible = l.box.mode !== "none";
+    const visible = l.box.mode !== 'none';
     const top = visible && layout ? layout.getFeatureYPos(l.feature) : 0;
     const same = l.box.left === left && l.box.width === width && top === l.top && height === l.height;
     if (visible === l.visible && (!visible || same)) continue;
@@ -188,12 +188,12 @@ export function layLabels(
     l.visible = visible;
     const style = l.style;
     if (!visible) {
-      style.display = "none";
+      style.display = 'none';
       continue;
     }
     l.top = top;
     l.height = height;
-    style.display = "";
+    style.display = '';
     style.left = `${l.box.left}px`;
     style.width = `${l.box.width}px`;
     style.top = `${top}px`;
@@ -213,7 +213,7 @@ export interface DimensionsLike {
  * set from its measured size in a later frame): a view read from it before is stale. Returns the way to stop.
  */
 export function watchDimensions(node: DimensionsLike, changed: () => void): () => void {
-  const own = Object.hasOwn(node, "onDimensionsChange");
+  const own = Object.hasOwn(node, 'onDimensionsChange');
   const was = node.onDimensionsChange;
   node.onDimensionsChange = function (this: DimensionsLike) {
     was?.call(this);

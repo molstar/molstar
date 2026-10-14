@@ -14,7 +14,7 @@
 // block. A ligand in the `position` form lights its block's one shown position for every atom. Nothing of it is module
 // state, so a disposed viewer frees its set; it is not re-entrant (its sinks never call out).
 
-import { type Closure, type Projection, projectionOf, type ResolvedView, type RunSink } from "@molstar/seq-core/format";
+import { type Closure, type Projection, projectionOf, type ResolvedView, type RunSink } from '@molstar/seq-core/format';
 import {
   type CoordinateSystem,
   Coords,
@@ -24,11 +24,11 @@ import {
   OrderedSet,
   type SeqLoci,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import type { Translator } from "@molstar/seq-core/translate";
-import { HoverKind } from "./hit.js";
-import type { HoverState } from "./hover.js";
-import { MarkBit, type MarkSet, type RowMarks } from "./marks.js";
+} from '@molstar/seq-core/model';
+import type { Translator } from '@molstar/seq-core/translate';
+import { HoverKind } from './hit.js';
+import type { HoverState } from './hover.js';
+import { MarkBit, type MarkSet, type RowMarks } from './marks.js';
 
 /** Runs in coordinate systems named by key (seqspec:interaction#focus): `(index into systems, start, stop)` triples. */
 export interface Coordinates {
@@ -365,7 +365,7 @@ export class Projector {
    * span-1 maps, which add nothing, and an item's closure is none (its rows; the channels' table).
    */
   closeLoci(loci: Loci, closure: Closure): Loci {
-    if (closure === "element" || loci.kind !== "seq-loci" || loci.set !== this.set || !this.projection) return loci;
+    if (closure === 'element' || loci.kind !== 'seq-loci' || loci.set !== this.set || !this.projection) return loci;
     const ext = Extents.create(8);
     Extents.addLoci(ext, loci);
     this.projection.close(ext);
@@ -392,7 +392,7 @@ export class Projector {
         if (set.units.alive[u] && set.units.molecule[u] === ext.id[i]) put(u, ext.start[i], ext.stop[i]);
     }
     const elements = [...byUnit].sort((a, b) => a[0] - b[0]).map(([unit, runs]) => ({ unit, indices: ofRuns(runs) }));
-    return elements.length ? ({ kind: "seq-loci", set, elements } as unknown as SeqLoci) : null;
+    return elements.length ? ({ kind: 'seq-loci', set, elements } as unknown as SeqLoci) : null;
   }
 
   /**
@@ -415,9 +415,9 @@ export class Projector {
     for (const [alignment, byRow] of runs) {
       const rows = [...byRow].filter(([r]) => r >= 0).sort((a, b) => a[0] - b[0]);
       const elements = rows.map(([row, r]) => ({ row, indices: ofRuns(r) }));
-      if (elements.length) out.push({ kind: "row-loci", set, alignment, elements } as unknown as Loci);
+      if (elements.length) out.push({ kind: 'row-loci', set, alignment, elements } as unknown as Loci);
       const cols = byRow.get(-1);
-      if (cols) out.push({ kind: "column-loci", set, alignment, columns: ofRuns(cols) } as unknown as Loci);
+      if (cols) out.push({ kind: 'column-loci', set, alignment, columns: ofRuns(cols) } as unknown as Loci);
     }
     return out;
   }

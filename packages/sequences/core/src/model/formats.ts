@@ -10,8 +10,8 @@
 // Stockholm with its tags, WUSS pairs, Clustal and Newick. Parsers run at the edges: they allocate, report issues and
 // never throw. Codes mirror the document's (`model.source.format` is `svs.source.format`, and so on).
 
-import type { AlignmentInput, ParsedTree } from "./alignment.js";
-import { Issue } from "./common.js";
+import type { AlignmentInput, ParsedTree } from './alignment.js';
+import { Issue } from './common.js';
 
 export interface ParseOptions {
   /** A size bound in UTF-8 bytes; absent: none (a source's `value` is bound at 1 MiB). */
@@ -49,12 +49,12 @@ export interface ClustalRecord {
   rows: string[];
 }
 
-const FORMAT = "model.source.format";
-const EMPTY_RECORD = "model.source.empty_record";
+const FORMAT = 'model.source.format';
+const EMPTY_RECORD = 'model.source.empty_record';
 /** A record's id missing or repeated: the records are read, and the id may not name one of them. */
-const ID = "model.source.id";
+const ID = 'model.source.id';
 /** A file whose last record or tree lacks its terminator: read as if it had one. */
-const UNTERMINATED = "model.source.unterminated";
+const UNTERMINATED = 'model.source.unterminated';
 /** `;` (Pearson) and `#` lines are comments, anywhere in a FASTA file. */
 const COMMENT = /^\s*[;#]/;
 /**
@@ -74,13 +74,13 @@ function withinBound(text: string, maxBytes: number | undefined, issues: Issue[]
     if (surrogate) i++;
   }
   if (bytes <= maxBytes) return true;
-  issues.push(Issue.error("model.source.size_bound", path, `The source is over its bound of ${maxBytes} bytes.`));
+  issues.push(Issue.error('model.source.size_bound', path, `The source is over its bound of ${maxBytes} bytes.`));
   return false;
 }
 
 /** The first few of a repeated cause's examples, and how many more (GV-07: one issue per cause, not one per record). */
 function firstFew(items: readonly string[], max = 5): string {
-  const shown = items.slice(0, max).join(", ");
+  const shown = items.slice(0, max).join(', ');
   return items.length > max ? `${shown} and ${items.length - max} more` : shown;
 }
 
@@ -89,12 +89,12 @@ const lines = (text: string) => text.split(/\r\n|\r|\n/);
 
 function parseFasta(text: string, options: ParseOptions = {}): { records: FastaRecord[]; issues: Issue[] } {
   const issues: Issue[] = [];
-  const path = options.path ?? "";
+  const path = options.path ?? '';
   const records: FastaRecord[] = [];
   if (!withinBound(text, options.maxBytes, issues, path)) return { records, issues };
   let parts: string[] | null = null;
-  let id = "";
-  let description = "";
+  let id = '';
+  let description = '';
   let headerLine = 0;
   // Each cause said once for the file, with its count and first examples (GV-07: a hit list repeats ids by the
   // thousand).
@@ -103,23 +103,23 @@ function parseFasta(text: string, options: ParseOptions = {}): { records: FastaR
   const before: string[] = [];
   const flush = () => {
     if (!parts) return;
-    const sequence = parts.join("");
+    const sequence = parts.join('');
     records.push({ id, description, sequence });
     // Kept, so that a record index does not shift; a node that reads it is `model.molecule.content`.
     if (!sequence) empty.push(`"${id}" (line ${headerLine})`);
   };
   lines(text).forEach((line, k) => {
-    if (line.startsWith(">")) {
+    if (line.startsWith('>')) {
       flush();
       const header = line.slice(1).trim();
       const space = header.search(/\s/);
       id = space < 0 ? header : header.slice(0, space);
-      description = space < 0 ? "" : header.slice(space + 1).trim();
+      description = space < 0 ? '' : header.slice(space + 1).trim();
       if (!id) noId.push(String(k + 1));
       headerLine = k + 1;
       parts = [];
     } else if (!COMMENT.test(line)) {
-      if (parts) parts.push(line.replace(/\s+/g, ""));
+      if (parts) parts.push(line.replace(/\s+/g, ''));
       else if (line.trim()) before.push(String(k + 1));
     }
   });
@@ -132,7 +132,7 @@ function parseFasta(text: string, options: ParseOptions = {}): { records: FastaR
     issues.push(
       Issue.info(EMPTY_RECORD, path, `FASTA: ${empty.length} record(s) with no sequence: ${firstFew(empty)}.`),
     );
-  if (!records.length && !issues.length) issues.push(Issue.error(FORMAT, path, "FASTA: no records."));
+  if (!records.length && !issues.length) issues.push(Issue.error(FORMAT, path, 'FASTA: no records.'));
   const ids = new Set<string>();
   const repeated = new Set<string>();
   for (const r of records) {
@@ -153,21 +153,21 @@ function parseFasta(text: string, options: ParseOptions = {}): { records: FastaR
 function fastaAlignment(
   records: readonly FastaRecord[],
   key: string,
-  flavor: "aligned" | "a3m",
+  flavor: 'aligned' | 'a3m',
   options: ParseOptions = {},
 ): { input: AlignmentInput; issues: Issue[] } {
   const issues: Issue[] = [];
-  const rows = flavor === "a3m" ? records.filter((r) => !HHSUITE.test(r.id)) : records;
+  const rows = flavor === 'a3m' ? records.filter((r) => !HHSUITE.test(r.id)) : records;
   if (rows.length < records.length) {
     const m = `${records.length - rows.length} HH-suite record(s) (ss_*, sa_*, Consensus) are not alignment rows.`;
-    issues.push(Issue.info("model.source.skipped", options.path ?? "", `FASTA: ${m}`));
+    issues.push(Issue.info('model.source.skipped', options.path ?? '', `FASTA: ${m}`));
   }
   return { input: { key, flavor, gapped: rows.map((r) => r.sequence), labels: rows.map((r) => r.id) }, issues };
 }
 
 function parseStockholm(text: string, options: ParseOptions = {}): { records: StockholmRecord[]; issues: Issue[] } {
   const issues: Issue[] = [];
-  const path = options.path ?? "";
+  const path = options.path ?? '';
   const records: StockholmRecord[] = [];
   if (!withinBound(text, options.maxBytes, issues, path)) return { records, issues };
   let rec: StockholmRecord | null = null;
@@ -193,8 +193,8 @@ function parseStockholm(text: string, options: ParseOptions = {}): { records: St
   const close = (r: StockholmRecord) => {
     const where = `record ${records.length}`;
     const n = r.rows[0]?.length ?? 0;
-    if (!r.rows.length) bad(where, "it has no rows.");
-    checkColumns(r.gc, "#=GC", n, where);
+    if (!r.rows.length) bad(where, 'it has no rows.');
+    checkColumns(r.gc, '#=GC', n, where);
     for (const [name, tags] of r.gr) {
       if (!rowOf.has(name)) bad(where, `#=GR for "${name}", which has no row.`);
       checkColumns(tags, `#=GR ${name}`, n, where);
@@ -215,33 +215,33 @@ function parseStockholm(text: string, options: ParseOptions = {}): { records: St
   for (let k = 0; k < all.length; k++) {
     const line = all[k].trim();
     if (!line) continue;
-    if (line.startsWith("# STOCKHOLM")) {
+    if (line.startsWith('# STOCKHOLM')) {
       if (rec) close(rec);
       rec = empty();
       continue;
     }
-    if (line === "//") {
+    if (line === '//') {
       if (rec) close(rec);
-      else bad(`line ${k + 1}`, "`//` with no record open.");
+      else bad(`line ${k + 1}`, '`//` with no record open.');
       continue;
     }
     rec ??= empty();
     const tag = /^#=(GF|GC|GS|GR)\s+(\S+)\s*(.*)$/.exec(line);
     if (tag) {
       const [, kind, name, rest] = tag;
-      if (kind === "GF") append(rec.gf, name, rest, "\n");
-      else if (kind === "GC") append(rec.gc, name, rest.replace(/\s+/g, ""), "");
+      if (kind === 'GF') append(rec.gf, name, rest, '\n');
+      else if (kind === 'GC') append(rec.gc, name, rest.replace(/\s+/g, ''), '');
       else {
         const [, feature, value] = /^(\S*)\s*(.*)$/.exec(rest) as RegExpExecArray;
-        const gr = kind === "GR";
-        append(nested(gr ? rec.gr : rec.gs, name), feature, gr ? value.replace(/\s+/g, "") : value, gr ? "" : "\n");
+        const gr = kind === 'GR';
+        append(nested(gr ? rec.gr : rec.gs, name), feature, gr ? value.replace(/\s+/g, '') : value, gr ? '' : '\n');
       }
       continue;
     }
-    if (line.startsWith("#")) continue;
+    if (line.startsWith('#')) continue;
     const m = /^(\S+)\s+(\S+)$/.exec(line);
     if (!m) {
-      bad(`line ${k + 1}`, "expected a row name and its residues.");
+      bad(`line ${k + 1}`, 'expected a row name and its residues.');
       continue;
     }
     const at = rowOf.get(m[1]);
@@ -252,22 +252,22 @@ function parseStockholm(text: string, options: ParseOptions = {}): { records: St
     } else rec.rows[at] += m[2];
   }
   if (rec) {
-    issues.push(Issue.info(UNTERMINATED, path, "Stockholm: the last record does not end with `//`."));
+    issues.push(Issue.info(UNTERMINATED, path, 'Stockholm: the last record does not end with `//`.'));
     close(rec);
   }
-  if (!records.length && !issues.length) issues.push(Issue.error(FORMAT, path, "Stockholm: no records."));
+  if (!records.length && !issues.length) issues.push(Issue.error(FORMAT, path, 'Stockholm: no records.'));
   return { records, issues };
 }
 
 /** Insert columns from `#=GC RF`: 1 where it marks the column with `.` or `-` (seqspec:model#alignments-and-trees). */
 function insertColumns(rf: string): Uint8Array {
-  return Uint8Array.from(rf, (c) => (c === "." || c === "-" ? 1 : 0));
+  return Uint8Array.from(rf, (c) => (c === '.' || c === '-' ? 1 : 0));
 }
 
 /** A Stockholm record as an alignment's input: aligned, labels the row names, insert columns from `RF`. */
 function stockholmAlignment(record: StockholmRecord, key: string): AlignmentInput {
-  const rf = record.gc.get("RF");
-  const input: AlignmentInput = { key, flavor: "aligned", gapped: record.rows, labels: record.names };
+  const rf = record.gc.get('RF');
+  const input: AlignmentInput = { key, flavor: 'aligned', gapped: record.rows, labels: record.names };
   if (rf !== undefined) input.insertColumns = insertColumns(rf);
   return input;
 }
@@ -285,7 +285,7 @@ const CONSERVATION = /^\s+[*:.][*:.\s]*$/;
  */
 function parseClustal(text: string, options: ParseOptions = {}): { record: ClustalRecord | null; issues: Issue[] } {
   const issues: Issue[] = [];
-  const path = options.path ?? "";
+  const path = options.path ?? '';
   if (!withinBound(text, options.maxBytes, issues, path)) return { record: null, issues };
   const fail = (m: string) => {
     issues.push(Issue.error(FORMAT, path, `Clustal: ${m}`));
@@ -294,7 +294,7 @@ function parseClustal(text: string, options: ParseOptions = {}): { record: Clust
   const all = lines(text);
   let k = 0;
   while (k < all.length && !all[k].trim()) k++;
-  const header = (all[k] ?? "").trim();
+  const header = (all[k] ?? '').trim();
   if (!CLUSTAL_HEADER.test(header)) {
     return fail(
       `line ${k + 1} is not a Clustal header; the file starts with "CLUSTAL" (or "MUSCLE", "PROBCONS"), e.g. "CLUSTAL W (2.1) multiple sequence alignment".`,
@@ -329,7 +329,7 @@ function parseClustal(text: string, options: ParseOptions = {}): { record: Clust
     if (words.length > 2 && /^\d+$/.test(words[words.length - 1])) words.pop();
     if (words.length < 2) return fail(`line ${k + 1} has a name and no residues; a row is "name residues".`);
     const name = words[0];
-    const residues = words.slice(1).join("");
+    const residues = words.slice(1).join('');
     if (start < 0) start = k + 1;
     if (width >= 0 && residues.length !== width) {
       const prev = first ? names[names.length - 1] : names[row - 1];
@@ -358,22 +358,22 @@ function parseClustal(text: string, options: ParseOptions = {}): { record: Clust
   }
   const bad = close();
   if (bad) return fail(bad);
-  if (!names.length) return fail("no rows after the header.");
+  if (!names.length) return fail('no rows after the header.');
   const repeated = names.filter((n, i) => names.indexOf(n) !== i);
   if (repeated.length > 0) {
     const named = firstFew([...new Set(repeated)].map((x) => `"${x}"`));
     issues.push(Issue.warning(ID, path, `Clustal: ${repeated.length} name(s) repeat another row's: ${named}.`));
   }
-  return { record: { header, names, rows: parts.map((p) => p.join("")) }, issues };
+  return { record: { header, names, rows: parts.map((p) => p.join('')) }, issues };
 }
 
 /** A Clustal alignment as an alignment's input: aligned, labels the row names. */
 function clustalAlignment(record: ClustalRecord, key: string): AlignmentInput {
-  return { key, flavor: "aligned", gapped: record.rows, labels: record.names };
+  return { key, flavor: 'aligned', gapped: record.rows, labels: record.names };
 }
 
-const OPEN = "([{<";
-const CLOSE = ")]}>";
+const OPEN = '([{<';
+const CLOSE = ')]}>';
 
 /**
  * WUSS pairs: per column its partner, -1 unpaired. `()`, `<>`, `[]`, `{}` and `Aa` letter pairs pair; anything else is
@@ -414,7 +414,7 @@ const UNQUOTED = /[^\s()[\]',:;]+/y;
 /** One Newick tree, nodes in preorder (the root is 0). Labels are kept as written (`_` stays), quotes undone. */
 function parseNewick(text: string, options: ParseOptions = {}): { tree: ParsedTree | null; issues: Issue[] } {
   const issues: Issue[] = [];
-  const path = options.path ?? "";
+  const path = options.path ?? '';
   if (!withinBound(text, options.maxBytes, issues, path)) return { tree: null, issues };
   const parent: number[] = [-1];
   const length: number[] = [Number.NaN];
@@ -436,44 +436,44 @@ function parseNewick(text: string, options: ParseOptions = {}): { tree: ParsedTr
   while (i < text.length && !done) {
     const c = text[i];
     if (/\s/.test(c)) i++;
-    else if (c === "[") {
-      const end = text.indexOf("]", i);
-      if (end < 0) return fail(i, "a comment is not closed.");
+    else if (c === '[') {
+      const end = text.indexOf(']', i);
+      if (end < 0) return fail(i, 'a comment is not closed.');
       i = end + 1;
-    } else if (c === "(") {
+    } else if (c === '(') {
       // A group opens a node that has nothing yet: not after a group, a label or a length.
       if (cur + 1 < parent.length || label[cur] !== null || !Number.isNaN(length[cur])) {
-        return fail(i, "a group follows a group, a label or a length.");
+        return fail(i, 'a group follows a group, a label or a length.');
       }
       cur = node(cur);
       depth++;
       i++;
-    } else if (c === "," || c === ")") {
+    } else if (c === ',' || c === ')') {
       if (depth === 0) return fail(i, `"${c}" outside parentheses.`);
-      if (c === ",") cur = node(parent[cur]);
+      if (c === ',') cur = node(parent[cur]);
       else {
         cur = parent[cur];
         depth--;
       }
       i++;
-    } else if (c === ";") {
+    } else if (c === ';') {
       done = true;
       i++;
-    } else if (c === ":") {
+    } else if (c === ':') {
       NUMBER.lastIndex = i + 1;
       const m = NUMBER.exec(text);
-      if (!m) return fail(i, "a branch length is not a number.");
-      if (!Number.isNaN(length[cur])) return fail(i, "a node has two lengths.");
+      if (!m) return fail(i, 'a branch length is not a number.');
+      if (!Number.isNaN(length[cur])) return fail(i, 'a node has two lengths.');
       length[cur] = Number(m[0]);
       i = NUMBER.lastIndex;
     } else {
-      if (label[cur] !== null) return fail(i, "a node has two labels.");
+      if (label[cur] !== null) return fail(i, 'a node has two labels.');
       if (c === "'") {
-        let s = "";
+        let s = '';
         let j = i + 1;
         for (;;) {
           const q = text.indexOf("'", j);
-          if (q < 0) return fail(i, "a quoted label is not closed.");
+          if (q < 0) return fail(i, 'a quoted label is not closed.');
           s += text.slice(j, q);
           if (text[q + 1] !== "'") {
             i = q + 1;
@@ -492,16 +492,16 @@ function parseNewick(text: string, options: ParseOptions = {}): { tree: ParsedTr
       }
     }
   }
-  if (!done && parent.length === 1 && label[0] === null && Number.isNaN(length[0])) return fail(i, "there is no tree.");
-  if (depth !== 0) return fail(i, "parentheses are not balanced.");
+  if (!done && parent.length === 1 && label[0] === null && Number.isNaN(length[0])) return fail(i, 'there is no tree.');
+  if (depth !== 0) return fail(i, 'parentheses are not balanced.');
   if (
     text
       .slice(i)
-      .replace(/\[[^\]]*\]/g, "")
+      .replace(/\[[^\]]*\]/g, '')
       .trim()
   )
     return fail(i, "text after the tree's `;`.");
-  if (!done) issues.push(Issue.info(UNTERMINATED, path, "Newick: the tree does not end with `;`."));
+  if (!done) issues.push(Issue.info(UNTERMINATED, path, 'Newick: the tree does not end with `;`.'));
   const tree = { parent: Int32Array.from(parent), branchLength: Float64Array.from(length), label };
   return { tree, issues };
 }

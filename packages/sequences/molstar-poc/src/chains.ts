@@ -11,9 +11,9 @@
 // indexes them: residues for a polymer chain, heavy atoms for any other. Built once per structure, read by the complex
 // provider, the structure providers and the link.
 
-import { type ElementIndex, type Structure, Unit } from "molstar/lib/mol-model/structure";
+import { type ElementIndex, type Structure, Unit } from 'molstar/lib/mol-model/structure';
 
-export type ChainKind = "polymer" | "ligand" | "branched" | "water";
+export type ChainKind = 'polymer' | 'ligand' | 'branched' | 'water';
 
 export interface ChainInstance {
   readonly labelAsymId: string;
@@ -44,11 +44,11 @@ export interface ChainIndex {
 
 const cache = new WeakMap<Structure, ChainIndex>();
 const KINDS: Record<string, ChainKind> = {
-  polymer: "polymer",
-  "non-polymer": "ligand",
-  macrolide: "ligand",
-  branched: "branched",
-  water: "water",
+  polymer: 'polymer',
+  'non-polymer': 'ligand',
+  macrolide: 'ligand',
+  branched: 'branched',
+  water: 'water',
 };
 
 /** The structure's chain instances, in its units' order; atomic units only (coarse beads are not indexed). */
@@ -75,9 +75,9 @@ export function chainsOf(structure: Structure): ChainIndex {
       let q = p;
       while (q < n && h.chainAtomSegments.index[els[q]] === c) q++;
       const e = h.index.getEntityFromChain(c);
-      const kind = KINDS[ent.type.value(e)] ?? "ligand";
+      const kind = KINDS[ent.type.value(e)] ?? 'ligand';
       const b = { start: [] as number[], end: [] as number[], labels: [] as number[], residues: [] as number[] };
-      if (kind === "polymer") {
+      if (kind === 'polymer') {
         for (let i = p; i < q; ) {
           const r = h.residueAtomSegments.index[els[i]];
           let j = i;
@@ -99,7 +99,7 @@ export function chainsOf(structure: Structure): ChainIndex {
           last = r;
           const sym = h.atoms.type_symbol.value(a);
           const name = h.atoms.label_atom_id.value(a);
-          if (sym === "H" || sym === "D" || seen.has(name)) continue;
+          if (sym === 'H' || sym === 'D' || seen.has(name)) continue;
           seen.add(name);
           b.start.push(i);
           b.end.push(i + 1);

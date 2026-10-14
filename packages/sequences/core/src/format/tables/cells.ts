@@ -12,8 +12,8 @@
 // counts rows per entry, so each entry is checked once. Not exported from the package: `table.ts` reads it, and so do
 // the heap guards.
 
-import type { Geometry } from "@molstar/seq-core/model";
-import { isPlainObject } from "../schema/field-schema.js";
+import type { Geometry } from '@molstar/seq-core/model';
+import { isPlainObject } from '../schema/field-schema.js';
 
 /**
  * How a column is held (seqspec:format#positions): one key of each row object, an array, a typed array, coded, or JSON.
@@ -32,16 +32,16 @@ export interface Col {
 
 /** What a cell of a column the geometry reads must be. */
 export const CellKind = { index: 0, label: 1, ref: 2, value: 3, states: 4, direction: 5, str: 6, cells: 7 } as const;
-const INDEX = new Set(["start", "stop", "boundary", "index", "b_start", "b_stop", "row"]);
-const LABEL = new Set(["beg", "end", "pos", "b_beg", "b_end"]);
+const INDEX = new Set(['start', 'stop', 'boundary', 'index', 'b_start', 'b_stop', 'row']);
+const LABEL = new Set(['beg', 'end', 'pos', 'b_beg', 'b_end']);
 
 export function cellKind(name: string, geometry: Geometry): number {
   if (INDEX.has(name)) return CellKind.index;
   if (LABEL.has(name)) return CellKind.label;
-  if (name === "target" || name === "b_target") return CellKind.ref;
-  if (name === "value")
-    return geometry === "matrix" ? CellKind.states : geometry === "grid" ? CellKind.cells : CellKind.value;
-  return name === "direction" ? CellKind.direction : CellKind.str;
+  if (name === 'target' || name === 'b_target') return CellKind.ref;
+  if (name === 'value')
+    return geometry === 'matrix' ? CellKind.states : geometry === 'grid' ? CellKind.cells : CellKind.value;
+  return name === 'direction' ? CellKind.direction : CellKind.str;
 }
 
 /** A cell's value; null for a missing one (a key a row lacks, NaN in a typed column, a null or invalid code). */
@@ -53,7 +53,7 @@ export function cellAt(c: Col, i: number): unknown {
   }
   if (c.form === ColumnForm.dict) {
     const code = d[i];
-    return typeof code === "number" && Number.isInteger(code) && code >= 0 ? (c.dict?.[code] ?? null) : null;
+    return typeof code === 'number' && Number.isInteger(code) && code >= 0 ? (c.dict?.[code] ?? null) : null;
   }
   const x = d[i];
   return x === undefined || (c.form === ColumnForm.typed && Number.isNaN(x)) ? null : x;
@@ -67,9 +67,9 @@ export function cellOk(kind: number, x: unknown): boolean {
     case CellKind.index:
       return Number.isInteger(x) && (x as number) >= 0;
     case CellKind.label:
-      return Number.isInteger(x) || (typeof x === "string" && NO_SPACE.test(x));
+      return Number.isInteger(x) || (typeof x === 'string' && NO_SPACE.test(x));
     case CellKind.value:
-      return typeof x === "number" && Number.isFinite(x);
+      return typeof x === 'number' && Number.isFinite(x);
     case CellKind.states:
     case CellKind.cells: {
       // A grid's cells may be a Float32Array or a Float64Array, NaN missing (seqspec:format#annotation-tables).
@@ -77,14 +77,14 @@ export function cellOk(kind: number, x: unknown): boolean {
       if (!Array.isArray(x)) return false;
       for (let k = 0; k < x.length; k++) {
         const y = x[k];
-        if (y !== null && !(typeof y === "number" && Number.isFinite(y))) return false;
+        if (y !== null && !(typeof y === 'number' && Number.isFinite(y))) return false;
       }
       return true;
     }
     case CellKind.direction:
-      return x === "ab" || x === "ba";
+      return x === 'ab' || x === 'ba';
     default:
-      return typeof x === "string";
+      return typeof x === 'string';
   }
 }
 
@@ -145,7 +145,7 @@ export function scanCells(c: Col, kind: number, from: number, to: number, s: Cel
   for (let i = from; i < to; i++) {
     const x = cellAt(c, i);
     if (x === null) continue;
-    if (kind === CellKind.ref && typeof x === "string") {
+    if (kind === CellKind.ref && typeof x === 'string') {
       const slot = s.distinct.get(x);
       if (slot !== undefined) s.counts[slot]++;
       else {

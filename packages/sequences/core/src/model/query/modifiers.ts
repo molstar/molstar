@@ -10,17 +10,17 @@
 // and the item slot's properties, which `pick`, `items` and `partners` test. Modifiers that change runs drop the item
 // tag; filters keep their groups as they are.
 
-import { type Annotation, Annotations, ColumnRoles } from "../annotation.js";
-import type { CompileContext, QueryFn } from "./compile.js";
-import { F64, type QueryContext } from "./context.js";
-import { addRuns, eachRun, SelectionBuilder, sameSystem } from "./kernels.js";
-import { compileWhere } from "./properties.js";
-import { itemExtent, rt, unionOf } from "./runtime.js";
-import { SeqSelection } from "./selection.js";
-import { circleOf, domainOf } from "./systems.js";
+import { type Annotation, Annotations, ColumnRoles } from '../annotation.js';
+import type { CompileContext, QueryFn } from './compile.js';
+import { F64, type QueryContext } from './context.js';
+import { addRuns, eachRun, SelectionBuilder, sameSystem } from './kernels.js';
+import { compileWhere } from './properties.js';
+import { itemExtent, rt, unionOf } from './runtime.js';
+import { SeqSelection } from './selection.js';
+import { circleOf, domainOf } from './systems.js';
 
 const dom = new Int32Array(2);
-const query = (c: CompileContext, key = "0") => c.query(key) as QueryFn<SeqSelection>;
+const query = (c: CompileContext, key = '0') => c.query(key) as QueryFn<SeqSelection>;
 
 /**
  * Each run widened in its own system, clipped to its domain, or on a circle across its origin (CM-10); runs that meet
@@ -28,8 +28,8 @@ const query = (c: CompileContext, key = "0") => c.query(key) as QueryFn<SeqSelec
  */
 function expand(c: CompileContext): QueryFn<SeqSelection> {
   const q = query(c);
-  const n = c.raw<number>("1") ?? 0;
-  const [left, right] = [c.raw<number>("left") ?? n, c.raw<number>("right") ?? n];
+  const n = c.raw<number>('1') ?? 0;
+  const [left, right] = [c.raw<number>('left') ?? n, c.raw<number>('right') ?? n];
   return (ctx) => {
     const [s, b, set] = [q(ctx), ctx.builder(), ctx.set];
     let circle = 0;
@@ -67,11 +67,11 @@ function expand(c: CompileContext): QueryFn<SeqSelection> {
 
 /** Regrouped: none, one group (MolQL's union); run, each maximal run; system, one per system. Untagged. */
 function group(c: CompileContext): QueryFn<SeqSelection> {
-  const [q, by] = [query(c), c.raw<string>("by")];
+  const [q, by] = [query(c), c.raw<string>('by')];
   return (ctx) => {
     const u = unionOf(ctx, q(ctx));
-    if (by === "run") return eachRun(u);
-    if (by !== "system") return u;
+    if (by === 'run') return eachRun(u);
+    if (by !== 'system') return u;
     const b = ctx.builder();
     for (let k = 0; k < u.runCount; k++) {
       if (k > 0 && !sameSystem(u, k - 1, k)) b.end();
@@ -94,7 +94,7 @@ function groupOf(ctx: QueryContext, s: SeqSelection, g: number): SeqSelection {
 
 /** The bind: E once per group of Q, `(current)` that group; the results' groups concatenated in order. */
 function each(c: CompileContext): QueryFn<SeqSelection> {
-  const [q, e] = [query(c), query(c, "1")];
+  const [q, e] = [query(c), query(c, '1')];
   return (ctx) => {
     const [s, prev, out] = [q(ctx), ctx.current, ctx.builder()];
     for (let g = 0; g < s.groupCount; g++) {
@@ -137,14 +137,14 @@ function pick(c: CompileContext): QueryFn<SeqSelection> {
     }
     slot.selection = null;
     slot.group = -1;
-    if (b.groupCount === 0) ctx.tested(c.path, s.groupCount, "group", missed);
+    if (b.groupCount === 0) ctx.tested(c.path, s.groupCount, 'group', missed);
     return ctx.finish(b);
   };
 }
 
 /** The first n groups, as they are. */
 function first(c: CompileContext): QueryFn<SeqSelection> {
-  const [q, n] = [query(c), c.raw<number>("1") ?? 1];
+  const [q, n] = [query(c), c.raw<number>('1') ?? 1];
   return (ctx) => {
     const [s, b] = [q(ctx), ctx.builder()];
     for (let g = 0; g < s.groupCount && g < n; g++) {
@@ -158,7 +158,7 @@ function first(c: CompileContext): QueryFn<SeqSelection> {
 
 /** The item groups whose item's id is listed; an id no group has is a warning naming some that are there. */
 function ids(c: CompileContext): QueryFn<SeqSelection> {
-  const [q, list] = [query(c), (c.raw<(string | number)[]>("1") ?? []).map(String)];
+  const [q, list] = [query(c), (c.raw<(string | number)[]>('1') ?? []).map(String)];
   return (ctx) => {
     const [s, b, set] = [q(ctx), ctx.builder(), ctx.set];
     const keys = Int32Array.from(list, (x) => set.strings.find(x) ?? -1);
@@ -179,9 +179,9 @@ function ids(c: CompileContext): QueryFn<SeqSelection> {
     }
     const missing = list.filter((_, i) => !found[i]);
     if (missing.length && s.groupCount > 0) {
-      const have = seen.size ? `its items' ids include ${[...seen].join(", ")}` : "its groups are no items with ids";
-      const say = `no item has the id ${missing.map((x) => `"${x}"`).join(", ")}; ${have}; ids are the annotation's own: match labels with (pick Q :where (matches (label) …))`;
-      ctx.warn("seqql.ids.unknown", `${c.path}/args/1`, say);
+      const have = seen.size ? `its items' ids include ${[...seen].join(', ')}` : 'its groups are no items with ids';
+      const say = `no item has the id ${missing.map((x) => `"${x}"`).join(', ')}; ${have}; ids are the annotation's own: match labels with (pick Q :where (matches (label) …))`;
+      ctx.warn('seqql.ids.unknown', `${c.path}/args/1`, say);
     }
     return ctx.finish(b);
   };
@@ -191,7 +191,7 @@ function ids(c: CompileContext): QueryFn<SeqSelection> {
 const current =
   (c: CompileContext): QueryFn<SeqSelection> =>
   (ctx) =>
-    ctx.current ?? ctx.fail("seqql.current", c.path, "(current) is only meaningful inside each");
+    ctx.current ?? ctx.fail('seqql.current', c.path, '(current) is only meaningful inside each');
 
 // The item slot's properties: what an item's first row says, its annotation's, or its extent's size.
 
@@ -232,51 +232,51 @@ const scratch = new SelectionBuilder();
 
 /** `(field name)`: any column or field; a name the annotation has none of is an error that lists what it has. */
 function itemField(c: CompileContext): QueryFn<unknown> {
-  const name = String(c.raw("0"));
+  const name = String(c.raw('0'));
   return (ctx) => {
     const v = column(ctx, name);
     const a = itemOf(ctx);
     if (v !== undefined || !a || ColumnRoles[a.geometry][name] !== undefined) return v;
     if (a.fields.some((f) => ctx.set.strings.get(f.name) === name)) return v;
-    const cols = [a.category && "category", a.rowLabel && "label", a.tooltip && "tooltip", a.sparse && "value"];
+    const cols = [a.category && 'category', a.rowLabel && 'label', a.tooltip && 'tooltip', a.sparse && 'value'];
     const has = [...cols.filter((x) => !!x), ...a.fields.map((f) => ctx.set.strings.get(f.name))];
     const what = ctx.set.strings.get(a.key);
-    ctx.fail("seqql.field.unknown", c.path, `${what} has no field "${name}"; its fields: ${has.join(", ") || "none"}`);
+    ctx.fail('seqql.field.unknown', c.path, `${what} has no field "${name}"; its fields: ${has.join(', ') || 'none'}`);
   };
 }
 
 export const MODIFIER_RUNTIMES = [
-  rt("seq.generator.current", current),
-  rt("seq.modifier.expand", expand),
-  rt("seq.modifier.group", group),
-  rt("seq.modifier.each", each),
-  rt("seq.filter.pick", pick),
-  rt("seq.filter.first", first),
-  rt("seq.filter.ids", ids),
-  itemProp("seq.item.id", (ctx) => {
+  rt('seq.generator.current', current),
+  rt('seq.modifier.expand', expand),
+  rt('seq.modifier.group', group),
+  rt('seq.modifier.each', each),
+  rt('seq.filter.pick', pick),
+  rt('seq.filter.first', first),
+  rt('seq.filter.ids', ids),
+  itemProp('seq.item.id', (ctx) => {
     const a = itemOf(ctx);
     return a && a.itemKey[ctx.slot.item] >= 0 ? ctx.set.strings.get(a.itemKey[ctx.slot.item]) : undefined;
   }),
-  itemProp("seq.item.label", (ctx) => column(ctx, "label")),
-  itemProp("seq.item.category", (ctx) => column(ctx, "category")),
+  itemProp('seq.item.label', (ctx) => column(ctx, 'label')),
+  itemProp('seq.item.category', (ctx) => column(ctx, 'category')),
   {
-    ...itemProp("seq.item.value", (ctx) => column(ctx, "value")),
+    ...itemProp('seq.item.value', (ctx) => column(ctx, 'value')),
     // seqspec:seqql#performance: a sparse value read inline for the relations (QR2b), never boxed
     number: () => (ctx: QueryContext) => {
       const a = itemOf(ctx);
       const r = a?.sparse ? firstRow(a, ctx.slot.item) : -1;
-      const v = a?.sparse ? 0 : column(ctx, "value");
-      F64[0] = a?.sparse && r >= 0 ? a.sparse[r] : typeof v === "number" && !a?.sparse ? v : Number.NaN;
+      const v = a?.sparse ? 0 : column(ctx, 'value');
+      F64[0] = a?.sparse && r >= 0 ? a.sparse[r] : typeof v === 'number' && !a?.sparse ? v : Number.NaN;
     },
   },
-  itemProp("seq.item.type", (ctx) => {
+  itemProp('seq.item.type', (ctx) => {
     const a = itemOf(ctx);
     return a && a.semanticType >= 0 ? ctx.set.strings.get(a.semanticType) : undefined;
   }),
-  itemProp("seq.item.annotation", (ctx) => {
+  itemProp('seq.item.annotation', (ctx) => {
     const a = itemOf(ctx);
     return a ? ctx.set.strings.get(a.key) : undefined;
   }),
-  itemProp("seq.item.length", itemLength),
-  rt("seq.item.field", itemField),
+  itemProp('seq.item.length', itemLength),
+  rt('seq.item.field', itemField),
 ];

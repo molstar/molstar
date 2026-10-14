@@ -10,17 +10,17 @@
 // letters' fonts share an id (the same order of fonts asked) at different sizes each pin by their own font, and a
 // text manager's `invalidate` (a web font loaded) drops what was read.
 
-import { describe, expect, it } from "vitest";
-import { Dirty, SectionComposer } from "../src/draw/index.js";
-import type { TextManager, TextMeasurer } from "../src/text.js";
-import { pinsDoc } from "./boundary-pins-fixtures.js";
-import { recording } from "./composer-fixtures.js";
-import { lit } from "./overlay-fixtures.js";
+import { describe, expect, it } from 'vitest';
+import { Dirty, SectionComposer } from '../src/draw/index.js';
+import type { TextManager, TextMeasurer } from '../src/text.js';
+import { pinsDoc } from './boundary-pins-fixtures.js';
+import { recording } from './composer-fixtures.js';
+import { lit } from './overlay-fixtures.js';
 
 /** The pins' paths (triangles) of a frame at 16 px a position, as coordinate lists. */
 async function viewer(maxLetterPx: number) {
   const t = await lit(pinsDoc(1), { width: 900, height: 400, dpr: 2, render: { maxLetterPx } });
-  t.vp?.setView(16, 0, "api");
+  t.vp?.setView(16, 0, 'api');
   // A fresh composer each time: the whole frame drawn.
   return Object.assign(
     () => {
@@ -44,7 +44,7 @@ describe("VL-09: the pin's ink per text manager", () => {
     expect(alone).not.toEqual(large());
   });
 
-  it("a new measurer (its version bumped) is read again: a smaller capital, a taller triangle (LC-09)", async () => {
+  it('a new measurer (its version bumped) is read again: a smaller capital, a taller triangle (LC-09)', async () => {
     const pins = await viewer(16);
     const before = pins();
     const text = pins.text as TextManager;

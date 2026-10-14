@@ -11,10 +11,10 @@
 // Headless; the rows renderer's prepared state (`TreeRows`) holds the geometry, the layout's `RowModel` the display
 // rows. Its draw is the rows renderer's (RN3).
 
-import type { SeqSet, Tree } from "@molstar/seq-core/model";
-import type { AxisView } from "./axis.js";
-import type { Hit } from "./hit.js";
-import type { RowModel } from "./layout.js";
+import type { SeqSet, Tree } from '@molstar/seq-core/model';
+import type { AxisView } from './axis.js';
+import type { Hit } from './hit.js';
+import type { RowModel } from './layout.js';
 
 /** What the tree reads of the rows renderer's prepared state (its `RowsState` has these). */
 export interface TreeRows {
@@ -271,8 +271,8 @@ export function treeSpan(s: TreeRows, node: number, out: Int32Array) {
 /** A row's label: its alignment's (in memory), else its source's once served. */
 export function rowLabel(s: TreeRows, row: number): string {
   const a = s.set.alignments[s.alignment];
-  if (!a || row < 0) return "";
+  if (!a || row < 0) return '';
   const id = a.labelOf(row as never);
   if (id >= 0) return s.set.strings.get(id);
-  return s.source?.remote?.labels.get(row) ?? "";
+  return s.source?.remote?.labels.get(row) ?? '';
 }

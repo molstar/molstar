@@ -9,7 +9,7 @@
 // `seqstar-tiles/1` (seqspec:sources#the-tiles-protocol): the client over a transport (the reference transport is HTTP
 // GET under the source's uri). Binary payloads are read little-endian.
 
-import { StreamNotServed, TILE, type Tile } from "@molstar/seq-core/format";
+import { StreamNotServed, TILE, type Tile } from '@molstar/seq-core/format';
 
 /**
  * The bytes of a resource under a source's uri (`tiles/0/0/0/0`). Rejects with `NotServed` when the source does not
@@ -21,7 +21,7 @@ export type TileTransport = (path: string, signal?: AbortSignal) => Promise<Uint
 export class NotServed extends StreamNotServed {
   constructor(message: string) {
     super(message);
-    this.name = "NotServed";
+    this.name = 'NotServed';
   }
 }
 
@@ -75,14 +75,14 @@ export function tileClient(uri: string, transport: TileTransport): TilesClient {
     async labels(a, b, signal) {
       const path = `labels/${a}/${b}`;
       const v: unknown = await json(path, signal);
-      const ok = Array.isArray(v) && v.length === b - a && v.every((x) => typeof x === "string");
+      const ok = Array.isArray(v) && v.length === b - a && v.every((x) => typeof x === 'string');
       return ok ? (v as string[]) : wrong(path, `a list of ${b - a} labels`);
     },
     async row(k, signal) {
       const path = `rows/${k}`;
       const v = (await json(path, signal)) as { label?: unknown; row?: unknown } | null;
-      const ok = v !== null && typeof v === "object" && typeof v.label === "string" && typeof v.row === "string";
-      return ok ? (v as { label: string; row: string }) : wrong(path, "a row: {label, row}, both strings");
+      const ok = v !== null && typeof v === 'object' && typeof v.label === 'string' && typeof v.row === 'string';
+      return ok ? (v as { label: string; row: string }) : wrong(path, 'a row: {label, row}, both strings');
     },
     async stats(measure, lx, tx, signal) {
       return get(`stats/${measure}/${lx}/${tx}`, SAMPLE_BYTES.oneD, signal).then(floats, (e) => {
@@ -100,7 +100,7 @@ export function tileClient(uri: string, transport: TileTransport): TilesClient {
 /** The reference transport: HTTP GET under `uri` (global `fetch`). */
 export function fetchTransport(uri: string): TileTransport {
   return async (path, signal) => {
-    const r = await fetch(`${uri.replace(/\/$/, "")}/${path}`, { signal });
+    const r = await fetch(`${uri.replace(/\/$/, '')}/${path}`, { signal });
     if (r.status === 404 || r.status === 410) throw new NotServed(`${r.status} ${r.statusText}`);
     if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
     return new Uint8Array(await r.arrayBuffer());

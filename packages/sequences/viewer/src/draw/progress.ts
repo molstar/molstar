@@ -16,12 +16,12 @@
 // drawn in a pending one's place counting as drawn. `progressEnd` says whether another overlay frame is needed (a
 // skeleton shimmering, a region fading). Allocation-free: module scratch.
 
-import { type RowModel, SectionLayouts } from "../layout.js";
-import { blockLevels, RegionState, type StreamView } from "../streams.js";
-import { PathBatch, PathMode, PathVerb, RectBatch, SkinToken, TextAlign, TextBaseline, TextBatch } from "./backend.js";
-import { shownHull, visibleRange } from "./cells.js";
-import { placeRun } from "./place.js";
-import type { DrawView } from "./view.js";
+import { type RowModel, SectionLayouts } from '../layout.js';
+import { blockLevels, RegionState, type StreamView } from '../streams.js';
+import { PathBatch, PathMode, PathVerb, RectBatch, SkinToken, TextAlign, TextBaseline, TextBatch } from './backend.js';
+import { shownHull, visibleRange } from './cells.js';
+import { placeRun } from './place.js';
+import type { DrawView } from './view.js';
 
 /** A shimmer's sweep across the data area, and a region's fade-in (ms). */
 export const SWEEP_MS = 1000;
@@ -31,7 +31,7 @@ const HALF = 90;
 const STEPS = 6;
 const PEAK = 120;
 const TINT = 40;
-const HINT = "failed to load";
+const HINT = 'failed to load';
 
 const fills = new RectBatch(64);
 const sheen = new RectBatch(64);
@@ -213,7 +213,7 @@ function hatched(v: DrawView, x0: number, x1: number, y0: number, y1: number) {
     hatch.coords[p] = e;
     hatch.coords[p + 1] = y1 - (e - x);
   }
-  const font = v.text.font("ui", Math.max(7, Math.min(11, Math.floor((h * 0.6) / v.dpr))), 600);
+  const font = v.text.font('ui', Math.max(7, Math.min(11, Math.floor((h * 0.6) / v.dpr))), 600);
   if (x1 - x0 < v.text.label(HINT, font).width * v.dpr + 16 * v.dpr || h < 9 * v.dpr) return;
   words.style(font, TextAlign.center, TextBaseline.middle);
   words.begin(SkinToken.conflict);

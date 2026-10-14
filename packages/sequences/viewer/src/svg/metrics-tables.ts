@@ -3,9 +3,9 @@
 // Canvas2D's `top`, `middle` and `bottom` baselines lie on (`ascent` above the alphabetic baseline, `descent` below), and
 // the ink tops of "H" and "x" above that baseline (`cap`, `xHeight`), which letters are centered on.
 
-import type { FontMetrics } from "./metrics.js";
+import type { FontMetrics } from './metrics.js';
 
-const a = (s: string) => Uint16Array.from(s.split(" "), Number);
+const a = (s: string) => Uint16Array.from(s.split(' '), Number);
 // biome-ignore format: generated, a table a line
 export const DefaultFontMetrics: readonly FontMetrics[] = [
   { family: "ui-sans-serif", weight: 400, unitsPerEm: 1000, advances: a("281 311 478 630 630 925 711 297 382 382 472 630 297 472 297 305 630 464 604 627 644 618 637 569 639 637 297 297 630 630 630 513 918 674 657 716 727 596 572 747 742 268 538 659 568 874 742 771 635 771 653 637 634 737 674 968 679 655 662 382 305 382 630 583 500 552 614 560 614 571 362 609 588 247 247 543 253 870 583 591 610 609 381 523 363 583 542 774 524 543 539 382 259 382 630"), fallback: 571, ascent: 821, descent: 179, cap: 705, xHeight: 508 },

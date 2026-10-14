@@ -14,12 +14,12 @@
 // BGZF blocks hold stored (uncompressed) deflate blocks, BigWig and BigBed blocks are not compressed
 // (`uncompressBufSize` 0), all little-endian.
 
-import type { RangeReader } from "../../../src/stream/gmod/index.js";
+import type { RangeReader } from '../../../src/stream/gmod/index.js';
 
 /** The sequences and their lengths. */
 export const DEMO_SYSTEMS: readonly [string, number][] = [
-  ["chrS1", 24_000],
-  ["chrS2", 6_000],
+  ['chrS1', 24_000],
+  ['chrS2', 6_000],
 ];
 /** chrS1's leading N run and its soft-masked repeats, [start, stop). */
 const N_RUN: [number, number] = [0, 400];
@@ -33,11 +33,11 @@ const GC_WINDOW = 50;
 const GC_BLOCK = 120;
 
 /** BED12 genes: chrom, name, strand, exons [start, stop) (the thick part from the first exon's 100th base). */
-const GENES: [string, string, "+" | "-", [number, number][]][] = [
+const GENES: [string, string, '+' | '-', [number, number][]][] = [
   [
-    "chrS1",
-    "GENA",
-    "+",
+    'chrS1',
+    'GENA',
+    '+',
     [
       [2_000, 2_300],
       [3_800, 4_100],
@@ -46,29 +46,29 @@ const GENES: [string, string, "+" | "-", [number, number][]][] = [
     ],
   ],
   [
-    "chrS1",
-    "GENB",
-    "-",
+    'chrS1',
+    'GENB',
+    '-',
     [
       [9_800, 10_400],
       [11_900, 12_200],
       [13_700, 14_200],
     ],
   ],
-  ["chrS1", "GENC", "+", [[15_500, 16_800]]],
+  ['chrS1', 'GENC', '+', [[15_500, 16_800]]],
   [
-    "chrS1",
-    "GENC",
-    "+",
+    'chrS1',
+    'GENC',
+    '+',
     [
       [15_500, 15_900],
       [18_200, 19_000],
     ],
   ],
   [
-    "chrS1",
-    "GEND",
-    "-",
+    'chrS1',
+    'GEND',
+    '-',
     [
       [20_000, 20_500],
       [21_100, 21_300],
@@ -77,16 +77,16 @@ const GENES: [string, string, "+" | "-", [number, number][]][] = [
     ],
   ],
   [
-    "chrS2",
-    "GENE",
-    "+",
+    'chrS2',
+    'GENE',
+    '+',
     [
       [1_000, 1_500],
       [3_200, 4_000],
     ],
   ],
 ];
-const CLNSIG = ["Benign", "Likely_benign", "Uncertain_significance", "Likely_pathogenic", "Pathogenic"];
+const CLNSIG = ['Benign', 'Likely_benign', 'Uncertain_significance', 'Likely_pathogenic', 'Pathogenic'];
 /** VCF records a BGZF data block holds. */
 const VCF_BLOCK = 25;
 
@@ -101,16 +101,16 @@ function random(seed: number) {
 
 /** A sequence's letters: GC content rising and falling along it, N over the N run, repeats in lower case. */
 function letters(name: string, length: number): string {
-  const r = random(name === "chrS1" ? 17 : 29);
-  let out = "";
+  const r = random(name === 'chrS1' ? 17 : 29);
+  let out = '';
   for (let i = 0; i < length; i++) {
     const gc = 0.42 + 0.18 * Math.sin(i / 1_900) + 0.08 * Math.sin(i / 230);
     const u = r();
-    const base = u < gc ? (r() < 0.5 ? "G" : "C") : r() < 0.5 ? "A" : "T";
+    const base = u < gc ? (r() < 0.5 ? 'G' : 'C') : r() < 0.5 ? 'A' : 'T';
     out += base;
   }
-  if (name !== "chrS1") return out;
-  out = "N".repeat(N_RUN[1] - N_RUN[0]) + out.slice(N_RUN[1]);
+  if (name !== 'chrS1') return out;
+  out = 'N'.repeat(N_RUN[1] - N_RUN[0]) + out.slice(N_RUN[1]);
   for (const [a, b] of REPEATS) out = out.slice(0, a) + out.slice(a, b).toLowerCase() + out.slice(b);
   return out;
 }
@@ -209,7 +209,7 @@ function twoBit(seqs: [string, string][]): Uint8Array {
   for (const [k, [, s]] of seqs.entries()) {
     w.put32(offsets[k], w.at);
     w.u32(s.length);
-    const ns = runs(s, (c) => c === "N" || c === "n");
+    const ns = runs(s, (c) => c === 'N' || c === 'n');
     const mask = runs(s, (c) => c !== c.toUpperCase());
     for (const list of [ns, mask]) {
       w.u32(list.length);
@@ -219,7 +219,7 @@ function twoBit(seqs: [string, string][]): Uint8Array {
     w.u32(0);
     for (let i = 0; i < s.length; i += 4) {
       let byte = 0;
-      for (let j = 0; j < 4; j++) byte = (byte << 2) | (CODE[(s[i + j] ?? "T").toUpperCase()] ?? 0);
+      for (let j = 0; j < 4; j++) byte = (byte << 2) | (CODE[(s[i + j] ?? 'T').toUpperCase()] ?? 0);
       w.u8(byte);
     }
   }
@@ -238,9 +238,9 @@ interface Block {
  * A BigWig or BigBed: the header, the total summary, the chromosome B+ tree (one leaf), the data's item count and its
  * blocks, and an R-tree of one leaf node over the blocks. No zoom levels, no autoSql, blocks not compressed.
  */
-function bbi(kind: "bigwig" | "bigbed", chroms: readonly [string, number][], blocks: Block[], o: Bbi): Uint8Array {
+function bbi(kind: 'bigwig' | 'bigbed', chroms: readonly [string, number][], blocks: Block[], o: Bbi): Uint8Array {
   const w = new Writer();
-  w.u32(kind === "bigwig" ? 0x888ffc26 : 0x8789f2eb);
+  w.u32(kind === 'bigwig' ? 0x888ffc26 : 0x8789f2eb);
   w.u16(4);
   w.u16(0); // zoom levels
   const [treeAt, dataAt, indexAt, summaryAt] = [8, 16, 24, 44];
@@ -267,7 +267,7 @@ function bbi(kind: "bigwig" | "bigbed", chroms: readonly [string, number][], blo
   w.u8(0);
   w.u16(chroms.length);
   for (const [id, [name, size]] of chroms.entries()) {
-    w.raw(ascii(name.padEnd(keySize, "\0")));
+    w.raw(ascii(name.padEnd(keySize, '\0')));
     w.u32(id);
     w.u32(size);
   }
@@ -319,7 +319,7 @@ function gcWig(seqs: [string, string][]) {
     const values: number[] = [];
     for (let i = 0; i < s.length; i += GC_WINDOW) {
       const window = s.slice(i, i + GC_WINDOW).toUpperCase();
-      const gc = [...window].filter((c) => c === "G" || c === "C").length;
+      const gc = [...window].filter((c) => c === 'G' || c === 'C').length;
       values.push(Math.round((100 * gc) / window.length));
     }
     lines.push(`fixedStep chrom=${name} start=1 step=${GC_WINDOW} span=${GC_WINDOW}`);
@@ -345,7 +345,7 @@ function gcWig(seqs: [string, string][]) {
       sumSquares += v * v * GC_WINDOW;
     }
   }
-  return { blocks, text: lines.join("\n"), stats: { count, covered, min, max, sum, sumSquares } };
+  return { blocks, text: lines.join('\n'), stats: { count, covered, min, max, sum, sumSquares } };
 }
 
 /** The genes as BED12 lines and BigBed blocks (`perBlock` items each, in order). */
@@ -354,16 +354,16 @@ function genesBed(names: readonly string[], perBlock = 2) {
     const [start, stop] = [exons[0][0], exons[exons.length - 1][1]];
     const rest = [
       name,
-      "0",
+      '0',
       strand,
       String(exons[0][0] + 100),
       String(stop - 100),
-      "0",
+      '0',
       String(exons.length),
-      `${exons.map(([a, b]) => b - a).join(",")},`,
-      `${exons.map(([a]) => a - start).join(",")},`,
+      `${exons.map(([a, b]) => b - a).join(',')},`,
+      `${exons.map(([a]) => a - start).join(',')},`,
     ];
-    return { chrom: names.indexOf(chrom), name: chrom, start, stop, rest: rest.join("\t") };
+    return { chrom: names.indexOf(chrom), name: chrom, start, stop, rest: rest.join('\t') };
   });
   const blocks: Block[] = [];
   for (let k = 0; k < rows.length; k += perBlock) {
@@ -384,7 +384,7 @@ function genesBed(names: readonly string[], perBlock = 2) {
     // A block holds one chromosome's items: the next starts after the last taken.
     k -= perBlock - part.length;
   }
-  const text = rows.map((r) => `${r.name}\t${r.start}\t${r.stop}\t${r.rest}`).join("\n");
+  const text = rows.map((r) => `${r.name}\t${r.start}\t${r.stop}\t${r.rest}`).join('\n');
   return { blocks, text, count: rows.length };
 }
 
@@ -406,7 +406,7 @@ function crc32(b: Uint8Array): number {
 }
 /** One BGZF block: a gzip member with the `BC` field, its data in one stored deflate block (at most 65,280 bytes). */
 function bgzfBlock(data: Uint8Array): Uint8Array {
-  if (data.length > 65_280) throw new Error("a BGZF block holds at most 65,280 bytes here");
+  if (data.length > 65_280) throw new Error('a BGZF block holds at most 65,280 bytes here');
   const w = new Writer();
   for (const v of [31, 139, 8, 4, 0, 0, 0, 0, 0, 255]) w.u8(v);
   w.u16(6);
@@ -452,10 +452,10 @@ function variants(seqs: [string, string][]): Variant[] {
   for (const [name, s] of seqs)
     for (let p = 450 + Math.floor(r() * 200); p < s.length - 10; p += 250 + Math.floor(r() * 300)) {
       const ref1 = s[p].toUpperCase();
-      const kind = n % 7 === 0 ? "ins" : n % 7 === 3 ? "del" : "snv";
-      const ref = kind === "del" ? s.slice(p, p + 3).toUpperCase() : ref1;
+      const kind = n % 7 === 0 ? 'ins' : n % 7 === 3 ? 'del' : 'snv';
+      const ref = kind === 'del' ? s.slice(p, p + 3).toUpperCase() : ref1;
       const alt =
-        kind === "snv" ? ("ACGT".replace(ref1, "")[Math.floor(r() * 3)] ?? "A") : kind === "ins" ? `${ref1}TG` : ref1;
+        kind === 'snv' ? ('ACGT'.replace(ref1, '')[Math.floor(r() * 3)] ?? 'A') : kind === 'ins' ? `${ref1}TG` : ref1;
       out.push({ chrom: name, pos: p + 1, id: `rsS${n++}`, ref, alt, clnsig: CLNSIG[Math.floor(r() * CLNSIG.length)] });
     }
   return out;
@@ -463,12 +463,12 @@ function variants(seqs: [string, string][]): Variant[] {
 /** The VCF text, its BGZF file (the header a block, then `VCF_BLOCK` records a block, then the empty last block) and its index. */
 function vcfFiles(seqs: [string, string][]) {
   const header = [
-    "##fileformat=VCFv4.2",
-    "##source=Seq* demo-files.ts (synthetic)",
+    '##fileformat=VCFv4.2',
+    '##source=Seq* demo-files.ts (synthetic)',
     ...seqs.map(([name, s]) => `##contig=<ID=${name},length=${s.length}>`),
     '##INFO=<ID=CLNSIG,Number=.,Type=String,Description="Clinical significance (synthetic)">',
-    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO",
-  ].join("\n");
+    '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO',
+  ].join('\n');
   const list = variants(seqs);
   const line = (v: Variant) => `${v.chrom}\t${v.pos}\t${v.id}\t${v.ref}\t${v.alt}\t.\tPASS\tCLNSIG=${v.clnsig}\n`;
   const blocks: Uint8Array[] = [bgzfBlock(ascii(`${header}\n`))];
@@ -482,7 +482,7 @@ function vcfFiles(seqs: [string, string][]) {
       voffs.push([fileAt * 65536 + u, fileAt * 65536 + u + l.length]);
       u += l.length;
     }
-    const b = bgzfBlock(ascii(lines.join("")));
+    const b = bgzfBlock(ascii(lines.join('')));
     blocks.push(b);
     fileAt += b.length;
   }
@@ -495,7 +495,7 @@ function vcfFiles(seqs: [string, string][]) {
   }
   // The index: per sequence its bins' chunks (a run of records in one bin is one chunk) and its linear index.
   const w = new Writer();
-  w.raw(ascii("TBI\x01"));
+  w.raw(ascii('TBI\x01'));
   w.u32(seqs.length);
   w.u32(2); // VCF
   w.u32(1); // the sequence column
@@ -503,7 +503,7 @@ function vcfFiles(seqs: [string, string][]) {
   w.u32(0); // the end column
   w.u32(35); // '#'
   w.u32(0); // lines skipped
-  const names = seqs.map(([n]) => `${n}\0`).join("");
+  const names = seqs.map(([n]) => `${n}\0`).join('');
   w.u32(names.length);
   w.raw(ascii(names));
   for (const [name, s] of seqs) {
@@ -537,7 +537,7 @@ function vcfFiles(seqs: [string, string][]) {
     for (const v of linear) w.u64(v);
   }
   const tbi = new Uint8Array([...bgzfBlock(w.done()), ...bgzfBlock(new Uint8Array(0))]);
-  const text = `${header}\n${list.map(line).join("")}`;
+  const text = `${header}\n${list.map(line).join('')}`;
   return { file, tbi, text, count: list.length };
 }
 
@@ -563,8 +563,8 @@ export function demoGenome(): DemoGenome {
   const vcf = vcfFiles(seqs);
   made = {
     twobit: twoBit(seqs),
-    bigwig: bbi("bigwig", DEMO_SYSTEMS, gc.blocks, { fieldCount: 0, definedFieldCount: 0, ...gc.stats }),
-    bigbed: bbi("bigbed", DEMO_SYSTEMS, genes.blocks, {
+    bigwig: bbi('bigwig', DEMO_SYSTEMS, gc.blocks, { fieldCount: 0, definedFieldCount: 0, ...gc.stats }),
+    bigbed: bbi('bigbed', DEMO_SYSTEMS, genes.blocks, {
       fieldCount: 12,
       definedFieldCount: 12,
       count: genes.count,
@@ -577,7 +577,7 @@ export function demoGenome(): DemoGenome {
     vcf: vcf.file,
     tbi: vcf.tbi,
     text: {
-      fasta: seqs.map(([n, s]) => `>${n}\n${s.replace(/(.{60})/g, "$1\n")}`).join("\n"),
+      fasta: seqs.map(([n, s]) => `>${n}\n${s.replace(/(.{60})/g, '$1\n')}`).join('\n'),
       wig: gc.text,
       bed: genes.text,
       vcf: vcf.text,

@@ -11,7 +11,7 @@
 // assembles holds what `compile`'s does (the same keys in every table), and its errors are `compile`'s. A query that
 // names a computed node of another provider reads its answer, as `compile` runs every other computed node first.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import {
   compile,
   RequiredField,
@@ -19,15 +19,15 @@ import {
   type SeqViewSpecDoc,
   SimpleParamsSchema,
   type StageContext,
-} from "@molstar/seq-core/format";
-import type { AnnotationInput, SeqSet } from "@molstar/seq-core/model";
-import { describe, expect, it } from "vitest";
-import { CASES } from "../../core/_test/format/cases.js";
-import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.js";
-import { Q } from "../../core/src/query/index.js";
-import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "../src/index.js";
-import { InteractionsViewerRegistry } from "../src/interactions/viewer/index.js";
-import { fixtureMeasurer } from "../src/testing/index.js";
+} from '@molstar/seq-core/format';
+import type { AnnotationInput, SeqSet } from '@molstar/seq-core/model';
+import { describe, expect, it } from 'vitest';
+import { CASES } from '../../core/_test/format/cases.js';
+import { fixtureLoaders, MolstarFixture } from '../../core/_test/format/load-fixtures.js';
+import { Q } from '../../core/src/query/index.js';
+import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from '../src/index.js';
+import { InteractionsViewerRegistry } from '../src/interactions/viewer/index.js';
+import { fixtureMeasurer } from '../src/testing/index.js';
 
 /** A set's keys, table by table, sorted. */
 function keys(set: SeqSet) {
@@ -45,7 +45,7 @@ function keys(set: SeqSet) {
   };
 }
 const errors = (issues: readonly { severity: string; code: string }[]) =>
-  [...new Set(issues.filter((i) => i.severity === "error").map((i) => i.code))].sort();
+  [...new Set(issues.filter((i) => i.severity === 'error').map((i) => i.code))].sort();
 
 describe("the graph's set against `compile`'s, over core's cases", () => {
   for (const [name, make] of Object.entries(CASES))
@@ -69,38 +69,38 @@ describe("the graph's set against `compile`'s, over core's cases", () => {
     });
 });
 
-describe("a query naming a computed node of another provider", () => {
+describe('a query naming a computed node of another provider', () => {
   // A provider whose options name a sequence: one ranges item [start, stop) on it.
   const span = {
-    name: "test:span",
+    name: 'test:span',
     options: SimpleParamsSchema({
-      of: RequiredField(ref("sequence"), ""),
-      start: RequiredField({ name: "int", check: () => {} } as never, ""),
-      stop: RequiredField({ name: "int", check: () => {} } as never, ""),
+      of: RequiredField(ref('sequence'), ''),
+      start: RequiredField({ name: 'int', check: () => {} } as never, ''),
+      stop: RequiredField({ name: 'int', check: () => {} } as never, ''),
     }),
-    geometry: "ranges" as const,
+    geometry: 'ranges' as const,
     async compute(_ctx: StageContext, o: unknown) {
       const { of, start, stop } = o as { of: string; start: number; stop: number };
       return {
-        key: "",
-        geometry: "ranges",
+        key: '',
+        geometry: 'ranges',
         columns: { target: [of], start: [start], stop: [stop] },
       } as AnnotationInput;
     },
   };
   const doc = (): SeqViewSpecDoc => {
     const b = createSeqViewSpec();
-    b.data.sequence({ ref: "p", value: "MACAACAACAAC" });
-    b.data.computed({ ref: "sp", provider: "test:span", options: { of: "p", start: 0, stop: 6 } } as never);
-    b.data.computed({ ref: "q", provider: "query", query: Q.read("(and sp (letters C))") } as never);
-    b.view({ ref: "v", label: "V" }).track({ label: "L" }).letters();
+    b.data.sequence({ ref: 'p', value: 'MACAACAACAAC' });
+    b.data.computed({ ref: 'sp', provider: 'test:span', options: { of: 'p', start: 0, stop: 6 } } as never);
+    b.data.computed({ ref: 'q', provider: 'query', query: Q.read('(and sp (letters C))') } as never);
+    b.view({ ref: 'v', label: 'V' }).track({ label: 'L' }).letters();
     return b.getDocument();
   };
   const answer = (set: SeqSet | undefined) => {
-    const a = set?.annotations.find((x) => x && set.strings.get(x.key) === "q");
+    const a = set?.annotations.find((x) => x && set.strings.get(x.key) === 'q');
     return a ? { count: a.count, start: Array.from(a.start), stop: Array.from(a.stop) } : null;
   };
-  it("the graph answers it as `compile` does, with no issue", async () => {
+  it('the graph answers it as `compile` does, with no issue', async () => {
     const ctx = createSeqViewer(
       { ...DefaultSeqViewerSpec(), registry: [DefaultRegistry, { svs: { providers: [span] } } as never] },
       { scheduler: manualScheduler(), loaders: fixtureLoaders(), text: fixtureMeasurer() },

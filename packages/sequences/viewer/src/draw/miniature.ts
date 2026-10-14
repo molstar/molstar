@@ -14,14 +14,14 @@
 // the regions, the fonts and a generation bumped with the model or the skin: a pan or a zoom builds none, and nothing
 // to draw is kept as none. Edge-rate but `stamp`, so it may allocate.
 
-import type { Axis, SectionAxisView } from "../axis.js";
-import type { SeqViewerContext } from "../context.js";
-import type { Skin, ViewModel } from "../graph.js";
-import type { LayerRenderer } from "../registry.js";
-import { Lod } from "../viewport.js";
-import type { RenderBackend } from "./backend.js";
-import { KeyedImage, mapSize, type NavView } from "./nav.js";
-import { DrawView, type TracksHost } from "./view.js";
+import type { Axis, SectionAxisView } from '../axis.js';
+import type { SeqViewerContext } from '../context.js';
+import type { Skin, ViewModel } from '../graph.js';
+import type { LayerRenderer } from '../registry.js';
+import { Lod } from '../viewport.js';
+import type { RenderBackend } from './backend.js';
+import { KeyedImage, mapSize, type NavView } from './nav.js';
+import { DrawView, type TracksHost } from './view.js';
 
 /**
  * A draw view laid out as a map of the whole axis: every shown position of each block, block b from `x0s[b] − left` at
@@ -102,7 +102,7 @@ export class Miniature implements TracksHost {
   /** The navigator's map image for `n` (its band, its `tracks`), built when its key changed; -1: none to show. */
   image(n: NavView): number {
     const p = n.parts;
-    if (p.onRuler || !n.axis || !(p.axis.includes("overview") || p.axis.includes("miniature"))) return -1;
+    if (p.onRuler || !n.axis || !(p.axis.includes('overview') || p.axis.includes('miniature'))) return -1;
     const images = n.backend.images;
     const k = this.key;
     mapSize(n, size);
@@ -136,7 +136,7 @@ export class Miniature implements TracksHost {
     for (let k = 0; k < rv.layers.count; k++) {
       const t = rv.layers.track[k];
       if (rv.tracks.section[t] !== section || rv.tracks.hidden[t] || this.failed.has(k)) continue;
-      const r = ctx.registry.get("renderers", m.prepared[k].renderer);
+      const r = ctx.registry.get('renderers', m.prepared[k].renderer);
       if (!r || !(r.draw || r.overview)) continue;
       if (refs.length > 0 ? refs.includes(m.set.strings.get(rv.tracks.ref[t])) : r.miniature !== false)
         this.layers.push(k);
@@ -166,7 +166,7 @@ export class Miniature implements TracksHost {
     for (let i = 0; i < this.layers.length; i++) {
       const k = this.layers[i];
       const p = m.prepared[k];
-      const r = ctx.registry.get("renderers", p.renderer) as LayerRenderer;
+      const r = ctx.registry.get('renderers', p.renderer) as LayerRenderer;
       const params = m.resolved.layers.params[k];
       v.layer = k;
       v.setThemes(p.themes);
@@ -179,7 +179,7 @@ export class Miniature implements TracksHost {
         if (!r.overview?.(v, p.state, params)) r.draw?.(v, p.state, params);
       } catch (err) {
         this.failed.add(k);
-        ctx.report("seqv.renderer.error", `layer ${k} threw while drawn in miniature and is omitted: ${String(err)}`);
+        ctx.report('seqv.renderer.error', `layer ${k} threw while drawn in miniature and is omitted: ${String(err)}`);
       } finally {
         v.cache = v.stream = null;
         into.popClip();

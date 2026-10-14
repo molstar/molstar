@@ -12,23 +12,23 @@
 // rule in the dispatcher. Hot callers write their numbers into a reused Float64Array and call the viewport's `…From`
 // verbs.
 
-import { type Closure, Height, Lanes, SelectionGranularity } from "@molstar/seq-core/format";
-import { Loci, OrderedSet } from "@molstar/seq-core/model";
-import { AxisGeometry, navUnits, type SectionAxisView } from "./axis.js";
-import { ChannelMarks } from "./channels.js";
-import { SeqViewerConfig } from "./config.js";
-import type { SeqViewerContext } from "./context.js";
-import { defineBehavior, internal, RegionName, viewportOf } from "./default-behaviors.js";
-import type { ViewModel } from "./graph.js";
-import { CHEVRON_GAP, CHEVRON_HALF, CHEVRON_ROOM, CHEVRON_SLOP, splitChevron } from "./header-toggle.js";
-import { type Hit, HitRegion, HoverKind, wrappedPositionNear } from "./hit.js";
-import { Binding, type DragEvt, DragPhase, Modifier, PointerType, type Trigger } from "./input.js";
-import { EntryKind, type SectionLayout, SectionLayouts } from "./layout.js";
-import { carry, type SeqLociAny } from "./lineage.js";
-import { MarkBit } from "./marks.js";
-import { ofRuns } from "./projection.js";
-import { RegionState } from "./streams.js";
-import { WINDOW_FRAME, WindowPart, windowEnds, windowFrame, windowIdle, windowPart } from "./windows.js";
+import { type Closure, Height, Lanes, SelectionGranularity } from '@molstar/seq-core/format';
+import { Loci, OrderedSet } from '@molstar/seq-core/model';
+import { AxisGeometry, navUnits, type SectionAxisView } from './axis.js';
+import { ChannelMarks } from './channels.js';
+import { SeqViewerConfig } from './config.js';
+import type { SeqViewerContext } from './context.js';
+import { defineBehavior, internal, RegionName, viewportOf } from './default-behaviors.js';
+import type { ViewModel } from './graph.js';
+import { CHEVRON_GAP, CHEVRON_HALF, CHEVRON_ROOM, CHEVRON_SLOP, splitChevron } from './header-toggle.js';
+import { type Hit, HitRegion, HoverKind, wrappedPositionNear } from './hit.js';
+import { Binding, type DragEvt, DragPhase, Modifier, PointerType, type Trigger } from './input.js';
+import { EntryKind, type SectionLayout, SectionLayouts } from './layout.js';
+import { carry, type SeqLociAny } from './lineage.js';
+import { MarkBit } from './marks.js';
+import { ofRuns } from './projection.js';
+import { RegionState } from './streams.js';
+import { WINDOW_FRAME, WindowPart, windowEnds, windowFrame, windowIdle, windowPart } from './windows.js';
 
 const W = WindowPart;
 
@@ -37,10 +37,10 @@ const W = WindowPart;
  * `zoomPositions` positions across the data area (so the cell follows the view's width; at least the letters
  * threshold), or `zoomCell` px per position when set; `none` turns it off.
  */
-const NAVIGATOR = { doubleClick: "toggle" as "toggle" | "none", zoomPositions: 60, zoomCell: 0 };
+const NAVIGATOR = { doubleClick: 'toggle' as 'toggle' | 'none', zoomPositions: 60, zoomCell: 0 };
 type NavigatorParams = typeof NAVIGATOR;
 /** The double click's moves: animated as other viewport changes are. */
-const TOGGLE_MOVE = { animate: true, origin: "pointer" } as const;
+const TOGGLE_MOVE = { animate: true, origin: 'pointer' } as const;
 
 /**
  * The navigator (`kind` 0: x over the data area), the vertical overview (1: x and y over its column) and the
@@ -54,7 +54,7 @@ function windowBehavior<P extends object>(
   description: string,
   params: P,
 ) {
-  return defineBehavior(name, "interaction", 100, params, description, ({ ctx, h, on }) => {
+  return defineBehavior(name, 'interaction', 100, params, description, ({ ctx, h, on }) => {
     let mode: number = W.none;
     /** The window's frame (windows.ts `windowFrame`), and at the press: its frame, and the cell, scrollX, rowScale,
      * scrollY and content height (an end's drag is from the press, by the pointer's travel since). */
@@ -82,7 +82,7 @@ function windowBehavior<P extends object>(
     on(ctx.interaction.pointer, (e) => {
       const x = e.input.x;
       const y = e.input.y;
-      if (e.input.type !== PointerType.down || e.hit.region !== region || e.owner !== "") return;
+      if (e.input.type !== PointerType.down || e.hit.region !== region || e.owner !== '') return;
       const vp = viewportOf(ctx, e.hit.section);
       if (!vp || !h.forSection(e.hit.section) || !frame(e.hit.section)) return;
       // A navigator with nowhere to go (the whole axis in view at the zoom limit) is inert: no press, jump or drag.
@@ -100,7 +100,7 @@ function windowBehavior<P extends object>(
       if (mode !== W.page) return;
       const wy0 = g[2] + g[6] * g[3];
       const vh = g[3];
-      if (kind === 2) vp.scrollTo(s.scrollX, s.scrollY + (y < wy0 ? -vh : vh), "pointer");
+      if (kind === 2) vp.scrollTo(s.scrollX, s.scrollY + (y < wy0 ? -vh : vh), 'pointer');
       else {
         io[0] = x;
         if (kind === 0) navUnits(av as SectionAxisView, io);
@@ -111,7 +111,7 @@ function windowBehavior<P extends object>(
           kind === 0 ? Math.min(s.width - (vp.axis?.insetX ?? 0), s.contentWidth) : (g[5] - g[4]) * s.contentWidth;
         const sx = cx - half * 0.5;
         const sy = kind === 1 ? ((y - g[2]) / g[3]) * s.contentHeight - vh / 2 : s.scrollY;
-        vp.scrollTo(sx, sy, "pointer");
+        vp.scrollTo(sx, sy, 'pointer');
         mode = W.pan;
       }
       vp.release();
@@ -130,12 +130,12 @@ function windowBehavior<P extends object>(
         navUnits(av, io);
         buf[0] = s.cell;
         buf[1] = io[0] * s.cell + io[1] * ax.gap;
-        vp.setViewFrom(buf, "pointer");
+        vp.setViewFrom(buf, 'pointer');
       } else if (mode === W.pan) {
         // Per px of the window's travel (a window drawn longer than its share travels less than its span).
         buf[0] = kind === 2 ? 0 : e.dx * g[12] * s.contentWidth;
         buf[1] = kind === 0 ? 0 : e.dy * g[13] * s.contentHeight;
-        vp.panByFrom(buf, "pointer");
+        vp.panByFrom(buf, 'pointer');
       } else if ((mode === W.left || mode === W.right) && ax && ax.cells > 0) {
         // The moved end from the press by the pointer's travel, the other held (in content), both clamped: the
         // zoom limit (`maxCell`) as the window's least share of the axis.
@@ -146,7 +146,7 @@ function windowBehavior<P extends object>(
         if (!windowEnds(g0, false, mode === W.left, ends)) {
           buf[0] = at[0];
           buf[1] = at[1];
-          return vp.setViewFrom(buf, "pointer");
+          return vp.setViewFrom(buf, 'pointer');
         }
         // The ends as the axis's units: on the navigator through its map's blocks, on the overview's column linearly;
         // cells u and gaps q, content x = u·cell + q·gap.
@@ -169,7 +169,7 @@ function windowBehavior<P extends object>(
         const cell = c >= s.maxCell * (1 - 1e-9) ? s.maxCell : c <= s.minCell * (1 + 1e-9) ? s.minCell : c;
         buf[0] = cell;
         buf[1] = mode === W.left ? io[0] * cell + io[1] * ax.gap - area : u0 * cell + q0 * ax.gap;
-        vp.setViewFrom(buf, "pointer");
+        vp.setViewFrom(buf, 'pointer');
       } else if ((mode === W.top || mode === W.bottom) && at[4] > 0) {
         // The same for rows: the content's height taken as proportional to the row scale.
         const rh = g0[3];
@@ -178,14 +178,14 @@ function windowBehavior<P extends object>(
         if (!windowEnds(g0, true, mode === W.top, ends)) {
           buf[0] = at[2];
           buf[1] = at[3];
-          return vp.setRowViewFrom(buf, "pointer");
+          return vp.setRowViewFrom(buf, 'pointer');
         }
         const v = (rh * at[2]) / (at[4] * (ends[1] - ends[0]));
         const r = v >= s.maxRowScale * (1 - 1e-9) ? s.maxRowScale : v <= s.minRowScale * (1 + 1e-9) ? s.minRowScale : v;
         const ch = (at[4] * r) / at[2];
         buf[0] = r;
         buf[1] = mode === W.top ? ends[1] * ch - rh : ends[0] * ch;
-        vp.setRowViewFrom(buf, "pointer");
+        vp.setRowViewFrom(buf, 'pointer');
       }
     });
     if (kind !== 0) return;
@@ -194,7 +194,7 @@ function windowBehavior<P extends object>(
     on(ctx.interaction.click, (e) => {
       const sec = e.hit.section;
       const p = h.forSection(sec) as NavigatorParams | null;
-      if (e.count !== 2 || e.hit.region !== region || e.input.button !== 0 || p?.doubleClick !== "toggle") return;
+      if (e.count !== 2 || e.hit.region !== region || e.input.button !== 0 || p?.doubleClick !== 'toggle') return;
       const vp = viewportOf(ctx, sec);
       if (!vp || !frame(sec) || windowIdle(vp.live.current, vp.axis)) return;
       const s = vp.live.current;
@@ -205,7 +205,7 @@ function windowBehavior<P extends object>(
     });
     on(ctx.interaction.doubleClick, (e) => {
       const p = h.forSection(e.hit.section) as NavigatorParams | null;
-      if (e.hit.region !== region || e.input.button !== 0 || p?.doubleClick !== "toggle") return;
+      if (e.hit.region !== region || e.input.button !== 0 || p?.doubleClick !== 'toggle') return;
       const vp = viewportOf(ctx, e.hit.section);
       if (vp && !windowIdle(vp.live.current, vp.axis)) e.claim(name);
     });
@@ -244,28 +244,28 @@ function focusCell(vp: NonNullable<ReturnType<typeof viewportOf>>, p: { zoomPosi
 const ITEM_PAD = 0.05;
 
 export const ScrollbarBehavior = windowBehavior(
-  "scrollbar",
+  'scrollbar',
   HitRegion.scrollbar,
   2,
-  "Dragging the thumb scrolls the rows; a press beside it pages.",
+  'Dragging the thumb scrolls the rows; a press beside it pages.',
   {},
 );
 export const NavigatorBehavior = windowBehavior(
-  "navigator",
+  'navigator',
   HitRegion.navigator,
   0,
-  "A press jumps; dragging the window pans; dragging an edge zooms; a double click toggles the full view and a zoom there.",
+  'A press jumps; dragging the window pans; dragging an edge zooms; a double click toggles the full view and a zoom there.',
   NAVIGATOR,
 );
 export const VerticalOverviewBehavior = windowBehavior(
-  "verticalOverview",
+  'verticalOverview',
   HitRegion.vnav,
   1,
-  "The window on both axes: top and bottom handles zoom rows, left and right columns; a press jumps.",
+  'The window on both axes: top and bottom handles zoom rows, left and right columns; a press jumps.',
   {},
 );
 
-const refOf = (ctx: SeqViewerContext, section: number) => ctx.layout.sectionRef(section) ?? "";
+const refOf = (ctx: SeqViewerContext, section: number) => ctx.layout.sectionRef(section) ?? '';
 
 /**
  * A split track's chevron, after its label's text (header-toggle.ts: the numbers the composer draws it by): the hit is
@@ -283,16 +283,16 @@ function splitToggle(ctx: SeqViewerContext, view: ViewModel, l: SectionLayout, h
     Math.min(ctx.layout.props(refOf(ctx, hit.section)).labelFontPx, Math.floor(l.entryHeight[e] * 0.8)),
   );
   const x = 10 + depth * 14;
-  const w = ctx.text.label(view.set.strings.get(t), ctx.text.font("ui", px, 400)).width;
+  const w = ctx.text.label(view.set.strings.get(t), ctx.text.font('ui', px, 400)).width;
   const cx = x + Math.min(w, l.headerWidth - x - 6 - CHEVRON_ROOM) + CHEVRON_GAP + CHEVRON_HALF;
   return Math.abs(hit.x - cx) <= CHEVRON_HALF + CHEVRON_SLOP;
 }
 
 export const HeadersBehavior = defineBehavior(
-  "headers",
-  "interaction",
+  'headers',
+  'interaction',
   80,
-  { activate: "doubleClick" as "click" | "doubleClick" | "none" },
+  { activate: 'doubleClick' as 'click' | 'doubleClick' | 'none' },
   "A group's header, a split track's chevron or a clade toggles on a single click; activating a track header emits `events.activate`.",
   ({ ctx, h, on }) => {
     on(ctx.interaction.click, (e) => {
@@ -316,8 +316,8 @@ export const HeadersBehavior = defineBehavior(
         splitToggle(ctx, a.view as ViewModel, l, hit)
       ) {
         if (once) ctx.ui.toggleGroup(str(rv.tracks.ref[hit.track]));
-      } else if (hit.track >= 0 && e.count === (p.activate === "click" ? 1 : p.activate === "doubleClick" ? 2 : 0)) {
-        internal(ctx).activate(refOf(ctx, hit.section), str(rv.tracks.ref[hit.track]), "pointer");
+      } else if (hit.track >= 0 && e.count === (p.activate === 'click' ? 1 : p.activate === 'doubleClick' ? 2 : 0)) {
+        internal(ctx).activate(refOf(ctx, hit.section), str(rv.tracks.ref[hit.track]), 'pointer');
       }
     });
     // A track header's double click activates it (`activate: "doubleClick"`).
@@ -327,9 +327,9 @@ export const HeadersBehavior = defineBehavior(
         e.hit.region === HitRegion.header &&
         e.hit.track >= 0 &&
         e.input.button === 0 &&
-        p?.activate === "doubleClick"
+        p?.activate === 'doubleClick'
       )
-        e.claim("headers");
+        e.claim('headers');
     });
   },
 );
@@ -355,10 +355,10 @@ function retried(ctx: SeqViewerContext, hit: Hit): boolean {
     const ref = m.set.strings.get(rv.layers.ref[k]);
     if (ctx.streams.force(ref, hit.block, hit.index)) return true;
     // A rows layer's tile row is the hit's lane's (its lane within the layer's rows).
-    const rows = ctx.layout.get(ctx.layout.sectionRef(hit.section) ?? "")?.current.rows;
+    const rows = ctx.layout.get(ctx.layout.sectionRef(hit.section) ?? '')?.current.rows;
     const lane = rows && rows.layer === k && hit.lane >= 0 ? hit.lane - rows.laneStart : -1;
     if (ctx.streams.state(ref, hit.block, hit.index, lane) !== RegionState.failed) continue;
-    return ctx.actions.run("stream.retry", m.set.strings.get(rv.tracks.ref[hit.track]), "pointer");
+    return ctx.actions.run('stream.retry', m.set.strings.get(rv.tracks.ref[hit.track]), 'pointer');
   }
   return false;
 }
@@ -369,7 +369,7 @@ function lociOfHit(hit: Hit): SeqLociAny | null {
   // A streamed item (ST4b): its range on the unit (it has no row in the set to select).
   if (hit.kind === K.seq && hit.span[1] > hit.span[0] && hit.seq.set)
     return {
-      kind: "seq-loci",
+      kind: 'seq-loci',
       set: hit.seq.set,
       elements: [{ unit: hit.seq.unit, indices: OrderedSet.ofRange(hit.span[0], hit.span[1]) }],
     } as SeqLociAny;
@@ -389,7 +389,7 @@ function lociOfHit(hit: Hit): SeqLociAny | null {
   // A dot plot's cell: its partner under y too (seqspec:interaction#hover).
   if (!loci || hit.kind !== K.seq || hit.pairUnit < 0) return loci;
   const pair = {
-    kind: "seq-loci",
+    kind: 'seq-loci',
     set: hit.seq.set,
     elements: [{ unit: hit.pairUnit, indices: OrderedSet.ofSingleton(hit.pairIndex) }],
   };
@@ -410,43 +410,43 @@ const claims = (
   (start.region === HitRegion.data && Binding.match(p.dragOn, button, mods));
 
 export const SelectBehavior = defineBehavior(
-  "select",
-  "interaction",
+  'select',
+  'interaction',
   50,
   {
-    click: [{ button: "primary" }] as Binding,
-    extend: [{ button: "primary", shift: true }] as Binding,
+    click: [{ button: 'primary' }] as Binding,
+    extend: [{ button: 'primary', shift: true }] as Binding,
     /** Adds the element, or removes it when selected. */
     toggle: [
-      { button: "primary", ctrl: true },
-      { button: "primary", meta: true },
+      { button: 'primary', ctrl: true },
+      { button: 'primary', meta: true },
     ] as Binding,
     /**
      * Shift with a click or a drag on positions or columns (seqspec:interaction#selection): `extend`, the range from the
      * anchor; `toggle`, adds or removes (a drag decided at its press: on a selected position it removes its range).
      */
-    shiftPositions: "extend" as "extend" | "toggle",
+    shiftPositions: 'extend' as 'extend' | 'toggle',
     /** `toggle` on an item or a row: Shift-click adds or removes it; `set`: selects it alone. */
-    shiftItems: "toggle" as "toggle" | "set",
+    shiftItems: 'toggle' as 'toggle' | 'set',
     /**
      * Where a double click at the point means something else (a behavior claims `doubleClick`), a single click's change
      * waits for the double-click time, so a double click never touches the selection; false: it applies at once.
      */
     doubleClickWait: true,
     /** A double or triple click: `ignore` (its first click did all), or `click`, that click again (the text presets). */
-    repeatClicks: "ignore" as "ignore" | "click",
+    repeatClicks: 'ignore' as 'ignore' | 'click',
     clearOnEmpty: true,
     toggleWhole: true,
     /**
      * What the element is closed by before it is widened (seqspec:interaction#channels); a click selects what the hover
      * lit.
      */
-    closure: "containing" as Closure,
-    granularity: "position" as "position" | "range" | "unit" | "copyGroup" | "column" | "row",
-    dragRegions: ["column"] as readonly RegionName[],
-    dragOn: [{ button: "primary", alt: true }] as Binding,
+    closure: 'containing' as Closure,
+    granularity: 'position' as 'position' | 'range' | 'unit' | 'copyGroup' | 'column' | 'row',
+    dragRegions: ['column'] as readonly RegionName[],
+    dragOn: [{ button: 'primary', alt: true }] as Binding,
     /** A drag on data over whole columns (positions on a blocks axis), as `shiftPositions` says. */
-    dragColumns: [{ button: "primary", shift: true }] as Binding,
+    dragColumns: [{ button: 'primary', shift: true }] as Binding,
     /**
      * Past an edge during a select drag the view scrolls (text and rows in a box section down, a linear section across),
      * at `autoscrollMin` px a second plus `autoscrollRate` for each px past, up to `autoscrollMax`.
@@ -456,7 +456,7 @@ export const SelectBehavior = defineBehavior(
     autoscrollRate: 15,
     autoscrollMax: 1440,
   },
-  "A click selects (again: clears a whole selection), held for the double-click time where a double click means something else (a behavior claims `doubleClick`: a zoom), which then never selects; Shift (a click or a drag) extends a range of positions or columns, and adds or removes an item or a row; Ctrl/⌘ adds or removes; a drag it claims selects a range, its end following the point (clamped to the surface) and the view scrolling past an edge. In text, a drag follows the pointer line by line.",
+  'A click selects (again: clears a whole selection), held for the double-click time where a double click means something else (a behavior claims `doubleClick`: a zoom), which then never selects; Shift (a click or a drag) extends a range of positions or columns, and adds or removes an item or a row; Ctrl/⌘ adds or removes; a drag it claims selects a range, its end following the point (clamped to the surface) and the view scrolling past an edge. In text, a drag follows the pointer line by line.',
   ({ ctx, h, on, add }) => {
     const sel = ctx.selection;
     /** The element closed by the section's projector, then widened (a click and a release alike). */
@@ -546,7 +546,7 @@ export const SelectBehavior = defineBehavior(
         k1 = other < b ? k + 1 : ax.shown[b];
       } else return false;
       const raw = shownLoci(ctx, hit.section, b, k0, k1, ax.alignment[b] >= 0 ? HoverKind.column : HoverKind.seq);
-      if (raw) sel.set(closed(raw, p), "pointer");
+      if (raw) sel.set(closed(raw, p), 'pointer');
       return true;
     };
     /**
@@ -560,11 +560,11 @@ export const SelectBehavior = defineBehavior(
     const OP_TOGGLE = 3;
     const OP_CLEAR = 4;
     const apply = (op: number, w: SeqLociAny | null) => {
-      if (op === OP_CLEAR) sel.clear("pointer");
+      if (op === OP_CLEAR) sel.clear('pointer');
       else if (!w) return;
-      else if (op === OP_SET) sel.set(w, "pointer");
-      else if (op === OP_REMOVE) sel.remove(w, "pointer");
-      else if (op === OP_TOGGLE) sel.toggle(w, "pointer");
+      else if (op === OP_SET) sel.set(w, 'pointer');
+      else if (op === OP_REMOVE) sel.remove(w, 'pointer');
+      else if (op === OP_TOGGLE) sel.toggle(w, 'pointer');
     };
     const drop = () => {
       if (held.timer >= 0) ctx.scheduler.clearTimer(held.timer);
@@ -588,14 +588,14 @@ export const SelectBehavior = defineBehavior(
     // A key meanwhile: Escape drops the held click, another applies it first (it acts on what the click did).
     on(ctx.interaction.key, (e) => {
       if (!held.op) return;
-      if (e.input.key === "Escape") drop();
+      if (e.input.key === 'Escape') drop();
       else flush();
     });
     // The selection changed meanwhile (a host, a command): the held click is moot. A carry to a new set (origin
     // `graph`) changed nothing anyone did (seqspec:interaction#replays-and-carries).
     add(
       sel.current.subscribe(() => {
-        if (held.op && !applying && sel.current.origin !== "graph") drop();
+        if (held.op && !applying && sel.current.origin !== 'graph') drop();
       }),
     );
     const settled = () => {
@@ -619,11 +619,11 @@ export const SelectBehavior = defineBehavior(
       const hit = e.hit;
       // A double or triple click selects nothing more (`repeatClicks: "ignore"`): its first click did, or held it
       // (above); `click`: that click again, which changes nothing (text, where nothing takes it).
-      if (e.count > 1 && p.repeatClicks !== "click") return;
+      if (e.count > 1 && p.repeatClicks !== 'click') return;
       // Shift on a position or a column extends the range (seqspec:interaction#selection), on an item or a row adds or
       // removes it, by the params.
       const onRange = hit.kind === HoverKind.seq || hit.kind === HoverKind.column;
-      const extendRangeHere = extend && onRange && p.shiftPositions === "extend";
+      const extendRangeHere = extend && onRange && p.shiftPositions === 'extend';
       if (extendRangeHere && hit.block >= 0 && hit.shown >= 0 && extendRange(hit, p)) return;
       const loci = extend || toggle || set ? lociOfHit(hit) : null;
       let op = 0;
@@ -632,7 +632,7 @@ export const SelectBehavior = defineBehavior(
       else {
         w = closed(loci, p);
         if (hit.block >= 0 && hit.shown >= 0 && (set || extend)) anchorAt(hit.section, hit.block, hit.shown);
-        const shiftToggles = extend && (onRange ? p.shiftPositions === "toggle" : p.shiftItems === "toggle");
+        const shiftToggles = extend && (onRange ? p.shiftPositions === 'toggle' : p.shiftItems === 'toggle');
         if (toggle || shiftToggles) op = OP_TOGGLE;
         else if (p.toggleWhole && e.count === 1 && !extend && sel.isWhole(w)) op = OP_REMOVE;
         else if (e.count > 1 && sel.isWhole(w)) op = 0;
@@ -640,7 +640,7 @@ export const SelectBehavior = defineBehavior(
       }
       if (!op) return;
       // Where a double click here means something else (a zoom), the change waits for the double-click time.
-      if (p.doubleClickWait && e.count === 1 && internal(ctx).input.askDoubleClick(e) !== "") {
+      if (p.doubleClickWait && e.count === 1 && internal(ctx).input.askDoubleClick(e) !== '') {
         held.op = op;
         held.loci = w;
         held.timer = ctx.scheduler.setTimer(settled, ctx.config.get(SeqViewerConfig.Input.DoubleClickMs));
@@ -757,7 +757,7 @@ export const SelectBehavior = defineBehavior(
       buf[1] = time[1] + (vy * dt) / 1000;
       const x0 = vp.live.current.scrollX;
       const y0 = vp.live.current.scrollY;
-      vp.panByFrom(buf, "pointer");
+      vp.panByFrom(buf, 'pointer');
       const movedX = vp.live.current.scrollX - x0;
       const movedY = vp.live.current.scrollY - y0;
       time[2] = vx === 0 ? 0 : buf[0] - movedX;
@@ -823,7 +823,7 @@ export const SelectBehavior = defineBehavior(
       const s = e.start;
       if (e.phase === DragPhase.start) {
         const p = h.forSection(s.section);
-        if (e.owner !== "" || !p) return;
+        if (e.owner !== '' || !p) return;
         const columns = s.region === HitRegion.data && Binding.match(p.dragColumns, e.button, e.input.modifiers);
         if (!columns && !claims(p, s, e.button, e.input.modifiers)) return;
         // Wrapped, a press on the text's data area or its inset starts at its nearest position (a gap, a line's end, a
@@ -836,7 +836,7 @@ export const SelectBehavior = defineBehavior(
         if (!w && (s.block < 0 || s.shown < 0)) return;
         // A press that drags is no double click: a click held before it applies first.
         flush();
-        e.claim("select");
+        e.claim('select');
         adding = columns;
         dragOp = DRAG_SET;
         wrapped = w;
@@ -869,7 +869,7 @@ export const SelectBehavior = defineBehavior(
         if (columns) {
           const svp = viewportOf(ctx, s.section);
           const sax = svp?.axis;
-          if (p.shiftPositions === "extend") {
+          if (p.shiftPositions === 'extend') {
             const a = svp ? anchorOn(svp, pd.block) : -1;
             dragOp = DRAG_SET;
             adding = false;
@@ -884,10 +884,10 @@ export const SelectBehavior = defineBehavior(
         bump();
         extend(e);
         scroll();
-      } else if (e.owner === "select" && e.phase === DragPhase.move) {
+      } else if (e.owner === 'select' && e.phase === DragPhase.move) {
         extend(e);
         scroll();
-      } else if (e.owner === "select") {
+      } else if (e.owner === 'select') {
         if (e.phase === DragPhase.end) extend(e);
         stop();
         const p = h.forSection(pd.section);
@@ -896,9 +896,9 @@ export const SelectBehavior = defineBehavior(
         bump();
         const loci = raw && p ? closed(raw, p) : null;
         pd.remove = false;
-        if (loci && dragOp === DRAG_REMOVE) sel.remove(loci, "pointer");
-        else if (loci && adding) sel.add(loci, "pointer");
-        else if (loci) sel.set(loci, "pointer");
+        if (loci && dragOp === DRAG_REMOVE) sel.remove(loci, 'pointer');
+        else if (loci && adding) sel.add(loci, 'pointer');
+        else if (loci) sel.set(loci, 'pointer');
         // Shift-click extends from the range's start, as the drag left it.
         if (loci) anchorAt(pd.section, pd.block, pd.startShown);
       }
@@ -955,11 +955,11 @@ function shownLoci(ctx: SeqViewerContext, section: number, b: number, k0: number
   const columns = ofRuns(runBuffer, n);
   const set = ax.set;
   const alignment = ax.alignment[b];
-  if (kind === HoverKind.column) return { kind: "column-loci", set, alignment, columns } as unknown as SeqLociAny;
+  if (kind === HoverKind.column) return { kind: 'column-loci', set, alignment, columns } as unknown as SeqLociAny;
   if (kind === HoverKind.seq)
     return ax.unit[b] < 0
       ? null
-      : ({ kind: "seq-loci", set, elements: [{ unit: ax.unit[b], indices: columns }] } as unknown as SeqLociAny);
+      : ({ kind: 'seq-loci', set, elements: [{ unit: ax.unit[b], indices: columns }] } as unknown as SeqLociAny);
   const r = ctx.layout.get(refOf(ctx, section))?.current.rows;
   const [d0, d1] = [Math.min(pd.rowStart, pd.rowEnd), Math.max(pd.rowStart, pd.rowEnd)];
   const found = new Int32Array(r ? d1 - d0 + 1 : 0);
@@ -972,30 +972,30 @@ function shownLoci(ctx: SeqViewerContext, section: number, b: number, k0: number
   let u = 0;
   for (let i = 0; i < m; i++) if (i === 0 || sorted[i] !== sorted[i - 1]) sorted[u++] = sorted[i];
   const elements = { rows: OrderedSet.ofSortedArray(sorted.slice(0, u)), columns };
-  return u > 0 ? ({ kind: "aligned-loci", set, alignment, elements } as unknown as SeqLociAny) : null;
+  return u > 0 ? ({ kind: 'aligned-loci', set, alignment, elements } as unknown as SeqLociAny) : null;
 }
 
 export const DragPanBehavior = defineBehavior(
-  "dragPan",
-  "interaction",
+  'dragPan',
+  'interaction',
   10,
   {
-    dragRegions: ["data", "header", "gutter"] as readonly RegionName[],
+    dragRegions: ['data', 'header', 'gutter'] as readonly RegionName[],
     dragOn: [] as Binding,
     x: true,
     y: true,
     /** None by default: Shift-drag on data selects columns (`select`'s `dragColumns`). */
     dominantAxis: null as Trigger | null,
   },
-  "Dragging pans both axes, each with a lock; with `dominantAxis` held (none by default), the dominant axis only.",
+  'Dragging pans both axes, each with a lock; with `dominantAxis` held (none by default), the dominant axis only.',
   ({ ctx, h, on }) => {
     on(ctx.interaction.drag, (e) => {
       const p = h.forSection(e.start.section);
       if (!p) return;
       if (e.phase === DragPhase.start) {
-        if (e.owner !== "" || !claims(p, e.start, e.button, e.input.modifiers, p.dominantAxis ?? undefined)) return;
-        e.claim("dragPan");
-      } else if (e.owner !== "dragPan") return;
+        if (e.owner !== '' || !claims(p, e.start, e.button, e.input.modifiers, p.dominantAxis ?? undefined)) return;
+        e.claim('dragPan');
+      } else if (e.owner !== 'dragPan') return;
       const vp = viewportOf(ctx, e.start.section);
       if (!vp) return;
       if (e.phase >= DragPhase.end) return vp.release();
@@ -1011,8 +1011,8 @@ export const DragPanBehavior = defineBehavior(
 );
 
 export const WheelBehavior = defineBehavior(
-  "wheel",
-  "interaction",
+  'wheel',
+  'interaction',
   10,
   { zoom: [{ ctrl: true }, { meta: true }] as Binding, zoomSpeed: 1, panSpeed: 1 },
   "Zoom at the cursor with Ctrl/⌘ and pinch; a horizontal wheel pans, and so does a vertical one with Shift; a vertical wheel scrolls a box section's rows.",
@@ -1031,7 +1031,7 @@ export const WheelBehavior = defineBehavior(
       if (Binding.match(p.zoom, -1, w.modifiers)) {
         buf[0] = Math.exp(-w.deltaY * 0.004 * p.zoomSpeed);
         buf[1] = w.x - v.left;
-        vp.zoomAtFrom(buf, "pointer");
+        vp.zoomAtFrom(buf, 'pointer');
         e.handled = true;
         return;
       }
@@ -1041,7 +1041,7 @@ export const WheelBehavior = defineBehavior(
       if (l.geometry === AxisGeometry.linear && Math.abs(across) > (shift ? 0 : Math.abs(w.deltaY))) {
         buf[0] = across * p.panSpeed;
         buf[1] = 0;
-        vp.panByFrom(buf, "pointer");
+        vp.panByFrom(buf, 'pointer');
         e.handled = true;
         return;
       }
@@ -1051,7 +1051,7 @@ export const WheelBehavior = defineBehavior(
       if (l.heightMode === Height.box && ((dy < 0 && s.scrollY > 0) || (dy > 0 && s.scrollY < max))) {
         buf[0] = 0;
         buf[1] = dy * p.panSpeed;
-        vp.panByFrom(buf, "pointer");
+        vp.panByFrom(buf, 'pointer');
         e.handled = true;
       }
     });
@@ -1059,18 +1059,18 @@ export const WheelBehavior = defineBehavior(
 );
 
 export const DoubleClickZoomBehavior = defineBehavior(
-  "doubleClickZoom",
-  "interaction",
+  'doubleClickZoom',
+  'interaction',
   40,
-  { doubleClick: "toggle" as "toggle" | "none", zoomPositions: 60, zoomCell: 0 },
-  "A double click on an element shows its whole extent, then the focus window there, then the full view; on the data elsewhere, the focus window there, or zoomed in to it or closer, the full view.",
+  { doubleClick: 'toggle' as 'toggle' | 'none', zoomPositions: 60, zoomCell: 0 },
+  'A double click on an element shows its whole extent, then the focus window there, then the full view; on the data elsewhere, the focus window there, or zoomed in to it or closer, the full view.',
   ({ ctx, h, on }) => {
     /** The section the last "focus window at the position" step zoomed (-1: none); another double click there fits. */
     const atPosition = new Int32Array([-1]);
     on(ctx.interaction.click, (e) => {
       const p = h.forSection(e.hit.section);
       const i = e.input;
-      if (p?.doubleClick !== "toggle" || e.count !== 2 || i.button !== 0 || i.modifiers !== 0) return;
+      if (p?.doubleClick !== 'toggle' || e.count !== 2 || i.button !== 0 || i.modifiers !== 0) return;
       if (e.hit.region !== HitRegion.data) return;
       const ref = refOf(ctx, e.hit.section);
       const v = ctx.layout.axis(ref);
@@ -1100,19 +1100,19 @@ export const DoubleClickZoomBehavior = defineBehavior(
     on(ctx.interaction.doubleClick, (e) => {
       const p = h.forSection(e.hit.section);
       const i = e.input;
-      if (p?.doubleClick !== "toggle" || i.button !== 0 || i.modifiers !== 0 || e.hit.region !== HitRegion.data) return;
+      if (p?.doubleClick !== 'toggle' || i.button !== 0 || i.modifiers !== 0 || e.hit.region !== HitRegion.data) return;
       if (ctx.layout.get(refOf(ctx, e.hit.section))?.current.geometry === AxisGeometry.linear)
-        e.claim("doubleClickZoom");
+        e.claim('doubleClickZoom');
     });
   },
 );
 
 export const RowZoomBehavior = defineBehavior(
-  "rowZoom",
-  "interaction",
+  'rowZoom',
+  'interaction',
   20,
   { zoom: [{ alt: true }] as Binding, speed: 1 },
-  "Zooms rows vertically, every row at once.",
+  'Zooms rows vertically, every row at once.',
   ({ ctx, h, on }) => {
     /** The numbers a viewport verb reads. */
     const buf = new Float64Array(2);

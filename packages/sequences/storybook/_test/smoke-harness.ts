@@ -12,7 +12,7 @@
 // buttons make, and after each step reads what a person would see go wrong: the issues, and a visible section with
 // nothing in it.
 
-import type { Issue } from "@molstar/seq-core/model";
+import type { Issue } from '@molstar/seq-core/model';
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -20,11 +20,11 @@ import {
   manualScheduler,
   type SeqViewerContext,
   type SeqViewerRegistryEntry,
-} from "@molstar/seq-viewer";
-import { InteractionsViewerRegistry } from "@molstar/seq-viewer/interactions/viewer";
-import { fixtureMeasurer, streamsOf } from "@molstar/seq-viewer/testing";
-import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.js";
-import type { AllowedWarning, SmokeCase } from "../src/_stories/support/seqstar-smoke.js";
+} from '@molstar/seq-viewer';
+import { InteractionsViewerRegistry } from '@molstar/seq-viewer/interactions/viewer';
+import { fixtureMeasurer, streamsOf } from '@molstar/seq-viewer/testing';
+import { fixtureLoaders, MolstarFixture } from '../../core/_test/format/load-fixtures.js';
+import type { AllowedWarning, SmokeCase } from '../src/_stories/support/seqstar-smoke.js';
 
 export interface Finding {
   readonly step: string;
@@ -56,7 +56,7 @@ const allowed = (i: Issue, allow: readonly AllowedWarning[]) =>
 /** The issues the context shows now, those that are not allowed: errors, and warnings not on the story's list. */
 function badIssues(ctx: SeqViewerContext, allow: readonly AllowedWarning[]): string[] {
   return ctx.issues.current.value
-    .filter((i) => i.severity === "error" || (i.severity === "warning" && !allowed(i, allow)))
+    .filter((i) => i.severity === 'error' || (i.severity === 'warning' && !allowed(i, allow)))
     .map(text);
 }
 
@@ -64,7 +64,7 @@ function badIssues(ctx: SeqViewerContext, allow: readonly AllowedWarning[]): str
 function emptySections(ctx: SeqViewerContext): string[] {
   const view = ctx.graph.assembled.value?.view?.resolved;
   const set = ctx.graph.assembled.value?.set;
-  if (!view || !set) return ["no view assembled"];
+  if (!view || !set) return ['no view assembled'];
   const out: string[] = [];
   for (let k = 0; k < view.sections.count; k++) {
     const ref = set.strings.get(view.sections.ref[k]);
@@ -77,10 +77,10 @@ function emptySections(ctx: SeqViewerContext): string[] {
 
 /** What a step gave back: `false` (an action refused, an expectation not met) or issues, as findings unless allowed. */
 function stepProblems(result: unknown, allow: readonly AllowedWarning[]): string[] {
-  if (result === false) return ["the step failed (an action refused, or an expectation that did not hold)"];
+  if (result === false) return ['the step failed (an action refused, or an expectation that did not hold)'];
   if (!Array.isArray(result)) return [];
   return (result as Issue[])
-    .filter((i) => i.severity === "error" || (i.severity === "warning" && !allowed(i, allow)))
+    .filter((i) => i.severity === 'error' || (i.severity === 'warning' && !allowed(i, allow)))
     .map(text);
 }
 
@@ -116,9 +116,9 @@ export async function smoke(c: SmokeCase): Promise<Finding[]> {
     const done = ctx.setDocument(c.doc);
     size(ctx);
     const r = await done;
-    if (!r.ok) note("open", `the document did not open: ${r.issues.map(text).join(" | ")}`);
+    if (!r.ok) note('open', `the document did not open: ${r.issues.map(text).join(' | ')}`);
     if (c.view) ctx.views.setCurrent(c.view);
-    await check("open");
+    await check('open');
     const first = ctx.views.current.value;
     for (const v of ctx.views.list.value.map((x) => x.ref)) {
       if (v === first) continue;
@@ -126,13 +126,13 @@ export async function smoke(c: SmokeCase): Promise<Finding[]> {
       await check(`view ${v}`);
     }
     if (first) ctx.views.setCurrent(first);
-    await check("back to the first view");
+    await check('back to the first view');
     for (const s of ctx.snapshots.list.value) {
       await ctx.snapshots.apply(s.ref, { animate: false });
       await check(`snapshot ${s.ref}`);
     }
     await ctx.snapshots.apply(null, { animate: false });
-    await check("back to the base");
+    await check('back to the base');
     for (const s of c.steps ?? []) {
       const step = `step "${s.label}"`;
       try {
@@ -144,8 +144,8 @@ export async function smoke(c: SmokeCase): Promise<Finding[]> {
     }
     if (c.streams) {
       const st = ctx.streams.stats.current;
-      if (st.requests === 0) note("end", "the story streams, but no region was asked for");
-      if (st.errors > 0) note("end", `${st.errors} region requests failed`);
+      if (st.requests === 0) note('end', 'the story streams, but no region was asked for');
+      if (st.errors > 0) note('end', `${st.errors} region requests failed`);
     }
   } finally {
     ctx.dispose();

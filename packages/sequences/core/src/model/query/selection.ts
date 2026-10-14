@@ -10,15 +10,15 @@
 // group optionally an annotation item; immutable once built (kernels.ts builds it). Its operations are edges: a host's
 // input in, loci, extents and a summary out.
 
-import { type AnnotationInput, Annotations } from "../annotation.js";
-import type { AnnotationId, ItemIndex, UnitId } from "../common.js";
-import { CoordinateSystemKind as K } from "../coordinates.js";
-import { Extents } from "../extents.js";
-import type { ColumnLoci, ItemLoci, Loci, RowLoci, SeqLoci } from "../loci.js";
-import { OrderedSet } from "../ordered-set.js";
-import type { SeqSet } from "../set.js";
-import { addRuns, liftMolecule, SelectionBuilder, sameSystem } from "./kernels.js";
-import { domainOf, labelAt, nameOf, numberingOf, unitsOf } from "./systems.js";
+import { type AnnotationInput, Annotations } from '../annotation.js';
+import type { AnnotationId, ItemIndex, UnitId } from '../common.js';
+import { CoordinateSystemKind as K } from '../coordinates.js';
+import { Extents } from '../extents.js';
+import type { ColumnLoci, ItemLoci, Loci, RowLoci, SeqLoci } from '../loci.js';
+import { OrderedSet } from '../ordered-set.js';
+import type { SeqSet } from '../set.js';
+import { addRuns, liftMolecule, SelectionBuilder, sameSystem } from './kernels.js';
+import { domainOf, labelAt, nameOf, numberingOf, unitsOf } from './systems.js';
 
 export interface SeqSelection {
   readonly set: SeqSet;
@@ -90,7 +90,7 @@ export interface ToLociOptions {
   /** One group's loci; default every group's. */
   readonly group?: number;
   /** "positions": tagged groups as their runs, not as items. */
-  readonly items?: "items" | "positions";
+  readonly items?: 'items' | 'positions';
   /** Receives the positions of molecule runs dropped for want of an alive unit over the molecule. */
   readonly report?: { dropped: number };
 }
@@ -110,7 +110,7 @@ function toLoci(s: SeqSelection, opts: ToLociOptions = {}): readonly Loci[] {
   const [g0, g1] = opts.group === undefined ? [0, s.groupCount] : [opts.group, opts.group + 1];
   for (let g = g0; g < g1; g++) {
     const a = s.groupAnnotation[g];
-    if (a >= 0 && opts.items !== "positions") {
+    if (a >= 0 && opts.items !== 'positions') {
       const list = items.get(a) ?? [];
       list.push(s.groupItem[g]);
       items.set(a, list);
@@ -131,24 +131,24 @@ function toLoci(s: SeqSelection, opts: ToLociOptions = {}): readonly Loci[] {
     while (j < u.runCount && sameSystem(u, j, k)) j++;
     const [kind, id, indices] = [u.kind[k], u.id[k], indicesOf(u, k, j)];
     if (kind === K.unit) seq.push({ unit: id as UnitId, indices });
-    else if (kind === K.columns) out.push({ kind: "column-loci", set, alignment: id, columns: indices } as ColumnLoci);
+    else if (kind === K.columns) out.push({ kind: 'column-loci', set, alignment: id, columns: indices } as ColumnLoci);
     else if (kind === K.row) {
       const last = out.at(-1);
-      if (last?.kind !== "row-loci" || last.alignment !== id) {
+      if (last?.kind !== 'row-loci' || last.alignment !== id) {
         rows = [];
-        out.push({ kind: "row-loci", set, alignment: id, elements: rows } as unknown as RowLoci);
+        out.push({ kind: 'row-loci', set, alignment: id, elements: rows } as unknown as RowLoci);
       }
       rows.push({ row: u.row[k], indices });
     }
   }
-  if (seq.length) out.unshift({ kind: "seq-loci", set, elements: seq } as SeqLoci);
+  if (seq.length) out.unshift({ kind: 'seq-loci', set, elements: seq } as SeqLoci);
   const elements = [...items.keys()]
     .sort((x, y) => x - y)
     .map((a) => {
       const sorted = Int32Array.from(new Set(items.get(a))).sort();
       return { annotation: a as AnnotationId, items: OrderedSet.ofSortedArray<ItemIndex>(sorted) };
     });
-  if (elements.length) out.push({ kind: "item-loci", set, elements } as ItemLoci);
+  if (elements.length) out.push({ kind: 'item-loci', set, elements } as ItemLoci);
   return out;
 }
 
@@ -165,7 +165,7 @@ function toExtents(s: SeqSelection, out: Extents, group?: number): number {
   return to - from;
 }
 
-const count = (n: number, what: string) => `${n.toLocaleString("en-US")} ${what}${n === 1 ? "" : "s"}`;
+const count = (n: number, what: string) => `${n.toLocaleString('en-US')} ${what}${n === 1 ? '' : 's'}`;
 
 /**
  * The line a person or the agent reads: "3 groups, 412 positions: 1brs/A 10-20, 45-60; msa columns 101-180
@@ -173,7 +173,7 @@ const count = (n: number, what: string) => `${n.toLocaleString("en-US")} ${what}
  */
 function summary(s: SeqSelection, opts: { maxParts?: number; indices?: boolean } = {}): string {
   const u = union(s);
-  if (u.runCount === 0) return "selects nothing";
+  if (u.runCount === 0) return 'selects nothing';
   const { set } = s;
   const max = opts.maxParts ?? 8;
   const parts: string[] = [];
@@ -185,12 +185,12 @@ function summary(s: SeqSelection, opts: { maxParts?: number; indices?: boolean }
     const [a, z] = [labelAt(set, n ?? null, u.start[k]), labelAt(set, n ?? null, u.stop[k] - 1)];
     // An endpoint without a label (a gap in the numbering): the run by its slice only.
     const slice = ` @${u.start[k]}:${u.stop[k]}`;
-    const text = !a || !z ? slice.trim() : `${a === z ? a : `${a}-${z}`}${opts.indices ? slice : ""}`;
+    const text = !a || !z ? slice.trim() : `${a === z ? a : `${a}-${z}`}${opts.indices ? slice : ''}`;
     if (fresh) parts.push(`${nameOf(set, u.kind[k], u.id[k], u.row[k])} ${text}`);
     else parts[parts.length - 1] += `, ${text}`;
   }
-  const more = u.runCount > shown ? ` (and ${u.runCount - shown} more)` : "";
-  return `${count(s.groupCount, "group")}, ${count(positionCount(u), "position")}: ${parts.join("; ")}${more}`;
+  const more = u.runCount > shown ? ` (and ${u.runCount - shown} more)` : '';
+  return `${count(s.groupCount, 'group')}, ${count(positionCount(u), 'position')}: ${parts.join('; ')}${more}`;
 }
 
 /**
@@ -226,8 +226,8 @@ function toRangesInput(s: SeqSelection, key: string, opts: RangesInputOptions = 
     const own = a && item >= 0 && a.itemKey[item] >= 0 ? set.strings.get(a.itemKey[item]) : null;
     const rows = a && item >= 0 ? Annotations.itemRows(a) : null;
     const first = a && rows && rows.start[item] < rows.start[item + 1] ? rows.rows[rows.start[item]] : -1;
-    const itemLabel = a && first >= 0 ? Annotations.rowValue(a, set, first, "label") : undefined;
-    const label = opts.labels?.[g] ?? (typeof itemLabel === "string" ? itemLabel : null);
+    const itemLabel = a && first >= 0 ? Annotations.rowValue(a, set, first, 'label') : undefined;
+    const label = opts.labels?.[g] ?? (typeof itemLabel === 'string' ? itemLabel : null);
     for (let k = s.groupStart[g]; k < s.groupStart[g + 1]; k++) {
       c.target.push(targetOf(set, s.kind[k], s.id[k], s.row[k]));
       c.start.push(s.start[k]);
@@ -237,7 +237,7 @@ function toRangesInput(s: SeqSelection, key: string, opts: RangesInputOptions = 
       more.score.push(s.groupScore[g]);
     }
   }
-  return { key, label: opts.label, geometry: "ranges", columns: { ...c, ...more } };
+  return { key, label: opts.label, geometry: 'ranges', columns: { ...c, ...more } };
 }
 
 export const SeqSelection = {

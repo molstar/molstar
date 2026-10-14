@@ -12,15 +12,15 @@
 // opaque by the share of its bands with a color (at DPR 1 and 1.5); the hit names the state whose color the draw put
 // there; a patch of the layer's order and filter reorders the bands.
 
-import { describe, expect, it } from "vitest";
-import { Hit, HoverKind, type MatrixState } from "../src/draw/api.js";
-import { Dirty } from "../src/draw/index.js";
-import { matrixFirstBand } from "../src/draw/matrix-tiles.js";
-import { renderSvg } from "../src/svg/index.js";
-import { set } from "./axis-fixtures.js";
-import { composed, recording } from "./composer-fixtures.js";
-import { drawn, entryOf, layerOf, record } from "./draw-fixtures.js";
-import { genotype, genotypeDoc } from "./genotype-fixtures.js";
+import { describe, expect, it } from 'vitest';
+import { Hit, HoverKind, type MatrixState } from '../src/draw/api.js';
+import { Dirty } from '../src/draw/index.js';
+import { matrixFirstBand } from '../src/draw/matrix-tiles.js';
+import { renderSvg } from '../src/svg/index.js';
+import { set } from './axis-fixtures.js';
+import { composed, recording } from './composer-fixtures.js';
+import { drawn, entryOf, layerOf, record } from './draw-fixtures.js';
+import { genotype, genotypeDoc } from './genotype-fixtures.js';
 
 /**
  * A reduced row's pixel and drawing band (its offset in the row; -1: none) from its bands' pixels (-1: no color),
@@ -43,11 +43,11 @@ const Op = { image: 13 };
 
 /** The layer's prepared state, its color theme, and its one recorded tile with its image op's rects. */
 function tileOf(t: Opened) {
-  const { k } = layerOf(t.ctx, "G");
+  const { k } = layerOf(t.ctx, 'G');
   const p = t.ctx.graph.assembled.value?.view?.prepared[k];
   const s = p?.state as MatrixState;
   const theme = p?.themes[0];
-  const { rec, frame } = record(t.ctx, "G");
+  const { rec, frame } = record(t.ctx, 'G');
   const ops: number[][] = [];
   for (let j = 0; j < rec.opCount; j++)
     if (rec.ops[4 * j] === Op.image) {
@@ -57,7 +57,7 @@ function tileOf(t: Opened) {
   expect(ops.length).toBe(1);
   const [img] = ops[0];
   const px = rec.images.content[img] as Uint32Array;
-  if (!theme) throw new Error("no theme");
+  if (!theme) throw new Error('no theme');
   /** The pixel band q's state has at position i, through the layer's theme. */
   const pixel = (i: number, q: number, at = genotype) => {
     const loc = { ...frame.v.loc, value: at(i, s.stateOf[q]), state: s.stateOf[q], index: i };
@@ -78,7 +78,7 @@ describe("a dense matrix's per-device-row reduction", () => {
     async (dpr, holes) => {
       const t = await drawn(genotypeDoc({ samples: 3000, positions: 40, holes }), { width: 900, height: 400, dpr });
       const { s, px, w, h, op, pixel } = tileOf(t);
-      const e = entryOf(t.ctx, "G");
+      const e = entryOf(t.ctx, 'G');
       const H = Math.floor(e.height * dpr);
       expect(s.states).toBe(3000);
       expect(H).toBeLessThan(3000);
@@ -117,7 +117,7 @@ describe("a dense matrix's per-device-row reduction", () => {
     expect(half.second).not.toBe(half.first);
   });
 
-  it("the bands partition the states: each state in exactly one device row, the rows in band order", () => {
+  it('the bands partition the states: each state in exactly one device row, the rows in band order', () => {
     for (const [H, B] of [
       [160, 3000],
       [240, 2501],
@@ -143,28 +143,28 @@ describe("a dense matrix's per-device-row reduction", () => {
       const doc = genotypeDoc({ samples: 640, positions: 4, holes: true, value, layer: { density } });
       const t = await drawn(doc, { width: 400 });
       const { px, w, pixel, s, frame } = tileOf(t);
-      const { section } = layerOf(t.ctx, "G");
-      const e = entryOf(t.ctx, "G");
+      const { section } = layerOf(t.ctx, 'G');
+      const e = entryOf(t.ctx, 'G');
       const hit = Hit.create();
       t.ctx.layout.hitTest(section, (frame.v.xd(0, 1) + frame.v.xe(0, 1)) / 2, e.top + 1.5, hit);
       return { px: px[w + 1], amber: pixel(1, 4, value), red: pixel(1, 6, value), state: hit.state, s };
     };
-    const max = await at("maximum");
+    const max = await at('maximum');
     expect(max.px).toBe(max.red);
     expect(max.state).toBe(max.s.stateOf[6]);
-    const maj = await at("majority");
+    const maj = await at('majority');
     expect(maj.px).toBe(((maj.amber & 0xffffff) | (128 << 24)) >>> 0);
     expect(maj.state).toBe(maj.s.stateOf[4]);
   });
 
   it("density maximum over the genotypes: the first band with the row's largest value", async () => {
-    const t = await drawn(genotypeDoc({ samples: 3000, positions: 40, layer: { density: "maximum" } }), {
+    const t = await drawn(genotypeDoc({ samples: 3000, positions: 40, layer: { density: 'maximum' } }), {
       width: 900,
       height: 400,
       dpr: 1.5,
     });
     const { s, px, w, pixel } = tileOf(t);
-    const H = Math.floor(entryOf(t.ctx, "G").height * 1.5);
+    const H = Math.floor(entryOf(t.ctx, 'G').height * 1.5);
     for (let y = 0; y < H; y += 7)
       for (let i = 0; i < 40; i += 5) {
         const [q0, q1] = [matrixFirstBand(y, H, 3000), matrixFirstBand(y + 1, H, 3000)];
@@ -179,8 +179,8 @@ describe("a dense matrix's per-device-row reduction", () => {
     const dpr = 1.5;
     const t = await drawn(genotypeDoc({ samples: 3000, positions: 40, holes: true }), { width: 900, height: 400, dpr });
     const { s, frame, pixel, px, w } = tileOf(t);
-    const { section } = layerOf(t.ctx, "G");
-    const e = entryOf(t.ctx, "G");
+    const { section } = layerOf(t.ctx, 'G');
+    const e = entryOf(t.ctx, 'G');
     const y0 = Math.round(e.top * dpr);
     const H = Math.floor(e.height * dpr);
     const hit = Hit.create();
@@ -201,10 +201,10 @@ describe("a dense matrix's per-device-row reduction", () => {
 });
 
 describe("a matrix's states in their keyed order", () => {
-  const byDepth = { data: "samples", field: "depth", direction: "desc" };
+  const byDepth = { data: 'samples', field: 'depth', direction: 'desc' };
 
   it("bands follow the order, a filter leaves states out; cells, hits and band labels name the band's state", async () => {
-    const layer = { order: byDepth, filter: [{ data: "samples", field: "population", values: ["AFR", "EAS"] }] };
+    const layer = { order: byDepth, filter: [{ data: 'samples', field: 'population', values: ['AFR', 'EAS'] }] };
     const t = await drawn(genotypeDoc({ samples: 9, positions: 30, layer }), { width: 900, height: 400 });
     const { s, px, w, h, pixel } = tileOf(t);
     // Depth is (37q mod 101); AFR and EAS are q mod 3 of 0 and 2.
@@ -214,12 +214,12 @@ describe("a matrix's states in their keyed order", () => {
     expect(Array.from(s.bandOf)).toEqual(Array.from({ length: 9 }, (_, q) => kept.indexOf(q)));
     expect(h).toBe(6);
     for (let q = 0; q < 6; q++) for (let i = 0; i < 30; i++) expect(px[q * w + i]).toBe(pixel(i, q));
-    const { k, section } = layerOf(t.ctx, "G");
-    const bands = t.ctx.registry.get("renderers", "matrix")?.bands;
+    const { k, section } = layerOf(t.ctx, 'G');
+    const bands = t.ctx.registry.get('renderers', 'matrix')?.bands;
     expect(
       Array.from({ length: 6 }, (_, q) => bands?.label(t.ctx.graph.assembled.value?.view?.prepared[k].state, q)),
     ).toEqual(kept.map((q) => `n${q}`));
-    const e = entryOf(t.ctx, "G");
+    const e = entryOf(t.ctx, 'G');
     const hit = Hit.create();
     for (let q = 0; q < 6; q++) {
       t.ctx.layout.hitTest(section, 300.5, e.top + ((q + 0.5) * e.height) / 6, hit);
@@ -231,19 +231,19 @@ describe("a matrix's states in their keyed order", () => {
     const t = await drawn(genotypeDoc({ samples: 9, positions: 30 }), { width: 900, height: 400 });
     const order = () => Array.from(tileOf(t).s.stateOf);
     expect(order()).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
-    await t.ctx.applyPatch(set("geno", { order: [{ data: "samples", field: "population" }, byDepth] }));
-    const pop = (q: number) => ["AFR", "EUR", "EAS"][q % 3];
+    await t.ctx.applyPatch(set('geno', { order: [{ data: 'samples', field: 'population' }, byDepth] }));
+    const pop = (q: number) => ['AFR', 'EUR', 'EAS'][q % 3];
     const depth = (q: number) => (q * 37) % 101;
     const want = [0, 1, 2, 3, 4, 5, 6, 7, 8].sort((a, b) => pop(a).localeCompare(pop(b)) || depth(b) - depth(a));
     expect(order()).toEqual(want);
-    await t.ctx.applyPatch(set("geno", { filter: [{ data: "samples", field: "depth", min: 50 }] }));
+    await t.ctx.applyPatch(set('geno', { filter: [{ data: 'samples', field: 'depth', min: 50 }] }));
     expect(order()).toEqual(want.filter((q) => depth(q) >= 50));
-    await t.ctx.applyPatch(set("geno", { order: null, filter: [] }));
+    await t.ctx.applyPatch(set('geno', { order: null, filter: [] }));
     expect(order()).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
   });
 });
 
-describe("VL-04: the hit reduces its row again, whichever cache drew last", () => {
+describe('VL-04: the hit reduces its row again, whichever cache drew last', () => {
   it("after the navigator's miniature and an SVG export drew the same state, every device row hits as before", async () => {
     const dpr = 1.5;
     const t = await composed(genotypeDoc({ samples: 3000, positions: 40, holes: true }), {
@@ -251,13 +251,13 @@ describe("VL-04: the hit reduces its row again, whichever cache drew last", () =
       height: 400,
       dpr,
     });
-    const { section } = layerOf(t.ctx, "G");
+    const { section } = layerOf(t.ctx, 'G');
     t.frame(recording(), Dirty.tracks);
-    const e = entryOf(t.ctx, "G");
+    const e = entryOf(t.ctx, 'G');
     const y0 = Math.round(e.top * dpr);
     const H = Math.floor(e.height * dpr);
     const av = t.ctx.layout.axis(section);
-    if (!av) throw new Error("no axis");
+    if (!av) throw new Error('no axis');
     const x = (av.x(0, 5 as never) + av.x(0, 6 as never)) / 2;
     const hit = Hit.create();
     const states = () =>

@@ -11,8 +11,8 @@
 // hits its node. A stub `rows` renderer prepares what the tree reads (`TreeRows`); the hover, label, cursor and clicks
 // of the old test are IN2's and IN3's.
 
-import { describe, expect, it } from "vitest";
-import { Hit, HitRegion, HoverKind, type LayerRenderer } from "../src/index.js";
+import { describe, expect, it } from 'vitest';
+import { Hit, HitRegion, HoverKind, type LayerRenderer } from '../src/index.js';
 import {
   hitTree,
   layoutTree,
@@ -24,15 +24,15 @@ import {
   treeOf,
   treeSpan,
   treeX,
-} from "../src/tree.js";
-import { FAMILY_SECTION as F, familyWithTree } from "./families.js";
-import { opened, renderers } from "./layout-fixtures.js";
+} from '../src/tree.js';
+import { FAMILY_SECTION as F, familyWithTree } from './families.js';
+import { opened, renderers } from './layout-fixtures.js';
 
 /** A rows renderer that prepares the tree and its rows' order, with the tree's header. */
 function rowsWithTree(): LayerRenderer<TreeRows> {
   return {
-    name: "rows",
-    geometries: ["linear"],
+    name: 'rows',
+    geometries: ['linear'],
     prepare: (input) => {
       const a = input.section.blocks[0]?.alignment ?? -1;
       const aln = input.set.alignments[a];
@@ -56,18 +56,18 @@ function rowsWithTree(): LayerRenderer<TreeRows> {
 
 async function family() {
   const t = await opened(familyWithTree(40, 10), {
-    renderers: [...renderers().filter((r) => r.name !== "rows"), rowsWithTree() as LayerRenderer],
+    renderers: [...renderers().filter((r) => r.name !== 'rows'), rowsWithTree() as LayerRenderer],
     size: { [F]: [1000, 300] },
   });
   const m = t.ctx.graph.assembled.value?.view;
-  const k = m ? Array.from(m.resolved.layers.type).findIndex((x) => x >= 0 && m.set.strings.get(x) === "rows") : -1;
+  const k = m ? Array.from(m.resolved.layers.type).findIndex((x) => x >= 0 && m.set.strings.get(x) === 'rows') : -1;
   const s = m?.prepared[k]?.state as TreeRows;
-  if (!s?.tree) throw new Error("no tree");
+  if (!s?.tree) throw new Error('no tree');
   return { ...t, s, g: s.tree };
 }
 
-describe("the tree beside the rows", () => {
-  it("lays out by branch length, hits its nodes, collapses a clade into a wedge row that spans it", async () => {
+describe('the tree beside the rows', () => {
+  it('lays out by branch length, hits its nodes, collapses a clade into a wedge row that spans it', async () => {
     const { s, g, ...t } = await family();
     const l = t.layout(F);
     layoutTree(s, l.rows);
@@ -82,7 +82,7 @@ describe("the tree beside the rows", () => {
     treeSpan(s, node, span);
     expect(span[1] - span[0] + 1).toBe(10);
     // Folded: one wedge row for the clade's 10 rows; the wedge spans its own row.
-    t.ctx.ui.toggleClade("family", node);
+    t.ctx.ui.toggleClade('family', node);
     const l2 = t.layout(F);
     expect(l2.rows.count).toBe(31);
     t.ctx.layout.hitTest(F, 300, top + (span[0] + 0.5) * l2.rows.height, hit);
@@ -91,7 +91,7 @@ describe("the tree beside the rows", () => {
     treeSpan(s, node, span);
     expect([span[0], span[1]]).toEqual([span[0], span[0]]);
     expect([g.state[node], g.wedgeText.get(node)]).toEqual([TreeNode.wedge, expect.stringMatching(/ \+9$/)]);
-    t.ctx.ui.toggleClade("family", node);
+    t.ctx.ui.toggleClade('family', node);
     expect(t.layout(F).rows.count).toBe(40);
   });
 
@@ -130,7 +130,7 @@ describe("the tree beside the rows", () => {
     expect([span[0], span[1]]).toEqual([g.first[node], g.last[node]]);
   });
 
-  it("a resize and a row zoom lay the tree out once; a fold lays it out again", async () => {
+  it('a resize and a row zoom lay the tree out once; a fold lays it out again', async () => {
     const { s, g, ...t } = await family();
     layoutTree(s, t.layout(F).rows);
     const at = g.at;
@@ -138,7 +138,7 @@ describe("the tree beside the rows", () => {
     t.vp(F).setRowScale(0.6, 0);
     layoutTree(s, t.layout(F).rows);
     expect(g.at).toBe(at);
-    t.ctx.ui.toggleClade("family", 2);
+    t.ctx.ui.toggleClade('family', 2);
     layoutTree(s, t.layout(F).rows);
     expect(g.at).toBe(at + 1);
   });

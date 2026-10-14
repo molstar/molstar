@@ -15,14 +15,14 @@ import {
   useEffect,
   useRef,
   useState,
-} from "react";
-import { createPortal } from "react-dom";
-import styles from "./tooltip.module.css";
+} from 'react';
+import { createPortal } from 'react-dom';
+import styles from './tooltip.module.css';
 
 /** How long the pointer rests on a trigger before its hint shows, in ms. */
 export const TOOLTIP_DELAY_MS = 500;
 
-type Side = "top" | "bottom";
+type Side = 'top' | 'bottom';
 
 export interface TooltipProps {
   /** What it says: a few words, or a sentence or two. Text only. */
@@ -30,9 +30,9 @@ export interface TooltipProps {
   /** The element it explains; it keeps its own handlers. */
   children: ReactElement<Record<string, unknown>>;
   /** The side it prefers; it takes the other when this one does not fit in the viewport. */
-  side?: Side | "left" | "right";
+  side?: Side | 'left' | 'right';
   /** Where along the trigger it sits: centered, or from its start. */
-  align?: "start" | "center" | "end";
+  align?: 'start' | 'center' | 'end';
 }
 
 /** A hint at an anchor's edge, in the page (fixed, so no scroll box clips it); it never takes the pointer. */
@@ -41,7 +41,7 @@ function Bubble({
   content,
   side,
   align,
-}: { anchor: Element; content: ReactNode } & Pick<TooltipProps, "side" | "align">) {
+}: { anchor: Element; content: ReactNode } & Pick<TooltipProps, 'side' | 'align'>) {
   const ref = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState<{ left: number; top: number } | null>(null);
   useEffect(() => {
@@ -49,10 +49,10 @@ function Bubble({
     if (!bubble) return;
     const a = anchor.getBoundingClientRect();
     const b = bubble.getBoundingClientRect();
-    const x = align === "start" ? a.left : align === "end" ? a.right - b.width : a.left + (a.width - b.width) / 2;
+    const x = align === 'start' ? a.left : align === 'end' ? a.right - b.width : a.left + (a.width - b.width) / 2;
     const above = a.top - b.height - 6;
     const top =
-      side === "bottom"
+      side === 'bottom'
         ? a.bottom + 6 + b.height < innerHeight
           ? a.bottom + 6
           : above
@@ -62,11 +62,11 @@ function Bubble({
     setAt({ left: Math.max(4, Math.min(x, innerWidth - b.width - 4)), top });
   }, [anchor, side, align]);
   return createPortal(
-    <div ref={ref} role="tooltip" className={styles.popup} style={at ?? { left: 0, top: 0, visibility: "hidden" }}>
+    <div ref={ref} role="tooltip" className={styles.popup} style={at ?? { left: 0, top: 0, visibility: 'hidden' }}>
       {content}
     </div>,
     // In the page that carries .msp-root (a story page), so it takes that page's theme and look; else the body.
-    anchor.closest(".msp-root") ?? document.body,
+    anchor.closest('.msp-root') ?? document.body,
   );
 }
 
@@ -74,7 +74,7 @@ function Bubble({
  * A few words about the thing under the pointer: a hint, never an obstacle. It shows after the pointer rests
  * `TOOLTIP_DELAY_MS` on the trigger, and at once on keyboard focus; it hides on leaving, on a press and a scroll.
  */
-export function Tooltip({ content, children, side = "top", align = "center" }: TooltipProps) {
+export function Tooltip({ content, children, side = 'top', align = 'center' }: TooltipProps) {
   const [anchor, setAnchor] = useState<Element | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const hide = () => {
@@ -89,13 +89,13 @@ export function Tooltip({ content, children, side = "top", align = "center" }: T
       setAnchor(null);
     };
     const o = { capture: true, passive: true };
-    window.addEventListener("pointerdown", dismiss, o);
-    window.addEventListener("scroll", dismiss, o);
-    window.addEventListener("wheel", dismiss, o);
+    window.addEventListener('pointerdown', dismiss, o);
+    window.addEventListener('scroll', dismiss, o);
+    window.addEventListener('wheel', dismiss, o);
     return () => {
-      window.removeEventListener("pointerdown", dismiss, o);
-      window.removeEventListener("scroll", dismiss, o);
-      window.removeEventListener("wheel", dismiss, o);
+      window.removeEventListener('pointerdown', dismiss, o);
+      window.removeEventListener('scroll', dismiss, o);
+      window.removeEventListener('wheel', dismiss, o);
     };
   }, [anchor]);
   const own = children.props as {
@@ -119,7 +119,7 @@ export function Tooltip({ content, children, side = "top", align = "center" }: T
         },
         onFocus: (e: FocusEvent<HTMLElement>) => {
           own.onFocus?.(e);
-          if (e.currentTarget.matches(":focus-visible")) setAnchor(e.currentTarget);
+          if (e.currentTarget.matches(':focus-visible')) setAnchor(e.currentTarget);
         },
         onBlur: (e: FocusEvent) => {
           own.onBlur?.(e);
@@ -127,7 +127,7 @@ export function Tooltip({ content, children, side = "top", align = "center" }: T
         },
       })}
       {anchor && content ? (
-        <Bubble anchor={anchor} content={content} side={side === "bottom" ? "bottom" : "top"} align={align} />
+        <Bubble anchor={anchor} content={content} side={side === 'bottom' ? 'bottom' : 'top'} align={align} />
       ) : null}
     </>
   );

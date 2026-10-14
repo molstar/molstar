@@ -10,7 +10,7 @@
 // `svs-print-schema`: the reference, generated from the parameter tables and the kernel's and MVS's registries, as
 // Markdown on stdout. Runs with Node's type stripping.
 
-import { createRegistries, KernelRegistry, MvsRegistry, printReference, register } from "../index.js";
+import { createRegistries, KernelRegistry, MvsRegistry, printReference, register } from '../index.js';
 
 const reg = createRegistries();
 register(reg, [KernelRegistry, MvsRegistry]);

@@ -26,8 +26,8 @@
 // COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import type { Axis, AxisView, ShownIndex } from "./axis.js";
-import { segWindow } from "./pyramids.js";
+import type { Axis, AxisView, ShownIndex } from './axis.js';
+import { segWindow } from './pyramids.js';
 
 export interface PreparedRun {
   readonly block: number;
@@ -124,7 +124,7 @@ export function prepareRun(
   let x = 0;
   for (let g = 0; g < starts.length; g++) {
     const stop = g + 1 < starts.length ? starts[g + 1] : n;
-    const text = labeler ? labeler.text(block, inline ? starts[g] : stop - 1) : "";
+    const text = labeler ? labeler.text(block, inline ? starts[g] : stop - 1) : '';
     labels.push(text);
     labelWidths[g] = text && labeler ? labeler.width(text) : 0;
     const own = inline ? labelWidths[g] : 0;

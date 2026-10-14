@@ -20,28 +20,28 @@ import {
   SectionAxis,
   sectionHighlights,
   type ThemeRef,
-} from "@molstar/seq-core/format";
+} from '@molstar/seq-core/format';
 import {
   type Numbering,
   Numbering as Numberings,
   OrderedSet,
   type PositionLabel,
   type Severity,
-} from "@molstar/seq-core/model";
-import { type ActionEntry, nodePath, trackDataRefs } from "./actions.js";
-import { type ColorSchemePicker, colorSchemePickers } from "./color-schemes.js";
-import { SeqCommands } from "./commands.js";
-import { type LegendMode, SeqViewerConfig } from "./config.js";
-import type { SeqIssue, SeqViewerContext } from "./context.js";
-import { severityRank } from "./graph.js";
-import { HitRegion } from "./hit.js";
-import { itemActionsOf } from "./hover-card.js";
-import type { HoverLabel } from "./labels.js";
-import { EntryKind } from "./layout.js";
-import { type LegendItem, type LegendRamp, type LegendSize, trackLegends } from "./legend.js";
-import type { SeqLociAny } from "./lineage.js";
-import { sameData } from "./same.js";
-import { legendNumber } from "./themes.js";
+} from '@molstar/seq-core/model';
+import { type ActionEntry, nodePath, trackDataRefs } from './actions.js';
+import { type ColorSchemePicker, colorSchemePickers } from './color-schemes.js';
+import { SeqCommands } from './commands.js';
+import { type LegendMode, SeqViewerConfig } from './config.js';
+import type { SeqIssue, SeqViewerContext } from './context.js';
+import { severityRank } from './graph.js';
+import { HitRegion } from './hit.js';
+import { itemActionsOf } from './hover-card.js';
+import type { HoverLabel } from './labels.js';
+import { EntryKind } from './layout.js';
+import { type LegendItem, type LegendRamp, type LegendSize, trackLegends } from './legend.js';
+import type { SeqLociAny } from './lineage.js';
+import { sameData } from './same.js';
+import { legendNumber } from './themes.js';
 
 /** An entry of a section's `positions`: a data ref, or its rows after a layer's filter (seqspec:format#sections). */
 export type PositionEntry =
@@ -76,9 +76,9 @@ const choices = (...values: string[]) => values.map((value) => ({ value, label: 
 const la: PositionLabel = { num: 0, suffix: -1 as never, name: -1 as never };
 const lb: PositionLabel = { ...la };
 const segs = (n: Numbering) =>
-  n.method === "segments"
-    ? Array.from(n.indexStart, (s, k) => `${s},${n.labelStart[k]},${n.segmentLength[k]}`).join(";")
-    : n.method === "offset" && !n.skipZero
+  n.method === 'segments'
+    ? Array.from(n.indexStart, (s, k) => `${s},${n.labelStart[k]},${n.segmentLength[k]}`).join(';')
+    : n.method === 'offset' && !n.skipZero
       ? `0,${n.first},${n.length}`
       : null;
 const alike = new WeakMap<Numbering, WeakMap<Numbering, boolean>>();
@@ -99,7 +99,7 @@ function sameLabels(a: Numbering, b: Numbering): boolean {
       const [x, y] = [Numberings.labelOf(a, i as never, la), Numberings.labelOf(b, i as never, lb)];
       same = x === y && la.num === lb.num && la.name === lb.name;
       if (same && la.suffix !== lb.suffix)
-        same = a.method === "labels" && b.method === "labels" && a.strings.get(la.suffix) === b.strings.get(lb.suffix);
+        same = a.method === 'labels' && b.method === 'labels' && a.strings.get(la.suffix) === b.strings.get(lb.suffix);
     }
   if (!known) {
     known = new WeakMap();
@@ -117,7 +117,7 @@ export function sectionInfo(ctx: SeqViewerContext, ref: string): SectionInfo {
   // callers'.
   const s = view ? sectionNumber(view, ref) : -1;
   const switches: SectionSwitch[] = [];
-  const add = (action: string, name: string, value: unknown, options: SectionSwitch["options"]) =>
+  const add = (action: string, name: string, value: unknown, options: SectionSwitch['options']) =>
     switches.push({ action, name, value: value == null ? null : String(value), options });
   if (view && s >= 0) {
     const { resolved: rv, set } = view;
@@ -151,30 +151,30 @@ export function sectionInfo(ctx: SeqViewerContext, ref: string): SectionInfo {
     }
     for (let t = 0; t < rv.tracks.count; t++) if (rv.tracks.section[t] === s) tracks++;
     if (names.length > 1)
-      add("section.numbering", "Numbering", p.numbering, [{ value: null, label: "default" }, ...choices(...names)]);
+      add('section.numbering', 'Numbering', p.numbering, [{ value: null, label: 'default' }, ...choices(...names)]);
     // A switch whose own value removes what offers it (the heme drawn as atoms is no ligand block; each copy its own
     // block) stays offered while the section sets it: both values stay reachable.
-    if (copies || p.copies != null) add("section.copies", "Copies", p.copies ?? "one", choices("one", "each"));
+    if (copies || p.copies != null) add('section.copies', 'Copies', p.copies ?? 'one', choices('one', 'each'));
     if (ligand || p.ligand_form != null)
-      add("section.ligandForm", "Ligand", p.ligand_form ?? "position", choices("position", "atoms"));
+      add('section.ligandForm', 'Ligand', p.ligand_form ?? 'position', choices('position', 'atoms'));
     if (rv.layout === Layout.tracks && rv.sections.axis[s] === SectionAxis.blocks && tracks > 1)
-      add("section.rowSizing", "Rows", p.row_sizing ?? "uniform", choices("uniform", "natural"));
-    const geometry = rv.layout === Layout.text ? "wrapped" : "linear";
-    const presets = ctx.registry.list("presets").filter((x) => x.geometry === geometry && !x.name.includes(":"));
+      add('section.rowSizing', 'Rows', p.row_sizing ?? 'uniform', choices('uniform', 'natural'));
+    const geometry = rv.layout === Layout.text ? 'wrapped' : 'linear';
+    const presets = ctx.registry.list('presets').filter((x) => x.geometry === geometry && !x.name.includes(':'));
     if (presets.length > 1)
-      add("section.style", "Style", ctx.ui.style.value.get(ref) ?? resolveStyle(p.style).preset, [
-        { value: null, label: "auto" },
+      add('section.style', 'Style', ctx.ui.style.value.get(ref) ?? resolveStyle(p.style).preset, [
+        { value: null, label: 'auto' },
         ...choices(...presets.map((x) => x.name)),
       ]);
   }
   // An entry is a data ref, or `{ data, filter }`: named by the filter's values, else the data's label.
   const positions = p.positions == null ? null : ([p.positions].flat() as PositionEntry[]);
   const named = (e: PositionEntry) =>
-    typeof e === "string" ? labelOf(nodeOf(ctx, e), e) : e.filter.values.length ? e.filter.values.join(", ") : e.data;
+    typeof e === 'string' ? labelOf(nodeOf(ctx, e), e) : e.filter.values.length ? e.filter.values.join(', ') : e.data;
   return {
     label: p.label == null ? null : String(p.label),
     switches,
-    filter: positions?.map(named).join(", ") ?? null,
+    filter: positions?.map(named).join(', ') ?? null,
   };
 }
 
@@ -184,7 +184,7 @@ function sectionNumber(view: ShownView, ref: string): number {
   return -1;
 }
 
-type ShownView = NonNullable<NonNullable<SeqViewerContext["graph"]["assembled"]["value"]>["view"]>;
+type ShownView = NonNullable<NonNullable<SeqViewerContext['graph']['assembled']['value']>['view']>;
 /** What a section's header and switches show, computed once per change of their inputs (`sectionChrome`). */
 export interface SectionChrome extends SectionInfo {
   /** The section's hidden tracks (`HiddenChips`). */
@@ -246,7 +246,7 @@ export const sectionChromeStates = (ctx: SeqViewerContext) =>
 export function hiddenTracks(ctx: SeqViewerContext, section: string): { ref: string; label: string }[] {
   const out: { ref: string; label: string }[] = [];
   const walk = (n: DocNode) => {
-    if (n.kind === "track" && n.params?.hidden === true) out.push({ ref: n.ref ?? "", label: labelOf(n, n.ref ?? "") });
+    if (n.kind === 'track' && n.params?.hidden === true) out.push({ ref: n.ref ?? '', label: labelOf(n, n.ref ?? '') });
     for (const c of n.children ?? []) walk(c);
   };
   const node = nodeOf(ctx, section);
@@ -263,44 +263,44 @@ export const trackLabel = (ctx: SeqViewerContext, track: string) => labelOf(node
  */
 export const ChromeCompositions = {
   full: [
-    "ViewTabs",
-    "Search",
-    "Busy",
-    "Export",
-    "Issues",
-    "SnapshotPlayer",
-    "Description",
-    "EmptyState",
-    "ErrorState",
-    "SectionHeader",
-    "TrackActions",
-    "RowControl",
-    "Legend",
-    "Tooltip",
-    "HoverCard",
+    'ViewTabs',
+    'Search',
+    'Busy',
+    'Export',
+    'Issues',
+    'SnapshotPlayer',
+    'Description',
+    'EmptyState',
+    'ErrorState',
+    'SectionHeader',
+    'TrackActions',
+    'RowControl',
+    'Legend',
+    'Tooltip',
+    'HoverCard',
   ],
   clean: [
-    "Search",
-    "Busy",
-    "SnapshotPlayer",
-    "Description",
-    "EmptyState",
-    "ErrorState",
-    "RowControl",
-    "Tooltip",
-    "HoverCard",
+    'Search',
+    'Busy',
+    'SnapshotPlayer',
+    'Description',
+    'EmptyState',
+    'ErrorState',
+    'RowControl',
+    'Tooltip',
+    'HoverCard',
   ],
 } as const;
 /** The parts `full` places and `clean` does not: a host's slot (or `"default"`) places one under `clean` too. */
-export const CleanParts = ["ViewTabs", "SectionHeader", "TrackActions", "Legend", "Export", "Issues"] as const;
+export const CleanParts = ['ViewTabs', 'SectionHeader', 'TrackActions', 'Legend', 'Export', 'Issues'] as const;
 const PLACEABLE: readonly string[] = ChromeCompositions.full;
-const PRIMITIVES = ["Hint", "ScrollArea", "Menu"];
+const PRIMITIVES = ['Hint', 'ScrollArea', 'Menu'];
 
 const reported = new WeakMap<SeqViewerContext, Set<string>>();
 /** React's part: a component function, or a memo or forward-ref object. */
-export const isReactPart = (v: unknown) => typeof v === "function" || (typeof v === "object" && v !== null);
+export const isReactPart = (v: unknown) => typeof v === 'function' || (typeof v === 'object' && v !== null);
 /** The DOM's part: a function it calls. */
-export const isDomPart = (v: unknown) => typeof v === "function";
+export const isDomPart = (v: unknown) => typeof v === 'function';
 
 /**
  * The default UIs' slots: each part's default, else the host's: a part, "default", or "none" (null: left out wherever it
@@ -312,14 +312,14 @@ export const isDomPart = (v: unknown) => typeof v === "function";
 export function resolveSlots<T extends object>(
   ctx: SeqViewerContext,
   defaults: T,
-  host: { readonly [K in keyof T]?: T[K] | "none" | "default" } | undefined,
+  host: { readonly [K in keyof T]?: T[K] | 'none' | 'default' } | undefined,
   isPart: (v: unknown) => boolean,
 ): T {
   const out = { ...defaults } as Record<string, unknown>;
   for (const [k, v] of Object.entries(host ?? {})) {
     if (v === undefined) continue;
-    if (v === "default" || (v === "none" && PRIMITIVES.includes(k))) out[k] = defaults[k as keyof T];
-    else if (v === "none") out[k] = null;
+    if (v === 'default' || (v === 'none' && PRIMITIVES.includes(k))) out[k] = defaults[k as keyof T];
+    else if (v === 'none') out[k] = null;
     else if (isPart(v)) out[k] = v;
     else {
       out[k] = defaults[k as keyof T];
@@ -327,7 +327,7 @@ export function resolveSlots<T extends object>(
       reported.set(ctx, once);
       if (!once.has(k)) {
         once.add(k);
-        ctx.report("seqv.ui.slot", `the UI slot "${k}" is not a part: its default is used`);
+        ctx.report('seqv.ui.slot', `the UI slot "${k}" is not a part: its default is used`);
       }
     }
   }
@@ -342,15 +342,15 @@ export function resolveSlots<T extends object>(
  */
 export function placedParts(
   ctx: SeqViewerContext,
-  chrome: "full" | "clean" | undefined,
+  chrome: 'full' | 'clean' | undefined,
   host: { readonly [k: string]: unknown } | undefined,
   legend?: LegendMode,
 ): ReadonlySet<string> {
   const out = new Set<string>(ChromeCompositions[chrome ?? ctx.config.get(SeqViewerConfig.UI.Chrome)]);
-  if ((legend ?? ctx.config.get(SeqViewerConfig.UI.Legend)) === "hidden") out.delete("Legend");
-  if (ctx.config.get(SeqViewerConfig.UI.TrackActions) === "none") out.delete("TrackActions");
+  if ((legend ?? ctx.config.get(SeqViewerConfig.UI.Legend)) === 'hidden') out.delete('Legend');
+  if (ctx.config.get(SeqViewerConfig.UI.TrackActions) === 'none') out.delete('TrackActions');
   for (const [k, v] of Object.entries(host ?? {}))
-    if (v === "none") out.delete(k);
+    if (v === 'none') out.delete(k);
     else if (v !== undefined && PLACEABLE.includes(k)) out.add(k);
   return out;
 }
@@ -384,7 +384,7 @@ function shownLoci(ctx: SeqViewerContext, track: string): SeqLociAny | null {
   const { resolved: rv, set } = view;
   const items = new Map<number, Set<number>>();
   for (let i = 0; i < rv.layers.count; i++) {
-    if (rv.layers.track[i] !== t || set.strings.get(rv.layers.type[i]) === "rows") continue;
+    if (rv.layers.track[i] !== t || set.strings.get(rv.layers.type[i]) === 'rows') continue;
     for (let d = rv.layers.dataStart[i]; d < rv.layers.dataStart[i] + rv.layers.dataCount[i]; d++) {
       const ann = set.annotations[rv.data[d]];
       if (!ann) continue;
@@ -401,20 +401,20 @@ function shownLoci(ctx: SeqViewerContext, track: string): SeqLociAny | null {
       annotation: annotation as never,
       items: OrderedSet.ofSortedArray(Int32Array.from(s).sort()),
     }));
-  return elements.length > 0 ? ({ kind: "item-loci", set, elements } as SeqLociAny) : null;
+  return elements.length > 0 ? ({ kind: 'item-loci', set, elements } as SeqLociAny) : null;
 }
 
 /** Runs `layer.colorScheme` on each layer (a merged legend group's, or one), writing as `UI.ColorSchemeWrites` says. */
 export function pickScheme(ctx: SeqViewerContext, layers: readonly string[], scheme: string | null) {
   const write = ctx.config.get(SeqViewerConfig.UI.ColorSchemeWrites);
-  for (const layer of layers) ctx.actions.run("layer.colorScheme", { layer, scheme, write });
+  for (const layer of layers) ctx.actions.run('layer.colorScheme', { layer, scheme, write });
 }
 
 /** A picker's choices as menu items (a legend title's popover, a track's "Colors" submenu): the shown one checked. */
 export function schemeItems(
   ctx: SeqViewerContext,
   layers: readonly string[],
-  p: Pick<ColorSchemePicker, "value" | "options">,
+  p: Pick<ColorSchemePicker, 'value' | 'options'>,
 ): MenuItem[] {
   return p.options.map((o) => ({
     key: `scheme:${o.value}`,
@@ -438,12 +438,12 @@ export function trackMenu(
 ): MenuItem[] {
   const list = ctx.config.get(SeqViewerConfig.UI.TrackActions);
   const pickers =
-    drill && ctx.config.get(SeqViewerConfig.UI.ColorSchemes) && list !== "none" && list.includes("colors")
+    drill && ctx.config.get(SeqViewerConfig.UI.ColorSchemes) && list !== 'none' && list.includes('colors')
       ? colorSchemePickers(ctx, trackIndex(ctx, track))
       : [];
   const sub = drill?.layer == null ? undefined : pickers.find((p) => p.layer === drill.layer);
   if (drill && sub) {
-    const back = { key: "colors-back", label: "‹ Colors", run: () => drill.open(null) };
+    const back = { key: 'colors-back', label: '‹ Colors', run: () => drill.open(null) };
     return [back, ...schemeItems(ctx, [sub.layer], sub)];
   }
   const node = nodeOf(ctx, track);
@@ -451,26 +451,26 @@ export function trackMenu(
   const out: MenuItem[] = [];
   // The keyboard cursor's item on this track: its item actions first, the hover card's keyboard path (Shift+F10). The
   // key names the item, so `sameMenu` sees a menu on another item as changed (its `run` holds the target).
-  const found = itemActionsOf(ctx, "keyboard");
+  const found = itemActionsOf(ctx, 'keyboard');
   if (found?.target.section === section && found.target.track === track) {
     const { annotation, item, split } = found.target;
     for (const a of found.actions)
       out.push({
         key: `item:${a.name}:${annotation}:${item}:${split}`,
         label: a.title,
-        run: () => ctx.actions.run(a.name, found.target, "keyboard"),
+        run: () => ctx.actions.run(a.name, found.target, 'keyboard'),
       });
   }
   const action = (name: string, danger?: boolean, label?: string, key = name) =>
     ctx.actions.can(name, track) &&
     out.push({
       key,
-      label: label ?? (ctx.registry.get("actions", name) as ActionEntry | undefined)?.title ?? name,
+      label: label ?? (ctx.registry.get('actions', name) as ActionEntry | undefined)?.title ?? name,
       danger,
       run: () => ctx.actions.run(name, track),
     });
-  for (const a of list === "none" ? [] : list) {
-    if (typeof a === "object") {
+  for (const a of list === 'none' ? [] : list) {
+    if (typeof a === 'object') {
       const split = splitValue(ctx, track, row);
       if (a.when?.(ctx, section, track, split) ?? true)
         out.push({
@@ -480,31 +480,31 @@ export function trackMenu(
           ...(a.checked ? { checked: a.checked(ctx, section, track, split) } : {}),
           run: () => a.run(ctx, section, track, split),
         });
-    } else if (a === "filter") action("track.filterView");
-    else if (a === "retry") action("stream.retry");
-    else if (a === "hide") action("track.hide");
-    else if (a === "remove") action("track.remove", true);
-    else if (a === "focus" && refs.length > 0)
+    } else if (a === 'filter') action('track.filterView');
+    else if (a === 'retry') action('stream.retry');
+    else if (a === 'hide') action('track.hide');
+    else if (a === 'remove') action('track.remove', true);
+    else if (a === 'focus' && refs.length > 0)
       out.push({
-        key: "focus",
-        label: "Focus",
+        key: 'focus',
+        label: 'Focus',
         run: () => {
           const loci = shownLoci(ctx, track);
           // A failed command is reported (`seqv.command.error`) by the commands; the catch only keeps it from being unhandled.
           void ctx.commands
-            .dispatch(SeqCommands.Focus, { target: loci ? { loci } : { refs }, section, origin: "api" })
+            .dispatch(SeqCommands.Focus, { target: loci ? { loci } : { refs }, section, origin: 'api' })
             .catch(() => {});
         },
       });
     // A split track's rows (seqspec:format#layer-types): the toggle's keyboard path, through this menu.
-    else if (a === "rows" && node?.kind === "track")
-      action("group.toggle", undefined, ctx.ui.expanded.value.has(track) ? "Collapse rows" : "Expand rows", "rows");
-    else if (a === "colors" && drill)
+    else if (a === 'rows' && node?.kind === 'track')
+      action('group.toggle', undefined, ctx.ui.expanded.value.has(track) ? 'Collapse rows' : 'Expand rows', 'rows');
+    else if (a === 'colors' && drill)
       for (const p of pickers)
         out.push({
           key: `colors:${p.layer}`,
           // Two layers with schemes: each named by its type ("Colors, letters ▸").
-          label: pickers.length > 1 ? `Colors, ${layerKind(ctx, p.layer)} ▸` : "Colors ▸",
+          label: pickers.length > 1 ? `Colors, ${layerKind(ctx, p.layer)} ▸` : 'Colors ▸',
           run: () => drill.open(p.layer),
         });
   }
@@ -565,7 +565,7 @@ export interface LegendColors {
   readonly value: string | null;
   /** `value`'s label, which the title's icon says; null: the document's. */
   readonly label: string | null;
-  readonly options: ColorSchemePicker["options"];
+  readonly options: ColorSchemePicker['options'];
 }
 /** A group's color range editor: the layers it sets, the ramp's ends, the data's own span, and whether it is the person's. */
 export interface LegendRange {
@@ -579,11 +579,11 @@ export interface LegendRange {
   readonly edited: boolean;
 }
 /** Sets one end of a group's range from the text typed (the other as shown); false, nothing set, for a bad number or order. */
-export function editRange(ctx: SeqViewerContext, r: LegendRange, end: "lo" | "hi", text: string): boolean {
-  const v = text.trim() === "" ? Number.NaN : Number(text);
-  const range: [number, number] = end === "lo" ? [v, r.hi] : [r.lo, v];
+export function editRange(ctx: SeqViewerContext, r: LegendRange, end: 'lo' | 'hi', text: string): boolean {
+  const v = text.trim() === '' ? Number.NaN : Number(text);
+  const range: [number, number] = end === 'lo' ? [v, r.hi] : [r.lo, v];
   let ok = true;
-  for (const layer of r.layers) ok = ctx.actions.run("layer.colorRange", { layer, range }) && ok;
+  for (const layer of r.layers) ok = ctx.actions.run('layer.colorRange', { layer, range }) && ok;
   return ok;
 }
 /** The data's span as shares of the ramp (0..1, clamped to its ends); null: the data has none to mark. */
@@ -594,7 +594,7 @@ export function dataSpan(r: LegendRange): readonly [number, number] | null {
 }
 /** The layers' own ranges again (the document's, or the data's). */
 export function resetRange(ctx: SeqViewerContext, r: LegendRange) {
-  for (const layer of r.layers) ctx.actions.run("layer.colorRange", { layer, range: null });
+  for (const layer of r.layers) ctx.actions.run('layer.colorRange', { layer, range: null });
 }
 /**
  * A legend group (seqspec:interaction#the-legend): the legend of one track's shown layers, every channel's, or of
@@ -624,10 +624,10 @@ export interface LegendGroup {
  * absolute palette's checkpoints are its range).
  */
 const rangeable = (r: ThemeRef | null | undefined) => {
-  if (r?.theme === "scheme") return true;
+  if (r?.theme === 'scheme') return true;
   const palette = (r?.params as { palette?: { kind?: string; mode?: string } } | undefined)?.palette;
   return (
-    r?.theme === "field_palette" && (palette?.kind ?? "categorical") !== "categorical" && palette?.mode !== "absolute"
+    r?.theme === 'field_palette' && (palette?.kind ?? 'categorical') !== 'categorical' && palette?.mode !== 'absolute'
   );
 };
 /** The lists of a view that is not there: one object, so a part comparing lists by identity finds no change. */
@@ -652,7 +652,7 @@ export function groupTitle(labels: readonly string[], kind: string): string {
   };
   const lead = common((w, k) => w[k]);
   const trail = common((w, k) => w[w.length - 1 - k]).reverse();
-  const name = (lead.length > 0 ? lead : trail.length > 0 ? trail : [kind]).join(" ");
+  const name = (lead.length > 0 ? lead : trail.length > 0 ? trail : [kind]).join(' ');
   const cap = name.charAt(0).toUpperCase() + name.slice(1);
   return `${/[a-rt-z]$/.test(cap) ? `${cap}s` : cap} (${labels.length})`;
 }
@@ -671,7 +671,7 @@ export function legendGroups(ctx: SeqViewerContext): readonly LegendGroup[] {
   const { resolved: rv, set } = view;
   const out = trackLegends(ctx.registry, view);
   const picking = ctx.config.get(SeqViewerConfig.UI.ColorSchemes);
-  type Merged = Omit<LegendGroup, "track" | "refs" | "colors"> & {
+  type Merged = Omit<LegendGroup, 'track' | 'refs' | 'colors'> & {
     refs: string[];
     labels: string[];
     kind: string;
@@ -692,10 +692,10 @@ export function legendGroups(ctx: SeqViewerContext): readonly LegendGroup[] {
     const p = picking ? colorSchemePickers(ctx, t).find((x) => own.has(x.layer)) : undefined;
     const content = { items: g.items, ramps: g.ramps, sizes: g.sizes };
     const id = JSON.stringify([content, p ? [p.value, p.options.map((o) => o.value)] : null]);
-    const label = rv.tracks.label[t] >= 0 ? set.strings.get(rv.tracks.label[t]) : "";
+    const label = rv.tracks.label[t] >= 0 ? set.strings.get(rv.tracks.label[t]) : '';
     // A single ramp over a scheme's or palette's color: its layer's range can be set (the data's span marked).
     const ranged = g.ramps.length === 1 ? g.layers.find((i) => rangeable(rv.layers.themes[i][0])) : undefined;
-    const rangeLayer = ranged === undefined ? "" : set.strings.get(rv.layers.ref[ranged]);
+    const rangeLayer = ranged === undefined ? '' : set.strings.get(rv.layers.ref[ranged]);
     const m = merged.get(id);
     if (m) {
       m.refs.push(ref);
@@ -704,8 +704,8 @@ export function legendGroups(ctx: SeqViewerContext): readonly LegendGroup[] {
       if (m.range && ranged !== undefined && !m.range.layers.includes(rangeLayer)) m.range.layers.push(rangeLayer);
       continue;
     }
-    const section = ctx.layout.sectionRef(rv.tracks.section[t]) ?? "";
-    const entry = p?.value ? ctx.registry.svs.get("colorSchemes", p.value) : undefined;
+    const section = ctx.layout.sectionRef(rv.tracks.section[t]) ?? '';
+    const entry = p?.value ? ctx.registry.svs.get('colorSchemes', p.value) : undefined;
     merged.set(id, {
       key: `${section}/${ref}`,
       section,
@@ -736,7 +736,7 @@ export interface SectionHighlightEntry {
   readonly data: string;
   /** The set's label (else its ref). */
   readonly label: string;
-  readonly style: "band" | "highlight" | "accent";
+  readonly style: 'band' | 'highlight' | 'accent';
 }
 const highlightLists = new WeakMap<object, readonly SectionHighlightEntry[]>();
 /** The shown view's sections' `highlights` entries, in section then entry order; once per assembled view. */
@@ -767,7 +767,7 @@ export function sectionHighlightEntries(ctx: SeqViewerContext): readonly Section
  * `legend` option says, else `UI.Legend`.
  */
 export const legendExpanded = (ctx: SeqViewerContext, mode?: LegendMode) =>
-  ctx.ui.legendExpanded.value ?? (mode ?? ctx.config.get(SeqViewerConfig.UI.Legend)) === "expanded";
+  ctx.ui.legendExpanded.value ?? (mode ?? ctx.config.get(SeqViewerConfig.UI.Legend)) === 'expanded';
 
 /** A group as shown: at most `UI.LegendItems` items and the rest as "+n more", unless it is open (`ui.legendOpen`). */
 export function legendShown(ctx: SeqViewerContext, g: LegendGroup): { items: readonly LegendItem[]; more: number } {
@@ -787,7 +787,7 @@ export function legendShownGroups(
   groups: readonly LegendGroup[],
 ): { groups: readonly LegendGroup[]; more: number; key: string; toggle: boolean } {
   const cap = ctx.config.get(SeqViewerConfig.UI.LegendGroups);
-  const key = groups.length > 0 ? `${groups[0].section}/*` : "";
+  const key = groups.length > 0 ? `${groups[0].section}/*` : '';
   const open = ctx.ui.legendOpen.value.has(key);
   if (groups.length <= cap) return { groups, more: 0, key, toggle: false };
   return open
@@ -801,7 +801,7 @@ export function legendShownGroups(
  */
 export const legendTitle = (g: LegendGroup) => ({
   name: g.track,
-  colors: g.colors ? `Colors: ${g.colors.label ?? "document"}` : null,
+  colors: g.colors ? `Colors: ${g.colors.label ?? 'document'}` : null,
 });
 
 /** A ramp's end as text (both UIs' legends), as the themes' legend samples read: `legendNumber`. */
@@ -831,13 +831,13 @@ export function issueBadge(issues: readonly SeqIssue[]): { readonly severity: Se
   let errors = 0;
   let warnings = 0;
   for (const i of issues) {
-    if (i.severity === "error") errors++;
-    else if (i.severity === "warning") warnings++;
+    if (i.severity === 'error') errors++;
+    else if (i.severity === 'warning') warnings++;
   }
   const n = errors + warnings;
-  if (n > 0) return { severity: errors > 0 ? "error" : "warning", text: `${n} ${n === 1 ? "issue" : "issues"}` };
+  if (n > 0) return { severity: errors > 0 ? 'error' : 'warning', text: `${n} ${n === 1 ? 'issue' : 'issues'}` };
   const notes = issues.length;
-  return notes === 0 ? null : { severity: "info", text: `${notes} ${notes === 1 ? "note" : "notes"}` };
+  return notes === 0 ? null : { severity: 'info', text: `${notes} ${notes === 1 ? 'note' : 'notes'}` };
 }
 
 /**
@@ -856,7 +856,7 @@ export function issueList(
   const problems: SeqIssue[] = [];
   const notes: SeqIssue[] = [];
   for (let k = 0; k < issues.length; k++)
-    if (kept[k]) (issues[k].severity === "info" ? notes : problems).push(issues[k]);
+    if (kept[k]) (issues[k].severity === 'info' ? notes : problems).push(issues[k]);
   return { problems: issuesByRef(problems), notes: issuesByRef(notes), more: issues.length - n };
 }
 
@@ -867,11 +867,11 @@ export const labelText = (l: HoverLabel | null) =>
         l.title,
         ...l.lines.map((x) => `${x.key} ${x.value}`),
         ...(l.legend?.items.map((i) => i.label) ?? []),
-        l.legend?.more ? `+${l.legend.more} more` : "",
+        l.legend?.more ? `+${l.legend.more} more` : '',
       ]
         .filter(Boolean)
-        .join(", ")
-    : "";
+        .join(', ')
+    : '';
 
 /** The current view's sections that are not hidden, in order (`ViewSurface`). */
 export function shownSections(ctx: SeqViewerContext): string[] {
@@ -886,15 +886,15 @@ export function shownSections(ctx: SeqViewerContext): string[] {
 export function sectionLabel(ctx: SeqViewerContext, section: string): string {
   const path = nodePath(ctx.document.shown.value, section);
   const own = path?.at(-1)?.params?.label;
-  return String(own || path?.findLast((n) => n.kind === "view")?.params?.label || section);
+  return String(own || path?.findLast((n) => n.kind === 'view')?.params?.label || section);
 }
 
 /** The current snapshot's description, else the document's. */
-export function descriptionOf(ctx: SeqViewerContext): { text: string; format: "markdown" | "plaintext" } | null {
+export function descriptionOf(ctx: SeqViewerContext): { text: string; format: 'markdown' | 'plaintext' } | null {
   const shown = ctx.document.shown.value;
   const snap = ctx.document.base.value?.snapshots?.find((s) => s.ref === ctx.snapshots.current.value);
   const from = snap?.description ? snap : shown?.metadata?.description ? shown.metadata : null;
-  return from?.description ? { text: from.description, format: from.description_format ?? "markdown" } : null;
+  return from?.description ? { text: from.description, format: from.description_format ?? 'markdown' } : null;
 }
 
 /**
@@ -903,17 +903,17 @@ export function descriptionOf(ctx: SeqViewerContext): { text: string; format: "m
  */
 export function plainDescription(ctx: SeqViewerContext): string[] | null {
   const d = descriptionOf(ctx);
-  if (d?.format !== "plaintext") return null;
+  if (d?.format !== 'plaintext') return null;
   return d.text
-    .replace(/\r\n?/g, "\n")
+    .replace(/\r\n?/g, '\n')
     .split(/\n\s*\n/)
     .map((p) =>
       p
-        .split("\n")
-        .filter((l) => l.trim() !== "")
-        .join(" "),
+        .split('\n')
+        .filter((l) => l.trim() !== '')
+        .join(' '),
     )
-    .filter((p) => p !== "");
+    .filter((p) => p !== '');
 }
 
 /** A root error (`ErrorState`): nothing assembled while nodes failed; their messages, at most three. */
@@ -921,7 +921,7 @@ export function rootErrors(ctx: SeqViewerContext): string[] {
   if (!ctx.document.shown.value || ctx.graph.assembled.value?.view) return [];
   const out: string[] = [];
   for (const [ref, s] of ctx.graph.statuses.value)
-    if (s.state === "error") out.push(`${ref}: ${s.issues[0]?.message ?? "failed"}`);
+    if (s.state === 'error') out.push(`${ref}: ${s.issues[0]?.message ?? 'failed'}`);
   return out.slice(0, 3);
 }
 

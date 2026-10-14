@@ -11,11 +11,11 @@
 // guards, the browser suite (and its heap guards, `HEAP=1`) and the bench. They return plain objects: this folder has
 // no vitest of its own to import from.
 
-import { globSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { globSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-const GUARD_FLAGS = ["--expose-gc", "--min-semi-space-size=64", "--max-semi-space-size=64"];
-const BROWSER_DIRS = ["_test/**/canvas/**", "_test/**/dom/**", "_test/**/react/**"];
+const GUARD_FLAGS = ['--expose-gc', '--min-semi-space-size=64', '--max-semi-space-size=64'];
+const BROWSER_DIRS = ['_test/**/canvas/**', '_test/**/dom/**', '_test/**/react/**'];
 /** A file that mocks or resets modules needs a module registry of its own (`isolate`). */
 const MOCKS = /\bvi\.(mock|doMock|unmock|resetModules)\(/;
 
@@ -25,8 +25,8 @@ const MOCKS = /\bvi\.(mock|doMock|unmock|resetModules)\(/;
  * `// @module-tag slow`; its quick representative (a short fuzz, a few stories, a small scale) stays untagged.
  */
 const SLOW_TAG = {
-  name: "slow",
-  description: "slow by nature (timing, fuzz, scale, Chrome, CLIs): `test:slow`, never CI",
+  name: 'slow',
+  description: 'slow by nature (timing, fuzz, scale, Chrome, CLIs): `test:slow`, never CI',
   timeout: 120_000,
 };
 
@@ -37,24 +37,24 @@ const SLOW_TAG = {
  * false`: each file imported the whole package again, most of the run's time); the files that mock or reset modules,
  * found by reading them, run isolated in a project of their own. `dir` is the package's folder.
  */
-export const nodeTests = (dir: string, tier: "fast" | "slow" | "all" = "fast") => {
-  const exclude = [...BROWSER_DIRS, "**/node_modules/**"];
-  const mocking = globSync("_test/**/*.test.ts", { cwd: dir, exclude })
-    .filter((f) => MOCKS.test(readFileSync(join(dir, f), "utf8")))
+export const nodeTests = (dir: string, tier: 'fast' | 'slow' | 'all' = 'fast') => {
+  const exclude = [...BROWSER_DIRS, '**/node_modules/**'];
+  const mocking = globSync('_test/**/*.test.ts', { cwd: dir, exclude })
+    .filter((f) => MOCKS.test(readFileSync(join(dir, f), 'utf8')))
     .sort();
   // A project extending the root concatenates its lists with the root's: the root names no files of its own. Vitest
   // queues projects by name: "isolated" first, so its fresh workers start with the run, not after it.
   const shared = {
     extends: true,
-    test: { name: "shared", include: ["_test/**/*.test.ts"], exclude: [...exclude, ...mocking], isolate: false },
+    test: { name: 'shared', include: ['_test/**/*.test.ts'], exclude: [...exclude, ...mocking], isolate: false },
   };
-  const isolated = { extends: true, test: { name: "isolated", include: mocking } };
+  const isolated = { extends: true, test: { name: 'isolated', include: mocking } };
   return {
     test: {
       passWithNoTests: true,
       ...(process.env.PROF_SETUP ? { setupFiles: [process.env.PROF_SETUP] } : {}),
       tags: [SLOW_TAG],
-      tagsFilter: tier === "fast" ? ["!slow"] : tier === "slow" ? ["slow"] : undefined,
+      tagsFilter: tier === 'fast' ? ['!slow'] : tier === 'slow' ? ['slow'] : undefined,
       projects: mocking.length > 0 ? [shared, isolated] : [shared],
     },
   };
@@ -66,10 +66,10 @@ export const nodeTests = (dir: string, tier: "fast" | "slow" | "all" = "fast") =
  */
 export const heapTests = () => ({
   test: {
-    include: ["_test/**/*.heap.ts"],
-    exclude: [...BROWSER_DIRS, "**/node_modules/**"],
+    include: ['_test/**/*.heap.ts'],
+    exclude: [...BROWSER_DIRS, '**/node_modules/**'],
     passWithNoTests: true,
-    pool: "forks",
+    pool: 'forks',
     fileParallelism: false,
     execArgv: GUARD_FLAGS,
   },
@@ -81,10 +81,10 @@ export const heapTests = () => ({
  * `playwright` is the package's own `@vitest/browser-playwright` export.
  */
 export const browserTests = (playwright: (o: object) => unknown) => {
-  const heap = process.env.HEAP === "1";
+  const heap = process.env.HEAP === '1';
   return {
     test: {
-      include: heap ? ["_test/**/{canvas,dom,react}/**/*.heap.ts"] : ["_test/**/{canvas,dom,react}/**/*.test.{ts,tsx}"],
+      include: heap ? ['_test/**/{canvas,dom,react}/**/*.heap.ts'] : ['_test/**/{canvas,dom,react}/**/*.test.{ts,tsx}'],
       passWithNoTests: true,
       fileParallelism: false,
       browser: {
@@ -93,15 +93,15 @@ export const browserTests = (playwright: (o: object) => unknown) => {
         screenshotFailures: false,
         provider: playwright({
           launchOptions: {
-            channel: "chrome",
-            args: heap ? [`--js-flags=${GUARD_FLAGS.join(" ")}`, "--enable-precise-memory-info"] : [],
+            channel: 'chrome',
+            args: heap ? [`--js-flags=${GUARD_FLAGS.join(' ')}`, '--enable-precise-memory-info'] : [],
           },
         }),
-        instances: [{ browser: "chromium", viewport: { width: 1200, height: 900 } }],
+        instances: [{ browser: 'chromium', viewport: { width: 1200, height: 900 } }],
       },
     },
   };
 };
 
 /** `vitest bench`, outside `test`: the perf phases' numbers (`pnpm --filter <package> bench`). */
-export const benchTests = () => ({ test: { benchmark: { include: ["bench/**/*.bench.ts"] } } });
+export const benchTests = () => ({ test: { benchmark: { include: ['bench/**/*.bench.ts'] } } });

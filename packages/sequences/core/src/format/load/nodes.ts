@@ -12,19 +12,19 @@
 // `svs.stream.ref`, and the node is left out), then read by the same `loadNode` as a document node. A node provider's
 // result passes the same checks (seqspec:model#providers).
 
-import type { AnnotationInput, CustomData, KeyResolver, KeyTarget, SeqSet } from "@molstar/seq-core/model";
-import type { Loaders, StageContext, StreamNode } from "../contract.js";
-import type { DocNode } from "../doc.js";
-import { normalizeNodeParams } from "../normalize.js";
-import { isRefSyntax } from "../schema/field-schema.js";
-import type { IndexedNode } from "../schema/tree-schema.js";
-import { SvsTreeSchema } from "../tables/svs-tree.js";
-import { checkStreamNode } from "../validate.js";
-import { type DocIndex, type LoadResult, loadNode, type StreamedData, StreamProp } from "./compile.js";
-import { issueOf } from "./issues.js";
+import type { AnnotationInput, CustomData, KeyResolver, KeyTarget, SeqSet } from '@molstar/seq-core/model';
+import type { Loaders, StageContext, StreamNode } from '../contract.js';
+import type { DocNode } from '../doc.js';
+import { normalizeNodeParams } from '../normalize.js';
+import { isRefSyntax } from '../schema/field-schema.js';
+import type { IndexedNode } from '../schema/tree-schema.js';
+import { SvsTreeSchema } from '../tables/svs-tree.js';
+import { checkStreamNode } from '../validate.js';
+import { type DocIndex, type LoadResult, loadNode, type StreamedData, StreamProp } from './compile.js';
+import { issueOf } from './issues.js';
 
 /** The kinds a patch may add; a `source` is a nested streamed source (ST1b-b). */
-const KINDS: ReadonlySet<string> = new Set(["sequence", "ligand", "unit", "mapping", "annotation", "source"]);
+const KINDS: ReadonlySet<string> = new Set(['sequence', 'ligand', 'unit', 'mapping', 'annotation', 'source']);
 
 /**
  * An item coordinate system (ST7, seqspec:sources#dynamic-nodes): a streamed item's own positions, a viewer's dynamic
@@ -32,8 +32,8 @@ const KINDS: ReadonlySet<string> = new Set(["sequence", "ligand", "unit", "mappi
  * molecule with a length and no letters and its own unit, marked `ItemSystemProp` so lists of the document's sequences
  * leave it out. Params: `length` (positive), `alphabet`, `label`.
  */
-export const ItemSystemKind = "#item_system";
-export const ItemSystemProp = "svs:item_system";
+export const ItemSystemKind = '#item_system';
+export const ItemSystemProp = 'svs:item_system';
 
 /** A map with more entries over it (a document's nodes and held nested sources, their results): `get` and `has` only. */
 export class MapOver<V> extends Map<string, V> {
@@ -60,12 +60,12 @@ export function sourceLevel(doc: DocIndex, ref: string): { level: number; max: n
   let n = doc.nodes.get(ref);
   let level = 1;
   for (let k = 0; n && k < 64; k++) {
-    const up = doc.nodes.get(n.parent ?? "");
-    if (up?.kind !== "source") break;
+    const up = doc.nodes.get(n.parent ?? '');
+    if (up?.kind !== 'source') break;
     level++;
     n = up;
   }
-  return { level, max: typeof n?.params.max_depth === "number" ? n.params.max_depth : 4 };
+  return { level, max: typeof n?.params.max_depth === 'number' ? n.params.max_depth : 4 };
 }
 
 /** A dynamic node's ref: derived from its source's. */
@@ -93,28 +93,28 @@ export async function loadStreamNode(
   const path = `/nodes/${String(sn?.key)}`;
   const say = (code: string, at: string, message: string) =>
     ctx.report(issueOf(ctx.registries, code, at, `${source}: ${message}`));
-  if (typeof sn?.key !== "string" || !isRefSyntax(ref, true)) {
-    say("svs.ref.syntax", path, `a dynamic node's key is a ref suffix ([A-Za-z0-9_.:@-]+, joined by /): ${sn?.key}`);
+  if (typeof sn?.key !== 'string' || !isRefSyntax(ref, true)) {
+    say('svs.ref.syntax', path, `a dynamic node's key is a ref suffix ([A-Za-z0-9_.:@-]+, joined by /): ${sn?.key}`);
     return null;
   }
-  if (!viewers && String(sn?.kind).startsWith("#")) {
-    say("svs.node.kind", `${path}/kind`, `"${sn.kind}" is the viewer's own kind: a provider's nodes may not have it`);
+  if (!viewers && String(sn?.kind).startsWith('#')) {
+    say('svs.node.kind', `${path}/kind`, `"${sn.kind}" is the viewer's own kind: a provider's nodes may not have it`);
     return null;
   }
   if ((sn.kind as string) === ItemSystemKind) {
     const p = sn.params ?? {};
-    const length = typeof p.length === "number" && p.length > 0 ? Math.floor(p.length) : 0;
+    const length = typeof p.length === 'number' && p.length > 0 ? Math.floor(p.length) : 0;
     if (length === 0) {
-      say("svs.params.missing", `${path}/params/length`, "an item coordinate system needs a positive length");
+      say('svs.params.missing', `${path}/params/length`, 'an item coordinate system needs a positive length');
       return null;
     }
-    const alphabet = (typeof p.alphabet === "string" ? p.alphabet : "generic") as "generic";
-    const label = typeof p.label === "string" && p.label !== "" ? p.label : undefined;
+    const alphabet = (typeof p.alphabet === 'string' ? p.alphabet : 'generic') as 'generic';
+    const label = typeof p.label === 'string' && p.label !== '' ? p.label : undefined;
     const props = { [ItemSystemProp]: true };
-    return { molecules: [{ key: ref, kind: "polymer", alphabet, lazy: { length }, label, ownUnit: true, props }] };
+    return { molecules: [{ key: ref, kind: 'polymer', alphabet, lazy: { length }, label, ownUnit: true, props }] };
   }
   if (!KINDS.has(sn.kind)) {
-    say("svs.node.kind", `${path}/kind`, `"${sn.kind}" is no dynamic node's kind (${[...KINDS].join(", ")}, source)`);
+    say('svs.node.kind', `${path}/kind`, `"${sn.kind}" is no dynamic node's kind (${[...KINDS].join(', ')}, source)`);
     return null;
   }
   const raw: DocNode = { kind: sn.kind, ref, params: sn.params ?? {} };
@@ -124,14 +124,14 @@ export async function loadStreamNode(
     loaders.base,
   );
   for (const i of checks.issues) ctx.report({ ...i, message: `${source}: ${i.message}` });
-  if (checks.issues.some((i) => i.severity === "error")) return null;
+  if (checks.issues.some((i) => i.severity === 'error')) return null;
   for (const u of checks.refs) {
     if (known(u.ref)) continue;
-    say("svs.stream.ref", u.path, `"${u.ref}" names no node of the document, held or added by the same patch`);
+    say('svs.stream.ref', u.path, `"${u.ref}" names no node of the document, held or added by the same patch`);
     return null;
   }
   const norm = normalizeNodeParams(raw, SvsTreeSchema, ctx.registries);
-  const nested = sn.kind === "source";
+  const nested = sn.kind === 'source';
   const n: IndexedNode = {
     node: { ...raw, ...norm },
     ref,
@@ -146,12 +146,12 @@ export async function loadStreamNode(
     // A nested source streams, its data kind given (nothing in the patch is read to infer it).
     const p = n.params;
     if ((p.stream == null && p.protocol == null) || p.data_kind == null) {
-      say("svs.params.missing", `${path}/params`, "a nested source streams: give stream or protocol, and data_kind");
+      say('svs.params.missing', `${path}/params`, 'a nested source streams: give stream or protocol, and data_kind');
       return null;
     }
     const { level, max } = sourceLevel(index, ref);
     if (level > max) {
-      say("svs.stream.depth", path, `"${ref}" is level ${level} of streamed sources, deeper than max_depth ${max}`);
+      say('svs.stream.depth', path, `"${ref}" is level ${level} of streamed sources, deeper than max_depth ${max}`);
       return null;
     }
   }
@@ -162,7 +162,7 @@ export async function loadStreamNode(
 /** Every key a part puts in the set (a molecule's own unit too): what an eviction takes. */
 export function keysOfPart(part: Partial<LoadResult>, out: string[]) {
   for (const m of part.molecules ?? []) out.push(m.key, ...(m.ownUnit ? [`${m.key}/unit`] : []));
-  for (const k of ["units", "complexes", "alignments", "mappings", "annotations"] as const)
+  for (const k of ['units', 'complexes', 'alignments', 'mappings', 'annotations'] as const)
     for (const x of part[k] ?? []) out.push(x.key);
 }
 
@@ -185,7 +185,7 @@ export function streamedSources(set: SeqSet): ReadonlySet<string> {
 
 /** Whether `ref` lies under one of `sources` (`<source>/<key>`): a dynamic node's ref. */
 export function underSource(sources: ReadonlySet<string>, ref: string): boolean {
-  for (let k = ref.indexOf("/"); k > 0; k = ref.indexOf("/", k + 1)) if (sources.has(ref.slice(0, k))) return true;
+  for (let k = ref.indexOf('/'); k > 0; k = ref.indexOf('/', k + 1)) if (sources.has(ref.slice(0, k))) return true;
   return false;
 }
 

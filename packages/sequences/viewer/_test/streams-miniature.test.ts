@@ -11,20 +11,20 @@
 // `MAX_REGIONS` regions a block, else coarser), after the view's regions and before the margin. Once settled, the map
 // image holds no placeholder band; without a miniature nothing more is asked.
 
-import type { Loaders } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { hg38Streams, streamedDoc } from "../../core/_test/format/stream-provider.js";
-import { SkinToken } from "../src/draw/backend.js";
-import { Dirty, SectionComposer } from "../src/draw/composer.js";
+import type { Loaders } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { hg38Streams, streamedDoc } from '../../core/_test/format/stream-provider.js';
+import { SkinToken } from '../src/draw/backend.js';
+import { Dirty, SectionComposer } from '../src/draw/composer.js';
 import {
   createSeqViewer,
   DefaultPresets,
   DefaultRegistry,
   DefaultSeqViewerSpec,
   manualScheduler,
-} from "../src/index.js";
-import type { Streams } from "../src/streams.js";
-import { fixtureMeasurer, RecordingBackend } from "../src/testing/index.js";
+} from '../src/index.js';
+import type { Streams } from '../src/streams.js';
+import { fixtureMeasurer, RecordingBackend } from '../src/testing/index.js';
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const PENDING = SkinToken.pending;
@@ -45,13 +45,13 @@ async function run(nav: string) {
   const s = hg38Streams({
     letters: true,
     chromosomes: [
-      ["chr1", 248_956_422],
-      ["chr2", 242_193_529],
+      ['chr1', 248_956_422],
+      ['chr2', 242_193_529],
     ],
   });
   const loaders: Loaders = { load: (r) => Promise.reject(new Error(`no ${r.uri}`)), stream: s.stream };
   const presets = DefaultPresets.map((p) =>
-    p.geometry === "linear" && p.name !== "strip" ? { ...p, navigator: nav } : p,
+    p.geometry === 'linear' && p.name !== 'strip' ? { ...p, navigator: nav } : p,
   );
   const scheduler = manualScheduler();
   const ctx = createSeqViewer(
@@ -83,16 +83,16 @@ async function run(nav: string) {
   return out;
 }
 
-describe("a miniature over streamed 1-D layers (GM-04)", () => {
+describe('a miniature over streamed 1-D layers (GM-04)', () => {
   it("the map's regions are asked and land: no placeholder band in the map once settled", {
     timeout: 60_000,
   }, async () => {
-    const strip = await run("strip");
+    const strip = await run('strip');
     expect(strip.pending.length).toBeGreaterThan(0);
     expect(strip.pending.every((n) => n === 0)).toBe(true);
     expect(strip.stats.inFlight).toBe(0);
     // Without a miniature, fewer regions: the map's are asked only for it.
-    const rail = await run("rulerRail");
+    const rail = await run('rulerRail');
     expect(rail.pending).toEqual([]);
     expect(strip.stats.requests).toBeGreaterThan(rail.stats.requests);
   });

@@ -18,13 +18,13 @@ import {
   type StreamedData,
   StreamProp,
   type SvsRegistries,
-} from "@molstar/seq-core/format";
-import { type Annotation, type Field, KeyKind, type KeyTarget, Paths, type SeqSet } from "@molstar/seq-core/model";
-import type { AxisView } from "./axis.js";
-import type { Hit } from "./hit.js";
-import type { LayerInput, PrepareContext } from "./registry.js";
-import type { StreamLayer } from "./streams.js";
-import { hitTree, TREE_INSET, type TreeRows, treeOf, treeSpan } from "./tree.js";
+} from '@molstar/seq-core/format';
+import { type Annotation, type Field, KeyKind, type KeyTarget, Paths, type SeqSet } from '@molstar/seq-core/model';
+import type { AxisView } from './axis.js';
+import type { Hit } from './hit.js';
+import type { LayerInput, PrepareContext } from './registry.js';
+import type { StreamLayer } from './streams.js';
+import { hitTree, TREE_INSET, type TreeRows, treeOf, treeSpan } from './tree.js';
 
 /** A rows layer prepared: its alignment, its lanes (offset k from the track's first lane), the held codes, the tree. */
 export interface RowsState extends TreeRows {
@@ -84,7 +84,7 @@ export function prepareRows(input: LayerInput, rc: PrepareContext): RowsState {
     h2 ^= h2 >>> 13;
   }
   const order = `${(h1 >>> 0).toString(36)}.${(h2 >>> 0).toString(36)}`;
-  const src = codes ? stampOf(codes) : remote ? (remote.source.uri ?? remote.source.stream ?? remote.source.ref) : "";
+  const src = codes ? stampOf(codes) : remote ? (remote.source.uri ?? remote.source.stream ?? remote.source.ref) : '';
   const key = `${a?.id ?? -1}:${lanes}:${columns}:${order}:${src}`;
   return {
     set,
@@ -110,13 +110,13 @@ export function prepareRows(input: LayerInput, rc: PrepareContext): RowsState {
     dataColumns: (
       (input.params.data_columns ?? []) as { data: string; field: string; label?: string; type?: string }[]
     ).map((c) => {
-      const renderer = rc.registry.get("columns", String(c.type)) ? String(c.type) : "text";
+      const renderer = rc.registry.get('columns', String(c.type)) ? String(c.type) : 'text';
       const t = { kind: -1, id: -1, row: -1 };
       const ann = set.byName(String(c.data), t) && t.kind === KeyKind.annotation ? set.annotations[t.id] : null;
       const name = set.strings.find(c.field);
       const field = ann?.fields.find((f) => f.name === name) ?? providerField(ann, set, c.field, rc.registry.svs);
       const rows = rowsOfAnnotation(ann, a?.rowCount ?? 0);
-      const state = rc.registry.get("columns", renderer)?.prepare?.(field, rows, ann, set) ?? null;
+      const state = rc.registry.get('columns', renderer)?.prepare?.(field, rows, ann, set) ?? null;
       return { renderer, state, label: c.label ?? c.field };
     }),
   };
@@ -135,7 +135,7 @@ function rowsOfAnnotation(ann: Annotation | null, n: number): Int32Array {
 function providerField(ann: Annotation | null, set: SeqSet, name: string, svs: SvsRegistries): Field | null {
   if (!ann || ann.count === 0) return null;
   const data = Array.from({ length: ann.count }, (_, r) => paletteValue(ann, set, r, name, svs));
-  return data.some((x) => x !== null && x !== undefined) ? { name: -1 as never, kind: "json", data } : null;
+  return data.some((x) => x !== null && x !== undefined) ? { name: -1 as never, kind: 'json', data } : null;
 }
 
 /** The rows entry's data by region (`stream`). */
@@ -208,7 +208,7 @@ export function prepareMatrix(input: LayerInput, logo = false): MatrixState {
   const codes = Uint8Array.from(states, (id) => set.strings.get(id).charCodeAt(0) & 127);
   const t: KeyTarget = { kind: -1, id: -1, row: -1 };
   const labels = Array.from(states, (id) => stateLabel(set, set.strings.get(id), t));
-  const bits = input.params.scale !== "probability";
+  const bits = input.params.scale !== 'probability';
   const heights = rows.map((rr) => (logo && rr ? new Float32Array(rr.length * S) : null));
   const order = rows.map((rr) => (logo && rr ? new Uint8Array(rr.length * S) : null));
   const hmax = Math.log2(Math.max(2, S >= 20 ? 20 : S));
@@ -238,7 +238,7 @@ export function prepareMatrix(input: LayerInput, logo = false): MatrixState {
   stateOf.forEach((q, band) => {
     if (q < S) bandOf[q] = band;
   });
-  const maximum = input.params?.density === "maximum" ? 1 : 0;
+  const maximum = input.params?.density === 'maximum' ? 1 : 0;
   return {
     rows,
     ann: anns,
@@ -266,7 +266,7 @@ function stateLabel(set: SeqSet, state: string, t: KeyTarget): string {
 /** A matrix's states as bands over its track (top to bottom), labeled in the header. */
 export const MatrixBands = {
   count: (s: unknown) => (s as MatrixState).states,
-  label: (s: unknown, band: number) => (s as MatrixState).labels[(s as MatrixState).stateOf[band]] ?? "",
+  label: (s: unknown, band: number) => (s as MatrixState).labels[(s as MatrixState).stateOf[band]] ?? '',
 };
 
 /** `seqv:map`: the tracks it draws in miniature (refs; empty: every other track of its section). */

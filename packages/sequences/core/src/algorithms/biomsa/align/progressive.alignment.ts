@@ -12,13 +12,13 @@
  *
  */
 
-import { DEBUG, type TAlignmentParam } from "./params.js";
-import { type TSequence, distanceMatrix, sortMSA } from "../sequence/sequence.js";
-import { type InternalNode, isLeafNode, makeTree, clustalWeights, setProfiles } from "../sequence/tree.js";
-import Log from "../utils/logger.js";
-import { pairwiseAlignment, MSASeqAlignment, MSAMSAAlignment } from "./align.js";
-import { estringProduct } from "../utils/estring.js";
-import { mergeProfiles } from "../sequence/profile.js";
+import { DEBUG, type TAlignmentParam } from './params.js';
+import { type TSequence, distanceMatrix, sortMSA } from '../sequence/sequence.js';
+import { type InternalNode, isLeafNode, makeTree, clustalWeights, setProfiles } from '../sequence/tree.js';
+import Log from '../utils/logger.js';
+import { pairwiseAlignment, MSASeqAlignment, MSAMSAAlignment } from './align.js';
+import { estringProduct } from '../utils/estring.js';
+import { mergeProfiles } from '../sequence/profile.js';
 
 // STORIES-UNTOLD(B17): `step` is awaited before each alignment of a node's two children (a pair, a profile and a
 // sequence, or two profiles), so the caller can yield to the event loop and throw to stop; `treeAlign` is async for it.
@@ -97,25 +97,25 @@ export async function progressiveAlignment(
     return result.score;
   };
 
-  if (DEBUG) Log.add("Start Progressive Alignment");
+  if (DEBUG) Log.add('Start Progressive Alignment');
 
   // Compute fast pair similarity (see k-mers binary Muscle)
   const lDistMatrixKMers = distanceMatrix(seq);
 
-  if (DEBUG) Log.add("K-mer distance matrix");
+  if (DEBUG) Log.add('K-mer distance matrix');
 
   // Compute tree from distance matrix
   const tree = makeTree(lDistMatrixKMers, seq);
   const root = tree[tree.length - 1] as InternalNode;
 
-  if (DEBUG) Log.add("Build Tree");
+  if (DEBUG) Log.add('Build Tree');
 
   // Compute weights (this is used to prevent close sequences to skew
   // the computation toward them, which would result in not disfavouring
   // gaps in their already aligned sequences).
   const weights = clustalWeights(tree);
 
-  if (DEBUG) Log.add("Compute Weights - Start MSA");
+  if (DEBUG) Log.add('Compute Weights - Start MSA');
 
   setProfiles(tree, pParam);
 
@@ -123,7 +123,7 @@ export async function progressiveAlignment(
   const score1 = await treeAlign(root, weights);
   let lEstrings = sortMSA(root.estring.slice(), root.numSeq);
 
-  if (DEBUG) Log.add("End MSA computation");
+  if (DEBUG) Log.add('End MSA computation');
 
   return lEstrings;
 

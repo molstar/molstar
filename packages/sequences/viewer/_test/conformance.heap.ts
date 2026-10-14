@@ -12,17 +12,17 @@
 // at each of those frames the same warm-up and measurement of the frame allocating an object each (`leaking`) must
 // catch it.
 
-import { expect, it } from "vitest";
-import type { LayerRenderer } from "../src/draw/api.js";
-import { KernelRenderers } from "../src/index.js";
-import { DefaultPresets } from "../src/presets.js";
-import { MapRenderer } from "../src/renderers/map.js";
-import { RowsRenderer } from "../src/renderers/rows.js";
-import { rendererConformance, StarsFormat, StarsRenderer } from "../src/testing/index.js";
-import { miniatureDoc, ringed, starsDoc } from "./conformance-fixtures.js";
-import { familyWithTree } from "./families.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking, warmFrame } from "./heap.js";
-import { opened } from "./layout-fixtures.js";
+import { expect, it } from 'vitest';
+import type { LayerRenderer } from '../src/draw/api.js';
+import { KernelRenderers } from '../src/index.js';
+import { DefaultPresets } from '../src/presets.js';
+import { MapRenderer } from '../src/renderers/map.js';
+import { RowsRenderer } from '../src/renderers/rows.js';
+import { rendererConformance, StarsFormat, StarsRenderer } from '../src/testing/index.js';
+import { miniatureDoc, ringed, starsDoc } from './conformance-fixtures.js';
+import { familyWithTree } from './families.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking, warmFrame } from './heap.js';
+import { opened } from './layout-fixtures.js';
 
 const N = 2_000;
 /**
@@ -41,29 +41,29 @@ const guard = (frame: () => void) => {
 };
 /** The positive control as the kit's `heap` hook: a frame's check fails unless its leaking frame is caught. */
 const control = (frame: () => void) => {
-  if (!controlCaught(() => measure(leaking(frame)))) throw new Error("the leaking frame was not caught");
+  if (!controlCaught(() => measure(leaking(frame)))) throw new Error('the leaking frame was not caught');
 };
 const run = (entry: LayerRenderer, heap = guard) =>
   rendererConformance(entry, {
     open: async ({ geometry, entry: has }) =>
       (
-        await opened(geometry === "circular" ? ringed(starsDoc()) : starsDoc(), {
+        await opened(geometry === 'circular' ? ringed(starsDoc()) : starsDoc(), {
           renderers: [...KernelRenderers, ...(has ? [entry] : [])],
-          registry: [{ svs: StarsFormat }, { presets: DefaultPresets.filter((p) => p.name === "circular") }],
+          registry: [{ svs: StarsFormat }, { presets: DefaultPresets.filter((p) => p.name === 'circular') }],
         })
       ).ctx,
     heap,
   });
 
-it("a stars frame allocates nothing after warm-up, at every zoom and on rings", async () => {
-  const heap = (await run(StarsRenderer as LayerRenderer)).filter((c) => c.check === "heap");
-  expect(heap.filter((c) => c.geometry === "circular").length).toBeGreaterThan(0);
+it('a stars frame allocates nothing after warm-up, at every zoom and on rings', async () => {
+  const heap = (await run(StarsRenderer as LayerRenderer)).filter((c) => c.check === 'heap');
+  expect(heap.filter((c) => c.geometry === 'circular').length).toBeGreaterThan(0);
   expect(heap.filter((c) => !c.ok).map((c) => c.detail)).toEqual([]);
 }, 120_000);
 
-it("a stars frame allocating an object each is caught, at every zoom and on rings (positive control)", async () => {
-  const heap = (await run(StarsRenderer as LayerRenderer, control)).filter((c) => c.check === "heap");
-  expect(heap.filter((c) => c.geometry === "circular").length).toBeGreaterThan(0);
+it('a stars frame allocating an object each is caught, at every zoom and on rings (positive control)', async () => {
+  const heap = (await run(StarsRenderer as LayerRenderer, control)).filter((c) => c.check === 'heap');
+  expect(heap.filter((c) => c.geometry === 'circular').length).toBeGreaterThan(0);
   expect(heap.filter((c) => !c.ok).map((c) => c.detail)).toEqual([]);
 }, 120_000);
 
@@ -80,7 +80,7 @@ for (const [entry, doc] of [
           .ctx,
       heap: guard,
     });
-    const heap = checks.filter((c) => c.check === "heap");
+    const heap = checks.filter((c) => c.check === 'heap');
     expect(heap.length).toBeGreaterThan(0);
     expect(heap.filter((c) => !c.ok).map((c) => c.detail)).toEqual([]);
   }, 120_000);

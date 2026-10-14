@@ -18,7 +18,7 @@
 // residue starts (a number differing from the previous position's). Side by side, labels never overlap across blocks: a
 // block's name and numbers stay left of the next block's start. Where a source residue has several copies on the block
 // (a construct's segments over one source), a label past the first says which: "Ub 48 (copy 2)".
-import { Coords, NO_LABEL, Numbering, type PositionLabel } from "@molstar/seq-core/model";
+import { Coords, NO_LABEL, Numbering, type PositionLabel } from '@molstar/seq-core/model';
 import {
   copyAt,
   type DrawView,
@@ -32,7 +32,7 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 const rects = new RectBatch(128);
 const nums = new TextBatch(64);
@@ -213,7 +213,7 @@ function tick(v: DrawView, s: RulerState, b: number, k: number) {
   rects.begin(SkinToken.inkQuiet);
   rects.push(x, frame[F.bottom] - th, 1, th);
   const srcs = s.sources[b];
-  const prefix = srcs && at[1] >= 0 ? srcs[at[1]].prefix : "";
+  const prefix = srcs && at[1] >= 0 ? srcs[at[1]].prefix : '';
   const copy = copyAt(srcs && at[1] >= 0 ? srcs[at[1]].path : v.numberingPath[b], v.indexOf(b, k as never));
   const text = numberText(at[0], prefix, copy);
   const w = prefix || copy > 1 ? v.text.label(text, frame[F.font]).width : v.text.numberWidth(frame[F.font], at[0]);
@@ -235,7 +235,7 @@ function run(v: DrawView, s: RulerState, b: number, ks: number, i0: number, i1: 
   const o = asc ? ks - i0 : ks + i1 - 1;
   const sg = asc ? 1 : -1;
   const n = s.sources[b] ? null : (v.numbering[b] ?? null);
-  if (!s.sources[b] && !v.numberingPath[b] && (n === null || (n.method === "offset" && !n.skipZero))) {
+  if (!s.sources[b] && !v.numberingPath[b] && (n === null || (n.method === 'offset' && !n.skipZero))) {
     // Numbers that run by one: from round number to round number.
     const d = n ? n.first : 1;
     at[1] = -1;
@@ -295,8 +295,8 @@ function draw(v: DrawView, s: RulerState) {
   if (!ax) return;
   const tm = v.text;
   const dpr = v.dpr;
-  const font = tm.font("ui", 11);
-  const bold = tm.font("ui", 11, 600);
+  const font = tm.font('ui', 11);
+  const bold = tm.font('ui', 11, 600);
   const left = Math.round(v.left * dpr) | 0;
   const right = v.ring ? 0x3fffffff : Math.round(v.right * dpr) | 0;
   frame[F.bottom] = Math.round((v.top + v.height) * dpr) - 1;
@@ -385,4 +385,4 @@ function draw(v: DrawView, s: RulerState) {
 
 /** No row band where it is hovered (seqspec:interaction#hover): the ruler is the axis, not a track's data. */
 const rowHover = () => false;
-export const RulerRenderer = kernelEntry<RulerState>("ruler", 26, { miniature: false, draw, tiny: draw, rowHover });
+export const RulerRenderer = kernelEntry<RulerState>('ruler', 26, { miniature: false, draw, tiny: draw, rowHover });

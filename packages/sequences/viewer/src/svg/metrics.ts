@@ -12,7 +12,7 @@
 // backend writes those baselines as an explicit `dy` from it (every SVG reader honors `dy`; Inkscape ignores
 // `dominant-baseline`). Platform-free.
 
-import type { TextMeasurer } from "../text.js";
+import type { TextMeasurer } from '../text.js';
 
 /** One family and weight: advances of ASCII 32..126 in `unitsPerEm`, and the em box about the alphabetic baseline. */
 export interface FontMetrics {
@@ -47,7 +47,7 @@ export interface MetricsMeasurer extends TextMeasurer {
   metrics(font: string): EmBox | null;
 }
 export const hasMetrics = (m: TextMeasurer): m is MetricsMeasurer =>
-  typeof (m as MetricsMeasurer).metrics === "function";
+  typeof (m as MetricsMeasurer).metrics === 'function';
 
 /** A CSS font string as the text manager makes them: weight, px size, families. */
 export const CSS_FONT = /^(?:(?:italic|oblique|normal)\s+)?(\d+|bold|normal)\s+([\d.]+)px\s+(.*)$/;
@@ -60,12 +60,12 @@ const SANS =
 function names(token: string, out: string[]): void {
   const t = token
     .trim()
-    .replace(/^["']|["']$/g, "")
+    .replace(/^["']|["']$/g, '')
     .toLowerCase();
   out.push(t);
-  if (t === "system-ui" || t === "-apple-system" || t === "blinkmacsystemfont") out.push("ui-sans-serif");
-  if (t.startsWith("sfmono") || t === "sf mono" || t === "menlo") out.push("ui-monospace");
-  out.push(MONO.test(t) ? "monospace" : SERIF.test(t) ? "serif" : SANS.test(t) ? "sans-serif" : t);
+  if (t === 'system-ui' || t === '-apple-system' || t === 'blinkmacsystemfont') out.push('ui-sans-serif');
+  if (t.startsWith('sfmono') || t === 'sf mono' || t === 'menlo') out.push('ui-monospace');
+  out.push(MONO.test(t) ? 'monospace' : SERIF.test(t) ? 'serif' : SANS.test(t) ? 'sans-serif' : t);
 }
 
 interface Chosen {
@@ -77,7 +77,7 @@ interface Chosen {
 /** A measurer over `tables`: the table of the font's first family a table has (the usual stacks' system and generic names, else
  * the first table's family), the nearest weight; widths are the advances' sum, no kerning, other code points `fallback`. */
 export function metricsMeasurer(tables: readonly FontMetrics[]): MetricsMeasurer {
-  if (tables.length === 0) throw new Error("metricsMeasurer: no tables.");
+  if (tables.length === 0) throw new Error('metricsMeasurer: no tables.');
   const cache = new Map<string, Chosen | null>();
   const choose = (font: string): Chosen | null => {
     let c = cache.get(font);
@@ -85,9 +85,9 @@ export function metricsMeasurer(tables: readonly FontMetrics[]): MetricsMeasurer
     const m = CSS_FONT.exec(font);
     if (!m) c = null;
     else {
-      const w = m[1] === "bold" ? 700 : m[1] === "normal" ? 400 : Number(m[1]);
+      const w = m[1] === 'bold' ? 700 : m[1] === 'normal' ? 400 : Number(m[1]);
       const list: string[] = [];
-      for (const token of m[3].split(",")) names(token, list);
+      for (const token of m[3].split(',')) names(token, list);
       // The first family a table has; a stack with none of them is read as the first table's.
       const fam = (
         list.find((n) => tables.some((t) => t.family.toLowerCase() === n)) ?? tables[0].family

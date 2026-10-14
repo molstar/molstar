@@ -10,10 +10,10 @@
 // `parent` and `params`. Added: `ref` (`implied` for nodes whose ref is their kind), `count` under the parent,
 // `exclusive` param sets, the schema of a param that a registry entry owns, and a node's own rules.
 
-import type { DocNode } from "../doc.js";
-import type { SvsRegistries } from "../registry.js";
-import type { CheckContext } from "./field-schema.js";
-import type { ParamsSchema } from "./params-schema.js";
+import type { DocNode } from '../doc.js';
+import type { SvsRegistries } from '../registry.js';
+import type { CheckContext } from './field-schema.js';
+import type { ParamsSchema } from './params-schema.js';
 
 export interface IndexedNode {
   readonly node: DocNode;
@@ -37,9 +37,9 @@ export interface NodeSchema {
   readonly parent: readonly string[];
   readonly params: ParamsSchema;
   /** `implied`: the ref may be left out and is then the kind (`root`, `data`); it takes no other. */
-  readonly ref?: "required" | "implied";
+  readonly ref?: 'required' | 'implied';
   /** How many under one parent: exactly one, at most one, or one or more. */
-  readonly count?: "one" | "at_most_one" | "some";
+  readonly count?: 'one' | 'at_most_one' | 'some';
   /** Sets of params of which exactly one is given (not null). */
   readonly exclusive?: readonly (readonly string[])[];
   /** A param a registry entry owns (`options`), and its schema for these params; undefined: not checked. */

@@ -10,13 +10,13 @@
 // the invocations of the keys it knows through the function it is given (`ctx.commands.run(inv, "host:links")`), and
 // remembers the links entered so one removed while hovered, or a disposed runner, leaves nothing lit.
 
-import type { Invocation } from "@molstar/seq-core/format";
-import { type ParsedLink, parseLink } from "./codec.js";
-import { DefaultLinkKeys, type LinkKey } from "./keys.js";
+import type { Invocation } from '@molstar/seq-core/format';
+import { type ParsedLink, parseLink } from './codec.js';
+import { DefaultLinkKeys, type LinkKey } from './keys.js';
 
 export interface LinkRunner {
   /** False: no key of the href has an entry (not a command, or only other viewers' keys). */
-  run(href: string, event: "enter" | "leave" | "click", link: string): boolean;
+  run(href: string, event: 'enter' | 'leave' | 'click', link: string): boolean;
   /** The link left the page: its pending leave runs. */
   release(link: string): void;
   /** Releases every entered link. */
@@ -43,7 +43,7 @@ export function createLinkRunner(
     }
     return p;
   };
-  const go = (href: string, event: "enter" | "leave" | "click", link: string) => {
+  const go = (href: string, event: 'enter' | 'leave' | 'click', link: string) => {
     let known = false;
     let ran = false;
     for (const p of parsed(href)) {
@@ -58,18 +58,18 @@ export function createLinkRunner(
         Promise.resolve(run(inv)).catch(() => {});
       } catch {}
     }
-    if (event === "enter" && ran) entered.set(link, href);
-    if (event === "leave") entered.delete(link);
+    if (event === 'enter' && ran) entered.set(link, href);
+    if (event === 'leave') entered.delete(link);
     return known;
   };
   return {
     run: go,
     release(link) {
       const href = entered.get(link);
-      if (href !== undefined) go(href, "leave", link);
+      if (href !== undefined) go(href, 'leave', link);
     },
     dispose() {
-      for (const [link, href] of [...entered]) go(href, "leave", link);
+      for (const [link, href] of [...entered]) go(href, 'leave', link);
       cache.clear();
     },
   };

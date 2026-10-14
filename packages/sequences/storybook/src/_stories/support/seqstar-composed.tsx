@@ -11,8 +11,8 @@
 // tabs, each section's switches, the export menu and the issue badge in a header row of its own above it, and the legend
 // below it, all against the same context. React through the provider; the DOM through the element's `mountedUI`.
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { shownSections } from "@molstar/seq-viewer";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { shownSections } from '@molstar/seq-viewer';
 import {
   browserExportAction,
   Export as DomExport,
@@ -22,7 +22,7 @@ import {
   defineSeqViewer,
   downloadSvg,
   type SeqViewerElement,
-} from "@molstar/seq-viewer/dom";
+} from '@molstar/seq-viewer/dom';
 import {
   Export,
   IssueBadge,
@@ -32,12 +32,12 @@ import {
   SeqViewerProvider,
   useDerived,
   ViewTabs,
-} from "@molstar/seq-viewer/react";
-import { type ReactNode, useEffect, useRef } from "react";
-import "@molstar/seq-viewer/skin.css";
-import { PrismCanvas } from "./seqstar-prism.js";
-import p from "./seqstar-prism.module.css";
-import { type Mounted, useCaseContext, useStoryUi } from "./seqstar-viewer.js";
+} from '@molstar/seq-viewer/react';
+import { type ReactNode, useEffect, useRef } from 'react';
+import '@molstar/seq-viewer/skin.css';
+import { PrismCanvas } from './seqstar-prism.js';
+import p from './seqstar-prism.module.css';
+import { type Mounted, useCaseContext, useStoryUi } from './seqstar-viewer.js';
 
 /** The browser's SVG export, which `SeqViewer` and the element register themselves; a host's context registers it. */
 const EXPORT = [{ actions: [browserExportAction({ offer: downloadSvg })] }];
@@ -61,7 +61,7 @@ function HostHeader({ m }: { m: Mounted }) {
 
 /** The React composition: the host's header, the clean viewer, the legend, on a canvas of `color`. */
 export function ComposedReact({ doc, color }: { doc: SeqViewSpecDoc; color?: string }): ReactNode {
-  const m = useCaseContext(doc, { chrome: "clean", registry: EXPORT });
+  const m = useCaseContext(doc, { chrome: 'clean', registry: EXPORT });
   const ui = useStoryUi(m);
   if (!m) return <div className={p.caption}>Loading…</div>;
   return (
@@ -88,15 +88,15 @@ export function ComposedDom({ make }: { make: (el: SeqViewerElement) => void }):
   const bottom = useRef<HTMLDivElement>(null);
   useEffect(() => {
     defineSeqViewer();
-    const el = document.createElement("seq-viewer");
-    el.chrome = "clean";
+    const el = document.createElement('seq-viewer');
+    el.chrome = 'clean';
     make(el);
     middle.current?.append(el);
     const ctx = el.context;
     const ui = el.mountedUI ?? undefined;
     const [bar, below] = [top.current, bottom.current];
     if (!ctx || !bar || !below) return () => el.remove();
-    const grow = document.createElement("span");
+    const grow = document.createElement('span');
     grow.className = p.grow;
     const parts = [DomViewTabs(bar, ctx, { ui })];
     bar.append(grow);

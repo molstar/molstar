@@ -13,9 +13,9 @@
 // and odd anchors and in each alignment and baseline. What the atlas leaves to `fillText` (more than one character, a
 // scale, an angle) draws as before; a font load and a skin's new token colors drop its cells; a full atlas evicts.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { Canvas2DBackend, Canvas2DShared } from '../../src/canvas/index.js';
 import {
   type DrawResources,
   NO_COLOR,
@@ -25,17 +25,17 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.js";
-import { Dirty } from "../../src/draw/index.js";
-import { DefaultSkin } from "../../src/index.js";
-import { canvasesOf, close, diff as diffPixels, type Opened, opened, pixelsOf } from "./open.js";
+} from '../../src/draw/api.js';
+import { Dirty } from '../../src/draw/index.js';
+import { DefaultSkin } from '../../src/index.js';
+import { canvasesOf, close, diff as diffPixels, type Opened, opened, pixelsOf } from './open.js';
 
 const MONO = DefaultSkin.fontMono;
 const UI = DefaultSkin.fontUi;
 /** The tokens the letters draw in: the light skin's, and skin.css's dark block. */
 const SKINS = {
   light: { surface: DefaultSkin.surface, ink: DefaultSkin.ink, inkQuiet: DefaultSkin.inkQuiet },
-  dark: { surface: "rgb(24 26 30)", ink: "rgb(230 232 235)", inkQuiet: "rgb(156 163 175)" },
+  dark: { surface: 'rgb(24 26 30)', ink: 'rgb(230 232 235)', inkQuiet: 'rgb(156 163 175)' },
 };
 type SkinName = keyof typeof SKINS;
 /** The fonts, by id: [CSS font, px]. */
@@ -80,7 +80,7 @@ function resources(skin: SkinName, version = { v: 0 }): DrawResources & { versio
 /** A backend drawing into a visible canvas through a back target, as the surface's main pass. */
 function target(w: number, h: number, shared: Canvas2DShared) {
   const c = new OffscreenCanvas(w, h);
-  const g = c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+  const g = c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
   const be = new Canvas2DBackend([g], shared, 1 << Pass.main);
   return { be, px: () => g.getImageData(0, 0, w, h).data };
 }
@@ -140,7 +140,7 @@ const TOLERANCE = 1;
 
 describe("letters from the atlas equal fillText's", () => {
   for (const dpr of [1, 2])
-    for (const skin of ["light", "dark"] as const)
+    for (const skin of ['light', 'dark'] as const)
       it(`at DPR ${dpr}, ${skin}`, () => {
         const opaque: Diff = { pixels: 0, differ: 0, max: 0 };
         const translucent: Diff = { pixels: 0, differ: 0, max: 0 };
@@ -163,35 +163,35 @@ describe("letters from the atlas equal fillText's", () => {
         }
         console.log(`atlas DPR ${dpr} ${skin}: ${JSON.stringify({ opaque, translucent })} cells ${atlas.atlas?.made}`);
         expect(atlas.atlas?.made).toBeGreaterThan(5000);
-        expect(opaque.max, "opaque letters").toBeLessThanOrEqual(TOLERANCE);
-        expect(translucent.max, "translucent letters").toBeLessThanOrEqual(TOLERANCE);
+        expect(opaque.max, 'opaque letters').toBeLessThanOrEqual(TOLERANCE);
+        expect(translucent.max, 'translucent letters').toBeLessThanOrEqual(TOLERANCE);
       }, 120_000);
 });
 
 describe("the atlas's bounds and invalidation", () => {
-  it("leaves text of more than one character, scaled or rotated items to fillText", () => {
-    const shared = new Canvas2DShared(resources("light"));
+  it('leaves text of more than one character, scaled or rotated items to fillText', () => {
+    const shared = new Canvas2DShared(resources('light'));
     const { be } = target(200, 100, shared);
     const t = new TextBatch(4);
     be.beginPass(Pass.main, 200, 100, 1);
     t.style(8, TextAlign.center, TextBaseline.middle);
     t.begin(SkinToken.ink);
-    t.push(20, 20, "AB");
-    const i = t.add("C");
+    t.push(20, 20, 'AB');
+    const i = t.add('C');
     t.x[i] = 60;
     t.y[i] = 20;
     t.sx[i] = 2;
     be.text(t);
     t.reset();
     t.style(8, TextAlign.center, TextBaseline.middle, Math.PI / 2);
-    t.push(100, 50, "D");
+    t.push(100, 50, 'D');
     be.text(t);
     be.endPass();
     expect(shared.atlas?.made).toBe(0);
     t.reset();
     t.style(8, TextAlign.center, TextBaseline.middle);
-    t.push(100, 50, "D");
-    t.push(120, 50, "D");
+    t.push(100, 50, 'D');
+    t.push(120, 50, 'D');
     be.beginPass(Pass.main, 200, 100, 1);
     be.text(t);
     be.endPass();
@@ -199,7 +199,7 @@ describe("the atlas's bounds and invalidation", () => {
     expect(t.color[0]).not.toBe(NO_COLOR);
   });
   it("drops its cells on a font load and on a token's new color; a DPR is part of the key", () => {
-    const res = resources("light");
+    const res = resources('light');
     const shared = new Canvas2DShared(res, { fonts: () => res.version.v });
     const { be } = target(200, 100, shared);
     const t = new TextBatch(4);
@@ -210,7 +210,7 @@ describe("the atlas's bounds and invalidation", () => {
     };
     t.style(8, TextAlign.center, TextBaseline.middle);
     t.begin(SkinToken.ink);
-    t.push(20, 20.5, "A");
+    t.push(20, 20.5, 'A');
     draw(1);
     draw(1);
     expect(shared.atlas?.made).toBe(1);
@@ -222,14 +222,14 @@ describe("the atlas's bounds and invalidation", () => {
     draw(1);
     expect(shared.atlas?.made).toBe(3);
     // A skin whose ink is another color: the token's cells go.
-    const dark = resources("dark");
-    (res as { token: DrawResources["token"] }).token = dark.token;
+    const dark = resources('dark');
+    (res as { token: DrawResources['token'] }).token = dark.token;
     draw(1);
     expect(shared.atlas?.made).toBe(4);
   });
-  it("a full atlas evicts the page drawn least recently, never one the batch drew; its letters stay right", () => {
-    const shared = new Canvas2DShared(resources("light"));
-    const plain = new Canvas2DShared(resources("light"), { atlas: false });
+  it('a full atlas evicts the page drawn least recently, never one the batch drew; its letters stay right', () => {
+    const shared = new Canvas2DShared(resources('light'));
+    const plain = new Canvas2DShared(resources('light'), { atlas: false });
     const [w, h] = [1280, 500];
     const a = target(w, h, shared);
     const b = target(w, h, plain);
@@ -266,11 +266,11 @@ describe("the atlas's bounds and invalidation", () => {
 describe("the surface's `atlas` option (SurfaceOptions.atlas)", () => {
   /** A DNA sequence of 24 letters at 20 px a cell, with a ruler. */
   const doc = () => {
-    const b = createSeqViewSpec({ title: "gene" });
-    const s = b.data.sequence({ ref: "s", alphabet: "dna", value: "GAATTCGCCACCATGGCTTCCAAG" });
-    const v = b.view({ ref: "v", label: "V" }).block({ sequence: s });
-    v.track({ label: "" }).ruler();
-    v.track({ label: "DNA" }).letters();
+    const b = createSeqViewSpec({ title: 'gene' });
+    const s = b.data.sequence({ ref: 's', alphabet: 'dna', value: 'GAATTCGCCACCATGGCTTCCAAG' });
+    const v = b.view({ ref: 'v', label: 'V' }).block({ sequence: s });
+    v.track({ label: '' }).ruler();
+    v.track({ label: 'DNA' }).letters();
     return b.getDocument();
   };
   /** `fillText` calls over the two context classes (the page's canvases and the atlas's and back targets' offscreen ones). */

@@ -11,22 +11,22 @@
 // complement (ambiguity codes included); it is an instance of a general table, nothing in the core knows what a strand
 // is: the entry lists the alphabets it is for, and resolution keeps any other alphabet's letters as stored.
 
-import type { LetterMapEntry } from "../registry.js";
+import type { LetterMapEntry } from '../registry.js';
 
 /** Each two-letter word `xy` maps x to y, in both cases. */
 const words = (s: string): Record<string, string> =>
   Object.fromEntries(
-    s.split(" ").flatMap(([x, y]) => [
+    s.split(' ').flatMap(([x, y]) => [
       [x, y],
       [x.toLowerCase(), y.toLowerCase()],
     ]),
   );
-const IUPAC = "CG GC RY YR KM MK BV VB DH HD";
+const IUPAC = 'CG GC RY YR KM MK BV VB DH HD';
 
 export const KernelLetterMaps: readonly LetterMapEntry[] = [
-  { name: "complement", map: words(`AT TA UA ${IUPAC}`), alphabets: ["dna", "rna"] },
-  { name: "complement_rna", map: words(`AU UA TA ${IUPAC}`), alphabets: ["dna", "rna"] },
-  { name: "lower", map: Object.fromEntries([..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].map((c) => [c, c.toLowerCase()])) },
+  { name: 'complement', map: words(`AT TA UA ${IUPAC}`), alphabets: ['dna', 'rna'] },
+  { name: 'complement_rna', map: words(`AU UA TA ${IUPAC}`), alphabets: ['dna', 'rna'] },
+  { name: 'lower', map: Object.fromEntries([...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((c) => [c, c.toLowerCase()])) },
 ];
 
 /** A character a letter map can name: printable ASCII (a space hides a letter). */

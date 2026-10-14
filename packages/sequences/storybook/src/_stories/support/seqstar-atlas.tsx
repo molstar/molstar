@@ -6,17 +6,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { Dirty } from "@molstar/seq-viewer/draw";
-import { SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
-import { PrismPage } from "../support/seqstar-prism.js";
-import { Choices, TextAction } from "../ui/index.js";
-import { atlasDoc, atlasLoaders, ATLAS_COLUMNS as COLUMNS, ATLAS_ROWS as ROWS } from "./seqstar-docs-streamed.js";
-import f from "./seqstar-format.module.css";
-import { PrismCanvas, prism } from "./seqstar-prism.js";
-import t from "./seqstar-tools.module.css";
-import { type Mounted, useCaseContext, useStoryUi } from "./seqstar-viewer.js";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { Dirty } from '@molstar/seq-viewer/draw';
+import { SeqViewerLayout, SeqViewerProvider } from '@molstar/seq-viewer/react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { PrismPage } from '../support/seqstar-prism.js';
+import { Choices, TextAction } from '../ui/index.js';
+import { atlasDoc, atlasLoaders, ATLAS_COLUMNS as COLUMNS, ATLAS_ROWS as ROWS } from './seqstar-docs-streamed.js';
+import f from './seqstar-format.module.css';
+import { PrismCanvas, prism } from './seqstar-prism.js';
+import t from './seqstar-tools.module.css';
+import { type Mounted, useCaseContext, useStoryUi } from './seqstar-viewer.js';
 
 let DOC: SeqViewSpecDoc | null = null;
 
@@ -33,8 +33,8 @@ function stats(xs: readonly number[]): Stats {
 }
 const ms = (x: number) => x.toFixed(2);
 
-type Kind = "pan" | "redraw";
-const KINDS: Record<Kind, string> = { pan: "Pan", redraw: "Full redraws" };
+type Kind = 'pan' | 'redraw';
+const KINDS: Record<Kind, string> = { pan: 'Pan', redraw: 'Full redraws' };
 const FRAMES = 240;
 const WARMUP = 12;
 /** What a crop is: device pixels of the main canvas at the first rows, read back. */
@@ -56,8 +56,8 @@ function parts(m: Mounted) {
 function resetView(m: Mounted) {
   const p = parts(m);
   if (!p) return false;
-  p.vp.setView(14, 0, "api");
-  p.vp.setRowView(1, 0, "api");
+  p.vp.setView(14, 0, 'api');
+  p.vp.setRowView(1, 0, 'api');
   return true;
 }
 const signature = (d: ImageData) => {
@@ -68,13 +68,13 @@ const signature = (d: ImageData) => {
 /** 140 × 54 CSS px of the main canvas, from the middle, over the first rows (below the ruler), in device px. */
 function takeCrop(m: Mounted): Crop | null {
   const p = parts(m);
-  const canvas = p?.surface.element.querySelector("canvas");
+  const canvas = p?.surface.element.querySelector('canvas');
   if (!p || !canvas || canvas.width === 0) return null;
   const dpr = canvas.width / Math.max(1, p.surface.element.clientWidth);
   const [w, h] = [Math.round(140 * dpr), Math.round(54 * dpr)];
   const x = Math.round(canvas.width / 2 - w / 2);
   const y = Math.round(44 * dpr);
-  const g = canvas.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
+  const g = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
   return { image: g.getImageData(x, y, w, h), dpr };
 }
 
@@ -140,7 +140,7 @@ export function AtlasViewer({
     const samples: number[] = [];
     for (let i = 0; i < WARMUP + FRAMES && !cancelled.current; i++) {
       const before = surface.stats.frames;
-      if (kind === "pan") vp.panBy(i % 40 < 20 ? 37 : -37, 0, "pointer");
+      if (kind === 'pan') vp.panBy(i % 40 < 20 ? 37 : -37, 0, 'pointer');
       else {
         surface.composer.redraw();
         surface.invalidate(Dirty.all);
@@ -151,7 +151,7 @@ export function AtlasViewer({
       if (samples.length % 10 === 0) {
         const x = stats(samples);
         callbacks.current.onLive(
-          `${atlas ? "Atlas on" : "Atlas off"}, ${KINDS[kind].toLowerCase()}: ${x.n} frames, median ${ms(x.median)} ms, p95 ${ms(x.p95)} ms, max ${ms(x.max)} ms`,
+          `${atlas ? 'Atlas on' : 'Atlas off'}, ${KINDS[kind].toLowerCase()}: ${x.n} frames, median ${ms(x.median)} ms, p95 ${ms(x.p95)} ms, max ${ms(x.max)} ms`,
         );
       }
     }
@@ -159,20 +159,20 @@ export function AtlasViewer({
       const x = stats(samples);
       callbacks.current.onResult(kind, x);
       callbacks.current.onLive(
-        `${atlas ? "Atlas on" : "Atlas off"}, ${KINDS[kind].toLowerCase()}, done: ${x.n} frames, median ${ms(x.median)} ms, p95 ${ms(x.p95)} ms, max ${ms(x.max)} ms`,
+        `${atlas ? 'Atlas on' : 'Atlas off'}, ${KINDS[kind].toLowerCase()}, done: ${x.n} frames, median ${ms(x.median)} ms, p95 ${ms(x.p95)} ms, max ${ms(x.max)} ms`,
       );
     }
     resetView(m);
     setRunning(null);
   };
 
-  const style = { "--seq-section-max-height": "520px" } as CSSProperties;
+  const style = { '--seq-section-max-height': '520px' } as CSSProperties;
   return (
     <div className={f.stack} style={style}>
       <div className={f.row}>
         {(Object.keys(KINDS) as Kind[]).map((k) => (
           <TextAction key={k} tone="strong" disabled={!m || !!running} onClick={() => void run(k)}>
-            {running === k ? "Running…" : `Run: ${KINDS[k].toLowerCase()} (${FRAMES} frames)`}
+            {running === k ? 'Running…' : `Run: ${KINDS[k].toLowerCase()} (${FRAMES} frames)`}
           </TextAction>
         ))}
         <TextAction tone="quiet" disabled={!m || !!running} onClick={() => m && resetView(m)}>
@@ -200,11 +200,11 @@ function CropCanvas({ crop }: { crop: Crop }) {
     const c = ref.current;
     if (!c) return;
     const { image } = crop;
-    const tmp = Object.assign(document.createElement("canvas"), { width: image.width, height: image.height });
-    (tmp.getContext("2d") as CanvasRenderingContext2D).putImageData(image, 0, 0);
+    const tmp = Object.assign(document.createElement('canvas'), { width: image.width, height: image.height });
+    (tmp.getContext('2d') as CanvasRenderingContext2D).putImageData(image, 0, 0);
     c.width = image.width * K;
     c.height = image.height * K;
-    const g = c.getContext("2d") as CanvasRenderingContext2D;
+    const g = c.getContext('2d') as CanvasRenderingContext2D;
     g.imageSmoothingEnabled = false;
     g.drawImage(tmp, 0, 0, c.width, c.height);
   }, [crop]);
@@ -241,17 +241,17 @@ function compare(a: Crop, b: Crop) {
 /** The story's page body: the atlas toggle, the viewer, the live line, the results and the crops. */
 export function AtlasPage() {
   const [atlas, setAtlas] = useState(true);
-  const [live, setLive] = useState("No run yet.");
+  const [live, setLive] = useState('No run yet.');
   const [results, setResults] = useState<Record<string, Stats>>({});
   const [crops, setCrops] = useState<{ on?: Crop; off?: Crop }>({});
   const same = crops.on && crops.off ? compare(crops.on, crops.off) : null;
-  const dpr = typeof window === "undefined" ? 1 : window.devicePixelRatio;
+  const dpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio;
   return (
     <PrismPage
       title="The glyph atlas: lettered rows of a large lazy alignment"
       caption={
         <>
-          A lazy alignment of {ROWS.toLocaleString("en-US")} rows × {COLUMNS.toLocaleString("en-US")} columns (tiles and
+          A lazy alignment of {ROWS.toLocaleString('en-US')} rows × {COLUMNS.toLocaleString('en-US')} columns (tiles and
           rows sampled in the page, nothing kept), shown with 18 px rows and 14 px cells: every cell a letter, about
           2,500 a frame. With the atlas (the default) a letter is one <code>drawImage</code> of a cell rasterized once;
           off, every letter is a <code>fillText</code>. Run a pan or full redraws, then toggle and run again. Frame
@@ -266,30 +266,30 @@ export function AtlasPage() {
           <Choices
             label="Glyph atlas"
             choices={[
-              { id: "on", label: "on (the default)" },
-              { id: "off", label: "off (fillText)" },
+              { id: 'on', label: 'on (the default)' },
+              { id: 'off', label: 'off (fillText)' },
             ]}
-            active={atlas ? "on" : "off"}
+            active={atlas ? 'on' : 'off'}
             onPick={(id) => {
-              const on = id === "on";
+              const on = id === 'on';
               setAtlas(on);
-              setLive(`The viewer was remounted with the atlas ${on ? "on" : "off"}.`);
+              setLive(`The viewer was remounted with the atlas ${on ? 'on' : 'off'}.`);
             }}
           />
         </div>
         <span className={f.code}>
-          Window {typeof window === "undefined" ? "" : `${window.innerWidth} × ${window.innerHeight}`} CSS px, DPR {dpr}
+          Window {typeof window === 'undefined' ? '' : `${window.innerWidth} × ${window.innerHeight}`} CSS px, DPR {dpr}
           .
         </span>
       </div>
       <section className={f.card}>
-        <h2 className={f.heading}>Lazy alignment, atlas {atlas ? "on" : "off"}</h2>
+        <h2 className={f.heading}>Lazy alignment, atlas {atlas ? 'on' : 'off'}</h2>
         <AtlasViewer
           key={String(atlas)}
           atlas={atlas}
           onLive={setLive}
-          onResult={(kind, x) => setResults((r) => ({ ...r, [`${atlas ? "on" : "off"}/${kind}`]: x }))}
-          onCrop={(c) => setCrops((p) => ({ ...p, [atlas ? "on" : "off"]: c }))}
+          onResult={(kind, x) => setResults((r) => ({ ...r, [`${atlas ? 'on' : 'off'}/${kind}`]: x }))}
+          onCrop={(c) => setCrops((p) => ({ ...p, [atlas ? 'on' : 'off']: c }))}
         />
         <div className={f.status}>{live}</div>
       </section>
@@ -307,17 +307,17 @@ export function AtlasPage() {
             </tr>
           </thead>
           <tbody>
-            {(["on", "off"] as const).flatMap((a) =>
+            {(['on', 'off'] as const).flatMap((a) =>
               (Object.keys(KINDS) as Kind[]).map((k) => {
                 const x = results[`${a}/${k}`];
                 return (
                   <tr key={`${a}/${k}`}>
                     <td>{a}</td>
                     <td>{KINDS[k].toLowerCase()}</td>
-                    <td>{x ? x.n : "–"}</td>
-                    <td>{x ? ms(x.median) : "–"}</td>
-                    <td>{x ? ms(x.p95) : "–"}</td>
-                    <td>{x ? ms(x.max) : "–"}</td>
+                    <td>{x ? x.n : '–'}</td>
+                    <td>{x ? ms(x.median) : '–'}</td>
+                    <td>{x ? ms(x.p95) : '–'}</td>
+                    <td>{x ? ms(x.max) : '–'}</td>
                   </tr>
                 );
               }),
@@ -333,7 +333,7 @@ export function AtlasPage() {
           mount: toggle the atlas to fill the other one.
         </div>
         <div className={t.crops}>
-          {(["on", "off"] as const).map((a) => {
+          {(['on', 'off'] as const).map((a) => {
             const c = crops[a];
             return (
               <div key={a} className={t.cropCell}>
@@ -341,7 +341,7 @@ export function AtlasPage() {
                 {c ? (
                   <CropCanvas crop={c} />
                 ) : (
-                  <div className={f.none}>{atlas === (a === "on") ? "Settling…" : "Toggle the atlas to capture."}</div>
+                  <div className={f.none}>{atlas === (a === 'on') ? 'Settling…' : 'Toggle the atlas to capture.'}</div>
                 )}
               </div>
             );
@@ -349,8 +349,8 @@ export function AtlasPage() {
         </div>
         <div className={f.status}>
           {same
-            ? `Pixels that differ: ${same.differ.toLocaleString("en-US")} of ${same.pixels.toLocaleString("en-US")}; over 1 level: ${same.over}; the largest difference ${same.max} (of 255), premultiplied as the canvas stores it. The atlas's tests pin at most 1 (_test/canvas/atlas.test.ts): a cell's 8-bit premultiplied ink blends again over the cell's translucent fill.`
-            : "Both crops are needed to compare."}
+            ? `Pixels that differ: ${same.differ.toLocaleString('en-US')} of ${same.pixels.toLocaleString('en-US')}; over 1 level: ${same.over}; the largest difference ${same.max} (of 255), premultiplied as the canvas stores it. The atlas's tests pin at most 1 (_test/canvas/atlas.test.ts): a cell's 8-bit premultiplied ink blends again over the cell's translucent fill.`
+            : 'Both crops are needed to compare.'}
         </div>
       </section>
     </PrismPage>

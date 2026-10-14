@@ -16,21 +16,21 @@
 // before the paint of the frame whose layout changed the host. Per event and per frame nothing is allocated: pre-bound
 // callbacks, numbers in typed arrays (the draw pattern).
 
-import { ChannelMarks } from "../channels.js";
-import { sectionLabel } from "../chrome.js";
-import type { SeqViewerContext } from "../context.js";
-import { type DrawResources, Pass } from "../draw/backend.js";
-import { Dirty, SectionComposer } from "../draw/composer.js";
-import { drawResources } from "../draw/resources.js";
-import { VerticalNav } from "../draw/vnav.js";
-import type { SectionLayout } from "../layout.js";
-import { ringWindowTarget } from "../ring-window.js";
-import type { Live, Unsubscribable } from "../state.js";
-import type { SectionViewport } from "../viewport.js";
-import { railGrown, WindowPart } from "../windows.js";
-import { Canvas2DBackend, Canvas2DShared, type Paint2D } from "./backend.js";
-import { DomInput } from "./dom-input.js";
-import { joinShared } from "./shared.js";
+import { ChannelMarks } from '../channels.js';
+import { sectionLabel } from '../chrome.js';
+import type { SeqViewerContext } from '../context.js';
+import { type DrawResources, Pass } from '../draw/backend.js';
+import { Dirty, SectionComposer } from '../draw/composer.js';
+import { drawResources } from '../draw/resources.js';
+import { VerticalNav } from '../draw/vnav.js';
+import type { SectionLayout } from '../layout.js';
+import { ringWindowTarget } from '../ring-window.js';
+import type { Live, Unsubscribable } from '../state.js';
+import type { SectionViewport } from '../viewport.js';
+import { railGrown, WindowPart } from '../windows.js';
+import { Canvas2DBackend, Canvas2DShared, type Paint2D } from './backend.js';
+import { DomInput } from './dom-input.js';
+import { joinShared } from './shared.js';
 
 export interface SurfaceOptions {
   /** Device pixels per CSS px, fixed; default the window's, followed as it changes (`watchDpr`). */
@@ -69,7 +69,7 @@ export function mountSection(
 }
 
 /** What `watchDpr` reads: a window. */
-export type DprHost = Pick<Window, "matchMedia" | "devicePixelRatio">;
+export type DprHost = Pick<Window, 'matchMedia' | 'devicePixelRatio'>;
 /**
  * Calls `changed` with the new device pixel ratio whenever it changes, with or without a size change (a window moved to
  * another display, a browser zoom): a `resolution` query of the current ratio, re-armed at each change.
@@ -77,9 +77,9 @@ export type DprHost = Pick<Window, "matchMedia" | "devicePixelRatio">;
 export function watchDpr(win: DprHost, changed: (dpr: number) => void): () => void {
   let query: MediaQueryList | null = null;
   const arm = () => {
-    query?.removeEventListener("change", fire);
+    query?.removeEventListener('change', fire);
     query = win.matchMedia(`(resolution: ${win.devicePixelRatio}dppx)`);
-    query.addEventListener("change", fire);
+    query.addEventListener('change', fire);
   };
   const fire = () => {
     arm();
@@ -87,7 +87,7 @@ export function watchDpr(win: DprHost, changed: (dpr: number) => void): () => vo
   };
   arm();
   return () => {
-    query?.removeEventListener("change", fire);
+    query?.removeEventListener('change', fire);
     query = null;
   };
 }
@@ -165,27 +165,27 @@ export class SectionSurface implements Surface {
   private readonly cleanup: (() => void)[] = [];
 
   constructor(ctx: SeqViewerContext, section: string, host: HTMLElement, opts: SurfaceOptions = {}) {
-    if (ctx.disposed) throw new Error("SectionSurface: the context is disposed");
+    if (ctx.disposed) throw new Error('SectionSurface: the context is disposed');
     this.ctx = ctx;
     this.section = section;
     this.opts = opts;
-    const el = document.createElement("div");
+    const el = document.createElement('div');
     // One tab stop, a named group with the role description, wherever it is mounted (seqspec:interaction#accessibility).
     el.tabIndex = 0;
-    el.setAttribute("role", "group");
-    el.setAttribute("aria-roledescription", "sequence view");
+    el.setAttribute('role', 'group');
+    el.setAttribute('aria-roledescription', 'sequence view');
     el.style.cssText =
-      "position:relative;width:100%;height:100%;overflow:hidden;outline:none;touch-action:none;user-select:none";
+      'position:relative;width:100%;height:100%;overflow:hidden;outline:none;touch-action:none;user-select:none';
     host.appendChild(el);
     this.element = el;
     for (let p = 0; p < PASSES; p++) {
-      const c = document.createElement("canvas");
+      const c = document.createElement('canvas');
       // 0 × 0 until sized (a canvas is 300 × 150 by default): the vertical overview's stay empty while the rows fit.
       c.width = c.height = 0;
-      c.style.cssText = "position:absolute;left:0;top:0;width:0;height:0;pointer-events:none";
+      c.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;pointer-events:none';
       el.appendChild(c);
       this.canvases.push(c);
-      this.paints.push(c.getContext("2d", { willReadFrequently: !!opts.readback }) as CanvasRenderingContext2D);
+      this.paints.push(c.getContext('2d', { willReadFrequently: !!opts.readback }) as CanvasRenderingContext2D);
     }
     this.backend = new Canvas2DBackend(this.paints, joinImages(ctx, opts.atlas), 1 << Pass.main);
     this.channels = new ChannelMarks(ctx);
@@ -197,7 +197,7 @@ export class SectionSurface implements Surface {
     s.push(
       ctx.document.shown.subscribe(() => {
         const label = sectionLabel(ctx, section);
-        if (el.getAttribute("aria-label") !== label) el.setAttribute("aria-label", label);
+        if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
       }),
     );
     s.push(ctx.viewports.sections.subscribe(this.bind));

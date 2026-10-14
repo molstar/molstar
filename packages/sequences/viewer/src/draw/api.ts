@@ -17,16 +17,16 @@
 // Every name is listed (VL-16): what the built-in renderers, the interactions renderer, the conformance kit and a
 // backend use, and every type their signatures name (a navigator's `NavView`, a sink, a pyramid: LC-02). Navigator,
 // ring-label, matrix and dot-plot internals are not part of it (tests reach them by path).
-import type { MarkSet } from "../marks.js";
+import type { MarkSet } from '../marks.js';
 
-export { type Axis, AxisGeometry, type AxisView, cellGap, cellSpan, type ShownIndex } from "../axis.js";
-export type { Skin } from "../graph.js";
-export { copyAt, Hit, HoverKind, sourceAt } from "../hit.js";
-export type { HoverState } from "../hover.js";
-export type { LabelContext, LabelSink } from "../labels.js";
-export { letterCap, type RenderProps } from "../layout.js";
-export { MarkBit, type MarkSet, type OverlayMarks } from "../marks.js";
-export { CellIO, cellLayout, endsIn, litPairs, pairsAt, pairsInView } from "../pairs-index.js";
+export { type Axis, AxisGeometry, type AxisView, cellGap, cellSpan, type ShownIndex } from '../axis.js';
+export type { Skin } from '../graph.js';
+export { copyAt, Hit, HoverKind, sourceAt } from '../hit.js';
+export type { HoverState } from '../hover.js';
+export type { LabelContext, LabelSink } from '../labels.js';
+export { letterCap, type RenderProps } from '../layout.js';
+export { MarkBit, type MarkSet, type OverlayMarks } from '../marks.js';
+export { CellIO, cellLayout, endsIn, litPairs, pairsAt, pairsInView } from '../pairs-index.js';
 export {
   type EmphasisState,
   type Features,
@@ -47,9 +47,9 @@ export {
   SecondaryKind,
   type SplitRows,
   type StreamFields,
-} from "../prepare.js";
-export { binValues, PYRAMID_BASE, segWindow, type ValuePyramid } from "../pyramids.js";
-export type { CellColoring } from "../reductions.js";
+} from '../prepare.js';
+export { binValues, PYRAMID_BASE, segWindow, type ValuePyramid } from '../pyramids.js';
+export type { CellColoring } from '../reductions.js';
 export type {
   ColumnRenderer,
   LayerInput,
@@ -57,7 +57,7 @@ export type {
   NamedEntry,
   PrepareContext,
   SeqViewerRegistryEntry,
-} from "../registry.js";
+} from '../registry.js';
 export {
   Arcs,
   hitItem,
@@ -69,8 +69,8 @@ export {
   legendOf,
   letterLines,
   wedgeLabel,
-} from "../renderer-helpers.js";
-export { MatrixBands, type MatrixState, prepareMatrix, RowsHeader, type RowsState } from "../rows.js";
+} from '../renderer-helpers.js';
+export { MatrixBands, type MatrixState, prepareMatrix, RowsHeader, type RowsState } from '../rows.js';
 export {
   GROUP_LABEL_PAD,
   groupLabelPx,
@@ -80,7 +80,7 @@ export {
   lineLanes,
   type PreparedRun,
   runXInto,
-} from "../runs.js";
+} from '../runs.js';
 export {
   blockLevels,
   LETTERS_PER_PX,
@@ -92,8 +92,8 @@ export {
   type StreamView,
   streamedBlock,
   streamStats,
-} from "../streams.js";
-export { type FontId, fitCount, fitIn, fitted, type PreparedLabel, type TextManagerApi } from "../text.js";
+} from '../streams.js';
+export { type FontId, fitCount, fitIn, fitted, type PreparedLabel, type TextManagerApi } from '../text.js';
 export {
   CellInk,
   cellInk,
@@ -114,10 +114,10 @@ export {
   type ThemeContext,
   ThemeLocation,
   type ThemeProvider,
-} from "../themes.js";
-export { rowAt, rowLabel, type TreeGeo, type TreeRows } from "../tree.js";
-export { Lod } from "../viewport.js";
-export { inkOf, pushArc } from "./arcs.js";
+} from '../themes.js';
+export { rowAt, rowLabel, type TreeGeo, type TreeRows } from '../tree.js';
+export { Lod } from '../viewport.js';
+export { inkOf, pushArc } from './arcs.js';
 export {
   BackendCaps,
   type BackendImages,
@@ -140,7 +140,7 @@ export {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "./backend.js";
+} from './backend.js';
 export {
   type CellSource,
   cellBand,
@@ -150,8 +150,8 @@ export {
   drawCells,
   shownHull,
   visibleRange,
-} from "./cells.js";
-export type { ComposerFrame } from "./composer-frame.js";
+} from './cells.js';
+export type { ComposerFrame } from './composer-frame.js';
 export {
   DensityKind,
   densityAdd,
@@ -167,7 +167,7 @@ export {
   itemsInView,
   keyAlpha,
   packAlpha,
-} from "./density.js";
+} from './density.js';
 export {
   type DotPlotGrid,
   type DotPlotLevel,
@@ -181,7 +181,7 @@ export {
   overlayDotPlot,
   prepareDotPlot,
   type TileLevel,
-} from "./dot-plot.js";
+} from './dot-plot.js';
 export {
   densityBand,
   drawLineLanes,
@@ -191,7 +191,7 @@ export {
   hoveredAt,
   laneRows,
   outlineLineLanes,
-} from "./features.js";
+} from './features.js';
 export {
   HOVER_WIDTH,
   HoverOutline,
@@ -203,8 +203,8 @@ export {
   type ItemOrder,
   outlineItem,
   ringItem,
-} from "./hover.js";
-export { elementSymbol, letterFontPx, letterRoom, textShown } from "./letter-text.js";
+} from './hover.js';
+export { elementSymbol, letterFontPx, letterRoom, textShown } from './letter-text.js';
 export {
   drawMatrixTiles,
   type MatrixTileSet,
@@ -213,13 +213,13 @@ export {
   matrixFrame,
   matrixHitBand,
   outlineMatrixCell,
-} from "./matrix-tiles.js";
-export type { Miniature } from "./miniature.js";
-export { KeyedImage, type NavView, WINDOW_WASH, windowBox, windowOverMap } from "./nav.js";
-export { inlineGroupLabels, numberText } from "./numbers.js";
-export { band, boundaryEdge, mark, placeRun } from "./place.js";
-export { drawPoints, hitPoints, outlinePoints } from "./points.js";
-export type { RingLabelSink } from "./ring-labels.js";
+} from './matrix-tiles.js';
+export type { Miniature } from './miniature.js';
+export { KeyedImage, type NavView, WINDOW_WASH, windowBox, windowOverMap } from './nav.js';
+export { inlineGroupLabels, numberText } from './numbers.js';
+export { band, boundaryEdge, mark, placeRun } from './place.js';
+export { drawPoints, hitPoints, outlinePoints } from './points.js';
+export type { RingLabelSink } from './ring-labels.js';
 export {
   bar,
   barBand,
@@ -230,7 +230,7 @@ export {
   type SizeView,
   sizePx,
   sizeTheme,
-} from "./sizes.js";
+} from './sizes.js';
 export {
   bandOver,
   drawStreamedItems,
@@ -240,9 +240,9 @@ export {
   owned,
   type RegionDraw,
   streamColumn,
-} from "./streamed.js";
-export { drawTree, drawTreeHover } from "./tree-paths.js";
-export { DrawView, type RingView, type TracksHost } from "./view.js";
+} from './streamed.js';
+export { drawTree, drawTreeHover } from './tree-paths.js';
+export { DrawView, type RingView, type TracksHost } from './view.js';
 
 /** A channel's lit runs as a renderer reads them (`DrawView.marks.runs(bit)`): per block, sorted disjoint runs. */
-export type MarkRuns = Pick<MarkSet, "start" | "stop" | "count" | "from" | "to" | "has" | "any" | "first">;
+export type MarkRuns = Pick<MarkSet, 'start' | 'stop' | 'count' | 'from' | 'to' | 'has' | 'any' | 'first'>;

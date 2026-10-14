@@ -9,7 +9,11 @@
 //     the layout manager, MarkSet internals, the region cache or the graph (F1). A sibling `./x.ts` is ok.
 language js
 
-or { JsImport(), JsExport(), JsImportCallExpression() } as $imp where {
+or {
+  JsImport(),
+  JsExport(),
+  JsImportCallExpression()
+} as $imp where {
   or {
     and {
       $filename <: r".*/seqstar/core/src/model/.*",

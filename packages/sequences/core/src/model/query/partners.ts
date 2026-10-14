@@ -11,15 +11,15 @@
 // on a molecule with no unit or on an alignment are found by a scan of the pair rows. For every pair passing `:where`
 // (its item) with an end in Q, the other end is returned, when `:side` allows it.
 
-import { type Annotation, Pairs } from "../annotation.js";
-import type { SeqIndex, UnitId } from "../common.js";
-import { CoordinateSystemKind as K } from "../coordinates.js";
-import type { CompileContext, QueryFn } from "./compile.js";
-import type { QueryContext } from "./context.js";
-import { eachRun, firstAfter, type SelectionBuilder } from "./kernels.js";
-import { addTarget, annotationOf, rt, unionOf, Wants, wrongKind } from "./runtime.js";
-import type { SeqSelection } from "./selection.js";
-import { unitsOf } from "./systems.js";
+import { type Annotation, Pairs } from '../annotation.js';
+import type { SeqIndex, UnitId } from '../common.js';
+import { CoordinateSystemKind as K } from '../coordinates.js';
+import type { CompileContext, QueryFn } from './compile.js';
+import type { QueryContext } from './context.js';
+import { eachRun, firstAfter, type SelectionBuilder } from './kernels.js';
+import { addTarget, annotationOf, rt, unionOf, Wants, wrongKind } from './runtime.js';
+import type { SeqSelection } from './selection.js';
+import { unitsOf } from './systems.js';
 
 const WHOLE = 0x7fffffff;
 /** The run in progress: per (row, side) the epoch it was touched in; per row the epoch its test ran in, and its result. */
@@ -71,7 +71,7 @@ function touch(r: number, side: number, p: typeof P): void {
 /** An end not in the pair index (a molecule with no unit, a row, the columns) against Q's union, by its target. */
 function scanEnd(u: SeqSelection, a: Annotation, r: number, side: number): void {
   const set = (P.ctx as QueryContext).set;
-  const tg = side ? (a.pairs as NonNullable<Annotation["pairs"]>).bTarget : a.slots;
+  const tg = side ? (a.pairs as NonNullable<Annotation['pairs']>).bTarget : a.slots;
   const i = side ? r : a.slot[r];
   const mol = tg.molecule[i];
   const units = unitsOf(set);
@@ -79,9 +79,9 @@ function scanEnd(u: SeqSelection, a: Annotation, r: number, side: number): void 
   const kind = mol >= 0 ? K.molecule : tg.row[i] >= 0 ? K.row : K.columns;
   const id = mol >= 0 ? mol : tg.alignment[i];
   const row = kind === K.row ? tg.row[i] : -1;
-  const s0 = side ? (a.pairs as NonNullable<Annotation["pairs"]>).bStart[r] : a.start[r];
+  const s0 = side ? (a.pairs as NonNullable<Annotation['pairs']>).bStart[r] : a.start[r];
   const s = s0 < 0 ? 0 : s0;
-  const e = s0 < 0 ? WHOLE : Math.max(side ? (a.pairs as NonNullable<Annotation["pairs"]>).bStop[r] : a.stop[r], s + 1);
+  const e = s0 < 0 ? WHOLE : Math.max(side ? (a.pairs as NonNullable<Annotation['pairs']>).bStop[r] : a.stop[r], s + 1);
   const j = firstAfter(u, kind, id, row, s);
   if (j < u.runCount && u.kind[j] === kind && u.id[j] === id && u.row[j] === row && u.start[j] < e) touch(r, side, P);
 }
@@ -90,12 +90,12 @@ const SIDES: Record<string, number> = { any: 3, a: 1, b: 2 };
 
 /** `(partners Q :via A :side S :where T)`: the ends whose other end is in Q, one group per run, untagged. */
 function partners(c: CompileContext): QueryFn<SeqSelection> {
-  const [q, where] = [c.query("0") as QueryFn<SeqSelection>, c.value("where")];
-  const [via, side] = [c.raw<string>("via") as string, SIDES[c.raw<string>("side") ?? "any"]];
+  const [q, where] = [c.query('0') as QueryFn<SeqSelection>, c.value('where')];
+  const [via, side] = [c.raw<string>('via') as string, SIDES[c.raw<string>('side') ?? 'any']];
   const path = `${c.path}/args/via`;
   return (ctx) => {
     const a = ctx.set.annotations[annotationOf(ctx, via, path, Wants.annotation)] as Annotation;
-    if (a.geometry !== "pairs") wrongKind(ctx, via, path, "", `${a.geometry} annotation`);
+    if (a.geometry !== 'pairs') wrongKind(ctx, via, path, '', `${a.geometry} annotation`);
     const u = unionOf(ctx, q(ctx));
     const b = ctx.builder();
     if (P.touched.length < 2 * a.count) {
@@ -125,7 +125,7 @@ function partners(c: CompileContext): QueryFn<SeqSelection> {
     const reached = P.reached;
     Object.assign(P, saved);
     const out = ctx.finish(b);
-    if (out.runCount > ctx.limits.groups) ctx.over("groups", out.runCount);
+    if (out.runCount > ctx.limits.groups) ctx.over('groups', out.runCount);
     if (out.runCount === 0 && u.runCount > 0) {
       const ends = `${reached} pair end${reached === 1 ? ` of ${via} touches` : `s of ${via} touch`} it`;
       ctx.because(c.path, reached ? `${ends}; none passed :where or :side` : `no pair of ${via} touches it`);
@@ -134,4 +134,4 @@ function partners(c: CompileContext): QueryFn<SeqSelection> {
   };
 }
 
-export const PARTNERS_RUNTIMES = [rt("seq.modifier.partners", partners)];
+export const PARTNERS_RUNTIMES = [rt('seq.modifier.partners', partners)];

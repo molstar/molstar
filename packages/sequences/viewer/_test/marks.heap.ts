@@ -13,16 +13,16 @@
 // registered translator; out-of-order runs sorted at close; row rectangles; a ligand's atoms. The positive control: the
 // sort's step allocating an object too (`leaking`), measured alike, is caught.
 
-import { CoordinateSystemKind as K, type Loci, OrderedSet, type SeqIndex, type UnitId } from "@molstar/seq-core/model";
-import { type SystemDescriptor, TranslateMaps, Translator } from "@molstar/seq-core/translate";
-import { beforeAll, describe, expect, it } from "vitest";
-import { case7, case12, case14 } from "../../core/_test/format/cases.js";
-import { open as core, gene, rows } from "../../core/_test/format/project-fixtures.js";
-import { Axis } from "../src/axis.js";
-import { MarkBit } from "../src/index.js";
-import { MarkSet, RowMarks, SectionMarks } from "../src/marks.js";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
-import { entries, over, shown } from "./projection-fixtures.js";
+import { CoordinateSystemKind as K, type Loci, OrderedSet, type SeqIndex, type UnitId } from '@molstar/seq-core/model';
+import { type SystemDescriptor, TranslateMaps, Translator } from '@molstar/seq-core/translate';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { case7, case12, case14 } from '../../core/_test/format/cases.js';
+import { open as core, gene, rows } from '../../core/_test/format/project-fixtures.js';
+import { Axis } from '../src/axis.js';
+import { MarkBit } from '../src/index.js';
+import { MarkSet, RowMarks, SectionMarks } from '../src/marks.js';
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from './heap.js';
+import { entries, over, shown } from './projection-fixtures.js';
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 50_000;
@@ -38,7 +38,7 @@ beforeAll(async () => {
   const [a, b] = await Promise.all([core(gene({ chromosome: true })), core(rows())]);
   g = { ...over(a.view, a.set), system: a.system };
   r = { ...over(b.view, b.set), system: b.system };
-  [c14, c7, c12] = await Promise.all([shown(case14()), shown(case7(), "complex-each"), shown(case12())]);
+  [c14, c7, c12] = await Promise.all([shown(case14()), shown(case7(), 'complex-each'), shown(case12())]);
 }, 60_000);
 
 /** 200 runs out of order into `m`, sorted and merged at close, then read by `has`. */
@@ -50,9 +50,9 @@ const sorting = (m: MarkSet) => (i: number) => {
   for (let x = 0; x < 600; x += 7) sink += m.has(1, x) ? 1 : 0;
 };
 
-describe("marks and the projector allocate nothing per move", () => {
+describe('marks and the projector allocate nothing per move', () => {
   it("a hover: closed, projected into each section's hover set, its primary, the overlay's queries", () => {
-    const [protein, unit, chr] = [g.system("protein"), g.system("gene/unit"), g.system("chr/unit")];
+    const [protein, unit, chr] = [g.system('protein'), g.system('gene/unit'), g.system('chr/unit')];
     const sections = Array.from({ length: g.view.sections.count }, (_, s) => ({
       marks: new SectionMarks(),
       axis: new Axis(g.view, g.set, s, 28, 3),
@@ -83,16 +83,16 @@ describe("marks and the projector allocate nothing per move", () => {
 
   it("loci: a residue's seq loci and the domain's items, converted and projected", () => {
     const t = c14;
-    const [gu, pu] = [t.unit("gene/unit"), t.unit("protein/unit")];
+    const [gu, pu] = [t.unit('gene/unit'), t.unit('protein/unit')];
     const loci = Array.from({ length: 120 }, (_, i): Loci => {
       const unit = (i % 2 ? pu : gu) as UnitId;
       return {
-        kind: "seq-loci",
+        kind: 'seq-loci',
         set: t.set,
         elements: [{ unit, indices: OrderedSet.ofSingleton((i % 2 ? i % 20 : i) as SeqIndex) }],
       };
     });
-    const domain = t.ctx.refs.toLoci("domain") as Loci;
+    const domain = t.ctx.refs.toLoci('domain') as Loci;
     const marks = new MarkSet();
     const result = heapScaling(N, (i) => {
       t.ext.count = 0;
@@ -109,20 +109,20 @@ describe("marks and the projector allocate nothing per move", () => {
     const t = c7;
     const tr = new Translator();
     const d: SystemDescriptor = {
-      key: "3d/A",
-      kind: "external",
+      key: '3d/A',
+      kind: 'external',
       start: 0,
       stop: 200,
       refs: {},
       members: null,
       structure: null,
       numberings: [],
-      owner: "molstar",
+      owner: 'molstar',
     };
-    const a = { kind: K.unit, id: t.unit("1brs/A"), row: -1 };
+    const a = { kind: K.unit, id: t.unit('1brs/A'), row: -1 };
     tr.register(d, (s) => [TranslateMaps.bySegments(s, a, Int32Array.of(5, 0, 105))]);
     t.p.systems = tr;
-    const c = { systems: ["3d/A"], runs: new Int32Array(3) };
+    const c = { systems: ['3d/A'], runs: new Int32Array(3) };
     const marks = new MarkSet();
     const result = heapScaling(N, (i) => {
       c.runs[1] = 5 + (i % 100);
@@ -136,16 +136,16 @@ describe("marks and the projector allocate nothing per move", () => {
     expect(isFlat(result), describeScaling(result, N)).toBe(true);
   });
 
-  it("a MarkSet: 200 runs out of order sorted and merged at close, then read by has", () => {
+  it('a MarkSet: 200 runs out of order sorted and merged at close, then read by has', () => {
     const result = heapScaling(N / 10, sorting(new MarkSet()));
     expect(isFlat(result), describeScaling(result, N / 10)).toBe(true);
   });
 
   it("row rectangles from a row's residues, and a ligand's atoms at its one position", () => {
-    const row = r.system("a/0");
+    const row = r.system('a/0');
     const rects = new RowMarks();
     const one = entries([row.kind, row.id, 0, 0, 1]);
-    const heme = c12.unit("dimer.heme");
+    const heme = c12.unit('dimer.heme');
     const marks = new MarkSet();
     const result = heapScaling(N, (i) => {
       one.start[0] = i % 4;
@@ -165,7 +165,7 @@ describe("marks and the projector allocate nothing per move", () => {
   });
 
   // The control last: cases in one file share V8's feedback.
-  it("the same sort allocating an object a step is caught (positive control)", () => {
+  it('the same sort allocating an object a step is caught (positive control)', () => {
     expect(controlCaught(() => heapScaling(N / 10, leaking(sorting(new MarkSet()))))).toBe(true);
   });
 });

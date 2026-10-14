@@ -10,10 +10,10 @@
 // browser), the manual clock, and a canvas stub in place of `mountSection` (a focusable element sized like a surface,
 // the section's viewport sized as the engine would). Imports no React.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { ShownIndex } from "../../src/axis.js";
-import { sectionLabel } from "../../src/chrome.js";
-import type { SurfaceFactory } from "../../src/dom/index.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { ShownIndex } from '../../src/axis.js';
+import { sectionLabel } from '../../src/chrome.js';
+import type { SurfaceFactory } from '../../src/dom/index.js';
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -25,70 +25,70 @@ import {
   SeqViewerConfig,
   type SeqViewerContext,
   type SeqViewerSpec,
-} from "../../src/index.js";
-import { fixtureMeasurer } from "../../src/testing/index.js";
+} from '../../src/index.js';
+import { fixtureMeasurer } from '../../src/testing/index.js';
 
-const PROTEIN = "MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH";
+const PROTEIN = 'MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH';
 export const WIDTH = 900;
 export const HEIGHT = 220;
 
 /** Two views (chains; an alignment with rows), a description with command links, two snapshots with their own. */
 export function uiDoc() {
   const b = createSeqViewSpec({
-    title: "UI fixture",
-    description: "The kinase and its domains, as given.\n\nA second paragraph.",
+    title: 'UI fixture',
+    description: 'The kinase and its domains, as given.\n\nA second paragraph.',
   });
-  const a = b.data.sequence({ ref: "a", label: "Kinase", value: PROTEIN });
+  const a = b.data.sequence({ ref: 'a', label: 'Kinase', value: PROTEIN });
   const dom = b.data.annotation({
-    ref: "dom",
-    geometry: "ranges",
+    ref: 'dom',
+    geometry: 'ranges',
     target: a,
     value: [
-      { start: 4, stop: 30, label: "N-lobe" },
-      { start: 40, stop: 80, label: "C-lobe" },
+      { start: 4, stop: 30, label: 'N-lobe' },
+      { start: 40, stop: 80, label: 'C-lobe' },
     ],
   });
   const aln = b.data.alignment({
-    ref: "aln",
+    ref: 'aln',
     value: Array.from({ length: 6 }, (_, k) => PROTEIN.slice(k, k + 60)),
-    labels: ["One", "Two", "Three", "Four", "Five", "Six"],
+    labels: ['One', 'Two', 'Three', 'Four', 'Five', 'Six'],
   });
-  const chains = b.view({ ref: "chains", label: "Chains" }).block({ sequence: a });
-  chains.track({ ref: "t.ruler", label: "" }).ruler();
-  chains.track({ ref: "t.res", label: "Residues" }).letters();
-  chains.track({ ref: "t.dom", label: "Domains" }).ranges({ data: dom });
-  const msa = b.view({ ref: "msa", label: "Alignment", style: "msa" }).block({ alignment: aln });
-  msa.track({ label: "" }).ruler();
-  msa.track({ ref: "t.rows", label: "Rows" }).rows();
+  const chains = b.view({ ref: 'chains', label: 'Chains' }).block({ sequence: a });
+  chains.track({ ref: 't.ruler', label: '' }).ruler();
+  chains.track({ ref: 't.res', label: 'Residues' }).letters();
+  chains.track({ ref: 't.dom', label: 'Domains' }).ranges({ data: dom });
+  const msa = b.view({ ref: 'msa', label: 'Alignment', style: 'msa' }).block({ alignment: aln });
+  msa.track({ label: '' }).ruler();
+  msa.track({ ref: 't.rows', label: 'Rows' }).rows();
   b.snapshot({
-    ref: "s1",
-    title: "Domains hidden",
-    description: "Only the first domain is hidden.",
-    ops: [{ op: "set", ref: "t.dom", params: { hidden: true } }],
+    ref: 's1',
+    title: 'Domains hidden',
+    description: 'Only the first domain is hidden.',
+    ops: [{ op: 'set', ref: 't.dom', params: { hidden: true } }],
   });
-  b.snapshot({ ref: "s2", title: "Unchanged", ops: [] });
+  b.snapshot({ ref: 's2', title: 'Unchanged', ops: [] });
   // The default Description shows plain text only (seqspec:interaction#the-default-ui): both descriptions say so.
   const doc = b.getDocument();
   return {
     ...doc,
-    metadata: { ...doc.metadata, description_format: "plaintext" as const },
-    snapshots: doc.snapshots?.map((s) => (s.description ? { ...s, description_format: "plaintext" as const } : s)),
+    metadata: { ...doc.metadata, description_format: 'plaintext' as const },
+    snapshots: doc.snapshots?.map((s) => (s.description ? { ...s, description_format: 'plaintext' as const } : s)),
   };
 }
 
 /** The canvas engine's stand-in: an element as focusable as a surface, the viewport sized. */
 export const stubSurface: SurfaceFactory = (ctx, section, host) => {
-  const el = document.createElement("div");
+  const el = document.createElement('div');
   // As a surface is (`SectionSurface`): one tab stop, a group with the role description.
   el.tabIndex = 0;
-  el.setAttribute("role", "group");
-  el.setAttribute("aria-roledescription", "sequence view");
-  el.style.cssText = "position:relative;width:100%;height:100%;outline:none";
+  el.setAttribute('role', 'group');
+  el.setAttribute('aria-roledescription', 'sequence view');
+  el.style.cssText = 'position:relative;width:100%;height:100%;outline:none';
   host.appendChild(el);
   ctx.viewports.get(section)?.setSize(WIDTH, HEIGHT, 1);
   const named = ctx.document.shown.subscribe(() => {
     const label = sectionLabel(ctx, section);
-    if (el.getAttribute("aria-label") !== label) el.setAttribute("aria-label", label);
+    if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
   });
   return {
     element: el,
@@ -109,7 +109,7 @@ export const headlessSpec = (): SeqViewerSpec => {
   const config = spec.config ?? [];
   return {
     ...spec,
-    config: [...config, [SeqViewerConfig.UI.Legend, "expanded"], [SeqViewerConfig.UI.Chrome, "full"]],
+    config: [...config, [SeqViewerConfig.UI.Legend, 'expanded'], [SeqViewerConfig.UI.Chrome, 'full']],
   };
 };
 
@@ -135,7 +135,7 @@ export function pointer(ctx: SeqViewerContext) {
       section: ctx.layout.sectionIndex(section),
       x,
       y,
-      button: type === "move" ? -1 : 0,
+      button: type === 'move' ? -1 : 0,
       buttons: 0,
       modifiers: 0,
       pointerId: 0,
@@ -152,7 +152,7 @@ export function keys(ctx: SeqViewerContext) {
     Object.assign(k, {
       section: ctx.layout.sectionIndex(section),
       key,
-      code: "",
+      code: '',
       modifiers: shift ? Modifier.shift : 0,
     });
     return ctx.input.key(k);
@@ -164,7 +164,7 @@ export function at(ctx: SeqViewerContext, section: string, track: string) {
   const view = ctx.graph.assembled.value?.view;
   const l = ctx.layout.get(section)?.current;
   const vp = ctx.viewports.get(section)?.live.current;
-  if (!view || !l || !vp) throw new Error("not laid out");
+  if (!view || !l || !vp) throw new Error('not laid out');
   for (let e = 0; e < l.entryCount; e++) {
     if (l.entryKind[e] !== EntryKind.track) continue;
     if (view.set.strings.get(view.resolved.tracks.ref[l.entryTrack[e]]) !== track) continue;
@@ -178,7 +178,7 @@ export function lines(ctx: SeqViewerContext, section: string, track: string) {
   const view = ctx.graph.assembled.value?.view;
   const l = ctx.layout.get(section)?.current;
   const vp = ctx.viewports.get(section)?.live.current;
-  if (!view || !l || !vp) throw new Error("not laid out");
+  if (!view || !l || !vp) throw new Error('not laid out');
   const out: { top: number; height: number; y: number; header: number }[] = [];
   for (let e = 0; e < l.entryCount; e++) {
     if (l.entryKind[e] !== EntryKind.track) continue;
@@ -193,7 +193,7 @@ export function lines(ctx: SeqViewerContext, section: string, track: string) {
 /** Surface px of a model index's cell center. */
 export function xOf(ctx: SeqViewerContext, section: string, index: number) {
   const v = ctx.layout.axis(section);
-  if (!v) throw new Error("no axis");
+  if (!v) throw new Error('no axis');
   const k = v.shownOf(0, index);
   return (v.x(0, k) + v.x(0, (k + 1) as ShownIndex)) / 2;
 }
@@ -206,11 +206,11 @@ export function subscriptions(ctx: SeqViewerContext): number {
   const seen = new Set<object>();
   let n = 0;
   const walk = (o: unknown, depth: number) => {
-    if (o === null || typeof o !== "object" || seen.has(o) || depth > 6 || ArrayBuffer.isView(o)) return;
+    if (o === null || typeof o !== 'object' || seen.has(o) || depth > 6 || ArrayBuffer.isView(o)) return;
     seen.add(o);
-    if ("subscriberCount" in o) {
+    if ('subscriberCount' in o) {
       const c = (o as { subscriberCount: unknown }).subscriberCount;
-      n += typeof c === "function" ? (c as () => number).call(o) : (c as number);
+      n += typeof c === 'function' ? (c as () => number).call(o) : (c as number);
       return;
     }
     if (o instanceof Map || o instanceof Set) for (const v of o.values()) walk(v, depth + 1);

@@ -26,13 +26,13 @@ interface HastNode {
 }
 
 export function rehypeSeqLinks(opts: { prefix?: string } = {}) {
-  const prefix = opts.prefix ?? "seq-link-";
+  const prefix = opts.prefix ?? 'seq-link-';
   return (tree: HastNode) => {
     const seen = new Map<string, number>();
     const visit = (node: HastNode) => {
       const href = node.properties?.href;
-      if (node.type === "element" && node.tagName === "a" && typeof href === "string" && href.startsWith("!")) {
-        const safe = href.replaceAll(":", "%3A");
+      if (node.type === 'element' && node.tagName === 'a' && typeof href === 'string' && href.startsWith('!')) {
+        const safe = href.replaceAll(':', '%3A');
         const k = seen.get(safe) ?? 0;
         seen.set(safe, k + 1);
         node.properties = { ...node.properties, href: safe, dataSeqLink: `${prefix}${k}:${safe}` };
@@ -46,5 +46,5 @@ export function rehypeSeqLinks(opts: { prefix?: string } = {}) {
 /** A hast-util-sanitize schema that also keeps `data-seq-link` on links: `seqLinkSchema(defaultSchema)`. */
 export function seqLinkSchema<S extends { attributes?: Record<string, unknown[]> | null }>(base: S): S {
   const a = base.attributes ?? {};
-  return { ...base, attributes: { ...a, a: [...(a.a ?? []), "dataSeqLink"] } };
+  return { ...base, attributes: { ...a, a: [...(a.a ?? []), 'dataSeqLink'] } };
 }

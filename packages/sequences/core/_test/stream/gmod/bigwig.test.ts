@@ -10,21 +10,21 @@
 // REST API's (getData/track, gc5BaseBw) over the same regions, recorded in fixtures/expected.json: the raw windows for a
 // data request, the same windows folded onto the level's bins for a level request.
 
-import { readFileSync } from "node:fs";
-import { StreamNotServed } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
-import { CASES, makers, req } from "./cases.js";
-import { sliceReader } from "./slices.js";
+import { readFileSync } from 'node:fs';
+import { StreamNotServed } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
+import { CASES, makers, req } from './cases.js';
+import { sliceReader } from './slices.js';
 
-const expected = JSON.parse(readFileSync(new URL("./fixtures/expected.json", import.meta.url), "utf8"))
+const expected = JSON.parse(readFileSync(new URL('./fixtures/expected.json', import.meta.url), 'utf8'))
   .bigwig as Record<string, unknown>;
 const signal = new AbortController().signal;
-const provider = () => makers.bigwig(sliceReader("bigwig"));
+const provider = () => makers.bigwig(sliceReader('bigwig'));
 
-describe("BigWig", () => {
+describe('BigWig', () => {
   it("lists the chromosomes, the zoom levels as levels and the file's range as the domain", async () => {
     const p = await provider().fetch(req(null), signal);
-    if (p.kind !== "manifest") throw new Error("not a manifest");
+    if (p.kind !== 'manifest') throw new Error('not a manifest');
     const sizes = Object.fromEntries(p.manifest.systems.map((s) => [s.key, s.extent[1]]));
     expect([sizes.chr1, sizes.chr21, sizes.chrM]).toEqual([248_956_422, 46_709_983, 16_569]);
     expect(p.manifest.systems.length).toBe(595);
@@ -37,8 +37,8 @@ describe("BigWig", () => {
   for (const [name, r] of CASES.bigwig.slice(1).filter(([, r]) => r.level < 0))
     it(`${name}: every position is the API's window value`, async () => {
       const p = await provider().fetch(r, signal);
-      const value = p.kind === "items" && (p.items.value as Float64Array);
-      if (!value) throw new Error("not items");
+      const value = p.kind === 'items' && (p.items.value as Float64Array);
+      if (!value) throw new Error('not items');
       expect(value.length).toBe(r.stop - r.start);
       const want = new Float64Array(r.stop - r.start).fill(Number.NaN);
       for (const [s, e, v] of expected[name] as [number, number, number][]) want.fill(v, s - r.start, e - r.start);
@@ -49,7 +49,7 @@ describe("BigWig", () => {
   for (const [name, r] of CASES.bigwig.slice(1).filter(([, r]) => r.level >= 0))
     it(`${name}: bins hold the API's windows, resampled from the zoom records`, async () => {
       const p = await provider().fetch(r, signal);
-      if (p.kind !== "bins") throw new Error("not bins");
+      if (p.kind !== 'bins') throw new Error('not bins');
       const { min, max, mean } = p.bins as Record<string, Float64Array>;
       const want = expected[name] as ([number, number, number] | null)[];
       expect(min.length).toBe(want.length);
@@ -68,14 +68,14 @@ describe("BigWig", () => {
       expect(Math.abs(sum / n - wsum / n)).toBeLessThan(1); // the means keep the total
     });
 
-  it("fails clearly for what it does not serve", async () => {
+  it('fails clearly for what it does not serve', async () => {
     const p = provider();
-    await expect(p.fetch(req("chr21", 0, 256, 10), signal)).rejects.toBeInstanceOf(StreamNotServed);
-    await expect(p.fetch(req("chrZ", 0, 256), signal)).rejects.toThrow("BigWig: no chromosome chrZ");
+    await expect(p.fetch(req('chr21', 0, 256, 10), signal)).rejects.toBeInstanceOf(StreamNotServed);
+    await expect(p.fetch(req('chrZ', 0, 256), signal)).rejects.toThrow('BigWig: no chromosome chrZ');
   });
 
-  it("fails naming the range when a region is not in the recorded slices", async () => {
-    await expect(provider().fetch(req("chr2", 50_000_000, 50_004_096), signal)).rejects.toThrow(
+  it('fails naming the range when a region is not in the recorded slices', async () => {
+    await expect(provider().fetch(req('chr2', 50_000_000, 50_004_096), signal)).rejects.toThrow(
       /bigwig: bytes \d+\.\.\d+ are not in the recorded slices/,
     );
   });

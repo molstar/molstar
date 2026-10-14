@@ -12,11 +12,11 @@
 // over 32 points along its body. Each run loads the viewer afresh (`vi.resetModules`). `measure` is the guards' warm-up,
 // settle and measurement, which their positive controls run on `leaking(step)`.
 
-import { vi } from "vitest";
-import { FRAME_N, FRAME_SETTLE_MS, FRAME_WARM, FRAME_WARM_MS, heapScaling, settleFrame } from "./heap.js";
+import { vi } from 'vitest';
+import { FRAME_N, FRAME_SETTLE_MS, FRAME_WARM, FRAME_WARM_MS, heapScaling, settleFrame } from './heap.js';
 
 /** A guard's run: its steps after the shared warm-up and settle, measured (`measure`), and what they drew and hit. */
-export async function run(mode: "frames" | "drag", n: number, steps = FRAME_N) {
+export async function run(mode: 'frames' | 'drag', n: number, steps = FRAME_N) {
   const s = await setup(mode, n);
   const r = measure(s.step, steps);
   return { r, owner: s.owner(), sectors: s.sectors(), labelHits: s.labelHits() };
@@ -36,28 +36,28 @@ export function measure(step: (i: number) => void, steps = FRAME_N) {
 }
 
 /** The ring and its linked linear section driven, and a step of `mode`. */
-export async function setup(mode: "frames" | "drag", n: number) {
+export async function setup(mode: 'frames' | 'drag', n: number) {
   vi.resetModules();
-  const { driven } = await import("./input-fixtures.js");
-  const { recording } = await import("./composer-fixtures.js");
-  const { ringWindowDoc } = await import("./ring-window-fixtures.js");
-  const { DefaultPresets } = await import("../src/presets.js");
-  const { HoverKind, KernelRenderers, Inputs, PointerType } = await import("../src/index.js");
+  const { driven } = await import('./input-fixtures.js');
+  const { recording } = await import('./composer-fixtures.js');
+  const { ringWindowDoc } = await import('./ring-window-fixtures.js');
+  const { DefaultPresets } = await import('../src/presets.js');
+  const { HoverKind, KernelRenderers, Inputs, PointerType } = await import('../src/index.js');
   const ITEM = HoverKind.item;
-  const { Dirty, SectionComposer } = await import("../src/draw/index.js");
-  const { placedRingLabels } = await import("../src/draw/ring-labels.js");
-  const registry = [{ presets: DefaultPresets.filter((p) => p.name === "circular") }];
+  const { Dirty, SectionComposer } = await import('../src/draw/index.js');
+  const { placedRingLabels } = await import('../src/draw/ring-labels.js');
+  const registry = [{ presets: DefaultPresets.filter((p) => p.name === 'circular') }];
   const t = await driven(ringWindowDoc(n - 50, n), {
     registry,
     renderers: KernelRenderers as never,
     size: { ring: [600, 600], lin: [1000, 200] },
   });
   // The frames alone: the hover label's strings are one allocation per hovered element by design (IN2's guard).
-  t.ctx.behaviors.get("hoverLabel")?.remove();
-  const l = t.ctx.layout.get("ring")?.current;
-  const lin = t.ctx.viewports.get("lin") as import("../src/viewport.js").Viewport | null;
-  if (!l || !lin) throw new Error("no layout");
-  const composer = new SectionComposer(t.ctx, "ring");
+  t.ctx.behaviors.get('hoverLabel')?.remove();
+  const l = t.ctx.layout.get('ring')?.current;
+  const lin = t.ctx.viewports.get('lin') as import('../src/viewport.js').Viewport | null;
+  if (!l || !lin) throw new Error('no layout');
+  const composer = new SectionComposer(t.ctx, 'ring');
   const be = recording();
   composer.frame(be, Dirty.all);
   const area = lin.live.current.width - (lin.axis?.insetX ?? 0);
@@ -70,18 +70,18 @@ export async function setup(mode: "frames" | "drag", n: number) {
   }
   let labelHits = 0;
   const p = Inputs.pointer();
-  p.section = t.ctx.layout.sectionIndex("ring");
+  p.section = t.ctx.layout.sectionIndex('ring');
   const view = new Float64Array(2);
   const set = lin as unknown as { setViewFrom(a: Float64Array, o: string): void };
   const at = (a: number, r: number) => {
     p.x = l.ringCx + r * Math.cos(a);
     p.y = l.ringCy + r * Math.sin(a);
   };
-  if (mode === "drag") {
+  if (mode === 'drag') {
     // The linear section at a fifth of the ring, centered at the top; a press on the window's body.
     view[0] = (5 * area) / n;
     view[1] = n * 0.4 * view[0];
-    set.setViewFrom(view, "api");
+    set.setViewFrom(view, 'api');
     // First the pointer over all the rings, unpressed: every branch of the window's hit (its grips, its body, off
     // it) warmed, as a pointer reaches a window in use. A branch first taken mid-measure deoptimized it (213 bytes a
     // step until it was optimized again).
@@ -98,12 +98,12 @@ export async function setup(mode: "frames" | "drag", n: number) {
     p.type = PointerType.move;
   } else p.type = PointerType.move;
   const step = (i: number) => {
-    if (mode === "frames") {
+    if (mode === 'frames') {
       // The linear section panned and zoomed (its window round the ring, across the origin), the pointer round the
       // rings and out over the labels.
       view[0] = (area / n) * (2 + (i % 7));
       view[1] = ((i * 37) % n) * view[0];
-      set.setViewFrom(view, "api");
+      set.setViewFrom(view, 'api');
       at((i * 0.37) % (2 * Math.PI), l.ringR * (0.5 + 0.7 * ((i * 0.13) % 1)));
       if (i % 3 === 0 && anchors.length > 0) {
         const k = (i / 3) % (anchors.length >> 1);
@@ -122,7 +122,7 @@ export async function setup(mode: "frames" | "drag", n: number) {
   };
   return {
     step,
-    owner: () => t.ctx.ui.drag.value?.owner ?? "",
+    owner: () => t.ctx.ui.drag.value?.owner ?? '',
     sectors: () => be.sectorItems.n,
     labelHits: () => labelHits,
   };

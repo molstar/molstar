@@ -6,17 +6,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { nodePath, SeqCommands, type TrackActionList, trackDataRefs } from "@molstar/seq-viewer";
-import { button, type DomPart, type RowProps as DomRowProps, setAttr } from "@molstar/seq-viewer/dom";
-import { type RowProps, useLiveVersion, useSeqViewer } from "@molstar/seq-viewer/react";
-import { renderSvg } from "@molstar/seq-viewer/svg";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { createContext, Suspense, use, useCallback, useContext, useMemo, useState } from "react";
-import { CASE_TITLES, type CompiledCase, compiledCase, described, hideEmpty } from "./support/seqstar-cases.js";
-import { PLASMID_RING, PSYN_LENGTH, rotateRing, zoomDetail } from "./support/seqstar-docs-circular.js";
-import { CODING_PROTEIN } from "./support/seqstar-docs-streamed.js";
-import f from "./support/seqstar-format.module.css";
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { nodePath, SeqCommands, type TrackActionList, trackDataRefs } from '@molstar/seq-viewer';
+import { button, type DomPart, type RowProps as DomRowProps, setAttr } from '@molstar/seq-viewer/dom';
+import { type RowProps, useLiveVersion, useSeqViewer } from '@molstar/seq-viewer/react';
+import { renderSvg } from '@molstar/seq-viewer/svg';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { createContext, Suspense, use, useCallback, useContext, useMemo, useState } from 'react';
+import { CASE_TITLES, type CompiledCase, compiledCase, described, hideEmpty } from './support/seqstar-cases.js';
+import { PLASMID_RING, PSYN_LENGTH, rotateRing, zoomDetail } from './support/seqstar-docs-circular.js';
+import { CODING_PROTEIN } from './support/seqstar-docs-streamed.js';
+import f from './support/seqstar-format.module.css';
 import {
   GENOTYPE_DENSITIES,
   GENOTYPE_MODES,
@@ -25,14 +25,14 @@ import {
   type GenotypeMode,
   genotypeDensityPatch,
   genotypeModePatch,
-} from "./support/seqstar-genotypes.js";
-import { IDEOGRAM_REGISTRY } from "./support/seqstar-ideogram.js";
-import { INDEL_SELECTIONS, INDEL_VIEWS, selectCommand } from "./support/seqstar-indels.js";
-import { storyPatch } from "./support/seqstar-patch.js";
-import { PrismPage, prism } from "./support/seqstar-prism.js";
-import { Case18Viewer } from "./support/seqstar-search-part.js";
-import { ShiftClickChoice, useTextStyle } from "./support/seqstar-text-style.js";
-import { TRIAGE_MODES, type TriageMode, triagePatch } from "./support/seqstar-triage.js";
+} from './support/seqstar-genotypes.js';
+import { IDEOGRAM_REGISTRY } from './support/seqstar-ideogram.js';
+import { INDEL_SELECTIONS, INDEL_VIEWS, selectCommand } from './support/seqstar-indels.js';
+import { storyPatch } from './support/seqstar-patch.js';
+import { PrismPage, prism } from './support/seqstar-prism.js';
+import { Case18Viewer } from './support/seqstar-search-part.js';
+import { ShiftClickChoice, useTextStyle } from './support/seqstar-text-style.js';
+import { TRIAGE_MODES, type TriageMode, triagePatch } from './support/seqstar-triage.js';
 import {
   BuilderCode,
   type CleanPart,
@@ -40,10 +40,10 @@ import {
   STORY_CHROME,
   ViewerCard,
   type ViewerOptions,
-} from "./support/seqstar-viewer.js";
-import vs from "./support/seqstar-viewer.module.css";
-import { type Args, viewerControls } from "./support/seqstar-viewer-args.js";
-import { Choices, TextAction, Tooltip } from "./ui/index.js";
+} from './support/seqstar-viewer.js';
+import vs from './support/seqstar-viewer.module.css';
+import { type Args, viewerControls } from './support/seqstar-viewer-args.js';
+import { Choices, TextAction, Tooltip } from './ui/index.js';
 
 /**
  * The format's acceptance cases in our viewer: each case's document on the test fixtures, shown by the default React UI
@@ -53,10 +53,10 @@ import { Choices, TextAction, Tooltip } from "./ui/index.js";
  * `chrome` control that adds the headers, track menu, legend and export.
  */
 const meta = {
-  title: "Seq*/Cases/Viewer",
+  title: 'Seq*/Cases/Viewer',
   ...viewerControls,
   // Said here too: Storybook reads a story file's layout from its own meta, not through a spread.
-  parameters: { ...viewerControls.parameters, layout: "fullscreen" },
+  parameters: { ...viewerControls.parameters, layout: 'fullscreen' },
 } satisfies Meta<Args>;
 export default meta;
 type Story = StoryObj<Args>;
@@ -70,19 +70,19 @@ function caseDoc(name: string, c: CompiledCase) {
 
 /** Parts `clean` leaves out that a case is about, besides the view tabs a multi-view case needs. */
 const CASE_PARTS: Readonly<Record<string, readonly CleanPart[]>> = {
-  case2: ["SectionHeader"], // the Kabat and IMGT numbering switch
-  case6: ["SectionHeader"], // imatinib's ligand form (a position, or its atoms), and the numbering switch
-  case7: ["SectionHeader"], // the numbering and copies switches
-  case8: ["SectionHeader"], // the numbering switch
-  case9: ["SectionHeader"], // the chains section's copies switch
-  case12: ["SectionHeader"], // the dimer's copies (one chain, or its two copies as units) and the heme's ligand form
-  case15: ["SectionHeader"], // the designs' own-axes sections: their WT numbering with insertion codes (93A…), and the numbering switch
-  case21: ["SectionHeader"], // the sections' names: the gene on its own strand, the mRNA, the region as written
+  case2: ['SectionHeader'], // the Kabat and IMGT numbering switch
+  case6: ['SectionHeader'], // imatinib's ligand form (a position, or its atoms), and the numbering switch
+  case7: ['SectionHeader'], // the numbering and copies switches
+  case8: ['SectionHeader'], // the numbering switch
+  case9: ['SectionHeader'], // the chains section's copies switch
+  case12: ['SectionHeader'], // the dimer's copies (one chain, or its two copies as units) and the heme's ligand form
+  case15: ['SectionHeader'], // the designs' own-axes sections: their WT numbering with insertion codes (93A…), and the numbering switch
+  case21: ['SectionHeader'], // the sections' names: the gene on its own strand, the mRNA, the region as written
 };
 const casePartsFor = (name: string, c: CompiledCase) => caseParts(c, CASE_PARTS[name]);
 
 /** Cases whose text view the reader can switch between the `wrapped` and `compact` presets. */
-const TEXT_STYLE = new Set(["case1"]);
+const TEXT_STYLE = new Set(['case1']);
 
 function CaseViewer({ name, options }: { name: string; options?: ViewerOptions }) {
   const c = use(compiledCase(name));
@@ -91,7 +91,7 @@ function CaseViewer({ name, options }: { name: string; options?: ViewerOptions }
   return (
     <>
       {textStyle}
-      <ViewerCard doc={doc} label={c.views.map((v) => v.label).join(" · ")} options={o}>
+      <ViewerCard doc={doc} label={c.views.map((v) => v.label).join(' · ')} options={o}>
         {TEXT_STYLE.has(name) ? <ShiftClickChoice /> : null}
       </ViewerCard>
     </>
@@ -101,18 +101,18 @@ function CaseViewer({ name, options }: { name: string; options?: ViewerOptions }
 /** What to try in a case, under its kicker. */
 const CASE_NOTES: Readonly<Record<string, string>> = {
   case1:
-    "Select in the text as in an editor: click a residue (again, it clears), drag across lines (out of the canvas " +
-    "too), Shift-click or Shift-drag to extend, click an underline for its region; Enter and Escape from the " +
+    'Select in the text as in an editor: click a residue (again, it clears), drag across lines (out of the canvas ' +
+    'too), Shift-click or Shift-drag to extend, click an underline for its region; Enter and Escape from the ' +
     "keyboard. The Text choice switches the text's presets: Wrapped spaces it to read (a group gap of about a " +
-    "cell, lines apart, the underlines a little under the letters); Compact packs it (half the group gap, lines and " +
-    "lanes touching), still in groups of 10. Both are render props (`wrappedGroupGap`, `wrappedGap`, " +
+    'cell, lines apart, the underlines a little under the letters); Compact packs it (half the group gap, lines and ' +
+    'lanes touching), still in groups of 10. Both are render props (`wrappedGroupGap`, `wrappedGap`, ' +
     "`wrappedTrackGap`, `wrappedLaneHeight`) a host sets. The Shift-click choice sets the select behavior's " +
     "`shiftPositions`, as a host's viewer spec would.",
   case8:
     "Open the Aligned error (PAE) group: AlphaFold DB's PAE as a dot plot, the scored residues across and the " +
-    "residues aligned on down, over the same window as the tracks (zoom or pan them, the plot follows), with the " +
+    'residues aligned on down, over the same window as the tracks (zoom or pan them, the plot follows), with the ' +
     "interface's contacts as red dots. Hover a cell: both residues light, with a crosshair; drag to select a " +
-    "rectangle, its two ranges.",
+    'rectangle, its two ranges.',
 };
 
 function Case({ name, options }: { name: string; options?: ViewerOptions }) {
@@ -122,9 +122,9 @@ function Case({ name, options }: { name: string; options?: ViewerOptions }) {
       caption={
         <>
           @molstar/seq-viewer, its canvas engine and the default UI (
-          {options?.ui === "DOM"
-            ? "the <seq-viewer> element, @molstar/seq-viewer/dom"
-            : "React, @molstar/seq-viewer/react"}
+          {options?.ui === 'DOM'
+            ? 'the <seq-viewer> element, @molstar/seq-viewer/dom'
+            : 'React, @molstar/seq-viewer/react'}
           ); fixtures, no network.
         </>
       }
@@ -139,39 +139,39 @@ function Case({ name, options }: { name: string; options?: ViewerOptions }) {
 }
 
 export const Case1: Story = {
-  name: "p53: text and tracks",
+  name: 'p53: text and tracks',
   render: (a) => <Case name="case1" options={{ navigator: a.navigator, rowsColor: a.rowsColor, ui: a.ui }} />,
 };
 export const Case2: Story = {
-  name: "Antibody Fv, Kabat and IMGT",
+  name: 'Antibody Fv, Kabat and IMGT',
   render: (a) => <Case name="case2" options={{ navigator: a.navigator, rowsColor: a.rowsColor, ui: a.ui }} />,
 };
 export const Case3: Story = {
-  name: "SH2 family",
+  name: 'SH2 family',
   render: (a) => <Case name="case3" options={{ navigator: a.navigator, rowsColor: a.rowsColor, ui: a.ui }} />,
 };
 export const Case4: Story = {
-  name: "tRNA family, base pairs",
+  name: 'tRNA family, base pairs',
   render: (a) => <Case name="case4" options={{ navigator: a.navigator, rowsColor: a.rowsColor, ui: a.ui }} />,
 };
 export const Case5: Story = {
-  name: "DNA construct",
+  name: 'DNA construct',
   render: (a) => <Case name="case5" options={{ navigator: a.navigator, rowsColor: a.rowsColor, ui: a.ui }} />,
 };
 export const Case6: Story = {
-  name: "Imatinib in ABL",
+  name: 'Imatinib in ABL',
   render: (a) => <Case name="case6" options={{ navigator: a.navigator, rowsColor: a.rowsColor, ui: a.ui }} />,
 };
 export const Case7: Story = {
-  name: "Barnase–barstar",
+  name: 'Barnase–barstar',
   render: (a) => <Case name="case7" options={{ navigator: a.navigator, rowsColor: a.rowsColor, ui: a.ui }} />,
 };
 export const Case8: Story = {
-  name: "AlphaFold DB complex",
+  name: 'AlphaFold DB complex',
   render: (a) => <Case name="case8" options={{ navigator: a.navigator, rowsColor: a.rowsColor, ui: a.ui }} />,
 };
 export const Case9: Story = {
-  name: "PF00042 by view",
+  name: 'PF00042 by view',
   render: (a) => <Case name="case9" options={{ navigator: a.navigator, rowsColor: a.rowsColor, ui: a.ui }} />,
 };
 const coveredRefs = (doc: SeqViewSpecDoc | null, track: string) => {
@@ -180,24 +180,24 @@ const coveredRefs = (doc: SeqViewSpecDoc | null, track: string) => {
 };
 /** The track menu (`UI.TrackActions`): the built-ins, then a host's own action. `remove` is not in the default list. */
 const CASE10_ACTIONS: TrackActionList = [
-  "rows",
-  "filter",
-  "focus",
-  "hide",
-  "remove",
+  'rows',
+  'filter',
+  'focus',
+  'hide',
+  'remove',
   {
-    id: "select-covered",
-    label: "Select what it covers",
+    id: 'select-covered',
+    label: 'Select what it covers',
     when: (ctx, _section, track) => coveredRefs(ctx.document.shown.value, track).length > 0,
     run: (ctx, _section, track) => {
       const refs = coveredRefs(ctx.document.shown.value, track);
-      ctx.commands.dispatch(SeqCommands.Select, { target: { refs }, origin: "api" }).catch(() => {});
+      ctx.commands.dispatch(SeqCommands.Select, { target: { refs }, origin: 'api' }).catch(() => {});
     },
   },
 ];
 /** With `chrome`: `full`, or `clean` as Stories shows it: the canvas, hover, selection, tooltip, navigator. */
-export const Case10: StoryObj<Args & { chrome: "full" | "clean" }> = {
-  name: "The Stories drafts",
+export const Case10: StoryObj<Args & { chrome: 'full' | 'clean' }> = {
+  name: 'The Stories drafts',
   parameters: {
     docs: {
       description: {
@@ -208,7 +208,7 @@ export const Case10: StoryObj<Args & { chrome: "full" | "clean" }> = {
   },
   args: { chrome: STORY_CHROME },
   argTypes: {
-    chrome: { control: "inline-radio", options: ["full", "clean"], description: "The viewer's `UI.Chrome`" },
+    chrome: { control: 'inline-radio', options: ['full', 'clean'], description: "The viewer's `UI.Chrome`" },
   },
   render: (a) => (
     <Case
@@ -225,27 +225,27 @@ export const Case10: StoryObj<Args & { chrome: "full" | "clean" }> = {
   ),
 };
 export const Case12: Story = {
-  name: "Designed dimer",
+  name: 'Designed dimer',
   render: (a) => <Case name="case12" options={{ navigator: a.navigator, rowsColor: a.rowsColor, ui: a.ui }} />,
 };
 const ROWS = [
-  { id: "all", label: "All" },
-  { id: "variants", label: "With variants" },
+  { id: 'all', label: 'All' },
+  { id: 'variants', label: 'With variants' },
 ];
 /** Case 13's viewer, its split layers' rows all, or only the residues a variant has (`split.empty: "hide"`). */
 function Case13Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase("case13"));
-  const [rows, setRows] = useState("all");
+  const c = use(compiledCase('case13'));
+  const [rows, setRows] = useState('all');
   const doc = useMemo(
-    () => (rows === "all" ? caseDoc("case13", c) : { ...caseDoc("case13", c), root: hideEmpty(c.doc.root) }),
+    () => (rows === 'all' ? caseDoc('case13', c) : { ...caseDoc('case13', c), root: hideEmpty(c.doc.root) }),
     [c, rows],
   );
   return (
     <ViewerCard
       key={rows}
       doc={doc}
-      label={c.views.map((v) => v.label).join(" · ")}
-      options={{ ...options, parts: casePartsFor("case13", c) }}
+      label={c.views.map((v) => v.label).join(' · ')}
+      options={{ ...options, parts: casePartsFor('case13', c) }}
     >
       <div className={prism.controls}>
         <div className={prism.wide}>
@@ -256,7 +256,7 @@ function Case13Viewer({ options }: { options?: ViewerOptions }) {
   );
 }
 export const Case13: Story = {
-  name: "p53 features, UniProt-style",
+  name: 'p53 features, UniProt-style',
   render: (a) => (
     <PrismPage
       title={CASE_TITLES.case13}
@@ -276,20 +276,20 @@ export const Case13: Story = {
   ),
 };
 export const Case14: Story = {
-  name: "Protein over its coding DNA",
+  name: 'Protein over its coding DNA',
   render: (a) => <Case name="case14" options={{ navigator: a.navigator, rowsColor: a.rowsColor, ui: a.ui }} />,
 };
 /** Case 15's views, and selections that show what each map carries across (best seen in Own axes). */
 function Case15Controls() {
   const { context } = useSeqViewer();
   const [view, setView] = useState<string>(INDEL_VIEWS.wt);
-  const [selected, setSelected] = useState("none");
+  const [selected, setSelected] = useState('none');
   const views = [
-    { id: INDEL_VIEWS.wt, label: "On the wild type" },
-    { id: INDEL_VIEWS.aligned, label: "Aligned" },
-    { id: INDEL_VIEWS.own, label: "Own axes" },
+    { id: INDEL_VIEWS.wt, label: 'On the wild type' },
+    { id: INDEL_VIEWS.aligned, label: 'Aligned' },
+    { id: INDEL_VIEWS.own, label: 'Own axes' },
   ];
-  const selections = [...INDEL_SELECTIONS.map((s) => ({ id: s.id, label: s.label })), { id: "none", label: "Nothing" }];
+  const selections = [...INDEL_SELECTIONS.map((s) => ({ id: s.id, label: s.label })), { id: 'none', label: 'Nothing' }];
   const pickView = (id: string) => {
     setView(id);
     context.views.setCurrent(id);
@@ -297,8 +297,8 @@ function Case15Controls() {
   const pickSelection = (id: string) => {
     setSelected(id);
     const s = INDEL_SELECTIONS.find((x) => x.id === id);
-    if (s) void context.commands.run(selectCommand(s), "host:story");
-    else context.selection.clear("host:story");
+    if (s) void context.commands.run(selectCommand(s), 'host:story');
+    else context.selection.clear('host:story');
   };
   return (
     <div className={prism.controls}>
@@ -312,16 +312,16 @@ function Case15Controls() {
   );
 }
 function Case15Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase("case15"));
+  const c = use(compiledCase('case15'));
   return (
-    <ViewerCard doc={caseDoc("case15", c)} label="WT barnase and four designs" options={{ ...options, maxHeight: 720 }}>
+    <ViewerCard doc={caseDoc('case15', c)} label="WT barnase and four designs" options={{ ...options, maxHeight: 720 }}>
       <Case15Controls />
     </ViewerCard>
   );
 }
 /** Case 15: insertions and deletions with the format's own primitives (mappings, an alignment, boundaries). */
 export const Case15: Story = {
-  name: "Indels in protein designs",
+  name: 'Indels in protein designs',
   render: (a) => (
     <PrismPage
       title={CASE_TITLES.case15}
@@ -367,7 +367,7 @@ function Case16Controls() {
   const rotate = useCallback(() => {
     const next = (origin + 450) % PSYN_LENGTH;
     setOrigin(next);
-    void storyPatch(context, rotateRing(next), "rotate the origin");
+    void storyPatch(context, rotateRing(next), 'rotate the origin');
   }, [context, origin]);
   const exported = useCallback(() => {
     void renderSvg(context, { width: 640, background: true, overlay: true, sections: [PLASMID_RING] }).then(setSvg);
@@ -393,22 +393,22 @@ function Case16Controls() {
   );
 }
 function Case16Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase("case16"));
+  const c = use(compiledCase('case16'));
   return (
-    <ViewerCard doc={caseDoc("case16", c)} label="pSyn, 2,686 nt" options={options}>
+    <ViewerCard doc={caseDoc('case16', c)} label="pSyn, 2,686 nt" options={options}>
       <Case16Controls />
     </ViewerCard>
   );
 }
 /** Case 16: a plasmid map through `b.preset.plasmidMap`, a ring with its linear detail and the window between them. */
 export const Case16: Story = {
-  name: "A plasmid map",
+  name: 'A plasmid map',
   render: (a) => (
     <PrismPage
       title={CASE_TITLES.case16}
       caption={
         <>
-          <code>b.preset.plasmidMap(view, pSyn, {"{ features, sites, pairs }"})</code> writes a circular section and a
+          <code>b.preset.plasmidMap(view, pSyn, {'{ features, sites, pairs }'})</code> writes a circular section and a
           linear one following it, with generic params only. pSyn is synthetic (2,686 nt, a pUC19-like layout over
           random letters). Each feature has an arrowhead by its <code>strand</code> (<code>direction_field</code>), on
           the ring and in the detail; the f1 region crosses the origin. Labels sit outside the ring, past the
@@ -434,7 +434,7 @@ export const Case16: Story = {
 /** The orders: each patches the matrix layer's `order` and `filter`, as the Stories agent would. */
 function Case17Modes() {
   const { context } = useSeqViewer();
-  const [mode, setMode] = useState("data");
+  const [mode, setMode] = useState('data');
   const pick = (key: string) => {
     const m = GENOTYPE_MODES.find((x) => x.key === key) as GenotypeMode;
     setMode(m.key);
@@ -455,7 +455,7 @@ function Case17Modes() {
 /** How a device row of many samples picks its color: patches the layer's `density`. */
 function Case17Densities() {
   const { context } = useSeqViewer();
-  const [density, setDensity] = useState("majority");
+  const [density, setDensity] = useState('majority');
   const pick = (key: string) => {
     const d = GENOTYPE_DENSITIES.find((x) => x.key === key) as (typeof GENOTYPE_DENSITIES)[number];
     setDensity(d.key);
@@ -474,11 +474,11 @@ function Case17Densities() {
 }
 
 function Case17Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase("case17"));
+  const c = use(compiledCase('case17'));
   return (
     <ViewerCard
-      doc={caseDoc("case17", c)}
-      label={`${GENOTYPE_SAMPLES.toLocaleString("en-US")} samples × ${GENOTYPE_SITES} sites`}
+      doc={caseDoc('case17', c)}
+      label={`${GENOTYPE_SAMPLES.toLocaleString('en-US')} samples × ${GENOTYPE_SITES} sites`}
       options={options}
     >
       <div className={prism.controls}>
@@ -490,21 +490,21 @@ function Case17Viewer({ options }: { options?: ViewerOptions }) {
 }
 /** Case 17: dense matrix states (KS2), a matrix's keyed states ordered and filtered by a key table. */
 export const Case17: Story = {
-  name: "A genotype matrix",
+  name: 'A genotype matrix',
   render: (a) => (
     <PrismPage
       title={CASE_TITLES.case17}
       caption={
         <>
-          {GENOTYPE_SAMPLES.toLocaleString("en-US")} synthetic samples as the states of a <code>matrix</code> over{" "}
-          {GENOTYPE_SITES} variant sites, heterozygous amber and homozygous for the alternative allele red (a{" "}
+          {GENOTYPE_SAMPLES.toLocaleString('en-US')} synthetic samples as the states of a <code>matrix</code> over{' '}
+          {GENOTYPE_SITES} variant sites, heterozygous amber and homozygous for the alternative allele red (a{' '}
           <code>field_palette</code>; the reference genotype is not colored). The alternative allele&apos;s frequency
           varies by population and in blocks of 20 sites. The samples are thinner than a pixel, so each device row shows
           one color for its samples, by the layer&apos;s <code>density</code>: the most common color of its colored
           samples, faded by the share of its samples with the reference genotype (<code>majority</code>), or the
           strongest genotype among them, so a rare homozygote shows (<code>maximum</code>). Alt and the wheel zoom the
-          samples vertically. A sample table keyed by <code>state</code> gives each its <code>population</code> and its{" "}
-          <code>alt_alleles</code>; the choices patch the layer&apos;s <code>order</code>, <code>filter</code> and{" "}
+          samples vertically. A sample table keyed by <code>state</code> gives each its <code>population</code> and its{' '}
+          <code>alt_alleles</code>; the choices patch the layer&apos;s <code>order</code>, <code>filter</code> and{' '}
           <code>density</code>. By population, the blocks line up; the last order keeps about 24 samples, which draw as
           cells (a band each; labels only from 9 px a band).
         </>
@@ -519,7 +519,7 @@ export const Case17: Story = {
 };
 /** Case 18: finding things in p53: SeqQL queries run at load, the Search part, location sets and bookmarks. */
 export const Case18: Story = {
-  name: "Finding things in p53",
+  name: 'Finding things in p53',
   render: (a) => (
     <PrismPage
       title={CASE_TITLES.case18}
@@ -527,15 +527,15 @@ export const Case18: Story = {
         <>
           p53&apos;s Tracks view: the letters and three feature tracks (domains, zinc ligands, DNA-contact residues),
           each item with a name to search by. Two SeqQL queries run at load as <code>computed</code> nodes: the
-          cysteines, and the domains holding four or more of them (a query naming the other). The section&apos;s{" "}
+          cysteines, and the domains holding four or more of them (a query naming the other). The section&apos;s{' '}
           <code>highlights</code> show them, as any annotation: the rich domain as a band behind the tracks, the
           cysteines lit, the zinc ligands accented, and the bookmarks (an inline <code>ranges</code> table the bookmark
           actions edit and step). The Search part is the viewer&apos;s; the search is the story&apos;s own: item names
-          from two characters, anywhere in the name, then the letters from one, or a regular-expression motif such as{" "}
-          <code>{"[KR]{2}.{10,12}[KR]{3,}"}</code> (the bipartite nuclear localization signal). Every result lights and
+          from two characters, anywhere in the name, then the letters from one, or a regular-expression motif such as{' '}
+          <code>{'[KR]{2}.{10,12}[KR]{3,}'}</code> (the bipartite nuclear localization signal). Every result lights and
           ticks in the navigator; Enter, Shift+Enter and ‹ › step through them; Keep holds them as a location set the
           legend lists under Highlights. Place the part in the viewer&apos;s bar (the UI spec gives <code>search</code>)
-          or above the viewer, as an app would (<code>{"<Search context={ctx} search={fn} />"}</code>).
+          or above the viewer, as an app would (<code>{'<Search context={ctx} search={fn} />'}</code>).
         </>
       }
     >
@@ -560,12 +560,12 @@ function StreamStats() {
 }
 /** Case 19's viewer: the ideogram navigator, a registered entry (the cytobands are the story's data). */
 function Case19Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase("case19"));
+  const c = use(compiledCase('case19'));
   return (
     <ViewerCard
-      doc={caseDoc("case19", c)}
+      doc={caseDoc('case19', c)}
       label="chr17 of GRCh38, 83 Mb, streamed by region"
-      options={{ ...options, navigator: "ideogram", registry: IDEOGRAM_REGISTRY }}
+      options={{ ...options, navigator: 'ideogram', registry: IDEOGRAM_REGISTRY }}
     >
       <StreamStats />
     </ViewerCard>
@@ -573,7 +573,7 @@ function Case19Viewer({ options }: { options?: ViewerOptions }) {
 }
 /** Case 19: a chromosome by region, streamed, with the ideogram as its navigator. */
 export const Case19: Story = {
-  name: "A chromosome by region",
+  name: 'A chromosome by region',
   render: (a) => (
     <PrismPage
       title={CASE_TITLES.case19}
@@ -619,10 +619,10 @@ function Case20Zooms() {
   );
 }
 function Case20Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase("case20"));
+  const c = use(compiledCase('case20'));
   return (
     <ViewerCard
-      doc={caseDoc("case20", c)}
+      doc={caseDoc('case20', c)}
       label="P1, 1,334 residues coded by three exons over 220 kb of chr2"
       options={{ ...options, maxHeight: 720 }}
     >
@@ -633,7 +633,7 @@ function Case20Viewer({ options }: { options?: ViewerOptions }) {
 }
 /** Case 20: a protein on its genome, streamed through a codon map, and the transcript's item coordinate system. */
 export const Case20: Story = {
-  name: "A protein on its genome",
+  name: 'A protein on its genome',
   render: (a) => (
     <PrismPage
       title={CASE_TITLES.case20}
@@ -664,7 +664,7 @@ export const Case20: Story = {
 
 /** Case 21: a gene on the reverse strand, read in its own direction, with its splice junctions and its mRNA. */
 export const Case21: Story = {
-  name: "A gene on its reverse strand",
+  name: 'A gene on its reverse strand',
   render: (a) => (
     <PrismPage
       title={CASE_TITLES.case21}
@@ -674,12 +674,12 @@ export const Case21: Story = {
           minus-strand <code>codon</code> mapping (the CDS&apos;s ranges read downward, complemented). The first section
           is the gene as a piece of the region in its own direction (<code>range</code> and <code>direction: -1</code>
           on its block): read 5′ → 3′, the ruler counting down, its letters complemented by a letter map (the data stays
-          the + strand&apos;s). Its transcript is one item (four rows of one <code>id</code>, joined), arrowheads by its{" "}
+          the + strand&apos;s). Its transcript is one item (four rows of one <code>id</code>, joined), arrowheads by its{' '}
           <code>strand</code>; the protein&apos;s residues over their codons; an RNA-seq-like coverage; and its splice
           junctions as a sashimi plot (<code>b.preset.sashimi</code>): arcs stroked and labeled by read count, the
           gene&apos;s (−) hanging below their line, an exon-skipping one thin, and two weak junctions of an antisense
           transcript (+) rising above theirs. The second section is the mRNA as its own track: the same piece showing
-          only the exons (<code>b.preset.exonsOnly</code>, the introns breaks), its letters as RNA (the{" "}
+          only the exons (<code>b.preset.exonsOnly</code>, the introns breaks), its letters as RNA (the{' '}
           <code>complement_rna</code> letter map). The third is the region as written, the + strand: the gene&apos;s
           arrowheads point left. The sections follow the first; hover or select anywhere and the same nucleotides light
           in all three.
@@ -723,9 +723,9 @@ const KEEP_UI = { components: { RowControl: KeepToggle } };
 const domKeepToggle: DomPart<DomRowProps> = (host, _ctx, { dataRow }) => {
   const label = `Keep row ${dataRow + 1}`;
   const b = button(
-    { class: "seqv-choice", "aria-pressed": false, "aria-label": label },
-    () => setAttr(b, "aria-pressed", b.getAttribute("aria-pressed") !== "true"),
-    "Keep",
+    { class: 'seqv-choice', 'aria-pressed': false, 'aria-label': label },
+    () => setAttr(b, 'aria-pressed', b.getAttribute('aria-pressed') !== 'true'),
+    'Keep',
   );
   host.append(b);
   return { dispose: () => b.remove() };
@@ -735,7 +735,7 @@ const KEEP_DOM = { RowControl: domKeepToggle };
 /** The triage choices: each patches the rows layer's `order` and `filter`, as the Stories agent would. */
 function Case22Triage({ kept }: { kept: number }) {
   const { context } = useSeqViewer();
-  const [mode, setMode] = useState("tree");
+  const [mode, setMode] = useState('tree');
   const pick = (key: string) => {
     const m = TRIAGE_MODES.find((x) => x.key === key) as TriageMode;
     setMode(m.key);
@@ -756,7 +756,7 @@ function Case22Triage({ kept }: { kept: number }) {
   );
 }
 function Case22Viewer({ options }: { options?: ViewerOptions }) {
-  const c = use(compiledCase("case22"));
+  const c = use(compiledCase('case22'));
   const [kept, setKept] = useState<ReadonlySet<number>>(new Set());
   const store = useMemo(
     () => ({
@@ -773,11 +773,11 @@ function Case22Viewer({ options }: { options?: ViewerOptions }) {
   return (
     <KeptRows.Provider value={store}>
       <ViewerCard
-        doc={caseDoc("case22", c)}
+        doc={caseDoc('case22', c)}
         label="PF00042, 32 globins"
         ui={KEEP_UI}
         domSlots={KEEP_DOM}
-        options={{ ...options, verticalNav: "both", maxHeight: 480, render: { controlWidth: 44, headerWidth: 380 } }}
+        options={{ ...options, verticalNav: 'both', maxHeight: 480, render: { controlWidth: 44, headerWidth: 380 } }}
       >
         <Case22Triage kept={kept.size} />
       </ViewerCard>
@@ -786,7 +786,7 @@ function Case22Viewer({ options }: { options?: ViewerOptions }) {
 }
 /** Case 22: a family triaged: a guide tree, key tables on its rows, the vertical overview and a control per row. */
 export const Case22: Story = {
-  name: "A family triaged",
+  name: 'A family triaged',
   render: (a) => (
     <PrismPage
       title={CASE_TITLES.case22}
@@ -796,12 +796,12 @@ export const Case22: Story = {
           guide tree is computed at load (<code>tree {'{ provider: "nj" }'}</code>, neighbor joining on p-distances) and
           the rows follow it; click a branch to fold a clade. Three key tables give the rows fields, shown as data
           columns: the review status (the document&apos;s own <code>rows</code> table: three Swiss-Prot entries,
-          HBA_HUMAN, MYG_CHICK and YNX4_YEAST, the rest TrEMBL&apos;s, read from the entry names),{" "}
+          HBA_HUMAN, MYG_CHICK and YNX4_YEAST, the rest TrEMBL&apos;s, read from the entry names),{' '}
           <code>row_stats</code>&apos; identity to HBA_HUMAN and coverage, and <code>redundancy</code>&apos;s clusters
           at 50%. The triage choices patch the rows layer&apos;s <code>order</code> and <code>filter</code>: the
           reviewed first, the reviewed only, the rows covering 80% of the columns, one per cluster; the tree is drawn
           only in tree order. Beside the scrollbar, the vertical overview: every row in miniature, the rows in view a
-          window to drag (Alt-wheel zooms rows). Each row has the host&apos;s control (the <code>RowControl</code>{" "}
+          window to drag (Alt-wheel zooms rows). Each row has the host&apos;s control (the <code>RowControl</code>{' '}
           slot): Keep, the curator&apos;s mark, held by the story and counted under the viewer.
         </>
       }

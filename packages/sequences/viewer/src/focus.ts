@@ -11,12 +11,12 @@
 // extents is the hull of their projection (no closure) on the first block of each section that it lights. Snapshots and
 // their player are VC2's. Loci and `Coordinates` go through the edge-rate `Projector` to extents (IN1).
 
-import type { ResolvedView } from "@molstar/seq-core/format";
-import { Extents, type SeqSet } from "@molstar/seq-core/model";
-import type { SeqLociAny } from "./lineage.js";
-import { BlockHulls, type Coordinates } from "./projection.js";
-import { event, type Origin, type SeqEvent, type SeqEventEmitter, type SeqState, state } from "./state.js";
-import type { Viewports } from "./viewport.js";
+import type { ResolvedView } from '@molstar/seq-core/format';
+import { Extents, type SeqSet } from '@molstar/seq-core/model';
+import type { SeqLociAny } from './lineage.js';
+import { BlockHulls, type Coordinates } from './projection.js';
+import { event, type Origin, type SeqEvent, type SeqEventEmitter, type SeqState, state } from './state.js';
+import type { Viewports } from './viewport.js';
 
 /** A block's range [start, stop), block coordinate system indices; the block's index in its section. */
 export interface FocusEntry {
@@ -56,7 +56,7 @@ const hulls = BlockHulls.create();
 function blockKey(view: ResolvedView, set: SeqSet, b: number): string {
   const { unit, alignment, start, stop, dir } = view.blocks;
   const a = alignment[b] >= 0 ? set.alignments[alignment[b]] : null;
-  const of = unit[b] >= 0 ? `u${set.strings.get(set.units.key[unit[b]])}` : `a${a ? set.strings.get(a.key) : ""}`;
+  const of = unit[b] >= 0 ? `u${set.strings.get(set.units.key[unit[b]])}` : `a${a ? set.strings.get(a.key) : ''}`;
   return `${of}:${start[b]}:${stop[b]}:${dir[b]}`;
 }
 
@@ -68,7 +68,7 @@ export class Focus implements FocusManager {
   private readonly resolved = new Map<string, string>();
   /** The entry the document's focus last gave each section (what a quiet move of its block replaces). */
   private readonly given = new Map<string, FocusEntry | null>();
-  private readonly record: FocusChange = { section: "", entry: null, transitionMs: -1, origin: "api" };
+  private readonly record: FocusChange = { section: '', entry: null, transitionMs: -1, origin: 'api' };
   private readonly viewports: Viewports;
   private readonly ext = Extents.create(4);
 
@@ -89,7 +89,7 @@ export class Focus implements FocusManager {
       const ref = this.viewports.sectionRef(i) as string;
       const f = s.focus[i];
       const entry = f && { block: f.block - s.blockStart[i], start: f.start, stop: f.stop, loci: null };
-      const key = f ? `${blockKey(view, set, f.block)}:${f.start}:${f.stop}` : "";
+      const key = f ? `${blockKey(view, set, f.block)}:${f.start}:${f.stop}` : '';
       const prev = this.resolved.get(ref);
       this.resolved.set(ref, key);
       const given = this.given.get(ref);
@@ -97,19 +97,19 @@ export class Focus implements FocusManager {
         // The same focus: the entry the document gave, while it stands, follows its block to its index.
         if (entry && given && given.block !== entry.block && this.current.value.get(ref) === given) {
           this.given.set(ref, entry);
-          this.put(ref, entry, "graph");
+          this.put(ref, entry, 'graph');
         }
         continue;
       }
       this.given.set(ref, entry);
       const t = this.transition;
-      if (prev === undefined) this.put(ref, entry, "graph");
-      else this.set(ref, entry, { transitionMs: t?.ms ?? -1, origin: t?.origin ?? "graph" });
+      if (prev === undefined) this.put(ref, entry, 'graph');
+      else this.set(ref, entry, { transitionMs: t?.ms ?? -1, origin: t?.origin ?? 'graph' });
     }
   }
 
   set(section: string, entry: FocusEntry | null, opts: { transitionMs?: number; origin?: Origin } = {}) {
-    const origin = opts.origin ?? "api";
+    const origin = opts.origin ?? 'api';
     this.put(section, entry, origin);
     Object.assign(this.record, { section, entry, transitionMs: opts.transitionMs ?? -1, origin });
     this.changed.emit(this.record);

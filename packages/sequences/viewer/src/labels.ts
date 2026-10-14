@@ -10,22 +10,22 @@
 // hovered element is the only allocation. When to compute and hide it is the `hoverLabel` behavior's. A label is
 // computed again only when the element, the registry or the view changed: three plain fields, no work on a move.
 
-import { pathTo, type StreamedData } from "@molstar/seq-core/format";
+import { pathTo, type StreamedData } from '@molstar/seq-core/format';
 import {
   type ComposedPath,
   CoordinateSystemKind as K,
   Numbering,
   type SeqIndex,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import { sameList } from "./axis.js";
-import type { ViewModel } from "./graph.js";
-import { HoverKind } from "./hit.js";
-import type { HoverState } from "./hover.js";
-import { type HeaderLegend, headerLegend } from "./legend.js";
-import type { SeqViewerRegistry } from "./registry.js";
-import { type SeqState, state, type WritableSeqState } from "./state.js";
-import type { StreamView } from "./streams.js";
+} from '@molstar/seq-core/model';
+import { sameList } from './axis.js';
+import type { ViewModel } from './graph.js';
+import { HoverKind } from './hit.js';
+import type { HoverState } from './hover.js';
+import { type HeaderLegend, headerLegend } from './legend.js';
+import type { SeqViewerRegistry } from './registry.js';
+import { type SeqState, state, type WritableSeqState } from './state.js';
+import type { StreamView } from './streams.js';
 
 export interface LabelSink {
   /** The first title wins (higher priorities write first). */
@@ -94,7 +94,7 @@ export interface LabelHost {
   cutText?(h: HoverState): string | null;
 }
 
-const name = (set: SeqSet, id: number) => (id >= 0 ? set.strings.get(id) : "");
+const name = (set: SeqSet, id: number) => (id >= 0 ? set.strings.get(id) : '');
 /**
  * The numberings of the other molecules mappings reach from a unit (an isoform's UniProt numbering), with paths. Only
  * a named numbering is worth a path: composing one is O(the molecules' lengths), and a genome's chromosome reaches
@@ -105,10 +105,10 @@ function reach(set: SeqSet, unit: number): ReachedNumbering[] {
   const own = set.units.molecule[unit];
   for (const m of set.molecules) {
     if (!m || m.id === own || m.alphabet === null) continue;
-    if (!m.numberings.items.some((n) => name(set, n.name) !== "ordinal")) continue;
+    if (!m.numberings.items.some((n) => name(set, n.name) !== 'ordinal')) continue;
     const p = pathTo(set, { kind: K.unit, id: unit, row: -1 }, { kind: K.molecule, id: m.id, row: -1 });
-    if (!p || p === "ambiguous") continue;
-    for (const n of m.numberings.items) if (name(set, n.name) !== "ordinal") out.push({ n, path: p });
+    if (!p || p === 'ambiguous') continue;
+    for (const n of m.numberings.items) if (name(set, n.name) !== 'ordinal') out.push({ n, path: p });
   }
   return out;
 }
@@ -163,7 +163,7 @@ export class Labels implements LabelManager {
     this.host = host;
     this.lc.registry = host.registry;
     host.registry.version.subscribe(() => {
-      this.sorted = [...host.registry.list("labels")].sort((a, b) => b.priority - a.priority);
+      this.sorted = [...host.registry.list('labels')].sort((a, b) => b.priority - a.priority);
       this.providers.set(this.sorted.map((p) => p.name));
     });
   }
@@ -205,7 +205,7 @@ export class Labels implements LabelManager {
     if (full !== null) this.titleText = full;
     else if (legend && view) {
       const t = view.resolved.tracks;
-      this.titleText ??= t.label[h.track] >= 0 ? view.set.strings.get(t.label[h.track]) : "";
+      this.titleText ??= t.label[h.track] >= 0 ? view.set.strings.get(t.label[h.track]) : '';
     }
     const label = this.titleText === null && this.keys.length === 0 && !legend ? null : this.group(legend);
     if (live) {
@@ -241,7 +241,7 @@ export class Labels implements LabelManager {
       }
     }
     for (let j = 0; j < lines.length; j++) if (n[j] > 1) lines[j].value = `${lines[j].value} × ${n[j]}`;
-    return legend ? { title: this.titleText ?? "", lines, legend } : { title: this.titleText ?? "", lines };
+    return legend ? { title: this.titleText ?? '', lines, legend } : { title: this.titleText ?? '', lines };
   }
 
   dispose() {

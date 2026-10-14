@@ -9,11 +9,11 @@
 // The layout and draw review's nits (2026-10-14), where a test can hold them: a path batch made with no room grows
 // (VL-20); a view drawn without marks reads empty runs, not null (VL-22).
 
-import { describe, expect, it } from "vitest";
-import { DrawView, PathBatch, PathVerb } from "../src/draw/api.js";
+import { describe, expect, it } from 'vitest';
+import { DrawView, PathBatch, PathVerb } from '../src/draw/api.js';
 
-describe("draw nits", () => {
-  it("VL-20: `new PathBatch(0)` takes its verbs", () => {
+describe('draw nits', () => {
+  it('VL-20: `new PathBatch(0)` takes its verbs', () => {
     const p = new PathBatch(0);
     p.begin(0x112233);
     p.moveTo(1, 2);

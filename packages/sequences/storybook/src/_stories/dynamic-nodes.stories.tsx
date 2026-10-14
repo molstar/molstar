@@ -6,11 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SeqViewerConfig } from "@molstar/seq-viewer";
-import { useSeqState, useSeqViewer } from "@molstar/seq-viewer/react";
-import { streamsOf } from "@molstar/seq-viewer/testing";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect, useMemo } from "react";
+import { SeqViewerConfig } from '@molstar/seq-viewer';
+import { useSeqState, useSeqViewer } from '@molstar/seq-viewer/react';
+import { streamsOf } from '@molstar/seq-viewer/testing';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useEffect, useMemo } from 'react';
 import {
   dynamicDoc,
   dynamicKnobs,
@@ -19,11 +19,11 @@ import {
   keyedDoc,
   keyedLoaders,
   PEAKS,
-} from "./support/seqstar-docs-streamed.js";
-import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism.js";
-import { ViewerCard } from "./support/seqstar-viewer.js";
-import { TextAction } from "./ui/index.js";
+} from './support/seqstar-docs-streamed.js';
+import f from './support/seqstar-format.module.css';
+import { PrismPage } from './support/seqstar-prism.js';
+import { ViewerCard } from './support/seqstar-viewer.js';
+import { TextAction } from './ui/index.js';
 
 /**
  * Dynamic nodes: a streamed source's manifest and patches add data nodes to the set,
@@ -32,7 +32,7 @@ import { TextAction } from "./ui/index.js";
  * name peaks A, B and C and stay hidden until their node arrives; nodes no track shows leave with their regions once
  * the cache is full. Latency and the cache are knobs.
  */
-const meta = { title: "Seq*/Streaming/Streamed data", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Streaming/Streamed data', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj<{ latency: number; cacheKb: number }>;
 
@@ -42,10 +42,10 @@ function Panel({ cacheKb }: { cacheKb: number }) {
   const a = useSeqState(ctx.graph.assembled);
   useEffect(() => ctx.config.set(SeqViewerConfig.Stream.CacheBytes, cacheKb * 1024), [ctx, cacheKb]);
   const held: string[] = [];
-  for (const x of a?.set.annotations ?? []) if (x) held.push(a?.set.strings.get(x.key) ?? "");
-  const dynamic = held.filter((k) => k.startsWith("sig/"));
+  for (const x of a?.set.annotations ?? []) if (x) held.push(a?.set.strings.get(x.key) ?? '');
+  const dynamic = held.filter((k) => k.startsWith('sig/'));
   const go = (at: number | null) => {
-    const vp = ctx.viewports.get("dyn.main");
+    const vp = ctx.viewports.get('dyn.main');
     if (at === null) vp?.fit();
     else vp?.zoomTo(0, at - 4000, at + 4000);
   };
@@ -58,8 +58,8 @@ function Panel({ cacheKb }: { cacheKb: number }) {
         ))}
       </div>
       <div className={f.code}>
-        Held from the stream: {dynamic.length} node{dynamic.length === 1 ? "" : "s"} ({dynamic.slice(0, 8).join(", ")}
-        {dynamic.length > 8 ? ", …" : ""})
+        Held from the stream: {dynamic.length} node{dynamic.length === 1 ? '' : 's'} ({dynamic.slice(0, 8).join(', ')}
+        {dynamic.length > 8 ? ', …' : ''})
       </div>
     </div>
   );
@@ -77,11 +77,11 @@ function Card({ latency, cacheKb }: { latency: number; cacheKb: number }) {
 }
 
 export const FirstPart: Story = {
-  name: "Dynamic nodes: manifest, patch and eviction",
+  name: 'Dynamic nodes: manifest, patch and eviction',
   args: { latency: 300, cacheKb: 256 },
   argTypes: {
-    latency: { control: { type: "range", min: 0, max: 2000, step: 50 }, description: "ms before each region's answer" },
-    cacheKb: { control: { type: "range", min: 64, max: 4096, step: 64 }, description: "Stream.CacheBytes, KiB" },
+    latency: { control: { type: 'range', min: 0, max: 2000, step: 50 }, description: "ms before each region's answer" },
+    cacheKb: { control: { type: 'range', min: 64, max: 4096, step: 64 }, description: 'Stream.CacheBytes, KiB' },
   },
   render: (args) => (
     <PrismPage
@@ -110,11 +110,11 @@ function TemplatePanel({ asked }: { asked: string[] }) {
   const rv = a?.view?.resolved;
   let instances = 0;
   for (let k = 0; rv && k < rv.layers.count; k++) if (rv.layers.node[k] !== null) instances++;
-  const deep = issues.filter((i) => i.code === "svs.stream.depth").length;
+  const deep = issues.filter((i) => i.code === 'svs.stream.depth').length;
   const add = () => {
     const n = streamsOf(ctx).nodes;
     const k = n.entries.size + 1;
-    n.add("genes", [items(`X${k}`, `Gene X${k} (a patch's)`, 50_000 + ((k * 137_000) % 1_800_000), 60_000)]);
+    n.add('genes', [items(`X${k}`, `Gene X${k} (a patch's)`, 50_000 + ((k * 137_000) % 1_800_000), 60_000)]);
   };
   return (
     <div className={f.stack}>
@@ -122,8 +122,8 @@ function TemplatePanel({ asked }: { asked: string[] }) {
         <TextAction onClick={add}>Add a gene, as a patch would</TextAction>
       </div>
       <div className={f.code}>
-        Instance tracks: {instances}. Manifests asked for: {asked.length} ({asked.slice(-6).join(", ")}
-        {asked.length > 6 ? ", …" : ""}). Sources deeper than max_depth: {deep}.
+        Instance tracks: {instances}. Manifests asked for: {asked.length} ({asked.slice(-6).join(', ')}
+        {asked.length > 6 ? ', …' : ''}). Sources deeper than max_depth: {deep}.
       </div>
     </div>
   );
@@ -143,14 +143,14 @@ function TemplateCard({ latency, maxDepth }: { latency: number; maxDepth: number
 }
 
 export const SecondPart: StoryObj<{ latency: number; maxDepth: number }> = {
-  name: "Dynamic nodes: templates and nested sources",
+  name: 'Dynamic nodes: templates and nested sources',
   args: { latency: 400, maxDepth: 4 },
   argTypes: {
     latency: {
-      control: { type: "range", min: 0, max: 2000, step: 50 },
+      control: { type: 'range', min: 0, max: 2000, step: 50 },
       description: "ms before a nested source's manifest",
     },
-    maxDepth: { control: { type: "range", min: 1, max: 4, step: 1 }, description: "the genes source's max_depth" },
+    maxDepth: { control: { type: 'range', min: 1, max: 4, step: 1 }, description: "the genes source's max_depth" },
   },
   render: (args) => (
     <PrismPage

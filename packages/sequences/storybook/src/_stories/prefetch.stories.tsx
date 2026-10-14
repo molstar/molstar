@@ -6,27 +6,27 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SeqViewerConfig } from "@molstar/seq-viewer";
-import { useSeqViewer } from "@molstar/seq-viewer/react";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect, useMemo, useSyncExternalStore } from "react";
-import f from "./support/seqstar-format.module.css";
+import { SeqViewerConfig } from '@molstar/seq-viewer';
+import { useSeqViewer } from '@molstar/seq-viewer/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useEffect, useMemo, useSyncExternalStore } from 'react';
+import f from './support/seqstar-format.module.css';
 import {
   AskedLog,
   PREFETCH_SECTION,
   PREFETCH_SNAPSHOTS,
   prefetchDoc,
   prefetchLoaders,
-} from "./support/seqstar-prefetch.js";
-import { PrismPage } from "./support/seqstar-prism.js";
-import { ViewerCard } from "./support/seqstar-viewer.js";
-import { ScrollArea, TextAction } from "./ui/index.js";
+} from './support/seqstar-prefetch.js';
+import { PrismPage } from './support/seqstar-prism.js';
+import { ViewerCard } from './support/seqstar-viewer.js';
+import { ScrollArea, TextAction } from './ui/index.js';
 
 /**
  * Prefetch: the viewer asks for regions just ahead of where the view is going, so data is usually there when it
  * arrives. Beside the view is the log of every request the providers get, in order, the prefetches marked.
  */
-const meta = { title: "Seq*/Streaming/Prefetch", parameters: { layout: "fullscreen" } } satisfies Meta;
+const meta = { title: 'Seq*/Streaming/Prefetch', parameters: { layout: 'fullscreen' } } satisfies Meta;
 export default meta;
 type Story = StoryObj<{ prefetch: boolean }>;
 
@@ -38,7 +38,7 @@ const [first] = PREFETCH_SNAPSHOTS;
 function Log({ log }: { log: AskedLog }) {
   const entries = useSyncExternalStore(log.subscribe, log.snapshot);
   const shown = entries.slice(-80).reverse();
-  const ahead = entries.filter((e) => e.priority === "prefetch").length;
+  const ahead = entries.filter((e) => e.priority === 'prefetch').length;
   return (
     <div className={f.stack}>
       <div className={f.row}>
@@ -60,11 +60,11 @@ function Log({ log }: { log: AskedLog }) {
           </thead>
           <tbody>
             {shown.map((e) => (
-              <tr key={e.n} style={e.priority === "prefetch" ? { fontWeight: 600 } : undefined}>
+              <tr key={e.n} style={e.priority === 'prefetch' ? { fontWeight: 600 } : undefined}>
                 <td className={f.mono}>{e.n}</td>
-                <td>{e.priority === "prefetch" ? "prefetch ›" : e.priority}</td>
+                <td>{e.priority === 'prefetch' ? 'prefetch ›' : e.priority}</td>
                 <td>{e.source}</td>
-                <td className={f.mono}>{e.level < 0 ? "data" : e.level}</td>
+                <td className={f.mono}>{e.level < 0 ? 'data' : e.level}</td>
                 <td className={f.mono}>
                   {mb(e.start)}–{mb(e.stop)}
                 </td>
@@ -82,7 +82,7 @@ function Panel({ prefetch }: { prefetch: boolean }) {
   const { context: ctx } = useSeqViewer();
   const vp = () => ctx.viewports.get(PREFETCH_SECTION);
   useEffect(() => ctx.config.set(SeqViewerConfig.Stream.Prefetch, prefetch), [ctx, prefetch]);
-  const pan = (px: number) => vp()?.panBy(px, 0, "api");
+  const pan = (px: number) => vp()?.panBy(px, 0, 'api');
   const zoom = (k: number) => {
     const v = ctx.layout.axis(PREFETCH_SECTION);
     const [a, b] = [v?.visLo[0] ?? 0, v?.visHi[0] ?? 0];
@@ -117,7 +117,7 @@ function Card({ prefetch }: { prefetch: boolean }) {
   const doc = useMemo(prefetchDoc, []);
   const options = useMemo(() => ({ loaders: prefetchLoaders(log) }), [log]);
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(280px, 1fr)", gap: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)', gap: 16 }}>
       <ViewerCard doc={doc} options={options} label="A 20 Mb chromosome, three snapshots">
         <Panel prefetch={prefetch} />
       </ViewerCard>
@@ -130,10 +130,10 @@ function Card({ prefetch }: { prefetch: boolean }) {
 }
 
 export const Ahead: Story = {
-  name: "Requests ahead of the view",
+  name: 'Requests ahead of the view',
   args: { prefetch: true },
   argTypes: {
-    prefetch: { control: "boolean", description: "`Stream.Prefetch`: off, only the view's and the margin's are asked" },
+    prefetch: { control: 'boolean', description: "`Stream.Prefetch`: off, only the view's and the margin's are asked" },
   },
   render: (args) => (
     <PrismPage

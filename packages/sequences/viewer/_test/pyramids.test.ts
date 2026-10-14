@@ -11,9 +11,9 @@
 // their plurality class per device column, a `mean` theme's by the mean value, at three zooms; past 255 classes no
 // folding; a dense rowless layer colored per position; items counted once at their center as points.
 
-import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
-import { describe, expect, it } from "vitest";
-import { type Features, type PerPosition, positionKey, rowValues } from "../src/prepare.js";
+import { createSeqViewSpec, translate } from '@molstar/seq-core/builder';
+import { describe, expect, it } from 'vitest';
+import { type Features, type PerPosition, positionKey, rowValues } from '../src/prepare.js';
 import {
   binClass,
   binCounts,
@@ -27,10 +27,10 @@ import {
   prefixReach,
   segWindow,
   valuePyramid,
-} from "../src/pyramids.js";
+} from '../src/pyramids.js';
 
-import { type CellColoring, cellClasses, densityOn, ItemDensity } from "../src/reductions.js";
-import { layer, opened, preparedRenderers } from "./layout-fixtures.js";
+import { type CellColoring, cellClasses, densityOn, ItemDensity } from '../src/reductions.js';
+import { layer, opened, preparedRenderers } from './layout-fixtures.js';
 
 const P = { renderers: preparedRenderers() };
 
@@ -69,18 +69,18 @@ function bands(n: number, seed: number, classes = 5) {
   return out;
 }
 
-describe("segments", () => {
-  it("predecessor: the last index at or below x, lo - 1 when none", () => {
+describe('segments', () => {
+  it('predecessor: the last index at or below x, lo - 1 when none', () => {
     const a = Int32Array.from([1, 3, 3, 7]);
     expect([0, 1, 3, 4, 7, 9].map((x) => predecessor(a, 0, 4, x))).toEqual([-1, 0, 2, 2, 3, 3]);
     expect(predecessor(a, 2, 2, 5)).toBe(1);
   });
 
   it.each([
-    ["overlapping", 400, 200],
-    ["sparse, short", 40, 3],
-    ["empty", 0, 10],
-  ])("a window holds every item overlapping it (%s), from two searches", (_, n, maxLen) => {
+    ['overlapping', 400, 200],
+    ['sparse, short', 40, 3],
+    ['empty', 0, 10],
+  ])('a window holds every item overlapping it (%s), from two searches', (_, n, maxLen) => {
     const rnd = random(n + maxLen);
     const t = items(rnd, n, maxLen);
     const out = new Int32Array(2);
@@ -111,12 +111,12 @@ describe("segments", () => {
   });
 });
 
-describe("pyramids against brute force", () => {
+describe('pyramids against brute force', () => {
   const n = 5000;
   const classes = bands(n, 11);
   const rnd = random(11);
 
-  it("classes: the base is the exact plurality; a strict majority found at every level; shares a lower bound", () => {
+  it('classes: the base is the exact plurality; a strict majority found at every level; shares a lower bound', () => {
     const p = classPyramid(classes);
     expect(p.cls.length).toBe(Math.ceil(Math.log2(n / 4)) + 1);
     let strict = 0;
@@ -141,7 +141,7 @@ describe("pyramids against brute force", () => {
     expect(strict).toBeGreaterThan(100);
   });
 
-  it("classes: no fixed preference amplified (four equal classes, as nucleotides, all win at the top)", () => {
+  it('classes: no fixed preference amplified (four equal classes, as nucleotides, all win at the top)', () => {
     const r = random(5);
     const dna = Uint8Array.from({ length: 1 << 16 }, () => 1 + Math.floor(r() * 4));
     const p = classPyramid(dna);
@@ -164,7 +164,7 @@ describe("pyramids against brute force", () => {
     expect(classPyramidFrom(big.length, (s) => s < 65536)).toBeNull();
   });
 
-  it("values: min, max, sum and count per bin; NaN left out; without min and max, sums and counts alike", () => {
+  it('values: min, max, sum and count per bin; NaN left out; without min and max, sums and counts alike', () => {
     const v = Float64Array.from({ length: n }, (_, i) => (i % 97 === 0 ? Number.NaN : Math.sin(i / 50) * 10 + rnd()));
     const p = valuePyramid(v);
     const q = valuePyramid(v, false);
@@ -213,7 +213,7 @@ describe("pyramids against brute force", () => {
       }
   });
 
-  it("the level for a column: the widest bin not wider; none below the base", () => {
+  it('the level for a column: the widest bin not wider; none below the base', () => {
     expect([levelFor(3, 10), levelFor(4, 10), levelFor(1000, 10), levelFor(1e9, 10), levelFor(100, 10, 6)]).toEqual([
       -1, 2, 9, 11, 6,
     ]);
@@ -257,19 +257,19 @@ function coloring(cls: Uint8Array, colors: (c: number) => number, alpha = (_c: n
   };
 }
 
-describe("reductions by theme kind (K1a, the headless half)", () => {
+describe('reductions by theme kind (K1a, the headless half)', () => {
   const n = 40_000;
   const cls = bands(n, 21, 6);
   const PALETTE = [0, 0xe41a1c, 0x377eb8, 0x4daf4a, 0x984ea3, 0xff7f00, 0xffff33];
 
-  it("classes: per device column the plurality class of its bins, as brute force, at three zooms", () => {
+  it('classes: per device column the plurality class of its bins, as brute force, at three zooms', () => {
     const c = cellClasses(
       coloring(cls, (k) => PALETTE[k]),
       0,
       0,
       n,
     );
-    if (!c) throw new Error("no classes");
+    if (!c) throw new Error('no classes');
     expect(c.count).toBe(6);
     const out = new Float64Array(1);
     for (const per of [6, 40, 300]) {
@@ -296,7 +296,7 @@ describe("reductions by theme kind (K1a, the headless half)", () => {
     }
   });
 
-  it("mean: per device column palette(mean) from the sums and counts, exactly as brute force, at three zooms", () => {
+  it('mean: per device column palette(mean) from the sums and counts, exactly as brute force, at three zooms', () => {
     const rnd = random(4);
     const v = Float64Array.from({ length: n }, (_, i) => (i % 31 === 0 ? Number.NaN : i / n + 0.05 * rnd()));
     const p = valuePyramid(v, false);
@@ -314,7 +314,7 @@ describe("reductions by theme kind (K1a, the headless half)", () => {
     }
   });
 
-  it("past 255 (color, alpha) classes a block has none (the raw path), never one class for the rest", () => {
+  it('past 255 (color, alpha) classes a block has none (the raw path), never one class for the rest', () => {
     const many = Uint16Array.from({ length: 3000 }, (_, i) => 1 + (i % 300));
     const at = (k: number) => 0x010101 * k;
     const c300: CellColoring = { color: (_b, i) => at(many[i]), alpha: () => 255, key: () => -1 };
@@ -343,15 +343,15 @@ describe("reductions by theme kind (K1a, the headless half)", () => {
   });
 
   it("a dense rowless color layer: every position its own key, so its cells take every value's color", async () => {
-    const b = createSeqViewSpec({ title: "GC" });
+    const b = createSeqViewSpec({ title: 'GC' });
     const length = 20_000;
-    const dna = Array.from({ length }, (_, i) => "ACGT"[(i * 7) % 4]).join("");
-    const a = b.data.sequence({ ref: "a", alphabet: "dna", value: dna });
+    const dna = Array.from({ length }, (_, i) => 'ACGT'[(i * 7) % 4]).join('');
+    const a = b.data.sequence({ ref: 'a', alphabet: 'dna', value: dna });
     const value = Float64Array.from({ length }, (_, i) => i / length);
-    const gc = b.data.annotation({ ref: "gc", geometry: "values", target: a, value: { value } });
-    b.view({ ref: "v", label: "V" }).block({ sequence: a }).track({ label: "GC" }).color({ data: gc });
+    const gc = b.data.annotation({ ref: 'gc', geometry: 'values', target: a, value: { value } });
+    b.view({ ref: 'v', label: 'V' }).block({ sequence: a }).track({ label: 'GC' }).color({ data: gc });
     const t = await opened(b.getDocument(), P);
-    const s = layer(t.ctx, "GC").state as PerPosition;
+    const s = layer(t.ctx, 'GC').state as PerPosition;
     expect([s.row[0], s.value[0]?.length, s.pyramid[0]?.sum.length]).toEqual([null, length, 14]);
     const values = s.value[0] as Float64Array;
     // A theme by value in ten colors (a `classes` theme over values): keys never stand for a value.
@@ -370,7 +370,7 @@ describe("reductions by theme kind (K1a, the headless half)", () => {
     // And a `mean` theme: the column means rise along the block.
     const out = new Float64Array(4);
     const pyr = s.pyramid[0];
-    if (!pyr) throw new Error("no pyramid");
+    if (!pyr) throw new Error('no pyramid');
     const means = [0, 1, 2, 3].map((q) => {
       binValues(pyr, 10, q * 4, q * 4 + 4, out);
       return out[2] / out[3];
@@ -380,47 +380,47 @@ describe("reductions by theme kind (K1a, the headless half)", () => {
   });
 
   it("rowValues: a `mean` theme over a row field reads each covering row's value", async () => {
-    const b = createSeqViewSpec({ title: "Scores" });
-    const a = b.data.sequence({ ref: "a", value: "MKTAYIAKQR".repeat(10) });
+    const b = createSeqViewSpec({ title: 'Scores' });
+    const a = b.data.sequence({ ref: 'a', value: 'MKTAYIAKQR'.repeat(10) });
     const value = { start: [10, 40], stop: [20, 60], score: [0.25, 0.75] };
-    const d = b.data.annotation({ ref: "d", geometry: "ranges", target: a, value });
-    b.view({ ref: "v", label: "V" }).block({ sequence: a }).track({ label: "Scores" }).color({ data: d });
+    const d = b.data.annotation({ ref: 'd', geometry: 'ranges', target: a, value });
+    b.view({ ref: 'v', label: 'V' }).block({ sequence: a }).track({ label: 'Scores' }).color({ data: d });
     const t = await opened(b.getDocument(), P);
-    const s = layer(t.ctx, "Scores").state as PerPosition;
+    const s = layer(t.ctx, 'Scores').state as PerPosition;
     const set = t.ctx.graph.assembled.value?.set;
     const v = rowValues(s, 0, (ann, row) => Number(set?.annotations[ann]?.fields[0]?.data[row] ?? Number.NaN));
     expect([v[15], v[45], v[30]]).toEqual([0.25, 0.75, Number.NaN]);
   });
 });
 
-describe("item density", () => {
-  it("a codon-long point among 500 counts once, at its center, at every level; ranges count as coverage", async () => {
-    const b = createSeqViewSpec({ title: "Points" });
+describe('item density', () => {
+  it('a codon-long point among 500 counts once, at its center, at every level; ranges count as coverage', async () => {
+    const b = createSeqViewSpec({ title: 'Points' });
     const length = 6000;
-    const dna = Array.from({ length }, (_, i) => "ACGT"[(i * 5 + (i >> 2)) % 4]).join("");
-    const gene = b.data.sequence({ ref: "gene", alphabet: "dna", value: dna });
-    const protein = translate(b.data, { ref: "p", from: gene, cds: [[62, 3062]] });
+    const dna = Array.from({ length }, (_, i) => 'ACGT'[(i * 5 + (i >> 2)) % 4]).join('');
+    const gene = b.data.sequence({ ref: 'gene', alphabet: 'dna', value: dna });
+    const protein = translate(b.data, { ref: 'p', from: gene, cds: [[62, 3062]] });
     const at = Array.from({ length: 500 }, (_, k) => 7 + 11 * k);
     const nt = b.data.annotation({
-      ref: "nt",
-      geometry: "ranges",
+      ref: 'nt',
+      geometry: 'ranges',
       target: gene,
       value: { start: at, stop: at.map((x) => x + 1) },
     });
     // Residue 0 over [62, 65): across the bin edge at 64.
-    const aa = b.data.annotation({ ref: "aa", geometry: "ranges", target: protein, value: { start: [0], stop: [1] } });
-    b.view({ ref: "v", label: "V" })
+    const aa = b.data.annotation({ ref: 'aa', geometry: 'ranges', target: protein, value: { start: [0], stop: [1] } });
+    b.view({ ref: 'v', label: 'V' })
       .block({ sequence: gene })
-      .track({ label: "Sites" })
+      .track({ label: 'Sites' })
       .points({ data: [nt, aa] });
     const t = await opened(b.getDocument(), P);
-    const f = layer(t.ctx, "Sites").state as Features;
+    const f = layer(t.ctx, 'Sites').state as Features;
     expect(f.count).toBe(501);
     const k = Array.from(f.stop).findIndex((e, i) => e - f.start[i] === 3);
     expect([f.start[k], f.stop[k]]).toEqual([62, 65]);
     const point = new ItemDensity(f, () => 0x1f77b4, true).pyramid(0, 0, length);
     const cover = new ItemDensity(f, () => 0x1f77b4, false).pyramid(0, 0, length);
-    if (!point || !cover) throw new Error("no pyramids");
+    if (!point || !cover) throw new Error('no pyramids');
     for (const c of point.counts) expect(c.reduce((x, y) => x + y, 0)).toBe(501);
     // The codon's center, 63, in bin 0 of 64 positions; as coverage it is in bins 0 and 1.
     expect(cover.counts[0].reduce((x, y) => x + y, 0)).toBe(502);
@@ -447,7 +447,7 @@ describe("item density", () => {
     expect(new ItemDensity({ ...f, hasRows: true }, () => 0, false).pyramid(0, 0, 200)).toBeNull();
   });
 
-  it("one mode per layer: density past the threshold, items again only below 0.8 of it", () => {
+  it('one mode per layer: density past the threshold, items again only below 0.8 of it', () => {
     let on = false;
     const modes: boolean[] = [];
     for (const count of [90, 101, 95, 85, 81, 79, 95, 101]) {

@@ -8,10 +8,10 @@
 
 // The generated skill and reference: the fixed guidance plus a language's table, so a host's skill lists exactly what
 // its checker accepts.
-import { SLOT_CHAINS } from "./bind.js";
-import { SeqqlIssueCodes } from "./codes.js";
-import type { Language } from "./language.js";
-import type { ArgDef, Slot, SymbolDef, SymbolKind, Type } from "./types.js";
+import { SLOT_CHAINS } from './bind.js';
+import { SeqqlIssueCodes } from './codes.js';
+import type { Language } from './language.js';
+import type { ArgDef, Slot, SymbolDef, SymbolKind, Type } from './types.js';
 
 /** Appendix A.1: generic, naming base symbols only; `{refs}`, `{inputs}` and `{table}` are filled in. */
 export const GUIDANCE = `SEQUENCE QUERIES (SeqQL)
@@ -64,51 +64,51 @@ export interface SkillOptions {
   readonly inputs?: readonly { readonly name: string; readonly says: string }[];
 }
 
-const SLOTS: readonly Slot[] = ["position", "system", "item", "group"];
+const SLOTS: readonly Slot[] = ['position', 'system', 'item', 'group'];
 const OWNER: Record<Slot, string> = { position: "position's", system: "sequence's", item: "item's", group: "group's" };
 const SECTIONS: readonly (readonly [string, readonly SymbolKind[]])[] = [
-  ["SELECTIONS", ["generator", "macro"]],
-  ["COMBINE", ["combinator", "modifier", "filter"]],
-  ["TESTS", ["property", "core"]],
+  ['SELECTIONS', ['generator', 'macro']],
+  ['COMBINE', ['combinator', 'modifier', 'filter']],
+  ['TESTS', ['property', 'core']],
 ];
 const WIDTH = 96;
 /** EXAMPLES' first line: models copied the examples' refs (QE1a, q16 and q17). */
-const ILLUSTRATIVE = "Refs in the examples are illustrative; use the refs you were given.";
+const ILLUSTRATIVE = 'Refs in the examples are illustrative; use the refs you were given.';
 const nameOf = (s: SymbolDef) => s.alias ?? s.name;
 const takesPositional = (s: SymbolDef) => s.args.some((a) => a.positional);
-const family = (s: SymbolDef) => (/^core\.(rel|logic)\./.exec(s.name)?.[1] ?? "") as "" | "rel" | "logic";
+const family = (s: SymbolDef) => (/^core\.(rel|logic)\./.exec(s.name)?.[1] ?? '') as '' | 'rel' | 'logic';
 
 /** Words wrapped greedily at the guidance's width. */
 const wrap = (text: string) =>
   text
-    .split(" ")
+    .split(' ')
     .reduce<string[]>((lines, w) => {
       const last = lines[lines.length - 1];
       if (last !== undefined && last.length + 1 + w.length <= WIDTH) lines[lines.length - 1] = `${last} ${w}`;
       else lines.push(w);
       return lines;
     }, [])
-    .join("\n");
+    .join('\n');
 
 /** TESTS: per slot, its binders, the properties without positionals folded, the slots its chain reads on, then the
  * properties taking positionals one a line; the relations folded, other core symbols one a line, the logic folded. */
 function tests(symbols: readonly SymbolDef[], all: readonly SymbolDef[]): string[] {
   const lines: string[] = [];
   for (const slot of SLOTS) {
-    const props = symbols.filter((s) => s.kind === "property" && s.reads === slot);
+    const props = symbols.filter((s) => s.kind === 'property' && s.reads === slot);
     if (props.length === 0) continue;
     const binders = all.filter((s) => s.args.some((a) => a.binds === slot)).map(nameOf);
     const folded = props.filter((s) => !takesPositional(s)).map((s) => s.signature);
     const chain = SLOT_CHAINS[slot].slice(1).map((t) => `then its ${OWNER[t]}`);
-    const tail = chain.length > 0 ? `; ${chain.join(", ")}` : "";
-    lines.push(`${slot} (${binders.join(", ")} :where): ${folded.join(" ")}${tail}`);
+    const tail = chain.length > 0 ? `; ${chain.join(', ')}` : '';
+    lines.push(`${slot} (${binders.join(', ')} :where): ${folded.join(' ')}${tail}`);
     for (const s of props.filter(takesPositional)) lines.push(`  ${s.signature}  ${s.doc}`);
   }
-  const core = symbols.filter((s) => s.kind === "core");
+  const core = symbols.filter((s) => s.kind === 'core');
   const folded = (f: string) => core.filter((s) => family(s) === f).map((s) => s.signature);
-  lines.push(`${folded("rel").join(" ")}  a missing value fails every comparison`);
-  for (const s of core.filter((s) => family(s) === "")) lines.push(`${s.signature}  ${s.doc}`);
-  lines.push(folded("logic").join(" "));
+  lines.push(`${folded('rel').join(' ')}  a missing value fails every comparison`);
+  for (const s of core.filter((s) => family(s) === '')) lines.push(`${s.signature}  ${s.doc}`);
+  lines.push(folded('logic').join(' '));
   return lines;
 }
 
@@ -121,50 +121,50 @@ export function skillText(language: Language, opts: SkillOptions = {}): string {
     .map((e) => `${e.text}  ${e.says}`);
   const table = SECTIONS.map(([title, kinds]) => {
     const own = symbols.filter((s) => kinds.includes(s.kind));
-    return [title, ...(title === "TESTS" ? tests(own, symbols) : own.map((s) => `${s.signature}  ${s.doc}`))].join(
-      "\n",
+    return [title, ...(title === 'TESTS' ? tests(own, symbols) : own.map((s) => `${s.signature}  ${s.doc}`))].join(
+      '\n',
     );
   });
-  const inputs = (opts.inputs ?? []).map((i) => `${i.name} (${i.says})`).join(", ");
-  return GUIDANCE.replace("{refs}\n", () => (opts.refs ? `${wrap(opts.refs)}\n` : ""))
-    .replace("{inputs}\n", () => (inputs ? `${wrap(`Inputs: ${inputs}.`)}\n\n` : "\n"))
-    .replace("{table}", () => [...table, ["EXAMPLES", ILLUSTRATIVE, ...examples].join("\n")].join("\n\n"));
+  const inputs = (opts.inputs ?? []).map((i) => `${i.name} (${i.says})`).join(', ');
+  return GUIDANCE.replace('{refs}\n', () => (opts.refs ? `${wrap(opts.refs)}\n` : ''))
+    .replace('{inputs}\n', () => (inputs ? `${wrap(`Inputs: ${inputs}.`)}\n\n` : '\n'))
+    .replace('{table}', () => [...table, ['EXAMPLES', ILLUSTRATIVE, ...examples].join('\n')].join('\n\n'));
 }
 
 const TYPE: Record<string, string> = {
-  num: "number",
-  int: "whole number",
-  str: "text",
-  bool: "boolean",
-  json: "value",
-  ref: "ref",
-  label: "label",
-  query: "selection",
-  test: "test",
+  num: 'number',
+  int: 'whole number',
+  str: 'text',
+  bool: 'boolean',
+  json: 'value',
+  ref: 'ref',
+  label: 'label',
+  query: 'selection',
+  test: 'test',
 };
 const typeText = (t: Type, a?: ArgDef) =>
-  typeof t === "object"
-    ? t.enum.map((v) => `\`${v}\``).join(" \\| ")
-    : `${TYPE[t]}${a?.binds ? ` of ${a.binds === "item" ? "an" : "a"} ${a.binds}` : ""}`;
+  typeof t === 'object'
+    ? t.enum.map((v) => `\`${v}\``).join(' \\| ')
+    : `${TYPE[t]}${a?.binds ? ` of ${a.binds === 'item' ? 'an' : 'a'} ${a.binds}` : ''}`;
 
 function entry(s: SymbolDef): string {
   const binds = s.args.filter((a) => a.binds).map((a) => ` · \`:${a.name}\` binds: ${a.binds}`);
   const out = [
     `### ${nameOf(s)}`,
-    `\`${s.name}\` · ${s.kind} · result: ${typeText(s.result)}${s.reads ? ` · reads: ${s.reads}` : ""}${binds.join("")}`,
+    `\`${s.name}\` · ${s.kind} · result: ${typeText(s.result)}${s.reads ? ` · reads: ${s.reads}` : ''}${binds.join('')}`,
     `\`${s.signature}\`: ${s.doc}.`,
   ];
-  if (s.args.length > 0) out.push("", "| Argument | Type | Default | |", "|---|---|---|---|");
+  if (s.args.length > 0) out.push('', '| Argument | Type | Default | |', '|---|---|---|---|');
   for (const a of s.args) {
-    const arg = a.positional ? `\`${a.name}${a.rest ? "…" : ""}\` (positional)` : `\`:${a.name}\``;
-    const d = a.default !== undefined ? `\`${a.default}\`` : a.optional ? "none" : a.rest ? "one or more" : "required";
+    const arg = a.positional ? `\`${a.name}${a.rest ? '…' : ''}\` (positional)` : `\`:${a.name}\``;
+    const d = a.default !== undefined ? `\`${a.default}\`` : a.optional ? 'none' : a.rest ? 'one or more' : 'required';
     out.push(`| ${arg} | ${typeText(a.type, a)} | ${d} | ${a.doc} |`);
   }
-  if (s.examples.length > 0) out.push("", "Examples:");
-  for (const e of s.examples) out.push(`- \`${e.text}\`: ${e.says}${e.fixture ? ` (${e.fixture})` : ""}`);
-  if (s.hints.length > 0) out.push("", "Hints:");
-  for (const h of s.hints) out.push(`- \`${h.code}\`${h.value ? ` (${h.value})` : ""}: ${h.text}`);
-  return out.join("\n");
+  if (s.examples.length > 0) out.push('', 'Examples:');
+  for (const e of s.examples) out.push(`- \`${e.text}\`: ${e.says}${e.fixture ? ` (${e.fixture})` : ''}`);
+  if (s.hints.length > 0) out.push('', 'Hints:');
+  for (const h of s.hints) out.push(`- \`${h.code}\`${h.value ? ` (${h.value})` : ''}: ${h.text}`);
+  return out.join('\n');
 }
 
 /** The reference: every symbol's full entry in markdown, in the skill's sections, then the issue codes. */
@@ -172,9 +172,9 @@ export function referenceText(language: Language): string {
   const symbols = [...language.symbols.values()];
   const sections = SECTIONS.map(([title, kinds]) => {
     const own = symbols.filter((s) => kinds.includes(s.kind));
-    return [`## ${title[0]}${title.slice(1).toLowerCase()}`, ...own.map(entry)].join("\n\n");
+    return [`## ${title[0]}${title.slice(1).toLowerCase()}`, ...own.map(entry)].join('\n\n');
   });
-  const codes = ["## Issue codes", "", "| Code | Severity |", "|---|---|"];
+  const codes = ['## Issue codes', '', '| Code | Severity |', '|---|---|'];
   for (const c of SeqqlIssueCodes) codes.push(`| \`${c.code}\` | ${c.severity} |`);
-  return `# SeqQL reference\n\n${sections.join("\n\n")}\n\n${codes.join("\n")}\n`;
+  return `# SeqQL reference\n\n${sections.join('\n\n')}\n\n${codes.join('\n')}\n`;
 }

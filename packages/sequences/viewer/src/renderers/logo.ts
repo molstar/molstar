@@ -31,7 +31,7 @@ import {
   TextBatch,
   ThemeLocation,
   visibleRange,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 const bars = new RectBatch(256);
 const letters = new TextBatch(256);
@@ -153,7 +153,7 @@ function draw(v: DrawView, s: MatrixState, tiny: boolean) {
   letters.reset();
   if (!ax || v.geometry !== AxisGeometry.linear || s.states === 0) return;
   if (colors.length < s.states) colors = new Int32Array(2 * s.states);
-  letters.style(v.text.font("mono", PX, 600), TextAlign.left, TextBaseline.alphabetic);
+  letters.style(v.text.font('mono', PX, 600), TextAlign.left, TextBaseline.alphabetic);
   const pad = v.height >= 8 ? 2 : 0;
   frame[0] = Math.round((v.top + v.height - pad) * v.dpr);
   frame[1] = (v.height - 2 * pad) * v.dpr;
@@ -175,7 +175,7 @@ function draw(v: DrawView, s: MatrixState, tiny: boolean) {
   if (letters.n > 0) v.backend.text(letters);
 }
 
-export const LogoRenderer = kernelEntry<MatrixState>("logo", 48, {
+export const LogoRenderer = kernelEntry<MatrixState>('logo', 48, {
   minHeight: 8,
   draw: (v, s) => draw(v, s, false),
   tiny: (v, s) => draw(v, s, true),

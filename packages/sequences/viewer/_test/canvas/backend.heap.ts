@@ -21,11 +21,11 @@
 // `fillRect` or `setTransform`): the frame's sector and paths took up to 120 bytes a frame there, below what the runs
 // catch (todo.md, Costs).
 
-import { expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
-import { Pass, RectBatch, SkinToken } from "../../src/draw/api.js";
-import { drawFrame, Frame, H, PIXELS, W } from "../support/frame.js";
-import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.js";
+import { expect, it } from 'vitest';
+import { Canvas2DBackend, Canvas2DShared } from '../../src/canvas/index.js';
+import { Pass, RectBatch, SkinToken } from '../../src/draw/api.js';
+import { drawFrame, Frame, H, PIXELS, W } from '../support/frame.js';
+import { controlCaught, heapScaling, isFlat, leaking } from './heap-browser.js';
 
 const N = 1_000;
 /** The colors' run: shorter, as Chrome collects within longer ones (above). */
@@ -33,22 +33,22 @@ const COLORS_N = 100;
 
 /** The backend over a W x H canvas, and a pan's step: one frame of the shared fixture. */
 function panning() {
-  const canvas = document.createElement("canvas");
+  const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
   const shared = new Canvas2DShared({
-    font: () => "12px sans-serif",
+    font: () => '12px sans-serif',
     fontPx: () => 12,
-    token: (t) => (t === SkinToken.ink ? "#222" : "#06c"),
+    token: (t) => (t === SkinToken.ink ? '#222' : '#06c'),
     glyph: () => null,
   });
-  const be = new Canvas2DBackend([canvas.getContext("2d")], shared, 1 << Pass.main);
+  const be = new Canvas2DBackend([canvas.getContext('2d')], shared, 1 << Pass.main);
   const f = new Frame(4000, 100);
   const img = shared.fromPixels(2, 2, PIXELS);
   return { be, step: (i: number) => drawFrame(be, f, i, img) };
 }
 
-it("pans through the Canvas2D backend are flat", () => {
+it('pans through the Canvas2D backend are flat', () => {
   const r = heapScaling(N, panning().step);
   expect(isFlat(r), JSON.stringify(r)).toBe(true);
 }, 120_000);
@@ -69,6 +69,6 @@ it("a frame of 1,500 distinct colors drawn again and again is flat (each color's
   expect(isFlat(r), JSON.stringify(r)).toBe(true);
 }, 120_000);
 
-it("the same pans allocating garbage sized to the run a frame are caught (positive control)", () => {
+it('the same pans allocating garbage sized to the run a frame are caught (positive control)', () => {
   expect(controlCaught(() => heapScaling(N, leaking(panning().step, N)))).toBe(true);
 }, 120_000);

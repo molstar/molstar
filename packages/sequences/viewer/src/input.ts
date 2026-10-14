@@ -12,13 +12,13 @@
 // claims, in priority order, and what a gesture does is behaviors'. Every record is reused: a move allocates nothing,
 // and the element under the pointer is compared by `HitKey`, straight-line (IN2's hot-path design).
 
-import { type ConfigManager, SeqViewerConfig } from "./config.js";
-import { Hit, HitKey, HitRegion } from "./hit.js";
-import type { HoverManager, PointerState } from "./hover.js";
-import type { LayoutManager } from "./layout.js";
-import type { Scheduler } from "./scheduler.js";
-import { event, type SeqEvent, type SeqEventEmitter, type WritableLive } from "./state.js";
-import type { DragState } from "./ui.js";
+import { type ConfigManager, SeqViewerConfig } from './config.js';
+import { Hit, HitKey, HitRegion } from './hit.js';
+import type { HoverManager, PointerState } from './hover.js';
+import type { LayoutManager } from './layout.js';
+import type { Scheduler } from './scheduler.js';
+import { event, type SeqEvent, type SeqEventEmitter, type WritableLive } from './state.js';
+import type { DragState } from './ui.js';
 
 export const PointerType = { down: 0, move: 1, up: 2, cancel: 3 } as const;
 /** Bits of `modifiers`. */
@@ -86,7 +86,7 @@ export const Inputs = {
     overY: 0.5,
   }),
   wheel: (): WheelInput => ({ section: -1, x: 0.5, y: 0.5, deltaX: 0.5, deltaY: 0.5, modifiers: 0, time: 0.5 }),
-  key: (): KeyInput => ({ section: -1, key: "", code: "", modifiers: 0, typing: false, time: 0.5 }),
+  key: (): KeyInput => ({ section: -1, key: '', code: '', modifiers: 0, typing: false, time: 0.5 }),
 };
 
 export interface InputSink {
@@ -107,9 +107,9 @@ export interface InputSink {
 export class PointerEvt {
   input: PointerInput = Inputs.pointer();
   hit: Hit = Hit.create();
-  owner = "";
+  owner = '';
   claim(name: string) {
-    if (this.owner === "") this.owner = name;
+    if (this.owner === '') this.owner = name;
   }
 }
 export interface ClickEvt {
@@ -161,7 +161,7 @@ export interface InteractionEvents {
 }
 
 export interface Trigger {
-  readonly button?: "primary" | "secondary" | "middle";
+  readonly button?: 'primary' | 'secondary' | 'middle';
   readonly shift?: boolean;
   readonly ctrl?: boolean;
   readonly alt?: boolean;
@@ -249,7 +249,7 @@ export class InputDispatcher implements InputSink {
   private readonly clicked = new Int32Array(3).fill(-1);
   private pressed = false;
   private dragging = false;
-  private owner = "";
+  private owner = '';
   /** The pointer that pressed, and the surface it pressed on: the drag follows both. */
   private pressId = 0;
   private pressSection = -1;
@@ -354,7 +354,7 @@ export class InputDispatcher implements InputSink {
     const p = this.host.pointer.current;
     // Not during a press, and not over the keyboard's hover, which stays as it is.
     if (this.pressed || !p.inside || p.section !== section || !this.host.active()) return;
-    if (this.host.hover.live.current.owner === "keyboard") return;
+    if (this.host.hover.live.current.owner === 'keyboard') return;
     const h = this.hit;
     h.x = p.x;
     h.y = p.y;
@@ -362,7 +362,7 @@ export class InputDispatcher implements InputSink {
     p.inside = this.host.layout.hitTestAt(section, h);
     this.hitting = -1;
     this.pe.hit = h;
-    this.pe.owner = "";
+    this.pe.owner = '';
     if (!HitKey.same(h, this.last)) {
       HitKey.write(h, this.last);
       this.events.hover.emit(this.pe);
@@ -379,7 +379,7 @@ export class InputDispatcher implements InputSink {
     const p = this.host.pointer.current;
     if (section < 0) section = p.section;
     if (this.following || this.pressed || !p.inside || p.section !== section || !this.host.active()) return;
-    if (this.host.hover.live.current.owner === "keyboard") return;
+    if (this.host.hover.live.current.owner === 'keyboard') return;
     this.moving = section;
     if (this.frame < 0) this.frame = this.host.scheduler.requestFrame(this.onFrame);
   }
@@ -424,7 +424,7 @@ export class InputDispatcher implements InputSink {
     const pe = this.pe;
     pe.input = e;
     pe.hit = h;
-    pe.owner = t === PointerType.down ? "" : this.owner;
+    pe.owner = t === PointerType.down ? '' : this.owner;
     if (t === PointerType.down) {
       const s = this.de.start;
       s.x = e.x;
@@ -444,7 +444,7 @@ export class InputDispatcher implements InputSink {
     const at = this.at;
     if (t === PointerType.down) {
       this.owner = pe.owner;
-      this.still = pe.owner !== "";
+      this.still = pe.owner !== '';
       this.de.button = e.button;
       at[0] = at[2] = e.x;
       at[1] = at[3] = e.y;
@@ -458,7 +458,7 @@ export class InputDispatcher implements InputSink {
         const out = dx * dx + dy * dy > slop * slop;
         if (out) this.still = false;
         if (this.dragging) this.drag(e, DragPhase.move);
-        else if (this.owner !== "" || out) this.drag(e, DragPhase.start);
+        else if (this.owner !== '' || out) this.drag(e, DragPhase.start);
       }
     } else if (t === PointerType.up && this.pressed) {
       const slop = this.host.config.get(SeqViewerConfig.Input.DragSlopPx);
@@ -475,7 +475,7 @@ export class InputDispatcher implements InputSink {
       if (this.dragging) this.drag(e, DragPhase.end);
       if (click) this.click(e, section);
       this.pressed = this.dragging = this.still = false;
-      this.owner = "";
+      this.owner = '';
     } else if (t === PointerType.cancel) this.cancel();
   }
 
@@ -502,7 +502,7 @@ export class InputDispatcher implements InputSink {
   cancel(section?: number) {
     if (!this.pressed || (section !== undefined && section !== this.pressSection)) return;
     const d = this.de;
-    if (this.dragging && this.owner !== "") {
+    if (this.dragging && this.owner !== '') {
       d.phase = DragPhase.cancel;
       d.hit = this.hit;
       d.owner = this.owner;
@@ -511,7 +511,7 @@ export class InputDispatcher implements InputSink {
       this.host.setDrag(null);
     }
     this.pressed = this.dragging = this.still = false;
-    this.owner = "";
+    this.owner = '';
     this.last.fill(-2);
   }
 
@@ -530,11 +530,11 @@ export class InputDispatcher implements InputSink {
     d.owner = this.owner;
     if (phase === DragPhase.start) this.dragging = true;
     // An unclaimed drag does nothing: its moves and end are not emitted.
-    if (phase === DragPhase.start || d.owner !== "") this.events.drag.emit(d);
-    if (phase === DragPhase.start && d.owner !== "") {
+    if (phase === DragPhase.start || d.owner !== '') this.events.drag.emit(d);
+    if (phase === DragPhase.start && d.owner !== '') {
       this.owner = d.owner;
       this.host.setDrag({ section: d.start.section, owner: d.owner, region: d.start.region });
-    } else if (phase >= DragPhase.end && d.owner !== "") this.host.setDrag(null);
+    } else if (phase >= DragPhase.end && d.owner !== '') this.host.setDrag(null);
   }
 
   private click(e: PointerInput, section: number) {
@@ -595,11 +595,11 @@ export class InputDispatcher implements InputSink {
    * none, and "" for a keyboard's click (it has no second). Edge-rate: once per click.
    */
   askDoubleClick(c: ClickEvt): string {
-    if (this.synthetic || !this.host.active()) return "";
+    if (this.synthetic || !this.host.active()) return '';
     const q = this.dq;
     q.input = c.input;
     q.hit = c.hit;
-    q.owner = "";
+    q.owner = '';
     this.events.doubleClick.emit(q);
     return q.owner;
   }

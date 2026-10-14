@@ -3,7 +3,11 @@
 // plugin. An inline `import { type A }` is a value import too: under verbatimModuleSyntax it still loads the module.
 language js
 
-or { JsImport(), JsExport(), JsImportCallExpression() } as $imp where {
+or {
+  JsImport(),
+  JsExport(),
+  JsImportCallExpression()
+} as $imp where {
   $imp <: r"(?s).*[\"']@molstar/seq-[^\"']*[\"'].*",
   not $imp <: r"(?s)(?:import|export)\s+type\s.*",
   register_diagnostic(span=$imp, message="The builder imports @molstar/seq-* by `import type` only: copy a runtime value into src/helpers.ts, naming its twin.")

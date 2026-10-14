@@ -9,7 +9,7 @@
 // The regular expression matcher of `@molstar/seq-core/algorithms/search` (seqspec:libraries#search): a JavaScript RegExp over a
 // Latin-1 string view of the codes.
 
-import { checkWindow, type HitVisitor, type Matcher, readEnd } from "./matchers.js";
+import { checkWindow, type HitVisitor, type Matcher, readEnd } from './matchers.js';
 
 /** The most code units `String.fromCharCode` is spread over at once. */
 const CHUNK = 8192;
@@ -17,7 +17,7 @@ const CHUNK = 8192;
 /** The codes at the unrolled positions `[from, limit)` of `seq` (positions from `seq.length` on wrap) as one string. */
 function latin1(seq: Uint8Array, from: number, limit: number): string {
   const n = seq.length;
-  let out = "";
+  let out = '';
   for (let u = from; u < limit; ) {
     const stop = Math.min(limit, u < n ? n : Number.POSITIVE_INFINITY, u + CHUNK);
     const a = u >= n ? u - n : u;
@@ -87,7 +87,7 @@ function pop(h: Pending): void {
 export function regexMatcher(re: RegExp, maxLength = 64): Matcher {
   if (!Number.isInteger(maxLength) || maxLength < 1)
     throw new RangeError(`regexMatcher: maxLength must be an integer of at least 1; got ${maxLength}`);
-  const rx = new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`);
+  const rx = new RegExp(re.source, re.flags.includes('g') ? re.flags : `${re.flags}g`);
   return {
     length: maxLength,
     find(seq: Uint8Array, from: number, to: number, cyclic: boolean, visit: HitVisitor): number {

@@ -10,7 +10,7 @@
 // demo, the PTMs header lights in 1TUP exactly the residues its PTMs light one by one, in one highlight; with the link's
 // hover `maxItems` below the set's size (read before it resolves), the whole chains those PTMs touch.
 
-import type { SeqSet } from "@molstar/seq-core/model";
+import type { SeqSet } from '@molstar/seq-core/model';
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -18,17 +18,17 @@ import {
   Hit,
   HoverKind,
   manualScheduler,
-} from "@molstar/seq-viewer";
-import { StructureElement } from "molstar/lib/mol-model/structure";
-import { expect, it } from "vitest";
-import { helpers } from "../../viewer/_test/layout-fixtures.js";
-import { fixtureMeasurer } from "../../viewer/src/testing/index.js";
-import { MolstarSvsEntry, readStructure, StructureLink, structureOf } from "../src/index.js";
-import { linkViews } from "../src/viewer.js";
-import { bytesOf, demoLoaders, P53 } from "./fixtures.js";
-import { P53_TRACKS, p53DemoDoc } from "./p53-demo.js";
+} from '@molstar/seq-viewer';
+import { StructureElement } from 'molstar/lib/mol-model/structure';
+import { expect, it } from 'vitest';
+import { helpers } from '../../viewer/_test/layout-fixtures.js';
+import { fixtureMeasurer } from '../../viewer/src/testing/index.js';
+import { MolstarSvsEntry, readStructure, StructureLink, structureOf } from '../src/index.js';
+import { linkViews } from '../src/viewer.js';
+import { bytesOf, demoLoaders, P53 } from './fixtures.js';
+import { P53_TRACKS, p53DemoDoc } from './p53-demo.js';
 
-const SECTION = "main.main";
+const SECTION = 'main.main';
 
 /** The residues of a Mol* loci, as `<chain> <seq id>`. */
 function residues(loci: StructureElement.Loci | null): string[] {
@@ -54,8 +54,8 @@ async function demo(hoverOptions?: { maxItems: number }) {
   await ctx.graph.update();
   scheduler.advance(50);
   const set = ctx.graph.assembled.value?.set as SeqSet;
-  const structure = await structureOf(await readStructure(bytesOf("1tup.bcif"), "bcif"), 0, null);
-  const link = StructureLink.attach(ctx.systems, "3d", structure, set, "1tup");
+  const structure = await structureOf(await readStructure(bytesOf('1tup.bcif'), 'bcif'), 0, null);
+  const link = StructureLink.attach(ctx.systems, '3d', structure, set, '1tup');
   const lit: (StructureElement.Loci | null)[] = [];
   const unlink = linkViews(
     ctx,
@@ -74,7 +74,7 @@ async function demo(hoverOptions?: { maxItems: number }) {
   const hover = (x: number, y: number) => {
     lit.length = 0;
     ctx.layout.hitTest(SECTION, x, y, hit);
-    ctx.hover.setFromHit(hit, "pointer");
+    ctx.hover.setFromHit(hit, 'pointer');
     return [...lit];
   };
   const close = () => {
@@ -88,8 +88,8 @@ async function demo(hoverOptions?: { maxItems: number }) {
 it("a track header's hover lights in 3D exactly what its items light one by one, as one highlight", async () => {
   const { set, t, hit, hover, close } = await demo();
   const y = t.yOf(SECTION, P53_TRACKS.ptms);
-  const ptms = set.annotations.find((a) => a && set.strings.get(a.key) === "ptms");
-  if (!ptms) throw new Error("no ptms");
+  const ptms = set.annotations.find((a) => a && set.strings.get(a.key) === 'ptms');
+  if (!ptms) throw new Error('no ptms');
   // Each PTM by itself, on its item: the union of what they light in 1TUP.
   const each = new Set<string>();
   for (let r = 0; r < ptms.count; r++)
@@ -107,7 +107,7 @@ it("past the link's hover maxItems (the size read before resolving), the whole c
   const y = t.yOf(SECTION, P53_TRACKS.ptms);
   const sent = hover(10, y);
   expect(ctx.hover.size()?.items).toBeGreaterThan(1);
-  const chains = new Set(residues(sent[0]).map((r) => r.split(" ")[0]));
+  const chains = new Set(residues(sent[0]).map((r) => r.split(' ')[0]));
   const atoms = sent[0] ? StructureElement.Loci.size(sent[0]) : 0;
   // Whole chains: every residue of each chain touched, far more than the PTMs' own.
   expect(chains.size).toBeGreaterThan(0);
@@ -119,11 +119,11 @@ it("past the link's hover maxItems (the size read before resolving), the whole c
 it("a hover on a track's data draws its row band and reaches 3D as its element alone, never as the header's set", async () => {
   const { ctx, set, t, hit, hover, close } = await demo();
   // The band is on (the hoverRow behavior of the demo's viewer spec); it is a drawing, not a header's hover.
-  expect(ctx.ui.rowHover.value?.(ctx.layout.sectionIndex(SECTION))?.band).toBe("entry");
+  expect(ctx.ui.rowHover.value?.(ctx.layout.sectionIndex(SECTION))?.band).toBe('entry');
   const y = t.yOf(SECTION, P53_TRACKS.ptms);
   const header = residues(hover(10, y)[0] ?? null);
-  const ptms = set.annotations.find((a) => a && set.strings.get(a.key) === "ptms");
-  if (!ptms) throw new Error("no ptms");
+  const ptms = set.annotations.find((a) => a && set.strings.get(a.key) === 'ptms');
+  if (!ptms) throw new Error('no ptms');
   // Each PTM by itself: the item, one highlight of its own residues (none for one outside 1TUP), never the header's.
   let lit = 0;
   for (let r = 0; r < ptms.count; r++) {
@@ -140,6 +140,6 @@ it("a hover on a track's data draws its row band and reaches 3D as its element a
   // A continuous track's position: its residue in each chain, one sequence id.
   const at = hover(t.xOf(SECTION, 0, 120), t.yOf(SECTION, P53_TRACKS.hydropathy));
   expect([hit.kind, ctx.hover.live.current.header.on]).toEqual([HoverKind.seq, false]);
-  expect(new Set(residues(at.at(-1) ?? null).map((r) => r.split(" ")[1]))).toEqual(new Set(["121"]));
+  expect(new Set(residues(at.at(-1) ?? null).map((r) => r.split(' ')[1]))).toEqual(new Set(['121']));
   close();
 }, 60_000);

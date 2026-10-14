@@ -11,8 +11,8 @@
 
 /** The finished SVG as a file download: a Blob URL on a temporary link, released a little later. */
 export function downloadSvg(svg: string, name: string): void {
-  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
-  const link = Object.assign(document.createElement("a"), { href: url, download: name });
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  const link = Object.assign(document.createElement('a'), { href: url, download: name });
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }

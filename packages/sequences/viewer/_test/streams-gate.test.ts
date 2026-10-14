@@ -14,8 +14,8 @@
 // glyph themes over a field reach streamed items; `Stream.ShimmerFps` paces the shimmer (0: a still band); a failed
 // region with a coarser level drawn in its place is marked, not banded.
 
-import type { DataPatch, StreamRequest } from "@molstar/seq-core/format";
-import { describe, expect, it } from "vitest";
+import type { DataPatch, StreamRequest } from '@molstar/seq-core/format';
+import { describe, expect, it } from 'vitest';
 import {
   GRCH38,
   hg38Streams,
@@ -25,15 +25,15 @@ import {
   streamedDoc,
   VARIANT_LEVELS,
   VOCABULARY,
-} from "../../core/_test/format/stream-provider.js";
-import { SkinToken } from "../src/draw/backend.js";
-import { Dirty } from "../src/draw/composer.js";
-import { KernelRenderers, type LayerRenderer, SeqViewerConfig } from "../src/index.js";
-import type { Streams } from "../src/streams.js";
-import { composed, recording } from "./composer-fixtures.js";
-import { driven } from "./input-fixtures.js";
-import { GENOME } from "./stream-fixtures.js";
-import { progressGenome, rectsOf } from "./stream-progress-fixtures.js";
+} from '../../core/_test/format/stream-provider.js';
+import { SkinToken } from '../src/draw/backend.js';
+import { Dirty } from '../src/draw/composer.js';
+import { KernelRenderers, type LayerRenderer, SeqViewerConfig } from '../src/index.js';
+import type { Streams } from '../src/streams.js';
+import { composed, recording } from './composer-fixtures.js';
+import { driven } from './input-fixtures.js';
+import { GENOME } from './stream-fixtures.js';
+import { progressGenome, rectsOf } from './stream-progress-fixtures.js';
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const THREE = GRCH38.slice(0, 3);
@@ -45,8 +45,8 @@ function gatedVariants() {
   return scripted(
     itemsManifest(THREE, VARIANT_LEVELS, VOCABULARY.variants),
     (r: StreamRequest): DataPatch => {
-      if (r.level >= 0 || r.force || r.stop - r.start <= 4096) return sampledItems(r, KEYS, "variants", VARIANT_LEVELS);
-      const binned = sampledItems({ ...r, level: 0 }, KEYS, "variants", VARIANT_LEVELS);
+      if (r.level >= 0 || r.force || r.stop - r.start <= 4096) return sampledItems(r, KEYS, 'variants', VARIANT_LEVELS);
+      const binned = sampledItems({ ...r, level: 0 }, KEYS, 'variants', VARIANT_LEVELS);
       return { ...binned, level: 0 };
     },
     { gated: true },
@@ -57,8 +57,8 @@ async function gatedGenome(start: number, stop: number) {
   const s = hg38Streams({ chromosomes: THREE, letters: true, gated: true });
   const variants = gatedVariants();
   const loaders = {
-    load: () => Promise.reject(new Error("none")),
-    stream: (src: { stream: string | null }) => (src.stream === "variants" ? variants.provider : s.stream(src)),
+    load: () => Promise.reject(new Error('none')),
+    stream: (src: { stream: string | null }) => (src.stream === 'variants' ? variants.provider : s.stream(src)),
   };
   const t = await composed(streamedDoc({ items: true, values: false }), { width: 1000, height: 300, dpr: 2, loaders });
   t.ctx.config.set(SeqViewerConfig.Stream.MaxInFlight, 64);
@@ -77,14 +77,14 @@ async function gatedGenome(start: number, stop: number) {
 /** The variants layer's ref. */
 function variantsRef(t: Awaited<ReturnType<typeof composed>>): string {
   const m = t.ctx.graph.assembled.value?.view;
-  let ref = "";
+  let ref = '';
   for (let k = 0; m && k < m.resolved.layers.count; k++)
-    if (m.set.strings.get(m.resolved.layers.type[k]) === "variants") ref = m.set.strings.get(m.resolved.layers.ref[k]);
+    if (m.set.strings.get(m.resolved.layers.type[k]) === 'variants') ref = m.set.strings.get(m.resolved.layers.ref[k]);
   return ref;
 }
 
-describe("the zoom gate", () => {
-  it("a data request answered with bins is density; nothing finer is asked while a device px holds over 64", async () => {
+describe('the zoom gate', () => {
+  it('a data request answered with bins is density; nothing finer is asked while a device px holds over 64', async () => {
     const { t, variants, answer } = await gatedGenome(AT, AT + 400_000);
     await answer();
     expect(variants.requests.every((r) => r.level >= 0 || r.stop - r.start > 4096)).toBe(true);
@@ -94,12 +94,12 @@ describe("the zoom gate", () => {
     t.ctx.dispose();
   });
 
-  it("a gated region says to zoom in or click; forced, its part in view is asked past the gate and its items drawn", async () => {
+  it('a gated region says to zoom in or click; forced, its part in view is asked past the gate and its items drawn', async () => {
     const { t, variants, answer } = await gatedGenome(AT, AT + 400_000);
     await answer();
     const texts = (be: ReturnType<typeof recording>) => be.textItems.text.slice(0, be.textItems.n);
     const before = t.frame(recording(), Dirty.tracks);
-    expect(texts(before)).toContain("zoom in to see variants, or click to load them");
+    expect(texts(before)).toContain('zoom in to see variants, or click to load them');
     const ref = variantsRef(t);
     expect(t.ctx.streams.force(ref, 1, AT + 50_000)).toBe(true);
     expect(t.ctx.streams.force(ref, 1, AT + 50_000)).toBe(false);
@@ -115,7 +115,7 @@ describe("the zoom gate", () => {
     // Its items are drawn in the density's place (the other regions in view stay gated, hint and all).
     const be = t.frame(recording(), Dirty.tracks);
     expect(be.rectItems.n).not.toBe(before.rectItems.n);
-    expect(texts(be)).toContain("zoom in to see variants, or click to load them");
+    expect(texts(be)).toContain('zoom in to see variants, or click to load them');
     t.ctx.dispose();
   });
 
@@ -150,18 +150,18 @@ describe("the zoom gate", () => {
   });
 });
 
-describe("streamed items hovered, selected and retried", () => {
+describe('streamed items hovered, selected and retried', () => {
   async function browser(gated: boolean) {
     const s = hg38Streams({ chromosomes: THREE, letters: true, gated: true });
     const failing = { on: false };
     const t = await driven(streamedDoc({ items: true, values: false }), {
       renderers: [...KernelRenderers] as LayerRenderer[],
       loaders: {
-        load: () => Promise.reject(new Error("none")),
+        load: () => Promise.reject(new Error('none')),
         stream: (src) => {
           const p = s.stream(src);
           return (
-            p && { fetch: (r, sig) => (failing.on && r.system ? Promise.reject(new Error("503")) : p.fetch(r, sig)) }
+            p && { fetch: (r, sig) => (failing.on && r.system ? Promise.reject(new Error('503')) : p.fetch(r, sig)) }
           );
         },
       },
@@ -179,14 +179,14 @@ describe("streamed items hovered, selected and retried", () => {
     return { t, s, failing };
   }
   /** Down the data area at x to the Genes track; the hover. */
-  const onGenes = (t: Awaited<ReturnType<typeof browser>>["t"], x: number, item = false) => {
+  const onGenes = (t: Awaited<ReturnType<typeof browser>>['t'], x: number, item = false) => {
     const l = t.layout(GENOME);
     const m = t.ctx.graph.assembled.value?.view;
     const h = t.ctx.hover.live.current;
     let y = 1;
     for (; y < 300; y++) {
-      t.pointer("move", GENOME, l.dataLeft + x, y);
-      const genes = h.track >= 0 && m?.set.strings.get(m.resolved.tracks.label[h.track]) === "Genes";
+      t.pointer('move', GENOME, l.dataLeft + x, y);
+      const genes = h.track >= 0 && m?.set.strings.get(m.resolved.tracks.label[h.track]) === 'Genes';
       if (genes && (!item || h.part >= 0)) break;
     }
     return { h, l, y };
@@ -202,13 +202,13 @@ describe("streamed items hovered, selected and retried", () => {
       expect(h.span[1] - h.span[0]).toBeGreaterThan(1000);
       expect(h.index >= h.span[0] && h.index < h.span[1]).toBe(true);
       const [a, b] = [h.span[0], h.span[1]];
-      t.pointer("down", GENOME, l.dataLeft + x, y);
-      t.pointer("up", GENOME, l.dataLeft + x, y);
+      t.pointer('down', GENOME, l.dataLeft + x, y);
+      t.pointer('up', GENOME, l.dataLeft + x, y);
       // Its double click zooms: the click's selection waits for the double-click time.
       t.advance(500);
       const sel = t.ctx.selection.current.value.seq as { elements: { indices: { min?: number } }[] } | null;
       expect(sel).toBeTruthy();
-      const { OrderedSet } = await import("@molstar/seq-core/model");
+      const { OrderedSet } = await import('@molstar/seq-core/model');
       const ix = sel?.elements[0].indices as never;
       expect([OrderedSet.min(ix), OrderedSet.max(ix) + 1]).toEqual([a, b]);
     }
@@ -220,14 +220,14 @@ describe("streamed items hovered, selected and retried", () => {
     const { t, s, failing } = await browser(true);
     const { l, y } = onGenes(t, 300);
     const m = t.ctx.graph.assembled.value?.view;
-    let ref = "";
+    let ref = '';
     for (let k = 0; m && k < m.resolved.layers.count; k++)
-      if (m.set.strings.get(m.resolved.layers.type[k]) === "ranges") ref = m.set.strings.get(m.resolved.layers.ref[k]);
+      if (m.set.strings.get(m.resolved.layers.type[k]) === 'ranges') ref = m.set.strings.get(m.resolved.layers.ref[k]);
     expect(t.ctx.streams.hasFailed(ref)).toBe(true);
     failing.on = false;
     const asked = s.genes.requests.length;
-    t.pointer("down", GENOME, l.dataLeft + 300, y);
-    t.pointer("up", GENOME, l.dataLeft + 300, y);
+    t.pointer('down', GENOME, l.dataLeft + 300, y);
+    t.pointer('up', GENOME, l.dataLeft + 300, y);
     expect(t.ctx.selection.current.value.seq ?? null).toBe(null);
     (t.ctx.streams as Streams).pass();
     expect(s.genes.requests.length).toBeGreaterThan(asked);
@@ -236,13 +236,13 @@ describe("streamed items hovered, selected and retried", () => {
 });
 
 describe("glyph themes, the shimmer's pace and covered failures", () => {
-  it("a field_map over `alt` gives streamed variants their glyphs", async () => {
+  it('a field_map over `alt` gives streamed variants their glyphs', async () => {
     const doc = streamedDoc({ items: true, values: false });
     const walk = (n: { kind: string; params?: Record<string, unknown>; children?: unknown[] }) => {
-      if (n.kind === "layer" && n.params?.type === "variants")
+      if (n.kind === 'layer' && n.params?.type === 'variants')
         n.params.glyph = {
-          theme: "field_map",
-          params: { field: "alt", map: { A: "diamond", C: "square", G: "star", T: "cross" }, default: "circle" },
+          theme: 'field_map',
+          params: { field: 'alt', map: { A: 'diamond', C: 'square', G: 'star', T: 'cross' }, default: 'circle' },
         };
       for (const c of n.children ?? []) walk(c as never);
     };
@@ -252,7 +252,7 @@ describe("glyph themes, the shimmer's pace and covered failures", () => {
       width: 1000,
       height: 300,
       dpr: 2,
-      loaders: { load: () => Promise.reject(new Error("none")), stream: s.stream },
+      loaders: { load: () => Promise.reject(new Error('none')), stream: s.stream },
     });
     t.vp?.zoomTo(1, AT + 40_000, AT + 45_000);
     t.layout(GENOME);
@@ -268,7 +268,7 @@ describe("glyph themes, the shimmer's pace and covered failures", () => {
     t.ctx.dispose();
   });
 
-  it("`Stream.ShimmerFps` paces the shimmer; 0 leaves a still band and asks for no frame", async () => {
+  it('`Stream.ShimmerFps` paces the shimmer; 0 leaves a still band and asks for no frame', async () => {
     const g = await progressGenome(AT, AT + 100_000, { items: true, live: true });
     g.ctx.config.set(SeqViewerConfig.Stream.MaxInFlight, 64);
     g.m.pass();
@@ -305,13 +305,13 @@ describe("glyph themes, the shimmer's pace and covered failures", () => {
 });
 
 describe("navigation over a genome of blocks (David's JBrowse 2 report, ST4b)", () => {
-  it("a locus, the whole genome, a whole chromosome and the locus again: the locus draws as it did", async () => {
+  it('a locus, the whole genome, a whole chromosome and the locus again: the locus draws as it did', async () => {
     const s = hg38Streams({ chromosomes: THREE, letters: true });
     const variants = gatedVariants();
     variants.gated = false;
     const loaders = {
-      load: () => Promise.reject(new Error("none")),
-      stream: (src: { stream: string | null }) => (src.stream === "variants" ? variants.provider : s.stream(src)),
+      load: () => Promise.reject(new Error('none')),
+      stream: (src: { stream: string | null }) => (src.stream === 'variants' ? variants.provider : s.stream(src)),
     };
     const t = await composed(streamedDoc({ items: true, sequence: true }), {
       width: 800,
@@ -345,7 +345,7 @@ describe("navigation over a genome of blocks (David's JBrowse 2 report, ST4b)", 
     const first = await at(locus);
     expect(first.rects).toBeGreaterThan(50);
     const genome = await at(() => t.vp?.fit());
-    expect(genome.texts).toContain("zoom in to see letters");
+    expect(genome.texts).toContain('zoom in to see letters');
     await at(() => t.vp?.zoomTo(1, 0, THREE[1][1]));
     const again = await at(locus);
     expect(again).toEqual(first);

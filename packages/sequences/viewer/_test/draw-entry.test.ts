@@ -23,13 +23,13 @@ import type {
   StreamLayer,
   TreeRows,
   ValuePyramid,
-} from "@molstar/seq-viewer/draw";
-import { expect, it } from "vitest";
+} from '@molstar/seq-viewer/draw';
+import { expect, it } from 'vitest';
 
 it("a renderer's ring labels and stream are typed by `/draw`'s names", () => {
   const stream = (_s: unknown): StreamLayer | null => null;
   const ringLabels = (_s: unknown, _p: unknown, _out: RingLabelSink) => {};
-  const parts: Pick<LayerRenderer, "stream" | "ringLabels"> = { stream, ringLabels };
+  const parts: Pick<LayerRenderer, 'stream' | 'ringLabels'> = { stream, ringLabels };
   expect(parts.stream?.(null)).toBeNull();
 });
 

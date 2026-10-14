@@ -14,9 +14,9 @@
 // allocating an object each (`leaking`) must catch it. Each case loads the viewer afresh (`vi.resetModules`;
 // draws.heap.ts says why: Maglev and the module runner).
 
-import { describe, expect, it, vi } from "vitest";
-import type { LayerRenderer } from "../src/index.js";
-import { controlCaught, describeScaling, FRAME_N, FRAME_WARM, heapScaling, isFlat, leaking } from "./heap.js";
+import { describe, expect, it, vi } from 'vitest';
+import type { LayerRenderer } from '../src/index.js';
+import { controlCaught, describeScaling, FRAME_N, FRAME_WARM, heapScaling, isFlat, leaking } from './heap.js';
 
 const N = FRAME_N;
 const WARM = FRAME_WARM;
@@ -36,48 +36,48 @@ const guard = (frame: () => void) => {
 };
 /** The positive control as the kit's `heap` hook: a frame's check fails unless its leaking frame is caught. */
 const control = (frame: () => void) => {
-  if (!controlCaught(() => measure(leaking(frame)))) throw new Error("the leaking frame was not caught");
+  if (!controlCaught(() => measure(leaking(frame)))) throw new Error('the leaking frame was not caught');
 };
 
-type Case = { entry: "points" | "ranges" | "pairs" | "matrix"; doc: string; mixed?: boolean };
+type Case = { entry: 'points' | 'ranges' | 'pairs' | 'matrix'; doc: string; mixed?: boolean };
 const CASES: Case[] = [
-  { entry: "points", doc: "points, raw" },
-  { entry: "points", doc: "points, pyramid, majority" },
-  { entry: "points", doc: "points, pyramid, majority", mixed: true },
-  { entry: "ranges", doc: "ranges, raw" },
-  { entry: "ranges", doc: "ranges, pyramid" },
-  { entry: "pairs", doc: "pairs" },
-  { entry: "matrix", doc: "matrix" },
+  { entry: 'points', doc: 'points, raw' },
+  { entry: 'points', doc: 'points, pyramid, majority' },
+  { entry: 'points', doc: 'points, pyramid, majority', mixed: true },
+  { entry: 'ranges', doc: 'ranges, raw' },
+  { entry: 'ranges', doc: 'ranges, pyramid' },
+  { entry: 'pairs', doc: 'pairs' },
+  { entry: 'matrix', doc: 'matrix' },
 ];
 
 async function run(c: Case, heap = guard) {
   vi.resetModules();
-  const { KernelRenderers } = await import("../src/index.js");
-  const { rendererConformance } = await import("../src/testing/index.js");
-  const { opened } = await import("./layout-fixtures.js");
-  const fx = await import("./rn2-fixtures.js");
-  const { asText } = await import("./conformance-fixtures.js");
-  const { OrderedSet } = await import("@molstar/seq-core/model");
+  const { KernelRenderers } = await import('../src/index.js');
+  const { rendererConformance } = await import('../src/testing/index.js');
+  const { opened } = await import('./layout-fixtures.js');
+  const fx = await import('./rn2-fixtures.js');
+  const { asText } = await import('./conformance-fixtures.js');
+  const { OrderedSet } = await import('@molstar/seq-core/model');
   const make = {
-    "points, raw": () => fx.densityDoc(),
-    "points, pyramid, majority": () => fx.densityDoc({ n: 200_000, blocks: 2, items: 20_000, density: "majority" }),
-    "ranges, raw": () => fx.densityDoc({ type: "ranges", items: 6000, len: 300 }),
-    "ranges, pyramid": () => fx.densityDoc({ n: 400_000, type: "ranges", items: 20_000, len: 3000 }),
+    'points, raw': () => fx.densityDoc(),
+    'points, pyramid, majority': () => fx.densityDoc({ n: 200_000, blocks: 2, items: 20_000, density: 'majority' }),
+    'ranges, raw': () => fx.densityDoc({ type: 'ranges', items: 6000, len: 300 }),
+    'ranges, pyramid': () => fx.densityDoc({ n: 400_000, type: 'ranges', items: 20_000, len: 3000 }),
     pairs: () => fx.pairsDoc({ count: 2000 }),
     matrix: () => fx.wideMatrix(),
   }[c.doc] as () => ReturnType<typeof fx.densityDoc>;
   const small =
-    c.entry === "pairs"
+    c.entry === 'pairs'
       ? () => fx.pairsDoc({ n: 2000, count: 300 })
       : () =>
           fx.densityDoc({
             n: 2000,
             items: 300,
             blocks: c.mixed ? 2 : 1,
-            type: c.entry === "ranges" ? "ranges" : "points",
+            type: c.entry === 'ranges' ? 'ranges' : 'points',
           });
   const all =
-    c.entry === "points" || c.entry === "ranges" ? fx.withDensity(c.entry) : ([...KernelRenderers] as LayerRenderer[]);
+    c.entry === 'points' || c.entry === 'ranges' ? fx.withDensity(c.entry) : ([...KernelRenderers] as LayerRenderer[]);
   const entry = all.find((r) => r.name === c.entry) as LayerRenderer;
   fx.forced.positions = c.mixed ? [null, OrderedSet.ofRange(0, 200_000)] : null;
   try {
@@ -85,7 +85,7 @@ async function run(c: Case, heap = guard) {
       open: async ({ geometry, entry: has }) =>
         // Wrapped reads items (no pyramid there): a small document, so the text layout's lines stay few.
         (
-          await opened(geometry === "wrapped" ? asText(c.entry === "matrix" ? make() : small()) : make(), {
+          await opened(geometry === 'wrapped' ? asText(c.entry === 'matrix' ? make() : small()) : make(), {
             renderers: has ? all : all.filter((r) => r !== entry),
           })
         ).ctx,
@@ -99,29 +99,29 @@ async function run(c: Case, heap = guard) {
 
 describe("RN2's hot paths allocate nothing after warm-up", () => {
   for (const c of CASES)
-    it(`${c.entry} on ${c.doc}${c.mixed ? ", a block through its items" : ""}`, async () => {
-      const heap = (await run(c)).filter((x) => x.check === "heap");
+    it(`${c.entry} on ${c.doc}${c.mixed ? ', a block through its items' : ''}`, async () => {
+      const heap = (await run(c)).filter((x) => x.check === 'heap');
       expect(heap.length).toBeGreaterThan(0);
       expect(heap.filter((x) => !x.ok).map((x) => x.detail)).toEqual([]);
     }, 240_000);
 
-  it("points, raw, an object allocated a frame (the positive control)", async () => {
-    const heap = (await run({ entry: "points", doc: "points, raw" }, control)).filter((x) => x.check === "heap");
+  it('points, raw, an object allocated a frame (the positive control)', async () => {
+    const heap = (await run({ entry: 'points', doc: 'points, raw' }, control)).filter((x) => x.check === 'heap');
     expect(heap.length).toBeGreaterThan(0);
     expect(heap.filter((x) => !x.ok).map((x) => x.detail)).toEqual([]);
   }, 240_000);
 
-  it("pairs: the hit over a grid of fractional points beside one long pair", async () => {
+  it('pairs: the hit over a grid of fractional points beside one long pair', async () => {
     vi.resetModules();
-    const { KernelRenderers, Hit } = await import("../src/index.js");
-    const { opened } = await import("./layout-fixtures.js");
-    const { layerOf, entryOf } = await import("./draw-fixtures.js");
-    const { pairsDoc } = await import("./rn2-fixtures.js");
+    const { KernelRenderers, Hit } = await import('../src/index.js');
+    const { opened } = await import('./layout-fixtures.js');
+    const { layerOf, entryOf } = await import('./draw-fixtures.js');
+    const { pairsDoc } = await import('./rn2-fixtures.js');
     const t = await opened(pairsDoc(), { renderers: [...KernelRenderers] as LayerRenderer[] });
-    const { section } = layerOf(t.ctx, "Contacts");
-    t.ctx.viewports.get(section)?.setView(4, 4 * 15_000, "api");
+    const { section } = layerOf(t.ctx, 'Contacts');
+    t.ctx.viewports.get(section)?.setView(4, 4 * 15_000, 'api');
     await t.ctx.graph.update();
-    const e = entryOf(t.ctx, "Contacts");
+    const e = entryOf(t.ctx, 'Contacts');
     const h = Hit.create();
     const xs = Float64Array.from({ length: 64 }, (_, i) => e.left + 3.3 + i * ((e.right - e.left - 8) / 64));
     const ys = Float64Array.from({ length: 8 }, (_, i) => e.top + 0.7 + i * (e.height / 8));
@@ -133,17 +133,17 @@ describe("RN2's hot paths allocate nothing after warm-up", () => {
 
   it("pairs: the overlay's lit pairs through the channels' runs and the end index", async () => {
     vi.resetModules();
-    const { KernelRenderers } = await import("../src/index.js");
-    const { litPairs, MarkBit } = await import("../src/draw/api.js");
-    const { MarkSet } = await import("../src/marks.js");
-    const { opened } = await import("./layout-fixtures.js");
-    const { layerOf } = await import("./draw-fixtures.js");
-    const { pairsDoc } = await import("./rn2-fixtures.js");
+    const { KernelRenderers } = await import('../src/index.js');
+    const { litPairs, MarkBit } = await import('../src/draw/api.js');
+    const { MarkSet } = await import('../src/marks.js');
+    const { opened } = await import('./layout-fixtures.js');
+    const { layerOf } = await import('./draw-fixtures.js');
+    const { pairsDoc } = await import('./rn2-fixtures.js');
     const t = await opened(pairsDoc(), { renderers: [...KernelRenderers] as LayerRenderer[] });
-    const { k, section } = layerOf(t.ctx, "Contacts");
+    const { k, section } = layerOf(t.ctx, 'Contacts');
     const st = t.ctx.graph.assembled.value?.view?.prepared[k].state as never;
     const v = t.ctx.layout.axis(section);
-    if (!v) throw new Error("no axis");
+    if (!v) throw new Error('no axis');
     const set = new MarkSet();
     set.reset(1);
     set.begin(0);

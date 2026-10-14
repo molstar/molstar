@@ -12,11 +12,11 @@
 // (the corners beyond them the ground), a chromosome's outline, and a hairline across a block without bands. At 1 and 2
 // device px per CSS px.
 
-import { afterEach, describe, expect, it } from "vitest";
-import type { SectionAxisView } from "../../src/axis.js";
-import { type CytoBands, ideogramNavigator } from "../../src/index.js";
-import { blocksDoc } from "../axis-fixtures.js";
-import { canvasesOf, close, type Opened, opened, pixelsOf, settle } from "./open.js";
+import { afterEach, describe, expect, it } from 'vitest';
+import type { SectionAxisView } from '../../src/axis.js';
+import { type CytoBands, ideogramNavigator } from '../../src/index.js';
+import { blocksDoc } from '../axis-fixtures.js';
+import { canvasesOf, close, type Opened, opened, pixelsOf, settle } from './open.js';
 
 let t: Opened | null = null;
 afterEach(() => {
@@ -25,17 +25,17 @@ afterEach(() => {
 });
 
 const SKIN =
-  "--seq-surface:rgb(0 255 0);--seq-surface-alt:rgb(255 255 0);--seq-ink:rgb(0 0 0);--seq-ink-quiet:rgb(50 50 50);" +
-  "--seq-ink-faint:rgb(200 200 200);--seq-grip:rgb(255 0 0);--seq-grip-hover:rgb(0 0 255)";
+  '--seq-surface:rgb(0 255 0);--seq-surface-alt:rgb(255 255 0);--seq-ink:rgb(0 0 0);--seq-ink-quiet:rgb(50 50 50);' +
+  '--seq-ink-faint:rgb(200 200 200);--seq-grip:rgb(255 0 0);--seq-grip-hover:rgb(0 0 255)';
 const BANDS: CytoBands = {
   c0: [
-    [0, 100, "p2", "gneg"],
-    [100, 180, "p1", "gpos50"],
-    [180, 220, "p11", "acen"],
-    [220, 260, "q11", "acen"],
-    [260, 400, "q1", "gpos100"],
+    [0, 100, 'p2', 'gneg'],
+    [100, 180, 'p1', 'gpos50'],
+    [180, 220, 'p11', 'acen'],
+    [220, 260, 'q11', 'acen'],
+    [260, 400, 'q1', 'gpos100'],
   ],
-  c1: [[0, 400, "p1", "gneg"]],
+  c1: [[0, 400, 'p1', 'gneg']],
 };
 
 async function mount(dpr: number) {
@@ -47,11 +47,11 @@ async function mount(dpr: number) {
     registry: [
       {
         navigators: [ideogramNavigator(BANDS)],
-        presets: [{ name: "karyo", geometry: "linear", render: {}, navigator: "ideogram" }],
+        presets: [{ name: 'karyo', geometry: 'linear', render: {}, navigator: 'ideogram' }],
       },
     ],
   });
-  t.ctx.ui.setStyle(t.section, "karyo");
+  t.ctx.ui.setStyle(t.section, 'karyo');
   await t.ctx.graph.update();
   settle(t);
   return t;
@@ -72,14 +72,14 @@ describe("the ideogram navigator's pixels", () => {
       };
       const near = (a: number[], b: number[], tol = 2) => a.every((c, k) => Math.abs(c - b[k]) <= tol);
       // The strip is 14 px in the 24 px row, from y 5; its middle is y 12.
-      expect(near(at(0, 50, 12), [0, 255, 0, 255]), "negative band: the ground").toBe(true);
-      expect(near(at(0, 140, 12), [0, 143, 0, 255]), "gpos50: ink at 112/255 over the ground").toBe(true);
-      expect(near(at(0, 330, 12), [0, 19, 0, 255]), "gpos100: ink at 236/255").toBe(true);
+      expect(near(at(0, 50, 12), [0, 255, 0, 255]), 'negative band: the ground').toBe(true);
+      expect(near(at(0, 140, 12), [0, 143, 0, 255]), 'gpos50: ink at 112/255 over the ground').toBe(true);
+      expect(near(at(0, 330, 12), [0, 19, 0, 255]), 'gpos100: ink at 236/255').toBe(true);
       expect(near(at(0, 182, 12), [181, 72, 63, 255]), "the short arm's triangle near its base").toBe(true);
       expect(near(at(0, 218, 6), [0, 255, 0, 255]), "beyond the triangle's slope: the ground").toBe(true);
       expect(near(at(0, 238, 12), [181, 72, 63, 255]), "the long arm's triangle near its base").toBe(true);
       // The hairline is the strip's middle device row(s).
-      expect(near(at(2, 200, dpr === 1 ? 11 : 11.5), [200, 200, 200, 255]), "a block without bands: a hairline").toBe(
+      expect(near(at(2, 200, dpr === 1 ? 11 : 11.5), [200, 200, 200, 255]), 'a block without bands: a hairline').toBe(
         true,
       );
     });

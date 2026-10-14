@@ -34,41 +34,41 @@ import {
   type SectorBatch,
   SHAPE_COUNT,
   type TextBatch,
-} from "../draw/backend.js";
-import { ColorGroups } from "../draw/group.js";
+} from '../draw/backend.js';
+import { ColorGroups } from '../draw/group.js';
 
 export type Paint2D = Pick<
   CanvasRenderingContext2D,
-  | "fillStyle"
-  | "strokeStyle"
-  | "globalAlpha"
-  | "lineWidth"
-  | "font"
-  | "textAlign"
-  | "textBaseline"
-  | "imageSmoothingEnabled"
-  | "setTransform"
-  | "clearRect"
-  | "beginPath"
-  | "closePath"
-  | "rect"
-  | "moveTo"
-  | "lineTo"
-  | "quadraticCurveTo"
-  | "bezierCurveTo"
-  | "arc"
-  | "arcTo"
-  | "fill"
-  | "stroke"
-  | "clip"
-  | "save"
-  | "restore"
-  | "fillText"
-  | "drawImage"
+  | 'fillStyle'
+  | 'strokeStyle'
+  | 'globalAlpha'
+  | 'lineWidth'
+  | 'font'
+  | 'textAlign'
+  | 'textBaseline'
+  | 'imageSmoothingEnabled'
+  | 'setTransform'
+  | 'clearRect'
+  | 'beginPath'
+  | 'closePath'
+  | 'rect'
+  | 'moveTo'
+  | 'lineTo'
+  | 'quadraticCurveTo'
+  | 'bezierCurveTo'
+  | 'arc'
+  | 'arcTo'
+  | 'fill'
+  | 'stroke'
+  | 'clip'
+  | 'save'
+  | 'restore'
+  | 'fillText'
+  | 'drawImage'
 > & { readonly canvas: HTMLCanvasElement | OffscreenCanvas };
 
-const ALIGN: CanvasTextAlign[] = ["left", "center", "right"];
-const BASELINE: CanvasTextBaseline[] = ["alphabetic", "middle", "top", "bottom"];
+const ALIGN: CanvasTextAlign[] = ['left', 'center', 'right'];
+const BASELINE: CanvasTextBaseline[] = ['alphabetic', 'middle', 'top', 'bottom'];
 const ALPHA = Float64Array.from({ length: 256 }, (_, i) => i / 255);
 
 /**
@@ -82,7 +82,7 @@ function css(c: number): string {
   let s = cssText.get(c);
   if (s === undefined) {
     if (cssText.size >= CSS_MAX) cssText.clear();
-    s = `#${c.toString(16).padStart(6, "0")}`;
+    s = `#${c.toString(16).padStart(6, '0')}`;
     cssText.set(c, s);
   }
   return s;
@@ -90,7 +90,7 @@ function css(c: number): string {
 
 const surface = (w: number, h: number) => {
   const c = new OffscreenCanvas(Math.max(1, w), Math.max(1, h));
-  return { c, g: c.getContext("2d") as OffscreenCanvasRenderingContext2D };
+  return { c, g: c.getContext('2d') as OffscreenCanvasRenderingContext2D };
 };
 
 export interface SharedOptions {
@@ -147,7 +147,7 @@ export class Canvas2DShared implements BackendImages {
     return l.b;
   }
   endLayer(): number {
-    const l = this.layer as NonNullable<Canvas2DShared["layer"]>;
+    const l = this.layer as NonNullable<Canvas2DShared['layer']>;
     l.b.endPass();
     return this.keep(l.c.transferToImageBitmap());
   }
@@ -166,7 +166,7 @@ export class Canvas2DShared implements BackendImages {
         this.glyphPaths.push(null);
         this.glyphRecs.push(null);
       }
-      this.glyphPaths[id] = p = new Path2D(rec.path ?? "");
+      this.glyphPaths[id] = p = new Path2D(rec.path ?? '');
       this.glyphRecs[id] = rec;
     }
     return p;
@@ -200,7 +200,7 @@ export class Canvas2DBackend implements RenderBackend {
   private strokeC = UNSET;
   private alphaV = -1;
   private widthV = -1;
-  private fontV = "";
+  private fontV = '';
   private alignV = -1;
   private baseV = -1;
   private smoothV = -1;
@@ -579,7 +579,7 @@ export class Canvas2DBackend implements RenderBackend {
   private unknown(): void {
     this.fillC = this.strokeC = UNSET;
     this.alphaV = this.widthV = this.alignV = this.baseV = this.smoothV = -1;
-    this.fontV = "";
+    this.fontV = '';
   }
 }
 
@@ -634,7 +634,7 @@ export class GlyphAtlas {
   private readonly fonts: (() => number) | null;
   private fontsAt = -1;
   /** Per token (by -token), the color its cells were made in: another drops the atlas. */
-  private readonly tokens: string[] = new Array<string>(32).fill("");
+  private readonly tokens: string[] = new Array<string>(32).fill('');
   private readonly pages: ({ c: OffscreenCanvas; g: OffscreenCanvasRenderingContext2D } | null)[] = [];
   /** Per page: its slots' side (0: free), slots used and the batch it was last drawn in. */
   private readonly side = new Int32Array(PAGES);
@@ -699,7 +699,7 @@ export class GlyphAtlas {
     const css = this.res.token(c);
     const t = -c & 31;
     if (this.tokens[t] === css) return;
-    if (this.tokens[t] !== "") this.drop();
+    if (this.tokens[t] !== '') this.drop();
     this.tokens[t] = css;
   }
   /**
@@ -785,7 +785,7 @@ export class GlyphAtlas {
       // Rasterized on the CPU: a GPU page drawn into the back targets left their translucent pixels 1 to 3 apart
       // between two surfaces of one document (the composer's copy test), a GPU or CPU raster chosen by history.
       const c = new OffscreenCanvas(PAGE, PAGE);
-      const g = c.getContext("2d", { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+      const g = c.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
       this.pages[p] = pg = { c, g };
     }
     const slot = this.used[p]++;

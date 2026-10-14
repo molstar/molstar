@@ -11,7 +11,7 @@
 // closure index over the span maps of shown placements and links (seqspec:interaction#channels), built
 // once at resolve from placements and links, never from hover, selection or layout.
 
-import { type ComposedPath, type CoordinateSystem, Coords, Mappings, type SeqSet } from "@molstar/seq-core/model";
+import { type ComposedPath, type CoordinateSystem, Coords, Mappings, type SeqSet } from '@molstar/seq-core/model';
 
 /** The section's layout coordinate system, which the model does not have: a block's shown positions, from 0. */
 const LAYOUT: CoordinateSystem = { kind: -1, id: -1, row: -1 };

@@ -8,14 +8,14 @@
 
 // Query issues (seqspec:seqql#errors): making them, rendering them for a person or the agent, and the did-you-mean of
 // unknown names.
-import { seqqlSeverity } from "./codes.js";
-import type { QueryIssue } from "./types.js";
+import { seqqlSeverity } from './codes.js';
+import type { QueryIssue } from './types.js';
 
-export type QueryIssuePlace = Partial<Pick<QueryIssue, "path" | "at" | "open" | "signature" | "known">>;
+export type QueryIssuePlace = Partial<Pick<QueryIssue, 'path' | 'at' | 'open' | 'signature' | 'known'>>;
 
 /** An issue, its severity the code's registered one (`SeqqlIssueCodes`). */
 export function queryIssue(code: string, message: string, place: QueryIssuePlace = {}): QueryIssue {
-  const { path = "", at = null, open = null, signature = null, known } = place;
+  const { path = '', at = null, open = null, signature = null, known } = place;
   const p = (x: { line: number; column: number } | null) => x && { line: x.line, column: x.column };
   const severity = seqqlSeverity(code);
   return { code, severity, path, message, at: p(at), open: p(open), signature, ...(known ? { known } : {}) };
@@ -23,8 +23,8 @@ export function queryIssue(code: string, message: string, place: QueryIssuePlace
 
 /** One line, `line:column code: message`, then the signature, indented, when there is one. */
 export function renderIssue(issue: QueryIssue): string {
-  const at = issue.at ? `${issue.at.line}:${issue.at.column} ` : "";
-  return `${at}${issue.code}: ${issue.message}${issue.signature ? `\n  ${issue.signature}` : ""}`;
+  const at = issue.at ? `${issue.at.line}:${issue.at.column} ` : '';
+  return `${at}${issue.code}: ${issue.message}${issue.signature ? `\n  ${issue.signature}` : ''}`;
 }
 
 /** Optimal-string-alignment distance: Damerau–Levenshtein with adjacent swaps. */

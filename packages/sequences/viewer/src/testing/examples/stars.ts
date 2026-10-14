@@ -13,8 +13,8 @@
 // through `mark`, colored by its color channel; hits its stars; lists its colors and a size sample; rings the hovered
 // star in one call (`ringItem`, the hover emphasis: seqspec:interaction#hover).
 
-import type { FieldProviderEntry, SvsRegistryEntry } from "@molstar/seq-core/format";
-import { int, numberColumn, OptionalField, SimpleParamsSchema } from "@molstar/seq-core/format";
+import type { FieldProviderEntry, SvsRegistryEntry } from '@molstar/seq-core/format';
+import { int, numberColumn, OptionalField, SimpleParamsSchema } from '@molstar/seq-core/format';
 import {
   type AxisView,
   type DrawView,
@@ -31,15 +31,15 @@ import {
   ringItem,
   SizeUnit,
   ThemeLocation,
-} from "../../draw/api.js";
+} from '../../draw/api.js';
 
-const NS = "org.example";
+const NS = 'org.example';
 export const AffinityField: FieldProviderEntry = {
   name: `${NS}:affinity`,
-  type: "number",
+  type: 'number',
   applies: (a) => NS in a.custom.doc,
   read(a, out, strings) {
-    const kd = a.fields.find((f) => f.name === strings.find("kd_nm") && f.kind === "number");
+    const kd = a.fields.find((f) => f.name === strings.find('kd_nm') && f.kind === 'number');
     for (let r = 0; kd && r < a.count; r++) out[r] = 9 - Math.log10(kd.data[r] as number);
   },
 };
@@ -48,13 +48,13 @@ export const StarsFormat: SvsRegistryEntry = {
   layerTypes: [
     {
       name: `${NS}:stars`,
-      options: SimpleParamsSchema({ star_points: OptionalField(int, 5, "the points of each star") }),
-      accepts: ["ranges"],
-      layouts: ["tracks", "text"],
-      axes: ["blocks"],
-      sizing: "free",
-      fallback: "points",
-      channels: [{ name: "color", kind: "color", unit: null, default: null }],
+      options: SimpleParamsSchema({ star_points: OptionalField(int, 5, 'the points of each star') }),
+      accepts: ['ranges'],
+      layouts: ['tracks', 'text'],
+      axes: ['blocks'],
+      sizing: 'free',
+      fallback: 'points',
+      channels: [{ name: 'color', kind: 'color', unit: null, default: null }],
     },
   ],
 };
@@ -72,7 +72,7 @@ const at = new Float64Array(2);
 export const StarsRenderer: LayerRenderer<Stars> = {
   name: `${NS}:stars`,
   // Drawn on the batch API, so the engine maps it onto rings too (seqspec:viewer#the-render-backend).
-  geometries: ["linear", "wrapped", "circular"],
+  geometries: ['linear', 'wrapped', 'circular'],
   stable: false,
   minHeight: 8,
   content: false,
@@ -82,14 +82,14 @@ export const StarsRenderer: LayerRenderer<Stars> = {
     const radius = new Float64Array(f.count);
     const pkd = new Float64Array(f.count);
     const item = new Int32Array(f.count);
-    let unit = "";
+    let unit = '';
     for (let k = 0; k < f.count; k++) {
       const a = input.set.annotations[f.annotation[k]];
       const v = a ? (numberColumn(a, input.set, AffinityField.name, rc.registry.svs)?.[f.row[k]] ?? 6) : 6;
       radius[k] = Math.max(3, Math.min(10, v - 3));
       pkd[k] = v;
       item[k] = a ? a.item[f.row[k]] : -1;
-      unit ||= String((a?.custom.doc[NS] as { unit?: string } | undefined)?.unit ?? "");
+      unit ||= String((a?.custom.doc[NS] as { unit?: string } | undefined)?.unit ?? '');
     }
     return { ...f, radius, pkd, item, unit };
   },
@@ -143,7 +143,7 @@ export const StarsRenderer: LayerRenderer<Stars> = {
   label(h, _lc, out, s) {
     for (let k = 0; k < s.count; k++)
       if (s.annotation[k] === h.item.annotation && s.item[k] === h.item.item) {
-        out.line("affinity", `${s.pkd[k].toFixed(1)} ${s.unit}`);
+        out.line('affinity', `${s.pkd[k].toFixed(1)} ${s.unit}`);
         return;
       }
   },

@@ -19,9 +19,9 @@
 // through the engine's ring map and its sectors and glyphs hit back as above; one that does not is drawn as bars by the
 // composer, which says so once per layer (`svs.render.fallback`).
 
-import { Lanes } from "@molstar/seq-core/format";
-import { Annotations } from "@molstar/seq-core/model";
-import type { SeqViewerContext } from "../context.js";
+import { Lanes } from '@molstar/seq-core/format';
+import { Annotations } from '@molstar/seq-core/model';
+import type { SeqViewerContext } from '../context.js';
 import {
   type Axis,
   AxisGeometry,
@@ -42,18 +42,18 @@ import {
   SkinToken,
   TextAlign,
   type TextBatch,
-} from "../draw/api.js";
-import { Dirty, SectionComposer } from "../draw/composer.js";
-import { Miniature } from "../draw/miniature.js";
-import { drawResources } from "../draw/resources.js";
-import { RingBackend } from "../draw/ring.js";
-import type { Skin } from "../graph.js";
-import { EntryKind, entryBorder, facingOf, SectionLayouts } from "../layout.js";
-import { Ring } from "../ring.js";
-import { lanesInView } from "../streams.js";
-import { SvgBackend } from "../svg/backend.js";
-import { type EdgeKind, EdgeKinds } from "./edges.js";
-import { Op, RecordingBackend } from "./recording.js";
+} from '../draw/api.js';
+import { Dirty, SectionComposer } from '../draw/composer.js';
+import { Miniature } from '../draw/miniature.js';
+import { drawResources } from '../draw/resources.js';
+import { RingBackend } from '../draw/ring.js';
+import type { Skin } from '../graph.js';
+import { EntryKind, entryBorder, facingOf, SectionLayouts } from '../layout.js';
+import { Ring } from '../ring.js';
+import { lanesInView } from '../streams.js';
+import { SvgBackend } from '../svg/backend.js';
+import { type EdgeKind, EdgeKinds } from './edges.js';
+import { Op, RecordingBackend } from './recording.js';
 
 export interface ConformanceFixtures {
   /**
@@ -62,7 +62,7 @@ export interface ConformanceFixtures {
    */
   open(o: {
     /** `circular`: every section on rings (`style: "circular"`). */
-    readonly geometry: "linear" | "wrapped" | "circular";
+    readonly geometry: 'linear' | 'wrapped' | 'circular';
     readonly entry: boolean;
     readonly direction?: 1 | -1;
     /** The document in an edge geometry (`edgeDocument`; asked only with `edges`, linear, with the entry). */
@@ -102,13 +102,13 @@ export interface ConformanceFixtures {
    * Whether a drawn element hits an item of the layer's data, for every geometry or per geometry (default: when the
    * entry has its own `hit`).
    */
-  readonly items?: boolean | Readonly<Partial<Record<"linear" | "wrapped" | "circular", boolean>>>;
+  readonly items?: boolean | Readonly<Partial<Record<'linear' | 'wrapped' | 'circular', boolean>>>;
 }
 /** The kit's zooms, linear: the fit, √(16·fit) and 16 px a position. */
-export type ConformanceZoom = "fit" | "middle" | "close";
-const ZOOMS: readonly ConformanceZoom[] = ["fit", "middle", "close"];
+export type ConformanceZoom = 'fit' | 'middle' | 'close';
+const ZOOMS: readonly ConformanceZoom[] = ['fit', 'middle', 'close'];
 export interface ConformanceCheck {
-  readonly check: "batches" | "heap" | "hits" | "legend" | "fallback" | "mirror" | "edges";
+  readonly check: 'batches' | 'heap' | 'hits' | 'legend' | 'fallback' | 'mirror' | 'edges';
   readonly geometry: string;
   readonly ok: boolean;
   readonly detail: string;
@@ -205,8 +205,8 @@ export function frameDiff(a: RecordingBackend, b: RecordingBackend): string | nu
       ? (x as ArrayLike<unknown>).length === (y as ArrayLike<unknown>).length &&
         Array.prototype.every.call(x, (v, i) => Object.is(v, (y as ArrayLike<unknown>)[i]))
       : Object.is(x, y);
-  if (a.opCount !== b.opCount || !same(a.ops, b.ops) || !same(a.args, b.args)) return "ops";
-  for (const store of ["rectItems", "sectorItems", "pathItems", "glyphItems", "textItems"] as const)
+  if (a.opCount !== b.opCount || !same(a.ops, b.ops) || !same(a.args, b.args)) return 'ops';
+  for (const store of ['rectItems', 'sectorItems', 'pathItems', 'glyphItems', 'textItems'] as const)
     for (const [k, v] of Object.entries(a[store])) if (!same(v, (b[store] as never)[k])) return `${store}.${k}`;
   return null;
 }
@@ -234,10 +234,10 @@ export function traceOf(r: RecordingBackend): string[] {
         : code === Op.glyphs
           ? `glyphs ${count} ${r.args[at]}`
           : code === Op.text
-            ? `text ${count} ${a(4).join(" ")}`
+            ? `text ${count} ${a(4).join(' ')}`
             : code === Op.image
-              ? `image ${start} ${a(9).join(" ")}`
-              : [name, ...a(CALL_ARGS[code] ?? 0)].join(" "),
+              ? `image ${start} ${a(9).join(' ')}`
+              : [name, ...a(CALL_ARGS[code] ?? 0)].join(' '),
     );
   }
   return out;
@@ -250,7 +250,7 @@ export function svgDiff(r: RecordingBackend, svg: SvgBackend): string | null {
   const want = traceOf(r);
   const got = svg.trace ?? [];
   for (let k = 0; k < Math.max(want.length, got.length); k++)
-    if (want[k] !== got[k]) return `svg call ${k}: ${got[k] ?? "(none)"}, recorded ${want[k] ?? "(none)"}`;
+    if (want[k] !== got[k]) return `svg call ${k}: ${got[k] ?? '(none)'}, recorded ${want[k] ?? '(none)'}`;
   const kept = (c: Int32Array, n: number) => c.subarray(0, n).filter((v) => v !== NO_COLOR).length;
   const items = {
     rects: kept(r.rectItems.color, r.rectItems.n),
@@ -273,10 +273,10 @@ const reset = (b: RenderBackend) => {
 /** Caches per prepared state, held across frames and kits as the composer holds them (dropped with the state). */
 const caches = new WeakMap<object, { skin: unknown; c: unknown }>();
 function cacheOf(entry: LayerRenderer, state: unknown, skin: Skin): unknown {
-  const held = state !== null && typeof state === "object" ? caches.get(state) : undefined;
+  const held = state !== null && typeof state === 'object' ? caches.get(state) : undefined;
   if (held && held.skin === skin) return held.c;
   const c = entry.cache?.create(state, skin);
-  if (state !== null && typeof state === "object") caches.set(state, { skin, c });
+  if (state !== null && typeof state === 'object') caches.set(state, { skin, c });
   return c;
 }
 
@@ -352,7 +352,7 @@ export class LayerFrame {
       v.text = ctx.text;
       v.layer = k;
       v.setThemes(p.themes);
-      v.stream = ctx.streams.get(ctx.graph.assembled.value?.set.strings.get(m.resolved.layers.ref[k]) ?? "");
+      v.stream = ctx.streams.get(ctx.graph.assembled.value?.set.strings.get(m.resolved.layers.ref[k]) ?? '');
       v.top = e < l.pinnedCount ? l.entryTop[e] : l.scrolledTop + l.entryTop[e] - ax.scrollY;
       // The entry's content stands above its border, as the composer draws it (`SectionLayouts.entryBorder`).
       v.height = this.tiny
@@ -438,7 +438,7 @@ function inData(ctx: SeqViewerContext, k: number, annotation: number): boolean {
 function covers(ctx: SeqViewerContext, hit: Hit, ax: Axis | null, w: number): boolean {
   const set = ctx.graph.assembled.value?.view?.set;
   const ann = set?.annotations[hit.annotation];
-  if (!set || !ann || !ax || ann.geometry !== "ranges" || hit.block < 0 || hit.index < 0) return true;
+  if (!set || !ann || !ax || ann.geometry !== 'ranges' || hit.block < 0 || hit.index < 0) return true;
   const per = w < 1 ? Math.ceil(1 / w) : 0;
   const { start, rows } = Annotations.itemRows(ann);
   const unit = ax.unit[hit.block];
@@ -456,7 +456,7 @@ function covers(ctx: SeqViewerContext, hit: Hit, ax: Axis | null, w: number): bo
   return !mine;
 }
 
-type Say = (check: ConformanceCheck["check"], ok: boolean, detail: string) => void;
+type Say = (check: ConformanceCheck['check'], ok: boolean, detail: string) => void;
 
 /**
  * The format's fallback (linear, wrapped): without the entry, and in a geometry it does not declare, one issue per
@@ -465,25 +465,25 @@ type Say = (check: ConformanceCheck["check"], ok: boolean, detail: string) => vo
 async function formatFallback(
   entry: LayerRenderer,
   fx: ConformanceFixtures,
-  geometry: "linear" | "wrapped",
+  geometry: 'linear' | 'wrapped',
   say: Say,
 ): Promise<boolean> {
   const declared = entry.geometries.includes(geometry);
   const ctx0 = await fx.open({ geometry, entry: !declared });
   const fell = layersOf(ctx0, entry.name, false);
   const issues = ctx0.graph.issues.value.filter(
-    (i) => (i.code === "svs.render.fallback" || i.code === "svs.render.omitted") && fell.some((f) => f[2] === i.ref),
+    (i) => (i.code === 'svs.render.fallback' || i.code === 'svs.render.omitted') && fell.some((f) => f[2] === i.ref),
   );
   const kept = fell.filter(([, k]) => layersOf(ctx0, entry.name, true).some((d) => d[1] === k));
   say(
-    "fallback",
+    'fallback',
     fell.length > 0 && issues.length === fell.length && kept.length === 0,
-    `${fell.length} layer(s), ${issues.length} issue(s) [${issues.map((i) => i.code).join(", ")}]`,
+    `${fell.length} layer(s), ${issues.length} issue(s) [${issues.map((i) => i.code).join(', ')}]`,
   );
-  const layouts = ctx0.registry.svs.get("layerTypes", entry.name)?.layouts ?? [];
+  const layouts = ctx0.registry.svs.get('layerTypes', entry.name)?.layouts ?? [];
   ctx0.dispose();
-  if (declared && !layouts.includes(geometry === "wrapped" ? "text" : "tracks")) {
-    say("fallback", false, `declares ${geometry}, but its type's layouts are ${layouts.join(", ")}`);
+  if (declared && !layouts.includes(geometry === 'wrapped' ? 'text' : 'tracks')) {
+    say('fallback', false, `declares ${geometry}, but its type's layouts are ${layouts.join(', ')}`);
     return false;
   }
   return declared;
@@ -494,10 +494,10 @@ async function formatFallback(
  * reports `svs.render.fallback` once per layer, naming it.
  */
 async function ringless(entry: LayerRenderer, fx: ConformanceFixtures): Promise<[boolean, string]> {
-  const ctx = await fx.open({ geometry: "circular", entry: true });
+  const ctx = await fx.open({ geometry: 'circular', entry: true });
   const said: string[] = [];
   const sub = ctx.events.issue.subscribe((i) => {
-    if (i.code === "svs.render.fallback") said.push(i.message);
+    if (i.code === 'svs.render.fallback') said.push(i.message);
   });
   // A layer in a collapsed group or a hidden track is not laid out, so not drawn.
   const laid = (section: string, k: number) => {
@@ -532,22 +532,22 @@ async function ringless(entry: LayerRenderer, fx: ConformanceFixtures): Promise<
 /** Runs the kit; one result per check and geometry (linear, wrapped and circular). */
 export async function rendererConformance(entry: LayerRenderer, fx: ConformanceFixtures): Promise<ConformanceCheck[]> {
   const out: ConformanceCheck[] = [];
-  for (const geometry of ["linear", "wrapped", "circular"] as const) {
-    const say = (check: ConformanceCheck["check"], ok: boolean, detail: string) =>
+  for (const geometry of ['linear', 'wrapped', 'circular'] as const) {
+    const say = (check: ConformanceCheck['check'], ok: boolean, detail: string) =>
       out.push({ check, geometry, ok, detail });
     const declared = entry.geometries.includes(geometry);
-    if (geometry === "circular" && !declared) {
-      say("fallback", ...(await ringless(entry, fx)));
+    if (geometry === 'circular' && !declared) {
+      say('fallback', ...(await ringless(entry, fx)));
       continue;
     }
-    if (geometry !== "circular" && !(await formatFallback(entry, fx, geometry, say))) continue;
+    if (geometry !== 'circular' && !(await formatFallback(entry, fx, geometry, say))) continue;
 
     const ctx = await fx.open({ geometry, entry: true });
     const layers = layersOf(ctx, entry.name, true);
     // A layer of another type drawn as this one (its fallback) may have nothing this type draws.
     const own = new Set(layersOf(ctx, entry.name, false).map((x) => x[1]));
-    if (ctx.registry.get("renderers", entry.name) !== entry || layers.length === 0) {
-      say("batches", false, "the entry is not registered, or no layer of its type is drawn");
+    if (ctx.registry.get('renderers', entry.name) !== entry || layers.length === 0) {
+      say('batches', false, 'the entry is not registered, or no layer of its type is drawn');
       ctx.dispose();
       continue;
     }
@@ -555,7 +555,7 @@ export async function rendererConformance(entry: LayerRenderer, fx: ConformanceF
     const labels: string[] = [];
     const sink: LegendSink = {
       item: (label) => labels.push(label),
-      ramp: () => labels.push("(ramp)"),
+      ramp: () => labels.push('(ramp)'),
       size: (label) => labels.push(label),
     };
     let shown = 0;
@@ -565,19 +565,19 @@ export async function rendererConformance(entry: LayerRenderer, fx: ConformanceF
       const t = ctx.graph.assembled.value?.view?.resolved.layers.track[k];
       if (!l?.entryTrack.subarray(0, l.entryCount).includes(t ?? -2)) continue;
       shown++;
-      if ((geometry === "circular") !== (l.geometry === AxisGeometry.circular)) {
-        say("batches", false, `${section}: the fixture's section is ${l.geometry === 2 ? "" : "not "}on rings`);
+      if ((geometry === 'circular') !== (l.geometry === AxisGeometry.circular)) {
+        say('batches', false, `${section}: the fixture's section is ${l.geometry === 2 ? '' : 'not '}on rings`);
         continue;
       }
       const f = new LayerFrame(ctx, entry, section, k);
       const vp = ctx.viewports.get(section);
       vp?.fit();
       const fit = vp?.live.current.cell ?? 1;
-      const cells = geometry === "linear" ? [fit, Math.sqrt(fit * 16), 16] : [fit];
+      const cells = geometry === 'linear' ? [fit, Math.sqrt(fit * 16), 16] : [fit];
       let drawn = 0;
       for (let z = 0; z < cells.length; z++) {
         const cell = cells[z];
-        if (geometry === "linear") vp?.setView(cell, 0, "api");
+        if (geometry === 'linear') vp?.setView(cell, 0, 'api');
         const at = `${section} layer ${k} at ${cell.toFixed(2)} px`;
         // The draw, then below the row's minimum (`tiny`); the hits on the draw's elements.
         for (const tiny of [true, false]) {
@@ -592,32 +592,32 @@ export async function rendererConformance(entry: LayerRenderer, fx: ConformanceF
           const items = drawnCount(f.direct);
           if (!tiny) drawn += items;
           say(
-            "batches",
+            'batches',
             n > 0 && diff === null && (items > 0 || fx.empty?.includes(ZOOMS[z]) === true || !own.has(k)),
-            `${where}: ${n} entries, ${f.direct.opCount} ops, ${items} items${diff ? `; ${diff}` : ""}`,
+            `${where}: ${n} entries, ${f.direct.opCount} ops, ${items} items${diff ? `; ${diff}` : ''}`,
           );
           if (fx.heap) {
             try {
               await fx.heap(() => f.draw(f.direct));
-              say("heap", true, where);
+              say('heap', true, where);
             } catch (e) {
-              say("heap", false, `${where}: ${e instanceof Error ? e.message : String(e)}`);
+              say('heap', false, `${where}: ${e instanceof Error ? e.message : String(e)}`);
             }
           }
         }
-        const items = typeof fx.items === "object" ? fx.items[geometry] : fx.items;
-        out.push({ check: "hits", geometry, ...hits(ctx, f, hit, at, items ?? entry.hit !== undefined) });
+        const items = typeof fx.items === 'object' ? fx.items[geometry] : fx.items;
+        out.push({ check: 'hits', geometry, ...hits(ctx, f, hit, at, items ?? entry.hit !== undefined) });
       }
       if (entry.draw && own.has(k) && drawn === 0)
-        say("batches", false, `${section} layer ${k}: no item drawn at any zoom`);
+        say('batches', false, `${section} layer ${k}: no item drawn at any zoom`);
       const p = ctx.graph.assembled.value?.view?.prepared[k];
       if (p) entry.legend?.(ctx.graph.assembled.value?.view?.resolved.layers.params[k], p.themes, sink, p.state);
     }
-    if (shown === 0) say("hits", false, "no layer of its type is laid out");
+    if (shown === 0) say('hits', false, 'no layer of its type is laid out');
     const ok = fx.legend ? JSON.stringify(labels) === JSON.stringify(fx.legend) : true;
-    say("legend", ok, labels.join(", "));
+    say('legend', ok, labels.join(', '));
     ctx.dispose();
-    if (fx.reversed && geometry === "linear") {
+    if (fx.reversed && geometry === 'linear') {
       const rev = await fx.open({ geometry, entry: true, direction: -1 });
       const fwd = await fx.open({ geometry, entry: true, direction: 1 });
       for (const [section, k] of layersOf(fwd, entry.name, true)) {
@@ -632,7 +632,7 @@ export async function rendererConformance(entry: LayerRenderer, fx: ConformanceF
         const at = `${section} layer ${k}: ${a.length} items`;
         const show = (x: Item[]) => x.slice(0, 2).map((i) => `${i.kind} ${i.x}+${i.w} at ${i.y}`);
         say(
-          "mirror",
+          'mirror',
           miss.length === 0 && extra.length === 0,
           `${at}, ${miss.length} unmatched ${show(miss)}, ${extra.length} extra ${show(extra)}`,
         );
@@ -640,14 +640,14 @@ export async function rendererConformance(entry: LayerRenderer, fx: ConformanceF
       rev.dispose();
       fwd.dispose();
     }
-    if (fx.edges && geometry === "linear") {
+    if (fx.edges && geometry === 'linear') {
       // Each section's blocks without a rewrite: copies must add some.
       const base = await fx.open({ geometry, entry: true });
       const blocks = new Map(base.viewports.sections.value.map((s) => [s, base.layout.axis(s)?.axis?.count ?? 0]));
       base.dispose();
       for (const edge of EdgeKinds) {
         const why = fx.edgesSkipped?.[edge];
-        if (why) say("edges", true, `${edge}: skipped, ${why}`);
+        if (why) say('edges', true, `${edge}: skipped, ${why}`);
         else await edges(entry, fx, edge, blocks, say);
       }
     }
@@ -666,10 +666,10 @@ async function edges(
   blocks: ReadonlyMap<string, number>,
   say: Say,
 ): Promise<void> {
-  const ctx = await fx.open({ geometry: "linear", entry: true, edge });
+  const ctx = await fx.open({ geometry: 'linear', entry: true, edge });
   try {
     const layers = layersOf(ctx, entry.name, true);
-    if (layers.length === 0) say("edges", false, `${edge}: no layer of its type is drawn`);
+    if (layers.length === 0) say('edges', false, `${edge}: no layer of its type is drawn`);
     // A layer of another type drawn as this one (its fallback) may have nothing this type draws.
     const own = new Set(layersOf(ctx, entry.name, false).map((x) => x[1]));
     const hit = Hit.create();
@@ -677,16 +677,16 @@ async function edges(
       const ax = ctx.layout.axis(section)?.axis;
       const applied =
         !!ax &&
-        (edge === "reversed"
+        (edge === 'reversed'
           ? ax.dir.subarray(0, ax.count).includes(-1)
-          : edge === "origin"
+          : edge === 'origin'
             ? ax.first.subarray(0, ax.count).some((f, b) => f > 0 && ax.dir[b] === 1)
-            : edge === "stacked"
+            : edge === 'stacked'
               ? ax.stacked
-              : edge === "filtered"
+              : edge === 'filtered'
                 ? ax.positions.some((p) => p !== null)
                 : ax.count > (blocks.get(section) ?? 0));
-      if (!applied) say("edges", false, `${edge}: ${section}: the geometry did not apply (its document kept it out)`);
+      if (!applied) say('edges', false, `${edge}: ${section}: the geometry did not apply (its document kept it out)`);
     }
     for (const [section, k] of layers) {
       const l = ctx.layout.get(section)?.current;
@@ -702,8 +702,8 @@ async function edges(
         [16, 0],
         [16, 1e9],
       ]) {
-        vp?.setView(cell, x, "api");
-        const at = `${edge}: ${section} layer ${k} at ${cell.toFixed(2)} px${x > 0 ? ", the end" : ""}`;
+        vp?.setView(cell, x, 'api');
+        const at = `${edge}: ${section} layer ${k} at ${cell.toFixed(2)} px${x > 0 ? ', the end' : ''}`;
         if (entry.draw) {
           f.tiny = false;
           const n = f.draw(f.direct);
@@ -714,22 +714,22 @@ async function edges(
           // At the fit something is drawn (VB-04), unless the layer is another type's fallback or the fixture names
           // the fit empty; nearer, the view may hold no item.
           const items = drawnCount(f.direct);
-          const need = cell === fit && x === 0 && own.has(k) && !fx.empty?.includes("fit");
+          const need = cell === fit && x === 0 && own.has(k) && !fx.empty?.includes('fit');
           say(
-            "edges",
+            'edges',
             n > 0 && diff === null && (items > 0 || !need),
-            `${at}: ${n} entries, ${items} items${diff ? `; ${diff}` : ""}`,
+            `${at}: ${n} entries, ${items} items${diff ? `; ${diff}` : ''}`,
           );
         }
-        const items = typeof fx.items === "object" ? fx.items.linear : fx.items;
+        const items = typeof fx.items === 'object' ? fx.items.linear : fx.items;
         const h = hits(ctx, f, hit, at, items ?? entry.hit !== undefined);
-        say("edges", h.ok, h.detail);
+        say('edges', h.ok, h.detail);
       }
     }
     // Reversed, the draw at the fit is the forward one mirrored within each block (`mirror`, as with `reversed`
     // fixtures): an entry that ignores the direction draws and hits back alike (LC-17).
-    if (edge === "reversed" && entry.draw) {
-      const fwd = await fx.open({ geometry: "linear", entry: true });
+    if (edge === 'reversed' && entry.draw) {
+      const fwd = await fx.open({ geometry: 'linear', entry: true });
       try {
         for (const [section, k] of layersOf(fwd, entry.name, true)) {
           if (!layers.some((x) => x[0] === section && x[1] === k)) continue;
@@ -740,7 +740,7 @@ async function edges(
           const miss = unmatched(a, b);
           const extra = unmatched(b, a);
           say(
-            "mirror",
+            'mirror',
             miss.length === 0 && extra.length === 0,
             `reversed: ${section} layer ${k}: ${a.length} items, ${miss.length} unmatched, ${extra.length} extra`,
           );
@@ -750,7 +750,7 @@ async function edges(
       }
     }
   } catch (e) {
-    say("edges", false, `${edge}: ${e instanceof Error ? e.message : String(e)}`);
+    say('edges', false, `${edge}: ${e instanceof Error ? e.message : String(e)}`);
   } finally {
     ctx.dispose();
   }
@@ -840,7 +840,7 @@ export function mirrorItems(
     const iw = rec.images.w[start];
     for (let x = Math.ceil(dx); x < dx + dw; x++) {
       const u = Math.min(iw - 1, Math.floor(sx + ((x + 0.5 - dx) / dw) * sw));
-      let col = "";
+      let col = '';
       for (let y = 0; y < sh; y++) col += `${px[y * iw + u].toString(36)} `;
       add(4, x, x + 1, dy, dh, col);
     }

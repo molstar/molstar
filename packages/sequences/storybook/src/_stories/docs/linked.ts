@@ -12,26 +12,26 @@
 // (minimal-example.tsx) is unchanged: Nightingale mounts here by the same steps as its `mountNightingaleExample`, on the
 // viewer's set (a loci names its set) and with `mount`'s events.
 
-import { createRegistries, KernelRegistry, register, resolveView } from "@molstar/seq-core/format";
-import type { Issue, SeqSet } from "@molstar/seq-core/model";
-import { materialize, NightingaleSupported } from "@molstar/seq-nightingale";
-import { mount, type NightingaleEvent } from "@molstar/seq-nightingale/mount";
-import type { SeqViewerContext } from "@molstar/seq-viewer";
-import { linkNightingale, type NightingaleSide } from "../support/seqstar-link.js";
-import { doc } from "./minimal-example.js";
+import { createRegistries, KernelRegistry, register, resolveView } from '@molstar/seq-core/format';
+import type { Issue, SeqSet } from '@molstar/seq-core/model';
+import { materialize, NightingaleSupported } from '@molstar/seq-nightingale';
+import { mount, type NightingaleEvent } from '@molstar/seq-nightingale/mount';
+import type { SeqViewerContext } from '@molstar/seq-viewer';
+import { linkNightingale, type NightingaleSide } from '../support/seqstar-link.js';
+import { doc } from './minimal-example.js';
 
 const registries = createRegistries();
 register(registries, [KernelRegistry]);
 
 /** The example, mounted in `host` on `set` (the viewer's), with its side for the link; `issues`: what it cannot draw. */
 export function mountNightingaleSide(host: HTMLElement, set: SeqSet) {
-  const resolved = resolveView(doc, set, "tracks", registries, NightingaleSupported);
+  const resolved = resolveView(doc, set, 'tracks', registries, NightingaleSupported);
   const { root, issues } = materialize(resolved.view, set);
   const events = new Set<(e: NightingaleEvent) => void>();
   const mounted = mount(root, host, { view: resolved.view, set }, (e) => {
     for (const listener of events) listener(e);
   });
-  const manager = host.querySelector("nightingale-manager");
+  const manager = host.querySelector('nightingale-manager');
   const side: NightingaleSide = {
     view: resolved.view,
     set,
@@ -39,14 +39,14 @@ export function mountNightingaleSide(host: HTMLElement, set: SeqSet) {
     // As `mount` copies a range within a scroll group: a `change` on the manager itself (an attribute set on it would
     // be re-applied over every later zoom, NG-01). It does not bubble, so `onRange` never hears it.
     setRange: (start, end) =>
-      manager?.dispatchEvent(new CustomEvent("change", { detail: { "display-start": start, "display-end": end } })),
+      manager?.dispatchEvent(new CustomEvent('change', { detail: { 'display-start': start, 'display-end': end } })),
     onRange(listener) {
       const heard = (e: Event) => {
         const d = (e as CustomEvent).detail as Record<string, unknown> | null;
-        if (d && "display-start" in d) listener(Number(d["display-start"]), Number(d["display-end"]));
+        if (d && 'display-start' in d) listener(Number(d['display-start']), Number(d['display-end']));
       };
-      host.addEventListener("change", heard);
-      return () => host.removeEventListener("change", heard);
+      host.addEventListener('change', heard);
+      return () => host.removeEventListener('change', heard);
     },
     onEvent(listener) {
       events.add(listener);

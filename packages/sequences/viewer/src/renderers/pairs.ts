@@ -13,7 +13,7 @@
 // cell, and below the row's minimum (`tiny`), the ends are density per device column. The overlay strokes the arcs of
 // pairs with a position of either end lit (`litPairs`, through the end index: never every pair), the same curves,
 // stronger.
-import { Annotations } from "@molstar/seq-core/model";
+import { Annotations } from '@molstar/seq-core/model';
 import {
   Arcs,
   AxisGeometry,
@@ -56,7 +56,7 @@ import {
   TextBatch,
   ThemeLocation,
   visibleRange,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 type Params = Readonly<Record<string, unknown>>;
 
@@ -120,7 +120,7 @@ function hit(v: AxisView, s: PairsState, p: Params, out: Hit): boolean {
   Arcs.frame(v, s, p);
   const f = s.frame;
   const c = colors.get(s);
-  if (p.display !== "arcs" && Math.abs(out.point[1] - f[0]) <= (c?.radius ? 8 : 5)) {
+  if (p.display !== 'arcs' && Math.abs(out.point[1] - f[0]) <= (c?.radius ? 8 : 5)) {
     let at = endNear(v, s, c, out, f[0]);
     const near = at >= 0;
     const q = keyOf(out.block, out.index);
@@ -143,7 +143,7 @@ function hit(v: AxisView, s: PairsState, p: Params, out: Hit): boolean {
           slotX(v, s, e, shown, i);
           if (Math.abs(out.point[0] - io[CellIO.at]) <= io[CellIO.pitch] / 2) slot = i;
         }
-        if (slot < 0) return p.display === "ends" || chords.has(s) ? false : hitArcs(v, s, p, out, f);
+        if (slot < 0) return p.display === 'ends' || chords.has(s) ? false : hitArcs(v, s, p, out, f);
         const c = s.endCell[at];
         const rep = s.endOf[s.kindRep[s.cellKindAt[c] + slot]];
         out.side = rep & 1;
@@ -155,7 +155,7 @@ function hit(v: AxisView, s: PairsState, p: Params, out: Hit): boolean {
     }
   }
   // On rings the arcs are chords through the hub, which hits do not reach: the ends only.
-  if (p.display === "ends" || chords.has(s)) return false;
+  if (p.display === 'ends' || chords.has(s)) return false;
   return hitArcs(v, s, p, out, f);
 }
 
@@ -196,7 +196,7 @@ function hitArcs(v: AxisView, s: PairsState, p: Params, out: Hit, f: Float64Arra
   const n = pairsAt(s, out.block, out.index, found);
   let best = -1;
   let top = -1;
-  const hover = p.arcs === "hover";
+  const hover = p.arcs === 'hover';
   // The draw's last color ranks (only drawn arcs hit, so the draw has made them); the overlay's arcs over all of them.
   const c = colors.get(s);
   const over = c ? c.ranks : 0;
@@ -414,11 +414,11 @@ function sortByColor(v: DrawView, s: PairsState, c: PairColors): number {
 function hand(v: DrawView) {
   if (bars.n > 0) v.backend.rects(bars);
   if (glyphs.n > 0) {
-    glyphs.font = v.text.font("ui", 12, 600);
+    glyphs.font = v.text.font('ui', 12, 600);
     v.backend.glyphs(glyphs);
   }
   if (markers.n > 0) {
-    markers.style(v.text.font("ui", MARKER_PX, 600), TextAlign.center, TextBaseline.middle);
+    markers.style(v.text.font('ui', MARKER_PX, 600), TextAlign.center, TextBaseline.middle);
     v.backend.text(markers);
   }
   if (arcs.n > 0) v.backend.paths(arcs);
@@ -441,14 +441,14 @@ function draw(v: DrawView, s: PairsState, p: Params) {
   Arcs.frame(v, s, p);
   // On rings a chord's ends stay glyphs while there are few pairs (a plasmid map's), so each chord is seen to land.
   const dense = v.cell * v.dpr < 1 && !(v.ring && s.count <= RING_GLYPHS);
-  if (p.display !== "arcs") {
+  if (p.display !== 'arcs') {
     if (dense) densityStart(v);
     drawEnds(v, s, c, dense);
     const y = s.frame[0];
     const y0 = Math.round((y - R) * v.dpr) | 0;
     if (dense) densityDraw(bars, y0, Math.round((y + R) * v.dpr) | 0, DensityKind.stacked, SkinToken.inkQuiet);
   }
-  if (p.display !== "ends" && p.arcs !== "hover") {
+  if (p.display !== 'ends' && p.arcs !== 'hover') {
     const n = sortByColor(v, s, c);
     const w = Math.max(1, Math.round(2 * v.dpr));
     for (let j = 0; j < n; j++) {
@@ -466,16 +466,16 @@ function draw(v: DrawView, s: PairsState, p: Params) {
 const pairLabels = new WeakMap<PairsState, { field: string | null; text: readonly (string | null)[] }>();
 function labelsOf(s: PairsState, p: Params): readonly (string | null)[] {
   const w = p.width as { theme?: string; params?: { field?: unknown } } | null | undefined;
-  const field = w?.theme === "field_scale" && typeof w.params?.field === "string" ? w.params.field : null;
+  const field = w?.theme === 'field_scale' && typeof w.params?.field === 'string' ? w.params.field : null;
   const known = pairLabels.get(s);
   if (known && known.field === field) return known.text;
   const text = Array.from({ length: s.count }, (_, k) => {
     const a = s.set.annotations[s.annotation[k]];
     const x = a
-      ? (Annotations.rowValue(a, s.set, s.row[k], "label") ??
+      ? (Annotations.rowValue(a, s.set, s.row[k], 'label') ??
         (field ? Annotations.rowValue(a, s.set, s.row[k], field) : null))
       : null;
-    return x == null || x === "" ? null : String(x);
+    return x == null || x === '' ? null : String(x);
   });
   pairLabels.set(s, { field, text });
   return text;
@@ -489,7 +489,7 @@ const names = new TextBatch(32);
  */
 function drawLabels(v: DrawView, s: PairsState, c: PairColors, p: Params, n: number) {
   const text = labelsOf(s, p);
-  const font = v.text.font("ui", LABEL_PX, 600);
+  const font = v.text.font('ui', LABEL_PX, 600);
   const f = s.frame;
   const dpr = v.dpr;
   names.reset();
@@ -597,8 +597,8 @@ function inGroup(s: PairsState, k: number, cell: number, kind: number): boolean 
  * they hit; the last drawn is on top).
  */
 function overlay(v: DrawView, s: PairsState, p: Params) {
-  if (v.geometry !== AxisGeometry.linear || !v.axis || s.count === 0 || p.display === "ends") return;
-  const hover = p.arcs === "hover";
+  if (v.geometry !== AxisGeometry.linear || !v.axis || s.count === 0 || p.display === 'ends') return;
+  const hover = p.arcs === 'hover';
   const ids = litOf(s);
   for (let j = 0; j < ids[s.count]; j++) s.drawn[ids[j]] = 0;
   const item = v.marks.item(v.layer);
@@ -650,11 +650,11 @@ function overlay(v: DrawView, s: PairsState, p: Params) {
 }
 
 /** Linear only: the format's `pairs` is a tracks type; in the text layout its fallback, `points`, draws the ends. */
-export const PairsRenderer = kernelEntry<PairsState>("pairs", 48, {
+export const PairsRenderer = kernelEntry<PairsState>('pairs', 48, {
   miniature: false,
   hit: (v, s, p, out) => hit(v, s, p as Params, out),
   draw: (v, s, p) => draw(v, s, p as Params),
   tiny: (v, s, p) => tiny(v, s, p as Params),
   overlay: (v, s, p) => overlay(v, s, p as Params),
-  sized: ["width", "height", "radius"],
+  sized: ['width', 'height', 'radius'],
 });

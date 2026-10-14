@@ -11,8 +11,8 @@
 // keyboard cursor or the viewport (the tooltip, a track header's menu). Pointer-rate: these write styles only, never
 // structure. Imports no React (the React entry imports these).
 
-import { AxisGeometry } from "../axis.js";
-import { type HeaderLine, headerLine, headerTrack, trackLine } from "../chrome.js";
+import { AxisGeometry } from '../axis.js';
+import { type HeaderLine, headerLine, headerTrack, trackLine } from '../chrome.js';
 import {
   HoverKind,
   type LegendRamp,
@@ -20,9 +20,9 @@ import {
   type SeqState,
   type SeqViewerContext,
   type Unsubscribable,
-} from "../index.js";
-import { cursorRect } from "../keyboard.js";
-import { SizeUnit } from "../themes.js";
+} from '../index.js';
+import { cursorRect } from '../keyboard.js';
+import { SizeUnit } from '../themes.js';
 /**
  * A state's changes, not its replay: a state calls back with its value on subscribe (as a BehaviorSubject), which is not a
  * change. For a subscription whose first run is made some other way (a direct call, a `watch`).
@@ -38,7 +38,7 @@ export function later<T>(s: { subscribe(fn: (v: T) => void): Unsubscribable }, f
  * `fn` once now, then on each later change of any of the states: one function over several states runs once at mount,
  * not once per state's replay.
  */
-export function watch(states: readonly Pick<SeqState<unknown>, "subscribe">[], fn: () => void): Unsubscribable[] {
+export function watch(states: readonly Pick<SeqState<unknown>, 'subscribe'>[], fn: () => void): Unsubscribable[] {
   // Subscribed first: a state that changes while `fn` runs is not missed.
   const subs = states.map((s) => later(s, fn));
   fn();
@@ -49,7 +49,7 @@ export function watch(states: readonly Pick<SeqState<unknown>, "subscribe">[], f
 let keyboard = false;
 let listeners = 0;
 const onKey = (e: KeyboardEvent) => {
-  if (e.key === "Tab") keyboard = true;
+  if (e.key === 'Tab') keyboard = true;
 };
 const onPress = () => {
   keyboard = false;
@@ -57,23 +57,23 @@ const onPress = () => {
 /** `data-focus-visible` on the host while its surface holds focus that came from the keyboard. */
 export function focusIndicator(host: HTMLElement, surface: HTMLElement): () => void {
   if (listeners++ === 0) {
-    document.addEventListener("keydown", onKey, true);
-    document.addEventListener("pointerdown", onPress, true);
+    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('pointerdown', onPress, true);
   }
   const on = () => {
-    if (keyboard) host.dataset.focusVisible = "";
+    if (keyboard) host.dataset.focusVisible = '';
   };
   const off = () => delete host.dataset.focusVisible;
-  surface.addEventListener("focus", on);
-  surface.addEventListener("blur", off);
-  surface.addEventListener("pointerdown", off);
+  surface.addEventListener('focus', on);
+  surface.addEventListener('blur', off);
+  surface.addEventListener('pointerdown', off);
   return () => {
-    surface.removeEventListener("focus", on);
-    surface.removeEventListener("blur", off);
-    surface.removeEventListener("pointerdown", off);
+    surface.removeEventListener('focus', on);
+    surface.removeEventListener('blur', off);
+    surface.removeEventListener('pointerdown', off);
     if (--listeners > 0) return;
-    document.removeEventListener("keydown", onKey, true);
-    document.removeEventListener("pointerdown", onPress, true);
+    document.removeEventListener('keydown', onKey, true);
+    document.removeEventListener('pointerdown', onPress, true);
   };
 }
 
@@ -113,30 +113,30 @@ export function hintBehavior(root: HTMLElement, bubble: HTMLElement): () => void
     clearTimeout(timer);
     if (shown || held || !root.isConnected || root.querySelector('[aria-expanded="true"]')) return;
     shown = true;
-    root.setAttribute("data-open", "");
+    root.setAttribute('data-open', '');
     placeHint(root, bubble);
-    win?.addEventListener("pointerdown", dismiss, true);
-    win?.addEventListener("keydown", dismiss, true);
-    win?.addEventListener("wheel", hide, { capture: true, passive: true });
-    win?.addEventListener("scroll", hide, true);
+    win?.addEventListener('pointerdown', dismiss, true);
+    win?.addEventListener('keydown', dismiss, true);
+    win?.addEventListener('wheel', hide, { capture: true, passive: true });
+    win?.addEventListener('scroll', hide, true);
   };
   function hide() {
     clearTimeout(timer);
     if (!shown) return;
     shown = false;
     hintHid = performance.now();
-    root.removeAttribute("data-open");
-    win?.removeEventListener("pointerdown", dismiss, true);
-    win?.removeEventListener("keydown", dismiss, true);
-    win?.removeEventListener("wheel", hide, true);
-    win?.removeEventListener("scroll", hide, true);
+    root.removeAttribute('data-open');
+    win?.removeEventListener('pointerdown', dismiss, true);
+    win?.removeEventListener('keydown', dismiss, true);
+    win?.removeEventListener('wheel', hide, true);
+    win?.removeEventListener('scroll', hide, true);
   }
   function dismiss() {
     held = true;
     hide();
   }
   const over = (e: PointerEvent) => {
-    if (e.pointerType === "touch") return;
+    if (e.pointerType === 'touch') return;
     if (menu(e.target)) return out();
     if (hovered) return;
     hovered = true;
@@ -147,28 +147,28 @@ export function hintBehavior(root: HTMLElement, bubble: HTMLElement): () => void
   // Leaving hides it, unless keyboard focus inside opened it and is still there.
   const out = () => {
     hovered = false;
-    if (!root.querySelector(":focus-visible")) hide();
+    if (!root.querySelector(':focus-visible')) hide();
   };
   const leave = (e: PointerEvent) => {
     if (!root.contains(e.relatedTarget as Node | null) || menu(e.relatedTarget)) out();
   };
   const focusIn = (e: FocusEvent) => {
     held = false;
-    if (e.target instanceof Element && e.target.matches(":focus-visible") && !menu(e.target)) show();
+    if (e.target instanceof Element && e.target.matches(':focus-visible') && !menu(e.target)) show();
   };
   const focusOut = (e: FocusEvent) => {
     if (!root.contains(e.relatedTarget as Node | null) && !hovered) hide();
   };
-  root.addEventListener("pointerover", over);
-  root.addEventListener("pointerout", leave);
-  root.addEventListener("focusin", focusIn);
-  root.addEventListener("focusout", focusOut);
+  root.addEventListener('pointerover', over);
+  root.addEventListener('pointerout', leave);
+  root.addEventListener('focusin', focusIn);
+  root.addEventListener('focusout', focusOut);
   return () => {
     hide();
-    root.removeEventListener("pointerover", over);
-    root.removeEventListener("pointerout", leave);
-    root.removeEventListener("focusin", focusIn);
-    root.removeEventListener("focusout", focusOut);
+    root.removeEventListener('pointerover', over);
+    root.removeEventListener('pointerout', leave);
+    root.removeEventListener('focusin', focusIn);
+    root.removeEventListener('focusout', focusOut);
   };
 }
 
@@ -199,12 +199,12 @@ export function placeHint(root: HTMLElement, bubble: HTMLElement) {
   };
   const above = r.top - HINT_GAP - h;
   const below = r.bottom + HINT_GAP;
-  let side: "top" | "bottom" = "top";
-  if (fits(above) && !covers(above)) side = "top";
-  else if (fits(below) && !covers(below)) side = "bottom";
-  else if (!fits(above) && fits(below)) side = "bottom";
-  if (root.getAttribute("data-side") !== side) root.setAttribute("data-side", side);
-  root.style.setProperty("--seqv-hint-dx", `${Math.round(x - center)}px`);
+  let side: 'top' | 'bottom' = 'top';
+  if (fits(above) && !covers(above)) side = 'top';
+  else if (fits(below) && !covers(below)) side = 'bottom';
+  else if (!fits(above) && fits(below)) side = 'bottom';
+  if (root.getAttribute('data-side') !== side) root.setAttribute('data-side', side);
+  root.style.setProperty('--seqv-hint-dx', `${Math.round(x - center)}px`);
 }
 
 export interface Popover {
@@ -235,7 +235,7 @@ export function popover(
   // `top`: the list is shown in the top layer (a `manual` popover, still under `root` in the tree), so no ancestor's
   // overflow clips it, placed at the trigger by `placeMenu` while open (a scroll or a resize places it again).
   const place = () => placeMenu(trigger, list);
-  const items = () => Array.from(list.querySelectorAll<HTMLElement>("[role^=menuitem]"));
+  const items = () => Array.from(list.querySelectorAll<HTMLElement>('[role^=menuitem]'));
   const focused = () => (root.getRootNode() as Document | ShadowRoot).activeElement;
   // `back` is the asker's to say for the close that follows; the close puts it back (an owner may answer a task later).
   const ask = (open: boolean, focus = true) => {
@@ -246,22 +246,22 @@ export function popover(
     if (!e.composedPath().includes(root)) ask(false, false);
   };
   const key = (e: KeyboardEvent) => {
-    if (isOpen && e.key === "Escape") {
+    if (isOpen && e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
       return ask(false);
     }
-    if (isOpen && e.key === "Tab") return ask(false);
-    const down = e.key === "ArrowDown";
-    if (!o.roving || !(down || e.key === "ArrowUp" || e.key === "Home" || e.key === "End")) return;
+    if (isOpen && e.key === 'Tab') return ask(false);
+    const down = e.key === 'ArrowDown';
+    if (!o.roving || !(down || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End')) return;
     e.preventDefault();
     if (!isOpen) return down ? ask(true) : undefined;
     const all = items();
     const at = all.indexOf(focused() as HTMLElement);
     const next =
-      e.key === "Home"
+      e.key === 'Home'
         ? 0
-        : e.key === "End"
+        : e.key === 'End'
           ? all.length - 1
           : at < 0
             ? down
@@ -275,10 +275,10 @@ export function popover(
     if (isOpen && to && !root.contains(to)) ask(false, false);
   };
   const click = () => ask(!isOpen);
-  trigger.setAttribute("aria-expanded", "false");
-  trigger.addEventListener("click", click);
-  root.addEventListener("keydown", key);
-  root.addEventListener("focusout", out);
+  trigger.setAttribute('aria-expanded', 'false');
+  trigger.addEventListener('click', click);
+  root.addEventListener('keydown', key);
+  root.addEventListener('focusout', out);
   const pop: Popover = {
     get isOpen() {
       return isOpen;
@@ -288,28 +288,28 @@ export function popover(
       isOpen = true;
       back = true;
       root.append(list);
-      if (o.top && typeof list.showPopover === "function") {
-        list.popover = "manual";
+      if (o.top && typeof list.showPopover === 'function') {
+        list.popover = 'manual';
         list.showPopover();
         place();
-        win?.addEventListener("scroll", place, true);
-        win?.addEventListener("resize", place);
+        win?.addEventListener('scroll', place, true);
+        win?.addEventListener('resize', place);
       }
-      trigger.setAttribute("aria-expanded", "true");
-      trigger.setAttribute("aria-controls", list.id);
-      doc.addEventListener("pointerdown", press, true);
+      trigger.setAttribute('aria-expanded', 'true');
+      trigger.setAttribute('aria-controls', list.id);
+      doc.addEventListener('pointerdown', press, true);
       if (o.roving) items()[0]?.focus();
     },
     close() {
       if (!isOpen) return;
       isOpen = false;
       const inside = list.contains(focused());
-      doc.removeEventListener("pointerdown", press, true);
-      win?.removeEventListener("scroll", place, true);
-      win?.removeEventListener("resize", place);
+      doc.removeEventListener('pointerdown', press, true);
+      win?.removeEventListener('scroll', place, true);
+      win?.removeEventListener('resize', place);
       list.remove();
-      trigger.setAttribute("aria-expanded", "false");
-      trigger.removeAttribute("aria-controls");
+      trigger.setAttribute('aria-expanded', 'false');
+      trigger.removeAttribute('aria-controls');
       const refocus = inside && back;
       back = true;
       if (refocus) trigger.focus();
@@ -317,9 +317,9 @@ export function popover(
     dispose() {
       back = false;
       pop.close();
-      trigger.removeEventListener("click", click);
-      root.removeEventListener("keydown", key);
-      root.removeEventListener("focusout", out);
+      trigger.removeEventListener('click', click);
+      root.removeEventListener('keydown', key);
+      root.removeEventListener('focusout', out);
     },
   };
   return pop;
@@ -342,14 +342,14 @@ export function placeMenu(trigger: HTMLElement, list: HTMLElement) {
   x = Math.max(MENU_EDGE, Math.min(x, vw - MENU_EDGE - w));
   let y = r.bottom + MENU_GAP;
   if (y + h > vh - MENU_EDGE && r.top - MENU_GAP - h >= MENU_EDGE) y = r.top - MENU_GAP - h;
-  setStyle(list, "left", `${Math.round(x)}px`);
-  setStyle(list, "top", `${Math.round(y)}px`);
+  setStyle(list, 'left', `${Math.round(x)}px`);
+  setStyle(list, 'top', `${Math.round(y)}px`);
 }
 
 /** A style written only when it changes (an unchanged write is still a mutation). */
 export function setStyle(
   el: HTMLElement,
-  prop: "transform" | "visibility" | "left" | "top" | "height" | "width",
+  prop: 'transform' | 'visibility' | 'left' | 'top' | 'height' | 'width',
   v: string,
 ) {
   if (el.style[prop] !== v) el.style[prop] = v;
@@ -391,14 +391,14 @@ export function placeTooltip(
   const owner = ctx.hover.live.current.owner;
   const p = ctx.pointer.current;
   const parent = t.offsetParent as HTMLElement | null;
-  const kb = owner === "keyboard";
+  const kb = owner === 'keyboard';
   let surface: HTMLElement | undefined;
   let ax = 0;
   let ay = 0;
   let aw = 0;
   let ah = 0;
   let line = false;
-  if (owner === "pointer" && p.inside) {
+  if (owner === 'pointer' && p.inside) {
     const ref = ctx.layout.sectionRef(p.section);
     surface = ref === null ? undefined : surfaces.get(ref);
     ax = p.x;
@@ -435,7 +435,7 @@ export function placeTooltip(
   const shown = !!surface && !!parent && e === parent;
   if (shown !== at.shown) {
     at.shown = shown;
-    setStyle(t, "visibility", shown ? "" : "hidden");
+    setStyle(t, 'visibility', shown ? '' : 'hidden');
   }
   if (!shown || !parent) return;
   const tw = t.offsetWidth;
@@ -451,8 +451,8 @@ export function placeTooltip(
   at.x = x;
   at.y = y;
   // Two custom properties of cached strings (skin.css moves the tooltip by `transform` from them): nothing is allocated.
-  t.style.setProperty("--seqv-x", px(x));
-  t.style.setProperty("--seqv-y", px(y));
+  t.style.setProperty('--seqv-x', px(x));
+  t.style.setProperty('--seqv-y', px(y));
 }
 
 /**
@@ -470,12 +470,12 @@ export function placeTrackActions(
   const l = ctx.layout.get(section)?.current;
   if (!l) return;
   const shown = trackLine(ctx, section, track, line);
-  setStyle(t, "visibility", shown ? "" : "hidden");
+  setStyle(t, 'visibility', shown ? '' : 'hidden');
   // On every hover change and viewport frame while shown: whole numbers come from the cache, nothing is allocated.
-  setStyle(t, "left", px(l.headerWidth - ctx.layout.props(section).controlWidth));
+  setStyle(t, 'left', px(l.headerWidth - ctx.layout.props(section).controlWidth));
   if (!shown) return;
-  setStyle(t, "top", px(line.top));
-  setStyle(t, "height", px(line.height));
+  setStyle(t, 'top', px(line.top));
+  setStyle(t, 'height', px(line.height));
 }
 
 /** What `trackBox` asks of its UI: the box now shown (null: none), and the change of track to show. */
@@ -520,12 +520,12 @@ export function trackBox(ctx: SeqViewerContext, section: string, o: TrackBoxOwne
   };
   const update = (now = false) => {
     const box = o.box();
-    const open = !!box?.querySelector("[aria-expanded=true]");
+    const open = !!box?.querySelector('[aria-expanded=true]');
     // Focus inside keeps the box only while its track still has a line on screen (a track hidden by its own menu does not).
-    const inside = !!box?.matches(":focus-within") && !!track && trackLine(ctx, section, track, line);
+    const inside = !!box?.matches(':focus-within') && !!track && trackLine(ctx, section, track, line);
     const next = open ? track : (held ?? headerTrack(ctx, section) ?? (inside ? track : null));
     if (next === track) return place();
-    if (!next && box && !now && !box.matches(":focus-within")) {
+    if (!next && box && !now && !box.matches(':focus-within')) {
       timer ||= window.setTimeout(settle, 0);
       return;
     }
@@ -570,11 +570,11 @@ export function placeScroll(el: HTMLElement, y: number, at: { quarter: number; p
       v = `${(-page * SCROLL_PAGE) / 4}px`;
       SCROLL_PAGES.set(page, v);
     }
-    el.style.setProperty("--seqv-scroll-page", v);
+    el.style.setProperty('--seqv-scroll-page', v);
   }
   const low = k - page * SCROLL_PAGE;
   SCROLL_LOW[low] ??= `${-low / 4}px`;
-  el.style.setProperty("--seqv-scroll-y", SCROLL_LOW[low]);
+  el.style.setProperty('--seqv-scroll-y', SCROLL_LOW[low]);
 }
 
 /** How long `Busy` stays after the last region in flight lands: a stream's next region usually starts within it. */
@@ -615,8 +615,8 @@ export function busyShown(ctx: SeqViewerContext, tell: (busy: boolean) => void):
 
 /** The `Search` part's "Keep" icon, a pin (16 units): its outline and its needle. */
 export const PIN = {
-  outline: "M9.8 1.8 14.2 6.2 12.5 6.9 10.2 9.2 10.4 11.4 9.4 12.4 3.6 6.6 4.6 5.6 6.8 5.8 9.1 3.5Z",
-  needle: "M6.4 9.6 2.2 13.8",
+  outline: 'M9.8 1.8 14.2 6.2 12.5 6.9 10.2 9.2 10.4 11.4 9.4 12.4 3.6 6.6 4.6 5.6 6.8 5.8 9.1 3.5Z',
+  needle: 'M6.4 9.6 2.2 13.8',
 } as const;
 
 /**
@@ -628,12 +628,12 @@ export function handOff(control: HTMLElement | null, idle: boolean, to: HTMLElem
 }
 
 /** The `Search` part's "Clear kept" icon (16 units): a cross. */
-export const CROSS = "M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5";
+export const CROSS = 'M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5';
 
 /** The legend title's palette icon (16 units): its outline, and its three paint dots (cx, cy). */
 export const PALETTE = {
   outline:
-    "M8 1.5a6.5 6.5 0 1 0 0 13c.9 0 1.4-.6 1.4-1.3 0-.4-.2-.7-.4-1s-.4-.6-.4-1c0-.7.6-1.3 1.3-1.3h1.6a3 3 0 0 0 3-3C14.5 3.9 11.6 1.5 8 1.5Z",
+    'M8 1.5a6.5 6.5 0 1 0 0 13c.9 0 1.4-.6 1.4-1.3 0-.4-.2-.7-.4-1s-.4-.6-.4-1c0-.7.6-1.3 1.3-1.3h1.6a3 3 0 0 0 3-3C14.5 3.9 11.6 1.5 8 1.5Z',
   dots: [
     [4.8, 7.6],
     [6.4, 4.6],
@@ -643,7 +643,7 @@ export const PALETTE = {
 
 /** A legend ramp as a CSS gradient (two stops at one `t`, a discrete palette's edge, a hard step). */
 export const legendGradient = (r: LegendRamp) =>
-  `linear-gradient(to right, ${r.stops.map((s) => `${s.color} ${Math.round(s.t * 1000) / 10}%`).join(", ")})`;
+  `linear-gradient(to right, ${r.stops.map((s) => `${s.color} ${Math.round(s.t * 1000) / 10}%`).join(', ')})`;
 /** The slot a band's share is drawn in, CSS px (a sample bar `value` of it tall). */
 const SIZE_SLOT = 14;
 /**
@@ -651,14 +651,14 @@ const SIZE_SLOT = 14;
  * a band's share (`thickness`, `height`) a bar that share of a 14 px slot; a `radius` a dot twice as wide (else, a
  * renderer's own size, a dot `value` px across). In the sample's color (a merged ramp's), else the ink.
  */
-export function legendSizeStyle(s: LegendSize): Record<"width" | "height" | "borderRadius" | "background", string> {
+export function legendSizeStyle(s: LegendSize): Record<'width' | 'height' | 'borderRadius' | 'background', string> {
   const clamp = (x: number, lo: number, hi: number) => `${Math.min(hi, Math.max(lo, Math.round(x)))}px`;
-  const background = s.color ?? "var(--seq-ink)";
+  const background = s.color ?? 'var(--seq-ink)';
   if (s.unit === SizeUnit.band)
-    return { width: "8px", height: clamp(s.value * SIZE_SLOT, 1, SIZE_SLOT), borderRadius: "0", background };
-  if (s.channel === "width") return { width: "18px", height: clamp(s.value, 1, 12), borderRadius: "1px", background };
-  const d = clamp(s.channel === "radius" ? 2 * s.value : s.value, 3, 24);
-  return { width: d, height: d, borderRadius: "50%", background };
+    return { width: '8px', height: clamp(s.value * SIZE_SLOT, 1, SIZE_SLOT), borderRadius: '0', background };
+  if (s.channel === 'width') return { width: '18px', height: clamp(s.value, 1, 12), borderRadius: '1px', background };
+  const d = clamp(s.channel === 'radius' ? 2 * s.value : s.value, 3, 24);
+  return { width: d, height: d, borderRadius: '50%', background };
 }
 /** The caption before sample `i`: its field, where a run of one scale's samples starts (null: none). */
 export const sizeCaption = (sizes: readonly LegendSize[], i: number): string | null =>
@@ -678,8 +678,8 @@ const LEGEND_LABEL_MIN = 40;
  * and padding (the button's width beyond the name). 0: no name, or none laid out (a closed legend).
  */
 function titleWidth(el: HTMLElement): number {
-  const name = el.querySelector<HTMLElement>(".seqv-legend-name");
-  const cell = name?.closest<HTMLElement>(".seqv-legend-track");
+  const name = el.querySelector<HTMLElement>('.seqv-legend-name');
+  const cell = name?.closest<HTMLElement>('.seqv-legend-track');
   if (!name || !cell || name.scrollWidth === 0) return 0;
   const cs = getComputedStyle(cell);
   let w = name.scrollWidth + Number.parseFloat(cs.paddingLeft) + Number.parseFloat(cs.paddingRight);
@@ -711,24 +711,24 @@ export function legendGrid(
     const l = ctx.layout.get(section)?.current;
     if (!l) return;
     const p = ctx.layout.props(section);
-    setVar(el, "--seqv-data-left", `${l.dataLeft}px`);
-    setVar(el, "--seqv-data-width", `${Math.max(0, l.dataRight - l.dataLeft)}px`);
-    setVar(el, "--seqv-row", `${p.rowHeight}px`);
-    setVar(el, "--seqv-label-px", `${p.labelFontPx}px`);
+    setVar(el, '--seqv-data-left', `${l.dataLeft}px`);
+    setVar(el, '--seqv-data-width', `${Math.max(0, l.dataRight - l.dataLeft)}px`);
+    setVar(el, '--seqv-row', `${p.rowHeight}px`);
+    setVar(el, '--seqv-label-px', `${p.labelFontPx}px`);
     const stacked = l.geometry === AxisGeometry.wrapped || l.dataLeft < LEGEND_LABEL_MIN;
-    if (el.hasAttribute("data-seqv-stacked") !== stacked) el.toggleAttribute("data-seqv-stacked", stacked);
-    if (!el.classList.contains("seqv-legend-group")) return;
+    if (el.hasAttribute('data-seqv-stacked') !== stacked) el.toggleAttribute('data-seqv-stacked', stacked);
+    if (!el.classList.contains('seqv-legend-group')) return;
     const long = !stacked && titleWidth(el) > l.dataLeft;
-    if (el.hasAttribute("data-seqv-long") !== long) el.toggleAttribute("data-seqv-long", long);
+    if (el.hasAttribute('data-seqv-long') !== long) el.toggleAttribute('data-seqv-long', long);
     // Cut even so (a name wider than the whole legend): its hint shows the full name.
-    const name = el.querySelector<HTMLElement>(".seqv-legend-name");
+    const name = el.querySelector<HTMLElement>('.seqv-legend-name');
     const cut = !!name && name.scrollWidth > name.clientWidth;
-    if (el.hasAttribute("data-seqv-cut") === cut) return;
-    el.toggleAttribute("data-seqv-cut", cut);
+    if (el.hasAttribute('data-seqv-cut') === cut) return;
+    el.toggleAttribute('data-seqv-cut', cut);
     onCut?.(cut);
   };
   // A title's size changes with no layout change (the legend opened, its name rendered anew): measured again.
-  const sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => write()) : null;
+  const sized = typeof ResizeObserver === 'function' ? new ResizeObserver(() => write()) : null;
   sized?.observe(el);
   // The section's layout can come after the legend (the view assembles first): watched once the section is there.
   const sections = ctx.viewports.sections.subscribe(() => {

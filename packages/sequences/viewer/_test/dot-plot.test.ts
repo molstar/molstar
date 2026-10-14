@@ -11,30 +11,30 @@
 // on a cell lights both positions and labels the partner and the value; a drag selects a rectangle as two ranges; the
 // overlay draws lit runs as rows; the SVG export draws what the screen does.
 
-import { OrderedSet } from "@molstar/seq-core/model";
-import { describe, expect, it } from "vitest";
-import { SkinToken } from "../src/draw/backend.js";
-import { Dirty, Pass } from "../src/draw/index.js";
-import { Hit, KernelRenderers, type LayerRenderer, MarkBit, type SeqLociAny } from "../src/index.js";
-import { renderSvg } from "../src/svg/index.js";
-import { Op } from "../src/testing/index.js";
-import { recording } from "./composer-fixtures.js";
-import { directed } from "./conformance-fixtures.js";
-import { dotPlotDoc, SEQ } from "./dot-plot-fixtures.js";
-import { driven } from "./input-fixtures.js";
-import { lit, passRects } from "./overlay-fixtures.js";
-import { all, parseXml } from "./svg/xml.js";
+import { OrderedSet } from '@molstar/seq-core/model';
+import { describe, expect, it } from 'vitest';
+import { SkinToken } from '../src/draw/backend.js';
+import { Dirty, Pass } from '../src/draw/index.js';
+import { Hit, KernelRenderers, type LayerRenderer, MarkBit, type SeqLociAny } from '../src/index.js';
+import { renderSvg } from '../src/svg/index.js';
+import { Op } from '../src/testing/index.js';
+import { recording } from './composer-fixtures.js';
+import { directed } from './conformance-fixtures.js';
+import { dotPlotDoc, SEQ } from './dot-plot-fixtures.js';
+import { driven } from './input-fixtures.js';
+import { lit, passRects } from './overlay-fixtures.js';
+import { all, parseXml } from './svg/xml.js';
 
-const SECTION = "v.s";
+const SECTION = 'v.s';
 const N = SEQ.length;
 
 /** The plot entry's box (surface CSS px) and the data area's edges. */
-function plotBox(ctx: Awaited<ReturnType<typeof driven>>["ctx"]) {
+function plotBox(ctx: Awaited<ReturnType<typeof driven>>['ctx']) {
   const l = ctx.layout.get(SECTION)?.current;
   const v = ctx.layout.axis(SECTION);
   const a = ctx.graph.assembled.value;
-  if (!l || !v || !a) throw new Error("no layout");
-  const track = a.view?.resolved.tracks.ref.findIndex((r) => a.set.strings.get(r) === "t-plot") ?? -1;
+  if (!l || !v || !a) throw new Error('no layout');
+  const track = a.view?.resolved.tracks.ref.findIndex((r) => a.set.strings.get(r) === 't-plot') ?? -1;
   const e = Array.from({ length: l.entryCount }, (_, k) => k).find((k) => l.entryTrack[k] === track) ?? -1;
   const top = e < l.pinnedCount ? l.entryTop[e] : l.scrolledTop + l.entryTop[e] - v.scrollY;
   return { top, height: l.entryHeight[e], left: v.left, right: v.right, v };
@@ -78,39 +78,39 @@ describe("the dot plot's draw", () => {
 describe("the dot plot's interaction", () => {
   const behaviors = { renderers: KernelRenderers as LayerRenderer[] };
 
-  it("a hover on a cell names its partner under y, lights both and labels the partner and the value", async () => {
+  it('a hover on a cell names its partner under y, lights both and labels the partner and the value', async () => {
     const t = await driven(dotPlotDoc(), behaviors);
     const [x, y] = cellAt(t, 5, 35);
     const hit = Hit.create();
     expect(t.ctx.layout.hitTest(SECTION, x, y, hit)).toBe(true);
     expect([hit.index, hit.pairIndex]).toEqual([5, 35]);
-    t.pointer("move", SECTION, x, y);
+    t.pointer('move', SECTION, x, y);
     const h = t.ctx.hover.live.current;
     expect([h.index, h.pairIndex]).toEqual([5, 35]);
     expect(indices(t.ctx.hover.toLoci())).toEqual([5, 35]);
     const label = t.ctx.labels.current.value;
     expect(label?.lines.map((l) => [l.key, l.value])).toEqual(
       expect.arrayContaining([
-        ["with", expect.stringContaining(`${SEQ[35]}36`)],
-        ["Distance", "30"],
+        ['with', expect.stringContaining(`${SEQ[35]}36`)],
+        ['Distance', '30'],
       ]),
     );
     // Another row of the same column is another element.
     const [, y2] = cellAt(t, 5, 36);
-    t.pointer("move", SECTION, x, y2);
+    t.pointer('move', SECTION, x, y2);
     expect(t.ctx.hover.live.current.pairIndex).toBe(36);
   });
 
-  it("a drag selects a rectangle as two ranges, held as the pending selection while it lasts", async () => {
+  it('a drag selects a rectangle as two ranges, held as the pending selection while it lasts', async () => {
     const t = await driven(dotPlotDoc(), behaviors);
     const [x0, y0] = cellAt(t, 2, 30);
     const [x1, y1] = cellAt(t, 6, 34);
-    t.pointer("down", SECTION, x0, y0);
-    t.pointer("move", SECTION, (x0 + x1) / 2, (y0 + y1) / 2);
-    t.pointer("move", SECTION, x1, y1);
+    t.pointer('down', SECTION, x0, y0);
+    t.pointer('move', SECTION, (x0 + x1) / 2, (y0 + y1) / 2);
+    t.pointer('move', SECTION, x1, y1);
     const pd = t.ctx.selection.pending.current;
     expect([pd.active, pd.startShown, pd.endShown, pd.yStartShown, pd.yEndShown]).toEqual([true, 2, 6, 30, 34]);
-    t.pointer("up", SECTION, x1, y1);
+    t.pointer('up', SECTION, x1, y1);
     expect(t.ctx.selection.pending.current.active).toBe(false);
     const sel = t.ctx.selection.current.value as unknown as { seq: SeqLociAny };
     expect(indices(sel.seq)).toEqual([2, 3, 4, 5, 6, 30, 31, 32, 33, 34]);
@@ -128,17 +128,17 @@ describe("the dot plot's interaction", () => {
   it("the cursor over a plot's data is a crosshair, kept for the drag; a track's data elsewhere grabs", async () => {
     const t = await driven(dotPlotDoc(), behaviors);
     const [x, y] = cellAt(t, 5, 35);
-    t.pointer("move", SECTION, x, y);
-    expect(t.ctx.ui.cursor(SECTION).value).toBe("crosshair");
-    t.pointer("down", SECTION, x, y);
-    t.pointer("move", SECTION, x + 40, y + 40);
-    expect(t.ctx.ui.cursor(SECTION).value).toBe("crosshair");
-    t.pointer("up", SECTION, x + 40, y + 40);
-    t.pointer("move", SECTION, x, plotBox(t.ctx).top - 2);
-    expect(t.ctx.ui.cursor(SECTION).value).not.toBe("crosshair");
+    t.pointer('move', SECTION, x, y);
+    expect(t.ctx.ui.cursor(SECTION).value).toBe('crosshair');
+    t.pointer('down', SECTION, x, y);
+    t.pointer('move', SECTION, x + 40, y + 40);
+    expect(t.ctx.ui.cursor(SECTION).value).toBe('crosshair');
+    t.pointer('up', SECTION, x + 40, y + 40);
+    t.pointer('move', SECTION, x, plotBox(t.ctx).top - 2);
+    expect(t.ctx.ui.cursor(SECTION).value).not.toBe('crosshair');
   });
 
-  it("a click on a cell selects both positions", async () => {
+  it('a click on a cell selects both positions', async () => {
     const t = await driven(dotPlotDoc(), behaviors);
     const [x, y] = cellAt(t, 8, 20);
     t.click(SECTION, x, y);
@@ -152,11 +152,11 @@ describe("the dot plot's overlay", () => {
     const t = await lit(dotPlotDoc(), { width: 900, height: 600 });
     const v = t.ctx.layout.axis(t.section);
     const l = t.ctx.layout.get(t.section)?.current;
-    if (!v || !l) throw new Error("no layout");
+    if (!v || !l) throw new Error('no layout');
     t.frame(recording(), Dirty.all);
     t.ctx.selection.set(
-      { kind: "seq-loci", set: t.set, elements: [{ unit: 0, indices: OrderedSet.ofRange(30, 34) }] } as never,
-      "api",
+      { kind: 'seq-loci', set: t.set, elements: [{ unit: 0, indices: OrderedSet.ofRange(30, 34) }] } as never,
+      'api',
     );
     const rects = passRects(t.overlay(), Pass.overlay);
     const left = Math.floor(v.left);
@@ -170,16 +170,16 @@ describe("the dot plot's overlay", () => {
 });
 
 describe("the dot plot's SVG export", () => {
-  it("draws the grid as an image and the pairs as paths, as the screen does", async () => {
+  it('draws the grid as an image and the pairs as paths, as the screen does', async () => {
     const xml = await renderSvg(dotPlotDoc(), { width: 900 });
     const doc = parseXml(xml);
-    expect(all(doc, "image").length).toBe(1);
-    expect(all(doc, "path").length).toBeGreaterThanOrEqual(2);
+    expect(all(doc, 'image').length).toBe(1);
+    expect(all(doc, 'path').length).toBeGreaterThanOrEqual(2);
   });
 });
 
-describe("the dot plot on a reversed piece", () => {
-  it("mirrors both ways: a cell is hit where its positions are shown, across and down", async () => {
+describe('the dot plot on a reversed piece', () => {
+  it('mirrors both ways: a cell is hit where its positions are shown, across and down', async () => {
     const t = await driven(directed(dotPlotDoc(), -1), { renderers: KernelRenderers as LayerRenderer[] });
     const [x, y] = cellAt(t, 5, 35);
     const hit = Hit.create();

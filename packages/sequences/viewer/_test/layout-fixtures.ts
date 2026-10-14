@@ -10,12 +10,12 @@
 // stub renderers with heights by type (a split layer prepares its values' rows, as `Features.split`), the fixture text
 // measurer, and a manual clock; helpers that find a point on a section from the layout (`t.xOf` and `t.yOf`).
 
-import { type Loaders, type SeqViewSpecDoc, splitRows } from "@molstar/seq-core/format";
-import type { Annotation } from "@molstar/seq-core/model";
-import { tilesStream } from "@molstar/seq-core/stream/tiles";
-import { tileServer } from "@molstar/seq-core/stream/tiles/server";
-import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.js";
-import type { ShownIndex } from "../src/axis.js";
+import { type Loaders, type SeqViewSpecDoc, splitRows } from '@molstar/seq-core/format';
+import type { Annotation } from '@molstar/seq-core/model';
+import { tilesStream } from '@molstar/seq-core/stream/tiles';
+import { tileServer } from '@molstar/seq-core/stream/tiles/server';
+import { fixtureLoaders, MolstarFixture } from '../../core/_test/format/load-fixtures.js';
+import type { ShownIndex } from '../src/axis.js';
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -27,12 +27,12 @@ import {
   type RenderProps,
   type SeqViewerContext,
   type SeqViewerRegistryEntry,
-} from "../src/index.js";
-import type { Layouts } from "../src/layout.js";
-import { PreparedParts } from "../src/prepare.js";
-import { type LaneSegments, laneLineHeights } from "../src/runs.js";
-import { fixtureMeasurer } from "../src/testing/index.js";
-import type { Viewport } from "../src/viewport.js";
+} from '../src/index.js';
+import type { Layouts } from '../src/layout.js';
+import { PreparedParts } from '../src/prepare.js';
+import { type LaneSegments, laneLineHeights } from '../src/runs.js';
+import { fixtureMeasurer } from '../src/testing/index.js';
+import type { Viewport } from '../src/viewport.js';
 /** A type's own height (free sizing, and every type under `natural`). */
 export const HEIGHTS: Record<string, number> = {
   letters: 26,
@@ -63,10 +63,10 @@ function split(input: LayerInput) {
 export function renderers(): LayerRenderer[] {
   return TYPES.map((name) => ({
     name,
-    geometries: ["linear", "wrapped"],
+    geometries: ['linear', 'wrapped'],
     prepare: (input) => ({ ref: input.layer.ref, split: split(input) }),
     height: () => HEIGHTS[name],
-    splitHeight: name === "variants" ? 8 : undefined,
+    splitHeight: name === 'variants' ? 8 : undefined,
   }));
 }
 
@@ -74,17 +74,17 @@ export function renderers(): LayerRenderer[] {
 export function preparedRenderers(): LayerRenderer[] {
   return Object.entries(PreparedParts).map(([name, part]) => ({
     name,
-    geometries: ["linear", "wrapped"],
+    geometries: ['linear', 'wrapped'],
     ...part,
     height: () => HEIGHTS[name] ?? 20,
-    splitHeight: name === "variants" ? 8 : undefined,
+    splitHeight: name === 'variants' ? 8 : undefined,
   }));
 }
 
 /** A layer's index, prepared state and track, by its track's label (the first layer of that track). */
 export function layer(ctx: SeqViewerContext, label: string) {
   const m = ctx.graph.assembled.value?.view;
-  if (!m) throw new Error("no view");
+  if (!m) throw new Error('no view');
   const v = m.resolved;
   for (let k = 0; k < v.layers.count; k++) {
     const t = v.layers.track[k];
@@ -99,8 +99,8 @@ export function layer(ctx: SeqViewerContext, label: string) {
  */
 export function laneRanges(): LayerRenderer {
   return {
-    name: "ranges",
-    geometries: ["linear", "wrapped"],
+    name: 'ranges',
+    geometries: ['linear', 'wrapped'],
     prepare: (input): LaneSegments => {
       const blocks = input.section.blocks.length;
       const ann = input.set.annotations[input.layer.data[0]] as Annotation;
@@ -145,23 +145,23 @@ export function laneRanges(): LayerRenderer {
 
 /** Presets with geometry only: msa with a navigator and a vertical overview. */
 export const PRESETS: PresetEntry[] = [
-  { name: "tracks", geometry: "linear", navigator: { height: 20 } },
+  { name: 'tracks', geometry: 'linear', navigator: { height: 20 } },
   {
-    name: "msa",
-    geometry: "linear",
-    render: { rowHeight: 18, verticalOverview: 24, verticalNav: "both", verticalZoom: true },
+    name: 'msa',
+    geometry: 'linear',
+    render: { rowHeight: 18, verticalOverview: 24, verticalNav: 'both', verticalZoom: true },
     navigator: { height: 20 },
   },
   {
-    name: "msa-fixed",
-    geometry: "linear",
-    render: { rowHeight: 18, verticalOverview: 24, verticalNav: "both", verticalZoom: false },
+    name: 'msa-fixed',
+    geometry: 'linear',
+    render: { rowHeight: 18, verticalOverview: 24, verticalNav: 'both', verticalZoom: false },
     navigator: { height: 20 },
   },
-  { name: "wrapped", geometry: "wrapped", render: { headerWidth: 0 } },
-  { name: "compact", geometry: "wrapped", render: { headerWidth: 0, wrappedFontPx: 13, wrappedGutter: 8 } },
-  { name: "bare", geometry: "linear" },
-  { name: "railed", geometry: "linear", navigator: "rulerRail" },
+  { name: 'wrapped', geometry: 'wrapped', render: { headerWidth: 0 } },
+  { name: 'compact', geometry: 'wrapped', render: { headerWidth: 0, wrappedFontPx: 13, wrappedGutter: 8 } },
+  { name: 'bare', geometry: 'linear' },
+  { name: 'railed', geometry: 'linear', navigator: 'rulerRail' },
 ];
 
 export interface Options {
@@ -269,7 +269,7 @@ export function helpers(ctx: SeqViewerContext) {
 export const itemKey = (ctx: SeqViewerContext, id: number) => {
   const set = ctx.graph.assembled.value?.set;
   const a = set?.annotations[id];
-  return set && a ? set.strings.get(a.key) : "";
+  return set && a ? set.strings.get(a.key) : '';
 };
 
 /** Loaders serving one procedural alignment of `rows` × `columns` by view (`seqstar-tiles/1`). */

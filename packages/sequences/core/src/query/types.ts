@@ -10,25 +10,25 @@
 // types, symbol definitions with the metadata the checker, the skill and the reference read, and expressions.
 
 /** The element a test reads, bound by the `:where` it sits in (seqspec:seqql#elements-and-groups). */
-export type Slot = "position" | "system" | "item" | "group";
+export type Slot = 'position' | 'system' | 'item' | 'group';
 
 /** Argument and result types, checked before evaluation. */
 export type Type =
-  | "num"
-  | "str"
-  | "bool"
+  | 'num'
+  | 'str'
+  | 'bool'
   /** A non-negative integer: an index. */
-  | "int"
+  | 'int'
   /** A field's value: a number, string, boolean or null. */
-  | "json"
+  | 'json'
   /** A set ref: a word or string ("1brs/A", "msa/3", "domains"). */
-  | "ref"
+  | 'ref'
   /** A label or label range: a word or number ("10-20", "45A", 45). */
-  | "label"
+  | 'label'
   /** A selection: the monadic type; a word or string here is a ref. */
-  | "query"
+  | 'query'
   /** A bool read per element of a slot. */
-  | "test"
+  | 'test'
   | { readonly enum: readonly string[] };
 
 export interface ArgDef {
@@ -46,7 +46,7 @@ export interface ArgDef {
   readonly doc: string;
 }
 
-export type SymbolKind = "core" | "generator" | "modifier" | "combinator" | "filter" | "property" | "macro";
+export type SymbolKind = 'core' | 'generator' | 'modifier' | 'combinator' | 'filter' | 'property' | 'macro';
 
 export interface SymbolExample {
   /** An S-expression: "(pick (items :of domains) :where (matches (label) kinase))". */
@@ -133,14 +133,14 @@ export interface SeqQLQuery {
   readonly text: string;
 }
 
-export const SEQQL_VERSION = "1.0";
+export const SEQQL_VERSION = '1.0';
 
 /** Structurally a model `Issue`, plus the place and help. */
 export interface QueryIssue {
   /** "seqql.symbol.unknown". */
   readonly code: string;
   /** seqspec:seqql#errors: one per code (`seqqlSeverity`); `info` a note on how a valid query ran (`seqql.empty`). */
-  readonly severity: "error" | "warning" | "info";
+  readonly severity: 'error' | 'warning' | 'info';
   /** A JSON pointer into the expression ("" for reader and registration errors). */
   readonly path: string;
   /** What is wrong and what to write instead. */
@@ -156,7 +156,7 @@ export interface QueryIssue {
 }
 
 export function isApply(e: unknown): e is Apply {
-  return typeof e === "object" && e !== null && !Array.isArray(e) && typeof (e as Apply).head === "string";
+  return typeof e === 'object' && e !== null && !Array.isArray(e) && typeof (e as Apply).head === 'string';
 }
 
 /**
@@ -170,13 +170,13 @@ export const MAX_EXPRESSION_DEPTH = 64;
  * nested at most `MAX_EXPRESSION_DEPTH` deep (`expressionTooDeep` says when that is why not).
  */
 export function isExpression(value: unknown, depth = 0): value is Expression {
-  if (typeof value === "string" || typeof value === "boolean") return true;
-  if (typeof value === "number") return Number.isFinite(value);
+  if (typeof value === 'string' || typeof value === 'boolean') return true;
+  if (typeof value === 'number') return Number.isFinite(value);
   if (!isApply(value) || depth >= MAX_EXPRESSION_DEPTH) return false;
-  for (const key of Object.keys(value)) if (key !== "head" && key !== "args") return false;
+  for (const key of Object.keys(value)) if (key !== 'head' && key !== 'args') return false;
   const args: unknown = value.args;
   if (args === undefined) return true;
-  if (typeof args !== "object" || args === null || Array.isArray(args)) return false;
+  if (typeof args !== 'object' || args === null || Array.isArray(args)) return false;
   for (const v of Object.values(args)) {
     if (Array.isArray(v) ? !v.every((x) => isExpression(x, depth + 1)) : !isExpression(v, depth + 1)) return false;
   }
@@ -191,7 +191,7 @@ export function expressionTooDeep(value: unknown): boolean {
     const next: unknown[] = [];
     for (const e of level) {
       const args = isApply(e) ? (e as { args?: unknown }).args : undefined;
-      if (typeof args !== "object" || args === null) continue;
+      if (typeof args !== 'object' || args === null) continue;
       for (const v of Object.values(args)) {
         if (Array.isArray(v)) for (const x of v) next.push(x);
         else next.push(v);

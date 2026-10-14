@@ -22,14 +22,14 @@ import {
   type SeqViewSpecDoc,
   type SvsRegistries,
   snapshotDoc,
-} from "@molstar/seq-core/format";
-import { Issue, type KeyResolver } from "@molstar/seq-core/model";
-import type { GraphResult } from "./context.js";
-import type { Origin, SeqState, WritableSeqState } from "./state.js";
-import { state } from "./state.js";
+} from '@molstar/seq-core/format';
+import { Issue, type KeyResolver } from '@molstar/seq-core/model';
+import type { GraphResult } from './context.js';
+import type { Origin, SeqState, WritableSeqState } from './state.js';
+import { state } from './state.js';
 
 type Doc = SeqViewSpecDoc;
-export type Routed = "commit" | "local" | "refuse";
+export type Routed = 'commit' | 'local' | 'refuse';
 /** What the port routes by. */
 export interface RouteContext {
   /** The snapshot shown; null: the base. */
@@ -102,7 +102,7 @@ interface Entry {
   readonly patch: Patch;
   readonly inverse: Patch;
   readonly label: string;
-  readonly layer: "base" | "local";
+  readonly layer: 'base' | 'local';
   /** A local entry's patch as it is in `local`, removed by identity on undo. */
   readonly local?: LocalPatch;
 }
@@ -111,13 +111,13 @@ type Applied =
   | { ok: false; issues: readonly Issue[] };
 type Check = ReturnType<typeof applyPatch>;
 
-const FORMAT = "seq_view_spec_patch";
+const FORMAT = 'seq_view_spec_patch';
 /** A patch over a layer above the base: its revisions are the base's business. */
 const opsOf = (p: Patch): Patch => ({ format: FORMAT, ops: p.ops });
-const noDocument = () => Issue.error("svs.patch.ref", "", "there is no document to patch");
+const noDocument = () => Issue.error('svs.patch.ref', '', 'there is no document to patch');
 /** The snapshot an `svs.snapshot.invalid` issue names (its path `/snapshots/<k>`); null: another issue. */
 const invalidRef = (doc: Doc | null, i: Issue) =>
-  i.code === "svs.snapshot.invalid" ? (doc?.snapshots?.[Number(i.path.split("/")[2])]?.ref ?? "") : null;
+  i.code === 'svs.snapshot.invalid' ? (doc?.snapshots?.[Number(i.path.split('/')[2])]?.ref ?? '') : null;
 const invalidOf = (doc: Doc | null, issues: readonly Issue[]) =>
   new Set(issues.flatMap((i) => invalidRef(doc, i) ?? []));
 /** The document's node refs, the implied `root` and `data` included (core's index). */
@@ -156,7 +156,7 @@ export class Documents implements DocumentManager {
   constructor(host: DocumentHost) {
     this.host = host;
     this.port = host.port ?? {
-      route: (_p, _l, at) => (at.snapshot !== null || at.masked ? "local" : "commit"),
+      route: (_p, _l, at) => (at.snapshot !== null || at.masked ? 'local' : 'commit'),
       commit: async (p) => this.applyBase(p),
       history: true,
     };
@@ -230,8 +230,8 @@ export class Documents implements DocumentManager {
     const base = this.base.value;
     if (!base) return { ok: false, issues: [noDocument()] };
     if (patch.base != null && patch.base !== (base.revision ?? undefined)) {
-      const message = `for revision "${patch.base}"; the document is at "${base.revision ?? "none"}"`;
-      return { ok: false, issues: [Issue.error("svs.patch.base", "/base", message)] };
+      const message = `for revision "${patch.base}"; the document is at "${base.revision ?? 'none'}"`;
+      return { ok: false, issues: [Issue.error('svs.patch.base', '/base', message)] };
     }
     const lp: LocalPatch = { patch: opsOf(patch), snapshot };
     let r: Check | null = null;
@@ -271,7 +271,7 @@ export class Documents implements DocumentManager {
   /** Every local patch, and the history's local entries (seqspec:viewer#history). */
   clearLocal() {
     this.local.set([]);
-    this.history.dropLayer("local");
+    this.history.dropLayer('local');
     this.recompute(false);
   }
   /** By identity; false: it is no longer there. */
@@ -307,7 +307,7 @@ export class Documents implements DocumentManager {
           // Left once; an invalidity the base's validation or patch gave is surfaced there.
           if (!this.validity.invalid.has(ref)) this.host.report(r.issues[r.issues.length - 1]);
           ref = null;
-          this.snapshot.set(null, "graph");
+          this.snapshot.set(null, 'graph');
         } else doc = r.doc;
       }
       if (this.snap.ref !== ref) this.skipped.clear();
@@ -329,14 +329,14 @@ export class Documents implements DocumentManager {
       const r = lp.snapshot === null || lp.snapshot === ref ? this.apply(doc, lp.patch) : null;
       if (r?.inverse) doc = r.doc;
       else if (r && !snapshotChange && lp.snapshot === ref) {
-        const why = r.issues[0]?.message ?? "";
-        this.host.report(Issue.warning("seqv.patch.dropped", `/local/${i}`, `a local patch no longer applies: ${why}`));
+        const why = r.issues[0]?.message ?? '';
+        this.host.report(Issue.warning('seqv.patch.dropped', `/local/${i}`, `a local patch no longer applies: ${why}`));
         dropped = true;
         continue;
       } else if (r && !this.skipped.has(lp)) {
         this.skipped.add(lp);
-        const message = `a local patch does not apply over snapshot "${ref}": ${r.issues[0]?.message ?? ""}`;
-        this.host.report(Issue.warning("seqv.patch.skipped", `/local/${i}`, message));
+        const message = `a local patch does not apply over snapshot "${ref}": ${r.issues[0]?.message ?? ''}`;
+        this.host.report(Issue.warning('seqv.patch.skipped', `/local/${i}`, message));
       }
       docs.push({ lp, doc });
     }
@@ -360,11 +360,11 @@ export class Documents implements DocumentManager {
     const refs = this.baseRefs.refs;
     const shown = this.snapshot.value;
     const sets = (o: Op, ref: string, keys: readonly string[]) =>
-      o.op === "set" && o.ref === ref && keys.some((k) => Object.hasOwn(o.params ?? {}, k));
+      o.op === 'set' && o.ref === ref && keys.some((k) => Object.hasOwn(o.params ?? {}, k));
     for (const op of patch.ops) {
-      const target = op.op === "insert" ? op.parent : op.ref;
-      if (!refs.has(target) || (op.op === "move" && !refs.has(op.parent))) return true;
-      const keys = op.op === "set" ? Object.keys(op.params ?? {}) : [];
+      const target = op.op === 'insert' ? op.parent : op.ref;
+      if (!refs.has(target) || (op.op === 'move' && !refs.has(op.parent))) return true;
+      const keys = op.op === 'set' ? Object.keys(op.params ?? {}) : [];
       for (const lp of this.local.value) {
         if (lp.snapshot !== null && lp.snapshot !== shown) continue;
         if (keys.length > 0 && lp.patch.ops.some((o) => sets(o, target, keys))) return true;
@@ -430,12 +430,12 @@ export class Documents implements DocumentManager {
       for (const i of issues) this.host.report(i);
       return { routed, ok: false, issues };
     };
-    if (routed === "refuse") return fail([Issue.warning("seqv.port.refused", "", `"${label}" was refused`)]);
-    if (routed === "local") {
+    if (routed === 'refuse') return fail([Issue.warning('seqv.port.refused', '', `"${label}" was refused`)]);
+    if (routed === 'local') {
       const r = this.addLocal(patch);
       if (!r.ok) return fail(r.issues);
       const local = r.local as LocalPatch;
-      if (r.inverse) this.history.record({ patch: local.patch, inverse: r.inverse, label, layer: "local", local });
+      if (r.inverse) this.history.record({ patch: local.patch, inverse: r.inverse, label, layer: 'local', local });
       return { routed, ok: true, issues: r.issues };
     }
     const base = this.base.value;
@@ -445,28 +445,28 @@ export class Documents implements DocumentManager {
     if (!check.inverse) return fail(check.issues);
     const r = await this.commit(sent, label, base);
     if (r.ok && this.port.history)
-      this.history.record({ patch: opsOf(patch), inverse: opsOf(check.inverse), label, layer: "base" });
+      this.history.record({ patch: opsOf(patch), inverse: opsOf(check.inverse), label, layer: 'base' });
     return { routed, ok: r.ok, issues: r.issues };
   }
 
   /** Applies an entry's patch (redo) or inverse (undo) to its layer; the entry to push on the other stack, or null. */
   async step(e: Entry, undo: boolean): Promise<Entry | null> {
     const refuse = (why: string) => {
-      this.host.report(Issue.warning("seqv.history.refused", "", `${undo ? "undo" : "redo"} of "${e.label}": ${why}`));
+      this.host.report(Issue.warning('seqv.history.refused', '', `${undo ? 'undo' : 'redo'} of "${e.label}": ${why}`));
       return null;
     };
-    if (e.layer === "local") {
-      if (undo) return this.removeLocal(e.local as LocalPatch) ? e : refuse("its local patch is gone");
+    if (e.layer === 'local') {
+      if (undo) return this.removeLocal(e.local as LocalPatch) ? e : refuse('its local patch is gone');
       const r = this.addLocal(e.patch, e.local?.snapshot ?? null);
-      if (!r.ok) return refuse(r.issues[0]?.message ?? "it no longer applies");
+      if (!r.ok) return refuse(r.issues[0]?.message ?? 'it no longer applies');
       return { ...e, local: r.local, inverse: r.inverse ?? e.inverse };
     }
     const base = this.base.value;
-    if (!base) return refuse("there is no document");
+    if (!base) return refuse('there is no document');
     const sent = this.stamp(undo ? e.inverse : e.patch, base);
     const check = this.check(base, sent);
-    if (!check.inverse) return refuse(check.issues[0]?.message ?? "it no longer applies");
-    const r = await this.commit(sent, `${undo ? "Undo" : "Redo"} ${e.label}`, base);
+    if (!check.inverse) return refuse(check.issues[0]?.message ?? 'it no longer applies');
+    const r = await this.commit(sent, `${undo ? 'Undo' : 'Redo'} ${e.label}`, base);
     return r.ok ? (undo ? e : { ...e, inverse: opsOf(check.inverse) }) : null;
   }
 
@@ -508,7 +508,7 @@ export class History implements HistoryManager {
     this.redos = [];
     this.sync();
   }
-  dropLayer(layer: Entry["layer"]) {
+  dropLayer(layer: Entry['layer']) {
     this.undos = this.undos.filter((e) => e.layer !== layer);
     this.redos = this.redos.filter((e) => e.layer !== layer);
     this.sync();
@@ -516,8 +516,8 @@ export class History implements HistoryManager {
 
   private async step(from: Entry[], to: Entry[], undo: boolean) {
     if (from.length > 0 && this.docs.pendingCommits) {
-      const message = `${undo ? "undo" : "redo"} waits for the host to pass back its commits`;
-      this.docs.host.report(Issue.warning("seqv.history.refused", "", message));
+      const message = `${undo ? 'undo' : 'redo'} waits for the host to pass back its commits`;
+      this.docs.host.report(Issue.warning('seqv.history.refused', '', message));
       return false;
     }
     const e = from.pop();
@@ -545,17 +545,17 @@ export class Views implements ViewManager {
   readonly current = state<string | null>(null);
 
   update(doc: Doc | null) {
-    const views = (doc?.root.children ?? []).filter((c) => c.kind === "view");
+    const views = (doc?.root.children ?? []).filter((c) => c.kind === 'view');
     this.list.set(
-      views.map((v) => ({ ref: v.ref ?? "view", label: String(v.params?.label ?? v.ref) })),
-      "graph",
+      views.map((v) => ({ ref: v.ref ?? 'view', label: String(v.params?.label ?? v.ref) })),
+      'graph',
     );
     const list = this.list.value;
     if (list.some((v) => v.ref === this.current.value)) return;
     const preferred = list.find((v) => v.ref === doc?.root.params?.default_view);
-    this.current.set((preferred ?? list[0])?.ref ?? null, "graph");
+    this.current.set((preferred ?? list[0])?.ref ?? null, 'graph');
   }
-  setCurrent(ref: string, origin: Origin = "api") {
+  setCurrent(ref: string, origin: Origin = 'api') {
     if (this.list.value.some((v) => v.ref === ref)) this.current.set(ref, origin);
   }
   dispose() {

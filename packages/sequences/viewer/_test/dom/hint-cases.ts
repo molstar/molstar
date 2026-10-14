@@ -12,25 +12,25 @@
 // leaves, on a press and on a key; it takes no pointer events, so the control under it gets the hover and the click;
 // and it takes the side that covers no control.
 
-import { afterEach, expect, it } from "vitest";
-import { userEvent } from "vitest/browser";
-import { HINT_DELAY_MS } from "../../src/dom/shared.js";
-import "../../src/skin.css";
+import { afterEach, expect, it } from 'vitest';
+import { userEvent } from 'vitest/browser';
+import { HINT_DELAY_MS } from '../../src/dom/shared.js';
+import '../../src/skin.css';
 
 /** Mounts hints over `buttons` (one each, labeled "Hint <i>") into `host`; returns the unmount. */
 export type MountHints = (host: HTMLElement, buttons: HTMLButtonElement[]) => Promise<() => Promise<void> | void>;
 
 const shown = (b: HTMLElement) => {
-  const bubble = b.closest(".seqv-hint")?.querySelector<HTMLElement>(".seqv-hint-bubble");
-  return !!bubble && getComputedStyle(bubble).visibility === "visible";
+  const bubble = b.closest('.seqv-hint')?.querySelector<HTMLElement>('.seqv-hint-bubble');
+  return !!bubble && getComputedStyle(bubble).visibility === 'visible';
 };
-const bubbleOf = (b: HTMLElement) => b.closest(".seqv-hint")?.querySelector(".seqv-hint-bubble") as HTMLElement;
+const bubbleOf = (b: HTMLElement) => b.closest('.seqv-hint')?.querySelector('.seqv-hint-bubble') as HTMLElement;
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const button = (label: string) => {
-  const b = document.createElement("button");
-  b.type = "button";
+  const b = document.createElement('button');
+  b.type = 'button';
   b.textContent = label;
-  b.style.cssText = "font: 12px sans-serif; padding: 2px 6px";
+  b.style.cssText = 'font: 12px sans-serif; padding: 2px 6px';
   return b;
 };
 
@@ -45,14 +45,14 @@ export function hintCases(mountHints: MountHints) {
    * hints are over `triggers`. `between` px between the rows.
    */
   async function stage(o: { count?: number; between?: number; below?: boolean } = {}) {
-    const box = document.createElement("div");
-    box.style.cssText = "position:absolute;left:200px;top:200px;display:flex;flex-direction:column;align-items:start";
+    const box = document.createElement('div');
+    box.style.cssText = 'position:absolute;left:200px;top:200px;display:flex;flex-direction:column;align-items:start';
     box.style.gap = `${o.between ?? 2}px`;
-    const above = button("Above, a control under the hint");
-    const row = document.createElement("div");
-    row.style.cssText = "display:flex;gap:2px";
+    const above = button('Above, a control under the hint');
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:2px';
     const triggers = Array.from({ length: o.count ?? 1 }, (_, i) => button(`Trigger ${i}`));
-    const below = button("Below, another control");
+    const below = button('Below, another control');
     box.append(above, row);
     if (o.below) box.append(below);
     document.body.append(box);
@@ -65,19 +65,19 @@ export function hintCases(mountHints: MountHints) {
     return { above, below, triggers };
   }
 
-  it("shows after the rest delay, not before, and hides at once when the pointer leaves", async () => {
+  it('shows after the rest delay, not before, and hides at once when the pointer leaves', async () => {
     const { triggers, above } = await stage();
     const [t] = triggers;
     await userEvent.hover(t);
     await wait(HINT_DELAY_MS / 3);
     expect(shown(t)).toBe(false);
     await expect.poll(() => shown(t), { timeout: HINT_DELAY_MS * 3 }).toBe(true);
-    expect(bubbleOf(t).textContent).toBe("Hint 0");
+    expect(bubbleOf(t).textContent).toBe('Hint 0');
     await userEvent.hover(above);
     expect(shown(t)).toBe(false);
   });
 
-  it("takes no pointer events: over a control, the control gets the hover and the click", async () => {
+  it('takes no pointer events: over a control, the control gets the hover and the click', async () => {
     // A control above and below: no side is free, so the hint goes above, over `above`.
     const { triggers, above } = await stage({ below: true });
     const [t] = triggers;
@@ -92,15 +92,15 @@ export function hintCases(mountHints: MountHints) {
     expect(document.elementFromPoint(x, y)).toBe(above);
     let entered = 0;
     let clicked = 0;
-    above.addEventListener("pointerenter", () => entered++);
-    above.addEventListener("click", () => clicked++);
+    above.addEventListener('pointerenter', () => entered++);
+    above.addEventListener('click', () => clicked++);
     // A real pointer at that point (Playwright waits while another element would take the click).
     await userEvent.click(above, { position: { x: x - a.left, y: y - a.top } });
     expect([entered, clicked]).toEqual([1, 1]);
     expect(shown(t)).toBe(false);
   });
 
-  it("covers no control when a side is free: below, when a control is right above", async () => {
+  it('covers no control when a side is free: below, when a control is right above', async () => {
     const { triggers, above } = await stage();
     const [t] = triggers;
     await userEvent.hover(t);
@@ -119,7 +119,7 @@ export function hintCases(mountHints: MountHints) {
     await expect.poll(() => shown(triggers[1]), { timeout: HINT_DELAY_MS / 2 }).toBe(true);
   });
 
-  it("hides on a press, and stays hidden while the pointer stays", async () => {
+  it('hides on a press, and stays hidden while the pointer stays', async () => {
     const { triggers } = await stage();
     const [t] = triggers;
     await userEvent.hover(t);
@@ -130,15 +130,15 @@ export function hintCases(mountHints: MountHints) {
     expect(shown(t)).toBe(false);
   });
 
-  it("shows at once on keyboard focus, hides on a key, and when focus leaves", async () => {
+  it('shows at once on keyboard focus, hides on a key, and when focus leaves', async () => {
     const { triggers } = await stage({ count: 2 });
-    const before = button("Before");
-    triggers[0].closest(".seqv-hint")?.parentElement?.prepend(before);
+    const before = button('Before');
+    triggers[0].closest('.seqv-hint')?.parentElement?.prepend(before);
     before.focus();
     await userEvent.tab();
     expect(document.activeElement).toBe(triggers[0]);
     expect(shown(triggers[0])).toBe(true);
-    await userEvent.keyboard("{Shift}");
+    await userEvent.keyboard('{Shift}');
     expect(shown(triggers[0])).toBe(false);
     await userEvent.tab();
     expect(shown(triggers[0])).toBe(false);

@@ -10,15 +10,15 @@
 // draws the rest (seqspec:viewer#extension-points): its draw, its rows band (dense rows), its header, its gutter and
 // its overlay, each caught where the composer calls it (LC-41: the proof's corpus reached none of these catches).
 
-import { describe, expect, it } from "vitest";
-import { Dirty } from "../src/draw/index.js";
-import { KernelRenderers, type LayerRenderer } from "../src/index.js";
-import { composed, recording } from "./composer-fixtures.js";
-import { FAMILY_SECTION, familyWithTree } from "./families.js";
+import { describe, expect, it } from 'vitest';
+import { Dirty } from '../src/draw/index.js';
+import { KernelRenderers, type LayerRenderer } from '../src/index.js';
+import { composed, recording } from './composer-fixtures.js';
+import { FAMILY_SECTION, familyWithTree } from './families.js';
 
-const ROWS = KernelRenderers.find((r) => r.name === "rows") as LayerRenderer;
+const ROWS = KernelRenderers.find((r) => r.name === 'rows') as LayerRenderer;
 const boom = () => {
-  throw new Error("boom");
+  throw new Error('boom');
 };
 const PARTS: Record<string, (r: LayerRenderer) => LayerRenderer> = {
   draw: (r) => ({ ...r, draw: boom }),
@@ -27,11 +27,11 @@ const PARTS: Record<string, (r: LayerRenderer) => LayerRenderer> = {
   overlay: (r) => ({ ...r, overlay: boom }),
 };
 
-describe("a renderer that throws", () => {
+describe('a renderer that throws', () => {
   for (const [part, mutant] of Object.entries(PARTS))
     it(`in its ${part}: omitted with one issue, the frame drawn`, async () => {
       // Rows under `denseRowHeight` are one band (`rows`); else a row each (`draw`).
-      const dense = part === "rows";
+      const dense = part === 'rows';
       const t = await composed(familyWithTree(40, 10), {
         section: FAMILY_SECTION,
         replace: { rows: mutant(ROWS) },
@@ -41,7 +41,7 @@ describe("a renderer that throws", () => {
       });
       const said: string[] = [];
       const sub = t.ctx.events.issue.subscribe((i) => {
-        if (i.code === "seqv.renderer.error") said.push(i.message);
+        if (i.code === 'seqv.renderer.error') said.push(i.message);
       });
       const be = t.frame(recording(), Dirty.all);
       t.frame(recording(), Dirty.all);

@@ -11,14 +11,14 @@
 // preset at runtime), IN2 the pointer's (the cursor per section, the drag, the window part lit), IN4 the keyboard's
 // cursor; UX1 adds the legend's expanded groups and `active`, with the tasks and the issues.
 
-import type { ResolvedView } from "@molstar/seq-core/format";
-import { type SeqSet, SortedArray } from "@molstar/seq-core/model";
-import { sameList } from "./axis.js";
-import { type ConfigManager, SeqViewerConfig } from "./config.js";
-import type { SeqIssue } from "./context.js";
-import { severityRank } from "./graph.js";
-import type { Scheduler } from "./scheduler.js";
-import { type Live, live, type SeqState, state, type WritableSeqState } from "./state.js";
+import type { ResolvedView } from '@molstar/seq-core/format';
+import { type SeqSet, SortedArray } from '@molstar/seq-core/model';
+import { sameList } from './axis.js';
+import { type ConfigManager, SeqViewerConfig } from './config.js';
+import type { SeqIssue } from './context.js';
+import { severityRank } from './graph.js';
+import type { Scheduler } from './scheduler.js';
+import { type Live, live, type SeqState, state, type WritableSeqState } from './state.js';
 
 export interface DragState {
   readonly section: number;
@@ -55,7 +55,7 @@ export interface KeyCursor {
 /** The `hoverRow` behavior's params (seqspec:interaction#hover). */
 export interface RowHoverParams {
   /** `entry`: a data hover lights its track's box (a split row's, a rows track's row, a renderer's `rowHover`). */
-  readonly band: "entry" | "off";
+  readonly band: 'entry' | 'off';
   /** The band's strength (0 to 1) over the data area and over the header. */
   readonly data: number;
   readonly header: number;
@@ -154,13 +154,13 @@ export class Ui implements UiManager {
     const [g, t] = [view?.groups, view?.tracks];
     for (let i = 0; g && set && i < g.count; i++) see(g.ref[i], g.collapsed[i]);
     for (let i = 0; t && set && i < t.count; i++) if (t.split[i] >= 0) see(t.ref[i], 1 - t.expanded[i]);
-    if (next) this.expanded.set(next, "graph");
+    if (next) this.expanded.set(next, 'graph');
   }
 
   toggleGroup(ref: string) {
     const next = new Set(this.expanded.value);
     if (!next.delete(ref)) next.add(ref);
-    this.expanded.set(next, "api");
+    this.expanded.set(next, 'api');
   }
   toggleClade(alignment: string, node: number) {
     const held = Array.from(this.clades.value.get(alignment) ?? []);
@@ -204,7 +204,7 @@ export class Ui implements UiManager {
   }
 
   cursor(section: string): SeqState<string> {
-    const c = this.cursors.get(section) ?? state("default");
+    const c = this.cursors.get(section) ?? state('default');
     this.cursors.set(section, c);
     return c;
   }
@@ -252,7 +252,7 @@ export class Ui implements UiManager {
     }
     // A group's key is `<section>/<track>`, the track a template instance's `<track>/<node ref>`: a section's ref (an
     // author ref) holds no `/`, so it is the text before the first.
-    const orphan = [...this.legendOpen.value].some((k) => !sections.includes(k.slice(0, k.indexOf("/"))));
+    const orphan = [...this.legendOpen.value].some((k) => !sections.includes(k.slice(0, k.indexOf('/'))));
     if (!this.pending && (this.leaving.size > 0 || orphan)) {
       this.pending = true;
       void Promise.resolve().then(this.drop);
@@ -263,7 +263,7 @@ export class Ui implements UiManager {
     if (this.closed) return;
     for (const c of this.leaving.values()) c.complete();
     this.leaving.clear();
-    const open = [...this.legendOpen.value].filter((k) => this.sections.includes(k.slice(0, k.indexOf("/"))));
+    const open = [...this.legendOpen.value].filter((k) => this.sections.includes(k.slice(0, k.indexOf('/'))));
     if (open.length !== this.legendOpen.value.size) this.legendOpen.set(new Set(open));
   };
 
@@ -381,8 +381,8 @@ export class Issues implements IssueManager {
   private publish() {
     const all = [...this.graph, ...this.other, ...this.preview];
     this.current.set(
-      all.sort((a, b) => (a.ref ?? "￿").localeCompare(b.ref ?? "￿")),
-      "graph",
+      all.sort((a, b) => (a.ref ?? '￿').localeCompare(b.ref ?? '￿')),
+      'graph',
     );
   }
   dispose() {

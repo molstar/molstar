@@ -6,14 +6,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { clsx } from "clsx";
-import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from "react";
-import styles from "./text-action.module.css";
-import { Tooltip } from "./tooltip.js";
+import { clsx } from 'clsx';
+import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react';
+import styles from './text-action.module.css';
+import { Tooltip } from './tooltip.js';
 
-export interface TextActionProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "title"> {
+export interface TextActionProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'title'> {
   /** `default` for most actions, `strong` for the one that matters, `quiet` for meta actions like "log". */
-  tone?: "default" | "strong" | "quiet" | "accent";
+  tone?: 'default' | 'strong' | 'quiet' | 'accent';
   className?: string;
   /** Its tooltip (never the DOM's `title`). Disabled, it stays hoverable, so it still says why. */
   title?: ReactNode;
@@ -21,9 +21,9 @@ export interface TextActionProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
 
 /** The workhorse action: underlined text, not a box. */
 export function TextAction({
-  tone = "default",
+  tone = 'default',
   className,
-  type = "button",
+  type = 'button',
   title,
   disabled,
   onClick,

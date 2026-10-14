@@ -10,10 +10,10 @@
 // system's domain, name, numbering and labels, and the alive units over a molecule. Edges: called per system, never per
 // position.
 
-import type { NameId, UnitId } from "../common.js";
-import { CoordinateSystemKind as K } from "../coordinates.js";
-import { LABEL, NO_LABEL, Numbering, type NumberingSet, type PositionLabel, UNKNOWN_SUFFIX } from "../numbering.js";
-import { type SeqSet, SeqSets } from "../set.js";
+import type { NameId, UnitId } from '../common.js';
+import { CoordinateSystemKind as K } from '../coordinates.js';
+import { LABEL, NO_LABEL, Numbering, type NumberingSet, type PositionLabel, UNKNOWN_SUFFIX } from '../numbering.js';
+import { type SeqSet, SeqSets } from '../set.js';
 
 /** Writes the system's indices [lo, hi) to `out`; false when it has none held (a removed unit, a row not held). */
 export function domainOf(set: SeqSet, kind: number, id: number, row: number, out: Int32Array): boolean {
@@ -54,7 +54,7 @@ export function nameOf(set: SeqSet, kind: number, id: number, row: number): stri
   return kind === K.row ? `${a}/${row}` : `${a} columns`;
 }
 
-const ordinal = (set: SeqSet) => set.strings.find("ordinal") as NameId;
+const ordinal = (set: SeqSet) => set.strings.find('ordinal') as NameId;
 
 /**
  * The numbering `name` of a system, or its default (null `name`): its own default, its molecule's, else `ordinal`.
@@ -85,7 +85,7 @@ export function numberingOf(set: SeqSet, kind: number, id: number, row: number, 
  * distinct by name, the unit's before its molecule's. A name with a `:` names nothing more than itself.
  */
 function numberingsUnder(set: SeqSet, lists: readonly (NumberingSet | null | undefined)[], ns: string): Numbering[] {
-  if (ns.includes(":")) return [];
+  if (ns.includes(':')) return [];
   const out = new Map<string, Numbering>();
   for (const l of lists)
     for (const x of l?.items ?? []) {
@@ -97,7 +97,7 @@ function numberingsUnder(set: SeqSet, lists: readonly (NumberingSet | null | und
 
 /** The numberings a namespace alone names on a system (more than one: the name is ambiguous there), by name. */
 export function numberingNamesUnder(set: SeqSet, kind: number, id: number, row: number, ns: string): string[] {
-  return numberingNames(set, kind, id, row).filter((n) => !ns.includes(":") && n.startsWith(`${ns}:`));
+  return numberingNames(set, kind, id, row).filter((n) => !ns.includes(':') && n.startsWith(`${ns}:`));
 }
 
 /** The names of a system's numberings, for messages. */
@@ -121,7 +121,7 @@ export function toLabel(set: SeqSet, n: Numbering | null, text: string, out: Pos
   out.num = NO_LABEL;
   out.suffix = out.name = -1 as NameId;
   out.rank = undefined;
-  if (n?.method === "names") {
+  if (n?.method === 'names') {
     out.name = set.strings.find(text) as NameId;
     return out.name >= 0;
   }

@@ -6,21 +6,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import { AtlasPage } from "./support/seqstar-atlas.js";
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { AtlasPage } from './support/seqstar-atlas.js';
 
 /**
  * Performance of the Canvas2D backend on large documents. The glyph atlas on a large lazy alignment:
  * frame times with it on and off, and a magnified crop of the same letters either way.
  */
 const meta = {
-  title: "Seq*/Performance/Large documents",
-  parameters: { layout: "fullscreen", docs: { source: { type: "code" } } },
+  title: 'Seq*/Performance/Large documents',
+  parameters: { layout: 'fullscreen', docs: { source: { type: 'code' } } },
 } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const GlyphAtlas: Story = {
-  name: "Glyph atlas",
+  name: 'Glyph atlas',
   render: () => <AtlasPage />,
 };

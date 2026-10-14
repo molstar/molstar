@@ -10,12 +10,12 @@
 // (`canonical`, the patch's), so an edit compares as the stored document would. Identity first; a typed array
 // equals a list of the same numbers (a Float32Array's as their shortest float32 decimals); null, a missing value and
 // a number that is not finite (JSON's null) are equal; key order does not matter.
-import { float32Number } from "@molstar/seq-core/model";
+import { float32Number } from '@molstar/seq-core/model';
 
 type List = ArrayLike<unknown>;
 
 /** JSON writes each as null. */
-const isNull = (x: unknown): boolean => x == null || (typeof x === "number" && !Number.isFinite(x));
+const isNull = (x: unknown): boolean => x == null || (typeof x === 'number' && !Number.isFinite(x));
 
 /** Whether `a` and `b` have equal canonical JSON, compared in place: no text, no copies. */
 export function equal(a: unknown, b: unknown): boolean {
@@ -23,7 +23,7 @@ export function equal(a: unknown, b: unknown): boolean {
   const na = isNull(a);
   const nb = isNull(b);
   if (na || nb) return na && nb;
-  if (typeof a !== "object" || typeof b !== "object") return false;
+  if (typeof a !== 'object' || typeof b !== 'object') return false;
   const va = ArrayBuffer.isView(a);
   const vb = ArrayBuffer.isView(b);
   const la = va || Array.isArray(a);

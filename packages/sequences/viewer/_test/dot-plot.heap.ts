@@ -13,7 +13,7 @@
 // cell) allocate nothing once warm. The positive control: the draw's frames allocating an object each (`leaking`),
 // through the same warm-up and measurement, are caught. Its own file: cases in one file share V8's feedback.
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -24,7 +24,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 /** 1,000 steps: they catch about 22 bytes a step, the trimmed 500 about 43 (heap.ts). */
 const N = 1_000;
@@ -39,30 +39,30 @@ const measure = (frame: (i: number) => void) => {
 };
 const guard = (frame: () => void) => {
   const r = measure(frame);
-  return isFlat(r) ? "" : describeScaling(r, N);
+  return isFlat(r) ? '' : describeScaling(r, N);
 };
 
 /** A 600-residue sequence with its repeat every 150: the grid's 360,000 cells and the matches' segments. */
 async function plot() {
-  const { dotPlotDoc, REPEAT } = await import("./dot-plot-fixtures.js");
-  const { lit } = await import("./overlay-fixtures.js");
-  const { recording } = await import("./composer-fixtures.js");
-  const { Dirty } = await import("../src/draw/index.js");
-  const seq = Array.from({ length: 20 }, (_, k) => (k % 5 === 4 ? "GSGSGSGSGSGSGSGSGSGSGSGSGSGSGS" : REPEAT)).join("");
+  const { dotPlotDoc, REPEAT } = await import('./dot-plot-fixtures.js');
+  const { lit } = await import('./overlay-fixtures.js');
+  const { recording } = await import('./composer-fixtures.js');
+  const { Dirty } = await import('../src/draw/index.js');
+  const seq = Array.from({ length: 20 }, (_, k) => (k % 5 === 4 ? 'GSGSGSGSGSGSGSGSGSGSGSGSGSGSGS' : REPEAT)).join('');
   const t = await lit(dotPlotDoc(seq), { width: 900, height: 600, dpr: 2 });
-  t.ctx.behaviors.get("hoverLabel")?.remove();
+  t.ctx.behaviors.get('hoverLabel')?.remove();
   const be = recording();
   let i = 0;
   /** Two views, a frame each: the fit, and zoomed in past it. */
   const draw = () => {
-    if (i++ & 1) t.vp?.setView(1.4, 0, "api");
-    else t.vp?.setView(6, 600, "api");
+    if (i++ & 1) t.vp?.setView(1.4, 0, 'api');
+    else t.vp?.setView(6, 600, 'api');
     t.frame(be, Dirty.all);
   };
   const v = t.ctx.layout.axis(t.section);
   const l = t.ctx.layout.get(t.section)?.current;
-  if (!v || !l) throw new Error("no layout");
-  t.vp?.setView(1.4, 0, "api");
+  if (!v || !l) throw new Error('no layout');
+  t.vp?.setView(1.4, 0, 'api');
   t.frame(be, Dirty.all);
   const plotEntry = l.entryCount - 1;
   const top = l.scrolledTop + l.entryTop[plotEntry];
@@ -75,7 +75,7 @@ async function plot() {
     j++;
     t.overlay(be);
   };
-  const { Op } = await import("../src/testing/index.js");
+  const { Op } = await import('../src/testing/index.js');
   /** The images the last frame drew. */
   const images = () => {
     let n = 0;
@@ -87,22 +87,22 @@ async function plot() {
 
 /** 2,400 residues, its grid one Float32Array, zoomed out to 0.45 px a cell (level 2 or past it), two pans. */
 async function zoomedOut() {
-  const { dotPlotDoc } = await import("./dot-plot-fixtures.js");
-  const { lit } = await import("./overlay-fixtures.js");
-  const { recording } = await import("./composer-fixtures.js");
-  const { Dirty } = await import("../src/draw/index.js");
-  const t = await lit(dotPlotDoc("MKTAYIAKQR".repeat(240), true), { width: 900, height: 600, dpr: 1 });
+  const { dotPlotDoc } = await import('./dot-plot-fixtures.js');
+  const { lit } = await import('./overlay-fixtures.js');
+  const { recording } = await import('./composer-fixtures.js');
+  const { Dirty } = await import('../src/draw/index.js');
+  const t = await lit(dotPlotDoc('MKTAYIAKQR'.repeat(240), true), { width: 900, height: 600, dpr: 1 });
   const be = recording();
   let i = 0;
   const draw = () => {
-    t.vp?.setView(0.45, i++ & 1 ? 200 : 0, "api");
+    t.vp?.setView(0.45, i++ & 1 ? 200 : 0, 'api');
     t.frame(be, Dirty.all);
   };
   return { be, draw, dispose: () => t.ctx.dispose() };
 }
 
-describe("the dot plot allocates nothing per frame", () => {
-  it("its draw over two views: grid tiles at two levels and the segments", async () => {
+describe('the dot plot allocates nothing per frame', () => {
+  it('its draw over two views: grid tiles at two levels and the segments', async () => {
     vi.resetModules();
     const g = await plot();
     g.draw();
@@ -110,7 +110,7 @@ describe("the dot plot allocates nothing per frame", () => {
     // Not vacuous: the tiles and the segments are drawn.
     expect(g.be.pathItems.n).toBeGreaterThan(10);
     expect(g.images()).toBeGreaterThan(0);
-    expect(guard(g.draw)).toBe("");
+    expect(guard(g.draw)).toBe('');
     g.dispose();
   }, 120_000);
 
@@ -119,11 +119,11 @@ describe("the dot plot allocates nothing per frame", () => {
     const g = await zoomedOut();
     g.draw();
     g.draw();
-    const { Op } = await import("../src/testing/index.js");
+    const { Op } = await import('../src/testing/index.js');
     let images = 0;
     for (let k = 0; k < g.be.opCount; k++) if (g.be.ops[4 * k] === Op.image) images++;
     expect(images).toBeGreaterThan(0);
-    expect(guard(g.draw)).toBe("");
+    expect(guard(g.draw)).toBe('');
     g.dispose();
   }, 180_000);
 
@@ -132,7 +132,7 @@ describe("the dot plot allocates nothing per frame", () => {
     const g = await plot();
     g.hover();
     expect(g.t.ctx.hover.live.current.pairIndex).toBeGreaterThanOrEqual(0);
-    expect(guard(g.hover)).toBe("");
+    expect(guard(g.hover)).toBe('');
     g.dispose();
   }, 120_000);
 

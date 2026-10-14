@@ -11,12 +11,12 @@
 // async) and a host that returns the wrong stream, the size bound, the stored encoder's time on a large image, and
 // `crc32` against zlib's.
 
-import { deflateSync, crc32 as zlibCrc32 } from "node:zlib";
-import { describe, expect, it } from "vitest";
-import { itWithin } from "../../../core/_test/model/timing.js";
-import { encodePng, MAX_PNG_BYTES } from "../../src/svg/index.js";
-import { crc32 } from "../../src/svg/png.js";
-import { decodePng, pixelsOf } from "./png.js";
+import { deflateSync, crc32 as zlibCrc32 } from 'node:zlib';
+import { describe, expect, it } from 'vitest';
+import { itWithin } from '../../../core/_test/model/timing.js';
+import { encodePng, MAX_PNG_BYTES } from '../../src/svg/index.js';
+import { crc32 } from '../../src/svg/png.js';
+import { decodePng, pixelsOf } from './png.js';
 
 /** Pixels that differ everywhere (a stored block's boundary lands in a different channel of a different pixel). */
 function noise(n: number): Uint32Array {
@@ -32,7 +32,7 @@ const bytesOf = (px: Uint32Array) => new Uint8Array(px.buffer, px.byteOffset, px
 /** The same bytes (a deep match of a large image's took most of its test). */
 const same = (a: Uint8Array, b: Uint8Array) => Buffer.from(a.buffer, a.byteOffset, a.length).equals(b);
 
-describe("the checksums", () => {
+describe('the checksums', () => {
   // The stored stream's Adler-32 is computed on the way and checked by inflate in every case below.
   it("crc32 equals zlib's", () => {
     for (const n of [0, 1, 2, 255, 5551, 5552, 5553, 65535, 200_000]) {
@@ -42,7 +42,7 @@ describe("the checksums", () => {
   });
 });
 
-describe("stored blocks", () => {
+describe('stored blocks', () => {
   // Rows of 4w + 1 bytes against blocks of 65,535: widths that put a boundary mid-pixel, on a row end, and a block per row.
   it.each([
     [1, 1],
@@ -61,7 +61,7 @@ describe("stored blocks", () => {
     const px = noise(w * h);
     const png = (await encodePng(w, h, px)) as Uint8Array;
     const d = decodePng(png);
-    expect([d.w, d.h, d.chunks]).toEqual([w, h, ["IHDR", "IDAT", "IEND"]]);
+    expect([d.w, d.h, d.chunks]).toEqual([w, h, ['IHDR', 'IDAT', 'IEND']]);
     expect(same(pixelsOf(d), bytesOf(px))).toBe(true);
     // One zlib stream of stored blocks: the exact size, a block per 65,535 bytes.
     const raw = h * (1 + 4 * w);
@@ -69,7 +69,7 @@ describe("stored blocks", () => {
     expect(png.length).toBe(8 + 25 + 12 + d.zlib.length + 12);
   });
 
-  it("an image that is a view into a larger buffer", async () => {
+  it('an image that is a view into a larger buffer', async () => {
     const big = noise(100);
     const view = big.subarray(10, 10 + 6 * 5);
     expect(pixelsOf(decodePng((await encodePng(6, 5, view)) as Uint8Array))).toEqual(bytesOf(view));
@@ -77,7 +77,7 @@ describe("stored blocks", () => {
 });
 
 describe("a host's deflate", () => {
-  it("compresses (sync or async) and the result is the same pixels", async () => {
+  it('compresses (sync or async) and the result is the same pixels', async () => {
     const px = new Uint32Array(300 * 200).fill(0xff3366aa);
     const stored = (await encodePng(300, 200, px)) as Uint8Array;
     for (const deflate of [(b: Uint8Array) => deflateSync(b), async (b: Uint8Array) => deflateSync(b)]) {
@@ -86,15 +86,15 @@ describe("a host's deflate", () => {
       expect(png.length).toBeLessThan(stored.length / 20);
     }
   });
-  it("refuses a stream that is not zlib (a raw deflate, nothing)", () => {
+  it('refuses a stream that is not zlib (a raw deflate, nothing)', () => {
     const px = new Uint32Array(4);
     expect(() => encodePng(2, 2, px, () => new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]))).toThrow(/zlib stream/);
     expect(() => encodePng(2, 2, px, () => new Uint8Array(0))).toThrow(/zlib stream/);
   });
 });
 
-describe("the bounds", () => {
-  it("refuses a size that is not an image, too few pixels, and anything over the bound before allocating", () => {
+describe('the bounds', () => {
+  it('refuses a size that is not an image, too few pixels, and anything over the bound before allocating', () => {
     for (const [w, h] of [
       [0, 1],
       [1, 0],
@@ -109,7 +109,7 @@ describe("the bounds", () => {
     expect(MAX_PNG_BYTES).toBe(2 ** 29);
   });
 
-  itWithin("a large image is written stored in a time and a single buffer, not copies of it", async (within) => {
+  itWithin('a large image is written stored in a time and a single buffer, not copies of it', async (within) => {
     const [w, h] = [3000, 3000]; // 36 MB of pixels
     const px = new Uint32Array(w * h);
     for (let i = 0; i < px.length; i += 11) px[i] = i;

@@ -20,12 +20,12 @@ import {
   Extents,
   KeyKind,
   type SeqSet,
-} from "@molstar/seq-core/model";
-import { TranslateMaps, type Translator } from "@molstar/seq-core/translate";
-import { OrderedSet } from "molstar/lib/mol-data/int";
-import { type Structure, StructureElement, type Unit } from "molstar/lib/mol-model/structure";
-import { type ChainInstance, chainsOf } from "./chains.js";
-import { complexUnits, seqRoutes } from "./seq-units.js";
+} from '@molstar/seq-core/model';
+import { TranslateMaps, type Translator } from '@molstar/seq-core/translate';
+import { OrderedSet } from 'molstar/lib/mol-data/int';
+import { type Structure, StructureElement, type Unit } from 'molstar/lib/mol-model/structure';
+import { type ChainInstance, chainsOf } from './chains.js';
+import { complexUnits, seqRoutes } from './seq-units.js';
 
 const unitsOf = (chains: readonly LinkedChain[]) => {
   const units = new Set<number>();
@@ -83,7 +83,7 @@ export class StructureLink {
     const target = { kind: 0, id: 0, row: -1 };
     const chains: LinkedChain[] = [];
     index.chains.forEach((c, k) => {
-      if (c.kind === "water") return;
+      if (c.kind === 'water') return;
       const u =
         seqUnits.find((s) => s.mvs.label_asym_id === c.labelAsymId && s.mvs.instance_id === c.instanceId) ??
         seqUnits.find((s) => s.mvs.label_asym_id === c.labelAsymId);
@@ -94,7 +94,7 @@ export class StructureLink {
         if (!unit || !u) return [];
         const mol = set.molecules[set.units.molecule[unit.id]];
         const length = mol?.length ?? 0;
-        if (c.kind !== "polymer")
+        if (c.kind !== 'polymer')
           return [TranslateMaps.bySegments(s, unit, Int32Array.of(0, 0, Math.min(c.count, length)))];
         const labels = new Int32Array(length);
         for (let i = 0; i < length; i++) labels[i] = i + u.first;
@@ -103,7 +103,7 @@ export class StructureLink {
       const system = t.register(
         {
           key,
-          kind: "external",
+          kind: 'external',
           start: 0,
           stop: c.count,
           refs: u ? { unit: u.ref, complex } : {},
@@ -116,7 +116,7 @@ export class StructureLink {
             instanceId: c.instanceId,
           },
           numberings: [],
-          owner: "molstar",
+          owner: 'molstar',
         },
         maps,
       );
@@ -128,14 +128,14 @@ export class StructureLink {
     this.system = t.register(
       {
         key: this.key,
-        kind: "external",
+        kind: 'external',
         start: 0,
         stop: 0,
         refs: { complex },
         members: chains.map((c) => c.key),
         structure: { structureRef: ref },
         numberings: [],
-        owner: "molstar",
+        owner: 'molstar',
       },
       seqRoutes(set, unitsOf(chains)),
     );

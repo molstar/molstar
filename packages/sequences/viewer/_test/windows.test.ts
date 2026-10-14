@@ -12,8 +12,8 @@
 // quarter inside,
 // row ends only with `verticalZoom`), and the grips a part lights. The gestures that drive them are IN2's.
 
-import { describe, expect, it } from "vitest";
-import { AxisGeometry, SectionAxisView } from "../src/axis.js";
+import { describe, expect, it } from 'vitest';
+import { AxisGeometry, SectionAxisView } from '../src/axis.js';
 import {
   windowEnds as ends,
   gripsLit,
@@ -26,8 +26,8 @@ import {
   windowFrame,
   windowPart,
   windowRect,
-} from "../src/windows.js";
-import { axisOf, blocksDoc, resolved } from "./axis-fixtures.js";
+} from '../src/windows.js';
+import { axisOf, blocksDoc, resolved } from './axis-fixtures.js';
 
 /** A frame over a span [x0, x0 + w) × [y0, y0 + h) with window fractions along x and y. */
 function frame(x0: number, w: number, fx: [number, number], y0 = 0, h = 100, fy: [number, number] = [0, 1]) {
@@ -38,8 +38,8 @@ function frame(x0: number, w: number, fx: [number, number], y0 = 0, h = 100, fy:
 }
 const at = (x: number, y: number) => ({ x, y });
 
-describe("the drawn window and its hit area", () => {
-  it("at its share of the span, at least WINDOW_FLOOR (at most half the span), its position over the travel", () => {
+describe('the drawn window and its hit area', () => {
+  it('at its share of the span, at least WINDOW_FLOOR (at most half the span), its position over the travel', () => {
     const half = frame(10, 200, [0.25, 0.75]);
     expect([half[8], half[9]]).toEqual([60, 160]);
     // 1% of 200 px is 2 px: floored to 16, a thumb whose position maps the scroll over the span less the thumb.
@@ -52,7 +52,7 @@ describe("the drawn window and its hit area", () => {
     expect(frame(0, 20, [0.4, 0.45])[9] - frame(0, 20, [0.4, 0.45])[8]).toBe(10);
   });
 
-  it("hit over at least WINDOW_HIT px, centered on it and inside the span", () => {
+  it('hit over at least WINDOW_HIT px, centered on it and inside the span', () => {
     const g = frame(0, 400, [0.5, 0.505]);
     expect(g[15] - g[14]).toBe(WINDOW_HIT >= WINDOW_FLOOR ? WINDOW_HIT : WINDOW_FLOOR);
     const big = frame(0, 400, [0.25, 0.75]);
@@ -62,7 +62,7 @@ describe("the drawn window and its hit area", () => {
   });
 });
 
-describe("an end dragged (windowEnds)", () => {
+describe('an end dragged (windowEnds)', () => {
   const out = new Float64Array(2);
   /** The travel and least in, the fractions out (`windowEnds` reads its doubles from the buffer). */
   const windowEnds = (
@@ -97,7 +97,7 @@ describe("an end dragged (windowEnds)", () => {
     expect([out[0], out[1]]).toEqual([0.45, 0.5]);
   });
 
-  it("a floored thumb dragged in keeps the view; dragged out, zooms out from its drawn ends", () => {
+  it('a floored thumb dragged in keeps the view; dragged out, zooms out from its drawn ends', () => {
     const g = frame(0, 400, [0.5, 0.501]);
     expect(windowEnds(g, false, false, -10, 0.001, out)).toBe(false);
     expect(windowEnds(g, false, false, 40, 0.001, out)).toBe(true);
@@ -112,8 +112,8 @@ describe("an end dragged (windowEnds)", () => {
   });
 });
 
-describe("the part under a point (windowPart)", () => {
-  it("the navigator: its ends just outside and at most a quarter inside; its body pans; outside jumps", () => {
+describe('the part under a point (windowPart)', () => {
+  it('the navigator: its ends just outside and at most a quarter inside; its body pans; outside jumps', () => {
     const g = frame(0, 400, [0.25, 0.5]);
     const [x0, x1] = [g[8], g[9]];
     const nav = (x: number) => windowPart(WindowKind.navigator, at(x, 50), g, true);
@@ -131,7 +131,7 @@ describe("the part under a point (windowPart)", () => {
     expect(windowPart(-1, at(mid, 0), s, false)).toBe(WindowPart.none);
   });
 
-  it("the scrollbar and the overview: row ends only with verticalZoom, else the window only moves", () => {
+  it('the scrollbar and the overview: row ends only with verticalZoom, else the window only moves', () => {
     const g = frame(300, 20, [0, 1], 0, 200, [0.4, 0.6]);
     const [y0, y1] = [g[10], g[11]];
     const bar = (y: number, rows: boolean) => windowPart(WindowKind.scrollbar, at(310, y), g, rows);
@@ -156,7 +156,7 @@ describe("the part under a point (windowPart)", () => {
     ]);
   });
 
-  it("the grips a part lights", () => {
+  it('the grips a part lights', () => {
     expect([
       gripsLit(WindowPart.pan, false),
       gripsLit(WindowPart.left, false),
@@ -170,7 +170,7 @@ describe("the part under a point (windowPart)", () => {
 
 describe("a section's frame from its axis view (windowFrame)", () => {
   it("the navigator maps the whole axis; zoomed, the window is the view's share of it", async () => {
-    const r = await resolved(blocksDoc(2, 50), "v");
+    const r = await resolved(blocksDoc(2, 50), 'v');
     const ax = axisOf(r);
     const v = new SectionAxisView();
     const l = { geometry: AxisGeometry.linear, dataLeft: 40, dataRight: 240, scrolledTop: 20, height: 120 };
@@ -191,8 +191,8 @@ describe("a section's frame from its axis view (windowFrame)", () => {
     expect([g[0], g[1], g[2], g[3]]).toEqual([240, 20, 20, 100]);
   });
 
-  it("no data area (the header and data columns fill the width): the windows floored at the start, never NaN", async () => {
-    const r = await resolved(blocksDoc(2, 50), "v");
+  it('no data area (the header and data columns fill the width): the windows floored at the start, never NaN', async () => {
+    const r = await resolved(blocksDoc(2, 50), 'v');
     const ax = axisOf(r);
     const v = new SectionAxisView();
     // The data area empty at x 200; 400 px of rows, 100 in view, scrolled by 100.

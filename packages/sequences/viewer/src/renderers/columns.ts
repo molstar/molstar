@@ -12,8 +12,8 @@
 // `v.columnWidth`, its batches this module's, handed over per cell (the composer calls it per visible row). An unknown
 // type is drawn as `text` (layout and prepare alike).
 
-import { makePaletteFunction } from "@molstar/seq-core/format";
-import type { Annotation, Field, SeqSet } from "@molstar/seq-core/model";
+import { makePaletteFunction } from '@molstar/seq-core/format';
+import type { Annotation, Field, SeqSet } from '@molstar/seq-core/model';
 import {
   type ColumnRenderer,
   type DrawView,
@@ -24,7 +24,7 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
 /** A column prepared: per alignment row its annotation row (-1: none); per annotation row its text, number and color. */
 export interface ColumnState {
@@ -44,21 +44,21 @@ function prepareColumn(kind: string) {
     const value = new Float64Array(n).fill(Number.NaN);
     const text: string[] = [];
     for (let r = 0; r < n; r++) {
-      let s = "";
-      if (field?.kind === "number") value[r] = field.data[r];
-      if (field?.kind === "string" && field.data[r] >= 0) s = set.strings.get(field.data[r]);
-      if (field?.kind === "json" && field.data[r] != null) s = String(field.data[r]);
+      let s = '';
+      if (field?.kind === 'number') value[r] = field.data[r];
+      if (field?.kind === 'string' && field.data[r] >= 0) s = set.strings.get(field.data[r]);
+      if (field?.kind === 'json' && field.data[r] != null) s = String(field.data[r]);
       // A decimal written out: a blank, `0x1A` or `Infinity` is text, never 0 or a number (GM-07).
-      if (field?.kind !== "number" && DECIMAL.test(s)) value[r] = Number(s);
-      if (kind === "number" || kind === "fraction")
-        s = Number.isNaN(value[r]) ? "" : kind === "fraction" ? `${Math.round(value[r] * 100)}%` : fmt(value[r]);
-      else if (field?.kind === "number" && !Number.isNaN(value[r])) s = fmt(value[r]);
+      if (field?.kind !== 'number' && DECIMAL.test(s)) value[r] = Number(s);
+      if (kind === 'number' || kind === 'fraction')
+        s = Number.isNaN(value[r]) ? '' : kind === 'fraction' ? `${Math.round(value[r] * 100)}%` : fmt(value[r]);
+      else if (field?.kind === 'number' && !Number.isNaN(value[r])) s = fmt(value[r]);
       text.push(s);
     }
     const color = new Int32Array(n).fill(-1);
-    if (kind === "category") {
+    if (kind === 'category') {
       const f = makePaletteFunction(
-        { kind: "categorical", colors: "Category10" },
+        { kind: 'categorical', colors: 'Category10' },
         text.filter((t) => t),
       );
       for (let r = 0; r < n; r++) color[r] = text[r] ? (f(text[r]) ?? -1) : -1;
@@ -78,10 +78,10 @@ function cellText(v: DrawView, text: string, align: number, ink: number): void {
   if (!text || at[1] < 8) return;
   const tm = v.text;
   const px = (v.height * 0.62) | 0;
-  const font = tm.font("ui", px < 8 ? 8 : px > 12 ? 12 : px);
+  const font = tm.font('ui', px < 8 ? 8 : px > 12 ? 12 : px);
   const label = tm.label(text, font);
   fit[0] = at[1];
-  fit[1] = tm.label("…", font).width;
+  fit[1] = tm.label('…', font).width;
   const n = fitIn(label, fit);
   if (n === 0) return;
   texts.reset();
@@ -95,9 +95,9 @@ function cellText(v: DrawView, text: string, align: number, ink: number): void {
 const cell = (s: ColumnState, row: number) => (s && row >= 0 && row < s.rows.length ? s.rows[row] : -1);
 
 export const NumberColumn: ColumnRenderer<ColumnState> = {
-  name: "number",
+  name: 'number',
   width: 64,
-  prepare: prepareColumn("number"),
+  prepare: prepareColumn('number'),
   draw(v, s, row) {
     const r = cell(s, row);
     at[0] = v.columnX + v.columnWidth - 6;
@@ -106,9 +106,9 @@ export const NumberColumn: ColumnRenderer<ColumnState> = {
   },
 };
 export const FractionColumn: ColumnRenderer<ColumnState> = {
-  name: "fraction",
+  name: 'fraction',
   width: 84,
-  prepare: prepareColumn("fraction"),
+  prepare: prepareColumn('fraction'),
   draw(v, s, row) {
     const r = cell(s, row);
     if (r < 0 || Number.isNaN(s.value[r])) return;
@@ -130,9 +130,9 @@ export const FractionColumn: ColumnRenderer<ColumnState> = {
   },
 };
 export const TextColumn: ColumnRenderer<ColumnState> = {
-  name: "text",
+  name: 'text',
   width: 110,
-  prepare: prepareColumn("text"),
+  prepare: prepareColumn('text'),
   draw(v, s, row) {
     const r = cell(s, row);
     at[0] = v.columnX + 6;
@@ -141,9 +141,9 @@ export const TextColumn: ColumnRenderer<ColumnState> = {
   },
 };
 export const CategoryColumn: ColumnRenderer<ColumnState> = {
-  name: "category",
+  name: 'category',
   width: 100,
-  prepare: prepareColumn("category"),
+  prepare: prepareColumn('category'),
   draw(v, s, row) {
     const r = cell(s, row);
     if (r < 0 || !s.text[r]) return;

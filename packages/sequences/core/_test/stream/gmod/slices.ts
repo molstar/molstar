@@ -9,8 +9,8 @@
 // The recorded byte ranges (_test/fixtures/slices.json and one .bin per file, written by scripts/record.ts): a transport
 // that serves what was recorded and fails, naming the range, for anything else.
 
-import { readFileSync } from "node:fs";
-import type { RangeReader } from "../../../src/stream/gmod/index.js";
+import { readFileSync } from 'node:fs';
+import type { RangeReader } from '../../../src/stream/gmod/index.js';
 
 export interface SliceMeta {
   url: string;
@@ -19,8 +19,8 @@ export interface SliceMeta {
   /** [file offset, bytes asked for, bytes the server sent] in the order stored in the .bin. */
   chunks: [number, number, number][];
 }
-const dir = new URL("./fixtures/", import.meta.url);
-export const meta: Record<string, SliceMeta> = JSON.parse(readFileSync(new URL("slices.json", dir), "utf8"));
+const dir = new URL('./fixtures/', import.meta.url);
+export const meta: Record<string, SliceMeta> = JSON.parse(readFileSync(new URL('slices.json', dir), 'utf8'));
 
 /** The recorded bytes of `key`, as a transport; `served` counts the reads it answered. */
 export function sliceReader(key: string): RangeReader & { served: number } {

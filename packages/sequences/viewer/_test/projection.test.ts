@@ -23,87 +23,87 @@ import {
   OrderedSet,
   type SeqLoci,
   type UnitId,
-} from "@molstar/seq-core/model";
-import { type SystemDescriptor, TranslateMaps, Translator } from "@molstar/seq-core/translate";
-import { describe, expect, it } from "vitest";
-import { case7, case12, case14 } from "../../core/_test/format/cases.js";
-import { constructs, open as core, gene, rows, runs } from "../../core/_test/format/project-fixtures.js";
-import { MarkBit } from "../src/index.js";
-import { type MarkSet, RowMarks, SectionMarks } from "../src/marks.js";
-import { BlockHulls } from "../src/projection.js";
-import type { Viewport, Viewports } from "../src/viewport.js";
-import { axisOf } from "./axis-fixtures.js";
-import { entries, over, shown } from "./projection-fixtures.js";
+} from '@molstar/seq-core/model';
+import { type SystemDescriptor, TranslateMaps, Translator } from '@molstar/seq-core/translate';
+import { describe, expect, it } from 'vitest';
+import { case7, case12, case14 } from '../../core/_test/format/cases.js';
+import { constructs, open as core, gene, rows, runs } from '../../core/_test/format/project-fixtures.js';
+import { MarkBit } from '../src/index.js';
+import { type MarkSet, RowMarks, SectionMarks } from '../src/marks.js';
+import { BlockHulls } from '../src/projection.js';
+import type { Viewport, Viewports } from '../src/viewport.js';
+import { axisOf } from './axis-fixtures.js';
+import { entries, over, shown } from './projection-fixtures.js';
 
-const seqLoci = (set: SeqLoci["set"], unit: number, indices: number[]): Loci =>
+const seqLoci = (set: SeqLoci['set'], unit: number, indices: number[]): Loci =>
   ({
-    kind: "seq-loci",
+    kind: 'seq-loci',
     set,
     elements: [{ unit: unit as UnitId, indices: OrderedSet.ofSortedArray(Int32Array.from(indices)) }],
   }) as Loci;
 
-describe("loci from outside the view mark the shown blocks along mapping paths (ported)", () => {
-  it("Complex: barnase marks the merged A, B, C block, barstar the D, E, F one, never the other", async () => {
-    const t = await shown(case7(), "complex-one");
-    const bn = t.ctx.refs.toLoci("barnase") as SeqLoci;
+describe('loci from outside the view mark the shown blocks along mapping paths (ported)', () => {
+  it('Complex: barnase marks the merged A, B, C block, barstar the D, E, F one, never the other', async () => {
+    const t = await shown(case7(), 'complex-one');
+    const bn = t.ctx.refs.toLoci('barnase') as SeqLoci;
     // The cause: `barnase` is the UniProt sequence's own unit, which no block of the view shows.
-    expect(bn.elements.map((e) => t.set.strings.get(t.set.units.key[e.unit]))).toEqual(["barnase/unit"]);
+    expect(bn.elements.map((e) => t.set.strings.get(t.set.units.key[e.unit]))).toEqual(['barnase/unit']);
     // barnase P00648 48–157 is chain A's 0–109 (segments 47 → 0, 110 long).
-    expect(t.marked(bn)).toEqual({ "Barnase ×3 (A, B, C)": 110, "Barstar ×3 (D, E, F)": 0 });
-    const bs = t.marked(t.ctx.refs.toLoci("barstar") as Loci);
-    expect(bs["Barnase ×3 (A, B, C)"]).toBe(0);
-    expect(bs["Barstar ×3 (D, E, F)"]).toBeGreaterThan(80);
+    expect(t.marked(bn)).toEqual({ 'Barnase ×3 (A, B, C)': 110, 'Barstar ×3 (D, E, F)': 0 });
+    const bs = t.marked(t.ctx.refs.toLoci('barstar') as Loci);
+    expect(bs['Barnase ×3 (A, B, C)']).toBe(0);
+    expect(bs['Barstar ×3 (D, E, F)']).toBeGreaterThan(80);
   });
 
-  it("Each chain: barnase marks A, B and C, barstar D, E and F", async () => {
-    const t = await shown(case7(), "complex-each");
-    expect(t.marked(t.ctx.refs.toLoci("barnase") as Loci)).toEqual({ A: 110, B: 110, C: 110, D: 0, E: 0, F: 0 });
-    const bs = t.marked(t.ctx.refs.toLoci("barstar") as Loci);
+  it('Each chain: barnase marks A, B and C, barstar D, E and F', async () => {
+    const t = await shown(case7(), 'complex-each');
+    expect(t.marked(t.ctx.refs.toLoci('barnase') as Loci)).toEqual({ A: 110, B: 110, C: 110, D: 0, E: 0, F: 0 });
+    const bs = t.marked(t.ctx.refs.toLoci('barstar') as Loci);
     expect([bs.A, bs.B, bs.C]).toEqual([0, 0, 0]);
     expect(bs.D).toBeGreaterThan(80);
     expect([bs.E, bs.F]).toEqual([bs.D, bs.D]);
   });
 
-  it("a ref on a shown block marks directly; copies never reach each other", async () => {
-    const t = await shown(case7(), "complex-each");
+  it('a ref on a shown block marks directly; copies never reach each other', async () => {
+    const t = await shown(case7(), 'complex-each');
     const n = t.view.blocks.length[0];
-    expect(t.marked(t.ctx.refs.toLoci("1brs/A") as Loci)).toEqual({ A: n, B: 0, C: 0, D: 0, E: 0, F: 0 });
+    expect(t.marked(t.ctx.refs.toLoci('1brs/A') as Loci)).toEqual({ A: n, B: 0, C: 0, D: 0, E: 0, F: 0 });
     // A unit merged into a block (B in A, B, C) marks it directly.
-    const one = await shown(case7(), "complex-one");
-    expect(one.marked(one.ctx.refs.toLoci("1brs/B") as Loci)["Barnase ×3 (A, B, C)"]).toBe(n);
+    const one = await shown(case7(), 'complex-one');
+    expect(one.marked(one.ctx.refs.toLoci('1brs/B') as Loci)['Barnase ×3 (A, B, C)']).toBe(n);
   });
 
-  it("an annotation on the UniProt sequence (its items) marks the chains; the interface marks both sides", async () => {
-    const t = await shown(case7(), "complex-each");
-    const feats = t.marked(t.ctx.refs.toLoci("feat-P00648") as Loci);
+  it('an annotation on the UniProt sequence (its items) marks the chains; the interface marks both sides', async () => {
+    const t = await shown(case7(), 'complex-each');
+    const feats = t.marked(t.ctx.refs.toLoci('feat-P00648') as Loci);
     expect(feats.A).toBeGreaterThan(0);
     expect([feats.A, feats.B]).toEqual([feats.A, feats.C]);
     expect([feats.D, feats.E, feats.F]).toEqual([0, 0, 0]);
-    const iface = t.marked(t.ctx.refs.toLoci("iface") as Loci);
+    const iface = t.marked(t.ctx.refs.toLoci('iface') as Loci);
     expect(iface.A).toBeGreaterThan(0);
     expect(iface.D).toBeGreaterThan(0);
   });
 
-  it("focus from a UniProt ref lands on the chain it reaches", async () => {
-    const t = await shown(case7(), "complex-each");
-    expect(t.ctx.focus.fromLoci(t.ctx.refs.toLoci("barnase") as Loci, { transitionMs: 0 })).toBe(true);
+  it('focus from a UniProt ref lands on the chain it reaches', async () => {
+    const t = await shown(case7(), 'complex-each');
+    expect(t.ctx.focus.fromLoci(t.ctx.refs.toLoci('barnase') as Loci, { transitionMs: 0 })).toBe(true);
     const entries = [...t.ctx.focus.current.value.values()];
     expect(entries.map((e) => [e.block, e.start, e.stop])).toEqual([[0, 0, 110]]);
   });
 });
 
-describe("focus over several blocks", () => {
-  it("takes every block the target lights, and the viewport frames them all, gaps included", async () => {
+describe('focus over several blocks', () => {
+  it('takes every block the target lights, and the viewport frames them all, gaps included', async () => {
     // The Complex view: barnase ×3 and barstar ×3, two blocks side by side; contacts have an end on each.
-    const t = await shown(case7(), "complex-one");
-    expect(t.ctx.focus.fromLoci(t.ctx.refs.toLoci("contacts") as Loci, { transitionMs: 0 })).toBe(true);
+    const t = await shown(case7(), 'complex-one');
+    expect(t.ctx.focus.fromLoci(t.ctx.refs.toLoci('contacts') as Loci, { transitionMs: 0 })).toBe(true);
     const [entry] = [...t.ctx.focus.current.value.values()];
     const blocks = Array.from(entry.blocks ?? [], (x) => x);
     expect([entry.block, blocks.length, blocks[0], blocks[3]]).toEqual([0, 6, 0, 1]);
-    const ref = t.ctx.viewports.sections.value.find((r) => r.startsWith("complex-one")) as string;
+    const ref = t.ctx.viewports.sections.value.find((r) => r.startsWith('complex-one')) as string;
     const vp = t.ctx.viewports.get(ref) as Viewport;
     vp.setSize(900, 400, 1);
-    const ax = vp.axis as NonNullable<Viewport["axis"]>;
+    const ax = vp.axis as NonNullable<Viewport['axis']>;
     const runs = new Int32Array(4);
     /** The view x of block b's position i at the viewport's cell (as the viewport places it). */
     const x = (b: number, i: number, end: boolean) => {
@@ -135,9 +135,9 @@ describe("focus over several blocks", () => {
 describe("a residue's extent on the nucleotide axis is its codon (ported)", () => {
   async function geneView() {
     const t = await shown(case14());
-    const [g, p] = [t.unit("gene/unit"), t.unit("protein/unit")];
-    const hovered = (unit: number, i: number, closure: "element" | "containing" = "containing") =>
-      t.positions("Gene fragment", seqLoci(t.set, unit, [i]), closure);
+    const [g, p] = [t.unit('gene/unit'), t.unit('protein/unit')];
+    const hovered = (unit: number, i: number, closure: 'element' | 'containing' = 'containing') =>
+      t.positions('Gene fragment', seqLoci(t.set, unit, [i]), closure);
     return { ...t, gene: g, protein: p, hovered };
   }
 
@@ -150,7 +150,7 @@ describe("a residue's extent on the nucleotide axis is its codon (ported)", () =
     expect(s.primary(0)).toBe(12);
   });
 
-  it("hovering any nucleotide of a codon lights its residue, over the whole codon", async () => {
+  it('hovering any nucleotide of a codon lights its residue, over the whole codon', async () => {
     const t = await geneView();
     for (const i of [12, 13, 14]) expect(t.hovered(t.gene, i)).toEqual([12, 13, 14]);
     // Outside the CDS (the 5′ UTR, the intron, the stop codon) a nucleotide lights alone.
@@ -159,13 +159,13 @@ describe("a residue's extent on the nucleotide axis is its codon (ported)", () =
     expect(t.hovered(t.gene, 103)).toEqual([103]);
   });
 
-  it("His12, split by the intron, lights all 3 nucleotides from each entry point", async () => {
+  it('His12, split by the intron, lights all 3 nucleotides from each entry point', async () => {
     const t = await geneView();
     const his = [45, 76, 77];
-    expect(t.hovered(t.protein, 11), "the residue").toEqual(his);
-    expect(t.hovered(t.gene, 45), "the nucleotide before the intron").toEqual(his);
-    expect(t.hovered(t.gene, 76), "the first after it").toEqual(his);
-    expect(t.hovered(t.gene, 77), "the second after it").toEqual(his);
+    expect(t.hovered(t.protein, 11), 'the residue').toEqual(his);
+    expect(t.hovered(t.gene, 45), 'the nucleotide before the intron').toEqual(his);
+    expect(t.hovered(t.gene, 76), 'the first after it').toEqual(his);
+    expect(t.hovered(t.gene, 77), 'the second after it').toEqual(his);
     // The intron's edge next to it lights alone.
     expect(t.hovered(t.gene, 46)).toEqual([46]);
   });
@@ -173,28 +173,28 @@ describe("a residue's extent on the nucleotide axis is its codon (ported)", () =
   it("a residue's loci and an item on the protein mark whole codons; the domain in two fragments", async () => {
     const t = await geneView();
     // Residues 5–14 (ordinal): [24, 46) and [76, 84), 10 codons.
-    expect(t.lit(t.ctx.refs.toLoci("domain") as Loci)).toEqual({
-      "Gene fragment": [
+    expect(t.lit(t.ctx.refs.toLoci('domain') as Loci)).toEqual({
+      'Gene fragment': [
         [24, 46],
         [76, 84],
       ],
     });
-    expect(t.marked(t.ctx.refs.toLoci("protein") as Loci)).toEqual({ "Gene fragment": 60 });
+    expect(t.marked(t.ctx.refs.toLoci('protein') as Loci)).toEqual({ 'Gene fragment': 60 });
   });
 
   it("case 14's data: each residue's codon translates to it; E20's is [99, 102), the stop codon after it", async () => {
     const t = await geneView();
     const dna =
-      "GAATTCGCCACCATGGCTTCCAAGGAACTGACCCCACGTGACGGCCGTAAGTCTTTCCTAACTTCTGTTTCCACAGATTGGTACTTCAACAGCCAGGTGGAGTAAGCGGCCGCATAAAGT";
-    const protein = "MASKELTPRDGHWYFNSQVE";
+      'GAATTCGCCACCATGGCTTCCAAGGAACTGACCCCACGTGACGGCCGTAAGTCTTTCCTAACTTCTGTTTCCACAGATTGGTACTTCAACAGCCAGGTGGAGTAAGCGGCCGCATAAAGT';
+    const protein = 'MASKELTPRDGHWYFNSQVE';
     for (let r = 0; r < 20; r++) {
-      const [a, b, c] = t.hovered(t.protein, r, "element").map((i) => dna.charCodeAt(i));
+      const [a, b, c] = t.hovered(t.protein, r, 'element').map((i) => dna.charCodeAt(i));
       expect(String.fromCharCode(GeneticCode.translate(1, a, b, c)), `residue ${r}`).toBe(protein[r]);
     }
-    expect(t.hovered(t.protein, 19, "element")).toEqual([99, 100, 101]);
+    expect(t.hovered(t.protein, 19, 'element')).toEqual([99, 100, 101]);
     expect(
       String.fromCharCode(GeneticCode.translate(1, dna.charCodeAt(102), dna.charCodeAt(103), dna.charCodeAt(104))),
-    ).toBe("*");
+    ).toBe('*');
   });
 });
 
@@ -229,10 +229,10 @@ describe("the projector over VW5's core", () => {
     }
   });
 
-  it("one-to-many: a source used twice lights both copies (ub 47 on diub 47 and 123)", async () => {
+  it('one-to-many: a source used twice lights both copies (ub 47 on diub 47 and 123)', async () => {
     const c = await core(constructs());
     const o = over(c.view, c.set);
-    const ub = c.system("ub");
+    const ub = c.system('ub');
     expect(o.lit(entries([ub.kind, ub.id, -1, 47, 48]))).toEqual({
       ub: [[47, 48]],
       diub: [
@@ -245,21 +245,21 @@ describe("the projector over VW5's core", () => {
     });
   });
 
-  it("complex runs: runs per member unit light a merged block once, and each chain its own", async () => {
-    const one = await shown(case7(), "complex-one");
-    const [a, b, d] = ["1brs/A", "1brs/B", "1brs/D"].map(one.unit);
+  it('complex runs: runs per member unit light a merged block once, and each chain its own', async () => {
+    const one = await shown(case7(), 'complex-one');
+    const [a, b, d] = ['1brs/A', '1brs/B', '1brs/D'].map(one.unit);
     const e = entries([K.unit, a, -1, 0, 10], [K.unit, b, -1, 5, 20], [K.unit, d, -1, 0, 3]);
-    expect(one.lit(e)).toEqual({ "Barnase ×3 (A, B, C)": [[0, 20]], "Barstar ×3 (D, E, F)": [[0, 3]] });
-    const each = await shown(case7(), "complex-each");
+    expect(one.lit(e)).toEqual({ 'Barnase ×3 (A, B, C)': [[0, 20]], 'Barstar ×3 (D, E, F)': [[0, 3]] });
+    const each = await shown(case7(), 'complex-each');
     expect(each.lit(e)).toEqual({ A: [[0, 10]], B: [[5, 20]], C: [], D: [[0, 3]], E: [], F: [] });
   });
 
-  it("duplicates collapse: a nucleotide closed to its residue lights its codon once, with no cap", async () => {
+  it('duplicates collapse: a nucleotide closed to its residue lights its codon once, with no cap', async () => {
     const t = await shown(case14());
-    const e = t.extents(seqLoci(t.set, t.unit("gene/unit"), [77]), "containing");
+    const e = t.extents(seqLoci(t.set, t.unit('gene/unit'), [77]), 'containing');
     expect(e.count).toBeGreaterThan(1);
     expect(t.lit(e)).toEqual({
-      "Gene fragment": [
+      'Gene fragment': [
         [45, 46],
         [76, 78],
       ],
@@ -268,36 +268,36 @@ describe("the projector over VW5's core", () => {
     const all = t.extents(
       seqLoci(
         t.set,
-        t.unit("gene/unit"),
+        t.unit('gene/unit'),
         Array.from({ length: 120 }, (_, i) => i),
       ),
-      "containing",
+      'containing',
     );
-    expect(t.marked(all)).toEqual({ "Gene fragment": 120 });
+    expect(t.marked(all)).toEqual({ 'Gene fragment': 120 });
   });
 
   it("a boundary lights a caret before its position (the end's after the last), no position", async () => {
     const t = await shown(case14());
-    const g = t.unit("gene/unit") as UnitId;
+    const g = t.unit('gene/unit') as UnitId;
     const at = (b: number) => {
       const lit = t.lit({
-        kind: "boundary-loci",
+        kind: 'boundary-loci',
         set: t.set,
         elements: [{ unit: g, indices: OrderedSet.ofSingleton(b) }],
       } as Loci);
       return [lit, Array.from(t.marks.caretAt.subarray(0, t.marks.carets))];
     };
-    expect(at(20)).toEqual([{ "Gene fragment": [] }, [20]]);
-    expect(at(0)).toEqual([{ "Gene fragment": [] }, [0]]);
-    expect(at(120)).toEqual([{ "Gene fragment": [] }, [120]]);
+    expect(at(20)).toEqual([{ 'Gene fragment': [] }, [20]]);
+    expect(at(0)).toEqual([{ 'Gene fragment': [] }, [0]]);
+    expect(at(120)).toEqual([{ 'Gene fragment': [] }, [120]]);
   });
 
-  it("a ligand in the position form lights its one shown position for every atom; focus lands on it", async () => {
+  it('a ligand in the position form lights its one shown position for every atom; focus lands on it', async () => {
     const t = await shown(case12());
-    const heme = t.ctx.refs.toLoci("dimer.heme") as Loci;
-    expect(t.lit(heme)).toEqual({ "Design 7 ×2 (A, B)": [], "dimer.heme": [[0, 1]] });
-    const atoms = entries([K.unit, t.unit("dimer.heme"), -1, 5, 9]);
-    expect(t.lit(atoms)["dimer.heme"]).toEqual([[0, 1]]);
+    const heme = t.ctx.refs.toLoci('dimer.heme') as Loci;
+    expect(t.lit(heme)).toEqual({ 'Design 7 ×2 (A, B)': [], 'dimer.heme': [[0, 1]] });
+    const atoms = entries([K.unit, t.unit('dimer.heme'), -1, 5, 9]);
+    expect(t.lit(atoms)['dimer.heme']).toEqual([[0, 1]]);
     const hull = BlockHulls.create();
     expect(t.p.extents(atoms, 0, hull)).toBe(1);
     expect([...hull.data.subarray(0, 3)]).toEqual([1, 0, 1]);
@@ -306,8 +306,8 @@ describe("the projector over VW5's core", () => {
   it("focus with links and rows: a row's residues and a column land on its alignment and its bound chain", async () => {
     const c = await core(rows());
     const o = over(c.view, c.set);
-    const row = c.system("a/0");
-    const cols = c.system("a");
+    const row = c.system('a/0');
+    const cols = c.system('a');
     const hull = BlockHulls.create();
     const focus = (e: Extents) => [0, 1].map((s) => (o.p.extents(e, s, hull) ? [...hull.data.subarray(0, 3)] : [-1]));
     // a/0 is "MK-VL": residues [1, 3) are columns 1 and 3; its row is bound to x at offset 2.
@@ -333,7 +333,7 @@ describe("the projector over VW5's core", () => {
     const c = await core(rows());
     const o = over(c.view, c.set);
     const loci = {
-      kind: "aligned-loci",
+      kind: 'aligned-loci',
       set: c.set,
       alignment: 0,
       elements: { rows: OrderedSet.ofRange(0, 3), columns: OrderedSet.ofRange(1, 4) },
@@ -355,54 +355,54 @@ describe("the projector over VW5's core", () => {
     expect(o.lit(loci).a).toEqual([[1, 4]]);
   });
 
-  it("loci of another set light nothing until carried (lineage)", async () => {
+  it('loci of another set light nothing until carried (lineage)', async () => {
     const t = await shown(case14());
     const other = await shown(case14());
-    expect(t.marked(seqLoci(other.set, t.unit("gene/unit"), [3]))).toEqual({ "Gene fragment": 0 });
-    expect(t.marked(seqLoci(t.set, t.unit("gene/unit"), [3]))).toEqual({ "Gene fragment": 1 });
+    expect(t.marked(seqLoci(other.set, t.unit('gene/unit'), [3]))).toEqual({ 'Gene fragment': 0 });
+    expect(t.marked(seqLoci(t.set, t.unit('gene/unit'), [3]))).toEqual({ 'Gene fragment': 1 });
   });
 
-  it("closeLoci: a nucleotide closes to itself and its residue, in their own units; element returns it", async () => {
+  it('closeLoci: a nucleotide closes to itself and its residue, in their own units; element returns it', async () => {
     const t = await shown(case14());
-    const loci = seqLoci(t.set, t.unit("gene/unit"), [13]);
-    expect(t.p.closeLoci(loci, "element")).toBe(loci);
-    const closed = t.p.closeLoci(loci, "containing") as SeqLoci;
+    const loci = seqLoci(t.set, t.unit('gene/unit'), [13]);
+    expect(t.p.closeLoci(loci, 'element')).toBe(loci);
+    const closed = t.p.closeLoci(loci, 'containing') as SeqLoci;
     const keyed = closed.elements.map((e) => [
       t.set.strings.get(t.set.units.key[e.unit]),
       OrderedSet.min(e.indices),
       OrderedSet.size(e.indices),
     ]);
     expect(keyed).toEqual([
-      ["gene/unit", 13, 1],
-      ["protein/unit", 0, 1],
+      ['gene/unit', 13, 1],
+      ['protein/unit', 0, 1],
     ]);
   });
 });
 
-describe("external systems through a registered translator", () => {
+describe('external systems through a registered translator', () => {
   const descriptor = (key: string, members: string[] | null = null): SystemDescriptor => ({
     key,
-    kind: members ? "complex" : "external",
+    kind: members ? 'complex' : 'external',
     start: 0,
     stop: 200,
     refs: {},
     members,
     structure: null,
     numberings: [],
-    owner: "molstar",
+    owner: 'molstar',
   });
 
   async function registered() {
-    const t = await shown(case7(), "complex-each");
+    const t = await shown(case7(), 'complex-each');
     const tr = new Translator();
-    const [a, d] = [t.unit("1brs/A"), t.unit("1brs/D")].map((id) => ({ kind: K.unit, id, row: -1 }));
+    const [a, d] = [t.unit('1brs/A'), t.unit('1brs/D')].map((id) => ({ kind: K.unit, id, row: -1 }));
     // Chain A's residues start 5 before unit A's (a host's own numbering); D's are the same.
     const mapA = (s: { kind: number; id: number; row: number }) => [
       TranslateMaps.bySegments(s, a, Int32Array.of(5, 0, 105)),
     ];
-    tr.register(descriptor("3d/A"), mapA);
-    tr.register(descriptor("3d/D"), (s) => [TranslateMaps.bySegments(s, d, Int32Array.of(0, 0, 89))]);
-    tr.register(descriptor("3d", ["3d/A", "3d/D"]));
+    tr.register(descriptor('3d/A'), mapA);
+    tr.register(descriptor('3d/D'), (s) => [TranslateMaps.bySegments(s, d, Int32Array.of(0, 0, 89))]);
+    tr.register(descriptor('3d', ['3d/A', '3d/D']));
     t.p.systems = tr;
     return { ...t, tr, a, mapA };
   }
@@ -410,7 +410,7 @@ describe("external systems through a registered translator", () => {
 
   it("runs per member of a complex go through each member's map, then on the usual route", async () => {
     const t = await registered();
-    expect(t.lit(coords(["3d/A", "3d/D"], 0, 10, 20, 1, 0, 3))).toEqual({
+    expect(t.lit(coords(['3d/A', '3d/D'], 0, 10, 20, 1, 0, 3))).toEqual({
       A: [[5, 15]],
       B: [],
       C: [],
@@ -419,35 +419,35 @@ describe("external systems through a registered translator", () => {
       F: [],
     });
     // A run naming the complex itself has no index: nothing.
-    expect(t.marked(coords(["3d"], 0, 0, 10))).toEqual({ A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 });
+    expect(t.marked(coords(['3d'], 0, 0, 10))).toEqual({ A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 });
   });
 
-  it("an unregistered key lights nothing meanwhile, and again once it returns", async () => {
+  it('an unregistered key lights nothing meanwhile, and again once it returns', async () => {
     const t = await registered();
-    const c = coords(["3d/A"], 0, 10, 12);
-    t.tr.unregister("3d/A");
+    const c = coords(['3d/A'], 0, 10, 12);
+    t.tr.unregister('3d/A');
     expect(t.marked(c).A).toBe(0);
-    t.tr.register(descriptor("3d/A"), t.mapA);
+    t.tr.register(descriptor('3d/A'), t.mapA);
     expect(t.lit(c).A).toEqual([[5, 7]]);
-    expect(t.marked(coords(["nothing"], 0, 0, 5)).A).toBe(0);
+    expect(t.marked(coords(['nothing'], 0, 0, 5)).A).toBe(0);
   });
 
-  it("a Seq* system registered under its key is read directly; focus takes Coordinates too", async () => {
+  it('a Seq* system registered under its key is read directly; focus takes Coordinates too', async () => {
     const t = await registered();
-    t.tr.register({ ...descriptor("seqstar:1brs/B"), kind: "unit", owner: "seqstar" }, [], {
+    t.tr.register({ ...descriptor('seqstar:1brs/B'), kind: 'unit', owner: 'seqstar' }, [], {
       kind: K.unit,
-      id: t.unit("1brs/B"),
+      id: t.unit('1brs/B'),
       row: -1,
     });
-    expect(t.lit(coords(["seqstar:1brs/B"], 0, 2, 4)).B).toEqual([[2, 4]]);
+    expect(t.lit(coords(['seqstar:1brs/B'], 0, 2, 4)).B).toEqual([[2, 4]]);
     (t.ctx.viewports as Viewports).projector.systems = t.tr;
-    expect(t.ctx.focus.fromLoci(coords(["3d/D"], 0, 7, 9), { transitionMs: 0 })).toBe(true);
+    expect(t.ctx.focus.fromLoci(coords(['3d/D'], 0, 7, 9), { transitionMs: 0 })).toBe(true);
     expect([...t.ctx.focus.current.value.values()].map((e) => [e.block, e.start, e.stop])).toEqual([[3, 7, 9]]);
   });
 
   it("a host's external hover closes like any other: a 3D residue on a chain lights its own position", async () => {
     const t = await registered();
-    const e = t.extents(coords(["3d/A"], 0, 30, 31), "containing");
+    const e = t.extents(coords(['3d/A'], 0, 30, 31), 'containing');
     expect(e.count).toBe(1);
     expect(t.lit(e).A).toEqual([[25, 26]]);
   });

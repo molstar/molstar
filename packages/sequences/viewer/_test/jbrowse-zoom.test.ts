@@ -12,16 +12,16 @@
 // reads replay recorded slices of the public files (core/_test/stream/gmod/fixtures/whole/; the .tbi is the main fixtures');
 // `SEQSTAR_RECORD=1` records them again, by hand, over curl (never in a test run).
 
-import { afterAll, expect, it } from "vitest";
-import type { RangeReader } from "../../core/src/stream/gmod/index.js";
-import { Dirty } from "../src/draw/composer.js";
-import type { Streams } from "../src/streams.js";
-import { composed, recording } from "./composer-fixtures.js";
-import { demoSources, RECORD } from "./jbrowse-sources.js";
-import { JBROWSE_SECTION, jbrowseDoc } from "./jbrowse-story-fixtures.js";
+import { afterAll, expect, it } from 'vitest';
+import type { RangeReader } from '../../core/src/stream/gmod/index.js';
+import { Dirty } from '../src/draw/composer.js';
+import type { Streams } from '../src/streams.js';
+import { composed, recording } from './composer-fixtures.js';
+import { demoSources, RECORD } from './jbrowse-sources.js';
+import { JBROWSE_SECTION, jbrowseDoc } from './jbrowse-story-fixtures.js';
 
 const CHR21 = 46_709_983;
-const src = demoSources("whole");
+const src = demoSources('whole');
 afterAll(src.save);
 
 /** A bbi file's data section (raw items or values): [fullDataOffset, the first zoom level's data). */
@@ -34,9 +34,9 @@ async function dataSection(read: RangeReader): Promise<[number, number]> {
   return [Number(dv.getBigUint64(16, true)), first];
 }
 
-it("a whole chromosome reads zoom levels only: no 2bit sequence, no VCF data, no BigBed or BigWig data blocks", async () => {
+it('a whole chromosome reads zoom levels only: no 2bit sequence, no VCF data, no BigBed or BigWig data blocks', async () => {
   const { io, asked, loaders } = src;
-  const t = await composed(jbrowseDoc("chr21", 0, CHR21), {
+  const t = await composed(jbrowseDoc('chr21', 0, CHR21), {
     width: 1200,
     height: 400,
     dpr: 1,
@@ -52,11 +52,11 @@ it("a whole chromosome reads zoom levels only: no 2bit sequence, no VCF data, no
   // Every items and values request is a level's; nothing of the letters is asked.
   const data = asked.filter((r) => r.system !== null && r.level < 0);
   expect(data).toEqual([]);
-  expect(asked.some((r) => r.system !== null && r.source === "genes_src")).toBe(true);
+  expect(asked.some((r) => r.system !== null && r.source === 'genes_src')).toBe(true);
   // The transports: nothing of the 2bit or the VCF after their manifests; the bbi files' reads outside their data.
   expect(io.twobit.reads.length).toBe(opened.twobit);
   expect(io.vcf.reads.length).toBe(opened.vcf);
-  for (const key of ["bigwig", "bigbed"] as const) {
+  for (const key of ['bigwig', 'bigbed'] as const) {
     const [a, e] = await dataSection(io[key].read);
     const after = io[key].reads.slice(opened[key]);
     expect(after.length).toBeGreaterThan(0);
@@ -68,8 +68,8 @@ it("a whole chromosome reads zoom levels only: no 2bit sequence, no VCF data, no
   // Drawn: GC and genes from zoom records, ClinVar's estimate with its hint, the letters' hatch with theirs.
   const be = t.frame(recording(), Dirty.tracks);
   const texts = be.textItems.text.slice(0, be.textItems.n);
-  expect(texts).toContain("zoom in to see variants");
-  expect(texts).toContain("zoom in to see letters");
+  expect(texts).toContain('zoom in to see variants');
+  expect(texts).toContain('zoom in to see letters');
   expect(be.rectItems.n).toBeGreaterThan(200);
   expect(JBROWSE_SECTION).toBe(t.section);
   t.ctx.dispose();

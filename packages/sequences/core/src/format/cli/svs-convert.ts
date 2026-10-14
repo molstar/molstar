@@ -12,13 +12,13 @@
 // `--pretty` indents JSON; `--plain` writes MessagePack without the typed-array extension. Exit 0: written; 1: not a
 // document; 2: usage, or a file that cannot be read or written. Runs with Node's type stripping.
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { readDocument, toJSON, toMsgPack } from "../index.js";
+import { readFileSync, writeFileSync } from 'node:fs';
+import { readDocument, toJSON, toMsgPack } from '../index.js';
 
 const args = process.argv.slice(2);
-const [from, to] = args.filter((a) => !a.startsWith("--"));
-if (!from || !to || args.some((a) => a.startsWith("--") && a !== "--pretty" && a !== "--plain")) {
-  console.error("usage: svs-convert <in> <out.svsj|.svsm> [--pretty] [--plain]");
+const [from, to] = args.filter((a) => !a.startsWith('--'));
+if (!from || !to || args.some((a) => a.startsWith('--') && a !== '--pretty' && a !== '--plain')) {
+  console.error('usage: svs-convert <in> <out.svsj|.svsm> [--pretty] [--plain]');
   process.exit(2);
 }
 try {
@@ -29,8 +29,8 @@ try {
   writeFileSync(
     to,
     msgpack
-      ? toMsgPack(doc, { typedArrays: !args.includes("--plain") })
-      : toJSON(doc, { pretty: args.includes("--pretty") }),
+      ? toMsgPack(doc, { typedArrays: !args.includes('--plain') })
+      : toJSON(doc, { pretty: args.includes('--pretty') }),
   );
 } catch (e) {
   console.error(`svs-convert: ${e instanceof Error ? e.message : e}`);

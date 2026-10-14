@@ -2,7 +2,10 @@
   "extends": "../../../tsconfig.base.json",
   // The React UI and its tests (no emit); with the DOM lib.
   "compilerOptions": {
-    "composite": false, "declaration": false, "declarationMap": false, "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
     "useDefineForClassFields": true,
     "noUncheckedIndexedAccess": false,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],

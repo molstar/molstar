@@ -19,7 +19,7 @@ import {
   type RenderBackend,
   SectorBatch,
   TextBatch,
-} from "../draw/backend.js";
+} from '../draw/backend.js';
 
 export const Op = {
   beginPass: 0,
@@ -402,6 +402,6 @@ class Hash {
     this.word(s.length);
   }
   hex(): string {
-    return (this.a >>> 0).toString(16).padStart(8, "0") + (this.b >>> 0).toString(16).padStart(8, "0");
+    return (this.a >>> 0).toString(16).padStart(8, '0') + (this.b >>> 0).toString(16).padStart(8, '0');
   }
 }

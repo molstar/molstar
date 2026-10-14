@@ -10,18 +10,18 @@
 // in the browser), the manual clock, and a canvas stub in place of `mountSection` (a focusable element sized like a
 // surface, the section's viewport sized as the engine would).
 
-import { act, type ComponentType, Profiler, type ReactNode, StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { afterEach } from "vitest";
-import type { SeqViewerContext } from "../../src/index.js";
+import { act, type ComponentType, Profiler, type ReactNode, StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { afterEach } from 'vitest';
+import type { SeqViewerContext } from '../../src/index.js';
 import {
   SeqViewerLayout,
   SeqViewerProvider,
   type SeqViewerUISpec,
   type SlotComponents,
   type SlotName,
-} from "../../src/react/index.js";
-import { openedContext, stubSurface, WIDTH } from "../dom/fixtures.js";
+} from '../../src/react/index.js';
+import { openedContext, stubSurface, WIDTH } from '../dom/fixtures.js';
 
 // The UI fixture, the canvas stub and pointer records are the DOM tests' too (_test/dom/fixtures.ts).
 export {
@@ -37,13 +37,13 @@ export {
   uiDoc,
   WIDTH,
   xOf,
-} from "../dom/fixtures.js";
+} from '../dom/fixtures.js';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 /** Render counts per slot: each default (or given) component under a counting profiler. */
 export function counted(defaults: Partial<SlotComponents>): {
-  components: SeqViewerUISpec["components"];
+  components: SeqViewerUISpec['components'];
   counts: Record<string, number>;
   reset(): void;
 } {
@@ -59,7 +59,7 @@ export function counted(defaults: Partial<SlotComponents>): {
     );
   }
   return {
-    components: components as SeqViewerUISpec["components"],
+    components: components as SeqViewerUISpec['components'],
     counts,
     reset: () => {
       for (const k in counts) counts[k] = 0;
@@ -68,7 +68,7 @@ export function counted(defaults: Partial<SlotComponents>): {
 }
 
 export async function mount(ctx: SeqViewerContext, ui: SeqViewerUISpec, strict = false) {
-  const container = document.createElement("div");
+  const container = document.createElement('div');
   container.style.width = `${WIDTH}px`;
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -106,7 +106,7 @@ export function harness() {
     cleanups,
     /** A root that renders what `view(i)` returns, again on each `render()`: a parent that re-renders (an inline `ui`). */
     parent(view: (i: number) => ReactNode, strict = false) {
-      const el = document.createElement("div");
+      const el = document.createElement('div');
       el.style.width = `${WIDTH}px`;
       document.body.appendChild(el);
       const root = createRoot(el);

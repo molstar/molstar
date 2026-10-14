@@ -13,8 +13,8 @@
 // begins); the kinds present split each row into equal stripes, the first on top. A row with fewer than 2 device pixels
 // a kind is compact.
 
-import type { AxisView } from "@molstar/seq-viewer/draw";
-import { Kind, Kinds } from "../vocabulary.js";
+import type { AxisView } from '@molstar/seq-viewer/draw';
+import { Kind, Kinds } from '../vocabulary.js';
 
 /** The stripes' order: these kinds first, then the others in the vocabulary's (the legend's) order. */
 const FIRST = [Kind.hbond, Kind.pi_stacking, Kind.cation_pi, Kind.hydrophobic];

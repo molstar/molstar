@@ -48,7 +48,7 @@ export const ColorNames: ReadonlyMap<string, number> = (() => {
   const out = new Map<string, number>();
   let color = 0;
   for (const token of src.trim().split(/\s+/)) {
-    if (token.startsWith("#")) color = Number.parseInt(token.slice(1), 16);
+    if (token.startsWith('#')) color = Number.parseInt(token.slice(1), 16);
     else out.set(token, color);
   }
   return out;

@@ -12,7 +12,7 @@
 // frame allocating an object a step fails the same guard (the positive control). Each case loads the viewer and its frame
 // afresh (`vi.resetModules`).
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   controlCaught,
   describeScaling,
@@ -23,7 +23,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.js";
+} from './heap.js';
 
 const N = 1_000;
 /** The file's warm-up, settle and measurement, as its guards and its control run them. */
@@ -37,28 +37,28 @@ const measure = (frame: () => void) => {
 };
 const guard = (frame: () => void) => {
   const r = measure(frame);
-  return isFlat(r) ? "" : describeScaling(r, N);
+  return isFlat(r) ? '' : describeScaling(r, N);
 };
 
 describe("the streamed letters' pans allocate nothing per frame once their regions are held", () => {
-  for (const at of ["10 kb", "100 b"] as const)
+  for (const at of ['10 kb', '100 b'] as const)
     it(`a pass and a frame, ${at}`, async () => {
       vi.resetModules();
-      const { genomeFrame } = await import("./stream-fixtures.js");
+      const { genomeFrame } = await import('./stream-fixtures.js');
       const g = await genomeFrame(at, true, false, true);
       // Not vacuous: the letters drawn (100 b), their cells (10 kb).
       g.frame();
-      if (at === "100 b") expect(g.backend.textItems.n).toBeGreaterThan(50);
+      if (at === '100 b') expect(g.backend.textItems.n).toBeGreaterThan(50);
       else expect(g.backend.rectItems.n).toBeGreaterThan(500);
       const asked = g.requests();
-      expect(guard(g.frame)).toBe("");
+      expect(guard(g.frame)).toBe('');
       expect(g.requests()).toBe(asked);
     }, 120_000);
 
-  it("the same frame allocating an object a step is caught (positive control)", async () => {
+  it('the same frame allocating an object a step is caught (positive control)', async () => {
     vi.resetModules();
-    const { genomeFrame } = await import("./stream-fixtures.js");
-    const g = await genomeFrame("100 b", true, false, true);
+    const { genomeFrame } = await import('./stream-fixtures.js');
+    const g = await genomeFrame('100 b', true, false, true);
     expect(controlCaught(() => measure(leaking(g.frame) as () => void))).toBe(true);
   }, 120_000);
 });

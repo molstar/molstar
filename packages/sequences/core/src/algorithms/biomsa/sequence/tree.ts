@@ -5,9 +5,9 @@
  * @copyright 2020
  */
 
-import { DEBUG, type TAlignmentParam } from "../align/params.js";
-import { seqToProf, type ProfPos } from "./profile.js";
-import type { TSequence } from "./sequence.js";
+import { DEBUG, type TAlignmentParam } from '../align/params.js';
+import { seqToProf, type ProfPos } from './profile.js';
+import type { TSequence } from './sequence.js';
 
 // STORIES-UNTOLD(B1): const enum as an `as const` object and a type (erasable TypeScript).
 export const NODE_TYPE = {
@@ -32,14 +32,14 @@ export type LeafNode = {
   type: NODE_TYPE;
 };
 
-export type InternalNode = Omit<LeafNode, "seq"> & {
+export type InternalNode = Omit<LeafNode, 'seq'> & {
   estring: number[][];
   profile: ProfPos;
   tabWeight: number[];
 };
 
 export function isLeafNode(node: LeafNode | InternalNode): node is LeafNode {
-  return "seq" in node;
+  return 'seq' in node;
 }
 
 export type Tree = (LeafNode | InternalNode)[];
@@ -148,7 +148,7 @@ function findMinInDistanceMatrix(matrix: number[][], tabIdx: number[]): [Interna
     numSeq: [],
     type: NODE_TYPE.NODE,
     depth: 0,
-    id: "",
+    id: '',
     tabWeight: [],
     parent: -1,
     weight: 0,
@@ -264,7 +264,7 @@ export function clustalWeights(cluster: Tree) {
         break;
       case NODE_TYPE.NODE:
         edgeLength = cluster[node.parent].distance - node.distance;
-        nbLeaves = node.id.split(",").length;
+        nbLeaves = node.id.split(',').length;
         node.weight = cluster[node.parent].weight + edgeLength / nbLeaves;
 
         setWeight(cluster[node.childA]);

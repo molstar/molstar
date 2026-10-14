@@ -11,18 +11,18 @@
 // gestures.ts. Each reads its params through `forSection` when it acts, so a `setParams` needs no re-creation, and
 // each undoes what it set when removed (`add`'s teardowns).
 
-import type { Closure } from "@molstar/seq-core/format";
-import type { TeardownLogic } from "rxjs";
-import { type BehaviorHandle, type SeqBehaviorProvider, SeqBehaviors } from "./behaviors.js";
-import type { SeqViewerContext } from "./context.js";
-import { DefaultHeaderHoverParams, type HeaderHoverParams } from "./header-hover.js";
-import { type Hit, HitRegion, HoverKind } from "./hit.js";
-import { DragPhase, type InputDispatcher, PointerType } from "./input.js";
-import { RING_WINDOW, ringWindowAt } from "./ring-window.js";
-import type { Origin, SeqEvent, Unsubscribable } from "./state.js";
-import type { RowHoverParams } from "./ui.js";
-import type { Viewport } from "./viewport.js";
-import { WINDOW_FRAME, WindowKind, WindowPart, windowFrame, windowIdle, windowKind, windowPart } from "./windows.js";
+import type { Closure } from '@molstar/seq-core/format';
+import type { TeardownLogic } from 'rxjs';
+import { type BehaviorHandle, type SeqBehaviorProvider, SeqBehaviors } from './behaviors.js';
+import type { SeqViewerContext } from './context.js';
+import { DefaultHeaderHoverParams, type HeaderHoverParams } from './header-hover.js';
+import { type Hit, HitRegion, HoverKind } from './hit.js';
+import { DragPhase, type InputDispatcher, PointerType } from './input.js';
+import { RING_WINDOW, ringWindowAt } from './ring-window.js';
+import type { Origin, SeqEvent, Unsubscribable } from './state.js';
+import type { RowHoverParams } from './ui.js';
+import type { Viewport } from './viewport.js';
+import { WINDOW_FRAME, WindowKind, WindowPart, windowFrame, windowIdle, windowKind, windowPart } from './windows.js';
 
 export interface BehaviorKit<P> {
   readonly ctx: SeqViewerContext;
@@ -36,7 +36,7 @@ export interface BehaviorKit<P> {
 /** A behavior from a setup run at `register`; everything it adds is released on dispose. */
 export function defineBehavior<P extends object>(
   name: string,
-  category: SeqBehaviorProvider["category"],
+  category: SeqBehaviorProvider['category'],
   priority: number,
   params: P,
   description: string,
@@ -69,51 +69,51 @@ export function defineBehavior<P extends object>(
 export const RegionName = Object.keys(HitRegion) as readonly (keyof typeof HitRegion)[];
 export type RegionName = keyof typeof HitRegion;
 export const viewportOf = (ctx: SeqViewerContext, section: number) =>
-  ctx.viewports.get(ctx.layout.sectionRef(section) ?? "") as Viewport | null;
+  ctx.viewports.get(ctx.layout.sectionRef(section) ?? '') as Viewport | null;
 /** The context's diagnostics and its dispatcher, not on its public interface. */
 export const internal = (ctx: SeqViewerContext) =>
   ctx as unknown as {
-    log(level: "info" | "warning" | "error", message: string, data?: unknown): void;
+    log(level: 'info' | 'warning' | 'error', message: string, data?: unknown): void;
     report(code: string, message: string): void;
     activate(section: string, track: string, origin: Origin): void;
     openMenu(section: string, track: string, origin: Origin): void;
     readonly input: InputDispatcher;
   };
 
-const ALL_BUT_SCROLLBAR: RegionName[] = ["data", "column", "header", "gutter", "dataColumn", "dataColumnHeader"];
+const ALL_BUT_SCROLLBAR: RegionName[] = ['data', 'column', 'header', 'gutter', 'dataColumn', 'dataColumnHeader'];
 
 export const HoverBehavior = defineBehavior(
-  "hover",
-  "interaction",
+  'hover',
+  'interaction',
   0,
   {
-    regions: [...ALL_BUT_SCROLLBAR, "navigator", "vnav"] as readonly RegionName[],
-    whileDragging: "clear" as "clear" | "keep",
+    regions: [...ALL_BUT_SCROLLBAR, 'navigator', 'vnav'] as readonly RegionName[],
+    whileDragging: 'clear' as 'clear' | 'keep',
     /** `"element"`: a nucleotide lights alone (seqspec:interaction#hover). */
-    closure: "containing" as Closure,
+    closure: 'containing' as Closure,
   },
-  "The element under the pointer is the hover; cleared on leave and during a drag another behavior owns.",
+  'The element under the pointer is the hover; cleared on leave and during a drag another behavior owns.',
   ({ ctx, h, on, add }) => {
     let dragging = false;
     const set = (hit: Hit) => {
       const p = h.forSection(hit.section);
-      if (p?.regions.includes(RegionName[hit.region])) ctx.hover.setFromHit(hit, "pointer", p.closure);
-      else ctx.hover.clear("pointer");
+      if (p?.regions.includes(RegionName[hit.region])) ctx.hover.setFromHit(hit, 'pointer', p.closure);
+      else ctx.hover.clear('pointer');
     };
     on(ctx.interaction.hover, (e) => {
       if (!dragging) set(e.hit);
     });
-    on(ctx.interaction.leave, () => ctx.hover.clear("pointer"));
+    on(ctx.interaction.leave, () => ctx.hover.clear('pointer'));
     on(ctx.interaction.drag, (e) => {
-      if (e.phase === DragPhase.start && e.owner !== "" && h.forSection(e.start.section)?.whileDragging === "clear") {
+      if (e.phase === DragPhase.start && e.owner !== '' && h.forSection(e.start.section)?.whileDragging === 'clear') {
         dragging = true;
-        ctx.hover.clear("pointer");
+        ctx.hover.clear('pointer');
       } else if (e.phase >= DragPhase.end && dragging) {
         dragging = false;
         set(e.hit);
       }
     });
-    add(() => ctx.hover.clear("pointer"));
+    add(() => ctx.hover.clear('pointer'));
   },
 );
 
@@ -123,8 +123,8 @@ export const HoverBehavior = defineBehavior(
  * whether linked views get the set. Removed or replaced in the viewer spec, a header's hover is the header alone.
  */
 export const HeaderHoverBehavior = defineBehavior(
-  "headerHover",
-  "interaction",
+  'headerHover',
+  'interaction',
   0,
   { ...DefaultHeaderHoverParams } as HeaderHoverParams,
   "A header's hover lights what it labels: a feature track's shown items (a split row's, a group's tracks'), a continuous track's row band; the row band alone past maxItems; forward gives linked views the set.",
@@ -140,10 +140,10 @@ export const HeaderHoverBehavior = defineBehavior(
  * drawn at half a header hover's strength, so a header's still reads as the whole track (David, 2026-10-13).
  */
 export const HoverRowBehavior = defineBehavior(
-  "hoverRow",
-  "interaction",
+  'hoverRow',
+  'interaction',
   0,
-  { band: "entry", data: 0.25, header: 0.5 } as RowHoverParams,
+  { band: 'entry', data: 0.25, header: 0.5 } as RowHoverParams,
   "A hover on a track's data (linear) lights its row band: the track's box, a split row's, a rows track's row, or its " +
     "renderer's own (a matrix's hovered band); none on the ruler, a dot plot and navigators. A drawing only: the " +
     "hover, its loci and what linked views get stay the element's.",
@@ -157,12 +157,12 @@ export const HoverRowBehavior = defineBehavior(
 );
 
 export const HoverLabelBehavior = defineBehavior(
-  "hoverLabel",
-  "interaction",
+  'hoverLabel',
+  'interaction',
   0,
   {
-    regions: ["data", "column", "header", "dataColumn"] as readonly RegionName[],
-    whileDragging: "hide" as "hide" | "show",
+    regions: ['data', 'column', 'header', 'dataColumn'] as readonly RegionName[],
+    whileDragging: 'hide' as 'hide' | 'show',
   },
   "Computes the hovered element's label (labels.current); none over chrome and while dragging.",
   ({ ctx, h, add }) => {
@@ -171,7 +171,7 @@ export const HoverLabelBehavior = defineBehavior(
       const p = h.forSection(s.section);
       const show =
         p !== null &&
-        !(ctx.ui.drag.value !== null && p.whileDragging === "hide") &&
+        !(ctx.ui.drag.value !== null && p.whileDragging === 'hide') &&
         s.kind !== HoverKind.none &&
         p.regions.includes(RegionName[s.region]);
       ctx.labels.current.set(show ? ctx.labels.compute(s) : null);
@@ -193,25 +193,25 @@ const RING_KIND = WindowKind.ring;
 const NAVIGATOR_KIND = WindowKind.navigator;
 const PART_NONE = WindowPart.none;
 /** The cursor for a window part (windows.ts): the gesture a press there starts. */
-const WINDOW_CURSORS = ["", "grab", "ew-resize", "ew-resize", "ns-resize", "ns-resize", "pointer"];
+const WINDOW_CURSORS = ['', 'grab', 'ew-resize', 'ew-resize', 'ns-resize', 'ns-resize', 'pointer'];
 
 export const CursorBehavior = defineBehavior(
-  "cursor",
-  "interaction",
+  'cursor',
+  'interaction',
   0,
   {
     byRegion: {
-      data: "grab",
-      column: "crosshair",
-      header: "pointer",
-      navigator: "pointer",
-      vnav: "pointer",
+      data: 'grab',
+      column: 'crosshair',
+      header: 'pointer',
+      navigator: 'pointer',
+      vnav: 'pointer',
     } as Readonly<Partial<Record<RegionName, string>>>,
     /** A rows layer's header off its tree's nodes (a press there toggles nothing); over a node, `byRegion.header`. */
-    rowHeader: "default",
+    rowHeader: 'default',
     /** A dot plot's data, where a drag selects a rectangle (`dotPlotSelect`). */
-    dotPlot: "crosshair",
-    dragging: "grabbing",
+    dotPlot: 'crosshair',
+    dragging: 'grabbing',
   },
   "The surface's cursor by region (a window's body, edges and outside on the navigator, overview and scrollbar), and " +
     "for a whole drag the press's (`grabbing` where it was `grab`); `grab` on data only where dragPan is on; on a " +
@@ -228,7 +228,7 @@ export const CursorBehavior = defineBehavior(
     let offNode = false;
     /** On a dot plot's data (`dotPlot`). */
     let plot = false;
-    let pressed = "default";
+    let pressed = 'default';
     let heldKind = -1;
     let heldPart: number = WindowPart.none;
     /** The window frame of a section's lookup, reused (windows.ts: lookups, no allocation). */
@@ -270,32 +270,32 @@ export const CursorBehavior = defineBehavior(
         d !== null &&
         d.section === section &&
         heldKind >= 0 &&
-        (heldKind === RING_KIND ? d.owner === "ringWindow" : windowKind(d.region) === heldKind);
+        (heldKind === RING_KIND ? d.owner === 'ringWindow' : windowKind(d.region) === heldKind);
       ctx.ui.setWindow(section, held ? heldKind : kind, held ? heldPart : part);
       if (ref === null || !p) return;
       if (d && d.section === section) {
         // The whole drag keeps the press's cursor, wherever the pointer goes (a move never resets it).
-        const pan = d.owner === "dragPan" || pressed === "grab";
+        const pan = d.owner === 'dragPan' || pressed === 'grab';
         return ctx.ui.setCursor(ref, pan ? p.dragging : pressed);
       }
       let c =
-        (idle ? "default" : null) ??
+        (idle ? 'default' : null) ??
         (part !== WindowPart.none ? WINDOW_CURSORS[part] : null) ??
         (offNode && region === HitRegion.header
           ? p.rowHeader
           : plot && region === HitRegion.data
             ? p.dotPlot
             : p.byRegion[RegionName[region]]) ??
-        "default";
+        'default';
       if (
-        c === "grab" &&
+        c === 'grab' &&
         part === WindowPart.none &&
         !ctx.behaviors
-          .get<{ dragRegions: readonly string[] }>("dragPan")
+          .get<{ dragRegions: readonly string[] }>('dragPan')
           ?.forSection(section)
           ?.dragRegions.includes(RegionName[region])
       )
-        c = "default";
+        c = 'default';
       ctx.ui.setCursor(ref, c);
     };
     // Followed during a drag too (apply keeps the drag's cursor), so its end shows what is under the pointer.
@@ -307,14 +307,14 @@ export const CursorBehavior = defineBehavior(
       offNode = e.hit.displayRow >= 0 && e.hit.treeNode < 0;
       const view = ctx.graph.assembled.value?.view;
       const type = view && e.hit.layer >= 0 ? view.resolved.layers.type[e.hit.layer] : -1;
-      plot = type >= 0 && view?.set.strings.get(type) === "dot_plot";
+      plot = type >= 0 && view?.set.strings.get(type) === 'dot_plot';
       apply();
     });
     // A window's body and edges are not hover elements: its part is followed per move (setCursor emits on change).
     on(ctx.interaction.pointer, (e) => {
       if (e.input.type === PointerType.down) {
         const ref = ctx.layout.sectionRef(e.hit.section);
-        pressed = ref === null ? "default" : ctx.ui.cursor(ref).value;
+        pressed = ref === null ? 'default' : ctx.ui.cursor(ref).value;
         // As before the press (the cursor shown), which a window's own press handler (first) may have moved.
         const seen = e.hit.section === section && region === e.hit.region;
         heldPart = seen ? part : partAt(e.hit.section, e.hit.region, e.hit);
@@ -339,18 +339,18 @@ export const CursorBehavior = defineBehavior(
     });
     add(ctx.ui.drag.subscribe(apply));
     add(() => {
-      for (const ref of ctx.viewports.sections.value) ctx.ui.setCursor(ref, "default");
+      for (const ref of ctx.viewports.sections.value) ctx.ui.setCursor(ref, 'default');
       ctx.ui.setWindow(-1, -1, WindowPart.none);
     });
   },
 );
 
 export const FocusViewportBehavior = defineBehavior(
-  "focusViewport",
-  "view",
+  'focusViewport',
+  'view',
   0,
   { animate: true, pad: 0.1 },
-  "Moves the viewports of the sections that show a changed focus, over its transition.",
+  'Moves the viewports of the sections that show a changed focus, over its transition.',
   ({ ctx, h, on }) => {
     on(ctx.focus.changed, (c) => {
       const p = h.forSection(ctx.layout.sectionIndex(c.section));
@@ -369,8 +369,8 @@ export const FocusViewportBehavior = defineBehavior(
 );
 
 export const ScrollGroupsBehavior = defineBehavior(
-  "scrollGroups",
-  "view",
+  'scrollGroups',
+  'view',
   0,
   {},
   "Copies the zoom and horizontal scroll among a scroll group's members; each keeps its vertical scroll.",
@@ -393,10 +393,10 @@ export const ScrollGroupsBehavior = defineBehavior(
               m.live.version.subscribe(() => {
                 // A change made by this behavior is never copied, so nothing echoes.
                 const origin = m.live.current.origin;
-                if (replay || origin === "behavior") return;
-                if (origin !== "graph") leader = m;
-                else if (leader && leader !== m) return void m.follow(leader, "behavior");
-                for (let i = 0; i < members.length; i++) if (members[i] !== m) members[i].follow(m, "behavior");
+                if (replay || origin === 'behavior') return;
+                if (origin !== 'graph') leader = m;
+                else if (leader && leader !== m) return void m.follow(leader, 'behavior');
+                for (let i = 0; i < members.length; i++) if (members[i] !== m) members[i].follow(m, 'behavior');
               }),
             );
             replay = false;
@@ -409,11 +409,11 @@ export const ScrollGroupsBehavior = defineBehavior(
 );
 
 export const SnapshotControlsBehavior = defineBehavior(
-  "snapshotControls",
-  "view",
+  'snapshotControls',
+  'view',
   0,
   { stopOnInput: true },
-  "A press or a key on a surface stops the player.",
+  'A press or a key on a surface stops the player.',
   ({ ctx, h, on }) => {
     const stop = (section: number) => {
       if (ctx.snapshots.playing.value && h.forSection(section)?.stopOnInput) ctx.snapshots.stop();

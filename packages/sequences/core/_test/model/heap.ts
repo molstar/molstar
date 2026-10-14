@@ -16,7 +16,7 @@
 // runs of `n` and `4n` steps, and the part of the longer run's growth that its length explains. Node reads the heap
 // exactly, so its bound is tighter than the browser's. `heapGrowth` stays for a run that is not a repetition (a build).
 
-import { GCProfiler } from "node:v8";
+import { GCProfiler } from 'node:v8';
 
 /** The growth a guard allows over one measured run. */
 export const LIMIT = 1 << 20;
@@ -32,7 +32,7 @@ const gc = (globalThis as { gc?: () => void }).gc;
  * the run until it does not collect, because the growth it would report is then unknowable.
  */
 export function heapGrowth(run: () => void): number {
-  if (!gc) throw new Error("Run with --expose-gc (the heap config: pnpm test:heap).");
+  if (!gc) throw new Error('Run with --expose-gc (the heap config: pnpm test:heap).');
   let collections = 0;
   for (let attempt = 0; attempt < 2; attempt++) {
     // Garbage a guard before this one left would be collected after the warm-up, and its maps would deoptimize the
@@ -82,13 +82,13 @@ export interface Scaling {
  * cache) cancels. Throws when a GC ran during a measured run, after one retry of both: shorten `n`.
  */
 export function heapScaling(n: number, step: (i: number) => void): Scaling {
-  if (!gc) throw new Error("Run with --expose-gc (the heap config: pnpm test:heap).");
+  if (!gc) throw new Error('Run with --expose-gc (the heap config: pnpm test:heap).');
   for (let attempt = 0; attempt < 2; attempt++) {
     const short = stepGrowth(n, step, gc);
     const long = short === undefined ? undefined : stepGrowth(4 * n, step, gc);
     if (short !== undefined && long !== undefined) return { short, long, scaled: long - short };
   }
-  throw new Error("GC(s) ran during the measured run, twice: it hides allocation. Make the run shorter.");
+  throw new Error('GC(s) ran during the measured run, twice: it hides allocation. Make the run shorter.');
 }
 
 const leaked: unknown[] = [null];
@@ -131,7 +131,7 @@ const COLLECTED = /GC\(s\) ran during the measured run/;
 export function controlCaught(measure: () => Scaling | number, limit = LIMIT): boolean {
   try {
     const r = measure();
-    return typeof r === "number" ? r >= limit : !isFlat(r);
+    return typeof r === 'number' ? r >= limit : !isFlat(r);
   } catch (e) {
     if (e instanceof Error && COLLECTED.test(e.message)) return true;
     throw e;

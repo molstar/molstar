@@ -11,8 +11,8 @@
 // and views written with the format's builder against the set's keys, by default one `tracks` view. Validation in
 // data mode resolves refs against the incoming data: the set, or a resolver over the build inputs' keys (`keysOf`).
 
-import { createSeqViewSpec, type SeqViewSpecBuilder } from "@molstar/seq-core/builder";
-import { inputSources, isRefSyntax, type SeqViewSpecDoc, streamedSources, withDynamic } from "@molstar/seq-core/format";
+import { createSeqViewSpec, type SeqViewSpecBuilder } from '@molstar/seq-core/builder';
+import { inputSources, isRefSyntax, type SeqViewSpecDoc, streamedSources, withDynamic } from '@molstar/seq-core/format';
 import {
   type AnnotationInput,
   ColumnRole,
@@ -25,8 +25,8 @@ import {
   type SeqSet,
   type SetInput,
   Systems,
-} from "@molstar/seq-core/model";
-import type { DataEntry, DataMode } from "./graph.js";
+} from '@molstar/seq-core/model';
+import type { DataEntry, DataMode } from './graph.js';
 
 export interface SeqDataInput {
   readonly set?: SeqSet;
@@ -36,7 +36,7 @@ export interface SetDataOptions {
   readonly views?: (b: SeqViewSpecBuilder) => void;
 }
 
-const LISTS = ["molecules", "units", "complexes", "alignments", "mappings", "annotations"] as const;
+const LISTS = ['molecules', 'units', 'complexes', 'alignments', 'mappings', 'annotations'] as const;
 
 export function dataMode(data: SeqDataInput): DataMode {
   if (data.set) return { set: data.set };
@@ -60,17 +60,17 @@ function inputKeys(data: SeqDataInput): KeyResolver {
   const rows: number[] = [];
   const molecules = (i?.molecules ?? []).map((m, id) => {
     keys.set(m.key, id * 8 + KeyKind.molecule);
-    return { kind: m.kind === "ligand" ? MoleculeKind.ligand : MoleculeKind.polymer };
+    return { kind: m.kind === 'ligand' ? MoleculeKind.ligand : MoleculeKind.polymer };
   });
   let unit = 0;
   for (const u of i?.units ?? []) keys.set(u.key, unit++ * 8 + KeyKind.unit);
   for (const m of i?.molecules ?? []) if (m.ownUnit) keys.set(`${m.key}/unit`, unit++ * 8 + KeyKind.unit);
   for (const a of i?.alignments ?? []) rows.push(a.lazy?.rowCount ?? a.gapped.length);
   const lists = [
-    ["alignments", KeyKind.alignment],
-    ["complexes", KeyKind.complex],
-    ["mappings", KeyKind.mapping],
-    ["annotations", KeyKind.annotation],
+    ['alignments', KeyKind.alignment],
+    ['complexes', KeyKind.complex],
+    ['mappings', KeyKind.mapping],
+    ['annotations', KeyKind.annotation],
   ] as const;
   for (const [list, kind] of lists)
     for (let id = 0, l = i?.[list] ?? []; id < l.length; id++) keys.set(l[id].key, id * 8 + kind);
@@ -84,7 +84,7 @@ function inputKeys(data: SeqDataInput): KeyResolver {
     }
     // A row ref `<alignment>/<k>`, its index read as the set reads it (digits only).
     const row = Systems.rowOf(key);
-    const a = row >= 0 ? keys.get(key.slice(0, key.lastIndexOf("/"))) : undefined;
+    const a = row >= 0 ? keys.get(key.slice(0, key.lastIndexOf('/'))) : undefined;
     if (a === undefined || a % 8 !== KeyKind.alignment || row >= rows[Math.floor(a / 8)]) return false;
     out.kind = KeyKind.row;
     out.id = Math.floor(a / 8);
@@ -96,8 +96,8 @@ function inputKeys(data: SeqDataInput): KeyResolver {
 
 /** A column a `rows` annotation keeps as a field (as the model's build does: not placing, `state` and `node` too). */
 const isField = (c: string) =>
-  c === "state" ||
-  c === "node" ||
+  c === 'state' ||
+  c === 'node' ||
   Object.values(ColumnRoles).every((r) => r[c] === undefined || r[c] === ColumnRole.descriptive);
 
 interface Keys {
@@ -129,7 +129,7 @@ function keysOf(data: SeqDataInput): Keys {
       if (!a) continue;
       const key = s.strings.get(a.key);
       const target = s.alignments[a.slots.alignment[0]];
-      if (a.geometry !== "rows") k.annotations.push({ key, geometry: a.geometry });
+      if (a.geometry !== 'rows') k.annotations.push({ key, geometry: a.geometry });
       else if (target)
         rowsOf(
           s.strings.get(target.key),
@@ -142,13 +142,13 @@ function keysOf(data: SeqDataInput): Keys {
   } else {
     const i = data.inputs;
     const molecules = i?.molecules ?? [];
-    const ligands = new Set(molecules.filter((m) => m.kind === "ligand").map((m) => m.key));
+    const ligands = new Set(molecules.filter((m) => m.kind === 'ligand').map((m) => m.key));
     for (const u of i?.units ?? []) k.units.push({ key: u.key, ligand: ligands.has(u.molecule) });
     for (const m of molecules) if (m.ownUnit) k.units.push({ key: `${m.key}/unit`, ligand: ligands.has(m.key) });
     for (const a of i?.alignments ?? []) k.alignments.push(a.key);
     for (const a of i?.annotations ?? ([] as AnnotationInput[])) {
-      const target = a.target ?? "";
-      if (a.geometry !== "rows") k.annotations.push({ key: a.key, geometry: a.geometry });
+      const target = a.target ?? '';
+      if (a.geometry !== 'rows') k.annotations.push({ key: a.key, geometry: a.geometry });
       else rowsOf(target, a.key, Object.keys(a.columns ?? {}).filter(isField));
     }
     for (const list of LISTS) for (const x of i?.[list] ?? []) k.all.push(x.key);
@@ -162,7 +162,7 @@ function keysOf(data: SeqDataInput): Keys {
  * `view.<key>` in the ref syntax (seqspec:format#positions), with a numeric suffix past any ref in `used`; added to it.
  */
 function slugRef(key: string, used: Set<string>): string {
-  const base = `view.${key.replace(/[^A-Za-z0-9_.-]/g, "-")}`;
+  const base = `view.${key.replace(/[^A-Za-z0-9_.-]/g, '-')}`;
   let ref = base;
   for (let k = 2; used.has(ref); k++) ref = `${base}-${k}`;
   used.add(ref);
@@ -177,19 +177,19 @@ function slugRef(key: string, used: Set<string>): string {
 function defaultView(data: SeqDataInput) {
   return (b: SeqViewSpecBuilder) => {
     const { units, alignments, annotations, rows, all } = keysOf(data);
-    const used = new Set([...all, "view", "view.main", "view.ruler", "view.letters"]);
-    const v = b.view({ ref: "view", label: "View" });
+    const used = new Set([...all, 'view', 'view.main', 'view.ruler', 'view.letters']);
+    const v = b.view({ ref: 'view', label: 'View' });
     for (const u of units) v.block({ unit: u.key });
     const block = units.length === 0 ? alignments[0] : undefined;
     if (block !== undefined) v.block({ alignment: block });
-    v.track({ ref: "view.ruler" }).ruler();
-    v.track({ ref: "view.letters" }).letters();
+    v.track({ ref: 'view.ruler' }).ruler();
+    v.track({ ref: 'view.letters' }).letters();
     const columns = block === undefined ? undefined : rows.get(block);
-    if (columns?.length) v.track({ ref: slugRef("rows", used) }).rows({ data_columns: columns } as never);
+    if (columns?.length) v.track({ ref: slugRef('rows', used) }).rows({ data_columns: columns } as never);
     for (const a of annotations)
       if (isRefSyntax(a.key, true)) {
         // A grid has no type of its name: a dot plot shows it.
-        const type = a.geometry === "grid" ? "dot_plot" : a.geometry;
+        const type = a.geometry === 'grid' ? 'dot_plot' : a.geometry;
         v.track({ ref: slugRef(a.key, used) }).layer({ type, data: a.key });
       }
   };

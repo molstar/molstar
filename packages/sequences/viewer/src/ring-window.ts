@@ -13,17 +13,17 @@
 // with the other end held, both through the same link back (`centerOn`). Across a whole cyclic unit's origin the
 // sector wraps. Headless and allocation-free: frames go in a reused Float64Array, points in plain records.
 
-import type { ResolvedView } from "@molstar/seq-core/format";
-import { type Axis, AxisGeometry, type AxisView, type ShownIndex } from "./axis.js";
-import type { SeqViewerContext } from "./context.js";
-import { defineBehavior } from "./default-behaviors.js";
-import { followImage } from "./follow.js";
-import { DragPhase, PointerType } from "./input.js";
-import type { SectionLayout } from "./layout.js";
-import { Ring } from "./ring.js";
-import type { Origin } from "./state.js";
-import { Viewport } from "./viewport.js";
-import { WINDOW_EDGE, WindowPart } from "./windows.js";
+import type { ResolvedView } from '@molstar/seq-core/format';
+import { type Axis, AxisGeometry, type AxisView, type ShownIndex } from './axis.js';
+import type { SeqViewerContext } from './context.js';
+import { defineBehavior } from './default-behaviors.js';
+import { followImage } from './follow.js';
+import { DragPhase, PointerType } from './input.js';
+import type { SectionLayout } from './layout.js';
+import { Ring } from './ring.js';
+import type { Origin } from './state.js';
+import { Viewport } from './viewport.js';
+import { WINDOW_EDGE, WindowPart } from './windows.js';
 
 /**
  * A ring window's frame (`ringWindowFrame`), unrolled CSS px along the outer ring: the window's ends x0, x1 (x0 in the
@@ -102,12 +102,12 @@ function linked(ctx: SeqViewerContext, section: number): boolean {
 export function ringWindowTarget(ctx: SeqViewerContext, section: number): Viewport | null {
   const ref = ctx.layout.sectionRef(section);
   if (ref === null || ctx.layout.get(ref)?.current.geometry !== CIRCULAR || !linked(ctx, section)) return null;
-  const vp = ctx.viewports.get(ctx.layout.sectionRef(link[0]) ?? "");
+  const vp = ctx.viewports.get(ctx.layout.sectionRef(link[0]) ?? '');
   return vp instanceof Viewport ? vp : null;
 }
 
 /** Whether block b of the ring's axis is a whole cyclic unit (its window wraps across the origin). */
-function wholeCyclic(ax: NonNullable<Viewport["axis"]>, b: number): boolean {
+function wholeCyclic(ax: NonNullable<Viewport['axis']>, b: number): boolean {
   const u = ax.unit[b];
   const m = u >= 0 ? ax.set.molecules[ax.set.units.molecule[u]] : null;
   return !!m?.cyclic && ax.base[b] === 0 && ax.length[b] === m.length;
@@ -213,11 +213,11 @@ export function ringWindowSet(
   ctx: SeqViewerContext,
   section: number,
   g: Float64Array,
-  origin: Origin = "pointer",
+  origin: Origin = 'pointer',
 ): void {
   const ref = ctx.layout.sectionRef(section);
   const ax = ref === null ? null : ctx.layout.axis(ref)?.axis;
-  const vp = ctx.viewports.get(ctx.layout.sectionRef(g[TARGET]) ?? "");
+  const vp = ctx.viewports.get(ctx.layout.sectionRef(g[TARGET]) ?? '');
   const model = ctx.graph.assembled.value?.view;
   if (!ax || !(vp instanceof Viewport) || !model) return;
   const b = g[BLOCK];
@@ -281,7 +281,7 @@ export function ringWindowZoom(
   ctx: SeqViewerContext,
   section: number,
   by: Float64Array,
-  origin: Origin = "keyboard",
+  origin: Origin = 'keyboard',
 ): boolean {
   const g = zg;
   if (!ringWindowFrame(ctx, section, g)) return false;
@@ -311,12 +311,12 @@ export function ringBounds(l: SectionLayout, out: Float64Array): void {
 }
 
 export const RingWindowBehavior = defineBehavior(
-  "ringWindow",
-  "interaction",
+  'ringWindow',
+  'interaction',
   100,
   {},
-  "On rings, the window of the linear section linked by `follow`: dragging it pans that section, dragging a grip " +
-    "zooms it with the other end held (a plain press of the primary button; a click still selects).",
+  'On rings, the window of the linear section linked by `follow`: dragging it pans that section, dragging a grip ' +
+    'zooms it with the other end held (a plain press of the primary button; a click still selects).',
   ({ ctx, h, on }) => {
     let mode: number = NONE;
     /**
@@ -327,19 +327,19 @@ export const RingWindowBehavior = defineBehavior(
     const pt = { x: 0.5, y: 0.5 };
     on(ctx.interaction.pointer, (e) => {
       const p = e.input;
-      if (p.type !== DOWN || p.button !== 0 || p.modifiers !== 0 || e.owner !== "") return;
+      if (p.type !== DOWN || p.button !== 0 || p.modifiers !== 0 || e.owner !== '') return;
       if (!h.forSection(e.hit.section)) return;
       const part = ringWindowAt(ctx, e.hit.section, p, g0);
       if (part === NONE) return;
-      e.claim("ringWindow");
+      e.claim('ringWindow');
       mode = part;
       g0[LAST] = g0[AT_X];
       g0[TRAVEL] = 0;
     });
     on(ctx.interaction.drag, (e) => {
-      if (e.owner !== "ringWindow") return;
+      if (e.owner !== 'ringWindow') return;
       const sec = e.start.section;
-      const vp = ctx.viewports.get(ctx.layout.sectionRef(g0[TARGET]) ?? "");
+      const vp = ctx.viewports.get(ctx.layout.sectionRef(g0[TARGET]) ?? '');
       if (e.phase >= END) return vp?.release();
       const ref = ctx.layout.sectionRef(sec);
       const l = ref === null ? null : ctx.layout.get(ref)?.current;

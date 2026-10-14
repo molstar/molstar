@@ -17,15 +17,15 @@ import {
   kernelEntry,
   outlinePoints,
   outlineStreamed,
-} from "../draw/api.js";
+} from '../draw/api.js';
 
-export const PointsRenderer = kernelEntry<Features>("points", 20, {
-  geometries: ["linear", "wrapped"],
+export const PointsRenderer = kernelEntry<Features>('points', 20, {
+  geometries: ['linear', 'wrapped'],
   hit: (v, f, _p, out) => hitLineLanes(v, f, out) || hitPoints(v, f, out),
   hitsPastEnd: true,
   draw: (v, f, p) => drawPoints(v, f, p, false, false),
   tiny: (v, f, p) => drawPoints(v, f, p, false, true),
   overlay: (v, f) =>
     outlineStreamed(v, false) || outlinePoints(v, f, false, v.height < (PointsRenderer.minHeight ?? 0)),
-  sized: ["radius"],
+  sized: ['radius'],
 });

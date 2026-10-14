@@ -8,7 +8,7 @@
 
 // `Extents.addLoci` (NG1; IN1 shares it): a host's loci as entries in each element's own coordinate system.
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   type AlignmentId,
   type AnnotationId,
@@ -21,9 +21,9 @@ import {
   type SeqSet,
   SeqSets,
   type UnitId,
-} from "../../src/model/index.js";
-import { contacts, iep1 } from "./annotation-fixtures.js";
-import { brs1 } from "./fixtures.js";
+} from '../../src/model/index.js';
+import { contacts, iep1 } from './annotation-fixtures.js';
+import { brs1 } from './fixtures.js';
 
 const range = <T extends number = never>(a: number, b: number) => OrderedSet.ofRange(a as T, b as T);
 const sorted = (...xs: number[]) => OrderedSet.ofSortedArray<never>(Int32Array.from(xs));
@@ -37,23 +37,23 @@ const from = (loci: Loci) => {
 const stubs = (base: SeqSet): SeqSet =>
   SeqSets.withChanges(base, {
     upsert: {
-      alignments: [{ key: "msa", gapped: ["AC-DE", "ACGD-", "AC-DE"], flavor: "aligned" }],
+      alignments: [{ key: 'msa', gapped: ['AC-DE', 'ACGD-', 'AC-DE'], flavor: 'aligned' }],
       annotations: [
-        { key: "f", geometry: "ranges", target: "1brs/A", columns: { start: [3, 10], stop: [5, 12], id: ["a", "b"] } },
+        { key: 'f', geometry: 'ranges', target: '1brs/A', columns: { start: [3, 10], stop: [5, 12], id: ['a', 'b'] } },
       ],
     },
   }).set;
 
-describe("Extents.addLoci", () => {
+describe('Extents.addLoci', () => {
   const set = stubs(SeqSets.build(brs1()).set);
 
-  it("a seq-loci interval is one entry, a sorted array one per run of consecutive indices; boundaries are (b, b)", () => {
-    expect(from({ kind: "seq-loci", set, elements: [{ unit: 2 as UnitId, indices: range(4, 9) }] })).toEqual([
+  it('a seq-loci interval is one entry, a sorted array one per run of consecutive indices; boundaries are (b, b)', () => {
+    expect(from({ kind: 'seq-loci', set, elements: [{ unit: 2 as UnitId, indices: range(4, 9) }] })).toEqual([
       1,
       [[K.unit, 2, -1, 4, 9]],
     ]);
     const mixed = from({
-      kind: "seq-loci",
+      kind: 'seq-loci',
       set,
       elements: [{ unit: 0 as UnitId, indices: sorted(1, 2, 3, 7, 9, 10) }],
     });
@@ -65,7 +65,7 @@ describe("Extents.addLoci", () => {
         [K.unit, 0, -1, 9, 11],
       ],
     ]);
-    expect(from({ kind: "boundary-loci", set, elements: [{ unit: 1 as UnitId, indices: sorted(0, 5) }] })[1]).toEqual([
+    expect(from({ kind: 'boundary-loci', set, elements: [{ unit: 1 as UnitId, indices: sorted(0, 5) }] })[1]).toEqual([
       [K.unit, 1, -1, 0, 0],
       [K.unit, 1, -1, 5, 5],
     ]);
@@ -74,9 +74,9 @@ describe("Extents.addLoci", () => {
   it("a row's residues are in the row's system, columns in the alignment's", () => {
     const aln = 0 as AlignmentId;
     expect(
-      from({ kind: "row-loci", set, alignment: aln, elements: [{ row: 1 as RowIndex, indices: range(2, 4) }] })[1],
+      from({ kind: 'row-loci', set, alignment: aln, elements: [{ row: 1 as RowIndex, indices: range(2, 4) }] })[1],
     ).toEqual([[K.row, 0, 1, 2, 4]]);
-    expect(from({ kind: "column-loci", set, alignment: aln, columns: sorted(0, 1, 4) })[1]).toEqual([
+    expect(from({ kind: 'column-loci', set, alignment: aln, columns: sorted(0, 1, 4) })[1]).toEqual([
       [K.columns, 0, -1, 0, 2],
       [K.columns, 0, -1, 4, 5],
     ]);
@@ -86,7 +86,7 @@ describe("Extents.addLoci", () => {
     const aln = 0 as AlignmentId;
     // Row 0 is AC-DE: columns 0, 1 are residues 0, 1; column 2 is a gap; columns 3, 4 are residues 2, 3.
     const one = from({
-      kind: "aligned-loci",
+      kind: 'aligned-loci',
       set,
       alignment: aln,
       elements: [{ row: 0 as RowIndex, columns: range(0, 5) }],
@@ -97,7 +97,7 @@ describe("Extents.addLoci", () => {
       [K.row, 0, 0, 2, 4],
     ]);
     const rect = from({
-      kind: "aligned-loci",
+      kind: 'aligned-loci',
       set,
       alignment: aln,
       elements: { rows: sorted(0, 1), columns: range(3, 5) },
@@ -111,7 +111,7 @@ describe("Extents.addLoci", () => {
 
   it("an item is its rows' ranges in their targets' systems", () => {
     const loci: ItemLoci = {
-      kind: "item-loci",
+      kind: 'item-loci',
       set,
       elements: [{ annotation: 0 as AnnotationId, items: range(0, 2) }],
     };
@@ -123,10 +123,10 @@ describe("Extents.addLoci", () => {
     ]);
   });
 
-  it("an item of a pairs table is both its sides", () => {
+  it('an item of a pairs table is both its sides', () => {
     const iep = SeqSets.build({ ...iep1(), annotations: [contacts()] }).set;
     const [n, entries] = from({
-      kind: "item-loci",
+      kind: 'item-loci',
       set: iep,
       elements: [{ annotation: 0 as AnnotationId, items: range(0, 1) }],
     });
@@ -135,12 +135,12 @@ describe("Extents.addLoci", () => {
     expect(entries[0][1]).not.toBe(entries[1][1]);
   });
 
-  it("appends: the entries already in `out` stay, and the count is what was added", () => {
+  it('appends: the entries already in `out` stay, and the count is what was added', () => {
     const e = Extents.create(1);
-    const loci: Loci = { kind: "seq-loci", set, elements: [{ unit: 0 as UnitId, indices: range(0, 2) }] };
+    const loci: Loci = { kind: 'seq-loci', set, elements: [{ unit: 0 as UnitId, indices: range(0, 2) }] };
     expect(Extents.addLoci(e, loci)).toBe(1);
     expect(Extents.addLoci(e, loci)).toBe(1);
     expect(e.count).toBe(2);
-    expect(Extents.addLoci(e, { kind: "seq-loci", set, elements: [] })).toBe(0);
+    expect(Extents.addLoci(e, { kind: 'seq-loci', set, elements: [] })).toBe(0);
   });
 });

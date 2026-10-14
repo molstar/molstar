@@ -32,21 +32,21 @@ import {
   type StageContext,
   type SvsRegistries,
   sourceParse,
-} from "@molstar/seq-core/format";
-import type { Issue, SeqSet } from "@molstar/seq-core/model";
-import type { SeqIssue } from "./context.js";
-import type { DynamicSource } from "./dynamic.js";
-import type { SeqViewerRegistry } from "./registry.js";
-import { type SeqState, state, type WritableSeqState } from "./state.js";
-import type { Theme } from "./themes.js";
+} from '@molstar/seq-core/format';
+import type { Issue, SeqSet } from '@molstar/seq-core/model';
+import type { SeqIssue } from './context.js';
+import type { DynamicSource } from './dynamic.js';
+import type { SeqViewerRegistry } from './registry.js';
+import { type SeqState, state, type WritableSeqState } from './state.js';
+import type { Theme } from './themes.js';
 
 /** An issue's rank by severity, the most severe first: error, warning, then a note. */
 export const severityRank = (i: { readonly severity: string }): number =>
-  i.severity === "error" ? 0 : i.severity === "warning" ? 1 : 2;
+  i.severity === 'error' ? 0 : i.severity === 'warning' ? 1 : 2;
 
-export type Stage = "load" | "complex" | "assemble" | "compute" | "section" | "layer" | "prepare" | "theme" | "view";
+export type Stage = 'load' | 'complex' | 'assemble' | 'compute' | 'section' | 'layer' | 'prepare' | 'theme' | 'view';
 /** Per-view stages run for the current view only. */
-const PER_VIEW: ReadonlySet<string> = new Set(["section", "layer", "prepare", "theme", "view"]);
+const PER_VIEW: ReadonlySet<string> = new Set(['section', 'layer', 'prepare', 'theme', 'view']);
 
 /** How a node reads another: its result (keyed by identity), its status (keyed by state), or only after it (no key). */
 export interface InputCollector {
@@ -103,7 +103,7 @@ export interface RunContext {
 }
 
 export interface NodeStatus {
-  readonly state: "pending" | "running" | "ok" | "error" | "unavailable";
+  readonly state: 'pending' | 'running' | 'ok' | 'error' | 'unavailable';
   readonly issues: readonly Issue[];
   /** Unavailable: the ref whose failure or unavailability caused it. */
   readonly cause: string | null;
@@ -176,7 +176,7 @@ export interface SeqGraph {
 
 /** A data entry of `setData`'s build inputs, by its list. */
 export interface DataEntry {
-  readonly list: "molecules" | "units" | "complexes" | "alignments" | "mappings" | "annotations";
+  readonly list: 'molecules' | 'units' | 'complexes' | 'alignments' | 'mappings' | 'annotations';
   readonly entry: { readonly key: string };
 }
 export type DataMode = { readonly entries: ReadonlyMap<string, DataEntry> } | { readonly set: SeqSet } | null;
@@ -186,7 +186,7 @@ interface Run {
   readonly controller: AbortController;
   promise: Promise<void>;
 }
-const PENDING: NodeStatus = { state: "pending", issues: [], cause: null };
+const PENDING: NodeStatus = { state: 'pending', issues: [], cause: null };
 /** A node's record, kept across updates while its ref and kind stay. */
 class GNode {
   readonly ref: string;
@@ -222,7 +222,7 @@ interface Pass {
   superseded: boolean;
 }
 
-const LISTS = ["molecules", "units", "complexes", "alignments", "mappings", "annotations"] as const;
+const LISTS = ['molecules', 'units', 'complexes', 'alignments', 'mappings', 'annotations'] as const;
 const isEmptyPart = (r: Record<string, unknown>) =>
   r.source === undefined && LISTS.every((k) => !(r[k] as unknown[] | undefined)?.length);
 const sameKey = (a: readonly unknown[] | null, b: readonly unknown[]) =>
@@ -292,12 +292,12 @@ export class Graph implements SeqGraph {
     const v = reg.version.value;
     const held = this.supportedSets[layout];
     if (held?.version === v) return held.set;
-    const geometry = layout === Layout.text ? "wrapped" : "linear";
+    const geometry = layout === Layout.text ? 'wrapped' : 'linear';
     const next = new Set([
-      ...reg.list("renderers").flatMap((r) => (r.geometries.includes(geometry) ? [r.name] : [])),
-      ...reg.list("themes").map((t) => t.name),
-      "char",
-      "path",
+      ...reg.list('renderers').flatMap((r) => (r.geometries.includes(geometry) ? [r.name] : [])),
+      ...reg.list('themes').map((t) => t.name),
+      'char',
+      'path',
     ]);
     // An unchanged set keeps its identity, so it is no key change.
     const set = held && held.set.size === next.size && [...next].every((x) => held.set.has(x)) ? held.set : next;
@@ -309,7 +309,7 @@ export class Graph implements SeqGraph {
    * Data without a document (seqspec:viewer#data-mode); null: back to documents. A change of kind starts a new graph.
    */
   setData(mode: DataMode) {
-    const kind = (m: DataMode) => (m === null ? 0 : "set" in m ? 1 : 2);
+    const kind = (m: DataMode) => (m === null ? 0 : 'set' in m ? 1 : 2);
     if (kind(mode) !== kind(this.data)) this.reset();
     this.data = mode;
   }
@@ -350,7 +350,7 @@ export class Graph implements SeqGraph {
     this.index = doc ? indexDoc(doc, this.host.registry.svs, this.normCache) : { nodes: new Map(), order: [] };
     const next = new Map<string, GNode>();
     const add = (ref: string, name: string, node: IndexedNode | null, view: string | null, payload?: unknown) => {
-      const kind = this.host.registry.get("nodeKinds", name);
+      const kind = this.host.registry.get('nodeKinds', name);
       if (!kind || next.has(ref)) return;
       let g = this.nodes.get(ref);
       if (!g || g.kind !== kind) g = new GNode(ref, kind); // the old one is dropped below
@@ -371,39 +371,39 @@ export class Graph implements SeqGraph {
           this.host.registry.svs,
         );
       } catch (e) {
-        g.thrown = e ?? new Error("threw");
+        g.thrown = e ?? new Error('threw');
       }
       [g.results, g.statuses, g.afters] = [r, s, a];
       next.set(ref, g);
     };
     const views = new Map<string, string | null>();
     for (const n of this.index.order) {
-      const view = n.kind === "view" ? n.ref : (views.get(n.parent ?? "") ?? null);
+      const view = n.kind === 'view' ? n.ref : (views.get(n.parent ?? '') ?? null);
       views.set(n.ref, view);
       // A template's layers resolve per instance, in its `#template` node (seqspec:format#placement).
-      if (n.kind === "layer" && forEachOf(this.index.nodes.get(n.parent ?? ""))) continue;
+      if (n.kind === 'layer' && forEachOf(this.index.nodes.get(n.parent ?? ''))) continue;
       add(n.ref, n.kind, n, view);
-      if (n.kind === "layer") for (const d of ["#prepare", "#theme"]) add(`${d}:${n.ref}`, d, n, view);
-      if (forEachOf(n)) add(`#template:${n.ref}`, "#template", n, view);
-      if (n.kind === "view") add(`#view:${n.ref}`, "#view", n, n.ref);
+      if (n.kind === 'layer') for (const d of ['#prepare', '#theme']) add(`${d}:${n.ref}`, d, n, view);
+      if (forEachOf(n)) add(`#template:${n.ref}`, '#template', n, view);
+      if (n.kind === 'view') add(`#view:${n.ref}`, '#view', n, n.ref);
     }
     const data = this.data;
-    if (data && "set" in data) add("#set", "#set", null, null, data.set);
-    for (const e of data && "entries" in data ? data.entries.values() : []) {
+    if (data && 'set' in data) add('#set', '#set', null, null, data.set);
+    for (const e of data && 'entries' in data ? data.entries.values() : []) {
       // Memoized by the entry's identity: a host that keeps an entry reruns nothing for it.
       const part = this.entryParts.get(e.entry) ?? { [e.list]: [e.entry] };
       this.entryParts.set(e.entry, part);
-      add(e.entry.key, "#entry", null, null, part);
+      add(e.entry.key, '#entry', null, null, part);
     }
-    for (const a of ["#assemble.base", "#assemble.mapped", "#assemble", "#assemble.stream"]) add(a, a, null, null);
+    for (const a of ['#assemble.base', '#assemble.mapped', '#assemble', '#assemble.stream']) add(a, a, null, null);
     // Data mode: entries feed the assemblies (a whole set seeds the first).
-    const base = next.get("#assemble.base");
-    const mapped = next.get("#assemble.mapped");
+    const base = next.get('#assemble.base');
+    const mapped = next.get('#assemble.mapped');
     if (data && base && mapped) {
-      if ("set" in data) base.results.unshift("#set");
+      if ('set' in data) base.results.unshift('#set');
       else
         for (const e of data.entries.values())
-          (e.list === "mappings" || e.list === "annotations" ? mapped : base).results.push(e.entry.key);
+          (e.list === 'mappings' || e.list === 'annotations' ? mapped : base).results.push(e.entry.key);
     }
     for (const g of this.nodes.values()) if (next.get(g.ref) !== g) this.drop(g);
     this.nodes = next;
@@ -446,8 +446,8 @@ export class Graph implements SeqGraph {
       for (const g of cyclic) {
         g.cyclic = true;
         const message = `"${g.ref}" is in a reference cycle`;
-        const issue = { code: "svs.ref.cycle", severity: "error" as const, path: g.node?.path ?? "", message };
-        this.setStatus(g, { state: "error", issues: [issue], cause: null });
+        const issue = { code: 'svs.ref.cycle', severity: 'error' as const, path: g.node?.path ?? '', message };
+        this.setStatus(g, { state: 'error', issues: [issue], cause: null });
       }
       order = kahn(cyclic);
     }
@@ -484,7 +484,7 @@ export class Graph implements SeqGraph {
       await Promise.all(this.order.filter((g) => g.view === null || g.view === view).map(evaluate));
     } catch (e) {
       const message = `the graph's update threw: ${e instanceof Error ? e.message : String(e)}`;
-      this.fresh.push({ code: "seqv.state.error", severity: "error", path: "", message, ref: null });
+      this.fresh.push({ code: 'seqv.state.error', severity: 'error', path: '', message, ref: null });
     } finally {
       if (!pass.superseded && !this.disposed) {
         this.current = null;
@@ -510,7 +510,7 @@ export class Graph implements SeqGraph {
       for (const r of g.statuses) key.push(this.nodes.get(r)?.status.state);
       if (thrown === null) g.kind.key?.(rc, key);
     } catch (e) {
-      thrown = e ?? new Error("threw");
+      thrown = e ?? new Error('threw');
     }
     if (thrown === null && sameKey(g.key, key)) {
       // Back to the published key (a preview cleared): a run in flight for another key is dropped.
@@ -535,7 +535,7 @@ export class Graph implements SeqGraph {
       try {
         result = await g.kind.run(rc);
       } catch (e) {
-        threw = e ?? new Error("threw");
+        threw = e ?? new Error('threw');
       }
     }
     // A superseded or aborted run is dropped: its result never publishes, and is disposed.
@@ -547,11 +547,11 @@ export class Graph implements SeqGraph {
     g.key = run.key;
     if (threw) {
       const message = threw instanceof Error ? threw.message : String(threw);
-      const code = PER_VIEW.has(g.kind.stage) ? "seqv.renderer.error" : "svs.source.load";
-      issues.push({ code, severity: "error", path: g.node?.path ?? "", message });
+      const code = PER_VIEW.has(g.kind.stage) ? 'seqv.renderer.error' : 'svs.source.load';
+      issues.push({ code, severity: 'error', path: g.node?.path ?? '', message });
     }
     const status = this.classify(g, threw ? undefined : result, issues, threw !== null);
-    if (status.state === "ok" && g.result !== undefined && g.kind.equals?.(g.result, result)) {
+    if (status.state === 'ok' && g.result !== undefined && g.kind.equals?.(g.result, result)) {
       this.release(g, result);
       result = g.result;
     }
@@ -569,22 +569,22 @@ export class Graph implements SeqGraph {
   /** Status: failures are errors, their readers unavailable with a cause; a missing provider is not a failure. */
   private classify(g: GNode, result: unknown, issues: Issue[], threw: boolean): NodeStatus {
     const stage = g.kind.stage;
-    const data = stage === "load" || stage === "complex" || stage === "compute";
+    const data = stage === 'load' || stage === 'complex' || stage === 'compute';
     const r = result as Record<string, unknown> | null | undefined;
     const bad = [...g.results, ...g.statuses].find((x) => {
       const s = this.nodes.get(x)?.status.state;
-      return s === "error" || s === "unavailable";
+      return s === 'error' || s === 'unavailable';
     });
-    let state: NodeStatus["state"] = "ok";
+    let state: NodeStatus['state'] = 'ok';
     const kind = (r?.source as SourceResult | undefined)?.kind;
-    if (threw || kind === "failed") state = "error";
-    else if (data || stage === "layer") {
-      if (r == null || r.unavailable === true || kind === "unavailable") state = "unavailable";
-      else if (data && isEmptyPart(r) && bad) state = "unavailable";
-      else if (data && isEmptyPart(r) && issues.some((i) => i.severity === "error")) state = "error";
+    if (threw || kind === 'failed') state = 'error';
+    else if (data || stage === 'layer') {
+      if (r == null || r.unavailable === true || kind === 'unavailable') state = 'unavailable';
+      else if (data && isEmptyPart(r) && bad) state = 'unavailable';
+      else if (data && isEmptyPart(r) && issues.some((i) => i.severity === 'error')) state = 'error';
     }
-    const own = issues.some((i) => i.code === "svs.provider.unavailable");
-    return { state, issues, cause: state === "unavailable" && !own ? (bad ?? null) : null };
+    const own = issues.some((i) => i.code === 'svs.provider.unavailable');
+    return { state, issues, cause: state === 'unavailable' && !own ? (bad ?? null) : null };
   }
 
   /** A node's result, disposed by its kind; a throw there is reported, never thrown. */
@@ -593,7 +593,7 @@ export class Graph implements SeqGraph {
       if (result !== undefined) g.kind.dispose?.(result);
     } catch (e) {
       const message = `"${g.ref}"'s dispose threw: ${e instanceof Error ? e.message : String(e)}`;
-      this.fresh.push({ code: "seqv.renderer.error", severity: "error", path: "", message, ref: g.ref });
+      this.fresh.push({ code: 'seqv.renderer.error', severity: 'error', path: '', message, ref: g.ref });
     }
   }
 
@@ -608,14 +608,14 @@ export class Graph implements SeqGraph {
       const n = [0, 0, 0];
       for (let k = limit; k < all.length; k++) n[severityRank(all[k])]++;
       const each = [`${n[0]} errors`, `${n[1]} warnings`, `${n[2]} notes`].filter((_, k) => n[k] > 0);
-      const message = `and ${all.length - limit} more (${each.join(", ")})`;
-      const more: Issue = { code: "seqv.issues.truncated", severity: "warning", path: g.node?.path ?? "", message };
+      const message = `and ${all.length - limit} more (${each.join(', ')})`;
+      const more: Issue = { code: 'seqv.issues.truncated', severity: 'warning', path: g.node?.path ?? '', message };
       status = { ...status, issues: [...all.slice(0, limit), more] };
     }
     g.status = status;
     g.issues = status.issues.map((i) => ({ ...i, ref: g.ref }));
     for (const i of g.issues) this.fresh.push(i);
-    if (status.state === "ok") this.gone.delete(g.ref);
+    if (status.state === 'ok') this.gone.delete(g.ref);
     else this.gone.add(g.ref);
   }
 
@@ -638,7 +638,7 @@ export class Graph implements SeqGraph {
     const status = (ref: string) => nodes.get(ref)?.status ?? null;
     const failed = (ref: string): boolean => {
       for (let s = status(ref), k = 0; s && k < 64; s = s.cause ? status(s.cause) : null, k++) {
-        if (s.state === "error") return true;
+        if (s.state === 'error') return true;
         if (!s.cause) return false;
       }
       return false;
@@ -669,7 +669,7 @@ export class Graph implements SeqGraph {
 
   /** The final set: the document's with the dynamic nodes held (`#assemble.stream`). */
   private final(): SeqSet | null {
-    const g = this.nodes.get("#assemble.stream") ?? this.nodes.get("#assemble");
+    const g = this.nodes.get('#assemble.stream') ?? this.nodes.get('#assemble');
     return (g?.result as { set?: SeqSet } | undefined)?.set ?? null;
   }
 
@@ -699,8 +699,8 @@ export class Graph implements SeqGraph {
       statuses.set(g.ref, g.status);
       for (const i of g.issues) issues.push(i);
     }
-    this.statuses.set(statuses, "graph");
-    this.issues.set(issues, "graph");
+    this.statuses.set(statuses, 'graph');
+    this.issues.set(issues, 'graph');
     const fresh = this.fresh;
     this.fresh = [];
     for (const i of fresh) this.host.onIssue(i);
@@ -709,9 +709,9 @@ export class Graph implements SeqGraph {
     const set = this.final();
     const model = (view ? this.nodes.get(`#view:${view}`)?.result : null) as ViewModel | undefined;
     const prev = this.assembled.value;
-    if (!set) this.assembled.set(null, "graph");
+    if (!set) this.assembled.set(null, 'graph');
     else if (this.changed.size > 0 || prev?.set !== set || prev?.view !== (model ?? null)) {
-      this.assembled.set({ set, view: model ?? null, changed: this.changed }, "graph");
+      this.assembled.set({ set, view: model ?? null, changed: this.changed }, 'graph');
     }
     this.changed = new Set();
     const waiters = this.waiters;

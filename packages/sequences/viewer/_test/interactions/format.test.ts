@@ -11,8 +11,8 @@
 // fixture loaders; the fingerprint over each kind of coordinate system, polymer partners only, the fallbacks; and that
 // the kernel never imports this package.
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import {
   compile,
   createRegistries,
@@ -24,7 +24,7 @@ import {
   type SeqViewSpecDoc,
   supportedAll,
   validate,
-} from "@molstar/seq-core/format";
+} from '@molstar/seq-core/format';
 import {
   type Annotation,
   type CoordinateSystem,
@@ -34,10 +34,10 @@ import {
   type SeqSet,
   SeqSets,
   type UnitId,
-} from "@molstar/seq-core/model";
-import { describe, expect, it } from "vitest";
-import { case6 } from "../../../core/_test/format/cases.js";
-import { fixtureLoaders, MolstarFixture, registries, STI_NAMES } from "../../../core/_test/format/load-fixtures.js";
+} from '@molstar/seq-core/model';
+import { describe, expect, it } from 'vitest';
+import { case6 } from '../../../core/_test/format/cases.js';
+import { fixtureLoaders, MolstarFixture, registries, STI_NAMES } from '../../../core/_test/format/load-fixtures.js';
 import {
   FingerprintProp,
   Fingerprints,
@@ -52,14 +52,14 @@ import {
   type KindName,
   KindStyle,
   kindByName,
-} from "../../src/interactions/index.js";
-import { alignmentScene, mappingScene, unitScene } from "./fixtures.js";
+} from '../../src/interactions/index.js';
+import { alignmentScene, mappingScene, unitScene } from './fixtures.js';
 
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };
 const id = (set: SeqSet, key: string) => (set.byName(key, t) ? t.id : -1);
 const annotation = (set: SeqSet, key: string) => set.annotations[id(set, key)] as Annotation;
 const codes = (issues: Issue[]) => [...new Set(issues.map((i) => i.code))].sort();
-const errors = (issues: Issue[]) => issues.filter((i) => i.severity === "error");
+const errors = (issues: Issue[]) => issues.filter((i) => i.severity === 'error');
 const molecule = (set: SeqSet, key: string) => ({ kind: CoordinateSystemKind.molecule, id: id(set, key), row: -1 });
 const unit = (set: SeqSet, key: string) => ({ kind: CoordinateSystemKind.unit, id: id(set, key), row: -1 });
 
@@ -76,42 +76,42 @@ function withExtension() {
 function small() {
   const { set, issues } = SeqSets.build({
     molecules: [
-      { key: "p", residues: "ACDE" },
-      { key: "q", residues: "WYW" },
-      { key: "l", kind: "ligand", elements: ["C", "N"] },
+      { key: 'p', residues: 'ACDE' },
+      { key: 'q', residues: 'WYW' },
+      { key: 'l', kind: 'ligand', elements: ['C', 'N'] },
     ],
     units: [
-      { key: "P", molecule: "p" },
-      { key: "L", molecule: "l" },
+      { key: 'P', molecule: 'p' },
+      { key: 'L', molecule: 'l' },
     ],
     annotations: [
       {
-        key: "c",
-        geometry: "pairs",
+        key: 'c',
+        geometry: 'pairs',
         columns: {
-          target: ["P", "P", "P", "P"],
+          target: ['P', 'P', 'P', 'P'],
           start: [0, 1, 1, 3],
-          b_target: ["L", "L", "L", "L"],
+          b_target: ['L', 'L', 'L', 'L'],
           b_start: [0, 1, 0, 1],
-          category: ["hbond", "hydrophobic", "weird", null],
+          category: ['hbond', 'hydrophobic', 'weird', null],
         },
       },
     ],
   });
   expect(errors(issues)).toEqual([]);
-  return { set, c: annotation(set, "c"), P: id(set, "P") as UnitId, L: id(set, "L") as UnitId };
+  return { set, c: annotation(set, 'c'), P: id(set, 'P') as UnitId, L: id(set, 'L') as UnitId };
 }
 
-describe("the vocabulary and queries", () => {
-  it("kinds and masks", () => {
-    expect(KindMask.count(KindMask.of("hbond", "hydrophobic"))).toBe(2);
-    expect(KindMask.names(KindMask.of("pi_stacking", "contact"))).toEqual(["contact", "pi_stacking"]);
+describe('the vocabulary and queries', () => {
+  it('kinds and masks', () => {
+    expect(KindMask.count(KindMask.of('hbond', 'hydrophobic'))).toBe(2);
+    expect(KindMask.names(KindMask.of('pi_stacking', 'contact'))).toEqual(['contact', 'pi_stacking']);
     expect(KindMask.count(KindMask.all)).toBe(11);
-    expect([kindByName("salt_bridge"), kindByName("contact"), kindByName("weird")]).toEqual([2, 0, Kind.other]);
+    expect([kindByName('salt_bridge'), kindByName('contact'), kindByName('weird')]).toEqual([2, 0, Kind.other]);
   });
 
-  it("a row with no category is `other`, and `contact` only a stated one", () => {
-    expect([kindByName(null), kindByName("")]).toEqual([Kind.other, Kind.other]);
+  it('a row with no category is `other`, and `contact` only a stated one', () => {
+    expect([kindByName(null), kindByName('')]).toEqual([Kind.other, Kind.other]);
     const { set, c } = small();
     expect([0, 1, 2, 3].map((r) => Interactions.kindOf(set, c, r))).toEqual([
       Kind.hbond,
@@ -121,18 +121,18 @@ describe("the vocabulary and queries", () => {
     ]);
   });
 
-  it("contactsOf aggregates kinds per residue, filtered by a mask; re-entrant", () => {
+  it('contactsOf aggregates kinds per residue, filtered by a mask; re-entrant', () => {
     const { set, c, P, L } = small();
     const out: number[][] = [];
     Interactions.contactsOf(set, c, L, KindMask.all, (u, i, m) => out.push([u, i, m]), null);
     expect(out).toEqual([
-      [P, 0, KindMask.of("hbond")],
-      [P, 1, KindMask.of("hydrophobic", "other")],
-      [P, 3, KindMask.of("other")],
+      [P, 0, KindMask.of('hbond')],
+      [P, 1, KindMask.of('hydrophobic', 'other')],
+      [P, 3, KindMask.of('other')],
     ]);
     const hb: number[][] = [];
-    Interactions.contactsOf(set, c, L, KindMask.of("hbond"), (u, i, m) => hb.push([u, i, m]), null);
-    expect(hb).toEqual([[P, 0, KindMask.of("hbond")]]);
+    Interactions.contactsOf(set, c, L, KindMask.of('hbond'), (u, i, m) => hb.push([u, i, m]), null);
+    expect(hb).toEqual([[P, 0, KindMask.of('hbond')]]);
     const nested: number[][] = [];
     Interactions.contactsOf(
       set,
@@ -175,113 +175,113 @@ describe("the vocabulary and queries", () => {
     expect(inner).toEqual([[L, 0, Kind.hbond]]);
   });
 
-  it("a molecule-level endpoint reaches the ligand units over it, not every unit of the set", () => {
+  it('a molecule-level endpoint reaches the ligand units over it, not every unit of the set', () => {
     // Two copies of one ligand molecule; a pair whose b side names the molecule touches both, and a third unit of
     // another molecule is not asked.
     const { set, issues } = SeqSets.build({
       molecules: [
-        { key: "p", residues: "ACDE" },
-        { key: "l", kind: "ligand", elements: ["C", "N"] },
-        { key: "m", kind: "ligand", elements: ["O"] },
+        { key: 'p', residues: 'ACDE' },
+        { key: 'l', kind: 'ligand', elements: ['C', 'N'] },
+        { key: 'm', kind: 'ligand', elements: ['O'] },
       ],
       units: [
-        { key: "P", molecule: "p" },
-        { key: "L1", molecule: "l" },
-        { key: "L2", molecule: "l" },
-        { key: "M", molecule: "m" },
+        { key: 'P', molecule: 'p' },
+        { key: 'L1', molecule: 'l' },
+        { key: 'L2', molecule: 'l' },
+        { key: 'M', molecule: 'm' },
       ],
       annotations: [
-        { key: "c", geometry: "pairs", columns: { target: ["P"], start: [1], b_target: ["l"], b_start: [1] } },
+        { key: 'c', geometry: 'pairs', columns: { target: ['P'], start: [1], b_target: ['l'], b_start: [1] } },
       ],
     });
     expect(errors(issues)).toEqual([]);
     const out: number[][] = [];
     Interactions.atomsContacting(
       set,
-      annotation(set, "c"),
-      id(set, "P") as UnitId,
+      annotation(set, 'c'),
+      id(set, 'P') as UnitId,
       1 as never,
       (u, a) => out.push([u, a]),
       null,
     );
     expect(out.sort()).toEqual([
-      [id(set, "L1"), 1],
-      [id(set, "L2"), 1],
+      [id(set, 'L1'), 1],
+      [id(set, 'L2'), 1],
     ]);
   });
 });
 
-describe("fingerprints over a coordinate system", () => {
+describe('fingerprints over a coordinate system', () => {
   /** Two chains P1, P2 over one sequence p, a ligand L and a cofactor C; L contacts both chains and the cofactor. */
   function chains() {
     const { set, issues } = SeqSets.build({
       molecules: [
-        { key: "p", residues: "ACDEFG" },
-        { key: "l", kind: "ligand", elements: ["C", "N"] },
-        { key: "c", kind: "ligand", elements: ["FE"] },
+        { key: 'p', residues: 'ACDEFG' },
+        { key: 'l', kind: 'ligand', elements: ['C', 'N'] },
+        { key: 'c', kind: 'ligand', elements: ['FE'] },
       ],
       units: [
-        { key: "P1", molecule: "p" },
-        { key: "P2", molecule: "p" },
-        { key: "L", molecule: "l" },
-        { key: "C", molecule: "c" },
+        { key: 'P1', molecule: 'p' },
+        { key: 'P2', molecule: 'p' },
+        { key: 'L', molecule: 'l' },
+        { key: 'C', molecule: 'c' },
       ],
       annotations: [
         {
-          key: "pairs",
-          geometry: "pairs",
+          key: 'pairs',
+          geometry: 'pairs',
           columns: {
-            target: ["P1", "P1", "P2", "P2", "C"],
+            target: ['P1', 'P1', 'P2', 'P2', 'C'],
             start: [1, 2, 2, 4, 0],
-            b_target: ["L", "L", "L", "L", "L"],
+            b_target: ['L', 'L', 'L', 'L', 'L'],
             b_start: [0, 1, 0, 1, 1],
-            category: ["hbond", "hydrophobic", "hbond", "salt_bridge", "metal"],
+            category: ['hbond', 'hydrophobic', 'hbond', 'salt_bridge', 'metal'],
           },
         },
       ],
     });
     expect(errors(issues)).toEqual([]);
-    return { set, pairs: annotation(set, "pairs"), L: id(set, "L") };
+    return { set, pairs: annotation(set, 'pairs'), L: id(set, 'L') };
   }
   const build = (set: SeqSet, pairs: Annotation, L: number, system: CoordinateSystem) => {
     const issues: Issue[] = [];
     return { f: Fingerprints.build(set, [pairs], Int32Array.of(L), system, { issues }), issues };
   };
 
-  it("a sequence system merges every unit over the molecule; the cofactor, a ligand, is no column (quietly)", () => {
+  it('a sequence system merges every unit over the molecule; the cofactor, a ligand, is no column (quietly)', () => {
     const { set, pairs, L } = chains();
-    const { f, issues } = build(set, pairs, L, molecule(set, "p"));
+    const { f, issues } = build(set, pairs, L, molecule(set, 'p'));
     expect([[...f.columns], [...f.cells]]).toEqual([
       [1, 2, 4],
-      [KindMask.of("hbond"), KindMask.of("hydrophobic", "hbond"), KindMask.of("salt_bridge")],
+      [KindMask.of('hbond'), KindMask.of('hydrophobic', 'hbond'), KindMask.of('salt_bridge')],
     ]);
-    expect(f.system).toEqual(molecule(set, "p"));
+    expect(f.system).toEqual(molecule(set, 'p'));
     expect(issues).toEqual([]);
   });
 
   it("a unit system keeps that one chain's contacts; the other chain's have no path: unmapped, warned once", () => {
     const { set, pairs, L } = chains();
-    const { f, issues } = build(set, pairs, L, unit(set, "P1"));
+    const { f, issues } = build(set, pairs, L, unit(set, 'P1'));
     expect([[...f.columns], [...f.cells]]).toEqual([
       [1, 2],
-      [KindMask.of("hbond"), KindMask.of("hydrophobic")],
+      [KindMask.of('hbond'), KindMask.of('hydrophobic')],
     ]);
-    expect(f.system).toEqual(unit(set, "P1"));
+    expect(f.system).toEqual(unit(set, 'P1'));
     expect(issues.map((i) => [i.code, i.severity, i.message])).toEqual([
-      ["interactions.fingerprint.unmapped", "warning", expect.stringContaining('left out: 2 of "P2"')],
+      ['interactions.fingerprint.unmapped', 'warning', expect.stringContaining('left out: 2 of "P2"')],
     ]);
   });
 
-  it("a residue with no path into the system: interactions.fingerprint.unmapped, left out", () => {
+  it('a residue with no path into the system: interactions.fingerprint.unmapped, left out', () => {
     const { set, c, L } = small();
     const issues: Issue[] = [];
-    const f = Fingerprints.build(set, [c], Int32Array.of(L), molecule(set, "q"), { issues });
+    const f = Fingerprints.build(set, [c], Int32Array.of(L), molecule(set, 'q'), { issues });
     expect([f.columns.length, f.cells.length]).toEqual([0, 0]);
-    expect(issues.map((i) => [i.code, i.severity])).toEqual([["interactions.fingerprint.unmapped", "warning"]]);
-    const own = Fingerprints.build(set, [c], Int32Array.of(L), molecule(set, "p"));
+    expect(issues.map((i) => [i.code, i.severity])).toEqual([['interactions.fingerprint.unmapped', 'warning']]);
+    const own = Fingerprints.build(set, [c], Int32Array.of(L), molecule(set, 'p'));
     expect([[...own.columns], [...own.cells]]).toEqual([
       [0, 1, 3],
-      [KindMask.of("hbond"), KindMask.of("hydrophobic", "other"), KindMask.of("other")],
+      [KindMask.of('hbond'), KindMask.of('hydrophobic', 'other'), KindMask.of('other')],
     ]);
   });
 });
@@ -294,51 +294,51 @@ async function load(doc: SeqViewSpecDoc, reg = withExtension()) {
   return { set, issues, reg };
 }
 
-describe("the provider over each kind of system", () => {
+describe('the provider over each kind of system', () => {
   it("a unit: `system` validates a unit ref, and the columns are the unit's positions", async () => {
     const { doc } = unitScene();
     expect(errors(validate(doc, withExtension()))).toEqual([]);
     const { set, issues } = await load(doc);
     expect(issues).toEqual([]);
-    const fp = annotation(set, "fp");
+    const fp = annotation(set, 'fp');
     const f = fingerprintOf(fp);
     expect([...(f?.columns ?? [])]).toEqual([3, 7, 12, 20]);
-    expect(f?.system).toEqual(unit(set, "P"));
-    expect([fp.geometry, fp.matrix?.states.length]).toEqual(["matrix", 4]);
+    expect(f?.system).toEqual(unit(set, 'P'));
+    expect([fp.geometry, fp.matrix?.states.length]).toEqual(['matrix', 4]);
   });
 
-  it("an alignment: contacts of two chains land in the columns their rows give", async () => {
+  it('an alignment: contacts of two chains land in the columns their rows give', async () => {
     const { doc } = alignmentScene();
     const { set } = await load(doc);
-    const f = fingerprintOf(annotation(set, "fp"));
+    const f = fingerprintOf(annotation(set, 'fp'));
     // P0's 3 and 10 are columns 3 and 10; P1's 10 and 15 are columns 11 and 16 (a gap at column 5 of its row).
     expect([...(f?.columns ?? [])]).toEqual([3, 10, 11, 16]);
-    const aln = id(set, "aln");
+    const aln = id(set, 'aln');
     expect(f?.system).toEqual({ kind: CoordinateSystemKind.columns, id: aln, row: -1 });
     const at = (row: number, column: number) => f?.cells[row * 4 + (f?.columns.indexOf(column) ?? -1)];
     expect([at(0, 3), at(1, 3), at(2, 3), at(0, 10), at(2, 11), at(2, 16)]).toEqual([
-      KindMask.of("hbond"),
-      KindMask.of("hbond"),
+      KindMask.of('hbond'),
+      KindMask.of('hbond'),
       0,
-      KindMask.of("hydrophobic"),
-      KindMask.of("hbond"),
-      KindMask.of("pi_stacking"),
+      KindMask.of('hydrophobic'),
+      KindMask.of('hbond'),
+      KindMask.of('pi_stacking'),
     ]);
   });
 
   it("a sequence reached through a mapping: the unit's contacts are the sequence's positions", async () => {
     const { doc } = mappingScene();
     const { set } = await load(doc);
-    expect([...(fingerprintOf(annotation(set, "fp"))?.columns ?? [])]).toEqual([8, 12, 20, 30]);
+    expect([...(fingerprintOf(annotation(set, 'fp'))?.columns ?? [])]).toEqual([8, 12, 20, 30]);
   });
 
-  it("a system that is no unit, sequence or alignment is reported at /params/options/system", async () => {
+  it('a system that is no unit, sequence or alignment is reported at /params/options/system', async () => {
     const doc = structuredClone(unitScene().doc);
-    const data = doc.root.children?.find((c) => c.kind === "data");
-    const node = data?.children?.find((c) => c.ref === "fp");
-    if (node?.params) node.params = { ...node.params, options: { ...(node.params.options as object), system: "nope" } };
+    const data = doc.root.children?.find((c) => c.kind === 'data');
+    const node = data?.children?.find((c) => c.ref === 'fp');
+    if (node?.params) node.params = { ...node.params, options: { ...(node.params.options as object), system: 'nope' } };
     const reg = withExtension();
-    expect(errors(validate(doc, reg)).map((i) => i.path)).toEqual([expect.stringContaining("system")]);
+    expect(errors(validate(doc, reg)).map((i) => i.path)).toEqual([expect.stringContaining('system')]);
   });
 });
 
@@ -348,26 +348,26 @@ describe("the provider over each kind of system", () => {
 const at = (auth: number) => auth - 1;
 const T315 = at(315);
 const M318 = at(318);
-const LIGANDS = ["1iep/C", "poses/0/ligand", "poses/1/ligand", "poses/2/ligand", "poses/3/ligand"];
+const LIGANDS = ['1iep/C', 'poses/0/ligand', 'poses/1/ligand', 'poses/2/ligand', 'poses/3/ligand'];
 
 const declared = (v: ResolvedView, set: SeqSet, type: string) =>
   Array.from(v.layers.declared).indexOf(set.strings.find(type));
 
-describe("case 6: the fingerprint of the crystal pose and four Vina poses", () => {
-  it("poses 3 and 4 lose the T315 and M318 hydrogen bonds", async () => {
+describe('case 6: the fingerprint of the crystal pose and four Vina poses', () => {
+  it('poses 3 and 4 lose the T315 and M318 hydrogen bonds', async () => {
     const { set, issues } = await load(case6());
-    expect(issues.filter((i) => i.code === "svs.provider.unavailable")).toEqual([]);
-    const fp = annotation(set, "fp");
+    expect(issues.filter((i) => i.code === 'svs.provider.unavailable')).toEqual([]);
+    const fp = annotation(set, 'fp');
     expect([fp.geometry, fp.matrix?.states.length, set.strings.get(fp.semanticType)]).toEqual([
-      "matrix",
+      'matrix',
       5,
-      "interactions:fingerprint",
+      'interactions:fingerprint',
     ]);
     const f = fingerprintOf(fp);
     expect(f && fp.custom.props.get(FingerprintProp)).toBe(f);
     if (!f) return;
     expect([...f.rows]).toEqual(LIGANDS.map((k) => id(set, k)));
-    expect(f.system).toEqual({ kind: CoordinateSystemKind.molecule, id: id(set, "abl1a"), row: -1 });
+    expect(f.system).toEqual({ kind: CoordinateSystemKind.molecule, id: id(set, 'abl1a'), row: -1 });
     const lostHbonds = (b: number) => {
       const out: number[] = [];
       Fingerprints.diff(f, 0, b, (col, lost) => KindMask.has(lost, Kind.hbond) && out.push(col), null);
@@ -387,13 +387,13 @@ describe("case 6: the fingerprint of the crystal pose and four Vina poses", () =
 
   it("the queries on the recorded contacts: T315's partners", async () => {
     const { set } = await load(case6());
-    const contacts = annotation(set, "contacts");
-    const A = id(set, "1iep/A") as UnitId;
+    const contacts = annotation(set, 'contacts');
+    const A = id(set, '1iep/A') as UnitId;
     const res: number[][] = [];
     Interactions.contactsOf(
       set,
       contacts,
-      id(set, "1iep/C") as UnitId,
+      id(set, '1iep/C') as UnitId,
       KindMask.all,
       (u, i, m) => {
         if (u === A && (i === 90 || i === 93)) res.push([i, m]);
@@ -401,8 +401,8 @@ describe("case 6: the fingerprint of the crystal pose and four Vina poses", () =
       null,
     );
     expect(res).toEqual([
-      [90, KindMask.of("hbond")],
-      [93, KindMask.of("hbond")],
+      [90, KindMask.of('hbond')],
+      [93, KindMask.of('hbond')],
     ]); // auth 315 and 318 are chain indices 90 and 93
     const atoms: string[] = [];
     Interactions.atomsContacting(
@@ -423,51 +423,51 @@ describe("case 6: the fingerprint of the crystal pose and four Vina poses", () =
     ]);
   });
 
-  it("a viewer without the type draws the fallback matrix of kind counts", async () => {
+  it('a viewer without the type draws the fallback matrix of kind counts', async () => {
     const { set, reg } = await load(case6());
     const all = supportedAll(reg);
-    const full = resolveView(case6(), set, "poses-view", reg, all);
+    const full = resolveView(case6(), set, 'poses-view', reg, all);
     expect(full.issues).toEqual([]);
-    const l = declared(full.view, set, "interactions:fingerprint");
-    expect(set.strings.get(full.view.layers.type[l])).toBe("interactions:fingerprint");
+    const l = declared(full.view, set, 'interactions:fingerprint');
+    expect(set.strings.get(full.view.layers.type[l])).toBe('interactions:fingerprint');
     expect(full.view.layers.placementCount[l]).toBeGreaterThan(0);
 
-    const without = new Set([...all].filter((n) => n !== "interactions:fingerprint"));
-    const r = resolveView(case6(), set, "poses-view", reg, without);
-    expect(codes(r.issues)).toEqual(["svs.render.fallback"]);
-    const k = declared(r.view, set, "interactions:fingerprint");
-    expect(set.strings.get(r.view.layers.type[k])).toBe("matrix");
+    const without = new Set([...all].filter((n) => n !== 'interactions:fingerprint'));
+    const r = resolveView(case6(), set, 'poses-view', reg, without);
+    expect(codes(r.issues)).toEqual(['svs.render.fallback']);
+    const k = declared(r.view, set, 'interactions:fingerprint');
+    expect(set.strings.get(r.view.layers.type[k])).toBe('matrix');
     expect(r.view.layers.placementCount[k]).toBe(full.view.layers.placementCount[l]);
     const data = r.view.data[r.view.layers.dataStart[k]];
-    expect(data).toBe(annotation(set, "fp").id);
+    expect(data).toBe(annotation(set, 'fp').id);
     // The recorded contacts give one kind per residue and pose: count 1, or missing (another pose's residue).
     expect([r.view.layers.domainMin[k], r.view.layers.domainMax[k]]).toEqual([1, 1]);
   });
 
-  it("without the registry entry: the computed node unavailable, nothing cascades", async () => {
+  it('without the registry entry: the computed node unavailable, nothing cascades', async () => {
     const reg = registries();
     expect(errors(validate(case6(), reg))).toEqual([]);
     const { set, issues } = await load(case6(), reg);
-    expect(issues.filter((i) => i.code === "svs.provider.unavailable").map((i) => i.message)).toEqual([
+    expect(issues.filter((i) => i.code === 'svs.provider.unavailable').map((i) => i.message)).toEqual([
       expect.stringContaining('"fp" is unavailable'),
     ]);
-    expect(set.byName("fp", t)).toBe(false);
-    expect(annotation(set, "pocket").count).toBeGreaterThan(0);
+    expect(set.byName('fp', t)).toBe(false);
+    expect(annotation(set, 'pocket').count).toBeGreaterThan(0);
     const all = supportedAll(reg);
-    const poses = resolveView(case6(), set, "poses-view", reg, all);
+    const poses = resolveView(case6(), set, 'poses-view', reg, all);
     expect(errors(poses.issues)).toEqual([]);
-    expect(poses.view.layers.placementCount[declared(poses.view, set, "interactions:fingerprint")]).toBe(0);
-    expect(resolveView(case6(), set, "chains", reg, all).issues).toEqual([]);
+    expect(poses.view.layers.placementCount[declared(poses.view, set, 'interactions:fingerprint')]).toBe(0);
+    expect(resolveView(case6(), set, 'chains', reg, all).issues).toEqual([]);
   });
 });
 
-describe("builder functions", () => {
+describe('builder functions', () => {
   it("fingerprint() writes case 6's computed node", () => {
     const doc = case6();
-    const data = doc.root.children?.find((c) => c.kind === "data");
-    const fp = data?.children?.find((c) => c.ref === "fp");
+    const data = doc.root.children?.find((c) => c.kind === 'data');
+    const fp = data?.children?.find((c) => c.ref === 'fp');
     const b = createSeqViewSpec();
-    fingerprint(b.data, { ref: "fp", pairs: ["contacts"], ligands: LIGANDS, system: "abl1a" });
+    fingerprint(b.data, { ref: 'fp', pairs: ['contacts'], ligands: LIGANDS, system: 'abl1a' });
     expect(b.getDocument().root.children?.[0].children?.[0]).toEqual(fp);
   });
 
@@ -476,7 +476,7 @@ describe("builder functions", () => {
     const glyphs: Record<string, string>[] = [];
     const walk = (n: { params?: Record<string, unknown>; children?: unknown[] }) => {
       const g = n.params?.glyph as { theme?: string; params?: { map?: Record<string, string> } } | undefined;
-      if (g?.theme === "field_map" && g.params?.map) glyphs.push(g.params.map);
+      if (g?.theme === 'field_map' && g.params?.map) glyphs.push(g.params.map);
       for (const c of n.children ?? []) walk(c as never);
     };
     walk(doc.root);
@@ -486,32 +486,32 @@ describe("builder functions", () => {
         expect([kind, shape]).toEqual([kind, KindStyle[kind as KindName][2]]);
   });
 
-  it("theme references whose fallbacks are kernel themes with the colors and glyphs written out", async () => {
+  it('theme references whose fallbacks are kernel themes with the colors and glyphs written out', async () => {
     const colors = interactionColors();
     const glyphs = interactionGlyphs();
-    expect(colors.fallback?.theme).toBe("field_palette");
+    expect(colors.fallback?.theme).toBe('field_palette');
     const palette = colors.fallback?.params?.palette as { colors: Record<string, string>; missing_color: string };
-    expect(palette.colors.hbond).toBe("#4e79a7");
+    expect(palette.colors.hbond).toBe('#4e79a7');
     // A row with no category is `other`: the palette's missing_color and the map's default are `other`'s.
     expect(palette.missing_color).toBe(palette.colors.other);
     const map = glyphs.fallback?.params?.map as Record<string, unknown>;
-    expect(map.hbond).toEqual({ shape: "diamond", label: "hydrogen bond" });
+    expect(map.hbond).toEqual({ shape: 'diamond', label: 'hydrogen bond' });
     expect(glyphs.fallback?.params?.default).toEqual(map.other);
     const doc = case6();
-    const layer = doc.root.children?.[1].children?.[0].children?.find((c) => c.ref === "chains.contacts")
+    const layer = doc.root.children?.[1].children?.[0].children?.find((c) => c.ref === 'chains.contacts')
       ?.children?.[0];
     if (layer?.params) Object.assign(layer.params, { color: colors, glyph: glyphs });
     for (const reg of [registries(), withExtension()]) expect(validate(doc, reg)).toEqual([]);
     const { set, reg } = await load(doc);
     const all = supportedAll(reg);
-    expect(resolveView(doc, set, "chains", reg, all).issues).toEqual([]);
-    const without = new Set([...all].filter((n) => n !== "interactions:kind"));
-    const r = resolveView(doc, set, "chains", reg, without);
-    expect(codes(r.issues)).toEqual(["svs.render.theme"]);
-    const l = declared(r.view, set, "pairs");
+    expect(resolveView(doc, set, 'chains', reg, all).issues).toEqual([]);
+    const without = new Set([...all].filter((n) => n !== 'interactions:kind'));
+    const r = resolveView(doc, set, 'chains', reg, without);
+    expect(codes(r.issues)).toEqual(['svs.render.theme']);
+    const l = declared(r.view, set, 'pairs');
     expect(r.view.layers.themes[l].map((x) => x?.theme)).toEqual([
-      "field_palette",
-      "field_map",
+      'field_palette',
+      'field_map',
       undefined,
       undefined,
       undefined,
@@ -523,28 +523,28 @@ describe("the layer type's channels", () => {
   it("`color` the kinds' and `counts` the kind counts' (Blues from 0), and no glyph", () => {
     const type = InteractionsRegistry.layerTypes?.[0];
     expect(type?.channels.map((c) => [c.name, c.kind])).toEqual([
-      ["color", "color"],
-      ["counts", "color"],
+      ['color', 'color'],
+      ['counts', 'color'],
     ]);
-    expect(type?.channels[0].default?.theme).toBe("interactions:kind");
+    expect(type?.channels[0].default?.theme).toBe('interactions:kind');
     expect(type?.channels[1].default).toMatchObject({
-      theme: "field_palette",
-      params: { palette: { kind: "continuous", colors: "Blues", value_domain: [0, null] } },
+      theme: 'field_palette',
+      params: { palette: { kind: 'continuous', colors: 'Blues', value_domain: [0, null] } },
     });
     // The provider declares no `defaultColor`: resolve would give it to the counts channel too (routed note).
     expect(InteractionsRegistry.providers?.[0].defaultColor).toBeUndefined();
   });
 });
 
-describe("dependencies", () => {
-  it("the kernel imports nothing from this package", () => {
+describe('dependencies', () => {
+  it('the kernel imports nothing from this package', () => {
     const files = (dir: URL): URL[] =>
       readdirSync(dir).flatMap((name) => {
         const url = new URL(name, dir);
-        return statSync(url).isDirectory() ? files(new URL(`${name}/`, dir)) : name.endsWith(".ts") ? [url] : [];
+        return statSync(url).isDirectory() ? files(new URL(`${name}/`, dir)) : name.endsWith('.ts') ? [url] : [];
       });
-    const kernel = ["model", "format"].flatMap((p) => files(new URL(`../../../core/src/${p}/`, import.meta.url)));
+    const kernel = ['model', 'format'].flatMap((p) => files(new URL(`../../../core/src/${p}/`, import.meta.url)));
     expect(kernel.length).toBeGreaterThan(20);
-    expect(kernel.filter((f) => readFileSync(f, "utf8").includes("@molstar/seq-viewer/interactions"))).toEqual([]);
+    expect(kernel.filter((f) => readFileSync(f, 'utf8').includes('@molstar/seq-viewer/interactions'))).toEqual([]);
   });
 });

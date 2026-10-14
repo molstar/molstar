@@ -10,19 +10,19 @@
 // the default UI on the stub surface, a pointer moving inside one residue's cell so that moves change only the
 // pointer, and a keyboard cursor whose viewport moves.
 
-import * as D from "../../src/dom/index.js";
-import { Inputs, PointerType } from "../../src/index.js";
-import "../../src/skin.css";
-import { at, openedContext, stubSurface, WIDTH, xOf } from "./fixtures.js";
+import * as D from '../../src/dom/index.js';
+import { Inputs, PointerType } from '../../src/index.js';
+import '../../src/skin.css';
+import { at, openedContext, stubSurface, WIDTH, xOf } from './fixtures.js';
 
 export async function tooltipFixture() {
   const { ctx } = await openedContext();
-  const host = document.createElement("div");
+  const host = document.createElement('div');
   host.style.width = `${WIDTH}px`;
   document.body.appendChild(host);
   const mounted = D.mountSeqViewer(host, ctx, { surface: stubSurface });
-  const S = "chains.main";
-  const y = at(ctx, S, "t.res").y;
+  const S = 'chains.main';
+  const y = at(ctx, S, 't.res').y;
   const p = Inputs.pointer();
   p.section = ctx.layout.sectionIndex(S);
   p.type = PointerType.move;
@@ -37,13 +37,13 @@ export async function tooltipFixture() {
   moveStep(0);
   let hovered = 0;
   ctx.hover.live.version.subscribe(() => hovered++);
-  const tip = host.querySelector(".seqv-tooltip") as HTMLElement;
-  if (!tip) throw new Error("no tooltip");
+  const tip = host.querySelector('.seqv-tooltip') as HTMLElement;
+  if (!tip) throw new Error('no tooltip');
   const cursorStep = () => {
     ctx.input.focus(p.section, true);
     // Keep the cursor's element fixed and bump the viewport's version instead: the tooltip is placed again from it.
     const vp = ctx.viewports.get(S);
-    return (i: number) => vp?.panBy((i & 1) === 0 ? 1 : -1, 0, "pointer");
+    return (i: number) => vp?.panBy((i & 1) === 0 ? 1 : -1, 0, 'pointer');
   };
   return {
     ctx,

@@ -10,13 +10,13 @@
 // context on a scheduler that never fires (the guard drives `renderNow` itself), a family of 12,000 rows with its tree,
 // data columns and sites, or 20,000 lazy rows with their tiles cached, and a step that scrolls and draws or hovers.
 
-import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { Loaders } from "@molstar/seq-core/format";
-import { tilesStream } from "@molstar/seq-core/stream/tiles";
-import { tileServer } from "@molstar/seq-core/stream/tiles/server";
-import { Inputs, PointerType } from "../../src/index.js";
-import { familyWithTree } from "../families.js";
-import { close, type Opened, opened } from "./open.js";
+import { createSeqViewSpec } from '@molstar/seq-core/builder';
+import type { Loaders } from '@molstar/seq-core/format';
+import { tilesStream } from '@molstar/seq-core/stream/tiles';
+import { tileServer } from '@molstar/seq-core/stream/tiles/server';
+import { Inputs, PointerType } from '../../src/index.js';
+import { familyWithTree } from '../families.js';
+import { close, type Opened, opened } from './open.js';
 
 /** The procedural tile server (the format's tests) as the viewer's progressive loader. */
 function lazy(uri: string, rows: number, columns: number): Loaders {
@@ -30,7 +30,7 @@ function lazy(uri: string, rows: number, columns: number): Loaders {
 const moves = [7, -7, 11, -11];
 const pan = (o: Opened, i: number) => {
   const k = i & 3;
-  o.ctx.viewports.get(o.section)?.panBy(k < 2 ? moves[k] : 0, k >= 2 ? moves[k] : 0, "pointer");
+  o.ctx.viewports.get(o.section)?.panBy(k < 2 ? moves[k] : 0, k >= 2 ? moves[k] : 0, 'pointer');
   o.surface.renderNow();
 };
 const redraw = (o: Opened) => {
@@ -48,26 +48,26 @@ export async function familyFrames(scale: number) {
     still: true,
   });
   const vp = o.ctx.viewports.get(o.section);
-  vp?.setView(scale === 1 ? 14 : 3, 0, "api");
+  vp?.setView(scale === 1 ? 14 : 3, 0, 'api');
   vp?.setRowScale(scale, 0);
-  vp?.scrollTo(0, 2000, "api");
+  vp?.scrollTo(0, 2000, 'api');
   redraw(o);
   return { step: (i: number) => pan(o, i), surface: o.surface, dispose: () => close(o) };
 }
 
 /** A pan and scroll frame over 20,000 lazy rows once their tiles are cached. */
 export async function lazyFrames() {
-  const uri = "https://example.org/lazy";
-  const b = createSeqViewSpec({ title: "lazy" });
+  const uri = 'https://example.org/lazy';
+  const b = createSeqViewSpec({ title: 'lazy' });
   const aln = b.data.alignment({
-    ref: "lazy",
+    ref: 'lazy',
     row_count: 20_000,
     column_count: 400,
-    source: { uri, protocol: "seqstar-tiles/1" },
+    source: { uri, protocol: 'seqstar-tiles/1' },
   } as never);
-  b.view({ ref: "v", label: "V", style: "msa", height: "box" })
+  b.view({ ref: 'v', label: 'V', style: 'msa', height: 'box' })
     .block({ alignment: aln })
-    .track({ label: "Rows" })
+    .track({ label: 'Rows' })
     .rows();
   const o = await opened(b.getDocument(), {
     width: 1000,
@@ -77,11 +77,11 @@ export async function lazyFrames() {
     loaders: lazy(uri, 20_000, 400),
   });
   const vp = o.ctx.viewports.get(o.section);
-  vp?.setView(4, 0, "api");
-  vp?.scrollTo(0, 3000, "api");
+  vp?.setView(4, 0, 'api');
+  vp?.scrollTo(0, 3000, 'api');
   for (let i = 0; i < 12; i++) {
     for (let d = 0; d < 4; d++) {
-      vp?.panBy(d < 2 ? moves[d] : 0, d >= 2 ? moves[d] : 0, "pointer");
+      vp?.panBy(d < 2 ? moves[d] : 0, d >= 2 ? moves[d] : 0, 'pointer');
       o.surface.renderNow();
     }
     await new Promise((r) => setTimeout(r, 0));
@@ -100,7 +100,7 @@ export async function treeHover() {
     labels: false,
   });
   const l = o.ctx.layout.get(o.section)?.current;
-  if (!l) throw new Error("no layout");
+  if (!l) throw new Error('no layout');
   const p = Inputs.pointer();
   p.section = 0;
   p.type = PointerType.move;
