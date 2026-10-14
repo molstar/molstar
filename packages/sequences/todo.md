@@ -117,6 +117,12 @@ shows the wild type's letter. Case 15 colors the cell under uncolored letters in
 
 ## Follow-ups
 
+**Ligands and other short units in the text view** (David, 2026-10-14, from Prism's sequence strip). In the wrapped
+(`compact`) text a structure's non-polymer units come after the chains with spacing that reads as unrelated: an empty
+block, then a label such as "B HEM CHA" far below the last line. Lay short units out as part of the text (the unit's
+name and its residue, close to the chains, the blocks' rhythm kept) and decide how many of them a strip shows. Trigger:
+Prism's sequence view beyond its first slice.
+
 **Dot plots, the rest** (2026-10-13). The keyboard cursor on a plot moves across only (no partner); a square plot taller
 than its box's room (a wide screen) is capped there (so it shows whole once scrolled to), its cells flatter than square;
 the axes are blocks only (an alignment's columns are not drawn on a plot); a pair's reversed end draws its segment
