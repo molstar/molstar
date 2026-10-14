@@ -77,7 +77,7 @@
         "**/*.stories.tsx",
         "**/.storybook/**",
         "vitest.config.ts",
-        "packages/sequences/*/vitest.*.config.ts",
+        "packages/sequences/**/vitest*.config.ts",
         "apps/docs/astro.config.ts"
       ],
       "linter": {
