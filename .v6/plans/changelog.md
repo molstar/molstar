@@ -53,15 +53,15 @@ the [API change ledger](breaking-v6-changes.md).
 
 - MVS selectors given as rows (`label_asym_id`, `auth_seq_id`, `beg_label_seq_id`, ...) are resolved through the indices
   of the model instead of running a MolScript query on every atom for every row: 1000 rows on a 720k-atom structure take
-  18 ms instead of 3.2 s. Used by `component` nodes, annotation components, inline tooltips and labels, color layers,
-  and primitive positions
+  about 25 ms instead of several seconds. Used by `component` nodes, annotation components, inline tooltips and labels,
+  color layers, and primitive positions
 - New `schema` variant of the MVS selector params and a new `mvs.mvs-structure-component-from-schema` transformer for
   `component` nodes with rows (`StructureComponent` with an `expression` is still used for static and MolQL selectors);
   `componentPropsFromSelector` returns a `Selector` and keeps rows as `schema`. Snapshots with the old expressions still
   load
 - `StructureElement.Schema.toLoci` / `toBundle` (and `Loci.fromSchema`, `Bundle.fromSchema`) have a `useIndex` option
-  which looks the items up in the indices of the models instead of querying every atom (1000 items on 720k atoms: 4.6 s
-  to 75 ms); it replaces the unused `queryContext` parameter. The interactions extension uses it
+  which looks the items up in the indices of the models instead of querying every atom (1000 items on 720k atoms:
+  several seconds to about 50 ms); it replaces the unused `queryContext` parameter. The interactions extension uses it
 - Rows are resolved the same way for components, annotations, tooltips, labels and primitives: a residue without
   `label_seq_id` (ligands, waters) no longer matches a `label_seq_id` range or `end_label_seq_id` as MolScript did (it
   read a missing value as 0), `atom_id` rows select every atom with that id, `operator_name` is supported in rows, and
@@ -69,11 +69,11 @@ the [API change ledger](breaking-v6-changes.md).
 - Components, layers and labels made from rows are named by what they select in a compact form (`A`, `A432`, `A:10-50`,
   `A, B, C`, `120 residues`) instead of a dump of the rows
 - Annotation rows use reusable typed-array buffers, a sort-free range union, and paint each element once (later rows
-  win, and the pass stops when every element has a row), so overlapping rows no longer cost the sum of their sizes:
-  20,000 rows allocate 30 MB instead of 650 MB, and 20,000 overlapping rows take 2 ms instead of 1.5 s
-- The row indices are shared by the frames of a trajectory (10 frames of 720k atoms, 100 rows: 777 ms to 102 ms), and
-  rows without chain criteria (`residue_index`, insertion code, `comp_id`) use whole-model lookups instead of a lookup
-  in every chain
+  win, and the pass stops when every element has a row), so overlapping rows no longer cost the sum of their sizes: the
+  union of 20,000 rows allocates 26 MB instead of 1.4 GB, and 20,000 overlapping rows take about 3 ms instead of 1.5 s
+- The row indices are shared by the frames of a trajectory (10 frames of 720k atoms, 100 rows: about 800 ms to 150 ms),
+  and rows without chain criteria (`residue_index`, insertion code, `comp_id`) use whole-model lookups instead of a
+  lookup in every chain
 
 ## Mol\* UI v-next, phase 1
 

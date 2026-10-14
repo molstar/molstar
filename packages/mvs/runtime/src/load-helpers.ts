@@ -428,7 +428,7 @@ export function componentPropsFromSelector(selector?: MolstarNodeParams<'compone
   }
 }
 
-/** Return a pretty name for a value of selector param, e.g.  "protein" -> 'Protein', {label_asym_id: "A"} -> 'Chain A',
+/** Return a pretty name for a value of selector param, e.g.  "protein" -> 'Protein', {label_asym_id: "A"} -> 'A',
  * a long list of rows -> '120 selections' (see `describeRows`) */
 export function prettyNameFromSelector(selector?: MolstarNodeParams<'component'>['selector']): string {
   if (selector === undefined) {

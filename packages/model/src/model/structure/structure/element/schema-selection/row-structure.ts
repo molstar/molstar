@@ -49,7 +49,7 @@ export class ElementRangesCache {
 /** Return the substructure of `structure` consisting of all elements which satisfy at least one of `rows`,
  * found through the indices of each model, so the cost does not grow with the number of atoms times the number of rows.
  *
- * It selects what `rowsToExpression(rows)` selects (the MolScript expression for the rows), except that
+ * It selects what `Schema.toExpression({ items: rows })` selects (the MolScript expression for the rows), except that
  * - a residue without `label_seq_id` never satisfies a `label_seq_id` criterion (MolScript reads it as 0),
  * - criteria which only exist for atoms select nothing on coarse elements (MolScript throws), and a range with `beg > end` selects nothing,
  * and when every element is selected, it returns `structure` itself. */

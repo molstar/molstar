@@ -162,15 +162,19 @@ describe('Schema.toLoci with and without the index', async () => {
     ).toBe(true);
   });
 
-  it('the indices are used only when asked for, and built once', () => {
+  it('the indices are used only when asked for, and built once', async () => {
+    const fresh = await createStructure(); // (a model nothing has indices for)
     const create = vi.spyOn(IndicesAndSortings, 'create');
     try {
-      viaQuery({ label_asym_id: 'A' });
-      Schema.toLoci(structure, { label_asym_id: 'A' }, { useIndex: false });
+      Schema.toLoci(fresh, { label_asym_id: 'A' });
+      Schema.toLoci(fresh, { label_asym_id: 'A' }, { useIndex: false });
+      Schema.toLoci(fresh, { label_asym_id: 'A' }, {});
       expect(create).not.toHaveBeenCalled(); // (the default is a query)
-      viaIndex({ label_asym_id: 'A' });
-      viaIndex({ label_asym_id: 'B' });
-      expect(create.mock.calls.length).toBeLessThanOrEqual(1); // (once for the model, or earlier by an earlier test)
+      Schema.toLoci(fresh, { label_asym_id: 'A' }, { useIndex: true });
+      expect(create).toHaveBeenCalledTimes(1);
+      Schema.toLoci(fresh, { label_asym_id: 'B' }, { useIndex: true });
+      Schema.toBundle(fresh, { label_asym_id: 'C' }, { useIndex: true });
+      expect(create).toHaveBeenCalledTimes(1);
     } finally {
       create.mockRestore();
     }

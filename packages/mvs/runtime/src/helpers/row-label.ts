@@ -23,26 +23,36 @@ interface Token {
 }
 
 function describeRange(beg: number | undefined | null, end: number | undefined | null): string | undefined {
-  if (isDefined(beg) && isDefined(end)) return beg === end ? `${beg}` : `${beg}-${end}`;
-  if (isDefined(beg)) return `${beg}-`;
-  if (isDefined(end)) return `-${end}`;
+  if (isDefined(beg) && isDefined(end)) {
+    if (beg === end) return `${beg}`;
+    return `${beg}${beg < 0 || end < 0 ? '..' : '-'}${end}`; // (a negative number would make `5--3` of the range 5 to -3)
+  }
+  if (isDefined(beg)) return `>=${beg}`;
+  if (isDefined(end)) return `<=${end}`;
   return undefined;
+}
+
+/** A value which can be an empty text is shown with quotes in that case (otherwise the name would be empty) */
+function show(value: string): string {
+  return value === '' ? '""' : value;
 }
 
 /** The pieces of the description of a row, in the order in which they are shown. */
 function tokensOfRow(row: MVSAnnotationRow): Token[] {
   const tokens: Token[] = [];
-  if (isDefined(row.label_entity_id)) tokens.push({ text: `Entity ${row.label_entity_id}` });
+  if (isDefined(row.label_entity_id)) tokens.push({ text: `Entity ${show(row.label_entity_id)}` });
 
   const chains: Token[] = [];
-  if (isDefined(row.label_asym_id)) chains.push({ text: row.label_asym_id, auth: false });
-  if (isDefined(row.auth_asym_id)) chains.push({ text: row.auth_asym_id, auth: true });
+  if (isDefined(row.label_asym_id)) chains.push({ text: show(row.label_asym_id), auth: false });
+  if (isDefined(row.auth_asym_id)) chains.push({ text: show(row.auth_asym_id), auth: true });
 
   // residues: `single` ones can be written right after the chain name (A432), ranges follow it after a colon (A:10-50)
   const residues: { token: Token; single: boolean }[] = [];
+  const otherTokens: Token[] = []; // (shown after the residues)
   if (isDefined(row.label_seq_id)) residues.push({ token: { text: `${row.label_seq_id}`, auth: false }, single: true });
   if (isDefined(row.auth_seq_id)) {
     residues.push({ token: { text: `${row.auth_seq_id}${row.pdbx_PDB_ins_code ?? ''}`, auth: true }, single: true });
+    if (row.pdbx_PDB_ins_code === '') otherTokens.push({ text: 'no ins code' });
   } else if (isDefined(row.pdbx_PDB_ins_code)) {
     const text = row.pdbx_PDB_ins_code === '' ? 'no ins code' : `ins ${row.pdbx_PDB_ins_code}`;
     residues.push({ token: { text }, single: false });
@@ -56,7 +66,11 @@ function tokensOfRow(row: MVSAnnotationRow): Token[] {
   if (chains.length === 1 && residues.length === 1 && chains[0].auth === residues[0].token.auth) {
     // the common cases: chain + residue (A432) and chain + range (A:10-50)
     const { token, single } = residues[0];
-    tokens.push({ text: `${chains[0].text}${single ? '' : ':'}${token.text}`, auth: token.auth });
+    // (a residue number follows the chain name, a range or a negative number is separated from it)
+    tokens.push({
+      text: `${chains[0].text}${single && !token.text.startsWith('-') ? '' : ':'}${token.text}`,
+      auth: token.auth,
+    });
   } else {
     tokens.push(...chains);
     for (const { token } of residues) {
@@ -67,12 +81,13 @@ function tokensOfRow(row: MVSAnnotationRow): Token[] {
     }
   }
 
-  if (isDefined(row.label_comp_id)) tokens.push({ text: row.label_comp_id, auth: false });
+  tokens.push(...otherTokens);
+  if (isDefined(row.label_comp_id)) tokens.push({ text: show(row.label_comp_id), auth: false });
   if (isDefined(row.auth_comp_id) && row.auth_comp_id !== row.label_comp_id) {
-    tokens.push({ text: row.auth_comp_id, auth: true });
+    tokens.push({ text: show(row.auth_comp_id), auth: true });
   }
-  if (isDefined(row.label_atom_id)) tokens.push({ text: row.label_atom_id, auth: false });
-  if (isDefined(row.auth_atom_id)) tokens.push({ text: row.auth_atom_id, auth: true });
+  if (isDefined(row.label_atom_id)) tokens.push({ text: show(row.label_atom_id), auth: false });
+  if (isDefined(row.auth_atom_id)) tokens.push({ text: show(row.auth_atom_id), auth: true });
   if (isDefined(row.type_symbol)) tokens.push({ text: `${row.type_symbol.toUpperCase()} atoms` });
   if (isDefined(row.atom_id)) tokens.push({ text: `atom ${row.atom_id}` });
   if (isDefined(row.atom_index)) tokens.push({ text: `atom index ${row.atom_index}` });

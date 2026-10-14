@@ -92,17 +92,13 @@ describe('rows selectors in a loaded MVS document', async () => {
   const schemaCells = cells.filter((c) => c.transform.transformer.id === 'mvs.mvs-structure-component-from-schema');
   const parentStructure = (cell: (typeof cells)[number]) =>
     plugin.state.data.cells.get(cell.transform.parent)!.obj!.data as Structure;
-  const referenceElements = (cell: (typeof cells)[number], rows: any[]) =>
-    StructureSelection.unionStructure(
-      StructureQueryHelper.createAndRun(parentStructure(cell), rowsToExpression(rows)).selection,
-    ).elementCount;
 
   it('loads without errors and creates one schema component per rows selector', () => {
     expect(cells.filter((c) => c.status === 'error').map((c) => c.errorText)).toEqual([]);
     expect(schemaCells.length).toBe(3);
     expect(schemaCells.map((c) => (c.transform.params as any).schema)).toEqual([rowsA, rowsB, [rowC]]);
     // the labels describe the rows instead of dumping them
-    expect(schemaCells.map((c) => c.obj!.label)).toEqual(['A:1-20 + A60 CA', 'REA', 'res -20']);
+    expect(schemaCells.map((c) => c.obj!.label)).toEqual(['A:1-20 + A60 CA', 'REA', 'res <=20']);
     // plugin's own `StructureComponent` is only used for static selectors, rows are not turned into expressions
     const standard = cells.filter((c) => c.transform.transformer.id === 'ms-plugin.structure-component');
     expect(standard.map((c) => (c.transform.params as any).type.name)).toEqual(['static', 'static']);
@@ -139,12 +135,7 @@ describe('rows selectors in a loaded MVS document', async () => {
       const { label_seq_id } = unit.model.atomicHierarchy.residues;
       for (let i = 0; i < unit.elements.length; i++) {
         const iRes = unit.residueIndex[unit.elements[i]];
-        if (
-          label_seq_id.valueKind(iRes) === Column.ValueKind.Present &&
-          label_seq_id.value(iRes) >= 1 &&
-          label_seq_id.value(iRes) <= 20
-        )
-          expected++;
+        if (label_seq_id.valueKind(iRes) === Column.ValueKind.Present && label_seq_id.value(iRes) <= 20) expected++;
       }
     }
     expect(expected).toBeGreaterThan(100);
@@ -152,13 +143,28 @@ describe('rows selectors in a loaded MVS document', async () => {
     expect(viaExpression(c, [rowC]).elementCount).toBeGreaterThan(expected); // (MolScript reads a missing label_seq_id as 0)
   });
 
-  it('the representations on schema components were built', () => {
+  it('every schema component has a representation, which was built', () => {
+    const descendantsOf = (ref: string): typeof cells => {
+      const result: typeof cells = [];
+      const queue = [ref];
+      while (queue.length) {
+        const parent = queue.pop()!;
+        for (const c of cells) {
+          if (c.transform.parent === parent) {
+            result.push(c);
+            queue.push(c.transform.ref);
+          }
+        }
+      }
+      return result;
+    };
     for (const c of schemaCells) {
-      const reprs = plugin.state.data.select(c.transform.ref).length; // the component itself resolves
-      expect(reprs).toBe(1);
+      const representations = descendantsOf(c.transform.ref).filter(
+        (d) => d.transform.transformer.id === 'ms-plugin.structure-representation-3d',
+      );
+      expect(representations.length).toBeGreaterThan(0);
+      expect(representations.map((r) => r.status)).toEqual(representations.map(() => 'ok'));
     }
-    const reprCells = cells.filter((c) => c.transform.transformer.id === 'ms-plugin.structure-representation-3d');
-    expect(reprCells.every((c) => c.status === 'ok')).toBe(true);
   });
 
   it('tooltips and color layers carry the rows as `schema` selectors', () => {

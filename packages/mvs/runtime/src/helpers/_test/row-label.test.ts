@@ -14,8 +14,24 @@ describe('describeRow', () => {
     expect(describeRow({ label_asym_id: 'A', label_seq_id: 432 })).toBe('A432');
     expect(describeRow({ label_asym_id: 'A', beg_label_seq_id: 10, end_label_seq_id: 50 })).toBe('A:10-50');
     expect(describeRow({ label_asym_id: 'A', beg_label_seq_id: 10, end_label_seq_id: 10 })).toBe('A:10');
-    expect(describeRow({ label_asym_id: 'A', beg_label_seq_id: 10 })).toBe('A:10-');
-    expect(describeRow({ label_asym_id: 'A', end_label_seq_id: 50 })).toBe('A:-50');
+    expect(describeRow({ label_asym_id: 'A', beg_label_seq_id: 10 })).toBe('A:>=10');
+    expect(describeRow({ label_asym_id: 'A', end_label_seq_id: 50 })).toBe('A:<=50');
+  });
+  it('keeps negative numbers and one-sided ranges apart', () => {
+    expect(describeRow({ end_label_seq_id: 20 })).toBe('res <=20');
+    expect(describeRow({ label_seq_id: -20 })).toBe('res -20');
+    expect(describeRow({ label_asym_id: 'A', label_seq_id: -5 })).toBe('A:-5');
+    expect(describeRow({ label_asym_id: 'A', beg_label_seq_id: -5, end_label_seq_id: 3 })).toBe('A:-5..3');
+    expect(describeRow({ label_asym_id: 'A', beg_label_seq_id: 3, end_label_seq_id: -5 })).toBe('A:3..-5');
+    expect(describeRow({ auth_asym_id: 'B', beg_auth_seq_id: -5, end_auth_seq_id: 3 })).toBe('B:-5..3 (auth)');
+    expect(describeRow({ beg_label_seq_id: 10 })).toBe('res >=10');
+  });
+  it('empty texts are shown, and an empty insertion code is told with the residue', () => {
+    expect(describeRow({ label_asym_id: '' })).toBe('""');
+    expect(describeRow({ label_asym_id: 'A', label_comp_id: '' })).toBe('A ""');
+    expect(describeRow({ auth_asym_id: 'A', auth_seq_id: 10, pdbx_PDB_ins_code: '' })).toBe('A10 no ins code (auth)');
+    expect(describeRow({ pdbx_PDB_ins_code: '' })).toBe('no ins code');
+    expect(describeRow({ auth_asym_id: 'A', auth_seq_id: 10, pdbx_PDB_ins_code: 'B' })).toBe('A10B (auth)');
   });
   it('marks criteria which use the auth numbering once, or per piece when label and auth are mixed', () => {
     expect(describeRow({ auth_asym_id: 'H' })).toBe('H (auth)');
