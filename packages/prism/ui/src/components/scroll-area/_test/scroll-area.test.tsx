@@ -9,6 +9,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from '../../../dom/render.js';
 import { ScrollArea } from '../scroll-area.js';
@@ -73,5 +75,30 @@ describe('ScrollArea', () => {
     vi.advanceTimersByTime(600);
     expect(root.hasAttribute('data-scrolling')).toBe(false);
     vi.useRealTimers();
+  });
+
+  it('is hidden at rest and shown by hover, scrolling, focus inside or a drag: opacity only, no layout', () => {
+    // The rules are CSS: the generated module holds them (a jsdom page has no hover to try).
+    const css = readFileSync(path.resolve(import.meta.dirname, '../_generated/scroll-area.module.css.ts'), 'utf8');
+    const bar = /\.msp-scroll-area-scrollbar \{[^}]*\}/.exec(css)?.[0] ?? '';
+    expect(bar).toContain('opacity: 0');
+    expect(bar).toContain('transition: opacity');
+    const shown = /([^{}]*)\{\s*opacity: 1;?\s*\}/.exec(css)?.[1] ?? '';
+    for (const state of [':hover', ':focus-within', '[data-scrolling]', '[data-dragging]'])
+      expect(shown).toContain(state);
+    // Showing it changes nothing but opacity: no display, width or position in the shown rule.
+    expect(/opacity: 1;?\s*\}/.test(css)).toBe(true);
+  });
+
+  it('marks the track while its thumb is dragged', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    render(() => <ScrollArea>x</ScrollArea>, container);
+    const root = container.firstElementChild as HTMLElement;
+    const track = root.querySelector('[data-orientation]') as HTMLElement;
+    // Nothing overflows in jsdom: a press does nothing (no drag, no mark).
+    track.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+    expect(track.hasAttribute('data-dragging')).toBe(false);
+    container.remove();
   });
 });

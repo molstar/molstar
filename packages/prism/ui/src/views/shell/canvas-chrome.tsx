@@ -92,7 +92,7 @@ export function CanvasToolbar(props: {
           <div
             class={classes.toolbar}
             role="toolbar"
-            aria-orientation="vertical"
+            aria-orientation={props.menus ? 'horizontal' : 'vertical'}
             aria-label={section.group ?? 'commands'}
           >
             {section.items.map((item) =>
@@ -124,7 +124,7 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       class={classes.tool}
       data-captioned={item.caption ? '' : undefined}
       data-tip={withMenu ? undefined : itemTitle(item)}
-      data-tip-side="left"
+      data-tip-side={item.place === 'canvas' ? 'top' : 'left'}
       aria-label={itemTitle(item)}
       aria-pressed={pressed}
       aria-haspopup={withMenu ? 'menu' : undefined}
@@ -158,7 +158,7 @@ export function CanvasStack(props: { shell: ShellModel; lead?: Child; aside?: Ch
   const stack = (
     <div class={classes.stack}>
       <div class={classes.frame}>
-        <ScrollArea contentClass={classes.stackTools}>
+        <ScrollArea axis="x" contentClass={classes.stackTools}>
           {props.lead}
           <CanvasToolbar shell={props.shell} part="canvas" menus={menus} />
         </ScrollArea>
@@ -177,15 +177,16 @@ export function CanvasStack(props: { shell: ShellModel; lead?: Child; aside?: Ch
  * the pointer leaves both the button and the menu (so it can travel between them), on a choice, or on Escape.
  */
 export class ToolMenus {
-  readonly open = observableState<{ item: CanvasToolbarItem; top: number } | undefined>(undefined);
+  readonly open = observableState<{ item: CanvasToolbarItem; right: number } | undefined>(undefined);
   stack: HTMLElement | undefined;
   #timer: ReturnType<typeof setTimeout> | undefined;
 
   show(item: CanvasToolbarItem, button: Element) {
     this.keep();
-    const top = this.stack ? button.getBoundingClientRect().top - this.stack.getBoundingClientRect().top : 0;
+    // The menu opens upward from the stack (a row in the canvas' corner), its right edge level with the button's.
+    const right = this.stack ? this.stack.getBoundingClientRect().right - button.getBoundingClientRect().right : 0;
     const current = this.open.value;
-    if (current?.item !== item || current.top !== top) this.open.set({ item, top });
+    if (current?.item !== item || current.right !== right) this.open.set({ item, right });
   }
 
   keep() {
@@ -222,7 +223,7 @@ function ToolMenu(props: { menus: ToolMenus }) {
       {(open) => (
         <div
           class={classes.toolMenu}
-          style={{ top: `${open.top}px` }}
+          style={{ right: `${open.right}px` }}
           role="menu"
           aria-label={open.item.title}
           onPointerEnter={() => menus.keep()}
@@ -231,27 +232,32 @@ function ToolMenu(props: { menus: ToolMenus }) {
           onFocusOut={() => menus.hideSoon()}
         >
           <div class={classes.toolMenuCard}>
-            {open.item.menu!.map((m) => (
-              <button
-                type="button"
-                role={m.pressed ? 'menuitemcheckbox' : 'menuitem'}
-                aria-checked={m.pressed}
-                class={classes.toolMenuRow}
-                disabled={!!m.disabled}
-                onClick={() => {
-                  menus.hide();
-                  m.run();
-                }}
-              >
-                {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
-                <span class={classes.toolMenuLabel}>
-                  {m.label}
-                  {m.disabled || m.hint ? <span class={classes.toolMenuHint}>{m.disabled ?? m.hint}</span> : null}
-                </span>
-                {m.pressed ? (
-                  <Show when={m.pressed}>{() => <Icon name="check" size={14} class={classes.toolMenuCheck} />}</Show>
+            {open.item.menu!.map((m, i, all) => (
+              <>
+                {i > 0 && m.group !== all[i - 1].group ? (
+                  <div class={classes.toolMenuDivider} role="separator" />
                 ) : null}
-              </button>
+                <button
+                  type="button"
+                  role={m.pressed ? 'menuitemcheckbox' : 'menuitem'}
+                  aria-checked={m.pressed}
+                  class={classes.toolMenuRow}
+                  disabled={!!m.disabled}
+                  onClick={() => {
+                    menus.hide();
+                    m.run();
+                  }}
+                >
+                  {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
+                  <span class={classes.toolMenuLabel}>
+                    {m.label}
+                    {m.disabled || m.hint ? <span class={classes.toolMenuHint}>{m.disabled ?? m.hint}</span> : null}
+                  </span>
+                  {m.pressed ? (
+                    <Show when={m.pressed}>{() => <Icon name="check" size={14} class={classes.toolMenuCheck} />}</Show>
+                  ) : null}
+                </button>
+              </>
             ))}
           </div>
         </div>

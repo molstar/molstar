@@ -52,7 +52,7 @@ defineStyles('views/shell/shell.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas {
-  inset: 0 var(--msp-canvas-pinned, 0px) 0 0;
+  inset: 0 var(--msp-canvas-end, var(--msp-canvas-pinned, 0px)) 0 0;
   position: absolute;
 }
 

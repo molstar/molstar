@@ -103,8 +103,10 @@
     justify-content: center;
   }
 
-  /* Shown while the area is hovered, scrolling, or the thumb is dragged; never when nothing overflows. */
+  /* Shown while the area is hovered, scrolling, has the keyboard focus inside (as hover is for a pointer), or the thumb
+     is dragged; never when nothing overflows. Only opacity changes: the bar keeps its place. */
   .root:hover > &,
+  .root:focus-within > &,
   .root[data-scrolling] > &,
   &[data-dragging] {
     opacity: 1;

@@ -35,6 +35,7 @@ export const classes = {
   'chip': 'msp-shell-canvas-chip',
   'compactStatus': 'msp-shell-canvas-compactStatus',
   'context': 'msp-shell-canvas-context',
+  'corner': 'msp-shell-canvas-corner',
   'face': 'msp-shell-canvas-face',
   'frame': 'msp-shell-canvas-frame',
   'lead': 'msp-shell-canvas-lead',
@@ -60,6 +61,7 @@ export const classes = {
   'toolMenu': 'msp-shell-canvas-toolMenu',
   'toolMenuCard': 'msp-shell-canvas-toolMenuCard',
   'toolMenuCheck': 'msp-shell-canvas-toolMenuCheck',
+  'toolMenuDivider': 'msp-shell-canvas-toolMenuDivider',
   'toolMenuHint': 'msp-shell-canvas-toolMenuHint',
   'toolMenuLabel': 'msp-shell-canvas-toolMenuLabel',
   'toolMenuRow': 'msp-shell-canvas-toolMenuRow',
@@ -115,7 +117,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-card {
   top: var(--msp-canvas-edge);
   right: var(--msp-canvas-panel-right, 64px);
-  bottom: var(--msp-canvas-edge);
+  bottom: calc(var(--msp-canvas-edge) + var(--msp-corner-room, 0px));
   z-index: var(--msp-z-overlay);
   width: min(var(--msp-right-panel-width, 340px), calc(100% - 96px));
   border-radius: var(--msp-radius-lg);
@@ -179,36 +181,45 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-stack {
   --msp-stack-row: 34px;
-  top: var(--msp-canvas-top-inset, var(--msp-canvas-edge));
-  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
-  position: absolute;
+  position: relative;
 }
 
-:where([data-mode="compact"]) .msp-shell-canvas-stack {
-  right: var(--msp-canvas-edge);
-  bottom: var(--msp-canvas-edge);
-  pointer-events: none;
-
-  & > * {
-    pointer-events: auto;
-  }
-
-  & .msp-shell-canvas-frame {
-    max-height: 100%;
-  }
-}
-
-.msp-shell-canvas-stack .msp-shell-canvas-frame {
-  width: 36px;
-}
-
-.msp-shell-canvas-stackTools {
-  flex-direction: column;
+.msp-shell-canvas-corner {
+  justify-self: end;
+  align-items: flex-end;
+  gap: var(--msp-space-3);
+  flex-flow: row-reverse wrap-reverse;
+  grid-area: corner;
+  max-width: 100%;
   display: flex;
 }
 
-.msp-shell-canvas-stack .msp-shell-canvas-tool {
+.msp-shell-canvas-stack .msp-shell-canvas-frame {
+  width: auto;
   height: var(--msp-stack-row);
+  flex-direction: row;
+  max-width: 100%;
+
+  & > * + *, & .msp-shell-canvas-stackTools > * + * {
+    border-top: 0;
+    border-left: 1px solid var(--msp-glass-edge);
+  }
+}
+
+.msp-shell-canvas-stackTools, .msp-shell-canvas-stack .msp-shell-canvas-sections, .msp-shell-canvas-stack .msp-shell-canvas-toolbar {
+  flex-direction: row;
+  display: flex;
+}
+
+.msp-shell-canvas-stack .msp-shell-canvas-sections > * + * {
+  border-top: 0;
+  border-left: 1px solid var(--msp-glass-edge);
+}
+
+.msp-shell-canvas-stack .msp-shell-canvas-tool {
+  width: var(--msp-stack-row);
+  height: var(--msp-stack-row);
+  flex: none;
 }
 
 .msp-shell-canvas-stack :is(.msp-shell-canvas-tool, button) > svg:first-child {
@@ -250,16 +261,16 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-toolMenu {
   z-index: var(--msp-z-overlay);
-  padding-right: var(--msp-space-3);
+  padding-bottom: var(--msp-space-3);
   animation: msp-shell-canvas-tool-menu-in var(--msp-motion-fast) var(--msp-ease);
   position: absolute;
-  right: 100%;
+  bottom: 100%;
 }
 
 @keyframes msp-shell-canvas-tool-menu-in {
   from {
     opacity: 0;
-    transform: translateX(4px);
+    transform: translateY(4px);
   }
 }
 
@@ -290,9 +301,24 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
     color: var(--msp-color-text);
   }
 
+  &[data-choice][aria-checked="true"] {
+    color: var(--msp-color-accent);
+    font-weight: 600;
+
+    & .msp-shell-canvas-toolMenuLabel {
+      color: inherit;
+    }
+  }
+
   &:disabled {
     opacity: .55;
   }
+}
+
+.msp-shell-canvas-toolMenuDivider {
+  height: 1px;
+  margin: var(--msp-space-2) var(--msp-space-3);
+  background: var(--msp-glass-edge);
 }
 
 .msp-shell-canvas-toolMenuLabel {
@@ -330,18 +356,22 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-bottom {
   left: var(--msp-canvas-edge);
-  right: var(--msp-canvas-right-inset, var(--msp-canvas-edge));
+  right: var(--msp-canvas-corner-inset, var(--msp-canvas-edge));
   bottom: var(--msp-canvas-edge);
   pointer-events: none;
   position: absolute;
   container: bottom-bar / inline-size;
 }
 
+:where([data-mode="compact"]) .msp-shell-canvas-bottom {
+  right: var(--msp-canvas-edge);
+}
+
 .msp-shell-canvas-bottomGrid {
   align-items: end;
   gap: var(--msp-space-3);
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "status context";
+  grid-template-areas: "status corner";
   display: grid;
 
   & > * {
@@ -349,20 +379,18 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   }
 }
 
-@container bottom-bar (width < 480px) {
+@container bottom-bar (width < 560px) {
   .msp-shell-canvas-bottomGrid {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "context"
+    grid-template-areas: "corner"
                          "status";
   }
 }
 
 .msp-shell-canvas-context {
   justify-content: flex-end;
-  justify-self: end;
   gap: var(--msp-space-2);
   flex-wrap: wrap;
-  grid-area: context;
   display: flex;
 }
 
@@ -379,7 +407,6 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   grid-area: status;
   align-self: end;
   align-items: flex-start;
-  padding-bottom: 5px;
   display: flex;
 
   & > * {

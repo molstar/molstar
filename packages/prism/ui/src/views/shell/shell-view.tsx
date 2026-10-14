@@ -14,7 +14,7 @@ import type { Child } from '../../dom/jsx-types.js';
 import { onCleanup } from '../../dom/scope.js';
 import type { CanvasInk } from '../../model/canvas-theme.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
-import type { ShellModel } from '../../shell/shell.js';
+import { BandDissolvePx, BandFadePx, type ShellModel } from '../../shell/shell.js';
 import type { StatusModel } from '../../shell/status.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/shell.module.css.js';
@@ -39,6 +39,8 @@ import { PageHost } from './page-host.js';
  */
 const RailWidth = 44;
 const Edge = 8;
+/** What a floating panel leaves clear at the bottom for the corner: the toolbar's row (34px) and the edge gap. */
+const CornerRoom = 34 + Edge;
 
 export interface ShellViewProps {
   shell: ShellModel;
@@ -98,9 +100,14 @@ export function ShellView(props: ShellViewProps) {
     map(([s, mode]) => s.floating && mode !== 'compact'),
     distinctUntilChanged(),
   );
-  // What floats at the top (the sequence card) takes this much: the snapshots and the canvas stack go below.
+  // A top tab with no frame is a band of the canvas area (the sequence), over the canvas' top: the canvas' own color
+  // behind its lines, fading out below them (BandFadePx); the canvas' chrome goes below the lines.
+  // What floats at the top (the sequence card, or the text of a band) takes this much: the snapshots and the canvas stack
+  // go below it (a band's faded bottom is not in the way).
   const topInset = combineLatest([top.state, top.active, floatingTop]).pipe(
-    map(([s, active, f]) => (f && active ? Edge + s.size + Edge : Edge)),
+    map(([s, tab, f]) =>
+      f && tab ? (tab.frame === 'none' ? s.size - BandFadePx + Edge : Edge + s.size + Edge) : Edge,
+    ),
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
@@ -114,11 +121,22 @@ export function ShellView(props: ShellViewProps) {
     map(([s, active, overlay, p]) => (p ? RailWidth + (active || overlay ? s.size : 0) : 0)),
     distinctUntilChanged(),
   );
+  // The canvas and the band end where the fixed part of the layout begins: a pinned panel and the rail, or the rail alone
+  // while the panel floats (it lies over both).
+  const canvasEnd = combineLatest([pinnedWidth, floating]).pipe(
+    map(([pinnedPx, f]) => (pinnedPx > 0 ? pinnedPx : f ? RailWidth : 0)),
+    distinctUntilChanged(),
+  );
   // What floats on the right takes this much of the canvas: the bottom bar keeps clear of it.
   const rightInset = combineLatest([right.state, right.active, floating, pinned]).pipe(
     // The docked rail is the canvas's right edge, and the open panel is too: what sits beside either keeps the frame
     // margin. Pinned, both are outside the canvas: only the margin is left.
     map(([s, active, f, p]) => (p ? Edge : RailWidth + Edge + (f && active ? s.size + Edge : 0))),
+    distinctUntilChanged(),
+    map((px) => `${px}px`),
+  );
+  const cornerInset = combineLatest([pinned, compact]).pipe(
+    map(([p, c]) => (p || c ? Edge : RailWidth + Edge)),
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
@@ -137,7 +155,16 @@ export function ShellView(props: ShellViewProps) {
         style={{
           '--msp-canvas-edge': `${Edge}px`,
           '--msp-canvas-right-inset': rightInset,
+          // Where the bottom-right corner (the toolbar and the selection) ends: it does not move with a floating panel,
+          // which stops above it (`--msp-corner-room`); pinned, the canvas itself ends at the panel.
+          '--msp-canvas-corner-inset': cornerInset,
+          '--msp-corner-room': `${CornerRoom}px`,
           '--msp-canvas-top-inset': topInset,
+          // Where the canvas and a band end, px from the right: the rail (and a pinned panel). Anchored to the viewport's
+          // right edge.
+          '--msp-canvas-end': canvasEnd.pipe(map((px) => `${px}px`)),
+          '--msp-band-fade': `${BandFadePx}px`,
+          '--msp-band-dissolve': `${BandDissolvePx}px`,
           // Clear of the rail only (what sits beside it whatever the panel does: the compact stack).
           '--msp-canvas-rail-inset': `${RailWidth + Edge}px`,
           '--msp-right-panel-width': rightPanelWidth,
@@ -163,17 +190,22 @@ export function ShellView(props: ShellViewProps) {
           {props.empty ? <EmptyCanvas empty={props.empty} /> : null}
           <div class={canvasClasses.lead}>{props.playback}</div>
           {props.overlays}
-          <Show when={compact.pipe(map((c) => !c))}>
-            {() => (
-              <div class={canvasClasses.bottom}>
-                <div class={canvasClasses.bottomGrid}>
-                  <StatusLine status={status} onOpenLog={props.onOpenLog} after={props.agent} />
-                  <ContextChips status={status} lead={props.context?.()} />
-                </div>
+          {/* The bottom of the canvas: the status on the left, and in the corner on the right the work in hand (the
+              selection) to the left of the canvas toolbar on its row. Compact: the status and the selection are docked under the
+              canvas; the toolbar stays in the corner. */}
+          <div class={canvasClasses.bottom}>
+            <div class={canvasClasses.bottomGrid}>
+              <Show when={compact.pipe(map((c) => !c))}>
+                {() => <StatusLine status={status} onOpenLog={props.onOpenLog} after={props.agent} />}
+              </Show>
+              <div class={canvasClasses.corner}>
+                <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} />
+                <Show when={compact.pipe(map((c) => !c))}>
+                  {() => <ContextChips status={status} lead={props.context?.()} />}
+                </Show>
               </div>
-            )}
-          </Show>
-          <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} />
+            </div>
+          </div>
         </div>
         {/* The application's own chrome over the canvas (the rail, the panel, the cards): the UI theme. */}
         <div

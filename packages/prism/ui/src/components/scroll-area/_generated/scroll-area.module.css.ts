@@ -105,7 +105,7 @@ defineStyles('components/scroll-area/scroll-area.module.css', `@layer msp.compon
     right: 2px;
   }
 
-  .msp-scroll-area-root:hover > &, .msp-scroll-area-root[data-scrolling] > &, &[data-dragging] {
+  .msp-scroll-area-root:hover > &, .msp-scroll-area-root:focus-within > &, .msp-scroll-area-root[data-scrolling] > &, &[data-dragging] {
     opacity: 1;
   }
 

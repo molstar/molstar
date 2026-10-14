@@ -23,10 +23,13 @@
   &[hidden] {
     display: none;
   }
-  background: var(--msp-glass-bg);
+
+  /* An (almost) opaque panel surface with the hairline edge, and no backdrop filter: a blur under a label that follows
+     the pointer would re-blur every frame over the canvas (styling.md §5), and over the structure the glass read as too
+     transparent. The panel color's 95% keeps the theme's tone, light and dark; the secondary line is the muted text on
+     it, as in the panels. */
+  background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
-  backdrop-filter: var(--msp-glass-filter);
-  -webkit-backdrop-filter: var(--msp-glass-filter);
 }
 
 .primary {

@@ -95,6 +95,7 @@ export function FloatingDock(props: {
     return (
       <div
         class={`${classes.floating} ${dock.id === 'top' ? classes.floatingTop : classes.floatingBottom}`}
+        classList={{ [classes.band]: dock.active.pipe(map((tab) => tab?.frame === 'none')) }}
         style={size}
       >
         <Show when={dock.active} reveal>

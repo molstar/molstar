@@ -11,6 +11,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'band': 'msp-shell-dock-band',
   'barTab': 'msp-shell-dock-barTab',
   'body': 'msp-shell-dock-body',
   'bodyContent': 'msp-shell-dock-bodyContent',
@@ -274,7 +275,7 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   }
 
   & .msp-shell-dock-content {
-    margin: var(--msp-canvas-edge) 0;
+    margin: var(--msp-canvas-edge) 0 calc(var(--msp-canvas-edge) + var(--msp-corner-room, 0px));
   }
 
   [data-overlay="open"] > & .msp-shell-dock-content {
@@ -327,6 +328,36 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
 .msp-shell-dock-floatingTop {
   bottom: auto;
+}
+
+.msp-shell-dock-floating:is(.msp-shell-dock-floatingRight, .msp-shell-dock-floatingLeft, .msp-shell-dock-floatingTop, .msp-shell-dock-floatingBottom) {
+  pointer-events: none;
+}
+
+.msp-shell-dock-floatingTop.msp-shell-dock-band, .msp-shell-dock-floatingBottom.msp-shell-dock-band {
+  left: 0;
+  right: calc(var(--msp-canvas-end, 0px) - var(--msp-canvas-pinned, 0px));
+  background: linear-gradient(to bottom,
+    var(--msp-color-bg) calc(100% - var(--msp-band-fade, 0px) - var(--msp-band-dissolve, 0px)),
+    color-mix(in srgb, var(--msp-color-bg) 60%, transparent) calc(100% - var(--msp-band-fade, 0px) * .6),
+    transparent);
+  pointer-events: none;
+
+  & .msp-shell-dock-content {
+    pointer-events: none;
+  }
+}
+
+.msp-shell-dock-floatingTop.msp-shell-dock-band {
+  top: 0;
+}
+
+.msp-shell-dock-floatingBottom.msp-shell-dock-band {
+  background: linear-gradient(to top,
+    var(--msp-color-bg) calc(100% - var(--msp-band-fade, 0px) - var(--msp-band-dissolve, 0px)),
+    color-mix(in srgb, var(--msp-color-bg) 60%, transparent) calc(100% - var(--msp-band-fade, 0px) * .6),
+    transparent);
+  bottom: 0;
 }
 
 .msp-shell-dock-floatingBottom {

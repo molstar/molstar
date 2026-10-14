@@ -35,9 +35,8 @@ defineStyles('views/canvas/hover-label.module.css', `@layer msp.components {
     display: none;
   }
 
-  background: var(--msp-glass-bg);
+  background: var(--msp-glass-panel-bg);
   box-shadow: var(--msp-glass-shadow);
-  -webkit-backdrop-filter: var(--msp-glass-filter);
 }
 
 .msp-canvas-hover-label-primary {

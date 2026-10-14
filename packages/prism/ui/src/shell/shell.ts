@@ -114,6 +114,14 @@ export interface ShellOptions {
   buttons?: Readonly<Record<string, boolean>>;
 }
 
+/**
+ * Px a band tab's backdrop (the canvas' own color behind the sequence) fades out over below its content, so the
+ * structure passes under it faded, with no hard cut. The band's view keeps this much clear at its bottom.
+ */
+export const BandFadePx = 28;
+/** Px of the band's last lines over which its backdrop already starts to fade (the dissolve begins within the band). */
+export const BandDissolvePx = 36;
+
 const DefaultSizes: Record<DockId, number> = { left: 300, right: 340, top: 88, bottom: 220 };
 // Side docks are resized by their splitter; a top or bottom dock is sized by its view (the sequence follows its content).
 const MinSizes: Record<DockId, number> = { left: 180, right: 180, top: 40, bottom: 40 };
@@ -180,8 +188,15 @@ export interface CanvasMenuItem {
   icon?: IconName;
   /** A short explanation, shown under the label. */
   hint?: string;
-  /** A toggle's state: shown with a check mark. */
+  /** A toggle's (or a single choice's) state: shown with a check mark. */
   pressed?: Observable<boolean>;
+  /**
+   * One of a single choice (a group of items of which one is current): `pressed` marks the current one as the picking
+   * levels' list marks its own, in the accent (icon and label), with no trailing check.
+   */
+  choice?: boolean;
+  /** Items of one group sit together; a hairline separates a group from the one before it. */
+  group?: string;
   /** Why it cannot be used here (shown greyed, the reason in place of the hint): fullscreen in an iframe that forbids it. */
   disabled?: string;
   run(): void;

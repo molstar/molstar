@@ -258,8 +258,9 @@
     box-shadow: -1px 0 0 var(--msp-glass-edge);
   }
 
+  /* The floating panel stops above the corner (the toolbar), which does not move for it. */
   & .content {
-    margin: var(--msp-canvas-edge) 0;
+    margin: var(--msp-canvas-edge) 0 calc(var(--msp-canvas-edge) + var(--msp-corner-room, 0px));
   }
 
   /* An overlay card open in the panel's place: the panel steps aside (no doubled glass or edges underneath). */
@@ -319,6 +320,48 @@
 
 .floatingTop {
   bottom: auto;
+}
+
+/* A floating dock's box spans its side, but only what is drawn in it takes the pointer (the application layer gives its
+   children the pointer: a full-height box, with the panel stopping short of the toolbar, would cover it). */
+.floating:is(.floatingRight, .floatingLeft, .floatingTop, .floatingBottom) {
+  pointer-events: none;
+}
+
+/* A tab with no frame is a band over the canvas' top (the sequence): the canvas' own color behind its lines, fading out
+   over `--msp-band-fade` below them and `--msp-band-dissolve` before (a gradient, no filter), so the structure passes under it faded. It spans the
+   canvas area: to the left edge, and to where the canvas ends (the rail, or a pinned panel; the canvas layer it is in
+   ends at a pinned panel already, so the rail's width is what is left). A floating panel lies over it as over the
+   canvas. Only the lines take the pointer, not the fade. */
+.floatingTop.band,
+.floatingBottom.band {
+  left: 0;
+  right: calc(var(--msp-canvas-end, 0px) - var(--msp-canvas-pinned, 0px));
+  background: linear-gradient(
+    to bottom,
+    var(--msp-color-bg) calc(100% - var(--msp-band-fade, 0px) - var(--msp-band-dissolve, 0px)),
+    color-mix(in srgb, var(--msp-color-bg) 60%, transparent) calc(100% - var(--msp-band-fade, 0px) * 0.6),
+    transparent
+  );
+  pointer-events: none;
+
+  & .content {
+    pointer-events: none;
+  }
+}
+
+.floatingTop.band {
+  top: 0;
+}
+
+.floatingBottom.band {
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    var(--msp-color-bg) calc(100% - var(--msp-band-fade, 0px) - var(--msp-band-dissolve, 0px)),
+    color-mix(in srgb, var(--msp-color-bg) 60%, transparent) calc(100% - var(--msp-band-fade, 0px) * 0.6),
+    transparent
+  );
 }
 
 .floatingBottom {

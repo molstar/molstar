@@ -139,6 +139,8 @@ export interface ShellStoryProps {
   openCard?: string;
   /** Shows a tab (Help, Settings, …). */
   openTab?: string;
+  /** Starts with no panel open: the rail and the canvas tools only (a tab opens as usual when its rail button is clicked). */
+  noPanel?: boolean;
   /** The right panel pinned beside the canvas. */
   pinned?: boolean;
   /** Opens with the command menu open. */
@@ -162,7 +164,7 @@ export interface MockApp {
  */
 export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: MockApp }) {
   const { mode, app } = props;
-  const shell = new ShellModel({ docks: { right: { pinned: !!props.pinned } } });
+  const shell = new ShellModel({ docks: { right: { pinned: !!props.pinned, collapsed: !!props.noPanel } } });
   const status = new StatusModel();
   const commandMenuOpen = observableState(false);
   // The group the command menu opens in (Preset, Styles); none for ⌘K.

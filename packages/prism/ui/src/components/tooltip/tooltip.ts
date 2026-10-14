@@ -30,6 +30,9 @@ export function installTooltips(root: HTMLElement): () => void {
 
   let target: HTMLElement | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  // While one is shown: the anchor's size. A view closing or hiding takes its anchor out without a pointerout, and the
+  // tip would stay; an anchor that is gone or has no size ends it (no listener per event, one observer on one element).
+  const watch = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(() => !usable(target) && hide());
 
   const place = (el: HTMLElement) => {
     const row = el.dataset.tipRow !== undefined;
@@ -43,9 +46,11 @@ export function installTooltips(root: HTMLElement): () => void {
     const gap = 8;
     let x: number;
     let y: number;
+    let panel: DOMRect | undefined;
     if (side === 'beside') {
       // Outside the panel the row is in (its tab panel), clear of its edge; on its left, or its right without room.
       const edge = el.closest('[data-tip-edge], [role="tabpanel"]')?.getBoundingClientRect() ?? r;
+      panel = edge;
       const clear = 8;
       x = edge.left - clear - t.width;
       if (x < 4) x = edge.right + clear;
@@ -62,6 +67,9 @@ export function installTooltips(root: HTMLElement): () => void {
     }
     x = Math.max(4, Math.min(x, window.innerWidth - t.width - 4));
     y = Math.max(4, Math.min(y, window.innerHeight - t.height - 4));
+    // A card beside its panel never lies over it: with no room outside either edge there is no card (it would cover the
+    // next rows).
+    if (panel && x < panel.right && x + t.width > panel.left && panel !== r) return hide();
     tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
     tip.dataset.side = side;
   };
@@ -69,6 +77,7 @@ export function installTooltips(root: HTMLElement): () => void {
   const hide = () => {
     if (timer !== undefined) clearTimeout(timer);
     timer = undefined;
+    watch?.disconnect();
     target = undefined;
     tip.hidden = true;
   };
@@ -83,8 +92,16 @@ export function installTooltips(root: HTMLElement): () => void {
       return;
     }
     target = el;
-    if (immediate) place(el);
-    else timer = setTimeout(() => target === el && place(el), ShowDelayMs);
+    const showNow = () => {
+      // The anchor may have gone while the pointer rested (a panel closed): no tip for what is not there.
+      if (target !== el || !usable(el)) return hide();
+      place(el);
+      if (tip.hidden) return;
+      watch?.disconnect();
+      watch?.observe(el);
+    };
+    if (immediate) showNow();
+    else timer = setTimeout(showNow, ShowDelayMs);
   };
 
   const tipOf = (e: Event) => {
@@ -96,6 +113,8 @@ export function installTooltips(root: HTMLElement): () => void {
   };
 
   const onOver = (e: PointerEvent) => {
+    // A pointer event anywhere: a tip whose anchor was removed ends now (a connected check, nothing more).
+    if (target && !target.isConnected) hide();
     const el = tipOf(e);
     if (!el || el === target) return;
     show(el, !tip.hidden);
@@ -109,7 +128,11 @@ export function installTooltips(root: HTMLElement): () => void {
     if (el?.matches(':focus-visible')) show(el, true);
   };
 
+  const onMove = () => {
+    if (target && !target.isConnected) hide();
+  };
   root.addEventListener('pointerover', onOver);
+  root.addEventListener('pointermove', onMove, { passive: true });
   root.addEventListener('pointerout', onOut);
   root.addEventListener('focusin', onFocus);
   root.addEventListener('focusout', hide);
@@ -119,7 +142,9 @@ export function installTooltips(root: HTMLElement): () => void {
   return () => {
     hide();
     tip.remove();
+    watch?.disconnect();
     root.removeEventListener('pointerover', onOver);
+    root.removeEventListener('pointermove', onMove);
     root.removeEventListener('pointerout', onOut);
     root.removeEventListener('focusin', onFocus);
     root.removeEventListener('focusout', hide);
@@ -127,6 +152,11 @@ export function installTooltips(root: HTMLElement): () => void {
     window.removeEventListener('keydown', hide);
     window.removeEventListener('scroll', hide, true);
   };
+}
+
+/** Whether the anchor can still carry a tip: in the document, and rendered (not under a `display: none` or `hidden`). */
+function usable(el: HTMLElement | undefined): el is HTMLElement {
+  return !!el && el.isConnected && (el.checkVisibility?.() ?? true);
 }
 
 /** Cut off by more than rounding (scrollWidth rounds a fractional width up, clientWidth down: text that fits can read

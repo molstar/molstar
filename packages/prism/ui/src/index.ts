@@ -39,6 +39,7 @@ export { ActionFooter, type ActionFooterProps } from './components/action-footer
 export { Button, type ButtonProps } from './components/button/button.js';
 export { type Choice, Choices } from './components/choices/choices.js';
 export { ColorPicker, type ColorPickerProps } from './components/color/color-picker.js';
+export { type ContextMenuItem, openContextMenu } from './components/context-menu/context-menu.js';
 export { Legend, type LegendItem, type LegendProps, type LegendRamp } from './components/legend/legend.js';
 export { Icon, type IconName, type IconProps } from './components/icon/icon.js';
 export { MolstarWordmark } from './components/icon/wordmark.js';
