@@ -275,6 +275,14 @@ export function combinedCategories({ nChains, nResidues }: Dims, nAtoms: number,
     }),
     cat('residue_index only, missing', (r) => ({ residue_index: nChains * nResidues + randInt(r, 50) })),
     cat('ins_code+label_comp (no chain, no seq)', (r) => ({ pdbx_PDB_ins_code: 'A', label_comp_id: comp(r) })),
+    cat('no insertion code (empty ins code)', (r) => {
+      const s = seq(r);
+      const pick = r();
+      if (pick < 0.25) return { pdbx_PDB_ins_code: '' };
+      if (pick < 0.5) return { auth_asym_id: authChain(r), pdbx_PDB_ins_code: '' };
+      if (pick < 0.75) return { auth_asym_id: authChain(r), auth_seq_id: s + 10, pdbx_PDB_ins_code: '' };
+      return { label_asym_id: chain(r), label_comp_id: comp(r), pdbx_PDB_ins_code: '' };
+    }),
     cat('label_comp+auth_comp (no chain)', (r) => ({ label_comp_id: comp(r), auth_comp_id: authComp(r) })),
     cat('auth_comp only (no chain)', (r) => ({ auth_comp_id: authComp(r) })),
     cat('comp+seq (no chain)', (r) => ({ label_comp_id: comp(r), label_seq_id: seq(r) })),

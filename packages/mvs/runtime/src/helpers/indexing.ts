@@ -358,7 +358,9 @@ export const Sorting = {
   },
 
   /** Set `out.from`, `out.to` so that `keys.slice(out.from, out.to)` are the keys which have value within interval `[min, max]`
-   * (inclusive; undefined `min` is negative infinity, undefined `max` is positive infinity). Does not allocate. */
+   * (inclusive; undefined `min` is negative infinity, undefined `max` is positive infinity). Does not allocate.
+   * Bounds are compared as numbers (a numeric string works as its number, anything else selects nothing),
+   * and need not be integers. */
   findIndexRange<K, V extends number>(
     sorting: Sorting<K, V>,
     min: V | undefined,
@@ -366,17 +368,24 @@ export const Sorting = {
     out: { from: number; to: number },
   ) {
     const { keys, values } = sorting;
-    if (!keys) {
+    const lo = min !== undefined ? Number(min) : -Infinity;
+    const hi = max !== undefined ? Number(max) : Infinity;
+    if (!keys || Number.isNaN(lo) || Number.isNaN(hi)) {
       out.from = 0;
       out.to = 0;
       return out;
     }
-    const n = keys.length;
-    const from = min !== undefined ? SortedArray.findPredecessorIndex(values, min) : 0;
-    // values are integers, so `<= max` is `< max + 1` (binary search instead of a linear scan)
-    const to = max !== undefined ? Math.max(from, SortedArray.findPredecessorIndex(values, (max + 1) as V)) : n;
+    const from = min !== undefined ? SortedArray.findPredecessorIndex(values, lo as V) : 0;
+    // first index with a value greater than `hi`
+    let a = from;
+    let b = values.length;
+    while (a < b) {
+      const mid = (a + b) >> 1;
+      if (values[mid] <= hi) a = mid + 1;
+      else b = mid;
+    }
     out.from = from;
-    out.to = to;
+    out.to = a;
     return out;
   },
 

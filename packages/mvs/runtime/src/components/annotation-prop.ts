@@ -426,13 +426,34 @@ function getRowsFromJson(
   const js = data as any;
   const cifSchema = getCifAnnotationSchema(schema);
   const cifSchemaKeys = Object.keys(cifSchema);
+  let rows: MVSAnnotationRow[];
   if (Array.isArray(js)) {
     // array of objects
-    return js.map((row) => pickObjectKeysWithRemapping(row, cifSchemaKeys, fieldRemapping));
+    rows = js.map((row) => pickObjectKeysWithRemapping(row, cifSchemaKeys, fieldRemapping));
   } else {
     // object of arrays
     const selectedFields: Record<string, any[]> = pickObjectKeysWithRemapping(js, cifSchemaKeys, fieldRemapping);
-    return objectOfArraysToArrayOfObjects(selectedFields);
+    rows = objectOfArraysToArrayOfObjects(selectedFields);
+  }
+  const intKeys = cifSchemaKeys.filter(
+    (key) => (cifSchema as Record<string, Column.Schema.Int | Column.Schema.Str>)[key].valueType === 'int',
+  );
+  const strKeys = cifSchemaKeys.filter((key) => !intKeys.includes(key));
+  for (const row of rows) coerceJsonRowTypes(row as Record<string, unknown>, intKeys, strKeys);
+  return rows;
+}
+
+/** JSON data is not type-checked, so a number may arrive as a string (`"10"`) and an identifier as a number (`1`).
+ * Convert them to the type of the field, so that rows select what their author means (numbers are matched as numbers,
+ * a non-numeric string for a number field is left as it is and selects nothing). */
+function coerceJsonRowTypes(row: Record<string, unknown>, intKeys: string[], strKeys: string[]) {
+  for (const key of intKeys) {
+    const value = row[key];
+    if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) row[key] = Number(value);
+  }
+  for (const key of strKeys) {
+    const value = row[key];
+    if (typeof value === 'number') row[key] = `${value}`;
   }
 }
 

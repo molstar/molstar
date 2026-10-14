@@ -256,6 +256,9 @@ function getQualifyingResidues(
   const hasAuthSeq = isDefined(row.auth_seq_id);
   const hasResIdx = isDefined(row.residue_index);
   const hasIns = isDefined(row.pdbx_PDB_ins_code);
+  // An empty insertion code means "no insertion code" (as in MolScript, where it is what residues without one have). It is a
+  // check on candidates and never a lookup: the indices only list residues which have an insertion code.
+  const hasInsLookup = hasIns && row.pdbx_PDB_ins_code !== '';
   const hasBegLabel = isDefined(row.beg_label_seq_id);
   const hasEndLabel = isDefined(row.end_label_seq_id);
   const hasBegAuth = isDefined(row.beg_auth_seq_id);
@@ -273,7 +276,7 @@ function getQualifyingResidues(
       ? ResidueSource.AuthSeqId
       : hasResIdx
         ? ResidueSource.ResidueIndex
-        : hasIns
+        : hasInsLookup
           ? ResidueSource.InsCode
           : hasLabelRange
             ? ResidueSource.LabelSeqIdRange
@@ -298,7 +301,7 @@ function getQualifyingResidues(
       SingleResidue[0] = iRes as ResidueIndex;
       globalKeys = iRes === undefined ? EmptyArray : SingleResidue;
       covered = ResidueSource.ResidueIndex;
-    } else if (hasIns && !bySeq) {
+    } else if (hasInsLookup && !bySeq) {
       globalKeys = global.residuesByInsCode.get(row.pdbx_PDB_ins_code!) ?? EmptyArray;
       covered = ResidueSource.InsCode;
     } else if (hasLabelComp && !bySeq) {

@@ -44,7 +44,8 @@ function tokensOfRow(row: MVSAnnotationRow): Token[] {
   if (isDefined(row.auth_seq_id)) {
     residues.push({ token: { text: `${row.auth_seq_id}${row.pdbx_PDB_ins_code ?? ''}`, auth: true }, single: true });
   } else if (isDefined(row.pdbx_PDB_ins_code)) {
-    residues.push({ token: { text: `ins ${row.pdbx_PDB_ins_code}` }, single: false });
+    const text = row.pdbx_PDB_ins_code === '' ? 'no ins code' : `ins ${row.pdbx_PDB_ins_code}`;
+    residues.push({ token: { text }, single: false });
   }
   const labelRange = describeRange(row.beg_label_seq_id, row.end_label_seq_id);
   if (labelRange) residues.push({ token: { text: labelRange, auth: false }, single: false });

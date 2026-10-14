@@ -127,12 +127,17 @@ describe('IntBuffer', () => {
 
 describe('Sorting.findIndexRange', () => {
   const keys = [10, 11, 12, 13, 14, 15];
-  const values = SortedArray.ofSortedArray([1, 3, 3, 5, 7, 7]);
+  const valueList = [1, 3, 3, 5, 7, 7];
+  const values = SortedArray.ofSortedArray(valueList);
   const sorting = { keys, values } as Sorting<number, number>;
-  const find = (min?: number, max?: number) => {
+  const find = (min?: any, max?: any) => {
     const r = Sorting.findIndexRange(sorting, min, max, { from: 0, to: 0 });
     return keys.slice(r.from, r.to);
   };
+  /** The definition: keys whose value is in `[min, max]` (undefined = unbounded) */
+  const bruteForce = (min?: number, max?: number) =>
+    keys.filter((_, i) => (min === undefined || valueList[i] >= min) && (max === undefined || valueList[i] <= max));
+
   it('finds closed intervals, open ends, empty and inverted intervals', () => {
     expect(find(3, 3)).toEqual([11, 12]);
     expect(find(2, 6)).toEqual([11, 12, 13]);
@@ -143,7 +148,29 @@ describe('Sorting.findIndexRange', () => {
     expect(find(7, 3)).toEqual([]);
     expect(find(100, 200)).toEqual([]);
   });
-  it('agrees with getKeysWithValueInRange', () => {
-    expect(Sorting.getKeysWithValueInRange(sorting, 3, 5)).toEqual(find(3, 5));
+  it('agrees with the definition for every pair of bounds, integer or not', () => {
+    const bounds = [undefined, -1, 0, 0.5, 1, 2, 2.5, 3, 4, 5, 6.99, 7, 7.01, 8, 100];
+    for (const min of bounds) for (const max of bounds) expect(find(min, max)).toEqual(bruteForce(min, max));
+  });
+  it('compares bounds as numbers: numeric strings work as their numbers, other strings select nothing', () => {
+    expect(find('3', '3')).toEqual([11, 12]);
+    expect(find('5', undefined)).toEqual([13, 14, 15]);
+    expect(find(undefined, '5')).toEqual([10, 11, 12, 13]);
+    expect(find('2', '6')).toEqual([11, 12, 13]); // (`'6' + 1` would be '61')
+    expect(find('x', 5)).toEqual([]);
+    expect(find(1, NaN)).toEqual([]);
+  });
+  it('getKeysWithValueInRange gives the keys of the same range as a new array', () => {
+    for (const [min, max] of [
+      [3, 5],
+      [undefined, 3],
+      [5, undefined],
+      [4, 4],
+      [7, 3],
+    ] as const) {
+      const result = Sorting.getKeysWithValueInRange(sorting, min, max);
+      expect(result).toEqual(bruteForce(min, max));
+      expect(result).not.toBe(keys); // (newly allocated)
+    }
   });
 });
