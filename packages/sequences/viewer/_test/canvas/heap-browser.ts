@@ -95,7 +95,7 @@ export const leaking = (step: (i: number) => void, n?: number) => {
 };
 
 /**
- * The guard template's control (lib/seqstar/AGENTS.md, Tests), as the Node guards' `controlCaught`: `measure` runs
+ * The guard template's control (packages/sequences/AGENTS.md, Tests), as the Node guards' `controlCaught`: `measure` runs
  * `leaking(step)` through the file's own warm-up and measurement. Caught when not flat (or a number of `limit` or more,
  * for a guard judged by its own measure: what a retention guard finds still reachable), or when the measurement threw
  * because the heap fell during a run (a page cannot see a scavenge: a collection the leak caused counts as detection).

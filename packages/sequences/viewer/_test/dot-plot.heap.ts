@@ -32,7 +32,7 @@ const N = 1_000;
 const measure = (frame: (i: number) => void) => {
   const t0 = performance.now();
   for (let i = 0; i < FRAME_WARM || performance.now() - t0 < FRAME_WARM_MS; i++) frame(i);
-  // Settled after the timed warm-up, as every timed warm-up is (lib/seqstar/AGENTS.md, Tests; LC-20).
+  // Settled after the timed warm-up, as every timed warm-up is (packages/sequences/AGENTS.md, Tests; LC-20).
   let settled = 0;
   settleFrame(() => frame(settled++), FRAME_SETTLE_MS);
   return heapScaling(N, frame);

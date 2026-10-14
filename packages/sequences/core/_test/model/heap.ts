@@ -121,7 +121,7 @@ export const leaking =
 const COLLECTED = /GC\(s\) ran during the measured run/;
 
 /**
- * The guard template's control (lib/seqstar/AGENTS.md, Tests): `measure` runs `leaking(step)` through the file's own
+ * The guard template's control (packages/sequences/AGENTS.md, Tests): `measure` runs `leaking(step)` through the file's own
  * warm-up, settle and measurement, exactly as its guards run `step`. Caught when the measurement is not flat (a
  * `Scaling`, or a number of `limit` or more: by default a growth past `LIMIT`; a guard judged per position or per cell
  * passes its own measure and bound, LA-24), or when it refused the run because a collection ran during it: the leak

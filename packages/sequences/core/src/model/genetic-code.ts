@@ -10,7 +10,7 @@
 // tables read without allocating.
 
 /**
- * NCBI's genetic codes, copied from `gc.prt` Version 4.6 (lib/seqstar/core/_test/fixtures/gc.prt): per table id, its 64
+ * NCBI's genetic codes, copied from `gc.prt` Version 4.6 (packages/sequences/core/_test/fixtures/gc.prt): per table id, its 64
  * amino acids (`ncbieaa`) then its start codons (`sncbieaa`, `M` a start), codons in TCAG order of their first,
  * second and third base. Twin: `GENETIC_CODES` in the builder's `helpers.ts`; a test keeps them equal.
  */

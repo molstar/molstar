@@ -137,7 +137,7 @@ describe("AX1: the overlay's hover frames on reversed pieces allocate nothing af
       const { frame, hovers } = await hoverFrames(kind, -1);
       const t0 = performance.now();
       for (let i = 0; i < WARM || performance.now() - t0 < FRAME_WARM_MS; i++) frame(i);
-      // Settled after the timed warm-up, as every timed warm-up is (lib/seqstar/AGENTS.md, Tests; LC-20).
+      // Settled after the timed warm-up, as every timed warm-up is (packages/sequences/AGENTS.md, Tests; LC-20).
       let settled = 0;
       settleFrame(() => frame(settled++), FRAME_SETTLE_MS);
       let i = 0;

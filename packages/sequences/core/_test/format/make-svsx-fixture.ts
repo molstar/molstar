@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// By hand: `node lib/seqstar/core/_test/format/make-svsx-fixture.ts` rewrites fixtures/kinase.svsx from svsx-fixture.ts.
+// By hand: `node packages/sequences/core/_test/format/make-svsx-fixture.ts` rewrites fixtures/kinase.svsx from svsx-fixture.ts.
 import { writeFileSync } from 'node:fs';
 import { bundleUris, writeSvsx } from '@molstar/seq-core/builder/svsx';
 import { absoluteDoc, fixtureFetch } from './svsx-fixture.js';

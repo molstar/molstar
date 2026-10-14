@@ -124,7 +124,7 @@ export const REFS = [
 ];
 
 /**
- * QR2a's fixture for `onto` and `partners`: 1BRS with its 43 contacts within 4 Å (lib/seqstar/core/_test/fixtures/1brs.json,
+ * QR2a's fixture for `onto` and `partners`: 1BRS with its 43 contacts within 4 Å (packages/sequences/core/_test/fixtures/1brs.json,
  * chain A to chain D, those under 3.2 Å as `hbond`) and a pairs annotation whose ends are a whole unit, a molecule over
  * three units, a molecule with no unit, a row and the columns; case 14's protein over its spliced CDS; a family
  * alignment whose row 0 is bound to barnase's molecule (so chains A, B and C), row 1 to chain D, row 2 to case 14's

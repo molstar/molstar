@@ -6,12 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Records @molstar/seq-molstar-poc's fixtures (lib/seqstar/molstar-poc/_test/fixtures/structures and p53; VENDORED.md, seqstar). By hand only,
+// Records @molstar/seq-molstar-poc's fixtures (packages/sequences/molstar-poc/_test/fixtures/structures and p53; VENDORED.md, seqstar). By hand only,
 // never in tests: it downloads public files (wwPDB CC0 via PDBe; AlphaFold DB, UniProtKB and the Proteins API CC BY 4.0).
 // P04637's UniProt entry and its Proteins API variants are trimmed to what the readers take (the format's `features`):
 // the entry's features but its natural variants, mutagenesis and isoforms; each variant's position, letters and
 // consequence (no description, so the consequence is the row's label).
-// Usage: node lib/seqstar/molstar-poc/scripts/record-fixtures.ts [file name…] (P04637-ptms.tsv only when named)
+// Usage: node packages/sequences/molstar-poc/scripts/record-fixtures.ts [file name…] (P04637-ptms.tsv only when named)
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 

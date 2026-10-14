@@ -8,7 +8,7 @@
 
 // Shared fixture generators of the packages' tests (RB0): seeded, by value, no network and no format: they return the
 // data, and a test wraps it in its package's own types (the builder's, the model's). The genome generator already
-// exists (lib/seqstar/core/_test/format/genome-fixture.ts) and is ported with the resolver.
+// exists (packages/sequences/core/_test/format/genome-fixture.ts) and is ported with the resolver.
 
 /** mulberry32: a small seeded PRNG, uniform in [0, 1). */
 export function prng(seed: number): () => number {

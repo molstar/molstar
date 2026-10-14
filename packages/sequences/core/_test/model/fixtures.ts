@@ -7,9 +7,9 @@
  */
 
 // SetInputs in the shape `molstar:structure` yields (seqspec:libraries#the-mol-adapter), written by hand as small
-// inline fixtures. They are not recorded provider outputs: those come with V2 (lib/seqstar/core/_test/fixtures/).
+// inline fixtures. They are not recorded provider outputs: those come with V2 (packages/sequences/core/_test/fixtures/).
 //
-// 1BRS, from the Seq* fixture (lib/seqstar/core/_test/fixtures/1brs.json, UniProtKB CC BY 4.0,
+// 1BRS, from the Seq* fixture (packages/sequences/core/_test/fixtures/1brs.json, UniProtKB CC BY 4.0,
 // wwPDB CC0): entity 1 is barnase's mature chain (P00648 48–157), entity 2 barstar without its initiator
 // Met (P11540 2–90) with 1BRS's C40A/C82A. Observed residues are the fixture's for chains A and D, used for
 // all three copies; auth numbering equals label numbering in 1BRS. Waters are left out (the default).

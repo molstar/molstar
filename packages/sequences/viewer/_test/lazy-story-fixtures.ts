@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The lazy alignment of `Seq*/Streaming/Streamed data › A lazy alignment by view` (lib/seqstar/storybook, ST3b): its document and its
+// The lazy alignment of `Seq*/Streaming/Streamed data › A lazy alignment by view` (packages/sequences/storybook, ST3b): its document and its
 // sampled `seqstar-tiles/1` transport, shared by the story and lazy-story.test.ts, which opens them headlessly so the
 // story cannot silently load nothing again. Tiles of letters (and their share) from a hash of the cell, labels by
 // index; nothing kept (the atlas story's transport).

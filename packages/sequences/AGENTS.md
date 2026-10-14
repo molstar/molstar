@@ -1,11 +1,13 @@
-# Seq\* (lib/seqstar)
+# Seq\* (packages/sequences)
 
 The entry point for work in the Seq\* packages. Seq\* is SeqViewSpec, a format for sequence views built on one
 coordinate model (positions from a single residue to a whole genome, and the maps between them: a protein onto its
 gene's codons across introns, an alignment's rows onto its columns, a design onto its wild type, a chain onto its
 structure; data placed on any of these shows on the others), with its data model, SeqQL, its query language, and the
-builder. The Seq\* viewer renders it, and so does Nightingale. It is self-contained: it imports nothing of the app
-around it, and this file and the spec are all it needs.
+builder. The Seq\* viewer renders it, and so does Nightingale. It imports nothing of Mol\*'s apps or UI; of Mol\*'s
+packages, seq-core takes only the MessagePack codec (`@molstar/io`) and zip (`@molstar/core`), and molstar-poc, the
+adapter, the structure packages. This file, the repository's [AGENTS.md](../../AGENTS.md) and the spec are all it
+needs.
 
 - **The spec** is `_spec/` (start with [_spec/README.md](_spec/README.md): what Seq\* is, the packages, the principles,
   the glossary). It says what, never how: contracts and meaning. Tables (nodes, types, layer types, themes, issue codes,
@@ -13,12 +15,12 @@ around it, and this file and the spec are all it needs.
   hand.
 - **The code is the truth.** The spec holds the contracts and what they mean; where the two disagree, fix whichever is
   wrong (often the spec), in the same commit.
-- **Packages:** `core` (platform-free, no dependencies) and `viewer` (with the interactions extension), plus the
+- **Packages:** `core` (platform-free; of Mol\* only its MessagePack and zip) and `viewer` (with the interactions extension), plus the
   adapters `nightingale` and `molstar-poc` and the private `storybook` (the table in `_spec/README.md`). Each folder of
   a package is an entry: inside a folder import relatively; across folders name the entry (`@molstar/seq-core/model`,
   the package importing itself), never a path into another folder. `core/_test/layers.test.ts` holds the core's folder
   graph. `scripts/` (`@molstar/seq-scripts`) holds Seq*'s own checks and measures, and each package's `_test/fixtures/`
-  its recorded data: nothing outside `lib/seqstar` is needed.
+  its recorded data.
 - **Headers:** every source file (`.ts`, `.tsx`, `.css`, in `src`, `_test`, `_stories` and scripts) starts with Mol\*'s
   header, as Mol\* v6's Prism does (the spec check fails on a file without it); vendored, copied and generated files
   keep their origin's header (their `VENDORED.md` says so; `HEADER_SKIP` in `scripts/spec.ts`):
@@ -38,22 +40,23 @@ around it, and this file and the spec are all it needs.
 
 ## Tests: run the tier the change needs
 
-Each package's `test` is the fast tier: about 5 s a package on the M4 (2026-10-14), the viewer's 1,700 tests about 13 s.
-The slow tiers are separate scripts:
+The fast tier runs in the repository's one Vitest run (`vitest.config.ts`, the `sequences` projects): about 3 s for
+core, 10 s for the viewer (M4, 2026-10-14). The other tiers are each package's own scripts (`vitest.shared.ts` and the
+package's `vitest.*.config.ts`):
 
-| Script                                | What                                                                                                                                                                                                                                                              | Run it                                                                                                                     |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `test`                                | node unit tests (`vitest run`): fast and deterministic, no wall-clock timing, no Chrome, no heap guards; add `--changed` or `related <files>` for only the affected tests                                                                                         | on every edit loop, in the packages you touched; a folder narrows it (`vitest run _test/format`)                           |
-| `test:slow` (core, viewer, storybook) | node tests tagged `slow`: wall-clock bounds and ratios (`itWithin` and the scaling tests), the storms, fuzz and oracle runs at full size, a million rows and large fixtures, Chrome from Node (PNG export), the CLIs in a process, the four largest smoke stories | when you change what such a test covers, and at checkpoints; `mise run seqstar:test:slow` runs every package               |
-| `test:browser`                        | Chromium: pixels, UI, surface (the viewer's `_test/**/{canvas,dom,react}`; Nightingale's `mount`, `_test/dom`)                                                                                                                                                    | when you change drawing, the DOM or the UIs; pass the affected files                                                       |
-| `test:heap`, `test:browser-heap`      | heap guards                                                                                                                                                                                                                                                       | when you change a hot path (draws, input, streams, query kernels); pass the touched guard files (viewer heap: about 4 min) |
-| `test:heap-deep` (viewer)             | the heap guards as before the 2026-10-12 trim: full steps (catch about 22 bytes a step, the trimmed run about 43) and the dropped cases; about 10 min                                                                                                             | when chasing a small leak, or before a release; never in an edit loop                                                      |
-| `test:full`                           | all of the above                                                                                                                                                                                                                                                  | at reviews and checkpoints only; `mise run seqstar:test:full` runs every package one at a time                             |
+| Command                                              | What                                                                                                                                                                                                                                                              | Run it                                                                                                                     |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm test:unit packages/sequences/<pkg>`            | the fast tier: node unit tests, fast and deterministic, no wall-clock timing, no Chrome, no heap guards                                                                                                                                                           | on every edit loop, in the packages you touched; a folder or file narrows it (`pnpm test:unit packages/sequences/core/_test/format`) |
+| `pnpm -C packages/sequences/<pkg> test:slow` (core, viewer, storybook) | node tests tagged `slow`: wall-clock bounds and ratios (`itWithin` and the scaling tests), the storms, fuzz and oracle runs at full size, a million rows and large fixtures, Chrome from Node (PNG export), the CLIs in a process (built first: `tsc -b`), the four largest smoke stories | when you change what such a test covers, and at checkpoints                                                                |
+| `test:browser`                                       | Chromium: pixels, UI, surface (the viewer's `_test/**/{canvas,dom,react}`; Nightingale's `mount`, `_test/dom`)                                                                                                                                                    | when you change drawing, the DOM or the UIs; pass the affected files                                                       |
+| `test:heap`, `test:browser-heap`                     | heap guards                                                                                                                                                                                                                                                       | when you change a hot path (draws, input, streams, query kernels); pass the touched guard files (viewer heap: about 4 min) |
+| `test:heap-deep` (viewer)                            | the heap guards as before the 2026-10-12 trim: full steps (catch about 22 bytes a step, the trimmed run about 43) and the dropped cases; about 10 min                                                                                                             | when chasing a small leak, or before a release; never in an edit loop                                                      |
+| `test:full`                                          | all of the above                                                                                                                                                                                                                                                  | at reviews and checkpoints only, one package at a time                                                                     |
 
-**CI policy** (David, 2026-10-14): CI runs each package's `test` only (Node, fast, deterministic: no heap guards, no
-Chromium, no wall-clock timing). `test:slow`, `test:browser`, `test:heap`, `test:browser-heap` and `test:heap-deep` are
-opt-in: by hand, at checkpoints, or in a separate manual or scheduled job, never in the default workflow. There is no CI
-workflow here yet; Mol\*'s gets this rule with the move (designs/seqstar/handoff.md).
+**CI policy** (David, 2026-10-14): CI and `pnpm test` run the fast tier only. `test:slow`, `test:browser`, `test:heap`,
+`test:browser-heap` and `test:heap-deep` are opt-in, by hand during heavy work on Seq\*, never in CI (the heap tiers
+take about half an hour). The root config never matches the browser folders, `*.heap.ts` or the benches, and skips the
+`slow` tag. Two fast-tier tests run a CLI and skip without a build (`lib`).
 
 - **The `slow` tag** (vitest's test tags, `vitest.shared.ts`): a test slow by nature carries `{ tags: ["slow"] }` (a
   `describe` can carry it for all its tests) and keeps a quick representative untagged (the fuzz at 100 mutations, the
@@ -88,63 +91,39 @@ workflow here yet; Mol\*'s gets this rule with the move (designs/seqstar/handoff
 - Pixel hashes are exact and the machine's: `canvas/case9-pixels.test.ts` keeps a record per user agent
   (`case9-pixels.json`) and fails on one with none, naming it; record a setup's hashes with `VITE_SEQ_PIXELS=record`
   (and `VITE_SEQ_PIXELS_MACHINE`) only after checking its render, and again after an intended look change.
-- Run the guards on the pinned Node (`mise.toml`, 24): where it is not installed, `mise run` falls back to the PATH's
-  (Node 25 on the M4 with 16 GB, 2026-10-13), whose V8 tiers up and inlines differently (a guard can pass on one and
-  fail on the other).
-- `mise run check`, `mise run typecheck`, the export guard (`mise run seqstar:exports`, `scripts/exports.ts`) and the
-  spec check (`mise run seqstar:spec`, `scripts/spec.ts`: every `seqspec:` citation names a heading, the spec's
-  identifiers exist in the code) must pass before every commit.
-
-## Working in the shared tree
-
-Several agents often work in this tree at once.
-
-- Commit with a temporary git index built from HEAD plus your own hunks. Never `git commit -- <paths>` on a file another
-  agent has staged: it sweeps their hunk in.
-- After that commit, `git reset -q -- <your paths>` (exact paths): the shared index still holds their old versions,
-  which `git status` then shows as staged reversals of your commit.
-- Give each temporary index a fresh, literal name and build it (`git read-tree HEAD`) in the same command as the commit:
-  HEAD moves between commands, and a reused index from an older HEAD silently reverts other lanes' commits.
-- Never move the branch: no `git reset` of HEAD, `update-ref`, `rebase`, `commit --amend` or force. If a commit of yours
-  is wrong, fix it forward with a new commit and say so in your report; if it touched another lane's work, stop and
-  report instead of repairing history.
-- Before you `git add` a whole file into the temporary index, check `git diff -- <file>` shows only your hunks. If
-  another agent has hunks in it (or the file is behind HEAD), stage only yours: `git diff -- <file>` filtered to your
-  hunks, then `git apply --cached` (with context lines: never `-U0`/`--unidiff-zero`, which can place a hunk at the
-  wrong spot). Whole-file adds have swept other lanes' unfinished hunks into a commit and reverted others' committed
-  text.
-- Verify in a clean worktree of HEAD plus your hunks, with the relative `node_modules` links copied.
-- No more than two agents write in the same package folder at a time (the core's folders, `viewer/src/interactions` and
-  the viewer's entries count separately).
-- Scratch files go in the session scratchpad, in a folder named for the phase. Never delete files with `rm`: leave
-  scratch files in place, and give each temporary index a fresh, literal name.
+- Run the guards on the repository's Node (`mise.toml`, 24): another Node's V8 tiers up and inlines differently (a guard
+  can pass on one and fail on the other). The guards' numbers were taken on Node 24.19 in Seq\*'s former repository.
+- Before every commit: `pnpm lint` and `pnpm format:check` (the repository's), the package's `typecheck` script (its
+  build and its noEmit configs), the export guard (`node packages/sequences/scripts/exports.ts`, with `--contract`) and
+  the spec check (`node packages/sequences/scripts/spec.ts check`: every `seqspec:` citation names a heading, the
+  spec's identifiers exist in the code, headers, issue codes, guard templates). The scripts run on Node's type
+  stripping and keep `.ts` imports.
 
 ## Size, specs and stories
 
-- **Size:** phases carry size budgets in production lines (`mise run seqstar:ported-lines`, `scripts/ported-lines.ts`).
+- **Size:** phases carry size budgets in production lines (`node packages/sequences/scripts/ported-lines.ts --base <commit>`).
   Record an overrun and what took the room; don't stop for size (David, 2026-10-12: "the budget overflow is ok"). Do
   stop and report when the work turns out different from the plan.
 - **Spec:** the spec says what, never how. A change to a contract updates `_spec/` in the same commit; a change to a
-  table updates its reference (`vitest run -u` in that package: the reference tests write `_spec/reference/`). Cite
+  table updates its reference (`pnpm test:unit packages/sequences/<pkg> -u`: the reference tests write `_spec/reference/`, which no formatter touches). Cite
   `seqspec:<file>#<slug>` (the slug is GitHub's anchor of the heading, e.g. `seqspec:model#closure`) once per file or
   per contract, where code implements it; never section numbers, never a generated reference, never for how something is
-  built. Nothing in Seq\* points outside `lib/seqstar` for design or history. The code decides what the docs say.
+  built. Nothing in Seq\* points outside `packages/sequences` for design or history. The code decides what the docs say.
 - **Stories and docs:** every major feature a user sees gets a Storybook story, or extends a case story, checked in the
   toolbar's light, dark and blue themes. Evals and internal tooling don't need one. Feature work also updates the
   `Seq*/Docs` pages it touches (Features, Concepts, Extending, Streaming, Color schemes, Query language). A new story
-  brings its entry in `lib/seqstar/storybook/src/_stories/support/seqstar-smoke.ts` (the documents it opens, the patches
-  its buttons send, the warnings it shows on purpose): `lib/seqstar/storybook/_test/smoke.test.ts` and
+  brings its entry in `storybook/src/_stories/support/seqstar-smoke.ts` (the documents it opens, the patches
+  its buttons send, the warnings it shows on purpose): `storybook/_test/smoke.test.ts` and
   `smoke-more.test.ts` (half each, `smoke-stories.ts`) open each on a headless viewer in the `test` tier (the four
   largest, `SLOW_STORIES`, in `test:slow`) and fail on an error, an unlisted warning, an empty visible section, or a
-  story export with no entry. A story's builder lives in `lib/seqstar/storybook/src/_stories/support/` (not in the
+  story export with no entry. A story's builder lives in `storybook/src/_stories/support/` (not in the
   `.stories.tsx`), so the test can import it without React.
-- **Where the Storybook content lives:** `lib/seqstar/storybook` (`@molstar/seq-storybook`, private), all under
-  `src/_stories/` (Mol\* v6's layout; exports and `files` hide `_stories` and `_test` in every package): the stories,
-  `support`, `docs` (the `Seq*/Docs` pages), `ui` (its own small components on Mol\* Prism's `--msp-*` tokens, a local
-  copy in `ui/prism` until the move: it imports no `@untold/*` or `stories-*`, and Biome enforces that), `_test` (the
-  smoke test and the stories' search and patch tests). `apps/storybook` adds the globs (`@molstar/seq-storybook/vite`)
-  and imports `@molstar/seq-storybook/tokens.css`. The one story that mocks Stories' own workspace screens,
-  `Seq*/Cases/Workspace drafts`, stays in `apps/storybook/src/seqstar/` (the registry lists it as skipped).
+- **Where the Storybook content lives:** `storybook` (`@molstar/seq-storybook`, private), all under `src/_stories/`
+  (exports and `files` hide `_stories` and `_test` in every package): the stories, `support`, `docs` (the `Seq*/Docs`
+  pages), `ui` (its own small components on Prism's `--msp-*` tokens, a local copy in `ui/prism` until it uses
+  prism-ui's own), `_test` (the smoke test and the stories' search and patch tests). It is registered in the
+  repository's Storybook (`storybook/packages.ts`, no group: its titles start with `Seq*/`), whose framework is
+  web-components: the React stories are mounted by the package's decorator. `mise run storybook` serves it on :6006.
 - **The stories' look is Mol\* Prism's** (David, 2026-10-13): every story is a `PrismPage` (title, caption, cards:
   `seqstar-prism.tsx`), themed by the Storybook toolbar (one viewer per story, as Mol\*'s Storybook); the viewer draws
   on a `PrismCanvas` (`ViewerCard`'s default), pinned to a theme only where comparing themes is the point (the color

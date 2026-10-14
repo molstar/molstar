@@ -19,7 +19,7 @@ import { CASES } from './cases.js';
 import { fullDoc, kernel } from './fixtures.js';
 
 describe('the generated reference', () => {
-  it('matches lib/seqstar/_spec/reference/format.md (a change to a table, a type or a code shows here)', async () => {
+  it('matches packages/sequences/_spec/reference/format.md (a change to a table, a type or a code shows here)', async () => {
     await expect(printReference(kernel())).toMatchFileSnapshot('../../../_spec/reference/format.md');
   });
 

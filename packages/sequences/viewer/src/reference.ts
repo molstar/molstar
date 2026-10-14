@@ -8,7 +8,7 @@
 
 // The viewer's generated reference: its commands, behaviors, config items, the built-in registry entries by kind,
 // and its own layer types and issue codes, from a viewer spec (the default one unless given). Edge-rate: docs and
-// tests only. A test writes it to lib/seqstar/_spec/reference/viewer.md.
+// tests only. A test writes it to packages/sequences/_spec/reference/viewer.md.
 
 import { printParamsTable, type SvsRegistryEntry } from '@molstar/seq-core/format';
 import { SeqViewerConfig, type SeqViewerConfigItem } from './config.js';

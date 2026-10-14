@@ -15,7 +15,7 @@ import { DefaultSeqViewerSpec, SeqCommands, SeqViewerConfig } from '../src/index
 import { printViewerReference } from '../src/reference.js';
 
 describe("the viewer's generated reference", () => {
-  it('matches lib/seqstar/_spec/reference/viewer.md', async () => {
+  it('matches packages/sequences/_spec/reference/viewer.md', async () => {
     await expect(printViewerReference()).toMatchFileSnapshot('../../_spec/reference/viewer.md');
   });
 

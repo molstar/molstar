@@ -8,7 +8,7 @@
 
 // The `Seq*/Cases/Mol* › p53: sequence and structure` document (seqspec:libraries#the-mol-adapter), shared by
 // the story, its smoke entry and the compose tests: P04637 with its UniProt features and Proteins API variants
-// (lib/seqstar/molstar-poc/_test/fixtures/p53, trimmed), a hydropathy profile and the residues in a letter scheme; five structures as
+// (packages/sequences/molstar-poc/_test/fixtures/p53, trimmed), a hydropathy profile and the residues in a letter scheme; five structures as
 // complexes mapped onto it (by SIFTS, the AlphaFold model by identity); the PDB coverage in two levels (collapsed, its
 // depth by `molstar:sifts_depth`; open, a row per structure by `molstar:sifts_coverage`, each split by chain), every
 // coverage row naming its structure, its rows on the chains' own units (instance space), so a chain's residues light

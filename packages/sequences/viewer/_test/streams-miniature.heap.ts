@@ -33,7 +33,7 @@ const N = 1_000;
 const measure = (frame: () => void) => {
   const t0 = performance.now();
   for (let i = 0; i < FRAME_WARM || performance.now() - t0 < FRAME_WARM_MS; i++) frame();
-  // Settled after the timed warm-up (lib/seqstar/AGENTS.md, Tests).
+  // Settled after the timed warm-up (packages/sequences/AGENTS.md, Tests).
   settleFrame(frame, FRAME_SETTLE_MS);
   return heapScaling(N, frame);
 };

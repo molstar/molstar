@@ -7,9 +7,9 @@
  */
 
 // `node:fs` for the Seq* test fixtures in the browser (vitest.browser.config.ts sends their `node:fs` import here):
-// the format's load-fixtures.ts and the model's alignment-fixtures.ts read the Seq* JSON fixtures (lib/seqstar/core/_test/fixtures)
+// the format's load-fixtures.ts and the model's alignment-fixtures.ts read the Seq* JSON fixtures (packages/sequences/core/_test/fixtures)
 // with `readFileSync(new URL(…, import.meta.url))`; here those files come bundled, by name. Nothing else is served.
-// The same shim as Storybook's (lib/seqstar/storybook/src/_stories/support/seqstar-fixture-fs.ts).
+// The same shim as Storybook's (packages/sequences/storybook/src/_stories/support/seqstar-fixture-fs.ts).
 
 import brs from '../../../core/_test/fixtures/1brs.json?raw';
 import iep from '../../../core/_test/fixtures/1iep.json?raw';

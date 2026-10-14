@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The query heap guards' positive control (the guard template, lib/seqstar/AGENTS.md, Tests): `(leak Q)`, an
+// The query heap guards' positive control (the guard template, packages/sequences/AGENTS.md, Tests): `(leak Q)`, an
 // extension's runtime around a query that makes one object a run of its selection, through `leak` (garbage at once,
 // never a kept list).
 

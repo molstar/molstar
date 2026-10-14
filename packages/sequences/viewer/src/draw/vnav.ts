@@ -30,7 +30,7 @@ import { MapView } from './miniature.js';
 import { drawGrips, gripAt, KeyedImage, WINDOW_WASH, windowBox, windowOverMap } from './nav.js';
 
 // Enum-like members read once: a module member read per frame allocates under the test runner's module wrapper
-// (lib/seqstar/AGENTS.md, Tests; VL-15).
+// (packages/sequences/AGENTS.md, Tests; VL-15).
 const P_VNAV = Pass.vnav;
 const P_VNAV_OVERLAY = Pass.vnavOverlay;
 const T_SURFACE_ALT = SkinToken.surfaceAlt;

@@ -7,7 +7,7 @@
  */
 
 // I1: the vocabulary and queries on a small hand-made set; the fingerprint of case 6 over the recorded 1IEP contacts
-// (lib/seqstar/core/_test/fixtures/1iep.json: the crystal STI and Vina's four poses) through the format's case and
+// (packages/sequences/core/_test/fixtures/1iep.json: the crystal STI and Vina's four poses) through the format's case and
 // fixture loaders; the fingerprint over each kind of coordinate system, polymer partners only, the fallbacks; and that
 // the kernel never imports this package.
 

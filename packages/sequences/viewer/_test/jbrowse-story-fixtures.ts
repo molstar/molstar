@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The document of `Seq*/Cases/Genome browser › hg38, live` (lib/seqstar/storybook, ST4b): four streamed sources (`genome` letters,
+// The document of `Seq*/Cases/Genome browser › hg38, live` (packages/sequences/storybook, ST4b): four streamed sources (`genome` letters,
 // `gc` values, `genes` and `clinvar` items) over one complex, shared by the story (which serves them live through
 // @molstar/seq-core/stream/gmod) and jbrowse-story.test.ts (which opens it offline, over the fixture providers), so the story's
 // document cannot silently fail to open.

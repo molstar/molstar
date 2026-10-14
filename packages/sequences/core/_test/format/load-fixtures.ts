@@ -8,7 +8,7 @@
 
 // Fixtures for the V2 tests (no network), written here beside the shared ones in ../fixtures:
 // - UniProt responses in the shape of rest.uniprot.org's FASTA and JSON, from the viewer spike's fixtures
-//   (lib/seqstar/core/_test/fixtures: UniProtKB CC BY 4.0, wwPDB CC0, Pfam CC0). The ABL1 isoforms are synthetic:
+//   (packages/sequences/core/_test/fixtures: UniProtKB CC BY 4.0, wwPDB CC0, Pfam CC0). The ABL1 isoforms are synthetic:
 //   the 1IEP construct (residues 225-498) after a made-up stretch, and 1b with a made-up longer first exon.
 // - `molstar:structure` and `molstar:secondary_structure` fixture entries over hand-written outputs in the shape
 //   seqspec:libraries#the-mol-adapter describes (1BRS, 1IEP with its four Vina poses, 1A3N, an AlphaFold-shaped

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// 1IEP from the Seq* fixture (lib/seqstar/core/_test/fixtures/1iep.json, from AutoDock Vina's
+// 1IEP from the Seq* fixture (packages/sequences/core/_test/fixtures/1iep.json, from AutoDock Vina's
 // basic-docking tutorial, Apache-2.0): ABL kinase chain A (auth 225–498) with imatinib (STI, 37 heavy atoms),
 // and per residue the contacts of the crystal pose and of Vina's four docked poses. Here the crystal STI is
 // unit "1iep/C" of its own molecule, the poses four units of another (one copy group), atoms named by

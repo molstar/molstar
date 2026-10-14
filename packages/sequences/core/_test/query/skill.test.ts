@@ -92,7 +92,7 @@ describe('the skill', () => {
     await expect(skillText(STORIES_LANGUAGE, STORIES)).toMatchFileSnapshot('snapshots/skill-stories.txt');
   });
 
-  it('renders the v1 core alone as lib/seqstar/_spec/reference/seqql-skill.md', async () => {
+  it('renders the v1 core alone as packages/sequences/_spec/reference/seqql-skill.md', async () => {
     const core = createLanguage().language;
     await expect(
       `# SeqQL skill\n\nGenerated from the symbol table; do not edit.\n\n\`\`\`text\n${skillText(core)}\`\`\`\n`,
@@ -174,7 +174,7 @@ describe('the reference', () => {
     for (const s of symbolsOf(STORIES_LANGUAGE)) expect(reference).toContain(`\`${s.name}\` · ${s.kind}`);
   });
 
-  it('renders the v1 core as lib/seqstar/_spec/reference/seqql.md', async () => {
+  it('renders the v1 core as packages/sequences/_spec/reference/seqql.md', async () => {
     await expect(referenceText(createLanguage().language)).toMatchFileSnapshot('../../../_spec/reference/seqql.md');
   });
 });

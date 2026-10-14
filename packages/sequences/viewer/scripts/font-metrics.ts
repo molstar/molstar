@@ -9,7 +9,7 @@
 // Generates src/svg/metrics-tables.ts: `metricsMeasurer`'s committed tables (seqspec:viewer#the-render-backend,
 // seqspec:viewer#text-measuring), read from the Chrome that the browser tests use, for the families the skin's stacks
 // start with and the generic ones. Run by hand when the tables should change: `node scripts/font-metrics.ts` in
-// lib/seqstar/viewer. The tables are that machine's fonts; a figure's text
+// packages/sequences/viewer. The tables are that machine's fonts; a figure's text
 // is anchored by `text-anchor` and placed by `dy`, so a reader with other fonts differs only in the widths fitting used.
 
 import { writeFileSync } from 'node:fs';

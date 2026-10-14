@@ -9,7 +9,7 @@
 // `seqv-render` (SV1b; seqspec:viewer#the-render-backend) run as a process: a document file in, the SVG the library
 // writes out, the options, the exit codes, file sources read relative to the root and the network refused, the
 // executable bit, and `--png` through Chrome. The documents are case 14 and one made of
-// lib/seqstar/core/_test/fixtures/1iep.json; nothing is fetched. A process each: the slow tier's, but for the first,
+// packages/sequences/core/_test/fixtures/1iep.json; nothing is fetched. A process each: the slow tier's, but for the first,
 // the fast tier's one run of the CLI.
 
 import { spawnSync } from 'node:child_process';

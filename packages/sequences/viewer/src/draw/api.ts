@@ -9,7 +9,7 @@
 // The renderer API (seqspec:viewer#extension-points, seqspec:viewer#the-render-backend): everything a renderer,
 // built-in or a host's, may use, versioned with the package and evolving with the built-ins, never frozen apart.
 // Renderer modules import the viewer through this module (or `/draw`) and `/testing` only; the composer, surface,
-// layout manager, MarkSet internals, region cache and graph are not part of it (Biome: lib/seqstar/layers.grit).
+// layout manager, MarkSet internals, region cache and graph are not part of it (Biome: packages/sequences/layers.grit).
 //   - drawing: the batches and the backend's draw methods (not its pass, clip and copy methods, the composer's),
 //     `DrawView` and the placement helpers;
 //   - headless: the axis view and its converters, hits, themes and legends, the prepares and their helpers (segment

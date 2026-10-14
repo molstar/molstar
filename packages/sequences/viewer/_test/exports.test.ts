@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The exports guard (lib/seqstar/scripts/exports.ts): no name is exported by two entries of the packages as different
+// The exports guard (packages/sequences/scripts/exports.ts): no name is exported by two entries of the packages as different
 // declarations, in the type or the value namespace; and the guard itself, on a folder of packages written here.
 
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
@@ -24,7 +24,7 @@ const pkg = (dir: string, name: string, exports: Record<string, string>, files: 
 
 describe('export guard', () => {
   // A TypeScript program over every entry: about 1.5 s alone, past the default 5 s under a full parallel run. The slow
-  // tier's: `mise run seqstar:exports` runs the same guard before every commit.
+  // tier's: `node packages/sequences/scripts/exports.ts` runs the same guard before every commit.
   it('finds no collision across the entries of the packages', { tags: ['slow'], timeout: 30_000 }, () => {
     expect(entries().length).toBeGreaterThan(10);
     expect(collisions(exported(entries()))).toEqual([]);
