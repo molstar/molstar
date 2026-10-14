@@ -115,7 +115,8 @@ export interface ShellOptions {
 }
 
 const DefaultSizes: Record<DockId, number> = { left: 300, right: 340, top: 88, bottom: 220 };
-const MinSize = 180;
+// Side docks are resized by their splitter; a top or bottom dock is sized by its view (the sequence follows its content).
+const MinSizes: Record<DockId, number> = { left: 180, right: 180, top: 40, bottom: 40 };
 
 /**
  * A section contributed to a slot of a panel or overlay: the Export panel's `export` slot (image, session, animation,
@@ -475,7 +476,7 @@ export class ShellModel extends ReactiveModel {
   }
 
   setSize(dock: DockId, size: number): void {
-    this.#docks[dock].update({ size: Math.max(MinSize, Math.round(size)) }, this.#registered);
+    this.#docks[dock].update({ size: Math.max(MinSizes[dock], Math.round(size)) }, this.#registered);
   }
 
   /** Floats a dock over the canvas, or docks it beside the canvas. */

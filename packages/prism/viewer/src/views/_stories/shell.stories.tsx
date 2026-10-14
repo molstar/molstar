@@ -10,6 +10,7 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { story } from '@molstar/prism-ui/testing/index';
+import { RealPluginShellStory } from '../../testing/real-plugin-story.js';
 import { ViewerShellStory } from '../../testing/shell-story.js';
 
 const meta: Meta = { title: 'Shell/Viewer mode', parameters: { layout: 'fullscreen' } };
@@ -62,6 +63,25 @@ export const CanvasBackground: StoryObj<{ background: string }> = {
   argTypes: { background: { control: 'color' } },
   render: (args) =>
     story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} background={args.background} />}</div>),
+};
+
+/**
+ * A real Mol* plugin on the canvas, loading 1TQN from RCSB (needs the network), under the same mock UI (structure rows,
+ * selection bar and the rest are still mocks). The sequence at the top is the real Seq* viewer over the plugin's
+ * structure, with no card around it: hover and select residues in either view (they light up in both), switch
+ * Text / Tracks, open the legend (the palette button). "Canvas background" above the app changes the canvas; the chrome,
+ * the sequence's colors and its letters' halos follow it (light, dark, mid gray). Hovering the 3D canvas shows its label
+ * next to the cursor; hovering the sequence shows the sequence's.
+ */
+export const RealPlugin: StoryObj<{ background: string }> = {
+  args: { background: 'light' },
+  argTypes: { background: { control: 'select', options: ['light', 'white', 'gray', 'dark', 'blue'] } },
+  render: (args) =>
+    story(() => (
+      <div style="height: 100vh">
+        <RealPluginShellStory background={args.background} />
+      </div>
+    )),
 };
 
 /** A command opened the Export panel at a section ("Export animation…" in the command menu). */

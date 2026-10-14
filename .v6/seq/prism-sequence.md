@@ -229,3 +229,31 @@ S3a and S3 need S2; S4 needs both. Over the real plugin, the same code gets its
 | contexts.md revised for prism-ui as a runtime and the viewer and story mode as opinionated compositions (§2): its modules and contributions (§3–4) | before the next design that leans on contexts.md |
 | The `--msp-ink` tokens (defined, unused) for chrome outside the canvas layer                             | a canvas control outside that layer  |
 | todo.md's "the Mol\* hover sometimes needs a second move after the pointer was over the 3D canvas"       | the link over the real plugin        |
+
+## 9. As built (S3a, S3, S4)
+
+Where the code differs from, or fills in, the sections above:
+
+- **Files**: `packages/prism/viewer/src/sequence/` (`model.ts`, `document.ts`, `skin.ts`, `legend.ts`, `link.ts`,
+  `sequence-control.tsx`), `src/sources/` (`viewer-plugin.ts`: the plugin on a host element with its canvas props, 3D
+  hover label and structure as plain states; `hover-lines.ts`), the stories' `testing/real-plugin-story.tsx` and the
+  `Shell/Viewer mode › Real plugin` story. `mockViewerMode({ plugin })` takes the real plugin; without it the mock keeps
+  `SequenceStrip` (the other stories have no structure to give the model).
+- **The model's input** is `HostStructure { key, title, source: StructureSource, structure }`; the document names its
+  file `structure:<key>`, which the loaders' `parsed` hook answers with the host's source (a new key rebuilds the view).
+  `SequenceViewer.structure` is set only once the document is in; `legend` and `setFonts` were added (the fonts are
+  read once by the control from `--msp-font-*` into the skin: an explicit skin has no `--seq-font-*`).
+- **The theme** is `{ letters: scheme name | null }` (default `zappo`, which has labeled groups for the legend); a change
+  rebuilds the document (the set stays the same object, so the link survives) and re-applies the section's style.
+- **Height**: `ShellModel.setSize` clamped every dock to 180 px, above the top dock's own size (88); a top or bottom dock
+  now has its own minimum (40), as it is sized by its view, not a splitter. Tracks follow
+  `layout.contentHeight('main')` plus the bar's height (from a `ResizeObserver` entry); compact restores the dock's size.
+- **Hover label**: the shell's `HoverLabel` listened to the canvas element only, which never sees the pointer over the
+  floating sequence; it now listens on the canvas's parent (the viewport), and the viewer mock merges three sources (the
+  sequence's label, the plugin's loci label, the mock's) with the first non-empty winning, since Seq*'s hover also
+  highlights 3D, which makes the plugin report a label of its own.
+- **Ink from Mol***: the canvas props have no change stream; `PluginContext.events.canvas3d.settingsUpdated` fires for
+  settings commands only, so `setBackground` (molstar-poc) announces itself and `viewer-plugin.ts` re-reads the props
+  after an MVS load (which sets the background from the state, `background` is therefore passed into it).
+- **Subscription guard** (`prism-ui/src/_test/subscriptions.test.ts`) now also scans the viewer's components (`testing`
+  excluded).

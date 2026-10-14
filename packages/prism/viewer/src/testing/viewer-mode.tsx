@@ -10,6 +10,7 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { combineLatest, map, of } from 'rxjs';
+import type { CanvasInk, ReadonlyState } from '@molstar/prism-ui';
 import { ActionFooter } from '@molstar/prism-ui';
 import { MolstarWordmark } from '@molstar/prism-ui';
 import { ParamsForm } from '@molstar/prism-ui';
@@ -33,6 +34,8 @@ import { ImageExport } from '../views/export/image-export.js';
 import { HomeTab } from '../views/home/home-tab.js';
 import type { HomeModel, SessionModel } from '../model/home.js';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
+import { createSequenceViewers, SequenceControl } from '../sequence/index.js';
+import type { ViewerPlugin } from '../sources/index.js';
 import { type SequenceSelector, SequenceStrip } from '../views/sequence/sequence-strip.js';
 import { CanvasPlaceholder } from '@molstar/prism-ui';
 import { SectionList } from '@molstar/prism-ui';
@@ -321,9 +324,24 @@ function sequenceSelectors(post: (text: string) => void): SequenceSelector[] {
   ];
 }
 
+/**
+ * A real Mol* plugin under the mock UI (the stories' "real plugin" variant): its canvas host is the shell's canvas, its
+ * canvas props drive `ink` (which the shell follows too), its structure feeds the sequence model, its 3D hover label the
+ * shell's hover label. The rest of the mock UI (structure rows, the selection bar, …) is still mocked.
+ */
+export interface MockRealPlugin {
+  plugin: ViewerPlugin;
+  /** The element the plugin is mounted on; the shell's canvas. */
+  host: HTMLElement;
+  /** The canvas ink, from the plugin's canvas props: the shell and the sequence model both follow it. */
+  ink: ReadonlyState<CanvasInk>;
+}
+
 /** Mol*'s own UI as a mode of the mock shell. */
 export function mockViewerMode(
   options: {
+    /** A real plugin instead of the canvas placeholder; the sequence is then the sequence model's, not the mock strip. */
+    plugin?: MockRealPlugin;
     preset?: MockScenePreset;
     /** The spec turns remote states (a state server) on; a number fills the server with that many. */
     remoteStates?: boolean | number;
@@ -361,7 +379,19 @@ export function mockViewerMode(
         shell,
         mockMeasurements(scene, (t) => status.post(t)),
       );
-      const hover: HoverLabelModel = { lines: hoverLines.asReadonly };
+      // The label under the cursor: the sequence's while the pointer is on it, else the 3D canvas's (the plugin's loci
+      // labels, or the mock's), one at a time.
+      const seqLines = observableState<readonly string[]>([]);
+      const real = options.plugin;
+      const shownLines = observableState<readonly string[]>([]);
+      const mergeLines = () => {
+        const sources = [seqLines.value, real?.plugin.hoverLines.value ?? [], hoverLines.value];
+        shownLines.set(sources.find((l) => l.length > 0) ?? []);
+      };
+      const mergeSubs = [seqLines.asReadonly, hoverLines.asReadonly, ...(real ? [real.plugin.hoverLines] : [])].map(
+        (s) => s.subscribe(mergeLines),
+      );
+      const hover: HoverLabelModel = { lines: shownLines.asReadonly };
       let dropSequence: (() => void) | undefined;
       // The session as Home shows it: what is loaded, and Clear (the plugin's clear).
       const session: SessionModel = {
@@ -490,7 +520,43 @@ export function mockViewerMode(
             )),
           },
         ]);
-      if (loaded) dropSequence = sequenceTab();
+      // Over a real plugin the sequence is the sequence model's, there while a structure is shown; else the mock strip.
+      const sequence = real ? createSequenceViewers({ ink: real.ink, structure: real.plugin.structure }) : undefined;
+      let structureSub: { unsubscribe(): void } | undefined;
+      if (real && sequence) {
+        const viewer = sequence.get();
+        let shownBefore = false;
+        structureSub = real.plugin.structure.subscribe((host) => {
+          if (!host) {
+            dropSequence?.();
+            dropSequence = undefined;
+            shownBefore = false;
+            return;
+          }
+          if (dropSequence) return;
+          dropSequence = shell.registerTabs([
+            {
+              id: 'sequence',
+              title: 'Sequence',
+              icon: 'sequence',
+              dock: 'top',
+              frame: 'none',
+              render: domView(({ ctx }) => (
+                <SequenceControl
+                  viewer={viewer}
+                  view3d={(structure) => real.plugin.view3d(structure)}
+                  shell={ctx.shell}
+                  dock={ctx.dock ?? 'top'}
+                  onHover={(lines) => seqLines.set(lines)}
+                  onCollapse={() => ctx.shell.toggle(ctx.dock ?? 'top')}
+                />
+              )),
+            },
+          ]);
+          if (!shownBefore) shell.show('sequence');
+          shownBefore = true;
+        });
+      } else if (loaded) dropSequence = sequenceTab();
 
       if (home.remoteStates) {
         const remote = home.remoteStates;
@@ -636,22 +702,34 @@ export function mockViewerMode(
         prefixes: mockPrefixes({ manager: commands, shell, scene, snapshots: snapshotStepper }),
         canvas: () => (
           <Show when={hasData} fallback={() => <CanvasPlaceholder empty={true} background={background} />}>
-            {() => (
-              <CanvasPlaceholder
-                empty={false}
-                background={background}
-                onHover={(i) =>
-                  hoverLines.set(
-                    i === undefined ? [] : [`${ThreeLetter[Sequence[i * 4]] ?? 'GLY'} ${i * 4 + 1}`, 'Chain A · 1TQN'],
-                  )
-                }
-              />
-            )}
+            {() =>
+              real ? (
+                real.host
+              ) : (
+                <CanvasPlaceholder
+                  empty={false}
+                  background={background}
+                  onHover={(i) =>
+                    hoverLines.set(
+                      i === undefined
+                        ? []
+                        : [`${ThreeLetter[Sequence[i * 4]] ?? 'GLY'} ${i * 4 + 1}`, 'Chain A · 1TQN'],
+                    )
+                  }
+                />
+              )
+            }
           </Show>
         ),
         overlays: () => (
           <Show when={hasData}>
-            {() => <HoverLabel model={hover} area={() => document.querySelector<HTMLElement>('[data-msp-canvas]')} />}
+            {() => (
+              // The canvas and what floats over it (the sequence): the label follows the pointer over both.
+              <HoverLabel
+                model={hover}
+                area={() => document.querySelector<HTMLElement>('[data-msp-canvas]')?.parentElement ?? null}
+              />
+            )}
           </Show>
         ),
         playback: () =>
@@ -669,6 +747,11 @@ export function mockViewerMode(
         canvasLead: () => <Show when={hasData}>{() => <ModeSwitch {...modeProps} />}</Show>,
         canvasAside: () => <Show when={hasData}>{() => <PickLevel {...modeProps} />}</Show>,
         empty: empty.asReadonly,
+        dispose: () => {
+          for (const sub of mergeSubs) sub.unsubscribe();
+          structureSub?.unsubscribe();
+          sequence?.dispose();
+        },
         // Mol*'s canvas bindings (the trackball and the interactivity behaviors), as the Help card lists them.
         bindings: [
           {

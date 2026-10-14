@@ -6,8 +6,9 @@
     "declarationMap": false,
     "noEmit": true,
     "rootDir": ".",
-    "types": ["node"],
-    "jsxImportSource": "@molstar/prism-ui/dom"
+    "types": ["node", "webxr"],
+    "jsxImportSource": "@molstar/prism-ui/dom",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
   "include": ["src/**/*"]
 }
