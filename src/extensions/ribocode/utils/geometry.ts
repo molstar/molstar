@@ -166,9 +166,65 @@ export function alignDatasetsGeneral<T extends Record<string, any>>(
     } else {
         select = (atom: T) => Object.entries(selector).every(([k, v]) => atom[k] === v);
     }
+    const hasFiniteCoords = (atom: T) => {
+        const x = Number(atom[coordKeys.x]);
+        const y = Number(atom[coordKeys.y]);
+        const z = Number(atom[coordKeys.z]);
+        return Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z);
+    };
+
+    const chooseBestSharedType = () => {
+        const movingCounts = new Map<string, number>();
+        const refCounts = new Map<string, number>();
+
+        for (const atom of moving) {
+            if (!hasFiniteCoords(atom)) continue;
+            const type = String((atom as any).type ?? '').trim();
+            if (!type) continue;
+            movingCounts.set(type, (movingCounts.get(type) ?? 0) + 1);
+        }
+        for (const atom of reference) {
+            if (!hasFiniteCoords(atom)) continue;
+            const type = String((atom as any).type ?? '').trim();
+            if (!type) continue;
+            refCounts.set(type, (refCounts.get(type) ?? 0) + 1);
+        }
+
+        const candidates = Array.from(movingCounts.keys())
+            .filter(type => refCounts.has(type))
+            .map(type => {
+                const movingCount = movingCounts.get(type) ?? 0;
+                const refCount = refCounts.get(type) ?? 0;
+                return {
+                    type,
+                    paired: Math.min(movingCount, refCount),
+                    delta: Math.abs(movingCount - refCount),
+                };
+            })
+            .filter(c => c.paired > 0)
+            .sort((a, b) => {
+                if (a.paired !== b.paired) return b.paired - a.paired;
+                if (a.delta !== b.delta) return a.delta - b.delta;
+                return a.type.localeCompare(b.type);
+            });
+
+        return candidates[0]?.type;
+    };
+
     // Indices of selected atoms
-    const movingSel = moving.map((a, i) => select(a) ? i : -1).filter(i => i !== -1);
-    const refSel = reference.map((a, i) => select(a) ? i : -1).filter(i => i !== -1);
+    let movingSel = moving.map((a, i) => select(a) ? i : -1).filter(i => i !== -1);
+    let refSel = reference.map((a, i) => select(a) ? i : -1).filter(i => i !== -1);
+    if (movingSel.length === 0 || refSel.length === 0) {
+        const fallbackType = chooseBestSharedType();
+        if (fallbackType) {
+            movingSel = moving
+                .map((a, i) => (String((a as any).type ?? '').trim() === fallbackType && hasFiniteCoords(a)) ? i : -1)
+                .filter(i => i !== -1);
+            refSel = reference
+                .map((a, i) => (String((a as any).type ?? '').trim() === fallbackType && hasFiniteCoords(a)) ? i : -1)
+                .filter(i => i !== -1);
+        }
+    }
     const newCount = movingSel.length;
     const count = refSel.length;
     // Extract coordinates
