@@ -19,60 +19,65 @@ Later, each when needed: secondary structure, annotations and other tracks (prov
 `secondary_structure`, `plddt`, `pae`, `sifts_coverage`), track menus, search, export, the hover card's actions,
 several viewers at once, the story mode.
 
-## 2. A "Sequence viewer" extension, composed into the viewer mode
+## 2. Owned by the Prism viewer, no extension mechanism
 
-No new package (David, 2026-10-14: fewer packages, not more): an `extensions/` folder in the viewer mode's package,
-`packages/prism/viewer/src/extensions/sequence/`, exported as `@molstar/prism-viewer/extensions/sequence` and composed
-into the viewer mode as contexts.md §3–4 composes anything: a **module** that owns the Seq\* contexts and a
-**contribution** (the dock tab).
+prism-ui is the runtime for generic Mol\* UIs: the shell, the common controls, the ink abstraction, the agentic
+wrappers, commands. The Prism viewer (`@molstar/prism-viewer`) is an opinionated composition on it, and so will the
+story mode be (David, 2026-10-14). So the sequence viewer is not an extension composed through modules and
+contributions: the viewer owns it directly, in its own code, and is free to be specific about it.
 
-- prism-ui stays free of `@molstar/seq-viewer`; prism-viewer gains the Seq\* dependencies, and only an app that
-  composes the extension bundles Seq\* (the folder is its own export, imported by nothing else in prism-viewer). This
-  settles plan.md §3's "prism-ui depends on seq-viewer" in favour of the viewer mode's package, its own alternative.
-- The extension imports only prism-ui's public exports and prism-viewer's own model types, never the mock's
-  internals, so it can move to a package later without rewriting.
-- prism-viewer then depends on `@molstar/seq-viewer`, `@molstar/seq-core` and
-  `@molstar/seq-molstar-poc` (the structure provider, `StructureLink`, `linkViews`, `StructureView3D`). molstar-poc is
-  private and named for a proof of concept; turning its link and provider into a real package is a follow-up (§7).
+- **Where**: a feature folder in the viewer's package, `packages/prism/viewer/src/sequence/`. No new package (David:
+  fewer packages, not more) and no new prism-ui abstraction. The story mode, when it wants a sequence view, composes
+  Seq\* its own way.
+- **Dependencies**: prism-viewer depends on `@molstar/seq-viewer`, `@molstar/seq-core` and `@molstar/seq-molstar-poc`
+  (the structure provider, `StructureLink`, `linkViews`, `StructureView3D`); prism-ui stays free of Seq\*. This
+  settles plan.md §3's "prism-ui depends on seq-viewer" for the viewer's package. molstar-poc is private and named
+  for a proof of concept; its link and provider as a real package is a follow-up (§8).
+- **contexts.md**: its §3–4 (modules with `ModuleKey`, `UIContribution`s, a mode's `contributions`) describe the
+  extension mechanism this design does without. contexts.md is to be revised for the "runtime plus opinionated
+  compositions" split (§8); until then, this design follows David's direction, not those sections.
 
-### 2.1 The module: who owns the `SeqViewerContext`
+### 2.1 Who owns the `SeqViewerContext`: the viewer's model
 
-The extension's module is created with the app and owns every Seq\* context (contexts.md §3: "a module that owns an
-outside context creates it in `create` and disposes it in `dispose`").
+The viewer's root model (the object the viewer mode creates at start and disposes at its end; the mock's
+`viewer-mode.tsx` today) creates the sequence model and owns it; the sequence model owns every Seq\* context.
 
 ```ts
-export const SequenceViewers = ModuleKey<SequenceViewers>('sequence-viewers');
-
-interface SequenceViewers {
+// packages/prism/viewer/src/sequence/model.ts
+export interface SequenceViewers {
   /** The viewers by id; the first slice creates only 'default'. */
   get(id?: string): SequenceViewer;
   readonly ids: ReadonlyState<readonly string[]>;
+  dispose(): void; // disposes every viewer's context
 }
 
-interface SequenceViewer {
+export interface SequenceViewer {
   readonly id: string;
-  readonly seq: SeqViewerContext; // createSeqViewer(spec, ports), disposed with the module
+  readonly seq: SeqViewerContext; // createSeqViewer(spec, ports)
   readonly style: ReadonlyState<'compact' | 'tracks'>;
   setStyle(style: 'compact' | 'tracks'): void; // ctx.ui.setStyle(section, ...), UI state only
   readonly structure: ReadonlyState<SequenceStructure | undefined>; // what it shows (§3)
   readonly theme: ReadonlyState<SequenceTheme>; // the color scheme the letters use, and later each track's (§6)
-  setTheme(theme: SequenceTheme): void; // written into the document the module builds
+  setTheme(theme: SequenceTheme): void; // written into the document the model builds
 }
-// create(ctx): subscribes to ctx.canvasInk (§5) and keeps each viewer's skin in step
+
+export function createSequenceViewers(deps: { ink: ReadonlyState<CanvasInk>; /* the structure source (§3) */ }):
+  SequenceViewers; // follows deps.ink (§5) and keeps each viewer's skin in step
 ```
 
-- Keyed by id from the start, so a second viewer later is another entry plus another contribution, not a redesign.
+- Keyed by id from the start, so a second viewer later is another entry and another place in the layout, not a
+  redesign.
 - The context is created with `rafScheduler` (Seq\*'s default scheduler never fires), the default registry plus
   molstar-poc's `MolstarSvsEntry`, and loaders that refuse the network: the structure comes from the host (§3).
-- The mocks have no module slot yet (contexts.md §8–9, "not built"). The first slice adds the smallest one the viewer
-  mode needs (a `modules` registry created and disposed with the mode), as contexts.md specifies it, not a parallel
-  mechanism.
+- It takes what it follows as plain arguments (the ink, the structure source), not a context object, so it is
+  testable headless.
 
-### 2.2 The contribution: the dock tab
+### 2.2 The dock tab
 
-`{ id: 'sequence', title: 'Sequence', icon: 'sequence', dock: 'top', when: <a structure is shown>, render:
-domView(SequenceControl) }`, replacing the mock's `SequenceStrip` registration in the viewer mode. The existing
-"Sequence" canvas button and the `view.sequence` command keep working, since they address the tab.
+The viewer registers the tab itself, as the mock registers the strip today: `{ id: 'sequence', title: 'Sequence',
+icon: 'sequence', dock: 'top', render: domView(SequenceControl) }`, registered while a structure is shown, replacing
+`SequenceStrip`. The "Sequence" canvas button and the `view.sequence` command keep working, since they address the
+tab.
 
 ### 2.3 The link: subscribed while the control is rendered
 
@@ -85,7 +90,7 @@ onCleanup(() => { unlink(); link.detach(); });
 
 - `view3d` is a `StructureView3D` (molstar-poc's Mol\*-agnostic interface: `highlight`, `select`, `focus`, `onHover`,
   `onSelect`). Over the real plugin it is molstar-poc's `pluginView3D(plugin, structure)`, which lives in the
-  extension's `sources/` folder (contexts.md §7: only `sources/` and `actions/` import `@molstar/plugin`). In the mocks
+  viewer's `sources/` folder (contexts.md §7: only `sources/` and `actions/` import `@molstar/plugin`). In the mocks
   it is a mock that feeds the mock's hover label and status line.
 - The replay rule makes remounting safe: on subscribe, the current selection is sent as a selection and never as a
   clear, and a reassembly's carry (`origin: 'graph'`) is no one's move (interaction.md, replays and carries).
@@ -105,7 +110,7 @@ b.view({ ref: 'sequence' }).section({ ref: 'main', style: 'compact' /* or 'track
 - The 3D view and Seq\* share one parse: the loaders' `parsed` hook returns the host's trajectory as a
   `StructureSource` (`StructureSource.of(trajectory, format)`), so the `Structure` that `StructureLink.attach` maps is
   the one the 3D view draws.
-- In the mocks there is no plugin; the extension parses a fixture structure itself (the mock's 1TQN, added as a small
+- In the mocks there is no plugin; the sequence model parses a fixture structure itself (the mock's 1TQN, added as a small
   `.bcif` fixture, so the letters match the mock's 3D labels).
 - The structure picker in the strip's header (structure, chain/polymer mode, instance) is not part of the first slice.
 
@@ -129,18 +134,19 @@ b.view({ ref: 'sequence' }).section({ ref: 'main', style: 'compact' /* or 'track
   the canvas shows through. The surface's canvases clear rather than fill, so the viewer draws on the canvas
   directly. Seq\* draws its text halos in the skin's surface color (§5), which keeps letters legible on any background.
 
-## 5. The ink: a behavior the context provides
+## 5. The ink: prism-ui's abstraction, the viewer's state
 
-The canvas ink (the canvas background, and whether chrome over it is light or dark) is a behavior the Prism context
-provides; the extension subscribes to it and updates its own state. Nothing in the extension reads the DOM or CSS to
-find it.
+The canvas ink (the canvas background, and whether chrome over it is light or dark) is prism-ui's abstraction; the
+viewer holds its state, and the sequence model subscribes to it and updates its own. Nothing in the sequence code
+reads the DOM or CSS to find it.
 
-- **The behavior**: the viewer mode's context exposes `canvasInk: ReadonlyState<CanvasInk>`, `CanvasInk = { theme:
-  'light' | 'dark'; color: string }`. It is the `canvasTheme(props$)` that prism-ui already computes
-  (`ui/src/model/canvas-theme.ts`, WCAG luminance at 0.179) plus the base color, today only handed to the shell as
-  `canvasTheme` / `canvasColor` props. The shell's canvas layer and the extension read the same state; in the mocks
+- **The abstraction**: prism-ui exports `CanvasInk = { theme: 'light' | 'dark'; color: string }` and
+  `canvasInk(props$): ReadonlyState<CanvasInk>`, which is the `canvasTheme(props$)` it already computes
+  (`ui/src/model/canvas-theme.ts`, WCAG luminance at 0.179) plus the base color, today handed to the shell only as
+  `canvasTheme` / `canvasColor` props; the shell takes the ink state instead. The viewer creates the one ink state and
+  gives it to the shell and to `createSequenceViewers`; in the mocks
   it comes from the mock's background, over the plugin from the canvas props source (view-models.md §3, `canvas`).
-- **The subscription is the module's**, not the control's: each viewer follows the ink while it exists, so its state
+- **The subscription is the sequence model's**, not the control's: each viewer follows the ink while it exists, so its state
   is already right when the control mounts. On a change it builds Seq\*'s `Skin` from the ink and sets it
   (`seq.setSkin(skinFor(ink))`): the surface and dark flag from the ink, ink and accent colors from Prism's palette
   for that theme, the selection as the mock strip draws it (the accent at 25%). Seq\*'s data themes have dark
@@ -151,13 +157,13 @@ find it.
 
 ## 6. Theme, tooltip and legend
 
-The extension manages its themes; Seq\* colors. Which color scheme the letters use (and, later, each track) is the
-module's state (`SequenceViewer.theme`), next to the ink it already follows (§5). The module writes the choice into
+The sequence model manages its themes; Seq\* colors. Which color scheme the letters use (and, later, each track) is the
+model's state (`SequenceViewer.theme`), next to the ink it already follows (§5). The model writes the choice into
 the document it builds; Seq\*'s themes and renderers draw the colors from it, so nothing about coloring is
 reimplemented in Prism.
 
 - **Legend**: a small prism-ui `Legend` component (items: swatch or glyph and label; ramps: gradient, low and high),
-  opened from a button on the control. Its data is the extension's own: the scheme it chose, read from the scheme's
+  opened from a button on the control. Its data is the model's own: the scheme it chose, read from the scheme's
   public definition (`KernelColorSchemes`, `ColorSchemeEntry` from `@molstar/seq-core/format`). Seq\*'s legend model
   (`legendGroups` in `viewer/src/chrome.ts`) stays internal to its DOM and React UIs: no new Seq\* entry.
 - **Tooltip**: the sequence's hover feeds the shell's one cursor-following `HoverLabel` (shell.md: the sequence's
@@ -166,28 +172,29 @@ reimplemented in Prism.
   change only when the label does.
 - Track headers stay off (`headerWidth: 0`), so header tooltips, track menus and the hover card are not in play.
 - **Later, data tracks**: a legend whose bands or range come from the data or the user's edits (pLDDT, a continuous
-  annotation) is computed by Seq\*'s renderers today. With fixed bands (pLDDT's) the extension knows them from the
+  annotation) is computed by Seq\*'s renderers today. With fixed bands (pLDDT's) the model knows them from the
   theme it set; for the rest, Seq\*'s per-track legend (`trackLegends`) gets an export then (§8).
 
 ## 7. Work, in order
 
 | #   | What                                                                                                                                                                                         | Who            |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| S2  | prism-ui: the module slot (contexts.md §3, minimal), the `canvasInk` behavior on the viewer mode's context (the shell reads it too), `FloatingDock`'s frameless variant, the `Legend` component with a story                                                                 | Sonnet, medium |
-| S3  | `prism-viewer/src/extensions/sequence`: module (the ink subscription and `skinFor`, the theme state and the legend data from it), document, control, link over `StructureView3D`; the mock `StructureView3D` and the 1TQN fixture                                         | Sonnet, high   |
-| S4  | the viewer-mode mock composes the extension instead of `SequenceStrip`; the shell stories (including `CanvasBackground` for the ink); the subscription guard extended to the new package | Sonnet, medium |
+| S2  | prism-ui: the `CanvasInk` abstraction (`canvasInk(props$)`, the shell reading it), `FloatingDock`'s frameless variant, the `Legend` component with a story                                                                 | Sonnet, medium |
+| S3  | `prism-viewer/src/sequence`: the model (the ink subscription and `skinFor`, the theme state and the legend data from it), document, control, link over `StructureView3D`; the mock `StructureView3D` and the 1TQN fixture                                         | Sonnet, high   |
+| S4  | the viewer-mode mock creates the sequence model and its tab instead of `SequenceStrip`; the shell stories (including `CanvasBackground` for the ink); the subscription guard extended to prism-viewer | Sonnet, medium |
 | S5  | Visual check in Storybook                                                                                                                                                                    | David          |
 
-S3 needs S2; S4 needs S3. Over the real plugin, the same extension gets its
+S3 needs S2; S4 needs S3. Over the real plugin, the same code gets its
 `pluginView3D` in `sources/` once Prism's plugin sources exist (view-models.md §3); nothing in the control changes.
 
 ## 8. Follow-ups
 
 | Item                                                                                                     | Trigger                              |
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| molstar-poc's link and structure provider as a real package (`@molstar/seq-molstar`), out of the PoC      | the extension leaves the mocks       |
+| molstar-poc's link and structure provider as a real package (`@molstar/seq-molstar`), out of the PoC      | the sequence view leaves the mocks   |
 | Several viewers (a second id, its own tab or dock)                                                       | a feature that needs two             |
 | The strip header's structure picker (structure, chain or polymer mode, instance)                         | more than one structure loaded       |
 | Tracks beyond letters (secondary structure, pLDDT, annotations) and their legend; Seq\*'s `trackLegends` exported for data-driven ranges | asked for in Prism                   |
+| contexts.md revised for prism-ui as a runtime and the viewer and story mode as opinionated compositions (§2): its modules and contributions (§3–4) | before the next design that leans on contexts.md |
 | The `--msp-ink` tokens (defined, unused) for chrome outside the canvas layer                             | a canvas control outside that layer  |
 | todo.md's "the Mol\* hover sometimes needs a second move after the pointer was over the 3D canvas"       | the link over the real plugin        |
