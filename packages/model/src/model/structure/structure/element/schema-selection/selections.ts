@@ -20,7 +20,7 @@ import {
   Sorting,
 } from './indexing.js';
 import type { SchemaItem } from '../schema.js';
-import { isDefined } from './utils.js';
+import { isDefined } from '@molstar/core/util/object';
 
 const EmptyArray: readonly any[] = [];
 

@@ -13,7 +13,7 @@ import type { CoarseElements } from '../../../model/properties/coarse.js';
 import { filterInPlace, range, sortIfNeeded } from '@molstar/core/util/array';
 import { type Mapping, MultiMap } from '@molstar/core/util/multi-map';
 import { NumberMap } from '@molstar/core/util/number-map';
-import { isDefined } from './utils.js';
+import { isDefined } from '@molstar/core/util/object';
 
 export interface IndicesAndSortings {
   atomic?: AtomicIndicesAndSortings;
