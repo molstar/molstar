@@ -34,6 +34,7 @@ export interface StructureOptions {
   assembly: string | null;
   include: Include[];
   chains: string[] | null;
+  ligand_comps: string[] | null;
   unit_name: string;
   numberings: ('label' | 'auth' | 'atom')[];
   default_numbering: string | null;
@@ -48,6 +49,11 @@ export const StructureOptionsSchema = SimpleParamsSchema({
     'what becomes a unit (water: LATER)',
   ),
   chains: OptionalField(nullable(list(str)), null, 'keep only the units with these names'),
+  ligand_comps: OptionalField(
+    nullable(list(str)),
+    null,
+    'keep only the ligands (not ions) of these chemical components, such as ["HEM"]; null: every ligand',
+  ),
   unit_name: OptionalField(str, 'label_asym_id', 'label_asym_id, auth_asym_id, or a template over their columns'),
   numberings: OptionalField(list(literal('label', 'auth', 'atom')), ['label', 'auth', 'atom'], 'which it writes'),
   default_numbering: OptionalField(nullable(str), 'auth', 'the one marked default on polymer units'),
@@ -62,6 +68,7 @@ const DEFAULTS: StructureOptions = {
   assembly: null,
   include: ['polymer', 'ligand', 'ion', 'branched'],
   chains: null,
+  ligand_comps: null,
   unit_name: 'label_asym_id',
   numberings: ['label', 'auth', 'atom'],
   default_numbering: 'auth',
@@ -175,6 +182,7 @@ export function complexInputs(
       const included = c.kind === 'polymer' ? 'polymer' : c.kind === 'branched' ? 'branched' : isIon ? 'ion' : 'ligand';
       if (!o.include.includes(included) || c.count === 0) continue;
       const compId = m.atomicHierarchy.atoms.label_comp_id.value(c.unit.elements[c.start[0]]);
+      if (included === 'ligand' && o.ligand_comps && !o.ligand_comps.includes(compId)) continue;
       // An SDF or MOL2 record is a model with one ligand unit, `ligand`, over `entity:ligand`.
       const name = ligandFile ? (model === null ? 'ligand' : `${model}/ligand`) : nameOf(c, o.unit_name, model, compId);
       if (o.chains && !o.chains.includes(name)) continue;

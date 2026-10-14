@@ -17,7 +17,7 @@ import { Extents } from '@molstar/seq-core/model';
 import { Translator } from '@molstar/seq-core/translate';
 import { StructureElement } from '@molstar/model/model/structure';
 import { describe, expect, it } from 'vitest';
-import { readStructure, StructureLink, structureOf } from '../src/index.js';
+import { complexInputs, readStructure, StructureLink, structureOf } from '../src/index.js';
 import { registries } from './fixtures.js';
 
 /** ins1.cif (a nine-residue chain) with a ligand B: three heavy atoms C1, C2, O1 and a hydrogen. */
@@ -68,5 +68,20 @@ describe('a ligand unit in the link', () => {
     expect(StructureElement.Loci.size(at(ligand as NonNullable<typeof ligand>, 2, 3))).toBe(4);
     // A polymer position is its residue, as it was.
     expect(StructureElement.Loci.size(at(polymer as NonNullable<typeof polymer>, 2, 3))).toBe(1);
+  });
+});
+
+describe('the ligands a complex includes', () => {
+  it('`ligand_comps` keeps the ligand units of those chemical components, and a polymer stays', async () => {
+    const src = await readStructure(withLigand(), 'mmcif');
+    const structure = await structureOf(src, 0, null);
+    const units = (ligand_comps?: string[]) =>
+      complexInputs([{ structure, model: null }], src.frame, ligand_comps ? { ligand_comps } : {}, () => {}).units.map(
+        (u) => u.key,
+      );
+    expect(units()).toEqual(['A', 'B']);
+    expect(units(['LIG'])).toEqual(['A', 'B']);
+    expect(units(['HEM'])).toEqual(['A']);
+    expect(units([])).toEqual(['A']);
   });
 });
