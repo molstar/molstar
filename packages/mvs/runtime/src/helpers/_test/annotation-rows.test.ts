@@ -5,19 +5,19 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { ElementIndex } from '@molstar/model/model/structure';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
 import { ElementRanges } from '@molstar/model/model/structure/structure/element/schema-selection/element-ranges';
 import { IndicesAndSortings } from '@molstar/model/model/structure/structure/element/schema-selection/indexing';
 import type { MVSAnnotationRow } from '../schemas.js';
 import {
-  atomQualifies,
   getAtomRangesForRow,
   getAtomRangesForRows,
 } from '@molstar/model/model/structure/structure/element/schema-selection/selections';
 import { TestOperator, combinedCategories, createModel, makeRows, rowCategories } from './annotation-rows-fixture.js';
+import { createRowOracle } from './row-oracle.js';
 
-/** The per-atom definition of "atom satisfies row" (`atomQualifies`, a linear scan) is the oracle for the index-driven implementation. */
+/** The per-atom definition of "atom satisfies row" (`createRowOracle`, written independently of the implementation, which uses `atomQualifies`) is the oracle
+ * for the index-driven implementation. */
 describe.each([
   [
     'single comp_id per residue',
@@ -59,20 +59,9 @@ describe.each([
   ];
   const allRows: MVSAnnotationRow[] = groups.flatMap((g) => g.rows);
 
+  const oracle = createRowOracle(model);
   /** Last row (by index) which the atom satisfies, -1 for none (later rows win). */
-  function bruteForceRowForEachAtom(rows: MVSAnnotationRow[]) {
-    const out = new Array<number>(nAtoms).fill(-1);
-    for (let iAtom = 0; iAtom < nAtoms; iAtom++) {
-      for (let iRow = 0; iRow < rows.length; iRow++) {
-        const row = rows[iRow];
-        // a row for another instance or operator never applies (`atomQualifies` is only the atom-level part)
-        if (row.instance_id !== undefined && row.instance_id !== TestOperator.instanceId) continue;
-        if (row.operator_name !== undefined && row.operator_name !== TestOperator.name) continue;
-        if (atomQualifies(model, iAtom as ElementIndex, row)) out[iAtom] = iRow;
-      }
-    }
-    return out;
-  }
+  const bruteForceRowForEachAtom = (rows: MVSAnnotationRow[]) => oracle.rowOfEachAtom(rows, TestOperator);
 
   function atomsInRanges(ranges: ElementRanges | undefined) {
     const atoms: number[] = [];
