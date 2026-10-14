@@ -13,8 +13,8 @@
 import { readFileSync } from "node:fs";
 import { StreamNotServed } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { CASES, makers, req } from "./cases.ts";
-import { sliceReader } from "./slices.ts";
+import { CASES, makers, req } from "./cases.js";
+import { sliceReader } from "./slices.js";
 
 const expected = JSON.parse(readFileSync(new URL("./fixtures/expected.json", import.meta.url), "utf8"))
   .bigwig as Record<string, unknown>;

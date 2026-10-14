@@ -10,10 +10,10 @@
 // system's domain, name, numbering and labels, and the alive units over a molecule. Edges: called per system, never per
 // position.
 
-import type { NameId, UnitId } from "../common.ts";
-import { CoordinateSystemKind as K } from "../coordinates.ts";
-import { LABEL, NO_LABEL, Numbering, type NumberingSet, type PositionLabel, UNKNOWN_SUFFIX } from "../numbering.ts";
-import { type SeqSet, SeqSets } from "../set.ts";
+import type { NameId, UnitId } from "../common.js";
+import { CoordinateSystemKind as K } from "../coordinates.js";
+import { LABEL, NO_LABEL, Numbering, type NumberingSet, type PositionLabel, UNKNOWN_SUFFIX } from "../numbering.js";
+import { type SeqSet, SeqSets } from "../set.js";
 
 /** Writes the system's indices [lo, hi) to `out`; false when it has none held (a removed unit, a row not held). */
 export function domainOf(set: SeqSet, kind: number, id: number, row: number, out: Int32Array): boolean {

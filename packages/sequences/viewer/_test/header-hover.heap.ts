@@ -15,7 +15,7 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { expect, it, vi } from "vitest";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
 
 const N = 50_000;
 const S = "v.main";
@@ -44,8 +44,8 @@ function doc() {
 /** The headers' document opened afresh, and a step: the hover on a header by turns, described and projected. */
 async function headers() {
   vi.resetModules();
-  const { opened } = await import("./layout-fixtures.ts");
-  const { ChannelMarks, EntryKind, Hit } = await import("../src/index.ts");
+  const { opened } = await import("./layout-fixtures.js");
+  const { ChannelMarks, EntryKind, Hit } = await import("../src/index.js");
   const t = await opened(doc(), { size: { [S]: [1000, 500] } });
   t.ctx.behaviors.get("hoverLabel")?.remove();
   const l = t.layout(S);

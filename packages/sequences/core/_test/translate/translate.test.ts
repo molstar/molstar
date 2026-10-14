@@ -20,7 +20,7 @@ import {
   StringTable,
 } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { IndexKinds, type SystemDescriptor, TranslateMaps, Translator } from "../../src/translate/index.ts";
+import { IndexKinds, type SystemDescriptor, TranslateMaps, Translator } from "../../src/translate/index.js";
 
 const K = CoordinateSystemKind;
 const unit = (id: number): CoordinateSystem => ({ kind: K.unit, id, row: -1 });

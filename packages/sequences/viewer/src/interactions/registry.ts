@@ -30,9 +30,9 @@ import {
   type KeyTarget,
   Mappings,
 } from "@molstar/seq-core/model";
-import { interactionColors } from "./builder.ts";
-import { type Fingerprint, Fingerprints } from "./fingerprint.ts";
-import { KindMask, type KindName, Kinds } from "./vocabulary.ts";
+import { interactionColors } from "./builder.js";
+import { type Fingerprint, Fingerprints } from "./fingerprint.js";
+import { KindMask, type KindName, Kinds } from "./vocabulary.js";
 
 /** The runtime property (seqspec:model#custom-data) the provider attaches to its matrix annotation. */
 export const FingerprintProp = "interactions:fingerprint";

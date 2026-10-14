@@ -11,13 +11,13 @@ import { InteractionsViewerRegistry } from "@molstar/seq-viewer/interactions/vie
 import { SeqViewer } from "@molstar/seq-viewer/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo } from "react";
-import { case10 } from "../../../core/_test/format/cases.ts";
-import { fixtureLoaders, MolstarFixture } from "../../../core/_test/format/load-fixtures.ts";
+import { case10 } from "../../../core/_test/format/cases.js";
+import { fixtureLoaders, MolstarFixture } from "../../../core/_test/format/load-fixtures.js";
 import "@molstar/seq-viewer/skin.css";
-import { ComposedReact } from "./support/seqstar-composed";
+import { ComposedReact } from "./support/seqstar-composed.js";
 import f from "./support/seqstar-format.module.css";
-import { CANVAS_COLORS, type CanvasColor, PrismCanvas, PrismPage } from "./support/seqstar-prism";
-import { STORY_CHROME } from "./support/seqstar-viewer";
+import { CANVAS_COLORS, type CanvasColor, PrismCanvas, PrismPage } from "./support/seqstar-prism.js";
+import { STORY_CHROME } from "./support/seqstar-viewer.js";
 
 /**
  * The viewer's React UI: `SeqViewer` from `/react` on the canvas

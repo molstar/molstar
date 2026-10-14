@@ -11,10 +11,10 @@
 // its overlay, each caught where the composer calls it (LC-41: the proof's corpus reached none of these catches).
 
 import { describe, expect, it } from "vitest";
-import { Dirty } from "../src/draw/index.ts";
-import { KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import { composed, recording } from "./composer-fixtures.ts";
-import { FAMILY_SECTION, familyWithTree } from "./families.ts";
+import { Dirty } from "../src/draw/index.js";
+import { KernelRenderers, type LayerRenderer } from "../src/index.js";
+import { composed, recording } from "./composer-fixtures.js";
+import { FAMILY_SECTION, familyWithTree } from "./families.js";
 
 const ROWS = KernelRenderers.find((r) => r.name === "rows") as LayerRenderer;
 const boom = () => {

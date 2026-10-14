@@ -14,8 +14,8 @@ import { type Loaders, type SeqViewSpecDoc, splitRows } from "@molstar/seq-core/
 import type { Annotation } from "@molstar/seq-core/model";
 import { tilesStream } from "@molstar/seq-core/stream/tiles";
 import { tileServer } from "@molstar/seq-core/stream/tiles/server";
-import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.ts";
-import type { ShownIndex } from "../src/axis.ts";
+import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.js";
+import type { ShownIndex } from "../src/axis.js";
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -27,12 +27,12 @@ import {
   type RenderProps,
   type SeqViewerContext,
   type SeqViewerRegistryEntry,
-} from "../src/index.ts";
-import type { Layouts } from "../src/layout.ts";
-import { PreparedParts } from "../src/prepare.ts";
-import { type LaneSegments, laneLineHeights } from "../src/runs.ts";
-import { fixtureMeasurer } from "../src/testing/index.ts";
-import type { Viewport } from "../src/viewport.ts";
+} from "../src/index.js";
+import type { Layouts } from "../src/layout.js";
+import { PreparedParts } from "../src/prepare.js";
+import { type LaneSegments, laneLineHeights } from "../src/runs.js";
+import { fixtureMeasurer } from "../src/testing/index.js";
+import type { Viewport } from "../src/viewport.js";
 /** A type's own height (free sizing, and every type under `natural`). */
 export const HEIGHTS: Record<string, number> = {
   letters: 26,

@@ -521,6 +521,42 @@
       "path": "packages/query-language",
       "kind": "library",
       "private": false
+    },
+    {
+      "name": "@molstar/seq-core",
+      "path": "packages/sequences/core",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seq-viewer",
+      "path": "packages/sequences/viewer",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seq-nightingale",
+      "path": "packages/sequences/nightingale",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seq-molstar-poc",
+      "path": "packages/sequences/molstar-poc",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seq-scripts",
+      "path": "packages/sequences/scripts",
+      "kind": "library",
+      "private": true
+    },
+    {
+      "name": "@molstar/seq-storybook",
+      "path": "packages/sequences/storybook",
+      "kind": "storybook",
+      "private": true
     }
   ]
 }

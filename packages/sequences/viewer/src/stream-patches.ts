@@ -11,12 +11,12 @@
 
 import { type DataPatch, TILE, type Tile } from "@molstar/seq-core/format";
 import { Paths } from "@molstar/seq-core/model";
-import type { Features } from "./prepare.ts";
-import { prefixReach } from "./pyramids.ts";
-import type { StreamItems } from "./stream-contract.ts";
-import type { Region } from "./stream-layer.ts";
-import * as Store from "./stream-layer.ts";
-import * as Levels from "./stream-levels.ts";
+import type { Features } from "./prepare.js";
+import { prefixReach } from "./pyramids.js";
+import type { StreamItems } from "./stream-contract.js";
+import type { Region } from "./stream-layer.js";
+import * as Store from "./stream-layer.js";
+import * as Levels from "./stream-levels.js";
 
 // Read once into module constants: a read through an import is a property read of the module per use, which
 // the test runner's module wrapper turns into an allocation on per-frame paths.

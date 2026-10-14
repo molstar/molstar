@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // _test (no emit).
+  "compilerOptions": {
+    "composite": false, "declaration": false, "declarationMap": false, "noEmit": true,
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "webxr", "vite/client"]
+  },
+  "include": ["_test"]
+}

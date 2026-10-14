@@ -13,12 +13,12 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { OrderedSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { Pass, SkinToken } from "../src/draw/index.ts";
-import { HoverKind } from "../src/index.ts";
-import type { Features } from "../src/prepare.ts";
-import { open, vp } from "./axis-fixtures.ts";
-import { layer, opened, preparedRenderers } from "./layout-fixtures.ts";
-import { lit, passRects } from "./overlay-fixtures.ts";
+import { Pass, SkinToken } from "../src/draw/index.js";
+import { HoverKind } from "../src/index.js";
+import type { Features } from "../src/prepare.js";
+import { open, vp } from "./axis-fixtures.js";
+import { layer, opened, preparedRenderers } from "./layout-fixtures.js";
+import { lit, passRects } from "./overlay-fixtures.js";
 
 /**
  * 40 nucleotides, cyclic or not: `a` is one item in three fragments, [36, 4) written across the origin and [20, 24);

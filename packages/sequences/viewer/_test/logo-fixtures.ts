@@ -9,7 +9,7 @@
 // The logo's document for RN2's tests (browser-safe: the builder and the synthetic family only).
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { familyRows } from "./families.ts";
+import { familyRows } from "./families.js";
 
 /** The synthetic family's alignment (30 columns, `rows` members; or `columns` random ones) with its profile as a logo and a matrix. */
 export function logoDoc(rows = 12, columns = 30) {

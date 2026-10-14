@@ -14,8 +14,8 @@
 // read here.
 
 import { type Annotation, ColumnRoles, KeyKind, type KeyTarget, type SeqSet } from "@molstar/seq-core/model";
-import { paletteValue } from "../palettes/fields.ts";
-import type { SvsRegistries } from "../registry.ts";
+import { paletteValue } from "../palettes/fields.js";
+import type { SvsRegistries } from "../registry.js";
 
 /** One key of an order, as the document writes it (defaults filled by normalizing). */
 export type OrderKeyValue = "data" | "tree" | { data: string; field: string; direction?: "asc" | "desc" };

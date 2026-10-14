@@ -27,8 +27,8 @@ import {
   type ThemeRef,
 } from "@molstar/seq-core/format";
 import { type Annotation, Annotations, CoordinateSystemKind, KeyKind, type KeyTarget } from "@molstar/seq-core/model";
-import { SchemeTheme } from "./color-schemes.ts";
-import { NO_COLOR } from "./draw/backend.ts";
+import { SchemeTheme } from "./color-schemes.js";
+import { NO_COLOR } from "./draw/backend.js";
 import {
   coverGranularity,
   dataIndex,
@@ -44,7 +44,7 @@ import {
   type ThemeLocation,
   type ThemeProvider,
   themeProvider,
-} from "./themes.ts";
+} from "./themes.js";
 
 interface Clause {
   readonly measure?: unknown;

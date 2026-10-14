@@ -15,7 +15,7 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.ts";
+import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
 import {
   type DrawResources,
   NO_COLOR,
@@ -25,10 +25,10 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.ts";
-import { Dirty } from "../../src/draw/index.ts";
-import { DefaultSkin } from "../../src/index.ts";
-import { canvasesOf, close, diff as diffPixels, type Opened, opened, pixelsOf } from "./open.ts";
+} from "../../src/draw/api.js";
+import { Dirty } from "../../src/draw/index.js";
+import { DefaultSkin } from "../../src/index.js";
+import { canvasesOf, close, diff as diffPixels, type Opened, opened, pixelsOf } from "./open.js";
 
 const MONO = DefaultSkin.fontMono;
 const UI = DefaultSkin.fontUi;

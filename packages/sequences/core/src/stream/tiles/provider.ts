@@ -20,7 +20,7 @@ import {
   TILE,
   Tiles,
 } from "@molstar/seq-core/format";
-import { fetchTransport, type TilesClient, type TileTransport, tileClient } from "./client.ts";
+import { fetchTransport, type TilesClient, type TileTransport, tileClient } from "./client.js";
 
 export const PROTOCOL = "seqstar-tiles/1";
 /** An alignment's levels: every [2^ly, 2^lx], level `ly·16 + lx`. */

@@ -14,8 +14,8 @@
 
 import { type BlockRow, childrenOf, type DocIndex, indexDoc, resolveSection } from "@molstar/seq-core/format";
 import { type Extents, CoordinateSystemKind as K, type SeqSet } from "@molstar/seq-core/model";
-import type { SeqViewerContext } from "./context.ts";
-import type { Origin } from "./state.ts";
+import type { SeqViewerContext } from "./context.js";
+import type { Origin } from "./state.js";
 
 const shows = (set: SeqSet, b: BlockRow, kind: number, id: number) =>
   kind === K.row || kind === K.columns

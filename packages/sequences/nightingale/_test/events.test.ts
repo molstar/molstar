@@ -14,7 +14,7 @@
 import { layoutOf } from "@molstar/seq-core/format";
 import { OrderedSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { AxisRuns, AxisSink, BlockRuns, extentOf, type Located, locate } from "../src/axis.ts";
+import { AxisRuns, AxisSink, BlockRuns, extentOf, type Located, locate } from "../src/axis.js";
 import {
   arbitrate,
   HoverResult,
@@ -26,9 +26,9 @@ import {
   noteLit,
   positionOf,
   rangesOf,
-} from "../src/events.ts";
-import type { AxisBlock, AxisMeta } from "../src/index.ts";
-import { axisView, type LabelBox, type Laid, layLabels } from "../src/labels.ts";
+} from "../src/events.js";
+import type { AxisBlock, AxisMeta } from "../src/index.js";
+import { axisView, type LabelBox, type Laid, layLabels } from "../src/labels.js";
 
 const runs = (text: string) => AxisRuns.parse(text, AxisRuns.create());
 const listed = (r: AxisRuns) => Array.from({ length: r.count }, (_, i) => [r.start[i], r.stop[i]]);

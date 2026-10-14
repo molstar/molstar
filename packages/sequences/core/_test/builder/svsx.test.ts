@@ -10,8 +10,8 @@
 
 import { readSvsx, type SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { createSeqViewSpec } from "../../src/builder/index.ts";
-import { bundleUris, writeSvsx } from "../../src/builder/svsx.ts";
+import { createSeqViewSpec } from "../../src/builder/index.js";
+import { bundleUris, writeSvsx } from "../../src/builder/svsx.js";
 
 const enc = (s: string) => new TextEncoder().encode(s);
 const dec = (b: Uint8Array | undefined) => new TextDecoder().decode(b);

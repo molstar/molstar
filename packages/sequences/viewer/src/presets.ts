@@ -10,8 +10,8 @@
 // navigator and per-behavior overrides (`forSection`). Picked per section by the layout (`ui.style`, the section's
 // `style` through `Presets.Alias`, else `Presets.Default` by layout and axis).
 
-import type { RenderProps } from "./layout.ts";
-import type { NavigatorParts } from "./navigators.ts";
+import type { RenderProps } from "./layout.js";
+import type { NavigatorParts } from "./navigators.js";
 
 export interface PresetEntry {
   readonly name: string;

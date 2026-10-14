@@ -12,7 +12,7 @@
 // No React here.
 
 import type { Loaders, StreamRequest } from "@molstar/seq-core/format";
-import { STREAMED_SECTION, streamedDoc, streamedLoaders } from "./seqstar-docs-streamed";
+import { STREAMED_SECTION, streamedDoc, streamedLoaders } from "./seqstar-docs-streamed.js";
 
 export const PREFETCH_SECTION = STREAMED_SECTION;
 /** The snapshots: a title, and the 100 kb of the chromosome it focuses on (far apart, so one's data is not the next's). */

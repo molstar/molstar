@@ -14,18 +14,18 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { Pass } from "../src/draw/backend.ts";
-import { drawGroupLabels } from "../src/draw/numbers.ts";
-import { DrawView } from "../src/draw/view.ts";
+import { Pass } from "../src/draw/backend.js";
+import { drawGroupLabels } from "../src/draw/numbers.js";
+import { DrawView } from "../src/draw/view.js";
 import {
   EntryKind,
   KernelRenderers,
   type LayerRenderer,
   type RenderProps,
   type SeqViewerContext,
-} from "../src/index.ts";
-import { LayerFrame, Op, RecordingBackend } from "../src/testing/index.ts";
-import { opened } from "./layout-fixtures.ts";
+} from "../src/index.js";
+import { LayerFrame, Op, RecordingBackend } from "../src/testing/index.js";
+import { opened } from "./layout-fixtures.js";
 
 const PROTEIN = "MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH";
 const residues = (n: number, seed = 0) =>

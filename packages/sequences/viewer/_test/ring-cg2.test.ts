@@ -12,12 +12,12 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { PathVerb, SkinToken } from "../src/draw/index.ts";
-import { RingLabels } from "../src/draw/ring-labels.ts";
-import { DefaultPresets } from "../src/presets.ts";
-import { Op, type RecordingBackend } from "../src/testing/index.ts";
-import { composed, recording } from "./composer-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
+import { PathVerb, SkinToken } from "../src/draw/index.js";
+import { RingLabels } from "../src/draw/ring-labels.js";
+import { DefaultPresets } from "../src/presets.js";
+import { Op, type RecordingBackend } from "../src/testing/index.js";
+import { composed, recording } from "./composer-fixtures.js";
+import { opened } from "./layout-fixtures.js";
 
 const registry = [{ presets: DefaultPresets.filter((p) => p.name === "circular") }];
 const N = 600;

@@ -10,8 +10,8 @@
 // hint-cases.ts, shared with React's.
 
 import { describe } from "vitest";
-import * as D from "../../src/dom/index.ts";
-import { hintCases } from "./hint-cases.ts";
+import * as D from "../../src/dom/index.js";
+import { hintCases } from "./hint-cases.js";
 
 describe("the DOM Hint", () => {
   hintCases(async (host, buttons) => {

@@ -14,18 +14,18 @@
 
 import { type Closure, Lanes, type ResolvedView } from "@molstar/seq-core/format";
 import type { SeqSet, Tree } from "@molstar/seq-core/model";
-import { type Axis, AxisGeometry, cellGap, type SectionAxisView, type ShownIndex } from "./axis.ts";
-import type { SeqViewerContext } from "./context.ts";
-import { defineBehavior, internal, viewportOf } from "./default-behaviors.ts";
-import { Hit, HitRegion, HoverKind } from "./hit.ts";
-import { type ClickEvt, Inputs, KeyBinding, type KeyEvt, Modifier, PointerType } from "./input.ts";
-import { EntryKind, type SectionLayout, SectionLayouts } from "./layout.ts";
-import { lanePad } from "./renderer-helpers.ts";
-import { Ring } from "./ring.ts";
-import { ringWindowZoom } from "./ring-window.ts";
-import { runXInto } from "./runs.ts";
-import type { KeyCursor } from "./ui.ts";
-import type { Viewport } from "./viewport.ts";
+import { type Axis, AxisGeometry, cellGap, type SectionAxisView, type ShownIndex } from "./axis.js";
+import type { SeqViewerContext } from "./context.js";
+import { defineBehavior, internal, viewportOf } from "./default-behaviors.js";
+import { Hit, HitRegion, HoverKind } from "./hit.js";
+import { type ClickEvt, Inputs, KeyBinding, type KeyEvt, Modifier, PointerType } from "./input.js";
+import { EntryKind, type SectionLayout, SectionLayouts } from "./layout.js";
+import { lanePad } from "./renderer-helpers.js";
+import { Ring } from "./ring.js";
+import { ringWindowZoom } from "./ring-window.js";
+import { runXInto } from "./runs.js";
+import type { KeyCursor } from "./ui.js";
+import type { Viewport } from "./viewport.js";
 
 const BINDINGS = {
   left: [{ key: "ArrowLeft" }],

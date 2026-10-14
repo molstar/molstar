@@ -4,9 +4,9 @@
  * @license MIT
  * @copyright 2020
  */
-import BitArray from "../utils/bitarray.ts";
-import { DEBUG, SEQUENCE_TYPE } from "../align/params.ts";
-import Log from "../utils/logger.ts";
+import BitArray from "../utils/bitarray.js";
+import { DEBUG, SEQUENCE_TYPE } from "../align/params.js";
+import Log from "../utils/logger.js";
 
 export type TSequence = {
   /** Sequence as a string */

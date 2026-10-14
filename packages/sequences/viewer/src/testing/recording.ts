@@ -19,7 +19,7 @@ import {
   type RenderBackend,
   SectorBatch,
   TextBatch,
-} from "../draw/backend.ts";
+} from "../draw/backend.js";
 
 export const Op = {
   beginPass: 0,

@@ -10,9 +10,9 @@
 
 import type { ChannelEntry, ChannelKind, ResolvedLayer, ResolvedSection, ThemeRef } from "@molstar/seq-core/format";
 import type { Issue, KeyTarget, SeqSet } from "@molstar/seq-core/model";
-import { createSeqViewer, type Theme, ThemeLocation } from "../src/index.ts";
+import { createSeqViewer, type Theme, ThemeLocation } from "../src/index.js";
 
-import { createTheme, themeContext } from "../src/themes.ts";
+import { createTheme, themeContext } from "../src/themes.js";
 
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };
 const idOf = (set: SeqSet, key: string) => (set.byName(key, t) ? t.id : -1);

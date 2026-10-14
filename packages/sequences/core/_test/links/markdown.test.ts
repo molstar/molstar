@@ -10,8 +10,8 @@
 // prefix, other links stay as they are and a script link is dropped.
 
 import { describe, expect, it } from "vitest";
-import { formatLink } from "../../src/links/index.ts";
-import { type HastNode, markdownToHast } from "./markdown.ts";
+import { formatLink } from "../../src/links/index.js";
+import { type HastNode, markdownToHast } from "./markdown.js";
 
 const find = (n: HastNode, tag: string): HastNode[] => [
   ...(n.tagName === tag ? [n] : []),

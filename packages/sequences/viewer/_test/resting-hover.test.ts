@@ -13,10 +13,10 @@
 // view is no loop. The browser half (both UIs, real events, the tooltip) is canvas/resting-hover.test.tsx.
 
 import { describe, expect, it } from "vitest";
-import { Hit, HoverKind } from "../src/index.ts";
-import type { InputDispatcher } from "../src/input.ts";
-import { FAMILY_SECTION as S, syntheticFamily } from "./families.ts";
-import { driven } from "./input-fixtures.ts";
+import { Hit, HoverKind } from "../src/index.js";
+import type { InputDispatcher } from "../src/input.js";
+import { FAMILY_SECTION as S, syntheticFamily } from "./families.js";
+import { driven } from "./input-fixtures.js";
 
 const open = async () => {
   const t = await driven(syntheticFamily(120, 8), { size: { [S]: [420, 260] } });

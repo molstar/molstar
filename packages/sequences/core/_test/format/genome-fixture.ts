@@ -13,7 +13,7 @@
 // committed.
 
 import { createSeqViewSpec, type NodeHandle, translate } from "@molstar/seq-core/builder";
-import type { SeqViewSpecDoc } from "../../src/format/index.ts";
+import type { SeqViewSpecDoc } from "../../src/format/index.js";
 
 /** GRCh38's chromosome lengths in Mb (chr1–22, X, Y). */
 const HUMAN_MB = [

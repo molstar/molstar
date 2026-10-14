@@ -7,7 +7,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { QueryStory } from "./support/seqstar-query-runtime";
+import { QueryStory } from "./support/seqstar-query-runtime.js";
 
 /**
  * SeqQL's runtime: a gallery of example queries beside a mounted

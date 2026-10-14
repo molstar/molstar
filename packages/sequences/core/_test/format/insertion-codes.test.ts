@@ -12,8 +12,8 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { compile } from "../../src/format/index.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+import { compile } from "../../src/format/index.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 const SEQ = "WVARIYPTNGYT";
 /** Author numbers 50, 51, 52, 52A, 52B, 53, 54, 55, 56, 57, 58, 59. */

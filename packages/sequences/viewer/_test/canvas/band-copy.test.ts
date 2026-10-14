@@ -18,9 +18,9 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { tilesStream } from "@molstar/seq-core/stream/tiles";
 import { tileServer } from "@molstar/seq-core/stream/tiles/server";
 import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.ts";
-import { type DrawResources, SkinToken } from "../../src/draw/backend.ts";
-import { Dirty, SectionComposer } from "../../src/draw/index.ts";
+import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
+import { type DrawResources, SkinToken } from "../../src/draw/backend.js";
+import { Dirty, SectionComposer } from "../../src/draw/index.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -28,10 +28,10 @@ import {
   manualScheduler,
   type SeqViewerContext,
   type Skin,
-} from "../../src/index.ts";
-import type { Streams } from "../../src/streams.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
-import { holdBack } from "../arrival-fixtures.ts";
+} from "../../src/index.js";
+import type { Streams } from "../../src/streams.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
+import { holdBack } from "../arrival-fixtures.js";
 
 const URI = "https://example.org/lazy";
 const [W, H] = [700, 300];

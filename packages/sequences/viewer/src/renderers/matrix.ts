@@ -25,7 +25,7 @@ import {
   matrixFrame,
   matrixHitBand,
   outlineMatrixCell,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 const frame = new Int32Array(2);
 /** The state under the point, from the device rows the draw fills; the position stays the hit. */

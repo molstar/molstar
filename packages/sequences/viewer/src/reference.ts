@@ -11,9 +11,9 @@
 // tests only. A test writes it to lib/seqstar/_spec/reference/viewer.md.
 
 import { printParamsTable, type SvsRegistryEntry } from "@molstar/seq-core/format";
-import { SeqViewerConfig, type SeqViewerConfigItem } from "./config.ts";
-import type { SeqViewerRegistryEntry } from "./registry.ts";
-import { DefaultSeqViewerSpec, type SeqViewerSpec } from "./spec.ts";
+import { SeqViewerConfig, type SeqViewerConfigItem } from "./config.js";
+import type { SeqViewerRegistryEntry } from "./registry.js";
+import { DefaultSeqViewerSpec, type SeqViewerSpec } from "./spec.js";
 
 const cell = (s: string) => s.replaceAll("|", "\\|").replaceAll("\n", " ");
 const code = (s: string) => `\`${cell(s)}\``;

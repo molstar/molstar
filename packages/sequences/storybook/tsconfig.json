@@ -1,6 +1,12 @@
 {
-  // Imports Mol* through @molstar/seq-molstar-poc (TypeScript source): its checker flags (tsconfig.molstar.json).
-  "extends": "../../../tsconfig.molstar.json",
-  "compilerOptions": { "types": ["node", "webxr", "vite/client"] },
-  "include": ["src", "_test", "vite.ts"]
+  "extends": "../../../tsconfig.base.json",
+  // Never built: its content is the stories and their support code (src/_stories), checked here (no emit). Imports Mol* through @molstar/seq-molstar-poc. Does not compile until the Storybook types are local (plan step C1).
+  "compilerOptions": {
+    "composite": false, "declaration": false, "declarationMap": false, "noEmit": true,
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "webxr", "vite/client"]
+  },
+  "include": ["src", "vite.ts"]
 }

@@ -31,7 +31,7 @@ import {
   ringItem,
   SizeUnit,
   ThemeLocation,
-} from "../../draw/api.ts";
+} from "../../draw/api.js";
 
 const NS = "org.example";
 export const AffinityField: FieldProviderEntry = {

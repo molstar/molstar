@@ -22,7 +22,7 @@ import { descriptionOf } from "@molstar/seq-viewer";
 import type { DomPart, PartProps } from "@molstar/seq-viewer/dom";
 import { type CSSProperties, createElement, type ReactNode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { type HastNode, markdownToHast } from "../../../../core/_test/links/markdown.ts";
+import { type HastNode, markdownToHast } from "../../../../core/_test/links/markdown.js";
 
 const LINK: CSSProperties = { color: "var(--seq-accent)", cursor: "pointer", textDecoration: "underline dotted" };
 

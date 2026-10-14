@@ -14,8 +14,8 @@ import {
   LetterDictionaries,
   LetterDictionaryNames,
   letterColors,
-} from "../../../src/format/index.ts";
-import { clustalXColor, createColumnComposition } from "../../../src/format/palettes/clustal-x.ts";
+} from "../../../src/format/index.js";
+import { clustalXColor, createColumnComposition } from "../../../src/format/palettes/clustal-x.js";
 
 const BLUE = 0x80a0f0;
 const RED = 0xf01505;

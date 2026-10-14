@@ -23,11 +23,11 @@ import {
 } from "@molstar/seq-core/format";
 import type { AnnotationInput, SeqSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { fixtureLoaders } from "../../core/_test/format/load-fixtures.ts";
-import { Q } from "../../core/src/query/index.ts";
-import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "../src/index.ts";
-import { fixtureMeasurer } from "../src/testing/index.ts";
-import { patch, refsRan, viewer } from "./graph-fixtures.ts";
+import { fixtureLoaders } from "../../core/_test/format/load-fixtures.js";
+import { Q } from "../../core/src/query/index.js";
+import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "../src/index.js";
+import { fixtureMeasurer } from "../src/testing/index.js";
+import { patch, refsRan, viewer } from "./graph-fixtures.js";
 
 const ser = (set: SeqSet | undefined, key: string) => {
   const a = set?.annotations.find((x) => x && set.strings.get(x.key) === key);

@@ -9,7 +9,7 @@
 // QL2a: the binder (seqspec:seqql#binding-and-checking): short names by operand kind and slot chain, positionals and
 // keywords, coercion, macros, and its errors with path, position, signature and a suggestion.
 import { describe, expect, it } from "vitest";
-import { expandMacros } from "../../src/query/bind.ts";
+import { expandMacros } from "../../src/query/bind.js";
 import {
   type Apply,
   bindQuery,
@@ -22,7 +22,7 @@ import {
   type QueryNode,
   readQuery,
   renderIssue,
-} from "../../src/query/index.ts";
+} from "../../src/query/index.js";
 
 const BASE = createLanguage().language;
 

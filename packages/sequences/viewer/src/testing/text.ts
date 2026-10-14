@@ -10,7 +10,7 @@
 // benchmarks share. The fixture text measurer (LY1): fixed widths per character, so layouts are deterministic in Node
 // (seqspec:viewer#text-measuring).
 
-import { fontPx, type TextMeasurer } from "../text.ts";
+import { fontPx, type TextMeasurer } from "../text.js";
 
 /** Em widths: a monospace font's every character; else by class. Combining marks and joiners are zero-width. */
 export function fixtureWidth(code: number, mono: boolean): number {

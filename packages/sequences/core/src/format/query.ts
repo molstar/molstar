@@ -25,9 +25,9 @@ import {
   type QueryIssue,
   type SeqQLQuery,
 } from "@molstar/seq-core/query";
-import type { StageContext } from "./contract.ts";
-import { report as reportAt } from "./load/issues.ts";
-import { type CheckContext, type FieldType, isPlainObject, ptr, report } from "./schema/field-schema.ts";
+import type { StageContext } from "./contract.js";
+import { report as reportAt } from "./load/issues.js";
+import { type CheckContext, type FieldType, isPlainObject, ptr, report } from "./schema/field-schema.js";
 
 /** Where a ref in a query may point: anything a selection or an annotation argument names. */
 const KINDS = ["sequence", "ligand", "unit", "complex", "alignment", "row", "annotation", "computed"];

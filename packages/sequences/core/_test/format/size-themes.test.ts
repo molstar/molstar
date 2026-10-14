@@ -11,8 +11,8 @@
 // color and glyph, and a `field_scale` over another field with no domain takes its `domain_group`'s.
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { compile, resolveView, type SeqViewSpecDoc, supportedAll, validate } from "../../src/format/index.ts";
-import { files, fixtureLoaders, registries } from "./load-fixtures.ts";
+import { compile, resolveView, type SeqViewSpecDoc, supportedAll, validate } from "../../src/format/index.js";
+import { files, fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 type B = ReturnType<typeof createSeqViewSpec>;

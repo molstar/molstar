@@ -27,14 +27,14 @@ import {
 import { type SeqViewerContext, showExtents } from "@molstar/seq-viewer";
 import { SeqViewerLayout, SeqViewerProvider, useSeqState } from "@molstar/seq-viewer/react";
 import { type KeyboardEvent, type ReactNode, use, useEffect, useMemo, useRef, useState } from "react";
-import { PrismPage } from "../support/seqstar-prism";
-import { ScrollArea, Switch, TextAction, TextTabs, Tooltip } from "../ui";
-import { type CompiledCase, compiledCase } from "./seqstar-cases";
-import { familyDoc } from "./seqstar-docs-views";
+import { PrismPage } from "../support/seqstar-prism.js";
+import { ScrollArea, Switch, TextAction, TextTabs, Tooltip } from "../ui/index.js";
+import { type CompiledCase, compiledCase } from "./seqstar-cases.js";
+import { familyDoc } from "./seqstar-docs-views.js";
 import f from "./seqstar-format.module.css";
-import { PrismCanvas } from "./seqstar-prism";
+import { PrismCanvas } from "./seqstar-prism.js";
 import q from "./seqstar-query-runtime.module.css";
-import { caseParts, useCaseContext, useStoryUi } from "./seqstar-viewer";
+import { caseParts, useCaseContext, useStoryUi } from "./seqstar-viewer.js";
 
 /** The story's app registers its letter-class tables as data: `search :classes`. */
 const ENV = createQueryEnv([

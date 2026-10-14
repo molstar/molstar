@@ -16,11 +16,11 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { Loci } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { Pass, SkinToken } from "../src/draw/index.ts";
-import { HoverKind, Inputs, lociSize, PointerType, type RowHoverParams } from "../src/index.ts";
-import { renderSvg } from "../src/svg/index.ts";
-import { FAMILY_SECTION, familyWithTree } from "./families.ts";
-import { lit, passRects, twoBlocks } from "./overlay-fixtures.ts";
+import { Pass, SkinToken } from "../src/draw/index.js";
+import { HoverKind, Inputs, lociSize, PointerType, type RowHoverParams } from "../src/index.js";
+import { renderSvg } from "../src/svg/index.js";
+import { FAMILY_SECTION, familyWithTree } from "./families.js";
+import { lit, passRects, twoBlocks } from "./overlay-fixtures.js";
 
 /** Letters, a ruler, ranges, values, a split track and a three-state matrix on one chain. */
 function doc() {

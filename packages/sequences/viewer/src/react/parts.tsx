@@ -51,8 +51,8 @@ import {
   sectionChromeStates,
   sectionHighlightEntries,
   trackMenuModel,
-} from "../chrome.ts";
-import { cx, h, landFocus, later } from "../dom/core.ts";
+} from "../chrome.js";
+import { cx, h, landFocus, later } from "../dom/core.js";
 import {
   busyShown,
   CROSS,
@@ -68,7 +68,7 @@ import {
   popover,
   sizeCaption,
   tipSpot,
-} from "../dom/shared.ts";
+} from "../dom/shared.js";
 import {
   type LegendRamp,
   type LegendSize,
@@ -77,10 +77,10 @@ import {
   SeqViewerConfig,
   type SeqViewerContext,
   type Unsubscribable,
-} from "../index.ts";
-import { sameData } from "../same.ts";
+} from "../index.js";
+import { sameData } from "../same.js";
 
-import { CLEAR_KEPT_HINT, KEEP_HINT, SearchBox } from "../search-box.ts";
+import { CLEAR_KEPT_HINT, KEEP_HINT, SearchBox } from "../search-box.js";
 import {
   type HintProps,
   type MenuProps,
@@ -92,7 +92,7 @@ import {
   useLanding,
   useScopeMaybe,
   useSeqState,
-} from "./hooks.ts";
+} from "./hooks.js";
 
 export { cx };
 

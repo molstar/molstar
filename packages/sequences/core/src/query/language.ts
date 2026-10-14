@@ -9,9 +9,9 @@
 // A host's language: the base table plus its extensions' symbols, assembled per call with no module state
 // (seqspec:seqql#extension), and the alias index the binder resolves short names from
 // (seqspec:seqql#binding-and-checking).
-import { queryIssue } from "./issue.ts";
-import { BASE_SYMBOLS } from "./table.ts";
-import type { QueryIssue, SymbolDef } from "./types.ts";
+import { queryIssue } from "./issue.js";
+import { BASE_SYMBOLS } from "./table.js";
+import type { QueryIssue, SymbolDef } from "./types.js";
 
 export interface Language {
   /** By full name. */

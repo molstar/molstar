@@ -12,9 +12,9 @@
 // rows sit two device pixels apart. At DPR 1, 2 and 3.
 
 import { afterEach, describe, expect, it } from "vitest";
-import { Kind, KindStyle } from "../../../src/interactions/index.ts";
-import { SectionLayouts } from "../../../src/layout.ts";
-import { fingerprintFrames } from "./fingerprint-fixtures.ts";
+import { Kind, KindStyle } from "../../../src/interactions/index.js";
+import { SectionLayouts } from "../../../src/layout.js";
+import { fingerprintFrames } from "./fingerprint-fixtures.js";
 
 let dispose: (() => void) | null = null;
 afterEach(() => {

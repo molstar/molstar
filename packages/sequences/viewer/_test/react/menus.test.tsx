@@ -16,13 +16,13 @@
 import { act, cloneElement, type ReactElement, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import "../../src/skin.css";
-import { withDownloadExport } from "../../src/dom/index.ts";
-import type { SeqViewerContext } from "../../src/index.ts";
-import { createSeqViewer, manualScheduler } from "../../src/index.ts";
-import { Menu, type MenuProps, SeqViewerLayout, SeqViewerProvider, type SlotName } from "../../src/react/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
-import { patch } from "../graph-fixtures.ts";
-import { at, harness, headlessSpec, keys, pointer, settle, stubSurface, uiDoc, xOf } from "./fixtures.tsx";
+import { withDownloadExport } from "../../src/dom/index.js";
+import type { SeqViewerContext } from "../../src/index.js";
+import { createSeqViewer, manualScheduler } from "../../src/index.js";
+import { Menu, type MenuProps, SeqViewerLayout, SeqViewerProvider, type SlotName } from "../../src/react/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
+import { patch } from "../graph-fixtures.js";
+import { at, harness, headlessSpec, keys, pointer, settle, stubSurface, uiDoc, xOf } from "./fixtures.js";
 
 type Trigger = ReactElement<{ "aria-expanded"?: boolean; onClick?: () => void }>;
 

@@ -18,8 +18,8 @@ import {
   encodeMsgPack,
   encodeTypedArrays,
   float32Number,
-} from "../../src/model/index.ts";
-import { TypedArrayExt } from "../../src/model/msgpack/index.ts";
+} from "../../src/model/index.js";
+import { TypedArrayExt } from "../../src/model/msgpack/index.js";
 
 const roundTrip = (v: unknown) => decodeMsgPack(encodeMsgPack(v, encodeTypedArrays), decodeTypedArrays);
 /** Every element the same number, -0 and NaN included. */

@@ -11,11 +11,11 @@
 // 1/`SIZE_ONE` of the channel's unit (px, or a share of the lane, the row or the cell), `NO_SIZE` the viewer's own
 // size. Part of the renderer API.
 
-import type { Axis, AxisView } from "../axis.ts";
-import type { Features } from "../prepare.ts";
-import { NO_SIZE, SIZE_ONE, type Theme, ThemeLocation } from "../themes.ts";
-import { shownHull } from "./cells.ts";
-import { featureLoc } from "./density.ts";
+import type { Axis, AxisView } from "../axis.js";
+import type { Features } from "../prepare.js";
+import { NO_SIZE, SIZE_ONE, type Theme, ThemeLocation } from "../themes.js";
+import { shownHull } from "./cells.js";
+import { featureLoc } from "./density.js";
 
 /**
  * The viewer's own dot, CSS px: the radius of a glyph no size theme sizes (a pair's end, a point at a narrow cell; 9 px

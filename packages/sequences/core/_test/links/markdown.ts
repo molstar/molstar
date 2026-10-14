@@ -14,7 +14,7 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
-import { rehypeSeqLinks, seqLinkSchema } from "../../src/links/remark.ts";
+import { rehypeSeqLinks, seqLinkSchema } from "../../src/links/remark.js";
 
 export interface HastNode {
   type: string;

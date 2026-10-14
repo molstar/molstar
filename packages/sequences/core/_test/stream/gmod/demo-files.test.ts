@@ -10,9 +10,9 @@
 // manifest, a region's data, and what the text they were written from says is there.
 
 import { describe, expect, it } from "vitest";
-import { bigBedProvider, bigWigProvider, twoBitProvider, vcfProvider } from "../../../src/stream/gmod/index.ts";
-import { req } from "./cases.ts";
-import { DEMO_SYSTEMS, demoGenome, memoryReader } from "./demo-files.ts";
+import { bigBedProvider, bigWigProvider, twoBitProvider, vcfProvider } from "../../../src/stream/gmod/index.js";
+import { req } from "./cases.js";
+import { DEMO_SYSTEMS, demoGenome, memoryReader } from "./demo-files.js";
 
 const signal = new AbortController().signal;
 const g = demoGenome();

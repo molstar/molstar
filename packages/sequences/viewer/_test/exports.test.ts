@@ -13,7 +13,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { collisions, type Entry, entries, exported, unused } from "../../scripts/exports.ts";
+import { collisions, type Entry, entries, exported, unused } from "../../scripts/exports.js";
 
 const pkg = (dir: string, name: string, exports: Record<string, string>, files: Record<string, string>) => {
   mkdirSync(join(dir, name, "src"), { recursive: true });
@@ -46,7 +46,7 @@ describe("export guard", () => {
       { ".": "./src/index.ts", "./x/*": "./src/x/*.ts" },
       {
         "index.ts":
-          "export type Field = { b: 2 };\nexport { Same } from '../../a/src/index.ts';\nexport const Geometry = 1;\nexport const Clash = 2;",
+          "export type Field = { b: 2 };\nexport { Same } from '../../a/src/index.js';\nexport const Geometry = 1;\nexport const Clash = 2;",
       },
     );
     mkdirSync(join(dir, "b", "src", "x"));

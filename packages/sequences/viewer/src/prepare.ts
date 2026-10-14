@@ -29,14 +29,14 @@ import {
   type SeqSet,
   Systems,
 } from "@molstar/seq-core/model";
-import { intervalTree } from "./intervals.ts";
-import { predecessor, prefixReach, type ValuePyramid, valuePyramid } from "./pyramids.ts";
-import type { LayerInput, LayerRenderer, PrepareContext } from "./registry.ts";
-import { prepareMap, prepareMatrix, prepareRows, RowsHeader, rowsStream } from "./rows.ts";
-import { laneLineHeights } from "./runs.ts";
-import type { StreamLayer } from "./stream-contract.ts";
-import { lettersStream, trackStream } from "./stream-sources.ts";
-import type { FieldTable } from "./themes.ts";
+import { intervalTree } from "./intervals.js";
+import { predecessor, prefixReach, type ValuePyramid, valuePyramid } from "./pyramids.js";
+import type { LayerInput, LayerRenderer, PrepareContext } from "./registry.js";
+import { prepareMap, prepareMatrix, prepareRows, RowsHeader, rowsStream } from "./rows.js";
+import { laneLineHeights } from "./runs.js";
+import type { StreamLayer } from "./stream-contract.js";
+import { lettersStream, trackStream } from "./stream-sources.js";
+import type { FieldTable } from "./themes.js";
 
 /** One placement's kept rows on its block, with its path. */
 interface Placed {

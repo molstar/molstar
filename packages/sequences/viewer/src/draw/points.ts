@@ -13,18 +13,18 @@
 // `drawDensity`). Every item counts. The overlay outlines the hovered item's glyph or its wrapped underline inside its
 // own cell; in density, nothing (seqspec:interaction#hover).
 
-import { AxisGeometry, type AxisView, type ShownIndex } from "../axis.ts";
-import type { Hit } from "../hit.ts";
-import type { Features } from "../prepare.ts";
-import { segWindow } from "../pyramids.ts";
-import { hitItem } from "../renderer-helpers.ts";
-import { NO_SIZE, SIZE_ONE, ThemeLocation } from "../themes.ts";
-import { CHARS, GlyphBatch, RectBatch, SkinToken, TextAlign, TextBaseline, TextBatch } from "./backend.ts";
-import { shownHull, visibleRange } from "./cells.ts";
-import { densityMode, densityShown, featureGlyph, featureKey, itemsInView, keyAlpha } from "./density.ts";
-import { densityBand, drawLineLanes, featureHoverKey, featureInk, hoveredAt, outlineLineLanes } from "./features.ts";
-import { HoverOutline, hoverEmphasis, hoveredItem } from "./hover.ts";
-import { boundaryEdge, placeRun } from "./place.ts";
+import { AxisGeometry, type AxisView, type ShownIndex } from "../axis.js";
+import type { Hit } from "../hit.js";
+import type { Features } from "../prepare.js";
+import { segWindow } from "../pyramids.js";
+import { hitItem } from "../renderer-helpers.js";
+import { NO_SIZE, SIZE_ONE, ThemeLocation } from "../themes.js";
+import { CHARS, GlyphBatch, RectBatch, SkinToken, TextAlign, TextBaseline, TextBatch } from "./backend.js";
+import { shownHull, visibleRange } from "./cells.js";
+import { densityMode, densityShown, featureGlyph, featureKey, itemsInView, keyAlpha } from "./density.js";
+import { densityBand, drawLineLanes, featureHoverKey, featureInk, hoveredAt, outlineLineLanes } from "./features.js";
+import { HoverOutline, hoverEmphasis, hoveredItem } from "./hover.js";
+import { boundaryEdge, placeRun } from "./place.js";
 import {
   DOT_R,
   DOT_R_MAX,
@@ -35,9 +35,9 @@ import {
   hitReach,
   hitWindowAt,
   sizeTheme,
-} from "./sizes.ts";
-import { drawStreamedItems, owned } from "./streamed.ts";
-import type { DrawView } from "./view.ts";
+} from "./sizes.js";
+import { drawStreamedItems, owned } from "./streamed.js";
+import type { DrawView } from "./view.js";
 
 const bars = new RectBatch(256);
 const dots = new GlyphBatch(256);

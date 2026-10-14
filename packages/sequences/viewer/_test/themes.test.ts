@@ -16,10 +16,10 @@ import { readFileSync } from "node:fs";
 import { AminoGroupColors, Color, LetterDictionaries, type Palette, type ThemeRef } from "@molstar/seq-core/format";
 import { type KeyTarget, type SeqSet, SeqSets, type SetInput } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { case3 } from "../../core/_test/format/cases.ts";
-import { trackPositions } from "../src/actions.ts";
-import { GlyphShape, NO_COLOR } from "../src/draw/backend.ts";
-import { createSeqViewer, type Theme, ThemeLocation } from "../src/index.ts";
+import { case3 } from "../../core/_test/format/cases.js";
+import { trackPositions } from "../src/actions.js";
+import { GlyphShape, NO_COLOR } from "../src/draw/backend.js";
+import { createSeqViewer, type Theme, ThemeLocation } from "../src/index.js";
 import {
   CellInk,
   cellInk,
@@ -32,9 +32,9 @@ import {
   OPAQUE,
   SIZE_ONE,
   themeContext,
-} from "../src/themes.ts";
-import { layer, opened } from "./layout-fixtures.ts";
-import { at, channel, context } from "./theme-fixtures.ts";
+} from "../src/themes.js";
+import { layer, opened } from "./layout-fixtures.js";
+import { at, channel, context } from "./theme-fixtures.js";
 
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };
 const idOf = (set: SeqSet, key: string) => (set.byName(key, t) ? t.id : -1);

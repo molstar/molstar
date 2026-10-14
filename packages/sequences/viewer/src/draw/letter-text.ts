@@ -12,10 +12,10 @@
 // to a call is boxed below TurboFan).
 
 import { Molecules } from "@molstar/seq-core/model";
-import { AxisGeometry } from "../axis.ts";
-import { letterCap } from "../layout.ts";
-import { Lod } from "../viewport.ts";
-import type { DrawView } from "./view.ts";
+import { AxisGeometry } from "../axis.js";
+import { letterCap } from "../layout.js";
+import { Lod } from "../viewport.js";
+import type { DrawView } from "./view.js";
 
 // Read once: a module member read per frame allocates under the test runner's module wrapper.
 const WRAPPED = AxisGeometry.wrapped;

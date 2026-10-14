@@ -14,11 +14,11 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { trackMenu } from "../src/chrome.ts";
-import { type CustomTrackAction, EntryKind, SeqViewerConfig } from "../src/index.ts";
+import { trackMenu } from "../src/chrome.js";
+import { type CustomTrackAction, EntryKind, SeqViewerConfig } from "../src/index.js";
 
-import type { Features } from "../src/prepare.ts";
-import { layer, opened, preparedRenderers } from "./layout-fixtures.ts";
+import type { Features } from "../src/prepare.js";
+import { layer, opened, preparedRenderers } from "./layout-fixtures.js";
 
 const SECTION = "v.main";
 function doc() {

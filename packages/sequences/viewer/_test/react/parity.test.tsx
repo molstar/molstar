@@ -17,10 +17,10 @@ import { act, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { CASES } from "../../../core/_test/format/cases.ts";
-import { fixtureLoaders, MolstarFixture } from "../../../core/_test/format/load-fixtures.ts";
-import * as D from "../../src/dom/index.ts";
-import { mountSeqViewer } from "../../src/dom/index.ts";
+import { CASES } from "../../../core/_test/format/cases.js";
+import { fixtureLoaders, MolstarFixture } from "../../../core/_test/format/load-fixtures.js";
+import * as D from "../../src/dom/index.js";
+import { mountSeqViewer } from "../../src/dom/index.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -28,16 +28,16 @@ import {
   manualScheduler,
   SeqViewerConfig,
   type SeqViewerContext,
-} from "../../src/index.ts";
+} from "../../src/index.js";
 // The skin, for the legend's grid (its layout is CSS).
 import "../../src/skin.css";
 
-import { AxisGeometry } from "../../src/axis.ts";
-import * as R from "../../src/react/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
-import { keys } from "../dom/fixtures.ts";
-import { distinctDoc, kindsDoc } from "../legend-fixtures.ts";
-import { headlessSpec, lines, mount, pointer, settle, stubSurface, subscriptions, uiDoc, WIDTH } from "./fixtures.tsx";
+import { AxisGeometry } from "../../src/axis.js";
+import * as R from "../../src/react/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
+import { keys } from "../dom/fixtures.js";
+import { distinctDoc, kindsDoc } from "../legend-fixtures.js";
+import { headlessSpec, lines, mount, pointer, settle, stubSurface, subscriptions, uiDoc, WIDTH } from "./fixtures.js";
 
 const ATTRS = /^(class|role|type|disabled|tabindex|href|target|rel|open|aria-(?!controls$).+|data-(?!testid$).+)$/;
 /** An element tree as lines: tag, the compared attributes (sorted), then adjacent text merged into one line. */

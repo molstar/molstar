@@ -9,8 +9,8 @@
 // The S-expression reader (seqspec:seqql#the-reader): text to a tree of lists, atoms and keywords with a position on
 // every node; no table. Iterative, so no input can overflow its stack; the first error stops it (seqspec:seqql#errors).
 // Never throws.
-import { queryIssue } from "./issue.ts";
-import type { QueryIssue } from "./types.ts";
+import { queryIssue } from "./issue.js";
+import type { QueryIssue } from "./types.js";
 
 /** 1-based line and column, and the 0-based offset into the text. */
 export interface TextPosition {

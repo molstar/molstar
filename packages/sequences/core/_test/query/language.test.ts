@@ -21,7 +21,7 @@ import {
   type SymbolDef,
   type SymbolKind,
   type SymbolSpec,
-} from "../../src/query/index.ts";
+} from "../../src/query/index.js";
 
 const ext = (name: string, alias: string | null, kind: SymbolKind, reads?: Slot, more?: Partial<SymbolSpec>) =>
   defineSymbol({

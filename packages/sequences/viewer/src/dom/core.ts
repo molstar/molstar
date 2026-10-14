@@ -13,10 +13,10 @@
 // host maps to its own (`Hint`, `ScrollArea`, `Menu`) are parts too. A node a part swaps keeps keyboard focus by its
 // `data-seqv-key` (`spot`, seqspec:interaction#accessibility).
 
-import type { MenuItem } from "../chrome.ts";
-import type { LegendMode, SearchFn, SeqState, SeqViewerContext, Unsubscribable } from "../index.ts";
-import { sameShallow } from "../same.ts";
-import { hintBehavior, later, popover, watch } from "./shared.ts";
+import type { MenuItem } from "../chrome.js";
+import type { LegendMode, SearchFn, SeqState, SeqViewerContext, Unsubscribable } from "../index.js";
+import { sameShallow } from "../same.js";
+import { hintBehavior, later, popover, watch } from "./shared.js";
 
 export { later, watch };
 

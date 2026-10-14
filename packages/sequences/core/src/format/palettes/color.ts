@@ -17,7 +17,7 @@
  * (seqspec:format#positions).
  */
 
-import { ColorNames } from "./names.ts";
+import { ColorNames } from "./names.js";
 
 /** 0xRRGGBB. */
 export type Color = number;

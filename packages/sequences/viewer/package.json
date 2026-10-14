@@ -1,35 +1,88 @@
 {
   "name": "@molstar/seq-viewer",
-  "version": "0.0.0",
+  "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
   "description": "The Seq* viewer, with the interactions extension: . headless, /draw, /canvas, /svg, /renderers/*, /react, /dom, /testing, /skin.css; /interactions (its format half) and /interactions/viewer (its renderers).",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
-    ".": "./src/index.ts",
-    "./draw": "./src/draw/index.ts",
-    "./canvas": "./src/canvas/index.ts",
-    "./svg": "./src/svg/index.ts",
-    "./renderers/*": "./src/renderers/*.ts",
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./draw": {
+      "molstar-src": "./src/draw/index.ts",
+      "types": "./lib/draw/index.d.ts",
+      "import": "./lib/draw/index.js"
+    },
+    "./canvas": {
+      "molstar-src": "./src/canvas/index.ts",
+      "types": "./lib/canvas/index.d.ts",
+      "import": "./lib/canvas/index.js"
+    },
+    "./svg": {
+      "molstar-src": "./src/svg/index.ts",
+      "types": "./lib/svg/index.d.ts",
+      "import": "./lib/svg/index.js"
+    },
+    "./renderers/*": {
+      "molstar-src": "./src/renderers/*.ts",
+      "types": "./lib/renderers/*.d.ts",
+      "import": "./lib/renderers/*.js"
+    },
     "./renderers/rows-tiles": null,
-    "./react": "./src/react/index.ts",
-    "./dom": "./src/dom/index.ts",
-    "./testing": "./src/testing/index.ts",
-    "./interactions": "./src/interactions/index.ts",
-    "./interactions/viewer": "./src/interactions/viewer/index.ts",
-    "./skin.css": "./src/skin.css",
+    "./react": {
+      "molstar-src": "./src/react/index.ts",
+      "types": "./lib/react/index.d.ts",
+      "import": "./lib/react/index.js"
+    },
+    "./dom": {
+      "molstar-src": "./src/dom/index.ts",
+      "types": "./lib/dom/index.d.ts",
+      "import": "./lib/dom/index.js"
+    },
+    "./testing": {
+      "molstar-src": "./src/testing/index.ts",
+      "types": "./lib/testing/index.d.ts",
+      "import": "./lib/testing/index.js"
+    },
+    "./interactions": {
+      "molstar-src": "./src/interactions/index.ts",
+      "types": "./lib/interactions/index.d.ts",
+      "import": "./lib/interactions/index.js"
+    },
+    "./interactions/viewer": {
+      "molstar-src": "./src/interactions/viewer/index.ts",
+      "types": "./lib/interactions/viewer/index.d.ts",
+      "import": "./lib/interactions/viewer/index.js"
+    },
+    "./skin.css": {
+      "molstar-src": "./src/skin.css",
+      "default": "./lib/skin.css"
+    },
     "./_stories/*": null,
     "./_test/*": null
   },
   "files": [
+    "lib",
     "src",
     "!**/_test/**",
     "!**/_stories/**",
-    "!**/*.stories.*"
+    "!**/*.stories.*",
+    "!**/*.tsbuildinfo"
   ],
   "bin": {
-    "seqv-render": "./src/cli/seqv-render.ts"
+    "seqv-render": "./lib/cli/seqv-render.js"
   },
   "scripts": {
+    "build": "tsc -b",
     "test": "vitest run",
     "test:browser": "vitest run --config vitest.browser.config.ts",
     "test:browser-heap": "HEAP=1 vitest run --config vitest.browser.config.ts",
@@ -38,28 +91,34 @@
     "test:heap": "vitest run --config vitest.heap.config.ts",
     "test:heap-deep": "HEAP_DEEP=1 vitest run --config vitest.heap.config.ts",
     "bench": "vitest bench --run --passWithNoTests --config vitest.bench.config.ts",
-    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.canvas.json && tsc --noEmit -p tsconfig.dom.json && tsc --noEmit -p tsconfig.react.json"
-  },
-  "sideEffects": [
-    "**/*.css"
-  ],
-  "peerDependencies": {
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "typecheck": "tsc -b && tsc -p tsconfig.headless.json && tsc -p tsconfig.canvas.json && tsc -p tsconfig.dom.json && tsc -p tsconfig.react.json && tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@molstar/seq-core": "workspace:*",
-    "rxjs": "^7.8.2"
+    "rxjs": "catalog:",
+    "tslib": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4",
-    "@vitest/browser-playwright": "4.1.11",
-    "playwright": "1.63.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "typescript": "^7.0.2",
-    "vitest": "^4.1.11"
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
+    "playwright": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

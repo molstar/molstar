@@ -18,7 +18,7 @@ import {
   densitySlot,
   densityStart,
   RectBatch,
-} from "../src/draw/api.ts";
+} from "../src/draw/api.js";
 
 it("six colors in a band of three device rows", () => {
   densityStart({ left: 0, right: 10, dpr: 1 } as DrawView);

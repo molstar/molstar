@@ -14,14 +14,14 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case7, case21 } from "../../core/_test/format/cases.ts";
-import { Dirty, type PathBatch, type RenderBackend, SectionComposer } from "../src/draw/index.ts";
-import { KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import type { PairsState } from "../src/prepare.ts";
-import type { RecordingBackend } from "../src/testing/index.ts";
-import { COPY_BACK, opNames, recording } from "./composer-fixtures.ts";
-import { layerOf } from "./draw-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
+import { case7, case21 } from "../../core/_test/format/cases.js";
+import { Dirty, type PathBatch, type RenderBackend, SectionComposer } from "../src/draw/index.js";
+import { KernelRenderers, type LayerRenderer } from "../src/index.js";
+import type { PairsState } from "../src/prepare.js";
+import type { RecordingBackend } from "../src/testing/index.js";
+import { COPY_BACK, opNames, recording } from "./composer-fixtures.js";
+import { layerOf } from "./draw-fixtures.js";
+import { opened } from "./layout-fixtures.js";
 
 /** The pairs renderer, its draws' subpaths noted: per recording, the [from, to) of its path items. */
 const spans = new WeakMap<RenderBackend, number[]>();

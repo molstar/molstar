@@ -9,11 +9,11 @@
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
-import { splitUnitsDoc } from "../../../viewer/_test/split-units-fixtures.ts";
-import { logoDoc, tracksDoc } from "./support/seqstar-docs-views";
+import { splitUnitsDoc } from "../../../viewer/_test/split-units-fixtures.js";
+import { logoDoc, tracksDoc } from "./support/seqstar-docs-views.js";
 import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard } from "./support/seqstar-viewer";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard } from "./support/seqstar-viewer.js";
 
 /**
  * Hover emphasis: the element under the pointer, and only it, outlined inside its own pixels in an

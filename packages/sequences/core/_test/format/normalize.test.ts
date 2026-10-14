@@ -7,8 +7,8 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { fromJSON, normalize, printReference, toJSON, validate } from "../../src/format/index.ts";
-import { dataOf, fullDoc, type J, kernel, sectionOf } from "./fixtures.ts";
+import { fromJSON, normalize, printReference, toJSON, validate } from "../../src/format/index.js";
+import { dataOf, fullDoc, type J, kernel, sectionOf } from "./fixtures.js";
 
 describe("JSON", () => {
   it("fromJSON(toJSON(d)) deep-equals d, compact and pretty", () => {

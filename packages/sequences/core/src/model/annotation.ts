@@ -22,10 +22,10 @@ import {
   type ProvenanceInput,
   type SeqIndex,
   type UnitId,
-} from "./common.ts";
-import { type CoordinateSystem, CoordinateSystemKind, Coords } from "./coordinates.ts";
-import { LABEL, NO_LABEL, Numbering, type PositionLabel } from "./numbering.ts";
-import { KeyKind, type KeyTarget, type SeqSet, SeqSets } from "./set.ts";
+} from "./common.js";
+import { type CoordinateSystem, CoordinateSystemKind, Coords } from "./coordinates.js";
+import { LABEL, NO_LABEL, Numbering, type PositionLabel } from "./numbering.js";
+import { KeyKind, type KeyTarget, type SeqSet, SeqSets } from "./set.js";
 
 export type Geometry = "ranges" | "values" | "pairs" | "matrix" | "grid" | "rows";
 const GEOMETRIES: readonly string[] = ["ranges", "values", "pairs", "matrix", "grid", "rows"];

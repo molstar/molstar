@@ -11,11 +11,11 @@
 // text manager's `invalidate` (a web font loaded) drops what was read.
 
 import { describe, expect, it } from "vitest";
-import { Dirty, SectionComposer } from "../src/draw/index.ts";
-import type { TextManager, TextMeasurer } from "../src/text.ts";
-import { pinsDoc } from "./boundary-pins-fixtures.ts";
-import { recording } from "./composer-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
+import { Dirty, SectionComposer } from "../src/draw/index.js";
+import type { TextManager, TextMeasurer } from "../src/text.js";
+import { pinsDoc } from "./boundary-pins-fixtures.js";
+import { recording } from "./composer-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
 
 /** The pins' paths (triangles) of a frame at 16 px a position, as coordinate lists. */
 async function viewer(maxLetterPx: number) {

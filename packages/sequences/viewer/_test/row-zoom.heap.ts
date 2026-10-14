@@ -15,7 +15,7 @@
 // input.heap's other cases had run, the grip allocated 31 bytes a move.
 
 import { describe, expect, it, vi } from "vitest";
-import { controlCaught, describeScaling, HEAP_DEEP, heapScaling, isFlat, leaking } from "./heap.ts";
+import { controlCaught, describeScaling, HEAP_DEEP, heapScaling, isFlat, leaking } from "./heap.js";
 
 const N = HEAP_DEEP ? 50_000 : 25_000;
 const S = "family.main";
@@ -34,19 +34,19 @@ function prime(step: (i: number) => void) {
 
 async function open() {
   vi.resetModules();
-  const { case3 } = await import("../../core/_test/format/cases.ts");
-  const { driven } = await import("./input-fixtures.ts");
-  const api = await import("../src/index.ts");
-  const { WindowKind } = await import("../src/windows.ts");
+  const { case3 } = await import("../../core/_test/format/cases.js");
+  const { driven } = await import("./input-fixtures.js");
+  const api = await import("../src/index.js");
+  const { WindowKind } = await import("../src/windows.js");
   const t = await driven(case3(), { size: { [S]: [1000, 150] }, labels: false });
   return { t, api, WindowKind };
 }
 /** A dense genotype matrix above letters tracks, in a box it overflows: its track follows the row scale. */
 async function openMatrix() {
   vi.resetModules();
-  const { genotypeDoc } = await import("./genotype-fixtures.ts");
-  const { driven } = await import("./input-fixtures.ts");
-  const api = await import("../src/index.ts");
+  const { genotypeDoc } = await import("./genotype-fixtures.js");
+  const { driven } = await import("./input-fixtures.js");
+  const api = await import("../src/index.js");
   const doc = genotypeDoc({ samples: 3000, positions: 200, below: 6 });
   // The kernel's renderers: the matrix's own height, which follows the row scale.
   const renderers = [...api.KernelRenderers] as never;

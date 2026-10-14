@@ -23,7 +23,7 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.ts";
+} from "../../src/draw/api.js";
 
 describe("RectBatch", () => {
   it("grows past its capacity with every item kept, and keeps its arrays across resets", () => {

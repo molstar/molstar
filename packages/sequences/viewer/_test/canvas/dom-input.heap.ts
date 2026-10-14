@@ -13,9 +13,9 @@
 // run (`leaking`), measured alike, are caught.
 
 import { afterEach, expect, it } from "vitest";
-import { DomInput } from "../../src/canvas/dom-input.ts";
-import type { InputSink } from "../../src/index.ts";
-import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.ts";
+import { DomInput } from "../../src/canvas/dom-input.js";
+import type { InputSink } from "../../src/index.js";
+import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.js";
 
 const hosts: HTMLElement[] = [];
 afterEach(() => {

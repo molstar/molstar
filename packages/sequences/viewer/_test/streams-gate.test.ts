@@ -25,15 +25,15 @@ import {
   streamedDoc,
   VARIANT_LEVELS,
   VOCABULARY,
-} from "../../core/_test/format/stream-provider.ts";
-import { SkinToken } from "../src/draw/backend.ts";
-import { Dirty } from "../src/draw/composer.ts";
-import { KernelRenderers, type LayerRenderer, SeqViewerConfig } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { composed, recording } from "./composer-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
-import { GENOME } from "./stream-fixtures.ts";
-import { progressGenome, rectsOf } from "./stream-progress-fixtures.ts";
+} from "../../core/_test/format/stream-provider.js";
+import { SkinToken } from "../src/draw/backend.js";
+import { Dirty } from "../src/draw/composer.js";
+import { KernelRenderers, type LayerRenderer, SeqViewerConfig } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { composed, recording } from "./composer-fixtures.js";
+import { driven } from "./input-fixtures.js";
+import { GENOME } from "./stream-fixtures.js";
+import { progressGenome, rectsOf } from "./stream-progress-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const THREE = GRCH38.slice(0, 3);

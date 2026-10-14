@@ -14,9 +14,9 @@
 import { act, Profiler } from "react";
 import { createRoot } from "react-dom/client";
 import "../../src/skin.css";
-import { Inputs, PointerType } from "../../src/index.ts";
-import { SeqViewerLayout, SeqViewerProvider } from "../../src/react/index.ts";
-import { at, openedContext, stubSurface, WIDTH, xOf } from "../dom/fixtures.ts";
+import { Inputs, PointerType } from "../../src/index.js";
+import { SeqViewerLayout, SeqViewerProvider } from "../../src/react/index.js";
+import { at, openedContext, stubSurface, WIDTH, xOf } from "../dom/fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

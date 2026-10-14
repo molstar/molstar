@@ -4,6 +4,7 @@ packages:
   - 'packages/prism/*'
   - 'packages/ai/*'
   - 'packages/mvs/*'
+  - 'packages/sequences/*'
   - 'extensions/*'
   - 'apps/*'
   - 'examples/*'
@@ -107,6 +108,21 @@ catalog:
   'fast-check': '4.10.2'
   # IndexedDB in Node (the harness's IndexedDB storage tests only); Apache-2.0 licensed.
   'fake-indexeddb': '6.2.5'
+  # Seq* (packages/sequences): EBI's Nightingale web components (the nightingale adapter), by major; the browser-test provider is pinned to the vitest above; the class-name helper of its Storybook content; MIT / Apache-2.0 licensed.
+  '@nightingale-elements/nightingale-colored-sequence': '^5'
+  '@nightingale-elements/nightingale-conservation-track': '^5'
+  '@nightingale-elements/nightingale-linegraph-track': '^5'
+  '@nightingale-elements/nightingale-links': '^5'
+  '@nightingale-elements/nightingale-manager': '^5'
+  '@nightingale-elements/nightingale-msa': '^5'
+  '@nightingale-elements/nightingale-navigation': '^5'
+  '@nightingale-elements/nightingale-sequence': '^5'
+  '@nightingale-elements/nightingale-sequence-heatmap': '^5'
+  '@nightingale-elements/nightingale-track': '^5'
+  '@nightingale-elements/nightingale-track-canvas': '^5'
+  '@nightingale-elements/nightingale-variation-canvas': '^5'
+  '@vitest/browser-playwright': '5.0.4'
+  'clsx': '2.1.1'
 
 overrides:
   # Mediabunny's pinned WebCodecs declarations conflict with the TypeScript 7 DOM library.

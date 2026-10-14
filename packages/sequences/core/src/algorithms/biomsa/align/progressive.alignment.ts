@@ -12,13 +12,13 @@
  *
  */
 
-import { DEBUG, type TAlignmentParam } from "./params.ts";
-import { type TSequence, distanceMatrix, sortMSA } from "../sequence/sequence.ts";
-import { type InternalNode, isLeafNode, makeTree, clustalWeights, setProfiles } from "../sequence/tree.ts";
-import Log from "../utils/logger.ts";
-import { pairwiseAlignment, MSASeqAlignment, MSAMSAAlignment } from "./align.ts";
-import { estringProduct } from "../utils/estring.ts";
-import { mergeProfiles } from "../sequence/profile.ts";
+import { DEBUG, type TAlignmentParam } from "./params.js";
+import { type TSequence, distanceMatrix, sortMSA } from "../sequence/sequence.js";
+import { type InternalNode, isLeafNode, makeTree, clustalWeights, setProfiles } from "../sequence/tree.js";
+import Log from "../utils/logger.js";
+import { pairwiseAlignment, MSASeqAlignment, MSAMSAAlignment } from "./align.js";
+import { estringProduct } from "../utils/estring.js";
+import { mergeProfiles } from "../sequence/profile.js";
 
 // STORIES-UNTOLD(B17): `step` is awaited before each alignment of a node's two children (a pair, a profile and a
 // sequence, or two profiles), so the caller can yield to the event loop and throw to stop; `treeAlign` is async for it.

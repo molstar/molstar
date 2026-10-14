@@ -18,17 +18,17 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { Numbering } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { case3 } from "../../core/_test/format/cases.ts";
-import { SkinToken } from "../src/draw/backend.ts";
-import { visibleRange } from "../src/draw/cells.ts";
-import { numberText } from "../src/draw/numbers.ts";
-import type { DrawView } from "../src/draw/view.ts";
-import { type Theme, ThemeLocation } from "../src/index.ts";
-import { type LettersState, type PerPosition, rowValues } from "../src/prepare.ts";
-import { PYRAMID_BASE, valuePyramid } from "../src/pyramids.ts";
-import { CellInk } from "../src/themes.ts";
-import { set } from "./axis-fixtures.ts";
-import { columns, drawn, entryOf, layerOf, meanDoc, record, rects, texts } from "./draw-fixtures.ts";
+import { case3 } from "../../core/_test/format/cases.js";
+import { SkinToken } from "../src/draw/backend.js";
+import { visibleRange } from "../src/draw/cells.js";
+import { numberText } from "../src/draw/numbers.js";
+import type { DrawView } from "../src/draw/view.js";
+import { type Theme, ThemeLocation } from "../src/index.js";
+import { type LettersState, type PerPosition, rowValues } from "../src/prepare.js";
+import { PYRAMID_BASE, valuePyramid } from "../src/pyramids.js";
+import { CellInk } from "../src/themes.js";
+import { set } from "./axis-fixtures.js";
+import { columns, drawn, entryOf, layerOf, meanDoc, record, rects, texts } from "./draw-fixtures.js";
 
 type Opened = Awaited<ReturnType<typeof drawn>>;
 async function zoom(t: Opened, section: string, cell: number, x = 0) {
@@ -495,7 +495,7 @@ describe("emphasis", () => {
     // Emphasis is the track's second layer: its own frame per line.
     const k = layerOf(t.ctx, "Letters").k + 1;
     const entry = t.ctx.registry.get("renderers", "emphasis");
-    const { LayerFrame, RecordingBackend } = await import("../src/testing/index.ts");
+    const { LayerFrame, RecordingBackend } = await import("../src/testing/index.js");
     const f = new LayerFrame(t.ctx, entry as never, layerOf(t.ctx, "Letters").section, k);
     const r = new RecordingBackend();
     f.draw(r);
@@ -543,7 +543,7 @@ describe("emphasis", () => {
       track.emphasis({ data: d });
       const t = await drawn(b.getDocument(), { width: 600, height: 200 });
       await zoom(t, layerOf(t.ctx, "Lig").section, 30);
-      const { LayerFrame, RecordingBackend } = await import("../src/testing/index.ts");
+      const { LayerFrame, RecordingBackend } = await import("../src/testing/index.js");
       const k = layerOf(t.ctx, "Lig").k + 1;
       const f = new LayerFrame(
         t.ctx,

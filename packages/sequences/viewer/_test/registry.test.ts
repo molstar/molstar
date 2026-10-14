@@ -11,7 +11,7 @@
 
 import { SimpleParamsSchema } from "@molstar/seq-core/format";
 import { describe, expect, it, vi } from "vitest";
-import { createSeqViewer, SeqRegistrationError, ViewerIssueCodes, ViewerLayerTypes } from "../src/index.ts";
+import { createSeqViewer, SeqRegistrationError, ViewerIssueCodes, ViewerLayerTypes } from "../src/index.js";
 
 describe("seqv", () => {
   it("DefaultRegistry registers the viewer's issue codes and seqv:map", () => {
@@ -39,9 +39,9 @@ describe("seqv", () => {
 
   it("a spec from another copy of the viewer in the page (an HMR update, a host bundling it twice) is the viewer's own", async () => {
     vi.resetModules();
-    const a = await import("../src/index.ts");
+    const a = await import("../src/index.js");
     vi.resetModules();
-    const b = await import("../src/index.ts");
+    const b = await import("../src/index.js");
     expect(a.ViewerIssueCodes).not.toBe(b.ViewerIssueCodes);
     const ctx = b.createSeqViewer(a.DefaultSeqViewerSpec());
     expect(ctx.registry.svs.get("layerTypes", "seqv:map")?.name).toBe("seqv:map");

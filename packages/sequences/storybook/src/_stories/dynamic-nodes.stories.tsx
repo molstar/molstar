@@ -19,11 +19,11 @@ import {
   keyedDoc,
   keyedLoaders,
   PEAKS,
-} from "./support/seqstar-docs-streamed";
+} from "./support/seqstar-docs-streamed.js";
 import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard } from "./support/seqstar-viewer";
-import { TextAction } from "./ui";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard } from "./support/seqstar-viewer.js";
+import { TextAction } from "./ui/index.js";
 
 /**
  * Dynamic nodes: a streamed source's manifest and patches add data nodes to the set,

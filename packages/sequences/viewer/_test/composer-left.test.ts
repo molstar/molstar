@@ -11,8 +11,8 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { expect, it } from "vitest";
-import { AxisGeometry } from "../src/axis.ts";
-import { composed, recording } from "./composer-fixtures.ts";
+import { AxisGeometry } from "../src/axis.js";
+import { composed, recording } from "./composer-fixtures.js";
 
 it("a frame of a section out of the current view clears `animating` and `again`", async () => {
   const b = createSeqViewSpec();

@@ -17,11 +17,11 @@ import {
   type ServiceEntry,
   type SvsRegistryEntry,
 } from "@molstar/seq-core/format";
-import { StructureProvider } from "./complex.ts";
-import { SiftsCoverageProvider, SiftsDepthProvider } from "./coverage.ts";
-import { PaeFormat, PaeProvider } from "./pae.ts";
-import { PlddtProvider } from "./plddt.ts";
-import { categoryTable, readStructure, type StructureFormat } from "./source.ts";
+import { StructureProvider } from "./complex.js";
+import { SiftsCoverageProvider, SiftsDepthProvider } from "./coverage.js";
+import { PaeFormat, PaeProvider } from "./pae.js";
+import { PlddtProvider } from "./plddt.js";
+import { categoryTable, readStructure, type StructureFormat } from "./source.js";
 
 /** A structure format: the parsed structure (`object`), or with `category_name` a CIF category as a table. */
 function structureFormat(name: StructureFormat, extensions: string[]): FormatEntry {

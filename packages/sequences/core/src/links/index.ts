@@ -6,6 +6,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export { formatLink, type ParsedLink, parseLink } from "./codec.ts";
-export { DefaultLinkKeys, type LinkKey } from "./keys.ts";
-export { createLinkRunner, type LinkRunner } from "./runner.ts";
+export { formatLink, type ParsedLink, parseLink } from "./codec.js";
+export { DefaultLinkKeys, type LinkKey } from "./keys.js";
+export { createLinkRunner, type LinkRunner } from "./runner.js";

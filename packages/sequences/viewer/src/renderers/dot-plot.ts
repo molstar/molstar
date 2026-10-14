@@ -26,7 +26,7 @@ import {
   overlayDotPlot,
   prepareDotPlot,
   type RenderProps,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 const io = new Float64Array(2);
 const at = new Int32Array(2);

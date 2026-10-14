@@ -12,14 +12,14 @@
 // subject); the core knows no biology beyond these tables.
 
 import { type Alphabet, type Annotation, Issue, Molecules, type SeqSet } from "@molstar/seq-core/model";
-import type { ThemeRef } from "../doc.ts";
-import type { ColorSchemeEntry, LayerTypeEntry, SvsRegistries } from "../registry.ts";
-import type { ResolvedSection } from "../resolve/section.ts";
-import { type CheckContext, isPlainObject, ptr, report, show, typeError } from "../schema/field-schema.ts";
-import { Color } from "./color.ts";
-import { AminoGroupColors } from "./dictionaries.ts";
-import { LetterDictionaryNames, letterColors } from "./letters.ts";
-import { ColorLists } from "./lists.ts";
+import type { ThemeRef } from "../doc.js";
+import type { ColorSchemeEntry, LayerTypeEntry, SvsRegistries } from "../registry.js";
+import type { ResolvedSection } from "../resolve/section.js";
+import { type CheckContext, isPlainObject, ptr, report, show, typeError } from "../schema/field-schema.js";
+import { Color } from "./color.js";
+import { AminoGroupColors } from "./dictionaries.js";
+import { LetterDictionaryNames, letterColors } from "./letters.js";
+import { ColorLists } from "./lists.js";
 
 export type ColorStop = string | readonly [string, number];
 export interface LetterGroup {

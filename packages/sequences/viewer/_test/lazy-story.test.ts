@@ -11,11 +11,11 @@
 
 import { validate } from "@molstar/seq-core/format";
 import { expect, it } from "vitest";
-import { registries } from "../../core/_test/format/load-fixtures.ts";
-import { KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { opened } from "./layout-fixtures.ts";
-import { LAZY_ROWS, lazyStoryDoc, lazyStoryLoaders } from "./lazy-story-fixtures.ts";
+import { registries } from "../../core/_test/format/load-fixtures.js";
+import { KernelRenderers, type LayerRenderer } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { opened } from "./layout-fixtures.js";
+import { LAZY_ROWS, lazyStoryDoc, lazyStoryLoaders } from "./lazy-story-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 

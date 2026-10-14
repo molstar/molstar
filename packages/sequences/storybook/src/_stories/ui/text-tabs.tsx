@@ -8,7 +8,7 @@
 
 import { type KeyboardEvent, type ReactNode, useRef } from "react";
 import styles from "./text-tabs.module.css";
-import { Tooltip } from "./tooltip";
+import { Tooltip } from "./tooltip.js";
 
 export interface TextTab {
   value: string;

@@ -12,12 +12,12 @@
 
 import { validate } from "@molstar/seq-core/format";
 import { expect, it } from "vitest";
-import { registries } from "../../core/_test/format/load-fixtures.ts";
-import { GRCH38, hg38Streams } from "../../core/_test/format/stream-provider.ts";
-import { KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { JBROWSE_SECTION, jbrowseDoc } from "./jbrowse-story-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
+import { registries } from "../../core/_test/format/load-fixtures.js";
+import { GRCH38, hg38Streams } from "../../core/_test/format/stream-provider.js";
+import { KernelRenderers, type LayerRenderer } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { JBROWSE_SECTION, jbrowseDoc } from "./jbrowse-story-fixtures.js";
+import { opened } from "./layout-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 

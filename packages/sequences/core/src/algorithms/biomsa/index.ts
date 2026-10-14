@@ -5,13 +5,13 @@
  * @copyright 2020-2021
  */
 
-import { makeSequence, getSequenceType, type TSequence } from "./sequence/sequence.ts";
-import { DEBUG, SEQUENCE_TYPE, getAlignmentParameters, DEFAULT_GAP_CHAR } from "./align/params.ts";
-import { pairwiseAlignment } from "./align/align.ts";
-import { progressiveAlignment } from "./align/progressive.alignment.ts";
-import Log from "./utils/logger.ts";
-import { centerStarNoAlign, noalignPair } from "./align/noalign.ts";
-import { applyEstring } from "./utils/estring.ts";
+import { makeSequence, getSequenceType, type TSequence } from "./sequence/sequence.js";
+import { DEBUG, SEQUENCE_TYPE, getAlignmentParameters, DEFAULT_GAP_CHAR } from "./align/params.js";
+import { pairwiseAlignment } from "./align/align.js";
+import { progressiveAlignment } from "./align/progressive.alignment.js";
+import Log from "./utils/logger.js";
+import { centerStarNoAlign, noalignPair } from "./align/noalign.js";
+import { applyEstring } from "./utils/estring.js";
 
 type TAlignMethod = "diag" | "complete" | "auto";
 type TAlignSequenceType = "amino" | "nucleic" | "auto";

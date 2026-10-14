@@ -7,4 +7,4 @@
  */
 
 // The shared fixture generators are one for every package: core/_test/model/support/generators.ts.
-export * from "../../../core/_test/model/support/generators.ts";
+export * from "../../../core/_test/model/support/generators.js";

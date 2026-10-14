@@ -13,10 +13,10 @@
 
 import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { LETTER_LINE, TextBaseline } from "../src/draw/api.ts";
-import type { SeqViewerContext } from "../src/index.ts";
-import { LayerFrame, Op, RecordingBackend } from "../src/testing/index.ts";
-import { drawn, entryOf, layerOf, record, rects, texts } from "./draw-fixtures.ts";
+import { LETTER_LINE, TextBaseline } from "../src/draw/api.js";
+import type { SeqViewerContext } from "../src/index.js";
+import { LayerFrame, Op, RecordingBackend } from "../src/testing/index.js";
+import { drawn, entryOf, layerOf, record, rects, texts } from "./draw-fixtures.js";
 
 const PROTEIN = "MSEEKLKELAEKAIRLAKEGNPEE";
 

@@ -16,8 +16,8 @@ import { type CoordinateSystem, CoordinateSystemKind, Extents, KeyKind, type Seq
 import { Translator } from "@molstar/seq-core/translate";
 import { type Structure, StructureElement } from "molstar/lib/mol-model/structure";
 import { describe, expect, it } from "vitest";
-import { readStructure, StructureLink, structureOf } from "../src/index.ts";
-import { bytesOf, loaders, p53Doc, registries } from "./fixtures.ts";
+import { readStructure, StructureLink, structureOf } from "../src/index.js";
+import { bytesOf, loaders, p53Doc, registries } from "./fixtures.js";
 
 const UNIT = CoordinateSystemKind.unit;
 function unitOf(set: SeqSet, ref: string): CoordinateSystem {

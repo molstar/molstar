@@ -20,8 +20,8 @@ import {
   SimpleParamsSchema,
   SvsTreeSchema,
   validate,
-} from "../../src/format/index.ts";
-import { dataOf, fullDoc, type J, kernel, layer, minimalDoc, sectionOf, track } from "./fixtures.ts";
+} from "../../src/format/index.js";
+import { dataOf, fullDoc, type J, kernel, layer, minimalDoc, sectionOf, track } from "./fixtures.js";
 
 const errors = (d: unknown, reg = kernel()) => validate(d, reg).filter((i) => i.severity === "error");
 

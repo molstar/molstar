@@ -15,9 +15,9 @@
 // priority (the layer's order, then the longer item). Drawn per ring frame from the kept arrays, upright, on the real
 // backend (not through the ring map): nothing is allocated per frame.
 
-import { fitIn, fitted, type TextManagerApi } from "../text.ts";
-import type { RenderBackend } from "./backend.ts";
-import { PathBatch, PathMode, PathVerb, SkinToken, TextAlign, TextBaseline, TextBatch } from "./backend.ts";
+import { fitIn, fitted, type TextManagerApi } from "../text.js";
+import type { RenderBackend } from "./backend.js";
+import { PathBatch, PathMode, PathVerb, SkinToken, TextAlign, TextBaseline, TextBatch } from "./backend.js";
 
 /**
  * What a renderer lists for the ring's labels: an item's extent on block `block`, its text, and its annotation and row

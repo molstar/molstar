@@ -11,13 +11,13 @@
 // window's sector is on the overlay canvas where the linear view is, and leaves it when the view moves away.
 
 import { afterEach, describe, expect, it } from "vitest";
-import { SectionSurface } from "../../src/canvas/index.ts";
-import { Pass } from "../../src/draw/backend.ts";
-import { createSeqViewer, DefaultSeqViewerSpec, manualScheduler, type SeqViewerContext } from "../../src/index.ts";
-import { Ring } from "../../src/ring.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
-import type { Viewport } from "../../src/viewport.ts";
-import { ringWindowDoc } from "../ring-window-fixtures.ts";
+import { SectionSurface } from "../../src/canvas/index.js";
+import { Pass } from "../../src/draw/backend.js";
+import { createSeqViewer, DefaultSeqViewerSpec, manualScheduler, type SeqViewerContext } from "../../src/index.js";
+import { Ring } from "../../src/ring.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
+import type { Viewport } from "../../src/viewport.js";
+import { ringWindowDoc } from "../ring-window-fixtures.js";
 
 const open: { ctx: SeqViewerContext; host: HTMLElement; surface: SectionSurface }[] = [];
 afterEach(() => {

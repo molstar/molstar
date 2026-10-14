@@ -12,7 +12,7 @@
 // The functions are never called; the one test only keeps vitest from reporting an empty file.
 
 import { expect, it } from "vitest";
-import { basePairs, createSeqViewSpec, translate } from "../../src/builder/index.ts";
+import { basePairs, createSeqViewSpec, translate } from "../../src/builder/index.js";
 
 function types() {
   const b = createSeqViewSpec();

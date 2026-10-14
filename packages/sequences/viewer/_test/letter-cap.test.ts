@@ -15,11 +15,11 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case14, case15 } from "../../core/_test/format/cases.ts";
-import { DefaultRenderProps, type RenderProps } from "../src/layout.ts";
-import { LayerFrame, RecordingBackend } from "../src/testing/index.ts";
-import { fontPx } from "../src/text.ts";
-import { drawn, texts } from "./draw-fixtures.ts";
+import { case14, case15 } from "../../core/_test/format/cases.js";
+import { DefaultRenderProps, type RenderProps } from "../src/layout.js";
+import { LayerFrame, RecordingBackend } from "../src/testing/index.js";
+import { fontPx } from "../src/text.js";
+import { drawn, texts } from "./draw-fixtures.js";
 
 /** The renderers that draw per-position text. */
 const PER_POSITION = new Set(["letters", "rows", "emphasis"]);

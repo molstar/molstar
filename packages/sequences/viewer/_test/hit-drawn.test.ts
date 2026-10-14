@@ -14,12 +14,12 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import type { ShownIndex } from "../src/axis.ts";
-import { wrappedPositionNear } from "../src/hit.ts";
-import { Hit, HoverKind } from "../src/index.ts";
-import { recording } from "./composer-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
+import type { ShownIndex } from "../src/axis.js";
+import { wrappedPositionNear } from "../src/hit.js";
+import { Hit, HoverKind } from "../src/index.js";
+import { recording } from "./composer-fixtures.js";
+import { opened } from "./layout-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
 
 const S = "v.s";
 type Kind = "plain" | "reversed" | "origin30" | "filtered" | "two" | "tworev";

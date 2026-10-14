@@ -11,14 +11,14 @@
 // of its own (`clock[0]`, ms: the overlay's shimmer and fades read the scheduler's `now`, set here allocation-free).
 
 import type { Loaders, StreamRequest } from "@molstar/seq-core/format";
-import { GRCH38, hg38Streams } from "../../core/_test/format/stream-provider.ts";
-import { SkinToken } from "../src/draw/backend.ts";
-import { Dirty } from "../src/draw/composer.ts";
-import { RegionState, SeqViewerConfig } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import type { RecordingBackend } from "../src/testing/index.ts";
-import { composed, recording } from "./composer-fixtures.ts";
-import { GENOME, streamedDoc } from "./stream-fixtures.ts";
+import { GRCH38, hg38Streams } from "../../core/_test/format/stream-provider.js";
+import { SkinToken } from "../src/draw/backend.js";
+import { Dirty } from "../src/draw/composer.js";
+import { RegionState, SeqViewerConfig } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import type { RecordingBackend } from "../src/testing/index.js";
+import { composed, recording } from "./composer-fixtures.js";
+import { GENOME, streamedDoc } from "./stream-fixtures.js";
 export interface ProgressOptions {
   items?: boolean;
   sequence?: boolean;

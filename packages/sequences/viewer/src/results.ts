@@ -14,11 +14,11 @@
 
 import type { SeqSet } from "@molstar/seq-core/model";
 import { SeqSelection } from "@molstar/seq-core/model/query";
-import type { FocusManager } from "./focus.ts";
-import type { HighlightManager } from "./highlight.ts";
-import { carry, type SeqLociAny } from "./lineage.ts";
-import { type Coordinates, isCoordinates } from "./projection.ts";
-import { type Origin, type SeqState, state } from "./state.ts";
+import type { FocusManager } from "./focus.js";
+import type { HighlightManager } from "./highlight.js";
+import { carry, type SeqLociAny } from "./lineage.js";
+import { type Coordinates, isCoordinates } from "./projection.js";
+import { type Origin, type SeqState, state } from "./state.js";
 
 export type Result = SeqLociAny | Coordinates;
 export interface ResultsState {

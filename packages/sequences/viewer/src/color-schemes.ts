@@ -29,9 +29,9 @@ import {
   type ThemeRef,
 } from "@molstar/seq-core/format";
 import type { Alphabet } from "@molstar/seq-core/model";
-import type { SeqViewerContext } from "./context.ts";
-import { NO_COLOR } from "./draw/backend.ts";
-import { Granularity, NO_GLYPH, ofAlphabet, type Theme, type ThemeContext, type ThemeProvider } from "./themes.ts";
+import type { SeqViewerContext } from "./context.js";
+import { NO_COLOR } from "./draw/backend.js";
+import { Granularity, NO_GLYPH, ofAlphabet, type Theme, type ThemeContext, type ThemeProvider } from "./themes.js";
 
 /** The layer's color subject (letters, values, categories) in its theme context; null: no scheme fits it. */
 export function subjectOf(tc: ThemeContext): SchemeSubject | null {

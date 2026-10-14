@@ -10,8 +10,8 @@
 // stage context. Additions to the spec's shapes are marked: `FormatRequest.want` and `.geometry`, and `AlignerInput`.
 
 import type { AlignmentInput, Issue, Molecule, MoleculeInput, ParsedTree, SeqSet } from "@molstar/seq-core/model";
-import type { Geometry } from "./doc.ts";
-import type { SvsRegistries } from "./registry.ts";
+import type { Geometry } from "./doc.js";
+import type { SvsRegistries } from "./registry.js";
 
 /** One file the host loads: a URI or a host file; `maxBytes` its bound. */
 export interface LoadRequest {

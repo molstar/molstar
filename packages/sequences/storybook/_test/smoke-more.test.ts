@@ -8,6 +8,6 @@
 
 // The smoke test's second half of the stories' documents (smoke-stories.ts); smoke.test.ts holds the first.
 
-import { storyDocuments } from "./smoke-stories.ts";
+import { storyDocuments } from "./smoke-stories.js";
 
 storyDocuments(1, 2);

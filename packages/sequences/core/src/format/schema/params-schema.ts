@@ -10,7 +10,7 @@
 // `OptionalField`, `SimpleParamsSchema`, `UnionParamsSchema`. Added: a union may be open (`opts.open`: the params of
 // a `<namespace>:<name>` case, whose `options` its registry entry checks).
 
-import type { SvsRegistries } from "../registry.ts";
+import type { SvsRegistries } from "../registry.js";
 import {
   type CheckContext,
   type FieldType,
@@ -21,7 +21,7 @@ import {
   reportUnknown,
   show,
   typeError,
-} from "./field-schema.ts";
+} from "./field-schema.js";
 
 export interface RequiredField<V = unknown> {
   readonly type: FieldType<V>;

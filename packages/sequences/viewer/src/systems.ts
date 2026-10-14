@@ -23,8 +23,8 @@ import {
   Systems,
 } from "@molstar/seq-core/model";
 import { type SystemDescriptor, Translator } from "@molstar/seq-core/translate";
-import type { Coordinates } from "./projection.ts";
-import { state } from "./state.ts";
+import type { Coordinates } from "./projection.js";
+import { state } from "./state.js";
 
 const PREFIX = "seqstar:";
 /** An own system's descriptor, valid while `owner` (the table or entity it reads) is the set's. */

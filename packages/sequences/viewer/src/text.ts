@@ -29,8 +29,8 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import type { Alphabet } from "@molstar/seq-core/model";
-import { type SeqState, state } from "./state.ts";
-import { hasMetrics } from "./svg/metrics.ts";
+import { type SeqState, state } from "./state.js";
+import { hasMetrics } from "./svg/metrics.js";
 
 /** `ports.text`: a width in CSS px. The engine's is canvas `measureText`. */
 export interface TextMeasurer {

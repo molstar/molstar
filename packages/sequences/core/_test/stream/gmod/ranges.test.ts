@@ -11,9 +11,9 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { fetchRanges, gmodProvider, gmodStream, httpFile } from "../../../src/stream/gmod/index.ts";
-import { once, paged } from "../../../src/stream/gmod/ranges.ts";
-import { req } from "./cases.ts";
+import { fetchRanges, gmodProvider, gmodStream, httpFile } from "../../../src/stream/gmod/index.js";
+import { once, paged } from "../../../src/stream/gmod/ranges.js";
+import { req } from "./cases.js";
 
 const bytes = Uint8Array.from({ length: 1000 }, (_, i) => i % 251);
 let server: Server;

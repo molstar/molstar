@@ -13,7 +13,7 @@
 // slices of work: a long build yields to the event loop every `SLICE` basic steps (`Pacer`, pace.ts) and throws the
 // signal's reason when it was aborted.
 
-import { Pacer } from "./pace.ts";
+import { Pacer } from "./pace.js";
 
 /** The most rows a guide tree is built over: the matrix takes rows^2 doubles (32 MB here) and the build rows^3 / 6 steps. */
 export const MAX_TREE_ROWS = 2048;

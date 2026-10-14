@@ -19,11 +19,11 @@ import {
   register,
   type SeqViewSpecDoc,
   validate,
-} from "../../src/format/index.ts";
-import { KernelRegistry } from "../../src/format/kernel-registry.ts";
-import { clearNodeProviderCache } from "../../src/format/load/node-providers.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
-import { scripted } from "./stream-provider.ts";
+} from "../../src/format/index.js";
+import { KernelRegistry } from "../../src/format/kernel-registry.js";
+import { clearNodeProviderCache } from "../../src/format/load/node-providers.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
+import { scripted } from "./stream-provider.js";
 
 // Two close pairs, (a, b) and (c, d), and a distant e: a clade each, whatever the method.
 const ROWS = [
@@ -215,7 +215,7 @@ describe("caching and aborting", () => {
     expect(await ask([...ROWS.slice(0, 4), "CCCCCCCCCCCCCCCCCCCC"])).not.toBe(first);
   });
   it("keys content by each string's bounds and the options at every depth (GV-01)", async () => {
-    const { contentKey } = await import("../../src/format/load/node-providers.ts");
+    const { contentKey } = await import("../../src/format/load/node-providers.js");
     const rows = ["ACGT", "ACGA", "ACGG"];
     // Labels that read alike joined by newlines: another document's labels, before.
     expect(contentKey("nj", {}, rows, ["aligned", "a\nb", "c", "d"])).not.toBe(
@@ -229,7 +229,7 @@ describe("caching and aborting", () => {
   });
 
   it("keeps results by content: the same input gives the very same object, a changed row a new one", async () => {
-    const { cached, inputKey } = await import("../../src/format/load/node-providers.ts");
+    const { cached, inputKey } = await import("../../src/format/load/node-providers.js");
     const input = (rows: string[]) => ({ key: "aln", gapped: rows, flavor: "aligned" as const, labels: LABELS });
     const k = inputKey("nj", { distance: "p" }, input(ROWS));
     expect(inputKey("nj", { distance: "p" }, input([...ROWS]))).toBe(k);

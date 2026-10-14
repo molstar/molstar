@@ -11,9 +11,9 @@
 // run of residues, so a deletion stays a break; a row with cell colors, or where text fits, marks nothing.
 
 import { describe, expect, it } from "vitest";
-import { SkinToken } from "../src/draw/backend.ts";
-import { drawn, layerOf, record, rects, texts } from "./draw-fixtures.ts";
-import { marksDoc } from "./letters-marks-fixtures.ts";
+import { SkinToken } from "../src/draw/backend.js";
+import { drawn, layerOf, record, rects, texts } from "./draw-fixtures.js";
+import { marksDoc } from "./letters-marks-fixtures.js";
 
 async function marks(color: boolean, cell: number, dpr: number, label = "Design") {
   const t = await drawn(marksDoc(color), { width: 600, height: 200, dpr });

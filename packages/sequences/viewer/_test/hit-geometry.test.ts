@@ -12,10 +12,10 @@
 // "residue" a bar on an own unit's row hovers that unit's residue, its item kept for the card.
 
 import { describe, expect, it } from "vitest";
-import { Hit, HoverKind, SeqViewerConfig } from "../src/index.ts";
-import { hitGeometryDoc } from "./hit-geometry-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
-import { CHAIN_AT, splitUnitsDoc } from "./split-units-fixtures.ts";
+import { Hit, HoverKind, SeqViewerConfig } from "../src/index.js";
+import { hitGeometryDoc } from "./hit-geometry-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
+import { CHAIN_AT, splitUnitsDoc } from "./split-units-fixtures.js";
 
 const S = "v.main";
 

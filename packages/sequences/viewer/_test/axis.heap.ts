@@ -14,9 +14,9 @@
 // (`leaking`) through the same measurement, which must catch it.
 
 import { beforeAll, describe, expect, it } from "vitest";
-import { type Axis, AxisGeometry, SectionAxisView, type ShownIndex } from "../src/axis.ts";
-import { axisOf, open, rangedDoc, resolved, setPiece, vp } from "./axis-fixtures.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
+import { type Axis, AxisGeometry, SectionAxisView, type ShownIndex } from "../src/axis.js";
+import { axisOf, open, rangedDoc, resolved, setPiece, vp } from "./axis-fixtures.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
 
 const N = 50_000;
 let axes: Axis[] = [];

@@ -26,7 +26,7 @@ import {
   type SeqViewerContext,
   type SeqViewerPorts,
   type ThemeProvider,
-} from "../src/index.ts";
+} from "../src/index.js";
 
 export const KERNEL_TYPES = ["letters", "ruler", "ranges", "points", "values", "rows", "color", "pairs"];
 /** The kernel renderers and themes that never read residues or alignment content. */

@@ -31,8 +31,8 @@ import {
   SeqSets,
   type Targets,
   type UnitId,
-} from "../../src/model/index.ts";
-import type { SeqSelection } from "../../src/model/query/index.ts";
+} from "../../src/model/index.js";
+import type { SeqSelection } from "../../src/model/query/index.js";
 
 /** One group: its item (-1, -1: none) and its positions, as sorted keys; a search hit's score. */
 export interface OGroup {

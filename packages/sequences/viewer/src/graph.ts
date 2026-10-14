@@ -34,11 +34,11 @@ import {
   sourceParse,
 } from "@molstar/seq-core/format";
 import type { Issue, SeqSet } from "@molstar/seq-core/model";
-import type { SeqIssue } from "./context.ts";
-import type { DynamicSource } from "./dynamic.ts";
-import type { SeqViewerRegistry } from "./registry.ts";
-import { type SeqState, state, type WritableSeqState } from "./state.ts";
-import type { Theme } from "./themes.ts";
+import type { SeqIssue } from "./context.js";
+import type { DynamicSource } from "./dynamic.js";
+import type { SeqViewerRegistry } from "./registry.js";
+import { type SeqState, state, type WritableSeqState } from "./state.js";
+import type { Theme } from "./themes.js";
 
 /** An issue's rank by severity, the most severe first: error, warning, then a note. */
 export const severityRank = (i: { readonly severity: string }): number =>

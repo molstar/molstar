@@ -16,8 +16,8 @@ import {
   type RowCodes,
   redundancy,
   rowStats,
-} from "../../src/algorithms/index.ts";
-import { itWithin } from "../model/timing.ts";
+} from "../../src/algorithms/index.js";
+import { itWithin } from "../model/timing.js";
 
 const GAP = 45;
 /** Rows of text as cells; `-` is the gap. */

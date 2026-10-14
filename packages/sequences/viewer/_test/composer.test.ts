@@ -17,16 +17,16 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { case13 } from "../../core/_test/format/cases.ts";
-import { Dirty, PathMode, SectionComposer } from "../src/draw/index.ts";
-import type { DrawView } from "../src/draw/view.ts";
-import { DefaultSkin, EntryKind, KernelRenderers, type LayerRenderer, Lod } from "../src/index.ts";
-import type { StreamView } from "../src/streams.ts";
-import { Op, type RecordingBackend, StarsFormat, StarsRenderer } from "../src/testing/index.ts";
-import { COPY_BACK, composed, opArgs, opNames, recording, textsOf } from "./composer-fixtures.ts";
-import { asText, starsDoc } from "./conformance-fixtures.ts";
-import { rects, texts } from "./draw-fixtures.ts";
-import { allTypes, rangesDoc } from "./prepare-fixtures.ts";
+import { case13 } from "../../core/_test/format/cases.js";
+import { Dirty, PathMode, SectionComposer } from "../src/draw/index.js";
+import type { DrawView } from "../src/draw/view.js";
+import { DefaultSkin, EntryKind, KernelRenderers, type LayerRenderer, Lod } from "../src/index.js";
+import type { StreamView } from "../src/streams.js";
+import { Op, type RecordingBackend, StarsFormat, StarsRenderer } from "../src/testing/index.js";
+import { COPY_BACK, composed, opArgs, opNames, recording, textsOf } from "./composer-fixtures.js";
+import { asText, starsDoc } from "./conformance-fixtures.js";
+import { rects, texts } from "./draw-fixtures.js";
+import { allTypes, rangesDoc } from "./prepare-fixtures.js";
 
 /** A frame's ops with their arguments, rects and texts. */
 const snapshot = (r: RecordingBackend) => [opNames(r), Array.from(r.args.subarray(0, r.argCount)), rects(r), texts(r)];

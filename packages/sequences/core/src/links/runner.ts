@@ -11,8 +11,8 @@
 // remembers the links entered so one removed while hovered, or a disposed runner, leaves nothing lit.
 
 import type { Invocation } from "@molstar/seq-core/format";
-import { type ParsedLink, parseLink } from "./codec.ts";
-import { DefaultLinkKeys, type LinkKey } from "./keys.ts";
+import { type ParsedLink, parseLink } from "./codec.js";
+import { DefaultLinkKeys, type LinkKey } from "./keys.js";
 
 export interface LinkRunner {
   /** False: no key of the href has an entry (not a command, or only other viewers' keys). */

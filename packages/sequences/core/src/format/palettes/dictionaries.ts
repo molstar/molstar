@@ -17,7 +17,7 @@
  * dictionary as MVS evaluates it, and read once at load.
  */
 
-import { type Color, colorDict } from "./color.ts";
+import { type Color, colorDict } from "./color.js";
 
 const dict = colorDict;
 

@@ -16,9 +16,9 @@ import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { type CoordinateSystem, Coords } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { imageBackward, imageForward } from "../src/follow.ts";
-import { SeqViewerConfig } from "../src/index.ts";
-import { type Driven, driven } from "./input-fixtures.ts";
+import { imageBackward, imageForward } from "../src/follow.js";
+import { SeqViewerConfig } from "../src/index.js";
+import { type Driven, driven } from "./input-fixtures.js";
 
 const SYS: CoordinateSystem = { kind: 1, id: 0, row: -1 };
 const TO: CoordinateSystem = { kind: 1, id: 1, row: -1 };

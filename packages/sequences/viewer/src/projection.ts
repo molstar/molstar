@@ -26,9 +26,9 @@ import {
   type SeqSet,
 } from "@molstar/seq-core/model";
 import type { Translator } from "@molstar/seq-core/translate";
-import { HoverKind } from "./hit.ts";
-import type { HoverState } from "./hover.ts";
-import { MarkBit, type MarkSet, type RowMarks } from "./marks.ts";
+import { HoverKind } from "./hit.js";
+import type { HoverState } from "./hover.js";
+import { MarkBit, type MarkSet, type RowMarks } from "./marks.js";
 
 /** Runs in coordinate systems named by key (seqspec:interaction#focus): `(index into systems, start, stop)` triples. */
 export interface Coordinates {

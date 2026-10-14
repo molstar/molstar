@@ -12,10 +12,10 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { proceduralCode } from "@molstar/seq-core/stream/tiles/server";
 import { describe, expect, it } from "vitest";
-import { HoverKind, KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { driven } from "./input-fixtures.ts";
-import { lazyLoaders } from "./layout-fixtures.ts";
+import { HoverKind, KernelRenderers, type LayerRenderer } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { driven } from "./input-fixtures.js";
+import { lazyLoaders } from "./layout-fixtures.js";
 
 const [uri, ROWS, COLUMNS] = ["https://example.org/lazy-label", 3000, 400];
 

@@ -13,12 +13,12 @@
 
 import { OrderedSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { Dirty } from "../src/draw/index.ts";
-import { ChannelMarks, MarkBit } from "../src/index.ts";
-import type { MarkSet } from "../src/marks.ts";
-import { recording } from "./composer-fixtures.ts";
-import { caretsDoc as doc } from "./insert-carets-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
+import { Dirty } from "../src/draw/index.js";
+import { ChannelMarks, MarkBit } from "../src/index.js";
+import type { MarkSet } from "../src/marks.js";
+import { recording } from "./composer-fixtures.js";
+import { caretsDoc as doc } from "./insert-carets-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
 
 /** A channel's runs and carets per section: [runs as [s, t], carets]. */
 function read(ch: ChannelMarks, bit: number, sections: number) {

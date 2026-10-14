@@ -23,7 +23,7 @@ import {
   ofPartAt,
   type PerPosition,
   positionKey,
-} from "../src/prepare.ts";
+} from "../src/prepare.js";
 import {
   binClass,
   binCounts,
@@ -32,11 +32,11 @@ import {
   levelFor,
   segWindow,
   type ValuePyramid,
-} from "../src/pyramids.ts";
-import { type CellClasses, cellClasses, densityOn, ItemDensity } from "../src/reductions.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
-import { layer, opened, preparedRenderers } from "./layout-fixtures.ts";
-import { itemsIn, scaleDoc } from "./prepare-fixtures.ts";
+} from "../src/pyramids.js";
+import { type CellClasses, cellClasses, densityOn, ItemDensity } from "../src/reductions.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { layer, opened, preparedRenderers } from "./layout-fixtures.js";
+import { itemsIn, scaleDoc } from "./prepare-fixtures.js";
 
 const N = 50_000;
 const P = { renderers: preparedRenderers() };

@@ -18,14 +18,14 @@ import {
   type SeqIndex,
   type SeqSet,
 } from "@molstar/seq-core/model";
-import { sameList } from "./axis.ts";
-import type { ViewModel } from "./graph.ts";
-import { HoverKind } from "./hit.ts";
-import type { HoverState } from "./hover.ts";
-import { type HeaderLegend, headerLegend } from "./legend.ts";
-import type { SeqViewerRegistry } from "./registry.ts";
-import { type SeqState, state, type WritableSeqState } from "./state.ts";
-import type { StreamView } from "./streams.ts";
+import { sameList } from "./axis.js";
+import type { ViewModel } from "./graph.js";
+import { HoverKind } from "./hit.js";
+import type { HoverState } from "./hover.js";
+import { type HeaderLegend, headerLegend } from "./legend.js";
+import type { SeqViewerRegistry } from "./registry.js";
+import { type SeqState, state, type WritableSeqState } from "./state.js";
+import type { StreamView } from "./streams.js";
 
 export interface LabelSink {
   /** The first title wins (higher priorities write first). */

@@ -13,9 +13,9 @@
 // at the edges; lookups and range walks read the arrays and allocate nothing (the callbacks take a context, as Mol*'s
 // iterators do).
 
-import type { Alignment } from "./alignment.ts";
-import type { RowIndex, UnitId } from "./common.ts";
-import type { SeqSet } from "./set.ts";
+import type { Alignment } from "./alignment.js";
+import type { RowIndex, UnitId } from "./common.js";
+import type { SeqSet } from "./set.js";
 
 export const CoordinateSystemKind = {
   molecule: 0,

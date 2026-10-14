@@ -10,9 +10,9 @@
 // seqspec:format#views): the source of the validator, the normalizer and the reference. A kind's own rules
 // (`check`) are those a table cannot say.
 
-import type { Geometry } from "../doc.ts";
-import { seqqlQuery } from "../query.ts";
-import type { SvsRegistries } from "../registry.ts";
+import type { Geometry } from "../doc.js";
+import { seqqlQuery } from "../query.js";
+import type { SvsRegistries } from "../registry.js";
 import {
   bool,
   dict,
@@ -31,7 +31,7 @@ import {
   str,
   tuple,
   union,
-} from "../schema/field-schema.ts";
+} from "../schema/field-schema.js";
 import {
   type Fields,
   OptionalField,
@@ -40,9 +40,9 @@ import {
   SimpleParamsSchema,
   UnionParamsSchema,
   type ValuesFor,
-} from "../schema/params-schema.ts";
-import { type IndexedNode, nodeList, type TreeContext, TreeSchema } from "../schema/tree-schema.ts";
-import { KernelLayerTypes } from "./kernel.ts";
+} from "../schema/params-schema.js";
+import { type IndexedNode, nodeList, type TreeContext, TreeSchema } from "../schema/tree-schema.js";
+import { KernelLayerTypes } from "./kernel.js";
 import {
   filter,
   httpsUrl,
@@ -53,9 +53,9 @@ import {
   provenance,
   themeRef,
   uri,
-} from "./param-types.ts";
-import { sectionStyle } from "./style.ts";
-import { labelSides, table, tableHas } from "./table.ts";
+} from "./param-types.js";
+import { sectionStyle } from "./style.js";
+import { labelSides, table, tableHas } from "./table.js";
 
 const opt = <V>(type: FieldType<V>, description = "") => OptionalField(nullable(type), null, description);
 const req = RequiredField;

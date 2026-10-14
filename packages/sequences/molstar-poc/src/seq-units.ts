@@ -21,7 +21,7 @@ import {
 const UNIT = CoordinateSystemKind.unit;
 
 import type { Structure } from "molstar/lib/mol-model/structure";
-import { type ChainInstance, chainsOf } from "./chains.ts";
+import { type ChainInstance, chainsOf } from "./chains.js";
 
 export interface MvsFields {
   label_asym_id?: string;

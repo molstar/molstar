@@ -13,9 +13,9 @@
 
 import { SeqSets } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { type Theme, ThemeLocation } from "../src/index.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
-import { context } from "./theme-fixtures.ts";
+import { type Theme, ThemeLocation } from "../src/index.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { context } from "./theme-fixtures.js";
 
 const N = 50_000;
 let sink = 0;

@@ -23,7 +23,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 /** The file's warm-up, settle and measurement, as its guards and its control run them. */
@@ -41,9 +41,9 @@ const guard = (frame: () => void) => {
 
 async function prefetchFrame(motion: "pan" | "zoom") {
   const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
-  const { GRCH38, hg38Streams } = await import("../../core/_test/format/stream-provider.ts");
-  const { composed } = await import("./composer-fixtures.ts");
-  const { GENOME } = await import("./stream-fixtures.ts");
+  const { GRCH38, hg38Streams } = await import("../../core/_test/format/stream-provider.js");
+  const { composed } = await import("./composer-fixtures.js");
+  const { GENOME } = await import("./stream-fixtures.js");
   const AT = 100_000_000;
   const b = createSeqViewSpec({ title: "hg38" });
   const genome = b.data.source({ ref: "genome", stream: "genome", data_kind: "letters" });
@@ -73,7 +73,7 @@ async function prefetchFrame(motion: "pan" | "zoom") {
     dpr: 2,
     loaders: { load: () => Promise.reject(new Error("none")), stream: s.stream },
   });
-  const m = t.ctx.streams as import("../src/streams.ts").Streams;
+  const m = t.ctx.streams as import("../src/streams.js").Streams;
   const vp = t.vp;
   if (!vp) throw new Error("no viewport");
   await t.ctx.snapshots.apply("a");

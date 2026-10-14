@@ -27,7 +27,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 
@@ -45,7 +45,7 @@ describe("hover emphasis frames allocate nothing after warm-up", () => {
     "a hover sweep over %s",
     async (track) => {
       vi.resetModules();
-      const { hoverSweep } = await import("./hover-sweep.ts");
+      const { hoverSweep } = await import("./hover-sweep.js");
       const { frame, hovers, drawn } = await hoverSweep(track);
       const r = measure(frame);
       expect(isFlat(r), describeScaling(r, N)).toBe(true);
@@ -58,7 +58,7 @@ describe("hover emphasis frames allocate nothing after warm-up", () => {
 
   it("the same frames allocating an object each are caught (positive control)", async () => {
     vi.resetModules();
-    const { hoverSweep } = await import("./hover-sweep.ts");
+    const { hoverSweep } = await import("./hover-sweep.js");
     const { frame } = await hoverSweep("t.ranges");
     expect(controlCaught(() => measure(leaking(frame)))).toBe(true);
   }, 120_000);

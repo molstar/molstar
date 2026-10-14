@@ -13,8 +13,8 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "../src/index.ts";
-import { fixtureMeasurer } from "../src/testing/index.ts";
+import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "../src/index.js";
+import { fixtureMeasurer } from "../src/testing/index.js";
 
 async function open() {
   const b = createSeqViewSpec();

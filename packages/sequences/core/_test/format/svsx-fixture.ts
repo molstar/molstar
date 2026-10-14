@@ -11,7 +11,7 @@
 // run by hand); svsx.test.ts reads that file back; the Seq*/Cases/Format story opens it and bundles this document again.
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { SeqViewSpecDoc } from "../../src/format/index.ts";
+import type { SeqViewSpecDoc } from "../../src/format/index.js";
 
 export const FASTA_URI = "https://example.org/kinase/abl.fa";
 export const SITES_URI = "https://example.org/kinase/sites.tsv";

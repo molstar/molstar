@@ -11,10 +11,10 @@
 
 import { type StreamedData, StreamProp } from "@molstar/seq-core/format";
 import { type ComposedPath, type CoordinateSystem, CoordinateSystemKind, type SeqSet } from "@molstar/seq-core/model";
-import type { ShownIndex } from "./axis.ts";
-import type { DrawView } from "./draw/view.ts";
-import type { LayerInput } from "./registry.ts";
-import type { StreamLayer } from "./stream-contract.ts";
+import type { ShownIndex } from "./axis.js";
+import type { DrawView } from "./draw/view.js";
+import type { LayerInput } from "./registry.js";
+import type { StreamLayer } from "./stream-contract.js";
 
 /**
  * A layer's streamed annotations (`svs:stream`, one source a layer): its description, per placed block its system, by

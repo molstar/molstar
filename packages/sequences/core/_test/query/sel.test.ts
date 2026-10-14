@@ -9,8 +9,8 @@
 // QL2b: the `sel` shorthand (seqspec:seqql#the-sel-shorthand): its grammar and expansion, the stored string normalized,
 // and its errors at their column inside the string (escapes counted as written).
 import { describe, expect, it } from "vitest";
-import { checkText, type Expression, printQuery, Q, renderIssue } from "../../src/query/index.ts";
-import { parseSel } from "../../src/query/sel.ts";
+import { checkText, type Expression, printQuery, Q, renderIssue } from "../../src/query/index.js";
+import { parseSel } from "../../src/query/sel.js";
 
 /** The expansion, printed. */
 const expansion = (s: string) => {

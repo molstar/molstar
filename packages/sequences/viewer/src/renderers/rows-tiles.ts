@@ -29,7 +29,7 @@ import {
   rowAt,
   type Theme,
   ThemeLocation,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 /** Levels per axis (the region cache's); the overview's images (`ov`) are a set of levels of their own. */
 const L = 16;

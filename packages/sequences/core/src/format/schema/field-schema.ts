@@ -11,8 +11,8 @@
 // normalize it (defaults filled), and names itself for the generated reference.
 
 import { Issue } from "@molstar/seq-core/model";
-import { issueOf } from "../load/issues.ts";
-import type { SvsRegistries } from "../registry.ts";
+import { issueOf } from "../load/issues.js";
+import type { SvsRegistries } from "../registry.js";
 
 /** A typed ref met while checking; the validator resolves it once the tree is indexed. */
 export interface RefUse {

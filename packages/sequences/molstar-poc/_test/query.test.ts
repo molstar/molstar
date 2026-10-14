@@ -26,8 +26,8 @@ import {
   structureInput,
   structureOf,
   structureReach,
-} from "../src/index.ts";
-import { bytesOf, loaders, p53Doc, registries } from "./fixtures.ts";
+} from "../src/index.js";
+import { bytesOf, loaders, p53Doc, registries } from "./fixtures.js";
 
 let set: SeqSet;
 let link: StructureLink;

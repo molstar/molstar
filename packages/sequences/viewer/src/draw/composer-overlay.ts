@@ -11,19 +11,19 @@
 // window), then the rulerRail and the navigator's window; and the navigator's row. Per frame nothing is allocated
 // (RN1's draw pattern).
 
-import { type Axis, AxisGeometry, type SectionAxisView } from "../axis.ts";
-import { SeqViewerConfig } from "../config.ts";
-import type { ViewModel } from "../graph.ts";
-import { HitRegion, HoverKind } from "../hit.ts";
-import type { HoverState } from "../hover.ts";
-import { cursorRect } from "../keyboard.ts";
-import { EntryKind, type SectionLayout, SectionLayouts } from "../layout.ts";
-import { MarkBit } from "../marks.ts";
-import type { NavigatorEntry } from "../navigators.ts";
-import { RW_CYCLIC, RW_HI, RW_LO, RW_X0, RW_X1, ringBounds, ringWindowFrame } from "../ring-window.ts";
-import type { ViewportState } from "../viewport.ts";
-import { gripsLit, litPart, railGrown, WindowKind, windowFrame, windowIdle } from "../windows.ts";
-import { Pass, type RenderBackend, SkinToken } from "./backend.ts";
+import { type Axis, AxisGeometry, type SectionAxisView } from "../axis.js";
+import { SeqViewerConfig } from "../config.js";
+import type { ViewModel } from "../graph.js";
+import { HitRegion, HoverKind } from "../hit.js";
+import type { HoverState } from "../hover.js";
+import { cursorRect } from "../keyboard.js";
+import { EntryKind, type SectionLayout, SectionLayouts } from "../layout.js";
+import { MarkBit } from "../marks.js";
+import type { NavigatorEntry } from "../navigators.js";
+import { RW_CYCLIC, RW_HI, RW_LO, RW_X0, RW_X1, ringBounds, ringWindowFrame } from "../ring-window.js";
+import type { ViewportState } from "../viewport.js";
+import { gripsLit, litPart, railGrown, WindowKind, windowFrame, windowIdle } from "../windows.js";
+import { Pass, type RenderBackend, SkinToken } from "./backend.js";
 import {
   banded,
   boxOf,
@@ -41,10 +41,10 @@ import {
   stateOf,
   tint,
   view,
-} from "./composer-frame.ts";
-import { pending, positionMarks, rowMarks } from "./composer-marks.ts";
-import { navDraw, navDrawWindow, WINDOW_EDGE_INK, WINDOW_FILL } from "./nav.ts";
-import { Moving, progress1D, progressBegin, progressEnd, progressFlush, progressRows } from "./progress.ts";
+} from "./composer-frame.js";
+import { pending, positionMarks, rowMarks } from "./composer-marks.js";
+import { navDraw, navDrawWindow, WINDOW_EDGE_INK, WINDOW_FILL } from "./nav.js";
+import { Moving, progress1D, progressBegin, progressEnd, progressFlush, progressRows } from "./progress.js";
 
 // The ring window's inks, read once (a read per frame allocated under the test runner's module wrapper).
 const RW_RIM = SkinToken.inkQuiet;

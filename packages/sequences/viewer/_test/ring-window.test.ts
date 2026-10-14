@@ -12,19 +12,19 @@
 
 import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { Dirty, Pass, SectionComposer, SkinToken } from "../src/draw/index.ts";
-import { placedRingLabels } from "../src/draw/ring-labels.ts";
-import { Hit, HitRegion, HoverKind } from "../src/hit.ts";
-import { KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import { DefaultPresets } from "../src/presets.ts";
-import { Ring } from "../src/ring.ts";
-import { RING_WINDOW, ringBounds, ringWindowAt, ringWindowFrame } from "../src/ring-window.ts";
-import { Op, type RecordingBackend } from "../src/testing/index.ts";
-import type { Viewport } from "../src/viewport.ts";
-import { WindowKind, WindowPart } from "../src/windows.ts";
-import { recording } from "./composer-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
-import { N, type RingWindowOptions, ringWindowDoc } from "./ring-window-fixtures.ts";
+import { Dirty, Pass, SectionComposer, SkinToken } from "../src/draw/index.js";
+import { placedRingLabels } from "../src/draw/ring-labels.js";
+import { Hit, HitRegion, HoverKind } from "../src/hit.js";
+import { KernelRenderers, type LayerRenderer } from "../src/index.js";
+import { DefaultPresets } from "../src/presets.js";
+import { Ring } from "../src/ring.js";
+import { RING_WINDOW, ringBounds, ringWindowAt, ringWindowFrame } from "../src/ring-window.js";
+import { Op, type RecordingBackend } from "../src/testing/index.js";
+import type { Viewport } from "../src/viewport.js";
+import { WindowKind, WindowPart } from "../src/windows.js";
+import { recording } from "./composer-fixtures.js";
+import { driven } from "./input-fixtures.js";
+import { N, type RingWindowOptions, ringWindowDoc } from "./ring-window-fixtures.js";
 
 const registry = [{ presets: DefaultPresets.filter((p) => p.name === "circular") }];
 

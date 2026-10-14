@@ -31,11 +31,11 @@ import {
   toJSON,
   toMsgPack,
   validate,
-} from "../../src/format/index.ts";
-import { CASES, case17 } from "./cases.ts";
-import { fullDoc } from "./fixtures.ts";
-import { genomeDoc, synthGenome } from "./genome-fixture.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { CASES, case17 } from "./cases.js";
+import { fullDoc } from "./fixtures.js";
+import { genomeDoc, synthGenome } from "./genome-fixture.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 type J = Record<string, unknown>;

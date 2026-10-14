@@ -14,9 +14,9 @@
 
 import type { Closure } from "@molstar/seq-core/format";
 import type { SeqSet } from "@molstar/seq-core/model";
-import { carry, type SeqLociAny } from "./lineage.ts";
-import { type Coordinates, isCoordinates } from "./projection.ts";
-import { type SeqState, state } from "./state.ts";
+import { carry, type SeqLociAny } from "./lineage.js";
+import { type Coordinates, isCoordinates } from "./projection.js";
+import { type SeqState, state } from "./state.js";
 
 /** `band`: a section's location set drawn full height in the main pass. */
 export type HighlightStyle = "highlight" | "accent" | "band";

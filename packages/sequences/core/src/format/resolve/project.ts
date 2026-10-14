@@ -25,9 +25,9 @@ import {
   Mappings,
   type SeqSet,
 } from "@molstar/seq-core/model";
-import { reach } from "./reach.ts";
-import type { BlockRow } from "./section.ts";
-import type { ResolvedView } from "./view.ts";
+import { reach } from "./reach.js";
+import type { BlockRow } from "./section.js";
+import type { ResolvedView } from "./view.js";
 
 /** A channel's closure option (seqspec:interaction#hover): `containing` adds the elements that contain each element. */
 export type Closure = "element" | "containing";

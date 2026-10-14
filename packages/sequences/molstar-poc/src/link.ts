@@ -24,8 +24,8 @@ import {
 import { TranslateMaps, type Translator } from "@molstar/seq-core/translate";
 import { OrderedSet } from "molstar/lib/mol-data/int";
 import { type Structure, StructureElement, type Unit } from "molstar/lib/mol-model/structure";
-import { type ChainInstance, chainsOf } from "./chains.ts";
-import { complexUnits, seqRoutes } from "./seq-units.ts";
+import { type ChainInstance, chainsOf } from "./chains.js";
+import { complexUnits, seqRoutes } from "./seq-units.js";
 
 const unitsOf = (chains: readonly LinkedChain[]) => {
   const units = new Set<number>();

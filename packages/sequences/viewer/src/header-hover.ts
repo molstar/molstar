@@ -23,8 +23,8 @@ import {
   OrderedSet,
   type SeqSet,
 } from "@molstar/seq-core/model";
-import type { ViewModel } from "./graph.ts";
-import type { SplitFeatures } from "./layout.ts";
+import type { ViewModel } from "./graph.js";
+import type { SplitFeatures } from "./layout.js";
 
 /** What a layer's header lights: its shown items, or the row band alone (which the hover draws for any header). */
 export type HeaderLight = "items" | "rowBand";

@@ -12,7 +12,7 @@
 
 import { bindQuery, checkText, defineSymbol, readQuery, renderIssue } from "@molstar/seq-core/query";
 import { describe, expect, it } from "vitest";
-import { SeqSets } from "../../src/model/index.ts";
+import { SeqSets } from "../../src/model/index.js";
 import {
   compileQuery,
   createQueryEnv,
@@ -21,10 +21,10 @@ import {
   type QueryOptions,
   SeqSelection as Selections,
   type SeqSelection,
-} from "../../src/model/query/index.ts";
-import { queryFixture } from "./query-fixtures.ts";
-import { groupsOf, Oracle, OracleError } from "./query-oracle.ts";
-import { prng } from "./support/generators.ts";
+} from "../../src/model/query/index.js";
+import { queryFixture } from "./query-fixtures.js";
+import { groupsOf, Oracle, OracleError } from "./query-oracle.js";
+import { prng } from "./support/generators.js";
 
 /** A letter-class table as an app registers one: X any amino acid, B and J the ambiguous pairs. */
 const CLASSES = { grp: { X: "ACDEFGHIKLMNPQRSTVWY", B: "DN", J: "IL" } };

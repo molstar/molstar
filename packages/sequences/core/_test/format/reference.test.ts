@@ -14,9 +14,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { printReference, toJSON } from "../../src/format/index.ts";
-import { CASES } from "./cases.ts";
-import { fullDoc, kernel } from "./fixtures.ts";
+import { printReference, toJSON } from "../../src/format/index.js";
+import { CASES } from "./cases.js";
+import { fullDoc, kernel } from "./fixtures.js";
 
 describe("the generated reference", () => {
   it("matches lib/seqstar/_spec/reference/format.md (a change to a table, a type or a code shows here)", async () => {

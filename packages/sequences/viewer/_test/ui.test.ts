@@ -17,8 +17,8 @@ import type { Loaders, Patch, SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { tilesStream } from "@molstar/seq-core/stream/tiles";
 import { tileServer } from "@molstar/seq-core/stream/tiles/server";
 import { describe, expect, it, vi } from "vitest";
-import { case3, case10 } from "../../core/_test/format/cases.ts";
-import type { Documents } from "../src/document.ts";
+import { case3, case10 } from "../../core/_test/format/cases.js";
+import type { Documents } from "../src/document.js";
 import {
   type ActivateEvent,
   createSeqViewer,
@@ -30,14 +30,14 @@ import {
   type LayerRenderer,
   manualScheduler,
   type SeqIssue,
-} from "../src/index.ts";
-import type { Snapshots } from "../src/snapshots.ts";
-import { StarsFormat, StarsRenderer } from "../src/testing/index.ts";
-import { Ui } from "../src/ui.ts";
-import { starsDoc } from "./conformance-fixtures.ts";
-import { manualLoaders } from "./graph-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
-import { opened, preparedRenderers } from "./layout-fixtures.ts";
+} from "../src/index.js";
+import type { Snapshots } from "../src/snapshots.js";
+import { StarsFormat, StarsRenderer } from "../src/testing/index.js";
+import { Ui } from "../src/ui.js";
+import { starsDoc } from "./conformance-fixtures.js";
+import { manualLoaders } from "./graph-fixtures.js";
+import { driven } from "./input-fixtures.js";
+import { opened, preparedRenderers } from "./layout-fixtures.js";
 
 const S = "family.main";
 const flush = async () => {
@@ -333,7 +333,7 @@ describe("labels: field providers and a renderer's own entry (IN3's, XR1's items
       return ax ? (ax.x(0, s as never) + ax.x(0, (s + 1) as never)) / 2 : 0;
     };
     // Pointer events through the dispatcher need the behaviors; the hit itself is enough for the label.
-    const hit = (await import("../src/index.ts")).Hit.create();
+    const hit = (await import("../src/index.js")).Hit.create();
     t.ctx.layout.hitTest("v.main", at(12), y, hit);
     t.ctx.hover.setFromHit(hit, "pointer", "element");
     const label = t.ctx.labels.compute(t.ctx.hover.live.current);

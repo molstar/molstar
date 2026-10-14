@@ -13,11 +13,11 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { expect, it } from "vitest";
-import { case14 } from "../../core/_test/format/cases.ts";
-import { Hit, HoverKind, KernelRenderers } from "../src/index.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
-import { opened } from "./layout-fixtures.ts";
-import { allTypes, rangesDoc } from "./prepare-fixtures.ts";
+import { case14 } from "../../core/_test/format/cases.js";
+import { Hit, HoverKind, KernelRenderers } from "../src/index.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { opened } from "./layout-fixtures.js";
+import { allTypes, rangesDoc } from "./prepare-fixtures.js";
 
 const N = 50_000;
 let sink = 0;

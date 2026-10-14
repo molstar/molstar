@@ -23,15 +23,15 @@ import {
   type SeqSet,
   SortedArray,
 } from "@molstar/seq-core/model";
-import { codonLabel } from "./codon-label.ts";
-import type { ViewModel } from "./graph.ts";
-import { copyAt, HoverKind, sourceAt } from "./hit.ts";
-import type { HoverState } from "./hover.ts";
-import type { LabelContext, LabelProvider, LabelSink } from "./labels.ts";
-import type { PerPosition } from "./prepare.ts";
-import type { MatrixState } from "./rows.ts";
-import { RegionState, type StreamItems } from "./streams.ts";
-import { TreeNode, type TreeRows } from "./tree.ts";
+import { codonLabel } from "./codon-label.js";
+import type { ViewModel } from "./graph.js";
+import { copyAt, HoverKind, sourceAt } from "./hit.js";
+import type { HoverState } from "./hover.js";
+import type { LabelContext, LabelProvider, LabelSink } from "./labels.js";
+import type { PerPosition } from "./prepare.js";
+import type { MatrixState } from "./rows.js";
+import { RegionState, type StreamItems } from "./streams.js";
+import { TreeNode, type TreeRows } from "./tree.js";
 
 const K = HoverKind;
 const name = (set: SeqSet, id: number) => (id >= 0 ? set.strings.get(id) : "");

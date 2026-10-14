@@ -24,15 +24,15 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 async function setup() {
   vi.resetModules();
-  const { lit } = await import("./overlay-fixtures.ts");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.ts");
-  const { pinsDoc, S } = await import("./boundary-pins-fixtures.ts");
-  const { Dirty } = await import("../src/draw/index.ts");
-  const { HoverKind, Inputs, PointerType } = await import("../src/index.ts");
+  const { lit } = await import("./overlay-fixtures.js");
+  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
+  const { pinsDoc, S } = await import("./boundary-pins-fixtures.js");
+  const { Dirty } = await import("../src/draw/index.js");
+  const { HoverKind, Inputs, PointerType } = await import("../src/index.js");
   const ITEM = HoverKind.item;
   const t = await lit(pinsDoc(), { width: 900, height: 400, dpr: 2 });
   t.ctx.behaviors.get("hoverLabel")?.remove();

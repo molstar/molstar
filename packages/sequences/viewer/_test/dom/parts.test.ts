@@ -12,7 +12,7 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { afterEach, describe, expect, it } from "vitest";
-import * as D from "../../src/dom/index.ts";
+import * as D from "../../src/dom/index.js";
 import "../../src/skin.css";
 import {
   createSeqViewer,
@@ -20,9 +20,9 @@ import {
   type LayerRenderer,
   manualScheduler,
   type SeqViewerContext,
-} from "../../src/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
-import { flush, headlessSpec, stubSurface, uiDoc, WIDTH, xOf } from "./fixtures.ts";
+} from "../../src/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
+import { flush, headlessSpec, stubSurface, uiDoc, WIDTH, xOf } from "./fixtures.js";
 
 const cleanups: (() => void)[] = [];
 afterEach(() => {

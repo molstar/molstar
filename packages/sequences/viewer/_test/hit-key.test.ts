@@ -10,8 +10,8 @@
 // apart.
 
 import { describe, expect, it } from "vitest";
-import { HIT_ELEMENT, HitKey } from "../src/hit.ts";
-import { Hit } from "../src/index.ts";
+import { HIT_ELEMENT, HitKey } from "../src/hit.js";
+import { Hit } from "../src/index.js";
 
 describe("HitKey", () => {
   it("writes the named fields in order, then the system's kind, id and row", () => {

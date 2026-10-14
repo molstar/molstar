@@ -13,9 +13,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Issue } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { issueOf } from "../../src/format/index.ts";
-import { svsIssue } from "../../src/format/load/issues.ts";
-import { kernel } from "./fixtures.ts";
+import { issueOf } from "../../src/format/index.js";
+import { svsIssue } from "../../src/format/load/issues.js";
+import { kernel } from "./fixtures.js";
 
 const here = (p: string) => new URL(p, import.meta.url).pathname;
 const sources = (dir: string): [string, string][] =>

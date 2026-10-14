@@ -12,7 +12,7 @@
 // pass drew as boxes: rects (outlines and fills), rings (a stroked arc's outer box) and glyphs.
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import { Op, type RecordingBackend } from "../src/testing/index.ts";
+import { Op, type RecordingBackend } from "../src/testing/index.js";
 
 const PROTEIN = "MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH";
 

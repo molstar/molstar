@@ -23,7 +23,7 @@ import {
 import { compile } from "molstar/lib/mol-script/runtime/query/compiler";
 import { Script } from "molstar/lib/mol-script/script";
 import { _transpiler } from "molstar/lib/mol-script/transpilers/all";
-import type { StructureLink } from "./link.ts";
+import type { StructureLink } from "./link.js";
 
 const LANGS = ["pymol", "vmd", "jmol", "mol-script"] as const;
 type Lang = (typeof LANGS)[number];

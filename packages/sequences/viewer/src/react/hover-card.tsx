@@ -9,10 +9,10 @@
 // The hover card's React part (seqspec:interaction#the-hover-card): the same controller and placement as the DOM part.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
-import { dismissOn, placeCard } from "../dom/hover-card.ts";
-import { createHoverCard } from "../hover-card.ts";
-import { type PartProps, subscriber, useScopeMaybe } from "./hooks.ts";
-import { NO_SURFACES } from "./parts.tsx";
+import { dismissOn, placeCard } from "../dom/hover-card.js";
+import { createHoverCard } from "../hover-card.js";
+import { type PartProps, subscriber, useScopeMaybe } from "./hooks.js";
+import { NO_SURFACES } from "./parts.js";
 
 export function HoverCard({ context: ctx }: PartProps) {
   // A canvas overlay, placed at its UI's surfaces: nothing without a provider (as the DOM's without a UI).

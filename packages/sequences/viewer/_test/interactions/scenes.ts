@@ -13,7 +13,7 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import type { SeqViewerRegistryEntry } from "../../src/draw/api.ts";
+import type { SeqViewerRegistryEntry } from "../../src/draw/api.js";
 import {
   type Fingerprint,
   FingerprintProp,
@@ -21,7 +21,7 @@ import {
   fingerprint,
   interactionColors,
   interactionGlyphs,
-} from "../../src/interactions/index.ts";
+} from "../../src/interactions/index.js";
 
 type Builder = ReturnType<typeof createSeqViewSpec>;
 

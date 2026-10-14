@@ -16,7 +16,7 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it, vi } from "vitest";
-import type { LayerRenderer } from "../src/index.ts";
+import type { LayerRenderer } from "../src/index.js";
 import {
   controlCaught,
   describeScaling,
@@ -26,7 +26,7 @@ import {
   heapScaling,
   isFlat,
   leaking,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = FRAME_N;
 const WARM = FRAME_WARM;
@@ -70,12 +70,12 @@ function emphasized() {
 
 async function run(name: string, doc: string, reversed: boolean, heap = guard) {
   vi.resetModules();
-  const { KernelRenderers } = await import("../src/index.ts");
-  const { rendererConformance } = await import("../src/testing/index.ts");
-  const { asText, directed, mapped } = await import("./conformance-fixtures.ts");
-  const { opened } = await import("./layout-fixtures.ts");
-  const { allTypes, gene, scaleDoc } = await import("./prepare-fixtures.ts");
-  const { case3 } = await import("../../core/_test/format/cases.ts");
+  const { KernelRenderers } = await import("../src/index.js");
+  const { rendererConformance } = await import("../src/testing/index.js");
+  const { asText, directed, mapped } = await import("./conformance-fixtures.js");
+  const { opened } = await import("./layout-fixtures.js");
+  const { allTypes, gene, scaleDoc } = await import("./prepare-fixtures.js");
+  const { case3 } = await import("../../core/_test/format/cases.js");
   const make = {
     "all types": () => allTypes(),
     "20,000 positions": () => scaleDoc({ length: 20_000 }),

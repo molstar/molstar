@@ -19,10 +19,10 @@ import {
   type SeqViewSpecDoc,
   toJSON,
   validate,
-} from "../../src/format/index.ts";
-import { UNNAMED_ITEM } from "../../src/format/palettes/fields.ts";
-import { CASES, case6, case7, case9, case10, case12 } from "./cases.ts";
-import { fixtureLoaders, IEP, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { UNNAMED_ITEM } from "../../src/format/palettes/fields.js";
+import { CASES, case6, case7, case9, case10, case12 } from "./cases.js";
+import { fixtureLoaders, IEP, registries } from "./load-fixtures.js";
 
 const errors = (issues: Issue[]) => issues.filter((i) => i.severity === "error");
 const codes = (issues: Issue[]) => [...new Set(issues.map((i) => i.code))].sort();

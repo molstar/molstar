@@ -25,11 +25,11 @@ import type { Issue } from "@molstar/seq-core/model";
 import { NotServed, type TileTransport, tilesStream } from "@molstar/seq-core/stream/tiles";
 import { proceduralRow, tileServer } from "@molstar/seq-core/stream/tiles/server";
 import { describe, expect, it } from "vitest";
-import { mismatches } from "../../core/_test/model/mismatches.ts";
-import { RegionState, SeqViewerConfig } from "../src/index.ts";
-import type { RowsState } from "../src/rows.ts";
-import { reduce, type Streams, tileLevels } from "../src/streams.ts";
-import { layer, opened, preparedRenderers } from "./layout-fixtures.ts";
+import { mismatches } from "../../core/_test/model/mismatches.js";
+import { RegionState, SeqViewerConfig } from "../src/index.js";
+import type { RowsState } from "../src/rows.js";
+import { reduce, type Streams, tileLevels } from "../src/streams.js";
+import { layer, opened, preparedRenderers } from "./layout-fixtures.js";
 
 const P = { renderers: preparedRenderers() };
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
@@ -515,7 +515,7 @@ describe("LY4: failures, cancellation, eviction, filters", () => {
   });
 
   it("a click on the failed lower tile's band retries it; a click on the loaded upper band does not (LB-23)", async () => {
-    const { driven } = await import("./input-fixtures.ts");
+    const { driven } = await import("./input-fixtures.js");
     const { g, loaders } = failing(2000, 400, 99, /^tiles\/0\/0\/1\/0$/);
     const t = await driven(lazyDoc(2000, 400), { ...P, loaders, size: { "v.main": [800, 9000] } });
     const s = t.ctx.streams as Streams;

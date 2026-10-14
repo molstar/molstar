@@ -7,6 +7,6 @@
  */
 
 import { defineConfig } from "vitest/config";
-import { benchTests } from "../vitest.shared.ts";
+import { benchTests } from "../vitest.shared.js";
 
 export default defineConfig(benchTests());

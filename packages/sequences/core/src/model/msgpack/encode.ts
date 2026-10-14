@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { utf8ByteCount, utf8Write } from './utf8.ts'; // STORIES-UNTOLD(M1)
+import { utf8ByteCount, utf8Write } from './utf8.js'; // STORIES-UNTOLD(M1)
 
 /** STORIES-UNTOLD(M2): an extension value, its type code and payload. */
 export interface MsgPackExtData { type: number, data: Uint8Array }

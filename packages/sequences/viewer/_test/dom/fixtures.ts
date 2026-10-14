@@ -11,9 +11,9 @@
 // the section's viewport sized as the engine would). Imports no React.
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { ShownIndex } from "../../src/axis.ts";
-import { sectionLabel } from "../../src/chrome.ts";
-import type { SurfaceFactory } from "../../src/dom/index.ts";
+import type { ShownIndex } from "../../src/axis.js";
+import { sectionLabel } from "../../src/chrome.js";
+import type { SurfaceFactory } from "../../src/dom/index.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -25,8 +25,8 @@ import {
   SeqViewerConfig,
   type SeqViewerContext,
   type SeqViewerSpec,
-} from "../../src/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
+} from "../../src/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
 
 const PROTEIN = "MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH";
 export const WIDTH = 900;

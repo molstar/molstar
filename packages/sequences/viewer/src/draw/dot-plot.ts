@@ -27,12 +27,12 @@
 
 import { endsOf } from "@molstar/seq-core/format";
 import { type ComposedPath, Issue, type SeqSet } from "@molstar/seq-core/model";
-import { AxisGeometry, type AxisView } from "../axis.ts";
-import { MarkBit } from "../marks.ts";
-import { partOf } from "../prepare.ts";
-import type { LayerInput, PrepareContext } from "../registry.ts";
-import { ThemeLocation } from "../themes.ts";
-import { inkOf } from "./arcs.ts";
+import { AxisGeometry, type AxisView } from "../axis.js";
+import { MarkBit } from "../marks.js";
+import { partOf } from "../prepare.js";
+import type { LayerInput, PrepareContext } from "../registry.js";
+import { ThemeLocation } from "../themes.js";
+import { inkOf } from "./arcs.js";
 import {
   BackendCaps,
   type BackendImages,
@@ -43,12 +43,12 @@ import {
   PathMode,
   RectBatch,
   SkinToken,
-} from "./backend.ts";
-import { visibleRange } from "./cells.ts";
-import { keyAlpha, packAlpha } from "./density.ts";
-import { hoverEmphasis, outlineItem } from "./hover.ts";
-import { DOT_R } from "./sizes.ts";
-import type { DrawView } from "./view.ts";
+} from "./backend.js";
+import { visibleRange } from "./cells.js";
+import { keyAlpha, packAlpha } from "./density.js";
+import { hoverEmphasis, outlineItem } from "./hover.js";
+import { DOT_R } from "./sizes.js";
+import type { DrawView } from "./view.js";
 
 /**
  * The bounds: the floats a block pair's grid allocates (its own copy, unless one Float32Array row is the whole grid on

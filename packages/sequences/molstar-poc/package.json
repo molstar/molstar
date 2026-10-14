@@ -1,37 +1,62 @@
 {
   "name": "@molstar/seq-molstar-poc",
-  "version": "0.0.0",
+  "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
   "description": "The Mol* adapter: the molstar:structure complex provider, structure formats and services, Mol* loci to Seq* runs and back.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "exports": {
-    ".": "./src/index.ts",
-    "./viewer": "./src/viewer.ts",
-    "./plugin": "./src/plugin.ts",
+    ".": {
+      "molstar-src": "./src/index.ts",
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./viewer": {
+      "molstar-src": "./src/viewer.ts",
+      "types": "./lib/viewer.d.ts",
+      "import": "./lib/viewer.js"
+    },
+    "./plugin": {
+      "molstar-src": "./src/plugin.ts",
+      "types": "./lib/plugin.d.ts",
+      "import": "./lib/plugin.js"
+    },
     "./_stories/*": null,
     "./_test/*": null
   },
   "files": [
+    "lib",
     "src",
     "!**/_test/**",
     "!**/_stories/**",
-    "!**/*.stories.*"
+    "!**/*.stories.*",
+    "!**/*.tsbuildinfo"
   ],
   "scripts": {
+    "build": "tsc -b",
     "test": "vitest run",
     "test:full": "vitest run && vitest run --config vitest.heap.config.ts",
     "test:heap": "vitest run --config vitest.heap.config.ts",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc -b && tsc -p tsconfig.test.json"
   },
   "dependencies": {
+    "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "@molstar/model": "workspace:*",
+    "@molstar/mvs": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/query-language": "workspace:*",
     "@molstar/seq-core": "workspace:*",
     "@molstar/seq-viewer": "workspace:*",
-    "molstar": "workspace:*"
+    "tslib": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
-    "@types/webxr": "^0.5.24",
-    "typescript": "^7.0.2",
-    "vitest": "^4.1.11"
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -11,7 +11,7 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { allTypes } from "./prepare-fixtures.ts";
+import { allTypes } from "./prepare-fixtures.js";
 
 /** Every view of a document in the text layout (wrapped). */
 export function asText(doc: SeqViewSpecDoc): SeqViewSpecDoc {

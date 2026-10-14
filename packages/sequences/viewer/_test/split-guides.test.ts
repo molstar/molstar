@@ -11,12 +11,12 @@
 // is at least 4 device px tall; an unsplit track has none, and a real border (a row over 8 px) takes its place.
 
 import { describe, expect, it } from "vitest";
-import { case7, case13 } from "../../core/_test/format/cases.ts";
-import { Dirty, SkinToken } from "../src/draw/index.ts";
-import type { LayerRenderer } from "../src/index.ts";
-import { VariantsRenderer } from "../src/renderers/variants.ts";
-import { composed, opNames } from "./composer-fixtures.ts";
-import { rects } from "./draw-fixtures.ts";
+import { case7, case13 } from "../../core/_test/format/cases.js";
+import { Dirty, SkinToken } from "../src/draw/index.js";
+import type { LayerRenderer } from "../src/index.js";
+import { VariantsRenderer } from "../src/renderers/variants.js";
+import { composed, opNames } from "./composer-fixtures.js";
+import { rects } from "./draw-fixtures.js";
 
 const ROWS = 22;
 

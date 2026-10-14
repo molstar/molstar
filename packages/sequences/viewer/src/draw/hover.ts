@@ -15,11 +15,11 @@
 // filled in the ink, a glyph ringed only inside its cell, else outlined inset; `outlineItem` and `ringItem` are one
 // call each for an extension's overlay. Allocation-free once warm.
 
-import type { Axis } from "../axis.ts";
-import type { Skin } from "../graph.ts";
-import type { Features } from "../prepare.ts";
-import { GlyphBatch, NO_COLOR, PathBatch, PathMode, PathVerb, RectBatch, SkinToken } from "./backend.ts";
-import type { DrawView } from "./view.ts";
+import type { Axis } from "../axis.js";
+import type { Skin } from "../graph.js";
+import type { Features } from "../prepare.js";
+import { GlyphBatch, NO_COLOR, PathBatch, PathMode, PathVerb, RectBatch, SkinToken } from "./backend.js";
+import type { DrawView } from "./view.js";
 
 /** The hover outline's width, CSS px: the pairs' hovered arc with `arcs: "hover"` too. */
 export const HOVER_WIDTH = 1.5;

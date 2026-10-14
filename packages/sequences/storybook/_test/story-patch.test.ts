@@ -11,10 +11,10 @@
 
 import type { Patch } from "@molstar/seq-core/format";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { pf00042 } from "../../core/_test/model/alignment-fixtures.ts";
-import { keyedFamilyDoc, MEMBERS_LAYER, MODES, modePatch } from "../../viewer/_test/keyed-family.ts";
-import { opened } from "../../viewer/_test/layout-fixtures.ts";
-import { patchNotices, storyPatch, storyPropose } from "../src/_stories/support/seqstar-patch.ts";
+import { pf00042 } from "../../core/_test/model/alignment-fixtures.js";
+import { keyedFamilyDoc, MEMBERS_LAYER, MODES, modePatch } from "../../viewer/_test/keyed-family.js";
+import { opened } from "../../viewer/_test/layout-fixtures.js";
+import { patchNotices, storyPatch, storyPropose } from "../src/_stories/support/seqstar-patch.js";
 
 afterEach(() => vi.restoreAllMocks());
 const doc = () => keyedFamilyDoc(pf00042());

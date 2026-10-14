@@ -25,8 +25,8 @@ import {
   report,
   show,
   typeError,
-} from "../schema/field-schema.ts";
-import { CellKind, CellScan, type Col, ColumnForm, cellAt, cellKind, cellOk, scanCells } from "./cells.ts";
+} from "../schema/field-schema.js";
+import { CellKind, CellScan, type Col, ColumnForm, cellAt, cellKind, cellOk, scanCells } from "./cells.js";
 
 export type TypedColumn =
   | Int8Array

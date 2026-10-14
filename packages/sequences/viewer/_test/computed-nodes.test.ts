@@ -22,9 +22,9 @@ import {
 } from "@molstar/seq-core/format";
 import { type Alignment, KeyKind, type KeyTarget, type SeqSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { Q } from "../../core/src/query/index.ts";
-import type { SeqViewerContext } from "../src/index.ts";
-import { patch, refsRan, viewer } from "./graph-fixtures.ts";
+import { Q } from "../../core/src/query/index.js";
+import type { SeqViewerContext } from "../src/index.js";
+import { patch, refsRan, viewer } from "./graph-fixtures.js";
 
 const S = ["MKVLAGWTQRSTEDNLK", "MKVLAGWTRRSTEDNLK", "KVLAGWTQRSTEDNLK"];
 const CDNA = ["ATGGCTTCC", "ATGAAAGTT"];

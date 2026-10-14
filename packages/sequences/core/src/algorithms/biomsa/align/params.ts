@@ -5,7 +5,7 @@
  * @copyright 2020
  */
 
-import type { TAlignOpt } from "../index.ts";
+import type { TAlignOpt } from "../index.js";
 
 // STORIES-UNTOLD(B1): const enum as an `as const` object and a type (erasable TypeScript).
 export const SEQUENCE_TYPE = {

@@ -10,7 +10,7 @@
 // that collects is refused.
 
 import { expect, it } from "vitest";
-import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.ts";
+import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.js";
 
 const sink: { v: unknown } = { v: null };
 

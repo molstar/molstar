@@ -31,11 +31,11 @@ import {
   supportedAll,
   type ThemeRef,
   themeRef,
-} from "../../src/format/index.ts";
-import { darkRamp } from "../../src/format/palettes/schemes.ts";
-import { quiet } from "../../src/format/schema/field-schema.ts";
-import { CASES, case3 } from "./cases.ts";
-import { files, fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { darkRamp } from "../../src/format/palettes/schemes.js";
+import { quiet } from "../../src/format/schema/field-schema.js";
+import { CASES, case3 } from "./cases.js";
+import { files, fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 const theme = (p: SchemeParams, dark = false) => schemeTheme(reg, p, { dark }) as ThemeRef;

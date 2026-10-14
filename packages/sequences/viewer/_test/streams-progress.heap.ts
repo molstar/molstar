@@ -25,7 +25,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 /** The file's warm-up, settle and measurement, as its guards and its control run them. */
@@ -45,7 +45,7 @@ describe("the overlay's skeletons and error bands allocate nothing per frame", (
   for (const c of ["pending", "failed"] as const)
     it(`every region ${c}`, async () => {
       vi.resetModules();
-      const { overlayFrame, rectsOf, SkinToken } = await import("./stream-progress-fixtures.ts");
+      const { overlayFrame, rectsOf, SkinToken } = await import("./stream-progress-fixtures.js");
       const { g, frame, next } = await overlayFrame(c);
       frame();
       // Not vacuous: the shades drawn (and the hatches over failed regions); a frame asked while one shimmers.
@@ -58,7 +58,7 @@ describe("the overlay's skeletons and error bands allocate nothing per frame", (
 
   it("the same frame allocating an object a step is caught (positive control)", async () => {
     vi.resetModules();
-    const { overlayFrame } = await import("./stream-progress-fixtures.ts");
+    const { overlayFrame } = await import("./stream-progress-fixtures.js");
     const { frame } = await overlayFrame("pending");
     expect(controlCaught(() => measure(leaking(frame) as () => void))).toBe(true);
   }, 120_000);

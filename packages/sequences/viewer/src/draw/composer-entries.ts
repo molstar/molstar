@@ -11,11 +11,11 @@
 // throw omits the layer, reported once), a split row's guide, the rows' band in one `rows` call, and a moved lazy
 // band's cut rows. Per frame nothing is allocated (RN1's draw pattern).
 
-import { AxisGeometry } from "../axis.ts";
-import type { ViewModel } from "../graph.ts";
-import { EntryKind, type SectionLayout, SectionLayouts, SPLIT_GUIDE_PX } from "../layout.ts";
-import type { ViewportState } from "../viewport.ts";
-import { type RenderBackend, SkinToken } from "./backend.ts";
+import { AxisGeometry } from "../axis.js";
+import type { ViewModel } from "../graph.js";
+import { EntryKind, type SectionLayout, SectionLayouts, SPLIT_GUIDE_PX } from "../layout.js";
+import type { ViewportState } from "../viewport.js";
+import { type RenderBackend, SkinToken } from "./backend.js";
 import {
   banded,
   bands,
@@ -32,9 +32,9 @@ import {
   release,
   setClip,
   stateOf,
-} from "./composer-frame.ts";
-import { columns, gutter, header, rowsHeader } from "./composer-headers.ts";
-import { drawGroupLabels } from "./numbers.ts";
+} from "./composer-frame.js";
+import { columns, gutter, header, rowsHeader } from "./composer-headers.js";
+import { drawGroupLabels } from "./numbers.js";
 
 /** A split row's guide: the grid tone at this alpha (0..255), well under a row border's full strength. */
 const SPLIT_GUIDE_ALPHA = 150;

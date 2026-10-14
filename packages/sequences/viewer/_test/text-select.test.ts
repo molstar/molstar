@@ -21,8 +21,8 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { OrderedSet, OrderedSet as OS } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { case3 } from "../../core/_test/format/cases.ts";
-import { Pass, SkinToken } from "../src/draw/index.ts";
+import { case3 } from "../../core/_test/format/cases.js";
+import { Pass, SkinToken } from "../src/draw/index.js";
 import {
   DefaultPresets,
   Hit,
@@ -34,13 +34,13 @@ import {
   type PresetEntry,
   type Selection,
   type SeqViewerSpec,
-} from "../src/index.ts";
-import type { Layouts } from "../src/layout.ts";
-import { runX } from "../src/runs.ts";
-import { setPiece } from "./axis-fixtures.ts";
-import { type Driven, driven } from "./input-fixtures.ts";
-import { lit, passRects, seqLoci } from "./overlay-fixtures.ts";
-import { allTypes } from "./prepare-fixtures.ts";
+} from "../src/index.js";
+import type { Layouts } from "../src/layout.js";
+import { runX } from "../src/runs.js";
+import { setPiece } from "./axis-fixtures.js";
+import { type Driven, driven } from "./input-fixtures.js";
+import { lit, passRects, seqLoci } from "./overlay-fixtures.js";
+import { allTypes } from "./prepare-fixtures.js";
 
 const S = "v.main";
 const WRAPPED = DefaultPresets.find((p) => p.name === "wrapped") as PresetEntry;

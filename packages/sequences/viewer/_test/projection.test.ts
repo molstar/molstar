@@ -26,14 +26,14 @@ import {
 } from "@molstar/seq-core/model";
 import { type SystemDescriptor, TranslateMaps, Translator } from "@molstar/seq-core/translate";
 import { describe, expect, it } from "vitest";
-import { case7, case12, case14 } from "../../core/_test/format/cases.ts";
-import { constructs, open as core, gene, rows, runs } from "../../core/_test/format/project-fixtures.ts";
-import { MarkBit } from "../src/index.ts";
-import { type MarkSet, RowMarks, SectionMarks } from "../src/marks.ts";
-import { BlockHulls } from "../src/projection.ts";
-import type { Viewport, Viewports } from "../src/viewport.ts";
-import { axisOf } from "./axis-fixtures.ts";
-import { entries, over, shown } from "./projection-fixtures.ts";
+import { case7, case12, case14 } from "../../core/_test/format/cases.js";
+import { constructs, open as core, gene, rows, runs } from "../../core/_test/format/project-fixtures.js";
+import { MarkBit } from "../src/index.js";
+import { type MarkSet, RowMarks, SectionMarks } from "../src/marks.js";
+import { BlockHulls } from "../src/projection.js";
+import type { Viewport, Viewports } from "../src/viewport.js";
+import { axisOf } from "./axis-fixtures.js";
+import { entries, over, shown } from "./projection-fixtures.js";
 
 const seqLoci = (set: SeqLoci["set"], unit: number, indices: number[]): Loci =>
   ({

@@ -15,7 +15,7 @@
 // plain text only. React/DOM parity is _test/react/parity.test.tsx (UX3).
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as D from "../../src/dom/index.ts";
+import * as D from "../../src/dom/index.js";
 // The skin, for the legend's grid (its layout is CSS).
 import "../../src/skin.css";
 import {
@@ -26,8 +26,8 @@ import {
   manualScheduler,
   SeqViewerConfig,
   type SeqViewerContext,
-} from "../../src/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
+} from "../../src/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
 import {
   at,
   flush,
@@ -41,7 +41,7 @@ import {
   uiDoc,
   WIDTH,
   xOf,
-} from "./fixtures.ts";
+} from "./fixtures.js";
 
 D.defineSeqViewer();
 const cleanups: (() => void)[] = [];
@@ -146,7 +146,7 @@ describe("the <seq-viewer> element (UX2; UI1's rows)", () => {
 
   it("a spec from another copy of the viewer in the page (an HMR update) mounts: the viewer's entries are its own", async () => {
     vi.resetModules();
-    const other = await import("../../src/index.ts");
+    const other = await import("../../src/index.js");
     const spec = other.DefaultSeqViewerSpec();
     const el = madeElement();
     el.spec = { ...spec, config: [...(spec.config ?? []), [SeqViewerConfig.UI.Chrome, "full"]] };

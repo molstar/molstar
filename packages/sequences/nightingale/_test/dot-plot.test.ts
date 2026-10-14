@@ -11,9 +11,9 @@
 
 import { compile, resolveView } from "@molstar/seq-core/format";
 import { expect, it } from "vitest";
-import { case8 } from "../../core/_test/format/cases.ts";
-import { fixtureLoaders, registries } from "../../core/_test/format/load-fixtures.ts";
-import { materialize, NightingaleSupported } from "../src/index.ts";
+import { case8 } from "../../core/_test/format/cases.js";
+import { fixtureLoaders, registries } from "../../core/_test/format/load-fixtures.js";
+import { materialize, NightingaleSupported } from "../src/index.js";
 
 it("leaves a dot plot out and says so", async () => {
   const reg = registries();

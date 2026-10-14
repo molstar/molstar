@@ -22,9 +22,9 @@ import {
   Stockholm,
   type StockholmRecord,
 } from "@molstar/seq-core/model";
-import type { FormatResult, StageContext } from "../contract.ts";
-import type { FormatEntry, ServiceEntry } from "../registry.ts";
-import { isList } from "../tables/table.ts";
+import type { FormatResult, StageContext } from "../contract.js";
+import type { FormatEntry, ServiceEntry } from "../registry.js";
+import { isList } from "../tables/table.js";
 
 const decoder = new TextDecoder();
 const text = (bytes: Uint8Array) => decoder.decode(bytes);

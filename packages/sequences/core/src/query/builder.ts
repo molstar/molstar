@@ -10,12 +10,12 @@
 // `MolScriptBuilder` re-exports its tables. `Q.seq.filter.pick(q, { where: t })` builds the JSON of
 // seqspec:seqql#names. `Q.query` stores an expression with its canonical text; `Q.read` reads, binds and checks a text,
 // or throws.
-import { checkText } from "./check.ts";
-import { renderIssue } from "./issue.ts";
-import type { Language } from "./language.ts";
-import { printQuery } from "./print.ts";
-import { BASE_SYMBOLS, type BaseSymbolName } from "./table.ts";
-import { type Expression, type QueryIssue, SEQQL_VERSION, type SeqQLQuery, type SymbolDef } from "./types.ts";
+import { checkText } from "./check.js";
+import { renderIssue } from "./issue.js";
+import type { Language } from "./language.js";
+import { printQuery } from "./print.js";
+import { BASE_SYMBOLS, type BaseSymbolName } from "./table.js";
+import { type Expression, type QueryIssue, SEQQL_VERSION, type SeqQLQuery, type SymbolDef } from "./types.js";
 
 export type SymbolPath<N extends string, V> = N extends `${infer Head}.${infer Tail}`
   ? { readonly [K in Head]: SymbolPath<Tail, V> }

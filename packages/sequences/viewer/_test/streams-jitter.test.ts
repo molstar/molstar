@@ -13,11 +13,11 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { GRCH38 } from "../../core/_test/format/stream-provider.ts";
-import { RegionState, SeqViewerConfig } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { layer, opened, preparedRenderers } from "./layout-fixtures.ts";
-import { GENOME, Margin, openGenome } from "./stream-fixtures.ts";
+import { GRCH38 } from "../../core/_test/format/stream-provider.js";
+import { RegionState, SeqViewerConfig } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { layer, opened, preparedRenderers } from "./layout-fixtures.js";
+import { GENOME, Margin, openGenome } from "./stream-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const SPAN = 4096;

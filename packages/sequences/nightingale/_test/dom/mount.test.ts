@@ -23,8 +23,8 @@ import {
 } from "@molstar/seq-core/format";
 import { KeyKind, type KeyTarget, type Loci, OrderedSet, type SeqSet, type UnitId } from "@molstar/seq-core/model";
 import { afterEach, describe, expect, it } from "vitest";
-import { materialize, NightingaleSupported } from "../../src/index.ts";
-import { type Mounted, mount, type NightingaleEvent } from "../../src/mount.ts";
+import { materialize, NightingaleSupported } from "../../src/index.js";
+import { type Mounted, mount, type NightingaleEvent } from "../../src/mount.js";
 
 const reg = createRegistries();
 register(reg, [KernelRegistry, MvsRegistry]);

@@ -17,7 +17,7 @@ export {
   type Tree,
   type TreeInput,
   Trees,
-} from "./alignment.ts";
+} from "./alignment.js";
 export {
   type Annotation,
   type AnnotationColumn,
@@ -32,7 +32,7 @@ export {
   type PairColumns,
   Pairs,
   type Targets,
-} from "./annotation.ts";
+} from "./annotation.js";
 export {
   type AlignmentId,
   type AnnotationId,
@@ -57,7 +57,7 @@ export {
   type Severity,
   StringTable,
   type UnitId,
-} from "./common.ts";
+} from "./common.js";
 export {
   type Coordinate,
   type CoordinateMap,
@@ -65,8 +65,8 @@ export {
   CoordinateSystemKind,
   Coords,
   type MapHit,
-} from "./coordinates.ts";
-export { Extents } from "./extents.ts";
+} from "./coordinates.js";
+export { Extents } from "./extents.js";
 export {
   Clustal,
   type ClustalRecord,
@@ -76,8 +76,8 @@ export {
   type ParseOptions,
   Stockholm,
   type StockholmRecord,
-} from "./formats.ts";
-export { GC_PRT, GeneticCode, threeLetter } from "./genetic-code.ts";
+} from "./formats.js";
+export { GC_PRT, GeneticCode, threeLetter } from "./genetic-code.js";
 export {
   AlignedLocation,
   AlignedLoci,
@@ -96,7 +96,7 @@ export {
   RowLoci,
   SeqLocation,
   SeqLoci,
-} from "./loci.ts";
+} from "./loci.js";
 export {
   type CodonInfo,
   type CodonInput,
@@ -109,7 +109,7 @@ export {
   type PathStep,
   Paths,
   type RowBindings,
-} from "./mapping.ts";
+} from "./mapping.js";
 export {
   type Alphabet,
   type Detection,
@@ -118,7 +118,7 @@ export {
   MoleculeKind,
   Molecules,
   type ResidueCheck,
-} from "./molecule.ts";
+} from "./molecule.js";
 export {
   decodeMsgPack,
   decodeTypedArrays,
@@ -127,7 +127,7 @@ export {
   type MsgPackExtData,
   type MsgPackExtDecoder,
   type MsgPackExtEncoder,
-} from "./msgpack/index.ts";
+} from "./msgpack/index.js";
 export {
   type LabelNumbering,
   type NameNumbering,
@@ -141,8 +141,8 @@ export {
   type PositionLabel,
   type SegmentNumbering,
   UNKNOWN_SUFFIX,
-} from "./numbering.ts";
-export { Interval, OrderedSet, SortedArray, SortedRanges } from "./ordered-set.ts";
+} from "./numbering.js";
+export { Interval, OrderedSet, SortedArray, SortedRanges } from "./ordered-set.js";
 export {
   COVERAGE_PALETTE,
   type ColumnMeasure,
@@ -152,7 +152,7 @@ export {
   type ProfileOptions,
   type ProviderResult,
   Providers,
-} from "./providers.ts";
+} from "./providers.js";
 export {
   type Complex,
   type ComplexInput,
@@ -165,5 +165,5 @@ export {
   type SetInput,
   type UnitInput,
   type UnitTable,
-} from "./set.ts";
-export { Systems } from "./systems.ts";
+} from "./set.js";
+export { Systems } from "./systems.js";

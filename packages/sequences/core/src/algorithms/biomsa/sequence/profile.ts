@@ -5,11 +5,11 @@
  * @copyright 2020
  */
 
-import { ALIGNOPT } from "../align/align.ts";
-import { SEQUENCE_TYPE, type TAlignmentParam } from "../align/params.ts";
-import BitArray from "../utils/bitarray.ts";
-import { estringLength, estringToIdx } from "../utils/estring.ts";
-import { aaToNum, nucToNum, type TSequence } from "./sequence.ts";
+import { ALIGNOPT } from "../align/align.js";
+import { SEQUENCE_TYPE, type TAlignmentParam } from "../align/params.js";
+import BitArray from "../utils/bitarray.js";
+import { estringLength, estringToIdx } from "../utils/estring.js";
+import { aaToNum, nucToNum, type TSequence } from "./sequence.js";
 
 /*
  * ProfPos definition ()

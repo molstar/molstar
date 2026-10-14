@@ -14,7 +14,7 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { case3, case6, case14 } from "../../core/_test/format/cases.ts";
+import { case3, case6, case14 } from "../../core/_test/format/cases.js";
 import {
   createSeqViewer,
   DefaultRenderProps,
@@ -24,13 +24,13 @@ import {
   type LayerRenderer,
   type SeqViewerContext,
   type Theme,
-} from "../src/index.ts";
-import type { PairsState } from "../src/prepare.ts";
-import { Arcs } from "../src/renderer-helpers.ts";
-import type { MatrixState } from "../src/rows.ts";
-import type { LegendSink } from "../src/themes.ts";
-import { layer, opened } from "./layout-fixtures.ts";
-import { allTypes, rangesDoc } from "./prepare-fixtures.ts";
+} from "../src/index.js";
+import type { PairsState } from "../src/prepare.js";
+import { Arcs } from "../src/renderer-helpers.js";
+import type { MatrixState } from "../src/rows.js";
+import type { LegendSink } from "../src/themes.js";
+import { layer, opened } from "./layout-fixtures.js";
+import { allTypes, rangesDoc } from "./prepare-fixtures.js";
 
 const K = { renderers: [...KernelRenderers] };
 

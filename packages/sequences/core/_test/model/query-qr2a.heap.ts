@@ -14,10 +14,10 @@
 
 import { checkText } from "@molstar/seq-core/query";
 import { describe, expect, it } from "vitest";
-import { SeqSets } from "../../src/model/index.ts";
-import { compileQuery, createQueryEnv } from "../../src/model/query/index.ts";
-import { controlCaught, heapGrowth, LIMIT } from "./heap.ts";
-import { leakExtension } from "./query-leak.ts";
+import { SeqSets } from "../../src/model/index.js";
+import { compileQuery, createQueryEnv } from "../../src/model/query/index.js";
+import { controlCaught, heapGrowth, LIMIT } from "./heap.js";
+import { leakExtension } from "./query-leak.js";
 
 const N = 1_000_000;
 const P = 300_000;

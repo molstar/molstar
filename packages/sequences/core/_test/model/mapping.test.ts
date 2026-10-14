@@ -42,16 +42,16 @@ import {
   SeqSets,
   type SetInput,
   type UnitId,
-} from "../../src/model/index.ts";
+} from "../../src/model/index.js";
 
 /** A composed path's first to positions per from element, dense (the sparse path read through `Paths`). */
 const dense = (p: ComposedPath) => Array.from({ length: p.length }, (_, i) => Paths.at(p, i));
 const denseSpans = (p: ComposedPath) =>
   Array.from({ length: p.span * p.length }, (_, k) => Paths.spanAt(p, (k / p.span) | 0, k % p.span));
 
-import { pf00042, SH2_A3M } from "./alignment-fixtures.ts";
-import { a3n1, brs1 } from "./fixtures.ts";
-import { alignment as generated } from "./support/generators.ts";
+import { pf00042, SH2_A3M } from "./alignment-fixtures.js";
+import { a3n1, brs1 } from "./fixtures.js";
+import { alignment as generated } from "./support/generators.js";
 
 const spike = (name: string) => JSON.parse(readFileSync(new URL(`../fixtures/${name}.json`, import.meta.url), "utf8"));
 const codes = (issues: Issue[]) => issues.map((i) => `${i.code} ${i.path}`);

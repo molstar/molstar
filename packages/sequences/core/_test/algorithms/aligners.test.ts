@@ -8,10 +8,10 @@
 
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ALIGNOPT, pairwiseAlignment } from "../../src/algorithms/biomsa/align/align.ts";
-import { extractLongestPath, noalignPair } from "../../src/algorithms/biomsa/align/noalign.ts";
-import { getAlignmentParameters, SEQUENCE_TYPE } from "../../src/algorithms/biomsa/align/params.ts";
-import { makeSequence } from "../../src/algorithms/biomsa/sequence/sequence.ts";
+import { ALIGNOPT, pairwiseAlignment } from "../../src/algorithms/biomsa/align/align.js";
+import { extractLongestPath, noalignPair } from "../../src/algorithms/biomsa/align/noalign.js";
+import { getAlignmentParameters, SEQUENCE_TYPE } from "../../src/algorithms/biomsa/align/params.js";
+import { makeSequence } from "../../src/algorithms/biomsa/sequence/sequence.js";
 import {
   type Aligner,
   AlignerOptionsError,
@@ -25,8 +25,8 @@ import {
   myersAlign,
   needlemanWunsch,
   readOptions,
-} from "../../src/algorithms/index.ts";
-import { itWithin } from "../model/timing.ts";
+} from "../../src/algorithms/index.js";
+import { itWithin } from "../model/timing.js";
 
 // 1BRS from the viewer spike's fixture (UniProtKB CC BY 4.0, wwPDB CC0), as in @molstar/seq-core/model's fixtures: entity 1 is
 // barnase's mature chain (P00648 48–157), entity 2 barstar without its initiator Met (P11540 2–90) with C40A/C82A.

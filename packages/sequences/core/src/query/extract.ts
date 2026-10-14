@@ -9,9 +9,9 @@
 // Queries in free text (seqspec:seqql#queries-in-text): the [SeqQL]…[/SeqQL] blocks of a reply, each with its place in
 // the whole text, so the reader's, binder's and checker's issues inside a block point into the reply. Tags first; in a
 // text with none, ```seqql fences; with neither, the whole text if it reads as one form.
-import { queryIssue } from "./issue.ts";
-import { readQuery, type TextPosition } from "./read.ts";
-import type { QueryIssue } from "./types.ts";
+import { queryIssue } from "./issue.js";
+import { readQuery, type TextPosition } from "./read.js";
+import type { QueryIssue } from "./types.js";
 
 export interface QueryBlock {
   /** The query as written between the tags (or inside the fence, or the whole text). */

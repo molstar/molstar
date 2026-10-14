@@ -39,10 +39,10 @@ import {
   type StageContext,
   sourceParse,
   supportedAll,
-} from "../../src/format/index.ts";
-import { checkUnitKinds, remapIssues } from "../../src/format/load/compile.ts";
-import { case10 } from "./cases.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { checkUnitKinds, remapIssues } from "../../src/format/load/compile.js";
+import { case10 } from "./cases.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 const all = supportedAll(reg);

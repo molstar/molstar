@@ -14,7 +14,7 @@
 // (ui-monospace, 10 to 14 px). Which renderers place their letters so is the recordings' (_test/letter-lines.test.ts).
 
 import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared, canvasMeasurer } from "../../src/canvas/index.ts";
+import { Canvas2DBackend, Canvas2DShared, canvasMeasurer } from "../../src/canvas/index.js";
 import {
   type DrawResources,
   LETTER_LINE,
@@ -25,10 +25,10 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.ts";
-import { DefaultSkin } from "../../src/index.ts";
-import { SvgBackend } from "../../src/svg/index.ts";
-import { TextManager } from "../../src/text.ts";
+} from "../../src/draw/api.js";
+import { DefaultSkin } from "../../src/index.js";
+import { SvgBackend } from "../../src/svg/index.js";
+import { TextManager } from "../../src/text.js";
 
 /**
  * Capitals, and lower-case letters of the x-height alone (no ascender or descender: their ink is the x-height's). Not

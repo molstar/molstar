@@ -11,9 +11,9 @@
 // once on the same documents: 1,783 ms for 3M rows, 532 ms for 1M, 6,933 ms for 1M with 10 snapshots (VW2).
 
 import { bench, describe } from "vitest";
-import { kernel } from "../../_test/format/fixtures.ts";
-import { codedDoc, freshParams } from "../../_test/format/table-fixtures.ts";
-import { validate } from "../../src/format/index.ts";
+import { kernel } from "../../_test/format/fixtures.js";
+import { codedDoc, freshParams } from "../../_test/format/table-fixtures.js";
+import { validate } from "../../src/format/index.js";
 
 const reg = kernel();
 const genome = codedDoc(3_000_000);

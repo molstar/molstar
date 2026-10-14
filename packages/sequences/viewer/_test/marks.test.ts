@@ -13,11 +13,11 @@
 // indices unless a title says shown.
 
 import { describe, expect, it } from "vitest";
-import type { ShownIndex } from "../src/axis.ts";
-import { MarkBit } from "../src/index.ts";
+import type { ShownIndex } from "../src/axis.js";
+import { MarkBit } from "../src/index.js";
 
-import { MarkSet, RowMarks, SectionMarks, type ShownRuns } from "../src/marks.ts";
-import { axisOf, rangedDoc, resolved } from "./axis-fixtures.ts";
+import { MarkSet, RowMarks, SectionMarks, type ShownRuns } from "../src/marks.js";
+import { axisOf, rangedDoc, resolved } from "./axis-fixtures.js";
 
 /** Block b's runs as pairs. */
 const runsOf = (m: MarkSet, b: number) =>

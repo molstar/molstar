@@ -17,8 +17,8 @@
 // (`leaking`), measured alike, are caught.
 
 import { expect, it } from "vitest";
-import { createSeqViewer, type Scheduler } from "../src/index.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
+import { createSeqViewer, type Scheduler } from "../src/index.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
 
 const N = 20_000;
 

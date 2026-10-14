@@ -8,10 +8,10 @@
 
 import { useSeqViewer } from "@molstar/seq-viewer/react";
 import { useSyncExternalStore } from "react";
-import { TextAction } from "../ui";
+import { TextAction } from "../ui/index.js";
 import f from "./seqstar-format.module.css";
-import { IssueList } from "./seqstar-issues";
-import { patchNotices } from "./seqstar-patch";
+import { IssueList } from "./seqstar-issues.js";
+import { patchNotices } from "./seqstar-patch.js";
 import b from "./seqstar-patch.module.css";
 
 /** The issues of the story's patches (`storyPatch`), under the viewer, each patch's own and dismissible. Inside the viewer's provider. */

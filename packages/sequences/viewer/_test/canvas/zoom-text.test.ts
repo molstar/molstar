@@ -16,10 +16,10 @@
 // behavior) upload a page per new cell; the text caches dropped every frame measure again.
 
 import { describe, expect, it } from "vitest";
-import { case14, case15 } from "../../../core/_test/format/cases.ts";
-import type { Canvas2DBackend } from "../../src/canvas/index.ts";
-import type { Viewport } from "../../src/viewport.ts";
-import { close, type Opened, opened } from "./open.ts";
+import { case14, case15 } from "../../../core/_test/format/cases.js";
+import type { Canvas2DBackend } from "../../src/canvas/index.js";
+import type { Viewport } from "../../src/viewport.js";
+import { close, type Opened, opened } from "./open.js";
 
 /** Pages the atlas holds (backend.ts `PAGES`): the most uploads a pass can need. */
 const PAGES = 4;

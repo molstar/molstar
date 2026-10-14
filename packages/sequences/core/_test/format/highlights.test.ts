@@ -19,9 +19,9 @@ import {
   sectionHighlights,
   supportedAll,
   validate,
-} from "../../src/format/index.ts";
-import { CASES } from "./cases.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { CASES } from "./cases.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 type J = { kind: string; ref?: string; params?: Record<string, unknown>; children?: J[] };

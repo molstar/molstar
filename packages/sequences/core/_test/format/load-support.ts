@@ -9,7 +9,7 @@
 // Helpers of the load tests (load.test.ts).
 
 import type { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { Loaders } from "../../src/format/index.ts";
+import type { Loaders } from "../../src/format/index.js";
 
 /** The document with a view, which every document needs. */
 export const done = (b: ReturnType<typeof createSeqViewSpec>) => {

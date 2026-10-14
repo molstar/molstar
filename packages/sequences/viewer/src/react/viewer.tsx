@@ -13,9 +13,9 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { mountSection, windowScheduler } from "../canvas/index.ts";
-import { isReactPart, labelText, placedParts, resolveSlots } from "../chrome.ts";
-import { withDownloadExport } from "../dom/export.ts";
+import { mountSection, windowScheduler } from "../canvas/index.js";
+import { isReactPart, labelText, placedParts, resolveSlots } from "../chrome.js";
+import { withDownloadExport } from "../dom/export.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -23,7 +23,7 @@ import {
   type SeqViewerContext,
   type SeqViewerPorts,
   type SeqViewerSpec,
-} from "../index.ts";
+} from "../index.js";
 import {
   type PartProps,
   type ResolvedUISpec,
@@ -31,10 +31,10 @@ import {
   type SeqViewerUISpec,
   type SlotName,
   useScope,
-} from "./hooks.ts";
-import { HoverCard } from "./hover-card.tsx";
-import * as P from "./parts.tsx";
-import { ViewSurface } from "./section.tsx";
+} from "./hooks.js";
+import { HoverCard } from "./hover-card.js";
+import * as P from "./parts.js";
+import { ViewSurface } from "./section.js";
 
 const DEFAULTS: ResolvedUISpec["components"] = {
   ViewTabs: P.ViewTabs,

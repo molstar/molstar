@@ -18,7 +18,7 @@
 // module runner (draws.heap.ts's header); alone it is flat.
 
 import { expect, it, vi } from "vitest";
-import type { LayerRenderer } from "../src/index.ts";
+import type { LayerRenderer } from "../src/index.js";
 import {
   controlCaught,
   describeScaling,
@@ -28,7 +28,7 @@ import {
   heapScaling,
   isFlat,
   leaking,
-} from "./heap.ts";
+} from "./heap.js";
 
 /** The guard's measurement: warmed by count and by time, then `FRAME_N` frames and 4× measured. */
 const measure = (frame: (i: number) => void) => {
@@ -47,10 +47,10 @@ const control = (frame: () => void) => {
 
 async function run(heap = guard) {
   vi.resetModules();
-  const { KernelRenderers } = await import("../src/index.ts");
-  const { rendererConformance } = await import("../src/testing/index.ts");
-  const { opened } = await import("./layout-fixtures.ts");
-  const { linesDoc } = await import("./prepare-fixtures.ts");
+  const { KernelRenderers } = await import("../src/index.js");
+  const { rendererConformance } = await import("../src/testing/index.js");
+  const { opened } = await import("./layout-fixtures.js");
+  const { linesDoc } = await import("./prepare-fixtures.js");
   const all = KernelRenderers as LayerRenderer[];
   const entry = all.find((r) => r.name === "values") as LayerRenderer;
   const checks = await rendererConformance(entry, {

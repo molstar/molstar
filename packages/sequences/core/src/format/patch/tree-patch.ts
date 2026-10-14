@@ -12,13 +12,13 @@
 // validation, revisions and snapshots are patch.ts's.
 
 import { columnNumbers, Issue } from "@molstar/seq-core/model";
-import type { DocNode, Op } from "../doc.ts";
-import { equal } from "../equal.ts";
-import { normalizeNodeParams } from "../normalize.ts";
-import type { SvsRegistries } from "../registry.ts";
-import { isPlainObject } from "../schema/field-schema.ts";
-import { caseOf } from "../schema/params-schema.ts";
-import type { TreeSchema } from "../schema/tree-schema.ts";
+import type { DocNode, Op } from "../doc.js";
+import { equal } from "../equal.js";
+import { normalizeNodeParams } from "../normalize.js";
+import type { SvsRegistries } from "../registry.js";
+import { isPlainObject } from "../schema/field-schema.js";
+import { caseOf } from "../schema/params-schema.js";
+import type { TreeSchema } from "../schema/tree-schema.js";
 
 export interface TreeOptions {
   readonly schema: TreeSchema;

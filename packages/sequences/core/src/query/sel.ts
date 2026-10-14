@@ -9,8 +9,8 @@
 // The `sel` shorthand (seqspec:seqql#the-sel-shorthand): refs with label ranges, index slices, item ids and inputs,
 // unioned by commas, expanded at bind time to base symbols. Its errors point into the string; the stored string is
 // normalized (spaces removed) once it reads cleanly.
-import { NUMBER } from "./read.ts";
-import type { Apply, Expression, MacroReport } from "./types.ts";
+import { NUMBER } from "./read.js";
+import type { Apply, Expression, MacroReport } from "./types.js";
 
 const LABEL_SOURCE = "-?[0-9]+(?:[A-Za-z]+|\\.[0-9]+)?|[A-Za-z][A-Za-z0-9_]*";
 const LABEL = new RegExp(LABEL_SOURCE, "y");

@@ -25,11 +25,11 @@ import { SeqViewer } from "@molstar/seq-viewer/react";
 import { Markdown, Source, Unstyled } from "@storybook/addon-docs/blocks";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import f from "../support/seqstar-format.module.css";
-import { IssueList } from "../support/seqstar-issues";
-import { PrismCanvas } from "../support/seqstar-prism";
+import { IssueList } from "../support/seqstar-issues.js";
+import { PrismCanvas } from "../support/seqstar-prism.js";
 import s from "./docs.module.css";
-import { exampleLink, mountNightingaleSide } from "./linked";
-import { doc, mountDomExample, svgExample } from "./minimal-example";
+import { exampleLink, mountNightingaleSide } from "./linked.js";
+import { doc, mountDomExample, svgExample } from "./minimal-example.js";
 
 /** Whether the page is dark (the docs container sets `data-msp-theme` from the toolbar; blue is a dark theme). */
 const readDark = () => {

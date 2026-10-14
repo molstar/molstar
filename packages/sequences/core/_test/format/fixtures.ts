@@ -8,7 +8,7 @@
 
 // Documents for the V1 tests: one valid document with every node kind, and helpers to reach its nodes.
 
-import { createRegistries, KernelRegistry, MvsRegistry, register, type SvsRegistries } from "../../src/format/index.ts";
+import { createRegistries, KernelRegistry, MvsRegistry, register, type SvsRegistries } from "../../src/format/index.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: test documents are mutated freely as JSON.
 export type J = any;

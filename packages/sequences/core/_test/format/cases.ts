@@ -12,7 +12,7 @@
 
 import { basePairs, createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import { Q } from "@molstar/seq-core/query";
-import type { SeqViewSpecDoc, SvsRegistries } from "../../src/format/index.ts";
+import type { SeqViewSpecDoc, SvsRegistries } from "../../src/format/index.js";
 import {
   ABL1A,
   BARNASE_MATURE,
@@ -34,7 +34,7 @@ import {
   VH_KABAT,
   VL_IMGT,
   VL_KABAT,
-} from "./load-fixtures.ts";
+} from "./load-fixtures.js";
 
 const P53_REGIONS = [
   { start: 0, stop: 44, label: "Transactivation" },

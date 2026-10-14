@@ -22,7 +22,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 const WARM = 6 * FRAME_WARM;
@@ -41,9 +41,9 @@ const guard = (frame: () => void) => {
 
 /** The transcript story's document (DPR 2) on `section` at block 0's [start, stop), every region held. */
 async function transcriptFrame(section: string, block: number, start: number, stop: number) {
-  const { composed, recording } = await import("./composer-fixtures.ts");
-  const { Dirty } = await import("../src/draw/composer.ts");
-  const f = await import("../../core/_test/format/stream-provider.ts");
+  const { composed, recording } = await import("./composer-fixtures.js");
+  const { Dirty } = await import("../src/draw/composer.js");
+  const f = await import("../../core/_test/format/stream-provider.js");
   const three = f.GRCH38.slice(0, 3);
   const keys = three.map((c) => c[0]);
   const s = f.hg38Streams({ chromosomes: three, gated: true });
@@ -54,7 +54,7 @@ async function transcriptFrame(section: string, block: number, start: number, st
   const stream = (src: { stream: string | null }) => (src.stream === "genes" ? genes.provider : s.stream(src));
   const loaders = { load: () => Promise.reject(new Error("none")), stream };
   const t = await composed(f.transcriptDoc({ item: true }), { width: 1000, height: 400, dpr: 2, loaders, section });
-  const m = t.ctx.streams as import("../src/streams.ts").Streams;
+  const m = t.ctx.streams as import("../src/streams.js").Streams;
   const settle = async () => {
     for (let k = 0; k < 8; k++) {
       for (const sec of t.ctx.viewports.sections.value) t.layout(sec);

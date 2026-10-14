@@ -10,7 +10,7 @@
 // chromosomes whose `target` is dictionary-coded (seqspec:format#positions), as the synthetic genome's GC table with
 // `gcTable: "one"`, built as plain data with no builder.
 
-import type { SeqViewSpecDoc } from "../../src/format/index.ts";
+import type { SeqViewSpecDoc } from "../../src/format/index.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: documents are edited freely as JSON.
 type J = any;

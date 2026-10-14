@@ -15,10 +15,10 @@
 
 import { CoordinateSystemKind as K, type SeqSet } from "@molstar/seq-core/model";
 import { beforeAll, describe, expect, it } from "vitest";
-import { gene, rows } from "../../core/_test/format/project-fixtures.ts";
-import { ChannelMarks, Hit, HitRegion, HoverKind, MarkBit } from "../src/index.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
-import { shown } from "./projection-fixtures.ts";
+import { gene, rows } from "../../core/_test/format/project-fixtures.js";
+import { ChannelMarks, Hit, HitRegion, HoverKind, MarkBit } from "../src/index.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { shown } from "./projection-fixtures.js";
 
 let sink = 0;
 let g: Awaited<ReturnType<typeof shown>>;

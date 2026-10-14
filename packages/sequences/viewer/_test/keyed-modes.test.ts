@@ -11,10 +11,10 @@
 // version patched the track's ref, which no layer has: nothing changed, and the buttons looked dead.)
 
 import { describe, expect, it } from "vitest";
-import { pf00042 } from "../../core/_test/model/alignment-fixtures.ts";
-import { identityOf } from "../../core/src/algorithms/index.ts";
-import { keyedFamilyDoc, MEMBERS_LAYER, MODES, modePatch } from "./keyed-family.ts";
-import { opened } from "./layout-fixtures.ts";
+import { pf00042 } from "../../core/_test/model/alignment-fixtures.js";
+import { identityOf } from "../../core/src/algorithms/index.js";
+import { keyedFamilyDoc, MEMBERS_LAYER, MODES, modePatch } from "./keyed-family.js";
+import { opened } from "./layout-fixtures.js";
 
 const FAMILY = pf00042();
 const IDENTITY = FAMILY.map((r) => {

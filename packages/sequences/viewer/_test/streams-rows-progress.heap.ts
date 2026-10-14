@@ -25,7 +25,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 const URI = "https://example.org/lazy";
@@ -44,9 +44,9 @@ async function rowsFrame(c: "pending" | "failed") {
   vi.resetModules();
   const { tilesStream } = await import("@molstar/seq-core/stream/tiles");
   const { tileServer } = await import("@molstar/seq-core/stream/tiles/server");
-  const { composed, recording } = await import("./composer-fixtures.ts");
-  const { Dirty } = await import("../src/draw/composer.ts");
-  const { SkinToken } = await import("../src/draw/backend.ts");
+  const { composed, recording } = await import("./composer-fixtures.js");
+  const { Dirty } = await import("../src/draw/composer.js");
+  const { SkinToken } = await import("../src/draw/backend.js");
   const b = createSeqViewSpec({ title: "lazy" });
   const aln = b.data.alignment({
     ref: "lazy",

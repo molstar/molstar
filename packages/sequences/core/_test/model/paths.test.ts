@@ -21,8 +21,8 @@ import {
   Paths,
   type SeqSet,
   SeqSets,
-} from "../../src/model/index.ts";
-import { CDS, GENE, PROTEIN } from "./codon-fixtures.ts";
+} from "../../src/model/index.js";
+import { CDS, GENE, PROTEIN } from "./codon-fixtures.js";
 
 const CHR = 200_000_000;
 /** A protein coded by three exons of a lazy 200 Mb chromosome, on either strand. */

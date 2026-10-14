@@ -25,17 +25,17 @@ import {
   type SortedArray,
   type UnitId,
 } from "@molstar/seq-core/model";
-import type { SeqViewSpecDoc, ThemeRef } from "../doc.ts";
-import { type DocIndex, indexDoc } from "../load/compile.ts";
-import { issueOf } from "../load/issues.ts";
-import type { SvsRegistries } from "../registry.ts";
-import type { StyleRenderProps } from "../tables/style.ts";
-import { type ResolvedSystems, systemsOf } from "./coordinates.ts";
-import { followsOf, type ResolvedFollows } from "./follows.ts";
-import { type ResolvedLayer, resolveLayer } from "./layer.ts";
-import { blockSystem, pathTo } from "./reach.ts";
-import { type BlockRow, childrenOf, depthOf, type ResolvedSection, resolveSection } from "./section.ts";
-import { forEachOf, instantiate, templateNodes } from "./template.ts";
+import type { SeqViewSpecDoc, ThemeRef } from "../doc.js";
+import { type DocIndex, indexDoc } from "../load/compile.js";
+import { issueOf } from "../load/issues.js";
+import type { SvsRegistries } from "../registry.js";
+import type { StyleRenderProps } from "../tables/style.js";
+import { type ResolvedSystems, systemsOf } from "./coordinates.js";
+import { followsOf, type ResolvedFollows } from "./follows.js";
+import { type ResolvedLayer, resolveLayer } from "./layer.js";
+import { blockSystem, pathTo } from "./reach.js";
+import { type BlockRow, childrenOf, depthOf, type ResolvedSection, resolveSection } from "./section.js";
+import { forEachOf, instantiate, templateNodes } from "./template.js";
 
 export type TableColumns<K extends string, T> = { readonly [k in K]: T };
 /** A table: `count` rows, a column each. */

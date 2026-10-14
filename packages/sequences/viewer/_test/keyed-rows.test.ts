@@ -12,8 +12,8 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { set } from "./axis-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
+import { set } from "./axis-fixtures.js";
+import { opened } from "./layout-fixtures.js";
 
 const ROWS = ["ACDEFGHIKL", "ACDEFGHIKM", "ACDEFGHIAM", "ACDEFGHIKV", "WYWYWYWYWY", "WYWYWY----"];
 

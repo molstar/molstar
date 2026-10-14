@@ -23,7 +23,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 /** The file's warm-up, settle and measurement, as its guards and its control run them. */
@@ -44,7 +44,7 @@ describe("the streamed letters' pans allocate nothing per frame once their regio
   for (const at of ["10 kb", "100 b"] as const)
     it(`a pass and a frame, ${at}`, async () => {
       vi.resetModules();
-      const { genomeFrame } = await import("./stream-fixtures.ts");
+      const { genomeFrame } = await import("./stream-fixtures.js");
       const g = await genomeFrame(at, true, false, true);
       // Not vacuous: the letters drawn (100 b), their cells (10 kb).
       g.frame();
@@ -57,7 +57,7 @@ describe("the streamed letters' pans allocate nothing per frame once their regio
 
   it("the same frame allocating an object a step is caught (positive control)", async () => {
     vi.resetModules();
-    const { genomeFrame } = await import("./stream-fixtures.ts");
+    const { genomeFrame } = await import("./stream-fixtures.js");
     const g = await genomeFrame("100 b", true, false, true);
     expect(controlCaught(() => measure(leaking(g.frame) as () => void))).toBe(true);
   }, 120_000);

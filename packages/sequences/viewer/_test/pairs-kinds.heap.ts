@@ -23,13 +23,13 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 async function setup() {
   vi.resetModules();
-  const { lit } = await import("./overlay-fixtures.ts");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.ts");
-  const { layerOf } = await import("./draw-fixtures.ts");
+  const { lit } = await import("./overlay-fixtures.js");
+  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
+  const { layerOf } = await import("./draw-fixtures.js");
   const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
   const b = createSeqViewSpec();
   const a = b.data.sequence({ ref: "a", value: "MKVLATGHEKWRSPQIDNCY".repeat(100) });
@@ -84,9 +84,9 @@ describe("frames over cells of several kinds", () => {
   it("pans, a hover on each glyph and its overlay allocate nothing; an object allocated per frame is caught", async () => {
     const { t, be, s } = await setup();
     expect(s.cellKinds.some((n) => n > 1)).toBe(true);
-    const into = (await import("./composer-fixtures.ts")).recording();
+    const into = (await import("./composer-fixtures.js")).recording();
     // The glyphs of the first hubs, from a draw of the layer.
-    const { record, layerOf } = await import("./draw-fixtures.ts");
+    const { record, layerOf } = await import("./draw-fixtures.js");
     const glyphs = Array.from(record(t.ctx, "Contacts").rec.glyphItems.x.subarray(0, 24), (x) => x / 2);
     expect(layerOf(t.ctx, "Contacts").section).toBe(t.section);
     const y = s.frame[0];

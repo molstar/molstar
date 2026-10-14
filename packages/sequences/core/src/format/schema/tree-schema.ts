@@ -10,10 +10,10 @@
 // `parent` and `params`. Added: `ref` (`implied` for nodes whose ref is their kind), `count` under the parent,
 // `exclusive` param sets, the schema of a param that a registry entry owns, and a node's own rules.
 
-import type { DocNode } from "../doc.ts";
-import type { SvsRegistries } from "../registry.ts";
-import type { CheckContext } from "./field-schema.ts";
-import type { ParamsSchema } from "./params-schema.ts";
+import type { DocNode } from "../doc.js";
+import type { SvsRegistries } from "../registry.js";
+import type { CheckContext } from "./field-schema.js";
+import type { ParamsSchema } from "./params-schema.js";
 
 export interface IndexedNode {
   readonly node: DocNode;

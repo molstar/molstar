@@ -15,11 +15,11 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { TILE } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case9 } from "../../core/_test/format/cases.ts";
-import type { StreamManager } from "../src/index.ts";
-import { blockLevels, lanesInView, type Streams } from "../src/streams.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
-import { type Opened, opened, preparedRenderers } from "./layout-fixtures.ts";
+import { case9 } from "../../core/_test/format/cases.js";
+import type { StreamManager } from "../src/index.js";
+import { blockLevels, lanesInView, type Streams } from "../src/streams.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { type Opened, opened, preparedRenderers } from "./layout-fixtures.js";
 
 const N = 20_000;
 const P = { renderers: preparedRenderers() };

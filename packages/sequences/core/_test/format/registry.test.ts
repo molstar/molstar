@@ -17,9 +17,9 @@ import {
   SimpleParamsSchema,
   SvsRegistrationError,
   type SvsRegistries,
-} from "../../src/format/index.ts";
-import { registeredNamespaces } from "../../src/format/registry.ts";
-import { KernelLayerTypes } from "../../src/format/tables/kernel.ts";
+} from "../../src/format/index.js";
+import { registeredNamespaces } from "../../src/format/registry.js";
+import { KernelLayerTypes } from "../../src/format/tables/kernel.js";
 
 const KINDS: RegistryKind[] = ["layerTypes", "themes", "custom", "issueCodes"];
 const snapshot = (reg: SvsRegistries) => Object.fromEntries(KINDS.map((k) => [k, [...reg.list(k)]]));

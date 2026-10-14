@@ -12,10 +12,10 @@
 
 import { OrderedSet, type UnitId } from "@molstar/seq-core/model";
 import { beforeAll, describe, expect, it } from "vitest";
-import { gene, open } from "../../core/_test/format/project-fixtures.ts";
-import { axesOf } from "../src/axis.ts";
-import type { AxisMeta } from "../src/index.ts";
-import { highlightOf } from "./highlight-of.ts";
+import { gene, open } from "../../core/_test/format/project-fixtures.js";
+import { axesOf } from "../src/axis.js";
+import type { AxisMeta } from "../src/index.js";
+import { highlightOf } from "./highlight-of.js";
 
 let g: Awaited<ReturnType<typeof open>>;
 let managers: AxisMeta[];

@@ -10,8 +10,8 @@
 // Stockholm with its tags, WUSS pairs, Clustal and Newick. Parsers run at the edges: they allocate, report issues and
 // never throw. Codes mirror the document's (`model.source.format` is `svs.source.format`, and so on).
 
-import type { AlignmentInput, ParsedTree } from "./alignment.ts";
-import { Issue } from "./common.ts";
+import type { AlignmentInput, ParsedTree } from "./alignment.js";
+import { Issue } from "./common.js";
 
 export interface ParseOptions {
   /** A size bound in UTF-8 bytes; absent: none (a source's `value` is bound at 1 MiB). */

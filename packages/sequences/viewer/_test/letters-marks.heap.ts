@@ -12,7 +12,7 @@
 // design row's dots allocating an object a frame (`leaking`), through the same warm-up and measurement, are caught.
 
 import { describe, expect, it, vi } from "vitest";
-import { controlCaught, describeScaling, FRAME_N, heapScaling, isFlat, leaking, warmFrame } from "./heap.ts";
+import { controlCaught, describeScaling, FRAME_N, heapScaling, isFlat, leaking, warmFrame } from "./heap.js";
 
 /** The guard's measurement: warmed until the frame stops allocating (`warmFrame`), then `FRAME_N` frames and 4×. */
 const measure = (step: (i: number) => void) => {
@@ -28,10 +28,10 @@ const guard = (frame: () => void) => {
 
 async function frames(label: string, cell: number, dpr: number, heap = guard) {
   vi.resetModules();
-  const { KernelRenderers } = await import("../src/index.ts");
-  const { LayerFrame, RecordingBackend } = await import("../src/testing/index.ts");
-  const { drawn, layerOf } = await import("./draw-fixtures.ts");
-  const { marksDoc } = await import("./letters-marks-fixtures.ts");
+  const { KernelRenderers } = await import("../src/index.js");
+  const { LayerFrame, RecordingBackend } = await import("../src/testing/index.js");
+  const { drawn, layerOf } = await import("./draw-fixtures.js");
+  const { marksDoc } = await import("./letters-marks-fixtures.js");
   const t = await drawn(marksDoc(false), { width: 600, height: 200, dpr });
   const { k, section } = layerOf(t.ctx, label);
   t.ctx.viewports.get(section)?.setView(cell, 0, "api");

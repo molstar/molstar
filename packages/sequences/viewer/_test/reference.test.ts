@@ -10,9 +10,9 @@
 // config item or a built-in shows there.
 
 import { describe, expect, it } from "vitest";
-import { DefaultSeqViewerSpec, SeqCommands, SeqViewerConfig } from "../src/index.ts";
+import { DefaultSeqViewerSpec, SeqCommands, SeqViewerConfig } from "../src/index.js";
 
-import { printViewerReference } from "../src/reference.ts";
+import { printViewerReference } from "../src/reference.js";
 
 describe("the viewer's generated reference", () => {
   it("matches lib/seqstar/_spec/reference/viewer.md", async () => {

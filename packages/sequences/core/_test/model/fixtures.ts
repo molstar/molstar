@@ -17,7 +17,7 @@
 // 1A3N: hemoglobin α (HBA_HUMAN mature, 141) in chains A and C, β (HBB_HUMAN mature, 146) in B and D, and a
 // heme (HEM, 43 heavy atoms, atom names as in the CCD) per chain, label_asym_ids E–H.
 
-import type { SetInput, UnitInput } from "../../src/model/index.ts";
+import type { SetInput, UnitInput } from "../../src/model/index.js";
 
 const BARNASE =
   "AQVINTFDGVADYLQTYHKLPDNYITKSEAQALGWVASKGNLADVAPGKSIGGDIFSNREGKLPGKSGRTWREADINYTSGFRNSDRILYSSDWLIYKTTDHYQTFTKIR";

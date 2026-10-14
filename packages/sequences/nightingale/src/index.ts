@@ -10,6 +10,6 @@
 // and `extentLoci` for an event's extent. `mount`, the only importer of Nightingale, is the
 // `@molstar/seq-nightingale/mount` entry, so this one loads in Node.
 
-export { type AxisBlock, type AxisMeta, type AxisRuns, type BlockRun, extentLoci } from "./axis.ts";
-export { type ElementDesc, NightingaleSupported } from "./element.ts";
-export { materialize, NIGHTINGALE_MAX_POSITIONS } from "./materialize.ts";
+export { type AxisBlock, type AxisMeta, type AxisRuns, type BlockRun, extentLoci } from "./axis.js";
+export { type ElementDesc, NightingaleSupported } from "./element.js";
+export { materialize, NIGHTINGALE_MAX_POSITIONS } from "./materialize.js";

@@ -15,11 +15,11 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { GRCH38, hg38Streams, streamedDoc } from "../../core/_test/format/stream-provider.ts";
-import { SeqViewerConfig } from "../src/index.ts";
-import { snapshotHints } from "../src/prefetch.ts";
-import { composed } from "./composer-fixtures.ts";
-import { GENOME, MaxInFlight, openGenome, type StreamedGenome } from "./stream-fixtures.ts";
+import { GRCH38, hg38Streams, streamedDoc } from "../../core/_test/format/stream-provider.js";
+import { SeqViewerConfig } from "../src/index.js";
+import { snapshotHints } from "../src/prefetch.js";
+import { composed } from "./composer-fixtures.js";
+import { GENOME, MaxInFlight, openGenome, type StreamedGenome } from "./stream-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const THREE = GRCH38.slice(0, 3);
@@ -353,7 +353,7 @@ describe("the snapshots' focus regions", () => {
     const loaders = { load: () => Promise.reject(new Error("none")), stream: s.stream };
     const t = await composed(await snapshots(), { width: 1000, height: 200, dpr: 1, loaders });
     t.ctx.config.set(MaxInFlight, 100);
-    const m = t.ctx.streams as import("../src/streams.ts").Streams;
+    const m = t.ctx.streams as import("../src/streams.js").Streams;
     t.layout(GENOME);
     m.pass();
     const answer = async () => {

@@ -15,9 +15,9 @@ import { type SeqSet, SeqSets, type SetInput } from "@molstar/seq-core/model";
 import { compileQuery, createQueryEnv, SeqSelection } from "@molstar/seq-core/model/query";
 import { BASE_SYMBOLS, checkText } from "@molstar/seq-core/query";
 import { describe, expect, it } from "vitest";
-import { compile } from "../../src/format/index.ts";
-import { CASES } from "./cases.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+import { compile } from "../../src/format/index.js";
+import { CASES } from "./cases.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 /** The illustrative refs as data: a synthetic chain `1brs/A` with cysteines, insertion codes and a GXGXXG motif. */
 function illustrative(): SetInput {

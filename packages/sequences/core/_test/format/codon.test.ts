@@ -20,9 +20,9 @@ import {
   type SeqViewSpecDoc,
   supportedAll,
   validate,
-} from "../../src/format/index.ts";
-import { case14 } from "./cases.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { case14 } from "./cases.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 const codes = (issues: Issue[]) => issues.map((i) => `${i.code} ${i.path}`);

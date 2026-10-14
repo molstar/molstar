@@ -13,11 +13,11 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { itWithin } from "../../core/_test/model/timing.ts";
-import { Pass, SkinToken } from "../src/draw/index.ts";
-import type { SeqViewerContext } from "../src/index.ts";
-import { opened, preparedRenderers } from "./layout-fixtures.ts";
-import { lit, passRects, seqLoci, twoBlocks } from "./overlay-fixtures.ts";
+import { itWithin } from "../../core/_test/model/timing.js";
+import { Pass, SkinToken } from "../src/draw/index.js";
+import type { SeqViewerContext } from "../src/index.js";
+import { opened, preparedRenderers } from "./layout-fixtures.js";
+import { lit, passRects, seqLoci, twoBlocks } from "./overlay-fixtures.js";
 
 const flush = async () => {
   for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));

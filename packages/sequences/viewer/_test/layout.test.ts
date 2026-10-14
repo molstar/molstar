@@ -14,15 +14,15 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { case3, case6 } from "../../core/_test/format/cases.ts";
-import type { ShownIndex } from "../src/axis.ts";
-import { DefaultRenderProps, EntryKind, KernelRenderers, type LayerRenderer, type RenderProps } from "../src/index.ts";
-import { SectionLayouts } from "../src/layout.ts";
-import { TextColumn } from "../src/renderers/columns.ts";
-import { set } from "./axis-fixtures.ts";
-import { familyWithTree } from "./families.ts";
-import { genotypeDoc } from "./genotype-fixtures.ts";
-import { laneRanges, lazyLoaders, opened, renderers } from "./layout-fixtures.ts";
+import { case3, case6 } from "../../core/_test/format/cases.js";
+import type { ShownIndex } from "../src/axis.js";
+import { DefaultRenderProps, EntryKind, KernelRenderers, type LayerRenderer, type RenderProps } from "../src/index.js";
+import { SectionLayouts } from "../src/layout.js";
+import { TextColumn } from "../src/renderers/columns.js";
+import { set } from "./axis-fixtures.js";
+import { familyWithTree } from "./families.js";
+import { genotypeDoc } from "./genotype-fixtures.js";
+import { laneRanges, lazyLoaders, opened, renderers } from "./layout-fixtures.js";
 
 const [T, G, B] = [EntryKind.track, EntryKind.group, EntryKind.title];
 const k = (n: number) => n as ShownIndex;

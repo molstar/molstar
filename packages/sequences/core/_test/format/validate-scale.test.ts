@@ -21,9 +21,9 @@ import {
   type SeqViewSpecDoc,
   SimpleParamsSchema,
   validate,
-} from "../../src/format/index.ts";
-import { kernel } from "./fixtures.ts";
-import { CHROMOSOMES, codedDoc, countingCodes, freshParams, gcNode } from "./table-fixtures.ts";
+} from "../../src/format/index.js";
+import { kernel } from "./fixtures.js";
+import { CHROMOSOMES, codedDoc, countingCodes, freshParams, gcNode } from "./table-fixtures.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: documents are edited freely as JSON.
 type J = any;

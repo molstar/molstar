@@ -12,12 +12,12 @@
 // are caught.
 
 import { expect, it } from "vitest";
-import { case13 } from "../../core/_test/format/cases.ts";
-import { createHoverCard } from "../src/hover-card.ts";
-import { type ActionEntry, Hit, type ItemTarget, SeqViewerConfig } from "../src/index.ts";
-import { state } from "../src/state.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
-import { opened } from "./layout-fixtures.ts";
+import { case13 } from "../../core/_test/format/cases.js";
+import { createHoverCard } from "../src/hover-card.js";
+import { type ActionEntry, Hit, type ItemTarget, SeqViewerConfig } from "../src/index.js";
+import { state } from "../src/state.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { opened } from "./layout-fixtures.js";
 
 const SECTION = "features.main";
 const N = 20_000;

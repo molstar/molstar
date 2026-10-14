@@ -13,7 +13,7 @@
 
 import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { case7, case9, case10, case14 } from "../../core/_test/format/cases.ts";
+import { case7, case9, case10, case14 } from "../../core/_test/format/cases.js";
 import {
   type EmphasisState,
   type Features,
@@ -22,11 +22,11 @@ import {
   ofPartAt,
   type PairsState,
   type PerPosition,
-} from "../src/prepare.ts";
-import { segWindow } from "../src/pyramids.ts";
-import type { RowsState } from "../src/rows.ts";
-import { layer, opened, preparedRenderers } from "./layout-fixtures.ts";
-import { allTypes, colorDoc, itemsIn, scaleDoc, transcripts } from "./prepare-fixtures.ts";
+} from "../src/prepare.js";
+import { segWindow } from "../src/pyramids.js";
+import type { RowsState } from "../src/rows.js";
+import { layer, opened, preparedRenderers } from "./layout-fixtures.js";
+import { allTypes, colorDoc, itemsIn, scaleDoc, transcripts } from "./prepare-fixtures.js";
 
 const P = { renderers: preparedRenderers() };
 

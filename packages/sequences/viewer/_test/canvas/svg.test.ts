@@ -12,8 +12,8 @@
 // antialiasing and hinting.
 
 import { describe, expect, it } from "vitest";
-import { probeFonts } from "../../scripts/font-probe.ts";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.ts";
+import { probeFonts } from "../../scripts/font-probe.js";
+import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
 import {
   type DrawResources,
   GlyphBatch,
@@ -29,8 +29,8 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.ts";
-import { type FontMetrics, metricsMeasurer, SvgBackend } from "../../src/svg/index.ts";
+} from "../../src/draw/api.js";
+import { type FontMetrics, metricsMeasurer, SvgBackend } from "../../src/svg/index.js";
 
 const GLYPHS = [
   { char: "W", path: null, box: [1, 1] as const, fallback: 0 },

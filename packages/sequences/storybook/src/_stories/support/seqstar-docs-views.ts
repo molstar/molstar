@@ -14,9 +14,9 @@ import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import type { DocNode, Op, SectionStyle, SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { formatLink } from "@molstar/seq-core/links";
 import { bookmarksOf } from "@molstar/seq-viewer";
-import { CASES, CUT_ECORI, CUT_XHOI, case2, case10, contactsAD } from "../../../../core/_test/format/cases.ts";
-import { BARNASE_MATURE } from "../../../../core/_test/format/load-fixtures.ts";
-import { familyRows, familyWithTree } from "../../../../viewer/_test/families.ts";
+import { CASES, CUT_ECORI, CUT_XHOI, case2, case10, contactsAD } from "../../../../core/_test/format/cases.js";
+import { BARNASE_MATURE } from "../../../../core/_test/format/load-fixtures.js";
+import { familyRows, familyWithTree } from "../../../../viewer/_test/families.js";
 
 // ---- Seq*/Viewer ----
 

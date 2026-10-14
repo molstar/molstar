@@ -11,7 +11,7 @@
 // `KernelColorSchemes` is in the format's schemes test (the builder has no runtime dependency).
 
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { Colors, createSeqViewSpec, type KernelSchemeName, type SchemeRef } from "../../src/builder/index.ts";
+import { Colors, createSeqViewSpec, type KernelSchemeName, type SchemeRef } from "../../src/builder/index.js";
 
 describe("b.colors", () => {
   it("refs go into a layer's color as written; value schemes take a domain, a field and a direction", () => {

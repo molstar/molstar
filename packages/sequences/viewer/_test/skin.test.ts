@@ -14,7 +14,7 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { DarkSkin, DefaultSkin } from "../src/index.ts";
+import { DarkSkin, DefaultSkin } from "../src/index.js";
 
 const css = readFileSync(new URL("../src/skin.css", import.meta.url), "utf8");
 

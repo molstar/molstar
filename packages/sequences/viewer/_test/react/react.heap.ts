@@ -13,7 +13,7 @@
 // warmed and measured alike, are caught.
 
 import { expect, it, vi } from "vitest";
-import { controlCaught, heapScaling, isFlat, leaking } from "../canvas/heap-browser.ts";
+import { controlCaught, heapScaling, isFlat, leaking } from "../canvas/heap-browser.js";
 
 const N = 2_000;
 // A scroll step is cheap and its string would be small (about 30 bytes): enough steps that one per step passes the limit.
@@ -30,7 +30,7 @@ function measure(step: (i: number) => void, warmed = () => {}) {
 
 it("pointer moves inside one element, on the React UI, render nothing and allocate nothing", async () => {
   vi.resetModules();
-  const { reactFixture } = await import("./heap-fixtures.tsx");
+  const { reactFixture } = await import("./heap-fixtures.js");
   const t = await reactFixture();
   try {
     let renders = 0;
@@ -54,7 +54,7 @@ it("pointer moves inside one element, on the React UI, render nothing and alloca
 
 it("a scroll over a few positions moves the row controls in a flat heap", async () => {
   vi.resetModules();
-  const { reactFixture } = await import("./heap-fixtures.tsx");
+  const { reactFixture } = await import("./heap-fixtures.js");
   const t = await reactFixture("msa");
   try {
     const inner = t.host.querySelector(".seqv-row-controls > div") as HTMLElement;
@@ -74,7 +74,7 @@ it("a scroll over a few positions moves the row controls in a flat heap", async 
 
 it("a scroll far down a tall alignment (past 8,192 px) moves the row controls in a flat heap too", async () => {
   vi.resetModules();
-  const { reactFixture } = await import("./heap-fixtures.tsx");
+  const { reactFixture } = await import("./heap-fixtures.js");
   const t = await reactFixture("msa");
   try {
     const inner = t.host.querySelector(".seqv-row-controls > div") as HTMLElement;
@@ -94,7 +94,7 @@ it("a scroll far down a tall alignment (past 8,192 px) moves the row controls in
 
 it("the same moves allocating garbage sized to the run each are caught (positive control)", async () => {
   vi.resetModules();
-  const { reactFixture } = await import("./heap-fixtures.tsx");
+  const { reactFixture } = await import("./heap-fixtures.js");
   const t = await reactFixture();
   try {
     expect(controlCaught(() => measure(leaking(t.moveStep, N)).r)).toBe(true);

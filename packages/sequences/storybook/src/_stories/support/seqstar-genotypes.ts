@@ -10,7 +10,7 @@
 // test that applies each: the matrix layer's `order` and `filter` over its sample table, and its `density`, as patches;
 // generic params only (there is no genotypes preset).
 
-import { GENOTYPE_SAMPLES, GENOTYPE_SITES, genotypeSamples } from "../../../../core/_test/format/cases.ts";
+import { GENOTYPE_SAMPLES, GENOTYPE_SITES, genotypeSamples } from "../../../../core/_test/format/cases.js";
 
 export { GENOTYPE_SAMPLES, GENOTYPE_SITES };
 /** The matrix layer a mode's patch sets. */

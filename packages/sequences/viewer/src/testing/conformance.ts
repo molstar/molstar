@@ -21,7 +21,7 @@
 
 import { Lanes } from "@molstar/seq-core/format";
 import { Annotations } from "@molstar/seq-core/model";
-import type { SeqViewerContext } from "../context.ts";
+import type { SeqViewerContext } from "../context.js";
 import {
   type Axis,
   AxisGeometry,
@@ -42,18 +42,18 @@ import {
   SkinToken,
   TextAlign,
   type TextBatch,
-} from "../draw/api.ts";
-import { Dirty, SectionComposer } from "../draw/composer.ts";
-import { Miniature } from "../draw/miniature.ts";
-import { drawResources } from "../draw/resources.ts";
-import { RingBackend } from "../draw/ring.ts";
-import type { Skin } from "../graph.ts";
-import { EntryKind, entryBorder, facingOf, SectionLayouts } from "../layout.ts";
-import { Ring } from "../ring.ts";
-import { lanesInView } from "../streams.ts";
-import { SvgBackend } from "../svg/backend.ts";
-import { type EdgeKind, EdgeKinds } from "./edges.ts";
-import { Op, RecordingBackend } from "./recording.ts";
+} from "../draw/api.js";
+import { Dirty, SectionComposer } from "../draw/composer.js";
+import { Miniature } from "../draw/miniature.js";
+import { drawResources } from "../draw/resources.js";
+import { RingBackend } from "../draw/ring.js";
+import type { Skin } from "../graph.js";
+import { EntryKind, entryBorder, facingOf, SectionLayouts } from "../layout.js";
+import { Ring } from "../ring.js";
+import { lanesInView } from "../streams.js";
+import { SvgBackend } from "../svg/backend.js";
+import { type EdgeKind, EdgeKinds } from "./edges.js";
+import { Op, RecordingBackend } from "./recording.js";
 
 export interface ConformanceFixtures {
   /**

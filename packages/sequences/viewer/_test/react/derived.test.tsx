@@ -11,9 +11,9 @@
 
 import { act } from "react";
 import { describe, expect, it } from "vitest";
-import { useDerived } from "../../src/react/index.ts";
-import { state } from "../../src/state.ts";
-import { harness } from "./fixtures.tsx";
+import { useDerived } from "../../src/react/index.js";
+import { state } from "../../src/state.js";
+import { harness } from "./fixtures.js";
 
 const { parent } = harness();
 

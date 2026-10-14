@@ -20,13 +20,13 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { CASES } from "../../core/_test/format/cases.ts";
-import { keyedFamilyDoc } from "../../viewer/_test/keyed-family.ts";
-import { BAD, styled } from "../src/_stories/support/seqstar-docs-views.ts";
-import { storyPatch } from "../src/_stories/support/seqstar-patch.ts";
-import { SMOKE } from "../src/_stories/support/seqstar-smoke.ts";
-import { smoke } from "./smoke-harness.ts";
-import { root, SLOW_STORIES, storyDocuments } from "./smoke-stories.ts";
+import { CASES } from "../../core/_test/format/cases.js";
+import { keyedFamilyDoc } from "../../viewer/_test/keyed-family.js";
+import { BAD, styled } from "../src/_stories/support/seqstar-docs-views.js";
+import { storyPatch } from "../src/_stories/support/seqstar-patch.js";
+import { SMOKE } from "../src/_stories/support/seqstar-smoke.js";
+import { smoke } from "./smoke-harness.js";
+import { root, SLOW_STORIES, storyDocuments } from "./smoke-stories.js";
 
 const stories = join(root, "lib/seqstar/storybook/src/_stories");
 

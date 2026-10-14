@@ -17,10 +17,10 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import type { DocNode, SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case6 } from "../../../core/_test/format/cases.ts";
-import { legendGroups } from "../../src/chrome.ts";
-import { GlyphShape } from "../../src/draw/backend.ts";
-import { Dirty, SectionComposer } from "../../src/draw/index.ts";
+import { case6 } from "../../../core/_test/format/cases.js";
+import { legendGroups } from "../../src/chrome.js";
+import { GlyphShape } from "../../src/draw/backend.js";
+import { Dirty, SectionComposer } from "../../src/draw/index.js";
 import {
   Hit,
   HoverKind,
@@ -28,7 +28,7 @@ import {
   type LayerRenderer,
   type SeqViewerContext,
   ThemeLocation,
-} from "../../src/index.ts";
+} from "../../src/index.js";
 import {
   Fingerprints,
   InteractionsRegistry,
@@ -37,16 +37,16 @@ import {
   Kind,
   KindStyle,
   Kinds,
-} from "../../src/interactions/index.ts";
+} from "../../src/interactions/index.js";
 import {
   FINGERPRINT,
   FingerprintRenderer,
   type FingerprintState,
   InteractionsViewerRegistry,
-} from "../../src/interactions/viewer/index.ts";
-import type { MatrixState } from "../../src/rows.ts";
-import { LayerFrame, RecordingBackend } from "../../src/testing/index.ts";
-import { opened } from "../layout-fixtures.ts";
+} from "../../src/interactions/viewer/index.js";
+import type { MatrixState } from "../../src/rows.js";
+import { LayerFrame, RecordingBackend } from "../../src/testing/index.js";
+import { opened } from "../layout-fixtures.js";
 import {
   absentScene,
   alignmentScene,
@@ -57,7 +57,7 @@ import {
   open,
   type Scene,
   unitScene,
-} from "./fixtures.ts";
+} from "./fixtures.js";
 
 const SECTION = "poses-view.main";
 const T315 = 314;

@@ -11,7 +11,7 @@
 // comparison of two captures (premultiplied, the way the canvas stores them).
 
 import type { Loaders, SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { mountSection, type SectionSurface } from "../../src/canvas/index.ts";
+import { mountSection, type SectionSurface } from "../../src/canvas/index.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -21,8 +21,8 @@ import {
   type RenderProps,
   type SeqViewerContext,
   type SeqViewerRegistryEntry,
-} from "../../src/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
+} from "../../src/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
 
 export interface Opened {
   ctx: SeqViewerContext;

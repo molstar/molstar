@@ -13,14 +13,14 @@
 // there; a patch of the layer's order and filter reorders the bands.
 
 import { describe, expect, it } from "vitest";
-import { Hit, HoverKind, type MatrixState } from "../src/draw/api.ts";
-import { Dirty } from "../src/draw/index.ts";
-import { matrixFirstBand } from "../src/draw/matrix-tiles.ts";
-import { renderSvg } from "../src/svg/index.ts";
-import { set } from "./axis-fixtures.ts";
-import { composed, recording } from "./composer-fixtures.ts";
-import { drawn, entryOf, layerOf, record } from "./draw-fixtures.ts";
-import { genotype, genotypeDoc } from "./genotype-fixtures.ts";
+import { Hit, HoverKind, type MatrixState } from "../src/draw/api.js";
+import { Dirty } from "../src/draw/index.js";
+import { matrixFirstBand } from "../src/draw/matrix-tiles.js";
+import { renderSvg } from "../src/svg/index.js";
+import { set } from "./axis-fixtures.js";
+import { composed, recording } from "./composer-fixtures.js";
+import { drawn, entryOf, layerOf, record } from "./draw-fixtures.js";
+import { genotype, genotypeDoc } from "./genotype-fixtures.js";
 
 /**
  * A reduced row's pixel and drawing band (its offset in the row; -1: none) from its bands' pixels (-1: no color),

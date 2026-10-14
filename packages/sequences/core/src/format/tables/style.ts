@@ -13,7 +13,7 @@
 // the section is drawn with the rest.
 
 import { Issue } from "@molstar/seq-core/model";
-import { type CheckContext, type FieldType, isPlainObject, ptr, show, typeError } from "../schema/field-schema.ts";
+import { type CheckContext, type FieldType, isPlainObject, ptr, show, typeError } from "../schema/field-schema.js";
 
 /** An inline preset: `preset` the base (absent or null: the section's default for its layout and axis). */
 export interface SectionStyle {

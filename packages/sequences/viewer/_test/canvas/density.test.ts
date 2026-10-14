@@ -11,8 +11,8 @@
 // share. The band is drawn by the shared helper through the test `points` entry.
 
 import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.ts";
-import { type DrawResources, SkinToken } from "../../src/draw/backend.ts";
+import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
+import { type DrawResources, SkinToken } from "../../src/draw/backend.js";
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -22,9 +22,9 @@ import {
   manualScheduler,
   type SeqViewerContext,
   type Skin,
-} from "../../src/index.ts";
-import { fixtureMeasurer, LayerFrame } from "../../src/testing/index.ts";
-import { densityDoc, densityItems, withDensity } from "../rn2-fixtures.ts";
+} from "../../src/index.js";
+import { fixtureMeasurer, LayerFrame } from "../../src/testing/index.js";
+import { densityDoc, densityItems, withDensity } from "../rn2-fixtures.js";
 
 async function open(doc: ReturnType<typeof densityDoc>, dpr: number) {
   const spec = DefaultSeqViewerSpec();

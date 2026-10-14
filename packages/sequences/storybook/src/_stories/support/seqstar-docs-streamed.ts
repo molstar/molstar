@@ -39,7 +39,7 @@ import {
   VARIANT_LEVELS,
   VOCABULARY,
   valuesManifest,
-} from "../../../../core/_test/format/stream-provider.ts";
+} from "../../../../core/_test/format/stream-provider.js";
 
 // ---- Seq*/Dynamic nodes ----
 const DYNAMIC_CHR: [string, number][] = [["chrT", 2_000_000]];

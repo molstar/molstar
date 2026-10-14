@@ -10,9 +10,9 @@
 // messages that say what is wrong and what would be valid. Nothing is repaired.
 
 import { Issue, KeyKind, type KeyResolver, type KeyTarget, MoleculeKind } from "@molstar/seq-core/model";
-import { type DocNode, type SeqViewSpecDoc, SvsFormat } from "./doc.ts";
-import { snapshotIssues } from "./patch/patch.ts";
-import { registeredNamespaces, type SvsRegistries } from "./registry.ts";
+import { type DocNode, type SeqViewSpecDoc, SvsFormat } from "./doc.js";
+import { snapshotIssues } from "./patch/patch.js";
+import { registeredNamespaces, type SvsRegistries } from "./registry.js";
 import {
   float,
   isNamespace,
@@ -30,10 +30,10 @@ import {
   str,
   TEMPLATE_NODE,
   typeError,
-} from "./schema/field-schema.ts";
-import { checkParams, OptionalField, object, RequiredField, SimpleParamsSchema } from "./schema/params-schema.ts";
-import { type IndexedNode, nodeList, type TreeContext, type TreeSchema } from "./schema/tree-schema.ts";
-import { SvsTreeSchema } from "./tables/svs-tree.ts";
+} from "./schema/field-schema.js";
+import { checkParams, OptionalField, object, RequiredField, SimpleParamsSchema } from "./schema/params-schema.js";
+import { type IndexedNode, nodeList, type TreeContext, type TreeSchema } from "./schema/tree-schema.js";
+import { SvsTreeSchema } from "./tables/svs-tree.js";
 
 const optStr = (description: string) => OptionalField(nullable(str), null, description);
 const descriptionFormat = OptionalField(literal("markdown", "plaintext"), "markdown", "");

@@ -11,7 +11,7 @@
 // tier; the fast tier a sample of each). Every float32 was checked once the same way.
 
 import { describe, expect, it } from "vitest";
-import { float32Number } from "../../src/model/index.ts";
+import { float32Number } from "../../src/model/index.js";
 
 /** The search from 1 digit up: the nearest decimal of 1, 2, … 9 digits that reads back. */
 function slow(x: number): number {

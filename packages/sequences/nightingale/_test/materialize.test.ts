@@ -27,9 +27,9 @@ import {
 import { type Issue, OrderedSet, type SeqSet } from "@molstar/seq-core/model";
 import { proceduralRow } from "@molstar/seq-core/stream/tiles/server";
 import { describe, expect, it } from "vitest";
-import { CASES } from "../../core/_test/format/cases.ts";
-import { fixtureLoaders, registries } from "../../core/_test/format/load-fixtures.ts";
-import { InteractionsRegistry } from "../../viewer/src/interactions/index.ts";
+import { CASES } from "../../core/_test/format/cases.js";
+import { fixtureLoaders, registries } from "../../core/_test/format/load-fixtures.js";
+import { InteractionsRegistry } from "../../viewer/src/interactions/index.js";
 import {
   AxisRuns,
   axesOf,
@@ -37,12 +37,12 @@ import {
   extentOf as extentOfRuns,
   type Located,
   locate as locateAt,
-} from "../src/axis.ts";
-import { rangesOf } from "../src/events.ts";
-import { type AxisMeta, type ElementDesc, extentLoci, materialize, NightingaleSupported } from "../src/index.ts";
-import { AXISLESS, LABELED, lanesOf } from "../src/materialize.ts";
-import { fetchStreamed, type StreamedValues, streamedLevel } from "../src/stream.ts";
-import { highlightOf as highlightOfProjection } from "./highlight-of.ts";
+} from "../src/axis.js";
+import { rangesOf } from "../src/events.js";
+import { type AxisMeta, type ElementDesc, extentLoci, materialize, NightingaleSupported } from "../src/index.js";
+import { AXISLESS, LABELED, lanesOf } from "../src/materialize.js";
+import { fetchStreamed, type StreamedValues, streamedLevel } from "../src/stream.js";
+import { highlightOf as highlightOfProjection } from "./highlight-of.js";
 
 /** The block runs of an axis range text (`a:b,…`, 1-based), as the arrays events carry. */
 const extentOf = (axis: AxisMeta, text: string) =>

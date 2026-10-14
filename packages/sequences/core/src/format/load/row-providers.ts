@@ -33,14 +33,14 @@ import {
   type RowIndex,
   type SeqSet,
 } from "@molstar/seq-core/model";
-import type { StageContext } from "../contract.ts";
-import type { ProviderEntry } from "../registry.ts";
-import { alignmentRows, keyed, type OrderKeyValue } from "../resolve/keyed.ts";
-import { endsOf, pathTo, steps } from "../resolve/reach.ts";
-import type { UnionParamsSchema } from "../schema/params-schema.ts";
-import { SvsTreeSchema } from "../tables/svs-tree.ts";
-import { report } from "./issues.ts";
-import { cached, contentKey } from "./node-providers.ts";
+import type { StageContext } from "../contract.js";
+import type { ProviderEntry } from "../registry.js";
+import { alignmentRows, keyed, type OrderKeyValue } from "../resolve/keyed.js";
+import { endsOf, pathTo, steps } from "../resolve/reach.js";
+import type { UnionParamsSchema } from "../schema/params-schema.js";
+import { SvsTreeSchema } from "../tables/svs-tree.js";
+import { report } from "./issues.js";
+import { cached, contentKey } from "./node-providers.js";
 
 const cases = (SvsTreeSchema.nodes.computed.params as UnionParamsSchema).cases;
 const kind: KeyTarget = { kind: -1, id: -1, row: -1 };

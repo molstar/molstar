@@ -13,13 +13,13 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { SectionAxisView } from "../src/axis.ts";
-import { AxisGeometry, band, CHARS, DrawView, mark, placeRun, RectBatch, type ShownIndex } from "../src/draw/api.ts";
-import { createSeqViewer, KernelRenderers } from "../src/index.ts";
-import { RangesRenderer } from "../src/renderers/ranges.ts";
+import { SectionAxisView } from "../src/axis.js";
+import { AxisGeometry, band, CHARS, DrawView, mark, placeRun, RectBatch, type ShownIndex } from "../src/draw/api.js";
+import { createSeqViewer, KernelRenderers } from "../src/index.js";
+import { RangesRenderer } from "../src/renderers/ranges.js";
 
-import { layoutRuns, lineTable, prepareRun } from "../src/runs.ts";
-import { axisOf, rangedDoc, resolved, setPiece } from "./axis-fixtures.ts";
+import { layoutRuns, lineTable, prepareRun } from "../src/runs.js";
+import { axisOf, rangedDoc, resolved, setPiece } from "./axis-fixtures.js";
 
 const MODULES = ["letters", "ranges", "points", "emphasis", "variants", "secondary", "values", "color", "ruler"];
 const MORE = ["pairs", "rows", "logo", "matrix", "map"];
@@ -28,7 +28,7 @@ describe("renderer modules", () => {
   it("one module per kernel type and seqv:map, each its own /renderers/* subpath, all in DefaultRegistry", async () => {
     const ctx = createSeqViewer();
     for (const name of [...MODULES, ...MORE]) {
-      const m = (await import(`../src/renderers/${name}.ts`)) as Record<string, unknown>;
+      const m = (await import(`../src/renderers/${name}.js`)) as Record<string, unknown>;
       const entries = Object.values(m);
       expect(entries).toHaveLength(1);
       const e = entries[0] as { name: string };

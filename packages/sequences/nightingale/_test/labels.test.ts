@@ -21,7 +21,7 @@ import {
   positionAt,
   watchDimensions,
   xOf,
-} from "../src/labels.ts";
+} from "../src/labels.js";
 
 const view = (...a: [number | undefined, number | undefined, number, number, number, number]) =>
   axisView({ start: 0, end: 0, left: 0, right: 0 }, ...a);

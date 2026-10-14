@@ -10,7 +10,7 @@
 // inside a block placed in the reply, the edge cases as instructive issues, ```seqql fences, and the whole text as the
 // fallback.
 import { describe, expect, it } from "vitest";
-import { checkText, extractQueries, type QueryBlock, readQuery, renderIssue } from "../../src/query/index.ts";
+import { checkText, extractQueries, type QueryBlock, readQuery, renderIssue } from "../../src/query/index.js";
 
 const rendered = (text: string) => extractQueries(text).issues.map(renderIssue);
 /** Each block's issues as rendered, placed in the reply. */

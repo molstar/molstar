@@ -22,7 +22,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 /**
@@ -52,7 +52,7 @@ describe("the streamed items' pans allocate nothing per frame once their regions
   ] as const)
     it(`a pass and a frame, ${label}`, async () => {
       vi.resetModules();
-      const { itemsFrame } = await import("./stream-items-fixtures.ts");
+      const { itemsFrame } = await import("./stream-items-fixtures.js");
       const g = await itemsFrame(start, stop);
       g.frame();
       // Not vacuous: genes and variants drawn (rects), at 200 Mb the hatch too.
@@ -66,7 +66,7 @@ describe("the streamed items' pans allocate nothing per frame once their regions
 
   it("the same frame allocating an object a step is caught (positive control)", async () => {
     vi.resetModules();
-    const { itemsFrame } = await import("./stream-items-fixtures.ts");
+    const { itemsFrame } = await import("./stream-items-fixtures.js");
     const g = await itemsFrame(100_000_000, 100_100_000);
     expect(controlCaught(() => measure(leaking(g.frame) as () => void))).toBe(true);
   }, 120_000);

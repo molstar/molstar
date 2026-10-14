@@ -22,12 +22,12 @@ import {
 } from "@molstar/seq-core/format";
 import type { AnnotationInput, SeqSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { CASES } from "../../core/_test/format/cases.ts";
-import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.ts";
-import { Q } from "../../core/src/query/index.ts";
-import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "../src/index.ts";
-import { InteractionsViewerRegistry } from "../src/interactions/viewer/index.ts";
-import { fixtureMeasurer } from "../src/testing/index.ts";
+import { CASES } from "../../core/_test/format/cases.js";
+import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.js";
+import { Q } from "../../core/src/query/index.js";
+import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "../src/index.js";
+import { InteractionsViewerRegistry } from "../src/interactions/viewer/index.js";
+import { fixtureMeasurer } from "../src/testing/index.js";
 
 /** A set's keys, table by table, sorted. */
 function keys(set: SeqSet) {

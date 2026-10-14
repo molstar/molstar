@@ -23,8 +23,8 @@ import {
 } from "@molstar/seq-viewer";
 import { MVSData } from "molstar/lib/extensions/mvs/mvs-data";
 import { describe, expect, it } from "vitest";
-import type { SplitFeatures } from "../../viewer/src/layout.ts";
-import { fixtureMeasurer } from "../../viewer/src/testing/index.ts";
+import type { SplitFeatures } from "../../viewer/src/layout.js";
+import { fixtureMeasurer } from "../../viewer/src/testing/index.js";
 import {
   composeStructureMvs,
   coverageRows,
@@ -34,7 +34,7 @@ import {
   StructureLink,
   type StructureRef,
   structureOf,
-} from "../src/index.ts";
+} from "../src/index.js";
 import {
   colorByItemAction,
   colorTracks,
@@ -47,8 +47,8 @@ import {
   showInStructureAction,
   splitRow,
   structureTrackActions,
-} from "../src/viewer.ts";
-import { bytesOf, demoLoaders, P53, registries } from "./fixtures.ts";
+} from "../src/viewer.js";
+import { bytesOf, demoLoaders, P53, registries } from "./fixtures.js";
 import {
   coverageTrack,
   P53_STRUCTURES,
@@ -57,7 +57,7 @@ import {
   p53CoverageOptions,
   p53DemoDoc,
   p53ShownPatch,
-} from "./p53-demo.ts";
+} from "./p53-demo.js";
 
 const unit = (set: SeqSet, ref: string) => {
   const t = { kind: 0, id: 0, row: -1 };

@@ -14,8 +14,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { SMOKE, type SmokeEnv } from "../src/_stories/support/seqstar-smoke.ts";
-import { smoke } from "./smoke-harness.ts";
+import { SMOKE, type SmokeEnv } from "../src/_stories/support/seqstar-smoke.js";
+import { smoke } from "./smoke-harness.js";
 
 export const root = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const env: SmokeEnv = { readFile: (path) => new Uint8Array(readFileSync(join(root, path))) };

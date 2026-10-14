@@ -41,7 +41,7 @@ import {
   sizeTheme,
   ThemeLocation,
   visibleRange,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 // Read once: a module member read per frame allocates under the test runner's module wrapper.
 const STRAND = SecondaryKind.strand;

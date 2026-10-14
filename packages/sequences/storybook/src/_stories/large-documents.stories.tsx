@@ -8,11 +8,11 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { largeAlignment, longSequence } from "./support/seqstar-docs-views";
-import { GenomeView } from "./support/seqstar-genome-view";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard } from "./support/seqstar-viewer";
-import { type Args, viewerControls } from "./support/seqstar-viewer-args";
+import { largeAlignment, longSequence } from "./support/seqstar-docs-views.js";
+import { GenomeView } from "./support/seqstar-genome-view.js";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard } from "./support/seqstar-viewer.js";
+import { type Args, viewerControls } from "./support/seqstar-viewer-args.js";
 
 /**
  * Large documents: alignments and sequences too big to read at once, drawn from reductions, and a genome of 3,000,000

@@ -12,9 +12,9 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { compile, resolveView, supportedAll } from "../../src/format/index.ts";
-import { registries } from "./load-fixtures.ts";
-import { CODING_CDS, codingProtein, GRCH38, hg38Streams } from "./stream-provider.ts";
+import { compile, resolveView, supportedAll } from "../../src/format/index.js";
+import { registries } from "./load-fixtures.js";
+import { CODING_CDS, codingProtein, GRCH38, hg38Streams } from "./stream-provider.js";
 
 const reg = registries();
 

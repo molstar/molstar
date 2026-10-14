@@ -11,9 +11,9 @@
 // of and below the pointer by a few pixels (over the item's edge, so the pointer crosses into it), flipped where it
 // would leave the viewer. Escape and a press outside close it; its buttons are ordinary buttons.
 
-import { createHoverCard, type HoverCard, type HoverCardState } from "../hover-card.ts";
-import type { SeqViewerContext } from "../index.ts";
-import { type DomPart, h, off, type PartProps } from "./core.ts";
+import { createHoverCard, type HoverCard, type HoverCardState } from "../hover-card.js";
+import type { SeqViewerContext } from "../index.js";
+import { type DomPart, h, off, type PartProps } from "./core.js";
 
 /** Places the card at its state's point on its section's surface, inside the viewer (its offset parent). */
 export function placeCard(surfaces: ReadonlyMap<string, HTMLElement>, el: HTMLElement, s: HoverCardState): void {

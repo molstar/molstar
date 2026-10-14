@@ -11,9 +11,9 @@
 // An entry is its parts; `navigatorFrom` makes one from a partial set, and the canvas engine draws any entry from its
 // parts (canvas/navigators.ts) unless it brings its own draws. Presets name a navigator or give parts.
 
-import type { NavView } from "./draw/nav.ts";
-import type { RenderProps } from "./layout.ts";
-import type { SeqViewerRegistry } from "./registry.ts";
+import type { NavView } from "./draw/nav.js";
+import type { RenderProps } from "./layout.js";
+import type { SeqViewerRegistry } from "./registry.js";
 
 export type NavigatorAxis = "overview" | "miniature" | "labels" | "hairline";
 export interface NavigatorParts {

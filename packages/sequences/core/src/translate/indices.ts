@@ -11,8 +11,8 @@
 // any other `IndexKind` is the host's own.
 
 import type { CoordinateSystem } from "@molstar/seq-core/model";
-import { firstOf } from "./maps.ts";
-import type { IndexKind } from "./translator.ts";
+import { firstOf } from "./maps.js";
+import type { IndexKind } from "./translator.js";
 
 /** Residue → atom ranges: atoms offsets[r] to offsets[r + 1] (each atom's residue index, grouped ascending; Mol*'s). */
 const atomRanges = (name: string, residueOfAtom: (s: CoordinateSystem) => Int32Array): IndexKind<Int32Array> => ({

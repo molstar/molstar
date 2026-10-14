@@ -18,7 +18,7 @@ import {
   WINDOW_WASH,
   windowBox,
   windowOverMap,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 const img = new Float64Array(8);
 

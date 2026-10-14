@@ -13,16 +13,16 @@
 // `renderers/`. Headless and allocation-free.
 
 import { CoordinateSystemKind } from "@molstar/seq-core/model";
-import type { AxisView } from "./axis.ts";
-import { DOT_R } from "./draw/sizes.ts";
-import { type Hit, HoverKind } from "./hit.ts";
-import type { RenderProps } from "./layout.ts";
-import { pairsInView } from "./pairs-index.ts";
-import { type PairsState, type PreparedPart, PreparedParts } from "./prepare.ts";
-import type { LayerRenderer } from "./registry.ts";
-import type { FontId, TextManagerApi } from "./text.ts";
-import { type LegendSink, NO_SIZE, SIZE_ONE, type Theme } from "./themes.ts";
-import type { TreeRows } from "./tree.ts";
+import type { AxisView } from "./axis.js";
+import { DOT_R } from "./draw/sizes.js";
+import { type Hit, HoverKind } from "./hit.js";
+import type { RenderProps } from "./layout.js";
+import { pairsInView } from "./pairs-index.js";
+import { type PairsState, type PreparedPart, PreparedParts } from "./prepare.js";
+import type { LayerRenderer } from "./registry.js";
+import type { FontId, TextManagerApi } from "./text.js";
+import { type LegendSink, NO_SIZE, SIZE_ONE, type Theme } from "./themes.js";
+import type { TreeRows } from "./tree.js";
 
 type Params = Readonly<Record<string, unknown>>;
 

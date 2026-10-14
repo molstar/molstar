@@ -27,7 +27,7 @@ import {
   leaking,
   type Scaling,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 /** The composer guards' run: warmed by count and by time, settled, then measured over `FRAME_N` and `4 · FRAME_N`. */
 function measure(frame: (i: number) => void): Scaling {
@@ -44,13 +44,13 @@ function guard(frame: (i: number) => void) {
 
 async function load() {
   vi.resetModules();
-  const draw = await import("../src/draw/index.ts");
-  const viewer = await import("../src/index.ts");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.ts");
-  const { driven } = await import("./input-fixtures.ts");
-  const { lit, twoBlocks } = await import("./overlay-fixtures.ts");
-  const { rowLoci } = await import("./overlay-docs.ts");
-  const families = await import("./families.ts");
+  const draw = await import("../src/draw/index.js");
+  const viewer = await import("../src/index.js");
+  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
+  const { driven } = await import("./input-fixtures.js");
+  const { lit, twoBlocks } = await import("./overlay-fixtures.js");
+  const { rowLoci } = await import("./overlay-docs.js");
+  const families = await import("./families.js");
   const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
   return { ...draw, ...viewer, recording, COPY_BACK, driven, lit, twoBlocks, rowLoci, ...families, createSeqViewSpec };
 }

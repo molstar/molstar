@@ -15,11 +15,11 @@ import {
   type StreamProvider,
   type StreamSource,
 } from "@molstar/seq-core/format";
-import { bigBedProvider } from "./bigbed.ts";
-import { bigWigProvider } from "./bigwig.ts";
-import { fetchRanges, type RangeReader } from "./ranges.ts";
-import { type VcfIndex, vcfProvider } from "./tabix.ts";
-import { twoBitProvider } from "./twobit.ts";
+import { bigBedProvider } from "./bigbed.js";
+import { bigWigProvider } from "./bigwig.js";
+import { fetchRanges, type RangeReader } from "./ranges.js";
+import { type VcfIndex, vcfProvider } from "./tabix.js";
+import { twoBitProvider } from "./twobit.js";
 
 /**
  * A file a host serves for a source: its format and its reads. A VCF's index file is read whole, by `index`: its

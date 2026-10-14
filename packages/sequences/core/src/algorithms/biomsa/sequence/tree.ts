@@ -5,9 +5,9 @@
  * @copyright 2020
  */
 
-import { DEBUG, type TAlignmentParam } from "../align/params.ts";
-import { seqToProf, type ProfPos } from "./profile.ts";
-import type { TSequence } from "./sequence.ts";
+import { DEBUG, type TAlignmentParam } from "../align/params.js";
+import { seqToProf, type ProfPos } from "./profile.js";
+import type { TSequence } from "./sequence.js";
 
 // STORIES-UNTOLD(B1): const enum as an `as const` object and a type (erasable TypeScript).
 export const NODE_TYPE = {

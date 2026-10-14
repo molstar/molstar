@@ -18,7 +18,7 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case2, case3, case10, case13 } from "../../core/_test/format/cases.ts";
+import { case2, case3, case10, case13 } from "../../core/_test/format/cases.js";
 import {
   Hit,
   HitRegion,
@@ -28,14 +28,14 @@ import {
   type LayerRenderer,
   Modifier,
   PointerType,
-} from "../src/index.ts";
-import type { InputDispatcher } from "../src/input.ts";
-import { hitTree, TREE_INSET, type TreeRows, treeOf, treeSpan } from "../src/tree.ts";
-import { WindowKind } from "../src/windows.ts";
-import { FAMILY_SECTION as F, familyWithTree, syntheticFamily } from "./families.ts";
-import { controlCaught, describeScaling, HEAP_DEEP, heapGrowth, heapScaling, isFlat, leak, leaking } from "./heap.ts";
-import { type Driven, driven } from "./input-fixtures.ts";
-import { renderers } from "./layout-fixtures.ts";
+} from "../src/index.js";
+import type { InputDispatcher } from "../src/input.js";
+import { hitTree, TREE_INSET, type TreeRows, treeOf, treeSpan } from "../src/tree.js";
+import { WindowKind } from "../src/windows.js";
+import { FAMILY_SECTION as F, familyWithTree, syntheticFamily } from "./families.js";
+import { controlCaught, describeScaling, HEAP_DEEP, heapGrowth, heapScaling, isFlat, leak, leaking } from "./heap.js";
+import { type Driven, driven } from "./input-fixtures.js";
+import { renderers } from "./layout-fixtures.js";
 
 const N = HEAP_DEEP ? 50_000 : 25_000;
 const S = "family.main";

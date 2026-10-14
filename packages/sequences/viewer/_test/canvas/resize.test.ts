@@ -16,9 +16,9 @@
 // resized surface drew its miniature 12 px thick and a fresh one 8 (other bar positions and widths); it sets the row first.
 
 import { afterEach, describe, expect, it } from "vitest";
-import type { PresetEntry } from "../../src/index.ts";
-import { twoChains } from "./chains.ts";
-import { canvasesOf, close, diff, type Opened, opened, pixelsOf, settle } from "./open.ts";
+import type { PresetEntry } from "../../src/index.js";
+import { twoChains } from "./chains.js";
+import { canvasesOf, close, diff, type Opened, opened, pixelsOf, settle } from "./open.js";
 
 const open: Opened[] = [];
 afterEach(() => {

@@ -23,8 +23,8 @@ import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { deflateSync } from "node:zlib";
 import { type Loaders, readDocument } from "@molstar/seq-core/format";
-import { DefaultFontMetrics, metricsMeasurer, renderSvg } from "../svg/index.ts";
-import { rasterizeSvg } from "./rasterize.ts";
+import { DefaultFontMetrics, metricsMeasurer, renderSvg } from "../svg/index.js";
+import { rasterizeSvg } from "./rasterize.js";
 
 const FLAGS = new Set(["--overlay", "--nav", "--background", "--png"]);
 const OPTIONS = new Set([

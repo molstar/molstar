@@ -11,9 +11,9 @@
 
 import { type StreamedData, TILE, type Tile, Tiles } from "@molstar/seq-core/format";
 import { type ComposedPath, Paths } from "@molstar/seq-core/model";
-import type { Hint } from "./prefetch.ts";
-import { LETTERS_PER_PX, RegionState, type StreamItems, type StreamLayer, type StreamView } from "./stream-contract.ts";
-import * as Levels from "./stream-levels.ts";
+import type { Hint } from "./prefetch.js";
+import { LETTERS_PER_PX, RegionState, type StreamItems, type StreamLayer, type StreamView } from "./stream-contract.js";
+import * as Levels from "./stream-levels.js";
 
 // Read once into module constants: a read through an import is a property read of the module per use, which
 // the test runner's module wrapper turns into an allocation on per-frame paths.

@@ -22,10 +22,10 @@ import {
   itemsInView,
   NO_COLOR,
   RectBatch,
-} from "../src/draw/api.ts";
-import { densityKindOf } from "../src/draw/density.ts";
-import { KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import type { RecordingBackend } from "../src/testing/index.ts";
+} from "../src/draw/api.js";
+import { densityKindOf } from "../src/draw/density.js";
+import { KernelRenderers, type LayerRenderer } from "../src/index.js";
+import type { RecordingBackend } from "../src/testing/index.js";
 
 /** A seeded generator (the same documents every run). */
 export function rng(seed = 7) {

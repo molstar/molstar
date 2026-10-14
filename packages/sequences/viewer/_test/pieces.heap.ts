@@ -18,7 +18,7 @@
 // Each case loads the viewer afresh (`vi.resetModules`; draws.heap.ts says why: Maglev and the module runner).
 
 import { describe, expect, it, vi } from "vitest";
-import type { LayerRenderer } from "../src/index.ts";
+import type { LayerRenderer } from "../src/index.js";
 import {
   controlCaught,
   describeScaling,
@@ -31,7 +31,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = FRAME_N;
 const WARM = FRAME_WARM;
@@ -80,14 +80,14 @@ const CASES: [string, string][] = [
 
 async function run(name: string, doc: string, heap = guard) {
   vi.resetModules();
-  const { KernelRenderers } = await import("../src/index.ts");
-  const { rendererConformance } = await import("../src/testing/index.ts");
-  const { asText, directed, matrixDoc, miniatureDoc } = await import("./conformance-fixtures.ts");
-  const { meanDoc } = await import("./draw-fixtures.ts");
-  const { opened } = await import("./layout-fixtures.ts");
-  const { allTypes, scaleDoc } = await import("./prepare-fixtures.ts");
-  const { densityDoc } = await import("./rn2-fixtures.ts");
-  const { case3 } = await import("../../core/_test/format/cases.ts");
+  const { KernelRenderers } = await import("../src/index.js");
+  const { rendererConformance } = await import("../src/testing/index.js");
+  const { asText, directed, matrixDoc, miniatureDoc } = await import("./conformance-fixtures.js");
+  const { meanDoc } = await import("./draw-fixtures.js");
+  const { opened } = await import("./layout-fixtures.js");
+  const { allTypes, scaleDoc } = await import("./prepare-fixtures.js");
+  const { densityDoc } = await import("./rn2-fixtures.js");
+  const { case3 } = await import("../../core/_test/format/cases.js");
   const make = {
     "all types": () => allTypes(),
     "40,000 positions": () => scaleDoc({ length: 20_000 }),
@@ -133,7 +133,7 @@ describe("AX1: the overlay's hover frames on reversed pieces allocate nothing af
     "hover frames over %s, reversed, with a selection and a highlight",
     async (kind) => {
       vi.resetModules();
-      const { hoverFrames } = await import("./overlay-fixtures.ts");
+      const { hoverFrames } = await import("./overlay-fixtures.js");
       const { frame, hovers } = await hoverFrames(kind, -1);
       const t0 = performance.now();
       for (let i = 0; i < WARM || performance.now() - t0 < FRAME_WARM_MS; i++) frame(i);

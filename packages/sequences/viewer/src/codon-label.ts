@@ -15,8 +15,8 @@
 
 import { letterMapTable, type StreamedData, StreamProp } from "@molstar/seq-core/format";
 import { type ComposedPath, CoordinateSystemKind, Coords, Paths } from "@molstar/seq-core/model";
-import { HoverKind } from "./hit.ts";
-import type { LabelProvider } from "./labels.ts";
+import { HoverKind } from "./hit.js";
+import type { LabelProvider } from "./labels.js";
 
 const at = new Int32Array(3);
 const letters = new Uint8Array(3);

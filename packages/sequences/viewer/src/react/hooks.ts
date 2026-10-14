@@ -24,13 +24,13 @@ import {
   useSyncExternalStore,
 } from "react";
 import { type Observable, skip } from "rxjs";
-import type { MenuItem } from "../chrome.ts";
-import { landFocus, type SurfaceFactory } from "../dom/core.ts";
-import type { LegendMode, Live, SearchFn, SeqState, SeqViewerContext } from "../index.ts";
-import { sameShallow } from "../same.ts";
+import type { MenuItem } from "../chrome.js";
+import { landFocus, type SurfaceFactory } from "../dom/core.js";
+import type { LegendMode, Live, SearchFn, SeqState, SeqViewerContext } from "../index.js";
+import { sameShallow } from "../same.js";
 
 // The surface contract is the DOM UI's: one declaration for both.
-export type { MountedSurface, SurfaceFactory } from "../dom/core.ts";
+export type { MountedSurface, SurfaceFactory } from "../dom/core.js";
 
 export interface PartProps {
   readonly context: SeqViewerContext;

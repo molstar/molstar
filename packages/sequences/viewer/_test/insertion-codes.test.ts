@@ -12,8 +12,8 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { OrderedSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { drawn, layerOf, record, texts } from "./draw-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
+import { drawn, layerOf, record, texts } from "./draw-fixtures.js";
+import { driven } from "./input-fixtures.js";
 
 const VH =
   "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSS";

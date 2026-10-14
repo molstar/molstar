@@ -29,7 +29,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 /** The guards' measurement: the shared warm-up, settled (`settleFrame`), then `FRAME_N` steps and 4× measured. */
 function measure(step: (i: number) => void) {
@@ -47,10 +47,10 @@ function measure(step: (i: number) => void) {
 /** The ring composed over `n` positions with its marks and cursor, and a step: a pointer move and a whole frame. */
 async function setup(n: number) {
   vi.resetModules();
-  const { composed, recording } = await import("./composer-fixtures.ts");
+  const { composed, recording } = await import("./composer-fixtures.js");
   const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
-  const { DefaultPresets } = await import("../src/presets.ts");
-  const { Inputs, PointerType } = await import("../src/index.ts");
+  const { DefaultPresets } = await import("../src/presets.js");
+  const { Inputs, PointerType } = await import("../src/index.js");
   const b = createSeqViewSpec();
   const s = b.data.sequence({ ref: "s", value: "ACGTACGTTA".repeat(n / 10), alphabet: "dna", cyclic: true });
   const value = { start: [Math.floor(0.8 * n), Math.floor(n / 6)], stop: [Math.floor(n / 8), Math.floor(n / 2)] };

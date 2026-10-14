@@ -19,7 +19,7 @@ export {
   type QueryFn,
   type QueryResult,
   type SymbolRuntime,
-} from "./compile.ts";
+} from "./compile.js";
 export {
   DEFAULT_LIMITS,
   F64,
@@ -28,6 +28,6 @@ export {
   type QueryLimits,
   type QueryOptions,
   type QuerySlot,
-} from "./context.ts";
-export { type BuildGuard, SelectionBuilder } from "./kernels.ts";
-export { type RangesInputOptions, SeqSelection, type ToLociOptions } from "./selection.ts";
+} from "./context.js";
+export { type BuildGuard, SelectionBuilder } from "./kernels.js";
+export { type RangesInputOptions, SeqSelection, type ToLociOptions } from "./selection.js";

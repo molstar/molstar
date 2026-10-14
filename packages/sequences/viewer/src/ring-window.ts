@@ -14,16 +14,16 @@
 // sector wraps. Headless and allocation-free: frames go in a reused Float64Array, points in plain records.
 
 import type { ResolvedView } from "@molstar/seq-core/format";
-import { type Axis, AxisGeometry, type AxisView, type ShownIndex } from "./axis.ts";
-import type { SeqViewerContext } from "./context.ts";
-import { defineBehavior } from "./default-behaviors.ts";
-import { followImage } from "./follow.ts";
-import { DragPhase, PointerType } from "./input.ts";
-import type { SectionLayout } from "./layout.ts";
-import { Ring } from "./ring.ts";
-import type { Origin } from "./state.ts";
-import { Viewport } from "./viewport.ts";
-import { WINDOW_EDGE, WindowPart } from "./windows.ts";
+import { type Axis, AxisGeometry, type AxisView, type ShownIndex } from "./axis.js";
+import type { SeqViewerContext } from "./context.js";
+import { defineBehavior } from "./default-behaviors.js";
+import { followImage } from "./follow.js";
+import { DragPhase, PointerType } from "./input.js";
+import type { SectionLayout } from "./layout.js";
+import { Ring } from "./ring.js";
+import type { Origin } from "./state.js";
+import { Viewport } from "./viewport.js";
+import { WINDOW_EDGE, WindowPart } from "./windows.js";
 
 /**
  * A ring window's frame (`ringWindowFrame`), unrolled CSS px along the outer ring: the window's ends x0, x1 (x0 in the

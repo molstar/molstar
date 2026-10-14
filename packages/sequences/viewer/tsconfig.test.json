@@ -1,0 +1,13 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // The headless tests and bench (no emit); the canvas, DOM and React tests are in their own configs.
+  "compilerOptions": {
+    "composite": false, "declaration": false, "declarationMap": false, "noEmit": true,
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["_test", "bench"],
+  "exclude": ["_test/canvas", "_test/interactions/canvas", "_test/dom", "_test/react"]
+}

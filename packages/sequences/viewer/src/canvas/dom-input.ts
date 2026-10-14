@@ -14,7 +14,7 @@
 // is pressed. A press never starts the browser's drag and drop where the surface is the target. Nothing here decides
 // what a gesture does: behaviors do, from the base events. Handlers are bound once; an event allocates nothing.
 
-import { type InputSink, Inputs, Modifier, PointerType } from "../input.ts";
+import { type InputSink, Inputs, Modifier, PointerType } from "../input.js";
 
 const LINE_PX = 16;
 

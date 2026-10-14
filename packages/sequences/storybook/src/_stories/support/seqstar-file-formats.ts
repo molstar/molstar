@@ -19,9 +19,9 @@ import { bigBedProvider, bigWigProvider, twoBitProvider, vcfProvider } from "@mo
 import { tilesStream } from "@molstar/seq-core/stream/tiles";
 import { tileServer } from "@molstar/seq-core/stream/tiles/server";
 import SEED_ALN from "../../../../core/_test/fixtures/pf00042-seed-8.aln?raw";
-import { BRS, DESIGN_7, GLOBINS, INSERT, P53, VH, VH_KABAT } from "../../../../core/_test/format/load-fixtures.ts";
-import { absoluteDoc, SVSX_FILES } from "../../../../core/_test/format/svsx-fixture.ts";
-import { DEMO_SYSTEMS, demoGenome, memoryReader } from "../../../../core/_test/stream/gmod/demo-files.ts";
+import { BRS, DESIGN_7, GLOBINS, INSERT, P53, VH, VH_KABAT } from "../../../../core/_test/format/load-fixtures.js";
+import { absoluteDoc, SVSX_FILES } from "../../../../core/_test/format/svsx-fixture.js";
+import { DEMO_SYSTEMS, demoGenome, memoryReader } from "../../../../core/_test/stream/gmod/demo-files.js";
 
 // ---- Common ----
 

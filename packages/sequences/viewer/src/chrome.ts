@@ -28,20 +28,20 @@ import {
   type PositionLabel,
   type Severity,
 } from "@molstar/seq-core/model";
-import { type ActionEntry, nodePath, trackDataRefs } from "./actions.ts";
-import { type ColorSchemePicker, colorSchemePickers } from "./color-schemes.ts";
-import { SeqCommands } from "./commands.ts";
-import { type LegendMode, SeqViewerConfig } from "./config.ts";
-import type { SeqIssue, SeqViewerContext } from "./context.ts";
-import { severityRank } from "./graph.ts";
-import { HitRegion } from "./hit.ts";
-import { itemActionsOf } from "./hover-card.ts";
-import type { HoverLabel } from "./labels.ts";
-import { EntryKind } from "./layout.ts";
-import { type LegendItem, type LegendRamp, type LegendSize, trackLegends } from "./legend.ts";
-import type { SeqLociAny } from "./lineage.ts";
-import { sameData } from "./same.ts";
-import { legendNumber } from "./themes.ts";
+import { type ActionEntry, nodePath, trackDataRefs } from "./actions.js";
+import { type ColorSchemePicker, colorSchemePickers } from "./color-schemes.js";
+import { SeqCommands } from "./commands.js";
+import { type LegendMode, SeqViewerConfig } from "./config.js";
+import type { SeqIssue, SeqViewerContext } from "./context.js";
+import { severityRank } from "./graph.js";
+import { HitRegion } from "./hit.js";
+import { itemActionsOf } from "./hover-card.js";
+import type { HoverLabel } from "./labels.js";
+import { EntryKind } from "./layout.js";
+import { type LegendItem, type LegendRamp, type LegendSize, trackLegends } from "./legend.js";
+import type { SeqLociAny } from "./lineage.js";
+import { sameData } from "./same.js";
+import { legendNumber } from "./themes.js";
 
 /** An entry of a section's `positions`: a data ref, or its rows after a layer's filter (seqspec:format#sections). */
 export type PositionEntry =

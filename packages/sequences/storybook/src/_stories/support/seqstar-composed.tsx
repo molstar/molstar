@@ -35,9 +35,9 @@ import {
 } from "@molstar/seq-viewer/react";
 import { type ReactNode, useEffect, useRef } from "react";
 import "@molstar/seq-viewer/skin.css";
-import { PrismCanvas } from "./seqstar-prism";
+import { PrismCanvas } from "./seqstar-prism.js";
 import p from "./seqstar-prism.module.css";
-import { type Mounted, useCaseContext, useStoryUi } from "./seqstar-viewer";
+import { type Mounted, useCaseContext, useStoryUi } from "./seqstar-viewer.js";
 
 /** The browser's SVG export, which `SeqViewer` and the element register themselves; a host's context registers it. */
 const EXPORT = [{ actions: [browserExportAction({ offer: downloadSvg })] }];

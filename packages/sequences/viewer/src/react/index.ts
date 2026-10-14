@@ -12,8 +12,8 @@
 // `@molstar/seq-viewer/skin.css`, shared with `/dom`. The React and DOM entries implement one slot contract and share
 // its names (`ViewTabs`, `PartProps`, …): a host imports one of them (the export guard allows exactly that overlap).
 
-export type { MenuItem } from "../chrome.ts";
-export { withDownloadExport } from "../dom/export.ts";
+export type { MenuItem } from "../chrome.js";
+export { withDownloadExport } from "../dom/export.js";
 export {
   type DerivedOptions,
   type HintProps,
@@ -34,8 +34,8 @@ export {
   useLiveVersion,
   useSeqState,
   useSeqViewer,
-} from "./hooks.ts";
-export { HoverCard } from "./hover-card.tsx";
+} from "./hooks.js";
+export { HoverCard } from "./hover-card.js";
 export {
   Busy,
   Description,
@@ -56,6 +56,6 @@ export {
   Tooltip,
   TrackActions,
   ViewTabs,
-} from "./parts.tsx";
-export { ViewSurface } from "./section.tsx";
-export { SeqViewer, SeqViewerLayout, type SeqViewerProps, SeqViewerProvider, SeqViewerRoot } from "./viewer.tsx";
+} from "./parts.js";
+export { ViewSurface } from "./section.js";
+export { SeqViewer, SeqViewerLayout, type SeqViewerProps, SeqViewerProvider, SeqViewerRoot } from "./viewer.js";

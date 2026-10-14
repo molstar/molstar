@@ -13,10 +13,10 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { expect, it } from "vitest";
-import type { StreamView } from "../src/draw/api.ts";
-import { KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import { LayerFrame } from "../src/testing/index.ts";
-import { opened } from "./layout-fixtures.ts";
+import type { StreamView } from "../src/draw/api.js";
+import { KernelRenderers, type LayerRenderer } from "../src/index.js";
+import { LayerFrame } from "../src/testing/index.js";
+import { opened } from "./layout-fixtures.js";
 
 const L = 4000;
 function doc(direction: 1 | -1) {

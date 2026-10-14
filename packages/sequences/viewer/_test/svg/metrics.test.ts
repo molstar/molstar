@@ -12,11 +12,11 @@
 // (_test/canvas/metrics.test.ts).
 
 import { describe, expect, it } from "vitest";
-import { GlyphBatch, Pass, SHAPE_COUNT, TextAlign, TextBaseline, TextBatch } from "../../src/draw/api.ts";
-import { DefaultSkin } from "../../src/index.ts";
-import { DefaultFontMetrics, type FontMetrics, hasMetrics, metricsMeasurer, SvgBackend } from "../../src/svg/index.ts";
-import { monospaceMeasurer } from "../../src/text.ts";
-import { all, parseXml } from "./xml.ts";
+import { GlyphBatch, Pass, SHAPE_COUNT, TextAlign, TextBaseline, TextBatch } from "../../src/draw/api.js";
+import { DefaultSkin } from "../../src/index.js";
+import { DefaultFontMetrics, type FontMetrics, hasMetrics, metricsMeasurer, SvgBackend } from "../../src/svg/index.js";
+import { monospaceMeasurer } from "../../src/text.js";
+import { all, parseXml } from "./xml.js";
 
 const m = metricsMeasurer(DefaultFontMetrics);
 const table = (family: string, weight = 400) =>

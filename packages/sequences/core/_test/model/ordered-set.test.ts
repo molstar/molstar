@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { Interval, OrderedSet, SortedArray, SortedRanges } from "../../src/model/index.ts";
+import { Interval, OrderedSet, SortedArray, SortedRanges } from "../../src/model/index.js";
 
 /** Seeded and deterministic (an LCG). */
 function random(seed: number) {

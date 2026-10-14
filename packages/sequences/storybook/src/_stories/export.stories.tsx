@@ -8,9 +8,9 @@
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Suspense, use, useMemo } from "react";
-import { genomeDoc, synthGenome } from "../../../core/_test/format/genome-fixture.ts";
-import { compiledCase } from "./support/seqstar-cases";
-import { ExportCard, ExportFrame } from "./support/seqstar-export";
+import { genomeDoc, synthGenome } from "../../../core/_test/format/genome-fixture.js";
+import { compiledCase } from "./support/seqstar-cases.js";
+import { ExportCard, ExportFrame } from "./support/seqstar-export.js";
 import f from "./support/seqstar-format.module.css";
 
 /**

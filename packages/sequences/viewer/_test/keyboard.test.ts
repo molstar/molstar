@@ -15,13 +15,13 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { OrderedSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { case3, case13 } from "../../core/_test/format/cases.ts";
-import { EntryKind, HoverKind, KeyBinding, type KeyCursor, Modifier, type Selection } from "../src/index.ts";
-import { cursorRect } from "../src/keyboard.ts";
-import type { Layouts } from "../src/layout.ts";
-import { rangedDoc, setPiece } from "./axis-fixtures.ts";
-import { type Driven, driven } from "./input-fixtures.ts";
-import { lazyLoaders } from "./layout-fixtures.ts";
+import { case3, case13 } from "../../core/_test/format/cases.js";
+import { EntryKind, HoverKind, KeyBinding, type KeyCursor, Modifier, type Selection } from "../src/index.js";
+import { cursorRect } from "../src/keyboard.js";
+import type { Layouts } from "../src/layout.js";
+import { rangedDoc, setPiece } from "./axis-fixtures.js";
+import { type Driven, driven } from "./input-fixtures.js";
+import { lazyLoaders } from "./layout-fixtures.js";
 
 const S = "family.main";
 const cursor = (t: Driven) => t.ctx.ui.keyCursor.value;

@@ -17,11 +17,11 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { TextAlign } from "../src/draw/backend.ts";
-import type { PerPosition } from "../src/prepare.ts";
-import { renderSvg } from "../src/svg/index.ts";
-import { columns, drawn, entryOf, layerOf, record, recordLabels, rects, texts } from "./draw-fixtures.ts";
-import { allTypes, BAND_SCORES, colorDoc, gene, linesDoc, rangesDoc, scaleDoc } from "./prepare-fixtures.ts";
+import { TextAlign } from "../src/draw/backend.js";
+import type { PerPosition } from "../src/prepare.js";
+import { renderSvg } from "../src/svg/index.js";
+import { columns, drawn, entryOf, layerOf, record, recordLabels, rects, texts } from "./draw-fixtures.js";
+import { allTypes, BAND_SCORES, colorDoc, gene, linesDoc, rangesDoc, scaleDoc } from "./prepare-fixtures.js";
 
 const issues = (t: Awaited<ReturnType<typeof drawn>>) =>
   t.ctx.graph.issues.value.filter((i) => i.code.startsWith("seqv.renderer"));

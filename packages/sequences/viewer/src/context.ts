@@ -12,11 +12,11 @@
 
 import { issueOf, type Loaders, type Patch, type SeqViewSpecDoc, validate } from "@molstar/seq-core/format";
 import type { Issue, KeyResolver } from "@molstar/seq-core/model";
-import { type ActionManager, createActions, nodePath } from "./actions.ts";
-import { type BehaviorManager, Behaviors } from "./behaviors.ts";
-import { type CommandManager, Commands, TargetRangeError } from "./commands.ts";
-import { type ConfigManager, createConfigManager, SeqViewerConfig } from "./config.ts";
-import { dataKeys, dataMode, dataViews, type SeqDataInput, type SetDataOptions } from "./data.ts";
+import { type ActionManager, createActions, nodePath } from "./actions.js";
+import { type BehaviorManager, Behaviors } from "./behaviors.js";
+import { type CommandManager, Commands, TargetRangeError } from "./commands.js";
+import { type ConfigManager, createConfigManager, SeqViewerConfig } from "./config.js";
+import { dataKeys, dataMode, dataViews, type SeqDataInput, type SetDataOptions } from "./data.js";
 import {
   type DocumentManager,
   type DocumentPort,
@@ -25,26 +25,26 @@ import {
   type Routed,
   type ViewManager,
   Views,
-} from "./document.ts";
-import { Focus, type FocusManager } from "./focus.ts";
-import { type Assembled, Graph, type SeqGraph, type Skin } from "./graph.ts";
-import { cutHeaderText } from "./header-text.ts";
-import { Highlight, type HighlightManager } from "./highlight.ts";
-import { Hover, type HoverManager, type PointerState } from "./hover.ts";
-import { InputDispatcher, type InputSink, type InteractionEvents } from "./input.ts";
-import { type LabelManager, Labels } from "./labels.ts";
-import { DefaultRenderProps, type LayoutManager, Layouts, mergeProps, type RenderProps } from "./layout.ts";
-import type { SeqLociAny } from "./lineage.ts";
-import { SetChannels } from "./location-sets.ts";
-import { snapshotHints } from "./prefetch.ts";
-import { isCoordinates } from "./projection.ts";
-import { type RefManager, Refs } from "./refs.ts";
-import { type SeqViewerRegistry, type SeqViewerRegistryEntry, ViewerRegistry } from "./registry.ts";
-import { Results, type ResultsManager } from "./results.ts";
-import { manualScheduler, type Scheduler, type TrackedScheduler, trackedScheduler } from "./scheduler.ts";
-import { type SelectionManager, Selections } from "./selection.ts";
-import { type SnapshotManager, Snapshots } from "./snapshots.ts";
-import { DefaultSeqViewerSpec, type SeqViewerSpec } from "./spec.ts";
+} from "./document.js";
+import { Focus, type FocusManager } from "./focus.js";
+import { type Assembled, Graph, type SeqGraph, type Skin } from "./graph.js";
+import { cutHeaderText } from "./header-text.js";
+import { Highlight, type HighlightManager } from "./highlight.js";
+import { Hover, type HoverManager, type PointerState } from "./hover.js";
+import { InputDispatcher, type InputSink, type InteractionEvents } from "./input.js";
+import { type LabelManager, Labels } from "./labels.js";
+import { DefaultRenderProps, type LayoutManager, Layouts, mergeProps, type RenderProps } from "./layout.js";
+import type { SeqLociAny } from "./lineage.js";
+import { SetChannels } from "./location-sets.js";
+import { snapshotHints } from "./prefetch.js";
+import { isCoordinates } from "./projection.js";
+import { type RefManager, Refs } from "./refs.js";
+import { type SeqViewerRegistry, type SeqViewerRegistryEntry, ViewerRegistry } from "./registry.js";
+import { Results, type ResultsManager } from "./results.js";
+import { manualScheduler, type Scheduler, type TrackedScheduler, trackedScheduler } from "./scheduler.js";
+import { type SelectionManager, Selections } from "./selection.js";
+import { type SnapshotManager, Snapshots } from "./snapshots.js";
+import { DefaultSeqViewerSpec, type SeqViewerSpec } from "./spec.js";
 import {
   event,
   type Live,
@@ -54,12 +54,12 @@ import {
   type SeqEventEmitter,
   type SeqState,
   state,
-} from "./state.ts";
-import { type StreamManager, Streams } from "./streams.ts";
-import { SystemRegistry } from "./systems.ts";
-import { monospaceMeasurer, TextManager, type TextManagerApi, type TextMeasurer } from "./text.ts";
-import { type IssueManager, Issues, type TaskManager, Tasks, Ui, type UiManager } from "./ui.ts";
-import { type ScrollGroupManager, ScrollGroups, sectionsOf, type ViewportManager, Viewports } from "./viewport.ts";
+} from "./state.js";
+import { type StreamManager, Streams } from "./streams.js";
+import { SystemRegistry } from "./systems.js";
+import { monospaceMeasurer, TextManager, type TextManagerApi, type TextMeasurer } from "./text.js";
+import { type IssueManager, Issues, type TaskManager, Tasks, Ui, type UiManager } from "./ui.js";
+import { type ScrollGroupManager, ScrollGroups, sectionsOf, type ViewportManager, Viewports } from "./viewport.js";
 
 export interface LogEntry {
   readonly level: "info" | "warning" | "error";

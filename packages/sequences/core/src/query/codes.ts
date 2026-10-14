@@ -9,7 +9,7 @@
 // SeqQL's issue codes and their severities (seqspec:seqql#errors): one severity per code, wherever it is reported.
 // An error is a query written wrong or one that cannot run; a warning, a part of what was written that selects
 // nothing, or a result that may be incomplete; info, a note on how a valid query ran (why its result is empty).
-import type { QueryIssue } from "./types.ts";
+import type { QueryIssue } from "./types.js";
 
 const ERRORS = `read.unclosed read.extra_close read.trailing read.string read.reserved read.keyword read.empty read.depth
   read.size read.head reply.empty reply.nested reply.none reply.unclosed reply.unopened symbol.unknown

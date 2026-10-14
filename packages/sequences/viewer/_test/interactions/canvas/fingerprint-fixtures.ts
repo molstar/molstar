@@ -10,19 +10,19 @@
 // afresh per case: a scene's context (inline data only: no Node files), the layer's `LayerFrame`, and a step that
 // draws it into a canvas, with the kit's composer-in-small filling the view as the real one does.
 
-import { Canvas2DBackend, Canvas2DShared } from "../../../src/canvas/index.ts";
-import { Pass, SkinToken } from "../../../src/draw/backend.ts";
-import { drawResources } from "../../../src/draw/resources.ts";
+import { Canvas2DBackend, Canvas2DShared } from "../../../src/canvas/index.js";
+import { Pass, SkinToken } from "../../../src/draw/backend.js";
+import { drawResources } from "../../../src/draw/resources.js";
 import {
   createSeqViewer,
   DefaultRegistry,
   DefaultSeqViewerSpec,
   type LayerRenderer,
   manualScheduler,
-} from "../../../src/index.ts";
-import { InteractionsViewerRegistry } from "../../../src/interactions/viewer/index.ts";
-import { fixtureMeasurer, LayerFrame, Op, RecordingBackend } from "../../../src/testing/index.ts";
-import { absentScene, manyScene, mixedScene, type Scene, ShortFingerprint, unitScene, wideScene } from "../scenes.ts";
+} from "../../../src/index.js";
+import { InteractionsViewerRegistry } from "../../../src/interactions/viewer/index.js";
+import { fixtureMeasurer, LayerFrame, Op, RecordingBackend } from "../../../src/testing/index.js";
+import { absentScene, manyScene, mixedScene, type Scene, ShortFingerprint, unitScene, wideScene } from "../scenes.js";
 export const SCENES: Record<string, () => Scene> = {
   unit: () => unitScene(),
   many: () => manyScene(),

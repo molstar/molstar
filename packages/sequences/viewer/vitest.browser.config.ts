@@ -9,7 +9,7 @@
 import { fileURLToPath } from "node:url";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
-import { browserTests } from "../vitest.shared.ts";
+import { browserTests } from "../vitest.shared.js";
 
 /** The Seq* fixtures read their JSON with `node:fs`; in the browser those test modules get the bundled copies. */
 const shim = fileURLToPath(new URL("./_test/canvas/fixture-fs.ts", import.meta.url));

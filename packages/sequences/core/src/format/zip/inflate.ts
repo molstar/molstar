@@ -7,9 +7,9 @@
  * MIT License, Copyright (c) 2018 Photopea
  */
 
-import { NumberArray } from './shims.ts';
-import { U, makeCodes, codes2map, checkCompressionStreamSupport } from './util.ts';
-import { RuntimeContext } from './shims.ts';
+import { NumberArray } from './shims.js';
+import { U, makeCodes, codes2map, checkCompressionStreamSupport } from './util.js';
+import { RuntimeContext } from './shims.js';
 
 function InflateContext(data: Uint8Array<ArrayBuffer>, buf?: Uint8Array<ArrayBuffer>) {
     const noBuf = buf === undefined;

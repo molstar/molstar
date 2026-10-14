@@ -21,11 +21,11 @@ import {
   supportedAll,
 } from "@molstar/seq-core/format";
 import type { CoordinateMap } from "@molstar/seq-core/model";
-import { fixtureLoaders, registries } from "../../core/_test/format/load-fixtures.ts";
-import { Axis, type ShownIndex } from "../src/axis.ts";
-import { manualScheduler, type SeqViewerContext, type SeqViewerPorts } from "../src/index.ts";
-import type { Viewport } from "../src/viewport.ts";
-import { viewer } from "./graph-fixtures.ts";
+import { fixtureLoaders, registries } from "../../core/_test/format/load-fixtures.js";
+import { Axis, type ShownIndex } from "../src/axis.js";
+import { manualScheduler, type SeqViewerContext, type SeqViewerPorts } from "../src/index.js";
+import type { Viewport } from "../src/viewport.js";
+import { viewer } from "./graph-fixtures.js";
 
 const reg = registries(false);
 

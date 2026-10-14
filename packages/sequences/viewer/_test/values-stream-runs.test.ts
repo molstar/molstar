@@ -10,7 +10,7 @@
 // filter's gap) asks the stream each run's positions, not the hull of its two ends (the whole system but the column).
 
 import { expect, it } from "vitest";
-import { streamColumn } from "../src/draw/api.ts";
+import { streamColumn } from "../src/draw/api.js";
 
 it("a column across a cyclic origin asks its two runs, and merges their statistics", () => {
   const L = 5_000_000;

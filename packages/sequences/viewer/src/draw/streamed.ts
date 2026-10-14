@@ -18,13 +18,13 @@
 // (progress.ts). ST7: through a path, a region's bins and an item's range are its system's positions, taken to the
 // block's indices (`StreamView.toBlock`).
 
-import { AxisGeometry, type AxisView } from "../axis.ts";
-import type { Hit } from "../hit.ts";
-import { type Features, featureAt } from "../prepare.ts";
-import { segWindow } from "../pyramids.ts";
-import { laneHeight, laneInset, lanePad } from "../renderer-helpers.ts";
-import { LETTERS_PER_PX, RegionState, type StreamItems } from "../stream-contract.ts";
-import { streamStats } from "../stream-sources.ts";
+import { AxisGeometry, type AxisView } from "../axis.js";
+import type { Hit } from "../hit.js";
+import { type Features, featureAt } from "../prepare.js";
+import { segWindow } from "../pyramids.js";
+import { laneHeight, laneInset, lanePad } from "../renderer-helpers.js";
+import { LETTERS_PER_PX, RegionState, type StreamItems } from "../stream-contract.js";
+import { streamStats } from "../stream-sources.js";
 import {
   NO_COLOR,
   type PathBatch,
@@ -35,8 +35,8 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "./backend.ts";
-import { shownHull, visibleRange } from "./cells.ts";
+} from "./backend.js";
+import { shownHull, visibleRange } from "./cells.js";
 import {
   densityAdd,
   densityCover,
@@ -47,11 +47,11 @@ import {
   densitySlot,
   densityStart,
   featureKey,
-} from "./density.ts";
-import { featureHoverKey, laneRows } from "./features.ts";
-import { HoverOutline, hoverEmphasis } from "./hover.ts";
-import { placeRun } from "./place.ts";
-import type { DrawView } from "./view.ts";
+} from "./density.js";
+import { featureHoverKey, laneRows } from "./features.js";
+import { HoverOutline, hoverEmphasis } from "./hover.js";
+import { placeRun } from "./place.js";
+import type { DrawView } from "./view.js";
 
 /** The region drawn: its items' first positions, and in `from` the index below which they are an earlier region's. */
 const owner = { first: null as Int32Array | null };

@@ -12,21 +12,21 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { TILE } from "@molstar/seq-core/format";
-import { AxisGeometry, SectionAxisView } from "../src/axis.ts";
-import * as api from "../src/draw/api.ts";
-import { Dirty } from "../src/draw/index.ts";
-import * as nav from "../src/draw/nav.ts";
-import { navigatorFrom } from "../src/index.ts";
-import { SectionMarks } from "../src/marks.ts";
-import { RowsRenderer } from "../src/renderers/rows.ts";
-import * as tiles from "../src/renderers/rows-tiles.ts";
-import { lanesInView, type Streams } from "../src/streams.ts";
-import { fixtureMeasurer, RecordingBackend } from "../src/testing/index.ts";
-import { TextManager } from "../src/text.ts";
-import { axisOf, resolved } from "./axis-fixtures.ts";
-import { COPY_BACK, composed, recording } from "./composer-fixtures.ts";
-import { drawn, layerOf } from "./draw-fixtures.ts";
-import { familyWithTree, syntheticFamily, wideFamily } from "./families.ts";
+import { AxisGeometry, SectionAxisView } from "../src/axis.js";
+import * as api from "../src/draw/api.js";
+import { Dirty } from "../src/draw/index.js";
+import * as nav from "../src/draw/nav.js";
+import { navigatorFrom } from "../src/index.js";
+import { SectionMarks } from "../src/marks.js";
+import { RowsRenderer } from "../src/renderers/rows.js";
+import * as tiles from "../src/renderers/rows-tiles.js";
+import { lanesInView, type Streams } from "../src/streams.js";
+import { fixtureMeasurer, RecordingBackend } from "../src/testing/index.js";
+import { TextManager } from "../src/text.js";
+import { axisOf, resolved } from "./axis-fixtures.js";
+import { COPY_BACK, composed, recording } from "./composer-fixtures.js";
+import { drawn, layerOf } from "./draw-fixtures.js";
+import { familyWithTree, syntheticFamily, wideFamily } from "./families.js";
 
 /** A pan's frame: the axis view synced (its window mapped), the navigator's axis and window over 24 blocks. */
 export async function navigatorFrame(stacked: boolean, labels: boolean) {

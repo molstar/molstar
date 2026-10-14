@@ -12,10 +12,10 @@
 
 import { type StreamedData, StreamProp } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case9 } from "../../core/_test/format/cases.ts";
-import { SeqViewerConfig } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { opened, preparedRenderers } from "./layout-fixtures.ts";
+import { case9 } from "../../core/_test/format/cases.js";
+import { SeqViewerConfig } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { opened, preparedRenderers } from "./layout-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 

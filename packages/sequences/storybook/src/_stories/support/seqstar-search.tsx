@@ -25,13 +25,13 @@ import { KeyKind, type SeqSet } from "@molstar/seq-core/model";
 import { type Coordinates, SeqCommands, type SeqViewerContext } from "@molstar/seq-viewer";
 import { SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
 import { type KeyboardEvent, type ReactNode, use, useEffect, useMemo, useState } from "react";
-import { PrismPage } from "../support/seqstar-prism";
-import { ScrollArea, TextAction, type TextTab, TextTabs } from "../ui";
-import { compiledCase } from "./seqstar-cases";
+import { PrismPage } from "../support/seqstar-prism.js";
+import { ScrollArea, TextAction, type TextTab, TextTabs } from "../ui/index.js";
+import { compiledCase } from "./seqstar-cases.js";
 import f from "./seqstar-format.module.css";
-import { PrismCanvas } from "./seqstar-prism";
+import { PrismCanvas } from "./seqstar-prism.js";
 import q from "./seqstar-search.module.css";
-import { caseParts, useCaseContext, useStoryUi } from "./seqstar-viewer";
+import { caseParts, useCaseContext, useStoryUi } from "./seqstar-viewer.js";
 
 type Mode = "exact" | "degenerate" | "regex" | "approximate";
 type Alphabet = "dna" | "protein";

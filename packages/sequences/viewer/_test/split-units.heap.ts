@@ -25,15 +25,15 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 async function setup() {
   vi.resetModules();
-  const { lit } = await import("./overlay-fixtures.ts");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.ts");
-  const { splitUnitsDoc } = await import("./split-units-fixtures.ts");
-  const { Dirty } = await import("../src/draw/index.ts");
-  const { Inputs, PointerType } = await import("../src/index.ts");
+  const { lit } = await import("./overlay-fixtures.js");
+  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
+  const { splitUnitsDoc } = await import("./split-units-fixtures.js");
+  const { Dirty } = await import("../src/draw/index.js");
+  const { Inputs, PointerType } = await import("../src/index.js");
   const t = await lit(splitUnitsDoc({ highlights: true }), { width: 1000, height: 400, dpr: 2 });
   t.ctx.behaviors.get("hoverLabel")?.remove();
   const be = recording(COPY_BACK);

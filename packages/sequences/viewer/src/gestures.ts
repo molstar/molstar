@@ -14,21 +14,21 @@
 
 import { type Closure, Height, Lanes, SelectionGranularity } from "@molstar/seq-core/format";
 import { Loci, OrderedSet } from "@molstar/seq-core/model";
-import { AxisGeometry, navUnits, type SectionAxisView } from "./axis.ts";
-import { ChannelMarks } from "./channels.ts";
-import { SeqViewerConfig } from "./config.ts";
-import type { SeqViewerContext } from "./context.ts";
-import { defineBehavior, internal, RegionName, viewportOf } from "./default-behaviors.ts";
-import type { ViewModel } from "./graph.ts";
-import { CHEVRON_GAP, CHEVRON_HALF, CHEVRON_ROOM, CHEVRON_SLOP, splitChevron } from "./header-toggle.ts";
-import { type Hit, HitRegion, HoverKind, wrappedPositionNear } from "./hit.ts";
-import { Binding, type DragEvt, DragPhase, Modifier, PointerType, type Trigger } from "./input.ts";
-import { EntryKind, type SectionLayout, SectionLayouts } from "./layout.ts";
-import { carry, type SeqLociAny } from "./lineage.ts";
-import { MarkBit } from "./marks.ts";
-import { ofRuns } from "./projection.ts";
-import { RegionState } from "./streams.ts";
-import { WINDOW_FRAME, WindowPart, windowEnds, windowFrame, windowIdle, windowPart } from "./windows.ts";
+import { AxisGeometry, navUnits, type SectionAxisView } from "./axis.js";
+import { ChannelMarks } from "./channels.js";
+import { SeqViewerConfig } from "./config.js";
+import type { SeqViewerContext } from "./context.js";
+import { defineBehavior, internal, RegionName, viewportOf } from "./default-behaviors.js";
+import type { ViewModel } from "./graph.js";
+import { CHEVRON_GAP, CHEVRON_HALF, CHEVRON_ROOM, CHEVRON_SLOP, splitChevron } from "./header-toggle.js";
+import { type Hit, HitRegion, HoverKind, wrappedPositionNear } from "./hit.js";
+import { Binding, type DragEvt, DragPhase, Modifier, PointerType, type Trigger } from "./input.js";
+import { EntryKind, type SectionLayout, SectionLayouts } from "./layout.js";
+import { carry, type SeqLociAny } from "./lineage.js";
+import { MarkBit } from "./marks.js";
+import { ofRuns } from "./projection.js";
+import { RegionState } from "./streams.js";
+import { WINDOW_FRAME, WindowPart, windowEnds, windowFrame, windowIdle, windowPart } from "./windows.js";
 
 const W = WindowPart;
 

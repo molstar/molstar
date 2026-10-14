@@ -15,11 +15,11 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { Q } from "../../core/src/query/index.ts";
-import { bookmarkAt, ChannelMarks, type SeqViewerContext } from "../src/index.ts";
-import { bookmarkIds } from "../src/location-sets.ts";
-import { opened, preparedRenderers } from "./layout-fixtures.ts";
-import { seqLoci } from "./overlay-docs.ts";
+import { Q } from "../../core/src/query/index.js";
+import { bookmarkAt, ChannelMarks, type SeqViewerContext } from "../src/index.js";
+import { bookmarkIds } from "../src/location-sets.js";
+import { opened, preparedRenderers } from "./layout-fixtures.js";
+import { seqLoci } from "./overlay-docs.js";
 
 const flush = async () => {
   for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));

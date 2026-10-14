@@ -13,7 +13,7 @@
 
 import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { type Features, type PerPosition, positionKey, rowValues } from "../src/prepare.ts";
+import { type Features, type PerPosition, positionKey, rowValues } from "../src/prepare.js";
 import {
   binClass,
   binCounts,
@@ -27,10 +27,10 @@ import {
   prefixReach,
   segWindow,
   valuePyramid,
-} from "../src/pyramids.ts";
+} from "../src/pyramids.js";
 
-import { type CellColoring, cellClasses, densityOn, ItemDensity } from "../src/reductions.ts";
-import { layer, opened, preparedRenderers } from "./layout-fixtures.ts";
+import { type CellColoring, cellClasses, densityOn, ItemDensity } from "../src/reductions.js";
+import { layer, opened, preparedRenderers } from "./layout-fixtures.js";
 
 const P = { renderers: preparedRenderers() };
 

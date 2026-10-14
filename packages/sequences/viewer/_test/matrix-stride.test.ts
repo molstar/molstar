@@ -16,10 +16,10 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { type SeqSet, SeqSets } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { drawMatrixTiles, Hit, HoverKind, type MatrixState, prepareMatrix } from "../src/draw/api.ts";
-import { HitRegion, KernelRenderers } from "../src/index.ts";
-import { LayerFrame, RecordingBackend } from "../src/testing/index.ts";
-import { opened } from "./layout-fixtures.ts";
+import { drawMatrixTiles, Hit, HoverKind, type MatrixState, prepareMatrix } from "../src/draw/api.js";
+import { HitRegion, KernelRenderers } from "../src/index.js";
+import { LayerFrame, RecordingBackend } from "../src/testing/index.js";
+import { opened } from "./layout-fixtures.js";
 
 const N = 12;
 /** The value of state q of position i in block b's annotation (a distinct number per cell; never missing). */

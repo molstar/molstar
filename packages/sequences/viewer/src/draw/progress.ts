@@ -16,12 +16,12 @@
 // drawn in a pending one's place counting as drawn. `progressEnd` says whether another overlay frame is needed (a
 // skeleton shimmering, a region fading). Allocation-free: module scratch.
 
-import { type RowModel, SectionLayouts } from "../layout.ts";
-import { blockLevels, RegionState, type StreamView } from "../streams.ts";
-import { PathBatch, PathMode, PathVerb, RectBatch, SkinToken, TextAlign, TextBaseline, TextBatch } from "./backend.ts";
-import { shownHull, visibleRange } from "./cells.ts";
-import { placeRun } from "./place.ts";
-import type { DrawView } from "./view.ts";
+import { type RowModel, SectionLayouts } from "../layout.js";
+import { blockLevels, RegionState, type StreamView } from "../streams.js";
+import { PathBatch, PathMode, PathVerb, RectBatch, SkinToken, TextAlign, TextBaseline, TextBatch } from "./backend.js";
+import { shownHull, visibleRange } from "./cells.js";
+import { placeRun } from "./place.js";
+import type { DrawView } from "./view.js";
 
 /** A shimmer's sweep across the data area, and a region's fade-in (ms). */
 export const SWEEP_MS = 1000;

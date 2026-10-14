@@ -12,7 +12,7 @@
 
 import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { drawn, record } from "./draw-fixtures.ts";
+import { drawn, record } from "./draw-fixtures.js";
 
 /** A strand [10, 20) on a 40-residue block in `direction`; `filtered`: positions 14 and 15 hidden. */
 async function strand(direction: 1 | -1, filtered = false) {

@@ -24,8 +24,8 @@ import {
   type ThemeLocation,
   type ThemeProvider,
 } from "@molstar/seq-viewer/draw";
-import { fingerprintOf } from "../registry.ts";
-import { KindStyle, Kinds, kindByName } from "../vocabulary.ts";
+import { fingerprintOf } from "../registry.js";
+import { KindStyle, Kinds, kindByName } from "../vocabulary.js";
 
 const COLORS = Int32Array.from(Kinds, (k) => Color.decode(KindStyle[k][1]) ?? NO_COLOR);
 const SHAPES = Int32Array.from(Kinds, (k) => GlyphShape[KindStyle[k][2] as keyof typeof GlyphShape] ?? NO_GLYPH);

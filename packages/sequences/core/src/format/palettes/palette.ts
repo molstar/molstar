@@ -22,9 +22,9 @@
  * values past its end uncolored; MVS's default is `false`).
  */
 
-import { Color } from "./color.ts";
-import { ColorDictionaries, type ColorDictionaryName } from "./dictionaries.ts";
-import { type ColorListName, ColorLists } from "./lists.ts";
+import { Color } from "./color.js";
+import { ColorDictionaries, type ColorDictionaryName } from "./dictionaries.js";
+import { type ColorListName, ColorLists } from "./lists.js";
 
 /** A document `Color` string (`#rgb`, `#rrggbb`, a Mol* color name, `a/b`). */
 export type ColorString = string;

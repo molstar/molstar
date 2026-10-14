@@ -12,11 +12,11 @@ import { extentLoci, materialize, NightingaleSupported } from "@molstar/seq-nigh
 import { mount, type NightingaleEvent } from "@molstar/seq-nightingale/mount";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Suspense, use, useEffect, useMemo, useRef, useState } from "react";
-import { CASE_TITLES, type CompiledCase, caseSource, compiledCase, preview, reg } from "./support/seqstar-cases";
+import { CASE_TITLES, type CompiledCase, caseSource, compiledCase, preview, reg } from "./support/seqstar-cases.js";
 import s from "./support/seqstar-format.module.css";
-import { IssueList } from "./support/seqstar-issues";
-import { PrismPage } from "./support/seqstar-prism";
-import { AnchoredTooltip, Fold, ScrollArea, TextAction } from "./ui";
+import { IssueList } from "./support/seqstar-issues.js";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { AnchoredTooltip, Fold, ScrollArea, TextAction } from "./ui/index.js";
 
 /**
  * The second viewer that checks the format: each acceptance

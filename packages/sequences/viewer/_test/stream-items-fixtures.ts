@@ -21,10 +21,10 @@ export async function itemsFrame(
   pending = false,
   variantsAs: "variants" | "points" = "variants",
 ) {
-  const { composed, recording } = await import("./composer-fixtures.ts");
-  const { Dirty } = await import("../src/draw/composer.ts");
-  const { GRCH38, hg38Streams } = await import("../../core/_test/format/stream-provider.ts");
-  const { GENOME, streamedDoc } = await import("./stream-fixtures.ts");
+  const { composed, recording } = await import("./composer-fixtures.js");
+  const { Dirty } = await import("../src/draw/composer.js");
+  const { GRCH38, hg38Streams } = await import("../../core/_test/format/stream-provider.js");
+  const { GENOME, streamedDoc } = await import("./stream-fixtures.js");
   const s = hg38Streams({ chromosomes: GRCH38.slice(0, 3), letters: true, gated: true });
   const loaders = { load: () => Promise.reject(new Error("none")), stream: s.stream };
   const t = await composed(streamedDoc({ items: true, sequence: true, values: false, variantsAs }), {
@@ -33,7 +33,7 @@ export async function itemsFrame(
     dpr: 2,
     loaders,
   });
-  const m = t.ctx.streams as import("../src/streams.ts").Streams;
+  const m = t.ctx.streams as import("../src/streams.js").Streams;
   const vp = t.vp;
   if (!vp) throw new Error("no viewport");
   if (stop > start) vp.zoomTo(1, start, stop);

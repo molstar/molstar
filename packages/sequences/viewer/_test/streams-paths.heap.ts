@@ -26,7 +26,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 /** Six times the shared warm-up, as the other streamed items' guards: colored items tier up slowly. */
@@ -46,14 +46,14 @@ const guard = (frame: () => void) => {
 
 /** The protein's section (DPR 2, 1,000 × 300) at residues [start, stop) (0, 0: the whole protein), every region held. */
 async function proteinFrame(start: number, stop: number) {
-  const { composed, recording } = await import("./composer-fixtures.ts");
-  const { Dirty } = await import("../src/draw/composer.ts");
-  const { GRCH38, codingDoc, hg38Streams } = await import("../../core/_test/format/stream-provider.ts");
+  const { composed, recording } = await import("./composer-fixtures.js");
+  const { Dirty } = await import("../src/draw/composer.js");
+  const { GRCH38, codingDoc, hg38Streams } = await import("../../core/_test/format/stream-provider.js");
   const s = hg38Streams({ chromosomes: GRCH38.slice(0, 3), gated: true });
   const loaders = { load: () => Promise.reject(new Error("none")), stream: s.stream };
   const section = "coding.protein";
   const t = await composed(codingDoc(), { width: 1000, height: 300, dpr: 2, loaders, section });
-  const m = t.ctx.streams as import("../src/streams.ts").Streams;
+  const m = t.ctx.streams as import("../src/streams.js").Streams;
   const vp = t.vp;
   if (!vp) throw new Error("no viewport");
   if (stop > start) vp.zoomTo(0, start, stop);
@@ -87,9 +87,9 @@ async function proteinFrame(start: number, stop: number) {
 
 /** The protein's section in the input harness at residues 450–550, regions held: a pointer move over its tracks. */
 async function proteinHover() {
-  const { driven } = await import("./input-fixtures.ts");
-  const { KernelRenderers } = await import("../src/index.ts");
-  const { GRCH38, codingDoc, hg38Streams } = await import("../../core/_test/format/stream-provider.ts");
+  const { driven } = await import("./input-fixtures.js");
+  const { KernelRenderers } = await import("../src/index.js");
+  const { GRCH38, codingDoc, hg38Streams } = await import("../../core/_test/format/stream-provider.js");
   const s = hg38Streams({ chromosomes: GRCH38.slice(0, 3), gated: true, letters: true });
   const section = "coding.protein";
   const t = await driven(codingDoc(), {
@@ -102,7 +102,7 @@ async function proteinHover() {
   await t.ctx.graph.update();
   for (let k = 0; k < 6; k++) {
     t.layout(section);
-    (t.ctx.streams as import("../src/streams.ts").Streams).pass();
+    (t.ctx.streams as import("../src/streams.js").Streams).pass();
     for (const p of [s.genome, s.phylop, s.genes, s.variants]) p.release();
     await new Promise((ok) => setTimeout(ok, 0));
   }
@@ -111,7 +111,7 @@ async function proteinHover() {
     for (const p of [s.genome, s.phylop, s.genes, s.variants]) p.release();
   };
   // One `PointerInput`, as an engine's (the harness's `pointer` makes an event a call).
-  const { Inputs, PointerType } = await import("../src/index.ts");
+  const { Inputs, PointerType } = await import("../src/index.js");
   const e = Inputs.pointer();
   const at = t.ctx.layout.sectionIndex(section);
   const move = PointerType.move;
@@ -191,7 +191,7 @@ describe("a genome's streamed tracks on a protein's axis allocate nothing per fr
     for (const i of [0, 99]) {
       read(i);
       for (let k = 0; k < 3; k++) {
-        (m as import("../src/streams.ts").Streams).pass();
+        (m as import("../src/streams.js").Streams).pass();
         g.release();
         await new Promise((ok) => setTimeout(ok, 0));
       }
@@ -209,7 +209,7 @@ describe("a genome's streamed tracks on a protein's axis allocate nothing per fr
       const r = 950 + (i % 40);
       for (let k = 0; k < 3; k++) at[k] = Paths.fromAt(p, r, k);
       held += m.lettersAt?.(data, sys, at, 3, out) ?? 0;
-      (m as import("../src/streams.ts").Streams).pass();
+      (m as import("../src/streams.js").Streams).pass();
     };
     for (let w = 0; w < 2_000; w++) far(w);
     expect(guard(() => far(j++))).toBe("");

@@ -23,9 +23,9 @@ import {
 } from "@molstar/seq-core/format";
 import { type Loci, OrderedSet, type SeqLoci } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { case3, case10 } from "../../core/_test/format/cases.ts";
-import { gene } from "../../core/_test/format/project-fixtures.ts";
-import type { Commands } from "../src/commands.ts";
+import { case3, case10 } from "../../core/_test/format/cases.js";
+import { gene } from "../../core/_test/format/project-fixtures.js";
+import type { Commands } from "../src/commands.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -39,9 +39,9 @@ import {
   SeqRegistrationError,
   type SeqViewerContext,
   type SeqViewerRegistryEntry,
-} from "../src/index.ts";
-import { driven, subscriptions } from "./input-fixtures.ts";
-import { shown } from "./projection-fixtures.ts";
+} from "../src/index.js";
+import { driven, subscriptions } from "./input-fixtures.js";
+import { shown } from "./projection-fixtures.js";
 
 const T315 = { refs: ["1iep/A"], args: { beg: "315", end: "315", numbering: "auth" } };
 const indices = (l: unknown) => {

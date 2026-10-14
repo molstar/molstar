@@ -15,9 +15,9 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.ts";
-import { type DrawResources, SkinToken } from "../../src/draw/backend.ts";
-import { Dirty, SectionComposer } from "../../src/draw/index.ts";
+import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
+import { type DrawResources, SkinToken } from "../../src/draw/backend.js";
+import { Dirty, SectionComposer } from "../../src/draw/index.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -26,10 +26,10 @@ import {
   type RenderProps,
   type SeqViewerContext,
   type Skin,
-} from "../../src/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
-import { seqLoci, twoBlocks } from "../overlay-docs.ts";
-import { allTypes } from "../prepare-fixtures.ts";
+} from "../../src/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
+import { seqLoci, twoBlocks } from "../overlay-docs.js";
+import { allTypes } from "../prepare-fixtures.js";
 
 async function open(doc: ReturnType<typeof allTypes>, w: number, h: number, dpr: number, render = {}) {
   const ctx = createSeqViewer(

@@ -13,13 +13,13 @@
 
 import type { Closure } from "@molstar/seq-core/format";
 import { Loci } from "@molstar/seq-core/model";
-import type { SeqViewerContext } from "./context.ts";
-import { defineBehavior } from "./default-behaviors.ts";
-import { dotPlotAt, firstDotPlot, shownAtX } from "./draw/dot-plot.ts";
-import { type Hit, HitRegion, HoverKind } from "./hit.ts";
-import { Binding, DragPhase } from "./input.ts";
-import type { SeqLociAny } from "./lineage.ts";
-import { ofRuns } from "./projection.ts";
+import type { SeqViewerContext } from "./context.js";
+import { defineBehavior } from "./default-behaviors.js";
+import { dotPlotAt, firstDotPlot, shownAtX } from "./draw/dot-plot.js";
+import { type Hit, HitRegion, HoverKind } from "./hit.js";
+import { Binding, DragPhase } from "./input.js";
+import type { SeqLociAny } from "./lineage.js";
+import { ofRuns } from "./projection.js";
 
 const DATA = HitRegion.data;
 const START = DragPhase.start;

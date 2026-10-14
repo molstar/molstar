@@ -24,10 +24,10 @@ import {
 } from "@molstar/seq-core/format";
 import { type AnnotationInput, type KeyTarget, OrderedSet, type SeqSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { fixtureLoaders } from "../../core/_test/format/load-fixtures.ts";
-import { GRCH38 } from "../../core/_test/format/stream-provider.ts";
-import { colorSchemePickers } from "../src/color-schemes.ts";
-import { opened } from "./layout-fixtures.ts";
+import { fixtureLoaders } from "../../core/_test/format/load-fixtures.js";
+import { GRCH38 } from "../../core/_test/format/stream-provider.js";
+import { colorSchemePickers } from "../src/color-schemes.js";
+import { opened } from "./layout-fixtures.js";
 import {
   CacheBytes,
   dynamicDoc,
@@ -38,8 +38,8 @@ import {
   PEAK_10MB,
   type StreamedGenome,
   withPeaks,
-} from "./stream-fixtures.ts";
-import { nested, openTemplates, range } from "./template-fixtures.ts";
+} from "./stream-fixtures.js";
+import { nested, openTemplates, range } from "./template-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const codes = (t: { ctx: { issues: { current: { value: readonly { code: string }[] } } } }) =>

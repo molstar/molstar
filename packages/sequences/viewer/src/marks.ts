@@ -13,7 +13,7 @@
 // once it has room, and no query allocates.
 
 import type { RunSink } from "@molstar/seq-core/format";
-import type { ShownIndex } from "./axis.ts";
+import type { ShownIndex } from "./axis.js";
 
 /**
  * A channel's bit; the pending selection draws from its own numbers. `row` flags a `RowMarks` rectangle of a row's

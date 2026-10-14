@@ -12,9 +12,9 @@
 // The positive control: the same frames allocating an object each (`leaking`), through the same measurement, are caught.
 
 import { expect, it } from "vitest";
-import { RecordingBackend } from "../../src/testing/index.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../heap.ts";
-import { drawFrame, Frame, PIXELS } from "../support/frame.ts";
+import { RecordingBackend } from "../../src/testing/index.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../heap.js";
+import { drawFrame, Frame, PIXELS } from "../support/frame.js";
 
 it("recorded frames allocate nothing after warm-up", () => {
   const r = new RecordingBackend();

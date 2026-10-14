@@ -11,12 +11,12 @@
 // jbrowse-sources.ts): each view asks for its regions and draws them, and the second TP53 draws as the first.
 
 import { afterAll, expect, it } from "vitest";
-import { Dirty } from "../src/draw/composer.ts";
-import { SeqViewerConfig } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { composed, recording } from "./composer-fixtures.ts";
-import { demoSources, RECORD } from "./jbrowse-sources.ts";
-import { JBROWSE_SECTION, jbrowseDoc } from "./jbrowse-story-fixtures.ts";
+import { Dirty } from "../src/draw/composer.js";
+import { SeqViewerConfig } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { composed, recording } from "./composer-fixtures.js";
+import { demoSources, RECORD } from "./jbrowse-sources.js";
+import { JBROWSE_SECTION, jbrowseDoc } from "./jbrowse-story-fixtures.js";
 
 const src = demoSources("nav");
 afterAll(src.save);

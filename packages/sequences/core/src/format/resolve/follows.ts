@@ -26,9 +26,9 @@ import {
   type PathStep,
   type SeqSet,
 } from "@molstar/seq-core/model";
-import { SectionAxis } from "./codes.ts";
-import { blockSystem } from "./reach.ts";
-import type { ResolvedSection } from "./section.ts";
+import { SectionAxis } from "./codes.js";
+import { blockSystem } from "./reach.js";
+import type { ResolvedSection } from "./section.js";
 
 /** One row per pair (`a` followed by `b`), and per pair a route per block of `a`, then per block of `b`. */
 export interface ResolvedFollows {

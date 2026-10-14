@@ -12,11 +12,11 @@
 
 import { OrderedSet, type SeqLoci } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { case3, case7, case13, case14 } from "../../core/_test/format/cases.ts";
-import { EntryKind, type LayerRenderer } from "../src/index.ts";
-import type { Viewports } from "../src/viewport.ts";
-import { driven } from "./input-fixtures.ts";
-import { preparedRenderers, renderers } from "./layout-fixtures.ts";
+import { case3, case7, case13, case14 } from "../../core/_test/format/cases.js";
+import { EntryKind, type LayerRenderer } from "../src/index.js";
+import type { Viewports } from "../src/viewport.js";
+import { driven } from "./input-fixtures.js";
+import { preparedRenderers, renderers } from "./layout-fixtures.js";
 
 const S = "family.main";
 

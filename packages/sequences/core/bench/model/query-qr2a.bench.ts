@@ -13,9 +13,9 @@
 
 import { checkText } from "@molstar/seq-core/query";
 import { bench, describe } from "vitest";
-import { prng } from "../../_test/model/support/generators.ts";
-import { SeqSets } from "../../src/model/index.ts";
-import { compileQuery, createQueryEnv, SeqSelection } from "../../src/model/query/index.ts";
+import { prng } from "../../_test/model/support/generators.js";
+import { SeqSets } from "../../src/model/index.js";
+import { compileQuery, createQueryEnv, SeqSelection } from "../../src/model/query/index.js";
 
 const rand = prng(20261013);
 const ROWS = 100_000;

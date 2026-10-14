@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // _test and bench (no emit).
+  "compilerOptions": {
+    "composite": false, "declaration": false, "declarationMap": false, "noEmit": true,
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": ["_test", "bench"]
+}

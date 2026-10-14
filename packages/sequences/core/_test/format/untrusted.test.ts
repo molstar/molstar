@@ -11,11 +11,11 @@ import { checkQuery } from "@molstar/seq-core/query";
 // Untrusted input (the review gate's gap, GI-*): a hostile or broken file of a few bytes to a few hundred KB yields
 // an issue, never a hang, a crash or a memory blow-up.
 import { describe, expect, it } from "vitest";
-import { readDocument, readSvsx, toJSON, toMsgPack, validate, zipFiles } from "../../src/format/index.ts";
-import { KernelFormats } from "../../src/format/load/formats.ts";
-import { itWithin } from "../model/timing.ts";
-import { CASES } from "./cases.ts";
-import { kernel } from "./fixtures.ts";
+import { readDocument, readSvsx, toJSON, toMsgPack, validate, zipFiles } from "../../src/format/index.js";
+import { KernelFormats } from "../../src/format/load/formats.js";
+import { itWithin } from "../model/timing.js";
+import { CASES } from "./cases.js";
+import { kernel } from "./fixtures.js";
 
 const tsv = KernelFormats.find((f) => f.name === "tsv");
 const read = async (text: string) => {

@@ -14,11 +14,11 @@
 // the host keeping the context, collected and counted alike, is caught.
 
 import { expect, it } from "vitest";
-import { mountSection } from "../../src/canvas/index.ts";
-import { Inputs, PointerType } from "../../src/index.ts";
-import { syntheticFamily } from "../families.ts";
-import { controlCaught } from "./heap-browser.ts";
-import { opened } from "./open.ts";
+import { mountSection } from "../../src/canvas/index.js";
+import { Inputs, PointerType } from "../../src/index.js";
+import { syntheticFamily } from "../families.js";
+import { controlCaught } from "./heap-browser.js";
+import { opened } from "./open.js";
 
 const gc = (globalThis as { gc?: () => void }).gc as () => void;
 

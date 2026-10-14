@@ -7,7 +7,7 @@
  */
 
 // /svg: the SVG backend and `renderSvg` (seqspec:viewer#the-render-backend). Platform-free: no DOM and no Node.
-export { type ExportSvgOptions, type ExportSvgTarget, exportSvgAction } from "./action.ts";
+export { type ExportSvgOptions, type ExportSvgTarget, exportSvgAction } from "./action.js";
 export {
   SvgBackend,
   type SvgFont,
@@ -16,14 +16,14 @@ export {
   type SvgPorts,
   type SvgShared,
   type SvgStats,
-} from "./backend.ts";
+} from "./backend.js";
 export {
   type EmBox,
   type FontMetrics,
   hasMetrics,
   type MetricsMeasurer,
   metricsMeasurer,
-} from "./metrics.ts";
-export { DefaultFontMetrics } from "./metrics-tables.ts";
-export { encodePng, MAX_PNG_BYTES } from "./png.ts";
-export { type RenderSvgOptions, renderSvg } from "./render.ts";
+} from "./metrics.js";
+export { DefaultFontMetrics } from "./metrics-tables.js";
+export { encodePng, MAX_PNG_BYTES } from "./png.js";
+export { type RenderSvgOptions, renderSvg } from "./render.js";

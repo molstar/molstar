@@ -51,13 +51,13 @@ import {
   StringTable,
   Trees,
   type UnitId,
-} from "../../src/model/index.ts";
-import { pf00042, SH2_A3M } from "./alignment-fixtures.ts";
-import { contacts, iep1 } from "./annotation-fixtures.ts";
-import { CDS, GENE, PROTEIN } from "./codon-fixtures.ts";
-import { a3n1, brs1 } from "./fixtures.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
-import { gene as dmd } from "./support/generators.ts";
+} from "../../src/model/index.js";
+import { pf00042, SH2_A3M } from "./alignment-fixtures.js";
+import { contacts, iep1 } from "./annotation-fixtures.js";
+import { CDS, GENE, PROTEIN } from "./codon-fixtures.js";
+import { a3n1, brs1 } from "./fixtures.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { gene as dmd } from "./support/generators.js";
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 250_000;

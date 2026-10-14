@@ -11,10 +11,10 @@
 // pointer, cancel, a double click by button and section, and a re-hit that follows a rebuild.
 
 import { describe, expect, it } from "vitest";
-import { case2, case3 } from "../../core/_test/format/cases.ts";
-import { Button, type DragEvt, DragPhase, Hit, HitRegion, Inputs, PointerType } from "../src/index.ts";
-import type { InputDispatcher } from "../src/input.ts";
-import { driven } from "./input-fixtures.ts";
+import { case2, case3 } from "../../core/_test/format/cases.js";
+import { Button, type DragEvt, DragPhase, Hit, HitRegion, Inputs, PointerType } from "../src/index.js";
+import type { InputDispatcher } from "../src/input.js";
+import { driven } from "./input-fixtures.js";
 
 const S = "family.main";
 const open = () => driven(case3(), { size: { [S]: [1000, 150] } });

@@ -17,8 +17,8 @@ import type { Issue, SeqSet } from "@molstar/seq-core/model";
 import { materialize, NightingaleSupported } from "@molstar/seq-nightingale";
 import { mount, type NightingaleEvent } from "@molstar/seq-nightingale/mount";
 import type { SeqViewerContext } from "@molstar/seq-viewer";
-import { linkNightingale, type NightingaleSide } from "../support/seqstar-link";
-import { doc } from "./minimal-example";
+import { linkNightingale, type NightingaleSide } from "../support/seqstar-link.js";
+import { doc } from "./minimal-example.js";
 
 const registries = createRegistries();
 register(registries, [KernelRegistry]);

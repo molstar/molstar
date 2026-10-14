@@ -11,14 +11,14 @@
 // composer will give them; a recording's items in the shapes the tests read.
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
-import type { DrawView } from "../src/draw/view.ts";
-import { type LayerRenderer, MarkBit, type SeqViewerContext } from "../src/index.ts";
-import { type OverlayMarks, SectionMarks } from "../src/marks.ts";
-import type { MatrixState } from "../src/rows.ts";
-import { LayerFrame, RecordingBackend } from "../src/testing/index.ts";
-import { layerOf } from "./draw-fixtures.ts";
+import type { DrawView } from "../src/draw/view.js";
+import { type LayerRenderer, MarkBit, type SeqViewerContext } from "../src/index.js";
+import { type OverlayMarks, SectionMarks } from "../src/marks.js";
+import type { MatrixState } from "../src/rows.js";
+import { LayerFrame, RecordingBackend } from "../src/testing/index.js";
+import { layerOf } from "./draw-fixtures.js";
 
-export { logoDoc } from "./logo-fixtures.ts";
+export { logoDoc } from "./logo-fixtures.js";
 
 const PROTEIN = "MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH";
 

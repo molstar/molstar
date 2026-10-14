@@ -13,10 +13,10 @@
 // kept", where it was made, so removing never needs the legend open). The viewer ships no search of its own:
 // what a hit is stays the application's.
 
-import { sectionHighlightEntries } from "./chrome.ts";
-import type { SeqViewerContext } from "./context.ts";
-import type { Result } from "./results.ts";
-import { state } from "./state.ts";
+import { sectionHighlightEntries } from "./chrome.js";
+import type { SeqViewerContext } from "./context.js";
+import type { Result } from "./results.js";
+import { state } from "./state.js";
 
 /** What the part's "Keep" button does, as its hint says. */
 export const KEEP_HINT = "Keep these results highlighted";

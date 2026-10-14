@@ -23,8 +23,8 @@ import {
 } from "@molstar/seq-viewer";
 import { InteractionsViewerRegistry } from "@molstar/seq-viewer/interactions/viewer";
 import { fixtureMeasurer, streamsOf } from "@molstar/seq-viewer/testing";
-import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.ts";
-import type { AllowedWarning, SmokeCase } from "../src/_stories/support/seqstar-smoke.ts";
+import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.js";
+import type { AllowedWarning, SmokeCase } from "../src/_stories/support/seqstar-smoke.js";
 
 export interface Finding {
   readonly step: string;

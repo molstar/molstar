@@ -22,9 +22,9 @@ import {
 } from "@molstar/seq-core/model";
 import { Translator } from "@molstar/seq-core/translate";
 import type { MVSData_State } from "molstar/lib/extensions/mvs/mvs-data";
-import { type MolstarDefaults, MvsColorTable, structureMvs } from "./mvs.ts";
-import { MolstarServices } from "./registry.ts";
-import { complexUnits, seqRoutes } from "./seq-units.ts";
+import { type MolstarDefaults, MvsColorTable, structureMvs } from "./mvs.js";
+import { MolstarServices } from "./registry.js";
+import { complexUnits, seqRoutes } from "./seq-units.js";
 
 /**
  * A structure as data: what an item's JSON field `structure` holds. `complex` names the Seq* complex read from it when

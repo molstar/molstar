@@ -20,7 +20,7 @@ import {
   LIMIT,
   leaking,
   SCALED_LIMIT,
-} from "./heap.ts";
+} from "./heap.js";
 
 const sink: { v: unknown } = { v: null };
 const clean = () => {

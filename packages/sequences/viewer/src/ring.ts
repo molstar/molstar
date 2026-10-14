@@ -12,8 +12,8 @@
 // y to a radius. Draws go through `RingBackend` (draw/ring.ts), which maps their batches; hits come back through
 // `toUnrolled`. Headless and allocation-free.
 
-import type { AxisView, ShownIndex } from "./axis.ts";
-import type { SectionLayout } from "./layout.ts";
+import type { AxisView, ShownIndex } from "./axis.js";
+import type { SectionLayout } from "./layout.js";
 
 const TAU = 2 * Math.PI;
 

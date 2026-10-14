@@ -21,7 +21,7 @@ import {
   validate,
 } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { basePairs, createSeqViewSpec, translate, VARIANT_ROWS } from "../../src/builder/index.ts";
+import { basePairs, createSeqViewSpec, translate, VARIANT_ROWS } from "../../src/builder/index.js";
 
 const nodeRefs = (doc: SeqViewSpecDoc) => {
   const out: string[] = [];

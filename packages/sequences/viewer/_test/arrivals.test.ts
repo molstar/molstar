@@ -30,11 +30,11 @@ import {
   SectionComposer,
   type SectorBatch,
   type TextBatch,
-} from "../src/draw/index.ts";
-import { createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { fixtureMeasurer, RecordedImages } from "../src/testing/index.ts";
-import { holdBack } from "./arrival-fixtures.ts";
+} from "../src/draw/index.js";
+import { createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { fixtureMeasurer, RecordedImages } from "../src/testing/index.js";
+import { holdBack } from "./arrival-fixtures.js";
 
 const URI = "https://example.org/lazy";
 const [W, H] = [700, 300];

@@ -12,7 +12,7 @@
 // evicted) is not retained: its resolved layer and prepared state are freed once a later update has run.
 
 import { describe, expect, it, vi } from "vitest";
-import type { Streams } from "../src/streams.ts";
+import type { Streams } from "../src/streams.js";
 import {
   controlCaught,
   describeScaling,
@@ -23,7 +23,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 const WARM = FRAME_WARM;
@@ -44,9 +44,9 @@ const gc = (globalThis as { gc?: () => void }).gc as () => void;
 
 /** The template document with 1,000 instances (ranges on the protein), composed at 1,000 × 400, DPR 2. */
 async function templated() {
-  const { composed, recording } = await import("./composer-fixtures.ts");
-  const { Dirty } = await import("../src/draw/composer.ts");
-  const { range, templateDoc, templateLoaders, P } = await import("./template-fixtures.ts");
+  const { composed, recording } = await import("./composer-fixtures.js");
+  const { Dirty } = await import("../src/draw/composer.js");
+  const { range, templateDoc, templateLoaders, P } = await import("./template-fixtures.js");
   const genes = Array.from({ length: N }, (_, k) => range(`g${k}`, 1 + (k % (P.length - 8))));
   const { loaders } = templateLoaders({ genes, notes: [] });
   const t = await composed(templateDoc(), { width: 1000, height: 400, dpr: 2, loaders });
@@ -87,7 +87,7 @@ describe("a template's 1,000 instance tracks", () => {
 describe("an instance that leaves", () => {
   it("is not retained once a later update has run", async () => {
     vi.resetModules();
-    const { openTemplates, range } = await import("./template-fixtures.ts");
+    const { openTemplates, range } = await import("./template-fixtures.js");
     const t = await openTemplates({ genes: [range("a", 1)] });
     const find = (node: string) => {
       const v = t.ctx.graph.assembled.value?.view;

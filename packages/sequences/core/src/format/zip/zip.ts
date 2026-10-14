@@ -9,11 +9,11 @@
  * - added `ungzip`
  */
 
-import { writeUint, writeUshort, sizeUTF8, writeUTF8, readUshort, readUint, readUTF8, toInt32 } from './bin.ts';
-import { crc, adler } from './checksum.ts';
-import { _inflate } from './inflate.ts';
-import { _deflateRaw } from './deflate.ts';
-import { RuntimeContext, Task } from './shims.ts';
+import { writeUint, writeUshort, sizeUTF8, writeUTF8, readUshort, readUint, readUTF8, toInt32 } from './bin.js';
+import { crc, adler } from './checksum.js';
+import { _inflate } from './inflate.js';
+import { _deflateRaw } from './deflate.js';
+import { RuntimeContext, Task } from './shims.js';
 
 export function Unzip(buf: ArrayBuffer, onlyNames = false) {
     return Task.create('Unzip', ctx => unzip(ctx, buf, onlyNames));

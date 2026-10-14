@@ -26,9 +26,9 @@ import {
   StreamProp,
   supportedAll,
   validate,
-} from "../../src/format/index.ts";
-import { registries } from "./load-fixtures.ts";
-import { GRCH38, hg38Streams, lettersManifest, scripted } from "./stream-provider.ts";
+} from "../../src/format/index.js";
+import { registries } from "./load-fixtures.js";
+import { GRCH38, hg38Streams, lettersManifest, scripted } from "./stream-provider.js";
 
 const reg = registries();
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };

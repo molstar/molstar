@@ -19,8 +19,8 @@ import type {
   StreamNode,
   StreamProvider,
 } from "@molstar/seq-core/format";
-import type { Streams } from "../src/streams.ts";
-import { opened } from "./layout-fixtures.ts";
+import type { Streams } from "../src/streams.js";
+import { opened } from "./layout-fixtures.js";
 
 export const P = "MKVLAAGGHHKKLLMMNNPPQQRRSSTTVVWWYY".repeat(6);
 export const SECTION = "v.main";

@@ -12,13 +12,13 @@
 // claims, in priority order, and what a gesture does is behaviors'. Every record is reused: a move allocates nothing,
 // and the element under the pointer is compared by `HitKey`, straight-line (IN2's hot-path design).
 
-import { type ConfigManager, SeqViewerConfig } from "./config.ts";
-import { Hit, HitKey, HitRegion } from "./hit.ts";
-import type { HoverManager, PointerState } from "./hover.ts";
-import type { LayoutManager } from "./layout.ts";
-import type { Scheduler } from "./scheduler.ts";
-import { event, type SeqEvent, type SeqEventEmitter, type WritableLive } from "./state.ts";
-import type { DragState } from "./ui.ts";
+import { type ConfigManager, SeqViewerConfig } from "./config.js";
+import { Hit, HitKey, HitRegion } from "./hit.js";
+import type { HoverManager, PointerState } from "./hover.js";
+import type { LayoutManager } from "./layout.js";
+import type { Scheduler } from "./scheduler.js";
+import { event, type SeqEvent, type SeqEventEmitter, type WritableLive } from "./state.js";
+import type { DragState } from "./ui.js";
 
 export const PointerType = { down: 0, move: 1, up: 2, cancel: 3 } as const;
 /** Bits of `modifiers`. */

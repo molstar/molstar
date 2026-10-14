@@ -9,8 +9,8 @@
 // Labels as written (seqspec:seqql#labels-and-indices): a label that reads as a number keeps its written form (CM-01).
 import { checkText, printQuery } from "@molstar/seq-core/query";
 import { describe, expect, it } from "vitest";
-import { SeqSets } from "../../src/model/index.ts";
-import { compileQuery, createQueryEnv, SeqSelection } from "../../src/model/query/index.ts";
+import { SeqSets } from "../../src/model/index.js";
+import { compileQuery, createQueryEnv, SeqSelection } from "../../src/model/query/index.js";
 
 const ENV = createQueryEnv();
 // IMGT's long CDR3: 111.1 … 111.10, where 111.10 is the tenth insertion, not 111.1.

@@ -16,14 +16,14 @@
 import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import type { SeqViewerContext } from "../src/index.ts";
-import { renderSvg } from "../src/svg/index.ts";
-import { LayerFrame, RecordingBackend } from "../src/testing/index.ts";
-import { asText } from "./conformance-fixtures.ts";
-import { drawn, entryOf, layerOf, record, rects, texts } from "./draw-fixtures.ts";
-import { patch } from "./graph-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
-import { all, parseXml } from "./svg/xml.ts";
+import type { SeqViewerContext } from "../src/index.js";
+import { renderSvg } from "../src/svg/index.js";
+import { LayerFrame, RecordingBackend } from "../src/testing/index.js";
+import { asText } from "./conformance-fixtures.js";
+import { drawn, entryOf, layerOf, record, rects, texts } from "./draw-fixtures.js";
+import { patch } from "./graph-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
+import { all, parseXml } from "./svg/xml.js";
 
 const DNA = "GAATTCGCCACCATGGCTTCCAAGGAACTGRYKN";
 const COMPLEMENT: Record<string, string> = { A: "T", T: "A", C: "G", G: "C", R: "Y", Y: "R", K: "M", N: "N" };

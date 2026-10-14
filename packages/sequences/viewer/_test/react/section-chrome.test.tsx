@@ -11,8 +11,8 @@
 
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { shownSections } from "../../src/index.ts";
-import { harness, mount, openedContext, settle, stubSurface } from "./fixtures.tsx";
+import { shownSections } from "../../src/index.js";
+import { harness, mount, openedContext, settle, stubSurface } from "./fixtures.js";
 
 const { cleanups } = harness();
 

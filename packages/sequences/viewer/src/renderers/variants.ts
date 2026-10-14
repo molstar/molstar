@@ -9,7 +9,7 @@
 // The `variants` renderer (seqspec:viewer#extension-points): markers colored by `alt`, stacked per position, a row per
 // value when split; density as points. Linear only (wrapped takes its fallback): `drawPoints`, stacked. Streamed:
 // outlined in its regions (ST3b; hit.ts hits them by position).
-import { drawPoints, type Features, hitPoints, kernelEntry, outlinePoints, outlineStreamed } from "../draw/api.ts";
+import { drawPoints, type Features, hitPoints, kernelEntry, outlinePoints, outlineStreamed } from "../draw/api.js";
 
 export const VariantsRenderer = kernelEntry<Features>("variants", 32, {
   splitHeight: 8,

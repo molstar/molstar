@@ -21,9 +21,9 @@ import {
   type SeqSet,
   SeqSets,
   type UnitId,
-} from "../../src/model/index.ts";
-import { contacts, iep1 } from "./annotation-fixtures.ts";
-import { brs1 } from "./fixtures.ts";
+} from "../../src/model/index.js";
+import { contacts, iep1 } from "./annotation-fixtures.js";
+import { brs1 } from "./fixtures.js";
 
 const range = <T extends number = never>(a: number, b: number) => OrderedSet.ofRange(a as T, b as T);
 const sorted = (...xs: number[]) => OrderedSet.ofSortedArray<never>(Int32Array.from(xs));

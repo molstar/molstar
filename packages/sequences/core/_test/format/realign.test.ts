@@ -14,9 +14,9 @@ import { AlignerSizeError } from "@molstar/seq-core/algorithms";
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { type Alignment, type CoordinateSystem, type Issue, KeyKind, type SeqSet } from "@molstar/seq-core/model";
 import { beforeEach, describe, expect, it } from "vitest";
-import { type AlignerEntry, compile, register, type SeqViewSpecDoc, validate } from "../../src/format/index.ts";
-import { clearNodeProviderCache } from "../../src/format/load/node-providers.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+import { type AlignerEntry, compile, register, type SeqViewSpecDoc, validate } from "../../src/format/index.js";
+import { clearNodeProviderCache } from "../../src/format/load/node-providers.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 const codes = (issues: Issue[]) => [...new Set(issues.map((i) => i.code))].sort();
 const errors = (issues: Issue[]) => issues.filter((i) => i.severity === "error");

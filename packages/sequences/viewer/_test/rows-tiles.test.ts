@@ -22,11 +22,11 @@ import {
   type StreamView,
   type Theme,
   type ThemeLocation,
-} from "../src/draw/api.ts";
-import { paintLevels, paintTiles, RowTiles, rowGeo, tileImage } from "../src/renderers/rows-tiles.ts";
-import { Op, RecordingBackend } from "../src/testing/index.ts";
-import { drawn, layerOf } from "./draw-fixtures.ts";
-import { syntheticFamily } from "./families.ts";
+} from "../src/draw/api.js";
+import { paintLevels, paintTiles, RowTiles, rowGeo, tileImage } from "../src/renderers/rows-tiles.js";
+import { Op, RecordingBackend } from "../src/testing/index.js";
+import { drawn, layerOf } from "./draw-fixtures.js";
+import { syntheticFamily } from "./families.js";
 
 /** A theme by letter, its alpha by column: what `rules` with a column alpha gives (case 3). */
 const shading: Theme<"color"> = {
@@ -108,7 +108,7 @@ describe("the tile image build", () => {
 
   it("a new theme or another backend's images drops them; past the slots, the least recently drawn goes", async () => {
     const { s, v, rec, c } = await family();
-    const { beginTiles } = await import("../src/renderers/rows-tiles.ts");
+    const { beginTiles } = await import("../src/renderers/rows-tiles.js");
     beginTiles(v, c);
     const img = tileImage(v, s, c, 0, 0, 0, 0, 0, false);
     beginTiles(v, c);
@@ -155,7 +155,7 @@ function imageParts(rec: RecordingBackend) {
 describe("painting the rows", () => {
   it("a tile in parts at its whole scale, odd sample counts placed through xd from its first column; clipped to the view", async () => {
     const { s, v, rec, c } = await family();
-    const { beginTiles } = await import("../src/renderers/rows-tiles.ts");
+    const { beginTiles } = await import("../src/renderers/rows-tiles.js");
     rowGeo[0] = 50;
     rowGeo[1] = 12;
     rowGeo[2] = 1;

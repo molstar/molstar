@@ -14,9 +14,9 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { Loaders } from "@molstar/seq-core/format";
 import { tilesStream } from "@molstar/seq-core/stream/tiles";
 import { tileServer } from "@molstar/seq-core/stream/tiles/server";
-import { Inputs, PointerType } from "../../src/index.ts";
-import { familyWithTree } from "../families.ts";
-import { close, type Opened, opened } from "./open.ts";
+import { Inputs, PointerType } from "../../src/index.js";
+import { familyWithTree } from "../families.js";
+import { close, type Opened, opened } from "./open.js";
 
 /** The procedural tile server (the format's tests) as the viewer's progressive loader. */
 function lazy(uri: string, rows: number, columns: number): Loaders {

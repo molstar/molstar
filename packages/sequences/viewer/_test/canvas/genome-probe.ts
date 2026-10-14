@@ -14,8 +14,8 @@
 // and slowest call, and the prepares' ms by type.
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { genomeDoc, synthGenome } from "../../../core/_test/format/genome-fixture.ts";
-import type { DrawView } from "../../src/draw/view.ts";
+import { genomeDoc, synthGenome } from "../../../core/_test/format/genome-fixture.js";
+import type { DrawView } from "../../src/draw/view.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -24,7 +24,7 @@ import {
   type LayerRenderer,
   type Scheduler,
   type SeqViewerContext,
-} from "../../src/index.ts";
+} from "../../src/index.js";
 export const SECTION = "genome.main";
 
 /** Per renderer: draw ms summed, calls, the slowest call; prepare ms by type. */

@@ -10,10 +10,10 @@ import type { SectionViewport } from "@molstar/seq-viewer";
 import { useLiveVersion, useSeqViewer } from "@molstar/seq-viewer/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo } from "react";
-import { codingPair, linkStrands } from "./support/seqstar-docs-views";
+import { codingPair, linkStrands } from "./support/seqstar-docs-views.js";
 import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard } from "./support/seqstar-viewer";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard } from "./support/seqstar-viewer.js";
 
 /**
  * Axis links: a section that `follow`s another. When either moves, the

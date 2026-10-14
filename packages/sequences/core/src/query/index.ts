@@ -10,18 +10,18 @@
 // the base table with full and short names, expressions and their JSON, the registry and the builder (QL1); the
 // reader, the binder and the canonical printer (QL2a); the checker, `sel`, and the generated skill and reference
 // (QL2b); queries in replies (seqspec:seqql#queries-in-text).
-export { bindQuery, type QueryBinding } from "./bind.ts";
-export { Q, type QueryError, type SymbolPath, type SymbolTree, type UnionToIntersection } from "./builder.ts";
-export { checkQuery, checkText, type QueryCheck } from "./check.ts";
-export { SeqqlIssueCodes, seqqlSeverity } from "./codes.ts";
-export { extractQueries, type QueryBlock, type QueryExtraction, SEQQL_CLOSE, SEQQL_OPEN } from "./extract.ts";
-export { type QueryIssuePlace, queryIssue, renderIssue, suggest } from "./issue.ts";
-export { createLanguage, type Language, type LanguageExtension } from "./language.ts";
-export { printQuery } from "./print.ts";
-export { MAX_DEPTH, NUMBER, type QueryNode, type QueryRead, readQuery, type TextPosition } from "./read.ts";
-export { GUIDANCE, referenceText, type SkillOptions, skillText } from "./skill.ts";
-export { defineSymbol } from "./symbol.ts";
-export { BASE_SYMBOLS, type BaseSymbolName } from "./table.ts";
+export { bindQuery, type QueryBinding } from "./bind.js";
+export { Q, type QueryError, type SymbolPath, type SymbolTree, type UnionToIntersection } from "./builder.js";
+export { checkQuery, checkText, type QueryCheck } from "./check.js";
+export { SeqqlIssueCodes, seqqlSeverity } from "./codes.js";
+export { extractQueries, type QueryBlock, type QueryExtraction, SEQQL_CLOSE, SEQQL_OPEN } from "./extract.js";
+export { type QueryIssuePlace, queryIssue, renderIssue, suggest } from "./issue.js";
+export { createLanguage, type Language, type LanguageExtension } from "./language.js";
+export { printQuery } from "./print.js";
+export { MAX_DEPTH, NUMBER, type QueryNode, type QueryRead, readQuery, type TextPosition } from "./read.js";
+export { GUIDANCE, referenceText, type SkillOptions, skillText } from "./skill.js";
+export { defineSymbol } from "./symbol.js";
+export { BASE_SYMBOLS, type BaseSymbolName } from "./table.js";
 export {
   type Apply,
   type ArgDef,
@@ -42,4 +42,4 @@ export {
   type SymbolKind,
   type SymbolSpec,
   type Type,
-} from "./types.ts";
+} from "./types.js";

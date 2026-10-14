@@ -13,8 +13,8 @@
 import { applyPatch, canonical, type Op, type Patch, type SeqViewSpecDoc, snapshotDoc } from "@molstar/seq-core/format";
 import { type SeqSet, SeqSets, type SetInput } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import type { DocumentPort, PatchEvent, Routed, SeqIssue, SeqViewerContext } from "../src/index.ts";
-import { patch, refsRan, smallDoc, viewer } from "./graph-fixtures.ts";
+import type { DocumentPort, PatchEvent, Routed, SeqIssue, SeqViewerContext } from "../src/index.js";
+import { patch, refsRan, smallDoc, viewer } from "./graph-fixtures.js";
 
 const hide = (ref: string, hidden = true): Op => ({ op: "set", ref, params: { hidden } });
 const nodeOf = (doc: SeqViewSpecDoc | null, ref: string) => {

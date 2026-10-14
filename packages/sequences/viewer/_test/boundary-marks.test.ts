@@ -14,9 +14,9 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { Hit, HoverKind } from "../src/index.ts";
-import { recording } from "./composer-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
+import { Hit, HoverKind } from "../src/index.js";
+import { recording } from "./composer-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
 
 const S = "v.main";
 const N = 40;

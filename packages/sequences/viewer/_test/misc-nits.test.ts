@@ -11,13 +11,13 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import type { SectionAxisView } from "../src/axis.ts";
-import { Dirty } from "../src/draw/index.ts";
-import { type CytoBands, ideogramNavigator, type PresetEntry } from "../src/index.ts";
-import { NumberColumn } from "../src/renderers/columns.ts";
-import { blocksDoc } from "./axis-fixtures.ts";
-import { composed, recording } from "./composer-fixtures.ts";
-import { directed } from "./conformance-fixtures.ts";
+import type { SectionAxisView } from "../src/axis.js";
+import { Dirty } from "../src/draw/index.js";
+import { type CytoBands, ideogramNavigator, type PresetEntry } from "../src/index.js";
+import { NumberColumn } from "../src/renderers/columns.js";
+import { blocksDoc } from "./axis-fixtures.js";
+import { composed, recording } from "./composer-fixtures.js";
+import { directed } from "./conformance-fixtures.js";
 
 const BANDS: CytoBands = {
   c0: [

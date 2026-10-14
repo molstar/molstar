@@ -17,14 +17,14 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
-import { Search as DomSearch, mountSeqViewer } from "../../src/dom/index.ts";
-import type { Result, SearchFn, SeqViewerContext } from "../../src/index.ts";
-import { Search as ReactSearch } from "../../src/react/index.ts";
+import { Search as DomSearch, mountSeqViewer } from "../../src/dom/index.js";
+import type { Result, SearchFn, SeqViewerContext } from "../../src/index.js";
+import { Search as ReactSearch } from "../../src/react/index.js";
 import "../../src/skin.css";
 
-import { SEARCH_SETTLE_MS } from "../../src/search-box.ts";
-import { openedContext } from "../dom/fixtures.ts";
-import { mount, settle, stubSurface, WIDTH } from "./fixtures.tsx";
+import { SEARCH_SETTLE_MS } from "../../src/search-box.js";
+import { openedContext } from "../dom/fixtures.js";
+import { mount, settle, stubSurface, WIDTH } from "./fixtures.js";
 
 const PROTEIN = "MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH";
 const cleanups: (() => Promise<void> | void)[] = [];

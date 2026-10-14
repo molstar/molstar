@@ -27,7 +27,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 /** The guards' measurement: warmed by count and by time, `warmed` called, then `FRAME_N` steps and 4× measured. */
 function measure(step: (i: number) => void, warmed = () => {}) {
@@ -44,11 +44,11 @@ function measure(step: (i: number) => void, warmed = () => {}) {
 /** The genotype matrix composed, and a step: a pointer move and a whole frame, the zoom switched every 64 steps. */
 async function setup(dpr: number, stacked = false) {
   vi.resetModules();
-  const { composed, recording } = await import("./composer-fixtures.ts");
-  const { genotypeDoc } = await import("./genotype-fixtures.ts");
-  const { entryOf } = await import("./draw-fixtures.ts");
-  const { Inputs, PointerType } = await import("../src/index.ts");
-  const { MatrixVisits } = await import("../src/draw/matrix-tiles.ts");
+  const { composed, recording } = await import("./composer-fixtures.js");
+  const { genotypeDoc } = await import("./genotype-fixtures.js");
+  const { entryOf } = await import("./draw-fixtures.js");
+  const { Inputs, PointerType } = await import("../src/index.js");
+  const { MatrixVisits } = await import("../src/draw/matrix-tiles.js");
   const doc = genotypeDoc({ samples: 3000, positions: 2000, stacked });
   const t = await composed(doc, { width: 1000, height: 400, dpr });
   const vp = t.vp;

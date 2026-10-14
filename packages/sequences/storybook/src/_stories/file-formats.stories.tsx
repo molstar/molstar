@@ -49,12 +49,12 @@ import {
   UNIPROT_SHOWN,
   uniprotDoc,
   uniprotFiles,
-} from "./support/seqstar-file-formats";
+} from "./support/seqstar-file-formats.js";
 import f from "./support/seqstar-format.module.css";
-import { IssueList } from "./support/seqstar-issues";
-import { PrismPage, prism } from "./support/seqstar-prism";
-import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer";
-import { Choices, ScrollArea } from "./ui";
+import { IssueList } from "./support/seqstar-issues.js";
+import { PrismPage, prism } from "./support/seqstar-prism.js";
+import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer.js";
+import { Choices, ScrollArea } from "./ui/index.js";
 
 /**
  * Loading data, one story a family of formats (seqspec:sources#formats-and-services): the nodes that load it as the

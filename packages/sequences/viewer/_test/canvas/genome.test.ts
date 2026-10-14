@@ -14,9 +14,9 @@
 
 import { afterAll, expect, it } from "vitest";
 import { commands } from "vitest/browser";
-import { mountSection } from "../../src/canvas/index.ts";
-import { Inputs, manualScheduler, PointerType } from "../../src/index.ts";
-import { genomeContext, genomeDocument, PROBE, SECTION } from "./genome-probe.ts";
+import { mountSection } from "../../src/canvas/index.js";
+import { Inputs, manualScheduler, PointerType } from "../../src/index.js";
+import { genomeContext, genomeDocument, PROBE, SECTION } from "./genome-probe.js";
 
 const median = (xs: number[]) => xs.slice().sort((a, b) => a - b)[xs.length >> 1];
 const out: string[] = [];

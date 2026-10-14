@@ -21,14 +21,14 @@ import type {
   TreeInput,
   UnitInput,
 } from "@molstar/seq-core/model";
-import type { AlignerInput, FormatRequest, FormatResult, StageContext } from "./contract.ts";
-import type { Geometry, ThemeRef } from "./doc.ts";
-import { KernelRegistry } from "./kernel-registry.ts";
-import type { SchemeDef } from "./palettes/schemes.ts";
-import type { CheckContext } from "./schema/field-schema.ts";
-import { isIssueCode, isNamespace, isNamespaced, ReservedNamespaces } from "./schema/field-schema.ts";
-import type { ParamsSchema } from "./schema/params-schema.ts";
-import { MvsRegistry } from "./tables/kernel.ts";
+import type { AlignerInput, FormatRequest, FormatResult, StageContext } from "./contract.js";
+import type { Geometry, ThemeRef } from "./doc.js";
+import { KernelRegistry } from "./kernel-registry.js";
+import type { SchemeDef } from "./palettes/schemes.js";
+import type { CheckContext } from "./schema/field-schema.js";
+import { isIssueCode, isNamespace, isNamespaced, ReservedNamespaces } from "./schema/field-schema.js";
+import type { ParamsSchema } from "./schema/params-schema.js";
+import { MvsRegistry } from "./tables/kernel.js";
 
 export interface FormatEntry {
   readonly name: string;

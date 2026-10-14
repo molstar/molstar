@@ -21,8 +21,8 @@ import {
   type SeqViewSpecDoc,
   supportedAll,
   validate,
-} from "../../src/format/index.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 const all = supportedAll(reg);

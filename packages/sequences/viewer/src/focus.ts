@@ -13,10 +13,10 @@
 
 import type { ResolvedView } from "@molstar/seq-core/format";
 import { Extents, type SeqSet } from "@molstar/seq-core/model";
-import type { SeqLociAny } from "./lineage.ts";
-import { BlockHulls, type Coordinates } from "./projection.ts";
-import { event, type Origin, type SeqEvent, type SeqEventEmitter, type SeqState, state } from "./state.ts";
-import type { Viewports } from "./viewport.ts";
+import type { SeqLociAny } from "./lineage.js";
+import { BlockHulls, type Coordinates } from "./projection.js";
+import { event, type Origin, type SeqEvent, type SeqEventEmitter, type SeqState, state } from "./state.js";
+import type { Viewports } from "./viewport.js";
 
 /** A block's range [start, stop), block coordinate system indices; the block's index in its section. */
 export interface FocusEntry {

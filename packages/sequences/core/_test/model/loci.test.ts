@@ -29,8 +29,8 @@ import {
   type SeqSet,
   SeqSets,
   type UnitId,
-} from "../../src/model/index.ts";
-import { brs1 } from "./fixtures.ts";
+} from "../../src/model/index.js";
+import { brs1 } from "./fixtures.js";
 
 /** Any brand: `never` elements assign to every OrderedSet<T>. */
 const range = <T extends number = never>(a: number, b: number) => OrderedSet.ofRange(a as T, b as T);

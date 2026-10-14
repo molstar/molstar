@@ -16,13 +16,13 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { Hit, HoverKind, type MatrixState, NO_COLOR, type PairsState, SkinToken } from "../src/draw/api.ts";
-import { IndexVisits } from "../src/intervals.ts";
-import { asText, matrixDoc } from "./conformance-fixtures.ts";
-import { drawn, entryOf, layerOf, record, rects, texts } from "./draw-fixtures.ts";
-import { allTypes, rangesDoc, transcripts } from "./prepare-fixtures.ts";
-import { densityDoc } from "./rn2-fixtures.ts";
-import { featuresDoc, glyphs, lit, logoDoc, MarkBit, overlayOf, paths } from "./rn2b-fixtures.ts";
+import { Hit, HoverKind, type MatrixState, NO_COLOR, type PairsState, SkinToken } from "../src/draw/api.js";
+import { IndexVisits } from "../src/intervals.js";
+import { asText, matrixDoc } from "./conformance-fixtures.js";
+import { drawn, entryOf, layerOf, record, rects, texts } from "./draw-fixtures.js";
+import { allTypes, rangesDoc, transcripts } from "./prepare-fixtures.js";
+import { densityDoc } from "./rn2-fixtures.js";
+import { featuresDoc, glyphs, lit, logoDoc, MarkBit, overlayOf, paths } from "./rn2b-fixtures.js";
 
 type Opened = Awaited<ReturnType<typeof drawn>>;
 const issues = (t: Opened) => t.ctx.graph.issues.value.filter((i) => i.code.startsWith("seqv.renderer"));
@@ -430,7 +430,7 @@ describe("pairs: the overlay", () => {
   });
 
   it("an item hover of the layer lights its pair alone, on top, not the pairs that share its ends", async () => {
-    const { pairsDoc } = await import("./rn2-fixtures.ts");
+    const { pairsDoc } = await import("./rn2-fixtures.js");
     const t = await drawn(pairsDoc({ count: 12_000, long: false }), { width: 1200, height: 300 });
     await zoom(t, "Letters", 3, 3 * 15_000);
     const s = stateOf(t);
@@ -502,7 +502,7 @@ describe("pairs: the overlay", () => {
   });
 
   it("finds the pairs through the end index: a thousand pairs, a few visits for one lit end", async () => {
-    const { pairsDoc } = await import("./rn2-fixtures.ts");
+    const { pairsDoc } = await import("./rn2-fixtures.js");
     const t = await drawn(pairsDoc({ count: 1000, arcs: "hover" }), { width: 1200, height: 300 });
     await zoom(t, "Letters", 0.05);
     const before = IndexVisits.ends;
@@ -514,7 +514,7 @@ describe("pairs: the overlay", () => {
 
 describe("pairs: ends", () => {
   it("a theme that gives no color: the ends and their density in the same quiet ink", async () => {
-    const { pairsDoc } = await import("./rn2-fixtures.ts");
+    const { pairsDoc } = await import("./rn2-fixtures.js");
     const t = await drawn(pairsDoc({ count: 2000, colorBy: "score" }), { width: 900, height: 300 });
     const ink = (cell: number, tiny = false) => {
       t.ctx.viewports.get(layerOf(t.ctx, "Contacts").section)?.setView(cell, 0, "api");

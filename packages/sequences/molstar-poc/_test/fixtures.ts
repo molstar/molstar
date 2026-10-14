@@ -14,9 +14,9 @@ import { readFileSync } from "node:fs";
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { createRegistries, KernelRegistry, type Loaders, MvsRegistry, register } from "@molstar/seq-core/format";
-import { files as formatFiles } from "../../core/_test/format/load-fixtures.ts";
-import { MolstarSvsEntry, structureUrl } from "../src/index.ts";
-import { P53_STRUCTURES, p53Loaders } from "./p53-demo.ts";
+import { files as formatFiles } from "../../core/_test/format/load-fixtures.js";
+import { MolstarSvsEntry, structureUrl } from "../src/index.js";
+import { P53_STRUCTURES, p53Loaders } from "./p53-demo.js";
 
 const ref = (path: string) => new URL(`../../core/_test/fixtures/${path}`, import.meta.url);
 export const bytesOf = (file: string) =>

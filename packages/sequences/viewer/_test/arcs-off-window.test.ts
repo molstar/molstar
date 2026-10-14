@@ -16,13 +16,13 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case7 } from "../../core/_test/format/cases.ts";
-import { pushArc } from "../src/draw/arcs.ts";
-import { PathBatch, PathMode, PathVerb } from "../src/draw/backend.ts";
-import type { DrawView } from "../src/draw/view.ts";
-import type { PairsState } from "../src/prepare.ts";
-import { ARC_MARGIN, ARC_PAST, Arcs } from "../src/renderer-helpers.ts";
-import { drawn, layerOf, record } from "./draw-fixtures.ts";
+import { case7 } from "../../core/_test/format/cases.js";
+import { pushArc } from "../src/draw/arcs.js";
+import { PathBatch, PathMode, PathVerb } from "../src/draw/backend.js";
+import type { DrawView } from "../src/draw/view.js";
+import type { PairsState } from "../src/prepare.js";
+import { ARC_MARGIN, ARC_PAST, Arcs } from "../src/renderer-helpers.js";
+import { drawn, layerOf, record } from "./draw-fixtures.js";
 
 /** Case 7's "Complex" view, its section's blocks side by side (or stacked), `block`'s [start, stop) in view. */
 async function zoomed(block: number, start: number, stop: number, doc: SeqViewSpecDoc = case7()) {

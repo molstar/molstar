@@ -14,9 +14,9 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case10 } from "../../core/_test/format/cases.ts";
-import type { PairsState } from "../src/prepare.ts";
-import { drawn, layerOf, record } from "./draw-fixtures.ts";
+import { case10 } from "../../core/_test/format/cases.js";
+import type { PairsState } from "../src/prepare.js";
+import { drawn, layerOf, record } from "./draw-fixtures.js";
 
 const CONTACTS = "Contacts (STI)";
 async function chains(snapshot: string | null, doc: SeqViewSpecDoc = case10()) {

@@ -18,7 +18,7 @@ import { PluginContext } from "molstar/lib/mol-plugin/context";
 import { DefaultPluginSpec } from "molstar/lib/mol-plugin/spec";
 import { Asset } from "molstar/lib/mol-util/assets";
 import { Color } from "molstar/lib/mol-util/color/color";
-import type { StructureView3D } from "./viewer.ts";
+import type { StructureView3D } from "./viewer.js";
 
 export type { PluginContext };
 

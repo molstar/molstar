@@ -13,11 +13,11 @@
 
 import { bindQuery, checkText, readQuery, renderIssue } from "@molstar/seq-core/query";
 import { describe, expect, it } from "vitest";
-import { type SeqIndex, SeqSets, type UnitId } from "../../src/model/index.ts";
-import { compileQuery, createQueryEnv, type QueryOptions, SeqSelection } from "../../src/model/query/index.ts";
-import { ONTO_REFS, ontoFixture } from "./query-fixtures.ts";
-import { groupsOf, Oracle, OracleError } from "./query-oracle.ts";
-import { prng } from "./support/generators.ts";
+import { type SeqIndex, SeqSets, type UnitId } from "../../src/model/index.js";
+import { compileQuery, createQueryEnv, type QueryOptions, SeqSelection } from "../../src/model/query/index.js";
+import { ONTO_REFS, ontoFixture } from "./query-fixtures.js";
+import { groupsOf, Oracle, OracleError } from "./query-oracle.js";
+import { prng } from "./support/generators.js";
 
 const { set } = SeqSets.build(ontoFixture());
 const ENV = createQueryEnv();

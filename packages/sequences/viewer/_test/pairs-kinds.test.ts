@@ -13,11 +13,11 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { Hit, HoverKind, type SeqViewerContext } from "../src/index.ts";
-import { CELL_MIN_GLYPH, CellIO, cellLayout } from "../src/pairs-index.ts";
-import type { PairsState } from "../src/prepare.ts";
-import { drawn, layerOf, record } from "./draw-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
+import { Hit, HoverKind, type SeqViewerContext } from "../src/index.js";
+import { CELL_MIN_GLYPH, CellIO, cellLayout } from "../src/pairs-index.js";
+import type { PairsState } from "../src/prepare.js";
+import { drawn, layerOf, record } from "./draw-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
 
 /** A cell state for `cellLayout`: cell 0 holds `kinds` kinds. */
 const cellOf = (kinds: number) => ({ cellKinds: Int32Array.of(kinds) }) as unknown as PairsState;

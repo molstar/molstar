@@ -24,24 +24,24 @@ import {
   type NameId,
   type SeqSet,
 } from "@molstar/seq-core/model";
-import type { ThemeRef } from "../doc.ts";
-import type { DocIndex } from "../load/compile.ts";
-import { issueOf } from "../load/issues.ts";
-import { streamedSources } from "../load/nodes.ts";
-import { paletteValue } from "../palettes/fields.ts";
-import { type SchemeSubject, schemeFits, schemeOf, schemeSubject } from "../palettes/schemes.ts";
-import type { ChannelKind, LayerTypeEntry, SvsRegistries } from "../registry.ts";
-import { isNamespaced, isPlainObject, TEMPLATE_NODE } from "../schema/field-schema.ts";
-import type { IndexedNode } from "../schema/tree-schema.ts";
-import { numericDefaultColor } from "../tables/kernel.ts";
-import { themeRef } from "../tables/param-types.ts";
-import { isStreamedSource } from "../validate.ts";
-import { Layout, SectionAxis, Sizing } from "./codes.ts";
-import { dataDomain, fillShared, groupMembers, type SharedField, sharedDomains } from "./domains.ts";
-import { type KeyFilterValue, keyed, type Members, type OrderKeyValue } from "./keyed.ts";
-import { endsOf, matcher, reach } from "./reach.ts";
-import { childrenOf, paramsOf, type ResolvedSection, refsOf } from "./section.ts";
-import { instanceRef } from "./template.ts";
+import type { ThemeRef } from "../doc.js";
+import type { DocIndex } from "../load/compile.js";
+import { issueOf } from "../load/issues.js";
+import { streamedSources } from "../load/nodes.js";
+import { paletteValue } from "../palettes/fields.js";
+import { type SchemeSubject, schemeFits, schemeOf, schemeSubject } from "../palettes/schemes.js";
+import type { ChannelKind, LayerTypeEntry, SvsRegistries } from "../registry.js";
+import { isNamespaced, isPlainObject, TEMPLATE_NODE } from "../schema/field-schema.js";
+import type { IndexedNode } from "../schema/tree-schema.js";
+import { numericDefaultColor } from "../tables/kernel.js";
+import { themeRef } from "../tables/param-types.js";
+import { isStreamedSource } from "../validate.js";
+import { Layout, SectionAxis, Sizing } from "./codes.js";
+import { dataDomain, fillShared, groupMembers, type SharedField, sharedDomains } from "./domains.js";
+import { type KeyFilterValue, keyed, type Members, type OrderKeyValue } from "./keyed.js";
+import { endsOf, matcher, reach } from "./reach.js";
+import { childrenOf, paramsOf, type ResolvedSection, refsOf } from "./section.js";
+import { instanceRef } from "./template.js";
 
 /** One (layer, block, annotation, slot, member, lane) with its path; indices local to the section and layer. */
 export interface PlacementRow {

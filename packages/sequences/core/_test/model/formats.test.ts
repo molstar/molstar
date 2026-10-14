@@ -8,8 +8,8 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { Clustal, Fasta, type Issue, Newick, Stockholm } from "../../src/model/index.ts";
-import { RNA_STOCKHOLM, SH2_A3M, SH2_STOCKHOLM } from "./alignment-fixtures.ts";
+import { Clustal, Fasta, type Issue, Newick, Stockholm } from "../../src/model/index.js";
+import { RNA_STOCKHOLM, SH2_A3M, SH2_STOCKHOLM } from "./alignment-fixtures.js";
 
 const codes = (issues: Issue[]) => issues.map((i) => `${i.severity} ${i.code}`);
 

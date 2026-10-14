@@ -14,8 +14,8 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.ts";
-import { type DrawResources, SkinToken } from "../../src/draw/backend.ts";
+import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
+import { type DrawResources, SkinToken } from "../../src/draw/backend.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -24,10 +24,10 @@ import {
   manualScheduler,
   type SeqViewerContext,
   type Skin,
-} from "../../src/index.ts";
-import { fixtureMeasurer, LayerFrame, RecordingBackend } from "../../src/testing/index.ts";
-import { logoDoc } from "../logo-fixtures.ts";
-import { allTypes, colorDoc } from "../prepare-fixtures.ts";
+} from "../../src/index.js";
+import { fixtureMeasurer, LayerFrame, RecordingBackend } from "../../src/testing/index.js";
+import { logoDoc } from "../logo-fixtures.js";
+import { allTypes, colorDoc } from "../prepare-fixtures.js";
 
 /** A context showing `doc` (inline data only), its viewports `width` × `height` at `dpr`. */
 async function open(doc: ReturnType<typeof allTypes>, width: number, height: number, dpr: number, render = {}) {

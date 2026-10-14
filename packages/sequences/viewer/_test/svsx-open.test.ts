@@ -14,11 +14,11 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { bundleUris, writeSvsx } from "@molstar/seq-core/builder/svsx";
 import { archiveLoaders, type Loaders, readSvsx } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { FASTA_URI, fixtureFetch, SITES_URI } from "../../core/_test/format/svsx-fixture.ts";
-import { createSeqViewer, DefaultRegistry, type SeqIssue } from "../src/index.ts";
-import { renderSvg } from "../src/svg/index.ts";
-import { patch } from "./graph-fixtures.ts";
-import { all, parseXml, rectsOf } from "./svg/xml.ts";
+import { FASTA_URI, fixtureFetch, SITES_URI } from "../../core/_test/format/svsx-fixture.js";
+import { createSeqViewer, DefaultRegistry, type SeqIssue } from "../src/index.js";
+import { renderSvg } from "../src/svg/index.js";
+import { patch } from "./graph-fixtures.js";
+import { all, parseXml, rectsOf } from "./svg/xml.js";
 
 const nothing: Loaders = { load: (r) => Promise.reject(new Error(`only the archive's files (${r.uri})`)) };
 

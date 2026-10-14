@@ -12,8 +12,8 @@
 // bands.
 
 import { type ProviderEntry, RequiredField, ref, SimpleParamsSchema, type ThemeRef } from "@molstar/seq-core/format";
-import { chainFor, complexUnits } from "./seq-units.ts";
-import { StructureSource, structureOf } from "./source.ts";
+import { chainFor, complexUnits } from "./seq-units.js";
+import { StructureSource, structureOf } from "./source.js";
 
 /** AlphaFold DB's pLDDT bands (very low < 50 ≤ low < 70 ≤ confident < 90 ≤ very high), as MVS's discrete palette. */
 export const PlddtBands: ThemeRef = {

@@ -14,10 +14,10 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case1 } from "../../core/_test/format/cases.ts";
-import type { ShownIndex } from "../src/axis.ts";
-import { DefaultPresets, EntryKind, KernelRenderers, type LayerRenderer, type RenderProps } from "../src/index.ts";
-import { opened } from "./layout-fixtures.ts";
+import { case1 } from "../../core/_test/format/cases.js";
+import type { ShownIndex } from "../src/axis.js";
+import { DefaultPresets, EntryKind, KernelRenderers, type LayerRenderer, type RenderProps } from "../src/index.js";
+import { opened } from "./layout-fixtures.js";
 
 const T = EntryKind.track;
 /** Mono 12 px (the letters' cap) in the fixture measurer: 7.2 px a cell. */

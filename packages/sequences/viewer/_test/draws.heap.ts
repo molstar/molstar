@@ -22,8 +22,8 @@
 // at each frame the same warm-up and measurement of the frame allocating an object each (`leaking`) must catch it.
 
 import { describe, expect, it, vi } from "vitest";
-import type { LayerRenderer } from "../src/draw/api.ts";
-import { controlCaught, describeScaling, FRAME_N, heapScaling, isFlat, leaking, warmFrame } from "./heap.ts";
+import type { LayerRenderer } from "../src/draw/api.js";
+import { controlCaught, describeScaling, FRAME_N, heapScaling, isFlat, leaking, warmFrame } from "./heap.js";
 
 const N = FRAME_N;
 /** The guards' measurement: warmed until the frame stops allocating (`warmFrame`), then `N` frames and `4N` measured. */
@@ -54,12 +54,12 @@ const CASES: Record<string, readonly (typeof DOCS)[number][]> = {
 
 async function run(name: string, doc: (typeof DOCS)[number], heap = guard) {
   vi.resetModules();
-  const { KernelRenderers } = await import("../src/index.ts");
-  const { rendererConformance } = await import("../src/testing/index.ts");
-  const { asText } = await import("./conformance-fixtures.ts");
-  const { meanDoc } = await import("./draw-fixtures.ts");
-  const { opened } = await import("./layout-fixtures.ts");
-  const { allTypes, gene, scaleDoc } = await import("./prepare-fixtures.ts");
+  const { KernelRenderers } = await import("../src/index.js");
+  const { rendererConformance } = await import("../src/testing/index.js");
+  const { asText } = await import("./conformance-fixtures.js");
+  const { meanDoc } = await import("./draw-fixtures.js");
+  const { opened } = await import("./layout-fixtures.js");
+  const { allTypes, gene, scaleDoc } = await import("./prepare-fixtures.js");
   const make = {
     "all types": () => allTypes(),
     "case 14": gene,

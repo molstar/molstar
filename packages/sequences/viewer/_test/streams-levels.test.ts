@@ -15,10 +15,10 @@ import type { DataPatch, Loaders, StreamSource } from "@molstar/seq-core/format"
 import { tilesStream } from "@molstar/seq-core/stream/tiles";
 import { tileServer } from "@molstar/seq-core/stream/tiles/server";
 import { describe, expect, it } from "vitest";
-import { RegionState } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { listedLevels } from "../src/streams.ts";
-import { layer, opened, preparedRenderers } from "./layout-fixtures.ts";
+import { RegionState } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { listedLevels } from "../src/streams.js";
+import { layer, opened, preparedRenderers } from "./layout-fixtures.js";
 
 const URI = "https://example.org/lazy";
 const flush = () => new Promise((ok) => setTimeout(ok, 0));

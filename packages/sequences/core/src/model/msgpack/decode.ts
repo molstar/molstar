@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { utf8Read } from './utf8.ts'; // STORIES-UNTOLD(M1)
+import { utf8Read } from './utf8.js'; // STORIES-UNTOLD(M1)
 
 /** STORIES-UNTOLD(M2): an extension value from its type code and payload (a view into the buffer: copy what is kept); undefined: `{ type, data }`. */
 export type MsgPackExtDecoder = (type: number, data: Uint8Array) => unknown;

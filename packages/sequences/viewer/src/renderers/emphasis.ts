@@ -42,7 +42,7 @@ import {
   ThemeLocation,
   textShown,
   visibleRange,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 const ground = new RectBatch(64);
 const marks = new RectBatch();

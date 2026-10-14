@@ -14,7 +14,7 @@
 // BGZF blocks hold stored (uncompressed) deflate blocks, BigWig and BigBed blocks are not compressed
 // (`uncompressBufSize` 0), all little-endian.
 
-import type { RangeReader } from "../../../src/stream/gmod/index.ts";
+import type { RangeReader } from "../../../src/stream/gmod/index.js";
 
 /** The sequences and their lengths. */
 export const DEMO_SYSTEMS: readonly [string, number][] = [

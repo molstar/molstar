@@ -12,17 +12,17 @@
 // are walked: seqspec:seqql#elements-and-groups, seqspec:seqql#performance). Each reads `ctx.slot`; a value not there
 // is missing. Tests run per element: no destructuring and no closure per call.
 
-import { type Annotation, Annotations } from "../annotation.ts";
-import type { NameId, SeqIndex } from "../common.ts";
-import { CoordinateSystemKind as K } from "../coordinates.ts";
-import { Numbering, type PositionLabel } from "../numbering.ts";
-import type { SeqSet } from "../set.ts";
-import type { CompileContext, QueryFn, SymbolRuntime } from "./compile.ts";
-import { F64, type QueryContext } from "./context.ts";
-import { firstAfter } from "./kernels.ts";
-import { annotationOf, rt, unionOf, Wants, wrongKind } from "./runtime.ts";
-import type { SeqSelection } from "./selection.ts";
-import { domainOf, labelAt, nameOf, numberingOf } from "./systems.ts";
+import { type Annotation, Annotations } from "../annotation.js";
+import type { NameId, SeqIndex } from "../common.js";
+import { CoordinateSystemKind as K } from "../coordinates.js";
+import { Numbering, type PositionLabel } from "../numbering.js";
+import type { SeqSet } from "../set.js";
+import type { CompileContext, QueryFn, SymbolRuntime } from "./compile.js";
+import { F64, type QueryContext } from "./context.js";
+import { firstAfter } from "./kernels.js";
+import { annotationOf, rt, unionOf, Wants, wrongKind } from "./runtime.js";
+import type { SeqSelection } from "./selection.js";
+import { domainOf, labelAt, nameOf, numberingOf } from "./systems.js";
 
 const dom = new Int32Array(2);
 const KINDS = ["molecule", "unit", "row", "columns"];

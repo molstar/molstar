@@ -21,8 +21,8 @@ import {
   StringTable,
   type TreeInput,
   Trees,
-} from "../../src/model/index.ts";
-import { pf00042, SH2_A3M, SH2_NO_RF, SH2_STOCKHOLM } from "./alignment-fixtures.ts";
+} from "../../src/model/index.js";
+import { pf00042, SH2_A3M, SH2_NO_RF, SH2_STOCKHOLM } from "./alignment-fixtures.js";
 
 const codes = (issues: Issue[]) => issues.map((i) => `${i.code} ${i.path}`);
 const row = (r: number) => r as RowIndex;

@@ -14,9 +14,9 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { compile, type SeqViewSpecDoc, SimpleParamsSchema } from "@molstar/seq-core/format";
 import { KeyKind, type KeyTarget, type SeqSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { fixtureLoaders } from "../../core/_test/format/load-fixtures.ts";
-import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "../src/index.ts";
-import { fixtureMeasurer } from "../src/testing/index.ts";
+import { fixtureLoaders } from "../../core/_test/format/load-fixtures.js";
+import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "../src/index.js";
+import { fixtureMeasurer } from "../src/testing/index.js";
 
 const ligands = {
   svs: {

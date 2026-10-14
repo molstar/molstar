@@ -10,14 +10,14 @@
 // and the item slot's properties, which `pick`, `items` and `partners` test. Modifiers that change runs drop the item
 // tag; filters keep their groups as they are.
 
-import { type Annotation, Annotations, ColumnRoles } from "../annotation.ts";
-import type { CompileContext, QueryFn } from "./compile.ts";
-import { F64, type QueryContext } from "./context.ts";
-import { addRuns, eachRun, SelectionBuilder, sameSystem } from "./kernels.ts";
-import { compileWhere } from "./properties.ts";
-import { itemExtent, rt, unionOf } from "./runtime.ts";
-import { SeqSelection } from "./selection.ts";
-import { circleOf, domainOf } from "./systems.ts";
+import { type Annotation, Annotations, ColumnRoles } from "../annotation.js";
+import type { CompileContext, QueryFn } from "./compile.js";
+import { F64, type QueryContext } from "./context.js";
+import { addRuns, eachRun, SelectionBuilder, sameSystem } from "./kernels.js";
+import { compileWhere } from "./properties.js";
+import { itemExtent, rt, unionOf } from "./runtime.js";
+import { SeqSelection } from "./selection.js";
+import { circleOf, domainOf } from "./systems.js";
 
 const dom = new Int32Array(2);
 const query = (c: CompileContext, key = "0") => c.query(key) as QueryFn<SeqSelection>;

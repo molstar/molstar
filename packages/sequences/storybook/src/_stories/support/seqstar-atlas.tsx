@@ -10,13 +10,13 @@ import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { Dirty } from "@molstar/seq-viewer/draw";
 import { SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
-import { PrismPage } from "../support/seqstar-prism";
-import { Choices, TextAction } from "../ui";
-import { atlasDoc, atlasLoaders, ATLAS_COLUMNS as COLUMNS, ATLAS_ROWS as ROWS } from "./seqstar-docs-streamed";
+import { PrismPage } from "../support/seqstar-prism.js";
+import { Choices, TextAction } from "../ui/index.js";
+import { atlasDoc, atlasLoaders, ATLAS_COLUMNS as COLUMNS, ATLAS_ROWS as ROWS } from "./seqstar-docs-streamed.js";
 import f from "./seqstar-format.module.css";
-import { PrismCanvas, prism } from "./seqstar-prism";
+import { PrismCanvas, prism } from "./seqstar-prism.js";
 import t from "./seqstar-tools.module.css";
-import { type Mounted, useCaseContext, useStoryUi } from "./seqstar-viewer";
+import { type Mounted, useCaseContext, useStoryUi } from "./seqstar-viewer.js";
 
 let DOC: SeqViewSpecDoc | null = null;
 

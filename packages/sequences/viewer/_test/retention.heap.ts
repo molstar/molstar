@@ -13,10 +13,10 @@
 
 import type { Loci } from "@molstar/seq-core/model";
 import { expect, it } from "vitest";
-import { case14 } from "../../core/_test/format/cases.ts";
-import { SectionMarks } from "../src/marks.ts";
-import { controlCaught } from "./heap.ts";
-import { shown } from "./projection-fixtures.ts";
+import { case14 } from "../../core/_test/format/cases.js";
+import { SectionMarks } from "../src/marks.js";
+import { controlCaught } from "./heap.js";
+import { shown } from "./projection-fixtures.js";
 
 const gc = (globalThis as { gc?: () => void }).gc as () => void;
 

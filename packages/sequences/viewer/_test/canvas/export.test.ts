@@ -13,13 +13,13 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { genomeDoc, synthGenome } from "../../../core/_test/format/genome-fixture.ts";
-import { FONT_FAMILIES, FONT_WEIGHTS, probeFonts } from "../../scripts/font-probe.ts";
-import { canvasMeasurer } from "../../src/canvas/index.ts";
-import { browserExportAction, canvasEmBox, compressionDeflate } from "../../src/dom/index.ts";
-import { createSeqViewer, DefaultRegistry, manualScheduler } from "../../src/index.ts";
-import { hasMetrics, type MetricsMeasurer, renderSvg } from "../../src/svg/index.ts";
-import { canvasesOf, close, diff, opened, pixelsOf, settle } from "./open.ts";
+import { genomeDoc, synthGenome } from "../../../core/_test/format/genome-fixture.js";
+import { FONT_FAMILIES, FONT_WEIGHTS, probeFonts } from "../../scripts/font-probe.js";
+import { canvasMeasurer } from "../../src/canvas/index.js";
+import { browserExportAction, canvasEmBox, compressionDeflate } from "../../src/dom/index.js";
+import { createSeqViewer, DefaultRegistry, manualScheduler } from "../../src/index.js";
+import { hasMetrics, type MetricsMeasurer, renderSvg } from "../../src/svg/index.js";
+import { canvasesOf, close, diff, opened, pixelsOf, settle } from "./open.js";
 
 /** The SVG drawn on white at its own size and written as PNG; the pixels too. */
 async function rasterize(svg: string) {

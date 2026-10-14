@@ -10,7 +10,7 @@
 // `Molecules.build` is called directly, at the path the set gives it. MD1's new cases: M2's input and an empty polymer.
 
 import { describe, expect, it } from "vitest";
-import { type Issue, type MoleculeInput, MoleculeKind, Molecules, StringTable } from "../../src/model/index.ts";
+import { type Issue, type MoleculeInput, MoleculeKind, Molecules, StringTable } from "../../src/model/index.js";
 
 const ascii = (s: string) => Uint8Array.from(s, (c) => c.charCodeAt(0));
 const codes = (issues: Issue[]) => issues.map((i) => `${i.severity} ${i.code} ${i.path}`);

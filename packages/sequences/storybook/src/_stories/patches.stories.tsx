@@ -11,15 +11,15 @@ import { InteractionsViewerRegistry } from "@molstar/seq-viewer/interactions/vie
 import { SeqViewer, useSeqState, useSeqViewer } from "@molstar/seq-viewer/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Suspense, use, useEffect, useMemo, useState } from "react";
-import { fixtureLoaders, MolstarFixture } from "../../../core/_test/format/load-fixtures.ts";
-import { compiledCase } from "./support/seqstar-cases";
-import { antibodyPlain, antibodyWithSnapshots } from "./support/seqstar-docs-views";
+import { fixtureLoaders, MolstarFixture } from "../../../core/_test/format/load-fixtures.js";
+import { compiledCase } from "./support/seqstar-cases.js";
+import { antibodyPlain, antibodyWithSnapshots } from "./support/seqstar-docs-views.js";
 import f from "./support/seqstar-format.module.css";
 import p from "./support/seqstar-patches.module.css";
-import { PrismCanvas, PrismPage } from "./support/seqstar-prism";
-import { STORY_CHROME, type UiChoice, ViewerCard } from "./support/seqstar-viewer";
-import { type Args, viewerControls } from "./support/seqstar-viewer-args";
-import { ScrollArea, TextAction } from "./ui";
+import { PrismCanvas, PrismPage } from "./support/seqstar-prism.js";
+import { STORY_CHROME, type UiChoice, ViewerCard } from "./support/seqstar-viewer.js";
+import { type Args, viewerControls } from "./support/seqstar-viewer-args.js";
+import { ScrollArea, TextAction } from "./ui/index.js";
 
 /**
  * Patches and snapshots: every change a person makes in the viewer is a small ref-addressed patch.

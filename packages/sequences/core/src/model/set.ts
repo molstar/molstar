@@ -8,13 +8,13 @@
 
 // Units, complexes, copy groups and the set (seqspec:model#identity-and-lineage).
 
-import { type Alignment, type AlignmentInput, Alignments } from "./alignment.ts";
-import { type Annotation, type AnnotationInput, Annotations } from "./annotation.ts";
-import { type ComplexId, CustomData, Issue, type NameId, StringTable, type UnitId } from "./common.ts";
-import { type Mapping, type MappingInput, Mappings, type RowBindings } from "./mapping.ts";
-import { type Molecule, type MoleculeInput, Molecules } from "./molecule.ts";
-import { Numbering, type NumberingInput, type NumberingSet } from "./numbering.ts";
-import type { SortedArray, SortedRanges } from "./ordered-set.ts";
+import { type Alignment, type AlignmentInput, Alignments } from "./alignment.js";
+import { type Annotation, type AnnotationInput, Annotations } from "./annotation.js";
+import { type ComplexId, CustomData, Issue, type NameId, StringTable, type UnitId } from "./common.js";
+import { type Mapping, type MappingInput, Mappings, type RowBindings } from "./mapping.js";
+import { type Molecule, type MoleculeInput, Molecules } from "./molecule.js";
+import { Numbering, type NumberingInput, type NumberingSet } from "./numbering.js";
+import type { SortedArray, SortedRanges } from "./ordered-set.js";
 
 /** Struct-of-arrays, one row per unit id; removed ids are tombstones (`alive` 0). */
 export interface UnitTable {

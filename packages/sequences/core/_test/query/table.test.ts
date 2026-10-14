@@ -8,7 +8,7 @@
 
 // QL1: the base table: every v1 symbol, both names, complete metadata.
 import { describe, expect, it } from "vitest";
-import { BASE_SYMBOLS, createLanguage, SeqqlIssueCodes, type SymbolDef, type Type } from "../../src/query/index.ts";
+import { BASE_SYMBOLS, createLanguage, SeqqlIssueCodes, type SymbolDef, type Type } from "../../src/query/index.js";
 
 // Every code seqspec:seqql#errors names: a hint's code must be a registered one.
 const CODES = new Set(SeqqlIssueCodes.map((c) => c.code));

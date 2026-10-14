@@ -13,12 +13,12 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { CoordinateSystemKind } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { case3, case6, case9 } from "../../core/_test/format/cases.ts";
-import type { ShownIndex } from "../src/axis.ts";
-import { Hit, HoverKind as K, HitRegion as R } from "../src/index.ts";
-import type { Layouts } from "../src/layout.ts";
-import { setPiece } from "./axis-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
+import { case3, case6, case9 } from "../../core/_test/format/cases.js";
+import type { ShownIndex } from "../src/axis.js";
+import { Hit, HoverKind as K, HitRegion as R } from "../src/index.js";
+import type { Layouts } from "../src/layout.js";
+import { setPiece } from "./axis-fixtures.js";
+import { opened } from "./layout-fixtures.js";
 
 const hitAt = (t: Awaited<ReturnType<typeof opened>>, section: string, x: number, y: number) => {
   const h = Hit.create();

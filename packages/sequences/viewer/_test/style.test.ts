@@ -12,10 +12,10 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case3 } from "../../core/_test/format/cases.ts";
-import { DefaultPresets, type RenderProps, SeqViewerConfig } from "../src/index.ts";
-import { hoverDoc } from "./hover-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
+import { case3 } from "../../core/_test/format/cases.js";
+import { DefaultPresets, type RenderProps, SeqViewerConfig } from "../src/index.js";
+import { hoverDoc } from "./hover-fixtures.js";
+import { opened } from "./layout-fixtures.js";
 
 const S = "family.main";
 /** Case 3 with its section's `style` set. */

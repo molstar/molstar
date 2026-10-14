@@ -13,7 +13,7 @@
 // Each case loads the viewer afresh (`vi.resetModules`).
 
 import { expect, it, vi } from "vitest";
-import { controlCaught, heapScaling, isFlat, leaking } from "../../canvas/heap-browser.ts";
+import { controlCaught, heapScaling, isFlat, leaking } from "../../canvas/heap-browser.js";
 
 const N = 1_000;
 const WARM = 2_000;
@@ -44,7 +44,7 @@ interface Drawn {
 for (const name of ["many", "compact", "mixed", "absent", "wide"] as const)
   it(`${name}: frames through Canvas2D are flat`, async () => {
     vi.resetModules();
-    const { fingerprintFrames } = await import("./fingerprint-fixtures.ts");
+    const { fingerprintFrames } = await import("./fingerprint-fixtures.js");
     const t = await fingerprintFrames(name);
     try {
       const d = t.drawn();
@@ -58,7 +58,7 @@ for (const name of ["many", "compact", "mixed", "absent", "wide"] as const)
 
 it("the same frames allocating garbage each, sized to the run, are caught (positive control)", async () => {
   vi.resetModules();
-  const { fingerprintFrames } = await import("./fingerprint-fixtures.ts");
+  const { fingerprintFrames } = await import("./fingerprint-fixtures.js");
   const t = await fingerprintFrames("many");
   try {
     expect(controlCaught(() => measure(leaking(t.step, N)))).toBe(true);

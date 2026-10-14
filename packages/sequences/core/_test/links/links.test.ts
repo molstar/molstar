@@ -8,7 +8,7 @@
 
 import type { Invocation } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { createLinkRunner, DefaultLinkKeys, formatLink, type LinkKey, parseLink } from "../../src/links/index.ts";
+import { createLinkRunner, DefaultLinkKeys, formatLink, type LinkKey, parseLink } from "../../src/links/index.js";
 
 /** A recording `run`; the highlight channels it leaves lit are `lit()`. */
 function recorder(fail?: "reject" | "throw") {

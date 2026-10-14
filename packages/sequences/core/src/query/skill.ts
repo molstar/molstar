@@ -8,10 +8,10 @@
 
 // The generated skill and reference: the fixed guidance plus a language's table, so a host's skill lists exactly what
 // its checker accepts.
-import { SLOT_CHAINS } from "./bind.ts";
-import { SeqqlIssueCodes } from "./codes.ts";
-import type { Language } from "./language.ts";
-import type { ArgDef, Slot, SymbolDef, SymbolKind, Type } from "./types.ts";
+import { SLOT_CHAINS } from "./bind.js";
+import { SeqqlIssueCodes } from "./codes.js";
+import type { Language } from "./language.js";
+import type { ArgDef, Slot, SymbolDef, SymbolKind, Type } from "./types.js";
 
 /** Appendix A.1: generic, naming base symbols only; `{refs}`, `{inputs}` and `{table}` are filled in. */
 export const GUIDANCE = `SEQUENCE QUERIES (SeqQL)

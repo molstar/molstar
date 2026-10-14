@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { added, common, productionLines } from "../../../../scripts/ported-lines.ts";
+import { added, common, productionLines } from "../../../../scripts/ported-lines.js";
 
 const source = `import type { Space } from "@molstar/seq-core/model";
 

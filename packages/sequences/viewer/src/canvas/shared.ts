@@ -15,12 +15,12 @@
 // boxes too, through the text version): it never sets a measurer, so a host's own (`measurer: false`) stays. Also the
 // browser scheduler and `canvasEmBox`, which `/dom`'s export re-exports.
 
-import { SeqViewerConfig } from "../config.ts";
-import { DarkSkin, DefaultSkin, type SeqViewerContext } from "../context.ts";
-import type { Skin } from "../graph.ts";
-import { rafScheduler, type Scheduler } from "../scheduler.ts";
-import type { EmBox, MetricsMeasurer } from "../svg/metrics.ts";
-import type { TextMeasurer } from "../text.ts";
+import { SeqViewerConfig } from "../config.js";
+import { DarkSkin, DefaultSkin, type SeqViewerContext } from "../context.js";
+import type { Skin } from "../graph.js";
+import { rafScheduler, type Scheduler } from "../scheduler.js";
+import type { EmBox, MetricsMeasurer } from "../svg/metrics.js";
+import type { TextMeasurer } from "../text.js";
 
 /** `ports.scheduler` for a page: animation frames, timers and `performance.now()` of `window`. */
 export function windowScheduler(): Scheduler {

@@ -37,12 +37,12 @@ import {
   TextAlign,
   TextBaseline,
   type TextBatch,
-} from "../draw/backend.ts";
-import { ColorGroups } from "../draw/group.ts";
-import type { TextMeasurer } from "../text.ts";
-import { cssColor, dec, dec3, esc, hex } from "./format.ts";
-import { CSS_FONT, type EmBox } from "./metrics.ts";
-import { base64, encodePng } from "./png.ts";
+} from "../draw/backend.js";
+import { ColorGroups } from "../draw/group.js";
+import type { TextMeasurer } from "../text.js";
+import { cssColor, dec, dec3, esc, hex } from "./format.js";
+import { CSS_FONT, type EmBox } from "./metrics.js";
+import { base64, encodePng } from "./png.js";
 
 export interface SvgFont {
   family: string;

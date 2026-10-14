@@ -34,12 +34,12 @@ import {
   snapshotDoc,
   sourceParse,
   validate,
-} from "../../src/format/index.ts";
-import { alignerEntry } from "../../src/format/load/entries.ts";
-import { KernelFormats, UniprotService } from "../../src/format/load/formats.ts";
-import { CASES } from "./cases.ts";
-import { fixtureLoaders, pf00042Server, registries } from "./load-fixtures.ts";
-import { done, loaders } from "./load-support.ts";
+} from "../../src/format/index.js";
+import { alignerEntry } from "../../src/format/load/entries.js";
+import { KernelFormats, UniprotService } from "../../src/format/load/formats.js";
+import { CASES } from "./cases.js";
+import { fixtureLoaders, pf00042Server, registries } from "./load-fixtures.js";
+import { done, loaders } from "./load-support.js";
 
 const errors = (issues: Issue[]) => issues.filter((i) => i.severity === "error");
 const codes = (issues: Issue[]) => issues.map((i) => i.code);
@@ -830,7 +830,7 @@ describe("a statistic's failure", () => {
   };
 
   it("a failed stats request is svs.source.load, not 'serves no stats'; an abort goes on", async () => {
-    const { case9 } = await import("./cases.ts");
+    const { case9 } = await import("./cases.js");
     const { loaders } = serving();
     const { issues } = await compile(case9(), registries(false), loaders);
     const loads = issues.filter((i) => i.code === "svs.source.load");

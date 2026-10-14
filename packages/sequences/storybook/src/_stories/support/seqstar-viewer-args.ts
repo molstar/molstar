@@ -9,7 +9,7 @@
 // The controls the Seq* stories that show a viewer share: its navigator, the alignment rows' color theme and the UI
 // (React parts or the `<seq-viewer>` element). A story file spreads `viewerControls` into its meta.
 
-import { NAVIGATORS, type NavigatorChoice, ROWS_COLORS, type RowsColor, type UiChoice } from "./seqstar-viewer";
+import { NAVIGATORS, type NavigatorChoice, ROWS_COLORS, type RowsColor, type UiChoice } from "./seqstar-viewer.js";
 
 export interface Args {
   /** The navigator, switchable in the Controls panel to compare them on each case. */

@@ -11,11 +11,11 @@
 
 import type { ResolvedView, SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { Extents, type Loci, type SeqSet } from "@molstar/seq-core/model";
-import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.ts";
-import { type Coordinates, createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from "../src/index.ts";
-import { MarkSet } from "../src/marks.ts";
-import { Projector } from "../src/projection.ts";
-import { kernelFree, stubs } from "./graph-fixtures.ts";
+import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.js";
+import { type Coordinates, createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from "../src/index.js";
+import { MarkSet } from "../src/marks.js";
+import { Projector } from "../src/projection.js";
+import { kernelFree, stubs } from "./graph-fixtures.js";
 /** A context with the structure extension's fixture showing `doc`'s view `view` (else its first), and a projector. */
 export async function shown(doc: SeqViewSpecDoc, view?: string) {
   const scheduler = manualScheduler();

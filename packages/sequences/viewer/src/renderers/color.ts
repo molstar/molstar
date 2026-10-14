@@ -26,7 +26,7 @@ import {
   rowValues,
   ThemeLocation,
   visibleRange,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 const rects = new RectBatch();
 const range = new Int32Array(2);

@@ -13,8 +13,8 @@
 
 import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { recording } from "./composer-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
+import { recording } from "./composer-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
 
 const UNIT = "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRV";
 /** 400 residues; the design lacks 15–17 and has GSGS after 30. */

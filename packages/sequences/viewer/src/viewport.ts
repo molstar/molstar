@@ -16,12 +16,12 @@
 
 import type { ResolvedView, SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { Extents, type SeqSet } from "@molstar/seq-core/model";
-import { Axis, clamp, type ShownIndex, sameList } from "./axis.ts";
-import { type ConfigManager, SeqViewerConfig } from "./config.ts";
-import type { SeqLociAny } from "./lineage.ts";
-import { BlockHulls, type Coordinates, Projector } from "./projection.ts";
-import type { Scheduler } from "./scheduler.ts";
-import { live, type Origin, pulled, type SeqState, state, type WritableLive } from "./state.ts";
+import { Axis, clamp, type ShownIndex, sameList } from "./axis.js";
+import { type ConfigManager, SeqViewerConfig } from "./config.js";
+import type { SeqLociAny } from "./lineage.js";
+import { BlockHulls, type Coordinates, Projector } from "./projection.js";
+import type { Scheduler } from "./scheduler.js";
+import { live, type Origin, pulled, type SeqState, state, type WritableLive } from "./state.js";
 
 /**
  * Every section of every view of a document, the layouts' and the viewports' lifecycle (seqspec:interaction#viewports).

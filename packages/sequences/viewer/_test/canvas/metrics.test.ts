@@ -12,8 +12,8 @@
 // tables equal a fresh probe, and the measurer agrees with canvas `measureText`.
 
 import { describe, expect, it } from "vitest";
-import { FONT_FAMILIES, FONT_WEIGHTS, probeFonts } from "../../scripts/font-probe.ts";
-import { DefaultFontMetrics, metricsMeasurer } from "../../src/svg/index.ts";
+import { FONT_FAMILIES, FONT_WEIGHTS, probeFonts } from "../../scripts/font-probe.js";
+import { DefaultFontMetrics, metricsMeasurer } from "../../src/svg/index.js";
 
 const live = probeFonts({ families: FONT_FAMILIES, weights: FONT_WEIGHTS });
 const same = (p: (typeof live)[number]) => {

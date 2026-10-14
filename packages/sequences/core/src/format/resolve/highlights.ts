@@ -11,7 +11,7 @@
 // `highlight`. A query node is an annotation, so it is data here as any other. Edge rate: allocates.
 
 import { Annotations, type ItemLoci, KeyKind, type KeyTarget, OrderedSet, type SeqSet } from "@molstar/seq-core/model";
-import type { ResolvedView } from "./view.ts";
+import type { ResolvedView } from "./view.js";
 
 export type SectionHighlightStyle = "band" | "highlight" | "accent";
 export interface SectionHighlight {

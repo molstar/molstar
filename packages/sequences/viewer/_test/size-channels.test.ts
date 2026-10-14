@@ -13,7 +13,7 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { drawn, record, rects, texts } from "./draw-fixtures.ts";
+import { drawn, record, rects, texts } from "./draw-fixtures.js";
 
 const SEQ = "ACDEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWY";
 const b0 = () => createSeqViewSpec({ title: "Sizes" });

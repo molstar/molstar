@@ -14,9 +14,9 @@
 // copied the rows).
 
 import { describe, expect, it } from "vitest";
-import { TILE, Tiles } from "../../src/format/index.ts";
-import { KernelFormats } from "../../src/format/load/formats.ts";
-import { controlCaught, describeScaling, heapGrowth, heapScaling, isFlat, leak, leaking } from "../model/heap.ts";
+import { TILE, Tiles } from "../../src/format/index.js";
+import { KernelFormats } from "../../src/format/load/formats.js";
+import { controlCaught, describeScaling, heapGrowth, heapScaling, isFlat, leak, leaking } from "../model/heap.js";
 
 describe("tile addressing", () => {
   it("allocates nothing", () => {

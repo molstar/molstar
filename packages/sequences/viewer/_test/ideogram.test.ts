@@ -13,16 +13,16 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { GRCH38, hg38Streams, streamedDoc } from "../../core/_test/format/stream-provider.ts";
-import type { SectionAxisView } from "../src/axis.ts";
-import { SkinToken } from "../src/draw/backend.ts";
-import { Dirty } from "../src/draw/composer.ts";
-import { type CytoBands, ideogramNavigator, type PresetEntry } from "../src/index.ts";
-import { WindowKind } from "../src/windows.ts";
-import { blocksDoc } from "./axis-fixtures.ts";
-import { composed, recording } from "./composer-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
-import { GENOME } from "./stream-fixtures.ts";
+import { GRCH38, hg38Streams, streamedDoc } from "../../core/_test/format/stream-provider.js";
+import type { SectionAxisView } from "../src/axis.js";
+import { SkinToken } from "../src/draw/backend.js";
+import { Dirty } from "../src/draw/composer.js";
+import { type CytoBands, ideogramNavigator, type PresetEntry } from "../src/index.js";
+import { WindowKind } from "../src/windows.js";
+import { blocksDoc } from "./axis-fixtures.js";
+import { composed, recording } from "./composer-fixtures.js";
+import { driven } from "./input-fixtures.js";
+import { GENOME } from "./stream-fixtures.js";
 
 const HG38 = JSON.parse(readFileSync(new URL("./fixtures/hg38-cytobands.json", import.meta.url), "utf8")) as {
   chromosomes: CytoBands;

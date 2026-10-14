@@ -14,12 +14,12 @@
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
-import { SeqViewerConfig } from "../../src/index.ts";
-import type { RowProps } from "../../src/react/index.ts";
-import * as Parts from "../../src/react/index.ts";
+import { SeqViewerConfig } from "../../src/index.js";
+import type { RowProps } from "../../src/react/index.js";
+import * as Parts from "../../src/react/index.js";
 // The skin, for the legend's grid (its layout is CSS).
 import "../../src/skin.css";
-import { at, counted, keys, lines, mount, openedContext, pointer, settle, stubSurface, xOf } from "./fixtures.tsx";
+import { at, counted, keys, lines, mount, openedContext, pointer, settle, stubSurface, xOf } from "./fixtures.js";
 
 const cleanups: (() => Promise<void> | void)[] = [];
 afterEach(async () => {

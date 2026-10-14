@@ -22,11 +22,11 @@ import {
   type RowIndex,
   type SeqIndex,
   type UnitId,
-} from "./common.ts";
-import { type CoordinateMap, type CoordinateSystem, CoordinateSystemKind, Coords } from "./coordinates.ts";
-import { GeneticCode } from "./genetic-code.ts";
-import { NO_LABEL, Numbering, type PositionLabel } from "./numbering.ts";
-import { KeyKind, type KeyTarget, type SeqSet } from "./set.ts";
+} from "./common.js";
+import { type CoordinateMap, type CoordinateSystem, CoordinateSystemKind, Coords } from "./coordinates.js";
+import { GeneticCode } from "./genetic-code.js";
+import { NO_LABEL, Numbering, type PositionLabel } from "./numbering.js";
+import { KeyKind, type KeyTarget, type SeqSet } from "./set.js";
 
 export type MappingMethod = "identity" | "segments" | "pairwise" | "by_numbering" | "codon";
 export const MappingStatus = { exact: 0, conflict: 1, none: 2 } as const;

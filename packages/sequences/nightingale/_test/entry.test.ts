@@ -10,7 +10,7 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import * as entry from "../src/index.ts";
+import * as entry from "../src/index.js";
 
 describe("the entries", () => {
   it("name their exports: `.` is materialize, its limit, the supported set and extentLoci", () => {

@@ -16,8 +16,8 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { OrderedSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { case13 } from "../../core/_test/format/cases.ts";
-import { DefaultHeaderHoverParams, describeHeader, headerLoci, headerSet, lociSize } from "../src/header-hover.ts";
+import { case13 } from "../../core/_test/format/cases.js";
+import { DefaultHeaderHoverParams, describeHeader, headerLoci, headerSet, lociSize } from "../src/header-hover.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -27,8 +27,8 @@ import {
   HoverKind,
   SeqViewerBehaviors,
   type SeqViewerContext,
-} from "../src/index.ts";
-import { opened, preparedRenderers } from "./layout-fixtures.ts";
+} from "../src/index.js";
+import { opened, preparedRenderers } from "./layout-fixtures.js";
 
 const S = "v.main";
 /** The header's lit runs as "start-stop", sorted. */

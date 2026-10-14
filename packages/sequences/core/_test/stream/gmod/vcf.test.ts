@@ -13,9 +13,9 @@
 import { readFileSync } from "node:fs";
 import { StreamNotServed } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { vcfProvider } from "../../../src/stream/gmod/index.ts";
-import { CASES, LENGTHS, makers, req } from "./cases.ts";
-import { sliceReader, whole } from "./slices.ts";
+import { vcfProvider } from "../../../src/stream/gmod/index.js";
+import { CASES, LENGTHS, makers, req } from "./cases.js";
+import { sliceReader, whole } from "./slices.js";
 
 interface Variant {
   start: number;
@@ -142,7 +142,7 @@ describe("tabix VCF", () => {
 
 describe("a VCF under the document's names (`renamed`, `chrNames`; ST4b)", () => {
   it("lists `1` as `chr1` and `MT` as `chrM`, leaves contigs out, and answers `chr1` as the file's `1`", async () => {
-    const { chrNames, renamed } = await import("../../../src/stream/gmod/index.ts");
+    const { chrNames, renamed } = await import("../../../src/stream/gmod/index.js");
     const p = renamed(provider(), chrNames);
     const m = await p.fetch(req(null), signal);
     if (m.kind !== "manifest") throw new Error("not a manifest");

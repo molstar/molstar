@@ -13,16 +13,16 @@
 // (`Mappings.path`, ambiguous paths skipped). Routes are built once per (source, target) system in a run; a walk reads
 // the maps (`Coords`) with module visitors and allocates nothing per run.
 
-import type { RowIndex } from "../common.ts";
-import { type CoordinateMap, Coords, CoordinateSystemKind as K } from "../coordinates.ts";
-import { Mappings, type PathStep, type RowBindings } from "../mapping.ts";
-import { KeyKind, type SeqSet } from "../set.ts";
-import type { CompileContext, QueryFn } from "./compile.ts";
-import type { QueryContext } from "./context.ts";
-import { addRuns, type SelectionBuilder, sameSystem } from "./kernels.ts";
-import { KIND_NAMES, resolve, rt, t, Wants, wrongKind } from "./runtime.ts";
-import type { SeqSelection } from "./selection.ts";
-import { domainOf, nameOf, unitsOf } from "./systems.ts";
+import type { RowIndex } from "../common.js";
+import { type CoordinateMap, Coords, CoordinateSystemKind as K } from "../coordinates.js";
+import { Mappings, type PathStep, type RowBindings } from "../mapping.js";
+import { KeyKind, type SeqSet } from "../set.js";
+import type { CompileContext, QueryFn } from "./compile.js";
+import type { QueryContext } from "./context.js";
+import { addRuns, type SelectionBuilder, sameSystem } from "./kernels.js";
+import { KIND_NAMES, resolve, rt, t, Wants, wrongKind } from "./runtime.js";
+import type { SeqSelection } from "./selection.js";
+import { domainOf, nameOf, unitsOf } from "./systems.js";
 
 /** A leg: the input clipped to [lo, hi) of its system, then through `map` (read 1: from → to; -1: the inverse image). */
 interface Step {

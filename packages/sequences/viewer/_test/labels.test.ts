@@ -15,11 +15,11 @@ import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import type * as ViewSpec from "@molstar/seq-core/format";
 import type { KeyTarget, SeqSet } from "@molstar/seq-core/model";
 import { describe, expect, it, vi } from "vitest";
-import { case10 } from "../../core/_test/format/cases.ts";
-import { Hit, HitRegion, HoverKind, type LabelProvider } from "../src/index.ts";
-import { PreparedParts } from "../src/prepare.ts";
-import { type Driven, driven } from "./input-fixtures.ts";
-import { renderers } from "./layout-fixtures.ts";
+import { case10 } from "../../core/_test/format/cases.js";
+import { Hit, HitRegion, HoverKind, type LabelProvider } from "../src/index.js";
+import { PreparedParts } from "../src/prepare.js";
+import { type Driven, driven } from "./input-fixtures.js";
+import { renderers } from "./layout-fixtures.js";
 
 const calls = { pathTo: 0 };
 vi.mock("@molstar/seq-core/format", async (original) => {

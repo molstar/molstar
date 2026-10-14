@@ -44,8 +44,8 @@ import {
   ThemeLocation,
   textShown,
   wedgeLabel,
-} from "../draw/api.ts";
-import { beginTiles, paintLevels, paintTiles, RowTiles, rowGeo } from "./rows-tiles.ts";
+} from "../draw/api.js";
+import { beginTiles, paintLevels, paintTiles, RowTiles, rowGeo } from "./rows-tiles.js";
 
 const gaps = new RectBatch(256);
 /** Insert columns' cells, veiled in the surface's tone. */

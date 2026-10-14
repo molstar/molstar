@@ -12,8 +12,8 @@
 // `CompressionStream`.
 
 import { describe, expect, it } from "vitest";
-import { compressionDeflate } from "../../src/dom/index.ts";
-import { encodePng } from "../../src/svg/index.ts";
+import { compressionDeflate } from "../../src/dom/index.js";
+import { encodePng } from "../../src/svg/index.js";
 
 /** CRC-32, one bit at a time. */
 function slowCrc(b: Uint8Array): number {

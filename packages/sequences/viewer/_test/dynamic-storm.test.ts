@@ -13,9 +13,9 @@
 // what reruns, and loose times. The slow tier's; the fast tier's storm of 50 checks what reruns.
 
 import { describe, expect, it } from "vitest";
-import { GRCH38 } from "../../core/_test/format/stream-provider.ts";
-import type { Streams } from "../src/streams.ts";
-import { dynamicDoc, GENES, openGenome, peakNode, type StreamedGenome, withPeaks } from "./stream-fixtures.ts";
+import { GRCH38 } from "../../core/_test/format/stream-provider.js";
+import type { Streams } from "../src/streams.js";
+import { dynamicDoc, GENES, openGenome, peakNode, type StreamedGenome, withPeaks } from "./stream-fixtures.js";
 
 const node = (k: number) => peakNode(GRCH38[k % 3][0], 4096 * (1000 + k));
 const median = (xs: number[]) => xs.slice().sort((a, b) => a - b)[xs.length >> 1];

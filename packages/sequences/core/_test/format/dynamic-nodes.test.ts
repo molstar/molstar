@@ -26,8 +26,8 @@ import {
   supportedAll,
   validate,
   withDynamic,
-} from "../../src/format/index.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 const codes = (issues: readonly Issue[]) => issues.map((i) => i.code);

@@ -11,13 +11,13 @@
 // and heads, each layer's `gutter` and a wrapped line's number. Per frame nothing is allocated (RN1's draw pattern).
 
 import { Lanes } from "@molstar/seq-core/format";
-import { type Axis, AxisGeometry } from "../axis.ts";
-import type { ViewModel } from "../graph.ts";
-import { CHEVRON_GAP, CHEVRON_HALF, CHEVRON_ROOM, splitChevron } from "../header-toggle.ts";
-import { EntryKind, positionLabel, type SectionLayout, SectionLayouts, type SplitFeatures } from "../layout.ts";
-import type { RowsState } from "../rows.ts";
-import { fitIn, fitted } from "../text.ts";
-import { PathMode, PathVerb, SkinToken, TextAlign, TextBaseline } from "./backend.ts";
+import { type Axis, AxisGeometry } from "../axis.js";
+import type { ViewModel } from "../graph.js";
+import { CHEVRON_GAP, CHEVRON_HALF, CHEVRON_ROOM, splitChevron } from "../header-toggle.js";
+import { EntryKind, positionLabel, type SectionLayout, SectionLayouts, type SplitFeatures } from "../layout.js";
+import type { RowsState } from "../rows.js";
+import { fitIn, fitted } from "../text.js";
+import { PathMode, PathVerb, SkinToken, TextAlign, TextBaseline } from "./backend.js";
 import {
   type ComposerFrame,
   depth,
@@ -29,7 +29,7 @@ import {
   place,
   prime,
   release,
-} from "./composer-frame.ts";
+} from "./composer-frame.js";
 
 /** A group's or split track's chevron, CSS px around its center: open (⌄), then closed (›). */
 const CHEV = new Float64Array([-3.5, -1.5, 0, 1.5, 3.5, -1.5, -1.5, -3.5, 1.5, 0, -1.5, 3.5]);

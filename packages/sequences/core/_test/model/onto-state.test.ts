@@ -9,10 +9,10 @@
 // GI-14: onto's row maps live for one source's routes; a throw while building them leaves nothing for the next run.
 import { bindQuery, readQuery } from "@molstar/seq-core/query";
 import { describe, expect, it, vi } from "vitest";
-import { SeqSets } from "../../src/model/index.ts";
-import { Mappings } from "../../src/model/mapping.ts";
-import { compileQuery, createQueryEnv, SeqSelection } from "../../src/model/query/index.ts";
-import { ontoFixture } from "./query-fixtures.ts";
+import { SeqSets } from "../../src/model/index.js";
+import { Mappings } from "../../src/model/mapping.js";
+import { compileQuery, createQueryEnv, SeqSelection } from "../../src/model/query/index.js";
+import { ontoFixture } from "./query-fixtures.js";
 
 const ENV = createQueryEnv([]);
 const run = (set: unknown, text: string) => {

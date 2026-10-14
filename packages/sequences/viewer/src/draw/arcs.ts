@@ -11,11 +11,11 @@
 // `verb` so no double crosses a call; an end out of the row or filtered out a tick toward its partner, an end past the
 // data area a wedge.
 
-import type { PairsState } from "../prepare.ts";
-import { ARC_PAST, Arcs } from "../renderer-helpers.ts";
-import { NO_COLOR, type PathBatch, PathMode, PathVerb, SkinToken } from "./backend.ts";
-import { keyAlpha, keyColor } from "./density.ts";
-import type { DrawView } from "./view.ts";
+import type { PairsState } from "../prepare.js";
+import { ARC_PAST, Arcs } from "../renderer-helpers.js";
+import { NO_COLOR, type PathBatch, PathMode, PathVerb, SkinToken } from "./backend.js";
+import { keyAlpha, keyColor } from "./density.js";
+import type { DrawView } from "./view.js";
 
 /** A pair's color, or the quiet ink where its theme gives none. */
 export const inkOf = (key: number) => (key === NO_COLOR ? SkinToken.inkQuiet : keyColor(key));

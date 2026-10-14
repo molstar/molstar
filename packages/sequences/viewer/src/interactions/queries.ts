@@ -22,7 +22,7 @@ import {
   type SeqSet,
   type UnitId,
 } from "@molstar/seq-core/model";
-import { Kind, type KindMask, kindByName } from "./vocabulary.ts";
+import { Kind, type KindMask, kindByName } from "./vocabulary.js";
 
 /** Per row of a pairs annotation, its kind, read from `category` once. */
 const RowKinds: CustomProperty<Annotation, Uint8Array> = {

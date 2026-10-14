@@ -12,10 +12,10 @@
 // instead of throwing.
 
 import { describe, expect, it } from "vitest";
-import { case1, case14 } from "../../../core/_test/format/cases.ts";
-import { KernelRenderers, type LayerRenderer } from "../../src/index.ts";
-import { DefaultFontMetrics, exportSvgAction, metricsMeasurer, renderSvg } from "../../src/svg/index.ts";
-import { opened } from "../layout-fixtures.ts";
+import { case1, case14 } from "../../../core/_test/format/cases.js";
+import { KernelRenderers, type LayerRenderer } from "../../src/index.js";
+import { DefaultFontMetrics, exportSvgAction, metricsMeasurer, renderSvg } from "../../src/svg/index.js";
+import { opened } from "../layout-fixtures.js";
 
 const kernel = [...KernelRenderers] as LayerRenderer[];
 interface Offer {

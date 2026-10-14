@@ -10,10 +10,10 @@
 // the default UI on the stub surface, a pointer moving inside one residue's cell so that moves change only the
 // pointer, and a keyboard cursor whose viewport moves.
 
-import * as D from "../../src/dom/index.ts";
-import { Inputs, PointerType } from "../../src/index.ts";
+import * as D from "../../src/dom/index.js";
+import { Inputs, PointerType } from "../../src/index.js";
 import "../../src/skin.css";
-import { at, openedContext, stubSurface, WIDTH, xOf } from "./fixtures.ts";
+import { at, openedContext, stubSurface, WIDTH, xOf } from "./fixtures.js";
 
 export async function tooltipFixture() {
   const { ctx } = await openedContext();

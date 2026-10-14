@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from "./builder.ts";
-export * from "./fingerprint.ts";
-export * from "./queries.ts";
-export * from "./registry.ts";
-export * from "./vocabulary.ts";
+export * from "./builder.js";
+export * from "./fingerprint.js";
+export * from "./queries.js";
+export * from "./registry.js";
+export * from "./vocabulary.js";

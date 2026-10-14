@@ -15,12 +15,12 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { tilesStream } from "@molstar/seq-core/stream/tiles";
 import { tileServer } from "@molstar/seq-core/stream/tiles/server";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.ts";
-import { Dirty, SectionComposer } from "../../src/draw/index.ts";
-import { drawResources } from "../../src/draw/resources.ts";
-import { createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from "../../src/index.ts";
-import type { Streams } from "../../src/streams.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
+import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
+import { Dirty, SectionComposer } from "../../src/draw/index.js";
+import { drawResources } from "../../src/draw/resources.js";
+import { createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from "../../src/index.js";
+import type { Streams } from "../../src/streams.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
 
 const URI = "https://example.org/lazy";
 

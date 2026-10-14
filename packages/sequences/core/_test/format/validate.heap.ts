@@ -12,8 +12,8 @@
 // cell).
 
 import { describe, expect, it } from "vitest";
-import { validate } from "../../src/format/index.ts";
-import { CellKind, CellScan, type Col, ColumnForm, scanCells } from "../../src/format/tables/cells.ts";
+import { validate } from "../../src/format/index.js";
+import { CellKind, CellScan, type Col, ColumnForm, scanCells } from "../../src/format/tables/cells.js";
 import {
   controlCaught,
   describeScaling,
@@ -23,9 +23,9 @@ import {
   leak,
   leaking,
   SCALED_LIMIT,
-} from "../model/heap.ts";
-import { kernel } from "./fixtures.ts";
-import { CHROMOSOMES, codedDoc, freshParams } from "./table-fixtures.ts";
+} from "../model/heap.js";
+import { kernel } from "./fixtures.js";
+import { CHROMOSOMES, codedDoc, freshParams } from "./table-fixtures.js";
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 250_000;

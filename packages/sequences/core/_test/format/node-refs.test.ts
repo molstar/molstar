@@ -10,10 +10,10 @@
 // edges (VS-24), over `indexDoc`'s nodes (implied refs filled, VS-23).
 import { Q, type SeqQLQuery } from "@molstar/seq-core/query";
 import { describe, expect, it } from "vitest";
-import { indexDoc, nodeRefs, type SeqViewSpecDoc, validate } from "../../src/format/index.ts";
-import { TEMPLATE_NODE } from "../../src/format/schema/field-schema.ts";
-import { CASES } from "./cases.ts";
-import { registries } from "./load-fixtures.ts";
+import { indexDoc, nodeRefs, type SeqViewSpecDoc, validate } from "../../src/format/index.js";
+import { TEMPLATE_NODE } from "../../src/format/schema/field-schema.js";
+import { CASES } from "./cases.js";
+import { registries } from "./load-fixtures.js";
 
 const reg = registries();
 const heads = (doc: SeqViewSpecDoc, ref: string) => {

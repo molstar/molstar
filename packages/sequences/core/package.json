@@ -1,54 +1,122 @@
 {
   "name": "@molstar/seq-core",
-  "version": "0.0.0",
+  "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
   "description": "Seq*'s platform-free core, no dependencies: the data model and its query runtime, SeqQL, the aligners and search, translation, the SeqViewSpec format and its builder, command links and the stream providers.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "sideEffects": false,
   "exports": {
-    "./model": "./src/model/index.ts",
-    "./model/query": "./src/model/query/index.ts",
-    "./query": "./src/query/index.ts",
-    "./algorithms": "./src/algorithms/index.ts",
-    "./algorithms/search": "./src/algorithms/search/index.ts",
-    "./translate": "./src/translate/index.ts",
-    "./format": "./src/format/index.ts",
-    "./builder": "./src/builder/index.ts",
-    "./builder/svsx": "./src/builder/svsx.ts",
-    "./links": "./src/links/index.ts",
-    "./links/remark": "./src/links/remark.ts",
-    "./stream/tiles": "./src/stream/tiles/index.ts",
-    "./stream/tiles/server": "./src/stream/tiles/server.ts",
-    "./stream/gmod": "./src/stream/gmod/index.ts",
+    "./model": {
+      "molstar-src": "./src/model/index.ts",
+      "types": "./lib/model/index.d.ts",
+      "import": "./lib/model/index.js"
+    },
+    "./model/query": {
+      "molstar-src": "./src/model/query/index.ts",
+      "types": "./lib/model/query/index.d.ts",
+      "import": "./lib/model/query/index.js"
+    },
+    "./query": {
+      "molstar-src": "./src/query/index.ts",
+      "types": "./lib/query/index.d.ts",
+      "import": "./lib/query/index.js"
+    },
+    "./algorithms": {
+      "molstar-src": "./src/algorithms/index.ts",
+      "types": "./lib/algorithms/index.d.ts",
+      "import": "./lib/algorithms/index.js"
+    },
+    "./algorithms/search": {
+      "molstar-src": "./src/algorithms/search/index.ts",
+      "types": "./lib/algorithms/search/index.d.ts",
+      "import": "./lib/algorithms/search/index.js"
+    },
+    "./translate": {
+      "molstar-src": "./src/translate/index.ts",
+      "types": "./lib/translate/index.d.ts",
+      "import": "./lib/translate/index.js"
+    },
+    "./format": {
+      "molstar-src": "./src/format/index.ts",
+      "types": "./lib/format/index.d.ts",
+      "import": "./lib/format/index.js"
+    },
+    "./builder": {
+      "molstar-src": "./src/builder/index.ts",
+      "types": "./lib/builder/index.d.ts",
+      "import": "./lib/builder/index.js"
+    },
+    "./builder/svsx": {
+      "molstar-src": "./src/builder/svsx.ts",
+      "types": "./lib/builder/svsx.d.ts",
+      "import": "./lib/builder/svsx.js"
+    },
+    "./links": {
+      "molstar-src": "./src/links/index.ts",
+      "types": "./lib/links/index.d.ts",
+      "import": "./lib/links/index.js"
+    },
+    "./links/remark": {
+      "molstar-src": "./src/links/remark.ts",
+      "types": "./lib/links/remark.d.ts",
+      "import": "./lib/links/remark.js"
+    },
+    "./stream/tiles": {
+      "molstar-src": "./src/stream/tiles/index.ts",
+      "types": "./lib/stream/tiles/index.d.ts",
+      "import": "./lib/stream/tiles/index.js"
+    },
+    "./stream/tiles/server": {
+      "molstar-src": "./src/stream/tiles/server.ts",
+      "types": "./lib/stream/tiles/server.d.ts",
+      "import": "./lib/stream/tiles/server.js"
+    },
+    "./stream/gmod": {
+      "molstar-src": "./src/stream/gmod/index.ts",
+      "types": "./lib/stream/gmod/index.d.ts",
+      "import": "./lib/stream/gmod/index.js"
+    },
     "./_stories/*": null,
     "./_test/*": null
   },
   "files": [
+    "lib",
     "src",
     "!**/_test/**",
     "!**/_stories/**",
-    "!**/*.stories.*"
+    "!**/*.stories.*",
+    "!**/*.tsbuildinfo"
   ],
   "bin": {
-    "svs-validate": "./src/format/cli/svs-validate.ts",
-    "svs-convert": "./src/format/cli/svs-convert.ts",
-    "svs-print-schema": "./src/format/cli/svs-print-schema.ts"
+    "svs-validate": "./lib/format/cli/svs-validate.js",
+    "svs-convert": "./lib/format/cli/svs-convert.js",
+    "svs-print-schema": "./lib/format/cli/svs-print-schema.js"
   },
   "scripts": {
+    "build": "tsc -b",
     "test": "vitest run",
     "test:slow": "vitest run --config vitest.slow.config.ts",
     "test:full": "vitest run && vitest run --config vitest.slow.config.ts && vitest run --config vitest.heap.config.ts",
     "test:heap": "vitest run --config vitest.heap.config.ts",
     "bench": "vitest bench --run --passWithNoTests --config vitest.bench.config.ts",
-    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.query.json"
+    "typecheck": "tsc -b && tsc -p tsconfig.test.json && tsc -p tsconfig.query.json"
+  },
+  "dependencies": {
+    "@molstar/core": "workspace:*",
+    "@molstar/io": "workspace:*",
+    "tslib": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
+    "@types/node": "catalog:",
     "rehype-sanitize": "^6.0.0",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
-    "typescript": "^7.0.2",
+    "typescript": "catalog:",
     "unified": "^11.0.5",
-    "vitest": "^4.1.11"
+    "vitest": "catalog:"
   }
 }

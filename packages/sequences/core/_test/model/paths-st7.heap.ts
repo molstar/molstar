@@ -12,9 +12,9 @@
 // the stream manager's pass and its draws read it. The positive control is the template's: the same step with a leak.
 
 import { describe, expect, it } from "vitest";
-import { type CoordinateSystem, Mappings, type PathStep, Paths, SeqSets } from "../../src/model/index.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
-import { gene as dmd } from "./support/generators.ts";
+import { type CoordinateSystem, Mappings, type PathStep, Paths, SeqSets } from "../../src/model/index.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { gene as dmd } from "./support/generators.js";
 
 const N = 250_000;
 const MASK = 0xfffff;

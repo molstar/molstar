@@ -13,7 +13,7 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { case9 } from "../../core/_test/format/cases.ts";
+import { case9 } from "../../core/_test/format/cases.js";
 import {
   type ColorsDrill,
   groupTitle,
@@ -22,20 +22,20 @@ import {
   legendShownGroups,
   schemeItems,
   trackMenu,
-} from "../src/chrome.ts";
+} from "../src/chrome.js";
 import {
   createSeqViewer,
   KernelRenderers,
   type LayerRenderer,
   SeqViewerConfig,
   type SeqViewerContext,
-} from "../src/index.ts";
-import { headerLegend } from "../src/legend.ts";
-import { StarsFormat, StarsRenderer } from "../src/testing/index.ts";
-import { SizeUnit } from "../src/themes.ts";
-import { starsDoc } from "./conformance-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
-import { distinctDoc, kindsDoc } from "./legend-fixtures.ts";
+} from "../src/index.js";
+import { headerLegend } from "../src/legend.js";
+import { StarsFormat, StarsRenderer } from "../src/testing/index.js";
+import { SizeUnit } from "../src/themes.js";
+import { starsDoc } from "./conformance-fixtures.js";
+import { opened } from "./layout-fixtures.js";
+import { distinctDoc, kindsDoc } from "./legend-fixtures.js";
 
 const K = { renderers: [...KernelRenderers] };
 const STARS = { renderers: [...KernelRenderers, StarsRenderer as LayerRenderer], registry: [{ svs: StarsFormat }] };

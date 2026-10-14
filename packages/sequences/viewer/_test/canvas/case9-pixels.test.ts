@@ -16,10 +16,10 @@
 
 import { describe, expect, it } from "vitest";
 import { commands } from "vitest/browser";
-import { case9 } from "../../../core/_test/format/cases.ts";
-import { fixtureLoaders, MolstarFixture } from "../../../core/_test/format/load-fixtures.ts";
-import { mountSection } from "../../src/canvas/index.ts";
-import { createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from "../../src/index.ts";
+import { case9 } from "../../../core/_test/format/cases.js";
+import { fixtureLoaders, MolstarFixture } from "../../../core/_test/format/load-fixtures.js";
+import { mountSection } from "../../src/canvas/index.js";
+import { createSeqViewer, DefaultSeqViewerSpec, manualScheduler } from "../../src/index.js";
 import recorded from "./case9-pixels.json";
 
 // biome-ignore lint/suspicious/noExplicitAny: the surface is read through its canvases.

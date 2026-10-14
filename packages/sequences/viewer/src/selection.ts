@@ -32,9 +32,9 @@ import {
   type SeqSet,
   SortedArray,
 } from "@molstar/seq-core/model";
-import { carry, type SeqLociAny } from "./lineage.ts";
-import { type Coordinates, isCoordinates, type Projector } from "./projection.ts";
-import { live, type Origin, type SeqState, state, type WritableLive, type WritableSeqState } from "./state.ts";
+import { carry, type SeqLociAny } from "./lineage.js";
+import { type Coordinates, isCoordinates, type Projector } from "./projection.js";
+import { live, type Origin, type SeqState, state, type WritableLive, type WritableSeqState } from "./state.js";
 
 export interface Selection {
   readonly version: number;

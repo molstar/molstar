@@ -13,16 +13,16 @@
 
 import type { Closure } from "@molstar/seq-core/format";
 import type { TeardownLogic } from "rxjs";
-import { type BehaviorHandle, type SeqBehaviorProvider, SeqBehaviors } from "./behaviors.ts";
-import type { SeqViewerContext } from "./context.ts";
-import { DefaultHeaderHoverParams, type HeaderHoverParams } from "./header-hover.ts";
-import { type Hit, HitRegion, HoverKind } from "./hit.ts";
-import { DragPhase, type InputDispatcher, PointerType } from "./input.ts";
-import { RING_WINDOW, ringWindowAt } from "./ring-window.ts";
-import type { Origin, SeqEvent, Unsubscribable } from "./state.ts";
-import type { RowHoverParams } from "./ui.ts";
-import type { Viewport } from "./viewport.ts";
-import { WINDOW_FRAME, WindowKind, WindowPart, windowFrame, windowIdle, windowKind, windowPart } from "./windows.ts";
+import { type BehaviorHandle, type SeqBehaviorProvider, SeqBehaviors } from "./behaviors.js";
+import type { SeqViewerContext } from "./context.js";
+import { DefaultHeaderHoverParams, type HeaderHoverParams } from "./header-hover.js";
+import { type Hit, HitRegion, HoverKind } from "./hit.js";
+import { DragPhase, type InputDispatcher, PointerType } from "./input.js";
+import { RING_WINDOW, ringWindowAt } from "./ring-window.js";
+import type { Origin, SeqEvent, Unsubscribable } from "./state.js";
+import type { RowHoverParams } from "./ui.js";
+import type { Viewport } from "./viewport.js";
+import { WINDOW_FRAME, WindowKind, WindowPart, windowFrame, windowIdle, windowKind, windowPart } from "./windows.js";
 
 export interface BehaviorKit<P> {
   readonly ctx: SeqViewerContext;

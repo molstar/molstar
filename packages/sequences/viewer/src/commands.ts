@@ -39,15 +39,15 @@ import {
   union,
 } from "@molstar/seq-core/format";
 import { Extents, Loci } from "@molstar/seq-core/model";
-import type { SeqViewerContext } from "./context.ts";
-import { defineBehavior, internal } from "./default-behaviors.ts";
-import type { HighlightStyle } from "./highlight.ts";
-import type { SeqLociAny } from "./lineage.ts";
-import type { Coordinates } from "./projection.ts";
-import type { RangeArgs } from "./refs.ts";
-import type { SeqViewerRegistry } from "./registry.ts";
-import type { Origin } from "./state.ts";
-import type { Viewports } from "./viewport.ts";
+import type { SeqViewerContext } from "./context.js";
+import { defineBehavior, internal } from "./default-behaviors.js";
+import type { HighlightStyle } from "./highlight.js";
+import type { SeqLociAny } from "./lineage.js";
+import type { Coordinates } from "./projection.js";
+import type { RangeArgs } from "./refs.js";
+import type { SeqViewerRegistry } from "./registry.js";
+import type { Origin } from "./state.js";
+import type { Viewports } from "./viewport.js";
 
 /** A command is callable: `cmd(ctx, params)` dispatches it on that context. */
 export interface SeqCommand<T> {

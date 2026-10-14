@@ -12,11 +12,11 @@
 // as its target).
 
 import { describe, expect, it } from "vitest";
-import { case13 } from "../../core/_test/format/cases.ts";
-import { trackMenu } from "../src/chrome.ts";
-import { createHoverCard, HOVER_CARD_GRACE_MS } from "../src/hover-card.ts";
-import { type ActionEntry, Hit, HoverKind, type ItemTarget, SeqViewerConfig } from "../src/index.ts";
-import { opened } from "./layout-fixtures.ts";
+import { case13 } from "../../core/_test/format/cases.js";
+import { trackMenu } from "../src/chrome.js";
+import { createHoverCard, HOVER_CARD_GRACE_MS } from "../src/hover-card.js";
+import { type ActionEntry, Hit, HoverKind, type ItemTarget, SeqViewerConfig } from "../src/index.js";
+import { opened } from "./layout-fixtures.js";
 
 const SECTION = "features.main";
 const ran: ItemTarget[] = [];

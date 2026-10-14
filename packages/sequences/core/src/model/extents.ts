@@ -10,11 +10,11 @@
 // start, stop), half-open, which may repeat. Beside `CoordinateMap` since VW5 (TR1 had it in translate): the projection
 // core (the format's `resolve/project.ts`) and `translate` read this one declaration.
 
-import { Annotations } from "./annotation.ts";
-import { type CoordinateSystem, CoordinateSystemKind as K } from "./coordinates.ts";
-import type { ItemLoci, Loci } from "./loci.ts";
-import { OrderedSet } from "./ordered-set.ts";
-import type { SeqSet } from "./set.ts";
+import { Annotations } from "./annotation.js";
+import { type CoordinateSystem, CoordinateSystemKind as K } from "./coordinates.js";
+import type { ItemLoci, Loci } from "./loci.js";
+import { OrderedSet } from "./ordered-set.js";
+import type { SeqSet } from "./set.js";
 
 export interface Extents {
   count: number;

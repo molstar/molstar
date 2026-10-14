@@ -13,7 +13,7 @@
 // row ends only with `verticalZoom`), and the grips a part lights. The gestures that drive them are IN2's.
 
 import { describe, expect, it } from "vitest";
-import { AxisGeometry, SectionAxisView } from "../src/axis.ts";
+import { AxisGeometry, SectionAxisView } from "../src/axis.js";
 import {
   windowEnds as ends,
   gripsLit,
@@ -26,8 +26,8 @@ import {
   windowFrame,
   windowPart,
   windowRect,
-} from "../src/windows.ts";
-import { axisOf, blocksDoc, resolved } from "./axis-fixtures.ts";
+} from "../src/windows.js";
+import { axisOf, blocksDoc, resolved } from "./axis-fixtures.js";
 
 /** A frame over a span [x0, x0 + w) × [y0, y0 + h) with window fractions along x and y. */
 function frame(x0: number, w: number, fx: [number, number], y0 = 0, h = 100, fy: [number, number] = [0, 1]) {

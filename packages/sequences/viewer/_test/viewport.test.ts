@@ -20,8 +20,8 @@ import {
   type SeqIssue,
   SeqViewerConfig,
   type SeqViewerContext,
-} from "../src/index.ts";
-import { type Viewport, Viewports } from "../src/viewport.ts";
+} from "../src/index.js";
+import { type Viewport, Viewports } from "../src/viewport.js";
 import {
   axisOf,
   blocksDoc,
@@ -34,7 +34,7 @@ import {
   setPiece,
   vp,
   WIDTH,
-} from "./axis-fixtures.ts";
+} from "./axis-fixtures.js";
 
 const MODES = ["keepCenter", "fit"] as const;
 const versionOf = (v: Viewport) => v.live.version.value;

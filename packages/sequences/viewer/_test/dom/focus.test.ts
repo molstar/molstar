@@ -13,10 +13,10 @@
 // node that goes lands focus on the next of its group, the previous, the section's surface.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as D from "../../src/dom/index.ts";
+import * as D from "../../src/dom/index.js";
 import "../../src/skin.css";
-import type { SeqViewerContext } from "../../src/index.ts";
-import { at, flush, keys, openedContext, pointer, stubSurface, WIDTH, xOf } from "./fixtures.ts";
+import type { SeqViewerContext } from "../../src/index.js";
+import { at, flush, keys, openedContext, pointer, stubSurface, WIDTH, xOf } from "./fixtures.js";
 
 const cleanups: (() => void)[] = [];
 afterEach(() => {

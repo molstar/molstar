@@ -23,11 +23,11 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 async function setup() {
   vi.resetModules();
-  const { composed, recording, COPY_BACK } = await import("./composer-fixtures.ts");
+  const { composed, recording, COPY_BACK } = await import("./composer-fixtures.js");
   const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
   const b = createSeqViewSpec();
   const a = b.data.sequence({ ref: "a", value: "MKVLATGHEKWRSPQIDNCY".repeat(100) });

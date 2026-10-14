@@ -21,7 +21,7 @@ import {
   renderIssue,
 } from "@molstar/seq-core/query";
 import { describe, expect, it, vi } from "vitest";
-import { Extents, Loci, OrderedSet, type SeqIndex, type SeqLoci, SeqSets, type UnitId } from "../../src/model/index.ts";
+import { Extents, Loci, OrderedSet, type SeqIndex, type SeqLoci, SeqSets, type UnitId } from "../../src/model/index.js";
 import {
   compileQuery,
   createQueryEnv,
@@ -29,10 +29,10 @@ import {
   type QueryOptions,
   SelectionBuilder,
   SeqSelection,
-} from "../../src/model/query/index.ts";
-import { queryFixture, REFS } from "./query-fixtures.ts";
-import { groupsOf, Oracle, OracleError } from "./query-oracle.ts";
-import { prng } from "./support/generators.ts";
+} from "../../src/model/query/index.js";
+import { queryFixture, REFS } from "./query-fixtures.js";
+import { groupsOf, Oracle, OracleError } from "./query-oracle.js";
+import { prng } from "./support/generators.js";
 
 const { set } = SeqSets.build(queryFixture());
 const ENV = createQueryEnv();

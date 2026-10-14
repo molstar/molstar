@@ -9,7 +9,7 @@
 // The container BigWig and BigBed share (README, "BigWig and BigBed"): the header, the chromosome tree, the R-tree that
 // finds the data blocks of a region, and the blocks' inflate. What a block holds is the format's (bigwig.ts, bigbed.ts).
 
-import { cstring, inflate, type RangeReader, u64, view } from "./ranges.ts";
+import { cstring, inflate, type RangeReader, u64, view } from "./ranges.js";
 
 const MAGIC = { bigwig: 0x888ffc26, bigbed: 0x8789f2eb } as const;
 const CHROM_TREE = 0x78ca8c91;

@@ -24,7 +24,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 /** 1,000 steps: they catch about 22 bytes a step, the trimmed 500 about 43 (heap.ts). */
 const N = 1_000;
@@ -44,10 +44,10 @@ const guard = (frame: () => void) => {
 
 /** A 600-residue sequence with its repeat every 150: the grid's 360,000 cells and the matches' segments. */
 async function plot() {
-  const { dotPlotDoc, REPEAT } = await import("./dot-plot-fixtures.ts");
-  const { lit } = await import("./overlay-fixtures.ts");
-  const { recording } = await import("./composer-fixtures.ts");
-  const { Dirty } = await import("../src/draw/index.ts");
+  const { dotPlotDoc, REPEAT } = await import("./dot-plot-fixtures.js");
+  const { lit } = await import("./overlay-fixtures.js");
+  const { recording } = await import("./composer-fixtures.js");
+  const { Dirty } = await import("../src/draw/index.js");
   const seq = Array.from({ length: 20 }, (_, k) => (k % 5 === 4 ? "GSGSGSGSGSGSGSGSGSGSGSGSGSGSGS" : REPEAT)).join("");
   const t = await lit(dotPlotDoc(seq), { width: 900, height: 600, dpr: 2 });
   t.ctx.behaviors.get("hoverLabel")?.remove();
@@ -75,7 +75,7 @@ async function plot() {
     j++;
     t.overlay(be);
   };
-  const { Op } = await import("../src/testing/index.ts");
+  const { Op } = await import("../src/testing/index.js");
   /** The images the last frame drew. */
   const images = () => {
     let n = 0;
@@ -87,10 +87,10 @@ async function plot() {
 
 /** 2,400 residues, its grid one Float32Array, zoomed out to 0.45 px a cell (level 2 or past it), two pans. */
 async function zoomedOut() {
-  const { dotPlotDoc } = await import("./dot-plot-fixtures.ts");
-  const { lit } = await import("./overlay-fixtures.ts");
-  const { recording } = await import("./composer-fixtures.ts");
-  const { Dirty } = await import("../src/draw/index.ts");
+  const { dotPlotDoc } = await import("./dot-plot-fixtures.js");
+  const { lit } = await import("./overlay-fixtures.js");
+  const { recording } = await import("./composer-fixtures.js");
+  const { Dirty } = await import("../src/draw/index.js");
   const t = await lit(dotPlotDoc("MKTAYIAKQR".repeat(240), true), { width: 900, height: 600, dpr: 1 });
   const be = recording();
   let i = 0;
@@ -119,7 +119,7 @@ describe("the dot plot allocates nothing per frame", () => {
     const g = await zoomedOut();
     g.draw();
     g.draw();
-    const { Op } = await import("../src/testing/index.ts");
+    const { Op } = await import("../src/testing/index.js");
     let images = 0;
     for (let k = 0; k < g.be.opCount; k++) if (g.be.ops[4 * k] === Op.image) images++;
     expect(images).toBeGreaterThan(0);

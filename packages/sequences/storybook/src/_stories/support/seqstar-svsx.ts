@@ -12,8 +12,8 @@
 import { bundleUris, writeSvsx } from "@molstar/seq-core/builder/svsx";
 import { archiveLoaders, compile, readSvsx, type Svsx, toJSON } from "@molstar/seq-core/format";
 import fixtureUrl from "../../../../core/_test/format/fixtures/kinase.svsx?url";
-import { absoluteDoc, fixtureFetch, SVSX_FILES } from "../../../../core/_test/format/svsx-fixture.ts";
-import { type CompiledCase, reg } from "./seqstar-cases";
+import { absoluteDoc, fixtureFetch, SVSX_FILES } from "../../../../core/_test/format/svsx-fixture.js";
+import { type CompiledCase, reg } from "./seqstar-cases.js";
 
 const refuse = {
   async load(): Promise<Uint8Array> {

@@ -24,7 +24,7 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 /** A column prepared: per alignment row its annotation row (-1: none); per annotation row its text, number and color. */
 export interface ColumnState {

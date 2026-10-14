@@ -10,11 +10,11 @@
 // any other, in every table form and through `fields` (seqspec:format#annotation-tables).
 import { Annotations } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { compile } from "../../src/format/index.ts";
-import { KernelFormats, tableColumns } from "../../src/format/load/formats.ts";
-import { renameFields, typeColumns } from "../../src/format/tables/table.ts";
-import { CASES } from "./cases.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+import { compile } from "../../src/format/index.js";
+import { KernelFormats, tableColumns } from "../../src/format/load/formats.js";
+import { renameFields, typeColumns } from "../../src/format/tables/table.js";
+import { CASES } from "./cases.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 /** The key, read as data (a literal `.__proto__` would read the prototype). */
 const PROTO = "__proto__";

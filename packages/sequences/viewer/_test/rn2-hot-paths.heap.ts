@@ -15,8 +15,8 @@
 // draws.heap.ts says why: Maglev and the module runner).
 
 import { describe, expect, it, vi } from "vitest";
-import type { LayerRenderer } from "../src/index.ts";
-import { controlCaught, describeScaling, FRAME_N, FRAME_WARM, heapScaling, isFlat, leaking } from "./heap.ts";
+import type { LayerRenderer } from "../src/index.js";
+import { controlCaught, describeScaling, FRAME_N, FRAME_WARM, heapScaling, isFlat, leaking } from "./heap.js";
 
 const N = FRAME_N;
 const WARM = FRAME_WARM;
@@ -52,11 +52,11 @@ const CASES: Case[] = [
 
 async function run(c: Case, heap = guard) {
   vi.resetModules();
-  const { KernelRenderers } = await import("../src/index.ts");
-  const { rendererConformance } = await import("../src/testing/index.ts");
-  const { opened } = await import("./layout-fixtures.ts");
-  const fx = await import("./rn2-fixtures.ts");
-  const { asText } = await import("./conformance-fixtures.ts");
+  const { KernelRenderers } = await import("../src/index.js");
+  const { rendererConformance } = await import("../src/testing/index.js");
+  const { opened } = await import("./layout-fixtures.js");
+  const fx = await import("./rn2-fixtures.js");
+  const { asText } = await import("./conformance-fixtures.js");
   const { OrderedSet } = await import("@molstar/seq-core/model");
   const make = {
     "points, raw": () => fx.densityDoc(),
@@ -113,10 +113,10 @@ describe("RN2's hot paths allocate nothing after warm-up", () => {
 
   it("pairs: the hit over a grid of fractional points beside one long pair", async () => {
     vi.resetModules();
-    const { KernelRenderers, Hit } = await import("../src/index.ts");
-    const { opened } = await import("./layout-fixtures.ts");
-    const { layerOf, entryOf } = await import("./draw-fixtures.ts");
-    const { pairsDoc } = await import("./rn2-fixtures.ts");
+    const { KernelRenderers, Hit } = await import("../src/index.js");
+    const { opened } = await import("./layout-fixtures.js");
+    const { layerOf, entryOf } = await import("./draw-fixtures.js");
+    const { pairsDoc } = await import("./rn2-fixtures.js");
     const t = await opened(pairsDoc(), { renderers: [...KernelRenderers] as LayerRenderer[] });
     const { section } = layerOf(t.ctx, "Contacts");
     t.ctx.viewports.get(section)?.setView(4, 4 * 15_000, "api");
@@ -133,12 +133,12 @@ describe("RN2's hot paths allocate nothing after warm-up", () => {
 
   it("pairs: the overlay's lit pairs through the channels' runs and the end index", async () => {
     vi.resetModules();
-    const { KernelRenderers } = await import("../src/index.ts");
-    const { litPairs, MarkBit } = await import("../src/draw/api.ts");
-    const { MarkSet } = await import("../src/marks.ts");
-    const { opened } = await import("./layout-fixtures.ts");
-    const { layerOf } = await import("./draw-fixtures.ts");
-    const { pairsDoc } = await import("./rn2-fixtures.ts");
+    const { KernelRenderers } = await import("../src/index.js");
+    const { litPairs, MarkBit } = await import("../src/draw/api.js");
+    const { MarkSet } = await import("../src/marks.js");
+    const { opened } = await import("./layout-fixtures.js");
+    const { layerOf } = await import("./draw-fixtures.js");
+    const { pairsDoc } = await import("./rn2-fixtures.js");
     const t = await opened(pairsDoc(), { renderers: [...KernelRenderers] as LayerRenderer[] });
     const { k, section } = layerOf(t.ctx, "Contacts");
     const st = t.ctx.graph.assembled.value?.view?.prepared[k].state as never;

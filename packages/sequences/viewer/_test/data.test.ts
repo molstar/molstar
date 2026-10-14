@@ -13,9 +13,9 @@
 import type { Op, SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { type AnnotationInput, type SeqSet, SeqSets, type SetInput } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { dataKeys } from "../src/data.ts";
-import type { SeqIssue, SeqViewerContext } from "../src/index.ts";
-import { patch, smallDoc, viewer } from "./graph-fixtures.ts";
+import { dataKeys } from "../src/data.js";
+import type { SeqIssue, SeqViewerContext } from "../src/index.js";
+import { patch, smallDoc, viewer } from "./graph-fixtures.js";
 
 const hide = (ref: string): Op => ({ op: "set", ref, params: { hidden: true } });
 const ranges = (key: string, target: string, start = 0): AnnotationInput => ({

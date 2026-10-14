@@ -12,7 +12,7 @@
 
 import type { DataBuilder, NodeHandle } from "@molstar/seq-core/builder";
 import type { ThemeRef } from "@molstar/seq-core/format";
-import { type KindName, KindStyle, Kinds } from "./vocabulary.ts";
+import { type KindName, KindStyle, Kinds } from "./vocabulary.js";
 
 export type InteractionRef = string | NodeHandle;
 export interface FingerprintParams {

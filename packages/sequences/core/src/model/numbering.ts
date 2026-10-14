@@ -8,8 +8,8 @@
 
 // Numberings (seqspec:model#numberings): labels for the positions of a molecule or a unit; positions are indices.
 
-import { CustomData, Issue, type NameId, type SeqIndex, type StringTable } from "./common.ts";
-import { SortedArray } from "./ordered-set.ts";
+import { CustomData, Issue, type NameId, type SeqIndex, type StringTable } from "./common.js";
+import { SortedArray } from "./ordered-set.js";
 
 /** An unlabeled position in a `labels` numbering. */
 export const NO_LABEL = -2147483648;

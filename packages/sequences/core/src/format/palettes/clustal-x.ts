@@ -21,8 +21,8 @@
  * is checked before C's hydrophobic rule, or it could never apply (C is in the hydrophobic group).
  */
 
-import { Color } from "./color.ts";
-import { AminoGroupColors as G } from "./dictionaries.ts";
+import { Color } from "./color.js";
+import { AminoGroupColors as G } from "./dictionaries.js";
 
 const HYDROPHOBIC = "WLVIMAFCYHP";
 

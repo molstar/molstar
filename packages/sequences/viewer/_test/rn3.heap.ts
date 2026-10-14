@@ -27,7 +27,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = FRAME_N;
 const WARM = FRAME_WARM;
@@ -52,31 +52,31 @@ describe("RN3's hot paths allocate nothing per frame after warm-up", () => {
     for (const labels of [false, true])
       it(`the navigator, ${stacked ? "stacked in lanes" : "side by side"}, ${labels ? "labels" : "hairline"}`, async () => {
         vi.resetModules();
-        const { navigatorFrame } = await import("./rn3-fixtures.ts");
+        const { navigatorFrame } = await import("./rn3-fixtures.js");
         expect(guard(await navigatorFrame(stacked, labels))).toBe("");
       }, 120_000);
   for (const remote of [false, true])
     it(`the rows' tiles, ${remote ? "from the region cache" : "held rows"}`, async () => {
       vi.resetModules();
-      const { rowsFrame } = await import("./rn3-fixtures.ts");
+      const { rowsFrame } = await import("./rn3-fixtures.js");
       expect(guard(await rowsFrame(remote))).toBe("");
     }, 120_000);
   it("the rows' tiles, held rows, an object allocated a frame (the positive control)", async () => {
     vi.resetModules();
-    const { rowsFrame } = await import("./rn3-fixtures.ts");
+    const { rowsFrame } = await import("./rn3-fixtures.js");
     const frame = await rowsFrame(false);
     expect(controlCaught(() => measure(leaking(frame)))).toBe(true);
   }, 120_000);
   for (const kind of ["single", "dense", "remote"] as const)
     it(`the rows' own draws, ${kind}: cells, gaps, letters, gutters, the tree and the data columns`, async () => {
       vi.resetModules();
-      const { rowsDrawFrame } = await import("./rn3-fixtures.ts");
+      const { rowsDrawFrame } = await import("./rn3-fixtures.js");
       expect(guard(await rowsDrawFrame(kind))).toBe("");
     }, 120_000);
   for (const bare of [false, true])
     it(`a pan's composer frames, ${bare ? "no track in miniature" : "seqv:map and the navigator's map"}: images kept`, async () => {
       vi.resetModules();
-      const { mapFrame } = await import("./rn3-fixtures.ts");
+      const { mapFrame } = await import("./rn3-fixtures.js");
       const { frame } = await mapFrame(bare);
       expect(guard(frame)).toBe("");
     }, 120_000);

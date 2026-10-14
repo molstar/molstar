@@ -11,9 +11,9 @@
 // kind, id, row; then start), disjoint, merged where they touch. The kernels work on runs, never per position, and
 // allocate nothing.
 
-import { CoordinateSystemKind as K } from "../coordinates.ts";
-import type { SeqSet } from "../set.ts";
-import type { SeqSelection } from "./selection.ts";
+import { CoordinateSystemKind as K } from "../coordinates.js";
+import type { SeqSet } from "../set.js";
+import type { SeqSelection } from "./selection.js";
 
 /** What a builder reports to: the context's limits (runs, groups) and its clock, read every 1,024 runs. */
 export interface BuildGuard {

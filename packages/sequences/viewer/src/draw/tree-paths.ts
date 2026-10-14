@@ -12,9 +12,9 @@
 // subpath and a filled triangle per wedge, in device px. Lines are a whole number of device px wide, centered on device
 // px, so a copied band equals a redraw. Batches owned and handed over once.
 
-import { firstByY, lastConn, layoutTree, TREE_INSET, TREE_LEFT, TREE_RIGHT, TreeNode, type TreeRows } from "../tree.ts";
-import { PathBatch, PathMode, PathVerb, SkinToken } from "./backend.ts";
-import type { DrawView } from "./view.ts";
+import { firstByY, lastConn, layoutTree, TREE_INSET, TREE_LEFT, TREE_RIGHT, TreeNode, type TreeRows } from "../tree.js";
+import { PathBatch, PathMode, PathVerb, SkinToken } from "./backend.js";
+import type { DrawView } from "./view.js";
 
 const paths = new PathBatch(32);
 /** A segment's ends (x0, y0, x1, y1), device px: a double passed to a call is boxed. */

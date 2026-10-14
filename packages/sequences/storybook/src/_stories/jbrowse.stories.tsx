@@ -20,13 +20,13 @@ import { SeqCommands, SeqViewerConfig } from "@molstar/seq-viewer";
 import { useLiveVersion, useSeqViewer } from "@molstar/seq-viewer/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useMemo, useState } from "react";
-import { GRCH38 } from "../../../core/_test/format/stream-provider.ts";
-import { JBROWSE_SECTION, jbrowseDoc } from "../../../viewer/_test/jbrowse-story-fixtures.ts";
+import { GRCH38 } from "../../../core/_test/format/stream-provider.js";
+import { JBROWSE_SECTION, jbrowseDoc } from "../../../viewer/_test/jbrowse-story-fixtures.js";
 import f from "./support/seqstar-format.module.css";
-import { IDEOGRAM_REGISTRY } from "./support/seqstar-ideogram";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard } from "./support/seqstar-viewer";
-import { TextAction } from "./ui";
+import { IDEOGRAM_REGISTRY } from "./support/seqstar-ideogram.js";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard } from "./support/seqstar-viewer.js";
+import { TextAction } from "./ui/index.js";
 
 /**
  * The genome browser demo: hg38 as JBrowse 2's own demo serves it, read **live**

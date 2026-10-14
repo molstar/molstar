@@ -10,7 +10,7 @@
 // and its block lists by binary search, so a region of chr1 does not read its 200,000 mask blocks.
 
 import { type DataPatch, StreamNotServed, type StreamProvider, type StreamRequest } from "@molstar/seq-core/format";
-import { join, live, once, paged, type RangeReader, type Shared, share, view } from "./ranges.ts";
+import { join, live, once, paged, type RangeReader, type Shared, share, view } from "./ranges.js";
 
 const SIGNATURE = 0x1a412743;
 const BASES = "TCAG"; // codes 0..3

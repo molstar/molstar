@@ -12,9 +12,9 @@
 // leak.
 
 import { describe, expect, it } from "vitest";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../../core/_test/model/heap.ts";
-import { layLabels } from "../src/labels.ts";
-import { labels, layout, measure, N, view } from "./labels-heap-fixture.ts";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../../core/_test/model/heap.js";
+import { layLabels } from "../src/labels.js";
+import { labels, layout, measure, N, view } from "./labels-heap-fixture.js";
 
 describe("the label layer allocates nothing per frame", () => {
   it("layLabels at an unchanged view: laid, compared, nothing written", () => {

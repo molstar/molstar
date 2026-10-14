@@ -11,10 +11,10 @@
 // track header's tooltip (`headerLegend`, through the hover's label). Edge-rate: computed when the view changes, never
 // per frame or hover.
 
-import { NO_COLOR } from "./draw/backend.ts";
-import type { ViewModel } from "./graph.ts";
-import type { SeqViewerRegistry } from "./registry.ts";
-import type { LegendSink } from "./themes.ts";
+import { NO_COLOR } from "./draw/backend.js";
+import type { ViewModel } from "./graph.js";
+import type { SeqViewerRegistry } from "./registry.js";
+import type { LegendSink } from "./themes.js";
 
 export interface LegendItem {
   readonly label: string;

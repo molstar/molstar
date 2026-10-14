@@ -1,6 +1,16 @@
 {
   "extends": "../../../tsconfig.base.json",
-  // Typed arrays everywhere: their index reads are numbers, as in Mol*, not number | undefined. DOM for mount.ts.
-  "compilerOptions": { "noUncheckedIndexedAccess": false, "types": ["node"], "lib": ["ES2023", "DOM", "DOM.Iterable"] },
-  "include": ["src", "_test", "bench"]
+  // The build. Typed arrays everywhere: their index reads are numbers, as in Mol*, not number | undefined. DOM for mount.ts.
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "exclude": ["src/**/_test/**", "src/**/_stories/**", "src/**/*.stories.ts", "src/**/*.stories.tsx"],
+  "references": [{ "path": "../core" }]
 }

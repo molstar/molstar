@@ -14,15 +14,15 @@
 // SVG side (SV1a): the recording and the SVG backend see the same calls.
 
 import { describe, expect, it } from "vitest";
-import { case6 } from "../../../core/_test/format/cases.ts";
-import { KernelRenderers, type LayerRenderer } from "../../src/index.ts";
-import { InteractionsRegistry } from "../../src/interactions/index.ts";
-import { FingerprintRenderer, InteractionsViewerRegistry } from "../../src/interactions/viewer/index.ts";
-import { DefaultPresets } from "../../src/presets.ts";
-import { type ConformanceFixtures, rendererConformance } from "../../src/testing/index.ts";
-import { asText, directed, ringed } from "../conformance-fixtures.ts";
-import { opened } from "../layout-fixtures.ts";
-import { ShortFingerprint } from "./scenes.ts";
+import { case6 } from "../../../core/_test/format/cases.js";
+import { KernelRenderers, type LayerRenderer } from "../../src/index.js";
+import { InteractionsRegistry } from "../../src/interactions/index.js";
+import { FingerprintRenderer, InteractionsViewerRegistry } from "../../src/interactions/viewer/index.js";
+import { DefaultPresets } from "../../src/presets.js";
+import { type ConformanceFixtures, rendererConformance } from "../../src/testing/index.js";
+import { asText, directed, ringed } from "../conformance-fixtures.js";
+import { opened } from "../layout-fixtures.js";
+import { ShortFingerprint } from "./scenes.js";
 
 /** The built-in `circular` preset beside the fixture presets: sections on rings. */
 const RINGS = { presets: DefaultPresets.filter((p) => p.name === "circular") };

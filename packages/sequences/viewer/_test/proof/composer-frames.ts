@@ -20,19 +20,19 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { afterAll, beforeAll, expect } from "vitest";
-import type { ComposerStats, RenderBackend } from "../../src/draw/index.ts";
-import type { SeqViewerContext } from "../../src/index.ts";
+import type { ComposerStats, RenderBackend } from "../../src/draw/index.js";
+import type { SeqViewerContext } from "../../src/index.js";
 
 /**
  * The viewer's modules, imported in `beforeAll`: after the test file's own `vi.mock`s are registered, so a test that
  * mocks a module the composer reads draws mocked under the proof too (LC-44).
  */
 let m: {
-  draw: typeof import("../../src/draw/index.ts");
-  rings: typeof import("../../src/draw/ring-labels.ts");
-  root: typeof import("../../src/index.ts");
-  testing: typeof import("../../src/testing/index.ts");
-  svg: typeof import("../../src/svg/backend.ts");
+  draw: typeof import("../../src/draw/index.js");
+  rings: typeof import("../../src/draw/ring-labels.js");
+  root: typeof import("../../src/index.js");
+  testing: typeof import("../../src/testing/index.js");
+  svg: typeof import("../../src/svg/backend.js");
 };
 
 const OUT = process.env.SEQ_PROOF_OUT;
@@ -127,11 +127,11 @@ type Frame = (this: unknown, be: RenderBackend, flags: number) => void;
 let frame: Frame;
 beforeAll(async () => {
   m = {
-    draw: await import("../../src/draw/index.ts"),
-    rings: await import("../../src/draw/ring-labels.ts"),
-    root: await import("../../src/index.ts"),
-    testing: await import("../../src/testing/index.ts"),
-    svg: await import("../../src/svg/backend.ts"),
+    draw: await import("../../src/draw/index.js"),
+    rings: await import("../../src/draw/ring-labels.js"),
+    root: await import("../../src/index.js"),
+    testing: await import("../../src/testing/index.js"),
+    svg: await import("../../src/svg/backend.js"),
   };
   HIT_KEYS = Object.entries(m.root.Hit.create())
     .filter(([k, v]) => typeof v === "number" && k !== "x" && k !== "y")

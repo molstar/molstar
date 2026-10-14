@@ -11,9 +11,9 @@
 // releases.
 
 import { Subscription } from "rxjs";
-import type { SeqViewerContext } from "./context.ts";
-import type { PresetEntry } from "./presets.ts";
-import { type SeqState, state, type WritableSeqState } from "./state.ts";
+import type { SeqViewerContext } from "./context.js";
+import type { PresetEntry } from "./presets.js";
+import { type SeqState, state, type WritableSeqState } from "./state.js";
 
 export interface SeqBehaviorProvider<P extends object = object> {
   /** Built-ins bare ("select"); an extension's `<ns>:<name>`. */

@@ -17,7 +17,7 @@ import {
   kernelEntry,
   outlinePoints,
   outlineStreamed,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 export const PointsRenderer = kernelEntry<Features>("points", 20, {
   geometries: ["linear", "wrapped"],

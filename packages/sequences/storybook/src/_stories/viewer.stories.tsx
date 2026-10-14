@@ -13,9 +13,9 @@ import { type RowProps, useLiveVersion, useSeqViewer } from "@molstar/seq-viewer
 import { renderSvg } from "@molstar/seq-viewer/svg";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createContext, Suspense, use, useCallback, useContext, useMemo, useState } from "react";
-import { CASE_TITLES, type CompiledCase, compiledCase, described, hideEmpty } from "./support/seqstar-cases";
-import { PLASMID_RING, PSYN_LENGTH, rotateRing, zoomDetail } from "./support/seqstar-docs-circular";
-import { CODING_PROTEIN } from "./support/seqstar-docs-streamed";
+import { CASE_TITLES, type CompiledCase, compiledCase, described, hideEmpty } from "./support/seqstar-cases.js";
+import { PLASMID_RING, PSYN_LENGTH, rotateRing, zoomDetail } from "./support/seqstar-docs-circular.js";
+import { CODING_PROTEIN } from "./support/seqstar-docs-streamed.js";
 import f from "./support/seqstar-format.module.css";
 import {
   GENOTYPE_DENSITIES,
@@ -25,14 +25,14 @@ import {
   type GenotypeMode,
   genotypeDensityPatch,
   genotypeModePatch,
-} from "./support/seqstar-genotypes";
-import { IDEOGRAM_REGISTRY } from "./support/seqstar-ideogram";
-import { INDEL_SELECTIONS, INDEL_VIEWS, selectCommand } from "./support/seqstar-indels";
-import { storyPatch } from "./support/seqstar-patch";
-import { PrismPage, prism } from "./support/seqstar-prism";
-import { Case18Viewer } from "./support/seqstar-search-part";
-import { ShiftClickChoice, useTextStyle } from "./support/seqstar-text-style";
-import { TRIAGE_MODES, type TriageMode, triagePatch } from "./support/seqstar-triage";
+} from "./support/seqstar-genotypes.js";
+import { IDEOGRAM_REGISTRY } from "./support/seqstar-ideogram.js";
+import { INDEL_SELECTIONS, INDEL_VIEWS, selectCommand } from "./support/seqstar-indels.js";
+import { storyPatch } from "./support/seqstar-patch.js";
+import { PrismPage, prism } from "./support/seqstar-prism.js";
+import { Case18Viewer } from "./support/seqstar-search-part.js";
+import { ShiftClickChoice, useTextStyle } from "./support/seqstar-text-style.js";
+import { TRIAGE_MODES, type TriageMode, triagePatch } from "./support/seqstar-triage.js";
 import {
   BuilderCode,
   type CleanPart,
@@ -40,10 +40,10 @@ import {
   STORY_CHROME,
   ViewerCard,
   type ViewerOptions,
-} from "./support/seqstar-viewer";
+} from "./support/seqstar-viewer.js";
 import vs from "./support/seqstar-viewer.module.css";
-import { type Args, viewerControls } from "./support/seqstar-viewer-args";
-import { Choices, TextAction, Tooltip } from "./ui";
+import { type Args, viewerControls } from "./support/seqstar-viewer-args.js";
+import { Choices, TextAction, Tooltip } from "./ui/index.js";
 
 /**
  * The format's acceptance cases in our viewer: each case's document on the test fixtures, shown by the default React UI

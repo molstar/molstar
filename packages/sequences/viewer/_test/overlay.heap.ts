@@ -26,7 +26,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 const WARM = FRAME_WARM;
@@ -45,7 +45,7 @@ describe("overlay frames allocate nothing after warm-up", () => {
     "hover frames over %s with a selection and a highlight",
     async (kind) => {
       vi.resetModules();
-      const { hoverFrames } = await import("./overlay-fixtures.ts");
+      const { hoverFrames } = await import("./overlay-fixtures.js");
       const { frame, hovers } = await hoverFrames(kind);
       const r = measure(frame);
       expect(isFlat(r), describeScaling(r, N)).toBe(true);
@@ -57,7 +57,7 @@ describe("overlay frames allocate nothing after warm-up", () => {
 
   it("hover frames over rows allocating an object each are caught (positive control)", async () => {
     vi.resetModules();
-    const { hoverFrames } = await import("./overlay-fixtures.ts");
+    const { hoverFrames } = await import("./overlay-fixtures.js");
     const { frame } = await hoverFrames("rows");
     expect(controlCaught(() => measure(leaking(frame)))).toBe(true);
   }, 120_000);

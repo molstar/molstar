@@ -12,9 +12,9 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { Issue } from "@molstar/seq-core/model";
-import type { Documents, Views } from "./document.ts";
-import type { Scheduler } from "./scheduler.ts";
-import { type Origin, type SeqState, state } from "./state.ts";
+import type { Documents, Views } from "./document.js";
+import type { Scheduler } from "./scheduler.js";
+import { type Origin, type SeqState, state } from "./state.js";
 
 export interface SnapshotInfo {
   readonly ref: string;

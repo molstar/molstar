@@ -18,9 +18,9 @@ import {
   type RowIndex,
   type SeqIndex,
   type StringTable,
-} from "./common.ts";
-import { type Alphabet, Molecules, type ResidueCheck } from "./molecule.ts";
-import { NO_LABEL, Numbering, type NumberingSet, type OffsetNumbering } from "./numbering.ts";
+} from "./common.js";
+import { type Alphabet, Molecules, type ResidueCheck } from "./molecule.js";
+import { NO_LABEL, Numbering, type NumberingSet, type OffsetNumbering } from "./numbering.js";
 
 /** The code of a gap in `codes` (`-`). */
 export const GAP = 45;

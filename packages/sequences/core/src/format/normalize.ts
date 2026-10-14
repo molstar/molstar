@@ -17,13 +17,13 @@ import {
   encodeTypedArrays,
   type Issue,
 } from "@molstar/seq-core/model";
-import type { DocNode, SeqViewSpecDoc } from "./doc.ts";
-import type { SvsRegistries } from "./registry.ts";
-import { isPlainObject } from "./schema/field-schema.ts";
-import { normalizeParams } from "./schema/params-schema.ts";
-import type { TreeSchema } from "./schema/tree-schema.ts";
-import { SvsTreeSchema } from "./tables/svs-tree.ts";
-import { checkEnvelope, EnvelopeSchema } from "./validate.ts";
+import type { DocNode, SeqViewSpecDoc } from "./doc.js";
+import type { SvsRegistries } from "./registry.js";
+import { isPlainObject } from "./schema/field-schema.js";
+import { normalizeParams } from "./schema/params-schema.js";
+import type { TreeSchema } from "./schema/tree-schema.js";
+import { SvsTreeSchema } from "./tables/svs-tree.js";
+import { checkEnvelope, EnvelopeSchema } from "./validate.js";
 
 /** Every default filled; idempotent. Unknown kinds, cases and namespaces are kept as they are. */
 export function normalize(doc: SeqViewSpecDoc, reg: SvsRegistries, schema: TreeSchema = SvsTreeSchema): SeqViewSpecDoc {

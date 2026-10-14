@@ -15,9 +15,9 @@
 // and the set untouched; and the values renderer draws the regions (`renderSvg` awaiting them).
 
 import { describe, expect, it } from "vitest";
-import { GRCH38, hg38Streams } from "../../core/_test/format/stream-provider.ts";
-import { RegionState, SeqViewerConfig } from "../src/index.ts";
-import { renderSvg } from "../src/svg/index.ts";
+import { GRCH38, hg38Streams } from "../../core/_test/format/stream-provider.js";
+import { RegionState, SeqViewerConfig } from "../src/index.js";
+import { renderSvg } from "../src/svg/index.js";
 import {
   CacheBytes,
   GENOME,
@@ -26,7 +26,7 @@ import {
   openGenome,
   type StreamedGenome,
   streamedDoc,
-} from "./stream-fixtures.ts";
+} from "./stream-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 /** Three chromosomes of GRCh38's lengths: the manager's logic at full size, fewer blocks to read. */
@@ -337,7 +337,7 @@ describe("a patch the region cannot take backs off as a failure (LA-04)", () => 
 
 describe("a provider whose fetch throws (VT-05)", () => {
   it("fails the region as a rejection would: the pass completes, the slot is freed, it loads once the provider recovers", async () => {
-    const { opened, preparedRenderers } = await import("./layout-fixtures.ts");
+    const { opened, preparedRenderers } = await import("./layout-fixtures.js");
     const streams = hg38Streams({ chromosomes: THREE });
     let throwing = true;
     const loaders = {
@@ -383,7 +383,7 @@ describe("a provider whose fetch throws (VT-05)", () => {
   });
 
   it("a fetch that returns a plain patch or nothing, not a promise: taken, or failed, the slot freed (LB-21)", async () => {
-    const { opened, preparedRenderers } = await import("./layout-fixtures.ts");
+    const { opened, preparedRenderers } = await import("./layout-fixtures.js");
     for (const plain of [true, false]) {
       const streams = hg38Streams({ chromosomes: THREE });
       const loaders = {

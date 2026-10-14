@@ -13,10 +13,10 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case7, case21 } from "../../core/_test/format/cases.ts";
-import { type PathBatch, PathMode, PathVerb } from "../src/draw/backend.ts";
-import { LayerFrame, RecordingBackend } from "../src/testing/index.ts";
-import { drawn } from "./draw-fixtures.ts";
+import { case7, case21 } from "../../core/_test/format/cases.js";
+import { type PathBatch, PathMode, PathVerb } from "../src/draw/backend.js";
+import { LayerFrame, RecordingBackend } from "../src/testing/index.js";
+import { drawn } from "./draw-fixtures.js";
 
 /** Points along each subpath of a stroked batch: its moves and lines, and 11 along each quad. */
 function points(b: PathBatch): [number, number][] {

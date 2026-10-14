@@ -11,12 +11,12 @@
 // surface that moved, and writing only a change; the pointer's anchor is the pointer, the keyboard's the cursor's cell.
 
 import { afterEach, describe, expect, it } from "vitest";
-import * as D from "../../src/dom/index.ts";
+import * as D from "../../src/dom/index.js";
 import "../../src/skin.css";
-import { placeTooltip, tipSpot } from "../../src/dom/shared.ts";
-import type { SeqViewerContext } from "../../src/index.ts";
-import { cursorRect } from "../../src/keyboard.ts";
-import { at, flush, keys, openedContext, pointer, stubSurface, WIDTH, xOf } from "./fixtures.ts";
+import { placeTooltip, tipSpot } from "../../src/dom/shared.js";
+import type { SeqViewerContext } from "../../src/index.js";
+import { cursorRect } from "../../src/keyboard.js";
+import { at, flush, keys, openedContext, pointer, stubSurface, WIDTH, xOf } from "./fixtures.js";
 
 const cleanups: (() => void)[] = [];
 afterEach(() => {

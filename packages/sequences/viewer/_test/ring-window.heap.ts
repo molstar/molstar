@@ -14,8 +14,8 @@
 // through the same warm-up, settle and measurement, are caught.
 
 import { describe, expect, it } from "vitest";
-import { controlCaught, describeScaling, isFlat, leaking } from "./heap.ts";
-import { measure, run, setup } from "./ring-window-heap-run.ts";
+import { controlCaught, describeScaling, isFlat, leaking } from "./heap.js";
+import { measure, run, setup } from "./ring-window-heap-run.js";
 
 /** A deep guard's steps: the trimmed run's 500 catch about 43 bytes a step, these about 22. */
 const STEPS = 1_000;

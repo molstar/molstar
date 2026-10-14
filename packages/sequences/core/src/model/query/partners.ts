@@ -11,15 +11,15 @@
 // on a molecule with no unit or on an alignment are found by a scan of the pair rows. For every pair passing `:where`
 // (its item) with an end in Q, the other end is returned, when `:side` allows it.
 
-import { type Annotation, Pairs } from "../annotation.ts";
-import type { SeqIndex, UnitId } from "../common.ts";
-import { CoordinateSystemKind as K } from "../coordinates.ts";
-import type { CompileContext, QueryFn } from "./compile.ts";
-import type { QueryContext } from "./context.ts";
-import { eachRun, firstAfter, type SelectionBuilder } from "./kernels.ts";
-import { addTarget, annotationOf, rt, unionOf, Wants, wrongKind } from "./runtime.ts";
-import type { SeqSelection } from "./selection.ts";
-import { unitsOf } from "./systems.ts";
+import { type Annotation, Pairs } from "../annotation.js";
+import type { SeqIndex, UnitId } from "../common.js";
+import { CoordinateSystemKind as K } from "../coordinates.js";
+import type { CompileContext, QueryFn } from "./compile.js";
+import type { QueryContext } from "./context.js";
+import { eachRun, firstAfter, type SelectionBuilder } from "./kernels.js";
+import { addTarget, annotationOf, rt, unionOf, Wants, wrongKind } from "./runtime.js";
+import type { SeqSelection } from "./selection.js";
+import { unitsOf } from "./systems.js";
 
 const WHOLE = 0x7fffffff;
 /** The run in progress: per (row, side) the epoch it was touched in; per row the epoch its test ran in, and its result. */

@@ -7,6 +7,6 @@
  */
 
 import { defineConfig } from "vitest/config";
-import { heapTests } from "../vitest.shared.ts";
+import { heapTests } from "../vitest.shared.js";
 
 export default defineConfig(heapTests());

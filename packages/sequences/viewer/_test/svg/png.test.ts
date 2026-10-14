@@ -13,10 +13,10 @@
 
 import { deflateSync, crc32 as zlibCrc32 } from "node:zlib";
 import { describe, expect, it } from "vitest";
-import { itWithin } from "../../../core/_test/model/timing.ts";
-import { encodePng, MAX_PNG_BYTES } from "../../src/svg/index.ts";
-import { crc32 } from "../../src/svg/png.ts";
-import { decodePng, pixelsOf } from "./png.ts";
+import { itWithin } from "../../../core/_test/model/timing.js";
+import { encodePng, MAX_PNG_BYTES } from "../../src/svg/index.js";
+import { crc32 } from "../../src/svg/png.js";
+import { decodePng, pixelsOf } from "./png.js";
 
 /** Pixels that differ everywhere (a stored block's boundary lands in a different channel of a different pixel). */
 function noise(n: number): Uint32Array {

@@ -9,11 +9,11 @@
 // The browser's pieces for the SVG export (seqspec:viewer#the-render-backend): the `deflate` port over the platform's
 // `CompressionStream`, and `view.exportSvg` registered with it. The `/svg` entry takes both from the host.
 
-import type { ActionEntry } from "../actions.ts";
-import { canvasEmBox } from "../canvas/shared.ts";
-import type { SeqViewerSpec } from "../index.ts";
-import { type ExportSvgOptions, exportSvgAction } from "../svg/index.ts";
-import { downloadSvg } from "./download.ts";
+import type { ActionEntry } from "../actions.js";
+import { canvasEmBox } from "../canvas/shared.js";
+import type { SeqViewerSpec } from "../index.js";
+import { type ExportSvgOptions, exportSvgAction } from "../svg/index.js";
+import { downloadSvg } from "./download.js";
 
 /** The canvas's em boxes (`canvasMeasurer` answers `metrics` with them), here for the export's hosts. */
 export { canvasEmBox };

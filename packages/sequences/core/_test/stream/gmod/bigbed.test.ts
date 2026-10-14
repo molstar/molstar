@@ -12,8 +12,8 @@
 import { readFileSync } from "node:fs";
 import { StreamNotServed } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { CASES, makers, req } from "./cases.ts";
-import { sliceReader } from "./slices.ts";
+import { CASES, makers, req } from "./cases.js";
+import { sliceReader } from "./slices.js";
 
 interface Gene {
   name: string;
@@ -108,7 +108,7 @@ describe("BigBed", () => {
 
 describe("BigBed under a host's naming (ST4b)", () => {
   it("labels items by a named field and takes another as their category, its vocabulary the manifest's", async () => {
-    const { bigBedProvider } = await import("../../../src/stream/gmod/index.ts");
+    const { bigBedProvider } = await import("../../../src/stream/gmod/index.js");
     const types = ["coding", "nonCoding", "pseudo"];
     const p = bigBedProvider(sliceReader("bigbed"), {
       label: "geneName",

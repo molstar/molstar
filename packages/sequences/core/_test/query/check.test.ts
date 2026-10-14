@@ -19,7 +19,7 @@ import {
   Q,
   type QueryError,
   renderIssue,
-} from "../../src/query/index.ts";
+} from "../../src/query/index.js";
 
 const rendered = (text: string, language?: Parameters<typeof checkText>[1]) =>
   checkText(text, language).issues.map(renderIssue);

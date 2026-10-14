@@ -10,12 +10,12 @@ import { SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
 import { renderSvg } from "@molstar/seq-viewer/svg";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { pDemoRuns, plasmid } from "./support/seqstar-docs-views";
+import { pDemoRuns, plasmid } from "./support/seqstar-docs-views.js";
 import f from "./support/seqstar-format.module.css";
-import { PrismCanvas, PrismPage } from "./support/seqstar-prism";
-import { useCaseContext, useStoryUi, ViewerCard } from "./support/seqstar-viewer";
+import { PrismCanvas, PrismPage } from "./support/seqstar-prism.js";
+import { useCaseContext, useStoryUi, ViewerCard } from "./support/seqstar-viewer.js";
 import s from "./support/seqstar-viewer.module.css";
-import { TextAction } from "./ui";
+import { TextAction } from "./ui/index.js";
 
 /**
  * Cyclic coordinate systems: a sequence may be `cyclic`, its

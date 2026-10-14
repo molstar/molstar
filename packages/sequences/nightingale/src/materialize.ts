@@ -41,10 +41,10 @@ import {
   type SeqSet,
   threeLetter,
 } from "@molstar/seq-core/model";
-import { type AxisBlock, type AxisMeta, AxisRuns, AxisSink, axesOf, firstFrom, indexAt, sectionRuns } from "./axis.ts";
-import { type ElementDesc, el } from "./element.ts";
-import { nightingaleIssue } from "./issues.ts";
-import type { StreamedPart, StreamedValues } from "./stream.ts";
+import { type AxisBlock, type AxisMeta, AxisRuns, AxisSink, axesOf, firstFrom, indexAt, sectionRuns } from "./axis.js";
+import { type ElementDesc, el } from "./element.js";
+import { nightingaleIssue } from "./issues.js";
+import type { StreamedPart, StreamedValues } from "./stream.js";
 
 const [FALLBACK, THEME, GLYPH] = ["svs.render.fallback", "svs.render.theme", "svs.render.glyph"];
 /** The letter dictionaries nightingale-msa has a scheme for, and the scheme. */

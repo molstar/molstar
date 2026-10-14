@@ -13,8 +13,8 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { Q } from "@molstar/seq-core/query";
 import { describe, expect, it } from "vitest";
-import { Pass, SkinToken } from "../src/draw/index.ts";
-import { lit, passRects } from "./overlay-fixtures.ts";
+import { Pass, SkinToken } from "../src/draw/index.js";
+import { lit, passRects } from "./overlay-fixtures.js";
 
 async function ring(origin: number) {
   const b = createSeqViewSpec();

@@ -11,9 +11,9 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { pendingSpan } from "../src/draw/dot-plot.ts";
-import { recording } from "./composer-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
+import { pendingSpan } from "../src/draw/dot-plot.js";
+import { recording } from "./composer-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
 
 const N = 4_800_000;
 

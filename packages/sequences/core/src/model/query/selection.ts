@@ -10,15 +10,15 @@
 // group optionally an annotation item; immutable once built (kernels.ts builds it). Its operations are edges: a host's
 // input in, loci, extents and a summary out.
 
-import { type AnnotationInput, Annotations } from "../annotation.ts";
-import type { AnnotationId, ItemIndex, UnitId } from "../common.ts";
-import { CoordinateSystemKind as K } from "../coordinates.ts";
-import { Extents } from "../extents.ts";
-import type { ColumnLoci, ItemLoci, Loci, RowLoci, SeqLoci } from "../loci.ts";
-import { OrderedSet } from "../ordered-set.ts";
-import type { SeqSet } from "../set.ts";
-import { addRuns, liftMolecule, SelectionBuilder, sameSystem } from "./kernels.ts";
-import { domainOf, labelAt, nameOf, numberingOf, unitsOf } from "./systems.ts";
+import { type AnnotationInput, Annotations } from "../annotation.js";
+import type { AnnotationId, ItemIndex, UnitId } from "../common.js";
+import { CoordinateSystemKind as K } from "../coordinates.js";
+import { Extents } from "../extents.js";
+import type { ColumnLoci, ItemLoci, Loci, RowLoci, SeqLoci } from "../loci.js";
+import { OrderedSet } from "../ordered-set.js";
+import type { SeqSet } from "../set.js";
+import { addRuns, liftMolecule, SelectionBuilder, sameSystem } from "./kernels.js";
+import { domainOf, labelAt, nameOf, numberingOf, unitsOf } from "./systems.js";
 
 export interface SeqSelection {
   readonly set: SeqSet;

@@ -12,15 +12,15 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { type Loci, OrderedSet, type SeqSet } from "@molstar/seq-core/model";
-import { Dirty } from "../src/draw/index.ts";
-import { Hit, Inputs, PointerType } from "../src/index.ts";
-import { Op, type RecordingBackend } from "../src/testing/index.ts";
-import { COPY_BACK, type ComposedOptions, composed, recording } from "./composer-fixtures.ts";
-import { directed } from "./conformance-fixtures.ts";
-import { family, rowLoci, seqLoci } from "./overlay-docs.ts";
-import { scaleDoc } from "./prepare-fixtures.ts";
+import { Dirty } from "../src/draw/index.js";
+import { Hit, Inputs, PointerType } from "../src/index.js";
+import { Op, type RecordingBackend } from "../src/testing/index.js";
+import { COPY_BACK, type ComposedOptions, composed, recording } from "./composer-fixtures.js";
+import { directed } from "./conformance-fixtures.js";
+import { family, rowLoci, seqLoci } from "./overlay-docs.js";
+import { scaleDoc } from "./prepare-fixtures.js";
 
-export * from "./overlay-docs.ts";
+export * from "./overlay-docs.js";
 
 /** A recording's rects in pass `pass` as [x, y, w, h, color, alpha, stroke]. */
 export function passRects(r: RecordingBackend, pass: number): number[][] {

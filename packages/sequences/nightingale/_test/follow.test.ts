@@ -19,7 +19,7 @@ import {
   resolveView,
 } from "@molstar/seq-core/format";
 import { expect, it } from "vitest";
-import { materialize, NightingaleSupported } from "../src/index.ts";
+import { materialize, NightingaleSupported } from "../src/index.js";
 
 const kernel = createRegistries();
 register(kernel, [KernelRegistry, MvsRegistry]);

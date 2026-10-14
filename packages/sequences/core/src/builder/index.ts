@@ -42,7 +42,7 @@ export {
   type ViewBuilder,
   type WithoutValue,
   type WithSourceParams,
-} from "./builder.ts";
+} from "./builder.js";
 export {
   Colors,
   type CustomScheme,
@@ -51,5 +51,5 @@ export {
   type SchemeFor,
   type SchemeOptions,
   type SchemeRef,
-} from "./colors.ts";
-export { GENETIC_CODES } from "./helpers.ts";
+} from "./colors.js";
+export { GENETIC_CODES } from "./helpers.js";

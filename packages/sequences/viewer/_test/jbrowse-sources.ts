@@ -14,9 +14,9 @@
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import type { DataPatch, Loaders, StreamProvider, StreamRequest } from "@molstar/seq-core/format";
-import { GRCH38 } from "../../core/_test/format/stream-provider.ts";
-import { URLS } from "../../core/_test/stream/gmod/cases.ts";
-import { whole } from "../../core/_test/stream/gmod/slices.ts";
+import { GRCH38 } from "../../core/_test/format/stream-provider.js";
+import { URLS } from "../../core/_test/stream/gmod/cases.js";
+import { whole } from "../../core/_test/stream/gmod/slices.js";
 import {
   bigBedProvider,
   bigWigProvider,
@@ -25,7 +25,7 @@ import {
   renamed,
   twoBitProvider,
   vcfProvider,
-} from "../../core/src/stream/gmod/index.ts";
+} from "../../core/src/stream/gmod/index.js";
 
 export const RECORD = process.env.SEQSTAR_RECORD === "1";
 export type Key = "twobit" | "bigwig" | "bigbed" | "vcf";

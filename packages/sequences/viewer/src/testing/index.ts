@@ -19,9 +19,9 @@ export {
   TeeBackend,
   traceOf,
   unmatched,
-} from "./conformance.ts";
-export { type EdgeKind, EdgeKinds, edgeDocument } from "./edges.ts";
-export { AffinityField, type Stars, StarsFormat, StarsRenderer } from "./examples/stars.ts";
-export { hashRecording, Op, RecordedImages, RecordingBackend } from "./recording.ts";
-export { type Streams, streamsOf } from "./streams.ts";
-export { fixtureMeasurer, fixtureWidth } from "./text.ts";
+} from "./conformance.js";
+export { type EdgeKind, EdgeKinds, edgeDocument } from "./edges.js";
+export { AffinityField, type Stars, StarsFormat, StarsRenderer } from "./examples/stars.js";
+export { hashRecording, Op, RecordedImages, RecordingBackend } from "./recording.js";
+export { type Streams, streamsOf } from "./streams.js";
+export { fixtureMeasurer, fixtureWidth } from "./text.js";

@@ -13,12 +13,12 @@
 
 import type { ResolvedView } from "@molstar/seq-core/format";
 import { type SeqSet, SortedArray } from "@molstar/seq-core/model";
-import { sameList } from "./axis.ts";
-import { type ConfigManager, SeqViewerConfig } from "./config.ts";
-import type { SeqIssue } from "./context.ts";
-import { severityRank } from "./graph.ts";
-import type { Scheduler } from "./scheduler.ts";
-import { type Live, live, type SeqState, state, type WritableSeqState } from "./state.ts";
+import { sameList } from "./axis.js";
+import { type ConfigManager, SeqViewerConfig } from "./config.js";
+import type { SeqIssue } from "./context.js";
+import { severityRank } from "./graph.js";
+import type { Scheduler } from "./scheduler.js";
+import { type Live, live, type SeqState, state, type WritableSeqState } from "./state.js";
 
 export interface DragState {
   readonly section: number;

@@ -13,17 +13,17 @@
 
 import { OrderedSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { SkinToken } from "../src/draw/backend.ts";
-import { Dirty, Pass } from "../src/draw/index.ts";
-import { Hit, KernelRenderers, type LayerRenderer, MarkBit, type SeqLociAny } from "../src/index.ts";
-import { renderSvg } from "../src/svg/index.ts";
-import { Op } from "../src/testing/index.ts";
-import { recording } from "./composer-fixtures.ts";
-import { directed } from "./conformance-fixtures.ts";
-import { dotPlotDoc, SEQ } from "./dot-plot-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
-import { lit, passRects } from "./overlay-fixtures.ts";
-import { all, parseXml } from "./svg/xml.ts";
+import { SkinToken } from "../src/draw/backend.js";
+import { Dirty, Pass } from "../src/draw/index.js";
+import { Hit, KernelRenderers, type LayerRenderer, MarkBit, type SeqLociAny } from "../src/index.js";
+import { renderSvg } from "../src/svg/index.js";
+import { Op } from "../src/testing/index.js";
+import { recording } from "./composer-fixtures.js";
+import { directed } from "./conformance-fixtures.js";
+import { dotPlotDoc, SEQ } from "./dot-plot-fixtures.js";
+import { driven } from "./input-fixtures.js";
+import { lit, passRects } from "./overlay-fixtures.js";
+import { all, parseXml } from "./svg/xml.js";
 
 const SECTION = "v.s";
 const N = SEQ.length;

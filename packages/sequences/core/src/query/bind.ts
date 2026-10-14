@@ -9,12 +9,12 @@
 // The binder (seqspec:seqql#binding-and-checking): read nodes to the JSON form, short names resolved by operand kind
 // and slot chain, positionals named, defaults omitted; and macro expansion for checking and compiling.
 // The printer resolves with the same functions, so what it prints binds back to what it printed.
-import { queryIssue, suggest } from "./issue.ts";
-import type { Language } from "./language.ts";
-import { MAX_DEPTH, type QueryNode } from "./read.ts";
-import { slotMessage } from "./table.ts";
-import type { ArgDef, Expression, MacroReport, QueryIssue, Slot, SymbolDef, Type } from "./types.ts";
-import { isApply } from "./types.ts";
+import { queryIssue, suggest } from "./issue.js";
+import type { Language } from "./language.js";
+import { MAX_DEPTH, type QueryNode } from "./read.js";
+import { slotMessage } from "./table.js";
+import type { ArgDef, Expression, MacroReport, QueryIssue, Slot, SymbolDef, Type } from "./types.js";
+import { isApply } from "./types.js";
 
 /** What an operand is, for the binder; a word or string is a ref, so a selection. */
 export type OperandKind = "selection" | "test" | "value" | "unknown";

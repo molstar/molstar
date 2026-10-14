@@ -13,8 +13,8 @@
 
 import { type CoordinateSystem, CoordinateSystemKind, Coords, Extents } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { type SystemDescriptor, TranslateMaps, Translator } from "../../src/translate/index.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../model/heap.ts";
+import { type SystemDescriptor, TranslateMaps, Translator } from "../../src/translate/index.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../model/heap.js";
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 250_000;

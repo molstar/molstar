@@ -10,13 +10,13 @@
 // `watch`) built over several states runs its work once at mount and once per change, never once per state's replay.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { derived, later, watch } from "../../src/dom/core.ts";
-import * as D from "../../src/dom/index.ts";
-import { SeqViewerConfig, type SeqViewerContext, shownSections } from "../../src/index.ts";
-import { sameData, sameShallow } from "../../src/same.ts";
-import { SearchBox } from "../../src/search-box.ts";
-import { live, state } from "../../src/state.ts";
-import { at, flush, openedContext, pointer, stubSurface, uiDoc, WIDTH } from "./fixtures.ts";
+import { derived, later, watch } from "../../src/dom/core.js";
+import * as D from "../../src/dom/index.js";
+import { SeqViewerConfig, type SeqViewerContext, shownSections } from "../../src/index.js";
+import { sameData, sameShallow } from "../../src/same.js";
+import { SearchBox } from "../../src/search-box.js";
+import { live, state } from "../../src/state.js";
+import { at, flush, openedContext, pointer, stubSurface, uiDoc, WIDTH } from "./fixtures.js";
 
 const cleanups: (() => void)[] = [];
 afterEach(() => {

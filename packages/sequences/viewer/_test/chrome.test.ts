@@ -17,8 +17,8 @@ import { OrderedSet } from "@molstar/seq-core/model";
 import { NotServed, tilesStream } from "@molstar/seq-core/stream/tiles";
 import { tileServer } from "@molstar/seq-core/stream/tiles/server";
 import { describe, expect, it } from "vitest";
-import { case9, case12, case13 } from "../../core/_test/format/cases.ts";
-import { files, fixtureLoaders } from "../../core/_test/format/load-fixtures.ts";
+import { case9, case12, case13 } from "../../core/_test/format/cases.js";
+import { files, fixtureLoaders } from "../../core/_test/format/load-fixtures.js";
 import {
   headerLine,
   headerTrack,
@@ -36,7 +36,7 @@ import {
   trackLabel,
   trackLine,
   trackMenu,
-} from "../src/chrome.ts";
+} from "../src/chrome.js";
 import {
   ChromeCompositions,
   CleanParts,
@@ -46,9 +46,9 @@ import {
   type SeqViewerContext,
   sectionInfo,
   shownSections,
-} from "../src/index.ts";
-import { driven } from "./input-fixtures.ts";
-import { opened, preparedRenderers } from "./layout-fixtures.ts";
+} from "../src/index.js";
+import { driven } from "./input-fixtures.js";
+import { opened, preparedRenderers } from "./layout-fixtures.js";
 
 const flush = async () => {
   for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));

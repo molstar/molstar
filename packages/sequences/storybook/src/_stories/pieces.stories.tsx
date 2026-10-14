@@ -8,10 +8,10 @@
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo } from "react";
-import { flipped } from "./support/seqstar-docs-views";
+import { flipped } from "./support/seqstar-docs-views.js";
 import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard } from "./support/seqstar-viewer";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard } from "./support/seqstar-viewer.js";
 
 /**
  * Pieces: what a block shows of its coordinate system, a `range` of it,

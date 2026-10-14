@@ -11,7 +11,7 @@
 // complement (ambiguity codes included); it is an instance of a general table, nothing in the core knows what a strand
 // is: the entry lists the alphabets it is for, and resolution keeps any other alphabet's letters as stored.
 
-import type { LetterMapEntry } from "../registry.ts";
+import type { LetterMapEntry } from "../registry.js";
 
 /** Each two-letter word `xy` maps x to y, in both cases. */
 const words = (s: string): Record<string, string> =>

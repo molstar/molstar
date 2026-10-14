@@ -12,8 +12,8 @@
 
 import { TILE } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { tileClient } from "../../../src/stream/tiles/index.ts";
-import { proceduralCode, proceduralRow, tileServer } from "../../../src/stream/tiles/server.ts";
+import { tileClient } from "../../../src/stream/tiles/index.js";
+import { proceduralCode, proceduralRow, tileServer } from "../../../src/stream/tiles/server.js";
 
 describe("20,000 rows", () => {
   const [R, C] = [20_000, 320];

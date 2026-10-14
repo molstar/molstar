@@ -12,7 +12,7 @@
 // of the old test are IN2's and IN3's.
 
 import { describe, expect, it } from "vitest";
-import { Hit, HitRegion, HoverKind, type LayerRenderer } from "../src/index.ts";
+import { Hit, HitRegion, HoverKind, type LayerRenderer } from "../src/index.js";
 import {
   hitTree,
   layoutTree,
@@ -24,9 +24,9 @@ import {
   treeOf,
   treeSpan,
   treeX,
-} from "../src/tree.ts";
-import { FAMILY_SECTION as F, familyWithTree } from "./families.ts";
-import { opened, renderers } from "./layout-fixtures.ts";
+} from "../src/tree.js";
+import { FAMILY_SECTION as F, familyWithTree } from "./families.js";
+import { opened, renderers } from "./layout-fixtures.js";
 
 /** A rows renderer that prepares the tree and its rows' order, with the tree's header. */
 function rowsWithTree(): LayerRenderer<TreeRows> {

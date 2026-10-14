@@ -13,9 +13,9 @@
 import { compile } from "@molstar/seq-core/format";
 import type { SeqSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { fixtureLoaders, P53 } from "../../core/_test/format/load-fixtures.ts";
-import { compiledCase, reg } from "../src/_stories/support/seqstar-cases.ts";
-import { type SearchContext, storySearch } from "../src/_stories/support/seqstar-story-search.ts";
+import { fixtureLoaders, P53 } from "../../core/_test/format/load-fixtures.js";
+import { compiledCase, reg } from "../src/_stories/support/seqstar-cases.js";
+import { type SearchContext, storySearch } from "../src/_stories/support/seqstar-story-search.js";
 
 async function search(text: string) {
   const { set } = await compiledCase("case18");

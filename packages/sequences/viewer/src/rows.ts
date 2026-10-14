@@ -20,11 +20,11 @@ import {
   type SvsRegistries,
 } from "@molstar/seq-core/format";
 import { type Annotation, type Field, KeyKind, type KeyTarget, Paths, type SeqSet } from "@molstar/seq-core/model";
-import type { AxisView } from "./axis.ts";
-import type { Hit } from "./hit.ts";
-import type { LayerInput, PrepareContext } from "./registry.ts";
-import type { StreamLayer } from "./streams.ts";
-import { hitTree, TREE_INSET, type TreeRows, treeOf, treeSpan } from "./tree.ts";
+import type { AxisView } from "./axis.js";
+import type { Hit } from "./hit.js";
+import type { LayerInput, PrepareContext } from "./registry.js";
+import type { StreamLayer } from "./streams.js";
+import { hitTree, TREE_INSET, type TreeRows, treeOf, treeSpan } from "./tree.js";
 
 /** A rows layer prepared: its alignment, its lanes (offset k from the track's first lane), the held codes, the tree. */
 export interface RowsState extends TreeRows {

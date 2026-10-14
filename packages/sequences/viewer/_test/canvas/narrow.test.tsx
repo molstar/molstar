@@ -14,11 +14,11 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { windowScheduler } from "../../src/canvas/index.ts";
-import * as D from "../../src/dom/index.ts";
+import { windowScheduler } from "../../src/canvas/index.js";
+import * as D from "../../src/dom/index.js";
 import "../../src/skin.css";
-import { createSeqViewer, DefaultSeqViewerSpec, type SearchFn, SeqViewerConfig } from "../../src/index.ts";
-import { Search as ReactSearch, SeqViewerLayout, SeqViewerProvider } from "../../src/react/index.ts";
+import { createSeqViewer, DefaultSeqViewerSpec, type SearchFn, SeqViewerConfig } from "../../src/index.js";
+import { Search as ReactSearch, SeqViewerLayout, SeqViewerProvider } from "../../src/react/index.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

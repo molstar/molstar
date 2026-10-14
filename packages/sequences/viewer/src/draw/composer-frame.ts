@@ -15,24 +15,24 @@
 // passed to a helper (RN1's draw pattern).
 
 import { Lanes } from "@molstar/seq-core/format";
-import { type Axis, AxisGeometry, type SectionAxisView, type ShownIndex } from "../axis.ts";
-import type { ChannelMarks } from "../channels.ts";
-import type { SeqViewerContext } from "../context.ts";
-import type { Skin, ViewModel } from "../graph.ts";
-import { EntryKind, entryBorder, facingOf, type SectionLayout, SectionLayouts, type SplitFeatures } from "../layout.ts";
-import { MarkBit, type SectionMarks } from "../marks.ts";
-import type { LayerRenderer } from "../registry.ts";
-import { Ring } from "../ring.ts";
-import { RING_WINDOW } from "../ring-window.ts";
-import type { StreamView } from "../streams.ts";
-import type { ViewportState } from "../viewport.ts";
-import { WINDOW_FRAME } from "../windows.ts";
-import { PathBatch, RectBatch, type RenderBackend, SkinToken, TextBatch } from "./backend.ts";
-import { Miniature } from "./miniature.ts";
-import { NavView } from "./nav.ts";
-import { RingBackend } from "./ring.ts";
-import { RingLabels } from "./ring-labels.ts";
-import { DrawView } from "./view.ts";
+import { type Axis, AxisGeometry, type SectionAxisView, type ShownIndex } from "../axis.js";
+import type { ChannelMarks } from "../channels.js";
+import type { SeqViewerContext } from "../context.js";
+import type { Skin, ViewModel } from "../graph.js";
+import { EntryKind, entryBorder, facingOf, type SectionLayout, SectionLayouts, type SplitFeatures } from "../layout.js";
+import { MarkBit, type SectionMarks } from "../marks.js";
+import type { LayerRenderer } from "../registry.js";
+import { Ring } from "../ring.js";
+import { RING_WINDOW } from "../ring-window.js";
+import type { StreamView } from "../streams.js";
+import type { ViewportState } from "../viewport.js";
+import { WINDOW_FRAME } from "../windows.js";
+import { PathBatch, RectBatch, type RenderBackend, SkinToken, TextBatch } from "./backend.js";
+import { Miniature } from "./miniature.js";
+import { NavView } from "./nav.js";
+import { RingBackend } from "./ring.js";
+import { RingLabels } from "./ring-labels.js";
+import { DrawView } from "./view.js";
 
 /** An entry's parts; `clear` clears its data box first. */
 export const Part = { header: 1, data: 2, gutter: 4, clear: 8 } as const;

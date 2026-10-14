@@ -11,11 +11,11 @@
 // alternating between the track's items (or a matrix's cells) so the hovered element changes on most moves; and the
 // positive control, the frames whose overlay drew an emphasis.
 
-import { Dirty } from "../src/draw/index.ts";
-import { Inputs, PointerType } from "../src/index.ts";
-import { COPY_BACK, recording } from "./composer-fixtures.ts";
-import { hoverDoc } from "./hover-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
+import { Dirty } from "../src/draw/index.js";
+import { Inputs, PointerType } from "../src/index.js";
+import { COPY_BACK, recording } from "./composer-fixtures.js";
+import { hoverDoc } from "./hover-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
 
 /** Per track: the zoom (CSS px a position; 0: the fit), the positions swept and the CSS px below the entry's top. */
 const SWEEPS = {

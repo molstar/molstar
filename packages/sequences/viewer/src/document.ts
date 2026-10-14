@@ -24,9 +24,9 @@ import {
   snapshotDoc,
 } from "@molstar/seq-core/format";
 import { Issue, type KeyResolver } from "@molstar/seq-core/model";
-import type { GraphResult } from "./context.ts";
-import type { Origin, SeqState, WritableSeqState } from "./state.ts";
-import { state } from "./state.ts";
+import type { GraphResult } from "./context.js";
+import type { Origin, SeqState, WritableSeqState } from "./state.js";
+import { state } from "./state.js";
 
 type Doc = SeqViewSpecDoc;
 export type Routed = "commit" | "local" | "refuse";

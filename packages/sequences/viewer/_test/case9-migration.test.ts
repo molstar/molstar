@@ -14,8 +14,8 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { case9 } from "../../core/_test/format/cases.ts";
-import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.ts";
+import { case9 } from "../../core/_test/format/cases.js";
+import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.js";
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -23,8 +23,8 @@ import {
   manualScheduler,
   RegionState,
   SeqViewerConfig,
-} from "../src/index.ts";
-import { preparedRenderers } from "./layout-fixtures.ts";
+} from "../src/index.js";
+import { preparedRenderers } from "./layout-fixtures.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: the manager's cache is read through its regions.
 type J = any;

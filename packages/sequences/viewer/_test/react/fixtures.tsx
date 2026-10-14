@@ -13,15 +13,15 @@
 import { act, type ComponentType, Profiler, type ReactNode, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach } from "vitest";
-import type { SeqViewerContext } from "../../src/index.ts";
+import type { SeqViewerContext } from "../../src/index.js";
 import {
   SeqViewerLayout,
   SeqViewerProvider,
   type SeqViewerUISpec,
   type SlotComponents,
   type SlotName,
-} from "../../src/react/index.ts";
-import { openedContext, stubSurface, WIDTH } from "../dom/fixtures.ts";
+} from "../../src/react/index.js";
+import { openedContext, stubSurface, WIDTH } from "../dom/fixtures.js";
 
 // The UI fixture, the canvas stub and pointer records are the DOM tests' too (_test/dom/fixtures.ts).
 export {
@@ -37,7 +37,7 @@ export {
   uiDoc,
   WIDTH,
   xOf,
-} from "../dom/fixtures.ts";
+} from "../dom/fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

@@ -12,8 +12,8 @@
 // equal axes.
 
 import { describe, expect, it } from "vitest";
-import { case10 } from "../../core/_test/format/cases.ts";
-import { Axis } from "../src/axis.ts";
+import { case10 } from "../../core/_test/format/cases.js";
+import { Axis } from "../src/axis.js";
 import {
   axisOf,
   blocksDoc,
@@ -25,7 +25,7 @@ import {
   setPiece,
   toRuns,
   toShown,
-} from "./axis-fixtures.ts";
+} from "./axis-fixtures.js";
 
 const range = (a: number, b: number) => Array.from({ length: b - a }, (_, i) => a + i);
 const shownOver = (domain: number, f: (i: number) => number) => Array.from({ length: domain }, (_, i) => f(i));

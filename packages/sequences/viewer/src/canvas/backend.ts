@@ -34,8 +34,8 @@ import {
   type SectorBatch,
   SHAPE_COUNT,
   type TextBatch,
-} from "../draw/backend.ts";
-import { ColorGroups } from "../draw/group.ts";
+} from "../draw/backend.js";
+import { ColorGroups } from "../draw/group.js";
 
 export type Paint2D = Pick<
   CanvasRenderingContext2D,

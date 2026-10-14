@@ -17,10 +17,10 @@ import {
   PREFETCH_SNAPSHOTS,
   prefetchDoc,
   prefetchLoaders,
-} from "./support/seqstar-prefetch";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard } from "./support/seqstar-viewer";
-import { ScrollArea, TextAction } from "./ui";
+} from "./support/seqstar-prefetch.js";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard } from "./support/seqstar-viewer.js";
+import { ScrollArea, TextAction } from "./ui/index.js";
 
 /**
  * Prefetch: the viewer asks for regions just ahead of where the view is going, so data is usually there when it

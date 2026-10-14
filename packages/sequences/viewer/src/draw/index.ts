@@ -7,6 +7,6 @@
  */
 
 // /draw: the renderer API (draw/api.ts, a named list, whole) and the composer, which is not part of it.
-export * from "./api.ts";
-export { type ComposerStats, Dirty, SectionComposer } from "./composer.ts";
-export { VerticalNav } from "./vnav.ts";
+export * from "./api.js";
+export { type ComposerStats, Dirty, SectionComposer } from "./composer.js";
+export { VerticalNav } from "./vnav.js";

@@ -14,7 +14,7 @@
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import "../../src/skin.css";
-import { SeqViewerConfig, type SeqViewerContext } from "../../src/index.ts";
+import { SeqViewerConfig, type SeqViewerContext } from "../../src/index.js";
 import {
   Legend,
   SeqViewer,
@@ -22,9 +22,9 @@ import {
   SeqViewerProvider,
   type SeqViewerUISpec,
   useSeqViewer,
-} from "../../src/react/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
-import { harness, headlessSpec, openedContext, settle, stubSurface, uiDoc } from "./fixtures.tsx";
+} from "../../src/react/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
+import { harness, headlessSpec, openedContext, settle, stubSurface, uiDoc } from "./fixtures.js";
 
 const { cleanups, parent } = harness();
 

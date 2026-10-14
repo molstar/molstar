@@ -9,8 +9,8 @@
 // QL2a: the reader (seqspec:seqql#the-reader) and its errors (seqspec:seqql#errors), each rendered as `line:column
 // code: message`.
 import { describe, expect, it } from "vitest";
-import { MAX_DEPTH, type QueryNode, readQuery, renderIssue } from "../../src/query/index.ts";
-import { MAX_TEXT } from "../../src/query/read.ts";
+import { MAX_DEPTH, type QueryNode, readQuery, renderIssue } from "../../src/query/index.js";
+import { MAX_TEXT } from "../../src/query/read.js";
 
 /** A node as compact data: lists as arrays, keywords as ":name", atoms as values, `@line:column` on lists. */
 function show(n: QueryNode): unknown {

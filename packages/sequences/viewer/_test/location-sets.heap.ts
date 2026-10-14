@@ -25,11 +25,11 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 async function setup() {
   vi.resetModules();
-  const { composed, recording, COPY_BACK } = await import("./composer-fixtures.ts");
+  const { composed, recording, COPY_BACK } = await import("./composer-fixtures.js");
   const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
   const b = createSeqViewSpec();
   const a = b.data.sequence({ ref: "a", value: "MKVLATGHEKWRSPQIDNCY".repeat(100) });
@@ -80,8 +80,8 @@ describe("location sets' frames", () => {
 
   it("a band set in a wrapped section, painted as a highlight on the overlay (LS2), allocates nothing per frame", async () => {
     vi.resetModules();
-    const { lit, twoBlocks, seqLoci } = await import("./overlay-fixtures.ts");
-    const { recording, COPY_BACK } = await import("./composer-fixtures.ts");
+    const { lit, twoBlocks, seqLoci } = await import("./overlay-fixtures.js");
+    const { recording, COPY_BACK } = await import("./composer-fixtures.js");
     const t = await lit(twoBlocks({ wrapped: true }), { width: 600, height: 300, dpr: 2 });
     const be = recording(COPY_BACK);
     t.ctx.highlight.set("site", seqLoci(t.set, "a", 20, 60), { style: "band" });

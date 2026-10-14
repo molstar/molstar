@@ -14,16 +14,16 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { AxisGeometry, navUnits, SectionAxisView } from "../src/axis.ts";
-import { KeyedImage, SkinToken } from "../src/draw/api.ts";
-import { drawGrips, drawNavigator, drawNavigatorWindow, gripAt, NavView } from "../src/draw/nav.ts";
-import { DefaultNavigators, MarkBit, navigatorFrom } from "../src/index.ts";
-import { SectionMarks } from "../src/marks.ts";
-import { fixtureMeasurer, Op, RecordingBackend } from "../src/testing/index.ts";
-import { TextManager } from "../src/text.ts";
-import { WindowKind } from "../src/windows.ts";
-import { axisOf, blocksDoc, resolved } from "./axis-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
+import { AxisGeometry, navUnits, SectionAxisView } from "../src/axis.js";
+import { KeyedImage, SkinToken } from "../src/draw/api.js";
+import { drawGrips, drawNavigator, drawNavigatorWindow, gripAt, NavView } from "../src/draw/nav.js";
+import { DefaultNavigators, MarkBit, navigatorFrom } from "../src/index.js";
+import { SectionMarks } from "../src/marks.js";
+import { fixtureMeasurer, Op, RecordingBackend } from "../src/testing/index.js";
+import { TextManager } from "../src/text.js";
+import { WindowKind } from "../src/windows.js";
+import { axisOf, blocksDoc, resolved } from "./axis-fixtures.js";
+import { driven } from "./input-fixtures.js";
 
 const L = { geometry: AxisGeometry.linear, dataLeft: 40, dataRight: 440, scrolledTop: 20, height: 120 };
 

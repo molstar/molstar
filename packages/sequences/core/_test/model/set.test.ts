@@ -20,8 +20,8 @@ import {
   SeqSets,
   type SetInput,
   type UnitId,
-} from "../../src/model/index.ts";
-import { a3n1, brs1 } from "./fixtures.ts";
+} from "../../src/model/index.js";
+import { a3n1, brs1 } from "./fixtures.js";
 
 const keyOf = (set: SeqSet, id: number) => set.strings.get(set.units.key[id]);
 const target = (): KeyTarget => ({ kind: -1, id: -1, row: -1 });

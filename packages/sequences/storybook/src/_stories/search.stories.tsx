@@ -7,8 +7,8 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { LocationSetsStory } from "./support/seqstar-location-sets";
-import { SearchStory } from "./support/seqstar-search";
+import { LocationSetsStory } from "./support/seqstar-location-sets.js";
+import { SearchStory } from "./support/seqstar-search.js";
 
 /**
  * Search is not in the format or the viewer: `@molstar/seq-core/algorithms/search` ships matchers,

@@ -16,17 +16,17 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { type Loci, OrderedSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { Dirty, Pass, SectionComposer, SkinToken } from "../src/draw/index.ts";
-import type { DrawView } from "../src/draw/view.ts";
-import { HoverKind, KernelRenderers, type LayerRenderer, MarkBit, SeqViewerConfig } from "../src/index.ts";
-import type { OverlayMarks } from "../src/marks.ts";
-import type { Streams, StreamView } from "../src/streams.ts";
-import { Op } from "../src/testing/index.ts";
-import { COPY_BACK, composed, recording, textsOf } from "./composer-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
-import { lazyLoaders } from "./layout-fixtures.ts";
-import { family, lit, passRects, rowLoci, seqLoci, twoBlocks } from "./overlay-fixtures.ts";
-import { allTypes } from "./prepare-fixtures.ts";
+import { Dirty, Pass, SectionComposer, SkinToken } from "../src/draw/index.js";
+import type { DrawView } from "../src/draw/view.js";
+import { HoverKind, KernelRenderers, type LayerRenderer, MarkBit, SeqViewerConfig } from "../src/index.js";
+import type { OverlayMarks } from "../src/marks.js";
+import type { Streams, StreamView } from "../src/streams.js";
+import { Op } from "../src/testing/index.js";
+import { COPY_BACK, composed, recording, textsOf } from "./composer-fixtures.js";
+import { driven } from "./input-fixtures.js";
+import { lazyLoaders } from "./layout-fixtures.js";
+import { family, lit, passRects, rowLoci, seqLoci, twoBlocks } from "./overlay-fixtures.js";
+import { allTypes } from "./prepare-fixtures.js";
 
 const S = SkinToken;
 /** Rects of one color: [x, y, w, h, color, alpha, stroke]. */

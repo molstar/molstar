@@ -12,13 +12,13 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { Miniature } from "../src/draw/miniature.ts";
-import { drawNavigator, NavView } from "../src/draw/nav.ts";
-import { DefaultNavigators, KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import { LayerFrame, Op, RecordingBackend } from "../src/testing/index.ts";
-import { miniatureDoc } from "./conformance-fixtures.ts";
-import { layerOf } from "./draw-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
+import { Miniature } from "../src/draw/miniature.js";
+import { drawNavigator, NavView } from "../src/draw/nav.js";
+import { DefaultNavigators, KernelRenderers, type LayerRenderer } from "../src/index.js";
+import { LayerFrame, Op, RecordingBackend } from "../src/testing/index.js";
+import { miniatureDoc } from "./conformance-fixtures.js";
+import { layerOf } from "./draw-fixtures.js";
+import { opened } from "./layout-fixtures.js";
 
 const open = (d = miniatureDoc()) => opened(d, { renderers: [...KernelRenderers] as LayerRenderer[] });
 const layers = (r: RecordingBackend) =>

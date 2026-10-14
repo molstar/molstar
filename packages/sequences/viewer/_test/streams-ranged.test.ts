@@ -14,10 +14,10 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { Loaders } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { CODING_CDS, hg38Streams } from "../../core/_test/format/stream-provider.ts";
-import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler, RegionState } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { fixtureMeasurer } from "../src/testing/index.ts";
+import { CODING_CDS, hg38Streams } from "../../core/_test/format/stream-provider.js";
+import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler, RegionState } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { fixtureMeasurer } from "../src/testing/index.js";
 
 const A = CODING_CDS[0][0] - 5000;
 const E = CODING_CDS[2][1] + 5000;

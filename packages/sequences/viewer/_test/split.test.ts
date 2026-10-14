@@ -14,12 +14,12 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case7, case13 } from "../../core/_test/format/cases.ts";
-import { EntryKind, Hit, HoverKind } from "../src/index.ts";
-import type { SplitFeatures } from "../src/layout.ts";
+import { case7, case13 } from "../../core/_test/format/cases.js";
+import { EntryKind, Hit, HoverKind } from "../src/index.js";
+import type { SplitFeatures } from "../src/layout.js";
 
-import type { Features } from "../src/prepare.ts";
-import { opened, preparedRenderers } from "./layout-fixtures.ts";
+import type { Features } from "../src/prepare.js";
+import { opened, preparedRenderers } from "./layout-fixtures.js";
 
 const NV = "features.natural-variants";
 const ROWS = [..."GAVLISTCMDNEQRKHFYWP", "-", "*"];

@@ -13,8 +13,8 @@
 import { compile } from "@molstar/seq-core/format";
 import { KeyKind, type NumberingInput, type SeqSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { complexInputs, readStructure, type StructureOptions, structureOf } from "../src/index.ts";
-import { bytesOf, loaders, P53, p53Doc, registries } from "./fixtures.ts";
+import { complexInputs, readStructure, type StructureOptions, structureOf } from "../src/index.js";
+import { bytesOf, loaders, P53, p53Doc, registries } from "./fixtures.js";
 
 async function inputs(file: string, options: Partial<StructureOptions> = {}) {
   const src = await readStructure(bytesOf(file), "bcif");

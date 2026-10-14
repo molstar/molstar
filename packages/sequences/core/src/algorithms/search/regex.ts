@@ -9,7 +9,7 @@
 // The regular expression matcher of `@molstar/seq-core/algorithms/search` (seqspec:libraries#search): a JavaScript RegExp over a
 // Latin-1 string view of the codes.
 
-import { checkWindow, type HitVisitor, type Matcher, readEnd } from "./matchers.ts";
+import { checkWindow, type HitVisitor, type Matcher, readEnd } from "./matchers.js";
 
 /** The most code units `String.fromCharCode` is spread over at once. */
 const CHUNK = 8192;

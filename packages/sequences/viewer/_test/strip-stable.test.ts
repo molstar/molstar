@@ -11,9 +11,9 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { SkinToken } from "../src/draw/backend.ts";
-import { Dirty, SectionComposer } from "../src/draw/index.ts";
-import { COPY_BACK, composed, opNames, recording } from "./composer-fixtures.ts";
+import { SkinToken } from "../src/draw/backend.js";
+import { Dirty, SectionComposer } from "../src/draw/index.js";
+import { COPY_BACK, composed, opNames, recording } from "./composer-fixtures.js";
 
 function doc() {
   const b = createSeqViewSpec();

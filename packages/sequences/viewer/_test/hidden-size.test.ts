@@ -12,10 +12,10 @@
 // input bumped the viewport again.
 
 import { describe, expect, it } from "vitest";
-import { fixtureLoaders } from "../../core/_test/format/load-fixtures.ts";
-import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "../src/index.ts";
-import { fixtureMeasurer } from "../src/testing/index.ts";
-import { familyWithTree } from "./families.ts";
+import { fixtureLoaders } from "../../core/_test/format/load-fixtures.js";
+import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from "../src/index.js";
+import { fixtureMeasurer } from "../src/testing/index.js";
+import { familyWithTree } from "./families.js";
 
 const STYLE = { preset: "msa", data_floor: 0 };
 function styled() {

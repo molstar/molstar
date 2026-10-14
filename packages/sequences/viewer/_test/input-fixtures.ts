@@ -10,7 +10,7 @@
 // would fill, and the subscriptions a removed behavior must leave.
 
 import type { Loaders, SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.ts";
+import { fixtureLoaders, MolstarFixture } from "../../core/_test/format/load-fixtures.js";
 import {
   createSeqViewer,
   DefaultRegistry,
@@ -23,11 +23,11 @@ import {
   type SeqViewerContext,
   type SeqViewerRegistryEntry,
   type SeqViewerSpec,
-} from "../src/index.ts";
-import type { Layouts } from "../src/layout.ts";
-import { fixtureMeasurer } from "../src/testing/index.ts";
-import { WINDOW_FRAME, windowFrame } from "../src/windows.ts";
-import { helpers, PRESETS, renderers } from "./layout-fixtures.ts";
+} from "../src/index.js";
+import type { Layouts } from "../src/layout.js";
+import { fixtureMeasurer } from "../src/testing/index.js";
+import { WINDOW_FRAME, windowFrame } from "../src/windows.js";
+import { helpers, PRESETS, renderers } from "./layout-fixtures.js";
 export interface DrivenOptions {
   size?: Record<string, readonly [number, number]>;
   registry?: SeqViewerRegistryEntry[];

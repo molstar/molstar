@@ -13,15 +13,15 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { case1 } from "../../core/_test/format/cases.ts";
-import type { ShownIndex } from "../src/axis.ts";
-import { EntryKind, Hit, type RenderProps } from "../src/index.ts";
-import { GROUP_LABEL_PAD, groupLabelBand, groupLabelPx, layoutRuns, lineTable, type PreparedRun } from "../src/runs.ts";
-import { fixtureMeasurer, fixtureWidth } from "../src/testing/index.ts";
+import { case1 } from "../../core/_test/format/cases.js";
+import type { ShownIndex } from "../src/axis.js";
+import { EntryKind, Hit, type RenderProps } from "../src/index.js";
+import { GROUP_LABEL_PAD, groupLabelBand, groupLabelPx, layoutRuns, lineTable, type PreparedRun } from "../src/runs.js";
+import { fixtureMeasurer, fixtureWidth } from "../src/testing/index.js";
 
-import { fitCount, fitted, fontPx } from "../src/text.ts";
-import { set } from "./axis-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
+import { fitCount, fitted, fontPx } from "../src/text.js";
+import { set } from "./axis-fixtures.js";
+import { opened } from "./layout-fixtures.js";
 
 const ui = (text: string, px = 12) =>
   [...text].reduce((w, c) => w + fixtureWidth(c.codePointAt(0) as number, false), 0) * px;

@@ -13,13 +13,13 @@
 
 import { deflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
-import { case14 } from "../../../core/_test/format/cases.ts";
-import { genomeDoc, synthGenome } from "../../../core/_test/format/genome-fixture.ts";
-import { itWithin } from "../../../core/_test/model/timing.ts";
-import { rasterizeSvg } from "../../src/cli/rasterize.ts";
-import { DefaultFontMetrics, metricsMeasurer, renderSvg } from "../../src/svg/index.ts";
-import { decodePng } from "./png.ts";
-import { all, parseXml } from "./xml.ts";
+import { case14 } from "../../../core/_test/format/cases.js";
+import { genomeDoc, synthGenome } from "../../../core/_test/format/genome-fixture.js";
+import { itWithin } from "../../../core/_test/model/timing.js";
+import { rasterizeSvg } from "../../src/cli/rasterize.js";
+import { DefaultFontMetrics, metricsMeasurer, renderSvg } from "../../src/svg/index.js";
+import { decodePng } from "./png.js";
+import { all, parseXml } from "./xml.js";
 
 const ports = { measurer: metricsMeasurer(DefaultFontMetrics), deflate: (b: Uint8Array) => deflateSync(b) };
 

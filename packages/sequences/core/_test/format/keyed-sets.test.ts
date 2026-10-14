@@ -13,10 +13,10 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { Issue, SeqSet } from "@molstar/seq-core/model";
 import { beforeEach, describe, expect, it } from "vitest";
-import { compile, resolveView, type SeqViewSpecDoc, supportedAll } from "../../src/format/index.ts";
-import { clearNodeProviderCache } from "../../src/format/load/node-providers.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
-import { scripted } from "./stream-provider.ts";
+import { compile, resolveView, type SeqViewSpecDoc, supportedAll } from "../../src/format/index.js";
+import { clearNodeProviderCache } from "../../src/format/load/node-providers.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
+import { scripted } from "./stream-provider.js";
 
 // Row 0 is the reference. Row 1 differs at one of ten, 2 at two, 3 is row 1 with one more change, 4 is far, 5 is row 4 with
 // a gap run (so only 6 of its columns have a letter).
@@ -323,7 +323,7 @@ describe("a rows layer's order and filter", () => {
 describe("a template's order and filter (for_each)", () => {
   it("orders and filters instances by a key table keyed by node; key order stays the default", async () => {
     const { SeqSets } = await import("@molstar/seq-core/model");
-    const { indexDoc, templateNodes } = await import("../../src/format/index.ts");
+    const { indexDoc, templateNodes } = await import("../../src/format/index.js");
     const P = "MKVLAAGGHHKK";
     const ann = (key: string) => ({
       key,
@@ -370,7 +370,7 @@ describe("a template's order and filter (for_each)", () => {
 
 describe("the committed PF00042 (the story's data)", () => {
   it("32 globins: HBA_HUMAN leads by identity; 30 representatives at 90%, 22 at 50%", async () => {
-    const { pf00042 } = await import("../model/alignment-fixtures.ts");
+    const { pf00042 } = await import("../model/alignment-fixtures.js");
     const family = pf00042();
     const by = { data: "stats", field: "identity", direction: "desc" };
     const cluster = (ref: string, threshold: number) => (b: ReturnType<typeof createSeqViewSpec>) => {
@@ -413,8 +413,8 @@ describe("a streamed alignment and key orders", () => {
     tree?: string,
     more?: (b: ReturnType<typeof createSeqViewSpec>) => void,
   ) {
-    const { indexDoc } = await import("../../src/format/index.ts");
-    const { resolveSection, resolveLayer } = await import("../../src/format/index.ts");
+    const { indexDoc } = await import("../../src/format/index.js");
+    const { resolveSection, resolveLayer } = await import("../../src/format/index.js");
     const s = scripted(manifest, (r) => ({ ...r, kind: "rows", labels: [`row${r.row_start}`], rows: ["ACDEFGHI"] }));
     const b = createSeqViewSpec();
     const src = b.data.source({ ref: "msa", stream: "msa", data_kind: "alignment" });
@@ -465,7 +465,7 @@ describe("a streamed alignment and key orders", () => {
   });
 
   it("a run's order is in its axis key: another permutation is another axis", async () => {
-    const { orderHash } = await import("../../src/format/resolve/section.ts");
+    const { orderHash } = await import("../../src/format/resolve/section.js");
     const r = await lazyView({}, "((row0,row1),((row2,row3),(row4,row5)));", SITE);
     const run = r.section.lanes.lazy[0];
     expect(run.order).not.toBeNull();
@@ -486,7 +486,7 @@ describe("a streamed alignment and key orders", () => {
       ...r.section,
       lanes: { ...r.section.lanes, lazy: [{ ...run, length: 3, order: Int32Array.of(3, 4, 5) }] },
     };
-    const { supportedAll } = await import("../../src/format/index.ts");
+    const { supportedAll } = await import("../../src/format/index.js");
     const l = r.resolveLayer(cut as never, "L", r.idx, r.set, reg, supportedAll(reg)).layer;
     expect(l.placements.map((p) => p.lane - run.start).sort()).toEqual([0, 1, 2]);
     expect(l.placements.every((p) => p.lane >= run.start)).toBe(true);

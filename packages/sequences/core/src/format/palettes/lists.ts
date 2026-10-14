@@ -16,7 +16,7 @@
  * hex digits and read once at load.
  */
 
-import { colorList } from "./color.ts";
+import { colorList } from "./color.js";
 
 const list = colorList;
 

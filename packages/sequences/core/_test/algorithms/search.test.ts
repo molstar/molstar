@@ -17,7 +17,7 @@ import {
   regexMatcher,
   textIndex,
   toCodes,
-} from "../../src/algorithms/search/index.ts";
+} from "../../src/algorithms/search/index.js";
 
 /** A deterministic generator of integers below n (mulberry32, as in myers.test.ts). */
 function generator(seed: number) {

@@ -7,7 +7,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { AtlasPage } from "./support/seqstar-atlas";
+import { AtlasPage } from "./support/seqstar-atlas.js";
 
 /**
  * Performance of the Canvas2D backend on large documents. The glyph atlas on a large lazy alignment:

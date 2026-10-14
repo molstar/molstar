@@ -16,11 +16,11 @@
 
 import { type StreamedData, StreamProp } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { GRCH38, letterAt } from "../../core/_test/format/stream-provider.ts";
-import { RegionState } from "../src/index.ts";
-import { LETTERS_PER_PX, type Streams } from "../src/streams.ts";
-import { composed, recording, textsOf } from "./composer-fixtures.ts";
-import { GENOME, MaxInFlight, openGenome, type StreamedGenome, streamedDoc } from "./stream-fixtures.ts";
+import { GRCH38, letterAt } from "../../core/_test/format/stream-provider.js";
+import { RegionState } from "../src/index.js";
+import { LETTERS_PER_PX, type Streams } from "../src/streams.js";
+import { composed, recording, textsOf } from "./composer-fixtures.js";
+import { GENOME, MaxInFlight, openGenome, type StreamedGenome, streamedDoc } from "./stream-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const THREE = GRCH38.slice(0, 3);
@@ -131,7 +131,7 @@ describe("`StreamView.letters`", () => {
 
 describe("drawn from the cache", () => {
   async function drawn(stop: number, letters = true) {
-    const { hg38Streams } = await import("../../core/_test/format/stream-provider.ts");
+    const { hg38Streams } = await import("../../core/_test/format/stream-provider.js");
     const s = hg38Streams({ chromosomes: THREE, letters });
     const loaders = { load: () => Promise.reject(new Error("none")), stream: s.stream };
     const t = await composed(streamedDoc({ sequence: true }), { width: 1000, height: 200, loaders });
@@ -166,9 +166,9 @@ describe("drawn from the cache", () => {
 
 describe("the hover label", () => {
   it("names a streamed position's letter once its region is held", async () => {
-    const { driven } = await import("./input-fixtures.ts");
-    const { hg38Streams } = await import("../../core/_test/format/stream-provider.ts");
-    const { KernelRenderers } = await import("../src/index.ts");
+    const { driven } = await import("./input-fixtures.js");
+    const { hg38Streams } = await import("../../core/_test/format/stream-provider.js");
+    const { KernelRenderers } = await import("../src/index.js");
     const s = hg38Streams({ chromosomes: THREE, letters: true, gated: true });
     const t = await driven(streamedDoc({ sequence: true }), {
       renderers: [...KernelRenderers] as never,

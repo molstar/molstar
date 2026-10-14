@@ -16,7 +16,7 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import * as D from "../../src/dom/index.ts";
+import * as D from "../../src/dom/index.js";
 import "../../src/skin.css";
 import {
   createSeqViewer,
@@ -26,9 +26,9 @@ import {
   type ManualScheduler,
   manualScheduler,
   type SeqViewerContext,
-} from "../../src/index.ts";
-import { SeqViewerLayout, SeqViewerProvider } from "../../src/react/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
+} from "../../src/index.js";
+import { SeqViewerLayout, SeqViewerProvider } from "../../src/react/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

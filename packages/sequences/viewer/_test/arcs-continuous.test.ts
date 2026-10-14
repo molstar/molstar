@@ -14,12 +14,12 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { case7, case21 } from "../../core/_test/format/cases.ts";
-import type { PairsState } from "../src/prepare.ts";
-import { Arcs } from "../src/renderer-helpers.ts";
-import { LayerFrame, RecordingBackend } from "../src/testing/index.ts";
-import { NO_SIZE } from "../src/themes.ts";
-import { drawn } from "./draw-fixtures.ts";
+import { case7, case21 } from "../../core/_test/format/cases.js";
+import type { PairsState } from "../src/prepare.js";
+import { Arcs } from "../src/renderer-helpers.js";
+import { LayerFrame, RecordingBackend } from "../src/testing/index.js";
+import { NO_SIZE } from "../src/themes.js";
+import { drawn } from "./draw-fixtures.js";
 
 /** Samples along each arc: at t = i / SAMPLES of its ends' span. */
 const SAMPLES = 20;

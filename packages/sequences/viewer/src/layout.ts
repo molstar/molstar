@@ -23,13 +23,13 @@ import {
   Sizing,
 } from "@molstar/seq-core/format";
 import { type Alphabet, Numbering, type SeqSet, type SortedArray } from "@molstar/seq-core/model";
-import { Axis, AxisGeometry, SectionAxisView, type ShownIndex, sameList } from "./axis.ts";
-import { type ConfigManager, SeqViewerConfig } from "./config.ts";
-import type { ViewModel } from "./graph.ts";
-import { Hit, hitTest, type StreamLookup, sourceAt } from "./hit.ts";
-import { type NavigatorEntry, navigatorOf } from "./navigators.ts";
-import type { PresetEntry } from "./presets.ts";
-import type { ColumnRenderer, LayerRenderer, SeqViewerRegistry } from "./registry.ts";
+import { Axis, AxisGeometry, SectionAxisView, type ShownIndex, sameList } from "./axis.js";
+import { type ConfigManager, SeqViewerConfig } from "./config.js";
+import type { ViewModel } from "./graph.js";
+import { Hit, hitTest, type StreamLookup, sourceAt } from "./hit.js";
+import { type NavigatorEntry, navigatorOf } from "./navigators.js";
+import type { PresetEntry } from "./presets.js";
+import type { ColumnRenderer, LayerRenderer, SeqViewerRegistry } from "./registry.js";
 import {
   GROUP_LABEL_PAD,
   type GroupLabeler,
@@ -40,12 +40,12 @@ import {
   lineTable,
   type PreparedRun,
   prepareRun,
-} from "./runs.ts";
-import type { Scheduler } from "./scheduler.ts";
-import { type Live, live, type SeqState, state, type Unsubscribable, type WritableLive } from "./state.ts";
-import type { TextManager } from "./text.ts";
-import type { UiManager } from "./ui.ts";
-import type { ViewportProps, ViewportState, Viewports } from "./viewport.ts";
+} from "./runs.js";
+import type { Scheduler } from "./scheduler.js";
+import { type Live, live, type SeqState, state, type Unsubscribable, type WritableLive } from "./state.js";
+import type { TextManager } from "./text.js";
+import type { UiManager } from "./ui.js";
+import type { ViewportProps, ViewportState, Viewports } from "./viewport.js";
 
 /**
  * The layout's and engine's sizes and switches (seqspec:viewer#render-props); a preset's `render` over them per

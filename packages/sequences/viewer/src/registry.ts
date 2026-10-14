@@ -20,22 +20,22 @@ import {
   type ThemeEntry,
 } from "@molstar/seq-core/format";
 import type { Annotation, Field, Issue, SeqSet } from "@molstar/seq-core/model";
-import type { AxisView } from "./axis.ts";
-import type { SeqCommand } from "./commands.ts";
-import type { RingLabelSink } from "./draw/ring-labels.ts";
-import type { DrawView } from "./draw/view.ts";
-import type { NodeKind, Skin } from "./graph.ts";
-import type { Hit } from "./hit.ts";
-import type { HoverState } from "./hover.ts";
-import type { LabelContext, LabelProvider, LabelSink } from "./labels.ts";
-import type { RenderProps } from "./layout.ts";
-import type { NavigatorEntry } from "./navigators.ts";
-import type { PresetEntry } from "./presets.ts";
-import type { LineTable } from "./runs.ts";
-import { isViewerOwn } from "./spec.ts";
-import { type SeqState, state, type WritableSeqState } from "./state.ts";
-import type { StreamLayer } from "./streams.ts";
-import type { LegendSink, Theme, ThemeProvider } from "./themes.ts";
+import type { AxisView } from "./axis.js";
+import type { SeqCommand } from "./commands.js";
+import type { RingLabelSink } from "./draw/ring-labels.js";
+import type { DrawView } from "./draw/view.js";
+import type { NodeKind, Skin } from "./graph.js";
+import type { Hit } from "./hit.js";
+import type { HoverState } from "./hover.js";
+import type { LabelContext, LabelProvider, LabelSink } from "./labels.js";
+import type { RenderProps } from "./layout.js";
+import type { NavigatorEntry } from "./navigators.js";
+import type { PresetEntry } from "./presets.js";
+import type { LineTable } from "./runs.js";
+import { isViewerOwn } from "./spec.js";
+import { type SeqState, state, type WritableSeqState } from "./state.js";
+import type { StreamLayer } from "./streams.js";
+import type { LegendSink, Theme, ThemeProvider } from "./themes.js";
 
 // The entry kinds. VC1 declares what registration and the graph read (a name, the format entry a kind pairs with,
 // `prepare`, `create`, `content`); the phases that run each kind extend these with their full interfaces.

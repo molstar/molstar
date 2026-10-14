@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { alignment, gene, table } from "./generators.ts";
+import { alignment, gene, table } from "./generators.js";
 
 describe("generators", () => {
   it("builds a 20k-row alignment with two bound rows, the same on every call", () => {

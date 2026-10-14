@@ -34,9 +34,9 @@ import {
   supportedAll,
   templateNodes,
   validate,
-} from "../../src/format/index.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
-import { scripted } from "./stream-provider.ts";
+} from "../../src/format/index.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
+import { scripted } from "./stream-provider.js";
 
 const reg = registries();
 const codes = (issues: readonly Issue[]) => issues.map((i) => i.code);

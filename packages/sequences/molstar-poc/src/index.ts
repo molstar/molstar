@@ -6,16 +6,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from "./chains.ts";
-export * from "./complex.ts";
-export * from "./compose.ts";
-export * from "./coverage.ts";
-export * from "./link.ts";
-export * from "./mvs.ts";
-export * from "./pae.ts";
-export * from "./plddt.ts";
-export * from "./query.ts";
-export * from "./registry.ts";
-export * from "./seq-units.ts";
-export * from "./sifts.ts";
-export * from "./source.ts";
+export * from "./chains.js";
+export * from "./complex.js";
+export * from "./compose.js";
+export * from "./coverage.js";
+export * from "./link.js";
+export * from "./mvs.js";
+export * from "./pae.js";
+export * from "./plddt.js";
+export * from "./query.js";
+export * from "./registry.js";
+export * from "./seq-units.js";
+export * from "./sifts.js";
+export * from "./source.js";

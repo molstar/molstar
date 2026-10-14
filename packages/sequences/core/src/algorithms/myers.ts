@@ -42,7 +42,7 @@
 // and its DELETE (a letter only in the target) our `D` (seqspec:model#coordinate-maps), so its path reads as our CIGAR
 // unchanged.
 
-import { type Aligner, type AlignerParams, alignable, readOptions } from "./aligner.ts";
+import { type Aligner, type AlignerParams, alignable, readOptions } from "./aligner.js";
 
 const WORD_SIZE = 32;
 /** edlib's EDLIB_EDOP_*: INSERT a letter only in `a` (our I), DELETE a letter only in `b` (our D). */

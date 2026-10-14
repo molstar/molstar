@@ -18,7 +18,7 @@ export {
   leaking,
   SCALED_LIMIT,
   type Scaling,
-} from "../../core/_test/model/heap.ts";
+} from "../../core/_test/model/heap.js";
 
 // The frame guards' shared run (the conformance kit's and the composer's): a frame is warmed by count (`FRAME_WARM`) and,
 // where the draws compile concurrently, by time (`FRAME_WARM_MS`), then measured over `FRAME_N` steps and `4 * FRAME_N`.

@@ -9,14 +9,14 @@
 // The checker (seqspec:seqql#types, seqspec:seqql#errors): types, arity, slots and (current) on a bound expression, or
 // on stored JSON. Macros are expanded as it goes: a macro's own arguments are checked first, then its expansion, whose
 // issues are placed at the call. The result is the expansion the runtime compiles.
-import { argChain, bindQuery, expandMacros, type QueryBinding } from "./bind.ts";
-import { queryIssue, suggest } from "./issue.ts";
-import { createLanguage, type Language } from "./language.ts";
-import { readQuery, type TextPosition } from "./read.ts";
-import { LABEL_RANGE } from "./sel.ts";
-import { slotMessage } from "./table.ts";
-import type { ArgDef, Expression, QueryIssue, Slot, SymbolDef, Type } from "./types.ts";
-import { expressionTooDeep, isApply, MAX_EXPRESSION_DEPTH } from "./types.ts";
+import { argChain, bindQuery, expandMacros, type QueryBinding } from "./bind.js";
+import { queryIssue, suggest } from "./issue.js";
+import { createLanguage, type Language } from "./language.js";
+import { readQuery, type TextPosition } from "./read.js";
+import { LABEL_RANGE } from "./sel.js";
+import { slotMessage } from "./table.js";
+import type { ArgDef, Expression, QueryIssue, Slot, SymbolDef, Type } from "./types.js";
+import { expressionTooDeep, isApply, MAX_EXPRESSION_DEPTH } from "./types.js";
 
 const BASE = createLanguage().language;
 const WANT: Record<string, string> = {

@@ -13,12 +13,12 @@
 // `SEQSTAR_RECORD=1` records them again, by hand, over curl (never in a test run).
 
 import { afterAll, expect, it } from "vitest";
-import type { RangeReader } from "../../core/src/stream/gmod/index.ts";
-import { Dirty } from "../src/draw/composer.ts";
-import type { Streams } from "../src/streams.ts";
-import { composed, recording } from "./composer-fixtures.ts";
-import { demoSources, RECORD } from "./jbrowse-sources.ts";
-import { JBROWSE_SECTION, jbrowseDoc } from "./jbrowse-story-fixtures.ts";
+import type { RangeReader } from "../../core/src/stream/gmod/index.js";
+import { Dirty } from "../src/draw/composer.js";
+import type { Streams } from "../src/streams.js";
+import { composed, recording } from "./composer-fixtures.js";
+import { demoSources, RECORD } from "./jbrowse-sources.js";
+import { JBROWSE_SECTION, jbrowseDoc } from "./jbrowse-story-fixtures.js";
 
 const CHR21 = 46_709_983;
 const src = demoSources("whole");

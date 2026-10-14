@@ -13,18 +13,18 @@
 
 import type { Loaders } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { hg38Streams, streamedDoc } from "../../core/_test/format/stream-provider.ts";
-import { SkinToken } from "../src/draw/backend.ts";
-import { Dirty, SectionComposer } from "../src/draw/composer.ts";
+import { hg38Streams, streamedDoc } from "../../core/_test/format/stream-provider.js";
+import { SkinToken } from "../src/draw/backend.js";
+import { Dirty, SectionComposer } from "../src/draw/composer.js";
 import {
   createSeqViewer,
   DefaultPresets,
   DefaultRegistry,
   DefaultSeqViewerSpec,
   manualScheduler,
-} from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { fixtureMeasurer, RecordingBackend } from "../src/testing/index.ts";
+} from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { fixtureMeasurer, RecordingBackend } from "../src/testing/index.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const PENDING = SkinToken.pending;

@@ -12,8 +12,8 @@
 // type-check Mol*'s sources with their own settings (only `@molstar/seq-molstar-poc` builds against tsconfig.molstar.json).
 
 import type { SvsRegistryEntry } from "@molstar/seq-core/format";
-import { P53_STRUCTURES, p53DemoDoc, p53Loaders } from "../../../../molstar-poc/_test/p53-demo.ts";
-import type { SmokeCase, SmokeEnv } from "./seqstar-smoke";
+import { P53_STRUCTURES, p53DemoDoc, p53Loaders } from "../../../../molstar-poc/_test/p53-demo.js";
+import type { SmokeCase, SmokeEnv } from "./seqstar-smoke.js";
 
 const MOLSTAR = "@molstar/seq-molstar-poc";
 interface Molstar {

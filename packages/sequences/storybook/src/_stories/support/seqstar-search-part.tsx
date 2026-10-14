@@ -14,13 +14,13 @@
 
 import { Search, SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
 import { type RefObject, use, useMemo, useRef, useState } from "react";
-import { Choices } from "../ui";
-import { compiledCase, described } from "./seqstar-cases";
+import { Choices } from "../ui/index.js";
+import { compiledCase, described } from "./seqstar-cases.js";
 import f from "./seqstar-format.module.css";
-import { PrismCanvas, prism } from "./seqstar-prism";
+import { PrismCanvas, prism } from "./seqstar-prism.js";
 import q from "./seqstar-search.module.css";
-import { storySearch } from "./seqstar-story-search";
-import { useCaseContext, useStoryUi, type ViewerOptions } from "./seqstar-viewer";
+import { storySearch } from "./seqstar-story-search.js";
+import { useCaseContext, useStoryUi, type ViewerOptions } from "./seqstar-viewer.js";
 
 /** What the story suggests: each finds something the Tracks view shows (names of items, then letters). */
 const TRY = [

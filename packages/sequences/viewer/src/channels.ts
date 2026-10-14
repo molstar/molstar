@@ -23,20 +23,20 @@ import {
   OrderedSet,
   type SeqSet,
 } from "@molstar/seq-core/model";
-import type { Assembled, ViewModel } from "./graph.ts";
-import type { HighlightManager, HighlightStyle } from "./highlight.ts";
-import { HoverKind } from "./hit.ts";
+import type { Assembled, ViewModel } from "./graph.js";
+import type { HighlightManager, HighlightStyle } from "./highlight.js";
+import { HoverKind } from "./hit.js";
 
 /** Read once: a member read in a hover-rate path allocates under the test runner's module wrapper. */
 const HEADER = HoverKind.header;
 
-import type { HoverManager, HoverState } from "./hover.ts";
-import type { SplitFeatures } from "./layout.ts";
-import { MarkBit, type MarkSet, type RowMarks, SectionMarks, type ShownRuns } from "./marks.ts";
-import { type Coordinates, isCoordinates, Projector } from "./projection.ts";
-import type { Selection } from "./selection.ts";
-import type { SeqState, Unsubscribable } from "./state.ts";
-import type { SystemRegistry } from "./systems.ts";
+import type { HoverManager, HoverState } from "./hover.js";
+import type { SplitFeatures } from "./layout.js";
+import { MarkBit, type MarkSet, type RowMarks, SectionMarks, type ShownRuns } from "./marks.js";
+import { type Coordinates, isCoordinates, Projector } from "./projection.js";
+import type { Selection } from "./selection.js";
+import type { SeqState, Unsubscribable } from "./state.js";
+import type { SystemRegistry } from "./systems.js";
 
 /** The managers a surface's channels read (a context is one). */
 export interface ChannelSources {

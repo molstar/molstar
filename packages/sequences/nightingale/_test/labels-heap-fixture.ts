@@ -9,7 +9,7 @@
 // The label layer's heap guards' fixture (NG-12): a few hundred labels, widths and heights fractional as production's
 // (`measureText().width`), so a double crossing a call that is not inlined boxes and the guards see it (LA-13).
 
-import { axisView, type Laid, type NightingaleAxis } from "../src/labels.ts";
+import { axisView, type Laid, type NightingaleAxis } from "../src/labels.js";
 
 export const N = 50_000;
 export const COUNT = 300;

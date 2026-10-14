@@ -40,11 +40,11 @@ import {
   supportedAll,
   type ThemeRef,
   validate,
-} from "../../src/format/index.ts";
-import { pathsSearched } from "../../src/format/resolve/reach.ts";
-import { pf00042 } from "../model/alignment-fixtures.ts";
-import { CASES, case3, case6, case7, case9, case10, case12, case13 } from "./cases.ts";
-import { files, fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { pathsSearched } from "../../src/format/resolve/reach.js";
+import { pf00042 } from "../model/alignment-fixtures.js";
+import { CASES, case3, case6, case7, case9, case10, case12, case13 } from "./cases.js";
+import { files, fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 const all = supportedAll(reg);

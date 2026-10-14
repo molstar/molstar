@@ -12,13 +12,13 @@
 
 import { CoordinateSystemKind as K, OrderedSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { Pass, SkinToken } from "../src/draw/index.ts";
-import { ChannelMarks, Hit, HoverKind, SeqViewerConfig } from "../src/index.ts";
-import type { SplitFeatures } from "../src/layout.ts";
-import type { MarkSet } from "../src/marks.ts";
-import { opened, preparedRenderers } from "./layout-fixtures.ts";
-import { lit, passRects } from "./overlay-fixtures.ts";
-import { CHAIN_AT, splitUnitsDoc } from "./split-units-fixtures.ts";
+import { Pass, SkinToken } from "../src/draw/index.js";
+import { ChannelMarks, Hit, HoverKind, SeqViewerConfig } from "../src/index.js";
+import type { SplitFeatures } from "../src/layout.js";
+import type { MarkSet } from "../src/marks.js";
+import { opened, preparedRenderers } from "./layout-fixtures.js";
+import { lit, passRects } from "./overlay-fixtures.js";
+import { CHAIN_AT, splitUnitsDoc } from "./split-units-fixtures.js";
 
 const S = "v.main";
 

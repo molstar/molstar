@@ -10,7 +10,7 @@
 // (VL-20); a view drawn without marks reads empty runs, not null (VL-22).
 
 import { describe, expect, it } from "vitest";
-import { DrawView, PathBatch, PathVerb } from "../src/draw/api.ts";
+import { DrawView, PathBatch, PathVerb } from "../src/draw/api.js";
 
 describe("draw nits", () => {
   it("VL-20: `new PathBatch(0)` takes its verbs", () => {

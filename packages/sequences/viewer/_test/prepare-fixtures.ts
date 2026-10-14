@@ -10,8 +10,8 @@
 // format case 14's protein over its coding DNA, with overlapping features packed in lanes.
 
 import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
-import type { Features } from "../src/prepare.ts";
-import { segWindow } from "../src/pyramids.ts";
+import type { Features } from "../src/prepare.js";
+import { segWindow } from "../src/pyramids.js";
 
 const PROTEIN = "MSEEKLKELAEKAIRLAKEGNPEEALKLLEEALRLAKESGDPELIARVLELLAEVTKQSVHAYRLDDGKWFLQPGGRVSLEMAPTDLQAAH";
 const residues = (n: number, seed = 0) =>

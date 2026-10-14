@@ -52,28 +52,28 @@ import {
   Tiles,
 } from "@molstar/seq-core/format";
 import { Paths } from "@molstar/seq-core/model";
-import type { AxisView, ShownIndex } from "./axis.ts";
-import { type ConfigManager, SeqViewerConfig } from "./config.ts";
-import { DynamicNodes, heldNodeRefs } from "./dynamic.ts";
-import type { ViewModel } from "./graph.ts";
-import { itemSystemNodes } from "./item-systems.ts";
-import { type Layouts, type RowModel, type SectionLayout, SectionLayouts } from "./layout.ts";
-import type { Hint } from "./prefetch.ts";
-import type { SeqViewerRegistry } from "./registry.ts";
-import type { Scheduler } from "./scheduler.ts";
-import { live, state, type Unsubscribable } from "./state.ts";
+import type { AxisView, ShownIndex } from "./axis.js";
+import { type ConfigManager, SeqViewerConfig } from "./config.js";
+import { DynamicNodes, heldNodeRefs } from "./dynamic.js";
+import type { ViewModel } from "./graph.js";
+import { itemSystemNodes } from "./item-systems.js";
+import { type Layouts, type RowModel, type SectionLayout, SectionLayouts } from "./layout.js";
+import type { Hint } from "./prefetch.js";
+import type { SeqViewerRegistry } from "./registry.js";
+import type { Scheduler } from "./scheduler.js";
+import { live, state, type Unsubscribable } from "./state.js";
 import {
   type LocalCells,
   RegionState,
   type StreamManager,
   type StreamStats,
   type StreamView,
-} from "./stream-contract.ts";
-import type { Layer, Region } from "./stream-layer.ts";
-import * as Store from "./stream-layer.ts";
-import * as Levels from "./stream-levels.ts";
-import { held1, tileOf } from "./stream-patches.ts";
-import type { Viewports } from "./viewport.ts";
+} from "./stream-contract.js";
+import type { Layer, Region } from "./stream-layer.js";
+import * as Store from "./stream-layer.js";
+import * as Levels from "./stream-levels.js";
+import { held1, tileOf } from "./stream-patches.js";
+import type { Viewports } from "./viewport.js";
 
 export {
   LETTERS_PER_PX,
@@ -84,9 +84,9 @@ export {
   type StreamManager,
   type StreamStats,
   type StreamView,
-} from "./stream-contract.ts";
-export { blockLevels, listedLevels, MAP_WIDTH, overviewLevels, reduce, tileLevels } from "./stream-levels.ts";
-export { lettersStream, streamedBlock, streamStats, trackStream } from "./stream-sources.ts";
+} from "./stream-contract.js";
+export { blockLevels, listedLevels, MAP_WIDTH, overviewLevels, reduce, tileLevels } from "./stream-levels.js";
+export { lettersStream, streamedBlock, streamStats, trackStream } from "./stream-sources.js";
 
 // Read once into module constants: a read through an import is a property read of the module per use, which
 // the test runner's module wrapper turns into an allocation on per-frame paths.

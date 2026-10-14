@@ -12,7 +12,7 @@
 // nodes change only when the rows in view or the hovered header change. As src/react/section.tsx.
 
 import { Height } from "@molstar/seq-core/format";
-import { type SeqViewerContext, shownSections, type Unsubscribable } from "../index.ts";
+import { type SeqViewerContext, shownSections, type Unsubscribable } from "../index.js";
 import {
   type DomHandle,
   type DomPart,
@@ -26,8 +26,8 @@ import {
   type RowProps,
   setAttr,
   watch,
-} from "./core.ts";
-import { focusIndicator, placeScroll, setStyle, trackBox } from "./shared.ts";
+} from "./core.js";
+import { focusIndicator, placeScroll, setStyle, trackBox } from "./shared.js";
 
 interface Frame {
   readonly root: HTMLElement;

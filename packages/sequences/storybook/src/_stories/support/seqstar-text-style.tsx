@@ -12,8 +12,8 @@
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { useSeqViewer } from "@molstar/seq-viewer/react";
 import { type ReactNode, useMemo, useState } from "react";
-import { Choices } from "../ui";
-import { textStyled } from "./seqstar-cases";
+import { Choices } from "../ui/index.js";
+import { textStyled } from "./seqstar-cases.js";
 
 const STYLES = [
   {

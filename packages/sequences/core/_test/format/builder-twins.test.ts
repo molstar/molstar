@@ -25,9 +25,9 @@ import {
   codonOf,
   f32,
   GENETIC_CODES,
-} from "../../src/builder/helpers.ts";
-import { isNamespaced, KERNEL_LAYER_TYPE_NAMES, SvsFormat, SvsVersion } from "../../src/format/index.ts";
-import { KernelLayerTypes } from "../../src/format/tables/kernel.ts";
+} from "../../src/builder/helpers.js";
+import { isNamespaced, KERNEL_LAYER_TYPE_NAMES, SvsFormat, SvsVersion } from "../../src/format/index.js";
+import { KernelLayerTypes } from "../../src/format/tables/kernel.js";
 
 /** A small deterministic generator (an LCG over 32 bits). */
 function random(seed: number) {

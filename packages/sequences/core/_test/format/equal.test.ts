@@ -8,8 +8,8 @@
 
 // `equal`: the canonical JSON's equality, compared in place (the equality sweep's one helper).
 import { describe, expect, it } from "vitest";
-import { canonical, equal } from "../../src/format/index.ts";
-import { itWithin } from "../model/timing.ts";
+import { canonical, equal } from "../../src/format/index.js";
+import { itWithin } from "../model/timing.js";
 
 /** A seeded generator (mulberry32), so a failure repeats. */
 function random(seed: number) {

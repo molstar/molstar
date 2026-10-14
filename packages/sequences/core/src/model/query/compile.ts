@@ -24,14 +24,14 @@ import {
   queryIssue,
   type SymbolDef,
 } from "@molstar/seq-core/query";
-import { F64, QueryAbort, QueryContext, type QueryOptions } from "./context.ts";
-import { MODIFIER_RUNTIMES } from "./modifiers.ts";
-import { ONTO_RUNTIMES } from "./onto.ts";
-import { PARTNERS_RUNTIMES } from "./partners.ts";
-import { PROPERTY_RUNTIMES } from "./properties.ts";
-import { BASE_RUNTIMES, refQuery } from "./runtime.ts";
-import { SCAN_RUNTIMES } from "./scans.ts";
-import { SeqSelection } from "./selection.ts";
+import { F64, QueryAbort, QueryContext, type QueryOptions } from "./context.js";
+import { MODIFIER_RUNTIMES } from "./modifiers.js";
+import { ONTO_RUNTIMES } from "./onto.js";
+import { PARTNERS_RUNTIMES } from "./partners.js";
+import { PROPERTY_RUNTIMES } from "./properties.js";
+import { BASE_RUNTIMES, refQuery } from "./runtime.js";
+import { SCAN_RUNTIMES } from "./scans.js";
+import { SeqSelection } from "./selection.js";
 
 export type QueryFn<T> = (ctx: QueryContext) => T;
 

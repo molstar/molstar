@@ -10,11 +10,11 @@
 // manager, a skin token's color from the context's skin, a glyph from the registry's glyph table. The SVG backend
 // resolves ids through it; the Canvas2D surface wraps it with a font size cache by id (its hot path).
 
-import type { SeqViewerContext } from "../context.ts";
-import type { Skin } from "../graph.ts";
-import { fontPx } from "../text.ts";
-import { glyphTableOf } from "../themes.ts";
-import { type DrawResources, SkinToken } from "./backend.ts";
+import type { SeqViewerContext } from "../context.js";
+import type { Skin } from "../graph.js";
+import { fontPx } from "../text.js";
+import { glyphTableOf } from "../themes.js";
+import { type DrawResources, SkinToken } from "./backend.js";
 
 /** Skin tokens by `-token - 2` (`SkinToken`), as `Skin` keys. */
 const TOKENS: (keyof Skin)[] = [];

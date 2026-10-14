@@ -13,7 +13,7 @@
 // document; 2: usage, or a file that cannot be read or written. Runs with Node's type stripping.
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { readDocument, toJSON, toMsgPack } from "../index.ts";
+import { readDocument, toJSON, toMsgPack } from "../index.js";
 
 const args = process.argv.slice(2);
 const [from, to] = args.filter((a) => !a.startsWith("--"));

@@ -1,5 +1,12 @@
 {
   "extends": "../../../tsconfig.base.json",
-  "compilerOptions": { "noUncheckedIndexedAccess": false, "types": ["node"], "lib": ["ES2023"] },
+  // Never built: Node's type stripping runs these files, so .ts imports (no emit).
+  "compilerOptions": {
+    "composite": false, "declaration": false, "declarationMap": false, "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
   "include": ["*.ts"]
 }

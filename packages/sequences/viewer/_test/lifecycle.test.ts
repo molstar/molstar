@@ -18,9 +18,9 @@ import {
   DefaultRegistry,
   type NodeKind,
   type SeqViewerContext,
-} from "../src/index.ts";
-import { Issues } from "../src/ui.ts";
-import { domMoved, manualLoaders, patch, smallDoc } from "./graph-fixtures.ts";
+} from "../src/index.js";
+import { Issues } from "../src/ui.js";
+import { domMoved, manualLoaders, patch, smallDoc } from "./graph-fixtures.js";
 
 /** A context whose `annotation` kind is replaced by `over(base)`. */
 function withKind(over: (base: NodeKind) => NodeKind): SeqViewerContext {

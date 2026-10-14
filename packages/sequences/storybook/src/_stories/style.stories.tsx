@@ -9,13 +9,13 @@
 import { useSeqState, useSeqViewer } from "@molstar/seq-viewer/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type CSSProperties, type ReactNode, Suspense, use } from "react";
-import { compiledCase } from "./support/seqstar-cases";
-import { BAD, FLOORS, HEADS, STYLE_FAMILY, styled } from "./support/seqstar-docs-views";
+import { compiledCase } from "./support/seqstar-cases.js";
+import { BAD, FLOORS, HEADS, STYLE_FAMILY, styled } from "./support/seqstar-docs-views.js";
 import f from "./support/seqstar-format.module.css";
-import { IssueList } from "./support/seqstar-issues";
-import { PrismPage } from "./support/seqstar-prism";
+import { IssueList } from "./support/seqstar-issues.js";
+import { PrismPage } from "./support/seqstar-prism.js";
 import st from "./support/seqstar-style.module.css";
-import { ViewerCard } from "./support/seqstar-viewer";
+import { ViewerCard } from "./support/seqstar-viewer.js";
 
 /**
  * A section's `style` as a preset name or an inline preset: `preset` names the base and a curated

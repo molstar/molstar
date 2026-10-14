@@ -14,8 +14,8 @@
 import { crc32, deflateRawSync } from "node:zlib";
 import type { StreamRequest } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { type RangeReader, vcfProvider } from "../../../src/stream/gmod/index.ts";
-import { req } from "./cases.ts";
+import { type RangeReader, vcfProvider } from "../../../src/stream/gmod/index.js";
+import { req } from "./cases.js";
 
 const signal = new AbortController().signal;
 const N = 3000;

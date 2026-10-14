@@ -9,9 +9,9 @@
 // The v1 base table: 62 symbols, 53 short names, with the metadata the checker, the skill and the reference read. The
 // order is the skill's: generators and macros as A.3's SELECTIONS lists them, combinators, modifiers and filters as its
 // COMBINE, properties by slot as its TESTS.
-import { expandSel, normalizeSel, SEL_STRING } from "./sel.ts";
-import { defineSymbol } from "./symbol.ts";
-import type { ArgDef, Slot, SymbolExample, SymbolHint, SymbolKind, SymbolSpec, Type } from "./types.ts";
+import { expandSel, normalizeSel, SEL_STRING } from "./sel.js";
+import { defineSymbol } from "./symbol.js";
+import type { ArgDef, Slot, SymbolExample, SymbolHint, SymbolKind, SymbolSpec, Type } from "./types.js";
 
 type Meta = Pick<SymbolSpec, "doc"> &
   Partial<Pick<SymbolSpec, "args" | "examples" | "hints" | "result" | "expand" | "normalize">>;

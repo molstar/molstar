@@ -16,8 +16,8 @@
 // and measured alike, is caught.
 
 import { describe, expect, it, vi } from "vitest";
-import { controlCaught, leaking, warmFrame } from "../heap.ts";
-import { describeScaling, heapScaling, isFlat } from "./heap.ts";
+import { controlCaught, leaking, warmFrame } from "../heap.js";
+import { describeScaling, heapScaling, isFlat } from "./heap.js";
 
 const N = 1_000;
 /** Warmed until the frame stops allocating (`warmFrame`: the wide scene's tiny draw climbed past 2,000 frames). */
@@ -35,13 +35,13 @@ type Name = (typeof SCENES)[number];
 
 async function load() {
   vi.resetModules();
-  const fx = await import("./fixtures.ts");
-  const kit = await import("../../src/testing/index.ts");
-  const viewer = await import("../../src/index.ts");
-  const draws = await import("../conformance-fixtures.ts");
-  const layout = await import("../layout-fixtures.ts");
-  const cases = await import("../../../core/_test/format/cases.ts");
-  const src = await import("../../src/interactions/viewer/index.ts");
+  const fx = await import("./fixtures.js");
+  const kit = await import("../../src/testing/index.js");
+  const viewer = await import("../../src/index.js");
+  const draws = await import("../conformance-fixtures.js");
+  const layout = await import("../layout-fixtures.js");
+  const cases = await import("../../../core/_test/format/cases.js");
+  const src = await import("../../src/interactions/viewer/index.js");
   return { fx, kit, viewer, draws, layout, cases, src };
 }
 

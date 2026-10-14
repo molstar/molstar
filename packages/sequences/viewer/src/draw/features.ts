@@ -13,17 +13,17 @@
 // (the same compaction as the band's height); the hovered item's outlines on those underlines
 // (seqspec:interaction#hover). Allocation-free once warm: module scratch, grown only.
 
-import { type Axis, AxisGeometry, type AxisView } from "../axis.ts";
-import type { Hit } from "../hit.ts";
-import { type Features, featureAt } from "../prepare.ts";
-import { segWindow } from "../pyramids.ts";
-import { hitItem, laneHeight, laneInset, lanePad } from "../renderer-helpers.ts";
-import { groupOf, type LineTable, lineLanes } from "../runs.ts";
-import { NO_COLOR, RectBatch, SkinToken } from "./backend.ts";
-import { shownHull } from "./cells.ts";
-import { densityKindOf, drawDensity, featureKey, keyAlpha, keyColor } from "./density.ts";
-import { HoverOutline, hoveredItem, type ItemOrder } from "./hover.ts";
-import type { DrawView } from "./view.ts";
+import { type Axis, AxisGeometry, type AxisView } from "../axis.js";
+import type { Hit } from "../hit.js";
+import { type Features, featureAt } from "../prepare.js";
+import { segWindow } from "../pyramids.js";
+import { hitItem, laneHeight, laneInset, lanePad } from "../renderer-helpers.js";
+import { groupOf, type LineTable, lineLanes } from "../runs.js";
+import { NO_COLOR, RectBatch, SkinToken } from "./backend.js";
+import { shownHull } from "./cells.js";
+import { densityKindOf, drawDensity, featureKey, keyAlpha, keyColor } from "./density.js";
+import { HoverOutline, hoveredItem, type ItemOrder } from "./hover.js";
+import type { DrawView } from "./view.js";
 
 /** A feature's ink: its color key's, the faint ink where its theme gives none. */
 export const featureInk = (key: number): number => (key === NO_COLOR ? SkinToken.inkFaint : keyColor(key));

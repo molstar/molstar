@@ -14,10 +14,10 @@
 import { projectionOf } from "@molstar/seq-core/format";
 import { Extents, type Loci, OrderedSet, type UnitId } from "@molstar/seq-core/model";
 import { beforeAll, describe, expect, it } from "vitest";
-import { gene, open } from "../../core/_test/format/project-fixtures.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leak } from "../../core/_test/model/heap.ts";
-import { AxisRuns, AxisSink, axesOf, highlightRuns, keepLit, prepareLoci } from "../src/axis.ts";
-import type { AxisMeta } from "../src/index.ts";
+import { gene, open } from "../../core/_test/format/project-fixtures.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leak } from "../../core/_test/model/heap.js";
+import { AxisRuns, AxisSink, axesOf, highlightRuns, keepLit, prepareLoci } from "../src/axis.js";
+import type { AxisMeta } from "../src/index.js";
 
 const N = 50_000;
 let g: Awaited<ReturnType<typeof open>>;

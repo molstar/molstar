@@ -13,8 +13,8 @@
 // real stream's. Hold columns before any composer draws them: a drawn tile's image is kept by the renderer.
 
 import { TILE } from "@molstar/seq-core/format";
-import type { SeqViewerContext } from "../src/index.ts";
-import { blockLevels, lanesInView, RegionState, type StreamView } from "../src/streams.ts";
+import type { SeqViewerContext } from "../src/index.js";
+import { blockLevels, lanesInView, RegionState, type StreamView } from "../src/streams.js";
 
 export function holdBack(ctx: SeqViewerContext, section: string) {
   const m = ctx.graph.assembled.value?.view;

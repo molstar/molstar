@@ -23,13 +23,13 @@ import {
   SeqViewerConfig,
 } from "@molstar/seq-viewer";
 import { expect, it } from "vitest";
-import { helpers } from "../../viewer/_test/layout-fixtures.ts";
-import { createHoverCard } from "../../viewer/src/hover-card.ts";
-import { fixtureMeasurer } from "../../viewer/src/testing/index.ts";
-import { coverageRows, MolstarSvsEntry } from "../src/index.ts";
-import { type Shown, showInStructureAction } from "../src/viewer.ts";
-import { demoLoaders, P53 } from "./fixtures.ts";
-import { P53_STRUCTURES, P53_TRACKS, p53CoverageOptions, p53DemoDoc } from "./p53-demo.ts";
+import { helpers } from "../../viewer/_test/layout-fixtures.js";
+import { createHoverCard } from "../../viewer/src/hover-card.js";
+import { fixtureMeasurer } from "../../viewer/src/testing/index.js";
+import { coverageRows, MolstarSvsEntry } from "../src/index.js";
+import { type Shown, showInStructureAction } from "../src/viewer.js";
+import { demoLoaders, P53 } from "./fixtures.js";
+import { P53_STRUCTURES, P53_TRACKS, p53CoverageOptions, p53DemoDoc } from "./p53-demo.js";
 
 const SECTION = "main.main";
 

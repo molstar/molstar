@@ -8,7 +8,7 @@
 
 // Numbers, strings, issues, provenance and custom data (seqspec:model#custom-data). `-1` means none for every brand.
 
-import type { SeqSet } from "./set.ts";
+import type { SeqSet } from "./set.js";
 
 export type Brand<T, B extends string> = T & { readonly "@type": B };
 /** A position in a sequence, 0..length-1. */

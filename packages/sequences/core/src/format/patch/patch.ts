@@ -10,16 +10,16 @@
 // validated, snapshots re-checked), `diff`, `snapshotDoc`, and the static checks of snapshot ops `validate` runs.
 
 import { Issue, type KeyResolver } from "@molstar/seq-core/model";
-import type { DocNode, Op, Patch, SeqViewSpecDoc } from "../doc.ts";
-import { KernelRegistry } from "../kernel-registry.ts";
-import { issueOf } from "../load/issues.ts";
-import { createRegistries, register, type SvsRegistries } from "../registry.ts";
-import { isPlainObject } from "../schema/field-schema.ts";
-import { nodeList } from "../schema/tree-schema.ts";
-import { MvsRegistry } from "../tables/kernel.ts";
-import { SvsTreeSchema } from "../tables/svs-tree.ts";
-import { validate } from "../validate.ts";
-import { diffTree, patchTree } from "./tree-patch.ts";
+import type { DocNode, Op, Patch, SeqViewSpecDoc } from "../doc.js";
+import { KernelRegistry } from "../kernel-registry.js";
+import { issueOf } from "../load/issues.js";
+import { createRegistries, register, type SvsRegistries } from "../registry.js";
+import { isPlainObject } from "../schema/field-schema.js";
+import { nodeList } from "../schema/tree-schema.js";
+import { MvsRegistry } from "../tables/kernel.js";
+import { SvsTreeSchema } from "../tables/svs-tree.js";
+import { validate } from "../validate.js";
+import { diffTree, patchTree } from "./tree-patch.js";
 
 const PatchFormat = "seq_view_spec_patch";
 const opts = (reg: SvsRegistries) => ({ schema: SvsTreeSchema, reg });

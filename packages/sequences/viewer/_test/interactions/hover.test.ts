@@ -11,13 +11,13 @@
 // (no kind under the point) outlined inside the ground; nothing over a cell without contacts.
 
 import { describe, expect, it } from "vitest";
-import { SkinToken } from "../../src/draw/backend.ts";
-import { Dirty, hoverInk, Pass, SectionComposer } from "../../src/draw/index.ts";
-import { DarkSkin, DefaultSkin, Hit } from "../../src/index.ts";
-import { FingerprintRenderer } from "../../src/interactions/viewer/index.ts";
-import { LayerFrame, RecordingBackend } from "../../src/testing/index.ts";
-import { BoxKind, passBoxes, within } from "../hover-fixtures.ts";
-import { layerOf, open, unitScene } from "./fixtures.ts";
+import { SkinToken } from "../../src/draw/backend.js";
+import { Dirty, hoverInk, Pass, SectionComposer } from "../../src/draw/index.js";
+import { DarkSkin, DefaultSkin, Hit } from "../../src/index.js";
+import { FingerprintRenderer } from "../../src/interactions/viewer/index.js";
+import { LayerFrame, RecordingBackend } from "../../src/testing/index.js";
+import { BoxKind, passBoxes, within } from "../hover-fixtures.js";
+import { layerOf, open, unitScene } from "./fixtures.js";
 
 describe.each(["light", "dark"] as const)("the fingerprint's hover emphasis, %s", (skin) => {
   it("the hovered stripe alone, inside its own rect, in its kind's hover ink; a ground inside the ground", async () => {

@@ -1,8 +1,16 @@
 {
   "extends": "../../../tsconfig.base.json",
-  // Typed arrays everywhere: their index reads are numbers, as in Mol*, not number | undefined. The query language
-  // keeps the strict reads (tsconfig.query.json).
-  "compilerOptions": { "noUncheckedIndexedAccess": false, "types": ["node"], "lib": ["ES2023"] },
-  "include": ["src", "_test", "bench", "scripts"],
-  "exclude": ["src/query", "_test/query"]
+  // The build: all of src to lib. Typed arrays everywhere: their index reads are numbers, as in Mol*, not number | undefined (src/query is also checked with the strict reads, tsconfig.query.json). Platform-free: no DOM lib. Seq* was built under ES2022 class-field semantics (Mol*'s base keeps v5's).
+  // The references to @molstar/core and @molstar/io come with the imports of their msgpack and zip.
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "exclude": ["src/**/_test/**", "src/**/_stories/**", "src/**/*.stories.ts", "src/**/*.stories.tsx"]
 }

@@ -60,10 +60,10 @@ import {
   type SeqSet,
   type SetInput,
 } from "@molstar/seq-core/model";
-import { pickedTheme, schemeEntries, subjectOf, withRange } from "./color-schemes.ts";
-import type { InputCollector, NodeKind, PreparedLayer, RunContext, Stage, ViewModel } from "./graph.ts";
-import type { LayerInput, LayerRenderer } from "./registry.ts";
-import { createTheme, type Theme, themeContext } from "./themes.ts";
+import { pickedTheme, schemeEntries, subjectOf, withRange } from "./color-schemes.js";
+import type { InputCollector, NodeKind, PreparedLayer, RunContext, Stage, ViewModel } from "./graph.js";
+import type { LayerInput, LayerRenderer } from "./registry.js";
+import { createTheme, type Theme, themeContext } from "./themes.js";
 
 /** An alignment a node provider computes from the set (`realign`): assembled with the mappings, after the base set. */
 const computedAlignment = (n: IndexedNode) => n.kind === "alignment" && n.params.provider != null;

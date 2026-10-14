@@ -16,14 +16,14 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { Extents } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { Dirty, Pass, SkinToken } from "../src/draw/index.ts";
-import { Hit, HoverKind, KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import type { Features } from "../src/prepare.ts";
-import { DefaultPresets } from "../src/presets.ts";
-import { Op, type RecordingBackend } from "../src/testing/index.ts";
-import { composed, recording } from "./composer-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
-import { layer } from "./layout-fixtures.ts";
+import { Dirty, Pass, SkinToken } from "../src/draw/index.js";
+import { Hit, HoverKind, KernelRenderers, type LayerRenderer } from "../src/index.js";
+import type { Features } from "../src/prepare.js";
+import { DefaultPresets } from "../src/presets.js";
+import { Op, type RecordingBackend } from "../src/testing/index.js";
+import { composed, recording } from "./composer-fixtures.js";
+import { driven } from "./input-fixtures.js";
+import { layer } from "./layout-fixtures.js";
 
 const registry = [{ presets: DefaultPresets.filter((p) => p.name === "circular") }];
 const TAU = 2 * Math.PI;
@@ -356,7 +356,7 @@ describe("rings", () => {
     expect(t.ctx.hover.live.current.index).toBe(238);
     t.key(section, "Home");
     expect(t.ctx.ui.keyCursor.value).toMatchObject({ index: 0, header: false });
-    const { SectionComposer } = await import("../src/draw/index.ts");
+    const { SectionComposer } = await import("../src/draw/index.js");
     const c = new SectionComposer(t.ctx, section);
     const rec = recording();
     c.frame(rec, Dirty.all);

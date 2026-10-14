@@ -7,10 +7,10 @@
  * MIT License, Copyright (c) 2018 Photopea
  */
 
-import { RuntimeContext } from './shims.ts';
-import { assertUnreachable, NumberArray } from './shims.ts';
-import { _hufTree } from './huffman.ts';
-import { U, revCodes, makeCodes, checkCompressionStreamSupport } from './util.ts';
+import { RuntimeContext } from './shims.js';
+import { assertUnreachable, NumberArray } from './shims.js';
+import { _hufTree } from './huffman.js';
+import { U, revCodes, makeCodes, checkCompressionStreamSupport } from './util.js';
 
 function DeflateContext(data: Uint8Array, out: Uint8Array, opos: number, lvl: number) {
     const { lits, strt, prev } = U;

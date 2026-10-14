@@ -12,10 +12,10 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { type Annotation, SeqSets } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { Color, ColorLists, compile, layerPalette, type Palette } from "../../../src/format/index.ts";
-import { UNNAMED_ITEM } from "../../../src/format/palettes/fields.ts";
-import { kernel } from "../fixtures.ts";
-import { loaders } from "../load-support.ts";
+import { Color, ColorLists, compile, layerPalette, type Palette } from "../../../src/format/index.js";
+import { UNNAMED_ITEM } from "../../../src/format/palettes/fields.js";
+import { kernel } from "../fixtures.js";
+import { loaders } from "../load-support.js";
 
 const reg = kernel();
 async function data() {

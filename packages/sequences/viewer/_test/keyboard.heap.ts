@@ -16,12 +16,12 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { case3 } from "../../core/_test/format/cases.ts";
-import { Inputs, type KeyCursor, Modifier } from "../src/index.ts";
-import { cursorRect } from "../src/keyboard.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
-import { type Driven, driven } from "./input-fixtures.ts";
-import { lazyLoaders } from "./layout-fixtures.ts";
+import { case3 } from "../../core/_test/format/cases.js";
+import { Inputs, type KeyCursor, Modifier } from "../src/index.js";
+import { cursorRect } from "../src/keyboard.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { type Driven, driven } from "./input-fixtures.js";
+import { lazyLoaders } from "./layout-fixtures.js";
 
 const N = 20_000;
 /** One published cursor (88 bytes; 93 measured, 2026-10-11) is all a press may make. */

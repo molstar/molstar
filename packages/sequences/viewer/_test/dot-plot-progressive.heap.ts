@@ -24,7 +24,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 /** The guards' measurement: warmed by count and by time, then `N` frames and `4N` measured. */
@@ -44,10 +44,10 @@ const guard = (frame: () => void) => {
 /** Four stacked chains of 600, a grid on each, its coarse levels built and nothing finer. */
 async function stacked() {
   const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
-  const { lit } = await import("./overlay-fixtures.ts");
-  const { recording } = await import("./composer-fixtures.ts");
-  const { BackendCaps, Dirty } = await import("../src/draw/index.ts");
-  const { DotPlotLimits, DotPlotVisits } = await import("../src/draw/dot-plot.ts");
+  const { lit } = await import("./overlay-fixtures.js");
+  const { recording } = await import("./composer-fixtures.js");
+  const { BackendCaps, Dirty } = await import("../src/draw/index.js");
+  const { DotPlotLimits, DotPlotVisits } = await import("../src/draw/dot-plot.js");
   const L = 600;
   const b = createSeqViewSpec({ title: "stacked" });
   const cs = Array.from({ length: 4 }, (_, k) => b.data.sequence({ ref: `c${k}`, value: "M".repeat(L) }));
@@ -83,7 +83,7 @@ describe("the dot plot's progressive draw allocates nothing per frame", () => {
     const tiles = g.visits.tiles;
     g.draw();
     // Not vacuous: tiles drawn (the coarse ones), more asked, nothing built.
-    const { Op } = await import("../src/testing/index.ts");
+    const { Op } = await import("../src/testing/index.js");
     let images = 0;
     for (let k = 0; k < g.be.opCount; k++) if (g.be.ops[4 * k] === Op.image) images++;
     expect(images).toBeGreaterThan(0);

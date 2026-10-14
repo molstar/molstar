@@ -13,15 +13,15 @@
 // result passes the same checks (seqspec:model#providers).
 
 import type { AnnotationInput, CustomData, KeyResolver, KeyTarget, SeqSet } from "@molstar/seq-core/model";
-import type { Loaders, StageContext, StreamNode } from "../contract.ts";
-import type { DocNode } from "../doc.ts";
-import { normalizeNodeParams } from "../normalize.ts";
-import { isRefSyntax } from "../schema/field-schema.ts";
-import type { IndexedNode } from "../schema/tree-schema.ts";
-import { SvsTreeSchema } from "../tables/svs-tree.ts";
-import { checkStreamNode } from "../validate.ts";
-import { type DocIndex, type LoadResult, loadNode, type StreamedData, StreamProp } from "./compile.ts";
-import { issueOf } from "./issues.ts";
+import type { Loaders, StageContext, StreamNode } from "../contract.js";
+import type { DocNode } from "../doc.js";
+import { normalizeNodeParams } from "../normalize.js";
+import { isRefSyntax } from "../schema/field-schema.js";
+import type { IndexedNode } from "../schema/tree-schema.js";
+import { SvsTreeSchema } from "../tables/svs-tree.js";
+import { checkStreamNode } from "../validate.js";
+import { type DocIndex, type LoadResult, loadNode, type StreamedData, StreamProp } from "./compile.js";
+import { issueOf } from "./issues.js";
 
 /** The kinds a patch may add; a `source` is a nested streamed source (ST1b-b). */
 const KINDS: ReadonlySet<string> = new Set(["sequence", "ligand", "unit", "mapping", "annotation", "source"]);

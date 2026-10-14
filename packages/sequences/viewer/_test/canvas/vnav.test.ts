@@ -16,13 +16,13 @@
 
 import type { SeqSet } from "@molstar/seq-core/model";
 import { afterEach, describe, expect, it } from "vitest";
-import type { AxisView } from "../../src/axis.ts";
-import { SCROLLBAR } from "../../src/hit.ts";
-import { Inputs, PointerType, type SectionLayout } from "../../src/index.ts";
-import { WINDOW_FRAME, WindowKind, windowFrame } from "../../src/windows.ts";
-import { syntheticFamily } from "../families.ts";
-import { rowLoci } from "../overlay-docs.ts";
-import { canvasesOf, close, type Opened, opened, pixelsOf, settle } from "./open.ts";
+import type { AxisView } from "../../src/axis.js";
+import { SCROLLBAR } from "../../src/hit.js";
+import { Inputs, PointerType, type SectionLayout } from "../../src/index.js";
+import { WINDOW_FRAME, WindowKind, windowFrame } from "../../src/windows.js";
+import { syntheticFamily } from "../families.js";
+import { rowLoci } from "../overlay-docs.js";
+import { canvasesOf, close, type Opened, opened, pixelsOf, settle } from "./open.js";
 
 let t: Opened | null = null;
 afterEach(() => {

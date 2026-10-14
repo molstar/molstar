@@ -34,15 +34,15 @@ import {
   SortedRanges,
   type UnitId,
 } from "@molstar/seq-core/model";
-import type { DocIndex } from "../load/compile.ts";
-import { issueOf } from "../load/issues.ts";
-import type { SvsRegistries } from "../registry.ts";
-import type { IndexedNode } from "../schema/tree-schema.ts";
-import { resolveStyle, type StyleRenderProps } from "../tables/style.ts";
-import { Arrangement, Height, Layout, LigandForm, RowSizing, SectionAxis } from "./codes.ts";
-import { layoutOf } from "./coordinates.ts";
-import { alignmentRows, type KeyFilterValue, keyed, type OrderKeyValue } from "./keyed.ts";
-import { blockSystem, columnsSystem, cover, endsOf, matcher, pathTo, reach, steps, unitSystem } from "./reach.ts";
+import type { DocIndex } from "../load/compile.js";
+import { issueOf } from "../load/issues.js";
+import type { SvsRegistries } from "../registry.js";
+import type { IndexedNode } from "../schema/tree-schema.js";
+import { resolveStyle, type StyleRenderProps } from "../tables/style.js";
+import { Arrangement, Height, Layout, LigandForm, RowSizing, SectionAxis } from "./codes.js";
+import { layoutOf } from "./coordinates.js";
+import { alignmentRows, type KeyFilterValue, keyed, type OrderKeyValue } from "./keyed.js";
+import { blockSystem, columnsSystem, cover, endsOf, matcher, pathTo, reach, steps, unitSystem } from "./reach.js";
 
 export type ResolvedParams = Readonly<Record<string, unknown>>;
 export interface BlockRow {

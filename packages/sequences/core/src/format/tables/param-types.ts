@@ -9,14 +9,14 @@
 // The shared param types (seqspec:format#positions, seqspec:format#themes): labels, colors, palettes, theme references,
 // glyphs, tables, provenance, filters, URIs.
 
-import type { Glyph, GlyphShape, ThemeRef } from "../doc.ts";
-import { Color } from "../palettes/color.ts";
-import { ColorDictionaryNames } from "../palettes/dictionaries.ts";
-import { isMapLetter } from "../palettes/letter-maps.ts";
-import { LetterDictionaryNames } from "../palettes/letters.ts";
-import { ColorListNames } from "../palettes/lists.ts";
-import { PaletteDefaults } from "../palettes/palette.ts";
-import type { ChannelKind } from "../registry.ts";
+import type { Glyph, GlyphShape, ThemeRef } from "../doc.js";
+import { Color } from "../palettes/color.js";
+import { ColorDictionaryNames } from "../palettes/dictionaries.js";
+import { isMapLetter } from "../palettes/letter-maps.js";
+import { LetterDictionaryNames } from "../palettes/letters.js";
+import { ColorListNames } from "../palettes/lists.js";
+import { PaletteDefaults } from "../palettes/palette.js";
+import type { ChannelKind } from "../registry.js";
 import {
   bool,
   type CheckContext,
@@ -39,7 +39,7 @@ import {
   tuple,
   typeError,
   union,
-} from "../schema/field-schema.ts";
+} from "../schema/field-schema.js";
 import {
   checkParams,
   normalizeParams,
@@ -49,8 +49,8 @@ import {
   RequiredField,
   SimpleParamsSchema,
   UnionParamsSchema,
-} from "../schema/params-schema.ts";
-import { resolveArchivePath } from "../uri-path.ts";
+} from "../schema/params-schema.js";
+import { resolveArchivePath } from "../uri-path.js";
 
 const LABEL_INT = /^-?[0-9]+([A-Za-z]+|\.[0-9]+)?$/;
 

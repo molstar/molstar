@@ -16,15 +16,15 @@
 // rows track) its items, into the same columns: one band, no item rects. Allocation-free once warm: module scratch,
 // grown only.
 
-import { type Axis, AxisGeometry } from "../axis.ts";
-import type { Features, StreamFields } from "../prepare.ts";
-import { binCounts, segWindow } from "../pyramids.ts";
-import { densityOn, ITEM_BASE, ItemDensity, SLOTS } from "../reductions.ts";
-import { type Theme, ThemeLocation } from "../themes.ts";
-import { NO_COLOR, type RectBatch } from "./backend.ts";
-import { columnBins, columnEnd, columnLevel, shownHull, visibleRange } from "./cells.ts";
-import type { SizeView } from "./sizes.ts";
-import type { DrawView } from "./view.ts";
+import { type Axis, AxisGeometry } from "../axis.js";
+import type { Features, StreamFields } from "../prepare.js";
+import { binCounts, segWindow } from "../pyramids.js";
+import { densityOn, ITEM_BASE, ItemDensity, SLOTS } from "../reductions.js";
+import { type Theme, ThemeLocation } from "../themes.js";
+import { NO_COLOR, type RectBatch } from "./backend.js";
+import { columnBins, columnEnd, columnLevel, shownHull, visibleRange } from "./cells.js";
+import type { SizeView } from "./sizes.js";
+import type { DrawView } from "./view.js";
 
 /** The layer's `density` param (seqspec:format#layer-types): `stacked` (the default) or `majority`. */
 export const DensityKind = { stacked: 0, majority: 1 } as const;

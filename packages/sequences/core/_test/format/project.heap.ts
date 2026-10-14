@@ -13,8 +13,8 @@
 
 import { Extents } from "@molstar/seq-core/model";
 import { beforeAll, describe, expect, it } from "vitest";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../model/heap.ts";
-import { constructs, gene, open, rows } from "./project-fixtures.ts";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../model/heap.js";
+import { constructs, gene, open, rows } from "./project-fixtures.js";
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 50_000;

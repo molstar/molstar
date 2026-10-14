@@ -11,8 +11,8 @@
 
 import type { Closure, Projection } from "@molstar/seq-core/format";
 import { Extents, type Loci } from "@molstar/seq-core/model";
-import { AxisRuns, AxisSink, highlightRuns, prepareLoci } from "../src/axis.ts";
-import type { AxisMeta } from "../src/index.ts";
+import { AxisRuns, AxisSink, highlightRuns, prepareLoci } from "../src/axis.js";
+import type { AxisMeta } from "../src/index.js";
 
 export function highlightOf(p: Projection, meta: AxisMeta, loci: Loci | null, closure: Closure = "element"): string {
   const ext = Extents.create();

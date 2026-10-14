@@ -11,7 +11,7 @@
 // in its top byte did).
 
 import { expect, it } from "vitest";
-import { NO_COLOR, packAlpha, SkinToken } from "../src/draw/api.ts";
+import { NO_COLOR, packAlpha, SkinToken } from "../src/draw/api.js";
 
 it("a key is the color when opaque, and never NO_COLOR or a skin token", () => {
   const tokens = new Set<number>([NO_COLOR, ...Object.values(SkinToken)]);

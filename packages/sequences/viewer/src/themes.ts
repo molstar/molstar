@@ -44,9 +44,9 @@ import {
   type SeqSet,
   type StringTable,
 } from "@molstar/seq-core/model";
-import type { Axis } from "./axis.ts";
-import { type GlyphRecord, GlyphShape, NO_COLOR, SHAPE_COUNT } from "./draw/backend.ts";
-import type { SeqViewerRegistry } from "./registry.ts";
+import type { Axis } from "./axis.js";
+import { type GlyphRecord, GlyphShape, NO_COLOR, SHAPE_COUNT } from "./draw/backend.js";
+import type { SeqViewerRegistry } from "./registry.js";
 
 /** What a theme's value varies with: a renderer hoists `value` out of loops it does not vary in. */
 export const Granularity = {

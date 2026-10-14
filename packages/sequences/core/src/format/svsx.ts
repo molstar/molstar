@@ -10,16 +10,16 @@
 // relative URIs inside it, and the loaders that answer them. Writing is the builder's.
 
 import { Issue } from "@molstar/seq-core/model";
-import type { Loaders, StreamSource } from "./contract.ts";
-import type { SeqViewSpecDoc } from "./doc.ts";
-import { KernelRegistry } from "./kernel-registry.ts";
-import { readDocument } from "./normalize.ts";
-import { createRegistries, register, type SvsRegistries } from "./registry.ts";
-import { MvsRegistry } from "./tables/kernel.ts";
-import { isRelativeUri, resolveArchivePath } from "./uri-path.ts";
-import { validate } from "./validate.ts";
-import { RuntimeContext } from "./zip/shims.ts";
-import { unzip, zip } from "./zip/zip.ts";
+import type { Loaders, StreamSource } from "./contract.js";
+import type { SeqViewSpecDoc } from "./doc.js";
+import { KernelRegistry } from "./kernel-registry.js";
+import { readDocument } from "./normalize.js";
+import { createRegistries, register, type SvsRegistries } from "./registry.js";
+import { MvsRegistry } from "./tables/kernel.js";
+import { isRelativeUri, resolveArchivePath } from "./uri-path.js";
+import { validate } from "./validate.js";
+import { RuntimeContext } from "./zip/shims.js";
+import { unzip, zip } from "./zip/zip.js";
 
 /** The main files of an archive, in the order a reader looks for them (MessagePack first). */
 export const SvsxMainFiles = ["index.svsm", "index.svsj"] as const;

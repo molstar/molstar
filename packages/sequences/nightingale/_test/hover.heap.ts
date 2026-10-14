@@ -17,8 +17,8 @@
 import { projectionOf, type ResolvedView } from "@molstar/seq-core/format";
 import { Extents, type Loci, OrderedSet, type SeqSet, type UnitId } from "@molstar/seq-core/model";
 import { beforeAll, describe, expect, it } from "vitest";
-import { constructs, gene, open } from "../../core/_test/format/project-fixtures.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../../core/_test/model/heap.ts";
+import { constructs, gene, open } from "../../core/_test/format/project-fixtures.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../../core/_test/model/heap.js";
 import {
   AxisRuns,
   AxisSink,
@@ -28,10 +28,10 @@ import {
   highlightRuns,
   type Located,
   prepareLoci,
-} from "../src/axis.ts";
-import { HoverResult, type HoverTarget, hoverAt, newLight, nextHighlight, rangesOf } from "../src/events.ts";
-import type { AxisMeta } from "../src/index.ts";
-import { axisView } from "../src/labels.ts";
+} from "../src/axis.js";
+import { HoverResult, type HoverTarget, hoverAt, newLight, nextHighlight, rangesOf } from "../src/events.js";
+import type { AxisMeta } from "../src/index.js";
+import { axisView } from "../src/labels.js";
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 50_000;

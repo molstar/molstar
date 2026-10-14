@@ -32,7 +32,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = FRAME_N;
 /** A copied frame is cheap, and the draws compile concurrently while frames run: warmed by count and by time. */
@@ -53,8 +53,8 @@ async function guard(frame: (i: number) => void) {
 
 async function load() {
   vi.resetModules();
-  const fx = await import("./composer-fixtures.ts");
-  const docs = await import("./prepare-fixtures.ts");
+  const fx = await import("./composer-fixtures.js");
+  const docs = await import("./prepare-fixtures.js");
   const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
   return { ...fx, ...docs, createSeqViewSpec };
 }

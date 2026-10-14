@@ -30,13 +30,13 @@ import {
 import { windowScheduler } from "@molstar/seq-viewer/canvas";
 import { SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
-import { genomeDoc, synthGenome } from "../../../../core/_test/format/genome-fixture.ts";
+import { genomeDoc, synthGenome } from "../../../../core/_test/format/genome-fixture.js";
 import SOURCE from "../../../../core/_test/format/genome-fixture.ts?raw";
-import { PROBE, TIMED } from "../../../../viewer/_test/canvas/genome-probe.ts";
-import { PrismPage } from "../support/seqstar-prism";
-import { Choices, TextAction } from "../ui";
+import { PROBE, TIMED } from "../../../../viewer/_test/canvas/genome-probe.js";
+import { PrismPage } from "../support/seqstar-prism.js";
+import { Choices, TextAction } from "../ui/index.js";
 import f from "./seqstar-format.module.css";
-import { PrismCanvas, prism } from "./seqstar-prism";
+import { PrismCanvas, prism } from "./seqstar-prism.js";
 import {
   BuilderCode,
   type Mounted,
@@ -45,7 +45,7 @@ import {
   STORY_CHROME,
   type UiChoice,
   useStoryUi,
-} from "./seqstar-viewer";
+} from "./seqstar-viewer.js";
 
 const SECTION = "genome.main";
 (globalThis as { __genome?: typeof PROBE }).__genome = PROBE;

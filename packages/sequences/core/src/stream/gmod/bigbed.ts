@@ -10,10 +10,10 @@
 // (the viewer joins rows of an `id` into one feature: exons of a gene).
 
 import type { StreamProvider } from "@molstar/seq-core/format";
-import { openBbi } from "./bbi.ts";
-import { spread, zoomRecords } from "./bigwig.ts";
-import { ITEM_LEVELS, type ItemsRead, itemsProvider } from "./items.ts";
-import { once, type RangeReader, text, view } from "./ranges.ts";
+import { openBbi } from "./bbi.js";
+import { spread, zoomRecords } from "./bigwig.js";
+import { ITEM_LEVELS, type ItemsRead, itemsProvider } from "./items.js";
+import { once, type RangeReader, text, view } from "./ranges.js";
 
 /** The BED columns after chrom, start and end, by position (a file without autoSql, or fields it does not name). */
 const BED = [

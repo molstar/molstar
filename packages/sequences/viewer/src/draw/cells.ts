@@ -15,12 +15,12 @@
 // so a copied strip and a full redraw count the same bins. Columns are found in closed form. Allocation-free once warm:
 // module scratch, grown only.
 
-import { type Axis, AxisGeometry } from "../axis.ts";
-import { binClass, binValues, PYRAMID_BASE, type ValuePyramid, valuePyramid } from "../pyramids.ts";
-import { type CellClasses, type CellColoring, cellClasses } from "../reductions.ts";
-import { OPAQUE, type Theme, ThemeLocation } from "../themes.ts";
-import type { RectBatch } from "./backend.ts";
-import type { DrawView } from "./view.ts";
+import { type Axis, AxisGeometry } from "../axis.js";
+import { binClass, binValues, PYRAMID_BASE, type ValuePyramid, valuePyramid } from "../pyramids.js";
+import { type CellClasses, type CellColoring, cellClasses } from "../reductions.js";
+import { OPAQUE, type Theme, ThemeLocation } from "../themes.js";
+import type { RectBatch } from "./backend.js";
+import type { DrawView } from "./view.js";
 
 /**
  * What cells read: a coloring by block index (`alpha` reads the location `color` filled for the same position), and

@@ -10,11 +10,11 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { Lod } from "../src/index.ts";
-import { DefaultRenderProps, type RenderClamp, sectionProps } from "../src/layout.ts";
-import { DefaultPresets } from "../src/presets.ts";
-import { driven } from "./input-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
+import { Lod } from "../src/index.js";
+import { DefaultRenderProps, type RenderClamp, sectionProps } from "../src/layout.js";
+import { DefaultPresets } from "../src/presets.js";
+import { driven } from "./input-fixtures.js";
+import { opened } from "./layout-fixtures.js";
 
 describe("VL-01: a stacked section anchors on the block under the point", () => {
   async function stacked() {

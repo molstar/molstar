@@ -22,9 +22,9 @@ import {
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo, useState } from "react";
 import s from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism";
+import { PrismPage } from "./support/seqstar-prism.js";
 import q from "./support/seqstar-query.module.css";
-import { ScrollArea, TextAction, TextTabs } from "./ui";
+import { ScrollArea, TextAction, TextTabs } from "./ui/index.js";
 
 /**
  * SeqQL's surface: an S-expression box and what the reader, the binder

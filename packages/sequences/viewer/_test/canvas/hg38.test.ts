@@ -18,8 +18,8 @@
 
 import { afterAll, expect, it } from "vitest";
 import { commands } from "vitest/browser";
-import { GRCH38, hg38Streams, streamedDoc } from "../../../core/_test/format/stream-provider.ts";
-import { mountSection } from "../../src/canvas/index.ts";
+import { GRCH38, hg38Streams, streamedDoc } from "../../../core/_test/format/stream-provider.js";
+import { mountSection } from "../../src/canvas/index.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -27,8 +27,8 @@ import {
   manualScheduler,
   SeqViewerConfig,
   type SeqViewerContext,
-} from "../../src/index.ts";
-import type { Streams } from "../../src/streams.ts";
+} from "../../src/index.js";
+import type { Streams } from "../../src/streams.js";
 
 const SECTION = "browser.main";
 const median = (xs: number[]) => xs.slice().sort((a, b) => a - b)[xs.length >> 1];

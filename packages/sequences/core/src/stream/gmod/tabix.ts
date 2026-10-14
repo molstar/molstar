@@ -10,8 +10,8 @@
 // region is read by the index's chunks (virtual offsets: block file offset << 16 | offset in its inflated bytes).
 
 import type { StreamProvider } from "@molstar/seq-core/format";
-import { ITEM_LEVELS, type ItemsRead, itemsProvider } from "./items.ts";
-import { inflate, once, type RangeReader, text, view } from "./ranges.ts";
+import { ITEM_LEVELS, type ItemsRead, itemsProvider } from "./items.js";
+import { inflate, once, type RangeReader, text, view } from "./ranges.js";
 
 const MAX_BLOCK = 65536;
 const TYPES = ["SNV", "MNV", "insertion", "deletion", "structural"];

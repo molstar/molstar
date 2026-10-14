@@ -24,15 +24,15 @@
 // every pass shares), composer-entries.ts, composer-headers.ts, composer-marks.ts and composer-overlay.ts. The ring
 // labels are placed here (edge rate), not in ring-labels.ts, which the hit imports and which imports no layout.
 
-import { AxisGeometry, type SectionAxisView, type ShownIndex } from "../axis.ts";
-import { ChannelMarks } from "../channels.ts";
-import type { Skin, ViewModel } from "../graph.ts";
-import { EntryKind, type SectionLayout } from "../layout.ts";
-import type { SectionMarks } from "../marks.ts";
-import { lanesInView } from "../streams.ts";
-import { Lod, type ViewportState } from "../viewport.ts";
-import { BackendCaps, Pass, type RenderBackend } from "./backend.ts";
-import { bandCopies, cutRows, entry } from "./composer-entries.ts";
+import { AxisGeometry, type SectionAxisView, type ShownIndex } from "../axis.js";
+import { ChannelMarks } from "../channels.js";
+import type { Skin, ViewModel } from "../graph.js";
+import { EntryKind, type SectionLayout } from "../layout.js";
+import type { SectionMarks } from "../marks.js";
+import { lanesInView } from "../streams.js";
+import { Lod, type ViewportState } from "../viewport.js";
+import { BackendCaps, Pass, type RenderBackend } from "./backend.js";
+import { bandCopies, cutRows, entry } from "./composer-entries.js";
 import {
   ALL,
   banded,
@@ -45,11 +45,11 @@ import {
   Part,
   setClip,
   view,
-} from "./composer-frame.ts";
-import { heads } from "./composer-headers.ts";
-import { nav, overlay } from "./composer-overlay.ts";
-import { placedRingLabels, type RingLabelInput } from "./ring-labels.ts";
-import { nextFrameId } from "./view.ts";
+} from "./composer-frame.js";
+import { heads } from "./composer-headers.js";
+import { nav, overlay } from "./composer-overlay.js";
+import { placedRingLabels, type RingLabelInput } from "./ring-labels.js";
+import { nextFrameId } from "./view.js";
 
 // Enum-like members read once (a read per frame allocated under the test runner's module wrapper).
 const CIRCULAR = AxisGeometry.circular;
@@ -69,7 +69,7 @@ const PASS_MAIN = Pass.main;
 /** What a frame draws: the tracks (main pass), the overlay, the navigator. */
 export const Dirty = { tracks: 1, overlay: 2, nav: 4, all: 7 } as const;
 
-export type { ComposerStats } from "./composer-frame.ts";
+export type { ComposerStats } from "./composer-frame.js";
 
 export class SectionComposer extends ComposerFrame {
   /** Draws what `flags` (`Dirty`) ask into `be`, whole; the tracks only where the view, layout, data or skin changed. */

@@ -23,7 +23,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 /**
@@ -48,7 +48,7 @@ const guard = (frame: () => void) => {
 describe("the streamed glyphs and placeholders allocate nothing per frame", () => {
   it("a pass and a frame, 5 kb", async () => {
     vi.resetModules();
-    const { itemsFrame } = await import("./stream-items-fixtures.ts");
+    const { itemsFrame } = await import("./stream-items-fixtures.js");
     const g = await itemsFrame(100_040_000, 100_045_000);
     g.frame();
     expect(g.backend.glyphItems.n).toBeGreaterThan(0);
@@ -60,7 +60,7 @@ describe("the streamed glyphs and placeholders allocate nothing per frame", () =
 
   it("a pass and a frame, 5 kb, the variants as points (unstacked glyphs, region by region)", async () => {
     vi.resetModules();
-    const { itemsFrame } = await import("./stream-items-fixtures.ts");
+    const { itemsFrame } = await import("./stream-items-fixtures.js");
     const g = await itemsFrame(100_040_000, 100_045_000, false, "points");
     g.frame();
     expect(g.backend.glyphItems.n).toBeGreaterThan(0);
@@ -72,8 +72,8 @@ describe("the streamed glyphs and placeholders allocate nothing per frame", () =
 
   it("a frame with every region pending (placeholder bands)", async () => {
     vi.resetModules();
-    const { itemsFrame } = await import("./stream-items-fixtures.ts");
-    const { SkinToken } = await import("../src/draw/backend.ts");
+    const { itemsFrame } = await import("./stream-items-fixtures.js");
+    const { SkinToken } = await import("../src/draw/backend.js");
     const g = await itemsFrame(100_000_000, 100_100_000, true);
     g.frame();
     let bands = 0;
@@ -85,7 +85,7 @@ describe("the streamed glyphs and placeholders allocate nothing per frame", () =
 
   it("the same frame allocating an object a step is caught (positive control)", async () => {
     vi.resetModules();
-    const { itemsFrame } = await import("./stream-items-fixtures.ts");
+    const { itemsFrame } = await import("./stream-items-fixtures.js");
     const g = await itemsFrame(100_040_000, 100_045_000);
     expect(controlCaught(() => measure(leaking(g.frame) as () => void))).toBe(true);
   }, 120_000);

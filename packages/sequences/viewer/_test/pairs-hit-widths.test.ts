@@ -12,8 +12,8 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { expect, it } from "vitest";
-import { Hit } from "../src/draw/api.ts";
-import { drawn, layerOf, record } from "./draw-fixtures.ts";
+import { Hit } from "../src/draw/api.js";
+import { drawn, layerOf, record } from "./draw-fixtures.js";
 
 const scale = (field: string, range: [number, number]) => ({ theme: "field_scale", params: { field, range } });
 /** Two arcs from 10 to 40, counts 1 and 8 (track A), and with `second` track B with the counts reversed. */

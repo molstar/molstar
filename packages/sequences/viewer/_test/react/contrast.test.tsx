@@ -13,7 +13,7 @@
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import "../../src/skin.css";
-import { harness, settle } from "./fixtures.tsx";
+import { harness, settle } from "./fixtures.js";
 
 const h = harness();
 afterEach(() => {

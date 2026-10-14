@@ -15,7 +15,7 @@
 // string, about 4 GB at a million rows).
 
 import { TILE } from "@molstar/seq-core/format";
-import { NotServed, type TileTransport } from "./client.ts";
+import { NotServed, type TileTransport } from "./client.js";
 
 export interface TileServerOptions {
   rowCount: number;

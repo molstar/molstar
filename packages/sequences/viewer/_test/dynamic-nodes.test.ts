@@ -17,8 +17,8 @@
 import type { StreamRequest } from "@molstar/seq-core/format";
 import { KeyKind, type KeyTarget, OrderedSet, type SeqSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { GRCH38 } from "../../core/_test/format/stream-provider.ts";
-import type { Streams } from "../src/streams.ts";
+import { GRCH38 } from "../../core/_test/format/stream-provider.js";
+import type { Streams } from "../src/streams.js";
 import {
   CacheBytes,
   dynamicDoc,
@@ -30,7 +30,7 @@ import {
   peakNode,
   type StreamedGenome,
   withPeaks,
-} from "./stream-fixtures.ts";
+} from "./stream-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const THREE = GRCH38.slice(0, 3);

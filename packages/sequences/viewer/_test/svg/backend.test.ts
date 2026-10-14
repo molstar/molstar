@@ -13,7 +13,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { deflateSync, inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
-import { itWithin } from "../../../core/_test/model/timing.ts";
+import { itWithin } from "../../../core/_test/model/timing.js";
 import {
   GlyphBatch,
   GlyphShape,
@@ -29,10 +29,10 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.ts";
-import { DefaultSkin } from "../../src/index.ts";
-import { encodePng, SvgBackend, type SvgOptions } from "../../src/svg/index.ts";
-import { all, type El, parseXml, rectsOf, tokens } from "./xml.ts";
+} from "../../src/draw/api.js";
+import { DefaultSkin } from "../../src/index.js";
+import { encodePng, SvgBackend, type SvgOptions } from "../../src/svg/index.js";
+import { all, type El, parseXml, rectsOf, tokens } from "./xml.js";
 
 const GLYPHS = [
   { char: "W", path: null, box: [1, 1] as const, fallback: 0 },

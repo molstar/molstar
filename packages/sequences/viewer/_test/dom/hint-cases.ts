@@ -14,7 +14,7 @@
 
 import { afterEach, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
-import { HINT_DELAY_MS } from "../../src/dom/shared.ts";
+import { HINT_DELAY_MS } from "../../src/dom/shared.js";
 import "../../src/skin.css";
 
 /** Mounts hints over `buttons` (one each, labeled "Hint <i>") into `host`; returns the unmount. */

@@ -20,7 +20,7 @@ import {
   type SkillOptions,
   type SymbolDef,
   skillText,
-} from "../../src/query/index.ts";
+} from "../../src/query/index.js";
 
 /** Stories' options and its `chain` macro, as Appendix A.3 renders them. */
 const chain = defineSymbol({

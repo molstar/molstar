@@ -11,11 +11,11 @@
 // aligners are in load/.
 
 import type { Severity } from "@molstar/seq-core/model";
-import type { Geometry, ThemeRef } from "../doc.ts";
-import { clustalXRules } from "../palettes/clustal-x.ts";
-import { checkSchemeDef, checkSchemeParams, percentIdentityRules } from "../palettes/schemes.ts";
-import type { ChannelKind, LayerTypeEntry, SvsRegistryEntry, ThemeEntry } from "../registry.ts";
-import { bool, dict, float, int, list, literal, nullable, ref, str, tuple, union } from "../schema/field-schema.ts";
+import type { Geometry, ThemeRef } from "../doc.js";
+import { clustalXRules } from "../palettes/clustal-x.js";
+import { checkSchemeDef, checkSchemeParams, percentIdentityRules } from "../palettes/schemes.js";
+import type { ChannelKind, LayerTypeEntry, SvsRegistryEntry, ThemeEntry } from "../registry.js";
+import { bool, dict, float, int, list, literal, nullable, ref, str, tuple, union } from "../schema/field-schema.js";
 import {
   type Fields,
   OptionalField,
@@ -23,7 +23,7 @@ import {
   RequiredField,
   SimpleParamsSchema,
   type ValuesFor,
-} from "../schema/params-schema.ts";
+} from "../schema/params-schema.js";
 import {
   color,
   glyph,
@@ -34,7 +34,7 @@ import {
   palette,
   rulesSchema,
   themeRef,
-} from "./param-types.ts";
+} from "./param-types.js";
 
 const fieldPalette = (params: Record<string, unknown> = {}): ThemeRef => ({ theme: "field_palette", params });
 const shape = (g: string): ThemeRef => ({ theme: "uniform", params: { glyph: g } });

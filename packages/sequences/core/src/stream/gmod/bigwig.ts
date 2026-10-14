@@ -10,8 +10,8 @@
 // zoom records onto the request's bins, level -1 is the data itself.
 
 import { type DataPatch, StreamNotServed, type StreamProvider, type StreamRequest } from "@molstar/seq-core/format";
-import { type Chrom, openBbi } from "./bbi.ts";
-import { once, type RangeReader, view } from "./ranges.ts";
+import { type Chrom, openBbi } from "./bbi.js";
+import { once, type RangeReader, view } from "./ranges.js";
 
 /** A BigWig file as a `values` provider: one coordinate system per chromosome, `levels` the file's zoom reductions. */
 export function bigWigProvider(read: RangeReader): StreamProvider {

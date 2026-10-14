@@ -26,9 +26,9 @@ import {
 } from "@molstar/seq-core/model";
 import { type SystemDescriptor, TranslateMaps } from "@molstar/seq-core/translate";
 import { describe, expect, it } from "vitest";
-import { case7 } from "../../core/_test/format/cases.ts";
-import { gene, rows } from "../../core/_test/format/project-fixtures.ts";
-import { Highlight } from "../src/highlight.ts";
+import { case7 } from "../../core/_test/format/cases.js";
+import { gene, rows } from "../../core/_test/format/project-fixtures.js";
+import { Highlight } from "../src/highlight.js";
 import {
   ChannelMarks,
   createSeqViewer,
@@ -40,8 +40,8 @@ import {
   MarkBit,
   SelectBehavior,
   type SeqViewerContext,
-} from "../src/index.ts";
-import { shown } from "./projection-fixtures.ts";
+} from "../src/index.js";
+import { shown } from "./projection-fixtures.js";
 
 type Shown = Awaited<ReturnType<typeof shown>>;
 

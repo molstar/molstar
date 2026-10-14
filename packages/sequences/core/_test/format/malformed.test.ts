@@ -28,11 +28,11 @@ import {
   SimpleParamsSchema,
   snapshotDoc,
   validate,
-} from "../../src/format/index.ts";
-import { namespaceOfCode, registeredNamespaces } from "../../src/format/registry.ts";
-import { CASES } from "./cases.ts";
-import { dataOf, fullDoc, type J, kernel, sectionOf } from "./fixtures.ts";
-import { registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { namespaceOfCode, registeredNamespaces } from "../../src/format/registry.js";
+import { CASES } from "./cases.js";
+import { dataOf, fullDoc, type J, kernel, sectionOf } from "./fixtures.js";
+import { registries } from "./load-fixtures.js";
 
 const issues = (d: unknown, reg = kernel(), o = {}) => validate(d, reg, o).map((i) => [i.code, i.path]);
 const errors = (d: unknown, reg = kernel(), o = {}) =>

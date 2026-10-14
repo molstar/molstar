@@ -21,13 +21,13 @@ import {
   type NameId,
   type SeqSet,
 } from "@molstar/seq-core/model";
-import type { DocIndex } from "../load/compile.ts";
-import { ItemSystemProp } from "../load/nodes.ts";
-import type { SvsRegistries } from "../registry.ts";
-import { isPlainObject } from "../schema/field-schema.ts";
-import type { IndexedNode } from "../schema/tree-schema.ts";
-import { type KeyedSay, type KeyFilterValue, keyed, type Members, type OrderKeyValue } from "./keyed.ts";
-import type { ResolvedSection, TrackRow } from "./section.ts";
+import type { DocIndex } from "../load/compile.js";
+import { ItemSystemProp } from "../load/nodes.js";
+import type { SvsRegistries } from "../registry.js";
+import { isPlainObject } from "../schema/field-schema.js";
+import type { IndexedNode } from "../schema/tree-schema.js";
+import { type KeyedSay, type KeyFilterValue, keyed, type Members, type OrderKeyValue } from "./keyed.js";
+import type { ResolvedSection, TrackRow } from "./section.js";
 
 /** A template track's `for_each`, normalized. */
 export interface ForEach {

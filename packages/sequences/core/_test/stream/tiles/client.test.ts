@@ -11,8 +11,8 @@
 
 import { StreamNotServed, TILE } from "@molstar/seq-core/format";
 import { describe, expect, it, vi } from "vitest";
-import { fetchTransport, NotServed, tileClient } from "../../../src/stream/tiles/index.ts";
-import { proceduralRow, tileServer } from "../../../src/stream/tiles/server.ts";
+import { fetchTransport, NotServed, tileClient } from "../../../src/stream/tiles/index.js";
+import { proceduralRow, tileServer } from "../../../src/stream/tiles/server.js";
 
 describe("the client on the reference server", () => {
   const [R, C] = [300, 600];

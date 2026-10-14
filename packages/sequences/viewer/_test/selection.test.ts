@@ -18,9 +18,9 @@ import {
   SeqSets,
 } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { createSeqViewer, type SeqViewerContext, type WritableSeqState } from "../src/index.ts";
-import { carry } from "../src/lineage.ts";
-import { patch, smallDoc, viewer } from "./graph-fixtures.ts";
+import { createSeqViewer, type SeqViewerContext, type WritableSeqState } from "../src/index.js";
+import { carry } from "../src/lineage.js";
+import { patch, smallDoc, viewer } from "./graph-fixtures.js";
 
 const unitKeys = (ctx: SeqViewerContext) => {
   const l = ctx.selection.current.value.seq as SeqLoci;

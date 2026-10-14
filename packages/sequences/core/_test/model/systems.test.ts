@@ -11,7 +11,7 @@
 // digits only, and a system's numberings are found by name (a namespace alone too) or its default, listed once by name.
 
 import { describe, expect, it } from "vitest";
-import { CoordinateSystemKind as K, type KeyTarget, SeqSets, Systems } from "../../src/model/index.ts";
+import { CoordinateSystemKind as K, type KeyTarget, SeqSets, Systems } from "../../src/model/index.js";
 
 function set() {
   return SeqSets.build({

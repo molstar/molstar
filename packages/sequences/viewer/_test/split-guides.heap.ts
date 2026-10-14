@@ -26,7 +26,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = FRAME_N;
 
@@ -45,9 +45,9 @@ function measure(frame: (i: number) => void, warmed = () => {}) {
 /** Case 13 composed at DPR 2, and a frame: a pan and a whole frame, the guides counted. */
 async function setup() {
   vi.resetModules();
-  const { Dirty, SkinToken } = await import("../src/draw/index.ts");
-  const { COPY_BACK, composed, recording } = await import("./composer-fixtures.ts");
-  const { case13 } = await import("../../core/_test/format/cases.ts");
+  const { Dirty, SkinToken } = await import("../src/draw/index.js");
+  const { COPY_BACK, composed, recording } = await import("./composer-fixtures.js");
+  const { case13 } = await import("../../core/_test/format/cases.js");
   const t = await composed(case13(), { width: 1000, height: 900, dpr: 2 });
   const be = recording(COPY_BACK);
   t.vp?.setView(3, 200, "api");

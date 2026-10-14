@@ -24,21 +24,21 @@
 // commits no viewport (`Viewport.quiet`): a host syncing a URL from `committed` sees no export.
 
 import type { Loaders, SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { ChannelMarks } from "../channels.ts";
-import { createSeqViewer, type SeqIssue, type SeqViewerContext } from "../context.ts";
-import { Dirty, SectionComposer } from "../draw/composer.ts";
-import { drawResources } from "../draw/resources.ts";
-import { VerticalNav } from "../draw/vnav.ts";
-import type { Skin } from "../graph.ts";
-import { Hover } from "../hover.ts";
-import type { RenderProps } from "../layout.ts";
-import type { SeqViewerRegistryEntry } from "../registry.ts";
-import { type ManualScheduler, manualScheduler } from "../scheduler.ts";
-import { DefaultRegistry } from "../spec.ts";
-import { Viewport } from "../viewport.ts";
-import { SvgBackend, type SvgOptions, type SvgPorts } from "./backend.ts";
-import { hasMetrics, type MetricsMeasurer, metricsMeasurer } from "./metrics.ts";
-import { DefaultFontMetrics } from "./metrics-tables.ts";
+import { ChannelMarks } from "../channels.js";
+import { createSeqViewer, type SeqIssue, type SeqViewerContext } from "../context.js";
+import { Dirty, SectionComposer } from "../draw/composer.js";
+import { drawResources } from "../draw/resources.js";
+import { VerticalNav } from "../draw/vnav.js";
+import type { Skin } from "../graph.js";
+import { Hover } from "../hover.js";
+import type { RenderProps } from "../layout.js";
+import type { SeqViewerRegistryEntry } from "../registry.js";
+import { type ManualScheduler, manualScheduler } from "../scheduler.js";
+import { DefaultRegistry } from "../spec.js";
+import { Viewport } from "../viewport.js";
+import { SvgBackend, type SvgOptions, type SvgPorts } from "./backend.js";
+import { hasMetrics, type MetricsMeasurer, metricsMeasurer } from "./metrics.js";
+import { DefaultFontMetrics } from "./metrics-tables.js";
 
 export interface RenderSvgOptions extends SvgOptions {
   /** CSS px, every section's width. */

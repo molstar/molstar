@@ -9,8 +9,8 @@
 // Config items (seqspec:viewer#config): typed settings with defaults, as Mol*'s PluginConfigItem, read by the managers
 // at use.
 
-import type { SeqViewerContext } from "./context.ts";
-import type { RenderClamp } from "./layout.ts";
+import type { SeqViewerContext } from "./context.js";
+import type { RenderClamp } from "./layout.js";
 
 export interface SeqViewerConfigItem<T = unknown> {
   readonly key: string;

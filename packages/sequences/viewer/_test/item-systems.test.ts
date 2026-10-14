@@ -27,14 +27,14 @@ import {
   transcriptItems,
   VOCABULARY,
   variantAt,
-} from "../../core/_test/format/stream-provider.ts";
-import { DynamicNodes, heldNodeRefs } from "../src/dynamic.ts";
-import { ChannelMarks, createSeqViewer, Hit, MarkBit } from "../src/index.ts";
-import { itemSystemNodes } from "../src/item-systems.ts";
-import type { Features } from "../src/prepare.ts";
-import type { Streams } from "../src/streams.ts";
-import { composed } from "./composer-fixtures.ts";
-import { CacheBytes } from "./stream-fixtures.ts";
+} from "../../core/_test/format/stream-provider.js";
+import { DynamicNodes, heldNodeRefs } from "../src/dynamic.js";
+import { ChannelMarks, createSeqViewer, Hit, MarkBit } from "../src/index.js";
+import { itemSystemNodes } from "../src/item-systems.js";
+import type { Features } from "../src/prepare.js";
+import type { Streams } from "../src/streams.js";
+import { composed } from "./composer-fixtures.js";
+import { CacheBytes } from "./stream-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const THREE = GRCH38.slice(0, 3);

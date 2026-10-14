@@ -27,7 +27,7 @@ export {
   type StreamSource,
   type StreamTable,
   type Tile,
-} from "./contract.ts";
+} from "./contract.js";
 export {
   type Anchor,
   type DocNode,
@@ -43,9 +43,9 @@ export {
   SvsFormat,
   SvsVersion,
   type ThemeRef,
-} from "./doc.ts";
-export { equal } from "./equal.ts";
-export { KernelRegistry } from "./kernel-registry.ts";
+} from "./doc.js";
+export { equal } from "./equal.js";
+export { KernelRegistry } from "./kernel-registry.js";
 export {
   assembleSet,
   buildComplex,
@@ -63,8 +63,8 @@ export {
   StreamProp,
   sourceParse,
   streamRequest,
-} from "./load/compile.ts";
-export { issueOf } from "./load/issues.ts";
+} from "./load/compile.js";
+export { issueOf } from "./load/issues.js";
 export {
   ItemSystemKind,
   ItemSystemProp,
@@ -75,8 +75,8 @@ export {
   nodeRef,
   streamedSources,
   withDynamic,
-} from "./load/nodes.ts";
-export { TILE, Tiles } from "./load/tiles.ts";
+} from "./load/nodes.js";
+export { TILE, Tiles } from "./load/tiles.js";
 export {
   type DocumentRead,
   fromJSON,
@@ -86,7 +86,7 @@ export {
   readDocument,
   toJSON,
   toMsgPack,
-} from "./normalize.ts";
+} from "./normalize.js";
 export {
   AminoGroupColors,
   type CategoricalPalette,
@@ -138,10 +138,10 @@ export {
   schemesFor,
   schemeTheme,
   type ThemeScheme,
-} from "./palettes/index.ts";
-export { applyPatch, diff, type PatchOptions, rebase, snapshotDoc, snapshotIssues } from "./patch/patch.ts";
-export { canonical } from "./patch/tree-patch.ts";
-export { printParamsTable, printReference } from "./reference.ts";
+} from "./palettes/index.js";
+export { applyPatch, diff, type PatchOptions, rebase, snapshotDoc, snapshotIssues } from "./patch/patch.js";
+export { canonical } from "./patch/tree-patch.js";
+export { printParamsTable, printReference } from "./reference.js";
 export {
   type AlignerEntry,
   type ChannelEntry,
@@ -167,12 +167,12 @@ export {
   type SvsRegistries,
   type SvsRegistryEntry,
   type ThemeEntry,
-} from "./registry.ts";
-export { Arrangement, Height, Layout, LigandForm, RowSizing, SectionAxis, Sizing } from "./resolve/codes.ts";
-export { layoutOf, type ResolvedSystems } from "./resolve/coordinates.ts";
-export { dataDomain, groupMembers, type SharedField } from "./resolve/domains.ts";
-export type { ResolvedFollows } from "./resolve/follows.ts";
-export { type SectionHighlight, type SectionHighlightStyle, sectionHighlights } from "./resolve/highlights.ts";
+} from "./registry.js";
+export { Arrangement, Height, Layout, LigandForm, RowSizing, SectionAxis, Sizing } from "./resolve/codes.js";
+export { layoutOf, type ResolvedSystems } from "./resolve/coordinates.js";
+export { dataDomain, groupMembers, type SharedField } from "./resolve/domains.js";
+export type { ResolvedFollows } from "./resolve/follows.js";
+export { type SectionHighlight, type SectionHighlightStyle, sectionHighlights } from "./resolve/highlights.js";
 export {
   alignmentRows,
   followsTree,
@@ -182,7 +182,7 @@ export {
   keyed,
   type Members,
   type OrderKeyValue,
-} from "./resolve/keyed.ts";
+} from "./resolve/keyed.js";
 export {
   letterMapParam,
   type PlacementRow,
@@ -190,9 +190,9 @@ export {
   resolveLayer,
   splitRows,
   supportedAll,
-} from "./resolve/layer.ts";
-export { type Closure, type Projection, projectionOf, type RunSink, SelectionGranularity } from "./resolve/project.ts";
-export { cover, type End, endsOf, pathTo, reach } from "./resolve/reach.ts";
+} from "./resolve/layer.js";
+export { type Closure, type Projection, projectionOf, type RunSink, SelectionGranularity } from "./resolve/project.js";
+export { cover, type End, endsOf, pathTo, reach } from "./resolve/reach.js";
 export {
   type BlockRow,
   childrenOf,
@@ -207,8 +207,8 @@ export {
   type SectionRow,
   type TrackRow,
   toLabel,
-} from "./resolve/section.ts";
-export { type ForEach, forEachOf, instantiate, templateNodes } from "./resolve/template.ts";
+} from "./resolve/section.js";
+export { type ForEach, forEachOf, instantiate, templateNodes } from "./resolve/template.js";
 export {
   composeView,
   Lanes,
@@ -219,7 +219,7 @@ export {
   type TableLists,
   type TableParams,
   type TableRows,
-} from "./resolve/view.ts";
+} from "./resolve/view.js";
 export {
   bool,
   type CheckContext,
@@ -251,7 +251,7 @@ export {
   tuple,
   union,
   type ValueOf,
-} from "./schema/field-schema.ts";
+} from "./schema/field-schema.js";
 export {
   type Cases,
   caseOf,
@@ -268,14 +268,14 @@ export {
   UnionParamsSchema,
   type ValuesFor,
   type ValuesForFields,
-} from "./schema/params-schema.ts";
+} from "./schema/params-schema.js";
 export {
   type IndexedNode,
   type NodeSchema,
   type NodeSchemas,
   type TreeContext,
   TreeSchema,
-} from "./schema/tree-schema.ts";
+} from "./schema/tree-schema.js";
 export {
   archiveLoaders,
   type ReadSvsxOptions,
@@ -284,7 +284,7 @@ export {
   SvsxLimits,
   SvsxMainFiles,
   zipFiles,
-} from "./svsx.ts";
+} from "./svsx.js";
 export {
   KERNEL_LAYER_TYPE_NAMES,
   type KernelLayerParams,
@@ -292,7 +292,7 @@ export {
   KernelTables,
   MvsRegistry,
   numericDefaultColor,
-} from "./tables/kernel.ts";
+} from "./tables/kernel.js";
 export {
   color,
   filter,
@@ -310,7 +310,7 @@ export {
   provenance,
   themeRef,
   uri,
-} from "./tables/param-types.ts";
+} from "./tables/param-types.js";
 export {
   resolveStyle,
   type SectionStyle,
@@ -318,8 +318,8 @@ export {
   SectionStyleKeys,
   type StyleRenderProps,
   sectionStyle,
-} from "./tables/style.ts";
-export { type LayerCommonParams, type SvsKind, SvsTreeSchema } from "./tables/svs-tree.ts";
+} from "./tables/style.js";
+export { type LayerCommonParams, type SvsKind, SvsTreeSchema } from "./tables/svs-tree.js";
 export {
   GeometryColumns,
   isList,
@@ -328,8 +328,8 @@ export {
   type TableColumn,
   type TypedColumn,
   table,
-} from "./tables/table.ts";
-export { type UpgradeStep, UpgradeSteps, upgrade } from "./upgrade.ts";
+} from "./tables/table.js";
+export { type UpgradeStep, UpgradeSteps, upgrade } from "./upgrade.js";
 export {
   isStreamedSource,
   MAX_JSON_DEPTH,
@@ -338,4 +338,4 @@ export {
   tooDeep,
   type ValidateOptions,
   validate,
-} from "./validate.ts";
+} from "./validate.js";

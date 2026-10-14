@@ -13,7 +13,7 @@
 // validated). Runs with Node's type stripping.
 
 import { readFileSync } from "node:fs";
-import { createRegistries, KernelRegistry, MvsRegistry, readDocument, register, validate } from "../index.ts";
+import { createRegistries, KernelRegistry, MvsRegistry, readDocument, register, validate } from "../index.js";
 
 const args = process.argv.slice(2);
 const files = args.filter((a) => !a.startsWith("--"));

@@ -19,15 +19,15 @@ import {
   type SeqSet,
 } from "@molstar/seq-core/model";
 import type { SeqQLQuery } from "@molstar/seq-core/query";
-import type { AlignerInput, StageContext } from "../contract.ts";
-import type { ThemeRef } from "../doc.ts";
-import { computeQuery } from "../query.ts";
-import type { AlignerEntry, ProviderEntry } from "../registry.ts";
-import { type FieldType, float, int, literal, nullable, refined, report, str } from "../schema/field-schema.ts";
-import { OptionalField, SimpleParamsSchema, type UnionParamsSchema } from "../schema/params-schema.ts";
-import { SvsTreeSchema } from "../tables/svs-tree.ts";
-import { report as reportAt } from "./issues.ts";
-import { RowProviders } from "./row-providers.ts";
+import type { AlignerInput, StageContext } from "../contract.js";
+import type { ThemeRef } from "../doc.js";
+import { computeQuery } from "../query.js";
+import type { AlignerEntry, ProviderEntry } from "../registry.js";
+import { type FieldType, float, int, literal, nullable, refined, report, str } from "../schema/field-schema.js";
+import { OptionalField, SimpleParamsSchema, type UnionParamsSchema } from "../schema/params-schema.js";
+import { SvsTreeSchema } from "../tables/svs-tree.js";
+import { report as reportAt } from "./issues.js";
+import { RowProviders } from "./row-providers.js";
 
 const atLeast = (t: FieldType<number>, min: number): FieldType<number> => ({
   name: `${t.name} (>= ${min})`,

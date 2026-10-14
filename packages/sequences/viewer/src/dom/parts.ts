@@ -41,7 +41,7 @@ import {
   sectionHighlightEntries,
   type TrackMenuModel,
   trackMenuModel,
-} from "../chrome.ts";
+} from "../chrome.js";
 import {
   type HoverLabel,
   type LegendItem,
@@ -51,9 +51,9 @@ import {
   SeqViewerConfig,
   type SeqViewerContext,
   type Unsubscribable,
-} from "../index.ts";
-import { sameData } from "../same.ts";
-import { CLEAR_KEPT_HINT, KEEP_HINT, SearchBox } from "../search-box.ts";
+} from "../index.js";
+import { sameData } from "../same.js";
+import { CLEAR_KEPT_HINT, KEEP_HINT, SearchBox } from "../search-box.js";
 import {
   button,
   type DomHandle,
@@ -75,7 +75,7 @@ import {
   spot,
   type TrackProps,
   watch,
-} from "./core.ts";
+} from "./core.js";
 import {
   busyShown,
   CROSS,
@@ -89,7 +89,7 @@ import {
   popover,
   sizeCaption,
   tipSpot,
-} from "./shared.ts";
+} from "./shared.js";
 
 type Handles = { dispose(): void }[];
 

@@ -10,8 +10,8 @@
 // (seqspec:model#alignments-and-trees). Codes with the same name map by prefix; the others by this table.
 
 import type { Issue } from "@molstar/seq-core/model";
-import type { StageContext } from "../contract.ts";
-import type { SvsRegistries } from "../registry.ts";
+import type { StageContext } from "../contract.js";
+import type { SvsRegistries } from "../registry.js";
 
 const CODES: Readonly<Record<string, string>> = {
   "model.residues.invalid": "svs.sequence.alphabet",

@@ -15,7 +15,7 @@ import {
   neighborJoining,
   TreeSizeError,
   upgma,
-} from "../../src/algorithms/index.ts";
+} from "../../src/algorithms/index.js";
 
 /** Row-major square matrix from a triangle written row by row (`[[b], [c, d]...]` as upper rows). */
 function square(n: number, upper: number[][]): Float64Array {

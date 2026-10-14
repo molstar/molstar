@@ -16,7 +16,7 @@
 // the run (`leaking`), warmed and measured alike, are caught.
 
 import { expect, it, vi } from "vitest";
-import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.ts";
+import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.js";
 
 /** Steps per measured run: pans draw more, so fewer fit before a scavenge. */
 const N = { hover: 2_000, pan: 1_000, both: 1_000 };
@@ -35,7 +35,7 @@ function measure(step: (i: number) => void, n: number, warmed = () => {}) {
 for (const kind of ["hover", "pan", "both"] as const)
   it(`${kind} frames through a mounted surface are flat`, async () => {
     vi.resetModules();
-    const { surfaceFrames } = await import("./surface-fixtures.ts");
+    const { surfaceFrames } = await import("./surface-fixtures.js");
     const t = await surfaceFrames(kind);
     try {
       let frames = 0;
@@ -54,7 +54,7 @@ for (const kind of ["hover", "pan", "both"] as const)
 
 it("hover frames allocating garbage sized to the run each are caught (positive control)", async () => {
   vi.resetModules();
-  const { surfaceFrames } = await import("./surface-fixtures.ts");
+  const { surfaceFrames } = await import("./surface-fixtures.js");
   const t = await surfaceFrames("hover");
   try {
     expect(controlCaught(() => measure(leaking(t.step, N.hover), N.hover).r)).toBe(true);

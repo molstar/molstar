@@ -15,8 +15,8 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { fromJSON, type Palette, type SeqViewSpecDoc, toJSON } from "@molstar/seq-core/format";
 import { Annotations } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import type { PerPosition } from "../src/prepare.ts";
-import { layer, opened, preparedRenderers } from "./layout-fixtures.ts";
+import type { PerPosition } from "../src/prepare.js";
+import { layer, opened, preparedRenderers } from "./layout-fixtures.js";
 
 const recorded = JSON.parse(
   readFileSync(new URL("../../core/_test/format/palettes/mvs-recorded.json", import.meta.url), "utf8"),

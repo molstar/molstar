@@ -13,7 +13,7 @@
 // settle and measurement, which their positive controls run on `leaking(step)`.
 
 import { vi } from "vitest";
-import { FRAME_N, FRAME_SETTLE_MS, FRAME_WARM, FRAME_WARM_MS, heapScaling, settleFrame } from "./heap.ts";
+import { FRAME_N, FRAME_SETTLE_MS, FRAME_WARM, FRAME_WARM_MS, heapScaling, settleFrame } from "./heap.js";
 
 /** A guard's run: its steps after the shared warm-up and settle, measured (`measure`), and what they drew and hit. */
 export async function run(mode: "frames" | "drag", n: number, steps = FRAME_N) {
@@ -38,14 +38,14 @@ export function measure(step: (i: number) => void, steps = FRAME_N) {
 /** The ring and its linked linear section driven, and a step of `mode`. */
 export async function setup(mode: "frames" | "drag", n: number) {
   vi.resetModules();
-  const { driven } = await import("./input-fixtures.ts");
-  const { recording } = await import("./composer-fixtures.ts");
-  const { ringWindowDoc } = await import("./ring-window-fixtures.ts");
-  const { DefaultPresets } = await import("../src/presets.ts");
-  const { HoverKind, KernelRenderers, Inputs, PointerType } = await import("../src/index.ts");
+  const { driven } = await import("./input-fixtures.js");
+  const { recording } = await import("./composer-fixtures.js");
+  const { ringWindowDoc } = await import("./ring-window-fixtures.js");
+  const { DefaultPresets } = await import("../src/presets.js");
+  const { HoverKind, KernelRenderers, Inputs, PointerType } = await import("../src/index.js");
   const ITEM = HoverKind.item;
-  const { Dirty, SectionComposer } = await import("../src/draw/index.ts");
-  const { placedRingLabels } = await import("../src/draw/ring-labels.ts");
+  const { Dirty, SectionComposer } = await import("../src/draw/index.js");
+  const { placedRingLabels } = await import("../src/draw/ring-labels.js");
   const registry = [{ presets: DefaultPresets.filter((p) => p.name === "circular") }];
   const t = await driven(ringWindowDoc(n - 50, n), {
     registry,
@@ -55,7 +55,7 @@ export async function setup(mode: "frames" | "drag", n: number) {
   // The frames alone: the hover label's strings are one allocation per hovered element by design (IN2's guard).
   t.ctx.behaviors.get("hoverLabel")?.remove();
   const l = t.ctx.layout.get("ring")?.current;
-  const lin = t.ctx.viewports.get("lin") as import("../src/viewport.ts").Viewport | null;
+  const lin = t.ctx.viewports.get("lin") as import("../src/viewport.js").Viewport | null;
   if (!l || !lin) throw new Error("no layout");
   const composer = new SectionComposer(t.ctx, "ring");
   const be = recording();

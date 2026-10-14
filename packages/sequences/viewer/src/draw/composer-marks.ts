@@ -11,15 +11,15 @@
 // on an alignment's rows. Per frame nothing is allocated (RN1's draw pattern).
 
 import { Lanes } from "@molstar/seq-core/format";
-import { AxisGeometry } from "../axis.ts";
-import type { ViewModel } from "../graph.ts";
-import { HoverKind } from "../hit.ts";
-import { EntryKind, type SectionLayout, SectionLayouts, type SplitFeatures } from "../layout.ts";
-import { MarkBit, type MarkSet, type SectionMarks } from "../marks.ts";
-import type { ViewportState } from "../viewport.ts";
-import { PathMode, PathVerb, SkinToken } from "./backend.ts";
-import { boxOf, type ComposerFrame, index, laneOf, next, paintMark, place, shownRun, tint } from "./composer-frame.ts";
-import { boundaryEdge } from "./place.ts";
+import { AxisGeometry } from "../axis.js";
+import type { ViewModel } from "../graph.js";
+import { HoverKind } from "../hit.js";
+import { EntryKind, type SectionLayout, SectionLayouts, type SplitFeatures } from "../layout.js";
+import { MarkBit, type MarkSet, type SectionMarks } from "../marks.js";
+import type { ViewportState } from "../viewport.js";
+import { PathMode, PathVerb, SkinToken } from "./backend.js";
+import { boxOf, type ComposerFrame, index, laneOf, next, paintMark, place, shownRun, tint } from "./composer-frame.js";
+import { boundaryEdge } from "./place.js";
 
 // Enum-like members read once (a read per frame allocated under the test runner's module wrapper).
 const WRAPPED = AxisGeometry.wrapped;

@@ -10,8 +10,8 @@
 // mismatch score otherwise. A gap of k letters costs `gap_open + (k - 1) * gap_extend`. Moved from @molstar/seq-core/model's
 // `globalAlign` (M2b), its defaults unchanged.
 
-import { type Aligner, type AlignerParams, alignable, cigarOf, pairType, readOptions } from "./aligner.ts";
-import { checkCells } from "./limits.ts";
+import { type Aligner, type AlignerParams, alignable, cigarOf, pairType, readOptions } from "./aligner.js";
+import { checkCells } from "./limits.js";
 
 const ORDER = "ARNDCQEGHILKMFPSTWYVBZX*";
 // biome-ignore format: BLOSUM62's lower triangle, one row per letter in ORDER

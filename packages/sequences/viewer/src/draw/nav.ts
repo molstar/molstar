@@ -12,10 +12,10 @@
 // map's; marks per lane when stacked; on the ruler only `hairline` and `labels`. A miniature or overview is an image
 // the composer keeps (`KeyedImage`). Device px as int32 throughout, batches owned and handed once.
 
-import type { Axis, AxisView } from "../axis.ts";
-import { MarkBit, type OverlayMarks } from "../marks.ts";
-import { DefaultNavigatorParts, type NavigatorEntry, type NavigatorParts } from "../navigators.ts";
-import { fitIn, fitted, type TextManagerApi } from "../text.ts";
+import type { Axis, AxisView } from "../axis.js";
+import { MarkBit, type OverlayMarks } from "../marks.js";
+import { DefaultNavigatorParts, type NavigatorEntry, type NavigatorParts } from "../navigators.js";
+import { fitIn, fitted, type TextManagerApi } from "../text.js";
 import {
   type BackendImages,
   PathBatch,
@@ -26,7 +26,7 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "./backend.ts";
+} from "./backend.js";
 
 /** What a navigator draws from: filled by the composer per pass (`from`, then the band and window), reused. */
 export class NavView {

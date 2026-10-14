@@ -26,8 +26,8 @@ import {
   str,
 } from "@molstar/seq-core/format";
 import { KeyKind, MoleculeKind, type NumberingInput, type SeqSet } from "@molstar/seq-core/model";
-import type { StructureRef } from "./compose.ts";
-import { complexUnits } from "./seq-units.ts";
+import type { StructureRef } from "./compose.js";
+import { complexUnits } from "./seq-units.js";
 
 export interface CoverageStructure {
   complex: string;

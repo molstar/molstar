@@ -12,7 +12,7 @@
 // control: the moves allocating garbage each, sized to the run (`leaking`), warmed and measured alike, are caught.
 
 import { expect, it, vi } from "vitest";
-import { controlCaught, heapScaling, isFlat, leaking } from "../canvas/heap-browser.ts";
+import { controlCaught, heapScaling, isFlat, leaking } from "../canvas/heap-browser.js";
 
 const N = 2_000;
 
@@ -26,7 +26,7 @@ function measure(step: (i: number) => void) {
 
 it("pointer moves inside one element place the tooltip in a flat heap", async () => {
   vi.resetModules();
-  const { tooltipFixture } = await import("./tooltip-fixtures.ts");
+  const { tooltipFixture } = await import("./tooltip-fixtures.js");
   const t = await tooltipFixture();
   try {
     const { r, next } = measure(t.moveStep);
@@ -47,7 +47,7 @@ it("pointer moves inside one element place the tooltip in a flat heap", async ()
 
 it("the keyboard cursor's anchor is placed in a flat heap", async () => {
   vi.resetModules();
-  const { tooltipFixture } = await import("./tooltip-fixtures.ts");
+  const { tooltipFixture } = await import("./tooltip-fixtures.js");
   const t = await tooltipFixture();
   try {
     const { r } = measure(t.cursorStep());
@@ -59,7 +59,7 @@ it("the keyboard cursor's anchor is placed in a flat heap", async () => {
 
 it("the same moves allocating garbage sized to the run each are caught (positive control)", async () => {
   vi.resetModules();
-  const { tooltipFixture } = await import("./tooltip-fixtures.ts");
+  const { tooltipFixture } = await import("./tooltip-fixtures.js");
   const t = await tooltipFixture();
   try {
     expect(controlCaught(() => measure(leaking(t.moveStep, N)).r)).toBe(true);

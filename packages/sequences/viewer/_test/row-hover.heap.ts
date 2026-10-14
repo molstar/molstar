@@ -26,7 +26,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 
@@ -46,11 +46,11 @@ function measure(frame: (i: number) => void, warmed = () => {}) {
 /** The hover document lit at DPR 2, and a frame: the pointer on a track's row, an overlay frame, the band counted. */
 async function setup() {
   vi.resetModules();
-  const { Dirty, SkinToken } = await import("../src/draw/index.ts");
-  const { Inputs, PointerType } = await import("../src/index.ts");
-  const { COPY_BACK, recording } = await import("./composer-fixtures.ts");
-  const { hoverDoc } = await import("./hover-fixtures.ts");
-  const { lit } = await import("./overlay-fixtures.ts");
+  const { Dirty, SkinToken } = await import("../src/draw/index.js");
+  const { Inputs, PointerType } = await import("../src/index.js");
+  const { COPY_BACK, recording } = await import("./composer-fixtures.js");
+  const { hoverDoc } = await import("./hover-fixtures.js");
+  const { lit } = await import("./overlay-fixtures.js");
   const t = await lit(hoverDoc(100), { width: 1000, height: 600, dpr: 2 });
   // The overlay alone: the hover label's strings are one allocation per hovered element by design (IN2's guard).
   t.ctx.behaviors.get("hoverLabel")?.remove();

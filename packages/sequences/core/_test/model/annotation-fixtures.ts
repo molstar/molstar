@@ -13,7 +13,7 @@
 // element and ordinal ("C1", "N5"): a `names` numbering "atom" on each ligand molecule.
 
 import { readFileSync } from "node:fs";
-import type { AnnotationInput, SetInput } from "../../src/model/index.ts";
+import type { AnnotationInput, SetInput } from "../../src/model/index.js";
 
 interface Pose {
   label: string;

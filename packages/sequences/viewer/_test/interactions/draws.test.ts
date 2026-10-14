@@ -14,17 +14,17 @@
 // blocks without the property are the `matrix` renderer's tiles.
 
 import { describe, expect, it } from "vitest";
-import { case6 } from "../../../core/_test/format/cases.ts";
-import { SkinToken } from "../../src/draw/backend.ts";
-import { Hit, KernelRenderers } from "../../src/index.ts";
-import { Kind, KindStyle, Kinds } from "../../src/interactions/index.ts";
+import { case6 } from "../../../core/_test/format/cases.js";
+import { SkinToken } from "../../src/draw/backend.js";
+import { Hit, KernelRenderers } from "../../src/index.js";
+import { Kind, KindStyle, Kinds } from "../../src/interactions/index.js";
 import {
   FingerprintRenderer,
   type FingerprintState,
   InteractionsViewerRegistry,
-} from "../../src/interactions/viewer/index.ts";
-import { LayerFrame, Op, type RecordedImages, RecordingBackend } from "../../src/testing/index.ts";
-import { opened } from "../layout-fixtures.ts";
+} from "../../src/interactions/viewer/index.js";
+import { LayerFrame, Op, type RecordedImages, RecordingBackend } from "../../src/testing/index.js";
+import { opened } from "../layout-fixtures.js";
 import {
   absentScene,
   layerOf,
@@ -35,7 +35,7 @@ import {
   ShortFingerprint,
   unitScene,
   wideScene,
-} from "./fixtures.ts";
+} from "./fixtures.js";
 
 const COLOR = Int32Array.from(Kinds, (k) => Number.parseInt(KindStyle[k][1].slice(1), 16));
 const kindOfColor = (c: number) => COLOR.indexOf(c);

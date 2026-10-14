@@ -10,7 +10,7 @@
 // document over two blocks with a selection and a highlight, a page-like scheduler holding a few frames (the manual one
 // makes a Map per `advance`), and a step that sends events and runs the frame they asked for.
 
-import { SectionSurface } from "../../src/canvas/index.ts";
+import { SectionSurface } from "../../src/canvas/index.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -18,10 +18,10 @@ import {
   PointerType,
   type Scheduler,
   type SeqViewerContext,
-} from "../../src/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
-import { seqLoci } from "../overlay-docs.ts";
-import { scaleDoc } from "../prepare-fixtures.ts";
+} from "../../src/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
+import { seqLoci } from "../overlay-docs.js";
+import { scaleDoc } from "../prepare-fixtures.js";
 
 /**
  * Up to four outstanding frames, run in order by `flush` (the surface's and the dispatcher's re-hit, `InputDispatcher.moved`,

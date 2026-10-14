@@ -1,0 +1,13 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // No DOM types: /draw and /svg touch no DOM global; /canvas, /dom and /react have their own configs (no emit).
+  "compilerOptions": {
+    "composite": false, "declaration": false, "declarationMap": false, "noEmit": true,
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "exclude": ["src/canvas", "src/dom", "src/react"]
+}

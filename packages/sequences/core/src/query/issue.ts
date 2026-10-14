@@ -8,8 +8,8 @@
 
 // Query issues (seqspec:seqql#errors): making them, rendering them for a person or the agent, and the did-you-mean of
 // unknown names.
-import { seqqlSeverity } from "./codes.ts";
-import type { QueryIssue } from "./types.ts";
+import { seqqlSeverity } from "./codes.js";
+import type { QueryIssue } from "./types.js";
 
 export type QueryIssuePlace = Partial<Pick<QueryIssue, "path" | "at" | "open" | "signature" | "known">>;
 

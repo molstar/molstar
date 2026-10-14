@@ -16,8 +16,8 @@ import {
   Provenance,
   type ProvenanceInput,
   type StringTable,
-} from "./common.ts";
-import { Numbering, type NumberingInput, type NumberingSet } from "./numbering.ts";
+} from "./common.js";
+import { Numbering, type NumberingInput, type NumberingSet } from "./numbering.js";
 
 export const MoleculeKind = { polymer: 0, ligand: 1 } as const;
 export type Alphabet = "protein" | "dna" | "rna" | "generic";

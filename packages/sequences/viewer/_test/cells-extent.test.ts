@@ -16,16 +16,16 @@ import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { Coords, Numbering } from "@molstar/seq-core/model";
 import { describe, expect, it, vi } from "vitest";
-import { CASES } from "../../core/_test/format/cases.ts";
-import { CODING_CDS } from "../../core/_test/format/stream-provider.ts";
-import { Dirty } from "../src/draw/composer.ts";
-import { composed, recording, textsOf } from "./composer-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
+import { CASES } from "../../core/_test/format/cases.js";
+import { CODING_CDS } from "../../core/_test/format/stream-provider.js";
+import { Dirty } from "../src/draw/composer.js";
+import { composed, recording, textsOf } from "./composer-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
 
 /** The length of every class pyramid built (`cellClasses`), a count rather than a clock (LC-34). */
 const built = vi.hoisted(() => [] as number[]);
-vi.mock("../src/reductions.ts", async (original) => {
-  const m = await original<typeof import("../src/reductions.ts")>();
+vi.mock("../src/reductions.js", async (original) => {
+  const m = await original<typeof import("../src/reductions.js")>();
   return {
     ...m,
     cellClasses: (...a: Parameters<typeof m.cellClasses>) => {

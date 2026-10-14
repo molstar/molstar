@@ -16,14 +16,14 @@ import { Loci } from "@molstar/seq-core/model";
 import { extentLoci, materialize, NightingaleSupported } from "@molstar/seq-nightingale";
 import type { NightingaleEvent } from "@molstar/seq-nightingale/mount";
 import { afterEach, describe, expect, it } from "vitest";
-import { type Opened, opened } from "../../viewer/_test/layout-fixtures.ts";
+import { type Opened, opened } from "../../viewer/_test/layout-fixtures.js";
 import {
   fromDisplay,
   linkNightingale,
   NIGHTINGALE,
   type NightingaleSide,
   toDisplay,
-} from "../src/_stories/support/seqstar-link.ts";
+} from "../src/_stories/support/seqstar-link.js";
 
 describe("the range mapping", () => {
   it("is Nightingale's 1-based inclusive range against the viewer's 0-based half-open one, both ways", () => {

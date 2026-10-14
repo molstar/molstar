@@ -8,10 +8,10 @@
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo } from "react";
-import { asText, exonsOnly, letterMapStrands } from "./support/seqstar-docs-views";
+import { asText, exonsOnly, letterMapStrands } from "./support/seqstar-docs-views.js";
 import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard } from "./support/seqstar-viewer";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard } from "./support/seqstar-viewer.js";
 
 /**
  * Letter maps (`letter_map`): a layer's table from the stored letter to

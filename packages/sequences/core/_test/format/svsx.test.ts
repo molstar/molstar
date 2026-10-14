@@ -26,11 +26,11 @@ import {
   type StreamSource,
   snapshotDoc,
   validate,
-} from "../../src/format/index.ts";
-import { isRelativeUri, resolveArchivePath } from "../../src/format/uri-path.ts";
-import { RuntimeContext } from "../../src/format/zip/shims.ts";
-import { deflate, inflateRaw, unzip, zip } from "../../src/format/zip/zip.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { isRelativeUri, resolveArchivePath } from "../../src/format/uri-path.js";
+import { RuntimeContext } from "../../src/format/zip/shims.js";
+import { deflate, inflateRaw, unzip, zip } from "../../src/format/zip/zip.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 const enc = (s: string) => new TextEncoder().encode(s);
 const dec = (b: Uint8Array) => new TextDecoder().decode(b);

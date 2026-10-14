@@ -12,8 +12,8 @@
 import { act, useLayoutEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { describe } from "vitest";
-import { Hint } from "../../src/react/index.ts";
-import { hintCases } from "../dom/hint-cases.ts";
+import { Hint } from "../../src/react/index.js";
+import { hintCases } from "../dom/hint-cases.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

@@ -22,14 +22,14 @@ import {
   regexMatcher,
   toCodes,
 } from "@molstar/seq-core/algorithms/search";
-import { CoordinateSystemKind as K } from "../coordinates.ts";
-import type { SeqSet } from "../set.ts";
-import type { CompileContext, QueryFn } from "./compile.ts";
-import type { QueryContext } from "./context.ts";
-import { eachRun, type SelectionBuilder, sameSystem } from "./kernels.ts";
-import { rt, unionOf } from "./runtime.ts";
-import type { SeqSelection } from "./selection.ts";
-import { domainOf } from "./systems.ts";
+import { CoordinateSystemKind as K } from "../coordinates.js";
+import type { SeqSet } from "../set.js";
+import type { CompileContext, QueryFn } from "./compile.js";
+import type { QueryContext } from "./context.js";
+import { eachRun, type SelectionBuilder, sameSystem } from "./kernels.js";
+import { rt, unionOf } from "./runtime.js";
+import type { SeqSelection } from "./selection.js";
+import { domainOf } from "./systems.js";
 
 const dom = new Int32Array(2);
 const count = (n: number, what: string) => `${n.toLocaleString("en-US")} ${what}${n === 1 ? "" : "s"}`;

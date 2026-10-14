@@ -12,7 +12,7 @@
 // range).
 
 import { describe, expect, it } from "vitest";
-import { type Annotation, Coords, type Mapping, type SeqSet, SeqSets } from "../../src/model/index.ts";
+import { type Annotation, Coords, type Mapping, type SeqSet, SeqSets } from "../../src/model/index.js";
 
 const COMPLEMENT: Record<string, string> = { A: "T", T: "A", C: "G", G: "C" };
 const revcomp = (s: string) =>

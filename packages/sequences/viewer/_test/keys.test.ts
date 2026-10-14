@@ -12,7 +12,7 @@
 
 import { Paths } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { mappedDoc, patch, refsRan, residuesDoc, viewer } from "./graph-fixtures.ts";
+import { mappedDoc, patch, refsRan, residuesDoc, viewer } from "./graph-fixtures.js";
 
 const set = (ref: string, params: Record<string, unknown>) => patch([{ op: "set", ref, params }]);
 const stateOf = (ctx: ReturnType<typeof viewer>["ctx"], ref: string) => {

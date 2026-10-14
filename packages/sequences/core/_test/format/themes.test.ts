@@ -20,11 +20,11 @@ import {
   type ThemeRef,
   themeRef,
   validate,
-} from "../../src/format/index.ts";
-import { clustalXColor, createColumnComposition } from "../../src/format/palettes/clustal-x.ts";
-import { quiet } from "../../src/format/schema/field-schema.ts";
-import { KernelLayerTypes } from "../../src/format/tables/kernel.ts";
-import { type J, kernel } from "./fixtures.ts";
+} from "../../src/format/index.js";
+import { clustalXColor, createColumnComposition } from "../../src/format/palettes/clustal-x.js";
+import { quiet } from "../../src/format/schema/field-schema.js";
+import { KernelLayerTypes } from "../../src/format/tables/kernel.js";
+import { type J, kernel } from "./fixtures.js";
 
 const reg = kernel();
 const issuesOf = (kind: ChannelKind, ref: unknown) => {

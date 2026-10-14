@@ -17,9 +17,9 @@ import {
   SectionStyleKeys,
   supportedAll,
   validate,
-} from "../../src/format/index.ts";
-import { type J, kernel, minimalDoc } from "./fixtures.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { type J, kernel, minimalDoc } from "./fixtures.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 const withStyle = (style: unknown): J => {
   const d = minimalDoc();

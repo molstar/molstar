@@ -21,11 +21,11 @@ import {
   rangeDoc,
   sharedDoc,
   valuesGallery,
-} from "./support/seqstar-docs-colors";
+} from "./support/seqstar-docs-colors.js";
 import f from "./support/seqstar-format.module.css";
-import { PrismCanvas, PrismPage, prism } from "./support/seqstar-prism";
-import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer";
-import { TextAction } from "./ui";
+import { PrismCanvas, PrismPage, prism } from "./support/seqstar-prism.js";
+import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer.js";
+import { TextAction } from "./ui/index.js";
 
 /**
  * Color schemes: named schemes as data, picked in the document (`{"theme": "scheme"}`), in the builder

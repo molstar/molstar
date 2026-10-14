@@ -12,7 +12,7 @@
 // draws the same pixels as the frame drawn directly.
 
 import { describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.ts";
+import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
 import {
   type DrawResources,
   GlyphBatch,
@@ -29,9 +29,9 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.ts";
-import { RecordingBackend } from "../../src/testing/index.ts";
-import { drawFrame, Frame, H, PIXELS, W } from "../support/frame.ts";
+} from "../../src/draw/api.js";
+import { RecordingBackend } from "../../src/testing/index.js";
+import { drawFrame, Frame, H, PIXELS, W } from "../support/frame.js";
 
 const GLYPHS = [
   { char: "W", path: null, box: [1, 1] as const, fallback: 0 },

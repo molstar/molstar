@@ -12,9 +12,9 @@
 // (`heapGrowth`); detection is a repeated step (`heapScaling`).
 
 import { describe, expect, it } from "vitest";
-import { type Issue, Molecules, StringTable } from "../../src/model/index.ts";
-import { controlCaught, describeScaling, heapGrowth, heapScaling, isFlat, LIMIT, leak } from "./heap.ts";
-import { prng } from "./support/generators.ts";
+import { type Issue, Molecules, StringTable } from "../../src/model/index.js";
+import { controlCaught, describeScaling, heapGrowth, heapScaling, isFlat, LIMIT, leak } from "./heap.js";
+import { prng } from "./support/generators.js";
 
 const SIZE = 3_000_000;
 const rand = prng(11);

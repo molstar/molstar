@@ -7,9 +7,9 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { Origin } from "../src/index.ts";
+import type { Origin } from "../src/index.js";
 
-import { event, live, state } from "../src/state.ts";
+import { event, live, state } from "../src/state.js";
 
 describe("state", () => {
   it("replays the current value, emits only on change, shallow for plain records", () => {

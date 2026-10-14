@@ -10,10 +10,10 @@
 // wherever it binds back to the same symbol at that place (resolved with the binder's own functions, from what is
 // printed), positionals then keywords in signature order, defaults omitted, one line when it fits in 80 columns.
 // `printQuery(bindQuery(readQuery(t)))` is a fixed point, and binding a print gives the JSON back.
-import { argChain, calledKind, fieldRewrite, kindOfValue, type OperandKind, resolveName } from "./bind.ts";
-import { createLanguage, type Language } from "./language.ts";
-import { NUMBER } from "./read.ts";
-import { type Expression, isApply, type Slot } from "./types.ts";
+import { argChain, calledKind, fieldRewrite, kindOfValue, type OperandKind, resolveName } from "./bind.js";
+import { createLanguage, type Language } from "./language.js";
+import { NUMBER } from "./read.js";
+import { type Expression, isApply, type Slot } from "./types.js";
 
 const WIDTH = 80;
 /** A word the reader reads back as the same string (seqspec:seqql#the-reader): no delimiter, no leading ":" or "$". */

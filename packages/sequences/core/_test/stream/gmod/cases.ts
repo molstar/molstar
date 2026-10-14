@@ -16,7 +16,7 @@ import {
   type RangeReader,
   twoBitProvider,
   vcfProvider,
-} from "../../../src/stream/gmod/index.ts";
+} from "../../../src/stream/gmod/index.js";
 
 export const req = (system: string | null, start = 0, stop = 0, level = -1): StreamRequest => ({
   source: "s",

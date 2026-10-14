@@ -15,9 +15,9 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { tilesStream } from "@molstar/seq-core/stream/tiles";
 import { tileServer } from "@molstar/seq-core/stream/tiles/server";
 import { afterEach, expect, it } from "vitest";
-import { Dirty } from "../../src/draw/index.ts";
-import { syntheticFamily } from "../families.ts";
-import { canvasesOf, close, diff, type Opened, opened, pixelsOf } from "./open.ts";
+import { Dirty } from "../../src/draw/index.js";
+import { syntheticFamily } from "../families.js";
+import { canvasesOf, close, diff, type Opened, opened, pixelsOf } from "./open.js";
 
 let t: Opened | null = null;
 afterEach(() => {

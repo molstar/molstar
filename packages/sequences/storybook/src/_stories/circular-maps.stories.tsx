@@ -8,9 +8,9 @@
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo } from "react";
-import { circularGenomeDoc } from "./support/seqstar-docs-circular";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer";
+import { circularGenomeDoc } from "./support/seqstar-docs-circular.js";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer.js";
 
 /**
  * Circular maps (CG2, CG3): a circular genome through the builder's preset, rings with their linear detail and its

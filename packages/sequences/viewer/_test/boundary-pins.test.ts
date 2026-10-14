@@ -13,11 +13,11 @@
 // the boundary over the whole row.
 
 import { describe, expect, it } from "vitest";
-import { Hit, HoverKind } from "../src/index.ts";
-import { Op, type RecordingBackend } from "../src/testing/index.ts";
-import { pinsDoc as doc, S } from "./boundary-pins-fixtures.ts";
-import { recording } from "./composer-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
+import { Hit, HoverKind } from "../src/index.js";
+import { Op, type RecordingBackend } from "../src/testing/index.js";
+import { pinsDoc as doc, S } from "./boundary-pins-fixtures.js";
+import { recording } from "./composer-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
 
 type Box = [number, number, number, number];
 const meets = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];

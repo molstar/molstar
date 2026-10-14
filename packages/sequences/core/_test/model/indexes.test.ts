@@ -32,8 +32,8 @@ import {
   type SeqSet,
   SeqSets,
   type UnitId,
-} from "../../src/model/index.ts";
-import { brs1 } from "./fixtures.ts";
+} from "../../src/model/index.js";
+import { brs1 } from "./fixtures.js";
 
 const codes = (issues: Issue[]) => issues.map((i) => `${i.code} ${i.path}`);
 const strings = (set: SeqSet, ids: ArrayLike<number>) => Array.from(ids, (id) => set.strings.get(id));

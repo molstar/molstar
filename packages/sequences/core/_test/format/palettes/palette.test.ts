@@ -19,7 +19,7 @@ import {
   makePaletteFunction,
   type Palette,
   type PaletteValue,
-} from "../../../src/format/index.ts";
+} from "../../../src/format/index.js";
 
 /**
  * Outputs of MVS's own code (vendored Mol* 5.11.0): its named lists and dictionaries, Mol*'s color names, and every

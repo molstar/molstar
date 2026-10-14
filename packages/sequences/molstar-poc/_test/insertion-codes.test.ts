@@ -28,8 +28,8 @@ import {
   selectionLoci,
   structureInput,
   structureOf,
-} from "../src/index.ts";
-import { registries } from "./fixtures.ts";
+} from "../src/index.js";
+import { registries } from "./fixtures.js";
 
 const AUTH: [string, number, string][] = [
   ["TRP", 50, ""],

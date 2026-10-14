@@ -25,7 +25,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 /** 1,000 steps, as the other stream guards: they catch about 22 bytes a step. */
 const N = 1_000;
@@ -41,12 +41,12 @@ const measure = (frame: () => void) => {
 /** The streamed genome (two chromosomes, letters, values and items) under the `strip` miniature at 200 kb, settled. */
 async function miniatureFrame() {
   vi.resetModules();
-  const { hg38Streams, streamedDoc } = await import("../../core/_test/format/stream-provider.ts");
-  const { recording } = await import("./composer-fixtures.ts");
-  const { SkinToken } = await import("../src/draw/backend.ts");
-  const { Dirty, SectionComposer } = await import("../src/draw/composer.ts");
-  const { RecordingBackend, fixtureMeasurer } = await import("../src/testing/index.ts");
-  const viewer = await import("../src/index.ts");
+  const { hg38Streams, streamedDoc } = await import("../../core/_test/format/stream-provider.js");
+  const { recording } = await import("./composer-fixtures.js");
+  const { SkinToken } = await import("../src/draw/backend.js");
+  const { Dirty, SectionComposer } = await import("../src/draw/composer.js");
+  const { RecordingBackend, fixtureMeasurer } = await import("../src/testing/index.js");
+  const viewer = await import("../src/index.js");
   const s = hg38Streams({
     letters: true,
     chromosomes: [
@@ -77,7 +77,7 @@ async function miniatureFrame() {
   const vp = ctx.viewports.get(section);
   if (!vp) throw new Error("no viewport");
   vp.zoomTo(1, 100_000_000, 100_200_000);
-  const manager = ctx.streams as import("../src/streams.ts").Streams;
+  const manager = ctx.streams as import("../src/streams.js").Streams;
   const composer = new SectionComposer(ctx, section);
   const be = recording();
   const flush = () => new Promise((ok) => setTimeout(ok, 0));

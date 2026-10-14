@@ -13,10 +13,10 @@
 // that only invalidates, the first surface setting the canvas measurer and the last one restoring the context's.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { refreshSkin } from "../../src/canvas/index.ts";
-import { DefaultSkin, type Skin } from "../../src/index.ts";
-import { syntheticFamily } from "../families.ts";
-import { canvasesOf, close, diff, type Opened, opened, pixelsOf } from "./open.ts";
+import { refreshSkin } from "../../src/canvas/index.js";
+import { DefaultSkin, type Skin } from "../../src/index.js";
+import { syntheticFamily } from "../families.js";
+import { canvasesOf, close, diff, type Opened, opened, pixelsOf } from "./open.js";
 
 let t: Opened | null = null;
 afterEach(() => {
@@ -192,7 +192,7 @@ describe("the measurer and font loads", () => {
     const host = document.createElement("div");
     host.style.cssText = "width:400px;height:200px";
     document.body.appendChild(host);
-    const { mountSection } = await import("../../src/canvas/index.ts");
+    const { mountSection } = await import("../../src/canvas/index.js");
     const second = mountSection(o.ctx, o.section, host, { dpr: 1 });
     expect(o.ctx.text.port).toBe(canvas);
     o.surface.dispose();

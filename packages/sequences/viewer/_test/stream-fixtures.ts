@@ -11,10 +11,10 @@
 // loaders hold the two scripted providers. Shared by the stream port's tests, its heap guards and the hg38 bench.
 
 import type { DataPatch, Loaders, SeqViewSpecDoc, StreamNode, StreamRequest } from "@molstar/seq-core/format";
-import { GRCH38, hg38Streams, sampledValues, streamedDoc } from "../../core/_test/format/stream-provider.ts";
-import { type LayerRenderer, SeqViewerConfig } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { type Opened, opened, preparedRenderers } from "./layout-fixtures.ts";
+import { GRCH38, hg38Streams, sampledValues, streamedDoc } from "../../core/_test/format/stream-provider.js";
+import { type LayerRenderer, SeqViewerConfig } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { type Opened, opened, preparedRenderers } from "./layout-fixtures.js";
 
 export { streamedDoc };
 export const GENOME = "browser.main";
@@ -69,8 +69,8 @@ export const { MaxInFlight, CacheBytes, Margin } = SeqViewerConfig.Stream;
  * `letters` (ST3a): with the sequence track, its letters streamed.
  */
 export async function genomeFrame(at: "whole" | "10 kb" | "100 b", draw = true, dynamic = false, letters = false) {
-  const { composed, recording } = await import("./composer-fixtures.ts");
-  const { Dirty } = await import("../src/draw/composer.ts");
+  const { composed, recording } = await import("./composer-fixtures.js");
+  const { Dirty } = await import("../src/draw/composer.js");
   // ST1b-a: with the dynamic tracks, the manifest's genes and every data region's peak held.
   const streams = dynamic ? hg38Streams({ nodes: [GENES], answer: withPeaks() }) : hg38Streams({ letters });
   const loaders: Loaders = { load: (r) => Promise.reject(new Error(`no file ${r.uri}`)), stream: streams.stream };

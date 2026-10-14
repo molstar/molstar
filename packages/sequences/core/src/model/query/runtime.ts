@@ -11,12 +11,12 @@
 // in canonical order; nothing is visited per position but the values scan.
 
 import { BASE_SYMBOLS, type Expression, isApply, type SymbolDef, suggest } from "@molstar/seq-core/query";
-import { type Annotation, Annotations, type Targets } from "../annotation.ts";
-import { CoordinateSystemKind as K } from "../coordinates.ts";
-import { NO_LABEL, Numbering, type PositionLabel } from "../numbering.ts";
-import { KeyKind, type KeyTarget, type SeqSet } from "../set.ts";
-import type { CompileContext, QueryFn, SymbolRuntime } from "./compile.ts";
-import { F64, type QueryContext } from "./context.ts";
+import { type Annotation, Annotations, type Targets } from "../annotation.js";
+import { CoordinateSystemKind as K } from "../coordinates.js";
+import { NO_LABEL, Numbering, type PositionLabel } from "../numbering.js";
+import { KeyKind, type KeyTarget, type SeqSet } from "../set.js";
+import type { CompileContext, QueryFn, SymbolRuntime } from "./compile.js";
+import { F64, type QueryContext } from "./context.js";
 import {
   addRuns,
   eachRun,
@@ -27,8 +27,8 @@ import {
   sameGroup,
   sameSystem,
   subtractRun,
-} from "./kernels.ts";
-import { SeqSelection } from "./selection.ts";
+} from "./kernels.js";
+import { SeqSelection } from "./selection.js";
 import {
   circleOf,
   domainOf,
@@ -39,7 +39,7 @@ import {
   numberingOf,
   toLabel,
   unitsOf,
-} from "./systems.ts";
+} from "./systems.js";
 
 const SYMBOLS = new Map<string, SymbolDef>(BASE_SYMBOLS.map((s) => [s.name, s]));
 export const rt = (name: string, compile: (c: CompileContext) => QueryFn<unknown>): SymbolRuntime => ({

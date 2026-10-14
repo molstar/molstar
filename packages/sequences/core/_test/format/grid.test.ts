@@ -12,9 +12,9 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { KeyKind, type KeyTarget } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { compile, resolveView, supportedAll, validate } from "../../src/format/index.ts";
-import { case8 } from "./cases.ts";
-import { files, fixtureLoaders, registries } from "./load-fixtures.ts";
+import { compile, resolveView, supportedAll, validate } from "../../src/format/index.js";
+import { case8 } from "./cases.js";
+import { files, fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };

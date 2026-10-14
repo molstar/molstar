@@ -14,7 +14,7 @@
 // caught; it runs on the lazy rows' 2,000 frames (150 over 12,000 rows, which a longer run collects in).
 
 import { expect, it, vi } from "vitest";
-import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.ts";
+import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.js";
 
 const WARM_MS = 3_000;
 /** Steps per measured run: longer runs over 12,000 rows were collected mid-run (a collection hides allocation, heap-browser.ts). */
@@ -43,14 +43,14 @@ async function guard(make: () => Promise<Frames>, n = N) {
   }
 }
 const lazy = async () => {
-  const { lazyFrames } = await import("./rows-fixtures.ts");
+  const { lazyFrames } = await import("./rows-fixtures.js");
   return lazyFrames();
 };
 
 for (const scale of [1, 0.12])
   it(`a pan and scroll frame over 12,000 rows at row scale ${scale} is flat`, async () => {
     await guard(async () => {
-      const { familyFrames } = await import("./rows-fixtures.ts");
+      const { familyFrames } = await import("./rows-fixtures.js");
       return familyFrames(scale);
     });
   }, 120_000);
@@ -71,7 +71,7 @@ it("the same lazy rows' frames allocating garbage sized to the run each are caug
 
 it("a hover frame over the tree (clades lit, their rows banded) is flat", async () => {
   vi.resetModules();
-  const { treeHover } = await import("./rows-fixtures.ts");
+  const { treeHover } = await import("./rows-fixtures.js");
   const t = await treeHover();
   try {
     for (let i = 0; i < 800; i++) t.step(i);

@@ -13,10 +13,10 @@
 // device px per CSS px.
 
 import { afterEach, describe, expect, it } from "vitest";
-import type { SectionAxisView } from "../../src/axis.ts";
-import { type CytoBands, ideogramNavigator } from "../../src/index.ts";
-import { blocksDoc } from "../axis-fixtures.ts";
-import { canvasesOf, close, type Opened, opened, pixelsOf, settle } from "./open.ts";
+import type { SectionAxisView } from "../../src/axis.js";
+import { type CytoBands, ideogramNavigator } from "../../src/index.js";
+import { blocksDoc } from "../axis-fixtures.js";
+import { canvasesOf, close, type Opened, opened, pixelsOf, settle } from "./open.js";
 
 let t: Opened | null = null;
 afterEach(() => {

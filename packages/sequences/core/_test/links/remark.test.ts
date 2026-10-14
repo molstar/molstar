@@ -11,8 +11,8 @@ import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 import { describe, expect, it } from "vitest";
-import { createLinkRunner, formatLink, parseLink } from "../../src/links/index.ts";
-import { rehypeSeqLinks, seqLinkSchema } from "../../src/links/remark.ts";
+import { createLinkRunner, formatLink, parseLink } from "../../src/links/index.js";
+import { rehypeSeqLinks, seqLinkSchema } from "../../src/links/remark.js";
 
 interface Node {
   type: string;

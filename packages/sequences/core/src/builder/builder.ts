@@ -25,7 +25,7 @@ import type {
   ThemeRef,
   ValuesFor,
 } from "@molstar/seq-core/format";
-import { Colors } from "./colors.ts";
+import { Colors } from "./colors.js";
 import {
   cigarFromRows,
   f32,
@@ -35,7 +35,7 @@ import {
   SvsVersion,
   translateDna,
   wussPairs,
-} from "./helpers.ts";
+} from "./helpers.js";
 
 export type BuilderObject = Record<string, unknown>;
 export interface BuilderNode {

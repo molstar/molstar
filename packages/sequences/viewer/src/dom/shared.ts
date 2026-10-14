@@ -11,8 +11,8 @@
 // keyboard cursor or the viewport (the tooltip, a track header's menu). Pointer-rate: these write styles only, never
 // structure. Imports no React (the React entry imports these).
 
-import { AxisGeometry } from "../axis.ts";
-import { type HeaderLine, headerLine, headerTrack, trackLine } from "../chrome.ts";
+import { AxisGeometry } from "../axis.js";
+import { type HeaderLine, headerLine, headerTrack, trackLine } from "../chrome.js";
 import {
   HoverKind,
   type LegendRamp,
@@ -20,9 +20,9 @@ import {
   type SeqState,
   type SeqViewerContext,
   type Unsubscribable,
-} from "../index.ts";
-import { cursorRect } from "../keyboard.ts";
-import { SizeUnit } from "../themes.ts";
+} from "../index.js";
+import { cursorRect } from "../keyboard.js";
+import { SizeUnit } from "../themes.js";
 /**
  * A state's changes, not its replay: a state calls back with its value on subscribe (as a BehaviorSubject), which is not a
  * change. For a subscription whose first run is made some other way (a direct call, a `watch`).

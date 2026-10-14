@@ -22,10 +22,10 @@
 // catch (todo.md, Costs).
 
 import { expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.ts";
-import { Pass, RectBatch, SkinToken } from "../../src/draw/api.ts";
-import { drawFrame, Frame, H, PIXELS, W } from "../support/frame.ts";
-import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.ts";
+import { Canvas2DBackend, Canvas2DShared } from "../../src/canvas/index.js";
+import { Pass, RectBatch, SkinToken } from "../../src/draw/api.js";
+import { drawFrame, Frame, H, PIXELS, W } from "../support/frame.js";
+import { controlCaught, heapScaling, isFlat, leaking } from "./heap-browser.js";
 
 const N = 1_000;
 /** The colors' run: shorter, as Chrome collects within longer ones (above). */

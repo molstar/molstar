@@ -28,12 +28,12 @@ import {
   TreeSchema,
   UnionParamsSchema,
   validate,
-} from "../../src/format/index.ts";
-import { normalizeNodeParams } from "../../src/format/normalize.ts";
-import { diffTree, patchTree } from "../../src/format/patch/tree-patch.ts";
-import { itWithin } from "../model/timing.ts";
-import { CASES, case2, case10 } from "./cases.ts";
-import { registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { normalizeNodeParams } from "../../src/format/normalize.js";
+import { diffTree, patchTree } from "../../src/format/patch/tree-patch.js";
+import { itWithin } from "../model/timing.js";
+import { CASES, case2, case10 } from "./cases.js";
+import { registries } from "./load-fixtures.js";
 
 function random(seed: number) {
   let s = seed >>> 0;

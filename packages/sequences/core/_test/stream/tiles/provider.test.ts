@@ -11,8 +11,8 @@
 
 import { StreamNotServed, type StreamSource, streamRequest, TILE } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { PROTOCOL, tileClient, tilesStream } from "../../../src/stream/tiles/index.ts";
-import { proceduralRow, tileServer } from "../../../src/stream/tiles/server.ts";
+import { PROTOCOL, tileClient, tilesStream } from "../../../src/stream/tiles/index.js";
+import { proceduralRow, tileServer } from "../../../src/stream/tiles/server.js";
 
 const signal = new AbortController().signal;
 /** Two typed arrays of one kind holding the same bytes (a deep match of a tile's 65,536 cells took over a second). */

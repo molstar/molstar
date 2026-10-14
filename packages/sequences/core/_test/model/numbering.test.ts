@@ -17,7 +17,7 @@ import {
   type PositionLabel,
   type SeqIndex,
   StringTable,
-} from "../../src/model/index.ts";
+} from "../../src/model/index.js";
 
 const strings = new StringTable();
 

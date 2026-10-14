@@ -21,14 +21,14 @@ import type { Loaders, Patch, SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { type SeqViewerContext, type SeqViewerRegistryEntry, sectionInfo } from "@molstar/seq-viewer";
 import { renderSvg } from "@molstar/seq-viewer/svg";
 import pf00042 from "../../../../core/_test/fixtures/pf00042.json?raw";
-import { CASES } from "../../../../core/_test/format/cases.ts";
-import { genomeDoc, synthGenome } from "../../../../core/_test/format/genome-fixture.ts";
-import { familyWithTree, syntheticFamily } from "../../../../viewer/_test/families.ts";
-import { keyedFamilyDoc, MODES, modePatch } from "../../../../viewer/_test/keyed-family.ts";
-import { lazyStoryDoc, lazyStoryLoaders } from "../../../../viewer/_test/lazy-story-fixtures.ts";
-import { splitUnitsDoc } from "../../../../viewer/_test/split-units-fixtures.ts";
-import { described, hideEmpty, textStyled } from "./seqstar-cases";
-import { circularGenomeDoc, PLASMID_RING, rotateRing, zoomDetail } from "./seqstar-docs-circular";
+import { CASES } from "../../../../core/_test/format/cases.js";
+import { genomeDoc, synthGenome } from "../../../../core/_test/format/genome-fixture.js";
+import { familyWithTree, syntheticFamily } from "../../../../viewer/_test/families.js";
+import { keyedFamilyDoc, MODES, modePatch } from "../../../../viewer/_test/keyed-family.js";
+import { lazyStoryDoc, lazyStoryLoaders } from "../../../../viewer/_test/lazy-story-fixtures.js";
+import { splitUnitsDoc } from "../../../../viewer/_test/split-units-fixtures.js";
+import { described, hideEmpty, textStyled } from "./seqstar-cases.js";
+import { circularGenomeDoc, PLASMID_RING, rotateRing, zoomDetail } from "./seqstar-docs-circular.js";
 import {
   alignmentGallery,
   customDoc,
@@ -40,8 +40,8 @@ import {
   rangeDoc,
   sharedDoc,
   valuesGallery,
-} from "./seqstar-docs-colors";
-import { sashimiDoc, scalesDoc, sizesDoc } from "./seqstar-docs-sizes";
+} from "./seqstar-docs-colors.js";
+import { sashimiDoc, scalesDoc, sizesDoc } from "./seqstar-docs-sizes.js";
 import {
   atlasDoc,
   atlasLoaders,
@@ -63,7 +63,7 @@ import {
   streamedLoaders,
   transcriptLoaders,
   transcriptStoryDoc,
-} from "./seqstar-docs-streamed";
+} from "./seqstar-docs-streamed.js";
 import {
   antibodyPlain,
   antibodyWithSnapshots,
@@ -91,16 +91,16 @@ import {
   STYLE_FAMILY,
   styled,
   tracksDoc,
-} from "./seqstar-docs-views";
-import { calmodulinDotPlot } from "./seqstar-dot-plots";
-import { FILE_FORMATS_SMOKE } from "./seqstar-file-formats-smoke";
-import { GENOTYPE_DENSITIES, GENOTYPE_MODES, genotypeDensityPatch, genotypeModePatch } from "./seqstar-genotypes";
-import { IDEOGRAM_PLACES, IDEOGRAM_REGISTRY, IDEOGRAM_SECTION, ideogramDoc, ideogramLoaders } from "./seqstar-ideogram";
-import { INDEL_LIT, INDEL_SELECTIONS, litPerSection, selectCommand } from "./seqstar-indels";
-import { p53MolstarCase } from "./seqstar-molstar-smoke";
-import { storyPatch } from "./seqstar-patch";
-import { AskedLog, PREFETCH_SECTION, PREFETCH_SNAPSHOTS, prefetchDoc, prefetchLoaders } from "./seqstar-prefetch";
-import { TRIAGE_MODES, triagePatch } from "./seqstar-triage";
+} from "./seqstar-docs-views.js";
+import { calmodulinDotPlot } from "./seqstar-dot-plots.js";
+import { FILE_FORMATS_SMOKE } from "./seqstar-file-formats-smoke.js";
+import { GENOTYPE_DENSITIES, GENOTYPE_MODES, genotypeDensityPatch, genotypeModePatch } from "./seqstar-genotypes.js";
+import { IDEOGRAM_PLACES, IDEOGRAM_REGISTRY, IDEOGRAM_SECTION, ideogramDoc, ideogramLoaders } from "./seqstar-ideogram.js";
+import { INDEL_LIT, INDEL_SELECTIONS, litPerSection, selectCommand } from "./seqstar-indels.js";
+import { p53MolstarCase } from "./seqstar-molstar-smoke.js";
+import { storyPatch } from "./seqstar-patch.js";
+import { AskedLog, PREFETCH_SECTION, PREFETCH_SNAPSHOTS, prefetchDoc, prefetchLoaders } from "./seqstar-prefetch.js";
+import { TRIAGE_MODES, triagePatch } from "./seqstar-triage.js";
 
 /** A warning a story shows on purpose: its code, and text its message must hold when given. */
 export interface AllowedWarning {

@@ -15,9 +15,9 @@ import { compile } from "@molstar/seq-core/format";
 import { CoordinateSystemKind, Extents, KeyKind } from "@molstar/seq-core/model";
 import { Translator } from "@molstar/seq-core/translate";
 import { describe, expect, it } from "vitest";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../../core/_test/model/heap.ts";
-import { readStructure, StructureLink, structureOf } from "../src/index.ts";
-import { bytesOf, loaders, p53Doc, registries } from "./fixtures.ts";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../../core/_test/model/heap.js";
+import { readStructure, StructureLink, structureOf } from "../src/index.js";
+import { bytesOf, loaders, p53Doc, registries } from "./fixtures.js";
 
 const N = 50_000;
 const { set } = await compile(p53Doc([{ ref: "1tup", pdb: "1TUP", entity: "3" }]), registries(), loaders());

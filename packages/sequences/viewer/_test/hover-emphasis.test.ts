@@ -13,15 +13,15 @@
 // `hover_emphasis`); and no emphasis in an export or in the main pass.
 
 import { describe, expect, it } from "vitest";
-import { contrastRatio, HoverContrast } from "../src/draw/hover.ts";
-import { Dirty, HOVER_WIDTH, hoverInk, hoverWidth, Pass } from "../src/draw/index.ts";
-import { DarkSkin, DefaultSkin, type Skin } from "../src/index.ts";
-import { renderSvg } from "../src/svg/index.ts";
-import { recording } from "./composer-fixtures.ts";
-import { entryOf } from "./draw-fixtures.ts";
-import { type Box, BoxKind, hoverDoc, passBoxes, within } from "./hover-fixtures.ts";
-import { logoDoc } from "./logo-fixtures.ts";
-import { lit } from "./overlay-fixtures.ts";
+import { contrastRatio, HoverContrast } from "../src/draw/hover.js";
+import { Dirty, HOVER_WIDTH, hoverInk, hoverWidth, Pass } from "../src/draw/index.js";
+import { DarkSkin, DefaultSkin, type Skin } from "../src/index.js";
+import { renderSvg } from "../src/svg/index.js";
+import { recording } from "./composer-fixtures.js";
+import { entryOf } from "./draw-fixtures.js";
+import { type Box, BoxKind, hoverDoc, passBoxes, within } from "./hover-fixtures.js";
+import { logoDoc } from "./logo-fixtures.js";
+import { lit } from "./overlay-fixtures.js";
 
 const lum = (c: number) => {
   const l = (x: number) => (x <= 10.31475 ? x / 3294.6 : ((x / 255 + 0.055) / 1.055) ** 2.4);
@@ -277,7 +277,7 @@ describe("what the emphasis follows", () => {
     const t = await hoverAt("light");
     const x = t.xOf(t.section, 0, 42);
     const y = t.yOf(t.section, "t.ranges") - entryHeight(t, "t.ranges") / 2 + 6;
-    const hit = (await import("../src/index.ts")).Hit.create();
+    const hit = (await import("../src/index.js")).Hit.create();
     expect(t.ctx.layout.hitTest(t.section, x, y, hit)).toBe(true);
     t.ctx.hover.setFromHit(hit, "keyboard");
     const on = passBoxes(t.overlay(), Pass.overlay).filter((b) => b[5] === BoxKind.outline);

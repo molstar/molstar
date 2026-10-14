@@ -11,7 +11,7 @@
 // location-level ones are the hover path and allocate nothing; loci-level ones are edges and report into a reused
 // `Conversion`.
 
-import { type Annotation, Annotations, Pairs } from "./annotation.ts";
+import { type Annotation, Annotations, Pairs } from "./annotation.js";
 import type {
   AlignmentId,
   AnnotationId,
@@ -21,11 +21,11 @@ import type {
   RowIndex,
   SeqIndex,
   UnitId,
-} from "./common.ts";
-import { CoordinateSystemKind, Coords, type MapHit } from "./coordinates.ts";
-import { type ComposedPath, Mappings, Paths } from "./mapping.ts";
-import { OrderedSet, SortedArray } from "./ordered-set.ts";
-import { KeyKind, type KeyTarget, type SeqSet } from "./set.ts";
+} from "./common.js";
+import { CoordinateSystemKind, Coords, type MapHit } from "./coordinates.js";
+import { type ComposedPath, Mappings, Paths } from "./mapping.js";
+import { OrderedSet, SortedArray } from "./ordered-set.js";
+import { KeyKind, type KeyTarget, type SeqSet } from "./set.js";
 
 export interface SeqLocation {
   readonly kind: "seq";

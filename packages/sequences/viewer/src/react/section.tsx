@@ -15,9 +15,9 @@
 
 import { Height } from "@molstar/seq-core/format";
 import { type ComponentType, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { later, off, setAttr, watch } from "../dom/core.ts";
-import { focusIndicator, placeScroll, setStyle, type TrackBox, trackBox } from "../dom/shared.ts";
-import { shownSections } from "../index.ts";
+import { later, off, setAttr, watch } from "../dom/core.js";
+import { focusIndicator, placeScroll, setStyle, type TrackBox, trackBox } from "../dom/shared.js";
+import { shownSections } from "../index.js";
 import {
   type PartProps,
   type RowProps,
@@ -26,7 +26,7 @@ import {
   useDerived,
   useLanding,
   useScope,
-} from "./hooks.ts";
+} from "./hooks.js";
 
 const toParent = (el: HTMLElement) => el.parentElement ?? el;
 

@@ -23,15 +23,15 @@
 // color, or the strongest): the state whose color is drawn (`matrixHitBand`), whichever cache drew last (VL-04). The
 // overlay outlines the hovered cell (`outlineMatrixCell`; seqspec:interaction#hover).
 
-import { AxisGeometry, type AxisView } from "../axis.ts";
-import type { MatrixState } from "../rows.ts";
-import { type Theme, ThemeLocation } from "../themes.ts";
-import { type BackendImages, NO_COLOR } from "./backend.ts";
-import { visibleRange } from "./cells.ts";
-import { packAlpha } from "./density.ts";
-import { hoverEmphasis, outlineItem } from "./hover.ts";
-import { hitLayer, type SizeView } from "./sizes.ts";
-import type { DrawView } from "./view.ts";
+import { AxisGeometry, type AxisView } from "../axis.js";
+import type { MatrixState } from "../rows.js";
+import { type Theme, ThemeLocation } from "../themes.js";
+import { type BackendImages, NO_COLOR } from "./backend.js";
+import { visibleRange } from "./cells.js";
+import { packAlpha } from "./density.js";
+import { hoverEmphasis, outlineItem } from "./hover.js";
+import { hitLayer, type SizeView } from "./sizes.js";
+import type { DrawView } from "./view.js";
 
 /** Samples a tile holds at most (a canvas past about 32k px fails). */
 export const MATRIX_TILE = 4096;

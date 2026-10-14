@@ -14,12 +14,12 @@
 
 import { numberColumn, type SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it, vi } from "vitest";
-import { case3, case13 } from "../../core/_test/format/cases.ts";
-import type { ShownIndex } from "../src/axis.ts";
-import { band, type DrawView, type Features, hitItem, PreparedParts, RectBatch } from "../src/draw/api.ts";
-import { Hit, HoverKind, KernelRenderers, type LayerRenderer, type SeqViewerContext } from "../src/index.ts";
-import { DefaultPresets } from "../src/presets.ts";
-import { RangesRenderer } from "../src/renderers/ranges.ts";
+import { case3, case13 } from "../../core/_test/format/cases.js";
+import type { ShownIndex } from "../src/axis.js";
+import { band, type DrawView, type Features, hitItem, PreparedParts, RectBatch } from "../src/draw/api.js";
+import { Hit, HoverKind, KernelRenderers, type LayerRenderer, type SeqViewerContext } from "../src/index.js";
+import { DefaultPresets } from "../src/presets.js";
+import { RangesRenderer } from "../src/renderers/ranges.js";
 import {
   AffinityField,
   type ConformanceFixtures,
@@ -28,8 +28,8 @@ import {
   rendererConformance,
   StarsFormat,
   StarsRenderer,
-} from "../src/testing/index.ts";
-import { pinsDoc } from "./boundary-pins-fixtures.ts";
+} from "../src/testing/index.js";
+import { pinsDoc } from "./boundary-pins-fixtures.js";
 import {
   alignedDoc,
   asText,
@@ -40,10 +40,10 @@ import {
   miniatureDoc,
   ringed,
   starsDoc,
-} from "./conformance-fixtures.ts";
-import { dotPlotDoc } from "./dot-plot-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
-import { allTypes } from "./prepare-fixtures.ts";
+} from "./conformance-fixtures.js";
+import { dotPlotDoc } from "./dot-plot-fixtures.js";
+import { opened } from "./layout-fixtures.js";
+import { allTypes } from "./prepare-fixtures.js";
 
 const without = (name: string) => KernelRenderers.filter((r) => r.name !== name);
 /** The built-in `circular` preset beside the fixture presets: sections on rings (CG1b). */

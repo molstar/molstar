@@ -11,9 +11,9 @@
 // of its own (LA-28). The positive control is the template's: the same step with a leak.
 
 import { describe, expect, it } from "vitest";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../../core/_test/model/heap.ts";
-import { type LabelBox, layLabels, type NightingaleAxis, placeLabel } from "../src/labels.ts";
-import { COUNT, HEIGHT, labels, layout, measure, N, view } from "./labels-heap-fixture.ts";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../../core/_test/model/heap.js";
+import { type LabelBox, layLabels, type NightingaleAxis, placeLabel } from "../src/labels.js";
+import { COUNT, HEIGHT, labels, layout, measure, N, view } from "./labels-heap-fixture.js";
 
 describe("the label layer allocates nothing per frame", () => {
   it("placeLabel at a panned view each step", () => {

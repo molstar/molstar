@@ -11,11 +11,11 @@
 // row label). Edge-rate: once per hovered header, through the hover's label (labels.ts, `LabelHost.cutText`).
 
 import { Lanes } from "@molstar/seq-core/format";
-import type { SeqViewerContext } from "./context.ts";
-import { CHEVRON_ROOM, splitChevron } from "./header-toggle.ts";
-import { HoverKind } from "./hit.ts";
-import type { HoverState } from "./hover.ts";
-import { EntryKind } from "./layout.ts";
+import type { SeqViewerContext } from "./context.js";
+import { CHEVRON_ROOM, splitChevron } from "./header-toggle.js";
+import { HoverKind } from "./hit.js";
+import type { HoverState } from "./hover.js";
+import { EntryKind } from "./layout.js";
 
 /** The full text of the hovered header when it is drawn cut; null: none hovered, or drawn whole. */
 export function cutHeaderText(ctx: SeqViewerContext, h: HoverState): string | null {

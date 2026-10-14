@@ -25,7 +25,7 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.ts";
+} from "../../src/draw/api.js";
 
 export const W = 400;
 export const H = 120;

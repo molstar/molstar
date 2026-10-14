@@ -7,8 +7,8 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { MolstarDemo } from "./support/seqstar-molstar";
-import { PrismPage } from "./support/seqstar-prism";
+import { MolstarDemo } from "./support/seqstar-molstar.js";
+import { PrismPage } from "./support/seqstar-prism.js";
 
 /**
  * The Mol* adapter: P04637 in the Seq* viewer beside a Mol* canvas. The structures are complexes of the document,

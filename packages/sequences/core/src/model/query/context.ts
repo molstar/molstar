@@ -10,9 +10,9 @@
 // limits and the abort signal, the issues a run reports, the slots a test reads, and the builders a run reuses.
 
 import { type QueryIssue, seqqlSeverity } from "@molstar/seq-core/query";
-import type { SeqSet } from "../set.ts";
-import { type BuildGuard, SelectionBuilder } from "./kernels.ts";
-import type { SeqSelection } from "./selection.ts";
+import type { SeqSet } from "../set.js";
+import { type BuildGuard, SelectionBuilder } from "./kernels.js";
+import type { SeqSelection } from "./selection.js";
 
 export interface QueryLimits {
   /** Positions visited by scans and tests. */

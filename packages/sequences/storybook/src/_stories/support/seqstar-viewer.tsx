@@ -35,14 +35,14 @@ import {
   SeqViewerProvider,
   type SeqViewerUISpec,
 } from "@molstar/seq-viewer/react";
-import { fixtureLoaders, MolstarFixture } from "../../../../core/_test/format/load-fixtures.ts";
+import { fixtureLoaders, MolstarFixture } from "../../../../core/_test/format/load-fixtures.js";
 import "@molstar/seq-viewer/skin.css";
 import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Fold, ScrollArea, TextAction, Tooltip } from "../ui";
-import { caseSource } from "./seqstar-cases";
+import { Fold, ScrollArea, TextAction, Tooltip } from "../ui/index.js";
+import { caseSource } from "./seqstar-cases.js";
 import f from "./seqstar-format.module.css";
-import { PatchBanner } from "./seqstar-patch-banner";
-import { PrismCanvas } from "./seqstar-prism";
+import { PatchBanner } from "./seqstar-patch-banner.js";
+import { PrismCanvas } from "./seqstar-prism.js";
 import s from "./seqstar-viewer.module.css";
 
 /** The viewer's chrome (`UI.Chrome`). */

@@ -31,8 +31,8 @@ import {
   ThemeLocation,
   visibleRange,
 } from "@molstar/seq-viewer/draw";
-import { compactRows, Geo, geo, LEAD, rowFrame, rowTop, stripeTop } from "./geometry.ts";
-import type { FingerprintCache, FingerprintState } from "./renderer.ts";
+import { compactRows, Geo, geo, LEAD, rowFrame, rowTop, stripeTop } from "./geometry.js";
+import type { FingerprintCache, FingerprintState } from "./renderer.js";
 
 const grounds = new RectBatch(256);
 const stripes = new RectBatch(1024);

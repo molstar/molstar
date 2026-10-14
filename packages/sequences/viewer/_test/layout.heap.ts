@@ -14,17 +14,17 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { beforeAll, describe, expect, it } from "vitest";
-import { case1, case3, case6, case9, case13 } from "../../core/_test/format/cases.ts";
-import type { ShownIndex } from "../src/axis.ts";
-import { Hit, type LayerRenderer } from "../src/index.ts";
-import { type Layouts, SectionLayouts } from "../src/layout.ts";
-import { type LaneSegments, laneLineHeights, layoutRuns, lineTable } from "../src/runs.ts";
-import { fitCount } from "../src/text.ts";
-import { hitTree, TREE_INSET, type TreeRows, treeOf, treeSpan } from "../src/tree.ts";
-import { setPiece } from "./axis-fixtures.ts";
-import { FAMILY_SECTION as F, familyWithTree } from "./families.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
-import { laneRanges, type Opened, opened, renderers } from "./layout-fixtures.ts";
+import { case1, case3, case6, case9, case13 } from "../../core/_test/format/cases.js";
+import type { ShownIndex } from "../src/axis.js";
+import { Hit, type LayerRenderer } from "../src/index.js";
+import { type Layouts, SectionLayouts } from "../src/layout.js";
+import { type LaneSegments, laneLineHeights, layoutRuns, lineTable } from "../src/runs.js";
+import { fitCount } from "../src/text.js";
+import { hitTree, TREE_INSET, type TreeRows, treeOf, treeSpan } from "../src/tree.js";
+import { setPiece } from "./axis-fixtures.js";
+import { FAMILY_SECTION as F, familyWithTree } from "./families.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { laneRanges, type Opened, opened, renderers } from "./layout-fixtures.js";
 
 const N = 50_000;
 let sink = 0;

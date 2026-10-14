@@ -19,10 +19,10 @@ import {
   type SvsRegistryEntry,
 } from "@molstar/seq-core/format";
 import type { Severity } from "@molstar/seq-core/model";
-import { DefaultActions } from "./actions.ts";
-import type { SeqBehaviorProvider } from "./behaviors.ts";
-import { CommandsBehavior, SeqCommands } from "./commands.ts";
-import type { SeqViewerConfigItem } from "./config.ts";
+import { DefaultActions } from "./actions.js";
+import type { SeqBehaviorProvider } from "./behaviors.js";
+import { CommandsBehavior, SeqCommands } from "./commands.js";
+import type { SeqViewerConfigItem } from "./config.js";
 import {
   CursorBehavior,
   FocusViewportBehavior,
@@ -32,9 +32,9 @@ import {
   HoverRowBehavior,
   ScrollGroupsBehavior,
   SnapshotControlsBehavior,
-} from "./default-behaviors.ts";
-import { DotPlotSelectBehavior } from "./dot-plot.ts";
-import { FollowBehavior } from "./follow.ts";
+} from "./default-behaviors.js";
+import { DotPlotSelectBehavior } from "./dot-plot.js";
+import { FollowBehavior } from "./follow.js";
 import {
   DoubleClickZoomBehavior,
   DragPanBehavior,
@@ -45,18 +45,18 @@ import {
   SelectBehavior,
   VerticalOverviewBehavior,
   WheelBehavior,
-} from "./gestures.ts";
-import { KeyboardBehavior } from "./keyboard.ts";
-import { DefaultLabelProviders } from "./label-providers.ts";
-import type { RenderProps } from "./layout.ts";
-import { BookmarkActions } from "./location-sets.ts";
-import { DefaultNavigators } from "./navigators.ts";
-import { DefaultNodeKinds } from "./node-kinds.ts";
-import { DefaultPresets } from "./presets.ts";
-import type { SeqViewerRegistryEntry } from "./registry.ts";
-import { KernelColumns, KernelRenderers } from "./renderer-list.ts";
-import { RingWindowBehavior } from "./ring-window.ts";
-import { DefaultThemes } from "./rules.ts";
+} from "./gestures.js";
+import { KeyboardBehavior } from "./keyboard.js";
+import { DefaultLabelProviders } from "./label-providers.js";
+import type { RenderProps } from "./layout.js";
+import { BookmarkActions } from "./location-sets.js";
+import { DefaultNavigators } from "./navigators.js";
+import { DefaultNodeKinds } from "./node-kinds.js";
+import { DefaultPresets } from "./presets.js";
+import type { SeqViewerRegistryEntry } from "./registry.js";
+import { KernelColumns, KernelRenderers } from "./renderer-list.js";
+import { RingWindowBehavior } from "./ring-window.js";
+import { DefaultThemes } from "./rules.js";
 
 export interface SeqViewerSpec {
   /** Registered by createSeqViewer, in order, before any behavior is created. */

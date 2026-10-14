@@ -57,7 +57,7 @@ import {
 import { windowScheduler } from "@molstar/seq-viewer/canvas";
 import { SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { P53 } from "../../../../core/_test/format/load-fixtures.ts";
+import { P53 } from "../../../../core/_test/format/load-fixtures.js";
 import features from "../../../../molstar-poc/_test/fixtures/p53/P04637.json?raw";
 import ptms from "../../../../molstar-poc/_test/fixtures/p53/P04637-ptms.tsv?raw";
 import variants from "../../../../molstar-poc/_test/fixtures/p53/variation-P04637.json?raw";
@@ -73,14 +73,14 @@ import {
   p53DemoDoc,
   p53Loaders,
   p53ShownPatch,
-} from "../../../../molstar-poc/_test/p53-demo.ts";
-import { TextAction } from "../ui";
+} from "../../../../molstar-poc/_test/p53-demo.js";
+import { TextAction } from "../ui/index.js";
 import f from "./seqstar-format.module.css";
 import m from "./seqstar-molstar.module.css";
-import { storyPatch } from "./seqstar-patch";
-import { PrismCanvas } from "./seqstar-prism";
+import { storyPatch } from "./seqstar-patch.js";
+import { PrismCanvas } from "./seqstar-prism.js";
 import q from "./seqstar-query-runtime.module.css";
-import { partSlots, STORY_CHROME, useStoryUi } from "./seqstar-viewer";
+import { partSlots, STORY_CHROME, useStoryUi } from "./seqstar-viewer.js";
 
 /** The p53 demo's `headerHover` limit, in its viewer spec: a header of more items lights its row band alone. */
 const HEADER_MAX_ITEMS = 500;

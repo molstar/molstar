@@ -7,8 +7,8 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { MSAMSAAlignment, MSASeqAlignment } from "../../src/algorithms/biomsa/align/align.ts";
-import { AlignerOptionsError, AlignerSizeError, biomsa, MAX_CELLS } from "../../src/algorithms/index.ts";
+import { MSAMSAAlignment, MSASeqAlignment } from "../../src/algorithms/biomsa/align/align.js";
+import { AlignerOptionsError, AlignerSizeError, biomsa, MAX_CELLS } from "../../src/algorithms/index.js";
 
 const many = (seqs: string[], options = {}, signal?: AbortSignal) =>
   (biomsa.alignMany as NonNullable<typeof biomsa.alignMany>)(seqs, options, signal);

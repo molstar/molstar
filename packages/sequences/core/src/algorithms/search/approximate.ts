@@ -13,7 +13,7 @@
 // each hit finds where it starts. Everything is allocated by the constructor: a search allocates nothing, hits
 // included.
 
-import { checkWindow, type HitVisitor, type Matcher, readEnd } from "./matchers.ts";
+import { checkWindow, type HitVisitor, type Matcher, readEnd } from "./matchers.js";
 
 /**
  * One text column of Myers' algorithm over the blocks of a pattern: updates the vertical deltas `P` (+1) and `M` (-1)

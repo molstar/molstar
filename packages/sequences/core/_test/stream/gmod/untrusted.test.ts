@@ -10,11 +10,11 @@
 // at once, never a hang or a memory blow-up.
 import { crc32, deflateRawSync, deflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
-import { bigBedProvider, sqlFields } from "../../../src/stream/gmod/bigbed.ts";
-import { vcfProvider } from "../../../src/stream/gmod/tabix.ts";
-import { twoBitProvider } from "../../../src/stream/gmod/twobit.ts";
-import { itWithin } from "../../model/timing.ts";
-import { req } from "./cases.ts";
+import { bigBedProvider, sqlFields } from "../../../src/stream/gmod/bigbed.js";
+import { vcfProvider } from "../../../src/stream/gmod/tabix.js";
+import { twoBitProvider } from "../../../src/stream/gmod/twobit.js";
+import { itWithin } from "../../model/timing.js";
+import { req } from "./cases.js";
 
 /** A little-endian byte writer. */
 class W {

@@ -17,8 +17,8 @@ import {
   splitRows,
   supportedAll,
   validate,
-} from "../../src/format/index.ts";
-import { files, fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { files, fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 const all = supportedAll(reg);

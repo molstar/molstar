@@ -11,7 +11,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { queryIssue, SeqqlIssueCodes, seqqlSeverity } from "../../src/query/index.ts";
+import { queryIssue, SeqqlIssueCodes, seqqlSeverity } from "../../src/query/index.js";
 
 const here = (p: string) => new URL(p, import.meta.url).pathname;
 const sources = (dir: string): string[] =>

@@ -9,13 +9,13 @@
 // The written reference (seqspec:format#versioning), generated from the parameter tables and the
 // registries: a section per node kind, the layer type and theme catalogs, custom tables, codes.
 
-import { SvsVersion } from "./doc.ts";
-import type { ChannelKind, SvsRegistries, ThemeEntry } from "./registry.ts";
-import type { Fields, ParamsSchema } from "./schema/params-schema.ts";
-import type { TreeSchema } from "./schema/tree-schema.ts";
-import { GlyphShapes, PaletteSchema } from "./tables/param-types.ts";
-import { SvsTreeSchema } from "./tables/svs-tree.ts";
-import { GeometryColumns } from "./tables/table.ts";
+import { SvsVersion } from "./doc.js";
+import type { ChannelKind, SvsRegistries, ThemeEntry } from "./registry.js";
+import type { Fields, ParamsSchema } from "./schema/params-schema.js";
+import type { TreeSchema } from "./schema/tree-schema.js";
+import { GlyphShapes, PaletteSchema } from "./tables/param-types.js";
+import { SvsTreeSchema } from "./tables/svs-tree.js";
+import { GeometryColumns } from "./tables/table.js";
 
 const cell = (s: string) => s.replaceAll("|", "\\|");
 const code = (s: string) => `\`${cell(s)}\``;

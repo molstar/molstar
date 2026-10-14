@@ -11,8 +11,8 @@
 // hover, the pointer's hover deduped before it is located, the per-manager highlight dedupe (`lit`), and the merge of
 // fetched values into a series.
 
-import { type AxisMeta, AxisRuns, type Located, locate } from "./axis.ts";
-import { type NightingaleAxis, positionAt } from "./labels.ts";
+import { type AxisMeta, AxisRuns, type Located, locate } from "./axis.js";
+import { type NightingaleAxis, positionAt } from "./labels.js";
 
 export type Detail = Record<string, unknown> & { feature?: Record<string, unknown> | null };
 

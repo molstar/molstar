@@ -16,9 +16,9 @@ import {
   manualScheduler,
   type SeqIssue,
   SeqViewerConfig,
-} from "../src/index.ts";
-import { trackedScheduler } from "../src/scheduler.ts";
-import { smallDoc } from "./graph-fixtures.ts";
+} from "../src/index.js";
+import { trackedScheduler } from "../src/scheduler.js";
+import { smallDoc } from "./graph-fixtures.js";
 
 describe("construction and disposal", () => {
   it("config: spec items over defaults; set read at next use", () => {

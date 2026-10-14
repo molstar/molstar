@@ -15,8 +15,8 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { OrderedSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { ARG_COLUMN, case2, case3, case10 } from "../../core/_test/format/cases.ts";
-import { TRNA_STO } from "../../core/_test/format/load-fixtures.ts";
+import { ARG_COLUMN, case2, case3, case10 } from "../../core/_test/format/cases.js";
+import { TRNA_STO } from "../../core/_test/format/load-fixtures.js";
 import {
   DefaultSeqViewerSpec,
   Hit,
@@ -25,10 +25,10 @@ import {
   type LabelProvider,
   type PresetEntry,
   type Selection,
-} from "../src/index.ts";
-import { gripsLit, railGrown, WindowKind, WindowPart } from "../src/windows.ts";
-import { type Driven, driven, subscriptions } from "./input-fixtures.ts";
-import { PRESETS } from "./layout-fixtures.ts";
+} from "../src/index.js";
+import { gripsLit, railGrown, WindowKind, WindowPart } from "../src/windows.js";
+import { type Driven, driven, subscriptions } from "./input-fixtures.js";
+import { PRESETS } from "./layout-fixtures.js";
 
 const S = "family.main";
 const labeled: LabelProvider = {

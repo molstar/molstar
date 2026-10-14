@@ -23,9 +23,9 @@ import {
   Paths,
   type SeqSet,
   SeqSets,
-} from "../../src/model/index.ts";
-import { CDS, GENE, PROTEIN } from "./codon-fixtures.ts";
-import { gene as dmd } from "./support/generators.ts";
+} from "../../src/model/index.js";
+import { CDS, GENE, PROTEIN } from "./codon-fixtures.js";
+import { gene as dmd } from "./support/generators.js";
 
 const COMPLEMENT: Record<string, string> = { A: "T", T: "A", C: "G", G: "C" };
 const revcomp = (s: string) =>

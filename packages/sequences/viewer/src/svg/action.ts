@@ -14,10 +14,10 @@
 // share its viewports. Run as data it is
 // `{ command: "seqv:runAction", params: { name: "view.exportSvg", target: { view, width } } }`.
 
-import type { ActionEntry } from "../actions.ts";
-import type { SeqViewerContext } from "../context.ts";
-import type { SvgPorts } from "./backend.ts";
-import { type RenderSvgOptions, renderSvg } from "./render.ts";
+import type { ActionEntry } from "../actions.js";
+import type { SeqViewerContext } from "../context.js";
+import type { SvgPorts } from "./backend.js";
+import { type RenderSvgOptions, renderSvg } from "./render.js";
 
 export interface ExportSvgTarget {
   /** The view to export; default the current one. */

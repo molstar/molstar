@@ -11,7 +11,7 @@
 // application's keys map to its own.
 
 import type { Invocation } from "@molstar/seq-core/format";
-import type { ParsedLink } from "./codec.ts";
+import type { ParsedLink } from "./codec.js";
 
 export interface LinkKey {
   /** "seq-focus", or an application's "<ns>:<name>". */

@@ -30,11 +30,11 @@ import {
   sourceAt,
   type Theme,
 } from "@molstar/seq-viewer/draw";
-import type { Fingerprint } from "../fingerprint.ts";
-import { fingerprintOf } from "../registry.ts";
-import { KindMask, Kinds } from "../vocabulary.ts";
-import { draw, overlay, tiny } from "./draw.ts";
-import { compactRows, Geo, geo, LEAD, rowFrame, rowTop, STRIPES, stripeTop } from "./geometry.ts";
+import type { Fingerprint } from "../fingerprint.js";
+import { fingerprintOf } from "../registry.js";
+import { KindMask, Kinds } from "../vocabulary.js";
+import { draw, overlay, tiny } from "./draw.js";
+import { compactRows, Geo, geo, LEAD, rowFrame, rowTop, STRIPES, stripeTop } from "./geometry.js";
 
 export const FINGERPRINT = "interactions:fingerprint";
 

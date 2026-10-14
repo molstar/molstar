@@ -24,9 +24,9 @@ import {
 import type { MoleculeInput, NumberingInput, UnitInput } from "@molstar/seq-core/model";
 import type { CifFrame } from "molstar/lib/mol-io/reader/cif";
 import type { Model, Structure } from "molstar/lib/mol-model/structure";
-import { type ChainInstance, chainsOf } from "./chains.ts";
-import { siftsNumberings } from "./sifts.ts";
-import { STRUCTURE_FORMATS, StructureSource, structureOf } from "./source.ts";
+import { type ChainInstance, chainsOf } from "./chains.js";
+import { siftsNumberings } from "./sifts.js";
+import { STRUCTURE_FORMATS, StructureSource, structureOf } from "./source.js";
 
 export type Include = "polymer" | "ligand" | "ion" | "branched";
 export interface StructureOptions {

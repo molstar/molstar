@@ -13,7 +13,7 @@
 // the heap guards.
 
 import type { Geometry } from "@molstar/seq-core/model";
-import { isPlainObject } from "../schema/field-schema.ts";
+import { isPlainObject } from "../schema/field-schema.js";
 
 /**
  * How a column is held (seqspec:format#positions): one key of each row object, an array, a typed array, coded, or JSON.

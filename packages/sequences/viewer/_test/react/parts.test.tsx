@@ -15,11 +15,11 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import "../../src/skin.css";
-import { browserExportAction } from "../../src/dom/index.ts";
-import { BUSY_HOLD_MS } from "../../src/dom/shared.ts";
-import { createSeqViewer, KernelRenderers, type LayerRenderer, manualScheduler } from "../../src/index.ts";
-import { type RowProps, SeqViewerLayout, SeqViewerProvider, type SurfaceFactory } from "../../src/react/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
+import { browserExportAction } from "../../src/dom/index.js";
+import { BUSY_HOLD_MS } from "../../src/dom/shared.js";
+import { createSeqViewer, KernelRenderers, type LayerRenderer, manualScheduler } from "../../src/index.js";
+import { type RowProps, SeqViewerLayout, SeqViewerProvider, type SurfaceFactory } from "../../src/react/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
 import {
   at,
   harness,
@@ -34,7 +34,7 @@ import {
   uiDoc,
   WIDTH,
   xOf,
-} from "./fixtures.tsx";
+} from "./fixtures.js";
 
 const { opened, cleanups, parent } = harness();
 const A = "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQMKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQ";

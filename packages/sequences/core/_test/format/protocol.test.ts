@@ -40,10 +40,10 @@ import {
   type UpgradeStep,
   upgrade,
   validate,
-} from "../../src/format/index.ts";
-import { itWithin } from "../model/timing.ts";
-import { case1, case9 } from "./cases.ts";
-import { fixtureLoaders, PF00042, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { itWithin } from "../model/timing.js";
+import { case1, case9 } from "./cases.js";
+import { fixtureLoaders, PF00042, registries } from "./load-fixtures.js";
 
 const reg = registries();
 const codes = (issues: Issue[]) => [...new Set(issues.map((i) => i.code))].sort();

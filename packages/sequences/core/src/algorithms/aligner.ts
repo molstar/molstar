@@ -11,8 +11,8 @@
 // are plain data, so the format (V2) builds its registered params table from them without this folder importing
 // the format.
 
-import { SEQUENCE_TYPE } from "./biomsa/align/params.ts";
-import { getSequenceType } from "./biomsa/sequence/sequence.ts";
+import { SEQUENCE_TYPE } from "./biomsa/align/params.js";
+import { getSequenceType } from "./biomsa/sequence/sequence.js";
 
 /** One option of an aligner, described as data. */
 export interface AlignerParam {

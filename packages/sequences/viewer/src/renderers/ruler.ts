@@ -32,7 +32,7 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 const rects = new RectBatch(128);
 const nums = new TextBatch(64);

@@ -14,10 +14,10 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqSet } from "@molstar/seq-core/model";
 import { beforeAll, describe, expect, it } from "vitest";
-import { compile, type End, layerPalette, paletteValue, resolveView, supportedAll } from "../../src/format/index.ts";
-import { cover, matcher } from "../../src/format/resolve/reach.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../model/heap.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+import { compile, type End, layerPalette, paletteValue, resolveView, supportedAll } from "../../src/format/index.js";
+import { cover, matcher } from "../../src/format/resolve/reach.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../model/heap.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 20_000;

@@ -34,8 +34,8 @@ import {
   SeqSets,
   threeLetter,
   type UnitId,
-} from "../../src/model/index.ts";
-import { CDS, GENE, PROTEIN } from "./codon-fixtures.ts";
+} from "../../src/model/index.js";
+import { CDS, GENE, PROTEIN } from "./codon-fixtures.js";
 
 const COMPLEMENT: Record<string, string> = { A: "T", T: "A", C: "G", G: "C" };
 const revcomp = (s: string) =>

@@ -11,10 +11,10 @@
 // and readers of a recording: ops by code, texts, rects in a box.
 
 import type { Loaders, SeqViewSpecDoc } from "@molstar/seq-core/format";
-import { BackendCaps, Dirty, type RenderProps, SectionComposer } from "../src/draw/index.ts";
-import { KernelRenderers, type LayerRenderer, type SeqViewerRegistryEntry } from "../src/index.ts";
-import { Op, RecordingBackend } from "../src/testing/index.ts";
-import { opened } from "./layout-fixtures.ts";
+import { BackendCaps, Dirty, type RenderProps, SectionComposer } from "../src/draw/index.js";
+import { KernelRenderers, type LayerRenderer, type SeqViewerRegistryEntry } from "../src/index.js";
+import { Op, RecordingBackend } from "../src/testing/index.js";
+import { opened } from "./layout-fixtures.js";
 
 /** A recording backend that reports `caps` (copies and back targets logged, not applied). */
 export function recording(caps = 0): RecordingBackend {

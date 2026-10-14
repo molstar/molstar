@@ -24,8 +24,8 @@ import {
   SortedArray,
   type UnitId,
 } from "@molstar/seq-core/model";
-import { Interactions } from "./queries.ts";
-import { KindMask } from "./vocabulary.ts";
+import { Interactions } from "./queries.js";
+import { KindMask } from "./vocabulary.js";
 
 export interface Fingerprint {
   /** UnitId per ligand or pose. */

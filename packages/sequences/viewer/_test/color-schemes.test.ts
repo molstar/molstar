@@ -14,12 +14,12 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { SeqSets } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { case3 } from "../../core/_test/format/cases.ts";
-import { dataSpan, editRange, legendGroups, resetRange, trackMenu } from "../src/chrome.ts";
-import { colorSchemePickers, pickedTheme } from "../src/color-schemes.ts";
-import { KernelRenderers, SeqViewerConfig, type SeqViewerContext, type Theme } from "../src/index.ts";
-import { layer, opened } from "./layout-fixtures.ts";
-import { at, context } from "./theme-fixtures.ts";
+import { case3 } from "../../core/_test/format/cases.js";
+import { dataSpan, editRange, legendGroups, resetRange, trackMenu } from "../src/chrome.js";
+import { colorSchemePickers, pickedTheme } from "../src/color-schemes.js";
+import { KernelRenderers, SeqViewerConfig, type SeqViewerContext, type Theme } from "../src/index.js";
+import { layer, opened } from "./layout-fixtures.js";
+import { at, context } from "./theme-fixtures.js";
 
 const code = (ch: string) => ch.charCodeAt(0);
 const color = (ctx: SeqViewerContext, label: string) => {

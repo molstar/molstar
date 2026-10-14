@@ -1,5 +1,12 @@
 {
   "extends": "../../../tsconfig.base.json",
-  "compilerOptions": { "types": ["node"], "lib": ["ES2023"] },
+  // The query language with the strict index reads (no emit).
+  "compilerOptions": {
+    "composite": false, "declaration": false, "declarationMap": false, "noEmit": true,
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": true,
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
   "include": ["src/query", "_test/query"]
 }

@@ -19,7 +19,7 @@
  * inclusive) with a binary-search `has`.
  */
 
-import type { Brand } from "./common.ts";
+import type { Brand } from "./common.js";
 
 /** min and max+1 packed in one double (two 32-bit ints). Compare with `Interval.areEqual`, never `===` (NaN). */
 export type Interval<T extends number = number> = Brand<number, "interval"> & { readonly "@elem"?: T };

@@ -24,14 +24,14 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "../../src/draw/api.ts";
-import { Dirty } from "../../src/draw/index.ts";
-import { hashRecording, Op, RecordingBackend } from "../../src/testing/index.ts";
-import { COPY_BACK, composed, recording } from "../composer-fixtures.ts";
-import { dotPlotDoc } from "../dot-plot-fixtures.ts";
-import { family } from "../overlay-docs.ts";
-import { allTypes, linesDoc } from "../prepare-fixtures.ts";
-import { drawFrame, Frame, PIXELS } from "../support/frame.ts";
+} from "../../src/draw/api.js";
+import { Dirty } from "../../src/draw/index.js";
+import { hashRecording, Op, RecordingBackend } from "../../src/testing/index.js";
+import { COPY_BACK, composed, recording } from "../composer-fixtures.js";
+import { dotPlotDoc } from "../dot-plot-fixtures.js";
+import { family } from "../overlay-docs.js";
+import { allTypes, linesDoc } from "../prepare-fixtures.js";
+import { drawFrame, Frame, PIXELS } from "../support/frame.js";
 
 const codes = (r: RecordingBackend) => Array.from({ length: r.opCount }, (_, k) => r.ops[k * 4]);
 const args = (r: RecordingBackend, k: number, n: number) => [

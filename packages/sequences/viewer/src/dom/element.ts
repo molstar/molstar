@@ -17,8 +17,8 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import type { Loci } from "@molstar/seq-core/model";
-import { mountSection, windowScheduler } from "../canvas/index.ts";
-import { isDomPart, labelText, placedParts, resolveSlots } from "../chrome.ts";
+import { mountSection, windowScheduler } from "../canvas/index.js";
+import { isDomPart, labelText, placedParts, resolveSlots } from "../chrome.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -31,7 +31,7 @@ import {
   type SeqViewerPorts,
   type SeqViewerSpec,
   type Unsubscribable,
-} from "../index.ts";
+} from "../index.js";
 import skin from "../skin.css?inline";
 import {
   cx,
@@ -46,11 +46,11 @@ import {
   off,
   type PartProps,
   ScrollArea,
-} from "./core.ts";
-import { withDownloadExport } from "./export.ts";
-import { HoverCardPart } from "./hover-card.ts";
-import * as P from "./parts.ts";
-import { ViewSurface } from "./section.ts";
+} from "./core.js";
+import { withDownloadExport } from "./export.js";
+import { HoverCardPart } from "./hover-card.js";
+import * as P from "./parts.js";
+import { ViewSurface } from "./section.js";
 
 const DEFAULTS: DomUI["slots"] = {
   ViewTabs: P.ViewTabs,

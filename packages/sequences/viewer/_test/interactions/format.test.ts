@@ -36,8 +36,8 @@ import {
   type UnitId,
 } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { case6 } from "../../../core/_test/format/cases.ts";
-import { fixtureLoaders, MolstarFixture, registries, STI_NAMES } from "../../../core/_test/format/load-fixtures.ts";
+import { case6 } from "../../../core/_test/format/cases.js";
+import { fixtureLoaders, MolstarFixture, registries, STI_NAMES } from "../../../core/_test/format/load-fixtures.js";
 import {
   FingerprintProp,
   Fingerprints,
@@ -52,8 +52,8 @@ import {
   type KindName,
   KindStyle,
   kindByName,
-} from "../../src/interactions/index.ts";
-import { alignmentScene, mappingScene, unitScene } from "./fixtures.ts";
+} from "../../src/interactions/index.js";
+import { alignmentScene, mappingScene, unitScene } from "./fixtures.js";
 
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };
 const id = (set: SeqSet, key: string) => (set.byName(key, t) ? t.id : -1);

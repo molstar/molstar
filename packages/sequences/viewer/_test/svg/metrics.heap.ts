@@ -13,8 +13,8 @@
 // each (`leaking`), through the same measurement, are caught.
 
 import { expect, it } from "vitest";
-import { DefaultFontMetrics, type EmBox, metricsMeasurer } from "../../src/svg/index.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking, SCALED_LIMIT } from "../heap.ts";
+import { DefaultFontMetrics, type EmBox, metricsMeasurer } from "../../src/svg/index.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking, SCALED_LIMIT } from "../heap.js";
 
 const N = 100_000;
 const m = metricsMeasurer(DefaultFontMetrics);

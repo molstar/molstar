@@ -13,16 +13,16 @@
 // catch it.
 
 import { expect, it } from "vitest";
-import type { LayerRenderer } from "../src/draw/api.ts";
-import { KernelRenderers } from "../src/index.ts";
-import { DefaultPresets } from "../src/presets.ts";
-import { MapRenderer } from "../src/renderers/map.ts";
-import { RowsRenderer } from "../src/renderers/rows.ts";
-import { rendererConformance, StarsFormat, StarsRenderer } from "../src/testing/index.ts";
-import { miniatureDoc, ringed, starsDoc } from "./conformance-fixtures.ts";
-import { familyWithTree } from "./families.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking, warmFrame } from "./heap.ts";
-import { opened } from "./layout-fixtures.ts";
+import type { LayerRenderer } from "../src/draw/api.js";
+import { KernelRenderers } from "../src/index.js";
+import { DefaultPresets } from "../src/presets.js";
+import { MapRenderer } from "../src/renderers/map.js";
+import { RowsRenderer } from "../src/renderers/rows.js";
+import { rendererConformance, StarsFormat, StarsRenderer } from "../src/testing/index.js";
+import { miniatureDoc, ringed, starsDoc } from "./conformance-fixtures.js";
+import { familyWithTree } from "./families.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking, warmFrame } from "./heap.js";
+import { opened } from "./layout-fixtures.js";
 
 const N = 2_000;
 /**

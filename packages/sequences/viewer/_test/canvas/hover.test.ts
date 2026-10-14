@@ -12,12 +12,12 @@
 // the hover ink of the bar's color, exactly.
 
 import { describe, expect, it } from "vitest";
-import { SectionSurface } from "../../src/canvas/index.ts";
-import { Pass } from "../../src/draw/backend.ts";
-import { hoverInk } from "../../src/draw/index.ts";
-import { createSeqViewer, DarkSkin, DefaultSeqViewerSpec, DefaultSkin, Hit, manualScheduler } from "../../src/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
-import { hoverDoc } from "../hover-fixtures.ts";
+import { SectionSurface } from "../../src/canvas/index.js";
+import { Pass } from "../../src/draw/backend.js";
+import { hoverInk } from "../../src/draw/index.js";
+import { createSeqViewer, DarkSkin, DefaultSeqViewerSpec, DefaultSkin, Hit, manualScheduler } from "../../src/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
+import { hoverDoc } from "../hover-fixtures.js";
 
 const DPR = 2;
 

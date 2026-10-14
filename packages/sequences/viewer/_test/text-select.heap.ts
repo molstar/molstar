@@ -25,7 +25,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 /** A deep guard's steps: 500 catch about 43 bytes a step, these about 22. */
 const STEPS = 1_000;
@@ -33,12 +33,12 @@ const STEPS = 1_000;
 /** The drag's viewer and step, and the file's warm-up and measurement of a step (the guards' and the control's). */
 async function setup(mode: "lines" | "scroll") {
   vi.resetModules();
-  const { driven } = await import("./input-fixtures.ts");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.ts");
+  const { driven } = await import("./input-fixtures.js");
+  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
   const { createSeqViewSpec } = await import("@molstar/seq-core/builder");
-  const { DefaultPresets, Hit, HoverKind, Inputs, KernelRenderers, PointerType } = await import("../src/index.ts");
-  const { runX } = await import("../src/runs.ts");
-  const { Dirty, SectionComposer } = await import("../src/draw/index.ts");
+  const { DefaultPresets, Hit, HoverKind, Inputs, KernelRenderers, PointerType } = await import("../src/index.js");
+  const { runX } = await import("../src/runs.js");
+  const { Dirty, SectionComposer } = await import("../src/draw/index.js");
   const S = "v.main";
   const b = createSeqViewSpec();
   const a = b.data.sequence({ ref: "a", value: "ACDEFGHIKL".repeat(200) });

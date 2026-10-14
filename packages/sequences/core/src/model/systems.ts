@@ -10,10 +10,10 @@
 // for every reader: SeqQL's labels and messages, and a viewer's own system keys, descriptors and rulers. A system is a
 // (kind, id, row) of `CoordinateSystemKind`. Edge rate: called per system, never per position.
 
-import { CoordinateSystemKind as K } from "./coordinates.ts";
-import type { Numbering } from "./numbering.ts";
-import { circleOf, domainOf, nameOf, numberingNames, numberingOf } from "./query/systems.ts";
-import { rowOfRef, type SeqSet } from "./set.ts";
+import { CoordinateSystemKind as K } from "./coordinates.js";
+import type { Numbering } from "./numbering.js";
+import { circleOf, domainOf, nameOf, numberingNames, numberingOf } from "./query/systems.js";
+import { rowOfRef, type SeqSet } from "./set.js";
 
 /**
  * The key naming a system in its set, as the set's `byName` reads it back: `1brs/A`, `p53`, an alignment's columns by

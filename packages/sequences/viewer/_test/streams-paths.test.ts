@@ -21,8 +21,8 @@ import { Paths } from "@molstar/seq-core/model";
 import { tilesStream } from "@molstar/seq-core/stream/tiles";
 import { tileServer } from "@molstar/seq-core/stream/tiles/server";
 import { describe, expect, it } from "vitest";
-import { case9 } from "../../core/_test/format/cases.ts";
-import { fixtureLoaders } from "../../core/_test/format/load-fixtures.ts";
+import { case9 } from "../../core/_test/format/cases.js";
+import { fixtureLoaders } from "../../core/_test/format/load-fixtures.js";
 import {
   CODING_CDS,
   codingDoc,
@@ -37,12 +37,12 @@ import {
   scripted,
   VOCABULARY,
   variantAt,
-} from "../../core/_test/format/stream-provider.ts";
-import { KernelRenderers, type LayerRenderer, RegionState } from "../src/index.ts";
-import type { StreamItems, Streams } from "../src/streams.ts";
-import { composed, recording } from "./composer-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
-import { MaxInFlight } from "./stream-fixtures.ts";
+} from "../../core/_test/format/stream-provider.js";
+import { KernelRenderers, type LayerRenderer, RegionState } from "../src/index.js";
+import type { StreamItems, Streams } from "../src/streams.js";
+import { composed, recording } from "./composer-fixtures.js";
+import { driven } from "./input-fixtures.js";
+import { MaxInFlight } from "./stream-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const THREE = GRCH38.slice(0, 3);

@@ -11,11 +11,11 @@
 // recorded slices (jbrowse-sources.ts, the TP53 view of the navigation test).
 
 import { afterAll, expect, it } from "vitest";
-import { Dirty } from "../src/draw/composer.ts";
-import type { Streams } from "../src/streams.ts";
-import { composed, recording } from "./composer-fixtures.ts";
-import { demoSources } from "./jbrowse-sources.ts";
-import { JBROWSE_SECTION, jbrowseDoc } from "./jbrowse-story-fixtures.ts";
+import { Dirty } from "../src/draw/composer.js";
+import type { Streams } from "../src/streams.js";
+import { composed, recording } from "./composer-fixtures.js";
+import { demoSources } from "./jbrowse-sources.js";
+import { JBROWSE_SECTION, jbrowseDoc } from "./jbrowse-story-fixtures.js";
 
 const src = demoSources("nav");
 afterAll(src.save);

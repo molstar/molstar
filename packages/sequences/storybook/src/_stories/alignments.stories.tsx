@@ -10,14 +10,14 @@ import { button, type DomPart, type RowProps as DomRowProps, setAttr } from "@mo
 import type { RowProps } from "@molstar/seq-viewer/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { familyWithTree, syntheticFamily } from "../../../viewer/_test/families.ts";
-import { computedTreeDoc, realignedDoc } from "./support/seqstar-docs-views";
+import { familyWithTree, syntheticFamily } from "../../../viewer/_test/families.js";
+import { computedTreeDoc, realignedDoc } from "./support/seqstar-docs-views.js";
 import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer.js";
 import s from "./support/seqstar-viewer.module.css";
-import { type Args, viewerControls } from "./support/seqstar-viewer-args";
-import { Tooltip } from "./ui";
+import { type Args, viewerControls } from "./support/seqstar-viewer-args.js";
+import { Tooltip } from "./ui/index.js";
 
 /**
  * Alignments: the rows' vertical navigation, a tree beside the rows, guide trees computed at load and a realigned family,

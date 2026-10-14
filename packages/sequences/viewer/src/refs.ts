@@ -25,7 +25,7 @@ import {
   Systems,
   type UnitId,
 } from "@molstar/seq-core/model";
-import type { SeqLociAny } from "./lineage.ts";
+import type { SeqLociAny } from "./lineage.js";
 
 /**
  * A ref narrowed as the format's range args do (seqspec:format#descriptions-and-invocations): indices, labels in a

@@ -25,8 +25,8 @@ import type { SeqSet } from "@molstar/seq-core/model";
 import { tileClient, tilesProvider } from "@molstar/seq-core/stream/tiles";
 import { tileServer } from "@molstar/seq-core/stream/tiles/server";
 import { describe, expect, it } from "vitest";
-import { createSeqViewer, DefaultNodeKinds, DefaultSkin, type NodeKind, type SeqViewerContext } from "../src/index.ts";
-import { manualLoaders, patch, refsRan, smallDoc, viewer } from "./graph-fixtures.ts";
+import { createSeqViewer, DefaultNodeKinds, DefaultSkin, type NodeKind, type SeqViewerContext } from "../src/index.js";
+import { manualLoaders, patch, refsRan, smallDoc, viewer } from "./graph-fixtures.js";
 
 const act = (name: string) => ({ name });
 

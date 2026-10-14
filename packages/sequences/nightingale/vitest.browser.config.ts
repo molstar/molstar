@@ -8,6 +8,6 @@
 
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
-import { browserTests } from "../vitest.shared.ts";
+import { browserTests } from "../vitest.shared.js";
 
 export default defineConfig(browserTests(playwright));

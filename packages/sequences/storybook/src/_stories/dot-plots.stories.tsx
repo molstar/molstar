@@ -8,9 +8,9 @@
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo } from "react";
-import { calmodulinDotPlot } from "./support/seqstar-dot-plots";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard } from "./support/seqstar-viewer";
+import { calmodulinDotPlot } from "./support/seqstar-dot-plots.js";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard } from "./support/seqstar-viewer.js";
 
 /**
  * Dot plots: positions against positions on one section's axis, x across as every track's and the same window down

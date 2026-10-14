@@ -11,10 +11,10 @@
 // every geometry a query reads.
 
 import { readFileSync } from "node:fs";
-import type { SetInput } from "../../src/model/index.ts";
-import { CDS, GENE, PROTEIN } from "./codon-fixtures.ts";
-import { brs1 } from "./fixtures.ts";
-import { prng } from "./support/generators.ts";
+import type { SetInput } from "../../src/model/index.js";
+import { CDS, GENE, PROTEIN } from "./codon-fixtures.js";
+import { brs1 } from "./fixtures.js";
+import { prng } from "./support/generators.js";
 
 /** Kabat-like labels: insertion codes (3A, 3B), decimals (9.1, 9.2) and gaps (null), on 20 positions. */
 export const KABAT = [1, 2, 3, "3A", "3B", 4, null, null, 7, 8, 9, "9.1", "9.2", 10, 11, 12, null, 14, 15, 16];

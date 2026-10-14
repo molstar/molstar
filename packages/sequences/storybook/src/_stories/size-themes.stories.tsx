@@ -9,10 +9,10 @@
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactNode, useMemo } from "react";
-import { sashimiDoc, scalesDoc, sizesDoc } from "./support/seqstar-docs-sizes";
+import { sashimiDoc, scalesDoc, sizesDoc } from "./support/seqstar-docs-sizes.js";
 import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard, type ViewerOptions } from "./support/seqstar-viewer.js";
 
 /**
  * Size themes: a layer's size channels (a pair's width, apex height and its ends' radius, a feature's thickness, a

@@ -15,10 +15,10 @@
 
 import { Arrangement, LigandForm, type ResolvedView } from "@molstar/seq-core/format";
 import { type Brand, OrderedSet, type SeqSet, type SortedArray } from "@molstar/seq-core/model";
-import type { RowModel } from "./layout.ts";
-import { type PreparedRun, runXInto } from "./runs.ts";
-import type { StreamView } from "./streams.ts";
-import type { ViewportState } from "./viewport.ts";
+import type { RowModel } from "./layout.js";
+import { type PreparedRun, runXInto } from "./runs.js";
+import type { StreamView } from "./streams.js";
+import type { ViewportState } from "./viewport.js";
 
 /** An index in a section's layout coordinate system: a block's shown position, from 0. */
 export type ShownIndex = Brand<number, "shown">;

@@ -12,11 +12,11 @@
 // viewports or the streams (`section.style`, `group.toggle`, `clade.toggle`, `viewport.fit`, `stream.retry`).
 
 import { canonical, type DocNode, type Op, type SeqViewSpecDoc, type ThemeRef } from "@molstar/seq-core/format";
-import { layerSchemes, overrideTheme } from "./color-schemes.ts";
-import { SeqViewerConfig } from "./config.ts";
-import type { SeqViewerContext } from "./context.ts";
-import type { Documents } from "./document.ts";
-import type { Origin } from "./state.ts";
+import { layerSchemes, overrideTheme } from "./color-schemes.js";
+import { SeqViewerConfig } from "./config.js";
+import type { SeqViewerContext } from "./context.js";
+import type { Documents } from "./document.js";
+import type { Origin } from "./state.js";
 
 export interface ActionEntry<T = unknown> {
   readonly name: string;

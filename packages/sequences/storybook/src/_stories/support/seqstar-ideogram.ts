@@ -15,7 +15,7 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { Loaders, SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { type CytoBands, ideogramNavigator, type SeqViewerRegistryEntry } from "@molstar/seq-viewer";
-import { hg38Streams } from "../../../../core/_test/format/stream-provider.ts";
+import { hg38Streams } from "../../../../core/_test/format/stream-provider.js";
 import cytobands from "../../../../viewer/_test/fixtures/hg38-cytobands.json";
 
 /** The registry entry that adds the `ideogram` navigator (name it with `ViewerOptions.navigator`). Keep it stable. */

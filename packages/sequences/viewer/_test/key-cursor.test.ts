@@ -11,11 +11,11 @@
 // press puts it away and gives a focus that shows none until a key.
 
 import { describe, expect, it } from "vitest";
-import { Dirty, Pass, SectionComposer, SkinToken } from "../src/draw/index.ts";
-import { KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import { recording } from "./composer-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
-import { passRects, twoBlocks } from "./overlay-fixtures.ts";
+import { Dirty, Pass, SectionComposer, SkinToken } from "../src/draw/index.js";
+import { KernelRenderers, type LayerRenderer } from "../src/index.js";
+import { recording } from "./composer-fixtures.js";
+import { driven } from "./input-fixtures.js";
+import { passRects, twoBlocks } from "./overlay-fixtures.js";
 
 async function opened() {
   const t = await driven(twoBlocks(), { renderers: KernelRenderers as LayerRenderer[], size: { v: [800, 300] } });

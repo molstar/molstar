@@ -1,6 +1,25 @@
 {
-  // Imports Mol* (TypeScript source): its checker flags (tsconfig.molstar.json), plus Seq*'s typed-array reads.
-  "extends": "../../../tsconfig.molstar.json",
-  "compilerOptions": { "noUncheckedIndexedAccess": false },
-  "include": ["src", "_test", "scripts"]
+  "extends": "../../../tsconfig.base.json",
+  // The build. Imports Mol* (DOM, WebXR types). Typed arrays everywhere: their index reads are numbers, as in Mol*. Does not compile until the v5 imports move to the v6 packages (plan step B5).
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",
+    "useDefineForClassFields": true,
+    "noUncheckedIndexedAccess": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "webxr"]
+  },
+  "include": ["src"],
+  "exclude": ["src/**/_test/**", "src/**/_stories/**", "src/**/*.stories.ts", "src/**/*.stories.tsx"],
+  "references": [
+    { "path": "../core" },
+    { "path": "../viewer" },
+    { "path": "../../core" },
+    { "path": "../../io" },
+    { "path": "../../model" },
+    { "path": "../../query-language" },
+    { "path": "../../plugin/core" },
+    { "path": "../../mvs/runtime" }
+  ]
 }

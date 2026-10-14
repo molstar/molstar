@@ -12,9 +12,9 @@
 
 import { ColumnRoles } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { GeometryColumns, normalize, validate } from "../../src/format/index.ts";
-import { renameFields, typeColumns } from "../../src/format/tables/table.ts";
-import { dataOf, fullDoc, type J, kernel, sectionOf } from "./fixtures.ts";
+import { GeometryColumns, normalize, validate } from "../../src/format/index.js";
+import { renameFields, typeColumns } from "../../src/format/tables/table.js";
+import { dataOf, fullDoc, type J, kernel, sectionOf } from "./fixtures.js";
 
 const reg = kernel();
 const AT = "/root/children/0/children/8/params";

@@ -21,8 +21,8 @@ import {
   type SeqSet,
   SeqSets,
   type SetInput,
-} from "../../src/model/index.ts";
-import { contacts, iep1 } from "./annotation-fixtures.ts";
+} from "../../src/model/index.js";
+import { contacts, iep1 } from "./annotation-fixtures.js";
 
 const codes = (issues: Issue[]) => issues.map((i) => `${i.code} ${i.path}`);
 const byKey = <T extends { key: number } | null>(set: SeqSet, list: readonly T[], key: string) =>

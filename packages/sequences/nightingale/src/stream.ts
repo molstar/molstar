@@ -13,8 +13,8 @@
 
 import { type StreamedData, StreamNotServed, streamRequest, TILE } from "@molstar/seq-core/format";
 import type { Issue } from "@molstar/seq-core/model";
-import { type AxisBlock, indexAt } from "./axis.ts";
-import { nightingaleIssue } from "./issues.ts";
+import { type AxisBlock, indexAt } from "./axis.js";
+import { nightingaleIssue } from "./issues.js";
 
 /** One placement of a streamed `values` annotation on the axis: its source, the manifest system and block it shows. */
 export interface StreamedPart {

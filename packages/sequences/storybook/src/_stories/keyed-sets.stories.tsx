@@ -10,12 +10,12 @@ import { useSeqViewer } from "@molstar/seq-viewer/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo, useState } from "react";
 import pf00042 from "../../../core/_test/fixtures/pf00042.json?raw";
-import { type FamilyRow, keyedFamilyDoc, MODES, type Mode, modePatch } from "../../../viewer/_test/keyed-family.ts";
+import { type FamilyRow, keyedFamilyDoc, MODES, type Mode, modePatch } from "../../../viewer/_test/keyed-family.js";
 import f from "./support/seqstar-format.module.css";
-import { storyPatch } from "./support/seqstar-patch";
-import { PrismPage, prism } from "./support/seqstar-prism";
-import { ViewerCard } from "./support/seqstar-viewer";
-import { Choices } from "./ui";
+import { storyPatch } from "./support/seqstar-patch.js";
+import { PrismPage, prism } from "./support/seqstar-prism.js";
+import { ViewerCard } from "./support/seqstar-viewer.js";
+import { Choices } from "./ui/index.js";
 
 /**
  * Keyed sets: the members of a set are drawn in an order and kept by a

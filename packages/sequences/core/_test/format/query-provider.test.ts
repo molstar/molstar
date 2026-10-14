@@ -14,9 +14,9 @@
 import { type Annotation, Issue, type SeqSet } from "@molstar/seq-core/model";
 import { bindQuery, createLanguage, type Expression, Q, readQuery, type SeqQLQuery } from "@molstar/seq-core/query";
 import { describe, expect, it } from "vitest";
-import { compile, type SeqViewSpecDoc, validate } from "../../src/format/index.ts";
-import { CASES } from "./cases.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+import { compile, type SeqViewSpecDoc, validate } from "../../src/format/index.js";
+import { CASES } from "./cases.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 /** A query as stored, bound but not checked (so a test can store a wrong one). */
 const stored = (text: string): SeqQLQuery => ({

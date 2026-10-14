@@ -16,21 +16,21 @@
 // before the paint of the frame whose layout changed the host. Per event and per frame nothing is allocated: pre-bound
 // callbacks, numbers in typed arrays (the draw pattern).
 
-import { ChannelMarks } from "../channels.ts";
-import { sectionLabel } from "../chrome.ts";
-import type { SeqViewerContext } from "../context.ts";
-import { type DrawResources, Pass } from "../draw/backend.ts";
-import { Dirty, SectionComposer } from "../draw/composer.ts";
-import { drawResources } from "../draw/resources.ts";
-import { VerticalNav } from "../draw/vnav.ts";
-import type { SectionLayout } from "../layout.ts";
-import { ringWindowTarget } from "../ring-window.ts";
-import type { Live, Unsubscribable } from "../state.ts";
-import type { SectionViewport } from "../viewport.ts";
-import { railGrown, WindowPart } from "../windows.ts";
-import { Canvas2DBackend, Canvas2DShared, type Paint2D } from "./backend.ts";
-import { DomInput } from "./dom-input.ts";
-import { joinShared } from "./shared.ts";
+import { ChannelMarks } from "../channels.js";
+import { sectionLabel } from "../chrome.js";
+import type { SeqViewerContext } from "../context.js";
+import { type DrawResources, Pass } from "../draw/backend.js";
+import { Dirty, SectionComposer } from "../draw/composer.js";
+import { drawResources } from "../draw/resources.js";
+import { VerticalNav } from "../draw/vnav.js";
+import type { SectionLayout } from "../layout.js";
+import { ringWindowTarget } from "../ring-window.js";
+import type { Live, Unsubscribable } from "../state.js";
+import type { SectionViewport } from "../viewport.js";
+import { railGrown, WindowPart } from "../windows.js";
+import { Canvas2DBackend, Canvas2DShared, type Paint2D } from "./backend.js";
+import { DomInput } from "./dom-input.js";
+import { joinShared } from "./shared.js";
 
 export interface SurfaceOptions {
   /** Device pixels per CSS px, fixed; default the window's, followed as it changes (`watchDpr`). */

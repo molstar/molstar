@@ -12,14 +12,14 @@ import { materialize, NightingaleSupported } from "@molstar/seq-nightingale";
 import { mount } from "@molstar/seq-nightingale/mount";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Suspense, use, useEffect, useMemo, useRef, useState } from "react";
-import { type CompiledCase, compiledCase, reg } from "./support/seqstar-cases";
+import { type CompiledCase, compiledCase, reg } from "./support/seqstar-cases.js";
 import f from "./support/seqstar-format.module.css";
-import { IssueList } from "./support/seqstar-issues";
-import { PrismPage } from "./support/seqstar-prism";
-import { BuilderCode, type NavigatorChoice, type UiChoice, ViewerCard } from "./support/seqstar-viewer";
+import { IssueList } from "./support/seqstar-issues.js";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { BuilderCode, type NavigatorChoice, type UiChoice, ViewerCard } from "./support/seqstar-viewer.js";
 import s from "./support/seqstar-viewer.module.css";
-import { type Args, viewerControls } from "./support/seqstar-viewer-args";
-import { ScrollArea } from "./ui";
+import { type Args, viewerControls } from "./support/seqstar-viewer-args.js";
+import { ScrollArea } from "./ui/index.js";
 
 /**
  * The same case and view in our viewer and in Nightingale.

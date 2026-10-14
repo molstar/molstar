@@ -8,8 +8,8 @@
 
 // `upgrade` (seqspec:format#versioning): one step per older version, up to the version this package reads.
 
-import { SvsFormat, SvsVersion } from "./doc.ts";
-import { isPlainObject } from "./schema/field-schema.ts";
+import { SvsFormat, SvsVersion } from "./doc.js";
+import { isPlainObject } from "./schema/field-schema.js";
 
 /** A document of version `from` (`major.minor`) to `to`; `run` gets a copy it may change. */
 export interface UpgradeStep {

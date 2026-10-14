@@ -6,10 +6,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { Aligner } from "./aligner.ts";
-import { biomsa } from "./biomsa-aligner.ts";
-import { myers } from "./myers.ts";
-import { needlemanWunsch } from "./needleman-wunsch.ts";
+import type { Aligner } from "./aligner.js";
+import { biomsa } from "./biomsa-aligner.js";
+import { myers } from "./myers.js";
+import { needlemanWunsch } from "./needleman-wunsch.js";
 
 export {
   type Aligner,
@@ -25,11 +25,11 @@ export {
   type ResolvedOptions,
   readOptions,
   type SequenceType,
-} from "./aligner.ts";
-export { BiomsaMatrices, type BiomsaMatrix, biomsa } from "./biomsa-aligner.ts";
-export { AlignerSizeError, checkCells, MAX_CELLS } from "./limits.ts";
-export { type MyersMode, type MyersResult, myers, myersAlign } from "./myers.ts";
-export { blosum62, needlemanWunsch } from "./needleman-wunsch.ts";
+} from "./aligner.js";
+export { BiomsaMatrices, type BiomsaMatrix, biomsa } from "./biomsa-aligner.js";
+export { AlignerSizeError, checkCells, MAX_CELLS } from "./limits.js";
+export { type MyersMode, type MyersResult, myers, myersAlign } from "./myers.js";
+export { blosum62, needlemanWunsch } from "./needleman-wunsch.js";
 export {
   type Clusters,
   identityOf,
@@ -39,7 +39,7 @@ export {
   type RowStats,
   redundancy,
   rowStats,
-} from "./row-stats.ts";
+} from "./row-stats.js";
 export {
   alignmentDistances,
   type GuideTree,
@@ -48,7 +48,7 @@ export {
   neighborJoining,
   TreeSizeError,
   upgma,
-} from "./tree.ts";
+} from "./tree.js";
 
 /** Every aligner of this package, `biomsa` (the kernel's default, seqspec:format#mappings) first. */
 export const Aligners: readonly Aligner[] = [biomsa, needlemanWunsch, myers];

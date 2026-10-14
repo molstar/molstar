@@ -23,7 +23,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 const WARM = FRAME_WARM;
@@ -47,7 +47,7 @@ describe("the streamed genome's pans allocate nothing per frame once its regions
     for (const draw of [false, true])
       it(`${draw ? "a pass and a frame" : "a pass"}, ${at}`, async () => {
         vi.resetModules();
-        const { genomeFrame } = await import("./stream-fixtures.ts");
+        const { genomeFrame } = await import("./stream-fixtures.js");
         const g = await genomeFrame(at, draw);
         const asked = g.requests();
         expect(guard(g.frame)).toBe("");
@@ -59,7 +59,7 @@ describe("the streamed genome's pans allocate nothing per frame once its regions
   for (const at of ["whole", "10 kb"] as const)
     it(`a pass and a frame, ${at}, dynamic nodes held`, async () => {
       vi.resetModules();
-      const { genomeFrame } = await import("./stream-fixtures.ts");
+      const { genomeFrame } = await import("./stream-fixtures.js");
       const g = await genomeFrame(at, true, true);
       expect(g.manager.nodes.entries.size).toBeGreaterThan(at === "whole" ? -1 : 0);
       const asked = g.requests();
@@ -69,7 +69,7 @@ describe("the streamed genome's pans allocate nothing per frame once its regions
 
   it("the same frame allocating an object a step is caught (positive control)", async () => {
     vi.resetModules();
-    const { genomeFrame } = await import("./stream-fixtures.ts");
+    const { genomeFrame } = await import("./stream-fixtures.js");
     const g = await genomeFrame("10 kb", true);
     expect(controlCaught(() => measure(leaking(g.frame) as () => void))).toBe(true);
   }, 120_000);

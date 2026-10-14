@@ -12,11 +12,11 @@
 // reported once while the rest of the frame is drawn.
 
 import { afterEach, describe, expect, it } from "vitest";
-import { mountSection } from "../../src/canvas/index.ts";
-import { KernelRenderers, type LayerRenderer } from "../../src/index.ts";
-import { syntheticFamily } from "../families.ts";
-import { allTypes } from "../prepare-fixtures.ts";
-import { canvasesOf, close, type Opened, opened, pixelsOf, settle } from "./open.ts";
+import { mountSection } from "../../src/canvas/index.js";
+import { KernelRenderers, type LayerRenderer } from "../../src/index.js";
+import { syntheticFamily } from "../families.js";
+import { allTypes } from "../prepare-fixtures.js";
+import { canvasesOf, close, type Opened, opened, pixelsOf, settle } from "./open.js";
 
 let t: Opened | null = null;
 afterEach(() => {

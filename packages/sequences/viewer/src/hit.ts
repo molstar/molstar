@@ -27,10 +27,10 @@ import {
   SeqLocation,
   type SeqSet,
 } from "@molstar/seq-core/model";
-import { AxisGeometry, type SectionAxisView, type ShownIndex } from "./axis.ts";
-import { placedRingLabels } from "./draw/ring-labels.ts";
-import { hitLayer } from "./draw/sizes.ts";
-import { hitStreamed } from "./draw/streamed.ts";
+import { AxisGeometry, type SectionAxisView, type ShownIndex } from "./axis.js";
+import { placedRingLabels } from "./draw/ring-labels.js";
+import { hitLayer } from "./draw/sizes.js";
+import { hitStreamed } from "./draw/streamed.js";
 import {
   EntryKind,
   entryBorder,
@@ -40,12 +40,12 @@ import {
   type SectionLayout,
   SectionLayouts,
   type SplitFeatures,
-} from "./layout.ts";
-import type { SeqViewerRegistry } from "./registry.ts";
-import { hitItem } from "./renderer-helpers.ts";
-import { Ring } from "./ring.ts";
-import { linePositionAt, linePositionDrawnNear, runXInto } from "./runs.ts";
-import type { StreamView } from "./streams.ts";
+} from "./layout.js";
+import type { SeqViewerRegistry } from "./registry.js";
+import { hitItem } from "./renderer-helpers.js";
+import { Ring } from "./ring.js";
+import { linePositionAt, linePositionDrawnNear, runXInto } from "./runs.js";
+import type { StreamView } from "./streams.js";
 
 /** A layer's regions by its ref (`ctx.streams.get`): a hit reads a streamed layer's items through `v.stream`. */
 export type StreamLookup = (layer: string) => StreamView | null;

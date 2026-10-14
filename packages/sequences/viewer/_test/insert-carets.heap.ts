@@ -26,15 +26,15 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 async function setup() {
   vi.resetModules();
-  const { lit } = await import("./overlay-fixtures.ts");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.ts");
-  const { caretsDoc } = await import("./insert-carets-fixtures.ts");
-  const { Dirty, SectionComposer } = await import("../src/draw/index.ts");
-  const { Inputs, PointerType } = await import("../src/index.ts");
+  const { lit } = await import("./overlay-fixtures.js");
+  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
+  const { caretsDoc } = await import("./insert-carets-fixtures.js");
+  const { Dirty, SectionComposer } = await import("../src/draw/index.js");
+  const { Inputs, PointerType } = await import("../src/index.js");
   const { OrderedSet } = await import("@molstar/seq-core/model");
   const t = await lit(caretsDoc(), { width: 2400, height: 400, dpr: 2 });
   t.ctx.behaviors.get("hoverLabel")?.remove();

@@ -32,8 +32,8 @@ import {
   tilesCase,
   uniprotDoc,
   uniprotFiles,
-} from "./seqstar-file-formats";
-import type { AllowedWarning, SmokeCase, SmokeEnv, SmokeStory } from "./seqstar-smoke";
+} from "./seqstar-file-formats.js";
+import type { AllowedWarning, SmokeCase, SmokeEnv, SmokeStory } from "./seqstar-smoke.js";
 
 const MOLSTAR = "@molstar/seq-molstar-poc";
 const molstar = async () => [

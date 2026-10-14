@@ -40,7 +40,7 @@ import {
   streamedBlock,
   ThemeLocation,
   visibleRange,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 const rects = new RectBatch();
 /** The band and the area, translucent, under the bars (a backend groups a batch by color and alpha). */

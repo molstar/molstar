@@ -11,15 +11,15 @@
 // it is live again as soon as the view can zoom (a narrower view), with no relayout.
 
 import { describe, expect, it } from "vitest";
-import type { SectionAxisView } from "../src/axis.ts";
-import { SkinToken } from "../src/draw/api.ts";
-import { drawNavigatorWindow, NavView } from "../src/draw/nav.ts";
-import { DefaultNavigators, Hit, HitRegion } from "../src/index.ts";
-import { fixtureMeasurer, RecordingBackend } from "../src/testing/index.ts";
-import { TextManager } from "../src/text.ts";
-import { windowIdle } from "../src/windows.ts";
-import { blocksDoc } from "./axis-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
+import type { SectionAxisView } from "../src/axis.js";
+import { SkinToken } from "../src/draw/api.js";
+import { drawNavigatorWindow, NavView } from "../src/draw/nav.js";
+import { DefaultNavigators, Hit, HitRegion } from "../src/index.js";
+import { fixtureMeasurer, RecordingBackend } from "../src/testing/index.js";
+import { TextManager } from "../src/text.js";
+import { windowIdle } from "../src/windows.js";
+import { blocksDoc } from "./axis-fixtures.js";
+import { driven } from "./input-fixtures.js";
 
 /** A 20-position section in a wide view: the cell is at its limit and the whole axis in view. */
 async function idle() {

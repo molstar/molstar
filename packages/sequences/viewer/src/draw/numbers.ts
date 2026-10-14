@@ -11,9 +11,9 @@
 // wrapped layout's group labels above each line (`aboveEnd`), which the composer draws for a `labels` entry;
 // `inlineStart` labels are the `letters` layer's. Allocation-free once warm.
 
-import { GROUP_LABEL_PAD, groupLabelPx, groupOf } from "../runs.ts";
-import { SkinToken, TextAlign, TextBaseline, TextBatch } from "./backend.ts";
-import type { DrawView } from "./view.ts";
+import { GROUP_LABEL_PAD, groupLabelPx, groupOf } from "../runs.js";
+import { SkinToken, TextAlign, TextBaseline, TextBatch } from "./backend.js";
+import type { DrawView } from "./view.js";
 
 const SIZE = 4096;
 const keys = new Float64Array(SIZE).fill(Number.NaN);

@@ -15,7 +15,7 @@
 import { indexDoc, templateNodes } from "@molstar/seq-core/format";
 import { SeqSets } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { openTemplates, P, range, templateDoc } from "./template-fixtures.ts";
+import { openTemplates, P, range, templateDoc } from "./template-fixtures.js";
 
 const median = (xs: number[]) => xs.slice().sort((a, b) => a - b)[xs.length >> 1];
 const ms = (x: number) => Math.round(x * 1000) / 1000;

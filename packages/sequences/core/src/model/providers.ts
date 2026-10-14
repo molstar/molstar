@@ -9,13 +9,13 @@
 // The kernel's providers (seqspec:model#providers): annotations computed from other data, as `AnnotationInput`s the set
 // builds like any other. They run at the edges (once per input, cached by the compiler) and allocate freely.
 
-import { type Alignment, GAP } from "./alignment.ts";
-import { type AnnotationInput, Pairs } from "./annotation.ts";
-import { Issue, type NameId, type RowIndex, type UnitId } from "./common.ts";
-import { CoordinateSystemKind } from "./coordinates.ts";
-import { Mappings, type PathStep, Paths } from "./mapping.ts";
-import type { Alphabet } from "./molecule.ts";
-import { KeyKind, type KeyTarget, type SeqSet } from "./set.ts";
+import { type Alignment, GAP } from "./alignment.js";
+import { type AnnotationInput, Pairs } from "./annotation.js";
+import { Issue, type NameId, type RowIndex, type UnitId } from "./common.js";
+import { CoordinateSystemKind } from "./coordinates.js";
+import { Mappings, type PathStep, Paths } from "./mapping.js";
+import type { Alphabet } from "./molecule.js";
+import { KeyKind, type KeyTarget, type SeqSet } from "./set.js";
 
 export type ColumnMeasure = "conservation" | "consensus" | "identity" | "gap_fraction";
 export interface CoverageOptions {

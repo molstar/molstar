@@ -13,8 +13,8 @@
 
 import type { DataPatch, Loaders, Manifest, StreamNode } from "@molstar/seq-core/format";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { opened } from "./layout-fixtures.ts";
-import { nested, P, range, SECTION, templateDoc } from "./template-fixtures.ts";
+import { opened } from "./layout-fixtures.js";
+import { nested, P, range, SECTION, templateDoc } from "./template-fixtures.js";
 
 const LATENCY = 60;
 

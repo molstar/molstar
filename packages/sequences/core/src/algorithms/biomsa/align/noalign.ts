@@ -50,12 +50,12 @@
  *
  */
 
-import type { TSequence } from "../sequence/sequence.ts";
-import { DEQueue } from "../utils/queue.ts";
-import { DEBUG, type TAlignmentParam } from "./params.ts";
-import Log from "../utils/logger.ts";
-import { hammingWeight } from "../utils/bitarray.ts";
-import { ALIGNOPT, pairwiseAlignment } from "./align.ts";
+import type { TSequence } from "../sequence/sequence.js";
+import { DEQueue } from "../utils/queue.js";
+import { DEBUG, type TAlignmentParam } from "./params.js";
+import Log from "../utils/logger.js";
+import { hammingWeight } from "../utils/bitarray.js";
+import { ALIGNOPT, pairwiseAlignment } from "./align.js";
 import {
   epath2estring,
   EPATH_2_STRING,
@@ -65,7 +65,7 @@ import {
   estringLength,
   estringMerge,
   estringProduct,
-} from "../utils/estring.ts";
+} from "../utils/estring.js";
 
 type TRange = {
   /** diagonal number. 0 is the main diagonal. negative numbers are diagonals

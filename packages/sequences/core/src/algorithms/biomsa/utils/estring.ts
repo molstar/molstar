@@ -21,8 +21,8 @@
  * https://doi.org/10.1186/1471-2105-5-113
  */
 
-import { DEFAULT_GAP_CHAR } from "../align/params.ts";
-import type { TSequence } from "../sequence/sequence.ts";
+import { DEFAULT_GAP_CHAR } from "../align/params.js";
+import type { TSequence } from "../sequence/sequence.js";
 
 type TAlignedSeqFormat = {
   gapchar: string;

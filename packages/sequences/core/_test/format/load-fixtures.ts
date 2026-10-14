@@ -42,9 +42,9 @@ import {
   type SvsRegistryEntry,
   str,
   union,
-} from "../../src/format/index.ts";
-import { pf00042, SH2_STOCKHOLM } from "../model/alignment-fixtures.ts";
-import { HEM_ATOMS } from "../model/fixtures.ts";
+} from "../../src/format/index.js";
+import { pf00042, SH2_STOCKHOLM } from "../model/alignment-fixtures.js";
+import { HEM_ATOMS } from "../model/fixtures.js";
 import {
   CODING_CDS,
   codingProtein,
@@ -57,7 +57,7 @@ import {
   TRANSCRIPT,
   transcriptItems,
   VOCABULARY,
-} from "./stream-provider.ts";
+} from "./stream-provider.js";
 
 const spike = (name: string) => JSON.parse(readFileSync(new URL(`../fixtures/${name}.json`, import.meta.url), "utf8"));
 export const P53 = spike("p53");

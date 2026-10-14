@@ -12,9 +12,9 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { afterEach, describe, expect, it } from "vitest";
-import type { SectionAxisView } from "../../src/axis.ts";
-import { Hit } from "../../src/index.ts";
-import { canvasesOf, close, type Opened, opened, pixelsOf, settle } from "./open.ts";
+import type { SectionAxisView } from "../../src/axis.js";
+import { Hit } from "../../src/index.js";
+import { canvasesOf, close, type Opened, opened, pixelsOf, settle } from "./open.js";
 
 let t: Opened | null = null;
 afterEach(() => {

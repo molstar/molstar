@@ -20,8 +20,8 @@ import type {
   StreamNode,
   StreamProvider,
   StreamRequest,
-} from "../../src/format/index.ts";
-import { GeneticCode } from "../../src/model/index.ts";
+} from "../../src/format/index.js";
+import { GeneticCode } from "../../src/model/index.js";
 
 export interface Scripted {
   readonly provider: StreamProvider;

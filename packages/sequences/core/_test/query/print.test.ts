@@ -24,7 +24,7 @@ import {
   readQuery,
   type SymbolDef,
   type Type,
-} from "../../src/query/index.ts";
+} from "../../src/query/index.js";
 
 const BASE = createLanguage().language;
 

@@ -11,11 +11,11 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { GRCH38 } from "../../core/_test/format/stream-provider.ts";
-import { KernelRenderers } from "../src/index.ts";
-import { LayerFrame, RecordingBackend } from "../src/testing/index.ts";
-import { drawn, layerOf, texts } from "./draw-fixtures.ts";
-import { GENOME, MaxInFlight, openGenome, streamedDoc } from "./stream-fixtures.ts";
+import { GRCH38 } from "../../core/_test/format/stream-provider.js";
+import { KernelRenderers } from "../src/index.js";
+import { LayerFrame, RecordingBackend } from "../src/testing/index.js";
+import { drawn, layerOf, texts } from "./draw-fixtures.js";
+import { GENOME, MaxInFlight, openGenome, streamedDoc } from "./stream-fixtures.js";
 
 /** Inside chr2, clear of the fixture's N runs. */
 const AT = 100_040_100;

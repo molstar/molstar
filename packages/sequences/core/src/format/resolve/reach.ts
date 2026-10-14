@@ -23,8 +23,8 @@ import {
   type SeqSet,
   type Targets,
 } from "@molstar/seq-core/model";
-import { numberColumn } from "../palettes/fields.ts";
-import type { BlockRow } from "./section.ts";
+import { numberColumn } from "../palettes/fields.js";
+import type { BlockRow } from "./section.js";
 
 /** A side-a slot, or a distinct side-b target of a pairs annotation (slot = slot count + its first-row order). */
 export interface End {

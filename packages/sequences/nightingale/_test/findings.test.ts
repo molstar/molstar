@@ -26,8 +26,8 @@ import {
 } from "@molstar/seq-core/format";
 import { Annotations, type SeqSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { type ElementDesc, materialize, NIGHTINGALE_MAX_POSITIONS, NightingaleSupported } from "../src/index.ts";
-import { lanesOf } from "../src/materialize.ts";
+import { type ElementDesc, materialize, NIGHTINGALE_MAX_POSITIONS, NightingaleSupported } from "../src/index.js";
+import { lanesOf } from "../src/materialize.js";
 
 const kernel = createRegistries();
 register(kernel, [KernelRegistry, MvsRegistry]);

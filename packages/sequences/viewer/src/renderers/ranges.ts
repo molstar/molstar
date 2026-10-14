@@ -80,7 +80,7 @@ import {
   type TextManagerApi,
   ThemeLocation,
   visibleRange,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 type Params = Readonly<Record<string, unknown>>;
 

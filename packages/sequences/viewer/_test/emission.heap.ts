@@ -11,8 +11,8 @@
 // (`leaking`), measured alike, are caught.
 
 import { describe, expect, it } from "vitest";
-import { event, live, state } from "../src/state.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
+import { event, live, state } from "../src/state.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
 
 const N = 20_000;
 const MASK = 0xfffff;

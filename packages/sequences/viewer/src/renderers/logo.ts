@@ -31,7 +31,7 @@ import {
   TextBatch,
   ThemeLocation,
   visibleRange,
-} from "../draw/api.ts";
+} from "../draw/api.js";
 
 const bars = new RectBatch(256);
 const letters = new TextBatch(256);

@@ -7,7 +7,7 @@
  * MIT License, Copyright (c) 2018 Photopea
  */
 
-import { NumberArray } from './shims.ts';
+import { NumberArray } from './shims.js';
 
 export type HufTree = {
     lit: number,

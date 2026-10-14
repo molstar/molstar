@@ -9,7 +9,7 @@
 import { clsx } from "clsx";
 import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from "react";
 import styles from "./text-action.module.css";
-import { Tooltip } from "./tooltip";
+import { Tooltip } from "./tooltip.js";
 
 export interface TextActionProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "title"> {
   /** `default` for most actions, `strong` for the one that matters, `quiet` for meta actions like "log". */

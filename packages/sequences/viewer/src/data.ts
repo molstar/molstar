@@ -26,7 +26,7 @@ import {
   type SetInput,
   Systems,
 } from "@molstar/seq-core/model";
-import type { DataEntry, DataMode } from "./graph.ts";
+import type { DataEntry, DataMode } from "./graph.js";
 
 export interface SeqDataInput {
   readonly set?: SeqSet;

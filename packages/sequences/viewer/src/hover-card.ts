@@ -15,12 +15,12 @@
 // closes on leaving both, on Escape or a press outside (the UI parts), on a pan or zoom, and on a new document. Both
 // UIs draw it from this one controller; a host may replace the part, restyle it, or leave it out.
 
-import type { ActionEntry } from "./actions.ts";
-import { SeqViewerConfig } from "./config.ts";
-import type { SeqViewerContext } from "./context.ts";
-import { HoverKind } from "./hit.ts";
-import type { HoverLabel } from "./labels.ts";
-import { type SeqState, state } from "./state.ts";
+import type { ActionEntry } from "./actions.js";
+import { SeqViewerConfig } from "./config.js";
+import type { SeqViewerContext } from "./context.js";
+import { HoverKind } from "./hit.js";
+import type { HoverLabel } from "./labels.js";
+import { type SeqState, state } from "./state.js";
 
 /** An annotation's item, what an item action acts on. */
 export interface ItemTarget {

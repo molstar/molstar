@@ -15,19 +15,19 @@
 // nothing is allocated: numbers in typed arrays and fields, no double passed to a helper (RN1's draw pattern).
 
 import { Lanes } from "@molstar/seq-core/format";
-import type { SectionAxisView } from "../axis.ts";
-import type { ChannelMarks } from "../channels.ts";
-import type { SeqViewerContext } from "../context.ts";
-import type { Skin, ViewModel } from "../graph.ts";
-import { SCROLLBAR } from "../hit.ts";
-import { hasScrollbar, type RenderProps, type SectionLayout, SectionLayouts } from "../layout.ts";
-import { MarkBit, type SectionMarks } from "../marks.ts";
-import type { LayerRenderer } from "../registry.ts";
-import { gripsLit, litPart, WINDOW_FRAME, WindowKind, windowFrame } from "../windows.ts";
-import { Pass, RectBatch, type RenderBackend, SkinToken } from "./backend.ts";
-import { Dirty } from "./composer.ts";
-import { MapView } from "./miniature.ts";
-import { drawGrips, gripAt, KeyedImage, WINDOW_WASH, windowBox, windowOverMap } from "./nav.ts";
+import type { SectionAxisView } from "../axis.js";
+import type { ChannelMarks } from "../channels.js";
+import type { SeqViewerContext } from "../context.js";
+import type { Skin, ViewModel } from "../graph.js";
+import { SCROLLBAR } from "../hit.js";
+import { hasScrollbar, type RenderProps, type SectionLayout, SectionLayouts } from "../layout.js";
+import { MarkBit, type SectionMarks } from "../marks.js";
+import type { LayerRenderer } from "../registry.js";
+import { gripsLit, litPart, WINDOW_FRAME, WindowKind, windowFrame } from "../windows.js";
+import { Pass, RectBatch, type RenderBackend, SkinToken } from "./backend.js";
+import { Dirty } from "./composer.js";
+import { MapView } from "./miniature.js";
+import { drawGrips, gripAt, KeyedImage, WINDOW_WASH, windowBox, windowOverMap } from "./nav.js";
 
 // Enum-like members read once: a module member read per frame allocates under the test runner's module wrapper
 // (lib/seqstar/AGENTS.md, Tests; VL-15).

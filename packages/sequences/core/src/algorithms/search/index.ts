@@ -9,7 +9,7 @@
 // `@molstar/seq-core/algorithms/search`: matchers and a text index for applications to compose their own search from
 // (seqspec:libraries#search). Platform-free; no dependencies. The window helpers of `matchers.ts` stay internal.
 
-export { type ApproximateEnds, type ApproximateOptions, approximateMatcher } from "./approximate.ts";
+export { type ApproximateEnds, type ApproximateOptions, approximateMatcher } from "./approximate.js";
 export {
   classMatcher,
   compileMotif,
@@ -18,6 +18,6 @@ export {
   MAX_CLASS_PATTERN,
   type Matcher,
   toCodes,
-} from "./matchers.ts";
-export { regexMatcher } from "./regex.ts";
-export { type TextIndex, type TextIndexOptions, textIndex } from "./text-index.ts";
+} from "./matchers.js";
+export { regexMatcher } from "./regex.js";
+export { type TextIndex, type TextIndexOptions, textIndex } from "./text-index.js";

@@ -22,9 +22,9 @@ import {
   upgma,
 } from "@molstar/seq-core/algorithms";
 import type { AlignmentInput, MappingInput, TreeInput } from "@molstar/seq-core/model";
-import type { AlignerInput } from "../contract.ts";
-import { canonical } from "../patch/tree-patch.ts";
-import type { NodeProviderEntry } from "../registry.ts";
+import type { AlignerInput } from "../contract.js";
+import { canonical } from "../patch/tree-patch.js";
+import type { NodeProviderEntry } from "../registry.js";
 import {
   type FieldType,
   int,
@@ -34,9 +34,9 @@ import {
   str,
   tuple,
   typeError,
-} from "../schema/field-schema.ts";
-import { OptionalField, object, SimpleParamsSchema } from "../schema/params-schema.ts";
-import { report } from "./issues.ts";
+} from "../schema/field-schema.js";
+import { OptionalField, object, SimpleParamsSchema } from "../schema/params-schema.js";
+import { report } from "./issues.js";
 
 /** Results kept: a small LRU of the latest (a tree of at most `2 * MAX_TREE_ROWS` nodes, a realigned family). */
 const KEPT = 16;

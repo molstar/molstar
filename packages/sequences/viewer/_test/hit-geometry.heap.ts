@@ -26,15 +26,15 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 async function setup() {
   vi.resetModules();
-  const { lit } = await import("./overlay-fixtures.ts");
-  const { recording, COPY_BACK } = await import("./composer-fixtures.ts");
-  const { hitGeometryDoc, S } = await import("./hit-geometry-fixtures.ts");
-  const { Dirty } = await import("../src/draw/index.ts");
-  const { Inputs, PointerType } = await import("../src/index.ts");
+  const { lit } = await import("./overlay-fixtures.js");
+  const { recording, COPY_BACK } = await import("./composer-fixtures.js");
+  const { hitGeometryDoc, S } = await import("./hit-geometry-fixtures.js");
+  const { Dirty } = await import("../src/draw/index.js");
+  const { Inputs, PointerType } = await import("../src/index.js");
   const t = await lit(hitGeometryDoc(), { width: 900, height: 600, dpr: 2 });
   t.ctx.behaviors.get("hoverLabel")?.remove();
   // The whole sequence in view (fit), so both ends' boundaries are on screen.
@@ -87,11 +87,11 @@ describe("hover frames over sized shapes", () => {
 
   it('"residue" mode over an own unit\'s row allocates nothing', async () => {
     vi.resetModules();
-    const { lit } = await import("./overlay-fixtures.ts");
-    const { recording, COPY_BACK } = await import("./composer-fixtures.ts");
-    const { splitUnitsDoc } = await import("./split-units-fixtures.ts");
-    const { Dirty } = await import("../src/draw/index.ts");
-    const { Inputs, PointerType, SeqViewerConfig } = await import("../src/index.ts");
+    const { lit } = await import("./overlay-fixtures.js");
+    const { recording, COPY_BACK } = await import("./composer-fixtures.js");
+    const { splitUnitsDoc } = await import("./split-units-fixtures.js");
+    const { Dirty } = await import("../src/draw/index.js");
+    const { Inputs, PointerType, SeqViewerConfig } = await import("../src/index.js");
     const t = await lit(splitUnitsDoc({ highlights: true }), { width: 1000, height: 400, dpr: 2 });
     t.ctx.behaviors.get("hoverLabel")?.remove();
     t.ctx.config.set(SeqViewerConfig.UI.OwnRowHover, "residue");

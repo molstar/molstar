@@ -12,7 +12,7 @@
 // backend writes those baselines as an explicit `dy` from it (every SVG reader honors `dy`; Inkscape ignores
 // `dominant-baseline`). Platform-free.
 
-import type { TextMeasurer } from "../text.ts";
+import type { TextMeasurer } from "../text.js";
 
 /** One family and weight: advances of ASCII 32..126 in `unitsPerEm`, and the em box about the alphabetic baseline. */
 export interface FontMetrics {

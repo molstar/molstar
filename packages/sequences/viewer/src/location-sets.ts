@@ -14,12 +14,12 @@
 import { type DocNode, type Op, sectionHighlights } from "@molstar/seq-core/format";
 import { type AnnotationInput, KeyKind, type KeyTarget, type Loci, type SeqSet } from "@molstar/seq-core/model";
 import { SeqSelection } from "@molstar/seq-core/model/query";
-import { type ActionEntry, nodePath } from "./actions.ts";
-import type { SeqViewerContext } from "./context.ts";
-import type { Assembled } from "./graph.ts";
-import type { HighlightManager } from "./highlight.ts";
-import { isCoordinates } from "./projection.ts";
-import type { Viewports } from "./viewport.ts";
+import { type ActionEntry, nodePath } from "./actions.js";
+import type { SeqViewerContext } from "./context.js";
+import type { Assembled } from "./graph.js";
+import type { HighlightManager } from "./highlight.js";
+import { isCoordinates } from "./projection.js";
+import type { Viewports } from "./viewport.js";
 
 /**
  * The channels of the shown view's sections' `highlights`: `set:<section>/<n>`, one per entry, lit in its section only;

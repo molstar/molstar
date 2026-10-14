@@ -19,13 +19,13 @@
 
 import type { Annotation, SeqSet } from "@molstar/seq-core/model";
 import { KeyKind, type KeyTarget } from "@molstar/seq-core/model";
-import type { ThemeRef } from "../doc.ts";
-import { type DocIndex, type StreamedData, StreamProp } from "../load/compile.ts";
-import { numberColumn } from "../palettes/fields.ts";
-import type { SvsRegistries } from "../registry.ts";
-import type { IndexedNode } from "../schema/tree-schema.ts";
-import { childrenOf, refsOf } from "./section.ts";
-import { forEachOf } from "./template.ts";
+import type { ThemeRef } from "../doc.js";
+import { type DocIndex, type StreamedData, StreamProp } from "../load/compile.js";
+import { numberColumn } from "../palettes/fields.js";
+import type { SvsRegistries } from "../registry.js";
+import type { IndexedNode } from "../schema/tree-schema.js";
+import { childrenOf, refsOf } from "./section.js";
+import { forEachOf } from "./template.js";
 
 /** One shared domain of a layer's group, for the resolved table: a field and its union. */
 export interface SharedField {

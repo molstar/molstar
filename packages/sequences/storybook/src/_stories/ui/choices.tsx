@@ -7,7 +7,7 @@
  */
 
 import styles from "./choices.module.css";
-import { Tooltip } from "./tooltip";
+import { Tooltip } from "./tooltip.js";
 
 export interface Choice {
   id: string;

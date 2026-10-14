@@ -38,8 +38,8 @@ import {
   type Located,
   locate,
   prepareLoci,
-} from "./axis.ts";
-import type { ElementDesc } from "./element.ts";
+} from "./axis.js";
+import type { ElementDesc } from "./element.js";
 import {
   arbitrate,
   type Detail,
@@ -53,7 +53,7 @@ import {
   noteLit,
   positionOf,
   rangesOf,
-} from "./events.ts";
+} from "./events.js";
 import {
   axisView,
   INK,
@@ -64,9 +64,9 @@ import {
   layLabels,
   type NightingaleAxis,
   watchDimensions,
-} from "./labels.ts";
-import { AXISLESS, LABELED, PAIR_COLOR, STACK } from "./materialize.ts";
-import { fetchStreamed, type StreamedValues } from "./stream.ts";
+} from "./labels.js";
+import { AXISLESS, LABELED, PAIR_COLOR, STACK } from "./materialize.js";
+import { fetchStreamed, type StreamedValues } from "./stream.js";
 
 /** A Nightingale event in the view's terms; -1: not known (a position only, or a whole element). */
 export interface NightingaleEvent {

@@ -151,7 +151,8 @@ const sourceFiles = new Map();
 function scan(dir, pkg) {
   if (!fs.existsSync(dir)) return;
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (ent.isDirectory() && /^(node_modules|lib|dist|build|tests?|_test|__tests__|fixtures?)$/i.test(ent.name))
+    // `_stories` holds a package's Storybook stories and their support code, like `_test` it is not published source.
+    if (ent.isDirectory() && /^(node_modules|lib|dist|build|tests?|_test|_stories|__tests__|fixtures?)$/i.test(ent.name))
       continue;
     const abs = path.join(dir, ent.name);
     if (ent.isDirectory()) scan(abs, pkg);

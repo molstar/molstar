@@ -29,11 +29,11 @@ import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { afterAll, describe, expect, it } from "vitest";
-import { case14 } from "../../../core/_test/format/cases.ts";
-import { IEP } from "../../../core/_test/format/load-fixtures.ts";
-import { DefaultFontMetrics, metricsMeasurer, renderSvg } from "../../src/svg/index.ts";
-import { decodePng } from "./png.ts";
-import { all, parseXml } from "./xml.ts";
+import { case14 } from "../../../core/_test/format/cases.js";
+import { IEP } from "../../../core/_test/format/load-fixtures.js";
+import { DefaultFontMetrics, metricsMeasurer, renderSvg } from "../../src/svg/index.js";
+import { decodePng } from "./png.js";
+import { all, parseXml } from "./xml.js";
 
 const cli = join(import.meta.dirname, "../../src/cli/seqv-render.ts");
 const dir = mkdtempSync(join(tmpdir(), "seqv-render-"));

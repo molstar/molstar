@@ -16,10 +16,10 @@ import {
   IDEOGRAM_SECTION,
   ideogramDoc,
   ideogramLoaders,
-} from "./support/seqstar-ideogram";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard } from "./support/seqstar-viewer";
-import { TextAction } from "./ui";
+} from "./support/seqstar-ideogram.js";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard } from "./support/seqstar-viewer.js";
+import { TextAction } from "./ui/index.js";
 
 /**
  * The ideogram navigator: each block's chromosome drawn as its karyotype strip from hg38's committed cytobands (UCSC's

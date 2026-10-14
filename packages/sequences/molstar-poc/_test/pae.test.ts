@@ -15,7 +15,7 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { compile, createRegistries, KernelRegistry, register } from "@molstar/seq-core/format";
 import { KeyKind } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { MolstarServices, PaeFormat, PaeMatrix, PaeProvider } from "../src/index.ts";
+import { MolstarServices, PaeFormat, PaeMatrix, PaeProvider } from "../src/index.js";
 
 const FIXTURE = readFileSync(new URL("../../core/_test/fixtures/af-barnase-barstar-pae.json", import.meta.url), "utf8");
 const ROWS = JSON.parse(FIXTURE)[0].predicted_aligned_error as number[][];

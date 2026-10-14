@@ -49,21 +49,21 @@ import {
   StreamNotServed,
   type StreamRequest,
   type StreamSource,
-} from "../contract.ts";
-import type { DocNode, SeqViewSpecDoc } from "../doc.ts";
-import { equal } from "../equal.ts";
-import { normalizeNodeParams } from "../normalize.ts";
-import { queryRefs } from "../query.ts";
-import type { SvsRegistries } from "../registry.ts";
-import { type CheckContext, isNamespaced } from "../schema/field-schema.ts";
-import type { IndexedNode } from "../schema/tree-schema.ts";
-import { CellKind, cellKind, cellOk } from "../tables/cells.ts";
-import { SvsTreeSchema } from "../tables/svs-tree.ts";
-import { renameFields, table, typeColumns } from "../tables/table.ts";
-import { validate } from "../validate.ts";
-import { tableColumns } from "./formats.ts";
-import { at, report, svsIssue } from "./issues.ts";
-import type { AlignmentSummary, RealignInput } from "./node-providers.ts";
+} from "../contract.js";
+import type { DocNode, SeqViewSpecDoc } from "../doc.js";
+import { equal } from "../equal.js";
+import { normalizeNodeParams } from "../normalize.js";
+import { queryRefs } from "../query.js";
+import type { SvsRegistries } from "../registry.js";
+import { type CheckContext, isNamespaced } from "../schema/field-schema.js";
+import type { IndexedNode } from "../schema/tree-schema.js";
+import { CellKind, cellKind, cellOk } from "../tables/cells.js";
+import { SvsTreeSchema } from "../tables/svs-tree.js";
+import { renameFields, table, typeColumns } from "../tables/table.js";
+import { validate } from "../validate.js";
+import { tableColumns } from "./formats.js";
+import { at, report, svsIssue } from "./issues.js";
+import type { AlignmentSummary, RealignInput } from "./node-providers.js";
 
 /**
  * The runtime property (seqspec:model#custom-data; seqspec:sources#the-loader) of what a streamed source serves: a lazy

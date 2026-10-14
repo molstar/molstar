@@ -25,7 +25,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 /** Six times the shared warm-up: the genes and variants beside the values are drawn in color, which tiers up slowly
@@ -45,7 +45,7 @@ const guard = (frame: () => void) => {
 };
 
 async function valuesFrame() {
-  const { progressGenome } = await import("./stream-progress-fixtures.ts");
+  const { progressGenome } = await import("./stream-progress-fixtures.js");
   const g = await progressGenome(100_000_000, 100_100_000, { values: true, items: true, sequence: true });
   await g.settle();
   let i = 0;

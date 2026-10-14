@@ -27,15 +27,15 @@ import {
   pairsAt,
   pairsInView,
   pushArc,
-} from "../src/draw/api.ts";
-import { Dirty, SectionComposer } from "../src/draw/index.ts";
-import { MATRIX_TILE, MatrixVisits } from "../src/draw/matrix-tiles.ts";
-import { KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import { IndexVisits, overlapping, intervalTree as tree } from "../src/intervals.ts";
-import { MarkSet } from "../src/marks.ts";
-import { Op, RecordingBackend } from "../src/testing/index.ts";
-import { entryOf, layerOf, record } from "./draw-fixtures.ts";
-import { opened } from "./layout-fixtures.ts";
+} from "../src/draw/api.js";
+import { Dirty, SectionComposer } from "../src/draw/index.js";
+import { MATRIX_TILE, MatrixVisits } from "../src/draw/matrix-tiles.js";
+import { KernelRenderers, type LayerRenderer } from "../src/index.js";
+import { IndexVisits, overlapping, intervalTree as tree } from "../src/intervals.js";
+import { MarkSet } from "../src/marks.js";
+import { Op, RecordingBackend } from "../src/testing/index.js";
+import { entryOf, layerOf, record } from "./draw-fixtures.js";
+import { opened } from "./layout-fixtures.js";
 import {
   bandColumns,
   densityDoc,
@@ -46,7 +46,7 @@ import {
   rng,
   wideMatrix,
   withDensity,
-} from "./rn2-fixtures.ts";
+} from "./rn2-fixtures.js";
 
 /** The palette's colors of the track's categories, in legend order. */
 function legend(ctx: Awaited<ReturnType<typeof opened>>["ctx"], label: string): number[] {
@@ -313,7 +313,7 @@ describe("the interval tree and the pairs' indexes (K4's counters)", () => {
   });
 
   it("the arc hit picks the arc drawn on top: the overlay's last lit one, else the draw's last over the point", async () => {
-    const { lit, overlayOf } = await import("./rn2b-fixtures.ts");
+    const { lit, overlayOf } = await import("./rn2b-fixtures.js");
     const t = await opened(pairsDoc({ count: 12_000, colorBy: "category", long: false }), {
       renderers: [...KernelRenderers] as LayerRenderer[],
     });

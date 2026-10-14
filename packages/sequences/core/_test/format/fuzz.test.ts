@@ -21,9 +21,9 @@ import {
   type SeqViewSpecDoc,
   snapshotDoc,
   validate,
-} from "../../src/format/index.ts";
-import { CASES, case17 } from "./cases.ts";
-import { registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { CASES, case17 } from "./cases.js";
+import { registries } from "./load-fixtures.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: documents are mutated freely as JSON.
 type J = any;

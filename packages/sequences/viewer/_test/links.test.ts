@@ -15,8 +15,8 @@ import type { Invocation } from "@molstar/seq-core/format";
 import { createLinkRunner, formatLink } from "@molstar/seq-core/links";
 import { OrderedSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { case10 } from "../../core/_test/format/cases.ts";
-import { driven } from "./input-fixtures.ts";
+import { case10 } from "../../core/_test/format/cases.js";
+import { driven } from "./input-fixtures.js";
 
 describe("default keys on the viewer", () => {
   it("every default key's invocation passes the check and acts", async () => {

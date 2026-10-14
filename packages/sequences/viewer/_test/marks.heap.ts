@@ -16,13 +16,13 @@
 import { CoordinateSystemKind as K, type Loci, OrderedSet, type SeqIndex, type UnitId } from "@molstar/seq-core/model";
 import { type SystemDescriptor, TranslateMaps, Translator } from "@molstar/seq-core/translate";
 import { beforeAll, describe, expect, it } from "vitest";
-import { case7, case12, case14 } from "../../core/_test/format/cases.ts";
-import { open as core, gene, rows } from "../../core/_test/format/project-fixtures.ts";
-import { Axis } from "../src/axis.ts";
-import { MarkBit } from "../src/index.ts";
-import { MarkSet, RowMarks, SectionMarks } from "../src/marks.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
-import { entries, over, shown } from "./projection-fixtures.ts";
+import { case7, case12, case14 } from "../../core/_test/format/cases.js";
+import { open as core, gene, rows } from "../../core/_test/format/project-fixtures.js";
+import { Axis } from "../src/axis.js";
+import { MarkBit } from "../src/index.js";
+import { MarkSet, RowMarks, SectionMarks } from "../src/marks.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { entries, over, shown } from "./projection-fixtures.js";
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 50_000;

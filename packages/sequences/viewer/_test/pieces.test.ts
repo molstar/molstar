@@ -15,17 +15,17 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import type { ShownIndex } from "../src/axis.ts";
-import { Dirty, Pass } from "../src/draw/index.ts";
-import { Hit, HoverKind } from "../src/index.ts";
-import { renderSvg } from "../src/svg/index.ts";
-import { type MirrorItem, mirrorItems, type RecordingBackend, unmatched } from "../src/testing/index.ts";
-import { recording } from "./composer-fixtures.ts";
-import { directed } from "./conformance-fixtures.ts";
-import { entryOf } from "./draw-fixtures.ts";
-import { family, lit, rowLoci, seqLoci } from "./overlay-fixtures.ts";
-import { allTypes } from "./prepare-fixtures.ts";
-import { all, parseXml } from "./svg/xml.ts";
+import type { ShownIndex } from "../src/axis.js";
+import { Dirty, Pass } from "../src/draw/index.js";
+import { Hit, HoverKind } from "../src/index.js";
+import { renderSvg } from "../src/svg/index.js";
+import { type MirrorItem, mirrorItems, type RecordingBackend, unmatched } from "../src/testing/index.js";
+import { recording } from "./composer-fixtures.js";
+import { directed } from "./conformance-fixtures.js";
+import { entryOf } from "./draw-fixtures.js";
+import { family, lit, rowLoci, seqLoci } from "./overlay-fixtures.js";
+import { allTypes } from "./prepare-fixtures.js";
+import { all, parseXml } from "./svg/xml.js";
 
 type Lit = Awaited<ReturnType<typeof lit>>;
 

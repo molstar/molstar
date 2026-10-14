@@ -9,7 +9,7 @@
 // Callable symbol definitions (seqspec:seqql#overview, seqspec:seqql#extension): a symbol called with its arguments
 // builds the canonical JSON application, as MolQL's `MSymbol` does; defaults are omitted, so equal queries give equal
 // JSON (seqspec:seqql#names).
-import type { Apply, Expression, Keywords, SymbolDef, SymbolSpec } from "./types.ts";
+import type { Apply, Expression, Keywords, SymbolDef, SymbolSpec } from "./types.js";
 
 type ArgValue = Expression | readonly Expression[];
 

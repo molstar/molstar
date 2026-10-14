@@ -13,17 +13,17 @@
 // imports nothing from here.
 
 import type { LayerRenderer, SeqViewerRegistryEntry } from "@molstar/seq-viewer/draw";
-import { InteractionsRegistry } from "../registry.ts";
-import { FingerprintRenderer } from "./renderer.ts";
-import { KindTheme } from "./themes.ts";
+import { InteractionsRegistry } from "../registry.js";
+import { FingerprintRenderer } from "./renderer.js";
+import { KindTheme } from "./themes.js";
 
 export {
   FINGERPRINT,
   FingerprintRenderer,
   type FingerprintState,
   prepareFingerprint,
-} from "./renderer.ts";
-export { KindTheme } from "./themes.ts";
+} from "./renderer.js";
+export { KindTheme } from "./themes.js";
 
 /** The extension's one registry entry: what a host adds to `spec.registry`, headless or drawing. */
 export const InteractionsViewerRegistry: SeqViewerRegistryEntry = {

@@ -15,10 +15,10 @@
 // own, and every path is allocation-free once warm: module scratch, grown only. Its gestures are the `navigator`
 // behavior's, as any navigator's.
 
-import type { Axis } from "../axis.ts";
-import { type NavigatorEntry, navigatorFrom } from "../navigators.ts";
-import { PathBatch, PathVerb, RectBatch, SkinToken } from "./backend.ts";
-import type { NavView } from "./nav.ts";
+import type { Axis } from "../axis.js";
+import { type NavigatorEntry, navigatorFrom } from "../navigators.js";
+import { PathBatch, PathVerb, RectBatch, SkinToken } from "./backend.js";
+import type { NavView } from "./nav.js";
 
 /** A genome's bands by chromosome name: [start, stop) 0-based, the band's name and its Giemsa stain (cytoBandIdeo). */
 export type CytoBands = Readonly<Record<string, readonly (readonly [number, number, string, string])[]>>;

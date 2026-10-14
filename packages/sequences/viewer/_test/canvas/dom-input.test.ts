@@ -19,7 +19,7 @@ import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { OrderedSet } from "@molstar/seq-core/model";
 import { afterEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
-import { DomInput } from "../../src/canvas/dom-input.ts";
+import { DomInput } from "../../src/canvas/dom-input.js";
 import {
   type InputSink,
   type KeyInput,
@@ -27,10 +27,10 @@ import {
   type PointerInput,
   PointerType,
   type WheelInput,
-} from "../../src/index.ts";
-import { runX } from "../../src/runs.ts";
-import { syntheticFamily } from "../families.ts";
-import { close, type Opened, opened, settle } from "./open.ts";
+} from "../../src/index.js";
+import { runX } from "../../src/runs.js";
+import { syntheticFamily } from "../families.js";
+import { close, type Opened, opened, settle } from "./open.js";
 
 /** A sink that records what it was given (copies, since the records are reused) and the records' identities. */
 function recorder(handled = false) {

@@ -10,7 +10,7 @@
 // that serves what was recorded and fails, naming the range, for anything else.
 
 import { readFileSync } from "node:fs";
-import type { RangeReader } from "../../../src/stream/gmod/index.ts";
+import type { RangeReader } from "../../../src/stream/gmod/index.js";
 
 export interface SliceMeta {
   url: string;

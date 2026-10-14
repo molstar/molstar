@@ -17,8 +17,8 @@
 // Each case loads the viewer afresh (`vi.resetModules`; draws.heap.ts says why: Maglev and the module runner).
 
 import { describe, expect, it, vi } from "vitest";
-import type { LayerRenderer } from "../src/index.ts";
-import { controlCaught, describeScaling, FRAME_N, heapScaling, isFlat, leaking, warmFrame } from "./heap.ts";
+import type { LayerRenderer } from "../src/index.js";
+import { controlCaught, describeScaling, FRAME_N, heapScaling, isFlat, leaking, warmFrame } from "./heap.js";
 
 const N = FRAME_N;
 /**
@@ -60,14 +60,14 @@ const CASES: Case[] = [
 
 async function run(c: Case, heap = guard) {
   vi.resetModules();
-  const { KernelRenderers } = await import("../src/index.ts");
-  const { rendererConformance } = await import("../src/testing/index.ts");
-  const { asText } = await import("./conformance-fixtures.ts");
-  const { opened } = await import("./layout-fixtures.ts");
-  const { scaleDoc, transcripts } = await import("./prepare-fixtures.ts");
-  const fx = await import("./rn2-fixtures.ts");
-  const mine = await import("./rn2b-fixtures.ts");
-  const { pinsDoc } = await import("./boundary-pins-fixtures.ts");
+  const { KernelRenderers } = await import("../src/index.js");
+  const { rendererConformance } = await import("../src/testing/index.js");
+  const { asText } = await import("./conformance-fixtures.js");
+  const { opened } = await import("./layout-fixtures.js");
+  const { scaleDoc, transcripts } = await import("./prepare-fixtures.js");
+  const fx = await import("./rn2-fixtures.js");
+  const mine = await import("./rn2b-fixtures.js");
+  const { pinsDoc } = await import("./boundary-pins-fixtures.js");
   const make = {
     features: () => mine.featuresDoc({ n: 300 }),
     "boundaries over letters": () => pinsDoc(),
@@ -114,12 +114,12 @@ describe("the pairs overlay allocates nothing after warm-up", () => {
     async (mode) => {
       const arcs = mode.startsWith("hover") ? "hover" : "always";
       vi.resetModules();
-      const { KernelRenderers } = await import("../src/index.ts");
-      const { opened } = await import("./layout-fixtures.ts");
-      const { layerOf } = await import("./draw-fixtures.ts");
-      const { RecordingBackend } = await import("../src/testing/index.ts");
-      const { pairsDoc } = await import("./rn2-fixtures.ts");
-      const { lit, MarkBit, overlayFrame } = await import("./rn2b-fixtures.ts");
+      const { KernelRenderers } = await import("../src/index.js");
+      const { opened } = await import("./layout-fixtures.js");
+      const { layerOf } = await import("./draw-fixtures.js");
+      const { RecordingBackend } = await import("../src/testing/index.js");
+      const { pairsDoc } = await import("./rn2-fixtures.js");
+      const { lit, MarkBit, overlayFrame } = await import("./rn2b-fixtures.js");
       const t = await opened(pairsDoc({ arcs }), { renderers: [...KernelRenderers] as LayerRenderer[] });
       const { section } = layerOf(t.ctx, "Contacts");
       t.ctx.viewports.get(section)?.setView(0.05, 0, "api");

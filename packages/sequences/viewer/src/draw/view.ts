@@ -12,15 +12,15 @@
 
 import type { ResolvedView } from "@molstar/seq-core/format";
 import type { ComposedPath, Numbering } from "@molstar/seq-core/model";
-import { AxisGeometry, SectionAxisView, type ShownIndex } from "../axis.ts";
-import type { Skin } from "../graph.ts";
-import { DefaultRenderProps, type RenderProps } from "../layout.ts";
-import { MarkSet, type OverlayMarks } from "../marks.ts";
-import { runXInto } from "../runs.ts";
-import type { PendingSelection } from "../selection.ts";
-import type { TextManagerApi } from "../text.ts";
-import { type Theme, ThemeLocation } from "../themes.ts";
-import type { RenderBackend } from "./backend.ts";
+import { AxisGeometry, SectionAxisView, type ShownIndex } from "../axis.js";
+import type { Skin } from "../graph.js";
+import { DefaultRenderProps, type RenderProps } from "../layout.js";
+import { MarkSet, type OverlayMarks } from "../marks.js";
+import { runXInto } from "../runs.js";
+import type { PendingSelection } from "../selection.js";
+import type { TextManagerApi } from "../text.js";
+import { type Theme, ThemeLocation } from "../themes.js";
+import type { RenderBackend } from "./backend.js";
 
 /**
  * The circular geometry's view of an entry (seqspec:viewer#the-render-backend): its ring and angles; `Ring` (ring.ts)

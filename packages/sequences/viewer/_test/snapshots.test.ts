@@ -22,8 +22,8 @@ import {
   type Routed,
   type SeqIssue,
   type SeqViewerContext,
-} from "../src/index.ts";
-import { patch, smallDoc, viewer } from "./graph-fixtures.ts";
+} from "../src/index.js";
+import { patch, smallDoc, viewer } from "./graph-fixtures.js";
 
 const set = (ref: string, params: Record<string, unknown>) => patch([{ op: "set", ref, params }]);
 const node = (doc: SeqViewSpecDoc | null, ref: string) => {

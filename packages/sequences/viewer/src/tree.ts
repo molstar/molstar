@@ -12,9 +12,9 @@
 // rows. Its draw is the rows renderer's (RN3).
 
 import type { SeqSet, Tree } from "@molstar/seq-core/model";
-import type { AxisView } from "./axis.ts";
-import type { Hit } from "./hit.ts";
-import type { RowModel } from "./layout.ts";
+import type { AxisView } from "./axis.js";
+import type { Hit } from "./hit.js";
+import type { RowModel } from "./layout.js";
 
 /** What the tree reads of the rows renderer's prepared state (its `RowsState` has these). */
 export interface TreeRows {

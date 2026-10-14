@@ -17,12 +17,12 @@ import type { SeqViewerRegistryEntry } from "@molstar/seq-viewer";
 import { browserExportAction, downloadSvg } from "@molstar/seq-viewer/dom";
 import { SeqViewerLayout, SeqViewerProvider } from "@molstar/seq-viewer/react";
 import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { PrismPage } from "../support/seqstar-prism";
-import { Choices, TextAction } from "../ui";
+import { PrismPage } from "../support/seqstar-prism.js";
+import { Choices, TextAction } from "../ui/index.js";
 import f from "./seqstar-format.module.css";
-import { PrismCanvas, prism } from "./seqstar-prism";
+import { PrismCanvas, prism } from "./seqstar-prism.js";
 import t from "./seqstar-tools.module.css";
-import { useCaseContext, useStoryUi } from "./seqstar-viewer";
+import { useCaseContext, useStoryUi } from "./seqstar-viewer.js";
 
 /** A file the export made: the SVG as the action offered it, or the PNG the page drew from it. */
 interface Made {

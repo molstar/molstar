@@ -12,10 +12,10 @@
 
 import { Extents, CoordinateSystemKind as K, type SeqSet } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { case10 } from "../../core/_test/format/cases.ts";
-import { showExtents } from "../src/index.ts";
-import { viewShowing } from "../src/show.ts";
-import { shown } from "./projection-fixtures.ts";
+import { case10 } from "../../core/_test/format/cases.js";
+import { showExtents } from "../src/index.js";
+import { viewShowing } from "../src/show.js";
+import { shown } from "./projection-fixtures.js";
 
 const extents = (set: SeqSet, kind: number, ref: string, start: number, stop: number) => {
   const e = Extents.create(2);

@@ -8,7 +8,7 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { type MyersMode, myers, myersAlign } from "../../src/algorithms/index.ts";
+import { type MyersMode, myers, myersAlign } from "../../src/algorithms/index.js";
 
 // 1BRS from the viewer spike's fixture (as in aligners.test.ts): entity 1 is barnase's mature chain, P00648 48–157.
 const spike = JSON.parse(readFileSync(new URL("../fixtures/1brs.json", import.meta.url), "utf8"));

@@ -14,14 +14,14 @@
 // the regions, the fonts and a generation bumped with the model or the skin: a pan or a zoom builds none, and nothing
 // to draw is kept as none. Edge-rate but `stamp`, so it may allocate.
 
-import type { Axis, SectionAxisView } from "../axis.ts";
-import type { SeqViewerContext } from "../context.ts";
-import type { Skin, ViewModel } from "../graph.ts";
-import type { LayerRenderer } from "../registry.ts";
-import { Lod } from "../viewport.ts";
-import type { RenderBackend } from "./backend.ts";
-import { KeyedImage, mapSize, type NavView } from "./nav.ts";
-import { DrawView, type TracksHost } from "./view.ts";
+import type { Axis, SectionAxisView } from "../axis.js";
+import type { SeqViewerContext } from "../context.js";
+import type { Skin, ViewModel } from "../graph.js";
+import type { LayerRenderer } from "../registry.js";
+import { Lod } from "../viewport.js";
+import type { RenderBackend } from "./backend.js";
+import { KeyedImage, mapSize, type NavView } from "./nav.js";
+import { DrawView, type TracksHost } from "./view.js";
 
 /**
  * A draw view laid out as a map of the whole axis: every shown position of each block, block b from `x0s[b] − left` at

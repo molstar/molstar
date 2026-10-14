@@ -23,7 +23,7 @@ import {
   isFlat,
   leaking,
   settleFrame,
-} from "./heap.ts";
+} from "./heap.js";
 
 const N = 1_000;
 const WARM = 6 * FRAME_WARM;
@@ -41,10 +41,10 @@ const guard = (frame: () => void) => {
 };
 
 async function foldedFrame() {
-  const { composed, recording } = await import("./composer-fixtures.ts");
-  const { Dirty } = await import("../src/draw/composer.ts");
-  const { demoSources } = await import("./jbrowse-sources.ts");
-  const { JBROWSE_SECTION, jbrowseDoc } = await import("./jbrowse-story-fixtures.ts");
+  const { composed, recording } = await import("./composer-fixtures.js");
+  const { Dirty } = await import("../src/draw/composer.js");
+  const { demoSources } = await import("./jbrowse-sources.js");
+  const { JBROWSE_SECTION, jbrowseDoc } = await import("./jbrowse-story-fixtures.js");
   const src = demoSources("nav");
   const t = await composed(jbrowseDoc("chr17", 7_661_779, 7_687_538), {
     width: 1000,
@@ -52,7 +52,7 @@ async function foldedFrame() {
     dpr: 2,
     loaders: src.loaders,
   });
-  const m = t.ctx.streams as import("../src/streams.ts").Streams;
+  const m = t.ctx.streams as import("../src/streams.js").Streams;
   const vp = t.vp;
   if (!vp) throw new Error("no viewport");
   t.layout(JBROWSE_SECTION);

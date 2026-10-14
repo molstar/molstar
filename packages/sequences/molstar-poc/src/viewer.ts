@@ -27,10 +27,10 @@ import {
 } from "@molstar/seq-viewer";
 import { OrderedSet } from "molstar/lib/mol-data/int";
 import { StructureElement } from "molstar/lib/mol-model/structure";
-import { type ComposeInput, complexOf, composeStructureMvs, type StructureRef } from "./compose.ts";
-import type { StructureLink } from "./link.ts";
-import type { MolstarDefaults } from "./mvs.ts";
-import { complexUnits } from "./seq-units.ts";
+import { type ComposeInput, complexOf, composeStructureMvs, type StructureRef } from "./compose.js";
+import type { StructureLink } from "./link.js";
+import type { MolstarDefaults } from "./mvs.js";
+import { complexUnits } from "./seq-units.js";
 
 const hex = (c: number) => `#${c.toString(16).padStart(6, "0")}`;
 const COLOR_TYPES = new Set(["ranges", "values", "color", "points", "variants", "emphasis", "secondary", "letters"]);

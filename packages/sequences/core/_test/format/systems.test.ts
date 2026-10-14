@@ -22,9 +22,9 @@ import {
   type SeqViewSpecDoc,
   supportedAll,
   validate,
-} from "../../src/format/index.ts";
-import { case10 } from "./cases.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { case10 } from "./cases.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 const all = supportedAll(reg);

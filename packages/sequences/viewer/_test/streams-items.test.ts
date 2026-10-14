@@ -15,12 +15,12 @@
 // the letters gate's hatched band and hint, and `Stream.LettersPerPx`.
 
 import { describe, expect, it } from "vitest";
-import { GENE_LEVELS, GRCH38, geneAt, hg38Streams, variantAt } from "../../core/_test/format/stream-provider.ts";
-import { SkinToken } from "../src/draw/backend.ts";
-import { RegionState, SeqViewerConfig } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { composed, recording, textsOf } from "./composer-fixtures.ts";
-import { GENOME, MaxInFlight, streamedDoc } from "./stream-fixtures.ts";
+import { GENE_LEVELS, GRCH38, geneAt, hg38Streams, variantAt } from "../../core/_test/format/stream-provider.js";
+import { SkinToken } from "../src/draw/backend.js";
+import { RegionState, SeqViewerConfig } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { composed, recording, textsOf } from "./composer-fixtures.js";
+import { GENOME, MaxInFlight, streamedDoc } from "./stream-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const THREE = GRCH38.slice(0, 3);

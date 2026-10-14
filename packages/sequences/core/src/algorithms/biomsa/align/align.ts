@@ -11,11 +11,11 @@
  * https://doi.org/10.1186/1471-2105-5-113
  */
 
-import type { TAlignmentParam } from "./params.ts";
-import type { TSequence } from "../sequence/sequence.ts";
-import type { InternalNode, LeafNode } from "../sequence/tree.ts";
-import { epath2estring } from "../utils/estring.ts";
-import { checkCells } from "../../limits.ts";
+import type { TAlignmentParam } from "./params.js";
+import type { TSequence } from "../sequence/sequence.js";
+import type { InternalNode, LeafNode } from "../sequence/tree.js";
+import { epath2estring } from "../utils/estring.js";
+import { checkCells } from "../../limits.js";
 
 /**
  * Trace back matrix transitions values

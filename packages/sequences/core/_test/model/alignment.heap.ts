@@ -12,9 +12,9 @@
 // repeated step (`heapScaling`).
 
 import { describe, expect, it } from "vitest";
-import { Alignments, type Issue, Molecules, type ResidueCheck, StringTable } from "../../src/model/index.ts";
-import { controlCaught, describeScaling, heapGrowth, heapScaling, isFlat, LIMIT, leak } from "./heap.ts";
-import { alignment } from "./support/generators.ts";
+import { Alignments, type Issue, Molecules, type ResidueCheck, StringTable } from "../../src/model/index.js";
+import { controlCaught, describeScaling, heapGrowth, heapScaling, isFlat, LIMIT, leak } from "./heap.js";
+import { alignment } from "./support/generators.js";
 
 const fixture = alignment({ rows: 20_000, length: 300, seed: 5 });
 const input = { key: "big", flavor: "aligned" as const, gapped: [...fixture.rows], labels: [...fixture.labels] };

@@ -9,7 +9,7 @@
 // The node tier with the composer's proof (_test/proof/composer-frames.ts): `SEQ_PROOF_OUT=<folder>` writes every
 // composer frame's hashes there, to compare a change that must draw as before.
 import { defineConfig } from "vitest/config";
-import { nodeTests } from "../vitest.shared.ts";
+import { nodeTests } from "../vitest.shared.js";
 
 const base = nodeTests(import.meta.dirname, "all");
 // Every frame recorded, under load too: a test timed out leaves its frames out and the folders differ (LC-45).

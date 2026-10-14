@@ -10,7 +10,7 @@
 // test that applies each: the rows layer's `order` and `filter` over its key tables (the review status, `row_stats`,
 // `redundancy`), as patches; generic params only.
 
-import { FAMILY_MEMBERS } from "../../../../core/_test/format/cases.ts";
+import { FAMILY_MEMBERS } from "../../../../core/_test/format/cases.js";
 
 export interface TriageMode {
   readonly key: string;

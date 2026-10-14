@@ -16,8 +16,8 @@
  * letters are not colored.
  */
 
-import { Color, colorDict } from "./color.ts";
-import { ColorDictionaries, type ColorDictionaryName, ElementSymbolColors } from "./dictionaries.ts";
+import { Color, colorDict } from "./color.js";
+import { ColorDictionaries, type ColorDictionaryName, ElementSymbolColors } from "./dictionaries.js";
 
 const dict = colorDict;
 

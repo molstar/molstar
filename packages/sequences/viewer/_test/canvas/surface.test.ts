@@ -15,9 +15,9 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { afterEach, describe, expect, it } from "vitest";
-import { Canvas2DBackend, Canvas2DShared, type DprHost, SectionSurface, watchDpr } from "../../src/canvas/index.ts";
-import { type DrawResources, SkinToken } from "../../src/draw/backend.ts";
-import { Dirty, SectionComposer } from "../../src/draw/index.ts";
+import { Canvas2DBackend, Canvas2DShared, type DprHost, SectionSurface, watchDpr } from "../../src/canvas/index.js";
+import { type DrawResources, SkinToken } from "../../src/draw/backend.js";
+import { Dirty, SectionComposer } from "../../src/draw/index.js";
 import {
   createSeqViewer,
   DefaultSeqViewerSpec,
@@ -26,10 +26,10 @@ import {
   type Scheduler,
   type SeqViewerContext,
   type Skin,
-} from "../../src/index.ts";
-import { fixtureMeasurer } from "../../src/testing/index.ts";
-import { glyphTableOf } from "../../src/themes.ts";
-import { scaleDoc } from "../prepare-fixtures.ts";
+} from "../../src/index.js";
+import { fixtureMeasurer } from "../../src/testing/index.js";
+import { glyphTableOf } from "../../src/themes.js";
+import { scaleDoc } from "../prepare-fixtures.js";
 
 const open: { ctx: SeqViewerContext; host: HTMLElement; surface: SectionSurface }[] = [];
 afterEach(() => {

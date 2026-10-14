@@ -19,8 +19,8 @@ import {
   exactMatcher,
   type Matcher,
   toCodes,
-} from "../../src/algorithms/search/index.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../model/heap.ts";
+} from "../../src/algorithms/search/index.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "../model/heap.js";
 
 /** Steps in the shorter run; the longer runs four times as many. */
 const N = 2000;

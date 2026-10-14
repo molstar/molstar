@@ -17,14 +17,14 @@
 
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { describe, expect, it } from "vitest";
-import { GENE_CATEGORIES, GRCH38, geneAt, hg38Streams, streamedDoc } from "../../core/_test/format/stream-provider.ts";
-import { FADE_MS } from "../src/draw/progress.ts";
-import { KernelRenderers, type LayerRenderer, SeqCommands } from "../src/index.ts";
-import type { Streams } from "../src/streams.ts";
-import { driven } from "./input-fixtures.ts";
-import { lazyLoaders, opened } from "./layout-fixtures.ts";
-import { CacheBytes, GENOME, MaxInFlight } from "./stream-fixtures.ts";
-import { Dirty, progressGenome, rectsOf, SkinToken } from "./stream-progress-fixtures.ts";
+import { GENE_CATEGORIES, GRCH38, geneAt, hg38Streams, streamedDoc } from "../../core/_test/format/stream-provider.js";
+import { FADE_MS } from "../src/draw/progress.js";
+import { KernelRenderers, type LayerRenderer, SeqCommands } from "../src/index.js";
+import type { Streams } from "../src/streams.js";
+import { driven } from "./input-fixtures.js";
+import { lazyLoaders, opened } from "./layout-fixtures.js";
+import { CacheBytes, GENOME, MaxInFlight } from "./stream-fixtures.js";
+import { Dirty, progressGenome, rectsOf, SkinToken } from "./stream-progress-fixtures.js";
 
 const flush = () => new Promise((ok) => setTimeout(ok, 0));
 const AT = 100_000_000;
@@ -50,7 +50,7 @@ describe("skeletons, fade-in and errors on the overlay", () => {
     const x1 = Array.from(g.frame(Dirty.overlay).rectItems.x.subarray(0, be.rectItems.n));
     expect(x1).not.toEqual(x0);
     // Reduced motion, or an export's composer: the shade alone, no frame asked.
-    g.ctx.config.set((await import("../src/index.ts")).SeqViewerConfig.Viewport.ReducedMotion, true);
+    g.ctx.config.set((await import("../src/index.js")).SeqViewerConfig.Viewport.ReducedMotion, true);
     expect(sheen(rectsOf(g.frame(Dirty.overlay), SkinToken.surface).alphas)).toBe(0);
     expect(rectsOf(g.backend, SkinToken.pending).n).toBeGreaterThan(2);
     expect(g.composer.animating).toBe(false);
@@ -140,7 +140,7 @@ describe("skeletons, fade-in and errors on the overlay", () => {
       .block({ alignment: aln })
       .track({ label: "Rows" })
       .rows();
-    const { composed, recording } = await import("./composer-fixtures.ts");
+    const { composed, recording } = await import("./composer-fixtures.js");
     const t = await composed(b.getDocument(), { loaders: lazyLoaders(uri, 3000, 400) });
     t.composer.live = true;
     t.vp?.setView(1.5, 0, "api");
@@ -234,8 +234,8 @@ describe("streamed items: hover, labels, field themes, lanes", () => {
     let part = -1;
     for (let x = 10; x < 900 && part < 0; x += 7) part = point(t, "Genes", x).part;
     expect(part).toBeGreaterThanOrEqual(0);
-    const { recording } = await import("./composer-fixtures.ts");
-    const { SectionComposer } = await import("../src/draw/composer.ts");
+    const { recording } = await import("./composer-fixtures.js");
+    const { SectionComposer } = await import("../src/draw/composer.js");
     const c = new SectionComposer(t.ctx, GENOME);
     const be = recording();
     c.frame(be, Dirty.tracks);
@@ -253,8 +253,8 @@ describe("streamed items: hover, labels, field themes, lanes", () => {
     const palette = { kind: "categorical", colors: ["#ff0000", "#00ff00", "#0000ff"] };
     const { t, answer } = await browser({ theme: "field_palette", params: { field: "category", palette } });
     await answer();
-    const { recording } = await import("./composer-fixtures.ts");
-    const { SectionComposer } = await import("../src/draw/composer.ts");
+    const { recording } = await import("./composer-fixtures.js");
+    const { SectionComposer } = await import("../src/draw/composer.js");
     const c = new SectionComposer(t.ctx, GENOME);
     const be = recording();
     c.frame(be, Dirty.tracks);

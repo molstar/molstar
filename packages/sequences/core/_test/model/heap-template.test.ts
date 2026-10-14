@@ -8,7 +8,7 @@
 
 // The guard template's control logic, measured by stand-ins (the heap tier measures for real: heap-guard.heap.ts).
 import { describe, expect, it } from "vitest";
-import { controlCaught, LIMIT, leaking, SCALED_LIMIT } from "./heap.ts";
+import { controlCaught, LIMIT, leaking, SCALED_LIMIT } from "./heap.js";
 
 describe("controlCaught", () => {
   it("is caught when not flat, a growth past the limit, or a run refused for a collection", () => {

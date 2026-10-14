@@ -13,9 +13,9 @@
 import { compile, type DocNode, register, type SeqViewSpecDoc, validate } from "@molstar/seq-core/format";
 import type { Issue, SeqSet } from "@molstar/seq-core/model";
 import { InteractionsRegistry } from "@molstar/seq-viewer/interactions";
-import { CASES } from "../../../../core/_test/format/cases.ts";
+import { CASES } from "../../../../core/_test/format/cases.js";
 import CASES_SOURCE from "../../../../core/_test/format/cases.ts?raw";
-import { fixtureLoaders, registries } from "../../../../core/_test/format/load-fixtures.ts";
+import { fixtureLoaders, registries } from "../../../../core/_test/format/load-fixtures.js";
 
 /** The fixtures' registries and the interactions extension's format half (case 6's fingerprint). */
 export const reg = registries();

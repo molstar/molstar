@@ -23,9 +23,9 @@ import {
   SvsRegistrationError,
   supportedAll,
   validate,
-} from "../../src/format/index.ts";
-import { KernelLetterMaps } from "../../src/format/palettes/letter-maps.ts";
-import { fixtureLoaders, registries } from "./load-fixtures.ts";
+} from "../../src/format/index.js";
+import { KernelLetterMaps } from "../../src/format/palettes/letter-maps.js";
+import { fixtureLoaders, registries } from "./load-fixtures.js";
 
 const reg = registries();
 const kernel = (name: string) => KernelLetterMaps.find((m) => m.name === name)?.map ?? {};

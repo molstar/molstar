@@ -12,7 +12,7 @@ import { LETTERS_PER_PX } from "@molstar/seq-viewer/draw";
 import { useLiveVersion, useSeqViewer } from "@molstar/seq-viewer/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo } from "react";
-import { lazyStoryDoc, lazyStoryLoaders } from "../../../viewer/_test/lazy-story-fixtures.ts";
+import { lazyStoryDoc, lazyStoryLoaders } from "../../../viewer/_test/lazy-story-fixtures.js";
 import {
   STREAMED_AT as AT,
   CODING_PROTEIN,
@@ -25,11 +25,11 @@ import {
   streamedLoaders,
   transcriptLoaders,
   transcriptStoryDoc,
-} from "./support/seqstar-docs-streamed";
+} from "./support/seqstar-docs-streamed.js";
 import f from "./support/seqstar-format.module.css";
-import { PrismPage } from "./support/seqstar-prism";
-import { ViewerCard } from "./support/seqstar-viewer";
-import { TextAction } from "./ui";
+import { PrismPage } from "./support/seqstar-prism.js";
+import { ViewerCard } from "./support/seqstar-viewer.js";
+import { TextAction } from "./ui/index.js";
 
 /**
  * Streamed data: a chromosome whose letters a stream serves by region,

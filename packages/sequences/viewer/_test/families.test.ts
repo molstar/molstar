@@ -10,8 +10,8 @@
 // vertical overview's window and the scrollbar's thumb from the same numbers. On a synthetic family.
 
 import { describe, expect, it } from "vitest";
-import { FAMILY_SECTION as F, syntheticFamily } from "./families.ts";
-import { opened } from "./layout-fixtures.ts";
+import { FAMILY_SECTION as F, syntheticFamily } from "./families.js";
+import { opened } from "./layout-fixtures.js";
 
 describe("a box section's rows scroll exactly over their content", () => {
   it("clamps to [0, rows − visible] after a resize and a row zoom; the windows match", async () => {

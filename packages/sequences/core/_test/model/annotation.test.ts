@@ -29,9 +29,9 @@ import {
   SeqSets,
   type SetInput,
   type UnitId,
-} from "../../src/model/index.ts";
-import { contacts, IEP, iep1, LIGAND_UNITS, POSE_UNITS } from "./annotation-fixtures.ts";
-import { brs1 } from "./fixtures.ts";
+} from "../../src/model/index.js";
+import { contacts, IEP, iep1, LIGAND_UNITS, POSE_UNITS } from "./annotation-fixtures.js";
+import { brs1 } from "./fixtures.js";
 
 const codes = (issues: { code: string; path: string }[]) => issues.map((i) => `${i.code} ${i.path}`);
 const unitId = (set: SeqSet, key: string) => set.units.key.indexOf(set.strings.find(key));

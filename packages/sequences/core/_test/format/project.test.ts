@@ -15,8 +15,8 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import { Extents } from "@molstar/seq-core/model";
 import { describe, expect, it } from "vitest";
-import { SelectionGranularity } from "../../src/format/index.ts";
-import { constructs, type Entry, gene, open, rows, seq } from "./project-fixtures.ts";
+import { SelectionGranularity } from "../../src/format/index.js";
+import { constructs, type Entry, gene, open, rows, seq } from "./project-fixtures.js";
 
 describe("coordinate maps through one code path", () => {
   it("identity: a molecule's and its unit's runs land on the unit's block as they are", async () => {

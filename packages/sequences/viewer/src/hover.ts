@@ -24,7 +24,7 @@ import {
   type SeqLocation,
   type SeqSet,
 } from "@molstar/seq-core/model";
-import type { ViewModel } from "./graph.ts";
+import type { ViewModel } from "./graph.js";
 import {
   describeHeader,
   type HeaderHoverParams,
@@ -33,11 +33,11 @@ import {
   headerSet,
   type LociSize,
   lociSize,
-} from "./header-hover.ts";
-import { Hit, HitKey, HitRegion, HoverKind } from "./hit.ts";
-import { carry, type SeqLociAny } from "./lineage.ts";
-import { type Coordinates, isCoordinates, type Projector } from "./projection.ts";
-import { live, type SeqState, type WritableLive } from "./state.ts";
+} from "./header-hover.js";
+import { Hit, HitKey, HitRegion, HoverKind } from "./hit.js";
+import { carry, type SeqLociAny } from "./lineage.js";
+import { type Coordinates, isCoordinates, type Projector } from "./projection.js";
+import { live, type SeqState, type WritableLive } from "./state.js";
 
 /** Read once: a member read in a hover-rate path allocates under the test runner's module wrapper. */
 const HEADER = HoverKind.header;

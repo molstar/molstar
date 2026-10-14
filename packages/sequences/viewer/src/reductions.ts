@@ -14,8 +14,8 @@
 // sum-and-count pyramid, prepare.ts); items by their counts per color slot, ranges as coverage and points once at their
 // center, never over a rows track's union.
 
-import type { Features } from "./prepare.ts";
-import { type ClassPyramid, type CountPyramid, classPyramidFrom, countPyramid } from "./pyramids.ts";
+import type { Features } from "./prepare.js";
+import { type ClassPyramid, type CountPyramid, classPyramidFrom, countPyramid } from "./pyramids.js";
 
 /** What the class build reads per cell of a block (the draw's theme at a block index; RN1 fills it). */
 export interface CellColoring {

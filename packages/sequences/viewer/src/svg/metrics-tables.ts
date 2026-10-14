@@ -3,7 +3,7 @@
 // Canvas2D's `top`, `middle` and `bottom` baselines lie on (`ascent` above the alphabetic baseline, `descent` below), and
 // the ink tops of "H" and "x" above that baseline (`cap`, `xHeight`), which letters are centered on.
 
-import type { FontMetrics } from "./metrics.ts";
+import type { FontMetrics } from "./metrics.js";
 
 const a = (s: string) => Uint16Array.from(s.split(" "), Number);
 // biome-ignore format: generated, a table a line

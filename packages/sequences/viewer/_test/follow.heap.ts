@@ -14,9 +14,9 @@
 import { createSeqViewSpec, translate } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { Inputs, Modifier, PointerType } from "../src/index.ts";
-import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.ts";
-import { driven } from "./input-fixtures.ts";
+import { Inputs, Modifier, PointerType } from "../src/index.js";
+import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from "./heap.js";
+import { driven } from "./input-fixtures.js";
 
 const N = 50_000;
 let sink = 0;

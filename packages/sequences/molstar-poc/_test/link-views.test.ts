@@ -17,11 +17,11 @@ import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler
 import { OrderedSet } from "molstar/lib/mol-data/int";
 import { StructureElement, Unit } from "molstar/lib/mol-model/structure";
 import { expect, it } from "vitest";
-import { fixtureMeasurer } from "../../viewer/src/testing/index.ts";
-import { MolstarSvsEntry, readStructure, StructureLink, structureOf } from "../src/index.ts";
-import { linkViews } from "../src/viewer.ts";
-import { bytesOf, demoLoaders, P53 } from "./fixtures.ts";
-import { P53_STRUCTURES, p53DemoDoc, p53ShownPatch } from "./p53-demo.ts";
+import { fixtureMeasurer } from "../../viewer/src/testing/index.js";
+import { MolstarSvsEntry, readStructure, StructureLink, structureOf } from "../src/index.js";
+import { linkViews } from "../src/viewer.js";
+import { bytesOf, demoLoaders, P53 } from "./fixtures.js";
+import { P53_STRUCTURES, p53DemoDoc, p53ShownPatch } from "./p53-demo.js";
 
 type DocNode = { ref?: string; params?: Record<string, unknown>; children?: DocNode[] };
 const find = (n: DocNode | undefined, ref: string): DocNode | undefined =>

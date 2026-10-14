@@ -14,7 +14,7 @@
 // x is cut so it bends with the ring), images are left out. Clips and partial clears are the unrolled frame's, so a
 // ring pass clips to the whole pass and draws whole. Allocation-free: its batches are reused and grow only.
 
-import type { Ring } from "../ring.ts";
+import type { Ring } from "../ring.js";
 import {
   type BackendImages,
   GlyphBatch,
@@ -27,7 +27,7 @@ import {
   TextAlign,
   TextBaseline,
   TextBatch,
-} from "./backend.ts";
+} from "./backend.js";
 
 /** A label group's baselines: beside the ring, below its anchor (at the top), above it (at the bottom). */
 const BASES = [TextBaseline.middle, TextBaseline.bottom, TextBaseline.top] as const;

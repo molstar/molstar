@@ -14,7 +14,7 @@
 // keys lack (no vocabulary of the field) takes a list color by its hash (`paletteHash`), which no legend lists.
 
 import { type Annotation, Annotations, ColumnRoles, type SeqSet } from "@molstar/seq-core/model";
-import type { FieldProviderEntry, SvsRegistries } from "../registry.ts";
+import type { FieldProviderEntry, SvsRegistries } from "../registry.js";
 import {
   categoricalList,
   makePaletteFunction,
@@ -22,7 +22,7 @@ import {
   type PaletteFunction,
   type PaletteValue,
   paletteHash,
-} from "./palette.ts";
+} from "./palette.js";
 
 /** The default's value for an item with no category, id or label: one for all of them; never listed in a legend. */
 export const UNNAMED_ITEM = "\u0000unnamed";

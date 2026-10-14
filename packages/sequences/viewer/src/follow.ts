@@ -21,10 +21,10 @@
 
 import type { ResolvedView } from "@molstar/seq-core/format";
 import type { CoordinateMap } from "@molstar/seq-core/model";
-import type { Axis } from "./axis.ts";
-import { defineBehavior } from "./default-behaviors.ts";
-import type { Unsubscribable } from "./state.ts";
-import { type SectionViewport, Viewport } from "./viewport.ts";
+import type { Axis } from "./axis.js";
+import { defineBehavior } from "./default-behaviors.js";
+import type { Unsubscribable } from "./state.js";
+import { type SectionViewport, Viewport } from "./viewport.js";
 
 /**
  * `io[0]`, a position in the map's `from` system (an element and the fraction of it, in index order), → its image in

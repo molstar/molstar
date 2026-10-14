@@ -12,9 +12,9 @@
 
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { describe, expect, it } from "vitest";
-import { KernelRenderers, type LayerRenderer } from "../src/index.ts";
-import { dotPlotDoc } from "./dot-plot-fixtures.ts";
-import { driven } from "./input-fixtures.ts";
+import { KernelRenderers, type LayerRenderer } from "../src/index.js";
+import { dotPlotDoc } from "./dot-plot-fixtures.js";
+import { driven } from "./input-fixtures.js";
 
 const SECTION = "v.s";
 /** The fixture with every dot plot layer's `aspect_ratio` set (undefined: the default). */

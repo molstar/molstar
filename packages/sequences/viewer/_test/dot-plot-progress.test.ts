@@ -16,13 +16,13 @@
 import { createSeqViewSpec } from "@molstar/seq-core/builder";
 import type { SeqViewSpecDoc } from "@molstar/seq-core/format";
 import { afterEach, describe, expect, it } from "vitest";
-import { DotPlotLimits, type DotPlotState, DotPlotVisits, dotPlotSample } from "../src/draw/dot-plot.ts";
-import { BackendCaps, Dirty, Pass } from "../src/draw/index.ts";
-import { Op, type RecordingBackend } from "../src/testing/index.ts";
-import { recording } from "./composer-fixtures.ts";
-import { directed } from "./conformance-fixtures.ts";
-import { dotPlotDoc } from "./dot-plot-fixtures.ts";
-import { lit, passRects } from "./overlay-fixtures.ts";
+import { DotPlotLimits, type DotPlotState, DotPlotVisits, dotPlotSample } from "../src/draw/dot-plot.js";
+import { BackendCaps, Dirty, Pass } from "../src/draw/index.js";
+import { Op, type RecordingBackend } from "../src/testing/index.js";
+import { recording } from "./composer-fixtures.js";
+import { directed } from "./conformance-fixtures.js";
+import { dotPlotDoc } from "./dot-plot-fixtures.js";
+import { lit, passRects } from "./overlay-fixtures.js";
 
 const limits = { ...DotPlotLimits };
 afterEach(() => Object.assign(DotPlotLimits, limits));
