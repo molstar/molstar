@@ -18,6 +18,7 @@ import {
   type SeqViewerContext,
   rafScheduler,
   SeqViewerBehaviors,
+  SeqViewerOptionalBehaviors,
   SeqViewerSpec,
   type TextMeasurer,
 } from '@molstar/seq-viewer';
@@ -209,6 +210,8 @@ class Viewer implements SequenceViewer {
         ? SeqViewerSpec.Behavior(SeqViewerBehaviors.Select, { shiftPositions: 'toggle' })
         : b,
     );
+    // The track menus ask on a right-click: Seq*'s optional context-menu behavior (not in its default spec).
+    behaviors.push(SeqViewerSpec.Behavior(SeqViewerOptionalBehaviors.ContextMenu));
     this.seq = createSeqViewer(
       {
         ...base,
