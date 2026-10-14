@@ -703,12 +703,13 @@ of the model instead of a MolScript query on every atom. The public changes in `
   consumers of expressions): a residue without `label_seq_id` (ligands, waters in many files) never satisfies a
   `label_seq_id`, `beg_label_seq_id` or `end_label_seq_id` criterion (MolScript reads a missing value as 0, so
   `{ end_label_seq_id: 50 }` selected them); criteria which only exist for atoms (`auth_*`, `label_comp_id`, atom ids,
-  ...) select nothing on coarse elements (MolScript throws); a range with `beg > end` selects nothing, also on coarse
-  elements (MolScript selects the elements which span the two bounds); a component which selects everything is the
-  source structure itself. The values are matched as they are, as numbers: a number given as text (`"10"`) selects
-  nothing, as in the query (JSON annotations convert their values when they are parsed), and `null` for a bound is an
-  open end. An empty `pdbx_PDB_ins_code` means a residue without an insertion code, as in MolScript. `operator_name`
-  (the unit operator's name) is honored, as it was by the expression.
+  ...) select nothing on coarse elements with a warning, as annotation rows always did (the MolScript expression throws,
+  which a selector given as rows no longer does); a range with `beg > end` selects nothing, also on coarse elements
+  (MolScript selects the elements which span the two bounds); a component which selects everything is the source
+  structure itself. The values are matched as they are, as numbers: a number given as text (`"10"`) selects nothing, as
+  in the query (JSON annotations convert their values when they are parsed), and `null` for a bound is an open end. An
+  empty `pdbx_PDB_ins_code` means a residue without an insertion code, as in MolScript. `operator_name` (the unit
+  operator's name) is honored, as it was by the expression.
 - The annotation color theme and the annotation tooltips already used these semantics for missing values before.
 
 ## `StructureElement.Schema.toLoci` and `toBundle`: `useIndex`, no `queryContext`

@@ -257,7 +257,7 @@ describe('coarse models (spheres and gaussians)', async () => {
         viaExpression(structure, [{ label_asym_id: 'A', beg_label_seq_id: 20, end_label_seq_id: 1 }]).elementCount,
       ).toBeGreaterThan(0);
     });
-    it('criteria which only exist for atoms (auth_*, comp_id, atom ids, ...) select nothing, MolScript throws', () => {
+    it('criteria which only exist for atoms (auth_*, comp_id, atom ids, ...) select nothing and warn (the MolScript expression throws)', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       try {
         expect(substructureFromRows(structure, atomicOnly).units.length).toBe(0);

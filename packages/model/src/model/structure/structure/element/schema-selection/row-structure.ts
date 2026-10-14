@@ -51,7 +51,7 @@ export class ElementRangesCache {
  *
  * It selects what `Schema.toExpression({ items: rows })` selects (the MolScript expression for the rows), except that
  * - a residue without `label_seq_id` never satisfies a `label_seq_id` criterion (MolScript reads it as 0),
- * - criteria which only exist for atoms select nothing on coarse elements (MolScript throws), and a range with `beg > end` selects nothing,
+ * - criteria which only exist for atoms select nothing on coarse elements with a warning (the MolScript expression throws), and a range with `beg > end` selects nothing,
  * and when every element is selected, it returns `structure` itself. */
 export function substructureFromRows(structure: Structure, rows: readonly SchemaItem[]): Structure {
   if (rows.length === 0 || structure.isEmpty) return structure.subsetBuilder(true).getStructure(); // (empty)
