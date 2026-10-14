@@ -11,7 +11,7 @@
 // (`remap`): Mol*'s hover reports a component's substructure, whose positions differ from the root's.
 
 import { FocusLoci as CameraFocusLoci } from '@molstar/plugin/behavior/dynamic/camera';
-import { HighlightLoci, SelectLoci } from '@molstar/plugin/behavior/dynamic/representation';
+import { DefaultLociLabelProvider, HighlightLoci, SelectLoci } from '@molstar/plugin/behavior/dynamic/representation';
 import { MolViewSpecBehavior } from '@molstar/mvs/behavior';
 import { loadMVS } from '@molstar/mvs/load';
 import { MVSRuntimeRegistry } from '@molstar/mvs/registry';
@@ -27,8 +27,9 @@ export type { PluginContext };
 
 /**
  * The plugin's spec, composed explicitly (plugin-composition.md §3, §11): MVS's representations and themes, its behavior
- * (labels, annotation themes, the MVSJ and MVSX formats), and the behaviors that make the canvas interactive: hover,
- * click selection and focus. No format, preset or query catalogs (structures arrive through MVS only), no axes helper.
+ * (labels, annotation themes, the MVSJ and MVSX formats), and the behaviors that make the canvas interactive: hover
+ * (with its labels: `plugin.behaviors.labels.highlight`, from Mol*'s default loci label provider), click selection and
+ * focus. No format, preset or query catalogs (structures arrive through MVS only), no axes helper.
  */
 export function pluginSpec(): PluginSpec {
   return {
@@ -36,6 +37,7 @@ export function pluginSpec(): PluginSpec {
     behaviors: [
       PluginSpec.Behavior(HighlightLoci),
       PluginSpec.Behavior(SelectLoci),
+      PluginSpec.Behavior(DefaultLociLabelProvider),
       PluginSpec.Behavior(CameraFocusLoci),
       MolViewSpecBehavior,
     ],
@@ -63,9 +65,13 @@ export async function mountPlugin(
   return plugin;
 }
 
-/** The canvas's background, 0xRRGGBB (a host's light or dark surface). */
+/**
+ * The canvas's background, 0xRRGGBB (a host's light or dark surface). Announced as Mol*'s own settings change is
+ * (`events.canvas3d.settingsUpdated`), so a host following the canvas props (an ink) hears it.
+ */
 export function setBackground(plugin: PluginContext, color: number): void {
   plugin.canvas3d?.setProps({ renderer: { backgroundColor: Color(color) } });
+  plugin.events.canvas3d.settingsUpdated.next(undefined);
 }
 
 /**
