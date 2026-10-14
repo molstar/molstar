@@ -12,7 +12,9 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
+  /* The dock's size (set on the dock, inherited): the scroll area's content around the tab has no height of its own,
+     so a percentage would collapse the surface to nothing. */
+  height: var(--msp-dock-size, 100%);
   min-height: 0;
   color: var(--msp-color-text);
 }

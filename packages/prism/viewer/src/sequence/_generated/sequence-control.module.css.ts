@@ -22,7 +22,7 @@ export const classes = {
 defineStyles('viewer/sequence/sequence-control.module.css', `@layer msp.components {
 .msp-viewer-sequence-control-root {
   width: 100%;
-  height: 100%;
+  height: var(--msp-dock-size, 100%);
   min-height: 0;
   color: var(--msp-color-text);
   flex-direction: column;
