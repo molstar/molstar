@@ -62,7 +62,6 @@ import { MVS_BEHAVIOR_ID } from './behavior-id.js';
 import { createPluginStateSnapshotCamera, modifyCanvasProps, resetCanvasProps } from '@molstar/mvs/camera';
 import { MVSAnnotationsProvider } from '@molstar/mvs/components/annotation-prop';
 import { MVSAnnotationStructureComponent } from '@molstar/mvs/components/annotation-structure-component';
-import { MVSSchemaStructureComponent } from '@molstar/mvs/components/schema-structure-component';
 import { MVSAnnotationTooltipsProvider } from '@molstar/mvs/components/annotation-tooltips-prop';
 import {
   type CustomLabelProps,
@@ -533,19 +532,12 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     const selector = node.params.selector;
     const type = componentPropsFromSelector(selector);
     const label = prettyNameFromSelector(selector);
-    // Rows are resolved through model indices by MVS' own transformer; the plugin's `StructureComponent` only knows MolScript expressions for them.
-    const component =
-      type.name === 'schema'
-        ? UpdateTarget.apply(updateParent, MVSSchemaStructureComponent, {
-            schema: type.params,
-            label,
-            nullIfEmpty: false,
-          })
-        : UpdateTarget.apply(updateParent, StructureComponent, {
-            type: type as StructureComponentParams['type'],
-            label,
-            nullIfEmpty: false,
-          });
+    // (rows are the `schema` type of the component: resolved through the indices of the model)
+    const component = UpdateTarget.apply(updateParent, StructureComponent, {
+      type: type as StructureComponentParams['type'],
+      label,
+      nullIfEmpty: false,
+    });
     return transformAndInstantiateStructure(component, node);
   },
   component_from_uri(

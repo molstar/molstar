@@ -680,11 +680,14 @@ of the model instead of a MolScript query on every atom. The public changes in `
   `StructureComponentParams`: rows and arrays of rows are `{ name: 'schema', params: rows }`, not `expression`.
   `prettyNameFromSelector` returns compact names (`A`, `A432`, `A:10-50`, `120 selections`) instead of
   `Custom Selection: {...}`.
-- **New transformer** `mvs.mvs-structure-component-from-schema` (`MVSSchemaStructureComponent`) makes the components of
-  `component` nodes with rows; static and MolQL selectors still use the plugin's `StructureComponent`. Saved states with
-  the previous `expression` components load as before. The classic UI's "modify by current selection" is not available
-  for the new components (to be added when needed), and switching a node between a rows selector and a static or MolQL
-  one in a snapshot changes its ref (the transformer id is part of it).
+- **`StructureComponent` has a `schema` type.** `StructureComponentParams.type`
+  (`@molstar/plugin/state/helpers/structure-component`) gets a `schema` variant (an array of
+  `StructureElement.SchemaItem`), made into a structure by the new `StructureElement.Schema.toStructure` (through the
+  indices of the model, the structure itself if every element is selected); `component` nodes of MVS with rows use it,
+  so they are the plugin's own components (the classic UI can modify them, and a node which switches between rows,
+  static and MolQL selectors in a snapshot keeps its ref). Saved states with the previous `expression` components load
+  as before. The dispose of `StructureComponent` no longer disposes the properties of a structure which is not its own
+  (a component which is the source structure).
 - **Selection helpers move to the model package.** The resolution of rows through model indices does not depend on MVS
   and lives next to `StructureElement.Schema` in `@molstar/model/model/structure/structure/element/schema-selection/*`
   (`element-ranges`, `int-buffer`, `indexing`, `selections`, `row-structure`, `utils`); they were

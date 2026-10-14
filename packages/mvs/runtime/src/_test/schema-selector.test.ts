@@ -18,11 +18,6 @@ import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { MolViewSpec } from '@molstar/mvs/behavior';
 import { loadMVS } from '@molstar/mvs/load';
 import { MVSRuntimeRegistry } from '@molstar/mvs/registry';
-import {
-  MVSSchemaStructureComponent,
-  createMVSSchemaStructureComponent,
-  updateMVSSchemaStructureComponent,
-} from '../components/schema-structure-component.js';
 import { SelectorParams, substructureFromSelector } from '../components/selector.js';
 import { createModel } from '../helpers/_test/annotation-rows-fixture.js';
 import { rowsToExpression } from '../helpers/selections.js';
@@ -89,19 +84,27 @@ describe('rows selectors in a loaded MVS document', async () => {
     error.mockRestore();
   }
   const cells = [...plugin.state.data.cells.values()];
-  const schemaCells = cells.filter((c) => c.transform.transformer.id === 'mvs.mvs-structure-component-from-schema');
+  const components = cells.filter((c) => c.transform.transformer.id === 'ms-plugin.structure-component');
+  const schemaCells = components.filter((c) => (c.transform.params as any).type.name === 'schema');
   const parentStructure = (cell: (typeof cells)[number]) =>
     plugin.state.data.cells.get(cell.transform.parent)!.obj!.data as Structure;
 
   it('loads without errors and creates one schema component per rows selector', () => {
     expect(cells.filter((c) => c.status === 'error').map((c) => c.errorText)).toEqual([]);
     expect(schemaCells.length).toBe(3);
-    expect(schemaCells.map((c) => (c.transform.params as any).schema)).toEqual([rowsA, rowsB, [rowC]]);
+    expect(schemaCells.map((c) => (c.transform.params as any).type.params)).toEqual([rowsA, rowsB, [rowC]]);
     // the labels describe the rows instead of dumping them
     expect(schemaCells.map((c) => c.obj!.label)).toEqual(['A:1-20 + A60 CA', 'REA', 'res <=20']);
-    // plugin's own `StructureComponent` is only used for static selectors, rows are not turned into expressions
-    const standard = cells.filter((c) => c.transform.transformer.id === 'ms-plugin.structure-component');
-    expect(standard.map((c) => (c.transform.params as any).type.name)).toEqual(['static', 'static']);
+    // the components of the document are all the plugin's own `StructureComponent` (so the classic UI can modify them),
+    // and no rows were turned into an expression
+    const types = components.map((c) => (c.transform.params as any).type.name as string);
+    expect(types.length).toBe(5);
+    expect(types.filter((t) => t === 'static').length).toBe(2); // (polymer, ligand)
+    expect(types.filter((t) => t === 'schema').length).toBe(3);
+    expect(types.includes('expression')).toBe(false);
+    expect(
+      cells.some((c) => c.transform.transformer.id.startsWith('mvs.') && c.transform.transformer.id.includes('schema')),
+    ).toBe(false);
   });
 
   /** unit id -> its elements */
@@ -111,6 +114,11 @@ describe('rows selectors in a loaded MVS document', async () => {
     StructureSelection.unionStructure(
       StructureQueryHelper.createAndRun(parentStructure(cell), rowsToExpression(rows)).selection,
     );
+
+  it('the plugin treats them as components it can modify (the classic UI: modify by the current selection)', () => {
+    expect(schemaCells.length).toBe(3);
+    for (const c of schemaCells) expect(plugin.builders.structure.isComponentTransform(c)).toBe(true);
+  });
 
   it('components contain exactly the elements the MolScript expression for their rows selects', () => {
     const [a, b] = schemaCells;
@@ -176,81 +184,6 @@ describe('rows selectors in a loaded MVS document', async () => {
     const layers = (cartoon.transform.params as any).colorTheme.params.layers as { selection: any }[];
     expect(layers.map((l) => l.selection.name)).toContain('schema');
     expect(layers.map((l) => l.selection.params)).toContainEqual([colorLayerRows]);
-  });
-});
-
-describe('MVSSchemaStructureComponent', async () => {
-  const dims = { nChains: 4, nResidues: 20 };
-  const structure = Structure.ofModel(await createModel(dims));
-  const rows = [{ label_asym_id: 'B' }];
-
-  it('creates a component with the rows` elements, a label, and `null` when empty and nullIfEmpty', () => {
-    const cache: { source?: Structure } = {};
-    const obj = createMVSSchemaStructureComponent(
-      structure,
-      { schema: rows, label: '', nullIfEmpty: true },
-      cache,
-    ) as any;
-    expect(obj.data.elementCount).toBe(20 * 6);
-    expect(obj.label).toBe('B'); // described from the rows when no label is given
-    expect(cache.source).toBe(structure);
-    const named = createMVSSchemaStructureComponent(
-      structure,
-      { schema: rows, label: 'Chain B', nullIfEmpty: true },
-      {},
-    ) as any;
-    expect(named.label).toBe('Chain B');
-    const none = { schema: [{ label_asym_id: 'nonexistent' }], label: '', nullIfEmpty: true };
-    expect(createMVSSchemaStructureComponent(structure, none, {})).toBe(StateObject.Null);
-    expect(
-      (createMVSSchemaStructureComponent(structure, { ...none, nullIfEmpty: false }, {}) as any).data.elementCount,
-    ).toBe(0);
-  });
-
-  it('update: label only -> Updated, same params -> Unchanged, other rows or other structure -> Recreate', () => {
-    const params = { schema: rows, label: 'x', nullIfEmpty: true };
-    const cache: { source?: Structure } = {};
-    const obj = createMVSSchemaStructureComponent(structure, params, cache) as any;
-    const U = StateTransformer.UpdateResult;
-    expect(updateMVSSchemaStructureComponent(structure, obj, params, { ...params }, cache)).toBe(U.Unchanged);
-    expect(updateMVSSchemaStructureComponent(structure, obj, params, { ...params, label: 'y' }, cache)).toBe(U.Updated);
-    expect(obj.label).toBe('y');
-    expect(
-      updateMVSSchemaStructureComponent(structure, obj, params, { ...params, schema: [{ label_asym_id: 'C' }] }, cache),
-    ).toBe(U.Recreate);
-    const smaller = substructureFromSelector(structure, { name: 'schema', params: rows });
-    expect(updateMVSSchemaStructureComponent(smaller, obj, params, params, cache)).toBe(U.Recreate);
-  });
-});
-
-describe('MVSSchemaStructureComponent disposal', async () => {
-  const structure = Structure.ofModel(await createModel({ nChains: 4, nResidues: 20 }));
-  const dispose = (obj: any, cache: unknown) =>
-    (MVSSchemaStructureComponent as any).definition.dispose({ b: obj, params: undefined, cache });
-
-  it('disposes the properties of a component which is a part of the structure', () => {
-    const cache = {};
-    const obj = createMVSSchemaStructureComponent(
-      structure,
-      { schema: [{ label_asym_id: 'B' }], label: '', nullIfEmpty: true },
-      cache,
-    ) as any;
-    expect(obj.data).not.toBe(structure);
-    const spy = vi.spyOn(obj.data.customPropertyDescriptors, 'dispose');
-    dispose(obj, cache);
-    expect(spy).toHaveBeenCalledTimes(1);
-  });
-  it('does not dispose the properties of the structure when the component is the structure itself (everything is selected)', () => {
-    const cache = {};
-    const obj = createMVSSchemaStructureComponent(
-      structure,
-      { schema: [{}], label: '', nullIfEmpty: true },
-      cache,
-    ) as any;
-    expect(obj.data).toBe(structure);
-    const spy = vi.spyOn(structure.customPropertyDescriptors, 'dispose');
-    dispose(obj, cache);
-    expect(spy).not.toHaveBeenCalled();
   });
 });
 

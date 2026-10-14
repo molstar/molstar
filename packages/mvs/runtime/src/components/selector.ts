@@ -15,7 +15,6 @@ import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { MolScriptBuilder } from '@molstar/query-language/language/builder';
 import { Expression } from '@molstar/query-language/language/expression';
 import { mapArrayToObject, pickObjectKeys } from '@molstar/core/util/object';
-import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import type { MVSAnnotationRow } from '@molstar/mvs/helpers/schemas';
 import { Choice } from '@molstar/core/util/param-choice';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
@@ -92,7 +91,6 @@ export const ElementSet = {
 
 /** Return a substructure of `structure` defined by `selector` */
 export function substructureFromSelector(structure: Structure, selector: Selector): Structure {
-  if (selector.name === 'schema') return substructureFromRows(structure, selector.params);
   const pso =
     selector.name === 'annotation'
       ? createMVSAnnotationStructureComponent(structure, { ...selector.params, label: '', nullIfEmpty: false }, {})

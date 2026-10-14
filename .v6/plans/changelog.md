@@ -55,10 +55,10 @@ the [API change ledger](breaking-v6-changes.md).
   of the model instead of running a MolScript query on every atom for every row: 1000 rows on a 720k-atom structure take
   about 25 ms instead of several seconds. Used by `component` nodes, annotation components, inline tooltips and labels,
   color layers, and primitive positions
-- New `schema` variant of the MVS selector params and a new `mvs.mvs-structure-component-from-schema` transformer for
-  `component` nodes with rows (`StructureComponent` with an `expression` is still used for static and MolQL selectors);
-  `componentPropsFromSelector` returns a `Selector` and keeps rows as `schema`. Snapshots with the old expressions still
-  load
+- New `schema` variant of the MVS selector params and of the type of `StructureComponent` (and
+  `StructureElement.Schema.toStructure`): `component` nodes with rows are the plugin's own components, which the classic
+  UI can modify; `componentPropsFromSelector` returns a `Selector` and keeps rows as `schema`. Snapshots with the old
+  expressions still load
 - `StructureElement.Schema.toLoci` / `toBundle` (and `Loci.fromSchema`, `Bundle.fromSchema`) have a `useIndex` option
   which looks the items up in the indices of the models instead of querying every atom (1000 items on 720k atoms:
   several seconds to about 50 ms); it replaces the unused `queryContext` parameter. The interactions extension uses it
