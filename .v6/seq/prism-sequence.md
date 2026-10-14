@@ -115,7 +115,12 @@ b.view({ ref: 'sequence' }).section({ ref: 'main', style: 'compact' /* or 'track
   the one the 3D view draws.
 - In the stories, the real plugin of §3.1 loads the structure and the sequence model takes its trajectory; headless
   tests use molstar-poc's recorded fixtures (p53 structures), so no new fixture is committed.
-- The structure picker in the strip's header (structure, chain/polymer mode, instance) is not part of the first slice.
+- **No picker in the strip** (David, 2026-10-14: one way of doing things across the app). What the sequence shows
+  follows the structure tree: the structure (and later the chain or instance) chosen there. The strip has at most one
+  icon, the structure's name, which runs a command that opens the structure tree with that structure revealed; the
+  tree's rows and the command menu ("Show sequence of…") are where another one is chosen. Commands rather than a
+  bespoke picker also give the agent the same way in. The mock's mode select (chain, polymers, everything) goes too:
+  tracks show every polymer chain as its own block, compact text every chain in turn with its name.
 
 ### 3.1 A minimal real plugin in the stories
 
@@ -214,7 +219,7 @@ S3a and S3 need S2; S4 needs both. Over the real plugin, the same code gets its
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------ |
 | molstar-poc's link and structure provider as a real package (`@molstar/seq-molstar`), out of the PoC      | the sequence view leaves the mocks   |
 | Several viewers (a second id, its own tab or dock)                                                       | a feature that needs two             |
-| The strip header's structure picker (structure, chain or polymer mode, instance)                         | more than one structure loaded       |
+| Choosing what the sequence shows through the structure tree and commands (§3): the strip's structure icon, the tree rows' and the command menu's "Show sequence", instances | more than one structure loaded       |
 | Tracks beyond letters (secondary structure, pLDDT, annotations) and their legend; Seq\*'s `trackLegends` exported for data-driven ranges | asked for in Prism                   |
 | contexts.md revised for prism-ui as a runtime and the viewer and story mode as opinionated compositions (§2): its modules and contributions (§3–4) | before the next design that leans on contexts.md |
 | The `--msp-ink` tokens (defined, unused) for chrome outside the canvas layer                             | a canvas control outside that layer  |
