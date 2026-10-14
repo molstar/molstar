@@ -33,6 +33,7 @@ import { nonStandardPolymer } from '@molstar/plugin/state/queries/structure/resi
 import { StateTransformer, StateObject } from '@molstar/core/state';
 import { Script } from '@molstar/model/script/script';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
+import { deepEqual } from '@molstar/core/util';
 
 export const StaticStructureComponentTypes = [
   'all',
@@ -62,6 +63,8 @@ export const StructureComponentParams = () => ({
       expression: PD.Value<Expression>(MolScriptBuilder.struct.generator.all),
       bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
       script: PD.Script({ language: 'mol-script', expression: '(sel.atom.all)' }),
+      /** The elements which satisfy at least one of the items (see `StructureElement.Schema.toStructure`) */
+      schema: PD.Value<StructureElement.SchemaItem[]>([], { isHidden: true }),
     },
     { isHidden: true },
   ),
@@ -152,6 +155,10 @@ export function createStructureComponent(
       component = StructureElement.Bundle.toStructure(params.type.params, a);
       break;
     }
+    case 'schema': {
+      component = StructureElement.Schema.toStructure(a, { items: params.type.params });
+      break;
+    }
   }
 
   if (params.nullIfEmpty && component.elementCount === 0) return StateObject.Null;
@@ -225,6 +232,14 @@ export function updateStructureComponent(
         updated = true;
         b.data = StructureElement.Bundle.toStructure(newParams.type.params, a);
       }
+      break;
+    }
+    case 'schema': {
+      if (!deepEqual(oldParams.type.params, newParams.type.params)) return StateTransformer.UpdateResult.Recreate;
+      if (a === cache.source) break;
+      cache.source = a;
+      b.data = StructureElement.Schema.toStructure(a, { items: newParams.type.params });
+      updated = true;
       break;
     }
   }

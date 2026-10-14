@@ -10,7 +10,7 @@ import type { Expression } from '@molstar/query-language/language/expression';
 import type { Structure } from '../structure.js';
 import { Bundle } from './bundle.js';
 import { Loci } from './loci.js';
-import { schemaToLociViaIndex } from './schema-selection/to-loci.js';
+import { schemaToLociViaIndex, schemaToStructureViaIndex } from './schema-selection/to-loci.js';
 
 export interface SchemaItem {
   /** Corresponds to SymmetryOperator.name, e.g. 1_555, ASM_5 */
@@ -194,9 +194,17 @@ function toBundle(structure: Structure, schema: Schema, options?: ToLociOptions)
   return Bundle.fromLoci(toLoci(structure, schema, options));
 }
 
+/** The substructure of `structure` of the elements which satisfy at least one item of `schema`, found through the indices of the models
+ * (the same as `toLoci` with `useIndex: true`, see there for the differences from the query). It is `structure` itself if every element
+ * satisfies one. */
+function toStructure(structure: Structure, schema: Schema): Structure {
+  return schemaToStructureViaIndex(structure, schema);
+}
+
 export const Schema = {
   forEachItem,
   toExpression,
   toLoci,
   toBundle,
+  toStructure,
 };

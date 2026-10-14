@@ -11,7 +11,7 @@ import type { UnitIndex } from '../element.js';
 import { Loci } from '../loci.js';
 import { type Schema, type SchemaItem, Schema as SchemaFns } from '../schema.js';
 import type { ElementRanges } from './element-ranges.js';
-import { ElementRangesCache } from './row-structure.js';
+import { ElementRangesCache, substructureFromRows } from './row-structure.js';
 
 /** The positions in `elements` (sorted) of the elements which lie in `ranges` (sorted and disjoint), as an `OrderedSet`;
  * `undefined` when there are none. */
@@ -92,4 +92,10 @@ export function schemaToLociViaIndex(structure: Structure, schema: Schema): Loci
   }
   // (`structure.units` is sorted by unit id, like the elements of the loci of a query)
   return Loci(structure, elements);
+}
+
+/** The substructure of `structure` of the elements which satisfy at least one item of `schema`, resolved through the indices of the models
+ * (the structure itself if every element does). */
+export function schemaToStructureViaIndex(structure: Structure, schema: Schema): Structure {
+  return substructureFromRows(structure, itemsOf(schema));
 }
