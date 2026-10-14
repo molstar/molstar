@@ -128,7 +128,7 @@ runs one, never the slow, browser or heap tiers; stop and report when the work d
 | C1  | Storybook: registration, the React decorator, the stories' types, MDX, fixture shim; `build-storybook` and the smoke tests | Sonnet, high | B2–B5 |
 | C2  | Biome: GritQL paths, Seq\*'s overrides into the root `biome.json`; CI on Node 24                             | Sonnet, low           | B2–B5      |
 | C3  | Docs: `packages/sequences/AGENTS.md` adapted, the root table, checklist, changelogs                           | Opus                  | C1, C2     |
-| R   | Review of the port (layout, imports, tooling, the io and zip changes), read-only; findings fixed by the step's agent, resumed | fresh Opus agent, high | C3 |
+| R   | Migration-correctness review, read-only: what the port changed against the port base (imports, manifests, configs, tests kept and passing, molstar-poc on v6, the io and zip changes), not Seq\*'s code again (reviewed in Stories); findings fixed by the step's agent, resumed | fresh Opus agent, high | C3 |
 
 Then the full checks once, in this order: `pnpm lint`, `pnpm test:unit`, `npx tsc -b`, `pnpm check:workspace`,
 `pnpm format:check`; then the PR.
