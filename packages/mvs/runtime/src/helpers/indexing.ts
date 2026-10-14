@@ -28,10 +28,19 @@ export interface HierarchyScope {
 }
 
 const HierarchyScopes = new WeakMap<object, HierarchyScope[]>();
+/** The scope of each model, so that a lookup does not have to search the scopes of its hierarchy (an ensemble of models which share a hierarchy
+ * but have their own `atomId` columns has one per model) */
+const ModelScopes = new WeakMap<Model, HierarchyScope>();
 
 export const HierarchyScope = {
   /** Get the scope of a model (created if the model is the first with its hierarchies and atom ids). Does not keep the model alive. */
   get(model: Model): HierarchyScope {
+    let scope = ModelScopes.get(model);
+    if (!scope) ModelScopes.set(model, (scope = HierarchyScope.find(model)));
+    return scope;
+  },
+
+  find(model: Model): HierarchyScope {
     const { atomicHierarchy, coarseHierarchy } = model;
     const atomId = model.atomicConformation.atomId;
     let scopes = HierarchyScopes.get(atomicHierarchy);

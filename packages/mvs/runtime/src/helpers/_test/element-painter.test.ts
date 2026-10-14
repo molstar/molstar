@@ -72,6 +72,33 @@ describe('ElementPainter', () => {
   });
 });
 
+describe('ElementPainter instances', () => {
+  it('two painters used alternately do not disturb each other', () => {
+    const a = new ElementPainter();
+    const b = new ElementPainter();
+    a.begin(6);
+    b.begin(6);
+    a.paint([0], [3], 1, 1);
+    b.paint([2], [6], 1, 2);
+    a.paint([2], [6], 1, 3);
+    b.paint([0], [3], 1, 4);
+    expect(Array.from(a.result()!)).toEqual([1, 1, 1, 3, 3, 3]);
+    expect(Array.from(b.result()!)).toEqual([4, 4, 2, 2, 2, 2]);
+    expect(a.isComplete).toBe(true);
+    expect(b.isComplete).toBe(true);
+  });
+  it('release keeps the result of the last pass and the painter usable', () => {
+    const p = new ElementPainter();
+    p.begin(4);
+    p.paint([1], [3], 1, 9);
+    p.release();
+    expect(Array.from(p.result()!)).toEqual([-1, 9, 9, -1]);
+    p.begin(4);
+    p.paint([0], [1], 1, 5);
+    expect(Array.from(p.result()!)).toEqual([5, -1, -1, -1]);
+  });
+});
+
 describe('GlobalResidueIndices', () => {
   const hierarchy = (sourceIndex: number[]) =>
     ({

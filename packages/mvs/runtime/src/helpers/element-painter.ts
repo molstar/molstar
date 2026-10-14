@@ -4,10 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/** Shared "next free element" buffer, only used during a painting pass and never returned to callers. */
-let Next = new Int32Array(0);
-/** Buffers larger than this are dropped after use so that one huge call does not pin memory forever. */
-const MaxRetainedCapacity = 1 << 22;
+import { MaxRetainedBufferCapacity } from './int-buffer.js';
 
 /** Assigns a value to each element of `[0, n)`, where every element gets the value of the *first* painted range which contains it
  * (to give the *last* row of an annotation priority, paint the rows in reverse order).
@@ -17,6 +14,8 @@ const MaxRetainedCapacity = 1 << 22;
  * O(sum of range sizes). `isComplete` tells when all elements are painted and the remaining ranges cannot change anything. */
 export class ElementPainter {
   private out: Int32Array | null = null;
+  /** "Next unpainted element" of each element (see above), kept between passes to avoid allocating it every time */
+  private next = new Int32Array(0);
   private n = 0;
   private remaining = 0;
 
@@ -38,11 +37,11 @@ export class ElementPainter {
     const n = this.n;
     if (!this.out) {
       this.out = new Int32Array(n).fill(-1);
-      if (Next.length < n + 1) Next = new Int32Array(Math.max(n + 1, 1024));
-      Next.fill(0, 0, n + 1); // 0 = not painted (a painted element `i` stores a larger index: the next candidate)
+      if (this.next.length < n + 1) this.next = new Int32Array(Math.max(n + 1, 1024));
+      this.next.fill(0, 0, n + 1); // 0 = not painted (a painted element `i` stores a larger index: the next candidate)
     }
     const out = this.out;
-    const next = Next;
+    const next = this.next;
     for (let r = 0; r < count; r++) {
       const stop = to[r];
       let i = findFree(next, from[r]);
@@ -61,9 +60,9 @@ export class ElementPainter {
     return this.out;
   }
 
-  /** Free the shared buffer if it grew large. */
-  static release() {
-    if (Next.length > MaxRetainedCapacity) Next = new Int32Array(0);
+  /** Free the buffer of the passes if it grew large (the result of the last pass stays valid). */
+  release() {
+    if (this.next.length > MaxRetainedBufferCapacity) this.next = new Int32Array(0);
   }
 }
 

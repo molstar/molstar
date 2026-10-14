@@ -4,6 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+/** Scratch buffers which grew beyond this many entries are dropped after use, so that one huge call does not pin memory forever. */
+export const MaxRetainedBufferCapacity = 1 << 22;
+
 /** Growable buffer of 32-bit integers with an explicit element count, for reuse across calls.
  *
  * (Reusing `array.length = 0` does not work for this: V8 releases the backing store when an array is truncated, so

@@ -30,6 +30,8 @@ export type MVSSchemaStructureComponentProps = PD.ValuesFor<typeof MVSSchemaStru
 
 interface MVSSchemaComponentCache {
   source?: Structure;
+  /** The component is the source structure itself (everything is selected), so it must not be disposed with the component */
+  isSource?: boolean;
 }
 
 /** Transformer for creating a structure component from selection criteria ("schema" rows, e.g. `{ label_asym_id: 'A', beg_label_seq_id: 10 }`),
@@ -52,8 +54,9 @@ export const MVSSchemaStructureComponent = MVSTransform({
   update: ({ a, b, oldParams, newParams, cache }) => {
     return updateMVSSchemaStructureComponent(a.data, b, oldParams, newParams, cache as MVSSchemaComponentCache);
   },
-  dispose({ b }) {
-    b?.data.customPropertyDescriptors.dispose();
+  dispose({ b, cache }) {
+    // (when everything is selected the component is the source structure, which has other users)
+    if (!(cache as MVSSchemaComponentCache | undefined)?.isSource) b?.data.customPropertyDescriptors.dispose();
   },
 });
 
@@ -65,6 +68,7 @@ export function createMVSSchemaStructureComponent(
 ) {
   cache.source = structure;
   const component = substructureFromRows(structure, params.schema);
+  cache.isSource = component === structure;
   if (params.nullIfEmpty && component.elementCount === 0) return StateObject.Null;
   const label = params.label || describeRows(params.schema);
   return new SO.Molecule.Structure(component, { label, description: Structure.elementDescription(component) });

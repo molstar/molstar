@@ -7,6 +7,7 @@
 
 import { SortedArray } from '@molstar/core/data/int';
 import type { ElementIndex } from '@molstar/model/model/structure';
+import { MaxRetainedBufferCapacity } from './int-buffer.js';
 
 /** Represents a collection of disjoint elements ranges in a model (atoms, spheres, or gaussians).
  * The number of ranges is `ElementRanges.count(ranges)`,
@@ -91,8 +92,6 @@ export class ElementRangesBuffer {
 const UnionBag = new ElementRangesBuffer();
 let SweepStarts = new Int32Array(0);
 let SweepEnds = new Int32Array(0);
-/** Buffers larger than this are dropped after use so that one huge call does not pin memory forever. */
-const MaxRetainedCapacity = 1 << 22;
 
 export const ElementRanges = {
   /** Return the number of disjoined ranges in a `ElementRanges` object */
@@ -152,7 +151,7 @@ export const ElementRanges = {
       if (r) bag.append(r);
     }
     const result = ElementRanges.normalize(bag);
-    UnionBag.trim(MaxRetainedCapacity);
+    UnionBag.trim(MaxRetainedBufferCapacity);
     return result;
   },
 
@@ -191,7 +190,7 @@ export const ElementRanges = {
         j++;
       }
     }
-    if (SweepStarts.length > MaxRetainedCapacity) {
+    if (SweepStarts.length > MaxRetainedBufferCapacity) {
       SweepStarts = new Int32Array(0);
       SweepEnds = new Int32Array(0);
     }

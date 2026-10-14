@@ -18,7 +18,7 @@ import type { CoarseElements } from '@molstar/model/model/structure/model/proper
 import { Expression } from '@molstar/query-language/language/expression';
 import { range, sortIfNeeded } from '@molstar/core/util/array';
 import { ElementRanges, ElementRangesBuffer } from './element-ranges.js';
-import { IntBuffer } from './int-buffer.js';
+import { IntBuffer, MaxRetainedBufferCapacity } from './int-buffer.js';
 import {
   type AtomicIndicesAndSortings,
   type CoarseIndicesAndSortings,
@@ -48,7 +48,6 @@ export class AtomRangesScratch {
   }
 }
 
-const MaxRetainedBufferCapacity = 1 << 20;
 const SharedScratch = new AtomRangesScratch();
 const RowsBag = new ElementRangesBuffer();
 const IndexRange = { from: 0, to: 0 };

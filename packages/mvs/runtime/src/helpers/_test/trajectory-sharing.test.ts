@@ -84,6 +84,39 @@ describe('indices are shared by the frames of a trajectory', async () => {
   });
 });
 
+describe('HierarchyScope lookups', async () => {
+  const model = await createModel({ nChains: 3, nResidues: 10 });
+  const nAtoms = model.atomicHierarchy.atoms._rowCount;
+  // an ensemble: the models share the hierarchy, but each has its own atom id column
+  const ensemble = Array.from({ length: 40 }, (_, i) => ({
+    ...model,
+    id: `ensemble-${i}`,
+    atomicConformation: {
+      ...model.atomicConformation,
+      atomId: Column.ofIntArray(Array.from({ length: nAtoms }, (_, k) => k + 1 + 1000 * i)),
+    },
+  })) as Model[];
+
+  it('every model of the ensemble has its own scope, found again without searching the hierarchy`s scopes', () => {
+    const scopes = ensemble.map((m) => HierarchyScope.get(m));
+    expect(new Set(scopes).size).toBe(ensemble.length);
+    const find = vi.spyOn(HierarchyScope, 'find');
+    try {
+      for (let repeat = 0; repeat < 3; repeat++) {
+        ensemble.forEach((m, i) => expect(HierarchyScope.get(m)).toBe(scopes[i]));
+      }
+      expect(find).not.toHaveBeenCalled();
+    } finally {
+      find.mockRestore();
+    }
+  });
+  it('indices of each model use its own atom ids', () => {
+    expect(IndicesAndSortings.get(ensemble[3]).atomic!.atomsById.get(3001)).toBe(0);
+    expect(IndicesAndSortings.get(ensemble[3]).atomic!.atomsById.get(1)).toBeUndefined();
+    expect(IndicesAndSortings.get(ensemble[0]).atomic!.atomsById.get(1)).toBe(0);
+  });
+});
+
 describe('annotation rows are resolved once for all frames of a trajectory', async () => {
   const model = await createModel({ nChains: 5, nResidues: 20 });
   const frames = trajectoryOf(model, 3);

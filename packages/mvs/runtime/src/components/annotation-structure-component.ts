@@ -54,8 +54,9 @@ export const MVSAnnotationStructureComponent = MVSTransform({
   update: ({ a, b, oldParams, newParams, cache }) => {
     return updateMVSAnnotationStructureComponent(a.data, b, oldParams, newParams, cache as MVSComponentCache);
   },
-  dispose({ b }) {
-    b?.data.customPropertyDescriptors.dispose();
+  dispose({ b, cache }) {
+    // (when everything is selected the component is the source structure, which has other users)
+    if (!(cache as MVSComponentCache | undefined)?.isSource) b?.data.customPropertyDescriptors.dispose();
   },
 });
 
@@ -79,6 +80,8 @@ export function createMVSAnnotationSubstructure(
 
 interface MVSComponentCache {
   source?: Structure;
+  /** The component is the source structure itself (everything is selected), so it must not be disposed with the component */
+  isSource?: boolean;
 }
 
 /** Create a substructure PSO based on `MVSAnnotationStructureComponentProps` */
@@ -89,6 +92,7 @@ export function createMVSAnnotationStructureComponent(
 ) {
   cache.source = structure;
   const component = createMVSAnnotationSubstructure(structure, params);
+  cache.isSource = component === structure;
 
   if (params.nullIfEmpty && component.elementCount === 0) return StateObject.Null;
 

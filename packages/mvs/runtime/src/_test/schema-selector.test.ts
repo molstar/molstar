@@ -18,6 +18,7 @@ import { MolViewSpec } from '@molstar/mvs/behavior';
 import { loadMVS } from '@molstar/mvs/load';
 import { MVSRuntimeRegistry } from '@molstar/mvs/registry';
 import {
+  MVSSchemaStructureComponent,
   createMVSSchemaStructureComponent,
   updateMVSSchemaStructureComponent,
 } from '../components/schema-structure-component.js';
@@ -172,6 +173,37 @@ describe('MVSSchemaStructureComponent', async () => {
     ).toBe(U.Recreate);
     const smaller = substructureFromSelector(structure, { name: 'schema', params: rows });
     expect(updateMVSSchemaStructureComponent(smaller, obj, params, params, cache)).toBe(U.Recreate);
+  });
+});
+
+describe('MVSSchemaStructureComponent disposal', async () => {
+  const structure = Structure.ofModel(await createModel({ nChains: 4, nResidues: 20 }));
+  const dispose = (obj: any, cache: unknown) =>
+    (MVSSchemaStructureComponent as any).definition.dispose({ b: obj, params: undefined, cache });
+
+  it('disposes the properties of a component which is a part of the structure', () => {
+    const cache = {};
+    const obj = createMVSSchemaStructureComponent(
+      structure,
+      { schema: [{ label_asym_id: 'B' }], label: '', nullIfEmpty: true },
+      cache,
+    ) as any;
+    expect(obj.data).not.toBe(structure);
+    const spy = vi.spyOn(obj.data.customPropertyDescriptors, 'dispose');
+    dispose(obj, cache);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+  it('does not dispose the properties of the structure when the component is the structure itself (everything is selected)', () => {
+    const cache = {};
+    const obj = createMVSSchemaStructureComponent(
+      structure,
+      { schema: [{}], label: '', nullIfEmpty: true },
+      cache,
+    ) as any;
+    expect(obj.data).toBe(structure);
+    const spy = vi.spyOn(structure.customPropertyDescriptors, 'dispose');
+    dispose(obj, cache);
+    expect(spy).not.toHaveBeenCalled();
   });
 });
 

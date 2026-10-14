@@ -333,7 +333,7 @@ export class MVSAnnotation {
       return { atoms, spheres, gaussians };
     } finally {
       RowScratch.trim();
-      ElementPainter.release();
+      painter.release();
     }
   }
 
