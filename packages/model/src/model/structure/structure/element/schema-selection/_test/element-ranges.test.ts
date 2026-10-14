@@ -7,7 +7,6 @@
 
 import { describe, expect, it } from 'vitest';
 import { ElementRanges, ElementRangesBuffer } from '../element-ranges.js';
-import { IntBuffer } from '../int-buffer.js';
 import { Sorting } from '../indexing.js';
 import { SortedArray } from '@molstar/core/data/int';
 
@@ -112,17 +111,6 @@ describe('ElementRangesBuffer', () => {
     const b = new ElementRangesBuffer();
     b.append({ from: [20, 0], to: [30, 10] } as ElementRanges).append({ from: [10], to: [15] } as ElementRanges);
     expect(ElementRanges.normalize(b)).toEqual({ from: [0, 20], to: [15, 30] });
-  });
-});
-
-describe('IntBuffer', () => {
-  it('grows, keeps contents, and views only the filled part', () => {
-    const b = new IntBuffer(2);
-    for (let i = 0; i < 10; i++) b.push(i);
-    expect(Array.from(b.view())).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    b.clear();
-    b.push(42);
-    expect(Array.from(b.view())).toEqual([42]);
   });
 });
 

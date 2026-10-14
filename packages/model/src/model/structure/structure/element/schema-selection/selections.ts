@@ -12,7 +12,7 @@ import type { Model } from '../../../model.js';
 import type { CoarseElements } from '../../../model/properties/coarse.js';
 import { range, sortIfNeeded } from '@molstar/core/util/array';
 import { ElementRanges, ElementRangesBuffer } from './element-ranges.js';
-import { IntBuffer, MaxRetainedBufferCapacity } from './int-buffer.js';
+import { IntBuffer, MaxRetainedBufferCapacity } from '@molstar/core/util/int-buffer';
 import {
   type AtomicIndicesAndSortings,
   type CoarseIndicesAndSortings,

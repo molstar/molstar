@@ -5,25 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/** A map where values are arrays. Handles missing keys when adding values. */
-export class MultiMap<K, V> implements Mapping<K, V[]> {
-  private _map = new Map();
-
-  /** Return the array of values assidned to a key (or `undefined` if no such values) */
-  get(key: K): V[] | undefined {
-    return this._map.get(key);
-  }
-  /** Append value to a key (handles missing keys) */
-  add(key: K, value: V) {
-    if (!this._map.has(key)) {
-      this._map.set(key, []);
-    }
-    this._map.get(key)!.push(value);
-  }
-}
-
-/** Basic subset of `Map<K, V>`, only needs to have `get` method */
-export type Mapping<K, V> = Pick<Map<K, V>, 'get'>;
+import type { Mapping } from '@molstar/core/util/multi-map';
 
 /** Implementation of `Map` where keys are integers and the values are non-negative integers (so they can be kept in a typed array)
  * and most keys are expected to be from interval `[offset, offset + limit)`.
