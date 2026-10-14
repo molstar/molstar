@@ -50,6 +50,7 @@ export const classes = {
   'railMenuButton': 'msp-shell-canvas-railMenuButton',
   'railMenuDivider': 'msp-shell-canvas-railMenuDivider',
   'railMenuList': 'msp-shell-canvas-railMenuList',
+  'railToggle': 'msp-shell-canvas-railToggle',
   'sections': 'msp-shell-canvas-sections',
   'spin': 'msp-shell-canvas-spin',
   'stack': 'msp-shell-canvas-stack',
@@ -182,6 +183,14 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-stack {
   --msp-stack-row: 34px;
   position: relative;
+}
+
+.msp-shell-canvas-railToggle {
+  right: calc((44px - var(--msp-stack-row)) / 2);
+  bottom: var(--msp-canvas-edge);
+  z-index: var(--msp-z-overlay);
+  pointer-events: auto;
+  position: absolute;
 }
 
 .msp-shell-canvas-corner {

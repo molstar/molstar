@@ -288,6 +288,18 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
     border-radius: 0;
   }
 
+  &[data-rail-overlay] {
+    bottom: calc(var(--msp-canvas-edge) + var(--msp-corner-room, 0px));
+
+    & .msp-shell-dock-rail {
+      border-bottom-left-radius: var(--msp-radius-lg);
+    }
+
+    & .msp-shell-dock-content {
+      margin-bottom: var(--msp-canvas-edge);
+    }
+  }
+
   & .msp-shell-dock-content {
     margin: var(--msp-canvas-edge) 0 calc(var(--msp-canvas-edge) + var(--msp-corner-room, 0px));
   }

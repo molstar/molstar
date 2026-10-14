@@ -151,6 +151,16 @@
   position: relative;
 }
 
+/* The compact rail's toggle: centered in the rail's column (44px, at the right edge), at the corner row's bottom, where
+   the rail, ending above the corner row, slides in around it. */
+.railToggle {
+  position: absolute;
+  right: calc((44px - var(--msp-stack-row)) / 2);
+  bottom: var(--msp-canvas-edge);
+  z-index: var(--msp-z-overlay);
+  pointer-events: auto;
+}
+
 /* The corner: the toolbar pinned at the right, and the work in hand (the selection chips) to its left on the same row,
    bottom-aligned: they appear and go without moving the toolbar. Where the row does not fit, the chips wrap to a row above
    (the toolbar comes first in the markup, and the row runs right to left). */

@@ -272,6 +272,20 @@
     box-shadow: -1px 0 0 var(--msp-glass-edge);
   }
 
+  /* A compact rail lies over the canvas' edge and stops above the corner row (the toolbar and its toggle stay clear),
+     as the floating panel does; the panel beside it keeps only the frame margin below. */
+  &[data-rail-overlay] {
+    bottom: calc(var(--msp-canvas-edge) + var(--msp-corner-room, 0px));
+
+    & .rail {
+      border-bottom-left-radius: var(--msp-radius-lg);
+    }
+
+    & .content {
+      margin-bottom: var(--msp-canvas-edge);
+    }
+  }
+
   /* The floating panel stops above the corner (the toolbar), which does not move for it. */
   & .content {
     margin: var(--msp-canvas-edge) 0 calc(var(--msp-canvas-edge) + var(--msp-corner-room, 0px));

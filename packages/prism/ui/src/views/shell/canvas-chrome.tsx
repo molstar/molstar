@@ -566,8 +566,8 @@ function TaskPill(props: { task: StatusTask }) {
 }
 
 /**
- * The compact rail's button (`ShellOptions.compactRail`): the rail's head glyph, in a card of its own beside the canvas
- * stack; it shows and hides the whole rail column.
+ * The compact rail's button (`ShellOptions.compactRail`): the rail's head glyph, in a card of its own at the bottom of
+ * the rail's column (centered on its icons, at the viewport's edge); it shows and hides the whole rail column.
  */
 export function RailToggle(props: { shell: ShellModel }) {
   const { shell } = props;
@@ -577,7 +577,7 @@ export function RailToggle(props: { shell: ShellModel }) {
   );
   const title = shell.railOpen.pipe(map((open) => (open ? 'Hide the panel rail' : 'Show the panel rail')));
   return (
-    <div class={classes.stack}>
+    <div class={`${classes.stack} ${classes.railToggle}`}>
       <div class={classes.frame}>
         <button
           type="button"

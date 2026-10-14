@@ -118,6 +118,16 @@ export function ShellView(props: ShellViewProps) {
     distinctUntilChanged(),
   );
   const railPx = railHidden.pipe(map((h) => (h ? 0 : RailWidth)));
+  // A compact rail lies over the canvas' edge (it does not take the canvas' width, so opening it moves nothing): the
+  // canvas runs to the edge, and the corner keeps clear of the rail's column (where its toggle sits) whether it shows.
+  const compactRail = combineLatest([floating, shell.compactRail]).pipe(
+    map(([f, c]) => f && c),
+    distinctUntilChanged(),
+  );
+  const railTake = combineLatest([railPx, compactRail]).pipe(
+    map(([px, c]) => (c ? 0 : px)),
+    distinctUntilChanged(),
+  );
   // The button that shows and hides it, in the canvas's corner: only where the rail floats, and the rail is compact.
   const railToggle = combineLatest([floating, shell.compactRail]).pipe(
     map(([f, c]) => f && c),
@@ -135,7 +145,7 @@ export function ShellView(props: ShellViewProps) {
   );
   // The canvas and the band end where the fixed part of the layout begins: a pinned panel and the rail, or the rail alone
   // while the panel floats (it lies over both).
-  const canvasEnd = combineLatest([pinnedWidth, floating, railPx]).pipe(
+  const canvasEnd = combineLatest([pinnedWidth, floating, railTake]).pipe(
     map(([pinnedPx, f, rail]) => (pinnedPx > 0 ? pinnedPx : f ? rail : 0)),
     distinctUntilChanged(),
   );
@@ -147,8 +157,8 @@ export function ShellView(props: ShellViewProps) {
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
-  const cornerInset = combineLatest([pinned, compact, railPx]).pipe(
-    map(([p, c, rail]) => (p || c ? Edge : rail + Edge)),
+  const cornerInset = combineLatest([pinned, compact, railTake, compactRail]).pipe(
+    map(([p, c, rail, overlay]) => (p || c ? Edge : (overlay ? RailWidth : rail) + Edge)),
     distinctUntilChanged(),
     map((px) => `${px}px`),
   );
@@ -202,6 +212,8 @@ export function ShellView(props: ShellViewProps) {
           {props.empty ? <EmptyCanvas empty={props.empty} /> : null}
           <div class={canvasClasses.lead}>{props.playback}</div>
           {props.overlays}
+          {/* The compact rail's button: in the rail's column, at the bottom, where the rail slides in around it. */}
+          <Show when={railToggle}>{() => <RailToggle shell={shell} />}</Show>
           {/* The bottom of the canvas: the status on the left, and in the corner on the right the work in hand (the
               selection) to the left of the canvas toolbar on its row. Compact: the status and the selection are docked under the
               canvas; the toolbar stays in the corner. */}
@@ -211,8 +223,6 @@ export function ShellView(props: ShellViewProps) {
                 {() => <StatusLine status={status} onOpenLog={props.onOpenLog} after={props.agent} />}
               </Show>
               <div class={canvasClasses.corner}>
-                {/* The compact rail's button: a group of its own, at the corner's end. */}
-                <Show when={railToggle}>{() => <RailToggle shell={shell} />}</Show>
                 <CanvasStack shell={shell} lead={props.canvasLead} aside={props.canvasAside} />
                 <Show when={compact.pipe(map((c) => !c))}>
                   {() => <ContextChips status={status} lead={props.context?.()} />}
@@ -256,6 +266,7 @@ export function ShellView(props: ShellViewProps) {
                 />
               )) as HTMLElement;
               bind(shell.railShown, (shown) => dock.toggleAttribute('data-rail-hidden', !shown));
+              bind(shell.compactRail, (c) => dock.toggleAttribute('data-rail-overlay', c));
               return dock;
             }}
           </Show>

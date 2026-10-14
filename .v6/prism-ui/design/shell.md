@@ -101,14 +101,18 @@ extension UI) are placed.
   its callback sets a state only when the rounded height differs, and the left-out buttons are not rendered (their
   section's hairline goes with the last of them).
 - **Compact rail.** An option (`ShellOptions.compactRail`, off by default; `ShellModel.setCompactRail`; in the stories the
-  `compact` arg, `?args=compact:true`; not the narrow layout's compact `mode`): the whole rail column is hidden and the
-  canvas takes its width (`--msp-canvas-end`, the corner and the cards' insets follow). A button with the rail's head
-  glyph (the Mol* triangle) sits in the canvas's bottom-right corner, a card of its own (a gap) beside the canvas stack,
-  and shows and hides the column (`ShellModel.railOpen`, `toggleRail`; the command `shell.toggle-rail` has the same
-  effect and can be given a key). Hidden, the column is inert and paused (`activity`, §"Hidden UI"), slides out and
-  fades (transform and opacity only); shown, it is the rail as above at whatever size step fits. Hiding closes the
-  overlay card and the right panel, floating or pinned (a pinned panel without its rail could not switch tabs; its pin
-  is kept for when it opens again). Only where the rail floats: the narrow layout and the docked one have none.
+  `compact` arg, `?args=compact:true`; not the narrow layout's compact `mode`): the rail column is hidden and the canvas
+  runs to the viewport's edge. A button with the rail's head glyph (the Mol* triangle), a card of its own, sits at the
+  bottom of the rail's column (centered on the rail's icons, at the viewport's right edge, level with the corner row)
+  and shows and hides the column (`ShellModel.railOpen`, `toggleRail`; the command `shell.toggle-rail` does the same
+  and can be given a key). The rail is an overlay: it slides in over the canvas's edge and takes no width, so opening
+  it moves nothing (`--msp-canvas-end` stays 0; the corner toolbar keeps clear of the column whether it shows or not,
+  to the left of the toggle), and it ends above the corner row as the floating panel does (the toggle and the toolbar
+  stay visible and clickable); panels and cards open to its left as they do beside the normal rail, at whatever size
+  step fits the shorter column. Hidden, the column is inert and paused (`activity`, §"Hidden UI"), slid out and faded
+  (transform and opacity only). Hiding closes the overlay card and the right panel, floating or pinned (a pinned panel
+  without its rail could not switch tabs; its pin is kept for when it opens again; a pinned panel beside the canvas
+  does take its width). Only where the rail floats: the narrow layout and the docked one have none.
 - **Theme switch.** At the rail's foot by Settings: a click goes to the next UI theme (Light, Dark, Blue, Auto (system):
   `UIThemes`, `ThemeModel.next`); its icon and tooltip are the current one's. `ThemeModel` (`shell/theme.ts`) keeps
   `data-msp-theme` on the element the UI is themed by. Settings › Interface offers the same choice. The rail, the panel
