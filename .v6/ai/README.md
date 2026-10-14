@@ -22,6 +22,7 @@ Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they
 | Document                                           | What it is                                                                                                     |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | [harness.md](harness.md)                           | the architecture; code comments cite its sections (`harness.md §6`)                                            |
+| [packages/ai/\_spec](../../packages/ai/_spec/README.md) | the spec for working with the code: packages, contracts, how they bind, where things are |
 | [tools-and-session.md](tools-and-session.md)       | `@molstar/ai-tools` and `@molstar/ai-session`: tools, field shapes, groups, the session, the drive, compaction |
 | [plan.md](plan.md)                                 | where it comes from, the move, what is next                                                                    |
 | [analysis/viewer-mode.md](analysis/viewer-mode.md) | the agent in the viewer mode: tools, skills, the Inspector, fibers (2026-10-11)                                |
