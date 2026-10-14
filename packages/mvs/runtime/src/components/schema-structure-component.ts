@@ -10,7 +10,7 @@ import { StateObject, StateTransformer } from '@molstar/core/state';
 import { deepEqual } from '@molstar/core/util';
 import { omitObjectKeys } from '@molstar/core/util/object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { substructureFromRows } from '@molstar/mvs/helpers/row-structure';
+import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import { describeRows } from '@molstar/mvs/helpers/row-label';
 import type { MVSAnnotationRow } from '@molstar/mvs/helpers/schemas';
 import { MVSTransform } from './annotation-structure-component.js';

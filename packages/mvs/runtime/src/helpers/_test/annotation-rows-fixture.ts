@@ -10,7 +10,7 @@ import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import type { Model } from '@molstar/model/model/structure';
 import type { MVSAnnotationRow } from '../schemas.js';
-import type { RowOperator } from '../selections.js';
+import type { RowOperator } from '@molstar/model/model/structure/structure/element/schema-selection/selections';
 
 /** An operator for tests which apply rows to a model directly: its instance is '1', as the `instance_id` rows of the fixture expect. */
 export const TestOperator: RowOperator = { instanceId: '1', name: '1_555' };

@@ -43,7 +43,7 @@ import { Color } from '@molstar/core/util/color';
 import { MarkerActions } from '@molstar/core/util/marker-action';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { capitalize } from '@molstar/core/util/string';
-import { substructureFromRows } from '@molstar/mvs/helpers/row-structure';
+import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import type { MVSAnnotationRow } from '@molstar/mvs/helpers/schemas';
 import { collectMVSReferences, decodeColor, isDefined } from '@molstar/mvs/helpers/utils';
 import { addParamDefaults } from '@molstar/mvs-builder/tree/generic/params-schema';

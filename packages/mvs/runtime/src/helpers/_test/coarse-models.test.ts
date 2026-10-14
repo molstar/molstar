@@ -11,7 +11,7 @@ import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { Structure, StructureSelection, Unit } from '@molstar/model/model/structure';
 import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
-import { substructureFromRows } from '../row-structure.js';
+import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import type { MVSAnnotationRow } from '../schemas.js';
 import { rowsToExpression } from '../selections.js';
 import { IdentityOperator, mulberry32, randInt } from './annotation-rows-fixture.js';

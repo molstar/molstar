@@ -8,8 +8,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { Column } from '@molstar/core/data/db';
 import { Coordinates, type Frame, Model, Structure, StructureElement, Time } from '@molstar/model/model/structure';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
-import { HierarchyScope, IndicesAndSortings } from '../indexing.js';
-import { substructureFromRows } from '../row-structure.js';
+import {
+  HierarchyScope,
+  IndicesAndSortings,
+} from '@molstar/model/model/structure/structure/element/schema-selection/indexing';
+import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import { createModel } from './annotation-rows-fixture.js';
 
 /** A coordinate trajectory of `nFrames` frames: copies of `model` with other coordinates, as created for XTC, DCD, ... */

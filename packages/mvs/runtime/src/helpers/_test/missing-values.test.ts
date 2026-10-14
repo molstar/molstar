@@ -8,10 +8,11 @@ import { describe, expect, it } from 'vitest';
 import { Structure, StructureSelection } from '@molstar/model/model/structure';
 import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
-import { IndicesAndSortings } from '../indexing.js';
-import { substructureFromRows } from '../row-structure.js';
+import { IndicesAndSortings } from '@molstar/model/model/structure/structure/element/schema-selection/indexing';
+import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import type { MVSAnnotationRow } from '../schemas.js';
-import { getAtomRangesForRow, rowsToExpression } from '../selections.js';
+import { getAtomRangesForRow } from '@molstar/model/model/structure/structure/element/schema-selection/selections';
+import { rowsToExpression } from '../selections.js';
 import { TestOperator, createModel } from './annotation-rows-fixture.js';
 
 /**

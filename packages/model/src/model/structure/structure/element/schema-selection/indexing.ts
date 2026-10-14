@@ -7,8 +7,9 @@
 
 import { Column } from '@molstar/core/data/db';
 import { SortedArray } from '@molstar/core/data/int';
-import { type ChainIndex, type ElementIndex, Model, type ResidueIndex } from '@molstar/model/model/structure';
-import type { CoarseElements } from '@molstar/model/model/structure/model/properties/coarse';
+import type { ChainIndex, ElementIndex, ResidueIndex } from '../../../model/indexing.js';
+import type { Model } from '../../../model.js';
+import type { CoarseElements } from '../../../model/properties/coarse.js';
 import { filterInPlace, range, sortIfNeeded } from '@molstar/core/util/array';
 import { type Mapping, MultiMap, NumberMap } from './utils.js';
 

@@ -6,8 +6,6 @@
 
 import { describe, expect, it } from 'vitest';
 import { ElementPainter } from '../element-painter.js';
-import { GlobalResidueIndices } from '../indexing.js';
-import { Column } from '@molstar/core/data/db';
 
 function paintAll(n: number, ranges: [number, number, number][]) {
   const painter = new ElementPainter();
@@ -96,23 +94,5 @@ describe('ElementPainter instances', () => {
     p.begin(4);
     p.paint([0], [1], 1, 5);
     expect(Array.from(p.result()!)).toEqual([5, -1, -1, -1]);
-  });
-});
-
-describe('GlobalResidueIndices', () => {
-  const hierarchy = (sourceIndex: number[]) =>
-    ({
-      residues: { _rowCount: sourceIndex.length },
-      residueSourceIndex: Column.ofIntArray(sourceIndex),
-    }) as any;
-
-  it('maps residue_index to the residue when it is unique', () => {
-    const map = new GlobalResidueIndices(hierarchy([10, 11, 12, 40])).residueBySourceIndex!;
-    expect(map.get(12)).toBe(2);
-    expect(map.get(40)).toBe(3);
-    expect(map.get(13)).toBeUndefined();
-  });
-  it('is null when residue_index repeats (the per-chain indices are used then)', () => {
-    expect(new GlobalResidueIndices(hierarchy([0, 1, 1, 2])).residueBySourceIndex).toBeNull();
   });
 });

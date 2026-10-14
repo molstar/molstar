@@ -5,10 +5,11 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { type Structure, Unit } from '@molstar/model/model/structure';
+import type { Structure } from '../../structure.js';
+import { Unit } from '../../unit.js';
 import { ElementRanges } from './element-ranges.js';
 import { IndicesAndSortings } from './indexing.js';
-import type { MVSAnnotationRow } from './schemas.js';
+import type { SchemaItem } from '../schema.js';
 import {
   getAtomRangesForRows,
   getGaussianRangesForRows,
@@ -22,7 +23,7 @@ export class ElementRangesCache {
   private readonly cache: { [key: string]: ElementRanges } = {};
   private readonly hasOperators: boolean;
 
-  constructor(private readonly rows: readonly MVSAnnotationRow[]) {
+  constructor(private readonly rows: readonly SchemaItem[]) {
     this.hasOperators = rowsUseOperators(rows);
   }
 
@@ -52,7 +53,7 @@ export class ElementRangesCache {
  * - a residue without `label_seq_id` never satisfies a `label_seq_id` criterion (MolScript reads it as 0),
  * - criteria which only exist for atoms select nothing on coarse elements (MolScript throws), and a range with `beg > end` selects nothing,
  * and when every element is selected, it returns `structure` itself. */
-export function substructureFromRows(structure: Structure, rows: readonly MVSAnnotationRow[]): Structure {
+export function substructureFromRows(structure: Structure, rows: readonly SchemaItem[]): Structure {
   if (rows.length === 0 || structure.isEmpty) return structure.subsetBuilder(true).getStructure(); // (empty)
   const cache = new ElementRangesCache(rows);
   const builder = structure.subsetBuilder(true);

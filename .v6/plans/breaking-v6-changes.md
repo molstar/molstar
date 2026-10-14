@@ -685,14 +685,17 @@ of the model instead of a MolScript query on every atom. The public changes in `
   the previous `expression` components load as before. The classic UI's "modify by current selection" is not available
   for the new components (to be added when needed), and switching a node between a rows selector and a static or MolQL
   one in a snapshot changes its ref (the transformer id is part of it).
-- **Helper modules** (`@molstar/mvs/helpers/*`, public through `./*`): `getAtomRangesForRow(s)`,
+- **Selection helpers move to the model package.** The resolution of rows through model indices does not depend on MVS
+  and lives next to `StructureElement.Schema` in `@molstar/model/model/structure/structure/element/schema-selection/*`
+  (`element-ranges`, `int-buffer`, `indexing`, `selections`, `row-structure`, `utils`); they were
+  `@molstar/mvs/helpers/*` modules, which are not kept as re-exports (`@molstar/mvs/helpers/selections` keeps
+  `rowToExpression` and `rowsToExpression`). Rows are `StructureElement.SchemaItem` there. `getAtomRangesForRow(s)`,
   `getSphereRangesForRow(s)` and `getGaussianRangesForRow(s)` take the unit's operator (`{ instanceId, name }`) where
   they took an `instanceId` string; `getAtomRangesForRowInto` writes into reusable buffers; `ElementRanges.union` is
   implemented by sorting the starts and the ends; `IndicesAndSortings.get` is shared by the models of a trajectory
-  (`HierarchyScope`); `Sorting.findIndexRange` replaces a linear scan; new `row-structure` (`substructureFromRows`,
-  `ElementRangesCache`), `element-painter`, `int-buffer` and `row-label` modules. `MVSAnnotationRow` (annotation schema
-  `all_atomic`) has `operator_name`. Annotation values given as text for numbers (and numbers for identifiers) in JSON
-  annotations are converted to the type of the field.
+  (`HierarchyScope`); `Sorting.findIndexRange` replaces a linear scan; `substructureFromRows` and `ElementRangesCache`
+  are new. `MVSAnnotationRow` (annotation schema `all_atomic`) has `operator_name`. Annotation values given as text for
+  numbers (and numbers for identifiers) in JSON annotations are converted to the type of the field.
 - **Where the selection differs from the MolScript expression of the same rows** (`rowsToExpression`, which is kept for
   consumers of expressions): a residue without `label_seq_id` (ligands, waters in many files) never satisfies a
   `label_seq_id`, `beg_label_seq_id` or `end_label_seq_id` criterion (MolScript reads a missing value as 0, so

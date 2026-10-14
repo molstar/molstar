@@ -20,7 +20,10 @@ import { objectOfArraysToArrayOfObjects, pickObjectKeysWithRemapping, promiseAll
 import { Choice } from '@molstar/core/util/param-choice';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ElementPainter } from '@molstar/mvs/helpers/element-painter';
-import { HierarchyScope, IndicesAndSortings } from '@molstar/mvs/helpers/indexing';
+import {
+  HierarchyScope,
+  IndicesAndSortings,
+} from '@molstar/model/model/structure/structure/element/schema-selection/indexing';
 import { MaybeStringParamDefinition } from '@molstar/mvs/helpers/param-definition';
 import { type MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '@molstar/mvs/helpers/schemas';
 import {
@@ -30,7 +33,7 @@ import {
   getGaussianRangesForRow,
   getSphereRangesForRow,
   rowsUseOperators,
-} from '@molstar/mvs/helpers/selections';
+} from '@molstar/model/model/structure/structure/element/schema-selection/selections';
 import { type Maybe, isDefined, safePromise } from '@molstar/mvs/helpers/utils';
 
 /** Allowed values for the annotation format parameter */

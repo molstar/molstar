@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MaxRetainedBufferCapacity } from './int-buffer.js';
+import { MaxRetainedBufferCapacity } from '@molstar/model/model/structure/structure/element/schema-selection/int-buffer';
 
 /** Assigns a value to each element of `[0, n)`, where every element gets the value of the *first* painted range which contains it
  * (to give the *last* row of an annotation priority, paint the rows in reverse order).

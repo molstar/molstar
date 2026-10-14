@@ -10,7 +10,7 @@ import { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator'
 import { Structure, StructureSelection } from '@molstar/model/model/structure';
 import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
 import type { MVSAnnotationRow } from '../schemas.js';
-import { substructureFromRows } from '../row-structure.js';
+import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import { rowsToExpression } from '../selections.js';
 import { combinedCategories, createModel, makeRows, rowCategories } from './annotation-rows-fixture.js';
 

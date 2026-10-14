@@ -7,10 +7,14 @@
 import { describe, expect, it } from 'vitest';
 import type { ElementIndex } from '@molstar/model/model/structure';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
-import { ElementRanges } from '../element-ranges.js';
-import { IndicesAndSortings } from '../indexing.js';
+import { ElementRanges } from '@molstar/model/model/structure/structure/element/schema-selection/element-ranges';
+import { IndicesAndSortings } from '@molstar/model/model/structure/structure/element/schema-selection/indexing';
 import type { MVSAnnotationRow } from '../schemas.js';
-import { atomQualifies, getAtomRangesForRow, getAtomRangesForRows } from '../selections.js';
+import {
+  atomQualifies,
+  getAtomRangesForRow,
+  getAtomRangesForRows,
+} from '@molstar/model/model/structure/structure/element/schema-selection/selections';
 import { TestOperator, combinedCategories, createModel, makeRows, rowCategories } from './annotation-rows-fixture.js';
 
 /** The per-atom definition of "atom satisfies row" (`atomQualifies`, a linear scan) is the oracle for the index-driven implementation. */

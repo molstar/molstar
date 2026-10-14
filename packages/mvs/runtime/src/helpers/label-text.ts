@@ -18,9 +18,9 @@ import {
 } from '@molstar/model/model/structure';
 import { getPhysicalRadius } from '@molstar/graphics/theme/size/physical';
 import { arrayExtend } from '@molstar/core/util/array';
-import { ElementRanges } from './element-ranges.js';
+import { ElementRanges } from '@molstar/model/model/structure/structure/element/schema-selection/element-ranges';
 import type { MVSAnnotationRow } from './schemas.js';
-import { ElementRangesCache } from './row-structure.js';
+import { ElementRangesCache } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 
 /** Properties describing position, size, etc. of a text in 3D */
 export interface TextProps {

@@ -18,11 +18,12 @@
 import { getHeapStatistics } from 'node:v8';
 import { describe, it } from 'vitest';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
-import { IndicesAndSortings } from '../indexing.js';
+import { IndicesAndSortings } from '@molstar/model/model/structure/structure/element/schema-selection/indexing';
 import { Coordinates, type Frame, Model, Time } from '@molstar/model/model/structure';
 import type { MVSAnnotationRow } from '../schemas.js';
-import { getAtomRangesForRows, rowsToExpression } from '../selections.js';
-import { substructureFromRows } from '../row-structure.js';
+import { getAtomRangesForRows } from '@molstar/model/model/structure/structure/element/schema-selection/selections';
+import { rowsToExpression } from '../selections.js';
+import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import { Structure, StructureSelection } from '@molstar/model/model/structure';
 import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
 import {

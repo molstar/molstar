@@ -15,7 +15,7 @@ import { PluginStateObject } from '@molstar/plugin/state/objects';
 import { MolScriptBuilder } from '@molstar/query-language/language/builder';
 import { Expression } from '@molstar/query-language/language/expression';
 import { mapArrayToObject, pickObjectKeys } from '@molstar/core/util/object';
-import { substructureFromRows } from '@molstar/mvs/helpers/row-structure';
+import { substructureFromRows } from '@molstar/model/model/structure/structure/element/schema-selection/row-structure';
 import type { MVSAnnotationRow } from '@molstar/mvs/helpers/schemas';
 import { Choice } from '@molstar/core/util/param-choice';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';

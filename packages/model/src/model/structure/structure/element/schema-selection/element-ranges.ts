@@ -6,7 +6,7 @@
  */
 
 import { SortedArray } from '@molstar/core/data/int';
-import type { ElementIndex } from '@molstar/model/model/structure';
+import type { ElementIndex } from '../../../model/indexing.js';
 import { MaxRetainedBufferCapacity } from './int-buffer.js';
 
 /** Represents a collection of disjoint elements ranges in a model (atoms, spheres, or gaussians).
