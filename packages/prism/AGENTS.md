@@ -13,6 +13,11 @@ The new Mol\* UI. The repository's rules ([../../AGENTS.md](../../AGENTS.md)) ap
   is `--msp-space-1..6`; `styles:check` rejects other values). The look is flat and quiet: few borders and shadows, the
   accent only for actions and the picked item, text that does not fit fades rather than ends in an ellipsis. Check light
   and dark, wide and narrow, in Storybook.
+- **Snappy is a requirement** (David, 2026-10-14; the rules in
+  [styling.md §5](../../.v6/prism-ui/design/styling.md)): no layout reads after writes in the same frame, pointer-rate
+  paths that only update what changed (once per frame, nothing rebuilt or allocated per event), animation of
+  `transform` and `opacity` only, flat single-class selectors, contained and virtualized subtrees. Measure an
+  interaction in the browser's performance panel before calling it done.
 
 ## Commands
 
