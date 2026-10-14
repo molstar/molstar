@@ -1,9 +1,17 @@
-// MessagePack (seqspec:format#values): Mol*'s encoder and decoder, vendored here (VENDORED.md), and SVS's typed-array
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+// MessagePack (seqspec:format#values): Mol*'s encoder and decoder (@molstar/io/common/msgpack), and SVS's typed-array
 // extension, ours: an array of numbers as packed little-endian elements, one extension type per element kind, only the
 // kinds that hold their numbers exactly. It decodes to a typed array of the kind written.
 
-import { decodeMsgPack, type MsgPackExtDecoder } from './decode.js';
-import { encodeMsgPack, type MsgPackExtData, type MsgPackExtEncoder } from './encode.js';
+import { decodeMsgPack, type MsgPackExtDecoder } from '@molstar/io/common/msgpack/decode';
+import { encodeMsgPack, type MsgPackExtData, type MsgPackExtEncoder } from '@molstar/io/common/msgpack/encode';
 
 export { decodeMsgPack, encodeMsgPack, type MsgPackExtData, type MsgPackExtDecoder, type MsgPackExtEncoder };
 

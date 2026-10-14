@@ -11,5 +11,6 @@
     "lib": ["ES2023"],
     "types": ["node"]
   },
-  "include": ["src/query", "_test/query"]
+  "include": ["src/query", "_test/query"],
+  "references": [{ "path": "../../core" }, { "path": "../../io" }]
 }

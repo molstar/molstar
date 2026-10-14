@@ -4,9 +4,9 @@
  * @license MIT
  * @copyright 2020
  */
-import BitArray from '../utils/bitarray.js';
+import { BitArray } from '../utils/bitarray.js';
 import { DEBUG, SEQUENCE_TYPE } from '../align/params.js';
-import Log from '../utils/logger.js';
+import { Log } from '../utils/logger.js';
 
 export type TSequence = {
   /** Sequence as a string */
@@ -363,7 +363,7 @@ function computeBackgroundKmerMatch(kmerCount: number, universeSize: number) {
 }
 
 export function sortMSA<K>(msa: K[], order: number[]): K[] {
-  let lSorted = order.slice();
+  const lSorted = order.slice();
   order.forEach((v, k) => (lSorted[v] = k));
   return lSorted.map((v) => msa[v]);
 }

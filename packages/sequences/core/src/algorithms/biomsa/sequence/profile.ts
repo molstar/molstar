@@ -7,7 +7,7 @@
 
 import { ALIGNOPT } from '../align/align.js';
 import { SEQUENCE_TYPE, type TAlignmentParam } from '../align/params.js';
-import BitArray from '../utils/bitarray.js';
+import { BitArray } from '../utils/bitarray.js';
 import { estringLength, estringToIdx } from '../utils/estring.js';
 import { aaToNum, nucToNum, type TSequence } from './sequence.js';
 
@@ -208,7 +208,7 @@ export function profileFromMSA(pMSA: string[], pWeights: number[], params: TAlig
   const lProf = new ProfPos(l, params.abSize, pMSA.length, totalW);
 
   const lGapO = params.gapOP;
-  let lProx = lProf.getProxy();
+  const lProx = lProf.getProxy();
 
   for (let col = 0; col < l; col++) {
     lProx.setProxy(col);
@@ -243,8 +243,8 @@ export function profileFromMSA(pMSA: string[], pWeights: number[], params: TAlig
 
     // Cache substitution scores at this position
 
-    let imax = lProx.m_uResidueGroup;
-    let lSortOrder = lProx.m_uSortOrder;
+    const imax = lProx.m_uResidueGroup;
+    const lSortOrder = lProx.m_uSortOrder;
     let lScore = 0,
       lResProfNb = 0;
     for (let aaNum = 0; aaNum < params.abSize; aaNum++) {
@@ -284,10 +284,10 @@ export function seqToProf(pSeq: TSequence, pWeight: number, params: TAlignmentPa
 
   const lProf = new ProfPos(l, params.abSize, 1, pWeight);
 
-  let w = pWeight; //sequence weight
+  const w = pWeight; //sequence weight
 
   const lGapO = params.gapOP;
-  let lProx = lProf.getProxy();
+  const lProx = lProf.getProxy();
   let lResNb = 0;
 
   for (let col = 0; col < l; col++) {
@@ -348,14 +348,14 @@ export function mergeProfiles(
   const lProf = new ProfPos(l, params.abSize, n, w);
 
   const lGapO = params.gapOP;
-  let lProx = lProf.getProxy();
-  let lProxA = pProfA.getProxy();
-  let lProxB = pProfB.getProxy();
+  const lProx = lProf.getProxy();
+  const lProxA = pProfA.getProxy();
+  const lProxB = pProfB.getProxy();
 
   // indices to map columns in the new profile to the columns in the original
   // profiles.
-  let lAidx = estringToIdx(pESA);
-  let lBidx = estringToIdx(pESB);
+  const lAidx = estringToIdx(pESA);
+  const lBidx = estringToIdx(pESB);
   let lAi = 0;
   let lBi = 0;
 
@@ -388,7 +388,7 @@ export function mergeProfiles(
     lProxB.setProxy(lBi);
     if (lBi === -1) {
       lBisGapOpening = lBiPrev >= 0;
-      lBisGapClosing = col == l - 1 || lBidx[col + 1] > 0;
+      lBisGapClosing = col === l - 1 || lBidx[col + 1] > 0;
     } else {
       lBisGapOpening = false;
       lBisGapClosing = false;
@@ -406,7 +406,7 @@ export function mergeProfiles(
       lProx.m_fcCounts.set(lProxA.m_fcCounts);
       lProx.m_wCounts.set(lProxA.m_wCounts);
       for (let i = 0; i < pProfB.alphaSize; i++) {
-        let v = lProxB.m_fcCounts[i];
+        const v = lProxB.m_fcCounts[i];
         if (v) {
           lProx.m_fcCounts[i] += v;
           lProx.m_wCounts[i] += lProxB.m_wCounts[i];
@@ -421,7 +421,7 @@ export function mergeProfiles(
     }
 
     // Gap introduced in profile A only
-    else if (lAi == -1) {
+    else if (lAi === -1) {
       lProx.m_fcStartOcc = lProxB.m_fcStartOcc + (lAisGapOpening ? pProfA.weight : 0);
       lProx.m_fcEndOcc = lProxB.m_fcEndOcc + (lAisGapClosing ? pProfA.weight : 0);
       lProx.m_fOcc = lProxB.m_fOcc;
@@ -433,7 +433,7 @@ export function mergeProfiles(
     }
 
     // Gap introduced in profile B only
-    else if (lBi == -1) {
+    else if (lBi === -1) {
       lProx.m_fcStartOcc = lProxA.m_fcStartOcc + (lBisGapOpening ? pProfB.weight : 0);
       lProx.m_fcEndOcc = lProxA.m_fcEndOcc + (lBisGapClosing ? pProfB.weight : 0);
       lProx.m_fOcc = lProxA.m_fOcc;

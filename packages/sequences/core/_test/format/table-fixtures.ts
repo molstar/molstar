@@ -12,7 +12,6 @@
 
 import type { SeqViewSpecDoc } from '../../src/format/index.js';
 
-// biome-ignore lint/suspicious/noExplicitAny: documents are edited freely as JSON.
 type J = any;
 
 export const CHROMOSOMES = Array.from({ length: 24 }, (_, i) => `chr${i + 1}`);

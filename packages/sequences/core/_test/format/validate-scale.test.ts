@@ -25,7 +25,6 @@ import {
 import { kernel } from './fixtures.js';
 import { CHROMOSOMES, codedDoc, countingCodes, freshParams, gcNode } from './table-fixtures.js';
 
-// biome-ignore lint/suspicious/noExplicitAny: documents are edited freely as JSON.
 type J = any;
 const reg = kernel();
 const GC = '/root/children/0/children/24';

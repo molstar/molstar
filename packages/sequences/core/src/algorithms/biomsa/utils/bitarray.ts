@@ -23,7 +23,7 @@ export function hammingWeight(v: number) {
  * Based heavily on https://github.com/lemire/FastBitSet.js
  * which is licensed under the Apache License, Version 2.0.
  */
-export default class BitArray {
+export class BitArray {
   private _words: Uint32Array;
   public length: number;
 

@@ -28,8 +28,8 @@ import {
   validate,
 } from '../../src/format/index.js';
 import { isRelativeUri, resolveArchivePath } from '../../src/format/uri-path.js';
-import { RuntimeContext } from '../../src/format/zip/shims.js';
-import { deflate, inflateRaw, unzip, zip } from '../../src/format/zip/zip.js';
+import { SyncRuntimeContext as RuntimeContext } from '@molstar/core/task/execution/synchronous';
+import { deflate, inflateRaw, unzip, zip } from '@molstar/core/util/zip/zip';
 import { fixtureLoaders, registries } from './load-fixtures.js';
 
 const enc = (s: string) => new TextEncoder().encode(s);

@@ -53,7 +53,7 @@
 import type { TSequence } from '../sequence/sequence.js';
 import { DEQueue } from '../utils/queue.js';
 import { DEBUG, type TAlignmentParam } from './params.js';
-import Log from '../utils/logger.js';
+import { Log } from '../utils/logger.js';
 import { hammingWeight } from '../utils/bitarray.js';
 import { ALIGNOPT, pairwiseAlignment } from './align.js';
 import {
@@ -214,7 +214,7 @@ export function extractMinimizers(seq: TSequence, ksize: number, wsize: number):
 
     // Store head kmer in minimizer hash
 
-    let lHead = lQueue.getHead();
+    const lHead = lQueue.getHead();
 
     // Is it the same minimizer as in previous loop iteration?
     // If yes, only extend the minimized subarray
@@ -239,7 +239,7 @@ export function extractMinimizers(seq: TSequence, ksize: number, wsize: number):
       if (!lMinzMap.has(lHeadKmer)) {
         lMinzMap.set(lHeadKmer, [lIdx]);
       } else {
-        let lList = lMinzMap.get(lHeadKmer)!;
+        const lList = lMinzMap.get(lHeadKmer)!;
         lList.push(lIdx);
       }
     }
@@ -279,24 +279,24 @@ export function noalignPair(
   // range and thus avoid extra computations.
 
   for (let i = 0; i < lMinzAStore.count; i++) {
-    let kmer = lMinzAStore.kmer[i];
+    const kmer = lMinzAStore.kmer[i];
 
     if (!lMinzB.has(kmer)) continue;
-    let listB = lMinzB.get(kmer)!;
+    const listB = lMinzB.get(kmer)!;
     if (listB.length > 4) continue; // poor minimizer. prevent combinatorial explosion
 
     // Compare minimized string in A with those in listB to take advantage of
     // the ones that share common minimized strings
 
-    let lMinzSubA = seqA.rawSeq.substring(lMinzAStore.winPos[i], lMinzAStore.winPosEnd[i]);
+    const lMinzSubA = seqA.rawSeq.substring(lMinzAStore.winPos[i], lMinzAStore.winPosEnd[i]);
 
     for (let j = 0; j < listB.length; j++) {
-      let lBidx = listB[j];
-      let lMinzSubB = seqB.rawSeq.substring(lMinzBStore.winPos[lBidx], lMinzBStore.winPosEnd[lBidx]);
-      let lLen = Math.min(lMinzSubA.length, lMinzSubB.length);
+      const lBidx = listB[j];
+      const lMinzSubB = seqB.rawSeq.substring(lMinzBStore.winPos[lBidx], lMinzBStore.winPosEnd[lBidx]);
+      const lLen = Math.min(lMinzSubA.length, lMinzSubB.length);
 
       let lHasCommonWindow = false;
-      if (lLen == lMinzSubA.length) {
+      if (lLen === lMinzSubA.length) {
         lHasCommonWindow = lMinzSubB.indexOf(lMinzSubA) === 0;
       } else lHasCommonWindow = lMinzSubA.indexOf(lMinzSubB) === 0;
 
@@ -323,7 +323,7 @@ export function noalignPair(
       if (!lDiagMap.has(lDiagId)) {
         lDiagMap.set(lDiagId, [lRange]);
       } else {
-        let lDiagList = lDiagMap.get(lDiagId);
+        const lDiagList = lDiagMap.get(lDiagId);
         lDiagList!.push(lRange);
       }
     }
@@ -365,7 +365,7 @@ export function noalignPair(
   // Sort ranges in diag list from left to right and from top to bottom
   // STORIES-UNTOLD(B12): by the position in A; `begin + diagId` put a diagonal after a long insertion in B first.
   lDiagList.sort((a, b) => {
-    let lDelta = a.begin - b.begin;
+    const lDelta = a.begin - b.begin;
     return lDelta === 0 ? a.diagId - b.diagId : lDelta;
   });
   if (DEBUG) Log.add('Sort Minimizers');
@@ -395,11 +395,11 @@ export function noalignPair(
   // This is measured by bitwise operations between 16bits numbers.
 
   let lPrevSegment: TRange = { diagId: 0, begin: 0, end: 0 }; //lDiagList[0];
-  let lExtDiagList = [lPrevSegment];
-  let lMissingSegments: TMissingSegment[] = [];
+  const lExtDiagList = [lPrevSegment];
+  const lMissingSegments: TMissingSegment[] = [];
 
   for (let i = 0; i < lDiagList.length; i++) {
-    let lCurrentSegment = lDiagList[i];
+    const lCurrentSegment = lDiagList[i];
     // STORIES-UNTOLD(B12): a diagonal may overlap the previous one by a few letters (it was chained so); trim it.
     lCurrentSegment.begin += Math.max(
       0,
@@ -538,7 +538,7 @@ export function noalignPair(
     lEpathA.push(lDiag.end - lDiag.begin);
     lEpathB.push(lDiag.end - lDiag.begin);
 
-    let lMis = lMissingSegments[i];
+    const lMis = lMissingSegments[i];
     if (lMis) {
       // Special case next diag begins at same col prev diag finishes
       if (lMis.begin === lMis.end) {
@@ -556,7 +556,7 @@ export function noalignPair(
         continue;
       }
 
-      let lResult = pairwiseAlignment(
+      const lResult = pairwiseAlignment(
         {
           rawSeq: seqA.rawSeq.substring(lMis.begin, lMis.end),
           type: seqA.type,
@@ -612,8 +612,8 @@ export function noalignPair(
  * @param {number} targetLength
  */
 function sanitizeEpathEnd(epath: number[], targetLength: number) {
-  let lCount = estringCountPositive(epath);
-  let lDelta = targetLength - lCount;
+  const lCount = estringCountPositive(epath);
+  const lDelta = targetLength - lCount;
   if (lDelta > 0) epath.push(lDelta);
   else if (lDelta < 0) epath[epath.length - 1] += lDelta;
 }
@@ -642,20 +642,20 @@ export function dnaHammingDistance(a: number, b: number) {
  * @returns
  */
 export function centerStarNoAlign(pSeq: TSequence[], pAlignParam: TAlignmentParam) {
-  let lMinz = pSeq.map((seq) => {
+  const lMinz = pSeq.map((seq) => {
     return extractMinimizers(seq, KSIZE, WSIZE);
   });
 
   // TODO: find center sequence
-  let lCenter = 0;
-  let lEStrings: number[][] = [];
+  const lCenter = 0;
+  const lEStrings: number[][] = [];
   let lCenterEString: number[] = [];
-  let lCenterEStringRaw: number[][] = [];
+  const lCenterEStringRaw: number[][] = [];
 
   for (let i = 0; i < lMinz.length; i++) {
     if (i === lCenter) continue;
 
-    let lEsAln = noalignPair(pSeq[lCenter], pSeq[i], pAlignParam, lMinz[lCenter], lMinz[i]);
+    const lEsAln = noalignPair(pSeq[lCenter], pSeq[i], pAlignParam, lMinz[lCenter], lMinz[i]);
 
     // Center Edit strings combines the Edit strings from the alignment to the
     // current sequence with its previous edit strings.
@@ -675,7 +675,7 @@ export function centerStarNoAlign(pSeq: TSequence[], pAlignParam: TAlignmentPara
       lEStrings[i] = lCenterEString;
       continue;
     }
-    let lDiff = estringDifference(lCenterEString, lCenterEStringRaw[i]);
+    const lDiff = estringDifference(lCenterEString, lCenterEStringRaw[i]);
     if (!lDiff) {
       console.error(
         'An error occured while computing the center diff. for sequence #' + i,
@@ -744,12 +744,12 @@ export function extractLongestPath(pDiagList: TRange[], pLenA: number, pLenB: nu
   const lDividerDiag = pLenA - pLenB;
 
   /** Collections of list of increasing diagonals */
-  let lIncreasingPaths: number[] = [0];
+  const lIncreasingPaths: number[] = [0];
   /** Stores at the index corresponding to each diagonal, the index of its
    * preceding diagonal
    */
   // STORIES-UNTOLD(B8): Int32Array (an Int16Array wrapped past 32,767 diagonals).
-  let lTraceBack = new Int32Array(pDiagList.length);
+  const lTraceBack = new Int32Array(pDiagList.length);
   lTraceBack[0] = -1; // starts a path
 
   /** The current diag in the list */
@@ -762,14 +762,14 @@ export function extractLongestPath(pDiagList: TRange[], pLenA: number, pLenB: nu
   let lDiagTopRow = lDiag.begin - lDiag.diagId;
   let lDiagDistToEnd = Math.min(pLenB - lDiagBottomRow, pLenA - lDiag.end);
   /** Length of each list of increasing diagonals as the sum of diags length */
-  let lPathsScores: number[] = [lDiagLen];
+  const lPathsScores: number[] = [lDiagLen];
   /** Y position of the tip of the path */
-  let lPathsBottomRow: number[] = [lDiagBottomRow];
+  const lPathsBottomRow: number[] = [lDiagBottomRow];
 
-  let lPathsDistToEnd = [lDiagDistToEnd];
+  const lPathsDistToEnd = [lDiagDistToEnd];
   /** Reference to current minimum in list of paths */
   let lMinDiag = pDiagList[0];
-  let lMaxDiagId = 0;
+  const lMaxDiagId = 0;
   let lMaxDiag = pDiagList[lMaxDiagId];
   let lOptimumScore = lDiagLen;
 
@@ -786,10 +786,10 @@ export function extractLongestPath(pDiagList: TRange[], pLenA: number, pLenB: nu
 
     if (lGCCount === 20) {
       lGCCount = 0;
-      let lGarbageIdx: number[] = [];
+      const lGarbageIdx: number[] = [];
       let k = lIncreasingPaths.length - 1;
       let lPrevBottom = lPathsBottomRow[k];
-      let lRemainingDist = pLenA - lDiag.begin;
+      const lRemainingDist = pLenA - lDiag.begin;
 
       // clean paths array by removing all paths:
       // - that extend below higher scoring path
@@ -898,7 +898,7 @@ export function extractLongestPath(pDiagList: TRange[], pLenA: number, pLenB: nu
     }
   }
 
-  let lPath = [];
+  const lPath = [];
   let k = lIncreasingPaths.pop() ?? 0;
   let lSafeguard = k;
   while (k > -1 && lSafeguard > -1) {
@@ -907,7 +907,7 @@ export function extractLongestPath(pDiagList: TRange[], pLenA: number, pLenB: nu
     lSafeguard--;
   }
 
-  let lLongestPath: TRange[] = [];
+  const lLongestPath: TRange[] = [];
   for (let i = lPath.length - 1; i >= 0; i--) {
     lLongestPath.push(pDiagList[lPath[i]]);
   }

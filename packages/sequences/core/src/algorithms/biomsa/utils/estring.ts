@@ -29,8 +29,8 @@ type TAlignedSeqFormat = {
 };
 
 export function applyEstring(pSeqArr: TSequence[], pEstring: number[][], opt?: Partial<TAlignedSeqFormat>) {
-  let lGapchar = opt?.gapchar ?? DEFAULT_GAP_CHAR;
-  let lResp: string[] = [];
+  const lGapchar = opt?.gapchar ?? DEFAULT_GAP_CHAR;
+  const lResp: string[] = [];
   for (let i = 0; i < pSeqArr.length; i++) {
     lResp.push(estringTransform(pSeqArr[i].rawSeq, pEstring[i], { gapchar: lGapchar }));
   }
@@ -51,7 +51,7 @@ export function estringTransform(text: string, estring: number[], opt: TAlignedS
   const GAPCHAR = opt.gapchar;
   let lPos = 0; // cursor in text
   for (let i = 0; i < estring.length; i++) {
-    let n = estring[i];
+    const n = estring[i];
     if (n < 0) {
       lPieces.push(GAPCHAR.repeat(-n));
     } else {
@@ -93,7 +93,7 @@ export function estringProduct(estringB: number[], estringA: number[]): number[]
       pushOperator(n);
     } else {
       while (n > 0 && lPosA < lEstringA.length) {
-        let lValA = lEstringA[lPosA];
+        const lValA = lEstringA[lPosA];
         if (lValA < 0) {
           if (n < -lValA) {
             lEstringA[lPosA] += n;
@@ -305,7 +305,7 @@ export function estringDifference(estringB: number[], estringA: number[]) {
  */
 export function estringCat(estringA: number[], estringB: number[]) {
   if (Math.sign(estringA[estringA.length - 1]) === Math.sign(estringB[0])) {
-    let lRet = [...estringA];
+    const lRet = [...estringA];
     lRet[lRet.length - 1] += estringB[0];
     lRet.push(...estringB.slice(1)); // avoid changing reference
     return lRet;

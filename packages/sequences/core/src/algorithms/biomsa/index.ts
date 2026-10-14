@@ -9,7 +9,7 @@ import { makeSequence, getSequenceType, type TSequence } from './sequence/sequen
 import { DEBUG, SEQUENCE_TYPE, getAlignmentParameters, DEFAULT_GAP_CHAR } from './align/params.js';
 import { pairwiseAlignment } from './align/align.js';
 import { progressiveAlignment } from './align/progressive.alignment.js';
-import Log from './utils/logger.js';
+import { Log } from './utils/logger.js';
 import { centerStarNoAlign, noalignPair } from './align/noalign.js';
 import { applyEstring } from './utils/estring.js';
 
@@ -156,7 +156,7 @@ class BioMSAClass {
 
   private setUserConfiguration(opt: Partial<TAlignOpt>) {
     function isValid<K>(value: any, allowed: K[]) {
-      return allowed.some((v) => v == value);
+      return allowed.some((v) => v === value);
     }
 
     if (opt.method && isValid<TAlignOpt['method']>(opt.method, ['complete', 'diag']))
@@ -189,10 +189,12 @@ class BioMSAClass {
       // Sequences prerequisites
 
       if (!Array.isArray(seqArr) || seqArr.some((v) => typeof v !== 'string')) {
+        // biome-ignore lint/style/useThrowOnlyError: the vendored biomsa throws strings, which callers see
         throw 'Array of sequences expected';
       }
 
       if (seqArr.length < 2) {
+        // biome-ignore lint/style/useThrowOnlyError: the vendored biomsa throws strings, which callers see
         throw 'At least 2 sequences are required.';
       }
 
@@ -221,11 +223,11 @@ class BioMSAClass {
       // Start alignment
 
       let lEStrings: number[][];
-      if (sequences.length == 2) {
+      if (sequences.length === 2) {
         if (doNoAlign) {
           lEStrings = noalignPair(sequences[0], sequences[1], lParam);
         } else {
-          let lResult = pairwiseAlignment(sequences[0], sequences[1], lParam);
+          const lResult = pairwiseAlignment(sequences[0], sequences[1], lParam);
           lEStrings = lResult.estrings;
         }
       } else {
@@ -246,5 +248,4 @@ class BioMSAClass {
     return msa;
   }
 }
-const BioMSA = new BioMSAClass();
-export default BioMSA;
+export const BioMSA = new BioMSAClass();

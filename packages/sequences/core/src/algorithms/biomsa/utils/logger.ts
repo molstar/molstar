@@ -15,7 +15,7 @@ function add(_name: string) {}
 
 function summary() {}
 
-export default {
+export const Log = {
   start,
   add,
   summary,

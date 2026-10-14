@@ -21,7 +21,7 @@ import {
   readOptions,
   type SequenceType,
 } from './aligner.js';
-import BioMSA from './biomsa/index.js';
+import { BioMSA } from './biomsa/index.js';
 
 /** The matrices biomsa ships, each for one sequence type (biomsa/align/params.ts). */
 export const BiomsaMatrices = { VTML240: 'amino', BLASTZ: 'nucleic' } as const;

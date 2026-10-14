@@ -107,8 +107,8 @@ export type TAlignmentParam = ReturnType<typeof getAlignmentParameters>;
 export function getAlignmentParameters(pTypeSeq: SEQUENCE_TYPE, opt?: Partial<TAlignOpt>) {
   const m = pTypeSeq === SEQUENCE_TYPE.PROTEIN ? VTML240 : BLASTZ;
 
-  let lMatrix = opt?.matrix ?? m.matrix;
-  let lCenter = opt?.gapextend ? -opt.gapextend * 2 : m.center;
+  const lMatrix = opt?.matrix ?? m.matrix;
+  const lCenter = opt?.gapextend ? -opt.gapextend * 2 : m.center;
 
   const scoringMatrix = addCenter(lMatrix, lCenter);
   const gapOP: number = opt?.gapopen ?? m.gapOP;

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// MessagePack (seqspec:format#values; msgpack/VENDORED.md): the typed-array extension decodes to identical numbers in
+// MessagePack (seqspec:format#values): the typed-array extension decodes to identical numbers in
 // every kind and payload length (fixext and ext forms), a decoder without it sees `{ type, data }`, and numbers JSON
 // cannot hold follow JSON's rules.
 

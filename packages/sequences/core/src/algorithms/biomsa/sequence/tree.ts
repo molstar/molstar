@@ -53,9 +53,9 @@ export type Tree = (LeafNode | InternalNode)[];
  * @returns
  */
 export function makeTree(mD: number[][], tSeq: TSequence[]) {
-  let clusters: Tree = [];
-  let nbSeq = mD.length;
-  let tabIdx: number[] = [];
+  const clusters: Tree = [];
+  const nbSeq = mD.length;
+  const tabIdx: number[] = [];
 
   for (let i = 0; i < nbSeq; i++) {
     clusters[i] = {
@@ -164,7 +164,7 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
 
   // loop matrix rows
   for (let i = 0; i < l; i++) {
-    if (i == x || i == y) continue;
+    if (i === x || i === y) continue;
 
     // avg computation from MAFFT
     // When the distances between merged branches and the current one are

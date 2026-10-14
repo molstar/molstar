@@ -13,5 +13,7 @@
     "types": ["node"]
   },
   "include": ["_test", "bench", "scripts"],
-  "exclude": ["_test/query"]
+  "exclude": ["_test/query"],
+  // Mol*'s zip and runtime context come from the built root packages, not their sources (which need the DOM lib).
+  "references": [{ "path": "../../core" }, { "path": "../../io" }]
 }

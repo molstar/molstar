@@ -18,8 +18,8 @@ import { createRegistries, register, type SvsRegistries } from './registry.js';
 import { MvsRegistry } from './tables/kernel.js';
 import { isRelativeUri, resolveArchivePath } from './uri-path.js';
 import { validate } from './validate.js';
-import { RuntimeContext } from './zip/shims.js';
-import { unzip, zip } from './zip/zip.js';
+import { SyncRuntimeContext } from '@molstar/core/task/execution/synchronous';
+import { unzip, zip } from '@molstar/core/util/zip/zip';
 
 /** The main files of an archive, in the order a reader looks for them (MessagePack first). */
 export const SvsxMainFiles = ['index.svsm', 'index.svsj'] as const;
@@ -60,7 +60,7 @@ export async function readSvsx(bytes: Uint8Array, opts: ReadSvsxOptions = {}): P
       maxEntries: opts.maxEntries ?? SvsxLimits.maxEntries,
       maxBytes: opts.maxBytes ?? SvsxLimits.maxBytes,
     };
-    const entries = await unzip(RuntimeContext, copy, false, limits);
+    const entries = await unzip(SyncRuntimeContext, copy, false, limits);
     for (const [path, file] of Object.entries(entries))
       if (file instanceof Uint8Array && !path.endsWith('/')) files.set(path, file);
   } catch (e) {
@@ -85,7 +85,7 @@ export async function readSvsx(bytes: Uint8Array, opts: ReadSvsxOptions = {}): P
 
 /** An archive's bytes from its files by path (the zip of Mol*, copied: the builder's `writeSvsx` packs with it). */
 export async function zipFiles(files: Readonly<Record<string, Uint8Array>>): Promise<Uint8Array> {
-  return new Uint8Array(await zip(RuntimeContext, files as Record<string, Uint8Array<ArrayBuffer>>));
+  return new Uint8Array(await zip(SyncRuntimeContext, files as Record<string, Uint8Array<ArrayBuffer>>));
 }
 
 /**

@@ -15,7 +15,7 @@
 import { DEBUG, type TAlignmentParam } from './params.js';
 import { type TSequence, distanceMatrix, sortMSA } from '../sequence/sequence.js';
 import { type InternalNode, isLeafNode, makeTree, clustalWeights, setProfiles } from '../sequence/tree.js';
-import Log from '../utils/logger.js';
+import { Log } from '../utils/logger.js';
 import { pairwiseAlignment, MSASeqAlignment, MSAMSAAlignment } from './align.js';
 import { estringProduct } from '../utils/estring.js';
 import { mergeProfiles } from '../sequence/profile.js';
@@ -31,7 +31,7 @@ export async function progressiveAlignment(
   const treeAlign = async (node: InternalNode, tabWeight: number[]) => {
     const nodeA = tree[node.childA],
       nodeB = tree[node.childB];
-    let result = {} as { score: number };
+    const result = {} as { score: number };
 
     // note: msa property has already been computed when the tree
     // has had subtrees from a previous alignment, copied over.
@@ -120,8 +120,8 @@ export async function progressiveAlignment(
   setProfiles(tree, pParam);
 
   // First alignment following guide tree
-  const score1 = await treeAlign(root, weights);
-  let lEstrings = sortMSA(root.estring.slice(), root.numSeq);
+  await treeAlign(root, weights);
+  const lEstrings = sortMSA(root.estring.slice(), root.numSeq);
 
   if (DEBUG) Log.add('End MSA computation');
 

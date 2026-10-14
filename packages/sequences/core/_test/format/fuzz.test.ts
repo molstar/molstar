@@ -25,7 +25,6 @@ import {
 import { CASES, case17 } from './cases.js';
 import { registries } from './load-fixtures.js';
 
-// biome-ignore lint/suspicious/noExplicitAny: documents are mutated freely as JSON.
 type J = any;
 /** A document as normalized text: keys sorted, and no difference between absent children and none. */
 const same = (d: SeqViewSpecDoc) =>

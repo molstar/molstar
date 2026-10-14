@@ -30,6 +30,12 @@ const ALLOWED: Record<string, string[]> = {
   'stream/tiles': ['format'],
   'stream/gmod': ['format'],
 };
+/** The Mol* packages a folder may import: the msgpack codec (model) and the zip with its runtime context (format). */
+const EXTERNAL: [string, string][] = [
+  ['model', '@molstar/io/common/msgpack/'],
+  ['format', '@molstar/core/task/execution/synchronous'],
+  ['format', '@molstar/core/util/zip/zip'],
+];
 const FOLDERS = Object.keys(ALLOWED).sort((a, b) => b.length - a.length);
 const folderOf = (path: string) => FOLDERS.find((f) => path === f || path.startsWith(`${f}/`));
 
@@ -68,7 +74,10 @@ describe("the core's folders", () => {
           const target = folderOf(spec.slice('@molstar/seq-core/'.length));
           if (target === own) wrong.push(`${at}: ${spec} is its own folder (import it relatively)`);
           else if (!target || !ALLOWED[own].includes(target)) wrong.push(`${at}: ${spec} is not ${own}'s to import`);
-        } else if (!spec.startsWith('node:')) wrong.push(`${at}: ${spec} (the core has no dependencies)`);
+        } else if (EXTERNAL.some(([f, prefix]) => own === f && spec.startsWith(prefix))) {
+          // Mol*'s own copies (msgpack, zip, the synchronous runtime context)
+        } else if (!spec.startsWith('node:'))
+          wrong.push(`${at}: ${spec} (the core depends on Mol*'s msgpack, zip and runtime context only)`);
       }
     }
     expect(wrong).toEqual([]);
