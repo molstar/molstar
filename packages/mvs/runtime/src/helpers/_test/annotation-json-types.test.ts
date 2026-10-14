@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
-import { createModel } from './annotation-rows-fixture.js';
+import { TestOperator, createModel } from './annotation-rows-fixture.js';
 
 /** JSON annotations are not type-checked, numbers can arrive as strings and identifiers as numbers. */
 describe('JSON annotation values of the wrong type', async () => {
@@ -14,7 +14,7 @@ describe('JSON annotation values of the wrong type', async () => {
   const nAtoms = model.atomicHierarchy.atoms._rowCount;
   const rowOfEachAtom = (data: any) => {
     const annot = new MVSAnnotation({ format: 'json', data }, 'all_atomic', {});
-    const atoms = (annot as any).getRowForEachAtom(model, '1').atoms as Int32Array | null;
+    const atoms = (annot as any).getRowForEachAtom(model, TestOperator).atoms as Int32Array | null;
     return Array.from(atoms ?? new Array(nAtoms).fill(-1));
   };
   const selected = (data: any) => rowOfEachAtom(data).flatMap((v, i) => (v >= 0 ? [i] : []));

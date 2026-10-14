@@ -52,16 +52,37 @@ const MaxRetainedBufferCapacity = 1 << 20;
 const SharedScratch = new AtomRangesScratch();
 const RowsBag = new ElementRangesBuffer();
 const IndexRange = { from: 0, to: 0 };
+
+/** The symmetry operator of a unit, as far as rows can refer to it (`instance_id`, `operator_name`) */
+export interface RowOperator {
+  /** `SymmetryOperator.instanceId`, e.g. `ASM-X0-5` */
+  readonly instanceId: string;
+  /** `SymmetryOperator.name`, e.g. `1_555` */
+  readonly name: string;
+}
+
+/** Does `row` apply to units with this operator? A row which names an instance or an operator applies only to it. */
+export function rowAppliesToOperator(row: MVSAnnotationRow, operator: RowOperator): boolean {
+  return (
+    (!isDefined(row.instance_id) || row.instance_id === operator.instanceId) &&
+    (!isDefined(row.operator_name) || row.operator_name === operator.name)
+  );
+}
+
+/** `true` if some of `rows` refer to an instance or an operator (otherwise the selected elements do not depend on the unit's operator) */
+export function rowsUseOperators(rows: readonly MVSAnnotationRow[]): boolean {
+  return rows.some((row) => isDefined(row.instance_id) || isDefined(row.operator_name));
+}
 const SingleResidue: ResidueIndex[] = [0 as ResidueIndex];
 
 /** Return atom ranges in `model` which satisfy criteria given by `row` (a new object). */
 export function getAtomRangesForRow(
   row: MVSAnnotationRow,
   model: Model,
-  instanceId: string,
+  operator: RowOperator,
   indices: IndicesAndSortings,
 ): ElementRanges | undefined {
-  const r = getAtomRangesForRowInto(row, model, instanceId, indices, SharedScratch);
+  const r = getAtomRangesForRowInto(row, model, operator, indices, SharedScratch);
   return r?.toRanges();
 }
 
@@ -70,12 +91,12 @@ export function getAtomRangesForRow(
 export function getAtomRangesForRowInto(
   row: MVSAnnotationRow,
   model: Model,
-  instanceId: string,
+  operator: RowOperator,
   indices: IndicesAndSortings,
   scratch: AtomRangesScratch,
 ): ElementRangesBuffer | undefined {
   if (!indices.atomic) return undefined;
-  if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
+  if (!rowAppliesToOperator(row, operator)) return undefined;
 
   const atomicIndices = indices.atomic;
   const h = model.atomicHierarchy;
@@ -158,14 +179,14 @@ export function getAtomRangesForRowInto(
 export function getAtomRangesForRows(
   rows: readonly MVSAnnotationRow[],
   model: Model,
-  instanceId: string,
+  operator: RowOperator,
   indices: IndicesAndSortings,
 ): ElementRanges {
   // Per-row results go to a shared buffer (`SharedScratch`), are collected in a shared bag (`RowsBag`) and merged once;
   // only the final result is a new object (callers may keep it).
   const bag = RowsBag.clear();
   for (const row of rows) {
-    const r = getAtomRangesForRowInto(row, model, instanceId, indices, SharedScratch);
+    const r = getAtomRangesForRowInto(row, model, operator, indices, SharedScratch);
     if (r) bag.append(r);
   }
   const result = ElementRanges.normalize(bag);
@@ -546,11 +567,11 @@ function matchesRange<T>(
 export function getSphereRangesForRow(
   row: MVSAnnotationRow,
   model: Model,
-  instanceId: string,
+  operator: RowOperator,
   indices: IndicesAndSortings,
 ): ElementRanges | undefined {
   if (!indices.spheres) return undefined;
-  if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
+  if (!rowAppliesToOperator(row, operator)) return undefined;
   return getCoarseElementRangesForRow(row, model.coarseHierarchy.spheres, indices.spheres);
 }
 
@@ -558,21 +579,21 @@ export function getSphereRangesForRow(
 export function getSphereRangesForRows(
   rows: readonly MVSAnnotationRow[],
   model: Model,
-  instanceId: string,
+  operator: RowOperator,
   indices: IndicesAndSortings,
 ): ElementRanges {
-  return ElementRanges.union(rows.map((row) => getSphereRangesForRow(row, model, instanceId, indices)));
+  return ElementRanges.union(rows.map((row) => getSphereRangesForRow(row, model, operator, indices)));
 }
 
 /** Return gaussian ranges in `model` which satisfy criteria given by `row` */
 export function getGaussianRangesForRow(
   row: MVSAnnotationRow,
   model: Model,
-  instanceId: string,
+  operator: RowOperator,
   indices: IndicesAndSortings,
 ): ElementRanges | undefined {
   if (!indices.gaussians) return undefined;
-  if (isDefined(row.instance_id) && row.instance_id !== instanceId) return undefined;
+  if (!rowAppliesToOperator(row, operator)) return undefined;
   return getCoarseElementRangesForRow(row, model.coarseHierarchy.gaussians, indices.gaussians);
 }
 
@@ -580,10 +601,10 @@ export function getGaussianRangesForRow(
 export function getGaussianRangesForRows(
   rows: readonly MVSAnnotationRow[],
   model: Model,
-  instanceId: string,
+  operator: RowOperator,
   indices: IndicesAndSortings,
 ): ElementRanges {
-  return ElementRanges.union(rows.map((row) => getGaussianRangesForRow(row, model, instanceId, indices)));
+  return ElementRanges.union(rows.map((row) => getGaussianRangesForRow(row, model, operator, indices)));
 }
 
 /** Return ranges of coarse elements (spheres or gaussians) which satisfy criteria given by `row` */

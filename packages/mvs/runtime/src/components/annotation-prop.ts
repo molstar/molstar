@@ -24,9 +24,11 @@ import { MaybeStringParamDefinition } from '@molstar/mvs/helpers/param-definitio
 import { type MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '@molstar/mvs/helpers/schemas';
 import {
   AtomRangesScratch,
+  type RowOperator,
   getAtomRangesForRowInto,
   getGaussianRangesForRow,
   getSphereRangesForRow,
+  rowsUseOperators,
 } from '@molstar/mvs/helpers/selections';
 import { type Maybe, isDefined, safePromise } from '@molstar/mvs/helpers/utils';
 
@@ -268,7 +270,7 @@ export class MVSAnnotation {
 
   /** Return value of field `fieldName` assigned to location `loc`, if any */
   getValueForLocation(loc: StructureElement.Location, fieldName: string): string | undefined {
-    const indexedModel = this.getIndexedModel(loc.unit.model, loc.unit.conformation.operator.instanceId);
+    const indexedModel = this.getIndexedModel(loc.unit.model, loc.unit.conformation.operator);
     const indexedElements = getIndexedElementsForUnitKind(indexedModel, loc.unit.kind);
     const iRow = indexedElements ? indexedElements[loc.element] : -1;
     return this.getValueForRow(iRow, fieldName);
@@ -288,43 +290,43 @@ export class MVSAnnotation {
 
   /** Return cached `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` (or create it if not cached yet).
    * The mapping does not depend on coordinates, so the models of a trajectory share it (`HierarchyScope`). */
-  private getIndexedModel(model: Model, instanceId: string): IndexedModel {
+  private getIndexedModel(model: Model, operator: RowOperator): IndexedModel {
     const scope = HierarchyScope.get(model);
     let byInstance = this._indexedModels.get(scope);
     if (!byInstance) this._indexedModels.set(scope, (byInstance = new Map()));
-    const key = this.hasInstanceIds() ? instanceId : '';
+    const key = this.operatorKey(operator);
     let result = byInstance.get(key);
-    if (!result) byInstance.set(key, (result = this.getRowForEachAtom(model, instanceId)));
+    if (!result) byInstance.set(key, (result = this.getRowForEachAtom(model, operator)));
     return result;
   }
-  /** Cached `IndexedModel` per hierarchy scope (models of one trajectory), and per `instanceId` (if at least one row contains instanceId). */
+  /** Cached `IndexedModel` per hierarchy scope (models of one trajectory), and per operator (if at least one row contains `instance_id` or `operator_name`). */
   private _indexedModels = new WeakMap<HierarchyScope, Map<string, IndexedModel>>();
 
   /** Create `ElementIndex` -> `MVSAnnotationRow` mapping for `Model`.
    * An element gets the index of the last row which applies to it. The rows are visited from the last one, so that each element is
    * written once (`ElementPainter`), and the pass stops as soon as every element has a row (e.g. a row selecting everything is last). */
-  private getRowForEachAtom(model: Model, instanceId: string): IndexedModel {
+  private getRowForEachAtom(model: Model, operator: RowOperator): IndexedModel {
     const indices = IndicesAndSortings.get(model);
     const rows = this.getRows();
     const painter = RowPainter;
     try {
       painter.begin(model.atomicHierarchy.atoms._rowCount);
       for (let iRow = rows.length - 1; iRow >= 0 && !painter.isComplete; iRow--) {
-        const r = getAtomRangesForRowInto(rows[iRow], model, instanceId, indices, RowScratch); // consumed right away, so reusing the buffer is safe
+        const r = getAtomRangesForRowInto(rows[iRow], model, operator, indices, RowScratch); // consumed right away, so reusing the buffer is safe
         if (r) painter.paint(r.from, r.to, r.count, iRow);
       }
       const atoms = painter.result();
 
       painter.begin(model.coarseHierarchy.spheres.count);
       for (let iRow = rows.length - 1; iRow >= 0 && !painter.isComplete; iRow--) {
-        const r = getSphereRangesForRow(rows[iRow], model, instanceId, indices);
+        const r = getSphereRangesForRow(rows[iRow], model, operator, indices);
         if (r) painter.paint(r.from, r.to, r.from.length, iRow);
       }
       const spheres = painter.result();
 
       painter.begin(model.coarseHierarchy.gaussians.count);
       for (let iRow = rows.length - 1; iRow >= 0 && !painter.isComplete; iRow--) {
-        const r = getGaussianRangesForRow(rows[iRow], model, instanceId, indices);
+        const r = getGaussianRangesForRow(rows[iRow], model, operator, indices);
         if (r) painter.paint(r.from, r.to, r.from.length, iRow);
       }
       const gaussians = painter.result();
@@ -351,11 +353,18 @@ export class MVSAnnotation {
     }
   }
 
-  /** Return `true` if some rows in the annotation contain `instance_id` field. */
-  private hasInstanceIds(): boolean {
-    return (this._hasInstanceIds ??= this.getRows().some((row) => isDefined(row.instance_id)));
+  /** The part of `operator` which the selected elements depend on, as a key: nothing if no row refers to an instance or an operator,
+   * the instance id if only instances are referred to (the common case, which does not allocate), otherwise both. */
+  private operatorKey(operator: RowOperator): string {
+    this._operatorUse ??= this.getRows().some((row) => isDefined(row.operator_name))
+      ? 'both'
+      : rowsUseOperators(this.getRows())
+        ? 'instance'
+        : 'none';
+    if (this._operatorUse === 'none') return '';
+    return this._operatorUse === 'instance' ? operator.instanceId : `${operator.instanceId}|${operator.name}`;
   }
-  private _hasInstanceIds?: boolean = undefined;
+  private _operatorUse?: 'none' | 'instance' | 'both' = undefined;
 
   /** Return list of all distinct values appearing in field `fieldName`, in order of first occurrence. Ignores special values `.` and `?`. If `caseInsensitive`, make all values uppercase. */
   getDistinctValuesInField(fieldName: string, caseInsensitive: boolean): string[] {

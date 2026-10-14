@@ -14,7 +14,7 @@ import { MVSAnnotation } from '../../components/annotation-prop.js';
 import { substructureFromRows } from '../row-structure.js';
 import type { MVSAnnotationRow } from '../schemas.js';
 import { rowsToExpression } from '../selections.js';
-import { mulberry32, randInt } from './annotation-rows-fixture.js';
+import { IdentityOperator, mulberry32, randInt } from './annotation-rows-fixture.js';
 
 /** `data/examples/ihm-coarse-8zzh.cif`: 4 coarse chains of 882 elements (A, C: spheres; B, D: gaussians), 2 entities, no atoms. */
 async function loadCoarseModel() {
@@ -119,6 +119,10 @@ function makeCategories(rnd: () => number): Category[] {
         { instance_id: '1_555', label_asym_id: 'B' },
         { instance_id: 'other' },
         { instance_id: 'other', label_asym_id: 'A' },
+        { operator_name: '1_555' },
+        { operator_name: '1_555', label_asym_id: 'C' },
+        { operator_name: 'other' },
+        { operator_name: '1_555', instance_id: 'other' },
       ],
     },
     { name: 'no criteria', rows: [{}] },
@@ -183,7 +187,7 @@ describe('coarse models (spheres and gaussians)', async () => {
     const mapping = (rows: readonly MVSAnnotationRow[]) =>
       (new MVSAnnotation({ format: 'json', data: rows as any }, 'all_atomic', {}) as any).getRowForEachAtom(
         model,
-        '1_555',
+        IdentityOperator,
       ) as {
         atoms: Int32Array | null;
         spheres: Int32Array | null;

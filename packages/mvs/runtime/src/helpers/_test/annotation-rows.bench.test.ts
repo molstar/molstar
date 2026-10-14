@@ -25,7 +25,15 @@ import { getAtomRangesForRows, rowsToExpression } from '../selections.js';
 import { substructureFromRows } from '../row-structure.js';
 import { Structure, StructureSelection } from '@molstar/model/model/structure';
 import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
-import { NEntities, createModel, makeRows, mulberry32, randInt, rowCategories } from './annotation-rows-fixture.js';
+import {
+  NEntities,
+  TestOperator,
+  createModel,
+  makeRows,
+  mulberry32,
+  randInt,
+  rowCategories,
+} from './annotation-rows-fixture.js';
 
 const NChains = Number(process.env.MVS_BENCH_CHAINS ?? 300);
 const NResidues = Number(process.env.MVS_BENCH_RESIDUES ?? 400);
@@ -68,7 +76,7 @@ function annotationOf(rows: MVSAnnotationRow[]) {
 }
 
 function indexedModelOf(annot: MVSAnnotation, model: Model) {
-  return (annot as any).getRowForEachAtom(model, '1') as {
+  return (annot as any).getRowForEachAtom(model, TestOperator) as {
     atoms: ArrayLike<number> | null;
     spheres: ArrayLike<number> | null;
     gaussians: ArrayLike<number> | null;
@@ -140,7 +148,7 @@ describe.skipIf(!process.env.MVS_BENCH)('annotation rows benchmark', () => {
     console.log('\n--- getAtomRangesForRows (union, as used by label-text ElementRangesCache)');
     const model1 = model;
     const rowsArr = mixed;
-    const m = measure(() => getAtomRangesForRows(rowsArr, model1, '1', IndicesAndSortings.get(model1)));
+    const m = measure(() => getAtomRangesForRows(rowsArr, model1, TestOperator, IndicesAndSortings.get(model1)));
     report(
       'union: mixed',
       rowsArr.length,
@@ -211,7 +219,9 @@ describe.skipIf(!process.env.MVS_BENCH)('annotation rows benchmark', () => {
     const annotRows = annotationOf(mixed);
     annotRows.getRows();
     const rowMapRebuilt = measure(() => frameModels.map((f) => indexedModelOf(annotationOf(mixed), f).atoms!.length));
-    const rowMapShared = measure(() => frameModels.map((f) => (annotRows as any).getIndexedModel(f, 'x').atoms.length));
+    const rowMapShared = measure(() =>
+      frameModels.map((f) => (annotRows as any).getIndexedModel(f, TestOperator).atoms.length),
+    );
     report('frames: row->atom map rebuilt', nFrames, rowMapRebuilt, '');
     report(
       'frames: row->atom map shared',

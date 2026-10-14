@@ -76,6 +76,7 @@ describe.each([
     return b.getStructure();
   })();
   const instanceIds = Array.from(new Set(twoInstances.units.map((u) => u.conformation.operator.instanceId)));
+  const operatorNames = Array.from(new Set(twoInstances.units.map((u) => u.conformation.operator.name)));
 
   const groups = [
     ...makeRows(rowCategories(dims, nAtoms, 400), 31),
@@ -89,10 +90,20 @@ describe.each([
         { instance_id: id, label_asym_id: 'C', label_seq_id: 3 },
       ]),
     },
+    // ... and by the real name of the operator, alone or together with an instance (also one which belongs to the other operator)
+    {
+      name: 'operator_name (real names)',
+      rows: operatorNames.flatMap((name) => [
+        { operator_name: name },
+        { operator_name: name, label_asym_id: 'B' },
+        ...instanceIds.map((id) => ({ operator_name: name, instance_id: id, label_asym_id: 'D' })),
+      ]),
+    },
   ];
 
   it('the two-instance structure really has two operators', () => {
     expect(instanceIds.length).toBe(2);
+    expect(operatorNames.sort()).toEqual(['1_555', '2_555']);
     expect(twoInstances.units.length).toBe(2 * whole.units.length);
   });
 

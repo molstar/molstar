@@ -10,6 +10,12 @@ import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import type { Model } from '@molstar/model/model/structure';
 import type { MVSAnnotationRow } from '../schemas.js';
+import type { RowOperator } from '../selections.js';
+
+/** An operator for tests which apply rows to a model directly: its instance is '1', as the `instance_id` rows of the fixture expect. */
+export const TestOperator: RowOperator = { instanceId: '1', name: '1_555' };
+/** The identity operator of a structure made of a model (what its units have) */
+export const IdentityOperator: RowOperator = { instanceId: '1_555', name: '1_555' };
 
 export interface Dims {
   nChains: number;
@@ -321,5 +327,15 @@ export function combinedCategories({ nChains, nResidues }: Dims, nAtoms: number,
       return { atom_id: i + 1, atom_index: randInt(r, nAtoms) };
     }),
     cat('instance_id', (r) => ({ instance_id: r() < 0.5 ? '1' : '2', label_asym_id: chain(r), label_seq_id: seq(r) })),
+    cat('operator_name', (r) => ({
+      operator_name: r() < 0.5 ? '1_555' : '2_555',
+      label_asym_id: chain(r),
+      label_seq_id: seq(r),
+    })),
+    cat('instance_id and operator_name', (r) => ({
+      instance_id: r() < 0.5 ? '1' : '2',
+      operator_name: r() < 0.7 ? '1_555' : '2_555',
+      label_asym_id: chain(r),
+    })),
   ];
 }

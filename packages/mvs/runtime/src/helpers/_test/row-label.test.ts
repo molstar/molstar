@@ -40,6 +40,7 @@ describe('describeRow', () => {
     expect(describeRow({ atom_id: 12 })).toBe('atom 12');
     expect(describeRow({ atom_index: 3 })).toBe('atom index 3');
     expect(describeRow({ label_asym_id: 'A', instance_id: '1_555' })).toBe('A instance 1_555');
+    expect(describeRow({ label_asym_id: 'A', operator_name: '2_555' })).toBe('A operator 2_555');
   });
   it('a row without criteria selects everything, unrelated fields are ignored', () => {
     expect(describeRow({})).toBe('All');

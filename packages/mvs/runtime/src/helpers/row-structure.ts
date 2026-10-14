@@ -9,34 +9,38 @@ import { type Structure, Unit } from '@molstar/model/model/structure';
 import { ElementRanges } from './element-ranges.js';
 import { IndicesAndSortings } from './indexing.js';
 import type { MVSAnnotationRow } from './schemas.js';
-import { getAtomRangesForRows, getGaussianRangesForRows, getSphereRangesForRows } from './selections.js';
-import { isDefined } from './utils.js';
+import {
+  getAtomRangesForRows,
+  getGaussianRangesForRows,
+  getSphereRangesForRows,
+  rowsUseOperators,
+} from './selections.js';
 
 /** Helper for caching element ranges qualifying to a group of annotation rows, per `Unit`
- * (units of the same model and kind share the ranges, unless some row refers to a specific `instance_id`). */
+ * (units of the same model and kind share the ranges, unless some row refers to a specific `instance_id` or `operator_name`). */
 export class ElementRangesCache {
   private readonly cache: { [key: string]: ElementRanges } = {};
   private readonly hasOperators: boolean;
 
   constructor(private readonly rows: readonly MVSAnnotationRow[]) {
-    this.hasOperators = rows.some((row) => isDefined(row.instance_id));
+    this.hasOperators = rowsUseOperators(rows);
   }
 
   get(unit: Unit): ElementRanges {
-    const instanceId = unit.conformation.operator.instanceId;
-    const key = `${unit.model.id}:${unit.kind}:${this.hasOperators ? instanceId : '*'}`;
+    const { instanceId, name } = unit.conformation.operator;
+    const key = `${unit.model.id}:${unit.kind}:${this.hasOperators ? `${instanceId}|${name}` : '*'}`;
     return (this.cache[key] ??= this.compute(unit));
   }
   private compute(unit: Unit): ElementRanges {
-    const instanceId = unit.conformation.operator.instanceId;
+    const operator = unit.conformation.operator;
     const indices = IndicesAndSortings.get(unit.model);
     switch (unit.kind) {
       case Unit.Kind.Atomic:
-        return getAtomRangesForRows(this.rows, unit.model, instanceId, indices);
+        return getAtomRangesForRows(this.rows, unit.model, operator, indices);
       case Unit.Kind.Spheres:
-        return getSphereRangesForRows(this.rows, unit.model, instanceId, indices);
+        return getSphereRangesForRows(this.rows, unit.model, operator, indices);
       case Unit.Kind.Gaussians:
-        return getGaussianRangesForRows(this.rows, unit.model, instanceId, indices);
+        return getGaussianRangesForRows(this.rows, unit.model, operator, indices);
     }
   }
 }

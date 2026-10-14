@@ -77,6 +77,7 @@ function tokensOfRow(row: MVSAnnotationRow): Token[] {
   if (isDefined(row.atom_id)) tokens.push({ text: `atom ${row.atom_id}` });
   if (isDefined(row.atom_index)) tokens.push({ text: `atom index ${row.atom_index}` });
   if (isDefined(row.instance_id)) tokens.push({ text: `instance ${row.instance_id}` });
+  if (isDefined(row.operator_name)) tokens.push({ text: `operator ${row.operator_name}` });
   return tokens;
 }
 
