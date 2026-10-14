@@ -10,6 +10,13 @@ here.
 
 ## [Unreleased]
 
+- MVS: resolve selectors given as rows (`label_asym_id`, `auth_seq_id`, ranges, ...) through per-model indices instead
+  of a MolScript query on every atom for every row (1000 rows on 720k atoms: seconds to ~25 ms), for components,
+  annotations, tooltips, labels and primitives; `StructureComponent` has a `schema` type for them, rows can use
+  `operator_name`, and residues without `label_seq_id` no longer match `label_seq_id` criteria (MolScript read them
+  as 0)
+- Add the `useIndex` option to `StructureElement.Schema.toLoci`/`toBundle` (`Loci.fromSchema`, `Bundle.fromSchema`),
+  which replaces their unused `queryContext` argument
 - Fix `IntAdjacencyGraph.connectedComponents` returning the vertex count as the component count for graphs with at least
   one edge
 - Fix RCSB validation report and ModelArchive quality assessment behaviors updating auto-attach and unregistering via
