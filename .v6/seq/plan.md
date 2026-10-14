@@ -135,14 +135,11 @@ Then the full checks once, in this order: `pnpm lint`, `pnpm test:unit`, `npx ts
 
 ## 3. Prism over Seq\*
 
-- **The context**: Seq\*'s view context on Prism's context, at least in the viewer mode (the story mode may differ), per
-  [contexts.md](../prism-ui/design/contexts.md).
-- **The UI**: written in prism-ui's own framework, not Seq\*'s React UI, in `prism/ui/src/components` for now. So
-  prism-ui depends on `@molstar/seq-viewer` (Seq\* is not one of the opt-in modules); the viewer mode's package is the
-  alternative if every Prism app should not carry it. The default UIs' state plumbing is not worth polishing before
-  this (David, 2026-10-13: the immediate renderer hosts the UI).
-- **The mocks**: the sequence strip replaced by the real viewer. Start with a plain text view or a single track with a
-  toggle. No viewer frame: its theme follows the canvas background.
+The first slice is designed in [prism-sequence.md](prism-sequence.md) (2026-10-14, in the mocked viewer mode): a
+"Sequence viewer" extension (`@molstar/prism-sequence`) composed into the viewer mode, whose module owns the Seq\*
+contexts (by id, so several later) and follows the context's canvas-ink behavior; its control, in the top dock without
+a card, subscribes the two-way link to the 3D view while it is rendered; compact text and tracks; hover and selection;
+Prism's own tooltip and legend.
 
 ## 4. Follow-ups
 
