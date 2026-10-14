@@ -12,11 +12,9 @@ import { defineStyles } from '@molstar/prism-ui/styles/registry';
 
 export const classes = {
   'badge': 'msp-viewer-mode-switch-badge',
-  'chevron': 'msp-viewer-mode-switch-chevron',
   'group': 'msp-viewer-mode-switch-group',
   'level': 'msp-viewer-mode-switch-level',
   'level-in': 'msp-viewer-mode-switch-level-in',
-  'levelButton': 'msp-viewer-mode-switch-levelButton',
   'levelCaption': 'msp-viewer-mode-switch-levelCaption',
   'levelRow': 'msp-viewer-mode-switch-levelRow',
   'levels': 'msp-viewer-mode-switch-levels',
@@ -26,7 +24,7 @@ export const classes = {
 } as const;
 
 defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.components {
-.msp-viewer-mode-switch-levelButton, .msp-viewer-mode-switch-levels {
+.msp-viewer-mode-switch-levels {
   border-radius: var(--msp-radius-lg);
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
@@ -34,12 +32,12 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
 }
 
 .msp-viewer-mode-switch-switch {
-  flex-direction: column;
+  flex-direction: row;
   display: flex;
 }
 
 .msp-viewer-mode-switch-segment {
-  width: 100%;
+  width: var(--msp-stack-row, 40px);
   height: var(--msp-stack-row, 40px);
   color: var(--msp-color-text-muted);
   transition: background-color var(--msp-motion-fast) var(--msp-ease),
@@ -64,19 +62,19 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
 }
 
 .msp-viewer-mode-switch-level {
-  top: var(--msp-stack-row, 40px);
-  padding-right: var(--msp-space-3);
+  bottom: 100%;
+  left: var(--msp-stack-row, 40px);
+  padding-bottom: var(--msp-space-3);
   opacity: 0;
   visibility: hidden;
   transition: opacity var(--msp-motion-fast) var(--msp-ease),
     transform var(--msp-motion-fast) var(--msp-ease),
     visibility 0s linear .16s;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   display: flex;
   position: absolute;
-  right: 100%;
-  transform: translateX(4px);
+  transform: translateY(4px);
 }
 
 :where(:has( > * .msp-viewer-mode-switch-select:hover,  > * .msp-viewer-mode-switch-select:focus-visible)) > .msp-viewer-mode-switch-level, .msp-viewer-mode-switch-level:hover, .msp-viewer-mode-switch-level:focus-within, .msp-viewer-mode-switch-level:has([aria-expanded="true"]) {
@@ -105,44 +103,13 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
   right: 4px;
 }
 
-.msp-viewer-mode-switch-levelButton {
-  align-items: center;
-  gap: var(--msp-space-2);
-  height: var(--msp-stack-row, 40px);
-  padding: 0 var(--msp-inset);
-  color: var(--msp-color-text);
-  font-size: var(--msp-font-size-sm);
-  white-space: nowrap;
-  display: flex;
-
-  &:hover, &[aria-expanded="true"] {
-    background: var(--msp-glass-panel-bg);
-  }
-}
-
-.msp-viewer-mode-switch-levelCaption {
-  color: var(--msp-color-text-subtle);
-}
-
-.msp-viewer-mode-switch-chevron {
-  color: var(--msp-color-text-subtle);
-  transition: transform var(--msp-motion-fast) var(--msp-ease);
-
-  [aria-expanded="true"] > & {
-    transform: rotate(180deg);
-  }
-}
-
 .msp-viewer-mode-switch-levels {
-  top: calc(100% + var(--msp-space-2));
-  right: var(--msp-space-3);
   z-index: var(--msp-z-overlay);
   min-width: 168px;
   padding: var(--msp-space-2);
   background: var(--msp-glass-panel-bg);
   animation: msp-viewer-mode-switch-level-in var(--msp-motion-fast) var(--msp-ease);
   display: grid;
-  position: absolute;
 }
 
 .msp-viewer-mode-switch-group {

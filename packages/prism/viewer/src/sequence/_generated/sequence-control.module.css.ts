@@ -11,68 +11,47 @@
 import { defineStyles } from '@molstar/prism-ui/styles/registry';
 
 export const classes = {
-  'bar': 'msp-viewer-sequence-control-bar',
-  'popup': 'msp-viewer-sequence-control-popup',
   'root': 'msp-viewer-sequence-control-root',
-  'spacer': 'msp-viewer-sequence-control-spacer',
   'surface': 'msp-viewer-sequence-control-surface',
-  'switch': 'msp-viewer-sequence-control-switch',
 } as const;
 
 defineStyles('viewer/sequence/sequence-control.module.css', `@layer msp.components {
 .msp-viewer-sequence-control-root {
   width: 100%;
   height: var(--msp-dock-size, 100%);
+  box-sizing: border-box;
   min-height: 0;
+  padding-top: var(--msp-space-3);
+  padding-bottom: var(--msp-band-fade, 0px);
   color: var(--msp-color-text);
+  pointer-events: none;
   flex-direction: column;
   display: flex;
   position: relative;
 }
 
-.msp-viewer-sequence-control-bar {
-  align-items: center;
-  gap: var(--msp-space-2);
-  height: var(--msp-control-height);
-  padding: 0 var(--msp-space-1);
-  pointer-events: none;
+.msp-viewer-sequence-control-surface {
   contain: layout paint;
-  flex: none;
-  display: flex;
+  pointer-events: auto;
+  flex: 1 1 0;
+  min-height: 0;
 
-  & > * {
-    pointer-events: auto;
+  &[data-fade] {
+    mask-image: linear-gradient(to bottom,
+      transparent,
+      #000 var(--seq-fade-top, 0px),
+      #000 calc(100% - var(--seq-fade-bottom, 0px)),
+      transparent);
   }
 }
 
-.msp-viewer-sequence-control-switch {
-  width: 140px;
+.msp-viewer-sequence-control-surface [data-pass^="vnav"] {
+  opacity: 0;
+  transition: opacity var(--msp-motion-base) var(--msp-ease);
 }
 
-.msp-viewer-sequence-control-spacer {
-  pointer-events: none;
-  flex: 1;
-}
-
-.msp-viewer-sequence-control-surface {
-  contain: layout paint;
-  flex: 1 1 0;
-  min-height: 0;
-}
-
-.msp-viewer-sequence-control-popup {
-  top: var(--msp-control-height);
-  right: var(--msp-space-1);
-  z-index: var(--msp-z-overlay);
-  max-width: 280px;
-  max-height: 320px;
-  padding: var(--msp-space-3);
-  border-radius: var(--msp-radius-lg);
-  background: var(--msp-glass-panel-bg);
-  box-shadow: var(--msp-glass-shadow);
-  font-size: var(--msp-font-size-sm);
-  position: absolute;
-  overflow: auto;
+.msp-viewer-sequence-control-surface[data-bars] [data-pass^="vnav"] {
+  opacity: 1;
 }
 }
 `);

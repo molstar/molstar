@@ -8,6 +8,7 @@
 
 import type { LegendItem, LegendRamp } from '@molstar/prism-ui';
 import { type ColorSchemeEntry, type ColorStop, KernelColorSchemes, schemeLegend } from '@molstar/seq-core/format';
+import { PlddtLegendItems, PrismResidues, SecondaryLegendItems } from './palette.js';
 
 // What the colors of the letters mean (prism-sequence.md §6): read from the color scheme the model chose, its public
 // definition (`KernelColorSchemes`), in Prism's `Legend` terms. Seq*'s own legend model stays inside its UIs.
@@ -17,13 +18,24 @@ export interface SequenceLegend {
   readonly title?: string;
   readonly items: readonly LegendItem[];
   readonly ramps: readonly LegendRamp[];
+  /** More blocks under it, each with a heading: the pLDDT bands of a predicted model. */
+  readonly sections?: readonly { readonly title: string; readonly items: readonly LegendItem[] }[];
 }
 
 export const NoLegend: SequenceLegend = { items: [], ramps: [] };
 
-/** The registered scheme `name` (the kernel's). */
+/** The legend with the secondary structure's classes and, for a predicted model, the pLDDT bands, as blocks of their own. */
+export function withTracks(legend: SequenceLegend, predicted: boolean): SequenceLegend {
+  const sections = [
+    { title: 'Secondary structure', items: SecondaryLegendItems },
+    ...(predicted ? [{ title: 'Model confidence', items: PlddtLegendItems }] : []),
+  ];
+  return { ...legend, sections: [...(legend.sections ?? []), ...sections] };
+}
+
+/** The scheme `name`: the model's own (`palette.ts`), else the kernel's. */
 export function colorScheme(name: string): ColorSchemeEntry | undefined {
-  return KernelColorSchemes.find((e) => e.name === name);
+  return name === PrismResidues.name ? PrismResidues : KernelColorSchemes.find((e) => e.name === name);
 }
 
 const stopsOf = (colors: readonly ColorStop[]): { t: number; color: string }[] =>

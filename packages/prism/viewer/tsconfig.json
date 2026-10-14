@@ -14,7 +14,13 @@
       "path": "../../core"
     },
     {
+      "path": "../../graphics"
+    },
+    {
       "path": "../../model"
+    },
+    {
+      "path": "../../../extensions/model-archive"
     },
     {
       "path": "../../plugin/core"

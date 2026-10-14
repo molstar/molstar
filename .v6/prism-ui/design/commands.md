@@ -412,7 +412,7 @@ Select ›                                  shared: mode = add | remove | inters
 - **Counts on demand.** The highlighted row shows how much it would select ("Helix: 412 residues"), computed for that
   row only, cancelled when the highlight moves.
 - **Granularity** is not part of `select`; it is a picking setting (`selection.granularity`, below): a badge on the
-  canvas mode switch's Select button, changed with `PickLevel` beside it ([shell.md](shell.md) §4.6).
+  canvas mode switch's Select button, changed with the `PickLevel` list above it ([shell.md](shell.md) §4.6).
 - The `:` command menu prefix is a shortcut into Select › Residues or Expression: `:A 10-20` reads as a residue list,
   `:pymol resn HEM` as a PyMOL expression.
 

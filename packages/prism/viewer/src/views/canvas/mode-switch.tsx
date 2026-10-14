@@ -11,8 +11,6 @@
 import { distinctUntilChanged, map } from 'rxjs';
 import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
-import { onCleanup } from '@molstar/prism-ui/dom/scope';
-import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { classes } from './_generated/mode-switch.module.css.js';
 
@@ -59,7 +57,7 @@ export function ModeSwitch(props: ModeSwitchProps) {
         class={classes.segment}
         aria-pressed={selecting.pipe(map((s) => !s))}
         data-tip="Interact: drag to rotate, click to focus"
-        data-tip-side="left"
+        data-tip-side="top"
         aria-label="Interact"
         onClick={() => props.setMode('interact')}
       >
@@ -70,7 +68,7 @@ export function ModeSwitch(props: ModeSwitchProps) {
         class={`${classes.segment} ${classes.select}`}
         aria-pressed={selecting}
         data-tip={current ? undefined : 'Select: click to select, Shift+click to extend'}
-        data-tip-side="left"
+        data-tip-side="top"
         aria-label="Select"
         onClick={() => props.setMode('select')}
       >
@@ -82,78 +80,37 @@ export function ModeSwitch(props: ModeSwitchProps) {
 }
 
 /**
- * The picking level, beside the canvas stack level with Select (outside the stack's frame, so it is not clipped): a
- * button with the level's icon that opens the list of levels below it. Shown while selecting and the pointer is on
- * Select or on it, or its list is open; always on touch screens (no hover).
+ * The picking levels, above the canvas toolbar over Select (outside the toolbar's frame, so it is not clipped): the list
+ * itself, one click from the toolbar: the current level marked; picking one sets it and turns select mode on. Shown while
+ * the pointer is on Select or on it, or Select or a row has the keyboard focus (Tab goes from Select into the list);
+ * always on touch screens (no hover). It opens upward.
  */
 export function PickLevel(props: ModeSwitchProps) {
-  if (!props.granularities || !props.granularity) return null;
-  const selecting = props.mode.pipe(
-    map((m) => m === 'select'),
-    distinctUntilChanged(),
-  );
-  return <Show when={selecting}>{() => <PickLevelButton {...props} />}</Show>;
-}
-
-function PickLevelButton(props: ModeSwitchProps) {
-  const levels = props.granularities!;
-  const current = props.granularity!.pipe(map((g) => levels.find((l) => l.value === g) ?? levels[0]));
-  const open = observableState(false);
-  const root = (
+  const levels = props.granularities;
+  const granularity = props.granularity;
+  if (!levels || !granularity) return null;
+  return (
     <div class={classes.level}>
-      <button
-        type="button"
-        class={classes.levelButton}
-        aria-haspopup="true"
-        aria-expanded={open}
-        title="What a click selects"
-        onClick={() => open.set(!open.value)}
-      >
-        <span class={classes.levelCaption}>Picks</span>
-        <Show when={current}>{(l) => <Icon name={l.icon} size={15} />}</Show>
-        <span>{current.pipe(map((l) => l.label))}</span>
-        <Icon name="chevron-down" size={13} class={classes.chevron} />
-      </button>
-      <Show when={open}>
-        {() => (
-          <div class={classes.levels} role="menu" aria-label="Picking level">
-            {levels.map((l, i) => (
-              <>
-                {l.group && l.group !== levels[i - 1]?.group ? <div class={classes.group}>{l.group}</div> : null}
-                <button
-                  type="button"
-                  role="menuitemradio"
-                  class={classes.levelRow}
-                  aria-checked={props.granularity!.pipe(map((g) => g === l.value))}
-                  onClick={() => {
-                    props.setGranularity?.(l.value);
-                    open.set(false);
-                  }}
-                >
-                  <Icon name={l.icon} size={15} />
-                  {l.label}
-                </button>
-              </>
-            ))}
-          </div>
-        )}
-      </Show>
+      <div class={classes.levels} role="menu" aria-label="What a click selects">
+        {levels.map((l, i) => (
+          <>
+            {l.group && l.group !== levels[i - 1]?.group ? <div class={classes.group}>{l.group}</div> : null}
+            <button
+              type="button"
+              role="menuitemradio"
+              class={classes.levelRow}
+              aria-checked={granularity.pipe(map((g) => g === l.value))}
+              onClick={() => {
+                props.setGranularity?.(l.value);
+                props.setMode('select');
+              }}
+            >
+              <Icon name={l.icon} size={15} />
+              {l.label}
+            </button>
+          </>
+        ))}
+      </div>
     </div>
-  ) as HTMLElement;
-  // Closes on a click elsewhere or Escape.
-  const onPointerDown = (e: PointerEvent) => {
-    if (open.value && !root.contains(e.target as Node)) open.set(false);
-  };
-  const onKeyDown = (e: KeyboardEvent) => {
-    if (!open.value || e.key !== 'Escape' || e.defaultPrevented) return;
-    open.set(false);
-    e.preventDefault();
-  };
-  document.addEventListener('pointerdown', onPointerDown);
-  document.addEventListener('keydown', onKeyDown);
-  onCleanup(() => {
-    document.removeEventListener('pointerdown', onPointerDown);
-    document.removeEventListener('keydown', onKeyDown);
-  });
-  return root;
+  );
 }

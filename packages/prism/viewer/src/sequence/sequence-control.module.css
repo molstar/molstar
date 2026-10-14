@@ -16,53 +16,42 @@
      so a percentage would collapse the surface to nothing. */
   height: var(--msp-dock-size, 100%);
   min-height: 0;
+  box-sizing: border-box;
+  /* Air above the lines (the ruler's numbers), and the band's faded bottom below them (the shell's `--msp-band-fade`). */
+  padding-top: var(--msp-space-3);
+  padding-bottom: var(--msp-band-fade, 0px);
   color: var(--msp-color-text);
-}
-
-/* The row of controls: what is not a control lets the pointer through to the canvas. */
-.bar {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: var(--msp-space-2);
-  height: var(--msp-control-height);
-  padding: 0 var(--msp-space-1);
-  pointer-events: none;
-  contain: layout paint;
-
-  & > * {
-    pointer-events: auto;
-  }
-}
-
-.switch {
-  width: 140px;
-}
-
-.spacer {
-  flex: 1;
+  /* The band lets the pointer through to the canvas but for the lines. */
   pointer-events: none;
 }
 
-/* Seq*'s surface: its canvases fill it; a change inside does not touch the rest of the shell. */
+/* Seq*'s surface: its canvases fill it; a change inside does not touch the rest of the shell. Where the text scrolls
+   the control sets the fades (`data-fade`, the lengths by custom properties, only when a side turns on or off). */
 .surface {
   flex: 1 1 0;
   min-height: 0;
   contain: layout paint;
+  pointer-events: auto;
+
+  &[data-fade] {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 var(--seq-fade-top, 0px),
+      #000 calc(100% - var(--seq-fade-bottom, 0px)),
+      transparent
+    );
+  }
 }
 
-/* The legend, under the bar at its right: small, opaque enough to read over the canvas, no blur. */
-.popup {
-  position: absolute;
-  top: var(--msp-control-height);
-  right: var(--msp-space-1);
-  z-index: var(--msp-z-overlay);
-  max-width: 280px;
-  max-height: 320px;
-  overflow: auto;
-  padding: var(--msp-space-3);
-  border-radius: var(--msp-radius-lg);
-  background: var(--msp-glass-panel-bg);
-  box-shadow: var(--msp-glass-shadow);
-  font-size: var(--msp-font-size-sm);
+/* The text's own scrollbar (Seq*'s vertical strip, in its `vnav` canvases): hidden until the pointer is over the band, the
+   text scrolls or its thumb is dragged (`data-bars`, set by the control only when that changes); opacity only, the strip
+   keeps its place. */
+.surface [data-pass^="vnav"] {
+  opacity: 0;
+  transition: opacity var(--msp-motion-base) var(--msp-ease);
+}
+
+.surface[data-bars] [data-pass^="vnav"] {
+  opacity: 1;
 }

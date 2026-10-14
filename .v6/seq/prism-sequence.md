@@ -78,9 +78,9 @@ export function createSequenceViewers(deps: { ink: ReadonlyState<CanvasInk>; /* 
 ### 2.2 The dock tab
 
 The viewer registers the tab itself, as the mock registers the strip today: `{ id: 'sequence', title: 'Sequence',
-icon: 'sequence', dock: 'top', render: domView(SequenceControl) }`, registered while a structure is shown, replacing
-`SequenceStrip`. The "Sequence" canvas button and the `view.sequence` command keep working, since they address the
-tab.
+icon: 'sequence', dock: 'top', frame: 'none', render: domView(SequenceControl) }`, registered while a structure is
+shown, replacing `SequenceStrip`. The canvas stack's "Sequence" button (always shown while a structure is, with the menu of
+§4) and the `view.sequence` command address the tab.
 
 ### 2.3 The link: subscribed while the control is rendered
 
@@ -136,31 +136,49 @@ the rest of the mock UI:
   with the story.
 - It loads the mock's structure, 1TQN, from RCSB at run time (the stories may use the network; tests never do) and
   shows it with the default representation.
-- **The background**: a control in the story changes the canvas background (`canvas3d.setProps({ renderer: {
-  backgroundColor } })`); the canvas props drive `canvasInk(props)`, which the shell's canvas layer and the sequence
-  model both follow, so the area behind the sequence viewer and its skin change with the canvas.
+- **The background**: the mock's Canvas settings › Background (color, transparent) drives the plugin's canvas props and
+  follows them; the canvas props drive `canvasInk(props)`, which the shell's canvas layer and the sequence model both
+  follow, so the band behind the sequence viewer and its skin change with the canvas.
 - The plugin code lives in the viewer's `sources/` folder (contexts.md §7), the mock UI stays as it is (structure rows,
   selection bar and the rest are still mocks).
 
 ## 4. The control
 
 ```
-┌ top dock, no card ──────────────────────────────────────────────────────────────┐
-│ MKLAVL... (compact: letters in groups of 10, wrapping)          [Aa | ≡]  [◐]   │
-└──────────────────────────────────────────────────────────────────────────────────┘
+┌ band: the canvas' color behind the lines, fading out below them ───────────────┐
+│ MKLAVL... (text: groups of 10, centered, wrapping; scrolls with edge fades)     │
+│ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │
+└ (the structure may pass under the faded part; the camera frames it below) ──────┘
 ```
 
-- **The surface**: `mountSection(seq, 'main', host)` from `@molstar/seq-viewer/canvas`, one section, so no loop over
-  sections and none of Seq\*'s DOM or React UI. The engine draws the letters, ruler, hover, selection and focus itself
-  and handles wheel, drag, click and keys.
-- **The switch**: prism-ui's `Choices`, two icon choices (compact text, tracks), calling `viewer.setStyle`. Compact
-  is Seq\*'s `compact` preset (wrapped, groups of 10, no zoom, vertical scroll); tracks is the `tracks` preset (one
-  track, the ruler rail, zoom and pan).
-- **Height**: tracks: the dock follows `seq.layout.contentHeight('main')` (navigator, ruler and one row). Compact:
-  the dock's height (`--msp-dock-size`), the text scrolling inside it.
-- **No frame**: the tab asks for no card (`ShellTab.frame: 'none'`; no `--msp-glass-panel-bg`, shadow or filter);
-  the canvas shows through. The surface's canvases clear rather than fill, so the viewer draws on the canvas
-  directly. Seq\* draws its text halos in the skin's surface color (§5), which keeps letters legible on any background.
+- **The surface**: `mountSection(seq, 'main', host)` from `@molstar/seq-viewer/canvas`, one section, no loop over
+  sections, none of Seq\*'s DOM or React UI. The engine draws the letters, ruler, hover, selection and focus itself and
+  handles wheel, drag, click and keys. **The control has no controls of its own** (round 2): the version, the colors and
+  the legend are the canvas stack's **Sequence** button (§2.2), always shown while a structure is, with a menu: one single choice of **No sequence, Text, Tracks** (each with its own icon, the current one in the accent as the picking
+  levels' list marks its own; No sequence hides the band), then the letters' colors (a single choice) and Legend…. Each item runs a command (`sequence.text`, `sequence.tracks`,
+  `sequence.colors.<scheme>`, `sequence.legend`, and `view.sequence`), so the command menu has the same, one way of doing
+  things. The tracks' rail (`sequence.rail.<ruler|strip|band|none>`) is a command and `SequenceViewer.setRail`, not a
+  menu item: the ruler's rail is what Tracks uses.
+- **Tracks is the default** (the model's initial style); Text is one menu click away.
+- **Text** is Seq\*'s `compact` preset with the model's render props: whole blocks per line over the full width,
+  centered (`wrappedAlign: 'center'`, the margins split on both sides; `wrappedMaxWidth` limits a line, default none),
+  letters at most the panel text size (`--msp-font-size-sm`, read once from the tokens), in the layer's colors
+  (`wrappedColors`), unobserved positions in a quiet gray (`unobservedGray`, the skin's `unobserved`); a focus scrolls its
+  lines into view (`focusViewport`'s `reveal`); the scroll strip shows only while the pointer is over the band, the text
+  scrolls or a drag is on, and the cut edges fade (the control drives a mask from the viewport's scroll state, written
+  when a side turns on or off, never per step). **Tracks** is the model's own preset `prism_tracks`: no header column
+  (`headerWidth` 0), the ruler and the letters, the rail a registered host preset (`setRail`).
+- **The band** (a frameless top tab, `ShellTab.frame: 'none'`): part of the canvas area, over the canvas' top. It spans
+  the canvas area (the left edge to the rail, or to a pinned panel's border; a floating panel lies over it as over the
+  canvas), in the canvas' own color (the ink) behind its lines, **fading out** over `BandDissolvePx` before and
+  `BandFadePx` after the last line: a gradient, no `backdrop-filter`. The 3D canvas keeps its full height under it and
+  the same width source (`--msp-canvas-end`); the band takes the pointer over the lines (the surface), the faded part
+  lets it through to the canvas (`pointer-events`). The structure may pass under the faded part; the camera's default
+  framing (the first one, a reset) keeps the band clear (`paddedFocus`: a snapshot provider for `requestCameraReset`),
+  and follows the band's height only while the camera is as the framing left it.
+- **Height**: the dock size is the lines' height plus the air above (`--msp-space-3`) and `BandFadePx`: Tracks follow
+  `seq.layout.contentHeight('main')`, Text has a fixed height (two or three lines; the rest scrolls). `ShellModel.setSize`
+  has its own minimum for a top or bottom dock.
 
 ## 5. The ink: prism-ui's abstraction, the viewer's state
 
@@ -191,8 +209,13 @@ model's state (`SequenceViewer.theme`), next to the ink it already follows (§5)
 the document it builds; Seq\*'s themes and renderers draw the colors from it, so nothing about coloring is
 reimplemented in Prism.
 
+- **Letters' colors**: the model's own scheme `prism:residues` (Zappo's residue classes, colder and softer, with a dark
+  variant), registered as a Seq\* color scheme from the viewer's side (a registry entry's `colorSchemes`; names are
+  namespaced) and the default; Zappo, Taylor and Hydrophobicity are in the menu too. Seq\* judges a scheme's fit by the
+  section's first block, so the scheme lists every polymer alphabet (a nucleic acid first would otherwise show the
+  letters' own colors); its letters are colored by class where they are the same letters (A, C, G, T).
 - **Legend**: a small prism-ui `Legend` component (items: swatch or glyph and label; ramps: gradient, low and high),
-  opened from a button on the control. Its data is the model's own: the scheme it chose, read from the scheme's
+  in an overlay card opened from the Sequence menu. Its data is the model's own: the scheme it chose, read from the scheme's
   public definition (`KernelColorSchemes`, `ColorSchemeEntry` from `@molstar/seq-core/format`). Seq\*'s legend model
   (`legendGroups` in `viewer/src/chrome.ts`) stays internal to its DOM and React UIs: no new Seq\* entry.
 - **Tooltip**: the sequence's hover feeds the shell's one cursor-following `HoverLabel` (shell.md: the sequence's
@@ -257,3 +280,58 @@ Where the code differs from, or fills in, the sections above:
   after an MVS load (which sets the background from the state, `background` is therefore passed into it).
 - **Subscription guard** (`prism-ui/src/_test/subscriptions.test.ts`) now also scans the viewer's components (`testing`
   excluded).
+
+### Round 2 (as built)
+
+- **Shift** with a click or a drag in the sequence adds or removes each stretch (`select`'s `shiftPositions: 'toggle'`,
+  set in the model's viewer spec); Seq\*'s own default stays `extend`.
+- **A ligand** in the link: a position of a non-polymer unit (heavy atoms) lights and selects its whole residue in 3D
+  (`StructureLink.toLoci` extends to whole residues for non-polymer chains).
+
+- **No bar on the control**: the Sequence button's menu (`sequence/commands.ts`: `sequenceCommands`, `sequenceMenu`) and
+  the `LegendCard` overlay replace it; the viewer mode registers the commands, the overlay and the button's `menu` over a
+  real plugin. The dock's tab is the band alone.
+- **Canvas background** is Canvas settings › Background: `registerMockCanvasSettings(shell, binding)` reads the plugin's
+  canvas props and writes `setBackground` / `setTransparent` (the plugin announces its own change, so the ink follows);
+  the story's own background bar is gone, the `background` arg only starts it. The story starts with no panel open
+  (`ShellStoryProps.noPanel`), and without the mock's tasks and selection bar.
+- **The shell**: a top tab with `frame: 'none'` is a band (`FloatingDock`'s `band` class). `ShellView` sets
+  `--msp-canvas-end` (the rail, or the pinned panel with it) for the canvas and the band, which end together; the band's
+  own `.canvasLayer` already ends at a pinned panel (a first version subtracted it twice: the band was half as wide
+  pinned). `--msp-band-fade` and `--msp-band-dissolve` come from `BandFadePx` / `BandDissolvePx`.
+- **Seq\* changes** (all default off or unchanged): render props `wrappedAlign`, `wrappedMaxWidth`, `wrappedColors`,
+  `unobservedGray`; `focusViewport`'s `reveal` and `revealPad` with `LayoutManager.isWrapped` / `revealY`; the surface's
+  canvases carry `data-pass`. Tests in `wrapped-spacing`, `wrapped-reveal` and `draws`.
+- **Tooltip**: prism-ui's `installTooltips` showed a tip for an anchor a closing panel had already removed (the timer
+  fired late, no `pointerout` came); it now checks the anchor (connected, rendered) when the timer fires and on the next
+  pointer event, and watches it with a `ResizeObserver` while shown; a row's card beside its panel is not shown where it
+  would lie over the panel.
+- **What is not done**: a nucleic acid's letters take the residue classes' colors where the letters coincide (A, C, G, T);
+  a ligand or a short unit in the text is a small box at a line's start (Seq\*'s todo.md); a zoomed-out cell class by
+  letter ignores `unobservedGray`.
+
+### Round 2, later (as built)
+
+- **A predicted structure** (`Shell/Viewer mode › RealPluginPredicted`): AlphaFill's model of CYP3A4
+  (`https://alphafill.eu/v1/aff/P08684`, mmCIF text, AlphaFold's AF-P08684-F1 with ligands transplanted from PDB
+  homologs, pLDDT per residue), loaded by `ViewerPlugin.load({ predicted: true, ligands })`: MVS with the polymer's
+  color theme `plddt-confidence` (the model-archive extension's provider, registered for the state), and only the heme
+  and erythromycin shown in 3D (the transplanted ligands overlap in space; the others stay in the sequence). The sequence
+  model builds a **pLDDT track** from `molstar:plddt` as Seq\*'s case 8 does (`values`, `encoding: 'line'`, domain 0–100,
+  two rows high) in the four AlphaFold bands softened to the palette (`PrismPlddtBands`), and the legend lists the bands.
+  In Text the letters keep the residue palette; a pLDDT tint for them would be one more `wrappedColors` source (not done).
+- **A secondary structure track** (both stories, Tracks): `molstar:secondary_structure` (new in molstar-poc: helices,
+  strands and turns from the model's own assignment, mmCIF's `struct_conf` and sheets; coil is no range), drawn as Seq\*'s
+  `secondary` renderer does, in softened rose, amber and teal, with its legend block.
+- **Track context menus act on the 3D view.** A secondary press on a track is Seq\*'s new `contextMenu` behavior
+  (`events.menu`, origin `pointer`, with the pointer's place; regions param; the keyboard's menu key was there already).
+  What a track offers is the model's table (`TrackMenus` in `model.ts`, by track ref): letters: Apply default coloring;
+  secondary structure: Color by secondary structure; pLDDT: Color by pLDDT. The control opens prism-ui's
+  `openContextMenu` at the pointer (flips at the window's edges, closes on Escape or a press elsewhere) and the browser's
+  own menu is suppressed only over a track that offers one. The actions run through `HostActions`
+  (`ViewerPlugin.actions.colorStructure`: one undoable Mol* state update, `updateRepresentationsTheme`, of the polymer's
+  representations to `plddt-confidence`, `secondary-structure` or the default).
+- **The selection bar is real** over the plugin (`sources/selection.ts`: Mol*'s own label of the selection's statistics,
+  one thing named, more counted in lower case; Focus and Clear are wired, the mock's color, theme and measure actions are
+  left out) and sits to the left of the toolbar. A ligand's position names its whole residue in 3D
+  (`StructureLink.toLoci`).

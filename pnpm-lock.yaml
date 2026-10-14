@@ -2969,9 +2969,15 @@ importers:
       '@molstar/core':
         specifier: workspace:*
         version: link:../../core
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../graphics
       '@molstar/model':
         specifier: workspace:*
         version: link:../../model
+      '@molstar/model-archive-extension':
+        specifier: workspace:*
+        version: link:../../../extensions/model-archive
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../plugin/core

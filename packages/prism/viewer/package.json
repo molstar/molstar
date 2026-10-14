@@ -39,7 +39,9 @@
   },
   "dependencies": {
     "@molstar/core": "workspace:*",
+    "@molstar/graphics": "workspace:*",
     "@molstar/model": "workspace:*",
+    "@molstar/model-archive-extension": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/prism-ui": "workspace:*",
     "@molstar/seq-core": "workspace:*",

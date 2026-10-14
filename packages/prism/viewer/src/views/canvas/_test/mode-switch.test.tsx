@@ -15,7 +15,7 @@ import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import { type CanvasMode, ModeSwitch, type ModeSwitchProps, PickLevel } from '../mode-switch.js';
 
 describe('ModeSwitch', () => {
-  it('shows the mode, switches it, and offers granularity only while selecting', () => {
+  it('shows the mode and switches it; the picking levels are listed directly, one click from Select', () => {
     const mode = observableState<CanvasMode>('interact');
     const granularity = observableState('residue');
     const container = document.createElement('div');
@@ -26,6 +26,7 @@ describe('ModeSwitch', () => {
       granularities: [
         { value: 'residue', label: 'Residue', icon: 'pick-residue' },
         { value: 'chain', label: 'Chain', icon: 'pick-chain' },
+        { value: 'chainInstances', label: 'Chain', icon: 'pick-chain', group: 'All instances' },
       ],
       setGranularity: (g) => granularity.set(g),
     };
@@ -39,31 +40,29 @@ describe('ModeSwitch', () => {
       container,
     );
     document.body.append(container);
-    const [interact, select] = container.querySelectorAll('button');
-    const level = () => container.querySelector('[aria-haspopup]') as HTMLButtonElement | null;
+    const [interact, select] = container.querySelectorAll<HTMLButtonElement>('.msp-viewer-mode-switch-segment');
+    const rows = () => [...container.querySelectorAll('[role=menuitemradio]')] as HTMLButtonElement[];
     expect(interact.getAttribute('aria-pressed')).toBe('true');
-    expect(level()).toBeNull();
 
-    // Selecting shows the level below the switch; the switch's own buttons stay as they were.
-    select.click();
+    // The list is there (shown by CSS on hover or focus of Select): no button to open first, the current one marked.
+    expect(container.querySelector('[aria-haspopup]')).toBeNull();
+    expect(rows().map((r) => r.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
+    expect(container.querySelector('[role=menu]')?.textContent).toContain('All instances');
+
+    // Picking a level sets it and turns select mode on (it was off).
+    rows()[1].click();
+    expect(granularity.value).toBe('chain');
     expect(mode.value).toBe('select');
     expect(select.getAttribute('aria-pressed')).toBe('true');
-    expect(level()!.textContent).toContain('Residue');
-    level()!.click();
-    const rows = [...container.querySelectorAll('[role=menuitemradio]')] as HTMLButtonElement[];
-    expect(rows.map((r) => r.getAttribute('aria-checked'))).toEqual(['true', 'false']);
-    rows[1].click();
-    expect(granularity.value).toBe('chain');
-    expect(container.querySelector('[role=menu]')).toBeNull();
-    expect(level()!.textContent).toContain('Chain');
+    expect(rows().map((r) => r.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false']);
 
-    // Escape closes the list.
-    level()!.click();
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    expect(container.querySelector('[role=menu]')).toBeNull();
-
+    // Another pick keeps select mode on; Interact turns it off and keeps the level.
+    rows()[2].click();
+    expect(granularity.value).toBe('chainInstances');
+    expect(mode.value).toBe('select');
     interact.click();
-    expect(level()).toBeNull();
+    expect(mode.value).toBe('interact');
+    expect(granularity.value).toBe('chainInstances');
     container.remove();
   });
 });

@@ -30,8 +30,32 @@ describe('skinFor', () => {
     expect([s.fontMono, s.fontUi]).toEqual(['Mono', 'Sans']);
   });
 
+  it('draws what the structure does not model in a quiet text tone, between the ink and the surface', () => {
+    expect(skinFor(inkForColor('#ffffff')).unobserved).toBe('rgb(163 160 154)');
+    expect(skinFor(inkForColor('#111318')).unobserved).toBe('rgb(101 106 114)');
+  });
+
   it('is the same for the same ink', () => {
     expect(skinFor(inkForColor('#222222'))).toEqual(skinFor(inkForColor('#222222')));
+  });
+});
+
+describe('the residue palette', () => {
+  it('is the default scheme, with a legend of the classes for a light and a dark ink', () => {
+    const light = legendOf('prism:residues', false);
+    const dark = legendOf('prism:residues', true);
+    expect(light.title).toBe('Prism residues');
+    expect(light.items.map((i) => i.label)).toEqual([
+      'Aliphatic',
+      'Aromatic',
+      'Positive',
+      'Negative',
+      'Polar',
+      'Proline, glycine',
+      'Cysteine',
+    ]);
+    expect(dark.items.map((i) => i.label)).toEqual(light.items.map((i) => i.label));
+    expect(dark.items.map((i) => i.color)).not.toEqual(light.items.map((i) => i.color));
   });
 });
 

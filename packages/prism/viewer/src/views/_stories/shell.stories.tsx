@@ -10,7 +10,7 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { story } from '@molstar/prism-ui/testing/index';
-import { RealPluginShellStory } from '../../testing/real-plugin-story.js';
+import { RealPluginShellStory, StructureAlphaFill } from '../../testing/real-plugin-story.js';
 import { ViewerShellStory } from '../../testing/shell-story.js';
 
 const meta: Meta = { title: 'Shell/Viewer mode', parameters: { layout: 'fullscreen' } };
@@ -67,19 +67,37 @@ export const CanvasBackground: StoryObj<{ background: string }> = {
 
 /**
  * A real Mol* plugin on the canvas, loading 1TQN from RCSB (needs the network), under the same mock UI (structure rows,
- * selection bar and the rest are still mocks). The sequence at the top is the real Seq* viewer over the plugin's
- * structure, with no card around it: hover and select residues in either view (they light up in both), switch
- * Text / Tracks, open the legend (the palette button). "Canvas background" above the app changes the canvas; the chrome,
- * the sequence's colors and its letters' halos follow it (light, dark, mid gray). Hovering the 3D canvas shows its label
- * next to the cursor; hovering the sequence shows the sequence's.
+ * selection bar and the rest are still mocks); it starts with no panel open. The sequence is the real Seq* viewer over
+ * the plugin's structure, in a band of its own at the top of the canvas area (the 3D canvas starts below it), the
+ * canvas' background behind it: hover and select residues in either view (they light up in both), the text version is
+ * centered, scrolls to a focus and fades at its cut edges. The canvas stack's Sequence button (always there) opens a
+ * menu: show or hide, Text / Tracks, the tracks' rail, the colors and the legend. The canvas background is Canvas
+ * settings › Background (the stack's monitor button): the chrome, the band and the letters follow it; the `background`
+ * arg only starts it. Hovering the 3D canvas shows its label next to the cursor, hovering the sequence the sequence's.
  */
 export const RealPlugin: StoryObj<{ background: string }> = {
-  args: { background: 'light' },
-  argTypes: { background: { control: 'select', options: ['light', 'white', 'gray', 'dark', 'blue'] } },
+  args: { background: 'white' },
+  argTypes: { background: { control: 'select', options: ['white', 'light', 'gray', 'dark', 'blue'] } },
   render: (args) =>
     story(() => (
       <div style="height: 100vh">
         <RealPluginShellStory background={args.background} />
+      </div>
+    )),
+};
+
+/**
+ * The real plugin on a predicted structure with ligands (needs the network): AlphaFill's CYP3A4 model, the cartoon colored
+ * by pLDDT (Mol*'s confidence theme, the AlphaFold bands) with the heme and erythromycin; in Tracks a pLDDT track under the
+ * letters in the same bands, softened, and the legend (the Sequence menu) lists them. Everything else as the 1TQN story.
+ */
+export const RealPluginPredicted: StoryObj<{ background: string }> = {
+  args: { background: 'white' },
+  argTypes: { background: { control: 'select', options: ['white', 'light', 'gray', 'dark', 'blue'] } },
+  render: (args) =>
+    story(() => (
+      <div style="height: 100vh">
+        <RealPluginShellStory background={args.background} structure={StructureAlphaFill} />
       </div>
     )),
 };

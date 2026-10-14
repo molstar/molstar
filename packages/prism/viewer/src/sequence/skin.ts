@@ -33,6 +33,8 @@ function mix(from: number, to: number, t: number): number {
 export interface SequenceFonts {
   readonly mono: string;
   readonly ui: string;
+  /** The panel text size, px (`--msp-font-size-sm`): the text version's letters are at most this large. */
+  readonly size?: number;
 }
 
 /**
@@ -60,7 +62,8 @@ export function skinFor(ink: CanvasInk, fonts?: SequenceFonts): Skin {
     hover: rgb(accent, 0.2),
     selection: rgb(accent, 0.25),
     selectionBorder: rgb(accent, 0.7),
-    unobserved: rgb(toward(0.14)),
+    // Positions not modelled in the structure: a quiet text tone, readable as letters (Seq*'s `unobservedGray`).
+    unobserved: rgb(mix(text, surface, 0.55)),
     pending: rgb(toward(0.1)),
     grip: rgb(mix(text, surface, 0.45)),
     gripHover: rgb(text),

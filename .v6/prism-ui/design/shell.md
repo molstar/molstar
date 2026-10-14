@@ -51,9 +51,11 @@ extension UI) are placed.
 ```
 
 ```
-  canvas stack: mode (Interact ↖, Select ◎ with the picking level), canvas (Reset camera ⌖, Illumination & XR ✧,
-                Expand ⤢; each with a menu on hover), view (Sequence, only while its card is hidden)
-  bottom: the status column on the left (message, tasks, the assistant's turn); the selection bar on the right
+  canvas toolbar (the stack), a row in the bottom-right corner: mode (Interact ↖, Select ◎ with the picking levels),
+                canvas (Reset camera ⌖, Illumination & XR ✧, Expand ⤢; each with a menu on hover, opening upward), view
+                (Sequence: its menu, or only while its card is hidden)
+  bottom: the status column on the left (message, tasks, the assistant's turn); on the right the corner: the selection
+          bar to the left of the canvas toolbar, on its row
   also: the command menu (modal), overlay cards (in the panel's place), the busy overlay, the drop overlay
 ```
 
@@ -64,7 +66,7 @@ extension UI) are placed.
   Home's is the wordmark), the pin, and ✕ (collapses the dock). Its inner edge drags to resize (`setSize`, at least 180
   px; a double-click goes back to the default 340). `setFloating(dock, false)` docks it beside the canvas instead (the
   rail's buttons then sit in a frame at the canvas's corner); compact mode makes it a bottom sheet. Everything else on
-  the right of the canvas (the sequence card's end, the canvas stack, the selection bar) follows the panel's edge,
+  the right of the canvas (the sequence card's end) follows the panel's edge (the toolbar and the selection in the corner stay at the rail),
   without easing (`--msp-canvas-right-inset`). One margin frames the canvas (`--msp-canvas-edge`, 8px): every floating
   thing keeps it from the canvas edges, the docked rail, the open panel, the sequence card, and the cards stacked beside
   it.
@@ -139,25 +141,36 @@ extension UI) are placed.
   canvas runs under everything, so the sequence reads as part of the visualization. Playback and the canvas stack sit
   below it (`--msp-canvas-top-inset`). The sequence card's header has its choices (Mol*'s sequence controls: structure,
   mode (Chain, Polymers, Everything), entity and chain in Chain mode) and its collapse.
+  A top tab with `frame: 'none'` (the sequence in the viewer) is a **band** instead of a card (`FloatingDock`'s `band`
+  class): it spans the canvas area (the left edge to where the canvas ends: the rail, or a pinned panel; a floating panel
+  lies over it as over the canvas), over the canvas' top, in the canvas' own color (the ink) behind its lines, fading to
+  transparent below them (`BandFadePx`, `BandDissolvePx`, a gradient, no filter); the faded part lets the pointer through.
+  The canvas keeps its full height and ends at the same place (`--msp-canvas-end`); the chrome below it
+  (`--msp-canvas-top-inset`) starts under the band's lines. The viewer asks the camera's default framing to keep the
+  band clear.
 - **Optional docks.** `left`, `top`, `bottom` take tabs placed by the app spec (mesoscale explorer puts its entity tree
   on the left) or moved there (`move`). The sequence is the only default occupant of `top`. Side docks run the full
   height; top and bottom docks span the canvas width only. A docked (not floating) top or bottom dock with one tab has
   no tab strip: its content carries its own header, and collapsed it is a slim bar with the tab's name that expands on
   click.
-- **Canvas stack.** What acts on the view sits on the canvas itself, at its top right (below the sequence card, beside
-  the rail or the open panel), as one glass frame: the mode (Interact, Select; §4.6), then the toolbar items placed on
-  the canvas (`place: 'canvas'`) in their sections: `canvas` (Reset camera, Illumination & XR, Expand) and `view`
-  (Sequence, while there is a sequence and its card is hidden; shown, the card carries its own collapse). Each button
-  runs its action (to be its command, gated by the command's `when` and `PluginConfig.Viewport.*`; the mocks run plain
-  functions); the camera and rendering tools show only once something is loaded (`visible`), and with nothing to show
-  the stack has no frame at all. A button can carry a small menu of variants (`menu`, `CanvasMenuItem`: a label, an
-  icon, a hint under it, a check for a toggle, or `disabled` with its reason in place of the hint): it opens to the
-  stack's left at the button's height on hover or focus (a corner mark says so; no tooltip then, since both would open
-  in the same spot), stays while the pointer travels to it, and closes on a choice, on Escape, or a moment after the
-  pointer leaves; a click still runs the button's own action, or opens the menu when the button has none. Reset camera
-  (a focus glyph) resets on a click and offers Reset zoom, Orient axes and Reset axes. Illumination & XR (a lightbulb,
-  pressed while illumination is on) has no action of its own: Illumination as a checked toggle, Enter XR. Canvas
-  settings and Animation are on the rail: they set up the scene rather than act on the view.
+- **Canvas stack (the canvas toolbar).** What acts on the view sits on the canvas itself, in its **bottom-right corner**
+  (anchored beside the rail, or beside a pinned panel's border: it does not move for a floating panel, which is transient
+  and lies over the canvas and **stops above the corner**, leaving the toolbar's row and the edge gap, `--msp-corner-room`;
+  an overlay card in the panel's place likewise), as **one glass row**: the mode (Interact, Select; §4.6), then the
+  toolbar items placed on the canvas (`place: 'canvas'`) in their sections, separated by hairlines: `canvas` (Reset
+  camera, Illumination & XR, Expand) and `view` (Sequence: while there is a sequence and its card is hidden, or, with a
+  menu, always: the viewer's Sequence menu). Each button runs its action (to be its command, gated by the command's `when`
+  and `PluginConfig.Viewport.*`; the mocks run plain functions); the camera and rendering tools show only once something
+  is loaded (`visible`), and with nothing to show the row has no frame at all. A button can carry a small menu of
+  variants (`menu`, `CanvasMenuItem`: a label, an icon, a hint under it, a check for a toggle, or `disabled` with its
+  reason in place of the hint): it **opens upward** from the row, its right edge level with the button's, on hover or
+  focus (a corner mark says so; no tooltip then, since both would open in the same spot), stays while the pointer travels
+  to it, and closes on a choice, on Escape, or a moment after the pointer leaves; a click still runs the button's own
+  action, or opens the menu when the button has none. Tooltips of the row's buttons open upward too. Reset camera (a focus
+  glyph) resets on a click and offers Reset zoom, Orient axes and Reset axes. Illumination & XR (a lightbulb, pressed while
+  illumination is on) has no action of its own: Illumination as a checked toggle, Enter XR. Canvas settings and Animation
+  are on the rail: they set up the scene rather than act on the view. Where the row does not fit (a narrow shell) it
+  scrolls across. (Until 2026-10-14 the stack was a column at the canvas's top right.)
 - **Expand by context.** In an iframe, filling the page only fills the frame, so what the canvas stack's Expand button
   does depends on where Mol* runs (`FullscreenModel`, `shell/fullscreen.ts`; molstar#1663): on a page it is Expand (fill
   the page; fixed position on the plugin root, no `<body>` mutation), with Fullscreen in its menu (the whole screen, not
@@ -167,10 +180,13 @@ extension UI) are placed.
   controls is followed (`fullscreenchange`).
 - **Playback** (top left of the canvas, §4.3): one column, two different things as two surfaces: the session's snapshots
   (a card), then a structure's trajectory (a bar). Each only when the data has it.
-- **Bottom of the canvas**: the status column on the left; the work in hand on the right (the selection bar,
-  `ShellView`'s `context`, then the status chips), its right edge following the open panel. Bottom-aligned: the status
-  column grows upward, its last line level with the selection bar's middle. When the bar is narrow (under 480px, a
-  container query on the bar, not the window), the selection takes a row of its own above the status.
+- **Bottom of the canvas**: the status column on the left; on the right **the corner** (`.corner`): the work in hand
+  (the selection bar, `ShellView`'s `context`, then the status chips) to the **left of the canvas toolbar on the same row**,
+  bottom-aligned (the toolbar stays pinned to the corner: the bar grows leftward and appears or goes without moving it;
+  where the row does not fit, the chips wrap to a row above); its right edge is the toolbar's (`--msp-canvas-corner-inset`). Bottom-aligned: the status column grows upward,
+  its last line level with the toolbar's row. When the bar is narrow (under 560px, a container query on the bar, not the
+  window), the corner takes a row of its own above the status, so nothing overlaps. In the compact layout the status
+  and the selection are docked under the canvas; the toolbar stays in the corner.
 - **Status column** (`StatusModel`, `shell/status.ts`; `StatusLine`): one line per item, growing upward, frameless (ink
   in the canvas theme's text color with a soft halo of the background, so it reads over the molecule): the latest
   message (it fades after 4 s; an error stays until the next message or `dismiss`, the line has no ✕; a click opens the
@@ -471,16 +487,15 @@ What a click on the canvas does is a mode, and the difference matters, so the mo
 the canvas stack is two buttons, **Interact** and **Select** (`views/canvas/mode-switch.tsx`), once something is loaded.
 Interact: drag rotates, a click focuses. Select: a click selects (Shift extends), drag still rotates. Select takes the
 accent while on; each button's title explains its mode and switching posts a one-line hint to the status column. Select
-carries the picking level as a small badge (its glyph, bottom right). While selecting, hovering Select (or focusing it)
-shows the level to its left (`PickLevel`, `ShellView`'s `canvasAside`, outside the stack's frame so it is not clipped:
-"Picks ⬡ Residue ▾"; the stack never moves; shown while its list is open, and always on touch screens): a button that
-opens the list of Mol*'s granularities (atom, residue, chain, entity, model, operator, structure, then the All instances
-levels: atom, residue, chain), the chosen one in the accent (after stories-untold's pick-level control); a click
-elsewhere or Escape closes it. Not yet: the mode as a command (`selection-mode.toggle`, with a keybinding) and Escape
-leaving Select.
+carries the picking level as a small badge (its glyph, bottom right). **Hovering Select (or focusing it) shows the list of
+picking levels directly, above it** (`PickLevel`, `ShellView`'s `canvasAside`, outside the row's frame so it is not
+clipped; always on touch screens): Mol*'s granularities (atom, residue, chain, entity, model, operator, structure, then
+the All instances levels: atom, residue, chain), the current one marked in the accent; one click from the toolbar picks it
+and turns select mode on if it was off (Tab goes from Select into the list). Not yet: the mode as a command
+(`selection-mode.toggle`, with a keybinding) and Escape leaving Select.
 
-While anything is selected, the selection bar sits at the bottom right of the canvas (moving with the panel edge;
-`SelectionBar`): what is selected ("12 residues"), then what to do with it as icon buttons: Color, theme, component…
+While anything is selected, the selection bar sits in the bottom-right corner, to the left of the
+canvas toolbar on its row (moving with the panel edge; `SelectionBar`): what is selected ("12 residues"), then what to do with it as icon buttons: Color, theme, component…
 (opens the Selection tab, beside Structure in the tab strip), Measure… (opens it at Measure), Focus, and Clear. One
 button leads to the Selection tab rather than one per action; the tab's sections hold Mol*'s selection toolbar actions.
 The command menu offers the same as commands: the `selection` group (`selection.color`, `selection.transparency`,

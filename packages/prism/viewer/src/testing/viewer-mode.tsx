@@ -11,7 +11,7 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { combineLatest, map, of } from 'rxjs';
 import type { CanvasInk, ReadonlyState } from '@molstar/prism-ui';
-import { ActionFooter } from '@molstar/prism-ui';
+import { ActionFooter, BandFadePx } from '@molstar/prism-ui';
 import { MolstarWordmark } from '@molstar/prism-ui';
 import { ParamsForm } from '@molstar/prism-ui';
 import { domView } from '@molstar/prism-ui/dom/view';
@@ -34,7 +34,14 @@ import { ImageExport } from '../views/export/image-export.js';
 import { HomeTab } from '../views/home/home-tab.js';
 import type { HomeModel, SessionModel } from '../model/home.js';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
-import { createSequenceViewers, SequenceControl } from '../sequence/index.js';
+import {
+  createSequenceViewers,
+  LegendCard,
+  LegendOverlay,
+  SequenceControl,
+  sequenceCommands,
+  sequenceMenu,
+} from '../sequence/index.js';
 import type { ViewerPlugin } from '../sources/index.js';
 import { type SequenceSelector, SequenceStrip } from '../views/sequence/sequence-strip.js';
 import { CanvasPlaceholder } from '@molstar/prism-ui';
@@ -388,6 +395,9 @@ export function mockViewerMode(
         const sources = [seqLines.value, real?.plugin.hoverLines.value ?? [], hoverLines.value];
         shownLines.set(sources.find((l) => l.length > 0) ?? []);
       };
+      const failed = real?.plugin.error.subscribe(
+        (e) => e && status.post(`Could not load the structure: ${e}`, 'error'),
+      );
       const mergeSubs = [seqLines.asReadonly, hoverLines.asReadonly, ...(real ? [real.plugin.hoverLines] : [])].map(
         (s) => s.subscribe(mergeLines),
       );
@@ -521,10 +531,23 @@ export function mockViewerMode(
           },
         ]);
       // Over a real plugin the sequence is the sequence model's, there while a structure is shown; else the mock strip.
-      const sequence = real ? createSequenceViewers({ ink: real.ink, structure: real.plugin.structure }) : undefined;
+      const sequence = real
+        ? createSequenceViewers({ ink: real.ink, structure: real.plugin.structure, actions: real.plugin.actions })
+        : undefined;
       let structureSub: { unsubscribe(): void } | undefined;
+      let padding: { unsubscribe(): void } | undefined;
       if (real && sequence) {
         const viewer = sequence.get();
+        // The band's height is what the camera's default framing keeps clear at the top of the canvas.
+        const top = shell.dock('top');
+        padding = combineLatest([top.state, top.active]).subscribe(([s, tab]) =>
+          real.plugin.setTopPadding(tab?.frame === 'none' ? s.size - BandFadePx : 0),
+        );
+        // The sequence's commands (the command menu's too), and the card its menu's "Legend…" opens.
+        commands.register(sequenceCommands(viewer, shell));
+        shell.registerOverlays([
+          { id: LegendOverlay, title: 'Sequence colors', render: domView(() => <LegendCard viewer={viewer} />) },
+        ]);
         let shownBefore = false;
         structureSub = real.plugin.structure.subscribe((host) => {
           if (!host) {
@@ -548,7 +571,6 @@ export function mockViewerMode(
                   shell={ctx.shell}
                   dock={ctx.dock ?? 'top'}
                   onHover={(lines) => seqLines.set(lines)}
-                  onCollapse={() => ctx.shell.toggle(ctx.dock ?? 'top')}
                 />
               )),
             },
@@ -658,21 +680,40 @@ export function mockViewerMode(
           group: 'view',
           icon: 'sequence',
           title: 'Sequence',
-          // Only while there is a sequence and its card is hidden (shown, it carries its own collapse button).
-          visible: combineLatest([shell.dock('top').tabs, shell.dock('top').active]).pipe(
-            map(([tabs, active]) => tabs.length > 0 && !active),
-          ),
-          run: () => shell.toggle('top'),
+          ...(sequence && real
+            ? {
+                // Over a real plugin: always there while a structure is shown, and a menu (the way to the sequence's
+                // style, colors and legend; its commands are in the command menu too).
+                visible: real.plugin.structure.pipe(map((s) => s !== undefined)),
+                menu: sequenceMenu(sequence.get(), shell, (id) => commands.open(id)),
+              }
+            : {
+                // Only while there is a sequence and its card is hidden (shown, it carries its own collapse button).
+                visible: combineLatest([shell.dock('top').tabs, shell.dock('top').active]).pipe(
+                  map(([tabs, active]) => tabs.length > 0 && !active),
+                ),
+                run: () => shell.toggle('top'),
+              }),
         },
       ]);
 
       // One Export button; built-in and extension exports are sections of its panel.
       mockExport(shell, status);
-      registerMockCanvasSettings(shell);
+      const stopCanvasSettings = registerMockCanvasSettings(
+        shell,
+        real
+          ? {
+              props: real.plugin.canvasProps,
+              setBackground: real.plugin.setBackground,
+              setTransparent: real.plugin.setTransparent,
+            }
+          : undefined,
+      );
       registerMockAnimation(shell, (text) => status.post(text));
       const selection = mockSelection(shell, (text) => status.post(text));
 
-      if (loaded) {
+      // Over a real plugin none of this mock state is shown (the tasks, the selection bar): the plugin has its own.
+      if (loaded && !real) {
         status.post('Loaded 1TQN (3,624 atoms) in 0.4 s', 'success');
         // Two tasks at once: they stack.
         const drop = (id: string) => () => status.setTasks(status.tasks.value.filter((t) => t.id !== id));
@@ -697,7 +738,8 @@ export function mockViewerMode(
       const playback = options.playback;
 
       return {
-        start: loaded ? 'structure' : 'home',
+        // Over a real plugin it starts clean: no panel open, the rail and the canvas tools are there.
+        start: real ? undefined : loaded ? 'structure' : 'home',
         commands,
         prefixes: mockPrefixes({ manager: commands, shell, scene, snapshots: snapshotStepper }),
         canvas: () => (
@@ -743,13 +785,29 @@ export function mockViewerMode(
               )}
             </Show>
           ) : null,
-        context: () => <Show when={hasData}>{() => <SelectionBar selection={selection} />}</Show>,
+        // Over a real plugin: its own selection, in the bar above the toolbar (Focus and Clear are real; the mock's color,
+        // theme and measure actions are left out: they work on the mock's scene).
+        context: () =>
+          real ? (
+            <SelectionBar
+              selection={{
+                summary: real.plugin.selection.summary,
+                clear: () => real.plugin.selection.clear(),
+                actions: [{ id: 'focus', label: 'Focus', icon: 'focus', run: () => real.plugin.selection.focus() }],
+              }}
+            />
+          ) : (
+            <Show when={hasData}>{() => <SelectionBar selection={selection} />}</Show>
+          ),
         canvasLead: () => <Show when={hasData}>{() => <ModeSwitch {...modeProps} />}</Show>,
         canvasAside: () => <Show when={hasData}>{() => <PickLevel {...modeProps} />}</Show>,
         empty: empty.asReadonly,
         dispose: () => {
+          stopCanvasSettings();
+          failed?.unsubscribe();
           for (const sub of mergeSubs) sub.unsubscribe();
           structureSub?.unsubscribe();
+          padding?.unsubscribe();
           sequence?.dispose();
         },
         // Mol*'s canvas bindings (the trackball and the interactivity behaviors), as the Help card lists them.
