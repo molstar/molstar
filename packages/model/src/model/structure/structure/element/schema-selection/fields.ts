@@ -6,41 +6,56 @@
 
 import type { SchemaItem } from '../schema.js';
 
-/** Every field of a `SchemaItem` (the compiler checks that none is missing) */
-const Fields: { [K in keyof Required<SchemaItem>]: true } = {
-  operator_name: true,
-  instance_id: true,
-  label_entity_id: true,
-  label_asym_id: true,
-  auth_asym_id: true,
-  label_seq_id: true,
-  auth_seq_id: true,
-  residue_index: true,
-  label_comp_id: true,
-  auth_comp_id: true,
-  pdbx_PDB_ins_code: true,
-  beg_label_seq_id: true,
-  end_label_seq_id: true,
-  beg_auth_seq_id: true,
-  end_auth_seq_id: true,
-  beg_auth_ins_code: true,
-  end_auth_ins_code: true,
-  label_atom_id: true,
-  auth_atom_id: true,
-  type_symbol: true,
-  atom_id: true,
-  atom_index: true,
+/** Every field of a `SchemaItem` and the type of its values (the compiler checks that none is missing) */
+const FieldTypes: { [K in keyof Required<SchemaItem>]: 'string' | 'number' } = {
+  operator_name: 'string',
+  instance_id: 'string',
+  label_entity_id: 'string',
+  label_asym_id: 'string',
+  auth_asym_id: 'string',
+  label_seq_id: 'number',
+  auth_seq_id: 'number',
+  residue_index: 'number',
+  label_comp_id: 'string',
+  auth_comp_id: 'string',
+  pdbx_PDB_ins_code: 'string',
+  beg_label_seq_id: 'number',
+  end_label_seq_id: 'number',
+  beg_auth_seq_id: 'number',
+  end_auth_seq_id: 'number',
+  beg_auth_ins_code: 'string',
+  end_auth_ins_code: 'string',
+  label_atom_id: 'string',
+  auth_atom_id: 'string',
+  type_symbol: 'string',
+  atom_id: 'number',
+  atom_index: 'number',
 };
 
-export const SchemaItemFields = Object.keys(Fields) as readonly (keyof SchemaItem)[];
+export const SchemaItemFields = Object.keys(FieldTypes) as readonly (keyof SchemaItem)[];
+
+/** Is `value` there? `undefined`, `null` and `NaN` (what a number which is missing is in an array of numbers) are not: they are not a criterion. */
+export function hasValue<T>(value: T | undefined | null): value is T {
+  return value !== undefined && value !== null && !Number.isNaN(value as number);
+}
+
+/** Does `row` have a value of another type than its field (a number given as text, an identifier given as a number, ...)? Values are matched
+ * as they are, so such a row cannot select anything. */
+export function hasWrongTypes(row: SchemaItem): boolean {
+  for (const name of SchemaItemFields) {
+    const value = row[name];
+    if (hasValue(value) && typeof value !== FieldTypes[name]) return true;
+  }
+  return false;
+}
 
 export function isSchemaItemField(name: string): name is keyof SchemaItem {
-  return Object.hasOwn(Fields, name);
+  return Object.hasOwn(FieldTypes, name);
 }
 
 /** A value which an item can have: a missing value (`undefined`, `null`, `NaN`) is not a criterion. */
 export function isFieldValue(value: unknown): value is string | number | boolean {
-  return value !== undefined && value !== null && !(typeof value === 'number' && Number.isNaN(value));
+  return hasValue(value);
 }
 
 /** A copy of the item with the values it has (without the fields which are missing) */
@@ -53,9 +68,15 @@ export function itemWithValues(item: SchemaItem): SchemaItem {
   return result as SchemaItem;
 }
 
+const RowsOfItems = new WeakSet<object>();
+/** Are these the rows which `schemaItemsFromFields` made (an argument of `element-schema` has to be)? */
+export function isRowsOfSchemaItem(value: unknown): value is SchemaItem[] {
+  return typeof value === 'object' && value !== null && RowsOfItems.has(value);
+}
+
 /** The items of a table given by its fields: a field which is an array is a column of the table (a missing value is a hole in it),
  * any other field has the same value in every row. Without any column, there is one row. All the columns have the same length. */
-export function schemaItemsFromFields(fields: { readonly [name: string]: unknown }): SchemaItem[] {
+export function schemaItemsFromFields(fields: { readonly [name: string]: unknown } = {}): SchemaItem[] {
   let nRows = -1;
   for (const name of Object.keys(fields)) {
     if (!isSchemaItemField(name)) throw new Error(`ArgumentError: '${name}' is not a field of a schema item.`);
@@ -80,5 +101,6 @@ export function schemaItemsFromFields(fields: { readonly [name: string]: unknown
     }
     items.push(item as SchemaItem);
   }
+  RowsOfItems.add(items);
   return items;
 }

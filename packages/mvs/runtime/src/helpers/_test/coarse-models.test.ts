@@ -305,6 +305,27 @@ describe('coarse models (spheres and gaussians)', async () => {
           .elementCount,
       ).toBeGreaterThan(0);
     });
+    it('values of another type, and a residue which is not a whole number, select nothing (as for atoms)', () => {
+      const count = (row: object) => substructureFromRows(structure, [row as MVSAnnotationRow]).elementCount;
+      expect(count({ label_asym_id: 'A', label_seq_id: 20 })).toBeGreaterThan(0);
+      for (const row of [
+        { label_asym_id: 'A', label_seq_id: '20' },
+        { label_asym_id: 'A', beg_label_seq_id: '1' },
+        { label_asym_id: 'A', end_label_seq_id: '100' },
+        { label_asym_id: 1 },
+        { label_entity_id: 1 },
+        { label_asym_id: 'A', label_seq_id: 20.5 },
+      ]) {
+        expect(count(row), JSON.stringify(row)).toBe(0);
+      }
+      // (bounds need not be whole numbers)
+      expect(count({ label_asym_id: 'A', beg_label_seq_id: 20.5, end_label_seq_id: 20.6 })).toBe(
+        count({ label_asym_id: 'A', label_seq_id: 21 }),
+      );
+      for (const missing of [undefined, null, Number.NaN]) {
+        expect(count({ label_asym_id: 'A', label_seq_id: missing })).toBe(count({ label_asym_id: 'A' }));
+      }
+    });
     it('criteria which only atoms have (auth_*, comp_id, atom ids, ...) select nothing, and warn once', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       try {

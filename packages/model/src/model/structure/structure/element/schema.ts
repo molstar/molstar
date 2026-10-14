@@ -66,12 +66,26 @@ function isItems(schema: Schema): schema is SchemaItems {
   return !!(schema as any).items;
 }
 
+/** A value of a field in an expression is a string, a number or a boolean: anything else (a list or an object) cannot be a value which a row can
+ * have, and would be taken for a column. */
+function fieldValue(name: string, value: unknown): string | number | boolean | undefined {
+  if (!isFieldValue(value)) return undefined;
+  if (
+    typeof value === 'object' ||
+    typeof value === 'function' ||
+    typeof value === 'symbol' ||
+    typeof value === 'bigint'
+  )
+    throw new Error(`ArgumentError: the value of '${name}' must be a string or a number, not ${typeof value}.`);
+  return value;
+}
+
 /** The expression of one row (the fields which it has) */
 function itemExpression(item: SchemaItem): Expression {
   const args: Record<string, Expression> = {};
   for (const name of SchemaItemFields) {
-    const value = item[name];
-    if (isFieldValue(value)) args[name] = value;
+    const value = fieldValue(name, item[name]);
+    if (value !== undefined) args[name] = value;
   }
   return MS.struct.type.schemaItem(args);
 }
@@ -81,12 +95,9 @@ function itemExpression(item: SchemaItem): Expression {
 const MinRowsForColumns = 10;
 
 /** The column of a field: a missing value is `null` (what JSON makes of `undefined`) */
-function columnOf(values: ArrayLike<unknown>): Expression {
+function columnOf(name: string, values: ArrayLike<unknown>): Expression {
   const column: Expression.ListValue[] = new Array(values.length);
-  for (let i = 0; i < values.length; i++) {
-    const value = values[i];
-    column[i] = isFieldValue(value) ? value : null;
-  }
+  for (let i = 0; i < values.length; i++) column[i] = fieldValue(name, values[i]) ?? null;
   return column;
 }
 
@@ -97,12 +108,12 @@ function columnsExpression(
 ): Expression {
   const args: Record<string, Expression> = {};
   for (const name of SchemaItemFields) {
-    const value = prefix?.[name];
-    if (isFieldValue(value)) args[name] = value;
+    const value = fieldValue(name, prefix?.[name]);
+    if (value !== undefined) args[name] = value;
   }
   for (const name of SchemaItemFields) {
     const column = columns[name];
-    if (column) args[name] = columnOf(column);
+    if (column) args[name] = columnOf(name, column);
   }
   return MS.struct.type.schemaItem(args);
 }
@@ -111,6 +122,8 @@ function columnsExpression(
  * every element for every item), as a single set of the elements which satisfy at least one item. A table of many rows is given by columns. */
 function toExpression(schema: Schema): Expression {
   if (isItems(schema) && !Array.isArray(schema.items)) {
+    // (a table without rows is nothing, not the item of its prefix)
+    if (columnsLength(schema.items) === 0) return MS.struct.generator.elementSchema([]);
     return MS.struct.generator.elementSchema([columnsExpression(schema.prefix, schema.items)]);
   }
   const items: SchemaItem[] = [];
@@ -121,6 +134,22 @@ function toExpression(schema: Schema): Expression {
     if (items.some((item) => isFieldValue(item[name]))) columns[name] = items.map((item) => item[name]);
   }
   return MS.struct.generator.elementSchema([columnsExpression(undefined, columns)]);
+}
+
+/** The number of rows of a table given by its columns: they all have as many values, and a table without columns has no rows. */
+function columnsLength(columns: { readonly [name: string]: ArrayLike<unknown> | undefined }): number {
+  let n = -1;
+  for (const name of Object.keys(columns)) {
+    const column = columns[name];
+    if (!column) continue;
+    if (n >= 0 && column.length !== n) {
+      throw new Error(
+        `ArgumentError: the columns of a schema have different lengths ('${name}' has ${column.length}, others ${n}).`,
+      );
+    }
+    n = column.length;
+  }
+  return n < 0 ? 0 : n;
 }
 
 /**
@@ -144,8 +173,9 @@ function forEachItem(schema: Schema, f: (item: SchemaItem) => void) {
       }
     } else {
       const current: any = { ...schema.prefix };
-      const keys = Object.keys(schema.items);
-      const n = (schema.items as any)[keys[0]].length;
+      const columns = schema.items as { [name: string]: ArrayLike<unknown> };
+      const keys = Object.keys(columns).filter((k) => columns[k]);
+      const n = columnsLength(columns);
 
       for (let i = 0; i < n; i++) {
         for (const k of keys) {

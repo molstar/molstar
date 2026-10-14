@@ -23,7 +23,10 @@ import { cantorPairing, invertCantorPairing, sortedCantorPairing } from '@molsta
 import { bundleElementImpl, bundleGenerator } from '@molstar/model/model/structure/query/queries/internal';
 import { arrayEqual } from '@molstar/core/util/array';
 import type { SchemaItem } from '@molstar/model/model/structure/structure/element/schema';
-import { schemaItemsFromFields } from '@molstar/model/model/structure/structure/element/schema-selection/fields';
+import {
+  isRowsOfSchemaItem,
+  schemaItemsFromFields,
+} from '@molstar/model/model/structure/structure/element/schema-selection/fields';
 
 const C = QuerySymbolRuntime.Const;
 const D = QuerySymbolRuntime.Dynamic;
@@ -284,7 +287,7 @@ const symbols = [
 
   C(MolScript.structureQuery.type.schemaItem, function structureQuery_type_schemaItem(ctx, xs) {
     const fields: { [name: string]: unknown } = {};
-    for (const name of Object.keys(xs)) fields[name] = (xs as any)[name](ctx);
+    for (const name of Object.keys(xs ?? {})) fields[name] = (xs as any)[name](ctx);
     return schemaItemsFromFields(fields);
   }),
 
@@ -307,14 +310,19 @@ const symbols = [
   }),
   D(MolScript.structureQuery.generator.elementSchema, function structureQuery_generator_elementSchema(ctx, xs) {
     const rows: SchemaItem[] = [];
-    QueryRuntimeArguments.forEachEval(
-      xs,
-      ctx,
-      (items: SchemaItem[]) => {
-        for (const item of items) rows.push(item);
-      },
-      undefined,
-    );
+    if (xs) {
+      QueryRuntimeArguments.forEachEval(
+        xs,
+        ctx,
+        (items: unknown) => {
+          // (a value of another kind, e.g. a list or a string, would be a row which has no criteria: everything)
+          if (!isRowsOfSchemaItem(items))
+            throw new Error('ArgumentError: the arguments of element-schema must be schema-item.');
+          for (const item of items) rows.push(item);
+        },
+        undefined,
+      );
+    }
     return Queries.generators.elementSchema(rows)(ctx);
   }),
   D(MolScript.structureQuery.generator.bondedAtomicPairs, function structureQuery_generator_bondedAtomicPairs(ctx, xs) {

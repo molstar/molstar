@@ -25,7 +25,9 @@ export const all: StructureQuery = (ctx) => StructureSelection.Singletons(ctx.in
 /** The elements which satisfy at least one of `rows` (as a single set), found through the indices of the models. */
 export function elementSchema(rows: readonly SchemaItem[]): StructureQuery {
   return function query_elementSchema(ctx) {
+    ctx.throwIfTimedOut();
     const structure = substructureFromRows(ctx.inputStructure, rows);
+    ctx.throwIfTimedOut();
     return StructureSelection.Sequence(ctx.inputStructure, structure.elementCount === 0 ? [] : [structure]);
   };
 }

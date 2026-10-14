@@ -5,6 +5,7 @@
  */
 
 import type { MSymbol } from './symbol.js';
+import type { Type } from './type.js';
 import { SymbolMap } from './symbol-table.js';
 
 export interface ExpressionValidationOptions {
@@ -26,12 +27,17 @@ export function expressionValidationIssues(
   const fieldPath = (path: string, key: string) => `${path}[${JSON.stringify(key)}]`;
   const report = (path: string, message: string) => issues.push(`${path}: ${message}`);
 
-  /** `isArgument`: the value is an argument of an application, where `null` and a list of values are literals */
-  function visit(value: unknown, path: string, isArgument = false) {
+  /** `argument`: the value is an argument of an application, where `null` and a list of values are literals if the argument can be a list
+   * (`admitsList`, unknown for a symbol which is not looked up) */
+  function visit(value: unknown, path: string, argument?: { admitsList: boolean }) {
     if (typeof value === 'string' || typeof value === 'boolean') return;
     if (typeof value === 'number' && Number.isFinite(value)) return;
-    if (isArgument && value === null) return;
-    if (isArgument && Array.isArray(value)) {
+    if (argument && (value === null || Array.isArray(value)) && !argument.admitsList) {
+      report(path, 'This argument is not a list of values, or a missing value (null).');
+      return;
+    }
+    if (argument && value === null) return;
+    if (argument && Array.isArray(value)) {
       // (a list of values, e.g. a column of a table)
       const bad = value.findIndex(
         (v) =>
@@ -91,7 +97,9 @@ export function expressionValidationIssues(
                 symbol.args.kind === 'dictionary' ? Object.hasOwn(symbol.args.map, key) : /^(0|[1-9]\d*)$/.test(key);
               if (!validKey) report(argumentPath, `Unknown argument '${key}' for symbol '${symbol.id}'.`);
             }
-            visit((value.args as Record<string, unknown>)[key], argumentPath, true);
+            visit((value.args as Record<string, unknown>)[key], argumentPath, {
+              admitsList: !symbol || argumentAdmitsList(symbol, key),
+            });
           }
         }
       }
@@ -101,6 +109,30 @@ export function expressionValidationIssues(
 
   visit(expression, 'expression');
   return issues.length ? issues : undefined;
+}
+
+/** Can the argument `key` of `symbol` be a list of values (a column of a table) or a missing value? Only if it is declared to be a list (or of any type). */
+function argumentAdmitsList(symbol: MSymbol, key: string): boolean {
+  const type =
+    symbol.args.kind === 'dictionary'
+      ? (symbol.args.map as Record<string, { type: Type } | undefined>)[key]?.type
+      : symbol.args.type;
+  return type === undefined || canBeList(type);
+}
+
+function canBeList(type: Type): boolean {
+  switch (type.kind) {
+    case 'any':
+    case 'any-value':
+    case 'variable':
+      return true;
+    case 'container':
+      return type.name === 'List' || type.name === 'Set';
+    case 'union':
+      return type.types.some(canBeList);
+    default:
+      return false;
+  }
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

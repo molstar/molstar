@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { Structure } from '../../../../structure.js';
@@ -16,10 +16,13 @@ import { Column } from '@molstar/core/data/db';
 import { Expression } from '@molstar/query-language/language/expression';
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { expressionValidationIssues } from '@molstar/query-language/language/validation';
+import { formatMolScript } from '@molstar/query-language/language/expression-formatter';
 import { Script } from '@molstar/model/script/script';
 import { compile } from '@molstar/model/script/runtime/query/compiler';
 import { QueryContext, StructureSelection } from '@molstar/model/model/structure';
-import { atomQualifies } from '../selections.js';
+import { IndicesAndSortings } from '../indexing.js';
+import { substructureFromRows } from '../row-structure.js';
+import { atomQualifies, getAtomRangesForRows } from '../selections.js';
 import '@molstar/model/script/runtime/query/table'; // (registers the symbols of the queries)
 
 /** Chains A, B (entity 1) and C (entity 2) of 12 residues with 4 atoms; every 5th residue has the insertion code A.
@@ -225,6 +228,30 @@ describe('Schema.toLoci, the generator element-schema', async () => {
     expect(atoms.length).toBe(4 + 11 + 1 + 1);
   });
 
+  it('a table of columns: no columns or no values are no rows, columns of different lengths are rejected, the same everywhere', () => {
+    const entries = (schema: Schema) => [
+      StructureElement.Loci.size(Schema.toLoci(structure, schema)),
+      Schema.toStructure(structure, schema).elementCount,
+    ];
+    for (const schema of [
+      { items: {} },
+      { prefix: { label_asym_id: 'A' }, items: {} },
+      { items: { label_seq_id: [] } },
+      { prefix: { label_asym_id: 'A' }, items: { label_seq_id: [], label_atom_id: [] } },
+    ] as Schema[]) {
+      expect(entries(schema), JSON.stringify(schema)).toEqual([0, 0]);
+    }
+    // (columns which are not fields count as columns: the rows are the same)
+    expect(entries({ items: { group_id: ['x', 'y'] } } as any)).toEqual([nAtoms, nAtoms]);
+    for (const schema of [
+      { items: { label_asym_id: ['A', 'B'], label_seq_id: [1] } },
+      { items: { group_id: ['x', 'y', 'z'], label_asym_id: ['A'] } },
+    ] as Schema[]) {
+      expect(() => Schema.toLoci(structure, schema)).toThrow('different lengths');
+      expect(() => Schema.toStructure(structure, schema)).toThrow('different lengths');
+    }
+  });
+
   it('the elements are one set', () => {
     const run = (schema: Schema) =>
       (compile<StructureSelection>(Schema.toExpression(schema))(new QueryContext(structure)) as any)
@@ -276,22 +303,73 @@ describe('Schema.toLoci, the generator element-schema', async () => {
 
   it('rejects what it cannot make sense of instead of selecting everything', () => {
     const run = (expression: Expression) => compile(expression)(new QueryContext(structure));
+    const text = (expression: string) => run(Script.toExpression({ language: 'mol-script', expression }));
     expect(() => run(MS.struct.generator.elementSchema([MS.struct.type.schemaItem({ label_asym: 'A' })]))).toThrow(
       "'label_asym' is not a field of a schema item",
     );
     expect(() =>
       run(
         MS.struct.generator.elementSchema([
-          MS.struct.type.schemaItem({
-            label_asym_id: MS.core.type.list(['A', 'B']),
-            label_seq_id: MS.core.type.list([1]),
-          }),
+          MS.struct.type.schemaItem({ label_asym_id: ['A', 'B'], label_seq_id: [1] }),
         ]),
       ),
     ).toThrow('have different lengths');
+    // an argument which is not an item (a list of them, a value) is not a row without criteria, which would be everything
+    for (const expression of [
+      '(sel.atom.element-schema [(schema-item :label_asym_id A)])',
+      '(sel.atom.element-schema A)',
+      '(sel.atom.element-schema 1)',
+      '(sel.atom.element-schema [A B])',
+    ]) {
+      expect(() => text(expression), expression).toThrow('must be schema-item');
+    }
     expect(
       expressionValidationIssues(MS.struct.generator.elementSchema([MS.struct.type.schemaItem({ label_asym: 'A' })])),
     ).toBeDefined();
+    expect(expressionValidationIssues(MS.struct.generator.elementSchema([['A']] as any))).toBeDefined();
+  });
+
+  it('an item without fields is everything, no items are nothing', () => {
+    const count = (expression: string) =>
+      StructureElement.Loci.size(
+        Loci.fromExpression(structure, Script.toExpression({ language: 'mol-script', expression })),
+      );
+    expect(count('(sel.atom.element-schema (schema-item))')).toBe(nAtoms);
+    expect(count('(sel.atom.element-schema)')).toBe(0);
+    expect(count('(sel.atom.element-schema (schema-item :label_asym_id A) (schema-item))')).toBe(nAtoms);
+    expect(compile(MS.struct.type.schemaItem())(new QueryContext(structure))).toEqual([{}]);
+  });
+
+  it('is run in a query which can time out', () => {
+    const schema: Schema = { label_asym_id: 'A' };
+    const context = new QueryContext(structure, { timeoutMs: 1 });
+    const expired = vi.spyOn(context, 'throwIfTimedOut').mockImplementation(() => {
+      throw new Error('The query took too long to execute');
+    });
+    expect(() => compile(Schema.toExpression(schema))(context)).toThrow('too long');
+    expect(expired).toHaveBeenCalled();
+  });
+
+  it('the text of an expression (also with columns and missing values) is the expression', () => {
+    const rows: SchemaItem[] = Array.from({ length: 12 }, (_, i) =>
+      i % 3 === 0
+        ? { label_asym_id: 'A', label_seq_id: 1 + i }
+        : i % 3 === 1
+          ? { label_asym_id: 'B', label_atom_id: 'CA' }
+          : { label_asym_id: 'C', auth_seq_id: 100 + i },
+    );
+    for (const schema of [{ items: rows }, { items: rows.slice(0, 4) }] as Schema[]) {
+      const expression = Schema.toExpression(schema);
+      const text = formatMolScript(expression);
+      expect(text).toContain(
+        Array.isArray((schema as any).items) && (schema as any).items.length > 9 ? 'empty-value' : 'schema-item',
+      );
+      const parsed = Script.toExpression({ language: 'mol-script', expression: text });
+      expect(lociAtoms(Loci.fromExpression(structure, parsed))).toEqual(lociAtoms(Schema.toLoci(structure, schema)));
+      expect(lociAtoms(Schema.toLoci(structure, schema)).length).toBeGreaterThan(0);
+    }
+    // a missing value is not the string null
+    expect(formatMolScript(MS.struct.type.schemaItem({ label_asym_id: [null, 'A'] }))).toContain('[empty-value A]');
   });
 
   it('the loci is a valid loci of the structure (iterable, bundle, ordered by unit id)', () => {
@@ -313,6 +391,83 @@ describe('Schema.toLoci, the generator element-schema', async () => {
     expect(StructureElement.Loci.size(Schema.toLoci(structure, { end_label_seq_id: 1 }))).toBe(3 * 4);
     const ligand = 3;
     expect(StructureElement.Loci.size(Schema.toLoci(structure, { label_asym_id: 'L' }))).toBe(ligand);
+  });
+
+  describe('values which are missing or of another type, at every entry', () => {
+    const viaRows = (row: SchemaItem) => substructureFromRows(structure, [row]).elementCount;
+    const viaRanges = (row: SchemaItem) => {
+      const ranges = getAtomRangesForRows(
+        [row],
+        model,
+        { instanceId: '1_555', name: '1_555' },
+        IndicesAndSortings.get(model),
+      );
+      let n = 0;
+      for (let i = 0; i < ranges.from.length; i++) n += ranges.to[i] - ranges.from[i];
+      return n;
+    };
+    const entries = (row: SchemaItem) => [
+      viaRows(row),
+      viaRanges(row),
+      Schema.toStructure(structure, row).elementCount,
+      StructureElement.Loci.size(Schema.toLoci(structure, row)),
+    ];
+    const everywhere = (row: SchemaItem) => {
+      const counts = entries(row);
+      // (substructureFromRows, getAtomRangesForRows, Schema.toStructure, Schema.toLoci)
+      expect(
+        counts,
+        JSON.stringify(row, (_, v) => (typeof v === 'number' && Number.isNaN(v) ? 'NaN' : v)),
+      ).toEqual(counts.map(() => counts[0]));
+      return counts[0];
+    };
+
+    it('a value which is of another type than its field selects nothing, whichever criterion finds the candidates', () => {
+      for (const row of [
+        { label_asym_id: 'A', end_auth_seq_id: '110' },
+        { label_asym_id: 'A', end_auth_seq_id: '110', label_seq_id: 3 },
+        { label_asym_id: 'A', beg_auth_seq_id: '101', residue_index: 2 },
+        { label_asym_id: 'A', atom_index: 3, end_auth_seq_id: '110' },
+        { label_asym_id: 'A', label_seq_id: '3' },
+        { atom_index: '4' },
+        { atom_id: '4' },
+        { type_symbol: 6 },
+        { label_asym_id: 1 },
+        { label_seq_id: true },
+        { label_asym_id: 'A', beg_auth_ins_code: 5, beg_auth_seq_id: 101 },
+        { label_asym_id: 'A', pdbx_PDB_ins_code: 1 },
+      ] as unknown as SchemaItem[]) {
+        expect(everywhere(row), JSON.stringify(row)).toBe(0);
+      }
+      // (a list or an object cannot be a value in an expression, where a list is a column)
+      expect(() => Schema.toExpression({ label_asym_id: 'A', label_comp_id: ['ALA'] as any })).toThrow(
+        "the value of 'label_comp_id' must be a string or a number",
+      );
+      expect(() => Schema.toExpression({ items: { label_comp_id: [{}] as any } })).toThrow(
+        'must be a string or a number',
+      );
+      // (the same rows with the types of the fields select something)
+      expect(everywhere({ label_asym_id: 'A', end_auth_seq_id: 110 })).toBe(10 * 4);
+      expect(everywhere({ label_asym_id: 'A', end_auth_seq_id: 110, label_seq_id: 3 })).toBe(4);
+    });
+
+    it('undefined, null and NaN are no criterion, not a value which nothing has', () => {
+      const chainA = 12 * 4;
+      for (const missing of [undefined, null, Number.NaN]) {
+        const m = missing as any;
+        expect(everywhere({ label_asym_id: 'A', label_seq_id: m })).toBe(chainA);
+        expect(
+          everywhere({ label_asym_id: 'A', auth_seq_id: m, beg_label_seq_id: m, residue_index: m, atom_id: m }),
+        ).toBe(chainA);
+        expect(everywhere({ label_asym_id: 'A', label_atom_id: m, type_symbol: m, label_comp_id: m })).toBe(chainA);
+        expect(everywhere({ label_asym_id: m, auth_asym_id: m, label_entity_id: m, label_seq_id: 3 })).toBe(3 * 4);
+        expect(everywhere({ label_asym_id: 'A', end_label_seq_id: 5, beg_label_seq_id: m })).toBe(5 * 4);
+        // insertion codes of a range
+        const range = { auth_asym_id: 'b', beg_auth_seq_id: 103, end_auth_seq_id: 106, end_auth_ins_code: '' };
+        expect(everywhere({ ...range, beg_auth_ins_code: m })).toBe(everywhere(range));
+        expect(everywhere({ ...range, beg_auth_ins_code: m })).toBe(4 * 4); // (103, 104, 105A, 106)
+      }
+    });
   });
 
   it('toStructure is the substructure of the same elements, the structure itself when all are selected', () => {

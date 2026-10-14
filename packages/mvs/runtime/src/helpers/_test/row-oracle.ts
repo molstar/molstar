@@ -71,27 +71,27 @@ export function createRowOracle(model: Model) {
     };
   }
 
-  // The residues of every chain in the order of the file (all atoms of a residue are the same here)
-  const residuesOfChain = new Map<number, { iRes: number; auth_seq_id: number | undefined; ins: string }[]>();
+  // The residues of every auth chain (all the chains which have an `auth_asym_id`) in the order of the file (all atoms of a residue are the same here)
+  const residuesOfAuthChain = new Map<string, { iRes: number; auth_seq_id: number | undefined; ins: string }[]>();
   for (const a of atoms) {
-    const list = residuesOfChain.get(a.iChain) ?? [];
-    residuesOfChain.set(a.iChain, list);
+    const list = residuesOfAuthChain.get(a.auth_asym_id) ?? [];
+    residuesOfAuthChain.set(a.auth_asym_id, list);
     if (list.length === 0 || list[list.length - 1].iRes !== a.iRes)
       list.push({ iRes: a.iRes, auth_seq_id: a.auth_seq_id, ins: a.pdbx_PDB_ins_code });
   }
 
-  /** For a row with a range with insertion codes: the residues of each chain from the first residue of the beginning to the last of the end
-   * (a bound without a code is the number: the first residue with it, the last), by the definition on the residues of the chain.
-   * A chain without a bound, or with the bounds in reverse order, has none. `undefined` for a row without such a range. */
-  function insCodeRangeOf(row: SchemaItem): Map<number, [number, number]> | 'nothing' | undefined {
+  /** For a row with a range with insertion codes: the residues of each auth chain from the first residue of the beginning to the last of the end
+   * (a bound without a code is the number: the first residue with it, the last), by the definition on the residues of the auth chain.
+   * An auth chain without a bound, or with the bounds in reverse order, has none. `undefined` for a row without such a range. */
+  function insCodeRangeOf(row: SchemaItem): Map<string, [number, number]> | 'nothing' | undefined {
     if (!defined(row.beg_auth_ins_code) && !defined(row.end_auth_ins_code)) return undefined;
     if (
       (defined(row.beg_auth_ins_code) && !defined(row.beg_auth_seq_id)) ||
       (defined(row.end_auth_ins_code) && !defined(row.end_auth_seq_id))
     )
       return 'nothing';
-    const result = new Map<number, [number, number]>();
-    for (const [iChain, residues] of residuesOfChain) {
+    const result = new Map<string, [number, number]>();
+    for (const [authAsymId, residues] of residuesOfAuthChain) {
       const find = (seq: number, ins: string | undefined | null) =>
         residues.filter((r) => r.auth_seq_id === seq && (!defined(ins) || r.ins === ins)).map((r) => r.iRes);
       let lo = residues[0].iRes;
@@ -106,7 +106,7 @@ export function createRowOracle(model: Model) {
         if (found.length === 0) continue;
         hi = Math.max(...found);
       }
-      if (lo <= hi) result.set(iChain, [lo, hi]);
+      if (lo <= hi) result.set(authAsymId, [lo, hi]);
     }
     return result;
   }
@@ -120,7 +120,7 @@ export function createRowOracle(model: Model) {
   ): boolean {
     if (insRange === 'nothing') return false;
     if (insRange) {
-      const range = insRange.get(a.iChain);
+      const range = insRange.get(a.auth_asym_id);
       if (!range || a.iRes < range[0] || a.iRes > range[1]) return false;
     }
     if (defined(row.instance_id) && row.instance_id !== operator.instanceId) return false;

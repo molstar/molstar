@@ -21,7 +21,11 @@ const Chains: Record<string, string[]> = {
   B: ['20', '19', '19A', '18'],
   // only the residue with an insertion code is there (11 is missing)
   C: ['10', '11A', '12'],
+  // a ligand chain, which belongs to the auth chain A (as the ligands of a polymer chain do)
+  L: ['500', '501'],
 };
+/** The `auth_asym_id` of the chains which are not their own auth chain */
+const AuthOf: Record<string, string> = { L: 'A' };
 
 function mmcif(): string {
   const lines = [
@@ -37,7 +41,7 @@ function mmcif(): string {
       const [, seq, ins] = /^(\d+)([A-Z]?)$/.exec(residue)!;
       ['N', 'CA'].forEach((name, a) => {
         lines.push(
-          `ATOM ${id++} ${name[0]} ${name} . ALA ${asym} 1 ${i + 1} ${ins || '?'} ${a} ${i} 0 1 10 ${seq} ALA ${asym} ${name} 1`,
+          `ATOM ${id++} ${name[0]} ${name} . ALA ${asym} 1 ${i + 1} ${ins || '?'} ${a} ${i} 0 1 10 ${seq} ALA ${AuthOf[asym] ?? asym} ${name} 1`,
         );
       });
     });
@@ -166,6 +170,33 @@ describe('ranges of auth_seq_id with insertion codes', async () => {
     expect(select({ label_entity_id: '1', beg_auth_seq_id: 12, end_auth_seq_id: 12, end_auth_ins_code: '' })).toEqual([
       'A:12',
       'C:12',
+    ]);
+  });
+
+  it('is resolved in the auth chain: all the chains with the auth_asym_id (a polymer and its ligands), in the order of the file', () => {
+    // (chain L, the ligands, has the auth_asym_id A: a range which starts in the polymer and ends in the ligands is one range)
+    const range = { beg_auth_seq_id: 13, beg_auth_ins_code: 'A', end_auth_seq_id: 501, end_auth_ins_code: '' };
+    expect(select({ auth_asym_id: 'A', ...range })).toEqual(['A:13A', 'A:14', 'A:500', 'A:501']);
+    // (the chains which the row selects get the part of the range which is theirs)
+    expect(select({ label_asym_id: 'A', ...range })).toEqual(chainA('13A', '14'));
+    expect(select({ label_asym_id: 'L', ...range })).toEqual(['A:500', 'A:501']);
+    // an open end is the end of the auth chain, an open beginning is its beginning
+    expect(select({ auth_asym_id: 'A', beg_auth_seq_id: 14, end_auth_ins_code: '', end_auth_seq_id: 500 })).toEqual([
+      'A:14',
+      'A:500',
+    ]);
+    expect(select({ auth_asym_id: 'A', end_auth_seq_id: 10, end_auth_ins_code: '' })).toEqual(['A:10']);
+    // bounds in the reverse order (the ligands come after the polymer in the file), or which the auth chain does not have, select nothing
+    expect(select({ auth_asym_id: 'A', beg_auth_seq_id: 500, end_auth_seq_id: 11, end_auth_ins_code: 'B' })).toEqual(
+      [],
+    );
+    expect(select({ auth_asym_id: 'A', beg_auth_seq_id: 14, beg_auth_ins_code: 'A' })).toEqual([]);
+    expect(select({ auth_asym_id: 'B', beg_auth_seq_id: 19, beg_auth_ins_code: '', end_auth_seq_id: 501 })).toEqual([]);
+    // (the ligands of A do not make a range of chain B)
+    expect(select({ auth_asym_id: 'B', beg_auth_seq_id: 19, beg_auth_ins_code: '' })).toEqual([
+      'B:19',
+      'B:19A',
+      'B:18',
     ]);
   });
 

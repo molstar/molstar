@@ -64,10 +64,17 @@ class Writer {
   }
 }
 
+/** The text of a literal: a missing value (`null`) is `empty-value`, a list of values is `[a b c]` (which the parser makes a list) */
+function literalText(e: Expression.Literal): string {
+  if (e === null) return 'empty-value';
+  if (Array.isArray(e)) return `[${e.map(literalText).join(' ')}]`;
+  if (typeof e === 'string' && (/[\s()[\]{};`]/.test(e) || !e.length)) return `\`${e}\``;
+  return `${e}`;
+}
+
 function _format(e: Expression, writer: Writer) {
   if (isLiteral(e)) {
-    if (typeof e === 'string' && (/\s/.test(e) || !e.length)) writer.append(`\`${e}\``);
-    else writer.append(`${e}`);
+    writer.append(literalText(e));
     return;
   }
   if (isSymbol(e)) {
