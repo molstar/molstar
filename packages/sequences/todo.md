@@ -20,15 +20,15 @@ Each builds on the coordinate model (`seqspec:model#coordinate-maps`, `seqspec:m
 biology at application level, never in the core.
 
 **Input as streams, reconciled with Mol\*'s** (David, 2026-10-14). Seq\* has its own input layer (`canvas/dom-input.ts`,
-the dispatcher, its `Binding`), and a host sees interaction only through the context's states and events
-(`hover.live`, `selection.current`, `events.menu`); a right-click reaches it only when the `contextMenu` behavior is in
-the spec. Reconcile with Mol\*'s: build the DOM input on `InputObserver` (`@molstar/core/util/input/input-observer`,
-rxjs streams), one binding vocabulary with Mol\*'s (`@molstar/core`'s bindings), and public interaction streams on the
-viewer as Canvas3D's `interaction` has them (hover, click, drag, context menu: the hit with section, track, item,
-position and coordinates, the pointer's place, the modifiers), configurable by params; behaviors stay the built-in
-reactions on the same streams (input delivers, behaviors react). Under the performance contract (the input path's heap
-guards), with the spec (`interaction.md`, `viewer.md`) and tests. By Opus, design first. Context: `.v6/seq/plan.md` §4.
-_Trigger:_ a PR of its own, after the one bringing Seq\* and Prism's sequence prototype.
+the dispatcher, its `Binding`), and a host sees interaction only through the context's states and events (`hover.live`,
+`selection.current`, `events.menu`); a right-click reaches it only when the `contextMenu` behavior is in the spec.
+Reconcile with Mol\*'s: build the DOM input on `InputObserver` (`@molstar/core/util/input/input-observer`, rxjs
+streams), one binding vocabulary with Mol\*'s (`@molstar/core`'s bindings), and public interaction streams on the viewer
+as Canvas3D's `interaction` has them (hover, click, drag, context menu: the hit with section, track, item, position and
+coordinates, the pointer's place, the modifiers), configurable by params; behaviors stay the built-in reactions on the
+same streams (input delivers, behaviors react). Under the performance contract (the input path's heap guards), with the
+spec (`interaction.md`, `viewer.md`) and tests. By Opus, design first. Context: `.v6/seq/plan.md` §4. _Trigger:_ a PR of
+its own, after the one bringing Seq\* and Prism's sequence prototype.
 
 **Tracks in the text view, as lanes** (David, 2026-10-14). The wrapped geometry (`compact`, `wrapped`) draws letters;
 other layers either draw as underlines (ranges and features) or draw nothing while still taking their lane's height (a
