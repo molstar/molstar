@@ -117,6 +117,15 @@ function useTheme() {
 }
 
 /**
+ * The path this docs page's preview was served from (`iframe.html` in `storybook dev`, or `iframe` where a static host
+ * rewrites to clean URLs): a host that redirects `iframe.html?…` to `iframe` drops the query, and with it the story id
+ * the frame needs (inside Storybook's own UI the manager sends it over its channel; a nested frame has only its URL).
+ */
+function previewPath() {
+  return typeof location === 'undefined' ? 'iframe.html' : location.pathname;
+}
+
+/**
  * Prism's viewer with a real Mol* plugin (the `Shell/Viewer mode › RealPluginPredicted` story) in a frame of its own:
  * a whole app on a predicted structure, with the Seq* band linked to its 3D view. A frame, not the docs blocks: the story
  * is a full-height web-components app, and the frame isolates its styles, its plugin and its WebGL context from this
@@ -131,7 +140,7 @@ export function ExamplePlugin() {
         <iframe
           className={s.embed}
           title="Prism's viewer with a Mol* plugin: AlphaFill's CYP3A4 with ligands, colored by pLDDT, linked to the Seq* sequence band"
-          src={`iframe.html?id=${id}&viewMode=story&globals=theme:${theme}&args=compact:true`}
+          src={`${previewPath()}?id=${id}&viewMode=story&globals=theme:${theme}&args=compact:true`}
           loading="lazy"
         />
       </div>
