@@ -6,23 +6,22 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// New production lines per phase (the size budgets of lib/seqstar/AGENTS.md). Production lines are as in the
-// repository's line counts: not blank, not comments. Counted over the files under lib/seqstar/*/src (any depth) that
+// New production lines per phase (the size budgets of packages/sequences/AGENTS.md). Production lines are as in the
+// repository's line counts: not blank, not comments. Counted over the files under packages/sequences/*/src (any depth) that
 // are added or changed since --base (default HEAD: staged, unstaged and untracked).
 //   - A file that existed at the base counts its added lines as new (a longest-common-subsequence diff of lines).
 //   - Any other file is all new.
 // (The name stays from when a rebuilt file was diffed against its old source and counted as ported.)
-// Usage: node lib/seqstar/scripts/ported-lines.ts [--base <rev>]
+// Usage: node packages/sequences/scripts/ported-lines.ts [--base <rev>]
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const SEQSTAR = join(import.meta.dirname, '..');
 const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: SEQSTAR, encoding: 'utf8' }).trim();
-/** Seq*'s folder as git paths start: "lib/seqstar/" here, "" in a repository of its own. */
+/** Seq*'s folder as git paths start: "packages/sequences/". */
 const PREFIX = relative(root, SEQSTAR) ? `${relative(root, SEQSTAR)}/` : '';
-// Mol*'s zip, copied (lib/seqstar/core/src/format/zip/VENDORED.md), is vendored, not production.
-const WATCHED = new RegExp(`^${PREFIX.replace(/[/.]/g, '\\$&')}(?!core/src/format/zip/)[^/]+/src/.*\\.(tsx?|css)$`);
+const WATCHED = new RegExp(`^${PREFIX.replace(/[/.]/g, '\\$&')}[^/]+/src/.*\\.(tsx?|css)$`);
 
 /** The production lines of a text, trimmed: not blank, not `//` comments, not `/* … *​/` blocks. */
 export function productionLines(text: string): string[] {

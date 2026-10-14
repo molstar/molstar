@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The Seq* spec check (lib/seqstar/_spec/README.md, "Citing the spec"), run before every commit:
-//   - every `seqspec:<file>#<slug>` in lib/seqstar (code, tests, Storybook, the spec itself) names a heading of
-//     lib/seqstar/_spec/<file>.md, the slug being GitHub's anchor of the heading;
+// The Seq* spec check (packages/sequences/_spec/README.md, "Citing the spec"), run before every commit:
+//   - every `seqspec:<file>#<slug>` in packages/sequences (code, tests, Storybook, the spec itself) names a heading of
+//     packages/sequences/_spec/<file>.md, the slug being GitHub's anchor of the heading;
 //   - the backticked identifiers and issue codes of the spec's prose, and the names declared in its `ts` code blocks,
 //     are found in some Seq* package's src (the generated references in `_spec/reference/` are the tests' job);
 //   - every `.ts`, `.tsx` and `.css` source file starts with Mol*'s header with the Anyfold line (AGENTS.md, Headers),
@@ -21,7 +21,7 @@
 //     a miss too.
 // Exit 1 on a miss, printing each with where it is.
 //
-// Usage: node lib/seqstar/scripts/spec.ts check
+// Usage: node packages/sequences/scripts/spec.ts check
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -38,7 +38,7 @@ const EXTERNAL = new Set(['entity_poly_seq']);
 
 function walk(dir: string, keep: (f: string) => boolean, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
-    if (name === 'node_modules' || name === 'dist') continue;
+    if (name === 'node_modules' || name === 'dist' || name === 'lib') continue;
     const f = join(dir, name);
     if (statSync(f).isDirectory()) walk(f, keep, out);
     else if (keep(f)) out.push(f);
@@ -197,8 +197,8 @@ const REFERENCED = /^(svs|seqv|seqql)\./;
 // One part or more after the namespace (LA-19: `seqql.type`, `seqql.empty`, … went unchecked).
 const CODE = /["'`]((?:svs|seqv|seqql)\.[a-z_]+(?:\.[a-z_-]+)*)["'`]/g;
 const WRITTEN = [
-  /Issue\.(error|warning|info)\(\s*"([a-z]+(?:\.[a-z_-]+)+)"/g,
-  /code: "([a-z]+(?:\.[a-z_-]+)+)",\s*severity: "(error|warning|info)"/g,
+  /Issue\.(error|warning|info)\(\s*["']([a-z]+(?:\.[a-z_-]+)+)["']/g,
+  /code: ["']([a-z]+(?:\.[a-z_-]+)+)["'],\s*severity: ["'](error|warning|info)["']/g,
 ];
 
 function codes(misses: string[]): number {
@@ -270,7 +270,7 @@ function codeOnly(text: string): string {
   return out;
 }
 
-/** The guard files not on the template yet, one path under lib/seqstar per line (`#` comments). */
+/** The guard files not on the template yet, one path under packages/sequences per line (`#` comments). */
 const PENDING = join(SEQSTAR, 'scripts', 'guards-pending.txt');
 
 function guards(misses: string[]): number {
@@ -285,7 +285,9 @@ function guards(misses: string[]): number {
     // A call in the code, not a mention in a comment or a string (LC-23: `/* controlCaught( */` passed).
     const templated = /\bcontrolCaught\(/.test(codeOnly(readFileSync(join(SEQSTAR, f), 'utf8')));
     if (!templated && !pending.has(f))
-      misses.push(`${f}: a heap guard without the template's control (controlCaught; lib/seqstar/AGENTS.md, Tests)`);
+      misses.push(
+        `${f}: a heap guard without the template's control (controlCaught; packages/sequences/AGENTS.md, Tests)`,
+      );
     if (templated && pending.has(f))
       misses.push(`${f}: on the template now; remove it from scripts/guards-pending.txt`);
   }
@@ -305,8 +307,6 @@ const HEADER = `/**
 /** Vendored or copied (each folder's VENDORED.md) and generated files: they keep their origin's header. */
 const HEADER_SKIP = [
   /^core\/src\/algorithms\/biomsa\//,
-  /^core\/src\/format\/zip\//,
-  /^core\/src\/model\/msgpack\//,
   /^storybook\/src\/_stories\/ui\/prism\/(reset|theme)\.css$/,
   /^viewer\/src\/svg\/metrics-tables\.ts$/,
 ];
@@ -319,7 +319,8 @@ function headers(misses: string[]): number {
   for (const f of files) {
     const text = readFileSync(join(SEQSTAR, f), 'utf8');
     const body = text.startsWith('#!') ? text.slice(text.indexOf('\n') + 1) : text;
-    if (!body.startsWith(HEADER)) misses.push(`${f}: no Mol* header with the Anyfold line (lib/seqstar/AGENTS.md)`);
+    if (!body.startsWith(HEADER))
+      misses.push(`${f}: no Mol* header with the Anyfold line (packages/sequences/AGENTS.md)`);
   }
   return files.length;
 }
@@ -327,7 +328,7 @@ function headers(misses: string[]): number {
 function main(): void {
   const cmd = process.argv[2];
   if (cmd !== 'check') {
-    console.error('Usage: node lib/seqstar/scripts/spec.ts check');
+    console.error('Usage: node packages/sequences/scripts/spec.ts check');
     process.exitCode = 2;
     return;
   }

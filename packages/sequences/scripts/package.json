@@ -3,7 +3,7 @@
   "version": "6.0.0-dev.0",
   "private": true,
   "type": "module",
-  "description": "Seq*'s own checks and measures: the export guard, the spec check and the ported-lines measure (lib/seqstar/AGENTS.md).",
+  "description": "Seq*'s own checks and measures: the export guard, the spec check and the ported-lines measure (packages/sequences/AGENTS.md).",
   "license": "MIT",
   "engines": {
     "node": ">=22.13.0"

@@ -9,7 +9,7 @@
 // Seq* export checks (RB0).
 //   The guard: no name is exported by two entries (of one package or of two) as different declarations, in
 //   the type namespace or in the value namespace, because a host imports the packages together. Walked with the
-//   TypeScript checker over every entry of every lib/seqstar package; a name that resolves to the same
+//   TypeScript checker over every entry of every packages/sequences package; a name that resolves to the same
 //   declaration (a re-export) is allowed, and so is a package's `./react` against its `./dom` (one slot contract).
 //   Exit 1 when a name collides.
 //   The contract check: every Seq* type a public signature names (an exported interface's, type's, class's public
@@ -25,11 +25,11 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import ts from '@typescript/typescript6';
 
-// The repository's root (git's) and Seq*'s folder in it: the scripts work wherever lib/seqstar sits, its own
+// The repository's root (git's) and Seq*'s folder in it: the scripts work wherever packages/sequences sits, its own
 // repository included.
 export const SEQSTAR = join(import.meta.dirname, '..');
 export const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: SEQSTAR, encoding: 'utf8' }).trim();
-/** Seq*'s folder as git paths start: "lib/seqstar/" here, "" in a repository of its own. */
+/** Seq*'s folder as git paths start: "packages/sequences/". */
 export const PREFIX = relative(root, SEQSTAR) ? `${relative(root, SEQSTAR)}/` : '';
 
 export interface Entry {
@@ -41,7 +41,7 @@ export interface Entry {
 /** An `exports` value: a path, a conditions object (the source is `molstar-src`'s) or null (hidden). */
 type ExportTarget = string | Record<string, string> | null;
 
-/** Every `.ts` entry of every package of lib/seqstar, a `*` subpath expanded to the files that match it. */
+/** Every `.ts` entry of every package of packages/sequences, a `*` subpath expanded to the files that match it. */
 export function entries(dir = SEQSTAR): Entry[] {
   const out: Entry[] = [];
   for (const pkg of readdirSync(dir)) {
@@ -83,6 +83,7 @@ const OPTIONS: ts.CompilerOptions = {
   target: ts.ScriptTarget.ES2022,
   module: ts.ModuleKind.ESNext,
   moduleResolution: ts.ModuleResolutionKind.Bundler,
+  customConditions: ['molstar-src'],
   allowImportingTsExtensions: true,
   jsx: ts.JsxEmit.ReactJSX,
   noEmit: true,
