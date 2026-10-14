@@ -19,6 +19,17 @@ The move into Mol\* v6's repository is done. Next is Prism over Seq\* (`.v6/seq/
 Each builds on the coordinate model (`seqspec:model#coordinate-maps`, `seqspec:model#pieces-and-layout-maps`) with the
 biology at application level, never in the core.
 
+**Tracks in the text view, as lanes** (David, 2026-10-14). The wrapped geometry (`compact`, `wrapped`) draws letters;
+other layers either draw as underlines (ranges and features) or draw nothing while still taking their lane's height (a
+line track: Prism's pLDDT). Draw most layer types as lanes under each line: ranges and features (secondary structure,
+domains, sites) as underline lanes with consistent heights; continuous data (pLDDT, hydrophobicity) as a thin colored
+strip, one color per position from the layer's theme; letters as now. Not in text: dot plots, pairs, trees, multi-row
+alignment tracks (they need tracks), which then reserve no lane. Under the performance contract: allocation-free lane
+drawing, a heap guard per new lane kind with its positive control, tests, `_spec/viewer.md` (the wrapped geometry) and
+the generated reference. By Opus, design and implementation. Context: `.v6/seq/plan.md` §4; Prism's Text view shows
+letters only until then. _Trigger:_ the Prism sequence prototype's iterations done (with the performance pass on the
+host options, plan §4).
+
 **An item coordinate system's own letters.** A letters track on a transcript's block, derived lazily from the source's
 streamed letters through its map (as the codon label reads them); until then a `letters` layer on an item block draws
 nothing. Context: `seqspec:sources#item-coordinate-systems`. _Trigger:_ a story that needs a letters track on a
