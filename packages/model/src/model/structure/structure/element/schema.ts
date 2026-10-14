@@ -177,7 +177,7 @@ export interface ToLociOptions {
    * `false` (default): run a query (the expression of the items) on the structure, which tests every atom against every item.
    *
    * `true`: look them up in the indices of the models, which cost only what is selected after the indices are built (once per model, on the first
-   * call, and kept as long as the model lives: about 30 bytes per atom). Much faster for many items or many calls; not for a single
+   * call, and kept as long as the model lives: about 12 bytes per atom, and 8 more once an `atom_id` or `atom_index` criterion is used). Much faster for many items or many calls; not for a single
    * item on a structure for which nothing was indexed yet. The result is the same, except for items with values which some residues do not
    * have: a residue without `label_seq_id` never satisfies a `label_seq_id`, `beg_label_seq_id` or `end_label_seq_id` criterion (the query reads
    * it as 0), and criteria which only exist for atoms (`auth_*`, `label_comp_id`, atom ids, ...) select nothing on coarse elements (the query throws).

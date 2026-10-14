@@ -92,11 +92,8 @@ export interface AtomicIndicesAndSortings {
   residuesByAuthCompId: Mapping<ChainIndex, Mapping<string, readonly ResidueIndex[]>>;
   /** Indicates if each residue is listed only once in `residuesByAuthCompId` (i.e. if each residue has only one auth_comp_id) */
   residuesByAuthCompIdIsPure: boolean;
-  /** The first atom with each `atom_id` (ids are not necessarily unique, e.g. serial numbers wrap around in some formats) */
-  atomsById: Mapping<number, ElementIndex>;
-  /** All atoms (ascending) of each `atom_id` which is used by more than one atom, other ids are not listed */
-  atomsWithRepeatedId: Mapping<number, readonly ElementIndex[]>;
-  atomsBySourceIndex: Mapping<number, ElementIndex>;
+  /** Lookups of atoms by `atom_id` and `atom_index`, each built on first use */
+  atoms: AtomIdIndices;
   /** Lookups over all chains at once (for rows without chain criteria), each built on first use */
   global: GlobalResidueIndices;
 }
@@ -124,9 +121,6 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
   let residuesByLabelCompIdIsPure = true;
   const residuesByAuthCompId = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
   let residuesByAuthCompIdIsPure = true;
-  const atomsById = new NumberMap<number, ElementIndex>(nAtoms + 1);
-  const atomsBySourceIndex = new NumberMap<number, ElementIndex>(nAtoms);
-  const atomsWithRepeatedId = new Map<number, ElementIndex[]>();
 
   const _labelCompIdSet = new Set<string>();
   const _authCompIdSet = new Set<string>();
@@ -179,21 +173,6 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
     residuesByAuthCompId.set(iChain, residuesHereByAuthCompId);
   }
 
-  const atomId = model.atomicConformation.atomId.value;
-  const atomIndex = h.atomSourceIndex.value;
-  for (let iAtom = 0 as ElementIndex; iAtom < nAtoms; iAtom++) {
-    const id = atomId(iAtom);
-    const first = atomsById.get(id);
-    if (first === undefined) {
-      atomsById.set(id, iAtom);
-    } else {
-      let repeated = atomsWithRepeatedId.get(id);
-      if (!repeated) atomsWithRepeatedId.set(id, (repeated = [first]));
-      repeated.push(iAtom);
-    }
-    atomsBySourceIndex.set(atomIndex(iAtom), iAtom);
-  }
-
   return {
     chainsByLabelEntityId,
     chainsByLabelAsymId,
@@ -206,11 +185,64 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
     residuesByLabelCompIdIsPure,
     residuesByAuthCompId,
     residuesByAuthCompIdIsPure,
-    atomsById,
-    atomsWithRepeatedId,
-    atomsBySourceIndex,
+    atoms: new AtomIdIndices(nAtoms, model.atomicConformation.atomId, h.atomSourceIndex),
     global: new GlobalResidueIndices(h),
   };
+}
+
+/** Lookups of atoms by `atom_id` and by `atom_index`, for rows which refer to them. They are built (in one pass over the atoms, at 4 bytes per atom
+ * for each of the two) when the first such row comes, so models which never see one do not pay for them. */
+export class AtomIdIndices {
+  private built = false;
+  private _byId!: NumberMap<number, ElementIndex>;
+  private _repeatedIds!: Map<number, ElementIndex[]>;
+  private _bySourceIndex!: NumberMap<number, ElementIndex>;
+
+  constructor(
+    private readonly nAtoms: number,
+    private readonly atomId: Column<number>,
+    private readonly atomSourceIndex: Column<number>,
+  ) {}
+
+  private build() {
+    if (this.built) return;
+    const { nAtoms, atomId, atomSourceIndex } = this;
+    const byId = new NumberMap<number, ElementIndex>(nAtoms + 1);
+    const bySourceIndex = new NumberMap<number, ElementIndex>(nAtoms);
+    const repeated = new Map<number, ElementIndex[]>();
+    for (let iAtom = 0 as ElementIndex; iAtom < nAtoms; iAtom++) {
+      const id = atomId.value(iAtom);
+      const first = byId.get(id);
+      if (first === undefined) {
+        byId.set(id, iAtom);
+      } else {
+        let atoms = repeated.get(id);
+        if (!atoms) repeated.set(id, (atoms = [first]));
+        atoms.push(iAtom);
+      }
+      bySourceIndex.set(atomSourceIndex.value(iAtom), iAtom);
+    }
+    this._byId = byId;
+    this._bySourceIndex = bySourceIndex;
+    this._repeatedIds = repeated;
+    this.built = true;
+  }
+
+  /** The first atom with each `atom_id` (ids are not necessarily unique, e.g. serial numbers wrap around in some formats) */
+  get byId(): Mapping<number, ElementIndex> {
+    this.build();
+    return this._byId;
+  }
+  /** All atoms (ascending) of each `atom_id` which is used by more than one atom, other ids are not listed */
+  get repeatedIds(): Mapping<number, readonly ElementIndex[]> {
+    this.build();
+    return this._repeatedIds;
+  }
+  /** The atom with each `atom_index` (it is unique) */
+  get bySourceIndex(): Mapping<number, ElementIndex> {
+    this.build();
+    return this._bySourceIndex;
+  }
 }
 
 /** Lookups of residues over the whole model, for rows without chain criteria: the per-chain indices would need a lookup in every chain

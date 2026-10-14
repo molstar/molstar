@@ -474,14 +474,14 @@ function addAtomsForAtomIds(
     throw new Error('ArgumentError: at least one of row.atom_id, row.atom_index must be defined.');
   if (isDefined(row.atom_index)) {
     // (`atomQualifies` also checks `atom_id`, if given)
-    const iAtom = indices.atomsBySourceIndex.get(row.atom_index);
+    const iAtom = indices.atoms.bySourceIndex.get(row.atom_index);
     if (iAtom !== undefined && atomQualifies(model, iAtom, row)) out.add(iAtom, iAtom + 1);
     return;
   }
   const id = row.atom_id!;
-  const first = indices.atomsById.get(id);
+  const first = indices.atoms.byId.get(id);
   if (first === undefined) return;
-  const candidates = indices.atomsWithRepeatedId.get(id) ?? [first];
+  const candidates = indices.atoms.repeatedIds.get(id) ?? [first];
   for (let i = 0; i < candidates.length; i++) {
     const iAtom = candidates[i];
     if (atomQualifies(model, iAtom, row)) out.add(iAtom, iAtom + 1);

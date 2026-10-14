@@ -81,8 +81,8 @@ describe('indices are shared by the frames of a trajectory', async () => {
     expect(HierarchyScope.get(renumbered)).not.toBe(HierarchyScope.get(model));
     // both stay valid, looking one up does not evict the other
     expect(HierarchyScope.get(model)).toBe(HierarchyScope.get(frames[0]));
-    expect(IndicesAndSortings.get(renumbered).atomic!.atomsById.get(1000)).toBe(0);
-    expect(IndicesAndSortings.get(model).atomic!.atomsById.get(1000)).toBeUndefined();
+    expect(IndicesAndSortings.get(renumbered).atomic!.atoms.byId.get(1000)).toBe(0);
+    expect(IndicesAndSortings.get(model).atomic!.atoms.byId.get(1000)).toBeUndefined();
   });
 });
 
@@ -113,9 +113,9 @@ describe('HierarchyScope lookups', async () => {
     }
   });
   it('indices of each model use its own atom ids', () => {
-    expect(IndicesAndSortings.get(ensemble[3]).atomic!.atomsById.get(3001)).toBe(0);
-    expect(IndicesAndSortings.get(ensemble[3]).atomic!.atomsById.get(1)).toBeUndefined();
-    expect(IndicesAndSortings.get(ensemble[0]).atomic!.atomsById.get(1)).toBe(0);
+    expect(IndicesAndSortings.get(ensemble[3]).atomic!.atoms.byId.get(3001)).toBe(0);
+    expect(IndicesAndSortings.get(ensemble[3]).atomic!.atoms.byId.get(1)).toBeUndefined();
+    expect(IndicesAndSortings.get(ensemble[0]).atomic!.atoms.byId.get(1)).toBe(0);
   });
 });
 

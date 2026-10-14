@@ -25,20 +25,23 @@ export class MultiMap<K, V> implements Mapping<K, V[]> {
 /** Basic subset of `Map<K, V>`, only needs to have `get` method */
 export type Mapping<K, V> = Pick<Map<K, V>, 'get'>;
 
-/** Implementation of `Map` where keys are integers
+/** Implementation of `Map` where keys are integers and the values are non-negative integers (so they can be kept in a typed array)
  * and most keys are expected to be from interval `[0, limit)`.
- * For the keys within this interval, performance is better than `Map` (implemented by array).
+ * For the keys within this interval, performance is better than `Map` (implemented by array, 4 bytes per key).
  * For the keys out of this interval, performance is slightly worse than `Map`. */
-export class NumberMap<K extends number, V> implements Mapping<K, V> {
-  private array: V[];
+export class NumberMap<K extends number, V extends number> implements Mapping<K, V> {
+  private array: Int32Array;
   private map: Map<K, V>;
   constructor(public readonly limit: K) {
-    this.array = new Array(limit);
+    this.array = new Int32Array(limit).fill(-1);
     this.map = new Map();
   }
   get(key: K): V | undefined {
-    if (0 <= key && key < this.limit) return this.array[key];
-    else return this.map.get(key);
+    if (0 <= key && key < this.limit) {
+      const value = this.array[key];
+      return value < 0 ? undefined : (value as V);
+    }
+    return this.map.get(key);
   }
   set(key: K, value: V): void {
     if (0 <= key && key < this.limit) this.array[key] = value;
