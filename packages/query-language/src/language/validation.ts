@@ -26,9 +26,26 @@ export function expressionValidationIssues(
   const fieldPath = (path: string, key: string) => `${path}[${JSON.stringify(key)}]`;
   const report = (path: string, message: string) => issues.push(`${path}: ${message}`);
 
-  function visit(value: unknown, path: string) {
+  /** `isArgument`: the value is an argument of an application, where `null` and a list of values are literals */
+  function visit(value: unknown, path: string, isArgument = false) {
     if (typeof value === 'string' || typeof value === 'boolean') return;
     if (typeof value === 'number' && Number.isFinite(value)) return;
+    if (isArgument && value === null) return;
+    if (isArgument && Array.isArray(value)) {
+      // (a list of values, e.g. a column of a table)
+      const bad = value.findIndex(
+        (v) =>
+          !(
+            v === null ||
+            typeof v === 'string' ||
+            typeof v === 'boolean' ||
+            (typeof v === 'number' && Number.isFinite(v))
+          ),
+      );
+      if (bad >= 0)
+        report(`${path}[${bad}]`, 'Expected a string, a finite number, a boolean or null in a list of values.');
+      return;
+    }
     if (!isObject(value)) {
       report(path, 'Expected a literal, symbol, or application.');
       return;
@@ -74,7 +91,7 @@ export function expressionValidationIssues(
                 symbol.args.kind === 'dictionary' ? Object.hasOwn(symbol.args.map, key) : /^(0|[1-9]\d*)$/.test(key);
               if (!validKey) report(argumentPath, `Unknown argument '${key}' for symbol '${symbol.id}'.`);
             }
-            visit((value.args as Record<string, unknown>)[key], argumentPath);
+            visit((value.args as Record<string, unknown>)[key], argumentPath, true);
           }
         }
       }

@@ -41,6 +41,23 @@ describe('MolQL syntax and field names', () => {
     expect(issues({ head: { name: 'core.math.add' }, args: [Infinity] })?.join('\n')).toContain('Expected a literal');
   });
 
+  it('accepts null and lists of values as arguments (the columns of a table), not as an expression of their own', () => {
+    const table = B.struct.type.schemaItem({
+      label_asym_id: ['A', null, 'B'],
+      label_seq_id: [1, 2, null],
+      auth_seq_id: null,
+    });
+    expect(issues(B.struct.generator.elementSchema([table]))).toBeUndefined();
+    expect(issues(JSON.parse(JSON.stringify(B.struct.generator.elementSchema([table]))))).toBeUndefined();
+    expect(issues(B.struct.type.schemaItem({ label_seq_id: [1, Infinity] }))?.join('\n')).toContain(
+      'expression.args["label_seq_id"][1]: Expected a string, a finite number, a boolean or null in a list of values.',
+    );
+    expect(issues(B.struct.type.schemaItem({ label_seq_id: [1, [2]] as any }))).toBeDefined();
+    expect(issues(B.struct.type.schemaItem({ label_seq_id: [1, { name: 'A' }] as any }))).toBeDefined();
+    expect(issues([1, 2])).toBeDefined();
+    expect(issues(null)).toBeDefined();
+  });
+
   it('rejects unknown nested callable symbols with their paths', () => {
     const expression = B.struct.generator.atomGroups({ 'atom-test': { head: { name: 'unknown' } } });
     expect(issues(expression)?.join('\n')).toContain('expression.args["atom-test"].head.name');

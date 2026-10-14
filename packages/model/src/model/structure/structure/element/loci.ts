@@ -27,7 +27,7 @@ import { IntTuple } from '@molstar/core/data/int/tuple';
 import { Box3D, Sphere3D } from '@molstar/core/math/geometry';
 import { compile } from '@molstar/model/script/runtime/query/base';
 import { QueryContext, type QueryFn, StructureSelection } from '../../query.js';
-import { Schema, type ToLociOptions } from './schema.js';
+import { Schema } from './schema.js';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const itDiff = IntTuple.diff;
@@ -129,8 +129,8 @@ export namespace Loci {
     return StructureSelection.toLociWithSourceUnits(selection);
   }
 
-  export function fromSchema(structure: Structure, schema: Schema, options?: ToLociOptions): Loci {
-    return Schema.toLoci(structure, schema, options);
+  export function fromSchema(structure: Structure, schema: Schema): Loci {
+    return Schema.toLoci(structure, schema);
   }
 
   export function getFirstLocation(loci: Loci, e?: Location): Location | undefined {

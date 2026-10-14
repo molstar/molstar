@@ -17,6 +17,8 @@ export namespace Types {
   export const ConstrainedVar = Type.Variable('a', Type.Any, true);
 
   export const Regex = Type.Value<RegExp>('Core', 'Regex');
+  /** The value of a missing value, e.g. of a hole in the list of values of a field which only some items of a table have. It can stand where a value of any type can. */
+  export const Empty = Type.Value<undefined>('Core', 'Empty');
 
   export const Set = <T extends Type>(t?: T) => Type.Container<Set<T['@type']>>('Core', 'Set', t || AnyValueVar);
   export const List = <T extends Type>(t?: T) => Type.Container<List<T['@type']>>('Core', 'List', t || AnyVar);
@@ -65,6 +67,11 @@ const type = {
     'Creates a regular expression from a string using the ECMAscript syntax.',
   ),
 
+  empty: symbol(
+    Arguments.None,
+    Types.Empty,
+    'The value which is not there: use it in a list where an item has no value (e.g. in a column of the values of a field which only some items have).',
+  ),
   list: symbol(Arguments.List(Types.AnyVar), Types.List()),
   set: symbol(Arguments.List(Types.AnyValueVar), Types.Set()),
   bitflags: symbol(Arguments.Dictionary({ 0: Argument(Type.Num) }), Types.BitFlags, 'Interpret a number as bitflags.'),

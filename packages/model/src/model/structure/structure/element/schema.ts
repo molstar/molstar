@@ -5,13 +5,13 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { isDefined } from '@molstar/core/util/object';
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
-import type { Expression } from '@molstar/query-language/language/expression';
+import { Expression } from '@molstar/query-language/language/expression';
 import type { Structure } from '../structure.js';
 import { Bundle } from './bundle.js';
 import { Loci } from './loci.js';
-import { schemaToLociViaIndex, schemaToStructureViaIndex } from './schema-selection/to-loci.js';
+import { SchemaItemFields, isFieldValue, itemWithValues } from './schema-selection/fields.js';
+import { substructureFromRows } from './schema-selection/row-structure.js';
 
 export interface SchemaItem {
   /** Corresponds to SymmetryOperator.name, e.g. 1_555, ASM_5 */
@@ -66,80 +66,61 @@ function isItems(schema: Schema): schema is SchemaItems {
   return !!(schema as any).items;
 }
 
-function schemaItemToExpression(item: SchemaItem): Expression {
-  // NOTE: If needed, the schema item lookup can be significantly optimized
-  //       by accessing the data directly instead of constructing
-  //       the expression.
-
-  const { and } = MS.core.logic;
-  const { eq, gre: gte, lte } = MS.core.rel;
-  const { macromolecular, ihm, core } = MS.struct.atomProperty;
-  const propTests: Partial<Record<string, Expression>> = {};
-
-  if (isDefined(item.label_entity_id)) {
-    propTests['entity-test'] = eq([macromolecular.label_entity_id(), item.label_entity_id]);
+/** The expression of one row (the fields which it has) */
+function itemExpression(item: SchemaItem): Expression {
+  const args: Record<string, Expression> = {};
+  for (const name of SchemaItemFields) {
+    const value = item[name];
+    if (isFieldValue(value)) args[name] = value;
   }
-
-  const chainTests: Expression[] = [];
-  if (isDefined(item.operator_name)) chainTests.push(eq([core.operatorName(), item.operator_name]));
-  if (isDefined(item.instance_id)) chainTests.push(eq([core.instanceId(), item.instance_id]));
-  if (isDefined(item.label_asym_id)) chainTests.push(eq([macromolecular.label_asym_id(), item.label_asym_id]));
-  if (isDefined(item.auth_asym_id)) chainTests.push(eq([macromolecular.auth_asym_id(), item.auth_asym_id]));
-
-  if (chainTests.length === 1) {
-    propTests['chain-test'] = chainTests[0];
-  } else if (chainTests.length > 1) {
-    propTests['chain-test'] = and(chainTests);
-  }
-
-  const residueTests: Expression[] = [];
-  if (isDefined(item.label_seq_id)) {
-    residueTests.push(ihm.hasSeqId({ 0: item.label_seq_id }));
-  }
-  if (isDefined(item.auth_seq_id)) residueTests.push(eq([macromolecular.auth_seq_id(), item.auth_seq_id]));
-  if (isDefined(item.residue_index)) residueTests.push(eq([macromolecular.residueSourceIndex(), item.residue_index]));
-  if (isDefined(item.pdbx_PDB_ins_code))
-    residueTests.push(eq([macromolecular.pdbx_PDB_ins_code(), item.pdbx_PDB_ins_code]));
-
-  if (isDefined(item.beg_label_seq_id) || isDefined(item.end_label_seq_id)) {
-    residueTests.push(ihm.overlapsSeqIdRange({ beg: item.beg_label_seq_id, end: item.end_label_seq_id }));
-  }
-
-  if (isDefined(item.beg_auth_seq_id)) residueTests.push(gte([macromolecular.auth_seq_id(), item.beg_auth_seq_id]));
-  if (isDefined(item.end_auth_seq_id)) residueTests.push(lte([macromolecular.auth_seq_id(), item.end_auth_seq_id]));
-  if (residueTests.length === 1) {
-    propTests['residue-test'] = residueTests[0];
-  } else if (residueTests.length > 1) {
-    propTests['residue-test'] = and(residueTests);
-  }
-
-  const atomTests: Expression[] = [];
-  if (isDefined(item.label_comp_id)) atomTests.push(eq([macromolecular.label_comp_id(), item.label_comp_id]));
-  if (isDefined(item.auth_comp_id)) atomTests.push(eq([macromolecular.auth_comp_id(), item.auth_comp_id]));
-  if (isDefined(item.atom_id)) atomTests.push(eq([macromolecular.id(), item.atom_id]));
-  if (isDefined(item.atom_index)) atomTests.push(eq([MS.struct.atomProperty.core.sourceIndex(), item.atom_index]));
-  if (isDefined(item.label_atom_id)) atomTests.push(eq([macromolecular.label_atom_id(), item.label_atom_id]));
-  if (isDefined(item.auth_atom_id)) atomTests.push(eq([macromolecular.auth_atom_id(), item.auth_atom_id]));
-  if (isDefined(item.type_symbol))
-    atomTests.push(eq([MS.struct.atomProperty.core.elementSymbol(), item.type_symbol.toUpperCase()]));
-  if (atomTests.length === 1) {
-    propTests['atom-test'] = atomTests[0];
-  } else if (atomTests.length > 1) {
-    propTests['atom-test'] = and(atomTests);
-  }
-
-  return MS.struct.generator.atomGroups(propTests);
+  return MS.struct.type.schemaItem(args);
 }
 
+/** From this many rows on, the rows are given as columns: a list of values is passed through by the compiler as it is (so the cost of
+ * the expression does not grow with the number of rows) and does not repeat the names of the fields. */
+const MinRowsForColumns = 10;
+
+/** The column of a field: a missing value is `null` (what JSON makes of `undefined`) */
+function columnOf(values: ArrayLike<unknown>): Expression {
+  const column: Expression.ListValue[] = new Array(values.length);
+  for (let i = 0; i < values.length; i++) {
+    const value = values[i];
+    column[i] = isFieldValue(value) ? value : null;
+  }
+  return column;
+}
+
+/** The expression of a table given by its columns: the prefix and the lists are the fields of one item (the prefix is the same in every row). */
+function columnsExpression(
+  prefix: SchemaItem | undefined,
+  columns: { readonly [name: string]: ArrayLike<unknown> | undefined },
+): Expression {
+  const args: Record<string, Expression> = {};
+  for (const name of SchemaItemFields) {
+    const value = prefix?.[name];
+    if (isFieldValue(value)) args[name] = value;
+  }
+  for (const name of SchemaItemFields) {
+    const column = columns[name];
+    if (column) args[name] = columnOf(column);
+  }
+  return MS.struct.type.schemaItem(args);
+}
+
+/** The expression of a schema is the generator `element-schema`: it finds the elements through the indices of the models (instead of testing
+ * every element for every item), as a single set of the elements which satisfy at least one item. A table of many rows is given by columns. */
 function toExpression(schema: Schema): Expression {
-  const expressions: Expression[] = [];
-  forEachItem(schema, (item) => expressions.push(schemaItemToExpression(item)));
-  if (expressions.length === 1) return expressions[0];
-  return unionExpression(expressions);
-}
-
-function unionExpression(expressions: Expression[]): Expression {
-  return MS.struct.combinator.merge(expressions.map((e) => MS.struct.modifier.union([e])));
+  if (isItems(schema) && !Array.isArray(schema.items)) {
+    return MS.struct.generator.elementSchema([columnsExpression(schema.prefix, schema.items)]);
+  }
+  const items: SchemaItem[] = [];
+  forEachItem(schema, (item) => items.push(itemWithValues(item)));
+  if (items.length < MinRowsForColumns) return MS.struct.generator.elementSchema(items.map(itemExpression));
+  const columns: { [name: string]: unknown[] } = {};
+  for (const name of SchemaItemFields) {
+    if (items.some((item) => isFieldValue(item[name]))) columns[name] = items.map((item) => item[name]);
+  }
+  return MS.struct.generator.elementSchema([columnsExpression(undefined, columns)]);
 }
 
 /**
@@ -178,34 +159,21 @@ function forEachItem(schema: Schema, f: (item: SchemaItem) => void) {
   }
 }
 
-export interface ToLociOptions {
-  /** How to find the elements of the items.
-   *
-   * `false` (default): run a query (the expression of the items) on the structure, which tests every atom against every item.
-   *
-   * `true`: look them up in the indices of the models, which cost only what is selected after the indices are built (once per model, on the first
-   * call, and kept as long as the model lives: about 12 bytes per atom, and 8 more once an `atom_id` or `atom_index` criterion is used). Much faster for many items or many calls; not for a single
-   * item on a structure for which nothing was indexed yet. The result is the same, except for items with values which some residues do not
-   * have: a residue without `label_seq_id` never satisfies a `label_seq_id`, `beg_label_seq_id` or `end_label_seq_id` criterion (the query reads
-   * it as 0), and criteria which only exist for atoms (`auth_*`, `label_comp_id`, atom ids, ...) select nothing on coarse elements (the query throws).
-   * A range with `beg_label_seq_id > end_label_seq_id` selects nothing. */
-  useIndex?: boolean;
-}
-
-function toLoci(structure: Structure, schema: Schema, options?: ToLociOptions): Loci {
-  if (options?.useIndex) return schemaToLociViaIndex(structure, schema);
+function toLoci(structure: Structure, schema: Schema): Loci {
   return Loci.fromExpression(structure, toExpression(schema));
 }
 
-function toBundle(structure: Structure, schema: Schema, options?: ToLociOptions): Bundle {
-  return Bundle.fromLoci(toLoci(structure, schema, options));
+function toBundle(structure: Structure, schema: Schema): Bundle {
+  return Bundle.fromLoci(toLoci(structure, schema));
 }
 
-/** The substructure of `structure` of the elements which satisfy at least one item of `schema`, found through the indices of the models
- * (the same as `toLoci` with `useIndex: true`, see there for the differences from the query). It is `structure` itself if every element
- * satisfies one. */
+/** The substructure of `structure` of the elements which satisfy at least one item of `schema`
+ * (`structure` itself if every element satisfies one). */
 function toStructure(structure: Structure, schema: Schema): Structure {
-  return schemaToStructureViaIndex(structure, schema);
+  const items: SchemaItem[] = [];
+  // (copies: the items of an object of arrays are produced by reusing one object; a missing value is not a criterion)
+  forEachItem(schema, (item) => items.push(itemWithValues(item)));
+  return substructureFromRows(structure, items);
 }
 
 export const Schema = {

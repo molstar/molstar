@@ -7,7 +7,11 @@
 type Expression = Expression.Literal | Expression.Symbol | Expression.Apply;
 
 namespace Expression {
-  export type Literal = string | number | boolean;
+  /** A value of a list of literals: `null` is a missing value (it is what JSON makes of `undefined` in a list) */
+  export type ListValue = string | number | boolean | null;
+  /** A literal: a value, `null` (a missing value), or a list of values, which the compiler passes through as it is (it does not compile every value of it).
+   * A list of values is how a column of a table is given to a symbol which takes tables (`structure.generator.element-schema`) in any size. */
+  export type Literal = ListValue | ListValue[];
   export type Symbol = { name: string };
   export type Arguments = Expression[] | { [name: string]: Expression };
   export interface Apply {
@@ -42,12 +46,25 @@ namespace Expression {
   export function is(value: unknown): value is Expression {
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true;
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    return isInArguments(value);
+  }
+
+  /** Like `is`, for a value in the arguments of an application, where `null` and a list of values are literals too */
+  function isInArguments(value: unknown): value is Expression {
+    if (value === null) return true;
+    if (Array.isArray(value)) return value.every(isListValue);
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true;
+    if (!value || typeof value !== 'object') return false;
     if (isSymbol(value as Expression)) return true;
     const apply = value as Apply;
     if (!Object.prototype.hasOwnProperty.call(apply, 'head') || !is(apply.head)) return false;
     if (apply.args === undefined) return true;
-    if (Array.isArray(apply.args)) return apply.args.every(is);
-    return !!apply.args && typeof apply.args === 'object' && Object.values(apply.args).every(is);
+    if (Array.isArray(apply.args)) return apply.args.every(isInArguments);
+    return !!apply.args && typeof apply.args === 'object' && Object.values(apply.args).every(isInArguments);
+  }
+
+  function isListValue(value: unknown): value is ListValue {
+    return value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
   }
 }
 

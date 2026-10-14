@@ -63,6 +63,8 @@ export namespace Types {
     'other',
   ]);
   export const ResidueId = Type.Value('Structure', 'ResidueId');
+  /** A row of a table of the elements of a structure, see `StructureElement.Schema` */
+  export const SchemaItem = Type.Value('Structure', 'SchemaItem');
 
   export const ElementSet = Type.Value('Structure', 'ElementSet');
   export const ElementSelection = Type.Value('Structure', 'ElementSelection');
@@ -118,6 +120,49 @@ const type = {
     Types.ResidueId,
     `Residue identifier based on "auth_" annotation.`,
   ),
+  schemaItem: symbol(
+    Arguments.Dictionary(
+      Object.fromEntries(
+        [
+          ['operator_name', Type.Str, 'Name of the symmetry operator of the unit, e.g. 1_555, ASM_5'],
+          ['instance_id', Type.Str, 'Instance id of the unit, e.g. 1_555, ASM-X0-5'],
+          ['label_entity_id', Type.Str],
+          ['label_asym_id', Type.Str],
+          ['auth_asym_id', Type.Str],
+          ['label_seq_id', Type.Num],
+          ['auth_seq_id', Type.Num],
+          ['residue_index', Type.Num, 'Index of the residue in the input file'],
+          ['label_comp_id', Type.Str],
+          ['auth_comp_id', Type.Str],
+          ['pdbx_PDB_ins_code', Type.Str, `Insertion code ('' for the residues without one)`],
+          ['beg_label_seq_id', Type.Num],
+          ['end_label_seq_id', Type.Num],
+          ['beg_auth_seq_id', Type.Num],
+          ['end_auth_seq_id', Type.Num],
+          [
+            'beg_auth_ins_code',
+            Type.Str,
+            `Insertion code of the residue at 'beg_auth_seq_id'. A range of residues in the order of the input file if it or 'end_auth_ins_code' is given.`,
+          ],
+          ['end_auth_ins_code', Type.Str, `Insertion code of the residue at 'end_auth_seq_id'.`],
+          ['label_atom_id', Type.Str],
+          ['auth_atom_id', Type.Str],
+          ['type_symbol', Type.Str],
+          ['atom_id', Type.Num],
+          ['atom_index', Type.Num, 'Index of the atom in the input file'],
+        ].map(([name, type, description]) => [
+          name as string,
+          Argument(Type.Union([type as Type, Core.Types.List(type as Type)]), {
+            isOptional: true,
+            description: description as string | undefined,
+          }),
+        ]),
+      ),
+    ),
+    Types.SchemaItem,
+    `A description of elements by the values they have in the fields of the input file, all the given values have to match (an item of 'element-schema').
+Each field is a value, or a list of values (then the item is a table: the lists are its columns, a field which is a single value is the same in every row; use 'empty' where a row has no value).`,
+  ),
   labelResidueId: symbol(
     Arguments.Dictionary({
       0: Argument(Type.Str, { description: 'label_entity_id' }),
@@ -170,6 +215,12 @@ const generator = {
     }),
     Types.ElementSelectionQuery,
     'Return all atoms for which the tests are satisfied, grouped into sets.',
+  ),
+
+  elementSchema: symbol(
+    Arguments.List(Types.SchemaItem),
+    Types.ElementSelectionQuery,
+    'Return the elements which are described by at least one of the items (rows of a table of the fields of the input file), as a single set, using the indices of the structure instead of testing every element for every row.',
   ),
 
   bondedAtomicPairs: symbol(

@@ -15,10 +15,20 @@ import type { QueryContextView, QueryFn, QueryPredicate } from '../context.js';
 import type { StructureQuery } from '../query.js';
 import { StructureSelection } from '../selection.js';
 import { LinearGroupingBuilder } from '../utils/builders.js';
+import type { SchemaItem } from '../../structure/element/schema.js';
+import { substructureFromRows } from '../../structure/element/schema-selection/row-structure.js';
 import { structureSubtract } from '../utils/structure-set.js';
 
 export const none: StructureQuery = (ctx) => StructureSelection.Sequence(ctx.inputStructure, []);
 export const all: StructureQuery = (ctx) => StructureSelection.Singletons(ctx.inputStructure, ctx.inputStructure);
+
+/** The elements which satisfy at least one of `rows` (as a single set), found through the indices of the models. */
+export function elementSchema(rows: readonly SchemaItem[]): StructureQuery {
+  return function query_elementSchema(ctx) {
+    const structure = substructureFromRows(ctx.inputStructure, rows);
+    return StructureSelection.Sequence(ctx.inputStructure, structure.elementCount === 0 ? [] : [structure]);
+  };
+}
 
 export interface AtomsQueryParams {
   /** Query to be executed for each unit once */

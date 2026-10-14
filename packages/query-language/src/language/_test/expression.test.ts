@@ -36,4 +36,17 @@ describe('MolScript expression shape', () => {
     expect(Expression.is({ head: { name: 'core.rel.eq' }, args: 1 })).toEqual(false);
     expect(Expression.is({ head: { malformed: true } })).toEqual(false);
   });
+
+  it('null and lists of values are literals in the arguments of an application', () => {
+    expect(Expression.is({ head: { name: 'a' }, args: { x: [1, null, 'b', true], y: null } })).toEqual(true);
+    expect(Expression.is({ head: { name: 'a' }, args: [[1, 2], null] })).toEqual(true);
+    expect(Expression.is({ head: { name: 'a' }, args: { x: [1, [2]] } })).toEqual(false);
+    expect(Expression.is({ head: { name: 'a' }, args: { x: [{ name: 's' }] } })).toEqual(false);
+    expect(Expression.isLiteral([1, null] as any)).toEqual(true);
+    expect(Expression.isApply([1, null] as any)).toEqual(false);
+    expect(Expression.isSymbol([1, null] as any)).toEqual(false);
+    // (on their own they are not expressions)
+    expect(Expression.is([1, 2])).toEqual(false);
+    expect(Expression.is(null)).toEqual(false);
+  });
 });

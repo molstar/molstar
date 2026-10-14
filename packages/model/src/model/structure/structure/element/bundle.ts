@@ -15,7 +15,7 @@ import { Loci } from './loci.js';
 import type { Expression } from '@molstar/query-language/language/expression';
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import { type QueryContext, type QueryFn, StructureSelection } from '../../query.js';
-import { Schema, type ToLociOptions } from './schema.js';
+import { Schema } from './schema.js';
 
 export interface BundleElement {
   /**
@@ -57,8 +57,8 @@ export namespace Bundle {
     return fromLoci(Loci.fromQuery(structure, query, queryContext));
   }
 
-  export function fromSchema(structure: Structure, schema: Schema, options?: ToLociOptions): Bundle {
-    return Schema.toBundle(structure, schema, options);
+  export function fromSchema(structure: Structure, schema: Schema): Bundle {
+    return Schema.toBundle(structure, schema);
   }
 
   export function fromLoci(loci: Loci): Bundle {
