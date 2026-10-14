@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { getHeapStatistics } from 'node:v8';
+import { describe, expect, it, vi } from 'vitest';
 import { SymmetryOperator } from '@molstar/core/math/geometry/symmetry-operator';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { Structure, StructureElement, StructureSelection } from '@molstar/model/model/structure';
@@ -81,5 +82,58 @@ describe('operator_name when the instance id does not tell the operators apart',
     expect(valueIn(indexOfA)).toBeUndefined();
     expect(valueIn(indexOfB)).toBe('b');
     expect(valueIn(indexOfA)).toBeUndefined();
+  });
+
+  describe('the mapping of an annotation is computed once per what the rows depend on', () => {
+    const locationIn = (unitIndex: number) => {
+      const unit = structure.units[unitIndex];
+      return StructureElement.Location.create(structure, unit, unit.elements[0]);
+    };
+    const indexOfA = structure.units.findIndex((u) => u.conformation.operator.name === 'op-a');
+    const indexOfB = structure.units.findIndex((u) => u.conformation.operator.name === 'op-b');
+    const make = (rows: any[]) => {
+      const annot = new MVSAnnotation({ format: 'json', data: rows }, 'all_atomic', {});
+      return { annot, compute: vi.spyOn(annot as any, 'getRowForEachAtom') };
+    };
+
+    it('rows which do not refer to an operator: once for all units', () => {
+      const { annot, compute } = make([{ label_asym_id: 'A', tag: 'x' }]);
+      for (let k = 0; k < 3; k++) {
+        annot.getValueForLocation(locationIn(indexOfA), 'tag');
+        annot.getValueForLocation(locationIn(indexOfB), 'tag');
+      }
+      expect(compute).toHaveBeenCalledTimes(1);
+    });
+    it('rows which refer to operator_name: once per operator, however many lookups', () => {
+      const { annot, compute } = make([{ operator_name: 'op-a', label_asym_id: 'A', tag: 'x' }]);
+      for (let k = 0; k < 5; k++) {
+        annot.getValueForLocation(locationIn(indexOfA), 'tag');
+        annot.getValueForLocation(locationIn(indexOfB), 'tag');
+      }
+      expect(compute).toHaveBeenCalledTimes(2);
+    });
+    it('rows which refer to an instance only: once per instance (these operators share theirs)', () => {
+      const { annot, compute } = make([{ instance_id: 'shared-instance', label_asym_id: 'A', tag: 'x' }]);
+      for (let k = 0; k < 3; k++) {
+        annot.getValueForLocation(locationIn(indexOfA), 'tag');
+        annot.getValueForLocation(locationIn(indexOfB), 'tag');
+      }
+      expect(compute).toHaveBeenCalledTimes(1);
+    });
+    it('a lookup does not allocate (themes and tooltips look up every element)', () => {
+      for (const rows of [
+        [{ label_asym_id: 'A', tag: 'x' }],
+        [{ instance_id: 'shared-instance', label_asym_id: 'A', tag: 'x' }],
+        [{ operator_name: 'op-b', label_asym_id: 'A', tag: 'x' }],
+      ]) {
+        const { annot } = make(rows);
+        const location = locationIn(indexOfB);
+        for (let k = 0; k < 100000; k++) annot.getValueForLocation(location, 'tag'); // (builds the mapping, and warms the code up)
+        const before = getHeapStatistics().total_allocated_bytes;
+        for (let k = 0; k < 200000; k++) annot.getValueForLocation(location, 'tag');
+        const perLookup = (getHeapStatistics().total_allocated_bytes - before) / 200000;
+        expect(perLookup).toBeLessThan(8); // (a string built per lookup would be dozens of bytes)
+      }
+    });
   });
 });

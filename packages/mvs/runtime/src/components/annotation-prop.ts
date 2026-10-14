@@ -207,6 +207,12 @@ function getIndexedElementsForUnitKind(indexedModel: IndexedModel, unitKind: Uni
   return null;
 }
 
+type IndexedModelsOfScope = {
+  single: IndexedModel | undefined;
+  byKey: Map<string, IndexedModel>;
+  byOperator: WeakMap<object, IndexedModel>;
+};
+
 /** Reusable buffers for `getAtomRangesForRow` in `MVSAnnotation.getRowForEachAtom` (not reentrant, synchronous use only) */
 const RowScratch = new AtomRangesScratch();
 /** Paints the rows in `MVSAnnotation.getRowForEachAtom` (synchronous use only) */
@@ -293,18 +299,39 @@ export class MVSAnnotation {
   }
 
   /** Return cached `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` (or create it if not cached yet).
-   * The mapping does not depend on coordinates, so the models of a trajectory share it (`HierarchyScope`). */
+   * The mapping does not depend on coordinates, so the models of a trajectory share it (`HierarchyScope`).
+   * It is looked up once per element by themes and tooltips, so a lookup does not allocate: with no row about operators the mapping is one
+   * per scope, otherwise it is found by the (shared, long lived) operator object of the unit, and only the first lookup with an operator
+   * builds the key of its instance and name. */
   private getIndexedModel(model: Model, operator: RowOperator): IndexedModel {
     const scope = HierarchyScope.get(model);
-    let byInstance = this._indexedModels.get(scope);
-    if (!byInstance) this._indexedModels.set(scope, (byInstance = new Map()));
-    const key = this.operatorKey(operator);
-    let result = byInstance.get(key);
-    if (!result) byInstance.set(key, (result = this.getRowForEachAtom(model, operator)));
+    let entry = this._indexedModels.get(scope);
+    if (!entry)
+      this._indexedModels.set(scope, (entry = { single: undefined, byKey: new Map(), byOperator: new WeakMap() }));
+    const use = this.operatorUse();
+    if (use === 'none') return (entry.single ??= this.getRowForEachAtom(model, operator));
+    let result = entry.byOperator.get(operator);
+    if (!result) {
+      const key = use === 'instance' ? operator.instanceId : `${operator.instanceId}|${operator.name}`;
+      result = entry.byKey.get(key);
+      if (!result) entry.byKey.set(key, (result = this.getRowForEachAtom(model, operator)));
+      entry.byOperator.set(operator, result);
+    }
     return result;
   }
-  /** Cached `IndexedModel` per hierarchy scope (models of one trajectory), and per operator (if at least one row contains `instance_id` or `operator_name`). */
-  private _indexedModels = new WeakMap<HierarchyScope, Map<string, IndexedModel>>();
+  /** Cached `IndexedModel` per hierarchy scope (models of one trajectory): one (`single`) if no row contains `instance_id` or `operator_name`,
+   * otherwise one per instance (or instance and operator name), found by key (`byKey`) or, faster, by the operator object (`byOperator`). */
+  private _indexedModels = new WeakMap<HierarchyScope, IndexedModelsOfScope>();
+
+  /** Which properties of the operator of a unit the mapping depends on, according to the rows. */
+  private operatorUse(): 'none' | 'instance' | 'both' {
+    return (this._operatorUse ??= this.getRows().some((row) => isDefined(row.operator_name))
+      ? 'both'
+      : rowsUseOperators(this.getRows())
+        ? 'instance'
+        : 'none');
+  }
+  private _operatorUse?: 'none' | 'instance' | 'both' = undefined;
 
   /** Create `ElementIndex` -> `MVSAnnotationRow` mapping for `Model`.
    * An element gets the index of the last row which applies to it. The rows are visited from the last one, so that each element is
@@ -356,19 +383,6 @@ export class MVSAnnotation {
         return getRowsFromCif(this.data.data, this.schema, this.fieldRemapping);
     }
   }
-
-  /** The part of `operator` which the selected elements depend on, as a key: nothing if no row refers to an instance or an operator,
-   * the instance id if only instances are referred to (the common case, which does not allocate), otherwise both. */
-  private operatorKey(operator: RowOperator): string {
-    this._operatorUse ??= this.getRows().some((row) => isDefined(row.operator_name))
-      ? 'both'
-      : rowsUseOperators(this.getRows())
-        ? 'instance'
-        : 'none';
-    if (this._operatorUse === 'none') return '';
-    return this._operatorUse === 'instance' ? operator.instanceId : `${operator.instanceId}|${operator.name}`;
-  }
-  private _operatorUse?: 'none' | 'instance' | 'both' = undefined;
 
   /** Return list of all distinct values appearing in field `fieldName`, in order of first occurrence. Ignores special values `.` and `?`. If `caseInsensitive`, make all values uppercase. */
   getDistinctValuesInField(fieldName: string, caseInsensitive: boolean): string[] {

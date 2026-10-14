@@ -76,7 +76,9 @@ export function getAtomRangesForRow(
   indices: IndicesAndSortings,
 ): ElementRanges | undefined {
   const r = getAtomRangesForRowInto(row, model, operator, indices, SharedScratch);
-  return r?.toRanges();
+  const result = r?.toRanges();
+  SharedScratch.trim();
+  return result;
 }
 
 /** Like `getAtomRangesForRow`, but writes the result into `scratch.ranges` and returns it (no allocation per call).
