@@ -1,0 +1,7 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // Typed arrays everywhere: their index reads are numbers, as in Mol*, not number | undefined. No DOM types: /draw and /svg touch no DOM global; /canvas, /dom and /react have their own configs.
+  "compilerOptions": { "noUncheckedIndexedAccess": false, "types": ["node"], "lib": ["ES2023"] },
+  "include": ["src", "_test", "bench"],
+  "exclude": ["src/canvas", "_test/canvas", "_test/interactions/canvas", "src/dom", "_test/dom", "src/react", "_test/react"]
+}

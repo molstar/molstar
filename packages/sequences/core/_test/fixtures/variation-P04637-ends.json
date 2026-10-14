@@ -1,0 +1,64 @@
+{
+ "accession": "P04637",
+ "sequence": "MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAAPTPAAPAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENLRKKGEPHHELPPGSTKRALPNNTSSSPQPKKKPLDGEYFTLQIRGRERFEMFRELNEALELKDAQAGKEPGGSRAHSSHLKSKKGQSTSRHKKLMFKTEGPDSD",
+ "features": [
+  {
+   "type": "VARIANT",
+   "begin": "175",
+   "end": "175",
+   "wildType": "R",
+   "alternativeSequence": "C",
+   "consequenceType": "missense"
+  },
+  {
+   "type": "VARIANT",
+   "begin": "175",
+   "end": "175",
+   "wildType": "R",
+   "alternativeSequence": "H",
+   "consequenceType": "missense"
+  },
+  {
+   "type": "VARIANT",
+   "begin": "393",
+   "end": "393",
+   "wildType": "D",
+   "alternativeSequence": "G",
+   "consequenceType": "missense"
+  },
+  {
+   "type": "VARIANT",
+   "begin": "377",
+   "end": "400",
+   "wildType": "TSRHKKLMFKTEGPDSD",
+   "consequenceType": "inframe deletion"
+  },
+  {
+   "type": "VARIANT",
+   "begin": "385",
+   "end": "400",
+   "wildType": "FKTEGPDSD",
+   "consequenceType": "frameshift"
+  },
+  {
+   "type": "VARIANT",
+   "begin": "394",
+   "end": "394",
+   "wildType": "*",
+   "alternativeSequence": "C",
+   "consequenceType": "stop lost"
+  },
+  {
+   "type": "VARIANT",
+   "begin": "394",
+   "end": "398",
+   "consequenceType": "frameshift"
+  },
+  {
+   "type": "VARIANT",
+   "begin": "399",
+   "end": "399",
+   "consequenceType": "frameshift"
+  }
+ ]
+}

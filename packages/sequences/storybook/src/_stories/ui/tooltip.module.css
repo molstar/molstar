@@ -1,0 +1,24 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* Prism's tooltip: ink on paper (the inverse of the panel colors), 11px, quick. A hint, never an obstacle: it takes no
+   pointer events, so the control under it gets the hover and the click. Shown in the page that carries .msp-root
+   (tooltip.tsx), so it takes the page's theme. */
+.popup {
+  position: fixed;
+  z-index: var(--msp-z-tooltip);
+  max-width: 240px;
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-text);
+  color: var(--msp-color-bg);
+  font-family: var(--msp-font-sans);
+  font-size: var(--msp-font-size-xs);
+  line-height: 1.3;
+  pointer-events: none;
+}

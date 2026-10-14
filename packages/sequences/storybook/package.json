@@ -1,0 +1,49 @@
+{
+  "name": "@molstar/seq-storybook",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The Seq* Storybook content: the stories, their support code and the Seq*/Docs pages. A host's Storybook adds the globs from ./vite and imports ./tokens.css; nothing here imports an application.",
+  "exports": {
+    "./vite": "./vite.ts",
+    "./tokens.css": "./src/_stories/ui/tokens.css",
+    "./support/cases": "./src/_stories/support/seqstar-cases.ts",
+    "./support/viewer": "./src/_stories/support/seqstar-viewer.tsx",
+    "./support/ux.module.css": "./src/_stories/support/seqstar-ux.module.css",
+    "./_stories/*": null,
+    "./_test/*": null
+  },
+  "files": [
+    "src",
+    "!**/_test/**",
+    "!**/_stories/**",
+    "!**/*.stories.*"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:slow": "vitest run --config vitest.slow.config.ts",
+    "test:full": "vitest run && vitest run --config vitest.slow.config.ts",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@molstar/seq-core": "workspace:*",
+    "@molstar/seq-molstar-poc": "workspace:*",
+    "@molstar/seq-nightingale": "workspace:*",
+    "@molstar/seq-viewer": "workspace:*",
+    "clsx": "^2.1.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@storybook/addon-docs": "10.5.10",
+    "@storybook/react-vite": "10.5.10",
+    "@types/node": "^24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@types/webxr": "^0.5.24",
+    "storybook": "10.5.10",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.11"
+  }
+}

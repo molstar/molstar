@@ -1,0 +1,54 @@
+{
+  "name": "@molstar/seq-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Seq*'s platform-free core, no dependencies: the data model and its query runtime, SeqQL, the aligners and search, translation, the SeqViewSpec format and its builder, command links and the stream providers.",
+  "sideEffects": false,
+  "exports": {
+    "./model": "./src/model/index.ts",
+    "./model/query": "./src/model/query/index.ts",
+    "./query": "./src/query/index.ts",
+    "./algorithms": "./src/algorithms/index.ts",
+    "./algorithms/search": "./src/algorithms/search/index.ts",
+    "./translate": "./src/translate/index.ts",
+    "./format": "./src/format/index.ts",
+    "./builder": "./src/builder/index.ts",
+    "./builder/svsx": "./src/builder/svsx.ts",
+    "./links": "./src/links/index.ts",
+    "./links/remark": "./src/links/remark.ts",
+    "./stream/tiles": "./src/stream/tiles/index.ts",
+    "./stream/tiles/server": "./src/stream/tiles/server.ts",
+    "./stream/gmod": "./src/stream/gmod/index.ts",
+    "./_stories/*": null,
+    "./_test/*": null
+  },
+  "files": [
+    "src",
+    "!**/_test/**",
+    "!**/_stories/**",
+    "!**/*.stories.*"
+  ],
+  "bin": {
+    "svs-validate": "./src/format/cli/svs-validate.ts",
+    "svs-convert": "./src/format/cli/svs-convert.ts",
+    "svs-print-schema": "./src/format/cli/svs-print-schema.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:slow": "vitest run --config vitest.slow.config.ts",
+    "test:full": "vitest run && vitest run --config vitest.slow.config.ts && vitest run --config vitest.heap.config.ts",
+    "test:heap": "vitest run --config vitest.heap.config.ts",
+    "bench": "vitest bench --run --passWithNoTests --config vitest.bench.config.ts",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.query.json"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "rehype-sanitize": "^6.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "typescript": "^7.0.2",
+    "unified": "^11.0.5",
+    "vitest": "^4.1.11"
+  }
+}

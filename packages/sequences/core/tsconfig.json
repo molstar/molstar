@@ -1,0 +1,8 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // Typed arrays everywhere: their index reads are numbers, as in Mol*, not number | undefined. The query language
+  // keeps the strict reads (tsconfig.query.json).
+  "compilerOptions": { "noUncheckedIndexedAccess": false, "types": ["node"], "lib": ["ES2023"] },
+  "include": ["src", "_test", "bench", "scripts"],
+  "exclude": ["src/query", "_test/query"]
+}

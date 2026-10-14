@@ -1,0 +1,278 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Seq*/Docs/Features" />
+
+# Features
+
+What Seq\* does today, one line each, with the story that shows it. Every major feature has a
+story. Every
+story runs offline, from committed fixtures or synthetic data made in the page. The terms are explained in [Concepts](?path=/docs/seq-docs-concepts--docs).
+
+## The cases
+
+The format's twenty-one acceptance cases (case 11, Stories materializing into the format, is a check, not a document), each in
+three stories: the [viewer](?path=/story/seq-cases-viewer--case-1) with the default React UI, the
+[format](?path=/story/seq-cases-format--case-1) (the document, its issues and each view resolved), and
+[Nightingale](?path=/story/seq-cases-nightingale--case-1).
+
+| Case | What it shows |
+|---|---|
+| [1. p53: text and tracks](?path=/story/seq-cases-viewer--case-1) | a text view (emphasis, underlined regions, points; selected as text) and a protein-browser tracks view (sequence, regions, UniProt motifs, zinc and hotspot points, variants, a disorder line) |
+| [2. Antibody Fv, Kabat and IMGT](?path=/story/seq-cases-viewer--case-2) | two [numbering](?path=/docs/seq-docs-concepts--docs#position-and-index-label-and-numbering) schemes on one Fv, each labeling its CDRs |
+| [3. SH2 family](?path=/story/seq-cases-viewer--case-3) | an alignment's rows, conservation per clade, the logo |
+| [4. tRNA family, base pairs](?path=/story/seq-cases-viewer--case-4) | pairs as arcs, above and below |
+| [5. DNA construct](?path=/story/seq-cases-viewer--case-5) | a construct's features and restriction sites as boundary glyphs, a text view |
+| [6. Imatinib in ABL](?path=/story/seq-cases-viewer--case-6) | the interactions fingerprint, an extension's layer type |
+| [7. Barnase–barstar](?path=/story/seq-cases-viewer--case-7) | a [complex](?path=/docs/seq-docs-concepts--docs#complex) with three copies of each chain, contacts as pairs, secondary structure, a variant-effect matrix |
+| [8. AlphaFold DB complex](?path=/story/seq-cases-viewer--case-8) | a model's tracks per chain: pLDDT as a line in its AlphaFold DB bands over a thin strip of the bands, secondary structure, the interface (residues and contacts), the predicted aligned error as a dot plot with the contacts over it (in a group, closed at open), UniProt's processing and sites |
+| [9. PF00042 by view](?path=/story/seq-cases-viewer--case-9) | a lazy alignment loaded by view, in tiles |
+| [10. The Stories drafts](?path=/story/seq-cases-viewer--case-10) | snapshots, descriptions with command links |
+| [12. Designed dimer](?path=/story/seq-cases-viewer--case-12) | a complex of two designed units and a heme, by value, with conservation from homologs |
+| [13. p53 features, UniProt-style](?path=/story/seq-cases-viewer--case-13) | feature groups; split rows of variants, all or only the residues a variant has (`split.empty`) |
+| [14. A protein over its coding DNA](?path=/story/seq-cases-viewer--case-14) | a codon [map](?path=/docs/seq-docs-concepts--docs#coordinate-map-and-route): residues over their codons, exons, a domain and a phosphosite |
+| [15. Indels in protein designs](?path=/story/seq-cases-viewer--case-15) | designs as sequences with a gapped `pairwise` mapping onto the wild type and a `wt` numbering (inserts named 93A–93F), read three ways: a row per design in the wild type's numbering (substitutions on their cells, deletions as gaps, insertions as marks on their boundary: a small triangle pinned above the letters and a hairline between them, never over a letter), the designs aligned (insert columns lower case on a veiled cell, marked on the ruler), each design on its own axis with the wild type's features placed through its mapping; an insert placed through a mapping lands on its boundary, and an insert or a deletion selected or hovered lights a caret (a bar between two cells) on the other side |
+| [16. A plasmid map](?path=/story/seq-cases-viewer--case-16) | `b.preset.plasmidMap`: a cyclic plasmid as a ring (labels outside with leaders, arrowheads by strand, cut sites as ticks, repeats as chords) and its linear detail, the detail's view a window on the ring; rotating the origin, an SVG export |
+| [17. A genotype matrix](?path=/story/seq-cases-viewer--case-17) | a `matrix` of 2,000 samples × 300 sites, its states a keyed set: `order` and `filter` over a sample table, `density` from a pixel row of many samples to a cell each |
+| [18. Finding things in p53](?path=/story/seq-cases-viewer--case-18) | SeqQL queries run at load as `computed` nodes, the section's location sets (`highlights`) and bookmarks, the viewer's Search part in its bar or placed by the app |
+| [19. A chromosome by region](?path=/story/seq-cases-viewer--case-19) | chr17 of a streamed genome under the ideogram navigator (hg38's cytobands): letters, genes, variants and a values track streamed by region, snapshots from the whole chromosome to 50 letters (offline fixtures; Nightingale does not mount it: an element per position) |
+| [20. A protein on its genome](?path=/story/seq-cases-viewer--case-20) | a protein over three exons of a streamed chromosome through a `codon` mapping: the genome's tracks on its axis, its residues and domains on the exons, the hover label's codon (split by an intron at 500 and 900), and the transcript that codes it as an item coordinate system (`genes_src/T1`) |
+| [21. A gene on its reverse strand](?path=/story/seq-cases-viewer--case-21) | a gene as a piece of its region in its own direction (`range`, `direction: -1`, a complement letter map), its transcript as one item with arrowheads by strand, its protein through a minus-strand codon map, splice junctions as a sashimi plot (both strands), the mRNA as its own track (the exons only, `complement_rna`) |
+| [22. A family triaged](?path=/story/seq-cases-viewer--case-22) | Pfam's PF00042 seed: a guide tree computed at load (`nj`), key tables on its rows (review status, `row_stats`, `redundancy`) as data columns and the triage's `order` and `filter`, the vertical overview, a host's control per row (`RowControl`) |
+
+## Drawing
+
+- **Rows and lazy alignments.** An [alignment](?path=/docs/seq-docs-concepts--docs#alignment-rows-and-columns)'s rows in tree order, letters over cells, a tree with
+  collapsible clades, data columns; loaded region by region as the view moves when lazy. A tree is given (Newick)
+  or computed at load from the alignment by the `nj` or `upgma` node provider. An alignment can be
+  computed too (`realign`: sequences, units, rows or another alignment's rows through biomsa, each new row bound to its
+  input), and `codon_rows` pairs a protein alignment's rows with a cDNA alignment's by `codon` mappings.
+  [A tree beside the rows](?path=/story/seq-views-and-layouts-alignments--family-tree),
+  [Guide trees and realignment](?path=/story/seq-views-and-layouts-alignments--computed-trees),
+  [Large alignment, 10,000 × 300](?path=/story/seq-performance-large-documents--large-alignment),
+  [1,000 × 2,000](?path=/story/seq-performance-large-documents--wide-alignment), [case 9](?path=/story/seq-cases-viewer--case-9).
+- **Keyed sets: order and filter.** A `rows` layer's `order` takes `"tree"`, `"data"` or a key table's field
+  (`{data, field, direction}`, several in a list, lexicographic, ties in data order, missing values last) and its
+  `filter` keeps rows by a field's `values` or `min`/`max` (all must pass; `row_subset` first). A key table is a `rows`
+  annotation keyed by `row`, or by `state` or `node`; the kernel computes two: `row_stats` (identity to a reference row,
+  coverage, length, and the count and best score of an annotation's items on each row) and `redundancy` (greedy
+  clustering at an identity threshold: each row's `cluster` and whether it is a `representative`). A track template's
+  `for_each` takes the same `order` and `filter` over a table keyed by node, and a `matrix` over one keyed by state.
+  The tree is drawn only while the order is the tree's. [Order and filter rows](?path=/story/seq-views-and-layouts-alignments--on-alignment).
+- **The vertical overview.** The rows' vertical navigation: a scrollbar, a map of the rows, both,
+  or none, with optional zoom handles.
+  [Vertical navigation](?path=/story/seq-views-and-layouts-alignments--family-vertical).
+- **Row controls.** A host's control per row through the `RowControl` slot.
+  [Row controls](?path=/story/seq-views-and-layouts-alignments--row-controls).
+- **Coverage in levels.** A `ranges` layer with `display: "union"` draws its items in one lane, their union; a track
+  with `summary: true` shows under its group's header only while the group is collapsed. With `split`, a coverage
+  nests: all, then each structure, then each chain, every level collapsed to the union of what it holds.
+  [p53: sequence and structure](?path=/story/seq-cases-mol--p-53).
+- **Per-row marks.** A split track whose rows each sit on a unit of their own (a structure's chains, drawn on a
+  reference's axis) marks per row: a highlight, selection or hover on one unit lights its row alone, one on the shared
+  sequence every row, and a position hovered on a row is that unit's residue.
+  [Per-row marks](?path=/story/seq-interaction-hover--row-marks).
+- **Hits by drawn geometry.** A dot larger than its column, a boundary's glyph (an end boundary's from the gap past
+  its block too, where nothing else hovers), a pair end or a wide arc hovers where it is drawn (the nearest where
+  shapes overlap), a band thinner than its lane only on the band; the tooltip lists
+  the fields the layer's color and size themes read ("score 100").
+  [Size themes](?path=/story/seq-themes-size-themes--by-scale).
+- **Density.** When items are thinner than a pixel, ranges, points and variants draw their count per
+  pixel column, stacked by color or the majority color; alignments draw reduced tiles (each pixel
+  the most common residue class); values a min–max band and the mean.
+  [Genome-scale, 3M nucleotides](?path=/story/seq-performance-large-documents--genome-scale),
+  [35,000 residues](?path=/story/seq-performance-large-documents--long-sequence).
+- **Values colored by their values.** Bars, a line or an area in the layer's color theme at each value (a column's
+  mean zoomed out); a line changes color halfway between two positions, so a pLDDT line reads in its bands; with
+  no theme, one color. [Case 8](?path=/story/seq-cases-viewer--case-8).
+- **Logo.** Stacked letters by bits or probability. [Case 3](?path=/story/seq-cases-viewer--case-3).
+- **Pairs.** Arcs within and between blocks, ends with glyphs, all or on hover.
+  [Case 4](?path=/story/seq-cases-viewer--case-4), [case 7](?path=/story/seq-cases-viewer--case-7).
+- **Matrix.** Positions × states as tiled images, a band per state. Thousands of states (a genotype matrix's samples)
+  thinner than a device pixel draw a row per device pixel, by the layer's `density`: the plurality of its states'
+  colors, faded by the share of its states without a color (`majority`), or its strongest value (`maximum`). Its
+  height follows the row zoom (Alt and the wheel).
+  A matrix's `order` and `filter` take a key table keyed by `state`, as a `rows` layer's do.
+  [A genotype matrix](?path=/story/seq-cases-viewer--case-17).
+  [Case 7](?path=/story/seq-cases-viewer--case-7).
+- **Dot plots.** Positions against positions on one section's axis (`dot_plot`): x across as every track's, and the
+  same window down the track, so zooming and panning the tracks moves both. A `grid` (a value per pair of positions,
+  AlphaFold DB's predicted aligned error read by `molstar:pae`) as cells in a color theme, the mean of the cells a device
+  pixel holds when zoomed out; `pairs` as segments, a dot for one position each. A hover on a cell lights both
+  positions (a 3D view both residues) with a crosshair; a drag selects a rectangle as two ranges. Square by default
+  (`aspect_ratio`, its height from the data area's width, at most what a box shows).
+  [Case 8](?path=/story/seq-cases-viewer--case-8), [calmodulin against itself](?path=/story/seq-views-and-layouts-dot-plots--self-comparison).
+- **The fingerprint.** The interactions extension's renderer, a registry entry like the built-ins.
+  [Case 6](?path=/story/seq-cases-viewer--case-6).
+- **The glyph atlas.** Letters drawn from an atlas of rasterized cells; frame times with it on and
+  off, and the pixels compared. [Glyph atlas](?path=/story/seq-performance-large-documents--glyph-atlas).
+- **`style` and render props.** A section's [`style`](?path=/docs/seq-docs-concepts--docs#theme-preset-and-style) as a preset name,
+  or an inline preset overriding a few of its render props (row height, header width, …).
+  [Column heads](?path=/story/seq-views-and-layouts-section-style--column-heads),
+  [data floor](?path=/story/seq-views-and-layouts-section-style--data-floor), [an invalid key](?path=/story/seq-views-and-layouts-section-style--invalid-key).
+- **[Pieces](?path=/docs/seq-docs-concepts--docs#piece) and direction.** A block shows a `range` of its coordinate system in a `direction`;
+  a reversed piece is a layout map, never new data. [Direction of a piece](?path=/story/seq-views-and-layouts-axes-and-strands--direction).
+- **[Cyclic systems](?path=/docs/seq-docs-concepts--docs#cyclic-systems).** A `cyclic` sequence; ranges across its
+  origin (`start > stop`), a block's `origin`, a focus on the shortest arc, lanes packed by arc. [A plasmid, linear](?path=/story/seq-views-and-layouts-axes-and-strands--linear).
+- **Rings.** A section with the `circular` style draws its tracks as rings, the axis clockwise from the top: every
+  track as it draws linearly, mapped onto the circle; hits by radius and angle. The ruler's numbers sit outside the
+  ring with minor ticks between them; selections and highlights are sectors over every ring, the hover a radial line
+  or the hovered item's sector; the keyboard cursor goes round; `renderSvg` exports the ring. A type that draws
+  images (a matrix, dense rows) is drawn as bars there, with a `svs.render.fallback` warning.
+  [A plasmid, ring](?path=/story/seq-views-and-layouts-axes-and-strands--ring).
+- **Circular maps.** On rings, the labels of a `ranges` layer with `labels` sit outside the ring past the ruler's
+  numbers, each with a leader that leaves the ring on its item's angle and fans out to it (sorted by angle, a line
+  apart per side; those a side cannot hold are hidden, the layer's order then the longer item kept first, and the
+  section says so once, `seqv.render.labels`). A `direction_field` (`+`/`-`, `1`/`-1`, `forward`/`reverse`) draws
+  an arrowhead at each item's end, on rings and linearly. `pairs` are chords through the hub. Hovering or clicking a
+  label hovers or selects its item. The presets `b.preset.plasmidMap` (its cut sites as ticks on the features'
+  ring) and `b.preset.circularGenome` write a ring and a linear section following it.
+  [A plasmid map](?path=/story/seq-cases-viewer--case-16),
+  [A circular genome](?path=/story/seq-views-and-layouts-axes-and-strands--circular-genome).
+- **The ring's window.** A ring linked by `follow` to a linear section shows that section's view as a window: a
+  sector over the rings with a grip at each end on the rim. It follows the linear view; dragging it pans the linear
+  section, dragging a grip zooms it with the other end held, within the section's zoom limits and its content; across
+  a cyclic origin it wraps. A ring never pans or zooms itself: its `+` and `-` zoom the linear section about the
+  window's center, and it leads its followers only through the window.
+  [A plasmid map](?path=/story/seq-cases-viewer--case-16).
+- **Letter maps.** A layer's table from the stored letter to the one shown (`letter_map`: a name such as `complement`,
+  or single letters mapped); the data keeps its letters. A strand flip is a reversed piece plus the `complement` map
+  (`b.preset.reverseComplement`), an mRNA is `{ T: U }`, and `b.preset.exonsOnly` collapses a gene to its exons.
+  [Letter maps](?path=/story/seq-views-and-layouts-axes-and-strands--maps).
+- **Color schemes.** Sixteen named schemes (Clustal X, Zappo, Taylor, hydrophobicity, percent identity,
+  three for nucleotides, Viridis, Cividis, Magma, Blues, Red–blue, Category 10, Okabe–Ito, Tableau 10),
+  each fitting letters of its alphabets, values or categories, with a dark variant and a colorblind-safe
+  flag; picked in the document (`{"theme": "scheme"}`), in the builder (`b.colors`), at runtime (a
+  legend group's title, a track's Colors ▸) or by the `seqv:colorScheme` command; and a document's or a
+  host's own. The legend lists only tracks with something to say, identical legends merged.
+  [Color schemes](?path=/docs/seq-docs-color-schemes--docs), [gallery](?path=/story/seq-themes-color-schemes--gallery),
+  [live picker](?path=/story/seq-themes-color-schemes--picker), [your own palette](?path=/story/seq-themes-color-schemes--custom-palette),
+  [many tracks](?path=/story/seq-themes-color-schemes--many-tracks).
+- **Hover emphasis.** The element under the pointer, and only it, is outlined inside its own pixels in an ink derived
+  from its color: darker on a light skin, lighter on a dark one, 3:1 against the surface (a range's every part, a site,
+  a variant, a strand, a score bar, a matrix cell, a fingerprint's stripe, never over letters; the keyboard cursor's item
+  too). Off per section with `"style": {"hover_emphasis": false}`; an extension's renderer gets it in one call
+  (`outlineItem`, `ringItem`). [Hover emphasis](?path=/story/seq-interaction-hover--emphasis), [off](?path=/story/seq-interaction-hover--off).
+- **Header hover.** The `headerHover` behavior of the viewer spec: a feature track's header lights the items it shows
+  (a split row's header that row's, a group's header its tracks'), a continuous track's (letters, values) its row band
+  alone, and past `maxItems` the row band alone; linked views get the set, sized first (`hover.size()`) so a 3D link
+  can summarize a large one as whole chains (`linkViews`' options). The p53 demo composes both: a lower `maxItems` in
+  its viewer spec, its link's own limit. [The Mol\* demo](?path=/story/seq-cases-mol--p-53).
+- **Row band.** The `hoverRow` behavior: a hover anywhere on a track's data lights its row at half a header hover's
+  strength (a matrix its hovered band, the ruler and a dot plot none), a drawing only, so a 3D link never reads it as the header's hover.
+  Rows have no borders unless a document sets `"style": {"row_borders": true}` (a host: `rowBorders`, `renderSvg`'s `render` too).
+
+## Interaction
+
+- **Selecting text.** A text view selects as an editor does: a click selects a residue (again, clears it; a double
+  click is a click); a drag selects positions line by line to the nearest one under the pointer, outside the canvas
+  too, scrolling a box past its edges; a click on an underline selects its item. In every section
+  Shift with a click or a drag extends a range of positions or columns (made in any view) keeping its far end, and
+  adds or removes an item (with `shiftPositions: "toggle"` it adds or removes positions too, a drag removing when
+  pressed on a selected one); Ctrl/⌘ adds or removes; where a double click zooms, a click selects once the double-click time has passed, so a
+  double click never selects. The text sits inset from the canvas's edges, in the `wrapped` or the `compact` preset.
+  [p53: text and tracks](?path=/story/seq-cases-viewer--case-1) (its Text choice switches the preset).
+- **Follow.** A section follows another's window through a coordinate map, a codon step's third
+  included. [Following sections](?path=/story/seq-views-and-layouts-axes-and-strands--follow).
+- **Patches, snapshots, undo.** Filter view, hide and remove, each a patch (a small change to the
+  document, addressed by refs); snapshots as patches over one document, and their player. [Filter view, hide and remove](?path=/story/seq-interaction-patches-and-snapshots--viewer-patches),
+  [the same through SeqViewer](?path=/story/seq-interaction-patches-and-snapshots--seq-viewer-patches).
+- **The default UIs.** The same parts and skin in React and as `<seq-viewer>`; a host's markdown
+  with command links through `@molstar/seq-core/links`. Every piece of chrome (tabs, a section's switches,
+  the legend, export, issues, the player, search) is a component a host places itself, beside the viewer
+  or in its own toolbar; `chrome: "full"` and `"clean"` are the viewer's own compositions of them. The
+  look is canvas chrome: glass strips and menus over the canvas, an accent wash for the picked item,
+  following the canvas's light or dark.
+  [React UI](?path=/story/seq-cases-default-uis--case-10),
+  [the chrome placed by the host](?path=/story/seq-cases-default-uis--composed),
+  [DOM UI, description links](?path=/story/seq-cases-default-uis--description-links),
+  [the DOM's](?path=/story/seq-cases-default-uis--dom-composed).
+- **Search.** A library of matchers (exact, degenerate, regular expression, Myers' approximate) that an application
+  composes; here into a box that lights and steps through hits.
+  [App-composed search](?path=/story/seq-query-and-search-search--app-composed-search). The viewer's own `Search` part appears
+  when the UI spec gives `search(text, signal)`: its answer goes to `ctx.results`, lit, stepped with Enter and
+  Shift+Enter, and saved as a location set; a regular-expression motif such as `[KR]{2}.{10,12}[KR]{3,}` (p53's bipartite
+  nuclear localization signal) searches the letters. [Finding things in p53](?path=/story/seq-cases-viewer--case-18).
+- **Location sets and bookmarks.** A section's `highlights` show annotations (a SeqQL query node
+  among them) persistently, each entry a highlight channel: a band behind the tracks, or the
+  overlay's highlight or accent; Nightingale lights them as its `highlight`. Bookmarks are an inline
+  ranges set the `bookmark.add`, `bookmark.remove` and `bookmark.step` actions edit and step through. [Location sets and bookmarks](?path=/story/seq-query-and-search-search--location-sets),
+  [finding things in p53](?path=/story/seq-cases-viewer--case-18).
+- **The hover card.** Items with a host's actions (`UI.ItemActions`) get an interactive card after a short rest: the
+  hover's label and a button per action; it stays while the pointer crosses into it, and closes on leaving, Escape,
+  a press outside, a pan or a zoom. The tooltip keeps its rule (it never takes the pointer). From the keyboard, the
+  track menu (Shift+F10) lists the cursor's item's actions first. A host's track menu items can carry a check mark
+  (`checked`).
+- **Structures (Mol\*).** `@molstar/seq-molstar-poc` (a proof of concept) reads structures headless, maps their chains onto
+  UniProt by SIFTS, and links a Mol\* canvas: hover and selection both ways, "Show in 3D" from the hover card and the
+  track menu, and the structure colored by any track as drawn (MVS color tables).
+  [p53: sequence and structure](?path=/story/seq-cases-mol--p-53).
+- **The query language.** SeqQL's reader, binder, checker and printer (`(search "[KR]{2}.{10,12}[KR]{3,}" :in p53 :regex true)` finds a motif by regular expression): an S-expression box with the canonical
+  print, the JSON and how each short name bound; and its runtime, a gallery of queries run on the cases.
+  [Read, bind, check, print](?path=/story/seq-query-and-search-seqql--read-bind-print),
+  [runtime gallery](?path=/story/seq-query-and-search-seqql--gallery).
+
+## Output and other viewers
+
+- **Export.** `view.exportSvg`, the Export part's action: SVG and PNG from a live viewer; headless,
+  `renderSvg` and the CLI, `node lib/seqstar/viewer/src/cli/seqv-render.ts doc.svsj --png -o figure.png`.
+  [SVG and PNG export](?path=/story/seq-cases-default-uis--svg-and-png).
+- **Nightingale.** Every case materialized as EBI's Nightingale components, with what it cannot draw
+  listed. [Nightingale, case 1](?path=/story/seq-cases-nightingale--case-1),
+  [side by side with our viewer](?path=/story/seq-cases-default-uis--side-by-side-nightingale).
+
+## Data
+
+- **File formats.** Each family of formats and services loading, in the `File formats` folder: the nodes that load
+  it, the data as given, the viewer and what loading reported.
+  [FASTA and residues](?path=/story/seq-file-formats--sequences),
+  [aligned FASTA, A3M, Stockholm, Clustal and Newick](?path=/story/seq-file-formats--alignments),
+  [TSV, CSV and JSON tables](?path=/story/seq-file-formats--tables) (`fields`, `ins_code`),
+  [mmCIF and BinaryCIF](?path=/story/seq-file-formats--structures) (CIF categories as tables),
+  [UniProt](?path=/story/seq-file-formats--uni-prot) and [PDBe and AlphaFold DB](?path=/story/seq-file-formats--pdbe-afdb)
+  (recorded, or live from the public APIs),
+  [2bit, BigWig, BigBed and tabix VCF](?path=/story/seq-file-formats--genome-files) streamed by byte ranges,
+  [the tiles protocol](?path=/story/seq-file-formats--tiles), and
+  [`.svsj`, `.svsm` and `.svsx`](?path=/story/seq-file-formats--documents).
+- **Streaming.** Data too large to load whole comes by region from a stream provider (the
+  [Streaming](?path=/docs/seq-docs-streaming--docs) page explains it, with a live provider): a
+  manifest first (what the source holds), then requests for the view and a margin around it,
+  coarse before fine, with a byte-bounded cache that keeps what is in view; its check is a bench, not a story: GRCh38's 24 chromosomes
+  as a streamed axis (`viewer/_test/canvas/hg38.test.ts`). The `seqstar-tiles/1` client is a stream
+  provider: [case 9](?path=/story/seq-cases-viewer--case-9) loads through it. Streamed letters: a chromosome's sequence by region, as cells and letters once zoomed in
+  ([Streamed data](?path=/story/seq-streaming-streamed-data--letters)); streamed genes and variants as items
+  region by region or as density from counts, with placeholder bands while regions load.
+  Progressive loading: skeletons that shimmer, error bands with Retry, a fade as regions arrive, "loading…"
+  on hover; streamed items hovered and colored by a field's palette. The genome browser demo: hg38 read live
+  from 2bit, BigWig, BigBed and tabix VCF files ([the demo](?path=/story/seq-cases-genome-browser--live)), zoomed out from the
+  files' zoom levels and indexes only, the zoom gate's hints and "click to load" (what is in view), genes folded
+  into a lane a gene where their lanes would not fit (`collapse`; "Expand rows" shows every transcript). The
+  [ideogram navigator](?path=/story/seq-views-and-layouts-navigators--karyotype): each chromosome as its cytobands (named data,
+  hg38's committed), the view's window over it.
+  [Prefetch](?path=/story/seq-streaming-prefetch--ahead): regions asked ahead of a pan or zoom and for the next snapshots'
+  focus, the request log beside the view. [A protein on its genome](?path=/story/seq-streaming-streamed-data--through-a-path):
+  a genome's streamed genes, variants and scores on a protein's axis through its codon mapping, and a hovered residue's
+  codon in its label (its bases from the streamed letters, both parts of one an intron splits, its positions and strand).
+  [A protein on its streamed transcript](?path=/story/seq-streaming-streamed-data--on-its-transcript): a streamed
+  item with a `map` becomes a coordinate system of its own (`genes_src/T1`); a protein mapped onto it shows its
+  domains along the transcript's exons, and a section of the transcript's residues shows the genome's data.
+- **Dynamic nodes.** A streamed source's manifest and patches add data nodes to the set, never to
+  the document: checked as document nodes, held by (source, key), and evicted with the
+  regions that brought them once nothing shows them; a track naming one appears when it arrives.
+  [Dynamic nodes: manifest, patch and eviction](?path=/story/seq-streaming-streamed-data--first-part); how they work in
+  [Streaming](?path=/docs/seq-docs-streaming--docs).
+- **Nested sources and track templates.** A manifest or patch may add streamed sources of its own,
+  asked for only when needed and never past `max_depth`; a track with `for_each` shows one track per
+  dynamic node it selects (by kind, source and depth), at its place in key order, and an arrival
+  reruns only its template and the view.
+  [Dynamic nodes: templates and nested sources](?path=/story/seq-streaming-streamed-data--second-part).
+- **At scale.** [Genome-scale, 3M nucleotides](?path=/story/seq-performance-large-documents--genome-scale) (a load under 1.5 s, a frame under
+  16 ms).
+
+## Planned, not built
+
+- **Dot plots across sections, synteny and Hi-C:** a plot's y from another section's axis (two sequences or assemblies,
+  each zoomed on its own), ribbons between stacked sections, streamed contact matrices drawn as a 45° triangle.
+
+- **More circular views:** rotated text (letters along the ring), and hits on chords (their ends hit today).
+- **A genome's letters on a protein's block:** streamed items and values are placed through a path, and the hover
+  label shows a residue's codon; a codon text track (three bases in a residue's cell, where they fit) is not built.

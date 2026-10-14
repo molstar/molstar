@@ -1,0 +1,6 @@
+{
+  // Imports Mol* through @molstar/seq-molstar-poc (TypeScript source): its checker flags (tsconfig.molstar.json).
+  "extends": "../../../tsconfig.molstar.json",
+  "compilerOptions": { "types": ["node", "webxr", "vite/client"] },
+  "include": ["src", "_test", "vite.ts"]
+}

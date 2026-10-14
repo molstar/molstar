@@ -1,0 +1,6 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // Typed arrays everywhere: their index reads are numbers, as in Mol*, not number | undefined. DOM for mount.ts.
+  "compilerOptions": { "noUncheckedIndexedAccess": false, "types": ["node"], "lib": ["ES2023", "DOM", "DOM.Iterable"] },
+  "include": ["src", "_test", "bench"]
+}

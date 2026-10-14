@@ -1,0 +1,137 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { QueryCounts, QueryErrors, QueryExamples, QueryReference, QuerySkill } from "./live";
+
+<Meta title="Seq*/Docs/Query language" />
+
+# The query language: SeqQL
+
+SeqQL selects [positions](?path=/docs/seq-docs-concepts--docs#position-and-index-label-and-numbering) and annotation
+[items](?path=/docs/seq-docs-concepts--docs#annotation-and-item) in the data a document loads: "the kinase domains", "chain A's
+residues 10 to 20, on the alignment", "residues of barnase in contact with barstar". It is MolQL's
+design applied to sequences. A query is built from base symbols: **generators** make a selection
+from the data (`items`, `values`), **modifiers** turn one selection into another (`onto`, `expand`),
+**filters** keep some of its groups (`pick`), **combinators** join selections (`and`, `or`), and
+**properties** are what a test reads (`label`, `length`). The result is a **sequence selection**:
+groups of runs in [coordinate systems](?path=/docs/seq-docs-concepts--docs#coordinate-system), which converts to the model's
+[loci](?path=/docs/seq-docs-concepts--docs#loci-and-mol), so the viewer's [selection and highlights](?path=/docs/seq-docs-concepts--docs#selection-highlight-and-focus)
+take it as they take any other.
+
+## The split
+
+As Mol\* has `mol-script` and `mol-model/structure/query`, SeqQL has two halves:
+
+- **The language**, `@molstar/seq-core/query`, a leaf that imports nothing: types, the symbol table, the
+  registry (`createLanguage`), the reader, binder, checker and canonical printer, `sel`, the
+  builder `Q`, and the generated reference and skill (`referenceText`, `skillText`).
+- **The runtime**, `@molstar/seq-core/model/query`: the sequence selection, its kernels, `compileQuery`, and
+  the symbols' runtimes. Every base symbol runs: the selection with `toLoci`, `toExtents` and `summary`, refs and the
+  generators, `and`, `or`, `not`, `range` and `slice`; `expand`, `onto` (across alignment rows
+  and columns, row bindings, codons and mapping paths, by overlap), `group`, `each` with `current`,
+  `partners`, `pick`, `first`, `ids` and the item's properties; the position, sequence and
+  group properties, `positions`, `letters` and `search` (each matcher of `@molstar/seq-core/algorithms/search`,
+  with an app's letter-class tables, or `:regex true` with the pattern quoted: `(search "N[^P][ST]" :regex true)`), and an empty result's diagnosis.
+  The [runtime gallery](?path=/story/seq-query-and-search-seqql--gallery) runs them on the cases, steps through a result's groups, and its "Show me"
+  switches to the view that holds the result (the viewer's `showExtents`).
+
+**Scans read their context.** `letters`, `positions` and `search` with no `:in` of their own, as a
+direct operand of `and`, read only what the `and` has so far: `(and 1brs/A (letters C))` reads one
+chain, not the set (and a molecule with no unit, which `(all)` leaves out, when the `and` names it).
+
+**An empty result says why.** When a query selects nothing, the first part of it that gave nothing
+from something is named in a note with what it knows (`seqql.empty`): `(values :of cons :above 1) selected
+nothing: cons runs 0.545 to 1` (case 3); `none of 43 items passed :where; (category) was missing 43 times`;
+`no pair of contacts touches it`. A part whose own warning already says why (an unknown label, an
+unmapped `onto`) is left to that warning.
+
+## How it is written
+
+An S-expression with short names, the surface for people, the agent, command links and tests. A
+list is `(head arg…)`: positionals in signature order, then `:keyword value` pairs. Refs (the names of
+a document's nodes, as `domains`, or derived ones, as chain `1brs/A`) are words, so `1brs/A` and
+`ctx.site.hinge` need no quotes; `(input selection)` is a selection the host passes in. Comments run from `;` to the end of the line.
+
+```lisp
+(sel "1brs/A[10-20]")                                       ; chain A residues 10-20 (labels)
+(sel "p53@0:50")                                            ; indices 0 to 49, as a tool returned them
+(pick (items :of domains) :where (matches (label) kinase))  ; all kinase domains
+(values :of cons :above 0.8)                                ; positions where conservation > 0.8
+(onto (input selection) msa)                                ; the alignment columns of these residues
+(and 1brs/A (partners 1brs/D :via contacts))                ; residues of A in contact with D
+```
+
+**Two names per symbol.** The full name (`seq.item.label`) is in the table, the JSON and the
+builder; the short name (`label`) is what people and the agent write, and a full name is always
+accepted. The binder resolves a short name by its operands' kind (`and`, `or`, `not` over
+selections are the combinators, over tests the logic) and, for a property, by its **slot**, the kind of thing a
+`:where` test is applied to (a position, a coordinate system, an item or a group), looked up
+from the innermost `:where` outward. The base table has <QueryCounts />.
+
+**[Labels against indices](?path=/docs/seq-docs-concepts--docs#position-and-index-label-and-numbering).** A label is what a person and a ruler say, inclusive, in a numbering:
+`(range 1brs/A 10-20)`, `[10-20]`. An index is what a tool returned, 0-based and half-open:
+`(slice p53 0 50)`, `@0:50`. There is no third form.
+
+**`sel`** is a shorthand for refs with ranges, usable anywhere a selection is: labels in brackets,
+item ids after `#`, index slices after `@`, a comma for a union, `$name` for an input. It is a macro:
+it expands for checking and compiling (`R[10-20]` to `(range R 10-20)`), and the JSON keeps it as
+written, normalized.
+
+**Stored form.** Documents store the JSON with full names and the canonical text beside it,
+`{ seqql: "1.0", expr, text }`. Printing a bound query gives the canonical text back: short names
+where they resolve to the same symbol, keywords in signature order, defaults left out, one line
+when it fits in 80 columns. The examples above, read, bound, checked and printed live, and the first
+one's JSON:
+
+<QueryExamples
+  json
+  texts={[
+    '(pick (items :of domains) :where (matches (label) kinase))',
+    '(sel "1brs/A[10-20]")',
+    '(sel "p53@0:50")',
+    '(values :of cons :above 0.8)',
+    '(onto (input selection) msa)',
+    '(and 1brs/A (partners 1brs/D :via contacts))',
+  ]}
+/>
+
+In code, the builder `Q` (from `@molstar/seq-core/query`) writes the same JSON, one function per full symbol name
+(`Q.seq.filter.pick`, `Q.seq.generator.items`), and `Q.query(expr)` gives the stored form. The
+[`Query language` story](?path=/story/seq-query-and-search-seqql--read-bind-print) shows the JSON each query becomes.
+
+## Errors
+
+Every issue has a code, a JSON path into the expression, a 1-based line and column, and a message
+that says what to write instead; binder errors add the symbol's signature, and an unknown name the
+nearest names in scope. The checker adds types, slots and arity. Rendered as a person or the agent sees them, live:
+
+<QueryErrors
+  texts={[
+    '(item :of domains)',
+    '(range 1brs/A[10-20])',
+    '(and 1brs/A (> (length) 3))',
+    '(pick (items :of domains :where (> (length) 30))',
+    '(slice p53 9)',
+    '(sel "1brs/A[10-20")',
+  ]}
+/>
+
+The [`Query language` story](?path=/story/seq-query-and-search-seqql--read-bind-print) has a box to try
+queries, with the canonical print, the JSON, `sel`'s expansion and how each short name was bound;
+[Skill and reference](?path=/story/seq-query-and-search-seqql--skill) shows the skill for a host with inputs.
+
+## The reference
+
+Generated from the symbol table, so it never drifts: per symbol, its short and full names, the
+signature with argument types and defaults, the result, the slot it reads, its description, its
+examples and its error hints. Rendered live from `referenceText(createLanguage().language)`:
+
+<QueryReference />
+
+## The agent's skill
+
+The skill is generated too, not hand-written: fixed guidance (how the S-expression reads, refs,
+short names and slots, labels against indices, `sel`, errors) and the compact table, one line per
+symbol, then the examples marked for it. A host with extensions gets a skill that says exactly what
+its checker accepts. Below, `skillText(createLanguage().language)` as generated live, with no
+host options (a host adds its refs line and its inputs):
+
+<QuerySkill />

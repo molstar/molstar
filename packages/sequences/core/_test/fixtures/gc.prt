@@ -1,0 +1,358 @@
+--**************************************************************************
+--  This is the NCBI genetic code table
+--  Initial base data set from Andrzej Elzanowski while at PIR International
+--  Addition of Eubacterial and Alternative Yeast by J.Ostell at NCBI
+--  Base 1-3 of each codon have been added as comments to facilitate
+--    readability at the suggestion of Peter Rice, EMBL
+--  Later additions by Taxonomy Group staff at NCBI
+--
+--  Version 4.6
+--     Renamed genetic code 24 to Rhabdopleuridae Mitochondrial
+--
+--  Version 4.5
+--     Added Cephalodiscidae mitochondrial genetic code 33
+--
+--  Version 4.4
+--     Added GTG as start codon for genetic code 3
+--     Added Balanophoraceae plastid genetic code 32
+--
+--  Version 4.3
+--     Change to CTG -> Leu in genetic codes 27, 28, 29, 30
+--
+--  Version 4.2
+--     Added Karyorelict nuclear genetic code 27
+--     Added Condylostoma nuclear genetic code 28
+--     Added Mesodinium nuclear genetic code 29
+--     Added Peritrich nuclear genetic code 30
+--     Added Blastocrithidia nuclear genetic code 31
+--
+--  Version 4.1
+--     Added Pachysolen tannophilus nuclear genetic code 26
+--
+--  Version 4.0
+--     Updated version to reflect numerous undocumented changes:
+--     Corrected start codons for genetic code 25
+--     Name of new genetic code is Candidate Division SR1 and Gracilibacteria
+--     Added candidate division SR1 nuclear genetic code 25
+--     Added GTG as start codon for genetic code 24
+--     Corrected Pterobranchia Mitochondrial genetic code (24)
+--     Added genetic code 24, Pterobranchia Mitochondrial
+--     Genetic code 11 is now Bacterial, Archaeal and Plant Plastid
+--     Fixed capitalization of mitochondrial in codes 22 and 23
+--     Added GTG, ATA, and TTG as alternative start codons to code 13
+--
+--  Version 3.9
+--     Code 14 differs from code 9 only by translating UAA to Tyr rather than
+--     STOP.  A recent study (Telford et al, 2000) has found no evidence that
+--     the codon UAA codes for Tyr in the flatworms, but other opinions exist.
+--     There are very few GenBank records that are translated with code 14,
+--     but a test translation shows that retranslating these records with code
+--     9 can cause premature terminations.  Therefore, GenBank will maintain
+--     code 14 until further information becomes available.
+--
+--  Version 3.8
+--     Added GTG start to Echinoderm mitochondrial code, code 9
+--
+--  Version 3.7
+--     Added code 23 Thraustochytrium mitochondrial code
+--        formerly OGMP code 93
+--        submitted by Gertraude Berger, Ph.D.
+--
+--  Version 3.6
+--     Added code 22 TAG-Leu, TCA-stop
+--        found in mitochondrial DNA of Scenedesmus obliquus
+--        submitted by Gertraude Berger, Ph.D.
+--        Organelle Genome Megasequencing Program, Univ Montreal
+--
+--  Version 3.5
+--     Added code 21, Trematode Mitochondrial
+--       (as deduced from: Garey & Wolstenholme,1989; Ohama et al, 1990)
+--     Added code 16, Chlorophycean Mitochondrial
+--       (TAG can translated to Leucine instaed to STOP in chlorophyceans
+--        and fungi)
+--
+--  Version 3.4
+--     Added CTG,TTG as allowed alternate start codons in Standard code.
+--        Prats et al. 1989, Hann et al. 1992
+--
+--  Version 3.3 - 10/13/95
+--     Added alternate intiation codon ATC to code 5
+--        based on complete mitochondrial genome of honeybee
+--        Crozier and Crozier (1993)
+--
+--  Version 3.2 - 6/24/95
+--  Code       Comments
+--   10        Alternative Ciliate Macronuclear renamed to Euplotid Macro...
+--   15        Blepharisma Macro.. code added
+--    5        Invertebrate Mito.. GTG allowed as alternate initiator
+--   11        Eubacterial renamed to Bacterial as most alternate starts
+--               have been found in Archea
+--
+--
+--  Version 3.1 - 1995
+--  Updated as per Andrzej Elzanowski at NCBI
+--     Complete documentation in NCBI toolkit documentation
+--  Note: 2 genetic codes have been deleted
+--
+--   Old id   Use id     - Notes
+--
+--   id 7      id 4      - Kinetoplast code now merged in code id 4
+--   id 8      id 1      - all plant chloroplast differences due to RNA edit
+--
+--
+--*************************************************************************
+
+Genetic-code-table ::= {
+ {
+  name "Standard" ,
+  name "SGC0" ,
+  id 1 ,
+  ncbieaa  "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "---M------**--*----M---------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ },
+ {
+  name "Vertebrate Mitochondrial" ,
+  name "SGC1" ,
+  id 2 ,
+  ncbieaa  "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSS**VVVVAAAADDEEGGGG",
+  sncbieaa "----------**--------------------MMMM----------**---M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ },
+ {
+  name "Yeast Mitochondrial" ,
+  name "SGC2" ,
+  id 3 ,
+  ncbieaa  "FFLLSSSSYY**CCWWTTTTPPPPHHQQRRRRIIMMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "----------**----------------------MM---------------M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ },
+ {
+    name "Mold Mitochondrial; Protozoan Mitochondrial; Coelenterate
+ Mitochondrial; Mycoplasma; Spiroplasma" ,
+  name "SGC3" ,
+  id 4 ,
+  ncbieaa  "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "--MM------**-------M------------MMMM---------------M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ },
+ {
+  name "Invertebrate Mitochondrial" ,
+  name "SGC4" ,
+  id 5 ,
+  ncbieaa  "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSSSSVVVVAAAADDEEGGGG",
+  sncbieaa "---M------**--------------------MMMM---------------M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ },
+ {
+  name "Ciliate Nuclear; Dasycladacean Nuclear; Hexamita Nuclear" ,
+  name "SGC5" ,
+  id 6 ,
+  ncbieaa  "FFLLSSSSYYQQCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "--------------*--------------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ },
+ {
+  name "Echinoderm Mitochondrial; Flatworm Mitochondrial" ,
+  name "SGC8" ,
+  id 9 ,
+  ncbieaa  "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNNKSSSSVVVVAAAADDEEGGGG",
+  sncbieaa "----------**-----------------------M---------------M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ },
+ {
+  name "Euplotid Nuclear" ,
+  name "SGC9" ,
+  id 10 ,
+  ncbieaa  "FFLLSSSSYY**CCCWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "----------**-----------------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ },
+ {
+  name "Bacterial, Archaeal and Plant Plastid" ,
+  id 11 ,
+  ncbieaa  "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "---M------**--*----M------------MMMM---------------M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ },
+ {
+  name "Alternative Yeast Nuclear" ,
+  id 12 ,
+  ncbieaa  "FFLLSSSSYY**CC*WLLLSPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "----------**--*----M---------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ },
+ {
+  name "Ascidian Mitochondrial" ,
+  id 13 ,
+  ncbieaa  "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSSGGVVVVAAAADDEEGGGG",
+  sncbieaa "---M------**----------------------MM---------------M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ },
+ {
+  name "Alternative Flatworm Mitochondrial" ,
+  id 14 ,
+  ncbieaa  "FFLLSSSSYYY*CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNNKSSSSVVVVAAAADDEEGGGG",
+  sncbieaa "-----------*-----------------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Blepharisma Macronuclear" ,
+  id 15 ,
+  ncbieaa  "FFLLSSSSYY*QCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "----------*---*--------------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Chlorophycean Mitochondrial" ,
+  id 16 ,
+  ncbieaa  "FFLLSSSSYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "----------*---*--------------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Trematode Mitochondrial" ,
+  id 21 ,
+  ncbieaa  "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNNKSSSSVVVVAAAADDEEGGGG",
+  sncbieaa "----------**-----------------------M---------------M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Scenedesmus obliquus Mitochondrial" ,
+  id 22 ,
+  ncbieaa  "FFLLSS*SYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "------*---*---*--------------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Thraustochytrium Mitochondrial" ,
+  id 23 ,
+  ncbieaa  "FF*LSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "--*-------**--*-----------------M--M---------------M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Rhabdopleuridae Mitochondrial" ,
+  id 24 ,
+  ncbieaa  "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSSKVVVVAAAADDEEGGGG",
+  sncbieaa "---M------**-------M---------------M---------------M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Candidate Division SR1 and Gracilibacteria" ,
+  id 25 ,
+  ncbieaa  "FFLLSSSSYY**CCGWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "---M------**-----------------------M---------------M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Pachysolen tannophilus Nuclear" ,
+  id 26 ,
+  ncbieaa  "FFLLSSSSYY**CC*WLLLAPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "----------**--*----M---------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Karyorelict Nuclear" ,
+  id 27 ,
+  ncbieaa  "FFLLSSSSYYQQCCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "--------------*--------------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Condylostoma Nuclear" ,
+  id 28 ,
+  ncbieaa  "FFLLSSSSYYQQCCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "----------**--*--------------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Mesodinium Nuclear" ,
+  id 29 ,
+  ncbieaa  "FFLLSSSSYYYYCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "--------------*--------------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Peritrich Nuclear" ,
+  id 30 ,
+  ncbieaa  "FFLLSSSSYYEECC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "--------------*--------------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Blastocrithidia Nuclear" ,
+  id 31 ,
+  ncbieaa  "FFLLSSSSYYEECCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "----------**-----------------------M----------------------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Balanophoraceae Plastid" ,
+  id 32 ,
+  ncbieaa  "FFLLSSSSYY*WCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+  sncbieaa "---M------*---*----M------------MMMM---------------M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ } ,
+ {
+  name "Cephalodiscidae Mitochondrial" ,
+  id 33 ,
+  ncbieaa  "FFLLSSSSYYY*CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSSKVVVVAAAADDEEGGGG",
+  sncbieaa "---M-------*-------M---------------M---------------M------------"
+  -- Base1  TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG
+  -- Base2  TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG
+  -- Base3  TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG
+ }
+}

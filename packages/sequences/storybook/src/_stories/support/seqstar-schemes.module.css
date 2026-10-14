@@ -1,0 +1,22 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* A color scheme's swatches (the Color schemes docs page's table): a hairline drawn as a shadow, so a pale swatch shows
+   on the page without a border (Prism's inline marks). */
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-1);
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--msp-radius-sm);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+}

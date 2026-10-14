@@ -1,0 +1,49 @@
+{
+  "name": "@molstar/seq-nightingale",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The Nightingale materializer: a resolved view as EBI's Nightingale web components and their data, gaps reported. `materialize` is platform-free; only `mount` (the ./mount entry) imports Nightingale.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./mount": "./src/mount.ts",
+    "./_stories/*": null,
+    "./_test/*": null
+  },
+  "files": [
+    "src",
+    "!**/_test/**",
+    "!**/_stories/**",
+    "!**/*.stories.*"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:full": "vitest run && vitest run --config vitest.browser.config.ts && vitest run --config vitest.heap.config.ts",
+    "test:heap": "vitest run --config vitest.heap.config.ts",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "bench": "vitest bench --run --passWithNoTests --config vitest.bench.config.ts",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@molstar/seq-core": "workspace:*",
+    "@nightingale-elements/nightingale-colored-sequence": "^5",
+    "@nightingale-elements/nightingale-conservation-track": "^5",
+    "@nightingale-elements/nightingale-linegraph-track": "^5",
+    "@nightingale-elements/nightingale-links": "^5",
+    "@nightingale-elements/nightingale-manager": "^5",
+    "@nightingale-elements/nightingale-msa": "^5",
+    "@nightingale-elements/nightingale-navigation": "^5",
+    "@nightingale-elements/nightingale-sequence": "^5",
+    "@nightingale-elements/nightingale-sequence-heatmap": "^5",
+    "@nightingale-elements/nightingale-track": "^5",
+    "@nightingale-elements/nightingale-track-canvas": "^5",
+    "@nightingale-elements/nightingale-variation-canvas": "^5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@vitest/browser-playwright": "4.1.11",
+    "playwright": "1.63.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}

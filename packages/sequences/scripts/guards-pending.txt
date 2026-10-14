@@ -1,0 +1,4 @@
+# Heap guard files not on the guard template yet (lib/seqstar/AGENTS.md, Tests): each runs its positive control
+# through `controlCaught`, the file's own warm-up, settle and measurement on `leaking(step)`. A lane that converts a
+# file removes its line; the spec check (scripts/spec.ts) fails on a guard file that is neither converted nor listed,
+# and on a listed one that is converted. The closing pass empties it.

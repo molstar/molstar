@@ -1,0 +1,6 @@
+{
+  // Imports Mol* (TypeScript source): its checker flags (tsconfig.molstar.json), plus Seq*'s typed-array reads.
+  "extends": "../../../tsconfig.molstar.json",
+  "compilerOptions": { "noUncheckedIndexedAccess": false },
+  "include": ["src", "_test", "scripts"]
+}

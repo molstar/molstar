@@ -1,0 +1,5 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": { "noUncheckedIndexedAccess": false, "types": ["node"], "lib": ["ES2023"] },
+  "include": ["*.ts"]
+}

@@ -1,0 +1,65 @@
+{
+  "name": "@molstar/seq-viewer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The Seq* viewer, with the interactions extension: . headless, /draw, /canvas, /svg, /renderers/*, /react, /dom, /testing, /skin.css; /interactions (its format half) and /interactions/viewer (its renderers).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./draw": "./src/draw/index.ts",
+    "./canvas": "./src/canvas/index.ts",
+    "./svg": "./src/svg/index.ts",
+    "./renderers/*": "./src/renderers/*.ts",
+    "./renderers/rows-tiles": null,
+    "./react": "./src/react/index.ts",
+    "./dom": "./src/dom/index.ts",
+    "./testing": "./src/testing/index.ts",
+    "./interactions": "./src/interactions/index.ts",
+    "./interactions/viewer": "./src/interactions/viewer/index.ts",
+    "./skin.css": "./src/skin.css",
+    "./_stories/*": null,
+    "./_test/*": null
+  },
+  "files": [
+    "src",
+    "!**/_test/**",
+    "!**/_stories/**",
+    "!**/*.stories.*"
+  ],
+  "bin": {
+    "seqv-render": "./src/cli/seqv-render.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "test:browser-heap": "HEAP=1 vitest run --config vitest.browser.config.ts",
+    "test:slow": "vitest run --config vitest.slow.config.ts",
+    "test:full": "vitest run && vitest run --config vitest.slow.config.ts && vitest run --config vitest.heap.config.ts && vitest run --config vitest.browser.config.ts && HEAP=1 vitest run --config vitest.browser.config.ts",
+    "test:heap": "vitest run --config vitest.heap.config.ts",
+    "test:heap-deep": "HEAP_DEEP=1 vitest run --config vitest.heap.config.ts",
+    "bench": "vitest bench --run --passWithNoTests --config vitest.bench.config.ts",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.canvas.json && tsc --noEmit -p tsconfig.dom.json && tsc --noEmit -p tsconfig.react.json"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "peerDependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "dependencies": {
+    "@molstar/seq-core": "workspace:*",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitest/browser-playwright": "4.1.11",
+    "playwright": "1.63.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}

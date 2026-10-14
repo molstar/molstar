@@ -1,0 +1,85 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+/* The Seq* export and performance stories: files offered, the exported figure beside the live viewer, timings, crops. */
+
+/* The exported figure as an image, at the live canvas's width, on the panel (the file itself is transparent). */
+.figure {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px dashed var(--msp-color-border-strong);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-panel);
+}
+
+.download {
+  color: var(--msp-color-text);
+  font-family: var(--msp-font-mono);
+  font-size: var(--msp-font-size-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.files {
+  border-collapse: collapse;
+  font-size: var(--msp-font-size-sm);
+}
+.files th,
+.files td {
+  padding: 2px var(--msp-space-5) 2px 0;
+  text-align: left;
+  vertical-align: baseline;
+  font-family: var(--msp-font-mono);
+}
+.files th {
+  color: var(--msp-color-text-muted);
+  font-weight: 500;
+}
+
+.checks {
+  display: inline-flex;
+  gap: var(--msp-space-3);
+  align-items: center;
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-sm);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--msp-space-5);
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A crop of a canvas, enlarged by whole pixels so every device pixel stays a square. */
+.crop {
+  display: block;
+  max-width: 100%;
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge);
+  background: var(--msp-color-panel);
+  image-rendering: pixelated;
+}
+
+.crops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msp-space-5);
+  align-items: flex-start;
+}
+.cropCell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msp-space-2);
+  max-width: 100%;
+}
