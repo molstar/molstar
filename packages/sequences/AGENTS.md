@@ -122,9 +122,9 @@ take about half an hour). The root config never matches the browser folders, `*.
   without React.
 - **Where the Storybook content lives:** `storybook` (`@molstar/seq-storybook`, private), all under `src/_stories/`
   (exports and `files` hide `_stories` and `_test` in every package): the stories, `support`, `docs` (the `Seq*/Docs`
-  pages), `ui` (its own small components on Prism's `--msp-*` tokens, a local copy in `ui/prism` until it uses
-  prism-ui's own), `_test` (the smoke test and the stories' search and patch tests). It is registered in the
-  repository's Storybook (`storybook/packages.ts`, no group: its titles start with `Seq*/`), whose framework is
+  pages), `ui` (its own small components on prism-ui's own `--msp-*` tokens, `@molstar/prism-ui/styles/base` adopted by
+  `support/seqstar-styles.ts`), `_test` (the smoke test and the stories' search and patch tests). It is registered in
+  the repository's Storybook (`storybook/packages.ts`, no group: its titles start with `Seq*/`), whose framework is
   web-components: `src/preview.ts` (registered as the entry's `preview`) is the decorator that mounts each React story
   with `react-dom/client` and the page tokens, the stories' `Meta` and `StoryObj` are the local ones
   (`support/seqstar-story.ts`), and `readPromise` (`support/seqstar-read.ts`) is React 19's `use` on the catalog's

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Every Seq* story page in Mol* Prism's tokens and rules (../ui/prism/VENDORED.md), themed by the
+// Every Seq* story page in Mol* Prism's tokens and rules (`@molstar/prism-ui`'s), themed by the
 // Storybook's toolbar (the host sets `data-msp-theme` on the document, as Mol*'s Storybook does), and the canvas the
 // viewer draws on, whose color and theme may differ from the UI's (Prism's canvas layer: `ShellView`'s `canvasColor`).
 

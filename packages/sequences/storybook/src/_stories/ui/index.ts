@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The small UI the stories use, in place of a host's (no Stories imports): see tokens.css and page.css for the look.
+// The small UI the stories use, in place of a host's (no Stories imports): see page.css for the look; the tokens are prism-ui's.
 export { type Choice, Choices, type ChoicesProps } from './choices.js';
 export { Fold } from './fold.js';
 export { ScrollArea, type ScrollAreaProps } from './scroll-area.js';

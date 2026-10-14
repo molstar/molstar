@@ -149,7 +149,6 @@ An item leaves this list in the commit that does it. Each says what triggers it.
 
 | Item                                                                                                                                           | Trigger                                      |
 | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| Seq\*'s story support vendors Prism's tokens (`storybook/src/_stories/ui/prism`): use prism-ui's own                                           | the port's review                            |
 | Seq\*'s React UI (`viewer/react`): kept for React hosts, or dropped once Prism has its own                                                     | Prism's sequence UI built                    |
 | The subscription guard (`prism/ui/src/_test/subscriptions.test.ts`) covers prism-ui only; the other Prism packages want it too                 | a leak found there, or a shared check script |
 | `useDefineForClassFields: true` for the whole repository (Seq\* has it per package): an audit for re-declared fields (`declare`), then the full tests and apps | a class-field bug, or the next tooling pass |

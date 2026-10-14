@@ -24,9 +24,10 @@
   "scripts": {
     "test:slow": "vitest run --config vitest.slow.config.ts",
     "test:full": "pnpm -w test:unit packages/sequences/storybook && pnpm test:slow",
-    "typecheck": "tsc -b ../molstar-poc ../nightingale && tsc -p tsconfig.json && tsc -p tsconfig.test.json"
+    "typecheck": "tsc -b ../molstar-poc ../nightingale ../../prism/ui && tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "dependencies": {
+    "@molstar/prism-ui": "workspace:*",
     "@molstar/seq-core": "workspace:*",
     "@molstar/seq-molstar-poc": "workspace:*",
     "@molstar/seq-nightingale": "workspace:*",

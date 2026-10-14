@@ -7,8 +7,8 @@
  */
 
 /*
- * The Seq* Storybook's page defaults on Prism's tokens (tokens.css): what a story page (PrismPage) sets on the document.
- * Added with it and removed after, like tokens.css.
+ * The Seq* Storybook's page defaults on prism-ui's tokens (`@molstar/prism-ui/styles/base`): what a story page (PrismPage) sets on the document.
+ * Added with it and removed after.
  */
 *,
 *::before,

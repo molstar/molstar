@@ -58,8 +58,7 @@ export const StoryPackages: StoryPackage[] = [
     plugins: (root) => [cssModulesPlugin([cssPackage(root, 'assistant')])],
   },
   // Seq*, the sequence viewer: React stories and MDX pages (`Seq*/…` titles). Its preview module mounts the stories with
-  // `react-dom/client`; the Prism tokens the stories use are vendored in its story support (Prism's own are due,
-  // .v6/seq/plan.md §4); its Vite plugin serves the test fixtures the stories compile cases from.
+  // `react-dom/client`; the Prism tokens the stories use are prism-ui's own (support/seqstar-styles.ts); its Vite plugin serves the test fixtures the stories compile cases from.
   {
     dir: 'packages/sequences/storybook',
     plugins: () => [seqstarFixtureFs()],

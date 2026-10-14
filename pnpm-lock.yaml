@@ -3181,6 +3181,9 @@ importers:
 
   packages/sequences/storybook:
     dependencies:
+      '@molstar/prism-ui':
+        specifier: workspace:*
+        version: link:../../prism/ui
       '@molstar/seq-core':
         specifier: workspace:*
         version: link:../core

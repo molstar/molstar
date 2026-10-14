@@ -6,20 +6,27 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The stylesheets of the Seq* stories, in the document only while something of Seq* uses them. The host Storybook shows
-// other packages' stories in the same page (iframe), so these never go in globally: a story page takes the tokens and the
-// page defaults, a docs example the tokens; the last to leave removes them.
+// The stylesheets of the Seq* stories. Prism's tokens and reset are prism-ui's own (`@molstar/prism-ui/styles/base`),
+// adopted into the document as Prism's elements do; the host Storybook adopts them for Prism's stories already, and the
+// adoption is idempotent. The page defaults (`page.css`) are Seq*'s: the host shows other packages' stories in the same
+// page (iframe), so they never go in globally. A story page takes them while it is mounted; the last to leave removes
+// them.
 
+import '@molstar/prism-ui/styles/base';
+import { adoptStyles } from '@molstar/prism-ui/styles/registry';
 import { useInsertionEffect } from 'react';
 import pageCss from '../ui/page.css?inline';
-import tokensCss from '../ui/tokens.css?inline';
 
-const SHEETS = { tokens: tokensCss, page: pageCss } as const;
-type Sheet = keyof typeof SHEETS;
+const SHEETS = { page: pageCss } as const;
+type Sheet = 'tokens' | keyof typeof SHEETS;
 
-const held = new Map<Sheet, { style: HTMLStyleElement; users: number }>();
+const held = new Map<keyof typeof SHEETS, { style: HTMLStyleElement; users: number }>();
 
 function acquire(sheet: Sheet): () => void {
+  if (sheet === 'tokens') {
+    adoptStyles(document);
+    return () => {};
+  }
   let h = held.get(sheet);
   if (!h) {
     const style = document.createElement('style');

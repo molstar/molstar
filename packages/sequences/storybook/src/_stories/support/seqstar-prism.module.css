@@ -7,7 +7,7 @@
  */
 
 /*
- * A story page in Mol* Prism's tokens and rules (../ui/prism/VENDORED.md). The page and its cards are the UI (the
+ * A story page in Mol* Prism's tokens and rules (`@molstar/prism-ui`'s). The page and its cards are the UI (the
  * toolbar's theme); the viewer's drawing area is a canvas, as Mol*'s 3D canvas is: its own color and theme, and the
  * viewer's --seq-* skin derived from it. The page derives the same skin, for a viewer a story places outside a canvas.
  */

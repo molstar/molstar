@@ -7,7 +7,7 @@
  */
 
 /*
- * The stories' shared blocks in Mol* Prism's rules (../ui/prism/VENDORED.md): flat surfaces set apart by tone, no
+ * The stories' shared blocks in Mol* Prism's rules (`@molstar/prism-ui`'s): flat surfaces set apart by tone, no
  * borders; 12px panel text, 11px for code and captions; one text column, 8px into its box. A card is a panel: its
  * content inset 4px at the sides and bottom, its title a row whose text starts 8px further in, as do its text rows.
  */
