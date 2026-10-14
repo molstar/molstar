@@ -49,9 +49,10 @@ can name it; its internals are not exported, and tests reach them by path.
 imports the core) and `@molstar/seq-molstar-poc` (the Mol\* adapter, a proof of concept to be refactored in Mol\*'s
 repository; the only package that imports Mol\*). `@molstar/seq-storybook` holds the stories and docs pages (private).
 
-No Seq\* code imports application code, `/links` or the stream providers (a host's), or Mol\* outside its adapter. The
-core's folder graph is `core/_test/layers.test.ts`; the viewer's edge `viewer/_test/layers.test.ts`; Biome
-(`biome.json`, `layers.grit`) enforces the rest.
+No Seq\* code imports application code, `/links` or the stream providers (a host's), or Mol\* outside its adapter, but
+for the core's MessagePack codec and zip (from Mol\*'s io and core packages). The core's folder graph is
+`core/_test/layers.test.ts`; the viewer's edge `viewer/_test/layers.test.ts`; Biome (the repository's overrides on
+`packages/sequences`, and `layers.grit`) enforces the rest.
 
 ## Principles
 
