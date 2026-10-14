@@ -12,18 +12,18 @@
 // labels over labeled tracks (block names, range labels; Nightingale's tracks draw no text), and lights a host's loci
 // through each manager's `highlight`.
 
-import '@nightingale-elements/nightingale-colored-sequence';
-import '@nightingale-elements/nightingale-conservation-track';
-import '@nightingale-elements/nightingale-linegraph-track';
-import '@nightingale-elements/nightingale-links';
-import '@nightingale-elements/nightingale-manager';
-import '@nightingale-elements/nightingale-msa';
-import '@nightingale-elements/nightingale-navigation';
-import '@nightingale-elements/nightingale-sequence';
-import '@nightingale-elements/nightingale-sequence-heatmap';
-import '@nightingale-elements/nightingale-track';
-import '@nightingale-elements/nightingale-track-canvas';
-import '@nightingale-elements/nightingale-variation-canvas';
+import NightingaleColoredSequence from '@nightingale-elements/nightingale-colored-sequence';
+import NightingaleConservationTrack from '@nightingale-elements/nightingale-conservation-track';
+import NightingaleLinegraphTrack from '@nightingale-elements/nightingale-linegraph-track';
+import NightingaleLinks from '@nightingale-elements/nightingale-links';
+import NightingaleManager from '@nightingale-elements/nightingale-manager';
+import NightingaleMsa from '@nightingale-elements/nightingale-msa';
+import NightingaleNavigation from '@nightingale-elements/nightingale-navigation';
+import NightingaleSequence from '@nightingale-elements/nightingale-sequence';
+import NightingaleSequenceHeatmap from '@nightingale-elements/nightingale-sequence-heatmap';
+import NightingaleTrack from '@nightingale-elements/nightingale-track';
+import NightingaleTrackCanvas from '@nightingale-elements/nightingale-track-canvas';
+import NightingaleVariationCanvas from '@nightingale-elements/nightingale-variation-canvas';
 import { type Closure, projectionOf, type ResolvedView } from '@molstar/seq-core/format';
 import { Extents, type Issue, type Loci, type SeqSet } from '@molstar/seq-core/model';
 import {
@@ -67,6 +67,33 @@ import {
 } from './labels.js';
 import { AXISLESS, LABELED, PAIR_COLOR, STACK } from './materialize.js';
 import { fetchStreamed, type StreamedValues } from './stream.js';
+
+/**
+ * The elements this module draws with, by tag. Each package says `"sideEffects": false` and registers its element when its
+ * module runs, so an import for that alone is dropped by a production bundler (the elements then never define and draw
+ * nothing). The classes are used here, to define their tags if they are not defined (each registers itself once: a tag
+ * already defined is left alone).
+ */
+const ELEMENTS: Readonly<Record<string, CustomElementConstructor>> = {
+  'nightingale-colored-sequence': NightingaleColoredSequence,
+  'nightingale-conservation-track': NightingaleConservationTrack,
+  'nightingale-linegraph-track': NightingaleLinegraphTrack,
+  'nightingale-links': NightingaleLinks,
+  'nightingale-manager': NightingaleManager,
+  'nightingale-msa': NightingaleMsa,
+  'nightingale-navigation': NightingaleNavigation,
+  'nightingale-sequence': NightingaleSequence,
+  'nightingale-sequence-heatmap': NightingaleSequenceHeatmap,
+  'nightingale-track': NightingaleTrack,
+  'nightingale-track-canvas': NightingaleTrackCanvas,
+  'nightingale-variation-canvas': NightingaleVariationCanvas,
+};
+
+/** The element's tag is defined: its class, if no one has yet. */
+function ensureDefined(tag: string) {
+  const element = ELEMENTS[tag];
+  if (element && !customElements.get(tag)) customElements.define(tag, element);
+}
 
 /** A Nightingale event in the view's terms; -1: not known (a position only, or a whole element). */
 export interface NightingaleEvent {
@@ -309,6 +336,7 @@ export function mount(
   // then at their own cell's once attached (below), before their first draw.
   const width = container.clientWidth;
   const build = (d: ElementDesc): Element => {
+    ensureDefined(d.tag);
     const node = document.createElement(d.tag);
     if (width > 0 && d.tag.startsWith('nightingale-') && d.tag !== 'nightingale-manager')
       (node as unknown as { width: number }).width = width;

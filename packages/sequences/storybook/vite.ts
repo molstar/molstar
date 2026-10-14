@@ -6,12 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// What the host Storybook (storybook/packages.ts) takes from this package: two Vite plugins. The stories and docs pages are
-// found by the host's globs (every `*.stories.tsx` and `*.mdx` under `src/`); its preview imports the decorator that
-// mounts the React stories (`@molstar/seq-storybook/preview`) and the tokens (`@molstar/seq-storybook/tokens.css`).
+// What the host Storybook (storybook/packages.ts) takes from this package: a Vite plugin. The stories and docs pages are
+// found by the host's globs (every `*.stories.tsx` and `*.mdx` under `src/`); its preview module
+// (`@molstar/seq-storybook/preview`) has the decorator that mounts the React stories (their styles come with the
+// stories: `src/_stories/support/seqstar-styles.ts`).
 
 import { fileURLToPath } from 'node:url';
-import type { Plugin } from 'vite';
 
 const src = fileURLToPath(new URL('./src', import.meta.url));
 
@@ -27,22 +27,6 @@ export function seqstarFixtureFs() {
     enforce: 'pre' as const,
     resolveId(id: string, importer?: string) {
       return id === 'node:fs' && importer && /\/packages\/sequences\/[^/]+\/_test\//.test(importer) ? shim : null;
-    },
-  };
-}
-
-/**
- * The Nightingale elements register themselves when their module runs (`@customElement`), and their packages declare
- * `"sideEffects": false`: a production build drops the bare `import '@nightingale-elements/…'` lines of
- * `@molstar/seq-nightingale`'s mount, and the elements never define (empty tracks). In a Storybook build the modules of
- * those packages count as having side effects.
- */
-export function nightingaleSideEffects(): Plugin {
-  return {
-    name: 'seqstar-nightingale-side-effects',
-    transform: {
-      filter: { id: /[\\/]@nightingale-elements[\\/]/ },
-      handler: (code) => ({ code, map: null, moduleSideEffects: true }),
     },
   };
 }

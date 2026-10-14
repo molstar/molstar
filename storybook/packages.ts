@@ -10,7 +10,7 @@ import type { PluginOption } from 'vite';
 // The Prism CSS generator, run as a Vite plugin (the Prism packages' `styles` scripts run the same file).
 import { cssModulesPlugin, cssPackage } from '../packages/prism/ui/scripts/css.mjs';
 import { preactFolderPlugin } from './.storybook/preact-folder.js';
-import { nightingaleSideEffects, seqstarFixtureFs } from '../packages/sequences/storybook/vite.js';
+import { seqstarFixtureFs } from '../packages/sequences/storybook/vite.js';
 
 export const monorepoRoot = fileURLToPath(new URL('..', import.meta.url));
 
@@ -58,11 +58,10 @@ export const StoryPackages: StoryPackage[] = [
     plugins: (root) => [cssModulesPlugin([cssPackage(root, 'assistant')])],
   },
   // Seq*, the sequence viewer: React stories and MDX pages (`Seq*/…` titles). Its preview module mounts the stories with
-  // `react-dom/client` and brings Prism's tokens; its Vite plugins serve the test fixtures the stories compile cases
-  // from, and keep the Nightingale elements in a build.
+  // `react-dom/client` and brings Prism's tokens; its Vite plugin serves the test fixtures the stories compile cases from.
   {
     dir: 'packages/sequences/storybook',
-    plugins: () => [seqstarFixtureFs(), nightingaleSideEffects()],
+    plugins: () => [seqstarFixtureFs()],
     preview: 'src/preview.ts',
   },
 ];
