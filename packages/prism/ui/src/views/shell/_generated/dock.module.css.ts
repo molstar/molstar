@@ -24,6 +24,7 @@ export const classes = {
   'floatingLeft': 'msp-shell-dock-floatingLeft',
   'floatingRight': 'msp-shell-dock-floatingRight',
   'floatingTop': 'msp-shell-dock-floatingTop',
+  'frameless': 'msp-shell-dock-frameless',
   'header': 'msp-shell-dock-header',
   'left': 'msp-shell-dock-left',
   'pin': 'msp-shell-dock-pin',
@@ -232,6 +233,14 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
     -webkit-backdrop-filter: var(--msp-glass-filter);
     align-self: stretch;
     overflow: hidden;
+  }
+
+  & .msp-shell-dock-frameless {
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    background: none;
+    border-radius: 0;
+    overflow: visible;
   }
 
   & .msp-shell-dock-strip {

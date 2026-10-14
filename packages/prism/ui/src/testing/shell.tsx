@@ -17,7 +17,8 @@ import { Dynamic, Show } from '../dom/control-flow.js';
 import type { Child } from '../dom/jsx-types.js';
 import { onCleanup } from '../dom/scope.js';
 import { domView } from '../dom/view.js';
-import { parseColor, themeForColor } from '../model/canvas-theme.js';
+import { type CanvasInk, fixedInk } from '../model/canvas-theme.js';
+import type { ReadonlyState } from '../reactive/readonly-state.js';
 import { observableState } from '../reactive/observable-state.js';
 import { FullscreenModel } from '../shell/fullscreen.js';
 import { ShellModel, type ShellPage, type ShellTab } from '../shell/shell.js';
@@ -130,6 +131,8 @@ export function mockBlankMode(): MockMode {
 export interface ShellStoryProps {
   loaded: boolean;
   background?: string;
+  /** The canvas ink as a state that can change (instead of the fixed one of `background`). */
+  ink?: ReadonlyState<CanvasInk>;
   /** Opens the Export card at a section (a mode registers the card). */
   openExportAt?: string;
   /** Opens a card (Animation, Export, …). */
@@ -361,8 +364,7 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
       canvas={parts.canvas?.() ?? null}
       overlays={parts.overlays?.() ?? null}
       playback={parts.playback?.() ?? null}
-      canvasColor={background}
-      canvasTheme={themeForColor(parseColor(background) ?? 0xffffff)}
+      ink={props.ink ?? fixedInk(background)}
       context={parts.context}
       commandMenu={
         <Show when={commandMenuOpen}>

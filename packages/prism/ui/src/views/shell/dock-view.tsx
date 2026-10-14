@@ -215,7 +215,11 @@ export function PinButton(props: { shell: ShellModel; dock: DockId }) {
 function DockContent(props: { shell: ShellModel; dock: DockModel; tab: ShellTab; pinnable?: boolean }) {
   const { shell, dock, tab } = props;
   return (
-    <section class={classes.content} role="tabpanel" aria-label={tab.title}>
+    <section
+      class={tab.frame === 'none' ? `${classes.content} ${classes.frameless}` : classes.content}
+      role="tabpanel"
+      aria-label={tab.title}
+    >
       <Splitter shell={shell} dock={dock} />
       <header class={classes.header}>
         <span class={classes.title}>

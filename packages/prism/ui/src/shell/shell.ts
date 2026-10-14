@@ -48,6 +48,12 @@ export interface ShellTab {
   place?: 'head' | 'strip' | 'foot';
   /** In the compact layout's bottom bar (Home, Structure); the rest go under More there. */
   compactBar?: boolean;
+  /**
+   * The look of its content on a floating top or bottom dock: `card` (default) is the glass card, `none` has no card at
+   * all (no fill, shadow, filter or hairline) and the canvas shows through, for a view that draws on the canvas itself
+   * (the sequence). Ignored in a side dock and in the docked (not floating) layout.
+   */
+  frame?: 'card' | 'none';
   render: ViewRenderer<ShellViewContext>;
 }
 

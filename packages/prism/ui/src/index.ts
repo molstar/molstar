@@ -24,6 +24,8 @@ export * from './reactive/observable-state.js';
 export * from './reactive/readonly-state.js';
 export * from './reactive/transaction.js';
 
+export * from './model/canvas-theme.js';
+
 export * from './shell/fullscreen.js';
 export * from './shell/shell.js';
 export * from './shell/status.js';
@@ -37,6 +39,7 @@ export { ActionFooter, type ActionFooterProps } from './components/action-footer
 export { Button, type ButtonProps } from './components/button/button.js';
 export { type Choice, Choices } from './components/choices/choices.js';
 export { ColorPicker, type ColorPickerProps } from './components/color/color-picker.js';
+export { Legend, type LegendItem, type LegendProps, type LegendRamp } from './components/legend/legend.js';
 export { Icon, type IconName, type IconProps } from './components/icon/icon.js';
 export { MolstarWordmark } from './components/icon/wordmark.js';
 export { Markdown } from './components/markdown/markdown.js';

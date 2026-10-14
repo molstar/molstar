@@ -11,7 +11,9 @@
 import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
-import { type MaybeReactive, onCleanup } from '../../dom/scope.js';
+import { onCleanup } from '../../dom/scope.js';
+import type { CanvasInk } from '../../model/canvas-theme.js';
+import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import type { ShellModel } from '../../shell/shell.js';
 import type { StatusModel } from '../../shell/status.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
@@ -55,15 +57,11 @@ export interface ShellViewProps {
    */
   context?: () => Child;
   /**
-   * The theme of the chrome over the canvas, from the canvas background (light background: light glass), independent
-   * of the UI theme: dark glass over a white canvas would be muddy.
+   * The canvas ink: the theme of the chrome over the canvas, from the canvas background (light background: light glass,
+   * independent of the UI theme: dark glass over a white canvas would be muddy), and the background color the chrome is
+   * tinted from instead of the UI's own background, so cards read as frosted canvas rather than slabs of panel color.
    */
-  canvasTheme?: MaybeReactive<'light' | 'dark'>;
-  /**
-   * The canvas background (a CSS color). The chrome over the canvas is tinted from it instead of the UI's own
-   * background, so cards read as frosted canvas rather than slabs of panel color.
-   */
-  canvasColor?: MaybeReactive<string>;
+  ink?: ReadonlyState<CanvasInk>;
   /** The command menu while it is open: over the whole shell. */
   commandMenu?: Child;
   /** The top of the canvas stack, above the canvas toolbar items: the interact / select mode buttons. */
@@ -155,10 +153,10 @@ export function ShellView(props: ShellViewProps) {
         {/* Chrome that is part of the view: themed by the canvas background, tinted from its color. */}
         <div
           class={`${classes.layer} ${classes.canvasLayer}`}
-          data-msp-theme={props.canvasTheme ?? 'light'}
+          data-msp-theme={props.ink ? props.ink.pipe(map((i) => i.theme)) : 'light'}
           style={{
             // Every derived shade (glass, controls, hover, muted text) follows from the base color.
-            '--msp-color-bg': props.canvasColor,
+            '--msp-color-bg': props.ink ? props.ink.pipe(map((i) => i.color)) : undefined,
           }}
         >
           <Show when={floatingTop}>{() => <FloatingDock shell={shell} dock={top} />}</Show>

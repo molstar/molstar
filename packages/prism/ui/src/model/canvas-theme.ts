@@ -7,6 +7,9 @@
  */
 
 import { distinctUntilChanged, map, type Observable } from 'rxjs';
+import { combineBehaviors, type CombinedBehavior } from '../reactive/combine-behaviors.js';
+import { observableState } from '../reactive/observable-state.js';
+import type { ReadonlyState } from '../reactive/readonly-state.js';
 
 /**
  * The theme of what is drawn over the canvas (toolbar, cards, labels), chosen by the canvas background, not the UI
@@ -92,4 +95,53 @@ export function parseColor(text: string): number | undefined {
   const rgb = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i.exec(t);
   if (rgb) return (Number(rgb[1]) << 16) | (Number(rgb[2]) << 8) | Number(rgb[3]);
   return undefined;
+}
+
+/**
+ * The canvas ink: what a control drawn over the canvas needs to stay visible. `color` is the canvas background (a CSS
+ * color) and `theme` the chrome's theme on it (`dark` chrome, light text, on a dark background). One state per
+ * canvas: the shell tints its canvas layer from it and the controls that draw on the canvas (the sequence view) follow
+ * it instead of reading the DOM.
+ */
+export interface CanvasInk {
+  theme: CanvasTheme;
+  color: string;
+}
+
+function hex(color: number): string {
+  return `#${(color & 0xffffff).toString(16).padStart(6, '0')}`;
+}
+
+/** The ink on a plain background color (a CSS color); a color that does not parse counts as white. */
+export function inkForColor(color: string): CanvasInk {
+  const parsed = parseColor(color);
+  return { theme: themeForColor(parsed ?? 0xffffff), color: parsed === undefined ? '#ffffff' : color };
+}
+
+/** An ink that does not change, for mocks and fixed backgrounds. */
+export function fixedInk(color: string): ReadonlyState<CanvasInk> {
+  return observableState(inkForColor(color)).asReadonly;
+}
+
+/** The ink of the given canvas props: `fallback` (white, light chrome by default) while the background is transparent. */
+export function canvasInkOf(
+  props: CanvasBackgroundProps,
+  fallback: CanvasInk = { theme: 'light', color: '#ffffff' },
+): CanvasInk {
+  if (backgroundLuminance(props) === undefined) return fallback;
+  return { theme: canvasThemeOf(props), color: hex(props.renderer.backgroundColor) };
+}
+
+/**
+ * Follows the canvas props (the Canvas3D props source): a new ink only when the theme or the color changes. Dispose it
+ * with its owner.
+ */
+export function canvasInk(
+  props$: ReadonlyState<CanvasBackgroundProps>,
+  fallback?: CanvasInk,
+): CombinedBehavior<CanvasInk> {
+  return combineBehaviors({
+    sources: { props: props$ },
+    project: ({ props }) => ({ ...canvasInkOf(props, fallback) }),
+  });
 }

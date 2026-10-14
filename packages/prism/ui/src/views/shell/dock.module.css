@@ -215,6 +215,16 @@
     overflow: hidden;
   }
 
+  /* A tab that asks for no card (frame: 'none'): the canvas shows through, nothing of the card is drawn. */
+  & .frameless {
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    overflow: visible;
+  }
+
   /* In the rail (a frame): edge to edge, like the tools around it. */
   & .strip {
     gap: 0;

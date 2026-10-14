@@ -208,10 +208,10 @@ extension UI) are placed.
   props by relative luminance (threshold 0.179, where light and dark text have equal contrast): the background color, a
   gradient's colors averaged over it by opacity; images and skyboxes count as the background color for now; a
   transparent canvas uses the host's fallback (`canvasThemeOf`, and `canvasTheme` over a stream of the props). The glass
-  is tinted from the canvas color too (`ShellView`'s `canvasColor` sets `--msp-color-bg` on the canvas layer, and every
+  is tinted from the canvas color too (`ShellView`'s `ink` state, a `CanvasInk` `{ theme, color }` from `canvasInk(props$)`, sets `data-msp-theme` and `--msp-color-bg` on the canvas layer, and every
   derived shade follows): cards read as frosted canvas, a shade off the background, rather than slabs of the UI's own
   (warm) panel color. Two layers sit over the canvas: the view's chrome (sequence card, playback, canvas stack, status
-  column, selection bar, hover label) follows the canvas (`canvasTheme`); the application's chrome (the rail, the panel,
+  column, selection bar, hover label) follows the canvas (the ink); the application's chrome (the rail, the panel,
   the cards) follows the UI theme, so switching the theme changes it.
 - **Hover label** next to the cursor (§4.4).
 

@@ -8,7 +8,15 @@
 
 import { describe, expect, it } from 'vitest';
 import { Subject } from 'rxjs';
-import { type CanvasBackgroundProps, canvasTheme, canvasThemeOf, parseColor, themeForColor } from '../canvas-theme.js';
+import { observableState } from '../../reactive/observable-state.js';
+import {
+  type CanvasBackgroundProps,
+  canvasInk,
+  canvasTheme,
+  canvasThemeOf,
+  parseColor,
+  themeForColor,
+} from '../canvas-theme.js';
 
 const solid = (backgroundColor: number): CanvasBackgroundProps => ({ renderer: { backgroundColor } });
 
@@ -60,5 +68,21 @@ describe('canvas theme', () => {
     expect(parseColor('14181f')).toBe(0x14181f);
     expect(parseColor('rgba(20, 24, 31, 0.5)')).toBe(0x14181f);
     expect(parseColor('nope')).toBeUndefined();
+  });
+
+  it('keeps an ink state in step with the props, distinct on change', () => {
+    const props = observableState<CanvasBackgroundProps>(solid(0xffffff));
+    const ink = canvasInk(props.asReadonly);
+    const seen: string[] = [];
+    const sub = ink.subscribe((i) => seen.push(`${i.theme}${i.color}`));
+    expect(ink.value).toEqual({ theme: 'light', color: '#ffffff' });
+    props.set(solid(0x14181f));
+    props.set({ ...solid(0x14181f), transparentBackground: false });
+    expect(ink.value).toEqual({ theme: 'dark', color: '#14181f' });
+    expect(seen).toEqual(['light#ffffff', 'dark#14181f']);
+    props.set({ ...solid(0x000000), transparentBackground: true });
+    expect(ink.value).toEqual({ theme: 'light', color: '#ffffff' });
+    sub.unsubscribe();
+    ink.dispose();
   });
 });
