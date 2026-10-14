@@ -20,7 +20,7 @@ import {
 
 const UNIT = CoordinateSystemKind.unit;
 
-import type { Structure } from 'molstar/lib/mol-model/structure';
+import type { Structure } from '@molstar/model/model/structure';
 import { type ChainInstance, chainsOf } from './chains.js';
 
 export interface MvsFields {

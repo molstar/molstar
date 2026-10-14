@@ -3056,6 +3056,9 @@ importers:
       '@molstar/mvs':
         specifier: workspace:*
         version: link:../../mvs/runtime
+      '@molstar/mvs-builder':
+        specifier: workspace:*
+        version: link:../../mvs/builder
       '@molstar/plugin':
         specifier: workspace:*
         version: link:../../plugin/core

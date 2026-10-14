@@ -11,9 +11,9 @@
 // annotation tables (the `residue_range` schema, columns as arrays: label_asym_id, beg/end_label_seq_id, color), each
 // applied by a `color_from_uri` node over a `data:` URI, in order, so a later table wins where two color one residue.
 
-import type { MVSData_State } from 'molstar/lib/extensions/mvs/mvs-data';
-import { createMVSBuilder } from 'molstar/lib/extensions/mvs/tree/mvs/mvs-builder';
-import type { ColorT } from 'molstar/lib/extensions/mvs/tree/mvs/param-types';
+import type { MVSData_State } from '@molstar/mvs-builder/mvs-data';
+import { createMVSBuilder } from '@molstar/mvs-builder/tree/mvs/mvs-builder';
+import type { ColorT } from '@molstar/mvs-builder/tree/mvs/param-types';
 
 /** An MVS state (Mol*'s `MVSData_State`), what a host loads. */
 export type MvsState = MVSData_State;

@@ -21,7 +21,7 @@ import {
   type SeqSet,
 } from '@molstar/seq-core/model';
 import { Translator } from '@molstar/seq-core/translate';
-import type { MVSData_State } from 'molstar/lib/extensions/mvs/mvs-data';
+import type { MVSData_State } from '@molstar/mvs-builder/mvs-data';
 import { type MolstarDefaults, MvsColorTable, structureMvs } from './mvs.js';
 import { MolstarServices } from './registry.js';
 import { complexUnits, seqRoutes } from './seq-units.js';

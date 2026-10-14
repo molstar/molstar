@@ -14,7 +14,7 @@
 import { compile } from '@molstar/seq-core/format';
 import { type CoordinateSystem, CoordinateSystemKind, Extents, KeyKind, type SeqSet } from '@molstar/seq-core/model';
 import { Translator } from '@molstar/seq-core/translate';
-import { type Structure, StructureElement } from 'molstar/lib/mol-model/structure';
+import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { describe, expect, it } from 'vitest';
 import { readStructure, StructureLink, structureOf } from '../src/index.js';
 import { bytesOf, loaders, p53Doc, registries } from './fixtures.js';

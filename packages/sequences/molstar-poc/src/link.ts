@@ -22,8 +22,8 @@ import {
   type SeqSet,
 } from '@molstar/seq-core/model';
 import { TranslateMaps, type Translator } from '@molstar/seq-core/translate';
-import { OrderedSet } from 'molstar/lib/mol-data/int';
-import { type Structure, StructureElement, type Unit } from 'molstar/lib/mol-model/structure';
+import { OrderedSet } from '@molstar/core/data/int';
+import { type Structure, StructureElement, type Unit } from '@molstar/model/model/structure';
 import { type ChainInstance, chainsOf } from './chains.js';
 import { complexUnits, seqRoutes } from './seq-units.js';
 

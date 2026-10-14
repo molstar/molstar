@@ -25,8 +25,8 @@ import {
   ThemeLocation,
   type ViewModel,
 } from '@molstar/seq-viewer';
-import { OrderedSet } from 'molstar/lib/mol-data/int';
-import { StructureElement } from 'molstar/lib/mol-model/structure';
+import { OrderedSet } from '@molstar/core/data/int';
+import { StructureElement } from '@molstar/model/model/structure';
 import { type ComposeInput, complexOf, composeStructureMvs, type StructureRef } from './compose.js';
 import type { StructureLink } from './link.js';
 import type { MolstarDefaults } from './mvs.js';

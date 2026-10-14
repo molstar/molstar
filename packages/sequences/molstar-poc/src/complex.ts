@@ -22,8 +22,8 @@ import {
   union,
 } from '@molstar/seq-core/format';
 import type { MoleculeInput, NumberingInput, UnitInput } from '@molstar/seq-core/model';
-import type { CifFrame } from 'molstar/lib/mol-io/reader/cif';
-import type { Model, Structure } from 'molstar/lib/mol-model/structure';
+import type { CifFrame } from '@molstar/io/reader/cif';
+import type { Model, Structure } from '@molstar/model/model/structure';
 import { type ChainInstance, chainsOf } from './chains.js';
 import { siftsNumberings } from './sifts.js';
 import { STRUCTURE_FORMATS, StructureSource, structureOf } from './source.js';

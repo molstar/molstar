@@ -14,8 +14,8 @@
 
 import type { SeqSet } from '@molstar/seq-core/model';
 import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, manualScheduler } from '@molstar/seq-viewer';
-import { OrderedSet } from 'molstar/lib/mol-data/int';
-import { StructureElement, Unit } from 'molstar/lib/mol-model/structure';
+import { OrderedSet } from '@molstar/core/data/int';
+import { StructureElement, Unit } from '@molstar/model/model/structure';
 import { expect, it } from 'vitest';
 import { fixtureMeasurer } from '../../viewer/src/testing/index.js';
 import { MolstarSvsEntry, readStructure, StructureLink, structureOf } from '../src/index.js';

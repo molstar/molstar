@@ -11,7 +11,7 @@
 // `uniprot:<acc>` numbering per accession, a `segments` numbering with holes, from its first instance's rows.
 
 import type { NumberingInput } from '@molstar/seq-core/model';
-import type { CifFrame } from 'molstar/lib/mol-io/reader/cif';
+import type { CifFrame } from '@molstar/io/reader/cif';
 
 export interface SiftsSegment {
   readonly entityId: string;

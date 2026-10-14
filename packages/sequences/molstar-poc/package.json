@@ -46,6 +46,7 @@
     "@molstar/io": "workspace:*",
     "@molstar/model": "workspace:*",
     "@molstar/mvs": "workspace:*",
+    "@molstar/mvs-builder": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/query-language": "workspace:*",
     "@molstar/seq-core": "workspace:*",

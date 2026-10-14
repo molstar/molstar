@@ -10,17 +10,38 @@
 // (seqspec:libraries#the-mol-adapter), and the structure an MVS load left in it. Loci are carried onto that structure
 // (`remap`): Mol*'s hover reports a component's substructure, whose positions differ from the root's.
 
-import { MolViewSpecBehavior } from 'molstar/lib/extensions/mvs/behavior';
-import { loadMVS } from 'molstar/lib/extensions/mvs/load';
-import type { MVSData_State } from 'molstar/lib/extensions/mvs/mvs-data';
-import { type Structure, StructureElement } from 'molstar/lib/mol-model/structure';
-import { PluginContext } from 'molstar/lib/mol-plugin/context';
-import { DefaultPluginSpec } from 'molstar/lib/mol-plugin/spec';
-import { Asset } from 'molstar/lib/mol-util/assets';
-import { Color } from 'molstar/lib/mol-util/color/color';
+import { FocusLoci as CameraFocusLoci } from '@molstar/plugin/behavior/dynamic/camera';
+import { HighlightLoci, SelectLoci } from '@molstar/plugin/behavior/dynamic/representation';
+import { MolViewSpecBehavior } from '@molstar/mvs/behavior';
+import { loadMVS } from '@molstar/mvs/load';
+import { MVSRuntimeRegistry } from '@molstar/mvs/registry';
+import type { MVSData_State } from '@molstar/mvs-builder/mvs-data';
+import { type Structure, StructureElement } from '@molstar/model/model/structure';
+import { PluginContext } from '@molstar/plugin/context';
+import { PluginSpec } from '@molstar/plugin/spec';
+import { Asset } from '@molstar/core/util/assets';
+import { Color } from '@molstar/core/util/color/color';
 import type { StructureView3D } from './viewer.js';
 
 export type { PluginContext };
+
+/**
+ * The plugin's spec, composed explicitly (plugin-composition.md §3, §11): MVS's representations and themes, its behavior
+ * (labels, annotation themes, the MVSJ and MVSX formats), and the behaviors that make the canvas interactive: hover,
+ * click selection and focus. No format, preset or query catalogs (structures arrive through MVS only), no axes helper.
+ */
+export function pluginSpec(): PluginSpec {
+  return {
+    registry: [MVSRuntimeRegistry],
+    behaviors: [
+      PluginSpec.Behavior(HighlightLoci),
+      PluginSpec.Behavior(SelectLoci),
+      PluginSpec.Behavior(CameraFocusLoci),
+      MolViewSpecBehavior,
+    ],
+    canvas3d: { camera: { helper: { axes: { name: 'off', params: {} } } } },
+  };
+}
 
 /**
  * A Mol* plugin mounted on `host` as a canvas only (no Mol* UI): MVS's behavior, no axes, clicks selecting, and
@@ -30,13 +51,7 @@ export async function mountPlugin(
   host: HTMLElement,
   o: { files?: ReadonlyMap<string, Uint8Array>; background?: number } = {},
 ): Promise<PluginContext> {
-  const spec = DefaultPluginSpec();
-  spec.behaviors = [...spec.behaviors, MolViewSpecBehavior];
-  spec.canvas3d = {
-    ...spec.canvas3d,
-    camera: { ...spec.canvas3d?.camera, helper: { axes: { name: 'off', params: {} } } },
-  };
-  const plugin = new PluginContext(spec);
+  const plugin = new PluginContext(pluginSpec());
   await plugin.init();
   await plugin.mountAsync(host);
   for (const [url, bytes] of o.files ?? []) {

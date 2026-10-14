@@ -15,7 +15,7 @@ import { Extents, type SeqSet } from '@molstar/seq-core/model';
 import { compileQuery, createQueryEnv, type QueryEnv, SeqSelection } from '@molstar/seq-core/model/query';
 import { bindQuery, readQuery, renderIssue } from '@molstar/seq-core/query';
 import { Translator } from '@molstar/seq-core/translate';
-import { StructureElement } from 'molstar/lib/mol-model/structure';
+import { StructureElement } from '@molstar/model/model/structure';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   MOLSTAR_QUERY_SYMBOLS,

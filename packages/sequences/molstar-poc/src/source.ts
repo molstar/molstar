@@ -10,18 +10,18 @@
 // `StructureSource` that the `molstar:structure` complex provider, the structure providers and a host's 3D view share.
 // No canvas, no plugin.
 
-import { CIF, type CifFrame } from 'molstar/lib/mol-io/reader/cif';
-import { parseMol2 } from 'molstar/lib/mol-io/reader/mol2/parser';
-import { parsePDB } from 'molstar/lib/mol-io/reader/pdb/parser';
-import { parseSdf } from 'molstar/lib/mol-io/reader/sdf/parser';
-import { type Model, Structure, type Trajectory } from 'molstar/lib/mol-model/structure';
-import { StructureSymmetry } from 'molstar/lib/mol-model/structure/structure/symmetry';
-import { ArrayTrajectory } from 'molstar/lib/mol-model/structure/trajectory';
-import { trajectoryFromMmCIF } from 'molstar/lib/mol-model-formats/structure/mmcif';
-import { trajectoryFromMol2 } from 'molstar/lib/mol-model-formats/structure/mol2';
-import { trajectoryFromPDB } from 'molstar/lib/mol-model-formats/structure/pdb';
-import { trajectoryFromSdf } from 'molstar/lib/mol-model-formats/structure/sdf';
-import { Task } from 'molstar/lib/mol-task/index';
+import { CIF, type CifFrame } from '@molstar/io/reader/cif';
+import { parseMol2 } from '@molstar/io/reader/mol2/parser';
+import { parsePDB } from '@molstar/io/reader/pdb/parser';
+import { parseSdf } from '@molstar/io/reader/sdf/parser';
+import { type Model, Structure, type Trajectory } from '@molstar/model/model/structure';
+import { StructureSymmetry } from '@molstar/model/model/structure/structure/symmetry';
+import { ArrayTrajectory } from '@molstar/model/model/structure/trajectory';
+import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
+import { trajectoryFromMol2 } from '@molstar/model/formats/structure/mol2';
+import { trajectoryFromPDB } from '@molstar/model/formats/structure/pdb';
+import { trajectoryFromSdf } from '@molstar/model/formats/structure/sdf';
+import { Task } from '@molstar/core/task';
 
 export type StructureFormat = 'mmcif' | 'bcif' | 'pdb' | 'sdf' | 'mol2';
 export const STRUCTURE_FORMATS: readonly StructureFormat[] = ['mmcif', 'bcif', 'pdb', 'sdf', 'mol2'];

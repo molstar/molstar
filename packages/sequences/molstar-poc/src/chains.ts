@@ -11,7 +11,7 @@
 // indexes them: residues for a polymer chain, heavy atoms for any other. Built once per structure, read by the complex
 // provider, the structure providers and the link.
 
-import { type ElementIndex, type Structure, Unit } from 'molstar/lib/mol-model/structure';
+import { type ElementIndex, type Structure, Unit } from '@molstar/model/model/structure';
 
 export type ChainKind = 'polymer' | 'ligand' | 'branched' | 'water';
 

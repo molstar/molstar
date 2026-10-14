@@ -18,7 +18,7 @@ import type { SeqSet } from '@molstar/seq-core/model';
 import { compileQuery, createQueryEnv, SeqSelection } from '@molstar/seq-core/model/query';
 import { bindQuery, readQuery, renderIssue } from '@molstar/seq-core/query';
 import { Translator } from '@molstar/seq-core/translate';
-import { StructureProperties as P, StructureElement } from 'molstar/lib/mol-model/structure';
+import { StructureProperties as P, StructureElement } from '@molstar/model/model/structure';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   complexInputs,

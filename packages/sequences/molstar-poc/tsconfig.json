@@ -1,6 +1,6 @@
 {
   "extends": "../../../tsconfig.base.json",
-  // The build. Imports Mol* (DOM, WebXR types). Typed arrays everywhere: their index reads are numbers, as in Mol*. Does not compile until the v5 imports move to the v6 packages (plan step B5).
+  // The build. Imports Mol* (DOM, WebXR types). Typed arrays everywhere: their index reads are numbers, as in Mol*.
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "lib",
@@ -20,6 +20,7 @@
     { "path": "../../model" },
     { "path": "../../query-language" },
     { "path": "../../plugin/core" },
+    { "path": "../../mvs/builder" },
     { "path": "../../mvs/runtime" }
   ]
 }

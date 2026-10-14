@@ -19,7 +19,7 @@ import {
   HoverKind,
   manualScheduler,
 } from '@molstar/seq-viewer';
-import { StructureElement } from 'molstar/lib/mol-model/structure';
+import { StructureElement } from '@molstar/model/model/structure';
 import { expect, it } from 'vitest';
 import { helpers } from '../../viewer/_test/layout-fixtures.js';
 import { fixtureMeasurer } from '../../viewer/src/testing/index.js';

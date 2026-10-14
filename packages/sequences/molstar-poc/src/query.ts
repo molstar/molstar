@@ -19,10 +19,9 @@ import {
   type QueryFn as MolQueryFn,
   StructureElement,
   StructureSelection,
-} from 'molstar/lib/mol-model/structure';
-import { compile } from 'molstar/lib/mol-script/runtime/query/compiler';
-import { Script } from 'molstar/lib/mol-script/script';
-import { _transpiler } from 'molstar/lib/mol-script/transpilers/all';
+} from '@molstar/model/model/structure';
+import { Script } from '@molstar/model/script/script';
+import '@molstar/query-language/transpilers/all';
 import type { StructureLink } from './link.js';
 
 const LANGS = ['pymol', 'vmd', 'jmol', 'mol-script'] as const;
@@ -48,8 +47,7 @@ export const MOLSTAR_QUERY_SYMBOLS: QueryExtension = { namespace: 'molstar', sym
 
 /** A selection's text as a Mol* query; throws Mol*'s parse or compile error. */
 function molQuery(text: string, lang: Lang): MolQueryFn<StructureSelection> {
-  const expr = lang === 'mol-script' ? Script.toExpression(Script(text, lang)) : _transpiler[lang](text);
-  return compile<StructureSelection>(expr);
+  return Script.toQuery(Script(text, lang));
 }
 
 /**

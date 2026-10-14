@@ -13,7 +13,7 @@
 import type { DocNode } from '@molstar/seq-core/format';
 import type { SeqSet } from '@molstar/seq-core/model';
 import { createSeqViewer, DefaultRegistry, DefaultSeqViewerSpec, Hit, manualScheduler } from '@molstar/seq-viewer';
-import { StructureElement } from 'molstar/lib/mol-model/structure';
+import { StructureElement } from '@molstar/model/model/structure';
 import { expect, it } from 'vitest';
 import { helpers } from '../../viewer/_test/layout-fixtures.js';
 import { fixtureMeasurer } from '../../viewer/src/testing/index.js';

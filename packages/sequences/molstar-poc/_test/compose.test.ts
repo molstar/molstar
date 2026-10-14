@@ -21,7 +21,7 @@ import {
   DefaultSeqViewerSpec,
   manualScheduler,
 } from '@molstar/seq-viewer';
-import { MVSData } from 'molstar/lib/extensions/mvs/mvs-data';
+import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { describe, expect, it } from 'vitest';
 import type { SplitFeatures } from '../../viewer/src/layout.js';
 import { fixtureMeasurer } from '../../viewer/src/testing/index.js';
