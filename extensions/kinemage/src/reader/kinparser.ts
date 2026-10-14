@@ -783,7 +783,11 @@ class KinParser {
           const { groupName, groupFlags, groupMasters } = parseGroup(line);
 
           const combinedName = (currentGroup + ':' + groupName) as string;
-          if (!kinemage.subgroupDict[combinedName]) {
+          // When there is a re-definition of a subgroup with the same name, this is
+          // a bit non-standard.  KiNG handles this by updating the group masters to the
+          // new list of masters, so we do that here as well.  We avoid checking to see if
+          // the subgroup exists already, and just overwrite it with the new definition.
+          //if (!kinemage.subgroupDict[combinedName]) {
             kinemage.subgroupDict[combinedName] = {
               dominant: false,
               // If the groupFlag includes "off", set off to true; otherwise, set it to false.
@@ -791,7 +795,7 @@ class KinParser {
               group: currentGroup,
             };
             currentSubgroupMasters = groupMasters;
-          }
+          //}
           currentSubgroup = combinedName;
 
           if (currentSubgroupMasters) {
