@@ -27,8 +27,8 @@ strip, one color per position from the layer's theme; letters as now. Not in tex
 alignment tracks (they need tracks), which then reserve no lane. Under the performance contract: allocation-free lane
 drawing, a heap guard per new lane kind with its positive control, tests, `_spec/viewer.md` (the wrapped geometry) and
 the generated reference. By Opus, design and implementation. Context: `.v6/seq/plan.md` §4; Prism's Text view shows
-letters only until then. _Trigger:_ the Prism sequence prototype's iterations done (with the performance pass on the
-host options, plan §4).
+letters only until then. _Trigger:_ a PR of its own, after the PR that brings Seq\* and Prism's sequence prototype (that
+one only reviews the current renderer changes).
 
 **An item coordinate system's own letters.** A letters track on a transcript's block, derived lazily from the source's
 streamed letters through its map (as the codon label reads them); until then a `letters` layer on an item block draws
