@@ -16,6 +16,7 @@ export * from './pae.js';
 export * from './plddt.js';
 export * from './query.js';
 export * from './registry.js';
+export * from './secondary.js';
 export * from './seq-units.js';
 export * from './sifts.js';
 export * from './source.js';

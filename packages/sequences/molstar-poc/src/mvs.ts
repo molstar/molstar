@@ -73,6 +73,15 @@ export interface StructureScene {
   /** Residues shown as ball and stick too, with a label (the Seq* selection). */
   readonly selection?: { readonly residues: MvsColorTable; readonly label: string } | null;
   readonly defaults?: MolstarDefaults;
+  /**
+   * The polymer's color theme by Mol*'s name (MVS's `molstar_color_theme_name`: `plddt-confidence` for a predicted model),
+   * which the plugin must have registered; in place of the base color.
+   */
+  readonly colorTheme?: string;
+  /**
+   * Which ligands show, by chemical component id (`HEM`); absent: all of them. Ions follow `defaults.ligands`.
+   */
+  readonly ligandComps?: readonly string[];
   /** The camera on `chains` (default true when chains are given). */
   readonly focus?: boolean;
   /** The canvas's background (MVS's `canvas` node; a host's light or dark surface); unset: MVS's default. */
@@ -99,7 +108,10 @@ export function structureMvs(scene: StructureScene): MVSData_State {
   const chains = scene.chains?.length ? scene.chains.map((c) => ({ ...c })) : null;
   const front = s.component({ selector: chains ?? 'polymer' });
   const repr = front.representation({ type: d.representation ?? 'cartoon' });
-  repr.color({ color: (d.base ?? '#c8c8c8') as ColorT });
+  repr.color({
+    color: (d.base ?? '#c8c8c8') as ColorT,
+    ...(scene.colorTheme ? { custom: { molstar_color_theme_name: scene.colorTheme } } : {}),
+  } as never);
   for (const t of scene.colors ?? []) {
     if (MvsColorTable.size(t) === 0) continue;
     repr.colorFromUri({ uri: MvsColorTable.dataUri(t), format: 'json', schema: 'residue_range' });
@@ -112,7 +124,10 @@ export function structureMvs(scene: StructureScene): MVSData_State {
     if (scene.focus !== false) front.focus({});
   }
   if (d.ligands !== false) {
-    s.component({ selector: 'ligand' }).representation({ type: 'ball_and_stick' }).color({ color: '#7b6f62' });
+    const ligands = scene.ligandComps ? scene.ligandComps.map((c) => ({ label_comp_id: c })) : ['ligand' as const];
+    for (const selector of ligands) {
+      s.component({ selector }).representation({ type: 'ball_and_stick' }).color({ color: '#7b6f62' });
+    }
     s.component({ selector: 'ion' }).representation({ type: 'ball_and_stick' });
   }
   for (const t of scene.sticks ?? []) {

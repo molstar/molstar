@@ -203,15 +203,21 @@ export class StructureLink {
     return m === undefined ? null : this.chains[m];
   }
 
-  /** Runs in any system with a route to this structure as one Mol* loci; edge rate, allocates. */
+  /**
+   * Runs in any system with a route to this structure as one Mol* loci; edge rate, allocates. A non-polymer chain's
+   * positions (heavy atoms) stand for their whole residue: the ligand lights and selects as a whole.
+   */
   toLoci(runs: Extents): StructureElement.Loci {
     const members = this.scratch;
     members.count = 0;
     this.toMembers(runs, members);
     const byUnit = new Map<number, { unit: Unit; at: number[] }>();
+    // A non-polymer chain's positions are its heavy atoms, but what a person points at is the ligand: its whole residue.
+    let ligand = false;
     for (let i = 0; i < members.count; i++) {
       const c = this.memberOf(members, i)?.chain;
       if (!c) continue;
+      if (c.kind !== 'polymer') ligand = true;
       const entry = byUnit.get(c.unit.id) ?? { unit: c.unit, at: [] };
       byUnit.set(c.unit.id, entry);
       for (let e = Math.max(0, members.start[i]); e < Math.min(c.count, members.stop[i]); e++) {
@@ -227,7 +233,8 @@ export class StructureLink {
       const indices = contiguous ? OrderedSet.ofBounds(at[0], at[at.length - 1] + 1) : OrderedSet.ofSortedArray(at);
       elements.push({ unit, indices: indices as OrderedSet<StructureElement.UnitIndex> });
     }
-    return StructureElement.Loci(this.structure, elements);
+    const loci = StructureElement.Loci(this.structure, elements);
+    return ligand ? StructureElement.Loci.extendToWholeResidues(loci) : loci;
   }
 
   /** Member runs as runs in their Seq* units, appended to `out` (the `structure` input of a SeqQL query). */

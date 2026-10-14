@@ -21,6 +21,7 @@ import { StructureProvider } from './complex.js';
 import { SiftsCoverageProvider, SiftsDepthProvider } from './coverage.js';
 import { PaeFormat, PaeProvider } from './pae.js';
 import { PlddtProvider } from './plddt.js';
+import { SecondaryStructureProvider } from './secondary.js';
 import { categoryTable, readStructure, type StructureFormat } from './source.js';
 
 /** A structure format: the parsed structure (`object`), or with `category_name` a CIF category as a table. */
@@ -98,7 +99,7 @@ export const MolstarSvsEntry: SvsRegistryEntry = {
   formats: MolstarFormats,
   services: MolstarServices,
   complexProviders: [StructureProvider],
-  providers: [PlddtProvider, PaeProvider, SiftsCoverageProvider, SiftsDepthProvider],
+  providers: [PlddtProvider, PaeProvider, SecondaryStructureProvider, SiftsCoverageProvider, SiftsDepthProvider],
   issueCodes: [
     { code: 'molstar.unit_name.collision', severity: 'error' },
     { code: 'molstar.ins_code.invalid', severity: 'warning' },

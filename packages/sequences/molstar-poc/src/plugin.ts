@@ -18,7 +18,7 @@ import { MVSRuntimeRegistry } from '@molstar/mvs/registry';
 import type { MVSData_State } from '@molstar/mvs-builder/mvs-data';
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import { PluginContext } from '@molstar/plugin/context';
-import { PluginSpec } from '@molstar/plugin/spec';
+import { type PluginRegistryEntry, PluginSpec } from '@molstar/plugin/spec';
 import { Asset } from '@molstar/core/util/assets';
 import { Color } from '@molstar/core/util/color/color';
 import type { StructureView3D } from './viewer.js';
@@ -51,9 +51,17 @@ export function pluginSpec(): PluginSpec {
  */
 export async function mountPlugin(
   host: HTMLElement,
-  o: { files?: ReadonlyMap<string, Uint8Array>; background?: number } = {},
+  o: {
+    files?: ReadonlyMap<string, Uint8Array>;
+    background?: number;
+    /** More registry entries (color themes, representations) beside MolViewSpec's: what a host's MVS states may name. */
+    registry?: readonly PluginRegistryEntry[];
+  } = {},
 ): Promise<PluginContext> {
-  const plugin = new PluginContext(pluginSpec());
+  const spec = pluginSpec();
+  const plugin = new PluginContext(
+    o.registry?.length ? { ...spec, registry: [...(spec.registry ?? []), ...o.registry] } : spec,
+  );
   await plugin.init();
   await plugin.mountAsync(host);
   for (const [url, bytes] of o.files ?? []) {
