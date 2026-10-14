@@ -22,6 +22,8 @@ export interface Dims {
   mixedCompIds?: boolean;
   /** Make `auth_comp_id` differ from `label_comp_id` (prefixed with `X`) in every 3rd chain. */
   differentAuthComp?: boolean;
+  /** Let `atom_site.id` wrap around after this many atoms (so that atoms share ids, as in formats with 5 digit serial numbers). */
+  atomIdWrap?: number;
 }
 
 export const CompIds = ['ALA', 'GLY', 'LEU', 'SER', 'VAL'];
@@ -60,6 +62,7 @@ function createMmcifText({
   descendingSeqIds,
   mixedCompIds,
   differentAuthComp,
+  atomIdWrap,
 }: Dims): string {
   const lines: string[] = [
     'data_BENCH',
@@ -97,7 +100,7 @@ function createMmcifText({
         const x = (c * 10 + a).toFixed(3);
         const y = (r * 3.8).toFixed(3);
         lines.push(
-          `ATOM ${id++} ${TypeSymbols[a]} ${AtomNames[a]} . ${atomComp} ${asym} ${entity} ${descendingSeqIds && c % 2 === 1 ? NResidues + 1 - r : r} ${insertionCodes && r % 7 === 0 ? 'A' : '?'} ${x} ${y} 0.000 1 10 ${r + 10} ${differentAuthComp && c % 3 === 1 ? `X${atomComp}` : atomComp} ${auth} ${AtomNames[a]} 1`,
+          `ATOM ${atomIdWrap ? ((id++ - 1) % atomIdWrap) + 1 : id++} ${TypeSymbols[a]} ${AtomNames[a]} . ${atomComp} ${asym} ${entity} ${descendingSeqIds && c % 2 === 1 ? NResidues + 1 - r : r} ${insertionCodes && r % 7 === 0 ? 'A' : '?'} ${x} ${y} 0.000 1 10 ${r + 10} ${differentAuthComp && c % 3 === 1 ? `X${atomComp}` : atomComp} ${auth} ${AtomNames[a]} 1`,
         );
       }
     }
@@ -307,6 +310,15 @@ export function combinedCategories({ nChains, nResidues }: Dims, nAtoms: number,
     cat('atom_id+label_asym / atom_index+label_seq', (r) => {
       const i = randInt(r, nAtoms);
       return r() < 0.5 ? { atom_id: i + 1, label_asym_id: chain(r) } : { atom_index: i, label_seq_id: seq(r) };
+    }),
+    cat('atom_id (repeated ids select all their atoms)', (r) => {
+      const i = randInt(r, Math.min(nAtoms, 150));
+      const pick = r();
+      if (pick < 0.2) return { atom_id: i + 1 };
+      if (pick < 0.4) return { atom_id: i + 1, label_asym_id: chain(r) };
+      if (pick < 0.6) return { atom_id: i + 1, label_seq_id: seq(r) };
+      if (pick < 0.8) return { atom_id: i + 1, atom_index: i };
+      return { atom_id: i + 1, atom_index: randInt(r, nAtoms) };
     }),
     cat('instance_id', (r) => ({ instance_id: r() < 0.5 ? '1' : '2', label_asym_id: chain(r), label_seq_id: seq(r) })),
   ];

@@ -30,6 +30,17 @@ describe.each([
       mixedCompIds: true,
     },
   ],
+  [
+    'repeated atom ids',
+    {
+      nChains: 12,
+      nResidues: 30,
+      insertionCodes: true,
+      descendingSeqIds: true,
+      differentAuthComp: true,
+      atomIdWrap: 150,
+    },
+  ],
 ] as const)('annotation rows vs per-atom brute force (%s)', async (_label, dims) => {
   const model = await createModel(dims);
   const nAtoms = model.atomicHierarchy.atoms._rowCount;

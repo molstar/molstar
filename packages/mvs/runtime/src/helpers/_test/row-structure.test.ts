@@ -52,6 +52,17 @@ describe.each([
       mixedCompIds: true,
     },
   ],
+  [
+    'repeated atom ids',
+    {
+      nChains: 12,
+      nResidues: 30,
+      insertionCodes: true,
+      descendingSeqIds: true,
+      differentAuthComp: true,
+      atomIdWrap: 150,
+    },
+  ],
 ] as const)('substructureFromRows vs MolScript expression (%s)', async (_label, dims) => {
   const model = await createModel(dims);
   const nAtoms = model.atomicHierarchy.atoms._rowCount;

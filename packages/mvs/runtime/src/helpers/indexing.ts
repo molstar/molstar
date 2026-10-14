@@ -81,7 +81,10 @@ export interface AtomicIndicesAndSortings {
   residuesByAuthCompId: Mapping<ChainIndex, Mapping<string, readonly ResidueIndex[]>>;
   /** Indicates if each residue is listed only once in `residuesByAuthCompId` (i.e. if each residue has only one auth_comp_id) */
   residuesByAuthCompIdIsPure: boolean;
+  /** The first atom with each `atom_id` (ids are not necessarily unique, e.g. serial numbers wrap around in some formats) */
   atomsById: Mapping<number, ElementIndex>;
+  /** All atoms (ascending) of each `atom_id` which is used by more than one atom, other ids are not listed */
+  atomsWithRepeatedId: Mapping<number, readonly ElementIndex[]>;
   atomsBySourceIndex: Mapping<number, ElementIndex>;
   /** Lookups over all chains at once (for rows without chain criteria), each built on first use */
   global: GlobalResidueIndices;
@@ -112,6 +115,7 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
   let residuesByAuthCompIdIsPure = true;
   const atomsById = new NumberMap<number, ElementIndex>(nAtoms + 1);
   const atomsBySourceIndex = new NumberMap<number, ElementIndex>(nAtoms);
+  const atomsWithRepeatedId = new Map<number, ElementIndex[]>();
 
   const _labelCompIdSet = new Set<string>();
   const _authCompIdSet = new Set<string>();
@@ -167,7 +171,15 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
   const atomId = model.atomicConformation.atomId.value;
   const atomIndex = h.atomSourceIndex.value;
   for (let iAtom = 0 as ElementIndex; iAtom < nAtoms; iAtom++) {
-    atomsById.set(atomId(iAtom), iAtom);
+    const id = atomId(iAtom);
+    const first = atomsById.get(id);
+    if (first === undefined) {
+      atomsById.set(id, iAtom);
+    } else {
+      let repeated = atomsWithRepeatedId.get(id);
+      if (!repeated) atomsWithRepeatedId.set(id, (repeated = [first]));
+      repeated.push(iAtom);
+    }
     atomsBySourceIndex.set(atomIndex(iAtom), iAtom);
   }
 
@@ -184,6 +196,7 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
     residuesByAuthCompId,
     residuesByAuthCompIdIsPure,
     atomsById,
+    atomsWithRepeatedId,
     atomsBySourceIndex,
     global: new GlobalResidueIndices(h),
   };

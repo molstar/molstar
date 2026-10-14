@@ -107,9 +107,8 @@ export function getAtomRangesForRowInto(
   const hasChainFilter = isDefined(row.label_asym_id) || isDefined(row.auth_asym_id) || isDefined(row.label_entity_id);
 
   if (hasAtomIds) {
-    const theAtom = getTheAtomForRow(model, row, atomicIndices);
-    if (theAtom === undefined) return undefined;
-    return out.add(theAtom, theAtom + 1);
+    addAtomsForAtomIds(out, model, row, atomicIndices);
+    return out;
   }
 
   if (!hasChainFilter && !hasResidueFilter && !hasAtomFilter) {
@@ -448,31 +447,31 @@ function residueHasCompId(
   return false;
 }
 
-/** Return index of atom in `model` which satistfies criteria given by `row`, if any.
- * Only works when `row.atom_id` and/or `row.atom_index` is defined (otherwise use `getAtomRangesForRow`). */
-function getTheAtomForRow(
+/** Add (ascending) the atoms in `model` which satisfy criteria given by `row` to `out`.
+ * Only works when `row.atom_id` and/or `row.atom_index` is defined (otherwise use `getAtomRangesForRowInto`).
+ * `atom_index` is unique, `atom_id` is not necessarily (all atoms with the id are candidates). */
+function addAtomsForAtomIds(
+  out: ElementRangesBuffer,
   model: Model,
   row: MVSAnnotationRow,
   indices: AtomicIndicesAndSortings,
-): ElementIndex | undefined {
-  let iAtom: ElementIndex | undefined = undefined;
+) {
   if (!isDefined(row.atom_id) && !isDefined(row.atom_index))
     throw new Error('ArgumentError: at least one of row.atom_id, row.atom_index must be defined.');
-  if (isDefined(row.atom_id) && isDefined(row.atom_index)) {
-    const a1 = indices.atomsById.get(row.atom_id);
-    const a2 = indices.atomsBySourceIndex.get(row.atom_index);
-    if (a1 !== a2) return undefined;
-    iAtom = a1;
-  }
-  if (isDefined(row.atom_id)) {
-    iAtom = indices.atomsById.get(row.atom_id);
-  }
   if (isDefined(row.atom_index)) {
-    iAtom = indices.atomsBySourceIndex.get(row.atom_index);
+    // (`atomQualifies` also checks `atom_id`, if given)
+    const iAtom = indices.atomsBySourceIndex.get(row.atom_index);
+    if (iAtom !== undefined && atomQualifies(model, iAtom, row)) out.add(iAtom, iAtom + 1);
+    return;
   }
-  if (iAtom === undefined) return undefined;
-  if (!atomQualifies(model, iAtom, row)) return undefined;
-  return iAtom;
+  const id = row.atom_id!;
+  const first = indices.atomsById.get(id);
+  if (first === undefined) return;
+  const candidates = indices.atomsWithRepeatedId.get(id) ?? [first];
+  for (let i = 0; i < candidates.length; i++) {
+    const iAtom = candidates[i];
+    if (atomQualifies(model, iAtom, row)) out.add(iAtom, iAtom + 1);
+  }
 }
 
 /** Return true if `iAtom`-th atom in `model` satisfies all selection criteria given by `row`. */
