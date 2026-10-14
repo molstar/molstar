@@ -40,6 +40,7 @@ export const SymbolTable = [
     Alias(MolScript.core.type.regex, 'regex'),
     Alias(MolScript.core.type.list, 'list'),
     Alias(MolScript.core.type.set, 'set'),
+    Alias(MolScript.core.type.empty, 'empty-value'),
 
     Alias(MolScript.core.type.compositeKey, 'composite-key'),
     Alias(MolScript.core.logic.not, 'not'),
@@ -101,6 +102,7 @@ export const SymbolTable = [
       Alias(MolScript.structureQuery.type.authResidueId, 'auth-resid'),
       Alias(MolScript.structureQuery.type.labelResidueId, 'label-resid'),
       Alias(MolScript.structureQuery.type.ringFingerprint, 'ringfp'),
+      Alias(MolScript.structureQuery.type.schemaItem, 'schema-item'),
       Alias(MolScript.structureQuery.type.bondFlags, 'bond-flags'),
     ],
     ['Slots', Alias(MolScript.structureQuery.slot.elementSetReduce, 'atom.set.reduce.value')],
@@ -109,6 +111,7 @@ export const SymbolTable = [
       Alias(MolScript.structureQuery.generator.atomGroups, 'sel.atom.atom-groups'),
       Alias(MolScript.structureQuery.generator.queryInSelection, 'sel.atom.query-in-selection'),
       Alias(MolScript.structureQuery.generator.rings, 'sel.atom.rings'),
+      Alias(MolScript.structureQuery.generator.elementSchema, 'sel.atom.element-schema'),
       Alias(MolScript.structureQuery.generator.empty, 'sel.atom.empty'),
       Alias(MolScript.structureQuery.generator.all, 'sel.atom.all'),
       Alias(MolScript.structureQuery.generator.bondedAtomicPairs, 'sel.atom.bonded-pairs'),

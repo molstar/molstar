@@ -30,6 +30,7 @@ import {
   ModelFromTrajectory,
   StructureFromModel,
 } from '@molstar/plugin/state/transforms/structure/hierarchy';
+import type { StructureComponentParams } from '@molstar/plugin/state/helpers/structure-component';
 import { StructureComponent } from '@molstar/plugin/state/transforms/structure/selection';
 import { TopologyFromPrmtop } from '@molstar/plugin/state/formats/topology/prmtop';
 import { TopologyFromPsf } from '@molstar/plugin/state/formats/topology/psf';
@@ -57,6 +58,8 @@ import { PluginState } from '@molstar/plugin/state';
 import { StateObjectSelector, StateTree } from '@molstar/core/state';
 import { RuntimeContext, Task } from '@molstar/core/task';
 import { Clip } from '@molstar/core/util/clip';
+import { ScratchMemory } from '@molstar/core/util/int-buffer';
+import { SchemaSelectionScratch } from '@molstar/model/model/structure/structure/element/schema-selection/scratch';
 import { MVS_BEHAVIOR_ID } from './behavior-id.js';
 import { createPluginStateSnapshotCamera, modifyCanvasProps, resetCanvasProps } from '@molstar/mvs/camera';
 import { MVSAnnotationsProvider } from '@molstar/mvs/components/annotation-prop';
@@ -216,6 +219,8 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
       }
     }
     plugin.errorContext.clear('mvs');
+    // (the buffers which the resolution of rows reuses between calls are not needed until the next load)
+    ScratchMemory.release(SchemaSelectionScratch);
   }
 }
 
@@ -529,14 +534,15 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
       return updateParent;
     }
     const selector = node.params.selector;
-    return transformAndInstantiateStructure(
-      UpdateTarget.apply(updateParent, StructureComponent, {
-        type: componentPropsFromSelector(selector),
-        label: prettyNameFromSelector(selector),
-        nullIfEmpty: false,
-      }),
-      node,
-    );
+    const type = componentPropsFromSelector(selector);
+    const label = prettyNameFromSelector(selector);
+    // (rows are the expression `element-schema`, which resolves them through the indices of the model; a `Selector` has `annotation`, which a component does not)
+    const component = UpdateTarget.apply(updateParent, StructureComponent, {
+      type: type as StructureComponentParams['type'],
+      label,
+      nullIfEmpty: false,
+    });
+    return transformAndInstantiateStructure(component, node);
   },
   component_from_uri(
     updateParent: UpdateTarget,

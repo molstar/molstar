@@ -18,3 +18,6 @@ coverage/
 .cache/
 .pnpm-store/
 **/pnpm-lock.yaml
+
+# The v6 designs, plans and notes are not formatted.
+.v6/

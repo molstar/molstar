@@ -1,15 +1,19 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Column } from '@molstar/core/data/db';
 import { SortedArray } from '@molstar/core/data/int';
-import { type ChainIndex, type ElementIndex, Model, type ResidueIndex } from '@molstar/model/model/structure';
-import type { CoarseElements } from '@molstar/model/model/structure/model/properties/coarse';
+import type { ChainIndex, ElementIndex, ResidueIndex } from '../../../model/indexing.js';
+import type { Model } from '../../../model.js';
+import type { CoarseElements } from '../../../model/properties/coarse.js';
 import { filterInPlace, range, sortIfNeeded } from '@molstar/core/util/array';
-import { type Mapping, MultiMap, NumberMap } from './utils.js';
+import { type Mapping, MultiMap } from '@molstar/core/util/multi-map';
+import { NumberMap } from '@molstar/core/util/number-map';
+import { isDefined } from '@molstar/core/util/object';
 
 export interface IndicesAndSortings {
   atomic?: AtomicIndicesAndSortings;
@@ -17,10 +21,52 @@ export interface IndicesAndSortings {
   gaussians?: CoarseIndicesAndSortings;
 }
 
+/** The things the indices (and anything else derived from the hierarchy and the atom ids, but not from the coordinates) depend on.
+ * Models with the same `atomicHierarchy`, `coarseHierarchy` and `atomId` column share one scope: these are the frames of a trajectory
+ * (a copy of a model with other coordinates), so what is computed for one frame is valid for all of them. */
+export interface HierarchyScope {
+  readonly coarseHierarchy: Model['coarseHierarchy'];
+  readonly atomId: Model['atomicConformation']['atomId'];
+  /** Cached `IndicesAndSortings.get` */
+  indices?: IndicesAndSortings;
+}
+
+const HierarchyScopes = new WeakMap<object, HierarchyScope[]>();
+/** The scope of each model, so that a lookup does not have to search the scopes of its hierarchy (an ensemble of models which share a hierarchy
+ * but have their own `atomId` columns has one per model) */
+const ModelScopes = new WeakMap<Model, HierarchyScope>();
+
+export const HierarchyScope = {
+  /** Get the scope of a model (created if the model is the first with its hierarchies and atom ids). Does not keep the model alive. */
+  get(model: Model): HierarchyScope {
+    let scope = ModelScopes.get(model);
+    if (!scope) ModelScopes.set(model, (scope = HierarchyScope.find(model)));
+    return scope;
+  },
+
+  find(model: Model): HierarchyScope {
+    const { atomicHierarchy, coarseHierarchy } = model;
+    const atomId = model.atomicConformation.atomId;
+    let scopes = HierarchyScopes.get(atomicHierarchy);
+    if (scopes) {
+      for (const s of scopes) {
+        if (s.coarseHierarchy === coarseHierarchy && s.atomId === atomId) return s;
+      }
+    } else {
+      HierarchyScopes.set(atomicHierarchy, (scopes = []));
+    }
+    const scope: HierarchyScope = { coarseHierarchy, atomId };
+    scopes.push(scope);
+    return scope;
+  },
+};
+
 export const IndicesAndSortings = {
-  /** Get `IndicesAndSortings` for a model (use a cached value or create if not available yet) */
+  /** Get `IndicesAndSortings` for a model (use a cached value or create if not available yet).
+   * The cache is shared by the models of a trajectory (see `HierarchyScope`), the indices are created once. */
   get(model: Model): IndicesAndSortings {
-    return (model._dynamicPropertyData['indices-and-sortings'] ??= this.create(model));
+    const scope = HierarchyScope.get(model);
+    return (scope.indices ??= this.create(model));
   },
 
   /** Create `IndicesAndSortings` for a model */
@@ -48,8 +94,10 @@ export interface AtomicIndicesAndSortings {
   residuesByAuthCompId: Mapping<ChainIndex, Mapping<string, readonly ResidueIndex[]>>;
   /** Indicates if each residue is listed only once in `residuesByAuthCompId` (i.e. if each residue has only one auth_comp_id) */
   residuesByAuthCompIdIsPure: boolean;
-  atomsById: Mapping<number, ElementIndex>;
-  atomsBySourceIndex: Mapping<number, ElementIndex>;
+  /** Lookups of atoms by `atom_id` and `atom_index`, each built on first use */
+  atoms: AtomIdIndices;
+  /** Lookups over all chains at once (for rows without chain criteria), each built on first use */
+  global: GlobalResidueIndices;
 }
 
 /** Create `AtomicIndicesAndSortings` for a model */
@@ -75,8 +123,6 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
   let residuesByLabelCompIdIsPure = true;
   const residuesByAuthCompId = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
   let residuesByAuthCompIdIsPure = true;
-  const atomsById = new NumberMap<number, ElementIndex>(nAtoms + 1);
-  const atomsBySourceIndex = new NumberMap<number, ElementIndex>(nAtoms);
 
   const _labelCompIdSet = new Set<string>();
   const _authCompIdSet = new Set<string>();
@@ -129,13 +175,6 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
     residuesByAuthCompId.set(iChain, residuesHereByAuthCompId);
   }
 
-  const atomId = model.atomicConformation.atomId.value;
-  const atomIndex = h.atomSourceIndex.value;
-  for (let iAtom = 0 as ElementIndex; iAtom < nAtoms; iAtom++) {
-    atomsById.set(atomId(iAtom), iAtom);
-    atomsBySourceIndex.set(atomIndex(iAtom), iAtom);
-  }
-
   return {
     chainsByLabelEntityId,
     chainsByLabelAsymId,
@@ -148,9 +187,144 @@ function createAtomicIndicesAndSortings(model: Model): AtomicIndicesAndSortings 
     residuesByLabelCompIdIsPure,
     residuesByAuthCompId,
     residuesByAuthCompIdIsPure,
-    atomsById,
-    atomsBySourceIndex,
+    atoms: new AtomIdIndices(nAtoms, model.atomicConformation.atomId, h.atomSourceIndex),
+    global: new GlobalResidueIndices(h),
   };
+}
+
+/** Lookups of atoms by `atom_id` and by `atom_index`, for rows which refer to them. They are built (in one pass over the atoms, at 4 bytes per atom
+ * for each of the two) when the first such row comes, so models which never see one do not pay for them. */
+export class AtomIdIndices {
+  private built = false;
+  private _byId!: NumberMap<number, ElementIndex>;
+  private _repeatedIds!: Map<number, ElementIndex[]>;
+  private _bySourceIndex!: NumberMap<number, ElementIndex>;
+
+  constructor(
+    private readonly nAtoms: number,
+    private readonly atomId: Column<number>,
+    private readonly atomSourceIndex: Column<number>,
+  ) {}
+
+  private build() {
+    if (this.built) return;
+    const { nAtoms, atomId, atomSourceIndex } = this;
+    // Ids are not necessarily near 0 (e.g. those of the 2nd model of a file continue after those of the 1st), so the table starts at the smallest id,
+    // unless the ids are so sparse that it would be much larger than the number of atoms (the others are then kept in a `Map`).
+    let minId = Infinity;
+    let maxId = -Infinity;
+    for (let iAtom = 0; iAtom < nAtoms; iAtom++) {
+      const id = atomId.value(iAtom);
+      if (id < minId) minId = id;
+      if (id > maxId) maxId = id;
+    }
+    const span = maxId - minId + 1;
+    const dense = nAtoms > 0 && span <= 2 * nAtoms + 1024;
+    const byId = new NumberMap<number, ElementIndex>(dense ? span : nAtoms + 1, dense ? minId : 0);
+    const bySourceIndex = new NumberMap<number, ElementIndex>(nAtoms);
+    const repeated = new Map<number, ElementIndex[]>();
+    for (let iAtom = 0 as ElementIndex; iAtom < nAtoms; iAtom++) {
+      const id = atomId.value(iAtom);
+      const first = byId.get(id);
+      if (first === undefined) {
+        byId.set(id, iAtom);
+      } else {
+        let atoms = repeated.get(id);
+        if (!atoms) repeated.set(id, (atoms = [first]));
+        atoms.push(iAtom);
+      }
+      bySourceIndex.set(atomSourceIndex.value(iAtom), iAtom);
+    }
+    this._byId = byId;
+    this._bySourceIndex = bySourceIndex;
+    this._repeatedIds = repeated;
+    this.built = true;
+  }
+
+  /** The first atom with each `atom_id` (ids are not necessarily unique, e.g. serial numbers wrap around in some formats) */
+  get byId(): Mapping<number, ElementIndex> {
+    this.build();
+    return this._byId;
+  }
+  /** All atoms (ascending) of each `atom_id` which is used by more than one atom, other ids are not listed */
+  get repeatedIds(): Mapping<number, readonly ElementIndex[]> {
+    this.build();
+    return this._repeatedIds;
+  }
+  /** The atom with each `atom_index` (it is unique) */
+  get bySourceIndex(): Mapping<number, ElementIndex> {
+    this.build();
+    return this._bySourceIndex;
+  }
+}
+
+/** Lookups of residues over the whole model, for rows without chain criteria: the per-chain indices would need a lookup in every chain
+ * (cost proportional to the number of chains even when there is a single match). Unlike them, these are built from one pass
+ * over the residues without sorting, and only when first needed. Residues in each list are ascending. */
+export class GlobalResidueIndices {
+  private _bySourceIndex: Map<number, ResidueIndex> | null | undefined = undefined;
+  private _byInsCode?: MultiMap<string, ResidueIndex>;
+  private _byLabelCompId?: MultiMap<string, ResidueIndex>;
+  private _byAuthCompId?: MultiMap<string, ResidueIndex>;
+
+  constructor(private readonly h: Model['atomicHierarchy']) {}
+
+  /** `residue_index` -> residue, or `null` when `residue_index` is not unique in the model (then use the per-chain indices) */
+  get residueBySourceIndex(): Map<number, ResidueIndex> | null {
+    if (this._bySourceIndex === undefined) {
+      const { residueSourceIndex } = this.h;
+      const nResidues = this.h.residues._rowCount;
+      const map = new Map<number, ResidueIndex>();
+      let unique = true;
+      for (let iRes = 0 as ResidueIndex; iRes < nResidues; iRes++) {
+        const index = residueSourceIndex.value(iRes);
+        if (map.has(index)) {
+          unique = false;
+          break;
+        }
+        map.set(index, iRes);
+      }
+      this._bySourceIndex = unique ? map : null;
+    }
+    return this._bySourceIndex;
+  }
+
+  get residuesByInsCode(): Mapping<string, readonly ResidueIndex[]> {
+    if (!this._byInsCode) {
+      const { pdbx_PDB_ins_code } = this.h.residues;
+      const map = new MultiMap<string, ResidueIndex>();
+      const nResidues = this.h.residues._rowCount;
+      for (let iRes = 0 as ResidueIndex; iRes < nResidues; iRes++) {
+        if (pdbx_PDB_ins_code.valueKind(iRes) === Column.ValueKind.Present)
+          map.add(pdbx_PDB_ins_code.value(iRes), iRes);
+      }
+      this._byInsCode = map;
+    }
+    return this._byInsCode;
+  }
+
+  /** Residues having an atom with the given `label_comp_id` */
+  get residuesByLabelCompId(): Mapping<string, readonly ResidueIndex[]> {
+    return (this._byLabelCompId ??= this.byCompId(this.h.atoms.label_comp_id));
+  }
+
+  /** Residues having an atom with the given `auth_comp_id` */
+  get residuesByAuthCompId(): Mapping<string, readonly ResidueIndex[]> {
+    return (this._byAuthCompId ??= this.byCompId(this.h.atoms.auth_comp_id));
+  }
+
+  private byCompId(compId: Column<string>) {
+    const map = new MultiMap<string, ResidueIndex>();
+    const { offsets } = this.h.residueAtomSegments;
+    const nResidues = this.h.residues._rowCount;
+    const seen = new Set<string>();
+    for (let iRes = 0 as ResidueIndex; iRes < nResidues; iRes++) {
+      for (let iAtom = offsets[iRes], stop = offsets[iRes + 1]; iAtom < stop; iAtom++) seen.add(compId.value(iAtom));
+      for (const id of seen) map.add(id, iRes);
+      seen.clear();
+    }
+    return map;
+  }
 }
 
 /** Auxiliary data structure for efficiently finding chains/elements in a coarse model by their properties */
@@ -252,21 +426,54 @@ export const Sorting = {
     return Sorting.getKeysWithValueInRange(sorting, target, target);
   },
 
+  /** Set `out.from`, `out.to` so that `keys.slice(out.from, out.to)` are the keys which have value within interval `[min, max]`
+   * (inclusive; an undefined or null `min` is negative infinity, an undefined or null `max` is positive infinity). Does not allocate.
+   * Bounds are numbers (they need not be integers); a bound of another type, or NaN, selects nothing. */
+  findIndexRange<K, V extends number>(
+    sorting: Sorting<K, V>,
+    min: V | undefined | null,
+    max: V | undefined | null,
+    out: { from: number; to: number },
+  ) {
+    const { keys, values } = sorting;
+    const hasMin = isDefined(min);
+    const hasMax = isDefined(max);
+    const lo = hasMin ? (min as number) : -Infinity;
+    const hi = hasMax ? (max as number) : Infinity;
+    if (
+      !keys ||
+      (hasMin && typeof min !== 'number') ||
+      (hasMax && typeof max !== 'number') ||
+      Number.isNaN(lo) ||
+      Number.isNaN(hi)
+    ) {
+      out.from = 0;
+      out.to = 0;
+      return out;
+    }
+    const from = hasMin ? SortedArray.findPredecessorIndex(values, lo as V) : 0;
+    // first index with a value greater than `hi`
+    let a = from;
+    let b = values.length;
+    while (a < b) {
+      const mid = (a + b) >> 1;
+      if (values[mid] <= hi) a = mid + 1;
+      else b = mid;
+    }
+    out.from = from;
+    out.to = a;
+    return out;
+  },
+
   /** Return a newly allocated array of keys which have value within interval `[min, max]` (inclusive).
    * The returned keys are sorted by their value.
    * Undefined `min` is interpreted as negative infitity, undefined `max` is interpreted as positive infinity. */
-  getKeysWithValueInRange<K, V extends number>(sorting: Sorting<K, V>, min: V | undefined, max: V | undefined): K[] {
-    const { keys, values } = sorting;
-    if (!keys) return [];
-    const n = keys.length;
-    const from = min !== undefined ? SortedArray.findPredecessorIndex(values, min) : 0;
-    let to: number;
-    if (max !== undefined) {
-      to = from;
-      while (to < n && values[to] <= max) to++;
-    } else {
-      to = n;
-    }
-    return keys.slice(from, to);
+  getKeysWithValueInRange<K, V extends number>(
+    sorting: Sorting<K, V>,
+    min: V | undefined | null,
+    max: V | undefined | null,
+  ): K[] {
+    const r = Sorting.findIndexRange(sorting, min, max, { from: 0, to: 0 });
+    return sorting.keys ? sorting.keys.slice(r.from, r.to) : [];
   },
 };

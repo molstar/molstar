@@ -49,6 +49,40 @@ the [API change ledger](breaking-v6-changes.md).
 - [Breaking] Remove the duplicate `@molstar/mvs-builder/expression` module; use
   `@molstar/query-language/language/expression`
 
+## MVS selectors through model indices
+
+- New MolQL generator `element-schema` (`structure.generator.element-schema`, `sel.atom.element-schema` in MolScript)
+  with the data symbols `schema-item` (`structure.type.schema-item`) and `empty` (`core.type.empty`, `empty-value`): it
+  resolves tables of `StructureElement.SchemaItem` rows (`label_asym_id`, `auth_seq_id`, `beg_label_seq_id`, ...)
+  through the indices of the model instead of testing every atom for every row, as a single set. 1000 rows on a
+  720k-atom structure take about 17 ms (seconds before), 10,000 rows about 130 ms. A table can be given as rows
+  (`schema-item` for each) or by columns (one `schema-item` whose fields are lists); the compiler passes a list through
+  as it is, so the cost of the expression does not grow with its size, and `Schema.toExpression` switches to columns
+  from 10 rows
+- `null` and lists of values (of `string`, `number`, `boolean` and `null`) are literals in the arguments of an
+  expression (`null`, which is what JSON makes of `undefined` in a list, is a missing value)
+- `StructureElement.Schema.toExpression`, `toLoci` and `toBundle` (`Loci.fromSchema`, `Bundle.fromSchema`) use it, and
+  MVS does for the selectors given as rows of `component` nodes (the plugin's own components, which the classic UI can
+  modify), inline tooltips and color layers. Annotation components, labels, annotation colors and tooltips, and
+  primitive positions resolve rows through the same indices directly
+- Code which reuses buffers between calls registers them with `ScratchMemory` (`@molstar/core/util/int-buffer`) under a
+  context (`SchemaSelectionScratch` for the rows), which keeps what is small after each call, and
+  `ScratchMemory.release(...contexts)` frees it (every context when none is named); MVS calls it when a load is done
+- Rows are resolved the same way everywhere: a residue without `label_seq_id` (ligands, waters) no longer matches a
+  `label_seq_id` range or `end_label_seq_id` as MolScript did (it read a missing value as 0), `atom_id` rows select
+  every atom with that id, `operator_name` is supported in rows, JSON annotation values of the wrong type (`"10"` for a
+  number) are converted (see the API change ledger), and a range of `auth_seq_id` with
+  `beg_auth_ins_code`/`end_auth_ins_code` is a range of residues in the order of the input file (new in `SchemaItem`,
+  not in MolViewSpec yet)
+- Components, layers and labels made from rows are named by what they select in a compact form (`A`, `A432`, `A:10-50`,
+  `A, B, C`, `120 residues`) instead of a dump of the rows
+- Annotation rows use reusable typed-array buffers, a sort-free range union, and paint each element once (later rows
+  win, and the pass stops when every element has a row), so overlapping rows no longer cost the sum of their sizes: the
+  union of 20,000 rows allocates 26 MB instead of 1.4 GB, and 20,000 overlapping rows take about 3 ms instead of 1.5 s
+- The row indices are shared by the frames of a trajectory (10 frames of 720k atoms, 100 rows: about 800 ms to 150 ms),
+  and rows without chain criteria (`residue_index`, insertion code, `comp_id`) use whole-model lookups instead of a
+  lookup in every chain
+
 ## Mol\* UI v-next, phase 1
 
 - Prism, the new UI (`packages/prism/*`), and the AI agent packages (`packages/ai/*`): private, not published, mocked in

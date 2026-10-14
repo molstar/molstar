@@ -22,6 +22,11 @@ import { VdwRadius, AtomWeight, AtomNumber } from '@molstar/model/model/structur
 import { cantorPairing, invertCantorPairing, sortedCantorPairing } from '@molstar/core/data/util/hash-functions';
 import { bundleElementImpl, bundleGenerator } from '@molstar/model/model/structure/query/queries/internal';
 import { arrayEqual } from '@molstar/core/util/array';
+import type { SchemaItem } from '@molstar/model/model/structure/structure/element/schema';
+import {
+  isRowsOfSchemaItem,
+  schemaItemsFromFields,
+} from '@molstar/model/model/structure/structure/element/schema-selection/fields';
 
 const C = QuerySymbolRuntime.Const;
 const D = QuerySymbolRuntime.Dynamic;
@@ -37,6 +42,9 @@ const symbols = [
   }),
   C(MolScript.core.type.str, function core_type_str(ctx, v) {
     return '' + v[0](ctx);
+  }),
+  C(MolScript.core.type.empty, function core_type_empty() {
+    return undefined;
   }),
   C(MolScript.core.type.list, function core_type_list(ctx, xs) {
     return QueryRuntimeArguments.forEachEval(xs, ctx, (v, i, list) => (list[i] = v), [] as any[]);
@@ -277,6 +285,12 @@ const symbols = [
     })(ctx),
   ),
 
+  C(MolScript.structureQuery.type.schemaItem, function structureQuery_type_schemaItem(ctx, xs) {
+    const fields: { [name: string]: unknown } = {};
+    for (const name of Object.keys(xs ?? {})) fields[name] = (xs as any)[name](ctx);
+    return schemaItemsFromFields(fields);
+  }),
+
   // ============= GENERATORS ================
   D(MolScript.structureQuery.generator.atomGroups, function structureQuery_generator_atomGroups(ctx, xs) {
     return Queries.generators.atoms({
@@ -293,6 +307,23 @@ const symbols = [
   }),
   D(MolScript.structureQuery.generator.empty, function structureQuery_generator_empty(ctx) {
     return Queries.generators.none(ctx);
+  }),
+  D(MolScript.structureQuery.generator.elementSchema, function structureQuery_generator_elementSchema(ctx, xs) {
+    const rows: SchemaItem[] = [];
+    if (xs) {
+      QueryRuntimeArguments.forEachEval(
+        xs,
+        ctx,
+        (items: unknown) => {
+          // (a value of another kind, e.g. a list or a string, would be a row which has no criteria: everything)
+          if (!isRowsOfSchemaItem(items))
+            throw new Error('ArgumentError: the arguments of element-schema must be schema-item.');
+          for (const item of items) rows.push(item);
+        },
+        undefined,
+      );
+    }
+    return Queries.generators.elementSchema(rows)(ctx);
   }),
   D(MolScript.structureQuery.generator.bondedAtomicPairs, function structureQuery_generator_bondedAtomicPairs(ctx, xs) {
     return Queries.generators.bondedAtomicPairs(xs && xs[0])(ctx);

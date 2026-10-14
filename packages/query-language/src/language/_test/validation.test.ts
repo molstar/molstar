@@ -41,6 +41,42 @@ describe('MolQL syntax and field names', () => {
     expect(issues({ head: { name: 'core.math.add' }, args: [Infinity] })?.join('\n')).toContain('Expected a literal');
   });
 
+  it('accepts null and lists of values as arguments (the columns of a table), not as an expression of their own', () => {
+    const table = B.struct.type.schemaItem({
+      label_asym_id: ['A', null, 'B'],
+      label_seq_id: [1, 2, null],
+      auth_seq_id: null,
+    });
+    expect(issues(B.struct.generator.elementSchema([table]))).toBeUndefined();
+    expect(issues(JSON.parse(JSON.stringify(B.struct.generator.elementSchema([table]))))).toBeUndefined();
+    expect(issues(B.struct.type.schemaItem({ label_seq_id: [1, Infinity] }))?.join('\n')).toContain(
+      'expression.args["label_seq_id"][1]: Expected a string, a finite number, a boolean or null in a list of values.',
+    );
+    expect(issues(B.struct.type.schemaItem({ label_seq_id: [1, [2]] as any }))).toBeDefined();
+    expect(issues(B.struct.type.schemaItem({ label_seq_id: [1, { name: 'A' }] as any }))).toBeDefined();
+    expect(issues([1, 2])).toBeDefined();
+    expect(issues(null)).toBeDefined();
+  });
+
+  it('accepts a list of values or null only where the argument can be one', () => {
+    // (a list or a missing value is not a boolean)
+    expect(issues(B.struct.generator.atomGroups({ 'residue-test': [false] as any }))?.join('\n')).toContain(
+      'expression.args["residue-test"]: This argument is not a list of values, or a missing value (null).',
+    );
+    expect(issues(B.struct.generator.atomGroups({ 'chain-test': null as any }))).toBeDefined();
+    expect(issues(B.core.math.add([[1, 2], 1] as any))).toBeDefined();
+    // (a list is what a list, a set and a field of an item which can be a column are)
+    expect(issues(B.core.type.list([[1, 2], null] as any))).toBeUndefined();
+    expect(issues(B.core.type.set([[1, 2]] as any))).toBeUndefined();
+    expect(issues(B.struct.type.schemaItem({ label_seq_id: [1, null], label_asym_id: null }))).toBeUndefined();
+    // (and of any type)
+    expect(issues(B.struct.generator.atomGroups({ 'group-by': [1, 2] as any }))).toBeUndefined();
+    // (nothing is known about a symbol which is not looked up)
+    expect(issues({ head: { name: 'custom.call' }, args: { x: [1, null] } }, { syntaxOnly: true })).toBeUndefined();
+    // (and the elements of the generator are items, not lists)
+    expect(issues(B.struct.generator.elementSchema([[1, 2]] as any))).toBeDefined();
+  });
+
   it('rejects unknown nested callable symbols with their paths', () => {
     const expression = B.struct.generator.atomGroups({ 'atom-test': { head: { name: 'unknown' } } });
     expect(issues(expression)?.join('\n')).toContain('expression.args["atom-test"].head.name');

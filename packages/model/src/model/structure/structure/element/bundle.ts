@@ -57,8 +57,8 @@ export namespace Bundle {
     return fromLoci(Loci.fromQuery(structure, query, queryContext));
   }
 
-  export function fromSchema(structure: Structure, schema: Schema, queryContext?: QueryContext): Bundle {
-    return Schema.toBundle(structure, schema, queryContext);
+  export function fromSchema(structure: Structure, schema: Schema): Bundle {
+    return Schema.toBundle(structure, schema);
   }
 
   export function fromLoci(loci: Loci): Bundle {

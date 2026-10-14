@@ -75,7 +75,7 @@ export const ElementSet = {
   /** Create an `ElementSet` from the substructure of `structure` defined by `selector` */
   fromSelector(structure: Structure | undefined, selector: Selector): ElementSet {
     if (!structure) return {};
-    const selection = substructureFromSelector(structure, selector); // using `getAtomRangesForRow` might (might not) be faster here
+    const selection = substructureFromSelector(structure, selector);
     return this.fromStructure(selection);
   },
   /** Decide if the element set `set` contains structure element location `location` */

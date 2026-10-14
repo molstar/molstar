@@ -64,10 +64,32 @@ class Writer {
   }
 }
 
+/** What the parser reads as a number */
+function isNumberText(text: string): boolean {
+  return /-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/.test(text) && !Number.isNaN(+text);
+}
+
+/** Would the parser read the text of this string as something other than the string: a number, a boolean, an atom name (`.CA`) or an element symbol (`_C`)? */
+function readsAsSomethingElse(text: string): boolean {
+  return (
+    text === 'true' ||
+    text === 'false' ||
+    isNumberText(text) ||
+    (text.length > 1 && (text[0] === '.' || text[0] === '_'))
+  );
+}
+
+/** The text of a literal: a missing value (`null`) is `empty-value`, a list of values is `[a b c]` (which the parser makes a list) */
+function literalText(e: Expression.Literal): string {
+  if (e === null) return 'empty-value';
+  if (Array.isArray(e)) return `[${e.map(literalText).join(' ')}]`;
+  if (typeof e === 'string' && (/[\s()[\]{};`,]/.test(e) || !e.length || readsAsSomethingElse(e))) return `\`${e}\``;
+  return `${e}`;
+}
+
 function _format(e: Expression, writer: Writer) {
   if (isLiteral(e)) {
-    if (typeof e === 'string' && (/\s/.test(e) || !e.length)) writer.append(`\`${e}\``);
-    else writer.append(`${e}`);
+    writer.append(literalText(e));
     return;
   }
   if (isSymbol(e)) {

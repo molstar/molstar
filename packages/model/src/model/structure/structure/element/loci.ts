@@ -129,8 +129,8 @@ export namespace Loci {
     return StructureSelection.toLociWithSourceUnits(selection);
   }
 
-  export function fromSchema(structure: Structure, schema: Schema, queryContext?: QueryContext): Loci {
-    return Schema.toLoci(structure, schema, queryContext);
+  export function fromSchema(structure: Structure, schema: Schema): Loci {
+    return Schema.toLoci(structure, schema);
   }
 
   export function getFirstLocation(loci: Loci, e?: Location): Location | undefined {

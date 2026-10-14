@@ -1,10 +1,13 @@
 /**
- * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Column } from '@molstar/core/data/db';
+import { ScratchMemory } from '@molstar/core/util/int-buffer';
+import { SchemaSelectionScratch } from '@molstar/model/model/structure/structure/element/schema-selection/scratch';
 import { CIF, CifBlock, CifCategory, CifFile } from '@molstar/io/reader/cif';
 import { toTable } from '@molstar/io/reader/cif/schema';
 import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
@@ -18,12 +21,23 @@ import { type Jsonable, canonicalJsonString } from '@molstar/core/util/json';
 import { objectOfArraysToArrayOfObjects, pickObjectKeysWithRemapping, promiseAllObj } from '@molstar/core/util/object';
 import { Choice } from '@molstar/core/util/param-choice';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { ElementRanges } from '@molstar/mvs/helpers/element-ranges';
-import { IndicesAndSortings } from '@molstar/mvs/helpers/indexing';
+import { ElementPainter } from '@molstar/mvs/helpers/element-painter';
+import {
+  HierarchyScope,
+  IndicesAndSortings,
+} from '@molstar/model/model/structure/structure/element/schema-selection/indexing';
 import { MaybeStringParamDefinition } from '@molstar/mvs/helpers/param-definition';
 import { type MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '@molstar/mvs/helpers/schemas';
-import { getAtomRangesForRow, getGaussianRangesForRow, getSphereRangesForRow } from '@molstar/mvs/helpers/selections';
-import { type Maybe, isDefined, safePromise } from '@molstar/mvs/helpers/utils';
+import {
+  AtomRangesScratch,
+  type RowOperator,
+  getAtomRangesForRowInto,
+  getGaussianRangesForRow,
+  getSphereRangesForRow,
+  rowsUseOperators,
+} from '@molstar/model/model/structure/structure/element/schema-selection/selections';
+import { hasValue } from '@molstar/model/model/structure/structure/element/schema-selection/fields';
+import { type Maybe, safePromise } from '@molstar/mvs/helpers/utils';
 
 /** Allowed values for the annotation format parameter */
 const MVSAnnotationFormat = new Choice({ json: 'json', cif: 'cif', bcif: 'bcif' }, 'json');
@@ -179,7 +193,7 @@ type FieldRemapping = Record<string, string | null>;
 /** Mapping `ElementIndex` -> annotation row index for all elements of one kind (atoms, spheres, gaussians) in a `Model`.
  * `-1` means no row applies to the element.
  * `null` means no row applies to any element. */
-type IndexedElements = number[] | null;
+type IndexedElements = Int32Array | null;
 
 /** Mapping `ElementIndex` -> annotation row index for atoms, spheres, and gaussians in a `Model`. */
 type IndexedModel = {
@@ -195,6 +209,19 @@ function getIndexedElementsForUnitKind(indexedModel: IndexedModel, unitKind: Uni
   console.warn(`Unknown Unit.Kind value: ${unitKind}`);
   return null;
 }
+
+type IndexedModelsOfScope = {
+  single: IndexedModel | undefined;
+  byKey: Map<string, IndexedModel>;
+  byOperator: WeakMap<object, IndexedModel>;
+};
+
+/** Reusable buffers for `getAtomRangesForRow` in `MVSAnnotation.getRowForEachAtom` (not reentrant, synchronous use only) */
+const RowScratch = new AtomRangesScratch();
+ScratchMemory.register(SchemaSelectionScratch, () => RowScratch.trim(0));
+/** Paints the rows in `MVSAnnotation.getRowForEachAtom` (synchronous use only) */
+const RowPainter = new ElementPainter();
+ScratchMemory.register(SchemaSelectionScratch, () => RowPainter.release(0));
 
 /** Main class for processing MVS annotation */
 export class MVSAnnotation {
@@ -258,7 +285,7 @@ export class MVSAnnotation {
 
   /** Return value of field `fieldName` assigned to location `loc`, if any */
   getValueForLocation(loc: StructureElement.Location, fieldName: string): string | undefined {
-    const indexedModel = this.getIndexedModel(loc.unit.model, loc.unit.conformation.operator.instanceId);
+    const indexedModel = this.getIndexedModel(loc.unit.model, loc.unit.conformation.operator);
     const indexedElements = getIndexedElementsForUnitKind(indexedModel, loc.unit.kind);
     const iRow = indexedElements ? indexedElements[loc.element] : -1;
     return this.getValueForRow(iRow, fieldName);
@@ -276,39 +303,79 @@ export class MVSAnnotation {
     }
   }
 
-  /** Return cached `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` (or create it if not cached yet) */
-  private getIndexedModel(model: Model, instanceId: string): IndexedModel {
-    const key = this.hasInstanceIds() ? `${model.id}:${instanceId}` : model.id;
-    if (!this._indexedModels.has(key)) {
-      const result = this.getRowForEachAtom(model, instanceId);
-      this._indexedModels.set(key, result);
+  /** Return cached `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` (or create it if not cached yet).
+   * The mapping does not depend on coordinates, so the models of a trajectory share it (`HierarchyScope`).
+   * It is looked up once per element by themes and tooltips, so a lookup does not allocate: with no row about operators the mapping is one
+   * per scope, otherwise it is found by the (shared, long lived) operator object of the unit, and only the first lookup with an operator
+   * builds the key of its instance and name. */
+  private getIndexedModel(model: Model, operator: RowOperator): IndexedModel {
+    const scope = HierarchyScope.get(model);
+    let entry = this._indexedModels.get(scope);
+    if (!entry)
+      this._indexedModels.set(scope, (entry = { single: undefined, byKey: new Map(), byOperator: new WeakMap() }));
+    const use = this.operatorUse();
+    if (use === 'none') return (entry.single ??= this.getRowForEachAtom(model, operator));
+    let result = entry.byOperator.get(operator);
+    if (!result) {
+      const key = this.operatorKey(operator, use);
+      result = entry.byKey.get(key);
+      if (!result) entry.byKey.set(key, (result = this.getRowForEachAtom(model, operator)));
+      entry.byOperator.set(operator, result);
     }
-    return this._indexedModels.get(key)!;
+    return result;
   }
-  /** Cached `IndexedModel` per `Model.id` (if annotation contains no instanceIds)
-   * or per `Model.id:instanceId` combination (if at least one row contains instanceId). */
-  private _indexedModels = new Map<string, IndexedModel>();
+  /** Cached `IndexedModel` per hierarchy scope (models of one trajectory): one (`single`) if no row contains `instance_id` or `operator_name`,
+   * otherwise one per instance (or instance and operator name), found by key (`byKey`) or, faster, by the operator object (`byOperator`). */
+  private _indexedModels = new WeakMap<HierarchyScope, IndexedModelsOfScope>();
 
-  /** Create `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` */
-  private getRowForEachAtom(model: Model, instanceId: string): IndexedModel {
+  /** The key of the mapping of an operator (a string is built for the instance and the name: only called for an operator which was not looked up before) */
+  private operatorKey(operator: RowOperator, use: 'instance' | 'both'): string {
+    return use === 'instance' ? operator.instanceId : `${operator.instanceId}|${operator.name}`;
+  }
+
+  /** Which properties of the operator of a unit the mapping depends on, according to the rows. */
+  private operatorUse(): 'none' | 'instance' | 'both' {
+    return (this._operatorUse ??= this.getRows().some((row) => hasValue(row.operator_name))
+      ? 'both'
+      : rowsUseOperators(this.getRows())
+        ? 'instance'
+        : 'none');
+  }
+  private _operatorUse?: 'none' | 'instance' | 'both' = undefined;
+
+  /** Create `ElementIndex` -> `MVSAnnotationRow` mapping for `Model`.
+   * An element gets the index of the last row which applies to it. The rows are visited from the last one, so that each element is
+   * written once (`ElementPainter`), and the pass stops as soon as every element has a row (e.g. a row selecting everything is last). */
+  private getRowForEachAtom(model: Model, operator: RowOperator): IndexedModel {
     const indices = IndicesAndSortings.get(model);
-    const nAtoms = model.atomicHierarchy.atoms._rowCount;
-    const nSpheres = model.coarseHierarchy.spheres.count;
-    const nGaussians = model.coarseHierarchy.gaussians.count;
-    let indexedAtoms: IndexedElements = null;
-    let indexedSpheres: IndexedElements = null;
-    let indexedGaussians: IndexedElements = null;
     const rows = this.getRows();
-    for (let iRow = 0, nRows = rows.length; iRow < nRows; iRow++) {
-      const row = rows[iRow];
-      const atomRanges = getAtomRangesForRow(row, model, instanceId, indices);
-      indexedAtoms = fillValueOnRanges(indexedAtoms, nAtoms, atomRanges, iRow);
-      const sphereRanges = getSphereRangesForRow(row, model, instanceId, indices);
-      indexedSpheres = fillValueOnRanges(indexedSpheres, nSpheres, sphereRanges, iRow);
-      const gaussianRanges = getGaussianRangesForRow(row, model, instanceId, indices);
-      indexedGaussians = fillValueOnRanges(indexedGaussians, nGaussians, gaussianRanges, iRow);
+    const painter = RowPainter;
+    try {
+      painter.begin(model.atomicHierarchy.atoms._rowCount);
+      for (let iRow = rows.length - 1; iRow >= 0 && !painter.isComplete; iRow--) {
+        const r = getAtomRangesForRowInto(rows[iRow], model, operator, indices, RowScratch); // consumed right away, so reusing the buffer is safe
+        if (r) painter.paint(r.from, r.to, r.count, iRow);
+      }
+      const atoms = painter.result();
+
+      painter.begin(model.coarseHierarchy.spheres.count);
+      for (let iRow = rows.length - 1; iRow >= 0 && !painter.isComplete; iRow--) {
+        const r = getSphereRangesForRow(rows[iRow], model, operator, indices);
+        if (r) painter.paint(r.from, r.to, r.from.length, iRow);
+      }
+      const spheres = painter.result();
+
+      painter.begin(model.coarseHierarchy.gaussians.count);
+      for (let iRow = rows.length - 1; iRow >= 0 && !painter.isComplete; iRow--) {
+        const r = getGaussianRangesForRow(rows[iRow], model, operator, indices);
+        if (r) painter.paint(r.from, r.to, r.from.length, iRow);
+      }
+      const gaussians = painter.result();
+      return { atoms, spheres, gaussians };
+    } finally {
+      RowScratch.trim();
+      painter.release();
     }
-    return { atoms: indexedAtoms, spheres: indexedSpheres, gaussians: indexedGaussians };
   }
 
   /** Parse and return all annotation rows in this annotation, or return cached result if available */
@@ -326,12 +393,6 @@ export class MVSAnnotation {
         return getRowsFromCif(this.data.data, this.schema, this.fieldRemapping);
     }
   }
-
-  /** Return `true` if some rows in the annotation contain `instance_id` field. */
-  private hasInstanceIds(): boolean {
-    return (this._hasInstanceIds ??= this.getRows().some((row) => isDefined(row.instance_id)));
-  }
-  private _hasInstanceIds?: boolean = undefined;
 
   /** Return list of all distinct values appearing in field `fieldName`, in order of first occurrence. Ignores special values `.` and `?`. If `caseInsensitive`, make all values uppercase. */
   getDistinctValuesInField(fieldName: string, caseInsensitive: boolean): string[] {
@@ -402,13 +463,34 @@ function getRowsFromJson(
   const js = data as any;
   const cifSchema = getCifAnnotationSchema(schema);
   const cifSchemaKeys = Object.keys(cifSchema);
+  let rows: MVSAnnotationRow[];
   if (Array.isArray(js)) {
     // array of objects
-    return js.map((row) => pickObjectKeysWithRemapping(row, cifSchemaKeys, fieldRemapping));
+    rows = js.map((row) => pickObjectKeysWithRemapping(row, cifSchemaKeys, fieldRemapping));
   } else {
     // object of arrays
     const selectedFields: Record<string, any[]> = pickObjectKeysWithRemapping(js, cifSchemaKeys, fieldRemapping);
-    return objectOfArraysToArrayOfObjects(selectedFields);
+    rows = objectOfArraysToArrayOfObjects(selectedFields);
+  }
+  const intKeys = cifSchemaKeys.filter(
+    (key) => (cifSchema as Record<string, Column.Schema.Int | Column.Schema.Str>)[key].valueType === 'int',
+  );
+  const strKeys = cifSchemaKeys.filter((key) => !intKeys.includes(key));
+  for (const row of rows) coerceJsonRowTypes(row as Record<string, unknown>, intKeys, strKeys);
+  return rows;
+}
+
+/** JSON data is not type-checked, so a number may arrive as a string (`"10"`) and an identifier as a number (`1`).
+ * Convert them to the type of the field, so that rows select what their author means (numbers are matched as numbers,
+ * a non-numeric string for a number field is left as it is and selects nothing). */
+function coerceJsonRowTypes(row: Record<string, unknown>, intKeys: string[], strKeys: string[]) {
+  for (const key of intKeys) {
+    const value = row[key];
+    if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) row[key] = Number(value);
+  }
+  for (const key of strKeys) {
+    const value = row[key];
+    if (typeof value === 'number') row[key] = `${value}`;
   }
 }
 
@@ -521,17 +603,4 @@ function annotationSourceFromSpec(s: MVSAnnotationSpec): MVSAnnotationSource {
     case 'source-cif':
       return { kind: 'source-cif' };
   }
-}
-
-/** In `array`, set value `fillValue` to all positions described by `fillRanges`. In case `array` is `null`, initialize it with length `n` prefilled with -1. */
-function fillValueOnRanges(
-  array: IndexedElements,
-  n: number,
-  fillRanges: ElementRanges | undefined,
-  fillValue: number,
-): IndexedElements {
-  if (!fillRanges || ElementRanges.count(fillRanges) === 0) return array;
-  const out = array ?? Array(n).fill(-1);
-  ElementRanges.foreach(fillRanges, (from, to) => out.fill(fillValue, from, to));
-  return out;
 }

@@ -79,9 +79,32 @@ describe('MVS MolQL selectors', () => {
     const wrapped = { molql };
     expect(componentPropsFromSelector(wrapped)).toEqual({ name: 'expression', params: molql });
     expect(componentPropsFromSelector('protein')).toEqual({ name: 'static', params: 'protein' });
-    expect(componentPropsFromSelector({ label_asym_id: 'A' })).toMatchObject({ name: 'expression' });
-    expect(componentPropsFromSelector([{ label_asym_id: 'A' }])).toMatchObject({ name: 'expression' });
+    // rows are the expression element-schema (which resolves them through the indices of the model)
+    const item = (args: object) => ({ head: { name: 'structure-query.type.schema-item' }, args });
+    const generator = (items: object[]) => ({
+      head: { name: 'structure-query.generator.element-schema' },
+      args: items,
+    });
+    expect(componentPropsFromSelector({ label_asym_id: 'A' })).toEqual({
+      name: 'expression',
+      params: generator([item({ label_asym_id: 'A' })]),
+    });
+    const rows = [{ label_asym_id: 'A' }, { label_asym_id: 'B', label_seq_id: 3 }];
+    expect(componentPropsFromSelector(rows)).toEqual({
+      name: 'expression',
+      params: generator([item({ label_asym_id: 'A' }), item({ label_asym_id: 'B', label_seq_id: 3 })]),
+    });
+    // (many rows are columns)
+    const many = Array.from({ length: 12 }, (_, i) => ({ label_asym_id: 'A', label_seq_id: i }));
+    expect(componentPropsFromSelector(many)).toEqual({
+      name: 'expression',
+      params: generator([item({ label_asym_id: many.map(() => 'A'), label_seq_id: many.map((_, i) => i) })]),
+    });
     expect(prettyNameFromSelector(wrapped)).toEqual('MolQL Selection');
+    expect(prettyNameFromSelector({ label_asym_id: 'A' })).toEqual('A');
+    expect(prettyNameFromSelector(rows)).toEqual('A + B3');
+    expect(prettyNameFromSelector('protein')).toEqual('Protein');
+    expect(prettyNameFromSelector(undefined)).toEqual('All');
   });
 
   it('rejects invalid selector and primitive addresses during MVS validation', () => {
