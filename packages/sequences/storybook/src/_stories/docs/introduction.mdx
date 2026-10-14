@@ -1,16 +1,17 @@
 import { Meta } from "@storybook/addon-docs/blocks";
-import { Code, ExampleNightingale, ExampleViewer, MinimalExample } from "./live";
+import { Code, ExampleNightingale, ExamplePlugin, ExampleViewer, MinimalExample } from "./live";
 import source from "./minimal-example.tsx?raw";
 
 <Meta title="Seq*/Docs/Introduction" />
 
 # Seq\*
 
-**SeqViewSpec** is a format for sequence views built on one coordinate model: positions on anything from a single
-residue to a whole genome, and the maps between them (a protein's residues onto its gene's codons across introns, an
-alignment's rows onto its columns, a design onto its wild type, a chain onto its structure). Data placed on any of
-these shows on the others. The Seq\* viewer renders it, and so does Nightingale. Here is one document, rendered live
-by the Seq\* viewer (hover a residue or a domain):
+**Seq\*** is a library for viewing sequences in their biological context, from a single protein to a whole genome. It is built on
+one coordinate model: positions, and the maps between them (a protein's residues onto its gene's codons across introns,
+an alignment's rows onto its columns, a design onto its wild type, a chain onto its structure), so data placed on any of
+these shows on the others. A view is a document in **SeqViewSpec**, Seq\*'s format, as MolViewSpec is for Mol\*'s 3D
+views; the Seq\* viewer renders it, and so does Nightingale. Here is one document, rendered live by the Seq\* viewer
+(hover a residue or a domain):
 
 <ExampleViewer />
 
@@ -24,6 +25,14 @@ The two are linked, by this page's own code and the public APIs of both (Nightin
 Mol\* view is in the 3D stories): hover or select in one and the same positions light in the other, and zoom or pan
 one and the other shows the same range (every position either touches; the viewer does not zoom in past its largest
 cell).
+
+**Linked to 3D.** Prism, the next version of the Mol\* viewer, shows AlphaFill's model of CYP3A4 with its ligands; the
+sequence above the structure is a Seq\* view of it. Hover or select residues in either and the other follows. Hover a
+track and click the paintbrush at its left to color the structure by it (pLDDT, secondary structure; the residue track
+restores the default coloring), or right-click the track. A preview, still under development; the model loads from
+AlphaFill.
+
+<ExamplePlugin />
 
 The document, built with the builder, and the ways it is shown (one file, run on this page):
 
@@ -63,12 +72,12 @@ shows where new renderers, themes, presets, symbols and stream providers plug in
 
 ## The packages
 
-Two packages, `@molstar/seq-core` (platform-free, no dependencies) and `@molstar/seq-viewer`, and two adapters. Each
+Two packages, `@molstar/seq-core` (platform-free; of other packages only Mol\*'s MessagePack, zip and synchronous task context) and `@molstar/seq-viewer`, and two adapters. Each
 folder is an entry; a bundle keeps only what it imports.
 
 | Entry | What it holds |
 |---|---|
-| `@molstar/seq-core/model` | The data model: molecules, numberings, alignments, annotations as typed tables, coordinate systems and the maps between them, extents, loci, MessagePack. No dependencies, no DOM. |
+| `@molstar/seq-core/model` | The data model: molecules, numberings, alignments, annotations as typed tables, coordinate systems and the maps between them, extents, loci, MessagePack. No DOM. |
 | `@molstar/seq-core/format` | SeqViewSpec 1.0: the parameter tables, `validate` and its issue codes, readers for the data formats, load and resolve, patches, the generated reference, MessagePack; the CLIs `svs-validate`, `svs-convert`, `svs-print-schema`. |
 | `@molstar/seq-core/builder` | The typed builder (`createSeqViewSpec`) and its helpers (`translate`, `basePairs`, `b.preset.*`); imports the format by type only. |
 | `@molstar/seq-viewer` | The headless context (`createSeqViewer`): the document graph, managers, layout, hit testing, input, behaviors, commands, the registry and `DefaultRegistry`. |
@@ -88,5 +97,5 @@ folder is an entry; a bundle keeps only what it imports.
 | `@molstar/seq-core/query` | SeqQL, the query language: the symbol table, the reader, binder and printer, the builder `Q`. Imports nothing. |
 
 The arrows point one way: `model` ← `format` ← `viewer` ← `/draw` ← `/svg`, `/canvas` ←
-`/react`, `/dom`. The core (`@molstar/seq-core`) has no dependencies at all; the viewer's root, `/draw` and `/svg` touch
+`/react`, `/dom`. The core (`@molstar/seq-core`) depends on nothing but Mol\*'s MessagePack, zip and task context (`@molstar/io`, `@molstar/core`); the viewer's root, `/draw` and `/svg` touch
 no DOM global, so they run in Node.

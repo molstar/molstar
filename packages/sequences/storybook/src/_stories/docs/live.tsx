@@ -103,6 +103,42 @@ export function ExampleViewer() {
   );
 }
 
+/** The theme the page shows (the docs container sets it from the toolbar), for a story in a frame to follow. */
+function useTheme() {
+  const read = () => document.documentElement.dataset.mspTheme ?? 'light';
+  const [theme, setTheme] = useState(read);
+  useEffect(() => {
+    const o = new MutationObserver(() => setTheme(read()));
+    o.observe(document.documentElement, { attributes: true, attributeFilter: ['data-msp-theme'] });
+    setTheme(read());
+    return () => o.disconnect();
+  }, []);
+  return theme;
+}
+
+/**
+ * Prism's viewer with a real Mol* plugin (the `Shell/Viewer mode › RealPluginPredicted` story) in a frame of its own:
+ * a whole app on a predicted structure, with the Seq* band linked to its 3D view. A frame, not the docs blocks: the story
+ * is a full-height web-components app, and the frame isolates its styles, its plugin and its WebGL context from this
+ * page. It follows the page's theme (the story's `theme` global) and works in `storybook dev` and the static build.
+ */
+export function ExamplePlugin() {
+  const theme = useTheme();
+  const id = 'prism-shell-viewer-mode--real-plugin-predicted';
+  return (
+    <Unstyled>
+      <div className={s.stack}>
+        <iframe
+          className={s.embed}
+          title="Prism's viewer with a Mol* plugin: AlphaFill's CYP3A4 with ligands, colored by pLDDT, linked to the Seq* sequence band"
+          src={`iframe.html?id=${id}&viewMode=story&globals=theme:${theme}&args=compact:true`}
+          loading="lazy"
+        />
+      </div>
+    </Unstyled>
+  );
+}
+
 /**
  * The same document in Nightingale, the format's second viewer (`@molstar/seq-nightingale`): its view resolved for what
  * Nightingale draws, materialized as Nightingale's components and mounted (`mountNightingaleExample`'s steps, on the

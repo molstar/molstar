@@ -70,3 +70,17 @@
   cursor: pointer;
   color: var(--msp-color-text-muted);
 }
+
+/* A story of another package in a frame: 75% of the content width, centered like a figure beside the full-width cards
+   above it, an app's aspect (16:10) so the 3D is never squashed, a card's corners. */
+.embed {
+  display: block;
+  width: 75%;
+  min-width: min(100%, 480px);
+  margin: 0 auto;
+  aspect-ratio: 16 / 10;
+  min-height: 420px;
+  border: 0;
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-color-panel);
+}
