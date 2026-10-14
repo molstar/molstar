@@ -93,8 +93,8 @@ onCleanup(() => { unlink(); link.detach(); });
 
 - `view3d` is a `StructureView3D` (molstar-poc's Mol\*-agnostic interface: `highlight`, `select`, `focus`, `onHover`,
   `onSelect`). Over the real plugin it is molstar-poc's `pluginView3D(plugin, structure)`, which lives in the
-  viewer's `sources/` folder (contexts.md §7: only `sources/` and `actions/` import `@molstar/plugin`). In the mocks
-  it is a mock that feeds the mock's hover label and status line.
+  viewer's `sources/` folder (contexts.md §7: only `sources/` and `actions/` import `@molstar/plugin`). In the
+  stories it is that one, over the stories' real plugin (§3.1); a headless test uses a fake.
 - The replay rule makes remounting safe: on subscribe, the current selection is sent as a selection and never as a
   clear, and a reassembly's carry (`origin: 'graph'`) is no one's move (interaction.md, replays and carries).
 - linkViews' size gates stay at their defaults (hover 2,000 items, selection 20,000; over that, whole chains).
@@ -113,9 +113,25 @@ b.view({ ref: 'sequence' }).section({ ref: 'main', style: 'compact' /* or 'track
 - The 3D view and Seq\* share one parse: the loaders' `parsed` hook returns the host's trajectory as a
   `StructureSource` (`StructureSource.of(trajectory, format)`), so the `Structure` that `StructureLink.attach` maps is
   the one the 3D view draws.
-- In the mocks there is no plugin; the sequence model parses a fixture structure itself (the mock's 1TQN, added as a small
-  `.bcif` fixture, so the letters match the mock's 3D labels).
+- In the stories, the real plugin of §3.1 loads the structure and the sequence model takes its trajectory; headless
+  tests use molstar-poc's recorded fixtures (p53 structures), so no new fixture is committed.
 - The structure picker in the strip's header (structure, chain/polymer mode, instance) is not part of the first slice.
+
+### 3.1 A minimal real plugin in the stories
+
+The viewer-mode stories get a real `PluginContext` in the shell's canvas area (David, 2026-10-14), not yet hooked to
+the rest of the mock UI:
+
+- Composed as molstar-poc's `pluginSpec()` is (v6's explicit composition: highlight, select and camera-focus
+  behaviors, MolViewSpec), mounted on the canvas host the shell already has (`CanvasPlaceholder`'s place), disposed
+  with the story.
+- It loads the mock's structure, 1TQN, from RCSB at run time (the stories may use the network; tests never do) and
+  shows it with the default representation.
+- **The background**: a control in the story changes the canvas background (`canvas3d.setProps({ renderer: {
+  backgroundColor } })`); the canvas props drive `canvasInk(props)`, which the shell's canvas layer and the sequence
+  model both follow, so the area behind the sequence viewer and its skin change with the canvas.
+- The plugin code lives in the viewer's `sources/` folder (contexts.md §7), the mock UI stays as it is (structure rows,
+  selection bar and the rest are still mocks).
 
 ## 4. The control
 
@@ -184,11 +200,12 @@ reimplemented in Prism.
 | #   | What                                                                                                                                                                                         | Who            |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
 | S2  | prism-ui: the `CanvasInk` abstraction (`canvasInk(props$)`, the shell reading it), `FloatingDock`'s frameless variant, the `Legend` component with a story                                                                 | Sonnet, medium |
-| S3  | `prism-viewer/src/sequence`: the model (the ink subscription and `skinFor`, the theme state and the legend data from it), document, control, link over `StructureView3D`; the mock `StructureView3D` and the 1TQN fixture                                         | Sonnet, high   |
+| S3a | the stories' real plugin (§3.1): composition, mount on the canvas host, 1TQN from RCSB, the background control and `canvasInk` over its canvas props | Sonnet, high   |
+| S3  | `prism-viewer/src/sequence`: the model (the ink subscription and `skinFor`, the theme state and the legend data from it), document, control, link over `StructureView3D`; `pluginView3D` over the stories' plugin, a fake `StructureView3D` for headless tests                                         | Sonnet, high   |
 | S4  | the viewer-mode mock creates the sequence model and its tab instead of `SequenceStrip`; the shell stories (including `CanvasBackground` for the ink); the subscription guard extended to prism-viewer | Sonnet, medium |
 | S5  | Visual check in Storybook                                                                                                                                                                    | David          |
 
-S3 needs S2; S4 needs S3. Over the real plugin, the same code gets its
+S3a and S3 need S2; S4 needs both. Over the real plugin, the same code gets its
 `pluginView3D` in `sources/` once Prism's plugin sources exist (view-models.md §3); nothing in the control changes.
 
 ## 8. Follow-ups
