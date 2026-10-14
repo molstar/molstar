@@ -704,3 +704,15 @@ of the model instead of a MolScript query on every atom. The public changes in `
   selects everything is the source structure itself. An empty `pdbx_PDB_ins_code` means a residue without an insertion
   code, as in MolScript. `operator_name` (the unit operator's name) is honored, as it was by the expression.
 - The annotation color theme and the annotation tooltips already used these semantics for missing values before.
+
+## `StructureElement.Schema.toLoci` and `toBundle`: `useIndex`, no `queryContext`
+
+`StructureElement.Schema.toLoci`, `Schema.toBundle`, `Loci.fromSchema` and `Bundle.fromSchema` take
+`options?: { useIndex?: boolean }` where they took `queryContext?: QueryContext` (no caller in the repository passed
+one; `Loci.fromExpression` and `fromQuery` keep theirs). By default the elements are still found by running the
+expression of the items as a query. With `useIndex: true` they are looked up in the indices of the models
+(`schema-selection`, see above): much faster for many items (1000 items on 720k atoms: 4.6 s to 75 ms), at the price of
+building the indices of each model on the first call (about 80 ms and 30 bytes per atom for 720k atoms, kept as long as
+the model lives). The result is the same except where the selection through the index differs from the expression (a
+residue without `label_seq_id` is not matched by a `label_seq_id` criterion, criteria which only exist for atoms select
+nothing on coarse elements, a range with `beg > end` selects nothing). `extensions/interactions` uses `useIndex: true`.

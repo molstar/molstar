@@ -19,7 +19,7 @@ import { getHeapStatistics } from 'node:v8';
 import { describe, it } from 'vitest';
 import { MVSAnnotation } from '../../components/annotation-prop.js';
 import { IndicesAndSortings } from '@molstar/model/model/structure/structure/element/schema-selection/indexing';
-import { Coordinates, type Frame, Model, Time } from '@molstar/model/model/structure';
+import { Coordinates, type Frame, Model, StructureElement, Time } from '@molstar/model/model/structure';
 import type { MVSAnnotationRow } from '../schemas.js';
 import { getAtomRangesForRows } from '@molstar/model/model/structure/structure/element/schema-selection/selections';
 import { rowsToExpression } from '../selections.js';
@@ -175,6 +175,21 @@ describe.skipIf(process.env.MVS_BENCH !== '1')('annotation rows benchmark', () =
         n,
         fast,
         `elements=${fast.result.elementCount}  speedup x${(ref.ms / fast.ms).toFixed(0)}`,
+      );
+    }
+
+    console.log('\n--- StructureElement.Schema.toLoci: query (default) vs { useIndex: true } (indices exist already)');
+    for (const n of [1, 10, 100, 1000]) {
+      const items = mixed.slice(0, n) as StructureElement.SchemaItem[];
+      const query = measure(() => StructureElement.Schema.toLoci(structure, { items }));
+      const indexed = measure(() => StructureElement.Schema.toLoci(structure, { items }, { useIndex: true }));
+      const size = StructureElement.Loci.size(indexed.result);
+      report(`toLoci query   (${n} items)`, n, query, `elements=${StructureElement.Loci.size(query.result)}`);
+      report(
+        `toLoci indexed (${n} items)`,
+        n,
+        indexed,
+        `elements=${size}  speedup x${(query.ms / Math.max(indexed.ms, 0.01)).toFixed(0)}`,
       );
     }
 

@@ -59,6 +59,9 @@ the [API change ledger](breaking-v6-changes.md).
   `component` nodes with rows (`StructureComponent` with an `expression` is still used for static and MolQL selectors);
   `componentPropsFromSelector` returns a `Selector` and keeps rows as `schema`. Snapshots with the old expressions still
   load
+- `StructureElement.Schema.toLoci` / `toBundle` (and `Loci.fromSchema`, `Bundle.fromSchema`) have a `useIndex` option
+  which looks the items up in the indices of the models instead of querying every atom (1000 items on 720k atoms: 4.6 s
+  to 75 ms); it replaces the unused `queryContext` parameter. The interactions extension uses it
 - Rows are resolved the same way for components, annotations, tooltips, labels and primitives: a residue without
   `label_seq_id` (ligands, waters) no longer matches a `label_seq_id` range or `end_label_seq_id` as MolScript did (it
   read a missing value as 0), `atom_id` rows select every atom with that id, `operator_name` is supported in rows, and
