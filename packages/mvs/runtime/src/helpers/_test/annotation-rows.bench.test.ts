@@ -89,7 +89,7 @@ function report(label: string, nRows: number, m: { ms: number; mb: number }, ext
   );
 }
 
-describe.skipIf(!process.env.MVS_BENCH)('annotation rows benchmark', () => {
+describe.skipIf(process.env.MVS_BENCH !== '1')('annotation rows benchmark', () => {
   it('getRowForEachAtom / getAtomRangesForRows', { timeout: 600_000 }, async () => {
     let t0 = performance.now();
     const model = await createModel({ nChains: NChains, nResidues: NResidues });

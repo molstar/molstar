@@ -12,7 +12,8 @@ import { PluginContext } from '@molstar/plugin/context';
 import { PluginSpec } from '@molstar/plugin/spec';
 import { Mmcif } from '@molstar/plugin/state/formats/trajectory/mmcif';
 import { StructureQueryHelper } from '@molstar/plugin/state/helpers/structure-query';
-import { Structure, StructureSelection } from '@molstar/model/model/structure';
+import { Column } from '@molstar/core/data/db';
+import { Structure, StructureSelection, Unit } from '@molstar/model/model/structure';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
 import { MolViewSpec } from '@molstar/mvs/behavior';
 import { loadMVS } from '@molstar/mvs/load';
@@ -33,6 +34,7 @@ const rowsA = [
   { label_asym_id: 'A', label_seq_id: 60, label_atom_id: 'CA' },
 ];
 const rowsB = [{ label_comp_id: 'REA' }]; // the retinoic acid ligand of 1cbs
+const rowC = { end_label_seq_id: 20 }; // the residues of all chains which have a label_seq_id up to 20 (not the ligand and the waters)
 const colorLayerRows = { label_asym_id: 'A', beg_label_seq_id: 21, end_label_seq_id: 40 };
 
 /** `data/examples/mvs/1cbs.mvsj` (local structure file, no labels: Node has no canvas) with extra components selected by rows. */
@@ -56,6 +58,11 @@ function createDocument() {
           kind: 'component',
           params: { selector: rowsB[0] },
           children: [{ kind: 'representation', params: { type: 'spacefill' } }],
+        },
+        {
+          kind: 'component',
+          params: { selector: rowC },
+          children: [{ kind: 'representation', params: { type: 'ball_and_stick' } }],
         },
       );
     }
@@ -92,23 +99,57 @@ describe('rows selectors in a loaded MVS document', async () => {
 
   it('loads without errors and creates one schema component per rows selector', () => {
     expect(cells.filter((c) => c.status === 'error').map((c) => c.errorText)).toEqual([]);
-    expect(schemaCells.length).toBe(2);
-    expect(schemaCells.map((c) => (c.transform.params as any).schema)).toEqual([rowsA, rowsB]);
+    expect(schemaCells.length).toBe(3);
+    expect(schemaCells.map((c) => (c.transform.params as any).schema)).toEqual([rowsA, rowsB, [rowC]]);
     // the labels describe the rows instead of dumping them
-    expect(schemaCells.map((c) => c.obj!.label)).toEqual(['A:1-20 + A60 CA', 'REA']);
+    expect(schemaCells.map((c) => c.obj!.label)).toEqual(['A:1-20 + A60 CA', 'REA', 'res -20']);
     // plugin's own `StructureComponent` is only used for static selectors, rows are not turned into expressions
     const standard = cells.filter((c) => c.transform.transformer.id === 'ms-plugin.structure-component');
     expect(standard.map((c) => (c.transform.params as any).type.name)).toEqual(['static', 'static']);
   });
 
+  /** unit id -> its elements */
+  const unitElements = (structure: Structure) =>
+    Object.fromEntries(structure.units.map((u) => [u.id, Array.from(u.elements)]));
+  const viaExpression = (cell: (typeof cells)[number], rows: any[]) =>
+    StructureSelection.unionStructure(
+      StructureQueryHelper.createAndRun(parentStructure(cell), rowsToExpression(rows)).selection,
+    );
+
   it('components contain exactly the elements the MolScript expression for their rows selects', () => {
     const [a, b] = schemaCells;
-    const expectedA = referenceElements(a, rowsA);
-    const expectedB = referenceElements(b, rowsB);
-    expect(expectedA).toBeGreaterThan(100);
-    expect(expectedB).toBeGreaterThan(10);
-    expect((a.obj!.data as Structure).elementCount).toBe(expectedA);
-    expect((b.obj!.data as Structure).elementCount).toBe(expectedB);
+    for (const [cell, rows] of [
+      [a, rowsA],
+      [b, rowsB],
+    ] as const) {
+      const expected = viaExpression(cell, rows as any);
+      expect(expected.elementCount).toBeGreaterThan(10);
+      expect(unitElements(cell.obj!.data as Structure)).toEqual(unitElements(expected));
+    }
+  });
+
+  it('residues without label_seq_id (the ligand, the waters) are not selected by a sequence range, unlike with MolScript', () => {
+    const c = schemaCells[2];
+    const structure = c.obj!.data as Structure;
+    // independent of both: residues which have a label_seq_id of 20 or less, counted from the hierarchy
+    const parent = parentStructure(c);
+    let expected = 0;
+    for (const unit of parent.units) {
+      if (!Unit.isAtomic(unit)) continue;
+      const { label_seq_id } = unit.model.atomicHierarchy.residues;
+      for (let i = 0; i < unit.elements.length; i++) {
+        const iRes = unit.residueIndex[unit.elements[i]];
+        if (
+          label_seq_id.valueKind(iRes) === Column.ValueKind.Present &&
+          label_seq_id.value(iRes) >= 1 &&
+          label_seq_id.value(iRes) <= 20
+        )
+          expected++;
+      }
+    }
+    expect(expected).toBeGreaterThan(100);
+    expect(structure.elementCount).toBe(expected);
+    expect(viaExpression(c, [rowC]).elementCount).toBeGreaterThan(expected); // (MolScript reads a missing label_seq_id as 0)
   });
 
   it('the representations on schema components were built', () => {

@@ -41,6 +41,10 @@ describe.each([
       atomIdWrap: 150,
     },
   ],
+  [
+    'ligands without label_seq_id',
+    { nChains: 12, nResidues: 30, insertionCodes: true, descendingSeqIds: true, differentAuthComp: true, ligands: 3 },
+  ],
 ] as const)('annotation rows vs per-atom brute force (%s)', async (_label, dims) => {
   const model = await createModel(dims);
   const nAtoms = model.atomicHierarchy.atoms._rowCount;
@@ -76,7 +80,7 @@ describe.each([
   }
 
   it('the fixture has enough variety to be meaningful', () => {
-    expect(nAtoms).toBe(dims.nChains * dims.nResidues * 6);
+    expect(nAtoms).toBe(dims.nChains * dims.nResidues * 6 + (('ligands' in dims ? dims.ligands : 0) as number) * 4);
     expect(groups.length).toBeGreaterThan(25);
     expect(indices.atomic!.residuesByLabelCompIdIsPure).toBe(!('mixedCompIds' in dims));
     expect(indices.atomic!.residuesByAuthCompIdIsPure).toBe(!('mixedCompIds' in dims));

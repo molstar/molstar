@@ -50,17 +50,16 @@ describe('indices are shared by the frames of a trajectory', async () => {
     expect(IndicesAndSortings.get(model)).toBe(indices);
   });
 
-  it('indices are created once for all frames', () => {
-    const fresh = trajectoryOf(model, 3).map((f) => ({
-      ...f,
-      id: `${f.id}-copy`,
-      _dynamicPropertyData: Object.create(null),
-    }));
+  it('indices are created once for all frames (and the same ones are used by the model of the frames)', async () => {
+    const own = await createModel({ nChains: 4, nResidues: 10 }); // (a model which nothing has made indices for yet)
+    const ownFrames = trajectoryOf(own, 4);
     const create = vi.spyOn(IndicesAndSortings, 'create');
     try {
-      for (const f of fresh) IndicesAndSortings.get(f as Model);
-      // the original model created them (shared hierarchy), nothing to create for new frames
-      expect(create).not.toHaveBeenCalled();
+      for (const f of ownFrames) IndicesAndSortings.get(f);
+      expect(create).toHaveBeenCalledTimes(1);
+      for (const f of ownFrames) IndicesAndSortings.get(f);
+      IndicesAndSortings.get(own);
+      expect(create).toHaveBeenCalledTimes(1);
     } finally {
       create.mockRestore();
     }

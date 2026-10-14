@@ -30,6 +30,8 @@ export interface Dims {
   differentAuthComp?: boolean;
   /** Let `atom_site.id` wrap around after this many atoms (so that atoms share ids, as in formats with 5 digit serial numbers). */
   atomIdWrap?: number;
+  /** Add this many ligands: chains `L0`, `L1`, ... of one HETATM residue (comp_id `LIG`, 4 atoms, auth_seq_id 500 + index) which has no `label_seq_id`, as in real files. */
+  ligands?: number;
 }
 
 export const CompIds = ['ALA', 'GLY', 'LEU', 'SER', 'VAL'];
@@ -69,6 +71,7 @@ function createMmcifText({
   mixedCompIds,
   differentAuthComp,
   atomIdWrap,
+  ligands,
 }: Dims): string {
   const lines: string[] = [
     'data_BENCH',
@@ -109,6 +112,14 @@ function createMmcifText({
           `ATOM ${atomIdWrap ? ((id++ - 1) % atomIdWrap) + 1 : id++} ${TypeSymbols[a]} ${AtomNames[a]} . ${atomComp} ${asym} ${entity} ${descendingSeqIds && c % 2 === 1 ? NResidues + 1 - r : r} ${insertionCodes && r % 7 === 0 ? 'A' : '?'} ${x} ${y} 0.000 1 10 ${r + 10} ${differentAuthComp && c % 3 === 1 ? `X${atomComp}` : atomComp} ${auth} ${AtomNames[a]} 1`,
         );
       }
+    }
+  }
+  for (let l = 0; l < (ligands ?? 0); l++) {
+    for (let a = 0; a < 4; a++) {
+      const serial = atomIdWrap ? ((id++ - 1) % atomIdWrap) + 1 : id++;
+      lines.push(
+        `HETATM ${serial} ${a % 2 ? 'O' : 'C'} X${a} . LIG L${l} ${NEntities + 1} . ? ${l * 3 + a} -5 0.000 1 10 ${500 + l} LIG L${l} X${a} 1`,
+      );
     }
   }
   return lines.join('\n') + '\n';
