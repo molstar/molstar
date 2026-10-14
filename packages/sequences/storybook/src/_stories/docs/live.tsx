@@ -27,6 +27,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import f from '../support/seqstar-format.module.css';
 import { IssueList } from '../support/seqstar-issues.js';
 import { PrismCanvas } from '../support/seqstar-prism.js';
+import { useSeqStyles } from '../support/seqstar-styles.js';
 import s from './docs.module.css';
 import { exampleLink, mountNightingaleSide } from './linked.js';
 import { doc, mountDomExample, svgExample } from './minimal-example.js';
@@ -49,6 +50,7 @@ function useDark() {
 
 /** Storybook's `Source`, dark on a dark page. */
 export function Code({ code, language = 'tsx' }: { code: string; language?: 'tsx' | 'json' | 'bash' }) {
+  useSeqStyles('tokens');
   return <Source code={code} language={language} dark={useDark()} />;
 }
 

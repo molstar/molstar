@@ -7,16 +7,14 @@
  */
 
 // What the Seq* stories need of the host's preview, picked up by Mol*'s Storybook (storybook/packages.ts, `preview`):
-// Prism's tokens and the page defaults (the toolbar's theme sets `data-msp-theme` on <html>, as for Mol*'s own
-// stories), and the decorator that mounts a Seq* story. The stories are React and the host is Storybook for web
-// components (`render` returns a React element, which that renderer cannot show), so each is rendered into a node of
-// its own by `react-dom/client` and unmounted with the story.
+// the decorator that mounts a Seq* story (the stories' styles come with the stories: support/seqstar-styles.ts). The
+// stories are React and the host is Storybook for web components (`render` returns a React element, which that
+// renderer cannot show), so each is rendered into a node of its own by `react-dom/client` and unmounted with the story.
 
 import { createElement, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { addons } from 'storybook/preview-api';
 import { STORY_CHANGED } from 'storybook/internal/core-events';
-import './_stories/ui/tokens.css';
 
 /** The sidebar group of every Seq* story and docs page (their titles all start with it). */
 export const SEQ_STORIES_GROUP = 'Seq*/';

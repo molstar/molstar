@@ -21,6 +21,7 @@ import {
 } from '@molstar/seq-core/format';
 import f from '../support/seqstar-format.module.css';
 import cs from '../support/seqstar-schemes.module.css';
+import { useSeqStyles } from '../support/seqstar-styles.js';
 
 const reg = createRegistries();
 register(reg, KernelRegistry);
@@ -58,6 +59,7 @@ function Swatches({ colors }: { colors: readonly string[] }) {
 
 /** Every kernel scheme: its name, label, what it fits, colorblind-safe, light and dark swatches, provenance. */
 export function SchemeTable() {
+  useSeqStyles('tokens');
   return (
     <table className={f.table}>
       <thead>

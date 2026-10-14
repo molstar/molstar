@@ -6,40 +6,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/* Mol* Prism's tokens (--msp-*) and its reset under .msp-root, a local copy until the move (prism/VENDORED.md). */
+/*
+ * Mol* Prism's tokens (--msp-*) and its reset under .msp-root, a local copy until the move (prism/VENDORED.md), and the
+ * blue theme's color scheme. Not a global stylesheet: it is added to the document while a Seq* story or docs example is
+ * on screen and removed after (support/seqstar-styles.ts), so the host's other stories keep their own. The theme is the
+ * Storybook toolbar's: the host sets `data-msp-theme` on <html> (light, dark, blue), as Mol*'s Storybook does; Prism's
+ * tokens follow it.
+ */
 @import "./prism/prism.css";
 
-/*
- * The Seq* Storybook's page defaults on Prism's tokens, so the package needs no host stylesheet. The theme is the
- * Storybook toolbar's: the host sets `data-msp-theme` on <html> (light, dark, blue), as Mol*'s Storybook does; Prism's
- * tokens follow it. Story pages (PrismPage) carry .msp-root.
- */
 :root[data-msp-theme="blue"] {
   /* Prism's theme.css says so in its layer; tokens of a host outside the layers would otherwise say light. */
   color-scheme: dark;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-html,
-body {
-  margin: 0;
-  background: var(--msp-color-bg);
-  color: var(--msp-color-text);
-  font-family: var(--msp-font-sans);
-  -webkit-font-smoothing: antialiased;
-}
-button,
-input,
-textarea,
-select {
-  font: inherit;
-  color: inherit;
-}
-:focus-visible {
-  outline: 2px solid var(--msp-color-focus-ring);
-  outline-offset: 2px;
 }

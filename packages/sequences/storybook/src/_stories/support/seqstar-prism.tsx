@@ -12,6 +12,7 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 import p from './seqstar-prism.module.css';
+import { useSeqStyles } from './seqstar-styles.js';
 
 /** A story page: its title, what it shows, then its blocks. Carries `.msp-root` (Prism's reset). */
 export function PrismPage({
@@ -23,6 +24,7 @@ export function PrismPage({
   caption?: ReactNode;
   children: ReactNode;
 }) {
+  useSeqStyles('tokens', 'page');
   return (
     <div className={`msp-root ${p.page}`}>
       <header className={p.header}>
@@ -64,6 +66,7 @@ export type CanvasColor = keyof typeof CANVAS_COLORS;
  * the viewer (a `key`), as a host would call `refreshSkin`.
  */
 export function PrismCanvas({ color, theme, children }: { color?: string; theme?: PrismTheme; children: ReactNode }) {
+  useSeqStyles('tokens');
   const t = color ? canvasThemeOf(color) : theme;
   const style = color ? ({ '--msp-color-bg': color } as CSSProperties) : undefined;
   return (
