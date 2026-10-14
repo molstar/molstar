@@ -7,7 +7,14 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { FiberAppendDeltaResult, FiberClock, FiberCommandResult, FiberLimits } from '@molstar/ai-fibers';
+import {
+  FIBER_LIMIT_HARD_BOUNDS,
+  type FiberAppendDeltaResult,
+  type FiberClock,
+  type FiberCommandResult,
+  type FiberFailure,
+  type FiberLimits,
+} from '@molstar/ai-fibers';
 import {
   type DeterministicFiberFixture,
   type FiberBackend,
@@ -15,6 +22,12 @@ import {
   createDeterministicFiberFixture,
 } from './fixtures.js';
 import { fiberConformanceLimits } from './generators.js';
+
+/** A read's page; a failure fails the case, naming why. */
+function read<T extends object>(result: T | FiberFailure): T {
+  if ('status' in result && 'reason' in result) throw new Error(`read failed: ${result.status} ${result.reason}`);
+  return result as T;
+}
 
 function accepted<T>(result: FiberCommandResult<T>): T {
   if (result.status !== 'accepted')
@@ -52,6 +65,8 @@ export const FIBER_CONFORMANCE_CASE_NAMES = [
   'aborts a stream that exceeds retained batch limits',
   'aborts a stream that goes silent past the inactivity timeout and frees its slot',
   'keeps entries, streams and receipts across a restart',
+  'bounds the limits a Fiber is created with',
+  'says why a read fails: a missing Fiber or entry, a request out of its limits',
 ] as const;
 
 /** What a backend gives the suite (analysis/viewer-mode.md §6). */
@@ -105,12 +120,14 @@ export function runFiberConformance(backend: FiberConformanceFixture): void {
       );
       expect(settled.entry.position).toBe(0);
       expect(streaming.entry.position).toBe(1);
-      const window = await fixture.fibers.window({
-        fiberId: fixture.fiberId,
-        start: 0,
-        limit: 8,
-        direction: 'forward',
-      });
+      const window = read(
+        await fixture.fibers.window({
+          fiberId: fixture.fiberId,
+          start: 0,
+          limit: 8,
+          direction: 'forward',
+        }),
+      );
       expect(window?.entries.map((entry) => entry.position)).toEqual([0, 1]);
     });
 
@@ -131,12 +148,14 @@ export function runFiberConformance(backend: FiberConformanceFixture): void {
         descriptor: fixture.envelope({ n: 2 }),
         payload: fixture.envelope('b'),
       });
-      const page = await fixture.fibers.window({
-        fiberId: fixture.fiberId,
-        start: 0,
-        limit: 1,
-        direction: 'forward',
-      });
+      const page = read(
+        await fixture.fibers.window({
+          fiberId: fixture.fiberId,
+          start: 0,
+          limit: 1,
+          direction: 'forward',
+        }),
+      );
       expect(page?.entries.length).toBe(1);
       expect(page?.entries[0]?.position).toBe(0);
       expect(page?.hasMore).toBe(true);
@@ -179,12 +198,14 @@ export function runFiberConformance(backend: FiberConformanceFixture): void {
           payload: fixture.envelope('ef'),
         }),
       );
-      const page = await fixture.fibers.deltas({
-        fiberId: fixture.fiberId,
-        entryId: begun.entry.entryId,
-        afterOffset: 0,
-        limit: 1,
-      });
+      const page = read(
+        await fixture.fibers.deltas({
+          fiberId: fixture.fiberId,
+          entryId: begun.entry.entryId,
+          afterOffset: 0,
+          limit: 1,
+        }),
+      );
       expect(page?.batches.length).toBe(1);
       expect(page?.hasMore).toBe(true);
       expect(next.entry.state.kind).toBe('streaming');
@@ -253,22 +274,26 @@ export function runFiberConformance(backend: FiberConformanceFixture): void {
           payload: fixture.envelope({ text: 'complete-from-caller' }),
         }),
       );
-      const window = await fixture.fibers.window({
-        fiberId: fixture.fiberId,
-        start: 0,
-        limit: 8,
-        direction: 'forward',
-      });
+      const window = read(
+        await fixture.fibers.window({
+          fiberId: fixture.fiberId,
+          start: 0,
+          limit: 8,
+          direction: 'forward',
+        }),
+      );
       expect(window?.entries[0]?.state.kind).toBe('settled');
       if (window?.entries[0]?.state.kind === 'settled') {
         expect(window.entries[0].state.payload).toEqual(fixture.envelope({ text: 'complete-from-caller' }));
       }
-      const deltas = await fixture.fibers.deltas({
-        fiberId: fixture.fiberId,
-        entryId: begun.entry.entryId,
-        afterOffset: 0,
-        limit: 4,
-      });
+      const deltas = read(
+        await fixture.fibers.deltas({
+          fiberId: fixture.fiberId,
+          entryId: begun.entry.entryId,
+          afterOffset: 0,
+          limit: 4,
+        }),
+      );
       expect(deltas?.batches.length ?? 0).toBe(0);
       expect(settled.entry.state.kind).toBe('settled');
     });
@@ -352,12 +377,14 @@ export function runFiberConformance(backend: FiberConformanceFixture): void {
       const beat = await fixture.fibers.heartbeat({ fiberId: fixture.fiberId, entryId: beating.entry.entryId });
       expect('status' in beat).toBe(false);
       fixture.clock.advance(1);
-      const window = await fixture.fibers.window({
-        fiberId: fixture.fiberId,
-        start: 0,
-        limit: 8,
-        direction: 'forward',
-      });
+      const window = read(
+        await fixture.fibers.window({
+          fiberId: fixture.fiberId,
+          start: 0,
+          limit: 8,
+          direction: 'forward',
+        }),
+      );
       expect(window?.entries.map((entry) => entry.state.kind)).toEqual(['aborted', 'streaming']);
       const aborted = window?.entries[0]?.state;
       expect(aborted?.kind === 'aborted' ? aborted.reason : undefined).toBe('inactivity');
@@ -431,16 +458,16 @@ export function runFiberConformance(backend: FiberConformanceFixture): void {
         afterOffset: 0,
         limit: 4,
       } as const;
-      const window = await fixture.fibers.window(windowRequest);
-      const deltas = await fixture.fibers.deltas(deltaRequest);
+      const window = read(await fixture.fibers.window(windowRequest));
+      const deltas = read(await fixture.fibers.deltas(deltaRequest));
       expect(window?.entries.map((entry) => entry.state.kind)).toEqual(['settled', 'streaming']);
       expect(deltas?.batches.length).toBe(1);
 
       // A port over the same storage sees all of it, and answers a replayed command from the stored receipt.
       const restarted = fixture.reopen?.();
       if (restarted === undefined) throw new Error('a durable backend gives a reopen');
-      expect(await restarted.window(windowRequest)).toEqual(window);
-      expect(await restarted.deltas(deltaRequest)).toEqual(deltas);
+      expect(read(await restarted.window(windowRequest))).toEqual(window);
+      expect(read(await restarted.deltas(deltaRequest))).toEqual(deltas);
       expect(await restarted.create(create)).toEqual({
         status: 'accepted',
         commandId: create.commandId,
@@ -466,9 +493,47 @@ export function runFiberConformance(backend: FiberConformanceFixture): void {
       );
       // And so does that, for a third.
       const last = fixture.reopen?.();
-      const settled = await last?.window(windowRequest);
+      const settled = last && read(await last.window(windowRequest));
       expect(settled?.entries.map((entry) => entry.state.kind)).toEqual(['settled', 'settled']);
-      expect((await last?.deltas(deltaRequest))?.batches.length).toBe(0);
+      expect((last && read(await last.deltas(deltaRequest)))?.batches.length).toBe(0);
+    });
+
+    it(FIBER_CONFORMANCE_CASE_NAMES[10], async () => {
+      const fixture = createFixture();
+      const over = { ...fixture.limits, maxActiveStreams: FIBER_LIMIT_HARD_BOUNDS.maxActiveStreams + 1 };
+      const refused = await fixture.fibers.create({
+        commandId: fixture.commandId('create'),
+        fiberId: fixture.fiberId,
+        ownerId: fixture.ownerId,
+        limits: over,
+      });
+      expect(refused).toEqual({ status: 'invalid', reason: 'limits' });
+    });
+
+    it(FIBER_CONFORMANCE_CASE_NAMES[11], async () => {
+      const fixture = createFixture();
+      const window = { fiberId: fixture.fiberId, limit: 1, direction: 'forward' } as const;
+      expect(await fixture.fibers.window(window)).toEqual({ status: 'not-found', reason: 'fiber-missing' });
+      await createdFiber(fixture);
+      const entryId = fixture.entryId('e1');
+      expect(await fixture.fibers.deltas({ fiberId: fixture.fiberId, entryId, afterOffset: 0, limit: 1 })).toEqual({
+        status: 'not-found',
+        reason: 'entry-missing',
+      });
+      expect(await fixture.fibers.window({ ...window, limit: fixture.limits.maxWindowEntries + 1 })).toEqual({
+        status: 'invalid',
+        reason: 'window-limit',
+      });
+      accepted(
+        await fixture.fibers.begin({
+          commandId: fixture.commandId('begin'),
+          fiberId: fixture.fiberId,
+          entryId,
+          descriptor: fixture.envelope({ role: 'reply' }),
+        }),
+      );
+      const deltas = { fiberId: fixture.fiberId, entryId, afterOffset: 0, limit: 0 };
+      expect(await fixture.fibers.deltas(deltas)).toEqual({ status: 'invalid', reason: 'delta-page-limit' });
     });
   });
 }

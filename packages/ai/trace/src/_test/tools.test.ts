@@ -106,6 +106,29 @@ describe('toolsView (analysis/viewer-mode.md §5)', () => {
     ).toBe('Always on');
   });
 
+  it('takes the toolkit’s placements as they are: a group is a skill, an entry’s tools show under the entry', () => {
+    const group = { id: 'volumes', guidance: 'Skill volumes.' };
+    const view = toolsView({
+      tools: [
+        { definition: def('load_volume'), placement: { kind: 'group', group, extra: false } },
+        { definition: def('volume_info'), placement: { kind: 'group', group, extra: true } },
+        { definition: def('pdbe_get'), placement: { kind: 'entry', entry: { id: 'pdbe' } } },
+      ],
+      skills: [{ id: 'pdbe', title: 'PDBe' }],
+    });
+    expect(view.groups.map((g) => [g.id, g.title, g.tools.map((t) => [t.id, t.extra === true])])).toEqual([
+      ['pdbe', 'PDBe', [['pdbe_get', false]]],
+      [
+        'volumes',
+        'volumes',
+        [
+          ['load_volume', false],
+          ['volume_info', true],
+        ],
+      ],
+    ]);
+  });
+
   it('takes a trace’s loaded list as it is', () => {
     const view = toolsView({
       tools: entries,

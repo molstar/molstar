@@ -35,7 +35,7 @@ export interface ModelStep {
   /** Omitted: estimated from the request and the message. `null`: the provider reports no usage. */
   readonly usage?: ProviderUsage | null;
   /** The attempt fails with a `ModelError`, after any frames. */
-  readonly fail?: { readonly message?: string; readonly transient?: boolean };
+  readonly fail?: { readonly message?: string; readonly transient?: boolean; readonly retryAfterMs?: number };
   /** Waits this long (virtual time) before the result, after the deltas. */
   readonly waitMs?: number;
   /** Text deltas to stream (default: the text in one delta). */
@@ -135,6 +135,7 @@ export function scriptedModel(script: readonly ModelStep[] = [], options: Script
         throw new ModelError(step.fail.message ?? 'scripted failure', {
           transient: step.fail.transient ?? false,
           effect: 'none',
+          ...(step.fail.retryAfterMs !== undefined ? { retryAfterMs: step.fail.retryAfterMs } : {}),
         });
       const message = messageOf(step, index);
       const hasCalls = message.parts.some((part) => part.kind === 'tool-call');

@@ -37,7 +37,8 @@ const page = await fibers.window({ fiberId, start, limit: 20, direction: 'backwa
   stream's `nextOffset`), `heartbeat`, `settle` (the caller gives the whole final payload; deltas are dropped), `abort`,
   `remove`; reads `window`, `deltas`. Commands return `{ status: 'accepted', value, commandId }` or a
   `FiberFailure { status: 'conflict' | 'invalid' | 'not-found' | 'closed', reason }`; `heartbeat` returns a bare
-  `FiberDeltaResult | FiberFailure`; the reads return the page or `undefined`.
+  `FiberDeltaResult | FiberFailure`; the reads return the page or a `FiberFailure` (`not-found`: `fiber-missing`,
+  `entry-missing`; `invalid`: a limit out of range, an entry over the window's bytes).
 - **Idempotent** by `commandId`: the same command again returns its stored result; the same id with other input is
   `conflict` (`command-reused`). `heartbeat` has no receipt.
 - **Payloads** are envelopes `{ codec, version: 1, value }` of strict JSON. A delta's offset advances by the canonical
@@ -69,9 +70,8 @@ entries, inactivity 1 h); relations are checked (heartbeat < inactivity, batch â
 
 ## Gotchas
 
-- `create` checks the given limits against themselves, not `FIBER_LIMIT_HARD_BOUNDS`: call `createFiberLimits(limits)`
-  yourself to bound them.
-- `window` and `deltas` return `undefined` both for a missing fiber and for an invalid or over-limit request.
+- `create` refuses limits beyond `FIBER_LIMIT_HARD_BOUNDS` (`invalid`, `limits`); build them with
+  `createFiberLimits(limits)` to find out early.
 - Reads can write (an inactivity abort).
 - A removed fiber stays fenced (`removed`); creating the same id again conflicts. `forget` drops it.
 - Receipts are kept until `remove`; `cleanupPageSize`, `deltaFlush*` and `heartbeatIntervalMs` are validated but the

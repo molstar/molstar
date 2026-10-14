@@ -159,7 +159,8 @@ app can never commit, a runner never submit, stop or reset. Operations are seria
 
 One operation error, `HarnessError { code, retry, detail }` (`invalid`, `head-changed`, `inbox-changed`, `stale`,
 `stale-schema`, `pointer-busy`, `unknown-outcome`, `integrity`). An attempt's failure is not an operation error: it has
-a code, a `transient` hint and an `effect` (`none`, `applied`, `unknown`), and opens `failure`.
+a code, a `transient` hint, an `effect` (`none`, `applied`, `unknown`) and, when the provider said, `retryAfterMs`, and
+opens `failure`.
 
 ## 17. Out of scope
 

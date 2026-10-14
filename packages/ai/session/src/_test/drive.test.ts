@@ -376,6 +376,20 @@ describe('a failing model call', () => {
     expect(f.model.invocations).toHaveLength(1);
   });
 
+  it('reads the wait the response asked for (retryAfterMs) before the message', async () => {
+    const steps = [{ fail: { message: 'Too many requests. (HTTP 429)', transient: true, retryAfterMs: 7_200_000 } }];
+    const f = fixture([...steps, { text: 'Done.' }], names);
+    const r = await f.session.turn({ prompt: 'Hi.' });
+    expect(r.status).toBe('failed');
+    expect(r.error).toMatch(/^Scripted asks to wait 2 hours before the next call/);
+    expect(f.model.invocations).toHaveLength(1);
+    const short = fixture(
+      [{ fail: { message: 'Slow down.', transient: true, retryAfterMs: 5 } }, { text: 'Done.' }],
+      names,
+    );
+    expect(await short.session.turn({ prompt: 'Hi.' })).toMatchObject({ status: 'completed', text: 'Done.' });
+  });
+
   it('reads milliseconds as milliseconds: a wait of 337 ms is retried, not 337 minutes', async () => {
     const r = await failing('Rate limit reached. Please try again in 337ms. (HTTP 429)').session.turn({
       prompt: 'Hi.',

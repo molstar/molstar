@@ -10,7 +10,19 @@ import { describe, expect, it } from 'vitest';
 import { createMemoryStorage } from '@molstar/ai-components';
 import { createToolkit } from '@molstar/ai-tools';
 import { GUIDANCE_UPDATE, type StatusEvent, type ToolEvent, type TurnEvent } from '../index.js';
-import { callOf, fixture, guidance, headOf, messagesOf, realClock, resultsIn, textOf, tool } from './helpers.js';
+import {
+  callOf,
+  fixture,
+  guidance,
+  headOf,
+  messagesOf,
+  realClock,
+  resultsIn,
+  textOf,
+  type Toy,
+  tool,
+  toyToolkit,
+} from './helpers.js';
 
 describe('a turn (tools-and-session.md §4)', () => {
   it('runs a tool call and answers in words; the hooks see the text, the calls, the status and the turn', async () => {
@@ -303,5 +315,68 @@ describe('the messages (tools-and-session.md §4)', () => {
     expect(messagesOf(model, 1).map((m) => m.role)).toEqual(['system', 'system', 'user']);
     expect(resultsIn(await headOf(session))).toEqual([]);
     expect(textOf(messagesOf(model, 1).at(-1) as never)).toBe('Request: second');
+  });
+});
+
+describe('what a turn said, and how it ended', () => {
+  it('turnText holds every reply of the turn; text the last', async () => {
+    const { session } = fixture([{ text: 'Let me look.', calls: [callOf('get_state')] }, { text: 'Value 0.' }]);
+    const r = await session.turn({ prompt: 'What is it?' });
+    expect(r).toMatchObject({ status: 'completed', text: 'Value 0.', turnText: 'Let me look.\n\nValue 0.' });
+  });
+
+  it('a retried attempt counts once, and a reply asked for again replaces the one cut short', async () => {
+    const retried = fixture([{ text: 'Half', fail: { transient: true } }, { text: 'Whole.' }]);
+    expect(await retried.session.turn({ prompt: 'Go.' })).toMatchObject({ text: 'Whole.', turnText: 'Whole.' });
+    const widened = fixture([{ text: 'Cut', finish: 'output-limit' }, { text: 'Whole.' }], { maxOutputTokens: 1_000 });
+    expect(await widened.session.turn({ prompt: 'Go.' })).toMatchObject({ text: 'Whole.', turnText: 'Whole.' });
+  });
+
+  it('a turn ended by a reset says so', async () => {
+    let started: () => void = () => undefined;
+    const running = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const wait = tool({
+      id: 'wait_long',
+      description: 'Waits.',
+      input: { kind: 'object', fields: {} },
+      modules: [],
+      read: true,
+      run: ({ signal }) =>
+        new Promise((resolve) => {
+          started();
+          signal.addEventListener('abort', () => resolve({ ok: false, code: 'aborted', message: 'Aborted.' }));
+        }),
+    });
+    const { session } = fixture([{ calls: [callOf('wait_long')] }, { text: 'Done.' }], {
+      toolkit: toyToolkit({ tools: [wait] }),
+      startTools: 'all',
+    });
+    const turn = session.turn({ prompt: 'Wait.' });
+    await running;
+    await (await session.client()).reset({ key: 'reset-1' });
+    expect((await turn).status).toBe('reset');
+  });
+
+  it('keeps the disclosure tools out of repeated reads under the toolkit’s own names', async () => {
+    const toolkit = createToolkit<Toy>({
+      tools: toyToolkit().tools.filter((t) => !t.definition.tool.id.startsWith('disclose_')),
+      core: ['get_state'],
+      groups: [{ id: 'maps', title: 'Maps', summary: 'maps', guidance: 'Skill maps.', tools: ['load_map'] }],
+      names: { skills: 'learn', tools: 'load' },
+    });
+    const read = (look: number) => ({ calls: [callOf('get_state', { look })] });
+    const script = [
+      ...[1, 2, 3, 4, 5].map(read),
+      { calls: [callOf('learn', { skills: ['maps'] })] },
+      read(6),
+      { text: 'Done.' },
+    ];
+    const { session } = fixture(script, { toolkit, version: () => 0 });
+    const r = await session.turn({ prompt: 'Look.' });
+    expect(r.status).toBe('completed');
+    // Learning a skill is setting up, not acting: the sixth read is the sixth in a row.
+    expect(r.tools.filter((t) => t.status === 'succeeded').at(-1)?.text).toMatch(/6 reads in a row/);
   });
 });

@@ -78,8 +78,9 @@ progress frames while `run` works, then one result frame (`toFrame`).
 
 - **`RepeatedReads({ version, streak = 6, exempt? })`**: the same read with the same arguments while `version()` is
   unchanged answers in one line ("Unchanged: … act on it"); after `streak` reads in a row each read says to act.
-  `reset()` per turn (the session does it). `exempt` defaults to `disclose_skills` and `disclose_tools`: if the toolkit
-  renames them, pass `exempt: [toolkit.names.skills, toolkit.names.tools]`.
+  `reset()` per turn (the session does it). `exempt` (neither reads nor actions: they don't break a streak) defaults to
+  `disclose_skills` and `disclose_tools`; the session passes its toolkit's names, and a host building its own should
+  pass `exempt: [toolkit.names.skills, toolkit.names.tools]`.
 - **`NestedTools(configure)`**: one per session, bound into the bindings. A tool's
   `nest({ messages, tools, api, model, limits })` runs a helper agent under its call (`context.run`, harness nested run)
   whose tools are its own, preauthorized and seen by nothing else; `model` is the host's model choice, turned into a

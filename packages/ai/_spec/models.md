@@ -51,10 +51,11 @@ interface ModelBindings { resolve(target: ModelTarget): Promise<ModelAdapter> }
 - `ProviderUsage`: `inputTokens` (total, cache included), `outputTokens`, `cacheReadInputTokens`,
   `cacheWriteInputTokens`, `reasoningOutputTokens`, `providerRequestId`. The harness converts to `Usage` (uncached,
   cache read, cache write, output, reasoning).
-- Failures: throw `ModelError(message, { transient, effect: 'none' | 'unknown' })` (defaults: not transient, effect
-  `unknown`; pass `effect: 'none'` when the request surely did nothing, so a retry is safe); `UnrepresentableInput`
-  (code `unrepresentable`) when the provider cannot place something (a system message mid-conversation, a binary in a
-  failed tool result). There is no structured retry-after; the session parses a wait from the message.
+- Failures: throw `ModelError(message, { transient, effect: 'none' | 'unknown', retryAfterMs? })` (defaults: not
+  transient, effect `unknown`; pass `effect: 'none'` when the request surely did nothing, so a retry is safe;
+  `retryAfterMs` when the provider said how long to wait, which the harness keeps on the attempt's failure);
+  `UnrepresentableInput` (code `unrepresentable`) when the provider cannot place something (a system message
+  mid-conversation, a binary in a failed tool result).
 
 ## The adapters (`model-adapters/src/`)
 
@@ -75,7 +76,8 @@ Three factories, on the Vercel AI SDK (`ai`, `@ai-sdk/*`):
   provider folder supplies `capabilities.ts`, `attachments.ts`, `stream.ts` and (Anthropic, OpenAI) a native
   `payload.ts`.
 - **Errors**: any HTTP error has `effect: 'none'`, and 408, 409, 429 and ≥500 are transient; a failure without a status
-  (network, mid-stream) is transient with `effect: 'unknown'`; the key is redacted from messages; the SDK runs with
+  (network, mid-stream) is transient with `effect: 'unknown'`; a response's `retry-after-ms` or `retry-after` (seconds
+  or a date) becomes `retryAfterMs` (`retryAfterOf`); the key is redacted from messages; the SDK runs with
   `maxRetries: 0` (retries are the drive's).
 - **Revision**: each adapter has a `revision` string in its payload; `invoke` refuses a request of another revision,
   provider or digest. Raise it whenever projection or replay rules change.

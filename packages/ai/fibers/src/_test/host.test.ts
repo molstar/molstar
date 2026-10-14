@@ -11,6 +11,7 @@ import {
   createFiberHost,
   createMemoryRows,
   FIBER_LIMIT_HARD_BOUNDS,
+  type FiberFailure,
   type FiberHost,
   type FiberPayloadEnvelope,
   type FiberRows,
@@ -20,6 +21,12 @@ import {
   fiberId,
   fiberOwnerId,
 } from '../index.js';
+
+/** A read's page; a failure fails the case, naming why. */
+function read<T extends object>(result: T | FiberFailure): T {
+  if ('status' in result && 'reason' in result) throw new Error(`read failed: ${result.status} ${result.reason}`);
+  return result as T;
+}
 
 const id = fiberId('story-1');
 const json = (value: unknown): FiberPayloadEnvelope => ({ codec: 'json', version: 1, value });
@@ -67,7 +74,7 @@ describe('fiber host: durable', () => {
     };
     const second = createFiberHost({ rows: counting });
     expect(loads).toBe(0);
-    const window = await second.window({ fiberId: id, limit: 3, direction: 'backward' });
+    const window = read(await second.window({ fiberId: id, limit: 3, direction: 'backward' }));
     expect(loads).toBe(1);
     expect(window?.entries.map((e) => [e.position, e.descriptor.value, e.state.kind])).toEqual([
       [3, { prompt: 'p3' }, 'settled'],
@@ -85,7 +92,7 @@ describe('fiber host: durable', () => {
     expect(settled.status).toBe('accepted');
     expect(await second.settle(settle)).toEqual(settled);
     const again = createFiberHost({ rows: memory });
-    const last = await again.window({ fiberId: id, limit: 1, direction: 'backward' });
+    const last = read(await again.window({ fiberId: id, limit: 1, direction: 'backward' }));
     expect(last?.entries[0]?.state).toMatchObject({ kind: 'settled', payload: { value: { reply: 'r5' } } });
   });
 
@@ -102,10 +109,10 @@ describe('fiber host: durable', () => {
     fail = true;
     await expect(turn(host, 1)).rejects.toThrow('disk full');
     fail = false;
-    const window = await host.window({ fiberId: id, limit: 8, direction: 'backward' });
+    const window = read(await host.window({ fiberId: id, limit: 8, direction: 'backward' }));
     expect(window?.entries.map((e) => e.entryId)).toEqual(['turn-0']);
     await turn(host, 1);
-    expect((await host.window({ fiberId: id, limit: 8, direction: 'backward' }))?.entries).toHaveLength(2);
+    expect(read(await host.window({ fiberId: id, limit: 8, direction: 'backward' }))?.entries).toHaveLength(2);
   });
 
   it('forgets a fiber with its rows', async () => {
@@ -115,7 +122,10 @@ describe('fiber host: durable', () => {
     await turn(host, 0);
     await host.forget(id);
     expect(await rows.load('fiber:story-1')).toBeUndefined();
-    expect(await host.window({ fiberId: id, limit: 8, direction: 'backward' })).toBeUndefined();
+    expect(await host.window({ fiberId: id, limit: 8, direction: 'backward' })).toEqual({
+      status: 'not-found',
+      reason: 'fiber-missing',
+    });
   });
 
   it('tells a subscriber which fiber a command changed, and a watcher which one another handle changed', async () => {

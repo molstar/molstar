@@ -66,6 +66,13 @@ import type {
   TurnResult,
 } from './types.js';
 
+/** All the model said in the turn: each top-level model call's reply, in order, separated by blank lines. */
+const turnTextOf = (state: TurnState): string =>
+  [...state.replies.values()]
+    .map((text) => text.trim())
+    .filter((text) => text !== '')
+    .join('\n\n');
+
 /** The session's thinking: one for every model, or per model. */
 export type SessionThinking =
   | ModelChoice['thinking']
@@ -209,7 +216,11 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     this.clock = options.clock ?? wallClock;
     this.registrations = new Map(options.toolkit.tools.map((r) => [r.definition.tool.id, r]));
     this.domain = { ...toolkitDomain(options.toolkit), ...options.compactionDomain };
-    this.repeats = options.version ? new RepeatedReads({ version: options.version }) : undefined;
+    // The disclosure tools are setting up, not reading: exempt by the toolkit's names for them.
+    const { names } = options.toolkit;
+    this.repeats = options.version
+      ? new RepeatedReads({ version: options.version, exempt: [names.skills, names.tools] })
+      : undefined;
     this.remember(options.models.default);
   }
 
@@ -537,14 +548,25 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     if (o.kind === 'model.delta' && 'text' in o.delta && o.path.length === 0) {
       const text = (state.previews.get(o.attemptId) ?? '') + o.delta.text;
       state.previews.set(o.attemptId, text);
+      state.replies.set(o.callId, text);
       if (text.trim()) {
         state.lastText = text;
         state.hooks.onText?.(text);
       }
     } else if (o.kind === 'decision.opened' && o.path.length === 0) {
       if (o.decisionKind === 'permission' || o.decisionKind === 'budget') this.status({ kind: o.decisionKind });
+    } else if (o.kind === 'decision.answered' && o.path.length === 0) {
+      // A reply cut short and asked for again: the new call's reply replaces it.
+      if (o.decisionKind === 'model-result' && o.answer === 'replace' && state.lastModelCall !== undefined)
+        state.replies.delete(state.lastModelCall);
     } else if (o.kind === 'attempt.started' && o.path.length === 0) {
-      this.status({ kind: state.planned.some((c) => c.callId === o.callId) ? 'tools' : 'model' });
+      const tools = state.planned.some((c) => c.callId === o.callId);
+      if (!tools) {
+        // A retried attempt replaces what the failed one said.
+        state.lastModelCall = o.callId;
+        state.replies.set(o.callId, '');
+      }
+      this.status({ kind: tools ? 'tools' : 'model' });
     } else if (o.kind === 'event' && o.event.kind === 'step') {
       const step = o.event;
       // The step that begins this prompt's turn: its id is known, before the first model call.
@@ -618,7 +640,13 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       try {
         configuration = await this.configurationFor(request.model);
       } catch (e) {
-        return { status: 'failed', text: '', error: e instanceof Error ? e.message : String(e), tools: [] };
+        return {
+          status: 'failed',
+          text: '',
+          turnText: '',
+          error: e instanceof Error ? e.message : String(e),
+          tools: [],
+        };
       }
       const { starting, deferring } = this.toolsAtStart();
       const { guidance } = this.options;
@@ -649,6 +677,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       return {
         status: 'failed',
         text: this.state.lastText,
+        turnText: turnTextOf(this.state),
         error: e instanceof Error ? e.message : String(e),
         tools: this.state.events,
       };
@@ -735,6 +764,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       return {
         status: 'failed',
         text: this.state.lastText,
+        turnText: turnTextOf(this.state),
         error: e instanceof Error ? e.message : String(e),
         tools: this.state.events,
       };
@@ -803,21 +833,24 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
         status: 'awaiting-approval',
         approval: this.awaiting(execution),
         text: state.lastText,
+        turnText: turnTextOf(state),
         tools: state.events,
       };
     }
     const summary = (await client.turns({ limit: 16 })).find((t) => t.id === turnId);
     if (summary === undefined || summary.status === 'active') return undefined;
-    const status = summary.status === 'completed' ? 'completed' : summary.status === 'failed' ? 'failed' : 'stopped';
+    const status = summary.status;
     const error = status === 'failed' ? ((await this.endReason(client, summary)) ?? 'The turn failed.') : undefined;
     if (!state.lastText && status === 'completed') {
       const last = (await this.head(client)).findLast((m) => m.role === 'assistant');
       state.lastText = last?.parts.map((p) => (p.kind === 'text' ? p.text : '')).join('') ?? '';
     }
+    const turnText = turnTextOf(state) || state.lastText;
     const u = summary.usage;
     return {
       status,
       text: state.lastText,
+      turnText,
       ...(error !== undefined ? { error } : {}),
       tools: state.events,
       usage: {

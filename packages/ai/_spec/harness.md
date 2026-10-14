@@ -71,8 +71,9 @@ which starts one runner per key; `runner.run(launch)` claims and serves.
 
 **Errors**: one `HarnessError { code, retry, detail }`; codes `invalid`, `head-changed`, `inbox-changed`, `stale` (lease
 lost), `stale-schema`, `pointer-busy`, `unknown-outcome` (retry with the same key), `integrity`. A model or tool
-attempt's failure is not an operation error: it is an `AttemptFailure { code, message, transient, effect }` in the
-step's evidence, and it opens a `failure` decision.
+attempt's failure is not an operation error: it is an
+`AttemptFailure { code, message, transient, effect, retryAfterMs? }` in the step's evidence, and it opens a `failure`
+decision.
 
 ## The runner
 
@@ -111,17 +112,17 @@ then outward. A `Drive.decide` returns an answer or `'pass'`; `drive(handlers, f
 `{ fail }` are legal for every kind; a drive that throws (`drive-error`), passes all the way out or answers illegally
 (`legal()`, `invalid-answer`) fails the run: the turn at depth 0, only the nested run inside a call.
 
-| Kind           | Payload                                          | Answers                                                                                                | `defaultDrive`                                             |
-| -------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| `permission`   | `call`                                           | `'allow'`, `{ deny: text }`, `{ park: { note } }`                                                      | allow                                                      |
-| `schedule`     | `calls`                                          | `{ stages: CallId[][], maxConcurrency? }` (every call once)                                            | one stage per call                                         |
-| `budget`       | `dimension`, `budget`, `need?`                   | `{ extend: Limits }`                                                                                   | fail                                                       |
-| `failure`      | `call?`, `attempt?`, `failure`, `unstarted?`     | `{ retry }`, `{ replace: config }` (model), `{ report: { skip? } }` (tool), `{ compact }` (projection) | transient: retry ×3 with back-off; tool: report; else fail |
-| `model-result` | `finish` (`output-limit`, `filtered`), `message` | `'accept'`, `{ replace: config }`                                                                      | accept                                                     |
-| `repair`       | `call`, `reason`, `unstarted`                    | `{ report: { parts?, contributions?, skip? } }`                                                        | report                                                     |
-| `boundary`     | `size`, `completing`, `lastCompaction?`          | `'proceed'`, `{ steer: keys }`, `{ compact: HeadEdit }`, `'end'` (completing)                          | steer waiting items when completing                        |
-| `interrupt`    | `item`, `stepKind`                               | `'abandon'`, `'skip'` (tools step only)                                                                | skip tools / abandon model                                 |
-| `next-turn`    | `size`, `lastCompaction?`                        | `{ begin: { keys, compact? } }`, `'release'`                                                           | begin with every waiting item                              |
+| Kind           | Payload                                          | Answers                                                                                                | `defaultDrive`                                                                         |
+| -------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `permission`   | `call`                                           | `'allow'`, `{ deny: text }`, `{ park: { note } }`                                                      | allow                                                                                  |
+| `schedule`     | `calls`                                          | `{ stages: CallId[][], maxConcurrency? }` (every call once)                                            | one stage per call                                                                     |
+| `budget`       | `dimension`, `budget`, `need?`                   | `{ extend: Limits }`                                                                                   | fail                                                                                   |
+| `failure`      | `call?`, `attempt?`, `failure`, `unstarted?`     | `{ retry }`, `{ replace: config }` (model), `{ report: { skip? } }` (tool), `{ compact }` (projection) | transient: retry ×3 with back-off (not before `retryAfterMs`); tool: report; else fail |
+| `model-result` | `finish` (`output-limit`, `filtered`), `message` | `'accept'`, `{ replace: config }`                                                                      | accept                                                                                 |
+| `repair`       | `call`, `reason`, `unstarted`                    | `{ report: { parts?, contributions?, skip? } }`                                                        | report                                                                                 |
+| `boundary`     | `size`, `completing`, `lastCompaction?`          | `'proceed'`, `{ steer: keys }`, `{ compact: HeadEdit }`, `'end'` (completing)                          | steer waiting items when completing                                                    |
+| `interrupt`    | `item`, `stepKind`                               | `'abandon'`, `'skip'` (tools step only)                                                                | skip tools / abandon model                                                             |
+| `next-turn`    | `size`, `lastCompaction?`                        | `{ begin: { keys, compact? } }`, `'release'`                                                           | begin with every waiting item                                                          |
 
 `failure` without `call` and with `attempt` is a model attempt; without `attempt` it is a projection failure
 (`capacity`, `unrepresentable`, or `provider`: no adapter, or `project` threw). `skip { text, calls? }` names only

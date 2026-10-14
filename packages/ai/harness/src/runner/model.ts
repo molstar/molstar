@@ -28,11 +28,13 @@ const failure = (
   message: string,
   transient = false,
   effect: AttemptFailure['effect'] = 'none',
+  retryAfterMs?: number,
 ): AttemptFailure => ({
   code,
   message,
   transient,
   effect,
+  ...(retryAfterMs !== undefined ? { retryAfterMs } : {}),
 });
 
 /**
@@ -130,7 +132,7 @@ export async function modelStep(run: Run): Promise<AssistantMessage> {
           if (!signal.aborted)
             fault =
               error instanceof ModelError
-                ? failure('provider', error.message, error.transient, error.effect)
+                ? failure('provider', error.message, error.transient, error.effect, error.retryAfterMs)
                 : failure('provider', String(error), false, 'unknown');
         }
       }

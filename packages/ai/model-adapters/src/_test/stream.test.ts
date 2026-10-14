@@ -10,7 +10,13 @@ import { describe, expect, it } from 'vitest';
 import { ModelError } from '@molstar/ai-agent';
 import { MockLanguageModelV4 } from 'ai/test';
 import { streamPolicy as anthropicPolicy } from '../anthropic/stream.js';
-import { invokeProjectedRequest, mapFinishReason, modelError, providerUsageFromSdk } from '../common/stream.js';
+import {
+  invokeProjectedRequest,
+  mapFinishReason,
+  modelError,
+  providerUsageFromSdk,
+  retryAfterOf,
+} from '../common/stream.js';
 import { streamPolicy as googlePolicy } from '../google/stream.js';
 import { createAnthropicModelAdapter, createGoogleModelAdapter, createOpenAIModelAdapter } from '../index.js';
 import {
@@ -216,6 +222,34 @@ describe('failure mapping', () => {
     expect(failure.message).toContain('[redacted]');
     expect(failure.message).not.toContain(secret);
     expect(modelError(new Error(`bad ${secret}`), secret).message).toBe('bad [redacted]');
+  });
+
+  it('keeps the wait a response asks for (retry-after-ms, retry-after in seconds or as a date)', () => {
+    const limited = (headers: Record<string, string>) =>
+      modelError(Object.assign(new Error('Too many requests'), { statusCode: 429, responseHeaders: headers }), '');
+    expect(limited({ 'retry-after-ms': '1500' })).toMatchObject({
+      transient: true,
+      effect: 'none',
+      retryAfterMs: 1500,
+    });
+    expect(limited({ 'Retry-After': '20' }).retryAfterMs).toBe(20_000);
+    expect(limited({}).retryAfterMs).toBeUndefined();
+    expect(
+      retryAfterOf({ 'retry-after': 'Wed, 14 Oct 2026 10:00:30 GMT' }, Date.parse('Wed, 14 Oct 2026 10:00:00 GMT')),
+    ).toBe(30_000);
+    expect(retryAfterOf({ 'retry-after': 'soon' })).toBeUndefined();
+    // Kept through the detail a body adds, and through an adapter's own ModelError.
+    const body = JSON.stringify({ error: { message: 'Slow down.' } });
+    const detailed = modelError(
+      Object.assign(new Error('Too many requests'), {
+        statusCode: 429,
+        responseBody: body,
+        responseHeaders: { 'retry-after': '3' },
+      }),
+      '',
+    );
+    expect(detailed).toMatchObject({ retryAfterMs: 3_000 });
+    expect(modelError(detailed, '').retryAfterMs).toBe(3_000);
   });
 
   it("keeps a ModelError's own classification", () => {

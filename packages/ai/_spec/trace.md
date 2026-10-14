@@ -48,8 +48,9 @@ nearest its ceiling in the latest turn), `preamble` (guidance and tool definitio
 
 - `toolsView({ tools: ToolEntry[], skills, loaded, declared, titles })` → `ToolsData`: groups core, each skill (its
   tools, then extras), single; per tool its definition, size in tokens, state (`offered | deferred | loaded`),
-  unavailability. The host builds the entries from its toolkit and maps its placements (the toolkit's `group` is `skill`
-  here; there is no `entry` kind); the trace gives `loaded` and `declared`.
+  unavailability. The host builds the entries from its toolkit, its placements as `placementOf` gives them (a `group` is
+  a skill, an `entry`'s tools show under the entry: pass the entry in `skills` for its title); the trace gives `loaded`
+  and `declared`.
 - Limits views (`LimitRowView`, `LimitsGroupView`, `LimitsData`) are types only; the host builds them.
 
 ## Consumers
