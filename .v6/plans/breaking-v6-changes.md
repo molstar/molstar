@@ -669,3 +669,35 @@ each with a migration note.
 
 Compatible core follow-ups made alongside Prism (a registry-changed event, richer `cell.stateUpdated`, settings events,
 a running-task behavior, string ids for `PluginCommands`) are additive and are not listed here.
+
+## MVS selectors through model indices
+
+MVS selectors given as rows (`label_asym_id`, `auth_seq_id`, `beg_label_seq_id`, ...) are resolved through the indices
+of the model instead of a MolScript query on every atom. The public changes in `@molstar/mvs`:
+
+- **`schema` selector.** `SelectorParams` (`@molstar/mvs/components/selector`) has a `schema` variant (an array of
+  rows). `componentPropsFromSelector` (`@molstar/mvs/load-helpers`) returns a `Selector` instead of the `type` of
+  `StructureComponentParams`: rows and arrays of rows are `{ name: 'schema', params: rows }`, not `expression`.
+  `prettyNameFromSelector` returns compact names (`A`, `A432`, `A:10-50`, `120 selections`) instead of
+  `Custom Selection: {...}`.
+- **New transformer** `mvs.mvs-structure-component-from-schema` (`MVSSchemaStructureComponent`) makes the components of
+  `component` nodes with rows; static and MolQL selectors still use the plugin's `StructureComponent`. Saved states with
+  the previous `expression` components load as before. The classic UI's "modify by current selection" is not available
+  for the new components (to be added when needed), and switching a node between a rows selector and a static or MolQL
+  one in a snapshot changes its ref (the transformer id is part of it).
+- **Helper modules** (`@molstar/mvs/helpers/*`, public through `./*`): `getAtomRangesForRow(s)`,
+  `getSphereRangesForRow(s)` and `getGaussianRangesForRow(s)` take the unit's operator (`{ instanceId, name }`) where
+  they took an `instanceId` string; `getAtomRangesForRowInto` writes into reusable buffers; `ElementRanges.union` is
+  implemented by sorting the starts and the ends; `IndicesAndSortings.get` is shared by the models of a trajectory
+  (`HierarchyScope`); `Sorting.findIndexRange` replaces a linear scan; new `row-structure` (`substructureFromRows`,
+  `ElementRangesCache`), `element-painter`, `int-buffer` and `row-label` modules. `MVSAnnotationRow` (annotation schema
+  `all_atomic`) has `operator_name`. Annotation values given as text for numbers (and numbers for identifiers) in JSON
+  annotations are converted to the type of the field.
+- **Where the selection differs from the MolScript expression of the same rows** (`rowsToExpression`, which is kept for
+  consumers of expressions): a residue without `label_seq_id` (ligands, waters in many files) never satisfies a
+  `label_seq_id`, `beg_label_seq_id` or `end_label_seq_id` criterion (MolScript reads a missing value as 0, so
+  `{ end_label_seq_id: 50 }` selected them); criteria which only exist for atoms (`auth_*`, `label_comp_id`, atom ids,
+  ...) select nothing on coarse elements (MolScript throws); a range with `beg > end` selects nothing; a component which
+  selects everything is the source structure itself. An empty `pdbx_PDB_ins_code` means a residue without an insertion
+  code, as in MolScript. `operator_name` (the unit operator's name) is honored, as it was by the expression.
+- The annotation color theme and the annotation tooltips already used these semantics for missing values before.

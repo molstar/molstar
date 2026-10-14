@@ -59,6 +59,10 @@ the [API change ledger](breaking-v6-changes.md).
   `component` nodes with rows (`StructureComponent` with an `expression` is still used for static and MolQL selectors);
   `componentPropsFromSelector` returns a `Selector` and keeps rows as `schema`. Snapshots with the old expressions still
   load
+- Rows are resolved the same way for components, annotations, tooltips, labels and primitives: a residue without
+  `label_seq_id` (ligands, waters) no longer matches a `label_seq_id` range or `end_label_seq_id` as MolScript did (it
+  read a missing value as 0), `atom_id` rows select every atom with that id, `operator_name` is supported in rows, and
+  JSON annotation values of the wrong type (`"10"` for a number) are converted (see the API change ledger)
 - Components, layers and labels made from rows are named by what they select in a compact form (`A`, `A432`, `A:10-50`,
   `A, B, C`, `120 residues`) instead of a dump of the rows
 - Annotation rows use reusable typed-array buffers, a sort-free range union, and paint each element once (later rows
