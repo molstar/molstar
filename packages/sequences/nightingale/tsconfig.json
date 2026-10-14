@@ -12,7 +12,9 @@
     "useDefineForClassFields": true,
     "noUncheckedIndexedAccess": false,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["node"]
+    "types": ["node"],
+    // The element packages' declarations don't resolve under NodeNext: a local stand-in (types/nightingale-element.d.ts).
+    "paths": { "@nightingale-elements/*": ["./types/nightingale-element.d.ts"] }
   },
   "include": ["src"],
   "exclude": ["src/**/_test/**", "src/**/_stories/**", "src/**/*.stories.ts", "src/**/*.stories.tsx"],
