@@ -55,6 +55,8 @@ interface SequenceViewer {
   readonly style: ReadonlyState<'compact' | 'tracks'>;
   setStyle(style: 'compact' | 'tracks'): void; // ctx.ui.setStyle(section, ...), UI state only
   readonly structure: ReadonlyState<SequenceStructure | undefined>; // what it shows (§3)
+  readonly theme: ReadonlyState<SequenceTheme>; // the color scheme the letters use, and later each track's (§6)
+  setTheme(theme: SequenceTheme): void; // written into the document the module builds
 }
 // create(ctx): subscribes to ctx.canvasInk (§5) and keeps each viewer's skin in step
 ```
@@ -147,30 +149,36 @@ find it.
   An explicit skin keeps one source of truth and works the same in a shadow root, a story and a headless test. The
   control still sets `--seq-font-*` from `--msp-font-*`; fonts are not part of the ink.
 
-## 6. Tooltip and legend
+## 6. Theme, tooltip and legend
 
-- **Tooltip**: the sequence's hover feeds the shell's one cursor-following `HoverLabel` (shell.md: the sequence's
-  hover feeds the same hover label as the 3D canvas). The control maps `seq.labels.current` (`{ title, lines }`) to
-  the label model's lines while the pointer is over the surface; `labelText` gives the flat form. No per-move
-  rendering: lines change only when the label does.
+The extension manages its themes; Seq\* colors. Which color scheme the letters use (and, later, each track) is the
+module's state (`SequenceViewer.theme`), next to the ink it already follows (§5). The module writes the choice into
+the document it builds; Seq\*'s themes and renderers draw the colors from it, so nothing about coloring is
+reimplemented in Prism.
+
 - **Legend**: a small prism-ui `Legend` component (items: swatch or glyph and label; ramps: gradient, low and high),
-  opened from a button on the control. Its data is Seq\*'s legend model. That model (`legendGroups`,
-  `createHoverCard`, `labelText` in `viewer/src/chrome.ts` and `hover-card.ts`) is internal to Seq\*'s DOM and React
-  UIs today; it gets a headless entry (`@molstar/seq-viewer/chrome`) so another UI framework can render it. With
-  letters only, the legend has little to say; it earns its place with the first colored track.
+  opened from a button on the control. Its data is the extension's own: the scheme it chose, read from the scheme's
+  public definition (`KernelColorSchemes`, `ColorSchemeEntry` from `@molstar/seq-core/format`). Seq\*'s legend model
+  (`legendGroups` in `viewer/src/chrome.ts`) stays internal to its DOM and React UIs: no new Seq\* entry.
+- **Tooltip**: the sequence's hover feeds the shell's one cursor-following `HoverLabel` (shell.md: the sequence's
+  hover feeds the same hover label as the 3D canvas). The control maps `seq.labels.current` (`{ title, lines }`,
+  already public) to the label model's lines while the pointer is over the surface. No per-move rendering: lines
+  change only when the label does.
 - Track headers stay off (`headerWidth: 0`), so header tooltips, track menus and the hover card are not in play.
+- **Later, data tracks**: a legend whose bands or range come from the data or the user's edits (pLDDT, a continuous
+  annotation) is computed by Seq\*'s renderers today. With fixed bands (pLDDT's) the extension knows them from the
+  theme it set; for the rest, Seq\*'s per-track legend (`trackLegends`) gets an export then (§8).
 
 ## 7. Work, in order
 
 | #   | What                                                                                                                                                                                         | Who            |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| S1  | seq-viewer: the headless `./chrome` entry (legend groups, label text, hover-card controller), exported with types; Seq\*'s DOM and React UIs import it from there                           | Sonnet, medium |
 | S2  | prism-ui: the module slot (contexts.md §3, minimal), the `canvasInk` behavior on the viewer mode's context (the shell reads it too), `FloatingDock`'s frameless variant, the `Legend` component with a story                                                                 | Sonnet, medium |
-| S3  | `prism-viewer/src/extensions/sequence`: module (with the ink subscription and `skinFor`), document, control, link over `StructureView3D`; the mock `StructureView3D` and the 1TQN fixture                                         | Sonnet, high   |
+| S3  | `prism-viewer/src/extensions/sequence`: module (the ink subscription and `skinFor`, the theme state and the legend data from it), document, control, link over `StructureView3D`; the mock `StructureView3D` and the 1TQN fixture                                         | Sonnet, high   |
 | S4  | the viewer-mode mock composes the extension instead of `SequenceStrip`; the shell stories (including `CanvasBackground` for the ink); the subscription guard extended to the new package | Sonnet, medium |
 | S5  | Visual check in Storybook                                                                                                                                                                    | David          |
 
-S1 and S2 are independent; S3 needs both; S4 needs S3. Over the real plugin, the same extension gets its
+S3 needs S2; S4 needs S3. Over the real plugin, the same extension gets its
 `pluginView3D` in `sources/` once Prism's plugin sources exist (view-models.md §3); nothing in the control changes.
 
 ## 8. Follow-ups
@@ -180,6 +188,6 @@ S1 and S2 are independent; S3 needs both; S4 needs S3. Over the real plugin, the
 | molstar-poc's link and structure provider as a real package (`@molstar/seq-molstar`), out of the PoC      | the extension leaves the mocks       |
 | Several viewers (a second id, its own tab or dock)                                                       | a feature that needs two             |
 | The strip header's structure picker (structure, chain or polymer mode, instance)                         | more than one structure loaded       |
-| Tracks beyond letters (secondary structure, pLDDT, annotations) and their legend                         | asked for in Prism                   |
+| Tracks beyond letters (secondary structure, pLDDT, annotations) and their legend; Seq\*'s `trackLegends` exported for data-driven ranges | asked for in Prism                   |
 | The `--msp-ink` tokens (defined, unused) for chrome outside the canvas layer                             | a canvas control outside that layer  |
 | todo.md's "the Mol\* hover sometimes needs a second move after the pointer was over the 3D canvas"       | the link over the real plugin        |
