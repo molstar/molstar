@@ -564,3 +564,33 @@ function TaskPill(props: { task: StatusTask }) {
     </span>
   );
 }
+
+/**
+ * The compact rail's button (`ShellOptions.compactRail`): the rail's head glyph, in a card of its own beside the canvas
+ * stack; it shows and hides the whole rail column.
+ */
+export function RailToggle(props: { shell: ShellModel }) {
+  const { shell } = props;
+  const icon = shell.dock('right').tabs.pipe(
+    map((tabs) => tabs.find((t) => t.place === 'head')?.icon ?? ('prism' as const)),
+    distinctUntilChanged(),
+  );
+  const title = shell.railOpen.pipe(map((open) => (open ? 'Hide the panel rail' : 'Show the panel rail')));
+  return (
+    <div class={classes.stack}>
+      <div class={classes.frame}>
+        <button
+          type="button"
+          class={classes.tool}
+          data-tip={title}
+          data-tip-side="top"
+          aria-label={title}
+          aria-pressed={shell.railOpen}
+          onClick={() => shell.toggleRail()}
+        >
+          <span class={classes.face} ref={(el) => bind(icon, (name) => el.replaceChildren(Icon({ name, size: 18 })))} />
+        </button>
+      </div>
+    </div>
+  );
+}

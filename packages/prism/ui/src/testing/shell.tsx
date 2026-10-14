@@ -143,6 +143,8 @@ export interface ShellStoryProps {
   noPanel?: boolean;
   /** The right panel pinned beside the canvas. */
   pinned?: boolean;
+  /** A compact rail (`ShellOptions.compactRail`): the rail column hidden behind the canvas corner's button. */
+  compact?: boolean;
   /** Opens with the command menu open. */
   commandMenu?: boolean;
   /** What an add-on brings (the agent module's mock: `@molstar/prism-assistant/testing`). */
@@ -164,7 +166,10 @@ export interface MockApp {
  */
 export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: MockApp }) {
   const { mode, app } = props;
-  const shell = new ShellModel({ docks: { right: { pinned: !!props.pinned, collapsed: !!props.noPanel } } });
+  const shell = new ShellModel({
+    compactRail: !!props.compact,
+    docks: { right: { pinned: !!props.pinned, collapsed: !!props.noPanel } },
+  });
   const status = new StatusModel();
   const commandMenuOpen = observableState(false);
   // The group the command menu opens in (Preset, Styles); none for ⌘K.
@@ -305,6 +310,21 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
       shortcut: { key: '?' },
       run: () => {
         shell.show('help');
+        return { message: '' };
+      },
+    },
+  ]);
+
+  // A compact rail's column: shown and hidden by the corner's button, or by this (bindable) command.
+  parts.commands.register([
+    {
+      id: 'shell.toggle-rail',
+      title: 'Show or hide the panel rail',
+      alias: ['rail', 'sidebar', 'panels', 'compact'],
+      category: 'View',
+      icon: 'prism',
+      run: () => {
+        shell.toggleRail();
         return { message: '' };
       },
     },

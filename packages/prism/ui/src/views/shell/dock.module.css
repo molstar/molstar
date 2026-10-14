@@ -256,6 +256,15 @@
   bottom: 0;
   flex-direction: row-reverse;
   gap: var(--msp-canvas-edge);
+  /* A compact rail's column slides out and fades (transform and opacity only). */
+  transition:
+    transform var(--msp-motion-base) var(--msp-ease),
+    opacity var(--msp-motion-base) var(--msp-ease);
+
+  &[data-rail-hidden] {
+    transform: translateX(100%);
+    opacity: 0;
+  }
 
   & .rail {
     border-radius: 0;

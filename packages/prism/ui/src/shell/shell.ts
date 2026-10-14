@@ -118,6 +118,12 @@ export interface ShellOptions {
    * off what it does not want (`{ xr: false, animation: false }`) without unregistering anything.
    */
   buttons?: Readonly<Record<string, boolean>>;
+  /**
+   * A compact rail (not the compact `mode`, the narrow layout): the whole rail column is hidden behind a button in the
+   * canvas's corner, which shows and hides it, and the canvas takes its width. Off by default; starts hidden
+   * (`railOpen`).
+   */
+  compactRail?: boolean;
 }
 
 /**
@@ -273,6 +279,9 @@ export class ShellModel extends ReactiveModel {
   readonly #page = observableState<OpenPage | undefined>(undefined);
   readonly #docks: Record<DockId, DockModel>;
   readonly #mode = observableState<ShellLayout['mode']>('auto');
+  readonly #compactRail = observableState(false);
+  readonly #railOpen = observableState(false);
+  readonly #railShown = observableState(true);
   readonly #width = observableState(0);
   readonly #effectiveMode = observableState<ShellMode>('desktop');
   readonly #overlay = observableState<OpenOverlay | undefined>(undefined);
@@ -304,6 +313,46 @@ export class ShellModel extends ReactiveModel {
     }
     this.#mode.set(options.mode ?? 'auto');
     this.#resolveMode();
+    this.setCompactRail(!!options.compactRail);
+  }
+
+  /** The rail is a column hidden behind the canvas corner's button (`ShellOptions.compactRail`). */
+  get compactRail(): ReadonlyState<boolean> {
+    return this.#compactRail.asReadonly;
+  }
+
+  /** In a compact rail: whether the column is shown (it is hidden until the button shows it). */
+  get railOpen(): ReadonlyState<boolean> {
+    return this.#railOpen.asReadonly;
+  }
+
+  /** Whether the rail column is shown: always, unless the rail is compact and not open. */
+  get railShown(): ReadonlyState<boolean> {
+    return this.#railShown.asReadonly;
+  }
+
+  setCompactRail(compact: boolean): void {
+    this.#compactRail.set(compact);
+    this.setRailOpen(false);
+  }
+
+  /**
+   * Shows or hides a compact rail's column. Hiding it closes what opened from it: the overlay card and the right panel,
+   * floating or pinned (a pinned panel without its rail would have no way to switch tabs; the pin is kept for when it
+   * is opened again).
+   */
+  setRailOpen(open: boolean): void {
+    this.#railOpen.set(open);
+    this.#railShown.set(!this.#compactRail.value || open);
+    if (!this.#railShown.value) {
+      this.closeOverlay();
+      const right = this.#docks.right;
+      if (!right.state.value.collapsed) right.update({ collapsed: true }, this.#registered);
+    }
+  }
+
+  toggleRail(): void {
+    if (this.#compactRail.value) this.setRailOpen(!this.#railOpen.value);
   }
 
   dock(id: DockId): DockModel {

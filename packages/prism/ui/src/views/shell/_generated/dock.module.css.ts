@@ -270,10 +270,17 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 
 .msp-shell-dock-floatingRight {
   gap: var(--msp-canvas-edge);
+  transition: transform var(--msp-motion-base) var(--msp-ease),
+    opacity var(--msp-motion-base) var(--msp-ease);
   flex-direction: row-reverse;
   top: 0;
   bottom: 0;
   right: 0;
+
+  &[data-rail-hidden] {
+    opacity: 0;
+    transform: translateX(100%);
+  }
 
   & .msp-shell-dock-rail {
     background: var(--msp-glass-panel-bg);

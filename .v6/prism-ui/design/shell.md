@@ -100,6 +100,15 @@ extension UI) are placed.
   the hairlines, only when the height or the set of buttons changes: one `ResizeObserver` on the rail (`RailLayout`),
   its callback sets a state only when the rounded height differs, and the left-out buttons are not rendered (their
   section's hairline goes with the last of them).
+- **Compact rail.** An option (`ShellOptions.compactRail`, off by default; `ShellModel.setCompactRail`; in the stories the
+  `compact` arg, `?args=compact:true`; not the narrow layout's compact `mode`): the whole rail column is hidden and the
+  canvas takes its width (`--msp-canvas-end`, the corner and the cards' insets follow). A button with the rail's head
+  glyph (the Mol* triangle) sits in the canvas's bottom-right corner, a card of its own (a gap) beside the canvas stack,
+  and shows and hides the column (`ShellModel.railOpen`, `toggleRail`; the command `shell.toggle-rail` has the same
+  effect and can be given a key). Hidden, the column is inert and paused (`activity`, §"Hidden UI"), slides out and
+  fades (transform and opacity only); shown, it is the rail as above at whatever size step fits. Hiding closes the
+  overlay card and the right panel, floating or pinned (a pinned panel without its rail could not switch tabs; its pin
+  is kept for when it opens again). Only where the rail floats: the narrow layout and the docked one have none.
 - **Theme switch.** At the rail's foot by Settings: a click goes to the next UI theme (Light, Dark, Blue, Auto (system):
   `UIThemes`, `ThemeModel.next`); its icon and tooltip are the current one's. `ThemeModel` (`shell/theme.ts`) keeps
   `data-msp-theme` on the element the UI is themed by. Settings › Interface offers the same choice. The rail, the panel

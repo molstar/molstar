@@ -27,8 +27,10 @@ export const Empty: StoryObj = {
 };
 
 /** A structure loaded: the Structure tab, a status message, a running task and the selection chip. */
-export const Loaded: StoryObj = {
-  render: () => story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} />}</div>),
+export const Loaded: StoryObj<{ compact: boolean }> = {
+  args: { compact: false },
+  render: (args) =>
+    story(() => <div style="height: 100vh">{<ViewerShellStory loaded={true} compact={args.compact} />}</div>),
 };
 
 /** Several structures: four CYP3A4 structures superposed on 1TQN, collapsed but the first. */
@@ -73,15 +75,16 @@ export const CanvasBackground: StoryObj<{ background: string }> = {
  * centered, scrolls to a focus and fades at its cut edges. The canvas stack's Sequence button (always there) opens a
  * menu: show or hide, Text / Tracks, the tracks' rail, the colors and the legend. The canvas background is Canvas
  * settings › Background (the stack's monitor button): the chrome, the band and the letters follow it; the `background`
- * arg only starts it. Hovering the 3D canvas shows its label next to the cursor, hovering the sequence the sequence's.
+ * arg only starts it. The `compact` arg starts with the rail hidden behind the corner's triangle button (a compact
+ * rail: ?args=compact:true). Hovering the 3D canvas shows its label next to the cursor, hovering the sequence the sequence's.
  */
-export const RealPlugin: StoryObj<{ background: string }> = {
-  args: { background: 'white' },
+export const RealPlugin: StoryObj<{ background: string; compact: boolean }> = {
+  args: { background: 'white', compact: false },
   argTypes: { background: { control: 'select', options: ['white', 'light', 'gray', 'dark', 'blue'] } },
   render: (args) =>
     story(() => (
       <div style="height: 100vh">
-        <RealPluginShellStory background={args.background} />
+        <RealPluginShellStory background={args.background} compact={args.compact} />
       </div>
     )),
 };
@@ -91,13 +94,13 @@ export const RealPlugin: StoryObj<{ background: string }> = {
  * by pLDDT (Mol*'s confidence theme, the AlphaFold bands) with the heme and erythromycin; in Tracks a pLDDT track under the
  * letters in the same bands, softened, and the legend (the Sequence menu) lists them. Everything else as the 1TQN story.
  */
-export const RealPluginPredicted: StoryObj<{ background: string }> = {
-  args: { background: 'white' },
+export const RealPluginPredicted: StoryObj<{ background: string; compact: boolean }> = {
+  args: { background: 'white', compact: false },
   argTypes: { background: { control: 'select', options: ['white', 'light', 'gray', 'dark', 'blue'] } },
   render: (args) =>
     story(() => (
       <div style="height: 100vh">
-        <RealPluginShellStory background={args.background} structure={StructureAlphaFill} />
+        <RealPluginShellStory background={args.background} compact={args.compact} structure={StructureAlphaFill} />
       </div>
     )),
 };

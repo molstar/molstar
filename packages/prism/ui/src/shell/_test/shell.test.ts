@@ -146,4 +146,21 @@ describe('pages', () => {
     dispose();
     expect(shell.page.value).toBeUndefined();
   });
+
+  it('hides the rail of a compact rail until it is opened, and closes the panel and the card with it', () => {
+    const shell = new ShellModel({ compactRail: true });
+    shell.registerTabs([tab('a')]);
+    expect(shell.railShown.value).toBe(false);
+    shell.toggleRail();
+    expect(shell.railShown.value).toBe(true);
+    shell.show('a');
+    shell.setPinned('right', true);
+    shell.toggleRail();
+    expect(shell.railShown.value).toBe(false);
+    expect(shell.dock('right').active.value).toBeUndefined();
+    // Not compact: always shown, the toggle does nothing.
+    const plain = new ShellModel();
+    plain.toggleRail();
+    expect(plain.railShown.value).toBe(true);
+  });
 });
