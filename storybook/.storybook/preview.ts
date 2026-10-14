@@ -7,10 +7,12 @@
 import type { Preview } from '@storybook/web-components-vite';
 // The decorators of the registered packages' preview modules (packages.ts).
 import packageDecorators from 'virtual:story-package-previews';
+import { ThemedDocsContainer } from './docs-container.js';
 
 const preview: Preview = {
   parameters: {
     layout: 'fullscreen',
+    docs: { container: ThemedDocsContainer },
     options: {
       // One group per registered package group (packages.ts). Prism: Overview first, then the app from the whole to its
       // parts, the runtime last.

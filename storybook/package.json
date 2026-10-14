@@ -18,6 +18,8 @@
     "@storybook/addon-docs": "catalog:",
     "@storybook/web-components-vite": "catalog:",
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
     "storybook": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:"
