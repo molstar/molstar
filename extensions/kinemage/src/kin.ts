@@ -156,7 +156,10 @@ async function getPoints(ctx: RuntimeContext, kin: Kinemage, visibilityState?: K
   // Every dot is in its own Molstar group because they may have colors and we look that up by group.
   let index = 0;
 
-  for (let i = 0; i < dotLists.length; i++) {
+  // Add them in reverse order so that when the depth is tied we will see the later one rather than
+  // the earlier.  This matches the behavior of the Kinemage viewer, which draws the later ones on
+  // top of the earlier ones.
+  for (let i = dotLists.length - 1; i >= 0; i--) {
     const dotList = dotLists[i];
     const positionArray = dotList.positionArray;
     const colorArray = dotList.colorArray;
@@ -219,7 +222,10 @@ async function getLines(ctx: RuntimeContext, kin: Kinemage, visibilityState?: Ki
   // up the width based on the group is in the size function.
   let index = 0;
 
-  for (let i = 0; i < vectorLists.length; i++) {
+  // Add them in reverse order so that when the depth is tied we will see the later one rather than
+  // the earlier.  This matches the behavior of the Kinemage viewer, which draws the later ones on
+  // top of the earlier ones.
+  for (let i = vectorLists.length - 1; i >= 0; i--) {
     const vectorList = vectorLists[i];
     const position1Array = vectorList.position1Array;
     const position2Array = vectorList.position2Array;
@@ -327,7 +333,10 @@ async function getMesh(ctx: RuntimeContext, kin: Kinemage, visibilityState?: Kin
   // up the color based on the group is in the color function.
   let index = 0;
 
-  for (let ri = 0; ri < ribbonObjects.length; ri++) {
+  // Add them in reverse order so that when the depth is tied we will see the later one rather than
+  // the earlier.  This matches the behavior of the Kinemage viewer, which draws the later ones on
+  // top of the earlier ones.
+  for (let ri = ribbonObjects.length - 1; ri >= 0; ri--) {
     const ribbonObject = ribbonObjects[ri];
     const coords = ribbonObject.positionArray;
     const colorArray = ribbonObject.colorArray;
@@ -439,7 +448,10 @@ async function getSpheres(ctx: RuntimeContext, kin: Kinemage, visibilityState?: 
   // up the radius based on the group is in the size function.
   let index = 0;
 
-  for (let i = 0; i < balls.length; i++) {
+  // Add them in reverse order so that when the depth is tied we will see the later one rather than
+  // the earlier.  This matches the behavior of the Kinemage viewer, which draws the later ones on
+  // top of the earlier ones.
+  for (let i = balls.length - 1; i >= 0; i--) {
     const ballList = balls[i];
     const positionArray = ballList.positionArray;
     const radiusArray = ballList.radiusArray;
