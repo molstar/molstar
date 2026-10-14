@@ -312,7 +312,7 @@ export class MVSAnnotation {
     if (use === 'none') return (entry.single ??= this.getRowForEachAtom(model, operator));
     let result = entry.byOperator.get(operator);
     if (!result) {
-      const key = use === 'instance' ? operator.instanceId : `${operator.instanceId}|${operator.name}`;
+      const key = this.operatorKey(operator, use);
       result = entry.byKey.get(key);
       if (!result) entry.byKey.set(key, (result = this.getRowForEachAtom(model, operator)));
       entry.byOperator.set(operator, result);
@@ -322,6 +322,11 @@ export class MVSAnnotation {
   /** Cached `IndexedModel` per hierarchy scope (models of one trajectory): one (`single`) if no row contains `instance_id` or `operator_name`,
    * otherwise one per instance (or instance and operator name), found by key (`byKey`) or, faster, by the operator object (`byOperator`). */
   private _indexedModels = new WeakMap<HierarchyScope, IndexedModelsOfScope>();
+
+  /** The key of the mapping of an operator (a string is built for the instance and the name: only called for an operator which was not looked up before) */
+  private operatorKey(operator: RowOperator, use: 'instance' | 'both'): string {
+    return use === 'instance' ? operator.instanceId : `${operator.instanceId}|${operator.name}`;
+  }
 
   /** Which properties of the operator of a unit the mapping depends on, according to the rows. */
   private operatorUse(): 'none' | 'instance' | 'both' {

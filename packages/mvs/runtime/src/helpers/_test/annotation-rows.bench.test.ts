@@ -42,7 +42,7 @@ const NRows = Number(process.env.MVS_BENCH_ROWS ?? 1000);
 const NRuns = 3;
 
 function allocated() {
-  return getHeapStatistics().total_allocated_bytes;
+  return getHeapStatistics().total_allocated_bytes ?? 0; // (not in the statistics of older versions of Node: allocations then show as 0)
 }
 
 function measure<T>(f: () => T): { result: T; ms: number; mb: number } {

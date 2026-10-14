@@ -120,20 +120,42 @@ describe('operator_name when the instance id does not tell the operators apart',
       }
       expect(compute).toHaveBeenCalledTimes(1);
     });
-    it('a lookup does not allocate (themes and tooltips look up every element)', () => {
+    it('the key of an operator is built when the operator is first looked up, not for every lookup', () => {
       for (const rows of [
-        [{ label_asym_id: 'A', tag: 'x' }],
         [{ instance_id: 'shared-instance', label_asym_id: 'A', tag: 'x' }],
         [{ operator_name: 'op-b', label_asym_id: 'A', tag: 'x' }],
       ]) {
         const { annot } = make(rows);
-        const location = locationIn(indexOfB);
-        for (let k = 0; k < 100000; k++) annot.getValueForLocation(location, 'tag'); // (builds the mapping, and warms the code up)
-        const before = getHeapStatistics().total_allocated_bytes;
-        for (let k = 0; k < 200000; k++) annot.getValueForLocation(location, 'tag');
-        const perLookup = (getHeapStatistics().total_allocated_bytes - before) / 200000;
-        expect(perLookup).toBeLessThan(8); // (a string built per lookup would be dozens of bytes)
+        const key = vi.spyOn(annot as any, 'operatorKey');
+        for (let k = 0; k < 1000; k++) {
+          annot.getValueForLocation(locationIn(indexOfA), 'tag');
+          annot.getValueForLocation(locationIn(indexOfB), 'tag');
+        }
+        expect(key.mock.calls.length).toBeLessThanOrEqual(2); // (one per operator of the units)
       }
+      const { annot } = make([{ label_asym_id: 'A', tag: 'x' }]);
+      const key = vi.spyOn(annot as any, 'operatorKey');
+      for (let k = 0; k < 100; k++) annot.getValueForLocation(locationIn(indexOfB), 'tag');
+      expect(key).not.toHaveBeenCalled(); // (no row refers to an operator: there is no key)
     });
+    // (`total_allocated_bytes` is in the heap statistics of newer versions of Node only)
+    it.skipIf(typeof getHeapStatistics().total_allocated_bytes !== 'number')(
+      'a lookup does not allocate (themes and tooltips look up every element)',
+      () => {
+        for (const rows of [
+          [{ label_asym_id: 'A', tag: 'x' }],
+          [{ instance_id: 'shared-instance', label_asym_id: 'A', tag: 'x' }],
+          [{ operator_name: 'op-b', label_asym_id: 'A', tag: 'x' }],
+        ]) {
+          const { annot } = make(rows);
+          const location = locationIn(indexOfB);
+          for (let k = 0; k < 100000; k++) annot.getValueForLocation(location, 'tag'); // (builds the mapping, and warms the code up)
+          const before = getHeapStatistics().total_allocated_bytes;
+          for (let k = 0; k < 200000; k++) annot.getValueForLocation(location, 'tag');
+          const perLookup = (getHeapStatistics().total_allocated_bytes - before) / 200000;
+          expect(perLookup).toBeLessThan(8); // (a string built per lookup would be dozens of bytes)
+        }
+      },
+    );
   });
 });
