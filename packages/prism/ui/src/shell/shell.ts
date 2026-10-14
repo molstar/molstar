@@ -46,6 +46,12 @@ export interface ShellTab {
    * strip (default), or its foot by the command menu (Settings).
    */
   place?: 'head' | 'strip' | 'foot';
+  /**
+   * Which rail buttons go first under More when the rail is too short for all of them, even at its smallest size: the
+   * lower the number, the longer the button stays. Defaults to its position in the rail (top to bottom), so the foot goes
+   * first; the command menu says -1 (it is the main way in).
+   */
+  priority?: number;
   /** In the compact layout's bottom bar (Home, Structure); the rest go under More there. */
   compactBar?: boolean;
   /**
@@ -157,6 +163,8 @@ export interface CanvasToolbarItem {
    */
   group?: string;
   order?: number;
+  /** For rail items: the same as `ShellTab.priority`; which go under More first when the rail is too short. */
+  priority?: number;
   /**
    * Where it shows: the rail (default: panels, the command menu, app actions like save and export) or the canvas stack at
    * the top right of the canvas (what acts on the view: camera, lighting, XR, expand), under the mode buttons.

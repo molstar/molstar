@@ -96,7 +96,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-tool {
   width: 100%;
-  height: 40px;
+  height: var(--msp-rail-button, 40px);
   color: var(--msp-color-text-muted);
   transition: background-color var(--msp-motion-fast) var(--msp-ease),
     color var(--msp-motion-fast) var(--msp-ease);
@@ -230,9 +230,19 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-tool[data-captioned] {
   justify-content: center;
   gap: var(--msp-space-1);
+  height: var(--msp-rail-button-captioned, 46px);
   flex-direction: column;
-  height: 46px;
   display: flex;
+}
+
+.msp-shell-canvas-tool > svg, .msp-shell-canvas-tool > .msp-shell-canvas-face > svg {
+  width: var(--msp-rail-icon, 20px);
+  height: var(--msp-rail-icon, 20px);
+}
+
+.msp-shell-canvas-tool[data-captioned] > svg, .msp-shell-canvas-tool[data-captioned] > .msp-shell-canvas-face > svg {
+  width: var(--msp-rail-icon-captioned, 16px);
+  height: var(--msp-rail-icon-captioned, 16px);
 }
 
 .msp-shell-canvas-caption {

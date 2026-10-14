@@ -84,6 +84,22 @@ extension UI) are placed.
   (`ui.layout.buttons` in the spec, `ShellOptions.buttons`, `ShellModel.setButtons` at runtime; ids not listed show).
   Extensions do **not** add rail buttons for their features (the rail would grow with every extension): they contribute
   sections to a panel's slot instead (Tabs and sections, below).
+- **Rail on a short shell.** The rail steps down with its own height (it is a size container, `container-type: size`;
+  the queries are CSS, nothing is measured for them): **normal** from 620px (buttons 40px, icons 20px; the command menu
+  with its caption 46px), **compact** from 530px (34px, icons 18px, the captioned 40px), **small** below (30px, icons
+  16px, the captioned 36px; tooltips and accessible names are the same at every step). The steps are `--msp-rail-*`
+  variables set on the rail's children in `dock.module.css`, which the buttons (`.tab`, `.tool`) read; the numbers are
+  in `RailSteps` (`views/shell/rail.ts`) too, and `_test/rail.test.ts` keeps the CSS and the table equal. When even the
+  small step is too tall, the lowest-priority buttons are left out and a **More** button (the ellipsis, below the
+  toolbar sections, above the foot) opens a menu beside the rail, to its left, its bottom edge level with the button
+  (outside the rail's clipping, as the canvas menus are): a row for each left-out button, in the rail's order, running
+  what the button runs (a tab shows, an overlay opens anchored at More). Priority is a field on the registration
+  (`ShellTab.priority`, `CanvasToolbarItem.priority`): the lower the number, the longer it stays, defaulting to the
+  button's position in the rail from the top, so the foot goes first; the command menu says -1 (the last to go) and the
+  theme switch 100 (the first). What fits is computed (`fitRail`) from the rail's height, the step's button sizes and
+  the hairlines, only when the height or the set of buttons changes: one `ResizeObserver` on the rail (`RailLayout`),
+  its callback sets a state only when the rounded height differs, and the left-out buttons are not rendered (their
+  section's hairline goes with the last of them).
 - **Theme switch.** At the rail's foot by Settings: a click goes to the next UI theme (Light, Dark, Blue, Auto (system):
   `UIThemes`, `ThemeModel.next`); its icon and tooltip are the current one's. `ThemeModel` (`shell/theme.ts`) keeps
   `data-msp-theme` on the element the UI is themed by. Settings › Interface offers the same choice. The rail, the panel

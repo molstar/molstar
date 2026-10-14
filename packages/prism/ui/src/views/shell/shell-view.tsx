@@ -234,8 +234,8 @@ export function ShellView(props: ShellViewProps) {
               <FloatingDock
                 shell={shell}
                 dock={right}
-                railItems={<CanvasToolbar shell={shell} part="rest" />}
-                railFoot={<CanvasToolbar shell={shell} part="lead" />}
+                railItems={(rail) => <CanvasToolbar shell={shell} part="rest" hidden={rail.hidden} />}
+                railFoot={(rail) => <CanvasToolbar shell={shell} part="lead" hidden={rail.hidden} />}
               />
             )}
           </Show>

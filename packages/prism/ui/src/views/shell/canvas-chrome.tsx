@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map, of } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
@@ -20,25 +20,8 @@ import type { Child } from '../../dom/jsx-types.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/canvas.module.css.js';
 import { PinButton } from './dock-view.js';
+import { sectionsOf } from './rail.js';
 import { ViewHost } from './view-host.js';
-
-/** A section of the toolbar: its id (none for the leading items: the command menu) and its buttons. */
-interface ToolSection {
-  group: string | undefined;
-  items: readonly CanvasToolbarItem[];
-}
-
-function sectionsOf(items: readonly CanvasToolbarItem[]): ToolSection[] {
-  const sections: ToolSection[] = [];
-  for (const item of items) {
-    const group = item.group;
-    const section = sections.find((s) => s.group === group);
-    if (section) (section.items as CanvasToolbarItem[]).push(item);
-    else sections.push({ group, items: [item] });
-  }
-  // Items without a section (the command menu) lead.
-  return sections.sort((a, b) => (a.group === undefined ? -1 : b.group === undefined ? 1 : 0));
-}
 
 /**
  * The toolbar: its buttons in sections, each a glass block of its own, the gaps between them the grouping. `part`
@@ -47,7 +30,7 @@ function sectionsOf(items: readonly CanvasToolbarItem[]): ToolSection[] {
  */
 
 /** A toolbar item's title as shown: its face's (it changes: the theme, the mode switch), or its own with its caption. */
-function itemTitle(item: CanvasToolbarItem) {
+export function itemTitle(item: CanvasToolbarItem) {
   return item.face
     ? item.face.pipe(map((f) => f.title))
     : item.caption
@@ -56,7 +39,7 @@ function itemTitle(item: CanvasToolbarItem) {
 }
 
 /** A toolbar item's icon as shown: its face's, following it, or its own. */
-function ItemIcon(props: { item: CanvasToolbarItem; size: number; class?: string }) {
+export function ItemIcon(props: { item: CanvasToolbarItem; size: number; class?: string }) {
   const { item } = props;
   return item.face ? (
     <span
@@ -73,11 +56,18 @@ export function CanvasToolbar(props: {
   part?: 'all' | 'lead' | 'rest' | 'canvas';
   /** Where buttons with a menu open it (the canvas stack); without it, menus are not shown. */
   menus?: ToolMenus;
+  /** The rail's left-out buttons (`RailLayout.hidden`): they are not shown, they are under More. */
+  hidden?: Observable<ReadonlySet<string>>;
 }) {
   const { shell } = props;
   const part = props.part ?? 'all';
   const canvas = part === 'canvas';
-  const sections = shell.toolbar.pipe(
+  const items$ = props.hidden
+    ? combineLatest([shell.toolbar, props.hidden]).pipe(
+        map(([items, hidden]) => (hidden.size ? items.filter((i) => !hidden.has(`tool:${i.id}`)) : items)),
+      )
+    : shell.toolbar;
+  const sections = items$.pipe(
     map((items) => sectionsOf(items.filter((i) => (i.place === 'canvas') === canvas))),
     map((all) =>
       part === 'all' || canvas

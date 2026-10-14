@@ -234,8 +234,13 @@
 
   & .tab {
     width: 100%;
-    height: 40px;
+    height: var(--msp-rail-button, 40px);
     border-radius: 0;
+  }
+
+  & .tab > svg {
+    width: var(--msp-rail-icon, 20px);
+    height: var(--msp-rail-icon, 20px);
   }
 
   & .tab[aria-selected="true"] {
@@ -372,6 +377,50 @@
 .rail {
   flex: none;
   align-self: stretch;
+  /* Sized by the height it is given: its buttons step down with it (below), nothing is measured for that. rail.ts leaves
+     out what still does not fit, from the same numbers (_test/rail.test.ts keeps the two equal). */
+  container-type: size;
+}
+
+/* The steps: the buttons' height and their icons'. Set on the rail's children (a container's queries style what is
+   inside it) and inherited by the buttons. The normal step is the default of each var(). */
+@container (max-height: 619px) {
+  .rail > * {
+    --msp-rail-button: 34px;
+    --msp-rail-button-captioned: 40px;
+    --msp-rail-icon: 18px;
+    --msp-rail-icon-captioned: 15px;
+  }
+}
+
+@container (max-height: 529px) {
+  .rail > * {
+    --msp-rail-button: 30px;
+    --msp-rail-button-captioned: 36px;
+    --msp-rail-icon: 16px;
+    --msp-rail-icon-captioned: 14px;
+  }
+}
+
+/* The More menu: beside the rail, outside its clipping, its bottom edge level with the More button (set inline). */
+.railMenu {
+  position: absolute;
+  right: calc(44px + var(--msp-space-2));
+  z-index: var(--msp-z-overlay);
+  display: flex;
+  max-height: 100%;
+  animation: rail-menu-in var(--msp-motion-fast) var(--msp-ease);
+
+  & > * {
+    overflow-y: auto;
+  }
+}
+
+@keyframes rail-menu-in {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
 }
 
 /* The bottom of the rail: pushed down, its divider above it; the tabs placed there (Settings), then the command menu (the

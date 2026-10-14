@@ -30,7 +30,9 @@ export const classes = {
   'left': 'msp-shell-dock-left',
   'pin': 'msp-shell-dock-pin',
   'rail': 'msp-shell-dock-rail',
+  'rail-menu-in': 'msp-shell-dock-rail-menu-in',
   'railFoot': 'msp-shell-dock-railFoot',
+  'railMenu': 'msp-shell-dock-railMenu',
   'right': 'msp-shell-dock-right',
   'splitter': 'msp-shell-dock-splitter',
   'strip': 'msp-shell-dock-strip',
@@ -251,9 +253,14 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
   }
 
   & .msp-shell-dock-tab {
-    border-radius: 0;
     width: 100%;
-    height: 40px;
+    height: var(--msp-rail-button, 40px);
+    border-radius: 0;
+  }
+
+  & .msp-shell-dock-tab > svg {
+    width: var(--msp-rail-icon, 20px);
+    height: var(--msp-rail-icon, 20px);
   }
 
   & .msp-shell-dock-tab[aria-selected="true"] {
@@ -368,6 +375,45 @@ defineStyles('views/shell/dock.module.css', `@layer msp.components {
 .msp-shell-dock-rail {
   flex: none;
   align-self: stretch;
+  container-type: size;
+}
+
+@container (height <= 619px) {
+  .msp-shell-dock-rail > * {
+    --msp-rail-button: 34px;
+    --msp-rail-button-captioned: 40px;
+    --msp-rail-icon: 18px;
+    --msp-rail-icon-captioned: 15px;
+  }
+}
+
+@container (height <= 529px) {
+  .msp-shell-dock-rail > * {
+    --msp-rail-button: 30px;
+    --msp-rail-button-captioned: 36px;
+    --msp-rail-icon: 16px;
+    --msp-rail-icon-captioned: 14px;
+  }
+}
+
+.msp-shell-dock-railMenu {
+  right: calc(44px + var(--msp-space-2));
+  z-index: var(--msp-z-overlay);
+  max-height: 100%;
+  animation: msp-shell-dock-rail-menu-in var(--msp-motion-fast) var(--msp-ease);
+  display: flex;
+  position: absolute;
+
+  & > * {
+    overflow-y: auto;
+  }
+}
+
+@keyframes msp-shell-dock-rail-menu-in {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
 }
 
 .msp-shell-dock-railFoot {

@@ -225,6 +225,8 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
     // The UI theme, by Settings at the rail's foot: a click goes to the next one; the icon is the current one.
     {
       id: 'theme',
+      // The first to go under More on a short rail.
+      priority: 100,
       icon: 'sun',
       title: 'Theme',
       face: theme.theme.pipe(
@@ -237,6 +239,8 @@ export function ShellStory(props: ShellStoryProps & { mode: MockMode; app?: Mock
     },
     {
       id: 'palette',
+      // The main way in: the last to go.
+      priority: -1,
       icon: 'command',
       title: 'Command menu',
       caption: formatChord({ key: 'k', mod: true }),
