@@ -126,6 +126,12 @@ allow the caller to choose timestamps that are reproducible across time zones.
       moved, so apply fixes by hand using `migration-map.json` rather than by merging. Ported through 5.13.1
       (2026-10-08): molstar/molstar#1964, server path interpolation and dependency updates.
 - [ ] Capture a representative pre-migration Viewer render comparison baseline.
+- [ ] Bring the insertion codes of ranges to MolViewSpec selectors: `beg_auth_ins_code` and `end_auth_ins_code` are in
+      `StructureElement.SchemaItem` (molstar/molstar#1972) but not in the MVS selector and annotation schemas
+      (`packages/mvs/runtime/src/helpers/schemas.ts`, `MVSAnnotationRow`, the `auth_residue_range` annotation schema, the
+      builder and the JSON schema). Settle the semantics in the MolViewSpec spec first: with a code on a bound, a range
+      is a range of residues in the order of the input file, in each auth chain, not of `auth_seq_id` values (see
+      [the ledger](breaking-v6-changes.md#mvs-selectors-through-model-indices-the-molql-generator-element-schema)).
 
 ## Deferred beyond v6
 
