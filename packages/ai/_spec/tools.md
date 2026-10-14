@@ -99,11 +99,12 @@ throws naming the tool): the **core** (loaded from the first turn), a **group**'
 - `DisclosableEntry`: `{ id, summary, text, tools? }` (other texts the model may load: a data source's notes).
 - The toolkit makes two **disclosure tools**, `disclose_skills({ skills })` and `disclose_tools({ tools })` (names
   configurable), whose descriptions are the generated catalog. They answer with **contributions**: the definitions as
-  one system message of `tool-definition` parts (`definitionEntries`) and the guidance as a user message. They read what
-  is loaded through the API's `disclosure` module (`DisclosureModule { loaded(), skills() }`), which the session
-  provides.
+  one system message of `tool-definition` parts (`definitionEntries`, labelled `LABEL_DEFINITIONS`) and the guidance as
+  a user message (`groupEntry`, labelled `LABEL_SKILL` or `LABEL_ENTRY` with the group's key). They read what is loaded
+  through the API's `disclosure` module (`DisclosureModule { loaded(), skills() }`), which the session provides.
 - `groupKey(x)` is `skill:<id>@<fingerprint>` or `entry:<id>@<fingerprint>`; `groupsIn(messages)` finds the loaded ones
-  by exact text, so a changed guidance text is given again.
+  by their labels' keys, and only keys of the groups' current text, so a changed guidance text is given again (an entry
+  written before labels: by its exact text).
 - `coreDefinitions()`, `allDefinitions()`, `placementOf(id)`, `groupEntry(x)`, `disclosureTools()` serve the session and
   compaction.
 

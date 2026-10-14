@@ -7,9 +7,19 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import type { Message } from '@molstar/ai-agent';
 import type { HarnessReader } from '@molstar/ai-harness';
 import { declareTools, toolDefinition, user } from '@molstar/ai-conformance/testing';
-import { formatUsage, type ModelStepView, readTrace, type ToolStepView, type TurnView } from '../index.js';
+import {
+  defaultRequestOf,
+  defaultWindowPart,
+  formatUsage,
+  LABELS,
+  type ModelStepView,
+  readTrace,
+  type ToolStepView,
+  type TurnView,
+} from '../index.js';
 import {
   adapterState,
   configured,
@@ -572,5 +582,37 @@ describe('readTrace: the profile (the host’s part)', () => {
     const two = await readTrace(reader, { cache });
     expect(counts).toEqual(fetched);
     expect(two).toEqual(one);
+  });
+});
+
+describe('the default profile reads labels (a session’s and a toolkit’s)', () => {
+  const text = (role: 'system' | 'user', body: string, label?: Message['label']): Message =>
+    ({ role, parts: [{ kind: 'text', text: body }], ...(label ? { label } : {}) }) as Message;
+
+  it('takes the request’s words and focus from its label, whatever its text', () => {
+    const labelled = text('user', 'State.\n\nRequest: a prompt that says\n\nRequest: twice', {
+      kind: LABELS.request,
+      data: { prompt: 'a prompt that says\n\nRequest: twice', focus: 'A:45' },
+    });
+    expect(defaultRequestOf(labelled)).toEqual({ prompt: 'a prompt that says\n\nRequest: twice', focus: 'A:45' });
+    // Before labels: by the markers.
+    expect(defaultRequestOf(text('user', 'State.\n\nFocus: A:45\n\nRequest: go'))).toEqual({
+      prompt: 'go',
+      focus: 'A:45',
+    });
+  });
+
+  it('places guidance, its updates and definitions by their labels', () => {
+    const update = text('user', 'Updated guidance (it replaces the earlier version):\n\nBe brief.', {
+      kind: LABELS.guidanceUpdate,
+      key: 'k',
+    });
+    expect(defaultWindowPart(update)).toBe('guidance');
+    expect(defaultWindowPart(text('system', 'Be brief.', { kind: LABELS.guidance, key: 'k' }))).toBe('guidance');
+    expect(defaultWindowPart({ ...declareTools([toolDefinition('a')]), label: { kind: LABELS.definitions } })).toBe(
+      'tools',
+    );
+    // Unlabelled, as before: a user message is conversation unless something precedes its request marker.
+    expect(defaultWindowPart(text('user', 'Updated guidance:\n\nBe brief.'))).toBe('conversation');
   });
 });

@@ -25,7 +25,8 @@ surviving reloads, crashes and runners that move. Mechanism only; every choice i
 ## The data
 
 - **Entry**: a `Message` (`ai-agent`) addressed by `hashMessage` (`EntryId`). Immutable, deduplicated, never deleted
-  while the harness exists.
+  while the harness exists. Its optional `label` (what it is: a request, guidance) is part of it; the harness stores it
+  and never reads it, and never counts it in a size (`WorkingSet.tokensOf`).
 - **Head**: an immutable list of entry ids (`Head { id, entries }`), stored as a `HeadRecord` of content-addressed
   `Segment`s in binary size classes (`head/index.ts`): an append is near constant, a head reads in ~log n segments.
 - **Pointer**: `scope → head`. `MAIN` (`'main'`) is the turn's conversation and lives on the Execution; tools and
@@ -201,8 +202,8 @@ is no migration.
 - `hashMessage` and `digest` are async (WebCrypto). Tests on a simulated clock must let hashing settle
   ([testing.md](testing.md)).
 - `main` is the harness's: tools and nested runs cannot write it; reset and compaction move it.
-- Don't read "what runs next" from heads, and don't put bookkeeping in `Message`s (no metadata bag: an entry is its
-  content).
+- Don't read "what runs next" from heads, and don't put bookkeeping in `Message`s: a `label` says what an entry is,
+  never what happened to it (that is the event log's).
 - A `HeadEdit` is `{ entries: (EntryId | Message)[] }`: kept hashes and new messages, in order; it must stay
   projectable.
 - Stop wins over a settlement in flight; a parked turn holds no runner until `resume`.

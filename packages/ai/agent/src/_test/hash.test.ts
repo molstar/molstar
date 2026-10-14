@@ -38,6 +38,16 @@ describe('hashMessage', () => {
     expect(await hashMessage(reordered)).toBe(await hashMessage(call));
   });
 
+  it('is unchanged by an absent label, and changed by a label (it is part of the entry)', async () => {
+    const hash = await hashMessage(call);
+    expect(await hashMessage({ ...call, label: undefined })).toBe(hash);
+    const labelled: Message = { ...call, label: { kind: 'host:step' } };
+    expect(await hashMessage(labelled)).not.toBe(hash);
+    expect(await hashMessage({ ...call, label: { kind: 'host:step', key: 'k' } })).not.toBe(
+      await hashMessage(labelled),
+    );
+  });
+
   it('treats an undefined property as absent', async () => {
     const withUndefined = {
       role: 'user',

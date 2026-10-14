@@ -8,7 +8,18 @@
 
 import { describe, expect, it } from 'vitest';
 import type { ToolDefinition } from '@molstar/ai-agent';
-import { FOCUS_MARKER, GUIDANCE_UPDATE, NOTES_HEADING, REQUEST_MARKER, requestOf, turnInput } from '../index.js';
+import { fingerprint, LABEL_DEFINITIONS } from '@molstar/ai-tools';
+import {
+  FOCUS_MARKER,
+  GUIDANCE_UPDATE,
+  LABEL_GUIDANCE,
+  LABEL_GUIDANCE_UPDATE,
+  LABEL_REQUEST,
+  NOTES_HEADING,
+  REQUEST_MARKER,
+  requestOf,
+  turnInput,
+} from '../index.js';
 import { textOf } from './helpers.js';
 
 const def = (id: string): ToolDefinition => ({
@@ -48,12 +59,23 @@ describe('the messages of a turn', () => {
   it('first: the guidance, one message of definitions (loaded, then declared), the request', () => {
     const [guidance, tools, request, ...rest] = turnInput({ ...base, first: true });
     expect(rest).toEqual([]);
-    expect(guidance).toEqual({ role: 'system', parts: [{ kind: 'text', text: 'Guidance.' }] });
+    expect(guidance).toEqual({
+      role: 'system',
+      parts: [{ kind: 'text', text: 'Guidance.' }],
+      label: { kind: LABEL_GUIDANCE, key: fingerprint('Guidance.') },
+    });
+    expect(tools?.label).toEqual({ kind: LABEL_DEFINITIONS });
     expect(tools?.parts.map((p) => (p.kind === 'tool-definition' ? [p.definition.tool.id, p.deferred] : []))).toEqual([
       ['a', false],
       ['b', true],
     ]);
     expect(textOf(request as never)).toBe('Request: go');
+    expect(request?.label).toEqual({ kind: LABEL_REQUEST, data: { prompt: 'go' } });
+  });
+
+  it('labels the request with the person’s words and focus, whatever the text around them', () => {
+    const [request] = turnInput({ ...base, first: false, prompt: 'Request: twice', focus: 'A:45', state: 'S' });
+    expect(request?.label).toEqual({ kind: LABEL_REQUEST, data: { prompt: 'Request: twice', focus: 'A:45' } });
   });
 
   it('later: the request alone; or what changed, as definitions (system) and guidance (user), then the request', () => {
@@ -65,6 +87,7 @@ describe('the messages of a turn', () => {
     });
     expect(messages.map((m) => m.role)).toEqual(['system', 'user', 'user']);
     expect(textOf(messages[1] as never)).toBe(`${GUIDANCE_UPDATE}\n\nGuidance.`);
+    expect(messages.map((m) => m.label?.kind)).toEqual([LABEL_DEFINITIONS, LABEL_GUIDANCE_UPDATE, LABEL_REQUEST]);
     expect(turnInput({ ...base, first: false, catchUp: { tools: [], guidance: true } }).map((m) => m.role)).toEqual([
       'user',
       'user',

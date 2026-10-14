@@ -51,6 +51,19 @@ export const REQUEST_MARKER = 'Request: ';
 /** Opens the Focus line of a request. The same text as `@molstar/ai-session`'s. */
 export const FOCUS_MARKER = 'Focus: ';
 
+/**
+ * The labels (`EntryLabel.kind`) of the entries a session and its toolkit write, by the names `@molstar/ai-session`
+ * and `@molstar/ai-tools` give them. A labelled entry is read by its label; one written before labels, by its text.
+ */
+export const LABELS = {
+  request: 'session:request',
+  guidance: 'session:guidance',
+  guidanceUpdate: 'session:guidance-update',
+  definitions: 'tools:definitions',
+  skill: 'tools:skill',
+  entry: 'tools:entry',
+} as const;
+
 /** The turn's request as the person wrote it. */
 export interface TraceRequest {
   readonly prompt: string;
@@ -188,6 +201,12 @@ function lineAfter(text: string, marker: string): string | undefined {
  * the marker is kept whole), the focus the Focus line before it.
  */
 export function defaultRequestOf(message: Message): TraceRequest {
+  const data = message.label?.kind === LABELS.request ? message.label.data : undefined;
+  if (typeof data?.prompt === 'string')
+    return {
+      prompt: data.prompt.trim() || '(no request recorded)',
+      ...(typeof data.focus === 'string' && data.focus ? { focus: data.focus } : {}),
+    };
   const text = textParts(message);
   const at = paragraphAt(text, REQUEST_MARKER);
   const prompt = (at >= 0 ? text.slice(at + REQUEST_MARKER.length) : text).trim() || '(no request recorded)';
@@ -201,6 +220,13 @@ export function defaultRequestOf(message: Message): TraceRequest {
  * conversation.
  */
 export function defaultWindowPart(message: Message): WindowPart {
+  switch (message.label?.kind) {
+    case LABELS.definitions:
+      return 'tools';
+    case LABELS.guidance:
+    case LABELS.guidanceUpdate:
+      return 'guidance';
+  }
   if (message.role === 'system')
     return message.parts.some((p) => p.kind === 'tool-definition') && !message.parts.some((p) => p.kind === 'text')
       ? 'tools'

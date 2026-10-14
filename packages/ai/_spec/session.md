@@ -53,7 +53,11 @@ fields: `approve(call)`, `retries` (3), `retryDelayMs` (1500), `toolRetries` (2)
   dropped), plus the attachments. The first turn sends before it the guidance (a system message) and the tool
   definitions (core loaded, the rest declared deferred; one system message). Later turns send only what changed since
   (`catchUp`): new or changed definitions as a system message, changed guidance as a user message headed
-  `GUIDANCE_UPDATE`. Compaction and the trace find the person's words by `REQUEST_MARKER`.
+  `GUIDANCE_UPDATE`.
+- **Labels**: every message the session writes is labelled (`LABEL_REQUEST` with `{ prompt, focus? }` as data,
+  `LABEL_GUIDANCE`/`LABEL_GUIDANCE_UPDATE` keyed by the text's fingerprint, `guidanceLabel(text)`, and the toolkit's
+  `tools:definitions`). Compaction, `catchUp` and the trace read labels; the markers stay in the text for the model and
+  are read only for entries written before labels.
 - The item is `submit`ted with `options: { configuration }`; the runner's `configure` reads it back. Tool set: every
   registration enabled, all but `approval` ones preauthorized.
 - **`TurnResult`**: `status` (`completed`, `stopped`, `failed`, `awaiting-approval`), `approval?` (pending calls),
@@ -103,8 +107,10 @@ for display.
   threshold, carry-over ≤ 8k tokens, recent turns kept verbatim up to a tenth of the trigger (≤ 64k).
 - **How** (`runCompaction(context, options)`): one nested model call (`context.run`, no tools) over the context asks
   what to carry over (`CARRY_OVER_HEADER`; a carried wish must quote the person's words, `checkWishes`);
-  `planCompaction` builds the `HeadEdit`: guidance, kept tools, the carry-over, the memory, kept groups' guidance,
-  recent turns as they were, the current turn. If the call fails, a digest stands in.
+  `planCompaction` builds the `HeadEdit`: the latest guidance (a later update included), kept tools, the carry-over, the
+  memory, kept groups' guidance, recent turns as they were, the current turn; each new message labelled
+  (`session:guidance`, `tools:definitions`, `LABEL_CARRY_OVER`, `LABEL_MEMORY`). If the call fails, a digest stands in.
+  Sizes (`sizeOf`, `estimatedTokens`) count what is sent, not labels.
 - **What it keeps is the host's**: `CompactionDomain` (`isRequest`, `requestText?`, `coreToolIds`, `groups`, `groupsIn`,
   `groupEntry`, `memory?`, `pins?`, `wishSources?`); the session builds it from the toolkit (`toolkitDomain`) and merges
   `compactionDomain`.

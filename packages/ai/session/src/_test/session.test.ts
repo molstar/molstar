@@ -7,8 +7,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { createMemoryStorage } from '@molstar/ai-components';
 import { createToolkit } from '@molstar/ai-tools';
-import type { StatusEvent, ToolEvent, TurnEvent } from '../index.js';
+import { GUIDANCE_UPDATE, type StatusEvent, type ToolEvent, type TurnEvent } from '../index.js';
 import { callOf, fixture, guidance, headOf, messagesOf, realClock, resultsIn, textOf, tool } from './helpers.js';
 
 describe('a turn (tools-and-session.md §4)', () => {
@@ -272,6 +273,23 @@ describe('the messages (tools-and-session.md §4)', () => {
     );
     expect(defs.every((deferred) => !deferred)).toBe(true);
     expect(defs).toHaveLength(all.toolkit.allDefinitions().length);
+  });
+
+  it('a later session finds whether the guidance changed by its label, not by how its text ends', async () => {
+    const storage = createMemoryStorage();
+    const first = fixture([{ text: 'One.' }], { storage, harnessId: 'h', guidance: 'Be careful. Be brief.' });
+    await first.session.turn({ prompt: 'first' });
+    first.session.dispose();
+    // The new guidance is how the old one ends: the text alone would call it unchanged.
+    const second = fixture([{ text: 'Two.' }, { text: 'Three.' }], { storage, harnessId: 'h', guidance: 'Be brief.' });
+    await second.session.turn({ prompt: 'second' });
+    const sent = messagesOf(second.model, 0);
+    const update = sent.find((m) => m.role === 'user' && textOf(m).startsWith(GUIDANCE_UPDATE));
+    expect(textOf(update as never)).toBe(`${GUIDANCE_UPDATE}\n\nBe brief.`);
+    // Once given, it is current: the next turn sends only its request.
+    await second.session.turn({ prompt: 'third' });
+    const third = messagesOf(second.model, 1);
+    expect(third.filter((m) => textOf(m).startsWith(GUIDANCE_UPDATE))).toHaveLength(1);
   });
 
   it('forget() empties the conversation: the next turn is a first turn again', async () => {

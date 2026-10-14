@@ -9,7 +9,7 @@
 import type { Message, ToolDefinition } from '@molstar/ai-agent';
 import { z } from 'zod';
 import { closestHint, suggest } from './closest.js';
-import { DISCLOSE_SKILLS, DISCLOSE_TOOLS } from './names.js';
+import { DISCLOSE_SKILLS, DISCLOSE_TOOLS, LABEL_DEFINITIONS, LABEL_ENTRY, LABEL_SKILL } from './names.js';
 import type { ToolRegistration } from './registry.js';
 import type { ToolInput } from './input.js';
 import { failed } from './result.js';
@@ -124,7 +124,13 @@ export function fingerprint(text: string): string {
 export const definitionEntries = (definitions: readonly ToolDefinition[], deferred = false): Message[] =>
   definitions.length === 0
     ? []
-    : [{ role: 'system', parts: definitions.map((definition) => ({ kind: 'tool-definition', definition, deferred })) }];
+    : [
+        {
+          role: 'system',
+          parts: definitions.map((definition) => ({ kind: 'tool-definition', definition, deferred })),
+          label: { kind: LABEL_DEFINITIONS },
+        },
+      ];
 
 /** The first sentence of a description, for a catalog line. */
 function firstSentence(text: string): string {
@@ -187,10 +193,18 @@ export function createToolkit<Api extends DisclosureApi>(spec: ToolkitSpec<Api>)
   const groupEntry = (x: ToolGroup<Api> | DisclosableEntry): Message => ({
     role: 'user',
     parts: [{ kind: 'text', text: textOf(x) }],
+    label: { kind: isGroup(x) ? LABEL_SKILL : LABEL_ENTRY, key: groupKey(x) },
   });
+  // By the entry's label, whose key holds its text's fingerprint (an earlier text is not the group's now); an entry
+  // written before labels by its exact text.
   const groupsIn = (messages: readonly Message[]): string[] => {
     const texts = new Map([...spec.groups, ...entries].map((x) => [textOf(x), groupKey(x)] as const));
+    const current = new Set(texts.values());
     return messages.flatMap((m) => {
+      if (m.label !== undefined)
+        return (m.label.kind === LABEL_SKILL || m.label.kind === LABEL_ENTRY) && current.has(m.label.key ?? '')
+          ? [m.label.key as string]
+          : [];
       const part = m.role === 'user' && m.parts.length === 1 ? m.parts[0] : undefined;
       const key = part?.kind === 'text' ? texts.get(part.text) : undefined;
       return key === undefined ? [] : [key];

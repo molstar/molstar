@@ -13,6 +13,7 @@ export {
   defaultWindowPart,
   estimatedTokens,
   FOCUS_MARKER,
+  LABELS,
   messageText,
   readTrace,
   REQUEST_MARKER,

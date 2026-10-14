@@ -33,6 +33,10 @@ every choice is the drive's (§7).
 - Every head is **projectable**: each tool call has its result in the next user message. An assistant message with calls
   enters a head only together with its results.
 - A **contribution** identical to an entry already in the head is not appended again (a skill's guidance is kept once).
+- A message's optional **label** (`{ kind, key?, data? }`) says what the entry is, for the code that reads the journal
+  (a session, compaction, a trace). It is part of the entry (hashed: the same text under another label is another
+  entry), never sent to a provider, never counted in a size, and never read by the harness. It says only what is true
+  of the content; what happened when (a turn, a step, a time) is the event log's.
 
 ## 3. The event log
 

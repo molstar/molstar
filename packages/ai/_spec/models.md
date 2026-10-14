@@ -2,7 +2,7 @@
 
 ## Messages (`agent/src/messages.ts`)
 
-- `Message` is `SystemMessage | UserMessage | AssistantMessage`, each `{ role, parts }`. Parts:
+- `Message` is `SystemMessage | UserMessage | AssistantMessage`, each `{ role, parts, label? }`. Parts:
   - `ModelVisiblePart`: `{ kind: 'text', text }` or `{ kind: 'reference', reference: Reference }` (a URI with
     `mediaType`, `byteLength`, `digest`; adapters inline only `data:` URIs, others become text `[ref <uri>]`).
   - system only: `ToolDefinitionPart { definition, deferred }`; `deferred: false` loads the tool, `true` only declares
@@ -13,8 +13,18 @@
 - `ToolDefinition { tool: { id }, name, description, inputSchema }`; the provider-safe wire name is derived from the id.
 - `hashMessage(message)` (SHA-256 over a structural encoding, async) is an entry's id; `digest(json)` addresses blobs,
   segments and heads; `canonicalJson`, `encodeMessage` are the encodings (`agent/src/hash.ts`).
-- `Json`, `JsonObject`, `Reference` are in `values.ts`. Messages carry no metadata: anything the harness needs to know
-  about an entry lives elsewhere.
+- **`label?: EntryLabel { kind, key?, data? }`** says what an entry is, for the code that reads the journal: `kind` is
+  namespaced by the package that writes it, `key` names which one, `data` holds small facts the parts also say.
+  - Part of the message, so of its hash (an absent label leaves the hash as before; the same text under another label is
+    another entry).
+  - Never sent: adapters read only `role` and `parts` (`model-adapters/src/_test/labels.test.ts`), and sizes never count
+    it. The harness never reads it.
+  - Only what is true of the content; what happened when (turn, step, time, cost) is the event log's. There is no other
+    metadata on a message.
+  - The kinds in use: `session:request` (data `{ prompt, focus? }`), `session:guidance`, `session:guidance-update` (key:
+    the text's fingerprint), `session:carry-over`, `session:memory` (`@molstar/ai-session` `LABEL_*`);
+    `tools:definitions`, `tools:skill`, `tools:entry` (key: the group's key; `@molstar/ai-tools` `LABEL_*`).
+- `Json`, `JsonObject`, `Reference` are in `values.ts`.
 
 ## The port (`agent/src/models.ts`)
 

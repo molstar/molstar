@@ -52,7 +52,7 @@ import {
   runCompaction,
   toolkitDomain,
 } from './compaction/index.js';
-import { type CatchUp, turnInput } from './compose.js';
+import { type CatchUp, guidanceLabel, LABEL_GUIDANCE, LABEL_GUIDANCE_UPDATE, turnInput } from './compose.js';
 import { type BudgetPolicy, createDrive, type DriveHost, type DrivePolicy, turnBudget } from './drive.js';
 import { newTurnState, type TurnState } from './state.js';
 import type {
@@ -340,14 +340,21 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     const seen = new Map<string, string>();
     const loaded = new Set<string>();
     const text = (d: ToolDefinition) => JSON.stringify([d.name, d.description, d.inputSchema]);
+    // The current guidance is in the context when an entry labelled with its fingerprint is (one written before labels:
+    // when a text ends with it).
+    const { key } = guidanceLabel(guidance);
     let current = false;
-    for (const message of await this.head(client))
+    for (const message of await this.head(client)) {
+      const label = message.label;
+      if ((label?.kind === LABEL_GUIDANCE || label?.kind === LABEL_GUIDANCE_UPDATE) && label.key === key)
+        current = true;
       for (const part of message.parts) {
         if (part.kind === 'tool-definition') {
           seen.set(part.definition.tool.id, text(part.definition));
           if (!part.deferred) loaded.add(part.definition.tool.id);
-        } else if (part.kind === 'text' && part.text.endsWith(guidance)) current = true;
+        } else if (label === undefined && part.kind === 'text' && part.text.endsWith(guidance)) current = true;
       }
+    }
     const all = this.options.toolkit.allDefinitions();
     const changed = (d: ToolDefinition) => seen.get(d.tool.id) !== text(d);
     const isStarting = (d: ToolDefinition) => starting.some((s) => s.tool.id === d.tool.id);

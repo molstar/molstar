@@ -13,6 +13,9 @@ import {
   createToolkit,
   definitionEntries,
   fingerprint,
+  LABEL_DEFINITIONS,
+  LABEL_ENTRY,
+  LABEL_SKILL,
   type ToolGroup,
   type ToolkitSpec,
   type ToolRegistration,
@@ -356,8 +359,28 @@ describe('what of the conversation is a group’s text', () => {
   });
 
   it('a group or an entry as a context entry is its text as a user message', () => {
-    expect(kit.groupEntry(NOTES)).toEqual({ role: 'user', parts: [{ kind: 'text', text: 'Notes: be brief.' }] });
-    expect(kit.groupEntry(VOLUMES)).toEqual({ role: 'user', parts: [{ kind: 'text', text: kit.groupText(VOLUMES) }] });
+    expect(kit.groupEntry(NOTES)).toEqual({
+      role: 'user',
+      parts: [{ kind: 'text', text: 'Notes: be brief.' }],
+      label: { kind: LABEL_ENTRY, key: kit.groupKey(NOTES) },
+    });
+    expect(kit.groupEntry(VOLUMES)).toEqual({
+      role: 'user',
+      parts: [{ kind: 'text', text: kit.groupText(VOLUMES) }],
+      label: { kind: LABEL_SKILL, key: kit.groupKey(VOLUMES) },
+    });
+  });
+
+  it('reads a labelled entry by its label and one written before labels by its text', () => {
+    const unlabelled = ({ role, parts }: Message): Message => ({ role, parts }) as Message;
+    // By its label: the text is not what is matched.
+    const relabelled: Message = { ...kit.groupEntry(VOLUMES), parts: [{ kind: 'text', text: 'reworded' }] } as Message;
+    expect(kit.groupsIn([relabelled])).toEqual([kit.groupKey(VOLUMES)]);
+    // A label of another kind, or with another key, is not a group's, even with the group's text.
+    const other: Message = { ...kit.groupEntry(VOLUMES), label: { kind: 'host:note' } } as Message;
+    expect(kit.groupsIn([other])).toEqual([]);
+    // Before labels: by the exact text.
+    expect(kit.groupsIn([unlabelled(kit.groupEntry(VOLUMES))])).toEqual([kit.groupKey(VOLUMES)]);
   });
 
   it('definitionEntries is one system message of tool-definition parts', () => {
@@ -370,6 +393,7 @@ describe('what of the conversation is a group’s text', () => {
           { kind: 'tool-definition', definition: a, deferred: true },
           { kind: 'tool-definition', definition: b, deferred: true },
         ],
+        label: { kind: LABEL_DEFINITIONS },
       },
     ]);
     expect(kit.definitionEntries([a] as never)).toEqual(definitionEntries([a] as never));

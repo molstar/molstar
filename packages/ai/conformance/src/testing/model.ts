@@ -104,7 +104,8 @@ export function scriptedModel(script: readonly ModelStep[] = [], options: Script
       const payload =
         options.payload?.(input, projections.length) ??
         ({
-          messages: input.messages as unknown as Json,
+          // As an adapter sends them: a message's label is never sent.
+          messages: input.messages.map(({ role, parts }) => ({ role, parts })) as unknown as Json,
           tools: input.tools.map((tool) => tool.tool.id),
           configuration: input.configuration as unknown as Json,
         } satisfies Json);

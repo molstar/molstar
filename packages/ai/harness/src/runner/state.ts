@@ -156,7 +156,8 @@ export class WorkingSet {
 
   /**
    * An input-token estimate of a head (a quarter of its JSON length), cached per entry. A deferred
-   * tool declaration counts its name only: a provider shows at most that.
+   * tool declaration counts its name only: a provider shows at most that. A label is never sent, so it
+   * never counts.
    */
   tokensOf(entries: readonly EntryId[]): number {
     let total = 0;
@@ -167,7 +168,7 @@ export class WorkingSet {
         const shown =
           message?.role === 'system' && message.parts.some((p) => p.kind === 'tool-definition' && p.deferred)
             ? message.parts.map((p) => (p.kind === 'tool-definition' && p.deferred ? p.definition.name : p))
-            : message;
+            : message && { role: message.role, parts: message.parts };
         tokens = Math.ceil(JSON.stringify(shown ?? null).length / 4);
         this.tokens.set(id, tokens);
       }

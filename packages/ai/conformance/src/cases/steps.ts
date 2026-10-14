@@ -428,6 +428,51 @@ export function stepCases(fixture: ConformanceFixture): void {
       expect(main.filter((m) => textOf(m) === textOf(skill))).toHaveLength(1);
     });
 
+    it('E2 labelled-contribution: a label is part of an entry; the same text under another label is another entry', async () => {
+      const skill: Message = { ...system('skill: how to look closely'), label: { kind: 'tools:skill', key: 'look@1' } };
+      const other: Message = { ...skill, label: { kind: 'host:note' } };
+      const s = await createSession(fixture, {
+        tools: {
+          a: () => ({ text: 'a', contributions: [skill] }),
+          b: () => ({ text: 'b', contributions: [skill] }),
+          c: () => ({ text: 'c', contributions: [other] }),
+        },
+        model: [
+          {
+            calls: [
+              { tool: 'a', arguments: {} },
+              { tool: 'b', arguments: {} },
+              { tool: 'c', arguments: {} },
+            ],
+          },
+          { text: 'final' },
+        ],
+      });
+      await s.send('go');
+      const kept = (await s.main()).filter((m) => textOf(m) === textOf(skill));
+      expect(kept.map((m) => m.label)).toEqual([skill.label, other.label]);
+      expect(await hashMessage(skill)).not.toBe(await hashMessage(other));
+    });
+
+    it('E2 label-not-counted: a label never counts in a context size (it is never sent)', async () => {
+      const sizes: number[] = [];
+      const drive = with_({
+        boundary: ({ payload }) => {
+          sizes.push(payload.size.inputTokens);
+          return 'pass';
+        },
+      });
+      const prompt = user('go');
+      const labelled: Message = { ...prompt, label: { kind: 'session:request', data: { note: 'x'.repeat(40_000) } } };
+      for (const message of [prompt, labelled]) {
+        const s = await createSession(fixture, { model: [{ text: 'ok' }], drive });
+        await s.send([message]);
+        expect((await s.main())[0]).toEqual(message);
+      }
+      expect(sizes).toHaveLength(2);
+      expect(sizes[1]).toBe(sizes[0]);
+    });
+
     it('E2 same-input-twice: two identical user messages in a row are both appended', async () => {
       const s = await createSession(fixture, { model: [{ text: 'ok' }] });
       const { launch } = await s.send('same', { run: false });

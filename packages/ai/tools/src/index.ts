@@ -9,7 +9,7 @@
 export { closestHint, suggest } from './closest.js';
 export type { ArgsFrom, InputSpec, ToolInput } from './input.js';
 export { shapeInput } from './input.js';
-export { DISCLOSE_SKILLS, DISCLOSE_TOOLS } from './names.js';
+export { DISCLOSE_SKILLS, DISCLOSE_TOOLS, LABEL_DEFINITIONS, LABEL_ENTRY, LABEL_SKILL } from './names.js';
 export type { Nest, NestedBinding, NestedRuns, NestRequest } from './nest.js';
 export { NestedTools } from './nest.js';
 export type {

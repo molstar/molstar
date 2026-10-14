@@ -32,7 +32,9 @@ Opt-in like the Prism modes: nothing in Mol\* or prism-ui imports them, and they
 1. **Policy in the drive, mechanism in the harness.** Flow, tool execution, retries and accounting are guaranteed; every
    choice is a decision with a replaceable default, so an app writes only its overrides.
 2. **One home per concern**: the journal for what a model sees, the event log for evidence, the drive for choices.
-3. **Content-addressed, immutable entries** with no metadata bag: harness bookkeeping never changes a `Message`.
+3. **Content-addressed, immutable entries** with no metadata bag: harness bookkeeping never changes a `Message`. What
+   an entry _is_ (the request, the guidance, a skill's guidance) is its optional `label`: content, so hashed, never sent
+   to a provider, and never read by the harness (2026-10-14).
 4. **The runner is trusted.** The host checks leases, compare-and-set, atomicity and replay by key, not the step
    grammar.
 5. **Nested runs re-run instead of being durable.** Much smaller than durable child runs; a crashed parent repeats its
