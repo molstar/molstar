@@ -136,7 +136,7 @@ Then the full checks once, in this order: `pnpm lint`, `pnpm test:unit`, `npx ts
 ## 3. Prism over Seq\*
 
 The first slice is designed in [prism-sequence.md](prism-sequence.md) (2026-10-14, in the mocked viewer mode): a
-"Sequence viewer" extension (`@molstar/prism-sequence`) composed into the viewer mode, whose module owns the Seq\*
+"Sequence viewer" extension (`packages/prism/viewer/src/extensions/sequence`, no new package) composed into the viewer mode, whose module owns the Seq\*
 contexts (by id, so several later) and follows the context's canvas-ink behavior; its control, in the top dock without
 a card, subscribes the two-way link to the 3D view while it is rendered; compact text and tracks; hover and selection;
 Prism's own tooltip and legend.

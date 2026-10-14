@@ -21,12 +21,17 @@ several viewers at once, the story mode.
 
 ## 2. A "Sequence viewer" extension, composed into the viewer mode
 
-A package of its own, `packages/prism/sequence` (`@molstar/prism-sequence`), composed into the viewer mode as
-contexts.md §3–4 composes anything: a **module** that owns the Seq\* contexts and a **contribution** (the dock tab).
+No new package (David, 2026-10-14: fewer packages, not more): an `extensions/` folder in the viewer mode's package,
+`packages/prism/viewer/src/extensions/sequence/`, exported as `@molstar/prism-viewer/extensions/sequence` and composed
+into the viewer mode as contexts.md §3–4 composes anything: a **module** that owns the Seq\* contexts and a
+**contribution** (the dock tab).
 
-- prism-ui stays free of `@molstar/seq-viewer`, so an app without the extension carries none of Seq\*. This settles
-  plan.md §3's "prism-ui depends on seq-viewer" in favour of a package of its own.
-- Depends on `@molstar/prism-ui` (components, shell types), `@molstar/seq-viewer`, `@molstar/seq-core` and
+- prism-ui stays free of `@molstar/seq-viewer`; prism-viewer gains the Seq\* dependencies, and only an app that
+  composes the extension bundles Seq\* (the folder is its own export, imported by nothing else in prism-viewer). This
+  settles plan.md §3's "prism-ui depends on seq-viewer" in favour of the viewer mode's package, its own alternative.
+- The extension imports only prism-ui's public exports and prism-viewer's own model types, never the mock's
+  internals, so it can move to a package later without rewriting.
+- prism-viewer then depends on `@molstar/seq-viewer`, `@molstar/seq-core` and
   `@molstar/seq-molstar-poc` (the structure provider, `StructureLink`, `linkViews`, `StructureView3D`). molstar-poc is
   private and named for a proof of concept; turning its link and provider into a real package is a follow-up (§7).
 
@@ -161,7 +166,7 @@ find it.
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
 | S1  | seq-viewer: the headless `./chrome` entry (legend groups, label text, hover-card controller), exported with types; Seq\*'s DOM and React UIs import it from there                           | Sonnet, medium |
 | S2  | prism-ui: the module slot (contexts.md §3, minimal), the `canvasInk` behavior on the viewer mode's context (the shell reads it too), `FloatingDock`'s frameless variant, the `Legend` component with a story                                                                 | Sonnet, medium |
-| S3  | `@molstar/prism-sequence`: module (with the ink subscription and `skinFor`), document, control, link over `StructureView3D`; the mock `StructureView3D` and the 1TQN fixture                                         | Sonnet, high   |
+| S3  | `prism-viewer/src/extensions/sequence`: module (with the ink subscription and `skinFor`), document, control, link over `StructureView3D`; the mock `StructureView3D` and the 1TQN fixture                                         | Sonnet, high   |
 | S4  | the viewer-mode mock composes the extension instead of `SequenceStrip`; the shell stories (including `CanvasBackground` for the ink); the subscription guard extended to the new package | Sonnet, medium |
 | S5  | Visual check in Storybook                                                                                                                                                                    | David          |
 
