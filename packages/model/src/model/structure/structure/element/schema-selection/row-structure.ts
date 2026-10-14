@@ -49,10 +49,10 @@ export class ElementRangesCache {
 /** Return the substructure of `structure` consisting of all elements which satisfy at least one of `rows`,
  * found through the indices of each model, so the cost does not grow with the number of atoms times the number of rows.
  *
- * It selects what `Schema.toExpression({ items: rows })` selects (the MolScript expression for the rows), except that
- * - a residue without `label_seq_id` never satisfies a `label_seq_id` criterion (MolScript reads it as 0),
- * - criteria which only exist for atoms select nothing on coarse elements with a warning (the MolScript expression throws), and a range with `beg > end` selects nothing,
- * and when every element is selected, it returns `structure` itself. */
+ * This is what the generator `element-schema` (`Schema.toExpression({ items: rows })`) runs. Rows select what their criteria say: a residue
+ * without `label_seq_id` never satisfies a `label_seq_id` criterion (not even 0), criteria which only exist for atoms select nothing on coarse
+ * elements (with a warning), a range with `beg > end` selects nothing, and a range with insertion codes is a range of residues in file order.
+ * When every element is selected, it returns `structure` itself. */
 export function substructureFromRows(structure: Structure, rows: readonly SchemaItem[]): Structure {
   if (rows.length === 0 || structure.isEmpty) return structure.subsetBuilder(true).getStructure(); // (empty)
   const cache = new ElementRangesCache(rows);

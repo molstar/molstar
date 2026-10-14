@@ -95,7 +95,7 @@ on demand) are generated from Mol\*'s symbol table and transpilers; the skill is
 | Piece of `any-molql`                                                   | In Mol\* already                                               | To write                                   |
 | ---------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------ |
 | text → MolQL (PyMOL, VMD, Jmol, MolScript), checking                   | `@molstar/query-language` (`compileScript`, validation issues) | the friendlier error text, as a wrapper    |
-| MVS selector forms → MolQL                                             | `packages/mvs/runtime` (`rowsToExpression`)                    |                                            |
+| MVS selector forms → MolQL                                             | `StructureElement.Schema.toExpression`                         |                                            |
 | keywords                                                               | `StructureSelectionQueries`                                    |                                            |
 | `selectLoci`, `project` (counts and rows per level), `selectionBounds` |                                                                | small, over the live `Structure`           |
 | `compactResidues` (`A:248,A:249` → `A:248-249`)                        |                                                                | a few lines                                |

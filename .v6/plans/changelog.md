@@ -51,21 +51,26 @@ the [API change ledger](breaking-v6-changes.md).
 
 ## MVS selectors through model indices
 
-- MVS selectors given as rows (`label_asym_id`, `auth_seq_id`, `beg_label_seq_id`, ...) are resolved through the indices
-  of the model instead of running a MolScript query on every atom for every row: 1000 rows on a 720k-atom structure take
-  about 25 ms instead of several seconds. Used by `component` nodes, annotation components, inline tooltips and labels,
-  color layers, and primitive positions
-- New `schema` variant of the MVS selector params and of the type of `StructureComponent` (and
-  `StructureElement.Schema.toStructure`): `component` nodes with rows are the plugin's own components, which the classic
-  UI can modify; `componentPropsFromSelector` returns a `Selector` and keeps rows as `schema`. Snapshots with the old
-  expressions still load
-- `StructureElement.Schema.toLoci` / `toBundle` (and `Loci.fromSchema`, `Bundle.fromSchema`) have a `useIndex` option
-  which looks the items up in the indices of the models instead of querying every atom (1000 items on 720k atoms:
-  several seconds to about 50 ms); it replaces the unused `queryContext` parameter. The interactions extension uses it
-- Rows are resolved the same way for components, annotations, tooltips, labels and primitives: a residue without
-  `label_seq_id` (ligands, waters) no longer matches a `label_seq_id` range or `end_label_seq_id` as MolScript did (it
-  read a missing value as 0), `atom_id` rows select every atom with that id, `operator_name` is supported in rows, and
-  JSON annotation values of the wrong type (`"10"` for a number) are converted (see the API change ledger)
+- New MolQL generator `element-schema` (`structure.generator.element-schema`, `sel.atom.element-schema` in MolScript)
+  with the data symbols `schema-item` (`structure.type.schema-item`) and `empty` (`core.type.empty`, `empty-value`): it
+  resolves tables of `StructureElement.SchemaItem` rows (`label_asym_id`, `auth_seq_id`, `beg_label_seq_id`, ...)
+  through the indices of the model instead of testing every atom for every row, as a single set. 1000 rows on a
+  720k-atom structure take about 17 ms (seconds before), 10,000 rows about 130 ms. A table can be given as rows
+  (`schema-item` for each) or by columns (one `schema-item` whose fields are lists); the compiler passes a list through
+  as it is, so the cost of the expression does not grow with its size, and `Schema.toExpression` switches to columns
+  from 10 rows
+- `null` and lists of values (of `string`, `number`, `boolean` and `null`) are literals in the arguments of an
+  expression (`null`, which is what JSON makes of `undefined` in a list, is a missing value)
+- `StructureElement.Schema.toExpression`, `toLoci` and `toBundle` (`Loci.fromSchema`, `Bundle.fromSchema`) use it, and
+  MVS does for selectors given as rows (`component` nodes, which are the plugin's own components that the classic UI can
+  modify, annotation components, inline tooltips and labels, color layers). Primitive positions and annotations resolve
+  rows through the same indices directly
+- Rows are resolved the same way everywhere: a residue without `label_seq_id` (ligands, waters) no longer matches a
+  `label_seq_id` range or `end_label_seq_id` as MolScript did (it read a missing value as 0), `atom_id` rows select
+  every atom with that id, `operator_name` is supported in rows, JSON annotation values of the wrong type (`"10"` for a
+  number) are converted (see the API change ledger), and a range of `auth_seq_id` with
+  `beg_auth_ins_code`/`end_auth_ins_code` is a range of residues in the order of the input file (new in `SchemaItem`,
+  not in MolViewSpec yet)
 - Components, layers and labels made from rows are named by what they select in a compact form (`A`, `A432`, `A:10-50`,
   `A, B, C`, `120 residues`) instead of a dump of the rows
 - Annotation rows use reusable typed-array buffers, a sort-free range union, and paint each element once (later rows

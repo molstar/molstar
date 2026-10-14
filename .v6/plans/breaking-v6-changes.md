@@ -670,57 +670,54 @@ each with a migration note.
 Compatible core follow-ups made alongside Prism (a registry-changed event, richer `cell.stateUpdated`, settings events,
 a running-task behavior, string ids for `PluginCommands`) are additive and are not listed here.
 
-## MVS selectors through model indices
+## MVS selectors through model indices: the MolQL generator `element-schema`
 
-MVS selectors given as rows (`label_asym_id`, `auth_seq_id`, `beg_label_seq_id`, ...) are resolved through the indices
-of the model instead of a MolScript query on every atom. The public changes in `@molstar/mvs`:
+Tables of `StructureElement.SchemaItem` rows (`label_asym_id`, `auth_seq_id`, `beg_label_seq_id`, ...) are resolved
+through the indices of the model instead of a MolScript query on every atom for every row. The public changes:
 
-- **`schema` selector.** `SelectorParams` (`@molstar/mvs/components/selector`) has a `schema` variant (an array of
-  rows). `componentPropsFromSelector` (`@molstar/mvs/load-helpers`) returns a `Selector` instead of the `type` of
-  `StructureComponentParams`: rows and arrays of rows are `{ name: 'schema', params: rows }`, not `expression`.
-  `prettyNameFromSelector` returns compact names (`A`, `A432`, `A:10-50`, `120 selections`) instead of
-  `Custom Selection: {...}`.
-- **`StructureComponent` has a `schema` type.** `StructureComponentParams.type`
-  (`@molstar/plugin/state/helpers/structure-component`) gets a `schema` variant (an array of
-  `StructureElement.SchemaItem`), made into a structure by the new `StructureElement.Schema.toStructure` (through the
-  indices of the model, the structure itself if every element is selected); `component` nodes of MVS with rows use it,
-  so they are the plugin's own components (the classic UI can modify them, and a node which switches between rows,
-  static and MolQL selectors in a snapshot keeps its ref). Saved states with the previous `expression` components load
-  as before. The dispose of `StructureComponent` no longer disposes the properties of a structure which is not its own
-  (a component which is the source structure).
+- **MolQL.** New symbols `structure.generator.element-schema` (`sel.atom.element-schema`; one set of the elements which
+  satisfy at least one row), `structure.type.schema-item` (`schema-item`; a row, or a table whose fields are lists, the
+  columns, with the other fields the same in every row) and `core.type.empty` (`empty-value`). `Expression.Literal`
+  includes `null` (a missing value) and lists of `string | number | boolean | null`, as an argument of an application;
+  the compiler passes a list through (it is the way a column of any size costs nothing), and
+  `expressionValidationIssues` accepts them there (not as an expression of their own).
+- **`StructureElement.Schema.toExpression` returns the generator** (a table of 10 or more rows by columns) instead of
+  the per-atom `atom-groups` expression, so `toLoci`, `toBundle`, `Loci.fromSchema` and `Bundle.fromSchema` use the
+  indices (about 17 ms for 1000 rows on 720k atoms, several seconds before) and take no `queryContext` (it was unused;
+  `Loci.fromExpression` and `fromQuery` keep theirs). `SchemaItem` has `beg_auth_ins_code` and `end_auth_ins_code`. New
+  `Schema.toStructure` (the substructure, the structure itself when every element is selected).
+- **Semantics differ from the previous expression of the same rows.** A residue without `label_seq_id` (ligands, waters
+  in many files) never satisfies a `label_seq_id`, `beg_label_seq_id` or `end_label_seq_id` criterion (MolScript read a
+  missing value as 0, so `{ end_label_seq_id: 50 }` selected them); criteria which only exist for atoms (`auth_*`,
+  `label_comp_id`, atom ids, ...) select nothing on coarse elements with a warning, as annotation rows always did (the
+  per-atom expression threw); a range with `beg > end` selects nothing, also on coarse elements (the expression selected
+  the elements which span the two bounds); the result is one set of the elements of all rows, and the structure itself
+  if all are selected. The values are matched as they are, as numbers: a number given as text (`"10"`) selects nothing
+  (JSON annotations convert their values when they are parsed), `null` and `undefined` are missing values (not
+  criteria), and `null` for a bound is an open end. An empty `pdbx_PDB_ins_code` means a residue without an insertion
+  code, as in MolScript. `operator_name` (the unit operator's name) and `instance_id` are honored. A range with
+  `beg_auth_ins_code` or `end_auth_ins_code` is a range of residues in the order of the input file, in each chain: from
+  the first residue with `beg_auth_seq_id` (and that code, `''` for none) to the last with `end_auth_seq_id` (and its
+  code); a bound without a code is the whole number, a missing bound or a range which ends before it begins selects
+  nothing from the chain, and so does a code without its number.
+- **MVS.** `SelectorParams` (`@molstar/mvs/components/selector`) is unchanged, `componentPropsFromSelector`
+  (`@molstar/mvs/load-helpers`) returns a `Selector` instead of the `type` of `StructureComponentParams`, and rows and
+  arrays of rows are `{ name: 'expression', params: Schema.toExpression(...) }`, so a `component` node of MVS is the
+  plugin's own `StructureComponent` (the classic UI can modify it). `rowToExpression` and `rowsToExpression`
+  (`@molstar/mvs/helpers/selections`) are removed: use `StructureElement.Schema.toExpression`. `prettyNameFromSelector`
+  returns compact names (`A`, `A432`, `A:10-50`, `120 selections`) instead of `Custom Selection: {...}`. The dispose of
+  `StructureComponent` no longer disposes the properties of a structure which is not its own (a component which is the
+  source structure).
 - **Selection helpers move to the model package.** The resolution of rows through model indices does not depend on MVS
   and lives next to `StructureElement.Schema` in `@molstar/model/model/structure/structure/element/schema-selection/*`
-  (`element-ranges`, `int-buffer`, `indexing`, `selections`, `row-structure`, `utils`); they were
-  `@molstar/mvs/helpers/*` modules, which are not kept as re-exports (`@molstar/mvs/helpers/selections` keeps
-  `rowToExpression` and `rowsToExpression`). Rows are `StructureElement.SchemaItem` there. `getAtomRangesForRow(s)`,
-  `getSphereRangesForRow(s)` and `getGaussianRangesForRow(s)` take the unit's operator (`{ instanceId, name }`) where
-  they took an `instanceId` string; `getAtomRangesForRowInto` writes into reusable buffers; `ElementRanges.union` is
-  implemented by sorting the starts and the ends; `IndicesAndSortings.get` is shared by the models of a trajectory
-  (`HierarchyScope`); `Sorting.findIndexRange` replaces a linear scan; `substructureFromRows` and `ElementRangesCache`
-  are new. `MVSAnnotationRow` (annotation schema `all_atomic`) has `operator_name`. Annotation values given as text for
-  numbers (and numbers for identifiers) in JSON annotations are converted to the type of the field.
-- **Where the selection differs from the MolScript expression of the same rows** (`rowsToExpression`, which is kept for
-  consumers of expressions): a residue without `label_seq_id` (ligands, waters in many files) never satisfies a
-  `label_seq_id`, `beg_label_seq_id` or `end_label_seq_id` criterion (MolScript reads a missing value as 0, so
-  `{ end_label_seq_id: 50 }` selected them); criteria which only exist for atoms (`auth_*`, `label_comp_id`, atom ids,
-  ...) select nothing on coarse elements with a warning, as annotation rows always did (the MolScript expression throws,
-  which a selector given as rows no longer does); a range with `beg > end` selects nothing, also on coarse elements
-  (MolScript selects the elements which span the two bounds); a component which selects everything is the source
-  structure itself. The values are matched as they are, as numbers: a number given as text (`"10"`) selects nothing, as
-  in the query (JSON annotations convert their values when they are parsed), and `null` for a bound is an open end. An
-  empty `pdbx_PDB_ins_code` means a residue without an insertion code, as in MolScript. `operator_name` (the unit
-  operator's name) is honored, as it was by the expression.
+  (`element-ranges`, `indexing`, `selections`, `row-structure`, `fields`); they were `@molstar/mvs/helpers/*` modules,
+  which are not kept as re-exports. `IntBuffer`, `MultiMap`, `NumberMap` and `isDefined` are in `@molstar/core/util`
+  (`int-buffer`, `multi-map`, `number-map`, `object`). Rows are `StructureElement.SchemaItem` there.
+  `getAtomRangesForRow(s)`, `getSphereRangesForRow(s)` and `getGaussianRangesForRow(s)` take the unit's operator
+  (`{ instanceId, name }`) where they took an `instanceId` string; `getAtomRangesForRowInto` writes into reusable
+  buffers; `ElementRanges.union` is implemented by sorting the starts and the ends; `IndicesAndSortings.get` is shared
+  by the models of a trajectory (`HierarchyScope`); `Sorting.findIndexRange` replaces a linear scan;
+  `substructureFromRows` and `ElementRangesCache` are new. `MVSAnnotationRow` (annotation schema `all_atomic`) has
+  `operator_name`. Annotation values given as text for numbers (and numbers for identifiers) in JSON annotations are
+  converted to the type of the field.
 - The annotation color theme and the annotation tooltips already used these semantics for missing values before.
-
-## `StructureElement.Schema.toLoci` and `toBundle`: `useIndex`, no `queryContext`
-
-`StructureElement.Schema.toLoci`, `Schema.toBundle`, `Loci.fromSchema` and `Bundle.fromSchema` take
-`options?: { useIndex?: boolean }` where they took `queryContext?: QueryContext` (no caller in the repository passed
-one; `Loci.fromExpression` and `fromQuery` keep theirs). By default the elements are still found by running the
-expression of the items as a query. With `useIndex: true` they are looked up in the indices of the models
-(`schema-selection`, see above): much faster for many items (1000 items on 720k atoms: several seconds to about 50 ms),
-at the price of building the indices of each model on the first call (about 80 ms and 12 bytes per atom for 720k atoms,
-8 more once an `atom_id` or `atom_index` criterion is used; kept as long as the model lives). The result is the same
-except where the selection through the index differs from the expression (a residue without `label_seq_id` is not
-matched by a `label_seq_id` criterion, criteria which only exist for atoms select nothing on coarse elements, a range
-with `beg > end` selects nothing). `extensions/interactions` uses `useIndex: true`.
