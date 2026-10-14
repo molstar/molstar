@@ -12,10 +12,11 @@
 // limit with its message; `positions` tests a million positions. Run with `pnpm --filter @molstar/seq-core/model bench`.
 
 import { checkText, renderIssue } from '@molstar/seq-core/query';
-import { bench, describe } from 'vitest';
+import { describe } from 'vitest';
 import { prng } from '../../_test/model/support/generators.js';
 import { SeqSets } from '../../src/model/index.js';
 import { compileQuery, createQueryEnv } from '../../src/model/query/index.js';
+import { timed } from '../timed.js';
 
 const rand = prng(20261014);
 const ROWS = 100_000;
@@ -64,5 +65,5 @@ describe('system tests and scans over 100,000 rows', () => {
     '(positions :in (rows :of msa :where (>= (field identity :of stats) 0.98)) :where (= (letter) W))',
     '(search WW :in (rows :of msa :where (>= (field identity :of stats) 0.9)))',
   ];
-  for (const text of cases) bench(text, query(text), { time: 300 });
+  for (const text of cases) timed(text, query(text), { time: 300 });
 });

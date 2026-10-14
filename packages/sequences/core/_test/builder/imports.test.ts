@@ -25,7 +25,8 @@ function runtimeImports(entry: URL) {
     const js = stripTypeScriptTypes(readFileSync(url, 'utf8'));
     for (const m of js.matchAll(SPECIFIER)) {
       const spec = m[1] ?? m[2];
-      if (spec.startsWith('.')) visit(new URL(spec, url));
+      // The sources import `.js` (NodeNext); the file read is the `.ts`.
+      if (spec.startsWith('.')) visit(new URL(spec.replace(/\.js$/, '.ts'), url));
       else external.add(spec);
     }
   };

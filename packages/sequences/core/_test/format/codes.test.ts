@@ -29,7 +29,7 @@ describe('the issue codes', () => {
   it('every svs.* literal in the sources is registered', () => {
     const used = new Set<string>();
     for (const [, text] of sources(here('../../src/format'))) {
-      for (const [, code] of text.matchAll(/"(svs\.[a-z_]+(?:\.[a-z_]+)+)"/g)) used.add(code);
+      for (const [, code] of text.matchAll(/["'](svs\.[a-z_]+(?:\.[a-z_]+)+)["']/g)) used.add(code);
     }
     expect(used.size).toBeGreaterThan(40);
     expect([...used].filter((c) => !reg.get('issueCodes', c))).toEqual([]);
@@ -52,10 +52,10 @@ describe('the issue codes', () => {
     for (const [, raw] of sources(here('../../src/model'))) {
       // `const FORMAT = "model.source.format"` stands for its literal where it is used.
       let text = raw;
-      for (const [, name, code] of raw.matchAll(/const ([A-Z_]+) = ("model\.[a-z_.]+");/g)) {
+      for (const [, name, code] of raw.matchAll(/const ([A-Z_]+) = (["']model\.[a-z_.]+["']);/g)) {
         text = text.replaceAll(new RegExp(`\\b${name}\\b(?! =)`, 'g'), code);
       }
-      for (const m of text.matchAll(/"(model\.[a-z_]+(?:\.[a-z_]+)+)"/g)) {
+      for (const m of text.matchAll(/["'](model\.[a-z_]+(?:\.[a-z_]+)+)["']/g)) {
         const before = text.slice(Math.max(0, m.index - 80), m.index);
         if (/const [A-Z_]+ = $/.test(before)) continue; // the constant's own declaration
         const rest = text.slice(m.index);

@@ -76,9 +76,9 @@ describe("the core's folders", () => {
 
   it('each entry names what it exports (no `export *`): a name exported is API a host may use', () => {
     const pkg = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8'));
-    const entries = Object.values(pkg.exports as Record<string, string | null>).filter(
-      (t): t is string => typeof t === 'string' && t.endsWith('.ts'),
-    );
+    const entries = Object.values(pkg.exports as Record<string, { 'molstar-src': string } | null>)
+      .map((t) => t?.['molstar-src'])
+      .filter((t): t is string => typeof t === 'string' && t.endsWith('.ts'));
     expect(entries.length).toBeGreaterThan(10);
     const star = entries.filter((t) => /^export \* from/m.test(readFileSync(resolve(SRC, '..', t), 'utf8')));
     expect(star).toEqual([]);

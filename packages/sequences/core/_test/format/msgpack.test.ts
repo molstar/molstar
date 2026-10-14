@@ -292,7 +292,7 @@ describe('a source in `format: "msgpack"`', () => {
 describe('CLIs', { tags: ['slow'] }, () => {
   const dir = mkdtempSync(join(tmpdir(), 'svs-msgpack-'));
   const cli = (name: string, ...args: string[]) =>
-    spawnSync(process.execPath, [fileURLToPath(new URL(`../../src/format/cli/${name}.ts`, import.meta.url)), ...args], {
+    spawnSync(process.execPath, [fileURLToPath(new URL(`../../lib/format/cli/${name}.js`, import.meta.url)), ...args], {
       encoding: 'utf8',
     });
   const path = (name: string) => join(dir, name);

@@ -13,10 +13,11 @@
 // `pnpm --filter @molstar/seq-core/model bench`.
 
 import { checkText } from '@molstar/seq-core/query';
-import { bench, describe } from 'vitest';
+import { describe } from 'vitest';
 import { prng } from '../../_test/model/support/generators.js';
 import { Extents, SeqSets } from '../../src/model/index.js';
 import { compileQuery, createQueryEnv, SeqSelection } from '../../src/model/query/index.js';
+import { timed } from '../timed.js';
 
 const N = 3_000_000;
 const rand = prng(20261012);
@@ -88,14 +89,14 @@ describe('SeqQL on 3,000,000 positions', () => {
     '(search GAATTC :edits 1)',
     '(search GANTTC :classes iupac)',
   ];
-  for (const text of cases) bench(text, query(text), { time: 300 });
+  for (const text of cases) timed(text, query(text), { time: 300 });
   const wide = compileQuery(checkText('(values :of noisy :above 0.6)').expr as never, env).run({ set }).selection;
-  bench('toLoci of the GC runs', () => void SeqSelection.toLoci(wide), { time: 300 });
+  timed('toLoci of the GC runs', () => void SeqSelection.toLoci(wide), { time: 300 });
   const ext = Extents.create(1 << 20);
   const toExtents = () => {
     ext.count = 0;
     SeqSelection.toExtents(wide, ext);
   };
-  bench('toExtents of the GC runs', toExtents, { time: 300 });
-  bench('summary of the GC runs', () => void SeqSelection.summary(wide, { indices: true }), { time: 300 });
+  timed('toExtents of the GC runs', toExtents, { time: 300 });
+  timed('summary of the GC runs', () => void SeqSelection.summary(wide, { indices: true }), { time: 300 });
 });

@@ -21,6 +21,23 @@ import { RangesRenderer } from '../src/renderers/ranges.js';
 import { layoutRuns, lineTable, prepareRun } from '../src/runs.js';
 import { axisOf, rangedDoc, resolved, setPiece } from './axis-fixtures.js';
 
+// Vite resolves a static import's `.js` to the `.ts`; a computed one it cannot.
+const LOADERS: Record<string, () => Promise<unknown>> = {
+  letters: () => import('../src/renderers/letters.js'),
+  ranges: () => import('../src/renderers/ranges.js'),
+  points: () => import('../src/renderers/points.js'),
+  emphasis: () => import('../src/renderers/emphasis.js'),
+  variants: () => import('../src/renderers/variants.js'),
+  secondary: () => import('../src/renderers/secondary.js'),
+  values: () => import('../src/renderers/values.js'),
+  color: () => import('../src/renderers/color.js'),
+  ruler: () => import('../src/renderers/ruler.js'),
+  pairs: () => import('../src/renderers/pairs.js'),
+  rows: () => import('../src/renderers/rows.js'),
+  logo: () => import('../src/renderers/logo.js'),
+  matrix: () => import('../src/renderers/matrix.js'),
+  map: () => import('../src/renderers/map.js'),
+};
 const MODULES = ['letters', 'ranges', 'points', 'emphasis', 'variants', 'secondary', 'values', 'color', 'ruler'];
 const MORE = ['pairs', 'rows', 'logo', 'matrix', 'map'];
 
@@ -28,7 +45,7 @@ describe('renderer modules', () => {
   it('one module per kernel type and seqv:map, each its own /renderers/* subpath, all in DefaultRegistry', async () => {
     const ctx = createSeqViewer();
     for (const name of [...MODULES, ...MORE]) {
-      const m = (await import(`../src/renderers/${name}.js`)) as Record<string, unknown>;
+      const m = (await LOADERS[name]()) as Record<string, unknown>;
       const entries = Object.values(m);
       expect(entries).toHaveLength(1);
       const e = entries[0] as { name: string };

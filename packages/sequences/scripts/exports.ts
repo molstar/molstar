@@ -19,7 +19,7 @@
 //   The listing (--unused): the exported names no consumer mentions, for SW1 to drop or justify. A consumer is
 //   any tracked .ts or .tsx file outside the entry's own package and the packages' test folders. A listing, not a
 //   check: a name only the package's own tests use is listed too.
-// Usage: node lib/seqstar/scripts/exports.ts [--unused | --contract]
+// Usage: node packages/sequences/scripts/exports.ts [--unused | --contract]
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
@@ -38,19 +38,22 @@ export interface Entry {
   readonly file: string;
 }
 
+/** An `exports` value: a path, a conditions object (the source is `molstar-src`'s) or null (hidden). */
+type ExportTarget = string | Record<string, string> | null;
+
 /** Every `.ts` entry of every package of lib/seqstar, a `*` subpath expanded to the files that match it. */
 export function entries(dir = SEQSTAR): Entry[] {
   const out: Entry[] = [];
   for (const pkg of readdirSync(dir)) {
     const json = join(dir, pkg, 'package.json');
     if (!existsSync(json)) continue;
-    const map = JSON.parse(readFileSync(json, 'utf8')).exports as Record<string, string | null> | undefined;
+    const map = JSON.parse(readFileSync(json, 'utf8')).exports as Record<string, ExportTarget> | undefined;
     if (!map) continue;
-    for (const [subpath, target] of Object.entries(map)) {
-      // A null target hides a subpath (`./_test/*`, `./_stories/*`, as Mol* v6). The core's `algorithms` is the
-      // vendored aligners (VENDORED.md): its surface is its own.
-      if (target === null || !target.endsWith('.ts') || (pkg === 'core' && subpath.startsWith('./algorithms')))
-        continue;
+    for (const [subpath, value] of Object.entries(map)) {
+      // A null target hides a subpath (`./_test/*`, `./_stories/*`, as Mol* v6); a conditions object names its source
+      // under `molstar-src`. The core's `algorithms` is the vendored aligners (VENDORED.md): its surface is its own.
+      const target = typeof value === 'string' ? value : value?.['molstar-src'];
+      if (!target || !target.endsWith('.ts') || (pkg === 'core' && subpath.startsWith('./algorithms'))) continue;
       if (!target.includes('*')) {
         out.push({ pkg, subpath, file: join(dir, pkg, target) });
         continue;

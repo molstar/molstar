@@ -23,9 +23,8 @@
     "!**/_test/**"
   ],
   "scripts": {
-    "test": "vitest run",
     "test:slow": "vitest run --config vitest.slow.config.ts",
-    "test:full": "vitest run && vitest run --config vitest.slow.config.ts",
+    "test:full": "pnpm -w test:unit packages/sequences/storybook && pnpm test:slow",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "dependencies": {

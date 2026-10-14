@@ -619,9 +619,9 @@ describe('platform-free', () => {
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(/\/\/.*$/gm, '');
       expect(code, f).not.toMatch(
-        /from "node:|require\(|\b(?:document|window|navigator|OffscreenCanvas|HTMLCanvasElement|ImageData|Buffer|process|btoa|atob|Blob|Image)\b/,
+        /from ["']node:|require\(|\b(?:document|window|navigator|OffscreenCanvas|HTMLCanvasElement|ImageData|Buffer|process|btoa|atob|Blob|Image)\b/,
       );
-      expect(code, f).not.toMatch(/from "\.\.\/(?:canvas|dom|react)\//);
+      expect(code, f).not.toMatch(/from ["']\.\.\/(?:canvas|dom|react)\//);
     }
   });
   it('runs here, where there is no DOM', () => {

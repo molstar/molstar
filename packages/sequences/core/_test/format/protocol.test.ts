@@ -11,7 +11,7 @@
 // provider's own tests are `@molstar/seq-core/stream/tiles`'s.
 
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -320,7 +320,7 @@ describe('versions', () => {
 describe('CLIs', () => {
   const dir = mkdtempSync(join(tmpdir(), 'svs-cli-'));
   const cli = (name: string, ...args: string[]) =>
-    spawnSync(process.execPath, [fileURLToPath(new URL(`../../src/format/cli/${name}.ts`, import.meta.url)), ...args], {
+    spawnSync(process.execPath, [fileURLToPath(new URL(`../../lib/format/cli/${name}.js`, import.meta.url)), ...args], {
       encoding: 'utf8',
     });
   const file = (name: string, text: string) => {
@@ -328,7 +328,8 @@ describe('CLIs', () => {
     return join(dir, name);
   };
 
-  // A process each: slow. The print below is the fast tier's one CLI run.
+  // A process each: slow. The print below is the fast tier's one CLI run; the CLIs run built (`tsc -b`: the slow tier
+  // builds first), so it waits for a `lib` (.v6/seq/plan.md §2.3).
   it("svs-validate: exit 0 valid, 0 with a newer minor's warnings, 1 with errors, 2 on usage", {
     tags: ['slow'],
   }, () => {
@@ -351,7 +352,8 @@ describe('CLIs', () => {
     expect(cli('svs-validate').status).toBe(2);
   });
 
-  it('svs-print-schema prints the reference', () => {
+  const built = existsSync(fileURLToPath(new URL('../../lib/format/cli/svs-print-schema.js', import.meta.url)));
+  it.skipIf(!built)('svs-print-schema prints the reference', () => {
     const r = cli('svs-print-schema');
     expect(r.status).toBe(0);
     expect(r.stdout).toMatch(/^# SeqViewSpec 1\.0\.0 reference/);

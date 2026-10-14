@@ -14,6 +14,7 @@
 
 import { spawnSync } from 'node:child_process';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -35,7 +36,9 @@ import { DefaultFontMetrics, metricsMeasurer, renderSvg } from '../../src/svg/in
 import { decodePng } from './png.js';
 import { all, parseXml } from './xml.js';
 
-const cli = join(import.meta.dirname, '../../src/cli/seqv-render.ts');
+// The CLI runs built (`tsc -b`: the slow tier builds first); the source carries the executable bit and the shebang.
+const source = join(import.meta.dirname, '../../src/cli/seqv-render.ts');
+const cli = join(import.meta.dirname, '../../lib/cli/seqv-render.js');
 const dir = mkdtempSync(join(tmpdir(), 'seqv-render-'));
 const made: string[] = [];
 const write = (name: string, data: string | Uint8Array) => {
@@ -70,7 +73,8 @@ function iepDoc() {
 describe('seqv-render', { timeout: 30_000 }, () => {
   const c14 = write('case14.json', JSON.stringify(case14()));
 
-  it('writes to stdout what renderSvg writes for the document', async () => {
+  // The fast tier's one run of the CLI: it waits for a `lib` (.v6/seq/plan.md §2.3).
+  it.skipIf(!existsSync(cli))('writes to stdout what renderSvg writes for the document', async () => {
     const r = run(c14, '--width', '900');
     expect(r.status).toBe(0);
     expect(r.stderr).toBe('');
@@ -212,10 +216,10 @@ describe('seqv-render', { timeout: 30_000 }, () => {
   });
 
   it('is executable, starts with a shebang, and package.json lists it as a bin', () => {
-    expect(statSync(cli).mode & 0o111).toBe(0o111);
-    expect(readFileSync(cli, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true);
+    expect(statSync(source).mode & 0o111).toBe(0o111);
+    expect(readFileSync(source, 'utf8').startsWith('#!/usr/bin/env node\n')).toBe(true);
     const pkg = JSON.parse(readFileSync(join(import.meta.dirname, '../../package.json'), 'utf8'));
-    expect(pkg.bin).toEqual({ 'seqv-render': './src/cli/seqv-render.ts' });
+    expect(pkg.bin).toEqual({ 'seqv-render': './lib/cli/seqv-render.js' });
   });
 
   it('--png without playwright: exit 1, nothing written, and the message names what is missing', {

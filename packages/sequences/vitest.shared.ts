@@ -6,16 +6,25 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The vitest configs every package shares (RB0). A package's own configs call these, so `mise run test` runs the same
-// kinds in each: the Node suite (the fast tier, `test`, the one CI runs), the slow Node tier (`test:slow`), the heap
-// guards, the browser suite (and its heap guards, `HEAP=1`) and the bench. They return plain objects: this folder has
-// no vitest of its own to import from.
+// The vitest configs the opt-in tiers share (RB0; .v6/seq/plan.md §2.3). A package's own configs call these: the slow
+// Node tier (`test:slow`), the heap guards, the browser suite (and its heap guards, `HEAP=1`) and the bench. The fast
+// tier (`test`) is the repository's one run (`pnpm test:unit packages/sequences/<package>`, the root `vitest.config.ts`),
+// which reads the same rules; `nodeTests` still serves the slow tier and the composer proof. They return plain objects:
+// this folder has no vitest of its own to import from.
 
 import { globSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { defaultClientConditions, defaultServerConditions } from 'vite';
 
 const GUARD_FLAGS = ['--expose-gc', '--min-semi-space-size=64', '--max-semi-space-size=64'];
 const BROWSER_DIRS = ['_test/**/canvas/**', '_test/**/dom/**', '_test/**/react/**'];
+const BROWSER_PATH = /(^|\/)_test\/(.*\/)?(canvas|dom|react)\//;
+
+/** Workspace packages resolve to their sources through the `molstar-src` export condition, as in the root config. */
+const SOURCES = {
+  resolve: { conditions: ['molstar-src', ...defaultClientConditions] },
+  ssr: { resolve: { conditions: ['molstar-src', ...defaultServerConditions] } },
+};
 /** A file that mocks or resets modules needs a module registry of its own (`isolate`). */
 const MOCKS = /\bvi\.(mock|doMock|unmock|resetModules)\(/;
 
@@ -39,8 +48,8 @@ const SLOW_TAG = {
  */
 export const nodeTests = (dir: string, tier: 'fast' | 'slow' | 'all' = 'fast') => {
   const exclude = [...BROWSER_DIRS, '**/node_modules/**'];
-  const mocking = globSync('_test/**/*.test.ts', { cwd: dir, exclude })
-    .filter((f) => MOCKS.test(readFileSync(join(dir, f), 'utf8')))
+  const mocking = globSync('_test/**/*.test.ts', { cwd: dir })
+    .filter((f) => !BROWSER_PATH.test(f) && MOCKS.test(readFileSync(join(dir, f), 'utf8')))
     .sort();
   // A project extending the root concatenates its lists with the root's: the root names no files of its own. Vitest
   // queues projects by name: "isolated" first, so its fresh workers start with the run, not after it.
@@ -50,6 +59,7 @@ export const nodeTests = (dir: string, tier: 'fast' | 'slow' | 'all' = 'fast') =
   };
   const isolated = { extends: true, test: { name: 'isolated', include: mocking } };
   return {
+    ...SOURCES,
     test: {
       passWithNoTests: true,
       ...(process.env.PROF_SETUP ? { setupFiles: [process.env.PROF_SETUP] } : {}),
@@ -65,6 +75,7 @@ export const nodeTests = (dir: string, tier: 'fast' | 'slow' | 'all' = 'fast') =
  * fails the run when a GC happened during it; the fixed 64 MB young generation keeps one from hiding allocation.
  */
 export const heapTests = () => ({
+  ...SOURCES,
   test: {
     include: ['_test/**/*.heap.ts'],
     exclude: [...BROWSER_DIRS, '**/node_modules/**'],
@@ -80,9 +91,10 @@ export const heapTests = () => ({
  * exposed, the fixed young generation and precise `performance.memory` (_test/canvas/heap-browser.ts).
  * `playwright` is the package's own `@vitest/browser-playwright` export.
  */
-export const browserTests = (playwright: (o: object) => unknown) => {
+export const browserTests = <Provider>(playwright: (o: object) => Provider) => {
   const heap = process.env.HEAP === '1';
   return {
+    ...SOURCES,
     test: {
       include: heap ? ['_test/**/{canvas,dom,react}/**/*.heap.ts'] : ['_test/**/{canvas,dom,react}/**/*.test.{ts,tsx}'],
       passWithNoTests: true,
@@ -97,11 +109,17 @@ export const browserTests = (playwright: (o: object) => unknown) => {
             args: heap ? [`--js-flags=${GUARD_FLAGS.join(' ')}`, '--enable-precise-memory-info'] : [],
           },
         }),
-        instances: [{ browser: 'chromium', viewport: { width: 1200, height: 900 } }],
+        instances: [{ browser: 'chromium' as const, viewport: { width: 1200, height: 900 } }],
       },
     },
   };
 };
 
-/** `vitest bench`, outside `test`: the perf phases' numbers (`pnpm --filter <package> bench`). */
-export const benchTests = () => ({ test: { benchmark: { include: ['bench/**/*.bench.ts'] } } });
+/**
+ * `vitest bench`, outside `test`: the perf phases' numbers (`pnpm --filter <package> bench`). A bench is a test of
+ * `bench/` that runs the `bench` fixture (Vitest 5; `core/bench/timed.ts`).
+ */
+export const benchTests = () => ({
+  ...SOURCES,
+  test: { benchmark: { include: ['bench/**/*.bench.ts'] }, testTimeout: 300_000, hookTimeout: 300_000 },
+});

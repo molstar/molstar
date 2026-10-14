@@ -34,10 +34,10 @@ describe("SeqQL's issue codes", () => {
 
   it('every code the sources name is registered; the runtime warns under warnings or notes and fails under errors', () => {
     const text = [...sources(here('../../src/query')), ...sources(here('../../src/model/query'))].join('\n');
-    const named = new Set([...text.matchAll(/"(seqql\.[a-z_]+(?:\.[a-z_]+)*)"/g)].map((m) => m[1]));
+    const named = new Set([...text.matchAll(/["'](seqql\.[a-z_]+(?:\.[a-z_]+)*)["']/g)].map((m) => m[1]));
     expect([...named].filter((c) => !SeqqlIssueCodes.some((e) => e.code === c))).toEqual([]);
     const wrong: string[] = [];
-    for (const [, how, code = ''] of text.matchAll(/\.(warn|fail)\(\s*"(seqql\.[a-z_.]+)"/g)) {
+    for (const [, how, code = ''] of text.matchAll(/\.(warn|fail)\(\s*["'](seqql\.[a-z_.]+)["']/g)) {
       const want = how === 'warn' ? ['warning', 'info'] : ['error'];
       if (!want.includes(seqqlSeverity(code))) wrong.push(`${how} ${code}: registered ${seqqlSeverity(code)}`);
     }

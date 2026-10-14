@@ -83,11 +83,10 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "vitest run",
     "test:browser": "vitest run --config vitest.browser.config.ts",
     "test:browser-heap": "HEAP=1 vitest run --config vitest.browser.config.ts",
-    "test:slow": "vitest run --config vitest.slow.config.ts",
-    "test:full": "vitest run && vitest run --config vitest.slow.config.ts && vitest run --config vitest.heap.config.ts && vitest run --config vitest.browser.config.ts && HEAP=1 vitest run --config vitest.browser.config.ts",
+    "test:slow": "tsc -b && vitest run --config vitest.slow.config.ts",
+    "test:full": "pnpm -w test:unit packages/sequences/viewer && pnpm test:slow && pnpm test:heap && pnpm test:browser && pnpm test:browser-heap",
     "test:heap": "vitest run --config vitest.heap.config.ts",
     "test:heap-deep": "HEAP_DEEP=1 vitest run --config vitest.heap.config.ts",
     "bench": "vitest bench --run --passWithNoTests --config vitest.bench.config.ts",

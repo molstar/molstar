@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
 
 const root = join(import.meta.dirname, '../..');
 const CODED =
-  /(?:\bheightMode|sections\.(?:axis|arrangement|ligandForm|height|rowSizing)\[[^\]]*\]|layers\.sizing\[[^\]]*\]|\blayout|section\.layout|row\.axis)\s*[!=]==?\s*-?\d|[!=]==?\s*-?\d+\s*\?\s*"(?:box|columns|text|wrapped)"/;
+  /(?:\bheightMode|sections\.(?:axis|arrangement|ligandForm|height|rowSizing)\[[^\]]*\]|layers\.sizing\[[^\]]*\]|\blayout|section\.layout|row\.axis)\s*[!=]==?\s*-?\d|[!=]==?\s*-?\d+\s*\?\s*["'](?:box|columns|text|wrapped)["']/;
 
 function sources(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

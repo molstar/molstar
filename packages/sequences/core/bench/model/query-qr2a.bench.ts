@@ -12,10 +12,11 @@
 // GC runs. Run with `pnpm --filter @molstar/seq-core/model bench`.
 
 import { checkText } from '@molstar/seq-core/query';
-import { bench, describe } from 'vitest';
+import { describe } from 'vitest';
 import { prng } from '../../_test/model/support/generators.js';
 import { SeqSets } from '../../src/model/index.js';
 import { compileQuery, createQueryEnv, SeqSelection } from '../../src/model/query/index.js';
+import { timed } from '../timed.js';
 
 const rand = prng(20261013);
 const ROWS = 100_000;
@@ -99,5 +100,5 @@ describe('onto and partners at scale', () => {
     '(and x (partners y :via pp :side a))',
     '(expand (values :of pv :above 0.5) 3)',
   ];
-  for (const text of cases) bench(text, query(text), { time: 300 });
+  for (const text of cases) timed(text, query(text), { time: 300 });
 });

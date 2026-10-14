@@ -37,8 +37,7 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "test": "vitest run",
-    "test:full": "vitest run && vitest run --config vitest.heap.config.ts",
+    "test:full": "pnpm -w test:unit packages/sequences/molstar-poc && pnpm test:heap",
     "test:heap": "vitest run --config vitest.heap.config.ts",
     "typecheck": "tsc -b && tsc -p tsconfig.test.json"
   },

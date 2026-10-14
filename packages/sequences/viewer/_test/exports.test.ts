@@ -17,7 +17,8 @@ import { collisions, type Entry, entries, exported, unused } from '../../scripts
 
 const pkg = (dir: string, name: string, exports: Record<string, string>, files: Record<string, string>) => {
   mkdirSync(join(dir, name, 'src'), { recursive: true });
-  writeFileSync(join(dir, name, 'package.json'), JSON.stringify({ name, exports }));
+  const conditions = Object.fromEntries(Object.entries(exports).map(([k, v]) => [k, { 'molstar-src': v }]));
+  writeFileSync(join(dir, name, 'package.json'), JSON.stringify({ name, exports: conditions }));
   for (const [f, text] of Object.entries(files)) writeFileSync(join(dir, name, 'src', f), text);
 };
 
