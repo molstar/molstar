@@ -33,6 +33,9 @@ contributions: the viewer owns it directly, in its own code, and is free to be s
   (the structure provider, `StructureLink`, `linkViews`, `StructureView3D`); prism-ui stays free of Seq\*. This
   settles plan.md §3's "prism-ui depends on seq-viewer" for the viewer's package. molstar-poc is private and named
   for a proof of concept; its link and provider as a real package is a follow-up (§8).
+- **Extensions stay possible**: the Prism viewer will take extensions through its own composition spec, as the v5
+  Viewer does; prism-ui, the library, is not opinionated about how. The sequence view is not one of them: it is the
+  viewer's own feature.
 - **contexts.md**: its §3–4 (modules with `ModuleKey`, `UIContribution`s, a mode's `contributions`) describe the
   extension mechanism this design does without. contexts.md is to be revised for the "runtime plus opinionated
   compositions" split (§8); until then, this design follows David's direction, not those sections.

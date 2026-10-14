@@ -11,6 +11,8 @@ and the sequence viewer must be hosted ([../analysis/harness-and-seqstar.md](../
 > `PrismModule`, the registry, §3) and contributions (`UIContribution`, a mode's `contributions`, §4) as the way
 > features are composed, the compositions own them directly instead, and prefer fewer packages. The rest (one mode per
 > app, the context's lifetime, origins, the plugin boundary, results and state) still holds until the reconciliation.
+> A composition may still take extensions, as the v5 Viewer does through its composition spec: the Prism viewer will,
+> on its own terms; prism-ui, the library, takes no position on how.
 > The first design under the new direction: [../../seq/prism-sequence.md](../../seq/prism-sequence.md) §2.
 
 ## 1. An app, its mode, its lifetime
