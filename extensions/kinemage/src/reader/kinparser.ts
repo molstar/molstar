@@ -771,6 +771,8 @@ class KinParser {
                   visible: true,
                 };
               }
+              if (!kinemage.groupMasters) kinemage.groupMasters = [];
+              if (!kinemage.groupMasters.includes(master)) kinemage.groupMasters.push(master);
             });
           }
 
@@ -800,6 +802,8 @@ class KinParser {
                   visible: true,
                 };
               }
+              if (!kinemage.groupMasters) kinemage.groupMasters = [];
+              if (!kinemage.groupMasters.includes(master)) kinemage.groupMasters.push(master);
             });
           }
 
