@@ -70,10 +70,19 @@ export const StructureComponentParams = () => ({
 });
 export type StructureComponentParams = PD.ValuesFor<ReturnType<typeof StructureComponentParams>>;
 
+/** What `StructureComponent` keeps between its calls */
+export interface StructureComponentCache {
+  /** The structure which the component was made from */
+  source: Structure;
+  entry?: StructureQueryHelper.CacheEntry;
+  /** The component is the source structure itself (e.g. every element is selected), so its properties are not its own and it must not dispose them */
+  isSource?: boolean;
+}
+
 export function createStructureComponent(
   a: Structure,
   params: StructureComponentParams,
-  cache: { source: Structure; entry?: StructureQueryHelper.CacheEntry },
+  cache: StructureComponentCache,
 ) {
   cache.source = a;
 
@@ -160,6 +169,7 @@ export function createStructureComponent(
     label: `${params.label || label || 'Component'}`,
     description: Structure.elementDescription(component),
   };
+  cache.isSource = component === a;
   return new SO.Molecule.Structure(component, props);
 }
 
@@ -168,7 +178,7 @@ export function updateStructureComponent(
   b: SO.Molecule.Structure,
   oldParams: StructureComponentParams,
   newParams: StructureComponentParams,
-  cache: { source: Structure; entry?: StructureQueryHelper.CacheEntry },
+  cache: StructureComponentCache,
 ) {
   if (oldParams.type.name !== newParams.type.name) return StateTransformer.UpdateResult.Recreate;
 
@@ -187,6 +197,7 @@ export function updateStructureComponent(
       if (!Model.areHierarchiesEqual(a.model, b.data.model)) return StateTransformer.UpdateResult.Recreate;
 
       b.data = b.data.remapModel(a.model);
+      cache.isSource = false; // (a copy)
       return StateTransformer.UpdateResult.Updated;
     }
     case 'script':
@@ -205,6 +216,7 @@ export function updateStructureComponent(
       const selection = StructureQueryHelper.updateStructure(entry, a);
       cache.source = a;
       b.data = Sel.unionStructure(selection);
+      cache.isSource = b.data === a;
       StructureQueryHelper.updateStructureObject(b, selection, newParams.label);
       updated = true;
       break;
@@ -225,6 +237,7 @@ export function updateStructureComponent(
         updated = true;
         b.data = StructureElement.Bundle.toStructure(newParams.type.params, a);
       }
+      cache.isSource = b.data === a;
       break;
     }
   }

@@ -62,9 +62,12 @@ the [API change ledger](breaking-v6-changes.md).
 - `null` and lists of values (of `string`, `number`, `boolean` and `null`) are literals in the arguments of an
   expression (`null`, which is what JSON makes of `undefined` in a list, is a missing value)
 - `StructureElement.Schema.toExpression`, `toLoci` and `toBundle` (`Loci.fromSchema`, `Bundle.fromSchema`) use it, and
-  MVS does for selectors given as rows (`component` nodes, which are the plugin's own components that the classic UI can
-  modify, annotation components, inline tooltips and labels, color layers). Primitive positions and annotations resolve
-  rows through the same indices directly
+  MVS does for the selectors given as rows of `component` nodes (the plugin's own components, which the classic UI can
+  modify), inline tooltips and color layers. Annotation components, labels, annotation colors and tooltips, and
+  primitive positions resolve rows through the same indices directly
+- Code which reuses buffers between calls registers them with `ScratchMemory` (`@molstar/core/util/int-buffer`) under a
+  context (`SchemaSelectionScratch` for the rows), which keeps what is small after each call, and
+  `ScratchMemory.release(...contexts)` frees it (every context when none is named); MVS calls it when a load is done
 - Rows are resolved the same way everywhere: a residue without `label_seq_id` (ligands, waters) no longer matches a
   `label_seq_id` range or `end_label_seq_id` as MolScript did (it read a missing value as 0), `atom_id` rows select
   every atom with that id, `operator_name` is supported in rows, JSON annotation values of the wrong type (`"10"` for a

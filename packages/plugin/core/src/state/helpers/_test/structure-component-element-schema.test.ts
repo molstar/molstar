@@ -7,11 +7,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import '@molstar/model/script/runtime/query/table'; // (registers the symbols of the queries)
 import { CIF } from '@molstar/io/reader/cif';
-import { StateObject } from '@molstar/core/state';
+import { StateObject, StateTransformer } from '@molstar/core/state';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import { Structure, StructureElement } from '@molstar/model/model/structure';
 import { StructureComponent } from '../../transforms/structure/selection.js';
-import { type StructureComponentParams, createStructureComponent } from '../structure-component.js';
+import {
+  type StructureComponentParams,
+  createStructureComponent,
+  updateStructureComponent,
+} from '../structure-component.js';
 
 /** Chains A, B, C of 6 residues with 4 atoms */
 function mmcif() {
@@ -76,6 +80,20 @@ describe('StructureComponent with the expression of a schema', async () => {
     expect(named.label).toBe('Chain B');
     expect(named.data.elementCount).toBe(6 * 4);
   });
+  it('many rows (given by columns) are the same component as the elements of the rows', () => {
+    // 12 rows: residues 1-3 of every chain and a residue of chain C, for every row a few atoms
+    const rows = [
+      ...['A', 'B', 'C'].flatMap((asym) => [1, 2, 3].map((label_seq_id) => ({ label_asym_id: asym, label_seq_id }))),
+      { label_asym_id: 'C', label_seq_id: 6, label_atom_id: 'CA' },
+      { label_asym_id: 'C', label_seq_id: 5, label_atom_id: 'N' },
+      { label_asym_id: 'Z', label_seq_id: 1 },
+    ];
+    const p = params(rows);
+    const expression = p.type.params as any;
+    expect(expression.args[0].args.label_seq_id).toEqual([1, 2, 3, 1, 2, 3, 1, 2, 3, 6, 5, 1]); // (columns)
+    const obj = createStructureComponent(structure, p, {} as any) as any;
+    expect(obj.data.elementCount).toBe(9 * 4 + 1 + 1);
+  });
   it('is null if empty (and nullIfEmpty), otherwise an empty structure', () => {
     expect(createStructureComponent(structure, params([{ label_asym_id: 'Z' }]), {} as any)).toBe(StateObject.Null);
     expect(createStructureComponent(structure, params([]), {} as any)).toBe(StateObject.Null);
@@ -95,6 +113,47 @@ describe('StructureComponent with the expression of a schema', async () => {
       const spy = vi.spyOn(obj.data.customPropertyDescriptors, 'dispose');
       dispose(obj, cache);
       expect(spy).toHaveBeenCalledTimes(1);
+    });
+    it('disposes the properties of a component which is not the source (a copy of it), and not those of the source', () => {
+      const cache: any = {};
+      const all: StructureComponentParams = { type: { name: 'static', params: 'all' }, nullIfEmpty: true, label: '' };
+      const obj = createStructureComponent(structure, all, cache) as any;
+      expect(obj.data).toBe(structure);
+      expect(cache.isSource).toBe(true);
+      // (what the component is after its model was replaced: a copy of the source, which is its own)
+      obj.data = obj.data.remapModel(structure.model);
+      cache.isSource = false;
+      const own = vi.spyOn(obj.data.customPropertyDescriptors, 'dispose');
+      const theirs = vi.spyOn(structure.customPropertyDescriptors, 'dispose');
+      dispose(obj, cache);
+      expect(own).toHaveBeenCalledTimes(1);
+      expect(theirs).not.toHaveBeenCalled();
+    });
+    it('does not dispose the shared empty structure', () => {
+      const cache: any = {};
+      const obj = createStructureComponent(
+        structure,
+        params([{ label_asym_id: 'Z' }], { nullIfEmpty: false }),
+        cache,
+      ) as any;
+      expect(obj.data).toBe(Structure.Empty);
+      const spy = vi.spyOn(Structure.Empty.customPropertyDescriptors, 'dispose');
+      dispose(obj, cache);
+      expect(spy).not.toHaveBeenCalled();
+    });
+    it('follows the source when an expression component becomes the source, or stops being it', async () => {
+      const cache: any = {};
+      const everything = params([{}]);
+      const obj = createStructureComponent(structure, everything, cache) as any;
+      expect(cache.isSource).toBe(true);
+      const half = structure.subsetBuilder(true);
+      for (const unit of structure.units) half.setUnit(unit.id, unit.elements.slice(0, 12) as any);
+      const part = half.getStructure();
+      expect(updateStructureComponent(part, obj, everything, everything, cache)).toBe(
+        StateTransformer.UpdateResult.Updated,
+      );
+      expect(obj.data).toBe(part); // (everything of the new source: still the source itself)
+      expect(cache.isSource).toBe(true);
     });
     it('does not dispose those of the structure when every element satisfies the schema (the component is the structure)', () => {
       const cache: any = {};

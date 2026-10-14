@@ -6,6 +6,8 @@
  */
 
 import { Column } from '@molstar/core/data/db';
+import { ScratchMemory } from '@molstar/core/util/int-buffer';
+import { SchemaSelectionScratch } from '@molstar/model/model/structure/structure/element/schema-selection/scratch';
 import { CIF, CifBlock, CifCategory, CifFile } from '@molstar/io/reader/cif';
 import { toTable } from '@molstar/io/reader/cif/schema';
 import { MmcifFormat } from '@molstar/model/formats/structure/mmcif-format';
@@ -216,6 +218,7 @@ type IndexedModelsOfScope = {
 
 /** Reusable buffers for `getAtomRangesForRow` in `MVSAnnotation.getRowForEachAtom` (not reentrant, synchronous use only) */
 const RowScratch = new AtomRangesScratch();
+ScratchMemory.register(SchemaSelectionScratch, () => RowScratch.trim(0));
 /** Paints the rows in `MVSAnnotation.getRowForEachAtom` (synchronous use only) */
 const RowPainter = new ElementPainter();
 

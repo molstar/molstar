@@ -22,7 +22,7 @@ import { compile } from '@molstar/model/script/runtime/query/compiler';
 import { QueryContext, StructureSelection } from '@molstar/model/model/structure';
 import { IndicesAndSortings } from '../indexing.js';
 import { substructureFromRows } from '../row-structure.js';
-import { atomQualifies, getAtomRangesForRows } from '../selections.js';
+import { getAtomRangesForRows } from '../selections.js';
 import '@molstar/model/script/runtime/query/table'; // (registers the symbols of the queries)
 
 /** Chains A, B (entity 1) and C (entity 2) of 12 residues with 4 atoms; every 5th residue has the insertion code A.
@@ -77,20 +77,65 @@ describe('Schema.toLoci, the generator element-schema', async () => {
   const nAtoms = structure.elementCount;
   const model = structure.models[0];
 
-  /** The atoms (of the one unit) which satisfy the schema, by the per-atom check of the item (not through the indices) */
+  // What every atom has, read once from the hierarchy (a missing residue number is `undefined`)
+  const h = model.atomicHierarchy;
+  const atoms = Array.from({ length: nAtoms }, (_, i) => {
+    const iChain = h.chainAtomSegments.index[i];
+    const iRes = h.residueAtomSegments.index[i];
+    const present = (column: Column<number>) =>
+      column.valueKind(iRes) === Column.ValueKind.Present ? column.value(iRes) : undefined;
+    return {
+      label_asym_id: h.chains.label_asym_id.value(iChain),
+      auth_asym_id: h.chains.auth_asym_id.value(iChain),
+      label_entity_id: h.chains.label_entity_id.value(iChain),
+      label_seq_id: present(h.residues.label_seq_id),
+      auth_seq_id: present(h.residues.auth_seq_id),
+      pdbx_PDB_ins_code: h.residues.pdbx_PDB_ins_code.value(iRes),
+      residue_index: h.residueSourceIndex.value(iRes),
+      label_comp_id: h.atoms.label_comp_id.value(i),
+      auth_comp_id: h.atoms.auth_comp_id.value(i),
+      label_atom_id: h.atoms.label_atom_id.value(i),
+      auth_atom_id: h.atoms.auth_atom_id.value(i),
+      type_symbol: h.atoms.type_symbol.value(i),
+      atom_id: model.atomicConformation.atomId.value(i),
+      atom_index: h.atomSourceIndex.value(i),
+    } as Record<string, string | number | undefined>;
+  });
+  const isMissing = (v: unknown) => v === undefined || v === null || Number.isNaN(v);
+  /** An item is satisfied if every value it has is the value of the atom, as it is (no conversion), and a range holds for a residue number which is there. */
+  const satisfies = (item: SchemaItem, atom: (typeof atoms)[number]) => {
+    const row = item as Record<string, unknown>;
+    for (const key of Object.keys(atom)) {
+      if (
+        !isMissing(row[key]) &&
+        (key === 'type_symbol' ? (row[key] as string)?.toUpperCase?.() : row[key]) !== atom[key]
+      )
+        return false;
+    }
+    for (const [beg, end, key] of [
+      ['beg_label_seq_id', 'end_label_seq_id', 'label_seq_id'],
+      ['beg_auth_seq_id', 'end_auth_seq_id', 'auth_seq_id'],
+    ]) {
+      const value = atom[key] as number | undefined;
+      if (
+        !isMissing(row[beg]) &&
+        !(typeof row[beg] === 'number' && value !== undefined && value >= (row[beg] as number))
+      )
+        return false;
+      if (
+        !isMissing(row[end]) &&
+        !(typeof row[end] === 'number' && value !== undefined && value <= (row[end] as number))
+      )
+        return false;
+    }
+    return true;
+  };
+
+  /** The atoms (of the one unit) which satisfy the schema, by the definition above (not through the indices) */
   function bruteForce(schema: Schema): number[] {
     const items: SchemaItem[] = [];
-    // (a missing value, `undefined`, `null` or NaN, is not a criterion)
-    Schema.forEachItem(schema, (item) =>
-      items.push(
-        Object.fromEntries(Object.entries(item).filter(([, v]) => v !== undefined && v !== null && !Number.isNaN(v))),
-      ),
-    );
-    const atoms: number[] = [];
-    for (let i = 0; i < nAtoms; i++) {
-      if (items.some((item) => atomQualifies(model, i as any, item))) atoms.push(i);
-    }
-    return atoms;
+    Schema.forEachItem(schema, (item) => items.push({ ...item }));
+    return atoms.flatMap((atom, i) => (items.some((item) => satisfies(item, atom)) ? [i] : []));
   }
   const lociAtoms = (loci: Loci) =>
     Object.values(elementList(loci))
@@ -478,5 +523,3 @@ describe('Schema.toLoci, the generator element-schema', async () => {
     expect(Schema.toStructure(structure, {})).toBe(structure);
   });
 });
-
-void Column;

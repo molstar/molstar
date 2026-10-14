@@ -13,14 +13,17 @@ here.
 - Add the `element-schema` generator to MolQL (`sel.atom.element-schema` in MolScript, with `schema-item` and
   `empty-value`): it selects the elements of tables of fields (`label_asym_id`, `auth_seq_id`, ranges, ...) through
   per-model indices instead of testing every atom for every row (1000 rows on 720k atoms: seconds to ~17 ms).
-  `StructureElement.Schema.toExpression`/`toLoci`/`toBundle` use it, and so does MVS for selectors given as rows
-  (components, annotations, tooltips, labels, primitives). Rows can use `operator_name`, `beg_auth_ins_code` and
-  `end_auth_ins_code`, and residues without `label_seq_id` no longer match `label_seq_id` criteria (MolScript read them
-  as 0)
+  `StructureElement.Schema.toExpression`/`toLoci`/`toBundle` use it, and so does MVS for the selectors of components,
+  tooltips and color layers given as rows (annotations, labels and primitives resolve rows through the same indices).
+  Rows can use `operator_name`, `beg_auth_ins_code` and `end_auth_ins_code`, and residues without `label_seq_id` no
+  longer match `label_seq_id` criteria (MolScript read them as 0)
 - MolQL expressions can have `null` and lists of values as literal arguments (the columns of a table), which the
   compiler passes through
-- Remove the unused `queryContext` argument of `StructureElement.Schema.toLoci`/`toBundle` (`Loci.fromSchema`,
-  `Bundle.fromSchema`)
+- Remove the `queryContext` argument of `StructureElement.Schema.toLoci`/`toBundle` (`Loci.fromSchema`,
+  `Bundle.fromSchema`), which no code in the repository passed; use
+  `Loci.fromExpression(structure, Schema.toExpression(schema), queryContext)`
+- `ScratchMemory.release(...contexts)` (`@molstar/core/util/int-buffer`) frees the buffers which code keeps between
+  calls; MVS calls it when a load is done
 - Fix `IntAdjacencyGraph.connectedComponents` returning the vertex count as the component count for graphs with at least
   one edge
 - Fix RCSB validation report and ModelArchive quality assessment behaviors updating auto-attach and unregistering via

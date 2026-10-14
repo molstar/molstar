@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StructureElement } from '@molstar/model/model/structure';
 import { describe, expect, it } from 'vitest';
 import { componentPropsFromSelector, prettyNameFromSelector } from '@molstar/mvs/load-helpers';
 import { MVSData } from '@molstar/mvs-builder/mvs-data';
@@ -81,16 +80,26 @@ describe('MVS MolQL selectors', () => {
     expect(componentPropsFromSelector(wrapped)).toEqual({ name: 'expression', params: molql });
     expect(componentPropsFromSelector('protein')).toEqual({ name: 'static', params: 'protein' });
     // rows are the expression element-schema (which resolves them through the indices of the model)
+    const item = (args: object) => ({ head: { name: 'structure-query.type.schema-item' }, args });
+    const generator = (items: object[]) => ({
+      head: { name: 'structure-query.generator.element-schema' },
+      args: items,
+    });
     expect(componentPropsFromSelector({ label_asym_id: 'A' })).toEqual({
       name: 'expression',
-      params: StructureElement.Schema.toExpression({ items: [{ label_asym_id: 'A' }] }),
+      params: generator([item({ label_asym_id: 'A' })]),
     });
     const rows = [{ label_asym_id: 'A' }, { label_asym_id: 'B', label_seq_id: 3 }];
     expect(componentPropsFromSelector(rows)).toEqual({
       name: 'expression',
-      params: StructureElement.Schema.toExpression({ items: rows }),
+      params: generator([item({ label_asym_id: 'A' }), item({ label_asym_id: 'B', label_seq_id: 3 })]),
     });
-    expect((componentPropsFromSelector(rows).params as any).head.name).toBe('structure-query.generator.element-schema');
+    // (many rows are columns)
+    const many = Array.from({ length: 12 }, (_, i) => ({ label_asym_id: 'A', label_seq_id: i }));
+    expect(componentPropsFromSelector(many)).toEqual({
+      name: 'expression',
+      params: generator([item({ label_asym_id: many.map(() => 'A'), label_seq_id: many.map((_, i) => i) })]),
+    });
     expect(prettyNameFromSelector(wrapped)).toEqual('MolQL Selection');
     expect(prettyNameFromSelector({ label_asym_id: 'A' })).toEqual('A');
     expect(prettyNameFromSelector(rows)).toEqual('A + B3');

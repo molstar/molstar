@@ -7,7 +7,8 @@
 
 import { SortedArray } from '@molstar/core/data/int';
 import type { ElementIndex } from '../../../model/indexing.js';
-import { MaxRetainedBufferCapacity } from '@molstar/core/util/int-buffer';
+import { MaxRetainedBufferCapacity, ScratchMemory } from '@molstar/core/util/int-buffer';
+import { SchemaSelectionScratch } from './scratch.js';
 
 /** Represents a collection of disjoint elements ranges in a model (atoms, spheres, or gaussians).
  * The number of ranges is `ElementRanges.count(ranges)`,
@@ -92,6 +93,11 @@ export class ElementRangesBuffer {
 const UnionBag = new ElementRangesBuffer();
 let SweepStarts = new Int32Array(0);
 let SweepEnds = new Int32Array(0);
+ScratchMemory.register(SchemaSelectionScratch, () => {
+  UnionBag.trim(0);
+  SweepStarts = new Int32Array(0);
+  SweepEnds = new Int32Array(0);
+});
 
 export const ElementRanges = {
   /** Return the number of disjoined ranges in a `ElementRanges` object */

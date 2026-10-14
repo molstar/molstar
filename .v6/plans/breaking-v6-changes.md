@@ -680,26 +680,36 @@ through the indices of the model instead of a MolScript query on every atom for 
   columns, with the other fields the same in every row) and `core.type.empty` (`empty-value`). `Expression.Literal`
   includes `null` (a missing value) and lists of `string | number | boolean | null`, as an argument of an application;
   the compiler passes a list through (it is the way a column of any size costs nothing), and
-  `expressionValidationIssues` accepts them there (not as an expression of their own).
+  `expressionValidationIssues` accepts them there (not as an expression of their own) and only for an argument which can
+  be a list (declared as a list, or of any type): `atomGroups({ 'residue-test': [false] })` is still rejected.
+  `formatMolScript` writes them as `[a b c]` and `empty-value`. The arguments of `element-schema` have to be
+  `schema-item`.
 - **`StructureElement.Schema.toExpression` returns the generator** (a table of 10 or more rows by columns) instead of
   the per-atom `atom-groups` expression, so `toLoci`, `toBundle`, `Loci.fromSchema` and `Bundle.fromSchema` use the
-  indices (about 17 ms for 1000 rows on 720k atoms, several seconds before) and take no `queryContext` (it was unused;
-  `Loci.fromExpression` and `fromQuery` keep theirs). `SchemaItem` has `beg_auth_ins_code` and `end_auth_ins_code`. New
-  `Schema.toStructure` (the substructure, the structure itself when every element is selected).
+  indices (about 17 ms for 1000 rows on 720k atoms, several seconds before) and take no `queryContext` (no code in the
+  repository passed one; `Loci.fromExpression` and `fromQuery` keep theirs, so a time limit is
+  `Loci.fromExpression(structure, Schema.toExpression(schema), queryContext)`, and the generator checks it). A table
+  given by columns (`items` as an object of arrays) has columns of the same length (they are rejected otherwise;
+  `toLoci` and `toStructure` are the same here; they used to take the length of the first), and no columns or no values
+  are no rows. `SchemaItem` has `beg_auth_ins_code` and `end_auth_ins_code`. New `Schema.toStructure` (the substructure,
+  the structure itself when every element is selected).
 - **Semantics differ from the previous expression of the same rows.** A residue without `label_seq_id` (ligands, waters
   in many files) never satisfies a `label_seq_id`, `beg_label_seq_id` or `end_label_seq_id` criterion (MolScript read a
   missing value as 0, so `{ end_label_seq_id: 50 }` selected them); criteria which only exist for atoms (`auth_*`,
   `label_comp_id`, atom ids, ...) select nothing on coarse elements with a warning, as annotation rows always did (the
   per-atom expression threw); a range with `beg > end` selects nothing, also on coarse elements (the expression selected
   the elements which span the two bounds); the result is one set of the elements of all rows, and the structure itself
-  if all are selected. The values are matched as they are, as numbers: a number given as text (`"10"`) selects nothing
-  (JSON annotations convert their values when they are parsed), `null` and `undefined` are missing values (not
-  criteria), and `null` for a bound is an open end. An empty `pdbx_PDB_ins_code` means a residue without an insertion
-  code, as in MolScript. `operator_name` (the unit operator's name) and `instance_id` are honored. A range with
-  `beg_auth_ins_code` or `end_auth_ins_code` is a range of residues in the order of the input file, in each chain: from
-  the first residue with `beg_auth_seq_id` (and that code, `''` for none) to the last with `end_auth_seq_id` (and its
-  code); a bound without a code is the whole number, a missing bound or a range which ends before it begins selects
-  nothing from the chain, and so does a code without its number.
+  if all are selected. The values are matched as they are, with the type of their field: a number given as text
+  (`"10"`), an identifier given as a number, or a fractional residue number on a coarse element select nothing,
+  whichever criterion finds the candidates (JSON annotations convert their values when they are parsed); `null`,
+  `undefined` and `NaN` are missing values (not criteria) at every entry, and `null` for a bound is an open end. An
+  empty `pdbx_PDB_ins_code` means a residue without an insertion code, as in MolScript. `operator_name` (the unit
+  operator's name) and `instance_id` are honored. A range with `beg_auth_ins_code` or `end_auth_ins_code` is a range of
+  residues in the order of the input file, in each auth chain (the chains which share an `auth_asym_id`, e.g. a polymer
+  and its ligands): from the first residue with `beg_auth_seq_id` (and that code, `''` for none) to the last with
+  `end_auth_seq_id` (and its code); a bound without a code is the whole number, a missing bound or a range which ends
+  before it begins selects nothing from the auth chain, and so does a code without its number. The chains which the row
+  selects get the part of the range which is theirs.
 - **MVS.** `SelectorParams` (`@molstar/mvs/components/selector`) is unchanged, `componentPropsFromSelector`
   (`@molstar/mvs/load-helpers`) returns a `Selector` instead of the `type` of `StructureComponentParams`, and rows and
   arrays of rows are `{ name: 'expression', params: Schema.toExpression(...) }`, so a `component` node of MVS is the
@@ -707,7 +717,7 @@ through the indices of the model instead of a MolScript query on every atom for 
   (`@molstar/mvs/helpers/selections`) are removed: use `StructureElement.Schema.toExpression`. `prettyNameFromSelector`
   returns compact names (`A`, `A432`, `A:10-50`, `120 selections`) instead of `Custom Selection: {...}`. The dispose of
   `StructureComponent` no longer disposes the properties of a structure which is not its own (a component which is the
-  source structure).
+  source structure: the component keeps whether it is the source, as `MVSAnnotationStructureComponent` does).
 - **Selection helpers move to the model package.** The resolution of rows through model indices does not depend on MVS
   and lives next to `StructureElement.Schema` in `@molstar/model/model/structure/structure/element/schema-selection/*`
   (`element-ranges`, `indexing`, `selections`, `row-structure`, `fields`); they were `@molstar/mvs/helpers/*` modules,

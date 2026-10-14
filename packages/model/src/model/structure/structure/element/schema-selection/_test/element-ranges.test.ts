@@ -6,6 +6,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { ScratchMemory } from '@molstar/core/util/int-buffer';
+import { SchemaSelectionScratch } from '../scratch.js';
 import { ElementRanges, ElementRangesBuffer } from '../element-ranges.js';
 import { Sorting } from '../indexing.js';
 import { SortedArray } from '@molstar/core/data/int';
@@ -90,6 +92,23 @@ describe('union (sweep)', () => {
       }
       expect([...got].sort((a, b) => a - b)).toEqual([...covered].sort((a, b) => a - b));
     }
+  });
+});
+
+describe('the scratch buffers of the unions', () => {
+  it('give the same result before and after they are released (they are allocated again)', () => {
+    const ranges = Array.from({ length: 5000 }, (_, i) => ({
+      from: [i * 3, i * 3 + 100],
+      to: [i * 3 + 2, i * 3 + 105],
+    }));
+    const union = () => ElementRanges.union(ranges as ElementRanges[]);
+    const before = union();
+    ScratchMemory.release(SchemaSelectionScratch);
+    expect(union()).toEqual(before);
+    ScratchMemory.release();
+    ScratchMemory.release(SchemaSelectionScratch);
+    expect(union()).toEqual(before);
+    expect(before.from.length).toBeGreaterThan(1);
   });
 });
 

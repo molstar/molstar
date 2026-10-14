@@ -12,8 +12,9 @@ import type { Model } from '../../../model.js';
 import type { CoarseElements } from '../../../model/properties/coarse.js';
 import { range, sortIfNeeded } from '@molstar/core/util/array';
 import { ElementRanges, ElementRangesBuffer } from './element-ranges.js';
-import { IntBuffer, MaxRetainedBufferCapacity } from '@molstar/core/util/int-buffer';
+import { IntBuffer, MaxRetainedBufferCapacity, ScratchMemory } from '@molstar/core/util/int-buffer';
 import { hasValue, hasWrongTypes } from './fields.js';
+import { SchemaSelectionScratch } from './scratch.js';
 import {
   type AtomicIndicesAndSortings,
   type CoarseIndicesAndSortings,
@@ -44,6 +45,10 @@ export class AtomRangesScratch {
 
 const SharedScratch = new AtomRangesScratch();
 const RowsBag = new ElementRangesBuffer();
+ScratchMemory.register(SchemaSelectionScratch, () => {
+  SharedScratch.trim(0);
+  RowsBag.trim(0);
+});
 const IndexRange = { from: 0, to: 0 };
 
 /** The symmetry operator of a unit, as far as rows can refer to it (`instance_id`, `operator_name`) */
