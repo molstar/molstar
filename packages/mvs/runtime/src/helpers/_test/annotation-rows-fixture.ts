@@ -10,6 +10,7 @@ import { CIF } from '@molstar/io/reader/cif';
 import { trajectoryFromMmCIF } from '@molstar/model/formats/structure/mmcif';
 import type { Model } from '@molstar/model/model/structure';
 import type { MVSAnnotationRow } from '../schemas.js';
+import type { SchemaItem } from '@molstar/model/model/structure/structure/element/schema';
 import type { RowOperator } from '@molstar/model/model/structure/structure/element/schema-selection/selections';
 
 /** An operator for tests which apply rows to a model directly: its instance is '1', as the `instance_id` rows of the fixture expect. */
@@ -22,6 +23,9 @@ export interface Dims {
   nResidues: number;
   /** Give every 7th residue the insertion code `A` (off by default to keep the benchmark data fixed). */
   insertionCodes?: boolean;
+  /** Make insertion series: the 7th residue of every chain is `<previous auth_seq_id>A` and the 8th is `<previous auth_seq_id>B` (and so on every 7 residues),
+   * so that residues share `auth_seq_id` and differ in the insertion code. Replaces `insertionCodes`. */
+  insertionSeries?: boolean;
   /** Number the residues of odd chains in descending `label_seq_id` order (so that ranges of `label_seq_id` are not ascending in residue index). */
   descendingSeqIds?: boolean;
   /** Give the last atom of every 5th residue of every 4th chain a different comp_id (`ALT`), so that residues do not have a single comp_id (e.g. microheterogeneity). */
@@ -67,6 +71,7 @@ function createMmcifText({
   nChains: NChains,
   nResidues: NResidues,
   insertionCodes,
+  insertionSeries,
   descendingSeqIds,
   mixedCompIds,
   differentAuthComp,
@@ -104,12 +109,23 @@ function createMmcifText({
     const entity = (c % NEntities) + 1;
     for (let r = 1; r <= NResidues; r++) {
       const comp = CompIds[(r + c) % CompIds.length];
+      // (`A` after a residue, `B` after that: the numbers of an insertion series are the one of the residue before it)
+      const authSeq = insertionSeries ? r + 10 - (r % 7 === 0 ? 1 : r % 7 === 1 && r > 1 ? 2 : 0) : r + 10;
+      const insCode = insertionSeries
+        ? r % 7 === 0
+          ? 'A'
+          : r % 7 === 1 && r > 1
+            ? 'B'
+            : '?'
+        : insertionCodes && r % 7 === 0
+          ? 'A'
+          : '?';
       for (let a = 0; a < AtomNames.length; a++) {
         const atomComp = mixedCompIds && c % 4 === 3 && r % 5 === 0 && a === AtomNames.length - 1 ? 'ALT' : comp;
         const x = (c * 10 + a).toFixed(3);
         const y = (r * 3.8).toFixed(3);
         lines.push(
-          `ATOM ${atomIdWrap ? ((id++ - 1) % atomIdWrap) + 1 : id++} ${TypeSymbols[a]} ${AtomNames[a]} . ${atomComp} ${asym} ${entity} ${descendingSeqIds && c % 2 === 1 ? NResidues + 1 - r : r} ${insertionCodes && r % 7 === 0 ? 'A' : '?'} ${x} ${y} 0.000 1 10 ${r + 10} ${differentAuthComp && c % 3 === 1 ? `X${atomComp}` : atomComp} ${auth} ${AtomNames[a]} 1`,
+          `ATOM ${atomIdWrap ? ((id++ - 1) % atomIdWrap) + 1 : id++} ${TypeSymbols[a]} ${AtomNames[a]} . ${atomComp} ${asym} ${entity} ${descendingSeqIds && c % 2 === 1 ? NResidues + 1 - r : r} ${insCode} ${x} ${y} 0.000 1 10 ${authSeq} ${differentAuthComp && c % 3 === 1 ? `X${atomComp}` : atomComp} ${auth} ${AtomNames[a]} 1`,
         );
       }
     }
@@ -133,7 +149,11 @@ export async function createModel(dims: Dims): Promise<Model> {
   return trajectory.representative;
 }
 
-export type RowCategory = { name: string; count: number; make: (rnd: () => number, i: number) => MVSAnnotationRow };
+export type RowCategory<R = MVSAnnotationRow> = {
+  name: string;
+  count: number;
+  make: (rnd: () => number, i: number) => R;
+};
 
 export function randInt(rnd: () => number, n: number) {
   return Math.floor(rnd() * n);
@@ -192,7 +212,10 @@ export function rowCategories(
   ].map((c) => ({ ...c, count: Math.max(1, Math.round((c.count * NRows) / 1000)) }));
 }
 
-export function makeRows(categories: RowCategory[], seed: number): { name: string; rows: MVSAnnotationRow[] }[] {
+export function makeRows<R = MVSAnnotationRow>(
+  categories: RowCategory<R>[],
+  seed: number,
+): { name: string; rows: R[] }[] {
   const rnd = mulberry32(seed);
   return categories.map((c) => ({ name: c.name, rows: Array.from({ length: c.count }, (_, i) => c.make(rnd, i)) }));
 }
@@ -348,5 +371,95 @@ export function combinedCategories({ nChains, nResidues }: Dims, nAtoms: number,
       operator_name: r() < 0.7 ? '1_555' : '2_555',
       label_asym_id: chain(r),
     })),
+  ];
+}
+
+/** Rows with ranges of `auth_seq_id` which have insertion codes (and the rows which look like them but are not). Needs `insertionSeries`. */
+export function insCodeRangeCategories(
+  { nChains, nResidues }: Dims,
+  nAtoms: number,
+  count = 60,
+): RowCategory<SchemaItem>[] {
+  const chain = (r: () => number) => chainName(randInt(r, nChains));
+  const authChain = (r: () => number) => authChainName(randInt(r, nChains));
+  const seq = (r: () => number) => 1 + randInt(r, nResidues);
+  /** The `auth_seq_id` of residue `s`, or of a residue in the series after it (their numbers are shared) */
+  const auth = (s: number) => s + 10;
+  const code = (r: () => number) => ['', 'A', 'B', 'C'][randInt(r, 4)];
+  const cat = (name: string, make: RowCategory<SchemaItem>['make']): RowCategory<SchemaItem> => ({ name, count, make });
+  const chainCriteria = (r: () => number): SchemaItem => {
+    const pick = r();
+    return pick < 0.45 ? { label_asym_id: chain(r) } : pick < 0.8 ? { auth_asym_id: authChain(r) } : {};
+  };
+  /** Bounds near the insertion series (every 7th residue), where codes make a difference */
+  const nearSeries = (r: () => number) => {
+    const k = 7 * (1 + randInt(r, Math.max(1, Math.floor(nResidues / 7)))) - randInt(r, 2);
+    return Math.min(nResidues, Math.max(1, k));
+  };
+  const range = (r: () => number, startOf: (r: () => number) => number): SchemaItem => {
+    const row: SchemaItem = {};
+    const a = startOf(r);
+    const b = Math.min(nResidues + 3, a + randInt(r, 16));
+    const pick = r();
+    if (pick < 0.8 || pick >= 0.9) {
+      row.beg_auth_seq_id = auth(a);
+      if (r() < 0.75) row.beg_auth_ins_code = code(r);
+    }
+    if (pick < 0.7 || pick >= 0.9) {
+      row.end_auth_seq_id = auth(b);
+      if (r() < 0.75) row.end_auth_ins_code = code(r);
+    }
+    return row;
+  };
+  return [
+    cat('chain + range near the series', (r) => ({ ...chainCriteria(r), ...range(r, nearSeries) })),
+    cat('chain + range anywhere', (r) => ({ ...chainCriteria(r), ...range(r, seq) })),
+    cat('range + residue criteria', (r) => {
+      const row = { ...chainCriteria(r), ...range(r, nearSeries) };
+      const pick = r();
+      if (pick < 0.2) row.label_seq_id = seq(r);
+      else if (pick < 0.4) row.pdbx_PDB_ins_code = code(r);
+      else if (pick < 0.6) row.residue_index = randInt(r, nChains * nResidues);
+      else if (pick < 0.8) row.label_comp_id = CompIds[randInt(r, CompIds.length)];
+      else row.beg_label_seq_id = seq(r);
+      return row;
+    }),
+    cat('range + atom criteria', (r) => {
+      const row = { ...chainCriteria(r), ...range(r, nearSeries) };
+      if (r() < 0.5) row.label_atom_id = 'CA';
+      else row.type_symbol = 'c';
+      return row;
+    }),
+    cat('range + atom_id / atom_index (of an atom in the range)', (r) => {
+      const c = randInt(r, nChains);
+      const res = nearSeries(r);
+      const iAtom = (c * nResidues + res - 1) * 6 + randInt(r, 6);
+      const row: SchemaItem = {
+        label_asym_id: chainName(c),
+        beg_auth_seq_id: auth(Math.max(1, res - randInt(r, 3))),
+        end_auth_seq_id: auth(res + randInt(r, 3)),
+      };
+      if (r() < 0.6) row.beg_auth_ins_code = code(r);
+      if (r() < 0.6) row.end_auth_ins_code = code(r);
+      if (r() < 0.5) row.atom_index = iAtom;
+      else row.atom_id = iAtom + 1;
+      return row;
+    }),
+    cat('range + instance', (r) => ({
+      ...chainCriteria(r),
+      ...range(r, nearSeries),
+      instance_id: r() < 0.5 ? '1' : '2',
+    })),
+    cat('insertion code without its number', (r) => {
+      const row: SchemaItem = { ...chainCriteria(r) };
+      const pick = r();
+      if (pick < 0.4) row.beg_auth_ins_code = code(r);
+      else if (pick < 0.8) row.end_auth_ins_code = code(r);
+      else {
+        row.beg_auth_seq_id = auth(seq(r));
+        row.end_auth_ins_code = code(r);
+      }
+      return row;
+    }),
   ];
 }

@@ -31,6 +31,16 @@ export interface SchemaItem {
   end_label_seq_id?: number;
   beg_auth_seq_id?: number;
   end_auth_seq_id?: number;
+  /** Insertion code of the first residue of the range which starts at `beg_auth_seq_id` (`''`: the residue without an insertion code).
+   *
+   * If `beg_auth_ins_code` or `end_auth_ins_code` is given, the range is not a range of `auth_seq_id` values but of residues
+   * in the order of the input file: from the first residue with `beg_auth_seq_id` (and this insertion code) to the last residue with
+   * `end_auth_seq_id` (and `end_auth_ins_code`), in each chain selected by the other criteria. A bound without an insertion code is the
+   * whole `auth_seq_id` (the first residue of it for `beg`, the last for `end`), a bound which is not in the chain selects nothing from it,
+   * and so does a range which ends before it begins. An insertion code without its `auth_seq_id` selects nothing. */
+  beg_auth_ins_code?: string;
+  /** Insertion code of the last residue of the range which ends at `end_auth_seq_id`, see `beg_auth_ins_code`. */
+  end_auth_ins_code?: string;
   label_atom_id?: string;
   auth_atom_id?: string;
   type_symbol?: string;

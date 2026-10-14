@@ -68,6 +68,67 @@ export function rowsUseOperators(rows: readonly SchemaItem[]): boolean {
 }
 const SingleResidue: ResidueIndex[] = [0 as ResidueIndex];
 
+/** Is the `auth_seq_id` range of `row` a range of residues in file order (it has an insertion code on a bound)? */
+export function hasInsCodeRange(row: SchemaItem): boolean {
+  return isDefined(row.beg_auth_ins_code) || isDefined(row.end_auth_ins_code);
+}
+
+/** An insertion code of a range bound without the `auth_seq_id` of the bound is not a bound of anything, the row selects nothing. */
+function hasInsCodeWithoutSeqId(row: SchemaItem): boolean {
+  return (
+    (isDefined(row.beg_auth_ins_code) && !isDefined(row.beg_auth_seq_id)) ||
+    (isDefined(row.end_auth_ins_code) && !isDefined(row.end_auth_seq_id))
+  );
+}
+
+const ResolveRange = { from: 0, to: 0 };
+/** The first (or last) residue of `iChain` with this `auth_seq_id` (and insertion code, unless `insCode` is `undefined`) in file order, or -1. */
+function findResidueByAuthId(
+  model: Model,
+  indices: AtomicIndicesAndSortings,
+  iChain: ChainIndex,
+  authSeqId: number,
+  insCode: string | undefined,
+  first: boolean,
+): number {
+  const sorting = indices.residuesSortedByAuthSeqId.get(iChain)!;
+  Sorting.findIndexRange(sorting, authSeqId, authSeqId, ResolveRange);
+  const { pdbx_PDB_ins_code } = model.atomicHierarchy.residues;
+  let found = -1;
+  for (let k = ResolveRange.from; k < ResolveRange.to; k++) {
+    const iRes = sorting.keys[k];
+    if (insCode !== undefined && pdbx_PDB_ins_code.value(iRes) !== insCode) continue;
+    if (found < 0 || (first ? iRes < found : iRes > found)) found = iRes;
+  }
+  return found;
+}
+
+/** The residues of `iChain` selected by the `auth_seq_id` range of `row` which has insertion codes: `out.from..out.to` (both inclusive, `to`
+ * is `to - 1` of a `[from, to)` range). Return `false` if the chain has no such residues (a bound is not in it, or they are in reverse order). */
+function resolveInsCodeRange(
+  model: Model,
+  row: SchemaItem,
+  indices: AtomicIndicesAndSortings,
+  iChain: ChainIndex,
+  out: { from: number; to: number },
+): boolean {
+  const { residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
+  let from: number = residueAtomSegments.index[chainAtomSegments.offsets[iChain]];
+  let to: number = residueAtomSegments.index[chainAtomSegments.offsets[iChain + 1] - 1];
+  if (isDefined(row.beg_auth_seq_id)) {
+    from = findResidueByAuthId(model, indices, iChain, row.beg_auth_seq_id, row.beg_auth_ins_code, true);
+    if (from < 0) return false;
+  }
+  if (isDefined(row.end_auth_seq_id)) {
+    to = findResidueByAuthId(model, indices, iChain, row.end_auth_seq_id, row.end_auth_ins_code, false);
+    if (to < 0) return false;
+  }
+  if (from > to) return false;
+  out.from = from;
+  out.to = to;
+  return true;
+}
+
 /** Return atom ranges in `model` which satisfy criteria given by `row` (a new object). */
 export function getAtomRangesForRow(
   row: SchemaItem,
@@ -99,6 +160,7 @@ export function getAtomRangesForRowInto(
   if (nAtoms === 0) return undefined;
 
   const out = scratch.ranges.clear();
+  if (hasInsCodeWithoutSeqId(row)) return out;
 
   const hasAtomIds = isDefined(row.atom_id) || isDefined(row.atom_index);
   const hasLabelAtomId = isDefined(row.label_atom_id);
@@ -243,9 +305,13 @@ const enum ResidueSource {
   InsCode,
   LabelSeqIdRange,
   AuthSeqIdRange,
+  /** The residues of a range of `auth_seq_id` with insertion codes (in file order): consecutive residues */
+  InsCodeRange,
   LabelCompId,
   AuthCompId,
 }
+
+const InsRange = { from: 0, to: 0 };
 
 /** Write residue indexes (ascending) which satisfy criteria given by `row` into `out` (clearing it first) and return it.
  * `fromChains` are ascending chain indexes to search in, `undefined` means all chains.
@@ -279,7 +345,9 @@ function getQualifyingResidues(
   const hasBegAuth = isDefined(row.beg_auth_seq_id);
   const hasEndAuth = isDefined(row.end_auth_seq_id);
   const hasLabelRange = hasBegLabel || hasEndLabel;
-  const hasAuthRange = hasBegAuth || hasEndAuth;
+  const hasInsRange = hasInsCodeRange(row);
+  // (a range with insertion codes is a range of residues in file order, not of `auth_seq_id` values)
+  const hasAuthRange = (hasBegAuth || hasEndAuth) && !hasInsRange;
   const hasLabelComp = isDefined(row.label_comp_id);
   const hasAuthComp = isDefined(row.auth_comp_id);
   const labelCompPure = indices.residuesByLabelCompIdIsPure;
@@ -297,18 +365,21 @@ function getQualifyingResidues(
             ? ResidueSource.LabelSeqIdRange
             : hasAuthRange
               ? ResidueSource.AuthSeqIdRange
-              : hasLabelComp
-                ? ResidueSource.LabelCompId
-                : hasAuthComp
-                  ? ResidueSource.AuthCompId
-                  : ResidueSource.AllInChain;
+              : hasInsRange
+                ? ResidueSource.InsCodeRange
+                : hasLabelComp
+                  ? ResidueSource.LabelCompId
+                  : hasAuthComp
+                    ? ResidueSource.AuthCompId
+                    : ResidueSource.AllInChain;
 
   // Without chain criteria the candidates do not have to be looked up in every chain: some criteria select few residues in the whole
   // model, so a lookup over all chains at once is better (`covered`: the criterion which the global lookup satisfies).
   // (Not for sequence-based criteria: they select about one residue in each chain anyway, which is what looking in each chain finds.)
   let globalKeys: readonly ResidueIndex[] | undefined = undefined;
   let covered = source;
-  if (!fromChains) {
+  // (not for a range with insertion codes: it is resolved in each chain)
+  if (!fromChains && !hasInsRange) {
     const global = indices.global;
     const bySeq = hasLabelSeq || hasAuthSeq || hasLabelRange || hasAuthRange;
     if (hasResIdx && global.residueBySourceIndex) {
@@ -335,6 +406,7 @@ function getQualifyingResidues(
   const checkIns = hasIns && covered !== ResidueSource.InsCode;
   const checkLabelRange = hasLabelRange && covered !== ResidueSource.LabelSeqIdRange;
   const checkAuthRange = hasAuthRange && covered !== ResidueSource.AuthSeqIdRange;
+  const checkInsRange = hasInsRange && covered !== ResidueSource.InsCodeRange;
   const checkLabelComp = hasLabelComp && covered !== ResidueSource.LabelCompId;
   const checkAuthComp = hasAuthComp && covered !== ResidueSource.AuthCompId;
 
@@ -347,6 +419,7 @@ function getQualifyingResidues(
         : model.atomicHierarchy.chains._rowCount;
   for (let iFrom = 0; iFrom < nPasses; iFrom++) {
     const iChain = (fromChains ? fromChains[iFrom] : iFrom) as ChainIndex;
+    if (hasInsRange && !resolveInsCodeRange(model, row, indices, iChain, InsRange)) continue;
 
     // candidates are `keys[from..to)` (or consecutive residues `from..to` when `keys` is undefined)
     let keys: readonly ResidueIndex[] | undefined = undefined;
@@ -401,6 +474,10 @@ function getQualifyingResidues(
           keys = indices.residuesByAuthCompId.get(iChain)!.get(row.auth_comp_id!) ?? EmptyArray;
           to = keys.length;
           break;
+        case ResidueSource.InsCodeRange:
+          from = InsRange.from;
+          to = InsRange.to + 1;
+          break;
         case ResidueSource.AllInChain:
           from = residueAtomSegments.index[chainAtomSegments.offsets[iChain]];
           to = residueAtomSegments.index[chainAtomSegments.offsets[iChain + 1] - 1] + 1;
@@ -414,6 +491,7 @@ function getQualifyingResidues(
         continue;
       if (checkAuthSeq && !(auth_seq_id.valueKind(iRes) === Present && auth_seq_id.value(iRes) === row.auth_seq_id))
         continue;
+      if (checkInsRange && (iRes < InsRange.from || iRes > InsRange.to)) continue;
       if (checkResIdx && residueSourceIndex.value(iRes) !== row.residue_index) continue;
       if (checkIns && pdbx_PDB_ins_code.value(iRes) !== row.pdbx_PDB_ins_code) continue;
       if (checkLabelRange) {
@@ -477,7 +555,7 @@ function addAtomsForAtomIds(
   if (isDefined(row.atom_index)) {
     // (`atomQualifies` also checks `atom_id`, if given)
     const iAtom = indices.atoms.bySourceIndex.get(row.atom_index);
-    if (iAtom !== undefined && atomQualifies(model, iAtom, row)) out.add(iAtom, iAtom + 1);
+    if (iAtom !== undefined && atomQualifiesInInsCodeRange(model, iAtom, row, indices)) out.add(iAtom, iAtom + 1);
     return;
   }
   const id = row.atom_id!;
@@ -486,11 +564,30 @@ function addAtomsForAtomIds(
   const candidates = indices.atoms.repeatedIds.get(id) ?? [first];
   for (let i = 0; i < candidates.length; i++) {
     const iAtom = candidates[i];
-    if (atomQualifies(model, iAtom, row)) out.add(iAtom, iAtom + 1);
+    if (atomQualifiesInInsCodeRange(model, iAtom, row, indices)) out.add(iAtom, iAtom + 1);
   }
 }
 
-/** Return true if `iAtom`-th atom in `model` satisfies all selection criteria given by `row`. */
+/** `atomQualifies`, and the residue is in the range with insertion codes of `row` (if it has one) */
+function atomQualifiesInInsCodeRange(
+  model: Model,
+  iAtom: ElementIndex,
+  row: SchemaItem,
+  indices: AtomicIndicesAndSortings,
+): boolean {
+  if (!atomQualifies(model, iAtom, row)) return false;
+  if (!hasInsCodeRange(row)) return true;
+  const h = model.atomicHierarchy;
+  const iRes = h.residueAtomSegments.index[iAtom];
+  return (
+    resolveInsCodeRange(model, row, indices, h.chainAtomSegments.index[iAtom], InsRange) &&
+    InsRange.from <= iRes &&
+    iRes <= InsRange.to
+  );
+}
+
+/** Return true if `iAtom`-th atom in `model` satisfies all selection criteria given by `row`
+ * (a range with insertion codes, `beg_auth_ins_code` and `end_auth_ins_code`, needs the indices of the model and is not checked here). */
 export function atomQualifies(model: Model, iAtom: ElementIndex, row: SchemaItem): boolean {
   const h = model.atomicHierarchy;
 
@@ -517,7 +614,7 @@ export function atomQualifies(model: Model, iAtom: ElementIndex, row: SchemaItem
   if (!matches(row.auth_seq_id, auth_seq_id)) return false;
   if (!matches(row.pdbx_PDB_ins_code, pdbx_PDB_ins_code)) return false;
   if (!matchesRange(row.beg_label_seq_id, row.end_label_seq_id, label_seq_id)) return false;
-  if (!matchesRange(row.beg_auth_seq_id, row.end_auth_seq_id, auth_seq_id)) return false;
+  if (!hasInsCodeRange(row) && !matchesRange(row.beg_auth_seq_id, row.end_auth_seq_id, auth_seq_id)) return false;
   if (!matches(row.residue_index, residue_index)) return false;
 
   const label_comp_id = h.atoms.label_comp_id.value(iAtom);
@@ -620,6 +717,8 @@ export function getCoarseElementRangesForRow(
     isDefined(row.pdbx_PDB_ins_code) ||
     isDefined(row.beg_auth_seq_id) ||
     isDefined(row.end_auth_seq_id) ||
+    isDefined(row.beg_auth_ins_code) ||
+    isDefined(row.end_auth_ins_code) ||
     isDefined(row.label_comp_id) ||
     isDefined(row.auth_comp_id) ||
     isDefined(row.residue_index) ||
@@ -723,7 +822,7 @@ let coarseSelectorWarningPrinted = false;
 function printCoarseSelectorWarning() {
   if (!coarseSelectorWarningPrinted) {
     console.warn(
-      'Using unsupported selector fields (auth_asym_id, auth_seq_id, pdbx_PDB_ins_code, beg_auth_seq_id, end_auth_seq_id, label_comp_id, auth_comp_id, residue_index, label_atom_id, auth_atom_id, type_symbol, atom_id, atom_index) on a coarse structure. The resulting selection will be empty.',
+      'Using unsupported selector fields (auth_asym_id, auth_seq_id, pdbx_PDB_ins_code, beg_auth_seq_id, end_auth_seq_id, beg_auth_ins_code, end_auth_ins_code, label_comp_id, auth_comp_id, residue_index, label_atom_id, auth_atom_id, type_symbol, atom_id, atom_index) on a coarse structure. The resulting selection will be empty.',
     );
     coarseSelectorWarningPrinted = true;
   }

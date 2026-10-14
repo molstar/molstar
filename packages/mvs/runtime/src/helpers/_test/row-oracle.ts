@@ -6,11 +6,14 @@
 
 import { Column } from '@molstar/core/data/db';
 import type { Model } from '@molstar/model/model/structure';
-import type { MVSAnnotationRow } from '../schemas.js';
+import type { SchemaItem } from '@molstar/model/model/structure/structure/element/schema';
 import type { RowOperator } from '@molstar/model/model/structure/structure/element/schema-selection/selections';
 
 /** What rows can refer to, of one atom (a missing label_seq_id or auth_seq_id is `undefined`, a missing insertion code is `''`) */
 interface AtomRecord {
+  /** Position of the chain and of the residue in the file */
+  iChain: number;
+  iRes: number;
   label_asym_id: string;
   auth_asym_id: string;
   label_entity_id: string;
@@ -48,6 +51,8 @@ export function createRowOracle(model: Model) {
     const iChain = h.chainAtomSegments.index[iAtom];
     const iRes = h.residueAtomSegments.index[iAtom];
     atoms[iAtom] = {
+      iChain,
+      iRes,
       label_asym_id: h.chains.label_asym_id.value(iChain),
       auth_asym_id: h.chains.auth_asym_id.value(iChain),
       label_entity_id: h.chains.label_entity_id.value(iChain),
@@ -66,8 +71,58 @@ export function createRowOracle(model: Model) {
     };
   }
 
+  // The residues of every chain in the order of the file (all atoms of a residue are the same here)
+  const residuesOfChain = new Map<number, { iRes: number; auth_seq_id: number | undefined; ins: string }[]>();
+  for (const a of atoms) {
+    const list = residuesOfChain.get(a.iChain) ?? [];
+    residuesOfChain.set(a.iChain, list);
+    if (list.length === 0 || list[list.length - 1].iRes !== a.iRes)
+      list.push({ iRes: a.iRes, auth_seq_id: a.auth_seq_id, ins: a.pdbx_PDB_ins_code });
+  }
+
+  /** For a row with a range with insertion codes: the residues of each chain from the first residue of the beginning to the last of the end
+   * (a bound without a code is the number: the first residue with it, the last), by the definition on the residues of the chain.
+   * A chain without a bound, or with the bounds in reverse order, has none. `undefined` for a row without such a range. */
+  function insCodeRangeOf(row: SchemaItem): Map<number, [number, number]> | 'nothing' | undefined {
+    if (!defined(row.beg_auth_ins_code) && !defined(row.end_auth_ins_code)) return undefined;
+    if (
+      (defined(row.beg_auth_ins_code) && !defined(row.beg_auth_seq_id)) ||
+      (defined(row.end_auth_ins_code) && !defined(row.end_auth_seq_id))
+    )
+      return 'nothing';
+    const result = new Map<number, [number, number]>();
+    for (const [iChain, residues] of residuesOfChain) {
+      const find = (seq: number, ins: string | undefined | null) =>
+        residues.filter((r) => r.auth_seq_id === seq && (!defined(ins) || r.ins === ins)).map((r) => r.iRes);
+      let lo = residues[0].iRes;
+      let hi = residues[residues.length - 1].iRes;
+      if (defined(row.beg_auth_seq_id)) {
+        const found = find(row.beg_auth_seq_id, row.beg_auth_ins_code);
+        if (found.length === 0) continue;
+        lo = Math.min(...found);
+      }
+      if (defined(row.end_auth_seq_id)) {
+        const found = find(row.end_auth_seq_id, row.end_auth_ins_code);
+        if (found.length === 0) continue;
+        hi = Math.max(...found);
+      }
+      if (lo <= hi) result.set(iChain, [lo, hi]);
+    }
+    return result;
+  }
+
   /** Does the atom satisfy the row, for units with this operator? (the most selective criteria first) */
-  function satisfies(row: MVSAnnotationRow, a: AtomRecord, operator: RowOperator): boolean {
+  function satisfies(
+    row: SchemaItem,
+    a: AtomRecord,
+    operator: RowOperator,
+    insRange: ReturnType<typeof insCodeRangeOf>,
+  ): boolean {
+    if (insRange === 'nothing') return false;
+    if (insRange) {
+      const range = insRange.get(a.iChain);
+      if (!range || a.iRes < range[0] || a.iRes > range[1]) return false;
+    }
     if (defined(row.instance_id) && row.instance_id !== operator.instanceId) return false;
     if (defined(row.operator_name) && row.operator_name !== operator.name) return false;
     return (
@@ -79,7 +134,7 @@ export function createRowOracle(model: Model) {
       equals(row.label_entity_id, a.label_entity_id) &&
       equals(row.pdbx_PDB_ins_code, a.pdbx_PDB_ins_code) &&
       within(row.beg_label_seq_id, row.end_label_seq_id, a.label_seq_id) &&
-      within(row.beg_auth_seq_id, row.end_auth_seq_id, a.auth_seq_id) &&
+      (insRange !== undefined || within(row.beg_auth_seq_id, row.end_auth_seq_id, a.auth_seq_id)) &&
       equals(row.residue_index, a.residue_index) &&
       equals(row.label_comp_id, a.label_comp_id) &&
       equals(row.auth_comp_id, a.auth_comp_id) &&
@@ -93,18 +148,19 @@ export function createRowOracle(model: Model) {
   return {
     nAtoms: n,
     /** The index of the last of `rows` which the atom satisfies, -1 for none (later rows win), for every atom */
-    rowOfEachAtom(rows: readonly MVSAnnotationRow[], operator: RowOperator): number[] {
+    rowOfEachAtom(rows: readonly SchemaItem[], operator: RowOperator): number[] {
       const out = new Array<number>(n).fill(-1);
       for (let iRow = 0; iRow < rows.length; iRow++) {
         const row = rows[iRow];
+        const insRange = insCodeRangeOf(row);
         for (let iAtom = 0; iAtom < n; iAtom++) {
-          if (satisfies(row, atoms[iAtom], operator)) out[iAtom] = iRow;
+          if (satisfies(row, atoms[iAtom], operator, insRange)) out[iAtom] = iRow;
         }
       }
       return out;
     },
     /** The atoms (ascending) which satisfy at least one of `rows` */
-    atomsOf(rows: readonly MVSAnnotationRow[], operator: RowOperator): number[] {
+    atomsOf(rows: readonly SchemaItem[], operator: RowOperator): number[] {
       return this.rowOfEachAtom(rows, operator).flatMap((v, i) => (v >= 0 ? [i] : []));
     },
   };
