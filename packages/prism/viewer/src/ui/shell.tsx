@@ -274,8 +274,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     );
   }
   // The core's homes for features' sections: the Selection tab and the Export card (ui/panels.tsx).
-  unregister.push(shell.registerTabs(own('tab', [selectionTab()])));
-  unregister.push(shell.registerSections(own('section', selectionSections(person))));
+  unregister.push(shell.registerTabs(own('tab', [selectionTab(sources.interaction.selection)])));
+  unregister.push(shell.registerSections(own('section', selectionSections(person, sources.interaction.selection))));
   const exporting = exportCard(shell);
   unregister.push(shell.registerOverlays(own('overlay', [exporting.overlay])));
   unregister.push(shell.registerToolbar(own('toolbar', [exporting.toolbar])));
@@ -312,6 +312,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           icon: 'command',
           title: 'Command menu',
           caption: formatChord({ key: 'k', mod: true }),
+          keepsCard: true,
           run: () => openCommandMenu(),
         },
         {

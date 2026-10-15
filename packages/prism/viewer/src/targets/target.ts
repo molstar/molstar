@@ -131,7 +131,8 @@ export function compileTarget(target: Target, options: CompileOptions = {}): Com
       if (!molql) {
         return failure(
           parsed.which === 'selection' ? 'Nothing is selected.' : 'Nothing is focused.',
-          `Ask the person to ${parsed.which === 'selection' ? 'select' : 'focus'} something, or name what you mean.`,
+          // Read by people and the agent alike: the agent's tools add their own words (agent.md §2).
+          `${parsed.which === 'selection' ? 'Select' : 'Focus'} something first, or name what to use.`,
         );
       }
       return { ok: true, parsed, molql };

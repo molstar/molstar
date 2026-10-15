@@ -265,6 +265,9 @@ export interface LazyViewerExtensionStub {
     readonly kind: PartKind;
     readonly slot?: ViewerSlot;
     readonly title?: string;
+    /** As the real part has them, so its placeholder stands where it will be. */
+    readonly icon?: IconName;
+    readonly order?: number;
   }[];
   /**
    * Calling one of these loads the chunk and replays the call. Their flags are declared too, so tools and commands see

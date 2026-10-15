@@ -235,3 +235,15 @@ describe('camera', () => {
     expect(got.did).toMatch(/No canvas/);
   });
 });
+
+describe('the selection history (gate G5)', () => {
+  it('gets what was added, not the whole selection', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    expectOk(await v.api.select.set({ target: 'ligand' }));
+    expectOk(await v.api.select.set({ target: 'A:58', mode: 'add' }));
+    const history = v.plugin.managers.structure.selection.additionsHistory;
+    const latest = history[0].loci;
+    expect(StructureElement.Loci.size(latest)).toBeLessThan(v.plugin.managers.structure.selection.elementCount());
+    expect(history).toHaveLength(2);
+  });
+});

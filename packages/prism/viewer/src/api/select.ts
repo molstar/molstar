@@ -329,8 +329,20 @@ function write(plugin: PluginContext, edits: readonly Edit[]): boolean {
     if (same(current, next)) continue;
     changed = true;
     // An empty loci is no selection to set: what was selected is removed.
-    if (StructureElement.Loci.isEmpty(next)) manager.fromLoci('remove', current, false);
-    else manager.fromLoci('set', next, false);
+    if (StructureElement.Loci.isEmpty(next)) {
+      manager.fromLoci('remove', current, false);
+      continue;
+    }
+    // What is added (or taken away) is written as such, so the selection's history (the ordered picks measurements
+    // take) holds the new part, not the whole union.
+    const empty = StructureElement.Loci.isEmpty(current);
+    if (!empty && StructureElement.Loci.isSubset(next, current)) {
+      manager.fromLoci('add', StructureElement.Loci.subtract(next, current), false);
+    } else if (!empty && StructureElement.Loci.isSubset(current, next)) {
+      manager.fromLoci('remove', StructureElement.Loci.subtract(current, next), false);
+    } else {
+      manager.fromLoci('set', next, false);
+    }
   }
   return changed;
 }

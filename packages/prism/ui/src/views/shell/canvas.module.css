@@ -574,8 +574,13 @@
 
 /* Compact: More at the end of the bottom tab bar; its list opens just above it. */
 .railMenu {
-  position: relative;
   display: contents;
+}
+
+/* More and its list: the list is placed against this box (`.railMenu` has none: its buttons sit in the bar). */
+.railMenuAnchor {
+  position: relative;
+  display: grid;
 }
 
 .railMenuButton {

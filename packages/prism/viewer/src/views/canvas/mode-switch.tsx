@@ -83,7 +83,7 @@ export function ModeSwitch(props: ModeSwitchProps) {
  * The picking levels, above the canvas toolbar over Select (outside the toolbar's frame, so it is not clipped): the list
  * itself, one click from the toolbar: the current level marked; picking one sets it and turns select mode on. Shown while
  * the pointer is on Select or on it, or Select or a row has the keyboard focus (Tab goes from Select into the list);
- * always on touch screens (no hover). It opens upward.
+ * on touch screens (no hover) a tap on Select opens it. It opens upward.
  */
 export function PickLevel(props: ModeSwitchProps) {
   const levels = props.granularities;

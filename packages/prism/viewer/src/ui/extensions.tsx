@@ -89,10 +89,13 @@ export function extensionUIPort(
             tabs.map((t) => ({
               id: t.id,
               title: t.title ?? t.id,
-              icon: 'hourglass',
-              // Opening it loads the extension; its real tab replaces this one.
+              icon: t.icon ?? 'hourglass',
+              ...(t.order !== undefined ? { order: t.order } : {}),
+              // Opening it loads the extension; its real tab replaces this one, and is shown (it was asked for).
               render: domView(() => {
-                void load();
+                void load().then((ok) => {
+                  if (ok) shell.show(t.id);
+                });
                 return loading();
               }),
             })),
@@ -107,6 +110,8 @@ export function extensionUIPort(
               id: s.id,
               slot: s.slot!,
               title: s.title ?? s.id,
+              ...(s.icon ? { icon: s.icon } : {}),
+              ...(s.order !== undefined ? { order: s.order } : {}),
               render: domView(() => {
                 void load();
                 return loading();

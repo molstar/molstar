@@ -120,6 +120,7 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       aria-pressed={pressed}
       aria-haspopup={withMenu ? 'menu' : undefined}
       data-overlay-trigger={item.overlay ? '' : undefined}
+      data-keeps-card={item.keepsCard ? '' : undefined}
       onClick={(e) => {
         // A button that only holds a menu opens it; otherwise the click runs the button's own action.
         if (withMenu && !item.overlay && !item.run) return withMenu.show(item, e.currentTarget);
@@ -291,56 +292,61 @@ export function RailMenu(props: { shell: ShellModel }) {
           </button>
         )}
       </For>
-      <button
-        type="button"
-        class={classes.railMenuButton}
-        aria-label="More"
-        aria-expanded={open}
-        data-tip="More"
-        onClick={() => open.set(!open.value)}
-      >
-        <Icon name="ellipsis" size={20} />
-      </button>
-      <Show when={open}>
-        {() => (
-          <div class={classes.railMenuList} role="menu" aria-label="More">
-            <For each={tabs} key={(t) => t.id}>
-              {(tab) => (
-                <button
-                  type="button"
-                  role="menuitem"
-                  class={classes.toolMenuRow}
-                  onClick={() => {
-                    open.set(false);
-                    shell.show(tab.id);
-                  }}
-                >
-                  <Icon name={tab.icon} size={16} />
-                  <span class={classes.toolMenuLabel}>{tab.title}</span>
-                  <span />
-                </button>
-              )}
-            </For>
-            <Show when={combineLatest([tabs, actions]).pipe(map(([t, a]) => t.length > 0 && a.length > 0))}>
-              {() => <div class={classes.railMenuDivider} />}
-            </Show>
-            <For each={actions} key={(i) => i.id}>
-              {(item) => (
-                <button
-                  type="button"
-                  role="menuitem"
-                  class={classes.toolMenuRow}
-                  onClick={(e) => run(item, e.currentTarget)}
-                >
-                  <ItemIcon item={item} size={16} class={classes.face} />
-                  <span class={classes.toolMenuLabel}>{itemTitle(item)}</span>
-                  <span />
-                </button>
-              )}
-            </For>
-          </div>
-        )}
-      </Show>
+      {/* More and its list: the list opens above the button (its anchor), inside the screen. */}
+      <div class={classes.railMenuAnchor}>
+        <button
+          type="button"
+          class={classes.railMenuButton}
+          aria-label="More"
+          aria-expanded={open}
+          data-tip="More"
+          onClick={() => open.set(!open.value)}
+        >
+          <Icon name="ellipsis" size={20} />
+        </button>
+        <Show when={open}>
+          {() => (
+            <div class={classes.railMenuList} role="menu" aria-label="More">
+              <For each={tabs} key={(t) => t.id}>
+                {(tab) => (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    class={classes.toolMenuRow}
+                    onClick={() => {
+                      open.set(false);
+                      shell.show(tab.id);
+                    }}
+                  >
+                    <Icon name={tab.icon} size={16} />
+                    <span class={classes.toolMenuLabel}>{tab.title}</span>
+                    <span />
+                  </button>
+                )}
+              </For>
+              <Show when={combineLatest([tabs, actions]).pipe(map(([t, a]) => t.length > 0 && a.length > 0))}>
+                {() => <div class={classes.railMenuDivider} />}
+              </Show>
+              <For each={actions} key={(i) => i.id}>
+                {(item) => (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    class={classes.toolMenuRow}
+                    // As on the rail: an item shown only while it applies (Play snapshots with two or more).
+                    hidden={item.visible ? item.visible.pipe(map((v) => !v)) : false}
+                    onClick={(e) => run(item, e.currentTarget)}
+                  >
+                    <ItemIcon item={item} size={16} class={classes.face} />
+                    <span class={classes.toolMenuLabel}>{itemTitle(item)}</span>
+                    <span />
+                  </button>
+                )}
+              </For>
+            </div>
+          )}
+        </Show>
+      </div>
     </div>
   ) as HTMLElement;
   const onDown = (e: PointerEvent) => {
@@ -436,6 +442,8 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
     // Buttons that open another card, and panel tabs, swap the card on their click: closing it here first would show
     // the panel underneath for a frame (a blink), and a tab click would then collapse the panel.
     if (target.closest?.('[data-overlay-trigger], [role=tab]')) return;
+    // What acts on the open card leaves it open: the command menu and its button.
+    if (target.closest?.('[data-keeps-card]')) return;
     shell.closeOverlay();
   };
   doc.addEventListener('keydown', onKey);

@@ -47,6 +47,7 @@ export const classes = {
   'pillMain': 'msp-shell-canvas-pillMain',
   'progress': 'msp-shell-canvas-progress',
   'railMenu': 'msp-shell-canvas-railMenu',
+  'railMenuAnchor': 'msp-shell-canvas-railMenuAnchor',
   'railMenuButton': 'msp-shell-canvas-railMenuButton',
   'railMenuDivider': 'msp-shell-canvas-railMenuDivider',
   'railMenuList': 'msp-shell-canvas-railMenuList',
@@ -557,6 +558,10 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 
 .msp-shell-canvas-railMenu {
   display: contents;
+}
+
+.msp-shell-canvas-railMenuAnchor {
+  display: grid;
   position: relative;
 }
 

@@ -188,6 +188,8 @@ export interface CanvasToolbarItem {
   face?: Observable<{ icon: IconName; title: string }>;
   /** Opens (or closes) this overlay, anchored to the button. */
   overlay?: string;
+  /** Its click leaves an open card open (the command menu's button: the menu acts on what is open). */
+  keepsCard?: boolean;
   run?(anchor: Element): void;
   /**
    * Variants of the button's action, shown beside it on hover or focus (the camera: reset zoom, orient axes, reset

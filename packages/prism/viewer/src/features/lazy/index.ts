@@ -21,7 +21,16 @@ export const LazySuperposition: LazyViewerExtension = {
   title: 'Superposition',
   builtIn: true,
   stub: {
-    parts: [{ id: 'superposition.section.superpose', kind: 'section', slot: 'selection', title: 'Superpose' }],
+    parts: [
+      {
+        id: 'superposition.section.superpose',
+        kind: 'section',
+        slot: 'selection',
+        title: 'Superpose',
+        icon: 'layers',
+        order: 3,
+      },
+    ],
     operations: ops([
       ['superpose.chains', 'Superpose by chains'],
       ['superpose.tm-align', 'Superpose by TM-align'],
@@ -48,7 +57,7 @@ export const LazyStateTree: LazyViewerExtension = {
   title: 'State tree',
   builtIn: true,
   stub: {
-    parts: [{ id: 'state-tree.tab.tree', kind: 'tab', title: 'State tree' }],
+    parts: [{ id: 'state-tree.tab.tree', kind: 'tab', title: 'State tree', icon: 'list-tree', order: 2 }],
     operations: [
       { id: 'state.get', title: 'Read the state tree', read: true },
       { id: 'state.visibility', title: 'Show or hide a state cell' },

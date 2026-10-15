@@ -78,12 +78,19 @@
   transition-delay: 0s;
 }
 
-/* No hover on touch screens: always shown while selecting. */
+/* No hover on touch screens: a tap on Select opens it (Select takes the focus), a tap elsewhere closes it; it opens
+   toward the left, so it stays on the screen. */
 @media (hover: none) {
   .level {
+    right: 0;
+    left: auto;
+  }
+
+  :where(:has(> * .select:focus)) > .level {
     opacity: 1;
     visibility: visible;
     transform: none;
+    transition-delay: 0s;
   }
 }
 

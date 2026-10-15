@@ -86,8 +86,14 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
 
 @media (hover: none) {
   .msp-viewer-mode-switch-level {
+    left: auto;
+    right: 0;
+  }
+
+  :where(:has( > * .msp-viewer-mode-switch-select:focus)) > .msp-viewer-mode-switch-level {
     opacity: 1;
     visibility: visible;
+    transition-delay: 0s;
     transform: none;
   }
 }

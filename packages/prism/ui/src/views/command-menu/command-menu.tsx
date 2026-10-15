@@ -132,6 +132,7 @@ export function CommandMenu(props: CommandMenuProps) {
   return (
     <div
       class={classes.scrim}
+      data-keeps-card=""
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) props.onClose();
       }}
