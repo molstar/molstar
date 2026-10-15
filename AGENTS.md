@@ -39,6 +39,7 @@ pnpm format                # Biome (code, JSON) and Prettier (Markdown, YAML, SC
 pnpm test:unit             # unit tests (Vitest, ESM; one run for every package, `vitest.config.ts`)
 pnpm test:unit packages/ai # a folder or file filter; `pnpm test:watch` for watch mode
 pnpm test                  # lint and the unit tests
+pnpm test:live             # live agent runs on real models (opt in: keys in .env.local; costs money)
 pnpm check:workspace       # package boundaries, exports, imports, the inventory
 npx tsc -b                 # every project, by references
 ```

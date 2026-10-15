@@ -3049,6 +3049,9 @@ importers:
       '@molstar/ai-conformance':
         specifier: workspace:*
         version: link:../../ai/conformance
+      '@molstar/ai-model-adapters':
+        specifier: workspace:*
+        version: link:../../ai/model-adapters
       '@storybook/web-components-vite':
         specifier: 'catalog:'
         version: 10.6.0(lit@3.3.3)(storybook@10.6.0(@types/react@18.3.31)(prettier@3.9.9)(react@18.3.1))(vite@8.3.1(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))

@@ -1,0 +1,86 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import type { ModelAdapter } from '@molstar/ai-agent';
+import { createAnthropicModelAdapter, createGoogleModelAdapter } from '@molstar/ai-model-adapters';
+import { describe, expect, it } from 'vitest';
+import { headlessViewer } from '../../_test/harness.js';
+import type { PrismViewer } from '../../viewer.js';
+import { createViewerAgent } from '../session.js';
+
+// The agent against real models (`pnpm test:live`, never in `test:unit`): a few first-scope tasks on a headless viewer,
+// checked on the scene. The keys come from the repository's `.env.local` and are never printed; a provider without its
+// key is skipped. It reaches the network (the models, and the PDB for the entry it loads).
+
+function keys(): Record<string, string> {
+  const file = path.resolve(import.meta.dirname, '../../../../../../.env.local');
+  if (!fs.existsSync(file)) return {};
+  const out: Record<string, string> = {};
+  for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
+    const m = /^\s*([A-Z0-9_]+)\s*=\s*"?([^"\n]*)"?\s*$/.exec(line);
+    if (m) out[m[1]] = m[2];
+  }
+  return out;
+}
+
+const env = keys();
+const Models: { provider: string; model: string; key: string; adapter: () => ModelAdapter }[] = [
+  {
+    provider: 'anthropic',
+    model: 'claude-haiku-5-5',
+    key: 'ANTHROPIC_API_KEY',
+    adapter: () => createAnthropicModelAdapter({ resolveApiKey: () => env.ANTHROPIC_API_KEY }),
+  },
+  {
+    provider: 'google',
+    model: 'gemini-3.8-flash',
+    key: 'GEMINI_API_KEY',
+    adapter: () => createGoogleModelAdapter({ resolveApiKey: () => env.GEMINI_API_KEY }),
+  },
+];
+
+const reprTypes = (v: PrismViewer) =>
+  v.plugin.managers.structure.hierarchy.current.structures.flatMap((s) =>
+    s.components.flatMap((c) =>
+      c.representations.map((r) => (r.cell.transform.params as { type: { name: string } }).type.name),
+    ),
+  );
+
+for (const m of Models) {
+  describe.skipIf(!env[m.key])(`the agent on ${m.model}`, () => {
+    it('loads an entry, styles it, selects and focuses the ligand; one undoable turn each', async () => {
+      const v = await headlessViewer();
+      const adapter = m.adapter();
+      const agent = createViewerAgent({
+        viewer: v,
+        models: {
+          adapterFor: (p) => (p === m.provider ? adapter : undefined),
+          default: { provider: m.provider, model: m.model },
+        },
+      });
+      const log: string[] = [];
+      const hooks = { onTool: (e: { name: string; status: string }) => log.push(`${e.name}:${e.status}`) };
+
+      const first = await agent.turn('Load PDB entry 1CBS and show it as a surface.', hooks);
+      expect(first.status, log.join(' ')).toBe('completed');
+      expect(v.plugin.managers.structure.hierarchy.current.structures).toHaveLength(1);
+      expect(reprTypes(v).some((t) => t.includes('surface'))).toBe(true);
+
+      const second = await agent.turn('Select the ligand and focus on it.', hooks);
+      expect(second.status, log.join(' ')).toBe('completed');
+      expect(v.plugin.managers.structure.selection.elementCount()).toBeGreaterThan(0);
+
+      // The whole of the first turn is one step: the person can take it back at once.
+      expect(v.managers.history.steps.value.some((s) => s.origin.kind === 'agent')).toBe(true);
+      console.info(`${m.model}: ${log.join(' ')}; usage ${JSON.stringify(second.usage ?? {})}`);
+      agent.dispose();
+    });
+  });
+}
