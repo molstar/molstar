@@ -8,7 +8,7 @@
 
 import { type CanvasInk, type IconName, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { Structure } from '@molstar/model/model/structure';
-import type { FormatResult, Loaders, SeqViewSpecDoc } from '@molstar/seq-core/format';
+import { archiveLoaders, type FormatResult, type Loaders, type SeqViewSpecDoc } from '@molstar/seq-core/format';
 import { MolstarSvsEntry, type StructureSource } from '@molstar/seq-molstar-poc';
 import {
   createSeqViewer,
@@ -75,6 +75,17 @@ export interface SequenceOverride {
   readonly structure: string;
   /** Where it came from (its address); absent: given as data. */
   readonly url?: string;
+  /**
+   * The `.svsx` it came from (`addArchive`'s id): its relative URIs resolve inside it. The files stay in memory for the
+   * page's life, out of the saved state; after a reload the document's archived data does not load.
+   */
+  readonly archive?: string;
+}
+
+/** An `.svsx`'s files and its main file's directory (relative URIs resolve against it). */
+export interface SequenceArchive {
+  readonly files: ReadonlyMap<string, Uint8Array>;
+  readonly base: string;
 }
 
 /** What a viewer shows, once its document is in: the link's input. */
@@ -160,6 +171,8 @@ export interface SequenceViewer {
    * (undefined); resolves with what Seq* made of the document shown (an override not shown yet: ok).
    */
   setOverride(override: SequenceOverride | undefined): Promise<GraphResult>;
+  /** Keeps an `.svsx`'s files for an override that names it (`archive`); returns its id. */
+  addArchive(archive: SequenceArchive): string;
 }
 
 export interface SequenceViewers {
@@ -227,15 +240,25 @@ class Viewer implements SequenceViewer {
   private fonts: SequenceFonts | undefined;
   private builds = 0;
   private disposed = false;
+  /** The `.svsx` files overrides name (`archive`), for the page's life. */
+  private readonly archives = new Map<string, SequenceArchive>();
+  private archiveIds = 0;
   private readonly subs: { unsubscribe(): void }[] = [];
 
   constructor(
     readonly id: string,
     private readonly deps: SequenceViewersDeps,
   ) {
+    const refuse = (r: { uri: string | null; hostFile?: string | null }) =>
+      Promise.reject(new Error(`the sequence view loads no files (${r.uri ?? r.hostFile ?? 'a file'})`));
     const loaders: Loaders = {
-      // The structure comes from the host (`parsed`); nothing is fetched.
-      load: (r) => Promise.reject(new Error(`the sequence view loads no files (${r.uri ?? r.hostFile ?? 'a file'})`)),
+      // The structure comes from the host (`parsed`); nothing is fetched, but what an `.svsx` holds (its relative URIs).
+      load: (r, signal) => {
+        const id = this.overrideState.value?.archive;
+        const archive = id ? this.archives.get(id) : undefined;
+        if (!archive) return refuse(r);
+        return archiveLoaders(archive.files, { load: (q) => refuse(q) }, archive.base).load(r, signal);
+      },
       parsed: async (r): Promise<FormatResult | null> => {
         const host = deps.structure.value;
         return host && r.hostFile === hostFileOf(host.key) ? { kind: 'object', value: host.source } : null;
@@ -402,6 +425,12 @@ class Viewer implements SequenceViewer {
     this.seq.setRenderProps({ wrappedColors: theme.letters !== null });
     this.refreshLegend();
     void this.build();
+  }
+
+  addArchive(archive: SequenceArchive): string {
+    const id = `svsx-${++this.archiveIds}`;
+    this.archives.set(id, archive);
+    return id;
   }
 
   setOverride(override: SequenceOverride | undefined): Promise<GraphResult> {

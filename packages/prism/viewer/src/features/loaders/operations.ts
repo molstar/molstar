@@ -26,6 +26,8 @@ import { Download, LazyVolume } from '@molstar/plugin/state/transforms/data/fetc
 import { TrajectoryFromModelAndCoordinates } from '@molstar/plugin/state/transforms/structure/hierarchy';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
 import { type ApiContext, ApiResult, memberName, type OperationDefinition } from '../../api/area.js';
+import { FileParam, filesOf } from '../../api/files.js';
+import type { SequenceArchive } from '../../sequence/model.js';
 import { messageOf } from '../../api/run.js';
 import { labelOf, loadedStructures } from '../../api/scope.js';
 import { currentStateServer, openStateFrom, stateAddress, transformersOf } from '../../api/state-open.js';
@@ -633,7 +635,15 @@ export const SvsParams = {
     multiline: true,
     description: 'The SeqViewSpec document itself (JSON); used when there is no url',
   }),
+  file: FileParam({ accept: '.svsx,.svsj,.svs', description: 'A SeqViewSpec file: an archive (.svsx) or a document' }),
 };
+
+/** An `.svsx` (seqspec:sources#archives): by its name, else a zip's signature. */
+const isArchive = (name: string, bytes: Uint8Array) =>
+  /\.svsx$/i.test(name.split(/[?#]/)[0]) || (bytes[0] === 0x50 && bytes[1] === 0x4b);
+
+/** A file name from a path or address (its last part). */
+const baseName = (path: string) => path.split(/[?#]/)[0].split('/').pop() || path;
 
 /** SeqViewSpec structure formats as the plugin's loaders name them (BinaryCIF is mmCIF read as binary). */
 const SvsFormats: Readonly<Record<string, { format: string; binary: boolean }>> = {
@@ -678,6 +688,20 @@ function matchStructure(ctx: ApiContext, source: Readonly<Record<string, unknown
   });
 }
 
+/** A file the archive holds at a relative URI (against its main file's directory), as a `File` of its name. */
+function archivedFile(archive: SequenceArchive, uri: string): File | undefined {
+  if (/^[a-z][a-z0-9+.-]*:/i.test(uri) || uri.startsWith('/')) return undefined;
+  const parts: string[] = archive.base ? archive.base.split('/') : [];
+  for (const p of uri.split('/')) {
+    if (p === '..') {
+      if (!parts.length) return undefined;
+      parts.pop();
+    } else if (p && p !== '.') parts.push(p);
+  }
+  const bytes = archive.files.get(parts.join('/'));
+  return bytes ? new File([bytes as Uint8Array<ArrayBuffer>], baseName(uri)) : undefined;
+}
+
 /** An address resolved against the document's (a relative URI in a document from an address). */
 function resolveUri(uri: string, base: string): string {
   try {
@@ -695,12 +719,18 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
   // address alone cannot see, so the agent always asks (agent.md §4).
   // No `modules: ['network']`: data is local, and a structure that is loaded already needs nothing.
   approval: 'network',
-  async run({ url, data }, ctx) {
+  async run({ url, data, file }, ctx) {
     const address = url.trim();
-    if (address && data.trim()) {
-      return ApiResult.fail('invalid', 'Give a url or data, not both.', 'Neither is loaded: say which one is meant.');
+    const picked = filesOf(file)[0];
+    const given = [address, data.trim(), picked].filter(Boolean).length;
+    if (given > 1) {
+      return ApiResult.fail(
+        'invalid',
+        'Give one of a url, a file or data.',
+        'Nothing is loaded: say which one is meant.',
+      );
     }
-    if (!address && !data.trim()) return ApiResult.fail('invalid', 'Which SeqViewSpec?', 'Give a url or its data.');
+    if (!given) return ApiResult.fail('invalid', 'Which SeqViewSpec?', 'Give a url, a file or its data.');
     const sequence = ctx.api.sequence;
     if (!sequence) {
       return ApiResult.fail('unavailable', 'This viewer has no sequence view to show a SeqViewSpec in.');
@@ -712,19 +742,33 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
         'Give its data instead of a url.',
       );
     }
-    if (/\.svsx$/i.test(address.split(/[?#]/)[0])) {
-      return ApiResult.fail('invalid', 'SeqViewSpec archives (.svsx) are not read yet.', 'Give its .svsj document.');
-    }
-    // The document: JSON or MessagePack from an address, JSON as data; its envelope checked (Seq* checks the rest).
-    // Seq*'s readers come with the sequence's runtime (its own chunk).
-    const { fromJSON, readDocument, svsStructureSource } = await sequence.runtime();
+    // The document: JSON or MessagePack from an address or a file, JSON as data, or an archive's (`.svsx`: the document
+    // and the files it reads); its envelope checked (Seq* checks the rest). Seq*'s readers come with the sequence's
+    // runtime (its own chunk).
+    const { fromJSON, readDocument, readSvsx, svsStructureSource } = await sequence.runtime();
     let read: ReturnType<typeof readDocument>;
+    let archive: SequenceArchive | undefined;
     try {
-      read = address
-        ? readDocument(await ctx.plugin.runTask(ctx.plugin.fetch({ url: address, type: 'binary' })))
-        : fromJSON(data.trim());
+      if (!address && !picked) read = fromJSON(data.trim());
+      else {
+        const bytes = picked
+          ? new Uint8Array(await picked.arrayBuffer())
+          : await ctx.plugin.runTask(ctx.plugin.fetch({ url: address, type: 'binary' }));
+        if (isArchive(picked?.name ?? address, bytes)) {
+          const x = await readSvsx(bytes);
+          if (!x.doc) {
+            return ApiResult.fail(
+              'invalid',
+              `Not a SeqViewSpec archive: ${x.issues[0]?.message ?? 'it cannot be read'}.`,
+              'An .svsx is a zip with index.svsm or index.svsj and the files it reads.',
+            );
+          }
+          read = { doc: x.doc, issues: x.issues };
+          archive = { files: x.files, base: x.base };
+        } else read = readDocument(bytes);
+      }
     } catch (e) {
-      return pluginFailure(address, e);
+      return pluginFailure(address || (picked?.name ?? ''), e);
     }
     const doc = read.doc;
     if (!doc) {
@@ -745,13 +789,17 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
     // Its first molstar:structure complex: the loaded structure it names, else loaded now (one step with the SVS).
     const src = target.source;
     const service = typeof src.service === 'string' ? SvsServices[src.service] : undefined;
-    const uri = typeof src.uri === 'string' ? resolveUri(src.uri, address) : undefined;
+    // A structure in the archive (a relative URI it holds) opens as a file of that name.
+    const archived = archive && typeof src.uri === 'string' ? archivedFile(archive, src.uri) : undefined;
+    const uri = typeof src.uri === 'string' && !archived ? resolveUri(src.uri, address) : undefined;
     const before = refsOf(ctx);
     let structure = matchStructure(ctx, src, uri);
     if (!structure) {
       const format = SvsFormats[String(src.format ?? '')] ?? { format: 'auto', binary: false };
       let loaded: ApiResult<Loaded>;
-      if (service && typeof src.id === 'string') {
+      if (archived) {
+        loaded = (await ctx.api.run('load.files', { files: [archived] })) as ApiResult<Loaded>;
+      } else if (service && typeof src.id === 'string') {
         loaded = (await ctx.api.run('load.entry', { source: service, id: src.id })) as ApiResult<Loaded>;
       } else if (uri) {
         loaded = (await ctx.api.run('load.url', { url: uri, ...format })) as ApiResult<Loaded>;
@@ -770,11 +818,10 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
       structure = loadedStructures(ctx).find((s) => !before.includes(s.cell.transform.ref));
       if (!structure) return ApiResult.fail('failed', "Loading the SeqViewSpec's structure made none.");
     }
-    const shown = await sequence.showDocument({
-      document: doc,
-      structure: structure.cell.transform.ref,
-      ...(address ? { url: address } : {}),
-    });
+    const shown = await sequence.showDocument(
+      { document: doc, structure: structure.cell.transform.ref, ...(address ? { url: address } : {}) },
+      archive,
+    );
     if (!shown.ok) {
       const issue = shown.issues.find((i) => i.severity === 'error') ?? shown.issues[0];
       return ApiResult.fail(
@@ -784,7 +831,7 @@ const svs: OperationDefinition<typeof SvsParams, Loaded> = {
       );
     }
     const names = addedNames(ctx, before);
-    const title = doc.metadata?.title ?? address ?? 'the SeqViewSpec';
+    const title = doc.metadata?.title ?? (address || picked?.name || 'the SeqViewSpec');
     return ApiResult.ok(
       `${names.length ? `Loaded ${names.join(', ')}; the` : 'The'} sequence shows ${title} over ${labelOf(ctx, structure)}.`,
       { nodes: refsOf(ctx).filter((r) => !before.includes(r)), sequence: true },

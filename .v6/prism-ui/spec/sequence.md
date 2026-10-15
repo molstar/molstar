@@ -156,8 +156,10 @@ a sequence action, a command and a tool name the same residues the same way.
   node, sections and last track so behaviors such as the pLDDT track attach by `shown`), and the source shows its
   structure (`SequenceSource.show`) **until the person focuses another structure, a structure is loaded, the sequence
   follows another (`sequence.follow`), or the structure goes**; then the built document is back. The person's style
-  (Text/Tracks, on every section) and letter colors apply over its presets. `sequence.get` names it. `.svsx` is not read
-  yet; a document without a `molstar:structure` complex is refused.
+  (Text/Tracks, on every section) and letter colors apply over its presets. `sequence.get` names it. An `.svsx` (a URL, a
+  file, dropped) is read with Seq*'s `readSvsx`: a structure it holds at a relative URI opens as a file of that name, and
+  its relative URIs resolve inside it (`archiveLoaders`, the override naming the archive by id; the files stay in memory
+  for the page's life, out of the saved state). A document without a `molstar:structure` complex is refused.
 - **Not both at once in the viewer** (David, 2026-10-15): the viewer loads an MVS or an SVS. A document holding both is
   Stories' (its schema-based document), or a new format later (a "Mol states" zip, `.msx`), not part of the viewer's
   first scope.

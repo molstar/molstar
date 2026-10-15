@@ -7,7 +7,7 @@
  */
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
-import { toJSON } from '@molstar/seq-core/format';
+import { toJSON, zipFiles } from '@molstar/seq-core/format';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cbs, crambin, expectOk, headlessViewer, until } from '../../../_test/harness.js';
 import type { PrismViewer } from '../../../viewer.js';
@@ -172,6 +172,39 @@ describe('load.svs', () => {
     expectOk(r);
     expect(r.did).toBe('Opened 1cbs.cif (1 structure); the sequence shows doc.svsj.');
     await until(() => showsSvs(v));
+  });
+
+  it('reads an archive (.svsx): its document, and the structure it holds, opened as a file', async () => {
+    const enc = new TextEncoder();
+    /** An archive with the document at `index.svsj` and 1CBS at `data/1cbs.cif` (a relative URI in it). */
+    const archive = async (name = 'cbs.svsx') =>
+      new File(
+        [
+          (await zipFiles({
+            'index.svsj': enc.encode(svsOver({ uri: 'data/1cbs.cif', format: 'mmcif' })),
+            'data/1cbs.cif': new Uint8Array(await cbs().arrayBuffer()),
+          })) as Uint8Array<ArrayBuffer>,
+        ],
+        name,
+      );
+    const v = await viewer([]);
+    const r = await v.api.load.svs!({ file: await archive() });
+    expectOk(r);
+    expect(r.value?.loaded).toEqual(['1CBS']);
+    expect(steps(v)).toBe(1);
+    await until(() => showsSvs(v));
+    // The override names the archive its relative URIs resolve in (kept in memory, out of the saved state).
+    expect(seqOf(v).override.value?.archive).toMatch(/^svsx-/);
+
+    // Dropped with nothing else: the same.
+    const w = await viewer([]);
+    const dropped = await w.api.load.files({ files: [await archive('dropped.svsx')] });
+    expectOk(dropped);
+    await until(() => showsSvs(w));
+
+    // A zip that is not an archive of ours.
+    const junk = new File([(await zipFiles({ 'a.txt': enc.encode('x') })) as Uint8Array<ArrayBuffer>], 'junk.svsx');
+    expect(await w.api.load.svs!({ file: junk })).toMatchObject({ ok: false, code: 'invalid' });
   });
 
   it('fails on neither or both, on what is not a SeqViewSpec, on no structure, and on a file not loaded', async () => {

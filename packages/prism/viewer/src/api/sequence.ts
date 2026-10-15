@@ -8,7 +8,7 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { GraphResult } from '@molstar/seq-viewer';
-import type { SequenceOverride, SequenceViewer } from '../sequence/model.js';
+import type { SequenceArchive, SequenceOverride, SequenceViewer } from '../sequence/model.js';
 import type { LoadedSequence } from '../viewer.js';
 import { LetterSchemes } from '../sequence/palette.js';
 import type { SequenceSource } from '../sources/sequence.js';
@@ -114,10 +114,11 @@ export class SequenceApi extends ApiArea {
    * Shows a loaded SeqViewSpec over its structure (sequence.md §6): the loaders' `load.svs` calls it inside its run, so
    * it is part of that step. Not an operation of its own: the document comes from a load.
    */
-  async showDocument(override: SequenceOverride): Promise<GraphResult> {
+  /** Shows a loaded SeqViewSpec over its structure; an `.svsx`'s files come with it (its relative URIs). */
+  async showDocument(override: SequenceOverride, archive?: SequenceArchive): Promise<GraphResult> {
     const viewer = await this.#viewer();
     this.source.show(override.structure);
-    return viewer.setOverride(override);
+    return viewer.setOverride(archive ? { ...override, archive: viewer.addArchive(archive) } : override);
   }
 
   readonly get = this.operation({

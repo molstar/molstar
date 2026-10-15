@@ -16,7 +16,7 @@ import type { TracksRail } from './presets.js';
 // holds only what the plugin side needs (`sources/sequence.ts`), so a page shows its first frame without it, and a spec
 // without a sequence has none of it in its bundle.
 
-export { fromJSON, readDocument } from '@molstar/seq-core/format';
+export { fromJSON, readDocument, readSvsx } from '@molstar/seq-core/format';
 export { svsStructureSource } from './document.js';
 export { createSequenceViewers } from './model.js';
 export { sequenceShellUI } from './shell-ui.js';

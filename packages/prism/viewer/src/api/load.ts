@@ -20,7 +20,7 @@ import { ApiArea, ApiResult } from './area.js';
 /** File names a session opens from (`.molx`, `.molj`): opened by `session.open`, not loaded as data. */
 const SessionExtensions = ['.molx', '.molj'];
 /** SeqViewSpec documents: shown in the sequence by `load.svs` (the loaders feature), after the other files. */
-const SvsExtensions = ['svs', 'svsj'];
+const SvsExtensions = ['svs', 'svsj', 'svsx'];
 
 export class LoadApi extends ApiArea {
   readonly id = 'load';
@@ -116,7 +116,11 @@ export class LoadApi extends ApiArea {
         }
       }
       for (const doc of documents) {
-        const r = await ctx.api.run('load.svs', { data: await doc.text() });
+        // An archive (`.svsx`) as the file it is; a document as its text.
+        const r = await ctx.api.run(
+          'load.svs',
+          extensionOf(doc.name) === 'svsx' ? { file: doc } : { data: await doc.text() },
+        );
         if (!r.ok) return r;
       }
       const added = structureRefs(ctx).filter((r) => !before.includes(r));

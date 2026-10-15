@@ -159,6 +159,8 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: the playback card is the Story (a book icon), one frame, its text wrapping inside it; a description's
   first heading that only repeats the snapshot's title is not shown; ← and → step through a story (quiet where there is
   none); the Snapshots tab's Play is an icon beside its options.
+- Prism viewer: SeqViewSpec archives (`.svsx`) load by URL, as a file or dropped: the document, the structure the
+  archive holds (opened as a file), and its relative URIs resolved inside it.
 - Prism viewer: saving a session can include its record (the form's Record, off by default: prompts and
   replies are in it), as `record.jsonl` in a `.molx` or a `record` field in a `.molj`; opening such a file shows the
   record in History, read-only.

@@ -60,7 +60,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `load.files` | Open files | needs files | files, visuals |
 | `load.mvs` | Load a MolViewSpec | destructive | url, data, format, keepCamera, append, keepCameraOrientation, snapshot, extensions |
 | `load.snapshot` | Load a session | destructive; needs network | url, type, id |
-| `load.svs` | Load a SeqViewSpec | network (asks) | url, data |
+| `load.svs` | Load a SeqViewSpec | network (asks) | url, data, file |
 | `load.trajectory` | Load a trajectory | network (addresses); needs network | model, modelFormat, modelBinary, coordinates, coordinatesFormat, coordinatesBinary, preset |
 | `load.url` | Load from a URL | network (addresses); needs network | url, format, binary, models, assembly |
 | `load.viewport` | Load a viewport state | needs canvas | file, json |
