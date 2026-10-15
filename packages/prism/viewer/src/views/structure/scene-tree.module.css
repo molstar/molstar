@@ -170,6 +170,13 @@
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
+
+  /* In the inspector (a node's actions): plain rows on the panel, no well and no inset. */
+  &[data-flat] {
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
 }
 
 .menuItem {

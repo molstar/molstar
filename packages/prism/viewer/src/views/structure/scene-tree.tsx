@@ -204,12 +204,7 @@ export function NodeActions(props: { node: SceneNode }) {
   const items = menuOf(props.node);
   if (!items.length) return null;
   return (
-    <div
-      class={classes.menu}
-      role="menu"
-      aria-label={`${props.node.label.value}: actions`}
-      style={{ '--msp-tree-depth': 0 }}
-    >
+    <div class={classes.menu} data-flat="" role="menu" aria-label={`${props.node.label.value}: actions`}>
       <MenuItems items={items} onDone={() => {}} />
     </div>
   );

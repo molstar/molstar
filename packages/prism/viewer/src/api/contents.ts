@@ -12,6 +12,7 @@ import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder
 import type { Expression } from '@molstar/query-language/language/expression';
 import { StructureElement, StructureProperties } from '@molstar/model/model/structure';
 import { Script } from '@molstar/model/script/script';
+import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { all } from '@molstar/plugin/state/queries/structure/basic';
 import { nonStandardPolymer } from '@molstar/plugin/state/queries/structure/residue';
@@ -74,6 +75,41 @@ export function hiddenContents(
   return states.get(plugin)?.value.hidden[structureRef] ?? { entities: [], chains: [] };
 }
 
+/**
+ * A structure's components that hold nothing while its contents are hidden (their cells are empty, so the hierarchy
+ * leaves them out): the scene keeps their rows. With each, the label it had.
+ */
+export function emptiedComponents(
+  plugin: PluginContext,
+  structureRef: string,
+): readonly { readonly ref: string; readonly label: string; readonly parent: string }[] {
+  const originals = states.get(plugin)?.value.originals;
+  if (!originals) return [];
+  const data = plugin.state.data;
+  const out: { ref: string; label: string; parent: string }[] = [];
+  for (const [ref, own] of Object.entries(originals) as [string, ComponentParams][]) {
+    const cell = data.cells.get(ref);
+    if (!cell || cell.transform.transformer !== StructureComponent || !under(data.tree, ref, structureRef)) continue;
+    const held = cell.obj?.data as { elementCount?: number } | undefined;
+    if (held?.elementCount) continue;
+    const label = own.label || (cell.transform.params as { label?: string } | undefined)?.label || 'Component';
+    out.push({ ref, label, parent: cell.transform.parent });
+  }
+  return out;
+}
+
+/** Whether a cell is in a subtree (by the tree's parents). */
+function under(tree: { transforms: { get(ref: string): { parent: string } | undefined } }, ref: string, root: string) {
+  let current: string | undefined = ref;
+  while (current) {
+    if (current === root) return true;
+    const parent: string | undefined = tree.transforms.get(current)?.parent;
+    if (!parent || parent === current) return false;
+    current = parent;
+  }
+  return false;
+}
+
 function stateOf(ctx: ApiAreaContext): { value: ContentsState } {
   let s = states.get(ctx.plugin);
   if (!s) {
@@ -103,14 +139,17 @@ export class ContentsApi extends ApiArea {
     id: 'contents.visibility',
     title: 'Show or hide an entity or a chain',
     params: {
-      entity: PD.Text('', { description: "An entity by id ('1', '2', …)" }),
-      chain: PD.Text('', { description: "A chain by author id ('A', 'B', …)" }),
+      entity: PD.Text('', { description: "An entity by id ('1', '2', …); with chain, that chain of it only" }),
+      chain: PD.Text('', {
+        description:
+          "A chain by author id ('A', 'B', …): every entity's (a ligand's and waters' too), unless entity is given",
+      }),
       visible: PD.Boolean(true),
       structure: StructureParam(),
     },
     async run({ entity, chain, visible, structure }, ctx) {
-      if (!entity === !chain)
-        return ApiResult.fail('invalid', 'Give an entity or a chain.', "entity: '1', or chain: 'A'.");
+      if (!entity && !chain)
+        return ApiResult.fail('invalid', 'Give an entity or a chain.', "entity: '1', chain: 'A', or both.");
       const s = oneStructure(ctx, structure || undefined);
       if (isFailure(s)) return s;
       const ref = s.cell.transform.ref;
@@ -124,6 +163,16 @@ export class ContentsApi extends ApiArea {
           `Entities: ${[...known.entities].join(', ')}.`,
         );
       }
+      if (entity && chain && !known.pairs.has(`${entity}:${chain}`)) {
+        return ApiResult.fail(
+          'not-found',
+          `Entity ${entity} of ${labelOf(ctx, s)} has no chain '${chain}'.`,
+          `Its chains: ${[...known.pairs]
+            .filter((p) => p.startsWith(`${entity}:`))
+            .map((p) => p.slice(entity.length + 1))
+            .join(', ')}.`,
+        );
+      }
       if (chain && !known.chains.has(chain)) {
         return ApiResult.fail(
           'not-found',
@@ -133,10 +182,12 @@ export class ContentsApi extends ApiArea {
       }
       const state = stateOf(ctx);
       const current = state.value.hidden[ref] ?? { entities: [], chains: [] };
-      const key = entity ? 'entities' : 'chains';
-      const id = entity || chain;
+      // A chain of an entity is kept as `entity:chain` (only its atoms); a chain alone, every entity's in it.
+      const key = chain ? 'chains' : 'entities';
+      const id = entity && chain ? `${entity}:${chain}` : entity || chain;
       const isHidden = current[key].includes(id);
-      const what = entity ? `entity ${entity}` : `chain ${chain}`;
+      const what =
+        entity && chain ? `chain ${chain} of entity ${entity}` : entity ? `entity ${entity}` : `chain ${chain}`;
       if (isHidden === !visible) {
         return ApiResult.already(
           `${what[0].toUpperCase()}${what.slice(1)} of ${labelOf(ctx, s)} is already ${visible ? 'shown' : 'hidden'}.`,
@@ -187,20 +238,24 @@ export class ContentsApi extends ApiArea {
   }
 }
 
-/** A structure's entities and chains (author ids). */
-function contentsOf(s: StructureRef): { entities: Set<string>; chains: Set<string> } {
+/** A structure's entities and chains (author ids), and which chains each entity has (`entity:chain`). */
+function contentsOf(s: StructureRef): { entities: Set<string>; chains: Set<string>; pairs: Set<string> } {
   const entities = new Set<string>();
   const chains = new Set<string>();
+  const pairs = new Set<string>();
   const data = s.cell.obj?.data;
-  if (!data) return { entities, chains };
+  if (!data) return { entities, chains, pairs };
   const loc = StructureElement.Location.create(data);
   for (const unit of data.units) {
     loc.unit = unit;
     loc.element = unit.elements[0];
-    entities.add(StructureProperties.chain.label_entity_id(loc));
-    chains.add(StructureProperties.chain.auth_asym_id(loc));
+    const entity = StructureProperties.chain.label_entity_id(loc);
+    const chain = StructureProperties.chain.auth_asym_id(loc);
+    entities.add(entity);
+    chains.add(chain);
+    pairs.add(`${entity}:${chain}`);
   }
-  return { entities, chains };
+  return { entities, chains, pairs };
 }
 
 /**
@@ -280,15 +335,7 @@ export async function setOwnParams(
 
 /** Whether a cell is in a structure's subtree. */
 function isUnder(ctx: ApiContext, ref: string, root: string): boolean {
-  const tree = ctx.plugin.state.data.tree;
-  let current: string | undefined = ref;
-  while (current) {
-    if (current === root) return true;
-    const parent: string | undefined = tree.transforms.get(current)?.parent;
-    if (!parent || parent === current) return false;
-    current = parent;
-  }
-  return false;
+  return under(ctx.plugin.state.data.tree, ref, root);
 }
 
 export interface ComponentParams {
@@ -322,8 +369,18 @@ function hiddenExpression(hidden: {
   if (hidden.entities.length) {
     tests.push(MS.core.set.has([MS.set(...hidden.entities), MS.ammp('label_entity_id')]));
   }
-  if (hidden.chains.length) {
-    tests.push(MS.core.set.has([MS.set(...hidden.chains), MS.ammp('auth_asym_id')]));
+  const whole = hidden.chains.filter((c) => !c.includes(':'));
+  if (whole.length) tests.push(MS.core.set.has([MS.set(...whole), MS.ammp('auth_asym_id')]));
+  // A chain of an entity: its atoms only (a ligand or waters with the same author chain stay).
+  for (const pair of hidden.chains) {
+    const at = pair.indexOf(':');
+    if (at < 0) continue;
+    tests.push(
+      MS.core.logic.and([
+        MS.core.rel.eq([MS.ammp('label_entity_id'), pair.slice(0, at)]),
+        MS.core.rel.eq([MS.ammp('auth_asym_id'), pair.slice(at + 1)]),
+      ]),
+    );
   }
   return MS.struct.generator.atomGroups({ 'chain-test': tests.length === 1 ? tests[0] : MS.core.logic.or(tests) });
 }

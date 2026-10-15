@@ -50,7 +50,11 @@ export function SectionList(props: {
             slot={props.slot}
             section={section}
             // Opened at a section: only that one open (the rest fold away); otherwise as the user left it, or the default.
-            open={focus ? focuses(section.id) : (shell.sectionOpen(props.slot, section.id) ?? !props.collapsed)}
+            open={
+              focus
+                ? focuses(section.id)
+                : (shell.sectionOpen(props.slot, section.id) ?? (!props.collapsed || !!section.open))
+            }
             focused={focuses(section.id)}
           />
         )}

@@ -37,4 +37,31 @@ describe('the contents rows', () => {
     entity().highlight(false);
     await until(() => v.sources.pointer.hoverLines.value.length === 0);
   });
+
+  it('hides a chain of its entity only (a ligand and waters of the same author chain stay); emptied rows stay', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const structure = v.views.scene.roots.value[0];
+    const contents = structure.children.value.find((c) => c.kind === 'contents')!;
+    contents.load?.();
+    const polymer = contents.children.value.find(
+      (c) => c.kind === 'entity' && /polymer/.test(c.description.value ?? ''),
+    )!;
+    const chain = polymer.children.value[0] as SceneNode;
+    const components = () => v.plugin.managers.structure.hierarchy.current.structures[0].components;
+    const before = components().map((c) => c.cell.obj?.label);
+    expect(before).toEqual(['Polymer', 'Ligand', 'Water']);
+
+    chain.toggleVisibility();
+    await until(() => chain.isHidden.value);
+    // The ligand and the waters (author chain A too) are still there; the polymer is empty.
+    expect(components().map((c) => c.cell.obj?.label)).toEqual(['Ligand', 'Water']);
+    const rows = () => structure.children.value.filter((c) => c.kind === 'component');
+    expect(rows().map((r) => r.label.value)).toEqual(['Polymer', 'Ligand', 'Water']);
+    expect(rows()[0].isHidden.value).toBe(true);
+    expect(rows()[0].description.value).toBe('hidden in Contents');
+
+    chain.toggleVisibility();
+    await until(() => components().length === 3);
+    expect(rows()[0].isHidden.value).toBe(false);
+  });
 });

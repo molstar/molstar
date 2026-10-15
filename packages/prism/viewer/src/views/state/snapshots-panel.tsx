@@ -22,26 +22,13 @@ import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { classes } from './_generated/snapshots-panel.module.css.js';
 
 /**
- * Save state: the Structure tab's shape for snapshots. A header of actions (a new snapshot, save to a file, open one; the
- * save options behind the sliders), the snapshots as rows (a click applies one; its ⋯ reorders, replaces, removes), and
- * under them, at a fixed height, the current snapshot's own settings.
+ * Save state: the Structure tab's shape for snapshots. A header: Add, and what a new snapshot includes behind the
+ * sliders (saving and opening a file is Export › Session & state's, and Home's Open); the snapshots as rows (a click
+ * applies one; its ⋯ reorders, replaces, removes), and under them, at a fixed height, the current snapshot's own settings.
  */
 export function SnapshotsPanel(props: { model: SnapshotsModel }) {
   const { model } = props;
-  const open = observableState<'save' | 'options' | undefined>(undefined);
-  const toggle = (block: 'save' | 'options') => open.set(open.value === block ? undefined : block);
-  const file = (
-    <input
-      type="file"
-      accept=".molx,.molj,.zip,.json"
-      hidden
-      onChange={(e) => {
-        const files = e.currentTarget.files;
-        if (files?.length) model.open([...files]);
-        e.currentTarget.value = '';
-      }}
-    />
-  ) as HTMLInputElement;
+  const open = observableState(false);
   const current = model.current.pipe(distinctUntilChanged());
   let list: HTMLElement | undefined;
   const drag = (id: string) => (e: PointerEvent) => dragToReorder(e, list, id, (index) => model.moveTo(id, index));
@@ -55,66 +42,25 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
         <Button
           size="sm"
           variant="ghost"
-          icon={<Icon name="download" />}
-          pressed={open.asReadonly.pipe(map((o) => o === 'save'))}
-          onClick={() => toggle('save')}
-        >
-          <span class={classes.actionLabel}>Save</span>
-        </Button>
-        <Button size="sm" variant="ghost" icon={<Icon name="folder-open" />} onClick={() => file.click()}>
-          <span class={classes.actionLabel}>Open</span>
-        </Button>
-        {file}
-        <Button
-          size="sm"
-          variant="ghost"
           class={classes.optionsButton}
           icon={<Icon name="settings" />}
-          title="Save options"
-          pressed={open.asReadonly.pipe(map((o) => o === 'options'))}
-          onClick={() => toggle('options')}
+          title="Snapshot options"
+          pressed={open.asReadonly}
+          onClick={() => open.set(!open.value)}
         />
       </div>
-      <Show when={open} reveal>
-        {(block) =>
-          block === 'save' ? (
-            <ScrollArea
-              class={classes.block}
-              contentClass={classes.blockContent}
-              role="region"
-              aria-label="Save to a file"
-            >
-              <SaveChoice
-                icon="download"
-                title="Session"
-                hint=".molx · the state with its data"
-                onClick={() => {
-                  open.set(undefined);
-                  model.download('session');
-                }}
-              />
-              <SaveChoice
-                icon="download"
-                title="State"
-                hint=".molj · the description; data loads from its sources"
-                onClick={() => {
-                  open.set(undefined);
-                  model.download('state');
-                }}
-              />
-            </ScrollArea>
-          ) : (
-            <ScrollArea
-              class={classes.block}
-              contentClass={classes.blockContent}
-              role="region"
-              aria-label="Save options"
-            >
-              <p class={classes.blockCaption}>What a new snapshot includes</p>
-              <ParamsForm form={model.saveOptions} />
-            </ScrollArea>
-          )
-        }
+      <Show when={open.asReadonly} reveal>
+        {() => (
+          <ScrollArea
+            class={classes.block}
+            contentClass={classes.blockContent}
+            role="region"
+            aria-label="Snapshot options"
+          >
+            <p class={classes.blockCaption}>What a new snapshot includes</p>
+            <ParamsForm form={model.saveOptions} />
+          </ScrollArea>
+        )}
       </Show>
       <ScrollArea
         class={classes.list}
@@ -158,15 +104,6 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
         </Show>
       </ScrollArea>
     </div>
-  );
-}
-
-function SaveChoice(props: { icon: 'download'; title: string; hint: string; onClick: () => void }) {
-  return (
-    <button type="button" class={classes.choice} onClick={props.onClick}>
-      <span class={classes.choiceTitle}>{props.title}</span>
-      <span class={classes.choiceHint}>{props.hint}</span>
-    </button>
   );
 }
 

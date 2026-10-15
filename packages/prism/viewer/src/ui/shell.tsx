@@ -657,6 +657,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               <HoverLabel
                 model={{ lines: hoverLines.asReadonly }}
                 area={() => canvasHost.closest<HTMLElement>('[data-msp-viewport]') ?? canvasHost.parentElement}
+                // Over the canvas or the sequence, not a panel over them (a tree row has its own card).
+                over={(t) => !!t.closest?.('[data-msp-canvas], [data-msp-hover-source]')}
               />
             )}
           </Show>

@@ -71,7 +71,8 @@ export function SequenceControl(props: SequenceControlProps) {
   const { viewer } = props;
   const seq = viewer.seq;
 
-  const surface = (<div class={classes.surface} />) as HTMLElement;
+  // Its hover feeds the shell's label, shown while the pointer is here (`data-msp-hover-source`).
+  const surface = (<div class={classes.surface} data-msp-hover-source="" />) as HTMLElement;
   const section = mountSection(seq, SectionRef, surface);
   onCleanup(() => section.dispose());
 

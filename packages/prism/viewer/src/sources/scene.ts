@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { hiddenContents } from '../api/contents.js';
+import { emptiedComponents, hiddenContents } from '../api/contents.js';
 import { StructureFocusRepresentationTags } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
 import { InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import { SpacegroupCell } from '@molstar/core/math/geometry';
@@ -399,6 +399,20 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     return n;
   };
 
+  // A component left empty by hidden contents (the hierarchy leaves it out): its row stays, hidden, saying why; showing
+  // the contents again brings it back as it was.
+  const emptiedNode = (ref: string, label: string): Node => {
+    let n = nodes.get(ref);
+    if (!n || n.kind !== 'component') {
+      n = new Node(ref, 'component', 'layers', label, false, {});
+      n.removable = false;
+      nodes.set(ref, n);
+    }
+    n.set(label, 'hidden in Contents', true);
+    n.setChildren([]);
+    return n;
+  };
+
   const measurementsNode = (): Node => {
     const id = '#measurements';
     let n = nodes.get(id);
@@ -538,6 +552,20 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
         });
         cn.setChildren(reprs);
         (isFocus ? focused : kids).push(cn);
+      }
+      // Components emptied by hidden contents, where they stand among the others (the state tree's order).
+      const emptied = emptiedComponents(plugin, ref);
+      if (emptied.length) {
+        const order = [...plugin.state.data.tree.children.get(emptied[0].parent).values()];
+        for (const e of emptied) {
+          const en = emptiedNode(e.ref, e.label);
+          seen.add(en.id);
+          kids.push(en);
+        }
+        // The contents row first; the components by their place in the tree.
+        const [first, ...rest] = kids;
+        rest.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+        kids.splice(0, kids.length, first, ...rest);
       }
       const fn = focusNode(
         ref,
@@ -805,7 +833,9 @@ function entities(
       let c = nodes.get(ck);
       if (!c) {
         c = new Node(ck, 'chain', 'sequence', `Chain ${chain}`, false, {
-          visibility: (hide) => void api.run('contents.visibility', { structure: structureRef, chain, visible: !hide }),
+          // That entity's chain only (a ligand or waters with the same author chain stay).
+          visibility: (hide) =>
+            void api.run('contents.visibility', { structure: structureRef, entity: id, chain, visible: !hide }),
           highlight: (on) =>
             on
               ? void api.run('highlight.set', {
@@ -817,7 +847,11 @@ function entities(
         nodes.set(ck, c);
       }
       // Hidden itself, or with its entity (its own eye then shows the entity's state).
-      c.set(`Chain ${chain}`, `${atoms.toLocaleString('en')} atoms`, entityHidden || hidden.chains.includes(chain));
+      c.set(
+        `Chain ${chain}`,
+        `${atoms.toLocaleString('en')} atoms`,
+        entityHidden || hidden.chains.includes(`${id}:${chain}`) || hidden.chains.includes(chain),
+      );
       c.menu = contentsMenu(api, () => contentsLoci(s, id, chain), `${label} · chain ${chain}`);
       chainNodes.push(c);
     }

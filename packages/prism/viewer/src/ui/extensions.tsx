@@ -93,6 +93,7 @@ export function extensionUIPort(
               ...(s.icon ? { icon: s.icon } : {}),
               ...(s.order !== undefined ? { order: s.order } : {}),
               ...(s.keywords ? { keywords: s.keywords } : {}),
+              ...(s.open ? { open: true } : {}),
               render: s.render,
             })),
           ),

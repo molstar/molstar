@@ -156,6 +156,8 @@ export interface ShellSection {
   order?: number;
   /** Shown only when this holds (assembly symmetry only for a symmetric assembly). */
   when?(ctx: ShellViewContext): boolean;
+  /** Open until the person folds it, in a list whose sections start folded (`SectionList`'s `collapsed`). */
+  open?: boolean;
   render: ViewRenderer<ShellViewContext>;
 }
 

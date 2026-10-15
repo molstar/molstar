@@ -187,6 +187,12 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
   display: grid;
+
+  &[data-flat] {
+    background: none;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 .msp-viewer-scene-tree-menuItem {

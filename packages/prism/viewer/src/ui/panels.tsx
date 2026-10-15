@@ -177,7 +177,8 @@ export function exportCard(shell: ShellModel): { overlay: ShellOverlay; toolbar:
     overlay: {
       id: 'export',
       title: 'Export',
-      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="export" focus={ctx.focus} />),
+      // Folded until opened, but the image (`open`): the card's first use.
+      render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="export" focus={ctx.focus} collapsed />),
     },
     toolbar: {
       id: 'export',

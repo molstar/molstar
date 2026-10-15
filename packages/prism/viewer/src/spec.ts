@@ -250,6 +250,8 @@ export interface ViewerExtensionUI {
     readonly icon?: IconName;
     readonly order?: number;
     readonly keywords?: readonly string[];
+    /** Open until the person folds it, in a slot whose sections start folded (Export's Image). */
+    readonly open?: boolean;
     readonly render: ViewRenderer<ShellViewContext>;
   }[];
   readonly tabs?: readonly {

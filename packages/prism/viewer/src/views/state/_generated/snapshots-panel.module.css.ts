@@ -17,9 +17,6 @@ export const classes = {
   'block': 'msp-viewer-snapshots-panel-block',
   'blockCaption': 'msp-viewer-snapshots-panel-blockCaption',
   'blockContent': 'msp-viewer-snapshots-panel-blockContent',
-  'choice': 'msp-viewer-snapshots-panel-choice',
-  'choiceHint': 'msp-viewer-snapshots-panel-choiceHint',
-  'choiceTitle': 'msp-viewer-snapshots-panel-choiceTitle',
   'description': 'msp-viewer-snapshots-panel-description',
   'descriptionField': 'msp-viewer-snapshots-panel-descriptionField',
   'empty': 'msp-viewer-snapshots-panel-empty',
@@ -109,44 +106,6 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   margin: 0;
-}
-
-.msp-viewer-snapshots-panel-choice {
-  align-items: center;
-  gap: var(--msp-space-3);
-  min-width: 0;
-  height: 30px;
-  margin: 0 calc(-1 * var(--msp-space-2));
-  padding: 0 var(--msp-space-2);
-  border-radius: var(--msp-radius-md);
-  color: var(--msp-color-text-muted);
-  text-align: left;
-  display: flex;
-
-  &:hover, &:focus-visible {
-    background: var(--msp-color-hover);
-    color: var(--msp-color-text);
-    outline: none;
-  }
-}
-
-.msp-viewer-snapshots-panel-choiceTitle {
-  color: var(--msp-color-text);
-  flex: none;
-  font-weight: 600;
-}
-
-.msp-viewer-snapshots-panel-choiceHint {
-  min-width: 0;
-  color: var(--msp-color-text-subtle);
-  font-size: var(--msp-font-size-xs);
-  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
-  white-space: nowrap;
-  flex: 1;
-  animation-name: msp-fade-overflow;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self inline);
-  overflow: hidden;
 }
 
 .msp-viewer-snapshots-panel-list {

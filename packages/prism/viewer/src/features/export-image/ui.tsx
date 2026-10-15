@@ -112,6 +112,7 @@ export function exportImageUI(ctx: ViewerUIContext): ViewerExtensionUI {
         icon: 'camera',
         order: 0,
         keywords: ['screenshot', 'png', 'picture', 'copy', 'animation', 'video', 'movie'],
+        open: true,
         render: domView<ShellViewContext>(({ ctx: view }) => {
           const model = createImageExportModel({
             api: ctx.api,
