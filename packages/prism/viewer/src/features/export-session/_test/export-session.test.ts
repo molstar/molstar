@@ -96,3 +96,18 @@ describe('export session', () => {
     });
   });
 });
+
+describe('the Snapshots list (gate G5)', () => {
+  it('is left as it is by a save: none added to an empty list, and the person’s own not replaced', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const entries = () => v.plugin.managers.snapshot.state.entries.toArray().map((e) => e.snapshot.id);
+    expectOk(await v.api.session.save!({ kind: 'state' }));
+    expect(entries()).toEqual([]);
+    v.plugin.state.setSnapshotParams({ camera: false });
+    expectOk(await v.api.run('snapshot.add', { name: 'Mine' }));
+    const mine = entries();
+    expectOk(await v.api.styles.apply({ style: 'surface' }));
+    expectOk(await v.api.session.save!({ kind: 'state' }));
+    expect(entries()).toEqual(mine);
+  });
+});

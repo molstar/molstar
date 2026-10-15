@@ -295,15 +295,50 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
     this.defaultSnapshotId = snapshot.id;
   }
 
+  /** What `syncCurrent` would make the list, on a copy (the manager's entries untouched; `keepList`). */
+  private async syncedCopy(options?: {
+    name?: string;
+    description?: string;
+    descriptionFormat?: PluginStateSnapshotManager.DescriptionFormat;
+    params?: PluginState.SnapshotParams;
+  }): Promise<{ entries: PluginStateSnapshotManager.Entry[]; current: UUID | undefined }> {
+    const entries = this.state.entries.valueSeq().toArray();
+    const isEmpty = entries.length === 0;
+    const canReplace =
+      entries.length === 1 &&
+      this.state.current &&
+      this.defaultSnapshotId !== undefined &&
+      this.state.current === this.defaultSnapshotId;
+    if (!isEmpty && !canReplace) return { entries, current: this.state.current };
+    const snapshot = this.plugin.state.getSnapshot(options?.params);
+    const entry = PluginStateSnapshotManager.Entry(snapshot, {
+      name: options?.name,
+      description: options?.description,
+      descriptionFormat: options?.descriptionFormat,
+    });
+    return { entries: [entry], current: entry.snapshot.id };
+  }
+
   async getStateSnapshot(options?: {
     name?: string;
     description?: string;
     playOnLoad?: boolean;
     params?: PluginState.SnapshotParams;
+    /**
+     * Leaves the list as it is: the current scene is added to (or replaces the automatic entry of) the returned
+     * snapshot only, not the manager's entries (a host whose list is the person's own).
+     */
+    keepList?: boolean;
   }): Promise<PluginStateSnapshotManager.StateSnapshot> {
-    await this.syncCurrent(options);
-
-    const entries = this.state.entries.valueSeq().toArray();
+    let entries: PluginStateSnapshotManager.Entry[];
+    let current = this.state.current;
+    if (options?.keepList) {
+      ({ entries, current } = await this.syncedCopy(options));
+    } else {
+      await this.syncCurrent(options);
+      entries = this.state.entries.valueSeq().toArray();
+      current = this.state.current;
+    }
     for (let i = 0; i < entries.length; i++) {
       if (!entries[i]._transientData) continue;
 
@@ -318,7 +353,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
       version: PLUGIN_VERSION,
       name: options && options.name,
       description: options && options.description,
-      current: this.state.current,
+      current,
       playback: {
         isPlaying: !!(options && options.playOnLoad),
         nextSnapshotDelayInMs: this.state.nextSnapshotDelayInMs,
@@ -327,8 +362,17 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
     };
   }
 
-  async serialize(options?: { type: 'json' | 'molj' | 'zip' | 'molx'; params?: PluginState.SnapshotParams }) {
-    const json = JSON.stringify(await this.getStateSnapshot({ params: options?.params }), null, 2);
+  async serialize(options?: {
+    type: 'json' | 'molj' | 'zip' | 'molx';
+    params?: PluginState.SnapshotParams;
+    /** See `getStateSnapshot`. */
+    keepList?: boolean;
+  }) {
+    const json = JSON.stringify(
+      await this.getStateSnapshot({ params: options?.params, keepList: options?.keepList }),
+      null,
+      2,
+    );
 
     if (!options?.type || options.type === 'json' || options.type === 'molj') {
       return new Blob([json], { type: 'application/json;charset=utf-8' });

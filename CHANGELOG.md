@@ -10,6 +10,8 @@ here.
 
 ## [Unreleased]
 
+- Snapshot manager: `getStateSnapshot` and `serialize` take `keepList` to save the current scene without adding to or
+  replacing the list's entries
 - Add the `element-schema` generator to MolQL (`sel.atom.element-schema` in MolScript, with `schema-item` and
   `empty-value`): it selects the elements of tables of fields (`label_asym_id`, `auth_seq_id`, ranges, ...) through
   per-model indices instead of testing every atom for every row (1000 rows on 720k atoms: seconds to ~17 ms).

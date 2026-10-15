@@ -188,7 +188,8 @@ const upload: OperationDefinition<typeof UploadParams, void> = {
     const server = serverOf(ctx, given);
     try {
       const body = JSON.stringify(
-        await ctx.plugin.managers.snapshot.getStateSnapshot({ name, description, playOnLoad }),
+        // The person's Snapshots list is theirs: the scene goes into the upload only (keepList).
+        await ctx.plugin.managers.snapshot.getStateSnapshot({ name, description, playOnLoad, keepList: true }),
       );
       const response = await fetch(
         urlCombine(server, `set?name=${encodeURIComponent(name)}&description=${encodeURIComponent(description)}`),

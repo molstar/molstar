@@ -65,7 +65,9 @@ export const exportSessionOperations = (): {
         const plugin = ctx.plugin;
         try {
           // Without a canvas there is no camera to save (headless).
+          // The person's Snapshots list is theirs: the scene goes into the file only (keepList).
           const blob = await plugin.managers.snapshot.serialize({
+            keepList: true,
             type: kind === 'session' ? 'molx' : 'molj',
             params: { camera: !!plugin.canvas3d },
           });
