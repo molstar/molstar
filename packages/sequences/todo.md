@@ -266,6 +266,18 @@ source's `coordinate_system` and a layer's `of` are not covered. _Trigger:_ a ch
 
 Known, measured, unowned: whoever next touches the code takes one, and its commit says so.
 
+- **No slim build: everything is reachable from the default spec** (measured 2026-10-15, the Prism viewer's sequence
+  chunk, minified): Seq\* is about 1.2 MB there, core ~530 kB (format 229 kB: `load/compile` 25 kB, `tables/svs-tree` 22
+  kB, palettes ~26 kB, validate 10 kB; model 165 kB; algorithms 57 kB; query ~60 kB with its runtime) and viewer ~650 kB
+  (draw 139 kB, renderers 66 kB, layout 30 kB, streams and the stream layer 35 kB, gestures 21 kB). Both packages
+  declare `sideEffects`, but `DefaultSeqViewerSpec` registers every node kind, renderer, column, theme, navigator and
+  SVS table (`DefaultRegistry`), and the format compiles every layer kind, so a bundler keeps all of it. A slim build
+  needs explicit composition, as Mol\*'s plugin in v6: an empty base registry and parts a host adds (a
+  letters-and-tracks set for Prism: no streaming sources, no alignments or dot plots, no SeqQL runtime unless asked),
+  with the compile, validate and resolve steps reaching a kind only through its registration. Measure with the Prism
+  app's metafile (`node scripts/esbuild/app.mjs apps/prism-viewer --prd --metafile`). _Trigger:_ a host that embeds
+  Seq\* for a narrow use (the Prism viewer's band) and wants its chunk smaller.
+
 - **A frame allocates in V8's middle tier until it is optimized** (measured 2026-10-14, Node 24 and 25, M4, by the quick
   tier's harness under V8's default tuning): a step climbs to TurboFan over 15,000 to 60,000 frames and allocates
   meanwhile, the wrapped lanes' draw 130 bytes a frame for its first 14,000 frames, a hover 9 to 26 bytes a move for

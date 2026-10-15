@@ -603,18 +603,37 @@ export function StatusLine(props: { status: StatusModel; onOpenLog?: () => void;
         {status.spoken}
       </div>
       <Show when={status.current}>
-        {(m) => (
-          <button
-            type="button"
-            class={`${classes.pill} ${classes.message}`}
-            data-kind={m.kind}
-            title="Show the log"
-            onClick={() => props.onOpenLog?.()}
-          >
-            <Icon name={KindIcons[m.kind]} size={14} />
-            <span class={classes.text}>{m.text}</span>
-          </button>
-        )}
+        {(m) =>
+          // An error stays until it is dismissed: its ✕ does (the others fade).
+          m.kind === 'error' ? (
+            <span class={`${classes.pill} ${classes.message}`} data-kind={m.kind}>
+              <button type="button" class={classes.pillMain} title="Show the log" onClick={() => props.onOpenLog?.()}>
+                <Icon name={KindIcons[m.kind]} size={14} />
+                <span class={classes.text}>{m.text}</span>
+              </button>
+              <button
+                type="button"
+                class={classes.pillButton}
+                aria-label="Dismiss"
+                data-tip="Dismiss"
+                onClick={() => status.dismiss(m.id)}
+              >
+                <Icon name="x" size={14} />
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              class={`${classes.pill} ${classes.message}`}
+              data-kind={m.kind}
+              title="Show the log"
+              onClick={() => props.onOpenLog?.()}
+            >
+              <Icon name={KindIcons[m.kind]} size={14} />
+              <span class={classes.text}>{m.text}</span>
+            </button>
+          )
+        }
       </Show>
       <For each={status.tasks.pipe(map((tasks) => tasks.filter((t) => !t.overlay)))}>
         {(task) => <TaskPill task={task} />}
@@ -636,7 +655,44 @@ export function StatusPill(props: {
   onClick?(): void;
   onDismiss?(): void;
   dismissLabel?: string;
+  /**
+   * Dismissed on its own after this many ms (a finished turn), a ring around the ✕ showing the time left; the pointer
+   * over the line or the focus in it holds the time. Undefined: it stays.
+   */
+  autoDismiss?: Observable<number | undefined>;
 }) {
+  // The time left, held while the pointer is over the line or the focus is in it.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let left = 0;
+  let since = 0;
+  let held = false;
+  const ring = observableState<number | undefined>(undefined);
+  const stop = () => {
+    if (timer) clearTimeout(timer);
+    timer = undefined;
+  };
+  const run = () => {
+    stop();
+    if (held || left <= 0) return;
+    since = performance.now();
+    timer = setTimeout(() => props.onDismiss?.(), left);
+  };
+  const hold = (on: boolean) => {
+    if (on === held) return;
+    held = on;
+    if (on && timer) left -= performance.now() - since;
+    if (on) stop();
+    else run();
+  };
+  if (props.autoDismiss && props.onDismiss) {
+    bind(props.autoDismiss, (ms) => {
+      stop();
+      left = ms ?? 0;
+      ring.set(ms);
+      run();
+    });
+    onCleanup(stop);
+  }
   const body = (
     <>
       {props.icon}
@@ -645,7 +701,15 @@ export function StatusPill(props: {
     </>
   );
   return (
-    <span class={classes.pill}>
+    <span
+      class={classes.pill}
+      onPointerEnter={() => hold(true)}
+      onPointerLeave={() => hold(false)}
+      onFocusIn={() => hold(true)}
+      onFocusOut={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) hold(false);
+      }}
+    >
       {props.onClick ? (
         <button type="button" class={classes.pillMain} aria-label={props.label} onClick={() => props.onClick?.()}>
           {body}
@@ -662,6 +726,19 @@ export function StatusPill(props: {
           onClick={() => props.onDismiss?.()}
         >
           <Icon name="x" size={14} />
+          <Show when={ring.asReadonly}>
+            {(ms) => (
+              // The time left, drawn down around the ✕ (the line's hover holds it, as the timer).
+              <svg
+                class={classes.countdown}
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+                style={{ '--msp-countdown': `${ms}ms` }}
+              >
+                <circle cx="10" cy="10" r="9" pathLength="100" />
+              </svg>
+            )}
+          </Show>
         </button>
       ) : null}
     </span>

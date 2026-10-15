@@ -37,6 +37,7 @@ export const classes = {
   'compactStatus': 'msp-shell-canvas-compactStatus',
   'context': 'msp-shell-canvas-context',
   'corner': 'msp-shell-canvas-corner',
+  'countdown': 'msp-shell-canvas-countdown',
   'face': 'msp-shell-canvas-face',
   'frame': 'msp-shell-canvas-frame',
   'lead': 'msp-shell-canvas-lead',
@@ -187,7 +188,7 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 }
 
 .msp-shell-canvas-stack {
-  --msp-stack-row: max(34px, var(--msp-touch-target, 0px));
+  --msp-stack-row: max(34px, min(var(--msp-touch-target, 0px), 38px));
   position: relative;
 }
 
@@ -234,6 +235,12 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-stack .msp-shell-canvas-tool {
   width: var(--msp-stack-row);
   height: var(--msp-stack-row);
+
+  [data-mode="compact"] & svg {
+    width: 18px;
+    height: 18px;
+  }
+
   flex: none;
 }
 
@@ -532,10 +539,49 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
   flex: none;
   place-items: center;
   display: grid;
+  position: relative;
 
   &:hover {
     background: var(--msp-color-hover);
     color: var(--msp-color-text);
+  }
+}
+
+.msp-shell-canvas-countdown {
+  pointer-events: none;
+  width: 22px;
+  height: 22px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+
+  & circle {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5px;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+    opacity: .6;
+    animation: msp-shell-canvas-countdown var(--msp-countdown, 8s) linear forwards;
+  }
+
+  .msp-shell-canvas-pill:hover &, .msp-shell-canvas-pill:focus-within & {
+    & circle {
+      animation-play-state: paused;
+    }
+  }
+}
+
+@keyframes msp-shell-canvas-countdown {
+  to {
+    stroke-dashoffset: 100px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msp-shell-canvas-countdown {
+    display: none;
   }
 }
 

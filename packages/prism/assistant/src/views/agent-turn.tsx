@@ -165,6 +165,9 @@ export function AgentTurnCard(props: { agent: AgentModel; onTrace?: (turnId: str
   );
 }
 
+/** How long a finished turn's line stays (the ring around its ✕ counts it down). */
+const FinishedLineMs = 8000;
+
 /**
  * A closed card: a line of the status column, like a task's: the request and its state (the spark pulsing while it
  * runs); a click opens the card again, ✕ takes the line away (the turn stays in History).
@@ -185,6 +188,8 @@ function TurnLine(props: { agent: AgentModel }) {
         onClick={() => props.agent.reopen()}
         dismissLabel="Hide"
         onDismiss={() => props.agent.hide()}
+        // Finished (done, stopped): it goes after a while; a turn that waits or failed stays.
+        autoDismiss={status.pipe(map((s) => (s === 'done' || s === 'stopped' ? FinishedLineMs : undefined)))}
       />
     </span>
   );

@@ -111,4 +111,39 @@ describe('ModeSwitch', () => {
     expect(select.getAttribute('aria-expanded')).toBe('false');
     container.remove();
   });
+
+  it('lets the focus go on a tap outside, so the list closes on a touch screen (where the focus shows it)', () => {
+    const mode = observableState<CanvasMode>('interact');
+    const granularity = observableState('residue');
+    const container = document.createElement('div');
+    const props: ModeSwitchProps = {
+      mode: mode.asReadonly,
+      setMode: (m) => mode.set(m),
+      granularity: granularity.asReadonly,
+      granularities: [{ value: 'residue', label: 'Residue', icon: 'pick-residue' }],
+      setGranularity: (g) => granularity.set(g),
+    };
+    render(
+      () => (
+        <>
+          <ModeSwitch {...props} />
+          <PickLevel {...props} />
+        </>
+      ),
+      container,
+    );
+    const canvas = document.createElement('canvas');
+    document.body.append(container, canvas);
+    const select = container.querySelector<HTMLButtonElement>('[aria-controls]')!;
+    select.focus();
+    expect(document.activeElement).toBe(select);
+    // A tap on Select itself keeps it.
+    select.dispatchEvent(new Event('pointerdown', { bubbles: true, composed: true }));
+    expect(document.activeElement).toBe(select);
+    // A tap on the canvas (not focusable) lets it go.
+    canvas.dispatchEvent(new Event('pointerdown', { bubbles: true, composed: true }));
+    expect(document.activeElement).not.toBe(select);
+    container.remove();
+    canvas.remove();
+  });
 });

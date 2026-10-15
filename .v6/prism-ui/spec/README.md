@@ -348,7 +348,7 @@ assistant adapts their hooks and observers into this surface.
 Best practice, checked per view (decisions 15, 31):
 
 - **WCAG 2.2 AA** for the UI: contrast from the tokens (and a high-contrast theme), visible focus, targets of at least
-  24 px (44 px in compact mode), no meaning by color alone; colorblind-safe palettes for data colors (structure themes,
+  24 px (44 px in compact mode, the canvas's own buttons 38 px beside the molecule), no meaning by color alone; colorblind-safe palettes for data colors (structure themes,
   the sequence, legends) as a choice in Settings.
 - **Keyboard**: every view usable without a pointer (the command menu is a combobox, trees are ARIA trees with arrow
   keys, cards trap and restore focus); the canvas is reached through the scene tree and targets, so picking,

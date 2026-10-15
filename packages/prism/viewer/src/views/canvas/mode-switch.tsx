@@ -11,6 +11,7 @@
 import { distinctUntilChanged, map } from 'rxjs';
 import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
 import { Show } from '@molstar/prism-ui/dom/control-flow';
+import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import { deepActiveElement, focusFirstItem, menuKeys } from '@molstar/prism-ui/dom/focus';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { classes } from './_generated/mode-switch.module.css.js';
@@ -113,8 +114,24 @@ export function PickLevel(props: ModeSwitchProps) {
   const levels = props.granularities;
   const granularity = props.granularity;
   if (!levels || !granularity) return null;
+  // On a touch screen it shows while Select has the focus, and a tap on the canvas (not focusable) does not take the
+  // focus away: a tap outside the list and Select lets it go, so the list closes.
+  let level: HTMLElement | undefined;
+  const onDown = (e: PointerEvent) => {
+    const active = deepActiveElement();
+    if (!level || !(active instanceof HTMLElement)) return;
+    const menu = level.querySelector(`#${LevelMenuId}`);
+    const select = menu && opener(menu);
+    const holds = (el: Element | null | undefined) => !!el && (el === active || el.contains(active));
+    if (!holds(menu) && !holds(select)) return;
+    const path = e.composedPath();
+    if ((menu && path.includes(menu)) || (select && path.includes(select))) return;
+    active.blur();
+  };
+  document.addEventListener('pointerdown', onDown, true);
+  onCleanup(() => document.removeEventListener('pointerdown', onDown, true));
   return (
-    <div class={classes.level}>
+    <div class={classes.level} ref={(el) => (level = el)}>
       <div
         class={classes.levels}
         id={LevelMenuId}

@@ -102,8 +102,9 @@ export function ShellView(props: ShellViewProps) {
     map(([s, mode]) => s.floating && mode !== 'compact'),
     distinctUntilChanged(),
   );
-  const floatingTop = combineLatest([top.state, shell.mode]).pipe(
-    map(([s, mode]) => s.floating && mode !== 'compact'),
+  // The top dock (the sequence band) floats in the compact layout too: a band of the canvas, not a panel above it.
+  const floatingTop = top.state.pipe(
+    map((s) => s.floating),
     distinctUntilChanged(),
   );
   // A top tab with no frame is a band of the canvas area (the sequence), over the canvas' top: the canvas' own color

@@ -153,7 +153,9 @@
 }
 
 .stack {
-  --msp-stack-row: max(34px, var(--msp-touch-target, 0px));
+  /* Compact: 38px, not the panels' 44 (still well over WCAG's 24): the canvas' own buttons stay small beside the
+     molecule (README §3.7). */
+  --msp-stack-row: max(34px, min(var(--msp-touch-target, 0px), 38px));
 
   position: relative;
 }
@@ -212,6 +214,12 @@
 .stack .tool {
   width: var(--msp-stack-row);
   height: var(--msp-stack-row);
+
+  /* Compact: the icons a size down with the buttons. */
+  [data-mode="compact"] & svg {
+    width: 18px;
+    height: 18px;
+  }
   flex: none;
 }
 
@@ -536,6 +544,7 @@
 
 .pillButton {
   /* Edge to edge, like the canvas stack's buttons: the full height, square, at the pill's end. */
+  position: relative;
   display: grid;
   flex: none;
   place-items: center;
@@ -546,6 +555,47 @@
   &:hover {
     background: var(--msp-color-hover);
     color: var(--msp-color-text);
+  }
+}
+
+/* A line that goes on its own (a finished turn): a ring around its ✕, drawn down over the time left; held with the
+   line's hover or focus (as its timer). */
+.countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  pointer-events: none;
+
+  & circle {
+    fill: none;
+    stroke: currentcolor;
+    stroke-width: 1.5;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+    opacity: 0.6;
+    animation: countdown var(--msp-countdown, 8s) linear forwards;
+  }
+
+  .pill:hover &,
+  .pill:focus-within & {
+    & circle {
+      animation-play-state: paused;
+    }
+  }
+}
+
+@keyframes countdown {
+  to {
+    stroke-dashoffset: 100;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown {
+    display: none;
   }
 }
 

@@ -236,7 +236,7 @@ extension UI) are placed.
   and the selection are docked under the canvas; the toolbar stays in the corner.
 - **Status column** (`StatusModel`, `shell/status.ts`; `StatusLine`): one line per item, growing upward, frameless (ink
   in the canvas theme's text color with a soft halo of the background, so it reads over the molecule): the latest
-  message (it fades after 4 s; an error stays until the next message or `dismiss`, the line has no ✕; a click opens the
+  message (it fades after 4 s; an error stays until the next message or its ✕ (`dismiss`); a click opens the
   log, `onOpenLog`: History's lower half, or its Log tab when compact), then each running task (a spinner, its label, its progress, ✕ to cancel), then the `agent` slot
   (`ShellView`'s `agent`): the assistant's turn as its card or, closed, as a line like a task's (`StatusPill`;
   [agent.md](agent.md) §5). The model keeps the last 200 messages for the log. Chips (`StatusChip`: a label, a click
