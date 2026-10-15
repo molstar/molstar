@@ -10,7 +10,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { MessageKind } from '@molstar/prism-ui/core';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { combineLatest, debounceTime } from 'rxjs';
+import { combineLatest, debounceTime, type Subscription, tap } from 'rxjs';
 import type { ViewerApi } from '../../api/area.js';
 import type { ImageExportModel } from '../../model/image-export.js';
 import type { ViewerSources } from '../../sources/viewer-sources.js';
@@ -18,7 +18,9 @@ import type { CropBox, ImageSize } from './operations.js';
 
 // The view model of the Image section: the form, the preview and the crop, over `export.preview`, `export.image` and
 // `export.image-copy` (the people's API; no plugin). The preview is a small render, asked for after the settings or the
-// canvas stop changing. DOM-free.
+// canvas stop changing, and only while the section shows (`setActive`: a folded section holds no subscription and
+// renders nothing; AGENTS.md, hidden UI). The operations serialize on the one shared helper themselves (a queue in
+// `ExportApi`), so copy and download simply wait behind a running preview. DOM-free.
 
 /** The form: the screenshot settings, as Mol*'s classic export shows them (the operations' params, grouped). */
 export const FormParams = {
@@ -106,9 +108,13 @@ export interface ImageExportDeps {
   readonly api: ViewerApi;
   readonly sources: ViewerSources;
   notify(text: string, kind?: MessageKind): void;
+  /** Hands the image to the page to save (`ui/download.ts`). */
+  save(blob: Blob, filename: string): void;
 }
 
 export interface ImageExport extends ImageExportModel {
+  /** Starts (true) or stops (false) the preview's subscriptions and work: the view's activity. Starts active. */
+  setActive(active: boolean): void;
   dispose(): void;
 }
 
@@ -119,7 +125,7 @@ export function createImageExportModel(deps: ImageExportDeps): ImageExport {
   const form = new ParamsFormModel(FormParams);
   const autoCrop = observableState(true);
   const manual = observableState<CropBox>({ ...Full });
-  // The crop the content has, from the last preview: also where a manual crop starts.
+  // The crop the content has, from the last preview.
   const found = observableState<CropBox>({ ...Full });
   const crop = observableState<CropBox>({ ...Full });
   const preview = observableState<string | undefined>(undefined);
@@ -127,9 +133,13 @@ export function createImageExportModel(deps: ImageExportDeps): ImageExport {
   const aspect = observableState(FallbackAspect);
   const size = observableState('');
   const busy = observableState(false);
+  // Whether the preview is of the settings now: false from a change until its preview is in.
+  const settled = observableState(false);
 
   let disposed = false;
   let token = 0;
+  // The preview asked for last: a newer one stops an older that has not started (a running render cannot be stopped).
+  let asked: AbortController | undefined;
   // Previews come from the script origin: a failed one is not worth a message of the person's.
   const quiet = deps.api.as({ kind: 'script' });
 
@@ -149,51 +159,77 @@ export function createImageExportModel(deps: ImageExportDeps): ImageExport {
   const refresh = async () => {
     if (disposed || !deps.sources.canvas.value || !quiet.export) return;
     const mine = ++token;
-    const r = await quiet.export.preview({ ...imageValues(form.values.value), crop: autoCrop.value ? 'auto' : 'none' });
+    asked?.abort();
+    const mineAsked = (asked = new AbortController());
+    const r = await quiet.export.preview(
+      { ...imageValues(form.values.value), crop: autoCrop.value ? 'auto' : 'none' },
+      { signal: mineAsked.signal },
+    );
     if (disposed || mine !== token || !r.ok || !r.value) return;
     const { dataUri, width, height, crop: box } = r.value;
     preview.set(`center / 100% 100% no-repeat url("${dataUri}")`);
     viewport.set({ width, height });
-    if (autoCrop.value) {
-      found.set(box);
-      manual.set(box);
-    }
+    if (autoCrop.value) found.set(box);
+    settled.set(true);
   };
 
-  const subs = [
-    combineLatest([
-      form.values,
-      autoCrop.asReadonly,
-      manual.asReadonly,
-      found.asReadonly,
-      viewport.asReadonly,
-    ]).subscribe(compute),
-    combineLatest([form.values, autoCrop.asReadonly, deps.sources.canvas, deps.sources.structures])
-      .pipe(debounceTime(PreviewDelayMs))
-      .subscribe(() => void refresh()),
-  ];
+  // Turning auto-crop off starts a manual crop from the whole frame (not from the content's box, which would look as if
+  // nothing changed).
+  let wasAuto = autoCrop.value;
+  let subs: Subscription[] = [];
+  const start = () => {
+    if (disposed || subs.length) return;
+    subs = [
+      autoCrop.asReadonly.subscribe((auto) => {
+        if (!auto && wasAuto) manual.set({ ...Full });
+        wasAuto = auto;
+      }),
+      combineLatest([
+        form.values,
+        autoCrop.asReadonly,
+        manual.asReadonly,
+        found.asReadonly,
+        viewport.asReadonly,
+      ]).subscribe(compute),
+      combineLatest([form.values, autoCrop.asReadonly, deps.sources.canvas, deps.sources.structures])
+        .pipe(
+          // The preview no longer matches from the change on, not from when it is asked for.
+          tap(() => settled.set(false)),
+          debounceTime(PreviewDelayMs),
+        )
+        .subscribe(() => void refresh()),
+    ];
+  };
+  const stop = () => {
+    token++;
+    asked?.abort();
+    asked = undefined;
+    for (const s of subs.splice(0)) s.unsubscribe();
+  };
 
-  /** Runs an operation with the form's values, as the person (a failure says itself); `done` says what happened. */
-  const run = async (op: 'image' | 'imageCopy', extra: Record<string, unknown>, done: (did: string) => string) => {
-    const fn = deps.api.export?.[op];
+  /** Runs an operation with the form's values as the person (a failure says itself); `done` handles the result. */
+  const run = async <R>(op: 'image' | 'imageCopy', done: (value: R | undefined, did: string) => void) => {
+    const fn = deps.api.export?.[op] as ((v: never) => Promise<{ ok: boolean; did: string; value?: R }>) | undefined;
     if (!fn || busy.value) return;
     busy.set(true);
     try {
       const box = autoCrop.value ? { crop: 'auto' } : { crop: 'none', box: { ...manual.value } };
-      const r = await fn({ ...imageValues(form.values.value), ...box, ...extra } as never);
-      if (r.ok) deps.notify(done(r.did), 'success');
+      const r = await fn({ ...imageValues(form.values.value), ...box } as never);
+      if (r.ok) done(r.value, r.did);
     } finally {
       busy.set(false);
     }
   };
 
   compute();
+  start();
 
   return {
     // `preview` is a CSS background value: the image, under the crop box.
     preview: preview.asReadonly,
     aspect: aspect.asReadonly,
     autoCrop,
+    settled: settled.asReadonly,
     crop: crop.asReadonly,
     setCrop: (c) => {
       autoCrop.set(false);
@@ -202,12 +238,17 @@ export function createImageExportModel(deps: ImageExportDeps): ImageExport {
     size: size.asReadonly,
     form,
     busy: busy.asReadonly,
-    copy: () => void run('imageCopy', {}, () => 'Copied the image.'),
-    download: () => void run('image', { download: true }, (did) => did),
+    copy: () => void run('imageCopy', () => deps.notify('Copied the image.', 'success')),
+    download: () =>
+      void run<{ blob: Blob; filename: string; width: number; height: number }>('image', (image) => {
+        if (!image) return;
+        deps.save(image.blob, image.filename);
+        deps.notify(`Saved ${image.filename} (${image.width} × ${image.height}).`, 'success');
+      }),
+    setActive: (active) => (active ? start() : stop()),
     dispose() {
       disposed = true;
-      token++;
-      for (const s of subs) s.unsubscribe();
+      stop();
     },
   };
 }

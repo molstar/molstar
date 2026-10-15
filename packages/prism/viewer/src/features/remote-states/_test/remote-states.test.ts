@@ -169,6 +169,16 @@ describe('remote states', () => {
     expect(structures(v)).toHaveLength(0);
   });
 
+  it('loads the lazy extensions owning the state’s transformers before it applies, as load.snapshot does', async () => {
+    const snapshot = await savedState();
+    serve({ list: LIST, snapshot });
+    const v = await viewer();
+    const ensure = vi.spyOn(v.extensions, 'ensureFor');
+    expectOk(await v.api.session.remoteOpen!({ entry: 'a' }));
+    expect(ensure).toHaveBeenCalledTimes(1);
+    expect(ensure.mock.calls[0][0].transformers).toContain('ms-plugin.download');
+  });
+
   it('opens an entry by its name, and asks which when several share it', async () => {
     const snapshot = await savedState();
     serve({ list: LIST, snapshot });

@@ -33,10 +33,12 @@ declare module '../../api/load.js' {
 }
 
 // The `loaders` feature (viewer-spec.md §3.1, plan 3.2): the database and URL loaders as operations of the core's
-// `load` area (`entry`, `url`, `mvs`, `snapshot`, `trajectory`, `volume`), their commands, Home's "Download by ID"
-// section, and the URL's load parameters (`runUrlLoads`, which the app calls once the viewer is ready; app.md §4).
+// `load` area (`entry`, `url`, `mvs`, `snapshot`, `trajectory`, `volume`), their commands, and the URL's load
+// parameters (`runUrlLoads`, which the app calls once the viewer is ready; app.md §4). It has no views: Home's own
+// "Download Structure" (every source with its options) is the form for an id, and a second one beside it did the same;
+// `load.entry` stays for the command menu, tools and scripts.
 // There is no `load.svs`: the viewer's sequence has no document to load (sequence.md §6 comes with the sequence
-// behaviors). Its views are a chunk of their own.
+// behaviors).
 
 export const LoadersFeature: ViewerExtension = {
   id: 'loaders',
@@ -85,7 +87,6 @@ export const LoadersFeature: ViewerExtension = {
       }),
     ];
   },
-  ui: async (ctx) => (await import('./ui.js')).loadersUI(ctx),
 };
 
 export { type UrlLoad, type UrlLoadResult, LoadUrlParameters, loadsFromUrl, parseSearch, runUrlLoads } from './url.js';

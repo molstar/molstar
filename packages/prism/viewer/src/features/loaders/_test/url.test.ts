@@ -74,9 +74,9 @@ describe('loadsFromUrl', () => {
     ]);
   });
 
-  it('reads snapshot-url (type molj by default) and snapshot-id', () => {
+  it('reads snapshot-url (its type only when given: the operation follows the extension) and snapshot-id', () => {
     expect(loadsFromUrl('?snapshot-url=https://x.org/s.molj')).toEqual([
-      { operation: 'load.snapshot', values: { url: 'https://x.org/s.molj', type: 'molj' } },
+      { operation: 'load.snapshot', values: { url: 'https://x.org/s.molj' } },
     ]);
     expect(loadsFromUrl('?snapshot-url=https://x.org/s.molx&snapshot-url-type=MOLX')[0].values).toMatchObject({
       type: 'molx',

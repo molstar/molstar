@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// Saves a blob as a file through the page: an object URL on an `<a download>`, released after the click. The only
-// DOM of the feature besides its view.
+// The one way the viewer saves a file through the page: operations return bytes (a Blob and a file name), and the
+// views and commands hand them here. An object URL on an `<a download>`, released after the click.
 
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);

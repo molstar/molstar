@@ -29,6 +29,19 @@ describe('export session', () => {
     expect(await v.api.session.save!()).toMatchObject({ ok: false, code: 'blocked' });
   });
 
+  it('labels the kinds short enough for the form, the longer words in the description', async () => {
+    const v = await headlessViewer({ extensions: [ExportSessionFeature] });
+    const kind = v.api.describe('session.save')?.params.kind as unknown as {
+      options: [string, string][];
+      description?: string;
+    };
+    expect(kind.options).toEqual([
+      ['session', 'Session (.molx), with data'],
+      ['state', 'State (.molj)'],
+    ]);
+    expect(kind.description).toMatch(/keeps the loaded data/);
+  });
+
   it('is only for built-in features', async () => {
     const { builtIn: _, ...outside } = ExportSessionFeature;
     await expect(headlessViewer({ extensions: [{ ...outside, id: 'outside' }] })).rejects.toThrow(/only the viewer/);

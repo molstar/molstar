@@ -9,6 +9,7 @@
 import type { OperationFn } from '../../api/area.js';
 import { operationCommand } from '../../commands/operations.js';
 import type { ViewerExtension } from '../../spec.js';
+import { downloadBlob } from '../../ui/download.js';
 import { type SaveParams, type SavedSession, exportSessionOperations } from './operations.js';
 
 declare module '../../api/session.js' {
@@ -40,7 +41,6 @@ export const ExportSessionFeature: ViewerExtension = {
           action: 'Save',
         }),
         async run(args) {
-          const { downloadBlob } = await import('./download.js');
           const r = await api.session.save!(args as never);
           if (!r.ok) throw new Error(r.hint ? `${r.message} ${r.hint}` : r.message);
           if (r.value) downloadBlob(r.value.blob, r.value.filename);

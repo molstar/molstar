@@ -14,8 +14,11 @@ import { type ApiContext, ApiArea, ApiResult } from '../../api/area.js';
 
 // The `export` area, image part (operations.md §2, the `export` row): an image of the canvas by Mol*'s
 // `ViewportScreenshotHelper`. Exporting changes nothing in the scene, so none of these is a history step
-// (`history: false`, not `read`: they render on the shared canvas and must not run alongside a change) and none is
-// undoable. The helper exists only where there is a canvas in a page; elsewhere they fail `unavailable`.
+// (`history: false`) and none is undoable. `history: false` does NOT serialize them: `api/run.ts` runs it like a read,
+// directly. They all configure the one shared helper (also the classic UI's), render and put it back, so `ExportApi`
+// runs them one at a time through its own queue. They give the image as bytes (a Blob and a file name); saving it is
+// the page's (`ui/download.ts`), as for `session.save`. The helper exists only where there is a canvas in a page;
+// elsewhere they fail `unavailable`.
 
 /** The crop as fractions of the image (0-1), like Mol*'s `Viewport.relativeCrop`. */
 export interface CropBox {
@@ -73,8 +76,7 @@ const ShotParams = {
 
 export const ImageParams = {
   ...ShotParams,
-  name: PD.Text('', { description: 'The file name of a download (empty: from the loaded entries)' }),
-  download: PD.Boolean(false, { description: 'Save the image as a file instead of returning its data URI' }),
+  name: PD.Text('', { description: 'The file name, with or without its extension (empty: from the loaded entries)' }),
 };
 export const CopyParams = ShotParams;
 export const PreviewParams = {
@@ -84,14 +86,18 @@ export const PreviewParams = {
 
 export type ShotValues = PD.ValuesFor<typeof ShotParams>;
 
-/** What `export.image` gives: the size of the image written (after the crop). */
+/** What `export.image` gives: the image's bytes and file name, and its size (after the crop). */
 export interface ImageResult {
-  /** The image as a `data:` URI; not with `download`. */
-  dataUri?: string;
+  blob: Blob;
+  filename: string;
   width: number;
   height: number;
-  /** The file name of a download. */
-  filename?: string;
+}
+
+/** What `export.image-copy` gives: the size of the image copied (after the crop). */
+export interface CopiedImage {
+  width: number;
+  height: number;
 }
 
 /** What `export.preview` gives: a small image of the whole frame, its full size, and the crop on it. */
@@ -183,8 +189,45 @@ const dims = (helper: ViewportScreenshotHelper) => {
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+/** A `data:` URI as a Blob (the helper gives the image as one; there is no blob getter). */
+function dataUriToBlob(uri: string): Blob {
+  const comma = uri.indexOf(',');
+  const head = uri.slice(5, comma);
+  const type = head.split(';')[0] || 'application/octet-stream';
+  const body = uri.slice(comma + 1);
+  if (!head.endsWith(';base64')) return new Blob([decodeURIComponent(body)], { type });
+  const binary = atob(body);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type });
+}
+
+const Extensions: Record<ImageFormat, string> = { png: '.png', jpeg: '.jpg', webp: '.webp' };
+
+/** The file name: the person's, with the format's extension unless it has an image one; else the helper's. */
+function fileNameOf(helper: ViewportScreenshotHelper, v: ShotValues & { name?: string }): string {
+  const entered = (v.name ?? '').trim().replace(/[\\/:*?"<>|]+/g, '-');
+  if (!entered) return helper.getFilename();
+  return /\.(png|jpe?g|webp)$/i.test(entered) ? entered : entered + Extensions[v.format];
+}
+
+/** Runs one job after the ones before it, whatever they ended in. */
+class Queue {
+  #tail: Promise<unknown> = Promise.resolve();
+  run<T>(job: () => Promise<T>): Promise<T> {
+    const next = this.#tail.then(job, job);
+    this.#tail = next.catch(() => undefined);
+    return next;
+  }
+}
+
+const stopped = () => ApiResult.fail('aborted', 'Stopped before it started.', 'Nothing was rendered.');
+
 export class ExportApi extends ApiArea {
   readonly id = 'export';
+
+  // Configure, render and restore of one operation must not interleave with another's: one queue for the area.
+  readonly #queue = new Queue();
 
   readonly image = this.operation({
     id: 'export.image',
@@ -193,35 +236,30 @@ export class ExportApi extends ApiArea {
     modules: ['canvas'],
     history: false,
     undoable: false,
-    async run(v, ctx): Promise<ApiResult<ImageResult>> {
-      const helper = helperOf(ctx);
-      if (!helper) return noCanvas();
-      const bad = check(v);
-      if (bad) return ApiResult.fail('invalid', bad);
-      if (v.download && !ctx.modules.has('page')) {
-        return ApiResult.fail('unavailable', 'This host cannot save files.', 'Leave download off to get the data URI.');
-      }
-      const restore = configure(helper, v);
-      try {
-        await settleCrop(ctx, helper);
-        const size = dims(helper);
-        if (v.download) {
-          const filename = v.name || helper.getFilename();
-          await helper.download(filename);
+    run: (v, ctx): Promise<ApiResult<ImageResult>> =>
+      this.#queue.run(async () => {
+        if (ctx.signal.aborted) return stopped();
+        const helper = helperOf(ctx);
+        if (!helper) return noCanvas();
+        const bad = check(v);
+        if (bad) return ApiResult.fail('invalid', bad);
+        const restore = configure(helper, v);
+        try {
+          await settleCrop(ctx, helper);
+          const size = dims(helper);
+          const filename = fileNameOf(helper, v);
+          const blob = dataUriToBlob(await helper.getImageDataUri());
           return ApiResult.ok(
-            `Saved ${filename} (${size.width} x ${size.height}).`,
+            `Rendered ${filename} (${size.width} × ${size.height}).`,
             {},
-            { value: { ...size, filename } },
+            { value: { ...size, blob, filename } },
           );
+        } catch (e) {
+          return ApiResult.fail('failed', `Could not render the image: ${message(e)}`);
+        } finally {
+          restore();
         }
-        const dataUri = await helper.getImageDataUri();
-        return ApiResult.ok(`Rendered an image (${size.width} x ${size.height}).`, {}, { value: { ...size, dataUri } });
-      } catch (e) {
-        return ApiResult.fail('failed', `Could not render the image: ${message(e)}`);
-      } finally {
-        restore();
-      }
-    },
+      }),
   });
 
   readonly imageCopy = this.operation({
@@ -231,26 +269,32 @@ export class ExportApi extends ApiArea {
     modules: ['canvas', 'page'],
     history: false,
     undoable: false,
-    async run(v, ctx): Promise<ApiResult<ImageResult>> {
-      const helper = helperOf(ctx);
-      if (!helper) return noCanvas();
-      const bad = check(v);
-      if (bad) return ApiResult.fail('invalid', bad);
-      const restore = configure(helper, v);
-      try {
-        await settleCrop(ctx, helper);
-        const size = dims(helper);
-        const done = helper.copyToClipboard();
-        if (!done)
-          return ApiResult.fail('unavailable', 'This browser cannot copy images.', 'Download the image instead.');
-        await done;
-        return ApiResult.ok(`Copied the image (${size.width} x ${size.height}) to the clipboard.`, {}, { value: size });
-      } catch (e) {
-        return ApiResult.fail('failed', `Could not copy the image: ${message(e)}`);
-      } finally {
-        restore();
-      }
-    },
+    run: (v, ctx): Promise<ApiResult<CopiedImage>> =>
+      this.#queue.run(async () => {
+        if (ctx.signal.aborted) return stopped();
+        const helper = helperOf(ctx);
+        if (!helper) return noCanvas();
+        const bad = check(v);
+        if (bad) return ApiResult.fail('invalid', bad);
+        const restore = configure(helper, v);
+        try {
+          await settleCrop(ctx, helper);
+          const size = dims(helper);
+          const done = helper.copyToClipboard();
+          if (!done)
+            return ApiResult.fail('unavailable', 'This browser cannot copy images.', 'Download the image instead.');
+          await done;
+          return ApiResult.ok(
+            `Copied the image (${size.width} × ${size.height}) to the clipboard.`,
+            {},
+            { value: size },
+          );
+        } catch (e) {
+          return ApiResult.fail('failed', `Could not copy the image: ${message(e)}`);
+        } finally {
+          restore();
+        }
+      }),
   });
 
   readonly preview = this.operation({
@@ -261,28 +305,30 @@ export class ExportApi extends ApiArea {
     history: false,
     undoable: false,
     surface: { kind: 'ui-only', reason: "The Image section's preview; tools export the image itself" },
-    async run(v, ctx): Promise<ApiResult<PreviewResult>> {
-      const helper = helperOf(ctx);
-      if (!helper) return noCanvas();
-      const bad = check(v);
-      if (bad) return ApiResult.fail('invalid', bad);
-      const restore = configure(helper, v);
-      try {
-        const shot = await ctx.plugin.runTask(Task.create('Preview', (rt) => helper.getPreview(rt, v.max)));
-        if (!shot) return ApiResult.fail('failed', 'The canvas has no size to preview.');
-        const { width, height } = helper.getSizeAndViewport();
-        const value: PreviewResult = {
-          dataUri: shot.canvas.toDataURL('image/png'),
-          width,
-          height,
-          crop: { ...helper.relativeCrop },
-        };
-        return ApiResult.ok('Previewed the image.', {}, { value });
-      } catch (e) {
-        return ApiResult.fail('failed', `Could not preview the image: ${message(e)}`);
-      } finally {
-        restore();
-      }
-    },
+    run: (v, ctx): Promise<ApiResult<PreviewResult>> =>
+      this.#queue.run(async () => {
+        if (ctx.signal.aborted) return stopped();
+        const helper = helperOf(ctx);
+        if (!helper) return noCanvas();
+        const bad = check(v);
+        if (bad) return ApiResult.fail('invalid', bad);
+        const restore = configure(helper, v);
+        try {
+          const shot = await ctx.plugin.runTask(Task.create('Preview', (rt) => helper.getPreview(rt, v.max)));
+          if (!shot) return ApiResult.fail('failed', 'The canvas has no size to preview.');
+          const { width, height } = helper.getSizeAndViewport();
+          const value: PreviewResult = {
+            dataUri: shot.canvas.toDataURL('image/png'),
+            width,
+            height,
+            crop: { ...helper.relativeCrop },
+          };
+          return ApiResult.ok('Previewed the image.', {}, { value });
+        } catch (e) {
+          return ApiResult.fail('failed', `Could not preview the image: ${message(e)}`);
+        } finally {
+          restore();
+        }
+      }),
   });
 }

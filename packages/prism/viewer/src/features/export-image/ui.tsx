@@ -8,14 +8,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { domView, onCleanup } from '@molstar/prism-ui';
+import { domView, onActive, onCleanup } from '@molstar/prism-ui';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { ImageExport } from '../../views/export/image-export.js';
+import { downloadBlob } from '../../ui/download.js';
 import { createImageExportModel } from './model.js';
 
 // The Image section of the Export card (parity.md §4's export row): the existing view over a model built on
 // `export.preview`, `export.image` and `export.image-copy`; the model is made when the section is shown and released
-// with it.
+// with it. It previews only while the section is active (folded: no subscription, no render).
 
 export function exportImageUI(ctx: ViewerUIContext): ViewerExtensionUI {
   return {
@@ -32,7 +33,9 @@ export function exportImageUI(ctx: ViewerUIContext): ViewerExtensionUI {
             api: ctx.api,
             sources: ctx.sources,
             notify: (text, kind) => ctx.managers.notifications.post(text, kind),
+            save: downloadBlob,
           });
+          onActive((active) => model.setActive(active));
           onCleanup(() => model.dispose());
           return <ImageExport model={model} />;
         }),

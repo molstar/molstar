@@ -11,6 +11,7 @@ import { urlCombine } from '@molstar/core/util/url';
 import { PluginConfig } from '@molstar/plugin/config';
 import { type ApiContext, ApiResult, memberName, type OperationDefinition } from '../../api/area.js';
 import { messageOf } from '../../api/run.js';
+import { openStateFrom } from '../../api/state-open.js';
 
 // The `remote-states` feature's operations (operations.md §2, the `session` row: `remote.list`, `remote.open`,
 // `remote.upload`, `remote.remove`; parity.md §1): Mol*'s state server (the classic State tab's Remote States,
@@ -146,29 +147,12 @@ const open: OperationDefinition<typeof OpenParams, void> = {
   approval: 'destructive',
   async run({ entry: key, server: given }, ctx) {
     const server = serverOf(ctx, given);
-    const plugin = ctx.plugin;
     let name: string;
     try {
       const found = pick(await fetchEntries(ctx, server), key, server);
       if (ApiResult.isFailure(found)) return found;
       name = found.name || found.id;
-      // The server's entry holds the snapshot as `data` (`Snapshots.Fetch` of the plugin's state commands).
-      const json = await plugin.runTask(plugin.fetch({ url: found.url, type: 'json' }));
-      const snapshot = json?.data;
-      if (!snapshot || !Array.isArray(snapshot.entries)) throw new Error(`'${name}' is not a saved state`);
-      // A lazy extension whose transformers the state uses loads first, as `session.open` does.
-      const transformers = [...JSON.stringify(snapshot).matchAll(/"transformer"\s*:\s*"([^"]+)"/g)].map((m) => m[1]);
-      await ctx.extensions.ensureFor({ transformers });
-      let failed: string | undefined;
-      const sub = plugin.events.log.subscribe((e) => {
-        if (e.type === 'error') failed ??= String(e.message);
-      });
-      try {
-        await plugin.managers.snapshot.setStateSnapshot(snapshot);
-      } finally {
-        sub.unsubscribe();
-      }
-      if (failed) throw new Error(failed);
+      await openStateFrom(ctx, found.url, name);
     } catch (e) {
       return failure(`open '${key}'`, server, e);
     }

@@ -6,13 +6,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { BehaviorSubject } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cbs, expectOk, headlessViewer, withExtensions } from '../../../_test/harness.js';
 import { DefaultPrismViewerSpec } from '../../../default-spec.js';
 import { createPrismViewerHeadless } from '../../../headless.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { ExportImageFeature } from '../index.js';
+import { downloadBlob } from '../../../ui/download.js';
 import { createImageExportModel, imageValues } from '../model.js';
+
+// The page's save is stubbed: the command hands the operation's bytes to it.
+vi.mock('../../../ui/download.js', () => ({ downloadBlob: vi.fn() }));
 
 // The `export-image` feature (operations.md §2, `export`): its operations on a stand-in `ViewportScreenshotHelper`
 // (the real one needs a canvas, WebGL and a page: what it renders is not tested here).
@@ -81,21 +86,21 @@ function standIn() {
     },
     // As the real one: the preview finds the crop when it is automatic.
     async getPreview() {
+      await new Promise((r) => setTimeout(r, 5));
       note('preview');
       if (behaviors.cropParams.value.auto) behaviors.relativeCrop.next({ ...Crop });
       const { width, height } = frame();
       return { canvas: { toDataURL: () => 'data:image/png;base64,UFJFVklFVw==' }, width, height };
     },
     async getImageDataUri() {
+      // A render takes time: what another export would do to the helper meanwhile is what the queue prevents.
+      await new Promise((r) => setTimeout(r, 5));
       note('image');
       return 'data:image/png;base64,SU1BR0U=';
     },
-    async download(name?: string) {
-      note('download', name);
-    },
     copyToClipboard() {
       note('copy');
-      return Promise.resolve();
+      return new Promise<void>((r) => setTimeout(r, 5));
     },
     getFilename: () => '1CBS.png',
   };
@@ -165,7 +170,10 @@ describe('export image', () => {
     const r = await v.api.export!.image({ size: 'hd', transparent: true, axes: true });
     expectOk(r);
     // The automatic crop (found on a preview) is what is cut: 0.5 x 0.4 of 1280 x 720.
-    expect(r.value).toEqual({ dataUri: 'data:image/png;base64,SU1BR0U=', width: 640, height: 288 });
+    expect(r.value).toMatchObject({ filename: '1CBS.png', width: 640, height: 288 });
+    // The bytes of the image, not a download: saving them is the page's.
+    expect(r.value!.blob.type).toBe('image/png');
+    expect(await r.value!.blob.text()).toBe('IMAGE');
     expect(calls.map((c) => c.op)).toEqual(['preview', 'image']);
     expect(calls[1].values).toMatchObject({
       resolution: { name: 'hd' },
@@ -216,19 +224,78 @@ describe('export image', () => {
     expect(calls).toEqual([]);
   });
 
-  it('downloads under a name, or the helper’s; and needs the page for it', async () => {
-    const { v, calls } = await track(withHelper());
-    const r = await v.api.export!.image({ download: true, name: 'mine.png', crop: 'none' });
+  it('gives the bytes under a name, or the helper’s, with the format’s extension; it needs no page', async () => {
+    const { v, calls } = await track(withHelper(['canvas', 'files']));
+    const r = await v.api.export!.image({ name: 'mine.png', crop: 'none' });
     expectOk(r);
     expect(r.value).toMatchObject({ filename: 'mine.png' });
-    expect(r.value?.dataUri).toBeUndefined();
-    expect(calls[0]).toMatchObject({ op: 'download', name: 'mine.png' });
-    expectOk(await v.api.export!.image({ download: true, crop: 'none' }));
-    expect(calls[1]).toMatchObject({ op: 'download', name: '1CBS.png' });
+    expect(await r.value!.blob.text()).toBe('IMAGE');
+    const bare = await v.api.export!.image({ name: 'shot', format: 'jpeg', crop: 'none' });
+    expectOk(bare);
+    expect(bare.value?.filename).toBe('shot.jpg');
+    const helperName = await v.api.export!.image({ crop: 'none' });
+    expectOk(helperName);
+    expect(helperName.value?.filename).toBe('1CBS.png');
+    expect(calls.map((c) => c.op)).toEqual(['image', 'image', 'image']);
+    // Nothing is a download in the operation (no `download` param).
+    expect(v.api.describe('export.image')?.params).not.toHaveProperty('download');
+  });
 
-    const noPage = await track(withHelper(['canvas', 'files']));
-    expect(await noPage.v.api.export!.image({ download: true })).toMatchObject({ ok: false, code: 'unavailable' });
-    expect(noPage.calls).toEqual([]);
+  it('serializes overlapping exports on the shared helper: each image has its own settings, the helper ends restored', async () => {
+    const { v, calls, helper } = await track(withHelper());
+    const [a, b, c, p] = await Promise.all([
+      v.api.export!.image({ size: 'hd', crop: 'none', name: 'a' }),
+      v.api.export!.image({ size: 'full-hd', format: 'jpeg', crop: 'none', name: 'b' }),
+      v.api.export!.imageCopy({ width: 800, height: 600, crop: 'none' }),
+      v.api.export!.preview({ size: 'hd', transparent: true, crop: 'none' }),
+    ]);
+    expectOk(a);
+    expectOk(b);
+    expectOk(c);
+    expectOk(p);
+    // One after the other, in the order asked; each render saw its own values (not the previous export's, or a restored
+    // helper's).
+    expect(calls.map((x) => x.op)).toEqual(['image', 'image', 'copy', 'preview']);
+    expect(calls[0].values).toMatchObject({ resolution: { name: 'hd' }, format: { name: 'png' } });
+    expect(calls[1].values).toMatchObject({ resolution: { name: 'full-hd' }, format: { name: 'jpeg' } });
+    expect(calls[2].values.resolution).toEqual({ name: 'custom', params: { width: 800, height: 600 } });
+    expect(calls[3].values).toMatchObject({ resolution: { name: 'hd' }, transparent: true });
+    expect([a.value, b.value].map((x) => (x as { width: number }).width)).toEqual([1280, 1920]);
+    expect((c.value as { width: number }).width).toBe(800);
+    expect(helper.values).toMatchObject({
+      resolution: { name: 'viewport' },
+      transparent: false,
+      format: { name: 'png' },
+    });
+    expect(helper.cropParams.auto).toBe(true);
+    expect(helper.relativeCrop).toEqual({ x: 0, y: 0, width: 1, height: 1 });
+  });
+
+  it('goes on after a failed export, and skips one stopped before it started', async () => {
+    const { v, calls, helper } = await track(withHelper());
+    (helper as { getImageDataUri: unknown }).getImageDataUri = () => Promise.reject(new Error('lost context'));
+    const controller = new AbortController();
+    const failing = v.api.export!.image({ crop: 'none' });
+    const stopped = v.api.export!.image({ crop: 'none' }, { signal: controller.signal });
+    controller.abort();
+    const after = v.api.export!.imageCopy({ crop: 'none' });
+    expect(await failing).toMatchObject({ ok: false, code: 'failed' });
+    expect(await stopped).toMatchObject({ ok: false, code: 'aborted' });
+    expectOk(await after);
+    expect(calls.map((x) => x.op)).toEqual(['copy']);
+    expect(helper.values).toMatchObject({ resolution: { name: 'viewport' } });
+  });
+
+  it('the Export an image command saves the file the operation returns', async () => {
+    const { v } = await track(withHelper());
+    const ran = await v.managers.commands
+      .get('export.image')!
+      .run({ crop: 'none', name: 'mine' }, { empty: true }, new AbortController().signal);
+    expect(ran.message).toBe('Saved mine.png (1000 × 500).');
+    expect(downloadBlob).toHaveBeenCalledTimes(1);
+    const [blob, filename] = vi.mocked(downloadBlob).mock.calls[0];
+    expect(filename).toBe('mine.png');
+    expect(await blob.text()).toBe('IMAGE');
   });
 
   it('copies to the clipboard, only where there is a page; fails cleanly when the browser cannot', async () => {
@@ -263,10 +330,12 @@ describe('export image', () => {
   it('keeps the model in step with the form: its size, aspect and crop; copy and download run the operations', async () => {
     const { v, calls } = await track(withHelper());
     const posted: string[] = [];
+    const saved: { blob: Blob; filename: string }[] = [];
     const model = createImageExportModel({
       api: v.api,
       sources: v.sources,
       notify: (t) => posted.push(t),
+      save: (blob, filename) => saved.push({ blob, filename }),
     });
     try {
       model.form.set('resolution', { name: 'hd', params: {} } as never);
@@ -280,10 +349,63 @@ describe('export image', () => {
       expect(calls.find((c) => c.op === 'copy')).toMatchObject({ crop: { width: 0.5 } });
       model.download();
       await vi.waitFor(() => expect(posted.length).toBe(2));
-      expect(posted[1]).toMatch(/^Saved 1CBS\.png/);
+      // The model hands the bytes to the page, and says what was saved with the × of the line under the preview.
+      expect(saved.map((x) => x.filename)).toEqual(['1CBS.png']);
+      expect(await saved[0].blob.text()).toBe('IMAGE');
+      expect(posted[1]).toBe('Saved 1CBS.png (640 × 360).');
       expect(imageValues(model.form.values.value)).toMatchObject({ size: 'hd', width: 0, height: 0 });
     } finally {
       model.dispose();
     }
+  });
+
+  describe('the preview', () => {
+    // The canvas source says whether there is a canvas: the stand-in host has the module, not a canvas3d, so the
+    // model gets a source that does.
+    const make = (v: PrismViewer) =>
+      createImageExportModel({
+        api: v.api,
+        sources: { canvas: new BehaviorSubject({}), structures: v.sources.structures } as never,
+        notify: () => {},
+        save: () => {},
+      });
+    it('turning auto-crop off starts from the whole frame, and the preview only claims a crop once it is in', async () => {
+      const { v, calls } = await track(withHelper());
+      const model = make(v);
+      try {
+        expect(model.settled?.value).toBe(false);
+        await vi.waitFor(() => expect(model.settled?.value).toBe(true), { timeout: 2000 });
+        expect(model.crop.value).toEqual(Crop);
+        // A manual crop starts from the full frame, not from the content's box.
+        model.autoCrop.set(false);
+        expect(model.crop.value).toEqual({ x: 0, y: 0, width: 1, height: 1 });
+        expect(model.settled?.value).toBe(false);
+        await vi.waitFor(() => expect(model.settled?.value).toBe(true), { timeout: 2000 });
+        expect(model.crop.value).toEqual({ x: 0, y: 0, width: 1, height: 1 });
+        expect(calls.filter((c) => c.op === 'preview').length).toBe(2);
+      } finally {
+        model.dispose();
+      }
+    });
+
+    it('does nothing while inactive, and previews again when active', async () => {
+      const { v, calls } = await track(withHelper());
+      const model = make(v);
+      try {
+        model.setActive(false);
+        const seen = calls.length;
+        model.form.set('resolution', { name: 'full-hd', params: {} } as never);
+        model.autoCrop.set(false);
+        await new Promise((r) => setTimeout(r, 400));
+        // No work for a folded section: no preview, no size computed.
+        expect(calls.length).toBe(seen);
+        expect(model.size.value).not.toContain('1920');
+        model.setActive(true);
+        await vi.waitFor(() => expect(calls.some((c) => c.op === 'preview')).toBe(true), { timeout: 2000 });
+        expect(model.size.value).toContain('1920');
+      } finally {
+        model.dispose();
+      }
+    });
   });
 });

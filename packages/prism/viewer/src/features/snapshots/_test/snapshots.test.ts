@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { cbs, expectOk, headlessViewer, recordRuns, representationTypes, until } from '../../../_test/harness.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { createSnapshotStepper, createSnapshotsModel } from '../model.js';
@@ -123,6 +123,26 @@ describe('finding an entry', () => {
 });
 
 describe('snapshot.apply', () => {
+  it('makes the entry current only after it is applied: a failed apply leaves the current one', async () => {
+    const v = await viewer();
+    await snap(v).add({ name: 'A' });
+    await snap(v).add({ name: 'B' });
+    expectOk(await snap(v).apply({ entry: 'A' }));
+    const current = async () => (await list(v)).entries.find((e) => e.current)?.name;
+    expect(await current()).toBe('A');
+
+    vi.spyOn(v.plugin.state, 'setSnapshot').mockRejectedValueOnce(new Error('cannot restore'));
+    expect(await snap(v).apply({ entry: 'B' })).toMatchObject({ ok: false, code: 'failed' });
+    expect(await current()).toBe('A');
+    // Stepping is the same: the neighbor is not current unless it was applied.
+    vi.spyOn(v.plugin.state, 'setSnapshot').mockRejectedValueOnce(new Error('cannot restore'));
+    expect((await snap(v).next()).ok).toBe(false);
+    expect(await current()).toBe('A');
+    // And it works once the failure is over.
+    expectOk(await snap(v).next());
+    expect(await current()).toBe('B');
+  });
+
   it('restores the scene it saved, as one step Undo takes back', async () => {
     const v = await viewer();
     const original = representationTypes(v);
@@ -340,5 +360,91 @@ describe('the views', () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(saved).toHaveLength(v.api.describe('session.save') ? 1 : 0);
     if (saved.length) expect(saved[0]).toMatch(/\.molj$/);
+  });
+});
+
+describe('the Snapshots tab model while hidden', () => {
+  /** Records the subscriptions to the list's state, to see when they are open. */
+  const spyOnSubscribe = (area: ReturnType<typeof snap>) => {
+    const opened: { closed: boolean }[] = [];
+    const subscribe = area.state.subscribe.bind(area.state);
+    vi.spyOn(area.state, 'subscribe').mockImplementation(((...args: unknown[]) => {
+      const sub = (subscribe as (...a: unknown[]) => { closed: boolean })(...args);
+      opened.push(sub);
+      return sub;
+    }) as never);
+    return opened;
+  };
+
+  it('holds one subscription for all the entry forms, and none while hidden', async () => {
+    const v = await viewer();
+    const area = snap(v);
+    for (const name of ['A', 'B', 'C']) await area.add({ name });
+    const model = createSnapshotsModel(v.api, area, () => {});
+    const opened = spyOnSubscribe(area);
+    try {
+      const ids = (await list(v)).entries.map((e) => e.id);
+      for (const id of ids) expect(model.entryOptions(id)).toBeDefined();
+      // One for the three forms, not one each.
+      expect(opened).toHaveLength(1);
+      expect(opened[0].closed).toBe(false);
+
+      // Hidden: nothing follows the list. Shown again: one subscription, and the forms are current.
+      model.setActive(false);
+      expect(opened[0].closed).toBe(true);
+      expectOk(await area.update({ entry: ids[0], showFor: 4000 }));
+      expect(model.entryOptions(ids[0])?.values.value.durationInMs).not.toBe(4000);
+      model.setActive(true);
+      expect(opened).toHaveLength(2);
+      expect(opened[1].closed).toBe(false);
+      expect(model.entryOptions(ids[0])?.values.value.durationInMs).toBe(4000);
+    } finally {
+      model.dispose();
+    }
+    expect(opened.every((s) => s.closed)).toBe(true);
+  });
+
+  it('drops the forms of removed entries, and the subscription with the last one', async () => {
+    const v = await viewer();
+    const area = snap(v);
+    await area.add({ name: 'A' });
+    await area.add({ name: 'B' });
+    const model = createSnapshotsModel(v.api, area, () => {});
+    const opened = spyOnSubscribe(area);
+    try {
+      const [a, b] = (await list(v)).entries.map((e) => e.id);
+      const formA = model.entryOptions(a);
+      model.entryOptions(b);
+      expectOk(await area.remove({ entry: a }));
+      // The removed entry has no form any more; asking again gives none (it is gone), the other stays the same one.
+      expect(model.entryOptions(a)).toBeUndefined();
+      expect(model.entryOptions(b)).toBeDefined();
+      expect(opened[0].closed).toBe(false);
+      expectOk(await area.remove({ entry: b }));
+      expect(opened[0].closed).toBe(true);
+      expect(formA).toBeDefined();
+      // A new entry gets a new subscription, not a leftover.
+      await area.add({ name: 'C' });
+      const c = (await list(v)).entries[0].id;
+      model.entryOptions(c);
+      expect(opened).toHaveLength(2);
+    } finally {
+      model.dispose();
+    }
+  });
+
+  it('does not report an edit for a hidden form, and makes the edit a form reports once it rests', async () => {
+    const v = await viewer();
+    const area = snap(v);
+    await area.add({ name: 'A' });
+    const model = createSnapshotsModel(v.api, area, () => {});
+    try {
+      const id = (await list(v)).entries[0].id;
+      const form = model.entryOptions(id)!;
+      form.set('durationInMs', 2500 as never);
+      await vi.waitFor(async () => expect((await list(v)).entries[0].showFor).toBe(2500));
+    } finally {
+      model.dispose();
+    }
   });
 });

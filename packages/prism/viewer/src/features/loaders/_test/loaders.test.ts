@@ -8,9 +8,12 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mapFile } from '../../../api/_test/volume-fixtures.js';
-import { exampleFile, expectOk, headlessViewer, recordRuns, until } from '../../../_test/harness.js';
+import { exampleFile, expectOk, headlessViewer, recordRuns, until, withExtensions } from '../../../_test/harness.js';
+import { DefaultPrismViewerSpec } from '../../../default-spec.js';
+import { createPrismViewerHeadless } from '../../../headless.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { LoadersFeature } from '../index.js';
+import { snapshotTypeOf } from '../operations.js';
 
 // The `loaders` feature (viewer-spec.md §3.1): its operations over a stubbed `fetch` that serves the repository's
 // example files by address (nothing reaches the network). The plugin downloads through `fetch` in Node.
@@ -86,19 +89,16 @@ describe('loaders: the feature', () => {
       // Replacing the scene is destructive, which wins over network (api/area.ts).
       const replaces = name === 'mvs' || name === 'snapshot';
       expect(v.api.load[name]?.definition.approval, name).toBe(replaces ? 'destructive' : 'network');
-      expect(v.api.load[name]?.definition.modules, name).toEqual(['network']);
+      // `load.mvs` takes data as well as an address: it checks the network per call (below), not as a module.
+      expect(v.api.load[name]?.definition.modules, name).toEqual(name === 'mvs' ? undefined : ['network']);
     }
     expect((v.api.load as unknown as Record<string, unknown>).svs).toBeUndefined();
     for (const id of ['load.entry', 'load.url', 'load.mvs', 'load.snapshot'])
       expect(v.managers.commands.get(id)).toBeDefined();
   });
 
-  it('brings Home a Download by ID section, named as the host requires', async () => {
-    const v = await viewer();
-    const ui = await LoadersFeature.ui!({ api: v.api, managers: v.managers } as never);
-    expect(ui.sections?.map((s) => [s.id, s.slot, s.title, s.icon, s.order])).toEqual([
-      ['loaders.section.entry', 'home.import', 'Download by ID', 'download', 0],
-    ]);
+  it('brings no views: Home’s Download Structure is the form for an id', async () => {
+    expect(LoadersFeature.ui).toBeUndefined();
   });
 
   it('keeps the core load operations', async () => {
@@ -316,6 +316,26 @@ describe('load.mvs', () => {
     expect(structures(v).length).toBeGreaterThan(0);
   });
 
+  it('loads data without the network module, and needs it for an address', async () => {
+    serve({ 'entry-files/1cbs.bcif': await bytes('1cbs_full.bcif') });
+    const spec = DefaultPrismViewerSpec();
+    const v = await createPrismViewerHeadless({
+      spec: { ...spec, extensions: withExtensions(spec.extensions ?? [], [LoadersFeature]) },
+      modules: ['files'],
+    });
+    try {
+      expect(v.api.describe('load.mvs')?.available).toBe(true);
+      expect(await v.api.load.mvs!({ url: 'https://files.test/1cbs.mvsj' })).toMatchObject({
+        ok: false,
+        code: 'unavailable',
+      });
+      expectOk(await v.api.load.mvs!({ data: simpleMvs, keepCamera: true }));
+      expect(structures(v).length).toBeGreaterThan(0);
+    } finally {
+      await v.dispose();
+    }
+  });
+
   it('fails on a 404, on invalid data, and on both a url and data', async () => {
     serve({});
     const v = await viewer();
@@ -348,6 +368,39 @@ describe('load.snapshot', () => {
     await until(() => structures(v).length === 1);
   });
 
+  it('follows the address’s extension when no type is given, and obeys one that is', async () => {
+    serve({ '1cbs.bcif': await bytes('1cbs_full.bcif') });
+    const a = await viewer();
+    expectOk(await a.api.load.entry!({ source: 'pdb', id: '1cbs' }));
+    const molx = new Uint8Array(await (await a.plugin.managers.snapshot.serialize({ type: 'molx' })).arrayBuffer());
+    const molj = await (await a.plugin.managers.snapshot.serialize({ type: 'molj' })).text();
+
+    serve({
+      'files.test/state.molx': molx,
+      'files.test/state.molj': molj,
+      'files.test/download': molx,
+      '1cbs.bcif': await bytes('1cbs_full.bcif'),
+    });
+    // A .molx address, no type: read as a session (as a state it would fail to parse).
+    const v = await viewer();
+    expectOk(await v.api.load.snapshot!({ url: 'https://files.test/state.molx?download=1' }));
+    await until(() => structures(v).length === 1);
+    // A .molj address, no type: a state.
+    const w = await viewer();
+    expectOk(await w.api.load.snapshot!({ url: 'https://files.test/state.molj' }));
+    await until(() => structures(w).length === 1);
+    // An address without an extension: the type says.
+    const x = await viewer();
+    expectOk(await x.api.load.snapshot!({ url: 'https://files.test/download', type: 'molx' }));
+    await until(() => structures(x).length === 1);
+  });
+
+  it('reads the kind from an address’s path', () => {
+    expect(snapshotTypeOf('https://a.test/s.molx')).toBe('molx');
+    expect(snapshotTypeOf('https://a.test/S.MOLJ?x=1#y')).toBe('molj');
+    expect(snapshotTypeOf('https://a.test/download?name=s.molx')).toBeUndefined();
+  });
+
   it('opens a remote state by id from the state server', async () => {
     const molj = JSON.parse(await savedState());
     const stub = serve({
@@ -358,6 +411,24 @@ describe('load.snapshot', () => {
     expectOk(await v.api.load.snapshot!({ id: 'abc' }));
     expect(String(stub.mock.calls[0][0])).toBe('https://state.test/get/abc');
     await until(() => structures(v).length === 1);
+  });
+
+  it('loads the lazy extensions that own the state’s transformers before applying it, by id too', async () => {
+    const molj = JSON.parse(await savedState());
+    serve({ 'state.test/get/abc': JSON.stringify({ data: molj }), '1cbs.bcif': await bytes('1cbs_full.bcif') });
+    const v = await viewer({ options: { data: { stateServer: 'https://state.test' } } });
+    const ensure = vi.spyOn(v.extensions, 'ensureFor');
+    expectOk(await v.api.load.snapshot!({ id: 'abc' }));
+    expect(ensure).toHaveBeenCalledTimes(1);
+    expect(ensure.mock.calls[0][0].transformers).toContain('ms-plugin.download');
+    await until(() => structures(v).length === 1);
+  });
+
+  it('fails on a state that is not one, and on a 404, by id', async () => {
+    serve({ 'state.test/get/bad': JSON.stringify({ data: { nothing: true } }) });
+    const v = await viewer({ options: { data: { stateServer: 'https://state.test' } } });
+    expect(await v.api.load.snapshot!({ id: 'bad' })).toMatchObject({ ok: false, code: 'failed' });
+    expect(await v.api.load.snapshot!({ id: 'missing' })).toMatchObject({ ok: false, code: 'failed' });
   });
 
   it('fails on a 404 and on a file that is not a state', async () => {

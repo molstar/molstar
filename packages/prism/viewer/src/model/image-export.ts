@@ -29,6 +29,11 @@ export interface ImageExportModel {
   aspect: ReadonlyState<number>;
   /** Crop to the visible content automatically, or keep the box the user dragged. */
   autoCrop: ObservableState<boolean>;
+  /**
+   * Whether the preview is of the settings now (false from a change until its preview is in): the auto-crop chip
+   * shows as on only then, so the first preview does not claim a crop it has not found.
+   */
+  settled?: ReadonlyState<boolean>;
   crop: ReadonlyState<CropBox>;
   setCrop(crop: CropBox): void;
   /** The output size in pixels ("1920 × 1080"), for the line under the preview. */

@@ -258,9 +258,11 @@ export class SnapshotApi extends ApiArea {
       const found = find(ctx, entry, false);
       if (isFailure(found)) return found;
       const manager = ctx.plugin.managers.snapshot;
-      const snapshot = manager.setCurrent(found.entry.snapshot.id);
+      const snapshot = manager.getEntry(found.entry.snapshot.id)?.snapshot;
       if (!snapshot) return ApiResult.fail('not-found', `There is no snapshot '${entry}'.`);
       await ctx.plugin.state.setSnapshot(snapshot);
+      // Current only once it is applied: a failed apply leaves the list's current entry as it was.
+      manager.setCurrent(snapshot.id);
       return ApiResult.ok(
         `Applied snapshot ${labelOf(found.entry, found.index)}.`,
         { view: true, sequence: true },
@@ -441,10 +443,12 @@ async function step(ctx: ApiContext, dir: -1 | 1): Promise<ApiResult> {
   const manager = ctx.plugin.managers.snapshot;
   if (!manager.state.entries.size) return none();
   const id = manager.getNextId(manager.state.current, dir);
-  const snapshot = id ? manager.setCurrent(id) : undefined;
+  const snapshot = id ? manager.getEntry(id)?.snapshot : undefined;
   if (!id || !snapshot) return ApiResult.fail('not-found', 'There is no such snapshot.');
   const index = entriesOf(ctx).findIndex((e) => e.snapshot.id === id);
   await ctx.plugin.state.setSnapshot(snapshot);
+  // Current only once it is applied (see `snapshot.apply`).
+  manager.setCurrent(id);
   return ApiResult.ok(
     `Applied snapshot ${labelOf(manager.getEntry(id), index)} (${index + 1} of ${manager.state.entries.size}).`,
     { view: true, sequence: true },

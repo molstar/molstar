@@ -9,6 +9,7 @@
 import { ApiResult } from '../../api/area.js';
 import { operationCommand } from '../../commands/operations.js';
 import type { ViewerExtension } from '../../spec.js';
+import { downloadBlob } from '../../ui/download.js';
 import { ExportApi } from './operations.js';
 
 declare module '../../api.js' {
@@ -30,13 +31,25 @@ export const ExportImageFeature: ViewerExtension = {
     const x = api.export;
     if (!x) return [];
     return [
-      operationCommand(api, x.image, {
-        category: 'Export',
-        icon: 'camera',
-        title: 'Export an image…',
-        alias: ['export image', 'screenshot', 'png', 'save image'],
-        action: 'Export',
-      }),
+      {
+        ...operationCommand(api, x.image, {
+          category: 'Export',
+          icon: 'camera',
+          title: 'Export an image…',
+          alias: ['export image', 'screenshot', 'png', 'save image'],
+          action: 'Export',
+        }),
+        // The operation gives the image's bytes; the command saves the file through the page.
+        async run(args) {
+          const r = await api.export!.image(args as never);
+          if (!r.ok) throw new Error(r.hint ? `${r.message} ${r.hint}` : r.message);
+          if (r.value) downloadBlob(r.value.blob, r.value.filename);
+          return {
+            message: `Saved ${r.value?.filename} (${r.value?.width} × ${r.value?.height}).`,
+            ops: `export.image(${JSON.stringify(args)})`,
+          };
+        },
+      },
       operationCommand(api, x.imageCopy, {
         category: 'Export',
         icon: 'copy',

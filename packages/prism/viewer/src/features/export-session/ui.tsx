@@ -12,7 +12,7 @@ import { ActionFooter, domView, ParamsForm } from '@molstar/prism-ui';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
-import { downloadBlob } from './download.js';
+import { downloadBlob } from '../../ui/download.js';
 import { SaveParams } from './operations.js';
 
 // The "Session & state" section of the Export card: what to save and under which name, and Download, which asks

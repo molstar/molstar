@@ -96,6 +96,11 @@ const sameEntries = (a: readonly SnapshotEntry[], b: readonly SnapshotEntry[]) =
   });
 
 export interface SnapshotsPanelModel extends SnapshotsModel {
+  /**
+   * Whether the tab shows: the entry forms follow the list only while it does (hidden UI holds no subscription;
+   * AGENTS.md). Starts active.
+   */
+  setActive(active: boolean): void;
   dispose(): void;
 }
 
@@ -112,10 +117,36 @@ export function createSnapshotsModel(
   const entries = mapState(state, (s) => s.entries.map(toEntry), sameEntries);
   const current = mapState(state, (s) => s.current, Object.is);
   const forms = new Map<string, ParamsFormModel<typeof EntryOptions>>();
-  const timers = new Set<ReturnType<typeof setTimeout>>();
-  const subs: Subscription[] = [];
+  // A pending (debounced) edit of an entry's playback time, by entry.
+  const timers = new Map<string, ReturnType<typeof setTimeout>>();
   const entryOf = (id: string) => state.value.entries.find((e) => e.id === id);
   const saveOptions = new ParamsFormModel(SaveOptions);
+
+  const forget = (id: string) => {
+    forms.delete(id);
+    const t = timers.get(id);
+    if (t) clearTimeout(t);
+    timers.delete(id);
+  };
+  // One subscription for all the entry forms (not one per form), while the tab shows: it loads each form from the list
+  // (a session opened, another edit) without reporting an edit, and drops the forms of removed entries.
+  let follow: Subscription | undefined;
+  let active = true;
+  const startFollowing = () => {
+    if (follow || !active || !forms.size) return;
+    follow = state.subscribe((s) => {
+      for (const [id, form] of [...forms]) {
+        const e = s.entries.find((x) => x.id === id);
+        if (e) form.load({ durationInMs: e.showFor ?? DefaultShowFor });
+        else forget(id);
+      }
+      if (!forms.size) stopFollowing();
+    });
+  };
+  const stopFollowing = () => {
+    follow?.unsubscribe();
+    follow = undefined;
+  };
 
   return {
     entries,
@@ -125,34 +156,28 @@ export function createSnapshotsModel(
       if (!entryOf(id)) return undefined;
       let form = forms.get(id);
       if (!form) {
-        let timer: ReturnType<typeof setTimeout> | undefined;
+        // A removed entry's form goes when the next one is made, even if the tab was hidden at the removal.
+        for (const known of [...forms.keys()]) if (!entryOf(known)) forget(known);
         form = new ParamsFormModel(
           EntryOptions,
           { durationInMs: entryOf(id)?.showFor ?? DefaultShowFor },
           {
             onChange: (values) => {
               // A slider drags through many values: the edit is made when it rests.
-              if (timer) {
-                clearTimeout(timer);
-                timers.delete(timer);
-              }
-              timer = setTimeout(() => {
-                if (timer) timers.delete(timer);
-                void api.snapshot?.update({ entry: id, showFor: values.durationInMs });
-              }, 150);
-              timers.add(timer);
+              const pending = timers.get(id);
+              if (pending) clearTimeout(pending);
+              timers.set(
+                id,
+                setTimeout(() => {
+                  timers.delete(id);
+                  void api.snapshot?.update({ entry: id, showFor: values.durationInMs });
+                }, 150),
+              );
             },
           },
         );
         forms.set(id, form);
-        const shown = form;
-        // Follows the list (a session opened, another edit): loaded without reporting an edit.
-        subs.push(
-          state.subscribe((s) => {
-            const e = s.entries.find((x) => x.id === id);
-            if (e) shown.load({ durationInMs: e.showFor ?? DefaultShowFor });
-          }),
-        );
+        startFollowing();
       }
       return form;
     },
@@ -194,10 +219,17 @@ export function createSnapshotsModel(
     open(files) {
       if (files[0]) void api.session.open({ file: files[0] });
     },
+    setActive(on) {
+      active = on;
+      if (on) startFollowing();
+      else stopFollowing();
+    },
     dispose() {
-      for (const t of timers) clearTimeout(t);
+      active = false;
+      stopFollowing();
+      for (const t of timers.values()) clearTimeout(t);
       timers.clear();
-      for (const s of subs.splice(0)) s.unsubscribe();
+      forms.clear();
     },
   };
 }

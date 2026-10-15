@@ -20,10 +20,13 @@ export const SaveParams = {
   kind: PD.Select<SessionKind>(
     'session',
     [
-      ['session', 'Session (.molx): the state and the data it uses'],
-      ['state', 'State (.molj): the state only'],
+      ['session', 'Session (.molx), with data'],
+      ['state', 'State (.molj)'],
     ],
-    { description: 'A session keeps the loaded data in the file; a state only says how to build the scene again' },
+    {
+      description:
+        'A session (.molx) keeps the loaded data in the file; a state (.molj) only says how to build the scene again',
+    },
   ),
   name: PD.Text('', { description: 'The file name, without its extension (empty: from the loaded entries)' }),
 };

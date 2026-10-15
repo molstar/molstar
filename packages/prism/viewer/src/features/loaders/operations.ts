@@ -26,6 +26,7 @@ import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/
 import { type ApiContext, ApiResult, memberName, type OperationDefinition } from '../../api/area.js';
 import { messageOf } from '../../api/run.js';
 import { labelOf, loadedStructures } from '../../api/scope.js';
+import { currentStateServer, openStateFrom, stateAddress, transformersOf } from '../../api/state-open.js';
 
 // The `loaders` feature's operations (operations.md §2, the `load` row; README §3.2): Mol*'s own loaders
 // (`@molstar/plugin-extension/loaders`: the plugin's state actions and builders) as operations of the core's `load`
@@ -67,15 +68,6 @@ export const EntryParams = {
   representation: PD.Text('', {
     description: "Structures: a representation preset by id or name; empty: the viewer's default (AFDB: pLDDT)",
   }),
-};
-
-/** What the Home form edits: the sources people pick (`pdb-dev` is for old links), and the id. */
-export const EntryFormParams = {
-  source: PD.Select<EntrySource>(
-    'pdb',
-    SourceOptions.filter(([s]) => s !== 'pdb-dev'),
-  ),
-  id: PD.Text('', { label: 'Id', description: 'One or more ids, separated by commas' }),
 };
 
 const PluginRepresentationDefault = 'preset-structure-representation-ma-quality-assessment-plddt';
@@ -391,7 +383,7 @@ const mvs: OperationDefinition<typeof MvsParams, Loaded> = {
   id: 'load.mvs',
   title: 'Load a MolViewSpec',
   params: MvsParams,
-  ...network,
+  // No `modules: ['network']`: the module is checked per call, as only a url needs it (data is local).
   // It replaces the scene (and an MVS the Snapshots list): destructive wins over network (api/area.ts).
   approval: 'destructive',
   async run({ url, data, format, keepCamera }, ctx) {
@@ -400,6 +392,13 @@ const mvs: OperationDefinition<typeof MvsParams, Loaded> = {
       return ApiResult.fail('invalid', 'Give a url or data, not both.', 'Neither is loaded: say which one is meant.');
     }
     if (!address && !data.trim()) return ApiResult.fail('invalid', 'Which MolViewSpec?', 'Give a url or its data.');
+    if (address && !ctx.modules.has('network')) {
+      return ApiResult.fail(
+        'unavailable',
+        'Load a MolViewSpec needs the network, which this viewer does not have.',
+        'Give its data instead of a url.',
+      );
+    }
     const plugin = ctx.plugin;
     const before = refsOf(ctx);
     try {
@@ -432,9 +431,24 @@ const mvs: OperationDefinition<typeof MvsParams, Loaded> = {
 
 export const SnapshotParams = {
   url: PD.Text('', { description: 'The address of a session (.molx) or a state (.molj); empty: use id' }),
-  type: PD.Select<'molj' | 'molx'>('molj', PD.arrayToOptions(['molj', 'molx'] as const)),
+  type: PD.Select<'auto' | 'molj' | 'molx'>(
+    'auto',
+    [
+      ['auto', "From the address's extension"],
+      ['molj', 'State (.molj)'],
+      ['molx', 'Session (.molx)'],
+    ],
+    { description: "The file's kind; by default the address's extension says (.molx, else .molj)" },
+  ),
   id: PD.Text('', { description: "A state on the state server (the viewer's `state-server` option) by id" }),
 };
+
+/** The kind a url's extension says (`.molx`, `.molj`; a query or fragment is ignored). */
+export function snapshotTypeOf(url: string): 'molj' | 'molx' | undefined {
+  const path = url.split(/[?#]/)[0];
+  const m = /\.(molx|molj)$/i.exec(path);
+  return m ? (m[1].toLowerCase() as 'molj' | 'molx') : undefined;
+}
 
 const snapshot: OperationDefinition<typeof SnapshotParams, Loaded> = {
   id: 'load.snapshot',
@@ -452,20 +466,18 @@ const snapshot: OperationDefinition<typeof SnapshotParams, Loaded> = {
       await plugin.initialized;
       await guarded(ctx, async () => {
         if (address) {
+          const kind = type === 'auto' ? (snapshotTypeOf(address) ?? 'molj') : type;
           const data = await plugin.runTask(plugin.fetch({ url: address, type: 'binary' }));
           // A lazy extension whose transformers the session uses loads first, as `session.open` does for a file.
-          if (type === 'molj') {
-            const text = new TextDecoder().decode(data);
-            const transformers = [...text.matchAll(/"transformer"\s*:\s*"([^"]+)"/g)].map((m) => m[1]);
-            await ctx.extensions.ensureFor({ transformers });
+          if (kind === 'molj') {
+            await ctx.extensions.ensureFor({ transformers: transformersOf(new TextDecoder().decode(data)) });
           }
-          await plugin.managers.snapshot.open(new File([data], `state.${type}`));
+          await plugin.managers.snapshot.open(new File([data], `state.${kind}`));
         } else {
-          const server = plugin.config.get(PluginConfig.State.CurrentServer);
-          const json = await plugin.runTask(
-            plugin.fetch({ url: `${server}/get/${encodeURIComponent(id.trim())}`, type: 'json' }),
-          );
-          await plugin.managers.snapshot.setStateSnapshot(json.data);
+          const server = currentStateServer(ctx);
+          if (!server) throw new Error('the viewer has no state server');
+          const key = id.trim();
+          await openStateFrom(ctx, stateAddress(server, key), key);
         }
       });
     } catch (e) {

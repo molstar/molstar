@@ -72,10 +72,9 @@ export function loadsFromUrl(search: string): UrlLoad[] {
 
   const snapshotUrl = get('snapshot-url');
   if (snapshotUrl) {
-    loads.push({
-      operation: 'load.snapshot',
-      values: { url: snapshotUrl, type: get('snapshot-url-type')?.toLowerCase() ?? 'molj' },
-    });
+    // Without `snapshot-url-type` the operation follows the address's extension (.molx or .molj).
+    const type = get('snapshot-url-type')?.toLowerCase();
+    loads.push({ operation: 'load.snapshot', values: { url: snapshotUrl, ...(type ? { type } : {}) } });
   }
 
   const structureUrl = get('structure-url');
