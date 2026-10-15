@@ -6,13 +6,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { CommandDefinition, IconName, KeyChord } from '@molstar/prism-ui';
+import type { CommandDefinition, IconName, KeyChord } from '@molstar/prism-ui/core';
 import type { OperationFn, ViewerApi } from '../api/area.js';
+import { filePickers, filesOf } from '../api/files.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 
 // Commands over operations (operations.md §3): one command per operation by default, with the operation's id, title
-// and params; its form is the params' form. It runs the operation through the API bound to the person, and its result
-// line is what the status column says. A failure is the command's failure, with the hint.
+// and params (resolved as the API describes them, so registry-driven params are current); its form is the params'
+// form, with file pickers for file values. It runs the operation through the API bound to the person, says why it
+// cannot run when the operation says so, and its result line is what the status column says.
 
 export interface OperationCommandOptions {
   readonly category: string;
@@ -34,7 +36,7 @@ export async function runAsCommand(
   api: ViewerApi,
   id: string,
   values: Readonly<Record<string, unknown>>,
-): Promise<{ message: string; undoable?: boolean; ops: string }> {
+): Promise<{ message: string; ops: string }> {
   const r = await api.run(id, values);
   if (!r.ok) throw new Error(r.hint ? `${r.message} ${r.hint}` : r.message);
   return { message: r.did, ops: `${id}(${formatValues(values)})` };
@@ -47,8 +49,16 @@ export function operationCommand(
 ): CommandDefinition<ViewerCommandContext> {
   const def = op.definition;
   const fixed = o.values ?? {};
-  const params = typeof def.params === 'function' ? undefined : def.params;
-  const open = params ? Object.keys(params).filter((k) => !(k in fixed)) : [];
+  const form = () => {
+    const params = api.describe(def.id)?.params ?? {};
+    const open = Object.keys(params).filter((k) => !(k in fixed));
+    return open.length ? filePickers(Object.fromEntries(open.map((k) => [k, params[k]]))) : undefined;
+  };
+  const files = new Set(
+    Object.entries(api.describe(def.id)?.params ?? {})
+      .filter(([, p]) => p.type === 'value' && (Array.isArray(p.defaultValue) || p.defaultValue === null))
+      .map(([k]) => k),
+  );
   return {
     id: o.id ?? def.id,
     title: o.title ?? def.title,
@@ -58,9 +68,17 @@ export function operationCommand(
     ...(o.shortcut ? { shortcut: o.shortcut } : {}),
     ...(o.action ? { action: o.action } : {}),
     ...(o.group ? { group: o.group } : {}),
-    ...(params && open.length ? { params: () => Object.fromEntries(open.map((k) => [k, params[k]])) } : {}),
+    ...(form() ? { params: () => form() ?? {} } : {}),
+    when: () => api.describe(def.id)?.available ?? `There is no operation '${def.id}'.`,
     async run(args) {
-      const r = await runAsCommand(api, def.id, { ...args, ...fixed });
+      // File pickers give Mol*'s file assets; the operation takes DOM files.
+      const values: Record<string, unknown> = { ...args, ...fixed };
+      for (const k of files) {
+        if (!(k in values)) continue;
+        const list = filesOf(values[k]);
+        values[k] = Array.isArray(api.describe(def.id)?.params[k]?.defaultValue) ? list : (list[0] ?? null);
+      }
+      const r = await runAsCommand(api, def.id, values);
       return { ...r, undoable: !def.read && def.history !== false };
     },
   };
@@ -69,12 +87,8 @@ export function operationCommand(
 function formatValues(values: Readonly<Record<string, unknown>>): string {
   const parts: string[] = [];
   for (const [k, v] of Object.entries(values)) {
-    if (
-      v === undefined ||
-      typeof v === 'function' ||
-      (typeof v === 'object' && v !== null && !Array.isArray(v) && 'name' in v && 'size' in v)
-    )
-      continue;
+    if (v === undefined || typeof v === 'function' || (typeof File !== 'undefined' && v instanceof File)) continue;
+    if (Array.isArray(v) && v.some((x) => typeof File !== 'undefined' && x instanceof File)) continue;
     parts.push(`${k}: ${JSON.stringify(v)}`);
   }
   return parts.length ? `{ ${parts.join(', ')} }` : '';

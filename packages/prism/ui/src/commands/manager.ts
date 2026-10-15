@@ -72,6 +72,8 @@ export interface KeyEventLike {
   code?: string;
   /** Where the key went (an element in a page); a text-entry target keeps keys that type. */
   target?: unknown;
+  /** The composed path of a DOM event: across a shadow root `target` is its host, the path's first item the real one. */
+  composedPath?(): EventTarget[];
   isComposing?: boolean;
   repeat?: boolean;
   defaultPrevented?: boolean;
@@ -372,7 +374,7 @@ export class CommandManager<Ctx> {
    */
   handleKey(e: KeyEventLike, mac = true): boolean {
     if (e.defaultPrevented || e.repeat || e.isComposing || e.key === 'Process') return false;
-    const typing = typesText(e.target);
+    const typing = typesText(e.composedPath?.()[0] ?? e.target);
     const hits = this.#commands.asReadonly.value.filter(
       (c) => c.shortcut && (!typing || typesNothing(c.shortcut)) && chordMatches(c.shortcut, e, mac),
     );
@@ -484,10 +486,17 @@ function typesNothing(chord: KeyChord): boolean {
   return !!chord.mod && !chord.alt;
 }
 
+/** A single character that is not a letter, a digit or a space. */
+function isSymbol(key: string): boolean {
+  return /^[^\p{L}\p{N}\s]$/u.test(key);
+}
+
 function chordMatches(chord: KeyChord, e: KeyEventLike, mac: boolean): boolean {
   const mod = mac ? !!e.metaKey : !!e.ctrlKey;
   const other = mac ? !!e.ctrlKey : !!e.metaKey;
-  if (!!chord.mod !== mod || other || !!chord.alt !== !!e.altKey || !!chord.shift !== !!e.shiftKey) return false;
+  if (!!chord.mod !== mod || other || !!chord.alt !== !!e.altKey) return false;
+  // A symbol (`?` is Shift+/ on most layouts) already implies its modifiers; letters and digits match Shift strictly.
+  if (!!chord.shift !== !!e.shiftKey && (chord.shift || !isSymbol(chord.key))) return false;
   const want = chord.key.toLowerCase();
   const key = e.key.toLowerCase();
   if (key === want) return true;

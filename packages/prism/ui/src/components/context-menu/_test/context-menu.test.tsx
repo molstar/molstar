@@ -57,6 +57,30 @@ describe('openContextMenu', () => {
     b.root.remove();
   });
 
+  it("does not take Escape pressed in another viewer's shadow root, and does not stop it", () => {
+    const hostA = document.createElement('div');
+    const hostB = document.createElement('div');
+    document.body.append(hostA, hostB);
+    const rootA = document.createElement('div');
+    hostA.attachShadow({ mode: 'open' }).append(rootA);
+    const inputB = document.createElement('input');
+    hostB.attachShadow({ mode: 'open' }).append(inputB);
+    openContextMenu(rootA, { x: 0, y: 0 }, [{ id: 'a', label: 'A', run: () => {} }]);
+    const seen = vi.fn();
+    document.addEventListener('keydown', seen);
+    inputB.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, composed: true }));
+    expect(menu(rootA)).not.toBeNull();
+    expect(seen).toHaveBeenCalledTimes(1);
+    // inside A it closes
+    rootA
+      .querySelector('button')
+      ?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, composed: true }));
+    expect(menu(rootA)).toBeNull();
+    document.removeEventListener('keydown', seen);
+    hostA.remove();
+    hostB.remove();
+  });
+
   it('closes by its own return, once, and takes its listeners with it', () => {
     const { root, closed, close } = setup();
     close();

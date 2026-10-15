@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { distinctUntilChanged, map } from 'rxjs';
+import { mapState } from '../reactive/map-state.js';
 import { observableState } from '../reactive/observable-state.js';
 import type { ReadonlyState } from '../reactive/readonly-state.js';
 import { type DockId, DockIds } from './view-state.js';
@@ -153,9 +153,7 @@ function openTab(s: NavigationState, dock: DockId): string | undefined {
 }
 
 function derived<T>(source: ReadonlyState<NavigationState>, pick: (s: NavigationState) => T): ReadonlyState<T> {
-  const out = source.pipe(map(pick), distinctUntilChanged()) as ReadonlyState<T>;
-  Object.defineProperty(out, 'value', { get: () => pick(source.value) });
-  return out;
+  return mapState(source, pick, Object.is);
 }
 
 function isStoredNavigation(value: unknown): value is StoredNavigation {

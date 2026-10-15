@@ -119,6 +119,16 @@
     font-size: var(--msp-font-size-md);
     line-height: var(--msp-line-height);
     color: var(--msp-color-text);
+    /* The host page's inherited text styles (a viewer in a styled article) stop here. */
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal;
+    text-align: start;
+    text-transform: none;
+    text-indent: 0;
+    letter-spacing: normal;
+    word-spacing: normal;
+    white-space: normal;
     -webkit-font-smoothing: antialiased;
     text-size-adjust: none;
     /* An app, not a page: the arrow over labels and headings; the text cursor only where text is typed. */

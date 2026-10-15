@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { isInside } from '../../dom/events.js';
+import { isInside, ownsKey } from '../../dom/events.js';
 import { createRoot } from '../../dom/scope.js';
 import { Icon, type IconName } from '../icon/icon.js';
 import { classes } from './_generated/context-menu.module.css.js';
@@ -53,6 +53,8 @@ export function openContextMenu(
   };
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== 'Escape') return;
+    // Escape in another viewer on the page is not this menu's.
+    if (!isInside(e, menu) && !ownsKey(root, e)) return;
     e.preventDefault();
     e.stopPropagation();
     close();

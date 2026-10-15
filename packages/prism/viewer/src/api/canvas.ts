@@ -9,7 +9,7 @@
 import { Color } from '@molstar/core/util/color';
 import { decodeColor } from '@molstar/core/util/color/utils';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { ReadonlyState } from '@molstar/prism-ui';
+import type { ReadonlyState } from '@molstar/prism-ui/core';
 import type { CanvasState } from '../sources/viewer-sources.js';
 import { ApiArea, ApiResult } from './area.js';
 
@@ -39,7 +39,7 @@ export class CanvasApi extends ApiArea {
         );
       }
       const hex = Color.toHexStyle(value);
-      if (ctx.sources.canvas.value?.background === hex) return ApiResult.ok(`The background is already ${color}.`);
+      if (ctx.sources.canvas.value?.background === hex) return ApiResult.already(`The background is already ${color}.`);
       ctx.plugin.setCanvas3DProps({ renderer: { backgroundColor: value } });
       return ApiResult.ok(`Background set to ${color}.`, { view: true });
     },

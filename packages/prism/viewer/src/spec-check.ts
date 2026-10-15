@@ -21,12 +21,13 @@ export class PrismViewerSpecError extends Error {
   }
 }
 
-export function checkSpec(spec: PrismViewerSpec): void {
+export function checkSpec(spec: PrismViewerSpec, coreAreas: readonly string[] = []): void {
   const problems: string[] = [];
   const owners = new Set<string>(['core']);
   for (const e of spec.extensions ?? []) {
     if (!IdPattern.test(e.id)) problems.push(`extension id '${e.id}' is not lowercase words joined by dashes`);
     if (owners.has(e.id)) problems.push(`extension '${e.id}' is listed twice`);
+    if (coreAreas.includes(e.id)) problems.push(`extension id '${e.id}' is a core API area's`);
     owners.add(e.id);
   }
   for (const id of Object.keys(spec.overrides ?? {})) {

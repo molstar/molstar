@@ -184,11 +184,19 @@ restore = (c) => plugin.state.setSnapshot({ ...c.plugin, structureFocus: undefin
 - **A step** is one undoable operation run (`api.run`, operations.md §1) or one group. A group is opened with
   `beginGroup(origin)` and closed with `endGroup()`: an agent's turn (keyed by `origin.turn`), a script's
   `viewer.run(label, …)`, a builder's commit. One checkpoint is taken when a step or group opens.
-- **Not steps**: operations with `history: false` (`select.*`, `focus.*`, `camera.*`, `highlight.*`, `view.*`, reads).
+- **Not steps**: operations with `history: false` (`select.*`, `focus.*`, `camera.*`, `highlight.*`, `view.*`, reads);
+  a result that changed nothing (`unchanged`: "it is already so"); an operation that changes nothing the history could
+  restore (`undoable: false`, an upload: no checkpoint, recorded only as a run, so Undo of the steps before it still
+  works).
+- **Inside a step**: each top-level run or group gets a history context; work that calls back in with it (an
+  operation's `ctx.api`, a group's API, `viewer.run`'s `api`) is part of that step, with no lock and no step of its own.
+  Calls without it (another origin's) wait their turn and are steps of their own, so a click during an agent's snippet
+  is never rolled back with the snippet.
 - **While a turn runs**, the person's own calls still run; the first one closes the turn's group (the turn's later
   calls open a new group under the same turn), so steps never interleave inside one entry. Undo turn undoes the
   turn's groups only while they are the latest entries; otherwise it asks before discarding the later steps.
-- **Undo while a run is in flight** is disabled (the button and the command say why); Stop aborts the run first.
+- **Undo while a run is in flight** (or queued) is disabled, never queued behind it (the button and the command say
+  why); Stop aborts the run first.
 - **A failed or aborted run** restores the checkpoint its step took, so a loader that failed after its download leaves
   nothing half-built; the result says so (critic, run outcomes).
 - **No redo** for now: entries hold only the checkpoint before them. (Listed in operations.md as later.)

@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { CommandDefinition } from '@molstar/prism-ui';
+import type { CommandDefinition } from '@molstar/prism-ui/core';
 import type { ViewerApi } from '../api/area.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 import { operationCommand } from './operations.js';
@@ -14,7 +14,6 @@ import { operationCommand } from './operations.js';
 // The core's commands (operations.md §3), over the API bound to the person; the features bring theirs.
 
 export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandContext>[] {
-  const hasData = (ctx: ViewerCommandContext) => (ctx.empty ? 'Nothing is loaded' : true);
   return [
     operationCommand(api, api.load.files, {
       category: 'Data',
@@ -30,14 +29,11 @@ export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandCon
       alias: ['open session', 'molx', 'molj'],
       action: 'Open',
     }),
-    {
-      ...operationCommand(api, api.session.clear, {
-        category: 'Data',
-        icon: 'trash-2',
-        alias: ['clear', 'reset', 'remove everything', 'new session'],
-      }),
-      when: hasData,
-    },
+    operationCommand(api, api.session.clear, {
+      category: 'Data',
+      icon: 'trash-2',
+      alias: ['clear', 'reset', 'remove everything', 'new session'],
+    }),
     operationCommand(api, api.structure.get, {
       category: 'Data',
       icon: 'list',
@@ -49,15 +45,12 @@ export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandCon
       alias: ['background', 'bg'],
       action: 'Set',
     }),
-    {
-      ...operationCommand(api, api.camera.reset, {
-        category: 'View',
-        icon: 'focus',
-        alias: ['reset view', 'fit', 'recenter'],
-        values: { animate: true },
-      }),
-      when: hasData,
-    },
+    operationCommand(api, api.camera.reset, {
+      category: 'View',
+      icon: 'focus',
+      alias: ['reset view', 'fit', 'recenter'],
+      values: { animate: true },
+    }),
     operationCommand(api, api.history.undo, {
       category: 'Edit',
       icon: 'undo-2',

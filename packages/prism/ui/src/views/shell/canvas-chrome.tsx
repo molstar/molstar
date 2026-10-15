@@ -204,6 +204,8 @@ function ToolMenu(props: { menus: ToolMenus }) {
   const { menus } = props;
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== 'Escape' || e.defaultPrevented || !menus.open.value) return;
+    // Escape in another viewer on the page is not this menu's.
+    if (menus.stack && !ownsKey(menus.stack, e)) return;
     menus.hide();
     e.preventDefault();
   };

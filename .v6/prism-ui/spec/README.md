@@ -325,8 +325,8 @@ The surface, by owner:
 | Owner                    | State                                                                                       | Events                                              |
 | ------------------------ | ------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | `PrismViewer`            | `ready`, `busy`, `empty` (nothing loaded)                                                   | `error`                                             |
-| `api`                    | `running` (the runs in progress)                                                            | `started`, `finished` (each with its `ApiResult`)   |
-| `managers.history`       | `steps` (undoable, newest first), `canUndo`, `checkpointing` (on or off for a large scene)  | `undone`                                            |
+| `api`                    | `running` (the runs in progress), `definitions` (the operations, as extensions come and go) | `started`, `finished` (each with its `ApiResult`)   |
+| `managers.history`       | `steps` (undoable, newest first), `canUndo`, `undoBlocked` (why not), `running`, `checkpointing` (on or off for a large scene) | `undone`, `checkpointingOff`              |
 | `managers.transactions`  | the projections over each view model's base                                                 | `rejected` (a projection rolled back)               |
 | `managers.navigation`    | `tab`, `card`, `section`, `page`                                                            | —                                                   |
 | `managers.viewState`     | `layout` (docks, sizes, pinned, compact)                                                    | —                                                   |

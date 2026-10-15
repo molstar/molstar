@@ -18,6 +18,7 @@ import {
   HelpPanel,
   HoverLabel,
   isMac,
+  mapState,
   LogView,
   MolstarWordmark,
   observableState,
@@ -34,7 +35,6 @@ import '@molstar/prism-ui/styles/base';
 import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
 import { map } from 'rxjs';
 import type { HomeModel } from '../model/home.js';
-import { hoverLines } from '../sources/hover-lines.js';
 import { HomeTab } from '../views/home/home-tab.js';
 import type { ViewerCore } from '../viewer.js';
 import { CanvasBindings } from './bindings.js';
@@ -45,7 +45,9 @@ import { CanvasBindings } from './bindings.js';
 
 defineStyles(
   'prism-viewer.host',
-  '@layer msp.reset { :host { display: block; position: relative; overflow: hidden; contain: content; } }',
+  // No `contain`: it would make the host the containing block of fixed popups (tooltips, menus) placed in viewport
+  // coordinates.
+  '@layer msp.reset { :host { display: block; position: relative; overflow: hidden; } }',
 );
 
 /** Files that open as a session rather than as data. */
@@ -58,7 +60,7 @@ export interface MountedShell {
 }
 
 export async function mountShell(core: ViewerCore, target: HTMLElement): Promise<MountedShell> {
-  const { plugin, managers, sources, spec } = core;
+  const { managers, sources, spec } = core;
   const person = core.api.as({ kind: 'person' });
 
   const shadow = target.shadowRoot ?? target.attachShadow({ mode: 'open' });
@@ -90,27 +92,26 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   });
   const ink = canvasInk(inkProps.asReadonly);
 
-  const hover = observableState<readonly string[]>([]);
-  const hoverSub = plugin.behaviors.labels.highlight.subscribe((h) => hover.set(hoverLines(h.labels)));
-
   const openFiles = (files: readonly File[]) => {
     const sessions = files.filter((f) => SessionFile.test(f.name));
     const data = files.filter((f) => !SessionFile.test(f.name));
-    if (sessions.length) void person.session.open({ file: sessions[0] as never });
-    if (data.length) void person.load.files({ files: data as never });
+    if (sessions.length > 1) {
+      managers.notifications.post(`Opened ${sessions[0].name} only: a session replaces what is loaded.`, 'warning');
+    }
+    if (sessions.length) void person.session.open({ file: sessions[0] });
+    if (data.length) void person.load.files({ files: data });
   };
 
   const home: HomeModel = {
     actions: observableState([]).asReadonly,
-    formats: plugin.dataFormats.options.map(([, label]) => label),
+    formats: sources.formats,
     openFiles,
     session: {
       isEmpty: sources.empty,
-      summary: sources.structures.pipe(map(summaryOf)) as never,
+      summary: mapState(sources.structures, summaryOf, Object.is),
       clear: () => void person.session.clear(),
     },
   };
-  Object.defineProperty(home.session!.summary, 'value', { get: () => summaryOf(sources.structures.value) });
 
   const commandMenuOpen = observableState(false);
   const commandMenuGroup = observableState<string | undefined>(undefined);
@@ -197,7 +198,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     ]),
   );
   unregister.push(
-    managers.commands.register([
+    core.registerCommands([
       {
         id: 'help.show',
         title: 'Keyboard and mouse',
@@ -248,7 +249,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         status={managers.notifications}
         canvas={canvasHost}
         overlays={
-          <Show when={hasData}>{() => <HoverLabel model={{ lines: hover.asReadonly }} area={() => canvasHost} />}</Show>
+          <Show when={hasData}>
+            {() => <HoverLabel model={{ lines: sources.pointer.hoverLines }} area={() => canvasHost} />}
+          </Show>
         }
         ink={ink}
         empty={sources.empty}
@@ -276,7 +279,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
 
   // The canvas once the shell has laid out (the plugin sizes its canvas from its container).
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-  const mounted = await plugin.mountAsync(canvasHost);
+  const mounted = await core.mountCanvas(canvasHost);
   if (!mounted) managers.notifications.post('The canvas could not start: WebGL is not available.', 'error');
 
   return {
@@ -289,11 +292,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       shell.unmount();
       shell.retire();
       inkSub.unsubscribe();
-      hoverSub.unsubscribe();
       ink.dispose();
       stopTheme();
       fullscreen.dispose();
-      plugin.unmount();
       root.remove();
       releaseStyles(shadow);
     },

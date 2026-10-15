@@ -10,9 +10,10 @@ import { Color } from '@molstar/core/util/color';
 import { StateTransform } from '@molstar/core/state';
 import type { Canvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import type { PluginContext } from '@molstar/plugin/context';
-import type { ReadonlyState } from '@molstar/prism-ui';
+import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { merge } from 'rxjs';
 import { structureNames } from './naming.js';
+import { createPointerSources, type PointerSources } from './pointer.js';
 import { fromBehavior, fromChanged, SourceScope, sameItems, scanList } from './state.js';
 
 // The viewer's sources (state.md §4): read-only states over the plugin, the only code besides `api/` that reads it.
@@ -61,10 +62,19 @@ export interface ViewerSources {
   /** The plugin is updating or animating for a while (its busy flag). */
   readonly busy: ReadonlyState<boolean>;
   readonly tasks: ReadonlyState<readonly TaskInfo[]>;
+  /** What is under the pointer: the hover label's lines, hover and click events. */
+  readonly pointer: PointerSources;
+  /** The file formats the plugin reads, by label (the drop area's hint). */
+  readonly formats: readonly string[];
+}
+
+/** The sources and their disposer, kept by whoever made them. */
+export interface ViewerSourcesHost {
+  readonly sources: ViewerSources;
   dispose(): void;
 }
 
-export function createViewerSources(plugin: PluginContext): ViewerSources {
+export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
   const scope = new SourceScope();
   const canvas = fromChanged(
     scope,
@@ -105,7 +115,12 @@ export function createViewerSources(plugin: PluginContext): ViewerSources {
       return i < 0 ? [...list, info] : list.map((t, j) => (j === i ? info : t));
     },
   );
-  return { canvas, structures, empty, busy, tasks, dispose: () => scope.dispose() };
+  const pointer = createPointerSources(scope, plugin);
+  const formats = plugin.dataFormats.options.map(([, label]) => label);
+  return {
+    sources: { canvas, structures, empty, busy, tasks, pointer, formats },
+    dispose: () => scope.dispose(),
+  };
 }
 
 type TaskEvent =

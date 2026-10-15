@@ -189,5 +189,13 @@ the code.
 | G7   | end of phase 5                               | the extension ports, the single-file build                                     |
 | G8   | before the switch (phase 7)                  | parity, performance budgets, accessibility                                     |
 
+**Log.** G1 and G2 ran together after phase 1 (2026-10-15): three reviewers (spec correctness; contracts and boundaries;
+tests and the page), 40-odd findings. Fixed before phase 2: runs and groups carry a history context (re-entrant
+operations deadlocked; a group in flight absorbed other origins' calls), groups fail as a whole on a failed call,
+"already so" records no step, areas are made once and bound by facades, `params`/`when` take the origin-free area
+context, extensions bring several areas and built-in features may add to core areas, the plugin is read only in
+`api/` and `sources/` (checked), the headless graph is DOM-free (`@molstar/prism-ui/core`, checked), the canvas input,
+keys and popups work inside a shadow root.
+
 Between gates, every Sonnet PR gets one Opus read before it merges (not a workflow), and every PR updates the spec
 where it moves it, and parity.md's state column.

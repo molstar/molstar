@@ -60,8 +60,11 @@ one name in the API, the command menu, the tools, the run log and the docs.
 ```ts
 abstract class ApiArea {                                    // packages/prism/viewer/src/api/area.ts
   abstract readonly id: string;                             // 'component'
+  constructor(ctx: ApiAreaContext);                         // made once per viewer (§4)
   // state: ReadonlyStates read from the sources (state.md §4); happenings: an `events` object (README §3.6)
-  protected operation<P extends PD.Params, R>(def: OperationDefinition<P, R>): OperationFn<P, R>;
+  protected operation<P extends PD.Params, R>(def: OperationDefinition<P, R>): OperationFn<P, R>;  // id starts with `<area id>.`
+  contribute(name, def): () => void;                        // a built-in feature's operation added to this area (§6)
+  dispose?(): void;
 }
 
 interface OperationFn<P extends PD.Params, R> {
@@ -81,13 +84,16 @@ class ComponentApi extends ApiArea {
   readonly add = this.operation({
     id: 'component.add', title: 'Add component',
     params: { target: TargetParam(), label: PD.Text('') },
-    identity: (v) => [v.structure, canonicalTarget(v.target)],
+    exists: (v, ctx) => existing(ctx, v.structure, v.target) && 'A component of it exists.',  // identity, decision 30
     async run(v, ctx) { /* ctx.targets.resolve(v.target) → builders.structure… */ },
   });
   readonly remove = this.operation({ … });
 }
 ```
 
+- **Made once, bound by facades**: an area is made once per viewer; `viewer.api`, `api.as(origin)`, a group's API and an
+  operation's `ctx.api` are thin facades that rebind its operation fields to how they run (§5). Its states are the
+  same objects through every facade.
 - **Values are partial**: a missing value is the param's default, so `add({ target: 'resn HEM' })` is a whole call.
 - **Results, never throws** (operations.md §1). The code skill's sandbox throws an `ApiError { code, message, hint }`
   instead, as Stories' story code does (§7).
@@ -97,15 +103,24 @@ class ComponentApi extends ApiArea {
 ## 4. The types around it
 
 ```ts
-interface ApiContext {                                      // what an operation's run gets
+interface ApiAreaContext {                                  // what an area, and an operation's `params` and `when`, get: no origin
   readonly plugin: PluginContext;                           // only api/ and sources/ use it (contexts.md §7)
   readonly sources: ViewerSources;                          // read-only states over the plugin (state.md §4)
-  readonly targets: TargetResolver;                         // resolve(target, structure?) → loci and "what it selected" (targets.md)
-  readonly api: ViewerApi;                                  // other areas, bound to the same origin
-  readonly origin: RunSource;                               // person, agent (with its turn), script, url, link
+  readonly targets: TargetResolver;                         // resolve(target, { structure }) → parts per structure, "what it selected" (targets.md)
   readonly modules: ApiModules;                             // what the host offers (below)
-  readonly signal: AbortSignal;
+  readonly managers: ViewerManagers;                        // commands, transactions, history, navigation, viewState, notifications
+  readonly operations: OperationPort;                       // define and run: the run path as an area sees it
 }
+
+interface ApiContext extends ApiAreaContext {               // what an operation's run gets
+  readonly api: ViewerApi;                                  // other areas, bound to the same origin, part of this run (§5)
+  readonly origin: RunOrigin;                               // person, agent (with its turn), script, url, link
+  readonly signal: AbortSignal;
+  readonly copy: boolean;                                   // asked for another of what exists (decision 30)
+}
+
+type ApiErrorCode = 'invalid' | 'blocked' | 'unavailable' | 'not-found' | 'ambiguous' | 'confirm' | 'aborted' | 'failed';
+// ApiResult's ok side may say `unchanged: true` (ApiResult.already): it was already so, no history step.
 
 type ApiModuleKey = 'canvas' | 'files' | 'network' | 'storage' | 'page';
 interface ApiModules { has(key: ApiModuleKey): boolean }    // an operation's `modules` are checked against it
@@ -116,7 +131,12 @@ interface Projection<T = unknown> {                         // an optimistic edi
   isAbsorbed(base: T): boolean;                             // the source reported it: drop the projection
 }
 
-type ViewerApi = CoreApi & ExtensionApis;                   // CoreApi: the areas of §2; ExtensionApis: §6
+type ViewerApi = CoreApi & Partial<ExtensionApis> & {       // CoreApi: the areas of §2; ExtensionApis: §6
+  run(id, values?, options?); as(origin); group(label, work, options?); area(id); describe(id);  // describe: params resolved, available
+  readonly definitions: ReadonlyState<ReadonlyMap<string, OperationDefinition>>;  // changes as extensions come and go
+  readonly running: ReadonlyState<readonly RunRecord[]>;
+  readonly events: { started; finished };
+};
 ```
 
 ## 5. Origins, grouping and builders
@@ -124,20 +144,30 @@ type ViewerApi = CoreApi & ExtensionApis;                   // CoreApi: the area
 - **Bound by origin**: `viewer.api` runs as `script`. Each surface gets the same objects bound to its origin:
   `viewer.api.as({ kind: 'person' })` for view models and commands, `{ kind: 'agent', turn }` for tools, `url` for the
   loaders feature, `link` for the sequence. The history and the record read the origin from there.
-- **`viewer.api.group(label, work)`**: the calls inside are one history step and one group in the record
-  (sequence.md §7.3); a failure inside restores the group's checkpoint, so it is all or nothing. Commands that run
+- **Part of a run**: an operation's `ctx.api` carries its history context, so the operations it calls are part of its
+  step (no step of their own, no waiting on the history's queue; sequence.md §7.3). A call without the context (another
+  origin's) waits for the step and is its own.
+- **`viewer.api.group(label, work, { signal?, onFailure? })`**: the calls inside are one history step and one group in
+  the record (sequence.md §7.3). It fails as a whole, restoring its checkpoint, when the work throws, returns a failed
+  result, or a call inside failed (`onFailure: 'continue'` undoes just that call and goes on). The result carries its
+  calls (`runs`) and the union of what they changed. In an agent's turn it joins the turn's entry. Commands that run
   several operations, scripts and the code skill use it.
 - **Builders, the declarative half**: a whole scene is built declaratively with MolViewSpec (`@molstar/mvs-builder`)
   and loaded with `load.mvs({ data })`, one step; the plugin's own `builders` stay inside operations. No second
   builder language.
-- **Raw plugin work**: `viewer.run(label, (plugin) => …)` (README §3.2) for what no operation covers yet, as one step;
-  what it does is recorded as one opaque run.
+- **Raw plugin work**: `viewer.run(label, (plugin, api) => …)` (README §3.2) for what no operation covers yet, as one
+  step; what it does is recorded as one opaque run, and the calls it makes through `api` join that step.
 
 ## 6. Extensions
 
-- **An extension's areas** come from `ViewerExtension.api` (viewer-spec.md §3) and sit under its id:
-  `viewer.api['geo-export'].export({ format: 'glb' })`, operation `geo-export.export`.
-- **Typed when imported**: an extension augments the API's types, so a script that imports it gets them:
+- **An extension's areas** come from `ViewerExtension.api`, a record of area factories by area id (viewer-spec.md §3),
+  each made once: `viewer.api['geo-export'].export({ format: 'glb' })`, operation `geo-export.export`. An operation's id
+  starts with its area's id (checked). A built-in feature's areas may be named for what they do (`measure`,
+  `snapshot`, `superpose`), and only built-in features (`builtIn: true`) may add operations to core areas
+  (`contributes`: the `loaders` feature's `load.entry`, `canvas-settings`' `canvas.lighting`), so the core's areas do
+  not grow with Mol\*'s extensions.
+- **Typed when imported**: an extension augments the API's types (`ExtensionApis` is declared in
+  `@molstar/prism-viewer/api`, `src/api.ts`), so a script that imports it gets them:
 
   ```ts
   declare module '@molstar/prism-viewer/api' {
@@ -146,7 +176,8 @@ type ViewerApi = CoreApi & ExtensionApis;                   // CoreApi: the area
   ```
 
 - **Lazy extensions**: their areas exist from the start as stubs from `stub.operations`; calling one loads the chunk,
-  then runs the real operation (the call is replayed; a failed load is the result).
+  replaces the stub's area in place (`replaceArea`), then runs the real operation (the call is replayed; a failed load
+  is the result).
 - **Removed or overridden**: an area whose feature is left out is absent (`viewer.api.measure` is `undefined` without
   `measurements`); commands and tools over it say why they cannot run (viewer-spec.md §4).
 

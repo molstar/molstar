@@ -11,20 +11,22 @@ operation lists are a first pass, filled in as each area is built.
 interface Operation<P extends PD.Params = PD.Params, R = unknown> {
   id: string;                                    // '<area>.<verb>': 'component.add', 'canvas.background'
   title: string;                                 // for people: the command's title, the history entry
-  params: P | ((ctx: ApiContext) => P);          // one definition: the command's form and the tool's schema derive from it
+  params: P | ((ctx: ApiAreaContext) => P);      // one definition: the command's form and the tool's schema derive from it
   read?: true;                                   // changes nothing: no history step, may run alongside others
   history?: false;                               // changes view state, not content: no history step (select, focus, camera, highlight, view)
   undoable?: false;                              // a step the history cannot restore (an upload); default true
   approval?: 'network' | 'upload' | 'destructive';   // asks before it runs, from the agent (agent.md §4)
   modules?: readonly ApiModuleKey[];             // what it needs of the host (canvas, files, network); absent: says why
-  when?(ctx: ApiContext): true | string;         // can it run now; the string is the reason
+  when?(ctx: ApiAreaContext): true | string;     // can it run now; the string is the reason (no origin: commands read it)
+  exists?(values, ctx: ApiContext): string | undefined;  // identity: what it would create exists, said as the result (decision 30)
   project?(values: PD.ValuesFor<P>): Projection; // an optimistic edit (managers.transactions), when the result is known
-  run(values: PD.ValuesFor<P>, ctx: ApiContext, signal: AbortSignal): Promise<ApiResult<R>>;
+  surface?: { kind: 'ui-only' | 'agent-only'; reason: string };   // §4
+  run(values: PD.ValuesFor<P>, ctx: ApiContext): Promise<ApiResult<R>>;   // ctx.signal, ctx.api (part of this run)
 }
 
 type ApiResult<R = unknown> =
-  | { ok: true; did: string; changed: Changed; value?: R; warnings?: string[]; next?: string }
-  | { ok: false; code: string; message: string; hint?: string };
+  | { ok: true; did: string; changed: Changed; value?: R; warnings?: string[]; next?: string; unchanged?: true }
+  | { ok: false; code: ApiErrorCode; message: string; hint?: string };   // api.md §4
 
 interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; sequence?: boolean }   // what a reader re-reads
 ```
@@ -33,7 +35,8 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
   (`paramsShape`, flat fields for small models) and validation. Targets are text fields with the `target` format
   ([targets.md](targets.md)).
 - **Desired state.** An operation says what should be, not what to do: `representation.set` with the same values twice
-  changes nothing the second time (`did: "… already so."`), so a retried step is safe.
+  changes nothing the second time (`ApiResult.already("… already so.")`: `unchanged`, no history step), so a retried
+  step is safe.
 - **Identity for operations that create things** (decision 30): each says what makes the thing it creates the same
   (`load.entry`: source and id; `load.url`: the URL; `component.add`: structure and target; `measure.*`: the targets in
   order; `snapshot.add`: none, every call adds). When it exists, the call does nothing and says so ("1TQN is already
@@ -43,9 +46,11 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
   loader that failed after its download leaves nothing behind.
 - **Never throws.** Failures are results with a code, a message for the person or the model, and a hint naming what to
   do instead.
-- **One run path**: `api.run(id, values, { origin, signal })`. It checks `when` and the params, opens a history step for
-  an undoable operation (the checkpoint before it, sequence.md §7), applies `project` through `managers.transactions`,
-  runs, and records the run (id, values, origin, result, time). Commands, tools, the JS API, URL actions and the
+- **One run path**: `api.run(id, values, { origin, signal })`. It checks the params, the modules and `when`, says
+  "already so" for what `exists` names, opens a history step for an undoable operation (the checkpoint before it,
+  sequence.md §7; none when the result is `unchanged`), applies `project` through `managers.transactions`, runs, and
+  records the run (id, values, origin, result, time, its step or group). It never throws. A call an operation makes
+  through `ctx.api` is part of its step. Commands, tools, the JS API, URL actions and the
   sequence's actions all call it; a view model calls the operation's typed function, which calls it.
 - **Origins**: `person`, `agent` (with its turn), `script`, `url`, `link` (the sequence, sequence.md §4).
 - **Where**: `packages/prism/viewer/src/api/<area>.ts`; with `sources/`, the only code with value imports of the plugin

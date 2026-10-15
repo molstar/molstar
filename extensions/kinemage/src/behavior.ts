@@ -65,9 +65,9 @@ export async function applyViewSnapshot(plugin: PluginContext, snapshot: Partial
   if (!snapshot) return;
 
   // Set background color to black
-  plugin.canvas3d?.setProps({
+  plugin.setCanvas3DProps({
     renderer: {
-      ...plugin.canvas3d.props.renderer,
+      ...plugin.canvas3d?.props.renderer,
       backgroundColor: Color(0x000000),
     },
   });
@@ -80,7 +80,7 @@ export async function applyViewSnapshot(plugin: PluginContext, snapshot: Partial
       if (boundingSphere && boundingSphere.radius > 0) {
         const offset = Vec3.distance(snapshot.target as Vec3, boundingSphere.center);
         const sceneRadiusFactor = (boundingSphere.radius + offset) / boundingSphere.radius;
-        plugin.canvas3d?.setProps({ sceneRadiusFactor });
+        plugin.setCanvas3DProps({ sceneRadiusFactor });
       }
     } catch (e) {
       // fallback: ignore errors and continue to set the camera snapshot

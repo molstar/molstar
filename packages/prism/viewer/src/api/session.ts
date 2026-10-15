@@ -7,8 +7,8 @@
  */
 
 import { StateTransform } from '@molstar/core/state';
-import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ApiArea, ApiResult } from './area.js';
+import { FileParam, filesOf } from './files.js';
 
 // `session` (operations.md §2): `open` (`.molx`, `.molj`) and `clear` now; `save` with `export-session`, the remote
 // operations with `remote-states` (plan phase 3). Both are history steps: Undo brings the scene back.
@@ -19,11 +19,11 @@ export class SessionApi extends ApiArea {
   readonly open = this.operation({
     id: 'session.open',
     title: 'Open a session',
-    params: { file: PD.File({ accept: '.molx,.molj,.json', description: 'A session (.molx) or a state (.molj)' }) },
+    params: { file: FileParam({ accept: '.molx,.molj,.json', description: 'A session (.molx) or a state (.molj)' }) },
     modules: ['files'],
     approval: 'destructive',
     async run({ file }, ctx) {
-      const f = file as unknown as File | null;
+      const f = filesOf(file)[0];
       if (!f) return ApiResult.fail('invalid', 'Which session?', 'Pick a .molx or .molj file.');
       let failed: string | undefined;
       const sub = ctx.plugin.events.log.subscribe((e) => {

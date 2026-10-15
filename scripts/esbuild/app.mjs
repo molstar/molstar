@@ -165,6 +165,7 @@ async function buildPackage(rawPkg) {
   // `format: "esm"` (the Prism viewer, app.md §2): an ES module entry with lazy chunks beside it, loaded by
   // `<script type="module">`; the default is one IIFE file with a global.
   const esm = cfg.format === 'esm';
+  if (esm && cfg.themes?.length) throw new Error(`${pkg.name}: themes are built as IIFE files; an esm app takes none`);
   const output = esm
     ? {
         format: 'esm',

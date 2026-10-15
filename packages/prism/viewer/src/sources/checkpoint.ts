@@ -10,7 +10,7 @@ import type { StateObjectCell, StateTransform } from '@molstar/core/state';
 import { StructureFocusRepresentationTags } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginState } from '@molstar/plugin/state';
-import type { HistoryManager, HistoryPort } from '@molstar/prism-ui';
+import type { HistoryManager, HistoryPort } from '@molstar/prism-ui/core';
 import { merge } from 'rxjs';
 
 // The history's checkpoints (sequence.md §7.2): the plugin's state directly, never its snapshot manager (whose
@@ -67,9 +67,13 @@ export function checkpointSize(c: ViewerCheckpoint): number {
 /** Cells owned by behaviors: they change outside the API by design and do not make checkpoints unsafe (§7.3). */
 const BehaviorTags = new Set<string>(Object.values(StructureFocusRepresentationTags));
 
+/** Transformers whose cells behaviors make and update on their own: volume streaming, custom properties. */
+const BehaviorTransformers = ['volume-streaming', 'custom-model-properties', 'custom-structure-properties'];
+
 export function isBehaviorOwned(transform: StateTransform): boolean {
   if (transform.tags?.some((t) => BehaviorTags.has(t))) return true;
-  return transform.transformer.id.includes('volume-streaming');
+  const id = transform.transformer.id;
+  return BehaviorTransformers.some((t) => id.includes(t));
 }
 
 /**

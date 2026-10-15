@@ -6,9 +6,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginContext } from '@molstar/plugin/context';
+import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginSpec } from '@molstar/plugin/spec';
 import type { ApiModuleKey } from './api/area.js';
+import { createDefaultPlugin } from './sources/create-plugin.js';
 import type { PrismViewerSpec } from './spec.js';
 import { createViewerCore, type PrismViewer } from './viewer.js';
 
@@ -27,7 +28,7 @@ export interface HeadlessViewerOptions {
 export async function createPrismViewerHeadless(o: HeadlessViewerOptions): Promise<PrismViewer> {
   const core = await createViewerCore({
     spec: o.spec,
-    createPlugin: o.plugin ?? ((spec) => new PluginContext(spec)),
+    createPlugin: o.plugin ?? createDefaultPlugin,
     modules: o.modules ?? (o.plugin ? ['canvas', 'files', 'network'] : ['files', 'network']),
   });
   core.ready$.set(true);

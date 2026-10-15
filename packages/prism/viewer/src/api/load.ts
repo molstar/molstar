@@ -9,6 +9,7 @@
 import { Asset } from '@molstar/core/util/assets';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { OpenFiles } from '@molstar/plugin/state/actions/file';
+import { FilesParam, filesOf } from './files.js';
 import type { ApiContext } from './area.js';
 import { ApiArea, ApiResult } from './area.js';
 
@@ -25,12 +26,12 @@ export class LoadApi extends ApiArea {
     id: 'load.files',
     title: 'Open files',
     params: {
-      files: PD.FileList({ description: 'Structure, volume and other data files; the format is read from the name' }),
+      files: FilesParam({ description: 'Structure, volume and other data files; the format is read from the name' }),
       visuals: PD.Boolean(true, { description: 'Show them with the default representations' }),
     },
     modules: ['files'],
     async run({ files, visuals }, ctx) {
-      const list = Array.from((files as unknown as ArrayLike<File> | null) ?? []);
+      const list = filesOf(files);
       if (!list.length)
         return ApiResult.fail('invalid', 'No files to open.', 'Drop files on the viewer, or pick some.');
       const sessions = list.filter((f) => SessionExtensions.some((e) => f.name.toLowerCase().endsWith(e)));

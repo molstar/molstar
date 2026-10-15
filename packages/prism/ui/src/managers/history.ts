@@ -15,11 +15,16 @@ import type { ReadonlyState } from '../reactive/readonly-state.js';
 // gives the checkpoints through a `HistoryPort` (the viewer's: the plugin's state and the sequence's).
 //
 // - A step is one undoable run, or one group. A group is atomic (`group`: a script's or a command's several calls, all
-//   or nothing) or open (`beginGroup`: an agent's turn, whose calls join one entry while it is the latest).
-// - Undoable runs are serialized: one at a time, each with its checkpoint, so a failed run can be restored without
-//   touching another's work.
-// - A failed run restores its checkpoint; a failed atomic group restores the group's.
+//   or nothing) or open (`beginGroup`: an agent's turn, whose runs and groups join one entry while it is the latest).
+// - Top-level runs and groups are serialized: one at a time, each with its checkpoint, so a failed one is restored
+//   without touching another's work. Each gets a context (`HistoryContext`); work that calls back in with it (an
+//   operation calling another, a group's calls) is part of that step: no lock, no step of its own. Calls without it
+//   queue: a person's click during an agent's snippet is its own step, after the snippet.
+// - A failed run restores its checkpoint. A group fails as a whole when its work throws, returns a failure, or any run
+//   inside it failed (unless it says `continue`, and then each run inside has its own checkpoint).
 // - A change outside the history (reported by the app with `invalidate`) makes every earlier step unsafe.
+// - A run that changes nothing undoable (an upload) is no step at all; one that changed nothing (`record` false: "it is
+//   already so") neither.
 // - No redo yet: entries hold only the checkpoint before them.
 
 /** Who ran it: `person`, `agent` (with its turn), `script`, `url`, `link`; the app's kinds. */
@@ -50,6 +55,11 @@ export interface HistoryStep {
   readonly unsafe?: string;
 }
 
+/** A run or group in progress: work that passes it back is part of that step. Opaque. */
+export interface HistoryContext {
+  readonly id: number;
+}
+
 export type UndoResult = { ok: true; step: HistoryStep } | { ok: false; reason: string; laterSteps?: number };
 
 export interface HistoryOptions {
@@ -57,7 +67,7 @@ export interface HistoryOptions {
   readonly capacity?: number;
   /** Over either, per-step checkpoints turn off for the scene (sequence.md §7.4; a first guess). */
   readonly budget?: { readonly ms: number; readonly bytes: number };
-  /** Over either, even a turn's one checkpoint is not taken. */
+  /** Over either, even a group's one checkpoint is not taken. */
   readonly hardLimit?: { readonly ms: number; readonly bytes: number };
   /** The clock (tests). */
   readonly now?: () => number;
@@ -66,16 +76,40 @@ export interface HistoryOptions {
 /** What `run` and `group` give back: the work's value, and whether a failure restored the checkpoint. */
 export interface StepOutcome<T> {
   readonly value: T;
+  /** The work failed (a throw is rethrown instead). */
+  readonly failed: boolean;
+  /** A checkpoint was restored because of the failure. */
   readonly restored: boolean;
-  /** The step recorded; undefined when nothing was recorded (a failure, or `record: false`). */
+  /** The step recorded or joined; undefined when nothing was recorded. */
   readonly step?: HistoryStep;
+}
+
+export interface GroupOutcome<T> extends StepOutcome<T> {
+  /** The runs inside that changed something, in order. */
+  readonly runs: readonly string[];
+  /** The runs inside that failed. */
+  readonly failures: number;
 }
 
 export interface RunOptions<T> {
   /** Whether the value is a failure (restore the checkpoint, record nothing). Thrown errors are failures too. */
   readonly failed?: (value: T) => boolean;
-  /** Not undoable (an upload): runs in order with the others, recorded as a step that cannot be undone. */
+  /** Whether it changed anything worth a step; false: "it is already so", no step. Default: it did. */
+  readonly record?: (value: T) => boolean;
+  /** Changes nothing the history could restore (an upload): runs in order, no checkpoint, no step. */
   readonly undoable?: boolean;
+  /** Part of this run or group in progress: no lock, no step of its own. */
+  readonly within?: HistoryContext;
+}
+
+export interface GroupOptions<T> {
+  readonly failed?: (value: T) => boolean;
+  /**
+   * A run inside that fails: `rollback` (default) fails the whole group at its end; `continue` restores just that run
+   * (each run inside then takes its own checkpoint) and the group goes on.
+   */
+  readonly onFailure?: 'rollback' | 'continue';
+  readonly within?: HistoryContext;
 }
 
 interface Entry<C> {
@@ -91,18 +125,22 @@ interface OpenGroup {
   readonly origin: HistoryOrigin;
 }
 
-interface AtomicGroup<C> {
-  readonly token: object;
-  readonly label: string;
-  readonly origin: HistoryOrigin;
-  readonly checkpoint: C | undefined;
+interface Active {
+  readonly id: number;
+  readonly kind: 'run' | 'group';
+  readonly parent?: Active;
+  readonly onFailure: 'rollback' | 'continue';
   readonly runs: string[];
+  failures: number;
 }
 
 /** The key that groups an origin's calls: an agent's turn. */
 export function historyGroupKey(origin: HistoryOrigin): string | undefined {
   return origin.turn ? `${origin.kind}:${origin.turn}` : undefined;
 }
+
+const labelOf = <T>(label: string | ((value: T) => string), value: T) =>
+  typeof label === 'function' ? label(value) : label;
 
 export class HistoryManager<C = unknown> {
   readonly #port: HistoryPort<C>;
@@ -113,11 +151,13 @@ export class HistoryManager<C = unknown> {
   readonly #restoring = observableState(false);
   readonly #checkpointing = observableState(true);
   readonly #undoBlocked = observableState<string | undefined>('Nothing to undo');
+  readonly #canUndo = observableState(false);
   readonly #undone = new Subject<HistoryStep>();
   readonly #checkpointingOff = new Subject<{ ms: number; bytes: number }>();
   readonly #open = new Map<string, OpenGroup>();
-  #atomic: AtomicGroup<C> | undefined;
+  readonly #active = new Map<number, Active>();
   #serial = 0;
+  #contexts = 0;
   #lock: Promise<void> = Promise.resolve();
 
   constructor(port: HistoryPort<C>, options: HistoryOptions = {}) {
@@ -141,11 +181,11 @@ export class HistoryManager<C = unknown> {
   }
 
   /** Whether Undo can run now. */
-  get canUndo(): boolean {
-    return this.#undoBlocked.value === undefined;
+  get canUndo(): ReadonlyState<boolean> {
+    return this.#canUndo.asReadonly;
   }
 
-  /** Undoable runs in flight. */
+  /** Runs and groups in flight, queued ones included. */
   get running(): ReadonlyState<number> {
     return this.#running.asReadonly;
   }
@@ -170,7 +210,12 @@ export class HistoryManager<C = unknown> {
    * API ignores what happens meanwhile.
    */
   get applying(): boolean {
-    return this.#running.value > 0 || this.#restoring.value || this.#atomic !== undefined;
+    return this.#active.size > 0 || this.#restoring.value;
+  }
+
+  /** Whether a context is still in progress (work holding a stale one runs on its own). */
+  isActive(context: HistoryContext | undefined): boolean {
+    return !!context && this.#active.has(context.id);
   }
 
   /** Turns per-step checkpoints on or off (Settings: "Undo for large scenes"); on again after a clear. */
@@ -179,57 +224,46 @@ export class HistoryManager<C = unknown> {
   }
 
   /**
-   * Runs one undoable piece of work as a step: in order with the others, a checkpoint before it, recorded when it
-   * succeeds, its checkpoint restored when it fails. Inside an atomic group it is part of the group; an open group of
-   * its origin (an agent's turn) gets it as one more run.
+   * Runs one piece of work as a step: in order with the other top-level work, a checkpoint before it, recorded when it
+   * succeeds and changed something, its checkpoint restored when it fails. With `within`, it is part of that run or
+   * group. An open group of its origin (an agent's turn) gets it as one more run.
    */
   async run<T>(
     label: string | ((value: T) => string),
     origin: HistoryOrigin,
-    work: () => Promise<T>,
+    work: (context: HistoryContext) => Promise<T>,
     options: RunOptions<T> = {},
-  ) {
-    const atomic = this.#atomic;
-    if (atomic) return this.#runInAtomic(atomic, label, work, options);
-    const labelOf = (value: T) => (typeof label === 'function' ? label(value) : label);
-    // In flight from the moment it is asked for: Undo waits for queued runs too.
+  ): Promise<StepOutcome<T>> {
+    const parent = options.within && this.#active.get(options.within.id);
+    if (parent) return this.#nested(parent, 'run', label, work, options.failed, options.record, 'rollback');
+
     this.#running.set(this.#running.value + 1);
     this.#updateBlocked();
     const release = await this.#acquire();
+    const active = this.#begin('run', undefined, 'rollback');
     try {
       const key = historyGroupKey(origin);
       const group = key ? this.#open.get(key) : undefined;
-      const top = this.#entries[0];
-      // An entry takes more runs only while it is its group's and the latest; anything else closes it.
-      if (top?.openKey && top.openKey !== key) top.openKey = undefined;
-      const joining = !!group && top?.openKey === key;
-      const checkpoint = this.#take(!!group);
+      this.#closeOthers(key);
+      const undoable = options.undoable !== false;
+      const checkpoint = undoable ? this.#take(!!group) : { value: undefined };
       let value: T;
       try {
-        value = await work();
+        value = await work(active);
       } catch (error) {
         await this.#restore(checkpoint.value);
         throw error;
       }
       if (options.failed?.(value)) {
         const restored = await this.#restore(checkpoint.value);
-        return { value, restored } satisfies StepOutcome<T>;
+        return { value, failed: true, restored };
       }
-      if (joining && top) {
-        top.step = { ...top.step, runs: [...top.step.runs, labelOf(value)] };
-        this.#publish();
-        return { value, restored: false, step: top.step } satisfies StepOutcome<T>;
-      }
-      const step = this.#push(
-        group ? group.label : labelOf(value),
-        origin,
-        [labelOf(value)],
-        options.undoable === false ? undefined : checkpoint.value,
-        options.undoable === false ? 'It cannot be undone' : checkpoint.unsafe,
-        group?.key,
-      );
-      return { value, restored: false, step } satisfies StepOutcome<T>;
+      if (!undoable || options.record?.(value) === false) return { value, failed: false, restored: false };
+      const runs = [labelOf(label, value), ...active.runs];
+      const step = this.#record(group ? group.label : labelOf(label, value), origin, runs, checkpoint, key);
+      return { value, failed: false, restored: false, step };
     } finally {
+      this.#end(active);
       this.#running.set(this.#running.value - 1);
       release();
       this.#updateBlocked();
@@ -237,38 +271,48 @@ export class HistoryManager<C = unknown> {
   }
 
   /**
-   * Runs `work` as one atomic step: one checkpoint, every run inside it part of the step, and a failure (a throw, or a
-   * value `failed` says is one) restores the checkpoint, so it is all or nothing.
+   * Runs `work` as one step: one checkpoint (below the hard limit, even when per-step checkpoints are off), every run
+   * inside it part of the step. It fails as a whole (its checkpoint restored) when the work throws, returns a value
+   * `failed` says is one, or a run inside failed (unless `onFailure: 'continue'`). In an agent's turn it joins the
+   * turn's entry.
    */
-  async group<T>(label: string, origin: HistoryOrigin, work: () => Promise<T>, options: RunOptions<T> = {}) {
-    if (this.#atomic) {
-      // Nested: part of the outer group.
-      return this.#runInAtomic(this.#atomic, label, work, options);
-    }
-    const release = await this.#acquire();
-    const checkpoint = this.#take(false);
-    const group: AtomicGroup<C> = { token: {}, label, origin, checkpoint: checkpoint.value, runs: [] };
-    this.#atomic = group;
+  async group<T>(
+    label: string,
+    origin: HistoryOrigin,
+    work: (context: HistoryContext) => Promise<T>,
+    options: GroupOptions<T> = {},
+  ): Promise<GroupOutcome<T>> {
+    const onFailure = options.onFailure ?? 'rollback';
+    const parent = options.within && this.#active.get(options.within.id);
+    if (parent) return this.#nested(parent, 'group', label, work, options.failed, undefined, onFailure);
+
+    this.#running.set(this.#running.value + 1);
     this.#updateBlocked();
+    const release = await this.#acquire();
+    const active = this.#begin('group', undefined, onFailure);
     try {
+      const key = historyGroupKey(origin);
+      this.#closeOthers(key);
+      const checkpoint = this.#take(true);
       let value: T;
       try {
-        value = await work();
+        value = await work(active);
       } catch (error) {
-        this.#atomic = undefined;
         await this.#restore(checkpoint.value);
         throw error;
       }
-      this.#atomic = undefined;
-      if (options.failed?.(value)) {
+      const failed = !!options.failed?.(value) || (onFailure === 'rollback' && active.failures > 0);
+      if (failed) {
         const restored = await this.#restore(checkpoint.value);
-        return { value, restored } satisfies StepOutcome<T>;
+        return { value, failed: true, restored, runs: active.runs, failures: active.failures };
       }
-      if (group.runs.length === 0) return { value, restored: false } satisfies StepOutcome<T>;
-      const step = this.#push(label, origin, group.runs, checkpoint.value, checkpoint.unsafe);
-      return { value, restored: false, step } satisfies StepOutcome<T>;
+      if (!active.runs.length) return { value, failed: false, restored: false, runs: [], failures: active.failures };
+      const turn = key ? this.#open.get(key) : undefined;
+      const step = this.#record(turn ? turn.label : label, origin, active.runs, checkpoint, key);
+      return { value, failed: false, restored: false, step, runs: active.runs, failures: active.failures };
     } finally {
-      this.#atomic = undefined;
+      this.#end(active);
+      this.#running.set(this.#running.value - 1);
       release();
       this.#updateBlocked();
     }
@@ -294,14 +338,14 @@ export class HistoryManager<C = unknown> {
 
   /** Restores the latest step; blocked while a run is in flight, or when the step is unsafe. */
   async undo(): Promise<UndoResult> {
-    const blocked = this.#undoBlocked.value;
-    if (blocked) return { ok: false, reason: blocked };
+    // Disabled while anything runs or waits to (sequence.md §7.3): it never queues behind a run.
+    const early = this.#blockedReason();
+    if (early) return { ok: false, reason: early };
     const release = await this.#acquire();
     try {
+      const blocked = this.#blockedReason();
+      if (blocked) return { ok: false, reason: blocked };
       const top = this.#entries[0];
-      if (!top) return { ok: false, reason: 'Nothing to undo' };
-      if (top.step.unsafe || top.checkpoint === undefined)
-        return { ok: false, reason: top.step.unsafe ?? 'No checkpoint' };
       await this.#restore(top.checkpoint);
       this.#entries = this.#entries.slice(1);
       this.#publish();
@@ -318,24 +362,25 @@ export class HistoryManager<C = unknown> {
    * later steps above them it asks first (`laterSteps`), and with `discardLater` restores past those too.
    */
   async undoTurn(turn: string, options: { discardLater?: boolean } = {}): Promise<UndoResult> {
-    const blocked = this.#undoBlocked.value;
-    if (blocked && blocked !== 'Nothing to undo') return { ok: false, reason: blocked };
-    const indices = this.#entries.flatMap((e, i) => (e.step.origin.turn === turn ? [i] : []));
-    if (!indices.length) return { ok: false, reason: 'That turn changed nothing that can be undone' };
-    const last = indices[indices.length - 1];
-    const later = this.#entries.slice(0, last + 1).filter((e) => e.step.origin.turn !== turn).length;
-    if (later > 0 && !options.discardLater) {
-      return {
-        ok: false,
-        reason: `${later} later step${later === 1 ? '' : 's'} would be undone too`,
-        laterSteps: later,
-      };
-    }
+    if (this.#running.value > 0 || this.#active.size > 0)
+      return { ok: false, reason: 'A change is running; stop it first' };
     const release = await this.#acquire();
     try {
-      const target = this.#entries[last];
+      if (this.#active.size > 0) return { ok: false, reason: 'A change is running; stop it first' };
+      const indices = this.#entries.flatMap((e, i) => (e.step.origin.turn === turn ? [i] : []));
+      if (!indices.length) return { ok: false, reason: 'That turn changed nothing that can be undone' };
+      const last = indices[indices.length - 1];
+      const later = this.#entries.slice(0, last + 1).filter((e) => e.step.origin.turn !== turn).length;
+      if (later > 0 && !options.discardLater) {
+        return {
+          ok: false,
+          reason: `${later} later step${later === 1 ? '' : 's'} would be undone too`,
+          laterSteps: later,
+        };
+      }
       const unsafe = this.#entries.slice(0, last + 1).find((e) => e.step.unsafe || e.checkpoint === undefined);
       if (unsafe) return { ok: false, reason: unsafe.step.unsafe ?? 'No checkpoint' };
+      const target = this.#entries[last];
       await this.#restore(target.checkpoint);
       const undone = this.#entries.slice(0, last + 1);
       this.#entries = this.#entries.slice(last + 1);
@@ -355,11 +400,11 @@ export class HistoryManager<C = unknown> {
   invalidate(reason: string): void {
     let changed = false;
     for (const e of this.#entries) {
+      e.openKey = undefined;
       if (e.step.unsafe) continue;
       e.step = { ...e.step, unsafe: reason };
       changed = true;
     }
-    for (const e of this.#entries) e.openKey = undefined;
     if (changed) this.#publish();
     this.#updateBlocked();
   }
@@ -369,7 +414,6 @@ export class HistoryManager<C = unknown> {
     this.#entries = [];
     this.#checkpointing.set(true);
     this.#publish();
-    this.#updateBlocked();
   }
 
   dispose(): void {
@@ -379,23 +423,95 @@ export class HistoryManager<C = unknown> {
     this.#checkpointingOff.complete();
   }
 
-  async #runInAtomic<T>(
-    group: AtomicGroup<C>,
+  /** Work inside a run or group in progress: no lock, no step; recorded in the outer one. */
+  async #nested<T>(
+    parent: Active,
+    kind: 'run' | 'group',
     label: string | ((value: T) => string),
-    work: () => Promise<T>,
-    options: RunOptions<T>,
-  ): Promise<StepOutcome<T>> {
-    this.#running.set(this.#running.value + 1);
+    work: (context: HistoryContext) => Promise<T>,
+    failed: ((value: T) => boolean) | undefined,
+    record: ((value: T) => boolean) | undefined,
+    onFailure: 'rollback' | 'continue',
+  ): Promise<GroupOutcome<T>> {
+    const active = this.#begin(kind, parent, onFailure);
     try {
-      const value = await work();
-      if (!options.failed?.(value)) group.runs.push(typeof label === 'function' ? label(value) : label);
-      return { value, restored: false };
+      // Inside a group that goes on after a failure, each run keeps its own checkpoint to undo just itself.
+      const own: { value: C | undefined } = parent.onFailure === 'continue' ? this.#take(true) : { value: undefined };
+      let value: T;
+      try {
+        value = await work(active);
+      } catch (error) {
+        parent.failures++;
+        await this.#restore(own.value);
+        throw error;
+      }
+      const didFail = !!failed?.(value) || (kind === 'group' && onFailure === 'rollback' && active.failures > 0);
+      if (didFail) {
+        parent.failures++;
+        const restored = await this.#restore(own.value);
+        return { value, failed: true, restored, runs: active.runs, failures: active.failures };
+      }
+      const runs =
+        kind === 'run'
+          ? record?.(value) === false
+            ? active.runs
+            : [labelOf(label, value), ...active.runs]
+          : active.runs;
+      parent.runs.push(...runs);
+      return { value, failed: false, restored: false, runs, failures: active.failures };
     } finally {
-      this.#running.set(this.#running.value - 1);
+      this.#end(active);
     }
   }
 
-  /** Takes a checkpoint unless checkpoints are off (a group's is taken below the hard limit). */
+  #begin(kind: 'run' | 'group', parent: Active | undefined, onFailure: 'rollback' | 'continue'): Active {
+    const active: Active = { id: ++this.#contexts, kind, parent, onFailure, runs: [], failures: 0 };
+    this.#active.set(active.id, active);
+    return active;
+  }
+
+  #end(active: Active) {
+    this.#active.delete(active.id);
+  }
+
+  /** An entry takes more runs only while it is its group's and the latest; anything else closes it. */
+  #closeOthers(key: string | undefined) {
+    const top = this.#entries[0];
+    if (top?.openKey && top.openKey !== key) top.openKey = undefined;
+  }
+
+  /** Records a step, or adds the runs to the open entry of its turn when that is the latest. */
+  #record(
+    label: string,
+    origin: HistoryOrigin,
+    runs: readonly string[],
+    checkpoint: { value: C | undefined; unsafe?: string },
+    key: string | undefined,
+  ): HistoryStep {
+    const top = this.#entries[0];
+    const group = key ? this.#open.get(key) : undefined;
+    if (group && top?.openKey === key) {
+      top.step = { ...top.step, runs: [...top.step.runs, ...runs] };
+      this.#publish();
+      return top.step;
+    }
+    const step: HistoryStep = {
+      id: ++this.#serial,
+      label,
+      origin,
+      time: this.#options.now(),
+      runs,
+      ...(checkpoint.unsafe ? { unsafe: checkpoint.unsafe } : {}),
+    };
+    this.#entries = [{ step, checkpoint: checkpoint.value, openKey: group ? key : undefined }, ...this.#entries].slice(
+      0,
+      this.#options.capacity,
+    );
+    this.#publish();
+    return step;
+  }
+
+  /** Takes a checkpoint unless checkpoints are off (a group's, and a turn's run's, are taken below the hard limit). */
   #take(group: boolean): { value: C | undefined; unsafe?: string } {
     if (!this.#checkpointing.value && !group) {
       return { value: undefined, unsafe: 'Undo is off for this large scene' };
@@ -430,43 +546,24 @@ export class HistoryManager<C = unknown> {
     }
   }
 
-  #push(
-    label: string,
-    origin: HistoryOrigin,
-    runs: readonly string[],
-    checkpoint: C | undefined,
-    unsafe: string | undefined,
-    openKey?: string,
-  ): HistoryStep {
-    const step: HistoryStep = {
-      id: ++this.#serial,
-      label,
-      origin,
-      time: this.#options.now(),
-      runs,
-      ...(unsafe ? { unsafe } : {}),
-    };
-    this.#entries = [{ step, checkpoint, openKey }, ...this.#entries].slice(0, this.#options.capacity);
-    this.#publish();
-    return step;
-  }
-
   #publish() {
     this.#steps.set(this.#entries.map((e) => e.step));
     this.#updateBlocked();
   }
 
-  #updateBlocked() {
+  #blockedReason(): string | undefined {
     const top = this.#entries[0];
-    this.#undoBlocked.set(
-      this.#running.value > 0 || this.#atomic
-        ? 'A change is running; stop it first'
-        : !top
-          ? 'Nothing to undo'
-          : top.step.unsafe
-            ? top.step.unsafe
-            : undefined,
-    );
+    if (this.#running.value > 0 || this.#active.size > 0) return 'A change is running; stop it first';
+    if (!top) return 'Nothing to undo';
+    if (top.step.unsafe) return top.step.unsafe;
+    if (top.checkpoint === undefined) return 'No checkpoint';
+    return undefined;
+  }
+
+  #updateBlocked() {
+    const reason = this.#blockedReason();
+    this.#undoBlocked.set(reason);
+    this.#canUndo.set(reason === undefined);
   }
 
   #acquire(): Promise<() => void> {

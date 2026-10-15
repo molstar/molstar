@@ -23,7 +23,9 @@ app (README §2.1). The designs behind it are [../design/rendering.md](../design
 | `testing/`    | mocks and the story harness, for stories and tests only                                                           | yes |
 
 - **The DOM-free folders** (`reactive/`, `commands/`, `forms/`, `managers/`, `model/`, `shell/`) are what a headless
-  viewer uses; a check keeps them free of DOM imports, so no separate core package is needed (README §3.3).
+  viewer uses, through `@molstar/prism-ui/core` (the package's index adds the DOM runtime, components and views); a
+  check keeps them free of DOM imports (`_test/dom-free.test.ts`), and the viewer checks that its headless module graph
+  reaches none of the DOM folders, so no separate core package is needed (README §3.3).
 - **`managers/` is new**: the generic halves of today's `ShellModel` (`navigation`: what is open; `viewState`: docks and
   sizes, serializable) and `StatusModel` move there; `history` takes its checkpoints through a port the app gives
   (the viewer's: plugin snapshot plus the sequence's state, sequence.md §7).

@@ -12,7 +12,7 @@
 import { describe, expect, it } from 'vitest';
 import { classes } from '../../components/button/_generated/button.module.css.js';
 import { defineElements, MspElement } from '../../dom/element.js';
-import { defineStyles, styleText } from '../registry.js';
+import { adoptStyles, defineStyles, releaseStyles, styleText } from '../registry.js';
 
 class StyledElement extends MspElement<string> {
   static tag = 'msp-test-styled';
@@ -53,5 +53,62 @@ describe('styles', () => {
     expect(inner.classList.contains('msp-root')).toBe(false);
     // One style element per document.
     expect(document.head.querySelectorAll('style[data-msp-styles]').length).toBe(1);
+  });
+});
+
+describe('styles in shadow roots', () => {
+  // A constructed sheet where the environment has them, else the <style> fallback.
+  const cssOf = (root: ShadowRoot) => {
+    const sheets = (root as ShadowRoot & { adoptedStyleSheets?: CSSStyleSheet[] }).adoptedStyleSheets ?? [];
+    const adopted = sheets.map((s) => [...s.cssRules].map((r) => r.cssText).join('\n'));
+    const styles = [...root.querySelectorAll('style[data-msp-styles]')].map((s) => s.textContent ?? '');
+    return [...adopted, ...styles].join('\n');
+  };
+  const shadow = () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    return host.attachShadow({ mode: 'open' });
+  };
+
+  it('adopts into several roots, reaches both with a later registration, and releases one', async () => {
+    const a = shadow();
+    const b = shadow();
+    adoptStyles(a);
+    adoptStyles(b);
+    await tick();
+    expect(cssOf(a)).toContain('.msp-button-button');
+    expect(cssOf(b)).toContain('.msp-button-button');
+
+    defineStyles('test/shadow-late.css', '.shadow-late { color: red }');
+    await tick();
+    expect(cssOf(a)).toContain('shadow-late');
+    expect(cssOf(b)).toContain('shadow-late');
+
+    releaseStyles(a);
+    expect(cssOf(a)).toBe('');
+    expect(cssOf(b)).toContain('shadow-late');
+
+    defineStyles('test/shadow-later.css', '.shadow-later { color: blue }');
+    await tick();
+    expect(cssOf(a)).toBe('');
+    expect(cssOf(b)).toContain('shadow-later');
+
+    // Adopting the same root again after the release works.
+    adoptStyles(a);
+    await tick();
+    expect(cssOf(a)).toContain('shadow-later');
+    expect(cssOf(a)).toContain('.msp-button-button');
+    releaseStyles(a);
+    releaseStyles(b);
+    expect(cssOf(b)).toBe('');
+  });
+
+  it('a release with an update queued does not bring the styles back', async () => {
+    const a = shadow();
+    adoptStyles(a);
+    defineStyles('test/shadow-queued.css', '.shadow-queued { color: red }');
+    releaseStyles(a);
+    await tick();
+    expect(cssOf(a)).toBe('');
   });
 });

@@ -16,13 +16,13 @@
 const LayerOrder = '@layer msp.reset, msp.theme, msp.components, msp.overrides;';
 
 const entries = new Map<string, string>();
-const roots = new Map<StyleRoot, () => void>();
+const roots = new Map<StyleRoot, { schedule: () => void; remove: () => void }>();
 
 /** Registers (or replaces) the CSS of a file; adopted documents update. */
 export function defineStyles(id: string, css: string): void {
   if (entries.get(id) === css) return;
   entries.set(id, css);
-  for (const update of roots.values()) update();
+  for (const root of roots.values()) root.schedule();
 }
 
 /** All registered CSS, in registration order, after the layer order. */
@@ -43,10 +43,14 @@ export function adoptStyles(root: StyleRoot = document): void {
   const doc = isDocument(root) ? root : root.ownerDocument;
   const win = doc.defaultView;
   let update: () => void;
+  let remove: () => void;
   if (win && 'adoptedStyleSheets' in root && typeof win.CSSStyleSheet?.prototype.replaceSync === 'function') {
     const sheet = new win.CSSStyleSheet();
     root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
     update = () => sheet.replaceSync(styleText());
+    remove = () => {
+      root.adoptedStyleSheets = root.adoptedStyleSheets.filter((s) => s !== sheet);
+    };
   } else {
     const style = doc.createElement('style');
     style.setAttribute('data-msp-styles', '');
@@ -55,23 +59,32 @@ export function adoptStyles(root: StyleRoot = document): void {
     update = () => {
       style.textContent = styleText();
     };
+    remove = () => style.remove();
   }
   // Registrations often come in a burst (a view's modules): apply them once.
   let queued = false;
+  let released = false;
   const schedule = () => {
-    if (queued) return;
+    if (queued || released) return;
     queued = true;
     queueMicrotask(() => {
       queued = false;
-      update();
+      if (!released) update();
     });
   };
-  roots.set(root, schedule);
+  roots.set(root, {
+    schedule,
+    remove: () => {
+      released = true;
+      remove();
+    },
+  });
   update();
 }
 
-/** Stops updating a shadow root's styles (its viewer is gone). */
+/** Removes the styles adopted into a root and stops updating them (its viewer is gone); it can be adopted again. */
 export function releaseStyles(root: StyleRoot): void {
+  roots.get(root)?.remove();
   roots.delete(root);
 }
 

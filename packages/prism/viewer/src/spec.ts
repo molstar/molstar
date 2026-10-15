@@ -20,7 +20,7 @@ import type {
   UITheme,
   ViewRenderer,
 } from '@molstar/prism-ui';
-import type { ApiArea, ApiAreaContext, RunOrigin, ViewerApi } from './api/area.js';
+import type { ApiArea, ApiAreaContext, OperationDefinition, ViewerApi } from './api/area.js';
 import type { PrismViewerOptionValues } from './options.js';
 import type { SceneNodeKind } from './model/scene.js';
 
@@ -163,8 +163,22 @@ export interface ViewerExtension {
   readonly title: string;
   /** The engine side: registry entries, behaviors, config. */
   readonly plugin?: Partial<PrismViewerPluginParts>;
-  /** Its operations, under its id (api.md §6): an area bound to an origin, made for each origin as the core's are. */
-  readonly api?: (ctx: ApiAreaContext, origin: RunOrigin, group?: object) => ApiArea;
+  /**
+   * Its areas, by area id (api.md §6): each made once. Their operation ids start with the area's id; an extension's
+   * areas are its own (`geo-export`), a built-in feature's may be named for what they do (`measure`, `snapshot`).
+   */
+  readonly api?: Readonly<Record<string, (ctx: ApiAreaContext) => ApiArea>>;
+  /**
+   * Operations it adds to core areas (the `loaders` feature's `load.entry`, `canvas-settings`' `canvas.lighting`):
+   * built-in features only (`builtIn`), so the core's areas do not grow with Mol*'s extensions (operations.md §2).
+   */
+  readonly contributes?: (ctx: ApiAreaContext) => readonly {
+    readonly area: string;
+    readonly name: string;
+    readonly operation: OperationDefinition<any, any>;
+  }[];
+  /** One of the viewer's own features (viewer-spec.md §3.1). */
+  readonly builtIn?: true;
   readonly commands?: (api: ViewerApi) => readonly CommandDefinition<any>[];
   readonly tools?: readonly ViewerTool[];
   /** Never core tools: skills are disclosed. */

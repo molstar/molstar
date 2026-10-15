@@ -23,6 +23,7 @@ export class CameraApi extends ApiArea {
     },
     history: false,
     modules: ['canvas'],
+    when: (ctx) => (ctx.sources.empty.value ? 'Nothing is loaded.' : true),
     async run({ animate }, ctx) {
       const reduced = ctx.modules.has('page') && prefersReducedMotion();
       ctx.plugin.managers.camera.reset(undefined, animate && !reduced ? 250 : 0);

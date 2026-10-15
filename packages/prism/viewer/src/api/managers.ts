@@ -13,7 +13,7 @@ import type {
   NotificationsManager,
   UiTransactionCoordinator,
   ViewStateManager,
-} from '@molstar/prism-ui';
+} from '@molstar/prism-ui/core';
 import type { ViewerCheckpoint } from '../sources/checkpoint.js';
 
 // The viewer's managers (spec README §3.3): generic and DOM-free, from prism-ui, composed by the viewer as

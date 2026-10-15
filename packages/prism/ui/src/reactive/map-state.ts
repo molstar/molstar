@@ -1,0 +1,26 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { distinctUntilChanged, map } from 'rxjs';
+import type { ReadonlyState } from './readonly-state.js';
+import { sameShallow } from './same-shallow.js';
+
+/**
+ * A state derived from another (spec README §3.6): its `value` is computed from the source's on read, and it emits
+ * when the derived value changes (`compare`, shallow by default). Nothing is held: no subscription until someone
+ * subscribes.
+ */
+export function mapState<S, T>(
+  source: ReadonlyState<S>,
+  fn: (value: S) => T,
+  compare: (a: T, b: T) => boolean = sameShallow,
+): ReadonlyState<T> {
+  const out = source.pipe(map(fn), distinctUntilChanged(compare)) as ReadonlyState<T>;
+  Object.defineProperty(out, 'value', { get: () => fn(source.value), enumerable: true });
+  return out;
+}

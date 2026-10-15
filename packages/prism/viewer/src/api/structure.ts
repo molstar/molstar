@@ -9,7 +9,7 @@
 import { StateTransform, StateTree } from '@molstar/core/state';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
-import type { ReadonlyState } from '@molstar/prism-ui';
+import type { ReadonlyState } from '@molstar/prism-ui/core';
 import type { StructureInfo } from '../sources/viewer-sources.js';
 import { type ApiContext, ApiArea, ApiResult } from './area.js';
 import { isFailure, labelOf, oneStructure, someStructures } from './scope.js';
@@ -98,7 +98,7 @@ export class StructureApi extends ApiArea {
         );
       }
       const params = model.cell.transform.params as { modelIndex: number };
-      if (params.modelIndex === index) return ApiResult.ok(`${labelOf(ctx, s)} already shows model ${index + 1}.`);
+      if (params.modelIndex === index) return ApiResult.already(`${labelOf(ctx, s)} already shows model ${index + 1}.`);
       await ctx.plugin.state.updateTransform(ctx.plugin.state.data, model.cell.transform.ref, {
         ...params,
         modelIndex: index,
@@ -132,7 +132,7 @@ export class StructureApi extends ApiArea {
       }
       const want = id ? { name: 'assembly', params: { id } } : { name: 'model', params: {} };
       if (current.type.name === want.name && (want.name === 'model' || current.type.params?.id === id)) {
-        return ApiResult.ok(
+        return ApiResult.already(
           id ? `${labelOf(ctx, s)} already shows assembly ${id}.` : `${labelOf(ctx, s)} already shows the model.`,
         );
       }
@@ -152,7 +152,7 @@ export class StructureApi extends ApiArea {
       if (isFailure(targets)) return targets;
       const change = targets.filter((s) => !!s.cell.state.isHidden === visible);
       if (!change.length) {
-        return ApiResult.ok(
+        return ApiResult.already(
           `${targets.map((x) => labelOf(ctx, x)).join(', ')} ${targets.length === 1 ? 'is' : 'are'} already ${visible ? 'shown' : 'hidden'}.`,
         );
       }

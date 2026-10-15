@@ -9,7 +9,7 @@
 import { type Structure, StructureElement } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
-import type { ApiFailure } from '../api/area.js';
+import type { ApiErrorCode, ApiFailure } from '../api/area.js';
 import type { ResolvedPart, ResolvedTarget, ResolveOptions, TargetResolver } from '../api/targets.js';
 import { findStructure, structureNames } from './naming.js';
 import { evaluateTarget, formatTarget, type PersonKeyword, type Target, toMolqlJson } from '../targets/index.js';
@@ -136,6 +136,6 @@ export function createTargetResolver(plugin: PluginContext): TargetResolver {
   };
 }
 
-function fail(code: string, message: string, hint?: string): ApiFailure {
+function fail(code: ApiErrorCode, message: string, hint?: string): ApiFailure {
   return hint ? { ok: false, code, message, hint } : { ok: false, code, message };
 }

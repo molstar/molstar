@@ -8,15 +8,17 @@
 
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginContext } from '@molstar/plugin/context';
-import type { ReadonlyState } from '@molstar/prism-ui';
+import type { HistoryContext, ReadonlyState } from '@molstar/prism-ui/core';
 import type { Observable } from 'rxjs';
-import type { ApiRunner, RunRecord } from './run.js';
-import type { ViewerManagers } from './managers.js';
-import type { TargetResolver } from './targets.js';
 import type { ViewerSources } from '../sources/viewer-sources.js';
+import type { ViewerManagers } from './managers.js';
+import type { RunRecord } from './run.js';
+import type { TargetResolver } from './targets.js';
+import type { ExtensionApis } from '../api.js';
 
 // The viewer's API (api.md, operations.md §1): one object per area, its operations as fields, every change through
-// one run path (`ApiRunner`), results for every caller, never a throw.
+// one run path (`ApiRunner`), results for every caller, never a throw. An area is made once; binding it to an origin
+// (`api.as`), a group (`api.group`) or a run in progress (`ctx.api`) is a thin facade over the same object.
 
 /** Who runs it (operations.md §1): the history and the record read it. */
 export type RunOrigin =
@@ -36,6 +38,20 @@ export interface Changed {
   readonly sequence?: boolean;
 }
 
+/**
+ * Why a call did not do what was asked: `invalid` (its values), `blocked` (not now: `when`), `unavailable` (the host
+ * lacks a module), `not-found`, `ambiguous` (which one?), `confirm` (ask first, then call again), `aborted`, `failed`.
+ */
+export type ApiErrorCode =
+  | 'invalid'
+  | 'blocked'
+  | 'unavailable'
+  | 'not-found'
+  | 'ambiguous'
+  | 'confirm'
+  | 'aborted'
+  | 'failed';
+
 export type ApiResult<R = unknown> =
   | {
       readonly ok: true;
@@ -46,11 +62,12 @@ export type ApiResult<R = unknown> =
       readonly warnings?: readonly string[];
       /** What to do next, when there is an obvious next step. */
       readonly next?: string;
+      /** It was already so: nothing changed, no history step (operations.md §1, desired state). */
+      readonly unchanged?: true;
     }
   | {
       readonly ok: false;
-      /** `invalid`, `blocked`, `unavailable`, `not-found`, `aborted`, `failed`, … */
-      readonly code: string;
+      readonly code: ApiErrorCode;
       readonly message: string;
       /** What to do instead. */
       readonly hint?: string;
@@ -66,8 +83,15 @@ export const ApiResult = {
   ): ApiResult<R> {
     return { ok: true, did, changed, ...extra };
   },
-  fail(code: string, message: string, hint?: string): ApiFailure {
+  /** It is already so: nothing changed (no history step). */
+  already<R>(did: string, extra: { value?: R } = {}): ApiResult<R> {
+    return { ok: true, did, changed: {}, unchanged: true, ...extra };
+  },
+  fail(code: ApiErrorCode, message: string, hint?: string): ApiFailure {
     return hint ? { ok: false, code, message, hint } : { ok: false, code, message };
+  },
+  isFailure(x: unknown): x is ApiFailure {
+    return !!x && typeof x === 'object' && (x as { ok?: unknown }).ok === false && 'code' in (x as object);
   },
 };
 
@@ -86,30 +110,55 @@ export interface Projection<T = unknown> {
   isAbsorbed(base: T): boolean;
 }
 
-/** What an operation's run gets (api.md §4). */
-export interface ApiContext {
+/** What an area and an operation's `params` and `when` get: the viewer's parts, no origin (api.md §4). */
+export interface ApiAreaContext {
   /** Only `api/` and `sources/` use it (contexts.md §7). */
   readonly plugin: PluginContext;
   readonly sources: ViewerSources;
   readonly targets: TargetResolver;
-  /** Other areas, bound to the same origin (and group). */
-  readonly api: ViewerApi;
-  readonly origin: RunOrigin;
   readonly modules: ApiModules;
   readonly managers: ViewerManagers;
+  /** Declares and runs operations: the run path, as an area sees it. */
+  readonly operations: OperationPort;
+}
+
+/** What an operation's run gets: the area context, bound to who runs it (api.md §4). */
+export interface ApiContext extends ApiAreaContext {
+  /** Other areas, bound to the same origin, and part of this run: calls through it join its history step. */
+  readonly api: ViewerApi;
+  readonly origin: RunOrigin;
   readonly signal: AbortSignal;
   /** Asked for another of what exists (decision 30). */
   readonly copy: boolean;
 }
 
-/** What creating an area gets: the shared parts, no origin. */
-export interface ApiAreaContext {
-  readonly plugin: PluginContext;
-  readonly sources: ViewerSources;
-  readonly targets: TargetResolver;
-  readonly modules: ApiModules;
-  readonly managers: ViewerManagers;
-  readonly runner: ApiRunner;
+/** The run path as an area sees it. */
+export interface OperationPort {
+  /** Declares an operation of an area; its id must start with the area's id (`<area>.<verb>`). */
+  define(def: OperationDefinition<any, any>, area: string): void;
+  run<P extends PD.Params, R>(
+    def: OperationDefinition<P, R>,
+    values: Partial<PD.ValuesFor<P>> | Readonly<Record<string, unknown>>,
+    input: RunInput,
+  ): Promise<ApiResult<R>>;
+}
+
+/** How a call runs: who, and what it is part of. */
+export interface RunInput {
+  readonly origin: RunOrigin;
+  readonly signal?: AbortSignal;
+  readonly copy?: boolean;
+  /** The run or group in progress the call is part of (no step of its own). */
+  readonly within?: HistoryContext;
+  /** The group's record, which collects its calls. */
+  readonly group?: GroupRecord;
+}
+
+/** A group's record while it runs: its id and the runs made inside it. */
+export interface GroupRecord {
+  readonly id: number;
+  readonly label: string;
+  readonly runs: RunRecord[];
 }
 
 export interface OperationDefinition<P extends PD.Params = PD.Params, R = unknown> {
@@ -117,20 +166,20 @@ export interface OperationDefinition<P extends PD.Params = PD.Params, R = unknow
   readonly id: string;
   /** For people: the command's title, and the history entry when the result says nothing better. */
   readonly title: string;
-  /** One definition: the command's form and the tool's schema derive from it. */
-  readonly params: P | ((ctx: ApiContext) => P);
+  /** One definition: the command's form and the tool's schema derive from it; a function for registry-driven ones. */
+  readonly params: P | ((ctx: ApiAreaContext) => P);
   /** Changes nothing: no history step, may run alongside others. */
   readonly read?: true;
   /** Changes view state, not content: no history step (select, focus, camera, highlight, view). */
   readonly history?: false;
-  /** A step the history cannot restore (an upload); default true. */
+  /** Changes nothing the history could restore (an upload): no checkpoint, no step; default true. */
   readonly undoable?: false;
   /** Asks before it runs, from the agent (agent.md §4). */
   readonly approval?: 'network' | 'upload' | 'destructive';
   /** What it needs of the host; where one is missing it says why instead of running. */
   readonly modules?: readonly ApiModuleKey[];
-  /** Whether it can run now; the string is the reason. */
-  when?(ctx: ApiContext): true | string;
+  /** Whether it can run now; the string is the reason. Commands and tools read it too, so no origin. */
+  when?(ctx: ApiAreaContext): true | string;
   /**
    * Identity for operations that create things (decision 30): the thing it would create already exists, said as a
    * result line ("1TQN is already loaded."); the run then does nothing, unless `copy` asks for another.
@@ -154,34 +203,61 @@ export interface OperationFn<P extends PD.Params = PD.Params, R = unknown> {
   readonly definition: OperationDefinition<P, R>;
 }
 
-/** The base of every area: its id, and `operation` to declare an operation as a field (api.md §3). */
+export function isOperationFn(x: unknown): x is OperationFn<any, any> {
+  return typeof x === 'function' && 'definition' in x;
+}
+
+const Script: RunOrigin = { kind: 'script' };
+
+/**
+ * The base of every area: its id, and `operation` to declare an operation as a field (api.md §3). Made once per viewer;
+ * its operation fields run as `script`, and the API's facades rebind them to other origins.
+ */
 export abstract class ApiArea {
   abstract readonly id: string;
 
-  constructor(
-    protected readonly ctx: ApiAreaContext,
-    /** The origin calls through this object run as. */
-    readonly origin: RunOrigin,
-    /** The group calls through this object belong to (`api.group`). */
-    protected readonly group?: object,
-  ) {}
+  constructor(protected readonly ctx: ApiAreaContext) {}
 
   protected operation<P extends PD.Params, R>(def: OperationDefinition<P, R>): OperationFn<P, R> {
-    this.ctx.runner.define(def as OperationDefinition<any, any>, this.constructor);
-    const fn = ((values?: Partial<PD.ValuesFor<P>>, options?: RunOptions) =>
-      this.ctx.runner.run(def, values ?? {}, {
-        origin: this.origin,
-        ...(this.group ? { group: this.group } : {}),
-        ...options,
-      })) as OperationFn<P, R>;
-    Object.defineProperty(fn, 'definition', { value: def, enumerable: true });
-    return fn;
+    // `id` is declared before the operation fields, so it is set by now.
+    this.ctx.operations.define(def as OperationDefinition<any, any>, this.id);
+    return bindOperation(this.ctx.operations, def, { origin: Script });
   }
 
-  /** The operations this area declares. */
-  operations(): OperationFn<any, any>[] {
-    return Object.values(this).filter((v): v is OperationFn<any, any> => typeof v === 'function' && 'definition' in v);
+  /**
+   * Adds an operation to this area from outside it (a built-in feature's: `loaders` brings `load.entry`), under
+   * `name`; returns its removal. The id must start with this area's id.
+   */
+  contribute<P extends PD.Params, R>(name: string, def: OperationDefinition<P, R>): () => void {
+    if (name in this) throw new Error(`Area '${this.id}' already has '${name}'`);
+    this.ctx.operations.define(def as OperationDefinition<any, any>, this.id);
+    const fn = bindOperation(this.ctx.operations, def, { origin: Script });
+    Object.defineProperty(this, name, { value: fn, enumerable: true, configurable: true });
+    return () => {
+      const self = this as unknown as Record<string, unknown>;
+      if (self[name] === fn) delete self[name];
+    };
   }
+
+  /** The operations this area declares, contributed ones included. */
+  operations(): OperationFn<any, any>[] {
+    return Object.values(this).filter(isOperationFn);
+  }
+
+  /** Lets go of what the area holds (an extension's area when the extension goes). */
+  dispose?(): void;
+}
+
+/** An operation bound to how it runs. */
+export function bindOperation<P extends PD.Params, R>(
+  port: OperationPort,
+  def: OperationDefinition<P, R>,
+  input: RunInput,
+): OperationFn<P, R> {
+  const fn = ((values?: Partial<PD.ValuesFor<P>>, options?: RunOptions) =>
+    port.run(def, values ?? {}, { ...input, ...options })) as OperationFn<P, R>;
+  Object.defineProperty(fn, 'definition', { value: def, enumerable: true });
+  return fn;
 }
 
 /** The core areas (api.md §2), filled in as each is built. */
@@ -195,23 +271,44 @@ export interface CoreApi {
   readonly view: import('./view.js').ViewApi;
 }
 
-/** Extensions augment this with their areas, keyed by their id (api.md §6). */
-export interface ExtensionApis {}
+/** An operation as commands and tools see it, before running: its params resolved, and whether it can run now. */
+export interface OperationDescription {
+  readonly definition: OperationDefinition<any, any>;
+  readonly params: PD.Params;
+  /** True, or why not. */
+  readonly available: true | string;
+}
+
+export interface GroupOptions {
+  readonly signal?: AbortSignal;
+  /**
+   * A call inside that fails: `rollback` (default) fails the whole group at its end, restoring its checkpoint;
+   * `continue` undoes just that call and goes on.
+   */
+  readonly onFailure?: 'rollback' | 'continue';
+}
+
+/** A group's result: the work's value, what changed (the union of its calls'), and its calls. */
+export type GroupResult<T> = ApiResult<T> & { readonly runs: readonly RunRecord[] };
 
 /** Every operation, as commands, tools, scripts and view models call them. */
 export type ViewerApi = CoreApi &
   Partial<ExtensionApis> & {
     /** Runs an operation by id (commands, tools and the run log name operations by id). */
     run(id: string, values?: Readonly<Record<string, unknown>>, options?: RunOptions): Promise<ApiResult>;
-    /** The same API bound to another origin. */
+    /** The same API bound to another origin (inside a group or a run, still part of it). */
     as(origin: RunOrigin): ViewerApi;
     /**
-     * The calls inside are one history step and one record group; a failure (a throw, or a failed result returned)
-     * restores the group's checkpoint: all or nothing (api.md §5).
+     * The calls inside are one history step and one record group; a failure (a throw, a failed result returned, or a
+     * call inside that failed) restores the group's checkpoint: all or nothing (api.md §5).
      */
-    group<T>(label: string, work: (api: ViewerApi) => Promise<T>): Promise<ApiResult<T>>;
-    /** An area by id, core or an extension's. */
+    group<T>(label: string, work: (api: ViewerApi) => Promise<T>, options?: GroupOptions): Promise<GroupResult<T>>;
+    /** An area by id, core or an extension's (bound like this API). */
     area(id: string): ApiArea | undefined;
+    /** An operation by id, as commands and tools see it. */
+    describe(id: string): OperationDescription | undefined;
+    /** The operations declared, by id; changes when an extension adds or removes some. */
+    readonly definitions: ReadonlyState<ReadonlyMap<string, OperationDefinition<any, any>>>;
     /** The runs in progress. */
     readonly running: ReadonlyState<readonly RunRecord[]>;
     readonly events: {

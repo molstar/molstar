@@ -144,7 +144,9 @@ interface ViewerExtension {
   readonly id: string;                                         // 'geo-export'; every part id starts with it (§4)
   readonly title: string;
   readonly plugin?: Partial<PrismViewerPluginParts>;         // registry, behaviors, config
-  readonly api?: (ctx: ApiAreaContext, origin: RunOrigin, group?: object) => ApiArea;  // its area, bound per origin (api.md §6)
+  readonly api?: Readonly<Record<string, (ctx: ApiAreaContext) => ApiArea>>;  // its areas by id, each made once (api.md §6)
+  readonly contributes?: (ctx) => readonly { area; name; operation }[];      // into core areas: built-in features only
+  readonly builtIn?: true;                                     // one of the viewer's own features (§3.1)
   readonly commands?: (api: ViewerApi) => readonly CommandDefinition[];
   readonly tools?: readonly ToolRegistration<ViewerApi>[];     // registered into the dynamic toolkit (agent.md §3)
   readonly skills?: readonly ToolGroup<ViewerApi>[];           // never core tools
@@ -261,9 +263,11 @@ createPrismViewerHeadless({ spec, plugin? }): Promise<PrismViewer>; // @molstar/
 interface PrismViewer {
   readonly plugin: PluginContext;                                   // the engine: an escape hatch
   readonly api: ViewerApi;                                          // every operation (README §3.3)
-  run<T>(label: string, work: (plugin: PluginContext) => Promise<T>): Promise<T>;  // a script's history step (README §3.2)
+  run<T>(label: string, work: (plugin: PluginContext, api: ViewerApi) => Promise<T>): Promise<T>;  // one step; `api`'s calls join it
   readonly managers: ViewerManagers;                                // commands, transactions, history, navigation, viewState, notifications
   readonly views: ViewerViews;                                      // the root view models (shell, scene, selection, …)
+  readonly sources: ViewerSources;                                  // read-only states over the plugin (state.md §4)
+  readonly spec: PrismViewerSpec; readonly options: PrismViewerOptionValues;  // what it was made from
   readonly state: { ready; busy; empty };                           // ReadonlyStates (README §3.6)
   readonly events: { hover; click; error };                         // non-replaying events; hover and click carry targets
   dispose(): Promise<void>;
@@ -273,7 +277,10 @@ interface PrismViewer {
 Creation, in order: validate the spec (ids, overrides, slots), compose the plugin spec (§2.1), create and `init()` the
 plugin, create the API, managers and views, activate the extensions in order (lazy ones as stubs), then, with a page,
 mount the canvas and render the shell; `ready` is set last, and only then do URL calls and the light restore run
-(journal.md §6), so nothing that reads the camera runs before the canvas exists. `dispose()` undoes it in reverse.
+(journal.md §6), so nothing that reads the camera runs before the canvas exists. `dispose()` undoes it in reverse, and a
+creation that fails part way undoes what it made before throwing (a page's persist key included). An extension id that
+is a core area's id is refused. The spec's layout (`ui.layout.docks`, `tabs`) and `options.ui.buttons` seed the
+`viewState` and `navigation` managers; `ui.keybindings` replace the shortcuts of the commands they name.
 
 ## 7. From v5's `ViewerOptions`
 

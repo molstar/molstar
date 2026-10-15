@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { observableState, type ReadonlyState } from '@molstar/prism-ui';
+import { observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import type { BehaviorSubject, Observable, Subscription } from 'rxjs';
 
 // One shape for every source (state.md §4): the plugin's patterns (a BehaviorSubject, a mutable field with a void
