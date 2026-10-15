@@ -17,7 +17,7 @@ the first slice's canvas, hover lines, selection summary and framing (`viewer/sr
 | `managers.structure.hierarchy` (structures, models, components, representations)   | `SceneModel` (`SceneNode` tree, `pick`, `inspect`), `SceneInspection` slots | Views › Structure tab (all); Shell › ManyStructures      | v5's hierarchy selection ("which structures the tools act on"): Prism acts on the picked node |
 | a structure's contents (entities, chains), from its model                           | `SceneNode` kinds `contents`, `entity`, `chain` (lazy children)             | Views › Structure tab; Shell › ManyStructures            | its source (read from the `Structure`, not a manager)                                          |
 | `managers.volume.hierarchy`                                                         | `SceneNode` kinds `volume`, `volume-representation`                         | Views › Structure tab › EmdbMap, EmdbModel, StreamingDensity | —                                                                                             |
-| `managers.particles.hierarchy`                                                      | none (`SceneNode` has no particle kinds)                                    | none                                                    | particle nodes                                                                                |
+| `managers.particles.hierarchy`                                                      | `SceneNode` kinds `particles`, `particles-representation`                   | Viewer › Real › ParticlesStar                           | —                                                                                             |
 | `managers.structure.component` (options, add, presets)                              | `PresetsModel`, `QuickStylesModel`, `mockComponentOptions`, node menus      | Views › Structure tab › Representation, Structure       | —                                                                                             |
 | `managers.structure.selection` (entries, stats, additions history)                  | `SelectionModel` (`summary`, `actions`, `clear`)                            | Shell › Loaded (selection bar, Selection tab)           | the additions history as a state: the ordered list of the latest added elements, which measurements and superposition take their ordered picks from (not an undo); granularity as state |
 | `behaviors.interaction.selectionMode`, `managers.interactivity.props` (granularity) | `ModeSwitch` props (`CanvasMode`, `Granularity`)                            | Shell › Loaded                                          | their source and view model (§3)                                                               |
@@ -70,8 +70,9 @@ the first slice's canvas, hover lines, selection summary and framing (`viewer/sr
 - **Selection mode, granularity and focus** are the plugin's state (`behaviors.interaction.selectionMode`,
   `managers.interactivity.props`, `managers.structure.focus`); what is missing is their source and view model (the
   mocks pass them as view props), which the agent's account and the sequence read.
-- **Particles** have no scene nodes; they get nodes, and Storybook gets stories over every data type (structures,
-  models and trajectories, assemblies, maps and streamed density, segmentations, particles, shapes and meshes).
+- **Particles** have scene nodes (built, plan 2.5), and Storybook has real-plugin stories over the data types
+  (Viewer › Real: structures, NMR ensembles, assemblies, maps and streamed density, particles, shapes, MVS); still
+  missing: trajectories from coordinate files and segmentations.
 - **Tasks** in the status line cannot be cancelled; only a task that holds the plugin (the busy overlay) has Cancel.
   The running tasks are read from `events.task` (progress, finished), as the classic UI does; no core change.
 - **Registry changes**: a behavior keeps the latest registered set as a state (David), which the menus, the generated

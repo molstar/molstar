@@ -92,7 +92,7 @@ describe('canvas settings', () => {
     const { v, props } = await withCanvas();
     expectOk(await v.api.canvas.illumination!({ on: true }));
     expect(props.illumination.enabled).toBe(true);
-    expect((await v.api.canvas.illumination!({ on: true })).unchanged).toBe(true);
+    expect(await v.api.canvas.illumination!({ on: true })).toMatchObject({ ok: true, unchanged: true });
     expectOk(await v.api.canvas.camera!({ mode: 'orthographic' }));
     expect(props.camera.mode).toBe('orthographic');
     expectOk(await v.api.canvas.clipping!({ radius: 50, far: false }));

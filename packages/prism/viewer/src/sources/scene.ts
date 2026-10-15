@@ -7,6 +7,8 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { Volume } from '@molstar/model/model/volume';
+import type { ParticleList } from '@molstar/model/model/particles/particle-list';
 import { type Structure, StructureElement, StructureProperties, type Unit } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import type {
@@ -14,10 +16,16 @@ import type {
   StructureRef,
   StructureRepresentationRef,
 } from '@molstar/plugin/state/manager/structure/hierarchy-state';
+import type {
+  ParticleListRef,
+  ParticleRepresentationRef,
+} from '@molstar/plugin/state/manager/particles/hierarchy-state';
+import type { VolumeRef, VolumeRepresentationRef } from '@molstar/plugin/state/manager/volume/hierarchy-state';
 import { type IconName, type ObservableState, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { ViewerApi } from '../api/area.js';
 import type { SceneInspection, SceneMenuItem, SceneModel, SceneNode, SceneNodeKind } from '../model/scene.js';
+import { gridText, namesOf, shortNumber, voxelText, volumeStats } from '../api/volume.js';
 import { structureNames } from './naming.js';
 import type { SourceScope } from './state.js';
 
@@ -39,6 +47,13 @@ const ReprIcons: Readonly<Record<string, IconName>> = {
   label: 'tag',
   carbohydrate: 'shapes',
   ellipsoid: 'spacefill',
+};
+
+/** The operation that applies an inspector form, by the kind of representation it edits. */
+const UpdateOperations: Partial<Record<SceneNodeKind, string>> = {
+  representation: 'representation.update',
+  'volume-representation': 'volume.update',
+  'particles-representation': 'particles.update',
 };
 
 class Node implements SceneNode {
@@ -227,6 +242,81 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     return n;
   };
 
+  // Volumes and particles (plan 2.5): top-level nodes like structures, their representations as children. Eyes and
+  // removes go through `volume.*` and `particles.*`.
+  const volumeNode = (v: VolumeRef, name: string): Node => {
+    const ref = v.cell.transform.ref;
+    let n = nodes.get(ref);
+    if (!n) {
+      n = new Node(ref, 'volume', 'volume', name, true, {
+        visibility: (hide) => void api.run('volume.visibility', { volume: ref, visible: !hide }),
+        remove: () => void api.run('volume.remove', { volume: ref }),
+      });
+      n.removable = true;
+      nodes.set(ref, n);
+    }
+    const data = v.cell.obj?.data;
+    const stats = data && volumeStats(data);
+    n.set(name, stats ? `${gridText(stats)} · ${voxelText(stats)}` : undefined, !!v.cell.state.isHidden);
+    return n;
+  };
+
+  const volumeReprNode = (r: VolumeRepresentationRef, volumeRef: string): Node => {
+    const ref = r.cell.transform.ref;
+    let n = nodes.get(ref);
+    if (!n) {
+      n = new Node(ref, 'volume-representation', 'volume', '', false, {
+        visibility: (hide) =>
+          void api.run('volume.visibility', { volume: volumeRef, representation: ref, visible: !hide }),
+        remove: () => void api.run('volume.remove', { volume: volumeRef, representation: ref }),
+      });
+      n.removable = true;
+      nodes.set(ref, n);
+    }
+    const iso = (r.cell.transform.params as { type?: { params?: { isoValue?: Volume.IsoValue } } } | undefined)?.type
+      ?.params?.isoValue;
+    n.set(
+      r.cell.obj?.label ?? 'Representation',
+      iso ? Volume.IsoValue.toString(iso) : undefined,
+      !!r.cell.state.isHidden,
+    );
+    inspections.get(ref)?.form?.load(r.cell.transform.params as never);
+    return n;
+  };
+
+  const particlesNode = (l: ParticleListRef, name: string): Node => {
+    const ref = l.cell.transform.ref;
+    let n = nodes.get(ref);
+    if (!n) {
+      n = new Node(ref, 'particles', 'shapes', name, true, {
+        visibility: (hide) => void api.run('particles.visibility', { particles: ref, visible: !hide }),
+        remove: () => void api.run('particles.remove', { particles: ref }),
+      });
+      n.removable = true;
+      nodes.set(ref, n);
+    }
+    const count = l.cell.obj?.data.count;
+    n.set(name, count !== undefined ? `${count.toLocaleString('en')} particles` : undefined, !!l.cell.state.isHidden);
+    return n;
+  };
+
+  const particlesReprNode = (r: ParticleRepresentationRef, listRef: string): Node => {
+    const ref = r.cell.transform.ref;
+    let n = nodes.get(ref);
+    if (!n) {
+      n = new Node(ref, 'particles-representation', 'shapes', '', false, {
+        visibility: (hide) =>
+          void api.run('particles.visibility', { particles: listRef, representation: ref, visible: !hide }),
+        remove: () => void api.run('particles.remove', { particles: listRef, representation: ref }),
+      });
+      n.removable = true;
+      nodes.set(ref, n);
+    }
+    n.set(r.cell.obj?.label ?? 'Representation', undefined, !!r.cell.state.isHidden);
+    inspections.get(ref)?.form?.load(r.cell.transform.params as never);
+    return n;
+  };
+
   const sync = () => {
     const list = plugin.managers.structure.hierarchy.current.structures;
     const names = structureNames(list);
@@ -253,6 +343,36 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
       sn.setChildren(kids);
       top.push(sn);
     }
+    const volumes = plugin.managers.volume.hierarchy.current.volumes;
+    const volumeLabels = namesOf(volumes);
+    for (const v of volumes) {
+      const ref = v.cell.transform.ref;
+      const vn = volumeNode(v, volumeLabels.get(ref) ?? ref);
+      seen.add(ref);
+      vn.setChildren(
+        v.representations.map((r) => {
+          const rn = volumeReprNode(r, ref);
+          seen.add(rn.id);
+          return rn;
+        }),
+      );
+      top.push(vn);
+    }
+    const lists = plugin.managers.particles.hierarchy.current.lists;
+    const listLabels = namesOf(lists);
+    for (const l of lists) {
+      const ref = l.cell.transform.ref;
+      const ln = particlesNode(l, listLabels.get(ref) ?? ref);
+      seen.add(ref);
+      ln.setChildren(
+        l.representations.map((r) => {
+          const rn = particlesReprNode(r, ref);
+          seen.add(rn.id);
+          return rn;
+        }),
+      );
+      top.push(ln);
+    }
     // Lazy contents' entity and chain nodes stay with their structure.
     for (const [id, n] of nodes) {
       const owner = id.includes('#') ? id.slice(0, id.indexOf('#')) : id;
@@ -266,6 +386,8 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
   };
 
   scope.add(plugin.managers.structure.hierarchy.behaviors.selection.subscribe(() => sync()));
+  scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
+  scope.add(plugin.managers.particles.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(
     plugin.state.data.events.cell.stateUpdated.subscribe((e) => {
       const n = nodes.get(e.ref);
@@ -448,7 +570,37 @@ function inspect(plugin: PluginContext, api: ViewerApi, node: SceneNode): SceneI
       ],
     };
   }
-  if (node.kind === 'representation' && cell) {
+  if (node.kind === 'volume' && cell?.obj?.data) {
+    const data = cell.obj.data as Volume;
+    const stats = volumeStats(data);
+    const signed = (x: number) => shortNumber(x).replace('-', '−');
+    return {
+      node,
+      form: undefined,
+      slot,
+      facts: [
+        ...(data.sourceData.kind ? [['Source', data.sourceData.kind.toUpperCase()] as const] : []),
+        ['Grid', gridText(stats)],
+        ['Voxel', voxelText(stats)],
+        ['Mean · σ', `${signed(stats.mean)} · ${signed(stats.sigma)}`],
+        ['Range', `${signed(stats.min)} … ${signed(stats.max)}`],
+      ],
+    };
+  }
+  if (node.kind === 'particles' && cell?.obj?.data) {
+    const data = cell.obj.data as ParticleList;
+    return {
+      node,
+      form: undefined,
+      slot,
+      facts: [
+        ['Particles', data.count.toLocaleString('en')],
+        ['Targets', String(data.targetInfo.size)],
+      ],
+    };
+  }
+  const updateOperation = UpdateOperations[node.kind];
+  if (updateOperation && cell) {
     const parent = plugin.state.data.cells.get(cell.transform.parent);
     const def = cell.transform.transformer.definition.params?.(parent?.obj as never, plugin) as PD.Params | undefined;
     if (def) {
@@ -457,10 +609,7 @@ function inspect(plugin: PluginContext, api: ViewerApi, node: SceneNode): SceneI
         // Sliders change values at pointer rate: one update a moment after the last.
         onChange: (values) => {
           clearTimeout(timer);
-          timer = setTimeout(
-            () => void api.run('representation.update', { representation: node.id, params: values }),
-            150,
-          );
+          timer = setTimeout(() => void api.run(updateOperation, { representation: node.id, params: values }), 150);
         },
       });
       return { node, form, slot };

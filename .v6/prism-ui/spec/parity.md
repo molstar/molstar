@@ -29,8 +29,8 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | Components (preset, add, options, groups, visibility, delete, per-representation editors) | scene tree rows, node menus, inspectors          | `component.*`, `representation.*` | mocked |
 | Quick styles                                                          | Structure tab's styles; command menu Styles group                     | `styles.*`, `preset.*`       | mocked |
 | generic representation controls (membrane orientation, symmetry, kinemage) | structure rows and inspector sections (extensions)              | the extension's              | mocked (rows) |
-| Volume (isovalue, representation), volume streaming                   | volume nodes and inspectors; the streaming structure row              | `volume.*`                   | mocked |
-| Particles                                                             | particle nodes (to add) and inspectors                                | `particles.*`                | missing |
+| Volume (isovalue, representation), volume streaming                   | volume nodes and inspectors; the streaming structure row              | `volume.*`                   | built (`get`, `isovalue`, `representation`, `visibility`, `remove`, `streaming`) |
+| Particles                                                             | particle nodes and inspectors                                         | `particles.*`                | built |
 | Measurements (distance, angle, dihedral, orientation, plane; options) | Selection › Measure; measurement nodes                                | `measure.*`                  | mocked |
 | Superposition (chains, TM-align, ligands, atoms, SIFTS)               | Selection › Superpose                                                 | `superpose.*`                | mocked |
 | State tree (nodes, current, delete, visibility, decorators, applicable actions) | State tree tab and its inspector                            | `state.*`                    | mocked |

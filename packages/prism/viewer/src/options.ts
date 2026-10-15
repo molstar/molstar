@@ -60,7 +60,8 @@ export const PrismViewerOptions = {
       ['pdbe', 'PDBe'],
       ['rcsb', 'RCSB'],
     ]),
-    volumeStreamingServer: PD.Text('https://ds.litemol.org'),
+    // PDBe's, as the plugin's default (ds.litemol.org) no longer answers.
+    volumeStreamingServer: PD.Text('https://www.ebi.ac.uk/pdbe/densities'),
     volumeStreamingDisabled: PD.Boolean(false),
     stateServer: PD.Text('https://webchem.ncbr.muni.cz/molstar-state'),
     saccharideCompIdMapType: PD.Select<'default' | 'glycam'>('default', [

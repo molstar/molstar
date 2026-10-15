@@ -16,6 +16,8 @@ export type SceneNodeKind =
   | 'representation'
   | 'volume'
   | 'volume-representation'
+  | 'particles'
+  | 'particles-representation'
   | 'unit-cell'
   | 'contents'
   | 'entity'

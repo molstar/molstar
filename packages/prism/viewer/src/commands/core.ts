@@ -13,6 +13,7 @@ import { componentCommands } from './component.js';
 import { operationCommand } from './operations.js';
 import { representationCommands } from './representation.js';
 import { selectionCommands } from './selection.js';
+import { volumeCommands } from './volume.js';
 
 // The core's commands (operations.md §3), over the API bound to the person; the features bring theirs.
 
@@ -57,6 +58,7 @@ export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandCon
     ...componentCommands(api),
     ...representationCommands(api),
     ...selectionCommands(api),
+    ...volumeCommands(api),
     operationCommand(api, api.history.undo, {
       category: 'Edit',
       icon: 'undo-2',

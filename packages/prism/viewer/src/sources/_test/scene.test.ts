@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { cbs, crambin, headlessViewer } from '../../_test/harness.js';
+import { mapFile, particlesFile } from '../../api/_test/volume-fixtures.js';
 import type { SceneNode } from '../../model/scene.js';
 
 // The scene source (plan 2.2): the Structure tab's tree over a real plugin.
@@ -71,5 +72,115 @@ describe('the scene', () => {
     await v.api.session.clear();
     expect(v.views.scene.roots.value).toHaveLength(0);
     expect(v.views.scene.picked.value).toBeUndefined();
+  });
+});
+
+describe('the scene: volumes and particles', () => {
+  it('shows a volume as a top-level node with its representations, next to structures', async () => {
+    const v = await headlessViewer({ files: [cbs(), mapFile()] });
+    const roots = v.views.scene.roots.value;
+    expect(kinds(roots)).toEqual(['structure:1CBS', 'volume:test.ccp4']);
+    const volume = roots[1];
+    expect(volume.icon).toBe('volume');
+    expect(volume.description.value).toMatch(/12 × 12 × 12 · 1\.5 Å/);
+    const reps = volume.children.value;
+    expect(reps.map((r) => r.kind)).toEqual(['volume-representation']);
+    expect(reps[0].label.value).toBe('Isosurface');
+    expect(reps[0].description.value).toMatch(/2\.00 σ/);
+  });
+
+  it('keeps volume identity across rebuilds and follows an iso value change', async () => {
+    const v = await headlessViewer({ files: [mapFile()] });
+    const volume = v.views.scene.roots.value[0];
+    const rep = volume.children.value[0];
+    await v.api.volume.isovalue({ value: 1, kind: 'relative' });
+    expect(v.views.scene.roots.value[0]).toBe(volume);
+    expect(volume.children.value[0]).toBe(rep);
+    expect(rep.description.value).toMatch(/1\.00 σ/);
+    await v.api.load.files({ files: [mapFile('other.ccp4')] });
+    expect(v.views.scene.roots.value).toHaveLength(2);
+    expect(v.views.scene.roots.value[0]).toBe(volume);
+  });
+
+  it('inspects a volume with its grid facts and a volume representation with its form', async () => {
+    const v = await headlessViewer({ files: [mapFile()] });
+    const volume = v.views.scene.roots.value[0];
+    const facts = new Map(v.views.scene.inspect(volume).facts ?? []);
+    expect(facts.get('Grid')).toBe('12 × 12 × 12');
+    expect(facts.get('Voxel')).toBe('1.5 Å');
+    expect(facts.get('Mean · σ')).toMatch(/ · /);
+    expect(facts.get('Range')).toMatch(/ … /);
+    expect(facts.get('Source')).toBeDefined();
+
+    const rep = volume.children.value[0];
+    const inspection = v.views.scene.inspect(rep);
+    expect(inspection.form).toBeDefined();
+    expect(inspection.slot).toBe('inspector:volume-representation');
+  });
+
+  it('applies a volume representation form through volume.update, as the person', async () => {
+    const v = await headlessViewer({ files: [mapFile()] });
+    const rep = v.views.scene.roots.value[0].children.value[0];
+    const form = v.views.scene.inspect(rep).form!;
+    const current = form.values.value as any;
+    form.set('type', { ...current.type, params: { ...current.type.params, alpha: 0.25 } } as never);
+    await new Promise((r) => setTimeout(r, 400));
+    const cell = v.plugin.managers.volume.hierarchy.current.volumes[0].representations[0].cell;
+    expect((cell.transform.params as any).type.params.alpha).toBe(0.25);
+    const step = v.managers.history.steps.value[0]!;
+    expect(step.origin.kind).toBe('person');
+  });
+
+  it('acts on a volume through the API: the eye and the remove are history steps', async () => {
+    const v = await headlessViewer({ files: [mapFile()] });
+    const volume = v.views.scene.roots.value[0];
+    const rep = volume.children.value[0];
+
+    rep.toggleVisibility();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(rep.isHidden.value).toBe(true);
+    expect(volume.isHidden.value).toBe(false);
+    expect(v.managers.history.steps.value[0]?.origin.kind).toBe('person');
+
+    volume.toggleVisibility();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(volume.isHidden.value).toBe(true);
+
+    v.views.scene.pick(rep);
+    volume.remove();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(v.views.scene.roots.value).toHaveLength(0);
+    expect(v.views.scene.picked.value).toBeUndefined();
+
+    await v.api.history.undo();
+    expect(v.views.scene.roots.value.map((n) => n.label.value)).toEqual(['test.ccp4']);
+  });
+
+  it('removes one volume representation from its row', async () => {
+    const v = await headlessViewer({ files: [mapFile()] });
+    const volume = v.views.scene.roots.value[0];
+    volume.children.value[0].remove();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(volume.children.value).toHaveLength(0);
+    expect(v.views.scene.roots.value).toHaveLength(1);
+  });
+
+  it('shows particle lists with their representations, facts and form', async () => {
+    const v = await headlessViewer({ files: [particlesFile()] });
+    const list = v.views.scene.roots.value[0];
+    expect(list.kind).toBe('particles');
+    expect(list.description.value).toBe('5 particles');
+    const rep = list.children.value[0];
+    expect(rep.kind).toBe('particles-representation');
+    expect(new Map(v.views.scene.inspect(list).facts ?? []).get('Particles')).toBe('5');
+    expect(v.views.scene.inspect(rep).form).toBeDefined();
+
+    rep.toggleVisibility();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(rep.isHidden.value).toBe(true);
+
+    list.remove();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(v.views.scene.roots.value).toHaveLength(0);
   });
 });

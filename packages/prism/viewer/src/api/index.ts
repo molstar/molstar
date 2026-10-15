@@ -41,7 +41,9 @@ import { SessionApi } from './session.js';
 import { StructureApi } from './structure.js';
 import { StylesApi } from './styles.js';
 import type { TargetResolver } from './targets.js';
+import { ParticlesApi } from './particles.js';
 import { ViewApi } from './view.js';
+import { VolumeApi } from './volume.js';
 
 // The viewer's API object (api.md §2–§6). Each area is made once; the API a caller gets is a facade bound to how its
 // calls run: `viewer.api` as `script`, `as(origin)` for each surface (view models and commands `person`, tools `agent`
@@ -66,6 +68,8 @@ export const CoreAreas: Readonly<Record<string, AreaFactory>> = {
   highlight: (c) => new HighlightApi(c),
   styles: (c) => new StylesApi(c),
   annotations: (c) => new AnnotationsApi(c),
+  volume: (c) => new VolumeApi(c),
+  particles: (c) => new ParticlesApi(c),
   history: (c) => new HistoryApi(c),
   view: (c) => new ViewApi(c),
 };

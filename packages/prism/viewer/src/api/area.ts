@@ -280,6 +280,10 @@ export interface CoreApi {
   readonly highlight: import('./highlight.js').HighlightApi;
   readonly styles: import('./styles.js').StylesApi;
   readonly annotations: import('./annotations.js').AnnotationsApi;
+  readonly volume: import('./volume.js').VolumeApi;
+  readonly particles: import('./particles.js').ParticlesApi;
+  /** Present when the spec has a sequence (viewer-spec.md §2.3). */
+  readonly sequence?: import('./sequence.js').SequenceApi;
   readonly history: import('./history.js').HistoryApi;
   readonly view: import('./view.js').ViewApi;
 }

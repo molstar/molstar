@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { domView, onCleanup, ParamsForm, SectionList } from '@molstar/prism-ui';
+import { bind, domView, onCleanup, ParamsForm, SectionList } from '@molstar/prism-ui';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { IconName } from '@molstar/prism-ui/core';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
@@ -61,8 +61,8 @@ export function canvasSettingsUI(ctx: ViewerUIContext): ViewerExtensionUI {
       render: domView(() => {
         const f = form(s.id);
         // The canvas changed elsewhere: the form follows, without reporting it as an edit.
-        const sub = ctx.sources.canvas.subscribe((c) => c && f.load(sectionValues(s.id, c.props) as never));
-        onCleanup(() => sub.unsubscribe());
+        // Bound, not subscribed: a folded section holds no subscription (prism AGENTS.md, hidden UI).
+        bind(ctx.sources.canvas, (c) => c && f.load(sectionValues(s.id, c.props) as never));
         return <ParamsForm form={f} />;
       }),
     })),
