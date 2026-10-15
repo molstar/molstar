@@ -278,7 +278,11 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   );
 
   // The canvas once the shell has laid out (the plugin sizes its canvas from its container).
-  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  // The next frame, or a moment later where there are no frames (a background tab): creation never waits on visibility.
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+    setTimeout(resolve, 50);
+  });
   const mounted = await core.mountCanvas(canvasHost);
   if (!mounted) managers.notifications.post('The canvas could not start: WebGL is not available.', 'error');
 
