@@ -1,5 +1,8 @@
 # Handoff: Prism and the AI packages (2026-10-13)
 
+> **2026-10-15:** the Prism viewer's [spec](spec/README.md) supersedes the modes, contexts and contributions described
+> here and in `design/`; the plan follows the spec's approval.
+
 The order of work is now [../seq/plan.md](../seq/plan.md); the rest of this file still holds.
 
 For the next agent picking up branch `v6-ui-next`. Read this, then [README.md](README.md) (Prism),

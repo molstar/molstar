@@ -26,6 +26,9 @@ extension UI) are placed.
 
 ## 2. Structure
 
+> **2026-10-15:** the pinned panel and the rail no longer shrink the canvas; the camera's framing keeps the scene in
+> the visible area instead ([../spec/README.md](../spec/README.md) §3.5).
+
 ```
 ┌──┬────────────────────────────────────────────────────────┬───────────────────┬──┐
 │  │ ┌ 1TQN ▾ Chain ▾ Cytochrome P450 3A4 ▾ Chain A ▾ ⌃ ┐   │                   │◆ │ head: Home (the Mol* mark)
@@ -555,6 +558,9 @@ on the same 24×24 stroke grid. `Icon` parses each icon's markup once into a cac
 with size, class, and label (`aria-hidden` otherwise) set, so rendering an icon allocates one node tree and no parsing.
 
 ## 5. Contributions
+
+> **Superseded (2026-10-15):** prism-ui has no contribution registry. Extensions place their UI in the viewer's named
+> slots ([../spec/viewer-spec.md](../spec/viewer-spec.md) §3–4); `PrismUISpec` (§6) is replaced by `PrismViewerSpec`.
 
 A contribution is a plain, declarative object, listed explicitly in the spec (like `registry` entries):
 

@@ -8,6 +8,10 @@ work.
 
 ## 1. Principles
 
+> **Superseded in part (2026-10-15):** tools are not commands. Commands and tools are two surfaces over one API, tools
+> disclosed in skills ([../spec/README.md](../spec/README.md) §2.8, §3.3); undo is the viewer's history
+> ([../spec/sequence.md](../spec/sequence.md) §7). The rest (what the agent sees, approvals) still holds.
+
 - **Tools are commands.** The command registry ([commands.md](commands.md)) is the tool registry: no second API to
   maintain, and an agent can do nothing a person could not type in the command menu. Panels with custom UI (§2.1 of
   commands.md) are driven by the commands and actions behind them, never by clicking the DOM.

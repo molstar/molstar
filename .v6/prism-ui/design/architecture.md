@@ -24,6 +24,9 @@ is Lucide (extracted by `scripts/icons.mjs`) plus a few molecular glyphs drawn i
 
 ## 2. Packages
 
+> **2026-10-15:** see the [spec](../spec/README.md) §1–2: no `@molstar/prism` core package; `@molstar/prism-viewer` is
+> public and builds the viewer; `apps/prism-viewer` is a thin private app.
+
 Prism is a family of packages under `packages/prism/`, layered as stories-untold is (an application layer without UI,
 the screens on it, a headless engine beside them; [../analysis/stories-untold.md](../analysis/stories-untold.md)):
 

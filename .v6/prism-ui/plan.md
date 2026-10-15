@@ -1,5 +1,8 @@
 # Prism UI plan
 
+> **2026-10-15:** phases 4–8 are replaced by the plan written after the Prism viewer's [spec](spec/README.md) is
+> approved; `apps/prism` becomes `apps/prism-viewer` (and later `apps/prism-stories`).
+
 Phases are buildable and reviewable on their own. Storybook comes first so the UI is mocked before it is wired.
 
 Where it stands: phases 0–3 are done in Storybook (one mode per app, the viewer and a first story mode; the renderer
