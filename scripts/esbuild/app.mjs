@@ -95,7 +95,8 @@ const apps = (inventory.packages ?? []).filter((p) => {
   const manifestPath = path.join(root, p.path, 'package.json');
   if (!fs.existsSync(manifestPath)) return false;
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  return manifest.molstar?.platform !== 'node';
+  // A package with its own builder (`molstar.builder`, a Vite example) is built by its own scripts.
+  return manifest.molstar?.platform !== 'node' && !manifest.molstar?.builder;
 });
 const matches = (pkg, target) =>
   pkg.name === target || pkg.path === target || (kind && path.basename(pkg.path) === target);

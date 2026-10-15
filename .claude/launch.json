@@ -26,6 +26,12 @@
       "port": 1340
     },
     {
+      "name": "minimal-prism-viewer",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["-C", "examples/minimal-prism-viewer", "dev", "--port", "5180", "--strictPort"],
+      "port": 5180
+    },
+    {
       "name": "distribution",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "1350", "--directory", "distributions/molstar/build"],

@@ -1,0 +1,32 @@
+{
+  "name": "@molstar/minimal-prism-viewer-example",
+  "version": "6.0.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Mol* Prism: the smallest viewer composition (a structure as cartoon or ball-and-stick), a Vite app",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc -b",
+    "dev": "vite",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@molstar/core": "workspace:*",
+    "@molstar/plugin": "workspace:*",
+    "@molstar/prism-viewer": "workspace:*",
+    "tslib": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/webxr": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  },
+  "molstar": {
+    "builder": "vite"
+  }
+}

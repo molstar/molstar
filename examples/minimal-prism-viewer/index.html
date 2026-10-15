@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Minimal Prism viewer</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font: 14px system-ui, sans-serif;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 12px;
+        border-bottom: 1px solid #ccc;
+      }
+      header input[type='text'] {
+        width: 20em;
+      }
+      header span {
+        flex: 1;
+        color: #666;
+      }
+      #app {
+        position: relative;
+        flex: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <form id="load">
+        <input id="source" type="text" value="1CBS" aria-label="PDB ID or mmCIF URL" />
+        <button type="submit">Load</button>
+      </form>
+      <label><input type="radio" name="look" value="cartoon" checked /> Cartoon</label>
+      <label><input type="radio" name="look" value="ball-and-stick" /> Ball &amp; stick</label>
+      <span id="status"></span>
+    </header>
+    <div id="app"></div>
+    <script type="module" src="./src/index.ts"></script>
+  </body>
+</html>

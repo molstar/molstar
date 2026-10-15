@@ -87,6 +87,9 @@ the [API change ledger](breaking-v6-changes.md).
 
 - Prism, the new UI (`packages/prism/*`), and the AI agent packages (`packages/ai/*`): private, not published, mocked in
   Storybook (`storybook/`, the repository's Storybook for the registered packages)
+- New `examples/minimal-prism-viewer`: the smallest Prism viewer composition (an mmCIF structure as cartoon or
+  ball-and-stick, no features, extensions, sequence or assistant), a Vite app; its README lists what it leaves out and
+  its bundle size
 - The Prism viewer over a real plugin (`@molstar/prism-viewer`, `apps/prism-viewer`): one API whose operations every
   surface runs (commands, views, the URL, the agent), one undo history with checkpoints, built-in features as
   extensions (canvas settings, snapshots, export, measurements, superposition, state tree, loaders, remote states,

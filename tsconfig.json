@@ -74,6 +74,9 @@
       "path": "./examples/lighting"
     },
     {
+      "path": "./examples/minimal-prism-viewer"
+    },
+    {
       "path": "./examples/mvs-stories"
     },
     {

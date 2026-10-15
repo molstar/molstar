@@ -28,7 +28,8 @@ Viewer dev server. Each browser app/example also has its own `build` and `dev` s
 with `pnpm dev:examples -- basic-wrapper`. Both selectors accept `--port 1340` and `--help` to list available browser
 targets. Omit names to watch every browser app (`pnpm dev:apps`) or example (`pnpm dev:examples`). Supply multiple names
 to watch a subset, such as `pnpm dev:apps -- viewer mvs-stories`. All selected targets share one server, which prints
-each page URL. Node examples compile with TypeScript. The root `scripts/workspace/inventory.json` records package
+each page URL. Node examples compile with TypeScript. An example with its own builder (`"molstar": { "builder": "vite" }` in its
+manifest, as `examples/minimal-prism-viewer`) is left out of these selectors and runs its own `dev` and `build`. The root `scripts/workspace/inventory.json` records package
 ownership; explicit exports and dependencies live in each package's manifest. When adding/moving a source module, update
 those declarations and TypeScript references. The `scripts/refresh-workspace.mjs` helper regenerates the explicit
 inventories from production imports; review its result before committing. It preserves external and optional dependency

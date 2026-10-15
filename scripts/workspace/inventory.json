@@ -151,6 +151,12 @@
       "private": true
     },
     {
+      "name": "@molstar/minimal-prism-viewer-example",
+      "path": "examples/minimal-prism-viewer",
+      "kind": "example",
+      "private": true
+    },
+    {
       "name": "@molstar/mvs-stories-example",
       "path": "examples/mvs-stories",
       "kind": "example",
