@@ -178,7 +178,9 @@ export class ApiRunner implements OperationPort {
     let values: PD.ValuesFor<P>;
     try {
       const params = typeof def.params === 'function' ? def.params(area) : def.params;
-      const checked = checkValues(params, input as Readonly<Record<string, unknown>>);
+      const checked = def.passValues
+        ? { values: { ...(input as Record<string, unknown>) } }
+        : checkValues(params, input as Readonly<Record<string, unknown>>);
       if ('ok' in checked) return this.#refused(def, input, run, checked) as ApiResult<R>;
       values = checked.values as PD.ValuesFor<P>;
       for (const m of def.modules ?? []) {

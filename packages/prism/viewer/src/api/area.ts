@@ -187,6 +187,11 @@ export interface OperationDefinition<P extends PD.Params = PD.Params, R = unknow
   exists?(values: PD.ValuesFor<P>, ctx: ApiContext): string | undefined;
   /** An optimistic edit, when the result is known before the run ends. */
   project?(values: PD.ValuesFor<P>): Projection;
+  /**
+   * A lazy extension's stub (viewer-spec.md §3): its values go to the real operation as given (it checks them), so the
+   * stub takes any.
+   */
+  readonly passValues?: true;
   /** Who may not call it: `ui-only` / `agent-only` say why there is no tool or no command (operations.md §4). */
   readonly surface?: { readonly kind: 'ui-only' | 'agent-only'; readonly reason: string };
   run(values: PD.ValuesFor<P>, ctx: ApiContext): Promise<ApiResult<R>>;

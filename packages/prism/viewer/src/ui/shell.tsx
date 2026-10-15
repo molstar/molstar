@@ -36,6 +36,7 @@ import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styl
 import { map } from 'rxjs';
 import type { HomeModel } from '../model/home.js';
 import { HomeTab } from '../views/home/home-tab.js';
+import { extensionUIPort } from './extensions.js';
 import { LegendCard } from '../sequence/legend-card.js';
 import { LegendOverlay, sequenceCommands, sequenceMenu } from '../sequence/commands.js';
 import { SequenceControl } from '../sequence/sequence-control.js';
@@ -126,52 +127,63 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   };
 
   const unregister: (() => void)[] = [];
+  // The core's own parts answer to overrides too (viewer-spec.md §4): `core.tab.home`, `core.toolbar.reset`, … removed
+  // with null, or replaced by a part of the same kind.
+  const overrides = spec.overrides ?? {};
+  const own = <T extends { id: string }>(kind: string, parts: readonly T[]): T[] =>
+    parts.flatMap((p) => {
+      const key = `core.${kind}.${p.id}`;
+      if (!(key in overrides)) return [p];
+      return overrides[key] === null ? [] : [{ ...p, ...(overrides[key] as object), id: p.id } as T];
+    });
   unregister.push(
-    shell.registerTabs([
-      {
-        id: 'home',
-        compactBar: true,
-        title: 'Home',
-        heading: () => <MolstarWordmark live />,
-        icon: 'prism',
-        order: 0,
-        place: 'head',
-        render: domView(() => <HomeTab home={home} onOpenCommandMenu={() => openCommandMenu()} />),
-      },
-      {
-        id: 'structure',
-        compactBar: true,
-        title: 'Structure',
-        icon: 'structure',
-        order: 1,
-        render: domView(({ ctx }) => (
-          <StructureTab
-            shell={ctx.shell}
-            scene={core.views.scene}
-            presets={core.views.presets}
-            options={core.views.componentOptions}
-            quickStyles={core.views.quickStyles}
-            openCommands={(group) => openCommandMenu(group)}
-          />
-        )),
-      },
-      {
-        id: 'log',
-        title: 'Log',
-        icon: 'scroll-text',
-        order: 2.5,
-        place: 'foot',
-        render: domView(() => <LogView status={managers.notifications} />),
-      },
-      {
-        id: 'help',
-        title: 'Help',
-        icon: 'circle-help',
-        order: 2.8,
-        place: 'foot',
-        render: domView(() => <HelpPanel commands={managers.commands} bindings={CanvasBindings} />),
-      },
-    ]),
+    shell.registerTabs(
+      own('tab', [
+        {
+          id: 'home',
+          compactBar: true,
+          title: 'Home',
+          heading: () => <MolstarWordmark live />,
+          icon: 'prism',
+          order: 0,
+          place: 'head',
+          render: domView(() => <HomeTab home={home} onOpenCommandMenu={() => openCommandMenu()} />),
+        },
+        {
+          id: 'structure',
+          compactBar: true,
+          title: 'Structure',
+          icon: 'structure',
+          order: 1,
+          render: domView(({ ctx }) => (
+            <StructureTab
+              shell={ctx.shell}
+              scene={core.views.scene}
+              presets={core.views.presets}
+              options={core.views.componentOptions}
+              quickStyles={core.views.quickStyles}
+              openCommands={(group) => openCommandMenu(group)}
+            />
+          )),
+        },
+        {
+          id: 'log',
+          title: 'Log',
+          icon: 'scroll-text',
+          order: 2.5,
+          place: 'foot',
+          render: domView(() => <LogView status={managers.notifications} />),
+        },
+        {
+          id: 'help',
+          title: 'Help',
+          icon: 'circle-help',
+          order: 2.8,
+          place: 'foot',
+          render: domView(() => <HelpPanel commands={managers.commands} bindings={CanvasBindings} />),
+        },
+      ]),
+    ),
   );
 
   const hasData = sources.empty.pipe(map((e) => !e));
@@ -240,48 +252,50 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   const modeProps = modeSwitchProps(sources.interaction, person);
   const selection = selectionModel(sources.interaction, person);
   unregister.push(
-    shell.registerToolbar([
-      {
-        id: 'theme',
-        priority: 100,
-        icon: 'sun',
-        title: 'Theme',
-        face: theme.theme.pipe(
-          map((t) => {
-            const current = UIThemes.find((u) => u.id === t)!;
-            return { icon: current.icon, title: `Theme: ${current.title}` };
-          }),
-        ),
-        run: () => theme.next(),
-      },
-      {
-        id: 'palette',
-        priority: -1,
-        icon: 'command',
-        title: 'Command menu',
-        caption: formatChord({ key: 'k', mod: true }),
-        run: () => openCommandMenu(),
-      },
-      {
-        id: 'reset',
-        place: 'canvas',
-        group: 'canvas',
-        visible: hasData,
-        icon: 'focus',
-        title: 'Reset camera',
-        run: () => void person.camera.reset(),
-      },
-      {
-        id: 'expand',
-        place: 'canvas',
-        group: 'canvas',
-        visible: hasData,
-        icon: 'fullscreen',
-        title: 'Fullscreen',
-        pressed: fullscreen.active,
-        run: () => fullscreen.toggle(),
-      },
-    ]),
+    shell.registerToolbar(
+      own('toolbar', [
+        {
+          id: 'theme',
+          priority: 100,
+          icon: 'sun',
+          title: 'Theme',
+          face: theme.theme.pipe(
+            map((t) => {
+              const current = UIThemes.find((u) => u.id === t)!;
+              return { icon: current.icon, title: `Theme: ${current.title}` };
+            }),
+          ),
+          run: () => theme.next(),
+        },
+        {
+          id: 'palette',
+          priority: -1,
+          icon: 'command',
+          title: 'Command menu',
+          caption: formatChord({ key: 'k', mod: true }),
+          run: () => openCommandMenu(),
+        },
+        {
+          id: 'reset',
+          place: 'canvas',
+          group: 'canvas',
+          visible: hasData,
+          icon: 'focus',
+          title: 'Reset camera',
+          run: () => void person.camera.reset(),
+        },
+        {
+          id: 'expand',
+          place: 'canvas',
+          group: 'canvas',
+          visible: hasData,
+          icon: 'fullscreen',
+          title: 'Fullscreen',
+          pressed: fullscreen.active,
+          run: () => fullscreen.toggle(),
+        },
+      ]),
+    ),
   );
   unregister.push(
     core.registerCommands([
@@ -310,6 +324,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       },
     ]),
   );
+
+  // Extensions' views: the eager ones' now, a lazy one's placeholders until it loads (viewer-spec.md §3).
+  unregister.push(core.attachExtensionUI(extensionUIPort(shell, managers.commands)));
 
   // ⌘K / ⇧⌘P open the command menu; commands' own shortcuts run them; only this viewer's keys.
   const onKey = (e: KeyboardEvent) => {

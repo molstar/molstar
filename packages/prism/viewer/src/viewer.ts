@@ -48,6 +48,8 @@ import { createTargetResolver } from './sources/targets.js';
 import { createViewerSources, type ViewerSources } from './sources/viewer-sources.js';
 import { isLazyExtension, type PrismViewerSpec, type ViewerExtension } from './spec.js';
 import { checkSpec } from './spec-check.js';
+import { ExtensionHost, type ExtensionUIPort } from './extensions/host.js';
+import { applyExtensionPlugin } from './sources/extension-plugin.js';
 import type { HomeAction } from './model/home.js';
 import type { PresetsModel, QuickStylesModel, SceneModel } from './model/scene.js';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
@@ -112,6 +114,8 @@ export interface PrismViewer {
     readonly click: Observable<ViewerPointerEvent>;
     readonly error: Observable<ViewerError>;
   };
+  /** The extensions: which are loaded, each lazy one's status, and loading one (README §3.6). */
+  readonly extensions: Pick<ExtensionHost, 'loaded' | 'status' | 'events' | 'load' | 'ensureFor'>;
   /** The spec it was made from, and its options resolved. */
   readonly spec: PrismViewerSpec;
   readonly options: PrismViewerOptionValues;
@@ -132,10 +136,10 @@ export interface ViewerCore extends PrismViewer {
   readonly ready$: { set(value: boolean): void };
   /** Undoes what was added since creation (the page's parts), before the core goes. */
   onDispose(fn: () => void | Promise<void>): void;
-  /** The eager extensions, in order. */
-  readonly extensions: readonly ViewerExtension[];
   /** Registers commands with the spec's keybindings applied (README §3.3: keybindings name commands). */
   registerCommands(defs: readonly CommandDefinition<ViewerCommandContext>[]): () => void;
+  /** The page's shell takes the extensions' views. */
+  attachExtensionUI(port: ExtensionUIPort): () => void;
   /** Mounts the canvas in a page's element; false (and the `canvas` module dropped) when it cannot start. */
   mountCanvas(host: HTMLElement): Promise<boolean>;
 }
@@ -223,8 +227,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
         }),
       );
 
-    // The extensions, in order: their API areas, contributed operations and commands (their views with the shell,
-    // lazy ones as stubs: plan 3.1).
+    // The extensions, in order (viewer-spec.md §3): eager ones activated, lazy ones as stubs.
     const person = host.api.as({ kind: 'person' });
     const viewScope = new SourceScope();
     disposers.push(() => viewScope.dispose());
@@ -235,26 +238,22 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const homeActions = createHomeActions(viewScope, plugin, person);
     const sequence = spec.sequence === false ? undefined : createSequence(viewScope, plugin, host, o.modules, spec);
     if (sequence) disposers.push(() => sequence.viewers.dispose());
-    for (const e of eager) {
-      for (const [id, factory] of Object.entries(e.api ?? {})) disposers.push(host.addArea(id, factory));
-      for (const c of e.contributes?.(host.areaContext) ?? []) {
-        if (!e.builtIn)
-          throw new Error(
-            `Extension '${e.id}' adds '${c.operation.id}' to a core area: only the viewer's features may`,
-          );
-        const area = host.api.area(c.area);
-        if (!area) throw new Error(`Extension '${e.id}' adds to an area that does not exist: '${c.area}'`);
-        disposers.push(area.contribute(c.name, c.operation));
-      }
-    }
-    for (const e of eager) {
-      for (const a of e.annotations ?? []) disposers.push(host.api.annotations.register(a));
-    }
     disposers.push(registerCommands(coreCommands(person)));
-    for (const e of eager) {
-      const commands = e.commands?.(person);
-      if (commands?.length) disposers.push(registerCommands(commands));
-    }
+    const extensions = new ExtensionHost({
+      host,
+      person,
+      registerCommands,
+      annotations: host.api.annotations,
+      applyPlugin: (parts) => applyExtensionPlugin(plugin, parts),
+      overrides: spec.overrides ?? {},
+      task: (label) => {
+        const id = `extension:${label}`;
+        notifications.putTask({ id, label });
+        return () => notifications.removeTask(id);
+      },
+    });
+    disposers.push(() => extensions.dispose());
+    await extensions.add(spec.extensions ?? []);
 
     // What the person sees in the status column: results of the person's and the URL's runs, failures, the plugin's
     // errors, running tasks, undo turning off for a large scene.
@@ -315,12 +314,13 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       sources,
       state: { ready: ready.asReadonly, busy: sources.busy, empty },
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },
+      extensions,
       spec,
       options,
       host,
       ready$: ready,
-      extensions: eager,
       registerCommands,
+      attachExtensionUI: (port) => extensions.attachUI(port),
       mountCanvas: async (el) => {
         const ok = await mountCanvas(plugin, el);
         if (ok) disposers.push(() => unmountCanvas(plugin));
