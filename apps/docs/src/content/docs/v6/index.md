@@ -6,8 +6,11 @@ description: An introduction to Mol* v6 and what to expect from its documentatio
 Mol\* is a library and a set of apps for viewing and analyzing molecular structures and volumes. Version 6 is a rewrite
 of how the library is packaged and composed, with a new user interface and an optional AI assistant.
 
-:::caution[Work in progress] These are the v6 pages written so far. For everything else, see the
-[v5 documentation](/docs/v5/), which describes the current release. :::
+<!-- prettier-ignore-start -->
+:::caution[Work in progress]
+These are the v6 pages written so far. For everything else, see the [v5 documentation](/docs/v5/), which describes the current release.
+:::
+<!-- prettier-ignore-end -->
 
 ## What changes in v6
 
@@ -22,6 +25,8 @@ of how the library is packaged and composed, with a new user interface and an op
 
 ## Where to find more
 
+- The [Prism viewer](/docs/v6/prism-viewer/) pages cover the new viewer: running it, embedding it, its API, extensions
+  and the assistant.
 - The [Mol\* repository](https://github.com/molstar/molstar) holds the v6 sources, with design notes and plans in its
   `.v6` folder.
 - The [v5 documentation](/docs/v5/) covers the plugin, the data access tools and the extensions as of the current
