@@ -71,7 +71,8 @@ apps/prism-stories         later: the stories app (an improved Stories Untold), 
     screen reader; colorblind-safe and high-contrast palettes, for the UI and for the data colors.
 16. **Not ported now**: volumes and segmentations (its implementation is to be redesigned, not ported). The PAE plot is
     refreshed: Seq\* draws PAE as a dot plot already; a custom rendering may come as an extra.
-17. **Order**: the plan (`plan.md`) is written after this spec is approved.
+17. **Order**: the plan is [plan.md](plan.md): the real layers built beside the prototype in the same packages, views
+    switched to real models feature by feature, and the app becoming the viewer people get at the end.
 18. **Hiding part of a structure, two ways** (David, 2026-10-15): at the entity and chain level (a contents row's eye:
     what is hidden is left out of the structure's representations) and as transparency overlays (a layer over any
     target, from opaque to hidden, keeping the geometry). Both are API operations over targets
@@ -393,7 +394,7 @@ What the spec asks of other packages, collected from the sections above; each is
 | [review.md](review.md)               | the multi-agent review of 2026-10-15 and how each finding was folded in                    | written |
 | [api.md](api.md)                     | the viewer's API: one object per area (the managers and builders done again), operations as their methods, the types around them, grouping, extensions, the code skill | written (proposal) |
 | [app.md](app.md)                     | `apps/prism-viewer` and the single-file viewer: builds, chunks, deployment, embedding, URL | written |
-| `plan.md`                            | the order of work, each step buildable and reviewable                                      | after approval |
+| [plan.md](plan.md)                   | the order of work: parallel by layer, switched per feature; tracks and seven phases        | written (proposal) |
 
 Folded in: the viewer's composition and the extension API are [viewer-spec.md](viewer-spec.md); the command set is in
 [operations.md](operations.md); the JS API is §3.2 and [app.md](app.md).
