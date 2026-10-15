@@ -147,8 +147,9 @@ the [API change ledger](breaking-v6-changes.md).
   its views came.
 - Prism viewer: the quick type and color of a representation drawn as what they are (the types' icons in a segmented
   strip, the themes as tiles in their colors on the structure); pLDDT offered only for a prediction (ModelCIF quality
-  metrics, or no experimental method); a component's inspector lists its representations to open; Contents has a
-  summary (entities by type, chains, residues, atoms); Focus is one row for the scene.
+  metrics, or no experimental method); a component's inspector lists its representations to open; Contents shows its
+  counts as figures and its entities as rows (kind, chains, atoms), each opened in the tree; Focus is one row for the
+  scene; the Structure panel's header has no Component button (the command menu adds components).
 - Prism UI: a select's options are grouped by Mol*'s categories, each group a fold (the current option's open); a
   form's select opens as a popover under its field; `CommandManager.open` takes values to open a command with.
 - Prism viewer: a component's actions (Add representation, Set coloring, Modify by selection) open their commands in

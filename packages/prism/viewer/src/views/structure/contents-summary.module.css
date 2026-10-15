@@ -1,0 +1,123 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.contents {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--msp-space-3);
+}
+
+/* The counts: figures side by side, each its value over its name. */
+.counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: var(--msp-space-1);
+  margin: 0;
+}
+
+.count {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px; /* off-scale: the figure close over its name */
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-well);
+}
+
+.value {
+  margin: 0;
+  font-size: var(--msp-font-size-lg);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.label {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+/* The entities: a row each, a click opens it in the tree. */
+.entities {
+  display: grid;
+  margin: 0 calc(-1 * var(--msp-space-2));
+}
+
+.entity {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  min-height: 40px;
+  padding: var(--msp-space-1) var(--msp-space-2);
+  border-radius: var(--msp-radius-md);
+  text-align: left;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+/* The entity's kind: a dot in its color. */
+.dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--msp-color-text-subtle);
+}
+
+.polymer {
+  background: var(--msp-accent-blue);
+}
+
+.ligand {
+  background: var(--msp-accent-orange);
+}
+
+.branched {
+  background: var(--msp-accent-green);
+}
+
+.water {
+  background: var(--msp-accent-cyan);
+}
+
+.other {
+  background: var(--msp-accent-gray);
+}
+
+.text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.name,
+.meta {
+  overflow: hidden;
+  white-space: nowrap;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+.name {
+  font-weight: 500;
+}
+
+.meta {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.chevron {
+  flex: none;
+  color: var(--msp-color-text-subtle);
+}

@@ -43,7 +43,15 @@ import type { VolumeRef, VolumeRepresentationRef } from '@molstar/plugin/state/m
 import { type IconName, type ObservableState, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { ViewerApi } from '../api/area.js';
-import type { SceneInspection, SceneMenuItem, SceneModel, SceneNode, SceneNodeKind } from '../model/scene.js';
+import type {
+  ContentsEntity,
+  ContentsSummary,
+  SceneInspection,
+  SceneMenuItem,
+  SceneModel,
+  SceneNode,
+  SceneNodeKind,
+} from '../model/scene.js';
 import type { VolumeLevelUnit } from '../model/volume-levels.js';
 import { namesOf } from '../api/scope.js';
 import { currentTransform } from '../api/structure.js';
@@ -749,7 +757,9 @@ export function createSceneSource(
     inspect: (n) => {
       let inspection = inspections.get(n.id);
       if (!inspection) {
-        inspection = inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id), levelUnit);
+        inspection = inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id), levelUnit, (row) =>
+          picked.set(row),
+        );
         inspections.set(n.id, inspection);
       }
       return inspection;
@@ -909,38 +919,44 @@ function componentMenu(
   ];
 }
 
-/**
- * A structure's contents in a few facts: its entities by type (polymer, branched, non-polymer, water), its chains, its
- * polymer residues, atoms, and models when there are several.
- */
-export function contentsFacts(s: Structure): [string, string][] {
+/** What a structure is made of (the Contents inspector): its counts and its entities with their chains and atoms. */
+export function contentsSummary(s: Structure, reveal: (entity: string) => void): ContentsSummary {
   const { entities } = s.model;
-  const present = new Set<string>();
-  const chains = new Set<string>();
+  const byEntity = new Map<string, { chains: Set<string>; atoms: number }>();
+  const chainKeys = new Set<string>();
   const loc = StructureElement.Location.create(s);
   for (const unit of s.units) {
     loc.unit = unit as Unit;
     loc.element = unit.elements[0];
-    present.add(StructureProperties.chain.label_entity_id(loc));
-    chains.add(`${unit.conformation.operator.name}:${StructureProperties.chain.label_asym_id(loc)}`);
+    const entity = StructureProperties.chain.label_entity_id(loc);
+    let e = byEntity.get(entity);
+    if (!e) byEntity.set(entity, (e = { chains: new Set(), atoms: 0 }));
+    e.chains.add(StructureProperties.chain.auth_asym_id(loc));
+    e.atoms += unit.elements.length;
+    chainKeys.add(`${unit.conformation.operator.name}:${StructureProperties.chain.label_asym_id(loc)}`);
   }
-  const byType = new Map<string, number>();
+  const list: ContentsEntity[] = [];
   for (let i = 0; i < entities.data._rowCount; i++) {
-    if (!present.has(entities.data.id.value(i))) continue;
-    const type = entities.data.type.value(i) || 'other';
-    byType.set(type, (byType.get(type) ?? 0) + 1);
+    const id = entities.data.id.value(i);
+    const e = byEntity.get(id);
+    if (!e) continue;
+    list.push({
+      id,
+      name: entities.data.pdbx_description.value(i).join(', ') || `Entity ${id}`,
+      type: entities.data.type.value(i) || 'other',
+      chains: [...e.chains],
+      atoms: e.atoms,
+    });
   }
-  const order = ['polymer', 'branched', 'non-polymer', 'water', 'macrolide', 'other'];
-  const types = [...byType].sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
   const n = (x: number) => x.toLocaleString('en');
-  const facts: [string, string][] = [
-    ['Entities', `${n(present.size)}${types.length ? ` (${types.map(([t, c]) => `${c} ${t}`).join(', ')})` : ''}`],
-    ['Chains', n(chains.size)],
-    ['Residues', n(s.polymerResidueCount)],
-    ['Atoms', n(s.elementCount)],
+  const counts = [
+    { label: list.length === 1 ? 'Entity' : 'Entities', value: n(list.length) },
+    { label: chainKeys.size === 1 ? 'Chain' : 'Chains', value: n(chainKeys.size) },
+    { label: 'Residues', value: n(s.polymerResidueCount) },
+    { label: 'Atoms', value: n(s.elementCount) },
   ];
-  if (s.models.length > 1) facts.push(['Models', n(s.models.length)]);
-  return facts;
+  if (s.models.length > 1) counts.push({ label: 'Models', value: n(s.models.length) });
+  return { counts, entities: list, reveal };
 }
 
 /** A structure's entities, each with its chains (lazy contents, decision 18: a row's eye hides it). */
@@ -1415,6 +1431,7 @@ function inspect(
   node: SceneNode,
   owner: string | undefined,
   unit: ObservableState<VolumeLevelUnit>,
+  pick?: (node: SceneNode) => void,
 ): SceneInspection {
   const cell = plugin.state.data.cells.get(node.id);
   const slot = `inspector:${node.kind}`;
@@ -1542,9 +1559,17 @@ function inspect(
     };
   }
   if (node.kind === 'contents') {
-    // A structure's contents (its id is the structure's ref + '#contents'): what it is made of, at a glance.
-    const s = dataOf(plugin, node.id.slice(0, node.id.indexOf('#')));
-    if (s) return { node, form: undefined, slot, facts: contentsFacts(s) };
+    // A structure's contents (its id is the structure's ref + '#contents'): what it is made of, at a glance; an entity
+    // opens in the tree (its rows computed on first look).
+    const structureRef = node.id.slice(0, node.id.indexOf('#'));
+    const s = dataOf(plugin, structureRef);
+    const reveal = (entity: string) => {
+      node.load?.();
+      if (!node.isExpanded.value) node.toggleExpanded();
+      const row = node.children.value.find((c) => c.id === `${structureRef}#entity:${entity}`);
+      if (row) pick?.(row);
+    };
+    if (s) return { node, form: undefined, slot, contents: contentsSummary(s, reveal) };
   }
   if (node.kind === 'particles' && cell?.obj?.data) {
     const data = cell.obj.data as ParticleList;

@@ -229,9 +229,6 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               quickStyles={core.views.quickStyles}
               // Preset and Styles open the command menu in their groups (`structure-commands.ts`).
               openCommands={(group) => openCommandMenu(group)}
-              onAction={(action) => {
-                if (action === 'add') managers.commands.open('component.add');
-              }}
             />
           )),
         },

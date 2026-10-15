@@ -100,6 +100,27 @@ export interface SceneInspection {
   transfer?: readonly VolumeTransferModel[];
   /** A structure representation's quick settings (type, color, opacity, size), above the form. */
   quick?: RepresentationQuickModel;
+  /** A structure's contents: its counts, and its entities to open in the tree. */
+  contents?: ContentsSummary;
+}
+
+/** What a structure is made of, at a glance. */
+export interface ContentsSummary {
+  /** Entities, chains, polymer residues, atoms (models when several), each a figure. */
+  readonly counts: readonly { readonly label: string; readonly value: string }[];
+  readonly entities: readonly ContentsEntity[];
+  /** Opens an entity's row in the tree (Contents opened) and picks it. */
+  reveal(entity: string): void;
+}
+
+export interface ContentsEntity {
+  readonly id: string;
+  readonly name: string;
+  /** mmCIF's: polymer, non-polymer, branched, water, … */
+  readonly type: string;
+  /** Its chains (author ids). */
+  readonly chains: readonly string[];
+  readonly atoms: number;
 }
 
 export interface SceneModel {
