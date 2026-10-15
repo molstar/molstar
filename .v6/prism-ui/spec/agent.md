@@ -105,6 +105,9 @@ As little in the way as is reasonable (decision 26):
   fence, escaped, capped in length (review F15). As built: quoted (`"…"`, controls, separators, bidi and zero-width
   marks removed, 80 characters) in the state block (labels and descriptions), the focus, and the person's notes; tool
   results still name data unquoted ("Loaded 1CBS."), which is next.
+- **A host's own models** (`createAssistantWith({ provided })`): a provider the host brings with its adapter, listed
+  first with its key "from the server" and in effect without a key of the person's; the stories bring a scripted model
+  this way (keys and the choice kept in memory, never the person's).
 - **Keys** are the person's, kept by the assistant for as long as they chose (the mocks' `KeyScope`): until a reload
   (memory only), for this tab (sessionStorage) or in this browser (localStorage). **Stored keys are always scrambled**
   (David, 2026-10-15), building on Stories' `secrets.ts` (ported into `@molstar/prism-assistant`), so the storage

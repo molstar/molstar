@@ -9,17 +9,17 @@
  */
 
 import { domView } from '@molstar/prism-ui';
-import type { AssistantFactory, AssistantUI } from '@molstar/prism-viewer/spec';
+import type { AssistantFactory, AssistantHost, AssistantUI } from '@molstar/prism-viewer/spec';
 import { type InspectorFocus, InspectorPageId, inspectorCommands } from '../inspector-access.js';
 import { inspectLinks } from '../inspector/links.js';
 import { InspectorModel } from '../inspector/model.js';
 import { inspectorPage } from '../inspector/page.js';
-import { createKeyStore } from '../keys.js';
+import { createKeyStore, type KeyStore } from '../keys.js';
 import { AgentTurnCard } from '../views/agent-turn.js';
 import { AssistantTab } from '../views/assistant-tab.js';
 import { createViewerAgentModel } from './agent-model.js';
 import { createInspectorSources } from './inspector-sources.js';
-import { createAISettings, localPrefs } from './settings-model.js';
+import { createAISettings, localPrefs, type ProvidedModels, type SettingsPrefs } from './settings-model.js';
 import { keysStorageSource } from './storage.js';
 
 // The assistant in the viewer's page (viewer-spec.md §2.4, plan 4.4): its tab (the model setup, the Inspect rows), the
@@ -29,11 +29,29 @@ import { keysStorageSource } from './storage.js';
 /** Until the person chooses, the agent's default model: asking without a key opens the setup. */
 const Fallback = { provider: 'anthropic', model: 'claude-sonnet-5-5' } as const;
 
-export const createAssistant: AssistantFactory = async (host): Promise<AssistantUI> => {
+/** What a host may give the assistant besides the viewer: models of its own, and where the setup is kept. */
+export interface AssistantOptions {
+  /** Models the host brings with their adapters (a story's scripted model), in effect with no key of the person's. */
+  readonly provided?: readonly ProvidedModels[];
+  /** Where the person's keys are kept; default the browser's (`createKeyStore`). */
+  readonly keys?: KeyStore;
+  /** Where the choice of model is kept; default localStorage (`localPrefs`). */
+  readonly prefs?: SettingsPrefs;
+}
+
+/** The assistant as the viewer's `AssistantFactory`, with a host's options (a story's scripted model). */
+export function createAssistantWith(options: AssistantOptions = {}): AssistantFactory {
+  return (host) => makeAssistant(host, options);
+}
+
+export const createAssistant: AssistantFactory = createAssistantWith();
+
+async function makeAssistant(host: AssistantHost, options: AssistantOptions): Promise<AssistantUI> {
   const { notifications } = host.viewer.managers;
-  const keys = createKeyStore();
-  const settings = createAISettings(keys, localPrefs(), {
+  const keys = options.keys ?? createKeyStore();
+  const settings = createAISettings(keys, options.prefs ?? localPrefs(), {
     report: (text) => notifications.post(text, 'warning'),
+    ...(options.provided ? { provided: options.provided } : {}),
   });
   await settings.load();
   const agent = host.createAgent({
@@ -86,4 +104,4 @@ export const createAssistant: AssistantFactory = async (host): Promise<Assistant
       unregisterKeys();
     },
   };
-};
+}

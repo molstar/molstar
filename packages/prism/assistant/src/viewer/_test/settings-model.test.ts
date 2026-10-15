@@ -103,4 +103,16 @@ describe('the assistant setup', () => {
     ]);
     expect(checkEndpoint('http://[::1]:8080/v1')).toBeUndefined();
   });
+
+  it("takes a host's models with their adapter, in effect with no key of the person's (a story's scripted model)", async () => {
+    const adapter = {} as never;
+    const settings = createAISettings(memoryKeys(), memoryPrefs(), {
+      provided: [{ id: 'scripted', label: 'Scripted', models: ['scripted'], adapter }],
+    });
+    await settings.load();
+    expect(settings.providers.value[0]).toMatchObject({ id: 'scripted', key: { from: 'server' } });
+    expect(settings.setup.value).toEqual({ provider: 'scripted', model: 'scripted' });
+    expect(settings.adapterFor('scripted')).toBe(adapter);
+    expect(settings.adapterFor('anthropic')).toBeUndefined();
+  });
 });

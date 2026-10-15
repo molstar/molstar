@@ -70,6 +70,17 @@ export function localPrefs(prefix = 'prism-assistant.'): SettingsPrefs {
 export interface AISettingsOptions {
   /** Says what went wrong in words (a key that could not be kept, an endpoint refused); the viewer's notifications. */
   readonly report?: (text: string) => void;
+  /** Models the host brings with their own adapters (a story's scripted model): in effect without a key of the person's. */
+  readonly provided?: readonly ProvidedModels[];
+}
+
+/** A provider the host brings, its adapter made already (no key asked for: its key is the host's). */
+export interface ProvidedModels {
+  readonly id: string;
+  readonly label: string;
+  /** Its models, the default first. */
+  readonly models: readonly string[];
+  readonly adapter: ModelAdapter;
 }
 
 /** An own endpoint's URL is https, or http on this machine (model.ts, `AIProvider.baseURL`); never with a login in it. */
@@ -95,6 +106,7 @@ export function createAISettings(
   const scopes = new Map<string, KeyScope>();
   const own = new Map<string, OwnProvider>();
   for (const p of parse<OwnProvider[]>(prefs.get('providers')) ?? []) own.set(p.id, p);
+  const provided = new Map((options.provided ?? []).map((p) => [p.id, p] as const));
 
   const providers = observableState<readonly AIProvider[]>([]);
   // The person's choice (kept in prefs) apart from the one in effect: a choice whose provider has no key (yet) is not
@@ -104,6 +116,10 @@ export function createAISettings(
   const setup = observableState<AISetup | undefined>(undefined);
   const publish = () => {
     providers.set([
+      // The host's first: its key is its own (from the server, as far as the person is concerned).
+      ...[...provided.values()].map(
+        (p): AIProvider => ({ id: p.id, label: p.label, family: 'openai', models: p.models, key: { from: 'server' } }),
+      ),
       ...Builtin.map(
         (b): AIProvider => ({
           ...b,
@@ -125,7 +141,7 @@ export function createAISettings(
     ]);
     // Which keys there are is known only once loaded: until then, nothing is in effect.
     if (!loaded) return;
-    if (chosen && scopes.has(chosen.provider)) setup.set(chosen);
+    if (chosen && (scopes.has(chosen.provider) || provided.has(chosen.provider))) setup.set(chosen);
     else {
       const first = providers.value.find((p) => p.key && p.models.length);
       setup.set(first ? { provider: first.id, model: first.models[0] } : undefined);
@@ -170,6 +186,8 @@ export function createAISettings(
     setup: setup.asReadonly,
     load: resync,
     adapterFor(provider) {
+      const given = provided.get(provider);
+      if (given) return given.adapter;
       if (!scopes.has(provider)) return undefined;
       let adapter = adapters.get(provider);
       if (!adapter) {
