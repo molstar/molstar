@@ -284,6 +284,10 @@ export interface ViewerExtensionUI {
   readonly overlays?: readonly {
     readonly id: PartId;
     readonly title: string;
+    /** Stays open on a click outside it (Esc or its ✕ close it): what is read beside the scene (the Story). */
+    readonly persistent?: boolean;
+    /** Its view takes the card's whole height and scrolls its own parts. */
+    readonly fill?: boolean;
     readonly render: ViewRenderer<ShellViewContext>;
   }[];
   /**

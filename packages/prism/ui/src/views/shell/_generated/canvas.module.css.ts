@@ -31,6 +31,7 @@ export const classes = {
   'card-in': 'msp-shell-canvas-card-in',
   'cardBody': 'msp-shell-canvas-cardBody',
   'cardBodyContent': 'msp-shell-canvas-cardBodyContent',
+  'cardBodyFill': 'msp-shell-canvas-cardBodyFill',
   'cardHeader': 'msp-shell-canvas-cardHeader',
   'cardTitle': 'msp-shell-canvas-cardTitle',
   'chip': 'msp-shell-canvas-chip',
@@ -173,6 +174,13 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
 .msp-shell-canvas-cardBody {
   flex: 1 1 0;
   min-height: 0;
+}
+
+.msp-shell-canvas-cardBodyFill {
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
 }
 
 .msp-shell-canvas-cardBodyContent {

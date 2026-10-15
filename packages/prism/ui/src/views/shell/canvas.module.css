@@ -135,6 +135,14 @@
   min-height: 0;
 }
 
+/* A card whose view fills it (`fill`): the view takes the body's height and scrolls its own parts. */
+.cardBodyFill {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+}
+
 /* At least the body's height (as a panel's, dock.module.css .bodyContent). */
 .cardBodyContent {
   display: flex;

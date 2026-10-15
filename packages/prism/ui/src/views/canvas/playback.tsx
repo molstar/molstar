@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
+import { combineLatest, debounceTime, distinctUntilChanged, map } from 'rxjs';
 import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { Markdown } from '../../components/markdown/markdown.js';
@@ -185,7 +185,7 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
     distinctUntilChanged(),
   );
   return (
-    <div>
+    <div class={classes.snapshots}>
       <div class={classes.bar}>
         <span class={classes.title}>{model.title}</span>
         {/* One snapshot (a single-state story) has its title and description only: nothing to step through. */}
@@ -225,8 +225,14 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
         </Show>
       </div>
       <Show when={listOpen}>{() => <SnapshotList model={model} onClose={() => listOpen.set(false)} />}</Show>
+      {/* The title and the description change together (another snapshot): taken once both have, so a heading is never
+          compared with the other snapshot's title. */}
       <Show
-        when={combineLatest([model.description, model.title]).pipe(map(([d, t]) => (d ? withoutTitle(d, t ?? '') : d)))}
+        when={combineLatest([model.description, model.title]).pipe(
+          debounceTime(0),
+          map(([d, t]) => (d ? withoutTitle(d, t ?? '') : d)),
+          distinctUntilChanged(),
+        )}
       >
         {(source) => (
           <ScrollArea class={classes.description} contentClass={classes.descriptionContent}>
@@ -246,14 +252,37 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
 }
 
 /**
- * A description without its first heading when that only repeats the snapshot's title (shown in the bar already); a
- * heading that says more stays.
+ * A description without its first heading when that says nothing the snapshot's title (shown in the bar) does not: the
+ * same words, or fewer of them ("ATP Binding" under "ATP Binding [1/2]"), case, markdown marks, punctuation and a part
+ * counter ("[1/2]", "(2/5)") aside. A heading that says more ("The Story of BCR-ABL: A Kinase Out of Control" under "A
+ * Kinase Out of Control") stays.
  */
 export function withoutTitle(markdown: string, title: string): string {
   const m = /^\s*#{1,6}[ \t]+(.+?)[ \t]*#*[ \t]*(?:\r?\n|$)/.exec(markdown);
-  const plain = (s: string) => s.replace(/[*_`]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
-  if (!m || plain(m[1]) !== plain(title)) return markdown;
+  if (!m) return markdown;
+  const heading = words(m[1]);
+  const said = words(title);
+  if (
+    !heading ||
+    !(
+      said === heading ||
+      said.startsWith(`${heading} `) ||
+      said.includes(` ${heading} `) ||
+      said.endsWith(` ${heading}`)
+    )
+  )
+    return markdown;
   return markdown.slice(m[0].length).replace(/^\s+/, '');
+}
+
+/** A heading's or a title's words: lower case, no markdown marks, punctuation or part counter. */
+function words(text: string): string {
+  return text
+    .replace(/[[(]\s*\d+\s*\/\s*\d+\s*[\])]/g, ' ')
+    .replace(/[*_`~]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
 }
 
 /** One dot per snapshot, the current one filled; each jumps to its snapshot (its title as the tooltip). */

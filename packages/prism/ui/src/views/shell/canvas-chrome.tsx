@@ -574,13 +574,21 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
         <PinButton shell={shell} dock="right" />
         <Button variant="ghost" size="sm" icon={<Icon name="x" />} title="Close" onClick={() => shell.closeOverlay()} />
       </header>
-      <ScrollArea class={classes.cardBody} contentClass={classes.cardBodyContent}>
-        <ViewHost renderer={open.overlay.render} ctx={{ shell, ...(open.focus ? { focus: open.focus } : {}) }} />
-      </ScrollArea>
+      {open.overlay.fill ? (
+        <div class={classes.cardBodyFill}>
+          <ViewHost renderer={open.overlay.render} ctx={{ shell, ...(open.focus ? { focus: open.focus } : {}) }} />
+        </div>
+      ) : (
+        <ScrollArea class={classes.cardBody} contentClass={classes.cardBodyContent}>
+          <ViewHost renderer={open.overlay.render} ctx={{ shell, ...(open.focus ? { focus: open.focus } : {}) }} />
+        </ScrollArea>
+      )}
     </section>
   ) as HTMLElement;
   // Esc, or a pointer down outside the card and its button, closes it; not one on the canvas: the person turns and
-  // zooms the view with the card open (setting up an export, trying a canvas setting). Pinned, the card is part of the workspace like the pinned panel: only its ✕ (or another card or tab) closes it.
+  // zooms the view with the card open (setting up an export, trying a canvas setting). Pinned, the card is part of the
+  // workspace like the pinned panel: only its ✕ (or another card or tab) closes it; a persistent card (the Story, read
+  // beside the scene) is not closed by a click elsewhere either.
   const pinned = () => shell.dock('right').state.value.pinned;
   const doc = document;
   const onKey = (e: KeyboardEvent) => {
@@ -590,7 +598,7 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
   };
   const onPointer = (e: PointerEvent) => {
     const target = eventTarget(e) as Element;
-    if (pinned() || isInside(e, card) || isInside(e, open.anchor)) return;
+    if (pinned() || open.overlay.persistent || isInside(e, card) || isInside(e, open.anchor)) return;
     // Buttons that open another card, and panel tabs, swap the card on their click: closing it here first would show
     // the panel underneath for a frame (a blink), and a tab click would then collapse the panel.
     if (target.closest?.('[data-overlay-trigger], [role=tab]')) return;

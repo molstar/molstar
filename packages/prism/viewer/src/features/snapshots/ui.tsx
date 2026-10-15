@@ -103,10 +103,13 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
       {
         id: PlaybackCard,
         title: 'Story',
+        // Read beside the scene: a click on the canvas or a panel leaves it open; the description fills the card.
+        persistent: true,
+        fill: true,
         render: domView(() => {
           const model = createSnapshotStepper(ctx.api, area, createMarkdownHost(ctx.api, area.markdown));
           return (
-            <div style="display: grid; gap: var(--msp-space-2)">
+            <div style="display: flex; flex: 1 1 0; flex-direction: column; gap: var(--msp-space-2); min-height: 0">
               <Show when={audio.present}>{() => <AudioBar model={audio} />}</Show>
               <Show
                 when={model.count.pipe(map((c) => c >= 1))}

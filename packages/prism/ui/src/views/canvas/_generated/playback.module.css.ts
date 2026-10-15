@@ -30,6 +30,7 @@ export const classes = {
   'position': 'msp-canvas-playback-position',
   'rowTitle': 'msp-canvas-playback-rowTitle',
   'scrubber': 'msp-canvas-playback-scrubber',
+  'snapshots': 'msp-canvas-playback-snapshots',
   'time': 'msp-canvas-playback-time',
   'title': 'msp-canvas-playback-title',
   'trajectoryLabel': 'msp-canvas-playback-trajectoryLabel',
@@ -65,7 +66,26 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 
 .msp-canvas-playback-bare {
   min-width: 0;
+  min-height: 0;
   font-size: var(--msp-font-size-sm);
+  flex-direction: column;
+  flex: 1 1 0;
+  display: flex;
+
+  & > .msp-canvas-playback-snapshots {
+    flex: 1 1 0;
+  }
+
+  & .msp-canvas-playback-description {
+    flex: 1 1 0;
+    max-height: none;
+  }
+}
+
+.msp-canvas-playback-snapshots {
+  flex-direction: column;
+  min-height: 0;
+  display: flex;
 }
 
 .msp-canvas-playback-bar {

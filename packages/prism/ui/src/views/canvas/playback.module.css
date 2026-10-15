@@ -40,10 +40,31 @@
   }
 }
 
-/* In an overlay's card: the same text, no frame of its own. */
+/* In an overlay's card: the same text, no frame of its own; it fills the card, the description taking what the bar
+   leaves. */
 .bare {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
   font-size: var(--msp-font-size-sm);
+
+  & > .snapshots {
+    flex: 1 1 0;
+  }
+
+  & .description {
+    flex: 1 1 0;
+    max-height: none;
+  }
+}
+
+/* The bar, the list and the description, one under the other. */
+.snapshots {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .bar {

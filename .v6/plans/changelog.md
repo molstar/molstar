@@ -159,6 +159,9 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: the playback card is the Story (a book icon), one frame, its text wrapping inside it; a description's
   first heading that only repeats the snapshot's title is not shown; ← and → step through a story (quiet where there is
   none); the Snapshots tab's Play is an icon beside its options.
+- Prism viewer: the Story card stays open on a click outside it (Esc or its ✕ close it) and its description fills the
+  card; a first heading is left out when the title already says it (a part counter like "[1/2]" aside), whatever order
+  the title and description change in. Overlays can be `persistent` and `fill`.
 - The camera: a transition under way when the animation loop's clock starts again (after an image is drawn, e.g. a
   snapshot's thumbnail) keeps going instead of flinging the camera far out (a negative or huge radius, an empty view);
   a state snapshot keeps where an animating camera is going (`Camera.getSettledSnapshot`) and the view a pending camera

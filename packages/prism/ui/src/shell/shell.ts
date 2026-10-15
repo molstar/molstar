@@ -67,6 +67,10 @@ export interface ShellOverlay {
   id: string;
   title: string;
   render: ViewRenderer<ShellViewContext>;
+  /** Stays open on a click outside it, as a pinned card (Esc or its ✕ close it): what is read beside the scene. */
+  persistent?: boolean;
+  /** Its view takes the card's whole height and scrolls its own parts (the card's body does not scroll). */
+  fill?: boolean;
 }
 
 /**
