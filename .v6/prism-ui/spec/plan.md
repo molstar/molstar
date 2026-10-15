@@ -133,7 +133,9 @@ kept record survives a reload.
    as sequence behaviors; the viewer's dependency removed), `annotations.apply` for what a structure carries.
    As built: `ModelArchiveExtension` (`@molstar/model-archive-extension/prism-viewer`, in the app's list): the pLDDT and
    QMEAN color themes, their annotations and commands, the pLDDT track as the first sequence behavior
-   (`sequence/behaviors.ts`); the viewer's dependency is gone. Not yet: the PAE view, Home's "color by them?" line.
+   (`sequence/behaviors.ts`); the viewer's dependency is gone. Then (2026-10-15) the PAE view (`model-archive.pae`: a
+   card with the heat map per residue pair, chain labels, a click selecting the pair) and Home's offer of what a loaded
+   structure carries ("… has pLDDT": Show, Dismiss; `createAnnotationOffer`).
 2. **Ports**: assembly-symmetry, geo-export, model-export, video-export (lazy), zenodo (lazy), kinemage, ANVIL; the
    data-only ones through `pluginExtension`.
    As built (2026-10-15): each `@molstar/<name>-extension/prism-viewer` (a lazy one's stub in `/prism-viewer-stub`),
@@ -142,8 +144,11 @@ kept record survives a reload.
    the person (an export) asks first and the page saves it. parity.md §6 as built.
 3. **The app's list and `FullPrismViewerSpec()`**; the single-file build (app.md §2).
    As built: `apps/prism-viewer` builds `prism-viewer.js` (every lazy part inlined) beside the app, exporting
-   `createPrismViewer` and `FullPrismViewerSpec()`; checked in a browser on a plain page. Not yet: publishing it
-   (Pages, the `molstar` distribution) and a smoke check in CI.
+   `createPrismViewer` and `FullPrismViewerSpec()`; checked in a browser on a plain page. Published with the rest: the
+   `molstar` distribution carries `build/prism-viewer/` (the page, chunks, images and the single file) and
+   `scripts/deploy.js` copies it to Pages' `prism-viewer/`; the browser smoke (`node smoke/run.mjs browser`, run by
+   CI's build job on the packed distribution) loads the single file on a plain page (a PDB, a lazy extension inlined,
+   one script request).
 
 Accepted when: parity.md §6 is built or dropped, and the single file runs on a page with no build step.
 
