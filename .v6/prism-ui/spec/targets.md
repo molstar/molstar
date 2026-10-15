@@ -33,7 +33,7 @@ interface Scoped { target: Target; structure?: StructureRef }   // StructureRef:
 - **Everything compiles to MolQL** (a MolScript expression) before it reaches the engine: keywords to fixed
   expressions (Stories' `KEYWORD_EXPRESSIONS`), address lists to schema items, query texts through Mol\*'s transpilers
   (`@molstar/query-language`: PyMOL, VMD, Jmol), schema items through MVS's element-schema path, which resolves rows
-  through the model's indices (`substructureFromRows` in the MVS runtime, #1972) rather than per atom. One evaluator, one set of
+  through the model's indices (`substructureFromRows` in `@molstar/model`'s schema selection, #1972) rather than per atom. One evaluator, one set of
   semantics, whoever asked.
 - **Stored as MolQL JSON only** where a target is kept (a component, a snapshot, the history, a run's arguments): no
   PyMOL text in saved state, so a session replays without a parser. A stored query is shown with

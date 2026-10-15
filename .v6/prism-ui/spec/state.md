@@ -19,7 +19,7 @@ the first slice's canvas, hover lines, selection summary and framing (`viewer/sr
 | `managers.volume.hierarchy`                                                         | `SceneNode` kinds `volume`, `volume-representation`                         | Views › Structure tab › EmdbMap, EmdbModel, StreamingDensity | —                                                                                             |
 | `managers.particles.hierarchy`                                                      | none (`SceneNode` has no particle kinds)                                    | none                                                    | particle nodes                                                                                |
 | `managers.structure.component` (options, add, presets)                              | `PresetsModel`, `QuickStylesModel`, `mockComponentOptions`, node menus      | Views › Structure tab › Representation, Structure       | —                                                                                             |
-| `managers.structure.selection` (entries, stats, additions history)                  | `SelectionModel` (`summary`, `actions`, `clear`)                            | Shell › Loaded (selection bar, Selection tab)           | additions history ("undo last selection"); granularity as state                               |
+| `managers.structure.selection` (entries, stats, additions history)                  | `SelectionModel` (`summary`, `actions`, `clear`)                            | Shell › Loaded (selection bar, Selection tab)           | the additions history as a state: the ordered list of the latest added elements, which measurements and superposition take their ordered picks from (not an undo); granularity as state |
 | `behaviors.interaction.selectionMode`, `managers.interactivity.props` (granularity) | `ModeSwitch` props (`CanvasMode`, `Granularity`)                            | Shell › Loaded                                          | their source and view model (§3)                                                               |
 | `managers.structure.focus` (current, history)                                       | the selection bar's Focus action                                            | Shell › Loaded                                          | its source and view model (§3)                              |
 | `managers.structure.measurement`                                                    | `MeasurementsModel`                                                         | Shell › Loaded (Selection › Measure)                    | —                                                                                             |
@@ -35,7 +35,7 @@ the first slice's canvas, hover lines, selection summary and framing (`viewer/sr
 | `behaviors.labels.highlight`                                                        | `HoverLabelModel` (`hoverLines` source, built)                              | Shell › RealPlugin                                      | —                                                                                             |
 | `state.behaviors` (behavior params, custom properties)                              | `SettingsModel` (group `behaviors`)                                         | Shell (Settings tab)                                    | —                                                                                             |
 | `config` (servers, providers, performance)                                          | `SettingsModel` (groups `performance`, `advanced`); the viewer's options    | Shell (Settings tab)                                    | config has no change event; options are read at start                                        |
-| `managers.toast`, `events.log`                                                      | `StatusModel` (`current`, `history`); Log tab                               | Shell (status column, Log)                              | —                                                                                             |
+| `managers.toast`, `events.log`                                                      | `StatusModel` (`current`, `history`): the status column (History replaces the Log tab, journal.md §3) | Shell (status column)                                   | —                                                                                             |
 | `managers.task` (progress, finished)                                                | `StatusModel.tasks`; the busy overlay                                       | Shell › Loaded (density, surface tasks)                 | Cancel in the status line                                     |
 | `managers.dragAndDrop`, open files                                                  | `HomeModel.openFiles`; `ShellView`'s `onDropFiles`                          | Views › Home tab                                        | —                                                                                             |
 | registry (actions, formats)                                                         | `HomeModel.actions` (`HomeAction` with `form`, `applyLabel`), `formats`     | Views › Home tab                                        | a behavior keeping the latest registered set (§3)                |
@@ -61,9 +61,9 @@ the first slice's canvas, hover lines, selection summary and framing (`viewer/sr
 
 ## 3. What the mocks do not cover
 
-- **Undo**: not the plugin's `canUndo` (its history is off) nor a manager's: the viewer snapshots both engines before
-  an agent's turn and restores them on undo ([sequence.md](sequence.md) §7). The selection's additions history stays
-  the plugin's.
+- **Undo**: not the plugin's `canUndo` (its history is off): the viewer's history manager takes a checkpoint before
+  each step, a person's call or an agent's turn, and restores it on undo ([sequence.md](sequence.md) §7.2–7.3). The
+  selection's additions history is not undo: it is the ordered picks measurements read.
 - **Animation and canvas settings** are PD sections registered by the mocks, with no model: they need `AnimationModel`
   and `CanvasSettingsModel` contracts, so the API, commands and tools have something to call. Canvas props are set
   through one action; a path that changes them without `settingsUpdated` is a bug to fix in core.
@@ -94,3 +94,18 @@ and the agent's account never see the plugin's patterns:
 
 One helper per row lives in the viewer's `sources/`, tested against a real plugin; nothing else reads the plugin. A later
 core cleanup (states instead of fields plus events) would change these helpers only.
+
+## 5. Which of the plugin's managers the viewer uses
+
+Selective (README decision 24): the engine work stays the plugin's; UI-era policy and side effects are rewritten in the
+viewer's own code, until the new `PluginContext` (README §6) takes them in.
+
+| The plugin's                                                                  | The viewer                                                                                                    |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `state` (data and behavior trees), `builders`, registries, `dataFormats`      | uses as they are                                                                                              |
+| `managers.structure.hierarchy`, `.component`, `.measurement`, `.selection`, `.focus`; `managers.volume`, `.particles`; `managers.interactivity`, `lociLabels`, `camera`, `animation`, `asset`, `task`, `markdownExtensions`, `dragAndDrop` | uses through `sources/` (reads, state.md §4) and `api/` (writes) |
+| `managers.snapshot`                                                           | used only by the `snapshots` feature for its list; the history's checkpoints call `plugin.state` directly (sequence.md §7.2) |
+| `managers.toast`, `layout`, `behaviors.layout.leftPanelTabName`               | not used: the status column, the shell                                                                         |
+| `PluginCommands`                                                              | not used for UI work; the API calls the managers and `state` (contexts.md §7)                                  |
+| `customStructureControls`, `customImportControls`, `genericRepresentationControls`, `customParamEditors` | not used: extensions' slots and commands (viewer-spec.md §3)                                |
+| `helpers.viewportScreenshot`                                                  | used by `export-image`, behind its operation                                                                   |

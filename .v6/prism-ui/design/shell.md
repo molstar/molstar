@@ -26,6 +26,9 @@ extension UI) are placed.
 
 ## 2. Structure
 
+> **2026-10-15:** the pinned panel and the rail no longer shrink the canvas; the camera's framing keeps the scene in
+> the visible area instead ([../spec/README.md](../spec/README.md) §3.5).
+
 ```
 ┌──┬────────────────────────────────────────────────────────┬───────────────────┬──┐
 │  │ ┌ 1TQN ▾ Chain ▾ Cytochrome P450 3A4 ▾ Chain A ▾ ⌃ ┐   │                   │◆ │ head: Home (the Mol* mark)

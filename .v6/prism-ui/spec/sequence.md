@@ -35,8 +35,8 @@ structure the 3D view shows and refuses every `load`. The viewer's loaders, in i
   URL, or host file, is the request's), hand it over. One parse, one `Structure`, so the link maps the very objects the
   3D view draws.
 - **`load(request)`**: when the plugin holds the bytes (a data cell from that URL), hand them over. Otherwise download
-  **through the plugin** (a data cell in the state tree, `Download` with the URL), so the 3D view finds it when it
-  loads the same file next, and a session saves it once.
+  **through the API** (`load.url` with origin `link`, so the cell it makes is a recorded step, not a change outside the
+  API, §7), so the 3D view finds it when it loads the same file next, and a session saves it once.
 - **Two caches, both read-through** (David, 2026-10-15):
   - **Bytes, in core**: a URL-keyed, ref-counted cache in Mol\*'s asset manager (its "TODO: add URL based ref-counted
     cache?"): a miss downloads, a hit returns the held bytes, an entry lives while something holds it. MVS's downloads,
@@ -65,15 +65,23 @@ interface SequenceBehaviorContext {
 ```
 
 - **The viewer's own**: follow the structure the person works with (focus, then latest selection, then in view, then
-  first loaded; prism-sequence.md §3); the pLDDT track for predicted models; secondary structure; PAE as a dot plot.
-- **Extensions add theirs** (`extension.sequence?: SequenceBehavior[]`, README §3.1): a validation report as a track
-  (rcsb, pdbe), membrane orientation, symmetry, interactions around the focus. The composition overrides them by id, as
+  first loaded; prism-sequence.md §3); secondary structure.
+- **Extensions add theirs** (`extension.sequence?: SequenceBehavior[]`, README §3.1): model-archive's pLDDT track and
+  PAE dot plot for predicted models (README decision 27), a validation report as a track (rcsb, pdbe), membrane
+  orientation, symmetry, interactions around the focus. The composition overrides them by id, as
   any part.
 - **They write the base layer by patch** (Seq\*'s `applyPatch`), so untouched nodes keep their identity and only the
-  changed ones rerun. The person's own edits (a track hidden, a color chosen) are patches too, from the UI, through the
-  API.
-- **Ordering**: behaviors patch disjoint parts of the document (each its own tracks, by ref prefix); the follow
-  behavior owns the data and the complex. A conflict is a bug the behavior's test catches, not a merge rule.
+  changed ones rerun. SeqViewSpec patches are all or nothing and nothing cascades (`packages/sequences/_spec/format.md`,
+  review F23), so:
+  - **Stable refs**: the follow behavior owns the data and the complex under fixed refs (`structure`, `complex`) and
+    switches structures by setting their fields, never by removing and inserting them, so other behaviors' tracks that
+    refer to the complex stay valid.
+  - **A behavior removes what refers to what it removes**, in the same patch; each behavior's own nodes carry its id as
+    a ref prefix.
+  - **A composition test** runs every built-in behavior together over a structure switch, a load and a clear.
+- **The person's edits** (a track hidden, a color chosen, a track's order) are a viewer-owned overlay keyed by track
+  ref, applied after the behaviors on Seq\*'s `local` layer and saved with the sequence's state (§7); an edit to a
+  track that no longer exists is dropped and said once.
 
 ## 4. Interaction: the link
 
@@ -81,7 +89,10 @@ As built in the first slice ([../../seq/prism-sequence.md](../../seq/prism-seque
 
 - **One link per shown complex**: `StructureLink.attach(structure)` over the structure the 3D view draws (§2's shared
   parse), `linkViews(seq, view3d, link, options)` for hover and selection both ways, highlight and focus from Mol\*'s
-  loci; `pluginView3D` lives in `sources/`.
+  loci; `pluginView3D` lives in `sources/`. The link's writes into Mol\* (selection, highlight, the camera's focus)
+  are view changes, not steps (operations.md §1, `history: false`): the viewer's `pluginView3D` makes them through the
+  same operations with origin `link` (`select.set`, `highlight.set`, `camera.frame`), never straight on the plugin
+  (review F21).
 - **Origins**: Seq\*'s changes carry `pointer`, `keyboard`, `api`, `graph`, `host:<tag>`; Mol\*'s side tags what the
   link sends, so neither re-sends its own echo. Replays and carries (`origin: graph`) lead nothing.
 - **State lives in the engines.** Selection is Mol\*'s (`managers.structure.selection`), mirrored into Seq\*; focus is
@@ -97,14 +108,15 @@ optimistic where it can be, part of the turn's checkpoint, and the same as the c
 | In the sequence                                           | API call                                                  |
 | --------------------------------------------------------- | --------------------------------------------------------- |
 | click, drag, Shift (selection)                            | none: the link mirrors it into Mol\*'s selection (§4)      |
-| a track's menu: Show in 3D, Color by this track           | `view.show(target)`, `structure.color(target, theme)`     |
-| a structure's name (the strip's one icon)                 | `navigation.reveal('structure-tree', structure)`           |
-| a SeqQL result                                            | `selection.set(target)`; `focus(target)`                  |
+| a track's menu: Show in 3D, Color by this track           | `camera.frame(target)`, `representation.color(target, theme)` |
+| a structure's name (the strip's one icon)                 | `view.open({ tab: 'structure', reveal: structure })`       |
+| a SeqQL result                                            | `select.set(target)`, `focus.set(target)`                  |
 | hover card actions (later)                                | the same calls                                            |
 
 `HostActions` (molstar-poc's `structureTrackActions`) take these calls instead of touching the plugin. A **target**
-is the shared address (README §3.3): Seq\* loci become residue addresses on the link's chains (`coordinatesOf`), so a
-sequence action, a command and a tool name the same residues the same way.
+is the shared address (README §3.3): Seq\* positions become residue addresses through the link's own mapping
+(`StructureLink`, Seq\* → Mol\* at edge rate; `coordinatesOf` is the other way, Mol\* runs onto Seq\* coordinates), so
+a sequence action, a command and a tool name the same residues the same way.
 
 ## 6. Both documents: MolViewSpec and SeqViewSpec
 
@@ -116,39 +128,85 @@ sequence action, a command and a tool name the same residues the same way.
 - **Loading an SVS** (`.svsj`, `.svsx`) sets the sequence document; its `molstar:structure` complexes name their sources
   by URI, which the loaders (§2) resolve against the plugin first, so a structure the 3D view has is not fetched again.
   Whether an SVS also loads its structures into 3D is the follow behavior's choice (yes, by default, with the default
-  representation).
+  representation); it does so through `load.svs`, an operation, so those cells are recorded steps (§7).
 - **Not both at once in the viewer** (David, 2026-10-15): the viewer loads an MVS or an SVS. A document holding both is
   Stories' (its schema-based document), or a new format later (a "Mol states" zip, `.msx`), not part of the viewer's
   first scope.
 - **One sequence viewer** (David, 2026-10-15), switched between Text and Tracks as in the mocks; the keyed model
   (prism-sequence.md §2.1) stays, with `'default'` its only entry.
 
-## 7. Snapshots and undo
+## 7. Snapshots, history and undo
 
-- **A viewer snapshot is both engines' state**: the plugin's (`PluginState.Snapshot`: the data and behavior trees,
-  camera, canvas, interactivity, focus, selection, components) and the sequence's own choices (style, colors, the
-  structure followed). The sequence document itself is rebuilt by the behaviors (§3) from the plugin's state, so it
-  need not be saved.
-- **In `.molx` and `.molj`** (David, 2026-10-15): the plugin's snapshot gets one optional, owner-keyed field,
-  `PluginState.Snapshot.custom?: Record<string, unknown>` (an additive core change), written and read through the
-  snapshot manager, so every snapshot entry and a whole session carry it. The viewer keeps the sequence's state under
-  `'prism-viewer.sequence'` (`{ style, theme, structure, rail }`); the classic UI and older readers ignore the field, and
-  a session without it opens with the sequence's defaults.
-- **One history manager** (`managers.history`, David, 2026-10-15) holds every undoable step, the person's and the
-  agent's alike: an undoable API call is one entry, an agent's turn is one entry however many calls it made. An entry
-  keeps a checkpoint taken before it (the plugin's snapshot through the snapshot manager, and the sequence's choices);
-  Undo restores the latest. The history is bounded (a ring); a checkpoint is the state tree's transforms and params,
-  not the data, and restoring is a tree diff, so unchanged cells stay. It also records the runs (what ran, its origin,
-  its result: contexts.md §5), which History and the eval's run log show.
+### 7.1 The sequence's state in snapshots
+
+- **What is saved**: the plugin's state (`PluginState.Snapshot`) and the sequence's own state,
+  `{ version: 1, style, colors, structure, rail, edits }` (`edits`: the overlay of §3). The document itself is rebuilt
+  by the behaviors from the plugin's state.
+- **A registry, not a field** (review F10): `PluginState.registerCustomState(key, { get(), set(value | undefined) })`,
+  an additive core change. `getSnapshot` writes every registered key into `snapshot.custom`; `setSnapshot` calls each
+  `set` after the tree is applied, with `undefined` (reset to defaults) when the snapshot has no value for it; unknown
+  keys pass through unchanged; transition frames do not apply it. So the snapshot manager's entries, their playback
+  and `.molx` / `.molj` sessions carry the sequence's state with no other hook. The viewer registers
+  `'prism-viewer.sequence'`; a value of another `version` is dropped and said once.
+
+### 7.2 Checkpoints
+
+The history's checkpoints use the plugin's state directly, never its snapshot manager (whose `getStateSnapshot` adds
+or replaces entries and whose restore clears; review F1; decision 24):
+
+```ts
+interface HistoryPort {                                   // given to prism-ui's history manager by the viewer
+  checkpoint(): Checkpoint;                               // synchronous, cheap; measured (§7.4)
+  restore(c: Checkpoint): Promise<void>;
+}
+// the viewer's:
+checkpoint = () => ({
+  plugin: plugin.state.getSnapshot({ data: true, behavior: true, componentManager: true, canvas3d: true,
+    interactivity: true, structureSelection: false, camera: false, canvas3dContext: false, animation: false }),
+  selectionMode: plugin.selectionMode, sequence: sequenceState(),
+});
+restore = (c) => plugin.state.setSnapshot({ ...c.plugin, structureFocus: undefined }) … then the selection mode and
+  the sequence's state
+```
+
+- **What undo restores**: the data tree (structures, components, representations, measurements), behavior settings,
+  canvas props, interactivity, the selection mode, the sequence's state. **What it never touches**: the camera, the
+  selection and the focus (view state, not steps), hover, the Snapshots list, open panels.
+- **Without a canvas** (headless): `camera: false` keeps `getSnapshot` from reading `canvas3d`; a headless test runs an
+  undoable operation, then Undo, with no canvas.
+- **Across a lazy extension's load**: restoring a checkpoint taken before the load keeps the extension loaded (its
+  registrations stay); only its cells go.
+
+### 7.3 One history manager
+
+`managers.history` (prism-ui, README §3.3) holds every undoable step, the person's and the agent's (David, 2026-10-15):
+
+- **A step** is one undoable operation run (`api.run`, operations.md §1) or one group. A group is opened with
+  `beginGroup(origin)` and closed with `endGroup()`: an agent's turn (keyed by `origin.turn`), a script's
+  `viewer.run(label, …)`, a builder's commit. One checkpoint is taken when a step or group opens.
+- **Not steps**: operations with `history: false` (`select.*`, `focus.*`, `camera.*`, `highlight.*`, `view.*`, reads).
+- **While a turn runs**, the person's own calls still run; the first one closes the turn's group (the turn's later
+  calls open a new group under the same turn), so steps never interleave inside one entry. Undo turn undoes the
+  turn's groups only while they are the latest entries; otherwise it asks before discarding the later steps.
+- **Undo while a run is in flight** is disabled (the button and the command say why); Stop aborts the run first.
+- **A failed or aborted run** restores the checkpoint its step took, so a loader that failed after its download leaves
+  nothing half-built; the result says so (critic, run outcomes).
+- **No redo** for now: entries hold only the checkpoint before them. (Listed in operations.md as later.)
+- **Changes outside the API** (review F5): inside are runs under `api.run` and `viewer.run`, the history's own
+  restores, and cells owned by behaviors (allow-listed by transformer: the focus representation, volume streaming,
+  custom-property and label cells). Any other change to the data tree makes every checkpoint taken before it unsafe:
+  those steps can no longer be undone, and History says so on them.
+- **The record**: every run and step is also an entry in the session record ([journal.md](journal.md)).
 - Mol\*'s own state history is off (`PluginConfig.State.HistoryCapacity` 0) and Seq\*'s too (its document port with
-  `history: false`, as Stories sets it): one undo, the viewer's; `canUndo` is not used.
+  `history: false`, as Stories sets it): one undo, the viewer's.
 
-- **Large scenes** (David, 2026-10-15): the history measures each checkpoint as it takes it (time and size). When one
-  goes over the budget (a first guess: 50 ms or 5 MB, tuned by measuring a mesoscale session), per-step checkpoints turn
-  off for that scene, and the status column says so once: "This scene is large: undo is off; Settings to turn it back
-  on." The agent's turn keeps its single checkpoint (one held at a time, released at the next action), unless that one
-  is over a hard limit too, which the turn card then says before the turn runs. Clearing the scene, or loading a
-  smaller one, turns per-step undo back on.
+### 7.4 Large scenes
+
+The history measures each checkpoint as it takes it: time, and the size of the snapshot's JSON without data cells'
+payloads. When one goes over the budget (a first guess: 50 ms or 5 MB, tuned on a mesoscale session), per-step
+checkpoints turn off for that scene, and the status column says so once: "This scene is large: undo is off; Settings
+to turn it back on." The agent's turn keeps its one checkpoint unless that one is over a hard limit too, which the turn
+card says before the turn runs. Clearing the scene, or loading a smaller one, turns per-step undo back on.
 
 ## 8. Open questions
 

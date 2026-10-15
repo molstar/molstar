@@ -5,7 +5,7 @@ area's operations have commands, tools, or both), and its state today. The inven
 [../analysis/current-ui.md](../analysis/current-ui.md) §5, [../analysis/extensions.md](../analysis/extensions.md) and
 the Viewer's API and URL parameters; the state of the plugin behind each row is [state.md](state.md).
 
-Status: **draft** (2026-10-15). State: **mocked** (a view over a mock view model in Storybook), **built** (over a real
+Status: **accepted, first pass** (2026-10-15). State: **mocked** (a view over a mock view model in Storybook), **built** (over a real
 plugin), **missing** (not mocked), **dropped** (decided not to carry over), **later**.
 
 ## 1. Loading and data
@@ -41,8 +41,8 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | v5                                                                    | Prism                                                                 | API area                     | State  |
 | --------------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------- | ------ |
 | selection mode, granularity                                           | the canvas mode switch                                                | `selection.mode`             | mocked |
-| selection toolbar (union, subtract, intersect, set; by query or residue list; theme; component; undo; help) | the selection bar and Selection tab; `select` commands with targets ([targets.md](targets.md)) | `select.*`, `selection.*` | mocked |
-| focus (click, history)                                                | focus from the selection bar, the sequence, the scene tree            | `focus.*`                    | mocked |
+| selection toolbar (union, subtract, intersect, set; by query or residue list; theme layers: color, transparency, emissive, material, clipping, resets; component and Modify by Selection; help) | the selection bar and Selection tab; `select` commands with targets ([targets.md](targets.md)) | `select.*`, `selection.*` | mocked |
+| focus (click, history; the focus picker's per-ligand and per-residue entries) | focus from the selection bar, the sequence, the scene tree; the picker's entries as `focus.set` targets in the command menu (`focus` group, ligands and residues as completions); the history as recent targets | `focus.*` | mocked (partly) |
 | procedural animation                                                  | Animation card › Procedural                                           | `animation.*`                | mocked |
 
 ## 4. The canvas
@@ -58,7 +58,7 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | animation (snapshots, trajectory, spin, rock), snapshot stepper, description | Animation card; playback card top left; description markdown   | `animation.*`, `snapshot.*`  | mocked |
 | trajectory controls                                                   | trajectory bar                                                        | `trajectory.*`               | mocked |
 | hover labels                                                          | hover label at the cursor                                             | none (state only)            | built  |
-| toasts, task progress (abortable), log                                | status column, busy overlay, Log tab                                  | none (state only)            | mocked |
+| toasts, task progress (abortable), log                                | status column, busy overlay, History tab (journal.md §3)              | none (state only)            | mocked |
 | drag-and-drop overlay                                                 | the shell's drop target                                               | `load.files`                 | mocked |
 
 ## 5. Panels and settings
@@ -70,7 +70,7 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | Settings (Canvas3D params, behavior tree)                             | Settings tab (groups; the behaviors and the plugin's settings)        | `settings.*`                 | mocked |
 | Help (prose, bindings)                                                | Help tab (bindings); the command menu's `?`                           | none                         | mocked |
 | layout (regions, controls display, expanded)                          | the shell (docks, compact, pinned)                                    | `navigation.*`, `viewState`  | mocked |
-| keyboard (none beyond Enter/Escape)                                   | keybindings over commands                                             | —                            | mocked (command shortcuts) |
+| keyboard: canvas and behavior keys (trackball W/A/S/D/R/F/Q/E, focus and camera keys, snapshot Ctrl+arrows), Enter/Escape in forms | the same canvas keys while the pointer is over the canvas; command keybindings for the rest, scoped to the viewer (README decision 29, design/commands.md §6) | — | mocked (command shortcuts) |
 
 ## 6. Extensions
 
@@ -81,10 +81,19 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | zenodo                                                                | Home's import slot; lazy                                              | missing |
 | assembly-symmetry                                                     | structure row, inspector section                                      | mocked (row) |
 | kinemage                                                              | inspector section                                                     | missing |
-| model-archive quality assessment (pLDDT, QMEAN), PAE plot             | presets and themes; pLDDT and PAE in the sequence (Seq\*'s dot plot); a refreshed PAE view later | built (pLDDT track) |
+| model-archive quality assessment (pLDDT, QMEAN), PAE plot             | designed anew as an extension with commands first (README decision 27): color by pLDDT or QMEAN, show PAE; sequence behaviors for the pLDDT track and the PAE dot plot; a new PAE view later. The viewer core no longer depends on it (`@molstar/prism-viewer`'s dependency and the first slice's pLDDT coloring move into the extension) | built (pLDDT track, to move) |
 | volumes-and-segmentations                                             | dropped for now: to be redesigned                                     | dropped |
-| anvil, dnatco, rcsb, pdbe, wwpdb, sb-ncbr, g3d, backgrounds, debug-helpers | data-only (`pluginExtension`): presets, themes, formats through the generic commands and tools | missing |
+| anvil (membrane orientation)                                          | an extension with commands (show, hide and fit the membrane) and a structure row for its options (v5's generic representation control) | missing |
+| dnatco, rcsb, pdbe, wwpdb, sb-ncbr, g3d, backgrounds, debug-helpers  | data-only (`pluginExtension`): presets, themes, formats through the generic commands and tools; their annotations through one `annotations.apply` command (below) | missing |
 | MolViewSpec                                                           | the viewer's base (load, snapshots)                                   | built (first slice) |
+
+## 6a. Not copied verbatim
+
+- **"Automatic (w/ Annotation)"** (v5's default preset: pLDDT or QMEAN coloring for predicted models, SB-NCBR charges)
+  is not ported as a preset (README decision 27): loading a predicted model applies the default preset, and an
+  `annotations.apply` command (and tool) applies what the loaded structure carries (quality scores, validation,
+  charges), offered in Home's result line after a load ("This model has pLDDT scores: color by them?"). The
+  model-archive and sb-ncbr extensions register what they can apply.
 
 ## 7. New in Prism (no v5 counterpart)
 

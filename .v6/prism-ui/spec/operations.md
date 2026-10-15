@@ -13,6 +13,7 @@ interface Operation<P extends PD.Params = PD.Params, R = unknown> {
   title: string;                                 // for people: the command's title, the history entry
   params: P | ((ctx: ApiContext) => P);          // one definition: the command's form and the tool's schema derive from it
   read?: true;                                   // changes nothing: no history step, may run alongside others
+  history?: false;                               // changes view state, not content: no history step (select, focus, camera, highlight, view)
   undoable?: false;                              // a step the history cannot restore (an upload); default true
   approval?: 'network' | 'upload' | 'destructive';   // asks before it runs, from the agent (agent.md §4)
   modules?: readonly ApiModuleKey[];             // what it needs of the host (canvas, files, network); absent: says why
@@ -33,6 +34,13 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
   ([targets.md](targets.md)).
 - **Desired state.** An operation says what should be, not what to do: `representation.set` with the same values twice
   changes nothing the second time (`did: "… already so."`), so a retried step is safe.
+- **Identity for operations that create things** (decision 30): each says what makes the thing it creates the same
+  (`load.entry`: source and id; `load.url`: the URL; `component.add`: structure and target; `measure.*`: the targets in
+  order; `snapshot.add`: none, every call adds). When it exists, the call does nothing and says so ("1TQN is already
+  loaded."), unless `copy: true` asks for another. Where the person's intent is unclear, the agent asks (`ask`,
+  agent.md §3).
+- **Failure is all or nothing**: a failed or aborted run restores the checkpoint its step took (sequence.md §7.3), so a
+  loader that failed after its download leaves nothing behind.
 - **Never throws.** Failures are results with a code, a message for the person or the model, and a hint naming what to
   do instead.
 - **One run path**: `api.run(id, values, { origin, signal })`. It checks `when` and the params, opens a history step for
@@ -40,23 +48,28 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
   runs, and records the run (id, values, origin, result, time). Commands, tools, the JS API, URL actions and the
   sequence's actions all call it; a view model calls the operation's typed function, which calls it.
 - **Origins**: `person`, `agent` (with its turn), `script`, `url`, `link` (the sequence, sequence.md §4).
-- **Where**: `packages/prism/viewer/src/api/<area>.ts`; with `sources/`, the only code that imports the plugin.
+- **Where**: `packages/prism/viewer/src/api/<area>.ts`; with `sources/`, the only code with value imports of the plugin
+  (`import type` is allowed anywhere; an extension's `plugin` part imports its own behaviors and entries).
+- **The types around it** (`ApiContext`, `ApiModuleKey`, `Projection`, `ViewerApi`) are defined in `api.md`, which
+  turns these areas into the viewer's API objects (README §5).
 
 ## 2. Areas
 
 | Area           | Operations (first pass)                                                                                                     | Reads                         | From                |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------- |
-| `load`         | `entry` (`pdb`, `pdb-ihm`, `afdb`, `emdb`, `model-archive`, id), `url` (url, format, binary), `mvs`, `files`, `trajectory`, `volume` | —                    | the loaders feature |
+| `load`         | core: `files`, `action` (a registry state action by id: Home's blocks); the loaders feature: `entry` (`pdb`, `pdb-ihm`, `afdb`, `emdb`, `model-archive`, id), `url` (url, format, binary), `mvs`, `svs`, `snapshot` (url or remote id), `trajectory`, `volume` | — | core; loaders |
 | `session`      | `open` (`.molx`, `.molj`), `save`, `clear`; `remote.list`, `remote.open`, `remote.upload`, `remote.remove`                  | `remote.list`                 | core; remote feature |
 | `structure`    | `preset` (hierarchy and representation presets by id), `model`, `assembly`, `type`                                          | `get` (the scene outline)     | core                |
 | `contents`     | `visibility` (entity or chain: left out of the representations)                                                             | `get` (entities, chains)      | core                |
-| `component`    | `add` (target, label), `remove`, `rename`, `visibility`, `options` (hydrogens, quality, lighting, …)                         | —                             | core                |
-| `representation` | `set` (on a component: type and params), `remove`, `color` (target, color or theme), `size`, `transparency` (target, alpha: the overlays) | —               | core                |
+| `component`    | `add` (target, label), `modify` (target, mode `union`/`subtract`/`intersect`), `remove`, `rename`, `visibility`, `options` (hydrogens, quality, lighting, …) | — | core |
+| `representation` | `set` (on a component: type and params), `remove`, `color` (target, color or theme), `size`, `transparency` (target, alpha: the overlays), `emissive`, `material`, `clipping` (target: the other selection layers), `reset` (a layer) | — | core |
+| `annotations`  | `apply` (what the structure carries: quality scores, validation, charges; extensions register what they can apply) | `list` | core; extensions |
 | `styles`       | `apply` (quick style by id: Default, Cartoon, Spacefill, Surface, Illustrative)                                             | —                             | core                |
 | `volume`       | `isovalue`, `representation`, `streaming`                                                                                   | `get`                         | core                |
 | `particles`    | `representation`                                                                                                            | `get`                         | core                |
 | `select`       | `set` (target, mode `set`/`add`/`remove`/`intersect`), `all`, `clear`, `invert`, `around` (radius), `expand` (to residues, chains, …); `mode`, `granularity` | `get` (what is selected) | core           |
 | `focus`        | `set` (target), `clear`                                                                                                     | `get`                         | core                |
+| `highlight`    | `set` (target), `clear` (for embedding hosts and the link; no history step)                                                 | —                             | core                |
 | `measure`      | `distance`, `angle`, `dihedral`, `label`, `orientation`, `plane` (targets), `remove`, `options`                             | `get`                         | measurements        |
 | `superpose`    | `chains`, `tm-align`, `ligands`, `atoms`, `db` (targets)                                                                    | —                             | superposition       |
 | `snapshot`     | `add`, `apply`, `update`, `replace`, `move`, `remove`, `next`, `previous`, `play`, `stop`                                   | `list`                        | snapshots           |
@@ -68,9 +81,11 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 | `sequence`     | `style` (text, tracks), `colors`, `follow` (structure), `legend`                                                            | `get`                         | core                |
 | `state`        | `remove`, `visibility`, `update` (a cell's params), `action` (an applicable state action by id)                             | `get` (the tree)              | state tree          |
 | `settings`     | `set` (a group's values)                                                                                                    | `get`                         | core                |
-| `history`      | `undo`, `redo`                                                                                                              | `list`                        | core                |
-| `view`         | `open` (tab, card, section), `expand`, `fullscreen`, `theme` (UI only, no history step)                                     | —                             | core                |
+| `history`      | `undo`, `undo-turn` (redo later, sequence.md §7.3)                                                                          | `list`                        | core                |
+| `view`         | `open` (tab, card, section, page; `reveal` a node), `expand`, `fullscreen`, `theme` (UI only, no history step)               | —                             | core                |
 
+- **Events** for embedding hosts (v5's `structureInteractivity`): `viewer.events.hover` and `viewer.events.click`,
+  with the target under the pointer (README §3.6).
 - **From** says which feature brings the area (viewer-spec.md §3.1): `core` is always there; a feature's areas come and
   go with it, and so do their commands and tools.
 - **Registries are arguments, not operations**: one `structure.preset` takes a preset id, one `representation.color`
