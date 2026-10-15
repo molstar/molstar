@@ -73,7 +73,7 @@ describe('shell focus', () => {
     expect(tab.getAttribute('aria-controls')).toBe(panel.id);
     expect(panel.querySelector('h2')?.textContent).toBe('Structure');
     panel.querySelector('input')!.focus();
-    (panel.querySelector('button[title="Close panel"]') as HTMLElement).click();
+    (panel.querySelector('button[data-tip="Close panel"]') as HTMLElement).click();
     expect(t.container.querySelector('[role=tabpanel]')).toBeNull();
     expect(document.activeElement).toBe(tab);
     t.done();

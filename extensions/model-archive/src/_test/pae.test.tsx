@@ -328,7 +328,7 @@ describe('the PAE card', () => {
     await until(() => scored() === 'Scored A 1–3, B 1');
 
     // The ✕ on the box's corner clears the box and its marks.
-    const corner = host.querySelector<HTMLButtonElement>('button[title="Clear the box"]')!;
+    const corner = host.querySelector<HTMLButtonElement>('button[aria-label="Clear the box"]')!;
     expect(corner.style.display).toBe('grid');
     corner.click();
     await until(() => v.sources.marks.marks.value.length === 0);

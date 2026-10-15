@@ -166,8 +166,8 @@ export function PaePlot(props: PaePlotProps) {
   const close = (
     <button
       type="button"
-      title="Clear the box"
       aria-label="Clear the box"
+      data-tip="Clear the box"
       style="position: absolute; display: none; place-items: center; width: 20px; height: 20px; padding: 0; border: 1px solid color-mix(in oklab, var(--msp-color-text), transparent 80%); border-radius: 50%; background: var(--msp-color-panel); color: var(--msp-color-text); cursor: pointer; transform: translate(-50%, -50%)"
       onClick={() => clear()}
     >
@@ -517,7 +517,7 @@ export function PaePlot(props: PaePlotProps) {
       <div aria-hidden="true" style="position: relative; height: 12px">
         {scaleTicks.map((v) => (
           <span
-            style={`${Tick}; top: 0; left: ${(100 * v) / (m.max || 1)}%; transform: translateX(${v === 0 ? '0' : '-50%'})`}
+            style={`${Tick}; top: 0; left: ${(100 * v) / (m.max || 1)}%; transform: translateX(${v === 0 ? '0' : v >= m.max ? '-100%' : '-50%'})`}
           >
             {String(v)}
           </span>
@@ -526,15 +526,18 @@ export function PaePlot(props: PaePlotProps) {
       <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--msp-space-2)">
         <span style={Quiet}>Expected position error (Å)</span>
         {plddt ? (
-          <Button
-            variant="ghost"
-            size="xs"
-            pressed={showPlddt.asReadonly}
-            title="Show each residue's pLDDT along the axes"
-            onClick={() => showPlddt.set(!showPlddt.value)}
-          >
-            pLDDT
-          </Button>
+          // Its label flush with the plot's right edge, as the line above ends (the button's padding past it).
+          <span style="margin: -4px calc(-1 * var(--msp-space-2)) -4px 0">
+            <Button
+              variant="ghost"
+              size="xs"
+              pressed={showPlddt.asReadonly}
+              title="Show each residue's pLDDT along the axes"
+              onClick={() => showPlddt.set(!showPlddt.value)}
+            >
+              pLDDT
+            </Button>
+          </span>
         ) : null}
       </div>
       {plddt ? plddtLegend : null}
@@ -608,7 +611,7 @@ function BoxSummary(props: { matrix: PaeMatrix; box: PaeBox; colors: Observable<
   return (
     <div
       aria-live="polite"
-      style="display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--msp-space-2); padding: var(--msp-space-2) var(--msp-space-3); border-radius: var(--msp-radius-md); background: var(--msp-color-well); font-size: var(--msp-font-size-xs)"
+      style="display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--msp-space-2); padding: var(--msp-space-2) var(--msp-space-3); border-radius: var(--msp-radius-md); background: var(--msp-color-well); font-size: var(--msp-font-size-xs)"
     >
       <div style="display: grid; gap: 2px; min-width: 0">
         <span>

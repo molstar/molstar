@@ -62,11 +62,11 @@ describe('StructureTab', () => {
     const { container, row } = mount();
     row('Water').click();
     const eye = () => container.querySelector<HTMLButtonElement>('[aria-label="Inspector"] header button')!;
-    expect(eye().title).toBe('Show');
+    expect(eye().dataset.tip).toBe('Show');
     expect(eye().getAttribute('aria-pressed')).toBe('true');
     eye().click();
     expect(row('Water').querySelector('button[title=Hide]')).not.toBeNull();
-    expect(eye().title).toBe('Hide');
+    expect(eye().dataset.tip).toBe('Hide');
     eye().click();
     expect(row('Water').querySelector('button[title=Show]')).not.toBeNull();
   });
@@ -104,10 +104,10 @@ describe('StructureTab', () => {
     expect(row.parentElement!.textContent).not.toContain('Fit…');
     expect(inspector.textContent).toContain('Fit…');
     const eye = inspector.querySelector<HTMLButtonElement>('header button')!;
-    expect(eye.title).toBe('Turn on');
+    expect(eye.dataset.tip).toBe('Turn on');
     eye.click();
     expect(shown.value).toBe(true);
-    expect(eye.title).toBe('Turn off');
+    expect(eye.dataset.tip).toBe('Turn off');
     eye.click();
     expect(shown.value).toBe(false);
     // A node picked takes its place.

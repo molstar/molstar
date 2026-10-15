@@ -73,7 +73,7 @@ describe('the playback card', () => {
 
   it('steps the snapshots, seeks the transition and plays it', () => {
     const m = mount(3, 800);
-    m.container.querySelector<HTMLButtonElement>('[title="Next snapshot"]')!.click();
+    m.container.querySelector<HTMLButtonElement>('[data-tip="Next snapshot"]')!.click();
     expect(m.snapshots.index.value).toBe(1);
     const scrubber = m.container.querySelector<HTMLInputElement>('[aria-label="Transition time"]')!;
     expect(scrubber.max).toBe('800');
@@ -81,8 +81,8 @@ describe('the playback card', () => {
     scrubber.dispatchEvent(new Event('input', { bubbles: true }));
     expect(m.t.time.value).toBe(400);
     expect(m.container.textContent).toContain('0.4 / 0.8 s');
-    m.container.querySelector<HTMLButtonElement>('[title="Play the transition"]')!.click();
+    m.container.querySelector<HTMLButtonElement>('[data-tip="Play the transition"]')!.click();
     expect(m.t.toggles).toEqual([true]);
-    expect(m.container.querySelector('[title="Stop the transition"]')).not.toBeNull();
+    expect(m.container.querySelector('[data-tip="Stop the transition"]')).not.toBeNull();
   });
 });

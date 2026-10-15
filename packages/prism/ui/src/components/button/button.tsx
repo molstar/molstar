@@ -19,7 +19,7 @@ export interface ButtonProps {
   /** An icon before the label; without a label the button is square and needs a `title`. */
   icon?: Child;
   children?: Child;
-  /** Tooltip and accessible name (required for icon-only buttons). */
+  /** Tooltip (the app's, `data-tip`: no native `title`) and accessible name (required for icon-only buttons). */
   title?: MaybeReactive<string | undefined>;
   disabled?: MaybeReactive<boolean | undefined>;
   /** A toggle button's state (`aria-pressed`). */
@@ -47,7 +47,7 @@ export function Button(props: ButtonProps) {
     <button
       type="button"
       class={className}
-      title={props.title}
+      data-tip={props.title}
       aria-label={iconOnly ? props.title : undefined}
       disabled={props.disabled}
       aria-pressed={props.pressed}

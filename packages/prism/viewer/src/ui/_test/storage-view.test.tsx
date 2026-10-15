@@ -47,7 +47,7 @@ function fakeSource(entries: StorageEntry[]): StorageSource & { list: ReturnType
 }
 
 const buttonNamed = (host: HTMLElement, text: string) =>
-  [...host.querySelectorAll('button')].find((b) => b.textContent?.trim() === text || b.title === text) as
+  [...host.querySelectorAll('button')].find((b) => b.textContent?.trim() === text || b.dataset.tip === text) as
     | HTMLButtonElement
     | undefined;
 

@@ -102,7 +102,7 @@ describe("Home's annotation offer", () => {
     document.body.append(host);
     render(() => <HomeTab home={home} />, host);
     await until(() => host.textContent?.includes('has test scores') ?? false);
-    const dismiss = host.querySelector<HTMLButtonElement>('button[title="Dismiss"]')!;
+    const dismiss = host.querySelector<HTMLButtonElement>('button[data-tip="Dismiss"]')!;
     dismiss.click();
     await until(() => !host.textContent?.includes('has test scores'));
   });
