@@ -26,9 +26,19 @@ async function main() {
   const unknown = unknownUrlParameters(location.search, LoadUrlParameters);
   if (unknown.length) console.info(`Ignored URL parameters (not known to the viewer): ${unknown.join(', ')}`);
   // Without the loaders feature in the spec there is nothing to run them with.
-  if (viewer.api.describe('load.entry')) {
+  const params = new URLSearchParams(location.search);
+  const urlLoads = LoadUrlParameters.some((p) => params.has(p));
+  if (urlLoads && viewer.api.describe('load.entry')) {
     runUrlLoads(viewer.api, location.search).catch((e: unknown) => console.error(e));
+  } else if (!urlLoads && isReload() && viewer.restore?.available) {
+    // The light restore (journal.md §6): only on a reload, and only when the URL asks for nothing to load.
+    viewer.restore.run().catch((e: unknown) => console.error(e));
   }
+}
+
+function isReload(): boolean {
+  const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+  return nav?.type === 'reload';
 }
 
 main().catch((e) => {

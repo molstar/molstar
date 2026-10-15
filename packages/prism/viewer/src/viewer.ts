@@ -53,6 +53,7 @@ import { ExtensionHost, type ExtensionUIPort, isStubDefinition } from './extensi
 import { Overrides, ShellCommandIds, shellIdOf } from './extensions/overrides.js';
 import { createSessionRecord, type SessionRecord } from './journal/record.js';
 import { applyExtensionPlugin } from './sources/extension-plugin.js';
+import { createLightRestore, type LightRestore } from './sources/restore.js';
 import type { HomeAction } from './model/home.js';
 import type { PresetsModel, QuickStylesModel, SceneModel } from './model/scene.js';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
@@ -121,6 +122,8 @@ export interface PrismViewer {
   readonly extensions: Pick<ExtensionHost, 'loaded' | 'status' | 'events' | 'load' | 'ensureFor'>;
   /** The session's record (journal.md): what the person and the agent did, in order; in memory until kept. */
   readonly record: SessionRecord;
+  /** This tab's light restore, when the spec keeps one (`persist.restore`, journal.md §6): the host runs it. */
+  readonly restore?: LightRestore;
   /** The spec it was made from, and its options resolved. */
   readonly spec: PrismViewerSpec;
   readonly options: PrismViewerOptionValues;
@@ -283,6 +286,12 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const keepIn = spec.persist?.rows as FiberRows | undefined;
     const record = await createSessionRecord({ api: host.api, undone: history.undone, ...(keepIn ? { keepIn } : {}) });
     disposers.push(() => record.dispose());
+    // The light restore (journal.md §6), written after each step when the spec gives it a store.
+    const restore = spec.persist?.restore
+      ? createLightRestore(viewScope, plugin, history, spec.persist.restore, {
+          notify: (message) => notifications.post(message, 'info'),
+        })
+      : undefined;
     // Features behind an option (viewer-spec.md §3.1: remote states) are left out unless it is on.
     const gated: Readonly<Record<string, boolean>> = { 'remote-states': options.ui.showRemoteStates };
     await extensions.add((spec.extensions ?? []).filter((e) => gated[e.id] !== false));
@@ -362,6 +371,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },
       extensions,
       record,
+      ...(restore ? { restore } : {}),
       spec,
       options,
       host,

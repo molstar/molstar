@@ -30,6 +30,7 @@ import {
   Show,
   ThemeModel,
   TrajectoryBar,
+  type UITheme,
   UIThemes,
 } from '@molstar/prism-ui';
 import { ownsKey } from '@molstar/prism-ui/dom/events';
@@ -93,8 +94,12 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   });
   if (layout.compactRail) shell.setCompactRail(true);
   if (layout.mode) shell.setMode(layout.mode);
-  const theme = new ThemeModel(spec.ui?.theme ?? 'light');
+  // The theme the person chose last, kept in the preferences when the spec gives them (journal.md §6).
+  const preferences = spec.persist?.preferences;
+  const kept = preferences?.get('theme');
+  const theme = new ThemeModel(UIThemes.some((t) => t.id === kept) ? (kept as UITheme) : (spec.ui?.theme ?? 'light'));
   const stopTheme = theme.applyTo(root);
+  const keepTheme = preferences ? theme.theme.subscribe((t) => preferences.set('theme', t)) : undefined;
   const fullscreen = new FullscreenModel(() => target);
 
   // The canvas: the plugin is mounted here once the shell is in the page and has a size.
@@ -543,6 +548,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       inkSub.unsubscribe();
       ink.dispose();
       stopTheme();
+      keepTheme?.unsubscribe();
       fullscreen.dispose();
       root.remove();
       releaseStyles(shadow);

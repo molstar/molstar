@@ -111,17 +111,17 @@ full spec with the URL's options and the assistant.
 
 A spec has these fields, all but `plugin` optional:
 
-| Field        | What it is                                                                                                                          |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `plugin`     | The engine's base: registry entries, behaviors, config items and canvas props. Named parts in `@molstar/prism-viewer/sources/base`. |
-| `options`    | Values for the options below, by group.                                                                                             |
-| `extensions` | A list of extensions, in order. Leave one out to drop it. See [Extensions](/docs/v6/prism-viewer/extensions/).                      |
-| `overrides`  | Replace or remove any part (a tab, a toolbar button, a command, a sequence behavior) by id.                                         |
-| `sequence`   | `{ behaviors, style? }` for the one sequence viewer, `style` being `'tracks'` or `'text'`; `false` for none.                        |
-| `agent`      | `{ core?, skills?, assistant? }`, or `false` for no tools at all.                                                                   |
-| `ui`         | `layout` (docks, tabs, the tab open at the start), `theme` and `keybindings`. Ignored headless.                                     |
-| `persist`    | `{ key, rows? }`. A key names a viewer's stored data, and two live viewers on a page cannot share one.                              |
-| `finalize`   | `(spec: PluginSpec) => PluginSpec`: the last word on the composed plugin spec.                                                      |
+| Field        | What it is                                                                                                                                                                                                                                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugin`     | The engine's base: registry entries, behaviors, config items and canvas props. Named parts in `@molstar/prism-viewer/sources/base`.                                                                                                                                                                                           |
+| `options`    | Values for the options below, by group.                                                                                                                                                                                                                                                                                       |
+| `extensions` | A list of extensions, in order. Leave one out to drop it. See [Extensions](/docs/v6/prism-viewer/extensions/).                                                                                                                                                                                                                |
+| `overrides`  | Replace or remove any part (a tab, a toolbar button, a command, a sequence behavior) by id.                                                                                                                                                                                                                                   |
+| `sequence`   | `{ behaviors, style? }` for the one sequence viewer, `style` being `'tracks'` or `'text'`; `false` for none.                                                                                                                                                                                                                  |
+| `agent`      | `{ core?, skills?, assistant? }`, or `false` for no tools at all.                                                                                                                                                                                                                                                             |
+| `ui`         | `layout` (docks, tabs, the tab open at the start), `theme` and `keybindings`. Ignored headless.                                                                                                                                                                                                                               |
+| `persist`    | `{ key, preferences?, restore?, rows? }`: a key names a viewer's stored data (two live viewers on a page cannot share one); `preferences` (`webStore('local', …)`) keeps the theme, `restore` (`webStore('session', …)`) this tab's light restore (`viewer.restore.run()` after a reload), `rows` where Keep writes a record. |
+| `finalize`   | `(spec: PluginSpec) => PluginSpec`: the last word on the composed plugin spec.                                                                                                                                                                                                                                                |
 
 Overrides name a part as `<owner>.<kind>.<name>` and a command by its own id. `null` removes, an object replaces fields:
 

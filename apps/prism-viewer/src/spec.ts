@@ -6,6 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { PLUGIN_VERSION } from '@molstar/plugin/version';
+import { webStore } from '@molstar/prism-viewer/persist/stores';
 import type { PrismViewerSpec } from '@molstar/prism-viewer/spec';
 import { FullPrismViewerSpec } from './full-spec.js';
 import { optionsFromUrl } from './url.js';
@@ -16,6 +18,13 @@ export function createAppSpec(search: string): PrismViewerSpec {
   return {
     ...base,
     options: optionsFromUrl(search),
+    // Light state in the browser (journal.md §6): preferences in localStorage, this tab's light restore in
+    // sessionStorage, stamped with the app's version.
+    persist: {
+      key: 'prism-viewer',
+      preferences: webStore('local', { prefix: 'prism-viewer', version: PLUGIN_VERSION, budget: 64 * 1024 }),
+      restore: webStore('session', { prefix: 'prism-viewer', version: PLUGIN_VERSION, budget: 256 * 1024 }),
+    },
     // The assistant, its own chunk, loaded after the viewer is up (viewer-spec.md §2.4).
     agent: { ...(base.agent || {}), assistant: () => import('@molstar/prism-assistant/viewer') },
   };

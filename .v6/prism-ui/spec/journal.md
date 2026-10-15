@@ -128,6 +128,11 @@ a place for data:
 - **Per tab and short-lived**: sessionStorage ends with the tab, so nothing accumulates; localStorage holds only
   preferences.
 - Not a record and not undo: the checkpoints stay in memory (§1).
+- **As built** (`sources/restore.ts`, `persist/stores.ts`): `webStore('local' | 'session', { prefix, version, budget })`
+  stamps each value with the app's version and drops another's or one over the budget; the restore is written a second
+  after the last step (longer after a slow write), is not kept for a scene with a file or data given by value (said
+  once), and the app runs it on a reload when the URL asks for nothing. The preferences keep the theme; the layout and
+  settings are not kept yet.
 
 ## 7. Versions, collection, and what is stored
 
