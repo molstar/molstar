@@ -35,6 +35,7 @@ import type { ViewerApi } from '../api/area.js';
 import type { SceneInspection, SceneMenuItem, SceneModel, SceneNode, SceneNodeKind } from '../model/scene.js';
 import { namesOf } from '../api/scope.js';
 import { gridText, shortNumber, voxelText, volumeStats } from '../api/volume.js';
+import { type MeasuredCell, type MeasureKind, readMeasurements } from './measurements.js';
 import { structureNames } from './naming.js';
 import type { SourceScope } from './state.js';
 
@@ -63,6 +64,24 @@ const UpdateOperations: Partial<Record<SceneNodeKind, string>> = {
   representation: 'representation.update',
   'volume-representation': 'volume.update',
   'particles-representation': 'particles.update',
+};
+
+const MeasurementIcons: Readonly<Record<MeasureKind, IconName>> = {
+  distance: 'measure-distance',
+  angle: 'measure-angle',
+  dihedral: 'measure-angle',
+  label: 'tag',
+  orientation: 'move-3d',
+  plane: 'square',
+};
+
+const KindLabels: Readonly<Record<MeasureKind, string>> = {
+  distance: 'Distance',
+  angle: 'Angle',
+  dihedral: 'Dihedral',
+  label: 'Label',
+  orientation: 'Orientation',
+  plane: 'Plane',
 };
 
 class Node implements SceneNode {
@@ -251,6 +270,43 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     return n;
   };
 
+  const measurementsNode = (): Node => {
+    const id = '#measurements';
+    let n = nodes.get(id);
+    if (!n) {
+      n = new Node(id, 'measurements', 'ruler', 'Measurements', true, {});
+      n.removable = false;
+      nodes.set(id, n);
+    }
+    return n;
+  };
+
+  const measurementNode = (m: MeasuredCell): Node => {
+    let n = nodes.get(m.ref);
+    if (!n) {
+      const ref = m.ref;
+      const locis = () => readMeasurements(plugin).find((x) => x.ref === ref)?.locis ?? [];
+      n = new Node(ref, 'measurement', MeasurementIcons[m.kind], m.label, false, {
+        visibility: (hide) => void api.run('measure.visibility', { measurement: ref, visible: !hide }),
+        highlight: (on) => {
+          const l = locis()[0];
+          if (on && l) void api.run('highlight.set', { target: { loci: l } });
+          else void api.run('highlight.clear');
+        },
+        focus: () => {
+          const l = locis()[0];
+          if (l) void api.run('focus.set', { target: { loci: l } });
+        },
+        remove: () => void api.run('measure.remove', { measurement: ref }),
+      });
+      // Its eye and remove need the measurements feature's operations.
+      n.removable = !!api.describe('measure.remove');
+      nodes.set(ref, n);
+    }
+    n.set(m.value ? `${m.value}` : m.label, m.value ? m.label : KindLabels[m.kind], m.hidden);
+    return n;
+  };
+
   // Volumes and particles (plan 2.5): top-level nodes like structures, their representations as children. Eyes and
   // removes go through `volume.*` and `particles.*`.
   const volumeNode = (v: VolumeRef, name: string): Node => {
@@ -382,6 +438,21 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
       );
       top.push(ln);
     }
+    // Measurements (they may span structures): one group after the data, a row each; their eyes and removes go
+    // through `measure.*` (the measurements feature), their hover and focus through the measured atoms.
+    const measured = readMeasurements(plugin);
+    if (measured.length) {
+      const gn = measurementsNode();
+      seen.add(gn.id);
+      gn.setChildren(
+        measured.map((m) => {
+          const mn = measurementNode(m);
+          seen.add(mn.id);
+          return mn;
+        }),
+      );
+      top.push(gn);
+    }
     // Lazy contents' entity and chain nodes stay with their structure.
     for (const [id, n] of nodes) {
       const owner = id.includes('#') ? id.slice(0, id.indexOf('#')) : id;
@@ -397,6 +468,7 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
   scope.add(plugin.managers.structure.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.particles.hierarchy.behaviors.selection.subscribe(() => sync()));
+  scope.add(plugin.managers.structure.measurement.behaviors.state.subscribe(() => sync()));
   scope.add(
     plugin.state.data.events.cell.stateUpdated.subscribe((e) => {
       const n = nodes.get(e.ref);
