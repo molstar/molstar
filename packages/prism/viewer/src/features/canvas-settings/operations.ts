@@ -25,7 +25,7 @@ export const CanvasSections = {
     occlusion: Canvas3DParams.postprocessing.params.occlusion,
     shadow: Canvas3DParams.postprocessing.params.shadow,
     outline: Canvas3DParams.postprocessing.params.outline,
-    dof: Canvas3DParams.postprocessing.params.dof,
+    dof: { ...Canvas3DParams.postprocessing.params.dof, label: 'Depth of field' },
     fog: Canvas3DParams.cameraFog,
   }),
   camera: Canvas3DParams.camera,
