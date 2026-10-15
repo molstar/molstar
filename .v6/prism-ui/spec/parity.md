@@ -32,8 +32,8 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | Volume (isovalue, representation), volume streaming                   | volume nodes and inspectors; the streaming structure row              | `volume.*`                   | built (`get`, `isovalue`, `representation`, `visibility`, `remove`, `streaming`) |
 | Particles                                                             | particle nodes and inspectors                                         | `particles.*`                | built |
 | Measurements (distance, angle, dihedral, orientation, plane; options) | Selection › Measure; measurement nodes                                | `measure.*`                  | built (`measurements`); measurement nodes in the scene tree missing |
-| Superposition (chains, TM-align, ligands, atoms, SIFTS)               | Selection › Superpose                                                 | `superpose.*`                | mocked |
-| State tree (nodes, current, delete, visibility, decorators, applicable actions) | State tree tab and its inspector                            | `state.*`                    | mocked |
+| Superposition (chains, TM-align, ligands, atoms, SIFTS)               | Selection › Superpose                                                 | `superpose.*`                | built (`superposition`, lazy) |
+| State tree (nodes, current, delete, visibility, decorators, applicable actions) | State tree tab and its inspector                            | `state.*`                    | built (`state-tree`, lazy) |
 | Undo (components, state tree)                                         | the viewer's history (one per step and per agent turn)                | `history.*`                  | missing |
 
 ## 3. Selection and focus

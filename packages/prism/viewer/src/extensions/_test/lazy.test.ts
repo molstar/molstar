@@ -255,8 +255,9 @@ describe('overrides', () => {
         registered.push(ui);
         return () => {};
       },
-      registerStub: (_, stub) => {
-        stubs.push(stub.parts.map((p) => p.id));
+      registerStub: (owner, stub) => {
+        // The default spec's lazy features have placeholders too: this test's own only.
+        if (owner === 'later') stubs.push(stub.parts.map((p) => p.id));
         return () => {};
       },
     };
