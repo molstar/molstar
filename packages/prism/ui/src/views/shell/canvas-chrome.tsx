@@ -465,8 +465,13 @@ export const KindIcons: Record<MessageKind, IconName> = {
 /** The bottom left of the canvas: the latest message, running tasks, and under them `after` (the assistant's turn). */
 export function StatusLine(props: { status: StatusModel; onOpenLog?: () => void; after?: Child }) {
   const { status } = props;
+  // One polite live region for results (README §3.7): the latest message only, not the tasks' progress or the
+  // assistant's streamed words (its card says when a turn is done).
   return (
-    <div class={classes.status} aria-live="polite">
+    <div class={classes.status}>
+      <div class={classes.announce} role="status" aria-live="polite">
+        <Show when={status.current}>{(m) => m.text}</Show>
+      </div>
       <Show when={status.current}>
         {(m) => (
           <button

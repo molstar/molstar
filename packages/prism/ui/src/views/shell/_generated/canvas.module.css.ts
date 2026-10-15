@@ -11,6 +11,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'announce': 'msp-shell-canvas-announce',
   'bottom': 'msp-shell-canvas-bottom',
   'bottomGrid': 'msp-shell-canvas-bottomGrid',
   'busy': 'msp-shell-canvas-busy',
@@ -532,6 +533,15 @@ defineStyles('views/shell/canvas.module.css', `@layer msp.components {
     background: var(--msp-color-hover);
     color: var(--msp-color-text);
   }
+}
+
+.msp-shell-canvas-status .msp-shell-canvas-announce {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
 }
 
 .msp-shell-canvas-status .msp-shell-canvas-pill {

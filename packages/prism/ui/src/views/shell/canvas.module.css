@@ -544,6 +544,16 @@
 
 /* The status line (messages, tasks) has no frame: ink on the canvas (its color from the canvas theme), with a soft
    halo of the background color so it reads over the molecule too. */
+/* Read by screen readers, not shown (the pill shows the same message). */
+.status .announce {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .status .pill {
   /* Its text's own height (no box to center in). Indented as a framed pill's content would be (no frame to set it
      off the canvas edge). */
