@@ -13,7 +13,14 @@ import type { AnnotationsApi } from '../api/annotations.js';
 import { type ApiAreaContext, ApiArea, ApiResult, type OperationDefinition, type ViewerApi } from '../api/area.js';
 import type { ViewerApiHost } from '../api/index.js';
 import type { ViewerCommandContext } from '../api/managers.js';
-import type { LazyViewerExtension, Part, PrismViewerPluginParts, ViewerExtension, ViewerExtensionUI } from '../spec.js';
+import type {
+  LazyViewerExtension,
+  Part,
+  PrismViewerPluginParts,
+  ViewerExtension,
+  ViewerExtensionUI,
+  ViewerUIContext,
+} from '../spec.js';
 import { isLazyExtension } from '../spec.js';
 
 // The extensions of a viewer (viewer-spec.md §3–§4, README §3.1): each activated in the list's order. An eager one
@@ -27,6 +34,8 @@ export type ExtensionStatus = 'stub' | 'loading' | 'loaded' | 'failed';
 
 /** Where an extension's views go: the page's shell (`ui/extensions.tsx`). */
 export interface ExtensionUIPort {
+  /** What the views get. */
+  readonly context: ViewerUIContext;
   /** Registers the views of an extension (overrides applied by the host); returns their removal. */
   register(owner: string, ui: ViewerExtensionUI): () => void;
   /** Placeholders for a lazy extension's declared views: a click loads it. */
@@ -242,7 +251,7 @@ export class ExtensionHost {
       const ui = entry.ext.ui;
       let removed = false;
       let remove: (() => void) | undefined;
-      void Promise.resolve(ui()).then((parts) => {
+      void Promise.resolve(ui(port.context)).then((parts) => {
         if (removed || !this.#port) return;
         remove = port.register(entry.id, this.#overriddenUI(parts));
       });

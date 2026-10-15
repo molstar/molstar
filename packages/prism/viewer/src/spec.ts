@@ -190,7 +190,14 @@ export interface ViewerExtension {
   /** Its Settings group. */
   readonly settings?: PD.Params;
   /** Views in the viewer's slots; a function, so the views are a chunk of their own. */
-  readonly ui?: () => Promise<ViewerExtensionUI> | ViewerExtensionUI;
+  readonly ui?: (ctx: ViewerUIContext) => Promise<ViewerExtensionUI> | ViewerExtensionUI;
+}
+
+/** What an extension's views get: the viewer's API as the person, its sources and managers (no plugin). */
+export interface ViewerUIContext {
+  readonly api: ViewerApi;
+  readonly sources: import('./sources/viewer-sources.js').ViewerSources;
+  readonly managers: import('./api/managers.js').ViewerManagers;
 }
 
 export interface ViewerExtensionUI {

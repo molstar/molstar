@@ -326,7 +326,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   );
 
   // Extensions' views: the eager ones' now, a lazy one's placeholders until it loads (viewer-spec.md §3).
-  unregister.push(core.attachExtensionUI(extensionUIPort(shell, managers.commands)));
+  unregister.push(
+    core.attachExtensionUI(extensionUIPort(shell, managers.commands, { api: person, sources, managers })),
+  );
 
   // ⌘K / ⇧⌘P open the command menu; commands' own shortcuts run them; only this viewer's keys.
   const onKey = (e: KeyboardEvent) => {
