@@ -32,9 +32,10 @@ for (const pkg of packages) {
 }
 function packageManifestPaths(dir, results = []) {
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    // `.claude`: Claude Code's worktrees, other checkouts of this repository.
     if (
       ent.isDirectory() &&
-      ['node_modules', '.git', '.pnpm-store', '.cache', 'build', 'lib', '.v6'].includes(ent.name)
+      ['node_modules', '.git', '.pnpm-store', '.cache', 'build', 'lib', '.v6', '.claude'].includes(ent.name)
     )
       continue;
     const abs = path.join(dir, ent.name);
