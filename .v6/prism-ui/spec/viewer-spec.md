@@ -188,7 +188,9 @@ interface LazyViewerExtension {
   readonly builtIn?: true;                                     // its stub may declare operations in core areas
   readonly stub: {                                             // every part it will bring, and what it answers for
     readonly parts: readonly { id: PartId; kind: PartKind; slot?: ViewerSlot; title?: string }[];  // placeholders; overrides
-    readonly operations?: readonly { id: string; title: string }[];  // api.run of one loads the chunk and replays the call
+    readonly operations?: readonly LazyOperationStub[];  // api.run of one loads the chunk and replays the call; its flags
+                                                         // (read, history, undoable, approval, addresses, modules) are
+                                                         // the real one's, checked when it loads
     readonly commands?: readonly { id: string; title: string; category?: string; icon?: IconName }[];
     readonly skills?: readonly ViewerSkill[];                // in the catalog; disclosing loads it (tools over its operations)
     readonly owns?: { transformers?: string[]; formats?: string[]; fileExtensions?: string[];

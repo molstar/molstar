@@ -79,6 +79,9 @@ describe('the agent policy', () => {
     expect(mayAsk(op({ history: false }))).toBe(false);
     expect(mayAsk(op({ read: true, approval: 'network' }))).toBe(true);
     expect(mayAsk(op({ undoable: false }))).toBe(true);
+    // A file made for the person (an export: no history step, nothing to undo) asks too.
+    expect(mayAsk(op({ history: false, undoable: false }))).toBe(true);
+    expect(p.approves(op({ history: false, undoable: false }), {})).toBe(false);
   });
 
   it('keeps the browser rules through its host', () => {

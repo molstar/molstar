@@ -367,11 +367,13 @@ export class ExtensionHost {
   }
 }
 
-/** Whether a stub's declared flags are the definition's (read, undoable, approval, modules). */
+/** Whether a stub's declared flags are the definition's (read, history, undoable, approval, addresses, modules). */
 function sameFlags(stub: LazyOperationStub, def: OperationDefinition<any, any>): boolean {
   return (
     !!stub.read === !!def.read &&
+    (stub.history === false) === (def.history === false) &&
     (stub.undoable === false) === (def.undoable === false) &&
+    !!stub.addresses === !!def.addresses &&
     stub.approval === def.approval &&
     [...(stub.modules ?? [])].sort().join() === [...(def.modules ?? [])].sort().join()
   );
@@ -446,11 +448,13 @@ function stubDefinition(
     title: op.title,
     params: {},
     passValues: true,
-    // The real operation makes the step; the stub only loads and replays. Its policy is the declared one.
-    history: false,
+    // Its flags are the declared ones (the agent's policy reads them before the load); the real operation, replayed
+    // inside it, joins its step.
     ...(op.read ? { read: true as const } : {}),
+    ...(op.history === false ? { history: false as const } : {}),
     ...(op.undoable === false ? { undoable: false as const } : {}),
     ...(op.approval ? { approval: op.approval } : {}),
+    ...(op.addresses ? { addresses: op.addresses } : {}),
     ...(op.modules ? { modules: op.modules } : {}),
     async run(values, ctx) {
       if (!(await load())) {

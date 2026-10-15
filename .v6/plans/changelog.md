@@ -97,6 +97,9 @@ the [API change ledger](breaking-v6-changes.md).
   QMEAN (commands, `annotations.apply`), the pLDDT track in the sequence; sequence behaviors for extensions
 - Prism's high-contrast UI theme, and stronger borders and muted text in every theme when the system asks for more
   contrast
+- Mol*'s extensions in the Prism viewer, commands first: model and geometry export (model export now writes PDB too),
+  video export and Zenodo (lazy), assembly symmetry, membrane orientation (ANVIL), Kinemage, and the data-only ones
+  (validation reports and partial charges through `annotations.apply`); the single-file `prism-viewer.js`
 - `@molstar/ai-tools`: a dynamic toolkit (`toolkit.add`, lazy skills disclosed during a turn); `ai-session` reads it as
   it is
 - The snapshot manager's `getStateSnapshot` and `serialize` take `keepList` (the current scene without changing the

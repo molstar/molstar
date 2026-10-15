@@ -4,13 +4,72 @@
     "rootDir": "src",
     "outDir": "lib",
     "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ]
   },
-  "include": ["src/**/*"],
-  "exclude": ["src/**/_test/**"],
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "src/**/_test/**"
+  ],
   "references": [
-    { "path": "../../packages/core" },
-    { "path": "../../packages/prism/viewer" },
-    { "path": "../../extensions/model-archive" }
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/prism/viewer"
+    },
+    {
+      "path": "../../extensions/model-archive"
+    },
+    {
+      "path": "../../packages/plugin/core"
+    },
+    {
+      "path": "../../extensions/backgrounds"
+    },
+    {
+      "path": "../../extensions/dnatco"
+    },
+    {
+      "path": "../../extensions/g3d"
+    },
+    {
+      "path": "../../extensions/pdbe"
+    },
+    {
+      "path": "../../extensions/rcsb"
+    },
+    {
+      "path": "../../extensions/sb-ncbr"
+    },
+    {
+      "path": "../../extensions/wwpdb"
+    },
+    {
+      "path": "../../extensions/kinemage"
+    },
+    {
+      "path": "../../extensions/geo-export"
+    },
+    {
+      "path": "../../extensions/model-export"
+    },
+    {
+      "path": "../../extensions/video-export"
+    },
+    {
+      "path": "../../extensions/zenodo"
+    },
+    {
+      "path": "../../extensions/assembly-symmetry"
+    },
+    {
+      "path": "../../extensions/anvil"
+    }
   ]
 }

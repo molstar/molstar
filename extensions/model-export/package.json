@@ -23,7 +23,8 @@
       "types": "./lib/ui.d.ts",
       "import": "./lib/ui.js"
     },
-    "./_test/*": null
+    "./_test/*": null,
+    "./prism-viewer-ui": null
   },
   "files": [
     "lib",

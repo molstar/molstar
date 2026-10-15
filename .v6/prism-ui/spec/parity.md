@@ -82,15 +82,16 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 
 | Extension                                                             | Prism                                                                 | State  |
 | --------------------------------------------------------------------- | --------------------------------------------------------------------- | ------ |
-| model-export, geo-export                                              | Export › Models, Geometry (sections); commands and tools               | mocked (sections) |
-| video-export                                                          | Export › Animation; lazy                                              | mocked (section) |
-| zenodo | Home's import slot; lazy | later (phase 5) |
-| assembly-symmetry                                                     | structure row, inspector section                                      | mocked (row) |
-| kinemage                                                              | inspector section                                                     | missing |
-| model-archive quality assessment (pLDDT, QMEAN), PAE plot             | designed anew as an extension with commands first (README decision 27): color by pLDDT or QMEAN, show PAE; sequence behaviors for the pLDDT track and the PAE dot plot; a new PAE view later. The viewer core no longer depends on it: `@molstar/model-archive-extension/prism-viewer` brings the themes, `annotations.apply`'s `plddt` and `qmean`, the commands and the pLDDT track | built (pLDDT, QMEAN; PAE later) |
-| volumes-and-segmentations                                             | dropped for now: to be redesigned                                     | dropped |
-| anvil (membrane orientation) | an extension with commands (show, hide and fit the membrane) and a structure row for its options (v5's generic representation control) | later (phase 5) |
-| dnatco, rcsb, pdbe, wwpdb, sb-ncbr, g3d, backgrounds, debug-helpers  | data-only (`pluginExtension`): presets, themes, formats through the generic commands and tools; their annotations through one `annotations.apply` command (below) | missing |
+| model-export, geo-export | Export › Models, Geometry (sections); commands and tools. `model-export.export` (mmCIF, BinaryCIF, and PDB, new: v5 had none; the selection only; several structures as a ZIP), `geo-export.export` (GLB, STL, OBJ, USDZ; needs the canvas) | built |
+| video-export | Export › Animation; lazy. `video.export` (spin, rock, snapshots; MP4/WebM), `video.cancel`; v5's codec, bitrate and preset choices left out | built |
+| zenodo | Home's import slot; lazy. `zenodo.list`, `zenodo.load` (zenodo.org is a known service); zip archives left out | built |
+| assembly-symmetry | commands first: `assembly-symmetry.get/show/hide/color` (axes, cluster coloring; fetched from the configured RCSB service); no view yet (a structure row waits for rows) | built (commands) |
+| kinemage | commands and tools (`kinemage.get/visibility/view/animate`), the format; no view (the panel's checkboxes are the commands) | built |
+| model-archive quality assessment (pLDDT, QMEAN), PAE plot | designed anew as an extension with commands first (README decision 27): color by pLDDT or QMEAN, show PAE; sequence behaviors for the pLDDT track and the PAE dot plot; a new PAE view later. The viewer core no longer depends on it: `@molstar/model-archive-extension/prism-viewer` brings the themes, `annotations.apply`'s `plddt` and `qmean`, the commands and the pLDDT track | built (pLDDT, QMEAN; PAE later) |
+| volumes-and-segmentations | dropped for now: to be redesigned | dropped |
+| anvil (membrane orientation) | an extension with commands: `membrane.get/show/hide/fit/options` (the options are v5's generic representation control as an operation); a structure row for them waits for rows | built (commands) |
+| dnatco, rcsb, pdbe, wwpdb, sb-ncbr, g3d, backgrounds | data-only (the app's `DataOnlyExtensions`): their plugin parts through the generic commands and tools; validation reports (RCSB, PDBe) and partial charges through `annotations.apply` | built |
+| debug-helpers | a developer's tool | dropped |
 | MolViewSpec                                                           | the viewer's base (load, snapshots)                                   | built (first slice) |
 
 ## 6a. Not copied verbatim

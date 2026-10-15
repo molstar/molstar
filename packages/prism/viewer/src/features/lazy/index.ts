@@ -13,8 +13,9 @@ import type { LazyViewerExtension } from '../../spec.js';
 // that wants one up front lists the feature itself, or sets `preload: true`.
 
 const ops = (list: readonly [string, string][]) => list.map(([id, title]) => ({ id, title }));
-/** What the network operations declare (their definitions' `modules`). */
+/** What the network operations declare (their definitions' `modules`, and the remote states' `addresses`). */
 const network = { modules: ['network'] as const };
+const server = { addresses: ({ server }: { server?: string }) => (server?.trim() ? [server] : []) };
 
 export const LazySuperposition: LazyViewerExtension = {
   id: 'superposition',
@@ -84,14 +85,30 @@ export const LazyRemoteStates: LazyViewerExtension = {
       { id: 'remote-states.toolbar.states', kind: 'toolbar', title: 'Remote states' },
     ],
     operations: [
-      { id: 'session.remote.list', title: 'List the remote states', read: true, ...network, approval: 'network' },
-      { id: 'session.remote.open', title: 'Open a remote state', ...network, approval: 'destructive' },
-      { id: 'session.remote.upload', title: 'Upload the state', undoable: false, ...network, approval: 'upload' },
+      {
+        id: 'session.remote.list',
+        title: 'List the remote states',
+        read: true,
+        ...network,
+        ...server,
+        approval: 'network',
+      },
+      { id: 'session.remote.open', title: 'Open a remote state', ...network, ...server, approval: 'destructive' },
+      {
+        id: 'session.remote.upload',
+        title: 'Upload the state',
+        history: false,
+        undoable: false,
+        ...network,
+        ...server,
+        approval: 'upload',
+      },
       {
         id: 'session.remote.remove',
         title: 'Remove a remote state',
         undoable: false,
         ...network,
+        ...server,
         approval: 'destructive',
       },
     ],

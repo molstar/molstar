@@ -97,6 +97,9 @@ export class AnnotationsApi extends ApiArea {
       annotation: PD.Text('', { description: 'An annotation by id: b-factor, secondary-structure, …' }),
       structure: StructureParam('A structure by label or state ref; empty: every one that carries it'),
     },
+    // A validation report or a score may be fetched as it applies: from the known data services only (agent.md §4).
+    approval: 'network',
+    addresses: () => [],
     run: async ({ annotation, structure }, ctx) => {
       const provider = this.#providers.value.find((p) => p.id === annotation);
       if (!provider) {

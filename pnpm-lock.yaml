@@ -616,18 +616,63 @@ importers:
 
   apps/prism-viewer:
     dependencies:
+      '@molstar/anvil-extension':
+        specifier: workspace:*
+        version: link:../../extensions/anvil
+      '@molstar/assembly-symmetry-extension':
+        specifier: workspace:*
+        version: link:../../extensions/assembly-symmetry
+      '@molstar/backgrounds-extension':
+        specifier: workspace:*
+        version: link:../../extensions/backgrounds
       '@molstar/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@molstar/dnatco-extension':
+        specifier: workspace:*
+        version: link:../../extensions/dnatco
+      '@molstar/g3d-extension':
+        specifier: workspace:*
+        version: link:../../extensions/g3d
+      '@molstar/geo-export-extension':
+        specifier: workspace:*
+        version: link:../../extensions/geo-export
+      '@molstar/kinemage-extension':
+        specifier: workspace:*
+        version: link:../../extensions/kinemage
       '@molstar/model-archive-extension':
         specifier: workspace:*
         version: link:../../extensions/model-archive
+      '@molstar/model-export-extension':
+        specifier: workspace:*
+        version: link:../../extensions/model-export
+      '@molstar/pdbe-extension':
+        specifier: workspace:*
+        version: link:../../extensions/pdbe
+      '@molstar/plugin':
+        specifier: workspace:*
+        version: link:../../packages/plugin/core
       '@molstar/prism-assistant':
         specifier: workspace:*
         version: link:../../packages/prism/assistant
       '@molstar/prism-viewer':
         specifier: workspace:*
         version: link:../../packages/prism/viewer
+      '@molstar/rcsb-extension':
+        specifier: workspace:*
+        version: link:../../extensions/rcsb
+      '@molstar/sb-ncbr-extension':
+        specifier: workspace:*
+        version: link:../../extensions/sb-ncbr
+      '@molstar/video-export-extension':
+        specifier: workspace:*
+        version: link:../../extensions/video-export
+      '@molstar/wwpdb-extension':
+        specifier: workspace:*
+        version: link:../../extensions/wwpdb
+      '@molstar/zenodo-extension':
+        specifier: workspace:*
+        version: link:../../extensions/zenodo
       tslib:
         specifier: 'catalog:'
         version: 2.8.1

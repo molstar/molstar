@@ -28,6 +28,8 @@ export const KnownServices: readonly string[] = [
   'modelarchive.org',
   'uniprot.org',
   'pdbe.org',
+  // Zenodo: a public research-data archive (its records' file lists and files).
+  'zenodo.org',
 ];
 
 /** The host of an https address, or undefined. */
@@ -93,9 +95,9 @@ export function addressesInRequest(text: string): string[] {
   return [...hosts];
 }
 
-/** Whether a call of the operation asks at all (a read that reaches no address never does). */
+/** Whether a call of the operation may ask at all (a read or a view change that reaches no address never does). */
 export function mayAsk(def: OperationDefinition<any, any>): boolean {
-  return !!def.approval || (!def.read && def.history !== false);
+  return !!def.approval || (!def.read && (def.history !== false || def.undoable === false));
 }
 
 export interface AgentPolicy {
@@ -122,9 +124,11 @@ export function createAgentPolicy(o: { checkpointing: ReadonlyState<boolean>; ru
         const addresses = def.addresses(values as never);
         if (!addresses.every((a) => typeof a === 'string' && allowedAddress(a, rules, turnHosts))) return false;
       }
-      if (def.read || def.history === false) return true;
-      // A change no undo restores is the person's to allow (agent.md §4: preauthorized only while undoable).
+      if (def.read) return true;
+      // What no undo restores is the person's to allow (agent.md §4: preauthorized only while undoable): a snapshot
+      // added, a file made for them (an export, a saved session), whether or not it is a history step.
       if (def.undoable === false) return false;
+      if (def.history === false) return true;
       // The turn cannot be undone (undo off for a large scene): the first change asks, once for the turn.
       if (!o.checkpointing.value && !turnAllowed) return false;
       return true;

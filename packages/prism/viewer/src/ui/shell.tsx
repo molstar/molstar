@@ -52,6 +52,7 @@ import { StructureTab } from '../views/structure/structure-tab.js';
 import type { ViewerCore } from '../viewer.js';
 import { CanvasBindings } from './bindings.js';
 import { createTrajectoryControls } from './trajectory.js';
+import { downloadBlob } from './download.js';
 
 // The viewer on a page (viewer-spec.md §6, plan 1.4): the shell over the viewer's managers, rendered into the target's
 // shadow root (README decision 12), with the plugin's canvas mounted under it. Keys go to this viewer only (decision
@@ -445,6 +446,15 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       }
     })();
   }
+
+  // A file the agent made for the person (an export, a saved session: a result's `{ blob, filename }`) is saved here, the
+  // page's job; the person's own commands and views save theirs (agent.md §4: such a call asked first).
+  const saving = core.api.events.finished.subscribe((r) => {
+    if (r.origin.kind !== 'agent' || !r.result?.ok) return;
+    const file = r.result.value as { blob?: unknown; filename?: unknown } | undefined;
+    if (file?.blob instanceof Blob && typeof file.filename === 'string') downloadBlob(file.blob, file.filename);
+  });
+  unregister.push(() => saving.unsubscribe());
 
   // ⌘K / ⇧⌘P open the command menu; commands' own shortcuts run them; only this viewer's keys.
   const onKey = (e: KeyboardEvent) => {

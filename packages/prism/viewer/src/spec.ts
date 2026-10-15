@@ -318,8 +318,12 @@ export interface LazyOperationStub {
   readonly id: string;
   readonly title: string;
   readonly read?: true;
+  /** A view change (no history step), as the real operation says. */
+  readonly history?: false;
   readonly undoable?: false;
   readonly approval?: 'network' | 'upload' | 'destructive';
+  /** What a call reaches (`OperationDefinition.addresses`): plain code, no import of the extension's chunk. */
+  addresses?(values: Readonly<Record<string, any>>): readonly string[];
   readonly modules?: readonly ApiModuleKey[];
 }
 

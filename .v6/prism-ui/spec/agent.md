@@ -81,7 +81,7 @@ As little in the way as is reasonable (decision 26):
   (`undoable: false`: a snapshot added, a file written) asks every time. As built: undo off is read from checkpointing;
   unsafe steps are not considered yet.
 - **Network, per address** (review F13): known data services (PDB, PDBe, RCSB, AlphaFold DB, EMDB, ModelArchive,
-  UniProt) and URLs the person wrote in the request are allowed. Any other address asks when a call reaches it, whatever
+  UniProt; Zenodo, plan 5.2) and URLs the person wrote in the request are allowed. Any other address asks when a call reaches it, whatever
   the operation (the approval is decided at call time from the URL, through the harness's `permission` decision):
   **Allow once**, **Allow this domain** (for the session, or in this browser), **Deny**. Domain rules are listed in the
   Storage view and in Settings, each removable. https only. As built (G6): an operation says what a call reaches,

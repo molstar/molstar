@@ -6,8 +6,30 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { AnvilExtension } from '@molstar/anvil-extension/prism-viewer';
+import { AssemblySymmetryExtension } from '@molstar/assembly-symmetry-extension/prism-viewer';
+import { GeoExportExtension } from '@molstar/geo-export-extension/prism-viewer';
+import { KinemageExtension } from '@molstar/kinemage-extension/prism-viewer';
 import { ModelArchiveExtension } from '@molstar/model-archive-extension/prism-viewer';
-import type { ViewerExtension, LazyViewerExtension } from '@molstar/prism-viewer/spec';
+import { ModelExportExtension } from '@molstar/model-export-extension/prism-viewer';
+import type { LazyViewerExtension, ViewerExtension } from '@molstar/prism-viewer/spec';
+import { LazyVideoExport } from '@molstar/video-export-extension/prism-viewer-stub';
+import { LazyZenodo } from '@molstar/zenodo-extension/prism-viewer-stub';
+import { DataOnlyExtensions } from './data-extensions.js';
 
-/** Mol*'s extensions the app ships, after the viewer's built-in features (viewer-spec.md §5, plan phase 5). */
-export const MolstarViewerExtensions: readonly (ViewerExtension | LazyViewerExtension)[] = [ModelArchiveExtension];
+/**
+ * Mol*'s extensions the app ships, after the viewer's built-in features (viewer-spec.md §5, app.md §1, plan phase 5):
+ * those with operations and views, the heavy ones lazy (their stubs: the chunk loads on first use), then the data-only
+ * ones (their plugin parts and annotations).
+ */
+export const MolstarViewerExtensions: readonly (ViewerExtension | LazyViewerExtension)[] = [
+  ModelArchiveExtension,
+  ModelExportExtension,
+  GeoExportExtension,
+  KinemageExtension,
+  AssemblySymmetryExtension,
+  AnvilExtension,
+  LazyVideoExport,
+  LazyZenodo,
+  ...DataOnlyExtensions,
+];

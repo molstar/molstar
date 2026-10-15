@@ -136,7 +136,14 @@ kept record survives a reload.
    (`sequence/behaviors.ts`); the viewer's dependency is gone. Not yet: the PAE view, Home's "color by them?" line.
 2. **Ports**: assembly-symmetry, geo-export, model-export, video-export (lazy), zenodo (lazy), kinemage, ANVIL; the
    data-only ones through `pluginExtension`.
+   As built (2026-10-15): each `@molstar/<name>-extension/prism-viewer` (a lazy one's stub in `/prism-viewer-stub`),
+   commands and a skill each, views only for the exports and Zenodo; the data-only ones as plain entries in the app
+   (`apps/prism-viewer/src/data-extensions.ts`; no `pluginExtension` helper was needed). A file the agent makes for
+   the person (an export) asks first and the page saves it. parity.md §6 as built.
 3. **The app's list and `FullPrismViewerSpec()`**; the single-file build (app.md §2).
+   As built: `apps/prism-viewer` builds `prism-viewer.js` (every lazy part inlined) beside the app, exporting
+   `createPrismViewer` and `FullPrismViewerSpec()`; checked in a browser on a plain page. Not yet: publishing it
+   (Pages, the `molstar` distribution) and a smoke check in CI.
 
 Accepted when: parity.md §6 is built or dropped, and the single file runs on a page with no build step.
 
