@@ -66,7 +66,8 @@ describe('the descriptions’ markdown host', () => {
     const palette = host.image?.('!color-palette-name=viridis', '') as HTMLElement;
     expect(palette.style.background).toContain('gradient');
     expect(host.image?.('picture.png', 'P')).toBeUndefined();
-    expect(host.media?.value).toBeNull();
+    // The audio player is the card's own bar, not media in the text.
+    expect(host.media).toBeUndefined();
   });
 
   it('gives the stepper the host and whether the description is plain text', async () => {
@@ -114,6 +115,19 @@ describe('the playback card on a load', () => {
     // A snapshot the person adds is not a load.
     await run('snapshot.add', async () => void (await snap(v).add({ name: 'C' })));
     expect(open).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens when the views come after a load that brought a story, unless a load is still running', async () => {
+    const v = await viewer();
+    await snap(v).add({ name: 'A' });
+    await snap(v).add({ name: 'B' });
+    const open = vi.fn(async () => ({ ok: true }));
+    const events = { started: new Subject<RunRecord>(), finished: new Subject<RunRecord>() };
+    const running = (operations: string[]) => ({ value: operations.map((operation) => ({ operation })) });
+    openPlaybackOnLoad({ events, view: { open }, running: running(['load.mvs']) } as never, snap(v));
+    expect(open).not.toHaveBeenCalled();
+    openPlaybackOnLoad({ events, view: { open }, running: running([]) } as never, snap(v));
+    expect(open).toHaveBeenCalledWith({ card: 'snapshots.overlay.playback' });
   });
 
   it('opens for one snapshot with a description; not for one without, nor for a failed load', async () => {

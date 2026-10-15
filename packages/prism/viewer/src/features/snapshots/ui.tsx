@@ -13,6 +13,8 @@ import { distinctUntilChanged, map } from 'rxjs';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { downloadBlob } from '../../ui/download.js';
 import { SnapshotsPanel } from '../../views/state/snapshots-panel.js';
+import { AudioBar } from '../../views/state/audio-bar.js';
+import { createAudioModel } from './audio.js';
 import { createMarkdownHost } from './markdown.js';
 import { createSnapshotStepper, createSnapshotsModel, openPlaybackOnLoad, PlaybackCard, presentable } from './model.js';
 
@@ -26,6 +28,8 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
   if (!area) return {};
   // As long as the viewer: the run events complete with it (the views have no dispose of their own).
   openPlaybackOnLoad(ctx.api, area);
+  // A story's audio: its bar in the playback card, and a canvas button while there is a player (the card may be shut).
+  const audio = createAudioModel(area.markdown);
   return {
     tabs: [
       {
@@ -72,12 +76,15 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
         render: domView(() => {
           const model = createSnapshotStepper(ctx.api, area, createMarkdownHost(ctx.api, area.markdown));
           return (
-            <Show
-              when={model.count.pipe(map((c) => c >= 1))}
-              fallback={() => <p style="margin: 0">There are no snapshots: add some in the Snapshots tab.</p>}
-            >
-              {() => <SnapshotCard model={model} />}
-            </Show>
+            <div style="display: grid; gap: var(--msp-space-2)">
+              <Show when={audio.present}>{() => <AudioBar model={audio} />}</Show>
+              <Show
+                when={model.count.pipe(map((c) => c >= 1))}
+                fallback={() => <p style="margin: 0">There are no snapshots: add some in the Snapshots tab.</p>}
+              >
+                {() => <SnapshotCard model={model} />}
+              </Show>
+            </div>
           );
         }),
       },
@@ -90,6 +97,24 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
         group: 'scene',
         overlay: PlaybackCard,
         visible: area.state.pipe(map(presentable), distinctUntilChanged()),
+      },
+      {
+        id: 'snapshots.toolbar.audio',
+        icon: 'play',
+        title: 'Play audio',
+        group: 'view',
+        place: 'canvas',
+        visible: audio.present,
+        face: audio.playing.pipe(
+          map((p) =>
+            p ? { icon: 'pause' as const, title: 'Pause audio' } : { icon: 'play' as const, title: 'Play audio' },
+          ),
+        ),
+        run: () => audio.toggle(),
+        menu: [
+          { id: 'stop', label: 'Stop', icon: 'square', run: () => audio.stop() },
+          { id: 'close', label: 'Close the audio', icon: 'x', run: () => audio.close() },
+        ],
       },
     ],
   };

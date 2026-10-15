@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { CanvasMenuItem } from '@molstar/prism-ui/shell/shell';
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { ModelSource } from '@molstar/ai-session';
 import type { CommandMenuAssistant } from '@molstar/prism-ui';
@@ -316,6 +317,12 @@ export interface ViewerExtensionUI {
     readonly place?: 'rail' | 'canvas';
     /** Shown while true (always, when not given). */
     readonly visible?: Observable<boolean>;
+    /** Its own action (in place of a command or a card). */
+    readonly run?: () => void;
+    /** A face that changes with what it does (play, pause), in place of `icon` and `title`. */
+    readonly face?: Observable<{ icon: IconName; title: string }>;
+    /** Variants beside it on hover (canvas items): stop, close. */
+    readonly menu?: readonly CanvasMenuItem[];
   }[];
 }
 

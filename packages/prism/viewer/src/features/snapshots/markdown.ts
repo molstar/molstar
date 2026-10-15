@@ -14,8 +14,9 @@ import type { MarkdownSource } from './source.js';
 
 // The descriptions' markdown host (B1): Mol*'s markdown extensions behind prism-ui's `Markdown`, as v5's
 // `controls/markdown.tsx` puts them behind react-markdown. Command links run through `snapshot.link` (the person's
-// API); images and the audio player come from the snapshot area's markdown source. The inline renderers are v5's
-// defaults (color swatch, color palette); an extension's own `reactRenderFn` is React and is not shown.
+// API); images come from the snapshot area's markdown source (the audio player has its own bar in the card). The
+// inline renderers are v5's defaults (color swatch, color palette); an extension's own `reactRenderFn` is React and is
+// not shown.
 
 export function createMarkdownHost(api: ViewerApi, source: MarkdownSource): MarkdownHost {
   return {
@@ -28,7 +29,7 @@ export function createMarkdownHost(api: ViewerApi, source: MarkdownSource): Mark
       if (args) return renderCommand(args) ?? document.createTextNode(alt);
       return source.resolve(src);
     },
-    media: source.audio,
+    // The audio player is the card's own bar (views/state/audio-bar.tsx), not the browser's player in the text.
   };
 }
 

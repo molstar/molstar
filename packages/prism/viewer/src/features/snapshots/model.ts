@@ -296,11 +296,12 @@ const listOf = (s: SnapshotsState) => s.entries.map((e) => e.id).join(' ');
 
 /**
  * M3 (parity.md §4, the playback row): a load that brings a story (two or more snapshots, or one with a description)
- * opens the playback card, once per load, as v5 shows the description and the stepper at once. A load that leaves the
+ * opens the playback card, once per load, as v5 shows the description and the stepper at once; one that finished before
+ * the views came (their chunk loads lazily) opens it when they do. A load that leaves the
  * list as it was (another structure) opens nothing. Returns its disposer.
  */
 export function openPlaybackOnLoad(
-  api: Pick<ViewerApi, 'events' | 'view'>,
+  api: Pick<ViewerApi, 'events' | 'view'> & Partial<Pick<ViewerApi, 'running'>>,
   area: Pick<SnapshotApi, 'state'>,
 ): () => void {
   const before = new Map<number, string>();
@@ -321,6 +322,13 @@ export function openPlaybackOnLoad(
     opened = now;
     void api.view.open({ card: PlaybackCard });
   });
+  // The views come in their own chunk: a load can have brought a story before they did (a page's API load, a story
+  // set up at once). With no load running to wait for, it opens now, once.
+  const s = area.state.value;
+  if (mounted && presentable(s) && !api.running?.value.some((r) => loads(r.operation))) {
+    opened = mounted;
+    void api.view.open({ card: PlaybackCard });
+  }
   return () => {
     started.unsubscribe();
     finished.unsubscribe();

@@ -126,6 +126,9 @@ export function extensionUIPort(
               ...(t.overlay ? { overlay: t.overlay } : {}),
               ...(t.visible ? { visible: t.visible } : {}),
               ...(t.command ? { run: () => void commands.open(t.command!) } : {}),
+              ...(t.run ? { run: t.run } : {}),
+              ...(t.face ? { face: t.face } : {}),
+              ...(t.menu ? { menu: t.menu } : {}),
             })),
           ),
         );

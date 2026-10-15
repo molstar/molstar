@@ -141,6 +141,10 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: a structure representation's quick settings above its whole form: its type and color theme as
   choices, one color from a row of swatches, the opacity and the size as sliders (a drag is one undo step); a map
   level's color from the same row.
+- Prism viewer: a story's audio (Mol*'s markdown audio commands, MVS narration) has its own bar at the top of the
+  playback card (play or pause, the position to click or drag, the time, stop, close) and a canvas button while there
+  is a player, so it can be paused or stopped with the card shut; the playback card opens for a story loaded before
+  its views came.
 - Prism UI: a form's presets open as a popover under their button (`PresetsList`), and a list inline in a panel lets
   the wheel scroll the panel at its ends (`ScrollArea`'s `chain`).
 - `ColorTheme.Palette` (the volume-value theme): a color list with offsets interpolates between its stops (as

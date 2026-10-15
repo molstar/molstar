@@ -123,6 +123,10 @@ export interface MarkdownSource {
   resolve(src: string): string | Promise<string> | undefined;
   /** The plugin's audio player, once a command made one. */
   readonly audio: ReadonlyState<HTMLAudioElement | null>;
+  /** Stops it at the start (Mol*'s `audio.stop`). */
+  stopAudio(): void;
+  /** Stops it and lets it go (Mol*'s `audio.dispose`): the player is gone until a command makes another. */
+  closeAudio(): void;
   dispose(): void;
 }
 
@@ -133,6 +137,8 @@ export function createMarkdownSource(plugin: PluginContext): MarkdownSource {
     command: (href) => manager.parseArgs(href),
     resolve: (src) => manager.tryResolveUri(src),
     audio: fromBehavior(scope, manager.state.audioPlayer),
+    stopAudio: () => manager.audio.stop(),
+    closeAudio: () => manager.audio.dispose(),
     dispose: () => scope.dispose(),
   };
 }
