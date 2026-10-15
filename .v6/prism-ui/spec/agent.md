@@ -87,7 +87,9 @@ As little in the way as is reasonable (decision 26):
   Storage view and in Settings, each removable. https only. As built (G6): an operation says what a call reaches,
   `addresses(values)` on the values it will run with (`[]`: the known services and the servers the viewer is configured
   with); one that does not say always asks, and so does an address that is not https written whole. The request's
-  https hosts go for that turn. Not yet: Allow this domain and its listing (the turn card offers Allow and Deny).
+  https hosts go for that turn. Not yet: Allow this domain and its listing (the turn card offers Allow and Deny); a
+  color theme or preset that fetches as it applies (validation reports, assembly symmetry) is reached through the core
+  `color` and `apply_preset` tools, which carry no addresses: the ones registered today reach only the known services.
 - **Ask every time**: sending anything out (`upload`: remote states) and closing or clearing a session (`destructive`).
   A denied call is told to the model ("The person did not allow this call.").
 - **Untrusted text**: the model never sees structure files, only compact state, tool results and extracted metadata.

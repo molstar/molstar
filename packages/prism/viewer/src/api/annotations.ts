@@ -119,15 +119,22 @@ export class AnnotationsApi extends ApiArea {
         );
       }
       const nodes: string[] = [];
+      let unchanged = true;
       for (const s of carrying) {
         const r = await provider.apply(ctx, s.cell.transform.ref);
         if (!r.ok) return r;
+        unchanged &&= !!r.unchanged;
         nodes.push(...(r.changed.nodes ?? []));
       }
-      return Result.ok(
-        `Showing ${inSentence(provider.title)} on ${carrying.map((s) => labelOf(ctx, s)).join(', ')}.`,
-        { nodes },
-      );
+      // Nothing to change: no step (decision 30).
+      if (unchanged) {
+        return Result.already(
+          `${carrying.map((s) => labelOf(ctx, s)).join(', ')} already shows ${inSentence(provider.title)}.`,
+        );
+      }
+      return Result.ok(`Showing ${inSentence(provider.title)} on ${carrying.map((s) => labelOf(ctx, s)).join(', ')}.`, {
+        nodes,
+      });
     },
   });
 }

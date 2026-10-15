@@ -90,7 +90,7 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | model-archive quality assessment (pLDDT, QMEAN), PAE plot | designed anew as an extension with commands first (README decision 27): color by pLDDT or QMEAN, show PAE; sequence behaviors for the pLDDT track and the PAE dot plot; a new PAE view later. The viewer core no longer depends on it: `@molstar/model-archive-extension/prism-viewer` brings the themes, `annotations.apply`'s `plddt` and `qmean`, the commands and the pLDDT track | built (pLDDT, QMEAN; PAE later) |
 | volumes-and-segmentations | dropped for now: to be redesigned | dropped |
 | anvil (membrane orientation) | an extension with commands: `membrane.get/show/hide/fit/options` (the options are v5's generic representation control as an operation); a structure row for them waits for rows | built (commands) |
-| dnatco, rcsb, pdbe, wwpdb, sb-ncbr, g3d, backgrounds | data-only (the app's `DataOnlyExtensions`): their plugin parts through the generic commands and tools; validation reports (RCSB, PDBe) and partial charges through `annotations.apply` | built |
+| dnatco, rcsb, pdbe, wwpdb, sb-ncbr, g3d, backgrounds | data-only (the app's `DataOnlyExtensions`): their plugin parts through the generic commands and tools; validation reports (RCSB, PDBe) and partial charges through `annotations.apply`; SB-NCBR's tunnels left out (their preset fetches from a service the agent's policy does not know) | built |
 | debug-helpers | a developer's tool | dropped |
 | MolViewSpec                                                           | the viewer's base (load, snapshots)                                   | built (first slice) |
 

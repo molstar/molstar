@@ -251,8 +251,10 @@ itself, which keeps it honest.
   a tool, a skill, a sequence behavior, an API module. One scheme (review F8): `<owner>.<kind>.<name>`, where the owner
   is `core` for the fixed core and the feature's or extension's id otherwise (`core.toolbar.xr`,
   `core.sequence.follow`, `snapshots.tab.snapshots`, `geo-export.section.export`). Feature and extension ids are plain
-  (`snapshots`, `geo-export`). Operation and command ids are their own (`<area>.<verb>`, operations.md §1), and an
-  extension's areas start with its id (`geo-export.export`). The ids are listed in the viewer's `_spec`.
+  (`snapshots`, `geo-export`). Operation and command ids are their own (`<area>.<verb>`, operations.md §1). An
+  extension's area is named for what it does, usually its id (`geo-export.export`), sometimes a shorter word the agent
+  and the command menu read better (`video.export` for `video-export`, `membrane.fit` for `anvil`); never a core area's.
+  The ids are listed in the viewer's `_spec`.
 - **`overrides`** (`extensions/overrides.ts`, one rule for every part, the core's and the shell's included): `null`
   removes a part, a value replaces its fields (its id kept): `{ 'core.toolbar.reset': null, 'camera.reset': null,
   'geo-export.section.export': { title: 'Export geometry' } }`. Commands by command id; views by part id. An override

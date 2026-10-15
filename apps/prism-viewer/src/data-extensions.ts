@@ -20,7 +20,6 @@ import { GeometryQualityColorThemeProvider } from '@molstar/rcsb-extension/valid
 import { RandomCoilIndexColorThemeProvider } from '@molstar/rcsb-extension/validation-report/color/random-coil-index';
 import { SbNcbrPartialChargesColorThemeProvider } from '@molstar/sb-ncbr-extension/partial-charges/color';
 import { SbNcbrPartialCharges } from '@molstar/sb-ncbr-extension/partial-charges/behavior';
-import { SbNcbrTunnels } from '@molstar/sb-ncbr-extension/tunnels/behavior';
 import { wwPDBChemicalComponentDictionary } from '@molstar/wwpdb-extension/ccd/behavior';
 
 // Mol*'s data-only extensions in the Prism viewer (plan 5.2, parity.md §6, README decision 27): what each registered
@@ -110,7 +109,9 @@ export const DataOnlyExtensions: readonly ViewerExtension[] = [
     id: 'sb-ncbr',
     title: 'SB NCBR',
     // Partial charges (a model property, a color theme, a preset, labels) and the tunnels actions and preset.
-    plugin: { registry: [], behaviors: Behaviors(SbNcbrPartialCharges, SbNcbrTunnels) },
+    // Not its tunnels: their preset fetches from a service the agent's policy does not know, through the core preset
+    // operation, outside the step (G7).
+    plugin: { registry: [], behaviors: Behaviors(SbNcbrPartialCharges) },
     annotations: [
       themeAnnotation(SbNcbrPartialChargesColorThemeProvider, {
         id: 'partial-charges',

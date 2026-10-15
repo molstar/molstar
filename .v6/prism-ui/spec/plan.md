@@ -251,5 +251,15 @@ history, the setup's choice survives a reload, the key set/remove race. Left, an
 this domain, tool schemas refreshed when registries change, data labels quoted in tool results, opening a kept record
 after a reload (Home's list), SeqQL selections and opening panels as tools.
 
+G7 ran at the end of phase 5 (2026-10-15): two reviewers (the ports' contracts; the app, the single file and the
+docs, in the browser). The single file ran on a plain page with one script request through video and geometry exports.
+Fixed: SB-NCBR's tunnels left out (their preset fetched from an unknown host through the core preset operation),
+`kinemage.view` a step (it sets the background), annotations as agent tools, no empty steps from `annotations.apply`,
+a sequence patch for a replaced document dropped, Zenodo's names quoted, one save per agent-made file, the single file's
+images inlined, size budgets in production builds, the docs' examples, app.md as built; a test composes the whole app
+spec headless. Left: themes and presets that fetch carry no addresses (only known services today), the pLDDT track
+reading B-factors where the 3D theme reads ModelCIF scores, the assistant's chunk at start, a smoke check of the single
+file in CI, publishing it.
+
 Between gates, every Sonnet PR gets one Opus read before it merges (not a workflow), and every PR updates the spec
 where it moves it, and parity.md's state column.

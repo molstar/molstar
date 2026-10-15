@@ -455,7 +455,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   // A file the agent made for the person (an export, a saved session: a result's `{ blob, filename }`) is saved here, the
   // page's job; the person's own commands and views save theirs (agent.md §4: such a call asked first).
   const saving = core.api.events.finished.subscribe((r) => {
-    if (r.origin.kind !== 'agent' || !r.result?.ok) return;
+    // The outer run only (a stub's replay of the real one is nested): one file saved.
+    if (r.origin.kind !== 'agent' || r.nested || !r.result?.ok) return;
     const file = r.result.value as { blob?: unknown; filename?: unknown } | undefined;
     if (file?.blob instanceof Blob && typeof file.filename === 'string') downloadBlob(file.blob, file.filename);
   });

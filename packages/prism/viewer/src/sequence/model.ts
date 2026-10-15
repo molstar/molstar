@@ -372,6 +372,8 @@ class Viewer implements SequenceViewer {
   private async build(): Promise<void> {
     const host = this.deps.structure.value;
     const build = ++this.builds;
+    // A document is being made: what the behaviors patch for the last one is dropped meanwhile (`patch` checks it).
+    if (this.shownState.value) this.shownState.set(undefined);
     this.refreshLegend();
     if (!host) {
       this.structureState.set(undefined);

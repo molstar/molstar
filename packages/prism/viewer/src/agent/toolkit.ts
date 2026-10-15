@@ -120,6 +120,17 @@ export const Skills: readonly SkillDeclaration[] = [
       { id: 'set_transparency', operation: 'representation.transparency', description: 'Makes a target transparent.' },
       { id: 'hide_contents', operation: 'contents.visibility', description: 'Shows or hides an entity or a chain.' },
       {
+        id: 'list_annotations',
+        operation: 'annotations.list',
+        description: 'What the structures carry and can show (quality scores, validation, B-factors, charges).',
+      },
+      {
+        id: 'apply_annotation',
+        operation: 'annotations.apply',
+        description:
+          'Shows what a structure carries as color: plddt, qmean, b-factor, a validation report, partial charges (list_annotations names them).',
+      },
+      {
         id: 'set_palette',
         operation: 'canvas.palette',
         description:

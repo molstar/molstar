@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { quoted } from '@molstar/prism-viewer/agent/account';
 import { getFileNameInfo } from '@molstar/core/util/file-info';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -157,11 +158,12 @@ export class ZenodoApi extends ApiArea {
       const r = await this.#record(ctx, id);
       if (ApiResult.isFailure(r)) return r;
       const readable = r.files.filter((f) => f.kind);
+      // The record's title and its files' names are the uploader's words: quoted, as data (agent.md §4).
       const lines = r.files.map(
-        (f) => `${f.name} (${sizeOf(f.size)}${f.kind ? `, ${f.kind}` : ', not read by the viewer'})`,
+        (f) => `${quoted(f.name)} (${sizeOf(f.size)}${f.kind ? `, ${f.kind}` : ', not read by the viewer'})`,
       );
       return ApiResult.ok(
-        `Record ${id}: ${r.title}. ${r.files.length} file${r.files.length === 1 ? '' : 's'}, ${readable.length} the viewer reads${lines.length ? `:\n${lines.join('\n')}` : '.'}`,
+        `Record ${id}: ${quoted(r.title)}. ${r.files.length} file${r.files.length === 1 ? '' : 's'}, ${readable.length} the viewer reads${lines.length ? `:\n${lines.join('\n')}` : '.'}`,
         {},
         { value: r },
       );
