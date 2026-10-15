@@ -114,7 +114,8 @@ export const CameraParams = {
   fov: PD.Numeric(0, { min: 0, max: 130, step: 1 }, { description: 'Field of view in degrees; 0: keep' }),
 };
 export const ClippingParams = {
-  radius: PD.Numeric(100, { min: 0, max: 100, step: 1 }, { description: 'How much of the scene to show (100: all)' }),
+  // As Canvas3D's `cameraClipping.radius`: how much is clipped away, around the camera's target.
+  clip: PD.Numeric(0, { min: 0, max: 99, step: 1 }, { description: 'Percent of the scene clipped away (0: none)' }),
   far: PD.Boolean(true, { description: 'Hide the scene in the distance' }),
 };
 
@@ -130,7 +131,7 @@ function set(ctx: ApiContext, change: PartialCanvas3DProps, did: string) {
 }
 
 /** A mapped param's 'on' case's defaults. */
-const defaultsOf = (m: PD.Any) => (m.type === 'group' ? PD.getDefaultValues(m.params) : {});
+const defaultsOf = (m: PD.Any) => (m.type === 'group' ? structuredClone(PD.getDefaultValues(m.params)) : {});
 
 /** On or off, as Canvas3D's mapped params say it; turning on keeps the current settings, or takes the defaults. */
 const onOff = (on: boolean, current: { name: string; params: unknown }, defaults: { name: string; params: unknown }) =>
@@ -252,14 +253,15 @@ export const canvasSettingsOperations = (): {
       title: 'Clip the scene',
       params: ClippingParams,
       modules: canvasModule,
-      async run({ radius, far }, ctx) {
+      async run({ clip, far }, ctx) {
         const p = props(ctx);
         if (!p) return ApiResult.fail('unavailable', 'There is no canvas.');
-        const r = Math.min(99, radius);
-        if (p.cameraClipping.radius === r && p.cameraClipping.far === far) {
+        const radius = Math.max(0, Math.min(99, clip));
+        if (p.cameraClipping.radius === radius && p.cameraClipping.far === far) {
           return ApiResult.already('The clipping is already so.');
         }
-        return set(ctx, { cameraClipping: { radius: r, far } }, `Clipping: ${radius}%${far ? ', far plane' : ''}.`);
+        const said = radius ? `${radius}% clipped away` : 'nothing clipped';
+        return set(ctx, { cameraClipping: { radius, far } }, `Clipping: ${said}${far ? ', far plane on' : ''}.`);
       },
     }),
   },

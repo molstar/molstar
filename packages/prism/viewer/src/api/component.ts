@@ -19,10 +19,11 @@ import {
 import type { StructureComponentParams } from '@molstar/plugin/state/helpers/structure-component';
 import { StructureComponentManager } from '@molstar/plugin/state/manager/structure/component';
 import type { StructureComponentRef, StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
+import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { Expression } from '@molstar/query-language/language/expression';
 import { compileTarget, fromMolqlJson, PERSON_KEYWORDS, readKeyword, type Target } from '../targets/index.js';
-import { type ApiContext, type ApiFailure, ApiArea, ApiResult } from './area.js';
-import { reapplyContents } from './contents.js';
+import { type ApiAreaContext, type ApiContext, type ApiFailure, ApiArea, ApiResult } from './area.js';
+import { type ComponentParams, expressionOf, ownParams, reapplyContents, setOwnParams } from './contents.js';
 import { isFailure, labelOf, loadedStructures, someStructures } from './scope.js';
 import { isLociTarget, LanguageParam, TargetParam, type TargetValue } from './target-param.js';
 
@@ -112,7 +113,7 @@ export class ComponentApi extends ApiArea {
       const list = values.structure ? someStructures(ctx, values.structure) : loadedStructures(ctx);
       if (isFailure(list) || (!values.structure && list.length !== 1)) return undefined;
       const key = JSON.stringify(compiled.molql);
-      const found = list.map((s) => findExisting(s, key, values.label));
+      const found = list.map((s) => findExisting(ctx, s, key));
       if (found.some((c) => !c)) return undefined;
       return `${labelOf(ctx, list[0])} already has ${list.length === 1 ? `the component '${nameOf(found[0]!)}'` : 'those components'}.`;
     },
@@ -185,7 +186,7 @@ export class ComponentApi extends ApiArea {
             ? stored.molql
             : StructureElement.Bundle.toExpression(StructureElement.Bundle.fromLoci(part.loci));
         if (!ctx.copy) {
-          const found = findExisting(s, JSON.stringify(expression), label);
+          const found = findExisting(ctx, s, JSON.stringify(expression));
           if (found) {
             existing.push(`${part.structure.label} already has '${nameOf(found)}'`);
             continue;
@@ -267,15 +268,18 @@ export class ComponentApi extends ApiArea {
       const found = findComponent(ctx, component, structure);
       if (isFailure(found)) return found;
       const c = found.component;
-      if (nameOf(c) === name) return ApiResult.already(`The component is already named '${name}'.`);
-      // The manager's `updateLabel`, awaited: it does not wait for its commit, and the history step must see the result.
-      const params = c.cell.params?.values as StructureComponentParams;
-      await ctx.plugin.state.data
-        .build()
-        .to(c.cell)
-        .update({ type: params.type, nullIfEmpty: params.nullIfEmpty, label: name } satisfies StructureComponentParams)
-        .commit();
-      return ApiResult.ok(`Renamed '${nameOf(c)}' to '${name}'.`, { nodes: [c.cell.transform.ref] });
+      const old = nameOf(c);
+      if (old === name) return ApiResult.already(`The component is already named '${name}'.`);
+      // The manager's `updateLabel`, awaited (it does not wait for its commit, and the step must see the result); its
+      // own params when its structure hides contents.
+      const ref = c.cell.transform.ref;
+      const params = (ownParams(ctx, ref) ?? c.cell.params?.values) as StructureComponentParams;
+      await setOwnParams(ctx, found.structure, ref, {
+        type: params.type,
+        nullIfEmpty: params.nullIfEmpty,
+        label: name,
+      } as ComponentParams);
+      return ApiResult.ok(`Renamed '${old}' to '${name}'.`, { nodes: [ref] });
     },
   });
 
@@ -352,6 +356,27 @@ export class ComponentApi extends ApiArea {
       if (structureAreEqual(modified, current)) {
         return ApiResult.already(
           mode === 'union' ? `'${name}' already holds ${part.selected.line}.` : `'${name}' is already so.`,
+        );
+      }
+      const ref = c.cell.transform.ref;
+      const own = ownParams(ctx, ref);
+      if (own) {
+        // Its structure hides contents: the change goes to its own params, as an expression over them, so what is
+        // hidden stays out now and comes back with the rest when shown (contents.ts).
+        const mine = expressionOf(own)!;
+        const byExpression = StructureElement.Bundle.toExpression(StructureElement.Bundle.fromLoci(part.loci));
+        const expression =
+          mode === 'union'
+            ? MS.struct.combinator.merge([mine, byExpression])
+            : mode === 'intersect'
+              ? MS.struct.modifier.intersectBy({ 0: mine, by: byExpression })
+              : MS.struct.modifier.exceptBy({ 0: mine, by: byExpression });
+        await setOwnParams(ctx, s, ref, { ...own, type: { name: 'expression', params: expression }, label: name });
+        const now = ctx.plugin.state.data.cells.get(ref)?.obj?.data as { elementCount?: number } | undefined;
+        return ApiResult.ok(
+          `'${name}' now holds ${atomsText(now?.elementCount ?? 0)} shown (was ${atomsText(current.elementCount)}).`,
+          { nodes: [ref] },
+          { value: { atoms: now?.elementCount ?? 0 } },
         );
       }
       if (modified.elementCount === 0) {
@@ -475,10 +500,12 @@ function atomsText(n: number): string {
 }
 
 /** A component of exactly that MolQL (as JSON), or with that name when one is given. */
-function findExisting(s: StructureRef, key: string, label: string): StructureComponentRef | undefined {
+/** A component of the same target (decision 30: identity is the structure and the target, not the name). */
+function findExisting(ctx: ApiAreaContext, s: StructureRef, key: string): StructureComponentRef | undefined {
   return s.components.find((c) => {
-    if (label && nameOf(c) === label.trim()) return true;
-    const type = (c.cell.params?.values as StructureComponentParams | undefined)?.type;
+    // Its own params when contents are hidden (its cell's leave out what is hidden).
+    const params = ownParams(ctx, c.cell.transform.ref) ?? (c.cell.params?.values as ComponentParams | undefined);
+    const type = params?.type;
     return type?.name === 'expression' && JSON.stringify(type.params) === key;
   });
 }

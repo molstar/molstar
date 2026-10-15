@@ -7,6 +7,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { StructureComponent } from '@molstar/plugin/state/transforms/structure/selection';
 import { MolScriptBuilder as MS } from '@molstar/query-language/language/builder';
 import type { Expression } from '@molstar/query-language/language/expression';
 import { StructureElement, StructureProperties } from '@molstar/model/model/structure';
@@ -212,7 +213,8 @@ export async function reapplyContents(ctx: ApiContext, structures: readonly Stru
     for (const ref of Object.keys(originals)) if (isUnder(ctx, ref, structureRef)) components.add(ref);
     for (const ref of components) {
       const cell = data.cells.get(ref);
-      if (!cell) continue;
+      // Components only: the focus's target and surroundings are in the hierarchy's list too.
+      if (!cell || cell.transform.transformer !== StructureComponent) continue;
       if (!hidden) {
         if (ref in originals) {
           build.to(ref).update(originals[ref] as never);
@@ -239,6 +241,34 @@ export async function reapplyContents(ctx: ApiContext, structures: readonly Stru
   if (changed) await build.commit();
 }
 
+/** A component's own params while its structure hides contents (its cell holds them minus what is hidden). */
+export function ownParams(ctx: ApiAreaContext, ref: string): ComponentParams | undefined {
+  return stateOf(ctx).value.originals[ref] as ComponentParams | undefined;
+}
+
+/**
+ * Sets a component's own params (a rename, a modification): while its structure hides contents they are kept as its
+ * own and the cell gets them minus what is hidden, so showing the contents again keeps the change.
+ */
+export async function setOwnParams(
+  ctx: ApiContext,
+  s: StructureRef,
+  ref: string,
+  params: ComponentParams,
+): Promise<void> {
+  const state = stateOf(ctx);
+  if (!(ref in state.value.originals)) {
+    await ctx.plugin.state.data
+      .build()
+      .to(ref)
+      .update(params as never)
+      .commit();
+    return;
+  }
+  state.value = { ...state.value, originals: { ...state.value.originals, [ref]: params } };
+  await reapplyContents(ctx, [s]);
+}
+
 /** Whether a cell is in a structure's subtree. */
 function isUnder(ctx: ApiContext, ref: string, root: string): boolean {
   const tree = ctx.plugin.state.data.tree;
@@ -252,7 +282,7 @@ function isUnder(ctx: ApiContext, ref: string, root: string): boolean {
   return false;
 }
 
-interface ComponentParams {
+export interface ComponentParams {
   type:
     | { name: 'static'; params: string }
     | { name: 'expression'; params: Expression }
@@ -262,7 +292,7 @@ interface ComponentParams {
   nullIfEmpty?: boolean;
 }
 
-function expressionOf(p: ComponentParams): Expression | undefined {
+export function expressionOf(p: ComponentParams): Expression | undefined {
   switch (p.type.name) {
     case 'static':
       return StaticQueries[p.type.params];

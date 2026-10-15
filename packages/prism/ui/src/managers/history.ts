@@ -142,6 +142,9 @@ export function historyGroupKey(origin: HistoryOrigin): string | undefined {
 const labelOf = <T>(label: string | ((value: T) => string), value: T) =>
   typeof label === 'function' ? label(value) : label;
 
+/** Checkpoints over the time budget in a row that turn per-step checkpoints off (sequence.md §7.4). */
+const SlowCheckpointsToTurnOff = 3;
+
 export class HistoryManager<C = unknown> {
   readonly #port: HistoryPort<C>;
   readonly #options: Required<Omit<HistoryOptions, 'now'>> & { now: () => number };
@@ -150,6 +153,8 @@ export class HistoryManager<C = unknown> {
   readonly #running = observableState(0);
   readonly #restoring = observableState(false);
   readonly #checkpointing = observableState(true);
+  /** Checkpoints in a row over the time budget. */
+  #slow = 0;
   readonly #undoBlocked = observableState<string | undefined>('Nothing to undo');
   readonly #canUndo = observableState(false);
   readonly #undone = new Subject<HistoryStep>();
@@ -525,7 +530,9 @@ export class HistoryManager<C = unknown> {
       this.#turnOff(ms, bytes);
       return { value: undefined, unsafe: 'This scene is too large to undo' };
     }
-    if (ms > budget.ms || bytes > budget.bytes) this.#turnOff(ms, bytes);
+    // Size is the scene's; time can be a one-off (a cold start, a pause): only a run of slow checkpoints counts.
+    this.#slow = ms > budget.ms ? this.#slow + 1 : 0;
+    if (bytes > budget.bytes || this.#slow >= SlowCheckpointsToTurnOff) this.#turnOff(ms, bytes);
     return { value };
   }
 

@@ -220,8 +220,9 @@ restore = (c) => plugin.state.setSnapshot({ ...c.plugin, structureFocus: undefin
 ### 7.4 Large scenes
 
 The history measures each checkpoint as it takes it: time, and the size of the snapshot's JSON without data cells'
-payloads. When one goes over the budget (a first guess: 50 ms or 5 MB, tuned on a mesoscale session), per-step
-checkpoints turn off for that scene, and the status column says so once: "This scene is large: undo is off; Settings
+payloads. When one goes over the size budget, or three in a row over the time budget (one slow checkpoint is a cold
+start or a pause, not the scene; a first guess: 50 ms or 5 MB, tuned on a mesoscale session), per-step checkpoints
+turn off for that scene, and the status column says so once: "This scene is large: undo is off; Settings
 to turn it back on." The agent's turn keeps its one checkpoint unless that one is over a hard limit too, which the turn
 card says before the turn runs. Clearing the scene, or loading a smaller one, turns per-step undo back on.
 

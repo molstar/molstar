@@ -63,16 +63,16 @@ describe('component.add', () => {
     // the same target, whatever its name: it is the same component
     const again = await v.api.component.add({ target: 'ligand', label: 'Something else' });
     expect(again).toMatchObject({ ok: true, unchanged: true });
-    // the same name, another target
-    const sameName = await v.api.component.add({ target: 'protein', label: 'Retinoic acid' });
-    expect(sameName).toMatchObject({ ok: true, unchanged: true });
     expect(components(v)).toHaveLength(n);
     expect(steps(v)).toBe(stepsBefore);
+    // the same name, another target: another component (decision 30: identity is the structure and the target)
+    expectOk(await v.api.component.add({ target: 'resi 10-20', label: 'Retinoic acid' }));
+    expect(components(v)).toHaveLength(n + 1);
 
     const copy = await v.api.component.add({ target: 'ligand', label: 'Another' }, { copy: true });
     expectOk(copy);
-    expect(components(v)).toHaveLength(n + 1);
-    expect(steps(v)).toBe(stepsBefore + 1);
+    expect(components(v)).toHaveLength(n + 2);
+    expect(steps(v)).toBe(stepsBefore + 2);
   });
 
   it('adds a component with no representation on none', async () => {

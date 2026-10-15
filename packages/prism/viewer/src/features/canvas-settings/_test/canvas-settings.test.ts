@@ -45,10 +45,18 @@ afterEach(async () => {
 async function withCanvas(): Promise<{ v: PrismViewer; props: Canvas3DProps; sets: PartialCanvas3DProps[] }> {
   const v = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec(), modules: ['canvas', 'files'] });
   open = v;
-  const props = PD.getDefaultValues(Canvas3DParams) as Canvas3DProps;
+  // A copy: the defaults' objects are the params' own.
+  const props = structuredClone(PD.getDefaultValues(Canvas3DParams)) as Canvas3DProps;
   const sets: PartialCanvas3DProps[] = [];
+  // As Canvas3D: what `props` gives is a copy (a checkpoint holding it must not see later changes).
   Object.defineProperty(v.plugin, 'canvas3d', {
-    value: { props, setProps: (c: PartialCanvas3DProps) => merge(props, c), dispose() {} },
+    value: {
+      get props() {
+        return structuredClone(props);
+      },
+      setProps: (c: PartialCanvas3DProps) => merge(props, structuredClone(c)),
+      dispose() {},
+    },
     configurable: true,
   });
   v.plugin.setCanvas3DProps = (change) => {
@@ -95,8 +103,13 @@ describe('canvas settings', () => {
     expect(await v.api.canvas.illumination!({ on: true })).toMatchObject({ ok: true, unchanged: true });
     expectOk(await v.api.canvas.camera!({ mode: 'orthographic' }));
     expect(props.camera.mode).toBe('orthographic');
-    expectOk(await v.api.canvas.clipping!({ radius: 50, far: false }));
+    expectOk(await v.api.canvas.clipping!({ clip: 50, far: false }));
     expect(props.cameraClipping).toMatchObject({ radius: 50, far: false });
+    expect(await v.api.canvas.clipping!({ clip: 50, far: false })).toMatchObject({ ok: true, unchanged: true });
+    // A field of view below 10° is 10°; the same again is already so.
+    expectOk(await v.api.canvas.camera!({ fov: 5 }));
+    expect(props.camera.fov).toBe(10);
+    expect(await v.api.canvas.camera!({ fov: 10 })).toMatchObject({ ok: true, unchanged: true });
   });
 
   it("applies a card section's values, and reads them back", async () => {
@@ -106,10 +119,10 @@ describe('canvas settings', () => {
     const same = await v.api.run('canvas.settings', { section: 'background', values: { transparent: true } });
     expect(same).toMatchObject({ ok: true, unchanged: true });
     // Every section's values map to props and back.
-    const defaults = PD.getDefaultValues(Canvas3DParams) as Canvas3DProps;
+    const defaults = structuredClone(PD.getDefaultValues(Canvas3DParams)) as Canvas3DProps;
     for (const section of Object.keys(CanvasSections) as CanvasSection[]) {
       const values = sectionValues(section, defaults);
-      const back = { ...defaults };
+      const back = structuredClone(defaults);
       merge(back, sectionProps(section, values));
       expect(sectionValues(section, back)).toEqual(values);
     }
@@ -118,5 +131,25 @@ describe('canvas settings', () => {
   it('is only for built-in features', async () => {
     const { builtIn: _, ...outside } = CanvasSettingsFeature;
     await expect(headlessViewer({ extensions: [{ ...outside, id: 'outside' }] })).rejects.toThrow(/only the viewer/);
+  });
+
+  it('makes each change one step, nothing when already so, and Undo restores the canvas', async () => {
+    const { v, props } = await withCanvas();
+    const steps = () => v.managers.history.steps.value.length;
+    const before = structuredClone(props);
+    expectOk(await v.api.canvas.lighting!({ shadow: 'on' }));
+    expectOk(await v.api.canvas.illumination!({ on: true }));
+    expectOk(await v.api.canvas.camera!({ mode: 'orthographic' }));
+    expectOk(await v.api.canvas.clipping!({ clip: 30 }));
+    expectOk(await v.api.run('canvas.settings', { section: 'background', values: { transparent: true } }));
+    expect(steps()).toBe(5);
+    await v.api.canvas.illumination!({ on: true });
+    expect(steps()).toBe(5);
+    for (let i = 0; i < 5; i++) expectOk(await v.api.history.undo());
+    expect(props.postprocessing.shadow.name).toBe(before.postprocessing.shadow.name);
+    expect(props.illumination.enabled).toBe(before.illumination.enabled);
+    expect(props.camera.mode).toBe(before.camera.mode);
+    expect(props.cameraClipping.radius).toBe(before.cameraClipping.radius);
+    expect(props.transparentBackground).toBe(before.transparentBackground);
   });
 });

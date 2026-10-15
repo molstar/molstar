@@ -82,4 +82,29 @@ describe('representation rows', () => {
       params.colorTheme.name,
     );
   });
+
+  it('keeps a rename and a change of a component made while contents are hidden (gate G3)', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const ligand = () =>
+      v.plugin.managers.structure.hierarchy.current.structures[0].components.find((c) =>
+        ['Ligand', 'Retinoic'].includes(c.cell.obj?.label ?? ''),
+      );
+    const atoms = ligand()?.cell.obj?.data.elementCount ?? 0;
+    expectOk(await v.api.contents.visibility({ entity: '1', visible: false }));
+    const renamed = await v.api.component.rename({ component: 'Ligand', label: 'Retinoic' });
+    expectOk(renamed);
+    expect(renamed.did).toBe("Renamed 'Ligand' to 'Retinoic'.");
+    // Residues of the hidden protein: added to its own params, not shown yet.
+    expectOk(await v.api.component.modify({ component: 'Retinoic', target: 'resi 10-20', mode: 'union' }));
+    expect(ligand()?.cell.obj?.data.elementCount).toBe(atoms);
+    expectOk(await v.api.contents.visibility({ entity: '1', visible: true }));
+    expect(ligand()?.cell.obj?.label).toBe('Retinoic');
+    expect(ligand()?.cell.obj?.data.elementCount).toBeGreaterThan(atoms);
+  });
+
+  it('hides a chain while something is focused (the focus cells are not components)', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    expectOk(await v.api.focus.set({ target: 'ligand' }));
+    expectOk(await v.api.contents.visibility({ entity: '1', visible: false }));
+  });
 });
