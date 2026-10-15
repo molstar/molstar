@@ -28,6 +28,11 @@ here.
   one edge
 - Fix RCSB validation report and ModelArchive quality assessment behaviors updating auto-attach and unregistering via
   the custom structure property registry instead of the custom model property registry they register with
+- Fix order-of-rendering issue with Kinemage reader to render objects described later in the file on top of earlier ones
+- Removing Kinemage GUI buttons for masters that have no object linked to them
+- Fixed Kinemage handling of files with multiple same-named subgroups so it behaves like KiNG
+- Sets the viewer background to black when loading a Kinemage, to match the default color scheme
+- Handle Kinemage triangle normals separately from ribbon normals so that each renders as expected
 - Fix interpolation of camera rotation
 - Fix the cross-link restraint representation's default color theme name (`cross-link`); it fell back to the first
   registered theme

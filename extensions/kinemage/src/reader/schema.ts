@@ -19,6 +19,7 @@ export interface Kinemage {
   groupDict: { [k: string]: { [k: string]: boolean } };
   subgroupDict: { [k: string]: any }; // /< Subgroup key is "GroupName:SubgroupName" to preserve tree structure
   masterDict: { [k: string]: { indent: boolean; visible: boolean } };
+  groupMasters?: string[]; // /< Names of masters referenced on @group or @subgroup lines
   pointmasterDict: { [k: string]: string }; // /< Maps from single-character name to master name for points, e.g. 'a' -> 'alta'
   dotLists: DotList[];
   vectorLists: VectorList[];
