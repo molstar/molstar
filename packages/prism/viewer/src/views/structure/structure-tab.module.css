@@ -240,8 +240,17 @@
 }
 
 /* The options button sits at the end of the header row. */
-.optionsButton {
+.searchButton {
   margin-left: auto;
+}
+
+/* The tree's search, between the header and the tree. */
+.search {
+  display: grid;
+  padding: 0 var(--msp-space-2);
+}
+
+.optionsButton {
   /* Level with the header's ✕ (8px from the panel's edge: the tab's 4px inset and 4px more). */
   margin-right: var(--msp-space-2);
 }

@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { map } from 'rxjs';
+import { debounceTime, map } from 'rxjs';
 import { Button } from '@molstar/prism-ui';
 import { Choices } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
@@ -20,6 +20,7 @@ import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { SectionList } from '@molstar/prism-ui';
+import { TextInput } from '@molstar/prism-ui';
 import { classes } from './_generated/structure-tab.module.css.js';
 import { NodeActions, SceneTree } from './scene-tree.js';
 
@@ -55,6 +56,13 @@ export function StructureTab(props: StructureTabProps) {
   // One inline block at a time under the header: the preset menu or the quick styles.
   const open = observableState<'preset' | 'styles' | 'options' | undefined>(undefined);
   const toggle = (block: 'preset' | 'styles' | 'options') => open.set(open.value === block ? undefined : block);
+  // The tree's search: a field over the tree while open; closed, no filter.
+  const searchOpen = observableState(false);
+  const search = observableState('');
+  const closeSearch = () => {
+    search.set('');
+    searchOpen.set(false);
+  };
   return (
     <div class={classes.tab}>
       <div class={classes.actions}>
@@ -91,6 +99,15 @@ export function StructureTab(props: StructureTabProps) {
         <Button size="sm" variant="ghost" icon={<Icon name="plus" />} onClick={() => props.onAction?.('add')}>
           <span class={classes.actionLabel}>Component</span>
         </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          class={classes.searchButton}
+          icon={<Icon name="search" />}
+          title="Search the scene"
+          pressed={searchOpen.asReadonly}
+          onClick={() => (searchOpen.value ? closeSearch() : searchOpen.set(true))}
+        />
         {props.options ? (
           <Button
             size="sm"
@@ -121,8 +138,22 @@ export function StructureTab(props: StructureTabProps) {
           ) : null
         }
       </Show>
+      <Show when={searchOpen.asReadonly}>
+        {() => (
+          <div class={classes.search} ref={(el) => queueMicrotask(() => el.querySelector('input')?.focus())}>
+            <TextInput
+              size="sm"
+              search
+              placeholder="Search the scene: an entity, a chain, a component…"
+              aria-label="Search the scene"
+              value={search.asReadonly}
+              onInput={(v) => search.set(v)}
+            />
+          </div>
+        )}
+      </Show>
       <ScrollArea edge class={classes.tree}>
-        <SceneTree scene={scene} shell={shell} />
+        <SceneTree scene={scene} shell={shell} filter={search.asReadonly.pipe(debounceTime(120))} />
       </ScrollArea>
       <ScrollArea
         class={classes.inspector}

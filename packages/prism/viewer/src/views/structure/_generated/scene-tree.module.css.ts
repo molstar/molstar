@@ -26,6 +26,8 @@ export const classes = {
   'loading': 'msp-viewer-scene-tree-loading',
   'menu': 'msp-viewer-scene-tree-menu',
   'menuItem': 'msp-viewer-scene-tree-menuItem',
+  'more': 'msp-viewer-scene-tree-more',
+  'moreCount': 'msp-viewer-scene-tree-moreCount',
   'picked': 'msp-viewer-scene-tree-picked',
   'row': 'msp-viewer-scene-tree-row',
   'rowBody': 'msp-viewer-scene-tree-rowBody',
@@ -228,6 +230,32 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
 
 .msp-viewer-scene-tree-subMenu {
   display: grid;
+}
+
+.msp-viewer-scene-tree-more {
+  align-items: baseline;
+  gap: var(--msp-space-2);
+  width: 100%;
+  height: 26px;
+  padding-left: calc(var(--msp-space-1) +
+    var(--msp-tree-depth, 0) *
+    var(--msp-tree-indent, var(--msp-icon-sm)) +
+    22px);
+  border-radius: var(--msp-radius-md);
+  color: var(--msp-color-accent);
+  font-size: var(--msp-font-size-sm);
+  text-align: left;
+  line-height: 26px;
+  display: flex;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.msp-viewer-scene-tree-moreCount {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
 }
 
 .msp-viewer-scene-tree-loading {

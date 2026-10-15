@@ -36,6 +36,8 @@ export const classes = {
   'presets': 'msp-viewer-structure-tab-presets',
   'presetsContent': 'msp-viewer-structure-tab-presetsContent',
   'quickStyles': 'msp-viewer-structure-tab-quickStyles',
+  'search': 'msp-viewer-structure-tab-search',
+  'searchButton': 'msp-viewer-structure-tab-searchButton',
   'tab': 'msp-viewer-structure-tab-tab',
   'tree': 'msp-viewer-structure-tab-tree',
 } as const;
@@ -256,8 +258,16 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
   }
 }
 
-.msp-viewer-structure-tab-optionsButton {
+.msp-viewer-structure-tab-searchButton {
   margin-left: auto;
+}
+
+.msp-viewer-structure-tab-search {
+  padding: 0 var(--msp-space-2);
+  display: grid;
+}
+
+.msp-viewer-structure-tab-optionsButton {
   margin-right: var(--msp-space-2);
 }
 
