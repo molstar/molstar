@@ -34,6 +34,20 @@ export class HistoryApi extends ApiArea {
     },
   });
 
+  // What Undo took back, put back (v5's redo): the history keeps the state each Undo left until a new step.
+  readonly redo = this.operation({
+    id: 'history.redo',
+    title: 'Redo',
+    params: {},
+    history: false,
+    when: (ctx) => (ctx.managers.history.redoable.value.length ? true : 'Nothing to redo'),
+    async run(_, ctx) {
+      const r = await ctx.managers.history.redo();
+      if (!r.ok) return ApiResult.fail('blocked', r.reason);
+      return ApiResult.ok(`Redone: ${r.step.label}.`, { view: true });
+    },
+  });
+
   readonly undoTurn = this.operation({
     id: 'history.undo-turn',
     title: "Undo the assistant's turn",

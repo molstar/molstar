@@ -55,6 +55,35 @@ describe('HistoryManager', () => {
     expect(h.undoBlocked.value).toBe('Nothing to undo');
   });
 
+  it('redoes what undo took back, in order, until a new step', async () => {
+    const s = store({ a: 0 });
+    const h = new HistoryManager(s.port);
+    await h.run('Set a to 1', person, async () => s.set('a', 1));
+    await h.run('Set a to 2', person, async () => s.set('a', 2));
+    expect((await h.redo()).ok).toBe(false);
+    await h.undo();
+    await h.undo();
+    expect(s.get().a).toBe(0);
+    expect(h.redoable.value.map((x) => x.label)).toEqual(['Set a to 1', 'Set a to 2']);
+    expect((await h.redo()).ok).toBe(true);
+    expect(s.get().a).toBe(1);
+    expect(h.steps.value.map((x) => x.label)).toEqual(['Set a to 1']);
+    // Undo again works on the redone step; Redo goes on.
+    await h.redo();
+    expect(s.get().a).toBe(2);
+    expect(h.steps.value.map((x) => x.label)).toEqual(['Set a to 2', 'Set a to 1']);
+    await h.undo();
+    // A new step: nothing to redo.
+    await h.run('Set a to 5', person, async () => s.set('a', 5));
+    expect(h.redoable.value).toEqual([]);
+    expect((await h.redo()).ok).toBe(false);
+    // A change outside the history empties it too.
+    await h.undo();
+    expect(h.redoable.value).toHaveLength(1);
+    h.invalidate('changed elsewhere');
+    expect(h.redoable.value).toEqual([]);
+  });
+
   it('restores the checkpoint of a failed run and records nothing', async () => {
     const s = store({ a: 0 });
     const h = new HistoryManager(s.port);

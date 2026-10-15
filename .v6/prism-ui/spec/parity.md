@@ -37,7 +37,7 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | Measurements (distance, angle, dihedral, orientation, plane; options) | Selection › Measure; measurement nodes                                | `measure.*`                  | built (`measurements`; rows in the scene tree) |
 | Superposition (chains, TM-align, ligands, atoms, SIFTS)               | Selection › Superpose                                                 | `superpose.*`                | built (`superposition`, lazy) |
 | State tree (nodes, current, delete, visibility, decorators, applicable actions) | State tree tab and its inspector                            | `state.*`                    | built (`state-tree`, lazy) |
-| Undo (components, state tree) | the viewer's history (one per step and per agent turn) | `history.*` | built (`history.undo`, `history.undo-turn`, `history.list`; the History tab) |
+| Undo (components, state tree) | the viewer's history (one per step and per agent turn) | `history.*` | built (`history.undo`, `history.redo` (⇧⌘Z), `history.undo-turn`, `history.list`; the History tab) |
 
 ## 3. Selection and focus
 

@@ -117,6 +117,7 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
   // Undo says what it undoes, or why it cannot.
   const title = history.undoBlocked.pipe(map((reason) => reason ?? 'Undo the latest step'));
   const undoLabel = history.steps.pipe(map((steps) => (steps.length ? `Undo ${steps[0].label}` : 'Undo')));
+  const redoLabel = history.redoable.pipe(map((r) => (r.length ? `Redo ${r[0].label}` : 'Nothing to redo')));
   const count = history.steps.pipe(
     map((steps) => (steps.length ? `${steps.length} step${steps.length === 1 ? '' : 's'}` : '')),
   );
@@ -140,6 +141,14 @@ function HistoryView(props: { viewer: PrismViewer; api: ViewerApi }) {
         >
           {undoLabel}
         </Button>
+        <Button
+          size="sm"
+          icon={<Icon name="redo-2" size={14} />}
+          title={redoLabel}
+          aria-label="Redo"
+          disabled={history.redoable.pipe(map((r) => r.length === 0))}
+          onClick={() => void api.history.redo().then(say)}
+        />
         <span class={classes.count}>{count}</span>
       </div>
       <div class={classes.keep}>

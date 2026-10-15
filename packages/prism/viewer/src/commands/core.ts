@@ -140,6 +140,12 @@ export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandCon
       alias: ['undo', 'back'],
       shortcut: { key: 'z', mod: true },
     }),
+    operationCommand(api, api.history.redo, {
+      category: 'Edit',
+      icon: 'redo-2',
+      alias: ['redo', 'forward'],
+      shortcut: { key: 'z', mod: true, shift: true },
+    }),
     operationCommand(api, api.history.undoTurn, {
       category: 'Edit',
       icon: 'history',

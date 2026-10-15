@@ -158,6 +158,12 @@ export class HistoryManager<C = unknown> {
   readonly #undoBlocked = observableState<string | undefined>('Nothing to undo');
   readonly #canUndo = observableState(false);
   readonly #undone = new Subject<HistoryStep>();
+  /**
+   * What Undo took back, newest first, each with the state it left (a checkpoint taken before the restore): Redo puts
+   * it back. Any new step, or a change outside the history, empties it.
+   */
+  #redo: { entry: Entry<C>; after: C }[] = [];
+  readonly #redoable = observableState<readonly HistoryStep[]>([]);
   readonly #checkpointingOff = new Subject<{ ms: number; bytes: number }>();
   readonly #open = new Map<string, OpenGroup>();
   readonly #active = new Map<number, Active>();
@@ -201,6 +207,11 @@ export class HistoryManager<C = unknown> {
   }
 
   /** A step undone. */
+  /** The steps Redo would put back, newest first. */
+  get redoable(): ReadonlyState<readonly HistoryStep[]> {
+    return this.#redoable.asReadonly;
+  }
+
   get undone(): Observable<HistoryStep> {
     return this.#undone.asObservable();
   }
@@ -351,8 +362,11 @@ export class HistoryManager<C = unknown> {
       const blocked = this.#blockedReason();
       if (blocked) return { ok: false, reason: blocked };
       const top = this.#entries[0];
+      // The state Undo leaves, for Redo (a checkpoint like any other; none when they are off).
+      const after = this.#checkpointing.value ? this.#port.checkpoint() : undefined;
       await this.#restore(top.checkpoint);
       this.#entries = this.#entries.slice(1);
+      this.#setRedo(after === undefined ? [] : [{ entry: { ...top, openKey: undefined }, after }, ...this.#redo]);
       this.#publish();
       this.#undone.next(top.step);
       return { ok: true, step: top.step };
@@ -360,6 +374,31 @@ export class HistoryManager<C = unknown> {
       release();
       this.#updateBlocked();
     }
+  }
+
+  /** Puts back the step the last Undo took back; blocked while a run is in flight. */
+  async redo(): Promise<UndoResult> {
+    if (this.#running.value > 0 || this.#active.size > 0)
+      return { ok: false, reason: 'A change is running; stop it first' };
+    if (!this.#redo.length) return { ok: false, reason: 'Nothing to redo' };
+    const release = await this.#acquire();
+    try {
+      const next = this.#redo[0];
+      if (!next) return { ok: false, reason: 'Nothing to redo' };
+      await this.#restore(next.after);
+      this.#entries = [next.entry, ...this.#entries].slice(0, this.#options.capacity);
+      this.#setRedo(this.#redo.slice(1));
+      this.#publish();
+      return { ok: true, step: next.entry.step };
+    } finally {
+      release();
+      this.#updateBlocked();
+    }
+  }
+
+  #setRedo(list: { entry: Entry<C>; after: C }[]) {
+    this.#redo = list;
+    if (this.#redoable.value.length || list.length) this.#redoable.set(list.map((r) => r.entry.step));
   }
 
   /**
@@ -389,6 +428,8 @@ export class HistoryManager<C = unknown> {
       await this.#restore(target.checkpoint);
       const undone = this.#entries.slice(0, last + 1);
       this.#entries = this.#entries.slice(last + 1);
+      // A turn undone at once is not redone step by step.
+      this.#setRedo([]);
       this.#publish();
       for (const e of undone) this.#undone.next(e.step);
       return { ok: true, step: target.step };
@@ -403,6 +444,8 @@ export class HistoryManager<C = unknown> {
    * drop the change, or fail on it). History says so on them.
    */
   invalidate(reason: string): void {
+    // Redo would put back a state from before the change: no longer.
+    this.#setRedo([]);
     let changed = false;
     for (const e of this.#entries) {
       e.openKey = undefined;
@@ -416,6 +459,7 @@ export class HistoryManager<C = unknown> {
 
   /** Forgets every step (a cleared scene); checkpoints turn back on. */
   clear(): void {
+    this.#setRedo([]);
     this.#entries = [];
     this.#checkpointing.set(true);
     this.#publish();
@@ -500,6 +544,8 @@ export class HistoryManager<C = unknown> {
       this.#publish();
       return top.step;
     }
+    // A new step: what Undo took back can no longer be put back.
+    this.#setRedo([]);
     const step: HistoryStep = {
       id: ++this.#serial,
       label,
