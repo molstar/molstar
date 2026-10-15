@@ -88,18 +88,28 @@ interface PrismViewerAgentSpec {
   readonly core?: readonly string[];                           // tool ids offered from the first turn (the viewer's default core)
   readonly tools?: readonly ToolRegistration<ViewerApi>[];     // the viewer's tools (agent.md §3); extensions add theirs (§3)
   readonly skills?: readonly ToolGroup<ViewerApi>[];           // the viewer's skills; extensions add theirs
-  readonly assistant?: () => Promise<AssistantFactory>;        // the UI: import('@molstar/prism-assistant/viewer')
+  readonly assistant?: () => Promise<{ createAssistant: AssistantFactory }>; // import('@molstar/prism-assistant/viewer')
 }
-type AssistantFactory = (viewer: PrismViewer, agent: ViewerAgent) => AssistantUI;   // ViewerAgent: createViewerAgent's
-                                                                                    // result (agent.md §1); AssistantUI:
-                                                                                    // its tab, Ask bar, turn card, Inspector
+// The assistant creates the agent itself: its models come from the person's keys, which the assistant keeps (agent.md §4).
+interface AssistantHost {
+  readonly viewer: PrismViewer;
+  readonly createAgent: (models: ModelSource) => ViewerAgent;  // createViewerAgent over this viewer (agent.md §1)
+}
+interface AssistantUI {
+  readonly ui: ViewerExtensionUI;              // its tab (and Inspector), registered as an extension's views
+  readonly commandMenu: CommandMenuAssistant;  // the command menu's Ask row
+  readonly agentView: () => Child;             // its turn card under the status line
+  dispose(): void;
+}
+type AssistantFactory = (host: AssistantHost) => Promise<AssistantUI> | AssistantUI;
 ```
 
 - The tools, skills and the session factory (`createViewerAgent`) are DOM-free (the viewer's `agent/` folder), so
   headless hosts (evals, MCP) use them without the assistant. The disclosure tools are always in the core, and the
   toolkit is dynamic (README decision 25).
 - The assistant is lazy and opt-in: the viewer's package does not depend on `@molstar/prism-assistant`; the app passes
-  the import, which is its own chunk. Without it there is no Assistant tab, no Ask bar, no turn card.
+  the import, which is its own chunk. The shell loads it with the agent's code (another chunk) after the first render.
+  Without it there is no Assistant tab, no Ask row, no turn card.
 - `false`: no tools at all (a viewer for an embedding host that wants none).
 
 ### 2.5 `ui`: the shell

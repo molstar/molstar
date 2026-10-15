@@ -44,6 +44,8 @@ Envelopes `{ codec: 'prism-viewer.record.v1', version: 1, value }` of strict JSO
 - **A turn waiting** for an approval or an `ask` keeps its streaming entry alive (a heartbeat while parked), so the
   fiber's inactivity timeout never aborts it (review F52).
 - **Reads** are windows (newest first), so the History view is a `VirtualList` over windows, however long the session.
+  As built (`journal/history-model.ts`): the newest window, "Show earlier" for the one before, read again once per frame
+  after a change and only while the tab is shown; a plain list until a session's rows call for virtualizing.
 
 ## 3. Shown back
 
@@ -52,7 +54,7 @@ Envelopes `{ codec: 'prism-viewer.record.v1', version: 1, value }` of strict JSO
   Undo on the latest step (the history manager's), Undo turn on the agent's latest turn.
 - **Without the assistant** History still shows the person's runs; the assistant adds the turn's rendering (the turn card,
   the Inspector's Trace for a turn still in the harness's storage).
-- **After a reload**: only kept records are there. Home lists them (title, first and last entries, when); opening one
+- **After a reload**: only kept records are there (not built yet: the list on Home). Home lists them (title, first and last entries, when); opening one
   shows its record, read-only, beside whatever is loaded now. Nothing in it can be undone or replayed into the current
   state; it is a record.
 - **Evals and replay**: the eval's run log is this record (memory rows); replaying it in the app reads the same entries

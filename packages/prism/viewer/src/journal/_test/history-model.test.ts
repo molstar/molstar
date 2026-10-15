@@ -1,0 +1,190 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { describe, expect, it, vi } from 'vitest';
+import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
+import { createHistoryModel, type HistoryRunRow, type HistoryTurnRow } from '../history-model.js';
+import { createSessionRecord } from '../record.js';
+
+// What History shows of the record (journal.md §3, plan 4.3).
+
+async function setup() {
+  const v = await headlessViewer({ files: [cbs()] });
+  const record = await createSessionRecord({ api: v.api, undone: v.managers.history.undone });
+  const model = createHistoryModel(record, { window: 200 });
+  return { v, record, model };
+}
+
+describe('the History model', () => {
+  it('shows a person run as one row, newest first, and marks it undone', async () => {
+    const { v, record, model } = await setup();
+    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'surface' }));
+    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'cartoon' }));
+    await record.flush();
+    model.setActive(true);
+    await model.idle();
+    const rows = model.rows.value as HistoryRunRow[];
+    expect(rows.map((r) => [r.kind, r.origin, r.undone, r.failed])).toEqual([
+      ['run', 'person', false, false],
+      ['run', 'person', false, false],
+    ]);
+    expect(rows[0].text).toMatch(/cartoon/i);
+
+    expectOk(await v.api.history.undo());
+    await record.flush();
+    await model.idle();
+    const after = model.rows.value as HistoryRunRow[];
+    // The undo is no row; it marks the latest run.
+    expect(after.map((r) => r.undone)).toEqual([true, false]);
+    model.dispose();
+    record.dispose();
+  });
+
+  it('marks a failed run, with the failure message', async () => {
+    const { v, record, model } = await setup();
+    const r = await v.api.as({ kind: 'person' }).styles.apply({ style: 'no-such-style' } as never);
+    expect(r.ok).toBe(false);
+    await record.flush();
+    model.setActive(true);
+    await model.idle();
+    const row = model.rows.value[0] as HistoryRunRow;
+    expect(row).toMatchObject({ kind: 'run', failed: true, undone: false });
+    expect(row.text).toBe(r.ok ? '' : r.message);
+    model.dispose();
+    record.dispose();
+  });
+
+  it('groups an agent turn: prompt, reply, its runs under it, undone with its steps', async () => {
+    const { v, record, model } = await setup();
+    model.setActive(true);
+    const turn = record.beginTurn('t1', 'make it a surface');
+    const agent = v.api.as({ kind: 'agent', turn: 't1' });
+    expectOk(await agent.styles.apply({ style: 'surface' }));
+    await record.flush();
+    await model.idle();
+    let rows = model.rows.value;
+    const open = rows.find((r) => r.kind === 'turn') as HistoryTurnRow;
+    expect(open).toMatchObject({ prompt: 'make it a surface', open: true, undone: false });
+    expect(open.runs).toHaveLength(1);
+    // The turn's run is under the turn, not a row of its own.
+    expect(rows.filter((r) => r.kind === 'run' && r.origin === 'agent')).toHaveLength(0);
+
+    await turn.settle({ reply: 'Done.\nIt is a surface.', outcome: 'done' });
+    await record.flush();
+    await model.idle();
+    const settled = model.rows.value.find((r) => r.kind === 'turn') as HistoryTurnRow;
+    expect(settled).toMatchObject({ open: false, reply: 'Done.\nIt is a surface.', outcome: 'done', undone: false });
+
+    expectOk(await v.api.history.undoTurn({ turn: 't1' }));
+    await record.flush();
+    await model.idle();
+    rows = model.rows.value;
+    const undone = rows.find((r) => r.kind === 'turn') as HistoryTurnRow;
+    expect(undone.undone).toBe(true);
+    expect(undone.runs.every((r) => r.undone)).toBe(true);
+    model.dispose();
+    record.dispose();
+  });
+
+  it('keeps a row object while it does not change', async () => {
+    const { v, record, model } = await setup();
+    model.setActive(true);
+    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'surface' }));
+    await record.flush();
+    await model.idle();
+    const first = model.rows.value[0];
+    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'cartoon' }));
+    await record.flush();
+    await model.idle();
+    expect(model.rows.value[1]).toBe(first);
+    model.dispose();
+    record.dispose();
+  });
+
+  it('shows session events as separator rows', async () => {
+    const { v, record, model } = await setup();
+    expectOk(await v.api.as({ kind: 'person' }).session.clear());
+    await record.flush();
+    model.setActive(true);
+    await model.idle();
+    expect(model.rows.value[0]).toMatchObject({ kind: 'session', text: expect.stringMatching(/Cleared/) });
+    model.dispose();
+    record.dispose();
+  });
+
+  it('reads in windows: the newest first, earlier ones by "Show earlier"', async () => {
+    const { v, record, model: _ } = await setup();
+    _.dispose();
+    const model = createHistoryModel(record, { window: 2 });
+    const person = v.api.as({ kind: 'person' });
+    for (const style of ['surface', 'cartoon', 'surface', 'cartoon', 'surface'] as const) {
+      expectOk(await person.styles.apply({ style }));
+    }
+    await record.flush();
+    model.setActive(true);
+    await model.idle();
+    expect(model.rows.value).toHaveLength(2);
+    expect(model.more.value).toBe(true);
+    await model.showEarlier();
+    expect(model.rows.value).toHaveLength(4);
+    expect(model.more.value).toBe(true);
+    await model.showEarlier();
+    expect(model.rows.value).toHaveLength(5);
+    expect(model.more.value).toBe(false);
+    // A new run joins at the top without dropping the earlier windows.
+    expectOk(await person.styles.apply({ style: 'cartoon' }));
+    await record.flush();
+    await model.idle();
+    expect(model.rows.value).toHaveLength(6);
+    model.dispose();
+    record.dispose();
+  });
+
+  it('coalesces changes to one read per frame, and reads nothing while inactive', async () => {
+    const { v, record, model } = await setup();
+    model.dispose();
+    const frames: (() => void)[] = [];
+    const m = createHistoryModel(record, { schedule: (fn) => frames.push(fn) });
+    const read = vi.spyOn(record, 'read');
+    const person = v.api.as({ kind: 'person' });
+
+    // Inactive: writes read nothing, and nothing is subscribed.
+    expectOk(await person.styles.apply({ style: 'surface' }));
+    await record.flush();
+    expect(read).not.toHaveBeenCalled();
+    expect(frames).toHaveLength(0);
+
+    m.setActive(true);
+    await m.idle();
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(m.rows.value).toHaveLength(1);
+
+    // Three writes before the frame: one read.
+    read.mockClear();
+    expectOk(await person.styles.apply({ style: 'cartoon' }));
+    expectOk(await person.styles.apply({ style: 'surface' }));
+    expectOk(await person.styles.apply({ style: 'cartoon' }));
+    await record.flush();
+    expect(frames).toHaveLength(1);
+    expect(read).not.toHaveBeenCalled();
+    frames.shift()!();
+    await m.idle();
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(m.rows.value).toHaveLength(4);
+
+    // Inactive again: no more reads.
+    m.setActive(false);
+    read.mockClear();
+    expectOk(await person.styles.apply({ style: 'surface' }));
+    await record.flush();
+    expect(frames).toHaveLength(0);
+    expect(read).not.toHaveBeenCalled();
+    m.dispose();
+    record.dispose();
+  });
+});

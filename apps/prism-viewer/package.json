@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@molstar/core": "workspace:*",
+    "@molstar/prism-assistant": "workspace:*",
     "@molstar/prism-viewer": "workspace:*",
     "tslib": "catalog:"
   },

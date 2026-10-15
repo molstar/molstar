@@ -12,14 +12,26 @@ import { defineStyles } from '@molstar/prism-ui/styles/registry';
 
 export const classes = {
   'bar': 'msp-viewer-history-bar',
+  'caption': 'msp-viewer-history-caption',
   'count': 'msp-viewer-history-count',
   'detail': 'msp-viewer-history-detail',
   'empty': 'msp-viewer-history-empty',
   'history': 'msp-viewer-history-history',
+  'keep': 'msp-viewer-history-keep',
   'label': 'msp-viewer-history-label',
+  'more': 'msp-viewer-history-more',
   'origin': 'msp-viewer-history-origin',
+  'prompt': 'msp-viewer-history-prompt',
+  'reply': 'msp-viewer-history-reply',
+  'replyFull': 'msp-viewer-history-replyFull',
+  'runs': 'msp-viewer-history-runs',
+  'separator': 'msp-viewer-history-separator',
+  'separatorText': 'msp-viewer-history-separatorText',
   'step': 'msp-viewer-history-step',
   'time': 'msp-viewer-history-time',
+  'turn': 'msp-viewer-history-turn',
+  'turnBody': 'msp-viewer-history-turnBody',
+  'turnHead': 'msp-viewer-history-turnHead',
   'unsafe': 'msp-viewer-history-unsafe',
 } as const;
 
@@ -93,6 +105,101 @@ defineStyles('viewer/ui/history.module.css', `@layer msp.components {
   overflow-wrap: anywhere;
   opacity: .8;
   min-width: 0;
+}
+
+.msp-viewer-history-keep {
+  min-height: var(--msp-space-5);
+  align-items: center;
+  display: flex;
+}
+
+.msp-viewer-history-caption {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.msp-viewer-history-more {
+  justify-content: center;
+  display: flex;
+}
+
+.msp-viewer-history-separator {
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  padding: var(--msp-space-1) var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  display: flex;
+}
+
+.msp-viewer-history-separatorText {
+  overflow-wrap: anywhere;
+  flex: 1;
+  min-width: 0;
+}
+
+.msp-viewer-history-turn {
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+  display: grid;
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.msp-viewer-history-turnHead {
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 0;
+  display: grid;
+}
+
+.msp-viewer-history-reply, .msp-viewer-history-replyFull, .msp-viewer-history-prompt {
+  color: var(--msp-color-text-muted);
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+
+.msp-viewer-history-reply {
+  max-height: 1.5em;
+  overflow: hidden;
+}
+
+.msp-viewer-history-replyFull, .msp-viewer-history-prompt {
+  white-space: pre-wrap;
+}
+
+.msp-viewer-history-turnBody {
+  gap: var(--msp-space-2);
+  display: grid;
+}
+
+.msp-viewer-history-runs {
+  gap: var(--msp-space-1);
+  padding-left: var(--msp-space-3);
+  display: grid;
+}
+
+.msp-viewer-history-step[data-undone] .msp-viewer-history-label, .msp-viewer-history-turn[data-undone] .msp-viewer-history-label {
+  color: var(--msp-color-text-muted);
+  text-decoration: line-through;
+}
+
+.msp-viewer-history-step[data-failed] .msp-viewer-history-origin {
+  color: var(--msp-color-danger);
+}
+
+.msp-viewer-history-step[data-nested] {
+  padding-inline: 0;
 }
 }
 `);

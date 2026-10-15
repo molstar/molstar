@@ -78,3 +78,105 @@
   overflow-wrap: anywhere;
   opacity: 0.8;
 }
+
+.keep {
+  display: flex;
+  align-items: center;
+  min-height: var(--msp-space-5);
+}
+
+.caption {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+}
+
+/* A session event: a quiet line between the rows. */
+.separator {
+  display: flex;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  padding: var(--msp-space-1) var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.separatorText {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* An agent's turn: a group; its head opens it. */
+.turn {
+  display: grid;
+  gap: var(--msp-space-1);
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+}
+
+.turnHead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--msp-space-3);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reply,
+.replyFull,
+.prompt {
+  margin: 0;
+  color: var(--msp-color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.reply {
+  max-height: 1.5em;
+  overflow: hidden;
+}
+
+.replyFull,
+.prompt {
+  white-space: pre-wrap;
+}
+
+.turnBody {
+  display: grid;
+  gap: var(--msp-space-2);
+}
+
+.runs {
+  display: grid;
+  gap: var(--msp-space-1);
+  padding-left: var(--msp-space-3);
+}
+
+/* The undone are struck and dim; a failure reads in the danger color. */
+.step[data-undone] .label,
+.turn[data-undone] .label {
+  color: var(--msp-color-text-muted);
+  text-decoration: line-through;
+}
+
+.step[data-failed] .origin {
+  color: var(--msp-color-danger);
+}
+
+.step[data-nested] {
+  padding-inline: 0;
+}

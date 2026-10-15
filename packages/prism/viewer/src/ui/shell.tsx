@@ -11,6 +11,7 @@
 import {
   type CanvasBackgroundProps,
   CommandMenu,
+  type CommandMenuAssistant,
   canvasInk,
   domView,
   FullscreenModel,
@@ -32,6 +33,7 @@ import {
   UIThemes,
 } from '@molstar/prism-ui';
 import { ownsKey } from '@molstar/prism-ui/dom/events';
+import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 // The reset and the theme tokens: every prism-ui root needs them (MspElement imports them; the shell is not one).
 import '@molstar/prism-ui/styles/base';
 import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
@@ -39,7 +41,7 @@ import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import type { HomeModel } from '../model/home.js';
 import { HomeTab } from '../views/home/home-tab.js';
 import { extensionUIPort } from './extensions.js';
-import { historyTab } from './history.js';
+import { historyTab, keepSessionRecord } from './history.js';
 import { exportCard, selectionSections, selectionTab } from './panels.js';
 import { settingsTab } from './settings.js';
 import { LegendCard } from '../sequence/legend-card.js';
@@ -184,7 +186,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           render: domView(() => <LogView status={managers.notifications} />),
         },
         // `options.ui.showHistory` (viewer-spec.md §2.2) leaves History out.
-        ...(core.options.ui.showHistory ? [historyTab(managers, person)] : []),
+        ...(core.options.ui.showHistory ? [historyTab(core, person)] : []),
         settingsTab(sources, managers, person),
         {
           id: 'help',
@@ -369,6 +371,15 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         },
       },
       {
+        id: 'record.keep',
+        title: "Keep this session's record",
+        alias: ['keep record', 'keep history', 'save record'],
+        category: 'Session',
+        icon: 'save',
+        when: () => (core.record.kept ? 'The record is already kept in this browser' : true),
+        run: async () => ({ message: (await keepSessionRecord(core)) ? "This session's record is kept." : '' }),
+      },
+      {
         id: 'view.theme',
         title: 'Next theme',
         alias: ['theme', 'dark', 'light'],
@@ -383,9 +394,38 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   );
 
   // Extensions' views: the eager ones' now, a lazy one's placeholders until it loads (viewer-spec.md §3).
-  unregister.push(
-    core.attachExtensionUI(extensionUIPort(shell, managers.commands, { api: person, sources, managers })),
-  );
+  const port = extensionUIPort(shell, managers.commands, { api: person, sources, managers });
+  unregister.push(core.attachExtensionUI(port));
+
+  // The assistant, when the spec has one (viewer-spec.md §2.4): loaded with the agent's code, both chunks of their own,
+  // then its tab, the command menu's Ask row, and its turn card under the status line.
+  const assistantMenu = observableState<CommandMenuAssistant | undefined>(undefined);
+  const agentView = observableState<(() => Child) | undefined>(undefined);
+  let closed = false;
+  unregister.push(() => {
+    closed = true;
+  });
+  const agentSpec = core.spec.agent;
+  if (agentSpec && agentSpec.assistant) {
+    const load = agentSpec.assistant;
+    void (async () => {
+      try {
+        const [{ createAssistant }, { createViewerAgent }] = await Promise.all([load(), import('../agent/session.js')]);
+        if (closed) return;
+        const assistant = await createAssistant({
+          viewer: core,
+          createAgent: (models) => createViewerAgent({ viewer: core, models }),
+        });
+        if (closed) return assistant.dispose();
+        unregister.push(port.register('assistant', assistant.ui));
+        unregister.push(() => assistant.dispose());
+        assistantMenu.set(assistant.commandMenu);
+        agentView.set(assistant.agentView);
+      } catch (e) {
+        managers.notifications.post(`The assistant could not start: ${e instanceof Error ? e.message : e}`, 'error');
+      }
+    })();
+  }
 
   // ⌘K / ⇧⌘P open the command menu; commands' own shortcuts run them; only this viewer's keys.
   const onKey = (e: KeyboardEvent) => {
@@ -416,6 +456,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           </Show>
         }
         playback={<Show when={shown('trajectory')}>{() => <TrajectoryBar model={trajectory.model} />}</Show>}
+        agent={<Show when={agentView}>{(view) => view()}</Show>}
         ink={ink}
         empty={sources.empty}
         context={() => <Show when={hasData}>{() => <SelectionBar selection={selection} />}</Show>}
@@ -429,6 +470,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             {() => (
               <CommandMenu
                 manager={managers.commands}
+                {...(assistantMenu.value ? { assistant: assistantMenu.value } : {})}
                 group={commandMenuGroup.value}
                 onClose={() => {
                   commandMenuOpen.set(false);

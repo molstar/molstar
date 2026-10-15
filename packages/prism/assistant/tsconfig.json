@@ -23,6 +23,15 @@
     },
     {
       "path": "../ui"
+    },
+    {
+      "path": "../viewer"
+    },
+    {
+      "path": "../../ai/session"
+    },
+    {
+      "path": "../../ai/model-adapters"
     }
   ]
 }

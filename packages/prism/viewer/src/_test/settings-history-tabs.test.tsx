@@ -32,11 +32,11 @@ function mount(tab: ShellTab) {
 }
 
 describe('the History tab', () => {
-  it('lists the steps, and Undo undoes the latest', async () => {
+  it('lists the runs of the record, and Undo undoes the latest', async () => {
     const v = await headlessViewer();
     const person = v.api.as({ kind: 'person' });
-    const host = mount(historyTab(v.managers, person));
-    expect(host.textContent).toContain('Nothing to undo yet.');
+    const host = mount(historyTab(v, person));
+    expect(host.textContent).toContain('Nothing has happened yet.');
     const undo = () => host.querySelector('button') as HTMLButtonElement;
     expect(undo().disabled).toBe(true);
     expectOk(await v.api.settings.set({ group: 'viewer', values: { checkpointing: false } }));
@@ -44,22 +44,33 @@ describe('the History tab', () => {
     expect(host.textContent).toContain('Changed the Viewer settings');
     expect(undo().disabled).toBe(false);
     undo().click();
-    await until(() => host.querySelectorAll('[data-origin]').length === 0);
-    expect(host.textContent).toContain('Nothing to undo yet.');
+    // The record keeps the step, marked undone.
+    await until(() => host.querySelectorAll('[data-undone]').length === 1);
+    expect(host.querySelector('[data-undone]')?.textContent).toContain('Undone');
+    expect(undo().disabled).toBe(true);
   });
 
-  it('shows who made a step, and the reason it cannot be undone', async () => {
+  it("shows an agent's turn as a group with its run, and Undo turn for the latest turn", async () => {
     const v = await headlessViewer();
-    const host = mount(historyTab(v.managers, v.api.as({ kind: 'person' })));
+    const host = mount(historyTab(v, v.api.as({ kind: 'person' })));
+    const turn = v.record.beginTurn('t1', 'Turn the checkpoints off');
     expectOk(
       await v.api.as({ kind: 'agent', turn: 't1' }).settings.set({ group: 'viewer', values: { checkpointing: false } }),
     );
-    v.managers.history.invalidate('Changed outside the viewer.');
-    await until(() => host.querySelector('[data-unsafe]') !== null);
+    await turn.settle({ reply: 'Done.', outcome: 'done' });
+    await until(() => host.textContent?.includes('Undo turn') === true);
     const row = host.querySelector('[data-origin]') as HTMLElement;
     expect(row.dataset.origin).toBe('agent');
-    expect(row.textContent).toContain('Changed outside the viewer.');
-    expect(row.textContent).toContain('Undo turn');
+    expect(row.textContent).toContain('Turn the checkpoints off');
+    expect(row.textContent).toContain('Done.');
+    expect(row.textContent).toContain('1 change');
+  });
+
+  it('keeps the record on a button, and says so', async () => {
+    const v = await headlessViewer();
+    const host = mount(historyTab(v, v.api.as({ kind: 'person' })));
+    expect(host.textContent).toContain('Keep this record');
+    expect(host.textContent).not.toContain('Kept in this browser');
   });
 });
 

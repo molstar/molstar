@@ -16,5 +16,7 @@ export function createAppSpec(search: string): PrismViewerSpec {
   return {
     ...base,
     options: optionsFromUrl(search),
+    // The assistant, its own chunk, loaded after the viewer is up (viewer-spec.md §2.4).
+    agent: { ...(base.agent || {}), assistant: () => import('@molstar/prism-assistant/viewer') },
   };
 }

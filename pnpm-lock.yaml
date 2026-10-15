@@ -619,6 +619,9 @@ importers:
       '@molstar/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@molstar/prism-assistant':
+        specifier: workspace:*
+        version: link:../../packages/prism/assistant
       '@molstar/prism-viewer':
         specifier: workspace:*
         version: link:../../packages/prism/viewer
@@ -2880,6 +2883,12 @@ importers:
       '@molstar/ai-agent':
         specifier: workspace:*
         version: link:../../ai/agent
+      '@molstar/ai-model-adapters':
+        specifier: workspace:*
+        version: link:../../ai/model-adapters
+      '@molstar/ai-session':
+        specifier: workspace:*
+        version: link:../../ai/session
       '@molstar/ai-tools':
         specifier: workspace:*
         version: link:../../ai/tools
@@ -2892,6 +2901,9 @@ importers:
       '@molstar/prism-ui':
         specifier: workspace:*
         version: link:../ui
+      '@molstar/prism-viewer':
+        specifier: workspace:*
+        version: link:../viewer
       rxjs:
         specifier: 'catalog:'
         version: 7.8.2
@@ -2899,15 +2911,18 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
-      '@molstar/prism-viewer':
+      '@molstar/ai-conformance':
         specifier: workspace:*
-        version: link:../viewer
+        version: link:../../ai/conformance
       '@storybook/web-components-vite':
         specifier: 'catalog:'
         version: 10.6.0(lit@3.3.3)(storybook@10.6.0(@types/react@18.3.31)(prettier@3.9.9)(react@18.3.1))(vite@8.3.1(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
       '@types/node':
         specifier: 22.20.1
         version: 22.20.1
+      '@types/webxr':
+        specifier: 'catalog:'
+        version: 0.5.24
       fake-indexeddb:
         specifier: 'catalog:'
         version: 6.2.5

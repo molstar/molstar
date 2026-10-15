@@ -7,7 +7,12 @@
  */
 
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { ModelSource } from '@molstar/ai-session';
+import type { CommandMenuAssistant } from '@molstar/prism-ui';
+import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import type { Observable } from 'rxjs';
+import type { ViewerAgent } from './agent/session.js';
+import type { PrismViewer } from './viewer.js';
 import type { PartialCanvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import type { PluginConfigItem } from '@molstar/plugin/config';
 import type { PluginRegistryEntry, PluginSpec } from '@molstar/plugin/spec';
@@ -86,9 +91,28 @@ export interface PrismViewerAgentSpec {
   readonly tools?: readonly ViewerTool[];
   /** The viewer's skills; extensions add theirs. */
   readonly skills?: readonly ViewerSkill[];
-  /** The UI: `() => import('@molstar/prism-assistant/viewer')`. */
-  readonly assistant?: () => Promise<unknown>;
+  /** The UI: `() => import('@molstar/prism-assistant/viewer')` (its `createAssistant`). */
+  readonly assistant?: () => Promise<{ readonly createAssistant: AssistantFactory }>;
 }
+
+/**
+ * What the assistant gets (§2.4): the viewer, and the agent's factory, which it calls with its models (the keys are the
+ * person's, kept by the assistant: agent.md §4).
+ */
+export interface AssistantHost {
+  readonly viewer: PrismViewer;
+  readonly createAgent: (models: ModelSource) => ViewerAgent;
+}
+
+/** The assistant's parts in the page: its views, the command menu's Ask row, its turn card under the status line. */
+export interface AssistantUI {
+  readonly ui: ViewerExtensionUI;
+  readonly commandMenu: CommandMenuAssistant;
+  readonly agentView: () => Child;
+  dispose(): void;
+}
+
+export type AssistantFactory = (host: AssistantHost) => Promise<AssistantUI> | AssistantUI;
 
 /** A tool over the viewer's API (agent.md §3); typed with `@molstar/ai-tools`' registrations in plan phase 4. */
 export interface ViewerTool {

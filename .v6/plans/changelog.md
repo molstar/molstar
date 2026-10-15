@@ -91,7 +91,8 @@ the [API change ledger](breaking-v6-changes.md).
   surface runs (commands, views, the URL, the agent), one undo history with checkpoints, built-in features as
   extensions (canvas settings, snapshots, export, measurements, superposition, state tree, loaders, remote states,
   animation), lazy where heavy; the viewer's agent on `@molstar/ai-session` (`agent/`), with live runs opt in
-  (`pnpm test:live`)
+  (`pnpm test:live`); the session's record shown in History, kept in the browser on request; the assistant on the real
+  agent (`apps/prism-viewer` passes it: the person's own keys, kept scrambled)
 - `@molstar/ai-tools`: a dynamic toolkit (`toolkit.add`, lazy skills disclosed during a turn); `ai-session` reads it as
   it is
 - The snapshot manager's `getStateSnapshot` and `serialize` take `keepList` (the current scene without changing the

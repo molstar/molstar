@@ -113,6 +113,10 @@ test passes (every operation has a command or a tool, or says why).
    (journal.md).
 4. **The assistant on it**: prism-assistant's views over the real agent; key storage (agent.md §4); the Storage view
    (journal.md §7).
+   As built: `@molstar/prism-assistant/viewer` (`createAssistant`, viewer-spec.md §2.4): the setup over the key store,
+   the agent model (turn card from the session's hooks, approvals answered as the turn asks, Undo turn, the history from
+   the record); History over the record (`journal/history-model.ts`) with "Keep this record". Not yet: the Storage view,
+   Home's kept records.
 5. **Evals, a first one**: a task on the headless viewer, checked on the state account.
 
 Accepted when: an agent can do the first scope (README §3.3) in the app and headless, a turn undoes as one step, and a
