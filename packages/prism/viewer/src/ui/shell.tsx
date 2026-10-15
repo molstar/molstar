@@ -38,7 +38,7 @@ import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 // The reset and the theme tokens: every prism-ui root needs them (MspElement imports them; the shell is not one).
 import '@molstar/prism-ui/styles/base';
 import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
-import { combineLatest, distinctUntilChanged, map } from 'rxjs';
+import { combineLatest, debounceTime, distinctUntilChanged, map } from 'rxjs';
 import type { HomeModel } from '../model/home.js';
 import { HomeTab } from '../views/home/home-tab.js';
 import { extensionUIPort } from './extensions.js';
@@ -103,7 +103,34 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   const fullscreen = new FullscreenModel(() => target);
 
   // The canvas: the plugin is mounted here once the shell is in the page and has a size.
-  const canvasHost = (<div style="position: absolute; inset: 0" data-msp-canvas="" />) as HTMLElement;
+  // Its text alternative (README §3.7): what is loaded and what is selected, in words, for a screen reader; kept in
+  // step with the scene, coalesced (one update per settle), and never announced (a description, not a live region).
+  const canvasText = (
+    <div
+      id="msp-canvas-text"
+      style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)"
+    />
+  ) as HTMLElement;
+  const canvasHost = (
+    <div
+      style="position: absolute; inset: 0"
+      data-msp-canvas=""
+      role="img"
+      aria-label="3D view"
+      aria-describedby="msp-canvas-text"
+    />
+  ) as HTMLElement;
+  canvasHost.appendChild(canvasText);
+  const describeCanvas = combineLatest([sources.structures, sources.interaction.selection, sources.interaction.focus])
+    .pipe(debounceTime(250))
+    .subscribe(([structures, selected, focused]) => {
+      const loaded = structures.length
+        ? `${structures.map((st) => st.label).join(', ')} (${structures.reduce((n, st) => n + st.atoms, 0)} atoms).`
+        : 'Nothing is loaded.';
+      canvasText.textContent = [loaded, selected ? `Selected: ${selected}.` : '', focused ? `Focused: ${focused}.` : '']
+        .filter(Boolean)
+        .join(' ');
+    });
 
   // The ink follows the plugin's canvas props (the background); white until the canvas exists.
   const inkProps = observableState<CanvasBackgroundProps>({ renderer: { backgroundColor: 0xffffff } });
@@ -547,6 +574,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
       shell.unmount();
       shell.retire();
       inkSub.unsubscribe();
+      describeCanvas.unsubscribe();
       ink.dispose();
       stopTheme();
       keepTheme.unsubscribe();
