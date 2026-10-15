@@ -53,10 +53,13 @@ const PrismViewerOptions = {                                   // PD params; a v
   canvas: PD.Group({ background, focusBehavior: 'default' | 'secondary-zoom' | 'disabled' }),
   data: PD.Group({ pdbProvider, emdbProvider, volumeStreamingServer, volumeStreamingDisabled,
                    stateServer, saccharideCompIdMapType }),
-  ui: PD.Group({ showSequence, showHistory, showRemoteStates, collapsed, buttons: { reset, screenshot, expand,
-                 fullscreen, settings, selectionMode, animation, trajectory } }),
+  ui: PD.Group({ showSequence, showHistory, showRemoteStates, collapsed, homeWhenEmpty, buttons: { reset, screenshot,
+                 expand, fullscreen, settings, selectionMode, animation, trajectory } }),
 };
 ```
+
+`homeWhenEmpty` (off by default) opens Home at start while nothing is loaded; the app turns it on when its URL loads
+nothing, a page that drives the viewer itself leaves it off.
 
 - **In code**: `packages/prism/viewer/src/options.ts`; `auto` (transparency, resolution, WebGL 1) leaves the plugin's
   own detection. Turned into config items and canvas props by `sources/compose-plugin.ts`.

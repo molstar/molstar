@@ -10,6 +10,7 @@ import { PLUGIN_VERSION } from '@molstar/plugin/version';
 import { webStore } from '@molstar/prism-viewer/persist/stores';
 import type { PrismViewerSpec } from '@molstar/prism-viewer/spec';
 import { FullPrismViewerSpec } from './full-spec.js';
+import { LoadUrlParameters } from '@molstar/prism-viewer/features/loaders';
 import { optionsFromUrl } from './url.js';
 
 /** The spec the app ships (viewer-spec.md §5): the viewer's defaults, Mol*'s extensions and the URL's options. */
@@ -20,9 +21,12 @@ export function createAppSpec(search: string): PrismViewerSpec {
   const assistant = params.has('assistant');
   // `?restore`: this tab's scene comes back after a reload (journal.md §6). Off by default: a session lives in memory.
   const restore = params.has('restore');
+  // Opened with nothing to load: Home, where loading starts (a page that drives the viewer itself keeps it closed).
+  const options = optionsFromUrl(search);
+  const loads = LoadUrlParameters.some((p) => params.has(p));
   return {
     ...base,
-    options: optionsFromUrl(search),
+    options: { ...options, ui: { homeWhenEmpty: !loads, ...options.ui } },
     ...(assistant ? { ui: { ...base.ui, layout: { ...base.ui?.layout, start: 'assistant.tab.assistant' } } } : {}),
     // Light state in the browser (journal.md §6): preferences in localStorage; with `?restore`, this tab's light
     // restore in sessionStorage; both stamped with the app's version.

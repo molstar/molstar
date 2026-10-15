@@ -84,6 +84,11 @@ export const PrismViewerOptions = {
     showRemoteStates: PD.Boolean(false),
     /** Start with no panel open. */
     collapsed: PD.Boolean(false),
+    /**
+     * Open Home at start while nothing is loaded, so a person sees where to load from (the app's; off for a viewer a
+     * page drives itself).
+     */
+    homeWhenEmpty: PD.Boolean(false),
     buttons: PD.Group({
       reset: PD.Boolean(true),
       screenshot: PD.Boolean(true),

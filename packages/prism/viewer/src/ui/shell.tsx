@@ -647,8 +647,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   };
   document.addEventListener('keydown', onKey);
 
-  // It starts clean: no panel open (the rail and the canvas tools are there), unless the spec names a tab.
-  const start = layout.start;
+  // It starts clean: no panel open (the rail and the canvas tools are there), unless the spec names a tab, or
+  // `homeWhenEmpty` opens Home while nothing is loaded (where to load from).
+  const start = layout.start ?? (core.options.ui.homeWhenEmpty && sources.empty.value ? 'home' : undefined);
   if (start && !core.options.ui.collapsed) shell.show(start);
   else managers.navigation.setDock('right', { collapsed: true });
   shell.mount();
