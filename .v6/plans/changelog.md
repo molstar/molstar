@@ -89,6 +89,13 @@ the [API change ledger](breaking-v6-changes.md).
   Storybook (`storybook/`, the repository's Storybook for the registered packages)
 - State actions and transformers take `display.triggerLabel`, the label of the button that runs them ("Download",
   "Open"); a UI falls back to a generic one without it
+- `PluginState.registerCustomState(key, { get, set })` lets a component keep its own state in plugin snapshots
+  (`snapshot.custom[key]`): saved by `getSnapshot`, restored by `setSnapshot` after the data tree (`undefined` when the
+  snapshot has no value), carried by snapshot manager entries and `.molx` / `.molj` sessions
+- Every plugin path that changes the canvas props emits `events.canvas3d.settingsUpdated` (initial props, `clear(true)`,
+  snapshot, transition-frame and snapshot-animation restore, canvas context props); new
+  `PluginContext.setCanvas3DProps` and `setCanvas3DContextProps` set the props and emit. A direct `canvas3d.setProps`
+  still emits nothing
 
 ## Video export
 

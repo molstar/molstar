@@ -30,7 +30,7 @@ async function setPartialSnapshot(
       settings.cameraClipping = undefined;
       settings.cameraFog = undefined;
     }
-    plugin.canvas3d?.setProps(settings);
+    plugin.setCanvas3DProps(settings);
   }
   const instant = first || entry.camera?.transitionStyle === 'instant';
   if (entry.camera?.current) {
