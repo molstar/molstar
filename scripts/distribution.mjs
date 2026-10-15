@@ -181,12 +181,15 @@ for (const app of appDirs) {
   const source = path.join(root, app.package, 'build');
   await copyTree(source, path.join(destination, app.target));
 }
-// The single-file Prism viewer (app.md §2): only its one file, beside the classic viewer.
+// The single-file Prism viewer (app.md §2): its file and its images (backgrounds, beside it in `images/`, fetched by URLs
+// relative to the module), beside the classic viewer.
 const prismSingle = path.join(root, 'apps/prism-viewer/build/prism-viewer.js');
 if (!(await exists(prismSingle)))
   throw new Error('Missing apps/prism-viewer/build/prism-viewer.js: build the app first');
 await fs.mkdir(path.join(destination, 'prism-viewer'), { recursive: true });
 await fs.copyFile(prismSingle, path.join(destination, 'prism-viewer', 'prism-viewer.js'));
+const prismImages = path.join(root, 'apps/prism-viewer/build/images');
+if (await exists(prismImages)) await copyTree(prismImages, path.join(destination, 'prism-viewer', 'images'));
 
 const viewerEntry = path.join(root, 'apps/viewer/src/app.ts');
 const viewerEntryTsx = viewerEntry + 'x';
