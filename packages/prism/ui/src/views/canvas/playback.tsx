@@ -178,6 +178,11 @@ function SnapshotList(props: { model: SnapshotStepperModel; onClose(): void }) {
 
 function Trajectory(props: { model: TrajectoryControlsModel }) {
   const { model } = props;
+  // One model back or forth, past the end to the start (as v5's arrows).
+  const step = (by: number) => {
+    const c = model.count.value;
+    if (c > 1) model.seek((((model.index.value + by) % c) + c) % c);
+  };
   // The played part of the track, for the scrubber's fill.
   const progress = combineLatest([model.index, model.count]).pipe(
     map(([i, c]) => `${c > 1 ? (100 * i) / (c - 1) : 0}%`),
@@ -201,7 +206,21 @@ function Trajectory(props: { model: TrajectoryControlsModel }) {
         aria-label="Model"
         onInput={(e) => model.seek(Number(e.currentTarget.value))}
       />
+      <Button
+        variant="ghost"
+        size="sm"
+        icon={<Icon name="chevron-left" />}
+        title="Previous model"
+        onClick={() => step(-1)}
+      />
       <PlayButton playing={model.isPlaying} title="Play models" onClick={() => model.togglePlay()} />
+      <Button
+        variant="ghost"
+        size="sm"
+        icon={<Icon name="chevron-right" />}
+        title="Next model"
+        onClick={() => step(1)}
+      />
     </div>
   );
 }
