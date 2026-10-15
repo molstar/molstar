@@ -14,6 +14,7 @@ import type { ReadonlyState } from '../reactive/readonly-state.js';
 import { CommandInvocation } from './invocation.js';
 import { fuzzyScore } from './match.js';
 import type {
+  CommandValues,
   CommandAssistant,
   CommandDefinition,
   CommandFormats,
@@ -313,15 +314,21 @@ export class CommandManager<Ctx> {
   }
 
   /**
-   * Opens a command: its form (with a preset's values, when one is named), or runs it at once
-   * when it has none. Refused while a run is in flight, and when the command cannot run; never
-   * throws.
+   * Opens a command: its form (with a preset's values, when one is named, or the values given: what it is opened for,
+   * a component's own row), or runs it at once when it has none. Refused while a run is in flight, and when the command
+   * cannot run; never throws.
    */
-  open(id: string, tail?: string, preset?: string): OpenResult<Ctx> {
+  open(id: string, tail?: string, preset?: string | CommandValues): OpenResult<Ctx> {
     const command = this.get(id);
     if (!command) return { kind: 'blocked', reason: `No command "${id}".` };
-    const values = preset === undefined ? undefined : this.#presets(command).find((p) => p.id === preset)?.values;
-    if (preset !== undefined && !values) return { kind: 'blocked', reason: `${command.title} has no "${preset}".` };
+    const values =
+      preset === undefined
+        ? undefined
+        : typeof preset === 'string'
+          ? this.#presets(command).find((p) => p.id === preset)?.values
+          : preset;
+    if (typeof preset === 'string' && !values)
+      return { kind: 'blocked', reason: `${command.title} has no "${preset}".` };
     if (this.#run) return { kind: 'blocked', reason: `${this.#run.command.title.replace(/…$/, '')} is still running.` };
     const blocked = this.blocked(command);
     if (blocked) return { kind: 'blocked', reason: blocked };

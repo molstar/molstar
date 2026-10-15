@@ -15,6 +15,7 @@ import {
   type CommandDefinition,
   createUiTransactionCoordinator,
   type DockId,
+  type CommandValues,
   DockIds,
   type DockLayout,
   HistoryManager,
@@ -278,7 +279,12 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const person = host.api.as({ kind: 'person' });
     const viewScope = new SourceScope();
     disposers.push(() => viewScope.dispose());
-    const scene = createSceneSource(viewScope, plugin, person);
+    const scene = createSceneSource(
+      viewScope,
+      plugin,
+      person,
+      (id, values) => void managers.commands.open(id, undefined, values as CommandValues),
+    );
     const presets = createPresetsModel(plugin, person);
     const componentOptions = createComponentOptionsForm(viewScope, plugin, person);
     const quickStyles = createQuickStylesModel(person);

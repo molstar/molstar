@@ -188,7 +188,15 @@ export interface SceneSource extends SceneModel {
  * The scene over the plugin. `api` is bound to the person (its calls are the person's steps); `scope` holds the
  * subscriptions.
  */
-export function createSceneSource(scope: SourceScope, plugin: PluginContext, api: ViewerApi): SceneSource {
+/** Opens a command in the command menu with values (a component's own row: the component filled in). */
+export type OpenCommand = (id: string, values: Readonly<Record<string, unknown>>) => void;
+
+export function createSceneSource(
+  scope: SourceScope,
+  plugin: PluginContext,
+  api: ViewerApi,
+  openCommand?: OpenCommand,
+): SceneSource {
   const nodes = new Map<string, Node>();
   const roots = observableState<readonly SceneNode[]>([]);
   const picked = observableState<SceneNode | undefined>(undefined);
@@ -317,7 +325,7 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
         remove: () => void api.run('component.remove', { component: ref, structure: structureRef }),
       });
       n.removable = true;
-      n.menu = componentMenu(plugin, api, ref, structureRef, loci);
+      n.menu = componentMenu(plugin, api, ref, structureRef, loci, openCommand, c.cell.obj?.label ?? '');
       nodes.set(ref, n);
     }
     const reprs = c.representations.map((r) => reprLabel(plugin, r)).join(', ');
@@ -776,13 +784,66 @@ function colorLabel(plugin: PluginContext, r: StructureRepresentationRef): strin
 }
 
 /** Mol*'s component menu: add representation, color, modify by the selection, select this. */
+/** The preset components' labels as target keywords (targets.md §1). */
+const ComponentKeywords: Readonly<Record<string, string>> = {
+  polymer: 'polymer',
+  protein: 'protein',
+  'nucleic acid': 'nucleic',
+  ligand: 'ligand',
+  ion: 'ion',
+  water: 'water',
+  carbohydrate: 'branched',
+  branched: 'branched',
+};
+
 function componentMenu(
   plugin: PluginContext,
   api: ViewerApi,
   ref: string,
   structureRef: string,
   loci: () => StructureElement.Loci | undefined,
+  openCommand: OpenCommand | undefined,
+  label: string,
 ): SceneMenuItem[] {
+  // With the command menu: each opens its command for this component (its fields filled in, the rest to choose there),
+  // so the long lists (types, themes) are the command menu's to search, not a fold in a panel.
+  if (openCommand) {
+    // A preset component (Polymer, Ligand, Water, …) is also a target by its keyword; another is typed there.
+    const keyword = ComponentKeywords[label.toLowerCase()];
+    return [
+      {
+        id: 'add-repr',
+        label: 'Add representation…',
+        icon: 'plus',
+        run: () => openCommand('representation.set', { component: ref, structure: structureRef }),
+      },
+      {
+        id: 'coloring',
+        label: 'Set coloring…',
+        icon: 'palette',
+        run: () =>
+          openCommand('representation.color-theme', {
+            structure: structureRef,
+            ...(keyword ? { target: keyword } : {}),
+          }),
+      },
+      {
+        id: 'modify',
+        label: 'Modify by selection…',
+        icon: 'squares-unite',
+        run: () => openCommand('component.modify', { component: ref, structure: structureRef, target: 'selection' }),
+      },
+      {
+        id: 'select',
+        label: 'Select this',
+        icon: 'mouse-pointer-2',
+        run: () => {
+          const l = loci();
+          if (l) void api.run('select.set', { target: { loci: l }, mode: 'set' });
+        },
+      },
+    ];
+  }
   const types = plugin.representation.structure.registry.types.map(([id, label]) => ({ id, label }));
   const themes = plugin.representation.structure.themes.colorThemeRegistry.types
     .slice(0, 24)

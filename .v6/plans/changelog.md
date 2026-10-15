@@ -149,7 +149,10 @@ the [API change ledger](breaking-v6-changes.md).
   strip, the themes as tiles in their colors on the structure); pLDDT offered only for a prediction (ModelCIF quality
   metrics, or no experimental method); a component's inspector lists its representations to open; Contents has a
   summary (entities by type, chains, residues, atoms); Focus is one row for the scene.
-- Prism UI: a select's options are grouped by Mol*'s categories, each group a fold (the current option's open).
+- Prism UI: a select's options are grouped by Mol*'s categories, each group a fold (the current option's open); a
+  form's select opens as a popover under its field; `CommandManager.open` takes values to open a command with.
+- Prism viewer: a component's actions (Add representation, Set coloring, Modify by selection) open their commands in
+  the command menu for it, the component (or a preset component's keyword) filled in.
 - Prism UI: a form's presets open as a popover under their button (`PresetsList`), and a list inline in a panel lets
   the wheel scroll the panel at its ends (`ScrollArea`'s `chain`).
 - `ColorTheme.Palette` (the volume-value theme): a color list with offsets interpolates between its stops (as

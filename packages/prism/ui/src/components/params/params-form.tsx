@@ -18,7 +18,7 @@ import { uniqueId } from '../../dom/focus.js';
 import { onCleanup } from '../../dom/scope.js';
 import { type ParamSection, ParamsFormModel, paramSections } from '../../forms/params-form.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
-import { OptionList, SelectButton } from '../select/select.js';
+import { Floating, OptionList, SelectButton } from '../select/select.js';
 import { ColorPicker, colorToHex, colorToRgb } from '../color/color-picker.js';
 import { Icon } from '../icon/icon.js';
 import { classes } from './_generated/params-form.module.css.js';
@@ -546,8 +546,8 @@ function format(v: number, step?: number) {
 }
 
 /**
- * A choice as a row: the label and the current option; opened, the options expand inline under the whole row (Mol*'s
- * action menu). Values may be any type: the list works with indices.
+ * A choice as a row: the label and the current option; opened, the options in a popover under the field (grouped by
+ * Mol*'s categories). Values may be any type: the list works with indices.
  */
 function SelectRow(props: {
   label: string;
@@ -564,11 +564,12 @@ function SelectRow(props: {
   const index = binding.value.pipe(map((v) => String(options.findIndex((o) => o[0] === v))));
   // Mol*'s option categories are the list's groups.
   const indexed = options.map(([, label, group], i) => [String(i), label, group] as const);
+  let control: HTMLElement | undefined;
   return (
     <>
       <div class={classes.row}>
         <span class={classes.label}>{props.head ?? props.label}</span>
-        <div class={classes.control}>
+        <div class={classes.control} ref={(el: HTMLElement) => (control = el)}>
           <SelectButton
             size="sm"
             open={open}
@@ -578,18 +579,23 @@ function SelectRow(props: {
           {props.after}
         </div>
       </div>
+      {/* A popover under the field (the form does not move for it), at least as wide as the field. */}
       <Show when={open}>
-        {() => (
-          <OptionList
-            options={indexed}
-            value={index}
-            onPick={(i) => {
-              open.set(false);
-              binding.set(options[Number(i)][0]);
-            }}
-            onClose={() => open.set(false)}
-          />
-        )}
+        {() => {
+          const list = (
+            <OptionList
+              options={indexed}
+              value={index}
+              onPick={(i) => {
+                open.set(false);
+                binding.set(options[Number(i)][0]);
+              }}
+              onClose={() => open.set(false)}
+              floating
+            />
+          );
+          return control ? <Floating anchor={control}>{list}</Floating> : list;
+        }}
       </Show>
     </>
   );
