@@ -230,7 +230,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               home={home}
               onOpenCommandMenu={() => openCommandMenu()}
               // Features' import sections (the loaders' database and URL forms) after the registry's actions.
-              more={() => <SectionList shell={ctx.shell} slot="home.import" />}
+              more={() => <SectionList shell={ctx.shell} slot="home.import" bare />}
             />
           )),
         },

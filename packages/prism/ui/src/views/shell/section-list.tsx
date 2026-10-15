@@ -32,6 +32,8 @@ export function SectionList(props: {
   flat?: boolean;
   /** Sections the user has not opened yet start folded. */
   collapsed?: boolean;
+  /** Among rows of its own kind (Home's actions): no padding of its own, its headers as tall as theirs. */
+  bare?: boolean;
 }) {
   const { shell, subject } = props;
   const ctx: ShellViewContext = { shell, subject };
@@ -42,7 +44,7 @@ export function SectionList(props: {
   const focuses = (id: string) => !!focus && (focus === id || focus.startsWith(`${id}/`));
   const inner = (id: string) => (focus?.startsWith(`${id}/`) ? focus.slice(id.length + 1) : undefined);
   return (
-    <div class={classes.list} data-flat={props.flat ? '' : undefined}>
+    <div class={classes.list} data-flat={props.flat ? '' : undefined} data-bare={props.bare ? '' : undefined}>
       <For each={sections} key={(s) => s.id}>
         {(section) => (
           <SectionBlock

@@ -75,6 +75,14 @@ defineStyles('views/shell/section-list.module.css', `@layer msp.components {
   padding: var(--msp-space-2) var(--msp-space-3) var(--msp-space-3);
 }
 
+.msp-shell-section-list-list[data-bare] {
+  padding: 0;
+
+  & .msp-shell-section-list-header {
+    height: 32px;
+  }
+}
+
 .msp-shell-section-list-list[data-flat] {
   padding: 0;
 
