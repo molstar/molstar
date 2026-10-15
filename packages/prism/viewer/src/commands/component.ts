@@ -9,8 +9,52 @@
 import type { CommandDefinition } from '@molstar/prism-ui/core';
 import type { ViewerApi } from '../api/area.js';
 import type { ViewerCommandContext } from '../api/managers.js';
+import { operationCommand } from './operations.js';
 
-/** The component commands (operations.md §3): to be filled in. */
-export function componentCommands(_api: ViewerApi): CommandDefinition<ViewerCommandContext>[] {
-  return [];
+/** The component commands (operations.md §3, §2 `component`): one per operation, the reads and `modify` aside. */
+export function componentCommands(api: ViewerApi): CommandDefinition<ViewerCommandContext>[] {
+  const category = 'Components';
+  return [
+    operationCommand(api, api.component.add, {
+      category,
+      icon: 'plus',
+      alias: ['add component', 'new component', 'make component', 'show ligand', 'add representation'],
+      action: 'Add',
+    }),
+    operationCommand(api, api.component.modify, {
+      category,
+      icon: 'layers',
+      alias: ['modify component', 'edit component', 'add to component', 'remove from component'],
+      action: 'Change',
+    }),
+    operationCommand(api, api.component.rename, {
+      category,
+      icon: 'pencil',
+      alias: ['rename component'],
+      action: 'Rename',
+    }),
+    operationCommand(api, api.component.visibility, {
+      category,
+      icon: 'eye',
+      alias: ['show component', 'hide component', 'toggle component'],
+      action: 'Set',
+    }),
+    operationCommand(api, api.component.remove, {
+      category,
+      icon: 'trash-2',
+      alias: ['delete component', 'remove component'],
+      action: 'Remove',
+    }),
+    operationCommand(api, api.component.options, {
+      category,
+      icon: 'sliders-horizontal',
+      alias: ['component options', 'hydrogens', 'quality', 'representation options'],
+      action: 'Set',
+    }),
+    operationCommand(api, api.component.list, {
+      category,
+      icon: 'list',
+      alias: ['components', 'list components'],
+    }),
+  ];
 }
