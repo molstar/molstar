@@ -591,6 +591,61 @@ export function openKeptRecord(rows: FiberRows, id: string): RecordReader {
   };
 }
 
+/**
+ * The record as a session file keeps it (journal.md §5, `record.jsonl`): an entry a line, oldest first, each in its
+ * envelope (`{ codec, version, value }`).
+ */
+export async function recordLines(reader: RecordReader): Promise<string> {
+  const { items } = await reader.readAfter(0, Number.MAX_SAFE_INTEGER);
+  const lines: string[] = [];
+  for (let i = items.length - 1; i >= 0; i--) lines.push(JSON.stringify(envelope(items[i].entry as unknown as Json)));
+  return lines.join('\n');
+}
+
+/** A record read from a session file: read-only, as a kept one (journal.md §5), its span and size. */
+export interface FileRecord {
+  readonly reader: RecordReader;
+  readonly count: number;
+  readonly first: number;
+  readonly last: number;
+}
+
+/** A session file's record from its lines; a line that is not an entry of ours is skipped. None: no entries. */
+export function recordFromLines(text: string): FileRecord | undefined {
+  const entries: RecordEntry[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    try {
+      const e = JSON.parse(line) as { codec?: string; value?: RecordEntry };
+      const v = e?.codec === RecordCodec ? e.value : undefined;
+      if (v && typeof v === 'object' && 'kind' in v && 'at' in v) entries.push(v);
+    } catch {
+      // not a line of ours
+    }
+  }
+  if (!entries.length) return undefined;
+  const item = (i: number): RecordItem => ({ id: `file-${i}`, position: i, entry: entries[i], open: false });
+  const n = entries.length;
+  const reader: RecordReader = {
+    kept: true,
+    async read(limit, before) {
+      const end = Math.min(before ?? n, n);
+      const start = Math.max(0, end - Math.max(1, limit));
+      const items: RecordItem[] = [];
+      for (let i = end - 1; i >= start; i--) items.push(item(i));
+      return { items, more: start > 0, start, end };
+    },
+    async readAfter(from, limit) {
+      const end = Math.min(n, from + Math.max(1, limit));
+      const items: RecordItem[] = [];
+      for (let i = end - 1; i >= from; i--) items.push(item(i));
+      return { items, more: end < n, start: from, end };
+    },
+    onChange: () => () => {},
+  };
+  return { reader, count: n, first: entries[0].at, last: entries[n - 1].at };
+}
+
 function itemOf(e: FiberEntry): RecordItem | undefined {
   if (e.state.kind === 'aborted') {
     const begun = e.descriptor.value as TurnEntry | undefined;

@@ -19,6 +19,8 @@ import {
   type GroupOptions,
   type GroupResult,
   isOperationFn,
+  type JournalPort,
+  NoJournal,
   type OperationFn,
   type RunInput,
   type RunOptions,
@@ -86,6 +88,8 @@ export interface ViewerApiDeps {
   readonly modules: ApiModules;
   readonly managers: ViewerManagers;
   readonly extensions: ExtensionPort;
+  /** The record's part of session files; none: `NoJournal`. */
+  readonly journal?: JournalPort;
 }
 
 export interface ViewerApiHost {
@@ -114,6 +118,7 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
     modules: deps.modules,
     managers: deps.managers,
     extensions: deps.extensions,
+    journal: deps.journal ?? NoJournal,
     operations: runner,
   };
   const areas = new Map<string, ApiArea>();

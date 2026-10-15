@@ -113,7 +113,7 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `session.remote.open` | Open a remote state | destructive; needs network | entry, server |
 | `session.remote.remove` | Remove a remote state | no undo; destructive; needs network | entry, server |
 | `session.remote.upload` | Upload the state | view; no undo; upload; needs network | name, description, playOnLoad, server |
-| `session.save` | Save the session | view; no undo | kind, name, options |
+| `session.save` | Save the session | view; no undo | kind, name, record, options |
 | `settings.get` | Read the settings | read | group |
 | `settings.set` | Change settings | agent-only | group, values |
 | `snapshot.add` | Add a snapshot | no undo | name, description, key, showFor, options |

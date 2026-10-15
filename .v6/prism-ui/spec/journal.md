@@ -98,11 +98,13 @@ was part of, not yet by whom; an Undo turn writes one `undo` per step of the tur
 
 ## 5. Session files and kept records
 
-Not built yet: the record in session files. Forget is in the Storage view (§7), Home's list and History (this
+The record in session files is built: `session.save`'s `record` (off by default) puts it in through Mol*'s
+`serialize({ extra })`, and `session.open` shows a file's record in History, read-only (`recordFromLines`; not kept, so
+no Forget). Forget is in the Storage view (§7), Home's list and History (this
 session's kept copy: `unkeep`; a kept record opened there); the bound is `ui.keptRecordsMax` (20), and History's Keep
 at the bound names the oldest and asks before forgetting it.
 
-- **In `.molx`, opt-in** (David, 2026-10-15): saving a session offers "Include the session's record"; the record goes in
+- **In `.molx`, opt-in** (David, 2026-10-15): saving a session offers to include the record (the form's Record); the record goes in
   as `record.jsonl` beside the snapshot (one entry a line, the envelopes of §2). Opening such a file shows the record in
   History, read-only, as a kept record is (§3). `.molj` (one JSON file) carries it as a `record` field. Prompts and
   replies are in it, so the option is off by default and says so.

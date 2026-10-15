@@ -345,31 +345,36 @@ function KeptRecordView(props: { viewer: Pick<PrismViewer, 'keptRecords'>; opene
       <div class={classes.kept}>
         <div class={classes.keptText}>
           <span class={classes.keptTitle}>{opened.record.title}</span>
-          <span class={classes.caption}>Kept record, read-only · {recordSpan(opened.record)}</span>
+          <span class={classes.caption}>
+            {opened.fromFile ? 'From the session file' : 'Kept record'}, read-only · {recordSpan(opened.record)}
+          </span>
         </div>
-        <Show
-          when={asking.asReadonly}
-          fallback={() => (
-            <Button
-              size="xs"
-              variant="ghost"
-              icon={<Icon name="trash-2" />}
-              title="Forget this record"
-              onClick={() => asking.set(true)}
-            />
-          )}
-        >
-          {() => (
-            <Button
-              size="xs"
-              variant="ghost"
-              title="Forget it: it is removed from this browser"
-              onClick={() => void viewer.keptRecords.forget(opened.record.id)}
-            >
-              Forget?
-            </Button>
-          )}
-        </Show>
+        {/* A file's record is not kept: nothing to forget. */}
+        {opened.fromFile ? null : (
+          <Show
+            when={asking.asReadonly}
+            fallback={() => (
+              <Button
+                size="xs"
+                variant="ghost"
+                icon={<Icon name="trash-2" />}
+                title="Forget this record"
+                onClick={() => asking.set(true)}
+              />
+            )}
+          >
+            {() => (
+              <Button
+                size="xs"
+                variant="ghost"
+                title="Forget it: it is removed from this browser"
+                onClick={() => void viewer.keptRecords.forget(opened.record.id)}
+              >
+                Forget?
+              </Button>
+            )}
+          </Show>
+        )}
         <Button
           size="xs"
           icon={<Icon name="chevron-left" />}

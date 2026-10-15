@@ -29,6 +29,12 @@ export const SaveParams = {
     },
   ),
   name: PD.Text('', { description: 'The file name, without its extension (empty: from the loaded entries)' }),
+  // journal.md §5: opt-in, as prompts and replies are in it.
+  record: PD.Boolean(false, {
+    label: 'Record',
+    description:
+      "What was done in this session, the assistant's prompts and replies included (off by default); it opens in History, read-only",
+  }),
   // v5's State panel's Save Options (`PluginState.SnapshotParams`): what of the scene goes into the file.
   options: PD.Group(
     {
@@ -44,6 +50,9 @@ export const SaveParams = {
     { label: 'Save options', description: 'What of the scene goes into the file', isExpanded: false },
   ),
 };
+
+/** The record's file in a session's zip (journal.md §5). */
+export const RecordFile = 'record.jsonl';
 
 /** What `session.save` gives. */
 export interface SavedSession {
@@ -78,22 +87,32 @@ export const exportSessionOperations = (): {
       history: false,
       undoable: false,
       when: (ctx) => (ctx.sources.empty.value ? 'Nothing is loaded.' : true),
-      async run({ kind, name, options }, ctx): Promise<ApiResult<SavedSession>> {
+      async run({ kind, name, options, record }, ctx): Promise<ApiResult<SavedSession>> {
         const plugin = ctx.plugin;
         try {
+          // The record beside the state (journal.md §5): `record.jsonl` in a session's zip, a `record` field (its
+          // entries) in a state.
+          const lines = record ? await ctx.journal.lines() : '';
+          const extra = !lines
+            ? undefined
+            : kind === 'session'
+              ? { files: { [RecordFile]: new TextEncoder().encode(lines) } }
+              : { fields: { record: lines.split('\n').map((l) => JSON.parse(l) as unknown) } };
           // Without a canvas there is no camera to save (headless).
           // The person's Snapshots list is theirs: the scene goes into the file only (keepList).
           const blob = await plugin.managers.snapshot.serialize({
             keepList: true,
             type: kind === 'session' ? 'molx' : 'molj',
             params: { ...options, camera: options.camera && !!plugin.canvas3d },
+            ...(extra ? { extra } : {}),
           });
           const filename = fileName(name, kind, ctx);
           const size =
             blob.size < 1024 * 1024
               ? `${Math.max(1, Math.round(blob.size / 1024))} KB`
               : `${(blob.size / 1048576).toFixed(1)} MB`;
-          return ApiResult.ok(`Saved ${filename} (${size}).`, {}, { value: { blob, filename } });
+          const withRecord = lines ? ', with its record' : '';
+          return ApiResult.ok(`Saved ${filename} (${size}${withRecord}).`, {}, { value: { blob, filename } });
         } catch (e) {
           return ApiResult.fail('failed', `Could not save the ${kind}: ${e instanceof Error ? e.message : String(e)}`);
         }

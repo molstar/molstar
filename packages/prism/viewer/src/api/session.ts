@@ -13,6 +13,14 @@ import { FileParam, filesOf } from './files.js';
 // `session` (operations.md §2): `open` (`.molx`, `.molj`) and `clear` now; `save` with `export-session`, the remote
 // operations with `remote-states` (plan phase 3). Both are history steps: Undo brings the scene back.
 
+/** A session file's record (journal.md §5): `record.jsonl` in a session's zip, a `record` field in a state. */
+function recordLinesOf(extra: { files?: Record<string, Uint8Array>; fields?: Record<string, unknown> } | undefined) {
+  const file = extra?.files?.['record.jsonl'];
+  if (file) return new TextDecoder().decode(file);
+  const field = extra?.fields?.record;
+  return Array.isArray(field) ? field.map((e) => JSON.stringify(e)).join('\n') : '';
+}
+
 export class SessionApi extends ApiArea {
   readonly id = 'session';
 
@@ -34,13 +42,20 @@ export class SessionApi extends ApiArea {
       const sub = ctx.plugin.events.log.subscribe((e) => {
         if (e.type === 'error') failed = String(e.message);
       });
+      let extra: Awaited<ReturnType<typeof ctx.plugin.managers.snapshot.open>>;
       try {
-        await ctx.plugin.managers.snapshot.open(f);
+        extra = await ctx.plugin.managers.snapshot.open(f);
       } finally {
         sub.unsubscribe();
       }
       if (failed) return ApiResult.fail('failed', `Could not open ${f.name}: ${failed}`);
-      return ApiResult.ok(`Opened ${f.name}.`, { view: true, sequence: true });
+      // A record saved with it (journal.md §5): shown in History, read-only, beside the opened scene.
+      const lines = recordLinesOf(extra);
+      const shown = !!lines && ctx.journal.show(f.name, lines);
+      return ApiResult.ok(`Opened ${f.name}.${shown ? ' Its record is in History, read-only.' : ''}`, {
+        view: true,
+        sequence: true,
+      });
     },
   });
 

@@ -114,6 +114,37 @@ describe('export session', () => {
     expect(count()).toBe(1);
   });
 
+  it("keeps the session's record in the file only when asked, and shows it read-only when the file opens", async () => {
+    const v = await headlessViewer({ extensions: [ExportSessionFeature], files: [cbs()] });
+    expectOk(await v.api.as({ kind: 'person' }).styles.apply({ style: 'surface' }));
+    await v.record.flush();
+
+    // Off by default: no record in the file, none shown.
+    const plain = await v.api.session.save!({ kind: 'session' });
+    expectOk(plain);
+    expectOk(await v.api.session.open({ file: new File([plain.value!.blob], 'plain.molx') }));
+    expect(v.keptRecords.opened.value).toBeUndefined();
+
+    const saved = await v.api.session.save!({ kind: 'session', name: 'with record', record: true });
+    expectOk(saved);
+    expect(saved.did).toMatch(/with its record/);
+    const opened = await v.api.session.open({ file: new File([saved.value!.blob], saved.value!.filename) });
+    expectOk(opened);
+    expect(opened.did).toMatch(/record is in History/);
+    const shown = v.keptRecords.opened.value!;
+    expect(shown).toMatchObject({ fromFile: true, record: { title: 'with record.molx' } });
+    const runs = (await shown.reader.read(50)).items.map((i) => i.entry).filter((e) => e.kind === 'run');
+    expect(runs.map((r) => (r.kind === 'run' ? r.operation : ''))).toContain('styles.apply');
+
+    // A state carries it as a field: its entries in their envelopes.
+    const state = await v.api.session.save!({ kind: 'state', record: true });
+    expectOk(state);
+    const json = JSON.parse(await state.value!.blob.text());
+    expect(json.entries.length).toBeGreaterThan(0);
+    expect(json.record.length).toBeGreaterThan(0);
+    expect(json.record[0]).toMatchObject({ codec: 'prism-viewer.record.v1', value: { kind: expect.any(String) } });
+  });
+
   it('saves a state of locally opened files, which cannot be opened without them', async () => {
     const v = await headlessViewer({ extensions: [ExportSessionFeature], files: [cbs()] });
     const saved = await v.api.session.save!({ kind: 'state' });

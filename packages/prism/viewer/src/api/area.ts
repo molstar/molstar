@@ -122,7 +122,20 @@ export interface ApiAreaContext {
   readonly operations: OperationPort;
   /** The extensions, for operations that load what one owns (a file's format): those load first. */
   readonly extensions: ExtensionPort;
+  /** The session's record as session files keep it (journal.md §5): written into a saved one, shown from an opened one. */
+  readonly journal: JournalPort;
 }
+
+/** The record's part of a session file (journal.md §5); the viewer binds it once its record exists. */
+export interface JournalPort {
+  /** The record's lines (`record.jsonl`: an entry a line, oldest first); empty when there is none. */
+  lines(): Promise<string>;
+  /** A record read from a session file, shown in History read-only; false when it holds no entries. */
+  show(name: string, lines: string): boolean;
+}
+
+/** No record: nothing written, nothing shown (a host without one). */
+export const NoJournal: JournalPort = { lines: async () => '', show: () => false };
 
 /** What operations ask of the extensions (`extensions/host.ts`). */
 export interface ExtensionPort {

@@ -30,6 +30,8 @@ export const KeptRecordsMax = 20;
 export interface OpenedRecord {
   readonly record: KeptRecord;
   readonly reader: RecordReader;
+  /** From a session file (journal.md §5): read-only too, but not kept, so nothing to forget. */
+  readonly fromFile?: true;
 }
 
 export interface KeptRecordsModel {
@@ -42,6 +44,8 @@ export interface KeptRecordsModel {
   watch(): () => void;
   refresh(): Promise<void>;
   open(id: string): Promise<boolean>;
+  /** A record read from a session file, shown in History as a kept one is (journal.md §5). */
+  show(record: KeptRecord, reader: RecordReader): void;
   close(): void;
   forget(id: string): Promise<void>;
   /** Keeping this session's record would pass the bound: the oldest kept one, which would be forgotten. */
@@ -125,6 +129,9 @@ export function createKeptRecordsModel(o: KeptRecordsOptions): KeptRecordsModel 
       if (!at || !record || disposed) return false;
       opened.set({ record, reader: openKeptRecord(at.rows, id) });
       return true;
+    },
+    show(record, reader) {
+      opened.set({ record, reader, fromFile: true });
     },
     close() {
       opened.set(undefined);

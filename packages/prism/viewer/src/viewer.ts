@@ -26,7 +26,7 @@ import {
   ViewStateManager,
 } from '@molstar/prism-ui/core';
 import { type Observable, Subject } from 'rxjs';
-import type { ApiModuleKey, ExtensionPort, ViewerApi } from './api/area.js';
+import { type ApiModuleKey, type ExtensionPort, type JournalPort, NoJournal, type ViewerApi } from './api/area.js';
 import { CoreAreas, createViewerApi, type ViewerApiHost } from './api/index.js';
 import type { ViewerCommandContext, ViewerManagers } from './api/managers.js';
 import { coreCommands } from './commands/core.js';
@@ -52,7 +52,7 @@ import { checkSpec, isPartId, PrismViewerSpecError } from './spec-check.js';
 import { ExtensionHost, type ExtensionUIPort, isStubDefinition } from './extensions/host.js';
 import { Overrides, ShellCommandIds, shellIdOf } from './extensions/overrides.js';
 import { createKeptRecordsModel, type KeptRecordsModel } from './journal/kept-records.js';
-import { createSessionRecord, type SessionRecord } from './journal/record.js';
+import { createSessionRecord, recordFromLines, recordLines, type SessionRecord } from './journal/record.js';
 import { createStorageModel, type StorageModel } from './storage/model.js';
 import { viewerStorageSources } from './storage/sources.js';
 import { applyExtensionPlugin } from './sources/extension-plugin.js';
@@ -255,6 +255,8 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const modules = new Set(o.modules);
     // Operations that load what an extension owns ask the extensions first; set once they are added.
     const extensionPort: ExtensionPort = { ensureFor: async () => {} };
+    // The record's part of session files (journal.md §5): bound once the record exists, below.
+    const journalPort: JournalPort = { ...NoJournal };
     const host = createViewerApi({
       plugin,
       sources,
@@ -262,6 +264,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       modules: { has: (k) => modules.has(k) },
       managers,
       extensions: extensionPort,
+      journal: journalPort,
     });
     disposers.push(() => host.dispose());
 
@@ -331,6 +334,13 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       max: options.ui.keptRecordsMax,
     });
     disposers.push(() => keptRecords.dispose());
+    journalPort.lines = () => recordLines(record);
+    journalPort.show = (name, lines) => {
+      const file = recordFromLines(lines);
+      if (!file) return false;
+      keptRecords.show({ id: `file:${name}`, title: name, first: file.first, last: file.last }, file.reader);
+      return true;
+    };
     // What is kept and where, with Forget (journal.md §7): the viewer's own sources; the Storage view lists them.
     // The origin that holds it, where there is one (a file: page's is 'null').
     const origin = globalThis.location?.origin;

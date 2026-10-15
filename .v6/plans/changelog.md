@@ -159,6 +159,11 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: the playback card is the Story (a book icon), one frame, its text wrapping inside it; a description's
   first heading that only repeats the snapshot's title is not shown; ← and → step through a story (quiet where there is
   none); the Snapshots tab's Play is an icon beside its options.
+- Prism viewer: saving a session can include its record (the form's Record, off by default: prompts and
+  replies are in it), as `record.jsonl` in a `.molx` or a `record` field in a `.molj`; opening such a file shows the
+  record in History, read-only.
+- `PluginStateSnapshotManager.serialize` takes `extra` (files in a `.molx` beside `state.json`, top-level fields in a
+  `.molj`), and `open` returns what it did not use, so a host can keep its own data in a session file.
 - Prism viewer: Home lists the records kept in earlier sessions; one opens in History, read-only, beside what is
   loaded ("This session" goes back); each can be forgotten there, and this session's kept copy from History. At most
   `ui.keptRecordsMax` (20) are kept: keeping one more names the oldest and asks before forgetting it.
