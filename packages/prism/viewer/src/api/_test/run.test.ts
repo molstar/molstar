@@ -11,6 +11,7 @@ import * as path from 'node:path';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DefaultPrismViewerSpec } from '../../default-spec.js';
+import { StructureFeature } from '../../features/structure/index.js';
 import { createPrismViewerHeadless } from '../../headless.js';
 import type { ViewerExtension } from '../../spec.js';
 import type { PrismViewer, ViewerPointerEvent } from '../../viewer.js';
@@ -74,8 +75,11 @@ class DemoApi extends ApiArea {
 
 const demo: ViewerExtension = { id: 'demo', title: 'Demo', api: { demo: (ctx: ApiAreaContext) => new DemoApi(ctx) } };
 
+// The scene's API (the \`structure\` feature) and the test's extensions; none of the other features.
 async function create(extensions: ViewerExtension[] = [demo]) {
-  viewer = await createPrismViewerHeadless({ spec: { ...DefaultPrismViewerSpec(), extensions } });
+  viewer = await createPrismViewerHeadless({
+    spec: { ...DefaultPrismViewerSpec(), extensions: [StructureFeature, ...extensions] },
+  });
   return viewer;
 }
 

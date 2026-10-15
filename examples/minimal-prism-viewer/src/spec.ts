@@ -10,6 +10,7 @@ import { DefaultHierarchyPresetEntry } from '@molstar/plugin/state/builder/struc
 import { BallAndStickPresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/ball-and-stick';
 import { PolymerCartoonPresetEntry } from '@molstar/plugin/state/builder/structure/representation-presets/polymer-cartoon';
 import { Mmcif } from '@molstar/plugin/state/formats/trajectory/mmcif';
+import { StructureFeature } from '@molstar/prism-viewer/features/structure';
 import type { PrismViewerSpec } from '@molstar/prism-viewer/spec';
 
 /**
@@ -25,8 +26,9 @@ export function MinimalPrismViewerSpec(): PrismViewerSpec {
       registry: [Mmcif, DefaultHierarchyPresetEntry, PolymerCartoonPresetEntry, BallAndStickPresetEntry],
       behaviors: [],
     },
-    // None of the viewer's features (loaders, snapshots, animation, export, …) and no extensions (§3).
-    extensions: [],
+    // Of the viewer's features only the scene's API (\`structure.preset\` switches the look); no loaders, snapshots,
+    // animation, export, volumes, trajectories, annotations, and no extensions (§3).
+    extensions: [StructureFeature],
     // No sequence viewer (Seq* is not bundled) and no tools or assistant (§2.3, §2.4).
     sequence: false,
     agent: false,

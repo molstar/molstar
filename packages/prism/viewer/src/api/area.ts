@@ -315,30 +315,52 @@ export function bindOperation<P extends PD.Params, R>(
   return fn;
 }
 
-/** The core areas (api.md §2), filled in as each is built. */
+/** The core areas (api.md §2): in every viewer. */
 export interface CoreApi {
   readonly canvas: import('./canvas.js').CanvasApi;
   readonly camera: import('./camera.js').CameraApi;
   readonly load: import('./load.js').LoadApi;
   readonly session: import('./session.js').SessionApi;
-  readonly structure: import('./structure.js').StructureApi;
-  readonly contents: import('./contents.js').ContentsApi;
-  readonly component: import('./component.js').ComponentApi;
-  readonly representation: import('./representation.js').RepresentationApi;
   readonly select: import('./select.js').SelectApi;
   readonly focus: import('./focus.js').FocusApi;
   readonly highlight: import('./highlight.js').HighlightApi;
-  readonly styles: import('./styles.js').StylesApi;
-  readonly annotations: import('./annotations.js').AnnotationsApi;
-  readonly volume: import('./volume.js').VolumeApi;
-  readonly particles: import('./particles.js').ParticlesApi;
   /** Present when the spec has a sequence (viewer-spec.md §2.3). */
   readonly sequence?: import('./sequence.js').SequenceApi;
   readonly history: import('./history.js').HistoryApi;
   readonly view: import('./view.js').ViewApi;
   readonly settings: import('./settings.js').SettingsApi;
+}
+
+/**
+ * The built-in features' areas (viewer-spec.md §3.1): `structure` (structure, contents, component, representation,
+ * styles), `volume` (volume, particles), `trajectory`, `annotations`. Typed as present, as they are in the default spec,
+ * so a script writes `api.structure.preset(...)`; in a viewer whose spec leaves the feature out, reading the area throws,
+ * naming the feature to add. Code that works either way asks `api.area(id)`.
+ */
+export interface BuiltInApis {
+  readonly structure: import('./structure.js').StructureApi;
+  readonly contents: import('./contents.js').ContentsApi;
+  readonly component: import('./component.js').ComponentApi;
+  readonly representation: import('./representation.js').RepresentationApi;
+  readonly styles: import('./styles.js').StylesApi;
+  readonly annotations: import('./annotations.js').AnnotationsApi;
+  readonly volume: import('./volume.js').VolumeApi;
+  readonly particles: import('./particles.js').ParticlesApi;
   readonly trajectory: import('./trajectory.js').TrajectoryApi;
 }
+
+/** Each built-in area's feature, for the error that names it (`BuiltInApis`). */
+export const BuiltInAreaFeatures: Readonly<Record<keyof BuiltInApis, string>> = {
+  structure: 'StructureFeature',
+  contents: 'StructureFeature',
+  component: 'StructureFeature',
+  representation: 'StructureFeature',
+  styles: 'StructureFeature',
+  annotations: 'AnnotationsFeature',
+  volume: 'VolumeFeature',
+  particles: 'VolumeFeature',
+  trajectory: 'TrajectoryFeature',
+};
 
 /** An operation as commands and tools see it, before running: its params resolved, and whether it can run now. */
 export interface OperationDescription {
@@ -364,6 +386,7 @@ export type GroupResult<T> = ApiResult<T> & { readonly runs: readonly RunRecord[
 
 /** Every operation, as commands, tools, scripts and view models call them. */
 export type ViewerApi = CoreApi &
+  BuiltInApis &
   Partial<ExtensionApis> & {
     /** Runs an operation by id (commands, tools and the run log name operations by id). */
     run(id: string, values?: Readonly<Record<string, unknown>>, options?: RunOptions): Promise<ApiResult>;

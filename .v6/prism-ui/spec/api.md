@@ -34,17 +34,17 @@ await viewer.api.group('Prepare the figure', async (api) => {          // one hi
 | ---------------- | ---------------------------------------------------------------------------------- | ----------------- |
 | `load`           | `builders.data`, the loaders (`@molstar/plugin-extension/loaders`), state actions  | core; `loaders`   |
 | `session`        | `state` (sessions), the remote-states client (today in the classic UI's view)      | core; `remote-states` |
-| `structure`      | `managers.structure.hierarchy`, `builders.structure` (hierarchy presets)           | core              |
-| `contents`       | the structure's model (entities, chains), the components it hides                  | core              |
-| `component`      | `managers.structure.component`                                                     | core              |
-| `representation` | `managers.structure.component` (representations, themes), the selection layers     | core              |
-| `styles`, `annotations` | representation presets, quick styles; what extensions register to apply      | core              |
-| `volume`, `particles` | `managers.volume`, `managers.particles`                                       | core              |
+| `structure`      | `managers.structure.hierarchy`, `builders.structure` (hierarchy presets)           | `structure`       |
+| `contents`       | the structure's model (entities, chains), the components it hides                  | `structure`       |
+| `component`      | `managers.structure.component`                                                     | `structure`       |
+| `representation` | `managers.structure.component` (representations, themes), the selection layers     | `structure`       |
+| `styles`, `annotations` | representation presets, quick styles; what extensions register to apply      | `structure`; `annotations` |
+| `volume`, `particles` | `managers.volume`, `managers.particles`                                       | `volume`          |
 | `select`, `focus`, `highlight` | `managers.structure.selection`, `.focus`, `managers.interactivity`   | core              |
 | `measure`        | `managers.structure.measurement`                                                   | `measurements`    |
 | `superpose`      | the superposition algorithms (today in the classic UI's view)                      | `superposition`   |
 | `snapshot`       | `managers.snapshot` (its list only; state.md §5)                                   | `snapshots`       |
-| `animation`, `trajectory` | `managers.animation`, the model-index transforms                          | core; `animation` |
+| `animation`, `trajectory` | `managers.animation`, the model-index transforms                          | `animation`; `trajectory` |
 | `camera`, `canvas` | `managers.camera`, `canvas3d` props, illumination, XR                            | core; `canvas-settings` |
 | `export`         | `helpers.viewportScreenshot`, session save; extensions' exports                    | `export-*`        |
 | `sequence`       | the Seq\* viewer (sequence.md)                                                     | core              |
@@ -54,6 +54,13 @@ await viewer.api.group('Prepare the figure', async (api) => {          // one hi
 
 The object's name is its area's id, so `viewer.api.component.add` is the operation `component.add` (operations.md §1):
 one name in the API, the command menu, the tools, the run log and the docs.
+
+**Core or a built-in feature** (viewer-spec.md §3.1): the core's areas (`canvas`, `camera`, `load`, `session`, `select`,
+`focus`, `highlight`, `history`, `view`, `settings`) are in every viewer. The built-in features' (`structure`, `volume`,
+`trajectory`, `annotations`) are there when the spec lists the feature, as the default spec does, and typed as present
+(`BuiltInApis`): a script writes `api.structure.preset(...)`, not `api.structure?.preset`. In a viewer whose spec left
+the feature out, reading the area throws, naming the feature to add; code that works either way asks `api.area(id)`.
+Extensions' areas are optional in the type (`Partial<ExtensionApis>`).
 
 ## 3. The shape every area shares
 

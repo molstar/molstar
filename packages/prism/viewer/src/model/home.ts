@@ -124,6 +124,8 @@ export function createAnnotationOffer(
   let token = 0;
 
   const check = async (list: readonly { readonly ref: string; readonly label: string }[]) => {
+    // Nothing to offer in a viewer without the `annotations` feature (viewer-spec.md §3.1).
+    if (!api.area('annotations')) return;
     const shown = current.value;
     if (shown && !list.some((s) => s.ref === shown.structure)) current.set(undefined);
     const fresh = list.filter((s) => !asked.has(s.ref));

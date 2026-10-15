@@ -343,8 +343,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   unregister.push(shell.registerOverlays(own('overlay', [exporting.overlay])));
   unregister.push(shell.registerToolbar(own('toolbar', [exporting.toolbar])));
   // The trajectory bar over the canvas while the structure in view has several models (`trajectory.*`).
-  const trajectory = createTrajectoryControls(core.plugin, person);
-  unregister.push(trajectory.dispose);
+  // Only with the `trajectory` feature (viewer-spec.md §3.1).
+  const trajectory = person.area('trajectory') ? createTrajectoryControls(core.plugin, person) : undefined;
+  if (trajectory) unregister.push(trajectory.dispose);
   const modeProps = modeSwitchProps(sources.interaction, person);
   // The canvas's own controls that `options.ui.buttons` can hide (not toolbar items): while there is data, and not off.
   const shown = (id: string) =>
@@ -683,7 +684,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           // One card: the extensions' rows (the snapshots', their transition's), then the trajectory's.
           <PlaybackDeck>
             <For each={shell.sections('playback')}>{(s) => <ViewHost renderer={s.render} ctx={{ shell }} />}</For>
-            <Show when={shown('trajectory')}>{() => <TrajectoryRow model={trajectory.model} />}</Show>
+            {trajectory ? (
+              <Show when={shown('trajectory')}>{() => <TrajectoryRow model={trajectory.model} />}</Show>
+            ) : null}
           </PlaybackDeck>
         }
         agent={<Show when={agentView}>{(view) => view()}</Show>}

@@ -56,6 +56,9 @@ export function checkSpec(spec: PrismViewerSpec, coreAreas: readonly string[] = 
     if (coreAreas.includes(e.id) || OptionalCoreAreas.includes(e.id)) {
       problems.push(`extension id '${e.id}' is a core API area's`);
     }
+    for (const need of isLazyExtension(e) ? [] : (e.requires ?? [])) {
+      if (!owners.has(need)) problems.push(`extension '${e.id}' needs '${need}' before it in the spec's extensions`);
+    }
     owners.add(e.id);
     declared.set(e.id, isLazyExtension(e) ? new Set(e.stub.parts.map((p) => p.id)) : undefined);
   }

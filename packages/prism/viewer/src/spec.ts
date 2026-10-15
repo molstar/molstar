@@ -247,6 +247,8 @@ export interface ViewerExtension {
   }[];
   /** One of the viewer's own features (viewer-spec.md §3.1). */
   readonly builtIn?: true;
+  /** The extensions it needs in the spec before it (by id: the \`annotations\` feature needs \`structure\`). */
+  readonly requires?: readonly string[];
   readonly commands?: (api: ViewerApi) => readonly CommandDefinition<any>[];
   /** Its tools, in skills: never core tools, they are disclosed (agent.md §3). */
   readonly skills?: readonly ViewerSkill[];

@@ -251,12 +251,18 @@ interface LazyViewerExtension {
 - **Owned files and sessions**: `load.files` loads the lazy extension owning a file's extension first; `session.open`
   of a `.molj` the ones owning its transformers (a `.molx`, zipped, not yet).
 
-### 3.1 The viewer's own features: a fixed core and built-in extensions
+### 3.1 The viewer's own features: a small core and built-in extensions
 
-Both (David, 2026-10-15): what everything else stands on is fixed code; the rest of the viewer's own features are
-`ViewerExtension`s like any other, listed in `DefaultPrismViewerSpec().extensions`, so they can be eager or lazy, and an
-app filters, reorders or overrides them as it does Mol\*'s extensions. The extension API is then used by the viewer
-itself, which keeps it honest.
+Both (David, 2026-10-15; the core made smaller 2026-10-16, so a viewer bundles only what its spec lists): what
+everything else stands on is fixed code; the rest of the viewer's own features are `ViewerExtension`s like any other,
+listed in `DefaultPrismViewerSpec().extensions`, so they can be eager or lazy, and an app filters, reorders or overrides
+them as it does Mol\*'s extensions. The extension API is then used by the viewer itself, which keeps it honest.
+
+- **The scene's API is a feature too**: `structure` (the `structure`, `contents`, `component`, `representation` and
+  `styles` areas), `volume` (`volume`, `particles`), `trajectory`, `annotations` (it `requires` `structure`). Their
+  areas are typed as present (api.md §2); left out of a spec, reading one throws, naming the feature. A feature's
+  `requires` lists the extensions it needs before it; the spec check refuses it without them. An extension's
+  annotation providers are offered only where the `annotations` feature is.
 
 | Fixed core (always there; parts still removable by `overrides`)                                | Built-in features (in `DefaultPrismViewerSpec().extensions`)                               |
 | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |

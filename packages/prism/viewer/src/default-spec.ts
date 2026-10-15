@@ -6,6 +6,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { AnnotationsFeature } from './features/annotations/index.js';
+import { StructureFeature } from './features/structure/index.js';
+import { TrajectoryFeature } from './features/trajectory/index.js';
+import { VolumeFeature } from './features/volume/index.js';
 import { AllQueryLanguages } from './targets/languages/all.js';
 import { AnimationFeature } from './features/animation/index.js';
 import { CanvasSettingsFeature } from './features/canvas-settings/index.js';
@@ -27,6 +31,12 @@ export function DefaultPrismViewerSpec(): PrismViewerSpec {
   return {
     plugin: prismViewerPluginParts(),
     extensions: [
+      // The scene's API (structure, components, representations, styles), maps and particles, trajectories,
+      // annotations: first, as the rest use them.
+      StructureFeature,
+      VolumeFeature,
+      TrajectoryFeature,
+      AnnotationsFeature,
       LoadersFeature,
       CanvasSettingsFeature,
       MeasurementsFeature,

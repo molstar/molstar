@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import type { AnnotationsApi } from './api/annotations.js';
 import { registerQueryLanguages } from './targets/languages.js';
 import type { FiberRows } from '@molstar/ai-fibers';
 import type { PluginContext } from '@molstar/plugin/context';
@@ -314,7 +315,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       person,
       registerCommands,
       openCommand: (id) => void managers.commands.open(id),
-      annotations: host.api.annotations,
+      annotations: () => host.api.area('annotations') as AnnotationsApi | undefined,
       ...(sequence ? { addSequenceBehavior: (b) => sequence.addBehavior(b) } : {}),
       applyPlugin: (parts) => applyExtensionPlugin(plugin, parts),
       overrides,

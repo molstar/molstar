@@ -59,7 +59,8 @@ export interface ExtensionHostDeps {
   readonly registerCommands: (defs: readonly CommandDefinition<ViewerCommandContext>[]) => () => void;
   /** Opens a command as the command menu does (its form, or runs it). */
   readonly openCommand: (id: string) => void;
-  readonly annotations: AnnotationsApi;
+  /** The `annotations` area, when the spec has its feature (viewer-spec.md §3.1); read as each extension activates. */
+  readonly annotations: () => AnnotationsApi | undefined;
   /** Attaches a sequence behavior to the sequence viewer; absent: the viewer has no sequence (sequence.md §3). */
   readonly addSequenceBehavior?: (behavior: SequenceBehavior) => () => void;
   /** The running plugin's side of a lazy load (`sources/extension-plugin.ts`). */
@@ -220,7 +221,9 @@ export class ExtensionHost {
       const commands = e.commands?.(person) ?? [];
       if (lazy) checkCommands(lazy, commands);
       if (commands.length) done.push(registerCommands(commands));
-      for (const a of e.annotations ?? []) done.push(annotations.register(a));
+      // Its annotations, where the viewer has the `annotations` feature to offer them; without it they are not shown.
+      const annotationsArea = e.annotations?.length ? annotations() : undefined;
+      for (const a of annotationsArea ? (e.annotations ?? []) : []) done.push(annotationsArea!.register(a));
       // Its sequence behaviors, overrides applied (sequence.md §3), each `<id>.sequence.<name>`.
       for (const b of this.#deps.overrides.parts(e.sequence)) {
         if (!b.id.startsWith(`${e.id}.sequence.`)) {

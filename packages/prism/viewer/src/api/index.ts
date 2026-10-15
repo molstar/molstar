@@ -13,6 +13,7 @@ import {
   type ApiAreaContext,
   type ApiModules,
   ApiResult,
+  BuiltInAreaFeatures,
   bindOperation,
   type Changed,
   type ExtensionPort,
@@ -27,28 +28,19 @@ import {
   type RunOrigin,
   type ViewerApi,
 } from './area.js';
-import { AnnotationsApi } from './annotations.js';
 import { CameraApi } from './camera.js';
 import { CanvasApi } from './canvas.js';
-import { ComponentApi } from './component.js';
-import { ContentsApi } from './contents.js';
 import { FocusApi } from './focus.js';
 import { HighlightApi } from './highlight.js';
 import { HistoryApi } from './history.js';
 import { LoadApi } from './load.js';
 import type { ViewerManagers } from './managers.js';
 import { ApiRunner, messageOf, type RunRecord } from './run.js';
-import { RepresentationApi } from './representation.js';
 import { SelectApi } from './select.js';
 import { SessionApi } from './session.js';
 import { SettingsApi } from './settings.js';
-import { StructureApi } from './structure.js';
-import { StylesApi } from './styles.js';
 import type { TargetResolver } from './targets.js';
-import { ParticlesApi } from './particles.js';
-import { TrajectoryApi } from './trajectory.js';
 import { ViewApi } from './view.js';
-import { VolumeApi } from './volume.js';
 
 // The viewer's API object (api.md §2–§6). Each area is made once; the API a caller gets is a facade bound to how its
 // calls run: `viewer.api` as `script`, `as(origin)` for each surface (view models and commands `person`, tools `agent`
@@ -58,27 +50,18 @@ import { VolumeApi } from './volume.js';
 /** Makes an area, once per viewer. */
 export type AreaFactory = (ctx: ApiAreaContext) => ApiArea;
 
-/** The core areas (api.md §2), as they are built. */
+/** The core areas (api.md §2), as they are built; the built-in features bring theirs (`BuiltInApis`). */
 export const CoreAreas: Readonly<Record<string, AreaFactory>> = {
   canvas: (c) => new CanvasApi(c),
   camera: (c) => new CameraApi(c),
   load: (c) => new LoadApi(c),
   session: (c) => new SessionApi(c),
-  structure: (c) => new StructureApi(c),
-  contents: (c) => new ContentsApi(c),
-  component: (c) => new ComponentApi(c),
-  representation: (c) => new RepresentationApi(c),
   select: (c) => new SelectApi(c),
   focus: (c) => new FocusApi(c),
   highlight: (c) => new HighlightApi(c),
-  styles: (c) => new StylesApi(c),
-  annotations: (c) => new AnnotationsApi(c),
-  volume: (c) => new VolumeApi(c),
-  particles: (c) => new ParticlesApi(c),
   history: (c) => new HistoryApi(c),
   view: (c) => new ViewApi(c),
   settings: (c) => new SettingsApi(c),
-  trajectory: (c) => new TrajectoryApi(c),
 };
 
 export interface ViewerApiDeps {
@@ -197,6 +180,13 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
         if (typeof prop === 'string' && !ApiMembers.has(prop)) {
           const area = areas.get(prop);
           if (area) return facade(area);
+          // A built-in feature's area this viewer's spec left out: say which feature brings it (`BuiltInApis`).
+          const feature = BuiltInAreaFeatures[prop as keyof typeof BuiltInAreaFeatures];
+          if (feature) {
+            throw new Error(
+              `The '${prop}' area is not in this viewer: add ${feature} to its spec's extensions (DefaultPrismViewerSpec has it).`,
+            );
+          }
         }
         return Reflect.get(target, prop);
       },
