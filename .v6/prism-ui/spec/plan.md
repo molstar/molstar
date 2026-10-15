@@ -287,7 +287,8 @@ and returned by the menu, cards and panels; selection and focus results announce
 the assistant loading on first use; the structure inspector's model and type; extension rows; the `<prism-viewer>`
 element; the playback card opening by itself; the crop drag; Help's keys; `load.svs` (as decided); the sequence's
 tooltip. Budgets hold (`index.js` 2.9 of 3.2 MB, `prism-viewer.js` under 8 MB). Left, as parity.md and the reviews
-say: History not virtualized (a step costs ~2.5x with it open), illumination's shader linking (core graphics), field
+say: History not virtualized (a step costs ~2.5x with it open; since: its loaded rows bounded to a window, so a step
+costs the same however long the session), illumination's shader linking (core graphics), field
 edges in the default themes, `.svsx` archives, Allow this domain. After G8 the Inspector (Trace, Tools, Limits) was
 wired to the real agent, which plan 4.4 had left on mocks. The first eval passed again on Haiku 5.5 and Gemini 3.8 Flash (8 of 8;
 about 10% more input tokens than at 4.5, the toolkit having grown).

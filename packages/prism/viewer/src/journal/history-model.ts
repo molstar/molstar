@@ -102,6 +102,12 @@ export function createHistoryModel(record: RecordReader, o: HistoryModelOptions 
   let hasMore = false;
   /** The newest window was read: later reads take only what is after `top`. */
   let primed = false;
+  /**
+   * Entries kept loaded: a window, and one more for each "Show earlier". New ones push the oldest out (they come back by
+   * "Show earlier"), so a step costs the same however long the session (G8: History open made a step cost more as the
+   * rows grew).
+   */
+  let limit = size;
   let active = false;
   let disposed = false;
   let unlisten: (() => void) | undefined;
@@ -136,6 +142,7 @@ export function createHistoryModel(record: RecordReader, o: HistoryModelOptions 
   const readNewest = async () => {
     const fresh = await record.read(size);
     if (disposed || !active) return;
+    limit = size;
     loaded = fresh.items;
     floor = fresh.start;
     hasMore = fresh.more;
@@ -160,6 +167,11 @@ export function createHistoryModel(record: RecordReader, o: HistoryModelOptions 
     if (!fresh.items.length && from === top && kept.value === record.kept) return;
     loaded = from < top ? [...fresh.items, ...loaded.filter((i) => i.position < from)] : [...fresh.items, ...loaded];
     top = Math.max(top, fresh.end);
+    if (loaded.length > limit) {
+      loaded = loaded.slice(0, limit);
+      floor = loaded[loaded.length - 1].position;
+      hasMore = true;
+    }
     publish();
   };
 
@@ -209,6 +221,7 @@ export function createHistoryModel(record: RecordReader, o: HistoryModelOptions 
         const page = await record.read(size, floor);
         if (!active || disposed) return;
         loaded = [...loaded, ...page.items];
+        limit = loaded.length + size;
         // Moves down by the window's positions, items or not (an entry left out does not stop it).
         floor = page.start;
         hasMore = page.more;

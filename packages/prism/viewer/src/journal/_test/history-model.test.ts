@@ -118,6 +118,26 @@ describe('the History model', () => {
     record.dispose();
   });
 
+  it('keeps a window loaded while it shows: new steps push the oldest out, "Show earlier" brings them back', async () => {
+    const { api, run } = fakeApi();
+    const record = await createSessionRecord({ api });
+    const model = createHistoryModel(record, { window: 3, schedule: queueMicrotask });
+    model.setActive(true);
+    await model.idle();
+    for (let i = 1; i <= 8; i++) {
+      run(`Change ${i}`);
+      await record.flush();
+      await model.idle();
+    }
+    const texts = () => model.rows.value.map((r) => (r.kind === 'run' ? r.text : r.kind));
+    expect(texts()).toEqual(['Change 8', 'Change 7', 'Change 6']);
+    expect(model.more.value).toBe(true);
+    await model.showEarlier();
+    expect(texts()).toEqual(['Change 8', 'Change 7', 'Change 6', 'Change 5', 'Change 4', 'Change 3']);
+    model.dispose();
+    record.dispose();
+  });
+
   it('reads in windows: the newest first, earlier ones by "Show earlier"', async () => {
     const { v, record, model: _ } = await setup();
     _.dispose();

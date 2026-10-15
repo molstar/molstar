@@ -65,7 +65,9 @@ was part of, not yet by whom; an Undo turn writes one `undo` per step of the tur
   As built (`journal/history-model.ts`): the newest window, "Show earlier" for the one before; after a change, once per
   frame and only while the tab is shown, only what came since the last read (`record.readAfter`, from the oldest turn
   still under way, so its settling shows), and the newest window again when more came than a window holds (G8 perf).
-  A plain list until a session's rows call for virtualizing, contained, its rows `content-visibility: auto`. A read
+  While it shows, a window stays loaded (and what "Show earlier" added): new entries push the oldest out, which come
+  back by "Show earlier", so a step costs the same however long the session (G8). A plain list, its rows bounded so,
+  contained, its rows `content-visibility: auto`. A read
   longer than the fiber's window (256) goes in windows.
 
 ## 3. Shown back
