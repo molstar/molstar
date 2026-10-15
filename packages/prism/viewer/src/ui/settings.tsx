@@ -16,14 +16,22 @@ import type { ViewerApi } from '../api/area.js';
 import type { ViewerManagers } from '../api/managers.js';
 import { type SettingsGroupState, withCheckpointing } from '../sources/settings.js';
 import type { ViewerSources } from '../sources/viewer-sources.js';
+import type { StorageModel } from '../storage/model.js';
 import { Debouncer } from './debounce.js';
+import { StorageSection } from './storage.js';
 
 // The Settings tab (parity.md §5): the groups of `sources.settings` as forms that follow the live values and apply
 // through `settings.set` as the person, debounced (`ui/debounce.ts`) like the Canvas card. A group of the tab is a step in the History.
 // The groups the host can show change with the canvas and the behaviors: the tab is made again when they do. Other
-// extensions' settings sections go after the groups (the `settings` slot).
+// extensions' settings sections go after the groups (the `settings` slot). Last, the Storage view when the viewer gives its
+// storage (journal.md §7: in Settings, as the assistant's Trace, Tools and Limits are not built yet).
 
-export function settingsTab(sources: ViewerSources, managers: ViewerManagers, api: ViewerApi): ShellTab {
+export function settingsTab(
+  sources: ViewerSources,
+  managers: ViewerManagers,
+  api: ViewerApi,
+  storage?: StorageModel,
+): ShellTab {
   const current = () => withCheckpointing(sources.settings.groups.value, managers.history.checkpointing.value);
   const live = combineLatest([sources.settings.groups, managers.history.checkpointing]).pipe(
     map(([groups, on]) => withCheckpointing(groups, on)),
@@ -40,7 +48,12 @@ export function settingsTab(sources: ViewerSources, managers: ViewerManagers, ap
     order: 2.7,
     place: 'foot',
     render: domView(({ ctx }) => {
-      const more = () => <SectionList shell={ctx.shell} slot="settings" />;
+      const more = () => (
+        <>
+          <SectionList shell={ctx.shell} slot="settings" />
+          {storage ? <StorageSection storage={storage} /> : null}
+        </>
+      );
       return (
         <Show when={shape} fallback={() => <SettingsTab model={{ groups: [] }} more={more} />}>
           {() => <SettingsTab model={modelOf(current(), live, api)} more={more} />}

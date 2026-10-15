@@ -35,6 +35,8 @@ import type { RunRecord } from '../api/run.js';
 // the agent's turns (`turn`, begun at the prompt, settled at the end). Append-only: nothing is edited in place.
 
 export const RecordCodec = 'prism-viewer.record.v1';
+/** The IndexedDB database kept records go to when the spec gives no rows (journal.md §1; History's Keep). */
+export const RecordsDatabase = 'prism-viewer-records';
 const Owner = fiberOwnerId('prism-viewer');
 
 /** The fiber's largest window (`maxWindowEntries`): longer reads go in pages of it. */
@@ -128,6 +130,11 @@ export interface SessionRecord {
    * first's promise).
    */
   keep(rows: FiberRows, index: RecordIndex, title: string): Promise<void>;
+  /**
+   * Forgets the kept copy (its rows and its index entry: the Storage view's Forget, journal.md §7) and goes on in memory
+   * with what it holds, so History still shows it and it can be kept again. In the write order; nothing when not kept.
+   */
+  unkeep(): Promise<void>;
   /** Writes in flight are done. */
   flush(): Promise<void>;
   /** Stops recording: a turn still open is settled as stopped, the index touched, the writes flushed. */
@@ -446,14 +453,7 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
           'be kept',
         );
         try {
-          let start = 0;
-          for (;;) {
-            const page = await host.window({ fiberId: fid, start, limit: RecordWindowMax, direction: 'forward' });
-            if ('status' in page) throw new Error(`The record could not be read (${page.reason}).`);
-            for (const e of page.entries) await copyEntry(target, fid, e, id, ok);
-            if (!page.hasMore) break;
-            start = page.endExclusive;
-          }
+          await copyFiber(host, target, fid, id, ok);
         } catch (e) {
           // Nothing half-kept: the copy goes, and the record goes on in memory.
           await target.forget(fid).catch(() => undefined);
@@ -472,6 +472,32 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
         keeping = undefined;
       });
       return keeping;
+    },
+    unkeep() {
+      if (!kept) return Promise.resolve();
+      return write(async () => {
+        if (!kept || !keptIndex) return;
+        // Back into memory first, in order (as keep copies out); then the kept copy and its index entry go.
+        const target = createFiberHost({ rows: createMemoryRows(), clock });
+        ok(
+          await target.create({
+            commandId: fiberCommandId(`${id}:create`),
+            fiberId: fid,
+            ownerId: Owner,
+            limits: limits(),
+          }),
+          'go on in memory',
+        );
+        await copyFiber(host, target, fid, id, ok);
+        const from = host;
+        const { index } = keptIndex;
+        host = target;
+        kept = false;
+        keptIndex = undefined;
+        dirty = false;
+        await from.forget(fid);
+        await index.forget(id);
+      });
     },
     flush: () => chain,
     async dispose() {
@@ -506,6 +532,24 @@ function itemOf(e: FiberEntry): RecordItem | undefined {
   const value = (e.state.kind === 'settled' ? e.state.payload : e.descriptor).value as unknown as RecordEntry;
   if (!value || typeof value !== 'object' || !('kind' in value) || !('at' in value)) return undefined;
   return { id: e.entryId, position: e.position, entry: value, open: e.state.kind !== 'settled' };
+}
+
+/** Every entry of a fiber into another, in order, at the same positions (keep, and unkeep back into memory). */
+async function copyFiber(
+  from: FiberHost,
+  to: FiberHost,
+  fid: FiberId,
+  id: string,
+  ok: <T extends { status: string }>(r: T, what: string) => T,
+): Promise<void> {
+  let start = 0;
+  for (;;) {
+    const page = await from.window({ fiberId: fid, start, limit: RecordWindowMax, direction: 'forward' });
+    if ('status' in page) throw new Error(`The record could not be read (${page.reason}).`);
+    for (const e of page.entries) await copyEntry(to, fid, e, id, ok);
+    if (!page.hasMore) break;
+    start = page.endExclusive;
+  }
 }
 
 /** One entry into the kept record, at the same position: settled as settled, under way as begun, aborted as aborted. */
@@ -619,4 +663,25 @@ export async function createRecordIndex(rows: FiberRows): Promise<RecordIndex> {
       await put({ id, forget: true });
     },
   };
+}
+
+/**
+ * Forgets a kept record (the Storage view's Forget, journal.md §7): its rows, then its index entry. Not the current
+ * session's record while it is kept: that one is `unkeep`'s.
+ */
+export async function forgetKept(rows: FiberRows, index: RecordIndex, id: string): Promise<void> {
+  await createFiberHost({ rows }).forget(fiberId(id));
+  await index.forget(id);
+}
+
+/**
+ * A kept record's size, about: the characters of its rows as JSON (the fibers' default scope, `fiber:<id>`).
+ * Undefined when its rows are not there.
+ */
+export async function keptSize(rows: FiberRows, id: string): Promise<number | undefined> {
+  const loaded = await rows.load(`fiber:${id}`);
+  if (!loaded) return undefined;
+  let size = 0;
+  for (const r of loaded.rows) size += r.key.length + JSON.stringify(r.row).length;
+  return size;
 }

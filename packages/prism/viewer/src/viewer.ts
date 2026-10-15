@@ -52,6 +52,8 @@ import { checkSpec, isPartId, PrismViewerSpecError } from './spec-check.js';
 import { ExtensionHost, type ExtensionUIPort, isStubDefinition } from './extensions/host.js';
 import { Overrides, ShellCommandIds, shellIdOf } from './extensions/overrides.js';
 import { createSessionRecord, type SessionRecord } from './journal/record.js';
+import { createStorageModel, type StorageModel } from './storage/model.js';
+import { viewerStorageSources } from './storage/sources.js';
 import { applyExtensionPlugin } from './sources/extension-plugin.js';
 import { createLightRestore, type LightRestore } from './sources/restore.js';
 import { setDataPalette } from './sources/palette.js';
@@ -125,6 +127,11 @@ export interface PrismViewer {
   readonly record: SessionRecord;
   /** This tab's light restore, when the spec keeps one (`persist.restore`, journal.md §6): the host runs it. */
   readonly restore?: LightRestore;
+  /**
+   * What is kept in the browser and Forget (journal.md §7): the viewer's sources (kept records, preferences, the light
+   * restore); the assistant registers its own (stored keys).
+   */
+  readonly storage: StorageModel;
   /** The spec it was made from, and its options resolved. */
   readonly spec: PrismViewerSpec;
   readonly options: PrismViewerOptionValues;
@@ -287,6 +294,16 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const keepIn = spec.persist?.rows as FiberRows | undefined;
     const record = await createSessionRecord({ api: host.api, undone: history.undone, ...(keepIn ? { keepIn } : {}) });
     disposers.push(() => record.dispose());
+    // What is kept and where, with Forget (journal.md §7): the viewer's own sources; the Storage view lists them.
+    // The origin that holds it, where there is one (a file: page's is 'null').
+    const origin = globalThis.location?.origin;
+    const storage = createStorageModel(origin && origin !== 'null' ? { origin } : {});
+    const own = viewerStorageSources({ ...(spec.persist ? { persist: spec.persist } : {}), record });
+    for (const s of own.sources) disposers.push(storage.register(s));
+    disposers.push(() => {
+      own.dispose();
+      storage.dispose();
+    });
     // The data palette the options ask for (README §3.7): before anything is loaded, so no step.
     if (options.canvas.palette !== 'default') await setDataPalette(plugin, options.canvas.palette);
     // The light restore (journal.md §6), written after each step when the spec gives it a store.
@@ -375,6 +392,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       extensions,
       record,
       ...(restore ? { restore } : {}),
+      storage,
       spec,
       options,
       host,

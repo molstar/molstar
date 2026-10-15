@@ -100,6 +100,8 @@ the [API change ledger](breaking-v6-changes.md).
   compact mode
 - Prism's high-contrast UI theme, and stronger borders and muted text in every theme when the system asks for more
   contrast
+- The Prism viewer's Storage view (Settings): what it keeps in the browser and where (kept records with size and age,
+  preferences, the light restore, the assistant's keys by provider and scope), each with Forget, and Forget everything
 - Mol*'s extensions in the Prism viewer, commands first: model and geometry export (model export now writes PDB too),
   video export and Zenodo (lazy), assembly symmetry, membrane orientation (ANVIL), Kinemage, and the data-only ones
   (validation reports and partial charges through `annotations.apply`); the single-file `prism-viewer.js`

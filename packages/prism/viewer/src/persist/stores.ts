@@ -27,6 +27,25 @@ interface Envelope {
   readonly d: unknown;
 }
 
+/** A value kept, as the Storage view lists it (journal.md §7): its key under the prefix, and its size. */
+export interface StoredValue {
+  readonly key: string;
+  /** About: the characters of its key and its JSON, two bytes each (as the browser counts them). */
+  readonly bytes: number;
+}
+
+/** A store that lists what it keeps; another version's values are dropped while listing (journal.md §7). */
+export interface ListedStore extends PrismStore {
+  entries(): readonly StoredValue[];
+}
+
+/** Whether a store (the spec's, `persist.preferences` or `persist.restore`) lists what it keeps. */
+export function isListedStore(store: PrismStore | undefined): store is ListedStore {
+  return typeof (store as ListedStore | undefined)?.entries === 'function';
+}
+
+const isEnvelope = (e: unknown): e is Envelope => !!e && typeof e === 'object' && typeof (e as Envelope).v === 'string';
+
 function storageOf(kind: 'local' | 'session'): Storage | undefined {
   try {
     return kind === 'local' ? globalThis.localStorage : globalThis.sessionStorage;
@@ -36,7 +55,7 @@ function storageOf(kind: 'local' | 'session'): Storage | undefined {
 }
 
 /** A store over the window's localStorage or sessionStorage (absent in Node: a store that keeps nothing). */
-export function webStore(kind: 'local' | 'session', o: WebStoreOptions): PrismStore {
+export function webStore(kind: 'local' | 'session', o: WebStoreOptions): ListedStore {
   const key = (k: string) => `${o.prefix}.${k}`;
   let warned = false;
   return {
@@ -78,11 +97,39 @@ export function webStore(kind: 'local' | 'session', o: WebStoreOptions): PrismSt
         // Not allowed: nothing was kept.
       }
     },
+    entries() {
+      const storage = storageOf(kind);
+      const out: StoredValue[] = [];
+      const dropped: string[] = [];
+      const start = `${o.prefix}.`;
+      try {
+        if (!storage) return out;
+        for (let i = 0; i < storage.length; i++) {
+          const name = storage.key(i);
+          if (!name?.startsWith(start)) continue;
+          const text = storage.getItem(name) ?? '';
+          let e: unknown;
+          try {
+            e = JSON.parse(text);
+          } catch {
+            continue; // not a value of ours
+          }
+          if (!isEnvelope(e)) continue;
+          if (e.v !== o.version) dropped.push(name);
+          else out.push({ key: name.slice(start.length), bytes: (name.length + text.length) * 2 });
+        }
+        // Collected (§7): another version's values go as they are listed, not only when read.
+        for (const name of dropped) storage.removeItem(name);
+      } catch {
+        // Not allowed: nothing is listed.
+      }
+      return out;
+    },
   };
 }
 
 /** A store in memory (tests, headless hosts), with the same budget and version rule. */
-export function memoryStore(o: Omit<WebStoreOptions, 'prefix'>): PrismStore & { readonly size: number } {
+export function memoryStore(o: Omit<WebStoreOptions, 'prefix'>): ListedStore & { readonly size: number } {
   const values = new Map<string, string>();
   return {
     get size() {
@@ -101,6 +148,15 @@ export function memoryStore(o: Omit<WebStoreOptions, 'prefix'>): PrismStore & { 
     },
     remove(k) {
       values.delete(k);
+    },
+    entries() {
+      const out: StoredValue[] = [];
+      for (const [k, text] of [...values]) {
+        const e = JSON.parse(text) as Envelope;
+        if (e.v !== o.version) values.delete(k);
+        else out.push({ key: k, bytes: (k.length + text.length) * 2 });
+      }
+      return out;
     },
   };
 }

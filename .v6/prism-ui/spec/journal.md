@@ -94,8 +94,8 @@ was part of, not yet by whom; an Undo turn writes one `undo` per step of the tur
 
 ## 5. Session files and kept records
 
-Not built yet: neither the record in session files nor the bound and Forget below (the index has `forget`; nothing in
-the app calls it).
+Not built yet: neither the record in session files nor the bound below. Forget is built in the Storage view (§7), not
+yet in Home's list or History's menu.
 
 - **In `.molx`, opt-in** (David, 2026-10-15): saving a session offers "Include the session's record"; the record goes in
   as `record.jsonl` beside the snapshot (one entry a line, the envelopes of §2). Opening such a file shows the record in
@@ -151,6 +151,20 @@ a place for data:
   stored keys (by provider and scope, never the key), domain rules, the origin that holds them, each with Forget, and
   Forget everything. It sits beside the assistant's Trace, Tools and Limits, and in Settings when there is no
   assistant.
+- **As built** (`storage/`, `ui/storage.tsx`): a DOM-free `StorageModel` (`viewer.storage`: `register(source)`,
+  `sources`, `refresh`, `forget`, `forgetEverything`, `watch`) with the viewer's sources (`storage/sources.ts`): kept
+  records from the index (title, size of their rows, age; this session's marked; those not written for 90 days marked
+  "forget it?"; Forget removes the rows and the index entry, and this session's kept record goes back into memory with
+  `record.unkeep()`, so History keeps showing it), the preferences and the light restore (the stores list what they
+  keep, `ListedStore.entries()`, and drop another version's values while listing). The assistant registers its stored
+  keys (`assistant/src/viewer/storage.ts`: provider and scope, never the key; Forget goes through the setup's
+  `removeKey`). The view is a folded "Storage" section at the end of the Settings tab, always (the assistant's Trace,
+  Tools and Limits are not built); it says the origin, lists only while open and shown, and asks before Forget
+  everything. IndexedDB is opened only when the records' database exists. Not built: domain rules (the assistant keeps
+  none; "Allow this domain" lasts for the page), the assistant's own choices in localStorage (`prism-assistant.setup`,
+  `.providers`) and its per-browser scrambling key (IndexedDB `prism-assistant-keys`), the bound on kept records (§5),
+  removal offered on its own (the age is only marked), and a refresh while the view stays open (a Keep in History shows
+  when the view is opened again).
 
 Decided against (David, 2026-10-15): autosaving state into IndexedDB, and durable agent sessions; both would make
 IndexedDB a second file system. Light state goes to localStorage and sessionStorage instead (§6).

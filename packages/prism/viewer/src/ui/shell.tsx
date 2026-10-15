@@ -220,7 +220,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         },
         // `options.ui.showHistory` (viewer-spec.md §2.2) leaves History out.
         ...(core.options.ui.showHistory ? [historyTab(core, person)] : []),
-        settingsTab(sources, managers, person),
+        settingsTab(sources, managers, person, core.storage),
         {
           id: 'help',
           title: 'Help',
