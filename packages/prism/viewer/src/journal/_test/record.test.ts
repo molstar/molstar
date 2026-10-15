@@ -34,7 +34,7 @@ describe('the session record', () => {
 
   it('records an undo as an entry naming the step, and a turn begun then settled', async () => {
     const v = await headlessViewer({ files: [cbs()] });
-    const record = await createSessionRecord({ api: v.api });
+    const record = await createSessionRecord({ api: v.api, undone: v.managers.history.undone });
     const turn = record.beginTurn('t1', 'make it a surface');
     expectOk(await v.api.as({ kind: 'agent', turn: 't1' }).styles.apply({ style: 'surface' }));
     await record.flush();
@@ -42,8 +42,11 @@ describe('the session record', () => {
     await turn.settle({ reply: 'Done.', outcome: 'done' });
     expectOk(await v.api.as({ kind: 'person' }).history.undo());
     await record.flush();
-    const kinds = (await record.read(10)).items.map((i) => i.entry.kind);
-    expect(kinds).toEqual(['undo', 'run', 'turn']);
+    const items = (await record.read(10)).items;
+    expect(items.map((i) => i.entry.kind)).toEqual(['undo', 'run', 'turn']);
+    // The undo names the run's step.
+    const run = items[1].entry as RunEntry;
+    expect(items[0].entry).toMatchObject({ kind: 'undo', step: run.step, turn: 't1' });
     const turnItem = (await record.read(10)).items.find((i) => i.entry.kind === 'turn')!;
     expect(turnItem.open).toBe(false);
     expect(turnItem.entry).toMatchObject({ reply: 'Done.', outcome: 'done' });

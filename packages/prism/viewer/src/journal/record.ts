@@ -22,6 +22,8 @@ import {
   fiberOwnerId,
 } from '@molstar/ai-fibers';
 import type { Json } from '@molstar/ai-agent';
+import type { HistoryStep } from '@molstar/prism-ui/core';
+import type { Observable } from 'rxjs';
 import type { RunOrigin, ViewerApi } from '../api/area.js';
 import type { RunRecord } from '../api/run.js';
 
@@ -62,10 +64,11 @@ export interface TurnEntry {
 
 export interface UndoEntry {
   readonly kind: 'undo';
-  /** What was undone: the step's words, or the turn. */
+  /** The step undone (a run's `step`), and its words. */
+  readonly step: number;
   readonly what: string;
+  /** The agent's turn it was part of. */
   readonly turn?: string;
-  readonly by: RunOrigin['kind'];
   readonly at: number;
 }
 
@@ -139,6 +142,8 @@ const limits = () => createFiberLimits({ ...FIBER_LIMIT_HARD_BOUNDS, maxActiveSt
 
 export interface SessionRecordOptions {
   readonly api: ViewerApi;
+  /** The steps the history undoes (an `undo` entry each, naming it). */
+  readonly undone?: Observable<HistoryStep>;
   /** Where it is written (memory by default). */
   readonly rows?: FiberRows;
   /** Its id (one per viewer session); new by default. */
@@ -196,11 +201,8 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
     if (isQuiet(r, !!def?.read)) return;
     const at = r.started;
     const origin = r.origin.kind === 'agent' ? { kind: r.origin.kind, turn: r.origin.turn } : { kind: r.origin.kind };
-    if ((r.operation === 'history.undo' || r.operation === 'history.undo-turn') && r.result.ok) {
-      const turn = r.operation === 'history.undo-turn' ? String(r.values.turn ?? '') : undefined;
-      void append({ kind: 'undo', what: r.result.did, ...(turn ? { turn } : {}), by: r.origin.kind, at });
-      return;
-    }
+    // Undos are written from the history's own event, naming the step (below).
+    if (r.operation === 'history.undo' || r.operation === 'history.undo-turn') return;
     if (
       r.result.ok &&
       (r.operation === 'session.open' || r.operation === 'session.clear' || r.operation === 'session.save')
@@ -223,6 +225,17 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
       ...(r.step !== undefined ? { step: r.step } : {}),
     });
   });
+
+  const undoneSub = o.undone?.subscribe(
+    (step) =>
+      void append({
+        kind: 'undo',
+        step: step.id,
+        what: step.label,
+        ...(step.origin.turn ? { turn: step.origin.turn } : {}),
+        at: now(),
+      }),
+  );
 
   const record: SessionRecord = {
     id,
@@ -314,7 +327,10 @@ export async function createSessionRecord(o: SessionRecordOptions): Promise<Sess
       changed();
     },
     flush: () => chain,
-    dispose: () => sub.unsubscribe(),
+    dispose: () => {
+      sub.unsubscribe();
+      undoneSub?.unsubscribe();
+    },
   };
   return record;
 }

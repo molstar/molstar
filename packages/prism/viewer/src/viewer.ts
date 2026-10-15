@@ -276,7 +276,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     });
     disposers.push(() => extensions.dispose());
     // One record per viewer session (journal.md §1), in memory; History reads it, the person may keep it.
-    const record = await createSessionRecord({ api: host.api });
+    const record = await createSessionRecord({ api: host.api, undone: history.undone });
     disposers.push(() => record.dispose());
     // Features behind an option (viewer-spec.md §3.1: remote states) are left out unless it is on.
     const gated: Readonly<Record<string, boolean>> = { 'remote-states': options.ui.showRemoteStates };
