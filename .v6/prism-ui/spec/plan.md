@@ -210,5 +210,14 @@ Deferred to their phases: camera framing around the floating panel (phase 6, REA
 levels and the inspector split, history labels per change, dark theme for the canvas, completions ranking (phase 4's
 command and target work).
 
+G5 ran at the end of phase 3 (2026-10-15): three reviewers (parity; the features' contracts; UX in the browser, desktop
+and phone). Fixed: saving a session left the Snapshots list alone (a `keepList` option in the snapshot manager), one
+approval rule (destructive wins over network), lazy stubs declare their operations' flags, Undo leaves a trajectory's
+frame, `ui.buttons` and the show options honored, crystal symmetry and reset axes, exports queued on the shared
+screenshot helper, folded views idle (watched sources, `onActive`), one debounce and one download path, measurement
+options in custom state, the selection's history gets what was added, the phone's More menu and picking levels,
+parity.md as built. Left for later phases as parity.md says (the unit cell rows, the Conformation Transform, viewport
+state, XR, toasts, redo).
+
 Between gates, every Sonnet PR gets one Opus read before it merges (not a workflow), and every PR updates the spec
 where it moves it, and parity.md's state column.

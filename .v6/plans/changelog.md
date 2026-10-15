@@ -87,6 +87,15 @@ the [API change ledger](breaking-v6-changes.md).
 
 - Prism, the new UI (`packages/prism/*`), and the AI agent packages (`packages/ai/*`): private, not published, mocked in
   Storybook (`storybook/`, the repository's Storybook for the registered packages)
+- The Prism viewer over a real plugin (`@molstar/prism-viewer`, `apps/prism-viewer`): one API whose operations every
+  surface runs (commands, views, the URL, the agent), one undo history with checkpoints, built-in features as
+  extensions (canvas settings, snapshots, export, measurements, superposition, state tree, loaders, remote states,
+  animation), lazy where heavy; the viewer's agent on `@molstar/ai-session` (`agent/`), with live runs opt in
+  (`pnpm test:live`)
+- `@molstar/ai-tools`: a dynamic toolkit (`toolkit.add`, lazy skills disclosed during a turn); `ai-session` reads it as
+  it is
+- The snapshot manager's `getStateSnapshot` and `serialize` take `keepList` (the current scene without changing the
+  list)
 - State actions and transformers take `display.triggerLabel`, the label of the button that runs them ("Download",
   "Open"); a UI falls back to a generic one without it
 - `PluginState.registerCustomState(key, { get, set })` lets a component keep its own state in plugin snapshots
