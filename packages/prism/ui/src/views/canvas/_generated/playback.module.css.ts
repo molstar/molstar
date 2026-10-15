@@ -15,6 +15,7 @@ export const classes = {
   'bare': 'msp-canvas-playback-bare',
   'card': 'msp-canvas-playback-card',
   'counter': 'msp-canvas-playback-counter',
+  'deck': 'msp-canvas-playback-deck',
   'description': 'msp-canvas-playback-description',
   'descriptionContent': 'msp-canvas-playback-descriptionContent',
   'dot': 'msp-canvas-playback-dot',
@@ -27,7 +28,9 @@ export const classes = {
   'listRowsContent': 'msp-canvas-playback-listRowsContent',
   'plain': 'msp-canvas-playback-plain',
   'position': 'msp-canvas-playback-position',
+  'rowTitle': 'msp-canvas-playback-rowTitle',
   'scrubber': 'msp-canvas-playback-scrubber',
+  'time': 'msp-canvas-playback-time',
   'title': 'msp-canvas-playback-title',
   'trajectoryLabel': 'msp-canvas-playback-trajectoryLabel',
 } as const;
@@ -39,6 +42,24 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
+}
+
+.msp-canvas-playback-deck {
+  font-size: var(--msp-font-size-sm);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+  display: grid;
+  overflow: clip;
+
+  &:not(:has([data-row])) {
+    display: none;
+  }
+
+  & [data-row] {
+    box-shadow: 0 -1px 0 var(--msp-color-border);
+  }
 }
 
 .msp-canvas-playback-bare {
@@ -171,6 +192,26 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
     outline-offset: 2px;
     border-radius: var(--msp-radius-sm);
   }
+}
+
+.msp-canvas-playback-rowTitle {
+  min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  white-space: nowrap;
+  flex: 1;
+  font-weight: 600;
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  overflow: hidden;
+}
+
+.msp-canvas-playback-time {
+  min-width: 64px;
+  color: var(--msp-color-text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  flex: none;
 }
 
 .msp-canvas-playback-trajectoryLabel {

@@ -127,7 +127,9 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `snapshot.previous` | Previous snapshot |  |  |
 | `snapshot.remove` | Remove a snapshot | no undo; destructive; agent-only | entry |
 | `snapshot.replace` | Replace a snapshot with the current view | no undo; agent-only | entry, showFor, options |
+| `snapshot.seek` | Show a frame of the snapshot's transition | view; agent-only | time |
 | `snapshot.stop` | Stop playing the snapshots | view |  |
+| `snapshot.transition` | Play the snapshot's transition | view; needs canvas; agent-only | play |
 | `snapshot.update` | Edit a snapshot | no undo; agent-only | entry, name, description, key, showFor, clear |
 | `state.action` | Apply an action to a state cell | network (asks); agent-only | ref, action, params |
 | `state.get` | Read the state tree | read | ref |

@@ -9,7 +9,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { cbs, expectOk, headlessViewer, recordRuns, representationTypes, until } from '../../../_test/harness.js';
 import type { PrismViewer } from '../../../viewer.js';
-import { createSnapshotStepper, createSnapshotsModel } from '../model.js';
+import { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapshots';
+import { createSnapshotStepper, createSnapshotsModel, createSnapshotTransition } from '../model.js';
 import { SnapshotsFeature } from '../index.js';
 import type { SnapshotList } from '../operations.js';
 
@@ -447,5 +448,36 @@ describe('the Snapshots tab model while hidden', () => {
     } finally {
       model.dispose();
     }
+  });
+});
+
+describe("a snapshot's transition", () => {
+  it('reads its length and where it is, and seeks through it without a history step', async () => {
+    const v = await viewer();
+    const manager = v.plugin.managers.snapshot;
+    // Two frames of 200 ms over the loaded state (Mol*'s `snapshot.transition`).
+    const base = v.plugin.state.getSnapshot({ camera: false, canvas3d: false });
+    const frames = [0, 1].map(() => ({ durationInMs: 200, data: base.data! }));
+    const entry = PluginStateSnapshotManager.Entry({ ...base, transition: { frames } }, { name: 'Moving' });
+    manager.add(entry);
+    expectOk(await snap(v).apply({ entry: entry.snapshot.id }));
+    const model = createSnapshotTransition(v.api, snap(v));
+    await until(() => model.duration.value === 400);
+    expect(model.step.value).toBe(200);
+    expect(model.isPlaying.value).toBe(false);
+    const before = steps(v);
+    model.seek(300);
+    await until(() => model.time.value === 300);
+    // Past its end: at its end.
+    expectOk(await snap(v).seek({ time: 1000 }));
+    expect(model.time.value).toBe(400);
+    expect(steps(v)).toBe(before);
+  });
+
+  it('has none for a snapshot without one', async () => {
+    const v = await viewer();
+    expectOk(await snap(v).add());
+    expect(createSnapshotTransition(v.api, snap(v)).duration.value).toBe(0);
+    expect(await snap(v).seek({ time: 10 })).toMatchObject({ ok: false });
   });
 });

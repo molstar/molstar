@@ -16,6 +16,28 @@
   -webkit-backdrop-filter: var(--msp-glass-filter);
 }
 
+/* The playback card: a row each (snapshots, transition, models), a hairline between them; not there with no rows. The
+   rows sit in their views' hosts (display: contents), so they are the grid's items. */
+.deck {
+  display: grid;
+  overflow: clip;
+  font-size: var(--msp-font-size-sm);
+  border-radius: var(--msp-radius-lg);
+  background: var(--msp-glass-bg);
+  box-shadow: var(--msp-glass-shadow);
+  backdrop-filter: var(--msp-glass-filter);
+  -webkit-backdrop-filter: var(--msp-glass-filter);
+
+  &:not(:has([data-row])) {
+    display: none;
+  }
+
+  /* Every row has a hairline above it; the card clips the first one's. */
+  & [data-row] {
+    box-shadow: 0 -1px 0 var(--msp-color-border);
+  }
+}
+
 /* In an overlay's card: the same text, no frame of its own. */
 .bare {
   min-width: 0;
@@ -155,6 +177,29 @@
     outline-offset: 2px;
     border-radius: var(--msp-radius-sm);
   }
+}
+
+/* The current snapshot's title in its row. */
+.rowTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  /* Cut off: it fades out (reset.css, msp-fade-overflow). */
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--msp-fade)), transparent);
+  animation-name: msp-fade-overflow;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* Where the transition is, and its length. */
+.time {
+  flex: none;
+  min-width: 64px;
+  color: var(--msp-color-text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 /* Which structure's models these are. */

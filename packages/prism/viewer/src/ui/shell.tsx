@@ -15,6 +15,7 @@ import {
   canvasInk,
   domView,
   FullscreenModel,
+  For,
   formatChord,
   HelpPanel,
   HoverLabel,
@@ -29,9 +30,11 @@ import {
   ShellView,
   Show,
   ThemeModel,
-  TrajectoryBar,
+  PlaybackDeck,
+  TrajectoryRow,
   type UITheme,
   UIThemes,
+  ViewHost,
 } from '@molstar/prism-ui';
 import { ownsKey } from '@molstar/prism-ui/dom/events';
 import type { Child } from '@molstar/prism-ui/dom/jsx-types';
@@ -643,7 +646,13 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             )}
           </Show>
         }
-        playback={<Show when={shown('trajectory')}>{() => <TrajectoryBar model={trajectory.model} />}</Show>}
+        playback={
+          // One card: the extensions' rows (the snapshots', their transition's), then the trajectory's.
+          <PlaybackDeck>
+            <For each={shell.sections('playback')}>{(s) => <ViewHost renderer={s.render} ctx={{ shell }} />}</For>
+            <Show when={shown('trajectory')}>{() => <TrajectoryRow model={trajectory.model} />}</Show>
+          </PlaybackDeck>
+        }
         agent={<Show when={agentView}>{(view) => view()}</Show>}
         ink={ink}
         empty={sources.empty}

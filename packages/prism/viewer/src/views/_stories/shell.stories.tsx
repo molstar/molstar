@@ -8,6 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapshots';
 import type { SceneNode } from '../../model/scene.js';
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { story } from '@molstar/prism-ui/testing/index';
@@ -66,7 +67,10 @@ export const ManyStructures: StoryObj = {
     )),
 };
 
-/** Playback: a trajectory's frames (the trajectory bar) and two snapshots (the snapshots card). */
+/**
+ * Playback: a trajectory's frames, three snapshots, the last with a transition (its scrubber): the canvas's playback
+ * card has a row each.
+ */
 export const Playback: StoryObj = {
   render: () =>
     story(() => (
@@ -82,6 +86,12 @@ export const Playback: StoryObj = {
           });
           await v.api.snapshot?.add({ name: 'The whole protein' });
           await v.api.snapshot?.add({ name: 'Again, for the playback' });
+          // A transition of four frames over the same state (an MVS animation makes these).
+          const base = v.plugin.state.getSnapshot({ camera: false, canvas3d: false });
+          const frames = [0, 1, 2, 3].map(() => ({ durationInMs: 500, data: base.data! }));
+          const entry = PluginStateSnapshotManager.Entry({ ...base, transition: { frames } }, { name: 'In motion' });
+          v.plugin.managers.snapshot.add(entry);
+          await v.api.snapshot?.apply({ entry: entry.snapshot.id });
         }}
       />
     )),

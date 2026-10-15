@@ -7,8 +7,10 @@
  */
 
 import type { PluginContext } from '@molstar/plugin/context';
+import { PluginState } from '@molstar/plugin/state';
 import type { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapshots';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
+import { merge } from 'rxjs';
 import { fromBehavior, fromChanged, SourceScope } from '../../sources/state.js';
 
 // The snapshots as the views read them (state.md §4, row 2: a mutable field with a void `changed`). Sources by role
@@ -39,9 +41,44 @@ export interface SnapshotsState {
   readonly playing: boolean;
 }
 
+/**
+ * The current snapshot's transition (Mol*'s `snapshot.transition`: frames played after it is applied), as the canvas
+ * scrubber shows it. Apart from the list's state: it changes on every frame while it plays.
+ */
+export interface SnapshotTransitionState {
+  /** Its length (ms); 0 when the current snapshot has none. */
+  readonly duration: number;
+  /** Its shortest frame (ms): the scrubber's step. */
+  readonly step: number;
+  readonly loop: boolean;
+  /** Where it is (ms). */
+  readonly time: number;
+  /** It plays (the plugin's animation manager runs it). */
+  readonly playing: boolean;
+}
+
 export interface SnapshotsSource {
   readonly state: ReadonlyState<SnapshotsState>;
+  readonly transition: ReadonlyState<SnapshotTransitionState>;
   dispose(): void;
+}
+
+const sameTransition = (a: SnapshotTransitionState, b: SnapshotTransitionState) =>
+  a.duration === b.duration && a.step === b.step && a.loop === b.loop && a.time === b.time && a.playing === b.playing;
+
+/** The transition of the current snapshot, where it is and whether it plays. */
+export function readTransition(plugin: PluginContext): SnapshotTransitionState {
+  const manager = plugin.managers.snapshot;
+  const animation = plugin.managers.animation;
+  const snapshot = manager.current?.snapshot;
+  const duration = snapshot?.transition ? (PluginState.getStateTransitionDuration(snapshot) ?? 0) : 0;
+  return {
+    duration,
+    step: PluginState.getMinFrameDuration(snapshot),
+    loop: !!snapshot?.transition?.loop,
+    time: Math.min(manager.state.currentAnimationTimeMs ?? 0, duration),
+    playing: animation.isAnimatingStateTransition && animation.isAnimating,
+  };
 }
 
 const sameInfo = (a: SnapshotInfo, b: SnapshotInfo) =>
@@ -104,11 +141,17 @@ export function createSnapshotsSource(plugin: PluginContext): SnapshotsSource {
     return { entries: infos, ...(current ? { current } : {}), playing: isPlaying };
   };
   const state = fromChanged(scope, read, manager.events.changed, sameState);
+  const transition = fromChanged(
+    scope,
+    () => readTransition(plugin),
+    merge(manager.events.changed, plugin.managers.animation.events.updated),
+    sameTransition,
+  );
   scope.add(() => {
     for (const url of urls.values()) URL.revokeObjectURL(url);
     urls.clear();
   });
-  return { state, dispose: () => scope.dispose() };
+  return { state, transition, dispose: () => scope.dispose() };
 }
 
 /**

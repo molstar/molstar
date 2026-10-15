@@ -33,6 +33,23 @@ export interface SnapshotStepperModel {
 }
 
 /**
+ * The current snapshot's transition (frames played after it is applied; v5's snapshot animation slider): where it is,
+ * a scrubber through it, play from the start and stop. Its length is 0 when the snapshot has none.
+ */
+export interface SnapshotTransitionModel {
+  /** ms; 0: no transition. */
+  duration: ReadonlyState<number>;
+  /** The shortest frame (ms): the scrubber's step. */
+  step: ReadonlyState<number>;
+  /** Where it is (ms). */
+  time: ReadonlyState<number>;
+  isPlaying: ReadonlyState<boolean>;
+  seek(time: number): void;
+  /** Plays it from its start, or stops it. */
+  togglePlay(): void;
+}
+
+/**
  * Model-index controls for a multi-model trajectory (implemented over `UpdateTrajectory`). A trajectory belongs to a
  * structure (its frame is the structure's model index): with several loaded, the bar follows the focused one.
  */

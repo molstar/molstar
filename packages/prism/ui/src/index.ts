@@ -66,7 +66,14 @@ export { TextInput, type TextInputProps } from './components/text-input/text-inp
 export { flattenTree, VirtualList } from './components/virtual-list/virtual-list.js';
 
 export { HoverLabel } from './views/canvas/hover-label.js';
-export { SnapshotCard, TrajectoryBar } from './views/canvas/playback.js';
+export {
+  PlaybackDeck,
+  SnapshotCard,
+  SnapshotRow,
+  TrajectoryBar,
+  TrajectoryRow,
+  TransitionRow,
+} from './views/canvas/playback.js';
 export {
   type CommandMenuAssistant,
   CommandMenu,

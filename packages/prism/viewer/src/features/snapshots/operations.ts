@@ -7,7 +7,8 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { PluginState } from '@molstar/plugin/state';
+import { PluginState } from '@molstar/plugin/state';
+import { AnimateStateSnapshotTransition } from '@molstar/plugin/state/animation/built-in/state-snapshots';
 import { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapshots';
 import { type ApiContext, ApiArea, ApiResult, type ApiFailure } from '../../api/area.js';
 import {
@@ -16,6 +17,7 @@ import {
   type MarkdownSource,
   type SnapshotsSource,
   type SnapshotsState,
+  type SnapshotTransitionState,
 } from './source.js';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 
@@ -101,6 +103,18 @@ const PlayParams = {
     { min: 0, max: 60000, step: 100 },
     { description: 'How long to show a snapshot that does not say, in ms (0: the default)' },
   ),
+};
+
+const SeekParams = {
+  time: PD.Numeric(
+    0,
+    { min: 0, max: 600000, step: 1 },
+    { description: "Where in the current snapshot's transition, in ms" },
+  ),
+};
+
+const TransitionParams = {
+  play: PD.Boolean(true, { description: "Play the current snapshot's transition from its start; false: stop it" }),
 };
 
 const LinkParams = {
@@ -198,6 +212,11 @@ export class SnapshotApi extends ApiArea {
    */
   get state(): ReadonlyState<SnapshotsState> {
     return (this.#source ??= createSnapshotsSource(this.ctx.plugin)).state;
+  }
+
+  /** The current snapshot's transition as the canvas scrubber reads it (its length, where it is, whether it plays). */
+  get transitionState(): ReadonlyState<SnapshotTransitionState> {
+    return (this.#source ??= createSnapshotsSource(this.ctx.plugin)).transition;
   }
 
   /**
@@ -494,6 +513,58 @@ export class SnapshotApi extends ApiArea {
       if (!manager.state.isPlaying) return ApiResult.already('The snapshots are not playing.');
       await manager.stop();
       return ApiResult.ok('Stopped playing the snapshots.', {});
+    },
+  });
+
+  /**
+   * A frame of the current snapshot's transition (Mol*'s `transition`: frames after it is applied), as v5's slider
+   * shows it. View state: no step, as playing it is not.
+   */
+  readonly seek = this.operation({
+    id: 'snapshot.seek',
+    title: "Show a frame of the snapshot's transition",
+    params: SeekParams,
+    surface: { kind: 'agent-only', reason: "The playback card's transition scrubber." },
+    history: false,
+    when: (ctx) =>
+      ctx.plugin.managers.snapshot.current?.snapshot.transition ? true : 'The snapshot has no transition.',
+    async run({ time }, ctx) {
+      const snapshot = ctx.plugin.managers.snapshot.current?.snapshot;
+      if (!snapshot?.transition)
+        return ApiResult.fail('blocked', 'The snapshot has no transition.', 'Apply one that has.');
+      const animation = ctx.plugin.managers.animation;
+      if (animation.isAnimatingStateTransition) await animation.stop();
+      const duration = PluginState.getStateTransitionDuration(snapshot) ?? 0;
+      const at = Math.max(0, Math.min(time, duration));
+      ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(at, true);
+      return ApiResult.ok(`At ${Math.round(at)} of ${Math.round(duration)} ms of the transition.`, { view: true });
+    },
+  });
+
+  /** Plays the current snapshot's transition from its start (v5's replay), or stops it. */
+  readonly transition = this.operation({
+    id: 'snapshot.transition',
+    title: "Play the snapshot's transition",
+    params: TransitionParams,
+    surface: { kind: 'agent-only', reason: "The playback card's transition row." },
+    history: false,
+    // The plugin ticks its animations on the canvas's frames.
+    modules: ['canvas'],
+    when: (ctx) =>
+      ctx.plugin.managers.snapshot.current?.snapshot.transition ? true : 'The snapshot has no transition.',
+    async run({ play }, ctx) {
+      const animation = ctx.plugin.managers.animation;
+      if (!play) {
+        if (!animation.isAnimatingStateTransition) return ApiResult.already('The transition is not playing.');
+        await animation.stop();
+        return ApiResult.ok('Stopped the transition.', {});
+      }
+      if (!ctx.plugin.managers.snapshot.current?.snapshot.transition) {
+        return ApiResult.fail('blocked', 'The snapshot has no transition.', 'Apply one that has.');
+      }
+      if (animation.isAnimatingStateTransition) await animation.stop();
+      await animation.play(AnimateStateSnapshotTransition, {});
+      return ApiResult.ok("Playing the snapshot's transition.", { view: true });
     },
   });
 }

@@ -10,7 +10,7 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { mapState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { MarkdownHost } from '@molstar/prism-ui';
-import type { SnapshotStepperModel } from '@molstar/prism-ui/model/playback';
+import type { SnapshotStepperModel, SnapshotTransitionModel } from '@molstar/prism-ui/model/playback';
 import type { Subscription } from 'rxjs';
 import type { ViewerApi } from '../../api/area.js';
 import type { SnapshotEntry, SnapshotsModel } from '../../model/snapshots.js';
@@ -280,6 +280,40 @@ export function createSnapshotStepper(
         globalThis.open?.(href, '_blank', 'noopener,noreferrer');
       }
     },
+  };
+}
+
+/**
+ * The current snapshot's transition as the canvas scrubber shows it (prism-ui's `SnapshotTransitionModel`), acting
+ * through `snapshot.seek` and `snapshot.transition`. A drag reports every step: one seek at a time, the last wins.
+ */
+export function createSnapshotTransition(api: ViewerApi, area: SnapshotApi): SnapshotTransitionModel {
+  const state = area.transitionState;
+  let seeking = false;
+  let wanted: number | undefined;
+  const seek = async () => {
+    if (seeking) return;
+    seeking = true;
+    try {
+      while (wanted !== undefined) {
+        const time = wanted;
+        wanted = undefined;
+        await api.snapshot?.seek({ time });
+      }
+    } finally {
+      seeking = false;
+    }
+  };
+  return {
+    duration: mapState(state, (s) => s.duration, Object.is),
+    step: mapState(state, (s) => s.step, Object.is),
+    time: mapState(state, (s) => s.time, Object.is),
+    isPlaying: mapState(state, (s) => s.playing, Object.is),
+    seek(time) {
+      wanted = time;
+      void seek();
+    },
+    togglePlay: () => void api.snapshot?.transition({ play: !state.value.playing }),
   };
 }
 

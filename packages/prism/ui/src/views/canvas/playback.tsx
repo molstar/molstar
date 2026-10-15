@@ -17,7 +17,8 @@ import { TextInput } from '../../components/text-input/text-input.js';
 import { For, Show } from '../../dom/control-flow.js';
 import { observableState } from '../../reactive/observable-state.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
-import type { SnapshotStepperModel, TrajectoryControlsModel } from '../../model/playback.js';
+import type { Child } from '../../dom/jsx-types.js';
+import type { SnapshotStepperModel, SnapshotTransitionModel, TrajectoryControlsModel } from '../../model/playback.js';
 import { classes } from './_generated/playback.module.css.js';
 
 /** Up to this many snapshots, the position shows as dots; past it, as "n / N" opening a list of titles. */
@@ -45,17 +46,133 @@ export function SnapshotCard(props: {
 }
 
 /**
- * Trajectory playback, a separate bar: the models of one structure (named, since it is that structure's model index),
- * a scrubber and play. Only for a multi-model structure.
+ * The canvas's playback controls in one card, a row each: the snapshots (step through them, play), the current
+ * snapshot's transition (a scrubber), the trajectory's models. Each row shows only when it has something to play; with
+ * none, the card is not there.
  */
+export function PlaybackDeck(props: { children?: Child }) {
+  return (
+    <section class={classes.deck} aria-label="Playback">
+      {props.children}
+    </section>
+  );
+}
+
+/** Trajectory playback alone: the deck with its row. */
 export function TrajectoryBar(props: { model: TrajectoryControlsModel }) {
   return (
-    <Show when={props.model.count.pipe(map((c) => c > 1))}>
-      {() => (
-        <section class={classes.card} aria-label="Trajectory">
-          <Trajectory model={props.model} />
-        </section>
-      )}
+    <PlaybackDeck>
+      <TrajectoryRow model={props.model} />
+    </PlaybackDeck>
+  );
+}
+
+/**
+ * The trajectory's row: the models of one structure (named, since it is that structure's model index), a scrubber
+ * and play. Only for a multi-model structure.
+ */
+export function TrajectoryRow(props: { model: TrajectoryControlsModel }) {
+  return <Show when={props.model.count.pipe(map((c) => c > 1))}>{() => <Trajectory model={props.model} />}</Show>;
+}
+
+/**
+ * The snapshots' row (v5's viewport snapshot controls): the current one's title, its position (a list of all of them),
+ * previous, play, next. From two snapshots on; the story card has the description.
+ */
+export function SnapshotRow(props: { model: SnapshotStepperModel }) {
+  const { model } = props;
+  return (
+    <Show when={model.count.pipe(map((c) => c > 1))}>
+      {() => {
+        const listOpen = observableState(false);
+        return (
+          <div data-row>
+            <div class={classes.bar} role="group" aria-label="Snapshots">
+              <span class={classes.lead}>
+                <Icon name="snapshots" size={16} />
+              </span>
+              <span class={classes.rowTitle}>{model.title.pipe(map((t) => t ?? 'No snapshot applied'))}</span>
+              <button
+                type="button"
+                class={classes.position}
+                aria-expanded={listOpen}
+                aria-label="Snapshots"
+                onClick={() => listOpen.set(!listOpen.value)}
+              >
+                {combineLatest([model.index, model.count]).pipe(map(([i, c]) => `${i < 0 ? '–' : i + 1} / ${c}`))}
+              </button>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Icon name="chevron-left" />}
+                title="Previous snapshot"
+                onClick={() => model.previous()}
+              />
+              <PlayButton playing={model.isPlaying} title="Play snapshots" onClick={() => model.togglePlay()} />
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Icon name="chevron-right" />}
+                title="Next snapshot"
+                onClick={() => model.next()}
+              />
+            </div>
+            <Show when={listOpen}>{() => <SnapshotList model={model} onClose={() => listOpen.set(false)} />}</Show>
+          </div>
+        );
+      }}
+    </Show>
+  );
+}
+
+/** Seconds with a tenth ("1.2 s"), the transition's time. */
+const seconds = (ms: number) => (ms / 1000).toFixed(1);
+
+/**
+ * The current snapshot's transition (v5's snapshot animation slider): a scrubber through it, where it is, play from its
+ * start or stop. Only when the snapshot has one.
+ */
+export function TransitionRow(props: { model: SnapshotTransitionModel }) {
+  const { model } = props;
+  return (
+    <Show when={model.duration.pipe(map((d) => d > 0))}>
+      {() => {
+        const progress = combineLatest([model.time, model.duration]).pipe(
+          map(([t, d]) => `${d > 0 ? (100 * Math.min(t, d)) / d : 0}%`),
+        );
+        return (
+          <div class={classes.bar} role="group" aria-label="Transition" data-row>
+            <span class={classes.lead}>
+              <Icon name="film" size={16} />
+            </span>
+            <input
+              class={classes.scrubber}
+              type="range"
+              min="0"
+              max={model.duration.pipe(map(String))}
+              step={model.step.pipe(map((s) => String(Math.max(1, Math.round(s)))))}
+              value={model.time.pipe(map((t) => String(Math.round(t))))}
+              style={{ '--msp-progress': progress }}
+              aria-label="Transition time"
+              onInput={(e) => model.seek(Number(e.currentTarget.value))}
+            />
+            <span class={classes.time}>
+              {combineLatest([model.time, model.duration]).pipe(map(([t, d]) => `${seconds(t)} / ${seconds(d)} s`))}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={
+                <Show when={model.isPlaying} fallback={() => <Icon name="play" />}>
+                  {() => <Icon name="square" />}
+                </Show>
+              }
+              title={model.isPlaying.pipe(map((p) => (p ? 'Stop the transition' : 'Play the transition')))}
+              onClick={() => model.togglePlay()}
+            />
+          </div>
+        );
+      }}
     </Show>
   );
 }
@@ -220,7 +337,7 @@ function Trajectory(props: { model: TrajectoryControlsModel }) {
     map(([i, c]) => `${c > 1 ? (100 * i) / (c - 1) : 0}%`),
   );
   return (
-    <div class={classes.bar} role="group" aria-label="Models">
+    <div class={classes.bar} role="group" aria-label="Models" data-row>
       <span class={classes.lead}>
         <Icon name="trajectory" size={16} />
       </span>

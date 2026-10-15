@@ -198,6 +198,8 @@ export type ViewerSlot =
   | 'canvas-settings'
   | 'animation'
   | 'settings'
+  /** Rows of the canvas's playback card, with the trajectory's (the snapshots', their transition's). */
+  | 'playback'
   | `inspector:${SceneNodeKind}`;
 
 /** The Image section's shared frame, an `export.picture` view's subject: the resolution and the axes the person set. */

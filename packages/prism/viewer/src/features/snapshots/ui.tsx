@@ -8,7 +8,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Button, domView, Icon, onActive, onCleanup, Show, SnapshotCard } from '@molstar/prism-ui';
+import {
+  Button,
+  domView,
+  Icon,
+  onActive,
+  onCleanup,
+  Show,
+  SnapshotCard,
+  SnapshotRow,
+  TransitionRow,
+} from '@molstar/prism-ui';
 import { distinctUntilChanged, map } from 'rxjs';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { downloadBlob } from '../../ui/download.js';
@@ -16,7 +26,14 @@ import { SnapshotsPanel } from '../../views/state/snapshots-panel.js';
 import { AudioBar } from '../../views/state/audio-bar.js';
 import { createAudioModel } from './audio.js';
 import { createMarkdownHost } from './markdown.js';
-import { createSnapshotStepper, createSnapshotsModel, openPlaybackOnLoad, PlaybackCard, presentable } from './model.js';
+import {
+  createSnapshotStepper,
+  createSnapshotTransition,
+  createSnapshotsModel,
+  openPlaybackOnLoad,
+  PlaybackCard,
+  presentable,
+} from './model.js';
 
 // The Snapshots tab (parity.md §4: the classic State snapshots) and the playback card. The shell has no place for a
 // card at the canvas's top left that an extension can fill, so the playback card is an overlay opened from a toolbar
@@ -66,6 +83,20 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
             />
           );
         }),
+      },
+    ],
+    // The snapshots' rows in the canvas's playback card: step through them, and the current one's transition.
+    sections: [
+      {
+        id: 'snapshots.section.playback',
+        slot: 'playback',
+        title: 'Snapshots',
+        render: domView(() => (
+          <>
+            <SnapshotRow model={createSnapshotStepper(ctx.api, area)} />
+            <TransitionRow model={createSnapshotTransition(ctx.api, area)} />
+          </>
+        )),
       },
     ],
     overlays: [
