@@ -16,6 +16,7 @@ import { dragToReorder } from '@molstar/prism-ui/components/reorder/drag-to-reor
 import { ScrollArea } from '@molstar/prism-ui';
 import { TextInput } from '@molstar/prism-ui';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
+import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import type { SnapshotEntry, SnapshotsModel } from '../../model/snapshots.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
 import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
@@ -26,7 +27,11 @@ import { classes } from './_generated/snapshots-panel.module.css.js';
  * sliders (saving and opening a file is Export › Session & state's, and Home's Open); the snapshots as rows (a click
  * applies one; its ⋯ reorders, replaces, removes), and under them, at a fixed height, the current snapshot's own settings.
  */
-export function SnapshotsPanel(props: { model: SnapshotsModel }) {
+export function SnapshotsPanel(props: {
+  model: SnapshotsModel;
+  /** At the header's end, before the options (Play): what the tab adds to it. */
+  actions?: () => Child;
+}) {
   const { model } = props;
   const open = observableState(false);
   const current = model.current.pipe(distinctUntilChanged());
@@ -39,6 +44,7 @@ export function SnapshotsPanel(props: { model: SnapshotsModel }) {
         <Button size="sm" variant="ghost" icon={<Icon name="plus" />} onClick={() => model.add()}>
           <span class={classes.actionLabel}>Add</span>
         </Button>
+        <span class={classes.trailing}>{props.actions?.()}</span>
         <Button
           size="sm"
           variant="ghost"

@@ -243,7 +243,8 @@ describe('snapshot.remove and clear', () => {
 describe('snapshot.next and previous', () => {
   it('step through the list, wrapping at the ends as the manager does', async () => {
     const v = await viewer();
-    expect(await snap(v).next()).toMatchObject({ ok: false, code: 'not-found' });
+    // Nothing to step through: refused before it runs.
+    expect(await snap(v).next()).toMatchObject({ ok: false, code: 'blocked' });
     for (const n of ['A', 'B', 'C']) await snap(v).add({ name: n });
     const current = async () => (await list(v)).entries.find((e) => e.current)?.name;
     expect(await current()).toBe('C');

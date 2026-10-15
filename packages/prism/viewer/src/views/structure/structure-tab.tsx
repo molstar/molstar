@@ -326,7 +326,16 @@ function Representations(props: { node: SceneNode; onPick(node: SceneNode): void
           <For each={reprs} key={(n) => n.id}>
             {(n) => (
               <div class={classes.child} classList={{ [classes.childHidden]: n.isHidden }}>
-                <button type="button" class={classes.childOpen} onClick={() => props.onPick(n)}>
+                <button
+                  type="button"
+                  class={classes.childOpen}
+                  onClick={() => {
+                    // In the tree too: the component's row opens, the representation's is picked (and brought into
+                    // view), so where it is shows.
+                    if (!props.node.isExpanded.value) props.node.toggleExpanded();
+                    props.onPick(n);
+                  }}
+                >
                   <Icon name={n.icon} size={15} class={classes.childIcon} />
                   <span class={classes.childLabel}>{n.label}</span>
                   <span class={classes.childDescription}>{n.description}</span>

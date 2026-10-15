@@ -16,6 +16,12 @@
   -webkit-backdrop-filter: var(--msp-glass-filter);
 }
 
+/* In an overlay's card: the same text, no frame of its own. */
+.bare {
+  min-width: 0;
+  font-size: var(--msp-font-size-sm);
+}
+
 .bar {
   display: flex;
   align-items: center;
@@ -79,8 +85,11 @@
 }
 
 .descriptionContent {
+  min-width: 0;
   padding: 0 var(--msp-space-4) var(--msp-space-4);
   font-size: var(--msp-font-size-sm);
+  /* Long words and links wrap rather than run out of the card. */
+  overflow-wrap: anywhere;
 }
 
 /* A plain-text description (`descriptionFormat: 'plaintext'`): its line breaks kept. */

@@ -42,12 +42,13 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
           const stepper = createSnapshotStepper(ctx.api, area);
           onActive((active) => model.setActive(active));
           onCleanup(() => model.dispose());
-          // Play or stop the slideshow from the tab, when there is one (two or more snapshots); the panel fills the rest.
+          // Play or stop the slideshow (two or more snapshots): an icon at the header's end, beside the options.
           return (
-            <div style="display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; height: 100%">
-              <Show when={stepper.count.pipe(map((c) => c >= 2))}>
-                {() => (
-                  <div style="flex: none; display: flex; padding: 0 var(--msp-panel-inset) var(--msp-space-1)">
+            <SnapshotsPanel
+              model={model}
+              actions={() => (
+                <Show when={stepper.count.pipe(map((c) => c >= 2))}>
+                  {() => (
                     <Button
                       size="sm"
                       variant="ghost"
@@ -56,15 +57,13 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
                           {() => <Icon name="pause" />}
                         </Show>
                       }
+                      title={stepper.isPlaying.pipe(map((p) => (p ? 'Stop the slideshow' : 'Play the snapshots')))}
                       onClick={() => stepper.togglePlay()}
-                    >
-                      <span>{stepper.isPlaying.pipe(map((p) => (p ? 'Stop' : 'Play')))}</span>
-                    </Button>
-                  </div>
-                )}
-              </Show>
-              <SnapshotsPanel model={model} />
-            </div>
+                    />
+                  )}
+                </Show>
+              )}
+            />
           );
         }),
       },
@@ -72,7 +71,7 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
     overlays: [
       {
         id: PlaybackCard,
-        title: 'Playback',
+        title: 'Story',
         render: domView(() => {
           const model = createSnapshotStepper(ctx.api, area, createMarkdownHost(ctx.api, area.markdown));
           return (
@@ -82,7 +81,7 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
                 when={model.count.pipe(map((c) => c >= 1))}
                 fallback={() => <p style="margin: 0">There are no snapshots: add some in the Snapshots tab.</p>}
               >
-                {() => <SnapshotCard model={model} />}
+                {() => <SnapshotCard model={model} bare />}
               </Show>
             </div>
           );
@@ -92,8 +91,8 @@ export function snapshotsUI(ctx: ViewerUIContext): ViewerExtensionUI {
     toolbar: [
       {
         id: 'snapshots.toolbar.playback',
-        icon: 'play',
-        title: 'Play snapshots',
+        icon: 'book-open',
+        title: 'Story',
         group: 'scene',
         overlay: PlaybackCard,
         visible: area.state.pipe(map(presentable), distinctUntilChanged()),

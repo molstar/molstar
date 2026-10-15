@@ -42,15 +42,18 @@ export const SnapshotsFeature: ViewerExtension = {
         icon: 'snapshots',
         alias: ['restore', 'go to snapshot'],
       }),
+      // ← and → step through a story (where nothing else takes the arrows: not in a field, a slider, the tree).
       operationCommand(api, s.next, {
         category: 'Snapshots',
         icon: 'chevron-right',
         alias: ['next snapshot'],
+        shortcut: { key: 'ArrowRight' },
       }),
       operationCommand(api, s.previous, {
         category: 'Snapshots',
         icon: 'chevron-left',
         alias: ['previous snapshot', 'back'],
+        shortcut: { key: 'ArrowLeft' },
       }),
       operationCommand(api, s.play, { category: 'Snapshots', icon: 'play', alias: ['slideshow', 'tour', 'story'] }),
       operationCommand(api, s.stop, { category: 'Snapshots', icon: 'pause', alias: ['pause', 'stop slideshow'] }),

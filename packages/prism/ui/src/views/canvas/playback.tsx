@@ -28,11 +28,15 @@ const MaxDots = 7;
  * previous, next, the slideshow's play (from two snapshots on), then its description. Only when the session has
  * snapshots.
  */
-export function SnapshotCard(props: { model: SnapshotStepperModel }) {
+export function SnapshotCard(props: {
+  model: SnapshotStepperModel;
+  /** In a card already (an overlay's): no glass of its own, so there is one frame. */
+  bare?: boolean;
+}) {
   return (
     <Show when={props.model.count.pipe(map((c) => c > 0))}>
       {() => (
-        <section class={classes.card} aria-label="Snapshots">
+        <section class={props.bare ? classes.bare : classes.card} aria-label="Snapshots">
           <Snapshots model={props.model} />
         </section>
       )}
@@ -104,7 +108,9 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
         </Show>
       </div>
       <Show when={listOpen}>{() => <SnapshotList model={model} onClose={() => listOpen.set(false)} />}</Show>
-      <Show when={model.description}>
+      <Show
+        when={combineLatest([model.description, model.title]).pipe(map(([d, t]) => (d ? withoutTitle(d, t ?? '') : d)))}
+      >
         {(source) => (
           <ScrollArea class={classes.description} contentClass={classes.descriptionContent}>
             <Show
@@ -120,6 +126,17 @@ function Snapshots(props: { model: SnapshotStepperModel }) {
       </Show>
     </div>
   );
+}
+
+/**
+ * A description without its first heading when that only repeats the snapshot's title (shown in the bar already); a
+ * heading that says more stays.
+ */
+export function withoutTitle(markdown: string, title: string): string {
+  const m = /^\s*#{1,6}[ \t]+(.+?)[ \t]*#*[ \t]*(?:\r?\n|$)/.exec(markdown);
+  const plain = (s: string) => s.replace(/[*_`]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (!m || plain(m[1]) !== plain(title)) return markdown;
+  return markdown.slice(m[0].length).replace(/^\s+/, '');
 }
 
 /** One dot per snapshot, the current one filled; each jumps to its snapshot (its title as the tooltip). */

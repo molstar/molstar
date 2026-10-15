@@ -34,6 +34,7 @@ const LUCIDE_VERSION = '1.48.0';
 const ICONS = [
   'house',
   'swatch-book',
+  'book-open',
   'layers',
   'list-tree',
   'settings',

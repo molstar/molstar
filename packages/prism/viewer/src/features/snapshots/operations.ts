@@ -423,6 +423,8 @@ export class SnapshotApi extends ApiArea {
     id: 'snapshot.next',
     title: 'Next snapshot',
     params: {},
+    // Two or more to step through (the arrows' commands are quiet where they cannot run).
+    when: (ctx) => (ctx.plugin.managers.snapshot.state.entries.size > 1 ? true : 'There is no story to step through.'),
     run: (_, ctx) => step(ctx, 1),
   });
 
@@ -430,6 +432,8 @@ export class SnapshotApi extends ApiArea {
     id: 'snapshot.previous',
     title: 'Previous snapshot',
     params: {},
+    // Two or more to step through (the arrows' commands are quiet where they cannot run).
+    when: (ctx) => (ctx.plugin.managers.snapshot.state.entries.size > 1 ? true : 'There is no story to step through.'),
     run: (_, ctx) => step(ctx, -1),
   });
 

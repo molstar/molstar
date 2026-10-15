@@ -598,6 +598,13 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   });
   unregister.push(() => saving.unsubscribe());
 
+  // A command opened from elsewhere (a component's action, a shortcut of a command with a form, an extension) shows in
+  // the menu: an open command with no menu around it would be invisible.
+  const showActive = managers.commands.active.subscribe((invocation) => {
+    if (invocation && !commandMenuOpen.value) openCommandMenu();
+  });
+  unregister.push(() => showActive.unsubscribe());
+
   // ⌘K / ⇧⌘P open the command menu; commands' own shortcuts run them; only this viewer's keys.
   const onKey = (e: KeyboardEvent) => {
     if (!ownsKey(root, e)) return;

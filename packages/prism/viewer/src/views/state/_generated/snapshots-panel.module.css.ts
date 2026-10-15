@@ -46,6 +46,7 @@ export const classes = {
   'slot': 'msp-viewer-snapshots-panel-slot',
   'textarea': 'msp-viewer-snapshots-panel-textarea',
   'thumb': 'msp-viewer-snapshots-panel-thumb',
+  'trailing': 'msp-viewer-snapshots-panel-trailing',
 } as const;
 
 defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.components {
@@ -84,8 +85,12 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
   }
 }
 
-.msp-viewer-snapshots-panel-optionsButton {
+.msp-viewer-snapshots-panel-trailing {
   margin-left: auto;
+  display: flex;
+}
+
+.msp-viewer-snapshots-panel-optionsButton {
   margin-right: var(--msp-space-2);
 }
 

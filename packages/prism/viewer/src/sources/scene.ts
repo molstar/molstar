@@ -810,12 +810,24 @@ function componentMenu(
   if (openCommand) {
     // A preset component (Polymer, Ligand, Water, …) is also a target by its keyword; another is typed there.
     const keyword = ComponentKeywords[label.toLowerCase()];
+    // Named as the person reads them (the command's fields show their values), when clicked: the structure's name and
+    // the component's label, each its state ref only where the name is not unique.
+    const named = () => {
+      const structures = plugin.managers.structure.hierarchy.current.structures;
+      // The tree's names (the entry, "1CBS"); one two structures share reads "1CBS · Assembly 1": then the ref.
+      const name = structureNames(structures).get(structureRef);
+      const structure = name && !name.includes(' · ') ? name : structureRef;
+      const siblings = structures.find((s) => s.cell.transform.ref === structureRef)?.components ?? [];
+      const own = siblings.find((c) => c.cell.transform.ref === ref)?.cell.obj?.label ?? label;
+      const sameLabel = siblings.filter((c) => (c.cell.obj?.label ?? '') === own).length;
+      return { structure, component: own && sameLabel === 1 ? own : ref };
+    };
     return [
       {
         id: 'add-repr',
         label: 'Add representation…',
         icon: 'plus',
-        run: () => openCommand('representation.set', { component: ref, structure: structureRef }),
+        run: () => openCommand('representation.set', named()),
       },
       {
         id: 'coloring',
@@ -823,7 +835,7 @@ function componentMenu(
         icon: 'palette',
         run: () =>
           openCommand('representation.color-theme', {
-            structure: structureRef,
+            structure: named().structure,
             ...(keyword ? { target: keyword } : {}),
           }),
       },
@@ -831,7 +843,7 @@ function componentMenu(
         id: 'modify',
         label: 'Modify by selection…',
         icon: 'squares-unite',
-        run: () => openCommand('component.modify', { component: ref, structure: structureRef, target: 'selection' }),
+        run: () => openCommand('component.modify', { ...named(), target: 'selection' }),
       },
       {
         id: 'select',

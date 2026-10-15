@@ -23,10 +23,8 @@ describe("a component's actions", () => {
     run('add-repr');
     await until(() => !!active());
     expect(active()!.command.id).toBe('representation.set');
-    expect(active()!.state.value.values).toMatchObject({
-      component: polymer.id,
-      structure: v.views.scene.roots.value[0].id,
-    });
+    // Named as the person reads them.
+    expect(active()!.state.value.values).toMatchObject({ component: 'Polymer', structure: '1CBS' });
 
     run('coloring');
     await until(() => active()?.command.id === 'representation.color-theme');
@@ -34,6 +32,6 @@ describe("a component's actions", () => {
 
     run('modify');
     await until(() => active()?.command.id === 'component.modify');
-    expect(active()!.state.value.values).toMatchObject({ component: polymer.id, target: 'selection' });
+    expect(active()!.state.value.values).toMatchObject({ component: 'Polymer', target: 'selection' });
   });
 });

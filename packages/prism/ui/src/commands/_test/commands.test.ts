@@ -166,6 +166,32 @@ describe('CommandManager.query', () => {
     subscription.unsubscribe();
   });
 
+  it('leaves a plain key alone where its command cannot run (no refusal said)', () => {
+    const { manager } = setup();
+    let available = false;
+    const run = vi.fn(() => ({}));
+    manager.register([
+      {
+        id: 'story.next',
+        title: 'Next snapshot',
+        category: 'Story',
+        shortcut: { key: 'ArrowRight' },
+        when: () => (available ? true : 'Nothing to step through'),
+        run,
+      },
+    ]);
+    const errors = vi.fn();
+    const subscription = manager.outcomes.subscribe((outcome) => {
+      if (outcome.kind === 'blocked') errors(outcome);
+    });
+    expect(manager.handleKey({ key: 'ArrowRight' }, false)).toBe(false);
+    expect(errors).not.toHaveBeenCalled();
+    available = true;
+    expect(manager.handleKey({ key: 'ArrowRight' }, false)).toBe(true);
+    expect(run).toHaveBeenCalledTimes(1);
+    subscription.unsubscribe();
+  });
+
   it('lists recently used first, then matches best first', async () => {
     const { manager } = setup();
     await (manager.open('view.focus') as { result: Promise<unknown> }).result;

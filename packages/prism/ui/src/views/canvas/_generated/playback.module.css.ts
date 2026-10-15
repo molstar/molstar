@@ -12,6 +12,7 @@ import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
   'bar': 'msp-canvas-playback-bar',
+  'bare': 'msp-canvas-playback-bare',
   'card': 'msp-canvas-playback-card',
   'counter': 'msp-canvas-playback-counter',
   'description': 'msp-canvas-playback-description',
@@ -38,6 +39,11 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
   background: var(--msp-glass-bg);
   box-shadow: var(--msp-glass-shadow);
   -webkit-backdrop-filter: var(--msp-glass-filter);
+}
+
+.msp-canvas-playback-bare {
+  min-width: 0;
+  font-size: var(--msp-font-size-sm);
 }
 
 .msp-canvas-playback-bar {
@@ -100,8 +106,10 @@ defineStyles('views/canvas/playback.module.css', `@layer msp.components {
 }
 
 .msp-canvas-playback-descriptionContent {
+  min-width: 0;
   padding: 0 var(--msp-space-4) var(--msp-space-4);
   font-size: var(--msp-font-size-sm);
+  overflow-wrap: anywhere;
 }
 
 .msp-canvas-playback-plain {

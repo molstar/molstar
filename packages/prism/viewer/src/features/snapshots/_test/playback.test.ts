@@ -126,6 +126,11 @@ describe('the playback card on a load', () => {
     const running = (operations: string[]) => ({ value: operations.map((operation) => ({ operation })) });
     openPlaybackOnLoad({ events, view: { open }, running: running(['load.mvs']) } as never, snap(v));
     expect(open).not.toHaveBeenCalled();
+    // That load ends (its snapshots were in before the views came): the card opens.
+    const record = { id: 7, operation: 'load.mvs', title: '', values: {}, origin: { kind: 'person' }, started: 0 };
+    events.finished.next({ ...record, result: { ok: true } } as never);
+    expect(open).toHaveBeenCalledTimes(1);
+    open.mockClear();
     openPlaybackOnLoad({ events, view: { open }, running: running([]) } as never, snap(v));
     expect(open).toHaveBeenCalledWith({ card: 'snapshots.overlay.playback' });
   });

@@ -305,8 +305,10 @@ export function openPlaybackOnLoad(
   area: Pick<SnapshotApi, 'state'>,
 ): () => void {
   const before = new Map<number, string>();
-  // The views can mount while a URL load runs: its list before is the one when they mounted.
-  const mounted = listOf(area.state.value);
+  // The views come in their own chunk, maybe while a load runs (a URL's, a story set up at once): what that load
+  // brings is unknown (its snapshots may already be in), so when it ends a story opens the card.
+  const loading = !!api.running?.value.some((r) => loads(r.operation));
+  const mounted = loading ? '' : listOf(area.state.value);
   // A load inside another (files that hold an MVS) opens the card once.
   let opened = '';
   const started = api.events.started.subscribe((r) => {
@@ -322,10 +324,10 @@ export function openPlaybackOnLoad(
     opened = now;
     void api.view.open({ card: PlaybackCard });
   });
-  // The views come in their own chunk: a load can have brought a story before they did (a page's API load, a story
-  // set up at once). With no load running to wait for, it opens now, once.
+  // A load that brought a story before the views came (a page's API load, a story set up at once): with no load
+  // running to wait for, it opens now, once.
   const s = area.state.value;
-  if (mounted && presentable(s) && !api.running?.value.some((r) => loads(r.operation))) {
+  if (!loading && mounted && presentable(s)) {
     opened = mounted;
     void api.view.open({ card: PlaybackCard });
   }

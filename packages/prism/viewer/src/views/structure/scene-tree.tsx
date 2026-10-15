@@ -13,7 +13,7 @@ import { colorToHex } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { uniqueId } from '@molstar/prism-ui/dom/focus';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
-import { onCleanup, requireScope } from '@molstar/prism-ui/dom/scope';
+import { bind, onCleanup, requireScope } from '@molstar/prism-ui/dom/scope';
 import type { ShellModel, ShellSection } from '@molstar/prism-ui/shell/shell';
 import type { SceneMenuItem, SceneModel, SceneNode } from '../../model/scene.js';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
@@ -41,8 +41,29 @@ export function SceneTree(props: { scene: SceneModel; shell?: ShellModel; filter
     distinctUntilChanged(),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
+  // A row picked from elsewhere (the inspector's list, the canvas) is brought into view, once it is drawn (its rows
+  // open first): read once, the frame after.
+  let tree: HTMLElement | undefined;
+  let frame = 0;
+  bind(scene.picked.pipe(distinctUntilChanged()), (node) => {
+    if (!node || !tree) return;
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      const row = tree?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(node.id)}"]`);
+      row?.scrollIntoView({ block: 'nearest' });
+    });
+  });
+  onCleanup(() => cancelAnimationFrame(frame));
   return (
-    <div class={classes.tree} role="tree" aria-label="Scene" tabIndex={0} onKeyDown={treeKeys} onFocusIn={treeFocus}>
+    <div
+      class={classes.tree}
+      role="tree"
+      aria-label="Scene"
+      tabIndex={0}
+      onKeyDown={treeKeys}
+      onFocusIn={treeFocus}
+      ref={(el: HTMLElement) => (tree = el)}
+    >
       <For each={scene.roots} key={(n) => n.id} fallback={() => <p class={classes.empty}>Nothing loaded yet.</p>}>
         {(node) => <TreeNode scene={scene} shell={shell} node={node} depth={0} filter={filter} />}
       </For>
@@ -141,6 +162,7 @@ function TreeItem(props: {
       <div
         data-tip-row=""
         data-tree-row=""
+        data-node-id={node.id}
         class={classes.row}
         classList={{ [classes.hidden]: node.isHidden, [classes.picked]: picked }}
         style={{ '--msp-tree-depth': depth }}

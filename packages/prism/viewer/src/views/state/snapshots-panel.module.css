@@ -44,8 +44,13 @@
   }
 }
 
-.optionsButton {
+/* What sits at the header's end before the options (Play), pushing them right. */
+.trailing {
+  display: flex;
   margin-left: auto;
+}
+
+.optionsButton {
   margin-right: var(--msp-space-2);
 }
 

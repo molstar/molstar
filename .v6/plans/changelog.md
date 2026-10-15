@@ -153,6 +153,9 @@ the [API change ledger](breaking-v6-changes.md).
   form's select opens as a popover under its field; `CommandManager.open` takes values to open a command with.
 - Prism viewer: a component's actions (Add representation, Set coloring, Modify by selection) open their commands in
   the command menu for it, the component (or a preset component's keyword) filled in.
+- Prism viewer: the playback card is the Story (a book icon), one frame, its text wrapping inside it; a description's
+  first heading that only repeats the snapshot's title is not shown; ← and → step through a story (quiet where there is
+  none); the Snapshots tab's Play is an icon beside its options.
 - Prism UI: a form's presets open as a popover under their button (`PresetsList`), and a list inline in a panel lets
   the wheel scroll the panel at its ends (`ScrollArea`'s `chain`).
 - `ColorTheme.Palette` (the volume-value theme): a color list with offsets interpolates between its stops (as

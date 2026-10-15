@@ -387,6 +387,9 @@ export class CommandManager<Ctx> {
     );
     const command = hits.find((c) => !this.blocked(c)) ?? hits[0];
     if (!command) return false;
+    // A plain key (an arrow: the next snapshot) is ambient: where its command cannot run, the key is not taken, and
+    // nothing says it was refused.
+    if (isPlain(command.shortcut!) && this.blocked(command)) return false;
     const r = this.open(command.id);
     if (r.kind === 'blocked') this.#outcomes.next({ kind: 'blocked', command, message: r.reason });
     return true;
@@ -486,6 +489,11 @@ function typesText(target: unknown): boolean {
   const tag = t.tagName?.toUpperCase();
   if (tag === 'TEXTAREA' || tag === 'SELECT') return true;
   return tag === 'INPUT' && !NOT_TEXT.has((t.type ?? 'text').toLowerCase());
+}
+
+/** No modifier at all (an arrow, a letter alone). */
+function isPlain(chord: KeyChord): boolean {
+  return !chord.mod && !chord.alt && !chord.shift;
 }
 
 /** ⌘ or Ctrl without Alt never types a character (Alt does on macOS; Ctrl+Alt is AltGr). */
