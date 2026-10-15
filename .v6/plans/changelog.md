@@ -116,6 +116,10 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: an expanded viewport (`view.expand`: the canvas fills the viewer, Escape brings the panels back) and `view.fullscreen`.
 - Prism viewer: the Export card's Viewport section: the camera in numbers, Copy MVS camera, Save and Load a viewport state (`export.viewport`, `load.viewport`); `camera.set` and a richer `camera.get`.
 - Prism viewer: the plugin's toasts show in the status column.
+- Prism viewer: the focus history (`focus.history`, `focus.again`, the "Focus again…" command), as v5's focus picker
+  lists recent foci.
+- Prism viewer: volume streaming's view, detail and channels (`volume.streaming-view`), with a "Volume streaming" row
+  and inspector under the streamed structure.
 - `@molstar/ai-tools`: a dynamic toolkit (`toolkit.add`, lazy skills disclosed during a turn); `ai-session` reads it as
   it is
 - The snapshot manager's `getStateSnapshot` and `serialize` take `keepList` (the current scene without changing the

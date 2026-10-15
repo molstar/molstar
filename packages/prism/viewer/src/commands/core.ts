@@ -168,7 +168,23 @@ export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandCon
     ...componentCommands(api),
     ...representationCommands(api),
     ...selectionCommands(api),
+    operationCommand(api, api.focus.again, {
+      category: 'Selection',
+      icon: 'history',
+      title: 'Focus again…',
+      alias: ['focus again', 'recent focus', 'focus history', 'previous focus', 'back to'],
+      action: 'Focus',
+    }),
     ...volumeCommands(api),
+    operationCommand(api, api.volume.streamingView, {
+      category: 'Volumes',
+      icon: 'volume',
+      title: 'Set the streamed density view…',
+      alias: ['streaming view', 'density around focus', 'density detail', 'whole cell density', 'streaming detail'],
+      action: 'Set',
+      // The channels' iso values and colors are the streaming row's inspector's (and the tool's).
+      values: { channels: {} },
+    }),
     ...trajectoryCommands(api),
     operationCommand(api, api.history.undo, {
       category: 'Edit',

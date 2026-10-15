@@ -10,11 +10,20 @@ import { StateSelection } from '@molstar/core/state';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Grid, Volume } from '@molstar/model/model/volume';
+import { Color } from '@molstar/core/util/color';
+import { decodeColor } from '@molstar/core/util/color/utils';
+import type { Structure } from '@molstar/model/model/structure';
 import { VolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/behavior';
-import { InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
+import type { VolumeServerInfo } from '@molstar/plugin/behavior/dynamic/volume-streaming/model';
+import {
+  CreateVolumeStreamingBehavior,
+  InitVolumeStreaming,
+} from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
+import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { createVolumeRepresentationParams } from '@molstar/plugin/state/helpers/volume-representation-params';
 import type { VolumeRef, VolumeRepresentationRef } from '@molstar/plugin/state/manager/volume/hierarchy-state';
 import { VolumeRepresentation3D } from '@molstar/plugin/state/transforms/volume/representation';
+import type { PluginContext } from '@molstar/plugin/context';
 import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
 import { mergeParams, StructureParam } from './params.js';
 import { entryRoot, isFailure, labelOf, namesOf, oneStructure, pickOne } from './scope.js';
@@ -75,7 +84,10 @@ export class VolumeApi extends ApiArea {
       const tree = ctx.plugin.state.data.tree;
       const streamed = ctx.plugin.managers.structure.hierarchy.current.structures
         .filter((s) => StateSelection.findTagInSubtree(tree, s.cell.transform.ref, VolumeStreaming.RootTag))
-        .map((s) => labelOf(ctx, s));
+        .map((s) => {
+          const on = streamingOf(ctx.plugin, s);
+          return on ? `${labelOf(ctx, s)} (${streamingSummary(on)})` : labelOf(ctx, s);
+        });
       const streaming = streamed.length ? `Density is streamed for ${streamed.join(', ')} (volume.streaming).` : '';
       if (!list.length) {
         return ApiResult.ok(streaming || 'No volumes are loaded.', {}, { value: [] as VolumeInfo[] });
@@ -317,6 +329,229 @@ export class VolumeApi extends ApiArea {
       return ApiResult.ok(`Turned volume streaming on for ${name}.`, { nodes: [s.cell.transform.ref] });
     },
   });
+
+  // parity.md §2: what v5's Volume Streaming panel sets once streaming is on: the view (what part of the map is fetched),
+  // the detail level and each channel's iso value, color and opacity. Empty or zero values leave a setting as it is.
+  readonly streamingView = this.operation({
+    id: 'volume.streaming-view',
+    title: 'Set how streamed density shows',
+    params: {
+      view: PD.Select<'' | VolumeStreaming.ViewTypes>('', [['', 'Unchanged'], ...VolumeStreaming.ViewTypeOptions], {
+        description:
+          'What of the map is streamed: off, box (the structure box), selection-box (around the focus), camera-target, cell (the whole structure), auto (around the focus, else the whole)',
+      }),
+      radius: PD.Numeric(
+        0,
+        { min: 0, max: 50, step: 0.5 },
+        {
+          description:
+            'Around the focus (selection-box, auto): Å; around the camera target (camera-target): a fraction of the view, 0 to 1. 0: unchanged',
+        },
+      ),
+      detail: PD.Numeric(
+        0,
+        { min: 0, max: 7, step: 1 },
+        { description: 'The detail level, 1 (coarsest) up to what the server has (often 7). 0: unchanged' },
+      ),
+      channels: PD.Value<StreamingChannelsChange>(
+        {},
+        {
+          description:
+            "Per channel (em; or 2fo-fc, fo-fc(+ve), fo-fc(-ve)): { isoValue (σ), color ('#3362b2' or a name), opacity (0 to 1), wireframe }",
+        },
+      ),
+      structure: StructureParam(),
+    },
+    modules: ['network'],
+    approval: 'network',
+    // The configured volume server's.
+    addresses: () => [],
+    async run({ view, radius, detail, channels, structure }, ctx) {
+      const s = oneStructure(ctx, structure || undefined);
+      if (isFailure(s)) return s;
+      const name = labelOf(ctx, s);
+      const on = streamingOf(ctx.plugin, s);
+      if (!on) {
+        return ApiResult.fail('blocked', `Volume streaming is off for ${name}.`, 'Turn it on with volume.streaming.');
+      }
+      const next = nextStreamingParams(on.params, on.entry, { view, radius, detail, channels }, on.structure);
+      if (isFailure(next)) return next;
+      const after = { ...on, params: next };
+      if (JSON.stringify(next) === JSON.stringify(on.params)) {
+        return ApiResult.already(`Streamed density for ${name} is already ${streamingSummary(on)}.`);
+      }
+      await ctx.plugin.state.updateTransform(ctx.plugin.state.data, on.behavior, next, 'Volume streaming');
+      return ApiResult.ok(`Streamed density for ${name}: ${streamingSummary(after)}.`, {
+        nodes: [s.cell.transform.ref],
+      });
+    },
+  });
+}
+
+// ---- Volume streaming ----
+
+/** A channel's change (`volume.streaming-view`): any of its settings. */
+export interface StreamingChannelChange {
+  readonly isoValue?: number;
+  readonly color?: string | number;
+  readonly opacity?: number;
+  readonly wireframe?: boolean;
+}
+export type StreamingChannelsChange = Partial<Record<string, StreamingChannelChange>>;
+
+export interface StreamingChange {
+  readonly view: '' | VolumeStreaming.ViewTypes;
+  readonly radius: number;
+  readonly detail: number;
+  readonly channels: StreamingChannelsChange;
+}
+
+/** Streaming on a structure: its info cell (the root), its behavior cell, the entry shown and the behavior's params. */
+export interface StreamingState {
+  readonly root: string;
+  readonly behavior: string;
+  readonly entry: VolumeServerInfo.EntryData;
+  readonly params: VolumeStreaming.Params;
+  readonly structure: Structure | undefined;
+}
+
+/** The streaming on a structure, read from the state tree (the behavior's params, not its object: it needs a canvas). */
+export function streamingOf(plugin: PluginContext, s: StructureRef): StreamingState | undefined {
+  const state = plugin.state.data;
+  const root = StateSelection.findTagInSubtree(state.tree, s.cell.transform.ref, VolumeStreaming.RootTag);
+  const info = root ? (state.cells.get(root)?.obj?.data as VolumeServerInfo.Data | undefined) : undefined;
+  if (!root || !info) return undefined;
+  for (const child of state.tree.children.get(root)?.values() ?? []) {
+    const t = state.tree.transforms.get(child);
+    if (t?.transformer !== CreateVolumeStreamingBehavior) continue;
+    const params = t.params as VolumeStreaming.Params;
+    const entry = info.entries.find((e) => e.dataId === params.entry.name) ?? info.entries[0];
+    if (!entry) return undefined;
+    return { root, behavior: child, entry, params, structure: s.cell.obj?.data };
+  }
+  return undefined;
+}
+
+/** The channels an entry has: EM maps one, X-ray two (2Fo-Fc) and three for Fo-Fc's two signs. */
+export function streamingChannels(entry: VolumeServerInfo.EntryData): readonly VolumeStreaming.ChannelType[] {
+  return entry.kind === 'em' ? ['em'] : ['2fo-fc', 'fo-fc(+ve)', 'fo-fc(-ve)'];
+}
+
+const ViewLabels = new Map<string, string>(VolumeStreaming.ViewTypeOptions);
+const ChannelLabels: Readonly<Record<VolumeStreaming.ChannelType, string>> = {
+  em: 'EM',
+  '2fo-fc': '2Fo-Fc',
+  'fo-fc(+ve)': 'Fo-Fc(+ve)',
+  'fo-fc(-ve)': 'Fo-Fc(-ve)',
+};
+
+/** "Around Focus, 5 Å, detail 4 of 7; 2Fo-Fc 1.5 σ, Fo-Fc(+ve) 3 σ, Fo-Fc(-ve) −3 σ". */
+export function streamingSummary(on: Pick<StreamingState, 'entry' | 'params'>): string {
+  const p = on.params.entry.params;
+  const view = p.view as { name: string; params: { radius?: number; dynamicDetailLevel?: number } };
+  const levels = on.entry.header.availablePrecisions.length;
+  const detail = view.name === 'camera-target' ? (view.params.dynamicDetailLevel ?? 0) : p.detailLevel;
+  const radius =
+    view.params.radius === undefined
+      ? ''
+      : view.name === 'camera-target'
+        ? `, ${num(view.params.radius)} of the view`
+        : `, ${num(view.params.radius)} Å`;
+  const channels = streamingChannels(on.entry).map((c) => {
+    const ch = (p.channels as Partial<Record<string, VolumeStreaming.ChannelParams>>)[c];
+    return ch ? `${ChannelLabels[c]} ${Volume.IsoValue.toString(ch.isoValue)}` : ChannelLabels[c];
+  });
+  if (view.name === 'off') return 'Off';
+  return `${ViewLabels.get(view.name) ?? view.name}${radius}, detail ${detail + 1} of ${levels}; ${channels.join(', ')}`;
+}
+
+/**
+ * The behavior's params after a change (`volume.streaming-view`), checked against what the entry has: a new view
+ * starts from its defaults (as v5's panel does), the detail level is 1-based, iso values are in σ.
+ */
+export function nextStreamingParams(
+  current: VolumeStreaming.Params,
+  entry: VolumeServerInfo.EntryData,
+  change: StreamingChange,
+  structure?: Structure,
+): VolumeStreaming.Params | ApiFailure {
+  const cur = current.entry.params;
+  const defs = VolumeStreaming.createEntryParams({ entryData: entry, structure });
+  const name = change.view || cur.view.name;
+  const viewDefs = defs.view.map(name) as PD.Group<Record<string, any>> | undefined;
+  if (!viewDefs) return ApiResult.fail('invalid', `There is no streaming view '${name}'.`);
+  const viewParams: Record<string, any> =
+    name === cur.view.name ? { ...(cur.view.params as object) } : PD.getDefaultValues(viewDefs.params);
+
+  if (change.radius > 0) {
+    if (!('radius' in viewParams)) {
+      return ApiResult.fail(
+        'invalid',
+        `The ${ViewLabels.get(name) ?? name} view has no radius.`,
+        'A radius goes with selection-box, camera-target and auto.',
+      );
+    }
+    if (name === 'camera-target' && change.radius > 1) {
+      return ApiResult.fail('invalid', 'Around the camera, the radius is a fraction of the view: 0 to 1.');
+    }
+    viewParams.radius = change.radius;
+  }
+
+  let detailLevel = cur.detailLevel;
+  if (change.detail > 0) {
+    const levels = entry.header.availablePrecisions.length;
+    if (!Number.isInteger(change.detail) || change.detail > levels) {
+      return ApiResult.fail('invalid', `The detail level is a whole number from 1 to ${levels} for ${entry.dataId}.`);
+    }
+    if (name === 'camera-target') viewParams.dynamicDetailLevel = change.detail - 1;
+    else detailLevel = change.detail - 1;
+  }
+
+  const has = streamingChannels(entry);
+  const channels: Record<string, VolumeStreaming.ChannelParams> = { ...(cur.channels as Record<string, any>) };
+  for (const [key, c] of Object.entries(change.channels ?? {})) {
+    if (!has.includes(key as VolumeStreaming.ChannelType)) {
+      return ApiResult.fail('invalid', `${entry.dataId} has no channel '${key}'.`, `It has: ${has.join(', ')}.`);
+    }
+    if (!c || typeof c !== 'object') return ApiResult.fail('invalid', `The channel '${key}' takes an object.`);
+    const next = { ...channels[key] };
+    if (c.isoValue !== undefined) {
+      if (typeof c.isoValue !== 'number' || !Number.isFinite(c.isoValue)) {
+        return ApiResult.fail('invalid', `'${key}.isoValue' takes a number (σ).`);
+      }
+      next.isoValue = Volume.IsoValue.relative(c.isoValue);
+    }
+    if (c.color !== undefined) {
+      const color = typeof c.color === 'number' ? Color(c.color) : decodeColor(String(c.color).trim());
+      if (color === undefined) {
+        return ApiResult.fail('invalid', `'${c.color}' is not a color.`, "A hex code ('#3362b2') or a name.");
+      }
+      next.color = color;
+    }
+    if (c.opacity !== undefined) {
+      if (typeof c.opacity !== 'number' || !(c.opacity >= 0 && c.opacity <= 1)) {
+        return ApiResult.fail('invalid', `'${key}.opacity' takes a number from 0 to 1.`);
+      }
+      next.opacity = c.opacity;
+    }
+    if (c.wireframe !== undefined) {
+      if (typeof c.wireframe !== 'boolean') return ApiResult.fail('invalid', `'${key}.wireframe' takes true or false.`);
+      next.wireframe = c.wireframe;
+    }
+    channels[key] = next;
+  }
+
+  return {
+    entry: {
+      name: current.entry.name,
+      params: {
+        ...cur,
+        view: { name, params: viewParams } as VolumeStreaming.EntryParams['view'],
+        detailLevel,
+        channels: channels as VolumeStreaming.EntryParams['channels'],
+      },
+    },
+  };
 }
 
 // ---- Volumes of the hierarchy ----

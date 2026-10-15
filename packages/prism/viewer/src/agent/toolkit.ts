@@ -178,14 +178,16 @@ export const Skills: readonly SkillDeclaration[] = [
   {
     id: 'camera',
     title: 'Camera',
-    summary: 'where the camera is and what it looks at, in numbers',
+    summary: 'where the camera is and what it looks at, in numbers; the recent foci',
     guidance: [
       'Skill camera: get_camera gives the position, target and up vectors (Å), the distance, field of view and mode.',
       'set_camera takes any of them ("x, y, z"; empty keeps); prefer focus or reset_camera to show a part.',
+      'recent_foci lists what was focused, newest first, each with a target and structure that focus takes back.',
     ].join('\n'),
     tools: [
       { id: 'get_camera', operation: 'camera.get' },
       { id: 'set_camera', operation: 'camera.set' },
+      { id: 'recent_foci', operation: 'focus.history' },
     ],
   },
   {

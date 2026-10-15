@@ -42,7 +42,22 @@ import type { ViewerApi } from '../api/area.js';
 import type { SceneInspection, SceneMenuItem, SceneModel, SceneNode, SceneNodeKind } from '../model/scene.js';
 import { namesOf } from '../api/scope.js';
 import { currentTransform } from '../api/structure.js';
-import { gridText, shortNumber, voxelText, volumeStats } from '../api/volume.js';
+import { VolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/behavior';
+import {
+  CreateVolumeStreamingBehavior,
+  CreateVolumeStreamingInfo,
+} from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
+import {
+  gridText,
+  type StreamingChannelsChange,
+  type StreamingState,
+  shortNumber,
+  streamingChannels,
+  streamingOf,
+  streamingSummary,
+  voxelText,
+  volumeStats,
+} from '../api/volume.js';
 import { type MeasuredCell, MeasureKinds, readMeasurements } from './measurements.js';
 import { structureNames } from './naming.js';
 import type { SourceScope } from './state.js';
@@ -164,6 +179,9 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
   const inspections = new Map<string, SceneInspection>();
   /** The structure a unit cell row is under (its operations name the structure). */
   const unitCellOwners = new Map<string, string>();
+  /** The structure a volume streaming row is under, and the streaming's behavior cell (its params change). */
+  const streamingOwners = new Map<string, string>();
+  const streamingBehaviors = new Map<string, string>();
 
   const structureNode = (s: StructureRef, name: string): Node => {
     const ref = s.cell.transform.ref;
@@ -210,6 +228,32 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     }
     n.set('Unit cell', u.cell.obj?.description, !!u.cell.state.isHidden);
     inspections.get(ref)?.form?.load(unitCellValues(u.cell));
+    return n;
+  };
+
+  /**
+   * Volume streaming on a structure (parity.md §2, v5's Volume Streaming node): the view and channels in its inspector,
+   * the eye turns the view off and back on, remove turns streaming off.
+   */
+  const streamingNode = (on: StreamingState, structureRef: string): Node => {
+    const ref = on.root;
+    streamingOwners.set(ref, structureRef);
+    streamingBehaviors.set(on.behavior, ref);
+    let n = nodes.get(ref);
+    if (!n) {
+      n = new Node(ref, 'extension', 'volume', 'Volume streaming', false, {
+        visibility: (hide) => {
+          const owner = streamingOwners.get(ref);
+          const view = hide ? 'off' : on.entry.kind === 'em' ? 'auto' : 'selection-box';
+          void api.run('volume.streaming-view', { structure: owner, view });
+        },
+        remove: () => void api.run('volume.streaming', { structure: streamingOwners.get(ref), enabled: false }),
+      });
+      n.removable = true;
+      nodes.set(ref, n);
+    }
+    n.set('Volume streaming', streamingSummary(on), on.params.entry.params.view.name === 'off');
+    inspections.get(ref)?.form?.load(streamingValues(on));
     return n;
   };
 
@@ -433,6 +477,12 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
         seen.add(un.id);
         kids.push(un);
       }
+      const streaming = streamingOf(plugin, s);
+      if (streaming) {
+        const vn = streamingNode(streaming, ref);
+        seen.add(vn.id);
+        kids.push(vn);
+      }
       sn.setChildren(kids);
       top.push(sn);
     }
@@ -488,6 +538,7 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
         nodes.delete(id);
         inspections.delete(id);
         unitCellOwners.delete(id);
+        streamingOwners.delete(id);
         if (picked.value === n) picked.set(undefined);
       }
     }
@@ -498,6 +549,26 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
   scope.add(plugin.managers.volume.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.particles.hierarchy.behaviors.selection.subscribe(() => sync()));
   scope.add(plugin.managers.structure.measurement.behaviors.state.subscribe(() => sync()));
+  // Streaming's cells are not in the hierarchies: their coming and going rebuilds, a params change refreshes the row.
+  const isStreaming = (t: { transformer: unknown } | undefined) =>
+    t?.transformer === CreateVolumeStreamingInfo || t?.transformer === CreateVolumeStreamingBehavior;
+  scope.add(plugin.state.data.events.cell.created.subscribe((e) => isStreaming(e.cell.transform) && sync()));
+  scope.add(
+    plugin.state.data.events.cell.removed.subscribe((e) => {
+      if (!streamingOwners.has(e.ref) && !streamingBehaviors.has(e.ref)) return;
+      streamingBehaviors.delete(e.ref);
+      sync();
+    }),
+  );
+  scope.add(
+    plugin.state.data.events.object.updated.subscribe((e) => {
+      const root = streamingBehaviors.get(e.ref);
+      const owner = root ? streamingOwners.get(root) : undefined;
+      const s = owner ? plugin.managers.structure.hierarchy.current.refs.get(owner) : undefined;
+      const on = s?.kind === 'structure' ? streamingOf(plugin, s) : undefined;
+      if (on) streamingNode(on, owner!);
+    }),
+  );
   scope.add(
     plugin.state.data.events.cell.stateUpdated.subscribe((e) => {
       const n = nodes.get(e.ref);
@@ -512,7 +583,7 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     inspect: (n) => {
       let inspection = inspections.get(n.id);
       if (!inspection) {
-        inspection = inspect(plugin, api, n, unitCellOwners.get(n.id));
+        inspection = inspect(plugin, api, n, unitCellOwners.get(n.id) ?? streamingOwners.get(n.id));
         inspections.set(n.id, inspection);
       }
       return inspection;
@@ -691,6 +762,98 @@ function debounced<T>(apply: (values: T) => void, ms = 150): (values: T) => void
   };
 }
 
+// ---- Volume streaming's inspector (parity.md §2; v5's Volume Streaming controls) ----
+
+/** v5's iso ranges per channel (σ), as its panel's sliders have them. */
+const ChannelBounds: Readonly<Record<VolumeStreaming.ChannelType, readonly [number, number]>> = {
+  em: [-5, 5],
+  '2fo-fc': [0, 3],
+  'fo-fc(+ve)': [1, 5],
+  'fo-fc(-ve)': [-5, -1],
+};
+
+const ChannelLabels: Readonly<Record<VolumeStreaming.ChannelType, string>> = {
+  em: 'EM',
+  '2fo-fc': '2Fo-Fc',
+  'fo-fc(+ve)': 'Fo-Fc(+ve)',
+  'fo-fc(-ve)': 'Fo-Fc(-ve)',
+};
+
+const AroundFocus = (v: Record<string, unknown>) => v.view !== 'selection-box' && v.view !== 'auto';
+
+function streamingForm(on: StreamingState): PD.Params {
+  const levels = on.entry.header.availablePrecisions.map((_, i) => [i + 1, `${i + 1}`] as [number, string]);
+  const params: PD.Params = {
+    view: PD.Select<string>('selection-box', VolumeStreaming.ViewTypeOptions, {
+      description: 'What of the map is streamed: around the focus, around the camera, the whole structure, …',
+    }),
+    radius: PD.Numeric(5, { min: 0.5, max: 50, step: 0.5 }, { label: 'Radius (Å)', hideIf: AroundFocus }),
+    cameraRadius: PD.Numeric(
+      0.5,
+      { min: 0.05, max: 1, step: 0.05 },
+      { label: 'Radius (of the view)', hideIf: (v) => v.view !== 'camera-target' },
+    ),
+    detail: PD.Select<number>(1, levels, { label: 'Detail', hideIf: (v) => v.view === 'off' }),
+  };
+  for (const c of streamingChannels(on.entry)) {
+    const [min, max] = ChannelBounds[c];
+    params[`iso:${c}`] = PD.Numeric(min, { min, max, step: 0.05 }, { label: `${ChannelLabels[c]} (σ)` });
+    params[`color:${c}`] = PD.Color(Color(0), { label: `${ChannelLabels[c]} color` });
+  }
+  return params;
+}
+
+function streamingValues(on: StreamingState): PD.Values<PD.Params> {
+  const p = on.params.entry.params;
+  const view = p.view.params as { radius?: number; dynamicDetailLevel?: number };
+  const camera = p.view.name === 'camera-target';
+  const values: Record<string, unknown> = {
+    view: p.view.name,
+    radius: !camera && view.radius !== undefined ? view.radius : 5,
+    cameraRadius: camera && view.radius !== undefined ? view.radius : 0.5,
+    detail: (camera ? (view.dynamicDetailLevel ?? 0) : p.detailLevel) + 1,
+  };
+  const sampling = on.entry.header.sampling[0];
+  for (const c of streamingChannels(on.entry)) {
+    const ch = (p.channels as Partial<Record<string, VolumeStreaming.ChannelParams>>)[c];
+    if (!ch) continue;
+    const stats = sampling?.valuesInfo[c.startsWith('fo-fc') ? 1 : 0];
+    const iso =
+      ch.isoValue.kind === 'relative' || !stats
+        ? (ch.isoValue as Volume.IsoValue.Relative).relativeValue
+        : Volume.IsoValue.toRelative(ch.isoValue, stats).relativeValue;
+    values[`iso:${c}`] = Math.round(iso * 100) / 100;
+    values[`color:${c}`] = ch.color;
+  }
+  return values;
+}
+
+/** The form's edits as `volume.streaming-view` calls: the fields changed in a moment, as one call (sliders). */
+function streamingChanges(api: ViewerApi, structure: string): (values: PD.Values<PD.Params>, name: string) => void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let pending: { view?: string; radius?: number; detail?: number; channels: StreamingChannelsChange } = {
+    channels: {},
+  };
+  return (values, name) => {
+    const v = values as Record<string, any>;
+    if (name === 'view') pending.view = v.view;
+    else if (name === 'radius') pending.radius = v.radius;
+    else if (name === 'cameraRadius') pending.radius = v.cameraRadius;
+    else if (name === 'detail') pending.detail = v.detail;
+    else {
+      const [what, channel] = name.split(':');
+      const key = what === 'iso' ? 'isoValue' : 'color';
+      pending.channels = { ...pending.channels, [channel]: { ...pending.channels[channel], [key]: v[name] } };
+    }
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const change = pending;
+      pending = { channels: {} };
+      void api.run('volume.streaming-view', { structure, ...change });
+    }, 150);
+  };
+}
+
 // parity.md §2, the Conformation Transform: v5's form (translation, then a rotation about the structure's center) under
 // the structure's facts, folded; a superposition's matrix shows as the same parts.
 const TransformForm = {
@@ -763,6 +926,21 @@ function inspect(plugin: PluginContext, api: ViewerApi, node: SceneNode, owner?:
       }),
     });
     return { node, form, slot, facts };
+  }
+  if (node.kind === 'extension' && owner) {
+    const s = plugin.managers.structure.hierarchy.current.refs.get(owner);
+    const on = s?.kind === 'structure' ? streamingOf(plugin, s) : undefined;
+    if (on) {
+      return {
+        node,
+        form: new ParamsFormModel(streamingForm(on), streamingValues(on), { onChange: streamingChanges(api, owner) }),
+        slot,
+        facts: [
+          ['Entry', `${on.entry.dataId} (${on.entry.kind === 'em' ? 'EM' : 'X-ray'})`],
+          ['Detail levels', String(on.entry.header.availablePrecisions.length)],
+        ],
+      };
+    }
   }
   if (node.kind === 'structure' && cell?.obj?.data) {
     const s = cell.obj.data as Structure;

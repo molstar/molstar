@@ -43,8 +43,10 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `export.image-copy` | Copy an image | view; no undo; needs canvas, page | size, width, height, transparent, crop, box, format, quality, axes |
 | `export.preview` | Preview an image | view; no undo; needs canvas; ui-only | size, width, height, transparent, crop, box, format, quality, axes, max |
 | `export.viewport` | Export the viewport state | view; no undo; needs canvas | name |
+| `focus.again` | Focus again | view | entry |
 | `focus.clear` | Clear the focus | view |  |
 | `focus.get` | Describe the focus | read |  |
+| `focus.history` | List the recent foci | read |  |
 | `focus.set` | Focus | view | target, structure, language |
 | `highlight.clear` | Clear the highlight | view; ui-only |  |
 | `highlight.set` | Highlight | view; ui-only | target, structure, language |
@@ -156,5 +158,6 @@ their own packages (`@molstar/<name>-extension/prism-viewer`).
 | `volume.remove` | Remove a volume | destructive | volume, representation |
 | `volume.representation` | Show a volume as… |  | type, params, volume |
 | `volume.streaming` | Stream density for a structure | network (addresses); needs network | enabled, structure |
+| `volume.streaming-view` | Set how streamed density shows | network (addresses); needs network | view, radius, detail, channels, structure |
 | `volume.update` | Update a volume representation | ui-only | representation, params |
 | `volume.visibility` | Show or hide a volume |  | visible, volume, representation |
