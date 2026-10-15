@@ -50,8 +50,8 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 - **Origins**: `person`, `agent` (with its turn), `script`, `url`, `link` (the sequence, sequence.md §4).
 - **Where**: `packages/prism/viewer/src/api/<area>.ts`; with `sources/`, the only code with value imports of the plugin
   (`import type` is allowed anywhere; an extension's `plugin` part imports its own behaviors and entries).
-- **The types around it** (`ApiContext`, `ApiModuleKey`, `Projection`, `ViewerApi`) are defined in `api.md`, which
-  turns these areas into the viewer's API objects (README §5).
+- **The types around it** (`ApiContext`, `ApiModuleKey`, `Projection`, `ViewerApi`) are defined in [api.md](api.md),
+  which turns these areas into the viewer's API objects.
 
 ## 2. Areas
 

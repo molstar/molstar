@@ -43,7 +43,7 @@ Status: **accepted** in shape (2026-10-15); the tool lists are a first pass.
 | `apply_preset`, `apply_style`, `color`                                                             | `canvas`: lighting, illumination, clipping                                          |
 | `set_background`, `reset_camera`                                                                   | `sequence`: style, colors, tracks                                                   |
 | `undo_turn` (reads the history; the person's Undo is theirs)                                       | `export`; extensions' skills (`geo-export`, `assembly-symmetry`, `model-archive`, …) |
-| `ask` (a question to the person: options, a fill-in, or both; the turn waits for the answer)       |                                                                                     |
+| `ask` (a question to the person: options, a fill-in, or both; the turn waits for the answer)       | `viewer-code`: TypeScript against the API in a sandbox (api.md §7)                  |
 
 - **The first scope** (README §3.3): background and canvas, presets and styles, MolQL and SeqQL selections, fetching
   structures, focus and select, opening panels. The core stays small (Stories' is 24 tools, about 6.8k tokens); a new

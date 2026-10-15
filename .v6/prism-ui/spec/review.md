@@ -22,7 +22,7 @@ rather than the edit it proposed, the decision is named.
 | F13, F14, F15, F16, F17          | agent.md §4 (per-address approval with domain rules, undo-dependent preauthorization, quoted data, key table, the origin); app.md §1; decision 26 |
 | F18, F19, F52                    | journal.md §1 (an index of kept records), §2 (heartbeat while parked), §6 (when the light restore runs) |
 | F21                              | sequence.md §4–5 (the link's writes go through operations; the mapping's direction)                     |
-| F24                              | deferred to `api.md` (README §5), named in operations.md §1                                            |
+| F24                              | [api.md](api.md) §4 (`ApiContext`, `ApiModuleKey`, `Projection`, `ViewerApi`)                          |
 | F26, F27                         | app.md §4 (the one URL list), §2 (`FullPrismViewerSpec()`, an artifact of the app); viewer-spec.md §7 |
 | F28, F31, F32, F49, F50, F51     | state.md, parity.md, operations.md (additions history, keyboard, selection layers and Modify, `load.snapshot`, `highlight` and hover/click events, focus entries) |
 | F29                              | operations.md `load` (core `files`, `action`; the loaders feature the rest)                             |
