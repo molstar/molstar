@@ -43,6 +43,7 @@ import type { TracksRail } from './sequence/presets.js';
 import { rafScheduler, type Scheduler } from '@molstar/seq-viewer';
 import { SourceScope } from './sources/state.js';
 import { createComponentOptionsForm, createPresetsModel, createQuickStylesModel } from './sources/structure-tab.js';
+import { createTargetFormat } from './sources/target-format.js';
 import { createTargetResolver } from './sources/targets.js';
 import { createViewerSources, type ViewerSources } from './sources/viewer-sources.js';
 import { isLazyExtension, type PrismViewerSpec, type ViewerExtension } from './spec.js';
@@ -183,6 +184,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const emptySub = empty.subscribe((e) => commandContext.set({ empty: e }));
     disposers.push(() => emptySub.unsubscribe());
 
+    const targetFormat = createTargetFormat(plugin);
     const history = new HistoryManager<ViewerCheckpoint>(createCheckpointPort(plugin));
     const notifications = new NotificationsManager();
     const { viewState, navigation } = layoutManagers(spec, options);
@@ -190,7 +192,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const managers: ViewerManagers = {
       commands: new CommandManager<ViewerCommandContext>({
         context: commandContext.asReadonly,
-        formats: { get: () => undefined },
+        formats: { get: (name) => (name === 'target' ? targetFormat : undefined) },
       }),
       transactions,
       history,

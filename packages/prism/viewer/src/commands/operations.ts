@@ -55,6 +55,12 @@ export function operationCommand(
     const open = Object.keys(params).filter((k) => !(k in fixed));
     return open.length ? formParams(Object.fromEntries(open.map((k) => [k, params[k]]))) : undefined;
   };
+  // Target fields read and complete as targets (`sources/target-format.ts`).
+  const fields = Object.fromEntries(
+    Object.entries(api.describe(def.id)?.params ?? {})
+      .filter(([k, p]) => p.type === 'value' && typeof p.defaultValue === 'string' && !(k in fixed))
+      .map(([k]) => [k, { format: 'target' }]),
+  );
   const files = new Set(
     Object.entries(api.describe(def.id)?.params ?? {})
       .filter(([, p]) => p.type === 'value' && (Array.isArray(p.defaultValue) || p.defaultValue === null))
@@ -70,6 +76,7 @@ export function operationCommand(
     ...(o.action ? { action: o.action } : {}),
     ...(o.group ? { group: o.group } : {}),
     ...(form() ? { params: () => form() ?? {} } : {}),
+    ...(Object.keys(fields).length ? { fields } : {}),
     when: () => api.describe(def.id)?.available ?? `There is no operation '${def.id}'.`,
     async run(args) {
       // File pickers give Mol*'s file assets; the operation takes DOM files.
