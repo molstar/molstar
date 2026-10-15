@@ -105,6 +105,9 @@ class PluginState extends PluginComponent {
 
   getSnapshot(params?: PluginState.SnapshotParams): PluginState.Snapshot {
     const p = { ...this.snapshotParams.value, ...params };
+    // A camera reset waits for the next frame (after a load, `camera.reset`): committed now, so the snapshot keeps the
+    // framed view rather than the camera before it.
+    if (p.camera) this.plugin.canvas3d?.commit(true);
     let custom: { [key: string]: unknown } | undefined;
     if (this.customState.size > 0) {
       custom = {};
@@ -120,7 +123,8 @@ class PluginState extends PluginComponent {
       startAnimation: p.startAnimation ? !!p.startAnimation : void 0,
       camera: p.camera
         ? {
-            current: this.plugin.canvas3d!.camera.getSnapshot(),
+            // Where an animating camera is going (a focus that just started), not a frame of the way there.
+            current: this.plugin.canvas3d!.camera.getSettledSnapshot(),
             transitionStyle: p.cameraTransition!.name,
             transitionDurationInMs:
               p?.cameraTransition?.name === 'animate' ? p.cameraTransition.params.durationInMs : void 0,

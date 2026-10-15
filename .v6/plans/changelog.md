@@ -159,6 +159,10 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: the playback card is the Story (a book icon), one frame, its text wrapping inside it; a description's
   first heading that only repeats the snapshot's title is not shown; ← and → step through a story (quiet where there is
   none); the Snapshots tab's Play is an icon beside its options.
+- The camera: a transition under way when the animation loop's clock starts again (after an image is drawn, e.g. a
+  snapshot's thumbnail) keeps going instead of flinging the camera far out (a negative or huge radius, an empty view);
+  a state snapshot keeps where an animating camera is going (`Camera.getSettledSnapshot`) and the view a pending camera
+  reset frames (after a load), not the camera before it.
 - Prism viewer: an inspector's header has the item's eye at its end (Show or Hide; Turn on or off for the unit cell,
   the streaming and an extension's row), in place of a Turn on row while it is off.
 - Prism viewer: the canvas's playback card has a row each for the snapshots (the current one, its position and the

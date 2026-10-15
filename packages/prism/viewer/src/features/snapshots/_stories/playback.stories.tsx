@@ -58,15 +58,6 @@ export const Story: StoryObj = {
       <RealViewerStory
         load={[ExampleFiles.cbs]}
         setup={async (v) => {
-          // A snapshot takes the camera as it is: each waits for the camera to settle (the scene's bounds, the focus's
-          // animation).
-          const frame = () => new Promise((r) => requestAnimationFrame(r));
-          const settled = async () => {
-            const canvas = v.plugin.canvas3d;
-            while (!canvas || canvas.boundingSphere.radius <= 0 || canvas.camera.transition.inTransition) await frame();
-          };
-          await settled();
-          await v.api.camera.reset({ animate: false });
           await v.api.snapshot?.add({
             name: 'CRABP II',
             key: 'overview',
@@ -74,8 +65,6 @@ export const Story: StoryObj = {
               'Cellular retinoic acid-binding protein II holds **retinoic acid** inside its β-barrel.\n\nSee [the ligand](#ligand).',
           });
           await v.api.focus.set({ target: 'ligand' });
-          await frame();
-          await settled();
           await v.api.snapshot?.add({
             name: 'The ligand',
             key: 'ligand',
