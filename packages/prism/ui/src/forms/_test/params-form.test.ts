@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { ParamsFormModel } from '../params-form.js';
+import { ParamsFormModel, paramSections } from '../params-form.js';
 
 const params = {
   type: PD.Select('cartoon', [
@@ -47,6 +47,29 @@ describe('ParamsFormModel', () => {
     expect(new ParamsFormModel(params).layout()).toEqual({ essentials: ['alpha'], advanced: ['type', 'probe'] });
     const plain = new ParamsFormModel({ a: PD.Boolean(true), b: PD.Text('') });
     expect(plain.layout()).toEqual({ essentials: ['a', 'b'], advanced: [] });
+  });
+
+  it('sections params as v5: essentials and the rest, uncategorized first, then categories by name', () => {
+    const sections = paramSections({
+      a: PD.Numeric(1, {}, { category: 'Shading' }),
+      b: PD.Numeric(1, {}, PD.Essential),
+      c: PD.Numeric(1, {}, { category: 'Culling' }),
+      d: PD.Numeric(1),
+      e: PD.Value(1),
+      f: PD.Numeric(1, {}, { category: 'Shading' }),
+    });
+    expect(sections).toEqual({
+      essentials: [{ names: ['b'] }],
+      advanced: [{ names: ['d'] }, { category: 'Culling', names: ['c'] }, { category: 'Shading', names: ['a', 'f'] }],
+    });
+  });
+
+  it('keeps a fold state per path for the form', () => {
+    const form = new ParamsFormModel(params);
+    expect(form.fold('/x#open', true).value).toBe(true);
+    form.fold('#advanced').set(true);
+    expect(form.fold('#advanced').value).toBe(true);
+    expect(new ParamsFormModel(params).fold('#advanced').value).toBe(false);
   });
 
   it('loads authoritative values silently and resets to defaults', () => {

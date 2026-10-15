@@ -396,6 +396,12 @@
   }
 }
 
+/* A choice's params button (v5's sliders after a mapped param's select): right after the select, not pushed away. */
+.afterSelect {
+  flex: none;
+  margin-left: var(--msp-space-1);
+}
+
 .subSettings {
   /* A little wider than the form (4 px each side), its own padding the same: its controls stay in the form's column
      and clear of its edge; its labels step in like nested ones. */

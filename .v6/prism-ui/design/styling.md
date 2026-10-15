@@ -187,7 +187,9 @@ outside the layers.
   as its options need, opaque (`--msp-color-raised`, hairline, `--msp-shadow-overlay`), so no panel's clipping or fade
   cuts it. `over` is for short settings rows where moving the layout would be jarring (the Assistant tab).
 - **The params form** (`ParamsForm`, `components/params`) renders `PD.Params` as they are, one control per type,
-  essentials first and the rest under Advanced. Group and Advanced headers are quiet rows (regular weight, muted, a
+  essentials first and the rest under Advanced, at every level as v5's `ParameterControls` (only when there are both;
+  a PD `category` under a fold of its own; `isHidden` and `hideIf` respected; the folds' state kept per form). A mapped
+  param's chosen case, when it is a group, opens behind a sliders button after its select (v5's). Group and Advanced headers are quiet rows (regular weight, muted, a
   small chevron after the name), not titles; a group inside a group steps its header in like its labels; a flat group
   (PD's `isFlat`) has no header, its rows at the parent's level. What a row opens unfolds under it as an inline block in
   the form's control column (a select's options, the color picker, a multi-select's checks, a mat4's grid, a line

@@ -11,6 +11,7 @@
 import { defineStyles } from '../../../styles/registry.js';
 
 export const classes = {
+  'afterSelect': 'msp-params-params-form-afterSelect',
   'channels': 'msp-params-params-form-channels',
   'chevron': 'msp-params-params-form-chevron',
   'collapsible': 'msp-params-params-form-collapsible',
@@ -398,6 +399,11 @@ defineStyles('components/params/params-form.module.css', `@layer msp.components 
     background: var(--msp-color-hover);
     color: var(--msp-color-text);
   }
+}
+
+.msp-params-params-form-afterSelect {
+  margin-left: var(--msp-space-1);
+  flex: none;
 }
 
 .msp-params-params-form-subSettings {

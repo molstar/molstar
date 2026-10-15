@@ -58,8 +58,9 @@ describe('StructureTab', () => {
     choose('Type', 'Spacefill');
     expect(row('Spacefill')).toBeDefined();
     expect(container.querySelector('[role=listbox]')).toBeNull();
-    // The mapped color param: switching to Uniform shows its own params (a color).
+    // The mapped color param: switching to Uniform, its sliders button opens its own params (a color; v5's).
     choose('Color', 'Uniform');
+    (container.querySelector('button[aria-label="Color settings"]') as HTMLButtonElement).click();
     // A color row: the swatch button opens the palette under it.
     const swatch = [...container.querySelectorAll('[aria-label=Inspector] button[aria-expanded]')].find(
       (b) => b.textContent?.trim() === '46, 134, 193',
