@@ -35,7 +35,7 @@ import { ownsKey } from '@molstar/prism-ui/dom/events';
 // The reset and the theme tokens: every prism-ui root needs them (MspElement imports them; the shell is not one).
 import '@molstar/prism-ui/styles/base';
 import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styles/registry';
-import { map } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map } from 'rxjs';
 import type { HomeModel } from '../model/home.js';
 import { HomeTab } from '../views/home/home-tab.js';
 import { extensionUIPort } from './extensions.js';
@@ -183,7 +183,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           place: 'foot',
           render: domView(() => <LogView status={managers.notifications} />),
         },
-        historyTab(managers, person),
+        // `options.ui.showHistory` (viewer-spec.md §2.2) leaves History out.
+        ...(core.options.ui.showHistory ? [historyTab(managers, person)] : []),
         settingsTab(sources, managers, person),
         {
           id: 'help',
@@ -208,7 +209,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     seqHoverSub.unsubscribe();
     pointerHoverSub.unsubscribe();
   });
-  if (sequence) {
+  // `options.ui.showSequence` leaves the band out; the sequence (its API, its state) stays.
+  if (sequence && core.options.ui.showSequence) {
     const viewer = sequence.viewers.get();
     const inkToSeq = ink.subscribe((i) => sequence.setInk(i));
     unregister.push(() => inkToSeq.unsubscribe());
@@ -281,6 +283,12 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   const trajectory = createTrajectoryControls(core.plugin, person);
   unregister.push(trajectory.dispose);
   const modeProps = modeSwitchProps(sources.interaction, person);
+  // The canvas's own controls that `options.ui.buttons` can hide (not toolbar items): while there is data, and not off.
+  const shown = (id: string) =>
+    combineLatest([hasData, managers.viewState.layout]).pipe(
+      map(([data, layout]) => data && layout.buttons[id] !== false),
+      distinctUntilChanged(),
+    );
   const selection = selectionModel(sources.interaction, person, () => shell.show('selection'));
   unregister.push(
     shell.registerToolbar(
@@ -314,6 +322,23 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           icon: 'focus',
           title: 'Reset camera',
           run: () => void person.camera.reset(),
+          // v5's Reset menu (parity.md §4): the principal axes, or x, y and z.
+          menu: [
+            {
+              id: 'orient-axes',
+              label: 'Orient axes',
+              icon: 'axis-3d',
+              hint: 'Principal axes along the screen',
+              run: () => void person.camera.orient(),
+            },
+            {
+              id: 'reset-axes',
+              label: 'Reset axes',
+              icon: 'rotate-ccw',
+              hint: 'x, y and z along the screen',
+              run: () => void person.camera.resetAxes(),
+            },
+          ],
         },
         {
           id: 'expand',
@@ -389,11 +414,11 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             {() => <HoverLabel model={{ lines: hoverLines.asReadonly }} area={() => canvasHost.parentElement} />}
           </Show>
         }
-        playback={<Show when={hasData}>{() => <TrajectoryBar model={trajectory.model} />}</Show>}
+        playback={<Show when={shown('trajectory')}>{() => <TrajectoryBar model={trajectory.model} />}</Show>}
         ink={ink}
         empty={sources.empty}
         context={() => <Show when={hasData}>{() => <SelectionBar selection={selection} />}</Show>}
-        canvasLead={<Show when={hasData}>{() => <ModeSwitch {...modeProps} />}</Show>}
+        canvasLead={<Show when={shown('selection-mode')}>{() => <ModeSwitch {...modeProps} />}</Show>}
         canvasAside={<Show when={hasData}>{() => <PickLevel {...modeProps} />}</Show>}
         onDropFiles={openFiles}
         dropFormats={home.formats}

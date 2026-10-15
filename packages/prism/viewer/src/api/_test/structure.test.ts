@@ -11,6 +11,7 @@ import * as path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DefaultPrismViewerSpec } from '../../default-spec.js';
 import { createPrismViewerHeadless } from '../../headless.js';
+import { cbs, expectOk, headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 
 // `structure` (operations.md §2, plan 2.2) on a headless viewer.
@@ -107,5 +108,22 @@ describe('structure', () => {
     expect(v.api.structure.list.value.map((x) => x.label)).toEqual(['1CBS']);
     await v.api.history.undo();
     expect(v.api.structure.list.value).toHaveLength(2);
+  });
+});
+
+describe('structure.symmetry', () => {
+  it('shows symmetry mates and unit cells of a crystal structure, and the model again', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    const atoms = () => v.plugin.managers.structure.hierarchy.current.structures[0].cell.obj?.data.elementCount ?? 0;
+    const before = atoms();
+    expectOk(await v.api.structure.symmetry({ kind: 'mates', radius: 5 }));
+    expect(atoms()).toBeGreaterThan(before);
+    expect(await v.api.structure.symmetry({ kind: 'mates', radius: 5 })).toMatchObject({ ok: true, unchanged: true });
+    expectOk(await v.api.structure.symmetry({ kind: 'cells', cells: 1 }));
+    expect(atoms()).toBeGreaterThan(before);
+    expectOk(await v.api.structure.symmetry({ kind: 'off' }));
+    expect(atoms()).toBe(before);
+    await v.api.history.undo();
+    expect(atoms()).toBeGreaterThan(before);
   });
 });

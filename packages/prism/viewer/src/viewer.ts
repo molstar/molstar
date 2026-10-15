@@ -147,16 +147,20 @@ export interface ViewerCore extends PrismViewer {
   mountCanvas(host: HTMLElement): Promise<boolean>;
 }
 
-/** The toolbar items `options.ui.buttons` hides, by option (viewer-spec.md §2.2). */
-const ButtonIds: Readonly<Record<string, string>> = {
-  reset: 'reset',
-  screenshot: 'screenshot',
-  expand: 'expand',
-  fullscreen: 'fullscreen',
-  settings: 'settings',
-  selectionMode: 'selection-mode',
-  animation: 'animation',
-  trajectory: 'trajectory',
+/**
+ * What `options.ui.buttons` hides, by option (viewer-spec.md §2.2): the shell's toolbar items by id (the features' by
+ * their part ids); `selection-mode` and `trajectory` are the shell's mode switch and trajectory bar.
+ */
+const ButtonIds: Readonly<Record<string, readonly string[]>> = {
+  reset: ['reset'],
+  screenshot: ['export'],
+  // One button: fullscreen, which v5 calls expand too.
+  expand: ['expand'],
+  fullscreen: ['expand'],
+  settings: ['canvas-settings.toolbar.canvas'],
+  selectionMode: ['selection-mode'],
+  animation: ['animation.toolbar.animation'],
+  trajectory: ['trajectory'],
 };
 
 export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore> {
@@ -404,7 +408,9 @@ function layoutManagers(spec: PrismViewerSpec, options: PrismViewerOptionValues)
     docks[dock] = { ...docks[dock], tabs: [...current.filter((t) => t !== tab), tab] };
   }
   const buttons: Record<string, boolean> = {};
-  for (const [option, on] of Object.entries(options.ui.buttons)) if (!on) buttons[ButtonIds[option] ?? option] = false;
+  for (const [option, on] of Object.entries(options.ui.buttons)) {
+    if (!on) for (const id of ButtonIds[option] ?? [option]) buttons[id] = false;
+  }
   const viewState = new ViewStateManager({
     docks,
     ...(layout.mode ? { mode: layout.mode } : {}),

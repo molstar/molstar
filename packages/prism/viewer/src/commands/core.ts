@@ -109,8 +109,19 @@ export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandCon
     operationCommand(api, api.camera.orient, {
       category: 'View',
       icon: 'rotate-3d',
-      alias: ['orient', 'principal axes', 'align view', 'align axes'],
+      alias: ['orient', 'principal axes', 'align view'],
       action: 'Orient',
+    }),
+    operationCommand(api, api.camera.resetAxes, {
+      category: 'View',
+      icon: 'axis-3d',
+      alias: ['reset axes', 'align axes', 'cartesian axes', 'xyz'],
+      action: 'Align',
+    }),
+    operationCommand(api, api.structure.symmetry, {
+      category: 'Data',
+      icon: 'hexagon',
+      alias: ['symmetry', 'symmetry mates', 'crystal', 'unit cell', 'lattice'],
     }),
     ...componentCommands(api),
     ...representationCommands(api),

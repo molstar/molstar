@@ -114,6 +114,20 @@ export class CameraApi extends ApiArea {
     },
   });
 
+  // v5's "Align Cartesian axes" (the Reset menu): the view along x, y and z again.
+  readonly resetAxes = this.operation({
+    id: 'camera.reset-axes',
+    title: 'Align the view with the x, y and z axes',
+    params: {},
+    history: false,
+    modules: ['canvas'],
+    when: (ctx) => (ctx.sources.empty.value ? 'Nothing is loaded.' : true),
+    async run(_, ctx) {
+      ctx.plugin.managers.camera.resetAxes(duration(ctx));
+      return ApiResult.ok('Aligned the view with the x, y and z axes.', { view: true });
+    },
+  });
+
   readonly get = this.operation({
     id: 'camera.get',
     title: 'Describe the camera',

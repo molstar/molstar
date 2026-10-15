@@ -7,6 +7,8 @@
  */
 
 import { StateTree } from '@molstar/core/state';
+import { SpacegroupCell } from '@molstar/core/math/geometry';
+import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { ModelSymmetry } from '@molstar/model/formats/structure/property/symmetry';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
@@ -142,6 +144,63 @@ export class StructureApi extends ApiArea {
       return ApiResult.ok(id ? `${labelOf(ctx, s)} shows assembly ${id}.` : `${labelOf(ctx, s)} shows the model.`, {
         nodes: [s.cell.transform.ref],
       });
+    },
+  });
+
+  // parity.md §2 (the structure's source): crystal symmetry, v5's Symmetry Mates and Symmetry (indices) types.
+  readonly symmetry = this.operation({
+    id: 'structure.symmetry',
+    title: 'Show crystal symmetry',
+    params: {
+      kind: PD.Select<'mates' | 'cells' | 'off'>(
+        'mates',
+        [
+          ['mates', 'Symmetry mates within a radius'],
+          ['cells', 'Unit cells around the model'],
+          ['off', 'Off: the model alone'],
+        ],
+        { description: 'mates: the copies within the radius; cells: the copies in the cells around; off: none' },
+      ),
+      radius: PD.Numeric(5, { min: 0, max: 50, step: 1 }, { description: 'Å around the model (mates)' }),
+      cells: PD.Numeric(1, { min: 0, max: 3, step: 1 }, { description: 'Cells on each side (cells): 1 is -1 to 1' }),
+      structure: StructureParam(),
+    },
+    async run({ kind, radius, cells, structure }, ctx) {
+      const s = oneStructure(ctx, structure || undefined);
+      if (isFailure(s)) return s;
+      const name = labelOf(ctx, s);
+      const model = s.model?.cell.obj?.data;
+      if (!model) return ApiResult.fail('blocked', `${name} is not built from a model.`);
+      const symmetry = ModelSymmetry.Provider.get(model);
+      if (kind !== 'off' && symmetry && SpacegroupCell.isZero(symmetry.spacegroup.cell)) {
+        return ApiResult.fail('blocked', `${name} has no crystal cell.`, 'Only crystal structures have symmetry.');
+      }
+      const current = s.cell.transform.params as { type: { name: string; params?: Record<string, unknown> } };
+      // The structure's common params (bond computation, …) carry over; the type's own are set.
+      const { id: _, radius: __, ijkMin: ___, ijkMax: ____, ...common } = current.type.params ?? {};
+      const n = Math.round(cells);
+      const want =
+        kind === 'mates'
+          ? { name: 'symmetry-mates', params: { ...common, radius } }
+          : kind === 'cells'
+            ? { name: 'symmetry', params: { ...common, ijkMin: Vec3.create(-n, -n, -n), ijkMax: Vec3.create(n, n, n) } }
+            : { name: 'model', params: common };
+      const same =
+        current.type.name === want.name &&
+        (kind === 'off' ||
+          (kind === 'mates'
+            ? current.type.params?.radius === radius
+            : Vec3.exactEquals(current.type.params?.ijkMin as Vec3, Vec3.create(-n, -n, -n)) &&
+              Vec3.exactEquals(current.type.params?.ijkMax as Vec3, Vec3.create(n, n, n))));
+      if (same) return ApiResult.already(`${name} already shows that.`);
+      await rebuildStructure(ctx, s.cell.transform.ref, { ...current, type: want });
+      const did =
+        kind === 'mates'
+          ? `${name} shows its symmetry mates within ${radius} Å.`
+          : kind === 'cells'
+            ? `${name} shows the unit cells ${-n} to ${n} around it.`
+            : `${name} shows the model alone.`;
+      return ApiResult.ok(did, { nodes: [s.cell.transform.ref] });
     },
   });
 
