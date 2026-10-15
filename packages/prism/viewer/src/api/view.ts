@@ -7,6 +7,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import { shellIdOf } from '../extensions/overrides.js';
 import { ApiArea, ApiResult } from './area.js';
 
 // `view` (operations.md §2): the UI's state, through the navigation manager; no history step. Headless it changes the
@@ -19,12 +20,17 @@ export class ViewApi extends ApiArea {
     id: 'view.open',
     title: 'Open a panel',
     params: {
-      tab: PD.Text('', { description: 'A tab by id: home, structure, …' }),
-      card: PD.Text('', { description: 'A card over the canvas by id: export, canvas-settings, …' }),
+      tab: PD.Text('', {
+        description: 'A tab by part id (core.tab.home, snapshots.tab.snapshots) or a core tab: home, structure, …',
+      }),
+      card: PD.Text('', { description: 'A card over the canvas by part id: canvas-settings.overlay.canvas, …' }),
       section: PD.Text('', { description: 'A section to bring into view in it' }),
     },
     history: false,
-    async run({ tab, card, section }, ctx) {
+    async run(values, ctx) {
+      const tab = shellIdOf(values.tab);
+      const card = shellIdOf(values.card);
+      const { section } = values;
       const nav = ctx.managers.navigation;
       if (!tab && !card) return ApiResult.fail('invalid', 'Open what?', 'Give a tab or a card.');
       if (card) {

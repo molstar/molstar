@@ -10,25 +10,33 @@ import { type ObservableState, observableState, type ReadonlyState } from '@mols
 import type { CommandDefinition } from '@molstar/prism-ui/core';
 import { type Observable, Subject } from 'rxjs';
 import type { AnnotationsApi } from '../api/annotations.js';
-import { type ApiAreaContext, ApiArea, ApiResult, type OperationDefinition, type ViewerApi } from '../api/area.js';
+import {
+  type ApiAreaContext,
+  ApiArea,
+  ApiResult,
+  memberName,
+  type OperationDefinition,
+  type ViewerApi,
+} from '../api/area.js';
 import type { ViewerApiHost } from '../api/index.js';
 import type { ViewerCommandContext } from '../api/managers.js';
 import type {
   LazyViewerExtension,
-  Part,
   PrismViewerPluginParts,
   ViewerExtension,
   ViewerExtensionUI,
   ViewerUIContext,
 } from '../spec.js';
 import { isLazyExtension } from '../spec.js';
+import type { Overrides } from './overrides.js';
 
 // The extensions of a viewer (viewer-spec.md §3–§4, README §3.1): each activated in the list's order. An eager one
 // brings its API areas, operations into core areas (built-in features only), commands, annotations, and views when a
-// page attaches. A lazy one is its stub until first use: its areas, commands and views exist from the start as stubs;
-// the first use loads the chunk (a task in the status column), registers its plugin part on the running plugin, swaps
-// the real parts in and replays what triggered it. A loaded extension is checked against its stub. Overrides replace or
-// remove any part by id, the core's included.
+// page attaches. A lazy one is its stub until first use: its operations (in its own areas, or a built-in feature's in a
+// core area), commands and views exist from the start as stubs; the first use loads the chunk (a task in the status
+// column), checks it against the stub, registers its plugin part on the running plugin, swaps the real parts in and
+// replays what triggered it. Activation is all or nothing: a failure undoes what it did and puts the stub back.
+// Overrides (`overrides.ts`) apply to every part, the core's included.
 
 export type ExtensionStatus = 'stub' | 'loading' | 'loaded' | 'failed';
 
@@ -38,30 +46,45 @@ export interface ExtensionUIPort {
   readonly context: ViewerUIContext;
   /** Registers the views of an extension (overrides applied by the host); returns their removal. */
   register(owner: string, ui: ViewerExtensionUI): () => void;
-  /** Placeholders for a lazy extension's declared views: a click loads it. */
+  /** Placeholders for a lazy extension's declared views (overrides applied by the host): a click loads it. */
   registerStub(owner: string, stub: LazyViewerExtension['stub'], load: () => Promise<boolean>): () => void;
 }
 
 export interface ExtensionHostDeps {
   readonly host: ViewerApiHost;
   readonly person: ViewerApi;
+  /** Registers commands, overrides applied. */
   readonly registerCommands: (defs: readonly CommandDefinition<ViewerCommandContext>[]) => () => void;
+  /** Opens a command as the command menu does (its form, or runs it). */
+  readonly openCommand: (id: string) => void;
   readonly annotations: AnnotationsApi;
   /** The running plugin's side of a lazy load (`sources/extension-plugin.ts`). */
   readonly applyPlugin: (parts: Partial<PrismViewerPluginParts>) => Promise<() => Promise<void>>;
-  readonly overrides: Readonly<Record<string, Part | null>>;
+  readonly overrides: Overrides;
   /** A task while a chunk loads (the status column). */
   readonly task: (label: string) => () => void;
 }
+
+type Disposer = () => void | Promise<void>;
 
 interface Entry {
   readonly id: string;
   readonly lazy?: LazyViewerExtension;
   ext?: ViewerExtension;
   readonly status: ObservableState<ExtensionStatus>;
-  readonly disposers: (() => void | Promise<void>)[];
+  /** The active extension's parts. */
+  readonly disposers: Disposer[];
+  /** The stub's parts, until the extension loads. */
+  readonly stub: Disposer[];
   ui?: () => void;
   loading?: Promise<boolean>;
+}
+
+/** The definitions of stub operations: their runs are the real ones' replays (the status column shows the result). */
+const StubDefinitions = new WeakSet<OperationDefinition<any, any>>();
+
+export function isStubDefinition(def: OperationDefinition<any, any>): boolean {
+  return StubDefinitions.has(def);
 }
 
 export class ExtensionHost {
@@ -93,12 +116,17 @@ export class ExtensionHost {
   async add(list: readonly (ViewerExtension | LazyViewerExtension)[]): Promise<void> {
     for (const e of list) {
       if (isLazyExtension(e)) {
-        this.#addStub(e);
+        const entry = this.#entry(e.id, 'stub', e);
+        this.#installStub(entry);
+        this.#mountUI(entry);
       } else {
-        const entry: Entry = { id: e.id, ext: e, status: observableState<ExtensionStatus>('loaded'), disposers: [] };
-        this.#entries.set(e.id, entry);
-        this.#activate(entry, e);
+        const entry = this.#entry(e.id, 'loaded');
+        checkContributes(e);
+        entry.disposers.push(...(await this.#activate(e)));
+        entry.ext = e;
+        this.#mountUI(entry);
         this.#loaded.set([...this.#loaded.value, e.id]);
+        this.#activated.next(e.id);
       }
     }
     for (const e of list) if (isLazyExtension(e) && e.preload) await this.load(e.id);
@@ -119,13 +147,16 @@ export class ExtensionHost {
     readonly formats?: readonly string[];
     readonly fileExtensions?: readonly string[];
   }): Promise<void> {
-    for (const entry of this.#entries.values()) {
+    const lower = (xs: readonly string[] | undefined) => xs?.map((x) => x.toLowerCase().replace(/^\./, ''));
+    const files = lower(need.fileExtensions);
+    for (const entry of [...this.#entries.values()]) {
       const owns = entry.lazy?.stub.owns;
       if (!owns || entry.ext) continue;
+      const owned = lower(owns.fileExtensions);
       const hit =
         need.transformers?.some((t) => owns.transformers?.includes(t)) ||
         need.formats?.some((f) => owns.formats?.includes(f)) ||
-        need.fileExtensions?.some((x) => owns.fileExtensions?.includes(x.toLowerCase()));
+        files?.some((x) => owned?.includes(x));
       if (hit) await this.load(entry.id);
     }
   }
@@ -146,40 +177,60 @@ export class ExtensionHost {
   async dispose(): Promise<void> {
     for (const entry of [...this.#entries.values()].reverse()) {
       entry.ui?.();
-      for (const d of entry.disposers.splice(0).reverse()) await d();
+      await runAll(entry.disposers);
+      await runAll(entry.stub);
     }
     this.#entries.clear();
     this.#activated.complete();
     this.#failed.complete();
   }
 
-  /** An extension's parts, in order; overrides drop or replace commands by id. */
-  #activate(entry: Entry, e: ViewerExtension): void {
-    const { host, person, registerCommands, annotations } = this.#deps;
-    for (const [id, factory] of Object.entries(e.api ?? {})) {
-      const replace = host.api.area(id) && entry.lazy;
-      entry.disposers.push(replace ? host.replaceArea(id, factory) : host.addArea(id, factory));
-    }
-    for (const c of e.contributes?.(host.areaContext) ?? []) {
-      if (!e.builtIn) {
-        throw new Error(`Extension '${e.id}' adds '${c.operation.id}' to a core area: only the viewer's features may`);
-      }
-      const area = host.api.area(c.area);
-      if (!area) throw new Error(`Extension '${e.id}' adds to an area that does not exist: '${c.area}'`);
-      entry.disposers.push(area.contribute(c.name, c.operation));
-    }
-    const commands = this.#overridden(e.commands?.(person) ?? []);
-    if (commands.length) entry.disposers.push(registerCommands(commands));
-    for (const a of e.annotations ?? []) entry.disposers.push(annotations.register(a));
-    this.#mountUI(entry);
-    this.#activated.next(e.id);
+  #entry(id: string, status: ExtensionStatus, lazy?: LazyViewerExtension): Entry {
+    const entry: Entry = { id, ...(lazy ? { lazy } : {}), status: observableState(status), disposers: [], stub: [] };
+    this.#entries.set(id, entry);
+    return entry;
   }
 
-  #addStub(lazy: LazyViewerExtension): void {
-    const entry: Entry = { id: lazy.id, lazy, status: observableState<ExtensionStatus>('stub'), disposers: [] };
-    this.#entries.set(lazy.id, entry);
+  /**
+   * An extension's parts, in order, all or nothing: on a failure, what was done is undone and the error rethrown. The
+   * disposers are returned to the caller, which keeps them once the activation is accepted.
+   */
+  async #activate(e: ViewerExtension, lazy?: LazyViewerExtension): Promise<Disposer[]> {
+    const { host, person, registerCommands, annotations } = this.#deps;
+    const done: Disposer[] = [];
+    try {
+      // An eager extension's plugin part is in the composition; a lazy one's goes on the running plugin.
+      if (lazy && e.plugin) done.push(await this.#deps.applyPlugin(e.plugin));
+      for (const [id, factory] of Object.entries(e.api ?? {})) done.push(host.addArea(id, factory));
+      for (const c of e.contributes?.(host.areaContext) ?? []) {
+        const area = host.api.area(c.area);
+        if (!area) throw new Error(`Extension '${e.id}' adds to an area that does not exist: '${c.area}'`);
+        if (c.name !== memberName(c.operation.id)) {
+          throw new Error(
+            `Extension '${e.id}' adds '${c.operation.id}' as '${c.name}': its name is '${memberName(c.operation.id)}'`,
+          );
+        }
+        done.push(area.contribute(c.name, c.operation));
+      }
+      // Its commands are made once its operations exist (they read their params).
+      const commands = e.commands?.(person) ?? [];
+      if (lazy) checkCommands(lazy, commands);
+      if (commands.length) done.push(registerCommands(commands));
+      for (const a of e.annotations ?? []) done.push(annotations.register(a));
+      return done;
+    } catch (error) {
+      await runAll(done);
+      throw error;
+    }
+  }
+
+  /** A lazy extension's stub: its operations, commands (its views come with the UI). */
+  #installStub(entry: Entry): void {
+    const lazy = entry.lazy!;
     const { host, registerCommands } = this.#deps;
-    // Stub areas: each operation loads the chunk, then runs the real one, as part of the same step.
+    const load = () => this.load(lazy.id);
+    // Stub operations: each loads the chunk, then runs the real one, as part of the same step. In the extension's own
+    // area a stub area; in an area that exists (a built-in feature's in a core area) contributed to it.
     const byArea = new Map<string, { id: string; title: string }[]>();
     for (const op of lazy.stub.operations ?? []) {
       const area = op.id.slice(0, op.id.indexOf('.'));
@@ -187,33 +238,32 @@ export class ExtensionHost {
       byArea.get(area)!.push(op);
     }
     for (const [area, ops] of byArea) {
-      const load = () => this.load(lazy.id);
-      entry.disposers.push(host.addArea(area, (ctx) => new StubArea(ctx, area, ops, load, lazy.title)));
+      const existing = host.api.area(area);
+      if (existing) {
+        if (!lazy.builtIn) {
+          throw new Error(`Extension '${lazy.id}' adds '${ops[0].id}' to a core area: only the viewer's features may`);
+        }
+        for (const op of ops) entry.stub.push(existing.contribute(memberName(op.id), stubDefinition(op, load, lazy)));
+      } else {
+        entry.stub.push(host.addArea(area, (ctx) => new StubArea(ctx, area, ops, load, lazy)));
+      }
     }
-    // Stub commands: listed by title; running one loads the chunk and opens the real one.
-    const commands = this.#overridden(
-      (lazy.stub.commands ?? []).map(
-        (c): CommandDefinition<ViewerCommandContext> => ({
-          id: c.id,
-          title: c.title,
-          category: c.category ?? lazy.title,
-          ...(c.icon ? { icon: c.icon } : {}),
-          run: async () => {
-            const ok = await this.load(lazy.id);
-            if (!ok) throw new Error(`${lazy.title} could not be loaded.`);
-            return { message: '' };
-          },
-        }),
-      ),
+    // Stub commands: listed by title; running one loads the chunk, then opens the real one.
+    const commands = (lazy.stub.commands ?? []).map(
+      (c): CommandDefinition<ViewerCommandContext> => ({
+        id: c.id,
+        title: c.title,
+        category: c.category ?? lazy.title,
+        ...(c.icon ? { icon: c.icon } : {}),
+        run: async () => {
+          if (!(await this.load(lazy.id))) throw new Error(`${lazy.title} could not be loaded.`);
+          // Opened once this run has settled: the menu takes one run at a time.
+          setTimeout(() => this.#deps.openCommand(c.id), 0);
+          return { message: `Loaded ${lazy.title}.` };
+        },
+      }),
     );
-    if (commands.length) {
-      const unregister = registerCommands(commands);
-      entry.disposers.push(() => {
-        if (!entry.ext) unregister();
-      });
-      (entry as { stubCommands?: () => void }).stubCommands = unregister;
-    }
-    this.#mountUI(entry);
+    if (commands.length) entry.stub.push(registerCommands(commands));
   }
 
   async #load(entry: Entry): Promise<boolean> {
@@ -222,22 +272,38 @@ export class ExtensionHost {
     const done = this.#deps.task(`Loading ${lazy.title}`);
     try {
       const ext = await lazy.load();
+      // Checked before anything changes (its commands once its operations exist, in `#activate`).
       checkAgainstStub(lazy, ext);
-      if (ext.plugin) entry.disposers.push(await this.#deps.applyPlugin(ext.plugin));
-      // The stub's commands and views go; the real ones come.
-      (entry as { stubCommands?: () => void }).stubCommands?.();
+      checkContributes(ext);
+      // The stub's parts go and the real ones come; a failure puts the stub back.
       entry.ui?.();
       entry.ui = undefined;
+      await runAll(entry.stub);
+      let parts: Disposer[];
+      try {
+        parts = await this.#activate(ext, lazy);
+        const definitions = this.#deps.host.runner.definitions.value;
+        const missing = (lazy.stub.operations ?? []).filter((o) => !definitions.has(o.id)).map((o) => o.id);
+        if (missing.length) {
+          await runAll(parts);
+          throw new Error(`${lazy.title} does not bring what its stub declared: ${missing.join(', ')}`);
+        }
+      } catch (error) {
+        this.#installStub(entry);
+        this.#mountUI(entry);
+        throw error;
+      }
+      entry.disposers.push(...parts);
       entry.ext = ext;
-      this.#activate(entry, ext);
+      this.#mountUI(entry);
       entry.status.set('loaded');
       this.#loaded.set([...this.#loaded.value, ext.id]);
+      this.#activated.next(ext.id);
       return true;
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
       entry.status.set('failed');
       entry.loading = undefined;
-      this.#failed.next({ id: lazy.id, message });
+      this.#failed.next({ id: lazy.id, message: e instanceof Error ? e.message : String(e) });
       return false;
     } finally {
       done();
@@ -247,62 +313,119 @@ export class ExtensionHost {
   #mountUI(entry: Entry): void {
     const port = this.#port;
     if (!port || entry.ui) return;
+    const { overrides } = this.#deps;
     if (entry.ext?.ui) {
       const ui = entry.ext.ui;
       let removed = false;
       let remove: (() => void) | undefined;
-      void Promise.resolve(ui(port.context)).then((parts) => {
-        if (removed || !this.#port) return;
-        remove = port.register(entry.id, this.#overriddenUI(parts));
-      });
+      Promise.resolve()
+        .then(() => ui(port.context))
+        .then((views) => {
+          if (removed || !this.#port) return;
+          const { checked, problems } = checkViews(entry, views);
+          if (problems.length) this.#failed.next({ id: entry.id, message: problems.join('; ') });
+          remove = port.register(entry.id, {
+            sections: overrides.parts(checked.sections),
+            tabs: overrides.parts(checked.tabs),
+            overlays: overrides.parts(checked.overlays),
+            rows: overrides.parts(checked.rows),
+            toolbar: overrides.parts(checked.toolbar),
+          });
+        })
+        .catch((e) => {
+          if (!removed) this.#failed.next({ id: entry.id, message: `Its views did not load: ${messageOf(e)}` });
+        });
       entry.ui = () => {
         removed = true;
         remove?.();
       };
     } else if (entry.lazy && !entry.ext) {
-      entry.ui = port.registerStub(entry.id, entry.lazy.stub, () => this.load(entry.id));
+      const stub = { ...entry.lazy.stub, parts: entry.lazy.stub.parts.filter((p) => !overrides.removes(p.id)) };
+      entry.ui = port.registerStub(entry.id, stub, () => this.load(entry.id));
     }
-  }
-
-  #overridden(commands: readonly CommandDefinition<ViewerCommandContext>[]): CommandDefinition<ViewerCommandContext>[] {
-    const o = this.#deps.overrides;
-    return commands.flatMap((c) => {
-      if (!(c.id in o)) return [c];
-      const replacement = o[c.id];
-      return replacement === null ? [] : [replacement as CommandDefinition<ViewerCommandContext>];
-    });
-  }
-
-  #overriddenUI(ui: ViewerExtensionUI): ViewerExtensionUI {
-    const o = this.#deps.overrides;
-    const apply = <T extends { id: string }>(list: readonly T[] | undefined): T[] =>
-      (list ?? []).flatMap((p) =>
-        !(p.id in o) ? [p] : o[p.id] === null ? [] : [{ ...p, ...(o[p.id] as object) } as T],
-      );
-    return {
-      sections: apply(ui.sections),
-      tabs: apply(ui.tabs),
-      overlays: apply(ui.overlays),
-      rows: apply(ui.rows),
-      toolbar: apply(ui.toolbar),
-    };
   }
 }
 
-/** A loaded extension brings only what its stub declared (viewer-spec.md §3; review F6). */
+/** Disposers run in reverse, emptied. */
+async function runAll(disposers: Disposer[]): Promise<void> {
+  for (const d of disposers.splice(0).reverse()) await d();
+}
+
+const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+/** Operations into core areas: built-in features only, under the member name their id gives. */
+function checkContributes(e: ViewerExtension): void {
+  if (!e.contributes) return;
+  if (!e.builtIn) throw new Error(`Extension '${e.id}' adds to a core area: only the viewer's features may`);
+}
+
+/** A loaded extension brings only what its stub declared, and every operation it declared (viewer-spec.md §3). */
 function checkAgainstStub(lazy: LazyViewerExtension, ext: ViewerExtension): void {
   if (ext.id !== lazy.id) throw new Error(`The extension loaded for '${lazy.id}' says it is '${ext.id}'`);
-  const declaredOps = new Set((lazy.stub.operations ?? []).map((o) => o.id));
-  const declaredCommands = new Set((lazy.stub.commands ?? []).map((c) => c.id));
-  const declaredParts = new Set(lazy.stub.parts.map((p) => p.id));
-  const extra: string[] = [];
-  for (const area of Object.keys(ext.api ?? {})) {
-    if (![...declaredOps].some((id) => id.startsWith(`${area}.`))) extra.push(`area '${area}'`);
-  }
-  // Its views and commands are checked as they register (`ExtensionHost.#activate`, the UI port).
-  void declaredCommands;
-  void declaredParts;
+  if (!!ext.builtIn !== !!lazy.builtIn) throw new Error(`${lazy.title}: its stub and the extension differ in builtIn`);
+  const declaredOps = (lazy.stub.operations ?? []).map((o) => o.id);
+  const extra = Object.keys(ext.api ?? {})
+    .filter((area) => !declaredOps.some((id) => id.startsWith(`${area}.`)))
+    .map((area) => `area '${area}'`);
   if (extra.length) throw new Error(`${lazy.title} brings what its stub did not declare: ${extra.join(', ')}`);
+}
+
+/** Its commands, as its stub declared them. Its views are checked when they register (`checkViews`). */
+function checkCommands(lazy: LazyViewerExtension, commands: readonly CommandDefinition<ViewerCommandContext>[]): void {
+  const declared = new Set((lazy.stub.commands ?? []).map((c) => c.id));
+  const extra = commands.filter((c) => !declared.has(c.id)).map((c) => `command '${c.id}'`);
+  if (extra.length) throw new Error(`${lazy.title} brings what its stub did not declare: ${extra.join(', ')}`);
+}
+
+const ViewKinds = { sections: 'section', tabs: 'tab', overlays: 'overlay', rows: 'row', toolbar: 'toolbar' } as const;
+
+/**
+ * An extension's views: each id `<owner>.<kind>.<name>` with its own id and kind, and, for a lazy one, declared by its
+ * stub. The others are not shown, and said.
+ */
+function checkViews(entry: Entry, views: ViewerExtensionUI): { checked: ViewerExtensionUI; problems: string[] } {
+  const declared = entry.lazy ? new Set(entry.lazy.stub.parts.map((p) => p.id)) : undefined;
+  const problems: string[] = [];
+  const checked: Record<string, unknown[]> = {};
+  for (const [key, kind] of Object.entries(ViewKinds) as [keyof typeof ViewKinds, string][]) {
+    checked[key] = (views[key] ?? []).filter((p) => {
+      const [owner, k] = p.id.split('.');
+      if (owner !== entry.id || k !== kind) {
+        problems.push(`its ${kind} '${p.id}' is not named '${entry.id}.${kind}.<name>'`);
+        return false;
+      }
+      if (declared && !declared.has(p.id)) {
+        problems.push(`its ${kind} '${p.id}' is not declared by its stub`);
+        return false;
+      }
+      return true;
+    });
+  }
+  return { checked: checked as ViewerExtensionUI, problems };
+}
+
+/** A stub operation: loads the extension, then runs the real one with the same values (one step, the real one's). */
+function stubDefinition(
+  op: { readonly id: string; readonly title: string },
+  load: () => Promise<boolean>,
+  lazy: LazyViewerExtension,
+): OperationDefinition {
+  const def: OperationDefinition = {
+    id: op.id,
+    title: op.title,
+    params: {},
+    passValues: true,
+    // The real operation makes the step; the stub only loads and replays.
+    history: false,
+    async run(values, ctx) {
+      if (!(await load())) {
+        return ApiResult.fail('unavailable', `${lazy.title} could not be loaded.`, 'Try again, or reload the page.');
+      }
+      return ctx.api.run(op.id, values as Record<string, unknown>);
+    },
+  };
+  StubDefinitions.add(def);
+  return def;
 }
 
 /** A lazy extension's area before it loads: each declared operation loads it, then runs the real one. */
@@ -314,27 +437,13 @@ class StubArea extends ApiArea {
     id: string,
     ops: readonly { id: string; title: string }[],
     load: () => Promise<boolean>,
-    title: string,
+    lazy: LazyViewerExtension,
   ) {
     super(ctx);
     this.id = id;
     for (const op of ops) {
-      const def: OperationDefinition = {
-        id: op.id,
-        title: op.title,
-        params: {},
-        passValues: true,
-        // The real operation makes the step; the stub only loads and replays.
-        history: false,
-        async run(values, runCtx) {
-          const loaded = await load();
-          if (!loaded)
-            return ApiResult.fail('unavailable', `${title} could not be loaded.`, 'Try again, or reload the page.');
-          return runCtx.api.run(op.id, values as Record<string, unknown>);
-        },
-      };
-      const name = op.id.slice(op.id.indexOf('.') + 1).replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
-      Object.defineProperty(this, name, { value: this.operation(def), enumerable: true, configurable: true });
+      const fn = this.operation(stubDefinition(op, load, lazy));
+      Object.defineProperty(this, memberName(op.id), { value: fn, enumerable: true, configurable: true });
     }
   }
 }

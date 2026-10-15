@@ -24,7 +24,7 @@ import {
   ViewStateManager,
 } from '@molstar/prism-ui/core';
 import { type Observable, Subject } from 'rxjs';
-import type { ApiModuleKey, ViewerApi } from './api/area.js';
+import type { ApiModuleKey, ExtensionPort, ViewerApi } from './api/area.js';
 import { CoreAreas, createViewerApi, type ViewerApiHost } from './api/index.js';
 import type { ViewerCommandContext, ViewerManagers } from './api/managers.js';
 import { coreCommands } from './commands/core.js';
@@ -47,8 +47,9 @@ import { createTargetFormat } from './sources/target-format.js';
 import { createTargetResolver } from './sources/targets.js';
 import { createViewerSources, type ViewerSources } from './sources/viewer-sources.js';
 import { isLazyExtension, type PrismViewerSpec, type ViewerExtension } from './spec.js';
-import { checkSpec } from './spec-check.js';
-import { ExtensionHost, type ExtensionUIPort } from './extensions/host.js';
+import { checkSpec, isPartId, PrismViewerSpecError } from './spec-check.js';
+import { ExtensionHost, type ExtensionUIPort, isStubDefinition } from './extensions/host.js';
+import { Overrides, ShellCommandIds, shellIdOf } from './extensions/overrides.js';
 import { applyExtensionPlugin } from './sources/extension-plugin.js';
 import type { HomeAction } from './model/home.js';
 import type { PresetsModel, QuickStylesModel, SceneModel } from './model/scene.js';
@@ -138,6 +139,8 @@ export interface ViewerCore extends PrismViewer {
   onDispose(fn: () => void | Promise<void>): void;
   /** Registers commands with the spec's keybindings applied (README §3.3: keybindings name commands). */
   registerCommands(defs: readonly CommandDefinition<ViewerCommandContext>[]): () => void;
+  /** The spec's overrides, for the shell's own parts. */
+  readonly overrides: Overrides;
   /** The page's shell takes the extensions' views. */
   attachExtensionUI(port: ExtensionUIPort): () => void;
   /** Mounts the canvas in a page's element; false (and the `canvas` module dropped) when it cannot start. */
@@ -213,13 +216,24 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
 
     const targets = createTargetResolver(plugin);
     const modules = new Set(o.modules);
-    const host = createViewerApi({ plugin, sources, targets, modules: { has: (k) => modules.has(k) }, managers });
+    // Operations that load what an extension owns ask the extensions first; set once they are added.
+    const extensionPort: ExtensionPort = { ensureFor: async () => {} };
+    const host = createViewerApi({
+      plugin,
+      sources,
+      targets,
+      modules: { has: (k) => modules.has(k) },
+      managers,
+      extensions: extensionPort,
+    });
     disposers.push(() => host.dispose());
 
     const keys = new Map((spec.ui?.keybindings ?? []).map((k) => [k.command, k.key]));
+    // Every command goes through here: the core's, the shell's, extensions' and stubs' (overrides.ts).
+    const overrides = new Overrides(spec.overrides);
     const registerCommands = (defs: readonly CommandDefinition<ViewerCommandContext>[]) =>
       managers.commands.register(
-        defs.map((d) => {
+        overrides.commands(defs).map((d) => {
           if (!keys.has(d.id)) return d;
           const key = keys.get(d.id);
           const { shortcut: _, ...rest } = d;
@@ -243,9 +257,10 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       host,
       person,
       registerCommands,
+      openCommand: (id) => void managers.commands.open(id),
       annotations: host.api.annotations,
       applyPlugin: (parts) => applyExtensionPlugin(plugin, parts),
-      overrides: spec.overrides ?? {},
+      overrides,
       task: (label) => {
         const id = `extension:${label}`;
         notifications.putTask({ id, label });
@@ -254,6 +269,14 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     });
     disposers.push(() => extensions.dispose());
     await extensions.add(spec.extensions ?? []);
+    extensionPort.ensureFor = (need) => extensions.ensureFor(need);
+    // An override of a command nobody registers is a mistake (viewer-spec.md §4); view parts are checked by spec-check.
+    const unknown = overrides
+      .unused()
+      .filter((k) => !isPartId(k) && !ShellCommandIds.includes(k) && !managers.commands.get(k));
+    if (unknown.length) {
+      throw new PrismViewerSpecError(unknown.map((k) => `override '${k}': there is no command '${k}'`));
+    }
 
     // What the person sees in the status column: results of the person's and the URL's runs, failures, the plugin's
     // errors, running tasks, undo turning off for a large scene.
@@ -269,7 +292,13 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
             notifications.post(result.hint ? `${result.message} ${result.hint}` : result.message, 'warning');
           }
           error.next({ message: result.message, source: 'api' });
-        } else if ((r.origin.kind === 'person' || r.origin.kind === 'url') && def && !def.read) {
+        } else if (
+          (r.origin.kind === 'person' || r.origin.kind === 'url') &&
+          def &&
+          !def.read &&
+          // View operations (hover's highlight, focus) say nothing; a lazy stub's run is the real one's result.
+          (def.history !== false || isStubDefinition(def))
+        ) {
           notifications.post(result.did, 'info');
         }
       }),
@@ -320,6 +349,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       host,
       ready$: ready,
       registerCommands,
+      overrides,
       attachExtensionUI: (port) => extensions.attachUI(port),
       mountCanvas: async (el) => {
         const ok = await mountCanvas(plugin, el);
@@ -351,17 +381,22 @@ function layoutManagers(spec: PrismViewerSpec, options: PrismViewerOptionValues)
     const d = layout.docks?.[id];
     if (!d) continue;
     const { tabs, size, floating, pinned, active, collapsed } = d;
+    // Tabs by part id (`core.tab.home`, `snapshots.tab.snapshots`) or the core's short ids.
     docks[id] = {
-      ...(tabs ? { tabs } : {}),
+      ...(tabs ? { tabs: tabs.map(shellIdOf) } : {}),
       ...(size !== undefined ? { size } : {}),
       ...(floating !== undefined ? { floating } : {}),
       ...(pinned !== undefined ? { pinned } : {}),
     };
-    nav[id] = { ...(active !== undefined ? { active } : {}), ...(collapsed !== undefined ? { collapsed } : {}) };
+    nav[id] = {
+      ...(active !== undefined ? { active: shellIdOf(active) } : {}),
+      ...(collapsed !== undefined ? { collapsed } : {}),
+    };
   }
   // A tab placed by the spec: listed in its dock, by order, so it lands there when it registers.
   const placed = Object.entries(layout.tabs ?? {}).sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0));
-  for (const [tab, place] of placed) {
+  for (const [id, place] of placed) {
+    const tab = shellIdOf(id);
     const dock = place.dock ?? 'right';
     const current = docks[dock]?.tabs ?? [];
     docks[dock] = { ...docks[dock], tabs: [...current.filter((t) => t !== tab), tab] };

@@ -251,6 +251,8 @@ export interface LazyViewerExtension {
   readonly load: () => Promise<ViewerExtension>;
   /** Loaded during creation, before `ready`. */
   readonly preload?: boolean;
+  /** One of the viewer's own features: its stub may declare operations in core areas (as its `contributes`). */
+  readonly builtIn?: true;
 }
 
 export interface LazyViewerExtensionStub {

@@ -25,6 +25,11 @@ export class SessionApi extends ApiArea {
     async run({ file }, ctx) {
       const f = filesOf(file)[0];
       if (!f) return ApiResult.fail('invalid', 'Which session?', 'Pick a .molx or .molj file.');
+      // A lazy extension whose transformers the session uses loads first (a .molj names them; a .molx is zipped).
+      if (/\.(molj|json)$/i.test(f.name)) {
+        const transformers = [...(await f.text()).matchAll(/"transformer"\s*:\s*"([^"]+)"/g)].map((m) => m[1]);
+        await ctx.extensions.ensureFor({ transformers });
+      }
       let failed: string | undefined;
       const sub = ctx.plugin.events.log.subscribe((e) => {
         if (e.type === 'error') failed = String(e.message);

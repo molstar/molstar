@@ -120,6 +120,17 @@ export interface ApiAreaContext {
   readonly managers: ViewerManagers;
   /** Declares and runs operations: the run path, as an area sees it. */
   readonly operations: OperationPort;
+  /** The extensions, for operations that load what one owns (a file's format): those load first. */
+  readonly extensions: ExtensionPort;
+}
+
+/** What operations ask of the extensions (`extensions/host.ts`). */
+export interface ExtensionPort {
+  ensureFor(need: {
+    readonly transformers?: readonly string[];
+    readonly formats?: readonly string[];
+    readonly fileExtensions?: readonly string[];
+  }): Promise<void>;
 }
 
 /** What an operation's run gets: the area context, bound to who runs it (api.md §4). */
@@ -136,6 +147,8 @@ export interface ApiContext extends ApiAreaContext {
 export interface OperationPort {
   /** Declares an operation of an area; its id must start with the area's id (`<area>.<verb>`). */
   define(def: OperationDefinition<any, any>, area: string): void;
+  /** Removes an operation (a contributed one whose feature went, a stub replaced). */
+  undefine(id: string): void;
   run<P extends PD.Params, R>(
     def: OperationDefinition<P, R>,
     values: Partial<PD.ValuesFor<P>> | Readonly<Record<string, unknown>>,
@@ -240,7 +253,9 @@ export abstract class ApiArea {
     Object.defineProperty(this, name, { value: fn, enumerable: true, configurable: true });
     return () => {
       const self = this as unknown as Record<string, unknown>;
-      if (self[name] === fn) delete self[name];
+      if (self[name] !== fn) return;
+      delete self[name];
+      this.ctx.operations.undefine(def.id);
     };
   }
 
@@ -251,6 +266,14 @@ export abstract class ApiArea {
 
   /** Lets go of what the area holds (an extension's area when the extension goes). */
   dispose?(): void;
+}
+
+/**
+ * The member an operation is under in its area: its id after the area, camel-cased (`history.undo-turn` → `undoTurn`,
+ * `session.remote.list` → `remoteList`). Stubs and contributed operations are named by it.
+ */
+export function memberName(id: string): string {
+  return id.slice(id.indexOf('.') + 1).replace(/[-.]([a-z0-9])/g, (_, c: string) => c.toUpperCase());
 }
 
 /** An operation bound to how it runs. */

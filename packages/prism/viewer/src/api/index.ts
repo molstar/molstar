@@ -15,6 +15,7 @@ import {
   ApiResult,
   bindOperation,
   type Changed,
+  type ExtensionPort,
   type GroupOptions,
   type GroupResult,
   isOperationFn,
@@ -80,6 +81,7 @@ export interface ViewerApiDeps {
   readonly targets: TargetResolver;
   readonly modules: ApiModules;
   readonly managers: ViewerManagers;
+  readonly extensions: ExtensionPort;
 }
 
 export interface ViewerApiHost {
@@ -107,6 +109,7 @@ export function createViewerApi(deps: ViewerApiDeps): ViewerApiHost {
     targets: deps.targets,
     modules: deps.modules,
     managers: deps.managers,
+    extensions: deps.extensions,
     operations: runner,
   };
   const areas = new Map<string, ApiArea>();

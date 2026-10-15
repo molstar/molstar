@@ -127,15 +127,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   };
 
   const unregister: (() => void)[] = [];
-  // The core's own parts answer to overrides too (viewer-spec.md §4): `core.tab.home`, `core.toolbar.reset`, … removed
-  // with null, or replaced by a part of the same kind.
-  const overrides = spec.overrides ?? {};
-  const own = <T extends { id: string }>(kind: string, parts: readonly T[]): T[] =>
-    parts.flatMap((p) => {
-      const key = `core.${kind}.${p.id}`;
-      if (!(key in overrides)) return [p];
-      return overrides[key] === null ? [] : [{ ...p, ...(overrides[key] as object), id: p.id } as T];
-    });
+  // The core's own parts answer to overrides too (viewer-spec.md §4, `extensions/overrides.ts`): `core.tab.home`,
+  // `core.toolbar.reset`, … removed with null, or their fields replaced.
+  const own = <T extends { id: string }>(kind: string, parts: readonly T[]): T[] => core.overrides.core(kind, parts);
   unregister.push(
     shell.registerTabs(
       own('tab', [
@@ -204,7 +198,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     unregister.push(core.registerCommands(sequenceCommands(viewer, shell, person)));
     unregister.push(
       shell.registerOverlays([
-        { id: LegendOverlay, title: 'Sequence colors', render: domView(() => <LegendCard viewer={viewer} />) },
+        ...own('overlay', [
+          { id: LegendOverlay, title: 'Sequence colors', render: domView(() => <LegendCard viewer={viewer} />) },
+        ]),
       ]),
     );
     // The band, there while a structure is shown (prism-sequence.md §2.2); the first one shows it.
@@ -217,7 +213,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         return;
       }
       if (dropTab) return;
-      dropTab = shell.registerTabs([
+      const tabs = own<Parameters<typeof shell.registerTabs>[0][number]>('tab', [
         {
           id: 'sequence',
           title: 'Sequence',
@@ -235,23 +231,27 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           )),
         },
       ]);
+      if (!tabs.length) return;
+      dropTab = shell.registerTabs(tabs);
       if (!shownBefore) shell.show('sequence');
       shownBefore = true;
     });
     unregister.push(() => bandSub.unsubscribe());
     unregister.push(() => dropTab?.());
     unregister.push(
-      shell.registerToolbar([
-        {
-          id: 'sequence',
-          place: 'canvas',
-          group: 'view',
-          icon: 'sequence',
-          title: 'Sequence',
-          visible: viewer.structure.pipe(map((s) => s !== undefined)),
-          menu: sequenceMenu(viewer, shell, (id) => managers.commands.open(id)),
-        },
-      ]),
+      shell.registerToolbar(
+        own('toolbar', [
+          {
+            id: 'sequence',
+            place: 'canvas',
+            group: 'view',
+            icon: 'sequence',
+            title: 'Sequence',
+            visible: viewer.structure.pipe(map((s) => s !== undefined)),
+            menu: sequenceMenu(viewer, shell, (id) => managers.commands.open(id)),
+          },
+        ]),
+      ),
     );
   }
   const modeProps = modeSwitchProps(sources.interaction, person);

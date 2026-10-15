@@ -81,6 +81,8 @@ export class LoadApi extends ApiArea {
           'Open it with session.open: it replaces what is loaded.',
         );
       }
+      // A lazy extension that reads one of these formats loads first (viewer-spec.md §3).
+      await ctx.extensions.ensureFor({ fileExtensions: list.map((f) => extensionOf(f.name)) });
       const before = structureRefs(ctx);
       const cellsBefore = ctx.plugin.state.data.cells.size;
       await ctx.plugin.runTask(
@@ -118,4 +120,11 @@ export function actionName(action: { definition: { display: { name: string } } }
 
 function structureRefs(ctx: ApiContext): string[] {
   return ctx.plugin.managers.structure.hierarchy.current.structures.map((s) => s.cell.transform.ref);
+}
+
+/** A file's extension, lowercase, without compression suffixes (`1abc.cif.gz` → `cif`). */
+export function extensionOf(name: string): string {
+  const parts = name.toLowerCase().split('.');
+  while (parts.length > 2 && (parts.at(-1) === 'gz' || parts.at(-1) === 'zip')) parts.pop();
+  return parts.length > 1 ? parts.at(-1)! : '';
 }
