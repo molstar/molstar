@@ -32,7 +32,8 @@ element, and the URL. Status: **accepted** (2026-10-15).
   extensions) and without the assistant (a host that wants it uses the app or composes the packages). The name differs
   from `DefaultPrismViewerSpec()` (the built-ins only) on purpose.
 - Published with the app (GitHub Pages) and copied into the `molstar` distribution (`build/prism-viewer/`, as
-  `build/viewer` is today): not yet. Its images (backgrounds) are inlined as data URLs. A host composing its own viewer from npm imports the extensions it wants instead.
+  `build/viewer` is today; `scripts/distribution.mjs`), checked by the packed browser smoke (`smoke/browser/prism`: one
+  script request, a load, a lazy extension). Publishing to Pages: not yet. Its images (backgrounds) are inlined. A host composing its own viewer from npm imports the extensions it wants instead.
 
 ```html
 <script type="module">
