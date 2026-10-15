@@ -8,22 +8,56 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { combineLatest, map, type Observable, of } from 'rxjs';
-import { ActionFooter, onCleanup } from '@molstar/prism-ui';
+import { combineLatest, distinctUntilChanged, map, type Observable, of } from 'rxjs';
+import { ActionFooter, Choices, onCleanup } from '@molstar/prism-ui';
 import { ParamsForm } from '@molstar/prism-ui';
+import type { IconName } from '@molstar/prism-ui/components/icon/icon';
+import type { Child } from '@molstar/prism-ui/dom/jsx-types';
+import { Show } from '@molstar/prism-ui/dom/control-flow';
 import type { CropBox, ImageExportModel } from '../../model/image-export.js';
 import { classes } from './_generated/image-export.module.css.js';
 
+/** Besides an image, what else renders the view (an animation): a choice of the switch, and its controls. */
+export interface PictureKind {
+  readonly id: string;
+  readonly title: string;
+  readonly icon?: IconName;
+}
+
 /**
  * Image export: the preview at the output's shape with the crop on it (auto-crop toggled in its corner), the screenshot
- * settings as a form, and the footer: set defaults, the size, Copy and Download.
+ * settings as a form, and the footer: set defaults, the size, Copy and Download. With `kinds` (an animation), a switch
+ * at the top: Image, or one of them, whose controls (`kind`) take the footer's place; the resolution and the axes stay
+ * shared, the crop, the format and the transparency are the image's (the form's `mode`).
  */
-export function ImageExport(props: { model: ImageExportModel }) {
+export function ImageExport(props: {
+  model: ImageExportModel;
+  kinds?: Observable<readonly PictureKind[]>;
+  kind?: (id: string) => Child;
+}) {
   const { model } = props;
   // Whether the preview matches the settings (the first one after opening may not yet).
   const settled = model.settled ?? of(true);
+  const mode = model.form.values.pipe(
+    map((v) => (v.mode as string | undefined) || 'image'),
+    distinctUntilChanged(),
+  );
+  const still = mode.pipe(map((m) => m === 'image'));
+  const kinds = props.kinds ?? of([]);
   return (
     <div class={classes.export}>
+      <Show when={kinds.pipe(map((k) => (k.length ? k : undefined)))}>
+        {(k) => (
+          <Choices
+            choices={[
+              { id: 'image', label: 'Image', icon: 'image' },
+              ...k.map((x) => ({ id: x.id, label: x.title, ...(x.icon ? { icon: x.icon } : {}) })),
+            ]}
+            active={mode}
+            onPick={(id) => model.form.set('mode', id)}
+          />
+        )}
+      </Show>
       <div class={classes.stage}>
         <div
           class={classes.preview}
@@ -32,28 +66,45 @@ export function ImageExport(props: { model: ImageExportModel }) {
             background: model.preview.pipe(map((p) => p ?? 'var(--msp-color-control)')),
           }}
         >
-          <Crop model={model} settled={settled} />
-          <button
-            type="button"
-            class={classes.autoCrop}
-            aria-pressed={combineLatest([model.autoCrop.asReadonly, settled]).pipe(map(([a, s]) => a && s))}
-            title="Crop to the visible content"
-            onClick={() => model.autoCrop.set(!model.autoCrop.value)}
-          >
-            <span>Auto-crop</span>
-          </button>
+          <Show when={still}>
+            {() => (
+              <>
+                <Crop model={model} settled={settled} />
+                <button
+                  type="button"
+                  class={classes.autoCrop}
+                  aria-pressed={combineLatest([model.autoCrop.asReadonly, settled]).pipe(map(([a, s]) => a && s))}
+                  title="Crop to the visible content"
+                  onClick={() => model.autoCrop.set(!model.autoCrop.value)}
+                >
+                  <span>Auto-crop</span>
+                </button>
+              </>
+            )}
+          </Show>
         </div>
       </div>
       <ParamsForm form={model.form} />
-      <ActionFooter
-        icon="download"
-        label="Download"
-        info={model.size}
-        busy={model.busy}
-        secondary={{ icon: 'copy', label: 'Copy', onClick: () => model.copy() }}
-        onReset={() => model.form.reset()}
-        onApply={() => model.download()}
-      />
+      <Show when={mode}>
+        {(m) =>
+          m === 'image' || !props.kind ? (
+            <ActionFooter
+              icon="download"
+              label="Download"
+              info={model.size}
+              busy={model.busy}
+              secondary={{ icon: 'copy', label: 'Copy', onClick: () => model.copy() }}
+              onReset={() => {
+                model.form.reset();
+                model.form.set('mode', m);
+              }}
+              onApply={() => model.download()}
+            />
+          ) : (
+            props.kind(m)
+          )
+        }
+      </Show>
     </div>
   );
 }

@@ -8,14 +8,26 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { bind, Button, domView, Icon, observableState, onActive, onCleanup } from '@molstar/prism-ui';
+import {
+  bind,
+  Button,
+  domView,
+  Icon,
+  observableState,
+  onActive,
+  onCleanup,
+  type ShellViewContext,
+  Show,
+  ViewHost,
+} from '@molstar/prism-ui';
+import { distinctUntilChanged, map } from 'rxjs';
 import { Vec3 } from '@molstar/core/math/linear-algebra';
 import { fovNormalizedCameraPosition } from '@molstar/core/util/camera';
 import type { CameraValue } from '../../api/camera.js';
-import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
+import type { ExportFrame, ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { ImageExport } from '../../views/export/image-export.js';
 import { downloadBlob } from '../../ui/download.js';
-import { createImageExportModel } from './model.js';
+import { createImageExportModel, frameValues } from './model.js';
 
 // The Image section of the Export card (parity.md §4's export row): the existing view over a model built on
 // `export.preview`, `export.image` and `export.image-copy`; the model is made when the section is shown and released
@@ -99,8 +111,8 @@ export function exportImageUI(ctx: ViewerUIContext): ViewerExtensionUI {
         title: 'Image',
         icon: 'camera',
         order: 0,
-        keywords: ['screenshot', 'png', 'picture', 'copy'],
-        render: domView(() => {
+        keywords: ['screenshot', 'png', 'picture', 'copy', 'animation', 'video', 'movie'],
+        render: domView<ShellViewContext>(({ ctx: view }) => {
           const model = createImageExportModel({
             api: ctx.api,
             sources: ctx.sources,
@@ -109,7 +121,29 @@ export function exportImageUI(ctx: ViewerUIContext): ViewerExtensionUI {
           });
           onActive((active) => model.setActive(active));
           onCleanup(() => model.dispose());
-          return <ImageExport model={model} />;
+          // Opened at one of them (`export-image.section.image/<its id>`: the Export animation command).
+          if (view.focus) model.form.set('mode', view.focus);
+          // What else renders the view (an animation, `export.picture`): the switch's choices, each with its controls,
+          // which get the shared frame (the resolution, the axes) as their subject.
+          const pictures = view.shell.sections('export.picture');
+          const frame: ExportFrame = { get: () => frameValues(model.form.values.value) };
+          return (
+            <ImageExport
+              model={model}
+              kinds={pictures.pipe(map((list) => list.map((p) => ({ id: p.id, title: p.title, icon: p.icon }))))}
+              // Followed: a lazy extension's placeholder is replaced by its view once it loads (same id).
+              kind={(id) => (
+                <Show
+                  when={pictures.pipe(
+                    map((list) => list.find((x) => x.id === id)),
+                    distinctUntilChanged(),
+                  )}
+                >
+                  {(p) => <ViewHost renderer={p.render} ctx={{ shell: view.shell, subject: frame }} />}
+                </Show>
+              )}
+            />
+          );
         }),
       },
       {

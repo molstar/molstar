@@ -14,6 +14,7 @@ import { combineLatest, debounceTime, type Subscription, tap } from 'rxjs';
 import type { ViewerApi } from '../../api/area.js';
 import type { ImageExportModel } from '../../model/image-export.js';
 import type { ViewerSources } from '../../sources/viewer-sources.js';
+import type { ExportFrameValues } from '../../spec.js';
 import type { CropBox, ImageSize } from './operations.js';
 
 // The view model of the Image section: the form, the preview and the crop, over `export.preview`, `export.image` and
@@ -23,7 +24,12 @@ import type { CropBox, ImageSize } from './operations.js';
 // `ExportApi`), so copy and download simply wait behind a running preview. DOM-free.
 
 /** The form: the screenshot settings, as Mol*'s classic export shows them (the operations' params, grouped). */
+/** The Image section's choice: `image`, or the id of an `export.picture` view (an animation). */
+const isImage = (v: { mode?: string }) => !v.mode || v.mode === 'image';
+
 export const FormParams = {
+  // What the section exports: set by its switch, not a row of the form.
+  mode: PD.Text('image', { isHidden: true }),
   resolution: PD.MappedStatic(
     'viewport',
     {
@@ -64,9 +70,10 @@ export const FormParams = {
         ['jpeg', 'JPEG'],
         ['webp', 'WebP'],
       ],
+      hideIf: (v: { mode?: string }) => !isImage(v),
     },
   ),
-  transparent: PD.Boolean(false),
+  transparent: PD.Boolean(false, { hideIf: (v: { mode?: string }) => !isImage(v) }),
   axes: PD.Boolean(false, { label: 'Axes' }),
 };
 
@@ -90,12 +97,20 @@ export function imageValues(v: FormValues): Record<string, unknown> {
     height: custom ? (v.resolution.params as { height: number }).height : 0,
     format: v.format.name,
     quality: v.format.name === 'png' ? 0.9 : (v.format.params as { quality: number }).quality,
-    transparent: v.transparent,
+    transparent: isImage(v) && v.transparent,
     axes: v.axes,
   };
 }
 
 /** The frame the form asks for, when it says (the viewport's is the canvas's). */
+/** The frame an `export.picture` view renders (`ExportFrame`): the viewport, or its pixels. */
+export function frameValues(v: FormValues): ExportFrameValues {
+  const r = v.resolution;
+  if (r.name === 'viewport') return { size: 'viewport', width: 0, height: 0, axes: v.axes };
+  const { width, height } = frameOf(v, undefined)!;
+  return { size: 'custom', width, height, axes: v.axes };
+}
+
 function frameOf(v: FormValues, viewport: { width: number; height: number } | undefined) {
   const r = v.resolution;
   if (r.name === 'viewport') return viewport;
@@ -146,14 +161,13 @@ export function createImageExportModel(deps: ImageExportDeps): ImageExport {
   const compute = () => {
     const v = form.values.value;
     const frame = frameOf(v, viewport.value);
-    const c = autoCrop.value ? found.value : manual.value;
+    // An animation renders the whole frame: a crop found for one image does not fit a moving camera.
+    const still = isImage(v);
+    const c = !still ? Full : autoCrop.value ? found.value : manual.value;
     crop.set(c);
     aspect.set(frame ? frame.width / frame.height : FallbackAspect);
-    size.set(
-      frame
-        ? `${Math.round(frame.width * c.width)} × ${Math.round(frame.height * c.height)} px · ${v.format.name.toUpperCase()}`
-        : '',
-    );
+    const px = frame ? `${Math.round(frame.width * c.width)} × ${Math.round(frame.height * c.height)} px` : '';
+    size.set(frame && still ? `${px} · ${v.format.name.toUpperCase()}` : px);
   };
 
   const refresh = async () => {
@@ -162,14 +176,14 @@ export function createImageExportModel(deps: ImageExportDeps): ImageExport {
     asked?.abort();
     const mineAsked = (asked = new AbortController());
     const r = await quiet.export.preview(
-      { ...imageValues(form.values.value), crop: autoCrop.value ? 'auto' : 'none' },
+      { ...imageValues(form.values.value), crop: autoCrop.value && isImage(form.values.value) ? 'auto' : 'none' },
       { signal: mineAsked.signal },
     );
     if (disposed || mine !== token || !r.ok || !r.value) return;
     const { dataUri, width, height, crop: box } = r.value;
     preview.set(`center / 100% 100% no-repeat url("${dataUri}")`);
     viewport.set({ width, height });
-    if (autoCrop.value) found.set(box);
+    if (autoCrop.value && isImage(form.values.value)) found.set(box);
     settled.set(true);
   };
 

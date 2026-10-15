@@ -9,29 +9,26 @@
  */
 
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { ActionFooter, Button, domView, Icon, ParamsForm, Show } from '@molstar/prism-ui';
+import { ActionFooter, Button, domView, Icon, ParamsForm, type ShellViewContext, Show } from '@molstar/prism-ui';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import type { ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
+import type { ExportFrame, ViewerExtensionUI, ViewerUIContext } from '@molstar/prism-viewer/spec';
 import { downloadBlob } from '@molstar/prism-viewer/ui/download';
 import { VideoOperations, VideoSection } from './prism-viewer-stub.js';
 
-// The Animation section of the Export card (parity.md §6): v5's Export Animation panel as a form over `video.export`'s
-// own params (the animation, its length, frame rate, size, format, quality), Render, and Cancel while it renders. It
-// acts only through the person's API; the file it gets back is saved through the page. The animation's own params
+// Animation in the Export card's Image section (parity.md §6, `export.picture`): v5's Export Animation panel as a form
+// over `video.export`'s own params (the animation, its length, frame rate, format, quality), Render, and Cancel while it
+// renders; the frame (the resolution, the axes) is the section's, shared with the image (its subject, `ExportFrame`).
+// It acts only through the person's API; the file it gets back is saved through the page. The animation's own params
 // (spin speed, axis) stay with the operation's `params`, for commands and the agent.
 
-const FormFields = ['animation', 'duration', 'fps', 'size', 'width', 'height', 'format', 'quality', 'name'] as const;
+const FormFields = ['animation', 'duration', 'fps', 'format', 'quality', 'name'] as const;
 
-/** The operation's params as the form shows them: a custom size's sides only for a custom size. */
+/** The operation's params as the form shows them (the frame is the section's). */
 function formParams(ctx: ViewerUIContext): PD.Params {
   const params = ctx.api.describe(VideoOperations.export.id)?.params ?? {};
   const out: PD.Params = {};
-  for (const k of FormFields) {
-    const p = params[k];
-    if (!p) continue;
-    out[k] = k === 'width' || k === 'height' ? { ...p, hideIf: (v: { size?: string }) => v.size !== 'custom' } : p;
-  }
+  for (const k of FormFields) if (params[k]) out[k] = params[k];
   return out;
 }
 
@@ -40,12 +37,14 @@ export function videoExportUI(ctx: ViewerUIContext): ViewerExtensionUI {
     sections: [
       {
         id: VideoSection,
-        slot: 'export',
+        slot: 'export.picture',
         title: 'Animation',
         icon: 'clapperboard',
         order: 2,
         keywords: ['video', 'movie', 'mp4', 'webm', 'spin', 'rock', 'record'],
-        render: domView(() => {
+        render: domView<ShellViewContext>(({ ctx: view }) => {
+          // The frame: the Image section's (without it, the viewport).
+          const frame = view.subject as ExportFrame | undefined;
           // Made when the section shows: the animations registered by then are the choices.
           const form = new ParamsFormModel(formParams(ctx));
           const busy = observableState(false);
@@ -54,7 +53,7 @@ export function videoExportUI(ctx: ViewerUIContext): ViewerExtensionUI {
             if (busy.value || !video) return;
             busy.set(true);
             try {
-              const r = await video.export(form.values.value as never);
+              const r = await video.export({ ...form.values.value, ...frame?.get() } as never);
               if (!r.ok || !r.value) return;
               downloadBlob(r.value.blob, r.value.filename);
               ctx.managers.notifications.post(r.did, 'success');

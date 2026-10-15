@@ -78,5 +78,6 @@ export { HelpPanel, type InputBinding, type InputBindingGroup } from './views/sh
 export { LogView } from './views/shell/log-view.js';
 export { type ModeChoice, ModeChooser } from './views/shell/mode-chooser.js';
 export { SectionList } from './views/shell/section-list.js';
+export { ViewHost } from './views/shell/view-host.js';
 export { SettingsTab } from './views/settings/settings-tab.js';
 export { ShellView, type ShellViewProps } from './views/shell/shell-view.js';

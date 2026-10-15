@@ -20,7 +20,8 @@ import { ViewHost } from './view-host.js';
 /**
  * The sections of a slot as a list of collapsible blocks (the Export panel). Each opens as the user last left it; until
  * then, open, or folded with `collapsed` (the Selection tab: its sections read as a list of what can be done). The
- * focused section (a command opened the panel at it) is expanded and scrolled into view; the others fold.
+ * focused section (a command opened the panel at it) is expanded and scrolled into view; the others fold. A focus
+ * `section/inner` opens that section and gives it `inner` as its own `focus` (the Image section's Animation).
  */
 export function SectionList(props: {
   shell: ShellModel;
@@ -37,19 +38,20 @@ export function SectionList(props: {
   const all = shell.sections(props.slot);
   const shown = (list: readonly ShellSection[]) => list.filter((s) => !s.when || s.when(ctx));
   const sections = all.pipe(map(shown));
+  const focus = props.focus;
+  const focuses = (id: string) => !!focus && (focus === id || focus.startsWith(`${id}/`));
+  const inner = (id: string) => (focus?.startsWith(`${id}/`) ? focus.slice(id.length + 1) : undefined);
   return (
     <div class={classes.list} data-flat={props.flat ? '' : undefined}>
       <For each={sections} key={(s) => s.id}>
         {(section) => (
           <SectionBlock
-            ctx={ctx}
+            ctx={inner(section.id) ? { ...ctx, focus: inner(section.id) } : ctx}
             slot={props.slot}
             section={section}
             // Opened at a section: only that one open (the rest fold away); otherwise as the user left it, or the default.
-            open={
-              props.focus ? props.focus === section.id : (shell.sectionOpen(props.slot, section.id) ?? !props.collapsed)
-            }
-            focused={props.focus === section.id}
+            open={focus ? focuses(section.id) : (shell.sectionOpen(props.slot, section.id) ?? !props.collapsed)}
+            focused={focuses(section.id)}
           />
         )}
       </For>

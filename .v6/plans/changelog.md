@@ -123,7 +123,8 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: an expanded viewport (`view.expand`: the canvas fills the viewer, Escape brings the panels back) and `view.fullscreen`.
 - Prism viewer: the Export card's Camera section: the camera in numbers (as v5's), Copy MVS camera; `export.viewport`
   and `load.viewport` (a viewport state as JSON); `camera.set` and a richer `camera.get`. Session & state is v5's State
-  panel: State, Session, Open, and the Save options (`session.save`'s `options`).
+  panel: State, Session, Open, and the Save options (`session.save`'s `options`). The Image section chooses Image or
+  Animation (the `export.picture` slot, whose views get the shared frame, `ExportFrame`); `video.export` takes `axes`.
 - Prism viewer: the plugin's toasts show in the status column.
 - Prism viewer: the focus history (`focus.history`, `focus.again`, the "Focus again…" command), as v5's focus picker
   lists recent foci.

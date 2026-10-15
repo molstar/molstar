@@ -53,7 +53,9 @@ export const LazyVideoExport: LazyViewerExtension = {
   id: 'video-export',
   title: 'Video export',
   stub: {
-    parts: [{ id: VideoSection, kind: 'section', slot: 'export', title: 'Animation', icon: 'clapperboard', order: 2 }],
+    parts: [
+      { id: VideoSection, kind: 'section', slot: 'export.picture', title: 'Animation', icon: 'clapperboard', order: 2 },
+    ],
     operations: [VideoOperations.export, VideoOperations.cancel],
     commands: [
       { id: VideoCommands.export, title: 'Export a video…', category: 'Export', icon: 'clapperboard' },

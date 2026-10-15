@@ -187,7 +187,7 @@ interface ViewerExtensionUI {                                  // every id `<own
 }
 
 type ViewerSlot =                                              // closed and documented: the viewer decides where things go
-  | 'home.import' | 'export' | 'selection' | 'canvas-settings' | 'animation' | 'settings' | `inspector:${SceneNode['kind']}`;
+  | 'home.import' | 'export' | 'export.picture' | 'selection' | 'canvas-settings' | 'animation' | 'settings' | `inspector:${SceneNode['kind']}`;
 
 interface LazyViewerExtension {
   readonly id: string;

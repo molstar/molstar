@@ -178,11 +178,26 @@ export type PartKind =
 export type ViewerSlot =
   | 'home.import'
   | 'export'
+  /** Besides an image, what renders the view (an animation): the Image section's switch; its subject an `ExportFrame`. */
+  | 'export.picture'
   | 'selection'
   | 'canvas-settings'
   | 'animation'
   | 'settings'
   | `inspector:${SceneNodeKind}`;
+
+/** The Image section's shared frame, an `export.picture` view's subject: the resolution and the axes the person set. */
+export interface ExportFrame {
+  /** `viewport`, or the frame's pixels (a preset's or a custom size). */
+  get(): ExportFrameValues;
+}
+
+export interface ExportFrameValues {
+  readonly size: 'viewport' | 'custom';
+  readonly width: number;
+  readonly height: number;
+  readonly axes: boolean;
+}
 
 export interface ViewerExtension {
   /** 'geo-export'; every part id starts with it. */

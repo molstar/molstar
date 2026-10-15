@@ -7,6 +7,7 @@
  */
 
 import { Task } from '@molstar/core/task';
+import { CameraHelperParams } from '@molstar/graphics/canvas3d/helper/camera-helper';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { PluginStateAnimation } from '@molstar/plugin/state/animation/model';
@@ -82,6 +83,7 @@ export const VideoExportParams = (ctx: ApiAreaContext) => {
     ]),
     width: PD.Numeric(0, { min: 0, max: MaxSide, step: 1 }, { description: 'Pixels, with height: a custom size' }),
     height: PD.Numeric(0, { min: 0, max: MaxSide, step: 1 }, { description: 'Pixels, with width: a custom size' }),
+    axes: PD.Boolean(false, { description: 'Show the orientation axes' }),
     format: PD.Select<VideoFormat>('mp4', [
       ['mp4', 'MP4'],
       ['webm', 'WebM'],
@@ -109,11 +111,15 @@ const noCanvas = () =>
 function configure(helper: ViewportScreenshotHelper, v: ExportValues): () => void {
   const before = { values: helper.values, cropParams: helper.cropParams, relativeCrop: helper.relativeCrop };
   const custom = v.size === 'custom' || v.width > 0 || v.height > 0;
+  const on = PD.getDefaultValues((CameraHelperParams.axes.map('on') as PD.Group<any>).params);
   helper.behaviors.values.next({
     ...before.values,
     resolution: custom
       ? { name: 'custom', params: { width: v.width, height: v.height } }
       : ({ name: v.size, params: {} } as never),
+    // A video has no alpha (MP4): an opaque background, whatever an image export left.
+    transparent: false,
+    axes: (v.axes ? { name: 'on', params: on } : { name: 'off', params: {} }) as never,
   });
   // The whole frame: a crop found for an image does not fit a moving camera.
   helper.behaviors.cropParams.next({ ...before.cropParams, auto: false });
@@ -328,7 +334,11 @@ export const VideoExportExtension: ViewerExtension = {
         alias: ['video export', 'animation export'],
         // Opens the card at the section: a view, not a change.
         async run() {
-          const r = await api.view.open({ card: 'core.overlay.export', section: VideoSection });
+          // Animation is a choice of the Image section's (`export.picture`).
+          const r = await api.view.open({
+            card: 'core.overlay.export',
+            section: `export-image.section.image/${VideoSection}`,
+          });
           if (ApiResult.isFailure(r)) throw new Error(r.message);
           return { message: 'Opened the Export card.', ops: 'view.open({ card: "export" })' };
         },
