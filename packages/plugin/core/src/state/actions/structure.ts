@@ -290,7 +290,8 @@ const DownloadStructure = StateAction.build({
       case 'modelarchive':
         downloadParams = await getDownloadParams(
           src.params.id,
-          (id) => `https://www.modelarchive.org/doi/10.5452/${id.toLowerCase()}.cif`,
+          // Without `www.`: that host does not answer a browser's cross-origin request (the plain one does).
+          (id) => `https://modelarchive.org/doi/10.5452/${id.toLowerCase()}.cif`,
           (id) => `Model Archive: ${id}`,
           false,
         );
