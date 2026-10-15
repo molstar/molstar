@@ -26,10 +26,15 @@ import {
 } from './area.js';
 import { CameraApi } from './camera.js';
 import { CanvasApi } from './canvas.js';
+import { ComponentApi } from './component.js';
+import { FocusApi } from './focus.js';
+import { HighlightApi } from './highlight.js';
 import { HistoryApi } from './history.js';
 import { LoadApi } from './load.js';
 import type { ViewerManagers } from './managers.js';
 import { ApiRunner, messageOf, type RunRecord } from './run.js';
+import { RepresentationApi } from './representation.js';
+import { SelectApi } from './select.js';
 import { SessionApi } from './session.js';
 import { StructureApi } from './structure.js';
 import type { TargetResolver } from './targets.js';
@@ -50,6 +55,11 @@ export const CoreAreas: Readonly<Record<string, AreaFactory>> = {
   load: (c) => new LoadApi(c),
   session: (c) => new SessionApi(c),
   structure: (c) => new StructureApi(c),
+  component: (c) => new ComponentApi(c),
+  representation: (c) => new RepresentationApi(c),
+  select: (c) => new SelectApi(c),
+  focus: (c) => new FocusApi(c),
+  highlight: (c) => new HighlightApi(c),
   history: (c) => new HistoryApi(c),
   view: (c) => new ViewApi(c),
 };

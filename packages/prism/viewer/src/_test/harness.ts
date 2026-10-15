@@ -1,0 +1,61 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { afterEach, expect } from 'vitest';
+import type { ApiResult } from '../api/area.js';
+import { DefaultPrismViewerSpec } from '../default-spec.js';
+import { createPrismViewerHeadless } from '../headless.js';
+import type { ViewerExtension } from '../spec.js';
+import type { PrismViewer } from '../viewer.js';
+
+// A headless viewer for tests (plan 1.6): made per test, disposed after it, with the repository's example files.
+// Tests never reach the network.
+
+const dataDir = path.resolve(import.meta.dirname, '../../../../../data/examples');
+
+/** An example file from `data/examples`, as a DOM `File` (named `as`, the format is read from the name). */
+export function exampleFile(name: string, as = name): File {
+  return new File([fs.readFileSync(path.join(dataDir, name))], as);
+}
+
+/** 1CBS (protein, retinoic acid ligand, waters): the usual fixture. */
+export const cbs = () => exampleFile('1cbs_updated.cif', '1cbs.cif');
+/** 1CRN (crambin, protein only). */
+export const crambin = () => exampleFile('1crn.cif');
+
+let current: PrismViewer | undefined;
+afterEach(async () => {
+  await current?.dispose();
+  current = undefined;
+});
+
+/** A headless viewer with the default spec (and `extensions`), disposed after the test; `files` loaded first. */
+export async function headlessViewer(o: { extensions?: ViewerExtension[]; files?: File[] } = {}): Promise<PrismViewer> {
+  const base = DefaultPrismViewerSpec();
+  current = await createPrismViewerHeadless({
+    spec: { ...base, extensions: [...(base.extensions ?? []), ...(o.extensions ?? [])] },
+  });
+  for (const f of o.files ?? []) expectOk(await current.api.load.files({ files: [f] }));
+  return current;
+}
+
+/** Asserts a result is ok and narrows it. */
+export function expectOk<R>(r: ApiResult<R>): asserts r is Extract<ApiResult<R>, { ok: true }> {
+  if (!r.ok) expect.fail(`${r.code}: ${r.message}${r.hint ? ` (${r.hint})` : ''}`);
+}
+
+/** The representation types on the scene, sorted. */
+export function representationTypes(v: PrismViewer): string[] {
+  return v.plugin.managers.structure.hierarchy.current.structures
+    .flatMap((s) =>
+      s.components.flatMap((c) => c.representations.map((r) => (r.cell.transform.params as any).type.name as string)),
+    )
+    .sort();
+}

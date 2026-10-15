@@ -9,7 +9,10 @@
 import type { CommandDefinition } from '@molstar/prism-ui/core';
 import type { ViewerApi } from '../api/area.js';
 import type { ViewerCommandContext } from '../api/managers.js';
+import { componentCommands } from './component.js';
 import { operationCommand } from './operations.js';
+import { representationCommands } from './representation.js';
+import { selectionCommands } from './selection.js';
 
 // The core's commands (operations.md §3), over the API bound to the person; the features bring theirs.
 
@@ -51,6 +54,9 @@ export function coreCommands(api: ViewerApi): CommandDefinition<ViewerCommandCon
       alias: ['reset view', 'fit', 'recenter'],
       values: { animate: true },
     }),
+    ...componentCommands(api),
+    ...representationCommands(api),
+    ...selectionCommands(api),
     operationCommand(api, api.history.undo, {
       category: 'Edit',
       icon: 'undo-2',
