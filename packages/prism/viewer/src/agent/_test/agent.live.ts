@@ -6,45 +6,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import type { ModelAdapter } from '@molstar/ai-agent';
-import { createAnthropicModelAdapter, createGoogleModelAdapter } from '@molstar/ai-model-adapters';
 import { describe, expect, it } from 'vitest';
 import { headlessViewer } from '../../_test/harness.js';
 import type { PrismViewer } from '../../viewer.js';
 import { createViewerAgent } from '../session.js';
+import { env, LiveModels } from './live-models.js';
 
 // The agent against real models (`pnpm test:live`, never in `test:unit`): a few first-scope tasks on a headless viewer,
-// checked on the scene. The keys come from the repository's `.env.local` and are never printed; a provider without its
-// key is skipped. It reaches the network (the models, and the PDB for the entry it loads).
-
-function keys(): Record<string, string> {
-  const file = path.resolve(import.meta.dirname, '../../../../../../.env.local');
-  if (!fs.existsSync(file)) return {};
-  const out: Record<string, string> = {};
-  for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
-    const m = /^\s*([A-Z0-9_]+)\s*=\s*"?([^"\n]*)"?\s*$/.exec(line);
-    if (m) out[m[1]] = m[2];
-  }
-  return out;
-}
-
-const env = keys();
-const Models: { provider: string; model: string; key: string; adapter: () => ModelAdapter }[] = [
-  {
-    provider: 'anthropic',
-    model: 'claude-haiku-5-5',
-    key: 'ANTHROPIC_API_KEY',
-    adapter: () => createAnthropicModelAdapter({ resolveApiKey: () => env.ANTHROPIC_API_KEY }),
-  },
-  {
-    provider: 'google',
-    model: 'gemini-3.8-flash',
-    key: 'GEMINI_API_KEY',
-    adapter: () => createGoogleModelAdapter({ resolveApiKey: () => env.GEMINI_API_KEY }),
-  },
-];
+// checked on the scene. It reaches the network (the models, and the PDB for the entry it loads).
 
 const reprTypes = (v: PrismViewer) =>
   v.plugin.managers.structure.hierarchy.current.structures.flatMap((s) =>
@@ -53,7 +22,7 @@ const reprTypes = (v: PrismViewer) =>
     ),
   );
 
-for (const m of Models) {
+for (const m of LiveModels) {
   describe.skipIf(!env[m.key])(`the agent on ${m.model}`, () => {
     it('loads an entry, styles it, selects and focuses the ligand; one undoable turn each', async () => {
       const v = await headlessViewer();

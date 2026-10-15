@@ -118,6 +118,11 @@ test passes (every operation has a command or a tool, or says why).
    the record); History over the record (`journal/history-model.ts`) with "Keep this record". Not yet: the Storage view,
    Home's kept records.
 5. **Evals, a first one**: a task on the headless viewer, checked on the state account.
+   As built: `agent/eval.ts` (`runEval`: the task's files, its turns with approvals answered as it says, the checks on
+   the scene, Undo turn of each turn restoring the outline; the run log), the first-scope tasks in
+   `agent/_test/first-scope.ts` (a surface, the ligand red, a residue range, the water removed), unit-tested with a
+   scripted model (each done right passes, done wrong fails) and run live by `evals.live.ts`. 2026-10-15: all four pass
+   on Haiku 5.5 (2–5 s, under 18k tokens in) and Gemini 3.8 Flash (5–10 s, under 12k in).
 
 Accepted when: an agent can do the first scope (README §3.3) in the app and headless, a turn undoes as one step, and a
 kept record survives a reload.
