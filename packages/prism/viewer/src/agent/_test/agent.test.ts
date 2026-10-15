@@ -58,6 +58,10 @@ describe('the viewer agent', () => {
     const sent = JSON.stringify(model.projections[0]);
     expect(sent).toMatch(/structure \\"1CBS\\"/);
     expect(sent).toMatch(/Selected: nothing/);
+    // The turn is in the session's record, settled, with its reply (journal.md §2).
+    await v.record.flush();
+    const turnItem = (await v.record.read(10)).items.find((i) => i.entry.kind === 'turn');
+    expect(turnItem?.entry).toMatchObject({ prompt: 'show it as a surface, the ligand red', outcome: 'done' });
     expectOk(await v.api.history.undoTurn({ turn: agent.lastTurn! }));
     expect(representationTypes(v)).toEqual(before);
     agent.dispose();

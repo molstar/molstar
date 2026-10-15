@@ -50,6 +50,7 @@ import { isLazyExtension, type PrismViewerSpec, type ViewerExtension } from './s
 import { checkSpec, isPartId, PrismViewerSpecError } from './spec-check.js';
 import { ExtensionHost, type ExtensionUIPort, isStubDefinition } from './extensions/host.js';
 import { Overrides, ShellCommandIds, shellIdOf } from './extensions/overrides.js';
+import { createSessionRecord, type SessionRecord } from './journal/record.js';
 import { applyExtensionPlugin } from './sources/extension-plugin.js';
 import type { HomeAction } from './model/home.js';
 import type { PresetsModel, QuickStylesModel, SceneModel } from './model/scene.js';
@@ -117,6 +118,8 @@ export interface PrismViewer {
   };
   /** The extensions: which are loaded, each lazy one's status, and loading one (README §3.6). */
   readonly extensions: Pick<ExtensionHost, 'loaded' | 'status' | 'events' | 'load' | 'ensureFor'>;
+  /** The session's record (journal.md): what the person and the agent did, in order; in memory until kept. */
+  readonly record: SessionRecord;
   /** The spec it was made from, and its options resolved. */
   readonly spec: PrismViewerSpec;
   readonly options: PrismViewerOptionValues;
@@ -272,6 +275,9 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       },
     });
     disposers.push(() => extensions.dispose());
+    // One record per viewer session (journal.md §1), in memory; History reads it, the person may keep it.
+    const record = await createSessionRecord({ api: host.api });
+    disposers.push(() => record.dispose());
     // Features behind an option (viewer-spec.md §3.1: remote states) are left out unless it is on.
     const gated: Readonly<Record<string, boolean>> = { 'remote-states': options.ui.showRemoteStates };
     await extensions.add((spec.extensions ?? []).filter((e) => gated[e.id] !== false));
@@ -350,6 +356,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
       state: { ready: ready.asReadonly, busy: sources.busy, empty },
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },
       extensions,
+      record,
       spec,
       options,
       host,

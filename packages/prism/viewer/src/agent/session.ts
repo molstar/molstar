@@ -10,6 +10,7 @@ import type { HarnessStorage } from '@molstar/ai-harness';
 import type { Toolkit } from '@molstar/ai-tools';
 import { AgentSession, type ModelChoice, type ModelSource, type TurnHooks, type TurnResult } from '@molstar/ai-session';
 import type { PrismViewer } from '../viewer.js';
+import type { TurnWriter } from '../journal/record.js';
 import { createAccount } from './account.js';
 import { type AgentPolicy, createAgentPolicy, type DomainRules } from './policies.js';
 import { createViewerToolkit } from './toolkit.js';
@@ -93,6 +94,8 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
   });
 
   // The person's own changes since the agent's last turn: its notes (what they did, in the viewer's words).
+  // The turns go into the session's record (journal.md §2), beside the runs it records.
+  let writer: TurnWriter | undefined;
   const notes: string[] = [];
   const sub = viewer.api.events.finished.subscribe((r) => {
     if (r.origin.kind !== 'person' || r.nested || !r.result?.ok || r.result.unchanged) return;
@@ -104,6 +107,8 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
 
   // The turn as one history group (agent.md §1, sequence.md §7.3): opened when the turn begins, closed when it ends.
   let endGroup: (() => void) | undefined;
+  let prompt = '';
+  let focus: string | undefined;
   const wrap = (hooks: TurnHooks | undefined, label: string): TurnHooks => ({
     ...hooks,
     onTurn: (e) => {
@@ -111,6 +116,7 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
         endGroup?.();
         policy.beginTurn();
         current = e.turnId;
+        writer = viewer.record.beginTurn(e.turnId, prompt, focus);
         endGroup = viewer.managers.history.beginGroup(label, { kind: 'agent', turn: e.turnId });
       }
       hooks?.onTurn?.(e);
@@ -118,6 +124,12 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
   });
   const settle = (r: TurnResult) => {
     if (r.status === 'awaiting-approval') return r;
+    void writer?.settle({
+      reply: r.turnText ?? r.text ?? '',
+      outcome: r.status === 'completed' ? 'done' : r.status === 'stopped' ? 'stopped' : 'failed',
+      ...(r.usage ? { usage: r.usage as never } : {}),
+    });
+    writer = undefined;
     endGroup?.();
     endGroup = undefined;
     if (current) last = current;
@@ -132,17 +144,19 @@ export function createViewerAgent<M extends ModelChoice = ModelChoice>(o: Viewer
     get lastTurn() {
       return last;
     },
-    async turn(prompt, hooks, model) {
+    async turn(request, hooks, model) {
+      prompt = request;
+      focus = api.account.focus();
       const said = notes.splice(0);
       const r = await session.turn(
         {
-          prompt,
+          prompt: request,
           state: api.account.outline(),
-          focus: api.account.focus(),
+          focus,
           ...(said.length ? { notes: said } : {}),
           ...(model ? { model } : {}),
         },
-        wrap(hooks, `Assistant: ${prompt.length > 60 ? `${prompt.slice(0, 59)}…` : prompt}`),
+        wrap(hooks, `Assistant: ${request.length > 60 ? `${request.slice(0, 59)}…` : request}`),
       );
       return settle(r);
     },
