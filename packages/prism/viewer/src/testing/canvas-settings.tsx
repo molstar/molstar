@@ -13,8 +13,6 @@ import { ParamsForm } from '@molstar/prism-ui';
 import { domView } from '@molstar/prism-ui/dom/view';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { ShellModel } from '@molstar/prism-ui/shell/shell';
-import type { CanvasBackgroundProps } from '@molstar/prism-ui';
-import type { ReadonlyState } from '@molstar/prism-ui';
 import { SectionList } from '@molstar/prism-ui';
 
 // Canvas3D's params, grouped by what people reach for: the background, the lighting and effects, the camera, clipping
@@ -100,23 +98,11 @@ const ClippingFog = {
   far: PD.Boolean(true, { label: 'Clip far plane' }),
 };
 
-/** A real canvas behind the Background section: its settings are read from it and written to it. */
-export interface CanvasBackgroundBinding {
-  /** The canvas' background props as they are now and when they change (the plugin's, `ViewerPlugin.canvasProps`). */
-  props: ReadonlyState<CanvasBackgroundProps>;
-  /** A CSS color, `#rrggbb`. */
-  setBackground(color: string): void;
-  setTransparent(on: boolean): void;
-}
-
-const hex = (c: number) => `#${(c & 0xffffff).toString(16).padStart(6, '0')}`;
-
 /**
- * The Canvas settings card (canvas stack ⚙︎): sections like the Export panel's, so extensions can add their own. With a
- * `binding` the Background section drives the real canvas and follows it (the ink follows from the canvas props); the
- * rest stay mocks. Returns what ends the following.
+ * The Canvas settings card (canvas stack ⚙︎): sections like the Export panel's, so extensions can add their own; all
+ * mocks.
  */
-export function registerMockCanvasSettings(shell: ShellModel, binding?: CanvasBackgroundBinding): () => void {
+export function registerMockCanvasSettings(shell: ShellModel): void {
   shell.registerOverlays([
     {
       id: 'canvas-settings',
@@ -124,28 +110,14 @@ export function registerMockCanvasSettings(shell: ShellModel, binding?: CanvasBa
       render: domView(({ ctx }) => <SectionList shell={ctx.shell} slot="canvas-settings" focus={ctx.focus} />),
     },
   ]);
-  const section = (id: string, title: string, icon: any, params: PD.Params, order: number, form?: ParamsFormModel) => {
-    const f = form ?? new ParamsFormModel(params);
+  const section = (id: string, title: string, icon: any, params: PD.Params, order: number) => {
+    const f = new ParamsFormModel(params);
     return { id, slot: 'canvas-settings', title, icon, order, render: domView(() => <ParamsForm form={f} />) };
   };
-  const background = binding
-    ? new ParamsFormModel(Background, valuesOf(binding.props.value), {
-        onChange: (v) => {
-          binding.setBackground(hex(v.color as number));
-          binding.setTransparent(!!v.transparent);
-        },
-      })
-    : undefined;
-  const following = binding?.props.subscribe((p) => background?.load(valuesOf(p)));
   shell.registerSections([
-    section('background', 'Background', 'palette', Background, 0, background),
+    section('background', 'Background', 'palette', Background, 0),
     section('lighting', 'Lighting & effects', 'lightbulb', Lighting, 1),
     section('camera', 'Camera', 'camera', Camera, 2),
     section('clipping', 'Clipping & fog', 'scan', ClippingFog, 3),
   ]);
-  return () => following?.unsubscribe();
-}
-
-function valuesOf(p: CanvasBackgroundProps) {
-  return { color: p.renderer.backgroundColor as any, transparent: !!p.transparentBackground };
 }
