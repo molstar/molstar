@@ -78,4 +78,23 @@ describe('the levels view', () => {
     expect(t.changes.at(-1)).toEqual(['plus', { value: 2.5 }]);
     expect(t.settled()).toBe(1);
   });
+
+  it('opens a quick editor from the swatch: a row of colors applied with one click, the whole picker behind More', async () => {
+    const t = mount();
+    const swatch = t.container.querySelector<HTMLButtonElement>('button[aria-expanded]')!;
+    swatch.click();
+    await Promise.resolve();
+    const quick = t.container.querySelector('[role="listbox"][aria-label="Fo-Fc(+ve) color"]')!;
+    const colors = [...quick.querySelectorAll<HTMLButtonElement>('[role="option"]')];
+    expect(colors.length).toBeGreaterThan(5);
+    colors[0].click();
+    expect(t.changes.at(-1)).toEqual(['plus', { color: 0x3362b2 }]);
+    expect(t.settled()).toBe(1);
+    expect(colors[0].getAttribute('aria-selected')).toBe('true');
+    // The field picker only once More is opened.
+    expect(t.container.querySelector('[aria-label="Palette"]')).toBeNull();
+    t.container.querySelector<HTMLButtonElement>('button[title="More colors"]')!.click();
+    await Promise.resolve();
+    expect(t.container.querySelector('[aria-label="Palette"]')).not.toBeNull();
+  });
 });

@@ -13,21 +13,24 @@ import { defineStyles } from '@molstar/prism-ui/styles/registry';
 export const classes = {
   'axis': 'msp-viewer-volume-levels-axis',
   'bars': 'msp-viewer-volume-levels-bars',
+  'chevron': 'msp-viewer-volume-levels-chevron',
   'dim': 'msp-viewer-volume-levels-dim',
   'editor': 'msp-viewer-volume-levels-editor',
-  'editorHead': 'msp-viewer-volume-levels-editorHead',
   'head': 'msp-viewer-volume-levels-head',
   'inside': 'msp-viewer-volume-levels-inside',
   'level': 'msp-viewer-volume-levels-level',
   'levels': 'msp-viewer-volume-levels-levels',
   'marker': 'msp-viewer-volume-levels-marker',
   'mean': 'msp-viewer-volume-levels-mean',
+  'more': 'msp-viewer-volume-levels-more',
   'name': 'msp-viewer-volume-levels-name',
   'off': 'msp-viewer-volume-levels-off',
   'opacity': 'msp-viewer-volume-levels-opacity',
   'other': 'msp-viewer-volume-levels-other',
   'percent': 'msp-viewer-volume-levels-percent',
   'plot': 'msp-viewer-volume-levels-plot',
+  'quick': 'msp-viewer-volume-levels-quick',
+  'quickSwatch': 'msp-viewer-volume-levels-quickSwatch',
   'range': 'msp-viewer-volume-levels-range',
   'row': 'msp-viewer-volume-levels-row',
   'suffix': 'msp-viewer-volume-levels-suffix',
@@ -274,14 +277,53 @@ defineStyles('viewer/views/volume/volume-levels.module.css', `@layer msp.compone
   display: grid;
 }
 
-.msp-viewer-volume-levels-editorHead {
-  justify-content: space-between;
+.msp-viewer-volume-levels-quick {
   align-items: center;
-  gap: var(--msp-space-2);
-  margin-bottom: calc(-1 * var(--msp-space-1));
-  color: var(--msp-color-text-subtle);
-  font-size: var(--msp-font-size-xs);
+  gap: var(--msp-space-1);
   display: flex;
+}
+
+.msp-viewer-volume-levels-quickSwatch {
+  border-radius: var(--msp-radius-sm);
+  min-width: 0;
+  max-width: 22px;
+  height: 18px;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--msp-color-text), transparent 88%);
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+  flex: 1 1 0;
+
+  &:hover {
+    transform: scale(1.08);
+  }
+
+  &[aria-selected="true"] {
+    box-shadow: 0 0 0 1.5px var(--msp-color-bg),
+      0 0 0 3px var(--msp-color-text);
+  }
+}
+
+.msp-viewer-volume-levels-more {
+  border-radius: var(--msp-radius-sm);
+  width: 22px;
+  height: 22px;
+  color: var(--msp-color-text-muted);
+  flex: none;
+  place-items: center;
+  margin-left: auto;
+  display: grid;
+
+  &:hover {
+    background: var(--msp-color-hover);
+    color: var(--msp-color-text);
+  }
+}
+
+.msp-viewer-volume-levels-chevron {
+  transition: transform var(--msp-motion-fast) var(--msp-ease);
+}
+
+.msp-viewer-volume-levels-more[aria-expanded="true"] .msp-viewer-volume-levels-chevron {
+  transform: rotate(180deg);
 }
 
 .msp-viewer-volume-levels-opacity {

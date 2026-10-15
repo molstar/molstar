@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Button, ColorPicker, colorToHex } from '@molstar/prism-ui';
+import { Button, ColorPalette, ColorPicker, colorToHex } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
@@ -25,6 +25,9 @@ import { classes } from './_generated/volume-levels.module.css.js';
 // marker per level, dragged (or stepped with the arrow keys) to set the iso value, the part of the map the surface
 // encloses tinted in its color; under it a row per level: its color (a click opens the picker and the opacity), its
 // value typed in σ or map units, the other unit before it. A drag is one undo step.
+
+/** The colors a level's editor offers at once: the palette's hues, Mol*'s density blue, and a light grey. */
+const QuickColors: readonly number[] = [0x3362b2, ...ColorPalette, 0xcccccc];
 
 /** σ steps for the arrow keys (Shift: the big one). */
 const Step = 0.1;
@@ -277,40 +280,69 @@ function LevelRow(props: { model: VolumeLevelsModel; id: string; level: Observab
         <span class={classes.suffix}>{model.unit.pipe(map((u) => (u === 'sigma' ? 'σ' : '')))}</span>
       </div>
       <Show when={open} reveal>
-        {() => (
-          <div class={classes.editor}>
-            {/* Its close at the top right (the swatch closes it too). */}
-            <div class={classes.editorHead}>
-              <span>{level.pipe(map((l) => `${l.label} color`))}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={<Icon name="x" />}
-                title="Close"
-                onClick={() => open.set(false)}
-              />
+        {() => {
+          // Quick: a row of colors (a click applies one) and the opacity; the whole picker behind the chevron.
+          const more = observableState(false);
+          return (
+            <div class={classes.editor}>
+              <div class={classes.quick} role="listbox" aria-label={level.pipe(map((l) => `${l.label} color`))}>
+                {QuickColors.map((c) => (
+                  <button
+                    type="button"
+                    role="option"
+                    class={classes.quickSwatch}
+                    style={{ background: colorToHex(c) }}
+                    aria-label={colorToHex(c)}
+                    aria-selected={level.pipe(map((l) => l.color === c))}
+                    onClick={() => {
+                      model.change(id, { color: c });
+                      model.settle();
+                    }}
+                  />
+                ))}
+                <button
+                  type="button"
+                  class={classes.more}
+                  aria-expanded={more}
+                  title="More colors"
+                  onClick={() => more.set(!more.value)}
+                >
+                  <Icon name="chevron-down" size={14} class={classes.chevron} />
+                </button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon name="x" />}
+                  title="Done"
+                  onClick={() => open.set(false)}
+                />
+              </div>
+              <label class={classes.opacity}>
+                <span>Opacity</span>
+                <input
+                  class={classes.range}
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={level.pipe(map((l) => String(l.opacity)))}
+                  style={{ '--msp-progress': level.pipe(map((l) => `${l.opacity * 100}%`)) }}
+                  onInput={(e) => model.change(id, { opacity: Number(e.currentTarget.value) })}
+                  onChange={() => model.settle()}
+                />
+                <span class={classes.percent}>{level.pipe(map((l) => `${Math.round(l.opacity * 100)}%`))}</span>
+              </label>
+              <Show when={more} reveal>
+                {() => (
+                  <ColorPicker
+                    value={level.pipe(map((l) => l.color ?? 0x808080))}
+                    onChange={(c) => model.change(id, { color: c })}
+                  />
+                )}
+              </Show>
             </div>
-            <ColorPicker
-              value={level.pipe(map((l) => l.color ?? 0x808080))}
-              onChange={(c) => model.change(id, { color: c })}
-            />
-            <label class={classes.opacity}>
-              <span>Opacity</span>
-              <input
-                class={classes.range}
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={level.pipe(map((l) => String(l.opacity)))}
-                style={{ '--msp-progress': level.pipe(map((l) => `${l.opacity * 100}%`)) }}
-                onInput={(e) => model.change(id, { opacity: Number(e.currentTarget.value) })}
-                onChange={() => model.settle()}
-              />
-              <span class={classes.percent}>{level.pipe(map((l) => `${Math.round(l.opacity * 100)}%`))}</span>
-            </label>
-          </div>
-        )}
+          );
+        }}
       </Show>
     </div>
   );
