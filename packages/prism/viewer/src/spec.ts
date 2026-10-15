@@ -20,6 +20,7 @@ import type {
   UITheme,
   ViewRenderer,
 } from '@molstar/prism-ui';
+import type { AnnotationProvider } from './api/annotations.js';
 import type { ApiArea, ApiAreaContext, OperationDefinition, ViewerApi } from './api/area.js';
 import type { PrismViewerOptionValues } from './options.js';
 import type { SceneNodeKind } from './model/scene.js';
@@ -184,6 +185,8 @@ export interface ViewerExtension {
   /** Never core tools: skills are disclosed. */
   readonly skills?: readonly ViewerSkill[];
   readonly sequence?: readonly SequenceBehavior[];
+  /** What it can show of a structure (`annotations.apply`; README decision 27). */
+  readonly annotations?: readonly AnnotationProvider[];
   /** Its Settings group. */
   readonly settings?: PD.Params;
   /** Views in the viewer's slots; a function, so the views are a chunk of their own. */

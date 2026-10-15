@@ -32,6 +32,7 @@ import { createCheckpointPort, type ViewerCheckpoint, watchOutsideChanges } from
 import { mountCanvas, unmountCanvas } from './sources/canvas-host.js';
 import { composePluginSpec } from './sources/compose-plugin.js';
 import type { ViewerPointerEvent } from './sources/pointer.js';
+import { createHomeActions } from './sources/home.js';
 import { createSceneSource } from './sources/scene.js';
 import { SourceScope } from './sources/state.js';
 import { createComponentOptionsForm, createPresetsModel, createQuickStylesModel } from './sources/structure-tab.js';
@@ -39,6 +40,7 @@ import { createTargetResolver } from './sources/targets.js';
 import { createViewerSources, type ViewerSources } from './sources/viewer-sources.js';
 import { isLazyExtension, type PrismViewerSpec, type ViewerExtension } from './spec.js';
 import { checkSpec } from './spec-check.js';
+import type { HomeAction } from './model/home.js';
 import type { PresetsModel, QuickStylesModel, SceneModel } from './model/scene.js';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 
@@ -62,6 +64,8 @@ export interface PrismViewerViews {
   readonly componentOptions: ParamsFormModel<any>;
   /** Quick styles (the Structure tab's Styles). */
   readonly quickStyles: QuickStylesModel;
+  /** Home's loading actions, from the registry. */
+  readonly homeActions: ReadonlyState<readonly HomeAction[]>;
 }
 
 export interface ViewerError {
@@ -210,6 +214,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const presets = createPresetsModel(plugin, person);
     const componentOptions = createComponentOptionsForm(viewScope, plugin, person);
     const quickStyles = createQuickStylesModel(person);
+    const homeActions = createHomeActions(viewScope, plugin, person);
     for (const e of eager) {
       for (const [id, factory] of Object.entries(e.api ?? {})) disposers.push(host.addArea(id, factory));
       for (const c of e.contributes?.(host.areaContext) ?? []) {
@@ -221,6 +226,9 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
         if (!area) throw new Error(`Extension '${e.id}' adds to an area that does not exist: '${c.area}'`);
         disposers.push(area.contribute(c.name, c.operation));
       }
+    }
+    for (const e of eager) {
+      for (const a of e.annotations ?? []) disposers.push(host.api.annotations.register(a));
     }
     disposers.push(registerCommands(coreCommands(person)));
     for (const e of eager) {
@@ -283,7 +291,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
           work(plugin, host.bind({ origin: { kind: 'script' }, within: context })),
         ),
       managers,
-      views: { scene, presets, componentOptions, quickStyles },
+      views: { scene, presets, componentOptions, quickStyles, homeActions },
       sources,
       state: { ready: ready.asReadonly, busy: sources.busy, empty },
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },

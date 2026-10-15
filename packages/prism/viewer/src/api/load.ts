@@ -6,6 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { StateTransform } from '@molstar/core/state';
 import { Asset } from '@molstar/core/util/assets';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { OpenFiles } from '@molstar/plugin/state/actions/file';
@@ -21,6 +22,44 @@ const SessionExtensions = ['.molx', '.molj'];
 
 export class LoadApi extends ApiArea {
   readonly id = 'load';
+
+  /**
+   * A registry state action applicable to the root (Home's blocks: download a structure, open files, download density;
+   * operations.md §2), by its id, with its params. Network actions ask first, from the agent (agent.md §4).
+   */
+  readonly action = this.operation({
+    id: 'load.action',
+    title: 'Run a loading action',
+    params: {
+      action: PD.Text('', { description: 'A loading action by name: download-structure, download-density, …' }),
+      params: PD.Value<Record<string, unknown>>(
+        {},
+        { description: "The action's params; missing ones are its defaults" },
+      ),
+    },
+    approval: 'network',
+    async run({ action, params }, ctx) {
+      const root = ctx.plugin.state.data.cells.get(StateTransform.RootRef)!;
+      const actions = ctx.plugin.state.data.actions.fromCell(root, ctx.plugin);
+      const found = actions.find((a) => actionName(a) === action || a.id === action);
+      if (!found) {
+        return ApiResult.fail(
+          'not-found',
+          `There is no loading action '${action}'.`,
+          `Actions: ${actions.map(actionName).join(', ')}.`,
+        );
+      }
+      const defs = found.definition.params?.(root.obj!, ctx.plugin) as PD.Params | undefined;
+      const values = defs ? { ...PD.getDefaultValues(defs), ...params } : params;
+      const before = ctx.plugin.state.data.cells.size;
+      await ctx.plugin.runTask(ctx.plugin.state.data.applyAction(found, values));
+      const name = found.definition.display.name;
+      if (ctx.plugin.state.data.cells.size === before) {
+        return ApiResult.fail('failed', `${name} made nothing.`, 'Check its values; the log says more.');
+      }
+      return ApiResult.ok(`${name}: done.`, { nodes: [] });
+    },
+  });
 
   readonly files = this.operation({
     id: 'load.files',
@@ -64,6 +103,17 @@ export class LoadApi extends ApiArea {
       return ApiResult.ok(`Opened ${names}${structures}.`, { nodes: added });
     },
   });
+}
+
+/**
+ * A state action's name: its display name as a slug (`download-structure`). The plugin's action ids are made per session,
+ * so they cannot be what a tool, a command or the run log names.
+ */
+export function actionName(action: { definition: { display: { name: string } } }): string {
+  return action.definition.display.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 function structureRefs(ctx: ApiContext): string[] {

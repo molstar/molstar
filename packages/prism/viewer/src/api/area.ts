@@ -274,6 +274,7 @@ export interface CoreApi {
   readonly focus: import('./focus.js').FocusApi;
   readonly highlight: import('./highlight.js').HighlightApi;
   readonly styles: import('./styles.js').StylesApi;
+  readonly annotations: import('./annotations.js').AnnotationsApi;
   readonly history: import('./history.js').HistoryApi;
   readonly view: import('./view.js').ViewApi;
 }

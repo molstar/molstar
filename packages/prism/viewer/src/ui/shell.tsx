@@ -105,7 +105,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   };
 
   const home: HomeModel = {
-    actions: observableState([]).asReadonly,
+    actions: core.views.homeActions,
     formats: sources.formats,
     openFiles,
     session: {

@@ -24,6 +24,7 @@ import {
   type RunOrigin,
   type ViewerApi,
 } from './area.js';
+import { AnnotationsApi } from './annotations.js';
 import { CameraApi } from './camera.js';
 import { CanvasApi } from './canvas.js';
 import { ComponentApi } from './component.js';
@@ -64,6 +65,7 @@ export const CoreAreas: Readonly<Record<string, AreaFactory>> = {
   focus: (c) => new FocusApi(c),
   highlight: (c) => new HighlightApi(c),
   styles: (c) => new StylesApi(c),
+  annotations: (c) => new AnnotationsApi(c),
   history: (c) => new HistoryApi(c),
   view: (c) => new ViewApi(c),
 };
