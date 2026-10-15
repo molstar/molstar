@@ -75,15 +75,21 @@ describe('trajectory', () => {
     expect(modelIndex(v)).toBe(0);
   });
 
-  it('is not-found when no structure has frames, and blocked for a named one without', async () => {
+  it('is blocked, with the reason, when no structure has frames; blocked for a named one without', async () => {
     const v = await headlessViewer({ files: [cbs()] });
-    expect(await v.api.trajectory.frame({ index: 1 })).toMatchObject({ ok: false, code: 'not-found' });
-    expect(await v.api.trajectory.frame({ index: 1, structure: '1cbs' })).toMatchObject({
+    // `when` says it (the command menu greys the commands out with the same words).
+    expect(v.api.describe('trajectory.frame')?.available).toBe('No structure has several models.');
+    const none = await v.api.trajectory.frame({ index: 1 });
+    expect(none).toMatchObject({ ok: false, code: 'blocked', message: 'No structure has several models.' });
+    const empty = await headlessViewer();
+    expect(await empty.api.trajectory.frame({ index: 1 })).toMatchObject({ ok: false, code: 'blocked' });
+
+    const both = await headlessViewer({ files: [cbs(), ensemble()] });
+    expect(both.api.describe('trajectory.frame')?.available).toBe(true);
+    expect(await both.api.trajectory.frame({ index: 1, structure: '1cbs' })).toMatchObject({
       ok: false,
       code: 'blocked',
     });
-    const empty = await headlessViewer();
-    expect(await empty.api.trajectory.frame({ index: 1 })).toMatchObject({ ok: false, code: 'not-found' });
   });
 
   it('asks which structure when several have frames', async () => {

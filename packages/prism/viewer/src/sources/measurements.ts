@@ -18,11 +18,25 @@ import type { Loci } from '@molstar/model/model/loci';
 import { StructureElement } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureMeasurementCell } from '@molstar/plugin/state/manager/structure/measurement';
+import type { IconName } from '@molstar/prism-ui/core';
 
 // The measurements in words (state.md §1, `managers.structure.measurement`): what the scene tree, the `measurements`
 // feature's operations and its Measure section read.
 
 export type MeasureKind = 'distance' | 'angle' | 'dihedral' | 'label' | 'orientation' | 'plane';
+
+/**
+ * What each kind is called and drawn as, once: the scene tree's nodes, the Measure section's buttons and the
+ * operations' texts read it. `points` is how many picks it takes (0: the selection as a whole).
+ */
+export const MeasureKinds: Readonly<Record<MeasureKind, { title: string; icon: IconName; points: number }>> = {
+  distance: { title: 'Distance', icon: 'measure-distance', points: 2 },
+  angle: { title: 'Angle', icon: 'measure-angle', points: 3 },
+  dihedral: { title: 'Dihedral', icon: 'measure-angle', points: 4 },
+  label: { title: 'Label', icon: 'tag', points: 1 },
+  orientation: { title: 'Orientation', icon: 'move-3d', points: 0 },
+  plane: { title: 'Plane', icon: 'square', points: 0 },
+};
 
 /** One measurement, for `measure.get`, results and the agent's account. */
 export interface MeasurementInfo {
@@ -144,5 +158,3 @@ export function findMeasurement(
       m.locis.every((l, i) => same(l, locis[i])),
   );
 }
-
-// --- the Measure section's model -------------------------------------------------------------------------------------

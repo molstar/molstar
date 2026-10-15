@@ -16,13 +16,12 @@ import type { ViewerApi } from '../api/area.js';
 import type { ViewerManagers } from '../api/managers.js';
 import { type SettingsGroupState, withCheckpointing } from '../sources/settings.js';
 import type { ViewerSources } from '../sources/viewer-sources.js';
+import { Debouncer } from './debounce.js';
 
 // The Settings tab (parity.md §5): the groups of `sources.settings` as forms that follow the live values and apply
-// through `settings.set` as the person, debounced like the Canvas card. A group of the tab is a step in the History.
+// through `settings.set` as the person, debounced (`ui/debounce.ts`) like the Canvas card. A group of the tab is a step in the History.
 // The groups the host can show change with the canvas and the behaviors: the tab is made again when they do. Other
 // extensions' settings sections go after the groups (the `settings` slot).
-
-const Debounce = 150;
 
 export function settingsTab(sources: ViewerSources, managers: ViewerManagers, api: ViewerApi): ShellTab {
   const current = () => withCheckpointing(sources.settings.groups.value, managers.history.checkpointing.value);
@@ -58,13 +57,17 @@ function modelOf(
   api: ViewerApi,
 ): SettingsModel {
   const forms = new Map<string, ParamsFormModel>();
-  const timers = new Map<string, ReturnType<typeof setTimeout>>();
+  // The fields edited in each group, until their debounce is over and they are sent.
+  const edited = new Map<string, Set<string>>();
+  const edits = new Debouncer<string>((id) => {
+    const keys = edited.get(id);
+    edited.delete(id);
+    if (keys?.size) send(id, keys);
+  });
   // Edits sent and not yet seen back: a form keeps what the person is editing until they are.
   const busy = new Map<string, number>();
   let latest = groups;
-  onCleanup(() => {
-    for (const t of timers.values()) clearTimeout(t);
-  });
+  onCleanup(() => edits.dispose());
 
   const send = (id: string, changed: Set<string>) => {
     const form = forms.get(id)!;
@@ -75,7 +78,7 @@ function modelOf(
       .finally(() => {
         busy.set(id, (busy.get(id) ?? 1) - 1);
         // Whatever the result, the form shows what the viewer has.
-        if (!busy.get(id) && !timers.has(id)) load(id);
+        if (!busy.get(id) && !edits.has(id)) load(id);
       });
   };
   const load = (id: string) => {
@@ -84,20 +87,12 @@ function modelOf(
   };
 
   const model = groups.map((g): SettingsGroup => {
-    const pending = new Set<string>();
     const form = new ParamsFormModel(g.params, g.values as never, {
       onChange: (_values, changed) => {
-        pending.add(changed);
-        clearTimeout(timers.get(g.id));
-        timers.set(
-          g.id,
-          setTimeout(() => {
-            timers.delete(g.id);
-            const keys = new Set(pending);
-            pending.clear();
-            send(g.id, keys);
-          }, Debounce),
-        );
+        const keys = edited.get(g.id) ?? new Set<string>();
+        keys.add(changed);
+        edited.set(g.id, keys);
+        edits.schedule(g.id);
       },
     });
     forms.set(g.id, form);
@@ -106,7 +101,7 @@ function modelOf(
 
   bind(live, (gs) => {
     latest = gs;
-    for (const g of gs) if (!busy.get(g.id) && !timers.has(g.id)) load(g.id);
+    for (const g of gs) if (!busy.get(g.id) && !edits.has(g.id)) load(g.id);
   });
   return { groups: model };
 }

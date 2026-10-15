@@ -27,10 +27,16 @@ export function Superpose(props: { model: SuperpositionModel }) {
       <div class={classes.entries}>
         <For each={model.entries} key={(e) => e.id} fallback={() => <p class={classes.hint}>{model.hint}</p>}>
           {(entry, index) => (
-            <button type="button" class={classes.entry} title="Focus" onClick={() => model.focus(entry.id)}>
+            <button
+              type="button"
+              class={classes.entry}
+              title={entry.problem ? `${entry.label}: ${entry.problem}` : 'Focus'}
+              onClick={() => model.focus(entry.id)}
+            >
               <span class={classes.index}>{index.pipe(map((i) => `${i + 1}`))}</span>
               <span class={classes.label}>{entry.label}</span>
-              {index.value === 0 ? <span class={classes.role}>reference</span> : null}
+              {entry.problem ? <span class={classes.problem}>{entry.problem}</span> : null}
+              {!entry.problem && index.value === 0 ? <span class={classes.role}>reference</span> : null}
             </button>
           )}
         </For>
@@ -39,6 +45,7 @@ export function Superpose(props: { model: SuperpositionModel }) {
         icon="superpose"
         label="Superpose"
         disabled={model.ready.pipe(map((r) => !r))}
+        info={model.blocked?.pipe(map((b) => b ?? ''))}
         onReset={() => model.form.reset()}
         onApply={() => model.superpose()}
       />

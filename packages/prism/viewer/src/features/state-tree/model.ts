@@ -10,14 +10,12 @@ import { type ObservableState, observableState, type ReadonlyState } from '@mols
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { HomeAction } from '../../model/home.js';
 import type { StateTreeInspection, StateTreeModel, StateTreeNode } from '../../model/state-tree.js';
+import { Debouncer } from '../../ui/debounce.js';
 import type { StateApi } from './operations.js';
 import type { CellDetails } from './source.js';
 
 // The State tree tab's model (`model/state-tree.ts`) over the feature's source and its `state` area: the cells as the
 // source reads them, edits and actions as the person through `state.update` / `state.action`, never the plugin.
-
-/** How long an edit waits for the next one before it is applied (as the Canvas card's). */
-const EditDelay = 150;
 
 interface Entry {
   /** What the forms were made for: a different shape (the transformer's params changed) makes new ones. */
@@ -34,7 +32,8 @@ export class LiveStateTreeModel implements StateTreeModel {
   readonly #selected: ObservableState<string | undefined> = observableState<string | undefined>(undefined);
   readonly selected: ReadonlyState<string | undefined> = this.#selected.asReadonly;
   readonly #cache = new Map<string, Entry>();
-  readonly #timers = new Map<string, ReturnType<typeof setTimeout>>();
+  /** Edits wait for the next one before they are applied (one form edit is one step). */
+  readonly #edits = new Debouncer<string>((ref) => void this.#apply(ref));
   readonly #pending = new Map<string, Record<string, unknown>>();
 
   constructor(private readonly state: StateApi) {
@@ -76,7 +75,7 @@ export class LiveStateTreeModel implements StateTreeModel {
       }
       details.updates.forEach((u, i) => {
         // Not under the person's hands: an edit waiting to be applied wins.
-        if (!this.#timers.has(u.ref)) entry.updates[i].form.load(u.values as never);
+        if (!this.#edits.has(u.ref)) entry.updates[i].form.load(u.values as never);
       });
     }
   }
@@ -89,8 +88,7 @@ export class LiveStateTreeModel implements StateTreeModel {
 
   /** Drops edits not applied yet (the view went). */
   cancel(): void {
-    for (const t of this.#timers.values()) clearTimeout(t);
-    this.#timers.clear();
+    this.#edits.dispose();
     this.#pending.clear();
   }
 
@@ -111,11 +109,7 @@ export class LiveStateTreeModel implements StateTreeModel {
       form: new ParamsFormModel(u.params, u.values as never, {
         onChange: (values) => {
           this.#pending.set(u.ref, values);
-          clearTimeout(this.#timers.get(u.ref));
-          this.#timers.set(
-            u.ref,
-            setTimeout(() => void this.#apply(u.ref), EditDelay),
-          );
+          this.#edits.schedule(u.ref);
         },
       }),
     }));
@@ -149,8 +143,7 @@ export class LiveStateTreeModel implements StateTreeModel {
   }
 
   async #apply(ref: string): Promise<void> {
-    clearTimeout(this.#timers.get(ref));
-    this.#timers.delete(ref);
+    this.#edits.cancel(ref);
     const values = this.#pending.get(ref);
     this.#pending.delete(ref);
     if (!values) return;

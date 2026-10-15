@@ -10,8 +10,16 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Color } from '@molstar/core/util/color';
 import { StructureElement } from '@molstar/model/model/structure';
 import { PluginCommands } from '@molstar/plugin/commands';
+import { StructureMeasurementParams } from '@molstar/plugin/state/manager/structure/measurement';
 import type { PluginContext } from '@molstar/plugin/context';
-import { ApiArea, type ApiContext, type ApiFailure, ApiResult, type ViewerApi } from '../../api/area.js';
+import {
+  ApiArea,
+  type ApiAreaContext,
+  type ApiContext,
+  type ApiFailure,
+  ApiResult,
+  type ViewerApi,
+} from '../../api/area.js';
 import { pickNamed } from '../../api/scope.js';
 import { StructureParam } from '../../api/params.js';
 import { isLociTarget, LanguageParam, TargetParam, type TargetValue } from '../../api/target-param.js';
@@ -22,6 +30,7 @@ import {
   type MeasurementInfo,
   type MeasurementsSource,
   type MeasureKind,
+  MeasureKinds,
   readMeasurements,
 } from './source.js';
 
@@ -37,15 +46,6 @@ import {
 // are (so A→B and B→A are two); adding it again is "already so" unless `copy` asks for another.
 
 export type { MeasureKind, MeasurementInfo } from './source.js';
-
-const Titles: Readonly<Record<MeasureKind, string>> = {
-  distance: 'Distance',
-  angle: 'Angle',
-  dihedral: 'Dihedral',
-  label: 'Label',
-  orientation: 'Orientation',
-  plane: 'Plane',
-};
 
 const TextParam = (what: string) => PD.Text('', { description: `${what}; empty: the measured value` });
 
@@ -67,6 +67,31 @@ export class MeasureApi extends ApiArea {
   readonly id = 'measure';
 
   #source: MeasurementsSource | undefined;
+  readonly #unregister: () => void;
+
+  constructor(ctx: ApiAreaContext) {
+    super(ctx);
+    // The manager's options are not in the plugin's snapshot: registered, a checkpoint holds them, so Undo of
+    // `measure.options` (and a session) restores them with the measurements they style.
+    this.#unregister = ctx.plugin.state.registerCustomState('prism-viewer.measure', {
+      get: () => {
+        const o = ctx.plugin.managers.structure.measurement.state.options;
+        return { version: 1, distanceUnitLabel: o.distanceUnitLabel, textColor: Color.toHexStyle(o.textColor) };
+      },
+      set: async (value) => {
+        const v = value as { version?: number; distanceUnitLabel?: string; textColor?: string } | undefined;
+        const defaults = PD.getDefaultValues(StructureMeasurementParams);
+        const options =
+          v?.version === 1 && typeof v.distanceUnitLabel === 'string' && /^#[0-9a-f]{6}$/i.test(v.textColor ?? '')
+            ? { distanceUnitLabel: v.distanceUnitLabel, textColor: Color.fromHexStyle(v.textColor!) }
+            : defaults;
+        const manager = ctx.plugin.managers.structure.measurement;
+        const now = manager.state.options;
+        if (now.distanceUnitLabel === options.distanceUnitLabel && now.textColor === options.textColor) return;
+        await manager.setOptions(options);
+      },
+    });
+  }
 
   /** The model of the Measure section, over the plugin (made once; released with the area). */
   model(api: ViewerApi): import('../../model/measurements.js').MeasurementsModel {
@@ -75,6 +100,7 @@ export class MeasureApi extends ApiArea {
   }
 
   override dispose(): void {
+    this.#unregister();
     this.#source?.dispose();
     this.#source = undefined;
   }
@@ -271,7 +297,7 @@ function oneMeasurement(ctx: ApiContext, name: string | undefined): MeasuredCell
   return pickNamed(list, name?.trim() || undefined, {
     what: 'measurement',
     ids: (m) => [m.ref, m.selectionRef],
-    names: (m) => [m.label, `${Titles[m.kind]} ${m.value}`.trim()],
+    names: (m) => [m.label, `${MeasureKinds[m.kind].title} ${m.value}`.trim()],
     describe: (m) => `${m.kind} ${m.label} (${m.ref})`,
     none: { message: 'There are no measurements.', hint: 'Measure something first (measure.distance, …).' },
     listed: 'Measurements',

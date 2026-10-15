@@ -8,6 +8,8 @@
 
 .add {
   display: grid;
+  /* A grid track is as wide as its widest content unless told: long labels would push the section sideways. */
+  grid-template-columns: minmax(0, 1fr);
   font-size: var(--msp-font-size-sm);
   gap: var(--msp-space-2);
 }
@@ -22,6 +24,7 @@
 /* The points: numbered rows in the well, the order they are used in. */
 .points {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   /* In a section's well: a step back toward the panel, so the list reads as one. */
@@ -154,6 +157,7 @@
 /* What can be measured: rows like a menu's; the ones without enough points quiet and disabled. */
 .kinds {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .kind {
@@ -223,6 +227,7 @@
 /* The measurements made: rows like the points', each opening its style under it. */
 .added {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-panel);
@@ -230,6 +235,7 @@
 
 .addedItem {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .addedRow {

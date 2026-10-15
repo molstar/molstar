@@ -107,6 +107,31 @@ function cellOf(ctx: ApiContext, ref: string): StateObjectCell | ReturnType<type
 
 const labelOf = (cell: StateObjectCell) => cell.obj?.label ?? cell.transform.transformer.definition.display.name;
 
+const words = (key: string) => key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
+
+/** "Cartoon of 1CBS": the cell and the structure it belongs to (the cell's own name for a structure or above). */
+function nameWithStructure(ctx: ApiContext, cell: StateObjectCell): string {
+  const name = labelOf(cell);
+  const state = ctx.plugin.state.data;
+  const known = new Map(ctx.sources.structures.value.map((s) => [s.ref, s.label]));
+  let ref = cell.transform.ref;
+  while (ref !== StateTransform.RootRef) {
+    const structure = known.get(ref);
+    if (structure) return ref === cell.transform.ref ? structure : `${name} of ${structure}`;
+    const parent = state.transforms.get(ref)?.parent;
+    if (!parent || parent === ref) break;
+    ref = parent;
+  }
+  return name;
+}
+
+/** The params that differ, in words ("color theme", "size theme"); a long list is counted. */
+function changedParams(params: PD.Params, before: Record<string, any>, after: Record<string, any>): string {
+  const keys = Object.keys(params).filter((k) => !PD.isParamEqual(params[k], before[k], after[k]));
+  const names = keys.map((k) => (params[k].label ?? words(k)).toLowerCase());
+  return names.length > 3 ? `${names.length} params` : names.join(', ');
+}
+
 /** The ancestors that are ghosts with this cell as their only child go with it (the classic tree's Remove). */
 function removalRoot(state: State, ref: string): string {
   const tree = state.tree;
@@ -238,7 +263,8 @@ export class StateApi extends ApiArea {
       // The cell or something built on it failed with the new params: the run's checkpoint restores the old ones.
       const failed = erroredIn(state, ref).find((c) => !failedBefore.has(c.transform.ref));
       if (failed) return ApiResult.fail('failed', `${name}: ${failed.errorText ?? 'the update failed'}.`);
-      return ApiResult.ok(`Updated ${name}.`, { nodes: [ref] });
+      const what = changedParams(cell.params.definition, current, next);
+      return ApiResult.ok(`Updated ${nameWithStructure(ctx, cell)}${what ? `: ${what}` : ''}.`, { nodes: [ref] });
     },
   });
 

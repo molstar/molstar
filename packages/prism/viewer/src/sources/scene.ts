@@ -35,7 +35,7 @@ import type { ViewerApi } from '../api/area.js';
 import type { SceneInspection, SceneMenuItem, SceneModel, SceneNode, SceneNodeKind } from '../model/scene.js';
 import { namesOf } from '../api/scope.js';
 import { gridText, shortNumber, voxelText, volumeStats } from '../api/volume.js';
-import { type MeasuredCell, type MeasureKind, readMeasurements } from './measurements.js';
+import { type MeasuredCell, MeasureKinds, readMeasurements } from './measurements.js';
 import { structureNames } from './naming.js';
 import type { SourceScope } from './state.js';
 
@@ -64,24 +64,6 @@ const UpdateOperations: Partial<Record<SceneNodeKind, string>> = {
   representation: 'representation.update',
   'volume-representation': 'volume.update',
   'particles-representation': 'particles.update',
-};
-
-const MeasurementIcons: Readonly<Record<MeasureKind, IconName>> = {
-  distance: 'measure-distance',
-  angle: 'measure-angle',
-  dihedral: 'measure-angle',
-  label: 'tag',
-  orientation: 'move-3d',
-  plane: 'square',
-};
-
-const KindLabels: Readonly<Record<MeasureKind, string>> = {
-  distance: 'Distance',
-  angle: 'Angle',
-  dihedral: 'Dihedral',
-  label: 'Label',
-  orientation: 'Orientation',
-  plane: 'Plane',
 };
 
 class Node implements SceneNode {
@@ -286,7 +268,7 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     if (!n) {
       const ref = m.ref;
       const locis = () => readMeasurements(plugin).find((x) => x.ref === ref)?.locis ?? [];
-      n = new Node(ref, 'measurement', MeasurementIcons[m.kind], m.label, false, {
+      n = new Node(ref, 'measurement', MeasureKinds[m.kind].icon, m.label, false, {
         visibility: (hide) => void api.run('measure.visibility', { measurement: ref, visible: !hide }),
         highlight: (on) => {
           const l = locis()[0];
@@ -303,7 +285,7 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
       n.removable = !!api.describe('measure.remove');
       nodes.set(ref, n);
     }
-    n.set(m.value ? `${m.value}` : m.label, m.value ? m.label : KindLabels[m.kind], m.hidden);
+    n.set(m.value ? `${m.value}` : m.label, m.value ? m.label : MeasureKinds[m.kind].title, m.hidden);
     return n;
   };
 

@@ -10,7 +10,8 @@ import type { PluginContext } from '@molstar/plugin/context';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { merge } from 'rxjs';
 import { structureNames } from './naming.js';
-import { fromChanged, type SourceScope, sameItems } from './state.js';
+import { sameItems } from './state.js';
+import { watchedState } from './watched.js';
 
 // The models of a structure as the trajectory area and the trajectory bar read them (state.md §4, row 2): a structure
 // built from a trajectory with several frames (an NMR ensemble, a simulation) shows one of them, its model index.
@@ -91,25 +92,34 @@ export interface TrajectorySource {
   readonly playing: ReadonlyState<boolean>;
 }
 
-export function createTrajectorySource(scope: SourceScope, plugin: PluginContext): TrajectorySource {
+/**
+ * The states listen to the plugin only while something subscribes to them (a bar that shows), and read once per
+ * animation frame however many events a transaction (or a playing trajectory) fires.
+ */
+export function createTrajectorySource(plugin: PluginContext): TrajectorySource {
   const hierarchy = plugin.managers.structure.hierarchy;
-  const frames = fromChanged(
-    scope,
+  const frames = watchedState(
     () => trajectoryInfos(plugin),
-    merge(hierarchy.behaviors.selection, plugin.state.data.events.changed),
-    (a, b) => sameItems(a, b, sameInfo),
+    () => merge(hierarchy.behaviors.selection, plugin.state.data.events.changed),
+    { compare: (a, b) => sameItems(a, b, sameInfo) },
   );
   const pick = (list: readonly TrajectoryInfo[]) => {
     const root = plugin.managers.structure.focus.current?.loci.structure.root;
     const focused = root && hierarchy.current.structures.find((s) => s.cell.obj?.data.root === root);
     return list.find((f) => f.ref === focused?.cell.transform.ref) ?? list[0];
   };
-  const shown = fromChanged(
-    scope,
+  // Follows `frames` (already once per frame) and the focus (rare): no second wait.
+  const shown = watchedState(
     () => pick(frames.value),
-    merge(frames, plugin.managers.structure.focus.behaviors.current),
-    (a, b) => (a && b ? sameInfo(a, b) : a === b),
+    () => merge(frames, plugin.managers.structure.focus.behaviors.current),
+    { compare: (a, b) => (a && b ? sameInfo(a, b) : a === b), coalesce: 'none', derived: true },
   );
-  const playing = fromChanged(scope, () => isPlayingFrames(plugin), plugin.managers.animation.events.updated);
+  const playing = watchedState(
+    () => isPlayingFrames(plugin),
+    () => plugin.managers.animation.events.updated,
+    {
+      coalesce: 'none',
+    },
+  );
   return { frames, shown, playing };
 }

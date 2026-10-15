@@ -55,3 +55,52 @@ describe('the trajectory controls', () => {
     }
   });
 });
+
+describe('the trajectory source', () => {
+  it('listens to the plugin only while something watches, and reads once per frame', async () => {
+    const v = await headlessViewer({ files: [ensemble()] });
+    const { model, dispose } = createTrajectoryControls(v.plugin, v.api.as({ kind: 'person' }));
+    try {
+      const changed = v.plugin.state.data.events.changed as unknown as { observers: unknown[] };
+      const idle = changed.observers.length;
+      // Reading is not subscribing.
+      expect(model.count.value).toBe(3);
+      expect(model.index.value).toBe(0);
+      expect(changed.observers.length).toBe(idle);
+
+      const watching = model.index.subscribe();
+      expect(changed.observers.length).toBeGreaterThan(idle);
+      await v.api.trajectory.frame({ index: 2 });
+      // Current at once, whether or not the frame has come.
+      expect(model.index.value).toBe(2);
+      watching.unsubscribe();
+      expect(changed.observers.length).toBe(idle);
+    } finally {
+      dispose();
+    }
+  });
+
+  it('has commands that are disabled, with the reason, until a structure has several models', async () => {
+    const single = await headlessViewer({ files: [cbs()] });
+    expect(single.managers.commands.get('trajectory.frame')!.when?.({} as never)).toBe(
+      'No structure has several models.',
+    );
+    const many = await headlessViewer({ files: [ensemble()] });
+    expect(many.managers.commands.get('trajectory.frame')!.when?.({} as never)).toBe(true);
+
+    // Playing needs a canvas; with one, it is disabled the same way until there are models.
+    const canvas = await createPrismViewerHeadless({ spec: DefaultPrismViewerSpec(), modules: ['canvas', 'files'] });
+    try {
+      expectOk(await canvas.api.load.files({ files: [cbs()] }));
+      const play = canvas.managers.commands.get('trajectory.play')!;
+      expect(play.when?.({} as never)).toBe('No structure has several models.');
+      expectOk(await canvas.api.load.files({ files: [ensemble()] }, { copy: true }));
+      expect(play.when?.({} as never)).toBe(true);
+    } finally {
+      await canvas.dispose();
+    }
+    // The fields are labeled ("Mode", "Seconds per pass"), not bare.
+    const form = many.api.describe('trajectory.play')!;
+    expect([form.params.mode.label, form.params.seconds.label]).toEqual(['Mode', 'Seconds per pass']);
+  });
+});

@@ -46,6 +46,41 @@ const WiggleFormParams = {
   amplitude: PD.Numeric(1, { min: 0.01, max: 5, step: 0.01 }, { label: 'Amplitude' }),
 };
 
+const Axes = ['x', 'y', 'z'] as const;
+
+/**
+ * A vector param as three numbers labeled "Axis x", "Axis y", "Axis z" (the form's own vector field has no labels on
+ * its numbers). The values are `{ x, y, z }` in the form and `[x, y, z]` for the animation: `joinVectors` converts.
+ */
+function splitVectors(params: PD.Params): PD.Params {
+  const out: PD.Params = {};
+  for (const [key, p] of Object.entries(params)) {
+    if (p.type !== 'vec3') {
+      out[key] = p;
+      continue;
+    }
+    const name = p.label ?? key.replace(/^./, (c) => c.toUpperCase());
+    const [x, y, z] = p.defaultValue;
+    const range = { min: p.min, max: p.max, step: p.step ?? 0.1 };
+    out[key] = PD.Group(
+      Object.fromEntries(
+        Axes.map((a, i) => [a, PD.Numeric([x, y, z][i], range, { label: `${name} ${a}`, description: p.description })]),
+      ),
+      { isFlat: true },
+    );
+  }
+  return out;
+}
+
+function joinVectors(params: PD.Params, values: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...values };
+  for (const [key, p] of Object.entries(params)) {
+    const v = values[key] as { x: number; y: number; z: number } | undefined;
+    if (p.type === 'vec3' && v && !Array.isArray(v)) out[key] = [v.x, v.y, v.z];
+  }
+  return out;
+}
+
 export function createAnimationModel(api: ViewerApi, area: AnimationApi): AnimationModel {
   const animations = area.state.value.animations;
   // The first that can play now is the choice to start with.
@@ -55,7 +90,7 @@ export function createAnimationModel(api: ViewerApi, area: AnimationApi): Animat
         animation: PD.MappedStatic(
           first.name,
           Object.fromEntries(
-            animations.map((a) => [a.name, PD.Group((area.paramsOf(a.name) ?? {}) as PD.Params, { isFlat: true })]),
+            animations.map((a) => [a.name, PD.Group(splitVectors(area.paramsOf(a.name) ?? {}), { isFlat: true })]),
           ),
           {
             label: 'Animation',
@@ -88,7 +123,10 @@ export function createAnimationModel(api: ViewerApi, area: AnimationApi): Animat
     play() {
       const v = form?.values.value as { animation?: { name: string; params: Record<string, unknown> } } | undefined;
       if (!v?.animation) return;
-      void api.animation?.play({ name: v.animation.name, params: v.animation.params });
+      void api.animation?.play({
+        name: v.animation.name,
+        params: joinVectors(area.paramsOf(v.animation.name) ?? {}, v.animation.params),
+      });
     },
     stop() {
       void api.animation?.stop();

@@ -13,6 +13,8 @@ import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 export interface SuperpositionEntry {
   id: string;
   label: string;
+  /** Why the method cannot use this selection ("5 chains: select one"); undefined: it can. */
+  problem?: string;
 }
 
 /**
@@ -30,6 +32,8 @@ export interface SuperpositionModel {
   /** Enough to superpose; otherwise `hint` says what to select. */
   ready: ReadonlyState<boolean>;
   hint: ReadonlyState<string>;
+  /** Why Superpose is disabled, when some selection cannot be used (a row says its own reason); undefined: none. */
+  blocked?: ReadonlyState<string | undefined>;
   focus(id: string): void;
   superpose(): void;
 }

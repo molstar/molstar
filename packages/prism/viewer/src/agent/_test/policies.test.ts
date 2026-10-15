@@ -18,14 +18,14 @@ const op = (o: Partial<OperationDefinition<any, any>>) =>
 
 describe('the agent policy', () => {
   it('lets changes go while the turn can be undone, and asks for removals and uploads', () => {
-    const p = createAgentPolicy({ checkpointing: observableState(true) });
+    const p = createAgentPolicy({ checkpointing: observableState(true).asReadonly });
     expect(p.approves(op({}), {})).toBe(true);
     expect(p.approves(op({ approval: 'destructive' }), {})).toBe(false);
     expect(p.approves(op({ approval: 'upload' }), {})).toBe(false);
   });
 
   it('asks once for the turn when undo is off', () => {
-    const checkpointing = observableState(false);
+    const checkpointing = observableState(false).asReadonly;
     const p = createAgentPolicy({ checkpointing });
     expect(p.approves(op({}), {})).toBe(false);
     expect(p.approves(op({ history: false }), {})).toBe(true);
@@ -37,7 +37,7 @@ describe('the agent policy', () => {
 
   it('reaches the known services and allowed domains by https; others ask', () => {
     const rules = createDomainRules();
-    const p = createAgentPolicy({ checkpointing: observableState(true), rules });
+    const p = createAgentPolicy({ checkpointing: observableState(true).asReadonly, rules });
     const net = op({ approval: 'network' });
     expect(p.approves(net, { url: 'https://files.rcsb.org/download/1cbs.cif' })).toBe(true);
     expect(p.approves(net, { url: 'https://example.org/x.cif' })).toBe(false);

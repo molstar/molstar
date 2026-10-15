@@ -72,4 +72,32 @@ describe('the animation model', () => {
       await v.dispose();
     }
   });
+
+  it('labels the three numbers of a vector, and plays with them as a vector', async () => {
+    const v = await createPrismViewerHeadless({
+      spec: { ...DefaultPrismViewerSpec(), extensions: DefaultPrismViewerSpec().extensions ?? [] },
+      modules: ['canvas', 'files'],
+    });
+    try {
+      const model = createAnimationModel(v.api.as({ kind: 'person' }), v.api.animation!);
+      const choice = model.form!.params.animation as any;
+      const params = choice.map('built-in.animate-camera-spin').params;
+      expect(params.durationInMs.label).toBe('Duration (ms)');
+      expect(params.axis.type).toBe('group');
+      expect(Object.values(params.axis.params).map((p: any) => p.label)).toEqual(['Axis x', 'Axis y', 'Axis z']);
+
+      const defaults = choice.map('built-in.animate-camera-spin').defaultValue;
+      model.form!.set('animation', {
+        name: 'built-in.animate-camera-spin',
+        params: { ...defaults, axis: { x: 0, y: 1, z: 0 } },
+      } as never);
+      model.play();
+      await until(() => model.isPlaying.value);
+      expect(v.plugin.managers.animation.current?.paramValues.axis).toEqual([0, 1, 0]);
+      model.stop();
+      await until(() => !model.isPlaying.value);
+    } finally {
+      await v.dispose();
+    }
+  });
 });

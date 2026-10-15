@@ -8,7 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { domView, onCleanup, Show } from '@molstar/prism-ui';
+import { domView, onActive, onCleanup, Show } from '@molstar/prism-ui';
 import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { Superpose } from '../../views/structure/superpose.js';
 import { createSuperpositionModel } from './model.js';
@@ -32,6 +32,8 @@ export function superpositionUI(ctx: ViewerUIContext): ViewerExtensionUI {
             sources: ctx.sources,
             notify: (text, kind) => ctx.managers.notifications.post(text, kind),
           });
+          // Follows the structures and the selection only while the section shows.
+          onActive((active) => model.setActive(active));
           onCleanup(() => model.dispose());
           return (
             <Show

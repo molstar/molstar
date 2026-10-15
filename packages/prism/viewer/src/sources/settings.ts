@@ -169,7 +169,19 @@ export function canvasPathsByGroup(): Record<SettingsGroupId, string[]> {
   return out;
 }
 
+/**
+ * Labels of params the Canvas card names too, by Canvas3D path: the Settings tab says them the same ("Fog", "Color",
+ * "Transparent"), not by Mol*'s own ("Camera Fog", "Background Color", "Transparent Background").
+ */
+export const CanvasLabels: Readonly<Record<string, string>> = {
+  cameraFog: 'Fog',
+  'renderer.backgroundColor': 'Color',
+  transparentBackground: 'Transparent',
+};
+
 const words = (key: string) => key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
+
+const renamed = (p: PD.Any, label: string | undefined): PD.Any => (label ? { ...p, label } : p);
 
 /** The params of a set of Canvas3D leaves: a whole param when all its children are in, else a group of the ones that are. */
 function canvasParamsOf(leaves: readonly string[]): PD.Params {
@@ -185,10 +197,12 @@ function canvasParamsOf(leaves: readonly string[]): PD.Params {
     const children = byKey.get(key);
     if (!children) continue;
     if (original.type !== 'group' || children.length === Object.keys(original.params).length) {
-      params[key] = original;
+      params[key] = renamed(original, CanvasLabels[key]);
     } else {
       const picked: PD.Params = {};
-      for (const c of Object.keys(original.params)) if (children.includes(c)) picked[c] = original.params[c];
+      for (const c of Object.keys(original.params)) {
+        if (children.includes(c)) picked[c] = renamed(original.params[c], CanvasLabels[`${key}.${c}`]);
+      }
       params[key] = PD.Group(picked, { label: original.label ?? words(key) });
     }
   }

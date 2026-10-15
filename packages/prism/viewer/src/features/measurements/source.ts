@@ -13,11 +13,13 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { StructureMeasurementParams } from '@molstar/plugin/state/manager/structure/measurement';
 import { type IconName, observableState, type ReadonlyState } from '@molstar/prism-ui/core';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
-import { merge } from 'rxjs';
+import { merge, skip } from 'rxjs';
 import type { ViewerApi } from '../../api/area.js';
 import type { MeasurementKind, MeasurementPoint, MeasurementsModel } from '../../model/measurements.js';
 import type { SceneNode } from '../../model/scene.js';
-import { fromChanged, SourceScope, sameItems } from '../../sources/state.js';
+import { sameItems } from '../../sources/state.js';
+import { watchedState } from '../../sources/watched.js';
+import { debounce } from '../../ui/debounce.js';
 
 // The measurements as the views read them (state.md §1, `managers.structure.measurement` ↔ `MeasurementsModel`): the
 // measurement manager's cells described in words, and the Measure section's model over them and over the selection's
@@ -27,30 +29,18 @@ import { fromChanged, SourceScope, sameItems } from '../../sources/state.js';
 
 export {
   findMeasurement,
+  MeasureKinds,
   type MeasuredCell,
   type MeasurementInfo,
   type MeasureKind,
   readMeasurements,
 } from '../../sources/measurements.js';
-import { type MeasurementInfo, type MeasureKind, readMeasurements } from '../../sources/measurements.js';
+import { type MeasurementInfo, type MeasureKind, MeasureKinds, readMeasurements } from '../../sources/measurements.js';
 
-const Kinds: readonly MeasurementKind[] = [
-  { id: 'distance', title: 'Distance', icon: 'measure-distance', points: 2 },
-  { id: 'angle', title: 'Angle', icon: 'measure-angle', points: 3 },
-  { id: 'dihedral', title: 'Dihedral', icon: 'measure-angle', points: 4 },
-  { id: 'label', title: 'Label', icon: 'tag', points: 1 },
-  { id: 'orientation', title: 'Orientation', icon: 'move-3d', points: 0 },
-  { id: 'plane', title: 'Plane', icon: 'square', points: 0 },
-];
-
-const KindIcons: Readonly<Record<MeasureKind, IconName>> = {
-  distance: 'measure-distance',
-  angle: 'measure-angle',
-  dihedral: 'measure-angle',
-  label: 'tag',
-  orientation: 'move-3d',
-  plane: 'square',
-};
+const Kinds: readonly MeasurementKind[] = (Object.keys(MeasureKinds) as MeasureKind[]).map((id) => ({
+  id,
+  ...MeasureKinds[id],
+}));
 
 /** The model, and what releases its subscriptions. */
 export interface MeasurementsSource {
@@ -90,7 +80,7 @@ class MeasurementNode implements SceneNode {
   }
 
   set(m: MeasurementInfo): void {
-    this.icon = KindIcons[m.kind];
+    this.icon = MeasureKinds[m.kind].icon;
     this.#label.set(m.label);
     this.#description.set(m.value || undefined);
     this.#hidden.set(m.hidden);
@@ -116,30 +106,46 @@ const OptionsParams = {
   textColor: StructureMeasurementParams.textColor,
 };
 
+/**
+ * Mol*'s label of a pick lists what it is in, most specific first ("REA 200 | B [auth A] | Instance ASM-1 | Model 1 |
+ * 1CBS"); a row shows the first and the last part, the pick and its structure.
+ */
+export function shortLabel(label: string): string {
+  const parts = label
+    .split('|')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return parts.length > 1 ? `${parts[0]} · ${parts[parts.length - 1]}` : label;
+}
+
 const sameEntries = (a: { id: string; label: string }, b: { id: string; label: string }) =>
   a.id === b.id && a.label === b.label;
 
 /**
  * The model of the Measure section over the plugin. `api` is bound to the person: adding, removing and showing or
  * hiding a measurement are its operations; the points are the selection's additions history (Mol*'s, newest first).
+ *
+ * Nothing here listens to the plugin until a view binds to it (prism AGENTS.md, hidden UI): `points`, `added` and the
+ * options' values are watched states, `added` re-read once per animation frame however many events a transaction (or a
+ * playing trajectory) fires.
  */
 export function createMeasurementsSource(plugin: PluginContext, api: ViewerApi): MeasurementsSource {
-  const scope = new SourceScope();
   const selection = plugin.managers.structure.selection;
   const manager = plugin.managers.structure.measurement;
 
-  const points = fromChanged(
-    scope,
+  const points = watchedState(
     (): readonly MeasurementPoint[] =>
-      selection.additionsHistory.map((e) => ({ id: e.id, label: stripTags(e.label).trim() })),
-    selection.events.additionsHistoryUpdated,
-    (a, b) => sameItems(a, b, sameEntries),
+      selection.additionsHistory.map((e) => {
+        const label = stripTags(e.label).trim();
+        return { id: e.id, label, short: shortLabel(label) };
+      }),
+    () => selection.events.additionsHistoryUpdated,
+    { compare: (a, b) => sameItems(a, b, sameEntries), coalesce: 'none' },
   );
   const entry = (id: string) => selection.additionsHistory.find((e) => e.id === id);
 
   const nodes = new Map<string, MeasurementNode>();
-  const added = fromChanged(
-    scope,
+  const added = watchedState(
     (): readonly SceneNode[] => {
       const list = readMeasurements(plugin);
       const live = new Set(list.map((m) => m.ref));
@@ -162,18 +168,37 @@ export function createMeasurementsSource(plugin: PluginContext, api: ViewerApi):
         return node;
       });
     },
-    merge(manager.behaviors.state, plugin.state.data.events.cell.stateUpdated, plugin.state.data.events.changed),
-    (a, b) => sameItems(a, b),
+    // The manager's state replays on subscribe: the first read is the watcher's own.
+    () =>
+      merge(
+        manager.behaviors.state.pipe(skip(1)),
+        plugin.state.data.events.cell.stateUpdated,
+        plugin.state.data.events.changed,
+      ),
+    { compare: (a, b) => sameItems(a, b) },
   );
 
-  const options = new ParamsFormModel(OptionsParams, manager.state.options, {
-    onChange: (values) =>
-      void api.measure?.options({
+  // The options form follows the manager (Undo, a session, a command) while it shows; an edit waits for its debounce
+  // and its run, and the form keeps what the person is editing until they have landed.
+  const optionValues = watchedState(
+    () => manager.state.options,
+    () => manager.behaviors.state.pipe(skip(1)),
+    { compare: (a, b) => a.distanceUnitLabel === b.distanceUnitLabel && a.textColor === b.textColor, coalesce: 'none' },
+  );
+  let sending = 0;
+  const send = debounce((values: PD.Values<typeof OptionsParams>) => {
+    sending++;
+    void Promise.resolve(
+      api.measure?.options({
         distanceUnitLabel: values.distanceUnitLabel,
         textColor: Color.toHexStyle(values.textColor),
       }),
+    ).finally(() => {
+      sending--;
+      if (!sending && !send.pending) options.load(manager.state.options as PD.Values<typeof OptionsParams>);
+    });
   });
-  scope.add(manager.behaviors.state.subscribe((s) => options.load(s.options as PD.Values<typeof OptionsParams>)));
+  const options = new ParamsFormModel(OptionsParams, manager.state.options, { onChange: (values) => send(values) });
 
   const model: MeasurementsModel = {
     points,
@@ -209,8 +234,13 @@ export function createMeasurementsSource(plugin: PluginContext, api: ViewerApi):
       if (op) void op({});
     },
     options,
+    optionValues,
+    // An edit the person made is not undone by an older value arriving: it waits for its run to land.
+    loadOptions: (values) => {
+      if (!send.pending && !sending) options.load(values as PD.Values<typeof OptionsParams>);
+    },
     added,
     styleOf: () => undefined,
   };
-  return { model, dispose: () => scope.dispose() };
+  return { model, dispose: () => send.dispose() };
 }

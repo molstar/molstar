@@ -10,9 +10,10 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import type { MessageKind } from '@molstar/prism-ui/core';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
-import { combineLatest, debounceTime } from 'rxjs';
+import { combineLatest, type Subscription } from 'rxjs';
 import type { ViewerApi } from '../../api/area.js';
 import type { SuperpositionEntry, SuperpositionModel } from '../../model/superposition.js';
+import type { PickedStructure } from '../../sources/selection.js';
 import type { ViewerSources } from '../../sources/viewer-sources.js';
 import type { SuperposeMethod } from './operations.js';
 
@@ -55,8 +56,6 @@ const Hints: Record<SuperposeMethod, string> = {
   db: 'Superposes every structure by the residues they share in UniProt.',
 };
 
-const SelectionDelayMs = 80;
-
 export interface SuperpositionDeps {
   readonly api: ViewerApi;
   readonly sources: ViewerSources;
@@ -64,7 +63,42 @@ export interface SuperpositionDeps {
 }
 
 export interface Superposition extends SuperpositionModel {
+  /**
+   * The section shows (true) or is folded away (false): the entries follow the structures and the selection only
+   * while it shows (prism AGENTS.md, hidden UI). Not active, the model holds no subscription.
+   */
+  setActive(active: boolean): void;
   dispose(): void;
+}
+
+/** The fewest atoms that fix an orientation (as the operations). */
+const MinAtoms = 3;
+
+const count = (n: number, what: string) => `${n} ${what}${n === 1 ? '' : 's'}`;
+
+/** Why a method cannot use this selection, or undefined. Mirrors what `superpose.*` checks of each target. */
+export function problemOf(
+  method: SuperposeMethod,
+  p: PickedStructure,
+  reference?: PickedStructure,
+): string | undefined {
+  switch (method) {
+    case 'chains':
+    case 'tm-align':
+      if (p.polymerAtoms === 0) return 'no polymer in it: select a chain';
+      if (p.polymerChains > 1) return `its polymer is in ${count(p.polymerChains, 'chain')}: select one`;
+      return undefined;
+    case 'ligands':
+      return p.ligand ? undefined : 'not one ligand residue';
+    case 'atoms':
+      if (p.atoms < MinAtoms) return `${count(p.atoms, 'atom')}: ${MinAtoms} are needed`;
+      if (reference && p !== reference && p.atoms !== reference.atoms) {
+        return `${count(p.atoms, 'atom')}, the reference has ${reference.atoms}`;
+      }
+      return undefined;
+    default:
+      return undefined;
+  }
 }
 
 export function createSuperpositionModel(deps: SuperpositionDeps): Superposition {
@@ -73,15 +107,15 @@ export function createSuperpositionModel(deps: SuperpositionDeps): Superposition
   const entries = observableState<readonly SuperpositionEntry[]>([]);
   const ready = observableState(false);
   const hint = observableState('');
-  let disposed = false;
-  let token = 0;
+  const blocked = observableState<string | undefined>(undefined);
+  let sub: Subscription | undefined;
   let busy = false;
 
   const method = () => form.values.value.method;
 
-  // The entries follow the method, the structures and the selection (short debounce: a pick fires several changes).
-  const refresh = async () => {
-    const mine = ++token;
+  // The entries follow the method, the structures and the selection: what each structure's selection holds comes from
+  // the interaction source (no runs of the API for a read), flagged where the method would refuse it.
+  const refresh = () => {
     const structures = deps.sources.structures.value;
     const m = method();
     available.set(structures.length > 1);
@@ -89,22 +123,30 @@ export function createSuperpositionModel(deps: SuperpositionDeps): Superposition
     if (m === 'db') {
       list = structures.map((s) => ({ id: s.ref, label: `${s.label} · all chains` }));
     } else {
-      const r = await deps.api.select.get();
-      if (disposed || mine !== token) return;
-      list =
-        r.ok && r.value
-          ? r.value.map((v) => ({ id: v.structure.ref, label: `${v.structure.label} · ${v.selected.line}` }))
-          : [];
+      const picked = deps.sources.interaction.picked.value;
+      list = picked.map((p) => {
+        const problem = problemOf(m, p, picked[0]);
+        return { id: p.ref, label: `${p.label} · ${p.line}`, ...(problem ? { problem } : {}) };
+      });
     }
+    const flagged = list.find((e) => e.problem);
     entries.set(list);
-    ready.set(list.length >= 2);
+    blocked.set(flagged ? `${flagged.label.split(' · ')[0]}: ${flagged.problem}.` : undefined);
+    ready.set(list.length >= 2 && !flagged);
     hint.set(list.length === 1 ? `${Hints[m]} One so far.` : Hints[m]);
   };
+  refresh();
 
-  const sub = combineLatest([form.values, deps.sources.structures, deps.sources.interaction.selection])
-    .pipe(debounceTime(SelectionDelayMs))
-    .subscribe(() => void refresh());
-  void refresh();
+  const setActive = (active: boolean) => {
+    if (active === !!sub) return;
+    if (!active) {
+      sub?.unsubscribe();
+      sub = undefined;
+      return;
+    }
+    // The first emission of each (the current value) is the refresh itself.
+    sub = combineLatest([form.values, deps.sources.structures, deps.sources.interaction.picked]).subscribe(refresh);
+  };
 
   const superpose = async () => {
     if (busy || !ready.value) return;
@@ -138,12 +180,12 @@ export function createSuperpositionModel(deps: SuperpositionDeps): Superposition
     entries: entries.asReadonly,
     ready: ready.asReadonly,
     hint: hint.asReadonly,
+    blocked: blocked.asReadonly,
     focus: (id) => void deps.api.focus.set({ target: 'selection', structure: id }),
     superpose: () => void superpose(),
+    setActive,
     dispose() {
-      disposed = true;
-      token++;
-      sub.unsubscribe();
+      setActive(false);
     },
   };
 }

@@ -81,7 +81,7 @@ export const AnimationFeature: ViewerExtension = {
       operationCommand(api, a.wiggle, {
         category: 'Animation',
         icon: 'orbit',
-        title: 'Wiggle the structures…',
+        title: 'Wiggle…',
         alias: ['wiggle', 'dynamics', 'uncertainty', 'b-factor', 'procedural'],
         action: 'Apply',
       }),

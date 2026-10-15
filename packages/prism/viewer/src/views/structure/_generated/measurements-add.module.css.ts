@@ -42,6 +42,7 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
 .msp-viewer-measurements-add-add {
   font-size: var(--msp-font-size-sm);
   gap: var(--msp-space-2);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -56,6 +57,7 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-panel);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -176,6 +178,7 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
 }
 
 .msp-viewer-measurements-add-kinds {
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
@@ -246,10 +249,12 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
   padding: var(--msp-space-1);
   border-radius: var(--msp-radius-md);
   background: var(--msp-color-panel);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 
 .msp-viewer-measurements-add-addedItem {
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
 }
 

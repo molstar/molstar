@@ -9,13 +9,7 @@
 import { Mat4 } from '@molstar/core/math/linear-algebra';
 import { Task } from '@molstar/core/task';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import {
-  QueryContext,
-  type Structure,
-  StructureElement,
-  StructureProperties,
-  StructureSelection,
-} from '@molstar/model/model/structure';
+import { QueryContext, type Structure, StructureElement, StructureSelection } from '@molstar/model/model/structure';
 import { alignAndSuperpose, superpose } from '@molstar/model/model/structure/structure/util/superposition';
 import {
   DefaultLigandMccsOptions,
@@ -33,6 +27,7 @@ import { type ApiAreaContext, ApiArea, type ApiContext, type ApiFailure, ApiResu
 import { isFailure, labelOf, loadedStructures, pickNamed } from '../../api/scope.js';
 import type { ResolvedPart } from '../../api/targets.js';
 import type { TargetValue } from '../../api/target-param.js';
+import { polymerPart } from '../../sources/selection.js';
 import type { Scoped } from '../../targets/types.js';
 
 // The `superpose` area (operations.md §2, state.md: "the algorithms move out of the view into the API"): each operation
@@ -289,21 +284,31 @@ function finish(
 
 // --- the methods ------------------------------------------------------------------------------------------------
 
-/** The polymer chain of a target, as the atoms the method uses (CA and equivalent, or all polymer atoms). */
+/**
+ * The polymer chain of a target, as the atoms the method uses (CA and equivalent, or all polymer atoms). The classic
+ * panel's rule is one polymer chain per structure (or residues within it); a target that holds more than the chain
+ * ("chain A" with its waters and ligands) gives its polymer part, which must be one chain.
+ */
 function chainLoci(ms: readonly Member[], traceOnly: boolean): StructureElement.Loci[] | ApiFailure {
   const { query } = traceOnly ? trace : polymer;
   const out: StructureElement.Loci[] = [];
   for (const m of ms) {
-    // The classic panel's rule: one polymer chain per structure (or residues within it).
-    const first = StructureElement.Loci.getFirstLocation(m.loci, StructureElement.Location.create());
-    if (m.loci.elements.length > 1 || !first || StructureProperties.entity.type(first) !== 'polymer') {
+    const part = StructureElement.Loci.remap(polymerPart(m.loci), m.data);
+    if (StructureElement.Loci.isEmpty(part)) {
       return ApiResult.fail(
         'invalid',
-        `The target in ${m.label} is not one polymer chain (${m.part?.selected.line}).`,
+        `The target in ${m.label} has no polymer (${m.part?.selected.line}).`,
         'Select one polymer chain, or residues within it, in each structure.',
       );
     }
-    const sub = StructureElement.Loci.toStructure(m.loci);
+    if (part.elements.length > 1) {
+      return ApiResult.fail(
+        'invalid',
+        `The target in ${m.label} is not one polymer chain: its polymer is in ${part.elements.length} chains or copies (${m.part?.selected.line}).`,
+        'Select one polymer chain, or residues within it, in each structure.',
+      );
+    }
+    const sub = StructureElement.Loci.toStructure(part);
     const loci = StructureElement.Loci.remap(
       StructureSelection.toLociWithSourceUnits(query(new QueryContext(sub))),
       m.data,

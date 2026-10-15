@@ -6,12 +6,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import type { StructureElement } from '@molstar/model/model/structure';
+import { StructureElement } from '@molstar/model/model/structure';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { merge } from 'rxjs';
-import { selectionSummary } from './selection.js';
-import { fromBehavior, fromChanged, type SourceScope } from './state.js';
+import { type PickedStructure, pickedOf, samePicked, selectionSummary } from './selection.js';
+import { structureNames } from './naming.js';
+import { fromBehavior, fromChanged, type SourceScope, sameItems } from './state.js';
+import { watchedState } from './watched.js';
 
 // The selection mode, the picking level and the selection as states (state.md §3: they are the plugin's state; what was
 // missing is their source): the mode switch, the picking level, the selection bar and the agent's account read them.
@@ -25,6 +27,11 @@ export interface InteractionSources {
   readonly selection: ReadonlyState<string | undefined>;
   /** The focused part, in Mol*'s words; undefined: none. */
   readonly focus: ReadonlyState<string | undefined>;
+  /**
+   * What each structure's selection holds (the structures that have one), for the Superpose section. Followed only
+   * while subscribed (a hidden section holds no subscription), read once per animation frame.
+   */
+  readonly picked: ReadonlyState<readonly PickedStructure[]>;
 }
 
 export function createInteractionSources(scope: SourceScope, plugin: PluginContext): InteractionSources {
@@ -49,5 +56,23 @@ export function createInteractionSources(scope: SourceScope, plugin: PluginConte
     },
     plugin.managers.structure.focus.behaviors.current,
   );
-  return { selectionMode, granularity, selection, focus };
+  const picked = watchedState(
+    (): readonly PickedStructure[] => {
+      const structures = plugin.managers.structure.hierarchy.current.structures;
+      const names = structureNames(structures);
+      const out: PickedStructure[] = [];
+      for (const s of structures) {
+        const data = s.cell.obj?.data;
+        if (!data) continue;
+        const loci = plugin.managers.structure.selection.getLoci(data);
+        if (!StructureElement.Loci.is(loci) || StructureElement.Loci.isEmpty(loci)) continue;
+        const ref = s.cell.transform.ref;
+        out.push(pickedOf(ref, names.get(ref) ?? ref, loci));
+      }
+      return out;
+    },
+    () => merge(plugin.managers.structure.selection.events.changed, plugin.state.data.events.changed),
+    { compare: (a, b) => sameItems(a, b, samePicked) },
+  );
+  return { selectionMode, granularity, selection, focus, picked };
 }

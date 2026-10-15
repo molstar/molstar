@@ -10,7 +10,6 @@ import type { PluginContext } from '@molstar/plugin/context';
 import { mapState } from '@molstar/prism-ui/core';
 import type { TrajectoryControlsModel } from '@molstar/prism-ui/model/playback';
 import type { ViewerApi } from '../api/area.js';
-import { SourceScope } from '../sources/state.js';
 import { createTrajectorySource } from '../sources/trajectory.js';
 
 // The trajectory bar's model (prism-ui's `TrajectoryControlsModel`) over the trajectory source and the person's API:
@@ -21,8 +20,7 @@ export function createTrajectoryControls(
   plugin: PluginContext,
   api: ViewerApi,
 ): { model: TrajectoryControlsModel; dispose(): void } {
-  const scope = new SourceScope();
-  const source = createTrajectorySource(scope, plugin);
+  const source = createTrajectorySource(plugin);
   // The scrubber reports every step of a drag: one frame change at a time, the last position wins.
   let seeking = false;
   let wanted: number | undefined;
@@ -53,5 +51,5 @@ export function createTrajectoryControls(
       void (source.playing.value ? api.trajectory.stop() : api.trajectory.play());
     },
   };
-  return { model, dispose: () => scope.dispose() };
+  return { model, dispose: () => {} };
 }

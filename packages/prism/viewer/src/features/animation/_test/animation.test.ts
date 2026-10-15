@@ -61,6 +61,21 @@ describe('animation', () => {
     expect((play.params.name as any).options.map((o: string[]) => o[0])).toEqual(listed);
   });
 
+  it('says durations as "Duration (ms)", and listens to the plugin only while watched', async () => {
+    const v = await headlessViewer({ files: [cbs()], extensions: [AnimationFeature] });
+    const spin = v.api.animation!.paramsOf(names.spin)!;
+    expect(spin.durationInMs.label).toBe('Duration (ms)');
+    const changed = v.plugin.state.data.events.changed as unknown as { observers: unknown[] };
+    const idle = changed.observers.length;
+    // Reading the state (the commands do) is a read, not a subscription.
+    expect(v.api.animation!.state.value.animations.length).toBeGreaterThan(0);
+    expect(changed.observers.length).toBe(idle);
+    const watching = v.api.animation!.state.subscribe();
+    expect(changed.observers.length).toBeGreaterThan(idle);
+    watching.unsubscribe();
+    expect(changed.observers.length).toBe(idle);
+  });
+
   it('has the commands: play, the presets, stop, wiggle, and the card', async () => {
     const v = await headlessViewer({ extensions: [AnimationFeature] });
     for (const id of [
@@ -204,6 +219,34 @@ describe('wiggle', () => {
 
     expectOk(await v.api.history.undo());
     expect(wiggleOf(v.plugin).mode).toBe('uncertainty');
+  });
+
+  it('says when the uncertainty wiggle is already so, and what it did in the past tense', async () => {
+    const v = await headlessViewer({ files: [cbs()], extensions: [AnimationFeature] });
+    const first = await v.api.animation!.wiggle({ mode: 'uncertainty', amplitude: 1 });
+    expectOk(first);
+    expect(first.did).toBe('Started the wiggle (uncertainty, amplitude 1).');
+    const steps = v.managers.history.steps.value.length;
+    // A repeat does not make another step.
+    expect(await v.api.animation!.wiggle({ mode: 'uncertainty', amplitude: 1 })).toMatchObject({
+      ok: true,
+      unchanged: true,
+    });
+    expect(v.managers.history.steps.value.length).toBe(steps);
+    // Another amplitude is another wiggle.
+    expectOk(await v.api.animation!.wiggle({ mode: 'uncertainty', amplitude: 2 }));
+    expect(v.managers.history.steps.value.length).toBe(steps + 1);
+    expect(await v.api.animation!.wiggle({ mode: 'uncertainty', amplitude: 2 })).toMatchObject({ unchanged: true });
+
+    const dynamics = await v.api.animation!.wiggle({ mode: 'dynamics', amplitude: 1 });
+    expectOk(dynamics);
+    expect(dynamics.did).toBe('Started the wiggle (dynamics, amplitude 1).');
+    const off = await v.api.animation!.wiggle({ mode: 'off' });
+    expectOk(off);
+    expect(off.did).toBe('Stopped the wiggle.');
+    // One name in the command menu and the History.
+    expect(v.api.animation!.wiggle.definition.title).toBe('Wiggle');
+    expect(v.managers.commands.get('animation.wiggle')?.title).toBe('Wiggle…');
   });
 
   it('switches from one mode to the other', async () => {

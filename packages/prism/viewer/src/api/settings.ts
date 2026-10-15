@@ -8,7 +8,8 @@
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { readSettings, SettingsMapping, type SettingsGroupId, type SettingsGroupState } from '../sources/settings.js';
-import { type ApiContext, ApiArea, ApiResult } from './area.js';
+import { type ApiContext, ApiArea, type ApiFailure, ApiResult } from './area.js';
+import { changeWords } from './change-words.js';
 
 // `settings` (operations.md §2, parity.md §5, plan 3.3): the Settings tab's groups over the plugin's real params
 // (Canvas3D, its context, the interactivity manager, the behaviors) and the viewer's own (Undo). `settings.get` reads
@@ -97,6 +98,16 @@ function mergeValues(params: PD.Params, current: Record<string, any>, patch: Rec
 }
 
 /** The top-level params whose value differs. */
+/** Why a group cannot be read or set here: the canvas groups need a canvas (`unavailable`); behaviors, some behavior. */
+function unavailable(ctx: ApiContext, group: SettingsGroupId, title: string): ApiFailure {
+  if (group === 'behaviors') return ApiResult.fail('not-found', 'No behavior has settings to change.');
+  return ApiResult.fail(
+    'unavailable',
+    `${title} settings need a canvas.`,
+    ctx.plugin.canvas3d ? 'This host has no canvas context.' : 'This host has no canvas.',
+  );
+}
+
 function changedKeys(group: SettingsGroupState, next: Record<string, unknown>): string[] {
   return Object.keys(group.params).filter((k) => !PD.isParamEqual(group.params[k], group.values[k], next[k]));
 }
@@ -118,8 +129,11 @@ export class SettingsApi extends ApiArea {
         ? groups.filter((g) => g.id === group || g.title.toLowerCase() === group.toLowerCase())
         : groups;
       if (group && !wanted.length) {
+        // A group of the Settings tab that this host cannot show (no canvas) is not there to read, as to set.
+        const known = SettingsMapping.find((g) => g.id === group || g.title.toLowerCase() === group.toLowerCase());
+        if (known) return unavailable(ctx, known.id, known.title);
         return ApiResult.fail(
-          groups.some((g) => g.id === group) ? 'failed' : 'not-found',
+          'not-found',
           `There is no settings group '${group}' here.`,
           `Groups: ${groups.map((g) => g.id).join(', ')}.`,
         );
@@ -158,16 +172,7 @@ export class SettingsApi extends ApiArea {
       const groups = readSettings(ctx.plugin, ctx.managers.history.checkpointing.value);
       const current = groups.find((g) => g.id === group);
       const title = SettingsMapping.find((g) => g.id === group)?.title ?? group;
-      if (!current) {
-        const canvas = group !== 'behaviors' && group !== 'viewer';
-        return canvas
-          ? ApiResult.fail(
-              'unavailable',
-              `${title} settings need a canvas.`,
-              ctx.plugin.canvas3d ? 'This host has no canvas context.' : 'This host has no canvas.',
-            )
-          : ApiResult.fail('not-found', `No behavior has settings to change.`);
-      }
+      if (!current) return unavailable(ctx, group, title);
       const problem = check(current.params, values, '');
       if (problem) return ApiResult.fail('invalid', problem, `Read the values with settings.get.`);
       const next = mergeValues(current.params, current.values, values);
@@ -223,8 +228,10 @@ async function apply(
     nodes.push(...refs);
   }
   if (group.viewer) ctx.managers.history.setCheckpointing(next.checkpointing as boolean);
+  // In words: the fields' labels and what they became ("Shadow on"), not the names of the params.
+  const said = changeWords(group.params, group.values, next);
   return ApiResult.ok(
-    `Changed the ${title} settings: ${changed.join(', ')}.`,
+    `Changed the ${title} settings: ${(said.length ? said : changed).join(', ')}.`,
     { ...(view ? { view } : {}), ...(nodes.length ? { nodes } : {}) },
     warnings.length ? { warnings } : {},
   );

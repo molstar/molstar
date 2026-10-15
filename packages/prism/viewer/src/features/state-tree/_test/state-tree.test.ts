@@ -185,6 +185,21 @@ describe('state tree', () => {
       expect((cellOf(v, rep.ref).transform.params as any).colorTheme.name).toBe('chain-id');
     });
 
+    it('says what it updated: the cell, its structure and the param that changed', async () => {
+      const v = await viewer();
+      const rep = await cartoon(v);
+      const r = await v.api.state!.update({
+        ref: rep.ref,
+        params: { colorTheme: { name: 'secondary-structure', params: {} } },
+      });
+      expectOk(r);
+      expect(r.did).toBe('Updated Cartoon of 1CBS: color theme.');
+      // The structure itself has no "of".
+      const structure = byTransform(await tree(v), 'Structure')[0];
+      const own = await v.api.state!.update({ ref: structure.ref, params: { label: 'mine' } });
+      if (own.ok) expect(own.did).not.toMatch(/ of /);
+    });
+
     it('is already so when nothing would change', async () => {
       const v = await viewer();
       const rep = await cartoon(v);

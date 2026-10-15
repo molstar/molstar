@@ -14,6 +14,7 @@ import { createTargetResolver } from '../../../sources/targets.js';
 import type { PrismViewer } from '../../../viewer.js';
 import { MeasurementGroupTag } from '@molstar/plugin/state/manager/structure/measurement';
 import { MeasurementsFeature } from '../index.js';
+import { shortLabel } from '../source.js';
 
 // The `measure` area (operations.md §2) on a headless viewer with 1CBS: the measurement manager's cells, as results.
 
@@ -253,6 +254,8 @@ describe('the Measure section model', () => {
   it('measures from the picks and follows the measurements made', async () => {
     const v = await setup();
     const model = v.api.measure!.model(v.api);
+    // A view binds to what it shows; the nodes follow the measurements while it does.
+    const watching = [model.points.subscribe(), model.added.subscribe()];
     expect(model.points.value).toHaveLength(0);
     expect(model.kinds.map((k) => k.id)).toEqual(['distance', 'angle', 'dihedral', 'label', 'orientation', 'plane']);
 
@@ -280,6 +283,72 @@ describe('the Measure section model', () => {
     await until(() => node.isHidden.value);
     node.remove();
     await until(() => model.added.value.length === 0);
+    for (const w of watching) w.unsubscribe();
+  });
+
+  it('listens to the plugin only while something watches, and reads once per frame', async () => {
+    const v = await setup();
+    const model = v.api.measure!.model(v.api);
+    const events = v.plugin.state.data.events as unknown as Record<string, { observers: unknown[] }>;
+    const history = (v.plugin.managers.structure.selection.events as any).additionsHistoryUpdated;
+    const observers = () => [events.changed.observers.length, history.observers.length];
+    const idle = observers();
+    // Reading `value` is a read, not a subscription.
+    expect(model.added.value).toHaveLength(0);
+    expect(model.points.value).toHaveLength(0);
+    expect(observers()).toEqual(idle);
+
+    const watching = [model.added.subscribe(), model.points.subscribe()];
+    expect(observers()).not.toEqual(idle);
+    expectOk(await v.api.measure!.distance({ a: A(10), b: A(20) }));
+    // `value` is current at once, without waiting for the frame.
+    expect(model.added.value).toHaveLength(1);
+    for (const w of watching) w.unsubscribe();
+    expect(observers()).toEqual(idle);
+  });
+
+  it('shows the short form of a point and the full label for the tooltip', async () => {
+    const v = await setup();
+    const model = v.api.measure!.model(v.api);
+    const r = await createTargetResolver(v.plugin).resolve('A:10@CA');
+    if (!r.ok) throw new Error(r.message);
+    v.plugin.managers.structure.selection.fromLoci('add', r.parts[0].loci, false);
+    const [point] = model.points.value;
+    expect(point.label).toContain('|');
+    expect(point.short).toMatch(/^.+ · .+$/);
+    expect(point.short!.split(' · ')[0]).toBe(point.label.split('|')[0].trim());
+    expect(point.short!.endsWith(point.label.split('|').pop()!.trim())).toBe(true);
+    expect(shortLabel('CYS 442 SG')).toBe('CYS 442 SG');
+    expect(shortLabel('REA 200 | B [auth A] | Instance ASM-1 | Model 1 | 1CBS')).toBe('REA 200 · 1CBS');
+  });
+
+  it('keeps the options form while an edit is on its way, and sends one step for a drag', async () => {
+    const v = await setup();
+    const model = v.api.measure!.model(v.api);
+    const steps0 = steps(v);
+    // Several changes of one drag: one step.
+    model.options.set('textColor', 0x112233 as never);
+    model.options.set('textColor', 0x223344 as never);
+    model.options.set('textColor', 0x334455 as never);
+    // Mid-drag, an older value arriving does not pull the form back.
+    model.loadOptions!({ distanceUnitLabel: 'Å', textColor: 0xaaaaaa });
+    expect((model.options.values.value as any).textColor).toBe(0x334455);
+    await until(() => manager(v).state.options.textColor === 0x334455);
+    expect(steps(v)).toBe(steps0 + 1);
+    // Once it landed, the form follows again.
+    await until(() => {
+      model.loadOptions!({ distanceUnitLabel: 'nm', textColor: 0x334455 });
+      return (model.options.values.value as any).distanceUnitLabel === 'nm';
+    });
+  });
+
+  it('restores the options with Undo (they are custom state of the checkpoint)', async () => {
+    const v = await setup();
+    expectOk(await v.api.measure!.options({ distanceUnitLabel: 'nm', textColor: '#ff8800' }));
+    expect(manager(v).state.options.distanceUnitLabel).toBe('nm');
+    expectOk(await v.api.history.undo());
+    expect(manager(v).state.options.distanceUnitLabel).toBe('\u212B');
+    expect(manager(v).state.options.textColor).not.toBe(0xff8800);
   });
 });
 

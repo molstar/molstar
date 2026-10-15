@@ -7,6 +7,7 @@
  */
 
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { PluginContext } from '@molstar/plugin/context';
 import type { StructureRef } from '@molstar/plugin/state/manager/structure/hierarchy-state';
 import { AnimateModelIndex } from '@molstar/plugin/state/animation/built-in/model-index';
 import { isPlayingFrames, type TrajectoryInfo, trajectoryInfos, whileViewing } from '../sources/trajectory.js';
@@ -24,6 +25,10 @@ export interface TrajectoryValue {
   readonly structures: readonly TrajectoryInfo[];
   readonly playing: boolean;
 }
+
+/** Whether any structure has several models (the operations' `when`: the command menu greys them out otherwise). */
+const hasFrames = (ctx: { plugin: PluginContext }): true | string =>
+  trajectoryInfos(ctx.plugin).length ? true : 'No structure has several models.';
 
 const noFrames = () =>
   ApiResult.fail('not-found', 'No structure has several models.', 'Load an ensemble or a trajectory first.');
@@ -51,13 +56,14 @@ export class TrajectoryApi extends ApiArea {
     title: 'Show a frame',
     params: {
       structure: StructureParam('A structure by label or state ref; empty: the one with frames in view'),
-      index: PD.Numeric(-1, { min: -1, step: 1 }, { description: 'The frame, from 0; -1: use `by`' }),
+      index: PD.Numeric(-1, { min: -1, step: 1 }, { label: 'Model', description: 'The frame, from 0; -1: use `by`' }),
       by: PD.Numeric(
         0,
         { step: 1 },
-        { description: 'Frames to move by (negative: back), wrapping around; 0: use `index`' },
+        { label: 'Move by', description: 'Frames to move by (negative: back), wrapping around; 0: use `index`' },
       ),
     },
+    when: hasFrames,
     // The classic's arrows are viewing (sequence.md §7.3): the frame is not a step, and Undo leaves it where it is.
     history: false,
     async run({ structure, index, by }, ctx) {
@@ -98,10 +104,15 @@ export class TrajectoryApi extends ApiArea {
       mode: PD.Select<'loop' | 'palindrome' | 'once'>(
         'loop',
         PD.arrayToOptions(['loop', 'palindrome', 'once'] as const),
-        { description: 'Loop, back and forth (palindrome), or once through' },
+        { label: 'Mode', description: 'Loop, back and forth (palindrome), or once through' },
       ),
-      seconds: PD.Numeric(5, { min: 1, max: 120, step: 0.5 }, { description: 'Seconds for a pass through the frames' }),
+      seconds: PD.Numeric(
+        5,
+        { min: 1, max: 120, step: 0.5 },
+        { label: 'Seconds per pass', description: 'Seconds for a pass through the frames' },
+      ),
     },
+    when: hasFrames,
     // The animation steps the model index of every trajectory in the scene, as the classic's: viewing, no step.
     history: false,
     // The plugin's animation loop runs on the canvas's frames.

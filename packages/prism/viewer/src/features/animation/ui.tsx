@@ -14,8 +14,8 @@ import type { ViewerExtensionUI, ViewerUIContext } from '../../spec.js';
 import { createAnimationModel } from './model.js';
 
 // The Animation card (parity.md §4; the mock's `registerMockAnimation`): a list of sections in the `animation` slot,
-// like Export's. Play chooses an animation of the plugin's (with its own params) and plays or stops it; Procedural
-// animation is Mol*'s wiggle. Both act through the person's API; other extensions add sections to the same slot.
+// like Export's. Play chooses an animation of the plugin's (with its own params) and plays or stops it; Wiggle is
+// Mol*'s procedural animation. Both act through the person's API; other extensions add sections to the same slot.
 
 export function animationUI(ctx: ViewerUIContext): ViewerExtensionUI {
   const area = ctx.api.animation;
@@ -66,7 +66,7 @@ export function animationUI(ctx: ViewerUIContext): ViewerExtensionUI {
       {
         id: 'animation.section.wiggle',
         slot: 'animation',
-        title: 'Procedural animation',
+        title: 'Wiggle',
         icon: 'orbit',
         keywords: ['wiggle', 'dynamics', 'uncertainty', 'b-factor'],
         order: 1,

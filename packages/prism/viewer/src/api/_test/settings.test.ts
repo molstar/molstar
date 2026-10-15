@@ -181,11 +181,14 @@ describe('settings, headless', () => {
     expect(v.managers.history.checkpointing.value).toBe(true);
   });
 
-  it('fails unavailable for a canvas group without a canvas', async () => {
+  it('fails unavailable for a canvas group without a canvas, to read and to set', async () => {
     const v = await headlessViewer();
     for (const group of ['appearance', 'camera', 'interaction', 'performance', 'advanced'] as const) {
       expect(await v.api.settings.set({ group, values: {} }), group).toMatchObject({ ok: false, code: 'unavailable' });
+      expect(await v.api.settings.get({ group }), group).toMatchObject({ ok: false, code: 'unavailable' });
     }
+    // A group that does not exist is another thing.
+    expect(await v.api.settings.get({ group: 'nope' })).toMatchObject({ ok: false, code: 'not-found' });
   });
 });
 
@@ -219,6 +222,24 @@ describe('settings, with a canvas', () => {
     expect(props.renderer.backgroundColor).toBe(before.renderer.backgroundColor);
     expect(props.transparentBackground).toBe(before.transparentBackground);
     expect(props.cameraFog.name).toBe(before.cameraFog.name);
+  });
+
+  it('names the changed fields in words, and the Canvas card names fields the same', async () => {
+    const { v } = await withCanvas();
+    const r = await v.api.settings.set({
+      group: 'appearance',
+      values: { renderer: { backgroundColor: 0xffffff }, transparentBackground: true, cameraFog: { name: 'off' } },
+    });
+    expectOk(r);
+    expect(r.did).toContain('Color white');
+    expect(r.did).toContain('Transparent on');
+    expect(r.did).toContain('Fog off');
+    expect(r.did).not.toMatch(/renderer|cameraFog|transparentBackground/);
+    const form = readSettings(v.plugin, true).find((g) => g.id === 'appearance')!;
+    const labelOf = (p: PD.Any) => p.label;
+    expect(labelOf(form.params.cameraFog)).toBe('Fog');
+    expect(labelOf(form.params.transparentBackground)).toBe('Transparent');
+    expect(labelOf((form.params.renderer as PD.Group<any>).params.backgroundColor)).toBe('Color');
   });
 
   it('reads the values back, group by group', async () => {

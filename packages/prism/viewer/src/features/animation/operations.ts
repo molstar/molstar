@@ -21,6 +21,7 @@ import {
   animationInfos,
   createAnimationSource,
   paramsOf,
+  uncertaintyScale,
   wiggleCells,
   wiggleOf,
   type AnimationSource,
@@ -189,7 +190,7 @@ export class AnimationApi extends ApiArea {
 
   readonly wiggle = this.operation({
     id: 'animation.wiggle',
-    title: 'Wiggle the structures',
+    title: 'Wiggle',
     params: WiggleParams,
     // It is representation state (the animation params of every representation, the uncertainty layers): a step.
     async run({ mode, amplitude }, ctx) {
@@ -199,7 +200,15 @@ export class AnimationApi extends ApiArea {
       const now = wiggleOf(plugin);
       if (mode === 'off' && now.mode === 'off') return ApiResult.already('Nothing wiggles.');
       if (mode === 'dynamics' && now.mode === 'dynamics' && now.amplitude === amplitude) {
-        return ApiResult.already(`The structures already wiggle by dynamics (${amplitude}).`);
+        return ApiResult.already(`The structures already wiggle by dynamics (amplitude ${amplitude}).`);
+      }
+      // Uncertainty: the amplitude is the layers' largest value, so the same amplitude is the same wiggle.
+      if (
+        mode === 'uncertainty' &&
+        now.mode === 'uncertainty' &&
+        Math.abs(uncertaintyScale(plugin) - amplitude) < 1e-6
+      ) {
+        return ApiResult.already(`The structures already wiggle by uncertainty (amplitude ${amplitude}).`);
       }
       const components = structures.flatMap((s) => s.components);
       // As the classic's Procedural Animation: the options are the scene's (every representation), the layers each
@@ -212,7 +221,7 @@ export class AnimationApi extends ApiArea {
       if (mode === 'dynamics') {
         await setWiggleOptions(plugin, amplitude, { wiggleSpeed: 7, wiggleFrequency: 0.2 });
         await clearStructureWiggle(plugin, components);
-        return ApiResult.ok(`The structures wiggle by dynamics (${amplitude}).`, { nodes: nodesOf(ctx) });
+        return ApiResult.ok(`Started the wiggle (dynamics, amplitude ${amplitude}).`, { nodes: nodesOf(ctx) });
       }
       await setWiggleOptions(plugin, 0);
       await setStructureWiggleFromUncertainty(plugin, components, amplitude);
@@ -223,7 +232,7 @@ export class AnimationApi extends ApiArea {
           'Use mode dynamics.',
         );
       }
-      return ApiResult.ok('The structures wiggle by their uncertainty.', { nodes: nodesOf(ctx) });
+      return ApiResult.ok(`Started the wiggle (uncertainty, amplitude ${amplitude}).`, { nodes: nodesOf(ctx) });
     },
   });
 }

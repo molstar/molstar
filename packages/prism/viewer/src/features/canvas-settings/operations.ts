@@ -9,6 +9,7 @@
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Canvas3DParams, type Canvas3DProps, type PartialCanvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import { type ApiContext, ApiResult, type OperationDefinition } from '../../api/area.js';
+import { changeWords } from '../../api/change-words.js';
 
 // The `canvas-settings` feature's operations (operations.md §2, the `canvas` row; viewer-spec.md §3.1): added to the
 // core's `canvas` area, as only built-in features may. The card's sections edit through `canvas.settings` (one section's
@@ -39,6 +40,18 @@ export const CanvasSections = {
 };
 
 export type CanvasSection = keyof typeof CanvasSections;
+
+/** How a change of a field is said in the History ("Background white", "Shadows on"). */
+const SectionNames: Readonly<Record<string, string>> = {
+  color: 'Background',
+  transparent: 'Transparent background',
+  style: 'Background style',
+  occlusion: 'Occlusion',
+  shadow: 'Shadows',
+  outline: 'Outline',
+  fog: 'Fog',
+  multiSample: 'Multi-sampling',
+};
 
 /** A section's values, read from the canvas's props. */
 export function sectionValues(section: CanvasSection, p: Canvas3DProps): Record<string, unknown> {
@@ -165,7 +178,12 @@ export const canvasSettingsOperations = (): {
         if (PD.areEqual(CanvasSections[section].params, current, next)) {
           return ApiResult.already(`The ${section} settings are already so.`);
         }
-        return set(ctx, sectionProps(section, next), `Changed the ${section} settings.`);
+        const said = changeWords(CanvasSections[section].params, current, next, SectionNames);
+        return set(
+          ctx,
+          sectionProps(section, next),
+          `Changed the ${section} settings${said.length ? `: ${said.join(', ')}` : ''}.`,
+        );
       },
     }),
   },

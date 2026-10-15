@@ -128,6 +128,23 @@ describe('canvas settings', () => {
     }
   });
 
+  it('names the changed fields in words', async () => {
+    const { v } = await withCanvas();
+    const bg = await v.api.run('canvas.settings', {
+      section: 'background',
+      values: { color: 0xffffff, transparent: true },
+    });
+    expectOk(bg);
+    expect(bg.did).toBe('Changed the background settings: Background white, Transparent background on.');
+    const shadowOn = (Canvas3DParams.postprocessing.params.shadow as PD.Mapped<any>).map('on') as PD.Group<any>;
+    const light = await v.api.run('canvas.settings', {
+      section: 'lighting',
+      values: { shadow: { name: 'on', params: PD.getDefaultValues(shadowOn.params) } },
+    });
+    expectOk(light);
+    expect(light.did).toBe('Changed the lighting settings: Shadows on.');
+  });
+
   it('is only for built-in features', async () => {
     const { builtIn: _, ...outside } = CanvasSettingsFeature;
     await expect(headlessViewer({ extensions: [{ ...outside, id: 'outside' }] })).rejects.toThrow(/only the viewer/);

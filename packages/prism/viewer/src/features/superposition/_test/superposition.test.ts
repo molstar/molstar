@@ -152,6 +152,23 @@ describe('superpose.chains', () => {
     expect(Mat4.areEqual(matrixOf(mobileOf(v, mobile)), shift, 0.02)).toBe(true);
   });
 
+  it('takes the polymer part of a chain with its waters and ligand', async () => {
+    const { v, mobile, api } = await twoCopies();
+    // "Chain A" is the protein, its ligand and 100 waters: the polymer part is the one chain.
+    const r = await api.chains({ targets: ['A', 'A'] });
+    expectOk(r);
+    expect(r.value!.results[0].rmsd).toBeLessThan(0.05);
+    expect(Mat4.areEqual(matrixOf(mobileOf(v, mobile)), Undone, 0.02)).toBe(true);
+    const tm = await api.tmAlign({ targets: ['A', 'A'] });
+    expect(tm.ok).toBe(true);
+  });
+
+  it('says what is wrong with a target that has no polymer', async () => {
+    const { api } = await twoCopies();
+    const waters = await api.chains({ targets: ['water', 'water'] });
+    expect(waters).toMatchObject({ ok: false, code: 'invalid', message: expect.stringContaining('no polymer') });
+  });
+
   it('fails when a target selects nothing, is not a chain, or two share a structure', async () => {
     const { ref, mobile, api } = await twoCopies();
     const empty = await api.chains({
@@ -400,14 +417,18 @@ describe('the feature', () => {
 });
 
 describe('the Superpose view model', () => {
+  const deps = (v: PrismViewer, messages: string[] = []) => ({
+    api: v.api,
+    sources: v.sources,
+    notify: (text: string, kind?: string) => messages.push(`${kind}: ${text}`),
+  });
+
   it('follows the structures and the selection and superposes by the form', async () => {
     const { v, ref, mobile } = await twoCopies();
     const messages: string[] = [];
-    const model = createSuperpositionModel({
-      api: v.api,
-      sources: v.sources,
-      notify: (text, kind) => messages.push(`${kind}: ${text}`),
-    });
+    const runs = recordRuns(v);
+    const model = createSuperpositionModel(deps(v, messages));
+    model.setActive(true);
     try {
       await until(() => model.available.value && model.hint.value !== '');
       expect(model.ready.value).toBe(false);
@@ -416,6 +437,7 @@ describe('the Superpose view model', () => {
       expectOk(await v.api.select.set({ target: 'polymer', structure: mobile, mode: 'add' }));
       await until(() => model.ready.value);
       expect(model.entries.value.map((e) => e.id)).toEqual([ref, mobile]);
+      expect(model.blocked!.value).toBeUndefined();
       model.superpose();
       await until(() => messages.length > 0);
       expect(messages[0]).toMatch(/^success: Superposed/);
@@ -426,6 +448,87 @@ describe('the Superpose view model', () => {
       model.superpose();
       await until(() => messages.length > 1);
       expect(messages[1]).toMatch(/^error: .*no SIFTS/);
+      // Reading the selection is the source's: the API is not run for it.
+      expect(runs.map((r) => r.operation)).not.toContain('select.get');
+    } finally {
+      model.dispose();
+    }
+  });
+
+  it('holds no subscription while the section is folded', async () => {
+    const { v, ref } = await twoCopies();
+    const events = v.plugin.managers.structure.selection.events.changed as unknown as { observers: unknown[] };
+    const idle = events.observers.length;
+    const model = createSuperpositionModel(deps(v));
+    try {
+      expect(events.observers.length).toBe(idle);
+      model.setActive(true);
+      expect(events.observers.length).toBeGreaterThan(idle);
+      model.setActive(false);
+      expect(events.observers.length).toBe(idle);
+      // Shown again: it catches up with what changed meanwhile.
+      expectOk(await v.api.select.set({ target: 'polymer', structure: ref }));
+      expect(model.entries.value).toHaveLength(0);
+      model.setActive(true);
+      expect(model.entries.value.map((e) => e.id)).toEqual([ref]);
+      expect(model.hint.value).toMatch(/One so far/);
+    } finally {
+      model.dispose();
+    }
+  });
+
+  it('flags a selection the method cannot use, with the reason, and disables Superpose', async () => {
+    const { v, ref, mobile } = await twoCopies();
+    const model = createSuperpositionModel(deps(v));
+    model.setActive(true);
+    try {
+      expectOk(await v.api.select.set({ target: 'water', structure: ref }));
+      expectOk(await v.api.select.set({ target: 'polymer', structure: mobile, mode: 'add' }));
+      await until(() => model.entries.value.length === 2);
+      expect(model.entries.value[0].problem).toMatch(/no polymer/);
+      expect(model.entries.value[1].problem).toBeUndefined();
+      expect(model.ready.value).toBe(false);
+      expect(model.blocked!.value).toMatch(/no polymer/);
+
+      // "Chain A" holds waters and a ligand besides the polymer: the polymer part is used, so it is fine.
+      expectOk(await v.api.select.set({ target: 'A', structure: ref }));
+      expectOk(await v.api.select.set({ target: 'A', structure: mobile }));
+      await until(() => model.ready.value);
+      expect(model.entries.value.every((e) => !e.problem)).toBe(true);
+      expect(model.blocked!.value).toBeUndefined();
+
+      // Ligands: a chain is not one ligand residue.
+      model.form.load({ method: 'ligands', alignSequences: true, traceOnly: true });
+      await until(() => !model.ready.value);
+      expect(model.entries.value[0].problem).toMatch(/not one ligand/);
+      expectOk(await v.api.select.set({ target: 'ligand', structure: ref }));
+      expectOk(await v.api.select.set({ target: 'ligand', structure: mobile }));
+      await until(() => model.ready.value);
+
+      // Atoms: the same number in each, at least three.
+      model.form.load({ method: 'atoms', alignSequences: true, traceOnly: true });
+      expectOk(await v.api.select.set({ target: 'polymer', structure: ref }));
+      expectOk(await v.api.select.set({ target: 'ligand', structure: mobile }));
+      await until(() => model.entries.value.length === 2 && !model.ready.value);
+      expect(model.entries.value[1].problem).toMatch(/the reference has/);
+    } finally {
+      model.dispose();
+    }
+  });
+
+  it('superposes a chain selected with its waters', async () => {
+    const { v, ref, mobile } = await twoCopies();
+    const messages: string[] = [];
+    const model = createSuperpositionModel(deps(v, messages));
+    model.setActive(true);
+    try {
+      expectOk(await v.api.select.set({ target: 'A', structure: ref }));
+      expectOk(await v.api.select.set({ target: 'A', structure: mobile }));
+      await until(() => model.ready.value);
+      model.superpose();
+      await until(() => messages.length > 0);
+      expect(messages[0]).toMatch(/^success: Superposed/);
+      expect(Mat4.areEqual(matrixOf(mobileOf(v, mobile)), Undone, 0.02)).toBe(true);
     } finally {
       model.dispose();
     }
