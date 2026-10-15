@@ -2994,6 +2994,9 @@ importers:
       '@molstar/ai-components':
         specifier: workspace:*
         version: link:../../ai/components
+      '@molstar/ai-fibers':
+        specifier: workspace:*
+        version: link:../../ai/fibers
       '@molstar/ai-harness':
         specifier: workspace:*
         version: link:../../ai/harness
