@@ -230,7 +230,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               home={home}
               onOpenCommandMenu={() => openCommandMenu()}
               // Features' import sections (the loaders' database and URL forms) after the registry's actions.
-              more={() => <SectionList shell={ctx.shell} slot="home.import" bare />}
+              more={() => <SectionList shell={ctx.shell} slot="home.import" bare collapsed />}
             />
           )),
         },
@@ -322,7 +322,21 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   // The core's homes for features' sections: the Selection tab and the Export card (ui/panels.tsx).
   unregister.push(shell.registerTabs(own('tab', [selectionTab(selectionSummaryModel(sources.interaction, person))])));
   unregister.push(
-    shell.registerSections(own('section', selectionSections(person, sources.interaction.selection, sources.layers))),
+    shell.registerSections(
+      own(
+        'section',
+        selectionSections(person, sources.interaction.selection, sources.layers, (ref) => {
+          shell.show('structure');
+          // The tree follows the state on its own schedule: tried until the row is there (a second at most).
+          let tries = 0;
+          const reveal = () => {
+            if (core.views.scene.reveal?.(ref) || ++tries > 20) return;
+            setTimeout(reveal, 50);
+          };
+          reveal();
+        }),
+      ),
+    ),
   );
   const exporting = exportCard(shell);
   unregister.push(shell.registerOverlays(own('overlay', [exporting.overlay])));

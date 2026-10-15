@@ -63,6 +63,8 @@ export function selectionSections(
   api: ViewerApi,
   selection: ReadonlyState<string | undefined>,
   layers: ReadonlyState<readonly StyleLayerInfo[]>,
+  /** Shows a component just made where it is: the Structure panel, its row picked. */
+  showComponent?: (ref: string) => void,
 ): ShellSection[] {
   // Nothing to act on without a selection: the buttons say so.
   const none = selection.pipe(map((s) => !s));
@@ -91,7 +93,9 @@ export function selectionSections(
       title: 'Make a component',
       icon: 'layers',
       order: 1,
-      render: domView(() => <ComponentOfSelection api={api} none={none} />),
+      render: domView(() => (
+        <ComponentOfSelection api={api} none={none} {...(showComponent ? { show: showComponent } : {})} />
+      )),
     },
   ];
 }
@@ -164,20 +168,25 @@ function StyleSelection(props: { api: ViewerApi; none: Observable<boolean> }) {
   );
 }
 
-function ComponentOfSelection(props: { api: ViewerApi; none: Observable<boolean> }) {
+function ComponentOfSelection(props: { api: ViewerApi; none: Observable<boolean>; show?: (ref: string) => void }) {
   const { api } = props;
-  // The representation types, as `representation.set` lists them (`component.add` takes one by id).
+  // The representation types, as `representation.set` lists them (`component.add` takes one by id); or none, to add one
+  // later (v5's "< Create Later >").
   const types = (api.describe('representation.set')?.params.type as PD.Select<string> | undefined)?.options ?? [];
+  const choices = [['none', 'None (add one later)'] as const, ...types] as PD.Select<string>['options'];
   const form = new ParamsFormModel({
     label: PD.Text('Selection', { label: 'Name' }),
-    representation: PD.Select(types.find((t) => t[0] === 'ball-and-stick')?.[0] ?? types[0]?.[0] ?? '', types),
+    representation: PD.Select(types.find((t) => t[0] === 'ball-and-stick')?.[0] ?? types[0]?.[0] ?? '', choices),
   });
   const busy = observableState(false);
   const apply = async () => {
     const v = form.values.value as { label: string; representation: string };
     busy.set(true);
     try {
-      await api.component.add({ target: 'selection', label: v.label, representation: v.representation });
+      const r = await api.component.add({ target: 'selection', label: v.label, representation: v.representation });
+      // Where it is: the Structure panel, its row picked (as a person looks for what they just made).
+      const made = r.ok ? (r.value as readonly { ref: string }[] | undefined)?.[0] : undefined;
+      if (made) props.show?.(made.ref);
     } finally {
       busy.set(false);
     }
@@ -208,7 +217,9 @@ export function exportCard(shell: ShellModel): { overlay: ShellOverlay; toolbar:
     },
     toolbar: {
       id: 'export',
-      group: 'export',
+      // Last in the scene's group, under Canvas, Animation and the Story (David, 2026-10-15).
+      group: 'scene',
+      order: 100,
       icon: 'download',
       title: 'Export…',
       overlay: 'export',

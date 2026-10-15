@@ -18,6 +18,7 @@ import { For, Show } from '@molstar/prism-ui/dom/control-flow';
 import type { PresetsModel, QuickStylesModel, SceneInspection, SceneModel, SceneNode } from '../../model/scene.js';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import { observableState } from '@molstar/prism-ui/reactive/observable-state';
+import type { ReadonlyState } from '@molstar/prism-ui/reactive/readonly-state';
 import { onCleanup } from '@molstar/prism-ui/dom/scope';
 import type { ShellModel } from '@molstar/prism-ui/shell/shell';
 import { SectionList } from '@molstar/prism-ui';
@@ -227,6 +228,61 @@ function RowInspector(props: { row: SceneRowPick }) {
 }
 
 /**
+ * A title that can be renamed (a component): its name and a pencil; editing, a field: Enter renames, Escape leaves it
+ * as it was (and does not close the panel).
+ */
+function RenameTitle(props: { label: ReadonlyState<string>; onRename(label: string): void }) {
+  const editing = observableState(false);
+  return (
+    <Show
+      when={editing.asReadonly}
+      fallback={() => (
+        <span class={classes.renameTitle}>
+          <span class={classes.inspectorTitle}>{props.label}</span>
+          <Button
+            variant="ghost"
+            size="xs"
+            icon={<Icon name="pencil" size={14} />}
+            title="Rename"
+            onClick={() => editing.set(true)}
+          />
+        </span>
+      )}
+    >
+      {() => (
+        <span
+          class={classes.renameField}
+          ref={(el: HTMLElement) =>
+            queueMicrotask(() => {
+              const input = el.querySelector('input');
+              input?.focus();
+              input?.select();
+            })
+          }
+          onKeyDown={(e) => {
+            if (e.key !== 'Escape') return;
+            e.preventDefault();
+            e.stopPropagation();
+            editing.set(false);
+          }}
+        >
+          <TextInput
+            size="sm"
+            aria-label="Name"
+            value={props.label.value}
+            onSubmit={(v) => {
+              const name = v.trim();
+              if (name && name !== props.label.value) props.onRename(name);
+              editing.set(false);
+            }}
+          />
+        </span>
+      )}
+    </Show>
+  );
+}
+
+/**
  * The inspector's eye at its header's end, as the tree row's: Show or Hide what is drawn, Turn on or off a feature
  * (the unit cell, the streaming, an extension's row); marked while hidden or off, so the way back is where it was.
  */
@@ -257,7 +313,11 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection; onPi
   return (
     <div class={classes.inspection}>
       <header class={classes.inspectorHeader}>
-        <span class={classes.inspectorTitle}>{node.label}</span>
+        {props.inspection.rename ? (
+          <RenameTitle label={node.label} onRename={props.inspection.rename} />
+        ) : (
+          <span class={classes.inspectorTitle}>{node.label}</span>
+        )}
         {/* The kind, unless the label already says it (Measurements). */}
         <Show when={node.label.pipe(map((l) => l.toLowerCase() !== node.kind.replace('-', ' ')))}>
           {() => <span class={classes.inspectorKind}>{node.kind.replace('-', ' ')}</span>}

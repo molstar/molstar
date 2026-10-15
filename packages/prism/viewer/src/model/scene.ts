@@ -99,6 +99,8 @@ export interface SceneInspection {
   facts?: readonly (readonly [label: string, value: string])[];
   /** Things to do from here, as plain buttons under the facts (Measurements: measure the selection, in its tab). */
   actions?: readonly SceneMenuItem[];
+  /** Gives it another name (a component: `component.rename`); the inspector's title becomes editable. */
+  rename?(label: string): void;
   /** A map's levels, above the form (a volume, an isosurface, streamed density: one per map). */
   levels?: readonly VolumeLevelsModel[];
   /** A direct volume's transfer function (opacity and color over the map's values), above the form. */
@@ -135,6 +137,8 @@ export interface SceneModel {
   picked: ReadonlyState<SceneNode | undefined>;
   pick(node: SceneNode | undefined): void;
   inspect(node: SceneNode): SceneInspection;
+  /** Picks a node by id, its ancestors expanded so the tree shows where it is; false while it is not in the tree. */
+  reveal?(id: string): boolean;
 }
 
 /** A representation preset (Mol*'s structure representation preset registry): its name, group, description. */

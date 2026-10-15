@@ -758,6 +758,21 @@ export function createSceneSource(
     roots: roots.asReadonly,
     picked: picked.asReadonly,
     pick: (n) => picked.set(n === picked.value ? undefined : n),
+    reveal(id) {
+      const path = (list: readonly SceneNode[]): SceneNode[] | undefined => {
+        for (const n of list) {
+          if (n.id === id) return [n];
+          const below = path(n.children.value);
+          if (below) return [n, ...below];
+        }
+        return undefined;
+      };
+      const found = path(roots.value);
+      if (!found) return false;
+      for (const n of found.slice(0, -1)) if (!n.isExpanded.value) n.toggleExpanded();
+      picked.set(found[found.length - 1]);
+      return true;
+    },
     inspect: (n) => {
       let inspection = inspections.get(n.id);
       if (!inspection) {
@@ -1646,6 +1661,15 @@ function inspect(
         ...(quick ? { quick } : {}),
       };
     }
+  }
+  // A component: its name editable in the inspector's title (the mocks', v5's label).
+  if (node.kind === 'component') {
+    return {
+      node,
+      form: undefined,
+      slot,
+      rename: (label) => void api.run('component.rename', { component: node.id, label }),
+    };
   }
   return { node, form: undefined, slot };
 }

@@ -47,6 +47,8 @@ export const classes = {
   'presets': 'msp-viewer-structure-tab-presets',
   'presetsContent': 'msp-viewer-structure-tab-presetsContent',
   'quickStyles': 'msp-viewer-structure-tab-quickStyles',
+  'renameField': 'msp-viewer-structure-tab-renameField',
+  'renameTitle': 'msp-viewer-structure-tab-renameTitle',
   'search': 'msp-viewer-structure-tab-search',
   'searchButton': 'msp-viewer-structure-tab-searchButton',
   'tab': 'msp-viewer-structure-tab-tab',
@@ -148,6 +150,23 @@ defineStyles('viewer/views/structure/structure-tab.module.css', `@layer msp.comp
   color: var(--msp-color-text-subtle);
   font-size: var(--msp-font-size-xs);
   text-transform: capitalize;
+}
+
+.msp-viewer-structure-tab-renameTitle {
+  align-items: center;
+  gap: var(--msp-space-1);
+  flex: 1;
+  min-width: 0;
+  display: flex;
+
+  & .msp-viewer-structure-tab-inspectorTitle {
+    flex: 0 auto;
+  }
+}
+
+.msp-viewer-structure-tab-renameField {
+  flex: 1;
+  min-width: 0;
 }
 
 .msp-viewer-structure-tab-inspectorEye {

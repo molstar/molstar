@@ -66,8 +66,9 @@ export function HomeTab(props: HomeTabProps) {
           <For each={home.actions} key={(a) => a.id}>
             {(action, index) => <ActionBlock action={action} open={index.value === 0} />}
           </For>
+          {/* Extensions' loaders (Zenodo): among the actions, folded, as one of them. */}
+          {props.more?.()}
         </section>
-        {props.more?.()}
         {home.remoteStates ? <RemoteStatesList model={home.remoteStates} caption /> : null}
         {home.keptRecords ? <KeptRecordsList model={home.keptRecords} /> : null}
       </ScrollArea>

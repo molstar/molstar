@@ -116,6 +116,24 @@
   text-transform: capitalize;
 }
 
+/* A component's title with its pencil; renaming, the field takes the title's room. */
+.renameTitle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--msp-space-1);
+  min-width: 0;
+
+  & .inspectorTitle {
+    flex: 0 1 auto;
+  }
+}
+
+.renameField {
+  flex: 1;
+  min-width: 0;
+}
+
 /* The header's eye (show or hide, turn on or off): quiet at the end, the text color while hidden or off. */
 .inspectorEye {
   flex: none;

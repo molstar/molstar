@@ -45,3 +45,25 @@ describe("a component's actions", () => {
     expect(disabled()).toBe(false);
   });
 });
+
+describe('a component in the inspector', () => {
+  it('is renamed from its title, and revealed in the tree by id once made', async () => {
+    const v = await headlessViewer({ files: [cbs()] });
+    await until(() => v.views.scene.roots.value.length > 0);
+    const scene = v.views.scene;
+    const polymer = scene.roots.value[0].children.value.find((n) => n.label.value === 'Polymer')!;
+    // A preset component (a static one: Mol*'s update used to keep its old label).
+    scene.inspect(polymer).rename!('The protein');
+    await until(() => polymer.label.value === 'The protein');
+
+    // Made with no representation (v5's "< Create Later >"), then revealed: its structure expanded, it picked.
+    expectOk(await v.api.select.set({ target: 'ligand' }));
+    const made = await v.api.component.add({ target: 'selection', label: 'Mine', representation: 'none' });
+    expectOk(made);
+    const ref = (made.value as { ref: string }[])[0].ref;
+    await until(() => !!scene.reveal?.(ref));
+    expect(scene.picked.value?.label.value).toBe('Mine');
+    expect(scene.picked.value?.children.value).toEqual([]);
+    expect(scene.roots.value[0].isExpanded.value).toBe(true);
+  });
+});

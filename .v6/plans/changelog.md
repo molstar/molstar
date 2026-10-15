@@ -159,6 +159,11 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: the playback card is the Story (a book icon), one frame, its text wrapping inside it; a description's
   first heading that only repeats the snapshot's title is not shown; ← and → step through a story (quiet where there is
   none); the Snapshots tab's Play is an icon beside its options.
+- `StructureComponent` (a static one: the presets' Polymer, Water, …) takes a new label on update (it returned
+  Unchanged before reaching the label, so a rename did nothing).
+- Prism viewer: a component is renamed from its inspector's title (a pencil); Make a component can make one with no
+  representation (v5's "< Create Later >") and opens the Structure panel at it; Export is last in the rail's scene
+  group; Home's Zenodo starts folded, among the actions.
 - Prism UI: switching from one card to another (Animation, Canvas) swaps its title and body in the one card, as a tab
   swaps a panel's content, instead of closing and opening a card again.
 - Prism assistant: a call waiting to reach an address offers Allow once and Allow <host> (Remember keeps it in this
