@@ -39,6 +39,17 @@ describe('StructureTab', () => {
     expect(rows().length).toBeLessThan(before);
   });
 
+  it('offers to show a hidden node in its inspector, not only by its eye', () => {
+    const { container, row } = mount();
+    row('Water').click();
+    const inspector = () => container.querySelector('[aria-label="Inspector"]')!;
+    const show = [...inspector().querySelectorAll('button')].find((b) => b.textContent === 'Show')!;
+    expect(show).toBeDefined();
+    show.click();
+    expect(row('Water').querySelector('button[title=Hide]')).not.toBeNull();
+    expect([...inspector().querySelectorAll('button')].some((b) => b.textContent === 'Show')).toBe(false);
+  });
+
   it('picks a node into the inspector, and form edits change the tree', () => {
     const { container, row } = mount();
     row('Cartoon').click();

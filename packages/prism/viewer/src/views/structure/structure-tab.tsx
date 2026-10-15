@@ -172,6 +172,9 @@ export function StructureTab(props: StructureTabProps) {
   );
 }
 
+/** Rows that stand for a feature (on or off), not for something drawn (shown or hidden). */
+const TurnsOn: ReadonlySet<string> = new Set(['extension', 'unit-cell']);
+
 function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
   const { node, form, slot } = props.inspection;
   return (
@@ -193,6 +196,17 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
           ))}
         </dl>
       ) : null}
+      {/* Off or hidden (the streaming not on, the unit cell not shown): turning it on is here too, not only its row's
+          eye. */}
+      <Show when={node.isHidden}>
+        {() => (
+          <div class={classes.inspectorActions}>
+            <button type="button" class={classes.inspectorAction} onClick={() => node.toggleVisibility()}>
+              <span>{TurnsOn.has(node.kind) ? 'Turn on' : 'Show'}</span>
+            </button>
+          </div>
+        )}
+      </Show>
       {props.inspection.actions?.length ? (
         <div class={classes.inspectorActions}>
           {props.inspection.actions.map((a) => (
@@ -211,7 +225,11 @@ function Inspector(props: { shell: ShellModel; inspection: SceneInspection }) {
           <NodeActions node={node} />
         ) : !props.inspection.facts?.length ? (
           <Show when={sectionsFor(props.shell, slot, node).pipe(map((has) => !has))}>
-            {() => <p class={classes.nothing}>Nothing to set here.</p>}
+            {() => (
+              <Show when={node.isHidden.pipe(map((h) => !h))}>
+                {() => <p class={classes.nothing}>Nothing to set here.</p>}
+              </Show>
+            )}
           </Show>
         ) : null
       ) : null}
