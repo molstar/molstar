@@ -2988,6 +2988,21 @@ importers:
 
   packages/prism/viewer:
     dependencies:
+      '@molstar/ai-agent':
+        specifier: workspace:*
+        version: link:../../ai/agent
+      '@molstar/ai-components':
+        specifier: workspace:*
+        version: link:../../ai/components
+      '@molstar/ai-harness':
+        specifier: workspace:*
+        version: link:../../ai/harness
+      '@molstar/ai-session':
+        specifier: workspace:*
+        version: link:../../ai/session
+      '@molstar/ai-tools':
+        specifier: workspace:*
+        version: link:../../ai/tools
       '@molstar/core':
         specifier: workspace:*
         version: link:../../core
@@ -3031,6 +3046,9 @@ importers:
         specifier: 'catalog:'
         version: 2.8.1
     devDependencies:
+      '@molstar/ai-conformance':
+        specifier: workspace:*
+        version: link:../../ai/conformance
       '@storybook/web-components-vite':
         specifier: 'catalog:'
         version: 10.6.0(lit@3.3.3)(storybook@10.6.0(@types/react@18.3.31)(prettier@3.9.9)(react@18.3.1))(vite@8.3.1(@types/node@22.20.1)(esbuild@0.28.1)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))

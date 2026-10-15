@@ -58,7 +58,9 @@ Status: **accepted** in shape (2026-10-15); the tool lists are a first pass.
   eviction hint at the next compaction. A mechanism in `@molstar/ai-tools` and `ai-session`; what is registered is the
   viewer's.
 - **`ask`**: when the intent is unclear (load a second copy? which chain?), the agent asks instead of guessing; the turn
-  parks as it does for an approval, the person picks an option or types, and the answer is the tool's result.
+  parks as it does for an approval, the person picks an option or types, and the answer is the tool's result. As built
+  so far (plan 4.1): `ask` tells the agent to end its turn, and the person's answer comes as the next request; the
+  parked question comes with the assistant's turn card.
 
 ## 4. Policies (from Stories Untold)
 

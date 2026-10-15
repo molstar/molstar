@@ -45,6 +45,21 @@
     },
     {
       "path": "../../plugin/headless"
+    },
+    {
+      "path": "../../ai/agent"
+    },
+    {
+      "path": "../../ai/tools"
+    },
+    {
+      "path": "../../ai/session"
+    },
+    {
+      "path": "../../ai/components"
+    },
+    {
+      "path": "../../ai/harness"
     }
   ]
 }
