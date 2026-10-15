@@ -186,8 +186,16 @@ const claimed = (active: string | undefined) => active === RESUMING || active ==
 export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = ModelChoice> {
   private readonly options: AgentSessionOptions<Api, M>;
   private readonly clock: Clock;
-  private readonly registrations: ReadonlyMap<string, ToolRegistration<Api>>;
-  private readonly domain: CompactionDomain;
+  /** Tools by id, as the toolkit is now (a dynamic toolkit: README decision 25). */
+  private registration(toolId: string): ToolRegistration<Api> | undefined {
+    return this.options.toolkit.registration(toolId);
+  }
+
+  /** What compaction keeps, as the toolkit is now; the tools it no longer has are dropped (the eviction hint). */
+  private get domain(): CompactionDomain {
+    const { toolkit } = this.options;
+    return { ...toolkitDomain(toolkit), evicted: () => toolkit.removed(), ...this.options.compactionDomain };
+  }
   private harness: Harness | undefined;
   /** Everything of the running turn, made afresh for each turn and resume. */
   private state: TurnState = newTurnState({});
@@ -214,8 +222,6 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
   constructor(options: AgentSessionOptions<Api, M>) {
     this.options = options;
     this.clock = options.clock ?? wallClock;
-    this.registrations = new Map(options.toolkit.tools.map((r) => [r.definition.tool.id, r]));
-    this.domain = { ...toolkitDomain(options.toolkit), ...options.compactionDomain };
     // The disclosure tools are setting up, not reading: exempt by the toolkit's names for them.
     const { names } = options.toolkit;
     this.repeats = options.version
@@ -397,7 +403,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     const api = given.disclosure ? given : ({ ...given, disclosure } as Api);
     const nested = new NestedTools<Api, M>((choice) => this.modelConfiguration(choice));
     const tools = this.observedTools(
-      createToolBindings(toolkit.tools, api, {
+      createToolBindings(toolkit, api, {
         ...(this.repeats ? { repeats: this.repeats } : {}),
         nested,
         ...(this.options.afterWrite ? { afterWrite: this.options.afterWrite } : {}),
@@ -442,7 +448,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       policy: this.options,
       decided: this.decided,
       turn: () => this.state,
-      registration: (toolId) => this.registrations.get(toolId),
+      registration: (toolId) => this.registration(toolId),
       budgetFor: (configuration) => this.budgetFor(configuration),
       outputCap: () => this.outputCap,
       compaction: (context, when, sized) => this.compaction(context, when, sized),
@@ -460,14 +466,9 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
   }
 
   private toolSet(): Pick<TurnConfiguration, 'tools'> {
-    const all = [...this.registrations.values()];
-    // A tool marked approval runs only with the person's yes (the permission decision).
-    return {
-      tools: {
-        enabled: all.map((r) => r.definition.tool.id),
-        preauthorized: all.filter((r) => !r.approval).map((r) => r.definition.tool.id),
-      },
-    };
+    // A tool marked approval runs only with the person's yes (the permission decision); the tools lazy skills will
+    // bring are in it too (a turn's set is fixed when it begins).
+    return { tools: this.options.toolkit.toolSet() };
   }
 
   // ------------------------------------------------------------------ what the person sees
@@ -506,7 +507,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
       resolve: (definition) => {
         const handler = inner.resolve(definition);
         if (handler === undefined) return undefined;
-        const registration = this.registrations.get(definition.tool.id);
+        const registration = this.registration(definition.tool.id);
         const name = registration?.definition.name ?? definition.tool.id;
         const read = registration?.read === true;
         return {
@@ -583,11 +584,11 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
           if (!state.events.some((e) => e.id === c.callId))
             this.shown({
               id: c.callId,
-              name: this.registrations.get(c.toolId)?.definition.name ?? c.toolId,
+              name: this.registration(c.toolId)?.definition.name ?? c.toolId,
               args: c.arguments,
               status: 'skipped',
               text: state.skipShown ?? 'Not run.',
-              read: this.registrations.get(c.toolId)?.read === true,
+              read: this.registration(c.toolId)?.read === true,
             });
         state.planned = [];
         state.skipShown = undefined;
@@ -878,7 +879,8 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
   private awaiting(execution: Execution): PendingApproval[] {
     const pending = execution.turn?.pending;
     if (pending?.kind !== 'tools') return [];
-    const asked = new Set([...this.registrations.values()].filter((r) => r.approval).map((r) => r.definition.tool.id));
+    const set = this.options.toolkit.toolSet();
+    const asked = new Set(set.enabled.filter((id) => !set.preauthorized.includes(id)));
     return pending.plan
       .filter((c) => asked.has(c.toolId) && !this.decided.has(c.callId))
       .map((c) => ({ callId: c.callId, tool: c.toolId, args: c.arguments }));

@@ -108,6 +108,14 @@ throws naming the tool): the **core** (loaded from the first turn), a **group**'
   written before labels: by its exact text).
 - `coreDefinitions()`, `allDefinitions()`, `placementOf(id)`, `groupEntry(x)`, `disclosureTools()` serve the session and
   compaction.
+- **Dynamic** (README decision 25): `toolkit.add({ tools, core, groups, entries })` adds a part after creation (the same
+  checks; a conflict throws and changes nothing) and returns its removal; `version`, `onChange`, `registration(id)`
+  (bindings made over the toolkit resolve at call time), `removed()` (tools it no longer has: compaction drops their
+  definitions, the eviction hint) and `toolSet()` (what a turn enables and preauthorizes). A turn's tool set is fixed
+  when it begins, so tools come and go between turns, except a **lazy skill**: a group with `load()` and `pending` tool
+  ids (with their `approval`), enabled from the turn's start; disclosing it calls `load`, which replaces the stub's part
+  with the real group and tools, and the disclosure answers with them in the same turn. A tool added between turns is
+  offered at the next (the session's catch-up appends what the conversation has not seen).
 
 ## Gotchas
 

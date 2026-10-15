@@ -206,12 +206,17 @@ export interface BindingOptions<Api> {
 }
 
 export function createToolBindings<Api>(
-  registrations: readonly ToolRegistration<Api>[],
+  registrations: readonly ToolRegistration<Api>[] | { registration(toolId: string): ToolRegistration<Api> | undefined },
   api: Api,
   options: BindingOptions<Api> = {},
 ): ToolBindings {
-  const byId = new Map(registrations.map((r) => [r.definition.tool.id, r]));
+  // A list is fixed; a toolkit is read at call time (a dynamic toolkit: tools added or removed between turns).
+  const byId = Array.isArray(registrations) ? new Map(registrations.map((r) => [r.definition.tool.id, r])) : undefined;
+  const find = (id: string) =>
+    byId
+      ? byId.get(id)
+      : (registrations as { registration(id: string): ToolRegistration<Api> | undefined }).registration(id);
   return {
-    resolve: (definition) => byId.get(definition.tool.id)?.handler(api, options) ?? options.nested?.resolve(definition),
+    resolve: (definition) => find(definition.tool.id)?.handler(api, options) ?? options.nested?.resolve(definition),
   };
 }

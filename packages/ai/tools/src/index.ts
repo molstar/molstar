@@ -39,6 +39,7 @@ export type {
   Placement,
   ToolGroup,
   Toolkit,
+  ToolkitPart,
   ToolkitSpec,
 } from './toolkit.js';
 export { createToolkit, definitionEntries, fingerprint } from './toolkit.js';

@@ -41,6 +41,8 @@ export interface CompactionDomain {
   pins?(): { skills: readonly string[]; tools: readonly string[] };
   /** More texts a wish may quote as the person's own (their notes in the memory). */
   wishSources?(): readonly string[];
+  /** Tools the host no longer has (a dynamic toolkit's removed ones): their definitions are not kept. */
+  evicted?(): readonly string[];
 }
 
 const textOf = (m: Message): string => m.parts.map((p) => (p.kind === 'text' ? p.text : '')).join('');

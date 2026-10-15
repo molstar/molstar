@@ -59,6 +59,17 @@ export interface ToolGroup<Api> {
   readonly modules?: readonly (keyof Api)[];
   /** Why it cannot be used here, if it cannot (a module the host does not provide). */
   unavailable?(api: Partial<Api>): { message: string; hint?: string } | undefined;
+  /**
+   * A lazy skill (tools-and-session.md §3, a dynamic toolkit): in the catalog by its summary before its code is
+   * loaded. Disclosing it calls `load`, which brings its tools by replacing this group with the real one
+   * (`Toolkit.add`, the stub's part removed); the disclosure then goes on with the group as it is after the load.
+   */
+  load?(): Promise<void>;
+  /**
+   * The tools a lazy skill brings, by id, before they are registered: a turn enables them from its start (a turn's
+   * tool set is fixed when it begins), preauthorized unless `approval`.
+   */
+  readonly pending?: readonly { readonly id: string; readonly approval?: boolean }[];
 }
 
 /** Another disclosable text: loaded with the groups' disclosure tool, by its id, with the tools that come with it. */
@@ -88,8 +99,17 @@ export interface ToolkitSpec<Api> {
   names?: { skills?: string; tools?: string };
 }
 
+/** What a host adds to a toolkit after it is made (an extension loaded): removed again by `add`'s return. */
+export interface ToolkitPart<Api> {
+  readonly tools?: readonly ToolRegistration<Api>[];
+  /** Of these tools, the ones offered from the first turn. */
+  readonly core?: readonly string[];
+  readonly groups?: readonly ToolGroup<Api>[];
+  readonly entries?: readonly DisclosableEntry[];
+}
+
 export interface Toolkit<Api> {
-  /** The registrations: the given ones and the disclosure tools. */
+  /** The registrations: the given ones and the disclosure tools (as they are now). */
   readonly tools: readonly ToolRegistration<Api>[];
   readonly groups: readonly ToolGroup<Api>[];
   readonly entries: readonly DisclosableEntry[];
@@ -108,6 +128,21 @@ export interface Toolkit<Api> {
   definitionEntries(definitions: readonly ToolDefinition[], deferred?: boolean): Message[];
   /** The two disclosure registrations (already among `tools`). */
   disclosureTools(): ToolRegistration<Api>[];
+  /** A registration by tool id, as the toolkit is now (bindings resolve through it at call time). */
+  registration(toolId: string): ToolRegistration<Api> | undefined;
+  /**
+   * A dynamic toolkit (README decision 25): adds tools, groups and entries between and during turns; the same checks
+   * as at creation (one place for each tool), nothing changed when they fail. Returns the removal.
+   */
+  add(part: ToolkitPart<Api>): () => void;
+  /** Bumped by every change. */
+  readonly version: number;
+  /** Called after every change. */
+  onChange(listener: () => void): () => void;
+  /** Tools the toolkit had and no longer has: compaction drops their definitions (the eviction hint). */
+  removed(): readonly string[];
+  /** What a turn enables and preauthorizes: the registered tools and those lazy skills will bring. */
+  toolSet(): { enabled: string[]; preauthorized: string[] };
 }
 
 /** A short fingerprint of a text, for a context entry's key (FNV-1a). */
@@ -146,6 +181,100 @@ const isGroup = <Api>(x: ToolGroup<Api> | DisclosableEntry): x is ToolGroup<Api>
  */
 export function createToolkit<Api extends DisclosureApi>(spec: ToolkitSpec<Api>): Toolkit<Api> {
   const names = { skills: spec.names?.skills ?? DISCLOSE_SKILLS, tools: spec.names?.tools ?? DISCLOSE_TOOLS };
+  const parts: ToolkitPart<Api>[] = [];
+  const of = (list: readonly ToolkitPart<Api>[]): ToolkitSpec<Api> => ({
+    tools: [...spec.tools, ...list.flatMap((p) => p.tools ?? [])],
+    core: [...spec.core, ...list.flatMap((p) => p.core ?? [])],
+    groups: [...spec.groups, ...list.flatMap((p) => p.groups ?? [])],
+    entries: [...(spec.entries ?? []), ...list.flatMap((p) => p.entries ?? [])],
+    names,
+  });
+  // The disclosure tools read the toolkit as it is when they run (a lazy skill's load changes it under them).
+  let built: Built<Api> = buildToolkit(of(parts), (): Built<Api> => built);
+  let version = 0;
+  const listeners = new Set<() => void>();
+  const removed = new Set<string>();
+  const change = (next: Built<Api>) => {
+    const before = new Set(built.tools.map((t) => t.definition.tool.id));
+    built = next;
+    const now = new Set(built.tools.map((t) => t.definition.tool.id));
+    for (const id of before) if (!now.has(id)) removed.add(id);
+    for (const id of now) removed.delete(id);
+    version++;
+    for (const l of [...listeners]) l();
+  };
+  return {
+    get tools() {
+      return built.tools;
+    },
+    get groups() {
+      return built.groups;
+    },
+    get entries() {
+      return built.entries;
+    },
+    names,
+    placementOf: (id) => built.placementOf(id),
+    groupKey: (x) => built.groupKey(x),
+    groupText: (g) => built.groupText(g),
+    groupEntry: (x) => built.groupEntry(x),
+    groupsIn: (m) => built.groupsIn(m),
+    coreDefinitions: () => built.coreDefinitions(),
+    allDefinitions: () => built.allDefinitions(),
+    definitionEntries,
+    disclosureTools: () => built.disclosure,
+    registration: (id) => built.byId.get(id),
+    add(part) {
+      // Checked by building it: a conflict throws and leaves the toolkit as it was.
+      const next = buildToolkit(of([...parts, part]), () => built);
+      parts.push(part);
+      change(next);
+      return () => {
+        const at = parts.indexOf(part);
+        if (at < 0) return;
+        parts.splice(at, 1);
+        change(buildToolkit(of(parts), () => built));
+      };
+    },
+    get version() {
+      return version;
+    },
+    onChange(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    removed: () => [...removed],
+    toolSet: () => {
+      const pending = built.groups.flatMap((g) => g.pending ?? []);
+      return {
+        enabled: [...built.byId.keys(), ...pending.map((p) => p.id)],
+        preauthorized: [
+          ...built.tools.filter((t) => !t.approval).map((t) => t.definition.tool.id),
+          ...pending.filter((p) => !p.approval).map((p) => p.id),
+        ],
+      };
+    },
+  };
+}
+
+/** A toolkit's state for one set of declarations: what `createToolkit` rebuilds on each change. */
+interface Built<Api> {
+  readonly tools: readonly ToolRegistration<Api>[];
+  readonly groups: readonly ToolGroup<Api>[];
+  readonly entries: readonly DisclosableEntry[];
+  readonly byId: ReadonlyMap<string, ToolRegistration<Api>>;
+  readonly disclosure: ToolRegistration<Api>[];
+  placementOf(toolId: string): Placement<Api>;
+  groupKey(group: ToolGroup<Api> | DisclosableEntry): string;
+  groupText(group: ToolGroup<Api>): string;
+  groupEntry(group: ToolGroup<Api> | DisclosableEntry): Message;
+  groupsIn(messages: readonly Message[]): string[];
+  coreDefinitions(): ToolDefinition[];
+  allDefinitions(): ToolDefinition[];
+}
+
+function buildToolkit<Api extends DisclosureApi>(spec: ToolkitSpec<Api>, current: () => Built<Api>): Built<Api> {
+  const names = { skills: spec.names?.skills ?? DISCLOSE_SKILLS, tools: spec.names?.tools ?? DISCLOSE_TOOLS };
   const entries = spec.entries ?? [];
   const disclosureIds = [names.skills, names.tools];
 
@@ -170,6 +299,8 @@ export function createToolkit<Api extends DisclosureApi>(spec: ToolkitSpec<Api>)
   for (const group of spec.groups) {
     if (owners.has(group.id)) throw new Error(`Group "${group.id}" is declared twice.`);
     owners.add(group.id);
+    for (const p of group.pending ?? [])
+      if (registered.has(p.id)) throw new Error(`Tool "${p.id}" is pending in group "${group.id}" but is registered.`);
     for (const id of group.tools) put(id, { kind: 'group', group, extra: false }, `group "${group.id}"`);
     for (const id of group.extras ?? []) put(id, { kind: 'group', group, extra: true }, `group "${group.id}" (extras)`);
   }
@@ -212,7 +343,7 @@ export function createToolkit<Api extends DisclosureApi>(spec: ToolkitSpec<Api>)
   };
 
   // ---------------------------------------------------------------- disclosure
-  const disclosure = disclosureTools(spec, names, entries, { placementOf, groupText, groupKey, groupEntry });
+  const disclosure = disclosureTools(spec, names, entries, { placementOf, groupText, groupKey, groupEntry }, current);
   const tools = [...spec.tools, ...disclosure];
   const byId = new Map(tools.map((t) => [t.definition.tool.id, t.definition]));
   const definitionsOf = (ids: readonly string[]) => ids.flatMap((id) => byId.get(id) ?? []);
@@ -220,7 +351,8 @@ export function createToolkit<Api extends DisclosureApi>(spec: ToolkitSpec<Api>)
     tools,
     groups: spec.groups,
     entries,
-    names,
+    byId: new Map(tools.map((t) => [t.definition.tool.id, t])),
+    disclosure,
     placementOf,
     groupKey,
     groupText,
@@ -228,8 +360,6 @@ export function createToolkit<Api extends DisclosureApi>(spec: ToolkitSpec<Api>)
     groupsIn,
     coreDefinitions: () => definitionsOf([...placed].filter(([, p]) => p.placement.kind === 'core').map(([id]) => id)),
     allDefinitions: () => tools.map((t) => t.definition),
-    definitionEntries,
-    disclosureTools: () => disclosure,
   };
 }
 
@@ -249,6 +379,7 @@ function disclosureTools<Api extends DisclosureApi>(
   names: { skills: string; tools: string },
   entries: readonly DisclosableEntry[],
   { placementOf, groupKey, groupEntry }: Parts<Api>,
+  current: () => Built<Api>,
 ): ToolRegistration<Api>[] {
   const byId = new Map(spec.tools.map((t) => [t.definition.tool.id, t.definition]));
   const singles = spec.tools.filter((t) => placementOf(t.definition.tool.id).kind === 'single');
@@ -285,10 +416,28 @@ function disclosureTools<Api extends DisclosureApi>(
       for (const id of wanted)
         if (!known.some((k) => k.toLowerCase() === id))
           refused.push({ message: `No skill "${id}".`, hint: closestHint('skills and other texts', id, known) });
-      for (const x of [...spec.groups, ...entries].filter((x) => wanted.has(x.id.toLowerCase()))) {
+      // A lazy skill loads first: its real group (and tools) replace the stub's, and the rest reads the toolkit after.
+      const lazy = spec.groups.filter((g) => g.load && wanted.has(g.id.toLowerCase()));
+      for (const g of lazy) {
+        try {
+          await g.load!();
+        } catch (e) {
+          refused.push({
+            message: `The ${g.id} skill could not be loaded: ${e instanceof Error ? e.message : String(e)}`,
+          });
+        }
+      }
+      const now = lazy.length ? current() : undefined;
+      const all: (ToolGroup<Api> | DisclosableEntry)[] = now
+        ? [...now.groups, ...now.entries]
+        : [...spec.groups, ...entries];
+      const keyOf = now ? now.groupKey : groupKey;
+      const byIdNow = now ? new Map(now.tools.map((t) => [t.definition.tool.id, t.definition])) : byId;
+      for (const x of all.filter((x) => wanted.has(x.id.toLowerCase()))) {
         const unavailable = isGroup(x) ? x.unavailable?.(api) : undefined;
         if (unavailable) refused.push(unavailable);
-        else if (given.has(groupKey(x))) already.push(x.id);
+        else if (isGroup(x) && x.load) refused.push({ message: `The ${x.id} skill is not loaded.` });
+        else if (given.has(keyOf(x))) already.push(x.id);
         else load.push(x);
       }
       if (!load.length && !already.length) {
@@ -315,8 +464,8 @@ function disclosureTools<Api extends DisclosureApi>(
       // The guidance follows this result as its own entry, keyed by the group (after the step's results: the prompt's
       // prefix does not change). The tools' definitions come with it.
       const contributions = [
-        ...definitionEntries(toolIds.flatMap((id) => byId.get(id) ?? [])),
-        ...load.map(groupEntry),
+        ...definitionEntries(toolIds.flatMap((id) => byIdNow.get(id) ?? [])),
+        ...load.map(now ? now.groupEntry : groupEntry),
       ];
       return {
         ok: true,

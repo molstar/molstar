@@ -359,10 +359,14 @@ export function planCompaction(input: PlanInput): CompactionPlan {
     for (const e of entries.slice(current.start))
       for (const p of e.message.parts)
         if (p.kind === 'tool-definition' && !p.deferred) keepTools.add(p.definition.tool.id);
-  const keptLoaded = [...definitions.values()].filter((d) => keepTools.has(d.tool.id));
+  // Tools the host no longer has go, loaded or declared (the eviction hint).
+  const evicted = new Set(domain.evicted?.() ?? []);
+  const keptLoaded = [...definitions.values()].filter((d) => keepTools.has(d.tool.id) && !evicted.has(d.tool.id));
   // A kept tool stays loaded, now up front. Any other declared tool stays declared, to be loaded again where it is
   // disclosed; a loaded one never declared is dropped.
-  const keptDeclared = [...declarations.values()].filter((d) => !keptLoaded.some((k) => k.tool.id === d.tool.id));
+  const keptDeclared = [...declarations.values()].filter(
+    (d) => !keptLoaded.some((k) => k.tool.id === d.tool.id) && !evicted.has(d.tool.id),
+  );
 
   // The carried-over text.
   const skillsDropped = loadedSkills.filter((s) => !wantedSkills.has(s));
