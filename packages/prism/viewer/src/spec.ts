@@ -197,6 +197,8 @@ export interface ExportFrameValues {
   readonly width: number;
   readonly height: number;
   readonly axes: boolean;
+  /** The crop, as fractions of the frame (the preview's box, auto or the person's). */
+  readonly box: { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
 }
 
 export interface ViewerExtension {

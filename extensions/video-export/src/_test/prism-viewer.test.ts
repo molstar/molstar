@@ -13,7 +13,7 @@ import { createPrismViewerHeadless } from '@molstar/prism-viewer/headless';
 import type { LazyViewerExtension, ViewerExtension } from '@molstar/prism-viewer/spec';
 import type { PrismViewer } from '@molstar/prism-viewer/viewer';
 import { afterEach, describe, expect, it } from 'vitest';
-import { VideoExportExtension } from '../prism-viewer.js';
+import { cropOf, VideoExportExtension } from '../prism-viewer.js';
 import { LazyVideoExport, VideoCommands, VideoOperations } from '../prism-viewer-stub.js';
 
 // The video export in the Prism viewer (plan 5.2) on a headless viewer: no canvas, so no frame is rendered (WebGL and
@@ -97,5 +97,11 @@ describe('the video-export extension in the Prism viewer', () => {
     expect(VideoExportExtension.skills?.[0].tools.map((t) => t.operation)).toEqual(['video.export', 'video.cancel']);
     const r = await v.api.video!.cancel();
     expect(r.ok && r.unchanged).toBe(true);
+  });
+
+  it('renders the crop it is given, kept inside the frame; the whole frame without one', () => {
+    expect(cropOf(undefined)).toEqual({ x: 0, y: 0, width: 1, height: 1 });
+    expect(cropOf({ x: 0.2, y: 0.1, width: 0.5, height: 0.6 })).toEqual({ x: 0.2, y: 0.1, width: 0.5, height: 0.6 });
+    expect(cropOf({ x: 0.9, y: -1, width: 0.5, height: 0 })).toMatchObject({ x: 0.9, y: 0, height: 0.05 });
   });
 });

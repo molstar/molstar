@@ -84,6 +84,13 @@ export const VideoExportParams = (ctx: ApiAreaContext) => {
     width: PD.Numeric(0, { min: 0, max: MaxSide, step: 1 }, { description: 'Pixels, with height: a custom size' }),
     height: PD.Numeric(0, { min: 0, max: MaxSide, step: 1 }, { description: 'Pixels, with width: a custom size' }),
     axes: PD.Boolean(false, { description: 'Show the orientation axes' }),
+    box: PD.Value<{ x: number; y: number; width: number; height: number }>(
+      { x: 0, y: 0, width: 1, height: 1 },
+      {
+        description:
+          'The crop, as fractions of the frame (x, y from the top left, width, height); the whole frame by default',
+      },
+    ),
     format: PD.Select<VideoFormat>('mp4', [
       ['mp4', 'MP4'],
       ['webm', 'WebM'],
@@ -107,6 +114,14 @@ const noCanvas = () =>
     'Export a video in a viewer with a canvas.',
   );
 
+/** A crop box inside the frame, at least a twentieth of it a side; the whole frame when there is none. */
+export function cropOf(b: { x: number; y: number; width: number; height: number } | undefined) {
+  if (!b || ![b.x, b.y, b.width, b.height].every(Number.isFinite)) return { x: 0, y: 0, width: 1, height: 1 };
+  const x = Math.min(Math.max(b.x, 0), 0.95);
+  const y = Math.min(Math.max(b.y, 0), 0.95);
+  return { x, y, width: Math.min(Math.max(b.width, 0.05), 1 - x), height: Math.min(Math.max(b.height, 0.05), 1 - y) };
+}
+
 /** Sets the screenshot helper to the video's size (the classic UI's too) and returns how to put it back. */
 function configure(helper: ViewportScreenshotHelper, v: ExportValues): () => void {
   const before = { values: helper.values, cropParams: helper.cropParams, relativeCrop: helper.relativeCrop };
@@ -121,9 +136,9 @@ function configure(helper: ViewportScreenshotHelper, v: ExportValues): () => voi
     transparent: false,
     axes: (v.axes ? { name: 'on', params: on } : { name: 'off', params: {} }) as never,
   });
-  // The whole frame: a crop found for an image does not fit a moving camera.
+  // The crop given (the Export card's view's), else the whole frame: never found per frame, which would jump.
   helper.behaviors.cropParams.next({ ...before.cropParams, auto: false });
-  helper.behaviors.relativeCrop.next({ x: 0, y: 0, width: 1, height: 1 });
+  helper.behaviors.relativeCrop.next(cropOf(v.box));
   return () => {
     helper.behaviors.values.next(before.values);
     helper.behaviors.cropParams.next(before.cropParams);

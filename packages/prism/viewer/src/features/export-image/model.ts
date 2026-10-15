@@ -103,12 +103,13 @@ export function imageValues(v: FormValues): Record<string, unknown> {
 }
 
 /** The frame the form asks for, when it says (the viewport's is the canvas's). */
-/** The frame an `export.picture` view renders (`ExportFrame`): the viewport, or its pixels. */
-export function frameValues(v: FormValues): ExportFrameValues {
+/** The frame an `export.picture` view renders (`ExportFrame`): the viewport, or its pixels, and the crop. */
+export function frameValues(v: FormValues, box: CropBox): ExportFrameValues {
   const r = v.resolution;
-  if (r.name === 'viewport') return { size: 'viewport', width: 0, height: 0, axes: v.axes };
+  const crop = { ...box };
+  if (r.name === 'viewport') return { size: 'viewport', width: 0, height: 0, axes: v.axes, box: crop };
   const { width, height } = frameOf(v, undefined)!;
-  return { size: 'custom', width, height, axes: v.axes };
+  return { size: 'custom', width, height, axes: v.axes, box: crop };
 }
 
 function frameOf(v: FormValues, viewport: { width: number; height: number } | undefined) {
@@ -161,9 +162,9 @@ export function createImageExportModel(deps: ImageExportDeps): ImageExport {
   const compute = () => {
     const v = form.values.value;
     const frame = frameOf(v, viewport.value);
-    // An animation renders the whole frame: a crop found for one image does not fit a moving camera.
+    // The crop is the view's, the image's and an animation's alike.
     const still = isImage(v);
-    const c = !still ? Full : autoCrop.value ? found.value : manual.value;
+    const c = autoCrop.value ? found.value : manual.value;
     crop.set(c);
     aspect.set(frame ? frame.width / frame.height : FallbackAspect);
     const px = frame ? `${Math.round(frame.width * c.width)} × ${Math.round(frame.height * c.height)} px` : '';
@@ -176,14 +177,14 @@ export function createImageExportModel(deps: ImageExportDeps): ImageExport {
     asked?.abort();
     const mineAsked = (asked = new AbortController());
     const r = await quiet.export.preview(
-      { ...imageValues(form.values.value), crop: autoCrop.value && isImage(form.values.value) ? 'auto' : 'none' },
+      { ...imageValues(form.values.value), crop: autoCrop.value ? 'auto' : 'none' },
       { signal: mineAsked.signal },
     );
     if (disposed || mine !== token || !r.ok || !r.value) return;
     const { dataUri, width, height, crop: box } = r.value;
     preview.set(`center / 100% 100% no-repeat url("${dataUri}")`);
     viewport.set({ width, height });
-    if (autoCrop.value && isImage(form.values.value)) found.set(box);
+    if (autoCrop.value) found.set(box);
     settled.set(true);
   };
 

@@ -126,7 +126,7 @@ export function exportImageUI(ctx: ViewerUIContext): ViewerExtensionUI {
           // What else renders the view (an animation, `export.picture`): the switch's choices, each with its controls,
           // which get the shared frame (the resolution, the axes) as their subject.
           const pictures = view.shell.sections('export.picture');
-          const frame: ExportFrame = { get: () => frameValues(model.form.values.value) };
+          const frame: ExportFrame = { get: () => frameValues(model.form.values.value, model.crop.value) };
           return (
             <ImageExport
               model={model}

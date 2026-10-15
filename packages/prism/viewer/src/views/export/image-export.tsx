@@ -27,8 +27,8 @@ export interface PictureKind {
 /**
  * Image export: the preview at the output's shape with the crop on it (auto-crop toggled in its corner), the screenshot
  * settings as a form, and the footer: set defaults, the size, Copy and Download. With `kinds` (an animation), a switch
- * at the top: Image, or one of them, whose controls (`kind`) take the footer's place; the resolution and the axes stay
- * shared, the crop, the format and the transparency are the image's (the form's `mode`).
+ * at the top: Image, or one of them, whose controls (`kind`) take the footer's place; the view (the resolution, the
+ * crop, the axes) stays shared, the format and the transparency are the image's (the form's `mode`).
  */
 export function ImageExport(props: {
   model: ImageExportModel;
@@ -42,7 +42,6 @@ export function ImageExport(props: {
     map((v) => (v.mode as string | undefined) || 'image'),
     distinctUntilChanged(),
   );
-  const still = mode.pipe(map((m) => m === 'image'));
   const kinds = props.kinds ?? of([]);
   return (
     <div class={classes.export}>
@@ -66,22 +65,16 @@ export function ImageExport(props: {
             background: model.preview.pipe(map((p) => p ?? 'var(--msp-color-control)')),
           }}
         >
-          <Show when={still}>
-            {() => (
-              <>
-                <Crop model={model} settled={settled} />
-                <button
-                  type="button"
-                  class={classes.autoCrop}
-                  aria-pressed={combineLatest([model.autoCrop.asReadonly, settled]).pipe(map(([a, s]) => a && s))}
-                  title="Crop to the visible content"
-                  onClick={() => model.autoCrop.set(!model.autoCrop.value)}
-                >
-                  <span>Auto-crop</span>
-                </button>
-              </>
-            )}
-          </Show>
+          <Crop model={model} settled={settled} />
+          <button
+            type="button"
+            class={classes.autoCrop}
+            aria-pressed={combineLatest([model.autoCrop.asReadonly, settled]).pipe(map(([a, s]) => a && s))}
+            title="Crop to the visible content"
+            onClick={() => model.autoCrop.set(!model.autoCrop.value)}
+          >
+            <span>Auto-crop</span>
+          </button>
         </div>
       </div>
       <ParamsForm form={model.form} />
