@@ -144,6 +144,7 @@ export class RingBackend implements RenderBackend {
     let py = 0;
     for (let q = 0; q < b.n; q++) {
       p.begin(b.color[q], b.alpha[q], b.mode[q], b.width[q]);
+      if (b.dash[q] > 0) p.dashed(b.dash[q], b.gap[q], b.phase[q]);
       const v1 = q + 1 < b.n ? b.start[q + 1] : b.nv;
       let c = b.cstart[q];
       for (let v = b.start[q]; v < v1; v++) {

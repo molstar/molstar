@@ -87,6 +87,7 @@ describe('wrapped runs', () => {
     inline: false,
     labels: widths.map(() => ''),
     labelWidths: new Float32Array(widths.length),
+    chip: false,
   });
 
   it('fills lines greedily, each block from a new line; a group wider than a line is cut at a position', () => {

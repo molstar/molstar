@@ -15,6 +15,9 @@
 
 export type { MenuItem } from '../chrome.js';
 export * from './core.js';
+export type { AnnotationPlace } from '../annotations.js';
+export { AnnotationsPanel, type AnnotationsPanelProps } from './annotations.js';
+export { chromePartOf, listenChrome } from './chrome-input.js';
 export { downloadSvg } from './download.js';
 export {
   createDomUI,

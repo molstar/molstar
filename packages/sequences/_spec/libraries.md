@@ -77,7 +77,7 @@ on the model only and keeps the registry the stateless model does not; the viewe
 
 ## The Mol\* adapter
 
-`@molstar/seq-molstar-poc`, a proof of concept, is the only Seq\* package that imports Mol\*. It reads structures
+`@molstar/seq-molstar-poc`, a proof of concept, is the Seq\* package that reads Mol\*'s structures. It reads them
 headless with Mol\*'s parsers (no canvas, no plugin UI), so its format half runs in a page, in Node and on a server.
 
 - **Formats and services**: `mmcif`, `bcif`, `pdb`, `sdf`, `mol2`, `afdb_pae`; `pdbe` (`structure`, `sifts`) and `afdb`

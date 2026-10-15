@@ -14,7 +14,16 @@ import { Lanes } from '@molstar/seq-core/format';
 import { type Axis, AxisGeometry } from '../axis.js';
 import type { ViewModel } from '../graph.js';
 import { CHEVRON_GAP, CHEVRON_HALF, CHEVRON_ROOM, splitChevron } from '../header-toggle.js';
-import { EntryKind, positionLabel, type SectionLayout, SectionLayouts, type SplitFeatures } from '../layout.js';
+import {
+  EntryKind,
+  fullTrack,
+  positionLabel,
+  type SectionLayout,
+  SectionLayouts,
+  type SplitFeatures,
+  trackLabelPx,
+  WRAPPED_AXIS_ROOM,
+} from '../layout.js';
 import type { RowsState } from '../rows.js';
 import { fitIn, fitted } from '../text.js';
 import { PathMode, PathVerb, SkinToken, TextAlign, TextBaseline } from './backend.js';
@@ -48,6 +57,7 @@ const TOKEN_INK_QUIET = SkinToken.inkQuiet;
 const LEFT = TextAlign.left;
 const RIGHT = TextAlign.right;
 const MIDDLE = TextBaseline.middle;
+const BOTTOM = TextBaseline.bottom;
 
 export function header(f: ComposerFrame, l: SectionLayout, e: number) {
   const b = f.box;
@@ -272,8 +282,13 @@ export function gutter(f: ComposerFrame, l: SectionLayout, e: number) {
   const b = f.box;
   const m = f.model as ViewModel;
   const rv = m.resolved;
-  if (l.geometry === WRAPPED) return lineNumber(f, l, e);
   const t = l.entryTrack[e];
+  // Wrapped: the line's number; a track drawn in full, its layers' gutters (an axis).
+  if (l.geometry === WRAPPED) {
+    lineNumber(f, l, e);
+    if (l.entryKind[e] !== TRACK || !fullTrack(v.props, rv, m.set, t) || v.runs[l.lines.block[l.entryRow[e]]]?.chip)
+      return;
+  }
   let opened = false;
   for (let k = l.entryLayer[e]; k < rv.layers.count && rv.layers.track[k] === t; k++) {
     const r = f.renderers[k];
@@ -311,8 +326,29 @@ function lineNumber(f: ComposerFrame, l: SectionLayout, e: number) {
   t.style(f.ctx.text.font('mono', Math.round(v.props.wrappedFontPx * 0.8)), RIGHT, MIDDLE);
   t.begin(TOKEN_INK_QUIET);
   const i = t.add(text);
-  t.x[i] = Math.round((l.dataLeft - 12) * v.dpr);
+  t.x[i] = Math.round((l.dataLeft - 12 - (v.props.wrappedTrackAxes ? WRAPPED_AXIS_ROOM : 0)) * v.dpr);
   t.y[i] = Math.round((f.box[0] + f.box[4] / 2 + 0.5) * v.dpr);
   v.backend.text(t);
   v.backend.popClip();
+}
+
+/**
+ * Wrapped (`wrappedTrackLabels`): a track drawn in full labeled in its label's row (`EntryKind.trackLabel`), above its
+ * band on the first line it has one, at the line's start, in the quiet ink: never over its data
+ * (seqspec:viewer#the-text-view). In the entry's clip (`box`, opened by the caller).
+ */
+export function trackLabel(f: ComposerFrame, l: SectionLayout, e: number) {
+  const v = f.v;
+  const m = f.model as ViewModel;
+  const id = m.resolved.tracks.label[l.entryTrack[e]];
+  const text = id >= 0 ? m.set.strings.get(id) : '';
+  if (!text) return;
+  const t = f.text;
+  t.reset();
+  t.style(f.ctx.text.font('ui', trackLabelPx(v.props), 600), LEFT, BOTTOM);
+  t.begin(TOKEN_INK_QUIET);
+  const i = t.add(text);
+  t.x[i] = Math.round((l.dataLeft + l.lines.left[l.entryRow[e]]) * v.dpr);
+  t.y[i] = Math.round((f.box[0] + f.box[1] - 1) * v.dpr);
+  v.backend.text(t);
 }

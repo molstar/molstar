@@ -45,11 +45,6 @@ export function sequenceDocument(o: {
   predicted?: boolean;
   /** Only the ligands of these chemical components become units (the ones the 3D view draws); absent: all. */
   ligands?: readonly string[];
-  /**
-   * The tracks version's own tracks (secondary structure, pLDDT); false: the text version, only the letters. The wrapped
-   * text reserves a lane under each line for a track and draws nothing for some, so the text document has none.
-   */
-  tracks?: boolean;
 }): SeqViewSpecDoc {
   const b = createSeqViewSpec({ title: o.title });
   b.data.complex({
@@ -60,10 +55,10 @@ export function sequenceDocument(o: {
   });
   const section = b.view({ ref: 'sequence', label: o.title }).section({ ref: SectionRef, style: 'compact' });
   const letters = o.theme.letters === null ? {} : { color: { theme: 'scheme', params: { name: o.theme.letters } } };
-  // The ruler is the tracks version's axis (the text version draws no ruler).
+  // One document for both styles: Text draws the ruler nowhere, secondary structure as underlines and the pLDDT as a
+  // strip in the bands (Seq*'s lanes); Tracks draws each as a track.
   section.track({ ref: 'ruler', label: '' }).ruler();
   section.track({ ref: LettersRef, label: '' }).letters(letters);
-  if (o.tracks === false) return b.getDocument();
   // Secondary structure: the model's own helices, strands and turns (blocks and arrows over a coil line).
   const ss = b.data.computed({
     ref: SecondaryRef,

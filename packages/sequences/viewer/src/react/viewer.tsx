@@ -15,6 +15,7 @@ import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
 import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { mountSection, windowScheduler } from '../canvas/index.js';
 import { isReactPart, labelText, placedParts, resolveSlots } from '../chrome.js';
+import { listenChrome } from '../dom/chrome-input.js';
 import { withDownloadExport } from '../dom/export.js';
 import {
   createSeqViewer,
@@ -127,8 +128,11 @@ function Announcer({ context: ctx }: PartProps) {
  */
 export function SeqViewerRoot({ children }: { children?: ReactNode }) {
   const { context, ui } = useScope();
+  const root = useRef<HTMLDivElement>(null);
+  // The chrome's input through `context.interaction` (seqspec:interaction#streams).
+  useEffect(() => (root.current ? listenChrome(root.current, context) : undefined), [context]);
   return (
-    <div className={P.cx('seqv-root', ui.className)} tabIndex={-1}>
+    <div ref={root} className={P.cx('seqv-root', ui.className)} tabIndex={-1}>
       {children}
       <Announcer context={context} />
     </div>

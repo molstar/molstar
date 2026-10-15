@@ -108,7 +108,7 @@ function draw(v: DrawView, f: Features, tiny: boolean) {
   rects.reset();
   shapes.reset();
   ThemeLocation.reset(v.loc);
-  if (v.geometry === AxisGeometry.wrapped) drawLineLanes(v, f, rects);
+  if (v.geometry === AxisGeometry.wrapped && !v.trackForm) drawLineLanes(v, f, rects);
   else if (ax) {
     const dpr = v.dpr;
     const cy = centerY(v);
@@ -118,7 +118,9 @@ function draw(v: DrawView, f: Features, tiny: boolean) {
     rects.begin(SkinToken.inkFaint);
     for (let b = 0; b < ax.count; b++) {
       if (v.visHi[b] <= v.visLo[b]) continue;
-      rects.push(v.xd(b, v.visLo[b]), cy, v.xd(b, v.visHi[b]) - v.xd(b, v.visLo[b]), 1);
+      // Wrapped (a track drawn in full), to the line's last cell: past it a group's gap or the next line.
+      const end = v.geometry === AxisGeometry.wrapped ? v.xe(b, v.visHi[b] - 1) : v.xd(b, v.visHi[b]);
+      rects.push(v.xd(b, v.visLo[b]), cy, end - v.xd(b, v.visLo[b]), 1);
     }
     for (let b = 0; b < ax.count && (b + 1) * f.lanes < f.seg.length; b++) {
       visibleRange(v, b, range);
@@ -217,7 +219,7 @@ const hovered = new Int32Array(2);
  */
 function overlay(v: DrawView, f: Features) {
   if (!hoverEmphasis(v) || !v.axis) return;
-  if (v.geometry === AxisGeometry.wrapped) {
+  if (v.geometry === AxisGeometry.wrapped && !v.trackForm) {
     outlineLineLanes(v, f);
     return;
   }

@@ -7,12 +7,14 @@ are in [reference/viewer.md](reference/viewer.md).
 ## Input events
 
 The engine turns DOM events into reused input records and hands them to `ctx.input`; tests feed the same records. The
-dispatcher hit-tests against the headless layout and emits **base events** on `ctx.interaction`: `pointer` (every
-input), `hover` (only when the hit's element changes), `click` (a release within the drag slop, seen; counted 2 and 3
-for a double and a triple click, each within the double-click time of the one before), `drag` (start, move, end or
-cancel, once past the slop, or at the first move of a press a behavior claimed), `leave`, `wheel`, `key`, `focus`, and
-`doubleClick`, a query a click's subscriber asks once a click (never per move): a behavior whose double click at that
-hit means something (a zoom, an activation) claims it. It decides nothing else.
+dispatcher hit-tests against the headless layout and emits **base events** on `ctx.input.events`, for behaviors (a
+behavior author's API; consumers read the streams below): `pointer` (every input), `hover` (only when the hit's element
+changes), `click` (a release within the drag slop, seen; counted 2 and 3 for a double and a triple click, each within
+the double-click time of the one before), `drag` (start, move, end or cancel, once past the slop, or at the first move
+of a press a behavior claimed), `leave`, `wheel`, `key`, `focus`, `menu` (the browser's context-menu request, claimable
+as `doubleClick`; from the keyboard the `keyboard` behavior claims it and places it at its cursor), and `doubleClick`, a
+query a click's subscriber asks once a click (never per move): a behavior whose double click at that hit means something
+(a zoom, an activation) claims it. It decides nothing else.
 
 - **Claims.** Subscribers are called in priority order; on a press or a drag start the first to `claim` owns the
   gesture. An unclaimed drag does nothing. A claimed press released within the slop and the double-click time is also a
@@ -32,6 +34,33 @@ hit means something (a zoom, an activation) claims it. It decides nothing else.
 - **The hover follows the content** under a resting pointer: when a view moves under it (a wheel, a key, an animation, a
   linked section) or data arrives, the point is hit again, once a frame.
 - Every record is reused: subscribers read it during the call and never keep it.
+
+## Streams
+
+A consumer outside the viewer (the default UIs, a host such as Prism) follows input through `ctx.interaction`: rxjs
+streams `hover`, `press`, `click` (with `count`), `drag` (`start`, `move`, `end`, `cancel`, with the deltas and the
+press's part), `menu`, `wheel`, `key`, `leave` and `activate` (a track header activated: the `headers` behavior, the
+keyboard's Enter on a header). The dispatcher feeds them after the behaviors ran, so a hover's payload comes with the
+hover already set and a press's with the behavior that claimed it (`owner`). They are observe-only: a subscriber watches
+a gesture and never claims it.
+
+- **One payload**, a fresh object a consumer may keep: `part` (where: a region of the surface by name, `data`, `header`,
+  `gutter`, `navigator`, …, or a part of the chrome; the `section`, `track` and `group` refs, names not indices; a
+  chrome node's `key`), `at` (what, on a surface: the `layer` ref, `lane`, `block`, `index`, display `row`, `split`, an
+  `item` with its annotation's key and id), `place` (`x`, `y` in surface px, `clientX`, `clientY`), `buttons`, `button`
+  and `modifiers` in Mol\*'s terms (`ButtonsType`, `ModifiersKeys`), `time`, `owner`, `origin` (`pointer`, `keyboard`,
+  `chrome`) and `native`, the DOM event during the call only (a consumer may `preventDefault`).
+- **No cost unobserved**: a payload is built only for a stream with a subscriber; with none, input allocates nothing
+  more than it did without the streams.
+- **Scoped**: `ctx.interaction.on(stream, { part, section, track })` is the stream kept to a part (or a list), a section
+  and a track.
+- **The chrome**: the default UIs report a click, a context-menu request, a hover and a leave on their parts (a view
+  tab, a section's header, switches and hidden chips, a track's actions, the legend, the player, search, export, the
+  issues, the tooltip, the hover card, the description, the annotations) through the same streams, origin `chrome`, with
+  the part's section, track and `data-seqv-key`. A part's root carries its kind in `data-seqv-part`; a host's node
+  tagged so reports too (`listenChrome`, or `ctx.interaction.chrome` directly). A focused chrome control's keys are its
+  own.
+- A behavior's bindings are listed, described, as Mol\*'s `Binding` (`ctx.behaviors.bindings()`), for a help panel.
 
 ## Replays and carries
 
@@ -118,6 +147,11 @@ an earlier; a stale owner's clear does nothing, so a late pointer-leave never cl
 - **Hover emphasis**: the hovered element alone (an item's own pieces, a cell, a matrix band) is outlined on the overlay
   in an ink derived from the color it is drawn in, with at least 3:1 contrast to the surface and, where the fill's
   lightness allows, 1.5:1 to the fill, in both skins. A section's style may turn it off.
+- **A strip lane** in the text view (`seqspec:viewer#the-text-view`): a point on the strip, or in the gap above it, is
+  its layer's hit (the hit's `track`, `layer` and `index`), so the hover names the position and the hover card shows the
+  layer's value there, as on its linear track; hover emphasis outlines the position's cell of the strip. Beside the
+  letters the hover is the letters'. A track drawn in full in the text view is hovered as in tracks: a glyph, an item's
+  bar or label, a position under a line or an area, by drawn geometry on its line.
 - **A dot plot's cell** (`dot_plot`, `seqspec:format#layer-types`) is two positions: the one under x, as on any track,
   and its **partner** under y (the hit's and the hover's `pairBlock`, `pairUnit`, `pairIndex`). The hover lights both,
   each closed as the hover is, in every section and through links (a 3D view lights both residues); its label adds the
@@ -133,6 +167,14 @@ the overlay draws their union, in a style (`highlight`, `accent`, `band`), and c
 or a channel each). A channel that cannot be carried to a new set is dropped alone. A command's target naming several
 kinds (an annotation and an alignment's columns) lights a channel each, `<channel>`, `<channel>/1`, …, set and cleared
 together (only the parts it set: a host's own `<channel>/1` stays). A behavior clears its channels when removed.
+
+**Following a highlight.** The `revealHighlight` behavior (not in `DefaultSeqViewerSpec`: a host whose other views light
+the sequence adds it) reveals a highlight on the channels it follows (`channels`: names, or prefixes ending in `*`;
+`links:*` by default), and an external hover of the owners it follows (`hovers`: a linked 3D view's `3d`; none by
+default), once it has rested `dwellMs` (200) unchanged, as `ctx.reveal` does (`pad`, `animate`), in each section that
+shows it and does not show it already. Never in the section the pointer is in, never during a press or a drag, never
+while this viewer's own hover is held (a link lighting it back); a highlight cleared or replaced during its dwell is not
+revealed, a newer one starting the wait again.
 
 ## Channels
 
@@ -168,27 +210,29 @@ as its outline alone).
   registered systems.
 - **The click policy** (the `select` behavior): a click on data or a column selects the element, or removes it when it
   is the whole selection of its kind; Ctrl/⌘ adds or removes it; a click on nothing clears. Shift on a position or a
-  column extends the range, in every geometry: the selection on the clicked block (as lit: positions, an item, columns,
-  made in any view; its runs as shown, a cyclic origin's two parts) to the clicked position, one end kept: outside it
-  its far end, inside it the anchor's (the last click's position or the last drag's start, a position of the model)
-  where that is one of its ends, else the farther; with several runs there, from the anchor. With nothing selected on
-  the block it extends from the anchor on another block of the section, else it is a click. Shift on an item or a row
-  adds or removes it. Where a double click at the point means something else (`doubleClick` claimed: a zoom on a linear
-  section's data), a single click's change waits for the double-click time and applies once no second click comes (at
-  once at the next click elsewhere or a key, never after Escape or another change); a double click then never touches
-  the selection. Elsewhere a click selects at once, and a double or triple click is that click again. The element is
-  **closed** (a nucleotide's residue), then **widened** within its own system by `granularity` (`position`, `range`,
-  `unit`, `copyGroup`, `column`, `row`), so a click selects what the hover lit. "This codon in every copy" is
-  `containing` with `copyGroup`.
+  column adds or removes it (`shiftPositions`, `toggle` by default); with `extend` it extends the range, in every
+  geometry: the selection on the clicked block (as lit: positions, an item, columns, made in any view; its runs as
+  shown, a cyclic origin's two parts) to the clicked position, one end kept: outside it its far end, inside it the
+  anchor's (the last click's position or the last drag's start, a position of the model) where that is one of its ends,
+  else the farther; with several runs there, from the anchor. With nothing selected on the block it extends from the
+  anchor on another block of the section, else it is a click. Shift on an item or a row (`shiftItems`) adds or removes
+  it. Where a double click at the point means something else (`doubleClick` claimed: a zoom on a linear section's data),
+  a single click's change waits for the double-click time and applies once no second click comes (at once at the next
+  click elsewhere or a key, never after Escape or another change); a double click then never touches the selection.
+  Elsewhere a click selects at once, and a double or triple click is that click again. The element is **closed** (a
+  nucleotide's residue), then **widened** within its own system by `granularity` (`position`, `range`, `unit`,
+  `copyGroup`, `column`, `row`), so a click selects what the hover lit. "This codon in every copy" is `containing` with
+  `copyGroup`.
 - **Drags**: on data a plain drag pans; on a column track (a ruler, a logo) it selects columns; Alt selects a range;
   Shift with a drag means what it does with a click (`shiftPositions`, over positions, whole columns on an alignment):
-  `extend` selects from the anchor to the drag's end; `toggle` adds the dragged range, or removes it when the press was
-  on a selected position. A drag selection closes and widens on release. Who claims a drag is params of the `select` and
-  `dragPan` behaviors, never a rule of the dispatcher. The range runs from the press to the pointer at each drag event,
-  the first (past the slop) and the release included, so a fast pointer selects what it was released over. Its end
-  follows the point as clamped to the surface: on a linear section the column under its x (on rows, the row under its
-  y), so outside the surface above or below it still follows x; past the data area's left or right a linear section
-  pans, and past a box section's top or bottom rows scroll, each faster the further past, the end going with the view.
+  `toggle` (the default) adds the dragged range, or removes it when the press was on a selected position; `extend`
+  selects from the anchor to the drag's end. A drag selection closes and widens on release. Who claims a drag is params
+  of the `select` and `dragPan` behaviors, never a rule of the dispatcher. The range runs from the press to the pointer
+  at each drag event, the first (past the slop) and the release included, so a fast pointer selects what it was released
+  over. Its end follows the point as clamped to the surface: on a linear section the column under its x (on rows, the
+  row under its y), so outside the surface above or below it still follows x; past the data area's left or right a
+  linear section pans, and past a box section's top or bottom rows scroll, each faster the further past, the end going
+  with the view.
 - **Text** (a wrapped section) is selected as text is: a plain drag on it selects positions, its ends following the
   pointer line by line to the nearest position (past a line's end, in a gap or on an inline label, the one on the drag's
   side of the point: forward the next, backward the one before; over another block's lines, its own block's first or
@@ -211,15 +255,15 @@ as its outline alone).
 
 ## The track menu
 
-A track's menu is the host's; Seq* says when one is asked for (`events.menu`: the section, the track, the origin and the
-place, `x` and `y`). The keyboard's menu key (Shift+F10 or ContextMenu on the cursor's track) asks from the cursor,
-origin `keyboard`, with `x` and `y` -1: the host places the menu at the cursor's track (the default UIs' at its header).
-From the pointer, only with the `contextMenu` behavior, which `DefaultSeqViewerSpec` leaves out (a host adds it): a
-press of its `on` binding (the secondary button; on macOS a host adds Ctrl with the primary one and takes that from
-`select`'s `toggle`) on a track (its data, header or gutter: its `regions` param) asks with origin `pointer` and the
-pointer's place in the surface's px. Where no track is under the pointer nothing is asked. It asks on the press, as
-macOS and Linux open a menu; Windows opens its own on the release, so there a host that also suppresses the browser's
-menu does so in its own listener for the browser's context-menu event.
+A track's menu is the host's; Seq* says when one is asked for: `interaction.menu` is the browser's context-menu request
+(a secondary press, Ctrl+click on macOS, the menu key, Shift+F10), hit at its point, with the part, the track's ref and
+the place. A subscriber that calls `native.preventDefault()` during the call shows its own menu instead of the browser's
+(only that request can suppress it); with none, or where none prevents it, the browser's shows. From the keyboard (the
+`keyboard` behavior's menu key, or a keyboard context-menu request) it is asked at the cursor's cell, origin `keyboard`,
+and once per ask in every browser: the browser's own request that follows a key's on the same section, with no press,
+later key, blur or leave between, is not asked again and has its default prevented as the key's was; the key is handled
+only where a subscriber prevented it. The default UIs open their menu at the track's header from the keyboard and leave
+a right-click to the browser. A macOS Ctrl+click is also a press: `select`'s `toggle` still sees it.
 
 ## Focus
 
@@ -234,6 +278,13 @@ reversed piece's lines in their shown order). Where those lines already are show
 view. `ctx.refs.toLoci(ref, args)` resolves a ref to loci (a unit, molecule, complex, row, annotation, track or layer);
 range args outside its domain (index args, or labels not there or resolving outside it; a complex's, outside every
 member) give none, never a clipped part. A molecule's args name its positions in each of its units.
+
+**Reveal and focus.** A focus frames its target: tracks zoom to it, and it is the section's state (`focus.current`).
+`ctx.reveal(target, opts)` (and the `seqv:reveal` command) only brings a target into view, in every section that shows
+it or `opts.section`: it changes no selection, focus or zoom. Text scrolls its lines in as a focus does (`pad` px clear,
+12 by default); tracks pan at their cell, the target centered, or its start `pad` px in where it is wider than the view.
+Where it is shown already (whole, or, wider than the view, its start) nothing moves. It is animated as a focus is
+(`animate`, `durationMs`), origin `api` unless given.
 
 ## Results
 
@@ -283,7 +334,16 @@ action), `TrackActions` (the track menu, `UI.TrackActions`), `RowControl`, `Tool
 `SnapshotPlayer`, `Description` (plain text only; markdown is a host's part), `Search` (when given a search function; it
 keeps its results as a location set and clears every set it kept, in one patch, so removing one never needs the legend),
 `Export` (when the context registers `view.exportSvg`), `Issues`, `Busy`, `EmptyState`, `ErrorState`, and `Hint`,
-`ScrollArea`, `Menu`; `ViewSurface` is the canvas.
+`ScrollArea`, `Menu`; `ViewSurface` is the canvas. `AnnotationsPanel` (the Annotations part,
+`data-seqv-part="annotations"`) is a part a host places (no slot, in no chrome's composition): a section's bookmarks set
+as annotations, added from the selection with a label, a color and a line style (one of the format's `line_style`s,
+`solid` to start; written as the row's `line_style` column, which a layer shows through `field_line_style`), listed (a
+row reveals its range, `ctx.reveal`) and deleted, each a patch through the bookmark actions (one undo step). A host that
+names several sets (`places`: each a set's ref and the name a person sees) gets a choice in the add row (the first set
+to start with); the list shows the sets one after another, each row marked with its set's name, and a delete acts on its
+row's set. A set's own track decides where it is drawn: a `ranges` track ordered before the letters' draws above them,
+one after, below. The set is drawn by the document's own `ranges` track over it, colored by the rows' `color`
+(`field_color`); without a track the set is a `highlights` entry, as `bookmark.add` makes it.
 
 - **Every part is a component a host places**: inside the viewer's composition, beside it, or not at all, against the
   viewer's context. React's take the context as a prop, under the provider (its slots, primitives and surfaces) or
@@ -349,7 +409,10 @@ either's spec. Moving the element keeps its context; a context it made is dispos
 renders in a shadow root with the skin, and fires composed, bubbling events with shallow-frozen details: `seq-context`
 (the live context), `seq-ui` (`{ui}`), `seq-error` (`{error}`), `seq-selection` (the selection value, its `Coordinates`
 and system descriptors), `seq-hover` (at most once a frame; loci, `Coordinates` and descriptors computed on first read,
-null once the hover has moved on: read them in the listener), `seq-snapshot` (`{ref}`).
+null once the hover has moved on: read them in the listener), `seq-snapshot` (`{ref}`). They are fed from the states
+(the hover, the selection, the snapshot shown); a DOM host follows input itself through `context.interaction`
+(`seqspec:interaction#streams`), the default UI's chrome included (a section's nodes carry `data-seqv-section`, a
+track's actions `data-seqv-track`).
 
 ## The skin
 

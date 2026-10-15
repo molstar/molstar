@@ -351,7 +351,7 @@ class Spot {
         const run = v.runs[this.b];
         if (!run) return false;
         runXInto(run, l.lines.start[this.d], this.k, v.gap, XS, 0);
-        x = v.left + XS[0];
+        x = v.left + l.lines.left[this.d] + XS[0];
         w = run.advance;
         out[4] = x + w / 2;
       } else {
@@ -527,7 +527,7 @@ export const KeyboardBehavior = defineBehavior(
   0,
   { bindings: BINDINGS as Readonly<Record<Action, KeyBinding>>, closure: 'containing' as Closure },
   'A cursor over positions, rows and headers (the hover, owner `keyboard`): arrows, Home and End; +/- zoom, Alt+=/Alt+- ' +
-    "row zoom; Enter and Space select or activate; Shift+F10 or ContextMenu asks for the track's menu (`events.menu`); " +
+    "row zoom; Enter and Space select or activate; Shift+F10 or ContextMenu asks for the track's menu (`interaction.menu`, at the cursor); " +
     'Escape clears the selection and puts the cursor away; a press puts it away too. Tab leaves the surface.',
   ({ ctx, h, on, add }) => {
     /** The key's cursor; `rs` is the settle's own, since it runs inside the other's `land`. */
@@ -610,7 +610,7 @@ export const KeyboardBehavior = defineBehavior(
       return true;
     };
 
-    on(ctx.interaction.focus, (f) => {
+    on(ctx.input.events.focus, (f) => {
       const ref = ctx.layout.sectionRef(f.section);
       const c = ctx.ui.keyCursor.value;
       if (ref === null || !h.forSection(f.section)) return;
@@ -623,13 +623,13 @@ export const KeyboardBehavior = defineBehavior(
       r.drop();
     });
     // A press puts the cursor away (the pointer is in use), and the focus it gives shows none until a key.
-    on(ctx.interaction.pointer, (e) => {
+    on(ctx.input.events.pointer, (e) => {
       if (e.input.type !== PointerType.down) return;
       pressed = true;
       if (ctx.ui.keyCursor.value) drop();
     });
     // `r` lets go of the set and the layout after each key.
-    on(ctx.interaction.key, (e) => {
+    on(ctx.input.events.key, (e) => {
       try {
         key(e);
       } finally {
@@ -644,6 +644,12 @@ export const KeyboardBehavior = defineBehavior(
         if (KeyBinding.match(p.bindings[ACTIONS[i]] ?? NONE, k)) act = ACTIONS[i];
       const ref = ctx.layout.sectionRef(k.section);
       if (e.handled || !p || act === null || ref === null) return;
+      if (act === 'menu') {
+        // The track menu is a subscriber's (`interaction.menu`): asked at the cursor (the `menu` subscription below);
+        // handled only where a subscriber prevented the key's default, so with none the browser's menu shows.
+        e.handled = internal(ctx).input.keyMenu(k);
+        return;
+      }
       if (act === 'clear') {
         // The cursor goes too; the next key brings it back where it was (`memo`).
         ctx.selection.clear('keyboard');
@@ -654,11 +660,6 @@ export const KeyboardBehavior = defineBehavior(
       const c = ctx.ui.keyCursor.value;
       if (!(c?.section === ref ? r.resolve(ctx, c, true) : start(ref))) return;
       e.handled = true;
-      if (act === 'menu') {
-        // The track menu is the UI's (`events.menu`): the cursor's track opens it; a group's header has none.
-        if (r.t >= 0) internal(ctx).openMenu(r.ref, r.track as string, 'keyboard');
-        return;
-      }
       const l = r.l;
       switch (act) {
         case 'left':
@@ -716,7 +717,7 @@ export const KeyboardBehavior = defineBehavior(
         if (hit.kind !== HoverKind.none && hit.region !== HitRegion.none && r.inView(rect))
           internal(ctx).input.synthClick(click);
       } else if (act !== 'toggle') {
-        if (r.t >= 0) internal(ctx).activate(r.ref, r.track as string, 'keyboard');
+        if (r.t >= 0) internal(ctx).input.activate(cell(), k, 'keyboard');
       } else {
         // Space on a header expands or collapses a group, a split track, or a clade: a wedge's, a leaf's parent's.
         const str = (id: number) => r.set.strings.get(id);
@@ -728,6 +729,39 @@ export const KeyboardBehavior = defineBehavior(
         else if (r.rv.tracks.split[r.t] >= 0) ctx.ui.toggleGroup(str(r.rv.tracks.ref[r.t]));
       }
     };
+    /** The cursor's cell as a hit (its track and section whatever its middle hits): where a menu or an activation is. */
+    const cell = () => {
+      r.rect(rect);
+      hit.x = rect[4];
+      hit.y = rect[5];
+      ctx.layout.hitTestAt(r.sec, hit);
+      hit.section = r.sec;
+      if (r.t >= 0) hit.track = r.t;
+      return hit;
+    };
+    // A menu asked from the keyboard (a menu key, or the browser's keyboard context-menu request): placed at the
+    // cursor, which starts where a focus would put it when there is none (seqspec:interaction#the-track-menu).
+    on(ctx.input.events.menu, (e) => {
+      if (!e.keyboard || e.owner !== '') return;
+      const sec = e.input.section;
+      const ref = ctx.layout.sectionRef(sec);
+      if (ref === null || !h.forSection(sec)) return;
+      const c = ctx.ui.keyCursor.value;
+      try {
+        const fresh = c?.section !== ref;
+        if (!(fresh ? start(ref) : r.resolve(ctx, c, true))) return;
+        if (fresh) land();
+        const at = cell();
+        e.hit.x = e.input.x = at.x;
+        e.hit.y = e.input.y = at.y;
+        ctx.layout.hitTestAt(sec, e.hit);
+        e.hit.section = sec;
+        if (r.t >= 0) e.hit.track = r.t;
+        e.claim('keyboard');
+      } finally {
+        r.drop();
+      }
+    });
     add(ctx.graph.assembled.subscribe(settle));
     add(
       ctx.ui.keyCursor.subscribe((c) => {
@@ -743,5 +777,25 @@ export const KeyboardBehavior = defineBehavior(
       r.drop();
       drop();
     });
+  },
+  {
+    'bindings.left': { action: 'left', description: 'Move the cursor left with ${triggers}' },
+    'bindings.right': { action: 'right', description: 'Move the cursor right with ${triggers}' },
+    'bindings.up': { action: 'up', description: 'Move the cursor up with ${triggers}' },
+    'bindings.down': { action: 'down', description: 'Move the cursor down with ${triggers}' },
+    'bindings.home': { action: 'home', description: "Move the cursor to the row's header with ${triggers}" },
+    'bindings.end': { action: 'end', description: "Move the cursor to the row's end with ${triggers}" },
+    'bindings.zoomIn': { action: 'zoomIn', description: 'Zoom in with ${triggers}' },
+    'bindings.zoomOut': { action: 'zoomOut', description: 'Zoom out with ${triggers}' },
+    'bindings.rowZoomIn': { action: 'rowZoomIn', description: 'Taller rows with ${triggers}' },
+    'bindings.rowZoomOut': { action: 'rowZoomOut', description: 'Shorter rows with ${triggers}' },
+    'bindings.select': {
+      action: 'select',
+      description: "Select the cursor's cell, or activate a header, with ${triggers}",
+    },
+    'bindings.extend': { action: 'extend', description: "Extend the selection to the cursor's cell with ${triggers}" },
+    'bindings.toggle': { action: 'toggle', description: 'Add or remove the cell, or expand a group, with ${triggers}' },
+    'bindings.menu': { action: 'menu', description: "Ask for the track's menu with ${triggers}" },
+    'bindings.clear': { action: 'clear', description: 'Clear the selection with ${triggers}' },
   },
 );

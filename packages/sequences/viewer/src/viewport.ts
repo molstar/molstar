@@ -119,6 +119,12 @@ export interface SectionViewport {
    * triples in block indices, `stop` exclusive; a view of scratch, valid until the next call. Edge-rate.
    */
   hullOf(target: SeqLociAny | Coordinates): Int32Array;
+  /**
+   * Pans at the current cell so the hull of the block ranges ((block, start, stop) triples) is shown, `pad` px clear:
+   * centered, or its start in view where it is wider than the view; nothing when it already is (seqspec:interaction#focus,
+   * reveal). False: nothing of it is in this section, or it has no width yet.
+   */
+  revealBlocks(ranges: Int32Array, pad?: number, opts?: MoveOpts): boolean;
   /** Whether the view already is what `focusLoci(target, { pad })` would move to; false: nothing shown here. */
   showsFocus(target: SeqLociAny | Coordinates, pad?: number): boolean;
   /** The hull of their projection on every block it lights (seqspec:interaction#focus); false: nothing shown here. */
@@ -626,7 +632,23 @@ export class Viewport implements SectionViewport {
    */
   private target(ranges: Int32Array, n: number, pad: number): number {
     const ax = this.axis;
-    if (!ax) return 0;
+    if (!ax || !this.extent(ranges, n)) return 0;
+    const e = this.span;
+    const s = this.live.current;
+    const w = s.width - ax.insetX;
+    const cell = clamp((w / (1 + 2 * pad) - (e[3] - e[2])) / (e[1] - e[0]), s.minCell, s.maxCell);
+    this.anim.x1 = clamp((cell * (e[0] + e[1]) + e[2] + e[3]) / 2 - w / 2, 0, this.maxScroll(cell));
+    return cell;
+  }
+  /** `extent`'s hull: its leftmost shown start and rightmost stop in cells, and the block gaps before each, px. */
+  private readonly span = new Float64Array(4);
+  /**
+   * The hull of `n` block ranges, (block, start, stop) triples, into `span`: from the leftmost shown start to the
+   * rightmost shown stop; false: nothing shown. x = cell·(offset + shown·span) + block·gap.
+   */
+  private extent(ranges: Int32Array, n: number): boolean {
+    const ax = this.axis;
+    if (!ax) return false;
     // Plain locals, no destructuring: a pan's step may land here (a zoom per frame), and must allocate nothing.
     let lo = Number.POSITIVE_INFINITY;
     let hi = Number.NEGATIVE_INFINITY;
@@ -654,12 +676,27 @@ export class Viewport implements SectionViewport {
         }
       }
     }
-    if (!(hi > lo)) return 0;
+    if (!(hi > lo)) return false;
+    this.span[0] = lo;
+    this.span[1] = hi;
+    this.span[2] = gLo;
+    this.span[3] = gHi;
+    return true;
+  }
+  revealBlocks(ranges: Int32Array, pad = 0, opts: MoveOpts = {}): boolean {
+    const ax = this.axis;
     const s = this.live.current;
-    const w = s.width - ax.insetX;
-    const cell = clamp((w / (1 + 2 * pad) - (gHi - gLo)) / (hi - lo), s.minCell, s.maxCell);
-    this.anim.x1 = clamp((cell * (lo + hi) + gLo + gHi) / 2 - w / 2, 0, this.maxScroll(cell));
-    return cell;
+    const w = ax ? s.width - ax.insetX : 0;
+    if (!ax || w <= 0 || !this.extent(ranges, ranges.length / 3)) return false;
+    const e = this.span;
+    const x0 = s.cell * e[0] + e[2];
+    const x1 = s.cell * e[1] + e[3];
+    const wide = x1 - x0 + 2 * pad > w;
+    // Shown: whole in view, or (wider than the view) its start in view.
+    if (x0 >= s.scrollX && (wide ? x0 <= s.scrollX + w : x1 <= s.scrollX + w)) return true;
+    const x = wide ? x0 - pad : (x0 + x1) / 2 - w / 2;
+    this.moveTo(s.cell, clamp(x, 0, this.maxScroll(s.cell)), opts);
+    return true;
   }
 
   /**

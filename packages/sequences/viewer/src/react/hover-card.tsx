@@ -35,6 +35,7 @@ export function HoverCard({ context: ctx }: PartProps) {
       role="dialog"
       aria-label={s.label?.title ?? 'Item'}
       className="seqv-hover-card"
+      data-seqv-part="hoverCard"
       onPointerEnter={() => card.enter()}
       onPointerLeave={() => card.leave()}
     >

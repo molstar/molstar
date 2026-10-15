@@ -79,7 +79,7 @@ function windowBehavior<P extends object>(
     const ends = new Float64Array(2);
     /** The numbers a viewport verb reads. */
     const buf = new Float64Array(2);
-    on(ctx.interaction.pointer, (e) => {
+    on(ctx.input.events.pointer, (e) => {
       const x = e.input.x;
       const y = e.input.y;
       if (e.input.type !== PointerType.down || e.hit.region !== region || e.owner !== '') return;
@@ -116,7 +116,7 @@ function windowBehavior<P extends object>(
       }
       vp.release();
     });
-    on(ctx.interaction.drag, (e) => {
+    on(ctx.input.events.drag, (e) => {
       const vp = viewportOf(ctx, e.start.section);
       if (e.owner !== name || !vp || !frame(e.start.section)) return;
       if (e.phase >= DragPhase.end) return vp.release();
@@ -191,7 +191,7 @@ function windowBehavior<P extends object>(
     if (kind !== 0) return;
     // The navigator's double click: zoomed in to the focus window or closer, back to the full view; wider than it (the
     // full view, or part way in), in to the focus window at the position.
-    on(ctx.interaction.click, (e) => {
+    on(ctx.input.events.click, (e) => {
       const sec = e.hit.section;
       const p = h.forSection(sec) as NavigatorParams | null;
       if (e.count !== 2 || e.hit.region !== region || e.input.button !== 0 || p?.doubleClick !== 'toggle') return;
@@ -203,7 +203,7 @@ function windowBehavior<P extends object>(
       navUnits(av as SectionAxisView, io);
       toggleZoom(vp, p, io[0] * s.cell + io[1] * (vp.axis?.gap ?? 0) - s.scrollX);
     });
-    on(ctx.interaction.doubleClick, (e) => {
+    on(ctx.input.events.doubleClick, (e) => {
       const p = h.forSection(e.hit.section) as NavigatorParams | null;
       if (e.hit.region !== region || e.input.button !== 0 || p?.doubleClick !== 'toggle') return;
       const vp = viewportOf(ctx, e.hit.section);
@@ -293,9 +293,9 @@ export const HeadersBehavior = defineBehavior(
   'interaction',
   80,
   { activate: 'doubleClick' as 'click' | 'doubleClick' | 'none' },
-  "A group's header, a split track's chevron or a clade toggles on a single click; activating a track header emits `events.activate`.",
+  "A group's header, a split track's chevron or a clade toggles on a single click; activating a track header emits `interaction.activate`.",
   ({ ctx, h, on }) => {
-    on(ctx.interaction.click, (e) => {
+    on(ctx.input.events.click, (e) => {
       const hit = e.hit;
       const p = h.forSection(hit.section);
       const a = ctx.graph.assembled.value;
@@ -317,11 +317,11 @@ export const HeadersBehavior = defineBehavior(
       ) {
         if (once) ctx.ui.toggleGroup(str(rv.tracks.ref[hit.track]));
       } else if (hit.track >= 0 && e.count === (p.activate === 'click' ? 1 : p.activate === 'doubleClick' ? 2 : 0)) {
-        internal(ctx).activate(refOf(ctx, hit.section), str(rv.tracks.ref[hit.track]), 'pointer');
+        internal(ctx).input.activate(hit, e.input, 'headers');
       }
     });
     // A track header's double click activates it (`activate: "doubleClick"`).
-    on(ctx.interaction.doubleClick, (e) => {
+    on(ctx.input.events.doubleClick, (e) => {
       const p = h.forSection(e.hit.section);
       if (
         e.hit.region === HitRegion.header &&
@@ -425,7 +425,7 @@ export const SelectBehavior = defineBehavior(
      * Shift with a click or a drag on positions or columns (seqspec:interaction#selection): `extend`, the range from the
      * anchor; `toggle`, adds or removes (a drag decided at its press: on a selected position it removes its range).
      */
-    shiftPositions: 'extend' as 'extend' | 'toggle',
+    shiftPositions: 'toggle' as 'extend' | 'toggle',
     /** `toggle` on an item or a row: Shift-click adds or removes it; `set`: selects it alone. */
     shiftItems: 'toggle' as 'toggle' | 'set',
     /**
@@ -586,7 +586,7 @@ export const SelectBehavior = defineBehavior(
       }
     };
     // A key meanwhile: Escape drops the held click, another applies it first (it acts on what the click did).
-    on(ctx.interaction.key, (e) => {
+    on(ctx.input.events.key, (e) => {
       if (!held.op) return;
       if (e.input.key === 'Escape') drop();
       else flush();
@@ -602,7 +602,7 @@ export const SelectBehavior = defineBehavior(
       held.timer = -1;
       flush();
     };
-    on(ctx.interaction.click, (e) => {
+    on(ctx.input.events.click, (e) => {
       // A second click: a double click drops what its first click held; any other click applies it first.
       if (held.op) {
         if (e.count > 1) return drop();
@@ -794,7 +794,7 @@ export const SelectBehavior = defineBehavior(
       scrolled = false;
     };
     // The drag's surface lost focus (another window, a tab hidden): the view stops scrolling.
-    on(ctx.interaction.focus, (e) => {
+    on(ctx.input.events.focus, (e) => {
       if (!e.focused && pd.active && e.section === pd.section) pause();
     });
     /**
@@ -818,7 +818,7 @@ export const SelectBehavior = defineBehavior(
       pd.rowEnd = row;
       bump();
     };
-    on(ctx.interaction.drag, (e) => {
+    on(ctx.input.events.drag, (e) => {
       const s = e.start;
       if (e.phase === DragPhase.start) {
         const p = h.forSection(s.section);
@@ -909,6 +909,13 @@ export const SelectBehavior = defineBehavior(
       bump();
     });
   },
+  {
+    click: { action: 'select', description: 'Select the element under the pointer with ${triggers}' },
+    extend: { action: 'extend', description: 'Extend the selection to the element with ${triggers}' },
+    toggle: { action: 'toggle', description: 'Add or remove the element with ${triggers}' },
+    dragOn: { action: 'dragSelect', description: 'Drag to select a range on data with ${triggers}' },
+    dragColumns: { action: 'dragColumns', description: 'Drag over whole columns with ${triggers}' },
+  },
 );
 
 /** The most ms a frame counts (a frame after a pause never jumps). */
@@ -987,7 +994,7 @@ export const DragPanBehavior = defineBehavior(
   },
   'Dragging pans both axes, each with a lock; with `dominantAxis` held (none by default), the dominant axis only.',
   ({ ctx, h, on }) => {
-    on(ctx.interaction.drag, (e) => {
+    on(ctx.input.events.drag, (e) => {
       const p = h.forSection(e.start.section);
       if (!p) return;
       if (e.phase === DragPhase.start) {
@@ -1006,6 +1013,10 @@ export const DragPanBehavior = defineBehavior(
       vp.panDrag(e, x, y);
     });
   },
+  {
+    dragOn: { action: 'pan', description: 'Drag to pan with ${triggers}' },
+    dominantAxis: { action: 'panAxis', description: 'Pan along the dominant axis only with ${triggers}' },
+  },
 );
 
 export const WheelBehavior = defineBehavior(
@@ -1017,7 +1028,7 @@ export const WheelBehavior = defineBehavior(
   ({ ctx, h, on }) => {
     /** The numbers a viewport verb reads. */
     const buf = new Float64Array(2);
-    on(ctx.interaction.wheel, (e) => {
+    on(ctx.input.events.wheel, (e) => {
       const w = e.input;
       const p = h.forSection(e.hit.section);
       const vp = viewportOf(ctx, e.hit.section);
@@ -1054,6 +1065,7 @@ export const WheelBehavior = defineBehavior(
       }
     });
   },
+  { zoom: { action: 'zoom', description: 'Zoom with the wheel and ${triggers}' } },
 );
 
 export const DoubleClickZoomBehavior = defineBehavior(
@@ -1065,7 +1077,7 @@ export const DoubleClickZoomBehavior = defineBehavior(
   ({ ctx, h, on }) => {
     /** The section the last "focus window at the position" step zoomed (-1: none); another double click there fits. */
     const atPosition = new Int32Array([-1]);
-    on(ctx.interaction.click, (e) => {
+    on(ctx.input.events.click, (e) => {
       const p = h.forSection(e.hit.section);
       const i = e.input;
       if (p?.doubleClick !== 'toggle' || e.count !== 2 || i.button !== 0 || i.modifiers !== 0) return;
@@ -1095,7 +1107,7 @@ export const DoubleClickZoomBehavior = defineBehavior(
       toggleZoom(vp, p, x);
     });
     // Its double click at a plain primary click on a linear section's data.
-    on(ctx.interaction.doubleClick, (e) => {
+    on(ctx.input.events.doubleClick, (e) => {
       const p = h.forSection(e.hit.section);
       const i = e.input;
       if (p?.doubleClick !== 'toggle' || i.button !== 0 || i.modifiers !== 0 || e.hit.region !== HitRegion.data) return;
@@ -1114,7 +1126,7 @@ export const RowZoomBehavior = defineBehavior(
   ({ ctx, h, on }) => {
     /** The numbers a viewport verb reads. */
     const buf = new Float64Array(2);
-    on(ctx.interaction.wheel, (e) => {
+    on(ctx.input.events.wheel, (e) => {
       const w = e.input;
       const p = h.forSection(e.hit.section);
       const vp = viewportOf(ctx, e.hit.section);
@@ -1128,4 +1140,5 @@ export const RowZoomBehavior = defineBehavior(
       e.handled = true;
     });
   },
+  { zoom: { action: 'rowZoom', description: "Zoom the rows' height with the wheel and ${triggers}" } },
 );

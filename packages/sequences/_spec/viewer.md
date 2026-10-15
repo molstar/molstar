@@ -64,9 +64,12 @@ The context's states, by manager: `document`, `graph`, `views`, `snapshots`, `vi
 
 ## Events
 
-`ctx.events`: `activate` (a track header activated), `menu` (a track's menu asked for from the keyboard or, with the
-`contextMenu` behavior, the pointer: `seqspec:interaction#the-track-menu`), `patch` (every proposal), `issue` (every new
-issue), `log`. The DOM element adds its own (`seqspec:interaction#the-dom-element`).
+Input is `ctx.interaction`: streams of fresh payloads (`hover`, `press`, `click`, `drag`, `menu`, `wheel`, `key`,
+`leave`, `activate`), fed after the behaviors, observe-only, scoped by `on`, built only while observed
+(`seqspec:interaction#streams`); the track menu is its `menu` (`seqspec:interaction#the-track-menu`). The behaviors'
+base events, which they claim, are `ctx.input.events` (`seqspec:interaction#input-events`). `ctx.events` keeps what is
+not input: `patch` (every proposal), `issue` (every new issue), `log`. The DOM element adds its own
+(`seqspec:interaction#the-dom-element`).
 
 ## The document
 
@@ -148,6 +151,8 @@ params table, and its subscribers, as Mol\*'s `PluginCommand` with stable ids.
   (index args, or labels a numbering resolves; a complex's: outside every member) are refused as a document's focus is,
   never clipped: nothing is done, `seqv.target.range` names the domain, `run` resolves false and `dispatch` rejects.
 - Commands are edge-rate: a dispatch allocates its promise. Pointer-rate paths call managers directly.
+- `seqv:focus` frames a target (a focus, the section's state); `seqv:reveal` only brings it into view, changing no
+  selection, focus or zoom (`ctx.reveal`; `seqspec:interaction#focus`).
 
 ## Behaviors
 
@@ -160,7 +165,11 @@ removed at runtime (`ctx.behaviors.add`, `get(name).setParams`).
 - A preset may turn a behavior off per section, or override its params (`forSection`).
 - A behavior that throws while being created, registered or updated is disposed and reported (`seqv.behavior.error`);
   the viewer goes on without it.
-- Bindings match modifiers exactly, so Ctrl/⌘ with `+` stays the browser's zoom.
+- Bindings match modifiers exactly, so Ctrl/⌘ with `+` stays the browser's zoom. A behavior describes its binding
+  params, and `ctx.behaviors.bindings()` lists them from the current params as Mol\*'s `Binding` (its description with
+  `${triggers}`), for a help panel.
+- Behaviors read the base events (`ctx.input.events`) and claim gestures there; the public streams (`ctx.interaction`)
+  see what they did.
 - The interaction rules are behaviors' params, in the viewer spec (`SeqViewerSpec`, as Mol\*'s PluginSpec): a host
   composes, overrides, replaces or removes them there, or at runtime (`setParams`), and a preset per section. Input
   delivery (the engine, the dispatcher) only delivers: a press followed anywhere, its point clamped, a release never
@@ -171,14 +180,18 @@ removed at runtime (`ctx.behaviors.add`, `get(name).setParams`).
   `autoscrollMax`). A behavior whose double click means something at a point claims the `doubleClick` query there
   (`doubleClickZoom`, `navigator`, `headers`), so `select` asks the behaviors, never a list.
 - Some built-in behaviors are not in `DefaultSeqViewerSpec` (`SeqViewerOptionalBehaviors`; the generated reference lists
-  them apart): a host adds them. `contextMenu`, the track menu from the pointer, is one
-  (`seqspec:interaction#the-track-menu`).
+  them apart): a host adds them. `revealHighlight`, a linked view's highlight brought into view once it rests, is one
+  (`seqspec:interaction#highlight`).
 
 ## Actions
 
 **Actions** are what the UI shows as menu items and switches and what a host maps into its own commands: a name, a
 title, a `when` and a `run`, mostly proposing a patch (`track.hide`, `section.numbering`, `bookmark.add`) or changing UI
 state (`view.switch`, `group.toggle`). `ctx.actions.run`, or the `seqv:runAction` command. The origin reaches the patch.
+`bookmark.add` keeps loci of the shown set as rows of a section's inline `ranges` set (`<section>.bookmarks`, or the
+target's `data`), with an optional `label`, `color` (a `color` column on the rows, shown by a layer's `field_color`) and
+`line_style` (one of the line styles, a `line_style` column, shown by a layer's `field_line_style`; no column is written
+for either without it); on a set the document already holds it is one `set` of the rows, so one undo step.
 
 ## Config
 
@@ -210,19 +223,21 @@ What the core promises each kind of entry, and what the entry must do. The built
   private access. A renderer prepares headlessly and purely once per input change, hits headlessly, and draws through
   the renderer API (`/draw`), which is DOM-free, so the same entries serve a canvas, SVG in Node and tests. It declares
   the geometries it draws (`linear`, `wrapped`, `circular`); without `circular`, a section on rings draws its extents as
-  bars and reports it. It must honor the kernel type's semantics (placement, split rows, channels, fallbacks). It
-  declares `content: false` when it never reads residues, so a residue edit keeps its prepared state. It declares
-  `zooms` when its free height follows the row zoom (its height then takes the row scale), so the zoom moves its track
-  with the rows without a new layout. Its draws allocate nothing per frame. It may give the band a data hover lights on
-  its track (`rowHover`: its rows, or none), else the track's box. It declares `stable` when its draw of a strip of the
-  view (a pan's uncovered part) equals its draw of the whole view there, so a pan copies the rest: a decision over the
-  view (items or density) reads the whole view's range, not the strip's. Its other optional parts: `tiny`, its draw
-  below its `minHeight` (else bars); `miniature: false`, left out of a navigator's miniature; `overview`, its rows in
-  the vertical overview; `ringLabels`, its items' labels outside the rings; `cache`, a store kept per prepared state and
-  skin (made and disposed by the engine); `bands`, a multi-band layer's band labels; `header` and `gutter`, its rows'
-  header and gutter (a rows layer's labels and tree, its line numbers). Renderers run the conformance kit
-  (`@molstar/seq-viewer/testing`) as the built-ins do, its edge geometries (`EdgeKinds`: reversed, a cyclic origin,
-  stacked, filtered, copies) included: drawn and hit back in each.
+  bars and reports it. Its `wrapped` decides whether it takes a lane in the text view (The text view): with it, its band
+  per line is its `lineHeights` (from each line's runs: the underline and strip lanes), else a row (`rowHeight`);
+  without it, its layers take their fallback in text and no band. It must honor the kernel type's semantics (placement,
+  split rows, channels, fallbacks). It declares `content: false` when it never reads residues, so a residue edit keeps
+  its prepared state. It declares `zooms` when its free height follows the row zoom (its height then takes the row
+  scale), so the zoom moves its track with the rows without a new layout. Its draws allocate nothing per frame. It may
+  give the band a data hover lights on its track (`rowHover`: its rows, or none), else the track's box. It declares
+  `stable` when its draw of a strip of the view (a pan's uncovered part) equals its draw of the whole view there, so a
+  pan copies the rest: a decision over the view (items or density) reads the whole view's range, not the strip's. Its
+  other optional parts: `tiny`, its draw below its `minHeight` (else bars); `miniature: false`, left out of a
+  navigator's miniature; `overview`, its rows in the vertical overview; `ringLabels`, its items' labels outside the
+  rings; `cache`, a store kept per prepared state and skin (made and disposed by the engine); `bands`, a multi-band
+  layer's band labels; `header` and `gutter`, its rows' header and gutter (a rows layer's labels and tree, its line
+  numbers). Renderers run the conformance kit (`@molstar/seq-viewer/testing`) as the built-ins do, its edge geometries
+  (`EdgeKinds`: reversed, a cyclic origin, stacked, filtered, copies) included: drawn and hit back in each.
 - **Data columns** draw a `rows` annotation's field per alignment row; an unknown column type is `text`.
 - **Theme providers** are the drawing half of a format theme entry of the same name; one provider serves every channel
   kind its entry declares. A renderer fills a reused theme location (layer, block, unit, index, item, letter, value,
@@ -283,7 +298,8 @@ rectangles, sectors, paths, glyphs and text, images, passes, clips and copies. B
 platform-free: the same code exports from a page and renders figures in Node), and recording (tests).
 
 - Batches are struct-of-arrays and grow-only; colors are packed integers or skin tokens, alpha its own byte. A frame
-  allocates nothing.
+  allocates nothing. A path's stroke may be dashed: on and off lengths and a phase, device px, so a pattern is fixed to
+  the content (a range's `dashed` and `dotted` line styles); Canvas2D sets its line dash, SVG `stroke-dasharray`.
 - **Surfaces** (`mountSection`, one per section) size their canvases inside a frame only, so the page never paints a
   blank canvas, and follow the host's size and device pixel ratio. Each pass canvas carries `data-pass` (`main`,
   `overlay`, `nav`, `nav-overlay`, `vnav`, `vnav-overlay`), marks for a host's CSS: the vertical overview and scrollbar
@@ -348,28 +364,99 @@ section (`style.row_borders`), a host in its render props; an SVG export draws a
 `renderSvg(doc, { render: { rowBorders: true } })` turns them on for a figure. An expanded split track's rows have quiet
 guides regardless: a hairline in the skin's grid tone at the bottom edge of each row but the last, under the data, drawn
 only where a row is at least 4 device px tall and shifting nothing (a row border, where there is one, takes its place).
-Wrapped text sits `wrappedInset` px (8, the skin's `--seq-canvas-edge` default) inside the canvas on every side, its
+The text view's sizes and spacing are render props too (The text view).
+
+## The text view
+
+A `text` layout's sections draw the `wrapped` geometry: the positions as lines of text, each line a band per track under
+it. The text sits `wrappedInset` px (8, the skin's `--seq-canvas-edge` default) inside the canvas on every side, its
 line numbers' gutter within; hits, the selection, the drag's nearest positions and its scroll all read that geometry.
 The layout reads no CSS (an SVG export draws it the same): a host that changes `--seq-canvas-edge` sets
 `render.wrappedInset` to match. Its spacing is render props too: `wrappedGroup` positions a group, `wrappedGroupGap` px
-between groups, `wrappedGap` between lines, `wrappedTrackGap` between a line's letters and its first annotation lane,
-`wrappedLaneHeight` a lane under the text, `wrappedMaxWidth` the longest line in px (0, the default: the whole data
-area), `wrappedColors` the letters themselves in the layer's color theme (false, the default: the ink), `unobservedGray`
-a unit's unobserved positions (`observed` ranges that leave them out) in the skin's `unobserved` color, opaque, in the
-letters' cells at every zoom (zoomed out, a column's share of them as their own class) and in text, plain or colored
-(false, the default), `wrappedAlign` (`start`, the default, or `center`) where the lines sit: centered, the block is as
-wide as its widest line, centered in the data area the section ends with (the vertical overview's room only where the
-text scrolls), and the margins either side belong to the gutters, hits and the selection reading the same geometry. A
-line holds whole groups, and a short last group goes on a line of its own where a full group would not fit. The
-`wrapped` preset spaces the text to read; `compact` is the dense one (half the group gap, lines and lanes touching,
-lower lanes), still in groups of 10.
+between groups, `wrappedGap` between lines, `wrappedTrackGap` between a line's letters and a track's lanes,
+`wrappedLaneHeight` an underline lane, `wrappedStripHeight` a strip lane (Lanes, below), `wrappedMaxWidth` the longest
+line in px (0, the default: the whole data area), `wrappedColors` the letters themselves in the layer's color theme
+(false, the default: the ink), `unobservedGray` a unit's unobserved positions (`observed` ranges that leave them out) in
+the skin's `unobserved` color, opaque, in the letters' cells at every zoom (zoomed out, a column's share of them as
+their own class) and in text, plain or colored (false, the default), `wrappedAlign` (`start`, the default, or `center`)
+where the lines sit: centered, the block is as wide as its widest line, centered in the data area the section ends with
+(the vertical overview's room only where the text scrolls), and the margins either side belong to the gutters, hits and
+the selection reading the same geometry. A line holds whole groups, and a short last group goes on a line of its own
+where a full group would not fit. The `wrapped` preset spaces the text to read; `compact` is the dense one (half the
+group gap, lines and lanes touching, lower lanes), still in groups of 10.
+
+**Lanes.** Under each line, every track that draws there takes a band, in track order (under the group labels' band,
+`aboveEnd`); the layers of one track share its band, the tallest of theirs:
+
+| Layer kind                                        | Its band on a line                                                                       |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `letters`, `emphasis`                             | the letters: 1.6 × `wrappedFontPx` (`emphasis` draws its track's letters, emphasized)    |
+| `ranges`, `points`, `secondary`                   | underline lanes: `wrappedTrackGap`, then `wrappedLaneHeight` per lane with an item there |
+| `values`, `color`                                 | a strip lane: `wrappedTrackGap`, then `wrappedStripHeight` (3 px; `compact` 2)           |
+| `ruler`, `dot_plot`, the types text does not draw | none                                                                                     |
+| but `letters`, with a `height`, under `full`      | the track drawn in full: `height` text rows (below)                                      |
+
+- **Tracks drawn in full** (opt-in: the render prop `wrappedTracks`, the style's `wrapped_tracks`; `lanes`, the default
+  and the `wrapped` and `compact` presets', keeps every track a thin lane whatever its height; `full` draws them in
+  full): a track with a `height` (and no `letters`: the letters are the text) takes that many of the text's rows on
+  every line (a text row is the letters' band, 1.6 × `wrappedFontPx`, so a figure's tracks scale with its text; rows, as
+  a track's height is in tracks), and its layers draw their track forms over each line, as over a linear view of the
+  line's positions: `values` its line, area or bars, on the layer's one scale for every line, a line broken at each
+  line's end (no stub: the next line starts at its first position), from a line's (or a run's after a missing value)
+  first cell's left edge to its last's right, the end values held over their half cells as the area's cells are;
+  `points` its glyphs, `ranges` its items with their labels, each on its item's part on the line (centered in it, cut
+  with an ellipsis, left out under three graphemes, never past the line's end), `secondary` its shapes, `color` its
+  cells; `variants` take their fallback, points. An extension renderer that declares `wrapped` draws its linear form
+  there (`AxisView.trackForm`, the line's positions as `visLo`/`visHi` and its advance as `cell`). Two-dimensional kinds
+  (dot plots, pairs, trees, rows) are not drawn in text. On a chip's line a track keeps its lane. Hits there are by
+  drawn geometry, as in tracks.
+- **A line's block** is one unit: its group labels' band topmost, then its tracks in track order (one ordered before the
+  letters between the group labels and the letters), each band `wrappedTrackGap` below the one before; the next line's
+  block `wrappedGap` below its last band. A block reads as one where `wrappedGap` is clearly the larger: the `figure`
+  preset (text with its tracks in full, the axes and the labels on) takes 3 and 18 px. Under `full`, a track of features
+  (`ranges`, `points`, `secondary`) with nothing on a line takes no band on that line (`wrappedCollapseEmpty`, true by
+  default: an empty band is room that separates what belongs together); `values` and `color` keep theirs (a gap in their
+  data is data, and one scale reads across lines).
+- **Axes and labels** (off by default): `wrappedTrackAxes` (the style's `track_axes`: a small y axis left of each band,
+  its domain's ends, in 30 px the text leaves left of its lines) and `wrappedTrackLabels` (`track_labels`: the track's
+  label in a row of its own above its band, `EntryKind.trackLabel`, on the first line the track has a band: never over
+  its data; the left of the lines holds the axes, too narrow for a label); an SVG export draws them alike.
+- **Underline lanes** are compacted per line to the lanes with an item on it, each underline 2 px less than its lane. An
+  item's line style (`seqspec:format#themes`) draws its underline (a wave over the whole lane); a `highlight` or `box`
+  item also draws behind the line's letters (the line's first `letters` track): a translucent fill or an outline over
+  its cells, drawn before the letters (`LayerRenderer.behindText`), its lane keeping its own mark.
+- **A strip lane** is on each line of a block the layer has data on: a color per position from the layer's color theme
+  (a `values` layer's at its value; with none, the ink), cut at the gaps between groups; a missing value draws nothing.
+- **No lane without a drawing.** A type whose renderer leaves out `wrapped` takes its fallback in text
+  (`seqspec:format#layer-types`: `rows` its letters, `variants` and `pairs` points) or is omitted (a ruler, a dot plot),
+  and takes no band; a track whose layers draw nothing on any line takes none.
+- **Beside the letters**, on their track, a `color` or `values` layer colors the letters' cells behind them (a `values`
+  layer with no color theme there draws nothing: its ink would hide them); alone on its track it is the strip.
+- **Consistent heights**: every band's height is a render prop's (the letters' the font's), so a line's spacing reads
+  the same whatever is under it. The `compact` preset sets them tighter (`wrappedTrackGap` 0, `wrappedLaneHeight` 4,
+  `wrappedStripHeight` 2).
+- **Chips**: a short unit (a ligand in the `position` form: one position) is a chip, as wide as its chemical component's
+  label (measured in the chips' font, the letters' band's half, with 5 px either side) and not a block of its own line:
+  consecutive chips flow on shared rows, the group gap apart, wrapping where the next does not fit, as words do; their
+  rows follow the chains spaced as a new line is (`wrappedGap`, not the blocks' `stackGap`, then the group labels'
+  band's room, empty: chips have no group labels). Each track's band on a row is the tallest of its chips'. A chip stays
+  its unit's one position: its hit, hover, hover card, selection, a drag's nearest position and the links read it as any
+  position (a drag still stays on the block it started in). Tracks draw a ligand as a pill over its cells, its label
+  fitted; narrower than its box, a filled cell at least 2 device px wide, unlabeled, so it never vanishes.
+- **Hits** (`seqspec:interaction#hover`): a point on a track's band is that track's; on an underline its item, by lane;
+  on a strip, and in its gap, its layer's position, so the hover and the hover card show the value, as on a linear
+  track. Lanes only add height to a line: the selection, a drag's nearest positions and its scroll read the lines alone.
 
 ## Performance
 
 No allocation per frame, per pointer event or per lookup on these paths: pointer moves and hit tests, state and event
 emission, frames, hover across sections (closure and projection on cached routes), labels, marks, drag-select, theme
-lookups, text layout, and SeqQL runs per position or run. Each such path has a heap guard with a positive control (a
-guard that is shown to fail on a planted allocation). Commands, the graph and edge-rate events may allocate.
+lookups, text layout, and SeqQL runs per position or run. Each such path is guarded, with a positive control (a guard
+that is shown to fail on a planted allocation): its bytes allocated per step, read exactly against a recorded baseline,
+and its heap growth over a long run once optimized. Commands, the graph and edge-rate events may allocate. The public
+input streams (`ctx.interaction`) cost nothing on these paths while a stream has no subscriber (their guards run with
+the streams created and none subscribed, and after a subscriber left); a subscribed stream may allocate its payload per
+event.
 
 A draw's edge-rate work (an index, a pyramid, a tick list) is bounded by what its block shows and its data holds, never
 by the length of the block's coordinate system: a protein's letters on its chromosome index the protein's codons, not

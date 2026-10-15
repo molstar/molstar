@@ -230,6 +230,16 @@ const mutations: [string, string, (d: J) => void][] = [
     },
   ],
   [
+    'svs.line_style.invalid',
+    `${RANGES}/line_style/params/line_style`,
+    (d) => {
+      sectionOf(d)[3].children[0].children[0].params.line_style = {
+        theme: 'uniform',
+        params: { line_style: 'zigzag' },
+      };
+    },
+  ],
+  [
     'svs.source.uri',
     `${D}/0/params/uri`,
     (d) => (dataOf(d)[0].params = { uri: 'http://example.org/a.fasta', format: 'fasta' }),

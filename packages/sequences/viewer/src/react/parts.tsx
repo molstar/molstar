@@ -249,7 +249,7 @@ export function ViewTabs({ context: ctx }: PartProps) {
     (el.parentElement?.children[views.indexOf(v)] as HTMLElement | undefined)?.focus();
   };
   return (
-    <div ref={land} role="tablist" aria-label="Views" className="seqv-tabs">
+    <div ref={land} role="tablist" aria-label="Views" className="seqv-tabs" data-seqv-part="viewTab">
       {views.map((v, i) => (
         <button
           key={v.ref}
@@ -347,7 +347,7 @@ export function SectionHeader({ context: ctx, section }: SectionProps) {
   const land = useLand();
   if (!info.label && !info.filter && !(Switches && info.switches) && !hidden) return null;
   return (
-    <div ref={land} className="seqv-section-header">
+    <div ref={land} className="seqv-section-header" data-seqv-part="sectionHeader">
       {info.label && <span className="seqv-section-label">{info.label}</span>}
       {info.filter && (
         <button
@@ -375,7 +375,7 @@ export function SectionSwitches({ context: ctx, section }: SectionProps) {
   const land = useLand();
   if (switches.length === 0) return null;
   return (
-    <div ref={land} className="seqv-switches">
+    <div ref={land} className="seqv-switches" data-seqv-part="sectionSwitch">
       {switches.map((sw) => (
         <Switch key={sw.action} sw={sw} run={(value) => ctx.actions.run(sw.action, { section, value })} />
       ))}
@@ -385,9 +385,9 @@ export function SectionSwitches({ context: ctx, section }: SectionProps) {
 
 /**
  * The menu at a track header: filter view, focus, hide, remove. It holds its menu's `open` (leaf state) and opens it,
- * at the header, on `events.menu` for its track (Shift+F10 or ContextMenu on the keyboard cursor; a secondary press
- * where a host added the `contextMenu` behavior, seqspec:interaction#the-track-menu): a host's `Menu` gets it as its
- * `open`.
+ * at the header, on a keyboard `menu` for its track (Shift+F10 or ContextMenu on the keyboard cursor,
+ * seqspec:interaction#the-track-menu), preventing the browser's; a right-click stays the browser's. A host's `Menu` gets
+ * it as its `open`.
  */
 export function TrackActions({ context: ctx, section, track, row }: TrackProps) {
   const { Menu, Hint } = usePrimitives();
@@ -418,8 +418,10 @@ export function TrackActions({ context: ctx, section, track, row }: TrackProps) 
   );
   const has = menu.items.length > 0;
   useEffect(() => {
-    const sub = ctx.events.menu.subscribe((e) => {
-      if (has && e.section === section && e.track === track) setOpen(true);
+    const sub = ctx.interaction.on('menu', { section, track }).subscribe((e) => {
+      if (!has || e.origin !== 'keyboard') return;
+      e.native.preventDefault();
+      setOpen(true);
     });
     return () => sub.unsubscribe();
   }, [ctx, section, track, has]);
@@ -456,7 +458,7 @@ export function HiddenChips({ context: ctx, section }: SectionProps) {
   });
   if (hidden.length === 0) return null;
   return (
-    <fieldset aria-label="Hidden tracks" className="seqv-chips">
+    <fieldset aria-label="Hidden tracks" className="seqv-chips" data-seqv-part="hiddenChip">
       {hidden.map((t) => (
         <Chip key={t.ref} data-seqv-key={`chip:${t.ref}`} onClick={() => ctx.actions.run('track.show', t.ref)}>
           Show {t.label}
@@ -514,7 +516,7 @@ export function Tooltip({ context: ctx }: PartProps) {
   }, [ctx, surfaces, label]);
   if (!label || !scope) return null;
   return (
-    <div ref={el} role="tooltip" className="seqv-tooltip">
+    <div ref={el} role="tooltip" className="seqv-tooltip" data-seqv-part="tooltip">
       {label.title && <div className="seqv-tooltip-title">{label.title}</div>}
       {label.lines.map((l) => (
         <div key={`${l.key}:${l.value}`} className="seqv-tooltip-line">
@@ -582,6 +584,7 @@ function LegendBox({
     <details
       ref={root}
       className="seqv-legend"
+      data-seqv-part="legend"
       open={expanded}
       // The person's toggle is UI state (`ui.legendExpanded`), as `view.legend` is.
       onToggle={(e) => {
@@ -840,7 +843,7 @@ export function SnapshotPlayer({ context: ctx }: PartProps) {
     </Hint>
   );
   return (
-    <fieldset ref={land} aria-label="Snapshots" className="seqv-player">
+    <fieldset ref={land} aria-label="Snapshots" className="seqv-player" data-seqv-part="snapshotPlayer">
       {icon('prev', 'Previous snapshot', '‹', () => void ctx.snapshots.next(-1), at <= 0)}
       {icon(
         'play',
@@ -890,7 +893,7 @@ export function Description({ context: ctx }: PartProps) {
   );
   if (!paragraphs?.length) return null;
   return (
-    <div className="seqv-description">
+    <div className="seqv-description" data-seqv-part="description">
       {paragraphs.map((p, i) => (
         <p key={i}>{p}</p>
       ))}
@@ -952,7 +955,7 @@ function SearchBar({ context: ctx, box }: { context: SeqViewerContext; box: Sear
     </Hint>
   );
   return (
-    <div ref={land} className="seqv-search">
+    <div ref={land} className="seqv-search" data-seqv-part="search">
       <div className="seqv-search-field">
         <input
           ref={input}
@@ -1023,7 +1026,7 @@ export function Export({ context: ctx }: PartProps) {
   if (!entry) return null;
   const width = () => Math.round(surfaces?.values().next().value?.clientWidth || 1000);
   return (
-    <span ref={land} className="seqv-export">
+    <span ref={land} className="seqv-export" data-seqv-part="export">
       <Menu
         trigger={
           <button type="button" className="seqv-switch-trigger" data-seqv-key="export">
@@ -1082,7 +1085,7 @@ function IssueBox({
   usePopover(root, list, { roving: false, open, onOpenChange: setOpen });
   const shown = open ? issueList(issues) : null;
   return (
-    <span ref={root} className="seqv-issues">
+    <span ref={root} className="seqv-issues" data-seqv-part="issues">
       <button type="button" className="seqv-badge" data-seqv-key="issues" data-severity={badge.severity}>
         {badge.text}
       </button>

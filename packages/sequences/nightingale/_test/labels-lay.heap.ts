@@ -7,24 +7,19 @@
  */
 
 // Heap guard for the label layer (NG-12), on RB0b's stepped `heapScaling`: `layLabels` over a few hundred labels at an
-// unchanged view (a manager's attribute storm on each hover lays them again and writes nothing). A file of its own
-// (LA-28: guards sharing a file share V8's feedback). The positive control is the template's: the same step with a
-// leak.
+// unchanged view (a manager's attribute storm on each hover lays them again and writes nothing); the step is
+// labels-heap-fixture.ts's `laying`, shared with the quick twin (labels-lay.quick.ts). A file of its own. The positive
+// control is the template's: the same step with a leak.
 
 import { describe, expect, it } from 'vitest';
 import { controlCaught, describeScaling, heapScaling, isFlat, leaking } from '../../core/_test/model/heap.js';
-import { layLabels } from '../src/labels.js';
-import { labels, layout, measure, N, view } from './labels-heap-fixture.js';
+import { laying, N } from './labels-heap-fixture.js';
 
 describe('the label layer allocates nothing per frame', () => {
   it('layLabels at an unchanged view: laid, compared, nothing written', () => {
-    layLabels(labels, view, layout, measure);
-    let writes = 0;
-    const step = () => {
-      writes += layLabels(labels, view, layout, measure);
-    };
+    const { step, writes } = laying();
     const r = heapScaling(N / 10, step);
-    expect(writes).toBe(0);
+    expect(writes()).toBe(0);
     expect(isFlat(r), describeScaling(r, N / 10)).toBe(true);
     expect(controlCaught(() => heapScaling(N / 10, leaking(step)))).toBe(true);
   });

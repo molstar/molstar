@@ -43,7 +43,7 @@ describe('the hover element is every field of the hit', () => {
     const y0 = 5 * Math.ceil((t.yOf(S, 'family.flvr-arginine') - 9) / 5);
     const x0 = 3 * Math.round(t.xOf(S, 0, 4) / 3);
     let hovers = 0;
-    t.ctx.interaction.hover.subscribe(() => hovers++);
+    t.ctx.input.events.hover.subscribe(() => hovers++);
     t.pointer('move', S, x0 + 0.25, y0 + 0.25);
     const first = hovers;
     t.pointer('move', S, x0 + 0.5, y0 + 1.25); // the same band and stripe
@@ -62,7 +62,7 @@ describe('the hover element is every field of the hit', () => {
     const NV = 'features.natural-variants';
     const x = t.xOf(F, 0, 174);
     const seen: number[] = [];
-    t.ctx.interaction.hover.subscribe((e) => seen.push(e.hit.split));
+    t.ctx.input.events.hover.subscribe((e) => seen.push(e.hit.split));
     for (const row of [3, 4, 4, 5]) t.pointer('move', F, x, t.yOf(F, NV, row));
     expect(seen.slice(-3)).toEqual([3, 4, 5]);
   });

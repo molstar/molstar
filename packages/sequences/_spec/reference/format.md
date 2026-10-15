@@ -496,6 +496,7 @@ Every case:
 |---|---|---|---|
 | `thickness` | `ThemeRef<size> \| null` | `null` | a size theme; null: the viewer's size |
 | `radius` | `ThemeRef<size> \| null` | `null` | a size theme; null: the viewer's size |
+| `line_style` | `ThemeRef<line_style> \| null` | `null` | a line style theme: how each item is drawn (solid, dashed, dotted, wavy, double, box, highlight); null: solid |
 | `display` | `"lanes" \| "brackets" \| "underline" \| "union"` | `"lanes"` | a hint |
 | `labels` | `bool` | `false` | each item's label inside its feature where it fits (on rings: outside the outermost ring, with a leader); a hint |
 | `direction_field` | `str \| null` | `null` | a field of the rows giving each item's direction (+, 1, forward; -, -1, reverse): an arrowhead at its end |
@@ -656,6 +657,10 @@ A union on `kind`: the palette's kind.
 
 A shape name (`circle`, `diamond`, `triangle`, `square`, `pin`, `star`, `cross`, `tick`) or an object with exactly one of `shape`, `char` (one grapheme) and `path` (SVG path data, at most 4 KB, with `box`: [w, h]), and optionally `label` and `fallback` (a shape).
 
+### `LineStyle`
+
+How a range's item is drawn: `solid`, `dashed`, `dotted`, `wavy`, `double`, `box`, `highlight`; `solid` is the plain bar or underline.
+
 ### `Color`
 
 `#rgb`, `#rrggbb`, a Mol* color name, or a split color `a/b`. No alpha: a layer's `opacity` gives it.
@@ -679,7 +684,7 @@ A position label: an int (`315`), or a string without whitespace: `"27A"`, `"111
 | `emphasis` | positions emphasized in the letters or rows of its track | ranges | tracks, text | blocks, columns | row | points |
 | `variants` | substitutions per position | ranges | tracks | blocks, columns | row | points |
 | `secondary` | helices, strands, turns | ranges | tracks, text | blocks, columns | row | ranges |
-| `values` | a number per position or column | values | tracks | blocks, columns | row | color |
+| `values` | a number per position or column | values | tracks, text | blocks, columns | row | color |
 | `color` | a color per position, from categories or values | ranges, values | tracks, text | blocks, columns | row | ranges |
 | `ruler` | positions labeled in a numbering | none | tracks | blocks, columns | free | omit |
 | `pairs` | pairs of positions, by category | pairs | tracks | blocks, columns | free | points |
@@ -713,6 +718,7 @@ A position label: an int (`315`), or a string without whitespace: `"27A"`, `"111
 |---|---|---|---|
 | `thickness` | `ThemeRef<size> \| null` | `null` | a size theme; null: the viewer's size |
 | `radius` | `ThemeRef<size> \| null` | `null` | a size theme; null: the viewer's size |
+| `line_style` | `ThemeRef<line_style> \| null` | `null` | a line style theme: how each item is drawn (solid, dashed, dotted, wavy, double, box, highlight); null: solid |
 | `display` | `"lanes" \| "brackets" \| "underline" \| "union"` | `"lanes"` | a hint |
 | `labels` | `bool` | `false` | each item's label inside its feature where it fits (on rings: outside the outermost ring, with a leader); a hint |
 | `direction_field` | `str \| null` | `null` | a field of the rows giving each item's direction (+, 1, forward; -, -1, reverse): an arrowhead at its end |
@@ -943,6 +949,24 @@ the field's values are shape names or one character
 |---|---|---|---|
 | `field` | `str` | `"glyph"` |  |
 
+## Line style themes
+
+### `uniform`
+
+one value
+
+| Param | Type | Default | |
+|---|---|---|---|
+| `line_style` | `LineStyle` | required | the line style |
+
+### `field_line_style`
+
+the field's values are line styles; others solid, said once (svs.render.line_style)
+
+| Param | Type | Default | |
+|---|---|---|---|
+| `field` | `str` | `"line_style"` |  |
+
 ## Letter maps
 
 A `letter_map` (`letters`, `rows`): a name below, or a dict of single letters mapped; unlisted letters are kept.
@@ -1024,6 +1048,7 @@ A `scheme` color theme names one (`{"theme": "scheme", "params": {"name": "zappo
 | `svs.columns.type` | error |
 | `svs.color.invalid` | error |
 | `svs.glyph.invalid` | error |
+| `svs.line_style.invalid` | error |
 | `svs.source.uri` | error |
 | `svs.layer.data` | error |
 | `svs.layer.fallback` | error |
@@ -1078,6 +1103,7 @@ A `scheme` color theme names one (`{"theme": "scheme", "params": {"name": "zappo
 | `svs.section.style` | warning |
 | `svs.render.theme` | warning |
 | `svs.render.glyph` | warning |
+| `svs.render.line_style` | warning |
 | `svs.render.preset` | warning |
 | `svs.render.direction` | warning |
 | `svs.alphabet.detected` | warning |

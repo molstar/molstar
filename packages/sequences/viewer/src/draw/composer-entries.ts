@@ -33,7 +33,7 @@ import {
   setClip,
   stateOf,
 } from './composer-frame.js';
-import { columns, gutter, header, rowsHeader } from './composer-headers.js';
+import { columns, gutter, header, rowsHeader, trackLabel } from './composer-headers.js';
 import { drawGroupLabels } from './numbers.js';
 
 /** A split row's guide: the grid tone at this alpha (0..255), well under a row border's full strength. */
@@ -43,6 +43,8 @@ const SPLIT_GUIDE_ALPHA = 150;
 const WRAPPED = AxisGeometry.wrapped;
 const LABELS = EntryKind.labels;
 const TRACK = EntryKind.track;
+const TRACK_LABEL = EntryKind.trackLabel;
+const LETTERS = 'letters';
 const PART_DATA = Part.data;
 const PART_GUTTER = Part.gutter;
 const PART_HEADER = Part.header;
@@ -70,19 +72,37 @@ export function entry(f: ComposerFrame, l: SectionLayout, e: number, parts: numb
     drawGroupLabels(v);
     v.backend.popClip();
   }
+  if (kind === TRACK_LABEL && parts & PART_DATA && open(f, l.dataLeft, l.dataRight, parts)) {
+    trackLabel(f, l, e);
+    v.backend.popClip();
+  }
   if (kind !== TRACK) return;
   if (parts & PART_DATA) data(f, l, e, parts);
   if (parts & PART_GUTTER) gutter(f, l, e);
 }
 /** The track's layers (an expanded split track's row: its layer; its label's entry: the others), then its border. */
 function data(f: ComposerFrame, l: SectionLayout, e: number, parts: number) {
-  if (!open(f, l.dataLeft, l.dataRight, parts)) return;
+  // A chip's entry is its chip alone (seqspec:viewer#the-text-view): its clip, and a clear, never reach the chips
+  // beside it on its row.
+  let x0 = l.dataLeft;
+  let x1 = l.dataRight;
+  if (l.geometry === WRAPPED && l.entryRow[e] >= 0) {
+    const line = l.entryRow[e];
+    const run = f.v.runs[l.lines.block[line]];
+    if (run?.chip) {
+      x0 += l.lines.left[line];
+      x1 = x0 + run.advance;
+    }
+  }
+  if (!open(f, x0, x1, parts)) return;
   const v = f.v;
   const b = f.box;
   const rv = (f.model as ViewModel).resolved;
   v.top = b[0];
   v.height = b[4];
   place(f, l, e);
+  // Wrapped, under the line's first letters: what the line's other tracks draw on its text.
+  if (l.geometry === WRAPPED && lettersEntry(f, l, e)) behindText(f, l, e);
   // A split row's guide, under its data.
   if (b[4] === b[1] && b[1] * v.dpr >= SPLIT_GUIDE_PX && SectionLayouts.splitGuide(l, e)) guide(f, b);
   const t = l.entryTrack[e];
@@ -135,6 +155,43 @@ function layer(f: ComposerFrame, k: number, l: SectionLayout, e: number) {
     fail(f, k, err);
   } finally {
     release(f);
+  }
+}
+/** Whether entry e's track holds a `letters` layer: the text's band on a wrapped line. */
+function lettersEntry(f: ComposerFrame, l: SectionLayout, e: number): boolean {
+  const L = (f.model as ViewModel).resolved.layers;
+  const t = l.entryTrack[e];
+  for (let k = Math.max(0, l.entryLayer[e]); k < L.count && L.track[k] === t; k++)
+    if (f.renderers[k]?.name === LETTERS) return true;
+  return false;
+}
+/**
+ * Wrapped, letters entry e: when it is its line's first, each layer of the line's tracks with `behindText` draws on the
+ * text's band (`v.top`, `v.height` as placed), with its own state and themes; a throw omits the layer.
+ */
+function behindText(f: ComposerFrame, l: SectionLayout, e: number) {
+  const line = l.entryRow[e];
+  const top = l.lines.top[line];
+  const bottom = l.lines.bottom[line];
+  for (let q = e - 1; q >= l.pinnedCount && l.entryTop[q] >= top; q--)
+    if (l.entryKind[q] === TRACK && l.entryRow[q] === line && lettersEntry(f, l, q)) return;
+  const v = f.v;
+  const L = (f.model as ViewModel).resolved.layers;
+  for (let q = e + 1; q < l.entryCount && l.entryTop[q] < bottom; q++) {
+    if (l.entryKind[q] !== TRACK || l.entryRow[q] !== line) continue;
+    const t = l.entryTrack[q];
+    for (let k = l.entryLayer[q]; k < L.count && L.track[k] === t; k++) {
+      const r = f.renderers[k];
+      if (!r?.behindText || f.failed.has(k)) continue;
+      prime(f, k, l, q);
+      try {
+        r.behindText(v, stateOf(f, k, l, q), L.params[k]);
+      } catch (err) {
+        fail(f, k, err);
+      } finally {
+        release(f);
+      }
+    }
   }
 }
 /** A renderer that declares the geometry and has no `draw`: reported once, drawn as bars. */

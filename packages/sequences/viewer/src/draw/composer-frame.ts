@@ -19,7 +19,15 @@ import { type Axis, AxisGeometry, type SectionAxisView, type ShownIndex } from '
 import type { ChannelMarks } from '../channels.js';
 import type { SeqViewerContext } from '../context.js';
 import type { Skin, ViewModel } from '../graph.js';
-import { EntryKind, entryBorder, facingOf, type SectionLayout, SectionLayouts, type SplitFeatures } from '../layout.js';
+import {
+  EntryKind,
+  entryBorder,
+  facingOf,
+  fullTrack,
+  type SectionLayout,
+  SectionLayouts,
+  type SplitFeatures,
+} from '../layout.js';
 import { MarkBit, type SectionMarks } from '../marks.js';
 import type { LayerRenderer } from '../registry.js';
 import { Ring } from '../ring.js';
@@ -273,6 +281,13 @@ export function place(f: ComposerFrame, l: SectionLayout, e: number) {
     v.onlyBlock = l.lines.block[line];
     v.lineStart = l.lines.start[line];
     v.lineStop = l.lines.stop[line];
+    v.lineLeft = l.lines.left[line];
+    const t = l.entryTrack[e];
+    v.setTrackForm(
+      l.entryKind[e] === TRACK &&
+        fullTrack(v.props, (f.model as ViewModel).resolved, (f.model as ViewModel).set, t) &&
+        !v.runs[v.onlyBlock]?.chip,
+    );
   } else v.onlyBlock = v.axis?.stacked ? l.entryBlock[e] : -1;
 }
 /** The view on display row d of the rows layer: its lane offset and data row (-1: a wedge). */

@@ -78,7 +78,12 @@ export const HoverCardPart: DomPart<PartProps> = (host: HTMLElement, ctx: SeqVie
     el?.remove();
     el = null;
     if (!s) return;
-    const box = h('div', { class: 'seqv-hover-card', role: 'dialog', 'aria-label': s.label?.title ?? 'Item' });
+    const box = h('div', {
+      class: 'seqv-hover-card',
+      'data-seqv-part': 'hoverCard',
+      role: 'dialog',
+      'aria-label': s.label?.title ?? 'Item',
+    });
     box.addEventListener('pointerenter', () => card.enter());
     box.addEventListener('pointerleave', () => card.leave());
     box.append(...content(card, s));

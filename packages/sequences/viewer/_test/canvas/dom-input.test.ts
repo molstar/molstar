@@ -13,7 +13,8 @@
 // surface is its target; another surface's press is never this one's), the page's default prevented
 // only when a subscriber handled it, and a stopped listener (or a disposed surface) hearing nothing more; then through
 // a mounted surface, where a drag pans the viewport, focus shows the keyboard's cursor and `ui.cursor` sets the
-// element's cursor.
+// element's cursor. The DOM event rides on the record while the sink runs (`native`), and the browser's context-menu
+// request is the sink's `menu` (a keyboard's with `pointerId` -1), its default never prevented here.
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import { OrderedSet } from '@molstar/seq-core/model';
@@ -36,8 +37,10 @@ import { close, type Opened, opened, settle } from './open.js';
 function recorder(handled = false) {
   const log: string[] = [];
   const seen = { pointer: new Set<PointerInput>(), wheel: new Set<WheelInput>(), key: new Set<KeyInput>() };
+  const natives: (string | undefined)[] = [];
   const sink: InputSink = {
     pointer(e) {
+      natives.push(e.native?.type);
       seen.pointer.add(e);
       log.push(
         `pointer ${e.type} ${e.section} ${e.x},${e.y} b${e.button}/${e.buttons} m${e.modifiers} #${e.pointerId}`,
@@ -54,10 +57,14 @@ function recorder(handled = false) {
       return handled;
     },
     focus: (s, f) => log.push(`focus ${s} ${f}`),
-    leave: (s) => log.push(`leave ${s}`),
+    leave: (s, n) => log.push(`leave ${s}${n ? ` ${n.type}` : ''}`),
     cancel: (s) => log.push(`cancel ${s}`),
+    menu(e) {
+      natives.push(e.native?.type);
+      log.push(`menu ${e.section} ${e.x},${e.y} b${e.button}/${e.buttons} m${e.modifiers} #${e.pointerId}`);
+    },
   };
-  return { sink, log, seen };
+  return { sink, log, seen, natives };
 }
 
 const hosts: HTMLElement[] = [];
@@ -102,11 +109,29 @@ describe('DomInput', () => {
       'pointer 0 3 30,40 b0/1 m1 #1',
       'pointer 1 3 400,350 b-1/1 m0 #1',
       'pointer 2 3 400,350 b0/0 m0 #1',
-      'leave 3',
+      'leave 3 pointerleave',
     ]);
-    // One record for every pointer call.
+    // One record for every pointer call, the DOM event on it during the call only.
     expect(r.seen.pointer.size).toBe(1);
+    expect(r.natives).toEqual(['pointermove', 'pointerdown', 'pointermove', 'pointerup']);
+    expect([...r.seen.pointer][0].native).toBeNull();
     input.stop(true);
+  });
+
+  it("the browser's context-menu request is the sink's menu, a keyboard's with pointerId -1; its default stays", () => {
+    const el = element();
+    const r = recorder();
+    const input = new DomInput(el, r.sink, () => 3);
+    const right = ptr('contextmenu', 130, 90, { button: 2, buttons: 2, ctrlKey: true, pointerType: 'mouse' });
+    const keyed = ptr('contextmenu', 100, 50, { button: 0, buttons: 0, pointerType: '', pointerId: -1 });
+    el.dispatchEvent(right);
+    el.dispatchEvent(keyed);
+    expect(r.log).toEqual([`menu 3 30,40 b2/2 m${Modifier.ctrl} #1`, 'menu 3 0,0 b0/0 m0 #-1']);
+    expect(r.natives).toEqual(['contextmenu', 'contextmenu']);
+    expect([right.defaultPrevented, keyed.defaultPrevented]).toEqual([false, false]);
+    input.stop(false);
+    el.dispatchEvent(ptr('contextmenu', 130, 90, { button: 2 }));
+    expect(r.log.length).toBe(2);
   });
 
   it('forwards the primary pointer only; a second finger is none', () => {
@@ -195,7 +220,7 @@ describe('DomInput', () => {
     expect(r.log.filter((l) => !l.startsWith('focus'))).toEqual([
       'pointer 0 0 20,30 b0/1 m0 #1',
       'pointer 1 0 400,350 b-1/0 m0 #1',
-      'leave 0',
+      'leave 0 pointerleave',
     ]);
     input.stop(false);
   });

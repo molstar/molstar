@@ -214,7 +214,13 @@ export const ViewTabs: DomPart<PartProps> = (host, ctx) => {
         return b;
       });
       at.set(
-        views.length < 2 ? null : h('div', { role: 'tablist', 'aria-label': 'Views', class: 'seqv-tabs' }, ...tabs),
+        views.length < 2
+          ? null
+          : h(
+              'div',
+              { role: 'tablist', 'aria-label': 'Views', class: 'seqv-tabs', 'data-seqv-part': 'viewTab' },
+              ...tabs,
+            ),
       );
       select();
     }),
@@ -301,7 +307,13 @@ export const SectionHeader: DomPart<SectionProps> = (host, ctx, { ui, section })
           h('span', { 'aria-hidden': 'true' }, '✕'),
         );
       const label = info.label && h('span', { class: 'seqv-section-label' }, info.label);
-      const root = h('div', { class: 'seqv-section-header' }, label, chip, h('span', { class: 'seqv-spacer' }));
+      const root = h(
+        'div',
+        { class: 'seqv-section-header', 'data-seqv-part': 'sectionHeader' },
+        label,
+        chip,
+        h('span', { class: 'seqv-spacer' }),
+      );
       if (Chips) inner.push(Chips(root, ctx, { ui, section }));
       if (Switches) inner.push(Switches(root, ctx, { ui, section }));
       // The old header goes after the swap: a menu of it that was open must not take focus back.
@@ -322,7 +334,7 @@ export const SectionSwitches: DomPart<SectionProps> = (host, ctx, { ui, section 
     (switches) => {
       const old = menus;
       menus = [];
-      const root = h('div', { class: 'seqv-switches' });
+      const root = h('div', { class: 'seqv-switches', 'data-seqv-part': 'sectionSwitch' });
       for (const sw of switches) {
         const m = addSwitch(root, ctx, ui, sw, (value) => ctx.actions.run(sw.action, { section, value }));
         if (m) menus.push(m);
@@ -336,9 +348,9 @@ export const SectionSwitches: DomPart<SectionProps> = (host, ctx, { ui, section 
 
 /**
  * The menu at a track header: filter view, focus, hide, remove. Alone in the box `ViewSurface` places at the header,
- * so it appends there. It holds its menu's `open` (leaf state) and opens it, at the header, on `events.menu` for its
- * track (Shift+F10 or ContextMenu on the keyboard cursor; a secondary press where a host added the `contextMenu`
- * behavior, seqspec:interaction#the-track-menu): a host's `Menu` gets it through `update`.
+ * so it appends there. It holds its menu's `open` (leaf state) and opens it, at the header, on a keyboard `menu` for
+ * its track (Shift+F10 or ContextMenu on the keyboard cursor, seqspec:interaction#the-track-menu), preventing the
+ * browser's; a right-click stays the browser's. A host's `Menu` gets it through `update`.
  */
 export const TrackActions: DomPart<TrackProps> = (host, ctx, { ui, section, track, row }) => {
   let [open, items] = [false, [] as readonly MenuItem[]];
@@ -398,8 +410,10 @@ export const TrackActions: DomPart<TrackProps> = (host, ctx, { ui, section, trac
     ...watch([ctx.document.shown, ctx.ui.expanded, ctx.graph.assembled], sync),
     // "Retry" comes with a failed region: the menu is read again on the streams' version, but only while it is open.
     later(ctx.streams.version, () => open && sync()),
-    ctx.events.menu.subscribe((e) => {
-      if (menu && e.section === section && e.track === track) onOpenChange(true);
+    ctx.interaction.on('menu', { section, track }).subscribe((e) => {
+      if (!menu || e.origin !== 'keyboard') return;
+      e.native.preventDefault();
+      onOpenChange(true);
     }),
   ];
   return { dispose: () => off([menu, hint, ...subs]) };
@@ -417,7 +431,11 @@ export const HiddenChips: DomPart<SectionProps> = (host, ctx, { section }) => {
           () => ctx.actions.run('track.show', t.ref),
           `Show ${t.label}`,
         );
-      const root = h('fieldset', { 'aria-label': 'Hidden tracks', class: 'seqv-chips' }, ...hidden.map(chip));
+      const root = h(
+        'fieldset',
+        { 'aria-label': 'Hidden tracks', class: 'seqv-chips', 'data-seqv-part': 'hiddenChip' },
+        ...hidden.map(chip),
+      );
       at.set(hidden.length === 0 ? null : root);
     },
   );
@@ -445,7 +463,7 @@ export const Tooltip: DomPart<PartProps> = (host, ctx, { ui }) => {
         return at.set(null);
       }
       if (!tip) {
-        tip = h('div', { role: 'tooltip', class: 'seqv-tooltip' });
+        tip = h('div', { role: 'tooltip', class: 'seqv-tooltip', 'data-seqv-part': 'tooltip' });
         [last.x, last.y, last.shown] = [Number.NaN, Number.NaN, true];
       }
       // The same label again (the hover refreshed under a new document) writes nothing; a legend's swatches or ramp
@@ -625,7 +643,7 @@ export const Legend: DomPart<PartProps> = (host, ctx, { ui }) => {
       const chevron = h('span', { class: 'seqv-chevron', 'aria-hidden': 'true' });
       const root = h(
         'details',
-        { class: 'seqv-legend', open: expanded },
+        { class: 'seqv-legend', 'data-seqv-part': 'legend', open: expanded },
         h('summary', { 'data-seqv-key': 'legend' }, chevron, 'Legend'),
         ...legendShownGroups(ctx, groups).groups.map(row),
         groups.length > 0 && rest(groups),
@@ -696,7 +714,7 @@ export const SnapshotPlayer: DomPart<PartProps> = (host, ctx, { ui }) => {
       at.set(null);
       return off(old);
     }
-    const root = h('fieldset', { 'aria-label': 'Snapshots', class: 'seqv-player' });
+    const root = h('fieldset', { 'aria-label': 'Snapshots', class: 'seqv-player', 'data-seqv-part': 'snapshotPlayer' });
     const prev = icon(root, 'prev', 'Previous snapshot', '‹', () => void S.next(-1));
     const play = icon(root, 'play', 'Play', '▶', () => (S.playing.value ? S.stop() : S.play()));
     const next = icon(root, 'next', 'Next snapshot', '›', () => void S.next(1));
@@ -753,7 +771,13 @@ export const Description: DomPart<PartProps> = (host, ctx) => {
     () => plainDescription(ctx),
     (paragraphs) =>
       at.set(
-        !paragraphs?.length ? null : h('div', { class: 'seqv-description' }, ...paragraphs.map((p) => h('p', null, p))),
+        !paragraphs?.length
+          ? null
+          : h(
+              'div',
+              { class: 'seqv-description', 'data-seqv-part': 'description' },
+              ...paragraphs.map((p) => h('p', null, p)),
+            ),
       ),
   );
   return { dispose: () => off([...subs, at]) };
@@ -785,7 +809,11 @@ export const Search: DomPart<SearchProps> = (host, ctx, props) => {
     box.step(e.shiftKey ? -1 : 1);
   });
   const status = h('span', { class: 'seqv-search-status seqv-quiet', 'aria-live': 'polite' });
-  const root = h('div', { class: 'seqv-search' }, h('div', { class: 'seqv-search-field' }, input, status));
+  const root = h(
+    'div',
+    { class: 'seqv-search', 'data-seqv-part': 'search' },
+    h('div', { class: 'seqv-search-field' }, input, status),
+  );
   const hints: Handles = [];
   const icon = (key: string, label: string, text: string, dir: 1 | -1) => {
     const b = button(
@@ -838,7 +866,7 @@ export const Search: DomPart<SearchProps> = (host, ctx, props) => {
 /** "Export as SVG" when the context registers `view.exportSvg` (`browserExportAction`): a menu in the bar. */
 export const Export: DomPart<PartProps> = (host, ctx, { ui }) => {
   const at = spot(host);
-  const root = h('span', { class: 'seqv-export' });
+  const root = h('span', { class: 'seqv-export', 'data-seqv-part': 'export' });
   const trigger = button({ class: 'seqv-switch-trigger', 'data-seqv-key': 'export' }, () => {}, 'Export');
   const width = () => Math.round(ui?.surfaces.values().next().value?.clientWidth || 1000);
   const title = (ctx.registry.get('actions', EXPORT) as { title?: string } | undefined)?.title ?? 'Export as SVG';
@@ -859,7 +887,7 @@ export const IssueBadge: DomPart<PartProps> = (host, ctx, { ui }) => {
   let scroll: Handles[number] | null = null;
   const badge = button({ class: 'seqv-badge', 'data-seqv-key': 'issues' }, () => {});
   const list = h('div', { id: `seqv-issues-${++lists}`, class: 'seqv-issue-list' });
-  const root = h('span', { class: 'seqv-issues' }, badge);
+  const root = h('span', { class: 'seqv-issues', 'data-seqv-part': 'issues' }, badge);
   const group = (g: IssueGroup) =>
     h(
       'div',

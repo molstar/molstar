@@ -18,16 +18,25 @@
 //   - `skip`: why it has no document to open (a live source, a page of text).
 
 import type { Loaders, Patch, SeqViewSpecDoc } from '@molstar/seq-core/format';
+import type { SeqSet } from '@molstar/seq-core/model';
 import { type SeqViewerContext, type SeqViewerRegistryEntry, sectionInfo } from '@molstar/seq-viewer';
 import { renderSvg } from '@molstar/seq-viewer/svg';
 import pf00042 from '../../../../core/_test/fixtures/pf00042.json?raw';
 import { CASES } from '../../../../core/_test/format/cases.js';
 import { genomeDoc, synthGenome } from '../../../../core/_test/format/genome-fixture.js';
+import { seqLoci } from '../../../../viewer/_test/overlay-docs.js';
 import { familyWithTree, syntheticFamily } from '../../../../viewer/_test/families.js';
 import { keyedFamilyDoc, MODES, modePatch } from '../../../../viewer/_test/keyed-family.js';
 import { lazyStoryDoc, lazyStoryLoaders } from '../../../../viewer/_test/lazy-story-fixtures.js';
 import { splitUnitsDoc } from '../../../../viewer/_test/split-units-fixtures.js';
 import { described, hideEmpty, textStyled } from './seqstar-cases.js';
+import {
+  annotationRows,
+  PUBLICATION_PLACES,
+  PUBLICATION_PRESETS,
+  PUBLICATION_SECTION,
+  publicationTracksDoc,
+} from './seqstar-publication.js';
 import { circularGenomeDoc, PLASMID_RING, rotateRing, zoomDetail } from './seqstar-docs-circular.js';
 import {
   alignmentGallery,
@@ -164,6 +173,12 @@ export interface SmokeStory {
 const patchStep = (label: string, patch: Patch): SmokeStep => ({
   label,
   run: async (ctx) => (await storyPatch(ctx, patch, label)).issues,
+});
+
+/** A UI preset a button picks (`ctx.ui.setStyle`): UI state, no patch; null: the document's own. */
+const presetStep = (label: string, section: string, preset: string | null): SmokeStep => ({
+  label,
+  run: (ctx) => ctx.ui.setStyle(section, preset),
 });
 
 /** A section header's switch as a click sends it: its action with the section and the value; then the param holds it. */
@@ -463,6 +478,55 @@ export const SMOKE: readonly SmokeStory[] = [
     cases: () => [{ label: 'case 10 with markdown descriptions', doc: describedCase10() }],
   },
   { key: 'export.stories.tsx#SvgAndPng', same: 'large-documents.stories.tsx#GenomeScale' },
+  {
+    key: 'text-view.stories.tsx#PublicationTracks',
+    cases: () => [
+      {
+        label: 'p53',
+        doc: publicationTracksDoc(),
+        // The View choices (UI state: `ctx.ui.setStyle`, no patch) and the Annotations panel's buttons: `bookmark.add`
+        // (its Above / Below choice is the `data`) and `bookmark.remove`, each a `seq_view_spec_patch` setting the rows
+        // of a declared set (one undo step).
+        steps: [
+          presetStep('Tracks', PUBLICATION_SECTION, PUBLICATION_PRESETS.tracks),
+          ...PUBLICATION_PLACES.map((place, k) => ({
+            label: `Add from selection: bookmark.add (${place.label}, color and label) in the tracks`,
+            run: async (ctx: SeqViewerContext) => {
+              const set = ctx.graph.assembled.value?.set as SeqSet;
+              const ok = ctx.actions.run(
+                'bookmark.add',
+                {
+                  section: PUBLICATION_SECTION,
+                  loci: seqLoci(set, 'p53', 94 + 10 * k, 292),
+                  label: 'DNA-binding domain',
+                  color: '#e76f51',
+                  data: place.data,
+                  // A line style each way: wavy above, a highlight below (the layers' `field_line_style`).
+                  line_style: k === 0 ? 'wavy' : 'highlight',
+                },
+                'host:smoke',
+              );
+              await ctx.graph.update();
+              return ok && annotationRows(ctx.document.shown.value, place.data).length === 1;
+            },
+          })),
+          presetStep('Text', PUBLICATION_SECTION, PUBLICATION_PRESETS.text),
+          ...PUBLICATION_PLACES.map((place) => ({
+            label: `Delete: bookmark.remove (${place.label})`,
+            run: async (ctx: SeqViewerContext) => {
+              const ok = ctx.actions.run(
+                'bookmark.remove',
+                { section: PUBLICATION_SECTION, item: 'b1', data: place.data },
+                'host:smoke',
+              );
+              await ctx.graph.update();
+              return ok && annotationRows(ctx.document.shown.value, place.data).length === 0;
+            },
+          })),
+        ],
+      },
+    ],
+  },
   {
     key: 'ux-drafts.stories.tsx#Workspace',
     skip: "Hosted in apps/storybook (Stories' workspace screens): it opens viewer.stories.tsx#Case10's document.",

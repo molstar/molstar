@@ -8,7 +8,7 @@
 
 // UX1, the context's UI state (seqspec:viewer#state, seqspec:viewer#the-document): `setActive` (it cancels the press,
 // finishes the viewports' animation, pauses the streams, the player and the input), tasks and issues, the runtime
-// actions that join `DefaultActions` with their managers, the track menu asked for by the keyboard, `Ui.keep`, and the
+// actions that join `DefaultActions` with their managers, `Ui.keep`, and the
 // label providers' new reach (field providers, a renderer's entry). The `set:<ref>` channels from a section's
 // `highlights` are LS1's.
 
@@ -20,7 +20,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { case3, case10 } from '../../core/_test/format/cases.js';
 import type { Documents } from '../src/document.js';
 import {
-  type ActivateEvent,
   createSeqViewer,
   DefaultLabelProviders,
   DefaultSeqViewerSpec,
@@ -51,8 +50,8 @@ describe('setActive: a covered or hidden viewer', () => {
     const t = await driven(case3(), { size: { [S]: [1000, 150] } });
     let keys = 0;
     let pointers = 0;
-    t.ctx.interaction.key.subscribe(() => keys++);
-    t.ctx.interaction.pointer.subscribe(() => pointers++);
+    t.ctx.input.events.key.subscribe(() => keys++);
+    t.ctx.input.events.pointer.subscribe(() => pointers++);
     t.key(S, 'Escape', { typing: true });
     t.key(S, 'Escape');
     expect(t.ctx.ui.active.value).toBe(true);
@@ -69,7 +68,7 @@ describe('setActive: a covered or hidden viewer', () => {
   it("cancels a press in progress: the drag ends as a cancel and the next move is a hover (IN2's wiring)", async () => {
     const t = await driven(case3(), { size: { [S]: [1000, 150] } });
     const seen: string[] = [];
-    t.ctx.interaction.drag.subscribe((e) => seen.push(`${e.phase}:${e.owner}`));
+    t.ctx.input.events.drag.subscribe((e) => seen.push(`${e.phase}:${e.owner}`));
     const y = rowY(t, 0);
     t.pointer('down', S, 500, y);
     t.pointer('move', S, 480, y);
@@ -263,38 +262,6 @@ describe("the runtime actions join DefaultActions with their managers (VC2's ite
     expect(ctx.actions.run('group.toggle', 'v.g')).toBe(true);
     expect(ctx.ui.expanded.value.size).toBe(0);
     ctx.dispose();
-  });
-});
-
-describe('the track menu asked for by the keyboard (events.menu)', () => {
-  async function focused() {
-    const t = await driven(case3(), { size: { [S]: [1000, 150] } });
-    t.focus(S);
-    const asked: ActivateEvent[] = [];
-    t.ctx.events.menu.subscribe((e) => asked.push({ ...e }));
-    return { t, asked };
-  }
-
-  it("Shift+F10 and ContextMenu on the cursor's track ask for its menu, with the keyboard as the origin", async () => {
-    const { t, asked } = await focused();
-    t.key(S, 'ArrowDown');
-    const track = t.ctx.ui.keyCursor.value?.track;
-    expect(track).toBeTruthy();
-    expect(t.key(S, 'F10', { shift: true })).toBe(true);
-    expect(t.key(S, 'ContextMenu')).toBe(true);
-    expect(asked).toEqual([
-      { section: S, track, origin: 'keyboard', x: -1, y: -1 },
-      { section: S, track, origin: 'keyboard', x: -1, y: -1 },
-    ]);
-    t.ctx.dispose();
-  });
-
-  it("F10 alone is the page's; nothing is asked of a cursor on a group's header", async () => {
-    const { t, asked } = await focused();
-    t.key(S, 'ArrowDown');
-    expect(t.key(S, 'F10')).toBe(false);
-    expect(asked).toEqual([]);
-    t.ctx.dispose();
   });
 });
 

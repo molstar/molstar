@@ -128,3 +128,23 @@ the [API change ledger](breaking-v6-changes.md).
   no local entry is listed twice, and that every entry has its declared size and CRC-32; `inflateRaw` and `inflate` with
   a buffer stop at its end and return what they inflated. New optional `UnzipLimits` (`maxEntries`, `maxBytes`) as the
   fourth argument of `unzip`. Invalid or damaged archives that were read before now throw
+
+## Seq\* input streams
+
+- The Seq\* viewer's input for consumers is `ctx.interaction`: rxjs streams (`hover`, `press`, `click`, `drag`, `menu`,
+  `wheel`, `key`, `leave`, `activate`) of fresh payloads in Mol\*'s button and modifier terms, scoped by `on`, built only
+  while observed; the behaviors' base events are `ctx.input.events`. The track menu is `interaction.menu`, the browser's
+  context-menu request (the `contextMenu` behavior, `events.menu` and `events.activate` are removed). Behaviors list
+  their bindings as Mol\*'s `Binding` (`ctx.behaviors.bindings()`)
+
+## Seq\* line styles
+
+- A `ranges` layer's `line_style` channel (format 1.0): `uniform` with a `line_style` or `field_line_style` over a column
+  of the rows draws each item `solid`, `dashed`, `dotted`, `wavy`, `double`, `box` or `highlight`, in tracks, text and
+  SVG exports; `bookmark.add` takes an optional `line_style`. `PathBatch` strokes may be dashed (`dash`, `gap`,
+  `phase`), and `Paint2D` includes `setLineDash` and `lineDashOffset`.
+
+## Seq\* selection
+
+- [Breaking] The `select` behavior's `shiftPositions` defaults to `toggle`: Shift with a click or a drag on positions
+  adds or removes them (it extended a range from the anchor); `extend` stays a param

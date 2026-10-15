@@ -74,7 +74,7 @@ function SectionFrame({ context: ctx, section }: SectionProps) {
     };
   }, [ctx, section, ui.surface, surfaces]);
   return (
-    <section ref={root} className="seqv-section">
+    <section ref={root} className="seqv-section" data-seqv-section={section}>
       {SectionHeader && <SectionHeader context={ctx} section={section} />}
       <div className="seqv-stage">
         <div ref={host} className="seqv-surface" />
@@ -140,6 +140,8 @@ function TrackBoxView(
     <div
       ref={p.box}
       className="seqv-track-actions"
+      data-seqv-part="trackAction"
+      data-seqv-track={track}
       onPointerEnter={() => tracker.hold(track)}
       onPointerLeave={() => tracker.hold(null)}
       onBlur={tracker.later}
@@ -206,6 +208,7 @@ function RowControls({ context: ctx, section, Control }: SectionProps & { Contro
           <div
             key={`${r.displayRow}:${r.dataRow}`}
             className="seqv-row-control"
+            data-seqv-part="rowControl"
             style={{ top: r.top, height: r.height }}
           >
             <Control context={ctx} section={section} displayRow={r.displayRow} dataRow={r.dataRow} />

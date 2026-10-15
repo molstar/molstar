@@ -35,6 +35,7 @@ import {
   EntryKind,
   entryBorder,
   facingOf,
+  fullTrack,
   hasScrollbar,
   type SectionEntry,
   type SectionLayout,
@@ -44,7 +45,7 @@ import {
 import type { SeqViewerRegistry } from './registry.js';
 import { hitItem } from './renderer-helpers.js';
 import { Ring } from './ring.js';
-import { linePositionAt, linePositionDrawnNear, runXInto } from './runs.js';
+import { lineAtX, linePositionAt, linePositionDrawnNear, runXInto } from './runs.js';
 import type { StreamView } from './streams.js';
 
 /** A layer's regions by its ref (`ctx.streams.get`): a hit reads a streamed layer's items through `v.stream`. */
@@ -280,6 +281,8 @@ const system = (out: Hit, kind: number, id: number, row: number) => {
 };
 /** The point (x from the line's start), the line's left and the DPR, for the wrapped position search. */
 const point = new Float64Array(3);
+/** `lineAtX`'s x. */
+const lineX = new Float64Array(1);
 /** How far past a block's last cell (CSS px) its layers are still asked: the largest glyph's radius. */
 const END_REACH = 12;
 
@@ -391,6 +394,12 @@ function hitAt(
       else hi = mid - 1;
     }
     if (lo < l.entryCount && yc >= l.entryTop[lo] && yc < l.entryTop[lo] + l.entryHeight[lo]) entry = lo;
+    // Wrapped chips share a row (seqspec:viewer#the-text-view): of a track's entries at this top, the chip's under x.
+    if (entry >= 0 && l.geometry === WRAPPED && l.entryKind[entry] === EntryKind.track) {
+      lineX[0] = x - l.dataLeft;
+      const line = lineAtX(l.lines, l.entryRow[entry], lineX);
+      while (entry > 0 && l.entryRow[entry] !== line && l.entryTop[entry - 1] === l.entryTop[entry]) entry--;
+    }
   }
   // The region from x against the layout's edges.
   const p = e.props;
@@ -457,8 +466,8 @@ function hitAt(
     const line = l.entryRow[entry];
     b = l.lines.block[line];
     const run = e.runs?.[b];
-    point[0] = x - l.dataLeft;
-    point[1] = l.dataLeft;
+    point[0] = x - l.dataLeft - l.lines.left[line];
+    point[1] = l.dataLeft + l.lines.left[line];
     point[2] = v.dpr;
     shown = run ? linePositionAt(run, l.lines.start[line], l.lines.stop[line], p.wrappedGroupGap, point) : -1;
   } else {
@@ -547,11 +556,16 @@ function hitAt(
   const line = v.line;
   const lineStart = v.lineStart;
   const lineStop = v.lineStop;
+  const lineLeft = v.lineLeft;
   if (wrapped) {
     v.line = l.entryRow[entry];
     v.lineStart = l.lines.start[v.line];
     v.lineStop = l.lines.stop[v.line];
+    v.lineLeft = l.lines.left[v.line];
   }
+  // A track drawn in full in the text: hit by its layers' track forms over the line (seqspec:viewer#the-text-view).
+  v.onlyBlock = ax.stacked || wrapped ? l.entryBlock[entry] : -1;
+  v.setTrackForm(wrapped && fullTrack(p, rv, set, t) && !v.runs[v.onlyBlock]?.chip);
   // On a rows track's row its lane offset (-2: a collapsed clade's wedge): its features are found by lane.
   v.row = onRows ? (out.lane >= 0 ? out.lane - rows.laneStart : -2) : -1;
   v.top = entry < l.pinnedCount ? l.entryTop[entry] : l.scrolledTop + l.entryTop[entry] - v.scrollY;
@@ -587,8 +601,10 @@ function hitAt(
   v.onlyBlock = only;
   v.row = row;
   v.line = line;
+  v.setTrackForm(false);
   v.lineStart = lineStart;
   v.lineStop = lineStop;
+  v.lineLeft = lineLeft;
   v.stream = null;
   if (past && !found) {
     out.block = -1;
@@ -628,18 +644,22 @@ export function wrappedPositionNear(l: SectionLayout, v: SectionAxisView, at: Fl
     if (t.top[mid] <= yc) lo = mid;
     else hi = mid - 1;
   }
+  // Chips share a row: the one starting at or before x.
+  lineX[0] = at[0] - l.dataLeft;
+  lo = lineAtX(t, lo, lineX);
   const run = v.runs[t.block[lo]];
   if (!run) return false;
   out[0] = lo;
   out[1] = t.block[lo];
-  near[0] = at[0] - l.dataLeft;
-  near[1] = l.dataLeft;
+  const x0 = l.dataLeft + t.left[lo];
+  near[0] = at[0] - x0;
+  near[1] = x0;
   near[2] = v.dpr;
   // By the drawn cells, as a hover (LC-27): the last position whose snapped left edge is at or before the pointer's
   // device px, and past it where the px is past its snapped right edge.
   out[2] = linePositionDrawnNear(run, t.start[lo], t.stop[lo], v.gap, near);
   runXInto(run, t.start[lo], out[2], v.gap, edge, 0);
-  out[3] = Math.floor(at[0] * v.dpr) >= Math.round((l.dataLeft + edge[0] + run.advance) * v.dpr) ? 1 : 0;
+  out[3] = Math.floor(at[0] * v.dpr) >= Math.round((x0 + edge[0] + run.advance) * v.dpr) ? 1 : 0;
   return true;
 }
 const near = new Float64Array(3);

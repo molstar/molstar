@@ -7,20 +7,22 @@
  */
 
 // Themes (seqspec:viewer#extension-points; seqspec:format#themes): one provider kind for every channel (`color`,
-// `size`, `glyph`), the drawing half of the format's theme entries. A provider creates a theme per layer and channel in
-// the graph's theme stage from a `ThemeContext`, precomputing tables, so `value` reads typed arrays and the location's
-// numbers and allocates nothing. Nesting (a base) resolves through `tc.resolve`; a theme with no implementation, or not
-// applicable here, falls back (the reference's, then its entry's; a color theme implemented but not applicable here:
-// `letter`) and is reported; with no fallback left nothing is drawn. Built-ins:
-// `uniform` and `rules` (rules.ts) for every kind; color `field_palette`, `field_color`, `letter`, `by_unit`,
-// `by_copy_group`; glyph `field_map`, `field_glyph`. The named rule tables arrive expanded (VW4); a reference that
-// names one is expanded here too. Every value goes through the format's palette code (`layerPalette`, `letterColors`).
+// `size`, `glyph`, `line_style`), the drawing half of the format's theme entries. A provider creates a theme per layer
+// and channel in the graph's theme stage from a `ThemeContext`, precomputing tables, so `value` reads typed arrays and
+// the location's numbers and allocates nothing. Nesting (a base) resolves through `tc.resolve`; a theme with no
+// implementation, or not applicable here, falls back (the reference's, then its entry's; a color theme implemented but
+// not applicable here: `letter`) and is reported; with no fallback left nothing is drawn. Built-ins: `uniform` for
+// every kind, `rules` (rules.ts) for color, size and glyph; color `field_palette`, `field_color`, `letter`, `by_unit`,
+// `by_copy_group`; glyph `field_map`, `field_glyph`; line style `field_line_style`. The named rule tables arrive
+// expanded (VW4); a reference that names one is expanded here too. Every value goes through the format's palette code
+// (`layerPalette`, `letterColors`).
 
 import {
   type ChannelEntry,
   type ChannelKind,
   Color,
   canonical,
+  LineStyles,
   layerPalette,
   letterColors,
   makePaletteFunction,
@@ -83,6 +85,26 @@ export const sizeOf = (x: number) =>
   Number.isFinite(x) && x >= 0 ? Math.min(Math.round(x * SIZE_ONE), 0x3fffffff) : NO_SIZE;
 /** A theme's alpha as the batch's byte: opaque. */
 export const OPAQUE = 255;
+/**
+ * A line style theme's value (seqspec:format#themes): the style's index in the format's `LineStyles`, `solid` 0;
+ * `NO_LINE_STYLE` (none given) draws solid too.
+ */
+export const LineStyle = {
+  solid: 0,
+  dashed: 1,
+  dotted: 2,
+  wavy: 3,
+  double: 4,
+  box: 5,
+  highlight: 6,
+} as const;
+export const NO_LINE_STYLE = -1;
+/** A value as a line style's id; -2: a value that is none (a string or number not a line style); NO_LINE_STYLE: null. */
+export function lineStyleId(v: unknown): number {
+  if (v == null || v === '') return NO_LINE_STYLE;
+  const i = LineStyles.indexOf(String(v).toLowerCase() as never);
+  return i >= 0 ? i : -2;
+}
 
 /**
  * One per pass, reused; -1 (NaN for `value`): not applicable. An item's `annotation` and `row` (its data row) read its
@@ -182,7 +204,10 @@ export interface Theme<C extends ChannelKind = ChannelKind> {
    * of a value.
    */
   readonly reduction: 'classes' | 'mean';
-  /** Color: 0xRRGGBB or NO_COLOR; size: in 1/`SIZE_ONE` of the channel's unit, NO_SIZE the default; glyph: a GlyphId or NO_GLYPH. */
+  /**
+   * Color: 0xRRGGBB or NO_COLOR; size: in 1/`SIZE_ONE` of the channel's unit, NO_SIZE the default; glyph: a GlyphId or
+   * NO_GLYPH; line style: a `LineStyle`, NO_LINE_STYLE (solid) for none.
+   */
   value(loc: ThemeLocation): number;
   /** Color only, as the batch's byte 0..255 (a double returned from a call is boxed): themes that fade. */
   readonly alpha?: ((loc: ThemeLocation) => number) | undefined;
@@ -296,7 +321,12 @@ export function themeContext(
     resolve(ref, channel) {
       if (depth + 1 < MAX_DEPTH)
         return createTheme(themeContext(input, dark, registry, report, depth + 1), ref, channel, registry, report);
-      const code = channel.kind === 'glyph' ? 'svs.glyph.invalid' : 'svs.color.invalid';
+      const code =
+        channel.kind === 'glyph'
+          ? 'svs.glyph.invalid'
+          : channel.kind === 'line_style'
+            ? 'svs.line_style.invalid'
+            : 'svs.color.invalid';
       report(Issue.error(code, l.ref, `themes nest at most ${MAX_DEPTH} deep`));
       return null;
     },
@@ -538,13 +568,15 @@ const fieldColor = themeProvider('field_color', ['color'], G.item, (tc, p) => {
 });
 
 /** Every kind: one value. */
-const uniform = themeProvider('uniform', ['color', 'glyph', 'size'], G.uniform, (tc, p, { kind }) => {
+const uniform = themeProvider('uniform', ['color', 'glyph', 'size', 'line_style'], G.uniform, (tc, p, { kind }) => {
   const v =
     kind === 'color'
       ? Color.decodePrimary(p.color ?? 'black')
       : kind === 'glyph'
         ? tc.glyphs.intern(p.glyph)
-        : sizeOf(Number(p.size));
+        : kind === 'line_style'
+          ? Math.max(NO_LINE_STYLE, lineStyleId(p.line_style))
+          : sizeOf(Number(p.size));
   return () => v;
 });
 
@@ -715,6 +747,33 @@ const fieldGlyph = themeProvider('field_glyph', ['glyph'], G.item, (tc, p) =>
   ),
 );
 
+/**
+ * `field_line_style`: a row's field (`line_style`) as a line style; a value that is none is drawn solid and the layer
+ * says so once (`svs.render.line_style`, the values and how many rows). A streamed item's from its region's table.
+ */
+const fieldLineStyle = themeProvider('field_line_style', ['line_style'], G.item, (tc, p) => {
+  const field = typeof p.field === 'string' ? p.field : 'line_style';
+  const bad = new Set<string>();
+  let count = 0;
+  const rows = perRow(tc, (a, r) => {
+    const v = Annotations.rowValue(a, tc.set, r, field);
+    const id = lineStyleId(v);
+    if (id !== -2) return id;
+    count++;
+    if (bad.size < 3) bad.add(String(v));
+    return LineStyle.solid;
+  });
+  if (count > 0) {
+    const named = [...bad].map((x) => `"${x}"`).join(', ');
+    const message = `${count} row(s) have a "${field}" that is not a line style (${named}): drawn solid; write one of ${LineStyles.join(', ')}`;
+    tc.report?.(Issue.warning('svs.render.line_style', tc.layer.ref, message));
+  }
+  return {
+    value: rowReader(tc, rows),
+    raw: (t, r) => Math.max(NO_LINE_STYLE, lineStyleId(cellOf(t, field, r))),
+  };
+});
+
 /** The built-in themes but `rules` (rules.ts's `DefaultThemes` adds it). */
 export const KernelThemes: readonly ThemeProvider[] = [
   uniform,
@@ -726,6 +785,7 @@ export const KernelThemes: readonly ThemeProvider[] = [
   byUnit('by_copy_group', true),
   fieldMap,
   fieldGlyph,
+  fieldLineStyle,
 ] as ThemeProvider[];
 
 // --- ink on a cell ------------------------------------------------------------------------------------------------

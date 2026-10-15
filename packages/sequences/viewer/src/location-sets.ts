@@ -11,7 +11,7 @@
 // bookmarks, an inline `ranges` annotation the bookmark actions edit, stepped through `ctx.results`; and
 // `results.save`, a results set kept as a location set. Edge rate throughout.
 
-import { type DocNode, type Op, sectionHighlights } from '@molstar/seq-core/format';
+import { type DocNode, type LineStyle, LineStyles, type Op, sectionHighlights } from '@molstar/seq-core/format';
 import { type AnnotationInput, KeyKind, type KeyTarget, type Loci, type SeqSet } from '@molstar/seq-core/model';
 import { SeqSelection } from '@molstar/seq-core/model/query';
 import { type ActionEntry, nodePath } from './actions.js';
@@ -56,11 +56,18 @@ export class SetChannels {
 
 // ---- Bookmarks ------------------------------------------------------------------------------------------------------
 
-/** `bookmark.add`'s target: what to keep (loci of the shown set), its label, and the set (`<section>.bookmarks`). */
+/**
+ * `bookmark.add`'s target: what to keep (loci of the shown set), its label, and the set (`<section>.bookmarks`). A
+ * `color` is written as the row's `color` column, which a layer shows through `field_color`, and a `line_style` (one
+ * of the format's `LineStyles`) as its `line_style` column, which a layer shows through `field_line_style`; left out,
+ * no column is written (an old set's rows stay as they are).
+ */
 export interface BookmarkAdd {
   readonly section: string;
   readonly loci: Loci;
   readonly label?: string;
+  readonly color?: string;
+  readonly line_style?: LineStyle;
   readonly data?: string;
 }
 export interface BookmarkItem {
@@ -73,7 +80,15 @@ export interface BookmarkStep {
   readonly dir: 1 | -1;
   readonly data?: string;
 }
-type Row = { target: string; start: number; stop: number; id: string; label?: string };
+type Row = {
+  target: string;
+  start: number;
+  stop: number;
+  id: string;
+  label?: string;
+  color?: string;
+  line_style?: LineStyle;
+};
 type Run = Parameters<ActionEntry['run']>[2];
 
 const t: KeyTarget = { kind: -1, id: -1, row: -1 };
@@ -145,7 +160,12 @@ function add(ctx: SeqViewerContext, a: BookmarkAdd, origin: Run) {
   let n = 1;
   for (const r of old) n = Math.max(n, Number(/^b(\d+)$/.exec(String(r.id))?.[1] ?? 0) + 1);
   const sel = SeqSelection.union(SeqSelection.fromLoci(set, [a.loci]));
-  const rows = rowsFrom(SeqSelection.toRangesInput(sel, ref, { ids: [`b${n}`], labels: [a.label ?? null] }));
+  const kept = rowsFrom(SeqSelection.toRangesInput(sel, ref, { ids: [`b${n}`], labels: [a.label ?? null] }));
+  const rows = kept.map((r) => ({
+    ...r,
+    ...(a.color ? { color: a.color } : {}),
+    ...(a.line_style ? { line_style: a.line_style } : {}),
+  }));
   const ops: Op[] = node
     ? [{ op: 'set', ref, params: { value: [...old, ...rows] } }]
     : insertSet(ctx, a.section, ref, 'Bookmarks', rows);
@@ -236,6 +256,8 @@ export const BookmarkActions: readonly ActionEntry[] = [
     (ctx, a) => {
       const set = setOf(ctx);
       if (!a || !isSection(ctx, a.section) || !set || a.loci?.set !== set) return false;
+      if (a.color !== undefined && typeof a.color !== 'string') return false;
+      if (a.line_style !== undefined && !LineStyles.includes(a.line_style)) return false;
       const node = nodeOf(ctx, bookmarksOf(a.section, a.data));
       return (node === null || rowsOf(node) !== null) && !SeqSelection.isEmpty(SeqSelection.fromLoci(set, [a.loci]));
     },

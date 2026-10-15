@@ -6,9 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The kernel's registry entries: the fourteen layer types (seqspec:format#layer-types), the color and glyph themes
-// (seqspec:format#themes) and the `svs.*` issue codes (seqspec:format#validation). Formats, services, providers and
-// aligners are in load/.
+// The kernel's registry entries: the fourteen layer types (seqspec:format#layer-types), the color, glyph, size and
+// line style themes (seqspec:format#themes) and the `svs.*` issue codes (seqspec:format#validation). Formats,
+// services, providers and aligners are in load/.
 
 import type { Severity } from '@molstar/seq-core/model';
 import type { Geometry, ThemeRef } from '../doc.js';
@@ -30,6 +30,7 @@ import {
   keyFilter,
   letterDictionary,
   letterMap,
+  lineStyle,
   orderField,
   palette,
   rulesSchema,
@@ -71,7 +72,7 @@ points | point features | ranges | tracks text | blocks columns | row | ranges |
 emphasis | positions emphasized in the letters or rows of its track | ranges | tracks text | blocks columns | row | points | - | -
 variants | substitutions per position | ranges | tracks | blocks columns | row | points | alt | circle
 secondary | helices, strands, turns | ranges | tracks text | blocks columns | row | ranges | secondary | -
-values | a number per position or column | values | tracks | blocks columns | row | color | - | -
+values | a number per position or column | values | tracks text | blocks columns | row | color | - | -
 color | a color per position, from categories or values | ranges values | tracks text | blocks columns | row | ranges | palette | -
 ruler | positions labeled in a numbering | none | tracks | blocks columns | free | omit | - | -
 pairs | pairs of positions, by category | pairs | tracks | blocks columns | free | points | palette | circle
@@ -123,6 +124,8 @@ const SIZE_CHANNELS: Readonly<Record<string, readonly (readonly [string, 'px' | 
   matrix: [['height', 'band']],
 };
 const sizeParam = OptionalField(nullable(themeRef('size')), null, "a size theme; null: the viewer's size");
+/** The types with a `line_style` channel (after color and glyph, before the size channels). */
+const LINE_STYLED: ReadonlySet<string> = new Set(['ranges']);
 /** Each type's params (top-level layer params; the list under the table). Typed as written: `KernelLayerParams`. */
 const LAYER_PARAMS = {
   letters: {
@@ -165,6 +168,11 @@ const LAYER_PARAMS = {
   ranges: {
     thickness: sizeParam,
     radius: sizeParam,
+    line_style: OptionalField(
+      nullable(themeRef('line_style')),
+      null,
+      'a line style theme: how each item is drawn (solid, dashed, dotted, wavy, double, box, highlight); null: solid',
+    ),
     display: display('lanes', 'lanes', 'brackets', 'underline', 'union'),
     labels: OptionalField(
       bool,
@@ -297,6 +305,7 @@ export const KernelLayerTypes: readonly LayerTypeEntry[] = rows(LAYER_TYPES).map
     channels: [
       channel('color', orNull(color, DEFAULTS[color])),
       ...(glyph === '-' ? [] : [channel('glyph', DEFAULTS[glyph])]),
+      ...(LINE_STYLED.has(name) ? [channel('line_style', null)] : []),
       ...(SIZE_CHANNELS[name] ?? []).map(([n, unit]) => ({ name: n, kind: 'size' as const, unit, default: null })),
     ],
   }),
@@ -335,7 +344,7 @@ const base = OptionalField(themeRef('color'), DEFAULTS.letter, 'the theme it sha
 
 const KernelThemeList: readonly ThemeEntry[] = themes(
   `
-uniform | color glyph size | one value
+uniform | color glyph size line_style | one value
 rules | color glyph size | the first rule that holds
 field_scale | size | the row's field (a number through a linear, sqrt or log scale; a string through a map) into a range
 field_palette | color | the row's field through the palette
@@ -349,11 +358,13 @@ by_copy_group | color | one color per copy group, by its first unit
 identity_to_row | color | the base color where the letter equals that row's in the column; none elsewhere; a named rule table
 conservation_shading | color | the base color faded by the column's value where it is at least threshold; none below; a named rule table
 field_map | glyph | the field's value through a map
-field_glyph | glyph | the field's values are shape names or one character`,
+field_glyph | glyph | the field's values are shape names or one character
+field_line_style | line_style | the field's values are line styles; others solid, said once (svs.render.line_style)`,
   {
     'uniform/color': { color: RequiredField(color, 'the color') },
     'uniform/glyph': { glyph: RequiredField(glyph, 'the glyph') },
     'uniform/size': { size: RequiredField(float, "the size, in the channel's unit") },
+    'uniform/line_style': { line_style: RequiredField(lineStyle, 'the line style') },
     field_scale: {
       field: OptionalField(nullable(str), null, 'null: value'),
       domain: OptionalField(nullable(tuple(float, float)), null, "null: the layer's data's, or its domain_group's"),
@@ -416,6 +427,7 @@ field_glyph | glyph | the field's values are shape names or one character`,
       default: OptionalField(nullable(glyph), null, 'for values the map lacks; null: none'),
     },
     field_glyph: { field: OptionalField(str, 'glyph', '') },
+    field_line_style: { field: OptionalField(str, 'line_style', '') },
   },
 ).map((t) =>
   t.name === 'rules'
@@ -434,7 +446,7 @@ const ERRORS = `svs.format.invalid svs.version.missing svs.version.unsupported_m
   svs.node.count svs.params.missing svs.params.unknown svs.params.type svs.params.exclusive svs.ref.syntax svs.ref.missing
   svs.ref.duplicate svs.ref.unresolved svs.ref.wrong_kind svs.ref.cycle svs.ref.derived_unknown svs.custom.namespace
   svs.custom.invalid svs.requires.unknown svs.position.syntax svs.position.form svs.position.range svs.columns.length
-  svs.columns.unknown svs.columns.type svs.color.invalid svs.glyph.invalid svs.source.uri svs.layer.data
+  svs.columns.unknown svs.columns.type svs.color.invalid svs.glyph.invalid svs.line_style.invalid svs.source.uri svs.layer.data
   svs.layer.fallback svs.layer.annotation svs.layer.split svs.section.axis svs.section.positions svs.section.scroll_group
   svs.tree.leaves svs.patch.base svs.patch.ref svs.patch.anchor svs.patch.cycle svs.snapshot.ref
   svs.source.load svs.source.format svs.source.record svs.source.category svs.source.size_bound svs.sequence.alphabet
@@ -445,7 +457,7 @@ const ERRORS = `svs.format.invalid svs.version.missing svs.version.unsupported_m
   svs.query.input`;
 const WARNINGS = `svs.version.newer_minor svs.snapshot.invalid svs.position.unknown svs.numbering.descending
   svs.mapping.empty svs.numbering.fallback svs.provider.unavailable svs.layer.unplaced svs.layer.insert svs.render.fallback svs.render.omitted
-  svs.section.style svs.render.theme svs.render.glyph svs.render.preset svs.render.direction svs.alphabet.detected
+  svs.section.style svs.render.theme svs.render.glyph svs.render.line_style svs.render.preset svs.render.direction svs.alphabet.detected
   svs.alignment.parent svs.annotation.rows svs.unit.orphaned svs.unit.stale svs.mapping.orphaned svs.annotation.orphaned
   svs.provider.unmapped svs.provider.size svs.provider.lazy
   svs.provider.alphabet svs.coverage.ambiguous svs.layer.rows svs.stream.ref svs.stream.conflict svs.stream.depth

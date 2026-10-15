@@ -124,6 +124,7 @@ describe('run: plain data', () => {
       'seqv:highlight',
       'seqv:select',
       'seqv:focus',
+      'seqv:reveal',
       'seqv:setSnapshot',
       'seqv:setView',
       'seqv:colorScheme',
@@ -506,7 +507,7 @@ describe("an application's command, run by invocation", () => {
     });
     const clicks: number[] = [];
     const LogClicks = defineBehavior('lab:log-clicks', 'interaction', 0, {}, '', ({ ctx, on }) =>
-      on(ctx.interaction.click, (e) => clicks.push(e.hit.track)),
+      on(ctx.input.events.click, (e) => clicks.push(e.hit.track)),
     );
     const base = [subscriptions(t.ctx), commandsOf(t.ctx).subscriberCount()];
     const undo = t.ctx.register(lab);

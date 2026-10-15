@@ -7,7 +7,8 @@
  */
 
 // DOM input → `ctx.input` (seqspec:viewer#the-render-backend; seqspec:interaction#input-events): pointer, wheel, key,
-// leave and focus events filled into reused, DOM-free records with x and y in the surface's CSS px. The primary pointer
+// leave, focus and context-menu events filled into reused, DOM-free records with x and y in the surface's CSS px, the
+// DOM event on the record (`native`) while the sink handles it. The primary pointer
 // only (a second finger is none);
 // a press subscribes the document's moves and release (in the capture phase) until its release, so the drag follows the
 // pointer anywhere on the page, read in the pressing surface's px; the surface's own moves are its hover while nothing
@@ -44,6 +45,8 @@ export class DomInput {
   private readonly p = Inputs.pointer();
   private readonly w = Inputs.wheel();
   private readonly k = Inputs.key();
+  /** The context-menu request's record: on macOS it comes mid-press, so never the press's `p`. */
+  private readonly m = Inputs.pointer();
   private pressed = false;
   private focused = false;
   /**
@@ -64,6 +67,7 @@ export class DomInput {
     el.addEventListener('focus', this.focus);
     el.addEventListener('blur', this.blur);
     el.addEventListener('dragstart', this.noDrag);
+    el.addEventListener('contextmenu', this.menu);
   }
 
   stop(notify: boolean): void {
@@ -76,6 +80,7 @@ export class DomInput {
     el.removeEventListener('focus', this.focus);
     el.removeEventListener('blur', this.blur);
     el.removeEventListener('dragstart', this.noDrag);
+    el.removeEventListener('contextmenu', this.menu);
     if (notify && this.pressed) this.sink.cancel(this.section());
     if (notify && this.focused) this.sink.focus(this.section(), false);
     this.release();
@@ -114,7 +119,12 @@ export class DomInput {
     // move).
     if (type !== PointerType.move) p.time = e.timeStamp;
     p.pointerId = e.pointerId;
-    this.sink.pointer(p);
+    p.native = e;
+    try {
+      this.sink.pointer(p);
+    } finally {
+      p.native = null;
+    }
   }
   private readonly down = (e: PointerEvent) => {
     if (!e.isPrimary) return;
@@ -156,8 +166,8 @@ export class DomInput {
   private readonly scrolled = () => {
     if (this.pressed) this.rect = this.el.getBoundingClientRect();
   };
-  private readonly leave = () => {
-    if (!this.pressed) this.sink.leave(this.section());
+  private readonly leave = (e: PointerEvent) => {
+    if (!this.pressed) this.sink.leave(this.section(), e);
   };
   private readonly wheel = (e: WheelEvent) => {
     const scale = e.deltaMode === 1 ? LINE_PX : e.deltaMode === 2 ? this.el.clientHeight : 1;
@@ -169,7 +179,12 @@ export class DomInput {
     w.deltaY = e.deltaY * scale;
     w.modifiers = modifiers(e);
     w.time = e.timeStamp;
-    if (this.sink.wheel(w)) e.preventDefault();
+    w.native = e;
+    try {
+      if (this.sink.wheel(w)) e.preventDefault();
+    } finally {
+      w.native = null;
+    }
   };
   private readonly key = (e: KeyboardEvent) => {
     const k = this.k;
@@ -179,7 +194,35 @@ export class DomInput {
     k.modifiers = modifiers(e);
     k.typing = typing(e.target);
     k.time = e.timeStamp;
-    if (this.sink.key(k)) e.preventDefault();
+    k.native = e;
+    try {
+      if (this.sink.key(k)) e.preventDefault();
+    } finally {
+      k.native = null;
+    }
+  };
+  /**
+   * The browser's context-menu request (seqspec:interaction#the-track-menu), at its point; `pointerId` -1 when no
+   * pointer made it (the menu key, Shift+F10, assistive technology: `pointerType` "" in Chromium and Firefox; Safari's
+   * is a mouse event, read as the pointer's). The default is the sink's subscribers' to prevent, never this listener's.
+   */
+  private readonly menu = (e: MouseEvent) => {
+    const m = this.m;
+    const pe = e as Partial<PointerEvent>;
+    m.section = this.section();
+    m.x = e.offsetX;
+    m.y = e.offsetY;
+    m.buttons = e.buttons;
+    m.button = e.button;
+    m.modifiers = modifiers(e);
+    // Its time is not read (a fractional double, boxed per read): the public payload reads the event's.
+    m.pointerId = pe.pointerType === '' || pe.pointerId === -1 ? -1 : (pe.pointerId ?? 1);
+    m.native = e;
+    try {
+      this.sink.menu(m);
+    } finally {
+      m.native = null;
+    }
   };
   private readonly focus = () => {
     this.focused = true;

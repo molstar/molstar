@@ -72,6 +72,8 @@ export {
 } from '../renderer-helpers.js';
 export { MatrixBands, type MatrixState, prepareMatrix, RowsHeader, type RowsState } from '../rows.js';
 export {
+  CHIP_PAD,
+  chipFontPx,
   GROUP_LABEL_PAD,
   groupLabelPx,
   type LaneSegments,
@@ -80,6 +82,8 @@ export {
   lineLanes,
   type PreparedRun,
   runXInto,
+  type StripSource,
+  stripLineHeights,
 } from '../runs.js';
 export {
   blockLevels,
@@ -104,7 +108,10 @@ export {
   glyphTableOf,
   type LegendSink,
   type LegendSizeOf,
+  LineStyle,
+  lineStyleId,
   NO_GLYPH,
+  NO_LINE_STYLE,
   NO_SIZE,
   OPAQUE,
   SIZE_ONE,
@@ -185,6 +192,7 @@ export {
 export {
   densityBand,
   drawLineLanes,
+  drawLineText,
   featureHoverKey,
   featureInk,
   hitLineLanes,
@@ -205,6 +213,7 @@ export {
   ringItem,
 } from './hover.js';
 export { elementSymbol, letterFontPx, letterRoom, textShown } from './letter-text.js';
+export { featureLineStyle, StyledLines, styledSegment } from './line-styles.js';
 export {
   drawMatrixTiles,
   type MatrixTileSet,
@@ -220,13 +229,16 @@ export { inlineGroupLabels, numberText } from './numbers.js';
 export { band, boundaryEdge, mark, placeRun } from './place.js';
 export { drawPoints, hitPoints, outlinePoints } from './points.js';
 export type { RingLabelSink } from './ring-labels.js';
+export { drawStrip, outlineStrip, type StripColors, stripBand } from './strips.js';
 export {
   bar,
   barBand,
   DOT_R,
   featureSize,
   hitLayer,
+  hitReach,
   hitWindow,
+  hitWindowAt,
   type SizeView,
   sizePx,
   sizeTheme,

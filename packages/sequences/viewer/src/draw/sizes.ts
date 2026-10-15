@@ -56,6 +56,11 @@ export const hitReach = new Float64Array(2);
 export function hitWindowAt(v: AxisView, b: number, out: Int32Array): boolean {
   const ax = v.axis;
   if (!ax) return false;
+  // A track drawn in full in the text (seqspec:viewer#the-text-view): the line's positions, each checked by its glyph.
+  if (v.trackForm) {
+    shownHull(v, b, v.lineStart, v.lineStop, out);
+    return out[1] > out[0];
+  }
   const w = ax.span[b] * v.cell;
   const k0 = Math.max(0, Math.floor((hitReach[0] - hitReach[1] - v.blockX[b]) / w));
   const k1 = Math.min(ax.shown[b], Math.floor((hitReach[0] + hitReach[1] - v.blockX[b]) / w) + 1);

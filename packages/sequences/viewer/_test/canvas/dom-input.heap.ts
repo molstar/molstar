@@ -37,18 +37,30 @@ function pressed() {
     focus() {},
     leave() {},
     cancel() {},
+    menu() {
+      moves++;
+    },
   };
   const input = new DomInput(el, sink, () => 0);
   const init = { clientX: 140, clientY: 90, isPrimary: true, pointerId: 1, bubbles: true, cancelable: true };
   el.dispatchEvent(new PointerEvent('pointerdown', { ...init, buttons: 1, button: 0 }));
   // Off the surface, over the page: the document's listener has it.
   const move = new PointerEvent('pointermove', { ...init, clientX: 600, clientY: 500, buttons: 1 });
-  return { input, step: () => document.body.dispatchEvent(move), moves: () => moves };
+  return { input, el, step: () => document.body.dispatchEvent(move), moves: () => moves };
 }
 
 it("a press's moves over the page, each read into the one record: flat", () => {
   const { input, step, moves } = pressed();
   const r = heapScaling(20_000, step);
+  expect(moves()).toBeGreaterThan(100_000);
+  expect(isFlat(r), JSON.stringify(r)).toBe(true);
+  input.stop(false);
+});
+
+it("a storm of the browser's context-menu requests, each read into its one record: flat", () => {
+  const { input, el, moves } = pressed();
+  const menu = new PointerEvent('contextmenu', { clientX: 150, clientY: 90, button: 2, buttons: 2, bubbles: true });
+  const r = heapScaling(20_000, () => el.dispatchEvent(menu));
   expect(moves()).toBeGreaterThan(100_000);
   expect(isFlat(r), JSON.stringify(r)).toBe(true);
   input.stop(false);

@@ -26,8 +26,8 @@ describe('base events', () => {
     const t = await open();
     const seen: number[] = [];
     let hovers = 0;
-    t.ctx.interaction.pointer.subscribe((e) => seen.push(t.ctx.pointer.current.x, e.hit.region));
-    t.ctx.interaction.hover.subscribe(() => hovers++);
+    t.ctx.input.events.pointer.subscribe((e) => seen.push(t.ctx.pointer.current.x, e.hit.region));
+    t.ctx.input.events.hover.subscribe(() => hovers++);
     const x = t.xOf(S, 0, 4);
     t.pointer('move', S, x, rowY(t, 0));
     t.pointer('move', S, x + 1, rowY(t, 0)); // the same cell
@@ -44,14 +44,14 @@ describe('base events', () => {
     for (const b of ['select', 'dragPan']) t.ctx.behaviors.get(b)?.remove();
     const order: string[] = [];
     const phases: number[] = [];
-    t.ctx.interaction.drag.subscribe(
+    t.ctx.input.events.drag.subscribe(
       (e) => {
         order.push(`low:${e.owner}`);
         e.claim('low');
       },
       { priority: 1 },
     );
-    t.ctx.interaction.drag.subscribe(
+    t.ctx.input.events.drag.subscribe(
       (e) => {
         if (e.phase === DragPhase.start) order.push(`high:${e.owner}`);
         e.claim('high');
@@ -72,8 +72,8 @@ describe('base events', () => {
     for (const b of ['select', 'dragPan']) t.ctx.behaviors.get(b)?.remove();
     const phases: number[] = [];
     let clicks = 0;
-    t.ctx.interaction.drag.subscribe((e) => phases.push(e.phase));
-    t.ctx.interaction.click.subscribe(() => clicks++);
+    t.ctx.input.events.drag.subscribe((e) => phases.push(e.phase));
+    t.ctx.input.events.click.subscribe(() => clicks++);
     t.drag(S, 400, rowY(t, 0), 460, rowY(t, 0));
     expect([phases, clicks, t.ctx.ui.drag.value]).toEqual([[DragPhase.start], 0, null]);
   });
@@ -81,10 +81,10 @@ describe('base events', () => {
   it('a press claimed on down skips the slop', async () => {
     const t = await open();
     const starts: number[] = [];
-    t.ctx.interaction.pointer.subscribe((e) => {
+    t.ctx.input.events.pointer.subscribe((e) => {
       if (e.input.type === PointerType.down) e.claim('lab:grab');
     });
-    t.ctx.interaction.drag.subscribe((e) => starts.push(e.phase, e.totalX));
+    t.ctx.input.events.drag.subscribe((e) => starts.push(e.phase, e.totalX));
     t.pointer('down', S, 400, rowY(t, 0));
     t.pointer('move', S, 401, rowY(t, 0)); // within the 3 px slop
     expect(starts).toEqual([DragPhase.start, 1]);
@@ -94,7 +94,7 @@ describe('base events', () => {
   it('clicks within the slop; a double and a triple click within DoubleClickMs on the manual clock', async () => {
     const t = await open();
     const counts: number[] = [];
-    t.ctx.interaction.click.subscribe((e) => counts.push(e.count));
+    t.ctx.input.events.click.subscribe((e) => counts.push(e.count));
     const [x, y] = [t.xOf(S, 0, 4), rowY(t, 0)];
     t.click(S, x, y);
     t.advance(200);
@@ -114,11 +114,11 @@ describe('base events', () => {
   it('a claimed press that wobbles within the slop is a drag that ends where it began, and a click', async () => {
     const t = await open();
     const seen: string[] = [];
-    t.ctx.interaction.pointer.subscribe((e) => {
+    t.ctx.input.events.pointer.subscribe((e) => {
       if (e.input.type === PointerType.down) e.claim('lab:grab');
     });
-    t.ctx.interaction.drag.subscribe((e) => seen.push(`drag ${e.phase} ${e.totalX}`));
-    t.ctx.interaction.click.subscribe((e) => seen.push(`click ${e.count}`));
+    t.ctx.input.events.drag.subscribe((e) => seen.push(`drag ${e.phase} ${e.totalX}`));
+    t.ctx.input.events.click.subscribe((e) => seen.push(`click ${e.count}`));
     const y = rowY(t, 0);
     const wobble = (x: number, dx: number) => {
       t.pointer('down', S, x, y);
@@ -157,7 +157,7 @@ describe('base events', () => {
     const g = t.frame(F, 0);
     const s = t.vp(F).live.current;
     const counts: number[] = [];
-    t.ctx.interaction.click.subscribe((e) => counts.push(e.count));
+    t.ctx.input.events.click.subscribe((e) => counts.push(e.count));
     const x = g[0] + 0.4 * g[1];
     const press = (dx: number) => {
       t.pointer('down', F, x, 10);
@@ -187,7 +187,7 @@ describe('base events', () => {
     const t = await open();
     t.vp(S).zoomTo(0, 0, 10);
     const ends: DragEvt['hit']['region'][] = [];
-    t.ctx.interaction.drag.subscribe((e) => e.phase === DragPhase.end && ends.push(e.hit.region), { priority: -1 });
+    t.ctx.input.events.drag.subscribe((e) => e.phase === DragPhase.end && ends.push(e.hit.region), { priority: -1 });
     t.pointer('down', S, 400, rowY(t, 0));
     t.pointer('move', S, 300, rowY(t, 0));
     t.pointer('up', S, -40, 500, { onDocument: true });
@@ -197,7 +197,7 @@ describe('base events', () => {
   it('keys are ignored while typing', async () => {
     const t = await open();
     let keys = 0;
-    t.ctx.interaction.key.subscribe(() => keys++);
+    t.ctx.input.events.key.subscribe(() => keys++);
     t.key(S, 'Escape', { typing: true });
     t.key(S, 'Escape');
     expect(keys).toBe(1);
@@ -208,7 +208,7 @@ describe("the findings the dispatcher closes (IN2's hot-path design)", () => {
   it("a drag ends as a cancel by cancel() and its surface's dispose; a release never seen ends it at the last point", async () => {
     const t = await open();
     const seen: string[] = [];
-    t.ctx.interaction.drag.subscribe((e) => seen.push(`${e.phase}:${e.owner}`));
+    t.ctx.input.events.drag.subscribe((e) => seen.push(`${e.phase}:${e.owner}`));
     const y = rowY(t, 0);
     const start = () => {
       t.pointer('down', S, 500, y);
@@ -229,7 +229,7 @@ describe("the findings the dispatcher closes (IN2's hot-path design)", () => {
     const sx = t.vp(S).live.current.scrollX;
     const lost = t.ctx.pointer.version.value;
     const ends: number[] = [];
-    const sub = t.ctx.interaction.drag.subscribe((e) => e.phase === DragPhase.end && ends.push(e.input.x));
+    const sub = t.ctx.input.events.drag.subscribe((e) => e.phase === DragPhase.end && ends.push(e.input.x));
     t.ctx.input.pointer(Object.assign(sinkRecord(), { type: PointerType.move, section: 0, x: 460, y, buttons: 0 }));
     sub.unsubscribe();
     expect([t.ctx.ui.drag.value, seen.at(-1), t.vp(S).live.current.scrollX === sx, ends]).toEqual([
@@ -269,7 +269,7 @@ describe("the findings the dispatcher closes (IN2's hot-path design)", () => {
     expect(s.scrollX - at).toBe(10);
     // A touch whose release the page never delivered: the next touch (a new id) ends it, then is a press of its own.
     const clicks: number[] = [];
-    t.ctx.interaction.click.subscribe((e) => clicks.push(e.count));
+    t.ctx.input.events.click.subscribe((e) => clicks.push(e.count));
     t.pointer('down', S, 300, y, { pointerId: 7 });
     expect(t.ctx.ui.drag.value).toBeNull();
     t.pointer('up', S, 300, y, { pointerId: 7 });
@@ -279,7 +279,7 @@ describe("the findings the dispatcher closes (IN2's hot-path design)", () => {
   it('right then left counts 1, 1; the same button on another section is no double click', async () => {
     const t = await open();
     const counts: number[] = [];
-    t.ctx.interaction.click.subscribe((e) => counts.push(e.count));
+    t.ctx.input.events.click.subscribe((e) => counts.push(e.count));
     const [x, y] = [t.xOf(S, 0, 4), rowY(t, 0)];
     t.click(S, x, y, { button: Button.secondary });
     t.advance(100);
@@ -310,7 +310,7 @@ describe("the findings the dispatcher closes (IN2's hot-path design)", () => {
     expect([t.layouts.stats.builds, hits, t.ctx.hover.live.version.value - bumps]).toEqual([builds + 1, 1, 1]);
     // A click's handler that rebuilds it: the pointer is hit again after the dispatch (down 2, up 1, the re-hit 1), and
     // the same element refreshes the hover (a clade's "click expand").
-    const sub = t.ctx.interaction.click.subscribe(() => {
+    const sub = t.ctx.input.events.click.subscribe(() => {
       t.ctx.ui.toggleClade('sh2', 1);
       t.layouts.axis(S);
     });
@@ -321,7 +321,7 @@ describe("the findings the dispatcher closes (IN2's hot-path design)", () => {
     expect([hits, t.ctx.hover.live.version.value > before]).toEqual([4, true]);
     // Two sections rebuilt during one dispatch, the pointer's first: the pointer's is the one hit again.
     const input = t.ctx.input as InputDispatcher;
-    const both = t.ctx.interaction.click.subscribe(() => {
+    const both = t.ctx.input.events.click.subscribe(() => {
       input.rehit(0);
       input.rehit(5);
     });

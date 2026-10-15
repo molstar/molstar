@@ -6,7 +6,8 @@ starts); a new deferral comes in with what triggers it and where its context is.
 
 ## In progress
 
-Nothing.
+Nothing: tracks in the text view as lanes, input as streams and the host options' performance pass are built, as one PR
+(`.v6/seq/plans/lanes-input-perf.md`: §2.6 to §2.8, §3.6, §4.3).
 
 ## Next
 
@@ -19,27 +20,20 @@ The move into Mol\* v6's repository is done. Next is Prism over Seq\* (`.v6/seq/
 Each builds on the coordinate model (`seqspec:model#coordinate-maps`, `seqspec:model#pieces-and-layout-maps`) with the
 biology at application level, never in the core.
 
-**Input as streams, reconciled with Mol\*'s** (David, 2026-10-14). Seq\* has its own input layer (`canvas/dom-input.ts`,
-the dispatcher, its `Binding`), and a host sees interaction only through the context's states and events (`hover.live`,
-`selection.current`, `events.menu`); a right-click reaches it only when the `contextMenu` behavior is in the spec.
-Reconcile with Mol\*'s: build the DOM input on `InputObserver` (`@molstar/core/util/input/input-observer`, rxjs
-streams), one binding vocabulary with Mol\*'s (`@molstar/core`'s bindings), and public interaction streams on the viewer
-as Canvas3D's `interaction` has them (hover, click, drag, context menu: the hit with section, track, item, position and
-coordinates, the pointer's place, the modifiers), configurable by params; behaviors stay the built-in reactions on the
-same streams (input delivers, behaviors react). Under the performance contract (the input path's heap guards), with the
-spec (`interaction.md`, `viewer.md`) and tests. By Opus, design first. Context: `.v6/seq/plan.md` §4. _Trigger:_ a PR of
-its own, after the one bringing Seq\* and Prism's sequence prototype.
+**Loci and coordinates on input events** (2026-10-14, from input as streams: `.v6/seq/plans/lanes-input-perf.md` §3.6).
+`ctx.interaction`'s payloads carry refs and indices (`part`, `at`: layer, lane, block, index, row, item), not the hit's
+loci or its `Coordinates`; a consumer that wants them reads `hover.toLoci()` (the hover) or resolves the refs. To add
+them lazily (computed on first read, as `seq-hover`'s): a hit copied into the payload (`Hit.copy`), the hover's resolve
+run on a scratch state (`HoverManager.lociAt`), and `describeLoci` moved out of `dom/element.ts` into a headless module.
+_Trigger:_ a consumer needing them beyond `hover.toLoci`.
 
-**Tracks in the text view, as lanes** (David, 2026-10-14). The wrapped geometry (`compact`, `wrapped`) draws letters;
-other layers either draw as underlines (ranges and features) or draw nothing while still taking their lane's height (a
-line track: Prism's pLDDT). Draw most layer types as lanes under each line: ranges and features (secondary structure,
-domains, sites) as underline lanes with consistent heights; continuous data (pLDDT, hydrophobicity) as a thin colored
-strip, one color per position from the layer's theme; letters as now. Not in text: dot plots, pairs, trees, multi-row
-alignment tracks (they need tracks), which then reserve no lane. Under the performance contract: allocation-free lane
-drawing, a heap guard per new lane kind with its positive control, tests, `_spec/viewer.md` (the wrapped geometry) and
-the generated reference. By Opus, design and implementation. Context: `.v6/seq/plan.md` §4; Prism's Text view shows
-letters only until then. _Trigger:_ a PR of its own, after the PR that brings Seq\* and Prism's sequence prototype (that
-one only reviews the current renderer changes).
+**A composer for text-view tracks** (David, 2026-10-14). The text view draws a track with a `height` in full under every
+line (`seqspec:viewer#the-text-view`): figures are made by writing the document. A UI part to add and remove tracks in
+the text view, set a track's height, a values layer's encoding and the tracks' order, and turn the axes and labels on
+(the style's `track_axes`, `track_labels`), proposing patches as the other parts do. A separate simple "Annotations"
+part (add from the selection with a label and a color, list, delete, from the bookmark actions) colors its ranges by
+their `color` column (`field_color`), drawn in text as underlines or, with a height, in full. _Trigger:_ Prism's
+sequence panel beyond its first slice, or a figure workflow asking for it.
 
 **An item coordinate system's own letters.** A letters track on a transcript's block, derived lazily from the source's
 streamed letters through its map (as the codon label reads them); until then a `letters` layer on an item block draws
@@ -139,23 +133,6 @@ shows the wild type's letter. Case 15 colors the cell under uncolored letters in
 (`renderers/emphasis.ts`). _Trigger:_ a story that emphasizes on an `of` letters track.
 
 ## Follow-ups
-
-**The host options' performance pass** (David, 2026-10-14, from the review of the round-2 host options: `wrappedAlign`,
-`wrappedMaxWidth`, `wrappedColors`, `unobservedGray`, `focusViewport`'s `reveal`, `contextMenu`). The options are tested
-but have no heap guards yet. Guards, each with its positive control (the guard template): (a) the letters with
-`unobservedGray` on a linear section zoomed in, over a unit with several `observed` ranges; (b) wrapped text with
-`wrappedColors` and `unobservedGray` (the tinted path); (c) a storm of secondary presses with `contextMenu` added (the
-menu record's fractional `x` and `y`); optionally (d) text selection and hits on a centered `wrappedMaxWidth` layout.
-And the cost they would show: `unobservedAt` (`renderers/letters.ts`) scans the unit's `observed` ranges per position
-per frame; hoist the ranges per block and walk them with a monotone cursor (the positions come in shown order), or
-binary search, or build a per-block mask once per prepared state. _Trigger:_ the PR that brings the text view's lanes
-(Tracks in the text view, above), which reworks the same draw.
-
-**Ligands and other short units in the text view** (David, 2026-10-14, from Prism's sequence strip). In the wrapped
-(`compact`) text a structure's non-polymer units come after the chains with spacing that reads as unrelated: an empty
-block, then a label such as "B HEM CHA" far below the last line. Lay short units out as part of the text (the unit's
-name and its residue, close to the chains, the blocks' rhythm kept) and decide how many of them a strip shows. Trigger:
-Prism's sequence view beyond its first slice.
 
 **Dot plots, the rest** (2026-10-13). The keyboard cursor on a plot moves across only (no partner); a square plot taller
 than its box's room (a wide screen) is capped there (so it shows whole once scrolled to), its cells flatter than square;
@@ -289,6 +266,21 @@ source's `coordinate_system` and a layer's `of` are not covered. _Trigger:_ a ch
 
 Known, measured, unowned: whoever next touches the code takes one, and its commit says so.
 
+- **A frame allocates in V8's middle tier until it is optimized** (measured 2026-10-14, Node 24 and 25, M4, by the quick
+  tier's harness under V8's default tuning): a step climbs to TurboFan over 15,000 to 60,000 frames and allocates
+  meanwhile, the wrapped lanes' draw 130 bytes a frame for its first 14,000 frames, a hover 9 to 26 bytes a move for
+  13,000 to 60,000 (longer after other draws ran): a few minutes of real use at 60 frames a second, then nothing. The
+  guards measure the optimized steady state (by count, `settleFrame`), not this. If it matters: find what the middle
+  tier boxes in the hottest draws (Maglev's doubles across calls) and keep it unboxed there too. _Trigger:_ a jank or
+  GC-pause report on load or in the first minutes of use.
+- **A frame at a fractional device pixel ratio allocates 16 bytes** (measured 2026-10-15 by `matrix-dense.quick.ts`:
+  16.1 bytes a frame at DPR 1.5 and 4/3, 0.25 at DPR 1 from the case's own zoom calls; flat in every other quick case,
+  all at DPR 1 or 2). V8's sampling heap profiler puts it in the composer's overlay pass (`composer-overlay.ts`
+  `overlay`); with inlining off, in the calls that pass the ratio as a double (`beginPass(pass, w, h, dpr)`, `navBand`),
+  so most likely one such argument boxed. Passing the ratio only when it changed (an optional argument) moved the 16
+  bytes into the backends, and a micro-benchmark of the call alone does not box: not fixed. The likely fix is the
+  backend API: the ratio set on the backend when it changes (`setDpr`), `beginPass(pass, w, h)` without it. _Trigger:_
+  the next change to `RenderBackend`, or a GC-pause report on a 1.5× display.
 - **A manifest that lists only fine levels is not bounded by `Stream.SampleBudget`** (LB-22, VT-03; measured
   2026-10-14): the tiles server zoomed out over all rows with levels up to 2 listed asked 108 tiles and held 14 MB at
   400,000 rows (16 tiles, 2.5 MB with every level), growing with the rows; past `CacheBytes` at millions. The rule

@@ -117,7 +117,7 @@ export interface DrawResources {
   glyph(id: number): GlyphRecord | null;
 }
 
-type Typed = Int32Array | Uint8Array | Float64Array;
+type Typed = Int32Array | Uint8Array | Uint16Array | Float64Array;
 /** `a` copied into a new array of length `n` (growth only: never on a warm frame). */
 function grown<T extends Typed>(a: T, n: number): T {
   const b = new (a.constructor as new (n: number) => T)(n);
@@ -271,7 +271,9 @@ export class SectorBatch {
 
 /**
  * Subpaths of verbs over coordinates (device px). `begin` starts a subpath with its style; consecutive subpaths of one
- * style may be drawn as one path, so overlapping translucent fills of one style do not darken where they meet.
+ * style may be drawn as one path, so overlapping translucent fills of one style do not darken where they meet. A
+ * stroke may be dashed (`dashed`): `dash` px on, `gap` px off (device px; 0: solid), the pattern starting `phase` px
+ * into it at the subpath's first point.
  */
 export class PathBatch {
   /** Subpaths, and per subpath its first verb and coordinate, color, alpha, mode and width (half device px). */
@@ -282,6 +284,9 @@ export class PathBatch {
   alpha: Uint8Array;
   mode: Uint8Array;
   width: Uint8Array;
+  dash: Uint16Array;
+  gap: Uint16Array;
+  phase: Float64Array;
   nv = 0;
   verbs: Uint8Array;
   nc = 0;
@@ -293,6 +298,9 @@ export class PathBatch {
     this.alpha = new Uint8Array(capacity);
     this.mode = new Uint8Array(capacity);
     this.width = new Uint8Array(capacity);
+    this.dash = new Uint16Array(capacity);
+    this.gap = new Uint16Array(capacity);
+    this.phase = new Float64Array(capacity);
     this.verbs = new Uint8Array(capacity * 4);
     this.coords = new Float64Array(capacity * 8);
   }
@@ -306,6 +314,15 @@ export class PathBatch {
     this.alpha[p] = alpha;
     this.mode[p] = mode;
     this.width[p] = width;
+    this.dash[p] = this.gap[p] = 0;
+    this.phase[p] = 0;
+  }
+  /** The current subpath's stroke dashed: `dash` px on, `gap` off, from `phase` px into the pattern (device px). */
+  dashed(dash: number, gap: number, phase: number): void {
+    const p = this.n - 1;
+    this.dash[p] = dash;
+    this.gap[p] = gap;
+    this.phase[p] = phase;
   }
   /** A verb added: the offset of its coordinates in `coords`, to write them into. */
   verb(v: number): number {
@@ -358,6 +375,9 @@ export class PathBatch {
       this.alpha[p] = b.alpha[j];
       this.mode[p] = b.mode[j];
       this.width[p] = b.width[j];
+      this.dash[p] = b.dash[j];
+      this.gap[p] = b.gap[j];
+      this.phase[p] = b.phase[j];
     }
     if (this.nv + v1 - v0 > this.verbs.length) this.verbs = grown(this.verbs, (this.nv + v1 - v0) * 2);
     if (this.nc + c1 - c0 > this.coords.length) this.coords = grown(this.coords, (this.nc + c1 - c0) * 2);
@@ -373,6 +393,9 @@ export class PathBatch {
     this.alpha = grown(this.alpha, m);
     this.mode = grown(this.mode, m);
     this.width = grown(this.width, m);
+    this.dash = grown(this.dash, m);
+    this.gap = grown(this.gap, m);
+    this.phase = grown(this.phase, m);
   }
 }
 

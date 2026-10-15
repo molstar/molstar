@@ -20,59 +20,82 @@ export {
   type Scaling,
 } from '../../core/_test/model/heap.js';
 
-// The frame guards' shared run (the conformance kit's and the composer's): a frame is warmed by count (`FRAME_WARM`) and,
-// where the draws compile concurrently, by time (`FRAME_WARM_MS`), then measured over `FRAME_N` steps and `4 * FRAME_N`.
-// Trimmed on 2026-10-12 from 2,000 / 3 s / 1,000 (the tier took 568 s). streams-port.heap.ts and the other stream guards
-// keep 1,000 steps, which catch about 22 bytes a step.
-// `HEAP_DEEP=1` (`test:heap-deep`) runs the guards as before the trim: the full steps and warm-ups, which catch about
-// 22 bytes a step (the trimmed run about 43), and the cases the trim dropped.
+// The quick tier's case (`test:perf`), for the `*.quick.ts` twins of the guards here.
+export {
+  type Alloc,
+  measureBytesPerStep,
+  type QuickOptions,
+  type QuickTask,
+  quickCase,
+} from '../../core/_test/model/quick.js';
+
+import { settleByCount } from '../../core/_test/model/alloc.js';
+import { heapScaling, type Scaling } from '../../core/_test/model/heap.js';
+
+// The frame guards' shared run (the conformance kit's, the composer's and every draw guard's): a frame is warmed by
+// count (`FRAME_WARM`), then settled by count (`settleFrame`: until it stops allocating, read exactly), then measured
+// over `FRAME_N` steps and `4 * FRAME_N`. Trimmed on 2026-10-12 from 1,000 steps (the tier took 568 s).
+// `HEAP_DEEP=1` (`test:heap-deep`) runs the guards as before the trim: the full steps, which catch about 22 bytes a
+// step (the trimmed run about 43), and the cases the trim dropped.
 export const HEAP_DEEP =
   (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.HEAP_DEEP === '1';
 export const FRAME_N = HEAP_DEEP ? 1_000 : 500;
-// The warm-up stays as before the trim in both modes: at 1 s and 1,000 frames the ring's and the composer's pan guards
-// failed most runs (code still compiling), which cost more than the seconds saved (2026-10-12).
 export const FRAME_WARM = 2_000;
-export const FRAME_WARM_MS = 3_000;
 /**
- * `settleFrame`'s bound after a timed warm-up (`FRAME_WARM_MS`): a whole frame's climb to TurboFan ran 7 s at the
- * composer's cell 0.4 and 6,000 frames past the warm-up on the ring of 120,000 positions (2026-10-13, M4).
+ * `settleFrame`'s cap, in steps. Under V8's default tuning (the heap tier's) a frame climbs to TurboFan over 15,000 to
+ * 60,000 steps, allocating in its middle tier until then (2026-10-14, Node 24 and 25, M4: the wrapped lanes' draw 130
+ * bytes a step for 14,000 steps; a hover 9 to 26 bytes for 20,000 to 60,000, longer after another case's draws). A
+ * timed warm-up (the 3 s `FRAME_WARM_MS` before) ended inside that climb whenever the machine was loaded, which is why
+ * the guards wanted a quiet machine and why a case could fail only after another (the "shared feedback" was the climb).
  */
-export const FRAME_SETTLE_MS = 15_000;
+export const FRAME_WARM_CAP = 100_000;
 
-/** Below this growth a window of `FRAME_N` frames counts as settled, in bytes a frame (a fifth of what the measure catches). */
-const SETTLED = 8;
+/** Below this a window of `FRAME_N` frames counts as settled, in bytes a frame (read exactly, not by heap growth). */
+const SETTLED = 2;
 
 /**
- * A frame warmed past V8's tier-up, for the guards that measure many frames apiece (the conformance kit's, a layer per
- * zoom): `FRAME_WARM` frames, then windows of `FRAME_N` until two in a row grow the heap by less than `SETTLED` bytes a
- * frame, for at most `FRAME_WARM_MS`. A draw called once a frame reaches TurboFan only after many frames: tens of
- * thousands where its frame is cheap (below the row's minimum) or after a new zoom or document deoptimized it, and until
- * then its middle tier and the module runner's export getters allocate (2026-10-13, Node 25 on an M4: ranges on
- * features' tiny draw 65 bytes a frame for 41,000 frames, then none; letters on all types 97 bytes for 8,000). Those
- * guards failed once `FRAME_N` was trimmed to 500 (6ee8a642), the measured frames then falling inside the climb; a time
- * warm-up for every frame instead would add minutes to the tier. A frame that allocates once optimized never settles:
- * it is warmed the whole `FRAME_WARM_MS`, then measured and caught (draws.heap.ts's positive control).
+ * A frame warmed past V8's tier-up: `FRAME_WARM` frames, then `settleFrame`. For a guard that measures many frames
+ * apiece (the conformance kit's, a layer per zoom) and every draw guard. A frame that allocates once optimized never
+ * settles: it runs `FRAME_WARM_CAP` frames, then is measured and caught (draws.heap.ts's positive control).
  */
-export function warmFrame(frame: () => void): void {
-  for (let i = 0; i < FRAME_WARM; i++) frame();
-  settleFrame(frame, FRAME_WARM_MS);
+export function warmFrame(frame: (i: number) => void): void {
+  for (let i = 0; i < FRAME_WARM; i++) frame(i);
+  settleFrame(frame);
 }
 
 /**
- * `warmFrame`'s second part: windows of `FRAME_N` frames until two in a row grow the heap by less than `SETTLED` bytes
- * a frame, for at most `ms`. The composer's guards call it after their time warm-up: a whole composer frame climbs
- * for longer than `FRAME_WARM_MS` on a slower machine (2026-10-13, M4: 17,000 frames, 7 s, over 400,000 positions at
- * cell 0.4; 33,000, 4.5 s, every type at 0.4), and a fixed time is fewer frames there.
+ * Windows of `FRAME_N` frames until three in a row allocate under `SETTLED` bytes a frame (core/_test/model/alloc.ts
+ * `settleByCount`, exact through `v8.GCProfiler`), at most `cap` frames. By count, so a loaded machine takes longer but
+ * measures the same. Returns whether it settled.
  */
-export function settleFrame(frame: () => void, ms: number): void {
-  const gc = (globalThis as { gc?: () => void }).gc;
-  if (!gc) throw new Error('Run with --expose-gc (the heap config: pnpm test:heap).');
-  const t0 = performance.now();
-  let settled = 0;
-  while (settled < 2 && performance.now() - t0 < ms) {
-    gc();
-    const before = process.memoryUsage().heapUsed;
-    for (let i = 0; i < FRAME_N; i++) frame();
-    settled = process.memoryUsage().heapUsed - before < SETTLED * FRAME_N ? settled + 1 : 0;
-  }
+export function settleFrame(frame: (i: number) => void, cap = FRAME_WARM_CAP): boolean {
+  return settleByCount(frame, 0, FRAME_N, SETTLED, cap).settled;
+}
+
+/**
+ * The frame guards' measurement in one: `warm` steps (`FRAME_WARM`), `settleFrame`, then `heapScaling(n, …)`, `step`
+ * getting a running index throughout (a step that alternates by index stays in phase).
+ */
+export function frameScaling(step: (i: number) => void, n = FRAME_N, warm = FRAME_WARM): Scaling {
+  let i = 0;
+  for (; i < warm; i++) step(i);
+  i = settleByCount(step, i, FRAME_N, SETTLED, FRAME_WARM_CAP).next;
+  return heapScaling(n, () => step(i++));
+}
+
+/** `cheapScaling`'s first warm-up, in steps. */
+export const CHEAP_WARM = 60_000;
+
+/**
+ * `frameScaling` for a cheap step (tens of microseconds or less: hover frames, drags, small draws): `CHEAP_WARM` steps
+ * first, and one `heapScaling` run discarded. Such a step climbs to TurboFan over 20,000 to 40,000 steps with quiet
+ * windows on the way (0 to 5 bytes a step, then 10 to 30 again: 2026-10-15), so a settle from `FRAME_WARM` could end
+ * inside the climb (27 to 57 bytes a step in the hover frames, flat afterwards); and the first measured run after a
+ * collection rebuilds what it cleared (the discarded run).
+ */
+export function cheapScaling(step: (i: number) => void, n = FRAME_N): Scaling {
+  let k = 0;
+  for (; k < CHEAP_WARM; k++) step(k);
+  heapScaling(n, () => step(k++));
+  return frameScaling((i) => step(k + i), n, 0);
 }

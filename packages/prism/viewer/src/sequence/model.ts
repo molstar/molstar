@@ -17,7 +17,6 @@ import {
   type Scheduler,
   type SeqViewerContext,
   rafScheduler,
-  SeqViewerBehaviors,
   SeqViewerOptionalBehaviors,
   SeqViewerSpec,
   type TextMeasurer,
@@ -202,16 +201,14 @@ class Viewer implements SequenceViewer {
         return host && r.hostFile === hostFileOf(host.key) ? { kind: 'object', value: host.source } : null;
       },
     };
-    // Shift with a click or a drag adds or removes (each stretch independently, the others kept), not Seq*'s own default,
-    // `extend` (the range from the anchor): the sequence is a selection tool beside the 3D view, where Shift adds.
     const base = DefaultSeqViewerSpec();
-    const behaviors = base.behaviors.map((b) =>
-      b.behavior === SeqViewerBehaviors.Select
-        ? SeqViewerSpec.Behavior(SeqViewerBehaviors.Select, { shiftPositions: 'toggle' })
-        : b,
+    const behaviors = [...base.behaviors];
+    // What another view lights comes into view (text scrolls its lines in, tracks pan at the zoom): Seq*'s optional
+    // `revealHighlight`, following the link channels (`links:*`) and the 3D view's hover, which the link writes as an
+    // external hover owned by `3d` (seqspec:interaction#highlight).
+    behaviors.push(
+      SeqViewerSpec.Behavior(SeqViewerOptionalBehaviors.RevealHighlight, { channels: ['links:*'], hovers: ['3d'] }),
     );
-    // The track menus ask on a right-click: Seq*'s optional context-menu behavior (not in its default spec).
-    behaviors.push(SeqViewerSpec.Behavior(SeqViewerOptionalBehaviors.ContextMenu));
     this.seq = createSeqViewer(
       {
         ...base,
@@ -291,10 +288,8 @@ class Viewer implements SequenceViewer {
   }
 
   setStyle(style: SequenceStyle) {
-    const before = this.styleState.value;
+    // Only the preset (and with it the render props) changes: one document serves both styles, so the link survives.
     this.styleState.set(style);
-    // The text has only the letters (no lane reserved for the tracks), so its document is another one.
-    if (before !== style) void this.build();
     this.seq.ui.setStyle(SectionRef, presetOf(style));
   }
 
@@ -332,7 +327,6 @@ class Viewer implements SequenceViewer {
       theme: this.themeState.value,
       predicted: host.predicted,
       ligands: host.ligands,
-      tracks: this.styleState.value === 'tracks',
     });
     // A new structure is not shown as the old one while its document is made.
     if (this.structureState.value && this.structureState.value.structure !== host.structure)

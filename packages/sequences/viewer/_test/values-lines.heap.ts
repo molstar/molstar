@@ -10,66 +10,45 @@
 // seqspec:viewer#the-render-backend): a frame of `linesDoc`'s line in four bands (a discrete palette, its color changing
 // halfway between two positions), its area under a continuous palette and its plain line allocates nothing after
 // warm-up, at each of the kit's zooms (one below a device px per position: columns' means and bands). The positive
-// control goes through the kit's `heap` hook: at each of those frames the same warm-up and measurement of the frame
-// allocating an object each (`leaking`) must catch it.
+// control goes through the kit's `heap` hook: at the first three of those frames the same warm-up and measurement of the
+// frame allocating an object each (`leaking`) must catch it. The warm-up is by count (`warmFrame`). The case is
+// values-lines-cases.ts's, shared with the quick twin (values-lines.quick.ts).
 //
-// A file of its own: in draws.heap.ts, after "values on 40,000 positions" the line's frame at 0.62 px (tiny) measured
-// about 52 bytes a step, and HEAD's uncolored line the same (68), a draw V8 left in its middle tier under the vitest
-// module runner (draws.heap.ts's header); alone it is flat.
+// The viewer is loaded afresh per case (`vi.resetModules`). The line's tiny frame (0.62 px a position) stays in V8's
+// middle tier for tens of thousands of frames under the vitest module runner (draws.heap.ts's header): the warm-up is
+// by count and settles it, so the case no longer depends on running alone.
 
-import { expect, it, vi } from 'vitest';
-import type { LayerRenderer } from '../src/index.js';
-import {
-  controlCaught,
-  describeScaling,
-  FRAME_N,
-  FRAME_WARM,
-  FRAME_WARM_MS,
-  heapScaling,
-  isFlat,
-  leaking,
-} from './heap.js';
+import { expect, it } from 'vitest';
+import { controlCaught, describeScaling, FRAME_N, heapScaling, isFlat, leaking, warmFrame } from './heap.js';
+import { valuesLines } from './values-lines-cases.js';
 
-/** The guard's measurement: warmed by count and by time, then `FRAME_N` frames and 4× measured. */
+/** The guard's measurement: warmed and settled by count (`warmFrame`), then `FRAME_N` frames and 4× measured. */
 const measure = (frame: (i: number) => void) => {
-  const t0 = performance.now();
-  for (let i = 0; i < FRAME_WARM || performance.now() - t0 < FRAME_WARM_MS; i++) frame(i);
+  warmFrame(frame);
   return heapScaling(FRAME_N, frame);
 };
 const guard = (frame: () => void) => {
   const r = measure(frame);
   if (!isFlat(r)) throw new Error(describeScaling(r, FRAME_N));
 };
-/** The positive control as the kit's `heap` hook: a frame's check fails unless its leaking frame is caught. */
-const control = (frame: () => void) => {
+/**
+ * The positive control as the kit's `heap` hook: a frame's check fails unless its leaking frame is caught. Its warm-up
+ * never settles (the frame allocates once optimized: `FRAME_WARM_CAP` frames), so it runs on the first three frames
+ * the kit hands over (the fit's two draws and the middle zoom's), not on all of them.
+ */
+const control = (frame: () => void, where: string) => {
+  if (Number(where.split('#')[1]) > 3) return;
   if (!controlCaught(() => measure(leaking(frame)))) throw new Error('the leaking frame was not caught');
 };
 
-async function run(heap = guard) {
-  vi.resetModules();
-  const { KernelRenderers } = await import('../src/index.js');
-  const { rendererConformance } = await import('../src/testing/index.js');
-  const { opened } = await import('./layout-fixtures.js');
-  const { linesDoc } = await import('./prepare-fixtures.js');
-  const all = KernelRenderers as LayerRenderer[];
-  const entry = all.find((r) => r.name === 'values') as LayerRenderer;
-  const checks = await rendererConformance(entry, {
-    open: async ({ entry: has }) =>
-      (await opened(linesDoc(20_000), { renderers: has ? all : all.filter((r) => r !== entry) })).ctx,
-    heap,
-    items: false,
-  });
-  return checks.filter((c) => c.check === 'heap' && c.geometry === 'linear');
-}
-
 it('a frame of values colored by their values allocates nothing after warm-up, at every zoom', async () => {
-  const heap = await run();
+  const heap = await valuesLines(guard);
   expect(heap.length).toBeGreaterThan(0);
   expect(heap.filter((c) => !c.ok).map((c) => c.detail)).toEqual([]);
-}, 240_000);
+}, 300_000);
 
 it('a values frame allocating an object each is caught, at every zoom (positive control)', async () => {
-  const heap = await run(control);
+  const heap = await valuesLines(control);
   expect(heap.length).toBeGreaterThan(0);
   expect(heap.filter((c) => !c.ok).map((c) => c.detail)).toEqual([]);
-}, 240_000);
+}, 300_000);

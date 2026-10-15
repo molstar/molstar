@@ -26,6 +26,9 @@ export interface SectionStyle {
   wrapped_group_labels?: 'above_end' | 'inline_start' | 'none';
   row_borders?: boolean;
   hover_emphasis?: boolean;
+  track_axes?: boolean;
+  track_labels?: boolean;
+  wrapped_tracks?: 'lanes' | 'full';
 }
 
 /** What an inline style sets, in the viewer's render props' names and values. */
@@ -38,6 +41,9 @@ export interface StyleRenderProps {
   wrappedGroupLabels?: 'aboveEnd' | 'inlineStart' | 'none';
   rowBorders?: boolean;
   hoverEmphasis?: boolean;
+  wrappedTrackAxes?: boolean;
+  wrappedTrackLabels?: boolean;
+  wrappedTracks?: 'lanes' | 'full';
 }
 
 /** One key: the render prop it sets, and its values (an enumeration, the format's value to the prop's), px or a bool. */
@@ -63,6 +69,9 @@ export const SectionStyleKeys: Readonly<Record<Exclude<keyof SectionStyle, 'pres
   },
   row_borders: { prop: 'rowBorders', bool: true },
   hover_emphasis: { prop: 'hoverEmphasis', bool: true },
+  track_axes: { prop: 'wrappedTrackAxes', bool: true },
+  track_labels: { prop: 'wrappedTrackLabels', bool: true },
+  wrapped_tracks: { prop: 'wrappedTracks', values: same('lanes', 'full') },
 };
 const KEYS = Object.keys(SectionStyleKeys) as (keyof typeof SectionStyleKeys)[];
 const keyOf = (k: string) => (Object.hasOwn(SectionStyleKeys, k) ? SectionStyleKeys[k as (typeof KEYS)[number]] : null);

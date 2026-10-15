@@ -8,8 +8,8 @@
 
 // The core's folder graph: what each folder of src/ may import of the others, as the packages it replaced declared
 // it. Inside a folder imports are relative; across folders they name the entry (`@molstar/seq-core/model`), never a path
-// into another folder. The core has no dependencies: besides itself, only Node's built-ins (the CLIs, the tile
-// server). The model's own rule (the query language and the matchers from model/query only) is layers.grit's.
+// into another folder. The core has no third-party dependencies: besides itself, Mol*'s packages (not in its leaves,
+// query/ and links/) and Node's built-ins (the CLIs, the tile server). The model's own rule (the query language and the matchers from model/query only) is layers.grit's.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -30,12 +30,8 @@ const ALLOWED: Record<string, string[]> = {
   'stream/tiles': ['format'],
   'stream/gmod': ['format'],
 };
-/** The Mol* packages a folder may import: the msgpack codec (model) and the zip with its runtime context (format). */
-const EXTERNAL: [string, string][] = [
-  ['model', '@molstar/io/common/msgpack/'],
-  ['format', '@molstar/core/task/execution/synchronous'],
-  ['format', '@molstar/core/util/zip/zip'],
-];
+/** The leaves import no Mol* package (platform-free, the language and the command links); the rest may. */
+const NO_MOLSTAR = ['query', 'links'];
 const FOLDERS = Object.keys(ALLOWED).sort((a, b) => b.length - a.length);
 const folderOf = (path: string) => FOLDERS.find((f) => path === f || path.startsWith(`${f}/`));
 
@@ -74,10 +70,10 @@ describe("the core's folders", () => {
           const target = folderOf(spec.slice('@molstar/seq-core/'.length));
           if (target === own) wrong.push(`${at}: ${spec} is its own folder (import it relatively)`);
           else if (!target || !ALLOWED[own].includes(target)) wrong.push(`${at}: ${spec} is not ${own}'s to import`);
-        } else if (EXTERNAL.some(([f, prefix]) => own === f && spec.startsWith(prefix))) {
-          // Mol*'s own copies (msgpack, zip, the synchronous runtime context)
+        } else if (spec.startsWith('@molstar/') && !spec.startsWith('@molstar/seq-')) {
+          if (NO_MOLSTAR.includes(own)) wrong.push(`${at}: ${spec} (${own}/ is a leaf: no Mol* package)`);
         } else if (!spec.startsWith('node:'))
-          wrong.push(`${at}: ${spec} (the core depends on Mol*'s msgpack, zip and runtime context only)`);
+          wrong.push(`${at}: ${spec} (the core depends on Mol*'s packages and Node's built-ins only)`);
       }
     }
     expect(wrong).toEqual([]);

@@ -10,8 +10,7 @@
 
 import type { Structure } from '@molstar/model/model/structure';
 import { BandFadePx, bind, type DockId, onCleanup, openContextMenu, type ShellModel } from '@molstar/prism-ui';
-import { Hit, type HoverLabel } from '@molstar/seq-viewer';
-import { HitRegion } from '@molstar/seq-viewer';
+import type { HoverLabel } from '@molstar/seq-viewer';
 import { mountSection } from '@molstar/seq-viewer/canvas';
 import { combineLatest, of, switchMap } from 'rxjs';
 import { SectionRef } from './document.js';
@@ -86,43 +85,26 @@ export function SequenceControl(props: SequenceControlProps) {
   // The link while this control is rendered (link.ts): subscribed on mount, dropped on cleanup.
   if (props.view3d) onCleanup(linkSequence(viewer, props.view3d));
 
-  // The track menus (prism-sequence.md §4): a secondary press on a track asks (Seq*'s `contextMenu` behavior, `events.menu`);
-  // the model says what the track offers, Prism's menu opens at the pointer and runs it on the 3D view. The browser's own
-  // menu is suppressed only over a track that offers one.
+  // The track menus (prism-sequence.md §4): the browser's context-menu request on a track (a right-click, Ctrl+click on
+  // macOS, the menu key or Shift+F10 at Seq*'s keyboard cursor) is Seq*'s `interaction.menu`, with the track's ref and
+  // the place; the model says what the track offers, Prism's menu opens there and runs it on the 3D view. The browser's
+  // own menu is suppressed only over a track that offers one.
   {
-    const hit = Hit.create();
-    const regions = new Set<number>([HitRegion.data, HitRegion.header, HitRegion.gutter]);
-    const trackAt = (e: MouseEvent) => {
-      const r = surface.getBoundingClientRect();
-      if (!seq.layout.hitTest(SectionRef, e.clientX - r.left, e.clientY - r.top, hit) || hit.track < 0)
-        return undefined;
-      if (!regions.has(hit.region)) return undefined;
-      const a = seq.graph.assembled.value;
-      return a?.view ? a.set.strings.get(a.view.resolved.tracks.ref[hit.track]) : undefined;
-    };
-    const onContext = (e: MouseEvent) => {
-      const track = trackAt(e);
-      if (track !== undefined && viewer.trackActions(track).length > 0) e.preventDefault();
-    };
-    surface.addEventListener('contextmenu', onContext);
     let close: (() => void) | undefined;
-    const asked = seq.events.menu.subscribe((e) => {
-      const actions = viewer.trackActions(e.track);
+    const menus = seq.interaction.on('menu', { section: SectionRef, part: ['data', 'header', 'gutter'] });
+    const asked = menus.subscribe((e) => {
+      const actions = e.part.track === null ? [] : viewer.trackActions(e.part.track);
       if (actions.length === 0) return;
-      const r = surface.getBoundingClientRect();
-      // From the pointer: where it was; from the keyboard: the surface's corner.
-      const at =
-        e.x !== undefined && e.x >= 0 ? { x: r.left + e.x, y: r.top + (e.y ?? 0) } : { x: r.left + 24, y: r.top + 24 };
+      e.native.preventDefault();
       close?.();
       const root = surface.closest<HTMLElement>('.msp-root') ?? document.body;
       close = openContextMenu(
         root,
-        at,
+        { x: e.place.clientX, y: e.place.clientY },
         actions.map((a) => ({ id: a.id, label: a.label, icon: a.icon, run: a.run })),
       );
     });
     onCleanup(() => {
-      surface.removeEventListener('contextmenu', onContext);
       asked.unsubscribe();
       close?.();
     });

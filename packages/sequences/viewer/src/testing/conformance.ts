@@ -48,7 +48,7 @@ import { Miniature } from '../draw/miniature.js';
 import { drawResources } from '../draw/resources.js';
 import { RingBackend } from '../draw/ring.js';
 import type { Skin } from '../graph.js';
-import { EntryKind, entryBorder, facingOf, SectionLayouts } from '../layout.js';
+import { EntryKind, entryBorder, facingOf, fullTrack, SectionLayouts } from '../layout.js';
 import { Ring } from '../ring.js';
 import { lanesInView } from '../streams.js';
 import { SvgBackend } from '../svg/backend.js';
@@ -379,6 +379,8 @@ export class LayerFrame {
         v.onlyBlock = l.lines.block[line];
         v.lineStart = l.lines.start[line];
         v.lineStop = l.lines.stop[line];
+        v.lineLeft = l.lines.left[line];
+        v.setTrackForm(fullTrack(v.props, m.resolved, m.set, t) && !v.runs[v.onlyBlock]?.chip);
       } else v.onlyBlock = ax.axis.stacked ? l.entryBlock[e] : -1;
       if (banded && !this.tiny && this.entry.rows) {
         // Dense or lazy rows: one `rows` call over the display rows in view (the composer's band).

@@ -8,7 +8,7 @@
 
 import type { StructureElement } from '@molstar/model/model/structure';
 import { filter, firstValueFrom } from 'rxjs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { linkSequence, type SequenceView3D } from '../link.js';
 import { headlessViewers, hostStructure } from './fixtures.js';
 
@@ -122,6 +122,27 @@ describe('linking the sequence to a 3D view', () => {
     seq.selection.set(null, 'api');
     expect(resets()).toBe(1);
     stop();
+    h.viewers.dispose();
+  });
+
+  it('reveals what a link channel lights after the dwell (the revealHighlight behavior), and not a channel it does not follow', async () => {
+    const h = headlessViewers();
+    h.structure.set(await hostStructure());
+    await shown(h);
+    const seq = h.viewer.seq;
+    const reveal = vi.spyOn(seq, 'reveal');
+    const set = seq.graph.assembled.value?.set;
+    const ref = set?.strings.get(set.units.key[0]) ?? '';
+    const loci = seq.refs.toLoci(ref, { start: 0, stop: 5 });
+    expect(loci).not.toBeNull();
+    seq.highlight.set('other:x', loci);
+    h.scheduler.advance(500);
+    expect(reveal).not.toHaveBeenCalled();
+    seq.highlight.set('links:3d', loci);
+    h.scheduler.advance(100);
+    expect(reveal).not.toHaveBeenCalled();
+    h.scheduler.advance(200);
+    expect(reveal).toHaveBeenCalledTimes(1);
     h.viewers.dispose();
   });
 });

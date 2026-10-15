@@ -11,6 +11,7 @@
 // releases.
 
 import { Subscription } from 'rxjs';
+import { type BindingDescriptions, describeBindings, type SeqBindingInfo } from './bindings.js';
 import type { SeqViewerContext } from './context.js';
 import type { PresetEntry } from './presets.js';
 import { type SeqState, state, type WritableSeqState } from './state.js';
@@ -24,6 +25,8 @@ export interface SeqBehaviorProvider<P extends object = object> {
   readonly priority: number;
   /** Defaults; data only. */
   readonly params: P;
+  /** Its binding params (by path), described for a help panel (`BehaviorManager.bindings`). */
+  readonly bindings?: BindingDescriptions;
   create(ctx: SeqViewerContext, handle: BehaviorHandle<P>): SeqBehavior<P>;
 }
 export interface SeqBehavior<P> {
@@ -50,6 +53,8 @@ export interface BehaviorManager {
   /** A taken name throws. A behavior that throws is disposed and reported; the returned remove still works. */
   add<P extends object>(b: SeqBehaviorProvider<P>, params?: Partial<P>): () => void;
   get<P extends object>(name: string): BehaviorHandle<P> | null;
+  /** The added behaviors' described bindings, from their current params, as Mol*'s `Binding`. */
+  bindings(): readonly SeqBindingInfo[];
 }
 
 export const SeqBehaviors = {
@@ -132,6 +137,13 @@ export class Behaviors implements BehaviorManager {
 
   get<P extends object>(name: string): BehaviorHandle<P> | null {
     return (this.handles.get(name) as unknown as Handle<P> | undefined) ?? null;
+  }
+
+  bindings(): readonly SeqBindingInfo[] {
+    const out: SeqBindingInfo[] = [];
+    for (const h of this.handles.values())
+      if (h.provider.bindings) out.push(...describeBindings(h.name, h.paramsState.value, h.provider.bindings));
+    return out;
   }
 
   /** Creates and registers; a throw disposes it and reports. */

@@ -75,7 +75,7 @@ function sectionFrame(ctx: SeqViewerContext, ui: DomUI, section: string, place: 
     placed('RowControl'),
     placed('TrackActions'),
   ];
-  const root = h('section', { class: 'seqv-section' });
+  const root = h('section', { class: 'seqv-section', 'data-seqv-section': section });
   const parts: { dispose(): void }[] = [];
   if (SectionHeader) parts.push(SectionHeader(root, ctx, { ui, section }));
   const el = h('div', { class: 'seqv-surface' });
@@ -136,7 +136,7 @@ function trackActionsAt(
     show(track) {
       clear();
       if (!track) return;
-      const b = h('div', { class: 'seqv-track-actions' });
+      const b = h('div', { class: 'seqv-track-actions', 'data-seqv-part': 'trackAction', 'data-seqv-track': track });
       b.addEventListener('pointerenter', () => tracker.hold(track));
       b.addEventListener('pointerleave', () => tracker.hold(null));
       b.addEventListener('focusout', tracker.later);
@@ -197,7 +197,7 @@ function rowControls(
       const [displayRow, dataRow] = [r.displayRow[i], r.dataRow[i]];
       let c = shown.get(displayRow);
       if (!c) {
-        const el = h('div', { class: 'seqv-row-control' });
+        const el = h('div', { class: 'seqv-row-control', 'data-seqv-part': 'rowControl' });
         inner.insertBefore(el, inner.children[i] ?? null);
         c = { el, dataRow, part: Control(el, ctx, { ui, section, displayRow, dataRow }) };
         shown.set(displayRow, c);

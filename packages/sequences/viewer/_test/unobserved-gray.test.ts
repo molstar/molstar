@@ -22,12 +22,22 @@ const GRAY = SkinToken.unobserved;
 const INK = SkinToken.ink;
 
 /** A unit of `n` residues of `value` repeated, observed at [lo, hi) only: the rest is in the sequence, not the model. */
-function doc(o: { layout?: 'text'; n?: number; value?: string; lo?: number; hi?: number; theme?: string } = {}) {
+function doc(
+  o: {
+    layout?: 'text';
+    n?: number;
+    value?: string;
+    lo?: number;
+    hi?: number;
+    theme?: string;
+    observed?: [number, number][];
+  } = {},
+) {
   const n = o.n ?? 40;
   const value = (o.value ?? 'MKVLATGHEK').repeat(Math.ceil(n / (o.value ?? 'MKVLATGHEK').length)).slice(0, n);
   const b = createSeqViewSpec();
   b.data.sequence({ ref: 'chain', value });
-  b.data.unit({ ref: 'A', sequence: 'chain', observed: [[o.lo ?? 10, o.hi ?? 30]] } as never);
+  b.data.unit({ ref: 'A', sequence: 'chain', observed: o.observed ?? [[o.lo ?? 10, o.hi ?? 30]] } as never);
   const v = b.view({ ref: 'v', label: 'V', ...(o.layout ? { layout: o.layout } : {}) });
   v.block({ unit: 'A' } as never);
   const track = v.track({ label: 'Letters' });
@@ -87,6 +97,19 @@ describe('unobserved positions (unobservedGray)', () => {
     expect(cells.filter((r) => r[4] === GRAY).every((r) => r[5] === 255)).toBe(true);
     const letters = texts(rec);
     expect(letters.slice(0, 10).every((d) => d.color === INK)).toBe(true);
+  });
+
+  it('follow several observed ranges exactly (the per-unit mask the prepared state holds)', async () => {
+    const observed: [number, number][] = [
+      [0, 3],
+      [7, 8],
+      [15, 22],
+      [37, 40],
+    ];
+    const t = await drawn(doc({ observed }), { width: 900, height: 200, render: { unobservedGray: true } });
+    const gray = rects(record(t.ctx, 'Letters').rec).map((r) => r[4] === GRAY);
+    const want = Array.from({ length: 40 }, (_, i) => !observed.some(([lo, hi]) => i >= lo && i < hi));
+    expect(gray).toEqual(want);
   });
 
   it('are their own class zoomed out: a run of one letter across the observed boundary is not one color', async () => {

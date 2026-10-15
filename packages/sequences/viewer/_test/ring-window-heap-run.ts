@@ -6,16 +6,26 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The ring window's heap guards' run (CG3; ringWindow.heap.ts, ring-window-drag.heap.ts): a ring and its linked linear
-// section through the real dispatcher and behaviors, the ring's composer drawing. `frames`: the linear section panned
-// and zoomed each step and the pointer round the rings and over the labels; `drag`: a press on the window, then moves
-// over 32 points along its body. Each run loads the viewer afresh (`vi.resetModules`). `measure` is the guards' warm-up,
-// settle and measurement, which their positive controls run on `leaking(step)`.
+// The ring window's cases (CG3), for its heap guards and their quick twins (ring-window.heap.ts,
+// ring-window-drag.heap.ts; ring-window.quick.ts, ring-window-drag.quick.ts): a ring and its linked linear section
+// through the real dispatcher and behaviors, the ring's composer drawing. `frames`: the linear section panned and zoomed
+// each step and the pointer round the rings and over the labels; `drag`: a press on the window, then moves over 32
+// points along its body. Each setup loads the viewer afresh (`vi.resetModules`). `measure` is the guards' warm-up and
+// settle by count and their measurement (`cheapScaling`, heap.ts: a frame of tens of microseconds), which their positive controls run on
+// `leaking(step)`.
 
 import { vi } from 'vitest';
-import { FRAME_N, FRAME_SETTLE_MS, FRAME_WARM, FRAME_WARM_MS, heapScaling, settleFrame } from './heap.js';
+import type { AllocOptions } from '../../core/_test/model/alloc.js';
+import { cheapScaling, FRAME_N, FRAME_WARM } from './heap.js';
 
-/** A guard's run: its steps after the shared warm-up and settle, measured (`measure`), and what they drew and hit. */
+/**
+ * The quick twins' counts: a frame takes about 0.8 ms (M4), so windows of 500 steps; five of them, since a window now
+ * and then holds a batch's growth (a frame drawing more items than any before: a one-off, 3 to 4 bytes a step over its
+ * window, 2026-10-15).
+ */
+export const RING_WINDOW: AllocOptions = { warmSteps: 2_000, steps: 500, windows: 5, maxWarmSteps: 30_000 };
+
+/** A guard's run: its steps warmed, settled and measured (`measure`), and what they drew and hit. */
 export async function run(mode: 'frames' | 'drag', n: number, steps = FRAME_N) {
   const s = await setup(mode, n);
   const r = measure(s.step, steps);
@@ -23,16 +33,12 @@ export async function run(mode: 'frames' | 'drag', n: number, steps = FRAME_N) {
 }
 
 /**
- * The guards' measurement: the shared warm-up (by count and by time), then until a step stops allocating (past the
- * timed warm-up the frames' climb ran about 12,000 steps more, at 4 to 47 bytes a step: V8 13.6, the pinned Node,
- * 2026-10-13, 120,000 positions after 600 failed at 28 bytes a step), then `steps` steps and 4× measured.
+ * The guards' measurement: warmed and settled by count, then `steps` steps and 4× (`cheapScaling`): over 120,000
+ * positions the frames' climb to TurboFan runs about 40,000 steps under V8's defaults, in bursts with quiet spans of
+ * 6,000 steps between (2026-10-15), so a settle alone ended inside it (235 bytes a step measured).
  */
 export function measure(step: (i: number) => void, steps = FRAME_N) {
-  const t0 = performance.now();
-  let i = 0;
-  for (; i < FRAME_WARM || performance.now() - t0 < FRAME_WARM_MS; i++) step(i);
-  settleFrame(() => step(i++), FRAME_SETTLE_MS);
-  return heapScaling(steps, () => step(i++));
+  return cheapScaling(step, steps);
 }
 
 /** The ring and its linked linear section driven, and a step of `mode`. */

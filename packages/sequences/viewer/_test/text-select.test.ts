@@ -15,7 +15,10 @@
 // Alt-drag; an underline under the letters is its item, by lane, and the item drawn there for ranges, points and
 // secondary; the keyboard; a double click a zoom takes, which puts back its first click's selection (linear); fast
 // pointers and releases the page lost, linear drags too; and the drag drawn as the
-// selection it becomes (seqspec:interaction#input-events for the releases).
+// selection it becomes (seqspec:interaction#input-events for the releases). Strip lanes (seqspec:viewer#the-text-view,
+// seqspec:interaction#hover): a position under a strip is its layer's hit, its value in the hover card, its strip cell
+// outlined; a drag across the strips selects as on the letters. Chips (a structure's ligands after its chains): each is
+// its unit's one position, hovered, selected and taken by a drag as a position is.
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
@@ -40,7 +43,7 @@ import { runX } from '../src/runs.js';
 import { setPiece } from './axis-fixtures.js';
 import { type Driven, driven } from './input-fixtures.js';
 import { lit, passRects, seqLoci } from './overlay-fixtures.js';
-import { allTypes } from './prepare-fixtures.js';
+import { allTypes, chipsDoc } from './prepare-fixtures.js';
 
 const S = 'v.main';
 const WRAPPED = DefaultPresets.find((p) => p.name === 'wrapped') as PresetEntry;
@@ -99,7 +102,7 @@ async function text(height = 900, o: TextOptions = {}) {
     const v = t.ctx.layout.axis(section);
     const run = v?.runs[b];
     if (!v || !run || line < 0) throw new Error(`no line for ${b}:${k}`);
-    const x = ls.dataLeft + runX(run, ls.lines.start[line], k, v.gap) + run.advance / 2;
+    const x = ls.dataLeft + ls.lines.left[line] + runX(run, ls.lines.start[line], k, v.gap) + run.advance / 2;
     const tr = t.trackIndex(track);
     for (let e = 0; e < ls.entryCount; e++)
       if (ls.entryTrack[e] === tr && ls.entryRow[e] === line) {
@@ -152,6 +155,7 @@ function unpressedMove(t: Driven, x: number, y: number) {
 describe('selecting in text', () => {
   it('the text preset selects: a click selects, again clears, a double click keeps; Shift extends; nothing clears', async () => {
     const t = await text();
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     const s = t.ctx.layout.sectionIndex(S);
     expect(t.ctx.behaviors.get('select')?.forSection(s)).not.toBeNull();
     // The text's inset from the canvas's edges: left, top, and below its last line.
@@ -205,6 +209,7 @@ describe('selecting in text', () => {
   for (const preset of ['lab:text', 'lab:inline'] as const)
     it(`Shift-click after a drag across lines (${preset}): before it, after it and inside it, both ends exact`, async () => {
       const t = await text(900, { preset });
+      t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
       const L = t.l.lines;
       const [s, e] = [30, L.start[2] + 5];
       const drag = (from: number, to: number) => {
@@ -232,6 +237,7 @@ describe('selecting in text', () => {
 
   it("Shift-click on an item's selection (an underline clicked): its far end stays exactly the item's", async () => {
     const t = await text();
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     // Item "two" covers [20, 40): a point on its underline at 33, found by the hit.
     const u = t.at(0, 33, 'v.features');
     const y = itemY(t, S, u.x, u.top, u.top + u.height, 1);
@@ -271,6 +277,7 @@ describe('selecting in text', () => {
     v.track({ ref: 'v.features' }).ranges({ data: f });
     const T = 't.main';
     const t = await text(900, { doc: b.getDocument() });
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     const show = async (view: string) => {
       t.ctx.views.setCurrent(view);
       await t.ctx.graph.update();
@@ -330,6 +337,7 @@ describe('selecting in text', () => {
       .track({ ref: 'v.letters' })
       .letters();
     const t = await text(900, { doc: b.getDocument() });
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     const [a, z] = [t.at(0, 36), t.at(0, 39)];
     t.drag(S, a.x, a.y, z.x, z.y);
     expect(positions(sel(t))).toEqual([[0, [0, 1, 38, 39]]]);
@@ -371,6 +379,7 @@ describe('selecting in text', () => {
     v.track({ ref: 'v.f' }).ranges({ data: f });
     const L = 'v.main';
     const t = await text(300, { doc: b.getDocument(), sections: [L] });
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     t.ctx.ui.setStyle(L, 'tracks');
     await t.ctx.graph.update();
     t.vp(L).zoomTo(0, 0, 150);
@@ -407,6 +416,7 @@ describe('selecting in text', () => {
 
   it("Shift-click extends from a drag's start; on another block, from that block's end nearest the anchor", async () => {
     const t = await text();
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     const a = t.at(0, 5);
     const b = t.at(0, 12);
     t.drag(S, a.x, a.y, b.x, b.y);
@@ -710,15 +720,28 @@ describe('modifiers, items and the keyboard', () => {
     expect(positions(sel(t))).toEqual([[0, [30, 31, 32, 33]]]);
   });
 
+  it('Shift-click adds or removes by default (`shiftPositions: toggle`): a second run is added, a selected position removed', async () => {
+    const t = await text();
+    const at = (k: number) => t.at(0, k);
+    t.click(S, at(5).x, at(5).y);
+    t.advance(500);
+    t.click(S, at(20).x, at(20).y, { shift: true });
+    expect(positions(sel(t))).toEqual([[0, [5, 20]]]);
+    t.advance(500);
+    t.click(S, at(5).x, at(5).y, { shift: true });
+    expect(positions(sel(t))).toEqual([[0, [20]]]);
+  });
+
   it('Shift with a click or a drag means the same: `extend` from the anchor; `toggle` adds, or removes from a selected press', async () => {
     const t = await text();
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     const L = t.l.lines;
     const at = (k: number) => t.at(0, k);
     const drag = (a: number, z: number) => {
       t.drag(S, at(a).x, at(a).y, at(z).x, at(z).y, { shift: true });
       t.advance(500);
     };
-    // Extend (the default): a click's anchor, then a Shift-drag from elsewhere extends from it to the drag's end.
+    // Extend (the param, set above): a click's anchor, then a Shift-drag from elsewhere extends from it to the drag's end.
     t.click(S, at(10).x, at(10).y);
     t.advance(500);
     drag(20, L.start[1] + 5);
@@ -815,6 +838,7 @@ describe('modifiers, items and the keyboard', () => {
 
   it("the keyboard: Enter selects the cursor's position, Shift+Enter extends to the next, Escape clears", async () => {
     const t = await text();
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     t.focus(S);
     for (let i = 0; i < 3; i++) t.key(S, 'ArrowRight');
     const k = t.ctx.ui.keyCursor.value?.index ?? -1;
@@ -857,6 +881,7 @@ describe('clicks where a double click means something else', () => {
 
   it('a single click on an item selects once, after the double-click time; a double click zooms and never selects', async () => {
     const { t, events } = await both();
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     const L = 'v.main';
     const vp = t.vp(L);
     const [x, y] = [t.xOf(L, 0, 60), t.yOf(L, 'v.f')];
@@ -889,6 +914,7 @@ describe('clicks where a double click means something else', () => {
 
   it('a held click still applies after a patch carries the selection to a new set meanwhile (VS-06)', async () => {
     const { t, events } = await both();
+    t.ctx.behaviors.get('select')?.setParams({ shiftPositions: 'extend' });
     const L = 'v.main';
     t.ctx.selection.set(seqLoci(t.ctx.graph.assembled.value?.set as never, 'a', 3, 4), 'api');
     expect(events).toEqual(['api']);
@@ -1002,7 +1028,7 @@ describe('a release never seen is no click', () => {
   it('a lost release, then a real click: one click (count 1), never a double click', async () => {
     const t = await text();
     const counts: number[] = [];
-    t.ctx.interaction.click.subscribe((e) => counts.push(e.count));
+    t.ctx.input.events.click.subscribe((e) => counts.push(e.count));
     const p = t.at(0, 15);
     t.pointer('down', S, p.x, p.y);
     t.advance(100);
@@ -1016,7 +1042,7 @@ describe('a pressed point outside its surface', () => {
     const t = await text(300);
     const l = t.l;
     const seen: number[][] = [];
-    t.ctx.interaction.pointer.subscribe((e) => seen.push([e.input.x, e.input.y, e.input.overX, e.input.overY]));
+    t.ctx.input.events.pointer.subscribe((e) => seen.push([e.input.x, e.input.y, e.input.overX, e.input.overY]));
     const p = t.at(0, 15);
     t.pointer('down', S, p.x, p.y);
     const pts: [number, number][] = [
@@ -1269,5 +1295,153 @@ describe('the drag drawn', () => {
     pd.active = false;
     (t.ctx.selection.pending as unknown as { bump(): void }).bump();
     expect(rects()).toEqual([]);
+  });
+});
+
+describe('strip lanes', () => {
+  /** `textDoc` with values (i / 400) on the first block as a strip under the features (`v.values`). */
+  function stripDoc() {
+    const doc = textDoc();
+    type N = { kind: string; ref?: string; params?: Record<string, unknown>; children?: N[] };
+    const root = doc.root as N;
+    const data = root.children?.find((c) => c.kind === 'data') as N;
+    data.children?.push({
+      kind: 'annotation',
+      ref: 'vals',
+      params: { geometry: 'values', target: 'a', value: { value: Array.from({ length: 400 }, (_, i) => i / 400) } },
+    });
+    const section = root.children?.find((c) => c.kind === 'view')?.children?.find((c) => c.kind === 'section') as N;
+    section.children?.push({
+      kind: 'track',
+      ref: 'v.values',
+      params: {},
+      children: [{ kind: 'layer', ref: 'v.values.layer', params: { type: 'values', data: 'vals' } }],
+    });
+    return doc;
+  }
+  const layerIndex = (t: Driven, ref: string) => {
+    const a = t.ctx.graph.assembled.value;
+    const v = a?.view?.resolved;
+    for (let k = 0; v && a && k < v.layers.count; k++) if (a.set.strings.get(v.layers.ref[k]) === ref) return k;
+    throw new Error(`no layer ${ref}`);
+  };
+
+  it("a position under a strip is its layer's hit (track, layer, index), its value in the hover card", async () => {
+    const t = await driven(stripDoc(), {
+      size: { [S]: [400, 900] },
+      registry: [{ presets: [TEXT] }],
+      renderers: KernelRenderers as LayerRenderer[],
+    });
+    t.ctx.ui.setStyle(S, 'lab:text');
+    await t.ctx.graph.update();
+    const l = t.layout(S);
+    const tr = t.trackIndex('v.values');
+    const view = t.ctx.layout.axis(S);
+    const run = view?.runs[0];
+    if (!run || !view) throw new Error('no runs');
+    let checked = 0;
+    for (const k of [0, 25, l.lines.start[1] + 7, l.lines.start[2] + 31]) {
+      let line = 0;
+      for (let i = 0; i < l.lines.count; i++) if (l.lines.block[i] === 0 && l.lines.start[i] <= k) line = i;
+      let e = 0;
+      while (!(l.entryTrack[e] === tr && l.entryRow[e] === line)) e++;
+      const x = l.dataLeft + runX(run, l.lines.start[line], k, view.gap) + run.advance / 2;
+      // The strip itself, its bottom 3 px, and the gap above it: the layer's band.
+      for (const y of [l.entryTop[e] + l.entryHeight[e] - 1.5, l.entryTop[e] + 0.5]) {
+        const h = Hit.create();
+        t.ctx.layout.hitTest(S, x, l.scrolledTop + y, h);
+        expect([h.kind, h.track, h.layer, h.block, h.index]).toEqual([
+          HoverKind.seq,
+          tr,
+          layerIndex(t, 'v.values.layer'),
+          0,
+          k,
+        ]);
+      }
+      t.pointer('move', S, x, l.scrolledTop + l.entryTop[e] + l.entryHeight[e] - 1.5);
+      const label = t.ctx.labels.current.value;
+      expect(label?.lines.map((x) => x.value)).toContain(`${Number((k / 400).toPrecision(4))}`);
+      checked++;
+    }
+    expect(checked).toBe(4);
+  });
+
+  it("the hover outlines the position's strip cell, inside the run drawn there", async () => {
+    const t = await lit(stripDoc(), { width: 400, height: 900 });
+    const l = t.layout(t.section);
+    const main = passRects(t.frame(), Pass.main);
+    const tr = t.trackIndex('v.values');
+    let e = 0;
+    while (!(l.entryTrack[e] === tr && l.entryRow[e] === 1)) e++;
+    const bottom = l.scrolledTop + l.entryTop[e] + l.entryHeight[e];
+    const strip = main.filter((r) => r[1] + r[3] === bottom && r[3] === 3);
+    expect(strip.length).toBeGreaterThan(2);
+    const run = strip[1];
+    t.hover(run[0] + 10, bottom - 1.5);
+    const o = passRects(t.overlay(), Pass.overlay).filter((r) => r[1] === run[1] && r[3] === 3);
+    expect(o.length).toBe(1);
+    expect(o[0][0]).toBeGreaterThanOrEqual(run[0]);
+    expect(o[0][0] + o[0][2]).toBeLessThanOrEqual(run[0] + run[2]);
+    expect(o[0][2]).toBeLessThan(10);
+  });
+
+  it('a drag across the strips selects positions line by line, as on the letters; a press on a strip starts one', async () => {
+    const t = await text(900, { doc: stripDoc() });
+    const L = t.l.lines;
+    const a = t.at(0, 5, 'v.values');
+    const z = t.at(0, L.start[2] + 3, 'v.values');
+    t.drag(S, a.x, a.y, z.x, z.y, {}, 6);
+    expect(positions(sel(t))).toEqual([[0, range(5, L.start[2] + 4)]]);
+    // From the letters across a line's strip onto the next line's letters.
+    const b = t.at(0, 12);
+    const c = t.at(0, L.start[1] + 2);
+    t.drag(S, b.x, b.y, c.x, c.y, {}, 6);
+    expect(positions(sel(t))).toEqual([[0, range(12, L.start[1] + 3)]]);
+  });
+});
+
+describe('chips', () => {
+  const LIGANDS = ['HEM', 'ERY', 'NI', 'ATP'];
+  const unitOf = (t: Driven, b: number) => t.ctx.layout.axis(S)?.axis?.unit[b] ?? -2;
+
+  it("a chip is its unit's one position: the hit, the hover's unit and a click's selection", async () => {
+    const t = await text(900, { doc: chipsDoc(LIGANDS) });
+    const L = t.l.lines;
+    // The chips share a row after the chain's line.
+    expect([L.count, L.top[1] === L.top[4], L.follows[4]]).toEqual([5, true, 1]);
+    for (let b = 1; b <= LIGANDS.length; b++) {
+      const p = t.at(b, 0);
+      const h = Hit.create();
+      t.ctx.layout.hitTest(S, p.x, p.y, h);
+      expect([h.kind, h.block, h.index - (t.ctx.layout.axis(S)?.axis?.base[b] ?? 0), h.seq.unit]).toEqual([
+        HoverKind.seq,
+        b,
+        0,
+        unitOf(t, b),
+      ]);
+      // Its edges: just inside either end is the chip, the gap past it none.
+      const left = t.l.dataLeft + L.left[b];
+      const run = t.ctx.layout.axis(S)?.runs[b];
+      t.ctx.layout.hitTest(S, left + 1, p.y, h);
+      expect(h.block).toBe(b);
+      t.ctx.layout.hitTest(S, left + (run?.advance ?? 0) + 2, p.y, h);
+      expect(h.shown).toBe(-1);
+      t.advance(500);
+      t.click(S, p.x, p.y);
+      expect(positions(sel(t)).map(([u]) => u)).toEqual([unitOf(t, b)]);
+    }
+  });
+
+  it('a drag from the chain onto the chips takes the chain to its end; a press on a chip takes that chip', async () => {
+    const t = await text(900, { doc: chipsDoc(LIGANDS) });
+    const a = t.at(0, 5);
+    const c = t.at(3, 0);
+    t.drag(S, a.x, a.y, c.x, c.y, {}, 6);
+    expect(positions(sel(t))).toEqual([[unitOf(t, 0), range(5, 30)]]);
+    t.advance(500);
+    // From one chip across the others: its own block alone (a drag stays on its block).
+    const d = t.at(1, 0);
+    t.drag(S, d.x, d.y, c.x, c.y, {}, 6);
+    expect(positions(sel(t)).map(([u]) => u)).toEqual([unitOf(t, 1)]);
   });
 });

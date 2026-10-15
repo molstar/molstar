@@ -48,7 +48,7 @@ synchronous task context (`@molstar/core`); Node's built-ins only in its CLIs an
 
 **Adapters**: `@molstar/seq-nightingale` (a resolved view as EBI's Nightingale components: the format's second viewer;
 imports the core) and `@molstar/seq-molstar-poc` (the Mol\* adapter, a proof of concept to be refactored in Mol\*'s
-repository; the only package that imports Mol\*). `@molstar/seq-storybook` holds the stories and docs pages (private).
+repository; it reads Mol\*'s structure packages). `@molstar/seq-storybook` holds the stories and docs pages (private).
 
 No Seq\* code imports application code, `/links` or the stream providers (a host's), or Mol\* outside its adapter, but
 for the core's MessagePack codec and zip (from Mol\*'s io and core packages). The core's folder graph is

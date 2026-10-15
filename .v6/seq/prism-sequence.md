@@ -284,7 +284,8 @@ Where the code differs from, or fills in, the sections above:
 ### Round 2 (as built)
 
 - **Shift** with a click or a drag in the sequence adds or removes each stretch (`select`'s `shiftPositions: 'toggle'`,
-  set in the model's viewer spec); Seq\*'s own default stays `extend`.
+  set in the model's viewer spec); Seq\*'s own default stays `extend`. _Since:_ Seq\*'s default is `toggle`, so the
+  override is gone (`extend` remains a param).
 - **A ligand** in the link: a position of a non-polymer unit (heavy atoms) lights and selects its whole residue in 3D
   (`StructureLink.toLoci` extends to whole residues for non-polymer chains).
 
@@ -357,12 +358,24 @@ Where the code differs from, or fills in, the sections above:
   has now stays, in the accent (`HostActions.coloring()`, read from the plugin's representations' color theme, again
   when the hovered row changes and after a click); clicking an active icon does nothing. The right-click menus stay.
   The Text view has no gutter.
-- **Text has only the letters.** The document is built per style (`sequenceDocument({ tracks })`): the text's has no
-  secondary structure or pLDDT track, so its lines sit at the compact spacing (Seq\*'s wrapped geometry reserves a lane
-  under each line for a track whether or not that track draws there: worth fixing in Seq\*). A style change rebuilds
-  the document (a moment of no text while it is made).
+- **Text has only the letters.** Superseded in round 4: one document serves both styles.
 - **The pLDDT track is a line** (`encoding: 'line'`, domain 0-100, `height: 2`, the AlphaFold bands). Case 8's thin band
   strip under it was tried and left out: it sat apart from the line with a gap between.
 - **Only the drawn ligands are in the sequence.** `molstar:structure` takes `ligand_comps` (ligand units of those
   chemical components; ions, polymers and branched stay); `HostStructure.ligands` is the list `load` gave
   `structureMvs`, so the story's one list feeds both.
+
+### Round 4 (as built)
+
+- **One document for both styles** (lanes-input-perf.md §2.3). Seq\*'s text view now draws tracks as lanes (ranges and
+  secondary structure as underlines, `values` as a thin colored strip under each line) and reserves none for kinds it
+  cannot draw, so `sequenceDocument` lost its `tracks` option: ruler, letters, secondary structure and, for a predicted
+  model, the pLDDT `values` track (`encoding: 'line'`, the AlphaFold bands). Text shows the pLDDT as a strip in the
+  band colors and the secondary structure as underlines.
+- **A style switch only sets the preset** (`ctx.ui.setStyle`, with its render props): the document object stays the
+  same, so the assembled set and the link survive and nothing is rebuilt (no moment without text). The per-style
+  document paths are gone. The track gutter stays Tracks-only; the legend is the same in both styles.
+- **Reveal of linked highlights.** The sequence's spec adds Seq\*'s optional `revealHighlight` behavior (channels
+  `links:*`, dwell 200 ms): a highlight on a link channel that is not shown scrolls into view (text) or pans (tracks).
+  `linkViews` writes a 3D hover into `ctx.hover` (owner `3d`), not a highlight channel, so the behavior also follows
+  external hovers by owner (`hovers: ['3d']`, new in Seq\*): hovering a residue in 3D brings it into view.
