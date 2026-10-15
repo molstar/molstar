@@ -1,5 +1,11 @@
 # The skeleton: contexts, modules, modes, commands, history
 
+> **Reconciled (2026-10-15):** the Prism viewer's [spec](../spec/README.md) holds. No modes (§1, `PrismMode`), no
+> module registry or contributions framework (§3–4); one mode-free viewer composed from `PrismViewerSpec`
+> ([../spec/viewer-spec.md](../spec/viewer-spec.md)); commands and tools over one API, undo in the viewer's history
+> manager ([../spec/sequence.md](../spec/sequence.md) §7). Still valid: origins (§5), the plugin boundary (§7), results
+> and state (§8).
+
 The contracts every other design builds on, frozen at the review gate ([../review.md](../review.md): B1, M1–M5, M16–M23)
 for the first implementation. Where another document says otherwise, this one holds. Informed by how the agent harness
 and the sequence viewer must be hosted ([../analysis/harness-and-seqstar.md](../analysis/harness-and-seqstar.md)).

@@ -7,6 +7,9 @@ base Mol\* viewer plus Stories Untold's features for building narratives. Status
 describe what the mocks settled. Nothing is wired to a real plugin yet. **Picking this up? Start with
 [handoff.md](handoff.md)** (where things stand, what is next, how the work is done).
 
+> **The Prism viewer's specification is [spec/](spec/README.md)** (2026-10-14): prism-ui as a library, the viewer and
+> stories as apps on it, no modes. Where this folder's designs disagree with it, the spec holds.
+
 ## Summary
 
 - **Rewrite, not refactor**, side by side with the old UI. The current UI (17.9k LOC TS/TSX + 3.7k SCSS) holds little

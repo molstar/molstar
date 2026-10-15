@@ -1,5 +1,8 @@
 # Modes: the viewer and stories
 
+> **Superseded (David, 2026-10-14):** there are no modes. The viewer and stories are separate apps on prism-ui
+> ([../spec/README.md](../spec/README.md) §2). Kept for the mocks' history.
+
 Prism is one app with more than one mode: what the app is for. **The viewer mode** is Mol\*'s own UI (Home, the
 Structure tab, the state tree, Mol\*'s commands). **The story mode** builds and plays stories: a story is a document
 (scenes described by schemas, MolViewSpec and SeqViewSpec) that the canvas renders, so it stays serializable and

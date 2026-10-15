@@ -556,6 +556,9 @@ with size, class, and label (`aria-hidden` otherwise) set, so rendering an icon 
 
 ## 5. Contributions
 
+> **Superseded (2026-10-15):** prism-ui has no contribution registry. Extensions place their UI in the viewer's named
+> slots ([../spec/viewer-spec.md](../spec/viewer-spec.md) §3–4); `PrismUISpec` (§6) is replaced by `PrismViewerSpec`.
+
 A contribution is a plain, declarative object, listed explicitly in the spec (like `registry` entries):
 
 ```ts
