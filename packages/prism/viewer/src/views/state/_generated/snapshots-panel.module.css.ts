@@ -187,6 +187,10 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
   place-items: center;
   display: grid;
 
+  @media (hover: none) {
+    opacity: 1;
+  }
+
   &:hover {
     color: var(--msp-color-text);
   }
@@ -277,6 +281,10 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
   opacity: 0;
   place-items: center;
   display: grid;
+
+  @media (hover: none) {
+    opacity: 1;
+  }
 
   .msp-viewer-snapshots-panel-row:hover &, .msp-viewer-snapshots-panel-row:focus-within &, &[aria-expanded="true"] {
     opacity: 1;

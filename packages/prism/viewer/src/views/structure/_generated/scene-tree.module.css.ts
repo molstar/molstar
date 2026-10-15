@@ -158,6 +158,10 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   place-items: center;
   display: grid;
 
+  @media (hover: none) {
+    opacity: 1;
+  }
+
   .msp-viewer-scene-tree-row:hover &, &:focus-visible {
     opacity: 1;
   }

@@ -164,6 +164,11 @@
   color: var(--msp-color-text-muted);
   opacity: 0;
 
+  /* No hover on a touch screen: always there. */
+  @media (hover: none) {
+    opacity: 1;
+  }
+
   .row:hover &,
   &[aria-expanded="true"],
   &:focus-visible {

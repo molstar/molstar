@@ -24,8 +24,9 @@
   align-items: center;
   justify-content: center;
   width: 24px;
-  /* The row's height is set inline (22px rows): 24px at least (WCAG 2.5.8), 44px on touch. */
-  min-height: max(24px, var(--msp-touch-target, 0px));
+  /* The row's height is set inline (22px rows): 24px at least (WCAG 2.5.8); not the touch target's 44, which would cover
+     the next rows' icons. */
+  min-height: 24px;
   margin-left: var(--msp-space-2);
   border-radius: var(--msp-radius-md);
   color: var(--msp-color-text-muted);
@@ -46,5 +47,17 @@
 
   &[data-active] {
     color: var(--msp-color-accent);
+  }
+}
+
+/* A touch screen has no hover: every row's icon shows (the inactive ones quieter) and takes a tap. */
+@media (hover: none) {
+  .icon {
+    opacity: 0.6;
+    pointer-events: auto;
+
+    &[data-active] {
+      opacity: 1;
+    }
   }
 }

@@ -105,6 +105,10 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
   place-items: center;
   display: grid;
 
+  @media (hover: none) {
+    opacity: 1;
+  }
+
   &:hover {
     color: var(--msp-color-text);
   }
@@ -166,6 +170,10 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
   opacity: 0;
   place-items: center;
   display: grid;
+
+  @media (hover: none) {
+    opacity: 1;
+  }
 
   .msp-viewer-measurements-add-point:hover &, &:focus-visible {
     opacity: 1;
@@ -294,6 +302,10 @@ defineStyles('viewer/views/structure/measurements-add.module.css', `@layer msp.c
   opacity: 0;
   place-items: center;
   display: grid;
+
+  @media (hover: none) {
+    opacity: 1;
+  }
 
   .msp-viewer-measurements-add-addedRow:hover &, [data-hidden] > .msp-viewer-measurements-add-pointActions > &:first-child, &[aria-expanded="true"], &:focus-visible {
     opacity: 1;

@@ -77,6 +77,11 @@
   touch-action: none;
   opacity: 0;
 
+  /* No hover on a touch screen: always there. */
+  @media (hover: none) {
+    opacity: 1;
+  }
+
   &:hover {
     color: var(--msp-color-text);
   }
@@ -142,6 +147,11 @@
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-muted);
   opacity: 0;
+
+  /* No hover on a touch screen: always there. */
+  @media (hover: none) {
+    opacity: 1;
+  }
 
   .point:hover &,
   &:focus-visible {
@@ -276,6 +286,11 @@
   border-radius: var(--msp-radius-sm);
   color: var(--msp-color-text-muted);
   opacity: 0;
+
+  /* No hover on a touch screen: always there. */
+  @media (hover: none) {
+    opacity: 1;
+  }
 
   .addedRow:hover &,
   [data-hidden] > .pointActions > &:first-child,

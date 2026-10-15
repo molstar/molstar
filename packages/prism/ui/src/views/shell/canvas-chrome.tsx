@@ -153,6 +153,12 @@ function ToolButton(props: {
         // A button that only holds a menu opens it (from the keyboard, at its first item: a click with no pointer
         // has `detail` 0); otherwise the click runs the button's own action.
         if (withMenu && !item.overlay && !item.run) return withMenu.show(item, e.currentTarget, e.detail === 0);
+        // A touch screen has no hover to show the menu: a tap opens it (the button's own action its first row), or
+        // closes it.
+        if (withMenu && noHover()) {
+          if (withMenu.open.value?.item === item) return withMenu.hide();
+          return withMenu.show(item, e.currentTarget, e.detail === 0);
+        }
         if (railMenu) return railMenu(item, e.currentTarget);
         withMenu?.hide();
         if (item.overlay) shell.toggleOverlay(item.overlay, e.currentTarget);
@@ -167,7 +173,7 @@ function ToolButton(props: {
             }
           : undefined
       }
-      onPointerEnter={withMenu ? (e) => withMenu.show(item, e.currentTarget) : undefined}
+      onPointerEnter={withMenu ? (e) => e.pointerType === 'mouse' && withMenu.show(item, e.currentTarget) : undefined}
       onPointerLeave={withMenu ? () => withMenu.hideSoon() : undefined}
       onBlur={withMenu ? () => withMenu.hideSoon() : undefined}
     >
@@ -176,6 +182,22 @@ function ToolButton(props: {
       {withMenu ? <span class={classes.menuMark} aria-hidden="true" /> : null}
     </button>
   );
+}
+
+/** No hover (a touch screen): what a pointer over a button would show, a tap shows. */
+const noHover = () => typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
+
+/**
+ * A button's menu rows; on a touch screen, where a tap opens the menu instead of running the button, its own action
+ * first (the camera's Reset before its variants).
+ */
+function withOwnAction(item: CanvasToolbarItem, button: Element): readonly CanvasMenuItem[] {
+  const rows = item.menu ?? [];
+  if (!item.run || !noHover()) return rows;
+  return [
+    { id: `${item.id}:self`, label: item.title, icon: item.icon, group: '', run: () => item.run?.(button) },
+    ...rows,
+  ];
 }
 
 /** A toolbar button's menu rows (the canvas stack's menus, the rail's): grouped, a toggle's or a choice's check. */
@@ -286,8 +308,20 @@ function ToolMenu(props: { menus: ToolMenus }) {
     menus.hide();
     e.preventDefault();
   };
+  // A tap outside the menu and its button closes it (no pointer leaves it on a touch screen).
+  const onDown = (e: PointerEvent) => {
+    const open = menus.open.value;
+    if (!open) return;
+    const path = e.composedPath();
+    if ((menus.menu && path.includes(menus.menu)) || path.includes(open.button)) return;
+    menus.hide();
+  };
   document.addEventListener('keydown', onKey);
-  onCleanup(() => document.removeEventListener('keydown', onKey));
+  document.addEventListener('pointerdown', onDown, true);
+  onCleanup(() => {
+    document.removeEventListener('keydown', onKey);
+    document.removeEventListener('pointerdown', onDown, true);
+  });
   return (
     <Show when={menus.open}>
       {(open) => {
@@ -320,7 +354,7 @@ function ToolMenu(props: { menus: ToolMenus }) {
             onFocusOut={() => menus.hideSoon()}
           >
             <div class={classes.toolMenuCard}>
-              <ToolMenuRows items={open.item.menu!} onRun={() => menus.hide()} />
+              <ToolMenuRows items={withOwnAction(open.item, open.button)} onRun={() => menus.hide()} />
             </div>
           </div>
         );

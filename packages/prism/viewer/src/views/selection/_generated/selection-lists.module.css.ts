@@ -194,6 +194,10 @@ defineStyles('viewer/views/selection/selection-lists.module.css', `@layer msp.co
   place-items: center;
   display: grid;
 
+  @media (hover: none) {
+    opacity: 1;
+  }
+
   .msp-viewer-selection-lists-row:hover &, &[aria-expanded="true"], &:focus-visible {
     opacity: 1;
   }
