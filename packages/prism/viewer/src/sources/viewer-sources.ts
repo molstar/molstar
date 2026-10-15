@@ -15,6 +15,7 @@ import { merge } from 'rxjs';
 import { createInteractionSources, type InteractionSources } from './interaction.js';
 import { structureNames } from './naming.js';
 import { createPointerSources, type PointerSources } from './pointer.js';
+import { createSettingsSources, type SettingsSources } from './settings.js';
 import { fromBehavior, fromChanged, SourceScope, sameItems, scanList } from './state.js';
 
 // The viewer's sources (state.md §4): read-only states over the plugin, the only code besides `api/` that reads it.
@@ -69,6 +70,8 @@ export interface ViewerSources {
   readonly interaction: InteractionSources;
   /** The file formats the plugin reads, by label (the drop area's hint). */
   readonly formats: readonly string[];
+  /** The Settings tab's groups with their current values. */
+  readonly settings: SettingsSources;
 }
 
 /** The sources and their disposer, kept by whoever made them. */
@@ -121,8 +124,9 @@ export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
   const pointer = createPointerSources(scope, plugin);
   const interaction = createInteractionSources(scope, plugin);
   const formats = plugin.dataFormats.options.map(([, label]) => label);
+  const settings = createSettingsSources(scope, plugin);
   return {
-    sources: { canvas, structures, empty, busy, tasks, pointer, interaction, formats },
+    sources: { canvas, structures, empty, busy, tasks, pointer, interaction, formats, settings },
     dispose: () => scope.dispose(),
   };
 }

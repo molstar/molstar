@@ -1,0 +1,80 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+.history {
+  display: grid;
+  gap: var(--msp-space-2);
+  padding: 0 var(--msp-panel-inset) var(--msp-panel-inset);
+  font-size: var(--msp-font-size-sm);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+}
+
+.count {
+  margin-left: auto;
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.empty {
+  padding: var(--msp-space-4);
+  color: var(--msp-color-text-muted);
+}
+
+.step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--msp-space-1) var(--msp-space-3);
+  padding: var(--msp-space-2) var(--msp-space-3);
+  border-radius: var(--msp-radius-md);
+
+  &:hover {
+    background: var(--msp-color-hover);
+  }
+
+  /* A step Undo cannot restore: kept in the list, dimmed. */
+  &[data-unsafe] .label {
+    color: var(--msp-color-text-muted);
+  }
+}
+
+.origin {
+  align-self: center;
+  color: var(--msp-color-text-subtle);
+}
+
+.label {
+  overflow-wrap: anywhere;
+}
+
+.time {
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Under the label: what else the step holds, why it cannot be undone, the turn's button. */
+.detail {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--msp-space-3);
+  color: var(--msp-color-text-subtle);
+  font-size: var(--msp-font-size-xs);
+}
+
+.unsafe {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  opacity: 0.8;
+}

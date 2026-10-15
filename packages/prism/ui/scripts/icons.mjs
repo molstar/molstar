@@ -146,6 +146,10 @@ const ICONS = [
   'move-3d',
   'refresh-cw',
   'list-restart',
+  // History (origins of a step).
+  'history',
+  'user',
+  'bot',
 ];
 
 const require = createRequire(import.meta.url);

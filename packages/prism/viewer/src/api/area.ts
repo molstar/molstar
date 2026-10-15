@@ -309,6 +309,7 @@ export interface CoreApi {
   readonly sequence?: import('./sequence.js').SequenceApi;
   readonly history: import('./history.js').HistoryApi;
   readonly view: import('./view.js').ViewApi;
+  readonly settings: import('./settings.js').SettingsApi;
 }
 
 /** An operation as commands and tools see it, before running: its params resolved, and whether it can run now. */

@@ -10,10 +10,9 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Only `api/`, `sources/` and features' `operations.ts` and `source.ts` read or change the plugin (operations.md §1, contexts.md §7):
-// elsewhere in the viewer, a
-// plugin package is imported for its types only. The mocks (`testing/`), the sequence's first slice (`sequence/`, on
-// molstar-poc until plan 2.4) and stories are outside the rule.
+// Only `api/`, `sources/` and features' `operations.ts` and `source.ts` read or change the plugin (operations.md §1,
+// contexts.md §7): elsewhere in the viewer, a plugin package is imported for its types only. The mocks (`testing/`),
+// the sequence's first slice (`sequence/`, on molstar-poc until plan 2.4) and stories are outside the rule.
 
 const src = path.resolve(import.meta.dirname, '..');
 const Allowed = ['api', 'sources', 'testing', 'sequence'];

@@ -14,7 +14,7 @@ import type { Part, PartId } from '../spec.js';
 
 /** The core's view parts, as overrides and `ui.layout` name them (checked by `spec-check.ts`). */
 export const CoreParts: Readonly<Record<string, readonly string[]>> = {
-  tab: ['home', 'structure', 'selection', 'log', 'help', 'sequence'],
+  tab: ['home', 'structure', 'selection', 'log', 'history', 'settings', 'help', 'sequence'],
   section: ['selection-style', 'selection-component'],
   toolbar: ['theme', 'palette', 'reset', 'expand', 'export', 'sequence'],
   overlay: ['export', 'sequence-legend'],

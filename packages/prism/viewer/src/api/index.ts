@@ -39,6 +39,7 @@ import { ApiRunner, messageOf, type RunRecord } from './run.js';
 import { RepresentationApi } from './representation.js';
 import { SelectApi } from './select.js';
 import { SessionApi } from './session.js';
+import { SettingsApi } from './settings.js';
 import { StructureApi } from './structure.js';
 import { StylesApi } from './styles.js';
 import type { TargetResolver } from './targets.js';
@@ -73,6 +74,7 @@ export const CoreAreas: Readonly<Record<string, AreaFactory>> = {
   particles: (c) => new ParticlesApi(c),
   history: (c) => new HistoryApi(c),
   view: (c) => new ViewApi(c),
+  settings: (c) => new SettingsApi(c),
 };
 
 export interface ViewerApiDeps {

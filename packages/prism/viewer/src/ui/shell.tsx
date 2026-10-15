@@ -38,7 +38,9 @@ import { map } from 'rxjs';
 import type { HomeModel } from '../model/home.js';
 import { HomeTab } from '../views/home/home-tab.js';
 import { extensionUIPort } from './extensions.js';
+import { historyTab } from './history.js';
 import { exportCard, selectionSections, selectionTab } from './panels.js';
+import { settingsTab } from './settings.js';
 import { LegendCard } from '../sequence/legend-card.js';
 import { LegendOverlay, sequenceCommands, sequenceMenu } from '../sequence/commands.js';
 import { SequenceControl } from '../sequence/sequence-control.js';
@@ -179,6 +181,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           place: 'foot',
           render: domView(() => <LogView status={managers.notifications} />),
         },
+        historyTab(managers, person),
+        settingsTab(sources, managers, person),
         {
           id: 'help',
           title: 'Help',
