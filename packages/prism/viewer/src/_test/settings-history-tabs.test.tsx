@@ -32,10 +32,31 @@ function mount(tab: ShellTab) {
 }
 
 describe('the History tab', () => {
+  it('has the log as its second half; compact, Steps and Log are tabs', async () => {
+    const v = await headlessViewer();
+    v.managers.notifications.post('Said once', 'info');
+    const host = mount(historyTab(v, v.api.as({ kind: 'person' }), v.managers.notifications));
+    expect([...host.querySelectorAll('h3')].map((h) => h.textContent)).toEqual(['Steps', 'Log']);
+    expect(host.textContent).toContain('Said once');
+
+    const compact = document.createElement('div');
+    document.body.append(compact);
+    const shell = new ShellModel({ mode: 'compact' } as never);
+    historyTab(v, v.api.as({ kind: 'person' }), v.managers.notifications).render.mount(
+      compact,
+      { shell, focus: 'log' } as never,
+      undefined as never,
+    );
+    expect(compact.querySelector('h3')).toBeNull();
+    expect(compact.textContent).toContain('Said once');
+    (compact.querySelector('button[aria-pressed="false"]') as HTMLButtonElement).click();
+    expect(compact.textContent).toContain('Nothing has happened yet.');
+  });
+
   it('lists the runs of the record, and Undo undoes the latest', async () => {
     const v = await headlessViewer();
     const person = v.api.as({ kind: 'person' });
-    const host = mount(historyTab(v, person));
+    const host = mount(historyTab(v, person, v.managers.notifications));
     expect(host.textContent).toContain('Nothing has happened yet.');
     const undo = () => host.querySelector('button') as HTMLButtonElement;
     expect(undo().disabled).toBe(true);
@@ -52,7 +73,7 @@ describe('the History tab', () => {
 
   it("shows an agent's turn as a group with its run, and Undo turn for the latest turn", async () => {
     const v = await headlessViewer();
-    const host = mount(historyTab(v, v.api.as({ kind: 'person' })));
+    const host = mount(historyTab(v, v.api.as({ kind: 'person' }), v.managers.notifications));
     const turn = v.record.beginTurn('t1', 'Turn the checkpoints off');
     expectOk(
       await v.api.as({ kind: 'agent', turn: 't1' }).settings.set({ group: 'viewer', values: { checkpointing: false } }),
@@ -68,7 +89,7 @@ describe('the History tab', () => {
 
   it('keeps the record on a button, and says so', async () => {
     const v = await headlessViewer();
-    const host = mount(historyTab(v, v.api.as({ kind: 'person' })));
+    const host = mount(historyTab(v, v.api.as({ kind: 'person' }), v.managers.notifications));
     expect(host.textContent).toContain('Keep this record');
     expect(host.textContent).not.toContain('Kept in this browser');
   });

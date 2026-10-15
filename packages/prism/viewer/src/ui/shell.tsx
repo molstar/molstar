@@ -231,16 +231,18 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
             />
           )),
         },
-        {
-          id: 'log',
-          title: 'Log',
-          icon: 'scroll-text',
-          order: 2.5,
-          place: 'foot',
-          render: domView(() => <LogView status={managers.notifications} />),
-        },
-        // `options.ui.showHistory` (viewer-spec.md §2.2) leaves History out.
-        ...(core.options.ui.showHistory ? [historyTab(core, person)] : []),
+        // History and the log in one panel; `options.ui.showHistory` (viewer-spec.md §2.2) leaves History out: the
+        // log alone.
+        core.options.ui.showHistory
+          ? historyTab(core, person, managers.notifications)
+          : {
+              id: 'log',
+              title: 'Log',
+              icon: 'scroll-text',
+              order: 2.5,
+              place: 'foot',
+              render: domView(() => <LogView status={managers.notifications} />),
+            },
         settingsTab(sources, managers, person, core.storage),
         {
           id: 'help',
@@ -362,6 +364,15 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               return { icon: current.icon, title: `Theme: ${current.title}` };
             }),
           ),
+          // A choice of the themes beside the rail (five is too many to cycle through); under More, a click cycles.
+          menu: UIThemes.map((t) => ({
+            id: t.id,
+            label: t.title,
+            icon: t.icon,
+            choice: true,
+            pressed: theme.theme.pipe(map((x) => x === t.id)),
+            run: () => theme.set(t.id),
+          })),
           run: () => theme.next(),
         },
         {
@@ -586,7 +597,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     // The placeholder tab, where the assistant's will be: opening it loads the assistant, whose tab then shows.
     stub = port.registerStub(
       'assistant',
-      { parts: [{ id: AssistantTabId, kind: 'tab', title: 'Assistant', icon: 'bot', order: 2.6 }] },
+      { parts: [{ id: AssistantTabId, kind: 'tab', title: 'Assistant', icon: 'bot', order: 2.65, place: 'foot' }] },
       () => loadAssistant().then((a) => !!a),
     );
     unregister.push(removeStub);
@@ -659,7 +670,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         canvasAside={<Show when={hasData}>{() => <PickLevel {...modeProps} />}</Show>}
         onDropFiles={openFiles}
         dropFormats={home.formats}
-        onOpenLog={() => shell.show('log')}
+        onOpenLog={() => (core.options.ui.showHistory ? shell.show('history', 'log') : shell.show('log'))}
         commandMenu={
           <Show when={commandMenuOpen}>
             {() => {

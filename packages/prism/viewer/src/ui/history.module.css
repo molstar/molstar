@@ -199,3 +199,40 @@
 .step[data-nested] {
   padding-inline: 0;
 }
+
+/* History and the log, split: two halves of the panel, each its title and its own scroll. */
+.split {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--msp-space-3);
+  flex: 1 1 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.half {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.halfTitle {
+  padding: var(--msp-space-2) calc(var(--msp-panel-inset) + var(--msp-space-3));
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.halfBody {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* Compact: Steps or Log, one at a time. */
+.tabs {
+  display: grid;
+  gap: var(--msp-space-2);
+  padding-inline: var(--msp-panel-inset);
+}

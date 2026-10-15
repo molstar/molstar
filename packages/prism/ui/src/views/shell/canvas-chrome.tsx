@@ -25,7 +25,7 @@ import {
   uniqueId,
 } from '../../dom/focus.js';
 import { bind, onCleanup } from '../../dom/scope.js';
-import type { CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
+import type { CanvasMenuItem, CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
 import type { MessageKind, StatusModel, StatusTask } from '../../shell/status.js';
 import type { Child } from '../../dom/jsx-types.js';
 import { observableState } from '../../reactive/observable-state.js';
@@ -69,6 +69,8 @@ export function CanvasToolbar(props: {
   menus?: ToolMenus;
   /** The rail's left-out buttons (`RailLayout.hidden`): they are not shown, they are under More. */
   hidden?: Observable<ReadonlySet<string>>;
+  /** On the rail: a button with a menu opens it beside the rail on a click (the theme), as More does. */
+  railMenu?: (item: CanvasToolbarItem, anchor: HTMLElement) => void;
 }) {
   const { shell } = props;
   const part = props.part ?? 'all';
@@ -98,9 +100,11 @@ export function CanvasToolbar(props: {
           >
             {section.items.map((item) =>
               item.visible ? (
-                <Show when={item.visible}>{() => <ToolButton shell={shell} item={item} menus={props.menus} />}</Show>
+                <Show when={item.visible}>
+                  {() => <ToolButton shell={shell} item={item} menus={props.menus} railMenu={props.railMenu} />}
+                </Show>
               ) : (
-                <ToolButton shell={shell} item={item} menus={props.menus} />
+                <ToolButton shell={shell} item={item} menus={props.menus} railMenu={props.railMenu} />
               ),
             )}
           </div>
@@ -110,8 +114,14 @@ export function CanvasToolbar(props: {
   );
 }
 
-function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?: ToolMenus }) {
+function ToolButton(props: {
+  shell: ShellModel;
+  item: CanvasToolbarItem;
+  menus?: ToolMenus;
+  railMenu?: (item: CanvasToolbarItem, anchor: HTMLElement) => void;
+}) {
   const { shell, item, menus } = props;
+  const railMenu = !menus && item.menu?.length ? props.railMenu : undefined;
   // A button with a menu shows the menu on hover instead of a tooltip (both would open in the same spot).
   const withMenu = menus && item.menu?.length ? menus : undefined;
   const overlayOpen = item.overlay ? shell.overlay.pipe(map((o) => o?.overlay.id === item.overlay)) : of(false);
@@ -135,7 +145,7 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       aria-label={itemTitle(item)}
       // Only a button with a state is a toggle (a button that cycles, like the theme, names its state in its label).
       aria-pressed={item.pressed || item.overlay ? pressed : undefined}
-      aria-haspopup={withMenu ? 'menu' : undefined}
+      aria-haspopup={withMenu || railMenu ? 'menu' : undefined}
       aria-expanded={expanded}
       data-overlay-trigger={item.overlay ? '' : undefined}
       data-keeps-card={item.keepsCard ? '' : undefined}
@@ -143,6 +153,7 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
         // A button that only holds a menu opens it (from the keyboard, at its first item: a click with no pointer
         // has `detail` 0); otherwise the click runs the button's own action.
         if (withMenu && !item.overlay && !item.run) return withMenu.show(item, e.currentTarget, e.detail === 0);
+        if (railMenu) return railMenu(item, e.currentTarget);
         withMenu?.hide();
         if (item.overlay) shell.toggleOverlay(item.overlay, e.currentTarget);
         else item.run?.(e.currentTarget);
@@ -164,6 +175,39 @@ function ToolButton(props: { shell: ShellModel; item: CanvasToolbarItem; menus?:
       {item.caption ? <span class={classes.caption}>{item.caption}</span> : null}
       {withMenu ? <span class={classes.menuMark} aria-hidden="true" /> : null}
     </button>
+  );
+}
+
+/** A toolbar button's menu rows (the canvas stack's menus, the rail's): grouped, a toggle's or a choice's check. */
+export function ToolMenuRows(props: { items: readonly CanvasMenuItem[]; onRun(): void }) {
+  return (
+    <>
+      {props.items.map((m, i, all) => (
+        <>
+          {i > 0 && m.group !== all[i - 1].group ? <div class={classes.toolMenuDivider} role="separator" /> : null}
+          <button
+            type="button"
+            role={m.pressed ? (m.choice ? 'menuitemradio' : 'menuitemcheckbox') : 'menuitem'}
+            aria-checked={m.pressed}
+            class={classes.toolMenuRow}
+            disabled={!!m.disabled}
+            onClick={() => {
+              props.onRun();
+              m.run();
+            }}
+          >
+            {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
+            <span class={classes.toolMenuLabel}>
+              {m.label}
+              {m.disabled || m.hint ? <span class={classes.toolMenuHint}>{m.disabled ?? m.hint}</span> : null}
+            </span>
+            {m.pressed ? (
+              <Show when={m.pressed}>{() => <Icon name="check" size={14} class={classes.toolMenuCheck} />}</Show>
+            ) : null}
+          </button>
+        </>
+      ))}
+    </>
   );
 }
 
@@ -276,35 +320,7 @@ function ToolMenu(props: { menus: ToolMenus }) {
             onFocusOut={() => menus.hideSoon()}
           >
             <div class={classes.toolMenuCard}>
-              {open.item.menu!.map((m, i, all) => (
-                <>
-                  {i > 0 && m.group !== all[i - 1].group ? (
-                    <div class={classes.toolMenuDivider} role="separator" />
-                  ) : null}
-                  <button
-                    type="button"
-                    role={m.pressed ? 'menuitemcheckbox' : 'menuitem'}
-                    aria-checked={m.pressed}
-                    class={classes.toolMenuRow}
-                    disabled={!!m.disabled}
-                    onClick={() => {
-                      menus.hide();
-                      m.run();
-                    }}
-                  >
-                    {m.icon ? <Icon name={m.icon} size={16} /> : <span />}
-                    <span class={classes.toolMenuLabel}>
-                      {m.label}
-                      {m.disabled || m.hint ? <span class={classes.toolMenuHint}>{m.disabled ?? m.hint}</span> : null}
-                    </span>
-                    {m.pressed ? (
-                      <Show when={m.pressed}>
-                        {() => <Icon name="check" size={14} class={classes.toolMenuCheck} />}
-                      </Show>
-                    ) : null}
-                  </button>
-                </>
-              ))}
+              <ToolMenuRows items={open.item.menu!} onRun={() => menus.hide()} />
             </div>
           </div>
         );

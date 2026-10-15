@@ -274,8 +274,22 @@ export function ShellView(props: ShellViewProps) {
                     <FloatingDock
                       shell={shell}
                       dock={right}
-                      railItems={(rail) => <CanvasToolbar shell={shell} part="rest" hidden={rail.hidden} />}
-                      railFoot={(rail) => <CanvasToolbar shell={shell} part="lead" hidden={rail.hidden} />}
+                      railItems={(rail) => (
+                        <CanvasToolbar
+                          shell={shell}
+                          part="rest"
+                          hidden={rail.hidden}
+                          railMenu={(item, anchor) => rail.toggleMenu(anchor, item)}
+                        />
+                      )}
+                      railFoot={(rail) => (
+                        <CanvasToolbar
+                          shell={shell}
+                          part="lead"
+                          hidden={rail.hidden}
+                          railMenu={(item, anchor) => rail.toggleMenu(anchor, item)}
+                        />
+                      )}
                     />
                   )) as HTMLElement;
                   bind(shell.railShown, (shown) => dock.toggleAttribute('data-rail-hidden', !shown));

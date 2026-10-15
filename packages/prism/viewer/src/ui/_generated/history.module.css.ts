@@ -16,6 +16,9 @@ export const classes = {
   'count': 'msp-viewer-history-count',
   'detail': 'msp-viewer-history-detail',
   'empty': 'msp-viewer-history-empty',
+  'half': 'msp-viewer-history-half',
+  'halfBody': 'msp-viewer-history-halfBody',
+  'halfTitle': 'msp-viewer-history-halfTitle',
   'history': 'msp-viewer-history-history',
   'keep': 'msp-viewer-history-keep',
   'label': 'msp-viewer-history-label',
@@ -28,7 +31,9 @@ export const classes = {
   'runs': 'msp-viewer-history-runs',
   'separator': 'msp-viewer-history-separator',
   'separatorText': 'msp-viewer-history-separatorText',
+  'split': 'msp-viewer-history-split',
   'step': 'msp-viewer-history-step',
+  'tabs': 'msp-viewer-history-tabs',
   'time': 'msp-viewer-history-time',
   'turn': 'msp-viewer-history-turn',
   'turnBody': 'msp-viewer-history-turnBody',
@@ -213,6 +218,41 @@ defineStyles('viewer/ui/history.module.css', `@layer msp.components {
 
 .msp-viewer-history-step[data-nested] {
   padding-inline: 0;
+}
+
+.msp-viewer-history-split {
+  gap: var(--msp-space-3);
+  flex: 1 1 0;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  display: grid;
+}
+
+.msp-viewer-history-half {
+  flex-direction: column;
+  min-height: 0;
+  display: flex;
+}
+
+.msp-viewer-history-halfTitle {
+  padding: var(--msp-space-2) calc(var(--msp-panel-inset) + var(--msp-space-3));
+  color: var(--msp-color-text-muted);
+  font-size: var(--msp-font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 600;
+}
+
+.msp-viewer-history-halfBody {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.msp-viewer-history-tabs {
+  gap: var(--msp-space-2);
+  padding-inline: var(--msp-panel-inset);
+  display: grid;
 }
 }
 `);

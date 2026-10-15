@@ -48,8 +48,9 @@ describe what the mocks settled. Nothing is wired to a real plugin yet. **Pickin
 - **Shell** (`ctx.shell`, `ShellModel`), Prism's own layout (core `PluginLayout` is not used), canvas first: a right
   panel floating over the canvas (pinnable beside it) with a rail at the right edge: Home (the Mol\* mark), the tabs
   (Structure, Selection, Snapshots, State tree, extension tabs), the scene's and the app's overlay cards (Animation,
-  Canvas settings, Export with contributed sections, Remote states when on), and at its foot Log (History, and the
-  Assistant, with the agent), Settings, the theme and the command menu; left/top/bottom docks optional (the sequence
+  Canvas settings, Export with contributed sections, Remote states when on), and at its foot History (the steps and the
+  log, halves of one panel; tabs when compact), the Assistant (with the agent), Settings, the theme (a menu of the
+  themes) and the command menu; left/top/bottom docks optional (the sequence
   floats on top); a canvas toolbar (mode, camera, illumination & XR, expand or fullscreen, sequence) as a row in the bottom-right corner, the selection bar above it; playback top left
   (snapshots card, trajectory bar); hover labels at the cursor; a status column of fading messages and tasks bottom
   left, selection and focus chips bottom right; a busy overlay for tasks that hold the plugin; compact mode as a bottom

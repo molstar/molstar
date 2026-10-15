@@ -61,7 +61,9 @@ export const createAssistant: AssistantFactory = async (host): Promise<Assistant
           id: 'assistant.tab.assistant',
           title: 'Assistant',
           icon: 'bot',
-          order: 2.6,
+          // At the rail's foot, beside Settings (where the assistant's setup is too).
+          order: 2.65,
+          place: 'foot',
           render: domView(() => <AssistantTab agent={model} inspect={inspect} />),
         },
       ],

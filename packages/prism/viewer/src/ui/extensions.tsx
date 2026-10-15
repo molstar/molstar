@@ -75,6 +75,7 @@ export function extensionUIPort(
               icon: t.icon,
               ...(t.dock ? { dock: t.dock } : {}),
               ...(t.order !== undefined ? { order: t.order } : {}),
+              ...(t.place ? { place: t.place } : {}),
               render: t.render,
             })),
           ),
@@ -144,6 +145,7 @@ export function extensionUIPort(
               title: t.title ?? t.id,
               icon: t.icon ?? 'hourglass',
               ...(t.order !== undefined ? { order: t.order } : {}),
+              ...(t.place ? { place: t.place } : {}),
               // Opening it loads the extension; its real tab replaces this one, and is shown (it was asked for).
               render: domView(() => placeholder(owner, load, () => shell.show(t.id))),
             })),

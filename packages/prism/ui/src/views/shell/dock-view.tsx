@@ -21,7 +21,7 @@ import type { ReadonlyState } from '../../reactive/readonly-state.js';
 import type { DockId, DockModel, ShellModel, ShellTab } from '../../shell/shell.js';
 import { classes as canvasClasses } from './_generated/canvas.module.css.js';
 import { classes } from './_generated/dock.module.css.js';
-import { ItemIcon, itemTitle } from './canvas-chrome.js';
+import { ItemIcon, itemTitle, ToolMenuRows } from './canvas-chrome.js';
 import { type RailEntry, RailLayout } from './rail.js';
 import { ViewHost } from './view-host.js';
 
@@ -218,13 +218,7 @@ function RailMore(props: { shell: ShellModel; dock: DockModel; rail: RailLayout;
               aria-label="More"
               aria-haspopup="menu"
               aria-expanded={menu.asReadonly.pipe(map((m) => !!m))}
-              onClick={(e) => {
-                if (menu.value) return menu.set(undefined);
-                // One read, on the click: where the button is, so the menu's bottom edge is level with it.
-                const anchor = e.currentTarget;
-                const bottom = props.root().getBoundingClientRect().bottom - anchor.getBoundingClientRect().bottom;
-                menu.set({ bottom, anchor });
-              }}
+              onClick={(e) => rail.toggleMenu(e.currentTarget)}
               onKeyDown={(e) => {
                 // ↑ or ↓ opens it too (the menu button pattern); it opens at its first item.
                 if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || menu.value) return;
@@ -245,9 +239,9 @@ function RailMore(props: { shell: ShellModel; dock: DockModel; rail: RailLayout;
 function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLayout }) {
   const { shell, dock, rail } = props;
   const menu = rail.menu;
-  // Open only while there is something in it (the rail grew: nothing is left out).
+  // Open only while there is something in it (More's: the rail grew, nothing is left out).
   const open = combineLatest([menu.asReadonly, rail.overflow]).pipe(
-    map(([m, o]) => (m && o.length > 0 ? m : undefined)),
+    map(([m, o]) => (m && (m.item ? m.item.menu?.length : o.length > 0) ? m : undefined)),
   );
   const run = (entry: RailEntry, anchor: Element) => {
     menu.set(undefined);
@@ -288,29 +282,33 @@ function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLay
             <div
               class={canvasClasses.toolMenuCard}
               role="menu"
-              aria-label="More"
+              aria-label={m.item ? itemTitle(m.item) : 'More'}
               onKeyDown={menuKeys}
               ref={(el) => {
                 list = el;
                 queueMicrotask(() => focusFirstItem(el));
               }}
             >
-              <For each={rail.overflow} key={(e) => e.id}>
-                {(entry) => (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    class={canvasClasses.toolMenuRow}
-                    onClick={(e) => run(entry, m.anchor)}
-                  >
-                    {entry.tab ? <Icon name={entry.tab.icon} size={16} /> : <ItemIcon item={entry.item!} size={16} />}
-                    <span class={canvasClasses.toolMenuLabel}>
-                      {entry.tab ? entry.tab.title : itemTitle(entry.item!)}
-                    </span>
-                    <span />
-                  </button>
-                )}
-              </For>
+              {m.item ? (
+                <ToolMenuRows items={m.item.menu!} onRun={() => menu.set(undefined)} />
+              ) : (
+                <For each={rail.overflow} key={(e) => e.id}>
+                  {(entry) => (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class={canvasClasses.toolMenuRow}
+                      onClick={(e) => run(entry, m.anchor)}
+                    >
+                      {entry.tab ? <Icon name={entry.tab.icon} size={16} /> : <ItemIcon item={entry.item!} size={16} />}
+                      <span class={canvasClasses.toolMenuLabel}>
+                        {entry.tab ? entry.tab.title : itemTitle(entry.item!)}
+                      </span>
+                      <span />
+                    </button>
+                  )}
+                </For>
+              )}
             </div>
           </div>
         );

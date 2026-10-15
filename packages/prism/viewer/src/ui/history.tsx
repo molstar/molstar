@@ -8,7 +8,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Button, domView, onActive, onCleanup, type ShellTab } from '@molstar/prism-ui';
+import {
+  Button,
+  Choices,
+  domView,
+  LogView,
+  onActive,
+  onCleanup,
+  ScrollArea,
+  type ShellTab,
+  type ShellViewContext,
+} from '@molstar/prism-ui';
+import type { Child } from '@molstar/prism-ui/dom/jsx-types';
 import { observableState } from '@molstar/prism-ui/core';
 import { Icon, type IconName } from '@molstar/prism-ui/components/icon/icon';
 import { For, Show } from '@molstar/prism-ui/dom/control-flow';
@@ -90,14 +101,64 @@ async function keep(viewer: Pick<PrismViewer, 'record' | 'sources' | 'managers'>
   }
 }
 
-export function historyTab(viewer: PrismViewer, api: ViewerApi): ShellTab {
+/**
+ * History and the log in one panel (what happened: the steps, and what was said): on a desktop the two halves of it,
+ * each scrolling on its own; compact, two tabs, the log's chosen when shown at `log` (the status line's log link).
+ */
+export function historyTab(
+  viewer: PrismViewer,
+  api: ViewerApi,
+  status: Parameters<typeof LogView>[0]['status'],
+): ShellTab {
   return {
     id: 'history',
     title: 'History',
     icon: 'history',
     order: 2.55,
     place: 'foot',
-    render: domView(() => <HistoryView viewer={viewer} api={api} />),
+    render: domView<ShellViewContext>(({ ctx }) => {
+      const compact = ctx.shell.mode.pipe(
+        map((m) => m === 'compact'),
+        distinctUntilChanged(),
+      );
+      // Split, both halves are always in view (the log at `log` too).
+      const half = (title: string, body: () => Child) => (
+        <section class={classes.half} aria-label={title}>
+          <h3 class={classes.halfTitle}>{title}</h3>
+          <ScrollArea class={classes.halfBody}>{body()}</ScrollArea>
+        </section>
+      );
+      const steps = () => <HistoryView viewer={viewer} api={api} />;
+      const log = () => <LogView status={status} />;
+      const shown = observableState<'steps' | 'log'>(ctx.focus === 'log' ? 'log' : 'steps');
+      return (
+        <Show
+          when={compact}
+          fallback={() => (
+            <div class={classes.split}>
+              {half('Steps', steps)}
+              {half('Log', log)}
+            </div>
+          )}
+        >
+          {() => (
+            <div class={classes.tabs}>
+              <Choices
+                choices={[
+                  { id: 'steps', label: 'Steps', icon: 'history' },
+                  { id: 'log', label: 'Log', icon: 'scroll-text' },
+                ]}
+                active={shown.asReadonly}
+                onPick={(id) => shown.set(id as 'steps' | 'log')}
+              />
+              <Show when={shown.asReadonly.pipe(map((v) => v === 'log'))} fallback={steps}>
+                {log}
+              </Show>
+            </div>
+          )}
+        </Show>
+      );
+    }),
   };
 }
 

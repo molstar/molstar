@@ -241,6 +241,8 @@ export interface ViewerExtensionUI {
     readonly icon: IconName;
     readonly dock?: DockId;
     readonly order?: number;
+    /** On the rail: among the tabs (default), or at its foot with Settings (the assistant). */
+    readonly place?: 'strip' | 'foot';
     readonly render: ViewRenderer<ShellViewContext>;
   }[];
   /** Cards over the canvas, opened by a toolbar button or a command. */
@@ -307,6 +309,7 @@ export interface LazyViewerExtensionStub {
     /** As the real part has them, so its placeholder stands where it will be. */
     readonly icon?: IconName;
     readonly order?: number;
+    readonly place?: 'strip' | 'foot';
   }[];
   /**
    * Calling one of these loads the chunk and replays the call. Their flags are declared too, so tools and commands see
