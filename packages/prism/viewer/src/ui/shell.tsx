@@ -36,6 +36,7 @@ import { adoptStyles, defineStyles, releaseStyles } from '@molstar/prism-ui/styl
 import { map } from 'rxjs';
 import type { HomeModel } from '../model/home.js';
 import { HomeTab } from '../views/home/home-tab.js';
+import { ModeSwitch, modeSwitchProps, PickLevel, SelectionBar, selectionModel } from './interaction.js';
 import { StructureTab } from '../views/structure/structure-tab.js';
 import type { ViewerCore } from '../viewer.js';
 import { CanvasBindings } from './bindings.js';
@@ -171,6 +172,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   );
 
   const hasData = sources.empty.pipe(map((e) => !e));
+  const modeProps = modeSwitchProps(sources.interaction, person);
+  const selection = selectionModel(sources.interaction, person);
   unregister.push(
     shell.registerToolbar([
       {
@@ -273,6 +276,9 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
         }
         ink={ink}
         empty={sources.empty}
+        context={() => <Show when={hasData}>{() => <SelectionBar selection={selection} />}</Show>}
+        canvasLead={<Show when={hasData}>{() => <ModeSwitch {...modeProps} />}</Show>}
+        canvasAside={<Show when={hasData}>{() => <PickLevel {...modeProps} />}</Show>}
         onDropFiles={openFiles}
         dropFormats={home.formats}
         onOpenLog={() => shell.show('log')}

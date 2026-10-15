@@ -12,6 +12,7 @@ import type { Canvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import type { PluginContext } from '@molstar/plugin/context';
 import type { ReadonlyState } from '@molstar/prism-ui/core';
 import { merge } from 'rxjs';
+import { createInteractionSources, type InteractionSources } from './interaction.js';
 import { structureNames } from './naming.js';
 import { createPointerSources, type PointerSources } from './pointer.js';
 import { fromBehavior, fromChanged, SourceScope, sameItems, scanList } from './state.js';
@@ -64,6 +65,8 @@ export interface ViewerSources {
   readonly tasks: ReadonlyState<readonly TaskInfo[]>;
   /** What is under the pointer: the hover label's lines, hover and click events. */
   readonly pointer: PointerSources;
+  /** The selection mode, the picking level, the selection and the focus. */
+  readonly interaction: InteractionSources;
   /** The file formats the plugin reads, by label (the drop area's hint). */
   readonly formats: readonly string[];
 }
@@ -116,9 +119,10 @@ export function createViewerSources(plugin: PluginContext): ViewerSourcesHost {
     },
   );
   const pointer = createPointerSources(scope, plugin);
+  const interaction = createInteractionSources(scope, plugin);
   const formats = plugin.dataFormats.options.map(([, label]) => label);
   return {
-    sources: { canvas, structures, empty, busy, tasks, pointer, formats },
+    sources: { canvas, structures, empty, busy, tasks, pointer, interaction, formats },
     dispose: () => scope.dispose(),
   };
 }
