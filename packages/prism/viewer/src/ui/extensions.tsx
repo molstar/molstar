@@ -8,7 +8,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { domView, type ShellModel } from '@molstar/prism-ui';
+import { Button, domView, type ShellModel } from '@molstar/prism-ui';
+import { Show } from '@molstar/prism-ui/dom/control-flow';
+import { observableState } from '@molstar/prism-ui/reactive/observable-state';
+import { map } from 'rxjs';
 import type { CommandManager } from '@molstar/prism-ui/core';
 import type { ViewerCommandContext } from '../api/managers.js';
 import type { ExtensionUIPort } from '../extensions/host.js';
@@ -17,7 +20,7 @@ import { SceneRowSlot } from '../views/structure/scene-tree.js';
 import type { LazyViewerExtension, ViewerExtensionUI, ViewerUIContext } from '../spec.js';
 
 // Extensions' views in the page's shell (viewer-spec.md §3, README §3.1): sections in the viewer's named slots, tabs,
-// cards, rows in the scene tree, and canvas toolbar items. A lazy extension's declared views stand in as placeholders: opening one loads the
+// cards, pages over the app, rows in the scene tree, and canvas toolbar items. A lazy extension's declared views stand in as placeholders: opening one loads the
 // extension, whose real views take their places (same ids).
 
 export function extensionUIPort(
@@ -25,6 +28,40 @@ export function extensionUIPort(
   commands: CommandManager<ViewerCommandContext>,
   context: ViewerUIContext,
 ): ExtensionUIPort {
+  // Owners whose load failed: their placeholders, put back by the host, wait for Retry instead of loading again.
+  const failed = new Set<string>();
+  // A placeholder's body: loading it, or why it did not load and Retry. `then` runs once it loaded.
+  const placeholder = (owner: string, load: () => Promise<boolean>, then?: () => void) => {
+    const state = observableState<'loading' | 'failed'>(failed.has(owner) ? 'failed' : 'loading');
+    const start = () => {
+      state.set('loading');
+      void load().then((ok) => {
+        if (ok) {
+          failed.delete(owner);
+          then?.();
+        } else {
+          failed.add(owner);
+          state.set('failed');
+        }
+      });
+    };
+    if (!failed.has(owner)) start();
+    const isFailed = state.asReadonly.pipe(map((s) => s === 'failed'));
+    return (
+      <div style="padding: var(--msp-space-4); display: grid; gap: var(--msp-space-2); justify-items: start">
+        <Show when={isFailed} fallback={() => <p style="opacity: 0.7">Loading…</p>}>
+          {() => (
+            <>
+              <p style="opacity: 0.7">This part could not be loaded.</p>
+              <Button size="sm" onClick={start}>
+                Retry
+              </Button>
+            </>
+          )}
+        </Show>
+      </div>
+    );
+  };
   return {
     context,
     register(_owner, ui: ViewerExtensionUI) {
@@ -44,6 +81,7 @@ export function extensionUIPort(
         );
       }
       if (ui.overlays?.length) undo.push(shell.registerOverlays(ui.overlays.map((o) => ({ ...o }))));
+      if (ui.pages?.length) undo.push(shell.registerPages(ui.pages.map((p) => ({ ...p }))));
       if (ui.sections?.length) {
         undo.push(
           shell.registerSections(
@@ -95,9 +133,8 @@ export function extensionUIPort(
       };
     },
 
-    registerStub(_owner, stub: LazyViewerExtension['stub'], load) {
+    registerStub(owner, stub: LazyViewerExtension['stub'], load) {
       const undo: (() => void)[] = [];
-      const loading = () => <p style="padding: var(--msp-space-4); opacity: 0.7">Loading…</p>;
       const tabs = stub.parts.filter((p) => p.kind === 'tab');
       if (tabs.length) {
         undo.push(
@@ -108,12 +145,7 @@ export function extensionUIPort(
               icon: t.icon ?? 'hourglass',
               ...(t.order !== undefined ? { order: t.order } : {}),
               // Opening it loads the extension; its real tab replaces this one, and is shown (it was asked for).
-              render: domView(() => {
-                void load().then((ok) => {
-                  if (ok) shell.show(t.id);
-                });
-                return loading();
-              }),
+              render: domView(() => placeholder(owner, load, () => shell.show(t.id))),
             })),
           ),
         );
@@ -128,10 +160,7 @@ export function extensionUIPort(
               title: s.title ?? s.id,
               ...(s.icon ? { icon: s.icon } : {}),
               ...(s.order !== undefined ? { order: s.order } : {}),
-              render: domView(() => {
-                void load();
-                return loading();
-              }),
+              render: domView(() => placeholder(owner, load)),
             })),
           ),
         );

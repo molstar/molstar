@@ -7,6 +7,7 @@
  */
 
 import { hiddenContents } from '../api/contents.js';
+import { StructureFocusRepresentationTags } from '@molstar/plugin/behavior/dynamic/selection/structure-focus-representation';
 import { InitVolumeStreaming } from '@molstar/plugin/behavior/dynamic/volume-streaming/transformers';
 import { SpacegroupCell } from '@molstar/core/math/geometry';
 import { Mat4, Quat, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -302,7 +303,7 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     const reprs = c.representations.map((r) => reprLabel(plugin, r)).join(', ');
     const atoms = c.cell.obj?.data.elementCount;
     n.set(
-      c.cell.obj?.label ?? 'Component',
+      (c.cell.obj?.label ?? 'Component').replace(FocusPrefix, ''),
       [reprs, atoms !== undefined ? `${atoms.toLocaleString('en')} atoms` : undefined].filter(Boolean).join(' · ') ||
         undefined,
       !!c.cell.state.isHidden,
@@ -351,6 +352,50 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
     if (!node.lazy) node.load();
     const data = s.cell.obj?.data;
     n.set('Contents', data ? `${data.model.entities.data._rowCount} entities` : undefined, false);
+    return n;
+  };
+
+  // The focus group: always under a structure, so the tree does not shift as the focus comes and goes; its rows are the
+  // focus behavior's components (the target, its surroundings) while something is focused.
+  const focusNode = (structureRef: string, parts: readonly StructureComponentRef[]): Node => {
+    const id = `${structureRef}#focus`;
+    let n = nodes.get(id);
+    if (!n) {
+      const target = () => {
+        const data = plugin.managers.structure.focus.current?.loci;
+        return data && !StructureElement.Loci.isEmpty(data) ? data : undefined;
+      };
+      n = new Node(id, 'focus', 'focus', 'Focus', false, {
+        visibility: (hide) => {
+          for (const c of focusParts(plugin, structureRef)) {
+            void api.run('component.visibility', {
+              component: c.cell.transform.ref,
+              structure: structureRef,
+              visible: !hide,
+            });
+          }
+        },
+        highlight: (on) => {
+          const l = target();
+          if (on && l) void api.run('highlight.set', { target: { loci: l } });
+          else void api.run('highlight.clear');
+        },
+        focus: () => {
+          const l = target();
+          if (l) void api.run('focus.set', { target: { loci: l } });
+        },
+      });
+      n.removable = false;
+      n.menu = [{ id: 'clear', label: 'Clear focus', icon: 'x', run: () => void api.run('focus.clear') }];
+      nodes.set(id, n);
+    }
+    const atoms = parts.find((c) => c.cell.transform.tags?.includes(StructureFocusRepresentationTags.TargetSel))?.cell
+      .obj?.data.elementCount;
+    n.set(
+      'Focus',
+      atoms ? `${atoms.toLocaleString('en')} ${atoms === 1 ? 'atom' : 'atoms'}` : 'none',
+      parts.length > 0 && parts.every((c) => !!c.cell.state.isHidden),
+    );
     return n;
   };
 
@@ -478,8 +523,13 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
       const contents = contentsNode(s, ref);
       seen.add(contents.id);
       const kids: SceneNode[] = [contents];
+      const focused: SceneNode[] = [];
       for (const c of s.components) {
+        const isFocus = isFocusPart(c);
+        // An emptied focus component (the focus cleared) has no row.
+        if (isFocus && !c.cell.obj?.data.elementCount) continue;
         const cn = componentNode(c, ref);
+        if (isFocus) cn.removable = false;
         seen.add(cn.id);
         const reprs = c.representations.map((r) => {
           const rn = reprNode(r, cn.id, ref);
@@ -487,8 +537,15 @@ export function createSceneSource(scope: SourceScope, plugin: PluginContext, api
           return rn;
         });
         cn.setChildren(reprs);
-        kids.push(cn);
+        (isFocus ? focused : kids).push(cn);
       }
+      const fn = focusNode(
+        ref,
+        focusParts(plugin, ref).filter((c) => !!c.cell.obj?.data.elementCount),
+      );
+      seen.add(fn.id);
+      fn.setChildren(focused);
+      kids.push(fn);
       // The model's unit cell, under the first of its structures (another structure of the same model shares it).
       const cell = s.model?.unitcell;
       if (cell?.cell.obj?.data?.repr && !seen.has(cell.cell.transform.ref)) {
@@ -771,6 +828,23 @@ function entities(
 }
 
 /** "1 distance, 2 angles", or "none" (the group's description). */
+const FocusPrefix = /^\[Focus\] /;
+
+/** A component the focus behavior made (the target, the surroundings). */
+function isFocusPart(c: StructureComponentRef): boolean {
+  const tags = c.cell.transform.tags;
+  return (
+    !!tags &&
+    (tags.includes(StructureFocusRepresentationTags.TargetSel) ||
+      tags.includes(StructureFocusRepresentationTags.SurrSel))
+  );
+}
+
+function focusParts(plugin: PluginContext, structureRef: string): StructureComponentRef[] {
+  const s = plugin.managers.structure.hierarchy.current.refs.get(structureRef) as StructureRef | undefined;
+  return s?.components?.filter(isFocusPart) ?? [];
+}
+
 function measurementCounts(list: readonly MeasuredCell[]): string {
   if (!list.length) return 'none';
   const counts = new Map<string, number>();

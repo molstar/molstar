@@ -10,8 +10,7 @@
 
 import { domView } from '@molstar/prism-ui';
 import type { MockShellAddOn } from '@molstar/prism-ui/testing/index';
-import { map } from 'rxjs';
-import { InspectorPageId, inspectorCommands, inspectorPage, toolCounts } from '../inspector.js';
+import { InspectorPageId, inspectLinks, inspectorCommands, inspectorPage } from '../inspector.js';
 import { AgentTurnCard } from '../views/agent-turn.js';
 import { AssistantTab } from '../views/assistant-tab.js';
 import { HistoryTab } from '../views/history-tab.js';
@@ -37,7 +36,6 @@ export function mockAgentAddOn(options: { configured?: boolean; running?: boolea
     });
     const inspector = mockInspector({ running: options.running, empty: !options.configured });
     const open = (focus: string) => shell.openPage(InspectorPageId, focus);
-    const counts = inspector.tools.pipe(map(toolCounts));
     return {
       tabs: [
         {
@@ -60,24 +58,7 @@ export function mockAgentAddOn(options: { configured?: boolean; running?: boolea
           render: domView(() => (
             <AssistantTab
               agent={agent}
-              inspect={{
-                links: [
-                  {
-                    id: 'trace',
-                    label: 'Trace',
-                    detail: inspector.trace.pipe(
-                      map((t) => (t?.turns.length ? `${t.turns.length} turns` : 'nothing yet')),
-                    ),
-                  },
-                  {
-                    id: 'tools',
-                    label: 'Tools',
-                    detail: counts.pipe(map((c) => `${c.tools} tools, ${c.skills} skills`)),
-                  },
-                  { id: 'limits', label: 'Limits', detail: 'turn budget, context window, thinking' },
-                ],
-                open,
-              }}
+              inspect={{ links: inspectLinks(inspector, 'turn budget, context window, thinking'), open }}
             />
           )),
         },

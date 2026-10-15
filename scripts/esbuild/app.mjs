@@ -15,6 +15,8 @@ const value = (flag, fallback) => {
 const all = args.includes('--all');
 const dev = args.includes('--dev') || args.includes('--watch');
 const production = args.includes('--prd') || !dev;
+// `--metafile`: esbuild's metafile beside each output (`<name>.meta.json`), for size breakdowns.
+const metafile = args.includes('--metafile');
 const serve = dev || args.includes('--serve');
 const port = Number(value('--port', '1338'));
 const kind = value('--kind');
@@ -219,7 +221,14 @@ async function buildPackage(rawPkg) {
     const ctx = await esbuild.context(options);
     await ctx.watch();
     contexts.push(ctx);
-  } else await esbuild.build(options);
+  } else {
+    const result = await esbuild.build({ ...options, metafile });
+    if (metafile)
+      await fs.promises.writeFile(
+        path.join(outdir, `${path.basename(filename, '.js')}.meta.json`),
+        JSON.stringify(result.metafile),
+      );
+  }
   // `single` (the single-file Prism viewer, app.md §2): one more entry built as one ES module, its lazy parts inlined
   // (no splitting: esbuild bundles dynamic imports into the file), so a page imports it with no other request.
   if (cfg.single) {
@@ -240,7 +249,13 @@ async function buildPackage(rawPkg) {
       const ctx = await esbuild.context(singleOptions);
       await ctx.watch();
       contexts.push(ctx);
-    } else await esbuild.build(singleOptions);
+    } else {
+      const result = await esbuild.build({ ...singleOptions, metafile });
+      if (metafile) {
+        const name = path.basename(cfg.single.filename, '.js');
+        await fs.promises.writeFile(path.join(outdir, `${name}.meta.json`), JSON.stringify(result.metafile));
+      }
+    }
   }
   // Size budgets (app.md §1): a production build fails when a file outgrows its budget (bytes, `molstar.budgets`).
   if (!dev) {

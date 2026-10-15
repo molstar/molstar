@@ -150,7 +150,8 @@ extension UI) are placed.
   a time, opened by a rail button or a command. Every card takes the right panel's place, full height, whether the panel
   is open or not (one target for everything that opens on the right). Over the open panel it swaps in without a
   transition and the panel steps aside (no glass on glass, no tab shown selected); a tab click closes the card and shows
-  that tab. It closes with Esc, its ✕, or a pointer down outside it and its button; another card's button or a tab swaps
+  that tab. It closes with Esc, its ✕, or a pointer down outside it and its button, but not on the canvas (the view is
+  turned and zoomed with the card open: setting up an export); another card's button or a tab swaps
   it directly, without the panel underneath blinking for a frame. Cards do not block the canvas. Panels and cards share
   one header (title, pin, ✕).
 - **Hidden panels.** A panel is mounted only while its tab is the dock's active one (`Show` in `DockView`: closed, or
@@ -379,7 +380,8 @@ contributions for a node kind register into that slot, the same mechanism the Ex
 node id; hover highlights, a click picks, visibility and the row's ⋯ sit inline (the eye stays visible while a node is
 hidden; Remove is the ⋯'s last entry). Only top-level rows (a structure, a volume, the measurements) carry an icon;
 below, the indent says where a row belongs. The form shows the essential params first and the rest under Advanced;
-mapped params (color theme) re-render their nested fields when the choice changes. The tab fills the panel: the tree
+mapped params (type, color theme) show their choice with a sliders button that opens the chosen case's params, laid out
+by the same rules (v5's `MappedControl`). The tab fills the panel: the tree
 scrolls on its own and the inspector is always at the bottom at a fixed height (scrolling inside; "Select an item in the
 tree to edit its properties" while nothing is picked; "Nothing to set here" for a node without settings, facts, actions
 or sections), so picking never moves the tree. The header has Preset and Styles, which open the command menu inside

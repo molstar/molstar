@@ -55,5 +55,6 @@ nearest its ceiling in the latest turn), `preamble` (guidance and tool definitio
 
 ## Consumers
 
-`@molstar/prism-assistant`'s Inspector (`src/inspector/`) uses the types and `./format`, on mock data
-(`src/testing/mock-inspector.ts`) until a session feeds it. Nothing calls `readTrace` outside the tests yet.
+`@molstar/prism-assistant`'s Inspector (`src/inspector/`) uses the types and `./format`; in the Prism viewer its data
+comes from `src/viewer/inspector-sources.ts` (`readTrace` on the session's client, re-read on `watch()`, one read at a
+time; `toolsView` from the viewer's toolkit), in the stories from mock data (`src/testing/mock-inspector.ts`).

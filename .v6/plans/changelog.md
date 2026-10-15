@@ -148,6 +148,12 @@ the [API change ledger](breaking-v6-changes.md).
   command menu renders its options as they scroll in; History reads only what is new
 - `@molstar/ai-tools`: a dynamic toolkit (`toolkit.add`, lazy skills disclosed during a turn); `ai-session` reads it as
   it is
+- Prism viewer: the assistant's Inspector (Trace, Tools, Limits) over the real agent, opened from the Assistant tab's
+  Inspect rows, the turn card's trace and the Assistant trace/tools/limits commands; extensions' views may add `pages`
+- Prism viewer: the params form lays params out as v5 does (a choice's own params behind its settings button, an
+  Advanced fold, a fold per category); the scene tree's focus group (always under a structure, holding the focus
+  target and surroundings); Preset and Styles open the command menu in their groups; cards stay open while the canvas
+  is turned; a lazy extension that fails to load says so and offers Retry
 - The snapshot manager's `getStateSnapshot` and `serialize` take `keepList` (the current scene without changing the
   list)
 - State actions and transformers take `display.triggerLabel`, the label of the button that runs them ("Download",

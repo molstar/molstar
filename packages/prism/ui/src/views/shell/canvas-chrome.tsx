@@ -529,8 +529,8 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
       </ScrollArea>
     </section>
   ) as HTMLElement;
-  // Esc, or a pointer down outside the card and its button, closes it.
-  // Pinned, the card is part of the workspace like the pinned panel: only its ✕ (or another card or tab) closes it.
+  // Esc, or a pointer down outside the card and its button, closes it; not one on the canvas: the person turns and
+  // zooms the view with the card open (setting up an export, trying a canvas setting). Pinned, the card is part of the workspace like the pinned panel: only its ✕ (or another card or tab) closes it.
   const pinned = () => shell.dock('right').state.value.pinned;
   const doc = document;
   const onKey = (e: KeyboardEvent) => {
@@ -545,7 +545,7 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
     // the panel underneath for a frame (a blink), and a tab click would then collapse the panel.
     if (target.closest?.('[data-overlay-trigger], [role=tab]')) return;
     // What acts on the open card leaves it open: the command menu and its button.
-    if (target.closest?.('[data-keeps-card]')) return;
+    if (target.closest?.('[data-keeps-card], [data-msp-canvas]')) return;
     shell.closeOverlay();
   };
   doc.addEventListener('keydown', onKey);

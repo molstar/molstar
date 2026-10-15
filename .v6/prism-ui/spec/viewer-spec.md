@@ -98,6 +98,7 @@ interface AssistantUI {
   readonly ui: ViewerExtensionUI;              // its tab (and Inspector), registered as an extension's views
   readonly commandMenu: CommandMenuAssistant;  // the command menu's Ask row
   readonly agentView: () => Child;             // its turn card under the status line
+  readonly commands?: readonly CommandDefinition[];  // the Inspector's (Assistant trace, tools, limits), once loaded
   dispose(): void;
 }
 type AssistantFactory = (host: AssistantHost) => Promise<AssistantUI> | AssistantUI;
@@ -176,6 +177,8 @@ interface ViewerExtensionUI {                                  // every id `<own
   readonly sections?: readonly { id; slot: ViewerSlot; title; icon?; order?; keywords?; render: ViewRenderer }[];
   readonly tabs?: readonly { id; title; icon; dock?: DockId; order?; render: ViewRenderer }[];
   readonly overlays?: readonly { id; title; render: ViewRenderer }[];         // cards over the canvas
+  readonly pages?: readonly { id; title; icon?; header?: ViewRenderer; render: ViewRenderer }[];  // over the whole app
+                                                               // (the assistant's Inspector), `navigation.setPage`
   readonly rows?: readonly { id; when: (node: SceneNode) => boolean; render: ViewRenderer }[];  // scene tree rows under
                                                                // the nodes `when` holds for (the node is the view's
                                                                // `subject`); `SceneRow` draws one as the tree's own

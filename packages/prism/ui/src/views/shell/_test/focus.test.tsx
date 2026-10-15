@@ -101,6 +101,21 @@ describe('shell focus', () => {
     t.done();
   });
 
+  it('an overlay card stays open while the canvas is turned, and closes on a pointer down elsewhere', () => {
+    const t = mount();
+    t.shell.openOverlay('card');
+    const down = (el: Element) =>
+      el.dispatchEvent(new (window.PointerEvent ?? MouseEvent)('pointerdown', { bubbles: true, composed: true }));
+    down(t.container.querySelector('[data-msp-canvas] canvas')!);
+    expect(t.shell.overlay.value?.overlay.id).toBe('card');
+    const outside = document.createElement('div');
+    document.body.append(outside);
+    down(outside);
+    expect(t.shell.overlay.value).toBeUndefined();
+    outside.remove();
+    t.done();
+  });
+
   it('says announced results in the live region, with no message on show', () => {
     const t = mount();
     const region = t.container.querySelector('[role=status]')!;

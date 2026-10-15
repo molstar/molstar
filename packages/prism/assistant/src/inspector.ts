@@ -12,6 +12,7 @@
 
 export { InspectorPageId, inspectorCommands, type InspectorFocus } from './inspector-access.js';
 export { LimitsView, parseLimit } from './inspector/limits.js';
+export { inspectLinks } from './inspector/links.js';
 export * from './inspector/model.js';
 export { InspectorBody, InspectorHeader, inspectorPage } from './inspector/page.js';
 export { BudgetMeter, Facts, Json, Meter, TextTabs, Usage } from './inspector/parts.js';

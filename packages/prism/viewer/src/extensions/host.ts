@@ -349,6 +349,7 @@ export class ExtensionHost {
             sections: overrides.parts(checked.sections),
             tabs: overrides.parts(checked.tabs),
             overlays: overrides.parts(checked.overlays),
+            pages: overrides.parts(checked.pages),
             rows: overrides.parts(checked.rows),
             toolbar: overrides.parts(checked.toolbar),
           });
@@ -410,7 +411,14 @@ function checkCommands(lazy: LazyViewerExtension, commands: readonly CommandDefi
   if (extra.length) throw new Error(`${lazy.title} brings what its stub did not declare: ${extra.join(', ')}`);
 }
 
-const ViewKinds = { sections: 'section', tabs: 'tab', overlays: 'overlay', rows: 'row', toolbar: 'toolbar' } as const;
+const ViewKinds = {
+  sections: 'section',
+  tabs: 'tab',
+  overlays: 'overlay',
+  pages: 'page',
+  rows: 'row',
+  toolbar: 'toolbar',
+} as const;
 
 /**
  * An extension's views: each id `<owner>.<kind>.<name>` with its own id and kind, and, for a lazy one, declared by its

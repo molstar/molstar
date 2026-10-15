@@ -50,6 +50,7 @@ import { LegendOverlay, sequenceCommands, sequenceMenu } from '../sequence/comma
 import { SequenceControl } from '../sequence/sequence-control.js';
 import { ModeSwitch, modeSwitchProps, PickLevel, SelectionBar, selectionModel } from './interaction.js';
 import { StructureTab } from '../views/structure/structure-tab.js';
+import { StructureCommandGroups, structureCommands } from './structure-commands.js';
 import { HelpProse } from '../views/help/help-prose.js';
 import type { ViewerCore } from '../viewer.js';
 import { CanvasBindings } from './bindings.js';
@@ -222,6 +223,8 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
               presets={core.views.presets}
               options={core.views.componentOptions}
               quickStyles={core.views.quickStyles}
+              // Preset and Styles open the command menu in their groups (`structure-commands.ts`).
+              openCommands={(group) => openCommandMenu(group)}
               onAction={(action) => {
                 if (action === 'add') managers.commands.open('component.add');
               }}
@@ -467,6 +470,10 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
     ),
   );
   unregister.push(
+    core.registerCommands(structureCommands(core.views.presets, core.views.quickStyles)),
+    managers.commands.registerGroups(StructureCommandGroups),
+  );
+  unregister.push(
     core.registerCommands([
       {
         id: 'help.show',
@@ -506,6 +513,11 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
   // Extensions' views: the eager ones' now, a lazy one's placeholders until it loads (viewer-spec.md §3).
   const port = extensionUIPort(shell, managers.commands, { api: person, sources, managers });
   unregister.push(core.attachExtensionUI(port));
+  // An extension that did not load, or whose views did not: said, not silent (its placeholder offers Retry).
+  const extensionFailed = core.extensions.events.failed.subscribe((f) =>
+    managers.notifications.post(`${f.id} could not load: ${f.message}`, 'error'),
+  );
+  unregister.push(() => extensionFailed.unsubscribe());
 
   // The assistant, when the spec has one (viewer-spec.md §2.4): loaded on first use, with the agent's code (both chunks
   // of their own, with the AI SDK: G8 perf #5), then its tab, the command menu's Ask row, and its turn card under the
@@ -560,6 +572,7 @@ export async function mountShell(core: ViewerCore, target: HTMLElement): Promise
           // Its real tab takes the placeholder's place (same id).
           removeStub();
           unregister.push(port.register('assistant', assistant.ui));
+          if (assistant.commands?.length) unregister.push(core.registerCommands(assistant.commands));
           unregister.push(() => assistant.dispose());
           assistantMenu.set(assistant.commandMenu);
           agentView.set(assistant.agentView);

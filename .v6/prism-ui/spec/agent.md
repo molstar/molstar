@@ -18,7 +18,13 @@ Status: **accepted** in shape (2026-10-15); the tool lists are a first pass.
 - **The assistant** (the Assistant tab, the Ask bar, the turn card, the Inspector, the Storage view) is
   `@molstar/prism-assistant`, loaded lazily when the app passes it: `AssistantFactory = (host: AssistantHost) =>
   AssistantUI`, the host giving the viewer and `createAgent(models)`, since the models come from the person's keys,
-  which the assistant keeps (viewer-spec.md §2.4).
+  which the assistant keeps (viewer-spec.md §2.4). As built: the Inspector is a page over the app
+  (`assistant.page.inspector`, an extension view `pages` entry), opened by the Assistant tab's Inspect rows (Trace with
+  its turns, Tools with its counts, Limits), the turn card's trace and the commands Assistant trace (⌥T), tools and
+  limits (registered with the assistant, so only once it has loaded). Its data (`inspector-sources.ts`): the trace read
+  from the session's harness (`session.client()`, re-read on its `watch()`), the Tools view from the toolkit as it
+  changes, the limits from `session.budget()` and the model's window, read-only (the session takes them at creation and
+  has no setter).
 - **A turn at a time**: `turn()` refuses while one runs or waits for an approval (`parked`); `stop()` ends either, and a
   parked turn is then settled as stopped (its record entry, its history group).
 - **One run path**: a tool calls `api.run(id, values, { origin: { kind: 'agent', turn } })`, so the history, the

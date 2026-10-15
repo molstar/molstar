@@ -261,5 +261,20 @@ spec headless. Left: themes and presets that fetch carry no addresses (only know
 reading B-factors where the 3D theme reads ModelCIF scores, the assistant's chunk at start, a smoke check of the single
 file in CI, publishing it.
 
+G8 ran before the switch (2026-10-15): three reviewers (parity in the browser against the classic viewer; performance
+on production builds in headless Chrome at 1x and 4x CPU; accessibility by keyboard, the accessibility tree and token
+contrast in all four themes). Blockers fixed: the 3D hover label never showed (Mol*'s label manager reuses its array);
+MVS and snapshot descriptions lost v5's markdown commands; form controls had no names, the faintest text was 2.5:1, the
+command menu was silent to screen readers, the high-contrast theme showed no field edges. Fixed besides: focus trapped
+and returned by the menu, cards and panels; selection and focus results announced; status colors and muted text at
+4.5:1; 44px targets in compact panels; History reading only what is new; the command menu rendering as it scrolls;
+the assistant loading on first use; the structure inspector's model and type; extension rows; the `<prism-viewer>`
+element; the playback card opening by itself; the crop drag; Help's keys; `load.svs` (as decided); the sequence's
+tooltip. Budgets hold (`index.js` 2.9 of 3.2 MB, `prism-viewer.js` under 8 MB). Left, as parity.md and the reviews
+say: History not virtualized (a step costs ~2.5x with it open), illumination's shader linking (core graphics), field
+edges in the default themes, `.svsx` archives, Allow this domain. After G8 the Inspector (Trace, Tools, Limits) was
+wired to the real agent, which plan 4.4 had left on mocks. The first eval passed again on Haiku 5.5 and Gemini 3.8 Flash (8 of 8;
+about 10% more input tokens than at 4.5, the toolkit having grown).
+
 Between gates, every Sonnet PR gets one Opus read before it merges (not a workflow), and every PR updates the spec
 where it moves it, and parity.md's state column.

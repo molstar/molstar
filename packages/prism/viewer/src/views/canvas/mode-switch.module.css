@@ -72,7 +72,8 @@
 /* Shown while the pointer is on Select or on it, Select has keyboard focus, or its list is open. */
 :where(:has(> * .select:hover, > * .select:focus-visible)) > .level,
 .level:hover,
-.level:focus-within,
+/* The keyboard's focus keeps it open; a click's does not (the pointer leaving closes it). */
+.level:has(:focus-visible),
 .level:has([aria-expanded="true"]) {
   opacity: 1;
   visibility: visible;

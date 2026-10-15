@@ -58,7 +58,7 @@ defineStyles('components/icon/wordmark.module.css', `@layer msp.components {
   }
 
   [data-flash="reveal"] > & {
-    animation: 2.8s ease-in-out .9s both msp-icon-wordmark-flash-reveal;
+    animation: 1.4s ease-out both msp-icon-wordmark-flash-reveal;
     mask-image: linear-gradient(100deg, #000 0 42%, #0000 58% 100%);
   }
 

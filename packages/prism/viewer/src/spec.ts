@@ -110,6 +110,8 @@ export interface AssistantUI {
   readonly ui: ViewerExtensionUI;
   readonly commandMenu: CommandMenuAssistant;
   readonly agentView: () => Child;
+  /** Its commands (the Inspector's: Assistant trace, tools, limits), registered once it has loaded. */
+  readonly commands?: readonly CommandDefinition<any>[];
   dispose(): void;
 }
 
@@ -164,6 +166,7 @@ export type PartKind =
   | 'row'
   | 'toolbar'
   | 'overlay'
+  | 'page'
   | 'command'
   | 'tool'
   | 'skill'
@@ -244,6 +247,18 @@ export interface ViewerExtensionUI {
   readonly overlays?: readonly {
     readonly id: PartId;
     readonly title: string;
+    readonly render: ViewRenderer<ShellViewContext>;
+  }[];
+  /**
+   * Pages over the whole app, for what needs more room than a panel or a card (the assistant's Inspector): opened by a
+   * command or a link (`navigation.setPage({ id, focus })`), closed with Esc or their ✕.
+   */
+  readonly pages?: readonly {
+    readonly id: PartId;
+    readonly title: string;
+    readonly icon?: IconName;
+    /** What goes in the header after the title (the page's own tabs). */
+    readonly header?: ViewRenderer<ShellViewContext>;
     readonly render: ViewRenderer<ShellViewContext>;
   }[];
   /**

@@ -104,7 +104,7 @@ export function ModeSwitch(props: ModeSwitchProps) {
 /**
  * The picking levels, above the canvas toolbar over Select (outside the toolbar's frame, so it is not clipped): the list
  * itself, one click from the toolbar: the current level marked; picking one sets it and turns select mode on. Shown while
- * the pointer is on Select or on it, or Select or a row has the keyboard focus; on touch screens (no hover) a tap on
+ * the pointer is on Select or on it, or Select or a row has the keyboard focus (a click's focus does not keep it); on touch screens (no hover) a tap on
  * Select opens it. It opens upward. From the keyboard: ↑ or ↓ on Select goes into it (at the current level), the
  * arrows move between levels, Escape or a pick goes back to Select (it is outside the toolbar in the DOM, so Tab does
  * not reach it).
@@ -150,8 +150,10 @@ export function PickLevel(props: ModeSwitchProps) {
                 const inside = !!menu && menu.contains(deepActiveElement() ?? null);
                 props.setGranularity?.(l.value);
                 props.setMode('select');
-                // Picked from the keyboard: back to Select (the list hides once the focus leaves it).
+                // Picked from the keyboard: back to Select (the list hides once the focus leaves it). Picked with the
+                // pointer: the row lets the focus go, so the list closes as the pointer leaves it.
                 if (inside && e.detail === 0) opener(menu)?.focus();
+                else if (e.detail > 0) e.currentTarget.blur();
               }}
             >
               <Icon name={l.icon} size={15} />

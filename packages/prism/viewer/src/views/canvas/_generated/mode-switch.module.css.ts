@@ -78,7 +78,7 @@ defineStyles('viewer/views/canvas/mode-switch.module.css', `@layer msp.component
   transform: translateY(4px);
 }
 
-:where(:has( > * .msp-viewer-mode-switch-select:hover,  > * .msp-viewer-mode-switch-select:focus-visible)) > .msp-viewer-mode-switch-level, .msp-viewer-mode-switch-level:hover, .msp-viewer-mode-switch-level:focus-within, .msp-viewer-mode-switch-level:has([aria-expanded="true"]) {
+:where(:has( > * .msp-viewer-mode-switch-select:hover,  > * .msp-viewer-mode-switch-select:focus-visible)) > .msp-viewer-mode-switch-level, .msp-viewer-mode-switch-level:hover, .msp-viewer-mode-switch-level:has(:focus-visible), .msp-viewer-mode-switch-level:has([aria-expanded="true"]) {
   opacity: 1;
   visibility: visible;
   transition-delay: 0s;

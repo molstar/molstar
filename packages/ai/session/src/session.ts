@@ -197,6 +197,7 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     return { ...toolkitDomain(toolkit), evicted: () => toolkit.removed(), ...this.options.compactionDomain };
   }
   private harness: Harness | undefined;
+  private settingUp: Promise<Harness> | undefined;
   /** Everything of the running turn, made afresh for each turn and resume. */
   private state: TurnState = newTurnState({});
   /** The running turn: its prompt's key until it has begun, then its turn id. */
@@ -380,8 +381,16 @@ export class AgentSession<Api extends DisclosureApi, M extends ModelChoice = Mod
     return tools.length || deferred.length || !current ? { tools, deferred, guidance: !current } : undefined;
   }
 
-  private async ensure(): Promise<Harness> {
-    if (this.harness) return this.harness;
+  /** The harness, set up once: concurrent first calls (a turn, a trace reader) share one setup. */
+  private ensure(): Promise<Harness> {
+    if (this.harness) return Promise.resolve(this.harness);
+    this.settingUp ??= this.setUp().finally(() => {
+      this.settingUp = undefined;
+    });
+    return this.settingUp;
+  }
+
+  private async setUp(): Promise<Harness> {
     const { clock } = this;
     const storage = this.options.storage ?? createMemoryStorage();
     const leaseMs = this.options.leaseMs ?? 10_000;
