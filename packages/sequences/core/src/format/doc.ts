@@ -82,6 +82,8 @@ export interface ThemeRef {
 }
 
 export type GlyphShape = 'circle' | 'diamond' | 'triangle' | 'square' | 'pin' | 'star' | 'cross' | 'tick';
+/** How a range's item is drawn (seqspec:format#themes): `solid` (none given) is the plain bar or underline. */
+export type LineStyle = 'solid' | 'dashed' | 'dotted' | 'wavy' | 'double' | 'box' | 'highlight';
 export type Glyph =
   | GlyphShape
   | { shape?: GlyphShape; char?: string; path?: string; box?: [number, number]; label?: string; fallback?: GlyphShape };

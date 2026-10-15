@@ -13,7 +13,9 @@
 //
 // Adapted from pretext (https://github.com/chenglou/pretext, commit e699e27e7e4b48a50024fca545c6a12bc6ac975d):
 // `countPreparedLines`' greedy loop over segment widths, a segment wider than the line cut by its per-grapheme
-// advances (here per position), and the fit tolerance (`lineFitEpsilon`, 0.005 px). Each block starts a new line.
+// advances (here per position), and the fit tolerance (`lineFitEpsilon`, 0.005 px). Each block starts a new line, but
+// chips (seqspec:viewer#the-text-view: a short unit's one position, as wide as its label) flow after each other on
+// shared rows, as words do.
 //
 // pretext is MIT licensed: Copyright (c) 2026 Pretext contributors. Permission is hereby granted, free of charge,
 // to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in
@@ -58,7 +60,14 @@ export interface PreparedRun {
   readonly labels: readonly string[];
   /** Per group, its label's width; inline, with the space before the letter (0: none). */
   readonly labelWidths: Float32Array;
+  /** A chip: a short unit's one position, `advance` its label's room; consecutive chips share rows. */
+  readonly chip: boolean;
 }
+
+/** A chip's label font px (`ui`, 600): half the letters' band, as a ligand's pill sizes its label in its row. */
+export const chipFontPx = (fontPx: number) => Math.max(7, Math.min(12, Math.floor(Math.ceil(fontPx * 1.6) * 0.5)));
+/** Px of a chip either side of its label (its pill's border and padding). */
+export const CHIP_PAD = 5;
 
 /**
  * The group labels of a wrapped section: which position's label a group carries, its text and width. Asked once per
@@ -80,13 +89,20 @@ export const groupLabelBand = (fontPx: number) => Math.ceil(groupLabelPx(fontPx)
 /** Px between an inline label and its group's first letter. */
 export const GROUP_LABEL_PAD = 1;
 
-/** Reused: grown only when a layout has more lines than ever before. `top` is the layout's. */
+/**
+ * Reused: grown only when a layout has more lines than ever before. A line is one block's; `left` is its x from the
+ * data area's left (0 but for a chip after another on its row), `follows` 1 where it shares the previous line's row
+ * (its `top`). `top` and `bottom` (its row's) are the layout's.
+ */
 export interface LineTable {
   count: number;
   block: Int32Array;
   start: Int32Array;
   stop: Int32Array;
+  left: Float64Array;
+  follows: Uint8Array;
   top: Float64Array;
+  bottom: Float64Array;
 }
 
 export function lineTable(capacity = 16): LineTable {
@@ -95,8 +111,25 @@ export function lineTable(capacity = 16): LineTable {
     block: new Int32Array(capacity),
     start: new Int32Array(capacity),
     stop: new Int32Array(capacity),
+    left: new Float64Array(capacity),
+    follows: new Uint8Array(capacity),
     top: new Float64Array(capacity),
+    bottom: new Float64Array(capacity),
   };
+}
+
+/**
+ * The line of `lines` holding x (`xs[0]`, from the data area's left) on the row of line k: the last starting at or
+ * before x. The x in an array: a fractional double passed to a call V8 does not inline is boxed, 16 bytes a hit on a
+ * wrapped track (2026-10-15).
+ */
+export function lineAtX(lines: LineTable, k: number, xs: Float64Array): number {
+  const x = xs[0];
+  let first = k;
+  while (first > 0 && lines.follows[first] === 1) first--;
+  let at = first;
+  for (let j = first + 1; j < lines.count && lines.follows[j] === 1; j++) if (lines.left[j] <= x) at = j;
+  return at;
 }
 
 /**
@@ -109,9 +142,12 @@ export function prepareRun(
   cell: number,
   group: number,
   labeler: GroupLabeler | null = null,
+  chip = 0,
 ): PreparedRun {
   const n = axis.shown[block];
-  const w = axis.span[block] * cell;
+  // A chip's one position is its label's room, with no group label.
+  if (chip > 0) labeler = null;
+  const w = chip > 0 ? chip : axis.span[block] * cell;
   const starts: number[] = [];
   for (let k = 0; k < n; k++)
     if (k === 0 || axis.breakAt(block, k as ShownIndex) || k - starts[starts.length - 1] >= group) starts.push(k);
@@ -143,6 +179,7 @@ export function prepareRun(
     inline,
     labels,
     labelWidths,
+    chip: chip > 0,
   };
 }
 
@@ -156,27 +193,42 @@ function grow(out: LineTable) {
   next.block.set(out.block);
   next.start.set(out.start);
   next.stop.set(out.stop);
-  Object.assign(out, { block: next.block, start: next.start, stop: next.stop, top: next.top });
+  next.left.set(out.left);
+  next.follows.set(out.follows);
+  Object.assign(out, { ...next, count: out.count });
 }
 
-function push(out: LineTable, n: number, block: number, start: number, stop: number): number {
+function push(out: LineTable, n: number, block: number, start: number, stop: number, left = 0, follows = 0): number {
   if (n >= out.block.length) grow(out);
   out.block[n] = block;
   out.start[n] = start;
   out.stop[n] = stop;
+  out.left[n] = left;
+  out.follows[n] = follows;
   return n + 1;
 }
 
 /**
  * Fills lines greedily, each block on a new line; a short last group takes a full group's room; a group wider than a
- * line is cut at a position. The line count.
+ * line is cut at a position. Chips flow: one after another on a row, `gap` apart, a new row where the next does not
+ * fit. The line count.
  */
 export function layoutRuns(runs: readonly PreparedRun[], maxWidth: number, gap: number, out: LineTable): number {
   const fit = Math.max(0, maxWidth) + 0.005;
   let n = 0;
+  // The chips' row so far: its width, -1 with none open.
+  let row = -1;
   for (let r = 0; r < runs.length; r++) {
     const run = runs[r];
     const { widths, startShown } = run;
+    if (run.chip && run.count > 0) {
+      const w = run.advance;
+      const on = row >= 0 && row + gap + w <= fit;
+      n = push(out, n, run.block, 0, run.count, on ? row + gap : 0, on ? 1 : 0);
+      row = on ? row + gap + w : w;
+      continue;
+    }
+    row = -1;
     let lineW = 0;
     let has = false;
     let lineStart = 0;
@@ -233,7 +285,12 @@ const xs = new Float64Array(1);
 /** `runX` into `out[i]`: a per-frame caller takes no double from a call V8 does not inline (it boxes it). */
 export function runXInto(run: PreparedRun, lineStart: number, k: number, gap: number, out: Float64Array, i: number) {
   const g = groupOf(run, k);
-  let at = endOf(run, k - 1) - endOf(run, lineStart - 1);
+  // `endOf` inline: a fractional end returned from a call V8 does not inline (a big caller's inlining budget spent, the
+  // hit's and the overlay's) is a boxed double, two a call (2026-10-15: 4.7 bytes a step over a select drag's scroll).
+  const ends = run.positionEnds;
+  const a = k < 1 ? 0 : ends ? ends[k - 1] : k * run.advance;
+  const b = lineStart < 1 ? 0 : ends ? ends[lineStart - 1] : lineStart * run.advance;
+  let at = a - b;
   if (run.inline && k < run.count && run.startShown[g] === k) at += run.labelWidths[g];
   out[i] = at + gap * (g - groupOf(run, lineStart));
 }
@@ -365,4 +422,24 @@ export function laneLineHeights(s: unknown, _p: unknown, axis: AxisView, lines: 
   if (lanesOut.length < f.lanes) lanesOut = new Int32Array(2 * f.lanes);
   for (let i = 0; i < lines.count; i++)
     out[i] = lineLanes(f, axis, lines, i, lanesOut) * axis.laneHeight + axis.trackGap;
+}
+
+/** What a strip lane reads of its layer's prepared state (`PerPosition`'s): per block its values or rows, a stream. */
+export interface StripSource {
+  readonly value: readonly (Float64Array | null)[];
+  readonly row: readonly (Int32Array | null)[];
+  readonly stream?: unknown;
+}
+/**
+ * `lineHeights` of the types drawn as a strip lane (`values`, `color`; seqspec:viewer#the-text-view): the gap under
+ * the letters (`wrappedTrackGap`) and the strip's height (`wrappedStripHeight`) on a line of a block the layer has data
+ * on (values, rows or a stream), none on another.
+ */
+export function stripLineHeights(s: unknown, _p: unknown, axis: AxisView, lines: LineTable, out: Float32Array) {
+  const st = s as StripSource | undefined;
+  for (let i = 0; i < lines.count; i++) {
+    const b = lines.block[i];
+    const on = !!st && (st.stream != null || (b < st.value.length && (st.value[b] !== null || st.row[b] !== null)));
+    out[i] = on ? axis.stripHeight + axis.trackGap : 0;
+  }
 }

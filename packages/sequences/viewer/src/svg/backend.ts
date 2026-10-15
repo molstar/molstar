@@ -374,7 +374,10 @@ export class SvgBackend implements RenderBackend {
         b.color[end] === b.color[p] &&
         b.alpha[end] === b.alpha[p] &&
         b.mode[end] === b.mode[p] &&
-        b.width[end] === b.width[p]
+        b.width[end] === b.width[p] &&
+        b.dash[end] === b.dash[p] &&
+        b.gap[end] === b.gap[p] &&
+        b.phase[end] === b.phase[p]
       )
         end++;
       let d = '';
@@ -417,7 +420,7 @@ export class SvgBackend implements RenderBackend {
       }
       const style =
         b.mode[p] === PathMode.stroke
-          ? `${this.paint(b.color[p], b.alpha[p], 'stroke')} fill="none" stroke-width="${this.n(Math.round((b.width[p] / 2) * this.q))}"`
+          ? `${this.paint(b.color[p], b.alpha[p], 'stroke')} fill="none" stroke-width="${this.n(Math.round((b.width[p] / 2) * this.q))}"${this.dashOf(b, p)}`
           : this.paint(b.color[p], b.alpha[p], 'fill');
       this.out.push(`<path${style} d="${d}"/>`);
       this.stats.paths += end - p;
@@ -546,6 +549,12 @@ export class SvgBackend implements RenderBackend {
   // ---- numbers, colors and shapes --------------------------------------------------------------------------------
 
   /** Hundredths as a decimal; a number that is not finite is written 0 and counted. */
+  /** A dashed stroke's pattern and offset (`PathBatch.dashed`), as Canvas2D draws it; '' when solid. */
+  private dashOf(b: PathBatch, p: number): string {
+    if (b.dash[p] === 0) return '';
+    const d = `${this.p(b.dash[p])} ${this.p(b.gap[p])}`;
+    return ` stroke-dasharray="${d}"${b.phase[p] === 0 ? '' : ` stroke-dashoffset="${this.p(b.phase[p])}"`}`;
+  }
   private n(h: number): string {
     if (Number.isFinite(h)) return dec(h);
     this.stats.nonFinite++;

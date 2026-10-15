@@ -373,13 +373,10 @@ describe('fallbacks and resolve-phase issues', () => {
       Array.from(r.view.layers.type, (x) => (x < 0 ? 'omitted' : label(r.set, x)));
     const tracks = await resolve(make('tracks'), 'v');
     expect([types(tracks), tracks.issues]).toEqual([['ruler', 'values', 'pairs'], []]);
+    // Text draws values (a strip lane) but no ruler (omitted) or pairs (its fallback, points).
     const text = await resolve(make('text'), 'v');
-    expect(types(text)).toEqual(['omitted', 'color', 'points']);
-    expect(text.issues.map((i) => i.code)).toEqual([
-      'svs.render.omitted',
-      'svs.render.fallback',
-      'svs.render.fallback',
-    ]);
+    expect(types(text)).toEqual(['omitted', 'values', 'points']);
+    expect(text.issues.map((i) => i.code)).toEqual(['svs.render.omitted', 'svs.render.fallback']);
     expect(text.view.sections.ref.length).toBe(1);
   });
 

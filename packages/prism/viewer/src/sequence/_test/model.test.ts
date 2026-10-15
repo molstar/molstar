@@ -63,25 +63,41 @@ describe('the sequence model', () => {
     h.viewers.dispose();
   });
 
-  it('switches the style, the text with only the letters (no lane for the tracks), and keeps it across a new document', async () => {
+  it('switches the style on one document (the same object, secondary structure in both), and keeps it across a new theme', async () => {
     const h = headlessViewers();
     h.structure.set(await hostStructure());
     await settled(h);
     const doc = h.viewer.seq.document.shown.value;
+    const set = h.viewer.seq.graph.assembled.value?.set;
     expect(h.viewer.seq.ui.style.value.get('main')).toBe('prism_tracks');
+    expect(JSON.stringify(doc)).toContain('molstar:secondary_structure');
     h.viewer.setStyle('compact');
     expect(h.viewer.style.value).toBe('compact');
     expect(h.viewer.seq.ui.style.value.get('main')).toBe('compact');
     await settled(h);
-    const text = JSON.stringify(h.viewer.seq.document.shown.value);
-    expect(text).not.toContain('molstar:secondary_structure');
-    expect(h.viewer.seq.document.shown.value).not.toBe(doc);
+    expect(h.viewer.seq.document.shown.value).toBe(doc);
+    expect(h.viewer.seq.graph.assembled.value?.set).toBe(set);
+    expect(h.viewer.seq.layout.presetOf(0)?.geometry).toBe('wrapped');
     h.viewer.setTheme({ letters: 'taylor' });
     await settled(h);
     expect(h.viewer.seq.ui.style.value.get('main')).toBe('compact');
     h.viewer.setStyle('tracks');
     await settled(h);
+    expect(h.viewer.seq.ui.style.value.get('main')).toBe('prism_tracks');
     expect(JSON.stringify(h.viewer.seq.document.shown.value)).toContain('molstar:secondary_structure');
+    h.viewers.dispose();
+  });
+
+  it("the text style's render props are the model's: centered, colored, the letters' size", async () => {
+    const h = headlessViewers();
+    h.structure.set(await hostStructure());
+    await settled(h);
+    h.viewer.setStyle('compact');
+    h.scheduler.advance(50);
+    const props = h.viewer.seq.layout.props('main');
+    expect(props.wrappedAlign).toBe('center');
+    expect(props.wrappedColors).toBe(true);
+    expect(props.unobservedGray).toBe(true);
     h.viewers.dispose();
   });
 
@@ -128,7 +144,7 @@ describe('the sequence model', () => {
     h.viewers.dispose();
   });
 
-  it("Shift adds or removes each stretch (`shiftPositions: 'toggle'`), not Seq*'s own `extend`", () => {
+  it("Shift adds or removes each stretch (Seq*'s default `shiftPositions: 'toggle'`)", () => {
     const h = headlessViewers();
     expect(h.viewer.seq.behaviors.get<{ shiftPositions: string }>('select')?.params.value.shiftPositions).toBe(
       'toggle',
@@ -168,6 +184,8 @@ describe('the sequence model', () => {
     const host = await hostStructure();
     h.structure.set({ ...host, predicted: true });
     await settled(h);
+    // Asked through Seq*'s `interaction.menu` (sequence-control.tsx): no behavior of Prism's in the spec for it.
+    expect(h.viewer.seq.behaviors.get('contextMenu')).toBeNull();
     const menu = (track: string) => h.viewer.trackActions(track).map((a) => a.label);
     expect(menu('letters')).toEqual(['Apply default coloring']);
     expect(menu('ss-track')).toEqual(['Color by secondary structure']);

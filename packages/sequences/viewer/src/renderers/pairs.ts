@@ -32,7 +32,8 @@ import {
   type Hit,
   HOVER_WIDTH,
   hitItem,
-  hitWindow,
+  hitReach,
+  hitWindowAt,
   inkOf,
   kernelEntry,
   keyAlpha,
@@ -162,7 +163,10 @@ function hit(v: AxisView, s: PairsState, p: Params, out: Hit): boolean {
 /** The end (its place in key order) whose glyph holds the point, the nearest; -1: none. `y`: the ends' line. */
 function endNear(v: AxisView, s: PairsState, c: PairColors | undefined, out: Hit, y: number): number {
   const b = out.block;
-  if (!hitWindow(v, b, out.point[0], c?.radius ? 8 : R, nearby)) return -1;
+  // The point through `hitReach`: a double passed to a call V8 does not inline is boxed.
+  hitReach[0] = out.point[0];
+  hitReach[1] = c?.radius ? 8 : R;
+  if (!hitWindowAt(v, b, nearby)) return -1;
   // The ends in that window, by their keys.
   let lo = 0;
   for (let hi = s.endKey.length; lo < hi; ) {

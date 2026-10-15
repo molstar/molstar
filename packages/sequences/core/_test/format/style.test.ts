@@ -47,6 +47,9 @@ describe("validating a section's style", () => {
       wrapped_group_labels: 'inline_start',
       row_borders: true,
       hover_emphasis: false,
+      track_axes: true,
+      track_labels: true,
+      wrapped_tracks: 'full',
     };
     expect(Object.keys(each).slice(1)).toEqual(Object.keys(SectionStyleKeys));
     for (const [k, v] of Object.entries(each)) expect(issues({ [k]: v }), k).toEqual([]);
@@ -64,7 +67,8 @@ describe("validating a section's style", () => {
         'warning',
         '/colum_heads',
         'unknown style key "colum_heads"; the keys: preset, column_heads, data_floor, row_height, header_width, ' +
-          'vertical_nav, wrapped_group_labels, row_borders, hover_emphasis; it is ignored, the rest of the style applies',
+          'vertical_nav, wrapped_group_labels, row_borders, hover_emphasis, track_axes, track_labels, wrapped_tracks; it ' +
+          'is ignored, the rest of the style applies',
       ],
     ]);
     // A newer minor's key is the version's warning, as any unknown param there (seqspec:format#versioning).

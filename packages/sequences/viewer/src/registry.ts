@@ -131,6 +131,12 @@ export interface LayerRenderer<S = unknown> extends NamedEntry {
   rows?(v: DrawView, s: S, p: unknown, first: number, last: number): void;
   /** Below `minHeight`; without it the engine draws the layer's placed extents as bars. */
   tiny?(v: DrawView, s: S, p: unknown): void;
+  /**
+   * Wrapped: what it draws on its line's text, behind the letters (a range's `highlight` and `box`,
+   * seqspec:viewer#the-text-view): the composer calls it while drawing the line's first letters track, `v.top` and
+   * `v.height` that band, with this layer's state and themes.
+   */
+  behindText?(v: DrawView, s: S, p: unknown): void;
   /** Numbers that follow the view, in the gutters. */
   gutter?(v: DrawView, s: S, p: unknown): void;
   /** What is lit, from `v.marks`. */

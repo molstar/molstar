@@ -120,7 +120,7 @@ export interface LayerTypeEntry {
   /** What its layers take as channel params, `color` first (seqspec:format#layer-types). */
   readonly channels: readonly ChannelEntry[];
 }
-export type ChannelKind = 'color' | 'size' | 'glyph';
+export type ChannelKind = 'color' | 'size' | 'glyph' | 'line_style';
 export interface ChannelEntry {
   readonly name: string;
   readonly kind: ChannelKind;

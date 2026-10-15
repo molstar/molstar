@@ -13,7 +13,7 @@ import { SvsVersion } from './doc.js';
 import type { ChannelKind, SvsRegistries, ThemeEntry } from './registry.js';
 import type { Fields, ParamsSchema } from './schema/params-schema.js';
 import type { TreeSchema } from './schema/tree-schema.js';
-import { GlyphShapes, PaletteSchema } from './tables/param-types.js';
+import { GlyphShapes, LineStyles, PaletteSchema } from './tables/param-types.js';
 import { SvsTreeSchema } from './tables/svs-tree.js';
 import { GeometryColumns } from './tables/table.js';
 
@@ -103,6 +103,10 @@ function typesSection(): string[] {
     '',
     `A shape name (${GlyphShapes.map(code).join(', ')}) or an object with exactly one of ${code('shape')}, ${code('char')} (one grapheme) and ${code('path')} (SVG path data, at most 4 KB, with ${code('box')}: [w, h]), and optionally ${code('label')} and ${code('fallback')} (a shape).`,
     '',
+    '### `LineStyle`',
+    '',
+    `How a range's item is drawn: ${LineStyles.map(code).join(', ')}; ${code('solid')} is the plain bar or underline.`,
+    '',
     '### `Color`',
     '',
     "`#rgb`, `#rrggbb`, a Mol* color name, or a split color `a/b`. No alpha: a layer's `opacity` gives it.",
@@ -150,7 +154,11 @@ export function printReference(reg: SvsRegistries, schema: TreeSchema = SvsTreeS
   }
   out.push('', ...types.flatMap((t) => [`### ${code(t.name)}`, '', ...paramsTable(t.options)]));
   const all = reg.list('themes');
-  out.push(...themes('Color themes', all, 'color'), ...themes('Glyph themes', all, 'glyph'));
+  out.push(
+    ...themes('Color themes', all, 'color'),
+    ...themes('Glyph themes', all, 'glyph'),
+    ...themes('Line style themes', all, 'line_style'),
+  );
   out.push(
     '## Letter maps',
     '',

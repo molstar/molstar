@@ -9,7 +9,7 @@
 // The shared param types (seqspec:format#positions, seqspec:format#themes): labels, colors, palettes, theme references,
 // glyphs, tables, provenance, filters, URIs.
 
-import type { Glyph, GlyphShape, ThemeRef } from '../doc.js';
+import type { Glyph, GlyphShape, LineStyle, ThemeRef } from '../doc.js';
 import { Color } from '../palettes/color.js';
 import { ColorDictionaryNames } from '../palettes/dictionaries.js';
 import { isMapLetter } from '../palettes/letter-maps.js';
@@ -180,7 +180,8 @@ export const letterMap: FieldType<string | Record<string, string>> = {
  * theme that does not serve the kind is `svs.theme.channel`.
  */
 export function themeRef(kind: ChannelKind): FieldType<ThemeRef> {
-  const code = kind === 'glyph' ? 'svs.glyph.invalid' : 'svs.color.invalid';
+  const code =
+    kind === 'glyph' ? 'svs.glyph.invalid' : kind === 'line_style' ? 'svs.line_style.invalid' : 'svs.color.invalid';
   const self: FieldType<ThemeRef> = {
     name: `ThemeRef<${kind}>`,
     check(v, path, ctx: CheckContext) {
@@ -275,6 +276,16 @@ export const GlyphShapes: readonly GlyphShape[] = [
   'cross',
   'tick',
 ];
+/** The line styles (seqspec:format#themes), `solid` first: the default. */
+export const LineStyles: readonly LineStyle[] = ['solid', 'dashed', 'dotted', 'wavy', 'double', 'box', 'highlight'];
+/** One of `LineStyles`; another value is `svs.line_style.invalid`, naming them. */
+export const lineStyle: FieldType<LineStyle> = {
+  name: 'LineStyle',
+  check(v, path, ctx) {
+    if (typeof v !== 'string' || !LineStyles.includes(v as LineStyle))
+      report(ctx, 'svs.line_style.invalid', path, `${JSON.stringify(v)} is not a line style: ${LineStyles.join(', ')}`);
+  },
+};
 const GLYPH_KEYS = ['shape', 'char', 'path', 'box', 'label', 'fallback'];
 const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 

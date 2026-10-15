@@ -11,12 +11,13 @@
 // underlines on the lanes of the line; more items in view than device columns (one mode per layer per frame, with
 // hysteresis): density per column and color (the shared `drawDensity`, coverage), never one color's bars over
 // another's. Every item counts: one narrower than a pixel is a device pixel wide. `tiny` merges the lanes into one
-// band. A label is centered on its piece's whole extent and moves with it, sticking to the data area's edge only where
-// it would leave the
-// piece's visible part (seqspec:sources#levels-and-the-zoom-gate, the sticky label). Over its track's letters a
+// band. A label is centered on its piece's whole extent and moves with it (in the text drawn in full, its part on the
+// line), sticking to the data area's edge only where it would leave the piece's visible part
+// (seqspec:sources#levels-and-the-zoom-gate, the sticky label). Over its track's letters a
 // boundary keeps off their text: a small triangle pinned to the row's top edge and a hairline down the boundary, or the
-// hairline alone (seqspec:viewer#the-render-backend). The overlay outlines the hovered item's pieces
-// (seqspec:interaction#hover).
+// hairline alone (seqspec:viewer#the-render-backend). Each item in its line style (seqspec:format#themes): solid the
+// bar, the others through `StyledLines` (a highlight fills the entry's rows; wrapped, a highlight or box also marks the
+// line's text, `behindText`). The overlay outlines the hovered item's pieces as before (seqspec:interaction#hover).
 import { Annotations } from '@molstar/seq-core/model';
 import {
   type Axis,
@@ -31,6 +32,7 @@ import {
   densityMode,
   densityShown,
   drawLineLanes,
+  drawLineText,
   drawStreamedItems,
   type Features,
   featureAt,
@@ -38,6 +40,7 @@ import {
   featureHoverKey,
   featureInk,
   featureKey,
+  featureLineStyle,
   featureSize,
   fitIn,
   fitted,
@@ -48,7 +51,8 @@ import {
   hitLayer,
   hitLineLanes,
   hitStreamed,
-  hitWindow,
+  hitReach,
+  hitWindowAt,
   hoverEmphasis,
   hoveredAt,
   hoveredItem,
@@ -59,6 +63,7 @@ import {
   laneHeight,
   laneInset,
   lanePad,
+  LineStyle,
   laneRows,
   NO_SIZE,
   outlineLineLanes,
@@ -70,10 +75,12 @@ import {
   placeRun,
   RectBatch,
   SkinToken,
+  StyledLines,
   segWindow,
   shownHull,
   sizePx,
   sizeTheme,
+  styledSegment,
   TextAlign,
   TextBaseline,
   TextBatch,
@@ -88,6 +95,10 @@ const rects = new RectBatch(256);
 const glyphs = new GlyphBatch(32);
 const names = new TextBatch(32);
 const heads = new PathBatch(32);
+/** Items in a line style other than solid (seqspec:format#themes). */
+const styled = new StyledLines();
+/** The entry's rows (device px): a highlight's band in tracks. */
+const rowY = new Int32Array(2);
 const range = new Int32Array(2);
 const hull = new Int32Array(2);
 const win = new Int32Array(2);
@@ -147,6 +158,9 @@ const LETTERS = Lod.letters;
 const FILL = PathMode.fill;
 const MOVE = PathVerb.move;
 const LINE_TO = PathVerb.line;
+const SOLID = LineStyle.solid;
+const BOX = LineStyle.box;
+const HIGHLIGHT = LineStyle.highlight;
 /** The hit's reach each side of a pinned boundary (CSS px): the triangle's half width at most, and a few px. */
 const PIN_REACH = 4.5;
 /**
@@ -337,6 +351,8 @@ function item(v: DrawView, f: Features, k: number, b: number, y0: number, y1: nu
     glyphs.radius[i] = r;
     return;
   }
+  // The line style channel: solid is the bar (or bracket) itself; a highlight fills the entry's rows behind the lanes.
+  const style = featureLineStyle(v, f, k);
   // The thickness channel: a bar of a share of its lane, centered (brackets keep their own).
   if (!brackets) {
     barBand(featureSize(v, f, k, sizeTheme(v, 0, 2)), y0, y1);
@@ -346,7 +362,7 @@ function item(v: DrawView, f: Features, k: number, b: number, y0: number, y1: nu
   const n = placeRun(v, b, f.start[k], f.stop[k], piece);
   // A direction (`direction_field`): an arrowhead at the item's end, its tip on the end's outer edge on screen (a
   // reversed piece's left), cut from the piece that reaches it, at most 3/4 of the bar's height long.
-  const d = dirs === null || brackets ? 0 : dirs[k];
+  const d = dirs === null || brackets || style === BOX || style === HIGHLIGHT ? 0 : dirs[k];
   const qe = d === 0 ? -1 : v.shownOf(b, d > 0 ? f.stop[k] - 1 : f.start[k]);
   const sd = qe < 0 ? 0 : d * v.dir[b];
   const tip = sd > 0 ? v.xd(b, qe + 1) : sd < 0 ? v.xd(b, qe) : 0;
@@ -366,6 +382,7 @@ function item(v: DrawView, f: Features, k: number, b: number, y0: number, y1: nu
       x0 += hl;
       w -= hl;
     }
+    if (style !== SOLID && styledPiece(v, b, style, x0, w, y0, y1, brackets, ink, alpha)) continue;
     if (brackets) {
       const t = Math.min(Math.round(4 * dpr) | 0, y1 - y0);
       rects.push(x0, y1 - 1, w, 1);
@@ -392,12 +409,39 @@ function item(v: DrawView, f: Features, k: number, b: number, y0: number, y1: nu
   at[0] *= dpr / 2;
   at[1] = (a0 + a1) / 2;
   const pad = 4 * dpr;
-  names.begin(brackets ? SkinToken.ink : SkinToken.surface);
+  // On a filled bar in the surface's color; on a bracket or another style's marks, in the ink.
+  names.begin(brackets || style !== SOLID ? SkinToken.ink : SkinToken.surface);
   const t = names.add(fitted(p, m));
   names.x[t] = at[1];
   if (at[1] - at[0] < v0 + pad) names.x[t] = v0 + pad + at[0];
   else if (at[1] + at[0] > v1 - pad) names.x[t] = v1 - pad - at[0];
   names.y[t] = Math.round((y0 + y1) / 2) + 0.5;
+}
+
+/**
+ * A piece [x0, x0 + w) of an item in a line style but solid, on its bar [y0, y1) (device px): a highlight over the
+ * entry's rows, a box around the bar (a bracket's whole box), a bracket's other styles on its line with its ticks
+ * solid. False: the band is too thin for the style (drawn solid).
+ */
+function styledPiece(
+  v: DrawView,
+  b: number,
+  style: number,
+  x0: number,
+  w: number,
+  y0: number,
+  y1: number,
+  brackets: boolean,
+  ink: number,
+  alpha: number,
+): boolean {
+  if (style === HIGHLIGHT) return styledSegment(v, styled, style, b, x0, w, rowY[0], rowY[1], ink, alpha);
+  if (!brackets || style === BOX) return styledSegment(v, styled, style, b, x0, w, y0, y1, ink, alpha);
+  const t = Math.min(Math.round(4 * v.dpr) | 0, y1 - y0);
+  if (!styledSegment(v, styled, style, b, x0, w, y1 - t, y1, ink, alpha)) return false;
+  rects.push(x0, y1 - t, 1, t);
+  rects.push(x0 + w - 1, y1 - t, 1, t);
+  return true;
 }
 
 /**
@@ -411,8 +455,16 @@ function extent(v: DrawView, b: number, start: number, stop: number): boolean {
     n = v.runToShown(b, start, stop, shown);
   }
   for (let r = 0; r < n; r++) {
-    const x0 = v.xd(b, shown[2 * r]);
-    const x1 = v.xd(b, shown[2 * r + 1]);
+    let k0 = shown[2 * r];
+    let k1 = shown[2 * r + 1];
+    // On a line (a track drawn in full in the text): the run's part on it, its last cell's right edge its end.
+    if (v.trackForm) {
+      if (k0 < v.lineStart) k0 = v.lineStart;
+      if (k1 > v.lineStop) k1 = v.lineStop;
+      if (k1 <= k0) continue;
+    }
+    const x0 = v.xd(b, k0);
+    const x1 = v.trackForm ? v.xe(b, k1 - 1) : v.xd(b, k1);
     if (x1 <= edge[0] || x0 >= edge[1]) continue;
     ext[0] = x0;
     ext[1] = x1;
@@ -442,6 +494,14 @@ function items(v: DrawView, f: Features, p: Params, flat: boolean, lanes = f.lan
   const ys = laneRows(v, f, flat, lanes);
   edge[0] = Math.round(v.left * v.dpr) | 0;
   edge[1] = Math.round(v.right * v.dpr) | 0;
+  // A line of a track drawn in full in the text (seqspec:viewer#the-text-view): the line's own extent, so a label is
+  // its item's part on the line's and never crosses the line's end.
+  if (v.trackForm && v.onlyBlock >= 0 && v.lineStop > v.lineStart) {
+    edge[0] = v.xd(v.onlyBlock, v.lineStart);
+    edge[1] = v.xe(v.onlyBlock, v.lineStop - 1);
+  }
+  rowY[0] = Math.round(v.top * v.dpr) | 0;
+  rowY[1] = Math.round((v.top + v.height) * v.dpr) | 0;
   const brackets = !flat && p.display === 'brackets';
   dirs = flat ? null : directionsOf(v, f, p);
   // Labels need a lane of 10 px and over; one font for the draw. On rings they are the section's, outside (ring-labels.ts).
@@ -489,8 +549,9 @@ function draw(v: DrawView, f: Features, p: Params, flat: boolean) {
   glyphs.reset();
   names.reset();
   heads.reset();
+  styled.reset();
   ThemeLocation.reset(v.loc);
-  if (v.geometry === AxisGeometry.wrapped) drawLineLanes(v, f, rects);
+  if (v.geometry === AxisGeometry.wrapped && !v.trackForm) drawLineLanes(v, f, rects, styled);
   // Streamed (ST3a): region by region (or density), pending regions as placeholders.
   else if (drawStreamedItems(v, p, false, false, flat ? regionFlat : region, rects)) {
   } else {
@@ -499,13 +560,26 @@ function draw(v: DrawView, f: Features, p: Params, flat: boolean) {
     if (v.reductions && densityMode(v, itemsInView(v, f, columns + 1), columns)) densityBand(v, f, p, false, rects);
     else items(v, f, p, flat);
   }
+  // Highlights under the rest; the other styles' lines over the bars.
+  styled.drawUnder(v.backend);
   if (rects.n > 0) v.backend.rects(rects);
+  styled.draw(v.backend);
   if (heads.n > 0) v.backend.paths(heads);
   if (glyphs.n > 0) {
     glyphs.font = v.text.font('ui', 12, 600);
     v.backend.glyphs(glyphs);
   }
   if (names.n > 0) v.backend.text(names);
+}
+
+/** Wrapped: its items styled `highlight` or `box` on the line's text, under the letters (`behindText`). */
+function behindText(v: DrawView, f: Features) {
+  if (v.lineStyle === null) return;
+  styled.reset();
+  ThemeLocation.reset(v.loc);
+  drawLineText(v, f, styled);
+  styled.drawUnder(v.backend);
+  styled.draw(v.backend);
 }
 
 /**
@@ -518,7 +592,7 @@ function hit(v: AxisView, f: Features, p: Params, out: Hit): boolean {
   // Wrapped, its underlines on the line's lanes.
   if (hitLineLanes(v, f, out)) return true;
   // On a rows track's row, its features are found by lane (hit.ts's item lookup); streamed, in its regions (ST3b).
-  if (v.geometry !== AxisGeometry.linear || out.block < 0 || v.row !== -1) return false;
+  if ((v.geometry !== AxisGeometry.linear && !v.trackForm) || out.block < 0 || v.row !== -1) return false;
   // Past the block's end (no position, `hitsPastEnd`): a boundary's glyph only.
   const past = out.index < 0;
   if (!past && hitStreamed(v, out, true)) return true;
@@ -536,7 +610,7 @@ function hit(v: AxisView, f: Features, p: Params, out: Hit): boolean {
   const lane = Math.floor(at);
   const inset = laneInset(h) / h;
   let k =
-    at - lane >= inset && at - lane < 1 - inset && lane < f.lanes ? (over ? -1 : boundaryAt(v, f, lane, h, out)) : -2;
+    at - lane >= inset && at - lane < 1 - inset && lane < f.lanes ? (over ? -1 : boundaryAt(v, f, lane, out)) : -2;
   if (k === -1 && !past) k = featureAt(f, out.block, lane, out.index);
   // Over letters a boundary is its pin alone: the position after it is its residue's.
   if (over && k >= 0 && f.stop[k] <= f.start[k]) k = -1;
@@ -554,10 +628,18 @@ function hit(v: AxisView, f: Features, p: Params, out: Hit): boolean {
   if (k >= 0) hitItem(out, (v.axis as Axis).set, f.annotation[k], f.row[k]);
   return true;
 }
-/** The boundary in `lane` whose glyph (as `item` draws it) holds the hit's point, the nearest; -1: none. */
-function boundaryAt(v: AxisView, f: Features, lane: number, h: number, out: Hit): number {
+/**
+ * The boundary in `lane` whose glyph (as `item` draws it) holds the hit's point, the nearest; -1: none. The lane's
+ * height is its own (`laneHeight`): passed in, a fractional height was a boxed double a move (3.5 bytes a step on
+ * average over a scale's hover, 2026-10-15).
+ */
+function boundaryAt(v: AxisView, f: Features, lane: number, out: Hit): number {
+  const h = laneHeight(v.height, f.lanes);
   const b = out.block;
-  if (!hitWindow(v, b, out.point[0], 12, near)) return -1;
+  // The point through `hitReach`: a double passed to a call V8 does not inline is boxed (16 bytes a move, 2026-10-14).
+  hitReach[0] = out.point[0];
+  hitReach[1] = 12;
+  if (!hitWindowAt(v, b, near)) return -1;
   const g = b * f.lanes + lane;
   const cy = v.top + lanePad(v.height) + (lane + 0.5) * h;
   const t = sizeTheme(hitLayer, 1, 2);
@@ -587,8 +669,10 @@ const near = new Int32Array(2);
 /** The pinned boundary (any lane) within `PIN_REACH` of the hit's x on the row, the nearest; -1: none. */
 function pinAt(v: AxisView, f: Features, out: Hit): number {
   const b = out.block;
-  if (out.point[1] < v.top || out.point[1] >= v.top + v.height || !hitWindow(v, b, out.point[0], PIN_REACH, near))
-    return -1;
+  if (out.point[1] < v.top || out.point[1] >= v.top + v.height) return -1;
+  hitReach[0] = out.point[0];
+  hitReach[1] = PIN_REACH;
+  if (!hitWindowAt(v, b, near)) return -1;
   let best = -1;
   let least = PIN_REACH + 0.5;
   for (let lane = 0; lane < f.lanes; lane++) {
@@ -621,11 +705,11 @@ const hovered = new Int32Array(2);
  */
 function overlay(v: DrawView, f: Features, p: Params) {
   if (!hoverEmphasis(v) || !v.axis || outlineStreamed(v, v.height >= (RangesRenderer.minHeight ?? 0))) return;
-  if (v.geometry === AxisGeometry.wrapped) {
+  if (v.geometry === AxisGeometry.wrapped && !v.trackForm) {
     outlineLineLanes(v, f);
     return;
   }
-  const x = v.geometry === AxisGeometry.linear ? hoveredItem(v, f, hovered) : null;
+  const x = v.geometry === AxisGeometry.linear || v.trackForm ? hoveredItem(v, f, hovered) : null;
   const flat = v.height < (RangesRenderer.minHeight ?? 0);
   if (x === null || (!flat && v.reductions && densityShown(v))) return;
   const dpr = v.dpr;
@@ -683,6 +767,7 @@ export const RangesRenderer = kernelEntry<Features>('ranges', 22, {
   hitsPastEnd: true,
   draw: (v, f, p) => draw(v, f, p as Params, false),
   tiny: (v, f, p) => draw(v, f, p as Params, true),
+  behindText: (v, f) => behindText(v, f),
   overlay: (v, f, p) => overlay(v, f, p as Params),
   sized: ['thickness', 'radius'],
   // With `labels`, on rings: each labeled item, for the section's labels outside the rings.

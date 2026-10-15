@@ -43,6 +43,8 @@ export type Paint2D = Pick<
   | 'strokeStyle'
   | 'globalAlpha'
   | 'lineWidth'
+  | 'setLineDash'
+  | 'lineDashOffset'
   | 'font'
   | 'textAlign'
   | 'textBaseline'
@@ -180,6 +182,8 @@ export class Canvas2DShared implements BackendImages {
 
 /** The style a group or subpath sets: cached, so a context switch is made only on a change. */
 const UNSET = -0x80000000;
+/** A solid stroke's dash pattern. */
+const NO_DASH: number[] = [];
 
 export class Canvas2DBackend implements RenderBackend {
   readonly caps = BackendCaps.Copy | BackendCaps.Progressive | BackendCaps.RotatedText | BackendCaps.Back;
@@ -205,6 +209,8 @@ export class Canvas2DBackend implements RenderBackend {
   private baseV = -1;
   private smoothV = -1;
   private readonly num = new Float64Array(1);
+  /** A dashed stroke's pattern, reused (`setLineDash` copies it). */
+  private readonly dashArr = [0, 0];
   /** Batches grouped by (color, alpha): `group`'s order and starts are read after each grouping (they can grow). */
   private readonly groups = new ColorGroups();
 
@@ -410,7 +416,17 @@ export class Canvas2DBackend implements RenderBackend {
           c += PathVerbCoords[b.verbs[v]];
         }
       }
-      if (b.mode[p] === PathMode.stroke) {
+      if (b.mode[p] === PathMode.stroke && b.dash[p] > 0) {
+        // Dashed: the pattern set for this stroke alone (setLineDash copies the scratch), then solid again.
+        this.strokeStyle(b.color[p], b.alpha[p], b.width[p] / 2);
+        this.dashArr[0] = b.dash[p];
+        this.dashArr[1] = b.gap[p];
+        g.setLineDash(this.dashArr);
+        g.lineDashOffset = b.phase[p];
+        g.stroke();
+        g.setLineDash(NO_DASH);
+        g.lineDashOffset = 0;
+      } else if (b.mode[p] === PathMode.stroke) {
         this.strokeStyle(b.color[p], b.alpha[p], b.width[p] / 2);
         g.stroke();
       } else {
@@ -521,7 +537,13 @@ export class Canvas2DBackend implements RenderBackend {
   }
   private sameStyle(b: PathBatch, p: number, q: number): boolean {
     return (
-      b.color[q] === b.color[p] && b.alpha[q] === b.alpha[p] && b.mode[q] === b.mode[p] && b.width[q] === b.width[p]
+      b.color[q] === b.color[p] &&
+      b.alpha[q] === b.alpha[p] &&
+      b.mode[q] === b.mode[p] &&
+      b.width[q] === b.width[p] &&
+      b.dash[q] === b.dash[p] &&
+      b.gap[q] === b.gap[p] &&
+      b.phase[q] === b.phase[p]
     );
   }
   /** The whole of `src` copied into the scratch canvas. */

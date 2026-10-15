@@ -18,11 +18,13 @@ import type { Hit } from '../hit.js';
 import { type Features, featureAt } from '../prepare.js';
 import { segWindow } from '../pyramids.js';
 import { hitItem, laneHeight, laneInset, lanePad } from '../renderer-helpers.js';
-import { groupOf, type LineTable, lineLanes } from '../runs.js';
+import { groupOf, type LineTable, lineLanes, lineTable } from '../runs.js';
+import { LineStyle } from '../themes.js';
 import { NO_COLOR, RectBatch, SkinToken } from './backend.js';
 import { shownHull } from './cells.js';
 import { densityKindOf, drawDensity, featureKey, keyAlpha, keyColor } from './density.js';
 import { HoverOutline, hoveredItem, type ItemOrder } from './hover.js';
+import { featureLineStyle, type StyledLines, styledSegment } from './line-styles.js';
 import type { DrawView } from './view.js';
 
 /** A feature's ink: its color key's, the faint ink where its theme gives none. */
@@ -70,13 +72,8 @@ export function densityBand(v: DrawView, f: Features, p: unknown, point: boolean
   drawDensity(v, f, f, point, densityKindOf(p), SkinToken.inkFaint, rects, y0, y1);
 }
 
-const line: LineTable = {
-  count: 1,
-  block: new Int32Array(1),
-  start: new Int32Array(1),
-  stop: new Int32Array(1),
-  top: new Float64Array(1),
-};
+const line: LineTable = lineTable(1);
+line.count = 1;
 let used = new Int32Array(32);
 const hull = new Int32Array(2);
 const win = new Int32Array(2);
@@ -86,12 +83,14 @@ let shown = new Int32Array(32);
  * A wrapped line's features as underlines, a lane's height (`wrappedLaneHeight`) apart from the entry's bottom and 2 px
  * less high (3 px of 5), one lane each of those with a feature on
  * the line (`lineLanes`, so the entry's height is `laneLineHeights`'), clamped to the line's positions and cut at the
- * gaps between groups (what is drawn is over positions: it hits back to its item).
+ * gaps between groups (what is drawn is over positions: it hits back to its item). With `styled`, each in its line
+ * style (`featureLineStyle`; a wave over the lane's whole slot), solid ones into `rects`.
  */
-export function drawLineLanes(v: DrawView, f: Features, rects: RectBatch): void {
+export function drawLineLanes(v: DrawView, f: Features, rects: RectBatch, styled: StyledLines | null = null): void {
   const b = v.onlyBlock;
   if (!lineFrame(v, f)) return;
   shownHull(v, b, v.lineStart, v.lineStop, hull);
+  styledOut = styled !== null && v.lineStyle !== null ? styled : null;
   for (let lane = 0; lane < f.lanes; lane++) {
     if (used[lane] < 0) continue;
     const g = b * f.lanes + lane;
@@ -101,7 +100,54 @@ export function drawLineLanes(v: DrawView, f: Features, rects: RectBatch): void 
       if (stop <= hull[0] || (f.on[k] >= 0 && f.on[k] !== v.row)) continue;
       const key = featureKey(v, f, k);
       rects.begin(featureInk(key), keyAlpha(key));
+      if (styledOut !== null) {
+        lineStyled[0] = featureLineStyle(v, f, k);
+        lineStyled[1] = featureInk(key);
+        lineStyled[2] = keyAlpha(key);
+      }
       lineUnderline(v, f, k, rects);
+    }
+  }
+  styledOut = null;
+}
+/**
+ * Wrapped: the line's features styled `highlight` or `box` on its text's band (`v.top`, `v.height`: the composer's
+ * `behindText`, under the letters), each over its cells and cut at the gaps between groups, into `styled`.
+ */
+export function drawLineText(v: DrawView, f: Features, styled: StyledLines): void {
+  const b = v.onlyBlock;
+  if (v.lineStyle === null || !lineFrame(v, f)) return;
+  shownHull(v, b, v.lineStart, v.lineStop, hull);
+  const y0 = Math.round(v.top * v.dpr) | 0;
+  const y1 = Math.round((v.top + v.height) * v.dpr) | 0;
+  for (let lane = 0; lane < f.lanes; lane++) {
+    if (used[lane] < 0) continue;
+    const g = b * f.lanes + lane;
+    segWindow(f.start, f.reach, f.seg[g], f.seg[g + 1], hull[0], hull[1], win);
+    for (let k = win[0]; k < win[1]; k++) {
+      const stop = Math.max(f.stop[k], f.start[k] + 1);
+      if (stop <= hull[0] || (f.on[k] >= 0 && f.on[k] !== v.row)) continue;
+      const style = featureLineStyle(v, f, k);
+      if (style !== HIGHLIGHT && style !== BOX) continue;
+      const key = featureKey(v, f, k);
+      const ink = featureInk(key);
+      const alpha = keyAlpha(key);
+      let n = v.runToShown(b, f.start[k], stop, shown);
+      if (2 * n > shown.length) {
+        shown = new Int32Array(4 * n);
+        n = v.runToShown(b, f.start[k], stop, shown);
+      }
+      const run = v.runs[b];
+      for (let r = 0; r < n; r++) {
+        const end = Math.min(v.lineStop, shown[2 * r + 1]);
+        for (let a = Math.max(v.lineStart, shown[2 * r]); a < end; ) {
+          const q = groupOf(run, a);
+          const e = q + 1 < run.segments ? Math.min(end, run.startShown[q + 1]) : end;
+          const x0 = v.xd(b, a);
+          styledSegment(v, styled, style, b, x0, v.xe(b, e - 1) - x0, y0, y1, ink, alpha);
+          a = e;
+        }
+      }
     }
   }
 }
@@ -118,6 +164,10 @@ function lineFrame(v: AxisView, f: Features): boolean {
 }
 // Read once: a member read per pointer event allocated under the test runner's module wrapper.
 const WRAPPED = AxisGeometry.wrapped;
+const SOLID = LineStyle.solid;
+const WAVY = LineStyle.wavy;
+const HIGHLIGHT = LineStyle.highlight;
+const BOX = LineStyle.box;
 /**
  * Wrapped: the hit on a line's underlines, as `drawLineLanes` draws them (the hit's `onlyBlock` and line set): lane L's
  * underline a lane's height apart from the entry's bottom, its slot the lane's height, then the feature over the
@@ -125,7 +175,8 @@ const WRAPPED = AxisGeometry.wrapped;
  * band's top padding, or under no feature); false: not on a line here.
  */
 export function hitLineLanes(v: AxisView, f: Features, out: Hit): boolean {
-  if (v.geometry !== WRAPPED || v.stream !== null || out.block !== v.onlyBlock || out.index < 0) return false;
+  if (v.geometry !== WRAPPED || v.trackForm || v.stream !== null || out.block !== v.onlyBlock || out.index < 0)
+    return false;
   if (!lineFrame(v, f)) return false;
   const lane = Math.floor((v.top + v.height - out.point[1] - 1) / v.laneHeight);
   for (let p = 0; lane >= 0 && p < f.lanes; p++) {
@@ -136,7 +187,13 @@ export function hitLineLanes(v: AxisView, f: Features, out: Hit): boolean {
   }
   return true;
 }
-/** Feature k's underlines on the line (its lane's, from `lineFrame`), cut at the gaps between groups, into `rects`. */
+/** Where `lineUnderline` draws a styled feature (null: rectangles alone), and its style, ink and alpha. */
+let styledOut: StyledLines | null = null;
+const lineStyled = new Int32Array(3);
+/**
+ * Feature k's underlines on the line (its lane's, from `lineFrame`), cut at the gaps between groups, into `rects`; with
+ * `styledOut`, in its style (`lineStyled`).
+ */
 function lineUnderline(v: DrawView, f: Features, k: number, rects: RectBatch): void {
   const b = v.onlyBlock;
   const lane = used[f.lane[k]];
@@ -157,8 +214,13 @@ function lineUnderline(v: DrawView, f: Features, k: number, rects: RectBatch): v
     for (let a = Math.max(v.lineStart, shown[2 * r]); a < end; ) {
       const g = groupOf(run, a);
       const e = g + 1 < run.segments ? Math.min(end, run.startShown[g + 1]) : end;
-      const x0 = v.xd(b, a);
-      rects.push(x0 + d, y, Math.max(2 * d, v.xe(b, e - 1) - x0 - 2 * d), h);
+      const x0 = v.xd(b, a) + d;
+      const w = Math.max(2 * d, v.xe(b, e - 1) - x0 - d);
+      const s = styledOut === null ? SOLID : lineStyled[0];
+      // A wave takes the lane's whole slot; the other styles the underline's band.
+      const y1 = s === WAVY ? y + (Math.round(lh * v.dpr) | 0) : y + h;
+      if (s === SOLID || !styledSegment(v, styledOut as StyledLines, s, b, x0, w, y, y1, lineStyled[1], lineStyled[2]))
+        rects.push(x0, y, w, h);
       a = e;
     }
   }

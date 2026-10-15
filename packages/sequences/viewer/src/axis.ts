@@ -458,13 +458,24 @@ export interface AxisView {
   onlyBlock: number;
   row: number;
   lane: number;
-  /** Wrapped: the line, its shown range and the letters' size. */
+  /** Wrapped: the line, its shown range, its x from the data area's left (a chip's on its row) and the letters' size. */
   line: number;
   lineStart: number;
   lineStop: number;
+  lineLeft: number;
+  /**
+   * Wrapped: the entry's track is drawn in full (a height of its own; seqspec:viewer#the-text-view): its layers draw
+   * their track forms in the band, the line standing in for a linear view (`visLo`/`visHi` the line's positions, `cell`
+   * its advance), not their lanes.
+   */
+  trackForm: boolean;
   fontPx: number;
-  /** Wrapped: an annotation lane's height under the text, and the gap above the first (`wrappedLaneHeight`, …). */
+  /**
+   * Wrapped: an annotation lane's height under the text, a strip lane's, and the gap above a track's first
+   * (`wrappedLaneHeight`, `wrappedStripHeight`, `wrappedTrackGap`).
+   */
   laneHeight: number;
+  stripHeight: number;
   trackGap: number;
   /** The visible rows region. */
   regionTop: number;
@@ -552,8 +563,10 @@ export class SectionAxisView implements AxisView {
   line = -1;
   lineStart = 0;
   lineStop = 0;
+  lineLeft = 0;
   fontPx = 0;
   laneHeight = 5;
+  stripHeight = 3;
   trackGap = 4;
   regionTop = 0;
   regionBottom = 0;
@@ -573,6 +586,50 @@ export class SectionAxisView implements AxisView {
   facing = 0;
   /** Wrapped: each block's prepared run (the layout's), and px between groups. */
   runs: readonly PreparedRun[] = [];
+  trackForm = false;
+  private lineLo = new Int32Array(0);
+  private lineHi = new Int32Array(0);
+  /** The view's own, while a line stands in for it (`setTrackForm`). */
+  private keptLo: Int32Array = NONE;
+  private keptHi: Int32Array = NONE;
+  private keptCell = 1;
+  /**
+   * Wrapped: draws (and hits) the entry's line as a linear view where its track is drawn in full (`trackForm`), the
+   * view's own range and cell kept and put back after. Set after the line (`onlyBlock`, `lineStart`, `lineStop`).
+   * Allocation-free once grown to the section's block count.
+   */
+  setTrackForm(full: boolean): void {
+    if (!full && !this.trackForm) return;
+    if (!this.trackForm) {
+      this.keptLo = this.visLo;
+      this.keptHi = this.visHi;
+      this.keptCell = this.cell;
+    }
+    if (!full) {
+      this.visLo = this.keptLo;
+      this.visHi = this.keptHi;
+      this.cell = this.keptCell;
+      this.trackForm = false;
+      return;
+    }
+    const n = this.span.length;
+    if (this.lineLo.length < n) {
+      this.lineLo = new Int32Array(n);
+      this.lineHi = new Int32Array(n);
+    }
+    this.lineLo.fill(0);
+    this.lineHi.fill(0);
+    const b = this.onlyBlock;
+    if (b >= 0 && b < n) {
+      this.lineLo[b] = this.lineStart;
+      this.lineHi[b] = this.lineStop;
+      const run = this.runs[b];
+      if (run && this.span[b] > 0) this.cell = run.advance / this.span[b];
+    }
+    this.visLo = this.lineLo;
+    this.visHi = this.lineHi;
+    this.trackForm = true;
+  }
   gap = 0;
   private readonly xs = new Float64Array(1);
   /** The layout and viewport versions it was synced at. */
@@ -580,6 +637,7 @@ export class SectionAxisView implements AxisView {
 
   /** Allocation-free unless the block count changed. Wrapped x is the layout's runs' (`runs`, `lineStart`). */
   sync(ax: Axis, l: AxisFrame, s: ViewportState) {
+    this.trackForm = false;
     this.axis = ax;
     this.geometry = l.geometry;
     if (this.blockX.length !== ax.count) {
@@ -721,7 +779,7 @@ export class SectionAxisView implements AxisView {
   x(block: number, shown: ShownIndex): number {
     if (this.geometry === AxisGeometry.wrapped) {
       runXInto(this.runs[block], this.lineStart, shown, this.gap, this.xs, 0);
-      return this.left + this.xs[0];
+      return this.left + this.lineLeft + this.xs[0];
     }
     return (
       (Math.round((this.blockX0[block] + shown * this.span[block] * this.cell) * this.dpr) - this.scrollDev) / this.dpr

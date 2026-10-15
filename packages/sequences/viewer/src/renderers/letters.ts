@@ -22,6 +22,7 @@ import { CoordinateSystemKind, threeLetter } from '@molstar/seq-core/model';
 import {
   type Axis,
   AxisGeometry,
+  chipFontPx,
   type AxisView,
   bandOver,
   type CellSource,
@@ -202,13 +203,13 @@ const three = (c: number) => {
 
 /** A streamed block's codes over its shown hull (`StreamView.letters`), grown at edge rate. */
 let held = new Uint8Array(4096);
-/** Whether block b's position i is a unit position the structure does not model (the unit's `observed` ranges). */
-function unobservedAt(ax: Axis, b: number, i: number): boolean {
-  const u = ax.unit[b];
-  const obs = u >= 0 ? ax.set.units.observed[u] : null;
-  if (!obs) return false;
-  for (let k = 0; k < obs.length; k += 2) if (i >= obs[k] && i < obs[k + 1]) return false;
-  return true;
+/**
+ * Whether block b's position i is a unit position the structure does not model: its unit's `observed` mask, built once
+ * per prepared state (`LettersState.observed`); before, a scan of the unit's ranges per position per frame.
+ */
+function unobservedAt(s: LettersState, b: number, i: number): boolean {
+  const m = s.observed[b];
+  return m !== null && (i >= m.length || m[i] === 0);
 }
 /** `key`'s for an unobserved position under `unobservedGray`: past every letter code (0..255), one class of its own. */
 const UNOBSERVED_KEY = 256;
@@ -240,7 +241,7 @@ const own: CellSource & {
     const codes = own.codes;
     own.gray = false;
     if (!v.color || !codes || !v.axis) return NO_COLOR;
-    if (v.props.unobservedGray && unobservedAt(v.axis, b, i)) {
+    if (v.props.unobservedGray && unobservedAt(s, b, i)) {
       own.gray = true;
       return UNOBSERVED;
     }
@@ -260,7 +261,7 @@ const own: CellSource & {
     const v = own.v as DrawView;
     const g = v.color ? v.color.granularity : -1;
     const codes = own.codes;
-    if (v.props.unobservedGray && v.axis && unobservedAt(v.axis, b, i)) return UNOBSERVED_KEY;
+    if (v.props.unobservedGray && own.s && unobservedAt(own.s, b, i)) return UNOBSERVED_KEY;
     if (g === Granularity.letter && codes && v.axis) return codes[i - own.base];
     return g === Granularity.uniform || g === Granularity.unit ? 0 : -1;
   },
@@ -503,8 +504,7 @@ function block(v: DrawView, s: LettersState, b: number) {
     const c = map !== null ? map[stored & 127] : stored;
     // An atom in its theme's color; a residue in the ink that reads on its cell (the ink on an unobserved one), tinted
     // in its color, or unobserved in that token; a gap quiet.
-    const fill =
-      atoms || cells || tinted ? own.color(b, i) : grayText && unobservedAt(ax, b, i) ? UNOBSERVED : NO_COLOR;
+    const fill = atoms || cells || tinted ? own.color(b, i) : grayText && unobservedAt(s, b, i) ? UNOBSERVED : NO_COLOR;
     letters.begin(
       atoms
         ? fill >= 0 || fill === UNOBSERVED
@@ -526,14 +526,19 @@ function block(v: DrawView, s: LettersState, b: number) {
   }
 }
 
-/** A ligand in the `position` form: one cell across its span, labeled with its chemical component. */
+/**
+ * A ligand in the `position` form: one cell across its span, labeled with its chemical component; narrower than a box, a
+ * filled cell at least 2 device px wide, unlabeled.
+ */
 function pill(v: DrawView, s: LettersState, b: number, lo: number, hi: number) {
   const dpr = v.dpr;
   const d = Math.max(1, Math.round(dpr));
   const y0 = Math.round((v.top + 3) * dpr);
   const y1 = Math.round((v.top + v.height - 3) * dpr);
   const tm = v.text;
-  const font = tm.font('ui', Math.max(7, Math.min(12, Math.floor(v.height * 0.5))), 600);
+  // In text a chip, sized by the layout to this label (`chipFontPx`, seqspec:viewer#the-text-view).
+  const px = v.geometry === AxisGeometry.wrapped ? chipFontPx(v.fontPx) : Math.floor(v.height * 0.5);
+  const font = tm.font('ui', Math.max(7, Math.min(12, px)), 600);
   const name = tm.label(s.names[b] ?? '', font);
   pills.style(font, TextAlign.center, TextBaseline.alphabetic);
   letterLines(v, font, y0, y1, baselines);
@@ -541,8 +546,14 @@ function pill(v: DrawView, s: LettersState, b: number, lo: number, hi: number) {
   for (let k = lo; k < hi; k++) {
     const x0 = v.xd(b, k) + d;
     const x1 = v.xe(b, k) - d;
-    if (x1 - x0 < 2 * d) continue;
     rects.begin(SkinToken.inkFaint);
+    if (x1 - x0 < 2 * d) {
+      // Too narrow for a box: a filled cell at least 2 device px wide, centered on the position, no label (a pill never
+      // vanishes at a narrow zoom).
+      const w = Math.max(2 * d, x1 - x0 + 2 * d);
+      rects.push(((x0 + x1) >> 1) - (w >> 1), y0, w, y1 - y0);
+      continue;
+    }
     rects.push(x0, y0, x1 - x0, y1 - y0);
     rects.begin(SkinToken.surfaceAlt);
     rects.push(x0 + d, y0 + d, x1 - x0 - 2 * d, y1 - y0 - 2 * d);

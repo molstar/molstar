@@ -73,7 +73,7 @@ describe('the entries', () => {
       ['emphasis', 'linear wrapped circular', true, 6, true, true],
       ['variants', 'linear circular', false, 6, true, false],
       ['secondary', 'linear wrapped circular', false, 6, true, false],
-      ['values', 'linear circular', false, 6, true, false],
+      ['values', 'linear wrapped circular', false, 6, true, false],
       ['color', 'linear wrapped circular', true, 6, true, false],
       ['ruler', 'linear circular', false, 6, false, false],
       ['pairs', 'linear circular', false, 6, false, false],

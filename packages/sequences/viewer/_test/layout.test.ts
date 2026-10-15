@@ -77,7 +77,7 @@ describe('entries', () => {
     expect(Array.from(l.blockEntries.subarray(0, 4))).toEqual([1, 3, 1, 3]);
   });
 
-  it("wrapped: three blocks each from a new line, a filter's break cuts a group, a ligand spans its cells", async () => {
+  it("wrapped: three blocks each from a new line, a filter's break cuts a group, a ligand a chip", async () => {
     const b = createSeqViewSpec();
     const a = b.data.sequence({ ref: 'a', value: 'MKVLATGHEKMKVLATGHEKMKVLA' });
     const s = b.data.sequence({ ref: 'b', value: 'MKVLATGHEKMK' });
@@ -96,13 +96,13 @@ describe('entries', () => {
     const l = t.layout('v.main');
     const lines = l.lines;
     // Mono 15 px: 9 px cells. a: groups of 5 (the break after block index 4), 10, 5; b: 10, then its short last group
-    // (2) on a line of its own, where a full group would not fit; the ligand 3 cells. Lines `wrappedGap` (4) apart, a
-    // block's first `stackGap` (14).
+    // (2) on a line of its own, where a full group would not fit; the ligand a chip. Lines `wrappedGap` (4) apart, a
+    // block's first `stackGap` (14), but a chip's: it follows the chains at the lines' spacing.
     expect(t.vp('v.main').axis?.fixedCell).toBe(9);
     expect([
       lines.count,
       ...[0, 1, 2, 3, 4, 5].map((n) => [lines.block[n], lines.start[n], lines.stop[n], lines.top[n]]),
-    ]).toEqual([6, [0, 0, 5, 8], [0, 5, 15, 58], [0, 15, 20, 108], [1, 0, 10, 168], [1, 10, 12, 218], [2, 0, 1, 278]]);
+    ]).toEqual([6, [0, 0, 5, 8], [0, 5, 15, 58], [0, 15, 20, 108], [1, 0, 10, 168], [1, 10, 12, 218], [2, 0, 1, 268]]);
     // The text's inset (8 px) above the first line, left of the gutter and right of the text.
     expect(t.entries('v.main').slice(0, 4)).toEqual([
       [T, 'v.letters', 0, 8, 24],
@@ -119,9 +119,11 @@ describe('entries', () => {
     t.vp('v.main').setSize(600, 400, 1);
     expect(t.layout('v.main').lines.count).toBe(3);
     expect([runs.prepareRuns, runs.layoutRuns]).toEqual([3, 2]);
-    // The ligand is one position, 3 cells wide, where the axis view draws it.
+    // The ligand is one position, a chip as wide as its label (XYZ at the chips' 12 px) and 5 px either side, where the
+    // axis view draws it.
     const view = t.ctx.layout.axis('v.main');
-    expect(view && [view.x(2, k(0)), view.x(2, k(1))]).toEqual([64, 64 + 27]);
+    const label = Math.ceil(t.ctx.text.label('XYZ', t.ctx.text.font('ui', 12, 600)).width);
+    expect(view && [view.x(2, k(0)), view.x(2, k(1))]).toEqual([64, 64 + label + 10]);
   });
 
   it("wrapped: the gutter takes its width only where it draws the lines' numbers (no group labels)", async () => {

@@ -10,6 +10,7 @@
 // format case 14's protein over its coding DNA, with overlapping features packed in lanes.
 
 import { createSeqViewSpec, translate } from '@molstar/seq-core/builder';
+import type { SeqViewSpecDoc } from '@molstar/seq-core/format';
 import type { Features } from '../src/prepare.js';
 import { segWindow } from '../src/pyramids.js';
 
@@ -277,4 +278,55 @@ export function itemsIn(f: Features, b: number, from: number, to: number, row: n
     else for (let k = win[0]; k < win[1] && n < limit; k++) if (f.on[k] < 0 || f.on[k] === row) n++;
   }
   return n < limit ? n : limit;
+}
+
+/** A chain of 30 residues and `ligands` (their chemical components) after it, as text; `track`: an underlined region. */
+export function chipsDoc(ligands: readonly string[], track = false): SeqViewSpecDoc {
+  const b = createSeqViewSpec();
+  b.data.sequence({ ref: 'a', alphabet: 'protein', value: 'MSEEKLKELAEKAIRLAKEGNPEEVLRALQ' });
+  const v = b.view({ ref: 'v', label: 'V', layout: 'text' });
+  v.block({ sequence: 'a' });
+  ligands.forEach((id, k) => {
+    b.data.ligand({ ref: `l${k}`, value: ['C', 'N', 'O'], chem_comp_ids: [id] });
+    v.block({ ligand: `l${k}` });
+  });
+  v.track({ ref: 'v.letters', label: 'Letters' }).letters();
+  if (track) {
+    const r = b.data.annotation({ ref: 'r', geometry: 'ranges', target: 'a', value: { start: [3], stop: [20] } });
+    v.track({ ref: 'v.r', label: 'Region' }).ranges({ data: r, display: 'underline' } as never);
+  }
+  return b.getDocument();
+}
+
+/**
+ * A protein of 120 residues as text: letters, a values line (2 rows), an area (2), sites (1), domains (1), helices
+ * (seqspec:viewer#the-text-view, tracks drawn in full); `lane`: the line without a height (its strip).
+ */
+export function publicationDoc(o: { lane?: boolean } = {}): SeqViewSpecDoc {
+  const b = createSeqViewSpec();
+  const a = b.data.sequence({ ref: 'a', alphabet: 'protein', value: 'MSEEKLKELAEKAIRLAKEGNPEEVLRALQ'.repeat(4) });
+  const value = Array.from({ length: 120 }, (_, i) => Math.round(50 + 40 * Math.sin(i / 6)));
+  const d = b.data.annotation({ ref: 'd', geometry: 'values', target: a, value: { value } });
+  const sites = b.data.annotation({ ref: 's', geometry: 'ranges', target: a, value: { start: [5, 33, 77, 101] } });
+  const dom = b.data.annotation({
+    ref: 'dom',
+    geometry: 'ranges',
+    target: a,
+    value: { start: [2, 60], stop: [40, 110], label: ['Kinase', 'Linker region'] },
+  } as never);
+  const ss = b.data.annotation({
+    ref: 'ss',
+    geometry: 'ranges',
+    target: a,
+    value: { start: [8, 50, 90], stop: [22, 58, 99], category: ['helix', 'strand', 'helix'] },
+  } as never);
+  const v = b.view({ ref: 'v', label: 'V', layout: 'text' });
+  v.track({ ref: 'v.letters', label: 'Letters' }).letters();
+  const h = o.lane ? {} : { height: 2 };
+  v.track({ ref: 'v.line', label: 'Hydrophobicity', ...h }).values({ data: d, encoding: 'line', domain: [0, 100] });
+  v.track({ ref: 'v.area', label: 'Confidence', height: 2 }).values({ data: d, encoding: 'area', domain: [0, 100] });
+  v.track({ ref: 'v.sites', label: 'Sites', height: 1 }).points({ data: sites });
+  v.track({ ref: 'v.dom', label: 'Domains', height: 1 }).ranges({ data: dom, labels: true } as never);
+  v.track({ ref: 'v.ss', label: 'Secondary', height: 1 }).secondary({ data: ss });
+  return b.getDocument();
 }

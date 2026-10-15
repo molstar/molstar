@@ -92,10 +92,11 @@ export class DrawView extends SectionAxisView {
    */
   viewLo: Int32Array = new Int32Array(0);
   viewHi: Int32Array = new Int32Array(0);
-  /** The layer's channel themes in its type's channel order; the first color and glyph channels. */
+  /** The layer's channel themes in its type's channel order; the first color, glyph and line style channels. */
   themes: readonly (Theme | null)[] = [];
   color: Theme<'color'> | null = null;
   glyph: Theme<'glyph'> | null = null;
+  lineStyle: Theme<'line_style'> | null = null;
   /** Reused by every draw. */
   readonly loc: ThemeLocation = ThemeLocation.create();
   /** On rings, the map of this unrolled draw onto the circle (`geometry` is then linear); else null. */
@@ -140,8 +141,28 @@ export class DrawView extends SectionAxisView {
   private numberedAt = -1;
   private readonly xs2 = new Float64Array(1);
 
+  private keptViewLo: Int32Array = new Int32Array(0);
+  private keptViewHi: Int32Array = new Int32Array(0);
+  /** `SectionAxisView.setTrackForm`, the whole view's range (`viewLo`, `viewHi`) the line's too. */
+  override setTrackForm(full: boolean): void {
+    const was = this.trackForm;
+    if (full && !was) {
+      this.keptViewLo = this.viewLo;
+      this.keptViewHi = this.viewHi;
+    }
+    super.setTrackForm(full);
+    if (full) {
+      this.viewLo = this.visLo;
+      this.viewHi = this.visHi;
+    } else if (was) {
+      this.viewLo = this.keptViewLo;
+      this.viewHi = this.keptViewHi;
+    }
+  }
+
   /** The section's axis view under the current layout and viewport, copied (arrays shared). Allocation-free. */
   from(a: SectionAxisView): this {
+    this.trackForm = false;
     this.axis = a.axis;
     this.geometry = a.geometry;
     this.first = a.first;
@@ -178,8 +199,10 @@ export class DrawView extends SectionAxisView {
     this.gap = a.gap;
     this.fontPx = a.fontPx;
     this.laneHeight = a.laneHeight;
+    this.stripHeight = a.stripHeight;
     this.trackGap = a.trackGap;
     this.onlyBlock = this.row = this.lane = this.line = -1;
+    this.lineLeft = 0;
     return this;
   }
 
@@ -207,23 +230,24 @@ export class DrawView extends SectionAxisView {
     if (this.geometry !== AxisGeometry.wrapped)
       return (Math.round((this.blockX0[b] + k * this.span[b] * this.cell) * this.dpr) - this.scrollDev) | 0;
     runXInto(this.runs[b], this.lineStart, k, this.gap, this.xs2, 0);
-    return Math.round((this.left + this.xs2[0]) * this.dpr) | 0;
+    return Math.round((this.left + this.lineLeft + this.xs2[0]) * this.dpr) | 0;
   }
   /** The right edge of shown k (device px): the next edge, or wrapped its advance (a group gap may follow). */
   xe(b: number, k: number): number {
     if (this.geometry !== AxisGeometry.wrapped) return this.xd(b, k + 1);
     runXInto(this.runs[b], this.lineStart, k, this.gap, this.xs2, 0);
-    return Math.round((this.left + this.xs2[0] + this.runs[b].advance) * this.dpr) | 0;
+    return Math.round((this.left + this.lineLeft + this.xs2[0] + this.runs[b].advance) * this.dpr) | 0;
   }
 
-  /** The layer's themes: the first color and glyph channels from its type's channel kinds. */
+  /** The layer's themes: the first color, glyph and line style channels from its type's channel kinds. */
   setThemes(themes: readonly (Theme | null)[]): void {
     this.themes = themes;
-    this.color = this.glyph = null;
+    this.color = this.glyph = this.lineStyle = null;
     for (let i = 0; i < themes.length; i++) {
       const t = themes[i];
       if (t?.kind === 'color' && !this.color) this.color = t as Theme<'color'>;
       if (t?.kind === 'glyph' && !this.glyph) this.glyph = t as Theme<'glyph'>;
+      if (t?.kind === 'line_style' && !this.lineStyle) this.lineStyle = t as Theme<'line_style'>;
     }
   }
 }

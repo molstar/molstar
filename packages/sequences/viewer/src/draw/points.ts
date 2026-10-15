@@ -207,7 +207,7 @@ export function drawPoints(v: DrawView, f: Features, p: unknown, stacked: boolea
   ThemeLocation.reset(v.loc);
   // Streamed (ST3a): region by region, or density, pending regions as placeholders.
   if (v.geometry === AxisGeometry.linear && drawStreamedItems(v, p, true, tiny, stacked ? variant : point, bars)) {
-  } else if (v.geometry === AxisGeometry.wrapped) drawLineLanes(v, f, bars);
+  } else if (v.geometry === AxisGeometry.wrapped && !v.trackForm) drawLineLanes(v, f, bars);
   else if (tiny || (v.reductions && v.cell * v.dpr < 2 && densityMode(v, itemsInView(v, f, 65), 64)))
     densityBand(v, f, p, true, bars);
   else glyphsAt(v, f, stacked);
@@ -284,7 +284,7 @@ const hovered = new Int32Array(2);
  */
 export function outlinePoints(v: DrawView, f: Features, stacked: boolean, tiny: boolean): void {
   if (!hoverEmphasis(v) || !v.axis) return;
-  if (v.geometry === AxisGeometry.wrapped) {
+  if (v.geometry === AxisGeometry.wrapped && !v.trackForm) {
     outlineLineLanes(v, f);
     return;
   }

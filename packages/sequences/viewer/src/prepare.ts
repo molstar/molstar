@@ -33,7 +33,7 @@ import { intervalTree } from './intervals.js';
 import { predecessor, prefixReach, type ValuePyramid, valuePyramid } from './pyramids.js';
 import type { LayerInput, LayerRenderer, PrepareContext } from './registry.js';
 import { prepareMap, prepareMatrix, prepareRows, RowsHeader, rowsStream } from './rows.js';
-import { laneLineHeights } from './runs.js';
+import { laneLineHeights, stripLineHeights } from './runs.js';
 import type { StreamLayer } from './stream-contract.js';
 import { lettersStream, trackStream } from './stream-sources.js';
 import type { FieldTable } from './themes.js';
@@ -199,6 +199,9 @@ export interface StreamFields {
   /** The last glyph field theme drawn, and the items' glyphs by it (ST4b). */
   glyphTheme: unknown;
   glyphs: Int32Array | null;
+  /** The last line style field theme drawn, and the items' styles by it. */
+  styleTheme?: unknown;
+  styles?: Int32Array | null;
 }
 /** A split layer's values in row order, each row's own features, and per data entry each row's value (-1: none). */
 export interface SplitRows {
@@ -610,6 +613,30 @@ export interface LettersState {
   readonly alphabet: readonly (Alphabet | null)[];
   /** Blocks over a lazy molecule (null codes): their letters by region (ST3a); null: none streamed. */
   readonly stream: StreamLayer | null;
+  /**
+   * Per block over a unit with `observed` ranges, by unit position: 1 where the structure models the position, 0 (or
+   * past the end) where it does not, for `unobservedGray` (the letters' cells, their zoomed-out classes, the gray text);
+   * one array per unit, shared by its blocks. Null: no ranges, every position observed. Built once per prepared state:
+   * the draw scanned the unit's ranges per position per frame before (lanes-input-perf.md §4.2).
+   */
+  readonly observed: readonly (Uint8Array | null)[];
+}
+
+/** `LettersState.observed`: a mask per unit with `observed` ranges, each as long as the unit's blocks reach. */
+function observedMasks(input: LayerInput): (Uint8Array | null)[] {
+  const { set, section } = input;
+  const reach = new Map<number, number>();
+  for (const b of section.blocks)
+    if (b.unit >= 0 && set.units.observed[b.unit])
+      reach.set(b.unit, Math.max(reach.get(b.unit) ?? 0, b.base + b.length));
+  const masks = new Map<number, Uint8Array>();
+  for (const [u, n] of reach) {
+    const obs = set.units.observed[u] as ArrayLike<number>;
+    const m = new Uint8Array(n);
+    for (let k = 0; k < obs.length; k += 2) m.fill(1, Math.max(0, obs[k]), Math.min(n, obs[k + 1]));
+    masks.set(u, m);
+  }
+  return section.blocks.map((b) => (b.unit >= 0 ? (masks.get(b.unit) ?? null) : null));
 }
 
 function prepareLetters(input: LayerInput): LettersState {
@@ -644,7 +671,19 @@ function prepareLetters(input: LayerInput): LettersState {
   });
   const of = params.of != null ? ofLetters(input) : null;
   const map = letterMapTable(params.letter_map as never);
-  return { codes, form, names, unit, alignment, row, of, map, alphabet, stream: of ? null : lettersStream(input) };
+  return {
+    codes,
+    form,
+    names,
+    unit,
+    alignment,
+    row,
+    of,
+    map,
+    alphabet,
+    stream: of ? null : lettersStream(input),
+    observed: observedMasks(input),
+  };
 }
 
 function ofLetters(input: LayerInput): OfLetters {
@@ -1033,7 +1072,7 @@ export type PreparedPart = Pick<LayerRenderer, 'content' | 'lineHeights' | 'head
 const lanes = { content: false, lineHeights: laneLineHeights };
 /**
  * Every kernel type's prepare (LY3's entries spread them): `ranges`, `points` and `secondary` banded in wrapped lines
- * by their lanes, `rows` with the tree's header and its stream; only `letters`, `emphasis` and `rows` read residues
+ * by their lanes, `values` and `color` by a strip, `rows` with the tree's header and its stream; only `letters`, `emphasis` and `rows` read residues
  * (seqspec:viewer#updates-and-status).
  */
 export const PreparedParts: Readonly<Record<string, PreparedPart>> = {
@@ -1043,8 +1082,13 @@ export const PreparedParts: Readonly<Record<string, PreparedPart>> = {
   emphasis: { prepare: emphasis },
   variants: { prepare: withStream(withSplit(variants)), content: false, stream: featureStream },
   secondary: { prepare: secondary, ...lanes },
-  values: { prepare: perPositionValues, content: false, stream: (s: PerPosition) => s.stream ?? null },
-  color: { prepare: (input) => perPosition(input), content: false },
+  values: {
+    prepare: perPositionValues,
+    content: false,
+    stream: (s: PerPosition) => s.stream ?? null,
+    lineHeights: stripLineHeights,
+  },
+  color: { prepare: (input) => perPosition(input), content: false, lineHeights: stripLineHeights },
   ruler: { prepare: prepareRuler, content: false },
   pairs: { prepare: preparePairs, content: false },
   rows: { prepare: prepareRows, header: RowsHeader, stream: rowsStream },

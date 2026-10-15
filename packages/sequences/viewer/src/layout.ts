@@ -17,6 +17,7 @@ import {
   Height,
   Lanes,
   Layout,
+  LigandForm,
   type ResolvedLanes,
   type ResolvedView,
   RowSizing,
@@ -31,11 +32,14 @@ import { type NavigatorEntry, navigatorOf } from './navigators.js';
 import type { PresetEntry } from './presets.js';
 import type { ColumnRenderer, LayerRenderer, SeqViewerRegistry } from './registry.js';
 import {
+  CHIP_PAD,
+  chipFontPx,
   GROUP_LABEL_PAD,
   type GroupLabeler,
   groupLabelBand,
   groupLabelPx,
   type LineTable,
+  laneLineHeights,
   layoutRuns,
   lineTable,
   lineWidth,
@@ -98,8 +102,33 @@ export interface RenderProps extends ViewportProps {
   /** Wrapped: an annotation lane's height under the text, px (its underline 2 px less). */
   readonly wrappedLaneHeight: number;
   /**
+   * Wrapped: a strip lane's height under the text, px: a `values` or `color` layer alone on its track, a color per
+   * position (seqspec:viewer#the-text-view).
+   */
+  readonly wrappedStripHeight: number;
+  /**
+   * Wrapped: how the tracks under the letters are drawn (seqspec:viewer#the-text-view). `lanes` (the default): thin
+   * lanes (underlines, strips) whatever their height; `full`: a track with a `height` takes that many of the text's
+   * rows on every line and its layers draw their track forms there (a figure's tracks).
+   */
+  readonly wrappedTracks: 'lanes' | 'full';
+  /**
+   * Wrapped, under `wrappedTracks: full`: a track of features (`ranges`, `points`, `secondary`) with nothing on a line
+   * takes no band on that line, so a line's block holds what it shows; `values` and `color` keep theirs (a gap in
+   * their data is data). True (the default); false: every track its height on every line.
+   */
+  readonly wrappedCollapseEmpty: boolean;
+  /**
+   * Wrapped, a track drawn in full (`wrappedTracks: full`): a small y axis left of each line's band, its domain's
+   * least and greatest values (`values`), in `WRAPPED_AXIS_ROOM` px the text leaves left of its lines; false (the
+   * default): none (seqspec:viewer#the-text-view).
+   */
+  readonly wrappedTrackAxes: boolean;
+  /** Wrapped, a track drawn in full: its label inside its band on the first line, top left; false (the default): none. */
+  readonly wrappedTrackLabels: boolean;
+  /**
    * Wrapped: px between the canvas's edges and the text on every side (the skin's `--seq-canvas-edge` default), the
-   * line numbers' gutter inside it (seqspec:viewer#text-measuring).
+   * line numbers' gutter inside it (seqspec:viewer#the-text-view).
    */
   readonly wrappedInset: number;
   /**
@@ -173,6 +202,11 @@ export const DefaultRenderProps: RenderProps = {
   wrappedGap: 4,
   wrappedTrackGap: 2,
   wrappedLaneHeight: 5,
+  wrappedStripHeight: 3,
+  wrappedTracks: 'lanes',
+  wrappedCollapseEmpty: true,
+  wrappedTrackAxes: false,
+  wrappedTrackLabels: false,
   wrappedInset: 8,
   wrappedGroupLabels: 'aboveEnd',
   labelFontPx: 12,
@@ -267,8 +301,42 @@ function bound(out: { -readonly [K in keyof RenderProps]: RenderProps[K] }, clam
     if (!skip(k)) out[k as NumericRenderProp] = Math.min(out[k as NumericRenderProp], v);
 }
 
+/**
+ * The text's row (seqspec:viewer#the-text-view): the letters' band, 1.6 × `wrappedFontPx`; a track's `height` in the
+ * text view is in these rows, so a figure's tracks scale with its text.
+ */
+export const textRow = (p: RenderProps) => Math.ceil(p.wrappedFontPx * 1.6);
+/** A track label's font px (`wrappedTrackLabels`): 0.7 of the letters', 7 at least. */
+export const trackLabelPx = (p: RenderProps) => Math.max(7, Math.round(p.wrappedFontPx * 0.7));
+/** The row a track's label takes above its band (`wrappedTrackLabels`): its line height. */
+export const trackLabelRow = (p: RenderProps) => Math.ceil(trackLabelPx(p) * 1.4);
+/** Px the text leaves left of its lines for the tracks' axes (`wrappedTrackAxes`). */
+export const WRAPPED_AXIS_ROOM = 30;
+/** Per resolved view, per track: drawn in full in the text (1), made once (edge-rate). */
+const fullTracks = new WeakMap<ResolvedView, Uint8Array>();
+/**
+ * Wrapped: a track drawn in full in the text view, its layers in their track forms: under `wrappedTracks: full`, one
+ * with a `height` and no `letters` layer (the letters are the text: their track keeps its band and its lanes).
+ */
+export function fullTrack(p: RenderProps, v: ResolvedView, set: SeqSet, t: number): boolean {
+  if (p.wrappedTracks !== 'full') return false;
+  let full = fullTracks.get(v);
+  if (!full) {
+    full = new Uint8Array(v.tracks.count);
+    for (let k = 0; k < v.layers.count; k++) {
+      const u = v.layers.track[k];
+      if (u >= 0 && u < full.length && v.tracks.height[u] > 0) full[u] |= 1;
+    }
+    for (let k = 0; k < v.layers.count; k++)
+      if (typeIs(v, set, k, 'letters') && v.layers.track[k] >= 0) full[v.layers.track[k]] = 2;
+    fullTracks.set(v, full);
+  }
+  return t >= 0 && t < full.length && full[t] === 1;
+}
+
 /** `labels`: wrapped, the band above a line holding its group labels (`aboveEnd`). */
-export const EntryKind = { track: 0, group: 1, title: 2, labels: 3 } as const;
+/** `trackLabel`: wrapped, a track's label in a row of its own above its band (`wrappedTrackLabels`). */
+export const EntryKind = { track: 0, group: 1, title: 2, labels: 3, trackLabel: 4 } as const;
 /** A data column's width when its renderer gives none. */
 const COLUMN_WIDTH = 80;
 /** Below the rows of a section. */
@@ -539,6 +607,8 @@ function entriesIn(l: SectionLayout, range: Float64Array) {
     if (l.entryTop[mid] <= y0) lo = mid;
     else hi = mid - 1;
   }
+  // Entries sharing a top (a row of chips, seqspec:viewer#the-text-view): from the first of them.
+  while (lo > l.pinnedCount && l.entryTop[lo - 1] === l.entryTop[lo]) lo--;
   range[0] = lo;
   hi = l.entryCount - 1;
   while (lo < hi) {
@@ -877,13 +947,8 @@ export class Layouts implements LayoutManager {
     if (first < 0) return -1;
     if (last < first) last = first;
     const top = lines.top[first];
-    // The last line's bottom: the next line's top less the gap between them, or the text's end less its inset.
-    const p = e.props;
-    const next = last + 1;
-    const bottom =
-      next < lines.count
-        ? lines.top[next] - (lines.block[next] !== lines.block[last] ? p.stackGap : p.wrappedGap)
-        : l.scrolledHeight - p.wrappedInset;
+    // The last line's row's bottom.
+    const bottom = lines.bottom[last];
     // Shown as they are (no pad: the pad is where a scroll puts them).
     if (top >= s.scrollY && bottom <= s.scrollY + view) return s.scrollY;
     const y = top < s.scrollY || bottom - top + 2 * pad > view ? top - pad : bottom + pad - view;
@@ -945,6 +1010,7 @@ export class Layouts implements LayoutManager {
       v.gap = e.props.wrappedGroupGap;
       v.fontPx = e.props.wrappedFontPx;
       v.laneHeight = e.props.wrappedLaneHeight;
+      v.stripHeight = e.props.wrappedStripHeight;
       v.trackGap = e.props.wrappedTrackGap;
       v.gutterLeft = e.props.gutterLeft;
       v.gutterRight = e.props.gutterRight;
@@ -1061,7 +1127,9 @@ export class Layouts implements LayoutManager {
       lefts[k + 1] = x + props.gutterLeft;
     });
     // Wrapped, the gutter holds the lines' numbers, drawn only without group labels: else no width.
-    const gutter = props.wrappedGroupLabels === 'none' ? props.wrappedGutter : 0;
+    const gutter =
+      (props.wrappedGroupLabels === 'none' ? props.wrappedGutter : 0) +
+      (props.wrappedTrackAxes ? WRAPPED_AXIS_ROOM : 0);
     if (wrapped) lefts[0] = props.headerWidth + props.wrappedInset + gutter;
     ax.lefts = lefts;
     ax.reserve = rightOf(props, wrapped) + overviewWidth(props);
@@ -1581,7 +1649,8 @@ export class Layouts implements LayoutManager {
     if (!e.runs) {
       const runs: PreparedRun[] = [];
       const labeler = p.wrappedGroupLabels !== 'none' ? this.labeler(e) : null;
-      for (let b = 0; b < ax.count; b++) runs.push(prepareRun(b, ax, ax.fixedCell, p.wrappedGroup, labeler));
+      for (let b = 0; b < ax.count; b++)
+        runs.push(prepareRun(b, ax, ax.fixedCell, p.wrappedGroup, labeler, this.chipWidth(e, b)));
       e.runs = runs;
       e.runsText = this.host.text.version.value;
       this.stats.prepareRuns += runs.length;
@@ -1596,7 +1665,8 @@ export class Layouts implements LayoutManager {
     // area is at most a pixel wider).
     let widest = 0;
     for (let k = 0; p.wrappedAlign === 'center' && k < n; k++) {
-      const w = lineWidth(e.runs[l.lines.block[k]], l.lines.start[k], l.lines.stop[k], p.wrappedGroupGap);
+      const w =
+        l.lines.left[k] + lineWidth(e.runs[l.lines.block[k]], l.lines.start[k], l.lines.stop[k], p.wrappedGroupGap);
       if (w > widest) widest = w;
     }
     e.alignWidth = widest;
@@ -1609,31 +1679,79 @@ export class Layouts implements LayoutManager {
     e.view.runs = e.runs;
     // The lanes' bands read these (`laneLineHeights`).
     e.view.laneHeight = p.wrappedLaneHeight;
+    e.view.stripHeight = p.wrappedStripHeight;
     e.view.trackGap = p.wrappedTrackGap;
     const tracks: number[] = [];
     for (const t of all) if (this.bands(e, t, n, tracks.length * n)) tracks.push(t);
     let y = p.wrappedInset;
-    for (let k = 0; k < n; k++) {
-      if (k > 0) y += l.lines.block[k] !== l.lines.block[k - 1] ? p.stackGap : p.wrappedGap;
-      l.lines.top[k] = y;
-      if (above > 0) y += push(l, EntryKind.labels, -1, -1, -1, k, l.lines.block[k], y, above, 0);
+    const lines = l.lines;
+    const runs = e.runs;
+    const set = model.set;
+    // Tracks drawn in full: `wrappedTrackGap` above each band, as a lane has it; the label's row above the band on the
+    // first line the track has one (`wrappedTrackLabels`).
+    const full = tracks.map((t) => fullTrack(p, v, set, t));
+    const labelRow = p.wrappedTrackLabels ? trackLabelRow(p) : 0;
+    const unlabeled = tracks.map(
+      (t, j) => full[j] && labelRow > 0 && v.tracks.label[t] >= 0 && set.strings.get(v.tracks.label[t]) !== '',
+    );
+    // By row: a line, or chips sharing one (seqspec:viewer#the-text-view); each track's band the row's tallest.
+    for (let k0 = 0, k1 = 0; k0 < n; k0 = k1) {
+      for (k1 = k0 + 1; k1 < n && lines.follows[k1] === 1; ) k1++;
+      const chips = runs[lines.block[k0]].chip;
+      // Chips follow at the lines' spacing; a new block otherwise at the blocks' gap.
+      if (k0 > 0) y += chips || lines.block[k0] === lines.block[k0 - 1] ? p.wrappedGap : p.stackGap;
+      for (let k = k0; k < k1; k++) lines.top[k] = y;
+      // Chips have no group labels, but a row of them is spaced as a new line is: the labels' band's room, empty.
+      if (above > 0 && !chips) y += push(l, EntryKind.labels, -1, -1, -1, k0, lines.block[k0], y, above, 0);
+      else if (above > 0) y += above;
       for (let j = 0; j < tracks.length; j++) {
         const t = tracks[j];
-        y += push(
-          l,
-          EntryKind.track,
-          t,
-          v.tracks.group[t],
-          firstLayer(v, t),
-          k,
-          l.lines.block[k],
-          y,
-          e.bands[j * n + k],
-          0,
-        );
+        let h = 0;
+        for (let k = k0; k < k1; k++) h = Math.max(h, e.bands[j * n + k]);
+        if (full[j] && h > 0 && !chips) {
+          if (unlabeled[j]) {
+            unlabeled[j] = false;
+            y += push(
+              l,
+              EntryKind.trackLabel,
+              t,
+              v.tracks.group[t],
+              -1,
+              k0,
+              lines.block[k0],
+              y + p.wrappedTrackGap,
+              labelRow,
+              0,
+            );
+          }
+          y += p.wrappedTrackGap;
+        }
+        for (let k = k0; k < k1; k++)
+          push(l, EntryKind.track, t, v.tracks.group[t], firstLayer(v, t), k, lines.block[k], y, h, 0);
+        y += h;
       }
+      for (let k = k0; k < k1; k++) lines.bottom[k] = y;
     }
     return y + p.wrappedInset;
+  }
+
+  /**
+   * Block b's chip width in the text view (seqspec:viewer#the-text-view): a short unit (a ligand in the `position`
+   * form, one position) as wide as its chemical component's label (`chipFontPx`, measured once per prepared run) and
+   * `CHIP_PAD` either side, two cells at least; 0: not a chip.
+   */
+  private chipWidth(e: SectionEntry, b: number): number {
+    const { resolved: v, set } = e.model as ViewModel;
+    const ax = e.axis as Axis;
+    const b0 = v.sections.blockStart[e.index];
+    if (v.sections.ligandForm[e.index] !== LigandForm.position || !v.blocks.ligand[b0 + b] || ax.shown[b] !== 1)
+      return 0;
+    const u = ax.unit[b];
+    const mol = u >= 0 ? set.molecules[set.units.molecule[u]] : null;
+    const name = mol?.chemCompId ? set.strings.get(mol.chemCompId[0]) : '';
+    const tm = this.host.text;
+    const w = name ? tm.label(name, tm.font('ui', chipFontPx(e.props.wrappedFontPx), 600)).width : 0;
+    return Math.max(2 * ax.fixedCell, Math.ceil(w) + 2 * CHIP_PAD);
   }
 
   /**
@@ -1665,9 +1783,12 @@ export class Layouts implements LayoutManager {
   }
 
   /**
-   * A track's band per line into `e.bands` from `at`: its layers' `lineHeights` (the tallest, from each line's block
-   * coordinate system runs, through the axis view), else letters at the font's size, else a row; false for a track of
-   * rulers and omitted layers (they draw nothing wrapped). Into the entry's scratch: nothing per call.
+   * A track's band per line into `e.bands` from `at` (seqspec:viewer#the-text-view): its layers' `lineHeights` (the
+   * tallest, from each line's block coordinate system runs, through the axis view: the underline and strip lanes),
+   * letters and `emphasis` (the emphasized letters) at the font's size, a ruler or an omitted layer nothing; a renderer
+   * that declares `wrapped` and gives no `lineHeights` (an extension's) a row. False: the track takes no room on any
+   * line (no lane without a drawing: a layer whose renderer leaves out `wrapped` resolves to its fallback or is omitted
+   * before it gets here). Into the entry's scratch: nothing per call.
    */
   private bands(e: SectionEntry, t: number, lines: number, at: number): boolean {
     const model = e.model as ViewModel;
@@ -1676,6 +1797,9 @@ export class Layouts implements LayoutManager {
     const out = e.bands;
     let fixed = 0;
     let nothing = true;
+    // Whether the track is features alone (their lanes say per line what is there), or holds another kind.
+    let features = false;
+    let kept = false;
     out.fill(0, at, at + lines);
     for (let k = firstLayer(v, t); k >= 0 && k < v.layers.count && v.layers.track[k] === t; k++) {
       const r = this.renderer(v, set, k);
@@ -1683,17 +1807,36 @@ export class Layouts implements LayoutManager {
         if (e.line.length < lines) e.line = new Float32Array(2 * lines);
         e.line.fill(0);
         r.lineHeights(model.prepared[k]?.state, v.layers.params[k], e.view, e.layout.lines, e.line);
-        for (let i = 0; i < lines; i++) out[at + i] = Math.max(out[at + i], e.line[i]);
-        nothing = false;
+        if (r.lineHeights === laneLineHeights) features = true;
+        else kept = true;
+        for (let i = 0; i < lines; i++) {
+          out[at + i] = Math.max(out[at + i], e.line[i]);
+          if (e.line[i] > 0) nothing = false;
+        }
         continue;
       }
       const type = v.layers.type[k] >= 0 ? set.strings.get(v.layers.type[k]) : '';
       if (type === '' || type === 'ruler') continue;
       nothing = false;
-      fixed = Math.max(fixed, type === 'letters' ? Math.ceil(p.wrappedFontPx * 1.6) : p.rowHeight);
+      kept = true;
+      const text = type === 'letters' || type === 'emphasis';
+      fixed = Math.max(fixed, text ? textRow(p) : p.rowHeight);
     }
-    // A layer with per-line heights shares the band with the fixed ones (letters and their emphasis).
+    // A layer with per-line heights shares the band with the fixed ones (the letters): a strip beside the letters
+    // colors their cells.
     for (let i = 0; i < lines; i++) out[at + i] = Math.max(out[at + i], fixed);
+    // A track with a height of its own is drawn in full (its layers' track forms), `height` rows of the text a line
+    // (`textRow`), but on a chip's line, which keeps its lanes.
+    const hint = v.tracks.height[t];
+    if (!nothing && fullTrack(p, v, set, t)) {
+      const runs = e.runs;
+      const tall = hint * textRow(p);
+      for (let i = 0; i < lines; i++) {
+        if (runs?.[e.layout.lines.block[i]]?.chip) continue;
+        // Features alone with nothing on the line: no band there (`wrappedCollapseEmpty`; their lanes counted none).
+        out[at + i] = p.wrappedCollapseEmpty && features && !kept && out[at + i] <= p.wrappedTrackGap ? 0 : tall;
+      }
+    }
     return !nothing;
   }
 

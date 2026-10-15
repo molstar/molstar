@@ -198,7 +198,8 @@ molecule's own unit; with none, the first alignment.
   one, labeled `<molecule> ×N (<units>)` unless the block has a label; `each` shows each unit. Copies never reach each
   other.
 - **Ligand form**: a ligand block as one position labeled with its component, standing for its atoms, or one position
-  per heavy atom.
+  per heavy atom. A viewer may flow one-position ligands after the chains in a `text` layout (the Seq\* viewer's chips:
+  viewer.md, The text view).
 - Blocks of an unavailable node are left out quietly.
 
 ## Tracks and layers
@@ -207,7 +208,10 @@ A `track` is one row of a section, in a `group` or not; groups expand and collap
 state at open. A `layer` is what a track shows: a type, its data and its channels' themes. A track's layers are
 composited in order, later over earlier.
 
-- A track `height` is a hint in rows. Under `row_sizing: "uniform"`, layers of `row` sizing share one row height.
+- A track `height` is a hint in rows. Under `row_sizing: "uniform"`, layers of `row` sizing share one row height. In a
+  `text` layout whose style asks for it (`wrapped_tracks: "full"`; the default `"lanes"` keeps thin lanes) a track with
+  a height is drawn in full under every line, that many of the text's rows (viewer.md, The text view); the style's
+  `track_axes` and `track_labels` add its axis and its label there.
 - A `summary` track shows under its group's header only while the group is collapsed.
 - At most one `rows` layer per section: the first wins (`svs.layer.rows`).
 
@@ -282,8 +286,11 @@ reference's Layer types.
   apex of an arc whose ends both lie within that reach, the apex in view.
 - **`values`** are drawn as bars, a line or an area (`encoding`) in the layer's color theme at each position's value as
   given, not clamped to `domain` (which bounds the height only). A line takes each position's color over that position's
-  cell, so it changes color halfway between two positions. Where a device column holds several positions, each column is
-  drawn over its column in the color of its positions' mean. With no color theme a layer is drawn in one color.
+  cell, so it changes color halfway between two positions, and holds its end values over their cells to their edges (at
+  a block's ends and around a missing value), as the area's cells reach them. Where a device column holds several
+  positions, each column is drawn over its column in the color of its positions' mean. With no color theme a layer is
+  drawn in one color. In a `text` layout a `values` layer is a strip under each line, a color per position (viewer.md,
+  The text view).
 - **`dot_plot`** has two axes over its section's layout coordinate system: x across, as every track's, and y down the
   track, showing the section's window (the positions the data area shows across, scaled to the track's height), so a
   zoom or a pan of the section moves both and a cell (x, y) pairs two positions in view. Each end is placed as a pair's
@@ -330,15 +337,24 @@ complements by itself.
 ## Themes
 
 A **theme** maps the data under a layer to the values of one **channel**: `color`, a size (`width`, `height`, `radius`,
-`thickness`) or `glyph`. Each channel is a layer param holding a `ThemeRef`, `{theme, params, fallback}`. "Theme" means
-data-driven values only: the viewer's look is its skin.
+`thickness`), `glyph` or `line_style`. Each channel is a layer param holding a `ThemeRef`, `{theme, params, fallback}`.
+"Theme" means data-driven values only: the viewer's look is its skin.
 
 - `params` are checked by the theme's table for the channel's kind; a theme given for a kind it does not serve is
   `svs.theme.channel`. Themes nest (a base theme as a param, a fallback), at most 4 levels counting the first
-  (`svs.color.invalid`, `svs.glyph.invalid`).
+  (`svs.color.invalid`, `svs.glyph.invalid`, `svs.line_style.invalid`).
 - An extension theme states a kernel `fallback` of the same kind.
 - Size channels are `px` or `band` (a share of the element's row, lane or ring); sizes change how much of its slot an
   element fills, never the slot, so hits and marks never depend on sizes.
+- **Line styles** (`ranges`' `line_style`; `null`: `solid`): how each item is drawn, one of `solid`, `dashed`, `dotted`,
+  `wavy`, `double`, `box` and `highlight`; `uniform` with a `line_style` gives the whole layer one, `field_line_style`
+  reads a column of the rows (`line_style` by default), as `field_color` reads colors. A style is drawn wherever the
+  item is (tracks, the text's lanes, a track drawn in full, an export): solid is the bar or underline; dashed and dotted
+  the line dashed, the pattern fixed to the content; wavy a wave of a fixed length; double two thin lines; box an
+  outline around the item's positions; highlight a translucent fill behind them (in tracks the whole row; in text also
+  behind the line's letters, as box draws there too). A value that is not a line style is drawn solid and said once
+  (`svs.render.line_style`). A style never changes the item's slot, its hits or its marks. `points` take none: a glyph
+  has no line.
 - **Defaults**, when a channel is `null`: a provider's declared default color where every data node comes from one
   provider that declares one, else the type's (`letter` for letters, a categorical palette for features, a continuous
   one over the layer's domain for numbers).

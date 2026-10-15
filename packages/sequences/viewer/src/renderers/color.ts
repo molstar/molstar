@@ -6,30 +6,37 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// The `color` renderer (seqspec:viewer#extension-points): a cell per position by the color theme (wrapped:
-// backgrounds), reduced by the theme's kind below a device px (seqspec:sources#levels-and-the-zoom-gate): a categorical
+// The `color` renderer (seqspec:viewer#extension-points): a cell per position by the color theme (wrapped
+// (seqspec:viewer#the-text-view): alone on its track a strip lane, its hovered position outlined; beside the letters
+// their cells), reduced by the theme's kind below a device px (seqspec:sources#levels-and-the-zoom-gate): a categorical
 // theme by its classes, keyed by row where it colors per row or coarser; a continuous one by `palette(mean)` over the
 // dense values' prepared pyramid or a row field's values. A position no row covers and with no value is none of the
 // layer's.
 import {
+  AxisGeometry,
   type CellSource,
   cellBand,
   type DrawView,
   drawCells,
+  drawStrip,
   Granularity,
   kernelEntry,
   NO_COLOR,
   OPAQUE,
   type PerPosition,
+  outlineStrip,
   positionKey,
   RectBatch,
   rowValues,
+  stripBand,
   ThemeLocation,
   visibleRange,
 } from '../draw/api.js';
 
 const rects = new RectBatch();
 const range = new Int32Array(2);
+// Read once: a member read per frame allocated under the test runner's module wrapper.
+const WRAPPED = AxisGeometry.wrapped;
 
 const src: CellSource & { v: DrawView | null; s: PerPosition | null } = {
   v: null,
@@ -78,18 +85,36 @@ const src: CellSource & { v: DrawView | null; s: PerPosition | null } = {
 function draw(v: DrawView, s: PerPosition) {
   rects.reset();
   ThemeLocation.reset(v.loc);
-  const pad = v.height > 8 ? 2 : 0;
-  cellBand[0] = Math.round((v.top + pad) * v.dpr);
-  cellBand[1] = Math.round((v.top + v.height - pad) * v.dpr) - cellBand[0];
-  cellBand[2] = 0;
+  const strip = v.geometry === WRAPPED && stripBand(v);
+  if (v.geometry !== WRAPPED) {
+    const pad = v.height > 8 ? 2 : 0;
+    cellBand[0] = Math.round((v.top + pad) * v.dpr);
+    cellBand[1] = Math.round((v.top + v.height - pad) * v.dpr) - cellBand[0];
+    cellBand[2] = 0;
+  }
   src.v = v;
   src.s = s;
   try {
     for (let b = 0; b < s.value.length; b++) {
       visibleRange(v, b, range);
-      if (s.value[b] || s.row[b]) drawCells(v, b, range[0], range[1], src, s, rects);
+      if (!s.value[b] && !s.row[b]) continue;
+      if (strip) drawStrip(v, b, range[0], range[1], src, rects);
+      else drawCells(v, b, range[0], range[1], src, s, rects);
     }
     if (rects.n > 0) v.backend.rects(rects);
+  } finally {
+    src.v = src.s = null;
+  }
+}
+
+/** Wrapped: the hovered position's strip cell (seqspec:interaction#hover). */
+function overlay(v: DrawView, s: PerPosition) {
+  if (v.geometry !== WRAPPED || !v.color) return;
+  ThemeLocation.reset(v.loc);
+  src.v = v;
+  src.s = s;
+  try {
+    outlineStrip(v, src);
   } finally {
     src.v = src.s = null;
   }
@@ -100,4 +125,5 @@ export const ColorRenderer = kernelEntry<PerPosition>('color', 14, {
   stable: true,
   draw,
   tiny: draw,
+  overlay,
 });

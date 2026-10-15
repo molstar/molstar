@@ -56,6 +56,7 @@ const CIRCULAR = AxisGeometry.circular;
 /** The imported `ALL`, read once: an imported binding read per frame is a module member read under the test runner. */
 const PART_ALL = ALL;
 const LINEAR = AxisGeometry.linear;
+const WRAPPED_GEOMETRY = AxisGeometry.wrapped;
 const CAPS_BACK = BackendCaps.Back;
 const CAPS_COPY = BackendCaps.Copy;
 const TRACK = EntryKind.track;
@@ -428,7 +429,9 @@ export class SectionComposer extends ComposerFrame {
       const rows = moved && e >= l.pinnedCount && cut && l.rows.lazy && banded(this, l, e);
       if (rows) cutRows(this, be, l, s, W, y0, y1);
       if (moved && e >= l.pinnedCount && cut && !rows) {
-        be.clear(0, y0, W, y1 - y0);
+        // A chip after another on its row (seqspec:viewer#the-text-view): the row's first entry of the track cleared
+        // it, and a clear of its own would wipe the chips drawn before it.
+        if (!chipAfter(l, e)) be.clear(0, y0, W, y1 - y0);
         setClip(this, 0, W, y0, y1);
         bands(this, l);
         entry(this, l, e, PART_HEADER | PART_DATA);
@@ -510,4 +513,9 @@ export class SectionComposer extends ComposerFrame {
     v.visLo = this.stripLo;
     v.visHi = this.stripHi;
   }
+}
+
+/** Wrapped: entry e is a chip's after another on its row (its line shares the previous line's row). */
+function chipAfter(l: SectionLayout, e: number): boolean {
+  return l.geometry === WRAPPED_GEOMETRY && l.entryRow[e] >= 0 && l.lines.follows[l.entryRow[e]] === 1;
 }

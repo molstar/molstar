@@ -14,14 +14,33 @@
 // round numbers by jumps equal to those found position by position); values' light min–max band where columns
 // aggregate; values colored by their values (seqspec:format#layer-types): a line each position's color over its
 // cell, changing halfway between two positions, an area per column, one color with no theme; in SVG, and on rings.
+// Strip lanes in text (seqspec:viewer#the-text-view): a `values` layer a strip under each line by run of one color
+// within a group, nothing at a missing value, under the underline lanes; `color` alone a strip, beside the letters
+// their cells. A ligand's pill never vanishes: narrower than its box a filled cell; in text a chip holding its whole
+// label, every chip of a row kept through a scroll's redraw of its cut row (a chip's clear is its own), and the hover
+// and the selection drawn on the chip.
 
 import { createSeqViewSpec } from '@molstar/seq-core/builder';
 import { describe, expect, it } from 'vitest';
-import { TextAlign } from '../src/draw/backend.js';
+import { Pass, SkinToken, TextAlign } from '../src/draw/backend.js';
+import { Dirty } from '../src/draw/index.js';
 import type { PerPosition } from '../src/prepare.js';
 import { renderSvg } from '../src/svg/index.js';
+import { LayerFrame, Op, RecordingBackend } from '../src/testing/index.js';
+import { COPY_BACK, recording } from './composer-fixtures.js';
+import { lit, passRects } from './overlay-fixtures.js';
 import { columns, drawn, entryOf, layerOf, record, recordLabels, rects, texts } from './draw-fixtures.js';
-import { allTypes, BAND_SCORES, colorDoc, gene, linesDoc, rangesDoc, scaleDoc } from './prepare-fixtures.js';
+import {
+  allTypes,
+  BAND_SCORES,
+  BANDS,
+  chipsDoc,
+  colorDoc,
+  gene,
+  linesDoc,
+  rangesDoc,
+  scaleDoc,
+} from './prepare-fixtures.js';
 
 const issues = (t: Awaited<ReturnType<typeof drawn>>) =>
   t.ctx.graph.issues.value.filter((i) => i.code.startsWith('seqv.renderer'));
@@ -447,6 +466,28 @@ describe('values colored by their values', () => {
     expect(new Set(band.map(([, , , , c]) => c))).toEqual(new Set([BAND[1]]));
   });
 
+  it("zoomed in, the line holds its end values to the cells' edges, as the area: a block's ends and around a gap", async () => {
+    const t = await drawn(linesDoc(), { width: 1000, height: 400, dpr: 1 });
+    const { section } = layerOf(t.ctx, 'Area');
+    await zoom(t, section, 8);
+    const { rec, frame } = record(t.ctx, 'Area');
+    const p = rec.pathItems;
+    const xs = new Set<number>();
+    for (let c = 0; c < p.nc; c += 2) xs.add(p.coords[c]);
+    const area = rects(rec).filter((r) => r[5] === 77);
+    const v = frame.v;
+    // The block's first cell (in view at the left), and the cells either side of the missing value at 49.
+    expect(xs.has(Math.min(...area.map((r) => r[0])))).toBe(true);
+    expect(xs.has(v.xd(0, 49))).toBe(true);
+    expect(xs.has(v.xd(0, 50))).toBe(true);
+    // No point inside the missing cell: the line breaks there.
+    expect([...xs].some((x) => x > v.xd(0, 49) && x < v.xd(0, 50))).toBe(false);
+    // Zoomed out (a cell under a device px), columns as before: no point at a cell's edge is added.
+    await zoom(t, section, 0.1);
+    const out = record(t.ctx, 'Area').rec.pathItems;
+    expect(out.n).toBeGreaterThan(0);
+  });
+
   it.each([
     ['linear', undefined],
     ['on rings', 'circular'],
@@ -455,5 +496,233 @@ describe('values colored by their values', () => {
     const strokes = new Set([...xml.matchAll(/stroke="(#[0-9a-f]{6})"/gi)].map((m) => m[1].toLowerCase()));
     expect(BAND.map((c) => `#${c.toString(16).padStart(6, '0')}`).filter((c) => !strokes.has(c))).toEqual([]);
     expect(xml).not.toMatch(/NaN|Infinity|undefined/);
+  });
+});
+
+describe('strip lanes in text', () => {
+  const BAND = [0xff7d45, 0xffdb13, 0x65cbf3, 0x0053d6];
+  /**
+   * 100 residues as text: an underlined region, then pLDDT-like values in four bands (5 positions each, so a group of
+   * 10 holds two runs), missing at 49 and 99 (`Plddt`), a `color` layer alone (`Shade`) and one beside the letters
+   * (`Behind`).
+   */
+  const doc = () => {
+    const b = createSeqViewSpec();
+    const a = b.data.sequence({ ref: 'a', value: 'MKVLATGHEK'.repeat(10) });
+    const r = b.data.annotation({ ref: 'r', geometry: 'ranges', target: a, value: { start: [3], stop: [60] } });
+    const value = Array.from({ length: 100 }, (_, i) => (i % 50 === 49 ? null : BAND_SCORES[Math.floor(i / 5) % 4]));
+    const d = b.data.annotation({ ref: 'd', geometry: 'values', target: a, value: { value } } as never);
+    const palette = { theme: 'field_palette', params: { field: 'value', palette: BANDS } };
+    const v = b.view({ ref: 'v', label: 'V', layout: 'text' });
+    v.track({ label: 'Letters' }).letters();
+    v.track({ label: 'Region' }).ranges({ data: r, display: 'underline' } as never);
+    v.track({ label: 'Plddt' }).values({ data: d, domain: [0, 100], color: palette } as never);
+    v.track({ label: 'Shade' }).color({ data: d, color: palette } as never);
+    const behind = v.track({ label: 'Behind' });
+    behind.letters();
+    behind.color({ data: d, color: palette } as never);
+    return b.getDocument();
+  };
+  /** The rects of a track's layer (its first, or its `type` layer) drawn through the kit's composer. */
+  const strips = (t: Awaited<ReturnType<typeof drawn>>, label: string, type?: string) => {
+    const first = layerOf(t.ctx, label);
+    const m = t.ctx.graph.assembled.value?.view;
+    if (!m) throw new Error('no view');
+    let k = first.k;
+    while (type && m.set.strings.get(m.resolved.layers.type[k]) !== type) k++;
+    const entry = t.ctx.registry.get('renderers', m.prepared[k].renderer);
+    if (!entry) throw new Error(`no renderer for ${label}`);
+    const rec = new RecordingBackend();
+    new LayerFrame(t.ctx, entry, first.section, k).draw(rec);
+    return rects(rec);
+  };
+
+  it.each([1, 2])(
+    'values: a strip at the bottom of its band, a rect per run of one color in a group, none at a missing value, DPR %i',
+    async (dpr) => {
+      const t = await drawn(doc(), { width: 900, height: 600, dpr, render: { wrappedGroupLabels: 'none' } });
+      const { section } = layerOf(t.ctx, 'Plddt');
+      const l = t.ctx.layout.get(section)?.current;
+      const ax = t.ctx.layout.axis(section);
+      if (!l || !ax) throw new Error('no layout');
+      const { k } = layerOf(t.ctx, 'Plddt');
+      const tr = t.ctx.graph.assembled.value?.view?.resolved.layers.track[k];
+      const bottoms = new Set<number>();
+      for (let e = 0; e < l.entryCount; e++)
+        if (l.entryTrack[e] === tr) bottoms.add(Math.round((l.scrolledTop + l.entryTop[e] + l.entryHeight[e]) * dpr));
+      const r = strips(t, 'Plddt');
+      // Every rect 3 px high at its band's bottom, in a band's color.
+      expect(r.every(([, y, , h]) => h === 3 * dpr && bottoms.has(y + h))).toBe(true);
+      expect(new Set(r.map((x) => x[4]))).toEqual(new Set(BAND));
+      // Runs of 5 within groups of 10: 20 runs on 100 positions, less the two missing ends (49 and 99 shorten theirs).
+      expect(r.length).toBe(20);
+      // A missing value draws nothing: no rect over position 49's cell on its line (the first).
+      const lines = l.lines;
+      expect(lines.stop[0]).toBeGreaterThan(49);
+      const { frame } = record(t.ctx, 'Plddt');
+      frame.v.lineStart = lines.start[0];
+      frame.v.lineStop = lines.stop[0];
+      frame.v.onlyBlock = lines.block[0];
+      const [x0, x1] = [frame.v.xd(0, 49), frame.v.xe(0, 49)];
+      const top = Math.min(...r.map((x) => x[1]));
+      expect(r.filter(([x, y, w]) => y === top && x < x1 && x + w > x0)).toEqual([]);
+      expect(r.filter(([x, y, w]) => y === top && x < x0 && x + w > x0 - 4 * dpr).length).toBe(1);
+    },
+  );
+
+  it('under the underline lanes, in track order; color alone a strip, beside the letters their cells', async () => {
+    const t = await drawn(doc(), { width: 900, height: 600, render: { wrappedGroupLabels: 'none' } });
+    const under = strips(t, 'Region');
+    const strip = strips(t, 'Plddt');
+    const firstLine = (r: number[][]) => Math.min(...r.map((x) => x[1]));
+    // On the first line the strip lies below its underline.
+    const u = under.filter((x) => x[1] === firstLine(under));
+    expect(firstLine(strip)).toBeGreaterThanOrEqual(Math.max(...u.map((x) => x[1] + x[3])));
+    // Color alone: the same strip as the values, one band lower.
+    const shade = strips(t, 'Shade');
+    expect(shade.map((x) => [x[0], x[2], x[3], x[4]])).toEqual(strip.map((x) => [x[0], x[2], x[3], x[4]]));
+    expect(firstLine(shade) - firstLine(strip)).toBe(entryOf(t.ctx, 'Shade').top - entryOf(t.ctx, 'Plddt').top);
+    // Beside the letters: a cell a position over the letters' band (less its 2 px padding).
+    const behind = strips(t, 'Behind', 'color');
+    const band = entryOf(t.ctx, 'Behind');
+    expect(behind.length).toBe(98);
+    expect(behind.every(([, y, , h]) => y === Math.round(band.top + 2) && h === band.height - 4)).toBe(true);
+  });
+
+  it('values with no color theme: a strip in the ink beside nothing, nothing beside the letters', async () => {
+    const b = createSeqViewSpec();
+    const a = b.data.sequence({ ref: 'a', value: 'MKVLATGHEK'.repeat(4) });
+    const value = Array.from({ length: 40 }, (_, i) => i / 40);
+    const d = b.data.annotation({ ref: 'd', geometry: 'values', target: a, value: { value } });
+    const v = b.view({ ref: 'v', label: 'V', layout: 'text' });
+    v.track({ label: 'Plain' }).values({ data: d });
+    const both = v.track({ label: 'Both' });
+    both.letters();
+    both.values({ data: d });
+    const t = await drawn(b.getDocument(), { width: 900, height: 300, render: { wrappedGroupLabels: 'none' } });
+    const plain = strips(t, 'Plain');
+    // One run a group: 4 groups on one line.
+    expect([plain.length, new Set(plain.map((x) => x[4])).size]).toEqual([4, 1]);
+    expect(strips(t, 'Both', 'values')).toEqual([]);
+  });
+});
+
+describe("a ligand's pill", () => {
+  const LIGANDS = ['HEM', 'ERY', 'NI', 'ATP', 'NAG', 'SO4'];
+  const tracks = () => {
+    const doc = chipsDoc(LIGANDS) as unknown as {
+      root: { children: { kind: string; params: Record<string, unknown> }[] };
+    };
+    const view = doc.root.children.find((c) => c.kind === 'view');
+    if (view) view.params.layout = 'tracks';
+    return doc as unknown as Parameters<typeof drawn>[0];
+  };
+
+  it.each([1, 2])(
+    'at the fit of a narrow view, a filled cell at least 2 device px wide per ligand, at DPR %i',
+    async (dpr) => {
+      // The blocks' gaps (28 px) take most of the narrowest: a ligand's three cells a device px or two there.
+      for (const width of [360, 400, 520, 900]) {
+        const t = await drawn(tracks(), { width, height: 200, dpr });
+        const { rec, frame } = record(t.ctx, 'Letters');
+        const e = entryOf(t.ctx, 'Letters');
+        const faint = rects(rec).filter(([, , w, , c]) => c === SkinToken.inkFaint && w >= 2 * dpr);
+        // One box (or filled cell) per ligand in view (the fit leaves the last out where its gaps do not fit), inside
+        // the data area.
+        let shown = 0;
+        for (let b = 1; b <= LIGANDS.length; b++) if (frame.v.visHi[b] > frame.v.visLo[b]) shown++;
+        expect(shown, `width ${width}`).toBeGreaterThanOrEqual(LIGANDS.length - 1);
+        expect(faint.length, `width ${width}`).toBe(shown);
+        expect(faint.every(([x, , w]) => x >= Math.floor(e.left * dpr) && x + w <= Math.ceil(e.right * dpr))).toBe(
+          true,
+        );
+        t.ctx.dispose();
+      }
+    },
+  );
+
+  it('in text, a chip holding its whole label', async () => {
+    const t = await drawn(chipsDoc(LIGANDS), { width: 900, height: 300, render: { wrappedGroupLabels: 'none' } });
+    const labels = texts(record(t.ctx, 'Letters').rec)
+      .map((d) => d.text)
+      .filter((x) => LIGANDS.includes(x));
+    expect(labels).toEqual(LIGANDS);
+  });
+});
+
+describe('chips through redraws', () => {
+  const LIGANDS = ['HEM', 'ERY', 'NI', 'ZN', 'ATP', 'NAG', 'SO4', 'GOL'];
+  /** The faint rects (pills' borders) of a recording that no later clear covers: what stays on the canvas. */
+  function surviving(r: RecordingBackend): number[][] {
+    const kept: number[][] = [];
+    const b = r.rectItems;
+    for (let k = 0; k < r.opCount; k++) {
+      const code = r.ops[4 * k];
+      if (code === Op.rects) {
+        for (let i = r.ops[4 * k + 1]; i < r.ops[4 * k + 1] + r.ops[4 * k + 2]; i++)
+          if (b.color[i] === SkinToken.inkFaint) kept.push([b.x[i], b.y[i], b.w[i], b.h[i]]);
+      } else if (code === Op.clear) {
+        const a = r.ops[4 * k + 3];
+        const [x, y, w, h] = [r.args[a], r.args[a + 1], r.args[a + 2], r.args[a + 3]];
+        for (let j = kept.length - 1; j >= 0; j--) {
+          const q = kept[j];
+          if (q[0] < x + w && q[0] + q[2] > x && q[1] < y + h && q[1] + q[3] > y) kept.splice(j, 1);
+        }
+      }
+    }
+    return kept;
+  }
+
+  it('a scroll that cuts a row of chips redraws every chip on it, across a wrap at a narrow width', async () => {
+    const t = await lit(chipsDoc(LIGANDS, true), { width: 220, height: 60 });
+    const L = t.layout(t.section).lines;
+    // The chips wrap onto two rows or more.
+    const rows = new Set(Array.from({ length: L.count }, (_, k) => (L.block[k] >= 1 ? L.top[k] : -1)));
+    rows.delete(-1);
+    expect(rows.size).toBeGreaterThan(1);
+    const be = recording(COPY_BACK);
+    t.frame(be, Dirty.all);
+    let checked = 0;
+    for (let i = 0; i < 40; i++) {
+      t.vp?.panBy(0, 5, 'pointer');
+      be.reset();
+      t.frame(be, Dirty.tracks);
+      const kept = surviving(be);
+      // Each chip row the scroll cut was redrawn: all its chips' pills stay.
+      const l = t.layout(t.section);
+      for (const top of rows) {
+        const on = Array.from({ length: L.count }, (_, k) => k).filter((k) => L.block[k] >= 1 && L.top[k] === top);
+        // The pills' tops: 3 px into the row's letters band.
+        let e = 0;
+        while (!(l.entryRow[e] === on[0] && l.entryKind[e] === 0)) e++;
+        const y = Math.round(l.scrolledTop + l.entryTop[e] - (t.vp?.live.current.scrollY ?? 0) + 3);
+        // By x: a frame may draw a pill twice (its row redrawn whole after the strip that uncovered it).
+        const drawn = new Set(kept.filter((r) => Math.abs(r[1] - y) <= 1).map((r) => r[0]));
+        if (drawn.size === 0) continue;
+        expect(drawn.size, `row at ${top}, scroll ${t.vp?.live.current.scrollY}`).toBe(on.length);
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it("the hover and the selection on a chip are drawn at the chip's x, not its row's start", async () => {
+    const t = await lit(chipsDoc(LIGANDS, true), { width: 500, height: 600 });
+    const l = t.layout(t.section);
+    const L = l.lines;
+    const ax = t.ctx.layout.axis(t.section);
+    for (let k = 0; k < L.count; k++) {
+      if (L.block[k] < 1 || L.left[k] === 0) continue;
+      const x0 = Math.round(l.dataLeft + L.left[k]);
+      const w = Math.round(ax?.runs[L.block[k]]?.advance ?? 0);
+      t.hover(x0 + 4, l.scrolledTop + L.top[k] + l.entryHeight[0] / 2 + 12);
+      const hovered = passRects(t.overlay(), Pass.overlay);
+      expect(hovered.length, `chip ${k}`).toBeGreaterThan(0);
+      expect(hovered.every((r) => Math.abs(r[0] - x0) <= 1 && r[2] <= w + 1)).toBe(true);
+      t.ctx.selection.set(t.ctx.hover.toLoci() as never, 'api');
+      const selected = passRects(t.overlay(), Pass.overlay);
+      expect(selected.every((r) => r[0] >= x0 - 1 && r[0] + r[2] <= x0 + w + 1)).toBe(true);
+      t.ctx.selection.set(null as never, 'api');
+    }
   });
 });

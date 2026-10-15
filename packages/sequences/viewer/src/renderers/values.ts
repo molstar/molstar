@@ -14,6 +14,8 @@
 // (seqspec:format#layer-types): a bar, an area's column and the band their own; a line each position's over its own
 // cell, so it changes color halfway between two positions, where their cells meet. With no theme, the ink.
 // The overlay outlines the hovered position's bar, or rings its point on a line or an area (seqspec:interaction#hover).
+// In the text view (seqspec:viewer#the-text-view) a strip lane, each position in the theme's color at its value (a
+// missing value nothing), its hovered position's strip cell outlined; beside the letters their cells.
 import {
   AxisGeometry,
   binValues,
@@ -21,12 +23,16 @@ import {
   columnEnd,
   columnLevel,
   type DrawView,
+  drawCells,
+  drawStrip,
   hoverEmphasis,
   hoverWidth,
   kernelEntry,
   NO_COLOR,
   NO_SIZE,
+  OPAQUE,
   outlineItem,
+  outlineStrip,
   PathBatch,
   PathMode,
   PathVerb,
@@ -35,7 +41,12 @@ import {
   ringItem,
   SIZE_ONE,
   SkinToken,
+  type StripColors,
+  TextAlign,
+  TextBaseline,
+  TextBatch,
   sizeTheme,
+  stripBand,
   streamColumn,
   streamedBlock,
   ThemeLocation,
@@ -52,8 +63,11 @@ const bins = new Int32Array(2);
 const stats = new Float64Array(5);
 /** The band's bottom and height, device px, and the domain [lo, hi). */
 const band = new Float64Array(4);
-/** The line's last point (device px): held here, not in loop locals, which an unoptimized tier boxes. */
-const prev = new Float64Array(2);
+/**
+ * The line's last point (device px) and its cell's right edge: held here, not in loop locals, which an unoptimized tier
+ * boxes.
+ */
+const prev = new Float64Array(3);
 const BAND = 89;
 const AREA = 77;
 // Enum-like members read once (a per-frame read allocates under the test runner's module wrapper).
@@ -61,6 +75,8 @@ const LINE = PathVerb.line;
 const MOVE = PathVerb.move;
 const STROKE = PathMode.stroke;
 const INK = SkinToken.ink;
+const LINEAR = AxisGeometry.linear;
+const WRAPPED = AxisGeometry.wrapped;
 
 /** `stats[j]`'s height above the band's bottom, device px (one at least). */
 const heightOf = (j: number) =>
@@ -83,7 +99,9 @@ function narrowed(w: number, size: number): number {
 
 function draw(v: DrawView, s: PerPosition, p: unknown) {
   const ax = v.axis;
-  if (!ax || v.geometry !== AxisGeometry.linear) return;
+  // In the text, a strip; a track drawn in full, its encoding over the line as over a linear view.
+  if (ax && v.geometry === WRAPPED && !v.trackForm) return text(v, s);
+  if (!ax || (v.geometry !== LINEAR && !v.trackForm)) return;
   const encoding = (p as { encoding?: string }).encoding;
   const bars = encoding !== 'line' && encoding !== 'area';
   const dpr = v.dpr;
@@ -106,6 +124,9 @@ function draw(v: DrawView, s: PerPosition, p: unknown) {
     if ((!arr && !streamedBlock(v, b)) || range[0] >= range[1]) continue;
     const base = ax.base[b];
     const thin = v.cell * v.span[b] * dpr < 1;
+    // Cells a device px or wider (and a line drawn in full in the text): a line holds its end values to its cells'
+    // edges, as the area's cells reach them; zoomed out, from column to column as before.
+    const hold = v.trackForm || !thin;
     let pen = false;
     let last = -1;
     // The line's last color (its last point is `prev`).
@@ -123,6 +144,7 @@ function draw(v: DrawView, s: PerPosition, p: unknown) {
       }
       k = k1;
       if (stats[3] === 0) {
+        if (pen && hold) holdEnd();
         pen = false;
         continue;
       }
@@ -144,7 +166,11 @@ function draw(v: DrawView, s: PerPosition, p: unknown) {
       }
       if (encoding === 'area') {
         under.begin(fill, AREA);
-        under.push(x, bottom - h, Math.max(1, w), h);
+        // Wrapped in full, continuous as the line is: each cell reaches the middle of a group's gap beside it.
+        if (v.trackForm) {
+          areaSpan(v, b, k - 1, range[0], range[1], arr, base);
+          under.push(gapSpan[0], bottom - h, Math.max(1, gapSpan[1] - gapSpan[0]), h);
+        } else under.push(x, bottom - h, Math.max(1, w), h);
       }
       // The line: a new subpath after a gap (a missing value, or columns more than 2 px apart), and where its color
       // changes, halfway to the point (where the two cells meet). Coordinates are written in place: no double crosses
@@ -161,19 +187,112 @@ function draw(v: DrawView, s: PerPosition, p: unknown) {
         paths.coords[m] = paths.coords[o];
         paths.coords[m + 1] = paths.coords[o + 1];
       } else if (!join) paths.begin(fill, 255, STROKE, width);
-      const o = paths.verb(join ? LINE : MOVE);
+      // A line starts at its first cell's left edge, the value held over the half cell, as the area's cell does (and
+      // ends at its last's right: `holdEnd`).
+      if (!join && hold) {
+        const m = paths.verb(MOVE);
+        paths.coords[m] = x;
+        paths.coords[m + 1] = py;
+      }
+      const o = paths.verb(join || hold ? LINE : MOVE);
       paths.coords[o] = px;
       paths.coords[o + 1] = py;
       pen = true;
       last = x;
       prev[0] = px;
       prev[1] = py;
+      prev[2] = x + w;
       lc = fill;
     }
+    if (pen && hold) holdEnd();
   }
   if (under.n > 0) v.backend.rects(under);
   if (rects.n > 0) v.backend.rects(rects);
   if (paths.n > 0) v.backend.paths(paths);
+}
+
+/**
+ * Each position's color at its value in the theme (none: the ink), from the values or the stream's regions; `NO_COLOR`
+ * where the value is missing. The strip's and, beside the letters, their cells' (`drawCells` reads `color`).
+ */
+const strip: StripColors & { v: DrawView | null; s: PerPosition | null } = {
+  v: null,
+  s: null,
+  color(b, i, k) {
+    const v = strip.v as DrawView;
+    const s = strip.s as PerPosition;
+    const ax = v.axis;
+    const arr = b < s.value.length ? s.value[b] : null;
+    if (!ax) return NO_COLOR;
+    if (arr) stats[4] = arr[i - ax.base[b]];
+    else if (k >= 0 && streamedBlock(v, b)) {
+      streamColumn(v, b, k, k + 1, stats);
+      stats[4] = stats[3] > 0 ? stats[2] / stats[3] : Number.NaN;
+    } else return NO_COLOR;
+    return Number.isNaN(stats[4]) ? NO_COLOR : colorAt(v, b, i);
+  },
+  alpha: () => OPAQUE,
+};
+/** `drawCells`' source over the same colors: by position, never reduced (text cells are never under a device px). */
+const cells = {
+  color: (b: number, i: number) => strip.color(b, i, -1),
+  alpha: () => OPAQUE,
+  key: () => -1,
+  meanValues: () => null,
+  meanPyramid: () => null,
+};
+
+/**
+ * The text view: a strip lane under each line; beside the letters (a taller band) their cells, where the layer has a
+ * color theme (the ink would hide them).
+ */
+function text(v: DrawView, s: PerPosition) {
+  const lane = stripBand(v);
+  if (!lane && !v.color) return;
+  rects.reset();
+  ThemeLocation.reset(v.loc);
+  strip.v = v;
+  strip.s = s;
+  try {
+    for (let b = 0; b < s.value.length; b++) {
+      visibleRange(v, b, range);
+      if (!s.value[b] && !streamedBlock(v, b)) continue;
+      if (lane) drawStrip(v, b, range[0], range[1], strip, rects);
+      else drawCells(v, b, range[0], range[1], cells, s, rects);
+    }
+    if (rects.n > 0) v.backend.rects(rects);
+  } finally {
+    strip.v = strip.s = null;
+  }
+}
+
+const gapSpan = new Int32Array(2);
+/**
+ * Shown k's area column on a wrapped line drawn in full, into `gapSpan` (device px): its cell, reaching to the middle
+ * of a gap between groups on either side where the position there has a value, so an area runs through the gaps as
+ * the line does (a color change there falls at the gap's middle).
+ */
+function areaSpan(v: DrawView, b: number, k: number, lo: number, hi: number, arr: Float64Array | null, base: number) {
+  const ax = v.axis;
+  let x0 = v.xd(b, k);
+  let x1 = v.xe(b, k);
+  if (ax && k > lo && (!arr || !Number.isNaN(arr[ax.indexOf(b, (k - 1) as never) - base]))) {
+    const e = v.xe(b, k - 1);
+    if (e < x0) x0 = (e + x0) >> 1;
+  }
+  if (ax && k + 1 < hi && (!arr || !Number.isNaN(arr[ax.indexOf(b, (k + 1) as never) - base]))) {
+    const n = v.xd(b, k + 1);
+    if (n > x1) x1 = (x1 + n) >> 1;
+  }
+  gapSpan[0] = x0;
+  gapSpan[1] = x1;
+}
+
+/** The line's last value held to its cell's right edge (before a missing value, or at its block's or line's end). */
+function holdEnd() {
+  const o = paths.verb(LINE);
+  paths.coords[o] = prev[2];
+  paths.coords[o + 1] = prev[1];
 }
 
 /**
@@ -210,7 +329,15 @@ const el = new Int32Array(4);
  */
 function overlay(v: DrawView, s: PerPosition, p: unknown) {
   const ax = v.axis;
-  if (!hoverEmphasis(v) || !ax || v.geometry !== AxisGeometry.linear || !v.marks.element(v.layer, el)) return;
+  if (ax && v.geometry === WRAPPED && !v.trackForm) {
+    strip.v = v;
+    strip.s = s;
+    ThemeLocation.reset(v.loc);
+    outlineStrip(v, strip);
+    strip.v = strip.s = null;
+    return;
+  }
+  if (!hoverEmphasis(v) || !ax || (v.geometry !== LINEAR && !v.trackForm) || !v.marks.element(v.layer, el)) return;
   const b = el[0];
   const arr = b < s.value.length ? s.value[b] : null;
   const k = v.shownOf(b, el[1]);
@@ -242,7 +369,57 @@ function overlay(v: DrawView, s: PerPosition, p: unknown) {
   if (r + hoverWidth(dpr) + 1 <= w >> 1) ringItem(v, colorAt(v, b, el[1]), 0, x + (w >> 1), bottom - h, r, w >> 1);
 }
 
+/** The axis's two labels per prepared state (its domain's ends, 3 significant digits), made once: no string a frame. */
+const axisLabels = new WeakMap<PerPosition, readonly [string, string]>();
+const fmt = (x: number) => (Number.isFinite(x) ? String(Number(x.toPrecision(3))) : '');
+const axisText = new TextBatch(4);
+const axisRects = new RectBatch(4);
+const TOP = TextBaseline.top;
+const BOTTOM = TextBaseline.bottom;
+const RIGHT = TextAlign.right;
+const QUIET = SkinToken.inkQuiet;
+/**
+ * The text view, a track drawn in full with `wrappedTrackAxes` (seqspec:viewer#the-text-view): left of the line's band,
+ * a hairline over the bars' or the line's height with a tick at each end, and the domain's greatest value at the top,
+ * its least at the bottom (one scale for every line).
+ */
+function gutter(v: DrawView, s: PerPosition) {
+  if (v.geometry !== WRAPPED || !v.trackForm || !v.props.wrappedTrackAxes) return;
+  let labels = axisLabels.get(s);
+  if (!labels) {
+    labels = [fmt(s.hi), fmt(s.lo)];
+    axisLabels.set(s, labels);
+  }
+  const dpr = v.dpr;
+  const y0 = Math.round((v.top + (v.height > 10 ? 3 : 0)) * dpr) | 0;
+  const y1 = Math.round((v.top + v.height - (v.height > 10 ? 2 : 0)) * dpr) | 0;
+  const x = Math.round((v.left + v.lineLeft - 3) * dpr) | 0;
+  const d = Math.max(1, Math.round(dpr)) | 0;
+  axisRects.reset();
+  axisRects.begin(QUIET);
+  axisRects.push(x, y0, d, Math.max(d, y1 - y0));
+  axisRects.push(x - 2 * d, y0, 2 * d, d);
+  axisRects.push(x - 2 * d, y1 - d, 2 * d, d);
+  v.backend.rects(axisRects);
+  axisText.reset();
+  axisText.style(v.text.font('ui', Math.max(7, Math.round(v.fontPx * 0.6))), RIGHT, TOP);
+  axisText.begin(QUIET);
+  let i = axisText.add(labels[0]);
+  axisText.x[i] = x - 3 * d;
+  axisText.y[i] = y0;
+  v.backend.text(axisText);
+  axisText.reset();
+  axisText.style(v.text.font('ui', Math.max(7, Math.round(v.fontPx * 0.6))), RIGHT, BOTTOM);
+  axisText.begin(QUIET);
+  i = axisText.add(labels[1]);
+  axisText.x[i] = x - 3 * d;
+  axisText.y[i] = y1;
+  v.backend.text(axisText);
+}
+
 export const ValuesRenderer = kernelEntry<PerPosition>('values', 40, {
+  gutter,
+  geometries: ['linear', 'wrapped'],
   draw,
   tiny: draw,
   overlay,
