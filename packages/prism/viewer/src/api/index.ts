@@ -37,6 +37,7 @@ import { RepresentationApi } from './representation.js';
 import { SelectApi } from './select.js';
 import { SessionApi } from './session.js';
 import { StructureApi } from './structure.js';
+import { StylesApi } from './styles.js';
 import type { TargetResolver } from './targets.js';
 import { ViewApi } from './view.js';
 
@@ -60,6 +61,7 @@ export const CoreAreas: Readonly<Record<string, AreaFactory>> = {
   select: (c) => new SelectApi(c),
   focus: (c) => new FocusApi(c),
   highlight: (c) => new HighlightApi(c),
+  styles: (c) => new StylesApi(c),
   history: (c) => new HistoryApi(c),
   view: (c) => new ViewApi(c),
 };

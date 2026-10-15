@@ -12,7 +12,8 @@ import { StructureComponentManager } from '@molstar/plugin/state/manager/structu
 import { observableState } from '@molstar/prism-ui/core';
 import { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 import type { ViewerApi } from '../api/area.js';
-import type { PresetsModel, StructurePreset } from '../model/scene.js';
+import { Looks, RepresentationStyles } from '../api/styles.js';
+import type { PresetsModel, QuickStylesModel, StructurePreset } from '../model/scene.js';
 import type { SourceScope } from './state.js';
 
 // The Structure tab's header models (state.md §1, rows 6 and 8): the representation presets from the plugin's registry
@@ -61,4 +62,14 @@ export function createComponentOptionsForm(scope: SourceScope, plugin: PluginCon
   );
   scope.add(() => clearTimeout(timer));
   return form;
+}
+
+/** Quick styles (the Structure tab's Styles): representation styles and looks, both `styles.apply`. */
+export function createQuickStylesModel(api: ViewerApi): QuickStylesModel {
+  return {
+    representations: Object.entries(RepresentationStyles).map(([id, s]) => ({ id, label: s.label })),
+    styles: Object.entries(Looks).map(([id, s]) => ({ id, label: s.label })),
+    applyRepresentation: (id) => void api.run('styles.apply', { style: id }),
+    applyStyle: (id) => void api.run('styles.apply', { style: id }),
+  };
 }

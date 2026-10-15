@@ -34,12 +34,12 @@ import { composePluginSpec } from './sources/compose-plugin.js';
 import type { ViewerPointerEvent } from './sources/pointer.js';
 import { createSceneSource } from './sources/scene.js';
 import { SourceScope } from './sources/state.js';
-import { createComponentOptionsForm, createPresetsModel } from './sources/structure-tab.js';
+import { createComponentOptionsForm, createPresetsModel, createQuickStylesModel } from './sources/structure-tab.js';
 import { createTargetResolver } from './sources/targets.js';
 import { createViewerSources, type ViewerSources } from './sources/viewer-sources.js';
 import { isLazyExtension, type PrismViewerSpec, type ViewerExtension } from './spec.js';
 import { checkSpec } from './spec-check.js';
-import type { PresetsModel, SceneModel } from './model/scene.js';
+import type { PresetsModel, QuickStylesModel, SceneModel } from './model/scene.js';
 import type { ParamsFormModel } from '@molstar/prism-ui/forms/params-form';
 
 // The viewer (viewer-spec.md §6): created from a `PrismViewerSpec`, in a fixed order: validate the spec, compose the
@@ -60,6 +60,8 @@ export interface PrismViewerViews {
   readonly presets: PresetsModel;
   /** The component manager's options as a form (the Structure tab's options). */
   readonly componentOptions: ParamsFormModel<any>;
+  /** Quick styles (the Structure tab's Styles). */
+  readonly quickStyles: QuickStylesModel;
 }
 
 export interface ViewerError {
@@ -207,6 +209,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
     const scene = createSceneSource(viewScope, plugin, person);
     const presets = createPresetsModel(plugin, person);
     const componentOptions = createComponentOptionsForm(viewScope, plugin, person);
+    const quickStyles = createQuickStylesModel(person);
     for (const e of eager) {
       for (const [id, factory] of Object.entries(e.api ?? {})) disposers.push(host.addArea(id, factory));
       for (const c of e.contributes?.(host.areaContext) ?? []) {
@@ -280,7 +283,7 @@ export async function createViewerCore(o: ViewerCoreOptions): Promise<ViewerCore
           work(plugin, host.bind({ origin: { kind: 'script' }, within: context })),
         ),
       managers,
-      views: { scene, presets, componentOptions },
+      views: { scene, presets, componentOptions, quickStyles },
       sources,
       state: { ready: ready.asReadonly, busy: sources.busy, empty },
       events: { hover: sources.pointer.hover, click: sources.pointer.click, error: error.asObservable() },
