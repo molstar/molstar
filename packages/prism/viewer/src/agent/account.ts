@@ -17,7 +17,15 @@ import type { AgentAccountModule } from './tools.js';
 // read as instructions. The person's notes are quoted whole (the viewer's words name data).
 
 /** Lines in the per-turn state block; the rest through `get_scene` (Stories' state block: 40). */
-export const StateLines = 40;
+export const StateLines = 24;
+
+/**
+ * How much of the scene an outline says: `summary` the structures, volumes and measurements with their components'
+ * names; `components` (each turn's) their components too, with their representations and atoms in a line each, and what
+ * is focused; `full` everything the tree has (get_scene's default): representations, hidden rows (the unit cell,
+ * streaming).
+ */
+export type OutlineDetail = 'summary' | 'components' | 'full';
 
 /** A label from data, as the model reads it: quoted, escaped, at most 80 characters. */
 export function quoted(text: string): string {
@@ -31,7 +39,7 @@ export function quoted(text: string): string {
 /** The scene in words, read from the scene's tree (DOM-free) and the interaction sources. */
 export function createAccount(viewer: Pick<PrismViewer, 'views' | 'sources'>): AgentAccountModule {
   return {
-    outline: (max = StateLines) => outline(viewer.views.scene.roots.value, max),
+    outline: (max = StateLines, detail: OutlineDetail = 'full') => outline(viewer.views.scene.roots.value, max, detail),
     focus: () => {
       const { selection, focus } = viewer.sources.interaction;
       return [
@@ -43,30 +51,47 @@ export function createAccount(viewer: Pick<PrismViewer, 'views' | 'sources'>): A
 }
 
 /** The tree as indented lines, depth first, without the lazy contents (entities and chains, which no read lists yet). */
-function outline(roots: readonly SceneNode[], max: number): string {
+function outline(roots: readonly SceneNode[], max: number, detail: OutlineDetail): string {
   if (!roots.length) return 'The scene is empty.';
   const lines: string[] = [];
   let more = 0;
-  const count = (nodes: readonly SceneNode[]): number =>
-    nodes.reduce((n, c) => (c.kind === 'contents' ? n : n + 1 + count(c.children.value)), 0);
+  // What a level leaves out: below `components`, the representations and the rows that say nothing now (hidden
+  // features' rows, an empty focus); `summary` keeps the top rows only.
+  const said = (n: SceneNode, depth: number) => {
+    if (n.kind === 'contents') return false;
+    if (detail === 'full') return true;
+    if (detail === 'summary') return depth === 0;
+    if (n.kind === 'representation' || n.kind === 'volume-representation' || n.kind === 'particles-representation')
+      return false;
+    if ((n.kind === 'extension' || n.kind === 'unit-cell') && n.isHidden.value) return false;
+    return !(n.kind === 'focus' && !n.children.value.length);
+  };
+  const count = (nodes: readonly SceneNode[], depth: number): number =>
+    nodes.reduce((n, c) => (said(c, depth) ? n + 1 + count(c.children.value, depth + 1) : n), 0);
   const walk = (nodes: readonly SceneNode[], depth: number) => {
     for (const n of nodes) {
-      if (n.kind === 'contents') continue;
+      if (!said(n, depth)) continue;
       if (lines.length >= max) {
         // The items left out, with what is under them.
-        more += 1 + count(n.children.value);
+        more += 1 + count(n.children.value, depth + 1);
         continue;
       }
       // A description is made of labels from data too (a measurement's atoms, a representation's name).
       const description = n.description.value;
       const hidden = n.isHidden.value ? ' (hidden)' : '';
+      // A summary names a structure's components on its line.
+      const parts =
+        detail === 'summary' && n.kind === 'structure'
+          ? n.children.value.filter((c) => c.kind === 'component').map((c) => quoted(c.label.value))
+          : [];
       lines.push(
-        `${'  '.repeat(depth)}- ${n.kind} ${quoted(n.label.value)}${description ? `: ${quoted(description)}` : ''}${hidden}`,
+        `${'  '.repeat(depth)}- ${n.kind} ${quoted(n.label.value)}${description ? `: ${quoted(description)}` : ''}${hidden}${parts.length ? `; components ${parts.join(', ')}` : ''}`,
       );
       walk(n.children.value, depth + 1);
     }
   };
   walk(roots, 0);
   if (more) lines.push(`… ${more} more (get_scene gives all of it).`);
+  else if (detail !== 'full') lines.push('(get_scene gives the representations and the hidden rows too.)');
   return lines.join('\n');
 }

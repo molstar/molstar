@@ -274,11 +274,18 @@ function ownTools(): ToolRegistration<ViewerAgentApi>[] {
     }),
     tool({
       id: 'get_scene',
-      description: "The scene's outline: structures with their components and representations, volumes, measurements.",
-      input: { kind: 'object', fields: {} },
+      description:
+        "The scene's outline: structures with their components and representations, volumes, measurements. detail: summary (the structures and their components' names), components (as each turn says it), full (the default: representations and hidden rows too).",
+      input: {
+        kind: 'object',
+        fields: { detail: { kind: 'string', enum: ['summary', 'components', 'full'], optional: true } },
+      },
       modules: ['account'],
       read: true,
-      run: ({ api }) => ({ ok: true, did: 'The scene:', body: api.account.outline(400) }),
+      run: ({ args, api }) => {
+        const detail = (args as { detail?: 'summary' | 'components' | 'full' } | undefined)?.detail ?? 'full';
+        return { ok: true, did: 'The scene:', body: api.account.outline(400, detail) };
+      },
     }),
     tool({
       id: 'ask',

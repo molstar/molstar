@@ -38,7 +38,6 @@ describe('tools declared with zod (tools-and-session.md §1)', () => {
 
   it('gives the JSON Schema zod makes, input side, draft 2020-12', () => {
     expect(t.definition.inputSchema).toEqual({
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
       type: 'object',
       properties: {
         scene: { type: 'string', description: 'Scene id.' },

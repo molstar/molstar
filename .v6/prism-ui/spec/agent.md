@@ -129,8 +129,15 @@ As little in the way as is reasonable (decision 26):
 
 - **State**: the scene's outline (structures with their components, representations and colors; volumes; snapshots;
   the canvas), capped (Stories' state block: at most 40 entries, the rest through `get_scene`); labels from data are
-  quoted (§4). As built: the scene tree's outline (structures, components, representations, volumes, measurements;
-  no colors, snapshots or canvas yet).
+  quoted (§4). As built: the scene tree's outline at a level (`account.outline`): each turn `components` (structures,
+  their components with representations and atoms in a line, volumes, measurements; at most 24 lines), `get_scene` a
+  `detail` of `summary`, `components` or `full` (the default: representations and hidden rows too); no colors,
+  snapshots or canvas yet.
+- **Tokens** (David, 2026-10-15): what every request carries is kept small. The shared params (`target`, `structure`,
+  `language`) are said once in the guidance, not in each schema; a select's names are its enum only (no list in
+  words), and a long one (over 16: color themes) has no enum, a wrong name answering with all of them; no `$schema`.
+  Measured on 1CBS, a first request went from about 5,070 input tokens to 3,800 on Haiku 5.5, 3,140 to 2,510 on
+  Gemini 3.8 Flash; the evals pass. A turn with a tool call is two requests, the second mostly cached (Anthropic).
 - **Focus**: what the person points at now: Mol\*'s selection (as addresses per chain and as MolQL), the focus, the open
   panel, the hovered residue. As built: the selection's and the focus's summaries; the record keeps it with the turn
   (journal.md §2).

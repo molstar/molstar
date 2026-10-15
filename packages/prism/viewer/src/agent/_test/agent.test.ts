@@ -220,11 +220,13 @@ describe('the viewer agent between turns', () => {
     const v = await headlessViewer({ files: [cbs()] });
     const { agent } = agentOn(v, [{ text: 'Hi.' }]);
     const schema = () => JSON.stringify(agent.toolkit.registration('color')?.definition.inputSchema);
-    expect(schema()).not.toContain('test-theme');
+    // The themes are many: the schema counts them (no enum), and a wrong name answers with the list.
+    const count = () => Number(/\((\d+) names/.exec(schema())?.[1]);
+    const before = count();
     const registry = v.plugin.representation.structure.themes.colorThemeRegistry;
     registry.add({ ...registry.get('uniform'), name: 'test-theme', label: 'Test theme' } as never);
     await agent.turn('hello');
-    expect(schema()).toContain('test-theme');
+    expect(count()).toBe(before + 1);
     // Nothing changed since: nothing is replaced.
     expect((agent.toolkit as unknown as { refresh(): boolean }).refresh()).toBe(false);
     agent.dispose();

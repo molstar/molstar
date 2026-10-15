@@ -44,7 +44,7 @@ export interface ViewerAgentApi extends DisclosureApi {
 
 export interface AgentAccountModule {
   /** The scene's outline: structures, components, representations, volumes, measurements; at most `max` lines. */
-  outline(max?: number): string;
+  outline(max?: number, detail?: 'summary' | 'components' | 'full'): string;
   /** What is selected and focused, in words and as addresses. */
   focus(): string;
 }
@@ -122,6 +122,8 @@ export function operationTool(
         }
       : {}),
     run: async ({ args, api, signal }) => {
+      const wrong = shape.check((args ?? {}) as Record<string, unknown>);
+      if (wrong) return failed('invalid', wrong);
       const values = valuesOf(args);
       const result = await api.viewer.api.run(spec.operation, values, { signal });
       return toolResult(result);

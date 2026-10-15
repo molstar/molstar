@@ -144,7 +144,8 @@ const JSON_SCHEMA = {
  * input side, nothing a schema cannot say faithfully), and the check.
  */
 export function zodBacked<A>(shape: ObjectShape, schema: z.ZodObject): ToolInput<A> {
-  const jsonSchema = z.toJSONSchema(schema, JSON_SCHEMA) as JsonObject;
+  // The dialect is the providers' own: naming it costs every tool tokens on every request.
+  const { $schema: _dialect, ...jsonSchema } = z.toJSONSchema(schema, JSON_SCHEMA) as JsonObject;
   return {
     shape,
     jsonSchema,

@@ -26,6 +26,8 @@ export interface ParamsShape {
   toValues(args: Readonly<Record<string, unknown>>): PD.Values;
   /** The params' values as arguments (what a filled command reads as, for the model). */
   toArgs(values: PD.Values): Record<string, Json>;
+  /** Why the arguments cannot be taken (a long select's unknown name, which no enum checks): its choices, all. */
+  check(args: Readonly<Record<string, unknown>>): string | undefined;
 }
 
 export interface ParamsShapeOptions {
@@ -35,8 +37,24 @@ export interface ParamsShapeOptions {
   readonly listedOptions?: number;
 }
 
-/** Up to this many select options are named with their labels in the description. */
-const ListedOptions = 24;
+/** Up to this many of a mapped choice's options are named with their labels in the description. */
+const ListedOptions = 12;
+/**
+ * Params every target tool has, said once in the guidance (`ViewerGuidance`) instead of in each tool's schema: what a
+ * target is, the selection language, which structure.
+ */
+const SaidOnce: Readonly<Record<string, (description: string | undefined) => boolean>> = {
+  target: (d) => !d || /^What to [a-z ]+: ligand, A:120-130, resn HEM, …$/.test(d),
+  structure: (d) => d === 'A structure by label or state ref; empty: the one in view',
+  language: () => true,
+};
+/**
+ * A select with more options than this has no enum (a color theme: 47 of them, in every request): its description
+ * names a few, and an unknown name fails with all of them (`check`), so the model reads the list only when it needs it.
+ */
+const LongSelect = 16;
+const isLong = (param: PD.Any): param is PD.Select<unknown> =>
+  param.type === 'select' && param.options.length > LongSelect;
 
 /** The params as a tool's input. */
 export function paramsShape(params: PD.Params, options: ParamsShapeOptions = {}): ParamsShape {
@@ -52,6 +70,15 @@ export function paramsShape(params: PD.Params, options: ParamsShapeOptions = {})
     omitted,
     toValues: (args) => valuesOf(params, args),
     toArgs: (values) => argsOf(params, values),
+    check: (args) => {
+      for (const [name, param] of Object.entries(params)) {
+        const arg = args[name];
+        if (arg === undefined || !isLong(param) || param.options.some(([v]) => String(v) === String(arg))) continue;
+        const all = param.options.map(([v]) => String(v)).filter(Boolean);
+        return `Unknown ${camelCaseToWords(name).toLowerCase()} '${String(arg)}'. One of: ${all.join(', ')}.`;
+      }
+      return undefined;
+    },
   };
 }
 
@@ -95,7 +122,9 @@ function fieldOf(
 function shapeOf(param: PD.Any, options: ParamsShapeOptions): FieldShape | undefined {
   switch (param.type) {
     case 'select':
-      return { kind: 'string', enum: param.options.map(([value]) => String(value)) };
+      return isLong(param)
+        ? { kind: 'string' }
+        : { kind: 'string', enum: param.options.map(([value]) => String(value)) };
     case 'multi-select':
       return { kind: 'array', item: { kind: 'string', enum: param.options.map(([value]) => value) } };
     case 'boolean':
@@ -203,8 +232,11 @@ function describe(
 ): string | undefined {
   const words = camelCaseToWords(name).toLowerCase();
   const label = param.label && param.label.toLowerCase() !== words ? param.label : undefined;
+  // A shared param's own words (a structure that may be "every one") stay.
+  if (SaidOnce[name]?.(param.description)) return undefined;
   const parts = [param.description ?? label];
-  if (param.type === 'select') parts.push(optionsText(param.options, options.listedOptions ?? ListedOptions));
+  // A select's enum says its names, and a wrong one answers with them: no list in words (every request pays for it).
+  if (isLong(param)) parts.push(examplesText(param.options, !!param.description?.includes(',')));
   if (param.type === 'color' || format === 'color') parts.push('A color: a name (red) or hex (#ff0000).');
   if (param.type === 'interval') parts.push('[min, max].');
   if (param.type === 'vec3') parts.push('[x, y, z].');
@@ -217,6 +249,14 @@ function describe(
   if (param.type === 'conditioned') parts.push(`Pick by "condition"; its "value" fills in that choice.`);
   const text = parts.filter(Boolean).join(' ').trim();
   return text || undefined;
+}
+
+/** A long select's few first names: an example of the names, not the list (`check` gives it on a wrong one). */
+function examplesText(options: PD.Select<unknown>['options'], described: boolean): string {
+  const names = options.map(([value]) => String(value)).filter(Boolean);
+  const all = `${names.length} names; a wrong one answers with the list`;
+  // A description with its own examples (the common ones) says enough of them.
+  return described ? `(${all}.)` : `A name: ${names.slice(0, 6).join(', ')}, … (${all}).`;
 }
 
 /** A select's options with their labels, where a label says more than the value. */

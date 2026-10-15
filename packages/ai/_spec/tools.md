@@ -50,7 +50,7 @@ export const setColor = tool({
 `FieldShape`: `string` (`enum?`, `verbatim?`, `format?`), `number`/`integer` (`min?`, `max?`), `boolean`, `array`
 (`item`, `max?`), `object` (`fields`), `variant` (`tag`, `variants`), `json`; each with `optional?`, `description?`,
 `default?`. A tool's input is an `ObjectShape` or `zodInput(z.object(…))` from `@molstar/ai-tools/zod`. Either way the
-JSON Schema (draft 2020-12) and the validator are made once.
+JSON Schema (draft 2020-12, without its `$schema`: the providers know the dialect) and the validator are made once.
 
 `normalize` repairs what small models send, before the check: `""` and `null` are absent; strings trimmed (not
 `verbatim`); `"3"` → number and `"true"` → boolean where asked; a number → string where a string is asked; a list of

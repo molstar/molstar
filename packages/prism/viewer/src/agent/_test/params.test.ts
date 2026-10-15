@@ -89,8 +89,8 @@ describe('paramsShape', () => {
     expect(ps.shape.fields.file).toBeUndefined();
   });
 
-  it('names select options by their labels where they say more', () => {
-    expect(ps.shape.fields.repr.description).toBe('Options: ball-and-stick (Ball & Stick).');
+  it("leaves a select's names to its enum (no list in words)", () => {
+    expect(ps.shape.fields.repr.description).toBeUndefined();
   });
 
   it('makes a JSON Schema and a check through ai-tools', () => {
@@ -138,6 +138,21 @@ describe('paramsShape', () => {
     expect(args.query).toEqual({ language: 'pymol', expression: 'all' });
     expect(args.file).toBeUndefined();
     expect(ps.toValues(args)).toEqual({ ...PD.getDefaultValues(Params) });
+  });
+  it('gives a long select no enum: a few names said, a wrong one answered with all of them', () => {
+    const many = Array.from({ length: 20 }, (_, i) => [`t${i}`, `Theme ${i}`] as [string, string]);
+    const shape = paramsShape({
+      theme: PD.Select('t0', many),
+      mode: PD.Select('a', [
+        ['a', 'A'],
+        ['b', 'B'],
+      ]),
+    });
+    const theme = (shape.shape as { fields: Record<string, { enum?: unknown; description?: string }> }).fields.theme;
+    expect(theme.enum).toBeUndefined();
+    expect(theme.description).toMatch(/20 names/);
+    expect(shape.check({ theme: 't7' })).toBeUndefined();
+    expect(shape.check({ theme: 'nope' })).toMatch(/Unknown theme 'nope'\. One of: t0, t1, .*t19\./);
   });
 });
 

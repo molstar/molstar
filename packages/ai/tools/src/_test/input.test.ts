@@ -28,7 +28,6 @@ describe('a field shape, as the JSON Schema the model sees and the check (tools-
       },
     } as const;
     expect(shapeInput(shape).jsonSchema).toEqual({
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
       type: 'object',
       properties: {
         scene: { type: 'string', description: 'Scene id.' },
