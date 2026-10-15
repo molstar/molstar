@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "vite build",
+    "build:single": "vite build --mode single",
     "typecheck": "tsc -b",
     "dev": "vite",
     "preview": "vite preview"

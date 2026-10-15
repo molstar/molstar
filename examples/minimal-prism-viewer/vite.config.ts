@@ -9,8 +9,15 @@
 import { defaultClientConditions, defineConfig } from 'vite';
 
 // Workspace packages resolve to their sources through the `molstar-src` export condition (as in the tests and the
-// other builds), so no package needs to be built first.
-export default defineConfig({
+// other builds), so no package needs to be built first. `vite build --mode single` makes the single-file build (every
+// lazy part inlined into one JS file, as the Prism viewer app's `prism-viewer.js`), into `build/single`.
+export default defineConfig(({ mode }) => ({
   resolve: { conditions: ['molstar-src', ...defaultClientConditions] },
-  build: { outDir: 'build', emptyOutDir: true, target: 'es2022', sourcemap: false },
-});
+  build: {
+    outDir: mode === 'single' ? 'build/single' : 'build',
+    emptyOutDir: true,
+    target: 'es2022',
+    sourcemap: false,
+    ...(mode === 'single' ? { rolldownOptions: { output: { codeSplitting: false } } } : {}),
+  },
+}));

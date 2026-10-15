@@ -7,6 +7,7 @@ be composed from nothing, and a fixed point to benchmark bundle size and startup
 ```sh
 pnpm -C examples/minimal-prism-viewer dev      # http://localhost:5173, from the workspace sources
 pnpm -C examples/minimal-prism-viewer build    # vite build → build/
+pnpm -C examples/minimal-prism-viewer build:single  # one JS file → build/single/
 pnpm -C examples/minimal-prism-viewer preview  # serves build/
 pnpm -C examples/minimal-prism-viewer typecheck
 ```
@@ -51,21 +52,25 @@ other formats (PDB, SDF, volumes, trajectories), other representations and theme
 
 ## Bundle size
 
-`vite build` (Vite 8.3, production, minified, no source maps), 2026-10-16, nothing loaded at runtime:
+Vite 8.3, production, minified, no source maps, 2026-10-16, nothing loaded at runtime. Two builds:
 
-| File                      | Size       | gzip (level 9) | brotli   |
-| ------------------------- | ---------- | -------------- | -------- |
-| `assets/index-*.js`       | 3,236.5 kB | 894.6 kB       | 712.9 kB |
-| `assets/src-*.js` (chunk) | 2.0 kB     | 1.0 kB         | 0.8 kB   |
-| `index.html`              | 1.1 kB     | 0.6 kB         |          |
+**Single file** (`pnpm build:single`, `vite build --mode single` → `build/single/`): every lazy part inlined into one JS
+file, the counterpart of the Prism viewer app's single file (`apps/prism-viewer/build/prism-viewer.js`).
 
-The page starts and renders 1CBS about 1.1 s after load on a laptop (`structure-shown` mark, dev server, network
-included; a rough first number, not a benchmark).
+| Build                                          | JS size    | gzip (level 9) | brotli     |
+| ---------------------------------------------- | ---------- | -------------- | ---------- |
+| minimal example, single file (Vite)            | 3,253.8 kB | 899.9 kB       | 717.5 kB   |
+| full Prism viewer, `prism-viewer.js` (esbuild) | 6,243.1 kB | 1,888.5 kB     | 1,498.1 kB |
 
-For scale: the full Prism viewer's initial load is 4.25 MB, 1.25 MB gzipped
-([viewer-spec.md §2.3](../../.v6/prism-ui/spec/viewer-spec.md)). That is another bundler with other settings (esbuild,
-identifiers not minified), so the two are not strictly comparable, but the minimal composition is only about a quarter
-smaller. See the findings.
+The minimal composition is 52% of the full viewer's single file (48% gzipped). The bundlers differ (the full app is
+built by esbuild without identifier minification), so the ratio is approximate; a like-for-like number needs the full
+spec built with Vite too.
+
+**Default build** (`pnpm build` → `build/`, split into chunks): `assets/index-*.js` 3,236.5 kB (894.6 kB gzip, 712.9 kB
+brotli) and a 2.0 kB chunk (1.0 kB gzip), `index.html` 1.1 kB.
+
+The page renders 1CBS about 1 s after load on a laptop (`structure-shown` mark: 0.95 s from the single-file preview, 1.1
+s from the dev server; network included, a rough first number, not a benchmark).
 
 ## Findings: where the viewer API forces more in than needed
 
@@ -91,7 +96,7 @@ an unminified build (6.0 MB of module code in all):
   and `default-spec.ts` are the only modules that do, and nothing in the composition path imports them).
 - **`@molstar/ai-fibers`** (44 kB unminified) is in the bundle through the viewer's imports, although `agent: false`.
 
-So the smallest composition today is the viewer core plus the engine, about 3.2 MB. The viewer spec trims the features,
-extensions, the sequence and the assistant (each its own chunk or off the bundle), which is where the full viewer's
-remaining weight is; the core's areas and views would need to become optional (areas by spec, views behind the shell's
-parts) to go lower.
+So the smallest composition today is the viewer core plus the engine, about 3.2 MB (half of the full viewer's single
+file). The viewer spec trims the features, extensions, the sequence and the assistant (each its own chunk or off the
+bundle), which is where the full viewer's remaining weight is; the core's areas and views would need to become optional
+(areas by spec, views behind the shell's parts) to go lower.
