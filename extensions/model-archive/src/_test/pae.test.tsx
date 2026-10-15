@@ -31,6 +31,7 @@ import {
   paeTicks,
 } from '../pae/data.js';
 import { paeUI } from '../pae/ui.js';
+import { PlddtBands, PlddtNoScore, plddtColor } from '../quality-assessment/plddt-bands.js';
 import { ModelArchiveExtension } from '../prism-viewer.js';
 
 // The PAE (parity.md §6, "PAE plot"): no recorded fixture carries one (AlphaFold DB ships PAE apart from the model), so
@@ -44,6 +45,8 @@ const Residues = [
   ['B', 1, 'LYS'],
 ] as const;
 const pae = (i: number, j: number) => 2 * Math.abs(i - j) + 1;
+/** Their pLDDT: one in each band. */
+const Plddt = [95, 80, 60, 30];
 
 function modelCif(): string {
   const atoms = Residues.map(
@@ -98,6 +101,12 @@ function modelCif(): string {
     '_ma_qa_metric.software_group_id',
     "1 pLDDT 'Predicted lDDT' pLDDT local .",
     "2 PAE 'Predicted aligned error' PAE local-pairwise .",
+    '#',
+    'loop_',
+    ...['ordinal_id', 'model_id', 'label_asym_id', 'label_seq_id', 'label_comp_id', 'metric_id', 'metric_value'].map(
+      (f) => `_ma_qa_metric_local.${f}`,
+    ),
+    ...Residues.map(([chain, seq, comp], k) => `${k + 1} 1 ${chain} ${seq} ${comp} 1 ${Plddt[k].toFixed(2)}`),
     '#',
     'loop_',
     ...[
@@ -206,6 +215,10 @@ describe('model-archive.pae', () => {
     const m = v.api['model-archive']!.paeMatrix(refOf(v))!;
     expect(m.residues.map((x) => `${x.chain}${x.seq}${x.name}`)).toEqual(['A1ALA', 'A2GLY', 'A3SER', 'B1LYS']);
     for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) expect(m.values[i * 4 + j]).toBe(pae(i, j));
+    // The residues' pLDDT, for the plot's strip; a band each.
+    expect([...m.plddt!]).toEqual(Plddt);
+    expect([...m.plddt!].map(plddtColor)).toEqual(PlddtBands.map((b) => b.color));
+    expect(plddtColor(Number.NaN)).toBe(PlddtNoScore);
     expect(v.api['model-archive']!.hasPae(refOf(v))).toBe(true);
   });
 
@@ -252,8 +265,21 @@ describe('the PAE card', () => {
     const unmount = ui.overlays![0].render.mount(host, { shell: new ShellModel() } as never, undefined as never);
     const canvas = host.querySelector('canvas')!;
     expect(canvas.width).toBe(4);
-    expect(put).toHaveBeenCalledTimes(1);
+    // The matrix, and the two pLDDT strips.
+    expect(put).toHaveBeenCalledTimes(3);
     const plot = host.querySelector<HTMLElement>('[role="img"]')!;
+
+    // The pLDDT strips: off until the toggle; then along both axes, with the bands' legend.
+    const toggle = [...host.querySelectorAll('button')].find((b) => b.textContent === 'pLDDT')!;
+    const legend = host.querySelector<HTMLElement>('[aria-label="pLDDT bands"]')!;
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    expect(legend.style.display).toBe('none');
+    toggle.click();
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    expect(legend.style.display).toBe('flex');
+    expect(legend.textContent).toContain('Very high > 90');
+    toggle.click();
+    expect(legend.style.display).toBe('none');
     const pointer = (type: string, x: number, y: number) =>
       plot.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true }));
 

@@ -30,6 +30,8 @@ export interface PaeMatrix {
   /** The highest value: the light end of the scale. */
   readonly max: number;
   readonly residues: readonly PaeResidue[];
+  /** The residues' pLDDT (0–100; NaN where there is none), when the model has the metric: the plot's strip. */
+  readonly plddt?: Float32Array;
 }
 
 /** The scale: AlphaFold DB's greens (the classic plot's), dark for a low error, near white for the highest. */

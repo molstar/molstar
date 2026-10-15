@@ -23,13 +23,14 @@ import {
   paeRangeLabel,
   paeTicks,
 } from './data.js';
+import { PlddtBands, plddtColor } from '../quality-assessment/plddt-bands.js';
 
 // The PAE plot (parity.md §6; AlphaFold DB's, in Prism's look): the heat map, scored residue across and aligned residue
 // down, one pixel per cell scaled crisply; over it an SVG in the matrix's coordinates for the chains' boundaries, the
 // crosshair of the cell under the pointer, and a box dragged over it with its two ranges on the diagonal (scored in
 // orange, aligned in yellow, as the 3D view and the sequence mark them) and its edges projected, dashed, to them.
-// Residue ticks on both axes, chain bands for a complex, the scale in Å. Pointer-rate input is handled once per frame
-// (styling.md §5).
+// Residue ticks on both axes, chain bands for a complex, a pLDDT strip along both (off until asked for), the scale in
+// Å. Pointer-rate input is handled once per frame (styling.md §5).
 
 /** A box of cells: aligned rows `i0`–`i1`, scored columns `j0`–`j1` (all in, ordered). */
 export interface PaeBox {
@@ -452,6 +453,60 @@ export function PaePlot(props: PaePlotProps) {
   );
 
   // The scale: the ramp with a tick each 5 Å (each 10 Å past 40).
+  // pLDDT along both axes (AlphaFold DB's confidence bands), a pixel a residue as the plot's; off until asked for.
+  const plddt = m.plddt;
+  const showPlddt = observableState(false);
+  const stripCanvas = (vertical: boolean) => {
+    const c = (
+      <canvas
+        width={vertical ? 1 : n}
+        height={vertical ? n : 1}
+        aria-hidden="true"
+        style="position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; border-radius: 1px"
+      />
+    ) as HTMLCanvasElement;
+    const g2 = plddt && c.getContext('2d');
+    if (g2) {
+      const img = g2.createImageData(c.width, c.height);
+      for (let k = 0; k < n; k++) {
+        const color = plddtColor(plddt[k]);
+        img.data[k * 4] = (color >> 16) & 0xff;
+        img.data[k * 4 + 1] = (color >> 8) & 0xff;
+        img.data[k * 4 + 2] = color & 0xff;
+        img.data[k * 4 + 3] = Number.isNaN(plddt[k]) ? 0 : 255;
+      }
+      g2.putImageData(img, 0, 0);
+    }
+    return c;
+  };
+  /** A grid item shown with the strips only. */
+  const withStrip = (child: unknown) => (
+    <div
+      style={showPlddt.asReadonly.pipe(
+        map((on) => (on ? 'display: block; position: relative; min-width: 0; min-height: 0' : 'display: none')),
+      )}
+    >
+      {child as never}
+    </div>
+  );
+  const plddtLegend = (
+    <div
+      style={showPlddt.asReadonly.pipe(
+        map((on) => `display: ${on ? 'flex' : 'none'}; flex-wrap: wrap; gap: 4px 10px; ${Quiet}`),
+      )}
+      aria-label="pLDDT bands"
+    >
+      {PlddtBands.map((b) => (
+        <span>
+          <span
+            style={`display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; background: ${hex(b.color)}`}
+          />
+          {b.label} {b.range}
+        </span>
+      ))}
+    </div>
+  );
+
   const step = m.max > 40 ? 10 : 5;
   const scaleTicks = Array.from({ length: Math.floor(m.max / step) + 1 }, (_, k) => k * step);
   const scale = (
@@ -468,7 +523,21 @@ export function PaePlot(props: PaePlotProps) {
           </span>
         ))}
       </div>
-      <span style={Quiet}>Expected position error (Å)</span>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--msp-space-2)">
+        <span style={Quiet}>Expected position error (Å)</span>
+        {plddt ? (
+          <Button
+            variant="ghost"
+            size="xs"
+            pressed={showPlddt.asReadonly}
+            title="Show each residue's pLDDT along the axes"
+            onClick={() => showPlddt.set(!showPlddt.value)}
+          >
+            pLDDT
+          </Button>
+        ) : null}
+      </div>
+      {plddt ? plddtLegend : null}
     </div>
   );
 
@@ -476,20 +545,36 @@ export function PaePlot(props: PaePlotProps) {
   return (
     <div style="display: grid; gap: var(--msp-space-3); min-width: 0">
       <div
-        style={`display: grid; grid-template-columns: 28px ${complex ? '14px ' : ''}minmax(0, 1fr); grid-template-rows: ${complex ? '14px ' : ''}auto auto; column-gap: 2px; row-gap: 2px`}
+        style={showPlddt.asReadonly.pipe(
+          map((on) => {
+            const strip = on && plddt ? '6px ' : '';
+            return `display: grid; grid-template-columns: 28px ${complex ? '14px ' : ''}${strip}minmax(0, 1fr); grid-template-rows: ${complex ? '14px ' : ''}${strip}auto auto; column-gap: 2px; row-gap: 2px`;
+          }),
+        )}
       >
         {complex ? (
           <>
             <span />
             <span />
+            {plddt ? withStrip(null) : null}
             {band(false)}
+          </>
+        ) : null}
+        {plddt ? (
+          <>
+            {withStrip(null)}
+            {complex ? withStrip(null) : null}
+            {withStrip(null)}
+            {withStrip(stripCanvas(false))}
           </>
         ) : null}
         {yTicks}
         {complex ? band(true) : null}
+        {plddt ? withStrip(stripCanvas(true)) : null}
         {plotArea}
         <span />
         {complex ? <span /> : null}
+        {plddt ? withStrip(null) : null}
         {xTicks}
       </div>
       <div style={`display: flex; justify-content: space-between; ${Quiet}`} aria-hidden="true">

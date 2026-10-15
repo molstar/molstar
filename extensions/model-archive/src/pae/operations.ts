@@ -64,7 +64,21 @@ function matrixOf(model: Model): PaeMatrix | undefined {
       name: h.atoms.label_comp_id.value(h.residueAtomSegments.offsets[r]),
     });
   }
-  return { name: metric.name, size, values, max: metric.valueRange[1], residues };
+  return { name: metric.name, size, values, max: metric.valueRange[1], residues, plddt: plddtOf(model, lo, size) };
+}
+
+/** The pLDDT of residues `lo`… (0–100), from the model's local metric; undefined when it has none. */
+function plddtOf(model: Model, lo: number, size: number): Float32Array | undefined {
+  const metric = QualityAssessment.fromModel(model).local.find((m) => m.kind === 'pLDDT');
+  if (!metric?.values.size) return undefined;
+  // A metric in [0, 1] is scaled to the bands' 0–100.
+  const scale = metric.domain?.[1] === 1 ? 100 : 1;
+  const out = new Float32Array(size).fill(Number.NaN);
+  for (let k = 0; k < size; k++) {
+    const v = metric.values.get((lo + k) as ResidueIndex);
+    if (typeof v === 'number') out[k] = v * scale;
+  }
+  return out;
 }
 
 export class ModelArchiveApi extends ApiArea {

@@ -17,8 +17,9 @@ import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { CustomProperty } from '@molstar/model/props/common/custom-property';
 import { TableLegend } from '@molstar/core/util/legend';
 import { ColorThemeCategory } from '@molstar/graphics/theme/color/categories';
+import { PlddtNoScore, plddtColor } from '../plddt-bands.js';
 
-const DefaultColor = Color(0xaaaaaa);
+const DefaultColor = Color(PlddtNoScore);
 const ConfidenceColors = {
   'No Score': DefaultColor,
   'Very Low': Color(0xff7d45),
@@ -56,17 +57,7 @@ export function PLDDTConfidenceColorTheme(
         score = unit.model.atomicConformation.B_iso_or_equiv.value(element);
       }
 
-      if (score < 0) {
-        return DefaultColor;
-      } else if (score <= 50) {
-        return Color(0xff7d45);
-      } else if (score <= 70) {
-        return Color(0xffdb13);
-      } else if (score <= 90) {
-        return Color(0x65cbf3);
-      } else {
-        return Color(0x0053d6);
-      }
+      return Color(plddtColor(score));
     };
 
     color = (location: Location) => {
