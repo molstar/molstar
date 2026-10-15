@@ -18,7 +18,7 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | `Viewer.load*` (structure, PDB, PDB-IHM, EMDB, AFDB, ModelArchive, volume, trajectory, MVS, files, URL, snapshot) | `@molstar/plugin-extension/loaders`, imported as needed; `viewer.run` for a history step; the loaders feature for the API | `load.*` (loaders feature) | missing |
 | URL parameters (`pdb`, `afdb`, `emdb`, `url`, `mvs-url`, `snapshot-url`, …) | run at start by the loaders feature                             | `load.*`, options            | missing |
 | remote states (list, upload, fetch, remove)                           | Home's list and the Remote states card, behind a setting; the listing and removal now live in the classic UI's view (`state/snapshots.tsx`, `RemoteStateSnapshots`) and move into the feature's API | `session.remote.*`           | mocked |
-| sessions `.molx` / `.molj` (open, save)                               | Snapshots tab; drop; Export › Session                                 | `session.*`                  | open and save built (`export-session`: `session.save`); Snapshots tab mocked |
+| sessions `.molx` / `.molj` (open, save)                               | Snapshots tab; drop; Export › Session                                 | `session.*`                  | open and save built (`export-session`: `session.save`; the Snapshots tab's Save and Open) |
 
 ## 2. The scene
 
@@ -66,7 +66,7 @@ plugin), **missing** (not mocked), **dropped** (decided not to carry over), **la
 | v5                                                                    | Prism                                                                 | API area                     | State  |
 | --------------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------- | ------ |
 | sequence viewer (structure, mode, entity, chain selectors)           | the sequence band, Text and Tracks ([sequence.md](sequence.md)); no pickers | `sequence.*`           | built (first slice) |
-| Snapshots (add, edit, move, replace, remove, options; save/open)      | Snapshots tab                                                         | `snapshot.*`                 | mocked |
+| Snapshots (add, edit, move, replace, remove, options; save/open)      | Snapshots tab                                                         | `snapshot.*`                 | built (`snapshots`) |
 | Settings (Canvas3D params, behavior tree)                             | Settings tab (groups; the behaviors and the plugin's settings)        | `settings.*`                 | mocked |
 | Help (prose, bindings)                                                | Help tab (bindings); the command menu's `?`                           | none                         | mocked |
 | layout (regions, controls display, expanded)                          | the shell (docks, compact, pinned)                                    | `navigation.*`, `viewState`  | mocked |

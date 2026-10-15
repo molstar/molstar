@@ -79,7 +79,7 @@ interface Changed { nodes?: string[]; selection?: boolean; view?: boolean; seque
 | `highlight`    | `set` (target), `clear` (for embedding hosts and the link; no history step)                                                 | —                             | core                |
 | `measure`      | `distance`, `angle`, `dihedral`, `label`, `orientation`, `plane` (targets), `remove`, `options`                             | `get`                         | measurements        |
 | `superpose`    | `chains`, `tm-align`, `ligands`, `atoms`, `db` (targets)                                                                    | —                             | superposition       |
-| `snapshot`     | `add`, `apply`, `update`, `replace`, `move`, `remove`, `next`, `previous`, `play`, `stop`                                   | `list`                        | snapshots           |
+| `snapshot`     | `add`, `apply`, `update`, `replace`, `move`, `remove`, `clear`, `next`, `previous`, `play`, `stop`                                   | `list`                        | snapshots           |
 | `animation`    | `play` (by name and params), `stop`, `wiggle`                                                                               | —                             | animation           |
 | `trajectory`   | `frame`, `play`, `stop`                                                                                                     | `get`                         | core                |
 | `camera`       | `reset`, `zoom`, `orient`, `frame` (target)                                                                                 | `get`                         | core                |

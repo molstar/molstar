@@ -1,0 +1,448 @@
+/**
+ * Copyright (c) 2026 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * Developed in collaboration with Anyfold <https://anyfold.ai/>
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { PluginState } from '@molstar/plugin/state';
+import { PluginStateSnapshotManager } from '@molstar/plugin/state/manager/snapshots';
+import { type ApiContext, ApiArea, ApiResult, type ApiFailure } from '../../api/area.js';
+import { createSnapshotsSource, type SnapshotsSource, type SnapshotsState } from './source.js';
+import type { ReadonlyState } from '@molstar/prism-ui/core';
+
+// The `snapshot` area (operations.md §2; viewer-spec.md §3.1, the `snapshots` feature): the plugin's snapshot manager
+// as operations. Its checkpoints never use the manager (sequence.md §7.2) and the list is not part of Undo ("what it
+// never touches: … the Snapshots list"), so changes to the list are `undoable: false` (no checkpoint, recorded as
+// runs); applying one changes the scene and is a step. Playback is view state: `history: false`.
+
+type Entry = PluginStateSnapshotManager.Entry;
+
+/** One entry as `snapshot.list` reports it. */
+export interface SnapshotListEntry {
+  readonly id: string;
+  /** 1-based, as `snapshot.move` takes it. */
+  readonly position: number;
+  readonly name: string;
+  readonly key?: string;
+  readonly description?: string;
+  readonly current: boolean;
+  /** How long playback shows it (ms). */
+  readonly showFor?: number;
+}
+
+export interface SnapshotList {
+  readonly entries: readonly SnapshotListEntry[];
+  readonly playing: boolean;
+}
+
+const EntryParam = (description: string) => PD.Text('', { description });
+const ByIdNameOrKey = 'A snapshot by id, name or key';
+
+const Options = () =>
+  PD.Value<Record<string, unknown>>(
+    {},
+    {
+      isHidden: true,
+      description: "What the snapshot includes, as Mol*'s snapshot options: data, camera, canvas3d, interactivity, …",
+    },
+  );
+
+const ShowFor = () =>
+  PD.Numeric(
+    0,
+    { min: 0, max: 60000, step: 100 },
+    { description: 'How long playback shows it, in ms (0: the default)' },
+  );
+
+const AddParams = {
+  name: PD.Text('', { description: 'Its name; empty: Snapshot <n>' }),
+  description: PD.Text('', { description: 'Markdown shown with it; link another with [title](#key)' }),
+  key: PD.Text('', { description: 'A key to link it from descriptions; unique' }),
+  showFor: ShowFor(),
+  options: Options(),
+};
+
+const UpdateParams = {
+  entry: EntryParam(`${ByIdNameOrKey}; empty: the current one`),
+  name: PD.Text('', { description: 'A new name; empty: keep it' }),
+  description: PD.Text('', { description: 'A new description (markdown); empty: keep it' }),
+  key: PD.Text('', { description: 'A new key; empty: keep it' }),
+  showFor: PD.Numeric(
+    0,
+    { min: 0, max: 60000, step: 100 },
+    { description: 'How long playback shows it, in ms (0: keep it)' },
+  ),
+  clear: PD.Boolean(false, { description: 'Clear the name, description and key left empty instead of keeping them' }),
+};
+
+const ReplaceParams = {
+  entry: EntryParam(`${ByIdNameOrKey}; empty: the current one`),
+  showFor: ShowFor(),
+  options: Options(),
+};
+
+const MoveParams = {
+  entry: EntryParam(ByIdNameOrKey),
+  position: PD.Numeric(1, { min: 1, step: 1 }, { description: 'Where it goes in the list (1 is the first)' }),
+};
+
+const PlayParams = {
+  delay: PD.Numeric(
+    0,
+    { min: 0, max: 60000, step: 100 },
+    { description: 'How long to show a snapshot that does not say, in ms (0: the default)' },
+  ),
+};
+
+export type AddSnapshotParams = typeof AddParams;
+export type UpdateSnapshotParams = typeof UpdateParams;
+export type ReplaceSnapshotParams = typeof ReplaceParams;
+export type MoveSnapshotParams = typeof MoveParams;
+export type PlayParams = typeof PlayParams;
+
+const labelOf = (e: Entry | undefined, i: number) => `'${e?.name || `Snapshot ${i + 1}`}'`;
+const entriesOf = (ctx: ApiContext) => ctx.plugin.managers.snapshot.state.entries.toArray();
+const none = () => ApiResult.fail('not-found', 'There are no snapshots.', 'Add one first (snapshot.add).');
+
+/** An entry by id, then by name (any case), then by key; empty means the current one when `orCurrent`. */
+function find(ctx: ApiContext, ref: string, orCurrent: boolean): { entry: Entry; index: number } | ApiFailure {
+  const entries = entriesOf(ctx);
+  if (!entries.length) return none();
+  const text = ref.trim();
+  if (!text) {
+    const id = ctx.plugin.managers.snapshot.state.current;
+    const index = entries.findIndex((e) => e.snapshot.id === id);
+    if (orCurrent && index >= 0) return { entry: entries[index], index };
+    return ApiResult.fail(
+      'invalid',
+      orCurrent ? 'No snapshot is current.' : 'Which snapshot?',
+      'Give its id, name or key (snapshot.list).',
+    );
+  }
+  let index = entries.findIndex((e) => e.snapshot.id === text);
+  if (index < 0) {
+    const lower = text.toLowerCase();
+    const named = entries.flatMap((e, i) => (e.name?.toLowerCase() === lower ? [i] : []));
+    if (named.length > 1) {
+      return ApiResult.fail(
+        'ambiguous',
+        `${named.length} snapshots are named '${text}'.`,
+        `Use an id: ${named.map((i) => `${i + 1}. ${entries[i].snapshot.id}`).join('; ')}.`,
+      );
+    }
+    index = named[0] ?? entries.findIndex((e) => e.key === text);
+  }
+  if (index < 0) return ApiResult.fail('not-found', `There is no snapshot '${text}'.`, 'List them with snapshot.list.');
+  return { entry: entries[index], index };
+}
+
+const isFailure = (x: unknown): x is ApiFailure => ApiResult.isFailure(x);
+
+/** A key is unique among the snapshots. */
+function keyTaken(ctx: ApiContext, key: string, except?: Entry): boolean {
+  return !!key && entriesOf(ctx).some((e) => e !== except && e.key === key);
+}
+
+/** The state of a new or replacing snapshot: what Mol*'s Add and Replace take, without the canvas where there is none. */
+async function capture(ctx: ApiContext, options: Record<string, unknown>, showFor: number) {
+  const plugin = ctx.plugin;
+  const params: PluginState.SnapshotParams = { ...options };
+  if (showFor > 0) params.durationInMs = showFor;
+  // `getSnapshot` reads the camera from the canvas; a thumbnail needs one.
+  if (!plugin.canvas3d) {
+    params.camera = false;
+    params.image = false;
+  }
+  const snapshot = plugin.state.getSnapshot(params);
+  const wantsImage = params.image ?? plugin.state.snapshotParams.value.image;
+  const image = wantsImage
+    ? await PluginStateSnapshotManager.getCanvasImageAsset(plugin, `${snapshot.id}-image.png`)
+    : undefined;
+  return { snapshot, image };
+}
+
+/** The manager keeps `isPlaying` and its default delay in protected state (its own TODO: not editable). */
+function setManagerState(ctx: ApiContext, patch: { current?: undefined; nextSnapshotDelayInMs?: number }) {
+  (ctx.plugin.managers.snapshot as unknown as { updateState(s: object): boolean }).updateState(patch);
+}
+
+export class SnapshotApi extends ApiArea {
+  readonly id = 'snapshot';
+
+  #source: SnapshotsSource | undefined;
+
+  /**
+   * The snapshots as a state the views read (their list, the current one, whether it plays); made on first use and
+   * released with the area. Not an operation: a read of the plugin that stays in this feature's source.
+   */
+  get state(): ReadonlyState<SnapshotsState> {
+    return (this.#source ??= createSnapshotsSource(this.ctx.plugin)).state;
+  }
+
+  dispose(): void {
+    this.#source?.dispose();
+    this.#source = undefined;
+    // A running slideshow holds a timer of its own.
+    try {
+      const manager = this.ctx.plugin.managers.snapshot;
+      if (manager.state.isPlaying) manager.stop().catch(() => {});
+    } catch {
+      // The plugin is gone already.
+    }
+  }
+
+  readonly list = this.operation({
+    id: 'snapshot.list',
+    title: 'List the snapshots',
+    params: {},
+    read: true,
+    async run(_, ctx) {
+      const { entries, current, isPlaying } = ctx.plugin.managers.snapshot.state;
+      const list: SnapshotList = {
+        playing: isPlaying,
+        entries: entries.toArray().map((e, i) => ({
+          id: e.snapshot.id,
+          position: i + 1,
+          name: e.name ?? '',
+          ...(e.key ? { key: e.key } : {}),
+          ...(e.description ? { description: e.description } : {}),
+          current: e.snapshot.id === current,
+          ...(e.snapshot.durationInMs !== undefined ? { showFor: e.snapshot.durationInMs } : {}),
+        })),
+      };
+      if (!list.entries.length) return ApiResult.ok('There are no snapshots.', {}, { value: list });
+      return ApiResult.ok(
+        list.entries
+          .map((e) => `${e.position}. ${e.name || `Snapshot ${e.position}`}${e.current ? ' (current)' : ''} [${e.id}]`)
+          .join('\n'),
+        {},
+        { value: list },
+      );
+    },
+  });
+
+  readonly add = this.operation({
+    id: 'snapshot.add',
+    title: 'Add a snapshot',
+    params: AddParams,
+    undoable: false,
+    async run({ name, description, key, showFor, options }, ctx) {
+      if (keyTaken(ctx, key)) return ApiResult.fail('invalid', `The key '${key}' is taken.`, 'A key is unique.');
+      const manager = ctx.plugin.managers.snapshot;
+      const title = name.trim() || `Snapshot ${manager.state.entries.size + 1}`;
+      const { snapshot, image } = await capture(ctx, options, showFor);
+      manager.add(
+        PluginStateSnapshotManager.Entry(snapshot, {
+          name: title,
+          ...(description.trim() ? { description: description.trim() } : {}),
+          ...(key.trim() ? { key: key.trim() } : {}),
+          ...(image ? { image } : {}),
+        }),
+      );
+      return ApiResult.ok(
+        `Added snapshot '${title}' (${manager.state.entries.size} in all).`,
+        {},
+        { value: { id: snapshot.id, name: title, position: manager.state.entries.size } },
+      );
+    },
+  });
+
+  readonly apply = this.operation({
+    id: 'snapshot.apply',
+    title: 'Apply a snapshot',
+    params: { entry: EntryParam(ByIdNameOrKey) },
+    async run({ entry }, ctx) {
+      const found = find(ctx, entry, false);
+      if (isFailure(found)) return found;
+      const manager = ctx.plugin.managers.snapshot;
+      const snapshot = manager.setCurrent(found.entry.snapshot.id);
+      if (!snapshot) return ApiResult.fail('not-found', `There is no snapshot '${entry}'.`);
+      await ctx.plugin.state.setSnapshot(snapshot);
+      return ApiResult.ok(
+        `Applied snapshot ${labelOf(found.entry, found.index)}.`,
+        { view: true, sequence: true },
+        { value: { id: snapshot.id, position: found.index + 1 } },
+      );
+    },
+  });
+
+  readonly update = this.operation({
+    id: 'snapshot.update',
+    title: 'Edit a snapshot',
+    params: UpdateParams,
+    undoable: false,
+    async run({ entry, name, description, key, showFor, clear }, ctx) {
+      const found = find(ctx, entry, true);
+      if (isFailure(found)) return found;
+      const e = found.entry;
+      const next = {
+        name: name.trim() || (clear ? undefined : e.name),
+        description: description.trim() || (clear ? undefined : e.description),
+        key: key.trim() || (clear ? undefined : e.key),
+      };
+      const time = showFor > 0 ? showFor : e.snapshot.durationInMs;
+      if (
+        next.name === e.name &&
+        next.description === e.description &&
+        next.key === e.key &&
+        time === e.snapshot.durationInMs
+      ) {
+        return ApiResult.already(`Snapshot ${labelOf(e, found.index)} is as it was.`);
+      }
+      if (next.key && keyTaken(ctx, next.key, e)) {
+        return ApiResult.fail('invalid', `The key '${next.key}' is taken.`, 'A key is unique.');
+      }
+      // The snapshot's own playback time is part of its state, which the entry holds by reference.
+      if (time !== undefined) e.snapshot.durationInMs = time;
+      ctx.plugin.managers.snapshot.update(e, { ...next, descriptionFormat: e.descriptionFormat });
+      return ApiResult.ok(`Updated snapshot ${labelOf({ ...e, name: next.name }, found.index)}.`, {});
+    },
+  });
+
+  readonly replace = this.operation({
+    id: 'snapshot.replace',
+    title: 'Replace a snapshot with the current view',
+    params: ReplaceParams,
+    undoable: false,
+    async run({ entry, showFor, options }, ctx) {
+      const found = find(ctx, entry, true);
+      if (isFailure(found)) return found;
+      const { snapshot, image } = await capture(ctx, options, showFor);
+      // The id changes with the state it holds (the manager's rule).
+      ctx.plugin.managers.snapshot.replace(found.entry.snapshot.id, snapshot, { image });
+      return ApiResult.ok(
+        `Replaced snapshot ${labelOf(found.entry, found.index)} with the current state.`,
+        {},
+        { value: { id: snapshot.id, position: found.index + 1 } },
+      );
+    },
+  });
+
+  readonly move = this.operation({
+    id: 'snapshot.move',
+    title: 'Move a snapshot',
+    params: MoveParams,
+    undoable: false,
+    async run({ entry, position }, ctx) {
+      const found = find(ctx, entry, false);
+      if (isFailure(found)) return found;
+      const count = entriesOf(ctx).length;
+      const to = Math.round(position) - 1;
+      if (to < 0 || to >= count) {
+        return ApiResult.fail('invalid', `Position ${position} is not in the list.`, `There are ${count}.`);
+      }
+      if (to === found.index) {
+        return ApiResult.already(`Snapshot ${labelOf(found.entry, found.index)} is already at ${position}.`);
+      }
+      const manager = ctx.plugin.managers.snapshot;
+      const was = manager.state.current;
+      // The manager swaps neighbors (and makes the moved one current).
+      const id = found.entry.snapshot.id;
+      for (let at = found.index; at !== to; at += at < to ? 1 : -1) manager.move(id, at < to ? 1 : -1);
+      // The current one is the one applied last: moving does not apply.
+      if (was) manager.setCurrent(was);
+      else {
+        setManagerState(ctx, { current: undefined });
+        manager.events.changed.next(void 0);
+      }
+      return ApiResult.ok(`Moved snapshot ${labelOf(found.entry, found.index)} to ${position}.`, {});
+    },
+  });
+
+  readonly remove = this.operation({
+    id: 'snapshot.remove',
+    title: 'Remove a snapshot',
+    params: { entry: EntryParam(ByIdNameOrKey) },
+    undoable: false,
+    approval: 'destructive',
+    async run({ entry }, ctx) {
+      const found = find(ctx, entry, false);
+      if (isFailure(found)) return found;
+      ctx.plugin.managers.snapshot.remove(found.entry.snapshot.id);
+      return ApiResult.ok(
+        `Removed snapshot ${labelOf(found.entry, found.index)} (${entriesOf(ctx).length} left).`,
+        {},
+        { value: { id: found.entry.snapshot.id } },
+      );
+    },
+  });
+
+  readonly clear = this.operation({
+    id: 'snapshot.clear',
+    title: 'Remove all snapshots',
+    params: {},
+    undoable: false,
+    approval: 'destructive',
+    async run(_, ctx) {
+      const count = entriesOf(ctx).length;
+      if (!count) return ApiResult.already('There are no snapshots.');
+      ctx.plugin.managers.snapshot.clear();
+      return ApiResult.ok(`Removed ${count} snapshot${count === 1 ? '' : 's'}.`, {});
+    },
+  });
+
+  readonly next = this.operation({
+    id: 'snapshot.next',
+    title: 'Next snapshot',
+    params: {},
+    run: (_, ctx) => step(ctx, 1),
+  });
+
+  readonly previous = this.operation({
+    id: 'snapshot.previous',
+    title: 'Previous snapshot',
+    params: {},
+    run: (_, ctx) => step(ctx, -1),
+  });
+
+  readonly play = this.operation({
+    id: 'snapshot.play',
+    title: 'Play the snapshots',
+    params: PlayParams,
+    history: false,
+    async run({ delay }, ctx) {
+      const manager = ctx.plugin.managers.snapshot;
+      const count = manager.state.entries.size;
+      if (!count) return none();
+      if (count < 2) return ApiResult.fail('blocked', 'Playing needs at least two snapshots.', 'Add another.');
+      if (manager.state.isPlaying) return ApiResult.already('The snapshots are playing.');
+      if (delay > 0) setManagerState(ctx, { nextSnapshotDelayInMs: delay });
+      await manager.play();
+      // The manager applies each snapshot on its own timer: a presentation, not steps; the history leaves it alone
+      // (sources/checkpoint.ts) and Undo after it restores as usual.
+      return ApiResult.ok(`Playing ${count} snapshots.`, { view: true });
+    },
+  });
+
+  readonly stop = this.operation({
+    id: 'snapshot.stop',
+    title: 'Stop playing the snapshots',
+    params: {},
+    history: false,
+    async run(_, ctx) {
+      const manager = ctx.plugin.managers.snapshot;
+      if (!manager.state.isPlaying) return ApiResult.already('The snapshots are not playing.');
+      await manager.stop();
+      return ApiResult.ok('Stopped playing the snapshots.', {});
+    },
+  });
+}
+
+/** The neighbor of the current one, wrapping around as the manager does (none current: the first or the last). */
+async function step(ctx: ApiContext, dir: -1 | 1): Promise<ApiResult> {
+  const manager = ctx.plugin.managers.snapshot;
+  if (!manager.state.entries.size) return none();
+  const id = manager.getNextId(manager.state.current, dir);
+  const snapshot = id ? manager.setCurrent(id) : undefined;
+  if (!id || !snapshot) return ApiResult.fail('not-found', 'There is no such snapshot.');
+  const index = entriesOf(ctx).findIndex((e) => e.snapshot.id === id);
+  await ctx.plugin.state.setSnapshot(snapshot);
+  return ApiResult.ok(
+    `Applied snapshot ${labelOf(manager.getEntry(id), index)} (${index + 1} of ${manager.state.entries.size}).`,
+    { view: true, sequence: true },
+    { value: { id, position: index + 1 } },
+  );
+}

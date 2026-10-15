@@ -68,6 +68,7 @@ export function extensionUIPort(
               ...(t.order !== undefined ? { order: t.order } : {}),
               ...(t.place ? { place: t.place } : {}),
               ...(t.overlay ? { overlay: t.overlay } : {}),
+              ...(t.visible ? { visible: t.visible } : {}),
               ...(t.command ? { run: () => void commands.open(t.command!) } : {}),
             })),
           ),

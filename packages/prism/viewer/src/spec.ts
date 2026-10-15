@@ -7,6 +7,7 @@
  */
 
 import type { ParamDefinition as PD } from '@molstar/core/util/param-definition';
+import type { Observable } from 'rxjs';
 import type { PartialCanvas3DProps } from '@molstar/graphics/canvas3d/canvas3d';
 import type { PluginConfigItem } from '@molstar/plugin/config';
 import type { PluginRegistryEntry, PluginSpec } from '@molstar/plugin/spec';
@@ -240,6 +241,8 @@ export interface ViewerExtensionUI {
     readonly group?: string;
     readonly order?: number;
     readonly place?: 'rail' | 'canvas';
+    /** Shown while true (always, when not given). */
+    readonly visible?: Observable<boolean>;
   }[];
 }
 

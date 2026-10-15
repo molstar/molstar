@@ -94,6 +94,8 @@ export function watchOutsideChanges(plugin: PluginContext, history: HistoryManag
   const state = plugin.state.data;
   const check = (transform: StateTransform | undefined) => {
     if (history.applying || !transform || isBehaviorOwned(transform)) return;
+    // Snapshots playing are a presentation, not edits: the steps before stay undoable (sequence.md §7.3).
+    if (plugin.managers.snapshot.state.isPlaying) return;
     history.invalidate('Changed outside the viewer: this step can no longer be undone.');
   };
   const transformOf = (ref: string): StateTransform | undefined =>

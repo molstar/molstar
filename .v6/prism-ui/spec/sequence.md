@@ -210,8 +210,9 @@ restore = (c) => plugin.state.setSnapshot({ ...c.plugin, structureFocus: undefin
   nothing half-built; the result says so (critic, run outcomes).
 - **No redo** for now: entries hold only the checkpoint before them. (Listed in operations.md as later.)
 - **Changes outside the API** (review F5): inside are runs under `api.run` and `viewer.run`, the history's own
-  restores, and cells owned by behaviors (allow-listed by transformer: the focus representation, volume streaming,
-  custom-property and label cells). Any other change to the data tree makes every checkpoint taken before it unsafe:
+  restores, cells owned by behaviors (allow-listed by transformer: the focus representation, volume streaming,
+  custom-property and label cells), and the snapshots' playback (a presentation: Undo after it restores the step's
+  checkpoint as usual). Any other change to the data tree makes every checkpoint taken before it unsafe:
   those steps can no longer be undone, and History says so on them.
 - **The record**: every run and step is also an entry in the session record ([journal.md](journal.md)).
 - Mol\*'s own state history is off (`PluginConfig.State.HistoryCapacity` 0) and Seq\*'s too (its document port with
