@@ -51,7 +51,7 @@ import {
 } from './params.js';
 import type { Clipping } from '@molstar/graphics/theme/clipping';
 import { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { isPromiseLike } from '@molstar/core/util/type-helpers';
 import type { Substance } from '@molstar/graphics/theme/substance';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
@@ -104,7 +104,7 @@ interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
     geometry: G,
     props: PD.Values<P>,
     theme: Theme,
-    webgl?: WebGLContext,
+    graphics?: GraphicsContext,
   ) => void;
   dispose?: (geometry: G) => void;
 }
@@ -316,7 +316,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
   function finalize(ctx: VisualContext) {
     if (renderObject) {
-      processValues?.(renderObject.values, geometry, currentProps, currentTheme, ctx.webgl);
+      processValues?.(renderObject.values, geometry, currentProps, currentTheme, ctx.graphics);
     }
   }
 
@@ -380,26 +380,26 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
       Visual.setTransform(renderObject, matrix, instanceMatrices);
     },
-    setOverpaint(overpaint: Overpaint, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setOverpaint(overpaint: Overpaint, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setOverpaint(renderObject, overpaint, lociApply, true, smoothing);
     },
-    setTransparency(transparency: Transparency, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setTransparency(transparency: Transparency, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setTransparency(renderObject, transparency, lociApply, true, smoothing);
     },
-    setEmissive(emissive: Emissive, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setEmissive(emissive: Emissive, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setEmissive(renderObject, emissive, lociApply, true, smoothing);
     },
-    setSubstance(substance: Substance, webgl?: WebGLContext) {
-      const smoothing = { geometry, props: currentProps, webgl };
+    setSubstance(substance: Substance, graphics?: GraphicsContext) {
+      const smoothing = { geometry, props: currentProps, graphics };
       Visual.setSubstance(renderObject, substance, lociApply, true, smoothing);
     },
     setClipping(clipping: Clipping) {
       Visual.setClipping(renderObject, clipping, lociApply, true);
     },
-    setWiggle(wiggle: Wiggle, webgl?: WebGLContext) {
+    setWiggle(wiggle: Wiggle, graphics?: GraphicsContext) {
       Visual.setWiggle(renderObject, wiggle, lociApply, true);
     },
     setThemeStrength(strength: {

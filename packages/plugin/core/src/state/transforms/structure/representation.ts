@@ -114,7 +114,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
       const data = provider.getData?.(a.data, params.type.params) || a.data;
       if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, data);
       const repr = provider.factory(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.structure.themes },
         provider.getParams,
       );
       await Theme.ensureDependencies(propertyCtx, plugin.representation.structure.themes, { structure: data }, params);

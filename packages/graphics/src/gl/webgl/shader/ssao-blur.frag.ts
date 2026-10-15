@@ -1,0 +1,100 @@
+/**
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
+ */
+
+import { common } from './chunks/common.glsl.js';
+
+export const ssaoBlur_frag = `
+precision highp float;
+precision highp int;
+
+${common}
+
+float getViewZ(const in float depth) {
+    #if dOrthographic == 1
+        return orthographicDepthToViewZ(depth, uNear, uFar);
+    #else
+        return perspectiveDepthToViewZ(depth, uNear, uFar);
+    #endif
+}
+
+// packUnitIntervalToRG(1.0) stores (0, 1) in the uint8 target and unpacks to 255/256,
+// never 1.0, so the packed bytes have to be tested instead
+bool isBackgroundPacked(const in vec2 packedDepth) {
+    return packedDepth.x == 0.0 && packedDepth.y == 1.0;
+}
+
+bool isNearClip(const in float depth) {
+    return depth == 0.0;
+}
+
+bool outsideBounds(const in vec2 p) {
+    return p.x < uBounds.x || p.y < uBounds.y || p.x > uBounds.z || p.y > uBounds.w;
+}
+
+float getPixelSize(const in vec2 coords, const in float depth) {
+    vec3 viewPos0 = screenSpaceToViewSpace(vec3(coords, depth), uInvProjection);
+    vec3 viewPos1 = screenSpaceToViewSpace(vec3(coords + vec2(1.0, 0.0) / uTexSize, depth), uInvProjection);
+    return distance(viewPos0, viewPos1);
+}
+
+void main(void) {
+    vec2 coords = gl_FragCoord.xy / uTexSize;
+
+    vec2 packedDepth = texture2D(tSsaoDepth, coords).zw;
+
+    if (outsideBounds(coords)) {
+        gl_FragColor = vec4(packUnitIntervalToRG(1.0), packedDepth);
+        return;
+    }
+
+    float selfDepth = unpackRGToUnitInterval(packedDepth);
+    // (if background and if second pass) or if near clip
+    if ((isBackgroundPacked(packedDepth) && uBlurDirectionY != 0.0) || isNearClip(selfDepth)) {
+        gl_FragColor = vec4(packUnitIntervalToRG(1.0), packedDepth);
+        return;
+    }
+
+    float selfViewZ = getViewZ(selfDepth);
+    float pixelSize = getPixelSize(coords, selfDepth);
+
+    vec2 offset = vec2(uBlurDirectionX, uBlurDirectionY) / uTexSize;
+
+    float sum = 0.0;
+    float kernelSum = 0.0;
+    const int halfKernelSize = dOcclusionKernelSize / 2;
+    // only if kernelSize is odd
+    for (int i = -halfKernelSize; i <= halfKernelSize; i++) {
+        if (abs(float(i)) > 1.0 && abs(float(i)) * pixelSize > 0.8) continue;
+
+        vec2 sampleCoords = coords + float(i) * offset;
+        if (outsideBounds(sampleCoords)) {
+            continue;
+        }
+
+        vec4 sampleSsaoDepth = texture2D(tSsaoDepth, sampleCoords);
+
+        float sampleDepth = unpackRGToUnitInterval(sampleSsaoDepth.zw);
+        if (isBackgroundPacked(sampleSsaoDepth.zw) || isNearClip(sampleDepth)) {
+            continue;
+        }
+
+        float sampleViewZ = getViewZ(sampleDepth);
+        if (abs(selfViewZ - sampleViewZ) >= uBlurDepthBias) {
+            continue;
+        }
+
+        float kernel = uKernel[int(abs(float(i)))]; // abs is not defined for int in webgl1
+        float sampleValue = unpackRGToUnitInterval(sampleSsaoDepth.xy);
+
+        sum += kernel * sampleValue;
+        kernelSum += kernel;
+    }
+    gl_FragColor = vec4(packUnitIntervalToRG(sum / kernelSum), packedDepth);
+}
+`;

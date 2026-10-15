@@ -85,7 +85,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
       const provider = plugin.representation.volume.registry.get(params.type.name);
       if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
       const repr = provider.factory(
-        { webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes },
+        { graphics: plugin.canvas3d?.graphics, ...plugin.representation.volume.themes },
         provider.getParams,
       );
       await Theme.ensureDependencies(propertyCtx, plugin.representation.volume.themes, { volume: a.data }, params);

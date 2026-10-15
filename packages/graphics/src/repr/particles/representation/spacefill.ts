@@ -24,7 +24,7 @@ import { Interval, OrderedSet } from '@molstar/core/data/int';
 import type { VisualUpdateState } from '../../util.js';
 import type { VisualContext } from '../../visual.js';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Representation, type RepresentationContext, type RepresentationParamsGetter } from '../../representation.js';
 import { ParticleRepresentation, ParticleRepresentationProvider } from '../representation.js';
 import { ParticleVisual, type ParticleKey } from '../visual.js';
@@ -106,8 +106,8 @@ export function SpacefillParticlesImpostorVisual(materialId: number): ParticleVi
         if (newProps.excludeTargets !== currentProps.excludeTargets) state.createGeometry = true;
       },
       geometryUtils: Spheres.Utils,
-      mustRecreate: (_key: ParticleKey, props: SpacefillParticlesProps, webgl?: WebGLContext) => {
-        return !props.tryUseImpostor || !webgl;
+      mustRecreate: (_key: ParticleKey, props: SpacefillParticlesProps, graphics?: GraphicsContext) => {
+        return !props.tryUseImpostor || !graphics;
       },
     },
     materialId,
@@ -173,22 +173,22 @@ export function SpacefillParticlesMeshVisual(materialId: number): ParticleVisual
         }
       },
       geometryUtils: Mesh.Utils,
-      mustRecreate: (_key: ParticleKey, props: SpacefillParticlesProps, webgl?: WebGLContext) => {
-        return props.tryUseImpostor && !!webgl;
+      mustRecreate: (_key: ParticleKey, props: SpacefillParticlesProps, graphics?: GraphicsContext) => {
+        return props.tryUseImpostor && !!graphics;
       },
     },
     materialId,
   );
 }
 
-/** Dispatch: returns an impostor visual when WebGL + required extensions are available, mesh otherwise. */
+/** Dispatch: returns an impostor visual when WebGL + required capabilities are available, mesh otherwise. */
 export function SpacefillParticlesVisual(
   materialId: number,
   _particles: ParticleList,
   props: PD.Values<SpacefillParticlesParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ): ParticleVisual<SpacefillParticlesParams> {
-  return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
+  return props.tryUseImpostor && graphics && graphics.capabilities.fragDepth
     ? SpacefillParticlesImpostorVisual(materialId)
     : SpacefillParticlesMeshVisual(materialId);
 }

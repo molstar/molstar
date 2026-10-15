@@ -38,7 +38,7 @@ import type { Wiggle } from '@molstar/graphics/theme/wiggle';
 import { SizeTheme } from '@molstar/graphics/theme/size';
 import type { Sphere3D } from '@molstar/core/math/geometry/primitives/sphere3d';
 import { BaseGeometry, resolveInstanceGranularity } from '@molstar/graphics/geo/geometry/base';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 
 export const ParticleParams = {
   ...BaseGeometry.Params,
@@ -124,7 +124,7 @@ interface ParticleVisualBuilder<P extends ParticleParams, G extends Geometry> {
   ): void;
   /** Optional hook to override the theme before geometry creation and color/size updates. */
   overrideTheme?: (theme: Theme, props: PD.Values<P>) => Theme;
-  mustRecreate?: (particleKey: ParticleKey, props: PD.Values<P>, webgl?: WebGLContext) => boolean;
+  mustRecreate?: (particleKey: ParticleKey, props: PD.Values<P>, graphics?: GraphicsContext) => boolean;
   dispose?: (geometry: G) => void;
 }
 

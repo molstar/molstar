@@ -10,18 +10,15 @@
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { TextureSpec, type Values, UniformSpec, DefineSpec } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { ValueCell } from '@molstar/core/util';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
 import { createComputeRenderable, type ComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { Mat4, Vec2 } from '@molstar/core/math/linear-algebra';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import type { ICamera } from '../camera.js';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
-import { outlines_frag } from '@molstar/graphics/gl/shader/outlines.frag';
-import { isTimingMode } from '@molstar/core/util/debug';
 import { Color } from '@molstar/core/util/color';
 import type { PostprocessingProps } from './postprocessing.js';
 
@@ -43,14 +40,14 @@ export class OutlinePass {
   private readonly renderable: OutlinesRenderable;
 
   constructor(
-    private readonly webgl: WebGLContext,
+    private readonly graphics: GraphicsContext,
     width: number,
     height: number,
     depthTextureTransparent: Texture,
     depthTextureOpaque: Texture,
   ) {
-    this.target = webgl.createRenderTarget(width, height, 'none');
-    this.renderable = getOutlinesRenderable(webgl, depthTextureOpaque, depthTextureTransparent, true);
+    this.target = graphics.createRenderTarget(width, height, 'none');
+    this.renderable = getOutlinesRenderable(graphics, depthTextureOpaque, depthTextureTransparent, true);
   }
 
   getByteCount() {
@@ -77,8 +74,8 @@ export class OutlinePass {
     Mat4.invert(invProjection, camera.projection);
 
     const transparentOutline = props.includeTransparent ?? true;
-    const outlineScale = Math.max(1, Math.round(props.scale * this.webgl.pixelRatio)) - 1;
-    const outlineThreshold = 50 * props.threshold * this.webgl.pixelRatio;
+    const outlineScale = Math.max(1, Math.round(props.scale * this.graphics.pixelRatio)) - 1;
+    const outlineThreshold = 50 * props.threshold * this.graphics.pixelRatio;
 
     ValueCell.updateIfChanged(this.renderable.values.uNear, camera.near);
     ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
@@ -110,10 +107,9 @@ export class OutlinePass {
   }
 
   render() {
-    if (isTimingMode) this.webgl.timer.mark('OutlinePass.render');
-    this.target.bind();
+    this.graphics.beginRenderPass(this.target, { label: 'outlines' });
+    this.graphics.setRenderState(RenderState.Default);
     this.renderable.render();
-    if (isTimingMode) this.webgl.timer.markEnd('OutlinePass.render');
   }
 }
 
@@ -131,10 +127,11 @@ export const OutlinesSchema = {
   uOutlineThreshold: UniformSpec('f'),
   dTransparentOutline: DefineSpec('boolean'),
 };
+export const OutlinesShaderCode = ShaderCode('outlines');
 export type OutlinesRenderable = ComputeRenderable<Values<typeof OutlinesSchema>>;
 
 export function getOutlinesRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   depthTextureOpaque: Texture,
   depthTextureTransparent: Texture,
   transparentOutline: boolean,
@@ -158,8 +155,7 @@ export function getOutlinesRenderable(
   };
 
   const schema = { ...OutlinesSchema };
-  const shaderCode = ShaderCode('outlines', quad_vert, outlines_frag);
-  const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', OutlinesShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }

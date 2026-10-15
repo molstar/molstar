@@ -6,8 +6,8 @@
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
-import type { WebGLContext } from '../webgl/context.js';
-import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
@@ -31,9 +31,9 @@ import { ValueCell } from '@molstar/core/util';
 export const TextureMeshSchema = {
   ...BaseSchema,
   uGeoTexDim: UniformSpec('v2', 'buffered'),
-  tPosition: TextureSpec('texture', 'rgb', 'float', 'nearest'),
-  tGroup: TextureSpec('texture', 'alpha', 'float', 'nearest'),
-  tNormal: TextureSpec('texture', 'rgb', 'float', 'nearest'),
+  tPosition: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+  tGroup: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+  tNormal: TextureSpec('texture', 'rgba', 'float', 'nearest'),
   dVaryingGroup: DefineSpec('boolean'),
   dFlatShaded: DefineSpec('boolean'),
   uDoubleSided: UniformSpec('b', 'material'),
@@ -54,7 +54,7 @@ export type TextureMeshSchema = typeof TextureMeshSchema;
 export type TextureMeshValues = Values<TextureMeshSchema>;
 
 export function TextureMeshRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   values: TextureMeshValues,
   state: RenderableState,
@@ -76,8 +76,7 @@ export function TextureMeshRenderable(
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
   const shaderCode = MeshShaderCode;
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     'triangles',
     shaderCode,
     schema,

@@ -24,7 +24,7 @@ import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { addSphere } from '@molstar/graphics/geo/geometry/mesh/builder/sphere';
 import { sphereVertexCount } from '@molstar/graphics/geo/primitive/sphere';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '@molstar/graphics/geo/geometry/spheres/spheres-builder';
 import { eachPolymerBackboneElement } from './util/polymer/backbone.js';
@@ -43,9 +43,9 @@ export function PolymerBackboneSphereVisual(
   materialId: number,
   structure: Structure,
   props: PD.Values<PolymerBackboneSphereParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ) {
-  return props.tryUseImpostor && checkSphereImpostorSupport(webgl)
+  return props.tryUseImpostor && checkSphereImpostorSupport(graphics)
     ? PolymerBackboneSphereImpostorVisual(materialId)
     : PolymerBackboneSphereMeshVisual(materialId);
 }
@@ -102,9 +102,9 @@ export function PolymerBackboneSphereImpostorVisual(materialId: number): UnitsVi
       mustRecreate: (
         structureGroup: StructureGroup,
         props: PD.Values<PolymerBackboneSphereParams>,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
-        return !props.tryUseImpostor || !webgl;
+        return !props.tryUseImpostor || !graphics;
       },
     },
     materialId,
@@ -167,9 +167,9 @@ export function PolymerBackboneSphereMeshVisual(materialId: number): UnitsVisual
       mustRecreate: (
         structureGroup: StructureGroup,
         props: PD.Values<PolymerBackboneSphereParams>,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
-        return props.tryUseImpostor && !!webgl;
+        return props.tryUseImpostor && !!graphics;
       },
     },
     materialId,

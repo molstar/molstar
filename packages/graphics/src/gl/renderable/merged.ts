@@ -41,13 +41,9 @@ import {
   PointsShaderCode,
   type ShaderCode,
 } from '../shader-code.js';
-import {
-  createGraphicsRenderItem,
-  type Transparency,
-  type GraphicsRenderVariant,
-  type DrawMode,
-} from '../webgl/render-item.js';
-import type { WebGLContext, WebGLStats } from '../webgl/context.js';
+import type { DrawMode, GlobalBindings, GraphicsRenderVariant, Transparency } from '../render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { GraphicsStats } from '../stats.js';
 import {
   type Renderable,
   type RenderableState,
@@ -101,11 +97,11 @@ const BaseTexSpecs: MergedTexSpec[] = [
   {
     tex: 'tColor',
     dim: 'uColorTexDim',
-    itemSize: 3,
+    itemSize: 4,
     granularity: (v) => pickGranularity(v.dColorType.ref.value),
     factor: (v) => (v.dDualColor?.ref.value ? 2 : 1),
   },
-  { tex: 'tSize', dim: 'uSizeTexDim', itemSize: 3, granularity: (v) => pickGranularity(v.dSizeType.ref.value) },
+  { tex: 'tSize', dim: 'uSizeTexDim', itemSize: 4, granularity: (v) => pickGranularity(v.dSizeType.ref.value) },
   { tex: 'tMarker', dim: 'uMarkerTexDim', itemSize: 1, granularity: (v) => pickGranularity(v.dMarkerType.ref.value) },
   {
     tex: 'tOverpaint',
@@ -209,12 +205,13 @@ const MergedTypeDescriptors: { [k in MergedType]: MergedTypeDescriptor } = {
     vertexAttributes: getVertexAttributes(LinesSchema),
   },
   points: {
-    drawMode: 'points',
+    drawMode: 'triangles',
     shaderCode: PointsShaderCode,
     schema: PointsSchema,
     hasElements: false,
+    // six vertices per point quad share one position texel, the vertex count is the point count
     vertexTexels: (v) => v.uVertexCount.ref.value,
-    extraTextures: [],
+    extraTextures: [{ tex: 'tPositionGroup', dim: 'uTexDim', itemSize: 4, float: true, granularity: () => 'vertex' }],
     vertexAttributes: getVertexAttributes(PointsSchema),
   },
 };
@@ -282,6 +279,8 @@ export type MergedSegments = {
   instanceCounts: number[];
   /** first vertex (into the merged geometry) per segment */
   vertexBases: number[];
+  /** first drawn vertex per segment, for types without elements (e.g. 6 per point quad with one data vertex per point) */
+  drawBases: number[];
   /** byte offset (into the merged element buffer) per segment */
   elementOffsets: number[];
 };
@@ -317,6 +316,7 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     instanceBases: new Array(n).fill(0),
     instanceCounts: new Array(n).fill(0),
     vertexBases: new Array(n).fill(0),
+    drawBases: new Array(n).fill(0),
     elementOffsets: new Array(n).fill(0),
   };
 
@@ -327,6 +327,7 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
     aSegment: ValueCell.create(new Float32Array(0)),
     aSegmentSphere: ValueCell.create(new Float32Array(0)),
     aSegmentLod: ValueCell.create(new Float32Array(0)),
+    aVertex: ValueCell.create(new Float32Array(0)),
     drawCount: ValueCell.create(0),
     instanceCount: ValueCell.create(0),
     uVertexCount: ValueCell.create(0),
@@ -577,6 +578,7 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
       segments.instanceBases[i] = instanceTotal;
       segments.instanceCounts[i] = instanceCount;
       segments.vertexBases[i] = vertexTotal;
+      segments.drawBases[i] = drawTotal;
       segments.elementOffsets[i] = drawTotal * 4;
       segmentGroupCounts[i] = groupCount;
       segmentGroupInstanceOffsets[i] = groupInstanceBase - instanceTotal * groupCount;
@@ -800,7 +802,7 @@ export function createMergedValues(type: MergedType, members: readonly Mergeable
 //
 
 export function MergedRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   merged: Merged,
   members: readonly MergeableValues[],
@@ -824,8 +826,7 @@ export function MergedRenderable(
     dLightCount: ValueCell.create(globals.dLightCount),
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     descriptor.drawMode,
     descriptor.shaderCode,
     schema,
@@ -842,7 +843,7 @@ export function MergedRenderable(
   const segment: CullSegment = { first: 0, offset: 0, instanceBase: 0 };
   function setSegment(i: number) {
     const { segments } = merged;
-    segment.first = descriptor.hasElements ? 0 : segments.vertexBases[i];
+    segment.first = descriptor.hasElements ? 0 : segments.drawBases[i];
     segment.offset = segments.elementOffsets[i];
     segment.instanceBase = segments.instanceBases[i];
     return segment;
@@ -873,7 +874,7 @@ export function MergedRenderable(
     cameraPlane: Plane3D,
     frustum: Frustum3D,
     isOccluded: ((s: Sphere3D) => boolean) | null,
-    stats: WebGLStats,
+    stats: GraphicsStats,
     frame: Frame,
   ) {
     // skip recomputation if this renderable was already culled for the current frame
@@ -928,11 +929,11 @@ export function MergedRenderable(
       lastCullFrame = undefined;
     },
     cullSimple,
-    render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => {
+    render: (variant: GraphicsRenderVariant, globals: GlobalBindings) => {
       if (renderValues.uAlpha && renderValues.alpha) {
         ValueCell.updateIfChanged(renderValues.uAlpha, clamp(renderValues.alpha.ref.value * state.alphaFactor, 0, 1));
       }
-      renderItem.render(variant, sharedTexturesCount, mdb.list);
+      renderItem.render(variant, globals, mdb.list);
     },
     getClipInfo: clipInfo.get,
     getByteCount: () => renderItem.getByteCount(),

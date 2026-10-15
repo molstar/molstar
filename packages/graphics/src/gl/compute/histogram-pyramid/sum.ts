@@ -6,22 +6,20 @@
 
 import { type ComputeRenderable, createComputeRenderable } from '../../renderable.js';
 import type { WebGLContext } from '../../webgl/context.js';
-import { createComputeRenderItem } from '../../webgl/render-item.js';
+import { RenderState } from '../../render-state.js';
 import { type Values, TextureSpec } from '../../renderable/schema.js';
-import type { Texture } from '../../webgl/texture.js';
+import type { Texture } from '../../texture.js';
 import { ShaderCode } from '../../shader-code.js';
 import { ValueCell } from '@molstar/core/util';
 import { unpackRGBToInt } from '@molstar/core/util/number-packing';
 import { QuadSchema, QuadValues } from '../util.js';
-import { quad_vert } from '../../shader/quad.vert.js';
-import { sum_frag } from '../../shader/histogram-pyramid/sum.frag.js';
-import { isWebGL2 } from '../../webgl/compat.js';
 import { isTimingMode } from '@molstar/core/util/debug';
 
-const HistopyramidSumSchema = {
+export const HistopyramidSumSchema = {
   ...QuadSchema,
-  tTexture: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+  tTexture: TextureSpec('texture', 'rgba', 'float', 'nearest', undefined, { sampleType: 'sint' }),
 };
+export const HistopyramidSumShaderCode = ShaderCode('sum');
 type HistopyramidSumValues = Values<typeof HistopyramidSumSchema>;
 
 const HistopyramidSumName = 'histopyramid-sum';
@@ -46,32 +44,19 @@ function createHistopyramidSumRenderable(ctx: WebGLContext, texture: Texture) {
   };
 
   const schema = { ...HistopyramidSumSchema };
-  const shaderCode = ShaderCode('sum', quad_vert, sum_frag, {}, { 0: 'ivec4' });
-  const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', HistopyramidSumShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
-}
-
-function setRenderingDefaults(ctx: WebGLContext) {
-  const { gl, state } = ctx;
-  state.disable(gl.CULL_FACE);
-  state.disable(gl.BLEND);
-  state.disable(gl.DEPTH_TEST);
-  state.disable(gl.SCISSOR_TEST);
-  state.depthMask(false);
-  state.colorMask(true, true, true, true);
-  state.clearColor(0, 0, 0, 0);
 }
 
 const sumBytes = new Uint8Array(4);
 const sumInts = new Int32Array(4);
 
 export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture) {
-  if (isTimingMode) ctx.timer.mark('getHistopyramidSum');
-  const { gl, state, resources } = ctx;
+  if (isTimingMode) ctx.timer.group('getHistopyramidSum');
+  const { gl, resources, capabilities } = ctx;
 
   const renderable = getHistopyramidSumRenderable(ctx, pyramidTopTexture);
-  ctx.state.currentRenderItemId = -1;
 
   if (!ctx.namedFramebuffers[HistopyramidSumName]) {
     ctx.namedFramebuffers[HistopyramidSumName] = resources.framebuffer();
@@ -79,7 +64,7 @@ export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture
   const framebuffer = ctx.namedFramebuffers[HistopyramidSumName];
 
   if (!ctx.namedTextures[HistopyramidSumName]) {
-    ctx.namedTextures[HistopyramidSumName] = isWebGL2(gl)
+    ctx.namedTextures[HistopyramidSumName] = capabilities.integerTextures
       ? resources.texture('image-int32', 'rgba', 'int', 'nearest')
       : resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
     ctx.namedTextures[HistopyramidSumName].define(1, 1);
@@ -87,15 +72,16 @@ export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture
   const sumTexture = ctx.namedTextures[HistopyramidSumName];
   sumTexture.attachFramebuffer(framebuffer, 0);
 
-  setRenderingDefaults(ctx);
-
-  state.viewport(0, 0, 1, 1);
+  ctx.beginRenderPass(framebuffer, { label: 'histogram pyramid sum' });
+  ctx.setRenderState(RenderState.Default);
+  ctx.disableScissor();
+  ctx.setViewport(0, 0, 1, 1);
   renderable.render();
   gl.finish();
 
-  ctx.readPixels(0, 0, 1, 1, isWebGL2(gl) ? sumInts : sumBytes);
+  ctx.readPixels(0, 0, 1, 1, capabilities.integerTextures ? sumInts : sumBytes);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  if (isTimingMode) ctx.timer.markEnd('getHistopyramidSum');
+  if (isTimingMode) ctx.timer.groupEnd('getHistopyramidSum');
 
-  return isWebGL2(gl) ? sumInts[0] : unpackRGBToInt(sumBytes[0], sumBytes[1], sumBytes[2]);
+  return capabilities.integerTextures ? sumInts[0] : unpackRGBToInt(sumBytes[0], sumBytes[1], sumBytes[2]);
 }

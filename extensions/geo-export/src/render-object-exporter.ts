@@ -5,7 +5,7 @@
  */
 
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { RuntimeContext } from '@molstar/core/task';
 
 export type RenderObjectExportData = {
@@ -14,7 +14,7 @@ export type RenderObjectExportData = {
 
 export interface RenderObjectExporter<D extends RenderObjectExportData> {
   readonly fileExtension: string;
-  add(renderObject: GraphicsRenderObject, webgl: WebGLContext, ctx: RuntimeContext): Promise<void> | undefined;
+  add(renderObject: GraphicsRenderObject, graphics: GraphicsContext, ctx: RuntimeContext): Promise<void> | undefined;
   getData(ctx: RuntimeContext): Promise<D>;
   getBlob(ctx: RuntimeContext): Promise<Blob>;
 }

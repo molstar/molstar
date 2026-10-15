@@ -6,7 +6,7 @@
 
 import { sortArray } from '@molstar/core/data/util';
 import { canComputeGrid3dOnGPU } from '@molstar/graphics/gl/compute/grid3d';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Task } from '@molstar/core/task';
 import { isTimingMode } from '@molstar/core/util/debug';
 import {
@@ -21,18 +21,18 @@ import { gpuComputeAlphaOrbitalsDensityGridValues } from '@molstar/alpha-orbital
 export function createSphericalCollocationDensityGrid(
   params: CubeGridComputationParams,
   orbitals: AlphaOrbital[],
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ): Task<CubeGrid> {
   return Task.create('Spherical Collocation Grid', async (ctx) => {
     const cubeGrid = initCubeGrid(params);
 
     let matrix: Float32Array;
-    if (canComputeGrid3dOnGPU(webgl)) {
-      if (isTimingMode) webgl.timer.mark('createSphericalCollocationDensityGrid');
-      matrix = await gpuComputeAlphaOrbitalsDensityGridValues(ctx, webgl, cubeGrid, orbitals);
-      if (isTimingMode) webgl.timer.markEnd('createSphericalCollocationDensityGrid');
+    if (canComputeGrid3dOnGPU(graphics)) {
+      if (isTimingMode) graphics.timer.group('createSphericalCollocationDensityGrid');
+      matrix = await gpuComputeAlphaOrbitalsDensityGridValues(ctx, graphics, cubeGrid, orbitals);
+      if (isTimingMode) graphics.timer.groupEnd('createSphericalCollocationDensityGrid');
     } else {
-      throw new Error('Missing OES_texture_float WebGL extension.');
+      throw new Error('Density grid computation requires a WebGL context.');
     }
 
     const grid = createGrid(cubeGrid, matrix, [0, 1, 2]);

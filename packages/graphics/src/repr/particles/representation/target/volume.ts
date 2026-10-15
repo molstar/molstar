@@ -9,7 +9,7 @@ import type { Theme } from '@molstar/graphics/theme/theme';
 import type { VisualContext } from '../../../visual.js';
 import type { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import type { Spheres } from '@molstar/graphics/geo/geometry/spheres/spheres';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { createVolumeIsosurfaceMesh, type VolumeIsosurfaceProps } from '../../../volume/isosurface.js';
 import { createVolumeSphereImpostor, createVolumeSphereMesh, type VolumeSphereProps } from '../../../volume/dot.js';
 import { checkSphereImpostorSupport } from '../../../structure/visual/util/common.js';
@@ -21,8 +21,8 @@ export type VolumeTargetProps = VolumeIsosurfaceProps &
     tryUseImpostor: boolean;
   };
 
-export function volumeTargetUseImpostor(props: VolumeTargetProps, webgl?: WebGLContext): boolean {
-  return props.tryUseImpostor && checkSphereImpostorSupport(webgl);
+export function volumeTargetUseImpostor(props: VolumeTargetProps, graphics?: GraphicsContext): boolean {
+  return props.tryUseImpostor && checkSphereImpostorSupport(graphics);
 }
 
 /**
@@ -35,12 +35,12 @@ export function createVolumeTargetGeometry(
   volume: Volume,
   theme: Theme,
   props: VolumeTargetProps,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
   existing?: Spheres | Mesh,
 ): Spheres | Mesh | Promise<Mesh> {
   if (props.type === 'dot') {
     const dotProps = props as unknown as VolumeSphereProps;
-    return volumeTargetUseImpostor(props, webgl)
+    return volumeTargetUseImpostor(props, graphics)
       ? createVolumeSphereImpostor(ctx, volume, 0, theme, dotProps, existing?.kind === 'spheres' ? existing : undefined)
       : createVolumeSphereMesh(ctx, volume, 0, theme, dotProps, existing?.kind === 'mesh' ? existing : undefined);
   }
@@ -52,13 +52,13 @@ export function volumeTargetGeometryPropsChanged(
   volume: Volume,
   oldProps: VolumeTargetProps,
   newProps: VolumeTargetProps,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ): boolean {
   if (!Volume.IsoValue.areSame(oldProps.isoValue, newProps.isoValue, volume.grid.stats)) return true;
   if (newProps.type === 'dot') {
     return (
       newProps.perturbPositions !== oldProps.perturbPositions ||
-      (!volumeTargetUseImpostor(newProps, webgl) &&
+      (!volumeTargetUseImpostor(newProps, graphics) &&
         (newProps.sizeFactor !== oldProps.sizeFactor || newProps.detail !== oldProps.detail))
     );
   }
@@ -74,9 +74,11 @@ export function volumeTargetMustRecreate(oldProps: VolumeTargetProps, newProps: 
 export function volumeTargetSizeFactorChanged(
   oldProps: VolumeTargetProps,
   newProps: VolumeTargetProps,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ): boolean {
   return (
-    newProps.type === 'dot' && volumeTargetUseImpostor(newProps, webgl) && newProps.sizeFactor !== oldProps.sizeFactor
+    newProps.type === 'dot' &&
+    volumeTargetUseImpostor(newProps, graphics) &&
+    newProps.sizeFactor !== oldProps.sizeFactor
   );
 }

@@ -7,7 +7,7 @@
 import type { Renderer } from '@molstar/graphics/gl/renderer';
 import { type Frame, createFrame } from '@molstar/graphics/gl/renderable';
 import type { Scene } from '@molstar/graphics/gl/scene';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Vec3 } from '@molstar/core/math/linear-algebra/3d/vec3';
 import { spiral2d } from '@molstar/core/math/misc';
 import { isTimingMode } from '@molstar/core/util/debug';
@@ -19,7 +19,7 @@ import {
   type AsyncPickData,
   AsyncPickStatus,
   checkAsyncPickingSupport,
-  PickBuffers,
+  createPickBuffers,
   type PickData,
   type PickOptions,
   type PickPass,
@@ -29,7 +29,7 @@ export class PickHelper {
   dirty = true;
 
   private pickPadding: number;
-  private buffers = new PickBuffers(this.webgl, this.pickPass);
+  private buffers = createPickBuffers(this.graphics, this.pickPass);
   private viewport = Viewport();
 
   private pickRatio: number;
@@ -76,7 +76,7 @@ export class PickHelper {
   }
 
   private render(camera: Camera | StereoCamera, frame?: Frame) {
-    if (isTimingMode) this.webgl.timer.mark('PickHelper.render', { captureStats: true });
+    if (isTimingMode) this.graphics.timer.group('PickHelper.render', { captureStats: true });
     const { pickX, pickY, pickWidth, pickHeight, halfPickWidth } = this;
     const { renderer, scene, helper } = this;
 
@@ -100,17 +100,17 @@ export class PickHelper {
     }
 
     this.dirty = false;
-    if (isTimingMode) this.webgl.timer.markEnd('PickHelper.render');
+    if (isTimingMode) this.graphics.timer.groupEnd('PickHelper.render');
   }
 
   private identifyInternal(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
-    if (this.webgl.isContextLost) return;
+    if (this.graphics.isContextLost) return;
 
-    const { webgl, pickRatio } = this;
-    if (webgl.isContextLost) return;
+    const { graphics, pickRatio } = this;
+    if (graphics.isContextLost) return;
 
-    x *= webgl.pixelRatio;
-    y *= webgl.pixelRatio;
+    x *= graphics.pixelRatio;
+    y *= graphics.pixelRatio;
     y = this.pickPass.drawingBufferHeight - y; // flip y
 
     const { viewport } = this;
@@ -158,28 +158,31 @@ export class PickHelper {
     }
   }
 
+  /** Without synchronous reads, finds nothing until the read started for a changed scene or camera has finished */
   identify(x: number, y: number, camera: Camera | StereoCamera, frame?: Frame): PickData | undefined {
+    if (!this.buffers.supported) return;
     this.prepare();
 
     if (this.dirty) {
-      if (isTimingMode) this.webgl.timer.mark('PickHelper.identify');
-      this.webgl.resources.finalizePrograms(['pick'], true);
+      if (isTimingMode) this.graphics.timer.group('PickHelper.identify');
+      this.graphics.resources.finalizePrograms(['pick'], true);
       this.render(camera, frame);
       this.buffers.read();
-      if (isTimingMode) this.webgl.timer.markEnd('PickHelper.identify');
+      if (isTimingMode) this.graphics.timer.groupEnd('PickHelper.identify');
     }
 
     return this.getPickData(x, y, camera);
   }
 
   asyncIdentify(x: number, y: number, camera: Camera | StereoCamera, frame?: Frame): AsyncPickData | undefined {
+    if (!this.buffers.supported) return;
     this.prepare();
 
     if (this.dirty) {
-      if (isTimingMode) this.webgl.timer.mark('PickHelper.asyncIdentify');
+      if (isTimingMode) this.graphics.timer.group('PickHelper.asyncIdentify');
       this.render(camera, frame);
       this.buffers.asyncRead();
-      if (isTimingMode) this.webgl.timer.markEnd('PickHelper.asyncIdentify');
+      if (isTimingMode) this.graphics.timer.groupEnd('PickHelper.asyncIdentify');
     }
 
     return {
@@ -196,6 +199,11 @@ export class PickHelper {
     };
   }
 
+  /** Whether `identify` reads the pick data synchronously */
+  get synchronous() {
+    return this.buffers.synchronous;
+  }
+
   reset() {
     this.buffers.reset();
     this.dirty = true;
@@ -206,7 +214,7 @@ export class PickHelper {
   }
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     private renderer: Renderer,
     private scene: Scene,
     private helper: Helper,
@@ -217,7 +225,7 @@ export class PickHelper {
     this.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
     this.pickPadding = options.pickPadding;
 
-    if (!checkAsyncPickingSupport(webgl)) {
+    if (!checkAsyncPickingSupport(graphics)) {
       this.asyncIdentify = (x, y, camera, frame) => ({
         tryGet: () => this.identify(x, y, camera, frame),
       });

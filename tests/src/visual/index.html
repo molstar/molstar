@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Mol* Visual Tests</title>
+        <style>
+            * { box-sizing: border-box; }
+            body { margin: 0; font-family: sans-serif; font-size: 13px; background: #f4f4f4; color: #222; }
+            header { position: sticky; top: 0; z-index: 1; background: #fff; border-bottom: 1px solid #ccc; padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+            header h1 { font-size: 16px; margin: 0 12px 0 0; }
+            header label { display: flex; gap: 4px; align-items: center; }
+            header input[type=text] { width: 180px; }
+            .summary span { margin-right: 8px; }
+            main { padding: 12px; }
+            details.reports { background: #fff; border: 1px solid #ccc; padding: 8px; margin-bottom: 12px; }
+            details.reports table { border-collapse: collapse; }
+            details.reports td, details.reports th { border: 1px solid #ddd; padding: 2px 6px; text-align: left; }
+            td.mismatch { background: #ffe0e0; }
+            .card { background: #fff; border: 1px solid #ccc; margin-bottom: 12px; padding: 8px; }
+            .card.hidden { display: none; }
+            .card-header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+            .card-header .id { font-weight: bold; font-family: monospace; font-size: 14px; }
+            .card-header button { margin-left: 4px; }
+            .status { padding: 1px 6px; border-radius: 3px; color: #fff; font-weight: bold; text-transform: uppercase; font-size: 11px; }
+            .status-pass { background: #2a9d4b; }
+            .status-fail { background: #d62828; }
+            .status-known-diff { background: #e09f3e; }
+            .status-skipped { background: #888; }
+            .status-error { background: #7b2cbf; }
+            .snapshot-mismatch { color: #d62828; }
+            .metrics, .reason, .description { color: #555; margin: 4px 0; }
+            .images { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+            figure { margin: 0; }
+            figcaption { font-size: 11px; color: #555; }
+            figure canvas { display: block; image-rendering: pixelated; border: 1px solid #ccc; background: repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%) 50% / 16px 16px; }
+            pre { background: #fafafa; border: 1px solid #eee; padding: 4px; max-height: 200px; overflow: auto; white-space: pre-wrap; }
+        </style>
+    </head>
+    <body>
+        <div id="app"></div>
+        <script type="text/javascript" src="./index.js"></script>
+    </body>
+</html>

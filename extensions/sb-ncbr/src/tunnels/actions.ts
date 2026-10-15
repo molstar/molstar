@@ -104,7 +104,7 @@ export const DownloadTunnels = StateAction.build({
     await state
       .transaction(async () => {
         const update = plugin.build();
-        const webgl = plugin.canvas3dContext?.webgl;
+        const graphics = plugin.canvas3dContext?.graphics;
 
         for (const download of downloadParams) {
           const response = await (await fetch(download.url.toString())).json();
@@ -123,7 +123,7 @@ export const DownloadTunnels = StateAction.build({
             .apply(TunnelsFromRawData, { data: tunnels })
             .apply(SelectTunnel)
             .apply(TunnelShapeProvider, {
-              webgl,
+              graphics,
             })
             .apply(ShapeRepresentation3D);
 

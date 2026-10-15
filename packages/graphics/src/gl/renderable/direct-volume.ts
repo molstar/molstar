@@ -5,8 +5,9 @@
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
-import type { WebGLContext } from '../webgl/context.js';
-import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
+import type { GraphicsContext } from '../context.js';
+import { isWebGLContext } from '../webgl/context.js';
+import type { Transparency } from '../render-item.js';
 import {
   AttributeSpec,
   type Values,
@@ -41,12 +42,12 @@ export const DirectVolumeSchema = {
   uJumpLength: UniformSpec('f'),
   uTransform: UniformSpec('m4'),
   uGridDim: UniformSpec('v3'),
-  tTransferTex: TextureSpec('image-uint8', 'alpha', 'ubyte', 'linear'),
+  tTransferTex: TextureSpec('image-uint8', 'r', 'ubyte', 'linear'),
   uTransferScale: UniformSpec('f', 'material'),
 
   dGridTexType: DefineSpec('string', ['2d', '3d']),
   uGridTexDim: UniformSpec('v3'),
-  tGridTex: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+  tGridTex: TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, { dimension: { define: 'dGridTexType' } }),
   uGridStats: UniformSpec('v4'), // [min, max, mean, sigma]
 
   uCellDim: UniformSpec('v3'),
@@ -65,7 +66,7 @@ export type DirectVolumeSchema = typeof DirectVolumeSchema;
 export type DirectVolumeValues = Values<DirectVolumeSchema>;
 
 export function DirectVolumeRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   values: DirectVolumeValues,
   state: RenderableState,
@@ -80,7 +81,7 @@ export function DirectVolumeRenderable(
     ...InternalSchema,
     ...DirectVolumeSchema,
   };
-  if (!ctx.isWebGL2) {
+  if (isWebGLContext(ctx) && !ctx.isWebGL2) {
     // workaround for webgl1 limitation that loop counters need to be `const`
     (schema.uMaxSteps as any) = DefineSpec('number');
   }
@@ -91,8 +92,7 @@ export function DirectVolumeRenderable(
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
   const shaderCode = DirectVolumeShaderCode;
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     'triangles',
     shaderCode,
     schema,

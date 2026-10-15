@@ -7,7 +7,7 @@
 import { createRenderObject, type GraphicsRenderObject, getNextMaterialId } from '@molstar/graphics/gl/render-object';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Scene } from '@molstar/graphics/gl/scene';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { Lines } from '@molstar/graphics/geo/geometry/lines/lines';
 import { LinesBuilder } from '@molstar/graphics/geo/geometry/lines/lines-builder';
@@ -36,7 +36,7 @@ export class MeshHelper implements DebugHelper<MeshHelperProps> {
   private _props: MeshHelperProps;
   private renderObjects = new Map<number, GraphicsRenderObject>();
 
-  constructor(ctx: WebGLContext, parent: Scene, props: Partial<MeshHelperProps>) {
+  constructor(ctx: GraphicsContext, parent: Scene, props: Partial<MeshHelperProps>) {
     this.scene = Scene.create(ctx, 'blended');
     this.parent = parent;
     this._props = { ...PD.getDefaultValues(MeshHelperParams), ...props };

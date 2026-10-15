@@ -17,7 +17,7 @@ import type { ParamDefinition as PD } from '@molstar/core/util/param-definition'
 import { type ThemeDataContext, ThemeRegistry, type ThemeProvider } from './theme.js';
 import type { BuiltInColorThemes } from './color/catalog.js';
 import type { ScaleLegend, TableLegend } from '@molstar/core/util/legend';
-import type { Texture, TextureFilter } from '@molstar/graphics/gl/webgl/texture';
+import type { Texture, TextureFilter } from '@molstar/graphics/gl/texture';
 import type { Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { ColorThemeCategory } from './color/categories.js';
 import type { ColorListEntry } from '@molstar/core/util/color/color';

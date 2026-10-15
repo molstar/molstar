@@ -14,16 +14,11 @@ import { Vec3, Tensor, Mat4, Vec2 } from '@molstar/core/math/linear-algebra';
 import { ValueCell } from '@molstar/core/util';
 import { createComputeRenderable, type ComputeRenderable } from '@molstar/graphics/gl/renderable';
 import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type {
-  Texture,
-  TextureFilter,
-  TextureFormat,
-  TextureKind,
-  TextureType,
-} from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { BlendState, type RenderState } from '@molstar/graphics/gl/render-state';
+import type { Texture, TextureFilter, TextureFormat, TextureKind, TextureType } from '@molstar/graphics/gl/texture';
 import { unpackRGBToInt } from '@molstar/core/util/number-packing';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
 import {
   ValueSpec,
   AttributeSpec,
@@ -32,12 +27,10 @@ import {
   DefineSpec,
   type Values,
 } from '@molstar/graphics/gl/renderable/schema';
-import { gaussianDensity_vert } from '@molstar/graphics/gl/shader/gaussian-density.vert';
-import { gaussianDensity_frag } from '@molstar/graphics/gl/shader/gaussian-density.frag';
-import type { Framebuffer } from '@molstar/graphics/gl/webgl/framebuffer';
+import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
 import { isTimingMode } from '@molstar/core/util/debug';
 
-const GaussianDensitySchema = {
+export const GaussianDensitySchema = {
   drawCount: ValueSpec('number'),
   instanceCount: ValueSpec('number'),
 
@@ -56,7 +49,9 @@ const GaussianDensitySchema = {
   uAlpha: UniformSpec('f', 'material'),
   uResolution: UniformSpec('f', 'material'),
   uRadiusFactorInv: UniformSpec('f', 'material'),
-  tMinDistanceTex: TextureSpec('texture', 'rgba', 'float', 'nearest', 'material'),
+  tMinDistanceTex: TextureSpec('texture', 'rgba', 'float', 'nearest', 'material', {
+    dimension: { define: 'dGridTexType' },
+  }),
 
   dGridTexType: DefineSpec('string', ['2d', '3d']),
   dCalcType: DefineSpec('string', ['density', 'minDistance', 'groupId']),
@@ -64,6 +59,7 @@ const GaussianDensitySchema = {
 type GaussianDensityValues = Values<typeof GaussianDensitySchema>;
 type GaussianDensityRenderable = ComputeRenderable<GaussianDensityValues>;
 const GaussianDensityName = 'gaussian-density';
+export const GaussianDensityShaderCode = ShaderCode(GaussianDensityName);
 
 function getFramebuffer(webgl: WebGLContext): Framebuffer {
   if (!webgl.namedFramebuffers[GaussianDensityName]) {
@@ -115,7 +111,7 @@ export function GaussianDensityTexture(
   props: GaussianDensityProps,
   oldTexture?: Texture,
 ): GaussianDensityTextureData {
-  return webgl.isWebGL2
+  return webgl.capabilities.texture3d
     ? GaussianDensityTexture3d(webgl, position, box, radius, props, oldTexture)
     : GaussianDensityTexture2d(webgl, position, box, radius, false, props, oldTexture);
 }
@@ -129,9 +125,9 @@ export function GaussianDensityTexture2d(
   props: GaussianDensityProps,
   oldTexture?: Texture,
 ): GaussianDensityTextureData {
-  if (isTimingMode) webgl.timer.mark('GaussianDensityTexture2d');
+  if (isTimingMode) webgl.timer.group('GaussianDensityTexture2d');
   const data = calcGaussianDensityTexture2d(webgl, position, box, radius, powerOfTwo, props, oldTexture);
-  if (isTimingMode) webgl.timer.markEnd('GaussianDensityTexture2d');
+  if (isTimingMode) webgl.timer.groupEnd('GaussianDensityTexture2d');
   return finalizeGaussianDensityTexture(data);
 }
 
@@ -143,9 +139,9 @@ export function GaussianDensityTexture3d(
   props: GaussianDensityProps,
   oldTexture?: Texture,
 ): GaussianDensityTextureData {
-  if (isTimingMode) webgl.timer.mark('GaussianDensityTexture3d');
+  if (isTimingMode) webgl.timer.group('GaussianDensityTexture3d');
   const data = calcGaussianDensityTexture3d(webgl, position, box, radius, props, oldTexture);
-  if (isTimingMode) webgl.timer.markEnd('GaussianDensityTexture3d');
+  if (isTimingMode) webgl.timer.groupEnd('GaussianDensityTexture3d');
   return finalizeGaussianDensityTexture(data);
 }
 
@@ -208,10 +204,8 @@ function calcGaussianDensityTexture2d(
 ): _GaussianDensityTextureData {
   // console.log('2d');
   const {
-    gl,
     resources,
-    state,
-    extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat, blendMinMax },
+    capabilities: { floatRenderTarget, halfFloatRenderTarget },
   } = webgl;
   const { smoothness, resolution } = props;
 
@@ -255,27 +249,24 @@ function calcGaussianDensityTexture2d(
   const { uCurrentSlice, uCurrentX, uCurrentY } = renderable.values;
 
   const framebuffer = getFramebuffer(webgl);
-  framebuffer.bind();
-  setRenderingDefaults(webgl);
 
   if (!texture)
-    texture =
-      colorBufferHalfFloat && textureHalfFloat
-        ? resources.texture('image-float16', 'rgba', 'fp16', 'linear')
-        : colorBufferFloat && textureFloat
-          ? resources.texture('image-float32', 'rgba', 'float', 'linear')
-          : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+    texture = halfFloatRenderTarget
+      ? resources.texture('image-float16', 'rgba', 'fp16', 'linear')
+      : floatRenderTarget
+        ? resources.texture('image-float32', 'rgba', 'float', 'linear')
+        : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
   texture.define(width, height);
 
   // console.log(renderable)
 
   function render(fbTex: Texture, clear: boolean) {
-    state.currentRenderItemId = -1;
     fbTex.attachFramebuffer(framebuffer, 0);
+    webgl.beginRenderPass(framebuffer, { label: 'gaussian density' });
     if (clear) {
-      state.viewport(0, 0, width, height);
-      state.scissor(0, 0, width, height);
-      gl.clear(gl.COLOR_BUFFER_BIT);
+      webgl.setViewport(0, 0, width, height);
+      webgl.setScissor(0, 0, width, height);
+      webgl.clear({ color: [0, 0, 0, 0] });
     }
     ValueCell.update(uCurrentY, 0);
     let currCol = 0;
@@ -291,25 +282,23 @@ function calcGaussianDensityTexture2d(
       // console.log({ i, currX, currY });
       ValueCell.update(uCurrentX, currX);
       ValueCell.update(uCurrentSlice, i);
-      state.viewport(currX, currY, dx, dy);
-      state.scissor(currX, currY, dx, dy);
+      webgl.setViewport(currX, currY, dx, dy);
+      webgl.setScissor(currX, currY, dx, dy);
       renderable.render();
       ++currCol;
       currX += dx;
     }
-    gl.flush();
+    webgl.flush();
   }
 
   setupDensityRendering(webgl, renderable);
   render(texture, true);
 
-  if (blendMinMax) {
-    setupMinDistanceRendering(webgl, renderable);
-    render(minDistTex, true);
+  setupMinDistanceRendering(webgl, renderable);
+  render(minDistTex, true);
 
-    setupGroupIdRendering(webgl, renderable);
-    render(texture, false);
-  }
+  setupGroupIdRendering(webgl, renderable);
+  render(texture, false);
 
   // printTextureImage(readTexture(webgl, minDistTex), { scale: 0.75 });
 
@@ -337,10 +326,8 @@ function calcGaussianDensityTexture3d(
 ): _GaussianDensityTextureData {
   // console.log('3d');
   const {
-    gl,
     resources,
-    state,
-    extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat },
+    capabilities: { floatRenderTarget, halfFloatRenderTarget },
   } = webgl;
   const { smoothness, resolution } = props;
 
@@ -379,29 +366,28 @@ function calcGaussianDensityTexture3d(
   const { uCurrentSlice } = renderable.values;
 
   const framebuffer = getFramebuffer(webgl);
-  framebuffer.bind();
-  setRenderingDefaults(webgl);
-  state.viewport(0, 0, dx, dy);
-  state.scissor(0, 0, dx, dy);
+  webgl.setViewport(0, 0, dx, dy);
+  webgl.setScissor(0, 0, dx, dy);
 
   if (!texture)
-    texture =
-      colorBufferHalfFloat && textureHalfFloat
-        ? resources.texture('volume-float16', 'rgba', 'fp16', 'linear')
-        : colorBufferFloat && textureFloat
-          ? resources.texture('volume-float32', 'rgba', 'float', 'linear')
-          : resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear');
+    texture = halfFloatRenderTarget
+      ? resources.texture('volume-float16', 'rgba', 'fp16', 'linear')
+      : floatRenderTarget
+        ? resources.texture('volume-float32', 'rgba', 'float', 'linear')
+        : resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear');
   texture.define(dx, dy, dz);
 
   function render(fbTex: Texture, clear: boolean) {
-    state.currentRenderItemId = -1;
     for (let i = 0; i < dz; ++i) {
       ValueCell.update(uCurrentSlice, i);
       fbTex.attachFramebuffer(framebuffer, 0, i);
-      if (clear) gl.clear(gl.COLOR_BUFFER_BIT);
+      webgl.beginRenderPass(framebuffer, {
+        label: 'gaussian density',
+        ...(clear ? { clear: { color: [0, 0, 0, 0] } } : {}),
+      });
       renderable.render();
     }
-    gl.flush();
+    webgl.flush();
   }
 
   setupDensityRendering(webgl, renderable);
@@ -577,52 +563,33 @@ function createGaussianDensityRenderable(
   };
 
   const schema = { ...GaussianDensitySchema };
-  const shaderCode = ShaderCode(GaussianDensityName, gaussianDensity_vert, gaussianDensity_frag);
-  const renderItem = createComputeRenderItem(webgl, 'points', shaderCode, schema, values);
+  const renderItem = webgl.createComputeRenderItem('points', GaussianDensityShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
 
-function setRenderingDefaults(ctx: WebGLContext) {
-  const { gl, state } = ctx;
-  state.disable(gl.CULL_FACE);
-  state.enable(gl.BLEND);
-  state.disable(gl.DEPTH_TEST);
-  state.enable(gl.SCISSOR_TEST);
-  state.depthMask(false);
-  state.clearColor(0, 0, 0, 0);
-}
+/** the shader writes 1 - dist so we set blending to MAX */
+const MinDistanceState: RenderState = { blend: BlendState.Max, colorWrite: [false, false, false, true] };
+const DensityState: RenderState = { blend: BlendState.Additive, colorWrite: [false, false, false, true] };
+/** overwrite color, don't change alpha */
+const GroupIdState: RenderState = { colorWrite: [true, true, true, false] };
 
-function setupMinDistanceRendering(webgl: WebGLContext, renderable: GaussianDensityRenderable) {
-  const { gl, state } = webgl;
+function setupMinDistanceRendering(graphics: GraphicsContext, renderable: GaussianDensityRenderable) {
   ValueCell.update(renderable.values.dCalcType, 'minDistance');
   renderable.update();
-  state.colorMask(false, false, false, true);
-  state.blendFunc(gl.ONE, gl.ONE);
-  // the shader writes 1 - dist so we set blending to MAX
-  if (!webgl.extensions.blendMinMax) {
-    throw new Error('GPU gaussian surface calculation requires EXT_blend_minmax');
-  }
-  state.blendEquation(webgl.extensions.blendMinMax.MAX);
+  graphics.setRenderState(MinDistanceState);
 }
 
-function setupDensityRendering(webgl: WebGLContext, renderable: GaussianDensityRenderable) {
-  const { gl, state } = webgl;
+function setupDensityRendering(graphics: GraphicsContext, renderable: GaussianDensityRenderable) {
   ValueCell.update(renderable.values.dCalcType, 'density');
   renderable.update();
-  state.colorMask(false, false, false, true);
-  state.blendFunc(gl.ONE, gl.ONE);
-  state.blendEquation(gl.FUNC_ADD);
+  graphics.setRenderState(DensityState);
 }
 
-function setupGroupIdRendering(webgl: WebGLContext, renderable: GaussianDensityRenderable) {
-  const { gl, state } = webgl;
+function setupGroupIdRendering(graphics: GraphicsContext, renderable: GaussianDensityRenderable) {
   ValueCell.update(renderable.values.dCalcType, 'groupId');
   renderable.update();
-  // overwrite color, don't change alpha
-  state.colorMask(true, true, true, false);
-  state.blendFunc(gl.ONE, gl.ZERO);
-  state.blendEquation(gl.FUNC_ADD);
+  graphics.setRenderState(GroupIdState);
 }
 
 function getTexture2dSize(gridDim: Vec3) {

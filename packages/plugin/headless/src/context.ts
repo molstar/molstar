@@ -30,10 +30,22 @@ export class HeadlessPluginContext extends PluginContext {
     spec: PluginSpec,
     canvasSize: { width: number; height: number } = { width: 640, height: 480 },
     rendererOptions?: HeadlessScreenshotHelperOptions,
+    renderer?: HeadlessScreenshotHelper,
   ) {
     super(spec);
-    this.renderer = new HeadlessScreenshotHelper(externalModules, canvasSize, undefined, rendererOptions);
+    this.renderer = renderer ?? new HeadlessScreenshotHelper(externalModules, canvasSize, undefined, rendererOptions);
     (this.canvas3d as Canvas3D) = this.renderer.canvas3d;
+  }
+
+  /** Like the constructor, also for the `webgpu` backend (`rendererOptions.backend`), whose device is requested asynchronously */
+  static async create(
+    externalModules: ExternalModules,
+    spec: PluginSpec,
+    canvasSize: { width: number; height: number } = { width: 640, height: 480 },
+    rendererOptions?: HeadlessScreenshotHelperOptions,
+  ) {
+    const renderer = await HeadlessScreenshotHelper.create(externalModules, canvasSize, rendererOptions);
+    return new HeadlessPluginContext(externalModules, spec, canvasSize, rendererOptions, renderer);
   }
 
   /** Render the current plugin state and save to a PNG or JPEG file */

@@ -6,23 +6,23 @@
 
 import { type ComputeRenderable, createComputeRenderable } from '../../renderable.js';
 import type { WebGLContext } from '../../webgl/context.js';
-import { createComputeRenderItem } from '../../webgl/render-item.js';
+import { RenderState } from '../../render-state.js';
 import { type Values, TextureSpec, UniformSpec, DefineSpec } from '../../renderable/schema.js';
-import type { Texture } from '../../webgl/texture.js';
+import type { Texture } from '../../texture.js';
 import { ShaderCode } from '../../shader-code.js';
 import { ValueCell } from '@molstar/core/util';
 import type { Vec3, Vec2 } from '@molstar/core/math/linear-algebra';
 import { QuadSchema, QuadValues } from '../util.js';
 import { getTriCount } from './tables.js';
-import { quad_vert } from '../../shader/quad.vert.js';
-import { activeVoxels_frag } from '../../shader/marching-cubes/active-voxels.frag.js';
 import { isTimingMode } from '@molstar/core/util/debug';
-import { isWebGL2 } from '../../webgl/compat.js';
 
-const ActiveVoxelsSchema = {
+/** Channel of the volume data texture holding the value, e.g. `alpha` for densities with a packed group in `rgb` */
+export type ValueChannel = 'red' | 'alpha';
+
+export const ActiveVoxelsSchema = {
   ...QuadSchema,
 
-  tTriCount: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+  tTriCount: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
   tVolumeData: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   dValueChannel: DefineSpec('string', ['red', 'alpha']),
   uIsoValue: UniformSpec('f'),
@@ -32,17 +32,15 @@ const ActiveVoxelsSchema = {
 
   uScale: UniformSpec('v2'),
 };
+export const ActiveVoxelsShaderCode = ShaderCode('active-voxels');
 type ActiveVoxelsValues = Values<typeof ActiveVoxelsSchema>;
 
 const ActiveVoxelsName = 'active-voxels';
 
-function valueChannel(ctx: WebGLContext, volumeData: Texture) {
-  return isWebGL2(ctx.gl) && volumeData.format === ctx.gl.RED ? 'red' : 'alpha';
-}
-
 function getActiveVoxelsRenderable(
   ctx: WebGLContext,
   volumeData: Texture,
+  valueChannel: ValueChannel,
   gridDim: Vec3,
   gridTexDim: Vec3,
   isoValue: number,
@@ -53,7 +51,7 @@ function getActiveVoxelsRenderable(
 
     ValueCell.update(v.uQuadScale, scale);
     ValueCell.update(v.tVolumeData, volumeData);
-    ValueCell.update(v.dValueChannel, valueChannel(ctx, volumeData));
+    ValueCell.update(v.dValueChannel, valueChannel);
     ValueCell.updateIfChanged(v.uIsoValue, isoValue);
     ValueCell.update(v.uGridDim, gridDim);
     ValueCell.update(v.uGridTexDim, gridTexDim);
@@ -64,6 +62,7 @@ function getActiveVoxelsRenderable(
     ctx.namedComputeRenderables[ActiveVoxelsName] = createActiveVoxelsRenderable(
       ctx,
       volumeData,
+      valueChannel,
       gridDim,
       gridTexDim,
       isoValue,
@@ -76,6 +75,7 @@ function getActiveVoxelsRenderable(
 function createActiveVoxelsRenderable(
   ctx: WebGLContext,
   volumeData: Texture,
+  valueChannel: ValueChannel,
   gridDim: Vec3,
   gridTexDim: Vec3,
   isoValue: number,
@@ -87,7 +87,7 @@ function createActiveVoxelsRenderable(
 
     uQuadScale: ValueCell.create(scale),
     tVolumeData: ValueCell.create(volumeData),
-    dValueChannel: ValueCell.create(valueChannel(ctx, volumeData)),
+    dValueChannel: ValueCell.create(valueChannel),
     uIsoValue: ValueCell.create(isoValue),
     uGridDim: ValueCell.create(gridDim),
     uGridTexDim: ValueCell.create(gridTexDim),
@@ -95,33 +95,22 @@ function createActiveVoxelsRenderable(
   };
 
   const schema = { ...ActiveVoxelsSchema };
-  const shaderCode = ShaderCode('active-voxels', quad_vert, activeVoxels_frag);
-  const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', ActiveVoxelsShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
-}
-
-function setRenderingDefaults(ctx: WebGLContext) {
-  const { gl, state } = ctx;
-  state.disable(gl.CULL_FACE);
-  state.disable(gl.BLEND);
-  state.disable(gl.DEPTH_TEST);
-  state.enable(gl.SCISSOR_TEST);
-  state.depthMask(false);
-  state.colorMask(true, true, true, true);
-  state.clearColor(0, 0, 0, 0);
 }
 
 export function calcActiveVoxels(
   ctx: WebGLContext,
   volumeData: Texture,
+  valueChannel: ValueChannel,
   gridDim: Vec3,
   gridTexDim: Vec3,
   isoValue: number,
   gridScale: Vec2,
 ) {
-  if (isTimingMode) ctx.timer.mark('calcActiveVoxels');
-  const { gl, state, resources } = ctx;
+  if (isTimingMode) ctx.timer.group('calcActiveVoxels');
+  const { gl, resources } = ctx;
   const width = volumeData.getWidth();
   const height = volumeData.getHeight();
 
@@ -129,7 +118,6 @@ export function calcActiveVoxels(
     ctx.namedFramebuffers[ActiveVoxelsName] = resources.framebuffer();
   }
   const framebuffer = ctx.namedFramebuffers[ActiveVoxelsName];
-  framebuffer.bind();
 
   if (!ctx.namedTextures[ActiveVoxelsName]) {
     ctx.namedTextures[ActiveVoxelsName] = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
@@ -137,15 +125,15 @@ export function calcActiveVoxels(
   const activeVoxelsTex = ctx.namedTextures[ActiveVoxelsName];
   activeVoxelsTex.define(width, height);
 
-  const renderable = getActiveVoxelsRenderable(ctx, volumeData, gridDim, gridTexDim, isoValue, gridScale);
-  ctx.state.currentRenderItemId = -1;
+  const renderable = getActiveVoxelsRenderable(ctx, volumeData, valueChannel, gridDim, gridTexDim, isoValue, gridScale);
 
   activeVoxelsTex.attachFramebuffer(framebuffer, 0);
-  setRenderingDefaults(ctx);
-  state.viewport(0, 0, width, height);
-  state.scissor(0, 0, width, height);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-  state.scissor(0, 0, gridTexDim[0], gridTexDim[1]);
+  ctx.beginRenderPass(framebuffer, { label: 'active voxels' });
+  ctx.setRenderState(RenderState.Default);
+  ctx.setViewport(0, 0, width, height);
+  ctx.setScissor(0, 0, width, height);
+  ctx.clear({ color: [0, 0, 0, 0] });
+  ctx.setScissor(0, 0, gridTexDim[0], gridTexDim[1]);
   renderable.render();
 
   // console.log('gridScale', gridScale, 'gridTexDim', gridTexDim, 'gridDim', gridDim);
@@ -154,7 +142,7 @@ export function calcActiveVoxels(
   // printTextureImage(readTexture(ctx, activeVoxelsTex), { scale: 0.75 });
 
   gl.finish();
-  if (isTimingMode) ctx.timer.markEnd('calcActiveVoxels');
+  if (isTimingMode) ctx.timer.groupEnd('calcActiveVoxels');
 
   return activeVoxelsTex;
 }

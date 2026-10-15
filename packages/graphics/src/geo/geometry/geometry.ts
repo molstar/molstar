@@ -112,7 +112,7 @@ export namespace Geometry {
       case 'mesh':
         return geometry.triangleCount * 3;
       case 'points':
-        return geometry.pointCount;
+        return geometry.pointCount * 2 * 3;
       case 'spheres':
         return geometry.sphereCount * 2 * 3;
       case 'cylinders':

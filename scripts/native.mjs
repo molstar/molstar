@@ -16,9 +16,15 @@ const env = {
   NODE_PATH: [path.join(nativeDir, 'node_modules'), process.env.NODE_PATH].filter(Boolean).join(delimiter),
 };
 const command = (name) => (process.platform === 'win32' ? `${name}.cmd` : name);
+// Node refuses to spawn .cmd/.bat files without a shell on Windows (EINVAL); the shell joins the arguments unquoted
+const isBatch = (name) => process.platform === 'win32' && /\.(cmd|bat)$/i.test(name);
+const quote = (arg) => (/[\s"&|<>^]/.test(arg) ? `"${arg.replaceAll('"', '""')}"` : arg);
 const run = (name, commandArgs, cwd = root) =>
   new Promise((resolve, reject) => {
-    const child = spawn(name, commandArgs, { cwd, env, stdio: 'inherit' });
+    const shell = isBatch(name);
+    const child = shell
+      ? spawn(quote(name), commandArgs.map(quote), { cwd, env, stdio: 'inherit', shell })
+      : spawn(name, commandArgs, { cwd, env, stdio: 'inherit' });
     child.once('error', reject);
     child.once('exit', (code, signal) =>
       code === 0 ? resolve() : reject(new Error(`${name} failed (${signal ?? code}).`)),

@@ -21,7 +21,8 @@ import { Mat4, Tensor, Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { fillSerial } from '@molstar/core/util/array';
 import { createSegmentTexture2d, eachVolumeLoci, getVolumeTexture2dLayout } from './util.js';
 import { TextureMesh } from '@molstar/graphics/geo/geometry/texture-mesh/texture-mesh';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import { isWebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { ValueCell } from '@molstar/core/util/value-cell';
 import { extractIsosurface } from '@molstar/graphics/gl/compute/marching-cubes/isosurface';
@@ -43,20 +44,20 @@ export const VolumeSegmentParams = {
 export type VolumeSegmentParams = typeof VolumeSegmentParams;
 export type VolumeSegmentProps = PD.Values<VolumeSegmentParams>;
 
-function gpuSupport(webgl: WebGLContext): boolean {
-  return !!(webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.drawBuffers);
+function gpuSupport(graphics: GraphicsContext): boolean {
+  return graphics.capabilities.floatRenderTarget && graphics.capabilities.multipleRenderTargets;
 }
 
 const Padding = 1;
 
-function suitableForGpu(volume: Volume, webgl: WebGLContext) {
+function suitableForGpu(volume: Volume, graphics: GraphicsContext) {
   // small volumes are about as fast or faster on CPU vs integrated GPU
   if (volume.grid.cells.data.length < Math.pow(10, 3)) return false;
   // the GPU is much more memory contraint, especially true for integrated GPUs,
   // fallback to CPU for large volumes
   const gridDim = volume.grid.cells.space.dimensions as Vec3;
   const { powerOfTwoSize } = getVolumeTexture2dLayout(gridDim, Padding);
-  return powerOfTwoSize <= webgl.maxTextureSize / 2;
+  return powerOfTwoSize <= graphics.resources.limits.maxTextureSize / 2;
 }
 
 const _translate = Mat4();
@@ -66,8 +67,15 @@ function getSegmentTransform(grid: Grid, segmentBox: Box3D) {
   return Mat4.mul(Mat4(), transform, translate);
 }
 
-function useGpu(volume: Volume, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext): boolean {
-  return props.tryUseGpu && !!webgl && gpuSupport(webgl) && suitableForGpu(volume, webgl);
+/** GPU segments are WebGL-only so far */
+function useGpu(volume: Volume, props: PD.Values<SegmentMeshParams>, graphics?: GraphicsContext): boolean {
+  return (
+    props.tryUseGpu &&
+    !!graphics &&
+    isWebGLContext(graphics) &&
+    gpuSupport(graphics) &&
+    suitableForGpu(volume, graphics)
+  );
 }
 
 export function SegmentVisual(
@@ -75,9 +83,9 @@ export function SegmentVisual(
   volume: Volume,
   key: number,
   props: PD.Values<SegmentMeshParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ) {
-  if (useGpu(volume, props, webgl)) {
+  if (useGpu(volume, props, graphics)) {
     return SegmentTextureMeshVisual(materialId);
   }
   return SegmentMeshVisual(materialId);
@@ -191,7 +199,7 @@ export async function createVolumeSegmentMesh(
 
   const transform = getSegmentTransform(volume.grid, bbox);
   Mesh.transform(surface, transform);
-  if (ctx.webgl && !ctx.webgl.isWebGL2) {
+  if (ctx.graphics && !ctx.graphics.capabilities.flatInterpolation) {
     // 2nd arg means not to split triangles based on group id. Splitting triangles
     // is too expensive if each cell has its own group id as is the case here.
     Mesh.uniformTriangleGroup(surface, false);
@@ -240,8 +248,8 @@ export function SegmentMeshVisual(materialId: number): VolumeVisual<SegmentMeshP
         currentProps: PD.Values<SegmentMeshParams>,
       ) => {},
       geometryUtils: Mesh.Utils,
-      mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext) => {
-        return useGpu(volumeKey.volume, props, webgl);
+      mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, graphics?: GraphicsContext) => {
+        return useGpu(volumeKey.volume, props, graphics);
       },
     },
     materialId,
@@ -252,11 +260,11 @@ export function SegmentMeshVisual(materialId: number): VolumeVisual<SegmentMeshP
 
 const SegmentTextureName = 'segment-texture';
 
-function getSegmentTexture(volume: Volume, segment: Volume.SegmentIndex, webgl: WebGLContext) {
+function getSegmentTexture(volume: Volume, segment: Volume.SegmentIndex, graphics: GraphicsContext) {
   const segmentation = Volume.Segmentation.get(volume);
   if (!segmentation) throw new Error('missing volume segmentation');
 
-  const { resources } = webgl;
+  const { resources } = graphics;
 
   const bbox = Box3D.clone(segmentation.bounds[segment]);
   Box3D.expand(bbox, bbox, Vec3.create(2, 2, 2));
@@ -269,14 +277,14 @@ function getSegmentTexture(volume: Volume, segment: Volume.SegmentIndex, webgl: 
   const gridTexScale = Vec2.create(width / texDim, height / texDim);
   // console.log({ texDim, width, height, gridDimension });
 
-  if (texDim > webgl.maxTextureSize / 2) {
+  if (texDim > graphics.resources.limits.maxTextureSize / 2) {
     throw new Error('volume too large for gpu segment extraction');
   }
 
-  if (!webgl.namedTextures[SegmentTextureName]) {
-    webgl.namedTextures[SegmentTextureName] = resources.texture('image-uint8', 'alpha', 'ubyte', 'linear');
+  if (!graphics.namedTextures[SegmentTextureName]) {
+    graphics.namedTextures[SegmentTextureName] = resources.texture('image-uint8', 'r', 'ubyte', 'linear');
   }
-  const texture = webgl.namedTextures[SegmentTextureName];
+  const texture = graphics.namedTextures[SegmentTextureName];
 
   texture.define(texDim, texDim);
   // load volume into sub-section of texture
@@ -304,7 +312,9 @@ async function createVolumeSegmentTextureMesh(
   props: VolumeSegmentProps,
   textureMesh?: TextureMesh,
 ) {
-  if (!ctx.webgl) throw new Error('webgl context required to create volume segment texture-mesh');
+  const graphics = ctx.graphics;
+  if (!graphics || !isWebGLContext(graphics))
+    throw new Error('webgl context required to create volume segment texture-mesh');
 
   if (volume.grid.cells.data.length <= 1) {
     return TextureMesh.createEmpty(textureMesh);
@@ -313,14 +323,15 @@ async function createVolumeSegmentTextureMesh(
   const { texture, gridDimension, gridTexDim, gridDataDim, gridTexScale, transform } = getSegmentTexture(
     volume,
     segment,
-    ctx.webgl,
+    graphics,
   );
 
   const axisOrder = volume.grid.cells.space.axisOrderSlowToFast as Vec3;
   const buffer = textureMesh?.doubleBuffer.get();
   const gv = extractIsosurface(
-    ctx.webgl,
+    graphics,
     texture,
+    'red',
     gridDimension,
     gridTexDim,
     gridDataDim,
@@ -377,8 +388,8 @@ export function SegmentTextureMeshVisual(materialId: number): VolumeVisual<Segme
         currentProps: PD.Values<SegmentMeshParams>,
       ) => {},
       geometryUtils: TextureMesh.Utils,
-      mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, webgl?: WebGLContext) => {
-        return !useGpu(volumeKey.volume, props, webgl);
+      mustRecreate: (volumeKey: VolumeKey, props: PD.Values<SegmentMeshParams>, graphics?: GraphicsContext) => {
+        return !useGpu(volumeKey.volume, props, graphics);
       },
       dispose: (geometry: TextureMesh) => {
         geometry.vertexTexture.ref.value.destroy();

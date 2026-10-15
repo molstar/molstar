@@ -16,7 +16,7 @@ import { Text } from '@molstar/graphics/geo/geometry/text/text';
 import { TextBuilder } from '@molstar/graphics/geo/geometry/text/text-builder';
 import type { GraphicsRenderObject } from '@molstar/graphics/gl/render-object';
 import { Scene } from '@molstar/graphics/gl/scene';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
 import { DataLoci, EmptyLoci, isEveryLoci, type Loci } from '@molstar/model/model/loci';
@@ -87,10 +87,10 @@ export class CameraHelper {
   private pixelRatio = 1;
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     props: Partial<CameraHelperProps> = {},
   ) {
-    this.scene = Scene.create(webgl, 'blended');
+    this.scene = Scene.create(graphics, 'blended');
 
     this.camera = new Camera();
     Vec3.set(this.camera.up, 0, 1, 0);
@@ -105,7 +105,7 @@ export class CameraHelper {
         p.axes.name = props.axes.name;
         if (props.axes.name === 'on') {
           this.scene.clear();
-          this.pixelRatio = this.webgl.pixelRatio;
+          this.pixelRatio = this.graphics.pixelRatio;
           const params = {
             ...props.axes.params,
             scale: props.axes.params.scale * this.pixelRatio,
@@ -180,7 +180,7 @@ export class CameraHelper {
   update(camera: ICamera) {
     if (!this.meshRenderObject || this.props.axes.name === 'off') return;
 
-    if (this.pixelRatio !== this.webgl.pixelRatio) {
+    if (this.pixelRatio !== this.graphics.pixelRatio) {
       this.setProps(this.props);
     }
 

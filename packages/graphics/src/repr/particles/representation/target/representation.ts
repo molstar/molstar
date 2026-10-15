@@ -52,7 +52,7 @@ export function ParticleTargetRepresentation(
   ctx: RepresentationContext,
   getParams: RepresentationParamsGetter<ParticleList, ParticleTargetRepresentationParams>,
 ): ParticleTargetRepresentation {
-  const { webgl } = ctx;
+  const { graphics } = ctx;
   const updated = new Subject<number>();
   const geometryState = new Representation.GeometryState();
   const renderObjects: GraphicsRenderObject[] = [];
@@ -114,11 +114,11 @@ export function ParticleTargetRepresentation(
 
         let visual = targetVisuals.get(targetId);
         if (!visual) {
-          visual = createTargetVisual(targetId, materialId, webgl);
+          visual = createTargetVisual(targetId, materialId, graphics);
           targetVisuals.set(targetId, visual);
         }
 
-        await visual.createOrUpdate({ webgl, runtime }, _theme, targetProps(target), particles, indices, target);
+        await visual.createOrUpdate({ graphics, runtime }, _theme, targetProps(target), particles, indices, target);
 
         if (visual.renderObject) {
           // Render objects can be created here, so they need the current state applied.

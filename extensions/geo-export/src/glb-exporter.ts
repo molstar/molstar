@@ -219,7 +219,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
   }
 
   protected async addMeshWithColors(input: AddMeshInput) {
-    const { mesh, values, isGeoTexture, mode, webgl, ctx } = input;
+    const { mesh, values, isGeoTexture, mode, graphics: graphics, ctx } = input;
 
     const t = Mat4();
 
@@ -238,9 +238,9 @@ export class GlbExporter extends MeshExporter<GlbData> {
     const material = this.addMaterial(metalness, roughness, emissive, doubleSided, alpha);
 
     let interpolatedColors: Uint8Array | undefined;
-    if (webgl && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
+    if (graphics && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
       const stride = isGeoTexture ? 4 : 3;
-      interpolatedColors = GlbExporter.getInterpolatedColors(webgl, {
+      interpolatedColors = GlbExporter.getInterpolatedColors(graphics, {
         vertices: mesh.vertices,
         vertexCount: mesh.vertexCount,
         values,
@@ -250,9 +250,9 @@ export class GlbExporter extends MeshExporter<GlbData> {
     }
 
     let interpolatedOverpaint: Uint8Array | undefined;
-    if (webgl && mesh && overpaintType === 'volumeInstance') {
+    if (graphics && mesh && overpaintType === 'volumeInstance') {
       const stride = isGeoTexture ? 4 : 3;
-      interpolatedOverpaint = GlbExporter.getInterpolatedOverpaint(webgl, {
+      interpolatedOverpaint = GlbExporter.getInterpolatedOverpaint(graphics, {
         vertices: mesh.vertices,
         vertexCount: mesh.vertexCount,
         values,
@@ -262,9 +262,9 @@ export class GlbExporter extends MeshExporter<GlbData> {
     }
 
     let interpolatedTransparency: Uint8Array | undefined;
-    if (webgl && mesh && transparencyType === 'volumeInstance') {
+    if (graphics && mesh && transparencyType === 'volumeInstance') {
       const stride = isGeoTexture ? 4 : 3;
-      interpolatedTransparency = GlbExporter.getInterpolatedTransparency(webgl, {
+      interpolatedTransparency = GlbExporter.getInterpolatedTransparency(graphics, {
         vertices: mesh.vertices,
         vertexCount: mesh.vertexCount,
         values,

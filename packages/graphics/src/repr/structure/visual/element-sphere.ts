@@ -13,7 +13,7 @@ import {
   UnitsSpheresVisual,
   UnitsMeshVisual,
 } from '../units-visual.js';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import {
   createElementSphereImpostor,
   ElementIterator,
@@ -60,9 +60,9 @@ export function ElementSphereVisual(
   materialId: number,
   structure: Structure,
   props: PD.Values<ElementSphereParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ) {
-  return props.tryUseImpostor && checkSphereImpostorSupport(webgl)
+  return props.tryUseImpostor && checkSphereImpostorSupport(graphics)
     ? ElementSphereImpostorVisual(materialId)
     : ElementSphereMeshVisual(materialId);
 }
@@ -86,8 +86,12 @@ export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<Ele
           newProps.traceOnly !== currentProps.traceOnly ||
           newProps.stride !== currentProps.stride;
       },
-      mustRecreate: (structureGroup: StructureGroup, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) => {
-        return !props.tryUseImpostor || !webgl;
+      mustRecreate: (
+        structureGroup: StructureGroup,
+        props: PD.Values<ElementSphereParams>,
+        graphics?: GraphicsContext,
+      ) => {
+        return !props.tryUseImpostor || !graphics;
       },
     },
     materialId,
@@ -115,8 +119,12 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
           newProps.traceOnly !== currentProps.traceOnly ||
           newProps.stride !== currentProps.stride;
       },
-      mustRecreate: (structureGroup: StructureGroup, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) => {
-        return props.tryUseImpostor && !!webgl;
+      mustRecreate: (
+        structureGroup: StructureGroup,
+        props: PD.Values<ElementSphereParams>,
+        graphics?: GraphicsContext,
+      ) => {
+        return props.tryUseImpostor && !!graphics;
       },
     },
     materialId,
@@ -136,9 +144,9 @@ export function StructureElementSphereVisual(
   materialId: number,
   structure: Structure,
   props: PD.Values<ElementSphereParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ) {
-  return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
+  return props.tryUseImpostor && graphics && graphics.capabilities.fragDepth
     ? StructureElementSphereImpostorVisual(materialId)
     : StructureElementSphereMeshVisual(materialId);
 }
@@ -162,8 +170,12 @@ export function StructureElementSphereImpostorVisual(materialId: number): Comple
           newProps.traceOnly !== currentProps.traceOnly ||
           newProps.stride !== currentProps.stride;
       },
-      mustRecreate: (structure: Structure, props: PD.Values<StructureElementSphereParams>, webgl?: WebGLContext) => {
-        return !props.tryUseImpostor || !webgl;
+      mustRecreate: (
+        structure: Structure,
+        props: PD.Values<StructureElementSphereParams>,
+        graphics?: GraphicsContext,
+      ) => {
+        return !props.tryUseImpostor || !graphics;
       },
     },
     materialId,
@@ -191,8 +203,12 @@ export function StructureElementSphereMeshVisual(materialId: number): ComplexVis
           newProps.traceOnly !== currentProps.traceOnly ||
           newProps.stride !== currentProps.stride;
       },
-      mustRecreate: (structure: Structure, props: PD.Values<StructureElementSphereParams>, webgl?: WebGLContext) => {
-        return props.tryUseImpostor && !!webgl;
+      mustRecreate: (
+        structure: Structure,
+        props: PD.Values<StructureElementSphereParams>,
+        graphics?: GraphicsContext,
+      ) => {
+        return props.tryUseImpostor && !!graphics;
       },
     },
     materialId,

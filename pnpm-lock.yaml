@@ -640,6 +640,9 @@ importers:
       '@molstar/geo-export-extension':
         specifier: workspace:*
         version: link:../../extensions/geo-export
+      '@molstar/graphics':
+        specifier: workspace:*
+        version: link:../../packages/graphics
       '@molstar/kinemage-extension':
         specifier: workspace:*
         version: link:../../extensions/kinemage

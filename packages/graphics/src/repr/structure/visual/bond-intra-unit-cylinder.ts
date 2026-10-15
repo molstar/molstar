@@ -44,7 +44,7 @@ import {
 } from './util/bond.js';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { IntAdjacencyGraph } from '@molstar/core/math/graph';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Cylinders } from '@molstar/graphics/geo/geometry/cylinders/cylinders';
 import { SortedArray } from '@molstar/core/data/int';
 import { arrayIntersectionSize } from '@molstar/core/util/array';
@@ -290,9 +290,9 @@ export function IntraUnitBondCylinderVisual(
   materialId: number,
   structure: Structure,
   props: PD.Values<IntraUnitBondCylinderParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ) {
-  return props.tryUseImpostor && checkCylinderImpostorSupport(webgl)
+  return props.tryUseImpostor && checkCylinderImpostorSupport(graphics)
     ? IntraUnitBondCylinderImpostorVisual(materialId)
     : IntraUnitBondCylinderMeshVisual(materialId);
 }
@@ -358,9 +358,9 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
       mustRecreate: (
         structureGroup: StructureGroup,
         props: PD.Values<IntraUnitBondCylinderParams>,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
-        return !props.tryUseImpostor || !webgl;
+        return !props.tryUseImpostor || !graphics;
       },
     },
     materialId,
@@ -421,9 +421,9 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
       mustRecreate: (
         structureGroup: StructureGroup,
         props: PD.Values<IntraUnitBondCylinderParams>,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
-        return props.tryUseImpostor && !!webgl;
+        return props.tryUseImpostor && !!graphics;
       },
     },
     materialId,
@@ -555,9 +555,9 @@ export function StructureIntraUnitBondCylinderVisual(
   materialId: number,
   structure: Structure,
   props: PD.Values<StructureIntraUnitBondCylinderParams>,
-  webgl?: WebGLContext,
+  graphics?: GraphicsContext,
 ) {
-  return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
+  return props.tryUseImpostor && graphics && graphics.capabilities.fragDepth
     ? StructureIntraUnitBondCylinderImpostorVisual(materialId)
     : StructureIntraUnitBondCylinderMeshVisual(materialId);
 }
@@ -625,9 +625,9 @@ export function StructureIntraUnitBondCylinderImpostorVisual(
       mustRecreate: (
         structure: Structure,
         props: PD.Values<StructureIntraUnitBondCylinderParams>,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
-        return !props.tryUseImpostor || !webgl;
+        return !props.tryUseImpostor || !graphics;
       },
     },
     materialId,
@@ -693,9 +693,9 @@ export function StructureIntraUnitBondCylinderMeshVisual(
       mustRecreate: (
         structure: Structure,
         props: PD.Values<StructureIntraUnitBondCylinderParams>,
-        webgl?: WebGLContext,
+        graphics?: GraphicsContext,
       ) => {
-        return props.tryUseImpostor && !!webgl;
+        return props.tryUseImpostor && !!graphics;
       },
     },
     materialId,

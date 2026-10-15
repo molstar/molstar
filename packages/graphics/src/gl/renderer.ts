@@ -8,23 +8,30 @@
 import { Viewport } from '@molstar/graphics/canvas3d/camera/util';
 import type { ICamera } from '@molstar/graphics/canvas3d/camera';
 import type { Scene } from './scene.js';
-import type { WebGLContext } from './webgl/context.js';
+import type { GraphicsContext } from './context.js';
 import { Mat4, Vec3, Vec4, Vec2 } from '@molstar/core/math/linear-algebra';
 import { type GraphicsRenderable, type Frame, createFrame } from './renderable.js';
 import { Color } from '@molstar/core/util/color';
 import { ValueCell, deepEqual } from '@molstar/core/util';
-import type { GlobalUniformValues } from './renderable/schema.js';
-import type { GraphicsRenderVariant } from './webgl/render-item.js';
+import { GlobalUniformSchema, type GlobalUniformValues, MaxLightCount } from './renderable/schema.js';
+import type { GraphicsRenderVariant } from './render-item.js';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { degToRad } from '@molstar/core/math/misc';
-import type { Texture, Textures } from './webgl/texture.js';
+import type { Texture, Textures } from './texture.js';
 import { arrayMapUpsert } from '@molstar/core/util/array';
 import { clamp } from '@molstar/core/math/interpolate';
-import { isTimingMode } from '@molstar/core/util/debug';
 import { Frustum3D } from '@molstar/core/math/geometry/primitives/frustum3d';
 import { Plane3D } from '@molstar/core/math/geometry/primitives/plane3d';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { Clip } from '@molstar/core/util/clip';
+import {
+  BlendState,
+  type CullMode,
+  type DepthState,
+  type FrontFace,
+  RenderState,
+  type StencilState,
+} from './render-state.js';
 
 export interface RendererStats {
   programCount: number;
@@ -166,7 +173,7 @@ export type Light = {
 const tmpDir = Vec3();
 const tmpColor = Vec3();
 function getLight(props: RendererProps['light'], light?: Light): Light {
-  const count = props.length;
+  const count = Math.min(props.length, MaxLightCount);
   const { direction, color } = light || {
     direction: new Array(count * 3).fill(0),
     color: new Array(count * 3).fill(0),
@@ -209,22 +216,101 @@ namespace Renderer {
     Transparent = 2,
   }
 
-  export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
-    const { gl, state, stats, extensions } = ctx;
+  const DepthLess: DepthState = { compare: 'less', write: true };
+  const DepthLessReadOnly: DepthState = { compare: 'less', write: false };
+
+  const OpaqueState: RenderState = { depth: DepthLess };
+  const OpaqueBackState: RenderState = { depth: { compare: 'greater', write: true } };
+  /** test against caller-attached opaque depth, read-only + less-equal so an emitter at its own depth still passes */
+  const EmissiveOccludedState: RenderState = { depth: { compare: 'less-equal', write: false } };
+  /** max blending so overlapping faces don't accumulate */
+  const EmissiveTransparentState: RenderState = { blend: BlendState.Max, depth: DepthLessReadOnly };
+  const BlendedTransparentState: RenderState = { blend: BlendState.Alpha, depth: DepthLessReadOnly };
+  const BlendedTransparentBackgroundState: RenderState = {
+    blend: BlendState.Premultiplied,
+    depth: DepthLessReadOnly,
+  };
+  /** depth test done manually in shader against `depthTexture` */
+  const VolumeState: RenderState = RenderState.Premultiplied;
+  const WboitState: RenderState = {
+    blend: BlendState(
+      BlendState.Component('add', 'one', 'one'),
+      BlendState.Component('add', 'zero', 'one-minus-src-alpha'),
+    ),
+  };
+  const DpoitState: RenderState = { blend: BlendState.Max };
+
+  const SolidInteriorMarkStencil: StencilState = {
+    front: { compare: 'always', failOp: 'keep', depthFailOp: 'keep', passOp: 'increment-wrap' },
+    back: { compare: 'always', failOp: 'keep', depthFailOp: 'keep', passOp: 'decrement-wrap' },
+    readMask: 0xff,
+    writeMask: 0xff,
+    reference: 0,
+  };
+  const SolidInteriorFillStencilKeep: StencilState = {
+    front: { compare: 'not-equal', failOp: 'keep', depthFailOp: 'keep', passOp: 'keep' },
+    back: { compare: 'not-equal', failOp: 'keep', depthFailOp: 'keep', passOp: 'keep' },
+    readMask: 0xff,
+    writeMask: 0xff,
+    reference: 0,
+  };
+  const SolidInteriorFillStencilZero: StencilState = {
+    front: { compare: 'not-equal', failOp: 'keep', depthFailOp: 'keep', passOp: 'zero' },
+    back: { compare: 'not-equal', failOp: 'keep', depthFailOp: 'keep', passOp: 'zero' },
+    readMask: 0xff,
+    writeMask: 0xff,
+    reference: 0,
+  };
+  const NoColorWrite = [false, false, false, false] as const;
+
+  const CullModes: CullMode[] = ['none', 'front', 'back'];
+  /** per-object cull and front face variants of the pass states */
+  const FaceStates = new WeakMap<RenderState, RenderState[]>();
+  function getFaceState(base: RenderState, cull: CullMode, frontFace: FrontFace) {
+    let states = FaceStates.get(base);
+    if (!states) {
+      states = [];
+      FaceStates.set(base, states);
+    }
+    const i = CullModes.indexOf(cull) * 2 + (frontFace === 'cw' ? 1 : 0);
+    return (states[i] ??= { ...base, cull, frontFace });
+  }
+
+  /** 1x1 depth texture cleared to the far plane */
+  function createFarDepthTexture(ctx: GraphicsContext) {
+    const texture = ctx.resources.texture('image-depth', 'depth', 'ushort', 'nearest');
+    texture.define(1, 1);
+    const framebuffer = ctx.resources.framebuffer();
+    texture.attachFramebuffer(framebuffer, 'depth');
+    ctx.beginRenderPass(framebuffer, { clear: { depth: 1 } });
+    ctx.endRenderPass();
+    texture.detachFramebuffer(framebuffer, 'depth');
+    framebuffer.destroy();
+    return texture;
+  }
+
+  export function create(ctx: GraphicsContext, props: Partial<RendererProps> = {}): Renderer {
+    const { stats } = ctx;
     const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
     const light = getLight(p.light);
 
     const viewport = Viewport();
-    const drawingBufferSize = Vec2.create(gl.drawingBufferWidth, gl.drawingBufferHeight);
+    const initialDrawingBufferSize = ctx.getDrawingBufferSize();
+    const drawingBufferSize = Vec2.create(initialDrawingBufferSize.width, initialDrawingBufferSize.height);
     const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor);
 
     let transparentBackground = false;
     let isOccluded: ((s: Sphere3D) => boolean) | null = null;
 
-    const emptyDepthTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
-    emptyDepthTexture.define(1, 1);
-    emptyDepthTexture.load({ array: new Uint8Array([255, 255, 255, 255]), width: 1, height: 1 });
-    const sharedTexturesList: Textures = [['tDepth', emptyDepthTexture]];
+    // placeholders at the far plane, packed values of 1 decode to (almost) 1
+    const emptyDepthAlphaTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+    emptyDepthAlphaTexture.define(1, 1);
+    emptyDepthAlphaTexture.load({ array: new Uint8Array([255, 255, 255, 255]), width: 1, height: 1 });
+    const emptyDepthTexture = ctx.capabilities.depthTexture ? createFarDepthTexture(ctx) : emptyDepthAlphaTexture;
+    const sharedTexturesList: Textures = [
+      ['tDepth', emptyDepthTexture],
+      ['tDepthAlpha', emptyDepthAlphaTexture],
+    ];
 
     const model = Mat4();
     const view = Mat4();
@@ -321,9 +407,7 @@ namespace Renderer {
       uTime: ValueCell.create(0),
       uEnableAnimation: ValueCell.create(p.enableAnimation),
     };
-    const globalUniformList = Object.entries(globalUniforms);
-
-    let globalUniformsNeedUpdate = true;
+    const globals = ctx.createGlobalBindings(GlobalUniformSchema, Object.entries(globalUniforms), sharedTexturesList);
 
     /** also sets `boundingSphere` to the scaled bounding sphere of `r` */
     const isVisible = (r: GraphicsRenderable, variant: GraphicsRenderVariant) => {
@@ -357,7 +441,7 @@ namespace Renderer {
     };
 
     /** assumes `isVisible` returned true, which also set `boundingSphere` */
-    const drawObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant, flag: Flag) => {
+    const drawObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant, flag: Flag, passState: RenderState) => {
       const unscaled = modelScale === 1;
       if (unscaled) {
         const hasInstanceGrid = r.values.instanceGrid.ref.value.cellSize > 0;
@@ -377,89 +461,50 @@ namespace Renderer {
         }
       }
 
-      const program = r.getProgram(variant);
-      if (state.currentProgramId !== program.id) {
-        // console.log('new program')
-        globalUniformsNeedUpdate = true;
-        program.use();
-      }
-
-      if (globalUniformsNeedUpdate) {
-        // console.log('globalUniformsNeedUpdate')
-        program.setUniforms(globalUniformList);
-        program.bindTextures(sharedTexturesList, 0);
-        globalUniformsNeedUpdate = false;
-      }
-
+      const flipSided = !!r.values.dFlipSided?.ref.value;
+      let cull: CullMode;
+      let frontFace: FrontFace = flipSided ? 'cw' : 'ccw';
       if (r.values.dGeometryType.ref.value === 'directVolume') {
         if (variant !== 'color') {
           return; // only color supported
         }
 
         // culling done in fragment shader
-        state.disable(gl.CULL_FACE);
-        state.frontFace(gl.CCW);
+        cull = 'none';
+        frontFace = 'ccw';
       } else if (flag === Flag.BlendedFront) {
-        state.enable(gl.CULL_FACE);
-        if (r.values.dFlipSided?.ref.value) {
-          state.frontFace(gl.CW);
-          state.cullFace(gl.FRONT);
-        } else {
-          state.frontFace(gl.CCW);
-          state.cullFace(gl.BACK);
-        }
-      } else if (flag === Flag.DepthBack) {
-        state.disable(gl.CULL_FACE);
+        cull = flipSided ? 'front' : 'back';
       } else if (
+        flag === Flag.DepthBack ||
         flag === Flag.SolidInteriorMark ||
         (flag === Flag.SolidInteriorFill && r.values.hasReflection.ref.value)
       ) {
         // reflected instances flip the winding, so their exit faces are not back-facing
-        state.disable(gl.CULL_FACE);
-        state.frontFace(r.values.dFlipSided?.ref.value ? gl.CW : gl.CCW);
+        cull = 'none';
       } else if (flag === Flag.BlendedBack || flag === Flag.SolidInteriorFill) {
-        state.enable(gl.CULL_FACE);
-        if (r.values.dFlipSided?.ref.value) {
-          state.frontFace(gl.CW);
-          state.cullFace(gl.BACK);
-        } else {
-          state.frontFace(gl.CCW);
-          state.cullFace(gl.FRONT);
-        }
+        cull = flipSided ? 'back' : 'front';
+      } else if (r.values.uDoubleSided && !r.values.uDoubleSided.ref.value && !r.values.hasReflection.ref.value) {
+        cull = flipSided ? 'front' : 'back';
       } else {
-        if (r.values.uDoubleSided) {
-          if (r.values.uDoubleSided.ref.value || r.values.hasReflection.ref.value) {
-            state.disable(gl.CULL_FACE);
-          } else {
-            state.enable(gl.CULL_FACE);
-          }
-        } else {
-          // webgl default
-          state.disable(gl.CULL_FACE);
-        }
-
-        if (r.values.dFlipSided?.ref.value) {
-          state.frontFace(gl.CW);
-          state.cullFace(gl.FRONT);
-        } else {
-          // webgl default
-          state.frontFace(gl.CCW);
-          state.cullFace(gl.BACK);
-        }
+        cull = 'none';
       }
+      ctx.setRenderState(getFaceState(passState, cull, frontFace));
 
-      r.render(variant, sharedTexturesList.length);
+      r.render(variant, globals);
     };
 
-    const renderObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant, flag: Flag) => {
-      if (isVisible(r, variant)) drawObject(r, variant, flag);
+    const renderObject = (
+      r: GraphicsRenderable,
+      variant: GraphicsRenderVariant,
+      flag: Flag,
+      passState: RenderState,
+    ) => {
+      if (isVisible(r, variant)) drawObject(r, variant, flag, passState);
     };
 
-    const solidInteriorCapSupported = !!extensions.fragDepth;
-    const drawingBufferHasStencil = !!gl.getContextAttributes()?.stencil;
-    // offscreen targets used by the renderer are created with a stencil, the drawing buffer may lack one
+    const solidInteriorCapSupported = ctx.capabilities.fragDepth;
     const canRenderSolidInteriorCaps = () => {
-      return solidInteriorCapSupported && (drawingBufferHasStencil || gl.getParameter(gl.FRAMEBUFFER_BINDING) !== null);
+      return solidInteriorCapSupported && ctx.hasRenderPassStencil();
     };
     const hasSolidInteriorCap = (r: GraphicsRenderable) => {
       const geomType = r.values.dGeometryType.ref.value;
@@ -470,31 +515,27 @@ namespace Renderer {
       );
     };
 
-    const setSolidInteriorPass = (
-      r: GraphicsRenderable,
-      variant: GraphicsRenderVariant,
-      pass: number,
-      clipIndex: number,
-    ) => {
+    const setSolidInteriorPass = (pass: number, clipIndex: number) => {
       ValueCell.updateIfChanged(globalUniforms.uSolidInteriorPass, pass);
       ValueCell.updateIfChanged(globalUniforms.uSolidInteriorClip, clipIndex);
-      const program = r.getProgram(variant);
-      if (state.currentProgramId === program.id && !globalUniformsNeedUpdate) {
-        program.uniform('uSolidInteriorPass', pass);
-        program.uniform('uSolidInteriorClip', clipIndex);
-      }
+      globals.invalidate();
     };
 
-    const renderSolidInteriorMark = (r: GraphicsRenderable, variant: GraphicsRenderVariant, clipIndex: number) => {
-      gl.clear(gl.STENCIL_BUFFER_BIT);
-      setSolidInteriorPass(r, variant, 2, clipIndex);
-      state.colorMask(false, false, false, false);
-      state.depthMask(false);
-      state.disable(gl.DEPTH_TEST);
-      state.stencilFunc(gl.ALWAYS, 0, 0xff);
-      state.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.KEEP, gl.INCR_WRAP);
-      state.stencilOpSeparate(gl.BACK, gl.KEEP, gl.KEEP, gl.DECR_WRAP);
-      drawObject(r, variant, Flag.SolidInteriorMark);
+    const renderSolidInteriorMark = (
+      r: GraphicsRenderable,
+      variant: GraphicsRenderVariant,
+      clipIndex: number,
+      passState: RenderState,
+    ) => {
+      ctx.clear({ stencil: 0 });
+      setSolidInteriorPass(2, clipIndex);
+      const markState: RenderState = {
+        ...passState,
+        colorWrite: NoColorWrite,
+        depth: undefined,
+        stencil: SolidInteriorMarkStencil,
+      };
+      drawObject(r, variant, Flag.SolidInteriorMark, markState);
     };
 
     const renderSolidInteriorFill = (
@@ -502,34 +543,41 @@ namespace Renderer {
       variant: GraphicsRenderVariant,
       mode: SolidInteriorMode,
       clipIndex: number,
+      passState: RenderState,
     ) => {
       const writeDepth = mode === 'opaque' || mode === 'back';
-      setSolidInteriorPass(r, variant, 1, clipIndex);
-      state.stencilFunc(gl.NOTEQUAL, 0, 0xff);
+      setSolidInteriorPass(1, clipIndex);
+      let depth: DepthState;
       if (mode === 'oit') {
         // the OIT depth attachment is otherwise unused: resolve the nearest back face, then only draw that one
-        state.enable(gl.DEPTH_TEST);
-        state.depthMask(true);
-        state.clearDepth(1);
-        gl.clear(gl.DEPTH_BUFFER_BIT);
-        state.depthFunc(gl.LEQUAL);
-        state.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
-        drawObject(r, variant, Flag.SolidInteriorFill);
-        state.depthFunc(gl.EQUAL);
-        state.depthMask(false);
+        ctx.clear({ depth: 1 });
+        const resolveState: RenderState = {
+          ...passState,
+          colorWrite: NoColorWrite,
+          depth: { compare: 'less-equal', write: true },
+          stencil: SolidInteriorFillStencilKeep,
+        };
+        drawObject(r, variant, Flag.SolidInteriorFill, resolveState);
+        depth = { compare: 'equal', write: false };
       } else {
-        state.enable(gl.DEPTH_TEST);
-        state.depthMask(writeDepth);
+        depth = { compare: mode === 'back' ? 'greater-equal' : 'less-equal', write: writeDepth };
       }
-      state.colorMask(true, true, true, true);
-      state.stencilOp(gl.KEEP, gl.KEEP, writeDepth ? gl.KEEP : gl.ZERO);
-      drawObject(r, variant, Flag.SolidInteriorFill);
-      if (mode === 'oit') state.disable(gl.DEPTH_TEST);
+      const fillState: RenderState = {
+        ...passState,
+        depth,
+        stencil: writeDepth ? SolidInteriorFillStencilKeep : SolidInteriorFillStencilZero,
+      };
+      drawObject(r, variant, Flag.SolidInteriorFill, fillState);
     };
 
     const solidInteriorEye = Vec3();
 
-    const renderSolidInteriorCap = (r: GraphicsRenderable, variant: GraphicsRenderVariant, mode: SolidInteriorMode) => {
+    const renderSolidInteriorCap = (
+      r: GraphicsRenderable,
+      variant: GraphicsRenderVariant,
+      mode: SolidInteriorMode,
+      passState: RenderState,
+    ) => {
       if (!isVisible(r, variant)) return;
 
       const back = mode === 'back';
@@ -538,8 +586,8 @@ namespace Renderer {
         !back &&
         Math.abs(Plane3D.distanceToPoint(cameraPlane, boundingSphere.center) - near) <= boundingSphere.radius
       ) {
-        renderSolidInteriorMark(r, variant, -1);
-        renderSolidInteriorFill(r, variant, mode, -1);
+        renderSolidInteriorMark(r, variant, -1, passState);
+        renderSolidInteriorFill(r, variant, mode, -1, passState);
       }
 
       const clipInfo = r.getClipInfo();
@@ -552,26 +600,11 @@ namespace Renderer {
             const d = Plane3D.distanceToPoint(planes[i], solidInteriorEye) * modelScale;
             if (back ? d >= -1e-4 : d <= 1e-4) continue;
           }
-          renderSolidInteriorMark(r, variant, i);
-          renderSolidInteriorFill(r, variant, mode, i);
+          renderSolidInteriorMark(r, variant, i, passState);
+          renderSolidInteriorFill(r, variant, mode, i, passState);
         }
       }
-      setSolidInteriorPass(r, variant, 0, -1);
-    };
-
-    const beginSolidInteriorCaps = (mode: SolidInteriorMode) => {
-      state.enable(gl.STENCIL_TEST);
-      state.stencilMask(0xff);
-      state.clearStencil(0);
-      if (mode !== 'oit') state.depthFunc(mode === 'back' ? gl.GEQUAL : gl.LEQUAL);
-    };
-
-    const endSolidInteriorCaps = (mode: SolidInteriorMode) => {
-      state.disable(gl.STENCIL_TEST);
-      state.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
-      state.depthFunc(mode === 'back' ? gl.GREATER : gl.LESS);
-      state.frontFace(gl.CCW);
-      state.cullFace(gl.BACK);
+      setSolidInteriorPass(0, -1);
     };
 
     const renderSolidInteriorCaps = (
@@ -579,6 +612,7 @@ namespace Renderer {
       check: (r: GraphicsRenderable) => boolean,
       variant: GraphicsRenderVariant,
       mode: SolidInteriorMode,
+      passState: RenderState,
     ) => {
       if (!solidInteriorCapSupported) return;
       let hasCaps = false;
@@ -587,15 +621,9 @@ namespace Renderer {
         if (!hasSolidInteriorCap(r) || !check(r)) continue;
         if (!hasCaps) {
           if (!canRenderSolidInteriorCaps()) return;
-          if (isTimingMode) ctx.timer.mark('Renderer.renderSolidInteriorCaps');
-          beginSolidInteriorCaps(mode);
           hasCaps = true;
         }
-        renderSolidInteriorCap(r, variant, mode);
-      }
-      if (hasCaps) {
-        endSolidInteriorCaps(mode);
-        if (isTimingMode) ctx.timer.markEnd('Renderer.renderSolidInteriorCaps');
+        renderSolidInteriorCap(r, variant, mode, passState);
       }
     };
 
@@ -657,10 +685,12 @@ namespace Renderer {
       group: Scene.Group,
       camera: ICamera,
       depthTexture: Texture | null,
+      depthAlphaTexture: Texture | null,
       renderMask: Mask,
       markingDepthTest: boolean,
     ) => {
       arrayMapUpsert(sharedTexturesList, 'tDepth', depthTexture || emptyDepthTexture);
+      arrayMapUpsert(sharedTexturesList, 'tDepthAlpha', depthAlphaTexture || emptyDepthAlphaTexture);
 
       modelScale = camera.scale;
 
@@ -690,15 +720,11 @@ namespace Renderer {
         ValueCell.updateIfChanged(globalUniforms.uInvModelViewEye, Mat4.id);
       }
 
-      state.enable(gl.SCISSOR_TEST);
-      state.colorMask(true, true, true, true);
-
       const { x, y, width, height } = viewport;
-      state.viewport(x, y, width, height);
-      state.scissor(x, y, width, height);
+      ctx.setViewport(x, y, width, height);
+      ctx.setScissor(x, y, width, height);
 
-      globalUniformsNeedUpdate = true;
-      state.currentRenderItemId = -1;
+      globals.invalidate();
     };
 
     const checkOpaque = function (r: GraphicsRenderable) {
@@ -754,140 +780,96 @@ namespace Renderer {
     };
 
     const renderPick = (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', pickType: PickType) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderPick');
-      state.disable(gl.BLEND);
-      state.enable(gl.DEPTH_TEST);
-      state.depthMask(true);
-
-      updateInternal(group, camera, null, Mask.All, false);
+      updateInternal(group, camera, null, null, Mask.All, false);
       ValueCell.updateIfChanged(globalUniforms.uPickType, pickType);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (checkPickable(r)) {
-          renderObject(r, variant, Flag.None);
+          renderObject(r, variant, Flag.None, OpaqueState);
         }
       }
-      renderSolidInteriorCaps(renderables, checkPickable, variant, 'opaque');
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderPick');
+      renderSolidInteriorCaps(renderables, checkPickable, variant, 'opaque', OpaqueState);
     };
 
     const renderDepth = (group: Scene.Group, camera: ICamera) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderDepth');
-      state.disable(gl.BLEND);
-      state.enable(gl.DEPTH_TEST);
-      state.depthMask(true);
-
-      updateInternal(group, camera, null, Mask.All, false);
+      updateInternal(group, camera, null, null, Mask.All, false);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
-        renderObject(renderables[i], 'depth', Flag.None);
+        renderObject(renderables[i], 'depth', Flag.None, OpaqueState);
       }
-      renderSolidInteriorCaps(renderables, () => true, 'depth', 'opaque');
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepth');
+      renderSolidInteriorCaps(renderables, () => true, 'depth', 'opaque', OpaqueState);
     };
 
     const renderDepthOpaque = (group: Scene.Group, camera: ICamera) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderDepthOpaque');
-      state.disable(gl.BLEND);
-      state.enable(gl.DEPTH_TEST);
-      state.depthMask(true);
-
-      updateInternal(group, camera, null, Mask.Opaque, false);
+      updateInternal(group, camera, null, null, Mask.Opaque, false);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (checkOpaque(r)) {
-          renderObject(r, 'depth', Flag.None);
+          renderObject(r, 'depth', Flag.None, OpaqueState);
         }
       }
-      renderSolidInteriorCaps(renderables, checkOpaque, 'depth', 'opaque');
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthOpaque');
+      renderSolidInteriorCaps(renderables, checkOpaque, 'depth', 'opaque', OpaqueState);
     };
 
     const renderDepthOpaqueBack = (group: Scene.Group, camera: ICamera) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderDepthOpaqueBack');
-      state.disable(gl.BLEND);
-      state.enable(gl.DEPTH_TEST);
-      state.depthMask(true);
-      state.depthFunc(gl.GREATER);
-
-      updateInternal(group, camera, null, Mask.Opaque, false);
+      updateInternal(group, camera, null, null, Mask.Opaque, false);
       ValueCell.updateIfChanged(globalUniforms.uDepthBack, true);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (checkOpaque(r)) {
-          renderObject(r, 'depth', Flag.DepthBack);
+          renderObject(r, 'depth', Flag.DepthBack, OpaqueBackState);
         }
       }
-      renderSolidInteriorCaps(renderables, checkOpaque, 'depth', 'back');
+      renderSolidInteriorCaps(renderables, checkOpaque, 'depth', 'back', OpaqueBackState);
       ValueCell.updateIfChanged(globalUniforms.uDepthBack, false);
-      state.depthFunc(gl.LESS);
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthOpaqueBack');
     };
 
     const renderDepthTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderDepthTransparent');
-      state.disable(gl.BLEND);
-      state.enable(gl.DEPTH_TEST);
-      state.depthMask(true);
-
-      updateInternal(group, camera, depthTexture, Mask.Transparent, false);
+      updateInternal(group, camera, depthTexture, null, Mask.Transparent, false);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (checkTransparent(r)) {
-          renderObject(r, 'depth', Flag.None);
+          renderObject(r, 'depth', Flag.None, OpaqueState);
         }
       }
-      renderSolidInteriorCaps(renderables, checkTransparentCap, 'depth', 'opaque');
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthTransparent');
+      renderSolidInteriorCaps(renderables, checkTransparentCap, 'depth', 'opaque', OpaqueState);
     };
 
     const renderMarkingDepth = (group: Scene.Group, camera: ICamera) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderMarkingDepth');
-      state.disable(gl.BLEND);
-      state.enable(gl.DEPTH_TEST);
-      state.depthMask(true);
-
-      updateInternal(group, camera, null, Mask.All, false);
+      updateInternal(group, camera, null, null, Mask.All, false);
       ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Depth);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (checkMarkingDepth(r)) {
-          renderObject(r, 'marking', Flag.None);
+          renderObject(r, 'marking', Flag.None, OpaqueState);
         }
       }
-      renderSolidInteriorCaps(renderables, checkMarkingDepth, 'marking', 'opaque');
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingDepth');
+      renderSolidInteriorCaps(renderables, checkMarkingDepth, 'marking', 'opaque', OpaqueState);
     };
 
     const renderMarkingMask = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderMarkingMask');
-      state.disable(gl.BLEND);
-      state.enable(gl.DEPTH_TEST);
-      state.depthMask(true);
-
-      updateInternal(group, camera, depthTexture, Mask.All, !!depthTexture);
+      updateInternal(group, camera, null, depthTexture, Mask.All, !!depthTexture);
       ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Mask);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (checkMarkingMask(r)) {
-          renderObject(r, 'marking', Flag.None);
+          renderObject(r, 'marking', Flag.None, OpaqueState);
         }
       }
-      renderSolidInteriorCaps(renderables, checkMarkingMask, 'marking', 'opaque');
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingMask');
+      renderSolidInteriorCaps(renderables, checkMarkingMask, 'marking', 'opaque', OpaqueState);
     };
 
     const renderEmissiveOpaque = (
@@ -896,26 +878,17 @@ namespace Renderer {
       depthTexture: Texture,
       occludeWithOpaqueDepth: boolean,
     ) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderEmissiveOpaque');
-      state.disable(gl.BLEND);
-      state.enable(gl.DEPTH_TEST);
-      if (occludeWithOpaqueDepth) {
-        // test against caller-attached opaque depth, read-only + LEQUAL so an emitter at its own depth still passes
-        state.depthMask(false);
-        state.depthFunc(gl.LEQUAL);
-      } else {
-        // packed depth: build own occluding depth from all opaque geometry
-        state.depthMask(true);
-      }
+      // without occluding opaque depth (packed depth): build own occluding depth from all opaque geometry
+      const passState = occludeWithOpaqueDepth ? EmissiveOccludedState : OpaqueState;
 
-      // tDepth = front transparent depth+alpha; emissive shader dims emitters behind it
-      updateInternal(group, camera, depthTexture, Mask.Opaque, false);
+      // tDepthAlpha = front transparent depth+alpha; emissive shader dims emitters behind it
+      updateInternal(group, camera, null, depthTexture, Mask.Opaque, false);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (checkOpaque(r) && (!occludeWithOpaqueDepth || checkEmissive(r))) {
-          renderObject(r, 'emissive', Flag.None);
+          renderObject(r, 'emissive', Flag.None, passState);
         }
       }
       renderSolidInteriorCaps(
@@ -923,57 +896,41 @@ namespace Renderer {
         (r) => checkOpaque(r) && (!occludeWithOpaqueDepth || checkEmissive(r)),
         'emissive',
         occludeWithOpaqueDepth ? 'blended' : 'opaque',
+        passState,
       );
-
-      if (occludeWithOpaqueDepth) {
-        state.depthFunc(gl.LESS);
-        state.depthMask(true);
-      }
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderEmissiveOpaque');
     };
 
     const renderEmissiveTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderEmissiveTransparent');
-      const blendMinMax = extensions.blendMinMax;
-      state.enable(gl.BLEND);
-      state.blendFunc(gl.ONE, gl.ONE);
-      // MAX blend so overlapping faces don't accumulate; falls back to additive when unavailable.
-      if (blendMinMax) state.blendEquation(blendMinMax.MAX);
-      state.enable(gl.DEPTH_TEST);
-      state.depthMask(false);
-
-      // tDepth = front transparent depth+alpha; emissive shader dims emitters behind it
-      updateInternal(group, camera, depthTexture, Mask.Transparent, false);
+      // tDepthAlpha = front transparent depth+alpha; emissive shader dims emitters behind it
+      updateInternal(group, camera, null, depthTexture, Mask.Transparent, false);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (checkTransparent(r) && r.values.dGeometryType.ref.value !== 'directVolume' && checkEmissive(r)) {
-          renderObject(r, 'emissive', Flag.None);
+          renderObject(r, 'emissive', Flag.None, EmissiveTransparentState);
         }
       }
-      renderSolidInteriorCaps(renderables, (r) => checkTransparentCap(r) && checkEmissive(r), 'emissive', 'blended');
-      if (blendMinMax) state.blendEquation(gl.FUNC_ADD);
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderEmissiveTransparent');
+      renderSolidInteriorCaps(
+        renderables,
+        (r) => checkTransparentCap(r) && checkEmissive(r),
+        'emissive',
+        'blended',
+        EmissiveTransparentState,
+      );
     };
 
     const renderTracing = (group: Scene.Group, camera: ICamera) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderTracing');
-      state.disable(gl.BLEND);
-      state.enable(gl.DEPTH_TEST);
-      state.depthMask(true);
-
-      updateInternal(group, camera, null, Mask.Opaque, false);
+      updateInternal(group, camera, null, null, Mask.Opaque, false);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (checkOpaque(r)) {
-          renderObject(r, 'tracing', Flag.None);
+          renderObject(r, 'tracing', Flag.None, OpaqueState);
         }
       }
-      renderSolidInteriorCaps(renderables, checkOpaque, 'tracing', 'opaque');
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderTracing');
+      renderSolidInteriorCaps(renderables, checkOpaque, 'tracing', 'opaque', OpaqueState);
     };
 
     const renderBlended = (scene: Scene, camera: ICamera) => {
@@ -986,36 +943,21 @@ namespace Renderer {
     };
 
     const renderOpaque = (group: Scene.Group, camera: ICamera) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderOpaque');
-      state.disable(gl.BLEND);
-      state.enable(gl.DEPTH_TEST);
-      state.depthMask(true);
-
-      updateInternal(group, camera, null, Mask.Opaque, false);
+      updateInternal(group, camera, null, null, Mask.Opaque, false);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (checkOpaque(r)) {
-          renderObject(r, 'color', Flag.None);
+          renderObject(r, 'color', Flag.None, OpaqueState);
         }
       }
-      renderSolidInteriorCaps(renderables, checkOpaque, 'color', 'opaque');
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderOpaque');
+      renderSolidInteriorCaps(renderables, checkOpaque, 'color', 'opaque', OpaqueState);
     };
 
     const renderBlendedTransparent = (group: Scene.Group, camera: ICamera) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderBlendedTransparent');
-      if (transparentBackground) {
-        state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      } else {
-        state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      }
-      state.enable(gl.BLEND);
-      state.enable(gl.DEPTH_TEST);
-      state.depthMask(false);
-
-      updateInternal(group, camera, null, Mask.Transparent, false);
+      const passState = transparentBackground ? BlendedTransparentBackgroundState : BlendedTransparentState;
+      updateInternal(group, camera, null, null, Mask.Transparent, false);
 
       const renderCaps = canRenderSolidInteriorCaps();
       const { renderables } = group;
@@ -1025,55 +967,42 @@ namespace Renderer {
           if (r.values.uDoubleSided?.ref.value) {
             // render frontfaces and backfaces separately to avoid artefacts
             if (r.values.dTransparentBackfaces?.ref.value !== 'opaque') {
-              renderObject(r, 'color', Flag.BlendedBack);
+              renderObject(r, 'color', Flag.BlendedBack, passState);
             }
-            renderObject(r, 'color', Flag.BlendedFront);
+            renderObject(r, 'color', Flag.BlendedFront, passState);
           } else {
-            renderObject(r, 'color', Flag.None);
+            renderObject(r, 'color', Flag.None, passState);
           }
           if (renderCaps && hasSolidInteriorCap(r) && checkTransparentCap(r)) {
-            beginSolidInteriorCaps('blended');
-            renderSolidInteriorCap(r, 'color', 'blended');
-            endSolidInteriorCaps('blended');
+            renderSolidInteriorCap(r, 'color', 'blended', passState);
           }
         }
       }
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedTransparent');
     };
 
     const renderVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderVolume');
-      state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      state.enable(gl.BLEND);
-      // depth test done manually in shader against `depthTexture`
-      state.disable(gl.DEPTH_TEST);
-      state.depthMask(false);
-
-      updateInternal(group, camera, depthTexture, Mask.Transparent, false);
+      updateInternal(group, camera, depthTexture, null, Mask.Transparent, false);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (r.values.dGeometryType.ref.value === 'directVolume') {
-          renderObject(r, 'color', Flag.None);
+          renderObject(r, 'color', Flag.None, VolumeState);
         }
       }
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderVolume');
     };
 
     const renderWboitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderWboitTransparent');
-      updateInternal(group, camera, depthTexture, Mask.Transparent, false);
+      updateInternal(group, camera, depthTexture, null, Mask.Transparent, false);
 
       const { renderables } = group;
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (checkTransparent(r)) {
-          renderObject(r, 'color', Flag.None);
+          renderObject(r, 'color', Flag.None, WboitState);
         }
       }
-      renderSolidInteriorCaps(renderables, checkTransparentCap, 'color', 'oit');
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitTransparent');
+      renderSolidInteriorCaps(renderables, checkTransparentCap, 'color', 'oit', WboitState);
     };
 
     const renderDpoitTransparent = (
@@ -1082,55 +1011,40 @@ namespace Renderer {
       depthTexture: Texture,
       dpoitTextures: { depth: Texture; frontColor: Texture; backColor: Texture },
     ) => {
-      if (isTimingMode) ctx.timer.mark('Renderer.renderDpoitTransparent');
-
-      state.enable(gl.BLEND);
-
       arrayMapUpsert(sharedTexturesList, 'tDpoitDepth', dpoitTextures.depth);
       arrayMapUpsert(sharedTexturesList, 'tDpoitFrontColor', dpoitTextures.frontColor);
       arrayMapUpsert(sharedTexturesList, 'tDpoitBackColor', dpoitTextures.backColor);
 
-      updateInternal(group, camera, depthTexture, Mask.Transparent, false);
+      updateInternal(group, camera, depthTexture, null, Mask.Transparent, false);
 
       const { renderables } = group;
 
       for (let i = 0, il = renderables.length; i < il; ++i) {
         const r = renderables[i];
         if (checkTransparent(r)) {
-          renderObject(r, 'color', Flag.None);
+          renderObject(r, 'color', Flag.None, DpoitState);
         }
       }
-      renderSolidInteriorCaps(renderables, checkTransparentCap, 'color', 'oit');
-      if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitTransparent');
+      renderSolidInteriorCaps(renderables, checkTransparentCap, 'color', 'oit', DpoitState);
     };
 
     return {
       clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean, forceToTransparency?: boolean) => {
-        state.enable(gl.SCISSOR_TEST);
-        state.enable(gl.DEPTH_TEST);
-        state.colorMask(true, true, true, true);
-        state.depthMask(true);
-
+        ctx.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
         if (forceToTransparency || (transparentBackground && !ignoreTransparentBackground)) {
-          state.clearColor(0, 0, 0, 0);
+          ctx.clear({ color: [0, 0, 0, 0], depth: 1 });
         } else if (toBackgroundColor) {
-          state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1);
+          ctx.clear({ color: [bgColor[0], bgColor[1], bgColor[2], 1], depth: 1 });
         } else {
-          state.clearColor(1, 1, 1, 1);
+          ctx.clear({ color: [1, 1, 1, 1], depth: 1 });
         }
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       },
       clearDepth: (packed = false) => {
-        state.enable(gl.SCISSOR_TEST);
-        state.enable(gl.DEPTH_TEST);
-        state.depthMask(true);
-
+        ctx.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
         if (packed) {
-          state.colorMask(true, true, true, true);
-          state.clearColor(1, 1, 1, 1);
-          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+          ctx.clear({ color: [1, 1, 1, 1], depth: 1 });
         } else {
-          gl.clear(gl.DEPTH_BUFFER_BIT);
+          ctx.clear({ depth: 1 });
         }
       },
       update,
@@ -1246,8 +1160,8 @@ namespace Renderer {
         }
       },
       setViewport: (x: number, y: number, width: number, height: number) => {
-        state.viewport(x, y, width, height);
-        state.scissor(x, y, width, height);
+        ctx.setViewport(x, y, width, height);
+        ctx.setScissor(x, y, width, height);
         if (x !== viewport.x || y !== viewport.y || width !== viewport.width || height !== viewport.height) {
           Viewport.set(viewport, x, y, width, height);
           ValueCell.update(globalUniforms.uViewport, Vec4.set(globalUniforms.uViewport.ref.value, x, y, width, height));
@@ -1293,6 +1207,9 @@ namespace Renderer {
         return globalUniforms.uAmbientColor.ref.value;
       },
       dispose: () => {
+        globals.destroy();
+        if (emptyDepthTexture !== emptyDepthAlphaTexture) emptyDepthTexture.destroy();
+        emptyDepthAlphaTexture.destroy();
         // TODO
       },
     };

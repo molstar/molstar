@@ -6,10 +6,10 @@
 
 import { ValueCell } from '@molstar/core/util';
 import { createComputeRenderable, type ComputeRenderable } from '@molstar/graphics/gl/renderable';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { isNullTexture, type Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import { isNullTexture, type Texture } from '@molstar/graphics/gl/texture';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
 import {
   ValueSpec,
   AttributeSpec,
@@ -18,14 +18,9 @@ import {
   type Values,
   DefineSpec,
 } from '@molstar/graphics/gl/renderable/schema';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
-import { normalize_frag } from '@molstar/graphics/gl/shader/compute/color-smoothing/normalize.frag';
 import { QuadSchema, QuadValues } from '@molstar/graphics/gl/compute/util';
 import { Mat4, Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import { Box3D, type Sphere3D } from '@molstar/core/math/geometry';
-import { accumulate_frag } from '@molstar/graphics/gl/shader/compute/color-smoothing/accumulate.frag';
-import { accumulate_vert } from '@molstar/graphics/gl/shader/compute/color-smoothing/accumulate.vert';
-import { isWebGL2 } from '@molstar/graphics/gl/webgl/compat';
 import type { TextureMeshValues } from '@molstar/graphics/gl/renderable/texture-mesh';
 import { isTimingMode } from '@molstar/core/util/debug';
 
@@ -55,6 +50,9 @@ export const ColorAccumulateSchema = {
   uBboxSize: UniformSpec('v3', 'material'),
   uResolution: UniformSpec('f', 'material'),
 };
+export const ColorAccumulateShaderCode = ShaderCode('color-smoothing-accumulate', {
+  drawBuffers: 'required',
+});
 type ColorAccumulateValues = Values<typeof ColorAccumulateSchema>;
 const ColorAccumulateName = 'color-accumulate';
 const ColorCountName = 'color-count';
@@ -80,7 +78,7 @@ function getSampleBuffer(sampleCount: number, stride: number) {
 }
 
 function getAccumulateRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   input: AccumulateInput,
   box: Box3D,
   resolution: number,
@@ -133,7 +131,7 @@ function getAccumulateRenderable(
 }
 
 function createAccumulateRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   input: AccumulateInput,
   box: Box3D,
   resolution: number,
@@ -170,22 +168,9 @@ function createAccumulateRenderable(
   };
 
   const schema = { ...ColorAccumulateSchema };
-  const shaderCode = ShaderCode('accumulate', accumulate_vert, accumulate_frag, { drawBuffers: 'required' });
-  const renderItem = createComputeRenderItem(ctx, 'points', shaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('points', ColorAccumulateShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
-}
-
-function setAccumulateDefaults(ctx: WebGLContext) {
-  const { gl, state } = ctx;
-  state.disable(gl.CULL_FACE);
-  state.enable(gl.BLEND);
-  state.disable(gl.DEPTH_TEST);
-  state.enable(gl.SCISSOR_TEST);
-  state.depthMask(false);
-  state.clearColor(0, 0, 0, 0);
-  state.blendFunc(gl.ONE, gl.ONE);
-  state.blendEquation(gl.FUNC_ADD);
 }
 
 //
@@ -194,14 +179,15 @@ export const ColorNormalizeSchema = {
   ...QuadSchema,
 
   tColor: TextureSpec('texture', 'rgba', 'float', 'nearest'),
-  tCount: TextureSpec('texture', 'alpha', 'float', 'nearest'),
+  tCount: TextureSpec('texture', 'r', 'float', 'nearest'),
   uTexSize: UniformSpec('v2'),
 };
+export const ColorNormalizeShaderCode = ShaderCode('normalize');
 type ColorNormalizeValues = Values<typeof ColorNormalizeSchema>;
 const ColorNormalizeName = 'color-normalize';
 
 function getNormalizeRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   color: Texture,
   count: Texture,
 ): ComputeRenderable<ColorNormalizeValues> {
@@ -219,7 +205,7 @@ function getNormalizeRenderable(
   return ctx.namedComputeRenderables[ColorNormalizeName];
 }
 
-function createColorNormalizeRenderable(ctx: WebGLContext, color: Texture, count: Texture) {
+function createColorNormalizeRenderable(ctx: GraphicsContext, color: Texture, count: Texture) {
   const values: ColorNormalizeValues = {
     ...QuadValues,
     tColor: ValueCell.create(color),
@@ -228,22 +214,9 @@ function createColorNormalizeRenderable(ctx: WebGLContext, color: Texture, count
   };
 
   const schema = { ...ColorNormalizeSchema };
-  const shaderCode = ShaderCode('normalize', quad_vert, normalize_frag);
-  const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', ColorNormalizeShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
-}
-
-function setNormalizeDefaults(ctx: WebGLContext) {
-  const { gl, state } = ctx;
-  state.disable(gl.CULL_FACE);
-  state.enable(gl.BLEND);
-  state.disable(gl.DEPTH_TEST);
-  state.enable(gl.SCISSOR_TEST);
-  state.depthMask(false);
-  state.clearColor(0, 0, 0, 0);
-  state.blendFunc(gl.ONE, gl.ONE);
-  state.blendEquation(gl.FUNC_ADD);
 }
 
 //
@@ -288,19 +261,16 @@ export type ColorSmoothingOptions = {
 export function calcTextureMeshColorSmoothing(
   input: ColorSmoothingInput,
   options: ColorSmoothingOptions,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   texture?: Texture,
 ) {
-  const { drawBuffers } = webgl.extensions;
-  if (!drawBuffers) throw new Error('need WebGL draw buffers');
+  if (!graphics.capabilities.multipleRenderTargets) throw new Error('need multiple render targets');
 
-  if (isTimingMode) webgl.timer.mark('calcTextureMeshColorSmoothing');
+  if (isTimingMode) graphics.timer.group('calcTextureMeshColorSmoothing');
   const {
-    gl,
     resources,
-    state,
-    extensions: { colorBufferHalfFloat, textureHalfFloat },
-  } = webgl;
+    capabilities: { halfFloatRenderTarget, mixedAttachmentFormats },
+  } = graphics;
   const { resolution, stride } = options;
 
   const isInstanceType = input.colorType.endsWith('Instance');
@@ -325,37 +295,36 @@ export function calcTextureMeshColorSmoothing(
   const { texDimX: width, texDimY: height, texCols } = getTexture2dSize(gridDim);
   // console.log({ width, height, texCols, gridDim, resolution });
 
-  if (!webgl.namedFramebuffers[ColorAccumulateName]) {
-    webgl.namedFramebuffers[ColorAccumulateName] = webgl.resources.framebuffer();
+  if (!graphics.namedFramebuffers[ColorAccumulateName]) {
+    graphics.namedFramebuffers[ColorAccumulateName] = graphics.resources.framebuffer();
   }
-  const framebuffer = webgl.namedFramebuffers[ColorAccumulateName];
+  const framebuffer = graphics.namedFramebuffers[ColorAccumulateName];
 
-  if (isWebGL2(gl)) {
-    if (!webgl.namedTextures[ColorAccumulateName]) {
-      webgl.namedTextures[ColorAccumulateName] =
-        colorBufferHalfFloat && textureHalfFloat
-          ? resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
-          : resources.texture('image-float32', 'rgba', 'float', 'nearest');
+  if (mixedAttachmentFormats) {
+    if (!graphics.namedTextures[ColorAccumulateName]) {
+      graphics.namedTextures[ColorAccumulateName] = halfFloatRenderTarget
+        ? resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
+        : resources.texture('image-float32', 'rgba', 'float', 'nearest');
     }
 
-    if (!webgl.namedTextures[ColorCountName]) {
-      webgl.namedTextures[ColorCountName] = resources.texture('image-float32', 'alpha', 'float', 'nearest');
+    if (!graphics.namedTextures[ColorCountName]) {
+      graphics.namedTextures[ColorCountName] = resources.texture('image-float32', 'r', 'float', 'nearest');
     }
   } else {
     // webgl1 requires consistent bit plane counts
     // this is quite wasteful but good enough for medium size meshes
 
-    if (!webgl.namedTextures[ColorAccumulateName]) {
-      webgl.namedTextures[ColorAccumulateName] = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+    if (!graphics.namedTextures[ColorAccumulateName]) {
+      graphics.namedTextures[ColorAccumulateName] = resources.texture('image-float32', 'rgba', 'float', 'nearest');
     }
 
-    if (!webgl.namedTextures[ColorCountName]) {
-      webgl.namedTextures[ColorCountName] = resources.texture('image-float32', 'rgba', 'float', 'nearest');
+    if (!graphics.namedTextures[ColorCountName]) {
+      graphics.namedTextures[ColorCountName] = resources.texture('image-float32', 'rgba', 'float', 'nearest');
     }
   }
 
-  const accumulateTexture = webgl.namedTextures[ColorAccumulateName];
-  const countTexture = webgl.namedTextures[ColorCountName];
+  const accumulateTexture = graphics.namedTextures[ColorAccumulateName];
+  const countTexture = graphics.namedTextures[ColorCountName];
 
   accumulateTexture.define(width, height);
   countTexture.define(width, height);
@@ -363,19 +332,17 @@ export function calcTextureMeshColorSmoothing(
   accumulateTexture.attachFramebuffer(framebuffer, 0);
   countTexture.attachFramebuffer(framebuffer, 1);
 
-  const accumulateRenderable = getAccumulateRenderable(webgl, input, expandedBox, resolution, stride);
-  state.currentRenderItemId = -1;
+  const accumulateRenderable = getAccumulateRenderable(graphics, input, expandedBox, resolution, stride);
 
-  framebuffer.bind();
-  drawBuffers.drawBuffers([drawBuffers.COLOR_ATTACHMENT0, drawBuffers.COLOR_ATTACHMENT1]);
+  framebuffer.setDrawBuffers(2);
+  graphics.beginRenderPass(framebuffer, { label: 'color accumulate' });
 
   const { uCurrentSlice, uCurrentX, uCurrentY } = accumulateRenderable.values;
 
-  if (isTimingMode) webgl.timer.mark('ColorAccumulate.render');
-  setAccumulateDefaults(webgl);
-  state.viewport(0, 0, width, height);
-  state.scissor(0, 0, width, height);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  graphics.setRenderState(RenderState.Additive);
+  graphics.setViewport(0, 0, width, height);
+  graphics.setScissor(0, 0, width, height);
+  graphics.clear({ color: [0, 0, 0, 0] });
   ValueCell.update(uCurrentY, 0);
   let currCol = 0;
   let currY = 0;
@@ -390,8 +357,8 @@ export function calcTextureMeshColorSmoothing(
     // console.log({ i, currX, currY });
     ValueCell.update(uCurrentX, currX);
     ValueCell.update(uCurrentSlice, i);
-    state.viewport(currX, currY, dx, dy);
-    state.scissor(currX, currY, dx, dy);
+    graphics.setViewport(currX, currY, dx, dy);
+    graphics.setScissor(currX, currY, dx, dy);
     accumulateRenderable.render();
     ++currCol;
     currX += dx;
@@ -399,8 +366,7 @@ export function calcTextureMeshColorSmoothing(
 
   accumulateTexture.detachFramebuffer(framebuffer, 0);
   countTexture.detachFramebuffer(framebuffer, 1);
-  drawBuffers.drawBuffers([gl.COLOR_ATTACHMENT0, gl.NONE]);
-  if (isTimingMode) webgl.timer.markEnd('ColorAccumulate.render');
+  framebuffer.setDrawBuffers(1);
 
   // const accImage = new Float32Array(width * height * 4);
   // accumulateTexture.attachFramebuffer(framebuffer, 0);
@@ -416,22 +382,20 @@ export function calcTextureMeshColorSmoothing(
 
   // normalize
 
-  if (isTimingMode) webgl.timer.mark('ColorNormalize.render');
   if (!texture || isNullTexture(texture)) {
     texture = resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
   }
   texture.define(width, height);
 
-  const normalizeRenderable = getNormalizeRenderable(webgl, accumulateTexture, countTexture);
-  state.currentRenderItemId = -1;
+  const normalizeRenderable = getNormalizeRenderable(graphics, accumulateTexture, countTexture);
 
-  setNormalizeDefaults(webgl);
+  graphics.setRenderState(RenderState.Additive);
   texture.attachFramebuffer(framebuffer, 0);
-  state.viewport(0, 0, width, height);
-  state.scissor(0, 0, width, height);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  graphics.beginRenderPass(framebuffer, { label: 'color normalize' });
+  graphics.setViewport(0, 0, width, height);
+  graphics.setScissor(0, 0, width, height);
+  graphics.clear({ color: [0, 0, 0, 0] });
   normalizeRenderable.render();
-  if (isTimingMode) webgl.timer.markEnd('ColorNormalize.render');
 
   // const normImage = new Uint8Array(width * height * 4);
   // texture.attachFramebuffer(framebuffer, 0);
@@ -441,7 +405,7 @@ export function calcTextureMeshColorSmoothing(
 
   const gridTransform = Vec4.create(min[0], min[1], min[2], scaleFactor);
   const type = isInstanceType ? 'volumeInstance' : 'volume';
-  if (isTimingMode) webgl.timer.markEnd('calcTextureMeshColorSmoothing');
+  if (isTimingMode) graphics.timer.groupEnd('calcTextureMeshColorSmoothing');
 
   // printTextureImage(readTexture(webgl, texture), { scale: 0.75, id: `${texture.id}` });
 
@@ -450,7 +414,7 @@ export function calcTextureMeshColorSmoothing(
 
 //
 
-const ColorSmoothingRgbName = 'color-smoothing-rgb';
+const ColorSmoothingColorName = 'color-smoothing-color';
 const ColorSmoothingRgbaName = 'color-smoothing-rgba';
 const ColorSmoothingAlphaName = 'color-smoothing-alpha';
 
@@ -461,17 +425,22 @@ function isSupportedColorType(x: string): x is 'group' | 'groupInstance' {
 export function applyTextureMeshColorSmoothing(
   values: TextureMeshValues,
   options: ColorSmoothingOptions,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   colorTexture?: Texture,
 ) {
   if (!isSupportedColorType(values.dColorType.ref.value)) return;
 
   options = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
-  if (!webgl.namedTextures[ColorSmoothingRgbName]) {
-    webgl.namedTextures[ColorSmoothingRgbName] = webgl.resources.texture('image-uint8', 'rgb', 'ubyte', 'nearest');
+  if (!graphics.namedTextures[ColorSmoothingColorName]) {
+    graphics.namedTextures[ColorSmoothingColorName] = graphics.resources.texture(
+      'image-uint8',
+      'rgba',
+      'ubyte',
+      'nearest',
+    );
   }
-  const colorData = webgl.namedTextures[ColorSmoothingRgbName];
+  const colorData = graphics.namedTextures[ColorSmoothingColorName];
   colorData.load(values.tColor.ref.value);
 
   const smoothingData = calcTextureMeshColorSmoothing(
@@ -489,7 +458,7 @@ export function applyTextureMeshColorSmoothing(
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
     },
     options,
-    webgl,
+    graphics,
     colorTexture,
   );
 
@@ -507,17 +476,22 @@ function isSupportedOverpaintType(x: string): x is 'groupInstance' {
 export function applyTextureMeshOverpaintSmoothing(
   values: TextureMeshValues,
   options: ColorSmoothingOptions,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   colorTexture?: Texture,
 ) {
   if (!isSupportedOverpaintType(values.dOverpaintType.ref.value)) return;
 
   options = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
-  if (!webgl.namedTextures[ColorSmoothingRgbaName]) {
-    webgl.namedTextures[ColorSmoothingRgbaName] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+  if (!graphics.namedTextures[ColorSmoothingRgbaName]) {
+    graphics.namedTextures[ColorSmoothingRgbaName] = graphics.resources.texture(
+      'image-uint8',
+      'rgba',
+      'ubyte',
+      'nearest',
+    );
   }
-  const colorData = webgl.namedTextures[ColorSmoothingRgbaName];
+  const colorData = graphics.namedTextures[ColorSmoothingRgbaName];
   colorData.load(values.tOverpaint.ref.value);
 
   const smoothingData = calcTextureMeshColorSmoothing(
@@ -535,7 +509,7 @@ export function applyTextureMeshOverpaintSmoothing(
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
     },
     options,
-    webgl,
+    graphics,
     colorTexture,
   );
 
@@ -553,17 +527,22 @@ function isSupportedTransparencyType(x: string): x is 'groupInstance' {
 export function applyTextureMeshTransparencySmoothing(
   values: TextureMeshValues,
   options: ColorSmoothingOptions,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   colorTexture?: Texture,
 ) {
   if (!isSupportedTransparencyType(values.dTransparencyType.ref.value)) return;
 
   options = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
-  if (!webgl.namedTextures[ColorSmoothingAlphaName]) {
-    webgl.namedTextures[ColorSmoothingAlphaName] = webgl.resources.texture('image-uint8', 'alpha', 'ubyte', 'nearest');
+  if (!graphics.namedTextures[ColorSmoothingAlphaName]) {
+    graphics.namedTextures[ColorSmoothingAlphaName] = graphics.resources.texture(
+      'image-uint8',
+      'r',
+      'ubyte',
+      'nearest',
+    );
   }
-  const colorData = webgl.namedTextures[ColorSmoothingAlphaName];
+  const colorData = graphics.namedTextures[ColorSmoothingAlphaName];
   colorData.load(values.tTransparency.ref.value);
 
   const smoothingData = calcTextureMeshColorSmoothing(
@@ -581,7 +560,7 @@ export function applyTextureMeshTransparencySmoothing(
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
     },
     options,
-    webgl,
+    graphics,
     colorTexture,
   );
 
@@ -599,17 +578,22 @@ function isSupportedEmissiveType(x: string): x is 'groupInstance' {
 export function applyTextureMeshEmissiveSmoothing(
   values: TextureMeshValues,
   options: ColorSmoothingOptions,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   colorTexture?: Texture,
 ) {
   if (!isSupportedEmissiveType(values.dEmissiveType.ref.value)) return;
 
   options = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
-  if (!webgl.namedTextures[ColorSmoothingAlphaName]) {
-    webgl.namedTextures[ColorSmoothingAlphaName] = webgl.resources.texture('image-uint8', 'alpha', 'ubyte', 'nearest');
+  if (!graphics.namedTextures[ColorSmoothingAlphaName]) {
+    graphics.namedTextures[ColorSmoothingAlphaName] = graphics.resources.texture(
+      'image-uint8',
+      'r',
+      'ubyte',
+      'nearest',
+    );
   }
-  const colorData = webgl.namedTextures[ColorSmoothingAlphaName];
+  const colorData = graphics.namedTextures[ColorSmoothingAlphaName];
   colorData.load(values.tEmissive.ref.value);
 
   const smoothingData = calcTextureMeshColorSmoothing(
@@ -627,7 +611,7 @@ export function applyTextureMeshEmissiveSmoothing(
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
     },
     options,
-    webgl,
+    graphics,
     colorTexture,
   );
 
@@ -645,17 +629,22 @@ function isSupportedSubstanceType(x: string): x is 'groupInstance' {
 export function applyTextureMeshSubstanceSmoothing(
   values: TextureMeshValues,
   options: ColorSmoothingOptions,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   colorTexture?: Texture,
 ) {
   if (!isSupportedSubstanceType(values.dSubstanceType.ref.value)) return;
 
   options = { ...options, stride: options.stride * 3 }; // triple because TextureMesh is never indexed (no elements buffer)
 
-  if (!webgl.namedTextures[ColorSmoothingRgbaName]) {
-    webgl.namedTextures[ColorSmoothingRgbaName] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+  if (!graphics.namedTextures[ColorSmoothingRgbaName]) {
+    graphics.namedTextures[ColorSmoothingRgbaName] = graphics.resources.texture(
+      'image-uint8',
+      'rgba',
+      'ubyte',
+      'nearest',
+    );
   }
-  const colorData = webgl.namedTextures[ColorSmoothingRgbaName];
+  const colorData = graphics.namedTextures[ColorSmoothingRgbaName];
   colorData.load(values.tSubstance.ref.value);
 
   const smoothingData = calcTextureMeshColorSmoothing(
@@ -673,7 +662,7 @@ export function applyTextureMeshSubstanceSmoothing(
       invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
     },
     options,
-    webgl,
+    graphics,
     colorTexture,
   );
 

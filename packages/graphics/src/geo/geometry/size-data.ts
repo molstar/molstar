@@ -58,7 +58,7 @@ export function getMaxSize(sizeData: SizeData): number {
     case 'vertexInstance':
       let maxSize = 0;
       const array = sizeData.tSize.ref.value.array;
-      for (let i = 0, il = array.length; i < il; i += 3) {
+      for (let i = 0, il = array.length; i < il; i += 4) {
         const value = unpackRGBToInt(array[i], array[i + 1], array[i + 2]);
         if (maxSize < value) maxSize = value;
       }
@@ -68,7 +68,7 @@ export function getMaxSize(sizeData: SizeData): number {
 
 export type LocationSize = (location: Location) => number;
 
-const emptySizeTexture = { array: new Uint8Array(3), width: 1, height: 1 };
+const emptySizeTexture = { array: new Uint8Array(4), width: 1, height: 1 };
 function createEmptySizeTexture() {
   return {
     tSize: ValueCell.create(emptySizeTexture),
@@ -118,14 +118,14 @@ export function createInstanceSize(locationIt: LocationIterator, sizeFn: Locatio
   const { instanceCount } = locationIt;
   const sizes = createTextureImage(
     Math.max(1, instanceCount),
-    3,
+    4,
     Uint8Array,
     sizeData && sizeData.tSize.ref.value.array,
   );
   locationIt.reset();
   while (locationIt.hasNext && !locationIt.isNextNewInstance) {
     const v = locationIt.move();
-    packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.instanceIndex * 3);
+    packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.instanceIndex * 4);
     locationIt.skipInstance();
   }
   return createTextureSize(sizes, 'instance', sizeData);
@@ -134,11 +134,11 @@ export function createInstanceSize(locationIt: LocationIterator, sizeFn: Locatio
 /** Creates size texture with size for each group (i.e. shared across instances/units) */
 export function createGroupSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
   const { groupCount } = locationIt;
-  const sizes = createTextureImage(Math.max(1, groupCount), 3, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createTextureImage(Math.max(1, groupCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
   locationIt.reset();
   while (locationIt.hasNext && !locationIt.isNextNewInstance) {
     const v = locationIt.move();
-    packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.groupIndex * 3);
+    packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.groupIndex * 4);
   }
   return createTextureSize(sizes, 'group', sizeData);
 }
@@ -151,11 +151,11 @@ export function createGroupInstanceSize(
 ): SizeData {
   const { groupCount, instanceCount } = locationIt;
   const count = instanceCount * groupCount;
-  const sizes = createTextureImage(Math.max(1, count), 3, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createTextureImage(Math.max(1, count), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
   locationIt.reset();
   while (locationIt.hasNext) {
     const v = locationIt.move();
-    packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.index * 3);
+    packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.index * 4);
   }
   return createTextureSize(sizes, 'groupInstance', sizeData);
 }
@@ -163,11 +163,11 @@ export function createGroupInstanceSize(
 /** Creates size texture with size for each vertex */
 export function createVertexSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
   const { groupCount } = locationIt;
-  const sizes = createTextureImage(Math.max(1, groupCount), 3, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createTextureImage(Math.max(1, groupCount), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
   locationIt.reset();
   while (locationIt.hasNext) {
     const v = locationIt.move();
-    packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.index * 3);
+    packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.index * 4);
   }
   return createTextureSize(sizes, 'vertex', sizeData);
 }
@@ -180,11 +180,11 @@ export function createVertexInstanceSize(
 ): SizeData {
   const { groupCount, instanceCount } = locationIt;
   const count = instanceCount * groupCount;
-  const sizes = createTextureImage(Math.max(1, count), 3, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
+  const sizes = createTextureImage(Math.max(1, count), 4, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
   locationIt.reset();
   while (locationIt.hasNext) {
     const v = locationIt.move();
-    packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.index * 3);
+    packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.index * 4);
   }
   return createTextureSize(sizes, 'vertexInstance', sizeData);
 }

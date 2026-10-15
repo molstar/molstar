@@ -5,7 +5,7 @@ import * as ShapeUtils from '@molstar/graphics/geo/shape/shape';
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Scene } from '@molstar/graphics/gl/scene';
 import { MeshBuilder } from '@molstar/graphics/geo/geometry/mesh/mesh-builder';
 import { Mat4, Vec3 } from '@molstar/core/math/linear-algebra';
@@ -116,8 +116,8 @@ export class PointerHelper {
     };
   }
 
-  constructor(webgl: WebGLContext, props: Partial<PointerHelperProps> = {}) {
-    this.scene = Scene.create(webgl, 'blended');
+  constructor(graphics: GraphicsContext, props: Partial<PointerHelperProps> = {}) {
+    this.scene = Scene.create(graphics, 'blended');
     this.props = { ...PD.getDefaultValues(PointerHelperParams), ...props };
 
     this.camera = new Camera();

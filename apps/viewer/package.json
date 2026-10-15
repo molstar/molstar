@@ -38,6 +38,7 @@
     "@molstar/mvs": "workspace:*",
     "@molstar/plugin-extension": "workspace:*",
     "@molstar/model": "workspace:*",
+    "@molstar/graphics": "workspace:*",
     "@molstar/plugin": "workspace:*",
     "@molstar/plugin-ui": "workspace:*",
     "@molstar/core": "workspace:*",

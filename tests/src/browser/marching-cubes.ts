@@ -81,6 +81,7 @@ async function init() {
   const activeVoxelsTex = calcActiveVoxels(
     webgl,
     densityTextureData.texture,
+    'alpha',
     densityTextureData.gridDim,
     densityTextureData.gridTexDim,
     isoValue,
@@ -104,6 +105,7 @@ async function init() {
     webgl,
     activeVoxelsTex,
     densityTextureData.texture,
+    'alpha',
     compacted,
     densityTextureData.gridDim,
     densityTextureData.gridTexDim,

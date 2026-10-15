@@ -28,7 +28,7 @@ import { PluginBehaviors } from '@molstar/plugin/behavior';
 import { MesoFocusLoci } from '@molstar/mesoscale-explorer/behavior/camera';
 import { type GraphicsMode, MesoscaleState } from '@molstar/mesoscale-explorer/data/state';
 import { MesoSelectLoci } from '@molstar/mesoscale-explorer/behavior/select';
-import type { Transparency } from '@molstar/graphics/gl/webgl/render-item';
+import type { Transparency } from '@molstar/graphics/gl/render-item';
 import {
   LoadModel,
   loadExampleEntry,

@@ -208,6 +208,8 @@ export namespace BaseGeometry {
       alpha: ValueCell.create(props.alpha),
       uAlpha: ValueCell.create(props.alpha),
       uVertexCount: ValueCell.create(counts.vertexCount),
+      // filled by the render item when used, see `BaseSchema.aVertex`
+      aVertex: ValueCell.create(new Float32Array(0)),
       uGroupCount: ValueCell.create(counts.groupCount),
       drawCount: ValueCell.create(counts.drawCount),
       uMetalness: ValueCell.create(props.material.metalness),

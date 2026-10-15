@@ -6,7 +6,7 @@
 
 import type { RenderableState, Renderable } from './renderable.js';
 import { idFactory } from '@molstar/core/util/id-factory';
-import type { WebGLContext } from './webgl/context.js';
+import type { GraphicsContext } from './context.js';
 import { type DirectVolumeValues, DirectVolumeRenderable } from './renderable/direct-volume.js';
 import { type MeshValues, MeshRenderable } from './renderable/mesh.js';
 import { type PointsValues, PointsRenderable } from './renderable/points.js';
@@ -16,7 +16,7 @@ import { type TextValues, TextRenderable } from './renderable/text.js';
 import { type TextureMeshValues, TextureMeshRenderable } from './renderable/texture-mesh.js';
 import { type ImageValues, ImageRenderable } from './renderable/image.js';
 import { CylindersRenderable, type CylindersValues } from './renderable/cylinders.js';
-import type { Transparency } from './webgl/render-item.js';
+import type { Transparency } from './render-item.js';
 import type { GlobalDefines } from './renderable/schema.js';
 import { assertUnreachable } from '@molstar/core/util/type-helpers';
 import {
@@ -143,7 +143,7 @@ export function createMergedRenderObject<T extends RenderObjectType>(
 }
 
 export function createRenderable<T extends RenderObjectType>(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   o: GraphicsRenderObject<T>,
   transparency: Transparency,
   globals: GlobalDefines,

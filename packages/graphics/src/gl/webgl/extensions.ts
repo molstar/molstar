@@ -81,13 +81,13 @@ export type WebGLExtensions = {
   instancedArrays: COMPAT_instanced_arrays;
   elementIndexUint: COMPAT_element_index_uint;
   standardDerivatives: COMPAT_standard_derivatives;
+  textureFloat: COMPAT_texture_float;
+  blendMinMax: COMPAT_blend_minmax;
 
-  textureFloat: COMPAT_texture_float | null;
   textureFloatLinear: COMPAT_texture_float_linear | null;
   textureHalfFloat: COMPAT_texture_half_float | null;
   textureHalfFloatLinear: COMPAT_texture_half_float_linear | null;
   depthTexture: COMPAT_depth_texture | null;
-  blendMinMax: COMPAT_blend_minmax | null;
   vertexArrayObject: COMPAT_vertex_array_object | null;
   fragDepth: COMPAT_frag_depth | null;
   colorBufferFloat: COMPAT_color_buffer_float | null;
@@ -129,11 +129,15 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
   if (standardDerivatives === null) {
     throw new Error('Could not find support for "standard_derivatives"');
   }
-
   const textureFloat = getTextureFloat(gl);
-  if (isDebugMode && textureFloat === null) {
-    console.log('Could not find support for "texture_float"');
+  if (textureFloat === null) {
+    throw new Error('Could not find support for "texture_float"');
   }
+  const blendMinMax = getBlendMinMax(gl);
+  if (blendMinMax === null) {
+    throw new Error('Could not find support for "blend_minmax"');
+  }
+
   const textureFloatLinear = getTextureFloatLinear(gl);
   if (isDebugMode && textureFloatLinear === null) {
     // TODO handle non-support downstream (no gpu gaussian calc, no gpu mc???)
@@ -153,12 +157,6 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
   const depthTexture = getDepthTexture(gl);
   if (isDebugMode && depthTexture === null) {
     console.log('Could not find support for "depth_texture"');
-  }
-  const blendMinMax = getBlendMinMax(gl);
-  if (isDebugMode && blendMinMax === null) {
-    // TODO handle non-support downstream (e.g. no gpu gaussian calc)
-    // - can't be a required extension because it is not supported by `headless-gl`
-    console.log('Could not find support for "blend_minmax"');
   }
   const vertexArrayObject = getVertexArrayObject(gl);
   if (isDebugMode && vertexArrayObject === null) {
@@ -263,13 +261,13 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     instancedArrays,
     standardDerivatives,
     elementIndexUint,
-
     textureFloat,
+    blendMinMax,
+
     textureFloatLinear,
     textureHalfFloat,
     textureHalfFloatLinear,
     depthTexture,
-    blendMinMax,
     vertexArrayObject,
     fragDepth,
     colorBufferFloat,

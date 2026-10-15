@@ -22,7 +22,7 @@ import {
 import { BaseGeometry } from '@molstar/graphics/geo/geometry/base';
 import { Subject } from 'rxjs';
 import { type RuntimeContext, Task } from '@molstar/core/task';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import type { VolumeVisual } from './visual.js';
 
 export interface VolumeRepresentation<P extends VolumeParams> extends Representation<Volume, P> {}
@@ -55,13 +55,13 @@ export function VolumeRepresentation<P extends VolumeParams>(
     volume: Volume,
     key: number,
     props: PD.Values<P>,
-    webgl?: WebGLContext,
+    graphics?: GraphicsContext,
   ) => VolumeVisual<P>,
   getLoci: (volume: Volume, props: PD.Values<P>) => Loci,
   getKeys: (props: PD.Values<P>, volume: Volume) => ArrayLike<number> = () => [-1],
 ): VolumeRepresentation<P> {
   let version = 0;
-  const { webgl } = ctx;
+  const { graphics } = ctx;
   const updated = new Subject<number>();
   const geometryState = new Representation.GeometryState();
   const materialId = getNextMaterialId();
@@ -78,14 +78,14 @@ export function VolumeRepresentation<P extends VolumeParams>(
   async function visual(runtime: RuntimeContext, key: number) {
     let visual = visuals.get(key);
     if (!visual) {
-      visual = visualCtor(materialId, _volume, key, _props, webgl);
+      visual = visualCtor(materialId, _volume, key, _props, graphics);
       visuals.set(key, visual);
-    } else if (visual.mustRecreate?.({ volume: _volume, key }, _props, webgl)) {
+    } else if (visual.mustRecreate?.({ volume: _volume, key }, _props, graphics)) {
       visual.destroy();
-      visual = visualCtor(materialId, _volume, key, _props, webgl);
+      visual = visualCtor(materialId, _volume, key, _props, graphics);
       visuals.set(key, visual);
     }
-    return visual.createOrUpdate({ webgl, runtime }, _theme, _props, { volume: _volume, key });
+    return visual.createOrUpdate({ graphics, runtime }, _theme, _props, { volume: _volume, key });
   }
 
   function createOrUpdate(props: Partial<PD.Values<P>> = {}, volume?: Volume) {

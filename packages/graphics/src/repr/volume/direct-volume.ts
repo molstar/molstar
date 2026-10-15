@@ -9,7 +9,7 @@ import { Vec2, Vec3, Mat4 } from '@molstar/core/math/linear-algebra';
 import { Box3D } from '@molstar/core/math/geometry';
 import { Grid, Volume } from '@molstar/model/model/volume';
 import type { RuntimeContext } from '@molstar/core/task';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { DirectVolume } from '@molstar/graphics/geo/geometry/direct-volume/direct-volume';
 import type { VisualContext } from '../visual.js';
 import type { Theme, ThemeRegistryContext } from '@molstar/graphics/theme/theme';
@@ -25,7 +25,7 @@ import {
   eachVolumeLoci,
   getVolumeTexture2dLayout,
 } from './util.js';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { Interval } from '@molstar/core/data/int/interval';
 import { OrderedSet } from '@molstar/core/data/int/ordered-set';
 import { VolumeVisual } from './visual.js';
@@ -42,18 +42,18 @@ function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
 
 export function createDirectVolume2d(
   ctx: RuntimeContext,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   volume: Volume,
   props: PD.Values<DirectVolumeParams>,
   directVolume?: DirectVolume,
 ) {
   const gridDimension = volume.grid.cells.space.dimensions as Vec3;
   const { width, height } = getVolumeTexture2dLayout(gridDimension);
-  if (Math.max(width, height) > webgl.maxTextureSize / 2) {
+  if (Math.max(width, height) > graphics.resources.limits.maxTextureSize / 2) {
     throw new Error('volume too large for direct-volume rendering');
   }
 
-  const dataType = props.dataType === 'halfFloat' && !webgl.extensions.textureHalfFloat ? 'float' : props.dataType;
+  const dataType = props.dataType === 'halfFloat' && !graphics.capabilities.halfFloatTexture ? 'float' : props.dataType;
 
   const textureImage = createVolumeTexture2d(volume, 'normals', 0, dataType);
   // debugTexture(createImageData(textureImage.array, textureImage.width, textureImage.height), 1/3)
@@ -66,10 +66,10 @@ export function createDirectVolume2d(
   } else {
     texture =
       dataType === 'byte'
-        ? webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear')
+        ? graphics.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear')
         : dataType === 'halfFloat'
-          ? webgl.resources.texture('image-float16', 'rgba', 'fp16', 'linear')
-          : webgl.resources.texture('image-float32', 'rgba', 'float', 'linear');
+          ? graphics.resources.texture('image-float16', 'rgba', 'fp16', 'linear')
+          : graphics.resources.texture('image-float32', 'rgba', 'float', 'linear');
   }
   texture.load(textureImage);
 
@@ -118,17 +118,17 @@ function getUnitToCartn(grid: Grid) {
 
 export function createDirectVolume3d(
   ctx: RuntimeContext,
-  webgl: WebGLContext,
+  graphics: GraphicsContext,
   volume: Volume,
   props: PD.Values<DirectVolumeParams>,
   directVolume?: DirectVolume,
 ) {
   const gridDimension = volume.grid.cells.space.dimensions as Vec3;
-  if (Math.max(...gridDimension) > webgl.max3dTextureSize / 2) {
+  if (Math.max(...gridDimension) > graphics.resources.limits.max3dTextureSize / 2) {
     throw new Error('volume too large for direct-volume rendering');
   }
 
-  const dataType = props.dataType === 'halfFloat' && !webgl.extensions.textureHalfFloat ? 'float' : props.dataType;
+  const dataType = props.dataType === 'halfFloat' && !graphics.capabilities.halfFloatTexture ? 'float' : props.dataType;
 
   const textureVolume = createVolumeTexture3d(volume, dataType);
   const transform = Grid.getGridToCartesianTransform(volume.grid);
@@ -140,10 +140,10 @@ export function createDirectVolume3d(
   } else {
     texture =
       dataType === 'byte'
-        ? webgl.resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear')
+        ? graphics.resources.texture('volume-uint8', 'rgba', 'ubyte', 'linear')
         : dataType === 'halfFloat'
-          ? webgl.resources.texture('volume-float16', 'rgba', 'fp16', 'linear')
-          : webgl.resources.texture('volume-float32', 'rgba', 'float', 'linear');
+          ? graphics.resources.texture('volume-float16', 'rgba', 'fp16', 'linear')
+          : graphics.resources.texture('volume-float32', 'rgba', 'float', 'linear');
   }
   texture.load(textureVolume);
 
@@ -174,12 +174,12 @@ export async function createDirectVolume(
   props: PD.Values<DirectVolumeParams>,
   directVolume?: DirectVolume,
 ) {
-  const { runtime, webgl } = ctx;
-  if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in VisualContext');
+  const { runtime, graphics } = ctx;
+  if (graphics === undefined) throw new Error('DirectVolumeVisual requires `graphics` in VisualContext');
 
-  return webgl.isWebGL2
-    ? createDirectVolume3d(runtime, webgl, volume, props, directVolume)
-    : createDirectVolume2d(runtime, webgl, volume, props, directVolume);
+  return graphics.capabilities.texture3d
+    ? createDirectVolume3d(runtime, graphics, volume, props, directVolume)
+    : createDirectVolume2d(runtime, graphics, volume, props, directVolume);
 }
 
 function getLoci(volume: Volume, props: PD.Values<DirectVolumeParams>) {

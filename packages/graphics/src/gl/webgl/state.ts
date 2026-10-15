@@ -5,12 +5,17 @@
  */
 
 import type { GLRenderingContext } from './compat.js';
+import { isWebGL2 } from './compat.js';
 import type { WebGLExtensions } from './extensions.js';
 
 export type WebGLState = {
   currentProgramId: number;
   currentMaterialId: number;
   currentRenderItemId: number;
+  /** Whether a render pass is open, see `GraphicsContext.beginRenderPass` */
+  inRenderPass: boolean;
+  /** Called when an open render pass ends (timer pass boundaries) */
+  onRenderPassEnd: (() => void) | undefined;
 
   /**
    * specifies which WebGL capability to enable
@@ -89,6 +94,9 @@ export type WebGLState = {
   clearVertexAttribsState: () => void;
   disableUnusedVertexAttribs: () => void;
 
+  /** binds a range of `buffer` at uniform buffer binding point `index`, WebGL2 only */
+  bindUniformBufferRange: (index: number, bufferId: number, buffer: WebGLBuffer, offset: number, size: number) => void;
+
   viewport: (x: number, y: number, width: number, height: number) => void;
   scissor: (x: number, y: number, width: number, height: number) => void;
 
@@ -141,6 +149,9 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
   let maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
   const vertexAttribsState: number[] = [];
 
+  const boundUniformBuffers: number[] = [];
+  const boundUniformOffsets: number[] = [];
+
   let currentViewport: [number, number, number, number] = gl.getParameter(gl.VIEWPORT);
   let currentScissor: [number, number, number, number] = gl.getParameter(gl.SCISSOR_BOX);
 
@@ -158,6 +169,8 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
     currentProgramId: -1,
     currentMaterialId: -1,
     currentRenderItemId: -1,
+    inRenderPass: false,
+    onRenderPassEnd: undefined,
 
     enable: (cap: number) => {
       if (enabledCapabilities[cap] !== true) {
@@ -444,6 +457,18 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
       }
     },
 
+    bindUniformBufferRange: isWebGL2(gl)
+      ? (index: number, bufferId: number, buffer: WebGLBuffer, offset: number, size: number) => {
+          if (boundUniformBuffers[index] !== bufferId || boundUniformOffsets[index] !== offset) {
+            gl.bindBufferRange(gl.UNIFORM_BUFFER, index, buffer, offset, size);
+            boundUniformBuffers[index] = bufferId;
+            boundUniformOffsets[index] = offset;
+          }
+        }
+      : () => {
+          throw new Error('WebGL2 is required for uniform buffers');
+        },
+
     viewport: (x: number, y: number, width: number, height: number) => {
       if (
         x !== currentViewport[0] ||
@@ -524,6 +549,9 @@ export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLSt
       for (let i = 0; i < maxVertexAttribs; ++i) {
         vertexAttribsState[i] = 0;
       }
+
+      boundUniformBuffers.length = 0;
+      boundUniformOffsets.length = 0;
 
       currentViewport = gl.getParameter(gl.VIEWPORT);
       currentScissor = gl.getParameter(gl.SCISSOR_BOX);

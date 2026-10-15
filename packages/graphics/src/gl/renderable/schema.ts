@@ -6,14 +6,8 @@
  */
 
 import type { ValueCell } from '@molstar/core/util';
-import type {
-  AttributeItemSize,
-  ElementsKind,
-  AttributeValues,
-  AttributeKind,
-  DataTypeArrayType,
-} from '../webgl/buffer.js';
-import type { UniformKind, UniformValues, UniformKindValue } from '../webgl/uniform.js';
+import type { AttributeItemSize, ElementsKind, AttributeValues, AttributeKind, DataTypeArrayType } from '../buffer.js';
+import type { UniformKind, UniformValues, UniformKindValue } from '../uniform.js';
 import type { DefineKind, DefineValues } from '../shader-code.js';
 import type { Mat4 } from '@molstar/core/math/linear-algebra';
 import type {
@@ -23,9 +17,10 @@ import type {
   TextureFilter,
   TextureKind,
   TextureKindValue,
-} from '../webgl/texture.js';
+} from '../texture.js';
 import type { Sphere3D } from '@molstar/core/math/geometry';
 import type { InstanceGrid } from '@molstar/core/math/geometry/instance-grid';
+import { Clip } from '@molstar/core/util/clip';
 
 export type ValueKindType = {
   number: number;
@@ -95,27 +90,142 @@ export function getValueVersions<T extends RenderableValues>(values: T) {
 
 //
 
+/**
+ * Condition for a texture or attribute to be used by a program: any of the given flattened
+ * define names (as tested in shader code, e.g. 'dUsePalette', 'dColorType_volume',
+ * 'emulateVertexId') is defined, a '!' prefix negates a name.
+ * Must cover all uses in the shader code, a superset is fine.
+ */
+export type UsedIf = readonly string[];
+
+/** Whether a flattened define name is defined, `undefined` if not known (yet) */
+export type DefineLookup = (name: string) => boolean | undefined;
+
+export function getDefineLookup(names: Iterable<string>): DefineLookup {
+  const set = new Set(names);
+  return (name) => set.has(name);
+}
+
+/** Flattened names of the schema defines, like `#define`d by the shader header (string `dX: 'v'` → `dX_v`) */
+export function getDefineValuesLookup(defineValues: DefineValues): DefineLookup {
+  const names: string[] = [];
+  for (const k of Object.keys(defineValues)) {
+    const v = defineValues[k].ref.value;
+    if (typeof v === 'string') names.push(`${k}_${v}`);
+    else if (v !== false && v !== undefined) names.push(k);
+  }
+  return getDefineLookup(names);
+}
+
+/** `false` only if `spec` is known to be unused, i.e. no `usedIf` condition can hold */
+export function isUsed(spec: { readonly usedIf?: UsedIf }, defines: DefineLookup): boolean {
+  if (!spec.usedIf) return true;
+  for (const condition of spec.usedIf) {
+    const negate = condition.startsWith('!');
+    const defined = defines(negate ? condition.slice(1) : condition);
+    if (defined === undefined || defined !== negate) return true;
+  }
+  return false;
+}
+
+/** `kind`, `itemSize` and `divisor` are the complete logical description, backends decide the transport */
 export type AttributeSpec<K extends AttributeKind> = {
   type: 'attribute';
   kind: K;
   itemSize: AttributeItemSize;
   divisor: number;
+  usedIf?: UsedIf;
 };
 export function AttributeSpec<K extends AttributeKind>(
   kind: K,
   itemSize: AttributeItemSize,
   divisor: number,
+  usedIf?: UsedIf,
 ): AttributeSpec<K> {
-  return { type: 'attribute', kind, itemSize, divisor };
+  return { type: 'attribute', kind, itemSize, divisor, usedIf };
 }
 
 type UniformVariant = 'material' | 'buffered';
-export type UniformSpec<K extends UniformKind> = { type: 'uniform'; kind: K; variant?: UniformVariant };
-export function UniformSpec<K extends UniformKind>(kind: K, variant?: UniformVariant): UniformSpec<K> {
-  return { type: 'uniform', kind, variant };
+/**
+ * On WebGL2, uniforms in a block are backed by uniform buffer objects:
+ * - 'global': one buffer per renderer, updated by the renderer
+ * - 'material': one buffer per materialId, updated on material change
+ * - 'object': one buffer per render item, updated on value change
+ *
+ * On WebGL1 they are set as classic uniforms.
+ */
+export type UniformBlock = 'global' | 'material' | 'object';
+/**
+ * Where a uniform lives; `undefined` and 'draw' are classic uniforms on all backends:
+ * 'draw' for values that change between the draws of a render item (see `MultiDrawBaseData`),
+ * `undefined` for textures and arrays without a fixed `length`
+ */
+export type UniformScope = UniformBlock | 'draw';
+export type UniformSpec<K extends UniformKind> = {
+  type: 'uniform';
+  kind: K;
+  variant?: UniformVariant;
+  block?: UniformScope;
+  length?: number;
+  /** number define with the classic (WebGL1) array size, `length` is the max. (block) size */
+  lengthDefine?: string;
+};
+/**
+ * Unless given, `block` defaults to 'material' for the 'material' variant and to 'object' otherwise.
+ * Array uniforms need a (max) `length` to be in a block.
+ */
+export function UniformSpec<K extends UniformKind>(
+  kind: K,
+  variant?: UniformVariant,
+  block?: UniformScope,
+  length?: number,
+  lengthDefine?: string,
+): UniformSpec<K> {
+  const isArray = kind.endsWith('[]');
+  if ((length !== undefined || lengthDefine !== undefined) && !isArray) {
+    throw new Error(`'length' requires an array uniform kind, got '${kind}'`);
+  }
+  if (kind === 't' || (isArray && length === undefined)) {
+    if (block !== undefined && block !== 'draw') {
+      throw new Error(
+        `uniform kind '${kind}' cannot be assigned to block '${block}'${isArray ? ' without a length' : ''}`,
+      );
+    }
+  } else if (block === undefined) {
+    block = variant === 'material' ? 'material' : 'object';
+  }
+  if (variant === 'buffered' && block !== undefined && block !== 'draw' && block !== 'object') {
+    throw new Error(`'buffered' uniforms cannot be assigned to block '${block}'`);
+  }
+  if (block === 'material') {
+    variant = 'material';
+  } else if (variant === 'material' && block !== undefined && block !== 'draw') {
+    throw new Error(`'material' uniforms cannot be assigned to block '${block}'`);
+  }
+  return { type: 'uniform', kind, variant, block, length, lengthDefine };
 }
 
+function GlobalUniformSpec<K extends UniformKind>(kind: K, length?: number, lengthDefine?: string): UniformSpec<K> {
+  return UniformSpec(kind, undefined, 'global', length, lengthDefine);
+}
+function MaterialUniformSpec<K extends UniformKind>(kind: K, length?: number, lengthDefine?: string): UniformSpec<K> {
+  return UniformSpec(kind, undefined, 'material', length, lengthDefine);
+}
+function ObjectUniformSpec<K extends UniformKind>(kind: K): UniformSpec<K> {
+  return UniformSpec(kind, undefined, 'object');
+}
+function DrawUniformSpec<K extends UniformKind>(kind: K): UniformSpec<K> {
+  return UniformSpec(kind, undefined, 'draw');
+}
+
+/** max. array lengths in uniform blocks */
+export const MaxLightCount = 16;
+
 type TextureVariant = 'material';
+export type TextureDimension = '2d' | '3d' | 'cube';
+export const TextureDimensions: readonly TextureDimension[] = ['2d', '3d', 'cube'];
+/** as in WebGPU; integer types map to float samplers on WebGL1 */
+export type TextureSampleType = 'float' | 'unfilterable-float' | 'sint' | 'uint' | 'depth';
 export type TextureSpec<K extends TextureKind> = {
   type: 'texture';
   kind: K;
@@ -123,6 +233,17 @@ export type TextureSpec<K extends TextureKind> = {
   dataType: TextureType;
   filter: TextureFilter;
   variant?: TextureVariant;
+  /** `{ define }`: given by the value of a string define, e.g. 'dGridTexType' with values '2d' and '3d' */
+  dimension: TextureDimension | { readonly define: string };
+  sampleType: TextureSampleType;
+  usedIf?: UsedIf;
+};
+export type TextureSpecOptions = {
+  /** defaults to '3d' for 'volume-*' kinds, '2d' otherwise */
+  dimension?: TextureSpec<TextureKind>['dimension'];
+  /** defaults from `format`, `dataType` and `filter`, see `getDefaultSampleType` */
+  sampleType?: TextureSampleType;
+  usedIf?: UsedIf;
 };
 export function TextureSpec<K extends TextureKind>(
   kind: K,
@@ -130,8 +251,27 @@ export function TextureSpec<K extends TextureKind>(
   dataType: TextureType,
   filter: TextureFilter,
   variant?: TextureVariant,
+  options?: TextureSpecOptions,
 ): TextureSpec<K> {
-  return { type: 'texture', kind, format, dataType, filter, variant };
+  const dimension = options?.dimension ?? (kind.startsWith('volume-') ? '3d' : '2d');
+  const sampleType = options?.sampleType ?? getDefaultSampleType(format, dataType, filter);
+  return { type: 'texture', kind, format, dataType, filter, variant, dimension, sampleType, usedIf: options?.usedIf };
+}
+
+function getDefaultSampleType(format: TextureFormat, dataType: TextureType, filter: TextureFilter): TextureSampleType {
+  if (format === 'depth' || format === 'depth-stencil') return 'depth';
+  if (dataType === 'int') return 'sint';
+  // 32-bit float textures are not filterable everywhere
+  if (dataType === 'float' && filter === 'nearest') return 'unfilterable-float';
+  return 'float';
+}
+
+export function getTextureDimension(spec: TextureSpec<TextureKind>, defines?: DefineLookup): TextureDimension {
+  const { dimension } = spec;
+  if (typeof dimension === 'string') return dimension;
+  const resolved = defines && TextureDimensions.find((d) => defines(`${dimension.define}_${d}`));
+  if (!resolved) throw new Error(`texture dimension depends on define '${dimension.define}', which is not set`);
+  return resolved;
 }
 
 export type ElementsSpec<K extends ElementsKind> = { type: 'elements'; kind: K };
@@ -165,83 +305,92 @@ export type RenderableValues = { readonly [k: string]: ValueCell<any> };
 //
 
 export const GlobalUniformSchema = {
-  uDrawId: UniformSpec('i'),
+  uDrawId: DrawUniformSpec('i'),
 
-  uModel: UniformSpec('m4'),
-  uView: UniformSpec('m4'),
-  uInvView: UniformSpec('m4'),
-  uModelView: UniformSpec('m4'),
-  uInvModelView: UniformSpec('m4'),
-  uProjection: UniformSpec('m4'),
-  uInvProjection: UniformSpec('m4'),
-  uModelViewProjection: UniformSpec('m4'),
-  uInvModelViewProjection: UniformSpec('m4'),
-  uHasHeadRotation: UniformSpec('b'),
-  uInvHeadRotation: UniformSpec('m4'),
-  uIsAsymmetricProjection: UniformSpec('b'),
-  uHasEyeCamera: UniformSpec('b'),
-  uModelViewEye: UniformSpec('m4'),
-  uInvModelViewEye: UniformSpec('m4'),
+  uModel: GlobalUniformSpec('m4'),
+  uView: GlobalUniformSpec('m4'),
+  uInvView: GlobalUniformSpec('m4'),
+  uModelView: GlobalUniformSpec('m4'),
+  uInvModelView: GlobalUniformSpec('m4'),
+  uProjection: GlobalUniformSpec('m4'),
+  uInvProjection: GlobalUniformSpec('m4'),
+  uModelViewProjection: GlobalUniformSpec('m4'),
+  uInvModelViewProjection: GlobalUniformSpec('m4'),
+  uHasHeadRotation: GlobalUniformSpec('b'),
+  uInvHeadRotation: GlobalUniformSpec('m4'),
+  uIsAsymmetricProjection: GlobalUniformSpec('b'),
+  uHasEyeCamera: GlobalUniformSpec('b'),
+  uModelViewEye: GlobalUniformSpec('m4'),
+  uInvModelViewEye: GlobalUniformSpec('m4'),
 
-  uIsOrtho: UniformSpec('f'),
-  uPixelRatio: UniformSpec('f'),
-  uViewport: UniformSpec('v4'),
-  uViewOffset: UniformSpec('v2'),
-  uModelScale: UniformSpec('f'),
-  uDrawingBufferSize: UniformSpec('v2'),
+  uIsOrtho: GlobalUniformSpec('f'),
+  uPixelRatio: GlobalUniformSpec('f'),
+  uViewport: GlobalUniformSpec('v4'),
+  uViewOffset: GlobalUniformSpec('v2'),
+  uModelScale: GlobalUniformSpec('f'),
+  uDrawingBufferSize: GlobalUniformSpec('v2'),
 
-  uCameraPosition: UniformSpec('v3'),
-  uCameraDir: UniformSpec('v3'),
-  uCameraPlane: UniformSpec('v4'),
-  uNear: UniformSpec('f'),
-  uFar: UniformSpec('f'),
-  uFog: UniformSpec('b'),
-  uFogNear: UniformSpec('f'),
-  uFogFar: UniformSpec('f'),
-  uFogColor: UniformSpec('v3'),
+  uCameraPosition: GlobalUniformSpec('v3'),
+  uCameraDir: GlobalUniformSpec('v3'),
+  uCameraPlane: GlobalUniformSpec('v4'),
+  uNear: GlobalUniformSpec('f'),
+  uFar: GlobalUniformSpec('f'),
+  uFog: GlobalUniformSpec('b'),
+  uFogNear: GlobalUniformSpec('f'),
+  uFogFar: GlobalUniformSpec('f'),
+  uFogColor: GlobalUniformSpec('v3'),
 
-  uTransparentBackground: UniformSpec('b'),
+  uTransparentBackground: GlobalUniformSpec('b'),
 
-  uLightDirection: UniformSpec('v3[]'),
-  uLightColor: UniformSpec('v3[]'),
-  uAmbientColor: UniformSpec('v3'),
+  uLightDirection: GlobalUniformSpec('v3[]', MaxLightCount, 'dLightCount'),
+  uLightColor: GlobalUniformSpec('v3[]', MaxLightCount, 'dLightCount'),
+  uAmbientColor: GlobalUniformSpec('v3'),
 
-  uPickingAlphaThreshold: UniformSpec('f'),
+  uPickingAlphaThreshold: GlobalUniformSpec('f'),
 
-  uHighlightColor: UniformSpec('v3'),
-  uSelectColor: UniformSpec('v3'),
-  uDimColor: UniformSpec('v3'),
-  uHighlightStrength: UniformSpec('f'),
-  uSelectStrength: UniformSpec('f'),
-  uDimStrength: UniformSpec('f'),
-  uMarkerPriority: UniformSpec('i'),
-  uMarkerAverage: UniformSpec('f'),
+  uHighlightColor: GlobalUniformSpec('v3'),
+  uSelectColor: GlobalUniformSpec('v3'),
+  uDimColor: GlobalUniformSpec('v3'),
+  uHighlightStrength: GlobalUniformSpec('f'),
+  uSelectStrength: GlobalUniformSpec('f'),
+  uDimStrength: GlobalUniformSpec('f'),
+  uMarkerPriority: GlobalUniformSpec('i'),
+  uMarkerAverage: GlobalUniformSpec('f'),
 
-  uXrayEdgeFalloff: UniformSpec('f'),
-  uCelSteps: UniformSpec('f'),
-  uExposure: UniformSpec('f'),
+  uXrayEdgeFalloff: GlobalUniformSpec('f'),
+  uCelSteps: GlobalUniformSpec('f'),
+  uExposure: GlobalUniformSpec('f'),
 
-  uRenderMask: UniformSpec('i'),
-  uMarkingDepthTest: UniformSpec('b'),
-  uDepthBack: UniformSpec('b'),
-  uMarkingType: UniformSpec('i'),
-  uPickType: UniformSpec('i'),
-  uSolidInteriorPass: UniformSpec('i'),
-  uSolidInteriorClip: UniformSpec('i'),
+  uRenderMask: GlobalUniformSpec('i'),
+  uMarkingDepthTest: GlobalUniformSpec('b'),
+  uDepthBack: GlobalUniformSpec('b'),
+  uMarkingType: GlobalUniformSpec('i'),
+  uPickType: GlobalUniformSpec('i'),
+  uSolidInteriorPass: DrawUniformSpec('i'),
+  uSolidInteriorClip: DrawUniformSpec('i'),
 
-  uTime: UniformSpec('f'),
-  uEnableAnimation: UniformSpec('b'),
+  uTime: GlobalUniformSpec('f'),
+  uEnableAnimation: GlobalUniformSpec('b'),
 } as const;
 export type GlobalUniformSchema = typeof GlobalUniformSchema;
 export type GlobalUniformValues = Values<GlobalUniformSchema>;
 
 export const GlobalTextureSchema = {
+  /** opaque scene depth: a depth texture where supported (`depthTextureSupport`), packed `rgba` otherwise */
   tDepth: TextureSpec('texture', 'depth', 'ushort', 'nearest'),
+  /** depth with alpha packed into `rgba` (`packDepthWithAlphaToRGBA`): front transparent depth, marking depth */
+  tDepthAlpha: TextureSpec('texture', 'rgba', 'ubyte', 'nearest', undefined, {
+    usedIf: ['dRenderVariant_emissive', 'dRenderVariant_marking'],
+  }),
 
   // dpoit
-  tDpoitDepth: TextureSpec('texture', 'rg', 'float', 'nearest'),
-  tDpoitFrontColor: TextureSpec('texture', 'rgba', 'float', 'nearest'),
-  tDpoitBackColor: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+  tDpoitDepth: TextureSpec('texture', 'rg', 'float', 'nearest', undefined, { usedIf: ['dRenderVariant_colorDpoit'] }),
+  tDpoitFrontColor: TextureSpec('texture', 'rgba', 'float', 'nearest', undefined, {
+    usedIf: ['dRenderVariant_colorDpoit'],
+  }),
+  tDpoitBackColor: TextureSpec('texture', 'rgba', 'float', 'nearest', undefined, {
+    usedIf: ['dRenderVariant_colorDpoit'],
+  }),
 } as const;
 export type GlobalTextureSchema = typeof GlobalTextureSchema;
 export type GlobalTextureValues = Values<GlobalTextureSchema>;
@@ -255,7 +404,7 @@ export type GlobalDefineValues = Values<GlobalDefineSchema>;
 export type GlobalDefines = UnboxedValues<GlobalDefineSchema>;
 
 export const InternalSchema = {
-  uObjectId: UniformSpec('i'),
+  uObjectId: ObjectUniformSpec('i'),
 } as const;
 export type InternalSchema = typeof InternalSchema;
 export type InternalValues = Values<InternalSchema>;
@@ -271,32 +420,32 @@ export const SegmentSchema = {
    * y: groupInstance texel offset (base - instanceBase * groupCount),
    * z: group texel offset
    */
-  aSegment: AttributeSpec('float32', 3, 1),
+  aSegment: AttributeSpec('float32', 3, 1, ['dSegmented']),
   /** per-instance invariant bounding sphere (xyz: center, w: radius) of the segment */
-  aSegmentSphere: AttributeSpec('float32', 4, 1),
+  aSegmentSphere: AttributeSpec('float32', 4, 1, ['dSegmented']),
   /** per-instance, per-lod-level radius scale (see spheres' `lodLevels`), duplicated across a segment's instances */
-  aSegmentLod: AttributeSpec('float32', 4, 1),
+  aSegmentLod: AttributeSpec('float32', 4, 1, ['dSegmented']),
   /** index of the lod level currently being drawn, selects a component of `aSegmentLod` */
-  uLodLevel: UniformSpec('i'),
+  uLodLevel: DrawUniformSpec('i'),
   dSegmented: DefineSpec('boolean'),
 } as const;
 export type SegmentSchema = typeof SegmentSchema;
 export type SegmentValues = Values<SegmentSchema>;
 
 export const ColorSchema = {
-  // aColor: AttributeSpec('float32', 3, 0), // TODO
-  uColor: UniformSpec('v3', 'material'),
-  uColorTexDim: UniformSpec('v2'),
-  uColorGridDim: UniformSpec('v3'),
-  uColorGridTransform: UniformSpec('v4'),
-  uPaletteDomain: UniformSpec('v2'),
-  uPaletteDefault: UniformSpec('v3'),
-  tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
-  tPalette: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
-  tColorGrid: TextureSpec('texture', 'rgb', 'ubyte', 'linear'),
+  uColor: MaterialUniformSpec('v3'),
+  uColorTexDim: ObjectUniformSpec('v2'),
+  uColorGridDim: ObjectUniformSpec('v3'),
+  uColorGridTransform: ObjectUniformSpec('v4'),
+  uPaletteDomain: ObjectUniformSpec('v2'),
+  uPaletteDefault: ObjectUniformSpec('v3'),
+  tColor: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
+  tPalette: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest', undefined, { usedIf: ['dUsePalette'] }),
+  tColorGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, {
+    usedIf: ['dColorType_volume', 'dColorType_volumeInstance'],
+  }),
   dColorType: DefineSpec('string', [
     'uniform',
-    'attribute',
     'instance',
     'group',
     'groupInstance',
@@ -312,20 +461,19 @@ export type ColorSchema = typeof ColorSchema;
 export type ColorValues = Values<ColorSchema>;
 
 export const SizeSchema = {
-  // aSize: AttributeSpec('float32', 1, 0), // TODO
-  uSize: UniformSpec('f', 'material'),
-  uSizeTexDim: UniformSpec('v2'),
-  tSize: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
-  dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance']),
-  uSizeFactor: UniformSpec('f', 'material'),
+  uSize: MaterialUniformSpec('f'),
+  uSizeTexDim: ObjectUniformSpec('v2'),
+  tSize: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
+  dSizeType: DefineSpec('string', ['uniform', 'instance', 'group', 'groupInstance']),
+  uSizeFactor: MaterialUniformSpec('f'),
 } as const;
 export type SizeSchema = typeof SizeSchema;
 export type SizeValues = Values<SizeSchema>;
 
 export const MarkerSchema = {
-  uMarker: UniformSpec('f'),
-  uMarkerTexDim: UniformSpec('v2'),
-  tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+  uMarker: ObjectUniformSpec('f'),
+  uMarkerTexDim: ObjectUniformSpec('v2'),
+  tMarker: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
   markerAverage: ValueSpec('number'),
   markerStatus: ValueSpec('number'),
   dMarkerType: DefineSpec('string', ['instance', 'groupInstance']),
@@ -334,67 +482,75 @@ export type MarkerSchema = typeof MarkerSchema;
 export type MarkerValues = Values<MarkerSchema>;
 
 export const OverpaintSchema = {
-  uOverpaintTexDim: UniformSpec('v2'),
+  uOverpaintTexDim: ObjectUniformSpec('v2'),
   tOverpaint: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
   dOverpaint: DefineSpec('boolean'),
 
-  uOverpaintGridDim: UniformSpec('v3'),
-  uOverpaintGridTransform: UniformSpec('v4'),
-  tOverpaintGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+  uOverpaintGridDim: ObjectUniformSpec('v3'),
+  uOverpaintGridTransform: ObjectUniformSpec('v4'),
+  tOverpaintGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, {
+    usedIf: ['dOverpaintType_volumeInstance'],
+  }),
   dOverpaintType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
-  uOverpaintStrength: UniformSpec('f', 'material'),
+  uOverpaintStrength: MaterialUniformSpec('f'),
 } as const;
 export type OverpaintSchema = typeof OverpaintSchema;
 export type OverpaintValues = Values<OverpaintSchema>;
 
 export const TransparencySchema = {
-  uTransparencyTexDim: UniformSpec('v2'),
-  tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+  uTransparencyTexDim: ObjectUniformSpec('v2'),
+  tTransparency: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
   dTransparency: DefineSpec('boolean'),
   transparencyAverage: ValueSpec('number'),
   transparencyMin: ValueSpec('number'),
 
-  uTransparencyGridDim: UniformSpec('v3'),
-  uTransparencyGridTransform: UniformSpec('v4'),
-  tTransparencyGrid: TextureSpec('texture', 'alpha', 'ubyte', 'linear'),
+  uTransparencyGridDim: ObjectUniformSpec('v3'),
+  uTransparencyGridTransform: ObjectUniformSpec('v4'),
+  tTransparencyGrid: TextureSpec('texture', 'r', 'ubyte', 'linear', undefined, {
+    usedIf: ['dTransparencyType_volumeInstance'],
+  }),
   dTransparencyType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
-  uTransparencyStrength: UniformSpec('f', 'material'),
+  uTransparencyStrength: MaterialUniformSpec('f'),
 } as const;
 export type TransparencySchema = typeof TransparencySchema;
 export type TransparencyValues = Values<TransparencySchema>;
 
 export const EmissiveSchema = {
-  uEmissiveTexDim: UniformSpec('v2'),
-  tEmissive: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+  uEmissiveTexDim: ObjectUniformSpec('v2'),
+  tEmissive: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
   dEmissive: DefineSpec('boolean'),
   emissiveAverage: ValueSpec('number'),
 
-  uEmissiveGridDim: UniformSpec('v3'),
-  uEmissiveGridTransform: UniformSpec('v4'),
-  tEmissiveGrid: TextureSpec('texture', 'alpha', 'ubyte', 'linear'),
+  uEmissiveGridDim: ObjectUniformSpec('v3'),
+  uEmissiveGridTransform: ObjectUniformSpec('v4'),
+  tEmissiveGrid: TextureSpec('texture', 'r', 'ubyte', 'linear', undefined, {
+    usedIf: ['dEmissiveType_volumeInstance'],
+  }),
   dEmissiveType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
-  uEmissiveStrength: UniformSpec('f', 'material'),
+  uEmissiveStrength: MaterialUniformSpec('f'),
 } as const;
 export type EmissiveSchema = typeof EmissiveSchema;
 export type EmissiveValues = Values<EmissiveSchema>;
 
 export const SubstanceSchema = {
-  uSubstanceTexDim: UniformSpec('v2'),
+  uSubstanceTexDim: ObjectUniformSpec('v2'),
   tSubstance: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
   dSubstance: DefineSpec('boolean'),
 
-  uSubstanceGridDim: UniformSpec('v3'),
-  uSubstanceGridTransform: UniformSpec('v4'),
-  tSubstanceGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+  uSubstanceGridDim: ObjectUniformSpec('v3'),
+  uSubstanceGridTransform: ObjectUniformSpec('v4'),
+  tSubstanceGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear', undefined, {
+    usedIf: ['dSubstanceType_volumeInstance'],
+  }),
   dSubstanceType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
-  uSubstanceStrength: UniformSpec('f', 'material'),
+  uSubstanceStrength: MaterialUniformSpec('f'),
 } as const;
 export type SubstanceSchema = typeof SubstanceSchema;
 export type SubstanceValues = Values<SubstanceSchema>;
 
 export const ClippingSchema = {
-  uClippingTexDim: UniformSpec('v2'),
-  tClipping: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+  uClippingTexDim: ObjectUniformSpec('v2'),
+  tClipping: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
   dClipping: DefineSpec('boolean'),
   dClippingType: DefineSpec('string', ['instance', 'groupInstance']),
 } as const;
@@ -402,12 +558,12 @@ export type ClippingSchema = typeof ClippingSchema;
 export type ClippingValues = Values<ClippingSchema>;
 
 export const WiggleSchema = {
-  uWiggleTexDim: UniformSpec('v2'),
-  tWiggle: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+  uWiggleTexDim: ObjectUniformSpec('v2'),
+  tWiggle: TextureSpec('image-uint8', 'r', 'ubyte', 'nearest'),
   dWiggle: DefineSpec('boolean'),
   wiggleAverage: ValueSpec('number'),
   dWiggleType: DefineSpec('string', ['instance', 'groupInstance']),
-  uWiggleStrength: UniformSpec('f', 'material'),
+  uWiggleStrength: MaterialUniformSpec('f'),
 } as const;
 export type WiggleSchema = typeof WiggleSchema;
 export type WiggleValues = Values<WiggleSchema>;
@@ -436,12 +592,12 @@ export const BaseSchema = {
 
   dClipObjectCount: DefineSpec('number'),
   dClipVariant: DefineSpec('string', ['instance', 'pixel']),
-  uClipObjectType: UniformSpec('i[]', 'material'),
-  uClipObjectInvert: UniformSpec('b[]', 'material'),
-  uClipObjectPosition: UniformSpec('v3[]', 'material'),
-  uClipObjectRotation: UniformSpec('v4[]', 'material'),
-  uClipObjectScale: UniformSpec('v3[]', 'material'),
-  uClipObjectTransform: UniformSpec('m4[]', 'material'),
+  uClipObjectType: MaterialUniformSpec('i[]', Clip.MaxObjectCount, 'dClipObjectCount'),
+  uClipObjectInvert: MaterialUniformSpec('b[]', Clip.MaxObjectCount, 'dClipObjectCount'),
+  uClipObjectPosition: MaterialUniformSpec('v3[]', Clip.MaxObjectCount, 'dClipObjectCount'),
+  uClipObjectRotation: MaterialUniformSpec('v4[]', Clip.MaxObjectCount, 'dClipObjectCount'),
+  uClipObjectScale: MaterialUniformSpec('v3[]', Clip.MaxObjectCount, 'dClipObjectCount'),
+  uClipObjectTransform: MaterialUniformSpec('m4[]', Clip.MaxObjectCount, 'dClipObjectCount'),
 
   aInstance: AttributeSpec('float32', 1, 1),
   /**
@@ -449,24 +605,27 @@ export const BaseSchema = {
    * `aTransform[i] = matrix * transform[i] * extraTransform[i]`
    */
   aTransform: AttributeSpec('float32', 16, 1),
+  /** vertex index, emulates `gl_VertexID`; the render item fills it when used */
+  aVertex: AttributeSpec('float32', 1, 0, ['emulateVertexId']),
 
   /**
    * final alpha, calculated as `values.alpha * state.alpha`
    */
-  uAlpha: UniformSpec('f', 'material'),
-  uMetalness: UniformSpec('f', 'material'),
-  uRoughness: UniformSpec('f', 'material'),
-  uBumpiness: UniformSpec('f', 'material'),
-  uEmissive: UniformSpec('f', 'material'),
+  uAlpha: MaterialUniformSpec('f'),
+  uMetalness: MaterialUniformSpec('f'),
+  uRoughness: MaterialUniformSpec('f'),
+  uBumpiness: MaterialUniformSpec('f'),
+  uEmissive: MaterialUniformSpec('f'),
 
   /** density value to estimate object thickness */
-  uDensity: UniformSpec('f', 'material'),
+  uDensity: MaterialUniformSpec('f'),
 
-  uVertexCount: UniformSpec('i'),
-  uInstanceCount: UniformSpec('i'),
-  uGroupCount: UniformSpec('i'),
-  uInvariantBoundingSphere: UniformSpec('v4'),
-  uLod: UniformSpec('v4'),
+  uVertexCount: ObjectUniformSpec('i'),
+  uInstanceCount: ObjectUniformSpec('i'),
+  uGroupCount: ObjectUniformSpec('i'),
+  uInvariantBoundingSphere: ObjectUniformSpec('v4'),
+  /** overridden per lod level via `MultiDrawBaseData.uniforms` */
+  uLod: DrawUniformSpec('v4'),
 
   drawCount: ValueSpec('number'),
   instanceCount: ValueSpec('number'),
@@ -500,20 +659,20 @@ export type BaseValues = Values<BaseSchema>;
 //
 
 export const InteriorSchema = {
-  uInteriorColor: UniformSpec('v4'),
-  uInteriorSubstance: UniformSpec('v4'),
+  uInteriorColor: ObjectUniformSpec('v4'),
+  uInteriorSubstance: ObjectUniformSpec('v4'),
 } as const;
 export type InteriorSchema = typeof InteriorSchema;
 export type InteriorValues = Values<InteriorSchema>;
 
 export const AnimationSchema = {
-  uWiggleSpeed: UniformSpec('f', 'material'),
-  uWiggleAmplitude: UniformSpec('f', 'material'),
-  uWiggleFrequency: UniformSpec('f', 'material'),
-  uWiggleMode: UniformSpec('i', 'material'),
-  uTumbleSpeed: UniformSpec('f', 'material'),
-  uTumbleAmplitude: UniformSpec('f', 'material'),
-  uTumbleFrequency: UniformSpec('f', 'material'),
+  uWiggleSpeed: MaterialUniformSpec('f'),
+  uWiggleAmplitude: MaterialUniformSpec('f'),
+  uWiggleFrequency: MaterialUniformSpec('f'),
+  uWiggleMode: MaterialUniformSpec('i'),
+  uTumbleSpeed: MaterialUniformSpec('f'),
+  uTumbleAmplitude: MaterialUniformSpec('f'),
+  uTumbleFrequency: MaterialUniformSpec('f'),
 } as const;
 export type AnimationSchema = typeof AnimationSchema;
 export type AnimationValues = Values<AnimationSchema>;

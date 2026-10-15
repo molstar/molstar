@@ -11,11 +11,12 @@ import type { Frame } from '@molstar/graphics/gl/renderable';
 import type { Scene } from '@molstar/graphics/gl/scene';
 import type { PixelPackBuffer } from '@molstar/graphics/gl/webgl/buffer';
 import { isWebGL2 } from '@molstar/graphics/gl/webgl/compat';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import type { Framebuffer } from '@molstar/graphics/gl/webgl/framebuffer';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
-import type { Renderbuffer } from '@molstar/graphics/gl/webgl/renderbuffer';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import { isWebGLContext, type WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import type { Framebuffer } from '@molstar/graphics/gl/framebuffer';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
+import type { Renderbuffer } from '@molstar/graphics/gl/renderbuffer';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import type { Vec3 } from '@molstar/core/math/linear-algebra';
 import { isDebugMode, isTimingMode } from '@molstar/core/util/debug';
 import { now } from '@molstar/core/util/now';
@@ -62,22 +63,18 @@ export class PickPass {
   private pickHeight: number;
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     private width: number,
     private height: number,
     private pickScale: number,
   ) {
-    const pickRatio = pickScale / webgl.pixelRatio;
+    const pickRatio = pickScale / graphics.pixelRatio;
     this.pickWidth = Math.ceil(width * pickRatio);
     this.pickHeight = Math.ceil(height * pickRatio);
 
-    const {
-      resources,
-      extensions: { drawBuffers },
-      gl,
-    } = webgl;
+    const { resources } = graphics;
 
-    if (drawBuffers) {
+    if (graphics.capabilities.multipleRenderTargets) {
       this.objectPickTexture = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
       this.objectPickTexture.define(this.pickWidth, this.pickHeight);
 
@@ -97,13 +94,7 @@ export class PickPass {
       this.groupPickFramebuffer = resources.framebuffer();
       this.depthPickFramebuffer = resources.framebuffer();
 
-      this.framebuffer.bind();
-      drawBuffers!.drawBuffers([
-        drawBuffers!.COLOR_ATTACHMENT0,
-        drawBuffers!.COLOR_ATTACHMENT1,
-        drawBuffers!.COLOR_ATTACHMENT2,
-        drawBuffers!.COLOR_ATTACHMENT3,
-      ]);
+      this.framebuffer.setDrawBuffers(4);
 
       this.objectPickTexture.attachFramebuffer(this.framebuffer, 'color0');
       this.instancePickTexture.attachFramebuffer(this.framebuffer, 'color1');
@@ -111,7 +102,7 @@ export class PickPass {
       this.depthPickTexture.attachFramebuffer(this.framebuffer, 'color3');
 
       this.depthRenderbuffer = resources.renderbuffer(
-        isWebGL2(gl) ? 'depth32f-stencil8' : 'depth-stencil',
+        'depth32f-stencil8',
         'depth-stencil',
         this.pickWidth,
         this.pickHeight,
@@ -124,15 +115,15 @@ export class PickPass {
       this.groupPickTexture.attachFramebuffer(this.groupPickFramebuffer, 'color0');
       this.depthPickTexture.attachFramebuffer(this.depthPickFramebuffer, 'color0');
     } else {
-      this.objectPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
-      this.instancePickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
-      this.groupPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
-      this.depthPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
+      this.objectPickTarget = graphics.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
+      this.instancePickTarget = graphics.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
+      this.groupPickTarget = graphics.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
+      this.depthPickTarget = graphics.createRenderTarget(this.pickWidth, this.pickHeight, 'depth-stencil');
     }
   }
 
   getByteCount() {
-    if (this.webgl.extensions.drawBuffers) {
+    if (this.graphics.capabilities.multipleRenderTargets) {
       return (
         this.objectPickTexture.getByteCount() +
         this.instancePickTexture.getByteCount() +
@@ -151,7 +142,7 @@ export class PickPass {
   }
 
   dispose() {
-    if (this.webgl.extensions.drawBuffers) {
+    if (this.graphics.capabilities.multipleRenderTargets) {
       this.framebuffer.destroy();
 
       this.objectPickTexture.destroy();
@@ -174,7 +165,7 @@ export class PickPass {
   }
 
   get pickRatio() {
-    return this.pickScale / this.webgl.pixelRatio;
+    return this.pickScale / this.graphics.pixelRatio;
   }
 
   setPickScale(pickScale: number) {
@@ -183,7 +174,7 @@ export class PickPass {
   }
 
   bindObject() {
-    if (this.webgl.extensions.drawBuffers) {
+    if (this.graphics.capabilities.multipleRenderTargets) {
       this.objectPickFramebuffer.bind();
     } else {
       this.objectPickTarget.bind();
@@ -191,7 +182,7 @@ export class PickPass {
   }
 
   bindInstance() {
-    if (this.webgl.extensions.drawBuffers) {
+    if (this.graphics.capabilities.multipleRenderTargets) {
       this.instancePickFramebuffer.bind();
     } else {
       this.instancePickTarget.bind();
@@ -199,7 +190,7 @@ export class PickPass {
   }
 
   bindGroup() {
-    if (this.webgl.extensions.drawBuffers) {
+    if (this.graphics.capabilities.multipleRenderTargets) {
       this.groupPickFramebuffer.bind();
     } else {
       this.groupPickTarget.bind();
@@ -207,7 +198,7 @@ export class PickPass {
   }
 
   bindDepth() {
-    if (this.webgl.extensions.drawBuffers) {
+    if (this.graphics.capabilities.multipleRenderTargets) {
       this.depthPickFramebuffer.bind();
     } else {
       this.depthPickTarget.bind();
@@ -218,11 +209,25 @@ export class PickPass {
     return this.height;
   }
 
+  /** The object, instance, group and depth pick textures */
+  getTextures(): [Texture, Texture, Texture, Texture] {
+    if (this.graphics.capabilities.multipleRenderTargets) {
+      return [this.objectPickTexture, this.instancePickTexture, this.groupPickTexture, this.depthPickTexture];
+    } else {
+      return [
+        this.objectPickTarget.texture,
+        this.instancePickTarget.texture,
+        this.groupPickTarget.texture,
+        this.depthPickTarget.texture,
+      ];
+    }
+  }
+
   setSize(width: number, height: number) {
     this.width = width;
     this.height = height;
 
-    const pickRatio = this.pickScale / this.webgl.pixelRatio;
+    const pickRatio = this.pickScale / this.graphics.pixelRatio;
     const pickWidth = Math.ceil(this.width * pickRatio);
     const pickHeight = Math.ceil(this.height * pickRatio);
 
@@ -230,7 +235,7 @@ export class PickPass {
       this.pickWidth = pickWidth;
       this.pickHeight = pickHeight;
 
-      if (this.webgl.extensions.drawBuffers) {
+      if (this.graphics.capabilities.multipleRenderTargets) {
         this.objectPickTexture.define(this.pickWidth, this.pickHeight);
         this.instancePickTexture.define(this.pickWidth, this.pickHeight);
         this.groupPickTexture.define(this.pickWidth, this.pickHeight);
@@ -247,17 +252,7 @@ export class PickPass {
   }
 
   reset() {
-    const { drawBuffers } = this.webgl.extensions;
-
-    if (drawBuffers) {
-      this.framebuffer.bind();
-      drawBuffers!.drawBuffers([
-        drawBuffers!.COLOR_ATTACHMENT0,
-        drawBuffers!.COLOR_ATTACHMENT1,
-        drawBuffers!.COLOR_ATTACHMENT2,
-        drawBuffers!.COLOR_ATTACHMENT3,
-      ]);
-
+    if (this.graphics.capabilities.multipleRenderTargets) {
       this.objectPickTexture.attachFramebuffer(this.framebuffer, 'color0');
       this.instancePickTexture.attachFramebuffer(this.framebuffer, 'color1');
       this.groupPickTexture.attachFramebuffer(this.framebuffer, 'color2');
@@ -297,24 +292,24 @@ export class PickPass {
   }
 
   render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, frame: Frame) {
-    if (this.webgl.extensions.drawBuffers) {
-      this.framebuffer.bind();
+    if (this.graphics.capabilities.multipleRenderTargets) {
+      this.graphics.beginRenderPass(this.framebuffer, { label: 'pick' });
       this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.None, frame);
       // if (this.pickWidth < 256) {
       //     printTextureImage(readTexture(this.webgl, this.groupPickTexture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
       // }
     } else {
-      this.objectPickTarget.bind();
+      this.graphics.beginRenderPass(this.objectPickTarget, { label: 'pick object' });
       this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Object, frame);
 
-      this.instancePickTarget.bind();
+      this.graphics.beginRenderPass(this.instancePickTarget, { label: 'pick instance' });
       this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Instance, frame);
 
-      this.groupPickTarget.bind();
+      this.graphics.beginRenderPass(this.groupPickTarget, { label: 'pick group' });
       this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Group, frame);
       // printTextureImage(readTexture(this.webgl, this.groupPickTarget.texture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
 
-      this.depthPickTarget.bind();
+      this.graphics.beginRenderPass(this.depthPickTarget, { label: 'pick depth' });
       this.renderVariant(renderer, camera, scene, helper, 'depth', PickType.None, frame);
     }
   }
@@ -322,8 +317,10 @@ export class PickPass {
 
 let AsyncPickingWarningShown = false;
 
-export function checkAsyncPickingSupport(webgl: WebGLContext): boolean {
-  if (webgl.isWebGL2) return true;
+export function checkAsyncPickingSupport(graphics: GraphicsContext): boolean {
+  // other backends read the pick targets with `readTextureAsync`, see `createPickBuffers`
+  if (!isWebGLContext(graphics)) return true;
+  if (graphics.isWebGL2) return true;
 
   if (isDebugMode && !AsyncPickingWarningShown) {
     console.log('WebGL2 required for async picking. Falling back to synchronous picking.');
@@ -338,7 +335,134 @@ export enum AsyncPickStatus {
   Failed,
 }
 
-export class PickBuffers {
+/** CPU-side copies of the pick targets, read synchronously or asynchronously */
+export interface PickBuffers {
+  /** false where reading the pick targets isn't implemented */
+  readonly supported: boolean;
+  /** false if `read` only starts an asynchronous read, whose result `check` reports */
+  readonly synchronous: boolean;
+  setViewport(x: number, y: number, width: number, height: number): void;
+  read(): void;
+  asyncRead(): void;
+  check(): AsyncPickStatus;
+  getDepth(x: number, y: number): number;
+  getPickingId(x: number, y: number): PickingId | undefined;
+  reset(): void;
+  dispose(): void;
+}
+
+/** Reads the pick textures with `readTextureAsync`; without synchronous reads, `read` starts an asynchronous one */
+class AsyncPickBuffers implements PickBuffers {
+  readonly supported = true;
+  readonly synchronous = false;
+
+  private object: Uint8Array;
+  private instance: Uint8Array;
+  private group: Uint8Array;
+  private depth: Uint8Array;
+
+  private viewport = Viewport.create(0, 0, 0, 0);
+  private status = AsyncPickStatus.Failed;
+  /** results of earlier reads are dropped */
+  private readId = 0;
+
+  setViewport(x: number, y: number, width: number, height: number) {
+    Viewport.set(this.viewport, x, y, width, height);
+    this.reset();
+  }
+
+  read() {
+    this.asyncRead();
+  }
+
+  asyncRead() {
+    const readId = ++this.readId;
+    const { x, y, width, height } = this.viewport;
+    this.status = AsyncPickStatus.Pending;
+    Promise.all(this.pickPass.getTextures().map((t) => this.graphics.readTextureAsync(t, x, y, width, height))).then(
+      ([object, instance, group, depth]) => {
+        if (readId !== this.readId) return;
+        this.object = object;
+        this.instance = instance;
+        this.group = group;
+        this.depth = depth;
+        this.status = AsyncPickStatus.Resolved;
+      },
+      (e) => {
+        if (readId !== this.readId) return;
+        if (isDebugMode) console.error(e);
+        this.status = AsyncPickStatus.Failed;
+      },
+    );
+  }
+
+  check() {
+    return this.status;
+  }
+
+  /** the rows are read top to bottom */
+  private getIdx(x: number, y: number): number {
+    const { width, height } = this.viewport;
+    return ((height - 1 - y) * width + x) * 4;
+  }
+
+  getDepth(x: number, y: number): number {
+    if (this.status !== AsyncPickStatus.Resolved) return -1;
+
+    const idx = this.getIdx(x, y);
+    const b = this.depth;
+    return unpackRGBAToDepth(b[idx], b[idx + 1], b[idx + 2], b[idx + 3]);
+  }
+
+  private getId(x: number, y: number, buffer: Uint8Array) {
+    const idx = this.getIdx(x, y);
+    return unpackRGBToInt(buffer[idx], buffer[idx + 1], buffer[idx + 2]);
+  }
+
+  getPickingId(x: number, y: number): PickingId | undefined {
+    if (this.status !== AsyncPickStatus.Resolved) return;
+
+    const objectId = this.getId(x, y, this.object);
+    if (objectId === -1 || objectId === PickingId.Null) return;
+
+    const instanceId = this.getId(x, y, this.instance);
+    if (instanceId === -1 || instanceId === PickingId.Null) return;
+
+    const groupId = this.getId(x, y, this.group);
+    if (groupId === -1) return;
+
+    return { objectId, instanceId, groupId };
+  }
+
+  reset() {
+    this.readId += 1;
+    this.status = AsyncPickStatus.Failed;
+  }
+
+  dispose() {
+    this.reset();
+  }
+
+  constructor(
+    private graphics: GraphicsContext,
+    private pickPass: PickPass,
+  ) {}
+}
+
+export function createPickBuffers(
+  graphics: GraphicsContext,
+  pickPass: PickPass,
+  maxAsyncReadLag?: number,
+): PickBuffers {
+  return isWebGLContext(graphics)
+    ? new WebGLPickBuffers(graphics, pickPass, maxAsyncReadLag)
+    : new AsyncPickBuffers(graphics, pickPass);
+}
+
+/** Reads with `readPixels`, asynchronously through pixel pack buffers and fences on WebGL2 */
+class WebGLPickBuffers implements PickBuffers {
+  readonly supported = true;
+  readonly synchronous = true;
   private object: Uint8Array;
   private instance: Uint8Array;
   private group: Uint8Array;
@@ -367,7 +491,7 @@ export class PickBuffers {
   }
 
   read() {
-    if (isTimingMode) this.webgl.timer.mark('PickBuffers.read');
+    if (isTimingMode) this.webgl.timer.group('PickBuffers.read');
     const { x, y, width, height } = this.viewport;
 
     this.pickPass.bindObject();
@@ -383,7 +507,7 @@ export class PickBuffers {
     this.webgl.readPixels(x, y, width, height, this.depth);
 
     this.ready = true;
-    if (isTimingMode) this.webgl.timer.markEnd('PickBuffers.read');
+    if (isTimingMode) this.webgl.timer.groupEnd('PickBuffers.read');
   }
 
   private fenceSync: WebGLSync | null = null;
@@ -396,7 +520,7 @@ export class PickBuffers {
     const { gl } = this.webgl;
     if (!isWebGL2(gl)) return;
 
-    if (isTimingMode) this.webgl.timer.mark('PickBuffers.asyncRead');
+    if (isTimingMode) this.webgl.timer.group('PickBuffers.asyncRead');
     if (this.fenceSync !== null) {
       gl.deleteSync(this.fenceSync);
     }
@@ -419,7 +543,7 @@ export class PickBuffers {
     gl.flush();
 
     this.ready = false;
-    if (isTimingMode) this.webgl.timer.markEnd('PickBuffers.asyncRead');
+    if (isTimingMode) this.webgl.timer.groupEnd('PickBuffers.asyncRead');
   }
 
   check(): AsyncPickStatus {

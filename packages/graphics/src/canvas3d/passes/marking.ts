@@ -15,19 +15,15 @@ import {
 import { type ComputeRenderable, createComputeRenderable } from '@molstar/graphics/gl/renderable';
 import { DefineSpec, TextureSpec, UniformSpec, type Values } from '@molstar/graphics/gl/renderable/schema';
 import { ShaderCode } from '@molstar/graphics/gl/shader-code';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
-import { createComputeRenderItem } from '@molstar/graphics/gl/webgl/render-item';
-import type { Texture } from '@molstar/graphics/gl/webgl/texture';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
+import { RenderState } from '@molstar/graphics/gl/render-state';
+import type { Texture } from '@molstar/graphics/gl/texture';
 import { Vec2, Vec3 } from '@molstar/core/math/linear-algebra';
 import { ValueCell } from '@molstar/core/util';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
-import { quad_vert } from '@molstar/graphics/gl/shader/quad.vert';
-import { overlay_frag } from '@molstar/graphics/gl/shader/marking/overlay.frag';
 import type { Viewport } from '../camera/util.js';
-import type { RenderTarget } from '@molstar/graphics/gl/webgl/render-target';
+import type { RenderTarget } from '@molstar/graphics/gl/render-target';
 import { Color } from '@molstar/core/util/color';
-import { edge_frag } from '@molstar/graphics/gl/shader/marking/edge.frag';
-import { dim_frag } from '@molstar/graphics/gl/shader/marking/dim.frag';
 import { isTimingMode } from '@molstar/core/util/debug';
 import { AntialiasingPass, type PostprocessingProps } from './postprocessing.js';
 import { Camera, type ICamera } from '../camera.js';
@@ -130,22 +126,21 @@ export class MarkingPass {
   private baseShading: MarkingShading | null = null;
 
   constructor(
-    private webgl: WebGLContext,
+    private graphics: GraphicsContext,
     width: number,
     height: number,
   ) {
-    const { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } = webgl.extensions;
-    this.depthTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
+    const { floatRenderTarget, halfFloatRenderTarget } = graphics.capabilities;
+    this.depthTarget = graphics.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'nearest');
     // linear so that it can be used as antialiasing input
-    this.maskTarget = webgl.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
-    this.edgesTarget = webgl.createRenderTarget(width, height);
-    const layerType =
-      colorBufferHalfFloat && textureHalfFloat ? 'fp16' : colorBufferFloat && textureFloat ? 'float32' : 'uint8';
-    this.layerTarget = webgl.createRenderTarget(width, height, 'none', layerType);
+    this.maskTarget = graphics.createRenderTarget(width, height, 'depth-stencil', 'uint8', 'linear');
+    this.edgesTarget = graphics.createRenderTarget(width, height);
+    const layerType = halfFloatRenderTarget ? 'fp16' : floatRenderTarget ? 'float32' : 'uint8';
+    this.layerTarget = graphics.createRenderTarget(width, height, 'none', layerType);
 
-    this.edge = getEdgeRenderable(webgl, this.maskTarget.texture);
-    this.overlay = getOverlayRenderable(webgl, this.edgesTarget.texture, this.maskTarget.texture);
-    this.composite = createCopyRenderable(webgl, this.layerTarget.texture);
+    this.edge = getEdgeRenderable(graphics, this.maskTarget.texture);
+    this.overlay = getOverlayRenderable(graphics, this.edgesTarget.texture, this.maskTarget.texture);
+    this.composite = createCopyRenderable(graphics, this.layerTarget.texture);
   }
 
   getByteCount() {
@@ -161,27 +156,15 @@ export class MarkingPass {
   }
 
   private setEdgeState(viewport: Viewport) {
-    const { gl, state } = this.webgl;
-
-    state.enable(gl.SCISSOR_TEST);
-    state.enable(gl.BLEND);
-    state.blendFunc(gl.ONE, gl.ONE);
-    state.blendEquation(gl.FUNC_ADD);
-    state.disable(gl.DEPTH_TEST);
-    state.depthMask(false);
-
-    const { x, y, width, height } = viewport;
-    state.viewport(x, y, width, height);
-    state.scissor(x, y, width, height);
-
-    state.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    this.graphics.setRenderState(RenderState.Additive);
+    this.setViewport(viewport);
+    this.graphics.clear({ color: [0, 0, 0, 0] });
   }
 
   private setViewport(viewport: Viewport) {
     const { x, y, width, height } = viewport;
-    this.webgl.state.viewport(x, y, width, height);
-    this.webgl.state.scissor(x, y, width, height);
+    this.graphics.setViewport(x, y, width, height);
+    this.graphics.setScissor(x, y, width, height);
   }
 
   setSize(width: number, height: number) {
@@ -239,7 +222,7 @@ export class MarkingPass {
     } = props.marking;
 
     const { values: edgeValues } = this.edge;
-    ValueCell.updateIfChanged(edgeValues.uEdgeScale, Math.max(1, edgeScale * this.webgl.pixelRatio));
+    ValueCell.updateIfChanged(edgeValues.uEdgeScale, Math.max(1, edgeScale * this.graphics.pixelRatio));
 
     const { values: overlayValues } = this.overlay;
     ValueCell.update(
@@ -346,7 +329,7 @@ export class MarkingPass {
     const hasMarking = this.updateLayer(ctx, props, options);
 
     if (toDrawingBuffer) this.copyToDrawingBuffer(base, viewport);
-    else if (hasMarking) base.bind();
+    else if (hasMarking) this.graphics.beginRenderPass(base, { label: 'marking composite' });
     if (hasMarking) this.compositeLayer(viewport);
 
     if (toDrawingBuffer && !(ctx.camera instanceof StereoCamera)) {
@@ -364,7 +347,7 @@ export class MarkingPass {
   redraw(ctx: RenderContext, props: Props, offsets: number[][], restart: boolean, samples: number): boolean {
     if (!this.base) return false;
 
-    if (isTimingMode) this.webgl.timer.mark('MarkingPass.redraw');
+    if (isTimingMode) this.graphics.timer.group('MarkingPass.redraw');
     this.present(ctx, props, {
       base: this.base,
       toDrawingBuffer: true,
@@ -373,8 +356,8 @@ export class MarkingPass {
       samples,
       shading: this.baseShading,
     });
-    this.webgl.gl.flush();
-    if (isTimingMode) this.webgl.timer.markEnd('MarkingPass.redraw');
+    this.graphics.flush();
+    if (isTimingMode) this.graphics.timer.groupEnd('MarkingPass.redraw');
     return true;
   }
 
@@ -407,12 +390,12 @@ export class MarkingPass {
       return true;
     }
 
-    if (isTimingMode) this.webgl.timer.mark('MarkingPass.updateLayer');
+    if (isTimingMode) this.graphics.timer.group('MarkingPass.updateLayer');
     const jitter = offsets.length > 1 && camera instanceof Camera;
     const { x, y, width, height } = camera.viewport;
 
     renderer.setDrawingBufferSize(this.maskTarget.getWidth(), this.maskTarget.getHeight());
-    renderer.setPixelRatio(this.webgl.pixelRatio);
+    renderer.setPixelRatio(this.graphics.pixelRatio);
     renderer.setViewport(x, y, width, height);
     this.update(props, renderer.props, dim, depthTest, shading, base.texture);
 
@@ -422,13 +405,13 @@ export class MarkingPass {
       renderer.update(camera, scene, frame);
 
       if (depthTest) {
-        this.depthTarget.bind();
+        this.graphics.beginRenderPass(this.depthTarget, { label: 'marking depth' });
         renderer.clear(false, true);
         // when everything is marked there is nothing to occlude with, but the cleared depth is still needed
         if (scene.markerAverage !== 1) renderer.renderMarkingDepth(scene.primitives, camera);
       }
 
-      this.maskTarget.bind();
+      this.graphics.beginRenderPass(this.maskTarget, { label: 'marking mask' });
       renderer.clear(false, true);
       renderer.renderMarkingMask(scene.primitives, camera, depthTest ? this.depthTarget.texture : null);
 
@@ -445,7 +428,7 @@ export class MarkingPass {
     }
 
     if (jitter) clearJitter(camera);
-    if (isTimingMode) this.webgl.timer.markEnd('MarkingPass.updateLayer');
+    if (isTimingMode) this.graphics.timer.groupEnd('MarkingPass.updateLayer');
     return true;
   }
 
@@ -456,7 +439,7 @@ export class MarkingPass {
     if (!this.antialiasing) {
       // linear, as the edge pass samples the mask between texels
       this.antialiasing = new AntialiasingPass(
-        this.webgl,
+        this.graphics,
         this.maskTarget.getWidth(),
         this.maskTarget.getHeight(),
         'linear',
@@ -477,9 +460,9 @@ export class MarkingPass {
       const height = this.maskTarget.getHeight();
       this.dim = {
         // linear so that it can be used as antialiasing input
-        target: this.webgl.createRenderTarget(width, height, 'none', 'uint8', 'linear'),
-        aaTarget: this.webgl.createRenderTarget(width, height, 'none'),
-        renderable: getDimRenderable(this.webgl, this.depthTarget.texture, this.maskTarget.texture),
+        target: this.graphics.createRenderTarget(width, height, 'none', 'uint8', 'linear'),
+        aaTarget: this.graphics.createRenderTarget(width, height, 'none'),
+        renderable: getDimRenderable(this.graphics, this.depthTarget.texture, this.maskTarget.texture),
       };
     }
     return this.dim;
@@ -487,7 +470,6 @@ export class MarkingPass {
 
   /** Renders the antialiased coverage of the visible unmarked geometry, from the depth and raw mask of the current sample. */
   private renderDim(camera: ICamera, postprocessingProps: PostprocessingProps): Texture {
-    const { gl, state } = this.webgl;
     const { target, aaTarget, renderable } = this.getDim();
     const { values } = renderable;
     ValueCell.updateIfChanged(values.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
@@ -496,14 +478,10 @@ export class MarkingPass {
     ValueCell.updateIfChanged(values.uFogNear, camera.fogNear);
     ValueCell.updateIfChanged(values.uFogFar, camera.fogFar);
 
-    target.bind();
+    this.graphics.beginRenderPass(target, { label: 'marking dim' });
     this.setViewport(camera.viewport);
-    state.enable(gl.SCISSOR_TEST);
-    state.disable(gl.BLEND);
-    state.disable(gl.DEPTH_TEST);
-    state.depthMask(false);
-    state.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    this.graphics.setRenderState(RenderState.Default);
+    this.graphics.clear({ color: [0, 0, 0, 0] });
     renderable.render();
 
     return this.antialias(camera, postprocessingProps, target, aaTarget);
@@ -511,7 +489,7 @@ export class MarkingPass {
 
   /** Blends the marking of the current mask into the layer, with `weight` for the new sample. */
   private renderSample(camera: ICamera, postprocessingProps: PostprocessingProps, weight: number, dim: boolean) {
-    if (isTimingMode) this.webgl.timer.mark('MarkingPass.renderSample');
+    if (isTimingMode) this.graphics.timer.group('MarkingPass.renderSample');
 
     const dimTexture = dim ? this.renderDim(camera, postprocessingProps) : this.maskTarget.texture;
     const aa = this.getAntialiasing(postprocessingProps);
@@ -531,49 +509,35 @@ export class MarkingPass {
     }
 
     const viewport = camera.viewport;
-    this.edgesTarget.bind();
+    this.graphics.beginRenderPass(this.edgesTarget, { label: 'marking edges' });
     this.setEdgeState(viewport);
     this.edge.render();
 
     this.renderOverlay(viewport, weight);
-    if (isTimingMode) this.webgl.timer.markEnd('MarkingPass.renderSample');
+    if (isTimingMode) this.graphics.timer.groupEnd('MarkingPass.renderSample');
   }
 
   /** Blends the overlay of the current sample's textures into the layer, with `weight` for the new sample. */
   private renderOverlay(viewport: Viewport, weight: number) {
-    const { gl, state } = this.webgl;
-    this.layerTarget.bind();
+    this.graphics.beginRenderPass(this.layerTarget, { label: 'marking overlay' });
     this.setViewport(viewport);
-    state.enable(gl.SCISSOR_TEST);
-    state.enable(gl.BLEND);
     // running average: the first sample (weight 1) replaces the previous content
-    state.blendColor(0, 0, 0, weight);
-    state.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA);
-    state.blendEquation(gl.FUNC_ADD);
+    this.graphics.setBlendConstant(weight, weight, weight, weight);
+    this.graphics.setRenderState(RenderState.Constant);
     this.overlay.render();
   }
 
   /** Blends the layer over the currently bound framebuffer. */
   private compositeLayer(viewport: Viewport) {
-    const { gl, state } = this.webgl;
-    state.enable(gl.SCISSOR_TEST);
-    state.enable(gl.BLEND);
-    state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    state.blendEquation(gl.FUNC_ADD);
-    state.disable(gl.DEPTH_TEST);
-    state.depthMask(false);
+    this.graphics.setRenderState(RenderState.Premultiplied);
     this.setViewport(viewport);
     this.composite.render();
   }
 
   private copyToDrawingBuffer(src: RenderTarget, viewport: Viewport) {
-    const { gl, state } = this.webgl;
-    const copy = getSharedCopyRenderable(this.webgl, src.texture);
-    this.webgl.bindDrawingBuffer();
-    state.enable(gl.SCISSOR_TEST);
-    state.disable(gl.BLEND);
-    state.disable(gl.DEPTH_TEST);
-    state.depthMask(false);
+    const copy = getSharedCopyRenderable(this.graphics, src.texture);
+    this.graphics.beginRenderPass('drawing-buffer', { label: 'copy' });
+    this.graphics.setRenderState(RenderState.Default);
     this.setViewport(viewport);
     copy.render();
   }
@@ -581,16 +545,16 @@ export class MarkingPass {
 
 //
 
-const EdgeSchema = {
+export const EdgeSchema = {
   ...QuadSchema,
   tMaskTexture: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   uTexSizeInv: UniformSpec('v2'),
   uEdgeScale: UniformSpec('f'),
 };
-const EdgeShaderCode = ShaderCode('edge', quad_vert, edge_frag);
+export const EdgeShaderCode = ShaderCode('edge');
 type EdgeRenderable = ComputeRenderable<Values<typeof EdgeSchema>>;
 
-function getEdgeRenderable(ctx: WebGLContext, maskTexture: Texture): EdgeRenderable {
+function getEdgeRenderable(ctx: GraphicsContext, maskTexture: Texture): EdgeRenderable {
   const width = maskTexture.getWidth();
   const height = maskTexture.getHeight();
 
@@ -602,14 +566,14 @@ function getEdgeRenderable(ctx: WebGLContext, maskTexture: Texture): EdgeRendera
   };
 
   const schema = { ...EdgeSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', EdgeShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', EdgeShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
 
 //
 
-const DimSchema = {
+export const DimSchema = {
   ...QuadSchema,
   tDepthTexture: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   tMaskTexture: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
@@ -620,10 +584,10 @@ const DimSchema = {
   uFogNear: UniformSpec('f'),
   uFogFar: UniformSpec('f'),
 };
-const DimShaderCode = ShaderCode('dim', quad_vert, dim_frag);
+export const DimShaderCode = ShaderCode('dim');
 type DimRenderable = ComputeRenderable<Values<typeof DimSchema>>;
 
-function getDimRenderable(ctx: WebGLContext, depthTexture: Texture, maskTexture: Texture): DimRenderable {
+function getDimRenderable(ctx: GraphicsContext, depthTexture: Texture, maskTexture: Texture): DimRenderable {
   const width = maskTexture.getWidth();
   const height = maskTexture.getHeight();
 
@@ -640,14 +604,14 @@ function getDimRenderable(ctx: WebGLContext, depthTexture: Texture, maskTexture:
   };
 
   const schema = { ...DimSchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', DimShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', DimShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }
 
 //
 
-const OverlaySchema = {
+export const OverlaySchema = {
   ...QuadSchema,
   tEdgeTexture: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
   tMaskTexture: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
@@ -675,10 +639,10 @@ const OverlaySchema = {
   tShaded: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
   dMarkingShading: DefineSpec('string', ['off', 'ssao', 'traced']),
 };
-const OverlayShaderCode = ShaderCode('overlay', quad_vert, overlay_frag);
+export const OverlayShaderCode = ShaderCode('overlay');
 type OverlayRenderable = ComputeRenderable<Values<typeof OverlaySchema>>;
 
-function getOverlayRenderable(ctx: WebGLContext, edgeTexture: Texture, maskTexture: Texture): OverlayRenderable {
+function getOverlayRenderable(ctx: GraphicsContext, edgeTexture: Texture, maskTexture: Texture): OverlayRenderable {
   const width = edgeTexture.getWidth();
   const height = edgeTexture.getHeight();
 
@@ -714,7 +678,7 @@ function getOverlayRenderable(ctx: WebGLContext, edgeTexture: Texture, maskTextu
   };
 
   const schema = { ...OverlaySchema };
-  const renderItem = createComputeRenderItem(ctx, 'triangles', OverlayShaderCode, schema, values);
+  const renderItem = ctx.createComputeRenderItem('triangles', OverlayShaderCode, schema, values);
 
   return createComputeRenderable(renderItem, values);
 }

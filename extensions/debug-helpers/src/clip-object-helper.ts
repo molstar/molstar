@@ -11,7 +11,7 @@ import { addCylinder } from '@molstar/graphics/geo/geometry/mesh/builder/cylinde
 import { Mesh } from '@molstar/graphics/geo/geometry/mesh/mesh';
 import { ParamDefinition as PD } from '@molstar/core/util/param-definition';
 import { Scene } from '@molstar/graphics/gl/scene';
-import type { WebGLContext } from '@molstar/graphics/gl/webgl/context';
+import type { GraphicsContext } from '@molstar/graphics/gl/context';
 import { Color } from '@molstar/core/util/color';
 import { ColorNames } from '@molstar/core/util/color/names';
 import { Clip } from '@molstar/core/util/clip';
@@ -115,7 +115,7 @@ export class ClipObjectHelper implements DebugHelper<ClipObjectHelperProps> {
   private _props: ClipObjectHelperProps;
   private objectsData = new Map<string, ClipObjectData>();
 
-  constructor(ctx: WebGLContext, parent: Scene, props: Partial<ClipObjectHelperProps>) {
+  constructor(ctx: GraphicsContext, parent: Scene, props: Partial<ClipObjectHelperProps>) {
     this.scene = Scene.create(ctx, 'blended');
     this.parent = parent;
     this._props = { ...PD.getDefaultValues(ClipObjectHelperParams), ...props };

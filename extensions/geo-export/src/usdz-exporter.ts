@@ -61,7 +61,7 @@ def Material "material${materialKey}"
   }
 
   protected async addMeshWithColors(input: AddMeshInput) {
-    const { mesh, values, isGeoTexture, mode, webgl, ctx } = input;
+    const { mesh, values, isGeoTexture, mode, graphics: graphics, ctx } = input;
     if (mode !== 'triangles') return;
 
     const t = Mat4();
@@ -79,8 +79,8 @@ def Material "material${materialKey}"
     const roughness = values.uRoughness.ref.value;
 
     let interpolatedColors: Uint8Array | undefined;
-    if (webgl && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
-      interpolatedColors = UsdzExporter.getInterpolatedColors(webgl, {
+    if (graphics && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
+      interpolatedColors = UsdzExporter.getInterpolatedColors(graphics, {
         vertices: mesh.vertices,
         vertexCount: mesh.vertexCount,
         values,
@@ -90,9 +90,9 @@ def Material "material${materialKey}"
     }
 
     let interpolatedOverpaint: Uint8Array | undefined;
-    if (webgl && mesh && overpaintType === 'volumeInstance') {
+    if (graphics && mesh && overpaintType === 'volumeInstance') {
       const stride = isGeoTexture ? 4 : 3;
-      interpolatedOverpaint = UsdzExporter.getInterpolatedOverpaint(webgl, {
+      interpolatedOverpaint = UsdzExporter.getInterpolatedOverpaint(graphics, {
         vertices: mesh.vertices,
         vertexCount: mesh.vertexCount,
         values,
@@ -102,9 +102,9 @@ def Material "material${materialKey}"
     }
 
     let interpolatedTransparency: Uint8Array | undefined;
-    if (webgl && mesh && transparencyType === 'volumeInstance') {
+    if (graphics && mesh && transparencyType === 'volumeInstance') {
       const stride = isGeoTexture ? 4 : 3;
-      interpolatedTransparency = UsdzExporter.getInterpolatedTransparency(webgl, {
+      interpolatedTransparency = UsdzExporter.getInterpolatedTransparency(graphics, {
         vertices: mesh.vertices,
         vertexCount: mesh.vertexCount,
         values,

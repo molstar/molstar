@@ -12,21 +12,16 @@ import { LocationIterator, PositionLocation } from '../../util/location-iterator
 import type { Theme } from '@molstar/graphics/theme/theme';
 import type { SpheresValues } from '@molstar/graphics/gl/renderable/spheres';
 import { createColors } from '../color-data.js';
+import { createCenterGroupData, setPositionGroup } from '../center-group.js';
 import { createMarkers } from '../marker-data.js';
-import {
-  type TextureImage,
-  calculateInvariantBoundingSphere,
-  calculateTransformBoundingSphere,
-  createTextureImage,
-} from '@molstar/graphics/gl/renderable/util';
+import { type TextureImage, calculateTransformBoundingSphere } from '@molstar/graphics/gl/renderable/util';
 import { Sphere3D } from '@molstar/core/math/geometry';
 import { createSizes, getMaxSize } from '../size-data.js';
 import type { Color } from '@molstar/core/util/color';
 import { BaseGeometry, resolveInstanceGranularity } from '../base.js';
 import { createEmptyOverpaint } from '../overpaint-data.js';
 import { createEmptyTransparency } from '../transparency-data.js';
-import { hashFnv32a } from '@molstar/core/data/util';
-import { type GroupMapping, createGroupMapping } from '../../util.js';
+import type { GroupMapping } from '../../util.js';
 import { createEmptyClipping } from '../clipping-data.js';
 import { Vec2, Vec3, Vec4 } from '@molstar/core/math/linear-algebra';
 import type { RenderableState } from '@molstar/graphics/gl/renderable';
@@ -77,53 +72,27 @@ export namespace Spheres {
     return create(cb, gb, 0, spheres);
   }
 
-  function hashCode(spheres: Spheres) {
-    return hashFnv32a([spheres.sphereCount, spheres.centerBuffer.ref.version, spheres.groupBuffer.ref.version]);
-  }
-
   function fromArrays(centers: Float32Array, groups: Float32Array, sphereCount: number): Spheres {
-    const boundingSphere = Sphere3D();
-    let groupMapping: GroupMapping;
-
-    let currentHash = -1;
-    let currentGroup = -1;
-
-    const positionGroup = ValueCell.create(createTextureImage(1, 4, Float32Array));
-    const texDim = ValueCell.create(Vec2.create(0, 0));
+    const data = createCenterGroupData(centers, groups, () => spheres.sphereCount);
     const lodLevels = ValueCell.create([] as LodLevelsValue);
     const sizeFactor = ValueCell.create(0);
 
     const spheres = {
       kind: 'spheres' as const,
       sphereCount,
-      centerBuffer: ValueCell.create(centers),
-      groupBuffer: ValueCell.create(groups),
+      centerBuffer: data.centerBuffer,
+      groupBuffer: data.groupBuffer,
       get boundingSphere() {
-        const newHash = hashCode(spheres);
-        if (newHash !== currentHash) {
-          const b = calculateInvariantBoundingSphere(spheres.centerBuffer.ref.value, spheres.sphereCount, 1);
-          Sphere3D.copy(boundingSphere, b);
-          currentHash = newHash;
-        }
-        return boundingSphere;
+        return data.getBoundingSphere();
       },
       get groupMapping() {
-        if (spheres.groupBuffer.ref.version !== currentGroup) {
-          groupMapping = createGroupMapping(spheres.groupBuffer.ref.value, spheres.sphereCount);
-          currentGroup = spheres.groupBuffer.ref.version;
-        }
-        return groupMapping;
+        return data.getGroupMapping();
       },
-      setBoundingSphere(sphere: Sphere3D) {
-        Sphere3D.copy(boundingSphere, sphere);
-        currentHash = hashCode(spheres);
-      },
-      hasBoundingSphere() {
-        return currentHash === hashCode(spheres);
-      },
+      setBoundingSphere: data.setBoundingSphere,
+      hasBoundingSphere: data.hasBoundingSphere,
       shaderData: {
-        positionGroup,
-        texDim,
+        positionGroup: data.positionGroup,
+        texDim: data.texDim,
         lodLevels,
         sizeFactor,
         update(props?: { lodLevels: LodLevels; sizeFactor: number }) {
@@ -131,20 +100,11 @@ export namespace Spheres {
           const sizeFactorProp = props?.sizeFactor ?? sizeFactor.ref.value;
 
           const strides = getStrides(lodLevelsProp, sizeFactorProp);
-          const pgt = createTextureImage(spheres.sphereCount, 4, Float32Array, positionGroup.ref.value.array);
-          const offsets = getStrideOffsetsAndSetPositionGroup(
-            pgt,
-            spheres.centerBuffer.ref.value,
-            spheres.groupBuffer.ref.value,
-            spheres.sphereCount,
-            strides,
-          );
+          const offsets = data.updatePositionGroup(strides);
           const newLodLevels = offsets
             ? getLodLevelsValue(lodLevelsProp, sizeFactorProp, offsets, spheres.sphereCount)
             : [];
 
-          ValueCell.update(positionGroup, pgt);
-          ValueCell.update(texDim, Vec2.set(texDim.ref.value, pgt.width, pgt.height));
           ValueCell.update(lodLevels, newLodLevels);
           ValueCell.update(sizeFactor, sizeFactorProp);
         },
@@ -160,51 +120,6 @@ export namespace Spheres {
     ValueCell.update(spheres.groupBuffer, groups);
     spheres.shaderData.update();
     return spheres;
-  }
-
-  function getStrideOffsetsAndSetPositionGroup(
-    out: TextureImage<Float32Array>,
-    centers: Float32Array,
-    groups: Float32Array,
-    count: number,
-    strides: number[],
-  ) {
-    const { array } = out;
-    if (strides.length === 0) {
-      for (let i = 0; i < count; ++i) {
-        array[i * 4 + 0] = centers[i * 3 + 0];
-        array[i * 4 + 1] = centers[i * 3 + 1];
-        array[i * 4 + 2] = centers[i * 3 + 2];
-        array[i * 4 + 3] = groups[i];
-      }
-      return;
-    }
-
-    const offsets = [0];
-
-    let o = 0;
-    for (let i = 0, il = strides.length; i < il; ++i) {
-      const s = strides[i];
-      for (let j = 0; j < count; ++j) {
-        let handled = false;
-        for (let k = 0; k < i; ++k) {
-          if (j % strides[k] === 0) {
-            handled = true;
-            break;
-          }
-        }
-        if (!handled && j % s === 0) {
-          array[o * 4 + 0] = centers[j * 3 + 0];
-          array[o * 4 + 1] = centers[j * 3 + 1];
-          array[o * 4 + 2] = centers[j * 3 + 2];
-          array[o * 4 + 3] = groups[j];
-          o += 1;
-        }
-      }
-      offsets.push(o * 6);
-    }
-
-    return offsets;
   }
 
   type LodLevels = {
@@ -508,7 +423,7 @@ export namespace Spheres {
     if (!areLodLevelsEqual(props.lodLevels, lodLevels) || props.sizeFactor !== prevSizeFactor) {
       const count = values.uVertexCount.ref.value / 6;
       const strides = getStrides(props.lodLevels, props.sizeFactor);
-      const offsets = getStrideOffsetsAndSetPositionGroup(
+      const offsets = setPositionGroup(
         values.tPositionGroup.ref.value,
         values.centerBuffer.ref.value,
         values.groupBuffer.ref.value,

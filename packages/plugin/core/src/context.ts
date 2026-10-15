@@ -10,6 +10,7 @@ import { List } from 'immutable';
 import { merge, Subscription } from 'rxjs';
 import { debounceTime, filter, take, throttleTime } from 'rxjs/operators';
 import { Canvas3D, Canvas3DContext, DefaultCanvas3DParams } from '@molstar/graphics/canvas3d/canvas3d';
+import { WebGL2Backend, WebGLBackend } from '@molstar/graphics/gl/webgl/backend';
 import { resizeCanvas } from '@molstar/graphics/canvas3d/util';
 import { Vec2 } from '@molstar/core/math/linear-algebra';
 import { CustomProperty } from '@molstar/model/props/common/custom-property';
@@ -277,27 +278,27 @@ export class PluginContext {
   readonly customState: unknown = Object.create(null);
 
   async initViewerAsync(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
-    return this._initViewer(canvas, container, canvas3dContext);
+    return await this._initViewer(canvas, container, canvas3dContext);
   }
 
   async initContainerAsync(options?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean }) {
-    return this._initContainer(options);
+    return await this._initContainer(options);
   }
 
   async mountAsync(
     target: HTMLElement,
     initOptions?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean },
   ) {
-    return this._mount(target, initOptions);
+    return await this._mount(target, initOptions);
   }
 
-  private _initContainer(options?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean }) {
+  private async _initContainer(options?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean }) {
     if (this.container) return true;
     const container = new PluginContainer({
       checkeredCanvasBackground: options?.checkeredCanvasBackground,
       canvas: options?.canvas3dContext?.canvas,
     });
-    if (!this._initViewer(container.canvas, container.parent, options?.canvas3dContext)) {
+    if (!(await this._initViewer(container.canvas, container.parent, options?.canvas3dContext))) {
       return false;
     }
     if (options?.checkeredCanvasBackground) {
@@ -311,13 +312,13 @@ export class PluginContext {
    * Mount the plugin into the target element (assumes the target has "relative"-like positioninig).
    * If initContainer wasn't called separately before, initOptions will be passed to it.
    */
-  private _mount(
+  private async _mount(
     target: HTMLElement,
     initOptions?: { canvas3dContext?: Canvas3DContext; checkeredCanvasBackground?: boolean },
   ) {
     if (this.disposed) throw new Error('Cannot mount a disposed context');
 
-    if (!this._initContainer(initOptions)) return false;
+    if (!(await this._initContainer(initOptions))) return false;
     this.container?.mount(target);
     this.handleResize();
     return true;
@@ -327,19 +328,24 @@ export class PluginContext {
     this.container?.unmount();
   }
 
-  private _initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
+  private async _initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
     try {
       this.layout.setRoot(container);
       if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
 
       if (!canvas3dContext) {
-        canvas3dContext = Canvas3DContext.fromCanvas(
+        const preferWebGl1 = this.config.get(PluginConfig.General.PreferWebGl1) || false;
+        const backends =
+          this.config.get(PluginConfig.General.GraphicsBackends) ??
+          (preferWebGl1 ? [WebGLBackend] : [WebGL2Backend, WebGLBackend]);
+        canvas3dContext = await Canvas3DContext.create(
           canvas,
           this.managers.asset,
+          backends,
           {
             antialias: !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false),
             preserveDrawingBuffer: !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false),
-            preferWebGl1: this.config.get(PluginConfig.General.PreferWebGl1) || false,
+            preferWebGl1,
             failIfMajorPerformanceCaveat: !(this.config.get(PluginConfig.General.AllowMajorPerformanceCaveat) ?? false),
             powerPreference: this.config.get(PluginConfig.General.PowerPreference) || 'high-performance',
             handleResize: this.handleResize,

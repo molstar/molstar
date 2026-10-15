@@ -105,7 +105,7 @@ const ParticlesRepresentation3D = PluginStateTransform.BuiltIn({
     return Task.create('Particles Representation', async (ctx) => {
       const themes = plugin.representation.particles.themes;
       const provider = plugin.representation.particles.registry.get(params.type.name);
-      const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...themes }, provider.getParams);
+      const repr = provider.factory({ graphics: plugin.canvas3d?.graphics, ...themes }, provider.getParams);
       repr.setTheme(Theme.create(themes, { particles: a.data }, params));
       const props = params.type.params || {};
       await repr.createOrUpdate(props, a.data).runInContext(ctx);

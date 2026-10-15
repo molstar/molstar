@@ -5,8 +5,8 @@
  */
 
 import { type Renderable, type RenderableState, createRenderable } from '../renderable.js';
-import type { WebGLContext } from '../webgl/context.js';
-import { createGraphicsRenderItem, type Transparency } from '../webgl/render-item.js';
+import type { GraphicsContext } from '../context.js';
+import type { Transparency } from '../render-item.js';
 import {
   GlobalUniformSchema,
   BaseSchema,
@@ -59,7 +59,7 @@ export type CylindersSchema = typeof CylindersSchema;
 export type CylindersValues = Values<CylindersSchema>;
 
 export function CylindersRenderable(
-  ctx: WebGLContext,
+  ctx: GraphicsContext,
   id: number,
   values: CylindersValues,
   state: RenderableState,
@@ -81,8 +81,7 @@ export function CylindersRenderable(
     dColorMarker: ValueCell.create(globals.dColorMarker),
   };
   const shaderCode = CylindersShaderCode;
-  const renderItem = createGraphicsRenderItem(
-    ctx,
+  const renderItem = ctx.createGraphicsRenderItem(
     'triangles',
     shaderCode,
     schema,
