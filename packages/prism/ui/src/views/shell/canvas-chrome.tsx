@@ -540,23 +540,34 @@ export function BusyOverlay(props: { status: StatusModel }) {
   );
 }
 
-/** The open overlay as a card in the right panel's place (the panel steps aside while it is open). */
+/**
+ * The open overlay as a card in the right panel's place (the panel steps aside while it is open). One card while any is
+ * open: another one opened swaps its title and body, as a tab swaps a panel's content (no closing and opening again).
+ */
 export function OverlayHost(props: { shell: ShellModel }) {
   const { shell } = props;
-  return <Show when={shell.overlay}>{(open) => <OverlayCard shell={shell} open={open} />}</Show>;
+  const isOpen = shell.overlay.pipe(
+    map((o) => !!o),
+    distinctUntilChanged(),
+  );
+  return <Show when={isOpen}>{() => <OverlayCard shell={shell} />}</Show>;
 }
 
-function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
-  const { shell, open } = props;
+function OverlayCard(props: { shell: ShellModel }) {
+  const { shell } = props;
+  /** The overlay open now (the card lives while one is). */
+  const current = () => shell.overlay.value as OpenOverlay;
   // A card is a dialog (README §3.7: cards trap and restore focus): opened from the keyboard, the focus goes into it;
-  // Tab stays inside while it floats (pinned, it is part of the workspace); closed, the focus goes back to its button.
-  const restore = rememberFocus(() => open.anchor as HTMLElement | undefined);
-  const byKeyboard = focusedByKeyboard(open.anchor);
+  // Tab stays inside while it floats (pinned, it is part of the workspace); closed, the focus goes back to the button
+  // of the last card opened.
+  let anchor = current().anchor as HTMLElement | undefined;
+  const restore = rememberFocus(() => anchor);
   const titleId = uniqueId('msp-card-title');
   const pinnedState = shell.dock('right').state.pipe(
     map((s) => s.pinned),
     distinctUntilChanged(),
   );
+  let frame = 0;
   const card = (
     <section
       class={classes.card}
@@ -569,20 +580,36 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
     >
       <header class={classes.cardHeader}>
         <h2 class={classes.cardTitle} id={titleId}>
-          {open.overlay.title}
+          {shell.overlay.pipe(map((o) => o?.overlay.title ?? ''))}
         </h2>
         <PinButton shell={shell} dock="right" />
         <Button variant="ghost" size="sm" icon={<Icon name="x" />} title="Close" onClick={() => shell.closeOverlay()} />
       </header>
-      {open.overlay.fill ? (
-        <div class={classes.cardBodyFill}>
-          <ViewHost renderer={open.overlay.render} ctx={{ shell, ...(open.focus ? { focus: open.focus } : {}) }} />
-        </div>
-      ) : (
-        <ScrollArea class={classes.cardBody} contentClass={classes.cardBodyContent}>
-          <ViewHost renderer={open.overlay.render} ctx={{ shell, ...(open.focus ? { focus: open.focus } : {}) }} />
-        </ScrollArea>
-      )}
+      <Show when={shell.overlay}>
+        {(open) => {
+          anchor = open.anchor as HTMLElement | undefined;
+          // Into the card: its body's first control once the view is there (a frame), else its Close.
+          if (focusedByKeyboard(open.anchor)) {
+            if (frame) cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => {
+              frame = 0;
+              const body = card.querySelector(`.${classes.cardBody}, .${classes.cardBodyFill}`);
+              const all = focusables(card);
+              (all.find((el) => body?.contains(el)) ?? all[all.length - 1])?.focus();
+            });
+          }
+          const ctx = { shell, ...(open.focus ? { focus: open.focus } : {}) };
+          return open.overlay.fill ? (
+            <div class={classes.cardBodyFill}>
+              <ViewHost renderer={open.overlay.render} ctx={ctx} />
+            </div>
+          ) : (
+            <ScrollArea class={classes.cardBody} contentClass={classes.cardBodyContent}>
+              <ViewHost renderer={open.overlay.render} ctx={ctx} />
+            </ScrollArea>
+          );
+        }}
+      </Show>
     </section>
   ) as HTMLElement;
   // Esc, or a pointer down outside the card and its button, closes it; not one on the canvas: the person turns and
@@ -597,6 +624,8 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
     e.preventDefault();
   };
   const onPointer = (e: PointerEvent) => {
+    const open = shell.overlay.value;
+    if (!open) return;
     const target = eventTarget(e) as Element;
     if (pinned() || open.overlay.persistent || isInside(e, card) || isInside(e, open.anchor)) return;
     // Buttons that open another card, and panel tabs, swap the card on their click: closing it here first would show
@@ -608,16 +637,6 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
   };
   doc.addEventListener('keydown', onKey);
   doc.addEventListener('pointerdown', onPointer, true);
-  // Into the card: its body's first control once the view is there (a frame), else its Close.
-  let frame = 0;
-  if (byKeyboard) {
-    frame = requestAnimationFrame(() => {
-      frame = 0;
-      const body = card.querySelector(`.${classes.cardBody}`);
-      const all = focusables(card);
-      (all.find((el) => body?.contains(el)) ?? all[all.length - 1])?.focus();
-    });
-  }
   onCleanup(() => {
     if (frame) cancelAnimationFrame(frame);
     doc.removeEventListener('keydown', onKey);
