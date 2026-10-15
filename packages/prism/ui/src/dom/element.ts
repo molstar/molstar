@@ -62,7 +62,9 @@ export abstract class MspElement<M = unknown> extends ElementBase {
   protected createModel?(): M;
 
   connectedCallback(): void {
-    adoptStyles(this.ownerDocument);
+    // In a page or in a shadow root (a `<prism-viewer>`): the styles go where the element is.
+    const root = this.getRootNode();
+    adoptStyles(root instanceof ShadowRoot ? root : this.ownerDocument);
     if (!this.parentElement?.closest('.msp-root')) this.classList.add('msp-root');
     if (this.#pendingDispose) {
       this.#pendingDispose = false;

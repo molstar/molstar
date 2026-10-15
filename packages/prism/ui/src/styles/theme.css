@@ -13,6 +13,7 @@
 @layer msp.theme {
   /* Light: the default, the inverse of the classic dark palette. */
   :root,
+  :host,
   [data-msp-theme="light"] {
     color-scheme: light;
     --msp-color-bg: #eeece7;
@@ -99,6 +100,7 @@
 
   /* Derived tokens: recomputed wherever a theme is set. */
   :root,
+  :host,
   [data-msp-theme] {
     --msp-color-panel: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 3%);
     --msp-color-raised: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 5%);

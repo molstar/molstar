@@ -11,7 +11,7 @@
 import { defineStyles } from '../registry.js';
 
 defineStyles('styles/theme.css', `@layer msp.theme {
-  :root, [data-msp-theme="light"] {
+  :root, :host, [data-msp-theme="light"] {
     color-scheme: light;
     --msp-color-bg: #eeece7;
     --msp-color-text: #332b1f;
@@ -90,7 +90,7 @@ defineStyles('styles/theme.css', `@layer msp.theme {
     }
   }
 
-  :root, [data-msp-theme] {
+  :root, :host, [data-msp-theme] {
     --msp-color-panel: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 3%);
     --msp-color-raised: color-mix(in oklab, var(--msp-color-bg), var(--msp-shade) 5%);
     --msp-color-well: var(--msp-color-bg);

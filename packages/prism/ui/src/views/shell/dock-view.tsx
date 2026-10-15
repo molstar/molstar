@@ -13,6 +13,7 @@ import { Button } from '../../components/button/button.js';
 import { Icon } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { activity, For, Show } from '../../dom/control-flow.js';
+import { eventTarget, isInside, ownsKey } from '../../dom/events.js';
 import { onCleanup } from '../../dom/scope.js';
 import type { Child } from '../../dom/jsx-types.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
@@ -225,7 +226,7 @@ function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLay
     else item.run?.(anchor);
   };
   const onKey = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || !menu.value) return;
+    if (e.key !== 'Escape' || !menu.value || !ownsKey(menu.value.anchor, e)) return;
     const anchor = menu.value.anchor as HTMLElement;
     menu.set(undefined);
     anchor.focus();
@@ -234,8 +235,8 @@ function RailMoreMenu(props: { shell: ShellModel; dock: DockModel; rail: RailLay
   const onDown = (e: PointerEvent) => {
     const m = menu.value;
     if (!m) return;
-    const target = e.target as Node;
-    if (m.anchor.contains(target) || (target as Element).closest?.(`.${classes.railMenu}`)) return;
+    const target = eventTarget(e) as Node;
+    if (isInside(e, m.anchor) || (target as Element).closest?.(`.${classes.railMenu}`)) return;
     menu.set(undefined);
   };
   document.addEventListener('keydown', onKey);

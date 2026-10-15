@@ -10,6 +10,7 @@
 
 import { ColorNames } from '@molstar/core/util/color/names';
 import { combineLatest, distinctUntilChanged, map, type Observable, shareReplay } from 'rxjs';
+import { activeElement } from '../../dom/events.js';
 import { bind } from '../../dom/scope.js';
 import { observableState } from '../../reactive/observable-state.js';
 import { classes } from './_generated/color-picker.module.css.js';
@@ -186,7 +187,7 @@ export function ColorPicker(props: ColorPickerProps) {
     current = v;
     if (!fromWeight) base.set(v);
     // Not under the caret: what is being typed stays as typed until it is left (then it is written out again).
-    if (input && document.activeElement !== input) input.value = colorToRgb(v);
+    if (input && activeElement(input) !== input) input.value = colorToRgb(v);
   });
 
   // Click or drag across the field or the greys; the pointer is captured, so a drag can leave the strip.

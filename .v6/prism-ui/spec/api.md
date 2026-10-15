@@ -5,7 +5,7 @@ area, each with its state and its operations as methods. It is the plugin's `man
 (David, 2026-10-15), with what v6 learned: every change goes through one run path, takes targets, returns a result,
 and is watched through rxjs states. [operations.md](operations.md) defines an operation and lists the areas; this file
 defines the objects they make up, the types around them (review F24), grouping, extensions, the code skill and what is
-promised stable. Status: **proposal** (2026-10-15).
+promised stable. Status: **accepted** (David, 2026-10-15).
 
 ## 1. At a glance
 

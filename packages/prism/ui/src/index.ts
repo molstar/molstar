@@ -26,9 +26,21 @@ export * from './reactive/transaction.js';
 
 export * from './model/canvas-theme.js';
 
+export * from './managers/history.js';
+export * from './managers/navigation.js';
+export * from './managers/notifications.js';
+export {
+  DefaultDockSizes,
+  type DockLayout,
+  defaultViewLayout,
+  MinDockSizes,
+  type StoredViewLayout,
+  type ViewLayout,
+  ViewStateManager,
+} from './managers/view-state.js';
+
 export * from './shell/fullscreen.js';
 export * from './shell/shell.js';
-export * from './shell/status.js';
 export * from './shell/theme.js';
 
 export * from './commands/keys.js';

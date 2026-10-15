@@ -11,6 +11,7 @@
 import { combineLatest, distinctUntilChanged, map, type Observable } from 'rxjs';
 import { activity, Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
+import { eventTarget, isEditable, ownsKey } from '../../dom/events.js';
 import { bind, onCleanup } from '../../dom/scope.js';
 import type { CanvasInk } from '../../model/canvas-theme.js';
 import type { ReadonlyState } from '../../reactive/readonly-state.js';
@@ -303,7 +304,8 @@ export function ShellView(props: ShellViewProps) {
   // Escape closes the open right panel, after anything nearer has had it: handlers on the document (an overlay card, an
   // open list) run first and mark it handled. Not while typing in a field, where Escape belongs to the field.
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || e.defaultPrevented || shell.overlay.value || isEditable(e.target)) return;
+    if (e.key !== 'Escape' || e.defaultPrevented || shell.overlay.value || isEditable(eventTarget(e))) return;
+    if (!ownsKey(root, e)) return;
     // A pinned panel is part of the workspace, not something passing over the canvas: Escape leaves it.
     if (right.state.value.pinned) return;
     if (!right.state.value.collapsed && right.active.value !== undefined) {
@@ -311,8 +313,8 @@ export function ShellView(props: ShellViewProps) {
       e.preventDefault();
     }
   };
-  window.addEventListener('keydown', onKeyDown);
-  onCleanup(() => window.removeEventListener('keydown', onKeyDown));
+  document.addEventListener('keydown', onKeyDown);
+  onCleanup(() => document.removeEventListener('keydown', onKeyDown));
   // Tooltips for the icon buttons of the rail and the canvas stack.
   onCleanup(installTooltips(root));
   // The shell decides compact or desktop by its own width, not the window's.
@@ -320,11 +322,4 @@ export function ShellView(props: ShellViewProps) {
   observer.observe(root);
   onCleanup(() => observer.disconnect());
   return root;
-}
-
-function isEditable(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable) return true;
-  if (target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true;
-  return target instanceof HTMLInputElement && !['checkbox', 'radio', 'range', 'button', 'color'].includes(target.type);
 }

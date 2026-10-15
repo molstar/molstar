@@ -392,9 +392,9 @@ What the spec asks of other packages, collected from the sections above; each is
 | [library.md](library.md)             | prism-ui's public surface and what it leaves to apps                                       | written |
 | [journal.md](journal.md)             | the session record: a fiber of runs and turns, History, the agent's session                | written |
 | [review.md](review.md)               | the multi-agent review of 2026-10-15 and how each finding was folded in                    | written |
-| [api.md](api.md)                     | the viewer's API: one object per area (the managers and builders done again), operations as their methods, the types around them, grouping, extensions, the code skill | written (proposal) |
+| [api.md](api.md)                     | the viewer's API: one object per area (the managers and builders done again), operations as their methods, the types around them, grouping, extensions, the code skill | accepted |
 | [app.md](app.md)                     | `apps/prism-viewer` and the single-file viewer: builds, chunks, deployment, embedding, URL | written |
-| [plan.md](plan.md)                   | the order of work: parallel by layer, switched per feature; tracks and seven phases        | written (proposal) |
+| [plan.md](plan.md)                   | the order of work: parallel by layer, switched per feature; tracks and seven phases        | accepted |
 
 Folded in: the viewer's composition and the extension API are [viewer-spec.md](viewer-spec.md); the command set is in
 [operations.md](operations.md); the JS API is §3.2 and [app.md](app.md).

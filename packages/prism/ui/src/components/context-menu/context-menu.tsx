@@ -8,6 +8,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { isInside } from '../../dom/events.js';
 import { createRoot } from '../../dom/scope.js';
 import { Icon, type IconName } from '../icon/icon.js';
 import { classes } from './_generated/context-menu.module.css.js';
@@ -48,7 +49,7 @@ export function openContextMenu(
     onClose?.();
   };
   const outside = (e: PointerEvent) => {
-    if (!menu.contains(e.target as Node)) close();
+    if (!isInside(e, menu)) close();
   };
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== 'Escape') return;

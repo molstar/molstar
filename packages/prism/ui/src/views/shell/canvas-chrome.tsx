@@ -13,6 +13,7 @@ import { Button } from '../../components/button/button.js';
 import { Icon, type IconName } from '../../components/icon/icon.js';
 import { ScrollArea } from '../../components/scroll-area/scroll-area.js';
 import { For, Show } from '../../dom/control-flow.js';
+import { eventTarget, isInside, ownsKey } from '../../dom/events.js';
 import { bind, onCleanup } from '../../dom/scope.js';
 import type { CanvasToolbarItem, OpenOverlay, ShellModel } from '../../shell/shell.js';
 import type { MessageKind, StatusModel, StatusTask } from '../../shell/status.js';
@@ -341,7 +342,7 @@ export function RailMenu(props: { shell: ShellModel }) {
     </div>
   ) as HTMLElement;
   const onDown = (e: PointerEvent) => {
-    if (open.value && !root.contains(e.target as Node)) open.set(false);
+    if (open.value && !isInside(e, root)) open.set(false);
   };
   document.addEventListener('pointerdown', onDown);
   onCleanup(() => document.removeEventListener('pointerdown', onDown));
@@ -423,13 +424,13 @@ function OverlayCard(props: { shell: ShellModel; open: OpenOverlay }) {
   const pinned = () => shell.dock('right').state.value.pinned;
   const doc = document;
   const onKey = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || e.defaultPrevented || pinned()) return;
+    if (e.key !== 'Escape' || e.defaultPrevented || pinned() || !ownsKey(card, e)) return;
     shell.closeOverlay();
     e.preventDefault();
   };
   const onPointer = (e: PointerEvent) => {
-    const target = e.target as Element;
-    if (pinned() || card.contains(target) || open.anchor?.contains(target)) return;
+    const target = eventTarget(e) as Element;
+    if (pinned() || isInside(e, card) || isInside(e, open.anchor)) return;
     // Buttons that open another card, and panel tabs, swap the card on their click: closing it here first would show
     // the panel underneath for a frame (a blink), and a tab click would then collapse the panel.
     if (target.closest?.('[data-overlay-trigger], [role=tab]')) return;

@@ -2,7 +2,7 @@
 
 The order of work for the spec in this folder. Each step is buildable and reviewable on its own (a PR, or a commit on
 the branch for small ones), keeps `pnpm test`, `npx tsc -b` and Storybook green, and leaves the mocks working until
-the real thing replaces them. Status: **proposal** (2026-10-15).
+the real thing replaces them. Status: **accepted** (David, 2026-10-15); in progress on `v6-prism-impl-proto`.
 
 ## 1. The approach: parallel by layer, switched per feature
 

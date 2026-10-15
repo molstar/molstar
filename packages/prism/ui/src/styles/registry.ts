@@ -16,13 +16,13 @@
 const LayerOrder = '@layer msp.reset, msp.theme, msp.components, msp.overrides;';
 
 const entries = new Map<string, string>();
-const documents = new Map<Document, () => void>();
+const roots = new Map<StyleRoot, () => void>();
 
 /** Registers (or replaces) the CSS of a file; adopted documents update. */
 export function defineStyles(id: string, css: string): void {
   if (entries.get(id) === css) return;
   entries.set(id, css);
-  for (const update of documents.values()) update();
+  for (const update of roots.values()) update();
 }
 
 /** All registered CSS, in registration order, after the layer order. */
@@ -30,22 +30,28 @@ export function styleText(): string {
   return [LayerOrder, ...entries.values()].join('\n');
 }
 
+/** Where styles are adopted: a document, or a shadow root (a `<prism-viewer>`'s). */
+export type StyleRoot = Document | ShadowRoot;
+
 /**
- * Keeps a document's styles in sync with the registry (idempotent). Uses a constructed stylesheet where supported,
- * otherwise a `<style>` element in the head.
+ * Keeps a document's or a shadow root's styles in sync with the registry (idempotent): sheets registered later (a lazy
+ * extension's) reach every adopted root. Uses a constructed stylesheet where supported, otherwise a `<style>` element
+ * (in the head, or first in the shadow root).
  */
-export function adoptStyles(doc: Document = document): void {
-  if (documents.has(doc)) return;
+export function adoptStyles(root: StyleRoot = document): void {
+  if (roots.has(root)) return;
+  const doc = isDocument(root) ? root : root.ownerDocument;
   const win = doc.defaultView;
   let update: () => void;
-  if (win && 'adoptedStyleSheets' in doc && typeof win.CSSStyleSheet?.prototype.replaceSync === 'function') {
+  if (win && 'adoptedStyleSheets' in root && typeof win.CSSStyleSheet?.prototype.replaceSync === 'function') {
     const sheet = new win.CSSStyleSheet();
-    doc.adoptedStyleSheets = [...doc.adoptedStyleSheets, sheet];
+    root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
     update = () => sheet.replaceSync(styleText());
   } else {
     const style = doc.createElement('style');
     style.setAttribute('data-msp-styles', '');
-    doc.head.appendChild(style);
+    if (isDocument(root)) root.head.appendChild(style);
+    else root.prepend(style);
     update = () => {
       style.textContent = styleText();
     };
@@ -60,6 +66,15 @@ export function adoptStyles(doc: Document = document): void {
       update();
     });
   };
-  documents.set(doc, schedule);
+  roots.set(root, schedule);
   update();
+}
+
+/** Stops updating a shadow root's styles (its viewer is gone). */
+export function releaseStyles(root: StyleRoot): void {
+  roots.delete(root);
+}
+
+function isDocument(root: StyleRoot): root is Document {
+  return (root as Document).nodeType === 9;
 }

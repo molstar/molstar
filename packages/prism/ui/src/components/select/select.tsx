@@ -11,6 +11,7 @@
 import { distinctUntilChanged, map, type Observable } from 'rxjs';
 import { Show } from '../../dom/control-flow.js';
 import type { Child } from '../../dom/jsx-types.js';
+import { activeElement, eventTarget, isInside } from '../../dom/events.js';
 import { bind, type MaybeReactive, onCleanup, toStream } from '../../dom/scope.js';
 import { type ObservableState, observableState } from '../../reactive/observable-state.js';
 import { Icon } from '../icon/icon.js';
@@ -120,7 +121,7 @@ export function OptionList(props: {
       contentClass={classes.listContent}
       role="listbox"
       onKeyDown={(e) => {
-        const i = buttons.indexOf(document.activeElement as HTMLButtonElement);
+        const i = buttons.indexOf(activeElement(list) as HTMLButtonElement);
         if (e.key === 'ArrowDown') focus(i + 1);
         else if (e.key === 'ArrowUp') focus(i - 1);
         else if (e.key === 'Home') focus(0);
@@ -166,8 +167,8 @@ export function OptionList(props: {
     ),
   );
   const onDown = (e: PointerEvent) => {
-    const target = e.target as Element;
-    if (list.contains(target) || target.closest?.('[aria-haspopup="listbox"][aria-expanded="true"]')) return;
+    const target = eventTarget(e) as Element;
+    if (isInside(e, list) || target.closest?.('[aria-haspopup="listbox"][aria-expanded="true"]')) return;
     props.onClose();
   };
   document.addEventListener('pointerdown', onDown, true);
