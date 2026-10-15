@@ -190,15 +190,11 @@
   border-radius: var(--msp-radius-md);
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
 
-  /* A row's menu as a popover from its ⋯ button: raised, as the selects' options. */
+  /* In a `MenuPopover` (a row's ⋯): its frame is the popover's. */
   &[data-popover] {
-    min-width: 200px;
     margin: 0;
-    background: var(--msp-color-raised);
-    box-shadow:
-      inset 0 0 0 1px var(--msp-glass-edge),
-      var(--msp-shadow-overlay);
-    font-size: var(--msp-font-size-sm);
+    padding: 0;
+    background: none;
   }
 
   /* In the inspector (a node's actions): plain rows on the panel, no well and no inset. */

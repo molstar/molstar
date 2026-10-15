@@ -275,14 +275,6 @@
 }
 
 /* A row's menu: inline under the row, like the scene tree's. */
-.menu {
-  display: grid;
-  margin: var(--msp-space-1) var(--msp-space-1) var(--msp-space-1) calc(var(--msp-space-2) + 2ch + var(--msp-space-3));
-  padding: var(--msp-space-1);
-  border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
-}
-
 .menuItem {
   display: grid;
   grid-template-columns: 14px 1fr;

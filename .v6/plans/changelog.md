@@ -159,6 +159,8 @@ the [API change ledger](breaking-v6-changes.md).
 - Prism viewer: the playback card is the Story (a book icon), one frame, its text wrapping inside it; a description's
   first heading that only repeats the snapshot's title is not shown; ← and → step through a story (quiet where there is
   none); the Snapshots tab's Play is an icon beside its options.
+- Prism viewer: a snapshot's ⋯ menu is a popover with Remove (its order is the drag handle's: no Move up and down);
+  prism-ui's `MenuPopover` serves it and the tree's row menus.
 - `StructureComponent` (a static one: the presets' Polymer, Water, …) takes a new label on update (it returned
   Unchanged before reaching the label, so a rename did nothing).
 - Prism viewer: a component is renamed from its inspector's title (a pencil); Make a component can make one with no

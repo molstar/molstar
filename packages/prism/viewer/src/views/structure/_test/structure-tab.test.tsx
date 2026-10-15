@@ -38,7 +38,7 @@ describe('StructureTab', () => {
     const { container, row } = mount();
     const more = row('Water').querySelector<HTMLButtonElement>('button[title=More]')!;
     more.click();
-    const menu = () => container.querySelector('[role=menu][data-popover]');
+    const menu = () => container.querySelector('[role=menu] [data-popover]');
     expect(menu()).not.toBeNull();
     expect(more.getAttribute('aria-expanded')).toBe('true');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));

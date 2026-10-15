@@ -36,7 +36,6 @@ export const classes = {
   'label': 'msp-viewer-snapshots-panel-label',
   'list': 'msp-viewer-snapshots-panel-list',
   'listContent': 'msp-viewer-snapshots-panel-listContent',
-  'menu': 'msp-viewer-snapshots-panel-menu',
   'menuItem': 'msp-viewer-snapshots-panel-menuItem',
   'name': 'msp-viewer-snapshots-panel-name',
   'optionsButton': 'msp-viewer-snapshots-panel-optionsButton',
@@ -299,14 +298,6 @@ defineStyles('viewer/views/state/snapshots-panel.module.css', `@layer msp.compon
     background: var(--msp-color-pressed);
     color: var(--msp-color-text);
   }
-}
-
-.msp-viewer-snapshots-panel-menu {
-  margin: var(--msp-space-1) var(--msp-space-1) var(--msp-space-1) calc(var(--msp-space-2) + 2ch + var(--msp-space-3));
-  padding: var(--msp-space-1);
-  border-radius: var(--msp-radius-md);
-  background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
-  display: grid;
 }
 
 .msp-viewer-snapshots-panel-menuItem {

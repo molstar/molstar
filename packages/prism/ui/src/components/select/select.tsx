@@ -228,6 +228,51 @@ function toValue(value: MaybeReactive<string> | undefined): Observable<string | 
  * What floats over the layout, under its anchor and at least as wide (above it when there is no room below): in the top layer
  * (a manual popover), so no panel's clipping or fade cuts it; it follows the anchor as things scroll or resize.
  */
+/**
+ * A menu in a popover from its button (a row's ⋯): raised, as a select's options; Escape (the focus back on the button)
+ * or a press outside it and its button closes it; the focus goes to its first enabled entry once it shows.
+ */
+export function MenuPopover(props: {
+  anchor: HTMLElement;
+  onClose(refocus?: boolean): void;
+  children: Child;
+  'aria-label'?: string;
+}) {
+  let menu: HTMLElement | undefined;
+  // Escape closes the menu first, before the panel it is in (the document's handlers run in capture order).
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    e.preventDefault();
+    props.onClose(true);
+  };
+  const onDown = (e: PointerEvent) => {
+    if (isInside(e, menu) || isInside(e, props.anchor)) return;
+    props.onClose();
+  };
+  document.addEventListener('keydown', onKey, true);
+  document.addEventListener('pointerdown', onDown, true);
+  onCleanup(() => {
+    document.removeEventListener('keydown', onKey, true);
+    document.removeEventListener('pointerdown', onDown, true);
+  });
+  return (
+    <Floating anchor={props.anchor} align="end">
+      <div
+        class={classes.menuPopover}
+        role="menu"
+        aria-label={props['aria-label']}
+        ref={(el: HTMLElement) => {
+          menu = el;
+          // Into it once it shows (the popover opens on the next microtask).
+          requestAnimationFrame(() => el.querySelector<HTMLElement>('button:not(:disabled)')?.focus());
+        }}
+      >
+        {props.children}
+      </div>
+    </Floating>
+  );
+}
+
 export function Floating(props: {
   anchor: HTMLElement;
   children: Child;

@@ -9,7 +9,7 @@
  */
 
 import { distinctUntilChanged, map, type Observable } from 'rxjs';
-import { Button } from '@molstar/prism-ui';
+import { Button, MenuPopover } from '@molstar/prism-ui';
 import { Icon } from '@molstar/prism-ui/components/icon/icon';
 import { ParamsForm } from '@molstar/prism-ui';
 import { dragToReorder } from '@molstar/prism-ui/components/reorder/drag-to-reorder';
@@ -124,6 +124,7 @@ function SnapshotRow(props: {
 }) {
   const { model, entry } = props;
   const menu = observableState(false);
+  let more: HTMLElement | undefined;
   const firstLine = entry.description
     ?.split('\n')
     .map((l) => l.replace(/[#*`>-]/g, '').trim())
@@ -143,7 +144,7 @@ function SnapshotRow(props: {
           }
         }}
       >
-        {/* The position; on hover, the handle that drags the row (Move up/down stay in its ⋯). */}
+        {/* The position; on hover, the handle that drags the row (the one way to reorder by hand). */}
         <span class={classes.slot}>
           <span class={classes.index}>{props.index.pipe(map((i) => `${i + 1}`))}</span>
           <span
@@ -177,7 +178,9 @@ function SnapshotRow(props: {
             type="button"
             class={classes.action}
             aria-label="More"
+            aria-haspopup="menu"
             aria-expanded={menu}
+            ref={(el: HTMLElement) => (more = el)}
             onClick={(e) => {
               e.stopPropagation();
               menu.set(!menu.value);
@@ -187,11 +190,17 @@ function SnapshotRow(props: {
           </button>
         </span>
       </div>
+      {/* A popover from ⋯ (as the tree's rows): Remove; the order is the drag handle's (no Move up and down). */}
       <Show when={menu}>
         {() => (
-          <div class={classes.menu} role="menu">
-            <MenuItem icon="arrow-up" label="Move up" run={() => model.move(entry.id, -1)} />
-            <MenuItem icon="arrow-down" label="Move down" run={() => model.move(entry.id, 1)} />
+          <MenuPopover
+            anchor={more!}
+            aria-label={`${entry.name}: actions`}
+            onClose={(refocus) => {
+              menu.set(false);
+              if (refocus) more?.focus();
+            }}
+          >
             <MenuItem
               icon="trash-2"
               label="Remove"
@@ -201,19 +210,14 @@ function SnapshotRow(props: {
                 model.remove(entry.id);
               }}
             />
-          </div>
+          </MenuPopover>
         )}
       </Show>
     </div>
   );
 }
 
-function MenuItem(props: {
-  icon: 'arrow-up' | 'arrow-down' | 'trash-2';
-  label: string;
-  danger?: boolean;
-  run: () => void;
-}) {
+function MenuItem(props: { icon: 'trash-2'; label: string; danger?: boolean; run: () => void }) {
   return (
     <button
       type="button"
@@ -222,6 +226,8 @@ function MenuItem(props: {
       data-danger={props.danger ? '' : undefined}
       onClick={props.run}
     >
+      {/* The column the tree's menus keep for a chevron: the label in the second. */}
+      <span />
       <span>{props.label}</span>
     </button>
   );

@@ -23,6 +23,7 @@ export const classes = {
   'list': 'msp-select-list',
   'list-in': 'msp-select-list-in',
   'listContent': 'msp-select-listContent',
+  'menuPopover': 'msp-select-menuPopover',
   'option': 'msp-select-option',
   'select': 'msp-select-select',
 } as const;
@@ -200,6 +201,18 @@ defineStyles('components/select/select.module.css', `@layer msp.components {
     box-shadow: inset 0 0 0 1px var(--msp-glass-edge),
       var(--msp-shadow-overlay);
   }
+}
+
+.msp-select-menuPopover {
+  min-width: 180px;
+  padding: var(--msp-space-1);
+  border-radius: var(--msp-radius-md);
+  background: var(--msp-color-raised);
+  box-shadow: inset 0 0 0 1px var(--msp-glass-edge),
+    var(--msp-shadow-overlay);
+  font-size: var(--msp-font-size-sm);
+  animation: msp-select-list-in var(--msp-motion-fast) var(--msp-ease);
+  display: grid;
 }
 }
 `);

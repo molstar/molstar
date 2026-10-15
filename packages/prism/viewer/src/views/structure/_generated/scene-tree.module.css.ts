@@ -208,16 +208,7 @@ defineStyles('viewer/views/structure/scene-tree.module.css', `@layer msp.compone
   background: color-mix(in oklab, var(--msp-color-control), transparent 40%);
   display: grid;
 
-  &[data-popover] {
-    background: var(--msp-color-raised);
-    min-width: 200px;
-    box-shadow: inset 0 0 0 1px var(--msp-glass-edge),
-      var(--msp-shadow-overlay);
-    font-size: var(--msp-font-size-sm);
-    margin: 0;
-  }
-
-  &[data-flat] {
+  &[data-popover], &[data-flat] {
     background: none;
     margin: 0;
     padding: 0;
